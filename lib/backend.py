@@ -63,7 +63,11 @@ _ALLOWED_CLEAN_DIRS = frozenset([
   constants.DATA_DIR,
   constants.JOB_QUEUE_ARCHIVE_DIR,
   constants.QUEUE_DIR,
+  constants.CRYPTO_KEYS_DIR,
   ])
+_MAX_SSL_CERT_VALIDITY = 7 * 24 * 60 * 60
+_X509_KEY_FILE = "key"
+_X509_CERT_FILE = "cert"
 
 
 class RPCFail(Exception):
@@ -385,6 +389,7 @@ def LeaveCluster(modify_ssh_setup):
 
   """
   _CleanDirectory(constants.DATA_DIR)
+  _CleanDirectory(constants.CRYPTO_KEYS_DIR)
   JobQueuePurge()
 
   if modify_ssh_setup:
@@ -2508,6 +2513,65 @@ def DemoteFromMC():
       _Fail("Error while backing up cluster file: %s", err, exc=True)
 
   utils.RemoveFile(constants.CLUSTER_CONF_FILE)
+
+
+def _GetX509Filenames(cryptodir, name):
+  """Returns the full paths for the private key and certificate.
+
+  """
+  return (utils.PathJoin(cryptodir, name),
+          utils.PathJoin(cryptodir, name, _X509_KEY_FILE),
+          utils.PathJoin(cryptodir, name, _X509_CERT_FILE))
+
+
+def CreateX509Certificate(validity, cryptodir=constants.CRYPTO_KEYS_DIR):
+  """Creates a new X509 certificate for SSL/TLS.
+
+  @type validity: int
+  @param validity: Validity in seconds
+  @rtype: tuple; (string, string)
+  @return: Certificate name and public part
+
+  """
+  (key_pem, cert_pem) = \
+    utils.GenerateSelfSignedX509Cert(utils.HostInfo.SysName(),
+                                     min(validity, _MAX_SSL_CERT_VALIDITY))
+
+  cert_dir = tempfile.mkdtemp(dir=cryptodir,
+                              prefix="x509-%s-" % utils.TimestampForFilename())
+  try:
+    name = os.path.basename(cert_dir)
+    assert len(name) > 5
+
+    (_, key_file, cert_file) = _GetX509Filenames(cryptodir, name)
+
+    utils.WriteFile(key_file, mode=0400, data=key_pem)
+    utils.WriteFile(cert_file, mode=0400, data=cert_pem)
+
+    # Never return private key as it shouldn't leave the node
+    return (name, cert_pem)
+  except Exception:
+    shutil.rmtree(cert_dir, ignore_errors=True)
+    raise
+
+
+def RemoveX509Certificate(name, cryptodir=constants.CRYPTO_KEYS_DIR):
+  """Removes a X509 certificate.
+
+  @type name: string
+  @param name: Certificate name
+
+  """
+  (cert_dir, key_file, cert_file) = _GetX509Filenames(cryptodir, name)
+
+  utils.RemoveFile(key_file)
+  utils.RemoveFile(cert_file)
+
+  try:
+    os.rmdir(cert_dir)
+  except EnvironmentError, err:
+    _Fail("Cannot remove certificate directory '%s': %s",
+          cert_dir, err)
 
 
 def _FindDisks(nodes_ip, disks):

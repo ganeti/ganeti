@@ -1081,7 +1081,6 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "node_demote_from_mc", [])
 
-
   def call_node_powercycle(self, node, hypervisor):
     """Tries to powercycle a node.
 
@@ -1089,7 +1088,6 @@ class RpcRunner(object):
 
     """
     return self._SingleNodeCall(node, "node_powercycle", [hypervisor])
-
 
   def call_test_delay(self, node_list, duration):
     """Sleep for a fixed time on given node(s).
@@ -1189,3 +1187,25 @@ class RpcRunner(object):
     hv_full = objects.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
     return self._MultiNodeCall(node_list, "hypervisor_validate_params",
                                [hvname, hv_full])
+
+  def call_create_x509_certificate(self, node, validity):
+    """Creates a new X509 certificate for SSL/TLS.
+
+    This is a single-node call.
+
+    @type validity: int
+    @param validity: Validity in seconds
+
+    """
+    return self._SingleNodeCall(node, "create_x509_certificate", [validity])
+
+  def call_remove_x509_certificate(self, node, name):
+    """Removes a X509 certificate.
+
+    This is a single-node call.
+
+    @type name: string
+    @param name: Certificate name
+
+    """
+    return self._SingleNodeCall(node, "remove_x509_certificate", [name])

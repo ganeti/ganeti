@@ -820,6 +820,24 @@ class NodeHttpServer(http.server.HttpServer):
     (hvname, hvparams) = params
     return backend.ValidateHVParams(hvname, hvparams)
 
+  # Crypto
+
+  @staticmethod
+  def perspective_create_x509_certificate(params):
+    """Creates a new X509 certificate for SSL/TLS.
+
+    """
+    (validity, ) = params
+    return backend.CreateX509Certificate(validity)
+
+  @staticmethod
+  def perspective_remove_x509_certificate(params):
+    """Removes a X509 certificate.
+
+    """
+    (name, ) = params
+    return backend.RemoveX509Certificate(name)
+
 
 def CheckNoded(_, args):
   """Initial checks whether to run or exit with a failure.
@@ -870,6 +888,7 @@ def main():
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
+  dirs.append((constants.CRYPTO_KEYS_DIR, constants.CRYPTO_KEYS_DIR_MODE))
   daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded,
                      default_ssl_cert=constants.NODED_CERT_FILE,
                      default_ssl_key=constants.NODED_CERT_FILE)

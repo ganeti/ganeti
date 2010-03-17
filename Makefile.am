@@ -322,6 +322,7 @@ TEST_FILES = \
 	test/data/proc_drbd83.txt
 
 python_tests = \
+	test/ganeti.backend_unittest.py \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.cmdlib_unittest.py \

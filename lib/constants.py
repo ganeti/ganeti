@@ -91,6 +91,8 @@ DISK_LINKS_DIR = RUN_GANETI_DIR + "/instance-disks"
 RUN_DIRS_MODE = 0755
 SOCKET_DIR = RUN_GANETI_DIR + "/socket"
 SOCKET_DIR_MODE = 0700
+CRYPTO_KEYS_DIR = RUN_GANETI_DIR + "/crypto"
+CRYPTO_KEYS_DIR_MODE = 0700
 # keep RUN_GANETI_DIR first here, to make sure all get created when the node
 # daemon is started (this takes care of RUN_DIR being tmpfs)
 SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
