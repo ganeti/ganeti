@@ -1341,6 +1341,7 @@ add_opts = [
   NWSYNC_OPT,
   OS_OPT,
   FORCE_VARIANT_OPT,
+  NO_INSTALL_OPT,
   OS_SIZE_OPT,
   SUBMIT_OPT,
   ]

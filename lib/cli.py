@@ -88,6 +88,7 @@ __all__ = [
   "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
+  "NO_INSTALL_OPT",
   "NONAMECHECK_OPT",
   "NOLVM_STORAGE_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
@@ -590,6 +591,11 @@ OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,
                                help="Force an unknown variant")
+
+NO_INSTALL_OPT = cli_option("--no-install", dest="no_install",
+                            action="store_true", default=False,
+                            help="Do not install the OS (will"
+                            " enable no-start)")
 
 BACKEND_OPT = cli_option("-B", "--backend-parameters", dest="beparams",
                          type="keyval", default={},
@@ -1553,11 +1559,13 @@ def GenericInstanceCreate(mode, opts, args):
     os_type = opts.os
     src_node = None
     src_path = None
+    no_install = opts.no_install
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None
     src_node = opts.src_node
     src_path = opts.src_dir
+    no_install = None
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
@@ -1579,7 +1587,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 start=start,
                                 os_type=os_type,
                                 src_node=src_node,
-                                src_path=src_path)
+                                src_path=src_path,
+                                no_install=no_install)
 
   SubmitOrSend(op, opts)
   return 0
