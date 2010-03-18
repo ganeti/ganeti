@@ -469,6 +469,8 @@ def CheckAgreement():
   if retries == 0:
     logging.critical("Cluster inconsistent, most of the nodes didn't answer"
                      " after multiple retries. Aborting startup")
+    logging.critical("Use the --no-voting option if you understand what"
+                     " effects it has on the cluster state")
     return False
   # here a real node is at the top of the list
   all_votes = sum(item[1] for item in votes)
