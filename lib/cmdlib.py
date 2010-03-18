@@ -1091,6 +1091,44 @@ class LUVerifyCluster(LogicalUnit):
   ETYPE_ERROR = "ERROR"
   ETYPE_WARNING = "WARNING"
 
+  class NodeImage(object):
+    """A class representing the logical and physical status of a node.
+
+    @ivar volumes: a structure as returned from
+        L{ganeti.utils.GetVolumeList} (runtime)
+    @ivar instances: a list of running instances (runtime)
+    @ivar pinst: list of configured primary instances (config)
+    @ivar sinst: list of configured secondary instances (config)
+    @ivar sbp: diction of {secondary-node: list of instances} of all peers
+        of this node (config)
+    @ivar mfree: free memory, as reported by hypervisor (runtime)
+    @ivar dfree: free disk, as reported by the node (runtime)
+    @ivar offline: the offline status (config)
+    @type rpc_fail: boolean
+    @ivar rpc_fail: whether the RPC verify call was successfull (overall,
+        not whether the individual keys were correct) (runtime)
+    @type lvm_fail: boolean
+    @ivar lvm_fail: whether the RPC call didn't return valid LVM data
+    @type hyp_fail: boolean
+    @ivar hyp_fail: whether the RPC call didn't return the instance list
+    @type ghost: boolean
+    @ivar ghost: whether this is a known node or not (config)
+
+    """
+    def __init__(self, offline=False):
+      self.volumes = {}
+      self.instances = []
+      self.pinst = []
+      self.sinst = []
+      self.sbp = {}
+      self.mfree = 0
+      self.dfree = 0
+      self.offline = offline
+      self.rpc_fail = False
+      self.lvm_fail = False
+      self.hyp_fail = False
+      self.ghost = False
+
   def ExpandNames(self):
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
@@ -1135,8 +1173,7 @@ class LUVerifyCluster(LogicalUnit):
     if kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR) == self.ETYPE_ERROR:
       self.bad = self.bad or cond
 
-  def _VerifyNode(self, nodeinfo, file_list, local_cksum,
-                  node_result, master_files, drbd_map, vg_name):
+  def _VerifyNode(self, ninfo, nresult):
     """Run multiple tests against a node.
 
     Test list:
@@ -1146,45 +1183,41 @@ class LUVerifyCluster(LogicalUnit):
       - checks config file checksum
       - checks ssh to other nodes
 
-    @type nodeinfo: L{objects.Node}
-    @param nodeinfo: the node to check
-    @param file_list: required list of files
-    @param local_cksum: dictionary of local files and their checksums
-    @param node_result: the results from the node
-    @param master_files: list of files that only masters should have
-    @param drbd_map: the useddrbd minors for this node, in
-        form of minor: (instance, must_exist) which correspond to instances
-        and their running status
-    @param vg_name: Ganeti Volume Group (result of self.cfg.GetVGName())
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the results from the node
+    @rtype: boolean
+    @return: whether overall this call was successful (and we can expect
+         reasonable values in the respose)
 
     """
-    node = nodeinfo.name
+    node = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
 
-    # main result, node_result should be a non-empty dict
-    test = not node_result or not isinstance(node_result, dict)
+    # main result, nresult should be a non-empty dict
+    test = not nresult or not isinstance(nresult, dict)
     _ErrorIf(test, self.ENODERPC, node,
                   "unable to verify node: no data returned")
     if test:
-      return
+      return False
 
     # compares ganeti version
     local_version = constants.PROTOCOL_VERSION
-    remote_version = node_result.get('version', None)
+    remote_version = nresult.get("version", None)
     test = not (remote_version and
                 isinstance(remote_version, (list, tuple)) and
                 len(remote_version) == 2)
     _ErrorIf(test, self.ENODERPC, node,
              "connection to node returned invalid data")
     if test:
-      return
+      return False
 
     test = local_version != remote_version[0]
     _ErrorIf(test, self.ENODEVERSION, node,
              "incompatible protocol versions: master %s,"
              " node %s", local_version, remote_version[0])
     if test:
-      return
+      return False
 
     # node seems compatible, we can actually try to look into its results
 
@@ -1195,111 +1228,122 @@ class LUVerifyCluster(LogicalUnit):
                   constants.RELEASE_VERSION, remote_version[1],
                   code=self.ETYPE_WARNING)
 
-    # checks vg existence and size > 20G
-    if vg_name is not None:
-      vglist = node_result.get(constants.NV_VGLIST, None)
-      test = not vglist
-      _ErrorIf(test, self.ENODELVM, node, "unable to check volume groups")
-      if not test:
-        vgstatus = utils.CheckVolumeGroupSize(vglist, vg_name,
-                                              constants.MIN_VG_SIZE)
-        _ErrorIf(vgstatus, self.ENODELVM, node, vgstatus)
-
-    # checks config file checksum
-
-    remote_cksum = node_result.get(constants.NV_FILELIST, None)
-    test = not isinstance(remote_cksum, dict)
-    _ErrorIf(test, self.ENODEFILECHECK, node,
-             "node hasn't returned file checksum data")
-    if not test:
-      for file_name in file_list:
-        node_is_mc = nodeinfo.master_candidate
-        must_have = (file_name not in master_files) or node_is_mc
-        # missing
-        test1 = file_name not in remote_cksum
-        # invalid checksum
-        test2 = not test1 and remote_cksum[file_name] != local_cksum[file_name]
-        # existing and good
-        test3 = not test1 and remote_cksum[file_name] == local_cksum[file_name]
-        _ErrorIf(test1 and must_have, self.ENODEFILECHECK, node,
-                 "file '%s' missing", file_name)
-        _ErrorIf(test2 and must_have, self.ENODEFILECHECK, node,
-                 "file '%s' has wrong checksum", file_name)
-        # not candidate and this is not a must-have file
-        _ErrorIf(test2 and not must_have, self.ENODEFILECHECK, node,
-                 "file '%s' should not exist on non master"
-                 " candidates (and the file is outdated)", file_name)
-        # all good, except non-master/non-must have combination
-        _ErrorIf(test3 and not must_have, self.ENODEFILECHECK, node,
-                 "file '%s' should not exist"
-                 " on non master candidates", file_name)
-
-    # checks ssh to any
-
-    test = constants.NV_NODELIST not in node_result
-    _ErrorIf(test, self.ENODESSH, node,
-             "node hasn't returned node ssh connectivity data")
-    if not test:
-      if node_result[constants.NV_NODELIST]:
-        for a_node, a_msg in node_result[constants.NV_NODELIST].items():
-          _ErrorIf(True, self.ENODESSH, node,
-                   "ssh communication with node '%s': %s", a_node, a_msg)
-
-    test = constants.NV_NODENETTEST not in node_result
-    _ErrorIf(test, self.ENODENET, node,
-             "node hasn't returned node tcp connectivity data")
-    if not test:
-      if node_result[constants.NV_NODENETTEST]:
-        nlist = utils.NiceSort(node_result[constants.NV_NODENETTEST].keys())
-        for anode in nlist:
-          _ErrorIf(True, self.ENODENET, node,
-                   "tcp communication with node '%s': %s",
-                   anode, node_result[constants.NV_NODENETTEST][anode])
-
-    hyp_result = node_result.get(constants.NV_HYPERVISOR, None)
+    hyp_result = nresult.get(constants.NV_HYPERVISOR, None)
     if isinstance(hyp_result, dict):
       for hv_name, hv_result in hyp_result.iteritems():
         test = hv_result is not None
         _ErrorIf(test, self.ENODEHV, node,
                  "hypervisor %s verify failure: '%s'", hv_name, hv_result)
 
-    # check used drbd list
-    if vg_name is not None:
-      used_minors = node_result.get(constants.NV_DRBDLIST, [])
-      test = not isinstance(used_minors, (tuple, list))
-      _ErrorIf(test, self.ENODEDRBD, node,
-               "cannot parse drbd status file: %s", str(used_minors))
-      if not test:
-        for minor, (iname, must_exist) in drbd_map.items():
-          test = minor not in used_minors and must_exist
-          _ErrorIf(test, self.ENODEDRBD, node,
-                   "drbd minor %d of instance %s is not active",
-                   minor, iname)
-        for minor in used_minors:
-          test = minor not in drbd_map
-          _ErrorIf(test, self.ENODEDRBD, node,
-                   "unallocated drbd minor %d is in use", minor)
-    test = node_result.get(constants.NV_NODESETUP,
+
+    test = nresult.get(constants.NV_NODESETUP,
                            ["Missing NODESETUP results"])
     _ErrorIf(test, self.ENODESETUP, node, "node setup error: %s",
              "; ".join(test))
 
-    # check pv names
-    if vg_name is not None:
-      pvlist = node_result.get(constants.NV_PVLIST, None)
-      test = pvlist is None
-      _ErrorIf(test, self.ENODELVM, node, "Can't get PV list from node")
-      if not test:
-        # check that ':' is not present in PV names, since it's a
-        # special character for lvcreate (denotes the range of PEs to
-        # use on the PV)
-        for _, pvname, owner_vg in pvlist:
-          test = ":" in pvname
-          _ErrorIf(test, self.ENODELVM, node, "Invalid character ':' in PV"
-                   " '%s' of VG '%s'", pvname, owner_vg)
+    return True
 
-  def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
-                      node_instance, n_offline):
+  def _VerifyNodeTime(self, ninfo, nresult,
+                      nvinfo_starttime, nvinfo_endtime):
+    """Check the node time.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param nvinfo_starttime: the start time of the RPC call
+    @param nvinfo_endtime: the end time of the RPC call
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    ntime = nresult.get(constants.NV_TIME, None)
+    try:
+      ntime_merged = utils.MergeTime(ntime)
+    except (ValueError, TypeError):
+      _ErrorIf(True, self.ENODETIME, node, "Node returned invalid time")
+      return
+
+    if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
+      ntime_diff = "%.01fs" % abs(nvinfo_starttime - ntime_merged)
+    elif ntime_merged > (nvinfo_endtime + constants.NODE_MAX_CLOCK_SKEW):
+      ntime_diff = "%.01fs" % abs(ntime_merged - nvinfo_endtime)
+    else:
+      ntime_diff = None
+
+    _ErrorIf(ntime_diff is not None, self.ENODETIME, node,
+             "Node time diverges by at least %s from master node time",
+             ntime_diff)
+
+  def _VerifyNodeLVM(self, ninfo, nresult, vg_name):
+    """Check the node time.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param vg_name: the configured VG name
+
+    """
+    if vg_name is None:
+      return
+
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    # checks vg existence and size > 20G
+    vglist = nresult.get(constants.NV_VGLIST, None)
+    test = not vglist
+    _ErrorIf(test, self.ENODELVM, node, "unable to check volume groups")
+    if not test:
+      vgstatus = utils.CheckVolumeGroupSize(vglist, vg_name,
+                                            constants.MIN_VG_SIZE)
+      _ErrorIf(vgstatus, self.ENODELVM, node, vgstatus)
+
+    # check pv names
+    pvlist = nresult.get(constants.NV_PVLIST, None)
+    test = pvlist is None
+    _ErrorIf(test, self.ENODELVM, node, "Can't get PV list from node")
+    if not test:
+      # check that ':' is not present in PV names, since it's a
+      # special character for lvcreate (denotes the range of PEs to
+      # use on the PV)
+      for _, pvname, owner_vg in pvlist:
+        test = ":" in pvname
+        _ErrorIf(test, self.ENODELVM, node, "Invalid character ':' in PV"
+                 " '%s' of VG '%s'", pvname, owner_vg)
+
+  def _VerifyNodeNetwork(self, ninfo, nresult):
+    """Check the node time.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    test = constants.NV_NODELIST not in nresult
+    _ErrorIf(test, self.ENODESSH, node,
+             "node hasn't returned node ssh connectivity data")
+    if not test:
+      if nresult[constants.NV_NODELIST]:
+        for a_node, a_msg in nresult[constants.NV_NODELIST].items():
+          _ErrorIf(True, self.ENODESSH, node,
+                   "ssh communication with node '%s': %s", a_node, a_msg)
+
+    test = constants.NV_NODENETTEST not in nresult
+    _ErrorIf(test, self.ENODENET, node,
+             "node hasn't returned node tcp connectivity data")
+    if not test:
+      if nresult[constants.NV_NODENETTEST]:
+        nlist = utils.NiceSort(nresult[constants.NV_NODENETTEST].keys())
+        for anode in nlist:
+          _ErrorIf(True, self.ENODENET, node,
+                   "tcp communication with node '%s': %s",
+                   anode, nresult[constants.NV_NODENETTEST][anode])
+
+  def _VerifyInstance(self, instance, instanceconfig, node_image):
     """Verify an instance.
 
     This function checks to see if the required block devices are
@@ -1313,80 +1357,263 @@ class LUVerifyCluster(LogicalUnit):
     instanceconfig.MapLVsByNode(node_vol_should)
 
     for node in node_vol_should:
-      if node in n_offline:
-        # ignore missing volumes on offline nodes
+      n_img = node_image[node]
+      if n_img.offline or n_img.rpc_fail or n_img.lvm_fail:
+        # ignore missing volumes on offline or broken nodes
         continue
       for volume in node_vol_should[node]:
-        test = node not in node_vol_is or volume not in node_vol_is[node]
+        test = volume not in n_img.volumes
         _ErrorIf(test, self.EINSTANCEMISSINGDISK, instance,
                  "volume %s missing on node %s", volume, node)
 
     if instanceconfig.admin_up:
-      test = ((node_current not in node_instance or
-               not instance in node_instance[node_current]) and
-              node_current not in n_offline)
+      pri_img = node_image[node_current]
+      test = instance not in pri_img.instances and not pri_img.offline
       _ErrorIf(test, self.EINSTANCEDOWN, instance,
                "instance not running on its primary node %s",
                node_current)
 
-    for node in node_instance:
+    for node, n_img in node_image.items():
       if (not node == node_current):
-        test = instance in node_instance[node]
+        test = instance in n_img.instances
         _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
                  "instance should not run on node %s", node)
 
-  def _VerifyOrphanVolumes(self, node_vol_should, node_vol_is):
+  def _VerifyOrphanVolumes(self, node_vol_should, node_image):
     """Verify if there are any unknown volumes in the cluster.
 
     The .os, .swap and backup volumes are ignored. All other volumes are
     reported as unknown.
 
     """
-    for node in node_vol_is:
-      for volume in node_vol_is[node]:
+    for node, n_img in node_image.items():
+      if n_img.offline or n_img.rpc_fail or n_img.lvm_fail:
+        # skip non-healthy nodes
+        continue
+      for volume in n_img.volumes:
         test = (node not in node_vol_should or
                 volume not in node_vol_should[node])
         self._ErrorIf(test, self.ENODEORPHANLV, node,
                       "volume %s is unknown", volume)
 
-  def _VerifyOrphanInstances(self, instancelist, node_instance):
+  def _VerifyOrphanInstances(self, instancelist, node_image):
     """Verify the list of running instances.
 
     This checks what instances are running but unknown to the cluster.
 
     """
-    for node in node_instance:
-      for o_inst in node_instance[node]:
+    for node, n_img in node_image.items():
+      for o_inst in n_img.instances:
         test = o_inst not in instancelist
         self._ErrorIf(test, self.ENODEORPHANINSTANCE, node,
                       "instance %s on node %s should not exist", o_inst, node)
 
-  def _VerifyNPlusOneMemory(self, node_info, instance_cfg):
+  def _VerifyNPlusOneMemory(self, node_image, instance_cfg):
     """Verify N+1 Memory Resilience.
 
-    Check that if one single node dies we can still start all the instances it
-    was primary for.
+    Check that if one single node dies we can still start all the
+    instances it was primary for.
 
     """
-    for node, nodeinfo in node_info.iteritems():
-      # This code checks that every node which is now listed as secondary has
-      # enough memory to host all instances it is supposed to should a single
-      # other node in the cluster fail.
+    for node, n_img in node_image.items():
+      # This code checks that every node which is now listed as
+      # secondary has enough memory to host all instances it is
+      # supposed to should a single other node in the cluster fail.
       # FIXME: not ready for failover to an arbitrary node
       # FIXME: does not support file-backed instances
-      # WARNING: we currently take into account down instances as well as up
-      # ones, considering that even if they're down someone might want to start
-      # them even in the event of a node failure.
-      for prinode, instances in nodeinfo['sinst-by-pnode'].iteritems():
+      # WARNING: we currently take into account down instances as well
+      # as up ones, considering that even if they're down someone
+      # might want to start them even in the event of a node failure.
+      for prinode, instances in n_img.sbp.items():
         needed_mem = 0
         for instance in instances:
           bep = self.cfg.GetClusterInfo().FillBE(instance_cfg[instance])
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
-        test = nodeinfo['mfree'] < needed_mem
+        test = n_img.mfree < needed_mem
         self._ErrorIf(test, self.ENODEN1, node,
                       "not enough memory on to accommodate"
                       " failovers should peer node %s fail", prinode)
+
+  def _VerifyNodeFiles(self, ninfo, nresult, file_list, local_cksum,
+                       master_files):
+    """Verifies and computes the node required file checksums.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param file_list: required list of files
+    @param local_cksum: dictionary of local files and their checksums
+    @param master_files: list of files that only masters should have
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    remote_cksum = nresult.get(constants.NV_FILELIST, None)
+    test = not isinstance(remote_cksum, dict)
+    _ErrorIf(test, self.ENODEFILECHECK, node,
+             "node hasn't returned file checksum data")
+    if test:
+      return
+
+    for file_name in file_list:
+      node_is_mc = ninfo.master_candidate
+      must_have = (file_name not in master_files) or node_is_mc
+      # missing
+      test1 = file_name not in remote_cksum
+      # invalid checksum
+      test2 = not test1 and remote_cksum[file_name] != local_cksum[file_name]
+      # existing and good
+      test3 = not test1 and remote_cksum[file_name] == local_cksum[file_name]
+      _ErrorIf(test1 and must_have, self.ENODEFILECHECK, node,
+               "file '%s' missing", file_name)
+      _ErrorIf(test2 and must_have, self.ENODEFILECHECK, node,
+               "file '%s' has wrong checksum", file_name)
+      # not candidate and this is not a must-have file
+      _ErrorIf(test2 and not must_have, self.ENODEFILECHECK, node,
+               "file '%s' should not exist on non master"
+               " candidates (and the file is outdated)", file_name)
+      # all good, except non-master/non-must have combination
+      _ErrorIf(test3 and not must_have, self.ENODEFILECHECK, node,
+               "file '%s' should not exist"
+               " on non master candidates", file_name)
+
+  def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_map):
+    """Verifies and the node DRBD status.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param instanceinfo: the dict of instances
+    @param drbd_map: the DRBD map as returned by
+        L{ganeti.config.ConfigWriter.ComputeDRBDMap}
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    # compute the DRBD minors
+    node_drbd = {}
+    for minor, instance in drbd_map[node].items():
+      test = instance not in instanceinfo
+      _ErrorIf(test, self.ECLUSTERCFG, None,
+               "ghost instance '%s' in temporary DRBD map", instance)
+        # ghost instance should not be running, but otherwise we
+        # don't give double warnings (both ghost instance and
+        # unallocated minor in use)
+      if test:
+        node_drbd[minor] = (instance, False)
+      else:
+        instance = instanceinfo[instance]
+        node_drbd[minor] = (instance.name, instance.admin_up)
+
+    # and now check them
+    used_minors = nresult.get(constants.NV_DRBDLIST, [])
+    test = not isinstance(used_minors, (tuple, list))
+    _ErrorIf(test, self.ENODEDRBD, node,
+             "cannot parse drbd status file: %s", str(used_minors))
+    if test:
+      # we cannot check drbd status
+      return
+
+    for minor, (iname, must_exist) in node_drbd.items():
+      test = minor not in used_minors and must_exist
+      _ErrorIf(test, self.ENODEDRBD, node,
+               "drbd minor %d of instance %s is not active", minor, iname)
+    for minor in used_minors:
+      test = minor not in node_drbd
+      _ErrorIf(test, self.ENODEDRBD, node,
+               "unallocated drbd minor %d is in use", minor)
+
+  def _UpdateNodeVolumes(self, ninfo, nresult, nimg, vg_name):
+    """Verifies and updates the node volume data.
+
+    This function will update a L{NodeImage}'s internal structures
+    with data from the remote call.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param nimg: the node image object
+    @param vg_name: the configured VG name
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    nimg.lvm_fail = True
+    lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
+    if vg_name is None:
+      pass
+    elif isinstance(lvdata, basestring):
+      _ErrorIf(True, self.ENODELVM, node, "LVM problem on node: %s",
+               utils.SafeEncode(lvdata))
+    elif not isinstance(lvdata, dict):
+      _ErrorIf(True, self.ENODELVM, node, "rpc call to node failed (lvlist)")
+    else:
+      nimg.volumes = lvdata
+      nimg.lvm_fail = False
+
+  def _UpdateNodeInstances(self, ninfo, nresult, nimg):
+    """Verifies and updates the node instance list.
+
+    If the listing was successful, then updates this node's instance
+    list. Otherwise, it marks the RPC call as failed for the instance
+    list key.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param nimg: the node image object
+
+    """
+    idata = nresult.get(constants.NV_INSTANCELIST, None)
+    test = not isinstance(idata, list)
+    self._ErrorIf(test, self.ENODEHV, ninfo.name, "rpc call to node failed"
+                  " (instancelist): %s", utils.SafeEncode(str(idata)))
+    if test:
+      nimg.hyp_fail = True
+    else:
+      nimg.instances = idata
+
+  def _UpdateNodeInfo(self, ninfo, nresult, nimg, vg_name):
+    """Verifies and computes a node information map
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param nimg: the node image object
+    @param vg_name: the configured VG name
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    # try to read free memory (from the hypervisor)
+    hv_info = nresult.get(constants.NV_HVINFO, None)
+    test = not isinstance(hv_info, dict) or "memory_free" not in hv_info
+    _ErrorIf(test, self.ENODEHV, node, "rpc call to node failed (hvinfo)")
+    if not test:
+      try:
+        nimg.mfree = int(hv_info["memory_free"])
+      except (ValueError, TypeError):
+        _ErrorIf(True, self.ENODERPC, node,
+                 "node returned invalid nodeinfo, check hypervisor")
+
+    # FIXME: devise a free space model for file based instances as well
+    if vg_name is not None:
+      test = (constants.NV_VGLIST not in nresult or
+              vg_name not in nresult[constants.NV_VGLIST])
+      _ErrorIf(test, self.ENODELVM, node,
+               "node didn't return data for the volume group '%s'"
+               " - it is either missing or broken", vg_name)
+      if not test:
+        try:
+          nimg.dfree = int(nresult[constants.NV_VGLIST][vg_name])
+        except (ValueError, TypeError):
+          _ErrorIf(True, self.ENODERPC, node,
+                   "node returned invalid LVM info, check LVM status")
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1442,12 +1669,9 @@ class LUVerifyCluster(LogicalUnit):
                         for iname in instancelist)
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
-    n_offline = [] # List of offline nodes
-    n_drained = [] # List of nodes being drained
-    node_volume = {}
-    node_instance = {}
-    node_info = {}
-    instance_cfg = {}
+    n_offline = 0 # Count of offline nodes
+    n_drained = 0 # Count of nodes being drained
+    node_vol_should = {}
 
     # FIXME: verify OS list
     # do local checksums
@@ -1481,6 +1705,35 @@ class LUVerifyCluster(LogicalUnit):
       node_verify_param[constants.NV_PVLIST] = [vg_name]
       node_verify_param[constants.NV_DRBDLIST] = None
 
+    # Build our expected cluster state
+    node_image = dict((node.name, self.NodeImage(offline=node.offline))
+                      for node in nodeinfo)
+
+    for instance in instancelist:
+      inst_config = instanceinfo[instance]
+
+      for nname in inst_config.all_nodes:
+        if nname not in node_image:
+          # ghost node
+          gnode = self.NodeImage()
+          gnode.ghost = True
+          node_image[nname] = gnode
+
+      inst_config.MapLVsByNode(node_vol_should)
+
+      pnode = inst_config.primary_node
+      node_image[pnode].pinst.append(instance)
+
+      for snode in inst_config.secondary_nodes:
+        nimg = node_image[snode]
+        nimg.sinst.append(instance)
+        if pnode not in nimg.sbp:
+          nimg.sbp[pnode] = []
+        nimg.sbp[pnode].append(instance)
+
+    # At this point, we have the in-memory data structures complete,
+    # except for the runtime information, which we'll gather next
+
     # Due to the way our RPC system works, exact response times cannot be
     # guaranteed (e.g. a broken node could run into a timeout). By keeping the
     # time before and after executing the request, we can at least have a time
@@ -1497,11 +1750,12 @@ class LUVerifyCluster(LogicalUnit):
     feedback_fn("* Verifying node status")
     for node_i in nodeinfo:
       node = node_i.name
+      nimg = node_image[node]
 
       if node_i.offline:
         if verbose:
           feedback_fn("* Skipping offline node %s" % (node,))
-        n_offline.append(node)
+        n_offline += 1
         continue
 
       if node == master_node:
@@ -1510,7 +1764,7 @@ class LUVerifyCluster(LogicalUnit):
         ntype = "master candidate"
       elif node_i.drained:
         ntype = "drained"
-        n_drained.append(node)
+        n_drained += 1
       else:
         ntype = "regular"
       if verbose:
@@ -1519,129 +1773,38 @@ class LUVerifyCluster(LogicalUnit):
       msg = all_nvinfo[node].fail_msg
       _ErrorIf(msg, self.ENODERPC, node, "while contacting node: %s", msg)
       if msg:
+        nimg.rpc_fail = True
         continue
 
       nresult = all_nvinfo[node].payload
-      node_drbd = {}
-      for minor, instance in all_drbd_map[node].items():
-        test = instance not in instanceinfo
-        _ErrorIf(test, self.ECLUSTERCFG, None,
-                 "ghost instance '%s' in temporary DRBD map", instance)
-          # ghost instance should not be running, but otherwise we
-          # don't give double warnings (both ghost instance and
-          # unallocated minor in use)
-        if test:
-          node_drbd[minor] = (instance, False)
-        else:
-          instance = instanceinfo[instance]
-          node_drbd[minor] = (instance.name, instance.admin_up)
 
-      self._VerifyNode(node_i, file_names, local_checksums,
-                       nresult, master_files, node_drbd, vg_name)
+      nimg.call_ok = self._VerifyNode(node_i, nresult)
+      self._VerifyNodeNetwork(node_i, nresult)
+      self._VerifyNodeLVM(node_i, nresult, vg_name)
+      self._VerifyNodeFiles(node_i, nresult, file_names, local_checksums,
+                            master_files)
+      self._VerifyNodeDrbd(node_i, nresult, instanceinfo, all_drbd_map)
+      self._VerifyNodeTime(node_i, nresult, nvinfo_starttime, nvinfo_endtime)
 
-      lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
-      if vg_name is None:
-        node_volume[node] = {}
-      elif isinstance(lvdata, basestring):
-        _ErrorIf(True, self.ENODELVM, node, "LVM problem on node: %s",
-                 utils.SafeEncode(lvdata))
-        node_volume[node] = {}
-      elif not isinstance(lvdata, dict):
-        _ErrorIf(True, self.ENODELVM, node, "rpc call to node failed (lvlist)")
-        continue
-      else:
-        node_volume[node] = lvdata
-
-      # node_instance
-      idata = nresult.get(constants.NV_INSTANCELIST, None)
-      test = not isinstance(idata, list)
-      _ErrorIf(test, self.ENODEHV, node,
-               "rpc call to node failed (instancelist): %s",
-               utils.SafeEncode(str(idata)))
-      if test:
-        continue
-
-      node_instance[node] = idata
-
-      # node_info
-      nodeinfo = nresult.get(constants.NV_HVINFO, None)
-      test = not isinstance(nodeinfo, dict)
-      _ErrorIf(test, self.ENODEHV, node, "rpc call to node failed (hvinfo)")
-      if test:
-        continue
-
-      # Node time
-      ntime = nresult.get(constants.NV_TIME, None)
-      try:
-        ntime_merged = utils.MergeTime(ntime)
-      except (ValueError, TypeError):
-        _ErrorIf(True, self.ENODETIME, node, "Node returned invalid time")
-
-      if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
-        ntime_diff = "%.01fs" % abs(nvinfo_starttime - ntime_merged)
-      elif ntime_merged > (nvinfo_endtime + constants.NODE_MAX_CLOCK_SKEW):
-        ntime_diff = "%.01fs" % abs(ntime_merged - nvinfo_endtime)
-      else:
-        ntime_diff = None
-
-      _ErrorIf(ntime_diff is not None, self.ENODETIME, node,
-               "Node time diverges by at least %s from master node time",
-               ntime_diff)
-
-      if ntime_diff is not None:
-        continue
-
-      try:
-        node_info[node] = {
-          "mfree": int(nodeinfo['memory_free']),
-          "pinst": [],
-          "sinst": [],
-          # dictionary holding all instances this node is secondary for,
-          # grouped by their primary node. Each key is a cluster node, and each
-          # value is a list of instances which have the key as primary and the
-          # current node as secondary.  this is handy to calculate N+1 memory
-          # availability if you can only failover from a primary to its
-          # secondary.
-          "sinst-by-pnode": {},
-        }
-        # FIXME: devise a free space model for file based instances as well
-        if vg_name is not None:
-          test = (constants.NV_VGLIST not in nresult or
-                  vg_name not in nresult[constants.NV_VGLIST])
-          _ErrorIf(test, self.ENODELVM, node,
-                   "node didn't return data for the volume group '%s'"
-                   " - it is either missing or broken", vg_name)
-          if test:
-            continue
-          node_info[node]["dfree"] = int(nresult[constants.NV_VGLIST][vg_name])
-      except (ValueError, KeyError):
-        _ErrorIf(True, self.ENODERPC, node,
-                 "node returned invalid nodeinfo, check lvm/hypervisor")
-        continue
-
-    node_vol_should = {}
+      self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
+      self._UpdateNodeInstances(node_i, nresult, nimg)
+      self._UpdateNodeInfo(node_i, nresult, nimg, vg_name)
 
     feedback_fn("* Verifying instance status")
     for instance in instancelist:
       if verbose:
         feedback_fn("* Verifying instance %s" % instance)
       inst_config = instanceinfo[instance]
-      self._VerifyInstance(instance, inst_config, node_volume,
-                           node_instance, n_offline)
+      self._VerifyInstance(instance, inst_config, node_image)
       inst_nodes_offline = []
 
-      inst_config.MapLVsByNode(node_vol_should)
-
-      instance_cfg[instance] = inst_config
-
       pnode = inst_config.primary_node
-      _ErrorIf(pnode not in node_info and pnode not in n_offline,
+      pnode_img = node_image[pnode]
+      _ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
                self.ENODERPC, pnode, "instance %s, connection to"
                " primary node failed", instance)
-      if pnode in node_info:
-        node_info[pnode]['pinst'].append(instance)
 
-      if pnode in n_offline:
+      if pnode_img.offline:
         inst_nodes_offline.append(pnode)
 
       # If the instance is non-redundant we cannot survive losing its primary
@@ -1649,44 +1812,42 @@ class LUVerifyCluster(LogicalUnit):
       # templates with more than one secondary so that situation is not well
       # supported either.
       # FIXME: does not support file-backed instances
-      if len(inst_config.secondary_nodes) == 0:
+      if not inst_config.secondary_nodes:
         i_non_redundant.append(instance)
-      _ErrorIf(len(inst_config.secondary_nodes) > 1,
-               self.EINSTANCELAYOUT, instance,
-               "instance has multiple secondary nodes", code="WARNING")
+      _ErrorIf(len(inst_config.secondary_nodes) > 1, self.EINSTANCELAYOUT,
+               instance, "instance has multiple secondary nodes: %s",
+               utils.CommaJoin(inst_config.secondary_nodes),
+               code=self.ETYPE_WARNING)
 
       if not cluster.FillBE(inst_config)[constants.BE_AUTO_BALANCE]:
         i_non_a_balanced.append(instance)
 
       for snode in inst_config.secondary_nodes:
-        _ErrorIf(snode not in node_info and snode not in n_offline,
-                 self.ENODERPC, snode,
-                 "instance %s, connection to secondary node"
-                 " failed", instance)
+        s_img = node_image[snode]
+        _ErrorIf(s_img.rpc_fail and not s_img.offline, self.ENODERPC, snode,
+                 "instance %s, connection to secondary node failed", instance)
 
-        if snode in node_info:
-          node_info[snode]['sinst'].append(instance)
-          if pnode not in node_info[snode]['sinst-by-pnode']:
-            node_info[snode]['sinst-by-pnode'][pnode] = []
-          node_info[snode]['sinst-by-pnode'][pnode].append(instance)
-
-        if snode in n_offline:
+        if s_img.offline:
           inst_nodes_offline.append(snode)
 
       # warn that the instance lives on offline nodes
       _ErrorIf(inst_nodes_offline, self.EINSTANCEBADNODE, instance,
                "instance lives on offline node(s) %s",
                utils.CommaJoin(inst_nodes_offline))
+      # ... or ghost nodes
+      for node in inst_config.all_nodes:
+        _ErrorIf(node_image[node].ghost, self.EINSTANCEBADNODE, instance,
+                 "instance lives on ghost node %s", node)
 
     feedback_fn("* Verifying orphan volumes")
-    self._VerifyOrphanVolumes(node_vol_should, node_volume)
+    self._VerifyOrphanVolumes(node_vol_should, node_image)
 
-    feedback_fn("* Verifying remaining instances")
-    self._VerifyOrphanInstances(instancelist, node_instance)
+    feedback_fn("* Verifying oprhan instances")
+    self._VerifyOrphanInstances(instancelist, node_image)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.skip_set:
       feedback_fn("* Verifying N+1 Memory redundancy")
-      self._VerifyNPlusOneMemory(node_info, instance_cfg)
+      self._VerifyNPlusOneMemory(node_image, instanceinfo)
 
     feedback_fn("* Other Notes")
     if i_non_redundant:
@@ -1698,10 +1859,10 @@ class LUVerifyCluster(LogicalUnit):
                   % len(i_non_a_balanced))
 
     if n_offline:
-      feedback_fn("  - NOTICE: %d offline node(s) found." % len(n_offline))
+      feedback_fn("  - NOTICE: %d offline node(s) found." % n_offline)
 
     if n_drained:
-      feedback_fn("  - NOTICE: %d drained node(s) found." % len(n_drained))
+      feedback_fn("  - NOTICE: %d drained node(s) found." % n_drained)
 
     return not self.bad
 
