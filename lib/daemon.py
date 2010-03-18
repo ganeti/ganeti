@@ -30,6 +30,7 @@ import logging
 import sched
 import time
 import socket
+import select
 import sys
 
 from ganeti import utils
@@ -91,20 +92,23 @@ class AsyncUDPSocket(asyncore.dispatcher):
     # differ and treat all messages equally.
     pass
 
+  def do_read(self):
+    try:
+      payload, address = self.recvfrom(constants.MAX_UDP_DATA_SIZE)
+    except socket.error, err:
+      if err.errno == errno.EINTR:
+        # we got a signal while trying to read. no need to do anything,
+        # handle_read will be called again if there is data on the socket.
+        return
+      else:
+        raise
+    ip, port = address
+    self.handle_datagram(payload, ip, port)
+
   # this method is overriding an asyncore.dispatcher method
   def handle_read(self):
     try:
-      try:
-        payload, address = self.recvfrom(constants.MAX_UDP_DATA_SIZE)
-      except socket.error, err:
-        if err.errno == errno.EINTR:
-          # we got a signal while trying to read. no need to do anything,
-          # handle_read will be called again if there is data on the socket.
-          return
-        else:
-          raise
-      ip, port = address
-      self.handle_datagram(payload, ip, port)
+      self.do_read()
     except: # pylint: disable-msg=W0702
       # we need to catch any exception here, log it, but proceed, because even
       # if we failed handling a single request, we still want to continue.
@@ -152,6 +156,21 @@ class AsyncUDPSocket(asyncore.dispatcher):
       raise errors.UdpDataSizeError('Packet too big: %s > %s' % (len(payload),
                                     constants.MAX_UDP_DATA_SIZE))
     self._out_queue.append((ip, port, payload))
+
+  def process_next_packet(self, timeout=0):
+    """Process the next datagram, waiting for it if necessary.
+
+    @type timeout: float
+    @param timeout: how long to wait for data
+    @rtype: boolean
+    @return: True if some data has been handled, False otherwise
+
+    """
+    if utils.WaitForFdCondition(self, select.POLLIN, timeout) & select.POLLIN:
+      self.do_read()
+      return True
+    else:
+      return False
 
 
 class Mainloop(object):
