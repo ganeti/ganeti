@@ -36,7 +36,6 @@ from ganeti import constants
 from ganeti import cli
 from ganeti import errors
 from ganeti import utils
-from ganeti import ssconf
 
 from ganeti.confd import client as confd_client
 
@@ -266,7 +265,6 @@ class Burner(object):
     self.hvp = self.bep = None
     self.ParseOptions()
     self.cl = cli.GetClient()
-    self.ss = ssconf.SimpleStore()
     self.GetState()
 
   def ClearFeedbackBuf(self):
@@ -885,15 +883,11 @@ class Burner(object):
     """
     Log("Checking confd results")
 
-    hmac_key = utils.ReadFile(constants.CONFD_HMAC_KEY)
-    mc_file = self.ss.KeyToFilename(constants.SS_MASTER_CANDIDATES_IPS)
-    mc_list = utils.ReadFile(mc_file).splitlines()
     filter_callback = confd_client.ConfdFilterCallback(self.ConfdCallback)
     counting_callback = confd_client.ConfdCountingCallback(filter_callback)
     self.confd_counting_callback = counting_callback
 
-    self.confd_client = confd_client.ConfdClient(hmac_key, mc_list,
-                                                 counting_callback)
+    self.confd_client = confd_client.GetConfdClient(counting_callback)
 
     req = confd_client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
     self.DoConfdRequestReply(req)
