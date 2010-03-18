@@ -1095,7 +1095,7 @@ class LUVerifyCluster(LogicalUnit):
     """A class representing the logical and physical status of a node.
 
     @ivar volumes: a structure as returned from
-        L{ganeti.utils.GetVolumeList} (runtime)
+        L{ganeti.backend.GetVolumeList} (runtime)
     @ivar instances: a list of running instances (runtime)
     @ivar pinst: list of configured primary instances (config)
     @ivar sinst: list of configured secondary instances (config)
@@ -4000,7 +4000,7 @@ def _CheckNodesFreeDisk(lu, nodenames, requested):
   @type lu: C{LogicalUnit}
   @param lu: a logical unit from which we get configuration data
   @type nodenames: C{list}
-  @param node: the list of node names to check
+  @param nodenames: the list of node names to check
   @type requested: C{int}
   @param requested: the amount of disk in MiB to check for
   @raise errors.OpPrereqError: if the node doesn't have enough disk, or

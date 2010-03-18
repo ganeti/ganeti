@@ -94,7 +94,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
                filename=constants.CLUSTER_CONF_FILE):
     """Constructor for ConfdInotifyEventHandler
 
-    @type watch_manager: L{pyinotify.WatchManager}
+    @type watch_manager: pyinotify.WatchManager
     @param watch_manager: ganeti-confd inotify watch manager
     @type callback: function accepting a boolean
     @param callback: function to call when an inotify event happens
