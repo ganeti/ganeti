@@ -258,9 +258,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
 
+    @type instance_name: string
     @param instance_name: the instance name
-
-    @return: tuple (name, id, memory, vcpus, stat, times)
+    @rtype: tuple of strings
+    @return: (name, id, memory, vcpus, stat, times)
 
     """
     _, pid, alive = self._InstancePidAlive(instance_name)
