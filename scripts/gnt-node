@@ -571,7 +571,7 @@ def ModifyStorage(opts, args):
   changes = {}
 
   if opts.allocatable is not None:
-    changes[constants.SF_ALLOCATABLE] = (opts.allocatable == "yes")
+    changes[constants.SF_ALLOCATABLE] = opts.allocatable
 
   if changes:
     op = opcodes.OpModifyNodeStorage(node_name=node_name,
@@ -618,23 +618,10 @@ def SetNodeParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  if opts.master_candidate is not None:
-    candidate = opts.master_candidate == 'yes'
-  else:
-    candidate = None
-  if opts.offline is not None:
-    offline = opts.offline == 'yes'
-  else:
-    offline = None
-
-  if opts.drained is not None:
-    drained = opts.drained == 'yes'
-  else:
-    drained = None
   op = opcodes.OpSetNodeParams(node_name=args[0],
-                               master_candidate=candidate,
-                               offline=offline,
-                               drained=drained,
+                               master_candidate=opts.master_candidate,
+                               offline=opts.offline,
+                               drained=opts.drained,
                                force=opts.force,
                                auto_promote=opts.auto_promote)
 

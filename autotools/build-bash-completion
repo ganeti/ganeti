@@ -312,6 +312,10 @@ class CompletionWriter:
       # Only static choices implemented so far (e.g. no node list)
       suggest = getattr(opt, "completion_suggest", None)
 
+      # our custom option type
+      if opt.type == "bool":
+        suggest = ["yes", "no"]
+
       if not suggest:
         suggest = opt.choices
 
