@@ -439,6 +439,33 @@ Takes the parameters ``mode`` (one of ``replace_on_primary``,
 ``remote_node`` and ``iallocator``.
 
 
+``/2/instances/[instance_name]/activate-disks``
++++++++++++++++++++++++++++++++++++++++++++++++
+
+Activate disks on an instance.
+
+It supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Takes the parameter ``ignore_size``. When set ignore the recorded
+size (useful for forcing activation when recorded size is wrong).
+
+
+``/2/instances/[instance_name]/deactivate-disks``
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Deactivate disks on an instance.
+
+It supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Takes no parameters.
+
+
 ``/2/instances/[instance_name]/tags``
 +++++++++++++++++++++++++++++++++++++
 
