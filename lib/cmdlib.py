@@ -7700,7 +7700,7 @@ class LUGrowDisk(LogicalUnit):
 
     self.instance = instance
 
-    if instance.disk_template not in (constants.DT_PLAIN, constants.DT_DRBD8):
+    if instance.disk_template not in constants.DTS_GROWABLE:
       raise errors.OpPrereqError("Instance's disk layout does not support"
                                  " growing.", errors.ECODE_INVAL)
 
