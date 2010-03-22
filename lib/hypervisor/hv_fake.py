@@ -136,13 +136,13 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     finally:
       fh.close()
 
-  def _MarkDown(self, instance):
+  def _MarkDown(self, instance_name):
     """Mark the instance as running.
 
     This does no checks, which should be done by its callers.
 
     """
-    file_name = self._InstanceFile(instance.name)
+    file_name = self._InstanceFile(instance_name)
     utils.RemoveFile(file_name)
 
   def StartInstance(self, instance, block_devices):
@@ -162,17 +162,19 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, err))
 
-  def StopInstance(self, instance, force=False, retry=False):
+  def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
 
     For the fake hypervisor, this just removes the file in the base
     dir, if it exist, otherwise we raise an exception.
 
     """
-    if not self._IsAlive(instance.name):
+    if name is None:
+      name = instance.name
+    if not self._IsAlive(name):
       raise errors.HypervisorError("Failed to stop instance %s: %s" %
-                                   (instance.name, "not running"))
-    self._MarkDown(instance)
+                                   (name, "not running"))
+    self._MarkDown(name)
 
   def RebootInstance(self, instance):
     """Reboot an instance.
@@ -252,7 +254,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     logging.debug("Fake hypervisor migrating %s to %s (live=%s)",
                   instance, target, live)
 
-    self._MarkDown(instance)
+    self._MarkDown(instance.name)
 
   def FinalizeMigration(self, instance, info, success):
     """Finalize an instance migration.
@@ -267,4 +269,4 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       self._MarkUp(instance)
     else:
       # ensure it's down
-      self._MarkDown(instance)
+      self._MarkDown(instance.name)
