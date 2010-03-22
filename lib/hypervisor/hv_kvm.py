@@ -107,13 +107,69 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     return utils.PathJoin(cls._PIDS_DIR, instance_name)
 
+  @classmethod
+  def _InstancePidInfo(cls, pid):
+    """Check pid file for instance information.
+
+    Check that a pid file is associated with an instance, and retrieve
+    information from its command line.
+
+    @type pid: string or int
+    @param pid: process id of the instance to check
+    @rtype: tuple
+    @return: (instance_name, memory, vcpus)
+    @raise errors.HypervisorError: when an instance cannot be found
+
+    """
+    alive = utils.IsProcessAlive(pid)
+    if not alive:
+      raise errors.HypervisorError("Cannot get info for pid %s" % pid)
+
+    cmdline_file = utils.PathJoin("/proc", str(pid), "cmdline")
+    try:
+      cmdline = utils.ReadFile(cmdline_file)
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Can't open cmdline file for pid %s: %s" %
+                                   (pid, err))
+
+    instance = None
+    memory = 0
+    vcpus = 0
+
+    arg_list = cmdline.split('\x00')
+    while arg_list:
+      arg =  arg_list.pop(0)
+      if arg == "-name":
+        instance = arg_list.pop(0)
+      elif arg == "-m":
+        memory = int(arg_list.pop(0))
+      elif arg == "-smp":
+        vcpus = int(arg_list.pop(0))
+
+    if instance is None:
+      raise errors.HypervisorError("Pid %s doesn't contain a ganeti kvm"
+                                   " instance" % pid)
+
+    return (instance, memory, vcpus)
+
   def _InstancePidAlive(self, instance_name):
-    """Returns the instance pid and pidfile
+    """Returns the instance pidfile, pid, and liveness.
+
+    @type instance_name: string
+    @param instance_name: instance name
+    @rtype: tuple
+    @return: (pid file name, pid, liveness)
 
     """
     pidfile = self._InstancePidFile(instance_name)
     pid = utils.ReadPidFile(pidfile)
-    alive = utils.IsProcessAlive(pid)
+
+    alive = False
+    try:
+      cmd_instance = self._InstancePidInfo(pid)[0]
+      alive = (cmd_instance == instance_name)
+    except errors.HypervisorError:
+      pass
 
     return (pidfile, pid, alive)
 
@@ -250,8 +306,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     result = []
     for name in os.listdir(self._PIDS_DIR):
-      filename = utils.PathJoin(self._PIDS_DIR, name)
-      if utils.IsProcessAlive(utils.ReadPidFile(filename)):
+      if self._InstancePidAlive(name)[2]:
         result.append(name)
     return result
 
@@ -268,25 +323,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not alive:
       return None
 
-    cmdline_file = utils.PathJoin("/proc", str(pid), "cmdline")
-    try:
-      cmdline = utils.ReadFile(cmdline_file)
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Failed to list instance %s: %s" %
-                                   (instance_name, err))
-
-    memory = 0
-    vcpus = 0
+    _, memory, vcpus = self._InstancePidInfo(pid)
     stat = "---b-"
     times = "0"
-
-    arg_list = cmdline.split('\x00')
-    while arg_list:
-      arg =  arg_list.pop(0)
-      if arg == '-m':
-        memory = int(arg_list.pop(0))
-      elif arg == '-smp':
-        vcpus = int(arg_list.pop(0))
 
     return (instance_name, pid, memory, vcpus, stat, times)
 
@@ -298,15 +337,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     data = []
     for name in os.listdir(self._PIDS_DIR):
-      filename = utils.PathJoin(self._PIDS_DIR, name)
-      if utils.IsProcessAlive(utils.ReadPidFile(filename)):
-        try:
-          info = self.GetInstanceInfo(name)
-        except errors.HypervisorError:
-          continue
-        if info:
-          data.append(info)
-
+      try:
+        info = self.GetInstanceInfo(name)
+      except errors.HypervisorError:
+        continue
+      if info:
+        data.append(info)
     return data
 
   def _GenerateKVMRuntime(self, instance, block_devices):
@@ -588,7 +624,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         self._CallMonitorCommand(instance.name, 'system_powerdown')
 
-    if not utils.IsProcessAlive(pid):
+    if not self._InstancePidAlive(instance.name)[2]:
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
       return True
     else:
