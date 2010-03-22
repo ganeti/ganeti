@@ -649,6 +649,25 @@ class R_2_instances_name_replace_disks(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_instances_name_activate_disks(baserlib.R_Generic):
+  """/2/instances/[instance_name]/activate-disks resource.
+
+  """
+  def PUT(self):
+    """Activate disks for an instance.
+
+    The URI might contain ignore_size to ignore current recorded size.
+
+    """
+    instance_name = self.items[0]
+    ignore_size = bool(self._checkIntVariable('ignore_size'))
+
+    op = opcodes.OpActivateInstanceDisks(instance_name=instance_name,
+                                         ignore_size=ignore_size)
+
+    return baserlib.SubmitJob([op])
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 
