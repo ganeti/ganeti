@@ -106,10 +106,8 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     # no need to call the parent's constructor
     self.watch_manager = watch_manager
     self.callback = callback
-    # pylint: disable-msg=E1103
-    # pylint for some reason doesn't see the below constants
-    self.mask = pyinotify.EventsCodes.IN_IGNORED | \
-                pyinotify.EventsCodes.IN_MODIFY
+    self.mask = pyinotify.EventsCodes.ALL_FLAGS["IN_IGNORED"] | \
+                pyinotify.EventsCodes.ALL_FLAGS["IN_MODIFY"]
     self.file = filename
     self.watch_handle = None
 
