@@ -660,6 +660,7 @@ SS_OFFLINE_NODES = "offline_nodes"
 SS_ONLINE_NODES = "online_nodes"
 SS_INSTANCE_LIST = "instance_list"
 SS_RELEASE_VERSION = "release_version"
+SS_HYPERVISOR_LIST = "hypervisor_list"
 
 # cluster wide default parameters
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM
