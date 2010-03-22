@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Tool to restart erronously downed virtual machines.
+"""Tool to restart erroneously downed virtual machines.
 
 This program and set of classes implement a watchdog to restart
 virtual machines in a Ganeti cluster that have crashed or been killed
@@ -75,7 +75,7 @@ def StartNodeDaemons():
   """Start all the daemons that should be running on all nodes.
 
   """
-  # on master or not, try to start the node dameon
+  # on master or not, try to start the node daemon
   utils.EnsureDaemon(constants.NODED)
   # start confd as well. On non candidates it will be in disabled mode.
   utils.EnsureDaemon(constants.CONFD)
@@ -310,7 +310,7 @@ def GetClusterData():
 
 
 class Watcher(object):
-  """Encapsulate the logic for restarting erronously halted virtual machines.
+  """Encapsulate the logic for restarting erroneously halted virtual machines.
 
   The calling program should periodically instantiate me and call Run().
   This will traverse the list of instances, and make up to MAXTRIES attempts
