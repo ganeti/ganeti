@@ -203,6 +203,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern, job_id_pattern):
       rlib2.R_2_instances_name_startup,
     re.compile(r'^/2/instances/(%s)/activate-disks$' % instance_name_pattern):
       rlib2.R_2_instances_name_activate_disks,
+    re.compile(r'^/2/instances/(%s)/deactivate-disks$' % instance_name_pattern):
+      rlib2.R_2_instances_name_deactivate_disks,
 
     "/2/jobs": rlib2.R_2_jobs,
     re.compile(r'/2/jobs/(%s)$' % job_id_pattern):
