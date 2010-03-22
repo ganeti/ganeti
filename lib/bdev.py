@@ -1915,13 +1915,14 @@ class FileStorage(BlockDev):
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     dev_path = unique_id[1]
-    if os.path.exists(dev_path):
-      _ThrowError("File already existing: %s", dev_path)
     try:
-      f = open(dev_path, 'w')
+      fd = os.open(dev_path, os.O_RDWR | os.O_CREAT | os.O_EXCL)
+      f = os.fdopen(fd, "w")
       f.truncate(size * 1024 * 1024)
       f.close()
-    except IOError, err:
+    except EnvironmentError, err:
+      if err.errno == errno.EEXIST:
+        _ThrowError("File already existing: %s", dev_path)
       _ThrowError("Error in file creation: %", str(err))
 
     return FileStorage(unique_id, children, size)
