@@ -237,7 +237,7 @@ class BaseHypervisor(object):
   def MigrateInstance(self, instance, target, live):
     """Migrate an instance.
 
-    @type instance: L{object.Instance}
+    @type instance: L{objects.Instance}
     @param instance: the instance to be migrated
     @type target: string
     @param target: hostname (usually ip) of the target node

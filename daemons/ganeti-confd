@@ -94,7 +94,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
                filename=constants.CLUSTER_CONF_FILE):
     """Constructor for ConfdInotifyEventHandler
 
-    @type watch_manager: L{pyinotify.WatchManager}
+    @type watch_manager: pyinotify.WatchManager
     @param watch_manager: ganeti-confd inotify watch manager
     @type callback: function accepting a boolean
     @param callback: function to call when an inotify event happens
@@ -106,10 +106,8 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     # no need to call the parent's constructor
     self.watch_manager = watch_manager
     self.callback = callback
-    # pylint: disable-msg=E1103
-    # pylint for some reason doesn't see the below constants
-    self.mask = pyinotify.EventsCodes.IN_IGNORED | \
-                pyinotify.EventsCodes.IN_MODIFY
+    self.mask = pyinotify.EventsCodes.ALL_FLAGS["IN_IGNORED"] | \
+                pyinotify.EventsCodes.ALL_FLAGS["IN_MODIFY"]
     self.file = filename
     self.watch_handle = None
 

@@ -186,6 +186,16 @@ class SimpleConfigReader(object):
     return master_candidate, drained, offline
 
   def GetInstanceByLinkIp(self, ip, link):
+    """Get instance name from its link and ip address.
+
+    @type ip: string
+    @param ip: ip address
+    @type link: string
+    @param link: nic link
+    @rtype: string
+    @return: instance name
+
+    """
     if not link:
       link = self.GetDefaultNicLink()
     if not link in self._ip_to_inst_by_link:
@@ -227,6 +237,14 @@ class SimpleConfigReader(object):
     return self._mc_primary_ips
 
   def GetInstancesIps(self, link):
+    """Get list of nic ips connected to a certain link.
+
+    @type link: string
+    @param link: nic link
+    @rtype: list
+    @return: list of ips connected to that link
+
+    """
     if not link:
       link = self.GetDefaultNicLink()
 

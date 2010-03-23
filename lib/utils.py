@@ -1740,24 +1740,18 @@ def FirstFree(seq, base=0):
   return None
 
 
-try:
-  all = all # pylint: disable-msg=W0622
-except NameError:
-  def all(seq, pred=bool): # pylint: disable-msg=W0622
-    "Returns True if pred(x) is True for every element in the iterable"
-    for _ in itertools.ifilterfalse(pred, seq):
-      return False
-    return True
-
-
-try:
-  any = any # pylint: disable-msg=W0622
-except NameError:
-  def any(seq, pred=bool): # pylint: disable-msg=W0622
-    "Returns True if pred(x) is True for at least one element in the iterable"
-    for _ in itertools.ifilter(pred, seq):
-      return True
+def all(seq, pred=bool): # pylint: disable-msg=W0622
+  "Returns True if pred(x) is True for every element in the iterable"
+  for _ in itertools.ifilterfalse(pred, seq):
     return False
+  return True
+
+
+def any(seq, pred=bool): # pylint: disable-msg=W0622
+  "Returns True if pred(x) is True for at least one element in the iterable"
+  for _ in itertools.ifilter(pred, seq):
+    return True
+  return False
 
 
 def SingleWaitForFdCondition(fdobj, event, timeout):

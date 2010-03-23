@@ -271,6 +271,9 @@ DTS_NET_MIRROR = frozenset([DT_DRBD8])
 # the set of non-lvm-based disk templates
 DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE])
 
+# the set of disk templates which can be grown
+DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8])
+
 # logical disk types
 LD_LV = "lvm"
 LD_DRBD8 = "drbd8"

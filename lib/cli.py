@@ -461,6 +461,21 @@ def check_key_val(option, opt, value):  # pylint: disable-msg=W0613
   return _SplitKeyVal(opt, value)
 
 
+def check_bool(option, opt, value): # pylint: disable-msg=W0613
+  """Custom parser for yes/no options.
+
+  This will store the parsed value as either True or False.
+
+  """
+  value = value.lower()
+  if value == constants.VALUE_FALSE or value == "no":
+    return False
+  elif value == constants.VALUE_TRUE or value == "yes":
+    return True
+  else:
+    raise errors.ParameterError("Invalid boolean value '%s'" % value)
+
+
 # completion_suggestion is normally a list. Using numeric values not evaluating
 # to False for dynamic completion.
 (OPT_COMPL_MANY_NODES,
@@ -491,18 +506,19 @@ class CliOption(Option):
     "identkeyval",
     "keyval",
     "unit",
+    "bool",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
   TYPE_CHECKER["keyval"] = check_key_val
   TYPE_CHECKER["unit"] = check_unit
+  TYPE_CHECKER["bool"] = check_bool
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
 cli_option = CliOption
 
 
-_YESNO = ("yes", "no")
 _YORNO = "yes|no"
 
 DEBUG_OPT = cli_option("-d", "--debug", default=0, action="count",
@@ -775,19 +791,19 @@ NOSSH_KEYCHECK_OPT = cli_option("--no-ssh-key-check", dest="ssh_key_check",
 
 
 MC_OPT = cli_option("-C", "--master-candidate", dest="master_candidate",
-                    choices=_YESNO, default=None, metavar=_YORNO,
+                    type="bool", default=None, metavar=_YORNO,
                     help="Set the master_candidate flag on the node")
 
 OFFLINE_OPT = cli_option("-O", "--offline", dest="offline", metavar=_YORNO,
-                         choices=_YESNO, default=None,
+                         type="bool", default=None,
                          help="Set the offline flag on the node")
 
 DRAINED_OPT = cli_option("-D", "--drained", dest="drained", metavar=_YORNO,
-                         choices=_YESNO, default=None,
+                         type="bool", default=None,
                          help="Set the drained flag on the node")
 
 ALLOCATABLE_OPT = cli_option("--allocatable", dest="allocatable",
-                             choices=_YESNO, default=None, metavar=_YORNO,
+                             type="bool", default=None, metavar=_YORNO,
                              help="Set the allocatable flag on a volume")
 
 NOLVM_STORAGE_OPT = cli_option("--no-lvm-storage", dest="lvm_storage",

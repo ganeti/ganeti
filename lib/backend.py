@@ -529,7 +529,11 @@ def VerifyNode(what, cluster_name):
                        " and ".join(fail))
 
   if constants.NV_LVLIST in what:
-    result[constants.NV_LVLIST] = GetVolumeList(what[constants.NV_LVLIST])
+    try:
+      val = GetVolumeList(what[constants.NV_LVLIST])
+    except RPCFail, err:
+      val = str(err)
+    result[constants.NV_LVLIST] = val
 
   if constants.NV_INSTANCELIST in what:
     # GetInstanceList can fail
