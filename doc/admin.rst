@@ -1058,6 +1058,20 @@ in the manpage.
 .. note:: this command only stores a local flag file, and if you
    failover the master, it will not have effect on the new master.
 
+Node auto-maintenance
++++++++++++++++++++++
+
+If the cluster parameter ``maintain_node_health`` is enabled (see the
+manpage for :command:`gnt-cluster`, the init and modify subcommands),
+then the following will happen automatically:
+
+- the watcher will shutdown any instances running on offline nodes
+- the watcher will deactivate any DRBD devices on offline nodes
+
+In the future, more actions are planned, so only enable this parameter
+if the nodes are completely dedicated to Ganeti; otherwise it might be
+possible to lose data due to auto-maintenance actions.
+
 Removing a cluster entirely
 +++++++++++++++++++++++++++
 
