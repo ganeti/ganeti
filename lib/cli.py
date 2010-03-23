@@ -2106,7 +2106,7 @@ class JobExecutor(object):
     else:
       if not self.jobs:
         self.SubmitPending()
-      for status, result, name in self.jobs:
+      for _, status, result, name in self.jobs:
         if status:
           ToStdout("%s: %s", result, name)
         else:
