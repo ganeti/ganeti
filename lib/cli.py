@@ -76,6 +76,7 @@ __all__ = [
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
   "MAC_PREFIX_OPT",
+  "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
   "MC_OPT",
   "NET_OPT",
@@ -912,6 +913,13 @@ USE_REPL_NET_OPT = cli_option("--use-replication-network",
                               help="Whether to use the replication network"
                               " for talking to the nodes",
                               action="store_true", default=False)
+
+MAINTAIN_NODE_HEALTH_OPT = \
+    cli_option("--maintain-node-health", dest="maintain_node_health",
+               metavar=_YORNO, default=None, type="bool",
+               help="Configure the cluster to automatically maintain node"
+               " health, by shutting down unknown instances, shutting down"
+               " unknown DRBD devices, etc.")
 
 
 def _ParseArgs(argv, commands, aliases):

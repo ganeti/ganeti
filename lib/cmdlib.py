@@ -2240,6 +2240,7 @@ class LUSetClusterParams(LogicalUnit):
       if self.op.candidate_pool_size < 1:
         raise errors.OpPrereqError("At least one master candidate needed",
                                    errors.ECODE_INVAL)
+    _CheckBooleanOpField(self.op, "maintain_node_health")
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -2431,6 +2432,9 @@ class LUSetClusterParams(LogicalUnit):
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
       # we need to update the pool size here, otherwise the save will fail
       _AdjustCandidatePool(self, [])
+
+    if self.op.maintain_node_health is not None:
+      self.cluster.maintain_node_health = self.op.maintain_node_health
 
     self.cfg.Update(self.cluster, feedback_fn)
 
@@ -3691,6 +3695,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "master_netdev": cluster.master_netdev,
       "volume_group_name": cluster.volume_group_name,
       "file_storage_dir": cluster.file_storage_dir,
+      "maintain_node_health": cluster.maintain_node_health,
       "ctime": cluster.ctime,
       "mtime": cluster.mtime,
       "uuid": cluster.uuid,

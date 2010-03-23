@@ -242,6 +242,8 @@
         <sbr>
         <arg>--nic-parameters <replaceable>nic-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>nic-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
+        <arg>--maintain-node-health <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
+        <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -489,6 +491,15 @@
         </variablelist>
       </para>
 
+      <para>
+        The option <option>--maintain-node-health</option> allows to
+        enable/disable automatic maintenance actions on
+        nodes. Currently these include automatic shutdown of instances
+        and deactivation of DRBD devices on offline nodes; in the
+        future it might be extended to automatic removal of unknown
+        LVM volumes, etc.
+      </para>
+
     </refsect2>
 
     <refsect2>
@@ -546,6 +557,8 @@
         <arg choice="opt">--nic-parameters <replaceable>nic-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>nic-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
         <arg choice="opt">-C <replaceable>candidate_pool_size</replaceable></arg>
+        <sbr>
+        <arg>--maintain-node-health <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
 
       </cmdsynopsis>
 
@@ -558,7 +571,8 @@
           <option>--enabled-hypervisors</option>,
           <option>--hypervisor-parameters</option>,
           <option>--backend-parameters</option> and
-          <option>--nic-parameters</option> and options are
+          <option>--nic-parameters</option>
+          and <option>--maintain-node-health</option> options are
           described in the <command>init</command> command.
         </para>
 

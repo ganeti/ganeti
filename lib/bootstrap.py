@@ -197,7 +197,8 @@ def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
-                modify_etc_hosts=True, modify_ssh_setup=True):
+                modify_etc_hosts=True, modify_ssh_setup=True,
+                maintain_node_health=False):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -340,6 +341,7 @@ def InitCluster(cluster_name, mac_prefix,
     ctime=now,
     mtime=now,
     uuid=utils.NewUUID(),
+    maintain_node_health=maintain_node_health,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
