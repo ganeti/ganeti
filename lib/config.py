@@ -1389,6 +1389,7 @@ class ConfigWriter:
       constants.SS_INSTANCE_LIST: instance_data,
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       constants.SS_HYPERVISOR_LIST: hypervisor_list,
+      constants.SS_MAINTAIN_NODE_HEALTH: str(cluster.maintain_node_health),
       }
 
   @locking.ssynchronized(_config_lock, shared=1)
