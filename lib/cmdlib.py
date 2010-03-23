@@ -7706,7 +7706,10 @@ class LUGrowDisk(LogicalUnit):
 
     self.disk = instance.FindDisk(self.op.disk)
 
-    _CheckNodesFreeDisk(self, nodenames, self.op.amount)
+    if instance.disk_template != constants.DT_FILE:
+      # TODO: check the free disk space for file, when that feature will be
+      # supported
+      _CheckNodesFreeDisk(self, nodenames, self.op.amount)
 
   def Exec(self, feedback_fn):
     """Execute disk grow.

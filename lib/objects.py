@@ -497,7 +497,7 @@ class Disk(ConfigObject):
     actual algorithms from bdev.
 
     """
-    if self.dev_type == constants.LD_LV:
+    if self.dev_type == constants.LD_LV or self.dev_type == constants.LD_FILE:
       self.size += amount
     elif self.dev_type == constants.LD_DRBD8:
       if self.children:
