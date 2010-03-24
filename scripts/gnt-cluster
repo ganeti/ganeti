@@ -39,6 +39,7 @@ from ganeti import utils
 from ganeti import bootstrap
 from ganeti import ssh
 from ganeti import objects
+from ganeti import uidpool
 
 
 @UsesRPC
@@ -601,6 +602,7 @@ def SetClusterParams(opts, args):
           opts.enabled_hypervisors or opts.hvparams or
           opts.beparams or opts.nicparams or
           opts.candidate_pool_size is not None or
+          opts.uid_pool is not None or
           opts.maintain_node_health is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -628,7 +630,12 @@ def SetClusterParams(opts, args):
   nicparams = opts.nicparams
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
 
+
   mnh = opts.maintain_node_health
+
+  uid_pool = opts.uid_pool
+  if uid_pool is not None:
+    uid_pool = uidpool.ParseUidPool(uid_pool)
 
   op = opcodes.OpSetClusterParams(vg_name=vg_name,
                                   enabled_hypervisors=hvlist,
@@ -637,7 +644,8 @@ def SetClusterParams(opts, args):
                                   beparams=beparams,
                                   nicparams=nicparams,
                                   candidate_pool_size=opts.candidate_pool_size,
-                                  maintain_node_health=mnh)
+                                  maintain_node_health=mnh,
+                                  uid_pool=uid_pool)
   SubmitOpCode(op, opts=opts)
   return 0
 
@@ -788,7 +796,8 @@ commands = {
   'modify': (
     SetClusterParams, ARGS_NONE,
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
-     NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT],
+     NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
+     UIDPOOL_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

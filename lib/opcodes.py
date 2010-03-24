@@ -306,6 +306,7 @@ class OpSetClusterParams(OpCode):
     "nicparams",
     "candidate_pool_size",
     "maintain_node_health",
+    "uid_pool",
     ]
 
 

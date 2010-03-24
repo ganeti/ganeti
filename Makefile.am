@@ -116,6 +116,7 @@ pkgpython_PYTHON = \
 	lib/ssh.py \
 	lib/storage.py \
 	lib/utils.py \
+	lib/uidpool.py \
 	lib/workerpool.py
 
 hypervisor_PYTHON = \

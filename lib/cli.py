@@ -124,6 +124,7 @@ __all__ = [
   "SYNC_OPT",
   "TAG_SRC_OPT",
   "TIMEOUT_OPT",
+  "UIDPOOL_OPT",
   "USEUNITS_OPT",
   "USE_REPL_NET_OPT",
   "VERBOSE_OPT",
@@ -928,6 +929,11 @@ IDENTIFY_DEFAULTS_OPT = \
                help="Identify which saved instance parameters are equal to"
                " the current cluster defaults and set them as such, instead"
                " of marking them as overridden")
+
+UIDPOOL_OPT = cli_option("--uid-pool", default=None,
+                         action="store", dest="uid_pool",
+                         help=("A list of user-ids or user-id"
+                               " ranges separated by commas"))
 
 
 def _ParseArgs(argv, commands, aliases):

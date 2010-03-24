@@ -44,6 +44,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import serializer
 from ganeti import ssconf
+from ganeti import uidpool
 
 
 class LogicalUnit(object):
@@ -2265,7 +2266,11 @@ class LUSetClusterParams(LogicalUnit):
       if self.op.candidate_pool_size < 1:
         raise errors.OpPrereqError("At least one master candidate needed",
                                    errors.ECODE_INVAL)
+
     _CheckBooleanOpField(self.op, "maintain_node_health")
+
+    if self.op.uid_pool:
+      uidpool.CheckUidPool(self.op.uid_pool)
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -2460,6 +2465,9 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.maintain_node_health is not None:
       self.cluster.maintain_node_health = self.op.maintain_node_health
+
+    if self.op.uid_pool is not None:
+      self.cluster.uid_pool = self.op.uid_pool
 
     self.cfg.Update(self.cluster, feedback_fn)
 
@@ -3719,6 +3727,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "mtime": cluster.mtime,
       "uuid": cluster.uuid,
       "tags": list(cluster.GetTags()),
+      "uid_pool": cluster.uid_pool,
       }
 
     return result
