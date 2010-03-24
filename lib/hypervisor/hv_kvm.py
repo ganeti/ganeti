@@ -424,7 +424,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       if boot_disk:
         kvm_cmd.extend(['-boot', 'c'])
-        boot_val = ',boot=on'
+        if disk_type != constants.HT_DISK_IDE:
+            boot_val = ',boot=on'
+        else:
+            boot_val = ''
         # We only boot from the first disk
         boot_disk = False
       else:
@@ -439,9 +442,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       options = ',format=raw,media=cdrom'
       if boot_cdrom:
         kvm_cmd.extend(['-boot', 'd'])
-        options = '%s,boot=on' % options
+        if disk_type != constants.HT_DISK_IDE:
+            options = '%s,boot=on' % options
       else:
-        options = '%s,if=virtio' % options
+        if disk_type == constants.HT_DISK_PARAVIRTUAL:
+          if_val = ',if=virtio'
+        else:
+          if_val = ',if=%s' % disk_type
+        options = '%s%s' % (options, if_val)
       drive_val = 'file=%s%s' % (iso_image, options)
       kvm_cmd.extend(['-drive', drive_val])
 
