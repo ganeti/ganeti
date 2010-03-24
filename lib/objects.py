@@ -1034,10 +1034,10 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser):
     self.write(buf)
     return buf.getvalue()
 
-  @staticmethod
-  def Loads(data):
+  @classmethod
+  def Loads(cls, data):
     """Load data from a string."""
     buf = StringIO(data)
-    cfp = SerializableConfigParser()
+    cfp = cls()
     cfp.readfp(buf)
     return cfp
