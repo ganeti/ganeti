@@ -672,6 +672,7 @@ SS_INSTANCE_LIST = "instance_list"
 SS_RELEASE_VERSION = "release_version"
 SS_HYPERVISOR_LIST = "hypervisor_list"
 SS_MAINTAIN_NODE_HEALTH = "maintain_node_health"
+SS_UID_POOL = "uid_pool"
 
 # cluster wide default parameters
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM

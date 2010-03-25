@@ -118,17 +118,21 @@ def _FormatUidRange(lower, higher):
   return "%s-%s" % (lower, higher)
 
 
-def FormatUidPool(uid_pool):
+def FormatUidPool(uid_pool, separator=None):
   """Convert the internal representation of the user-id pool into a string.
 
   The output format is also accepted by ParseUidPool()
 
   @param uid_pool: a list of integer pairs representing UID ranges
+  @param separator: the separator character between the uids/uid-ranges.
+                    Defaults to ", ".
   @return: a string with the formatted results
 
   """
-  return utils.CommaJoin([_FormatUidRange(lower, higher)
-                          for lower, higher in uid_pool])
+  if separator is None:
+    separator = ", "
+  return separator.join([_FormatUidRange(lower, higher)
+                         for lower, higher in uid_pool])
 
 
 def CheckUidPool(uid_pool):
