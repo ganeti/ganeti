@@ -236,7 +236,8 @@ def InitCluster(cluster_name, mac_prefix,
                 secondary_ip=None, vg_name=None, beparams=None,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
                 modify_etc_hosts=True, modify_ssh_setup=True,
-                maintain_node_health=False):
+                maintain_node_health=False,
+                uid_pool=None):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -359,6 +360,7 @@ def InitCluster(cluster_name, mac_prefix,
     candidate_pool_size=candidate_pool_size,
     modify_etc_hosts=modify_etc_hosts,
     modify_ssh_setup=modify_ssh_setup,
+    uid_pool=uid_pool,
     ctime=now,
     mtime=now,
     uuid=utils.NewUUID(),

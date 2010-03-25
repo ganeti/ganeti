@@ -92,6 +92,10 @@ def InitCluster(opts, args):
   if opts.mac_prefix is None:
     opts.mac_prefix = constants.DEFAULT_MAC_PREFIX
 
+  uid_pool = opts.uid_pool
+  if uid_pool is not None:
+    uid_pool = uidpool.ParseUidPool(uid_pool)
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -106,6 +110,7 @@ def InitCluster(opts, args):
                         modify_etc_hosts=opts.modify_etc_hosts,
                         modify_ssh_setup=opts.modify_ssh_setup,
                         maintain_node_health=opts.maintain_node_health,
+                        uid_pool=uid_pool,
                         )
   op = opcodes.OpPostInitCluster()
   SubmitOpCode(op, opts=opts)
@@ -740,7 +745,8 @@ commands = {
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, GLOBAL_FILEDIR_OPT,
      HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, NIC_PARAMS_OPT,
      NOLVM_STORAGE_OPT, NOMODIFY_ETCHOSTS_OPT, NOMODIFY_SSH_SETUP_OPT,
-     SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT],
+     SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
+     UIDPOOL_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   'destroy': (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
