@@ -865,6 +865,7 @@ class Cluster(TaggableObject):
     "modify_etc_hosts",
     "modify_ssh_setup",
     "maintain_node_health",
+    "uid_pool",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -914,6 +915,9 @@ class Cluster(TaggableObject):
     # maintain_node_health added after 2.1.1
     if self.maintain_node_health is None:
       self.maintain_node_health = False
+
+    if self.uid_pool is None:
+      self.uid_pool = []
 
   def ToDict(self):
     """Custom function for cluster.
