@@ -96,6 +96,9 @@ SOCKET_DIR_MODE = 0700
 SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
+# User-id pool lock directory
+# The user-ids that are in use have a corresponding lock file in this directory
+UIDPOOL_LOCKDIR = RUN_GANETI_DIR + "/uid-pool"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 NODED_CERT_FILE = DATA_DIR + "/server.pem"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
@@ -844,3 +847,6 @@ MAX_UDP_DATA_SIZE = 61440
 # User-id pool minimum/maximum acceptable user-ids.
 UIDPOOL_UID_MIN = 0
 UIDPOOL_UID_MAX = 2**32-1 # Assuming 32 bit user-ids
+
+# Name or path of the pgrep command
+PGREP = "pgrep"
