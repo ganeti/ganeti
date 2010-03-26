@@ -33,11 +33,51 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, AssertNotEqual, AssertIn, StartSSH
+from qa_utils import (AssertEqual, AssertNotEqual, AssertIn, AssertMatch,
+                      StartSSH)
 
 
-# Create opener which doesn't try to look for proxies.
-NoProxyOpener = urllib2.build_opener(urllib2.ProxyHandler({}))
+class OpenerFactory:
+  """A factory singleton to construct urllib opener chain.
+
+  This is needed because qa_config is not initialized yet at module load time
+
+  """
+  _opener = None
+
+  @classmethod
+  def Opener(cls):
+    """Construct the opener if not yet done.
+
+    """
+    if not cls._opener:
+      # Create opener which doesn't try to look for proxies and does auth
+      master = qa_config.GetMasterNode()
+      host = master["primary"]
+      port = qa_config.get("rapi-port", default=constants.DEFAULT_RAPI_PORT)
+      passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+      passman.add_password(None, 'https://%s:%s' % (host, port),
+                           qa_config.get("rapi-user", default=""),
+                           qa_config.get("rapi-pass", default=""))
+      authhandler = urllib2.HTTPBasicAuthHandler(passman)
+      cls._opener = urllib2.build_opener(urllib2.ProxyHandler({}), authhandler)
+
+    return cls._opener
+
+
+class RapiRequest(urllib2.Request):
+  """This class supports other methods beside GET/POST.
+
+  """
+
+  def __init__(self, url, data=None, headers={}, origin_req_host=None,
+               unverifiable=False, method="GET"):
+    urllib2.Request.__init__(self, url, data, headers, origin_req_host,
+                             unverifiable)
+    self._method = method
+
+  def get_method(self):
+    return self._method
 
 
 INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
@@ -66,14 +106,15 @@ def _DoTests(uris):
   host = master["primary"]
   port = qa_config.get("rapi-port", default=constants.DEFAULT_RAPI_PORT)
 
-  for uri, verify in uris:
+  for uri, verify, method in uris:
     assert uri.startswith("/")
 
     url = "https://%s:%s%s" % (host, port, uri)
 
     print "Testing %s ..." % url
 
-    response = NoProxyOpener.open(url)
+    req = RapiRequest(url, method=method)
+    response = OpenerFactory.Opener().open(req)
 
     AssertEqual(response.info()["Content-type"], "application/json")
 
@@ -91,7 +132,7 @@ def TestVersion():
 
   """
   _DoTests([
-    ("/version", constants.RAPI_VERSION),
+    ("/version", constants.RAPI_VERSION, 'GET'),
     ])
 
 
@@ -119,14 +160,14 @@ def TestEmptyCluster():
         AssertIn(entry, node)
 
   _DoTests([
-    ("/", None),
-    ("/2/info", _VerifyInfo),
-    ("/2/tags", None),
-    ("/2/nodes", _VerifyNodes),
-    ("/2/nodes?bulk=1", _VerifyNodesBulk),
-    ("/2/instances", []),
-    ("/2/instances?bulk=1", []),
-    ("/2/os", None),
+    ("/", None, 'GET'),
+    ("/2/info", _VerifyInfo, 'GET'),
+    ("/2/tags", None, 'GET'),
+    ("/2/nodes", _VerifyNodes, 'GET'),
+    ("/2/nodes?bulk=1", _VerifyNodesBulk, 'GET'),
+    ("/2/instances", [], 'GET'),
+    ("/2/instances?bulk=1", [], 'GET'),
+    ("/2/os", None, 'GET'),
     ])
 
 
@@ -147,10 +188,15 @@ def TestInstance(instance):
     for instance_data in data:
       _VerifyInstance(instance_data)
 
+  def _VerifyReturnsJob(data):
+    AssertMatch(data, r'^\d+$')
+
   _DoTests([
-    ("/2/instances/%s" % instance["name"], _VerifyInstance),
-    ("/2/instances", _VerifyInstancesList),
-    ("/2/instances?bulk=1", _VerifyInstancesBulk),
+    ("/2/instances/%s" % instance["name"], _VerifyInstance, 'GET'),
+    ("/2/instances", _VerifyInstancesList, 'GET'),
+    ("/2/instances?bulk=1", _VerifyInstancesBulk, 'GET'),
+    ("/2/instances/%s/activate-disks" % instance["name"], _VerifyReturnsJob, 'PUT'),
+    ("/2/instances/%s/deactivate-disks" % instance["name"], _VerifyReturnsJob, 'PUT'),
     ])
 
 
@@ -172,9 +218,9 @@ def TestNode(node):
       _VerifyNode(node_data)
 
   _DoTests([
-    ("/2/nodes/%s" % node["primary"], _VerifyNode),
-    ("/2/nodes", _VerifyNodesList),
-    ("/2/nodes?bulk=1", _VerifyNodesBulk),
+    ("/2/nodes/%s" % node["primary"], _VerifyNode, 'GET'),
+    ("/2/nodes", _VerifyNodesList, 'GET'),
+    ("/2/nodes?bulk=1", _VerifyNodesBulk, 'GET'),
     ])
 
 
@@ -201,5 +247,5 @@ def TestTags(kind, name, tags):
     AssertEqual(should, returned)
 
   _DoTests([
-    (uri, _VerifyTags),
+    (uri, _VerifyTags, 'GET'),
     ])
