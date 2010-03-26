@@ -276,6 +276,7 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - file storage path: %s", result["file_storage_dir"])
   ToStdout("  - maintenance of node health: %s",
            result["maintain_node_health"])
+  ToStdout("  - uid pool: %s", uidpool.FormatUidPool(result["uid_pool"]))
 
   ToStdout("Default instance parameters:")
   _PrintGroupedParams(result["beparams"])

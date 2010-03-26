@@ -31,6 +31,7 @@ from the pool.
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import utils
 
 
 def ParseUidPool(value, separator=None):
@@ -106,6 +107,28 @@ def RemoveFromUidPool(uid_pool, remove_uids):
           "User-id range to be removed is not found in the current"
           " user-id pool: %s" % uid_range, errors.ECODE_INVAL)
     uid_pool.remove(uid_range)
+
+
+def _FormatUidRange(lower, higher):
+  """Convert a user-id range definition into a string.
+
+  """
+  if lower == higher:
+    return str(lower)
+  return "%s-%s" % (lower, higher)
+
+
+def FormatUidPool(uid_pool):
+  """Convert the internal representation of the user-id pool into a string.
+
+  The output format is also accepted by ParseUidPool()
+
+  @param uid_pool: a list of integer pairs representing UID ranges
+  @return: a string with the formatted results
+
+  """
+  return utils.CommaJoin([_FormatUidRange(lower, higher)
+                          for lower, higher in uid_pool])
 
 
 def CheckUidPool(uid_pool):
