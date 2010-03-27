@@ -347,13 +347,16 @@ class Burner(object):
     self._SetDebug(ops)
     return self.MaybeRetry(rval, "opcode", self._ExecOp, *ops)
 
-  def ExecOrQueue(self, name, ops):
+  def ExecOrQueue(self, name, ops, post_process=None):
     """Execute an opcode and manage the exec buffer."""
     if self.opts.parallel:
       self._SetDebug(ops)
-      self.queued_ops.append((ops, name))
+      self.queued_ops.append((ops, name, post_process))
     else:
-      return self.ExecOp(self.queue_retry, *ops) # pylint: disable-msg=W0142
+      val = self.ExecOp(self.queue_retry, *ops) # pylint: disable-msg=W0142
+      if post_process is not None:
+        post_process()
+      return val
 
   def StartBatch(self, retry):
     """Start a new batch of jobs.
@@ -391,7 +394,7 @@ class Burner(object):
     """
     self.ClearFeedbackBuf()
     jex = cli.JobExecutor(cl=self.cl, feedback_fn=self.Feedback)
-    for ops, name in jobs:
+    for ops, name, _ in jobs:
       jex.QueueJob(name, *ops) # pylint: disable-msg=W0142
     try:
       results = jex.GetResults()
@@ -399,10 +402,24 @@ class Burner(object):
       Log("Jobs failed: %s", err)
       raise BurninFailure()
 
-    if utils.any(results, lambda x: not x[0]):
+    fail = False
+    val = []
+    for (_, name, post_process), (success, result) in zip(jobs, results):
+      if success:
+        if post_process:
+          try:
+            post_process()
+          except Exception, err: # pylint: disable-msg=W0703
+            Log("Post process call for job %s failed: %s", name, err)
+            fail = True
+        val.append(result)
+      else:
+        fail = True
+
+    if fail:
       raise BurninFailure()
 
-    return [i[1] for i in results]
+    return val
 
   def ParseOptions(self):
     """Parses the command line options.
