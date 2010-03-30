@@ -366,10 +366,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
     boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
-    security_model = hvp[constants.HV_SECURITY_MODEL]
-    if security_model == constants.HT_SM_USER:
-      kvm_cmd.extend(['-runas', hvp[constants.HV_SECURITY_DOMAIN]])
-
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])
 
@@ -541,6 +537,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     temp_files = []
 
     kvm_cmd, kvm_nics, hvparams = kvm_runtime
+
+    security_model = hvp[constants.HV_SECURITY_MODEL]
+    if security_model == constants.HT_SM_USER:
+      kvm_cmd.extend(["-runas", hvp[constants.HV_SECURITY_DOMAIN]])
 
     if not kvm_nics:
       kvm_cmd.extend(['-net', 'none'])
