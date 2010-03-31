@@ -28,7 +28,6 @@ import tempfile
 import os.path
 import os
 import stat
-import md5
 import signal
 import socket
 import shutil
