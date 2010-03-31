@@ -80,6 +80,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_SECURITY_MODEL:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_SM_TYPES),
     constants.HV_SECURITY_DOMAIN: hv_base.NO_CHECK,
+    constants.HV_KVM_FLAG:
+      hv_base.ParamInSet(False, constants.HT_KVM_FLAG_VALUES),
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -365,6 +367,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
     boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
     boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
+
+    if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
+      kvm_cmd.extend(["-enable-kvm"])
+    elif hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED:
+      kvm_cmd.extend(["-disable-kvm"])
 
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])

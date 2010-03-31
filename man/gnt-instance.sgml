@@ -644,6 +644,20 @@
               </listitem>
             </varlistentry>
 
+            <varlistentry>
+              <term>kvm_flag</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>If <quote>enabled</quote> the -enable-kvm flag is
+                passed to kvm. If <quote>disabled</quote> -disable-kvm is
+                passed. If unset no flag is passed, and the default running
+                mode for your kvm binary will be used.
+                </simpara>
+
+              </listitem>
+            </varlistentry>
+
           </variablelist>
 
         </para>

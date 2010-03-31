@@ -429,6 +429,7 @@ HV_USE_LOCALTIME = "use_localtime"
 HV_DISK_CACHE = "disk_cache"
 HV_SECURITY_MODEL = "security_model"
 HV_SECURITY_DOMAIN = "security_domain"
+HV_KVM_FLAG = "kvm_flag"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -458,6 +459,7 @@ HVS_PARAMETER_TYPES = {
   HV_DISK_CACHE: VTYPE_STRING,
   HV_SECURITY_MODEL: VTYPE_STRING,
   HV_SECURITY_DOMAIN: VTYPE_STRING,
+  HV_KVM_FLAG: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -565,6 +567,12 @@ HT_SM_USER = "user"
 HT_SM_POOL = "pool"
 
 HT_KVM_VALID_SM_TYPES = frozenset([HT_SM_NONE, HT_SM_USER, HT_SM_POOL])
+
+# Kvm flag values
+HT_KVM_ENABLED = "enabled"
+HT_KVM_DISABLED = "disabled"
+
+HT_KVM_FLAG_VALUES = frozenset([HT_KVM_ENABLED, HT_KVM_DISABLED])
 
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
@@ -712,6 +720,7 @@ HVC_DEFAULTS = {
     HV_DISK_CACHE: HT_CACHE_DEFAULT,
     HV_SECURITY_MODEL: HT_SM_NONE,
     HV_SECURITY_DOMAIN: '',
+    HV_KVM_FLAG: "",
     },
   HT_FAKE: {
     },
