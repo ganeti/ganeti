@@ -839,3 +839,7 @@ CONFD_CLIENT_EXPIRE_TIMEOUT = 10
 #   (assuming we can't use jumbo frames)
 # We just set this to 60K, which should be enough
 MAX_UDP_DATA_SIZE = 61440
+
+# User-id pool minimum/maximum acceptable user-ids.
+UIDPOOL_UID_MIN = 0
+UIDPOOL_UID_MAX = 2**32-1 # Assuming 32 bit user-ids
