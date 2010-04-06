@@ -498,7 +498,7 @@ class Disk(ConfigObject):
     actual algorithms from bdev.
 
     """
-    if self.dev_type == constants.LD_LV:
+    if self.dev_type == constants.LD_LV or self.dev_type == constants.LD_FILE:
       self.size += amount
     elif self.dev_type == constants.LD_DRBD8:
       if self.children:
@@ -1035,10 +1035,10 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser):
     self.write(buf)
     return buf.getvalue()
 
-  @staticmethod
-  def Loads(data):
+  @classmethod
+  def Loads(cls, data):
     """Load data from a string."""
     buf = StringIO(data)
-    cfp = SerializableConfigParser()
+    cfp = cls()
     cfp.readfp(buf)
     return cfp

@@ -113,7 +113,7 @@ class BaseHypervisor(object):
     """Start an instance."""
     raise NotImplementedError
 
-  def StopInstance(self, instance, force=False, retry=False):
+  def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance
 
     @type instance: L{objects.Instance}
@@ -122,6 +122,10 @@ class BaseHypervisor(object):
     @param force: whether to do a "hard" stop (destroy)
     @type retry: boolean
     @param retry: whether this is just a retry call
+    @type name: string or None
+    @param name: if this parameter is passed, the the instance object
+        should not be used (will be passed as None), and the shutdown
+        must be done by name only
 
     """
     raise NotImplementedError

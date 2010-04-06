@@ -272,7 +272,7 @@ DTS_NET_MIRROR = frozenset([DT_DRBD8])
 DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE])
 
 # the set of disk templates which can be grown
-DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8])
+DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE])
 
 # logical disk types
 LD_LV = "lvm"
@@ -435,6 +435,7 @@ HV_USE_LOCALTIME = "use_localtime"
 HV_DISK_CACHE = "disk_cache"
 HV_SECURITY_MODEL = "security_model"
 HV_SECURITY_DOMAIN = "security_domain"
+HV_KVM_FLAG = "kvm_flag"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -464,6 +465,7 @@ HVS_PARAMETER_TYPES = {
   HV_DISK_CACHE: VTYPE_STRING,
   HV_SECURITY_MODEL: VTYPE_STRING,
   HV_SECURITY_DOMAIN: VTYPE_STRING,
+  HV_KVM_FLAG: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -572,6 +574,12 @@ HT_SM_POOL = "pool"
 
 HT_KVM_VALID_SM_TYPES = frozenset([HT_SM_NONE, HT_SM_USER, HT_SM_POOL])
 
+# Kvm flag values
+HT_KVM_ENABLED = "enabled"
+HT_KVM_DISABLED = "disabled"
+
+HT_KVM_FLAG_VALUES = frozenset([HT_KVM_ENABLED, HT_KVM_DISABLED])
+
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
@@ -666,6 +674,7 @@ SS_OFFLINE_NODES = "offline_nodes"
 SS_ONLINE_NODES = "online_nodes"
 SS_INSTANCE_LIST = "instance_list"
 SS_RELEASE_VERSION = "release_version"
+SS_HYPERVISOR_LIST = "hypervisor_list"
 
 # cluster wide default parameters
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM
@@ -717,6 +726,7 @@ HVC_DEFAULTS = {
     HV_DISK_CACHE: HT_CACHE_DEFAULT,
     HV_SECURITY_MODEL: HT_SM_NONE,
     HV_SECURITY_DOMAIN: '',
+    HV_KVM_FLAG: "",
     },
   HT_FAKE: {
     },

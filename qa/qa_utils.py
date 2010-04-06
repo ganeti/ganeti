@@ -24,6 +24,7 @@
 """
 
 import os
+import re
 import sys
 import subprocess
 
@@ -90,6 +91,14 @@ def AssertNotEqual(first, second):
   """
   if not first != second:
     raise qa_error.Error('%r != %r' % (first, second))
+
+
+def AssertMatch(string, pattern):
+  """Raises an error when string doesn't match regexp pattern.
+
+  """
+  if not re.match(pattern, string):
+    raise qa_error.Error("%r doesn't match /%r/" % (string, pattern))
 
 
 def GetSSHCommand(node, cmd, strict=True):

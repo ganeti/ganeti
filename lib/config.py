@@ -1369,6 +1369,9 @@ class ConfigWriter:
 
     cluster = self._config_data.cluster
     cluster_tags = fn(cluster.GetTags())
+
+    hypervisor_list = fn(cluster.enabled_hypervisors)
+
     return {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_CLUSTER_TAGS: cluster_tags,
@@ -1385,6 +1388,7 @@ class ConfigWriter:
       constants.SS_ONLINE_NODES: on_data,
       constants.SS_INSTANCE_LIST: instance_data,
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
+      constants.SS_HYPERVISOR_LIST: hypervisor_list,
       }
 
   @locking.ssynchronized(_config_lock, shared=1)

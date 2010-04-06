@@ -177,7 +177,7 @@ class ChrootManager(hv_base.BaseHypervisor):
       raise HypervisorError("Can't run the chroot start script: %s" %
                             result.output)
 
-  def StopInstance(self, instance, force=False, retry=False):
+  def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
 
     This method has complicated cleanup tests, as we must:
@@ -186,7 +186,10 @@ class ChrootManager(hv_base.BaseHypervisor):
       - finally unmount the instance dir
 
     """
-    root_dir = self._InstanceDir(instance.name)
+    if name is None:
+      name = instance.name
+
+    root_dir = self._InstanceDir(name)
     if not os.path.exists(root_dir) or not self._IsDirLive(root_dir):
       return
 

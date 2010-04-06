@@ -60,6 +60,7 @@ from ganeti import serializer
 from ganeti import daemon # contains AsyncUDPSocket
 from ganeti import errors
 from ganeti import confd
+from ganeti import ssconf
 
 
 class ConfdAsyncUDPClient(daemon.AsyncUDPSocket):
@@ -346,6 +347,12 @@ class ConfdClientRequest(objects.ConfdRequest):
 class ConfdFilterCallback:
   """Callback that calls another callback, but filters duplicate results.
 
+  @ivar consistent: a dictionary indexed by salt; for each salt, if
+      all responses ware identical, this will be True; this is the
+      expected state on a healthy cluster; on inconsistent or
+      partitioned clusters, this might be False, if we see answers
+      with the same serial but different contents
+
   """
   def __init__(self, callback, logger=None):
     """Constructor for ConfdFilterCallback
@@ -363,6 +370,7 @@ class ConfdFilterCallback:
     self._logger = logger
     # answers contains a dict of salt -> answer
     self._answers = {}
+    self.consistent = {}
 
   def _LogFilter(self, salt, new_reply, old_reply):
     if not self._logger:
@@ -387,6 +395,8 @@ class ConfdFilterCallback:
     # if we have no answer we have received none, before the expiration.
     if up.salt in self._answers:
       del self._answers[up.salt]
+    if up.salt in self.consistent:
+      del self.consistent[up.salt]
 
   def _HandleReply(self, up):
     """Handle a single confd reply, and decide whether to filter it.
@@ -398,6 +408,8 @@ class ConfdFilterCallback:
     """
     filter_upcall = False
     salt = up.salt
+    if salt not in self.consistent:
+      self.consistent[salt] = True
     if salt not in self._answers:
       # first answer for a query (don't filter, and record)
       self._answers[salt] = up.server_reply
@@ -412,6 +424,8 @@ class ConfdFilterCallback:
       # else: different content, pass up a second answer
     else:
       # older or same-version answer (duplicate or outdated, filter)
+      if up.server_reply.answer != self._answers[salt].answer:
+        self.consistent[salt] = False
       filter_upcall = True
       self._LogFilter(salt, up.server_reply, self._answers[salt])
 
@@ -494,3 +508,20 @@ class ConfdCountingCallback:
     elif up.type == UPCALL_EXPIRE:
       self._HandleExpire(up)
     self._callback(up)
+
+def GetConfdClient(callback):
+  """Return a client configured using the given callback.
+
+  This is handy to abstract the MC list and HMAC key reading.
+
+  @attention: This should only be called on nodes which are part of a
+      cluster, since it depends on a valid (ganeti) data directory;
+      for code running outside of a cluster, you need to create the
+      client manually
+
+  """
+  ss = ssconf.SimpleStore()
+  mc_file = ss.KeyToFilename(constants.SS_MASTER_CANDIDATES_IPS)
+  mc_list = utils.ReadFile(mc_file).splitlines()
+  hmac_key = utils.ReadFile(constants.CONFD_HMAC_KEY)
+  return ConfdClient(hmac_key, mc_list, callback)

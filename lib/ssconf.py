@@ -282,6 +282,7 @@ class SimpleStore(object):
     constants.SS_ONLINE_NODES,
     constants.SS_INSTANCE_LIST,
     constants.SS_RELEASE_VERSION,
+    constants.SS_HYPERVISOR_LIST,
     )
   _MAX_SIZE = 131072
 
@@ -420,6 +421,14 @@ class SimpleStore(object):
 
     """
     data = self._ReadFile(constants.SS_CLUSTER_TAGS)
+    nl = data.splitlines(False)
+    return nl
+
+  def GetHypervisorList(self):
+    """Return the list of enabled hypervisors.
+
+    """
+    data = self._ReadFile(constants.SS_HYPERVISOR_LIST)
     nl = data.splitlines(False)
     return nl
 

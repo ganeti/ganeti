@@ -108,8 +108,8 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
       try:
         ctx.handler_fn = getattr(ctx.handler, method)
       except AttributeError:
-        raise http.HttpBadRequest("Method %s is unsupported for path %s" %
-                                  (method, req.request_path))
+        raise http.HttpNotImplemented("Method %s is unsupported for path %s" %
+                                      (method, req.request_path))
 
       ctx.handler_access = getattr(ctx.handler, "%s_ACCESS" % method, None)
 

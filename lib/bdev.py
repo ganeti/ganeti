@@ -1874,8 +1874,17 @@ class FileStorage(BlockDev):
     @param amount: the amount (in mebibytes) to grow with
 
     """
-    # TODO: implement grow for file-based storage
-    _ThrowError("Grow not supported for file-based storage")
+    # Check that the file exists
+    self.Assemble()
+    current_size = self.GetActualSize()
+    new_size = current_size + amount * 1024 * 1024
+    assert new_size > current_size, "Cannot Grow with a negative amount"
+    try:
+      f = open(self.dev_path, "a+")
+      f.truncate(new_size)
+      f.close()
+    except EnvironmentError, err:
+      _ThrowError("Error in file growth: %", str(err))
 
   def Attach(self):
     """Attach to an existing file.

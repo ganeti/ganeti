@@ -80,6 +80,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_SECURITY_MODEL:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_SM_TYPES),
     constants.HV_SECURITY_DOMAIN: hv_base.NO_CHECK,
+    constants.HV_KVM_FLAG:
+      hv_base.ParamInSet(False, constants.HT_KVM_FLAG_VALUES),
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -366,9 +368,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
     boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
-    security_model = hvp[constants.HV_SECURITY_MODEL]
-    if security_model == constants.HT_SM_USER:
-      kvm_cmd.extend(['-runas', hvp[constants.HV_SECURITY_DOMAIN]])
+    if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
+      kvm_cmd.extend(["-enable-kvm"])
+    elif hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED:
+      kvm_cmd.extend(["-disable-kvm"])
 
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])
@@ -542,6 +545,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_cmd, kvm_nics, hvparams = kvm_runtime
 
+    security_model = hvp[constants.HV_SECURITY_MODEL]
+    if security_model == constants.HT_SM_USER:
+      kvm_cmd.extend(["-runas", hvp[constants.HV_SECURITY_DOMAIN]])
+
     if not kvm_nics:
       kvm_cmd.extend(['-net', 'none'])
     else:
@@ -613,19 +620,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return result
 
-  def StopInstance(self, instance, force=False, retry=False):
+  def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    if name is not None and not force:
+      raise errors.HypervisorError("Cannot shutdown cleanly by name only")
+    if name is None:
+      name = instance.name
+      acpi = instance.hvparams[constants.HV_ACPI]
+    else:
+      acpi = False
+    pidfile, pid, alive = self._InstancePidAlive(name)
     if pid > 0 and alive:
-      if force or not instance.hvparams[constants.HV_ACPI]:
+      if force or not acpi:
         utils.KillProcess(pid)
       else:
-        self._CallMonitorCommand(instance.name, 'system_powerdown')
+        self._CallMonitorCommand(name, 'system_powerdown')
 
-    if not self._InstancePidAlive(instance.name)[2]:
-      self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
+    if not self._InstancePidAlive(name)[2]:
+      self._RemoveInstanceRuntimeFiles(pidfile, name)
       return True
     else:
       return False
