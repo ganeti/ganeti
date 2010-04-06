@@ -15,7 +15,7 @@ Objective
 =========
 
 Ganeti 2.1 will add features to help further automatization of cluster
-operations, further improbe scalability to even bigger clusters, and
+operations, further improve scalability to even bigger clusters, and
 make it easier to debug the Ganeti core.
 
 Background
@@ -723,6 +723,177 @@ Evacuate node
 This new opcode/LU/RAPI call will take over the current ``gnt-node
 evacuate`` code and run replace-secondary with an iallocator script for
 all instances on the node.
+
+
+User-id pool
+~~~~~~~~~~~~
+
+In order to allow running different processes under unique user-ids
+on a node, we introduce the user-id pool concept.
+
+The user-id pool is a cluster-wide configuration parameter.
+It is a list of user-ids and/or user-id ranges that are reserved
+for running Ganeti processes (including KVM instances).
+The code guarantees that on a given node a given user-id is only
+handed out if there is no other process running with that user-id.
+
+Please note, that this can only be guaranteed if all processes in
+the system - that run under a user-id belonging to the pool - are
+started by reserving a user-id first. That can be accomplished
+either by using the RequestUnusedUid() function to get an unused
+user-id or by implementing the same locking mechanism.
+
+Implementation
+++++++++++++++
+
+The functions that are specific to the user-id pool feature are located
+in a separate module: ``lib/uidpool.py``.
+
+Storage
+^^^^^^^
+
+The user-id pool is a single cluster parameter. It is stored in the
+*Cluster* object under the ``uid_pool`` name as a list of integer
+tuples. These tuples represent the boundaries of user-id ranges.
+For single user-ids, the boundaries are equal.
+
+The internal user-id pool representation is converted into a
+string: a newline separated list of user-ids or user-id ranges.
+This string representation is distributed to all the nodes via the
+*ssconf* mechanism. This means that the user-id pool can be
+accessed in a read-only way on any node without consulting the master
+node or master candidate nodes.
+
+Initial value
+^^^^^^^^^^^^^
+
+The value of the user-id pool cluster parameter can be initialized
+at cluster initialization time using the
+
+``gnt-cluster init --uid-pool <uid-pool definition> ...``
+
+command.
+
+As there is no sensible default value for the user-id pool parameter,
+it is initialized to an empty list if no ``--uid-pool`` option is
+supplied at cluster init time.
+
+If the user-id pool is empty, the user-id pool feature is considered
+to be disabled.
+
+Manipulation
+^^^^^^^^^^^^
+
+The user-id pool cluster parameter can be modified from the
+command-line with the following commands:
+
+- ``gnt-cluster modify --uid-pool <uid-pool definition>``
+- ``gnt-cluster modify --add-uids <uid-pool definition>``
+- ``gnt-cluster modify --remove-uids <uid-pool definition>``
+
+The ``--uid-pool`` option overwrites the current setting with the
+supplied ``<uid-pool definition>``, while
+``--add-uids``/``--remove-uids`` adds/removes the listed uids
+or uid-ranges from the pool.
+
+The ``<uid-pool definition>`` should be a comma-separated list of
+user-ids or user-id ranges. A range should be defined by a lower and
+a higher boundary. The boundaries should be separated with a dash.
+The boundaries are inclusive.
+
+The ``<uid-pool definition>`` is parsed into the internal
+representation, sanity-checked and stored in the ``uid_pool``
+attribute of the *Cluster* object.
+
+It is also immediately converted into a string (formatted in the
+input format) and distributed to all nodes via the *ssconf* mechanism.
+
+Inspection
+^^^^^^^^^^
+
+The current value of the user-id pool cluster parameter is printed
+by the ``gnt-cluster info`` command.
+
+The output format is accepted by the ``gnt-cluster modify --uid-pool``
+command.
+
+Locking
+^^^^^^^
+
+The ``uidpool.py`` module provides a function (``RequestUnusedUid``)
+for requesting an unused user-id from the pool.
+
+This will try to find a random user-id that is not currently in use.
+The algorithm is the following:
+
+1) Randomize the list of user-ids in the user-id pool
+2) Iterate over this randomized UID list
+3) Create a lock file (it doesn't matter if it already exists)
+4) Acquire an exclusive POSIX lock on the file, to provide mutual
+   exclusion for the following non-atomic operations
+5) Check if there is a process in the system with the given UID
+6) If there isn't, return the UID, otherwise unlock the file and
+   continue the iteration over the user-ids
+
+The user can than start a new process with this user-id.
+Once a process is successfully started, the exclusive POSIX lock can
+be released, but the lock file will remain in the filesystem.
+The presence of such a lock file means that the given user-id is most
+probably in use. The lack of a uid lock file does not guarantee that
+there are no processes with that user-id.
+
+After acquiring the exclusive POSIX lock, ``RequestUnusedUid``
+always performs a check to see if there is a process running with the
+given uid.
+
+A user-id can be returned to the pool, by calling the
+``ReleaseUid`` function. This will remove the corresponding lock file.
+Note, that it doesn't check if there is any process still running
+with that user-id. The removal of the lock file only means that there
+are most probably no processes with the given user-id. This helps
+in speeding up the process of finding a user-id that is guaranteed to
+be unused.
+
+There is a convenience function, called ``ExecWithUnusedUid`` that
+wraps the execution of a function (or any callable) that requires a
+unique user-id. ``ExecWithUnusedUid`` takes care of requesting an
+unused user-id and unlocking the lock file. It also automatically
+returns the user-id to the pool if the callable raises an exception.
+
+Code examples
++++++++++++++
+
+Requesting a user-id from the pool:
+
+::
+
+  from ganeti import ssconf
+  from ganeti import uidpool
+
+  # Get list of all user-ids in the uid-pool from ssconf
+  ss = ssconf.SimpleStore()
+  uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\n")
+  all_uids = set(uidpool.ExpandUidPool(uid_pool))
+
+  uid = uidpool.RequestUnusedUid(all_uids)
+  try:
+    <start a process with the UID>
+    # Once the process is started, we can release the file lock
+    uid.Unlock()
+  except ..., err:
+    # Return the UID to the pool
+    uidpool.ReleaseUid(uid)
+
+
+Releasing a user-id:
+
+::
+
+  from ganeti import uidpool
+
+  uid = <get the UID the process is running under>
+  <stop the process>
+  uidpool.ReleaseUid(uid)
 
 
 External interface changes
