@@ -310,8 +310,8 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertDryRun()
 
   def testGetJobs(self):
-    self.rapi.AddResponse("[ { \"id\": \"123\", \"uri\": \"\/2\/jobs\/123\" },"
-                          " { \"id\": \"124\", \"uri\": \"\2\/jobs\/124\" } ]")
+    self.rapi.AddResponse('[ { "id": "123", "uri": "\\/2\\/jobs\\/123" },'
+                          '  { "id": "124", "uri": "\\/2\\/jobs\\/124" } ]')
     self.assertEqual([123, 124], self.client.GetJobs())
     self.assertHandler(rlib2.R_2_jobs)
 
