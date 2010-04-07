@@ -365,7 +365,7 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
     # as efficient.
     if mkdir and err.errno == errno.ENOENT:
       # Create directory and try again
-      Makedirs(os.path.dirname(new))
+      Makedirs(os.path.dirname(new), mode=mkdir_mode)
 
       return os.rename(old, new)
 
