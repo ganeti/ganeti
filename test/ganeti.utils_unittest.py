@@ -1504,5 +1504,36 @@ class TestGetX509CertValidity(testutils.GanetiTestCase):
       self.assertEqual(validity, (None, None))
 
 
+class TestMakedirs(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testNonExisting(self):
+    path = utils.PathJoin(self.tmpdir, "foo")
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+  def testExisting(self):
+    path = utils.PathJoin(self.tmpdir, "foo")
+    os.mkdir(path)
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+  def testRecursiveNonExisting(self):
+    path = utils.PathJoin(self.tmpdir, "foo/bar/baz")
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+  def testRecursiveExisting(self):
+    path = utils.PathJoin(self.tmpdir, "B/moo/xyz")
+    self.assert_(not os.path.exists(path))
+    os.mkdir(utils.PathJoin(self.tmpdir, "B"))
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

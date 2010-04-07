@@ -365,18 +365,27 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
     # as efficient.
     if mkdir and err.errno == errno.ENOENT:
       # Create directory and try again
-      dirname = os.path.dirname(new)
-      try:
-        os.makedirs(dirname, mode=mkdir_mode)
-      except OSError, err:
-        # Ignore EEXIST. This is only handled in os.makedirs as included in
-        # Python 2.5 and above.
-        if err.errno != errno.EEXIST or not os.path.exists(dirname):
-          raise
+      Makedirs(os.path.dirname(new))
 
       return os.rename(old, new)
 
     raise
+
+
+def Makedirs(path, mode=0750):
+  """Super-mkdir; create a leaf directory and all intermediate ones.
+
+  This is a wrapper around C{os.makedirs} adding error handling not implemented
+  before Python 2.5.
+
+  """
+  try:
+    os.makedirs(path, mode)
+  except OSError, err:
+    # Ignore EEXIST. This is only handled in os.makedirs as included in
+    # Python 2.5 and above.
+    if err.errno != errno.EEXIST or not os.path.exists(path):
+      raise
 
 
 def ResetTempfileModule():
