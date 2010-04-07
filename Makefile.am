@@ -129,6 +129,7 @@ hypervisor_PYTHON = \
 rapi_PYTHON = \
 	lib/rapi/__init__.py \
 	lib/rapi/baserlib.py \
+	lib/rapi/client.py \
 	lib/rapi/connector.py \
 	lib/rapi/rlib2.py
 
@@ -337,6 +338,7 @@ python_tests = \
 	test/ganeti.mcpu_unittest.py \
 	test/ganeti.objects_unittest.py \
 	test/ganeti.opcodes_unittest.py \
+	test/ganeti.rapi.client_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \

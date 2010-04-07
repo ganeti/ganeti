@@ -1752,5 +1752,59 @@ class TestSignX509Certificate(unittest.TestCase):
                       pem, self.KEY_OTHER)
 
 
+class TestMakedirs(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testNonExisting(self):
+    path = utils.PathJoin(self.tmpdir, "foo")
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+  def testExisting(self):
+    path = utils.PathJoin(self.tmpdir, "foo")
+    os.mkdir(path)
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+  def testRecursiveNonExisting(self):
+    path = utils.PathJoin(self.tmpdir, "foo/bar/baz")
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+  def testRecursiveExisting(self):
+    path = utils.PathJoin(self.tmpdir, "B/moo/xyz")
+    self.assert_(not os.path.exists(path))
+    os.mkdir(utils.PathJoin(self.tmpdir, "B"))
+    utils.Makedirs(path)
+    self.assert_(os.path.isdir(path))
+
+
+class TestRetry(testutils.GanetiTestCase):
+  @staticmethod
+  def _RaiseRetryAgain():
+    raise utils.RetryAgain()
+
+  def _WrongNestedLoop(self):
+    return utils.Retry(self._RaiseRetryAgain, 0.01, 0.02)
+
+  def testRaiseTimeout(self):
+    self.failUnlessRaises(utils.RetryTimeout, utils.Retry,
+                          self._RaiseRetryAgain, 0.01, 0.02)
+
+  def testComplete(self):
+    self.failUnlessEqual(utils.Retry(lambda: True, 0, 1), True)
+
+  def testNestedLoop(self):
+    try:
+      self.failUnlessRaises(errors.ProgrammerError, utils.Retry,
+                            self._WrongNestedLoop, 0, 1)
+    except utils.RetryTimeout:
+      self.fail("Didn't detect inner loop's exception")
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

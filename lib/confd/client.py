@@ -424,7 +424,8 @@ class ConfdFilterCallback:
       # else: different content, pass up a second answer
     else:
       # older or same-version answer (duplicate or outdated, filter)
-      if up.server_reply.answer != self._answers[salt].answer:
+      if (up.server_reply.serial == self._answers[salt].serial and
+          up.server_reply.answer != self._answers[salt].answer):
         self.consistent[salt] = False
       filter_upcall = True
       self._LogFilter(salt, up.server_reply, self._answers[salt])

@@ -625,18 +625,27 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
     # as efficient.
     if mkdir and err.errno == errno.ENOENT:
       # Create directory and try again
-      dirname = os.path.dirname(new)
-      try:
-        os.makedirs(dirname, mode=mkdir_mode)
-      except OSError, err:
-        # Ignore EEXIST. This is only handled in os.makedirs as included in
-        # Python 2.5 and above.
-        if err.errno != errno.EEXIST or not os.path.exists(dirname):
-          raise
+      Makedirs(os.path.dirname(new), mode=mkdir_mode)
 
       return os.rename(old, new)
 
     raise
+
+
+def Makedirs(path, mode=0750):
+  """Super-mkdir; create a leaf directory and all intermediate ones.
+
+  This is a wrapper around C{os.makedirs} adding error handling not implemented
+  before Python 2.5.
+
+  """
+  try:
+    os.makedirs(path, mode)
+  except OSError, err:
+    # Ignore EEXIST. This is only handled in os.makedirs as included in
+    # Python 2.5 and above.
+    if err.errno != errno.EEXIST or not os.path.exists(path):
+      raise
 
 
 def ResetTempfileModule():
@@ -1833,8 +1842,11 @@ def WaitForFdCondition(fdobj, event, timeout):
   """
   if timeout is not None:
     retrywaiter = FdConditionWaiterHelper(timeout)
-    result = Retry(retrywaiter.Poll, RETRY_REMAINING_TIME, timeout,
-                   args=(fdobj, event), wait_fn=retrywaiter.UpdateTimeout)
+    try:
+      result = Retry(retrywaiter.Poll, RETRY_REMAINING_TIME, timeout,
+                     args=(fdobj, event), wait_fn=retrywaiter.UpdateTimeout)
+    except RetryTimeout:
+      result = None
   else:
     result = None
     while result is None:
@@ -2928,6 +2940,9 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
       return fn(*args)
     except RetryAgain:
       pass
+    except RetryTimeout:
+      raise errors.ProgrammerError("Nested retry loop detected that didn't"
+                                   " handle RetryTimeout")
 
     remaining_time = end_time - _time_fn()
 
