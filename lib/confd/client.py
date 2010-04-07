@@ -607,6 +607,53 @@ class ConfdCountingCallback:
     self._callback(up)
 
 
+class StoreResultCallback:
+  """Callback that simply stores the most recent answer.
+
+  @ivar _answers: dict of salt to (have_answer, reply)
+
+  """
+  _NO_KEY = (False, None)
+
+  def __init__(self):
+    """Constructor for StoreResultCallback
+
+    """
+    # answers contains a dict of salt -> best result
+    self._answers = {}
+
+  def GetResponse(self, salt):
+    """Return the best match for a salt
+
+    """
+    return self._answers.get(salt, self._NO_KEY)
+
+  def _HandleExpire(self, up):
+    """Expiration handler.
+
+    """
+    if up.salt in self._answers and self._answers[up.salt] == self._NO_KEY:
+      del self._answers[up.salt]
+
+  def _HandleReply(self, up):
+    """Handle a single confd reply, and decide whether to filter it.
+
+    """
+    self._answers[up.salt] = (True, up)
+
+  def __call__(self, up):
+    """Filtering callback
+
+    @type up: L{ConfdUpcallPayload}
+    @param up: upper callback
+
+    """
+    if up.type == UPCALL_REPLY:
+      self._HandleReply(up)
+    elif up.type == UPCALL_EXPIRE:
+      self._HandleExpire(up)
+
+
 def GetConfdClient(callback):
   """Return a client configured using the given callback.
 
