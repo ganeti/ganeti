@@ -1579,8 +1579,11 @@ def WaitForFdCondition(fdobj, event, timeout):
   """
   if timeout is not None:
     retrywaiter = FdConditionWaiterHelper(timeout)
-    result = Retry(retrywaiter.Poll, RETRY_REMAINING_TIME, timeout,
-                   args=(fdobj, event), wait_fn=retrywaiter.UpdateTimeout)
+    try:
+      result = Retry(retrywaiter.Poll, RETRY_REMAINING_TIME, timeout,
+                     args=(fdobj, event), wait_fn=retrywaiter.UpdateTimeout)
+    except RetryTimeout:
+      result = None
   else:
     result = None
     while result is None:
@@ -2606,6 +2609,9 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
       return fn(*args)
     except RetryAgain:
       pass
+    except RetryTimeout:
+      raise errors.ProgrammerError("Nested retry loop detected that didn't"
+                                   " handle RetryTimeout")
 
     remaining_time = end_time - _time_fn()
 

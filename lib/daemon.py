@@ -166,7 +166,8 @@ class AsyncUDPSocket(asyncore.dispatcher):
     @return: True if some data has been handled, False otherwise
 
     """
-    if utils.WaitForFdCondition(self, select.POLLIN, timeout) & select.POLLIN:
+    result = utils.WaitForFdCondition(self, select.POLLIN, timeout)
+    if result is not None and result & select.POLLIN:
       self.do_read()
       return True
     else:
