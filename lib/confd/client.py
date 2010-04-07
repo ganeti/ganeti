@@ -85,12 +85,31 @@ class ConfdAsyncUDPClient(daemon.AsyncUDPSocket):
     self.client.HandleResponse(payload, ip, port)
 
 
+class _Request(object):
+  """Request status structure.
+
+  @ivar request: the request data
+  @ivar args: any extra arguments for the callback
+  @ivar expiry: the expiry timestamp of the request
+
+  """
+  def __init__(self, request, args, expiry):
+    self.request = request
+    self.args = args
+    self.expiry = expiry
+
+
 class ConfdClient:
   """Send queries to confd, and get back answers.
 
   Since the confd model works by querying multiple master candidates, and
   getting back answers, this is an asynchronous library. It can either work
   through asyncore or with your own handling.
+
+  @type _requests: dict
+  @ivar _requests: dictionary indexes by salt, which contains data
+      about the outstanding requests; the values are objects of type
+      L{_Request}
 
   """
   def __init__(self, hmac_key, peers, callback, port=None, logger=None):
@@ -118,7 +137,6 @@ class ConfdClient:
     self._confd_port = port
     self._logger = logger
     self._requests = {}
-    self._expire_requests = []
 
     if self._confd_port is None:
       self._confd_port = utils.GetDaemonPort(constants.CONFD)
@@ -161,21 +179,16 @@ class ConfdClient:
 
     """
     now = time.time()
-    while self._expire_requests:
-      expire_time, rsalt = self._expire_requests[0]
-      if now >= expire_time:
-        self._expire_requests.pop(0)
-        (request, args) = self._requests[rsalt]
+    for rsalt, rq in self._requests.items():
+      if now >= rq.expiry:
         del self._requests[rsalt]
         client_reply = ConfdUpcallPayload(salt=rsalt,
                                           type=UPCALL_EXPIRE,
-                                          orig_request=request,
-                                          extra_args=args,
+                                          orig_request=rq.request,
+                                          extra_args=rq.args,
                                           client=self,
                                           )
         self._callback(client_reply)
-      else:
-        break
 
   def SendRequest(self, request, args=None, coverage=None, async=True):
     """Send a confd request to some MCs
@@ -219,9 +232,8 @@ class ConfdClient:
       except errors.UdpDataSizeError:
         raise errors.ConfdClientError("Request too big")
 
-    self._requests[request.rsalt] = (request, args)
     expire_time = now + constants.CONFD_CLIENT_EXPIRE_TIMEOUT
-    self._expire_requests.append((expire_time, request.rsalt))
+    self._requests[request.rsalt] = _Request(request, args, expire_time)
 
     if not async:
       self.FlushSendQueue()
@@ -241,7 +253,7 @@ class ConfdClient:
         return
 
       try:
-        (request, args) = self._requests[salt]
+        rq = self._requests[salt]
       except KeyError:
         if self._logger:
           self._logger.debug("Discarding unknown (expired?) reply: %s" % err)
@@ -250,10 +262,10 @@ class ConfdClient:
       client_reply = ConfdUpcallPayload(salt=salt,
                                         type=UPCALL_REPLY,
                                         server_reply=answer,
-                                        orig_request=request,
+                                        orig_request=rq.request,
                                         server_ip=ip,
                                         server_port=port,
-                                        extra_args=args,
+                                        extra_args=rq.args,
                                         client=self,
                                        )
       self._callback(client_reply)
@@ -509,6 +521,7 @@ class ConfdCountingCallback:
     elif up.type == UPCALL_EXPIRE:
       self._HandleExpire(up)
     self._callback(up)
+
 
 def GetConfdClient(callback):
   """Return a client configured using the given callback.
