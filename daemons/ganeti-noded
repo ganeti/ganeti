@@ -353,20 +353,6 @@ class NodeHttpServer(http.server.HttpServer):
   # export/import  --------------------------
 
   @staticmethod
-  def perspective_snapshot_export(params):
-    """Export a given snapshot.
-
-    """
-    disk = objects.Disk.FromDict(params[0])
-    dest_node = params[1]
-    instance = objects.Instance.FromDict(params[2])
-    cluster_name = params[3]
-    dev_idx = params[4]
-    debug = params[5]
-    return backend.ExportSnapshot(disk, dest_node, instance,
-                                  cluster_name, dev_idx, debug)
-
-  @staticmethod
   def perspective_finalize_export(params):
     """Expose the finalize export functionality.
 
@@ -486,16 +472,6 @@ class NodeHttpServer(http.server.HttpServer):
     inst_s, old_name, debug = params
     inst = objects.Instance.FromDict(inst_s)
     return backend.RunRenameInstance(inst, old_name, debug)
-
-  @staticmethod
-  def perspective_instance_os_import(params):
-    """Run the import function of an OS onto a given instance.
-
-    """
-    inst_s, src_node, src_images, cluster_name, debug = params
-    inst = objects.Instance.FromDict(inst_s)
-    return backend.ImportOSIntoInstance(inst, src_node, src_images,
-                                        cluster_name, debug)
 
   @staticmethod
   def perspective_instance_shutdown(params):

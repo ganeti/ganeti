@@ -2016,66 +2016,6 @@ def BlockdevSnapshot(disk):
           disk.unique_id, disk.dev_type)
 
 
-def ExportSnapshot(disk, dest_node, instance, cluster_name, idx, debug):
-  """Export a block device snapshot to a remote node.
-
-  @type disk: L{objects.Disk}
-  @param disk: the description of the disk to export
-  @type dest_node: str
-  @param dest_node: the destination node to export to
-  @type instance: L{objects.Instance}
-  @param instance: the instance object to whom the disk belongs
-  @type cluster_name: str
-  @param cluster_name: the cluster name, needed for SSH hostalias
-  @type idx: int
-  @param idx: the index of the disk in the instance's disk list,
-      used to export to the OS scripts environment
-  @type debug: integer
-  @param debug: debug level, passed to the OS scripts
-  @rtype: None
-
-  """
-  inst_os = OSFromDisk(instance.os)
-  export_env = OSEnvironment(instance, inst_os, debug)
-
-  export_script = inst_os.export_script
-
-  logfile = _InstanceLogName("export", inst_os.name, instance.name)
-  if not os.path.exists(constants.LOG_OS_DIR):
-    os.mkdir(constants.LOG_OS_DIR, 0750)
-
-  real_disk = _OpenRealBD(disk)
-
-  export_env['EXPORT_DEVICE'] = real_disk.dev_path
-  export_env['EXPORT_INDEX'] = str(idx)
-
-  destdir = utils.PathJoin(constants.EXPORT_DIR, instance.name + ".new")
-  destfile = disk.physical_id[1]
-
-  # the target command is built out of three individual commands,
-  # which are joined by pipes; we check each individual command for
-  # valid parameters
-  expcmd = utils.BuildShellCmd("set -e; set -o pipefail; cd %s; %s 2>%s",
-                               inst_os.path, export_script, logfile)
-
-  comprcmd = "gzip"
-
-  destcmd = utils.BuildShellCmd("mkdir -p %s && cat > %s",
-                                destdir, utils.PathJoin(destdir, destfile))
-  remotecmd = _GetSshRunner(cluster_name).BuildCmd(dest_node,
-                                                   constants.GANETI_RUNAS,
-                                                   destcmd)
-
-  # all commands have been checked, so we're safe to combine them
-  command = '|'.join([expcmd, comprcmd, utils.ShellQuoteArgs(remotecmd)])
-
-  result = utils.RunCmd(["bash", "-c", command], env=export_env)
-
-  if result.failed:
-    _Fail("OS snapshot export command '%s' returned error: %s"
-          " output: %s", command, result.fail_reason, result.output)
-
-
 def FinalizeExport(instance, snap_disks):
   """Write out the export configuration information.
 
@@ -2173,55 +2113,6 @@ def ExportInfo(dest):
     _Fail("Export info file doesn't have the required fields")
 
   return config.Dumps()
-
-
-def ImportOSIntoInstance(instance, src_node, src_images, cluster_name, debug):
-  """Import an os image into an instance.
-
-  @type instance: L{objects.Instance}
-  @param instance: instance to import the disks into
-  @type src_node: string
-  @param src_node: source node for the disk images
-  @type src_images: list of string
-  @param src_images: absolute paths of the disk images
-  @type debug: integer
-  @param debug: debug level, passed to the OS scripts
-  @rtype: list of boolean
-  @return: each boolean represent the success of importing the n-th disk
-
-  """
-  inst_os = OSFromDisk(instance.os)
-  import_env = OSEnvironment(instance, inst_os, debug)
-  import_script = inst_os.import_script
-
-  logfile = _InstanceLogName("import", instance.os, instance.name)
-  if not os.path.exists(constants.LOG_OS_DIR):
-    os.mkdir(constants.LOG_OS_DIR, 0750)
-
-  comprcmd = "gunzip"
-  impcmd = utils.BuildShellCmd("(cd %s; %s >%s 2>&1)", inst_os.path,
-                               import_script, logfile)
-
-  final_result = []
-  for idx, image in enumerate(src_images):
-    if image:
-      destcmd = utils.BuildShellCmd('cat %s', image)
-      remotecmd = _GetSshRunner(cluster_name).BuildCmd(src_node,
-                                                       constants.GANETI_RUNAS,
-                                                       destcmd)
-      command = '|'.join([utils.ShellQuoteArgs(remotecmd), comprcmd, impcmd])
-      import_env['IMPORT_DEVICE'] = import_env['DISK_%d_PATH' % idx]
-      import_env['IMPORT_INDEX'] = str(idx)
-      result = utils.RunCmd(command, env=import_env)
-      if result.failed:
-        logging.error("Disk import command '%s' returned error: %s"
-                      " output: %s", command, result.fail_reason,
-                      result.output)
-        final_result.append("error importing disk %d: %s, %s" %
-                            (idx, result.fail_reason, result.output[-100]))
-
-  if final_result:
-    _Fail("; ".join(final_result), log=False)
 
 
 def ListExports():
