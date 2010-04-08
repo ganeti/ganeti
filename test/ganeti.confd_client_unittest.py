@@ -139,6 +139,10 @@ class TestClient(unittest.TestCase):
                       req2, coverage=15)
     self.assertEquals(self.client._socket.send_count,
                       constants.CONFD_DEFAULT_REQ_COVERAGE)
+    # Send with max coverage
+    self.client.SendRequest(req2, coverage=-1)
+    self.assertEquals(self.client._socket.send_count,
+                      constants.CONFD_DEFAULT_REQ_COVERAGE + len(self.mc_list))
     self.assert_(self.client._socket.last_address in self.mc_list)
 
 

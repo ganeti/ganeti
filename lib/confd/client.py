@@ -194,7 +194,7 @@ class ConfdClient:
                                           )
         self._callback(client_reply)
 
-  def SendRequest(self, request, args=None, coverage=None, async=True):
+  def SendRequest(self, request, args=None, coverage=0, async=True):
     """Send a confd request to some MCs
 
     @type request: L{objects.ConfdRequest}
@@ -202,13 +202,19 @@ class ConfdClient:
     @type args: tuple
     @param args: additional callback arguments
     @type coverage: integer
-    @param coverage: number of remote nodes to contact
+    @param coverage: number of remote nodes to contact; if default
+        (0), it will use a reasonable default
+        (L{ganeti.constants.CONFD_DEFAULT_REQ_COVERAGE}), if -1 is
+        passed, it will use the maximum number of peers, otherwise the
+        number passed in will be used
     @type async: boolean
     @param async: handle the write asynchronously
 
     """
-    if coverage is None:
+    if coverage == 0:
       coverage = min(len(self._peers), constants.CONFD_DEFAULT_REQ_COVERAGE)
+    elif coverage == -1:
+      coverage = len(self._peers)
 
     if coverage > len(self._peers):
       raise errors.ConfdClientError("Not enough MCs known to provide the"
