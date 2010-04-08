@@ -78,6 +78,36 @@ def ParseUidPool(value, separator=None):
   return ranges
 
 
+def AddToUidPool(uid_pool, add_uids):
+  """Add a list of user-ids/user-id ranges to a user-id pool.
+
+  @param uid_pool: a user-id pool (list of integer tuples)
+  @param add_uids: user-id ranges to be added to the pool
+                   (list of integer tuples)
+
+  """
+  for uid_range in add_uids:
+    if uid_range not in uid_pool:
+      uid_pool.append(uid_range)
+  uid_pool.sort()
+
+
+def RemoveFromUidPool(uid_pool, remove_uids):
+  """Remove a list of user-ids/user-id ranges from a user-id pool.
+
+  @param uid_pool: a user-id pool (list of integer tuples)
+  @param remove_uids: user-id ranges to be removed from the pool
+                      (list of integer tuples)
+
+  """
+  for uid_range in remove_uids:
+    if uid_range not in uid_pool:
+      raise errors.OpPrereqError(
+          "User-id range to be removed is not found in the current"
+          " user-id pool: %s" % uid_range, errors.ECODE_INVAL)
+    uid_pool.remove(uid_range)
+
+
 def CheckUidPool(uid_pool):
   """Sanity check user-id pool range definition values.
 

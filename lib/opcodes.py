@@ -307,6 +307,8 @@ class OpSetClusterParams(OpCode):
     "candidate_pool_size",
     "maintain_node_health",
     "uid_pool",
+    "add_uids",
+    "remove_uids",
     ]
 
 

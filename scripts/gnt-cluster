@@ -603,7 +603,9 @@ def SetClusterParams(opts, args):
           opts.beparams or opts.nicparams or
           opts.candidate_pool_size is not None or
           opts.uid_pool is not None or
-          opts.maintain_node_health is not None):
+          opts.maintain_node_health is not None or
+          opts.add_uids is not None or
+          opts.remove_uids is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -637,6 +639,14 @@ def SetClusterParams(opts, args):
   if uid_pool is not None:
     uid_pool = uidpool.ParseUidPool(uid_pool)
 
+  add_uids = opts.add_uids
+  if add_uids is not None:
+    add_uids = uidpool.ParseUidPool(add_uids)
+
+  remove_uids = opts.remove_uids
+  if remove_uids is not None:
+    remove_uids = uidpool.ParseUidPool(remove_uids)
+
   op = opcodes.OpSetClusterParams(vg_name=vg_name,
                                   enabled_hypervisors=hvlist,
                                   hvparams=hvparams,
@@ -645,7 +655,9 @@ def SetClusterParams(opts, args):
                                   nicparams=nicparams,
                                   candidate_pool_size=opts.candidate_pool_size,
                                   maintain_node_health=mnh,
-                                  uid_pool=uid_pool)
+                                  uid_pool=uid_pool,
+                                  add_uids=add_uids,
+                                  remove_uids=remove_uids)
   SubmitOpCode(op, opts=opts)
   return 0
 
@@ -797,7 +809,7 @@ commands = {
     SetClusterParams, ARGS_NONE,
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
-     UIDPOOL_OPT],
+     UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

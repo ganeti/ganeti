@@ -2272,6 +2272,12 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.uid_pool:
       uidpool.CheckUidPool(self.op.uid_pool)
 
+    if self.op.add_uids:
+      uidpool.CheckUidPool(self.op.add_uids)
+
+    if self.op.remove_uids:
+      uidpool.CheckUidPool(self.op.remove_uids)
+
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
     # all nodes to be modified.
@@ -2465,6 +2471,12 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.maintain_node_health is not None:
       self.cluster.maintain_node_health = self.op.maintain_node_health
+
+    if self.op.add_uids is not None:
+      uidpool.AddToUidPool(self.cluster.uid_pool, self.op.add_uids)
+
+    if self.op.remove_uids is not None:
+      uidpool.RemoveFromUidPool(self.cluster.uid_pool, self.op.remove_uids)
 
     if self.op.uid_pool is not None:
       self.cluster.uid_pool = self.op.uid_pool
