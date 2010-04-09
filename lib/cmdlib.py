@@ -6288,6 +6288,18 @@ class LUCreateInstance(LogicalUnit):
         if name not in self.op.hvparams:
           self.op.hvparams[name] = value
 
+    if einfo.has_section(constants.INISECT_BEP):
+      # use the parameters, without overriding
+      for name, value in einfo.items(constants.INISECT_BEP):
+        if name not in self.op.beparams:
+          self.op.beparams[name] = value
+    else:
+      # try to read the parameters old style, from the main section
+      for name in constants.BES_PARAMETERS:
+        if (name not in self.op.beparams and
+            einfo.has_option(constants.INISECT_INS, name)):
+          self.op.beparams[name] = einfo.get(constants.INISECT_INS, name)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
