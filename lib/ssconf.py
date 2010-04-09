@@ -283,6 +283,7 @@ class SimpleStore(object):
     constants.SS_INSTANCE_LIST,
     constants.SS_RELEASE_VERSION,
     constants.SS_HYPERVISOR_LIST,
+    constants.SS_MAINTAIN_NODE_HEALTH,
     )
   _MAX_SIZE = 131072
 
@@ -431,6 +432,14 @@ class SimpleStore(object):
     data = self._ReadFile(constants.SS_HYPERVISOR_LIST)
     nl = data.splitlines(False)
     return nl
+
+  def GetMaintainNodeHealth(self):
+    """Return the value of the maintain_node_health option.
+
+    """
+    data = self._ReadFile(constants.SS_MAINTAIN_NODE_HEALTH)
+    # we rely on the bool serialization here
+    return data == "True"
 
 
 def GetMasterAndMyself(ss=None):

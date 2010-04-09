@@ -265,8 +265,9 @@ def ParseRequest(msg):
     logging.error("LUXI request not a dict: %r", msg)
     raise ProtocolError("Invalid LUXI request (not a dict)")
 
-  method = request.get(KEY_METHOD, None)
-  args = request.get(KEY_ARGS, None)
+  method = request.get(KEY_METHOD, None) # pylint: disable-msg=E1103
+  args = request.get(KEY_ARGS, None) # pylint: disable-msg=E1103
+
   if method is None or args is None:
     logging.error("LUXI request missing method or arguments: %r", msg)
     raise ProtocolError(("Invalid LUXI request (no method or arguments"

@@ -48,31 +48,68 @@
     <para>
       The <command>&dhpackage;</command> is a periodically run script
       which is responsible for keeping the instances in the correct
-      status.
+      status. It has two separate functions, one for the master node
+      and another one that runs on every node.
     </para>
 
-    <para>
-      Its primary function is to try to keep running all instances
-      which are marked as <emphasis>up</emphasis> in the configuration
-      file, by trying to start them a limited number of times.
-    </para>
+    <refsect2>
+      <title>Master operations</title>
 
-    <para>
-      Its other function is to <quote>repair</quote> DRBD links by
-      reactivating the block devices of instances which have
-      secondaries on nodes that have been rebooted.
-    </para>
+      <para>
+        Its primary function is to try to keep running all instances
+        which are marked as <emphasis>up</emphasis> in the configuration
+        file, by trying to start them a limited number of times.
+      </para>
 
-    <para>
-      The watcher does synchronous queries but will submit jobs for
-      executing the changes. Due to locking, it could be that the jobs
-      execute much later than the watcher executes them.
-    </para>
+      <para>
+        Its other function is to <quote>repair</quote> DRBD links by
+        reactivating the block devices of instances which have
+        secondaries on nodes that have been rebooted.
+      </para>
+
+    </refsect2>
+
+    <refsect2>
+
+      <title>Node operations</title>
+
+      <para>
+        The watcher will restart any down daemons that are appropriate
+        for the current node.
+      </para>
+
+      <para>
+        In addition, it will execute any scripts which exist under the
+        <quote>watcher</quote> directory in the ganeti hooks directory
+        (@SYSCONFDIR@/ganeti/hooks). This should be used for
+        lightweight actions, like starting any extra daemons.
+      </para>
+
+      <para>
+        If the cluster
+        parameter <literal>maintain_node_health</literal> is enabled,
+        then the watcher will also shutdown instances and DRBD devices
+        if the node is declared as offline by known master candidates.
+      </para>
+
+      <para>
+        The watcher does synchronous queries but will submit jobs for
+        executing the changes. Due to locking, it could be that the jobs
+        execute much later than the watcher executes them.
+      </para>
+
+    </refsect2>
+
+
+  </refsect1>
+
+  <refsect1>
+    <title>FILES</title>
 
     <para>
       The command has a state file located at
-      <filename>@LOCALSTATEDIR@/lib/ganeti/watcher.data</filename> and a log
-      file at
+      <filename>@LOCALSTATEDIR@/lib/ganeti/watcher.data</filename>
+      (only used on the master) and a log file at
       <filename>@LOCALSTATEDIR@/log/ganeti/watcher.log</filename>. Removal of
       either file will not affect correct operation; the removal of
       the state file will just cause the restart counters for the

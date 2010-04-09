@@ -865,6 +865,7 @@ class Cluster(TaggableObject):
     "candidate_pool_size",
     "modify_etc_hosts",
     "modify_ssh_setup",
+    "maintain_node_health",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -910,6 +911,10 @@ class Cluster(TaggableObject):
         [hvname for hvname in self.enabled_hypervisors
          if hvname != self.default_hypervisor])
       self.default_hypervisor = None
+
+    # maintain_node_health added after 2.1.1
+    if self.maintain_node_health is None:
+      self.maintain_node_health = False
 
   def ToDict(self):
     """Custom function for cluster.
