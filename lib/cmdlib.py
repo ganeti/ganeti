@@ -6278,6 +6278,17 @@ class LUCreateInstance(LogicalUnit):
                                    " is missing the disk information",
                                    errors.ECODE_INVAL)
 
+    if (not self.op.nics and
+        einfo.has_option(constants.INISECT_INS, "nic_count")):
+      nics = []
+      for idx in range(einfo.getint(constants.INISECT_INS, "nic_count")):
+        ndict = {}
+        for name in list(constants.NICS_PARAMETERS) + ["ip", "mac"]:
+          v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
+          ndict[name] = v
+        nics.append(ndict)
+      self.op.nics = nics
+
     if (self.op.hypervisor is None and
         einfo.has_option(constants.INISECT_INS, "hypervisor")):
       self.op.hypervisor = einfo.get(constants.INISECT_INS, "hypervisor")

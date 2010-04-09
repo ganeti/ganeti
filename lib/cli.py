@@ -1536,9 +1536,12 @@ def GenericInstanceCreate(mode, opts, args):
   elif opts.no_nics:
     # no nics
     nics = []
-  else:
+  elif mode == constants.INSTANCE_CREATE:
     # default of one nic, all auto
     nics = [{}]
+  else:
+    # mode == import
+    nics = []
 
   if opts.disk_template == constants.DT_DISKLESS:
     if opts.disks or opts.sd_size is not None:
