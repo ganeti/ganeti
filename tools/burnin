@@ -347,13 +347,13 @@ class Burner(object):
     self._SetDebug(ops)
     return self.MaybeRetry(rval, "opcode", self._ExecOp, *ops)
 
-  def ExecOrQueue(self, name, *ops):
+  def ExecOrQueue(self, name, ops):
     """Execute an opcode and manage the exec buffer."""
     if self.opts.parallel:
       self._SetDebug(ops)
       self.queued_ops.append((ops, name))
     else:
-      return self.ExecOp(self.queue_retry, *ops)
+      return self.ExecOp(self.queue_retry, *ops) # pylint: disable-msg=W0142
 
   def StartBatch(self, retry):
     """Start a new batch of jobs.
@@ -544,7 +544,7 @@ class Burner(object):
                                     hvparams=self.hvp,
                                     )
 
-      self.ExecOrQueue(instance, op)
+      self.ExecOrQueue(instance, [op])
       self.to_rem.append(instance)
 
   @_DoBatch(False)
@@ -558,7 +558,7 @@ class Burner(object):
           op = opcodes.OpGrowDisk(instance_name=instance, disk=idx,
                                   amount=growth, wait_for_sync=True)
           Log("increase disk/%s by %s MB", idx, growth, indent=2)
-          self.ExecOrQueue(instance, op)
+          self.ExecOrQueue(instance, [op])
 
   @_DoBatch(True)
   def BurnReplaceDisks1D8(self):
@@ -574,7 +574,7 @@ class Burner(object):
                                     early_release=self.opts.early_release)
         Log("run %s", mode, indent=2)
         ops.append(op)
-      self.ExecOrQueue(instance, *ops) # pylint: disable-msg=W0142
+      self.ExecOrQueue(instance, ops)
 
   @_DoBatch(True)
   def BurnReplaceDisks2(self):
@@ -598,7 +598,7 @@ class Burner(object):
                                   disks=[],
                                   early_release=self.opts.early_release)
       Log("run %s %s", mode, msg, indent=2)
-      self.ExecOrQueue(instance, op)
+      self.ExecOrQueue(instance, [op])
 
   @_DoCheckInstances
   @_DoBatch(False)
@@ -609,7 +609,7 @@ class Burner(object):
       Log("instance %s", instance, indent=1)
       op = opcodes.OpFailoverInstance(instance_name=instance,
                                       ignore_consistency=False)
-      self.ExecOrQueue(instance, op)
+      self.ExecOrQueue(instance, [op])
 
   @_DoCheckInstances
   @_DoBatch(False)
@@ -622,7 +622,7 @@ class Burner(object):
       Log("instance %s", instance, indent=1)
       op = opcodes.OpMoveInstance(instance_name=instance,
                                   target_node=tnode)
-      self.ExecOrQueue(instance, op)
+      self.ExecOrQueue(instance, [op])
 
   @_DoBatch(False)
   def BurnMigrate(self):
@@ -636,7 +636,7 @@ class Burner(object):
       op2 = opcodes.OpMigrateInstance(instance_name=instance, live=True,
                                       cleanup=True)
       Log("migration and migration cleanup", indent=2)
-      self.ExecOrQueue(instance, op1, op2)
+      self.ExecOrQueue(instance, [op1, op2])
 
   @_DoCheckInstances
   @_DoBatch(False)
@@ -703,7 +703,7 @@ class Burner(object):
       Log("remove instance", indent=2)
       Log(import_log_msg, indent=2)
       Log("remove export", indent=2)
-      self.ExecOrQueue(instance, exp_op, rem_op, imp_op, erem_op)
+      self.ExecOrQueue(instance, [exp_op, rem_op, imp_op, erem_op])
 
   @staticmethod
   def StopInstanceOp(instance):
@@ -730,7 +730,7 @@ class Burner(object):
       Log("instance %s", instance, indent=1)
       op1 = self.StopInstanceOp(instance)
       op2 = self.StartInstanceOp(instance)
-      self.ExecOrQueue(instance, op1, op2)
+      self.ExecOrQueue(instance, [op1, op2])
 
   @_DoBatch(False)
   def BurnRemove(self):
@@ -740,7 +740,7 @@ class Burner(object):
       Log("instance %s", instance, indent=1)
       op = opcodes.OpRemoveInstance(instance_name=instance,
                                     ignore_failures=True)
-      self.ExecOrQueue(instance, op)
+      self.ExecOrQueue(instance, [op])
 
   def BurnRename(self):
     """Rename the instances.
@@ -778,7 +778,7 @@ class Burner(object):
                                         os_type=self.opts.os)
       Log("reinstall specifying the OS", indent=2)
       op4 = self.StartInstanceOp(instance)
-      self.ExecOrQueue(instance, op1, op2, op3, op4)
+      self.ExecOrQueue(instance, [op1, op2, op3, op4])
 
   @_DoCheckInstances
   @_DoBatch(True)
@@ -794,7 +794,7 @@ class Burner(object):
                                       ignore_secondaries=False)
         Log("reboot with type '%s'", reboot_type, indent=2)
         ops.append(op)
-      self.ExecOrQueue(instance, *ops) # pylint: disable-msg=W0142
+      self.ExecOrQueue(instance, ops)
 
   @_DoCheckInstances
   @_DoBatch(True)
@@ -810,7 +810,7 @@ class Burner(object):
       Log("activate disks when online", indent=2)
       Log("activate disks when offline", indent=2)
       Log("deactivate disks (when offline)", indent=2)
-      self.ExecOrQueue(instance, op_act, op_stop, op_act, op_deact, op_start)
+      self.ExecOrQueue(instance, [op_act, op_stop, op_act, op_deact, op_start])
 
   @_DoCheckInstances
   @_DoBatch(False)
@@ -828,7 +828,7 @@ class Burner(object):
       op_start = self.StartInstanceOp(instance)
       Log("adding a disk", indent=2)
       Log("removing last disk", indent=2)
-      self.ExecOrQueue(instance, op_add, op_stop, op_rem, op_start)
+      self.ExecOrQueue(instance, [op_add, op_stop, op_rem, op_start])
 
   @_DoBatch(False)
   def BurnAddRemoveNICs(self):
@@ -842,7 +842,7 @@ class Burner(object):
         instance_name=instance, nics=[(constants.DDM_REMOVE, {})])
       Log("adding a NIC", indent=2)
       Log("removing last NIC", indent=2)
-      self.ExecOrQueue(instance, op_add, op_rem)
+      self.ExecOrQueue(instance, [op_add, op_rem])
 
   def ConfdCallback(self, reply):
     """Callback for confd queries"""
