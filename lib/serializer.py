@@ -152,6 +152,7 @@ def LoadSignedJson(txt, key):
     raise errors.SignatureError('Invalid external message')
 
   if callable(key):
+    # pylint: disable-msg=E1103
     key_selector = signed_dict.get("key_selector", None)
     hmac_key = key(key_selector)
     if not hmac_key:

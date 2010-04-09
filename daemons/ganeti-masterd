@@ -163,8 +163,8 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
         logging.error("wrong request received: %s", msg)
         break
 
-      method = request.get(luxi.KEY_METHOD, None)
-      args = request.get(luxi.KEY_ARGS, None)
+      method = request.get(luxi.KEY_METHOD, None) # pylint: disable-msg=E1103
+      args = request.get(luxi.KEY_ARGS, None) # pylint: disable-msg=E1103
       if method is None or args is None:
         logging.error("no method or args in request")
         break

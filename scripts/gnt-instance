@@ -423,12 +423,16 @@ def BatchCreate(opts, args):
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
+  if not isinstance(instance_data, dict):
+    ToStderr("The instance definition file is not in dict format.")
+    return 1
+
   jex = JobExecutor(opts=opts)
 
   # Iterate over the instances and do:
   #  * Populate the specs with default value
   #  * Validate the instance specs
-  i_names = utils.NiceSort(instance_data.keys())
+  i_names = utils.NiceSort(instance_data.keys()) # pylint: disable-msg=E1103
   for name in i_names:
     specs = instance_data[name]
     specs = _PopulateWithDefaults(specs)
