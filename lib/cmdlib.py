@@ -6015,7 +6015,7 @@ class LUCreateInstance(LogicalUnit):
       else:
         has_no_adopt = True
     if has_adopt and has_no_adopt:
-      raise errors.OpPrereqError("Either all disks have are adoped or none is",
+      raise errors.OpPrereqError("Either all disks are adopted or none is",
                                  errors.ECODE_INVAL)
     if has_adopt:
       if self.op.disk_template != constants.DT_PLAIN:
@@ -6031,6 +6031,55 @@ class LUCreateInstance(LogicalUnit):
 
     self.adopt_disks = has_adopt
 
+    # verify creation mode
+    if self.op.mode not in (constants.INSTANCE_CREATE,
+                            constants.INSTANCE_IMPORT):
+      raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
+                                 self.op.mode, errors.ECODE_INVAL)
+
+    # disk template
+    _CheckDiskTemplate(self.op.disk_template)
+
+    # instance name verification
+    if self.op.name_check:
+      self.hostname1 = utils.GetHostInfo(self.op.instance_name)
+      self.op.instance_name = self.hostname1.name
+      # used in CheckPrereq for ip ping check
+      self.check_ip = self.hostname1.ip
+    else:
+      self.check_ip = None
+
+    # file storage checks
+    if (self.op.file_driver and
+        not self.op.file_driver in constants.FILE_DRIVER):
+      raise errors.OpPrereqError("Invalid file driver name '%s'" %
+                                 self.op.file_driver, errors.ECODE_INVAL)
+
+    if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
+      raise errors.OpPrereqError("File storage directory path not absolute",
+                                 errors.ECODE_INVAL)
+
+    ### Node/iallocator related checks
+    if [self.op.iallocator, self.op.pnode].count(None) != 1:
+      raise errors.OpPrereqError("One and only one of iallocator and primary"
+                                 " node must be given",
+                                 errors.ECODE_INVAL)
+
+    if self.op.mode == constants.INSTANCE_IMPORT:
+      # On import force_variant must be True, because if we forced it at
+      # initial install, our only chance when importing it back is that it
+      # works again!
+      self.op.force_variant = True
+
+      if self.op.no_install:
+        self.LogInfo("No-installation mode has no effect during import")
+
+    else: # INSTANCE_CREATE
+      if getattr(self.op, "os_type", None) is None:
+        raise errors.OpPrereqError("No guest OS specified",
+                                   errors.ECODE_INVAL)
+      self.op.force_variant = getattr(self.op, "force_variant", False)
+
   def ExpandNames(self):
     """ExpandNames for CreateInstance.
 
@@ -6040,15 +6089,6 @@ class LUCreateInstance(LogicalUnit):
     self.needed_locks = {}
 
     # cheap checks, mostly valid constants given
-
-    # verify creation mode
-    if self.op.mode not in (constants.INSTANCE_CREATE,
-                            constants.INSTANCE_IMPORT):
-      raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
-                                 self.op.mode, errors.ECODE_INVAL)
-
-    # disk template and mirror node verification
-    _CheckDiskTemplate(self.op.disk_template)
 
     if self.op.hypervisor is None:
       self.op.hypervisor = self.cfg.GetHypervisorType()
@@ -6078,16 +6118,7 @@ class LUCreateInstance(LogicalUnit):
 
     #### instance parameters check
 
-    # instance name verification
-    if self.op.name_check:
-      hostname1 = utils.GetHostInfo(self.op.instance_name)
-      self.op.instance_name = instance_name = hostname1.name
-      # used in CheckPrereq for ip ping check
-      self.check_ip = hostname1.ip
-    else:
-      instance_name = self.op.instance_name
-      self.check_ip = None
-
+    instance_name = self.op.instance_name
     # this is just a preventive check, but someone might still add this
     # instance in the meantime, and creation will fail at lock-add time
     if instance_name in self.cfg.GetInstanceList():
@@ -6119,7 +6150,7 @@ class LUCreateInstance(LogicalUnit):
           raise errors.OpPrereqError("IP address set to auto but name checks"
                                      " have been skipped. Aborting.",
                                      errors.ECODE_INVAL)
-        nic_ip = hostname1.ip
+        nic_ip = self.hostname1.ip
       else:
         if not utils.IsValidIP(ip):
           raise errors.OpPrereqError("Given IP address '%s' doesn't look"
@@ -6187,22 +6218,6 @@ class LUCreateInstance(LogicalUnit):
         new_disk["adopt"] = disk["adopt"]
       self.disks.append(new_disk)
 
-    # file storage checks
-    if (self.op.file_driver and
-        not self.op.file_driver in constants.FILE_DRIVER):
-      raise errors.OpPrereqError("Invalid file driver name '%s'" %
-                                 self.op.file_driver, errors.ECODE_INVAL)
-
-    if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
-      raise errors.OpPrereqError("File storage directory path not absolute",
-                                 errors.ECODE_INVAL)
-
-    ### Node/iallocator related checks
-    if [self.op.iallocator, self.op.pnode].count(None) != 1:
-      raise errors.OpPrereqError("One and only one of iallocator and primary"
-                                 " node must be given",
-                                 errors.ECODE_INVAL)
-
     if self.op.iallocator:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
     else:
@@ -6235,20 +6250,6 @@ class LUCreateInstance(LogicalUnit):
         if not os.path.isabs(src_path):
           self.op.src_path = src_path = \
             utils.PathJoin(constants.EXPORT_DIR, src_path)
-
-      # On import force_variant must be True, because if we forced it at
-      # initial install, our only chance when importing it back is that it
-      # works again!
-      self.op.force_variant = True
-
-      if self.op.no_install:
-        self.LogInfo("No-installation mode has no effect during import")
-
-    else: # INSTANCE_CREATE
-      if getattr(self.op, "os_type", None) is None:
-        raise errors.OpPrereqError("No guest OS specified",
-                                   errors.ECODE_INVAL)
-      self.op.force_variant = getattr(self.op, "force_variant", False)
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
