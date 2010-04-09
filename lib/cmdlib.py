@@ -6265,6 +6265,16 @@ class LUCreateInstance(LogicalUnit):
                                    " is missing the disk_template information",
                                    errors.ECODE_INVAL)
 
+    if (self.op.hypervisor is None and
+        einfo.has_option(constants.INISECT_INS, "hypervisor")):
+      self.op.hypervisor = einfo.get(constants.INISECT_INS, "hypervisor")
+    if einfo.has_section(constants.INISECT_HYP):
+      # use the export parameters but do not override the ones
+      # specified by the user
+      for name, value in einfo.items(constants.INISECT_HYP):
+        if name not in self.op.hvparams:
+          self.op.hvparams[name] = value
+
   def CheckPrereq(self):
     """Check prerequisites.
 
