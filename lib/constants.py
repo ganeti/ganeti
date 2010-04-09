@@ -313,6 +313,8 @@ FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])
 # import/export config options
 INISECT_EXP = "export"
 INISECT_INS = "instance"
+INISECT_HYP = "hypervisor"
+INISECT_BEP = "backend"
 
 # dynamic device modification
 
