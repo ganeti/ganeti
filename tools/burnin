@@ -560,9 +560,8 @@ class Burner(object):
                                     beparams=self.bep,
                                     hvparams=self.hvp,
                                     )
-
-      self.ExecOrQueue(instance, [op])
-      self.to_rem.append(instance)
+      remove_instance = lambda name: lambda: self.to_rem.append(name)
+      self.ExecOrQueue(instance, [op], post_process=remove_instance(instance))
 
   @_DoBatch(False)
   def BurnGrowDisks(self):
