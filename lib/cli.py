@@ -1546,18 +1546,23 @@ def GenericInstanceCreate(mode, opts, args):
                                  " information passed")
     disks = []
   else:
-    if not opts.disks and not opts.sd_size:
+    if (not opts.disks and not opts.sd_size
+        and mode == constants.INSTANCE_CREATE):
       raise errors.OpPrereqError("No disk information specified")
     if opts.disks and opts.sd_size is not None:
       raise errors.OpPrereqError("Please use either the '--disk' or"
                                  " '-s' option")
     if opts.sd_size is not None:
       opts.disks = [(0, {"size": opts.sd_size})]
-    try:
-      disk_max = max(int(didx[0]) + 1 for didx in opts.disks)
-    except ValueError, err:
-      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
-    disks = [{}] * disk_max
+
+    if opts.disks:
+      try:
+        disk_max = max(int(didx[0]) + 1 for didx in opts.disks)
+      except ValueError, err:
+        raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
+      disks = [{}] * disk_max
+    else:
+      disks = []
     for didx, ddict in opts.disks:
       didx = int(didx)
       if not isinstance(ddict, dict):

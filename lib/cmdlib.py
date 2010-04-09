@@ -6265,6 +6265,19 @@ class LUCreateInstance(LogicalUnit):
                                    " is missing the disk_template information",
                                    errors.ECODE_INVAL)
 
+    if not self.op.disks:
+      if einfo.has_option(constants.INISECT_INS, "disk_count"):
+        disks = []
+        # TODO: import the disk iv_name too
+        for idx in range(einfo.getint(constants.INISECT_INS, "disk_count")):
+          disk_sz = einfo.getint(constants.INISECT_INS, "disk%d_size" % idx)
+          disks.append({"size": disk_sz})
+        self.op.disks = disks
+      else:
+        raise errors.OpPrereqError("No disk info specified and the export"
+                                   " is missing the disk information",
+                                   errors.ECODE_INVAL)
+
     if (self.op.hypervisor is None and
         einfo.has_option(constants.INISECT_INS, "hypervisor")):
       self.op.hypervisor = einfo.get(constants.INISECT_INS, "hypervisor")
