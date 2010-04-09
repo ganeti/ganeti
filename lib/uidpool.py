@@ -328,3 +328,31 @@ def ReleaseUid(uid):
   except OSError, err:
     raise errors.LockError("Failed to remove user-id lockfile"
                            " for user-id %s: %s" % (uid, err))
+
+
+def ExecWithUnusedUid(fn, all_uids, *args, **kwargs):
+  """Execute a callable and provide an unused user-id in its kwargs.
+
+  This wrapper function provides a simple way to handle the requesting,
+  unlocking and releasing a user-id.
+  "fn" is called by passing a "uid" keyword argument that
+  contains an unused user-id (as a string) selected from the set of user-ids
+  passed in all_uids.
+  If there is an error while executing "fn", the user-id is returned
+  to the pool.
+
+  @param fn: a callable
+  @param all_uids: a set containing all user-ids in the user-id pool
+
+  """
+  uid = RequestUnusedUid(all_uids)
+  kwargs["uid"] = str(uid)
+  try:
+    return_value = fn(*args, **kwargs)
+  except:
+    # The failure of "callabe" means that starting a process with the uid
+    # failed, so let's put the uid back into the pool.
+    ReleaseUid(uid)
+    raise
+  uid.Unlock()
+  return return_value
