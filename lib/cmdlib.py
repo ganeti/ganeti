@@ -6201,11 +6201,60 @@ class LUCreateInstance(LogicalUnit):
           self.secondaries)
     return env, nl, nl
 
+  def _ReadExportInfo(self):
+    """Reads the export information from disk.
+
+    It will override the opcode source node and path with the actual
+    information, if these two were not specified before.
+
+    @return: the export information
+
+    """
+    assert self.op.mode == constants.INSTANCE_IMPORT
+
+    src_node = self.op.src_node
+    src_path = self.op.src_path
+
+    if src_node is None:
+      locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
+      exp_list = self.rpc.call_export_list(locked_nodes)
+      found = False
+      for node in exp_list:
+        if exp_list[node].fail_msg:
+          continue
+        if src_path in exp_list[node].payload:
+          found = True
+          self.op.src_node = src_node = node
+          self.op.src_path = src_path = utils.PathJoin(constants.EXPORT_DIR,
+                                                       src_path)
+          break
+      if not found:
+        raise errors.OpPrereqError("No export found for relative path %s" %
+                                    src_path, errors.ECODE_INVAL)
+
+    _CheckNodeOnline(self, src_node)
+    result = self.rpc.call_export_info(src_node, src_path)
+    result.Raise("No export or invalid export found in dir %s" % src_path)
+
+    export_info = objects.SerializableConfigParser.Loads(str(result.payload))
+    if not export_info.has_section(constants.INISECT_EXP):
+      raise errors.ProgrammerError("Corrupted export config",
+                                   errors.ECODE_ENVIRON)
+
+    ei_version = export_info.get(constants.INISECT_EXP, "version")
+    if (int(ei_version) != constants.EXPORT_VERSION):
+      raise errors.OpPrereqError("Wrong export version %s (wanted %d)" %
+                                 (ei_version, constants.EXPORT_VERSION),
+                                 errors.ECODE_ENVIRON)
+    return export_info
 
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
+    if self.op.mode == constants.INSTANCE_IMPORT:
+      export_info = self._ReadExportInfo()
+
     if (not self.cfg.GetVGName() and
         self.op.disk_template not in constants.DTS_NOT_LVM):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
@@ -6329,40 +6378,6 @@ class LUCreateInstance(LogicalUnit):
       self.disks.append(new_disk)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
-      src_node = self.op.src_node
-      src_path = self.op.src_path
-
-      if src_node is None:
-        locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
-        exp_list = self.rpc.call_export_list(locked_nodes)
-        found = False
-        for node in exp_list:
-          if exp_list[node].fail_msg:
-            continue
-          if src_path in exp_list[node].payload:
-            found = True
-            self.op.src_node = src_node = node
-            self.op.src_path = src_path = utils.PathJoin(constants.EXPORT_DIR,
-                                                         src_path)
-            break
-        if not found:
-          raise errors.OpPrereqError("No export found for relative path %s" %
-                                      src_path, errors.ECODE_INVAL)
-
-      _CheckNodeOnline(self, src_node)
-      result = self.rpc.call_export_info(src_node, src_path)
-      result.Raise("No export or invalid export found in dir %s" % src_path)
-
-      export_info = objects.SerializableConfigParser.Loads(str(result.payload))
-      if not export_info.has_section(constants.INISECT_EXP):
-        raise errors.ProgrammerError("Corrupted export config",
-                                     errors.ECODE_ENVIRON)
-
-      ei_version = export_info.get(constants.INISECT_EXP, 'version')
-      if (int(ei_version) != constants.EXPORT_VERSION):
-        raise errors.OpPrereqError("Wrong export version %s (wanted %d)" %
-                                   (ei_version, constants.EXPORT_VERSION),
-                                   errors.ECODE_ENVIRON)
 
       # Check that the new instance doesn't have less disks than the export
       instance_disks = len(self.disks)
@@ -6380,7 +6395,7 @@ class LUCreateInstance(LogicalUnit):
         if export_info.has_option(constants.INISECT_INS, option):
           # FIXME: are the old os-es, disk sizes, etc. useful?
           export_name = export_info.get(constants.INISECT_INS, option)
-          image = utils.PathJoin(src_path, export_name)
+          image = utils.PathJoin(self.op.src_path, export_name)
           disk_images.append(image)
         else:
           disk_images.append(False)
