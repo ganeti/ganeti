@@ -568,6 +568,9 @@ def _CheckDiskTemplate(template):
     msg = ("Invalid disk template name '%s', valid templates are: %s" %
            (template, utils.CommaJoin(constants.DISK_TEMPLATES)))
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+  if template == constants.DT_FILE and not constants.ENABLE_FILE_STORAGE:
+    raise errors.OpPrereqError("File storage disabled at configure time",
+                               errors.ECODE_INVAL)
 
 
 def _CheckInstanceDown(lu, instance, reason):
@@ -5973,7 +5976,7 @@ class LUCreateInstance(LogicalUnit):
   """
   HPATH = "instance-add"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "disks", "disk_template",
+  _OP_REQP = ["instance_name", "disks",
               "mode", "start",
               "wait_for_sync", "ip_check", "nics",
               "hvparams", "beparams"]
@@ -5984,7 +5987,8 @@ class LUCreateInstance(LogicalUnit):
 
     """
     # set optional parameters to none if they don't exist
-    for attr in ["pnode", "snode", "iallocator", "hypervisor"]:
+    for attr in ["pnode", "snode", "iallocator", "hypervisor",
+                 "disk_template"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -6002,10 +6006,6 @@ class LUCreateInstance(LogicalUnit):
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
-                                 errors.ECODE_INVAL)
-    if (self.op.disk_template == constants.DT_FILE and
-        not constants.ENABLE_FILE_STORAGE):
-      raise errors.OpPrereqError("File storage disabled at configure time",
                                  errors.ECODE_INVAL)
     # check disk information: either all adopt, or no adopt
     has_adopt = has_no_adopt = False
@@ -6036,9 +6036,6 @@ class LUCreateInstance(LogicalUnit):
                             constants.INSTANCE_IMPORT):
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
-
-    # disk template
-    _CheckDiskTemplate(self.op.disk_template)
 
     # instance name verification
     if self.op.name_check:
@@ -6079,6 +6076,9 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("No guest OS specified",
                                    errors.ECODE_INVAL)
       self.op.force_variant = getattr(self.op, "force_variant", False)
+      if self.op.disk_template is None:
+        raise errors.OpPrereqError("No disk template specified",
+                                   errors.ECODE_INVAL)
 
   def ExpandNames(self):
     """ExpandNames for CreateInstance.
@@ -6248,12 +6248,32 @@ class LUCreateInstance(LogicalUnit):
                                  errors.ECODE_ENVIRON)
     return export_info
 
+  def _ReadExportParams(self, einfo):
+    """Use export parameters as defaults.
+
+    In case the opcode doesn't specify (as in override) some instance
+    parameters, then try to use them from the export information, if
+    that declares them.
+
+    """
+    if self.op.disk_template is None:
+      if einfo.has_option(constants.INISECT_INS, "disk_template"):
+        self.op.disk_template = einfo.get(constants.INISECT_INS,
+                                          "disk_template")
+      else:
+        raise errors.OpPrereqError("No disk template specified and the export"
+                                   " is missing the disk_template information",
+                                   errors.ECODE_INVAL)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
     if self.op.mode == constants.INSTANCE_IMPORT:
       export_info = self._ReadExportInfo()
+      self._ReadExportParams(export_info)
+
+    _CheckDiskTemplate(self.op.disk_template)
 
     if (not self.cfg.GetVGName() and
         self.op.disk_template not in constants.DTS_NOT_LVM):
