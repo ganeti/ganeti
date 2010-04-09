@@ -76,6 +76,7 @@ class TestConfigRunner(unittest.TestCase):
       master_netdev=constants.DEFAULT_BRIDGE,
       cluster_name="cluster.local",
       file_storage_dir="/tmp",
+      uid_pool=[],
       )
 
     master_node_config = objects.Node(name=me.name,

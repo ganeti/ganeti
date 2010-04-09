@@ -341,6 +341,7 @@ python_tests = \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
+	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils_unittest.py \
 	test/ganeti.workerpool_unittest.py \
 	test/docs_unittest.py \
