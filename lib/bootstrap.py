@@ -199,6 +199,38 @@ def _WaitForNodeDaemon(node_name):
                              " 10 seconds" % node_name)
 
 
+def _InitFileStorage(file_storage_dir):
+  """Initialize if needed the file storage.
+
+  @param file_storage_dir: the user-supplied value
+  @return: either empty string (if file storage was disabled at build
+      time) or the normalized path to the storage directory
+
+  """
+  if not constants.ENABLE_FILE_STORAGE:
+    return ""
+
+  file_storage_dir = os.path.normpath(file_storage_dir)
+
+  if not os.path.isabs(file_storage_dir):
+    raise errors.OpPrereqError("The file storage directory you passed is"
+                               " not an absolute path.", errors.ECODE_INVAL)
+
+  if not os.path.exists(file_storage_dir):
+    try:
+      os.makedirs(file_storage_dir, 0750)
+    except OSError, err:
+      raise errors.OpPrereqError("Cannot create file storage directory"
+                                 " '%s': %s" % (file_storage_dir, err),
+                                 errors.ECODE_ENVIRON)
+
+  if not os.path.isdir(file_storage_dir):
+    raise errors.OpPrereqError("The file storage directory '%s' is not"
+                               " a directory." % file_storage_dir,
+                               errors.ECODE_ENVIRON)
+  return file_storage_dir
+
+
 def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
@@ -267,24 +299,7 @@ def InitCluster(cluster_name, mac_prefix,
                                  " you are not using lvm" % vgstatus,
                                  errors.ECODE_INVAL)
 
-  file_storage_dir = os.path.normpath(file_storage_dir)
-
-  if not os.path.isabs(file_storage_dir):
-    raise errors.OpPrereqError("The file storage directory you passed is"
-                               " not an absolute path.", errors.ECODE_INVAL)
-
-  if not os.path.exists(file_storage_dir):
-    try:
-      os.makedirs(file_storage_dir, 0750)
-    except OSError, err:
-      raise errors.OpPrereqError("Cannot create file storage directory"
-                                 " '%s': %s" % (file_storage_dir, err),
-                                 errors.ECODE_ENVIRON)
-
-  if not os.path.isdir(file_storage_dir):
-    raise errors.OpPrereqError("The file storage directory '%s' is not"
-                               " a directory." % file_storage_dir,
-                               errors.ECODE_ENVIRON)
+  file_storage_dir = _InitFileStorage(file_storage_dir)
 
   if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$", mac_prefix):
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,

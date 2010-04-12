@@ -560,6 +560,17 @@ def _CheckNodeHasOS(lu, node, os_name, force_variant):
     _CheckOSVariant(result.payload, os_name)
 
 
+def _RequireFileStorage():
+  """Checks that file storage is enabled.
+
+  @raise errors.OpPrereqError: when file storage is disabled
+
+  """
+  if not constants.ENABLE_FILE_STORAGE:
+    raise errors.OpPrereqError("File storage disabled at configure time",
+                               errors.ECODE_INVAL)
+
+
 def _CheckDiskTemplate(template):
   """Ensure a given disk template is valid.
 
@@ -568,9 +579,20 @@ def _CheckDiskTemplate(template):
     msg = ("Invalid disk template name '%s', valid templates are: %s" %
            (template, utils.CommaJoin(constants.DISK_TEMPLATES)))
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
-  if template == constants.DT_FILE and not constants.ENABLE_FILE_STORAGE:
-    raise errors.OpPrereqError("File storage disabled at configure time",
+  if template == constants.DT_FILE:
+    _RequireFileStorage()
+
+
+def _CheckStorageType(storage_type):
+  """Ensure a given storage type is valid.
+
+  """
+  if storage_type not in constants.VALID_STORAGE_TYPES:
+    raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
                                errors.ECODE_INVAL)
+  if storage_type == constants.ST_FILE:
+    _RequireFileStorage()
+
 
 
 def _CheckInstanceDown(lu, instance, reason):
@@ -3079,17 +3101,14 @@ class LUQueryNodeStorage(NoHooksLU):
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
 
-  def ExpandNames(self):
-    storage_type = self.op.storage_type
-
-    if storage_type not in constants.VALID_STORAGE_TYPES:
-      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
-                                 errors.ECODE_INVAL)
+  def CheckArguments(self):
+    _CheckStorageType(self.op.storage_type)
 
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=utils.FieldSet(*constants.VALID_STORAGE_FIELDS),
                        selected=self.op.output_fields)
 
+  def ExpandNames(self):
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_NODE] = 1
 
@@ -3178,10 +3197,7 @@ class LUModifyNodeStorage(NoHooksLU):
   def CheckArguments(self):
     self.opnode_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
-    storage_type = self.op.storage_type
-    if storage_type not in constants.VALID_STORAGE_TYPES:
-      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
-                                 errors.ECODE_INVAL)
+    _CheckStorageType(self.op.storage_type)
 
   def ExpandNames(self):
     self.needed_locks = {
@@ -5808,6 +5824,8 @@ def _GenerateDiskTemplate(lu, template_name,
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
 
+    _RequireFileStorage()
+
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
       disk_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk["size"],
@@ -6629,18 +6647,18 @@ class LUCreateInstance(LogicalUnit):
     else:
       network_port = None
 
-    ##if self.op.vnc_bind_address is None:
-    ##  self.op.vnc_bind_address = constants.VNC_DEFAULT_BIND_ADDRESS
+    if constants.ENABLE_FILE_STORAGE:
+      # this is needed because os.path.join does not accept None arguments
+      if self.op.file_storage_dir is None:
+        string_file_storage_dir = ""
+      else:
+        string_file_storage_dir = self.op.file_storage_dir
 
-    # this is needed because os.path.join does not accept None arguments
-    if self.op.file_storage_dir is None:
-      string_file_storage_dir = ""
+      # build the full file storage dir path
+      file_storage_dir = utils.PathJoin(self.cfg.GetFileStorageDir(),
+                                        string_file_storage_dir, instance)
     else:
-      string_file_storage_dir = self.op.file_storage_dir
-
-    # build the full file storage dir path
-    file_storage_dir = utils.PathJoin(self.cfg.GetFileStorageDir(),
-                                      string_file_storage_dir, instance)
+      file_storage_dir = ""
 
 
     disks = _GenerateDiskTemplate(self,
@@ -7659,6 +7677,8 @@ class LURepairNodeStorage(NoHooksLU):
 
   def CheckArguments(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+
+    _CheckStorageType(self.op.storage_type)
 
   def ExpandNames(self):
     self.needed_locks = {
