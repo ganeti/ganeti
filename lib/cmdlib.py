@@ -5988,7 +5988,7 @@ class LUCreateInstance(LogicalUnit):
     """
     # set optional parameters to none if they don't exist
     for attr in ["pnode", "snode", "iallocator", "hypervisor",
-                 "disk_template"]:
+                 "disk_template", "identify_defaults"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -6313,6 +6313,27 @@ class LUCreateInstance(LogicalUnit):
             einfo.has_option(constants.INISECT_INS, name)):
           self.op.beparams[name] = einfo.get(constants.INISECT_INS, name)
 
+  def _RevertToDefaults(self, cluster):
+    """Revert the instance parameters to the default values.
+
+    """
+    # hvparams
+    hv_defs = cluster.GetHVDefaults(self.op.hypervisor, self.op.os_type)
+    for name in self.op.hvparams.keys():
+      if name in hv_defs and hv_defs[name] == self.op.hvparams[name]:
+        del self.op.hvparams[name]
+    # beparams
+    be_defs = cluster.beparams.get(constants.PP_DEFAULT, {})
+    for name in self.op.beparams.keys():
+      if name in be_defs and be_defs[name] == self.op.beparams[name]:
+        del self.op.beparams[name]
+    # nic params
+    nic_defs = cluster.nicparams.get(constants.PP_DEFAULT, {})
+    for nic in self.op.nics:
+      for name in constants.NICS_PARAMETERS:
+        if name in nic and name in nic_defs and nic[name] == nic_defs[name]:
+          del nic[name]
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -6354,6 +6375,11 @@ class LUCreateInstance(LogicalUnit):
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
     self.be_full = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
                                     self.op.beparams)
+
+    # now that hvp/bep are in final format, let's reset to defaults,
+    # if told to do so
+    if self.op.identify_defaults:
+      self._RevertToDefaults(cluster)
 
     # NIC buildup
     self.nics = []

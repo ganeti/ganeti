@@ -71,6 +71,7 @@ __all__ = [
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
+  "IDENTIFY_DEFAULTS_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
@@ -921,6 +922,13 @@ MAINTAIN_NODE_HEALTH_OPT = \
                " health, by shutting down unknown instances, shutting down"
                " unknown DRBD devices, etc.")
 
+IDENTIFY_DEFAULTS_OPT = \
+    cli_option("--identify-defaults", dest="identify_defaults",
+               default=False, action="store_true",
+               help="Identify which saved instance parameters are equal to"
+               " the current cluster defaults and set them as such, instead"
+               " of marking them as overridden")
+
 
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
@@ -1599,12 +1607,14 @@ def GenericInstanceCreate(mode, opts, args):
     src_node = None
     src_path = None
     no_install = opts.no_install
+    identify_defaults = False
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None
     src_node = opts.src_node
     src_path = opts.src_dir
     no_install = None
+    identify_defaults = opts.identify_defaults
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
@@ -1627,7 +1637,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 os_type=os_type,
                                 src_node=src_node,
                                 src_path=src_path,
-                                no_install=no_install)
+                                no_install=no_install,
+                                identify_defaults=identify_defaults)
 
   SubmitOrSend(op, opts)
   return 0
