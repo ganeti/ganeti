@@ -21,6 +21,7 @@
       <year>2007</year>
       <year>2008</year>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -29,7 +30,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>ganeti 2.1</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -135,7 +136,7 @@
         <arg>--src-dir=<replaceable>source-dir</replaceable></arg>
         <sbr>
 
-        <arg choice="req">-t<group>
+        <arg choice="opt">-t<group>
             <arg>diskless</arg>
             <arg>plain</arg>
             <arg>drbd</arg>
@@ -143,8 +144,12 @@
           </group></arg>
         <sbr>
 
+        <arg choice="opt">--identify-defaults</arg>
+        <sbr>
+
         <arg choice="req"><replaceable>instance</replaceable></arg>
       </cmdsynopsis>
+
       <para>
         Imports a new instance from an export residing on
         <replaceable>source-node</replaceable> in
@@ -159,11 +164,11 @@
       <para>
         The <option>disk</option> option specifies the parameters for
         the disks of the instance. The numbering of disks starts at
-        zero, and at least one disk needs to be passed. For each disk,
-        at least the size needs to be given, and optionally the access
-        mode (read-only or the default of read-write) can also be
-        specified.  The size is interpreted (when no unit is given) in
-        mebibytes. You can also use one of the suffixes
+        zero. For each disk, at least the size needs to be given, and
+        optionally the access mode (read-only or the default of
+        read-write) can also be specified.  The size is interpreted
+        (when no unit is given) in mebibytes. You can also use one of
+        the suffixes
         <literal>m</literal>, <literal>g</literal> or
         <literal>t</literal> to specificy the exact the units used;
         these suffixes map to mebibytes, gibibytes and tebibytes.
@@ -177,7 +182,13 @@
       </para>
 
       <para>
-        The minimum disk specification is therefore
+        If no disk information is passed, the disk configuration saved
+        at export time will be used.
+      </para>
+
+      <para>
+        The minimum disk specification is therefore empty (export
+        information will be used), a single disk can be specified as
         <userinput>--disk 0:size=20G</userinput> (or <userinput>-s
           20G</userinput> when using the <option>-s</option> option),
         and a three-disk instance can be specified as
@@ -187,10 +198,10 @@
 
       <para>
         The NICs of the instances can be specified via the
-        <option>--net</option> option. By default, one NIC is created
-        for the instance, with the MAC set to the original MAC of the
-        instance (as it was at export time). Each NIC can take up to
-        three parameters (all optional):
+        <option>--net</option> option. By default, the NIC
+        configuration of the original (exported) instance will be
+        reused. Each NIC can take up to three parameters (all
+        optional):
         <variablelist>
           <varlistentry>
             <term>mac</term>
@@ -232,15 +243,15 @@
       </para>
 
       <para>
-        Alternatively, if no network is desired for the instance, you
-        can prevent the default of one NIC with the
-        <option>--no-nics</option> option.
+        If no network is desired for the instance, you should create a
+        single empty NIC and delete it afterwards
+        via <command>gnt-instance modify --net delete</command>.
       </para>
 
       <para>
         The <option>-B</option> option specifies the backend
         parameters for the instance. If no such parameters are
-        specified, the values are inherited from the cluster. Possible
+        specified, the values are inherited from the export. Possible
         parameters are:
         <variablelist>
           <varlistentry>
@@ -270,8 +281,9 @@
       </para>
 
       <para>
-        The <option>-t</option> options specifies the disk layout type for
-        the instance. The available choices are:
+        The <option>-t</option> options specifies the disk layout type
+        for the instance. If not passed, the configuration of the
+        original instance is used. The available choices are:
         <variablelist>
           <varlistentry>
             <term>diskless</term>
@@ -326,13 +338,26 @@
       </para>
 
       <para>
-        If you do not want gnt-backup to wait for the disk mirror
-        to be synced, use the <option>--no-wait-for-sync</option>
-        option.
+        Since many of the parameters are by default read from the
+        exported instance information and used as such, the new
+        instance will have all parameters explicitly specified, the
+        opposite of a newly added instance which has most parameters
+        specified via cluster defaults. To change the import behaviour
+        to recognize parameters whose saved value matches the current
+        cluster default and mark it as such (default value), pass
+        the <option>--identify-defaults</option> option. This will
+        affect the hypervisor, backend and NIC parameters, both read
+        from the export file and passed in via the command line.
       </para>
 
       <para>
-        Example:
+        Example for identical instance import:
+        <screen>
+# gnt-backup import -n node1.example.com instance3.example.com
+        </screen>
+      </para>
+      <para>
+        Explicit configuration example:
         <screen>
 # gnt-backup import -t plain --disk 0:size=1G -B memory=512 \
 > -n node1.example.com \
