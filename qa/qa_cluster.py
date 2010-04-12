@@ -56,9 +56,16 @@ def _CheckFileOnAllNodes(filename, content):
                 content)
 
 
-def TestClusterInit():
+def TestClusterInit(rapi_user, rapi_secret):
   """gnt-cluster init"""
   master = qa_config.GetMasterNode()
+
+  # First create the RAPI credentials
+  cred_string = "%s %s write" % (rapi_user, rapi_secret)
+  cmd = ("echo %s > %s" %
+         (utils.ShellQuote(cred_string),
+          utils.ShellQuote(constants.RAPI_USERS_FILE)))
+  AssertEqual(StartSSH(master['primary'], cmd).wait(), 0)
 
   cmd = ['gnt-cluster', 'init']
 
@@ -78,21 +85,6 @@ def TestClusterInit():
 
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  # Create RAPI credentials
-  rapi_user = qa_config.get("rapi-user", default=None)
-  rapi_pass = qa_config.get("rapi-pass", default=None)
-
-  if rapi_user and rapi_pass:
-    cmds = []
-
-    cred_string = "%s %s write" % (rapi_user, rapi_pass)
-    cmds.append(("echo %s >> %s" %
-                 (utils.ShellQuote(cred_string),
-                  utils.ShellQuote(constants.RAPI_USERS_FILE))))
-    cmds.append("%s stop-master" % constants.DAEMON_UTIL)
-    cmds.append("%s start-master" % constants.DAEMON_UTIL)
-    AssertEqual(StartSSH(master['primary'], ' && '.join(cmds)).wait(), 0)
 
 
 def TestClusterRename():

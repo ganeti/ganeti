@@ -44,6 +44,16 @@ class OpenerFactory:
 
   """
   _opener = None
+  _rapi_user = None
+  _rapi_secret = None
+
+  @classmethod
+  def SetCredentials(cls, rapi_user, rapi_secret):
+    """Set the credentials for authorized access.
+
+    """
+    cls._rapi_user = rapi_user
+    cls._rapi_secret = rapi_secret
 
   @classmethod
   def Opener(cls):
@@ -51,14 +61,17 @@ class OpenerFactory:
 
     """
     if not cls._opener:
+      if not cls._rapi_user or not cls._rapi_secret:
+        raise errors.ProgrammerError("SetCredentials was never called.")
+
       # Create opener which doesn't try to look for proxies and does auth
       master = qa_config.GetMasterNode()
       host = master["primary"]
       port = qa_config.get("rapi-port", default=constants.DEFAULT_RAPI_PORT)
       passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
       passman.add_password(None, 'https://%s:%s' % (host, port),
-                           qa_config.get("rapi-user", default=""),
-                           qa_config.get("rapi-pass", default=""))
+                           cls._rapi_user,
+                           cls._rapi_secret)
       authhandler = urllib2.HTTPBasicAuthHandler(passman)
       cls._opener = urllib2.build_opener(urllib2.ProxyHandler({}), authhandler)
 
