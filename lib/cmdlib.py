@@ -6256,6 +6256,8 @@ class LUCreateInstance(LogicalUnit):
     that declares them.
 
     """
+    self.op.os_type = einfo.get(constants.INISECT_EXP, "os")
+
     if self.op.disk_template is None:
       if einfo.has_option(constants.INISECT_INS, "disk_template"):
         self.op.disk_template = einfo.get(constants.INISECT_INS,
@@ -6339,7 +6341,8 @@ class LUCreateInstance(LogicalUnit):
 
     # check hypervisor parameter syntax (locally)
     utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
-    filled_hvp = objects.FillDict(cluster.hvparams[self.op.hypervisor],
+    filled_hvp = objects.FillDict(cluster.GetHVDefaults(self.op.hypervisor,
+                                                        self.op.os_type),
                                   self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
@@ -6454,7 +6457,6 @@ class LUCreateInstance(LogicalUnit):
                                    (instance_disks, export_disks),
                                    errors.ECODE_INVAL)
 
-      self.op.os_type = export_info.get(constants.INISECT_EXP, 'os')
       disk_images = []
       for idx in range(export_disks):
         option = 'disk%d_dump' % idx
