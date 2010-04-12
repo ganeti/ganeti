@@ -2091,6 +2091,7 @@ def FinalizeExport(instance, snap_disks):
   config.set(constants.INISECT_INS, 'vcpus', '%d' %
              instance.beparams[constants.BE_VCPUS])
   config.set(constants.INISECT_INS, 'disk_template', instance.disk_template)
+  config.set(constants.INISECT_INS, 'hypervisor', instance.hypervisor)
 
   nic_total = 0
   for nic_count, nic in enumerate(instance.nics):
@@ -2098,8 +2099,9 @@ def FinalizeExport(instance, snap_disks):
     config.set(constants.INISECT_INS, 'nic%d_mac' %
                nic_count, '%s' % nic.mac)
     config.set(constants.INISECT_INS, 'nic%d_ip' % nic_count, '%s' % nic.ip)
-    config.set(constants.INISECT_INS, 'nic%d_bridge' % nic_count,
-               '%s' % nic.bridge)
+    for param in constants.NICS_PARAMETER_TYPES:
+      config.set(constants.INISECT_INS, 'nic%d_%s' % (nic_count, param),
+                 '%s' % nic.nicparams.get(param, None))
   # TODO: redundant: on load can read nics until it doesn't exist
   config.set(constants.INISECT_INS, 'nic_count' , '%d' % nic_total)
 
@@ -2115,6 +2117,17 @@ def FinalizeExport(instance, snap_disks):
                  ('%d' % disk.size))
 
   config.set(constants.INISECT_INS, 'disk_count' , '%d' % disk_total)
+
+  # New-style hypervisor/backend parameters
+
+  config.add_section(constants.INISECT_HYP)
+  for name, value in instance.hvparams.items():
+    if name not in constants.HVC_GLOBALS:
+      config.set(constants.INISECT_HYP, name, str(value))
+
+  config.add_section(constants.INISECT_BEP)
+  for name, value in instance.beparams.items():
+    config.set(constants.INISECT_BEP, name, str(value))
 
   utils.WriteFile(utils.PathJoin(destdir, constants.EXPORT_CONF_FILE),
                   data=config.Dumps())

@@ -72,6 +72,7 @@ __all__ = [
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
+  "IDENTIFY_DEFAULTS_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_FAILURES_OPT",
   "IGNORE_REMOVE_FAILURES_OPT",
@@ -948,6 +949,13 @@ MAINTAIN_NODE_HEALTH_OPT = \
                " health, by shutting down unknown instances, shutting down"
                " unknown DRBD devices, etc.")
 
+IDENTIFY_DEFAULTS_OPT = \
+    cli_option("--identify-defaults", dest="identify_defaults",
+               default=False, action="store_true",
+               help="Identify which saved instance parameters are equal to"
+               " the current cluster defaults and set them as such, instead"
+               " of marking them as overridden")
+
 
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
@@ -1563,9 +1571,12 @@ def GenericInstanceCreate(mode, opts, args):
   elif opts.no_nics:
     # no nics
     nics = []
-  else:
+  elif mode == constants.INSTANCE_CREATE:
     # default of one nic, all auto
     nics = [{}]
+  else:
+    # mode == import
+    nics = []
 
   if opts.disk_template == constants.DT_DISKLESS:
     if opts.disks or opts.sd_size is not None:
@@ -1573,18 +1584,23 @@ def GenericInstanceCreate(mode, opts, args):
                                  " information passed")
     disks = []
   else:
-    if not opts.disks and not opts.sd_size:
+    if (not opts.disks and not opts.sd_size
+        and mode == constants.INSTANCE_CREATE):
       raise errors.OpPrereqError("No disk information specified")
     if opts.disks and opts.sd_size is not None:
       raise errors.OpPrereqError("Please use either the '--disk' or"
                                  " '-s' option")
     if opts.sd_size is not None:
       opts.disks = [(0, {"size": opts.sd_size})]
-    try:
-      disk_max = max(int(didx[0]) + 1 for didx in opts.disks)
-    except ValueError, err:
-      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
-    disks = [{}] * disk_max
+
+    if opts.disks:
+      try:
+        disk_max = max(int(didx[0]) + 1 for didx in opts.disks)
+      except ValueError, err:
+        raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
+      disks = [{}] * disk_max
+    else:
+      disks = []
     for didx, ddict in opts.disks:
       didx = int(didx)
       if not isinstance(ddict, dict):
@@ -1618,12 +1634,14 @@ def GenericInstanceCreate(mode, opts, args):
     src_node = None
     src_path = None
     no_install = opts.no_install
+    identify_defaults = False
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None
     src_node = opts.src_node
     src_path = opts.src_dir
     no_install = None
+    identify_defaults = opts.identify_defaults
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
@@ -1646,7 +1664,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 os_type=os_type,
                                 src_node=src_node,
                                 src_path=src_path,
-                                no_install=no_install)
+                                no_install=no_install,
+                                identify_defaults=identify_defaults)
 
   SubmitOrSend(op, opts)
   return 0

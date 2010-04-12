@@ -6,6 +6,9 @@
   "os": "debian-etch",
   "mem": "512M",
 
+  "rapi-user": "foobar",
+  "rapi-pass": "barfoo",
+
   "# Lists of disk sizes": null,
   "disk": ["1G", "512M"],
   "disk-growth": ["2G", "768M"],

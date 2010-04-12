@@ -568,6 +568,9 @@ def _CheckDiskTemplate(template):
     msg = ("Invalid disk template name '%s', valid templates are: %s" %
            (template, utils.CommaJoin(constants.DISK_TEMPLATES)))
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+  if template == constants.DT_FILE and not constants.ENABLE_FILE_STORAGE:
+    raise errors.OpPrereqError("File storage disabled at configure time",
+                               errors.ECODE_INVAL)
 
 
 def _CheckInstanceDown(lu, instance, reason):
@@ -5984,7 +5987,7 @@ class LUCreateInstance(LogicalUnit):
   """
   HPATH = "instance-add"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "disks", "disk_template",
+  _OP_REQP = ["instance_name", "disks",
               "mode", "start",
               "wait_for_sync", "ip_check", "nics",
               "hvparams", "beparams"]
@@ -5995,7 +5998,8 @@ class LUCreateInstance(LogicalUnit):
 
     """
     # set optional parameters to none if they don't exist
-    for attr in ["pnode", "snode", "iallocator", "hypervisor"]:
+    for attr in ["pnode", "snode", "iallocator", "hypervisor",
+                 "disk_template", "identify_defaults"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -6014,10 +6018,6 @@ class LUCreateInstance(LogicalUnit):
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
                                  errors.ECODE_INVAL)
-    if (self.op.disk_template == constants.DT_FILE and
-        not constants.ENABLE_FILE_STORAGE):
-      raise errors.OpPrereqError("File storage disabled at configure time",
-                                 errors.ECODE_INVAL)
     # check disk information: either all adopt, or no adopt
     has_adopt = has_no_adopt = False
     for disk in self.op.disks:
@@ -6026,7 +6026,7 @@ class LUCreateInstance(LogicalUnit):
       else:
         has_no_adopt = True
     if has_adopt and has_no_adopt:
-      raise errors.OpPrereqError("Either all disks have are adoped or none is",
+      raise errors.OpPrereqError("Either all disks are adopted or none is",
                                  errors.ECODE_INVAL)
     if has_adopt:
       if self.op.disk_template != constants.DT_PLAIN:
@@ -6042,161 +6042,20 @@ class LUCreateInstance(LogicalUnit):
 
     self.adopt_disks = has_adopt
 
-  def ExpandNames(self):
-    """ExpandNames for CreateInstance.
-
-    Figure out the right locks for instance creation.
-
-    """
-    self.needed_locks = {}
-
-    # cheap checks, mostly valid constants given
-
     # verify creation mode
     if self.op.mode not in (constants.INSTANCE_CREATE,
                             constants.INSTANCE_IMPORT):
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
 
-    # disk template and mirror node verification
-    _CheckDiskTemplate(self.op.disk_template)
-
-    if self.op.hypervisor is None:
-      self.op.hypervisor = self.cfg.GetHypervisorType()
-
-    cluster = self.cfg.GetClusterInfo()
-    enabled_hvs = cluster.enabled_hypervisors
-    if self.op.hypervisor not in enabled_hvs:
-      raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
-                                 " cluster (%s)" % (self.op.hypervisor,
-                                  ",".join(enabled_hvs)),
-                                 errors.ECODE_STATE)
-
-    # check hypervisor parameter syntax (locally)
-    utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
-    filled_hvp = objects.FillDict(cluster.hvparams[self.op.hypervisor],
-                                  self.op.hvparams)
-    hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
-    hv_type.CheckParameterSyntax(filled_hvp)
-    self.hv_full = filled_hvp
-    # check that we don't specify global parameters on an instance
-    _CheckGlobalHvParams(self.op.hvparams)
-
-    # fill and remember the beparams dict
-    utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-    self.be_full = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
-                                    self.op.beparams)
-
-    #### instance parameters check
-
     # instance name verification
     if self.op.name_check:
-      hostname1 = utils.GetHostInfo(self.op.instance_name)
-      self.op.instance_name = instance_name = hostname1.name
+      self.hostname1 = utils.GetHostInfo(self.op.instance_name)
+      self.op.instance_name = self.hostname1.name
       # used in CheckPrereq for ip ping check
-      self.check_ip = hostname1.ip
+      self.check_ip = self.hostname1.ip
     else:
-      instance_name = self.op.instance_name
       self.check_ip = None
-
-    # this is just a preventive check, but someone might still add this
-    # instance in the meantime, and creation will fail at lock-add time
-    if instance_name in self.cfg.GetInstanceList():
-      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 instance_name, errors.ECODE_EXISTS)
-
-    self.add_locks[locking.LEVEL_INSTANCE] = instance_name
-
-    # NIC buildup
-    self.nics = []
-    for idx, nic in enumerate(self.op.nics):
-      nic_mode_req = nic.get("mode", None)
-      nic_mode = nic_mode_req
-      if nic_mode is None:
-        nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
-
-      # in routed mode, for the first nic, the default ip is 'auto'
-      if nic_mode == constants.NIC_MODE_ROUTED and idx == 0:
-        default_ip_mode = constants.VALUE_AUTO
-      else:
-        default_ip_mode = constants.VALUE_NONE
-
-      # ip validity checks
-      ip = nic.get("ip", default_ip_mode)
-      if ip is None or ip.lower() == constants.VALUE_NONE:
-        nic_ip = None
-      elif ip.lower() == constants.VALUE_AUTO:
-        if not self.op.name_check:
-          raise errors.OpPrereqError("IP address set to auto but name checks"
-                                     " have been skipped. Aborting.",
-                                     errors.ECODE_INVAL)
-        nic_ip = hostname1.ip
-      else:
-        if not utils.IsValidIP(ip):
-          raise errors.OpPrereqError("Given IP address '%s' doesn't look"
-                                     " like a valid IP" % ip,
-                                     errors.ECODE_INVAL)
-        nic_ip = ip
-
-      # TODO: check the ip address for uniqueness
-      if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
-        raise errors.OpPrereqError("Routed nic mode requires an ip address",
-                                   errors.ECODE_INVAL)
-
-      # MAC address verification
-      mac = nic.get("mac", constants.VALUE_AUTO)
-      if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-        mac = utils.NormalizeAndValidateMac(mac)
-
-        try:
-          self.cfg.ReserveMAC(mac, self.proc.GetECId())
-        except errors.ReservationError:
-          raise errors.OpPrereqError("MAC address %s already in use"
-                                     " in cluster" % mac,
-                                     errors.ECODE_NOTUNIQUE)
-
-      # bridge verification
-      bridge = nic.get("bridge", None)
-      link = nic.get("link", None)
-      if bridge and link:
-        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
-                                   " at the same time", errors.ECODE_INVAL)
-      elif bridge and nic_mode == constants.NIC_MODE_ROUTED:
-        raise errors.OpPrereqError("Cannot pass 'bridge' on a routed nic",
-                                   errors.ECODE_INVAL)
-      elif bridge:
-        link = bridge
-
-      nicparams = {}
-      if nic_mode_req:
-        nicparams[constants.NIC_MODE] = nic_mode_req
-      if link:
-        nicparams[constants.NIC_LINK] = link
-
-      check_params = objects.FillDict(cluster.nicparams[constants.PP_DEFAULT],
-                                      nicparams)
-      objects.NIC.CheckParameterSyntax(check_params)
-      self.nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
-
-    # disk checks/pre-build
-    self.disks = []
-    for disk in self.op.disks:
-      mode = disk.get("mode", constants.DISK_RDWR)
-      if mode not in constants.DISK_ACCESS_SET:
-        raise errors.OpPrereqError("Invalid disk access mode '%s'" %
-                                   mode, errors.ECODE_INVAL)
-      size = disk.get("size", None)
-      if size is None:
-        raise errors.OpPrereqError("Missing disk size", errors.ECODE_INVAL)
-      try:
-        size = int(size)
-      except (TypeError, ValueError):
-        raise errors.OpPrereqError("Invalid disk size '%s'" % size,
-                                   errors.ECODE_INVAL)
-      new_disk = {"size": size, "mode": mode}
-      if "adopt" in disk:
-        new_disk["adopt"] = disk["adopt"]
-      self.disks.append(new_disk)
 
     # file storage checks
     if (self.op.file_driver and
@@ -6213,6 +6072,41 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("One and only one of iallocator and primary"
                                  " node must be given",
                                  errors.ECODE_INVAL)
+
+    if self.op.mode == constants.INSTANCE_IMPORT:
+      # On import force_variant must be True, because if we forced it at
+      # initial install, our only chance when importing it back is that it
+      # works again!
+      self.op.force_variant = True
+
+      if self.op.no_install:
+        self.LogInfo("No-installation mode has no effect during import")
+
+    else: # INSTANCE_CREATE
+      if getattr(self.op, "os_type", None) is None:
+        raise errors.OpPrereqError("No guest OS specified",
+                                   errors.ECODE_INVAL)
+      self.op.force_variant = getattr(self.op, "force_variant", False)
+      if self.op.disk_template is None:
+        raise errors.OpPrereqError("No disk template specified",
+                                   errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    """ExpandNames for CreateInstance.
+
+    Figure out the right locks for instance creation.
+
+    """
+    self.needed_locks = {}
+
+    instance_name = self.op.instance_name
+    # this is just a preventive check, but someone might still add this
+    # instance in the meantime, and creation will fail at lock-add time
+    if instance_name in self.cfg.GetInstanceList():
+      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
+                                 instance_name, errors.ECODE_EXISTS)
+
+    self.add_locks[locking.LEVEL_INSTANCE] = instance_name
 
     if self.op.iallocator:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
@@ -6246,20 +6140,6 @@ class LUCreateInstance(LogicalUnit):
         if not os.path.isabs(src_path):
           self.op.src_path = src_path = \
             utils.PathJoin(constants.EXPORT_DIR, src_path)
-
-      # On import force_variant must be True, because if we forced it at
-      # initial install, our only chance when importing it back is that it
-      # works again!
-      self.op.force_variant = True
-
-      if self.op.no_install:
-        self.LogInfo("No-installation mode has no effect during import")
-
-    else: # INSTANCE_CREATE
-      if getattr(self.op, "os_type", None) is None:
-        raise errors.OpPrereqError("No guest OS specified",
-                                   errors.ECODE_INVAL)
-      self.op.force_variant = getattr(self.op, "force_variant", False)
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -6332,50 +6212,278 @@ class LUCreateInstance(LogicalUnit):
           self.secondaries)
     return env, nl, nl
 
+  def _ReadExportInfo(self):
+    """Reads the export information from disk.
+
+    It will override the opcode source node and path with the actual
+    information, if these two were not specified before.
+
+    @return: the export information
+
+    """
+    assert self.op.mode == constants.INSTANCE_IMPORT
+
+    src_node = self.op.src_node
+    src_path = self.op.src_path
+
+    if src_node is None:
+      locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
+      exp_list = self.rpc.call_export_list(locked_nodes)
+      found = False
+      for node in exp_list:
+        if exp_list[node].fail_msg:
+          continue
+        if src_path in exp_list[node].payload:
+          found = True
+          self.op.src_node = src_node = node
+          self.op.src_path = src_path = utils.PathJoin(constants.EXPORT_DIR,
+                                                       src_path)
+          break
+      if not found:
+        raise errors.OpPrereqError("No export found for relative path %s" %
+                                    src_path, errors.ECODE_INVAL)
+
+    _CheckNodeOnline(self, src_node)
+    result = self.rpc.call_export_info(src_node, src_path)
+    result.Raise("No export or invalid export found in dir %s" % src_path)
+
+    export_info = objects.SerializableConfigParser.Loads(str(result.payload))
+    if not export_info.has_section(constants.INISECT_EXP):
+      raise errors.ProgrammerError("Corrupted export config",
+                                   errors.ECODE_ENVIRON)
+
+    ei_version = export_info.get(constants.INISECT_EXP, "version")
+    if (int(ei_version) != constants.EXPORT_VERSION):
+      raise errors.OpPrereqError("Wrong export version %s (wanted %d)" %
+                                 (ei_version, constants.EXPORT_VERSION),
+                                 errors.ECODE_ENVIRON)
+    return export_info
+
+  def _ReadExportParams(self, einfo):
+    """Use export parameters as defaults.
+
+    In case the opcode doesn't specify (as in override) some instance
+    parameters, then try to use them from the export information, if
+    that declares them.
+
+    """
+    self.op.os_type = einfo.get(constants.INISECT_EXP, "os")
+
+    if self.op.disk_template is None:
+      if einfo.has_option(constants.INISECT_INS, "disk_template"):
+        self.op.disk_template = einfo.get(constants.INISECT_INS,
+                                          "disk_template")
+      else:
+        raise errors.OpPrereqError("No disk template specified and the export"
+                                   " is missing the disk_template information",
+                                   errors.ECODE_INVAL)
+
+    if not self.op.disks:
+      if einfo.has_option(constants.INISECT_INS, "disk_count"):
+        disks = []
+        # TODO: import the disk iv_name too
+        for idx in range(einfo.getint(constants.INISECT_INS, "disk_count")):
+          disk_sz = einfo.getint(constants.INISECT_INS, "disk%d_size" % idx)
+          disks.append({"size": disk_sz})
+        self.op.disks = disks
+      else:
+        raise errors.OpPrereqError("No disk info specified and the export"
+                                   " is missing the disk information",
+                                   errors.ECODE_INVAL)
+
+    if (not self.op.nics and
+        einfo.has_option(constants.INISECT_INS, "nic_count")):
+      nics = []
+      for idx in range(einfo.getint(constants.INISECT_INS, "nic_count")):
+        ndict = {}
+        for name in list(constants.NICS_PARAMETERS) + ["ip", "mac"]:
+          v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
+          ndict[name] = v
+        nics.append(ndict)
+      self.op.nics = nics
+
+    if (self.op.hypervisor is None and
+        einfo.has_option(constants.INISECT_INS, "hypervisor")):
+      self.op.hypervisor = einfo.get(constants.INISECT_INS, "hypervisor")
+    if einfo.has_section(constants.INISECT_HYP):
+      # use the export parameters but do not override the ones
+      # specified by the user
+      for name, value in einfo.items(constants.INISECT_HYP):
+        if name not in self.op.hvparams:
+          self.op.hvparams[name] = value
+
+    if einfo.has_section(constants.INISECT_BEP):
+      # use the parameters, without overriding
+      for name, value in einfo.items(constants.INISECT_BEP):
+        if name not in self.op.beparams:
+          self.op.beparams[name] = value
+    else:
+      # try to read the parameters old style, from the main section
+      for name in constants.BES_PARAMETERS:
+        if (name not in self.op.beparams and
+            einfo.has_option(constants.INISECT_INS, name)):
+          self.op.beparams[name] = einfo.get(constants.INISECT_INS, name)
+
+  def _RevertToDefaults(self, cluster):
+    """Revert the instance parameters to the default values.
+
+    """
+    # hvparams
+    hv_defs = cluster.GetHVDefaults(self.op.hypervisor, self.op.os_type)
+    for name in self.op.hvparams.keys():
+      if name in hv_defs and hv_defs[name] == self.op.hvparams[name]:
+        del self.op.hvparams[name]
+    # beparams
+    be_defs = cluster.beparams.get(constants.PP_DEFAULT, {})
+    for name in self.op.beparams.keys():
+      if name in be_defs and be_defs[name] == self.op.beparams[name]:
+        del self.op.beparams[name]
+    # nic params
+    nic_defs = cluster.nicparams.get(constants.PP_DEFAULT, {})
+    for nic in self.op.nics:
+      for name in constants.NICS_PARAMETERS:
+        if name in nic and name in nic_defs and nic[name] == nic_defs[name]:
+          del nic[name]
+
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
+    if self.op.mode == constants.INSTANCE_IMPORT:
+      export_info = self._ReadExportInfo()
+      self._ReadExportParams(export_info)
+
+    _CheckDiskTemplate(self.op.disk_template)
+
     if (not self.cfg.GetVGName() and
         self.op.disk_template not in constants.DTS_NOT_LVM):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
                                  " instances", errors.ECODE_STATE)
 
+    if self.op.hypervisor is None:
+      self.op.hypervisor = self.cfg.GetHypervisorType()
+
+    cluster = self.cfg.GetClusterInfo()
+    enabled_hvs = cluster.enabled_hypervisors
+    if self.op.hypervisor not in enabled_hvs:
+      raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
+                                 " cluster (%s)" % (self.op.hypervisor,
+                                  ",".join(enabled_hvs)),
+                                 errors.ECODE_STATE)
+
+    # check hypervisor parameter syntax (locally)
+    utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
+    filled_hvp = objects.FillDict(cluster.GetHVDefaults(self.op.hypervisor,
+                                                        self.op.os_type),
+                                  self.op.hvparams)
+    hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
+    hv_type.CheckParameterSyntax(filled_hvp)
+    self.hv_full = filled_hvp
+    # check that we don't specify global parameters on an instance
+    _CheckGlobalHvParams(self.op.hvparams)
+
+    # fill and remember the beparams dict
+    utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
+    self.be_full = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
+                                    self.op.beparams)
+
+    # now that hvp/bep are in final format, let's reset to defaults,
+    # if told to do so
+    if self.op.identify_defaults:
+      self._RevertToDefaults(cluster)
+
+    # NIC buildup
+    self.nics = []
+    for idx, nic in enumerate(self.op.nics):
+      nic_mode_req = nic.get("mode", None)
+      nic_mode = nic_mode_req
+      if nic_mode is None:
+        nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
+
+      # in routed mode, for the first nic, the default ip is 'auto'
+      if nic_mode == constants.NIC_MODE_ROUTED and idx == 0:
+        default_ip_mode = constants.VALUE_AUTO
+      else:
+        default_ip_mode = constants.VALUE_NONE
+
+      # ip validity checks
+      ip = nic.get("ip", default_ip_mode)
+      if ip is None or ip.lower() == constants.VALUE_NONE:
+        nic_ip = None
+      elif ip.lower() == constants.VALUE_AUTO:
+        if not self.op.name_check:
+          raise errors.OpPrereqError("IP address set to auto but name checks"
+                                     " have been skipped. Aborting.",
+                                     errors.ECODE_INVAL)
+        nic_ip = self.hostname1.ip
+      else:
+        if not utils.IsValidIP(ip):
+          raise errors.OpPrereqError("Given IP address '%s' doesn't look"
+                                     " like a valid IP" % ip,
+                                     errors.ECODE_INVAL)
+        nic_ip = ip
+
+      # TODO: check the ip address for uniqueness
+      if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
+        raise errors.OpPrereqError("Routed nic mode requires an ip address",
+                                   errors.ECODE_INVAL)
+
+      # MAC address verification
+      mac = nic.get("mac", constants.VALUE_AUTO)
+      if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+        mac = utils.NormalizeAndValidateMac(mac)
+
+        try:
+          self.cfg.ReserveMAC(mac, self.proc.GetECId())
+        except errors.ReservationError:
+          raise errors.OpPrereqError("MAC address %s already in use"
+                                     " in cluster" % mac,
+                                     errors.ECODE_NOTUNIQUE)
+
+      # bridge verification
+      bridge = nic.get("bridge", None)
+      link = nic.get("link", None)
+      if bridge and link:
+        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
+                                   " at the same time", errors.ECODE_INVAL)
+      elif bridge and nic_mode == constants.NIC_MODE_ROUTED:
+        raise errors.OpPrereqError("Cannot pass 'bridge' on a routed nic",
+                                   errors.ECODE_INVAL)
+      elif bridge:
+        link = bridge
+
+      nicparams = {}
+      if nic_mode_req:
+        nicparams[constants.NIC_MODE] = nic_mode_req
+      if link:
+        nicparams[constants.NIC_LINK] = link
+
+      check_params = objects.FillDict(cluster.nicparams[constants.PP_DEFAULT],
+                                      nicparams)
+      objects.NIC.CheckParameterSyntax(check_params)
+      self.nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
+
+    # disk checks/pre-build
+    self.disks = []
+    for disk in self.op.disks:
+      mode = disk.get("mode", constants.DISK_RDWR)
+      if mode not in constants.DISK_ACCESS_SET:
+        raise errors.OpPrereqError("Invalid disk access mode '%s'" %
+                                   mode, errors.ECODE_INVAL)
+      size = disk.get("size", None)
+      if size is None:
+        raise errors.OpPrereqError("Missing disk size", errors.ECODE_INVAL)
+      try:
+        size = int(size)
+      except (TypeError, ValueError):
+        raise errors.OpPrereqError("Invalid disk size '%s'" % size,
+                                   errors.ECODE_INVAL)
+      new_disk = {"size": size, "mode": mode}
+      if "adopt" in disk:
+        new_disk["adopt"] = disk["adopt"]
+      self.disks.append(new_disk)
+
     if self.op.mode == constants.INSTANCE_IMPORT:
-      src_node = self.op.src_node
-      src_path = self.op.src_path
-
-      if src_node is None:
-        locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
-        exp_list = self.rpc.call_export_list(locked_nodes)
-        found = False
-        for node in exp_list:
-          if exp_list[node].fail_msg:
-            continue
-          if src_path in exp_list[node].payload:
-            found = True
-            self.op.src_node = src_node = node
-            self.op.src_path = src_path = utils.PathJoin(constants.EXPORT_DIR,
-                                                         src_path)
-            break
-        if not found:
-          raise errors.OpPrereqError("No export found for relative path %s" %
-                                      src_path, errors.ECODE_INVAL)
-
-      _CheckNodeOnline(self, src_node)
-      result = self.rpc.call_export_info(src_node, src_path)
-      result.Raise("No export or invalid export found in dir %s" % src_path)
-
-      export_info = objects.SerializableConfigParser.Loads(str(result.payload))
-      if not export_info.has_section(constants.INISECT_EXP):
-        raise errors.ProgrammerError("Corrupted export config",
-                                     errors.ECODE_ENVIRON)
-
-      ei_version = export_info.get(constants.INISECT_EXP, 'version')
-      if (int(ei_version) != constants.EXPORT_VERSION):
-        raise errors.OpPrereqError("Wrong export version %s (wanted %d)" %
-                                   (ei_version, constants.EXPORT_VERSION),
-                                   errors.ECODE_ENVIRON)
 
       # Check that the new instance doesn't have less disks than the export
       instance_disks = len(self.disks)
@@ -6386,14 +6494,13 @@ class LUCreateInstance(LogicalUnit):
                                    (instance_disks, export_disks),
                                    errors.ECODE_INVAL)
 
-      self.op.os_type = export_info.get(constants.INISECT_EXP, 'os')
       disk_images = []
       for idx in range(export_disks):
         option = 'disk%d_dump' % idx
         if export_info.has_option(constants.INISECT_INS, option):
           # FIXME: are the old os-es, disk sizes, etc. useful?
           export_name = export_info.get(constants.INISECT_INS, option)
-          image = utils.PathJoin(src_path, export_name)
+          image = utils.PathJoin(self.op.src_path, export_name)
           disk_images.append(image)
         else:
           disk_images.append(False)
@@ -6401,8 +6508,12 @@ class LUCreateInstance(LogicalUnit):
       self.src_images = disk_images
 
       old_name = export_info.get(constants.INISECT_INS, 'name')
-      # FIXME: int() here could throw a ValueError on broken exports
-      exp_nic_count = int(export_info.get(constants.INISECT_INS, 'nic_count'))
+      try:
+        exp_nic_count = export_info.getint(constants.INISECT_INS, 'nic_count')
+      except (TypeError, ValueError), err:
+        raise errors.OpPrereqError("Invalid export file, nic_count is not"
+                                   " an integer: %s" % str(err),
+                                   errors.ECODE_STATE)
       if self.op.instance_name == old_name:
         for idx, nic in enumerate(self.nics):
           if nic.mac == constants.VALUE_AUTO and exp_nic_count >= idx:

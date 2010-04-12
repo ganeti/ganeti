@@ -79,6 +79,16 @@ class TestClusterObject(unittest.TestCase):
     self.fake_cl = objects.Cluster(hvparams=hvparams, os_hvp=os_hvp)
     self.fake_cl.UpgradeConfig()
 
+  def testGetHVDefaults(self):
+    cl = self.fake_cl
+    self.failUnlessEqual(cl.GetHVDefaults(constants.HT_FAKE),
+                         cl.hvparams[constants.HT_FAKE])
+    self.failUnlessEqual(cl.GetHVDefaults(None), {})
+    self.failUnlessEqual(cl.GetHVDefaults(constants.HT_XEN_PVM,
+                                          os_name="lenny-image"),
+                         cl.os_hvp["lenny-image"][constants.HT_XEN_PVM])
+
+
   def testFillHvFullMerge(self):
     inst_hvparams = {
       "blah": "blubb",

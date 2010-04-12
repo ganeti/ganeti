@@ -320,11 +320,13 @@ them out of the Ganeti exports directory.
 Importing an instance is similar to creating a new one, but additionally
 one must specify the location of the snapshot. The command is::
 
-  gnt-backup import -n TARGET_NODE -t DISK_TEMPLATE \
+  gnt-backup import -n TARGET_NODE \
     --src-node=NODE --src-dir=DIR INSTANCE_NAME
 
-Most of the options available for the command :command:`gnt-instance
-add` are supported here too.
+By default, parameters will be read from the export information, but you
+can of course pass them in via the command line - most of the options
+available for the command :command:`gnt-instance add` are supported here
+too.
 
 Import of foreign instances
 +++++++++++++++++++++++++++
