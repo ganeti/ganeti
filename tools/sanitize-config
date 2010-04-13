@@ -1,0 +1,308 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2010 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+# pylint: disable-msg=C0103
+
+"""Tool to sanitize/randomize the configuration file.
+
+"""
+
+import sys
+import os
+import os.path
+import optparse
+
+from ganeti import constants
+from ganeti import serializer
+from ganeti import utils
+from ganeti import cli
+from ganeti.cli import cli_option
+
+
+OPTS = [
+  cli.VERBOSE_OPT,
+  cli_option("--path", help="Convert this configuration file"
+             " instead of '%s'" % constants.CLUSTER_CONF_FILE,
+             default=constants.CLUSTER_CONF_FILE, dest="CONFIG_DATA_PATH"),
+  cli_option("--sanitize-names", default="yes", type="bool",
+             help="Randomize the cluster, node and instance names [yes]"),
+  cli_option("--sanitize-ips", default="yes", type="bool",
+             help="Randomize the cluster, node and instance IPs [yes]"),
+  cli_option("--sanitize-lvs", default="no", type="bool",
+             help="Randomize the LV names (for old clusters) [no]"),
+  cli_option("--sanitize-os-names", default="yes", type="bool",
+             help="Randomize the OS names [yes]"),
+  cli_option("--no-randomization", default=False, action="store_true",
+             help="Disable all name randomization (only randomize secrets)"),
+  cli_option("--base-domain", default="example.com",
+             help="The base domain used for new names [example.com]"),
+  ]
+
+
+def Error(txt, *args):
+  """Writes a message to standard error and exits.
+
+  """
+  cli.ToStderr(txt, *args)
+  sys.exit(1)
+
+
+def GenerateNameMap(opts, names, base):
+  """For a given set of names, generate a list of sane new names.
+
+  """
+  names = utils.NiceSort(names)
+  name_map = {}
+  for idx, old_name in enumerate(names):
+    new_name = "%s%d.%s" % (base, idx + 1, opts.base_domain)
+    if new_name in names:
+      Error("Name conflict for %s: %s already exists", base, new_name)
+    name_map[old_name] = new_name
+  return name_map
+
+
+def SanitizeSecrets(opts, cfg): # pylint: disable-msg=W0613
+  """Cleanup configuration secrets.
+
+  """
+  cfg["cluster"]["rsahostkeypub"] = ""
+  for instance in cfg["instances"].values():
+    for disk in instance["disks"]:
+      RandomizeDiskSecrets(disk)
+
+
+def SanitizeCluster(opts, cfg):
+  """Sanitize the cluster names.
+
+  """
+  cfg["cluster"]["cluster_name"] = "cluster." + opts.base_domain
+
+
+def SanitizeNodes(opts, cfg):
+  """Sanitize node names.
+
+  """
+  old_names = cfg["nodes"].keys()
+  old_map = GenerateNameMap(opts, old_names, "node")
+
+  # rename nodes
+  RenameDictKeys(cfg["nodes"], old_map, True)
+
+  # update master node
+  cfg["cluster"]["master_node"] = old_map[cfg["cluster"]["master_node"]]
+
+  # update instance configuration
+  for instance in cfg["instances"].values():
+    instance["primary_node"] = old_map[instance["primary_node"]]
+    for disk in instance["disks"]:
+      RenameDiskNodes(disk, old_map)
+
+
+def SanitizeInstances(opts, cfg):
+  """Sanitize instance names.
+
+  """
+  old_names = cfg["instances"].keys()
+  old_map = GenerateNameMap(opts, old_names, "instance")
+
+  RenameDictKeys(cfg["instances"], old_map, True)
+
+
+def SanitizeIps(opts, cfg): # pylint: disable-msg=W0613
+  """Sanitize the IP names.
+
+  @note: we're interested in obscuring the old IPs, not in generating
+      actually valid new IPs, so we chose to simply put IPv4
+      addresses, irrelevant of whether IPv6 or IPv4 addresses existed
+      before.
+
+  """
+  def _Get(old):
+    if old in ip_map:
+      return ip_map[old]
+    idx = len(ip_map) + 1
+    rest, d_octet = divmod(idx, 256)
+    rest, c_octet = divmod(rest, 256)
+    rest, b_octet = divmod(rest, 256)
+    if rest > 0:
+      Error("Too many IPs!")
+    new_ip = "%d.%d.%d.%d" % (10, b_octet, c_octet, d_octet)
+    ip_map[old] = new_ip
+    return new_ip
+
+  ip_map = {}
+
+  cfg["cluster"]["master_ip"] = _Get(cfg["cluster"]["master_ip"])
+  for node in cfg["nodes"].values():
+    node["primary_ip"] = _Get(node["primary_ip"])
+    node["secondary_ip"] = _Get(node["secondary_ip"])
+
+  for instance in cfg["instances"].values():
+    for nic in instance["nics"]:
+      if "ip" in nic and nic["ip"]:
+        nic["ip"] = _Get(nic["ip"])
+
+
+def SanitizeOsNames(opts, cfg): # pylint: disable-msg=W0613
+  """Sanitize the OS names.
+
+  """
+  def _Get(old):
+    if old in os_map:
+      return os_map[old]
+    os_map[old] = "ganeti-os%d" % (len(os_map) + 1)
+    return os_map[old]
+
+  os_map = {}
+  for instance in cfg["instances"].values():
+    instance["os"] = _Get(instance["os"])
+
+  if "os_hvp" in cfg["cluster"]:
+    for os_name in cfg["cluster"]["os_hvp"]:
+      # force population of the entire os map
+      _Get(os_name)
+    RenameDictKeys(cfg["cluster"]["os_hvp"], os_map, False)
+
+
+def SanitizeDisks(opts, cfg): # pylint: disable-msg=W0613
+  """Cleanup disks disks.
+
+  """
+  def _Get(old):
+    if old in lv_map:
+      return old
+    lv_map[old] = utils.NewUUID()
+    return lv_map[old]
+
+  def helper(disk):
+    if "children" in disk and disk["children"]:
+      for child in disk["children"]:
+        helper(child)
+
+    if disk["dev_type"] == constants.LD_DRBD8:
+      if "physical_id" in disk:
+        del disk["physical_id"]
+
+    if disk["dev_type"] == constants.LD_LV and opts.sanitize_lvs:
+      disk["logical_id"][1] = _Get(disk["logical_id"][1])
+      disk["physical_id"][1] = disk["logical_id"][1]
+
+  lv_map = {}
+
+  for instance in cfg["instances"].values():
+    for disk in instance["disks"]:
+      helper(disk)
+
+
+def RandomizeDiskSecrets(disk):
+  """Randomize a disks' secrets (if any).
+
+  """
+  if "children" in disk and disk["children"]:
+    for child in disk["children"]:
+      RandomizeDiskSecrets(child)
+
+  # only disk type to contain secrets is the drbd one
+  if disk["dev_type"] == constants.LD_DRBD8:
+    disk["logical_id"][5] = utils.GenerateSecret()
+
+
+def RenameDiskNodes(disk, node_map):
+  """Rename nodes in the disk config.
+
+  """
+  if "children" in disk and disk["children"]:
+    for child in disk["children"]:
+      RenameDiskNodes(child, node_map)
+
+  # only disk type to contain nodes is the drbd one
+  if disk["dev_type"] == constants.LD_DRBD8:
+    lid = disk["logical_id"]
+    lid[0] = node_map[lid[0]]
+    lid[1] = node_map[lid[1]]
+
+
+def RenameDictKeys(a_dict, name_map, update_name):
+  """Rename the dictionary keys based on a name map.
+
+  """
+  for old_name in a_dict.keys():
+    new_name = name_map[old_name]
+    a_dict[new_name] = a_dict[old_name]
+    del a_dict[old_name]
+    if update_name:
+      a_dict[new_name]["name"] = new_name
+
+
+def main():
+  """Main program.
+
+  """
+  # Option parsing
+  parser = optparse.OptionParser(usage="%prog [--verbose] output_file")
+
+  for o in OPTS:
+    parser.add_option(o)
+
+  (opts, args) = parser.parse_args()
+  if opts.no_randomization:
+    opts.sanitize_names = opts.sanitize_ips = opts.sanitize_os_names = \
+        opts.sanitize_lvs = False
+
+  # Option checking
+  if len(args) != 1:
+    Error("Usage: sanitize-config [options] {<output_file> | -}")
+
+  # Check whether it's a Ganeti configuration directory
+  if not os.path.isfile(opts.CONFIG_DATA_PATH):
+    Error("Cannot find Ganeti configuration file %s", opts.CONFIG_DATA_PATH)
+
+  config_data = serializer.LoadJson(utils.ReadFile(opts.CONFIG_DATA_PATH))
+
+  # first, do some disk cleanup: remove DRBD physical_ids, since it
+  # contains both IPs (which we want changed) and the DRBD secret, and
+  # it's not needed for normal functioning, and randomize LVM names
+  SanitizeDisks(opts, config_data)
+
+  SanitizeSecrets(opts, config_data)
+
+  if opts.sanitize_names:
+    SanitizeCluster(opts, config_data)
+    SanitizeNodes(opts, config_data)
+    SanitizeInstances(opts, config_data)
+
+  if opts.sanitize_ips:
+    SanitizeIps(opts, config_data)
+
+  if opts.sanitize_os_names:
+    SanitizeOsNames(opts, config_data)
+
+  data = serializer.DumpJson(config_data)
+  if args[0] == "-":
+    sys.stdout.write(data)
+  else:
+    utils.WriteFile(file_name=args[0],
+                    data=data,
+                    mode=0600,
+                    backup=True)
+
+if __name__ == "__main__":
+  main()

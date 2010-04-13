@@ -1350,6 +1350,28 @@ systems. Depending on the passed options, it can also test that the
 instance OS definitions are executing properly the rename, import and
 export operations.
 
+sanitize-config
++++++++++++++++
+
+This tool takes the Ganeti configuration and outputs a "sanitized"
+version, by randomizing or clearing:
+
+- DRBD secrets and cluster public key (always)
+- host names (optional)
+- IPs (optional)
+- OS names (optional)
+- LV names (optional, only useful for very old clusters which still have
+  instances whose LVs are based on the instance name)
+
+By default, all optional items are activated except the LV name
+randomization. When passing ``--no-randomization``, which disables the
+optional items (i.e. just the DRBD secrets and cluster public keys are
+randomized), the resulting file can be used as a safety copy of the
+cluster config - while not trivial, the layout of the cluster can be
+recreated from it and if the instance disks have not been lost it
+permits recovery from the loss of all master candidates.
+
+
 Other Ganeti projects
 ---------------------
 
