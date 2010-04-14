@@ -136,7 +136,8 @@ parseData body = do
         "multi-evacuate" ->
             do
               ex_names <- fromObj "evac_nodes" request
-              ex_nodes <- mapM (Container.findByName map_n) ex_names
+              let ex_names' = map (stripSuffix $ length csf) ex_names
+              ex_nodes <- mapM (Container.findByName map_n) ex_names'
               let ex_ndx = map Node.idx ex_nodes
               return $ Evacuate ex_ndx
         other -> fail ("Invalid request type '" ++ other ++ "'")
