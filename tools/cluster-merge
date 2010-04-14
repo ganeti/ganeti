@@ -173,7 +173,7 @@ class Merger(object):
               ask_key=False):
     """Wrapping SshRunner.Run with default parameters.
 
-    For explanation of parameters see L{ssh.SshRunner.Run}.
+    For explanation of parameters see L{ganeti.ssh.SshRunner.Run}.
 
     """
     return self.ssh_runner.Run(hostname=hostname, command=command, user=user,
