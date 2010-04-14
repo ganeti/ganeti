@@ -21,6 +21,20 @@
 
 """Remote API version 2 baserlib.library.
 
+  PUT or POST?
+  ------------
+
+  According to RFC2616 the main difference between PUT and POST is that
+  POST can create new resources but PUT can only create the resource the
+  URI was pointing to on the PUT request.
+
+  To be in context of this module for instance creation POST on
+  /2/instances is legitim while PUT would be not, due to it does create a
+  new entity and not just replace /2/instances with it.
+
+  So when adding new methods, if they are operating on the URI entity itself,
+  PUT should be prefered over POST.
+
 """
 
 # pylint: disable-msg=C0103

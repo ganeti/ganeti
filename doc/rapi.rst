@@ -71,6 +71,33 @@ HTTP Basic authentication as per RFC2617_ is supported.
 .. _REST: http://en.wikipedia.org/wiki/Representational_State_Transfer
 .. _RFC2617: http://tools.ietf.org/rfc/rfc2617.txt
 
+
+PUT or POST?
+------------
+
+According to RFC2616 the main difference between PUT and POST is that
+POST can create new resources but PUT can only create the resource the
+URI was pointing to on the PUT request.
+
+Unfortunately, due to historic reasons, the Ganeti RAPI library is not
+consistent with this usage, so just use the methods as documented below
+for each resource.
+
+For more details have a look in the source code at
+``lib/rapi/rlib2.py``.
+
+
+Generic parameter types
+-----------------------
+
+A few generic refered parameter types and the values they allow.
+
+``bool``
+++++++++
+
+A boolean option will accept ``1`` or ``0`` as numbers but not
+i.e. ``True`` or ``False``.
+
 Generic parameters
 ------------------
 
@@ -89,9 +116,9 @@ themselves.
 ``dry-run``
 +++++++++++
 
-The optional *dry-run* argument, if provided and set to a positive
-integer value (e.g. ``?dry-run=1``), signals to Ganeti that the job
-should not be executed, only the pre-execution checks will be done.
+The boolean *dry-run* argument, if provided and set, signals to Ganeti
+that the job should not be executed, only the pre-execution checks will
+be done.
 
 This is useful in trying to determine (without guarantees though, as in
 the meantime the cluster state could have changed) if the operation is
@@ -278,9 +305,9 @@ Example::
       }
     ]
 
-If the optional *bulk* argument is provided and set to a true value (i.e
-``?bulk=1``), the output contains detailed information about instances
-as a list.
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about
+instances as a list.
 
 Example::
 
@@ -317,11 +344,10 @@ Example::
 
 Creates an instance.
 
-If the optional *dry-run* argument is provided and set to a positive
-integer valu (e.g. ``?dry-run=1``), the job will not be actually
-executed, only the pre-execution checks will be done. Query-ing the job
-result will return, in both dry-run and normal case, the list of nodes
-selected for the instance.
+If the optional bool *dry-run* argument is provided, the job will not be
+actually executed, only the pre-execution checks will be done. Query-ing
+the job result will return, in both dry-run and normal case, the list of
+nodes selected for the instance.
 
 Returns: a job ID that can be used later for polling.
 
@@ -372,8 +398,18 @@ It supports the following commands: ``POST``.
 
 Reboots the instance.
 
-The URI takes optional ``type=hard|soft|full`` and
-``ignore_secondaries=False|True`` parameters.
+The URI takes optional ``type=soft|hard|full`` and
+``ignore_secondaries=0|1`` parameters.
+
+``type`` defines the reboot type. ``soft`` is just a normal reboot,
+without terminating the hypervisor. ``hard`` means full shutdown
+(including terminating the hypervisor process) and startup again.
+``full`` is like ``hard`` but also recreates the configuration from
+ground up as if you would have done a ``gnt-instance shutdown`` and
+``gnt-instance start`` on it.
+
+``ignore_secondaries`` is a bool argument indicating if we start the
+instance even if secondary disks are failing.
 
 It supports the ``dry-run`` argument.
 
@@ -405,8 +441,8 @@ It supports the following commands: ``PUT``.
 
 Startup an instance.
 
-The URI takes an optional ``force=False|True`` parameter to start the
-instance if even if secondary disks are failing.
+The URI takes an optional ``force=1|0`` parameter to start the
+instance even if secondary disks are failing.
 
 It supports the ``dry-run`` argument.
 
@@ -438,6 +474,12 @@ Takes the parameters ``mode`` (one of ``replace_on_primary``,
 ``replace_auto``), ``disks`` (comma separated list of disk indexes),
 ``remote_node`` and ``iallocator``.
 
+Either ``remote_node`` or ``iallocator`` needs to be defined when using
+``mode=replace_new_secondary``.
+
+``mode`` is a mandatory parameter. ``replace_auto`` tries to determine
+the broken disk(s) on its own and replacing it.
+
 
 ``/2/instances/[instance_name]/activate-disks``
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -449,7 +491,7 @@ It supports the following commands: ``PUT``.
 ``PUT``
 ~~~~~~~
 
-Takes the parameter ``ignore_size``. When set ignore the recorded
+Takes the bool parameter ``ignore_size``. When set ignore the recorded
 size (useful for forcing activation when recorded size is wrong).
 
 
@@ -674,7 +716,7 @@ It supports the following commands: ``POST``.
 ~~~~~~~~
 
 To evacuate a node, either one of the ``iallocator`` or ``remote_node``
-parameters must be passed:
+parameters must be passed::
 
     evacuate?iallocator=[iallocator]
     evacuate?remote_node=[nodeX.example.com]
@@ -689,7 +731,8 @@ It supports the following commands: ``POST``.
 ``POST``
 ~~~~~~~~
 
-No parameters are required, but ``live`` can be set to a boolean value.
+No parameters are required, but the bool parameter ``live`` can be set
+to use live migration (if available).
 
     migrate?live=[0|1]
 
@@ -725,7 +768,7 @@ Change the node role.
 The request is a string which should be PUT to this URI. The result will
 be a job id.
 
-It supports the ``force`` argument.
+It supports the bool ``force`` argument.
 
 ``/2/nodes/[node_name]/storage``
 ++++++++++++++++++++++++++++++++
