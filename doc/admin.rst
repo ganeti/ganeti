@@ -1304,6 +1304,9 @@ Ganeti versions. Point-releases are usually transparent for the admin.
 More information about the upgrade procedure is listed on the wiki at
 http://code.google.com/p/ganeti/wiki/UpgradeNotes.
 
+There is also a script designed to upgrade from Ganeti 1.2 to 2.0,
+called ``cfgupgrade12``.
+
 cfgshell
 ++++++++
 
