@@ -4139,6 +4139,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "tags": list(cluster.GetTags()),
       "uid_pool": cluster.uid_pool,
       "default_iallocator": cluster.default_iallocator,
+      "reserved_lvs": cluster.reserved_lvs,
       }
 
     return result

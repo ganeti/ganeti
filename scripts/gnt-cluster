@@ -296,6 +296,11 @@ def ShowClusterConfig(opts, args):
                               convert=opts.roman_integers))
   ToStdout("  - master netdev: %s", result["master_netdev"])
   ToStdout("  - lvm volume group: %s", result["volume_group_name"])
+  if result["reserved_lvs"]:
+    reserved_lvs = utils.CommaJoin(result["reserved_lvs"])
+  else:
+    reserved_lvs = "(none)"
+  ToStdout("  - lvm reserved volumes: %s", reserved_lvs)
   ToStdout("  - drbd usermode helper: %s", result["drbd_usermode_helper"])
   ToStdout("  - file storage path: %s", result["file_storage_dir"])
   ToStdout("  - maintenance of node health: %s",
