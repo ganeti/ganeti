@@ -242,7 +242,11 @@ setMdsk t val = t { mDsk = val,
 
 -- | Sets the max cpu usage ratio
 setMcpu :: Node -> Double -> Node
-setMcpu t val = t { mCpu = val, hiCpu = floor (val * tCpu t) }
+setMcpu t val = t { mCpu = val, hiCpu = hcpu }
+    where new_hcpu = floor (val * tCpu t)::Int
+          hcpu = if new_hcpu < 0
+                 then noLimitInt
+                 else new_hcpu
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: P.PeerMap -> P.Elem
