@@ -45,6 +45,7 @@ import logging.handlers
 import signal
 import datetime
 import calendar
+import collections
 
 from cStringIO import StringIO
 
@@ -2759,6 +2760,47 @@ class FileLock(object):
     """
     self._flock(fcntl.LOCK_UN, blocking, timeout,
                 "Failed to unlock %s" % self.filename)
+
+
+class LineSplitter:
+  """Splits data chunks into lines separated by newline.
+
+  Instances provide a file-like interface.
+
+  """
+  def __init__(self, line_fn, *args):
+    """Initializes this class.
+
+    @type line_fn: callable
+    @param line_fn: Function called for each line, first parameter is line
+    @param args: Extra arguments for L{line_fn}
+
+    """
+    assert callable(line_fn)
+
+    if args:
+      # Python 2.4 doesn't have functools.partial yet
+      self._line_fn = \
+        lambda line: line_fn(line, *args) # pylint: disable-msg=W0142
+    else:
+      self._line_fn = line_fn
+
+    self._lines = collections.deque()
+    self._buffer = ""
+
+  def write(self, data):
+    parts = (self._buffer + data).split("\n")
+    self._buffer = parts.pop()
+    self._lines.extend(parts)
+
+  def flush(self):
+    while self._lines:
+      self._line_fn(self._lines.popleft().rstrip("\r\n"))
+
+  def close(self):
+    self.flush()
+    if self._buffer:
+      self._line_fn(self._buffer)
 
 
 def SignalHandled(signums):

@@ -1558,5 +1558,39 @@ class TestRetry(testutils.GanetiTestCase):
       self.fail("Didn't detect inner loop's exception")
 
 
+class TestLineSplitter(unittest.TestCase):
+  def test(self):
+    lines = []
+    ls = utils.LineSplitter(lines.append)
+    ls.write("Hello World\n")
+    self.assertEqual(lines, [])
+    ls.write("Foo\n Bar\r\n ")
+    ls.write("Baz")
+    ls.write("Moo")
+    self.assertEqual(lines, [])
+    ls.flush()
+    self.assertEqual(lines, ["Hello World", "Foo", " Bar"])
+    ls.close()
+    self.assertEqual(lines, ["Hello World", "Foo", " Bar", " BazMoo"])
+
+  def _testExtra(self, line, all_lines, p1, p2):
+    self.assertEqual(p1, 999)
+    self.assertEqual(p2, "extra")
+    all_lines.append(line)
+
+  def testExtraArgsNoFlush(self):
+    lines = []
+    ls = utils.LineSplitter(self._testExtra, lines, 999, "extra")
+    ls.write("\n\nHello World\n")
+    ls.write("Foo\n Bar\r\n ")
+    ls.write("")
+    ls.write("Baz")
+    ls.write("Moo\n\nx\n")
+    self.assertEqual(lines, [])
+    ls.close()
+    self.assertEqual(lines, ["", "", "Hello World", "Foo", " Bar", " BazMoo",
+                             "", "x"])
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
