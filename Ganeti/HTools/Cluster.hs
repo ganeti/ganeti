@@ -94,6 +94,9 @@ data CStats = CStats { csFmem :: Int    -- ^ Cluster free mem
                      , csTmem :: Double -- ^ Cluster total mem
                      , csTdsk :: Double -- ^ Cluster total disk
                      , csTcpu :: Double -- ^ Cluster total cpus
+                     , csVcpu :: Int    -- ^ Cluster virtual cpus (if
+                                        -- node pCpu has been set,
+                                        -- otherwise -1)
                      , csXmem :: Int    -- ^ Unnacounted for mem
                      , csNmem :: Int    -- ^ Node own memory
                      , csScore :: Score -- ^ The cluster score
@@ -125,7 +128,7 @@ computeBadItems nl il =
 
 -- | Zero-initializer for the CStats type
 emptyCStats :: CStats
-emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 -- | Update stats with data from a new node
 updateCStats :: CStats -> Node.Node -> CStats
@@ -135,6 +138,7 @@ updateCStats cs node =
                  csMmem = x_mmem, csMdsk = x_mdsk, csMcpu = x_mcpu,
                  csImem = x_imem, csIdsk = x_idsk, csIcpu = x_icpu,
                  csTmem = x_tmem, csTdsk = x_tdsk, csTcpu = x_tcpu,
+                 csVcpu = x_vcpu,
                  csXmem = x_xmem, csNmem = x_nmem, csNinst = x_ninst
                }
             = cs
@@ -145,6 +149,7 @@ updateCStats cs node =
                    - Node.xMem node - Node.fMem node
         inc_icpu = Node.uCpu node
         inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
+        inc_vcpu = Node.hiCpu node
 
     in cs { csFmem = x_fmem + Node.fMem node
           , csFdsk = x_fdsk + Node.fDsk node
@@ -160,6 +165,9 @@ updateCStats cs node =
           , csTmem = x_tmem + Node.tMem node
           , csTdsk = x_tdsk + Node.tDsk node
           , csTcpu = x_tcpu + Node.tCpu node
+          , csVcpu = if inc_vcpu == Node.noLimitInt
+                     then Node.noLimitInt
+                     else x_vcpu + inc_vcpu
           , csXmem = x_xmem + Node.xMem node
           , csNmem = x_nmem + Node.nMem node
           , csNinst = x_ninst + length (Node.pList node)

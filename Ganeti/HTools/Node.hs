@@ -58,6 +58,7 @@ module Ganeti.HTools.Node
     , AssocList
     , AllocElement
     , noSecondary
+    , noLimitInt
     ) where
 
 import Data.List
