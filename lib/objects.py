@@ -898,6 +898,7 @@ class Cluster(TaggableObject):
     "tcpudp_port_pool",
     "mac_prefix",
     "volume_group_name",
+    "reserved_lvs",
     "drbd_usermode_helper",
     "default_bridge",
     "default_hypervisor",
@@ -978,6 +979,10 @@ class Cluster(TaggableObject):
 
     if self.default_iallocator is None:
       self.default_iallocator = ""
+
+    # reserved_lvs added before 2.2
+    if self.reserved_lvs is None:
+      self.reserved_lvs = []
 
   def ToDict(self):
     """Custom function for cluster.

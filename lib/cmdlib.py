@@ -1654,11 +1654,14 @@ class LUVerifyCluster(LogicalUnit):
         _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
                  "instance should not run on node %s", node)
 
-  def _VerifyOrphanVolumes(self, node_vol_should, node_image):
+  def _VerifyOrphanVolumes(self, node_vol_should, node_image, reserved):
     """Verify if there are any unknown volumes in the cluster.
 
     The .os, .swap and backup volumes are ignored. All other volumes are
     reported as unknown.
+
+    @type reserved: L{ganeti.utils.FieldSet}
+    @param reserved: a FieldSet of reserved volume names
 
     """
     for node, n_img in node_image.items():
@@ -1666,8 +1669,9 @@ class LUVerifyCluster(LogicalUnit):
         # skip non-healthy nodes
         continue
       for volume in n_img.volumes:
-        test = (node not in node_vol_should or
-                volume not in node_vol_should[node])
+        test = ((node not in node_vol_should or
+                volume not in node_vol_should[node]) and
+                not reserved.Matches(volume))
         self._ErrorIf(test, self.ENODEORPHANLV, node,
                       "volume %s is unknown", volume)
 
@@ -2232,7 +2236,8 @@ class LUVerifyCluster(LogicalUnit):
                  "instance lives on ghost node %s", node)
 
     feedback_fn("* Verifying orphan volumes")
-    self._VerifyOrphanVolumes(node_vol_should, node_image)
+    reserved = utils.FieldSet(*cluster.reserved_lvs)
+    self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)
 
     feedback_fn("* Verifying orphan instances")
     self._VerifyOrphanInstances(instancelist, node_image)
