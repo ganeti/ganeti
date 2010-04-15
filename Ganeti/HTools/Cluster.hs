@@ -32,8 +32,10 @@ module Ganeti.HTools.Cluster
       AllocSolution
     , Table(..)
     , CStats(..)
+    , AllocStats
     -- * Generic functions
     , totalResources
+    , computeAllocationDelta
     -- * First phase functions
     , computeBadItems
     -- * Second phase functions
@@ -102,6 +104,9 @@ data CStats = CStats { csFmem :: Int    -- ^ Cluster free mem
                      , csScore :: Score -- ^ The cluster score
                      , csNinst :: Int   -- ^ The total number of instances
                      }
+
+-- | Currently used, possibly to allocate, unallocable
+type AllocStats = (RSpec, RSpec, RSpec)
 
 -- * Utility functions
 
@@ -178,6 +183,23 @@ totalResources :: Node.List -> CStats
 totalResources nl =
     let cs = foldl' updateCStats emptyCStats . Container.elems $ nl
     in cs { csScore = compCV nl }
+
+-- | Compute the delta between two cluster state.
+--
+-- This is used when doing allocations, to understand better the
+-- available cluster resources.
+computeAllocationDelta :: CStats -> CStats -> AllocStats
+computeAllocationDelta cini cfin =
+    let CStats {csImem = i_imem, csIdsk = i_idsk, csIcpu = i_icpu} = cini
+        CStats {csImem = f_imem, csIdsk = f_idsk, csIcpu = f_icpu,
+                csTmem = t_mem, csTdsk = t_dsk, csVcpu = v_cpu } = cfin
+        rini = RSpec i_icpu i_imem i_idsk
+        rfin = RSpec f_icpu f_imem f_idsk
+        un_cpu = if v_cpu == Node.noLimitInt
+                 then Node.noLimitInt
+                 else v_cpu - f_icpu
+        runa = RSpec un_cpu (truncate t_mem - f_imem) (truncate t_dsk - f_idsk)
+    in (rini, rfin, runa)
 
 -- | The names of the individual elements in the CV list
 detailedCVNames :: [String]
