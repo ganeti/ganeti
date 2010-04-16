@@ -36,10 +36,10 @@ DIRS = \
 	doc/examples/hooks \
 	lib \
 	lib/build \
+	lib/confd \
 	lib/http \
 	lib/hypervisor \
 	lib/rapi \
-	lib/confd \
 	man \
 	qa \
 	scripts \
@@ -57,6 +57,7 @@ maintainer-clean-local:
 	rm -rf doc/api doc/html doc/coverage
 
 CLEANFILES = \
+	$(addsuffix /*.py[co],$(DIRS)) \
 	autotools/replace_vars.sed \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
@@ -66,15 +67,8 @@ CLEANFILES = \
 	doc/examples/ganeti.cron \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec \
-	lib/*.py[co] \
-	lib/build/*.py[co] \
-	lib/http/*.py[co] \
-	lib/hypervisor/*.py[co] \
-	lib/rapi/*.py[co] \
 	$(man_MANS) \
 	$(manhtml) \
-	qa/*.py[co] \
-	test/*.py[co] \
 	stamp-directories \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON)
@@ -143,8 +137,8 @@ http_PYTHON = \
 confd_PYTHON = \
 	lib/confd/__init__.py \
 	lib/confd/client.py \
-	lib/confd/server.py \
-	lib/confd/querylib.py
+	lib/confd/querylib.py \
+	lib/confd/server.py
 
 docrst = \
 	doc/admin.rst \
