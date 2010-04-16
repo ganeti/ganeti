@@ -236,8 +236,10 @@ dist_tools_SCRIPTS = \
 	tools/burnin \
 	tools/cfgshell \
 	tools/cfgupgrade \
+	tools/cfgupgrade12 \
 	tools/cluster-merge \
-	tools/lvmstrap
+	tools/lvmstrap \
+	tools/sanitize-config
 
 pkglib_SCRIPTS = \
 	daemons/daemon-util

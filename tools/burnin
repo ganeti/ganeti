@@ -322,7 +322,7 @@ class Burner(object):
   def _ExecOp(self, *ops):
     """Execute one or more opcodes and manage the exec buffer.
 
-    @result: if only opcode has been passed, we return its result;
+    @return: if only opcode has been passed, we return its result;
         otherwise we return the list of results
 
     """
@@ -336,7 +336,7 @@ class Burner(object):
   def ExecOp(self, retry, *ops):
     """Execute one or more opcodes and manage the exec buffer.
 
-    @result: if only opcode has been passed, we return its result;
+    @return: if only opcode has been passed, we return its result;
         otherwise we return the list of results
 
     """
@@ -892,9 +892,9 @@ class Burner(object):
     """Run confd queries for our instances.
 
     The following confd queries are tested:
-    - CONFD_REQ_PING: simple ping
-    - CONFD_REQ_CLUSTER_MASTER: cluster master
-    - CONFD_REQ_NODE_ROLE_BYNAME: node role, for the master
+      - CONFD_REQ_PING: simple ping
+      - CONFD_REQ_CLUSTER_MASTER: cluster master
+      - CONFD_REQ_NODE_ROLE_BYNAME: node role, for the master
 
     """
     Log("Checking confd results")

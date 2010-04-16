@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2007, 2008, 2009 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -174,7 +174,10 @@ def main():
                     backup=True)
 
     if not options.dry_run:
-      bootstrap.GenerateClusterCrypto(False, False, False, False)
+      bootstrap.GenerateClusterCrypto(False, False, False, False,
+                                      nodecert_file=options.SERVER_PEM_PATH,
+                                      rapicert_file=options.RAPI_CERT_FILE,
+                                      hmackey_file=options.CONFD_HMAC_KEY)
 
   except:
     logging.critical("Writing configuration failed. It is probably in an"

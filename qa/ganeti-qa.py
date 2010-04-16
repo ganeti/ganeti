@@ -38,6 +38,8 @@ import qa_rapi
 import qa_tags
 import qa_utils
 
+from ganeti import utils
+
 
 def RunTest(fn, *args):
   """Runs a test after printing a header.
@@ -70,12 +72,15 @@ def RunEnvTests():
   RunTest(qa_env.TestGanetiCommands)
 
 
-def SetupCluster():
+def SetupCluster(rapi_user, rapi_secret):
   """Initializes the cluster.
+
+  @param rapi_user: Login user for RAPI
+  @param rapi_secret: Login secret for RAPI
 
   """
   if qa_config.TestEnabled('create-cluster'):
-    RunTest(qa_cluster.TestClusterInit)
+    RunTest(qa_cluster.TestClusterInit, rapi_user, rapi_secret)
     RunTest(qa_node.TestNodeAddAll)
   else:
     # consider the nodes are already there
@@ -274,8 +279,12 @@ def main():
 
   qa_config.Load(config_file)
 
+  rapi_user = "ganeti-qa"
+  rapi_secret = utils.GenerateSecret()
+  qa_rapi.OpenerFactory.SetCredentials(rapi_user, rapi_secret)
+
   RunEnvTests()
-  SetupCluster()
+  SetupCluster(rapi_user, rapi_secret)
   RunClusterTests()
   RunOsTests()
 

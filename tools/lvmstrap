@@ -36,6 +36,7 @@ OSError. The idea behind this is, since we run as root, we should
 usually not get these errors, but if we do it's most probably a system
 error, so they should be handled and the user instructed to report
 them.
+
 """
 
 
@@ -66,6 +67,7 @@ class ProgrammingError(Error):
 
   This should catch sysfs tree changes, or otherwise incorrect
   assumptions about the contents of the /sys/block/... directories.
+
   """
   pass
 
@@ -79,6 +81,7 @@ class SysconfigError(Error):
 
   This should usually mean that the installation of the Xen node
   failed in some steps.
+
   """
   pass
 
@@ -92,6 +95,7 @@ class PrereqError(Error):
 
   This should usually mean that the build steps for the Xen node were
   not followed correctly.
+
   """
   pass
 
@@ -100,6 +104,7 @@ class OperationalError(Error):
   """Exception denoting actual errors.
 
   Errors during the bootstrapping are signaled using this exception.
+
   """
   pass
 
@@ -109,13 +114,15 @@ class ParameterError(Error):
 
   Wrong disks given as parameters will be signaled using this
   exception.
+
   """
   pass
 
 
 def Usage():
-  """Shows program usage information and exits the program."""
+  """Shows program usage information and exits the program.
 
+  """
   print >> sys.stderr, "Usage:"
   print >> sys.stderr, USAGE
   sys.exit(2)
@@ -127,8 +134,10 @@ def ParseOptions():
   In case of command line errors, it will show the usage and exit the
   program.
 
-  Returns:
-    (options, args), as returned by OptionParser.parse_args
+  @rtype: tuple
+  @return: a tuple of (options, args), as returned by
+      OptionParser.parse_args
+
   """
   global verbose_flag # pylint: disable-msg=W0603
 
@@ -167,13 +176,12 @@ def ExecCommand(command):
   difference that if the command line argument -v has been given, it
   will print the command line and the command output on stdout.
 
-  Args:
-    the command line
-  Returns:
-    (status, output) where status is the exit status and output the
-      stdout and stderr of the command together
-  """
+  @param command: the command line to be executed
+  @rtype: tuple
+  @return: a tuple of (status, output) where status is the exit status
+      and output the stdout and stderr of the command together
 
+  """
   if verbose_flag:
     print command
   result = RunCmd(command)
@@ -187,8 +195,8 @@ def CheckPrereq():
 
   It check that it runs on Linux 2.6, and that /sys is mounted and the
   fact that /sys/block is a directory.
-  """
 
+  """
   if os.getuid() != 0:
     raise PrereqError("This tool runs as root only. Really.")
 
@@ -220,18 +228,16 @@ def CheckPrereq():
 def CheckVGExists(vgname):
   """Checks to see if a volume group exists.
 
-  Args:
-    vgname: the volume group name
+  @param vgname: the volume group name
 
-  Returns:
-    a four-tuple (exists, lv_count, vg_size, vg_free), where:
-      exists: True if the volume exists, otherwise False; if False,
+  @return: a four-tuple (exists, lv_count, vg_size, vg_free), where:
+      - exists: True if the volume exists, otherwise False; if False,
         all other members of the tuple are None
-      lv_count: The number of logical volumes in the volume group
-      vg_size: The total size of the volume group (in gibibytes)
-      vg_free: The available space in the volume group
-  """
+      - lv_count: The number of logical volumes in the volume group
+      - vg_size: The total size of the volume group (in gibibytes)
+      - vg_free: The available space in the volume group
 
+  """
   result = ExecCommand("vgs --nohead -o lv_count,vg_size,vg_free"
                        " --nosuffix --units g"
                        " --ignorelockingfailure %s" % vgname)
@@ -261,15 +267,11 @@ def CheckSysDev(name, devnum):
   some retries here. Since we only do a stat, we can afford to do many
   short retries.
 
-  Args:
-   name: the device name, e.g. 'sda'
-   devnum: the device number, e.g. 0x803 (2051 in decimal) for sda3
+  @param name: the device name, e.g. 'sda'
+  @param devnum: the device number, e.g. 0x803 (2051 in decimal) for sda3
+  @raises L{SysconfigError}: in case of failure of the check
 
-  Returns:
-    None; failure of the check is signaled by raising a
-      SysconfigError exception
   """
-
   path = "/dev/%s" % name
   for _ in range(40):
     if os.path.exists(path):
@@ -293,13 +295,13 @@ def ReadDev(syspath):
   function reads that file and converts the major:minor pair to a dev
   number.
 
-  Args:
-    syspath: the path to a block device dir in sysfs, e.g. /sys/block/sda
+  @type syspath: string
+  @param syspath: the path to a block device dir in sysfs,
+      e.g. C{/sys/block/sda}
 
-  Returns:
-    the device number
+  @return: the device number
+
   """
-
   if not os.path.exists("%s/dev" % syspath):
     raise ProgrammingError("Invalid path passed to ReadDev: %s" % syspath)
   f = open("%s/dev" % syspath)
@@ -320,11 +322,13 @@ def ReadSize(syspath):
   function reads that file and converts the number in sectors to the
   size in bytes.
 
-  Args:
-    syspath: the path to a block device dir in sysfs, e.g. /sys/block/sda
+  @type syspath: string
+  @param syspath: the path to a block device dir in sysfs,
+      e.g. C{/sys/block/sda}
 
-  Returns:
-    the device size in bytes
+  @rtype: int
+  @return: the device size in bytes
+
   """
 
   if not os.path.exists("%s/size" % syspath):
@@ -341,14 +345,13 @@ def ReadPV(name):
 
   This function tries to see if a block device is a physical volume.
 
-  Args:
-    dev: the device name (e.g. sda)
-  Returns:
-    The name of the volume group to which this PV belongs, or
-    "" if this PV is not in use, or
-    None if this is not a PV
-  """
+  @type name: string
+  @param name: the device name (e.g. sda)
 
+  @return: the name of the volume group to which this PV belongs, or
+      "" if this PV is not in use, or None if this is not a PV
+
+  """
   result = ExecCommand("pvdisplay -c /dev/%s" % name)
   if result.failed:
     return None
@@ -362,20 +365,18 @@ def GetDiskList(opts):
   This function examines the /sys/block tree and using information
   therein, computes the status of the block device.
 
-  Returns:
-    [(name, size, dev, partitions, inuse), ...]
-  where:
-    name is the block device name (e.g. sda)
-    size the size in bytes
-    dev  the device number (e.g. 8704 for hdg)
-    partitions is [(name, size, dev), ...] mirroring the disk list data
-    inuse is a boolean showing the in-use status of the disk, computed as the
-      possibility of re-reading the partition table (the meaning of the
-      operation varies with the kernel version, but is usually accurate;
-      a mounted disk/partition or swap-area or PV with active LVs on it
-      is busy)
-  """
+  @return: a list like [(name, size, dev, partitions, inuse), ...], where:
+      - name is the block device name (e.g. sda)
+      - size the size in bytes
+      - dev is the device number (e.g. 8704 for hdg)
+      - partitions is [(name, size, dev), ...] mirroring the disk list
+        data inuse is a boolean showing the in-use status of the disk,
+        computed as the possibility of re-reading the partition table
+        (the meaning of the operation varies with the kernel version,
+        but is usually accurate; a mounted disk/partition or swap-area
+        or PV with active LVs on it is busy)
 
+  """
   dlist = []
   for name in os.listdir("/sys/block"):
     if (not name.startswith("hd") and
@@ -419,10 +420,10 @@ def GetMountInfo():
   of the results is memorised for later matching against the
   /sys/block devices.
 
-  Returns:
-   a mountpoint: device number dictionary
-  """
+  @rtype: dict
+  @return: a {mountpoint: device number} dictionary
 
+  """
   mountlines = ReadFile("/proc/mounts").splitlines()
   mounts = {}
   for line in mountlines:
@@ -448,16 +449,15 @@ def GetMountInfo():
 def DevInfo(name, dev, mountinfo):
   """Computes miscellaneous information about a block device.
 
-  Args:
-    name: the device name, e.g. sda
+  @type name: string
+  @param name: the device name, e.g. sda
 
-  Returns:
-    (mpath, whatvg, fileinfo), where
-    mpath is the mount path where this device is mounted or None
-    whatvg is the result of the ReadPV function
-    fileinfo is the output of file -bs on the device
+  @return: a tuple (mpath, whatvg, fileinfo), where:
+      - mpath is the mount path where this device is mounted or None
+      - whatvg is the result of the ReadPV function
+      - fileinfo is the output of file -bs on the device
+
   """
-
   if dev in mountinfo:
     mpath = mountinfo[dev]
   else:
@@ -538,10 +538,10 @@ def CheckReread(name):
   thus compute the in-use status. See the discussion in GetDiskList
   about the meaning of 'in use'.
 
-  Returns:
-    boolean, the in-use status of the device
-  """
+  @rtype: boolean
+  @return: the in-use status of the device
 
+  """
   for _ in range(3):
     result = ExecCommand("blockdev --rereadpt /dev/%s" % name)
     if not result.failed:
@@ -558,8 +558,8 @@ def WipeDisk(name):
   partition table. If not successful, it writes back the old partition
   data, and leaves the cleanup to the user.
 
-  Args:
-    the device name (e.g. sda)
+  @param name: the device name (e.g. sda)
+
   """
 
   if not CheckReread(name):
@@ -600,8 +600,8 @@ def PartitionDisk(name):
   This function creates a single partition spanning the entire disk,
   by means of fdisk.
 
-  Args:
-    the device name, e.g. sda
+  @param name: the device name, e.g. sda
+
   """
   result = ExecCommand(
     'echo ,,8e, | sfdisk /dev/%s' % name)
@@ -620,8 +620,7 @@ def CreatePVOnDisk(name):
   This function creates a physical volume on a block device, overriding
   all warnings. So it can wipe existing PVs and PVs which are in a VG.
 
-  Args:
-    the device name, e.g. sda
+  @param name: the device name, e.g. sda
 
   """
   result = ExecCommand("pvcreate -yff /dev/%s1 " % name)
@@ -638,8 +637,7 @@ def CreateVG(vgname, disks):
   This function creates a volume group named `vgname` on the disks
   given as parameters. The physical extent size is set to 64MB.
 
-  Args:
-    disks: a list of disk names, e.g. ['sda','sdb']
+  @param disks: a list of disk names, e.g. ['sda','sdb']
 
   """
   pnames = ["'/dev/%s1'" % disk for disk in disks]
@@ -659,13 +657,11 @@ def ValidateDiskList(options):
   using the --disks option) such that all given disks are present and
   not in use.
 
-  Args:
-    the options returned from OptParser.parse_options
+  @param options: the options returned from OptParser.parse_options
 
-  Returns:
-    a list of disk names, e.g. ['sda', 'sdb']
+  @return: a list of disk names, e.g. ['sda', 'sdb']
+
   """
-
   sysdisks = GetDiskList(options)
   if not sysdisks:
     raise PrereqError("no disks found (I looked for"
@@ -697,8 +693,9 @@ def ValidateDiskList(options):
 
 
 def BootStrap():
-  """Actual main routine."""
+  """Actual main routine.
 
+  """
   CheckPrereq()
 
   options, args = ParseOptions()
@@ -736,11 +733,11 @@ def BootStrap():
 
 
 def main():
-  """application entry point.
+  """Application entry point.
 
   This is just a wrapper over BootStrap, to handle our own exceptions.
-  """
 
+  """
   try:
     BootStrap()
   except PrereqError, err:

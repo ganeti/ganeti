@@ -77,7 +77,10 @@ def GenerateHmacKey(file_name):
 
 
 def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
-                          new_cds, rapi_cert_pem=None, cds=None):
+                          new_cds, rapi_cert_pem=None, cds=None,
+                          nodecert_file=constants.NODED_CERT_FILE,
+                          rapicert_file=constants.RAPI_CERT_FILE,
+                          hmackey_file=constants.CONFD_HMAC_KEY):
   """Updates the cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -92,39 +95,42 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
   @param rapi_cert_pem: New RAPI certificate in PEM format
   @type cds: string
   @param cds: New cluster domain secret
+  @type nodecert_file: string
+  @param nodecert_file: optional override of the node cert file path
+  @type rapicert_file: string
+  @param rapicert_file: optional override of the rapi cert file path
+  @type hmackey_file: string
+  @param hmackey_file: optional override of the hmac key file path
 
   """
   # noded SSL certificate
-  cluster_cert_exists = os.path.exists(constants.NODED_CERT_FILE)
+  cluster_cert_exists = os.path.exists(nodecert_file)
   if new_cluster_cert or not cluster_cert_exists:
     if cluster_cert_exists:
-      utils.CreateBackup(constants.NODED_CERT_FILE)
+      utils.CreateBackup(nodecert_file)
 
-    logging.debug("Generating new cluster certificate at %s",
-                  constants.NODED_CERT_FILE)
-    utils.GenerateSelfSignedSslCert(constants.NODED_CERT_FILE)
+    logging.debug("Generating new cluster certificate at %s", nodecert_file)
+    utils.GenerateSelfSignedSslCert(nodecert_file)
 
   # confd HMAC key
-  if new_confd_hmac_key or not os.path.exists(constants.CONFD_HMAC_KEY):
-    logging.debug("Writing new confd HMAC key to %s", constants.CONFD_HMAC_KEY)
-    GenerateHmacKey(constants.CONFD_HMAC_KEY)
+  if new_confd_hmac_key or not os.path.exists(hmackey_file):
+    logging.debug("Writing new confd HMAC key to %s", hmackey_file)
+    GenerateHmacKey(hmackey_file)
 
   # RAPI
-  rapi_cert_exists = os.path.exists(constants.RAPI_CERT_FILE)
+  rapi_cert_exists = os.path.exists(rapicert_file)
 
   if rapi_cert_pem:
     # Assume rapi_pem contains a valid PEM-formatted certificate and key
-    logging.debug("Writing RAPI certificate at %s",
-                  constants.RAPI_CERT_FILE)
-    utils.WriteFile(constants.RAPI_CERT_FILE, data=rapi_cert_pem, backup=True)
+    logging.debug("Writing RAPI certificate at %s", rapicert_file)
+    utils.WriteFile(rapicert_file, data=rapi_cert_pem, backup=True)
 
   elif new_rapi_cert or not rapi_cert_exists:
     if rapi_cert_exists:
-      utils.CreateBackup(constants.RAPI_CERT_FILE)
+      utils.CreateBackup(rapicert_file)
 
-    logging.debug("Generating new RAPI certificate at %s",
-                  constants.RAPI_CERT_FILE)
-    utils.GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
+    logging.debug("Generating new RAPI certificate at %s", rapicert_file)
+    utils.GenerateSelfSignedSslCert(rapicert_file)
 
   # Cluster domain secret
   if cds:
@@ -172,6 +178,38 @@ def _WaitForNodeDaemon(node_name):
   except utils.RetryTimeout:
     raise errors.OpExecError("Node daemon on %s didn't answer queries within"
                              " 10 seconds" % node_name)
+
+
+def _InitFileStorage(file_storage_dir):
+  """Initialize if needed the file storage.
+
+  @param file_storage_dir: the user-supplied value
+  @return: either empty string (if file storage was disabled at build
+      time) or the normalized path to the storage directory
+
+  """
+  if not constants.ENABLE_FILE_STORAGE:
+    return ""
+
+  file_storage_dir = os.path.normpath(file_storage_dir)
+
+  if not os.path.isabs(file_storage_dir):
+    raise errors.OpPrereqError("The file storage directory you passed is"
+                               " not an absolute path.", errors.ECODE_INVAL)
+
+  if not os.path.exists(file_storage_dir):
+    try:
+      os.makedirs(file_storage_dir, 0750)
+    except OSError, err:
+      raise errors.OpPrereqError("Cannot create file storage directory"
+                                 " '%s': %s" % (file_storage_dir, err),
+                                 errors.ECODE_ENVIRON)
+
+  if not os.path.isdir(file_storage_dir):
+    raise errors.OpPrereqError("The file storage directory '%s' is not"
+                               " a directory." % file_storage_dir,
+                               errors.ECODE_ENVIRON)
+  return file_storage_dir
 
 
 def InitCluster(cluster_name, mac_prefix,
@@ -242,24 +280,7 @@ def InitCluster(cluster_name, mac_prefix,
                                  " you are not using lvm" % vgstatus,
                                  errors.ECODE_INVAL)
 
-  file_storage_dir = os.path.normpath(file_storage_dir)
-
-  if not os.path.isabs(file_storage_dir):
-    raise errors.OpPrereqError("The file storage directory you passed is"
-                               " not an absolute path.", errors.ECODE_INVAL)
-
-  if not os.path.exists(file_storage_dir):
-    try:
-      os.makedirs(file_storage_dir, 0750)
-    except OSError, err:
-      raise errors.OpPrereqError("Cannot create file storage directory"
-                                 " '%s': %s" % (file_storage_dir, err),
-                                 errors.ECODE_ENVIRON)
-
-  if not os.path.isdir(file_storage_dir):
-    raise errors.OpPrereqError("The file storage directory '%s' is not"
-                               " a directory." % file_storage_dir,
-                               errors.ECODE_ENVIRON)
+  file_storage_dir = _InitFileStorage(file_storage_dir)
 
   if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$", mac_prefix):
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,

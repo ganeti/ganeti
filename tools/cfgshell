@@ -341,10 +341,9 @@ def ParseOptions():
   In case of command line errors, it will show the usage and exit the
   program.
 
-  Returns:
-    (options, args), as returned by OptionParser.parse_args
-  """
+  @return: a tuple (options, args), as returned by OptionParser.parse_args
 
+  """
   parser = optparse.OptionParser()
 
   options, args = parser.parse_args()
@@ -355,7 +354,6 @@ def ParseOptions():
 def main():
   """Application entry point.
 
-  This is just a wrapper over BootStrap, to handle our own exceptions.
   """
   _, args = ParseOptions()
   if args:
