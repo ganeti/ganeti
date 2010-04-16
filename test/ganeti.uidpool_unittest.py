@@ -46,8 +46,14 @@ class TestUidPool(testutils.GanetiTestCase):
 
   def testParseUidPool(self):
     self.assertEqualValues(
-        uidpool.ParseUidPool('1-100,200,'),
+        uidpool.ParseUidPool("1-100,200,"),
         [(1, 100), (200, 200)])
+    self.assertEqualValues(
+        uidpool.ParseUidPool("1000:2000-2500", separator=":"),
+        [(1000, 1000), (2000, 2500)])
+    self.assertEqualValues(
+        uidpool.ParseUidPool("1000\n2000-2500", separator="\n"),
+        [(1000, 1000), (2000, 2500)])
 
   def testCheckUidPool(self):
     # UID < UIDPOOL_UID_MIN
@@ -66,7 +72,13 @@ class TestUidPool(testutils.GanetiTestCase):
   def testFormatUidPool(self):
     self.assertEqualValues(
         uidpool.FormatUidPool([(1, 100), (200, 200)]),
-        '1-100, 200'),
+        "1-100, 200")
+    self.assertEqualValues(
+        uidpool.FormatUidPool([(1, 100), (200, 200)], separator=":"),
+        "1-100:200")
+    self.assertEqualValues(
+        uidpool.FormatUidPool([(1, 100), (200, 200)], separator="\n"),
+        "1-100\n200")
 
 
 if __name__ == '__main__':
