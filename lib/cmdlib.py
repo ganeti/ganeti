@@ -3318,15 +3318,19 @@ class LUAddNode(LogicalUnit):
       raise errors.OpPrereqError("Node %s is not in the configuration" % node,
                                  errors.ECODE_NOENT)
 
+    self.changed_primary_ip = False
+
     for existing_node_name in node_list:
       existing_node = cfg.GetNodeInfo(existing_node_name)
 
       if self.op.readd and node == existing_node_name:
-        if (existing_node.primary_ip != primary_ip or
-            existing_node.secondary_ip != secondary_ip):
+        if existing_node.secondary_ip != secondary_ip:
           raise errors.OpPrereqError("Readded node doesn't have the same IP"
                                      " address configuration as before",
                                      errors.ECODE_INVAL)
+        if existing_node.primary_ip != primary_ip:
+          self.changed_primary_ip = True
+
         continue
 
       if (existing_node.primary_ip == primary_ip or
@@ -3398,6 +3402,8 @@ class LUAddNode(LogicalUnit):
       self.LogInfo("Readding a node, the offline/drained flags were reset")
       # if we demote the node, we do cleanup later in the procedure
       new_node.master_candidate = self.master_candidate
+      if self.changed_primary_ip:
+        new_node.primary_ip = self.op.primary_ip
 
     # notify the user about any possible mc promotion
     if new_node.master_candidate:
