@@ -93,6 +93,21 @@ def _RequireJobQueueLock(fn):
   return wrapper
 
 
+def _DecodeImportExportIO(ieio, ieioargs):
+  """Decodes import/export I/O information.
+
+  """
+  if ieio == constants.IEIO_RAW_DISK:
+    assert len(ieioargs) == 1
+    return (objects.Disk.FromDict(ieioargs[0]), )
+
+  if ieio == constants.IEIO_SCRIPT:
+    assert len(ieioargs) == 2
+    return (objects.Disk.FromDict(ieioargs[0]), ieioargs[1])
+
+  return ieioargs
+
+
 class NodeHttpServer(http.server.HttpServer):
   """The server implementation.
 
@@ -838,6 +853,50 @@ class NodeHttpServer(http.server.HttpServer):
     (name, ) = params
     return backend.RemoveX509Certificate(name)
 
+  # Import and export
+
+  @staticmethod
+  def perspective_start_import_listener(params):
+    """Starts an import daemon.
+
+    """
+    (x509_key_name, source_x509_ca, instance, dest, dest_args) = params
+    return backend.StartImportExportDaemon(constants.IEM_IMPORT,
+                                           x509_key_name, source_x509_ca,
+                                           None, None,
+                                           objects.Instance.FromDict(instance),
+                                           dest,
+                                           _DecodeImportExportIO(dest,
+                                                                 dest_args))
+  @staticmethod
+  def perspective_start_export(params):
+    """Starts an export daemon.
+
+    """
+    (x509_key_name, dest_x509_ca, host, port, instance,
+     source, source_args) = params
+    return backend.StartImportExportDaemon(constants.IEM_EXPORT,
+                                           x509_key_name, dest_x509_ca,
+                                           host, port,
+                                           objects.Instance.FromDict(instance),
+                                           source,
+                                           _DecodeImportExportIO(source,
+                                                                 source_args))
+
+  @staticmethod
+  def perspective_get_import_export_status(params):
+    """Retrieves the status of an import or export daemon.
+
+    """
+    return backend.GetImportExportStatus(params[0])
+
+  @staticmethod
+  def perspective_cleanup_import_export(params):
+    """Cleans up after an import or export.
+
+    """
+    return backend.CleanupImportExport(params[0])
+
 
 def CheckNoded(_, args):
   """Initial checks whether to run or exit with a failure.
@@ -889,6 +948,7 @@ def main():
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
   dirs.append((constants.CRYPTO_KEYS_DIR, constants.CRYPTO_KEYS_DIR_MODE))
+  dirs.append((constants.IMPORT_EXPORT_DIR, constants.IMPORT_EXPORT_DIR_MODE))
   daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded,
                      default_ssl_cert=constants.NODED_CERT_FILE,
                      default_ssl_key=constants.NODED_CERT_FILE)

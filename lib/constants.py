@@ -93,6 +93,8 @@ SOCKET_DIR = RUN_GANETI_DIR + "/socket"
 SOCKET_DIR_MODE = 0700
 CRYPTO_KEYS_DIR = RUN_GANETI_DIR + "/crypto"
 CRYPTO_KEYS_DIR_MODE = 0700
+IMPORT_EXPORT_DIR = RUN_GANETI_DIR + "/import-export"
+IMPORT_EXPORT_DIR_MODE = 0755
 # keep RUN_GANETI_DIR first here, to make sure all get created when the node
 # daemon is started (this takes care of RUN_DIR being tmpfs)
 SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
@@ -198,6 +200,14 @@ IMPORT_EXPORT_DAEMON = _autoconf.PKGLIBDIR + "/import-export"
 # Import/export daemon mode
 IEM_IMPORT = "import"
 IEM_EXPORT = "export"
+
+# Import/export I/O
+# Direct file I/O, equivalent to a shell's I/O redirection using '<' or '>'
+IEIO_FILE = "file"
+# Raw block device I/O using "dd"
+IEIO_RAW_DISK = "raw"
+# OS definition import/export script
+IEIO_SCRIPT = "script"
 
 VALUE_DEFAULT = "default"
 VALUE_AUTO = "auto"

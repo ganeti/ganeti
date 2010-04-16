@@ -258,6 +258,21 @@ class Client:
     return results
 
 
+def _EncodeImportExportIO(ieio, ieioargs):
+  """Encodes import/export I/O information.
+
+  """
+  if ieio == constants.IEIO_RAW_DISK:
+    assert len(ieioargs) == 1
+    return (ieioargs[0].ToDict(), )
+
+  if ieio == constants.IEIO_SCRIPT:
+    assert len(ieioargs) == 2
+    return (ieioargs[0].ToDict(), ieioargs[1])
+
+  return ieioargs
+
+
 class RpcRunner(object):
   """RPC runner class"""
 
@@ -1209,3 +1224,79 @@ class RpcRunner(object):
 
     """
     return self._SingleNodeCall(node, "remove_x509_certificate", [name])
+
+  def call_start_import_listener(self, node, x509_key_name, source_x509_ca,
+                                 instance, dest, dest_args):
+    """Starts a listener for an import.
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: Node name
+    @type instance: C{objects.Instance}
+    @param instance: Instance object
+
+    """
+    return self._SingleNodeCall(node, "start_import_listener",
+                                [x509_key_name, source_x509_ca,
+                                 self._InstDict(instance), dest,
+                                 _EncodeImportExportIO(dest, dest_args)])
+
+  def call_start_export(self, node, x509_key_name, dest_x509_ca, host, port,
+                        instance, source, source_args):
+    """Starts an export daemon.
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: Node name
+    @type instance: C{objects.Instance}
+    @param instance: Instance object
+
+    """
+    return self._SingleNodeCall(node, "start_export",
+                                [x509_key_name, dest_x509_ca, host, port,
+                                 self._InstDict(instance), source,
+                                 _EncodeImportExportIO(source, source_args)])
+
+  def call_get_import_export_status(self, node, names):
+    """Gets the status of an import or export.
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: Node name
+    @type names: List of strings
+    @param names: Import/export names
+    @rtype: List of L{objects.ImportExportStatus} instances
+    @return: Returns a list of the state of each named import/export or None if
+             a status couldn't be retrieved
+
+    """
+    result = self._SingleNodeCall(node, "get_import_export_status", [names])
+
+    if not result.fail_msg:
+      decoded = []
+
+      for i in result.payload:
+        if i is None:
+          decoded.append(None)
+          continue
+        decoded.append(objects.ImportExportStatus.FromDict(i))
+
+      result.payload = decoded
+
+    return result
+
+  def call_cleanup_import_export(self, node, name):
+    """Cleans up after an import or export.
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: Node name
+    @type name: string
+    @param name: Import/export name
+
+    """
+    return self._SingleNodeCall(node, "cleanup_import_export", [name])
