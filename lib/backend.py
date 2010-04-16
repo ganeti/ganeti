@@ -1526,6 +1526,22 @@ def _RecursiveFindBD(disk):
   return bdev.FindDevice(disk.dev_type, disk.physical_id, children, disk.size)
 
 
+def _OpenRealBD(disk):
+  """Opens the underlying block device of a disk.
+
+  @type disk: L{objects.Disk}
+  @param disk: the disk object we want to open
+
+  """
+  real_disk = _RecursiveFindBD(disk)
+  if real_disk is None:
+    _Fail("Block device '%s' is not set up", disk)
+
+  real_disk.Open()
+
+  return real_disk
+
+
 def BlockdevFind(disk):
   """Check if a device is activated.
 
@@ -1589,11 +1605,7 @@ def BlockdevExport(disk, dest_node, dest_path, cluster_name):
   @rtype: None
 
   """
-  real_disk = _RecursiveFindBD(disk)
-  if real_disk is None:
-    _Fail("Block device '%s' is not set up", disk)
-
-  real_disk.Open()
+  real_disk = _OpenRealBD(disk)
 
   # the block size on the read dd is 1MiB to match our units
   expcmd = utils.BuildShellCmd("set -e; set -o pipefail; "
@@ -1903,11 +1915,7 @@ def OSEnvironment(instance, inst_os, debug=0):
       variant = inst_os.supported_variants[0]
     result['OS_VARIANT'] = variant
   for idx, disk in enumerate(instance.disks):
-    real_disk = _RecursiveFindBD(disk)
-    if real_disk is None:
-      raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                    str(disk))
-    real_disk.Open()
+    real_disk = _OpenRealBD(disk)
     result['DISK_%d_PATH' % idx] = real_disk.dev_path
     result['DISK_%d_ACCESS' % idx] = disk.mode
     if constants.HV_DISK_TYPE in instance.hvparams:
@@ -1936,6 +1944,7 @@ def OSEnvironment(instance, inst_os, debug=0):
       result["INSTANCE_%s_%s" % (kind, key)] = str(value)
 
   return result
+
 
 def BlockdevGrow(disk, amount):
   """Grow a stack of block devices.
@@ -2018,11 +2027,8 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx, debug):
   logfile = _InstanceLogName("export", inst_os.name, instance.name)
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
-  real_disk = _RecursiveFindBD(disk)
-  if real_disk is None:
-    _Fail("Block device '%s' is not set up", disk)
 
-  real_disk.Open()
+  real_disk = _OpenRealBD(disk)
 
   export_env['EXPORT_DEVICE'] = real_disk.dev_path
   export_env['EXPORT_INDEX'] = str(idx)
