@@ -23,7 +23,7 @@ set -o pipefail
 
 export PYTHON=${PYTHON:=python}
 
-impexpd="$PYTHON daemons/import-export"
+impexpd="$PYTHON daemons/import-export --connect-timeout=1 --connect-retries=1"
 
 # Add "-d" for debugging
 #impexpd+=' -d'
