@@ -22,7 +22,7 @@
 """Remote API version 2 baserlib.library.
 
   PUT or POST?
-  ------------
+  ============
 
   According to RFC2616 the main difference between PUT and POST is that
   POST can create new resources but PUT can only create the resource the
