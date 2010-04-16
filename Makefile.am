@@ -19,6 +19,7 @@ REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
 httpdir = $(pkgpythondir)/http
+masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
 toolsdir = $(pkglibdir)/tools
@@ -39,6 +40,7 @@ DIRS = \
 	lib/confd \
 	lib/http \
 	lib/hypervisor \
+	lib/masterd \
 	lib/rapi \
 	man \
 	qa \
@@ -139,6 +141,9 @@ confd_PYTHON = \
 	lib/confd/client.py \
 	lib/confd/querylib.py \
 	lib/confd/server.py
+
+masterd_PYTHON = \
+	lib/masterd/__init__.py
 
 docrst = \
 	doc/admin.rst \
@@ -378,6 +383,7 @@ all_python_code = \
 	$(rapi_PYTHON) \
 	$(http_PYTHON) \
 	$(confd_PYTHON) \
+	$(masterd_PYTHON) \
 	$(noinst_PYTHON)
 
 srclink_files = \
