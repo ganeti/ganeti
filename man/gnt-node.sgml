@@ -975,7 +975,7 @@ node2 lvm-pv /dev/sdb1 698.6G   0M 698.6G Y
 
       <cmdsynopsis>
         <command>powercycle</command>
-        <arg><option>--confirm</option></arg>
+        <arg><option>--yes</option></arg>
         <arg><option>--force</option></arg>
         <arg choice="req"><replaceable>node</replaceable></arg>
       </cmdsynopsis>
