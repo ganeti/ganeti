@@ -225,7 +225,7 @@ def _PrintGroupedParams(paramsdict, level=1):
 
   """
   indent = "  " * level
-  for item, val in paramsdict.items():
+  for item, val in sorted(paramsdict.items()):
     if isinstance(val, dict):
       ToStdout("%s- %s:", indent, item)
       _PrintGroupedParams(val, level=level + 1)
