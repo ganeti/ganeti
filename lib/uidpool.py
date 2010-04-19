@@ -323,9 +323,13 @@ def RequestUnusedUid(all_uids):
 def ReleaseUid(uid):
   """This should be called when the given user-id is no longer in use.
 
+  @type uid: LockedUid or integer
+  @param uid: the uid to release back to the pool
+
   """
-  # Make sure we release the exclusive lock, if there is any
-  uid.Unlock()
+  if isinstance(uid, LockedUid):
+    # Make sure we release the exclusive lock, if there is any
+    uid.Unlock()
   try:
     uid_path = utils.PathJoin(constants.UIDPOOL_LOCKDIR, str(uid))
     os.remove(uid_path)
