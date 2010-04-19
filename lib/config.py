@@ -364,6 +364,11 @@ class ConfigWriter:
     if invalid_hvs:
       result.append("enabled hypervisors contains invalid entries: %s" %
                     invalid_hvs)
+    missing_hvp = (set(data.cluster.enabled_hypervisors) -
+                   set(data.cluster.hvparams.keys()))
+    if missing_hvp:
+      result.append("hypervisor parameters missing for the enabled"
+                    " hypervisor(s) %s" % utils.CommaJoin(missing_hvp))
 
     if data.cluster.master_node not in data.nodes:
       result.append("cluster has invalid primary node '%s'" %
