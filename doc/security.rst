@@ -99,6 +99,48 @@ Paths for certificate, private key and CA files required for SSL/TLS
 will be set at source configure time. Symlinks or command line
 parameters may be used to use different files.
 
+KVM Security
+------------
+
+When running KVM instances under Ganeti three security models ara
+available: 'none', 'user' and 'pool'.
+
+Under security model 'none' instances run by default as root. This means
+that, if an instance gets jail broken, it will be able to own the host
+node, and thus the ganeti cluster. This is the default model, and the
+only one available before Ganeti 2.1.2.
+
+Under security model 'user' an instance is run as the user specified by
+the hypervisor parameter 'security_domain'. This makes it easy to run
+all instances as non privileged users, and allows to manually allocate
+specific users to specific instances or sets of instances. If the
+specified user doesn't have permissions a jail broken instance will need
+some local privilege escalation before being able to take over the node
+and the cluster. It's possible though for a jail broken instance to
+affect other ones running under the same user.
+
+Under security model 'pool' a global cluster-level uid pool is used to
+start each instance on the same node under a different user. The uids in
+the cluster pool can be set with ``gnt-cluster init`` and ``gnt-cluster
+modify``, and must correspond to existing users on all nodes. Ganeti
+will then allocate one to each instance, as needed. This way a jail
+broken instance won't be able to affect any other. Since the users are
+handed out by ganeti in a per-node randomized way, in this mode there is
+no way to make sure a particular instance is always run as a certain
+user. Use mode 'user' for that.
+
+In addition to these precautions, if you want to avoid instances sending
+traffic on your node network, you can use an iptables rule such as::
+
+  iptables -A OUTPUT -m owner --uid-owner <uid>[-<uid>] -j LOG \
+    --log-prefix "ganeti uid pool user network traffic"
+  iptables -A OUTPUT -m owner --uid-owner <uid>[-<uid>] -j DROP
+
+This won't affect regular instance traffic (that comes out of the tapX
+allocated to the instance, and can be filtered or subject to appropriate
+policy routes) but will stop any user generated traffic that might come
+from a jailbroken instance.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst
