@@ -37,6 +37,8 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import serializer
 from ganeti import objects
+from ganeti import uidpool
+from ganeti import ssconf
 from ganeti.hypervisor import hv_base
 
 
@@ -559,6 +561,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
     return (kvm_cmd, kvm_nics, hvparams)
 
+  def _RunKVMCmd(self, name, kvm_cmd):
+    """Run the KVM cmd and check for errors
+
+    @type name: string
+    @param name: instance name
+    @type kvm_cmd: list of strings
+    @param kvm_cmd: runcmd input for kvm
+
+    """
+    result = utils.RunCmd(kvm_cmd)
+    if result.failed:
+      raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
+                                   (name, result.fail_reason, result.output))
+    if not self._InstancePidAlive(name)[2]:
+      raise errors.HypervisorError("Failed to start instance %s" % name)
+
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data
 
@@ -607,13 +625,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Failed to open VNC password file %s: %s"
                                      % (vnc_pwd_file, err))
 
-    result = utils.RunCmd(kvm_cmd)
-    if result.failed:
-      raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
-                                   (name, result.fail_reason, result.output))
-
-    if not self._InstancePidAlive(name)[2]:
-      raise errors.HypervisorError("Failed to start instance %s" % name)
+    if security_model == constants.HT_SM_POOL:
+      ss = ssconf.SimpleStore()
+      uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\n")
+      all_uids = set(uidpool.ExpandUidPool(uid_pool))
+      uid = uidpool.RequestUnusedUid(all_uids)
+      try:
+        username = pwd.getpwuid(uid.GetUid()).pw_name
+        kvm_cmd.extend(["-runas", username])
+        self._RunKVMCmd(name, kvm_cmd)
+      except:
+        uidpool.ReleaseUid(uid)
+        raise
+      else:
+        uid.Unlock()
+        utils.WriteFile(self._InstanceUidFile(name), data=str(uid))
+    else:
+      self._RunKVMCmd(name, kvm_cmd)
 
     if vnc_pwd:
       change_cmd = 'change vnc password %s' % vnc_pwd
@@ -892,8 +920,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if hvparams[constants.HV_SECURITY_DOMAIN]:
         raise errors.HypervisorError("Cannot have a security domain when the"
                                      " security model is 'none' or 'pool'")
-    if security_model == constants.HT_SM_POOL:
-      raise errors.HypervisorError("Security model pool is not supported yet")
 
   @classmethod
   def ValidateParameters(cls, hvparams):
