@@ -45,9 +45,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/kvm-hypervisor"
   _PIDS_DIR = _ROOT_DIR + "/pid" # contains live instances pids
+  _UIDS_DIR = _ROOT_DIR + "/uid" # contains instances reserved uids
   _CTRL_DIR = _ROOT_DIR + "/ctrl" # contains instances control sockets
   _CONF_DIR = _ROOT_DIR + "/conf" # contains instances startup data
-  _DIRS = [_ROOT_DIR, _PIDS_DIR, _CTRL_DIR, _CONF_DIR]
+  _DIRS = [_ROOT_DIR, _PIDS_DIR, _UIDS_DIR, _CTRL_DIR, _CONF_DIR]
 
   PARAMETERS = {
     constants.HV_KERNEL_PATH: hv_base.OPT_FILE_CHECK,
@@ -108,6 +109,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     return utils.PathJoin(cls._PIDS_DIR, instance_name)
+
+  @classmethod
+  def _InstanceUidFile(cls, instance_name):
+    """Returns the instance uidfile.
+
+    """
+    return utils.PathJoin(cls._UIDS_DIR, instance_name)
 
   @classmethod
   def _InstancePidInfo(cls, pid):
@@ -218,6 +226,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._CONF_DIR, "%s.runtime" % instance_name)
 
   @classmethod
+  def _TryReadUidFile(cls, uid_file):
+    """Try to read a uid file
+
+    """
+    if os.path.exists(uid_file):
+      try:
+        uid = int(utils.ReadFile(uid_file))
+      except EnvironmentError:
+        logging.warning("Can't read uid file", exc_info=True)
+        return None
+      except (TypeError, ValueError):
+        logging.warning("Can't parse uid file contents", exc_info=True)
+        return None
+    return uid
+
+  @classmethod
   def _RemoveInstanceRuntimeFiles(cls, pidfile, instance_name):
     """Removes an instance's rutime sockets/files.
 
@@ -226,6 +250,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(cls._InstanceMonitor(instance_name))
     utils.RemoveFile(cls._InstanceSerial(instance_name))
     utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
+    uid_file = cls._InstanceUidFile(instance_name)
+    uid = cls._TryReadUidFile(uid_file)
+    utils.RemoveFile(uid_file)
+    if uid is not None:
+      uidpool.ReleaseUid(uid)
 
   def _WriteNetScript(self, instance, seq, nic):
     """Write a script to connect a net interface to the proper bridge.
