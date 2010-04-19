@@ -631,18 +631,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       acpi = instance.hvparams[constants.HV_ACPI]
     else:
       acpi = False
-    pidfile, pid, alive = self._InstancePidAlive(name)
+    _, pid, alive = self._InstancePidAlive(name)
     if pid > 0 and alive:
       if force or not acpi:
         utils.KillProcess(pid)
       else:
         self._CallMonitorCommand(name, 'system_powerdown')
 
-    if not self._InstancePidAlive(name)[2]:
-      self._RemoveInstanceRuntimeFiles(pidfile, name)
-      return True
-    else:
-      return False
+  def CleanupInstance(self, instance_name):
+    """Cleanup after a stopped instance
+
+    """
+    pidfile, pid, alive = self._InstancePidAlive(instance_name)
+    if pid > 0 and alive:
+      raise errors.HypervisorError("Cannot cleanup a live instance")
+    self._RemoveInstanceRuntimeFiles(pidfile, instance_name)
 
   def RebootInstance(self, instance):
     """Reboot an instance.
