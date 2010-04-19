@@ -222,16 +222,17 @@ class LockedUid(object):
 def RequestUnusedUid(all_uids):
   """Tries to find an unused uid from the uid-pool, locks it and returns it.
 
-  Usage pattern:
+  Usage pattern
+  =============
 
-    1) When starting a process
+  1. When starting a process::
 
       from ganeti import ssconf
       from ganeti import uidpool
 
       # Get list of all user-ids in the uid-pool from ssconf
       ss = ssconf.SimpleStore()
-      uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\n")
+      uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\\n")
       all_uids = set(uidpool.ExpandUidPool(uid_pool))
 
       uid = uidpool.RequestUnusedUid(all_uids)
@@ -243,7 +244,7 @@ def RequestUnusedUid(all_uids):
         # Return the UID to the pool
         uidpool.ReleaseUid(uid)
 
-    2) Stopping a process
+  2. Stopping a process::
 
       from ganeti import uidpool
 

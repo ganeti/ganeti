@@ -447,9 +447,10 @@ class SimpleStore(object):
 
     The separator character is a newline.
 
-    The return value can be parsed using uidpool.ParseUidPool():
+    The return value can be parsed using uidpool.ParseUidPool()::
+
       ss = ssconf.SimpleStore()
-      uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\n")
+      uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\\n")
 
     """
     data = self._ReadFile(constants.SS_UID_POOL)
