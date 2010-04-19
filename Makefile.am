@@ -426,7 +426,6 @@ man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 
 man/%.8: man/%.8.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
-	$(CHECK_MAN) $@
 
 man/%.html: man/%.html.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
