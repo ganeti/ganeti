@@ -215,6 +215,9 @@ class LockedUid(object):
     # Release the exclusive lock and close the filedescriptor
     self._lock.Close()
 
+  def GetUid(self):
+    return self._uid
+
   def __str__(self):
     return "%s" % self._uid
 
