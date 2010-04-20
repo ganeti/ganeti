@@ -137,7 +137,7 @@ class GanetiRapiClient(object):
     @param query: query arguments to pass to urllib.urlencode
     @type prepend_version: bool
     @param prepend_version: whether to automatically fetch and prepend the
-        Ganeti version to the URL path
+        Ganeti RAPI version to the URL path
 
     @rtype:  str
     @return: URL path
@@ -171,7 +171,7 @@ class GanetiRapiClient(object):
     @param content: HTTP body content
     @type prepend_version: bool
     @param prepend_version: whether to automatically fetch and prepend the
-        Ganeti version to the URL path
+        Ganeti RAPI version to the URL path
 
     @rtype: str
     @return: JSON-Decoded response
@@ -213,7 +213,7 @@ class GanetiRapiClient(object):
     return self._version
 
   def GetVersion(self):
-    """Gets the ganeti version running on the cluster.
+    """Gets the Remote API version running on the cluster.
 
     @rtype: int
     @return: Ganeti version
@@ -266,7 +266,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/tags", query)
+    return self._SendRequest(HTTP_PUT, "/tags", query)
 
   def DeleteClusterTags(self, tags, dry_run=False):
     """Deletes tags from the cluster.
@@ -339,12 +339,15 @@ class GanetiRapiClient(object):
     @type instance: str
     @param instance: the instance to delete
 
+    @rtype: int
+    @return: job id
+
     """
     query = []
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/instances/%s" % instance, query)
+    return self._SendRequest(HTTP_DELETE, "/instances/%s" % instance, query)
 
   def GetInstanceTags(self, instance):
     """Gets tags for an instance.
@@ -376,7 +379,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/instances/%s/tags" % instance, query)
+    return self._SendRequest(HTTP_PUT, "/instances/%s/tags" % instance, query)
 
   def DeleteInstanceTags(self, instance, tags, dry_run=False):
     """Deletes tags from an instance.

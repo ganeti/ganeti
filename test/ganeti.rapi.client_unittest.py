@@ -192,7 +192,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertHandler(rlib2.R_2_tags)
 
   def testAddClusterTags(self):
-    self.client.AddClusterTags(["awesome"], dry_run=True)
+    self.rapi.AddResponse("1234")
+    self.assertEqual(1234,
+        self.client.AddClusterTags(["awesome"], dry_run=True))
     self.assertHandler(rlib2.R_2_tags)
     self.assertDryRun()
     self.assertQuery("tag", ["awesome"])
@@ -227,7 +229,8 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertDryRun()
 
   def testDeleteInstance(self):
-    self.client.DeleteInstance("instance", dry_run=True)
+    self.rapi.AddResponse("1234")
+    self.assertEqual(1234, self.client.DeleteInstance("instance", dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name)
     self.assertItems(["instance"])
     self.assertDryRun()
@@ -239,7 +242,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertItems(["fooinstance"])
 
   def testAddInstanceTags(self):
-    self.client.AddInstanceTags("fooinstance", ["awesome"], dry_run=True)
+    self.rapi.AddResponse("1234")
+    self.assertEqual(1234,
+        self.client.AddInstanceTags("fooinstance", ["awesome"], dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name_tags)
     self.assertItems(["fooinstance"])
     self.assertDryRun()
@@ -425,7 +430,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertItems(["node-k"])
 
   def testAddNodeTags(self):
-    self.client.AddNodeTags("node-v", ["awesome"], dry_run=True)
+    self.rapi.AddResponse("1234")
+    self.assertEqual(1234,
+        self.client.AddNodeTags("node-v", ["awesome"], dry_run=True))
     self.assertHandler(rlib2.R_2_nodes_name_tags)
     self.assertItems(["node-v"])
     self.assertDryRun()
