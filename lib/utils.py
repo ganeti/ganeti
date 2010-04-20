@@ -840,6 +840,37 @@ def ReadPidFile(pidfile):
   return pid
 
 
+def ReadLockedPidFile(path):
+  """Reads a locked PID file.
+
+  This can be used together with L{StartDaemon}.
+
+  @type path: string
+  @param path: Path to PID file
+  @return: PID as integer or, if file was unlocked or couldn't be opened, None
+
+  """
+  try:
+    fd = os.open(path, os.O_RDONLY)
+  except EnvironmentError, err:
+    if err.errno == errno.ENOENT:
+      # PID file doesn't exist
+      return None
+    raise
+
+  try:
+    try:
+      # Try to acquire lock
+      LockFile(fd)
+    except errors.LockError:
+      # Couldn't lock, daemon is running
+      return int(os.read(fd, 100))
+  finally:
+    os.close(fd)
+
+  return None
+
+
 def MatchNameComponent(key, name_list, case_sensitive=True):
   """Try to match a name against a list.
 

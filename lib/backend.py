@@ -2855,25 +2855,8 @@ def CleanupImportExport(name):
   logging.info("Finalizing import/export %s", name)
 
   status_dir = utils.PathJoin(constants.IMPORT_EXPORT_DIR, name)
-  pid_file = utils.PathJoin(status_dir, _IES_PID_FILE)
 
-  pid = None
-  try:
-    fd = os.open(pid_file, os.O_RDONLY)
-  except EnvironmentError, err:
-    if err.errno != errno.ENOENT:
-      raise
-    # PID file doesn't exist
-  else:
-    try:
-      try:
-        # Try to acquire lock
-        utils.LockFile(fd)
-      except errors.LockError:
-        # Couldn't lock, daemon is running
-        pid = int(os.read(fd, 100))
-    finally:
-      os.close(fd)
+  pid = utils.ReadLockedPidFile(utils.PathJoin(status_dir, _IES_PID_FILE))
 
   if pid:
     logging.info("Import/export %s is still running with PID %s",

@@ -1840,5 +1840,42 @@ class TestLineSplitter(unittest.TestCase):
                              "", "x"])
 
 
+class TestReadLockedPidFile(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testNonExistent(self):
+    path = utils.PathJoin(self.tmpdir, "nonexist")
+    self.assert_(utils.ReadLockedPidFile(path) is None)
+
+  def testUnlocked(self):
+    path = utils.PathJoin(self.tmpdir, "pid")
+    utils.WriteFile(path, data="123")
+    self.assert_(utils.ReadLockedPidFile(path) is None)
+
+  def testLocked(self):
+    path = utils.PathJoin(self.tmpdir, "pid")
+    utils.WriteFile(path, data="123")
+
+    fl = utils.FileLock.Open(path)
+    try:
+      fl.Exclusive(blocking=True)
+
+      self.assertEqual(utils.ReadLockedPidFile(path), 123)
+    finally:
+      fl.Close()
+
+    self.assert_(utils.ReadLockedPidFile(path) is None)
+
+  def testError(self):
+    path = utils.PathJoin(self.tmpdir, "foobar", "pid")
+    utils.WriteFile(utils.PathJoin(self.tmpdir, "foobar"), data="")
+    # open(2) should return ENOTDIR
+    self.assertRaises(EnvironmentError, utils.ReadLockedPidFile, path)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
