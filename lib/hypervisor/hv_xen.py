@@ -39,6 +39,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
   all the functionality that is identical for both.
 
   """
+  CAN_MIGRATE = True
   REBOOT_RETRY_COUNT = 60
   REBOOT_RETRY_INTERVAL = 10
 

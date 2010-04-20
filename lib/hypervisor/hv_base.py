@@ -101,10 +101,14 @@ class BaseHypervisor(object):
           - a function to check for parameter validity on the remote node,
             in the L{ValidateParameters} function
           - an error message for the above function
+  @type CAN_MIGRATE: boolean
+  @cvar CAN_MIGRATE: whether this hypervisor can do migration (either
+      live or non-live)
 
   """
   PARAMETERS = {}
   ANCILLARY_FILES = []
+  CAN_MIGRATE = False
 
   def __init__(self):
     pass

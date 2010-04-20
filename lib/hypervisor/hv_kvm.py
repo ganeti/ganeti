@@ -44,6 +44,7 @@ from ganeti.hypervisor import hv_base
 
 class KVMHypervisor(hv_base.BaseHypervisor):
   """KVM hypervisor interface"""
+  CAN_MIGRATE = True
 
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/kvm-hypervisor"
   _PIDS_DIR = _ROOT_DIR + "/pid" # contains live instances pids
