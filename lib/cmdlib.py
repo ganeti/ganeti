@@ -44,6 +44,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import serializer
 from ganeti import ssconf
+from ganeti import uidpool
 
 
 class LogicalUnit(object):
@@ -2265,7 +2266,17 @@ class LUSetClusterParams(LogicalUnit):
       if self.op.candidate_pool_size < 1:
         raise errors.OpPrereqError("At least one master candidate needed",
                                    errors.ECODE_INVAL)
+
     _CheckBooleanOpField(self.op, "maintain_node_health")
+
+    if self.op.uid_pool:
+      uidpool.CheckUidPool(self.op.uid_pool)
+
+    if self.op.add_uids:
+      uidpool.CheckUidPool(self.op.add_uids)
+
+    if self.op.remove_uids:
+      uidpool.CheckUidPool(self.op.remove_uids)
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -2358,7 +2369,7 @@ class LUSetClusterParams(LogicalUnit):
                                    "\n".join(nic_errors))
 
     # hypervisor list/parameters
-    self.new_hvparams = objects.FillDict(cluster.hvparams, {})
+    self.new_hvparams = new_hvp = objects.FillDict(cluster.hvparams, {})
     if self.op.hvparams:
       if not isinstance(self.op.hvparams, dict):
         raise errors.OpPrereqError("Invalid 'hvparams' parameter on input",
@@ -2388,6 +2399,7 @@ class LUSetClusterParams(LogicalUnit):
             else:
               self.new_os_hvp[os_name][hv_name].update(hv_dict)
 
+    # changes to the hypervisor list
     if self.op.enabled_hypervisors is not None:
       self.hv_list = self.op.enabled_hypervisors
       if not self.hv_list:
@@ -2400,6 +2412,16 @@ class LUSetClusterParams(LogicalUnit):
                                    " entries: %s" %
                                    utils.CommaJoin(invalid_hvs),
                                    errors.ECODE_INVAL)
+      for hv in self.hv_list:
+        # if the hypervisor doesn't already exist in the cluster
+        # hvparams, we initialize it to empty, and then (in both
+        # cases) we make sure to fill the defaults, as we might not
+        # have a complete defaults list if the hypervisor wasn't
+        # enabled before
+        if hv not in new_hvp:
+          new_hvp[hv] = {}
+        new_hvp[hv] = objects.FillDict(constants.HVC_DEFAULTS[hv], new_hvp[hv])
+        utils.ForceDictType(new_hvp[hv], constants.HVS_PARAMETER_TYPES)
     else:
       self.hv_list = cluster.enabled_hypervisors
 
@@ -2447,6 +2469,7 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.os_hvp:
       self.cluster.os_hvp = self.new_os_hvp
     if self.op.enabled_hypervisors is not None:
+      self.cluster.hvparams = self.new_hvparams
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
     if self.op.beparams:
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
@@ -2460,6 +2483,15 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.maintain_node_health is not None:
       self.cluster.maintain_node_health = self.op.maintain_node_health
+
+    if self.op.add_uids is not None:
+      uidpool.AddToUidPool(self.cluster.uid_pool, self.op.add_uids)
+
+    if self.op.remove_uids is not None:
+      uidpool.RemoveFromUidPool(self.cluster.uid_pool, self.op.remove_uids)
+
+    if self.op.uid_pool is not None:
+      self.cluster.uid_pool = self.op.uid_pool
 
     self.cfg.Update(self.cluster, feedback_fn)
 
@@ -3298,15 +3330,19 @@ class LUAddNode(LogicalUnit):
       raise errors.OpPrereqError("Node %s is not in the configuration" % node,
                                  errors.ECODE_NOENT)
 
+    self.changed_primary_ip = False
+
     for existing_node_name in node_list:
       existing_node = cfg.GetNodeInfo(existing_node_name)
 
       if self.op.readd and node == existing_node_name:
-        if (existing_node.primary_ip != primary_ip or
-            existing_node.secondary_ip != secondary_ip):
+        if existing_node.secondary_ip != secondary_ip:
           raise errors.OpPrereqError("Readded node doesn't have the same IP"
                                      " address configuration as before",
                                      errors.ECODE_INVAL)
+        if existing_node.primary_ip != primary_ip:
+          self.changed_primary_ip = True
+
         continue
 
       if (existing_node.primary_ip == primary_ip or
@@ -3378,6 +3414,8 @@ class LUAddNode(LogicalUnit):
       self.LogInfo("Readding a node, the offline/drained flags were reset")
       # if we demote the node, we do cleanup later in the procedure
       new_node.master_candidate = self.master_candidate
+      if self.changed_primary_ip:
+        new_node.primary_ip = self.op.primary_ip
 
     # notify the user about any possible mc promotion
     if new_node.master_candidate:
@@ -3719,6 +3757,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "mtime": cluster.mtime,
       "uuid": cluster.uuid,
       "tags": list(cluster.GetTags()),
+      "uid_pool": cluster.uid_pool,
       }
 
     return result

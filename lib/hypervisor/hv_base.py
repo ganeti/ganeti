@@ -130,6 +130,18 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
+  def CleanupInstance(self, instance_name):
+    """Cleanup after a stopped instance
+
+    This is an optional method, used by hypervisors that need to cleanup after
+    an instance has been stopped.
+
+    @type instance_name: string
+    @param instance_name: instance name to cleanup after
+
+    """
+    pass
+
   def RebootInstance(self, instance):
     """Reboot an instance."""
     raise NotImplementedError

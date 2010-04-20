@@ -1109,6 +1109,11 @@ def InstanceShutdown(instance, timeout):
     if iname in hyper.ListInstances():
       _Fail("Could not shutdown instance %s even by destroy", iname)
 
+  try:
+    hyper.CleanupInstance(instance.name)
+  except errors.HypervisorError, err:
+    logging.warning("Failed to execute post-shutdown cleanup step: %s", err)
+
   _RemoveBlockDevLinks(iname, instance.disks)
 
 

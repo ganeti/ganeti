@@ -591,9 +591,9 @@
                 option to KVM, or one of the KVM cache modes: none
                 (for direct I/O), writethrough (to use the host cache
                 but report completion to the guest only when the host
-                has commited the changes to disk) or writeback (to use
-                the host cache and report completion as soon as the
-                data is in the host cache). Note that there are
+                has committed the changes to disk) or writeback (to
+                use the host cache and report completion as soon as
+                the data is in the host cache). Note that there are
                 special considerations for the cache mode depending on
                 version of KVM used and disk type (always raw file
                 under Ganeti), please refer to the KVM documentation

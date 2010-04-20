@@ -43,6 +43,7 @@ from ganeti import constants
 from ganeti import rpc
 from ganeti import objects
 from ganeti import serializer
+from ganeti import uidpool
 
 
 _config_lock = locking.SharedLock()
@@ -363,6 +364,11 @@ class ConfigWriter:
     if invalid_hvs:
       result.append("enabled hypervisors contains invalid entries: %s" %
                     invalid_hvs)
+    missing_hvp = (set(data.cluster.enabled_hypervisors) -
+                   set(data.cluster.hvparams.keys()))
+    if missing_hvp:
+      result.append("hypervisor parameters missing for the enabled"
+                    " hypervisor(s) %s" % utils.CommaJoin(missing_hvp))
 
     if data.cluster.master_node not in data.nodes:
       result.append("cluster has invalid primary node '%s'" %
@@ -1372,6 +1378,8 @@ class ConfigWriter:
 
     hypervisor_list = fn(cluster.enabled_hypervisors)
 
+    uid_pool = uidpool.FormatUidPool(cluster.uid_pool, separator="\n")
+
     return {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_CLUSTER_TAGS: cluster_tags,
@@ -1390,6 +1398,7 @@ class ConfigWriter:
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       constants.SS_HYPERVISOR_LIST: hypervisor_list,
       constants.SS_MAINTAIN_NODE_HEALTH: str(cluster.maintain_node_health),
+      constants.SS_UID_POOL: uid_pool,
       }
 
   @locking.ssynchronized(_config_lock, shared=1)

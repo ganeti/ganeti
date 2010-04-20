@@ -244,6 +244,8 @@
         <sbr>
         <arg>--maintain-node-health <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
         <sbr>
+        <arg>--uid-pool <replaceable>user-id pool definition</replaceable></arg>
+        <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -500,6 +502,18 @@
         LVM volumes, etc.
       </para>
 
+      <para>
+        The <option>--uid-pool</option> option initializes the user-id pool.
+        The <replaceable>user-id pool definition</replaceable> can contain a
+        list of user-ids and/or a list of user-id ranges. The parameter format
+        is a comma-separated list of numeric user-ids or user-id ranges.
+        The ranges are defined by a lower and higher boundary, separated
+        by a dash. The boundaries are inclusive.
+        If the <option>--uid-pool</option> option is not supplied, the
+        user-id pool is initialized to an empty list. An empty list means that
+        the user-id pool feature is disabled.
+      </para>
+
     </refsect2>
 
     <refsect2>
@@ -556,6 +570,12 @@
         <sbr>
         <arg choice="opt">--nic-parameters <replaceable>nic-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>nic-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
+        <arg choice="opt">--uid-pool <replaceable>user-id pool definition</replaceable></arg>
+        <sbr>
+        <arg choice="opt">--add-uids <replaceable>user-id pool definition</replaceable></arg>
+        <sbr>
+        <arg choice="opt">--remove-uids <replaceable>user-id pool definition</replaceable></arg>
+        <sbr>
         <arg choice="opt">-C <replaceable>candidate_pool_size</replaceable></arg>
         <sbr>
         <arg>--maintain-node-health <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
@@ -570,9 +590,10 @@
           The <option>-g</option>, <option>--no-lvm-storarge</option>,
           <option>--enabled-hypervisors</option>,
           <option>--hypervisor-parameters</option>,
-          <option>--backend-parameters</option> and
-          <option>--nic-parameters</option>
-          and <option>--maintain-node-health</option> options are
+          <option>--backend-parameters</option>,
+          <option>--nic-parameters</option>,
+          <option>--maintain-node-health</option> and
+          <option>--uid-pool</option> options are
           described in the <command>init</command> command.
         </para>
 
@@ -587,6 +608,11 @@
         automatically promote as many nodes as required and possible
         to reach the intended number.
       </para>
+
+      <para>
+        The <option>--add-uids</option> and <option>--remove-uids</option>
+        options can be used to modify the user-id pool by adding/removing
+        a list of user-ids or user-id ranges.
     </refsect2>
 
     <refsect2>

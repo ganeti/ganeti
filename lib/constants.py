@@ -100,6 +100,9 @@ IMPORT_EXPORT_DIR_MODE = 0755
 SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
+# User-id pool lock directory
+# The user-ids that are in use have a corresponding lock file in this directory
+UIDPOOL_LOCKDIR = RUN_GANETI_DIR + "/uid-pool"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 NODED_CERT_FILE = DATA_DIR + "/server.pem"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
@@ -694,6 +697,7 @@ SS_INSTANCE_LIST = "instance_list"
 SS_RELEASE_VERSION = "release_version"
 SS_HYPERVISOR_LIST = "hypervisor_list"
 SS_MAINTAIN_NODE_HEALTH = "maintain_node_health"
+SS_UID_POOL = "uid_pool"
 
 # cluster wide default parameters
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM
@@ -861,3 +865,10 @@ CONFD_CLIENT_EXPIRE_TIMEOUT = 10
 #   (assuming we can't use jumbo frames)
 # We just set this to 60K, which should be enough
 MAX_UDP_DATA_SIZE = 61440
+
+# User-id pool minimum/maximum acceptable user-ids.
+UIDPOOL_UID_MIN = 0
+UIDPOOL_UID_MAX = 2**32-1 # Assuming 32 bit user-ids
+
+# Name or path of the pgrep command
+PGREP = "pgrep"

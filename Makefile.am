@@ -36,10 +36,10 @@ DIRS = \
 	doc/examples/hooks \
 	lib \
 	lib/build \
+	lib/confd \
 	lib/http \
 	lib/hypervisor \
 	lib/rapi \
-	lib/confd \
 	man \
 	qa \
 	scripts \
@@ -57,6 +57,7 @@ maintainer-clean-local:
 	rm -rf doc/api doc/html doc/coverage
 
 CLEANFILES = \
+	$(addsuffix /*.py[co],$(DIRS)) \
 	autotools/replace_vars.sed \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
@@ -66,15 +67,8 @@ CLEANFILES = \
 	doc/examples/ganeti.cron \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec \
-	lib/*.py[co] \
-	lib/build/*.py[co] \
-	lib/http/*.py[co] \
-	lib/hypervisor/*.py[co] \
-	lib/rapi/*.py[co] \
 	$(man_MANS) \
 	$(manhtml) \
-	qa/*.py[co] \
-	test/*.py[co] \
 	stamp-directories \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON)
@@ -116,6 +110,7 @@ pkgpython_PYTHON = \
 	lib/ssh.py \
 	lib/storage.py \
 	lib/utils.py \
+	lib/uidpool.py \
 	lib/workerpool.py
 
 hypervisor_PYTHON = \
@@ -142,8 +137,8 @@ http_PYTHON = \
 confd_PYTHON = \
 	lib/confd/__init__.py \
 	lib/confd/client.py \
-	lib/confd/server.py \
-	lib/confd/querylib.py
+	lib/confd/querylib.py \
+	lib/confd/server.py
 
 docrst = \
 	doc/admin.rst \
@@ -350,6 +345,7 @@ python_tests = \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
+	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils_unittest.py \
 	test/ganeti.workerpool_unittest.py \
 	test/docs_unittest.py \
@@ -444,7 +440,6 @@ man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 
 man/%.8: man/%.8.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
-	$(CHECK_MAN) $@
 
 man/%.html: man/%.html.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@

@@ -284,6 +284,7 @@ class SimpleStore(object):
     constants.SS_RELEASE_VERSION,
     constants.SS_HYPERVISOR_LIST,
     constants.SS_MAINTAIN_NODE_HEALTH,
+    constants.SS_UID_POOL,
     )
   _MAX_SIZE = 131072
 
@@ -440,6 +441,20 @@ class SimpleStore(object):
     data = self._ReadFile(constants.SS_MAINTAIN_NODE_HEALTH)
     # we rely on the bool serialization here
     return data == "True"
+
+  def GetUidPool(self):
+    """Return the user-id pool definition string.
+
+    The separator character is a newline.
+
+    The return value can be parsed using uidpool.ParseUidPool()::
+
+      ss = ssconf.SimpleStore()
+      uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\\n")
+
+    """
+    data = self._ReadFile(constants.SS_UID_POOL)
+    return data
 
 
 def GetMasterAndMyself(ss=None):

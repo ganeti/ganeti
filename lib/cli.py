@@ -44,6 +44,7 @@ from optparse import (OptionParser, TitledHelpFormatter,
 
 __all__ = [
   # Command line options
+  "ADD_UIDS_OPT",
   "ALLOCATABLE_OPT",
   "ALL_OPT",
   "AUTO_PROMOTE_OPT",
@@ -115,6 +116,7 @@ __all__ = [
   "READD_OPT",
   "REBOOT_TYPE_OPT",
   "REMOVE_INSTANCE_OPT",
+  "REMOVE_UIDS_OPT",
   "SECONDARY_IP_OPT",
   "SELECT_OS_OPT",
   "SEP_OPT",
@@ -128,6 +130,7 @@ __all__ = [
   "SYNC_OPT",
   "TAG_SRC_OPT",
   "TIMEOUT_OPT",
+  "UIDPOOL_OPT",
   "USEUNITS_OPT",
   "USE_REPL_NET_OPT",
   "VERBOSE_OPT",
@@ -955,6 +958,23 @@ IDENTIFY_DEFAULTS_OPT = \
                help="Identify which saved instance parameters are equal to"
                " the current cluster defaults and set them as such, instead"
                " of marking them as overridden")
+
+UIDPOOL_OPT = cli_option("--uid-pool", default=None,
+                         action="store", dest="uid_pool",
+                         help=("A list of user-ids or user-id"
+                               " ranges separated by commas"))
+
+ADD_UIDS_OPT = cli_option("--add-uids", default=None,
+                          action="store", dest="add_uids",
+                          help=("A list of user-ids or user-id"
+                                " ranges separated by commas, to be"
+                                " added to the user-id pool"))
+
+REMOVE_UIDS_OPT = cli_option("--remove-uids", default=None,
+                             action="store", dest="remove_uids",
+                             help=("A list of user-ids or user-id"
+                                   " ranges separated by commas, to be"
+                                   " removed from the user-id pool"))
 
 
 def _ParseArgs(argv, commands, aliases):
