@@ -632,7 +632,15 @@ HT_FAKE = "fake"
 HT_XEN_HVM = "xen-hvm"
 HT_KVM = "kvm"
 HT_CHROOT = "chroot"
-HYPER_TYPES = frozenset([HT_XEN_PVM, HT_FAKE, HT_XEN_HVM, HT_KVM, HT_CHROOT])
+HT_LXC = "lxc"
+HYPER_TYPES = frozenset([
+  HT_XEN_PVM,
+  HT_FAKE,
+  HT_XEN_HVM,
+  HT_KVM,
+  HT_CHROOT,
+  HT_LXC,
+  ])
 HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
 
 VNC_BASE_PORT = 5900
@@ -876,6 +884,8 @@ HVC_DEFAULTS = {
     },
   HT_CHROOT: {
     HV_INIT_SCRIPT: "/ganeti-chroot",
+    },
+  HT_LXC: {
     },
   }
 
