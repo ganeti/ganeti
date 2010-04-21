@@ -47,7 +47,6 @@ from ganeti import constants
 from ganeti import serializer
 from ganeti import utils
 from ganeti import cli
-from ganeti import bootstrap
 
 
 options = None
@@ -402,7 +401,7 @@ def main():
     if not options.dry_run:
       if not os.path.exists(options.RAPI_CERT_FILE):
         logging.debug("Writing RAPI certificate to %s", options.RAPI_CERT_FILE)
-        bootstrap.GenerateSelfSignedSslCert(options.RAPI_CERT_FILE)
+        utils.GenerateSelfSignedSslCert(options.RAPI_CERT_FILE)
 
   except:
     logging.critical("Writing configuration failed. It is probably in an"
