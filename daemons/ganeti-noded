@@ -891,6 +891,13 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.GetImportExportStatus(params[0])
 
   @staticmethod
+  def perspective_impexp_abort(params):
+    """Aborts an import or export.
+
+    """
+    return backend.AbortImportExport(params[0])
+
+  @staticmethod
   def perspective_impexp_cleanup(params):
     """Cleans up after an import or export.
 

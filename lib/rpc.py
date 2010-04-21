@@ -1288,6 +1288,19 @@ class RpcRunner(object):
 
     return result
 
+  def call_impexp_abort(self, node, name):
+    """Aborts an import or export.
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: Node name
+    @type name: string
+    @param name: Import/export name
+
+    """
+    return self._SingleNodeCall(node, "impexp_abort", [name])
+
   def call_impexp_cleanup(self, node, name):
     """Cleans up after an import or export.
 

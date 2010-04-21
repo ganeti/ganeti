@@ -47,6 +47,7 @@ import logging
 import tempfile
 import zlib
 import base64
+import signal
 
 from ganeti import errors
 from ganeti import utils
@@ -2843,6 +2844,21 @@ def GetImportExportStatus(names):
     result.append(serializer.LoadJson(data))
 
   return result
+
+
+def AbortImportExport(name):
+  """Sends SIGTERM to a running import/export daemon.
+
+  """
+  logging.info("Abort import/export %s", name)
+
+  status_dir = utils.PathJoin(constants.IMPORT_EXPORT_DIR, name)
+  pid = utils.ReadLockedPidFile(utils.PathJoin(status_dir, _IES_PID_FILE))
+
+  if pid:
+    logging.info("Import/export %s is running with PID %s, sending SIGTERM",
+                 name, pid)
+    os.kill(pid, signal.SIGTERM)
 
 
 def CleanupImportExport(name):
