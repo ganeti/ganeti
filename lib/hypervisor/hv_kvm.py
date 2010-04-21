@@ -425,9 +425,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if boot_disk:
         kvm_cmd.extend(['-boot', 'c'])
         if disk_type != constants.HT_DISK_IDE:
-            boot_val = ',boot=on'
+          boot_val = ',boot=on'
         else:
-            boot_val = ''
+          boot_val = ''
         # We only boot from the first disk
         boot_disk = False
       else:
@@ -443,7 +443,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if boot_cdrom:
         kvm_cmd.extend(['-boot', 'd'])
         if disk_type != constants.HT_DISK_IDE:
-            options = '%s,boot=on' % options
+          options = '%s,boot=on' % options
       else:
         if disk_type == constants.HT_DISK_PARAVIRTUAL:
           if_val = ',if=virtio'
