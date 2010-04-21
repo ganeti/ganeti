@@ -144,7 +144,8 @@ confd_PYTHON = \
 	lib/confd/server.py
 
 masterd_PYTHON = \
-	lib/masterd/__init__.py
+	lib/masterd/__init__.py \
+	lib/masterd/instance.py
 
 docrst = \
 	doc/admin.rst \
@@ -345,6 +346,7 @@ python_tests = \
 	test/ganeti.http_unittest.py \
 	test/ganeti.locking_unittest.py \
 	test/ganeti.luxi_unittest.py \
+	test/ganeti.masterd.instance_unittest.py \
 	test/ganeti.mcpu_unittest.py \
 	test/ganeti.objects_unittest.py \
 	test/ganeti.opcodes_unittest.py \
