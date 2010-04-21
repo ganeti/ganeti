@@ -93,6 +93,7 @@ pkgpython_PYTHON = \
 	lib/bootstrap.py \
 	lib/cli.py \
 	lib/cmdlib.py \
+	lib/compat.py \
 	lib/config.py \
 	lib/constants.py \
 	lib/daemon.py \
@@ -321,6 +322,7 @@ python_tests = \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
+	test/ganeti.compat_unittest.py \
 	test/ganeti.confd.client_unittest.py \
 	test/ganeti.config_unittest.py \
 	test/ganeti.constants_unittest.py \

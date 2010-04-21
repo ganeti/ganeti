@@ -37,6 +37,7 @@ from ganeti import cli
 from ganeti import errors
 from ganeti import utils
 from ganeti import hypervisor
+from ganeti import compat
 
 from ganeti.confd import client as confd_client
 
@@ -982,7 +983,7 @@ class Burner(object):
         self.BurnReplaceDisks2()
 
       if (opts.disk_template in constants.DTS_GROWABLE and
-          utils.any(self.disk_growth, lambda n: n > 0)):
+          compat.any(self.disk_growth, lambda n: n > 0)):
         self.BurnGrowDisks()
 
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:

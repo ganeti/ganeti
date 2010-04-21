@@ -32,6 +32,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import constants
 from ganeti import objects
+from ganeti import compat
 
 
 # Size of reads in _CanReadDevice
@@ -388,7 +389,7 @@ class LogicalVolume(BlockDev):
     pvs_info.reverse()
 
     pvlist = [ pv[1] for pv in pvs_info ]
-    if utils.any(pvlist, lambda v: ":" in v):
+    if compat.any(pvlist, lambda v: ":" in v):
       _ThrowError("Some of your PVs have the invalid character ':' in their"
                   " name, this is not supported - please filter them out"
                   " in lvm.conf using either 'filter' or 'preferred_names'")
@@ -462,7 +463,7 @@ class LogicalVolume(BlockDev):
     """
     if (not cls._VALID_NAME_RE.match(name) or
         name in cls._INVALID_NAMES or
-        utils.any(cls._INVALID_SUBSTRINGS, lambda x: x in name)):
+        compat.any(cls._INVALID_SUBSTRINGS, lambda x: x in name)):
       _ThrowError("Invalid LVM name '%s'", name)
 
   def Remove(self):

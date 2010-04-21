@@ -55,11 +55,6 @@ except ImportError:
   import sha
   sha1 = sha.new
 
-try:
-  import functools
-except ImportError:
-  functools = None
-
 from ganeti import errors
 from ganeti import constants
 
@@ -1492,45 +1487,6 @@ def FirstFree(seq, base=0):
   return None
 
 
-def all(seq, pred=bool): # pylint: disable-msg=W0622
-  "Returns True if pred(x) is True for every element in the iterable"
-  for _ in itertools.ifilterfalse(pred, seq):
-    return False
-  return True
-
-
-def any(seq, pred=bool): # pylint: disable-msg=W0622
-  "Returns True if pred(x) is True for at least one element in the iterable"
-  for _ in itertools.ifilter(pred, seq):
-    return True
-  return False
-
-
-# Even though we're using Python's built-in "partial" function if available,
-# this one is always defined for testing.
-def _partial(func, *args, **keywords): # pylint: disable-msg=W0622
-  """Decorator with partial application of arguments and keywords.
-
-  This function was copied from Python's documentation.
-
-  """
-  def newfunc(*fargs, **fkeywords):
-    newkeywords = keywords.copy()
-    newkeywords.update(fkeywords)
-    return func(*(args + fargs), **newkeywords) # pylint: disable-msg=W0142
-
-  newfunc.func = func
-  newfunc.args = args
-  newfunc.keywords = keywords
-  return newfunc
-
-
-if functools is None:
-  partial = _partial
-else:
-  partial = functools.partial
-
-
 def SingleWaitForFdCondition(fdobj, event, timeout):
   """Waits for a condition to occur on the socket.
 
@@ -1620,12 +1576,6 @@ def WaitForFdCondition(fdobj, event, timeout):
     while result is None:
       result = SingleWaitForFdCondition(fdobj, event, timeout)
   return result
-
-
-def partition(seq, pred=bool): # # pylint: disable-msg=W0622
-  "Partition a list in two, based on the given predicate"
-  return (list(itertools.ifilter(pred, seq)),
-          list(itertools.ifilterfalse(pred, seq)))
 
 
 def UniqueSequence(seq):

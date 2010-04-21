@@ -33,6 +33,7 @@ import errno
 
 from ganeti import errors
 from ganeti import utils
+from ganeti import compat
 
 
 def ssynchronized(lock, shared=0):
@@ -1216,7 +1217,7 @@ class GanetiLockManager:
     """
     # This way of checking only works if LEVELS[i] = i, which we check for in
     # the test cases.
-    return utils.any((self._is_owned(l) for l in LEVELS[level + 1:]))
+    return compat.any((self._is_owned(l) for l in LEVELS[level + 1:]))
 
   def _BGL_owned(self): # pylint: disable-msg=C0103
     """Check if the current thread owns the BGL.

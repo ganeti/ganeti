@@ -37,6 +37,7 @@ from ganeti import luxi
 from ganeti import ssconf
 from ganeti import rpc
 from ganeti import ssh
+from ganeti import compat
 
 from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -2116,7 +2117,7 @@ class JobExecutor(object):
         ToStdout("Submitted jobs %s", utils.CommaJoin(ok_jobs))
 
     # first, remove any non-submitted jobs
-    self.jobs, failures = utils.partition(self.jobs, lambda x: x[1])
+    self.jobs, failures = compat.partition(self.jobs, lambda x: x[1])
     for idx, _, jid, name in failures:
       ToStderr("Failed to submit job for %s: %s", name, jid)
       results.append((idx, False, jid))

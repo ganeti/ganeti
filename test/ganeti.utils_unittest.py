@@ -1592,32 +1592,5 @@ class TestLineSplitter(unittest.TestCase):
                              "", "x"])
 
 
-class TestPartial(testutils.GanetiTestCase):
-  def test(self):
-    self._Test(utils.partial)
-    self._Test(utils._partial)
-
-  def _Test(self, fn):
-    def _TestFunc1(x, power=2):
-      return x ** power
-
-    cubic = fn(_TestFunc1, power=3)
-    self.assertEqual(cubic(1), 1)
-    self.assertEqual(cubic(3), 27)
-    self.assertEqual(cubic(4), 64)
-
-    def _TestFunc2(*args, **kwargs):
-      return (args, kwargs)
-
-    self.assertEqualValues(fn(_TestFunc2, "Hello", "World")("Foo"),
-                           (("Hello", "World", "Foo"), {}))
-
-    self.assertEqualValues(fn(_TestFunc2, "Hello", xyz=123)("Foo"),
-                           (("Hello", "Foo"), {"xyz": 123}))
-
-    self.assertEqualValues(fn(_TestFunc2, xyz=123)("Foo", xyz=999),
-                           (("Foo", ), {"xyz": 999,}))
-
-
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

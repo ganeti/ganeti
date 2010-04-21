@@ -1,0 +1,88 @@
+#
+#
+
+# Copyright (C) 2010 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Module containing backported language/library functionality.
+
+"""
+
+import itertools
+
+try:
+  import functools
+except ImportError:
+  functools = None
+
+
+def all(seq, pred=bool): # pylint: disable-msg=W0622
+  """Returns True if pred(x) is True for every element in the iterable.
+
+  Please note that this function provides a C{pred} parameter which isn't
+  available in the version included in Python 2.5 and above.
+
+  """
+  for _ in itertools.ifilterfalse(pred, seq):
+    return False
+  return True
+
+
+def any(seq, pred=bool): # pylint: disable-msg=W0622
+  """Returns True if pred(x) is True for at least one element in the iterable.
+
+  Please note that this function provides a C{pred} parameter which isn't
+  available in the version included in Python 2.5 and above.
+
+  """
+  for _ in itertools.ifilter(pred, seq):
+    return True
+  return False
+
+
+def partition(seq, pred=bool): # pylint: disable-msg=W0622
+  """Partition a list in two, based on the given predicate.
+
+  """
+  return (list(itertools.ifilter(pred, seq)),
+          list(itertools.ifilterfalse(pred, seq)))
+
+
+# Even though we're using Python's built-in "partial" function if available,
+# this one is always defined for testing.
+def _partial(func, *args, **keywords): # pylint: disable-msg=W0622
+  """Decorator with partial application of arguments and keywords.
+
+  This function was copied from Python's documentation.
+
+  """
+  def newfunc(*fargs, **fkeywords):
+    newkeywords = keywords.copy()
+    newkeywords.update(fkeywords)
+    return func(*(args + fargs), **newkeywords) # pylint: disable-msg=W0142
+
+  newfunc.func = func
+  newfunc.args = args
+  newfunc.keywords = keywords
+  return newfunc
+
+
+if functools is None:
+  partial = _partial
+else:
+  partial = functools.partial
