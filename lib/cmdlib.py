@@ -2255,8 +2255,11 @@ class LUSetClusterParams(LogicalUnit):
     """Check parameters
 
     """
-    if not hasattr(self.op, "candidate_pool_size"):
-      self.op.candidate_pool_size = None
+    for attr in ["candidate_pool_size",
+                 "uid_pool", "add_uids", "remove_uids"]:
+      if not hasattr(self.op, attr):
+        setattr(self.op, attr, None)
+
     if self.op.candidate_pool_size is not None:
       try:
         self.op.candidate_pool_size = int(self.op.candidate_pool_size)
