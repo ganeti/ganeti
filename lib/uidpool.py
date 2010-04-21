@@ -182,6 +182,9 @@ def ExpandUidPool(uid_pool):
 def _IsUidUsed(uid):
   """Check if there is any process in the system running with the given user-id
 
+  @type uid: integer
+  @param uid: the user-id to be checked.
+
   """
   pgrep_command = [constants.PGREP, "-u", uid]
   result = utils.RunCmd(pgrep_command)
@@ -218,7 +221,7 @@ class LockedUid(object):
   def GetUid(self):
     return self._uid
 
-  def __str__(self):
+  def AsStr(self):
     return "%s" % self._uid
 
 
@@ -255,6 +258,7 @@ def RequestUnusedUid(all_uids):
       <stop the process>
       uidpool.ReleaseUid(uid)
 
+  @type all_uids: set of integers
   @param all_uids: a set containing all the user-ids in the user-id pool
   @return: a LockedUid object representing the unused uid. It's the caller's
            responsibility to unlock the uid once an instance is started with
@@ -269,11 +273,19 @@ def RequestUnusedUid(all_uids):
 
   # Get list of currently used uids from the filesystem
   try:
-    taken_uids = set(os.listdir(constants.UIDPOOL_LOCKDIR))
-    # Filter out spurious entries from the directory listing
-    taken_uids = all_uids.intersection(taken_uids)
+    taken_uids = set()
+    for taken_uid in os.listdir(constants.UIDPOOL_LOCKDIR):
+      try:
+        taken_uid = int(taken_uid)
+      except ValueError, err:
+        # Skip directory entries that can't be converted into an integer
+        continue
+      taken_uids.add(taken_uid)
   except OSError, err:
     raise errors.LockError("Failed to get list of used user-ids: %s" % err)
+
+  # Filter out spurious entries from the directory listing
+  taken_uids = all_uids.intersection(taken_uids)
 
   # Remove the list of used uids from the list of all uids
   unused_uids = list(all_uids - taken_uids)
@@ -330,12 +342,16 @@ def ReleaseUid(uid):
   if isinstance(uid, LockedUid):
     # Make sure we release the exclusive lock, if there is any
     uid.Unlock()
+    uid_filename = uid.AsStr()
+  else:
+    uid_filename = str(uid)
+
   try:
-    uid_path = utils.PathJoin(constants.UIDPOOL_LOCKDIR, str(uid))
+    uid_path = utils.PathJoin(constants.UIDPOOL_LOCKDIR, uid_filename)
     os.remove(uid_path)
   except OSError, err:
     raise errors.LockError("Failed to remove user-id lockfile"
-                           " for user-id %s: %s" % (uid, err))
+                           " for user-id %s: %s" % (uid_filename, err))
 
 
 def ExecWithUnusedUid(fn, all_uids, *args, **kwargs):
@@ -344,17 +360,18 @@ def ExecWithUnusedUid(fn, all_uids, *args, **kwargs):
   This wrapper function provides a simple way to handle the requesting,
   unlocking and releasing a user-id.
   "fn" is called by passing a "uid" keyword argument that
-  contains an unused user-id (as a string) selected from the set of user-ids
+  contains an unused user-id (as an integer) selected from the set of user-ids
   passed in all_uids.
   If there is an error while executing "fn", the user-id is returned
   to the pool.
 
-  @param fn: a callable
+  @param fn: a callable that accepts a keyword argument called "uid"
+  @type all_uids: a set of integers
   @param all_uids: a set containing all user-ids in the user-id pool
 
   """
   uid = RequestUnusedUid(all_uids)
-  kwargs["uid"] = str(uid)
+  kwargs["uid"] = uid.GetUid()
   try:
     return_value = fn(*args, **kwargs)
   except:
