@@ -562,4 +562,6 @@ coverage: $(BUILT_SOURCES) $(python_tests)
 	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage \
 	$(python_tests)
 
+commit-check: distcheck lint apidoc
+
 # vim: set noet :
