@@ -235,13 +235,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if os.path.exists(uid_file):
       try:
         uid = int(utils.ReadFile(uid_file))
+        return uid
       except EnvironmentError:
         logging.warning("Can't read uid file", exc_info=True)
-        return None
       except (TypeError, ValueError):
         logging.warning("Can't parse uid file contents", exc_info=True)
-        return None
-    return uid
+    return None
 
   @classmethod
   def _RemoveInstanceRuntimeFiles(cls, pidfile, instance_name):
