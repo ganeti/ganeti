@@ -55,6 +55,11 @@ except ImportError:
   import sha
   sha1 = sha.new
 
+try:
+  import functools
+except ImportError:
+  functools = None
+
 from ganeti import errors
 from ganeti import constants
 
@@ -1499,6 +1504,31 @@ def any(seq, pred=bool): # pylint: disable-msg=W0622
   for _ in itertools.ifilter(pred, seq):
     return True
   return False
+
+
+# Even though we're using Python's built-in "partial" function if available,
+# this one is always defined for testing.
+def _partial(func, *args, **keywords): # pylint: disable-msg=W0622
+  """Decorator with partial application of arguments and keywords.
+
+  This function was copied from Python's documentation.
+
+  """
+  def newfunc(*fargs, **fkeywords):
+    newkeywords = keywords.copy()
+    newkeywords.update(fkeywords)
+    return func(*(args + fargs), **newkeywords) # pylint: disable-msg=W0142
+
+  newfunc.func = func
+  newfunc.args = args
+  newfunc.keywords = keywords
+  return newfunc
+
+
+if functools is None:
+  partial = _partial
+else:
+  partial = functools.partial
 
 
 def SingleWaitForFdCondition(fdobj, event, timeout):
