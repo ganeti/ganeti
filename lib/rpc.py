@@ -1225,8 +1225,8 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "remove_x509_certificate", [name])
 
-  def call_start_import_listener(self, node, x509_key_name, source_x509_ca,
-                                 instance, dest, dest_args):
+  def call_import_start(self, node, x509_key_name, source_x509_ca,
+                        instance, dest, dest_args):
     """Starts a listener for an import.
 
     This is a single-node call.
@@ -1237,12 +1237,12 @@ class RpcRunner(object):
     @param instance: Instance object
 
     """
-    return self._SingleNodeCall(node, "start_import_listener",
+    return self._SingleNodeCall(node, "import_start",
                                 [x509_key_name, source_x509_ca,
                                  self._InstDict(instance), dest,
                                  _EncodeImportExportIO(dest, dest_args)])
 
-  def call_start_export(self, node, x509_key_name, dest_x509_ca, host, port,
+  def call_export_start(self, node, x509_key_name, dest_x509_ca, host, port,
                         instance, source, source_args):
     """Starts an export daemon.
 
@@ -1254,12 +1254,12 @@ class RpcRunner(object):
     @param instance: Instance object
 
     """
-    return self._SingleNodeCall(node, "start_export",
+    return self._SingleNodeCall(node, "export_start",
                                 [x509_key_name, dest_x509_ca, host, port,
                                  self._InstDict(instance), source,
                                  _EncodeImportExportIO(source, source_args)])
 
-  def call_get_import_export_status(self, node, names):
+  def call_impexp_status(self, node, names):
     """Gets the status of an import or export.
 
     This is a single-node call.
@@ -1273,7 +1273,7 @@ class RpcRunner(object):
              a status couldn't be retrieved
 
     """
-    result = self._SingleNodeCall(node, "get_import_export_status", [names])
+    result = self._SingleNodeCall(node, "impexp_status", [names])
 
     if not result.fail_msg:
       decoded = []
@@ -1288,7 +1288,7 @@ class RpcRunner(object):
 
     return result
 
-  def call_cleanup_import_export(self, node, name):
+  def call_impexp_cleanup(self, node, name):
     """Cleans up after an import or export.
 
     This is a single-node call.
@@ -1299,4 +1299,4 @@ class RpcRunner(object):
     @param name: Import/export name
 
     """
-    return self._SingleNodeCall(node, "cleanup_import_export", [name])
+    return self._SingleNodeCall(node, "impexp_cleanup", [name])

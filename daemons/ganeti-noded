@@ -838,7 +838,7 @@ class NodeHttpServer(http.server.HttpServer):
   # Crypto
 
   @staticmethod
-  def perspective_create_x509_certificate(params):
+  def perspective_x509_cert_create(params):
     """Creates a new X509 certificate for SSL/TLS.
 
     """
@@ -846,7 +846,7 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.CreateX509Certificate(validity)
 
   @staticmethod
-  def perspective_remove_x509_certificate(params):
+  def perspective_x509_cert_remove(params):
     """Removes a X509 certificate.
 
     """
@@ -856,7 +856,7 @@ class NodeHttpServer(http.server.HttpServer):
   # Import and export
 
   @staticmethod
-  def perspective_start_import_listener(params):
+  def perspective_import_start(params):
     """Starts an import daemon.
 
     """
@@ -869,7 +869,7 @@ class NodeHttpServer(http.server.HttpServer):
                                            _DecodeImportExportIO(dest,
                                                                  dest_args))
   @staticmethod
-  def perspective_start_export(params):
+  def perspective_export_start(params):
     """Starts an export daemon.
 
     """
@@ -884,14 +884,14 @@ class NodeHttpServer(http.server.HttpServer):
                                                                  source_args))
 
   @staticmethod
-  def perspective_get_import_export_status(params):
+  def perspective_impexp_status(params):
     """Retrieves the status of an import or export daemon.
 
     """
     return backend.GetImportExportStatus(params[0])
 
   @staticmethod
-  def perspective_cleanup_import_export(params):
+  def perspective_impexp_cleanup(params):
     """Cleans up after an import or export.
 
     """
