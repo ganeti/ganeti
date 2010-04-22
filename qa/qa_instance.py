@@ -284,6 +284,7 @@ def TestInstanceImport(node, newinst, expnode, name):
   cmd = (['gnt-backup', 'import',
           '--disk-template=plain',
           '--no-ip-check',
+          '--net', '0:mac=generate',
           '--src-node=%s' % expnode['primary'],
           '--src-dir=%s/%s' % (constants.EXPORT_DIR, name),
           '--node=%s' % node['primary']] +
