@@ -216,6 +216,11 @@ class ChrootManager(hv_base.BaseHypervisor):
     """Cleanup after a stopped instance
 
     """
+    root_dir = self._InstanceDir(instance_name)
+
+    if not os.path.exists(root_dir):
+      return
+
     if self._IsDirLive(root_dir):
       raise HypervisorError("Processes are still using the chroot")
 
@@ -223,7 +228,7 @@ class ChrootManager(hv_base.BaseHypervisor):
       utils.RunCmd(["umount", mpath])
 
     result = utils.RunCmd(["umount", root_dir])
-    if result.failed and force:
+    if result.failed:
       msg = ("Processes still alive in the chroot: %s" %
              utils.RunCmd("fuser -vm %s" % root_dir).output)
       logging.error(msg)
