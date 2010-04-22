@@ -75,7 +75,7 @@ class SshRunner:
     self.cluster_name = cluster_name
 
   def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
-                       strict_host_check, private_key=None):
+                       strict_host_check, private_key=None, quiet=True):
     """Builds a list with needed SSH options.
 
     @param batch: same as ssh's batch option
@@ -85,6 +85,7 @@ class SshRunner:
         HostKeyAlias name
     @param strict_host_check: this makes the host key checking strict
     @param private_key: use this private key instead of the default
+    @param quiet: whether to enable -q to ssh
 
     @rtype: list
     @return: the list of options ready to use in L{utils.RunCmd}
@@ -100,6 +101,9 @@ class SshRunner:
 
     if use_cluster_key:
       options.append("-oHostKeyAlias=%s" % self.cluster_name)
+
+    if quiet:
+      options.append("-q")
 
     if private_key:
       options.append("-i%s" % private_key)
@@ -133,7 +137,7 @@ class SshRunner:
 
   def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
                tty=False, use_cluster_key=True, strict_host_check=True,
-               private_key=None):
+               private_key=None, quiet=True):
     """Build an ssh command to execute a command on a remote node.
 
     @param hostname: the target host, string
@@ -147,13 +151,15 @@ class SshRunner:
         cluster-global SSH key
     @param strict_host_check: whether to check the host's SSH key at all
     @param private_key: use this private key instead of the default
+    @param quiet: whether to enable -q to ssh
 
     @return: the ssh call to run 'command' on the remote host.
 
     """
-    argv = [constants.SSH, "-q"]
+    argv = [constants.SSH]
     argv.extend(self._BuildSshOptions(batch, ask_key, use_cluster_key,
-                                      strict_host_check, private_key))
+                                      strict_host_check, private_key,
+                                      quiet=quiet))
     if tty:
       argv.append("-t")
     argv.extend(["%s@%s" % (user, hostname), command])
@@ -191,7 +197,7 @@ class SshRunner:
       logging.error("File %s does not exist", filename)
       return False
 
-    command = [constants.SCP, "-q", "-p"]
+    command = [constants.SCP, "-p"]
     command.extend(self._BuildSshOptions(True, False, True, True))
     command.append(filename)
     command.append("%s:%s" % (node, filename))

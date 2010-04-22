@@ -22,6 +22,8 @@
 """Script for unittesting the uidpool module"""
 
 
+import os
+import tempfile
 import unittest
 
 from ganeti import constants
@@ -39,10 +41,14 @@ class TestUidPool(testutils.GanetiTestCase):
     self.old_uid_max = constants.UIDPOOL_UID_MAX
     constants.UIDPOOL_UID_MIN = 1
     constants.UIDPOOL_UID_MAX = 10
+    constants.UIDPOOL_LOCKDIR = tempfile.mkdtemp()
 
   def tearDown(self):
     constants.UIDPOOL_UID_MIN = self.old_uid_min
     constants.UIDPOOL_UID_MAX = self.old_uid_max
+    for name in os.listdir(constants.UIDPOOL_LOCKDIR):
+      os.unlink(os.path.join(constants.UIDPOOL_LOCKDIR, name))
+    os.rmdir(constants.UIDPOOL_LOCKDIR)
 
   def testParseUidPool(self):
     self.assertEqualValues(
@@ -79,6 +85,36 @@ class TestUidPool(testutils.GanetiTestCase):
     self.assertEqualValues(
         uidpool.FormatUidPool([(1, 100), (200, 200)], separator="\n"),
         "1-100\n200")
+
+  def testRequestUnusedUid(self):
+    # Check with known used user-ids
+    #
+    # Test with user-id "0" and with our own user-id, both
+    # of which are guaranteed to be used user-ids
+    for uid in 0, os.getuid():
+      self.assertRaises(errors.LockError,
+                        uidpool.RequestUnusedUid,
+                        set([uid]))
+
+    # Check with a single, known unused user-id
+    #
+    # We use "-1" here, which is not a valid user-id, so it's
+    # guaranteed that it's unused.
+    uid = uidpool.RequestUnusedUid(set([-1]))
+    self.assertEqualValues(uid.GetUid(), -1)
+
+    # Check uid-pool exhaustion
+    #
+    # uid "-1" is locked now, so RequestUnusedUid is expected to fail
+    self.assertRaises(errors.LockError,
+                      uidpool.RequestUnusedUid,
+                      set([-1]))
+
+    # Check unlocking
+    uid.Unlock()
+    # After unlocking, "-1" should be available again
+    uid = uidpool.RequestUnusedUid(set([-1]))
+    self.assertEqualValues(uid.GetUid(), -1)
 
 
 if __name__ == '__main__':
