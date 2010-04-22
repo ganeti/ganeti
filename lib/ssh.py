@@ -95,6 +95,7 @@ class SshRunner:
       "-oHashKnownHosts=no",
       "-oGlobalKnownHostsFile=%s" % constants.SSH_KNOWN_HOSTS_FILE,
       "-oUserKnownHostsFile=/dev/null",
+      "-oCheckHostIp=no",
       ]
 
     if use_cluster_key:

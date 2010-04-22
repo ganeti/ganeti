@@ -1175,7 +1175,7 @@ def ShowInstanceConfig(opts, args):
                                       vnc_bind_address)
       buf.write("    - console connection: vnc to %s\n" % vnc_console_port)
 
-    for key in instance["hv_actual"]:
+    for key in sorted(instance["hv_actual"]):
       if key in instance["hv_instance"]:
         val = instance["hv_instance"][key]
       else:

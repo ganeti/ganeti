@@ -40,6 +40,7 @@ from ganeti import bootstrap
 from ganeti import ssh
 from ganeti import objects
 from ganeti import uidpool
+from ganeti import compat
 
 
 @UsesRPC
@@ -423,7 +424,7 @@ def VerifyDisks(opts, args):
 
   if missing:
     for iname, ival in missing.iteritems():
-      all_missing = utils.all(ival, lambda x: x[0] in bad_nodes)
+      all_missing = compat.all(ival, lambda x: x[0] in bad_nodes)
       if all_missing:
         ToStdout("Instance %s cannot be verified as it lives on"
                  " broken nodes", iname)

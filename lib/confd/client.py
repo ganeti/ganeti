@@ -61,6 +61,7 @@ from ganeti import daemon # contains AsyncUDPSocket
 from ganeti import errors
 from ganeti import confd
 from ganeti import ssconf
+from ganeti import compat
 
 
 class ConfdAsyncUDPClient(daemon.AsyncUDPSocket):
@@ -581,7 +582,7 @@ class ConfdCountingCallback:
     """Have all the registered queries received at least an answer?
 
     """
-    return utils.all(self._answers.values())
+    return compat.all(self._answers.values())
 
   def _HandleExpire(self, up):
     # if we have no answer we have received none, before the expiration.

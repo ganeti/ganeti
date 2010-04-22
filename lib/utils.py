@@ -1781,20 +1781,6 @@ def FirstFree(seq, base=0):
   return None
 
 
-def all(seq, pred=bool): # pylint: disable-msg=W0622
-  "Returns True if pred(x) is True for every element in the iterable"
-  for _ in itertools.ifilterfalse(pred, seq):
-    return False
-  return True
-
-
-def any(seq, pred=bool): # pylint: disable-msg=W0622
-  "Returns True if pred(x) is True for at least one element in the iterable"
-  for _ in itertools.ifilter(pred, seq):
-    return True
-  return False
-
-
 def SingleWaitForFdCondition(fdobj, event, timeout):
   """Waits for a condition to occur on the socket.
 
@@ -1884,12 +1870,6 @@ def WaitForFdCondition(fdobj, event, timeout):
     while result is None:
       result = SingleWaitForFdCondition(fdobj, event, timeout)
   return result
-
-
-def partition(seq, pred=bool): # # pylint: disable-msg=W0622
-  "Partition a list in two, based on the given predicate"
-  return (list(itertools.ifilter(pred, seq)),
-          list(itertools.ifilterfalse(pred, seq)))
 
 
 def UniqueSequence(seq):

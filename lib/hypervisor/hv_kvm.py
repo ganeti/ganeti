@@ -44,6 +44,7 @@ from ganeti.hypervisor import hv_base
 
 class KVMHypervisor(hv_base.BaseHypervisor):
   """KVM hypervisor interface"""
+  CAN_MIGRATE = True
 
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/kvm-hypervisor"
   _PIDS_DIR = _ROOT_DIR + "/pid" # contains live instances pids
@@ -235,13 +236,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if os.path.exists(uid_file):
       try:
         uid = int(utils.ReadFile(uid_file))
+        return uid
       except EnvironmentError:
         logging.warning("Can't read uid file", exc_info=True)
-        return None
       except (TypeError, ValueError):
         logging.warning("Can't parse uid file contents", exc_info=True)
-        return None
-    return uid
+    return None
 
   @classmethod
   def _RemoveInstanceRuntimeFiles(cls, pidfile, instance_name):
@@ -425,7 +425,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       if boot_disk:
         kvm_cmd.extend(['-boot', 'c'])
-        boot_val = ',boot=on'
+        if disk_type != constants.HT_DISK_IDE:
+          boot_val = ',boot=on'
+        else:
+          boot_val = ''
         # We only boot from the first disk
         boot_disk = False
       else:
@@ -440,9 +443,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       options = ',format=raw,media=cdrom'
       if boot_cdrom:
         kvm_cmd.extend(['-boot', 'd'])
-        options = '%s,boot=on' % options
+        if disk_type != constants.HT_DISK_IDE:
+          options = '%s,boot=on' % options
       else:
-        options = '%s,if=virtio' % options
+        if disk_type == constants.HT_DISK_PARAVIRTUAL:
+          if_val = ',if=virtio'
+        else:
+          if_val = ',if=%s' % disk_type
+        options = '%s%s' % (options, if_val)
       drive_val = 'file=%s%s' % (iso_image, options)
       kvm_cmd.extend(['-drive', drive_val])
 
@@ -498,6 +506,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         vnc_arg = 'unix:%s/%s.vnc' % (vnc_bind_address, instance.name)
 
       kvm_cmd.extend(['-vnc', vnc_arg])
+
+      # Also add a tablet USB device to act as a mouse
+      # This solves various mouse alignment issues
+      kvm_cmd.extend(['-usbdevice', 'tablet'])
     else:
       kvm_cmd.extend(['-nographic'])
 

@@ -36,6 +36,8 @@ from ganeti import constants
 from ganeti import cli
 from ganeti import errors
 from ganeti import utils
+from ganeti import hypervisor
+from ganeti import compat
 
 from ganeti.confd import client as confd_client
 
@@ -111,6 +113,7 @@ OPTIONS = [
                  help="OS to use during burnin",
                  metavar="<OS>",
                  completion_suggest=cli.OPT_COMPL_ONE_OS),
+  cli.HYPERVISOR_OPT,
   cli.cli_option("--disk-size", dest="disk_size",
                  help="Disk size (determines disk count)",
                  default="128m", type="string", metavar="<size,size,...>",
@@ -473,7 +476,11 @@ class Burner(object):
       constants.BE_MEMORY: options.mem_size,
       constants.BE_VCPUS: 1,
       }
+
+    self.hypervisor = None
     self.hvp = {}
+    if options.hypervisor:
+      self.hypervisor, self.hvp = options.hypervisor
 
     socket.setdefaulttimeout(options.net_timeout)
 
@@ -515,6 +522,9 @@ class Burner(object):
 
     default_nic_params = self.cluster_info["nicparams"][constants.PP_DEFAULT]
     self.cluster_default_nicparams = default_nic_params
+    if self.hypervisor is None:
+      self.hypervisor = self.cluster_info["default_hypervisor"]
+    self.hv_class = hypervisor.GetHypervisorClass(self.hypervisor)
 
   @_DoCheckInstances
   @_DoBatch(False)
@@ -559,6 +569,7 @@ class Burner(object):
                                     iallocator=self.opts.iallocator,
                                     beparams=self.bep,
                                     hvparams=self.hvp,
+                                    hypervisor=self.hypervisor,
                                     )
       remove_instance = lambda name: lambda: self.to_rem.append(name)
       self.ExecOrQueue(instance, [op], post_process=remove_instance(instance))
@@ -972,14 +983,20 @@ class Burner(object):
         self.BurnReplaceDisks2()
 
       if (opts.disk_template in constants.DTS_GROWABLE and
-          utils.any(self.disk_growth, lambda n: n > 0)):
+          compat.any(self.disk_growth, lambda n: n > 0)):
         self.BurnGrowDisks()
 
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
         self.BurnFailover()
 
-      if opts.do_migrate and opts.disk_template == constants.DT_DRBD8:
-        self.BurnMigrate()
+      if opts.do_migrate:
+        if opts.disk_template != constants.DT_DRBD8:
+          Log("Skipping migration (disk template not DRBD8)")
+        elif not self.hv_class.CAN_MIGRATE:
+          Log("Skipping migration (hypervisor %s does not support it)",
+              self.hypervisor)
+        else:
+          self.BurnMigrate()
 
       if (opts.do_move and len(self.nodes) > 1 and
           opts.disk_template in [constants.DT_PLAIN, constants.DT_FILE]):

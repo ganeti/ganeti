@@ -212,6 +212,13 @@ class ChrootManager(hv_base.BaseHypervisor):
         raise HypervisorError("Can't stop the processes using the chroot")
       return
 
+  def CleanupInstance(self, instance_name):
+    """Cleanup after a stopped instance
+
+    """
+    if self._IsDirLive(root_dir):
+      raise HypervisorError("Processes are still using the chroot")
+
     for mpath in self._GetMountSubdirs(root_dir):
       utils.RunCmd(["umount", mpath])
 

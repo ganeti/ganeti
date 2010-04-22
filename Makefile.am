@@ -95,6 +95,7 @@ pkgpython_PYTHON = \
 	lib/bootstrap.py \
 	lib/cli.py \
 	lib/cmdlib.py \
+	lib/compat.py \
 	lib/config.py \
 	lib/constants.py \
 	lib/daemon.py \
@@ -335,6 +336,7 @@ python_tests = \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
+	test/ganeti.compat_unittest.py \
 	test/ganeti.confd.client_unittest.py \
 	test/ganeti.config_unittest.py \
 	test/ganeti.constants_unittest.py \
@@ -581,5 +583,7 @@ coverage: $(BUILT_SOURCES) $(python_tests)
 	HTML_COVERAGE=$(CURDIR)/doc/coverage \
 	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage \
 	$(python_tests)
+
+commit-check: distcheck lint apidoc
 
 # vim: set noet :
