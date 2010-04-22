@@ -1203,7 +1203,7 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "hypervisor_validate_params",
                                [hvname, hv_full])
 
-  def call_create_x509_certificate(self, node, validity):
+  def call_x509_cert_create(self, node, validity):
     """Creates a new X509 certificate for SSL/TLS.
 
     This is a single-node call.
@@ -1212,9 +1212,9 @@ class RpcRunner(object):
     @param validity: Validity in seconds
 
     """
-    return self._SingleNodeCall(node, "create_x509_certificate", [validity])
+    return self._SingleNodeCall(node, "x509_cert_create", [validity])
 
-  def call_remove_x509_certificate(self, node, name):
+  def call_x509_cert_remove(self, node, name):
     """Removes a X509 certificate.
 
     This is a single-node call.
@@ -1223,7 +1223,7 @@ class RpcRunner(object):
     @param name: Certificate name
 
     """
-    return self._SingleNodeCall(node, "remove_x509_certificate", [name])
+    return self._SingleNodeCall(node, "x509_cert_remove", [name])
 
   def call_import_start(self, node, x509_key_name, source_x509_ca,
                         instance, dest, dest_args):
