@@ -44,6 +44,7 @@ import testutils
 from ganeti import constants
 from ganeti import utils
 from ganeti import errors
+from ganeti import serializer
 from ganeti.utils import IsProcessAlive, RunCmd, \
      RemoveFile, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
@@ -908,6 +909,73 @@ class TestOwnIpAddress(unittest.TestCase):
     # this fails, we should extend the test to multiple addresses
     DST_IP = "192.0.2.1"
     self.failIf(OwnIpAddress(DST_IP), "Should not own IP address %s" % DST_IP)
+
+
+def _GetSocketCredentials(path):
+  """Connect to a Unix socket and return remote credentials.
+
+  """
+  sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+  try:
+    sock.settimeout(10)
+    sock.connect(path)
+    return utils.GetSocketCredentials(sock)
+  finally:
+    sock.close()
+
+
+class TestGetSocketCredentials(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+    self.sockpath = utils.PathJoin(self.tmpdir, "sock")
+
+    self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    self.listener.settimeout(10)
+    self.listener.bind(self.sockpath)
+    self.listener.listen(1)
+
+  def tearDown(self):
+    self.listener.shutdown(socket.SHUT_RDWR)
+    self.listener.close()
+    shutil.rmtree(self.tmpdir)
+
+  def test(self):
+    (c2pr, c2pw) = os.pipe()
+
+    # Start child process
+    child = os.fork()
+    if child == 0:
+      try:
+        data = serializer.DumpJson(_GetSocketCredentials(self.sockpath))
+
+        os.write(c2pw, data)
+        os.close(c2pw)
+
+        os._exit(0)
+      finally:
+        os._exit(1)
+
+    os.close(c2pw)
+
+    # Wait for one connection
+    (conn, _) = self.listener.accept()
+    conn.recv(1)
+    conn.close()
+
+    # Wait for result
+    result = os.read(c2pr, 4096)
+    os.close(c2pr)
+
+    # Check child's exit code
+    (_, status) = os.waitpid(child, 0)
+    self.assertFalse(os.WIFSIGNALED(status))
+    self.assertEqual(os.WEXITSTATUS(status), 0)
+
+    # Check result
+    (pid, uid, gid) = serializer.LoadJson(result)
+    self.assertEqual(pid, os.getpid())
+    self.assertEqual(uid, os.getuid())
+    self.assertEqual(gid, os.getgid())
 
 
 class TestListVisibleFiles(unittest.TestCase):
