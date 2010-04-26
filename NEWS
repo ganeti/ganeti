@@ -1,6 +1,16 @@
 Ganeti-htools release notes
 ===========================
 
+Version 0.2.5 (Mon, 26 Apr 2010)
+--------------------------------
+
+Some internal cleanup plus a few user-visible changes:
+
+- new option for marking instances as 'do-not-move' during rebalancing
+- allow ``hscan`` to scan the local cluster via Luxi
+- add more metrics to ``hspace`` which show the delta between original
+  state and final state better (only valid for tiered allocation)
+
 Version 0.2.4 (Mon, 22 Feb 2010)
 --------------------------------
 
