@@ -3258,6 +3258,58 @@ def SignalHandled(signums):
   return wrap
 
 
+class SignalWakeupFd(object):
+  try:
+    # This is only supported in Python 2.5 and above (some distributions
+    # backported it to Python 2.4)
+    _set_wakeup_fd_fn = signal.set_wakeup_fd
+  except AttributeError:
+    # Not supported
+    def _SetWakeupFd(self, _): # pylint: disable-msg=R0201
+      return -1
+  else:
+    def _SetWakeupFd(self, fd):
+      return self._set_wakeup_fd_fn(fd)
+
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    (read_fd, write_fd) = os.pipe()
+
+    # Once these succeeded, the file descriptors will be closed automatically.
+    # Buffer size 0 is important, otherwise .read() with a specified length
+    # might buffer data and the file descriptors won't be marked readable.
+    self._read_fh = os.fdopen(read_fd, "r", 0)
+    self._write_fh = os.fdopen(write_fd, "w", 0)
+
+    self._previous = self._SetWakeupFd(self._write_fh.fileno())
+
+    # Utility functions
+    self.fileno = self._read_fh.fileno
+    self.read = self._read_fh.read
+
+  def Reset(self):
+    """Restores the previous wakeup file descriptor.
+
+    """
+    if hasattr(self, "_previous") and self._previous is not None:
+      self._SetWakeupFd(self._previous)
+      self._previous = None
+
+  def Notify(self):
+    """Notifies the wakeup file descriptor.
+
+    """
+    self._write_fh.write("\0")
+
+  def __del__(self):
+    """Called before object deletion.
+
+    """
+    self.Reset()
+
+
 class SignalHandler(object):
   """Generic signal handler class.
 
@@ -3272,7 +3324,7 @@ class SignalHandler(object):
   @ivar called: tracks whether any of the signals have been raised
 
   """
-  def __init__(self, signum, handler_fn=None):
+  def __init__(self, signum, handler_fn=None, wakeup=None):
     """Constructs a new SignalHandler instance.
 
     @type signum: int or list of ints
@@ -3287,6 +3339,7 @@ class SignalHandler(object):
     self.called = False
 
     self._handler_fn = handler_fn
+    self._wakeup = wakeup
 
     self._previous = {}
     try:
@@ -3335,6 +3388,10 @@ class SignalHandler(object):
     # This is not nice and not absolutely atomic, but it appears to be the only
     # solution in Python -- there are no atomic types.
     self.called = True
+
+    if self._wakeup:
+      # Notify whoever is interested in signals
+      self._wakeup.Notify()
 
     if self._handler_fn:
       self._handler_fn(signum, frame)
