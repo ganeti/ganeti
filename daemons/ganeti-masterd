@@ -107,7 +107,14 @@ class IOServer(SocketServer.UnixStreamServer):
     """Add task to workerpool to process request.
 
     """
+    (pid, uid, gid) = utils.GetSocketCredentials(request)
+    logging.info("Accepted connection from pid=%s, uid=%s, gid=%s",
+                 pid, uid, gid)
+
     self.request_workers.AddTask(self, request, client_address)
+
+  def handle_error(self, request, client_address):
+    logging.exception("Error while handling request")
 
   @utils.SignalHandled([signal.SIGINT, signal.SIGTERM])
   def serve_forever(self, signal_handlers=None): # pylint: disable-msg=W0221

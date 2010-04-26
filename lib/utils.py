@@ -49,6 +49,8 @@ import datetime
 import calendar
 import hmac
 import collections
+import struct
+import IN
 
 from cStringIO import StringIO
 
@@ -77,6 +79,18 @@ X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
                             (re.escape(constants.X509_CERT_SIGNATURE_HEADER),
                              HEX_CHAR_RE, HEX_CHAR_RE),
                             re.S | re.I)
+
+# Structure definition for getsockopt(SOL_SOCKET, SO_PEERCRED, ...):
+# struct ucred { pid_t pid; uid_t uid; gid_t gid; };
+#
+# The GNU C Library defines gid_t and uid_t to be "unsigned int" and
+# pid_t to "int".
+#
+# IEEE Std 1003.1-2008:
+# "nlink_t, uid_t, gid_t, and id_t shall be integer types"
+# "blksize_t, pid_t, and ssize_t shall be signed integer types"
+_STRUCT_UCRED = "iII"
+_STRUCT_UCRED_SIZE = struct.calcsize(_STRUCT_UCRED)
 
 
 class RunResult(object):
@@ -586,6 +600,19 @@ def RunParts(dir_name, env=None, reset_env=False):
         rr.append((relname, constants.RUNPARTS_RUN, result))
 
   return rr
+
+
+def GetSocketCredentials(sock):
+  """Returns the credentials of the foreign process connected to a socket.
+
+  @param sock: Unix socket
+  @rtype: tuple; (number, number, number)
+  @return: The PID, UID and GID of the connected foreign process.
+
+  """
+  peercred = sock.getsockopt(socket.SOL_SOCKET, IN.SO_PEERCRED,
+                             _STRUCT_UCRED_SIZE)
+  return struct.unpack(_STRUCT_UCRED, peercred)
 
 
 def RemoveFile(filename):

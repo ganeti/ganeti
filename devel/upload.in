@@ -33,6 +33,7 @@ PKGLIBDIR='@PKGLIBDIR@'
 
 NO_RESTART=
 NO_CRON=
+NO_DEBUG=
 hosts=
 while [ "$#" -gt 0 ]; do
   opt="$1"
@@ -42,6 +43,9 @@ while [ "$#" -gt 0 ]; do
       ;;
     --no-cron)
       NO_CRON=1
+      ;;
+    --no-debug)
+      NO_DEBUG=1
       ;;
     -h|--help)
       echo "Usage: $0 [--no-restart] hosts..."
@@ -78,7 +82,7 @@ make $make_args install DESTDIR="$TXD"
 install -D --mode=0755 doc/examples/ganeti.initd \
   "$TXD/$SYSCONFDIR/init.d/ganeti"
 
-[ -f doc/examples/ganeti.default-debug ] && \
+[ -f doc/examples/ganeti.default-debug -a -z "$NO_DEBUG" ] && \
 install -D --mode=0644 doc/examples/ganeti.default-debug \
   "$TXD/$SYSCONFDIR/default/ganeti"
 

@@ -60,12 +60,24 @@ def TestClusterInit(rapi_user, rapi_secret):
   master = qa_config.GetMasterNode()
 
   # First create the RAPI credentials
-  cred_string = "%s %s write" % (rapi_user, rapi_secret)
-  cmd = ("echo %s > %s" %
-         (utils.ShellQuote(cred_string),
-          utils.ShellQuote(constants.RAPI_USERS_FILE)))
-  AssertEqual(StartSSH(master['primary'], cmd).wait(), 0)
+  fh = tempfile.NamedTemporaryFile()
+  try:
+    fh.write("%s %s write\n" % (rapi_user, rapi_secret))
+    fh.flush()
 
+    tmpru = qa_utils.UploadFile(master["primary"], fh.name)
+    try:
+      cmd = ["mv", tmpru, constants.RAPI_USERS_FILE]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+    finally:
+      cmd = ["rm", "-f", tmpru]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+  finally:
+    fh.close()
+
+  # Initialize cluster
   cmd = ['gnt-cluster', 'init']
 
   if master.get('secondary', None):
