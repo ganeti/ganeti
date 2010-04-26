@@ -524,6 +524,65 @@ def ParseOptions():
   return (status_file_path, mode)
 
 
+class ChildProcess(subprocess.Popen):
+  def __init__(self, cmd, noclose_fds):
+    """Initializes this class.
+
+    """
+    self._noclose_fds = noclose_fds
+
+    # Not using close_fds because doing so would also close the socat stderr
+    # pipe, which we still need.
+    subprocess.Popen.__init__(self, cmd, shell=False, close_fds=False,
+                              stderr=subprocess.PIPE, stdout=None, stdin=None,
+                              preexec_fn=self._ChildPreexec)
+    self._SetProcessGroup()
+
+  def _ChildPreexec(self):
+    """Called before child executable is execve'd.
+
+    """
+    # Move to separate process group. By sending a signal to its process group
+    # we can kill the child process and all grandchildren.
+    os.setpgid(0, 0)
+
+    # Close almost all file descriptors
+    utils.CloseFDs(noclose_fds=self._noclose_fds)
+
+  def _SetProcessGroup(self):
+    """Sets the child's process group.
+
+    """
+    assert self.pid, "Can't be called in child process"
+
+    # Avoid race condition by setting child's process group (as good as
+    # possible in Python) before sending signals to child. For an
+    # explanation, see preexec function for child.
+    try:
+      os.setpgid(self.pid, self.pid)
+    except EnvironmentError, err:
+      # If the child process was faster we receive EPERM or EACCES
+      if err.errno not in (errno.EPERM, errno.EACCES):
+        raise
+
+  def Kill(self, signum):
+    """Sends signal to child process.
+
+    """
+    logging.info("Sending signal %s to child process", signum)
+    os.killpg(self.pid, signum)
+
+  def ForceQuit(self):
+    """Ensure child process is no longer running.
+
+    """
+    # Final check if child process is still alive
+    if utils.RetryOnSignal(self.poll) is None:
+      logging.error("Child process still alive, sending SIGKILL")
+      self.Kill(signal.SIGKILL)
+      utils.RetryOnSignal(self.wait)
+
+
 def main():
   """Main function.
 
@@ -564,38 +623,16 @@ def main():
 
       logging.debug("Starting command %r", cmd)
 
-      def _ChildPreexec():
-        # Move child to separate process group. By sending a signal to its
-        # process group we can kill the child process and all its own
-        # child-processes.
-        os.setpgid(0, 0)
-
-        # Close almost all file descriptors
-        utils.CloseFDs(noclose_fds=[socat_stderr_write_fd])
-
-      # Not using close_fds because doing so would also close the socat stderr
-      # pipe, which we still need.
-      child = subprocess.Popen(cmd, shell=False, close_fds=False,
-                               stderr=subprocess.PIPE, stdout=None, stdin=None,
-                               preexec_fn=_ChildPreexec)
+      # Start child process
+      child = ChildProcess(cmd, [socat_stderr_write_fd])
       try:
-        # Avoid race condition by setting child's process group (as good as
-        # possible in Python) before sending signals to child. For an
-        # explanation, see preexec function for child.
-        try:
-          os.setpgid(child.pid, child.pid)
-        except EnvironmentError, err:
-          # If the child process was faster we receive EPERM or EACCES
-          if err.errno not in (errno.EPERM, errno.EACCES):
-            raise
-
         # Forward signals to child process
         def _ForwardSignal(signum, _):
           # Wake up poll(2)
           os.write(signal_notify_write_fd, "\0")
 
           # Send signal to child
-          os.killpg(child.pid, signum)
+          child.Kill(signum)
 
         # TODO: There is a race condition between starting the child and
         # handling the signals here. While there might be a way to work around
@@ -616,11 +653,7 @@ def main():
         finally:
           signal_handler.Reset()
       finally:
-        # Final check if child process is still alive
-        if utils.RetryOnSignal(child.poll) is None:
-          logging.error("Child process still alive, sending SIGKILL")
-          os.killpg(child.pid, signal.SIGKILL)
-          utils.RetryOnSignal(child.wait)
+        child.ForceQuit()
 
       if child.returncode == 0:
         errmsg = None
