@@ -399,12 +399,18 @@ def GetCommand(mode, socat_stderr_fd):
   return GetBashCommand(buf.getvalue())
 
 
-def ProcessChildIO(child, socat_stderr_read, status_file, child_logger,
+def ProcessChildIO(child, socat_stderr_read_fd, status_file, child_logger,
                    signal_notify, signal_handler):
   """Handles the child processes' output.
 
   """
-  poller = select.poll()
+  assert not (signal_handler.signum - set([signal.SIGTERM, signal.SIGINT])), \
+         "Other signals are not handled in this function"
+
+  # Buffer size 0 is important, otherwise .read() with a specified length
+  # might buffer data while poll(2) won't mark its file descriptor as
+  # readable again.
+  socat_stderr_read = os.fdopen(socat_stderr_read_fd, "r", 0)
 
   script_stderr_lines = utils.LineSplitter(ProcessOutput, status_file,
                                            child_logger, False)
@@ -418,6 +424,7 @@ def ProcessChildIO(child, socat_stderr_read, status_file, child_logger,
         signal_notify.fileno(): (signal_notify, None),
         }
 
+      poller = select.poll()
       for fd in fdmap:
         utils.SetNonblockFlag(fd, True)
         poller.register(fd, select.POLLIN)
@@ -599,25 +606,6 @@ def main():
       # Pipe to receive socat's stderr output
       (socat_stderr_read_fd, socat_stderr_write_fd) = os.pipe()
 
-      # Pipe to notify on signals
-      (signal_notify_read_fd, signal_notify_write_fd) = os.pipe()
-
-      # Configure signal module's notifier
-      try:
-        # This is only supported in Python 2.5 and above (some distributions
-        # backported it to Python 2.4)
-        set_wakeup_fd_fn = signal.set_wakeup_fd
-      except AttributeError:
-        pass
-      else:
-        set_wakeup_fd_fn(signal_notify_write_fd)
-
-      # Buffer size 0 is important, otherwise .read() with a specified length
-      # might buffer data while poll(2) won't mark its file descriptor as
-      # readable again.
-      socat_stderr_read = os.fdopen(socat_stderr_read_fd, "r", 0)
-      signal_notify_read = os.fdopen(signal_notify_read_fd, "r", 0)
-
       # Get child process command
       cmd = GetCommand(mode, socat_stderr_write_fd)
 
@@ -626,32 +614,37 @@ def main():
       # Start child process
       child = ChildProcess(cmd, [socat_stderr_write_fd])
       try:
-        # Forward signals to child process
         def _ForwardSignal(signum, _):
-          # Wake up poll(2)
-          os.write(signal_notify_write_fd, "\0")
+          """Forwards signals to child process.
 
-          # Send signal to child
+          """
           child.Kill(signum)
 
-        # TODO: There is a race condition between starting the child and
-        # handling the signals here. While there might be a way to work around
-        # it by registering the handlers before starting the child and
-        # deferring sent signals until the child is available, doing so can be
-        # complicated.
-        signal_handler = utils.SignalHandler([signal.SIGTERM, signal.SIGINT],
-                                             handler_fn=_ForwardSignal)
+        signal_wakeup = utils.SignalWakeupFd()
         try:
-          # Close child's side
-          utils.RetryOnSignal(os.close, socat_stderr_write_fd)
+          # TODO: There is a race condition between starting the child and
+          # handling the signals here. While there might be a way to work around
+          # it by registering the handlers before starting the child and
+          # deferring sent signals until the child is available, doing so can be
+          # complicated.
+          signal_handler = utils.SignalHandler([signal.SIGTERM, signal.SIGINT],
+                                               handler_fn=_ForwardSignal,
+                                               wakeup=signal_wakeup)
+          try:
+            # Close child's side
+            utils.RetryOnSignal(os.close, socat_stderr_write_fd)
 
-          if ProcessChildIO(child, socat_stderr_read, status_file, child_logger,
-                            signal_notify_read, signal_handler):
-            # The child closed all its file descriptors and there was no signal
-            # TODO: Implement timeout instead of waiting indefinitely
-            utils.RetryOnSignal(child.wait)
+            if ProcessChildIO(child, socat_stderr_read_fd, status_file,
+                              child_logger, signal_wakeup,
+                              signal_handler):
+              # The child closed all its file descriptors and there was no
+              # signal
+              # TODO: Implement timeout instead of waiting indefinitely
+              utils.RetryOnSignal(child.wait)
+          finally:
+            signal_handler.Reset()
         finally:
-          signal_handler.Reset()
+          signal_wakeup.Reset()
       finally:
         child.ForceQuit()
 
