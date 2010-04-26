@@ -23,15 +23,26 @@ set -o pipefail
 
 export PYTHON=${PYTHON:=python}
 
-impexpd="$PYTHON daemons/import-export --connect-timeout=1 --connect-retries=1"
-
-# Add "-d" for debugging
-#impexpd+=' -d'
+impexpd="$PYTHON daemons/import-export -d"
 
 err() {
   echo "$@"
   echo 'Aborting'
+  show_output
   exit 1
+}
+
+show_output() {
+  if [[ -s "$dst_output" ]]; then
+    echo
+    echo 'Import output:'
+    cat $dst_output
+  fi
+  if [[ -s "$src_output" ]]; then
+    echo
+    echo 'Export output:'
+    cat $src_output
+  fi
 }
 
 checkpids() {
@@ -60,9 +71,11 @@ statusdir=$(mktemp -d)
 trap "rm -rf $statusdir" EXIT
 
 src_statusfile=$statusdir/src.status
+src_output=$statusdir/src.output
 src_x509=$statusdir/src.pem
 
 dst_statusfile=$statusdir/dst.status
+dst_output=$statusdir/dst.output
 dst_x509=$statusdir/dst.pem
 dst_portfile=$statusdir/dst.port
 
@@ -72,6 +85,8 @@ testdata=$statusdir/data1
 
 cmd_prefix=
 cmd_suffix=
+connect_timeout=10
+connect_retries=1
 
 $impexpd >/dev/null 2>&1 &&
   err "daemon-util succeeded without parameters"
@@ -91,8 +106,12 @@ impexpd_helper() {
   $PYTHON $(get_testpath)/import-export_unittest-helper "$@"
 }
 
+upto() {
+  echo "$(date '+%F %T'):" "$@" '...'
+}
+
 reset_status() {
-  rm -f $src_statusfile $dst_statusfile $dst_portfile
+  rm -f $src_statusfile $dst_output $dst_statusfile $dst_output $dst_portfile
 }
 
 write_data() {
@@ -119,78 +138,99 @@ do_export_to_port() {
   $impexpd $src_statusfile export --bind=127.0.0.1 \
     --host=127.0.0.1 --port=$port \
     --key=$src_x509 --cert=$src_x509 --ca=$dst_x509 \
-    --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix"
+    --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix" \
+    --connect-timeout=$connect_timeout \
+    --connect-retries=$connect_retries
 }
 
 do_import() {
   $impexpd $dst_statusfile import --bind=127.0.0.1 \
     --host=127.0.0.1 \
     --key=$dst_x509 --cert=$dst_x509 --ca=$src_x509 \
-    --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix"
+    --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix" \
+    --connect-timeout=$connect_timeout \
+    --connect-retries=$connect_retries
 }
 
-# Generate X509 certificates and keys
+upto 'Generate X509 certificates and keys'
 impexpd_helper $src_x509 gencert
 impexpd_helper $dst_x509 gencert
 impexpd_helper $other_x509 gencert
 
-# Normal case
+upto 'Normal case'
 reset_status
-do_import > $statusdir/recv1 & imppid=$!
-write_data | do_export & exppid=$!
+do_import > $statusdir/recv1 2>$dst_output & imppid=$!
+{ write_data | do_export; } &>$src_output & exppid=$!
 checkpids $exppid $imppid || err 'An error occurred'
 cmp $testdata $statusdir/recv1 || err 'Received data does not match input'
 
-# Export using wrong CA
+upto 'Export using wrong CA'
 reset_status
-do_import > /dev/null 2>&1 & imppid=$!
-: | dst_x509=$other_x509 do_export 2>/dev/null & exppid=$!
+# Setting lower timeout to not wait for too long
+connect_timeout=1 do_import &>$dst_output & imppid=$!
+: | dst_x509=$other_x509 do_export &>$src_output & exppid=$!
 checkpids $exppid $imppid && err 'Export did not fail when using wrong CA'
 
-# Import using wrong CA
+upto 'Import using wrong CA'
 reset_status
-src_x509=$other_x509 do_import > /dev/null 2>&1 & imppid=$!
-: | do_export 2> /dev/null & exppid=$!
+# Setting lower timeout to not wait for too long
+src_x509=$other_x509 connect_timeout=1 do_import &>$dst_output & imppid=$!
+: | do_export &>$src_output & exppid=$!
 checkpids $exppid $imppid && err 'Import did not fail when using wrong CA'
 
-# Suffix command on import
+upto 'Suffix command on import'
 reset_status
-cmd_suffix="| cksum > $statusdir/recv2" do_import & imppid=$!
-write_data | do_export & exppid=$!
+cmd_suffix="| cksum > $statusdir/recv2" do_import &>$dst_output & imppid=$!
+{ write_data | do_export; } &>$src_output & exppid=$!
 checkpids $exppid $imppid || err 'Testing additional commands failed'
 cmp $statusdir/recv2 <(cksum < $testdata) || \
   err 'Checksum of received data does not match'
 
-# Prefix command on export
+upto 'Prefix command on export'
 reset_status
-do_import > $statusdir/recv3 & imppid=$!
-write_data | cmd_prefix="cksum |" do_export & exppid=$!
+do_import > $statusdir/recv3 2>$dst_output & imppid=$!
+{ write_data | cmd_prefix="cksum |" do_export; } &>$src_output & exppid=$!
 checkpids $exppid $imppid || err 'Testing additional commands failed'
 cmp $statusdir/recv3 <(cksum < $testdata) || \
   err 'Received checksum does not match'
 
-# Failing prefix command on export
+upto 'Failing prefix command on export'
 reset_status
-: | cmd_prefix='exit 1;' do_export_to_port 0 & exppid=$!
+: | cmd_prefix='exit 1;' do_export_to_port 0 &>$src_output & exppid=$!
 checkpids $exppid && err 'Prefix command on export did not fail when it should'
 
-# Failing suffix command on export
+upto 'Failing suffix command on export'
 reset_status
-do_import > /dev/null & imppid=$!
-: | cmd_suffix='| exit 1' do_export & exppid=$!
+do_import >&$src_output & imppid=$!
+: | cmd_suffix='| exit 1' do_export &>$dst_output & exppid=$!
 checkpids $imppid $exppid && \
   err 'Suffix command on export did not fail when it should'
 
-# Failing prefix command on import
+upto 'Failing prefix command on import'
 reset_status
-cmd_prefix='exit 1;' do_import > /dev/null & imppid=$!
+cmd_prefix='exit 1;' do_import &>$dst_output & imppid=$!
 checkpids $imppid && err 'Prefix command on import did not fail when it should'
 
-# Failing suffix command on import
+upto 'Failing suffix command on import'
 reset_status
-cmd_suffix='| exit 1' do_import > /dev/null & imppid=$!
-: | do_export & exppid=$!
+cmd_suffix='| exit 1' do_import &>$dst_output & imppid=$!
+: | do_export &>$src_output & exppid=$!
 checkpids $imppid $exppid && \
   err 'Suffix command on import did not fail when it should'
+
+upto 'Listen timeout A'
+reset_status
+# Setting lower timeout to not wait too long (there won't be anything trying to
+# connect)
+connect_timeout=1 do_import &>$dst_output & imppid=$!
+checkpids $imppid && \
+  err 'Listening with timeout did not fail when it should'
+
+upto 'Listen timeout B'
+reset_status
+do_import &>$dst_output & imppid=$!
+{ sleep 1; : | do_export; } &>$src_output & exppid=$!
+checkpids $exppid $imppid || \
+  err 'Listening with timeout failed when it should not'
 
 exit 0
