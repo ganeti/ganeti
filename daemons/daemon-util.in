@@ -50,6 +50,26 @@ _daemon_executable() {
   echo "@PREFIX@/sbin/$1"
 }
 
+_daemon_usergroup() {
+  case "$1" in
+    masterd)
+      echo "@GNTMASTERUSER@:@GNTMASTERDGROUP@"
+      ;;
+    confd)
+      echo "@GNTCONFDUSER@:@GNTCONFDGROUP@"
+      ;;
+    rapi)
+      echo "@GNTRAPIUSER@:@GNTRAPIGROUP@"
+      ;;
+    noded)
+      echo "@GNTNODEDUSER@:@GNTDAEMONSGROUP@"
+      ;;
+    *)
+      echo "root:@GNTDAEMONSGROUP@"
+      ;;
+  esac
+}
+
 # Checks whether the local machine is part of a cluster
 check_config() {
   local server_pem=@LOCALSTATEDIR@/lib/ganeti/server.pem
@@ -144,7 +164,8 @@ start() {
   local name="$1"; shift
 
   # Convert daemon name to uppercase after removing "ganeti-" prefix
-  local ucname=$(echo ${name#ganeti-} | tr a-z A-Z)
+  local plain_name=${name#ganeti-}
+  local ucname=$(tr a-z A-Z <<<$plain_name)
 
   # Read $<daemon>_ARGS and $EXTRA_<daemon>_ARGS
   eval local args="\"\$${ucname}_ARGS \$EXTRA_${ucname}_ARGS\""
@@ -154,6 +175,7 @@ start() {
   start-stop-daemon --start --quiet --oknodo \
     --pidfile $(_daemon_pidfile $name) \
     --startas $(_daemon_executable $name) \
+    --chuid $(_daemon_usergroup $plain_name) \
     -- $args "$@"
 }
 
