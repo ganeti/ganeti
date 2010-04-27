@@ -52,55 +52,8 @@ class TestCertVerification(testutils.GanetiTestCase):
     self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
 
     # Try to load non-certificate file
-    invalid_cert = self._TestDataFilename("bdev-net1.txt")
+    invalid_cert = self._TestDataFilename("bdev-net.txt")
     (errcode, msg) = cmdlib._VerifyCertificate(invalid_cert)
-    self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
-
-
-class TestVerifyCertificateInner(unittest.TestCase):
-  FAKEFILE = "/tmp/fake/cert/file.pem"
-
-  def test(self):
-    vci = cmdlib._VerifyCertificateInner
-
-    # Valid
-    self.assertEqual(vci(self.FAKEFILE, False, 1263916313, 1298476313,
-                         1266940313, warn_days=30, error_days=7),
-                     (None, None))
-
-    # Not yet valid
-    (errcode, msg) = vci(self.FAKEFILE, False, 1266507600, 1267544400,
-                         1266075600, warn_days=30, error_days=7)
-    self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_WARNING)
-
-    # Expiring soon
-    (errcode, msg) = vci(self.FAKEFILE, False, 1266507600, 1267544400,
-                         1266939600, warn_days=30, error_days=7)
-    self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
-
-    (errcode, msg) = vci(self.FAKEFILE, False, 1266507600, 1267544400,
-                         1266939600, warn_days=30, error_days=1)
-    self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_WARNING)
-
-    (errcode, msg) = vci(self.FAKEFILE, False, 1266507600, None,
-                         1266939600, warn_days=30, error_days=7)
-    self.assertEqual(errcode, None)
-
-    # Expired
-    (errcode, msg) = vci(self.FAKEFILE, True, 1266507600, 1267544400,
-                         1266939600, warn_days=30, error_days=7)
-    self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
-
-    (errcode, msg) = vci(self.FAKEFILE, True, None, 1267544400,
-                         1266939600, warn_days=30, error_days=7)
-    self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
-
-    (errcode, msg) = vci(self.FAKEFILE, True, 1266507600, None,
-                         1266939600, warn_days=30, error_days=7)
-    self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
-
-    (errcode, msg) = vci(self.FAKEFILE, True, None, None,
-                         1266939600, warn_days=30, error_days=7)
     self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
 
 

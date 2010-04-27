@@ -92,6 +92,10 @@ X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
 _STRUCT_UCRED = "iII"
 _STRUCT_UCRED_SIZE = struct.calcsize(_STRUCT_UCRED)
 
+# Certificate verification results
+(CERT_WARNING,
+ CERT_ERROR) = range(1, 3)
+
 
 class RunResult(object):
   """Holds the result of running external programs.
@@ -2442,6 +2446,13 @@ def TailFile(fname, lines=20):
   return rows[-lines:]
 
 
+def FormatTimestampWithTZ(secs):
+  """Formats a Unix timestamp with the local timezone.
+
+  """
+  return time.strftime("%F %T %Z", time.gmtime(secs))
+
+
 def _ParseAsn1Generalizedtime(value):
   """Parses an ASN1 GENERALIZEDTIME timestamp as used by pyOpenSSL.
 
@@ -2503,6 +2514,75 @@ def GetX509CertValidity(cert):
       not_after = _ParseAsn1Generalizedtime(not_after_asn1)
 
   return (not_before, not_after)
+
+
+def _VerifyCertificateInner(expired, not_before, not_after, now,
+                            warn_days, error_days):
+  """Verifies certificate validity.
+
+  @type expired: bool
+  @param expired: Whether pyOpenSSL considers the certificate as expired
+  @type not_before: number or None
+  @param not_before: Unix timestamp before which certificate is not valid
+  @type not_after: number or None
+  @param not_after: Unix timestamp after which certificate is invalid
+  @type now: number
+  @param now: Current time as Unix timestamp
+  @type warn_days: number or None
+  @param warn_days: How many days before expiration a warning should be reported
+  @type error_days: number or None
+  @param error_days: How many days before expiration an error should be reported
+
+  """
+  if expired:
+    msg = "Certificate is expired"
+
+    if not_before is not None and not_after is not None:
+      msg += (" (valid from %s to %s)" %
+              (FormatTimestampWithTZ(not_before),
+               FormatTimestampWithTZ(not_after)))
+    elif not_before is not None:
+      msg += " (valid from %s)" % FormatTimestampWithTZ(not_before)
+    elif not_after is not None:
+      msg += " (valid until %s)" % FormatTimestampWithTZ(not_after)
+
+    return (CERT_ERROR, msg)
+
+  elif not_before is not None and not_before > now:
+    return (CERT_WARNING,
+            "Certificate not yet valid (valid from %s)" %
+            FormatTimestampWithTZ(not_before))
+
+  elif not_after is not None:
+    remaining_days = int((not_after - now) / (24 * 3600))
+
+    msg = "Certificate expires in about %d days" % remaining_days
+
+    if error_days is not None and remaining_days <= error_days:
+      return (CERT_ERROR, msg)
+
+    if warn_days is not None and remaining_days <= warn_days:
+      return (CERT_WARNING, msg)
+
+  return (None, None)
+
+
+def VerifyX509Certificate(cert, warn_days, error_days):
+  """Verifies a certificate for LUVerifyCluster.
+
+  @type cert: OpenSSL.crypto.X509
+  @param cert: X509 certificate object
+  @type warn_days: number or None
+  @param warn_days: How many days before expiration a warning should be reported
+  @type error_days: number or None
+  @param error_days: How many days before expiration an error should be reported
+
+  """
+  # Depending on the pyOpenSSL version, this can just return (None, None)
+  (not_before, not_after) = GetX509CertValidity(cert)
+
+  return _VerifyCertificateInner(cert.has_expired(), not_before, not_after,
+                                 time.time(), warn_days, error_days)
 
 
 def SignX509Certificate(cert, key, salt):

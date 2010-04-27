@@ -1945,5 +1945,59 @@ class TestReadLockedPidFile(unittest.TestCase):
     self.assertRaises(EnvironmentError, utils.ReadLockedPidFile, path)
 
 
+class TestCertVerification(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testVerifyCertificate(self):
+    cert_pem = utils.ReadFile(self._TestDataFilename("cert1.pem"))
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           cert_pem)
+
+    # Not checking return value as this certificate is expired
+    utils.VerifyX509Certificate(cert, 30, 7)
+
+
+class TestVerifyCertificateInner(unittest.TestCase):
+  def test(self):
+    vci = utils._VerifyCertificateInner
+
+    # Valid
+    self.assertEqual(vci(False, 1263916313, 1298476313, 1266940313, 30, 7),
+                     (None, None))
+
+    # Not yet valid
+    (errcode, msg) = vci(False, 1266507600, 1267544400, 1266075600, 30, 7)
+    self.assertEqual(errcode, utils.CERT_WARNING)
+
+    # Expiring soon
+    (errcode, msg) = vci(False, 1266507600, 1267544400, 1266939600, 30, 7)
+    self.assertEqual(errcode, utils.CERT_ERROR)
+
+    (errcode, msg) = vci(False, 1266507600, 1267544400, 1266939600, 30, 1)
+    self.assertEqual(errcode, utils.CERT_WARNING)
+
+    (errcode, msg) = vci(False, 1266507600, None, 1266939600, 30, 7)
+    self.assertEqual(errcode, None)
+
+    # Expired
+    (errcode, msg) = vci(True, 1266507600, 1267544400, 1266939600, 30, 7)
+    self.assertEqual(errcode, utils.CERT_ERROR)
+
+    (errcode, msg) = vci(True, None, 1267544400, 1266939600, 30, 7)
+    self.assertEqual(errcode, utils.CERT_ERROR)
+
+    (errcode, msg) = vci(True, 1266507600, None, 1266939600, 30, 7)
+    self.assertEqual(errcode, utils.CERT_ERROR)
+
+    (errcode, msg) = vci(True, None, None, 1266939600, 30, 7)
+    self.assertEqual(errcode, utils.CERT_ERROR)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
