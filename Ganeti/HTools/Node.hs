@@ -124,6 +124,7 @@ instance T.Element Node where
     idxOf = idx
     setAlias = setAlias
     setIdx = setIdx
+    allNames n = [name n, alias n]
 
 -- | A simple name for the int, node association list.
 type AssocList = [(T.Ndx, Node)]

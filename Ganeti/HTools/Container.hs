@@ -108,7 +108,7 @@ findByName :: (T.Element a, Monad m) =>
               Container a -> String -> m a
 findByName c n =
     let all_elems = elems c
-        result = filter ((== n) . T.nameOf) all_elems
+        result = filter ((n `elem`) . T.allNames) all_elems
     in case result of
          [item] -> return item
          _ -> fail $ "Wrong number of elems found with name " ++ n

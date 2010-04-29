@@ -69,6 +69,7 @@ instance T.Element Instance where
     idxOf    = idx
     setAlias = setAlias
     setIdx   = setIdx
+    allNames n = [name n, alias n]
 
 -- | Running instance states.
 runningStates :: [String]

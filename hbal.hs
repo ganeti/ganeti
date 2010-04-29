@@ -196,7 +196,7 @@ main = do
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
-      all_names = map Node.name all_nodes
+      all_names = concatMap allNames all_nodes
       offline_wrong = filter (`notElem` all_names) offline_names
       offline_indices = map Node.idx $
                         filter (\n -> Node.name n `elem` offline_names)

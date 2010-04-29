@@ -188,9 +188,10 @@ mergeData um extags exinsts (nl, il, tags) =
       common_suffix = longestDomain (node_names ++ inst_names)
       snl = Container.map (computeAlias common_suffix) nl3
       sil = Container.map (computeAlias common_suffix) il4
-  in if not $ all (`elem` inst_names) exinsts
+      all_inst_names = concatMap allNames $ Container.elems sil
+  in if not $ all (`elem` all_inst_names) exinsts
      then Bad $ "Some of the excluded instances are unknown: " ++
-          show (exinsts \\ inst_names)
+          show (exinsts \\ all_inst_names)
      else Ok (snl, sil, tags)
 
 -- | Checks the cluster data for consistency.

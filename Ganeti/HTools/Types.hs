@@ -192,6 +192,8 @@ instance Monad OpResult where
 class Element a where
     -- | Returns the name of the element
     nameOf  :: a -> String
+    -- | Returns all the known names of the element
+    allNames :: a -> [String]
     -- | Returns the index of the element
     idxOf   :: a -> Int
     -- | Updates the alias of the element
