@@ -29,6 +29,8 @@ import time
 from ganeti import constants
 from ganeti import errors
 from ganeti import compat
+from ganeti import utils
+from ganeti import objects
 
 
 class _ImportExportError(Exception):
@@ -962,3 +964,144 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
          "Not all imports/exports are finalized"
 
   return [bool(dtp.success) for dtp in all_dtp]
+
+
+class ExportInstanceHelper:
+  def __init__(self, lu, feedback_fn, instance):
+    """Initializes this class.
+
+    @param lu: Logical unit instance
+    @param feedback_fn: Feedback function
+    @type instance: L{objects.Instance}
+    @param instance: Instance object
+
+    """
+    self._lu = lu
+    self._feedback_fn = feedback_fn
+    self._instance = instance
+
+    self._snap_disks = []
+    self._removed_snaps = [False] * len(instance.disks)
+
+  def CreateSnapshots(self):
+    """Creates an LVM snapshot for every disk of the instance.
+
+    """
+    assert not self._snap_disks
+
+    instance = self._instance
+    src_node = instance.primary_node
+
+    vgname = self._lu.cfg.GetVGName()
+
+    for idx, disk in enumerate(instance.disks):
+      self._feedback_fn("Creating a snapshot of disk/%s on node %s" %
+                        (idx, src_node))
+
+      # result.payload will be a snapshot of an lvm leaf of the one we
+      # passed
+      result = self._lu.rpc.call_blockdev_snapshot(src_node, disk)
+      msg = result.fail_msg
+      if msg:
+        self._lu.LogWarning("Could not snapshot disk/%s on node %s: %s",
+                            idx, src_node, msg)
+        new_dev = False
+      else:
+        disk_id = (vgname, result.payload)
+        new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
+                               logical_id=disk_id, physical_id=disk_id,
+                               iv_name=disk.iv_name)
+
+      self._snap_disks.append(new_dev)
+
+    assert len(self._snap_disks) == len(instance.disks)
+    assert len(self._removed_snaps) == len(instance.disks)
+
+  def _RemoveSnapshot(self, disk_index):
+    """Removes an LVM snapshot.
+
+    @type disk_index: number
+    @param disk_index: Index of the snapshot to be removed
+
+    """
+    disk = self._snap_disks[disk_index]
+    if disk and not self._removed_snaps[disk_index]:
+      src_node = self._instance.primary_node
+
+      self._feedback_fn("Removing snapshot of disk/%s on node %s" %
+                        (disk_index, src_node))
+
+      result = self._lu.rpc.call_blockdev_remove(src_node, disk)
+      if result.fail_msg:
+        self._lu.LogWarning("Could not remove snapshot for disk/%d from node"
+                            " %s: %s", disk_index, src_node, result.fail_msg)
+      else:
+        self._removed_snaps[disk_index] = True
+
+  def LocalExport(self, dest_node):
+    """Intra-cluster instance export.
+
+    @type dest_node: L{objects.Node}
+    @param dest_node: Destination node
+
+    """
+    instance = self._instance
+    src_node = instance.primary_node
+
+    assert len(self._snap_disks) == len(instance.disks)
+
+    transfers = []
+
+    for idx, dev in enumerate(self._snap_disks):
+      if not dev:
+        transfers.append(None)
+        continue
+
+      path = utils.PathJoin(constants.EXPORT_DIR, "%s.new" % instance.name,
+                            dev.physical_id[1])
+
+      finished_fn = compat.partial(self._TransferFinished, idx)
+
+      # FIXME: pass debug option from opcode to backend
+      dt = DiskTransfer("snapshot/%s" % idx,
+                        constants.IEIO_SCRIPT, (dev, idx),
+                        constants.IEIO_FILE, (path, ),
+                        finished_fn)
+      transfers.append(dt)
+
+    # Actually export data
+    dresults = TransferInstanceData(self._lu, self._feedback_fn,
+                                    src_node, dest_node.name,
+                                    dest_node.secondary_ip,
+                                    instance, transfers)
+
+    assert len(dresults) == len(instance.disks)
+
+    self._feedback_fn("Finalizing export on %s" % dest_node.name)
+    result = self._lu.rpc.call_finalize_export(dest_node.name, instance,
+                                               self._snap_disks)
+    msg = result.fail_msg
+    fin_resu = not msg
+    if msg:
+      self._lu.LogWarning("Could not finalize export for instance %s"
+                          " on node %s: %s", instance.name, dest_node.name, msg)
+
+    return (fin_resu, dresults)
+
+  def _TransferFinished(self, idx):
+    """Called once a transfer has finished.
+
+    @type idx: number
+    @param idx: Disk index
+
+    """
+    logging.debug("Transfer %s finished", idx)
+    self._RemoveSnapshot(idx)
+
+  def Cleanup(self):
+    """Remove all snapshots.
+
+    """
+    assert len(self._removed_snaps) == len(self._instance.disks)
+    for idx in range(len(self._instance.disks)):
+      self._RemoveSnapshot(idx)
