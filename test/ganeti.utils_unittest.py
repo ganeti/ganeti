@@ -1999,5 +1999,36 @@ class TestVerifyCertificateInner(unittest.TestCase):
     self.assertEqual(errcode, utils.CERT_ERROR)
 
 
+class TestHmacFunctions(unittest.TestCase):
+  # Digests can be checked with "openssl sha1 -hmac $key"
+  def testSha1Hmac(self):
+    self.assertEqual(utils.Sha1Hmac("", ""),
+                     "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d")
+    self.assertEqual(utils.Sha1Hmac("3YzMxZWE", "Hello World"),
+                     "ef4f3bda82212ecb2f7ce868888a19092481f1fd")
+    self.assertEqual(utils.Sha1Hmac("TguMTA2K", ""),
+                     "f904c2476527c6d3e6609ab683c66fa0652cb1dc")
+
+    longtext = 1500 * "The quick brown fox jumps over the lazy dog\n"
+    self.assertEqual(utils.Sha1Hmac("3YzMxZWE", longtext),
+                     "35901b9a3001a7cdcf8e0e9d7c2e79df2223af54")
+
+  def testVerifySha1Hmac(self):
+    self.assert_(utils.VerifySha1Hmac("", "", ("fbdb1d1b18aa6c08324b"
+                                               "7d64b71fb76370690e1d")))
+    self.assert_(utils.VerifySha1Hmac("TguMTA2K", "",
+                                      ("f904c2476527c6d3e660"
+                                       "9ab683c66fa0652cb1dc")))
+
+    digest = "ef4f3bda82212ecb2f7ce868888a19092481f1fd"
+    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World", digest))
+    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+                                      digest.lower()))
+    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+                                      digest.upper()))
+    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+                                      digest.title()))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
