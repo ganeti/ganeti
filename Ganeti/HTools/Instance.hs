@@ -33,6 +33,7 @@ module Ganeti.HTools.Instance
     , create
     , setIdx
     , setName
+    , setAlias
     , setPri
     , setSec
     , setBoth
@@ -49,6 +50,7 @@ import qualified Ganeti.HTools.Container as Container
 
 -- | The instance type
 data Instance = Instance { name :: String    -- ^ The instance name
+                         , alias :: String   -- ^ The shortened name
                          , mem :: Int        -- ^ Memory of the instance
                          , dsk :: Int        -- ^ Disk size of instance
                          , vcpus :: Int      -- ^ Number of VCPUs
@@ -88,6 +90,7 @@ create :: String -> Int -> Int -> Int -> String
        -> [String] -> T.Ndx -> T.Ndx -> Instance
 create name_init mem_init dsk_init vcpus_init run_init tags_init pn sn =
     Instance { name = name_init
+             , alias = name_init
              , mem = mem_init
              , dsk = dsk_init
              , vcpus = vcpus_init
@@ -115,7 +118,15 @@ setIdx t i = t { idx = i }
 setName :: Instance -- ^ The original instance
         -> String   -- ^ New name
         -> Instance -- ^ The modified instance
-setName t s = t { name = s }
+setName t s = t { name = s, alias = s }
+
+-- | Changes the alias.
+--
+-- This is used only during the building of the data structures.
+setAlias :: Instance -- ^ The original instance
+         -> String   -- ^ New alias
+         -> Instance -- ^ The modified instance
+setAlias t s = t { alias = s }
 
 -- * Update functions
 

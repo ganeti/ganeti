@@ -34,6 +34,7 @@ module Ganeti.HTools.Node
     , buildPeers
     , setIdx
     , setName
+    , setAlias
     , setOffline
     , setXmem
     , setFmem
@@ -85,6 +86,7 @@ type TagMap = Map.Map String Int
 -- | The node type.
 data Node = Node
     { name     :: String    -- ^ The node name
+    , alias    :: String    -- ^ The shortened name (for display purposes)
     , tMem     :: Double    -- ^ Total memory (MiB)
     , nMem     :: Int       -- ^ Node memory (MiB)
     , fMem     :: Int       -- ^ Free memory (MiB)
@@ -181,7 +183,8 @@ create :: String -> Double -> Int -> Int -> Double
        -> Int -> Double -> Bool -> Node
 create name_init mem_t_init mem_n_init mem_f_init
        dsk_t_init dsk_f_init cpu_t_init offline_init =
-    Node { name  = name_init
+    Node { name = name_init
+         , alias = name_init
          , tMem = mem_t_init
          , nMem = mem_n_init
          , fMem = mem_f_init
@@ -228,7 +231,13 @@ setIdx t i = t {idx = i}
 --
 -- This is used only during the building of the data structures.
 setName :: Node -> String -> Node
-setName t s = t {name = s}
+setName t s = t { name = s, alias = s }
+
+-- | Changes the alias.
+--
+-- This is used only during the building of the data structures.
+setAlias :: Node -> String -> Node
+setAlias t s = t { alias = s }
 
 -- | Sets the offline attribute.
 setOffline :: Node -> Bool -> Node
