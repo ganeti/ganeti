@@ -72,7 +72,7 @@ processResults _ as@(fstats, successes, sols) =
 processRequest :: Request
                -> Result Cluster.AllocSolution
 processRequest request =
-  let Request rqtype nl il _ _ = request
+  let Request rqtype nl il _ = request
   in case rqtype of
        Allocate xi reqn -> Cluster.tryAlloc nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
@@ -98,7 +98,7 @@ main = do
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
-  let Request rq nl _ _ csf = request
+  let Request rq nl _ _ = request
 
   when (isJust shownodes) $ do
          hPutStrLn stderr "Initial cluster status:"
@@ -110,5 +110,5 @@ main = do
             Ok (ginfo, (_, _, sn)) -> (True, "Request successful: " ++ ginfo,
                                        map snd sn)
             Bad s -> (False, "Request failed: " ++ s, [])
-      resp = formatResponse ok info csf rq rn
+      resp = formatResponse ok info rq rn
   putStrLn resp

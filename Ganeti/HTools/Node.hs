@@ -33,7 +33,6 @@ module Ganeti.HTools.Node
     -- ** Finalization after data loading
     , buildPeers
     , setIdx
-    , setName
     , setAlias
     , setOffline
     , setXmem
@@ -123,7 +122,7 @@ data Node = Node
 instance T.Element Node where
     nameOf = name
     idxOf = idx
-    setName = setName
+    setAlias = setAlias
     setIdx = setIdx
 
 -- | A simple name for the int, node association list.
@@ -226,12 +225,6 @@ mCpuTohiCpu mval tcpu = floor (mval * tcpu)
 -- This is used only during the building of the data structures.
 setIdx :: Node -> T.Ndx -> Node
 setIdx t i = t {idx = i}
-
--- | Changes the name.
---
--- This is used only during the building of the data structures.
-setName :: Node -> String -> Node
-setName t s = t { name = s, alias = s }
 
 -- | Changes the alias.
 --
@@ -435,7 +428,8 @@ availCpu t =
 showField :: Node -> String -> String
 showField t field =
     case field of
-      "name" -> name t
+      "name" -> alias t
+      "fqdn" -> name t
       "status" -> if offline t then "-"
                   else if failN1 t then "*" else " "
       "tmem" -> printf "%5.0f" $ tMem t
@@ -471,6 +465,7 @@ showHeader :: String -> (String, Bool)
 showHeader field =
     case field of
       "name" -> ("Name", False)
+      "fqdn" -> ("Name", False)
       "status" -> ("F", False)
       "tmem" -> ("t_mem", True)
       "nmem" -> ("n_mem", True)

@@ -194,7 +194,13 @@ class Element a where
     nameOf  :: a -> String
     -- | Returns the index of the element
     idxOf   :: a -> Int
-    -- | Updates the name of the element
-    setName :: a -> String -> a
+    -- | Updates the alias of the element
+    setAlias :: a -> String -> a
+    -- | Compute the alias by stripping a given suffix (domain) from
+    -- | the name
+    computeAlias :: String -> a -> a
+    computeAlias dom e = setAlias e alias
+        where alias = take (length name - length dom) name
+              name = nameOf e
     -- | Updates the index of the element
     setIdx  :: a -> Int -> a

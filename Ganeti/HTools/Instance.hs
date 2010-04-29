@@ -65,10 +65,10 @@ data Instance = Instance { name :: String    -- ^ The instance name
                          } deriving (Show)
 
 instance T.Element Instance where
-    nameOf  = name
-    idxOf   = idx
-    setName = setName
-    setIdx  = setIdx
+    nameOf   = name
+    idxOf    = idx
+    setAlias = setAlias
+    setIdx   = setIdx
 
 -- | Running instance states.
 runningStates :: [String]

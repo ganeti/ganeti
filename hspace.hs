@@ -242,7 +242,7 @@ main = do
       ispec = optISpec opts
       shownodes = optShowNodes opts
 
-  (fixed_nl, il, _, csf) <- loadExternalData opts
+  (fixed_nl, il, _) <- loadExternalData opts
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
   printKeys [ ("SPEC_RQN", printf "%d" (optINodes opts)) ]
@@ -275,6 +275,7 @@ main = do
                                 else n) fixed_nl
       nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
            nm
+      csf = commonSuffix fixed_nl il
 
   when (length csf > 0 && verbose > 1) $
        hPrintf stderr "Note: Stripping common suffix of '%s' from names\n" csf

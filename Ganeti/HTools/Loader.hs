@@ -32,7 +32,7 @@ module Ganeti.HTools.Loader
     , assignIndices
     , lookupNode
     , lookupInstance
-    , stripSuffix
+    , commonSuffix
     , RqType(..)
     , Request(..)
     ) where
@@ -70,7 +70,7 @@ data RqType
     deriving (Show)
 
 -- | A complete request, as received from Ganeti.
-data Request = Request RqType Node.List Instance.List [String] String
+data Request = Request RqType Node.List Instance.List [String]
     deriving (Show)
 
 -- * Functions
@@ -147,15 +147,18 @@ longestDomain (x:xs) =
                               else accu)
       "" $ filter (isPrefixOf ".") (tails x)
 
--- | Remove tail suffix from a string.
-stripSuffix :: Int -> String -> String
-stripSuffix sflen name = take (length name - sflen) name
-
 -- | Extracts the exclusion tags from the cluster configuration
 extractExTags :: [String] -> [String]
 extractExTags =
     map (drop (length exTagsPrefix)) .
     filter (isPrefixOf exTagsPrefix)
+
+-- | Extracts the common suffix from node/instance names
+commonSuffix :: Node.List -> Instance.List -> String
+commonSuffix nl il =
+    let node_names = map Node.name $ Container.elems nl
+        inst_names = map Instance.name $ Container.elems il
+    in longestDomain (node_names ++ inst_names)
 
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
@@ -164,7 +167,7 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Untouchable instances
           -> (Node.AssocList, Instance.AssocList, [String])
           -- ^ Data from backends
-          -> Result (Node.List, Instance.List, [String], String)
+          -> Result (Node.List, Instance.List, [String])
 mergeData um extags exinsts (nl, il, tags) =
   let il2 = Container.fromAssocList il
       il3 = foldl' (\im (name, n_util) ->
@@ -183,13 +186,12 @@ mergeData um extags exinsts (nl, il, tags) =
       node_names = map (Node.name . snd) nl
       inst_names = map (Instance.name . snd) il
       common_suffix = longestDomain (node_names ++ inst_names)
-      csl = length common_suffix
-      snl = Container.map (\n -> setName n (stripSuffix csl $ nameOf n)) nl3
-      sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il4
+      snl = Container.map (computeAlias common_suffix) nl3
+      sil = Container.map (computeAlias common_suffix) il4
   in if not $ all (`elem` inst_names) exinsts
      then Bad $ "Some of the excluded instances are unknown: " ++
           show (exinsts \\ inst_names)
-     else Ok (snl, sil, tags, common_suffix)
+     else Ok (snl, sil, tags)
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List

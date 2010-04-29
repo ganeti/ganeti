@@ -149,13 +149,13 @@ checkJobsStatus :: [JobStatus] -> Bool
 checkJobsStatus = all (== JobSuccess)
 
 -- | Execute an entire jobset
-execJobSet :: String -> String -> Node.List
+execJobSet :: String -> Node.List
            -> Instance.List -> [JobSet] -> IO ()
-execJobSet _      _   _  _  [] = return ()
-execJobSet master csf nl il (js:jss) = do
+execJobSet _      _  _  [] = return ()
+execJobSet master nl il (js:jss) = do
   -- map from jobset (htools list of positions) to [[opcodes]]
   let jobs = map (\(_, idx, move, _) ->
-                      Cluster.iMoveToJob csf nl il idx move) js
+                      Cluster.iMoveToJob nl il idx move) js
   let descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
   putStrLn $ "Executing jobset for instances " ++ commaJoin descr
   jrs <- bracket (L.getClient master) L.closeClient
@@ -172,7 +172,7 @@ execJobSet master csf nl il (js:jss) = do
        hPutStrLn stderr $ "Cannot compute job status, aborting: " ++ show x
        return ()
      Ok x -> if checkJobsStatus x
-             then execJobSet master csf nl il jss
+             then execJobSet master nl il jss
              else do
                hPutStrLn stderr $ "Not all jobs completed successfully: " ++
                          show x
@@ -192,7 +192,7 @@ main = do
       verbose = optVerbose opts
       shownodes = optShowNodes opts
 
-  (fixed_nl, il, ctags, csf) <- loadExternalData opts
+  (fixed_nl, il, ctags) <- loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
@@ -203,6 +203,7 @@ main = do
                                all_nodes
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
+      csf = commonSuffix fixed_nl il
 
   when (length offline_wrong > 0) $ do
          hPrintf stderr "Wrong node name(s) set as offline: %s\n"
@@ -311,7 +312,7 @@ main = do
               Nothing -> do
                 hPutStrLn stderr "Execution of commands possible only on LUXI"
                 exitWith $ ExitFailure 1
-              Just master -> execJobSet master csf fin_nl il cmd_jobs)
+              Just master -> execJobSet master fin_nl il cmd_jobs)
 
   when (optShowInsts opts) $ do
          putStrLn ""

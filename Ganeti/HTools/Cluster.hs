@@ -770,12 +770,12 @@ printStats nl =
     in intercalate ", " formatted
 
 -- | Convert a placement into a list of OpCodes (basically a job).
-iMoveToJob :: String -> Node.List -> Instance.List
+iMoveToJob :: Node.List -> Instance.List
           -> Idx -> IMove -> [OpCodes.OpCode]
-iMoveToJob csf nl il idx move =
+iMoveToJob nl il idx move =
     let inst = Container.find idx il
-        iname = Instance.name inst ++ csf
-        lookNode n = Just (Container.nameOf nl n ++ csf)
+        iname = Instance.name inst
+        lookNode  = Just . Container.nameOf nl
         opF = if Instance.running inst
               then OpCodes.OpMigrateInstance iname True False
               else OpCodes.OpFailoverInstance iname False

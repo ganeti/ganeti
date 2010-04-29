@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.HTools.ExtLoader
     ( loadExternalData
+    , Loader.commonSuffix
     ) where
 
 import Data.Maybe (isJust, fromJust)
@@ -73,7 +74,7 @@ parseUtilisation line =
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
-                 -> IO (Node.List, Instance.List, [String], String)
+                 -> IO (Node.List, Instance.List, [String])
 loadExternalData opts = do
   let mhost = optMaster opts
       lsock = optLuxi opts
@@ -119,7 +120,7 @@ loadExternalData opts = do
           | otherwise -> return $ Bad "No backend selected! Exiting."
 
   let ldresult = input_data >>= Loader.mergeData util_data' exTags exInsts
-  (loaded_nl, il, tags, csf) <-
+  (loaded_nl, il, tags) <-
       (case ldresult of
          Ok x -> return x
          Bad s -> do
@@ -133,4 +134,4 @@ loadExternalData opts = do
          hPutStrLn stderr "Warning: cluster has inconsistent data:"
          hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
-  return (fixed_nl, il, tags, csf)
+  return (fixed_nl, il, tags)

@@ -65,28 +65,27 @@ options =
     ]
 
 -- | Serialize a single node
-serializeNode :: String -> Node.Node -> String
-serializeNode csf node =
-    printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c" (Node.name node ++ csf)
+serializeNode :: Node.Node -> String
+serializeNode node =
+    printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c" (Node.name node)
                (Node.tMem node) (Node.nMem node) (Node.fMem node)
                (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
                (if Node.offline node then 'Y' else 'N')
 
 -- | Generate node file data from node objects
-serializeNodes :: String -> Node.List -> String
-serializeNodes csf =
-    unlines . map (serializeNode csf) . Container.elems
+serializeNodes :: Node.List -> String
+serializeNodes = unlines . map serializeNode . Container.elems
 
 -- | Serialize a single instance
-serializeInstance :: String -> Node.List -> Instance.Instance -> String
-serializeInstance csf nl inst =
+serializeInstance :: Node.List -> Instance.Instance -> String
+serializeInstance nl inst =
     let
-        iname = Instance.name inst ++ csf
-        pnode = Container.nameOf nl (Instance.pNode inst) ++ csf
+        iname = Instance.name inst
+        pnode = Container.nameOf nl (Instance.pNode inst)
         sidx = Instance.sNode inst
         snode = (if sidx == Node.noSecondary
                     then ""
-                    else Container.nameOf nl sidx ++ csf)
+                    else Container.nameOf nl sidx)
     in
       printf "%s|%d|%d|%d|%s|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
@@ -94,9 +93,9 @@ serializeInstance csf nl inst =
              pnode snode (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects
-serializeInstances :: String -> Node.List -> Instance.List -> String
-serializeInstances csf nl =
-    unlines . map (serializeInstance csf nl) . Container.elems
+serializeInstances :: Node.List -> Instance.List -> String
+serializeInstances nl =
+    unlines . map (serializeInstance nl) . Container.elems
 
 -- | Return a one-line summary of cluster state
 printCluster :: Node.List -> Instance.List
@@ -128,10 +127,10 @@ fixSlash = map (\x -> if x == '/' then '_' else x)
 processData :: Result (Node.AssocList, Instance.AssocList, [String])
             -> Result (Node.List, Instance.List, String)
 processData input_data = do
-  (nl, il, _, csf) <- input_data >>= Loader.mergeData [] [] []
+  (nl, il, _) <- input_data >>= Loader.mergeData [] [] []
   let (_, fix_nl) = Loader.checkData nl il
-  let ndata = serializeNodes csf nl
-      idata = serializeInstances csf nl il
+  let ndata = serializeNodes nl
+      idata = serializeInstances nl il
       adata = ndata ++ ['\n'] ++ idata
   return (fix_nl, il, adata)
 
