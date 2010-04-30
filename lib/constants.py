@@ -336,6 +336,13 @@ LOCKS_APPEND = 'append'
 INSTANCE_CREATE = "create"
 INSTANCE_IMPORT = "import"
 
+# Remote import/export handshake message and version
+RIE_VERSION = 0
+RIE_HANDSHAKE = "Hi, I'm Ganeti"
+
+# Remote import/export certificate validity in seconds
+RIE_CERT_VALIDITY = 24 * 60 * 60
+
 DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN,
                             DT_DRBD8, DT_FILE])
 

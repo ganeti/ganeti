@@ -1105,3 +1105,50 @@ class ExportInstanceHelper:
     assert len(self._removed_snaps) == len(self._instance.disks)
     for idx in range(len(self._instance.disks)):
       self._RemoveSnapshot(idx)
+
+
+def _GetImportExportHandshakeMessage(version):
+  """Returns the handshake message for a RIE protocol version.
+
+  @type version: number
+
+  """
+  return "%s:%s" % (version, constants.RIE_HANDSHAKE)
+
+
+def ComputeRemoteExportHandshake(cds):
+  """Computes the remote import/export handshake.
+
+  @type cds: string
+  @param cds: Cluster domain secret
+
+  """
+  salt = utils.GenerateSecret(8)
+  msg = _GetImportExportHandshakeMessage(constants.RIE_VERSION)
+  return (constants.RIE_VERSION, utils.Sha1Hmac(cds, msg, salt=salt), salt)
+
+
+def CheckRemoteExportHandshake(cds, handshake):
+  """Checks the handshake of a remote import/export.
+
+  @type cds: string
+  @param cds: Cluster domain secret
+  @type handshake: sequence
+  @param handshake: Handshake sent by remote peer
+
+  """
+  try:
+    (version, hmac_digest, hmac_salt) = handshake
+  except (TypeError, ValueError), err:
+    return "Invalid data: %s" % err
+
+  if not utils.VerifySha1Hmac(cds, _GetImportExportHandshakeMessage(version),
+                              hmac_digest, salt=hmac_salt):
+    return "Hash didn't match, clusters don't share the same domain secret"
+
+  if version != constants.RIE_VERSION:
+    return ("Clusters don't have the same remote import/export protocol"
+            " (local=%s, remote=%s)" %
+            (constants.RIE_VERSION, version))
+
+  return None

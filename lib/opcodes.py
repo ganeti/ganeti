@@ -653,6 +653,20 @@ class OpQueryExports(OpCode):
   __slots__ = ["nodes", "use_locking"]
 
 
+class OpPrepareExport(OpCode):
+  """Prepares an instance export.
+
+  @ivar instance_name: Instance name
+  @ivar mode: Export mode (one of L{constants.EXPORT_MODES})
+
+  """
+  OP_ID = "OP_BACKUP_PREPARE"
+  OP_DSC_FIELD = "instance_name"
+  __slots__ = [
+    "instance_name", "mode",
+    ]
+
+
 class OpExportInstance(OpCode):
   """Export an instance."""
   OP_ID = "OP_BACKUP_EXPORT"

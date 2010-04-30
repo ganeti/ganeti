@@ -25,11 +25,13 @@ import os
 import sys
 import unittest
 
+from ganeti import constants
 from ganeti import utils
 from ganeti import masterd
 
 from ganeti.masterd.instance import \
-  ImportExportTimeouts, _TimeoutExpired, _DiskImportExportBase
+  ImportExportTimeouts, _TimeoutExpired, _DiskImportExportBase, \
+  ComputeRemoteExportHandshake, CheckRemoteExportHandshake
 
 import testutils
 
@@ -54,6 +56,34 @@ class TestMisc(unittest.TestCase):
   def testDiskImportExportBaseDirect(self):
     self.assertRaises(AssertionError, _DiskImportExportBase,
                       None, None, None, None, None, None, None)
+
+
+class TestRieHandshake(unittest.TestCase):
+  def test(self):
+    cds = "cd-secret"
+    hs = ComputeRemoteExportHandshake(cds)
+    self.assertEqual(len(hs), 3)
+    self.assertEqual(hs[0], constants.RIE_VERSION)
+
+    self.assertEqual(CheckRemoteExportHandshake(cds, hs), None)
+
+  def testCheckErrors(self):
+    self.assert_(CheckRemoteExportHandshake(None, None))
+    self.assert_(CheckRemoteExportHandshake("", ""))
+    self.assert_(CheckRemoteExportHandshake("", ("xyz", "foo")))
+
+  def testCheckWrongHash(self):
+    cds = "cd-secret999"
+    self.assert_(CheckRemoteExportHandshake(cds, (0, "fakehash", "xyz")))
+
+  def testCheckWrongVersion(self):
+    version = 14887
+    self.assertNotEqual(version, constants.RIE_VERSION)
+    cds = "c28ac99"
+    salt = "a19cf8cc06"
+    msg = "%s:%s" % (version, constants.RIE_HANDSHAKE)
+    hs = (version, utils.Sha1Hmac(cds, msg, salt=salt), salt)
+    self.assert_(CheckRemoteExportHandshake(cds, hs))
 
 
 if __name__ == "__main__":

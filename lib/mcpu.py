@@ -210,6 +210,7 @@ class Processor(object):
     opcodes.OpDiagnoseOS: cmdlib.LUDiagnoseOS,
     # exports lu
     opcodes.OpQueryExports: cmdlib.LUQueryExports,
+    opcodes.OpPrepareExport: cmdlib.LUPrepareExport,
     opcodes.OpExportInstance: cmdlib.LUExportInstance,
     opcodes.OpRemoveExport: cmdlib.LURemoveExport,
     # tags lu

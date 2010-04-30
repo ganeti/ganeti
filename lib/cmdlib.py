@@ -8822,6 +8822,66 @@ class LUQueryExports(NoHooksLU):
     return result
 
 
+class LUPrepareExport(NoHooksLU):
+  """Prepares an instance for an export and returns useful information.
+
+  """
+  _OP_REQP = ["instance_name", "mode"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    if self.op.mode not in constants.EXPORT_MODES:
+      raise errors.OpPrereqError("Invalid export mode %r" % self.op.mode,
+                                 errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    instance_name = self.op.instance_name
+
+    self.instance = self.cfg.GetInstanceInfo(instance_name)
+    assert self.instance is not None, \
+          "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, self.instance.primary_node)
+
+    self._cds = _GetClusterDomainSecret()
+
+  def Exec(self, feedback_fn):
+    """Prepares an instance for an export.
+
+    """
+    instance = self.instance
+
+    if self.op.mode == constants.EXPORT_MODE_REMOTE:
+      salt = utils.GenerateSecret(8)
+
+      feedback_fn("Generating X509 certificate on %s" % instance.primary_node)
+      result = self.rpc.call_x509_cert_create(instance.primary_node,
+                                              constants.RIE_CERT_VALIDITY)
+      result.Raise("Can't create X509 key and certificate on %s" % result.node)
+
+      (name, cert_pem) = result.payload
+
+      cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                             cert_pem)
+
+      return {
+        "handshake": masterd.instance.ComputeRemoteExportHandshake(self._cds),
+        "x509_key_name": (name, utils.Sha1Hmac(self._cds, name, salt=salt),
+                          salt),
+        "x509_ca": utils.SignX509Certificate(cert, self._cds, salt),
+        }
+
+    return None
+
+
 class LUExportInstance(LogicalUnit):
   """Export an instance to an image in the cluster.
 
