@@ -145,20 +145,12 @@ class GanetiRapiClientTests(unittest.TestCase):
   """
 
   def setUp(self):
-    # Monkey-patch a fake VerifyCertificate function
-    self._verify_certificate = client._VerifyCertificate
-    client._VerifyCertificate = lambda x, y, z: True
-
     self.rapi = RapiMock()
     self.http = HttpMock(self.rapi)
     self.client = client.GanetiRapiClient('master.foo.com')
     self.client._http = self.http
     # Hard-code the version for easier testing.
     self.client._version = 2
-
-  def tearDown(self):
-    # Un-do the monkey-patch
-    client._VerifyCertificate = self._verify_certificate
 
   def assertHandler(self, handler_cls):
     self.failUnless(isinstance(self.rapi.GetLastHandler(), handler_cls))
@@ -392,7 +384,7 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertHandler(rlib2.R_2_nodes_name_role)
     self.assertItems(["node-foo"])
     self.assertQuery("force", ["True"])
-    self.assertEqual("master-candidate", self.http.last_request_body)
+    self.assertEqual("\"master-candidate\"", self.http.last_request_body)
 
     self.assertRaises(client.InvalidNodeRole,
                       self.client.SetNodeRole, "node-bar", "fake-role")
