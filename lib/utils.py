@@ -2608,7 +2608,7 @@ def SignX509Certificate(cert, key, salt):
 
   return ("%s: %s/%s\n\n%s" %
           (constants.X509_CERT_SIGNATURE_HEADER, salt,
-           Sha1Hmac(key, salt + cert_pem),
+           Sha1Hmac(key, cert_pem, salt=salt),
            cert_pem))
 
 
@@ -2647,13 +2647,13 @@ def LoadSignedX509Certificate(cert_pem, key):
   # Dump again to ensure it's in a sane format
   sane_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
 
-  if not VerifySha1Hmac(key, salt + sane_pem, signature):
+  if not VerifySha1Hmac(key, sane_pem, signature, salt=salt):
     raise errors.GenericError("X509 certificate signature is invalid")
 
   return (cert, salt)
 
 
-def Sha1Hmac(key, text):
+def Sha1Hmac(key, text, salt=None):
   """Calculates the HMAC-SHA1 digest of a text.
 
   HMAC is defined in RFC2104.
@@ -2663,10 +2663,15 @@ def Sha1Hmac(key, text):
   @type text: string
 
   """
-  return hmac.new(key, text, sha1).hexdigest()
+  if salt:
+    salted_text = salt + text
+  else:
+    salted_text = text
+
+  return hmac.new(key, salted_text, sha1).hexdigest()
 
 
-def VerifySha1Hmac(key, text, digest):
+def VerifySha1Hmac(key, text, digest, salt=None):
   """Verifies the HMAC-SHA1 digest of a text.
 
   HMAC is defined in RFC2104.
@@ -2680,7 +2685,7 @@ def VerifySha1Hmac(key, text, digest):
   @return: Whether HMAC-SHA1 digest matches
 
   """
-  return digest.lower() == Sha1Hmac(key, text).lower()
+  return digest.lower() == Sha1Hmac(key, text, salt=salt).lower()
 
 
 def SafeEncode(text):

@@ -2013,6 +2013,14 @@ class TestHmacFunctions(unittest.TestCase):
     self.assertEqual(utils.Sha1Hmac("3YzMxZWE", longtext),
                      "35901b9a3001a7cdcf8e0e9d7c2e79df2223af54")
 
+  def testSha1HmacSalt(self):
+    self.assertEqual(utils.Sha1Hmac("TguMTA2K", "", salt="abc0"),
+                     "4999bf342470eadb11dfcd24ca5680cf9fd7cdce")
+    self.assertEqual(utils.Sha1Hmac("TguMTA2K", "", salt="abc9"),
+                     "17a4adc34d69c0d367d4ffbef96fd41d4df7a6e8")
+    self.assertEqual(utils.Sha1Hmac("3YzMxZWE", "Hello World", salt="xyz0"),
+                     "7f264f8114c9066afc9bb7636e1786d996d3cc0d")
+
   def testVerifySha1Hmac(self):
     self.assert_(utils.VerifySha1Hmac("", "", ("fbdb1d1b18aa6c08324b"
                                                "7d64b71fb76370690e1d")))
@@ -2028,6 +2036,16 @@ class TestHmacFunctions(unittest.TestCase):
                                       digest.upper()))
     self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
                                       digest.title()))
+
+  def testVerifySha1HmacSalt(self):
+    self.assert_(utils.VerifySha1Hmac("TguMTA2K", "",
+                                      ("17a4adc34d69c0d367d4"
+                                       "ffbef96fd41d4df7a6e8"),
+                                      salt="abc9"))
+    self.assert_(utils.VerifySha1Hmac("3YzMxZWE", "Hello World",
+                                      ("7f264f8114c9066afc9b"
+                                       "b7636e1786d996d3cc0d"),
+                                      salt="xyz0"))
 
 
 if __name__ == '__main__':

@@ -112,13 +112,14 @@ def DumpSignedJson(data, key, salt=None, key_selector=None):
   signed_dict = {
     'msg': txt,
     'salt': salt,
-  }
+    }
+
   if key_selector:
     signed_dict["key_selector"] = key_selector
-    message = salt + key_selector + txt
   else:
-    message = salt + txt
-  signed_dict["hmac"] = utils.Sha1Hmac(key, message)
+    key_selector = ""
+
+  signed_dict["hmac"] = utils.Sha1Hmac(key, txt, salt=salt + key_selector)
 
   return DumpJson(signed_dict, indent=False)
 
@@ -156,7 +157,8 @@ def LoadSignedJson(txt, key):
     key_selector = ""
     hmac_key = key
 
-  if not utils.VerifySha1Hmac(hmac_key, salt + key_selector + msg, hmac_sign):
+  if not utils.VerifySha1Hmac(hmac_key, msg, hmac_sign,
+                              salt=salt + key_selector):
     raise errors.SignatureError('Invalid Signature')
 
   return LoadJson(msg), salt
