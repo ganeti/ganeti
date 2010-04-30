@@ -2656,26 +2656,28 @@ def StartImportExportDaemon(mode, key_name, ca, host, port, instance,
                                                  key_name)
     assert ca is not None
 
+  for i in [key_path, cert_path]:
+    if os.path.exists(i):
+      _Fail("File '%s' does not exist" % i)
+
   status_dir = _CreateImportExportStatusDir(prefix)
   try:
     status_file = utils.PathJoin(status_dir, _IES_STATUS_FILE)
     pid_file = utils.PathJoin(status_dir, _IES_PID_FILE)
+    ca_file = utils.PathJoin(status_dir, _IES_CA_FILE)
 
     if ca is None:
       # Use server.pem
-      # TODO: If socat runs as a non-root user, this might need to be copied to
-      # a separate file
-      ca_path = constants.NODED_CERT_FILE
-    else:
-      ca_path = utils.PathJoin(status_dir, _IES_CA_FILE)
-      utils.WriteFile(ca_path, data=ca, mode=0400)
+      ca = utils.ReadFile(constants.NODED_CERT_FILE)
+
+    utils.WriteFile(ca_file, data=ca, mode=0400)
 
     cmd = [
       constants.IMPORT_EXPORT_DAEMON,
       status_file, mode,
       "--key=%s" % key_path,
       "--cert=%s" % cert_path,
-      "--ca=%s" % ca_path,
+      "--ca=%s" % ca_file,
       ]
 
     if host:
