@@ -2883,6 +2883,12 @@ class LURemoveNode(LogicalUnit):
       self.LogWarning("Errors encountered on the remote node while leaving"
                       " the cluster: %s", msg)
 
+    # Remove node from our /etc/hosts
+    if self.cfg.GetClusterInfo().modify_etc_hosts:
+      # FIXME: this should be done via an rpc call to node daemon
+      utils.RemoveHostFromEtcHosts(node.name)
+      _RedistributeAncillaryFiles(self)
+
 
 class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
@@ -3457,6 +3463,7 @@ class LUAddNode(LogicalUnit):
 
     # Add node to our /etc/hosts, and add key to known_hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:
+      # FIXME: this should be done via an rpc call to node daemon
       utils.AddHostToEtcHosts(new_node.name)
 
     if new_node.secondary_ip != new_node.primary_ip:
