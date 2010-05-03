@@ -236,13 +236,13 @@ def TestClusterBurnin():
     try:
       # Run burnin
       cmd = [script,
-             '-p',
              '--os=%s' % qa_config.get('os'),
              '--disk-size=%s' % ",".join(qa_config.get('disk')),
              '--disk-growth=%s' % ",".join(qa_config.get('disk-growth')),
              '--disk-template=%s' % disk_template]
       if parallel:
         cmd.append('--parallel')
+        cmd.append('--early-release')
       if check_inst:
         cmd.append('--http-check')
       if do_rename:
