@@ -64,6 +64,9 @@ REQ_SET_WATCHER_PAUSE = "SetWatcherPause"
 DEF_CTMO = 10
 DEF_RWTO = 60
 
+# WaitForJobChange timeout
+WFJC_TIMEOUT = (DEF_RWTO - 1) / 2
+
 
 class ProtocolError(Exception):
   """Denotes an error in the server communication"""
@@ -373,11 +376,27 @@ class Client(object):
     return self.CallMethod(REQ_AUTOARCHIVE_JOBS, (age, timeout))
 
   def WaitForJobChangeOnce(self, job_id, fields,
-                           prev_job_info, prev_log_serial):
-    timeout = (DEF_RWTO - 1) / 2
+                           prev_job_info, prev_log_serial,
+                           timeout=WFJC_TIMEOUT):
+    """Waits for changes on a job.
+
+    @param job_id: Job ID
+    @type fields: list
+    @param fields: List of field names to be observed
+    @type prev_job_info: None or list
+    @param prev_job_info: Previously received job information
+    @type prev_log_serial: None or int/long
+    @param prev_log_serial: Highest log serial number previously received
+    @type timeout: int/float
+    @param timeout: Timeout in seconds (values larger than L{WFJC_TIMEOUT} will
+                    be capped to that value)
+
+    """
+    assert timeout >= 0, "Timeout can not be negative"
     return self.CallMethod(REQ_WAIT_FOR_JOB_CHANGE,
                            (job_id, fields, prev_job_info,
-                            prev_log_serial, timeout))
+                            prev_log_serial,
+                            min(WFJC_TIMEOUT, timeout)))
 
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
     while True:

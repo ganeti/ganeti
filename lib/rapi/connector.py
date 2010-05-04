@@ -209,6 +209,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern, job_id_pattern):
     "/2/jobs": rlib2.R_2_jobs,
     re.compile(r'/2/jobs/(%s)$' % job_id_pattern):
       rlib2.R_2_jobs_id,
+    re.compile(r'/2/jobs/(%s)/wait$' % job_id_pattern):
+      rlib2.R_2_jobs_id_wait,
 
     "/2/tags": rlib2.R_2_tags,
     "/2/info": rlib2.R_2_info,

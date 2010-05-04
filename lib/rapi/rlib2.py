@@ -83,6 +83,9 @@ _NR_MAP = {
   "R": _NR_REGULAR,
   }
 
+# Timeout for /2/jobs/[job_id]/wait. Gives job up to 10 seconds to change.
+_WFJC_TIMEOUT = 10
+
 
 class R_version(baserlib.R_Generic):
   """/version resource.
@@ -209,6 +212,55 @@ class R_2_jobs_id(baserlib.R_Generic):
     job_id = self.items[0]
     result = baserlib.GetClient().CancelJob(job_id)
     return result
+
+
+class R_2_jobs_id_wait(baserlib.R_Generic):
+  """/2/jobs/[job_id]/wait resource.
+
+  """
+  # WaitForJobChange provides access to sensitive information and blocks
+  # machine resources (it's a blocking RAPI call), hence restricting access.
+  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+
+  def GET(self):
+    """Waits for job changes.
+
+    """
+    job_id = self.items[0]
+
+    fields = self.getBodyParameter("fields")
+    prev_job_info = self.getBodyParameter("previous_job_info", None)
+    prev_log_serial = self.getBodyParameter("previous_log_serial", None)
+
+    if not isinstance(fields, list):
+      raise http.HttpBadRequest("The 'fields' parameter should be a list")
+
+    if not (prev_job_info is None or isinstance(prev_job_info, list)):
+      raise http.HttpBadRequest("The 'previous_job_info' parameter should"
+                                " be a list")
+
+    if not (prev_log_serial is None or
+            isinstance(prev_log_serial, (int, long))):
+      raise http.HttpBadRequest("The 'previous_log_serial' parameter should"
+                                " be a number")
+
+    client = baserlib.GetClient()
+    result = client.WaitForJobChangeOnce(job_id, fields,
+                                         prev_job_info, prev_log_serial,
+                                         timeout=_WFJC_TIMEOUT)
+    if not result:
+      raise http.HttpNotFound()
+
+    if result == constants.JOB_NOTCHANGED:
+      # No changes
+      return None
+
+    (job_info, log_entries) = result
+
+    return {
+      "job_info": job_info,
+      "log_entries": log_entries,
+      }
 
 
 class R_2_nodes(baserlib.R_Generic):
