@@ -414,6 +414,12 @@ Body parameters:
   File storage driver.
 ``iallocator`` (string)
   Instance allocator name.
+``source_handshake``
+  Signed handshake from source (remote import only).
+``source_x509_ca`` (string)
+  Source X509 CA in PEM format (remote import only).
+``source_instance_name`` (string)
+  Source instance name (remote import only).
 ``hypervisor`` (string)
   Hypervisor name.
 ``hvparams`` (dict)
@@ -577,6 +583,47 @@ It supports the following commands: ``PUT``.
 ~~~~~~~
 
 Takes no parameters.
+
+
+``/2/instances/[instance_name]/prepare-export``
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Prepares an export of an instance.
+
+It supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Takes one parameter, ``mode``, for the export mode. Returns a job ID.
+
+
+``/2/instances/[instance_name]/export``
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Exports an instance.
+
+It supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``mode`` (string)
+  Export mode.
+``destination`` (required)
+  Destination information, depends on export mode.
+``shutdown`` (bool, required)
+  Whether to shutdown instance before export.
+``remove_instance`` (bool)
+  Whether to remove instance after export.
+``x509_key_name``
+  Name of X509 key (remote export only).
+``destination_x509_ca``
+  Destination X509 CA (remote export only).
 
 
 ``/2/instances/[instance_name]/tags``

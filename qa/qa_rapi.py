@@ -198,6 +198,19 @@ def TestInstance(instance):
      _VerifyReturnsJob, 'PUT', None),
     ])
 
+  # Test OpPrepareExport
+  (job_id, ) = _DoTests([
+    ("/2/instances/%s/prepare-export?mode=%s" %
+     (instance["name"], constants.EXPORT_MODE_REMOTE),
+     _VerifyReturnsJob, "PUT", None),
+    ])
+
+  result = _WaitForRapiJob(job_id)[0]
+  AssertEqual(len(result["handshake"]), 3)
+  AssertEqual(result["handshake"][0], constants.RIE_VERSION)
+  AssertEqual(len(result["x509_key_name"]), 3)
+  AssertIn("-----BEGIN CERTIFICATE-----", result["x509_ca"])
+
 
 def TestNode(node):
   """Testing getting node(s) info via remote API.
@@ -259,7 +272,8 @@ def _WaitForRapiJob(job_id):
     ("/2/jobs/%s" % job_id, _VerifyJob, "GET", None),
     ])
 
-  rapi.client_utils.PollJob(_rapi_client, job_id, cli.StdioJobPollReportCb())
+  return rapi.client_utils.PollJob(_rapi_client, job_id,
+                                   cli.StdioJobPollReportCb())
 
 
 def TestRapiInstanceAdd(node, use_client):

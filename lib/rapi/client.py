@@ -840,6 +840,56 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s/replace-disks" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
+  def PrepareExport(self, instance, mode):
+    """Prepares an instance for an export.
+
+    @type instance: string
+    @param instance: Instance name
+    @type mode: string
+    @param mode: Export mode
+    @rtype: string
+    @return: Job ID
+
+    """
+    query = [("mode", mode)]
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/prepare-export" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
+
+  def ExportInstance(self, instance, mode, destination, shutdown=None,
+                     remove_instance=None,
+                     x509_key_name=None, destination_x509_ca=None):
+    """Exports an instance.
+
+    @type instance: string
+    @param instance: Instance name
+    @type mode: string
+    @param mode: Export mode
+    @rtype: string
+    @return: Job ID
+
+    """
+    body = {
+      "destination": destination,
+      "mode": mode,
+      }
+
+    if shutdown is not None:
+      body["shutdown"] = shutdown
+
+    if remove_instance is not None:
+      body["remove_instance"] = remove_instance
+
+    if x509_key_name is not None:
+      body["x509_key_name"] = x509_key_name
+
+    if destination_x509_ca is not None:
+      body["destination_x509_ca"] = destination_x509_ca
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/export" %
+                              (GANETI_RAPI_VERSION, instance)), None, body)
+
   def GetJobs(self):
     """Gets all jobs for the cluster.
 

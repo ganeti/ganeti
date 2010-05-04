@@ -396,6 +396,26 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertItems(["instance-moo"])
     self.assertQuery("disks", None)
 
+  def testPrepareExport(self):
+    self.rapi.AddResponse("8326")
+    self.assertEqual(8326, self.client.PrepareExport("inst1", "local"))
+    self.assertHandler(rlib2.R_2_instances_name_prepare_export)
+    self.assertItems(["inst1"])
+    self.assertQuery("mode", ["local"])
+
+  def testExportInstance(self):
+    self.rapi.AddResponse("19695")
+    job_id = self.client.ExportInstance("inst2", "local", "nodeX",
+                                        shutdown=True)
+    self.assertEqual(job_id, 19695)
+    self.assertHandler(rlib2.R_2_instances_name_export)
+    self.assertItems(["inst2"])
+
+    data = serializer.LoadJson(self.http.last_request.data)
+    self.assertEqual(data["mode"], "local")
+    self.assertEqual(data["destination"], "nodeX")
+    self.assertEqual(data["shutdown"], True)
+
   def testGetJobs(self):
     self.rapi.AddResponse('[ { "id": "123", "uri": "\\/2\\/jobs\\/123" },'
                           '  { "id": "124", "uri": "\\/2\\/jobs\\/124" } ]')

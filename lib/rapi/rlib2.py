@@ -578,6 +578,12 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
                                              default=None),
     file_driver=baserlib.CheckParameter(data, "file_driver",
                                         default=constants.FD_LOOP),
+    source_handshake=baserlib.CheckParameter(data, "source_handshake",
+                                             default=None),
+    source_x509_ca=baserlib.CheckParameter(data, "source_x509_ca",
+                                           default=None),
+    source_instance_name=baserlib.CheckParameter(data, "source_instance_name",
+                                                 default=None),
     iallocator=baserlib.CheckParameter(data, "iallocator", default=None),
     hypervisor=baserlib.CheckParameter(data, "hypervisor", default=None),
     hvparams=hvparams,
@@ -887,6 +893,69 @@ class R_2_instances_name_deactivate_disks(baserlib.R_Generic):
     instance_name = self.items[0]
 
     op = opcodes.OpDeactivateInstanceDisks(instance_name=instance_name)
+
+    return baserlib.SubmitJob([op])
+
+
+class R_2_instances_name_prepare_export(baserlib.R_Generic):
+  """/2/instances/[instance_name]/prepare-export resource.
+
+  """
+  def PUT(self):
+    """Prepares an export for an instance.
+
+    @return: a job id
+
+    """
+    instance_name = self.items[0]
+    mode = self._checkStringVariable("mode")
+
+    op = opcodes.OpPrepareExport(instance_name=instance_name,
+                                 mode=mode)
+
+    return baserlib.SubmitJob([op])
+
+
+def _ParseExportInstanceRequest(name, data):
+  """Parses a request for an instance export.
+
+  @rtype: L{opcodes.OpExportInstance}
+  @return: Instance export opcode
+
+  """
+  mode = baserlib.CheckParameter(data, "mode",
+                                 default=constants.EXPORT_MODE_LOCAL)
+  target_node = baserlib.CheckParameter(data, "destination")
+  shutdown = baserlib.CheckParameter(data, "shutdown", exptype=bool)
+  remove_instance = baserlib.CheckParameter(data, "remove_instance",
+                                            exptype=bool, default=False)
+  x509_key_name = baserlib.CheckParameter(data, "x509_key_name", default=None)
+  destination_x509_ca = baserlib.CheckParameter(data, "destination_x509_ca",
+                                                default=None)
+
+  return opcodes.OpExportInstance(instance_name=name,
+                                  mode=mode,
+                                  target_node=target_node,
+                                  shutdown=shutdown,
+                                  remove_instance=remove_instance,
+                                  x509_key_name=x509_key_name,
+                                  destination_x509_ca=destination_x509_ca)
+
+
+class R_2_instances_name_export(baserlib.R_Generic):
+  """/2/instances/[instance_name]/export resource.
+
+  """
+  def PUT(self):
+    """Exports an instance.
+
+    @return: a job id
+
+    """
+    if not isinstance(self.request_body, dict):
+      raise http.HttpBadRequest("Invalid body contents, not a dictionary")
+
+    op = _ParseExportInstanceRequest(self.items[0], self.request_body)
 
     return baserlib.SubmitJob([op])
 

@@ -180,5 +180,49 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
         self.assertRaises(http.HttpBadRequest, self.Parse, data, False)
 
 
+class TestParseExportInstanceRequest(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.Parse = rlib2._ParseExportInstanceRequest
+
+  def test(self):
+    name = "instmoo"
+    data = {
+      "mode": constants.EXPORT_MODE_REMOTE,
+      "destination": [(1, 2, 3), (99, 99, 99)],
+      "shutdown": True,
+      "remove_instance": True,
+      "x509_key_name": ("name", "hash"),
+      "destination_x509_ca": ("x", "y", "z"),
+      }
+    op = self.Parse(name, data)
+    self.assert_(isinstance(op, opcodes.OpExportInstance))
+    self.assertEqual(op.instance_name, name)
+    self.assertEqual(op.mode, constants.EXPORT_MODE_REMOTE)
+    self.assertEqual(op.shutdown, True)
+    self.assertEqual(op.remove_instance, True)
+    self.assertEqualValues(op.x509_key_name, ("name", "hash"))
+    self.assertEqualValues(op.destination_x509_ca, ("x", "y", "z"))
+
+  def testDefaults(self):
+    name = "inst1"
+    data = {
+      "destination": "node2",
+      "shutdown": False,
+      }
+    op = self.Parse(name, data)
+    self.assert_(isinstance(op, opcodes.OpExportInstance))
+    self.assertEqual(op.instance_name, name)
+    self.assertEqual(op.mode, constants.EXPORT_MODE_LOCAL)
+    self.assertEqual(op.remove_instance, False)
+
+  def testErrors(self):
+    self.assertRaises(http.HttpBadRequest, self.Parse, "err1",
+                      { "remove_instance": "True", })
+    self.assertRaises(http.HttpBadRequest, self.Parse, "err1",
+                      { "remove_instance": "False", })
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
