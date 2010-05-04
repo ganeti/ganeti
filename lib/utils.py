@@ -57,6 +57,11 @@ except ImportError:
   import sha
   sha1 = sha.new
 
+try:
+  import ctypes
+except ImportError:
+  ctypes = None
+
 from ganeti import errors
 from ganeti import constants
 
@@ -82,6 +87,10 @@ _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 # "blksize_t, pid_t, and ssize_t shall be signed integer types"
 _STRUCT_UCRED = "iII"
 _STRUCT_UCRED_SIZE = struct.calcsize(_STRUCT_UCRED)
+
+# Flags for mlockall() (from bits/mman.h)
+_MCL_CURRENT = 1
+_MCL_FUTURE = 2
 
 
 class RunResult(object):
@@ -1737,6 +1746,37 @@ def CloseFDs(noclose_fds=None):
     if noclose_fds and fd in noclose_fds:
       continue
     _CloseFDNoErr(fd)
+
+
+def Mlockall():
+  """Lock current process' virtual address space into RAM.
+
+  This is equivalent to the C call mlockall(MCL_CURRENT|MCL_FUTURE),
+  see mlock(2) for more details. This function requires ctypes module.
+
+  """
+  if ctypes is None:
+    logging.warning("Cannot set memory lock, ctypes module not found")
+    return
+
+  libc = ctypes.cdll.LoadLibrary("libc.so.6")
+  if libc is None:
+    logging.error("Cannot set memory lock, ctypes cannot load libc")
+    return
+
+  # Some older version of the ctypes module don't have built-in functionality
+  # to access the errno global variable, where function error codes are stored.
+  # By declaring this variable as a pointer to an integer we can then access
+  # its value correctly, should the mlockall call fail, in order to see what
+  # the actual error code was.
+  libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
+
+  if libc.mlockall(_MCL_CURRENT | _MCL_FUTURE):
+    logging.error("Cannot set memory lock: %s" %
+                  os.strerror(libc.__errno_location().contents.value))
+    return
+
+  logging.debug("Memory lock set")
 
 
 def Daemonize(logfile):
