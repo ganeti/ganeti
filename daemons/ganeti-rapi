@@ -81,6 +81,8 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
   AUTH_REALM = "Ganeti Remote API"
 
   def __init__(self, *args, **kwargs):
+    # pylint: disable-msg=W0233
+  # it seems pylint doesn't see the second parent class there
     http.server.HttpServer.__init__(self, *args, **kwargs)
     http.auth.HttpServerRequestAuthentication.__init__(self)
     self._resmap = connector.Mapper()
@@ -228,6 +230,8 @@ def ExecRapi(options, _):
   server = RemoteApiHttpServer(mainloop, options.bind_address, options.port,
                                ssl_params=ssl_params, ssl_verify_peer=False,
                                request_executor_class=JsonErrorRequestExecutor)
+  # pylint: disable-msg=E1101
+  # it seems pylint doesn't see the second parent class there
   server.Start()
   try:
     mainloop.Run()

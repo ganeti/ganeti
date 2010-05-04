@@ -302,6 +302,7 @@ def main():
 
   # We need to keep filenames locally because they might be renamed between
   # versions.
+  options.data_dir = os.path.abspath(options.data_dir)
   options.CONFIG_DATA_PATH = options.data_dir + "/config.data"
   options.SERVER_PEM_PATH = options.data_dir + "/server.pem"
   options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"

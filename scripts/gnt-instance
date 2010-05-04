@@ -876,9 +876,8 @@ def MigrateInstance(opts, args):
     else:
       usertext = ("Instance %s will be migrated. Note that migration" %
                   (instance_name,))
-    usertext += (" is **experimental** in this version."
-                " This might impact the instance if anything goes wrong."
-                " Continue?")
+    usertext += (" might impact the instance if anything goes wrong"
+                 " (e.g. due to bugs in the hypervisor). Continue?")
     if not AskUser(usertext):
       return 1
 
