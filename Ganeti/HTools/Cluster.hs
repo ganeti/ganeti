@@ -187,14 +187,16 @@ totalResources nl =
 -- | Compute the delta between two cluster state.
 --
 -- This is used when doing allocations, to understand better the
--- available cluster resources.
+-- available cluster resources. The return value is a triple of the
+-- current used values, the delta that was still allocated, and what
+-- was left unallocated.
 computeAllocationDelta :: CStats -> CStats -> AllocStats
 computeAllocationDelta cini cfin =
     let CStats {csImem = i_imem, csIdsk = i_idsk, csIcpu = i_icpu} = cini
         CStats {csImem = f_imem, csIdsk = f_idsk, csIcpu = f_icpu,
                 csTmem = t_mem, csTdsk = t_dsk, csVcpu = v_cpu } = cfin
         rini = RSpec i_icpu i_imem i_idsk
-        rfin = RSpec f_icpu f_imem f_idsk
+        rfin = RSpec (f_icpu - i_icpu) (f_imem - i_imem) (f_idsk - i_idsk)
         un_cpu = if v_cpu == Node.noLimitInt
                  then Node.noLimitInt
                  else v_cpu - f_icpu
