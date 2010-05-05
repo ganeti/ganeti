@@ -288,3 +288,60 @@ def TestTags(kind, name, tags):
   _DoTests([
     (uri, _VerifyTags, 'GET', None),
     ])
+
+
+def _WaitForRapiJob(job_id):
+  """Waits for a job to finish.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  def _VerifyJob(data):
+    AssertEqual(data["id"], job_id)
+    for field in JOB_FIELDS:
+      AssertIn(field, data)
+
+  _DoTests([
+    ("/2/jobs/%s" % job_id, _VerifyJob, "GET", None),
+    ])
+
+  # FIXME: Use "gnt-job watch" until RAPI supports waiting for job
+  cmd = ["gnt-job", "watch", str(job_id)]
+  AssertEqual(StartSSH(master["primary"],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestRapiInstanceAdd(node):
+  """Test adding a new instance via RAPI"""
+  instance = qa_config.AcquireInstance()
+  try:
+    body = {
+      "name": instance["name"],
+      "os": qa_config.get("os"),
+      "disk_template": constants.DT_PLAIN,
+      "pnode": node["primary"],
+      "memory": utils.ParseUnit(qa_config.get("mem")),
+      "disks": [utils.ParseUnit(size) for size in qa_config.get("disk")],
+      }
+
+    (job_id, ) = _DoTests([
+      ("/2/instances", _VerifyReturnsJob, "POST", body),
+      ])
+
+    _WaitForRapiJob(job_id)
+
+    return instance
+  except:
+    qa_config.ReleaseInstance(instance)
+    raise
+
+
+def TestRapiInstanceRemove(instance):
+  """Test removing instance via RAPI"""
+  (job_id, ) = _DoTests([
+    ("/2/instances/%s" % instance["name"], _VerifyReturnsJob, "DELETE", None),
+    ])
+
+  _WaitForRapiJob(job_id)
+
+  qa_config.ReleaseInstance(instance)
