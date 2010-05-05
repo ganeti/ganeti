@@ -5,6 +5,8 @@ News
 Version 2.1.1
 -------------
 
+*(Released Fri, 12 Mar 2010)*
+
 During the 2.1.0 long release candidate cycle, a lot of improvements and
 changes have accumulated with were released later as 2.1.1.
 
@@ -119,6 +121,8 @@ New features
 Version 2.1.0
 -------------
 
+*(Released Tue, 2 Mar 2010)*
+
 Ganeti 2.1 brings many improvements with it. Major changes:
 
 - Added infrastructure to ease automated disk repairs
@@ -218,6 +222,8 @@ Details
 Version 2.0.6
 -------------
 
+*(Released Thu, 4 Feb 2010)*
+
 - Fix cleaner behaviour on nodes not in a cluster (Debian bug 568105)
 - Fix a string formatting bug
 - Improve safety of the code in some error paths
@@ -227,6 +233,8 @@ Version 2.0.6
 Version 2.0.5
 -------------
 
+*(Released Thu, 17 Dec 2009)*
+
 - Fix security issue due to missing validation of iallocator names; this
   allows local and remote execution of arbitrary executables
 - Fix failure of gnt-node list during instance removal
@@ -235,6 +243,8 @@ Version 2.0.5
 
 Version 2.0.4
 -------------
+
+*(Released Wed, 30 Sep 2009)*
 
 - Fixed many wrong messages
 - Fixed a few bugs related to the locking library
@@ -279,6 +289,8 @@ Version 2.0.4
 Version 2.0.3
 -------------
 
+*(Released Fri, 7 Aug 2009)*
+
 - Added ``--ignore-size`` to the ``gnt-instance activate-disks`` command
   to allow using the pre-2.0.2 behaviour in activation, if any existing
   instances have mismatched disk sizes in the configuration
@@ -294,6 +306,8 @@ Version 2.0.3
 
 Version 2.0.2
 -------------
+
+*(Released Fri, 17 Jul 2009)*
 
 - Added experimental support for stripped logical volumes; this should
   enhance performance but comes with a higher complexity in the block
@@ -327,6 +341,8 @@ Version 2.0.2
 Version 2.0.1
 -------------
 
+*(Released Tue, 16 Jun 2009)*
+
 - added ``-H``/``-B`` startup parameters to ``gnt-instance``, which will
   allow re-adding the start in single-user option (regression from 1.2)
 - the watcher writes the instance status to a file, to allow monitoring
@@ -357,11 +373,15 @@ Version 2.0.1
 Version 2.0.0 final
 -------------------
 
+*(Released Wed, 27 May 2009)*
+
 - no changes from rc5
 
 
 Version 2.0 release candidate 5
 -------------------------------
+
+*(Released Wed, 20 May 2009)*
 
 - fix a couple of bugs (validation, argument checks)
 - fix ``gnt-cluster getmaster`` on non-master nodes (regression)
@@ -371,6 +391,8 @@ Version 2.0 release candidate 5
 
 Version 2.0 release candidate 4
 -------------------------------
+
+*(Released Mon, 27 Apr 2009)*
 
 - change the OS list to not require locks; this helps with big clusters
 - fix ``gnt-cluster verify`` and ``gnt-cluster verify-disks`` when the
@@ -385,6 +407,8 @@ Version 2.0 release candidate 4
 Version 2.0 release candidate 3
 -------------------------------
 
+*(Released Wed, 8 Apr 2009)*
+
 - Change the internal locking model of some ``gnt-node`` commands, in
   order to reduce contention (and blocking of master daemon) when
   batching many creation/reinstall jobs
@@ -397,6 +421,8 @@ Version 2.0 release candidate 3
 Version 2.0 release candidate 2
 -------------------------------
 
+*(Released Fri, 27 Mar 2009)*
+
 - Now the cfgupgrade scripts works and can upgrade 1.2.7 clusters to 2.0
 - Fix watcher startup sequence, improves the behaviour of busy clusters
 - Some other fixes in ``gnt-cluster verify``, ``gnt-instance
@@ -407,6 +433,8 @@ Version 2.0 release candidate 2
 
 Version 2.0 release candidate 1
 -------------------------------
+
+*(Released Mon, 2 Mar 2009)*
 
 - More documentation updates, now all docs should be more-or-less
   up-to-date
@@ -419,6 +447,8 @@ Version 2.0 release candidate 1
 
 Version 2.0 beta 2
 ------------------
+
+*(Released Thu, 19 Feb 2009)*
 
 - Xen PVM and KVM have switched the default value for the instance root
   disk to the first partition on the first drive, instead of the whole
@@ -435,6 +465,8 @@ Version 2.0 beta 2
 
 Version 2.0 beta 1
 ------------------
+
+*(Released Mon, 26 Jan 2009)*
 
 - Version 2 is a general rewrite of the code and therefore the
   differences are too many to list, see the design document for 2.0 in
@@ -466,6 +498,8 @@ Version 2.0 beta 1
 Version 1.2.7
 -------------
 
+*(Released Tue, 13 Jan 2009)*
+
 - Change the default reboot type in ``gnt-instance reboot`` to "hard"
 - Reuse the old instance mac address by default on instance import, if
   the instance name is the same.
@@ -491,6 +525,8 @@ Version 1.2.7
 Version 1.2.6
 -------------
 
+*(Released Wed, 24 Sep 2008)*
+
 - new ``--hvm-nic-type`` and ``--hvm-disk-type`` flags to control the
   type of disk exported to fully virtualized instances.
 - provide access to the serial console of HVM instances
@@ -514,6 +550,8 @@ Version 1.2.6
 Version 1.2.5
 -------------
 
+*(Released Tue, 22 Jul 2008)*
+
 - note: the allowed size and number of tags per object were reduced
 - fix a bug in ``gnt-cluster verify`` with inconsistent volume groups
 - fixed twisted 8.x compatibility
@@ -530,6 +568,8 @@ Version 1.2.5
 
 Version 1.2.4
 -------------
+
+*(Released Fri, 13 Jun 2008)*
 
 - Experimental readonly, REST-based remote API implementation;
   automatically started on master node, TCP port 5080, if enabled by
@@ -574,6 +614,8 @@ Version 1.2.4
 Version 1.2.3
 -------------
 
+*(Released Mon, 18 Feb 2008)*
+
 - more tweaks to the disk activation code (especially helpful for DRBD)
 - change the default ``gnt-instance list`` output format, now there is
   one combined status field (see the manpage for the exact values this
@@ -587,6 +629,8 @@ Version 1.2.3
 
 Version 1.2.2
 -------------
+
+*(Released Wed, 30 Jan 2008)*
 
 - fix ``gnt-instance modify`` breakage introduced in 1.2.1 with the HVM
   support (issue 23)
@@ -604,6 +648,8 @@ Version 1.2.2
 
 Version 1.2.1
 -------------
+
+*(Released Wed, 16 Jan 2008)*
 
 - experimental HVM support, read the install document, section
   "Initializing the cluster"
@@ -623,6 +669,8 @@ Version 1.2.1
 Version 1.2.0
 -------------
 
+*(Released Tue, 4 Dec 2007)*
+
 - Log the ``xm create`` output to the node daemon log on failure (to
   help diagnosing the error)
 - In debug mode, log all external commands output if failed to the logs
@@ -631,6 +679,8 @@ Version 1.2.0
 
 Version 1.2b3
 -------------
+
+*(Released Wed, 28 Nov 2007)*
 
 - Another round of updates to the DRBD 8 code to deal with more failures
   in the replace secondary node operation
@@ -641,6 +691,8 @@ Version 1.2b3
 
 Version 1.2b2
 -------------
+
+*(Released Tue, 13 Nov 2007)*
 
 - Change configuration file format from Python's Pickle to JSON.
   Upgrading is possible using the cfgupgrade utility.
