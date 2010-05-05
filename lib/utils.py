@@ -2067,6 +2067,40 @@ def GetDaemonPort(daemon_name):
   return port
 
 
+class LogFileHandler(logging.FileHandler):
+  """Log handler that doesn't fallback to stderr.
+
+  When an error occurs while writing on the logfile, logging.FileHandler tries
+  to log on stderr. This doesn't work in ganeti since stderr is redirected to
+  the logfile. This class avoids failures reporting errors to /dev/console.
+
+  """
+  def __init__(self, filename, mode="a", encoding=None):
+    """Open the specified file and use it as the stream for logging.
+
+    Also open /dev/console to report errors while logging.
+
+    """
+    logging.FileHandler.__init__(self, filename, mode, encoding)
+    self.console = open(constants.DEV_CONSOLE, "a")
+
+  def handleError(self, record):
+    """Handle errors which occur during an emit() call.
+
+    Try to handle errors with FileHandler method, if it fails write to
+    /dev/console.
+
+    """
+    try:
+      logging.Filehandler.handleError(self, record)
+    except Exception:
+      try:
+        self.console.write("Cannot log message:\n%s\n" % self.format(record))
+      except Exception:
+        # Log handler tried everything it could, now just give up
+        pass
+
+
 def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
                  multithreaded=False, syslog=constants.SYSLOG_USAGE):
   """Configures the logging module.
