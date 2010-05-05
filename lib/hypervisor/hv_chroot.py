@@ -67,11 +67,7 @@ class ChrootManager(hv_base.BaseHypervisor):
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
-    if not os.path.exists(self._ROOT_DIR):
-      os.mkdir(self._ROOT_DIR)
-    if not os.path.isdir(self._ROOT_DIR):
-      raise HypervisorError("Needed path %s is not a directory" %
-                            self._ROOT_DIR)
+    utils.EnsureDirs([(self._ROOT_DIR, constants.RUN_DIRS_MODE)])
 
   @staticmethod
   def _IsDirLive(path):

@@ -46,8 +46,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
-    if not os.path.exists(self._ROOT_DIR):
-      os.mkdir(self._ROOT_DIR)
+    utils.EnsureDirs([(self._ROOT_DIR, constants.RUN_DIRS_MODE)])
 
   def ListInstances(self):
     """Get the list of running instances.
