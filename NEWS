@@ -1,6 +1,103 @@
 News
 ====
 
+Version 2.1.2
+-------------
+
+*(Unreleased)*
+
+Another release with a long development cycle, during which many
+different features were added.
+
+Significant features
+~~~~~~~~~~~~~~~~~~~~
+
+The KVM hypervisor now can run the individual instances as non-root, to
+reduce the impact of a VM being hijacked due to bugs in the
+hypervisor. It is possible to run all instances as a single (non-root)
+user, to manually specify a user for each instance, or to dynamically
+allocate a user out of a cluster-wide pool to each instance, with the
+guarantee that no two instances will run under the same user ID on any
+given node.
+
+An experimental RAPI client library, that can be used standalone
+(without the other Ganeti libraries), is provided in the source tree as
+``lib/rapi/client.py``. Note this client might change its interface in
+the future, as we iterate on its capabilities.
+
+A new command, ``gnt-cluster renew-crypto`` has been added to easily
+replace the cluster's certificates and crypto keys. This might help in
+case they have been compromised, or have simply expired.
+
+A new disk option for instance creation has been added that allows one
+to "adopt" currently existing logical volumes, with data
+preservation. This should allow easier migration to Ganeti from
+unmanaged (or managed via other software) instances.
+
+Another disk improvement is the possibility to convert between redundant
+(DRBD) and plain (LVM) disk configuration for an instance. This should
+allow better scalability (starting with one node and growing the
+cluster, or shrinking a two-node cluster to one node).
+
+A new feature that could help with automated node failovers has been
+implemented: if a node sees itself as offline (by querying the master
+candidates), it will try to shutdown (hard) all instances and any active
+DRBD devices. This reduces the risk of duplicate instances if an
+external script automatically failovers the instances on such nodes. To
+enable this, the cluster parameter ``maintain_node_health`` should be
+enabled; in the future this option (per the name) will enable other
+automatic maintenance features.
+
+Instance export/import now will reuse the original instance
+specifications for all parameters; that means exporting an instance,
+deleting it and the importing it back should give an almost identical
+instance. Note that the default import behaviour has changed from
+before, where it created only one NIC; now it recreates the original
+number of NICs.
+
+Cluster verify has added a few new checks: SSL certificates validity,
+/etc/hosts consistency across the cluster, etc.
+
+Other changes
+~~~~~~~~~~~~~
+
+As usual, many internal changes were done, documentation fixes,
+etc. Among others:
+
+- Fixed cluster initialization with disabled cluster storage (regression
+  introduced in 2.1.1)
+- File-based storage supports growing the disks
+- Fixed behaviour of node role changes
+- Fixed cluster verify for some corner cases, plus a general rewrite of
+  cluster verify to allow future extension with more checks
+- Fixed log spamming by watcher and node daemon (regression introduced
+  in 2.1.1)
+- Fixed possible validation issues when changing the list of enabled
+  hypervisors
+- Fixed cleanup of /etc/hosts during node removal
+- Fixed RAPI response for invalid methods
+- Fixed bug with hashed passwords in ``ganeti-rapi`` daemon
+- Multiple small improvements to the KVM hypervisor (VNC usage, booting
+  from ide disks, etc.)
+- Allow OS changes without re-installation (to record a changed OS
+  outside of Ganeti, or to allow OS renames)
+- Allow instance creation without OS installation (useful for example if
+  the OS will be installed manually, or restored from a backup not in
+  Ganeti format)
+- Implemented option to make cluster ``copyfile`` use the replication
+  network
+- Added list of enabled hypervisors to ssconf (possibly useful for
+  external scripts)
+- Added a new tool (``tools/cfgupgrade12``) that allows upgrading from
+  1.2 clusters
+- A partial form of node re-IP is possible via node readd, which now
+  allows changed node primary IP
+- Command line utilities now show an informational message if the job is
+  waiting for a lock
+- The logs of the master daemon now show the PID/UID/GID of the
+  connected client
+
+
 
 Version 2.1.1
 -------------
