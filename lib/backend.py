@@ -2030,8 +2030,6 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx, debug):
   export_script = inst_os.export_script
 
   logfile = _InstanceLogName("export", inst_os.name, instance.name)
-  if not os.path.exists(constants.LOG_OS_DIR):
-    os.mkdir(constants.LOG_OS_DIR, 0750)
 
   real_disk = _OpenRealBD(disk)
 
@@ -2184,8 +2182,6 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name, debug):
   import_script = inst_os.import_script
 
   logfile = _InstanceLogName("import", instance.os, instance.name)
-  if not os.path.exists(constants.LOG_OS_DIR):
-    os.mkdir(constants.LOG_OS_DIR, 0750)
 
   comprcmd = "gunzip"
   impcmd = utils.BuildShellCmd("(cd %s; %s >%s 2>&1)", inst_os.path,
