@@ -249,8 +249,9 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
   @type optionparser: optparse.OptionParser
   @param optionparser: initialized optionparser with daemon-specific options
                        (common -f -d options will be handled by this module)
-  @type dirs: list of strings
-  @param dirs: list of directories that must exist for this daemon to work
+  @type dirs: list of (string, integer)
+  @param dirs: list of directories that must be created if they don't exist,
+               and the permissions to be used to create them
   @type check_fn: function which accepts (options, args)
   @param check_fn: function that checks start conditions and exits if they're
                    not met
