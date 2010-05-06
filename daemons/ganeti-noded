@@ -833,6 +833,8 @@ def ExecNoded(options, _):
   """Main node daemon function, executed with the PID file held.
 
   """
+  utils.Mlockall()
+
   # Read SSL certificate
   if options.ssl:
     ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
