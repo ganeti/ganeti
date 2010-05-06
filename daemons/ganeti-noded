@@ -92,6 +92,17 @@ def _RequireJobQueueLock(fn):
   return wrapper
 
 
+class MlockallRequestExecutor(http.server.HttpServerRequestExecutor):
+  """Custom Request Executor class that ensures NodeHttpServer children are
+  locked in ram.
+
+  """
+  def __init__(self, *args, **kwargs):
+    utils.Mlockall()
+
+    http.server.HttpServerRequestExecutor.__init__(self, *args, **kwargs)
+
+
 class NodeHttpServer(http.server.HttpServer):
   """The server implementation.
 
@@ -851,7 +862,8 @@ def ExecNoded(options, _):
 
   mainloop = daemon.Mainloop()
   server = NodeHttpServer(mainloop, options.bind_address, options.port,
-                          ssl_params=ssl_params, ssl_verify_peer=True)
+                          ssl_params=ssl_params, ssl_verify_peer=True,
+                          request_executor_class=MlockallRequestExecutor)
   server.Start()
   try:
     mainloop.Run()
