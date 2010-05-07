@@ -156,7 +156,7 @@ class SshRunner:
                                       strict_host_check, private_key,
                                       quiet=quiet))
     if tty:
-      argv.append("-t")
+      argv.extend(["-t", "-t"])
     argv.extend(["%s@%s" % (user, hostname), command])
     return argv
 
