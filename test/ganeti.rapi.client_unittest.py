@@ -286,7 +286,7 @@ class GanetiRapiClientTests(unittest.TestCase):
   def testReplaceInstanceDisks(self):
     self.rapi.AddResponse("999")
     job_id = self.client.ReplaceInstanceDisks("instance-name",
-        ["hda", "hdc"], dry_run=True)
+        ["hda", "hdc"], dry_run=True, iallocator="hail")
     self.assertEqual(999, job_id)
     self.assertHandler(rlib2.R_2_instances_name_replace_disks)
     self.assertItems(["instance-name"])

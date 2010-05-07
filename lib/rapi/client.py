@@ -418,6 +418,14 @@ class GanetiRapiClient(object):
 
     return response_content
 
+  @staticmethod
+  def _CheckStorageType(storage_type):
+    """Checks a storage type for validity.
+
+    """
+    if storage_type not in VALID_STORAGE_TYPES:
+      raise InvalidStorageType("%s is an invalid storage type" % storage_type)
+
   def GetVersion(self):
     """Gets the Remote API version running on the cluster.
 
@@ -680,8 +688,8 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_POST, "/2/instances/%s/reinstall" % instance,
                              query, None)
 
-  def ReplaceInstanceDisks(self, instance, disks, mode="replace_auto",
-                           remote_node=None, iallocator="hail", dry_run=False):
+  def ReplaceInstanceDisks(self, instance, disks, mode=REPLACE_DISK_AUTO,
+                           remote_node=None, iallocator=None, dry_run=False):
     """Replaces disks on an instance.
 
     @type instance: str
@@ -689,13 +697,13 @@ class GanetiRapiClient(object):
     @type disks: list of str
     @param disks: disks to replace
     @type mode: str
-    @param mode: replacement mode to use. defaults to replace_auto
+    @param mode: replacement mode to use (defaults to replace_auto)
     @type remote_node: str or None
     @param remote_node: new secondary node to use (for use with
-        replace_new_secondary mdoe)
+        replace_new_secondary mode)
     @type iallocator: str or None
     @param iallocator: instance allocator plugin to use (for use with
-        replace_auto mdoe).  default is hail
+                       replace_auto mode)
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
@@ -708,16 +716,19 @@ class GanetiRapiClient(object):
 
     """
     if mode not in VALID_REPLACEMENT_MODES:
-      raise InvalidReplacementMode("%s is not a valid disk replacement mode.",
+      raise InvalidReplacementMode("%s is not a valid disk replacement mode" %
                                    mode)
 
-    query = [("mode", mode), ("disks", ",".join(disks))]
+    query = [
+      ("mode", mode),
+      ("disks", ",".join(disks)),
+      ]
 
-    if mode is REPLACE_DISK_AUTO:
+    if mode == REPLACE_DISK_AUTO:
       query.append(("iallocator", iallocator))
-    elif mode is REPLACE_DISK_SECONDARY:
+    elif mode == REPLACE_DISK_SECONDARY:
       if remote_node is None:
-        raise GanetiApiError("You must supply a new secondary node.")
+        raise GanetiApiError("Missing secondary node")
       query.append(("remote_node", remote_node))
 
     if dry_run:
@@ -816,10 +827,10 @@ class GanetiRapiClient(object):
     @raises GanetiApiError: if an iallocator and remote_node are both specified
 
     """
-    query = []
     if iallocator and remote_node:
-      raise GanetiApiError("Only one of iallocator or remote_node can be used.")
+      raise GanetiApiError("Only one of iallocator or remote_node can be used")
 
+    query = []
     if iallocator:
       query.append(("iallocator", iallocator))
     if remote_node:
@@ -882,9 +893,10 @@ class GanetiRapiClient(object):
 
     """
     if role not in VALID_NODE_ROLES:
-      raise InvalidNodeRole("%s is not a valid node role.", role)
+      raise InvalidNodeRole("%s is not a valid node role" % role)
 
     query = [("force", force)]
+
     return self._SendRequest(HTTP_PUT, "/2/nodes/%s/role" % node,
                              query, role)
 
@@ -905,10 +917,13 @@ class GanetiRapiClient(object):
 
     """
     # TODO: Add default for storage_type & output_fields
-    if storage_type not in VALID_STORAGE_TYPES:
-      raise InvalidStorageType("%s is an invalid storage type.", storage_type)
+    self._CheckStorageType(storage_type)
 
-    query = [("storage_type", storage_type), ("output_fields", output_fields)]
+    query = [
+      ("storage_type", storage_type),
+      ("output_fields", output_fields),
+      ]
+
     return self._SendRequest(HTTP_GET, "/2/nodes/%s/storage" % node,
                              query, None)
 
@@ -930,13 +945,14 @@ class GanetiRapiClient(object):
     @raise InvalidStorageType: If an invalid storage type is specified
 
     """
-    if storage_type not in VALID_STORAGE_TYPES:
-      raise InvalidStorageType("%s is an invalid storage type.", storage_type)
+    self._CheckStorageType(storage_type)
 
     query = [
-        ("storage_type", storage_type), ("name", name),
-        ("allocatable", allocatable)
-        ]
+      ("storage_type", storage_type),
+      ("name", name),
+      ("allocatable", allocatable),
+      ]
+
     return self._SendRequest(HTTP_PUT, "/2/nodes/%s/storage/modify" % node,
                              query, None)
 
@@ -956,10 +972,13 @@ class GanetiRapiClient(object):
     @raise InvalidStorageType: If an invalid storage type is specified
 
     """
-    if storage_type not in VALID_STORAGE_TYPES:
-      raise InvalidStorageType("%s is an invalid storage type.", storage_type)
+    self._CheckStorageType(storage_type)
 
-    query = [("storage_type", storage_type), ("name", name)]
+    query = [
+      ("storage_type", storage_type),
+      ("name", name),
+      ]
+
     return self._SendRequest(HTTP_PUT, "/2/nodes/%s/storage/repair" % node,
                              query, None)
 
