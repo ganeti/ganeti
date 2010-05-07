@@ -1612,6 +1612,10 @@ class TestRetry(testutils.GanetiTestCase):
   def _RaiseRetryAgain():
     raise utils.RetryAgain()
 
+  @staticmethod
+  def _RaiseRetryAgainWithArg(args):
+    raise utils.RetryAgain(*args)
+
   def _WrongNestedLoop(self):
     return utils.Retry(self._RaiseRetryAgain, 0.01, 0.02)
 
@@ -1641,6 +1645,45 @@ class TestRetry(testutils.GanetiTestCase):
                             self._WrongNestedLoop, 0, 1)
     except utils.RetryTimeout:
       self.fail("Didn't detect inner loop's exception")
+
+  def testTimeoutArgument(self):
+    retry_arg="my_important_debugging_message"
+    try:
+      utils.Retry(self._RaiseRetryAgainWithArg, 0.01, 0.02, args=[[retry_arg]])
+    except utils.RetryTimeout, err:
+      self.failUnlessEqual(err.args, (retry_arg, ))
+    else:
+      self.fail("Expected timeout didn't happen")
+
+  def testRaiseInnerWithExc(self):
+    retry_arg="my_important_debugging_message"
+    try:
+      try:
+        utils.Retry(self._RaiseRetryAgainWithArg, 0.01, 0.02,
+                    args=[[errors.GenericError(retry_arg, retry_arg)]])
+      except utils.RetryTimeout, err:
+        err.RaiseInner()
+      else:
+        self.fail("Expected timeout didn't happen")
+    except errors.GenericError, err:
+      self.failUnlessEqual(err.args, (retry_arg, retry_arg))
+    else:
+      self.fail("Expected GenericError didn't happen")
+
+  def testRaiseInnerWithMsg(self):
+    retry_arg="my_important_debugging_message"
+    try:
+      try:
+        utils.Retry(self._RaiseRetryAgainWithArg, 0.01, 0.02,
+                    args=[[retry_arg, retry_arg]])
+      except utils.RetryTimeout, err:
+        err.RaiseInner()
+      else:
+        self.fail("Expected timeout didn't happen")
+    except utils.RetryTimeout, err:
+      self.failUnlessEqual(err.args, (retry_arg, retry_arg))
+    else:
+      self.fail("Expected RetryTimeout didn't happen")
 
 
 class TestLineSplitter(unittest.TestCase):

@@ -2499,6 +2499,11 @@ class RetryTimeout(Exception):
   """Retry loop timed out.
 
   """
+  def RaiseInner(self):
+    if self.args and isinstance(self.args[0], Exception):
+      raise self.args[0]
+    else:
+      raise RetryTimeout(*self.args)
 
 
 class RetryAgain(Exception):
@@ -2612,11 +2617,12 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
   assert calc_delay is None or callable(calc_delay)
 
   while True:
+    retry_args = []
     try:
       # pylint: disable-msg=W0142
       return fn(*args)
-    except RetryAgain:
-      pass
+    except RetryAgain, err:
+      retry_args = err.args
     except RetryTimeout:
       raise errors.ProgrammerError("Nested retry loop detected that didn't"
                                    " handle RetryTimeout")
@@ -2624,7 +2630,8 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
     remaining_time = end_time - _time_fn()
 
     if remaining_time < 0.0:
-      raise RetryTimeout()
+      # pylint: disable-msg=W0142
+      raise RetryTimeout(*retry_args)
 
     assert remaining_time >= 0.0
 
