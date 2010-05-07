@@ -107,8 +107,8 @@ class RapiMock(object):
       HandlerClass, items, args = self._mapper.getController(path)
       self._last_handler = HandlerClass(items, args, None)
       if not hasattr(self._last_handler, method.upper()):
-        code = 400
-        response = "Bad request"
+        code = 501
+        response = "Method not implemented"
     except http.HttpException, ex:
       code = ex.code
       response = ex.message
@@ -120,12 +120,11 @@ class RapiMock(object):
 
 
 class RapiMockTest(unittest.TestCase):
-
   def test(self):
     rapi = RapiMock()
     path = "/version"
     self.assertEqual((404, None), rapi.FetchResponse("/foo", "GET"))
-    self.assertEqual((400, "Bad request"),
+    self.assertEqual((501, "Method not implemented"),
                      rapi.FetchResponse("/version", "POST"))
     rapi.AddResponse("2")
     code, response = rapi.FetchResponse("/version", "GET")
