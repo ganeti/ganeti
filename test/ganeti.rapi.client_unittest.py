@@ -423,6 +423,19 @@ class GanetiRapiClientTests(unittest.TestCase):
                       self.client.ModifyNodeStorageUnits,
                       "node-n", "floppy-disk", "hdc")
 
+  def testRepairNodeStorageUnits(self):
+    self.rapi.AddResponse("99")
+    self.assertEqual(99, self.client.RepairNodeStorageUnits("node-z", "lvm-pv",
+                                                            "hda"))
+    self.assertHandler(rlib2.R_2_nodes_name_storage_repair)
+    self.assertItems(["node-z"])
+    self.assertQuery("storage_type", ["lvm-pv"])
+    self.assertQuery("name", ["hda"])
+
+    self.assertRaises(client.InvalidStorageType,
+                      self.client.RepairNodeStorageUnits,
+                      "node-n", "floppy-disk", "hdc")
+
   def testGetNodeTags(self):
     self.rapi.AddResponse("[\"fry\", \"bender\"]")
     self.assertEqual(["fry", "bender"], self.client.GetNodeTags("node-k"))
