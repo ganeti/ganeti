@@ -2498,6 +2498,10 @@ def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
 class RetryTimeout(Exception):
   """Retry loop timed out.
 
+  Any arguments which was passed by the retried function to RetryAgain will be
+  preserved in RetryTimeout, if it is raised. If such argument was an exception
+  the RaiseInner helper method will reraise it.
+
   """
   def RaiseInner(self):
     if self.args and isinstance(self.args[0], Exception):
@@ -2508,6 +2512,10 @@ class RetryTimeout(Exception):
 
 class RetryAgain(Exception):
   """Retry again.
+
+  Any arguments passed to RetryAgain will be preserved, if a timeout occurs, as
+  arguments to RetryTimeout. If an exception is passed, the RaiseInner() method
+  of the RetryTimeout() method can be used to reraise it.
 
   """
 
