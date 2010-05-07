@@ -1,6 +1,13 @@
 News
 ====
 
+Version 2.1.2.1
+---------------
+
+*(Released Fri, 7 May 2010)*
+
+Fix a bug which prevented untagged KVM instances from starting.
+
 Version 2.1.2
 -------------
 
