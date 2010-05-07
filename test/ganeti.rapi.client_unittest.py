@@ -22,14 +22,6 @@
 """Script for unittesting the RAPI client module"""
 
 
-try:
-  import httplib2
-  BaseHttp = httplib2.Http
-  from ganeti.rapi import client
-except ImportError:
-  httplib2 = None
-  BaseHttp = object
-
 import re
 import unittest
 import warnings
@@ -38,6 +30,7 @@ from ganeti import http
 
 from ganeti.rapi import connector
 from ganeti.rapi import rlib2
+from ganeti.rapi import client
 
 import testutils
 
@@ -56,33 +49,34 @@ def _GetPathFromUri(uri):
     return None
 
 
-class HttpResponseMock(dict):
-  """Dumb mock of httplib2.Response.
+class HttpResponseMock:
+  """Dumb mock of httplib.HTTPResponse.
 
   """
 
-  def __init__(self, status):
-    self.status = status
-    self['status'] = status
+  def __init__(self, code, data):
+    self.code = code
+    self._data = data
+
+  def read(self):
+    return self._data
 
 
-class HttpMock(BaseHttp):
-  """Mock for httplib.Http.
+class OpenerDirectorMock:
+  """Mock for urllib.OpenerDirector.
 
   """
 
   def __init__(self, rapi):
     self._rapi = rapi
-    self._last_request = None
+    self.last_request = None
 
-  last_request_url = property(lambda self: self._last_request[0])
-  last_request_method = property(lambda self: self._last_request[1])
-  last_request_body = property(lambda self: self._last_request[2])
+  def open(self, req):
+    self.last_request = req
 
-  def request(self, url, method, body, headers):
-    self._last_request = (url, method, body)
-    code, resp_body = self._rapi.FetchResponse(_GetPathFromUri(url), method)
-    return HttpResponseMock(code), resp_body
+    path = _GetPathFromUri(req.get_full_url())
+    code, resp_body = self._rapi.FetchResponse(path, req.get_method())
+    return HttpResponseMock(code, resp_body)
 
 
 class RapiMock(object):
@@ -146,7 +140,7 @@ class GanetiRapiClientTests(unittest.TestCase):
 
   def setUp(self):
     self.rapi = RapiMock()
-    self.http = HttpMock(self.rapi)
+    self.http = OpenerDirectorMock(self.rapi)
     self.client = client.GanetiRapiClient('master.foo.com')
     self.client._http = self.http
     # Hard-code the version for easier testing.
@@ -384,7 +378,7 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertHandler(rlib2.R_2_nodes_name_role)
     self.assertItems(["node-foo"])
     self.assertQuery("force", ["True"])
-    self.assertEqual("\"master-candidate\"", self.http.last_request_body)
+    self.assertEqual("\"master-candidate\"", self.http.last_request.data)
 
     self.assertRaises(client.InvalidNodeRole,
                       self.client.SetNodeRole, "node-bar", "fake-role")
@@ -439,7 +433,4 @@ class GanetiRapiClientTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  if httplib2 is None:
-    warnings.warn("These tests require the httplib2 library")
-  else:
-    testutils.GanetiTestProgram()
+  testutils.GanetiTestProgram()

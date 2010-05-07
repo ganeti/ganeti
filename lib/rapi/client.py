@@ -22,29 +22,37 @@
 """Ganeti RAPI client."""
 
 import httplib
-import httplib2
+import urllib2
+import logging
 import simplejson
 import socket
 import urllib
-from OpenSSL import SSL
-from OpenSSL import crypto
+import OpenSSL
+import distutils.version
 
+
+GANETI_RAPI_PORT = 5080
 
 HTTP_DELETE = "DELETE"
 HTTP_GET = "GET"
 HTTP_PUT = "PUT"
 HTTP_POST = "POST"
+HTTP_OK = 200
+HTTP_APP_JSON = "application/json"
+
 REPLACE_DISK_PRI = "replace_on_primary"
 REPLACE_DISK_SECONDARY = "replace_on_secondary"
 REPLACE_DISK_CHG = "replace_new_secondary"
 REPLACE_DISK_AUTO = "replace_auto"
 VALID_REPLACEMENT_MODES = frozenset([
-    REPLACE_DISK_PRI, REPLACE_DISK_SECONDARY, REPLACE_DISK_CHG,
-    REPLACE_DISK_AUTO
-    ])
+  REPLACE_DISK_PRI,
+  REPLACE_DISK_SECONDARY,
+  REPLACE_DISK_CHG,
+  REPLACE_DISK_AUTO,
+  ])
 VALID_NODE_ROLES = frozenset([
-    "drained", "master", "master-candidate", "offline", "regular"
-    ])
+  "drained", "master", "master-candidate", "offline", "regular",
+  ])
 VALID_STORAGE_TYPES = frozenset(["file", "lvm-pv", "lvm-vg"])
 
 
@@ -90,52 +98,264 @@ class InvalidNodeRole(Error):
   pass
 
 
+def FormatX509Name(x509_name):
+  """Formats an X509 name.
+
+  @type x509_name: OpenSSL.crypto.X509Name
+
+  """
+  try:
+    # Only supported in pyOpenSSL 0.7 and above
+    get_components_fn = x509_name.get_components
+  except AttributeError:
+    return repr(x509_name)
+  else:
+    return "".join("/%s=%s" % (name, value)
+                   for name, value in get_components_fn())
+
+
+class CertAuthorityVerify:
+  """Certificate verificator for SSL context.
+
+  Configures SSL context to verify server's certificate.
+
+  """
+  _CAPATH_MINVERSION = "0.9"
+  _DEFVFYPATHS_MINVERSION = "0.9"
+
+  _PYOPENSSL_VERSION = OpenSSL.__version__
+  _PARSED_PYOPENSSL_VERSION = distutils.version.LooseVersion(_PYOPENSSL_VERSION)
+
+  _SUPPORT_CAPATH = (_PARSED_PYOPENSSL_VERSION >= _CAPATH_MINVERSION)
+  _SUPPORT_DEFVFYPATHS = (_PARSED_PYOPENSSL_VERSION >= _DEFVFYPATHS_MINVERSION)
+
+  def __init__(self, cafile=None, capath=None, use_default_verify_paths=False):
+    """Initializes this class.
+
+    @type cafile: string
+    @param cafile: In which file we can find the certificates
+    @type capath: string
+    @param capath: In which directory we can find the certificates
+    @type use_default_verify_paths: bool
+    @param use_default_verify_paths: Whether the platform provided CA
+                                     certificates are to be used for
+                                     verification purposes
+
+    """
+    self._cafile = cafile
+    self._capath = capath
+    self._use_default_verify_paths = use_default_verify_paths
+
+    if self._capath is not None and not self._SUPPORT_CAPATH:
+      raise Error(("PyOpenSSL %s has no support for a CA directory,"
+                   " version %s or above is required") %
+                  (self._PYOPENSSL_VERSION, self._CAPATH_MINVERSION))
+
+    if self._use_default_verify_paths and not self._SUPPORT_DEFVFYPATHS:
+      raise Error(("PyOpenSSL %s has no support for using default verification"
+                   " paths, version %s or above is required") %
+                  (self._PYOPENSSL_VERSION, self._DEFVFYPATHS_MINVERSION))
+
+  @staticmethod
+  def _VerifySslCertCb(logger, _, cert, errnum, errdepth, ok):
+    """Callback for SSL certificate verification.
+
+    @param logger: Logging object
+
+    """
+    if ok:
+      log_fn = logger.debug
+    else:
+      log_fn = logger.error
+
+    log_fn("Verifying SSL certificate at depth %s, subject '%s', issuer '%s'",
+           errdepth, FormatX509Name(cert.get_subject()),
+           FormatX509Name(cert.get_issuer()))
+
+    if not ok:
+      try:
+        # Only supported in pyOpenSSL 0.7 and above
+        # pylint: disable-msg=E1101
+        fn = OpenSSL.crypto.X509_verify_cert_error_string
+      except AttributeError:
+        errmsg = ""
+      else:
+        errmsg = ":%s" % fn(errnum)
+
+      logger.error("verify error:num=%s%s", errnum, errmsg)
+
+    return ok
+
+  def __call__(self, ctx, logger):
+    """Configures an SSL context to verify certificates.
+
+    @type ctx: OpenSSL.SSL.Context
+    @param ctx: SSL context
+
+    """
+    if self._use_default_verify_paths:
+      ctx.set_default_verify_paths()
+
+    if self._cafile or self._capath:
+      if self._SUPPORT_CAPATH:
+        ctx.load_verify_locations(self._cafile, self._capath)
+      else:
+        ctx.load_verify_locations(self._cafile)
+
+    ctx.set_verify(OpenSSL.SSL.VERIFY_PEER,
+                   lambda conn, cert, errnum, errdepth, ok: \
+                     self._VerifySslCertCb(logger, conn, cert,
+                                           errnum, errdepth, ok))
+
+
+class _HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
+  """HTTPS Connection handler that verifies the SSL certificate.
+
+  """
+  def __init__(self, *args, **kwargs):
+    """Initializes this class.
+
+    """
+    httplib.HTTPSConnection.__init__(self, *args, **kwargs)
+    self._logger = None
+    self._config_ssl_verification = None
+
+  def Setup(self, logger, config_ssl_verification):
+    """Sets the SSL verification config function.
+
+    @param logger: Logging object
+    @type config_ssl_verification: callable
+
+    """
+    assert self._logger is None
+    assert self._config_ssl_verification is None
+
+    self._logger = logger
+    self._config_ssl_verification = config_ssl_verification
+
+  def connect(self):
+    """Connect to the server specified when the object was created.
+
+    This ensures that SSL certificates are verified.
+
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
+    ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
+
+    if self._config_ssl_verification:
+      self._config_ssl_verification(ctx, self._logger)
+
+    ssl = OpenSSL.SSL.Connection(ctx, sock)
+    ssl.connect((self.host, self.port))
+
+    self.sock = httplib.FakeSocket(sock, ssl)
+
+
+class _HTTPSHandler(urllib2.HTTPSHandler):
+  def __init__(self, logger, config_ssl_verification):
+    """Initializes this class.
+
+    @param logger: Logging object
+    @type config_ssl_verification: callable
+    @param config_ssl_verification: Function to configure SSL context for
+                                    certificate verification
+
+    """
+    urllib2.HTTPSHandler.__init__(self)
+    self._logger = logger
+    self._config_ssl_verification = config_ssl_verification
+
+  def _CreateHttpsConnection(self, *args, **kwargs):
+    """Wrapper around L{_HTTPSConnectionOpenSSL} to add SSL verification.
+
+    This wrapper is necessary provide a compatible API to urllib2.
+
+    """
+    conn = _HTTPSConnectionOpenSSL(*args, **kwargs)
+    conn.Setup(self._logger, self._config_ssl_verification)
+    return conn
+
+  def https_open(self, req):
+    """Creates HTTPS connection.
+
+    Called by urllib2.
+
+    """
+    return self.do_open(self._CreateHttpsConnection, req)
+
+
+class _RapiRequest(urllib2.Request):
+  def __init__(self, method, url, headers, data):
+    """Initializes this class.
+
+    """
+    urllib2.Request.__init__(self, url, data=data, headers=headers)
+    self._method = method
+
+  def get_method(self):
+    """Returns the HTTP request method.
+
+    """
+    return self._method
+
+
 class GanetiRapiClient(object):
   """Ganeti RAPI client.
 
   """
-
   USER_AGENT = "Ganeti RAPI Client"
 
-  def __init__(self, master_hostname, port=5080, username=None, password=None,
-               ssl_cert_file=None):
+  def __init__(self, host, port=GANETI_RAPI_PORT,
+               username=None, password=None,
+               config_ssl_verification=None, ignore_proxy=False,
+               logger=logging):
     """Constructor.
 
-    @type master_hostname: str
-    @param master_hostname: the ganeti cluster master to interact with
+    @type host: string
+    @param host: the ganeti cluster master to interact with
     @type port: int
-    @param port: the port on which the RAPI is running. (default is 5080)
-    @type username: str
+    @param port: the port on which the RAPI is running (default is 5080)
+    @type username: string
     @param username: the username to connect with
-    @type password: str
+    @type password: string
     @param password: the password to connect with
-    @type ssl_cert_file: str or None
-    @param ssl_cert_file: path to the expected SSL certificate. if None, SSL
-        certificate will not be verified
+    @type config_ssl_verification: callable
+    @param config_ssl_verification: Function to configure SSL context for
+                                    certificate verification
+    @type ignore_proxy: bool
+    @param ignore_proxy: Whether to ignore proxy settings
+    @param logger: Logging object
 
     """
-    self._master_hostname = master_hostname
+    self._host = host
     self._port = port
+    self._logger = logger
 
     self._version = None
-    self._http = httplib2.Http()
 
-    # Older versions of httplib2 don't support the connection_type argument
-    # to request(), so we have to manually specify the connection object in the
-    # internal dict.
-    base_url = self._MakeUrl("/", prepend_version=False)
-    scheme, authority, _, _, _ = httplib2.parse_uri(base_url)
-    conn_key = "%s:%s" % (scheme, authority)
-    self._http.connections[conn_key] = \
-      HTTPSConnectionOpenSSL(master_hostname, port, cert_file=ssl_cert_file)
+    self._base_url = "https://%s:%s" % (host, port)
+
+    handlers = [_HTTPSHandler(self._logger, config_ssl_verification)]
+
+    if username is not None:
+      pwmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+      pwmgr.add_password(None, self._base_url, username, password)
+      handlers.append(urllib2.HTTPBasicAuthHandler(pwmgr))
+    elif password:
+      raise Error("Specified password without username")
+
+    if ignore_proxy:
+      handlers.append(urllib2.ProxyHandler({}))
+
+    self._http = urllib2.build_opener(*handlers) # pylint: disable-msg=W0142
 
     self._headers = {
-        "Accept": "text/plain",
-        "Content-type": "application/x-www-form-urlencoded",
-        "User-Agent": self.USER_AGENT}
-
-    if username is not None and password is not None:
-      self._http.add_credentials(username, password)
+      "Accept": HTTP_APP_JSON,
+      "Content-type": HTTP_APP_JSON,
+      "User-Agent": self.USER_AGENT,
+      }
 
   def _MakeUrl(self, path, query=None, prepend_version=True):
     """Constructs the URL to pass to the HTTP client.
@@ -156,7 +376,7 @@ class GanetiRapiClient(object):
       path = "/%d%s" % (self.GetVersion(), path)
 
     return "https://%(host)s:%(port)d%(path)s?%(query)s" % {
-        "host": self._master_hostname,
+        "host": self._host,
         "port": self._port,
         "path": path,
         "query": urllib.urlencode(query or [])}
@@ -191,17 +411,20 @@ class GanetiRapiClient(object):
       content = simplejson.JSONEncoder(sort_keys=True).encode(content)
 
     url = self._MakeUrl(path, query, prepend_version)
+
+    req = _RapiRequest(method, url, self._headers, content)
+
     try:
-      resp_headers, resp_content = self._http.request(url, method,
-          body=content, headers=self._headers)
-    except (crypto.Error, SSL.Error):
-      raise CertificateError("Invalid SSL certificate.")
+      resp = self._http.open(req)
+      resp_content = resp.read()
+    except (OpenSSL.SSL.Error, OpenSSL.crypto.Error), err:
+      raise CertificateError("SSL issue: %s" % err)
 
     if resp_content:
       resp_content = simplejson.loads(resp_content)
 
     # TODO: Are there other status codes that are valid? (redirect?)
-    if resp_headers.status != 200:
+    if resp.code != HTTP_OK:
       if isinstance(resp_content, dict):
         msg = ("%s %s: %s" %
             (resp_content["code"], resp_content["message"],
@@ -798,47 +1021,3 @@ class GanetiRapiClient(object):
       query.append(("dry-run", 1))
 
     return self._SendRequest(HTTP_DELETE, "/nodes/%s/tags" % node, query)
-
-
-class HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
-  """HTTPS Connection handler that verifies the SSL certificate.
-
-  """
-
-  # pylint: disable-msg=W0142
-  def __init__(self, *args, **kwargs):
-    """Constructor.
-
-    """
-    httplib.HTTPSConnection.__init__(self, *args, **kwargs)
-
-    self._ssl_cert = None
-    if self.cert_file:
-      f = open(self.cert_file, "r")
-      self._ssl_cert = crypto.load_certificate(crypto.FILETYPE_PEM, f.read())
-      f.close()
-
-  # pylint: disable-msg=W0613
-  def _VerifySSLCertCallback(self, conn, cert, errnum, errdepth, ok):
-    """Verifies the SSL certificate provided by the peer.
-
-    """
-    return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and
-            self._ssl_cert.digest("md5") == cert.digest("md5"))
-
-  def connect(self):
-    """Connect to the server specified when the object was created.
-
-    This ensures that SSL certificates are verified.
-
-    """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ctx = SSL.Context(SSL.SSLv23_METHOD)
-    ctx.set_options(SSL.OP_NO_SSLv2)
-    ctx.use_certificate(self._ssl_cert)
-    ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
-                   self._VerifySSLCertCallback)
-
-    ssl = SSL.Connection(ctx, sock)
-    ssl.connect((self.host, self.port))
-    self.sock = httplib.FakeSocket(sock, ssl)
