@@ -490,7 +490,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/2/tags", query)
+    return self._SendRequest(HTTP_DELETE, "/2/tags", query)
 
   def GetInstances(self, bulk=False):
     """Gets information about instances on the cluster.
@@ -511,7 +511,6 @@ class GanetiRapiClient(object):
       return instances
     else:
       return [i["id"] for i in instances]
-
 
   def GetInstanceInfo(self, instance):
     """Gets information about an instance.
@@ -605,7 +604,8 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/2/instances/%s/tags" % instance, query)
+    return self._SendRequest(HTTP_DELETE, "/2/instances/%s/tags" % instance,
+                             query)
 
   def RebootInstance(self, instance, reboot_type=None, ignore_secondaries=None,
                      dry_run=False):
@@ -630,7 +630,8 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_POST, "/2/instances/%s/reboot" % instance, query)
+    return self._SendRequest(HTTP_POST, "/2/instances/%s/reboot" % instance,
+                             query)
 
   def ShutdownInstance(self, instance, dry_run=False):
     """Shuts down an instance.
@@ -645,7 +646,8 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/2/instances/%s/shutdown" % instance, query)
+    return self._SendRequest(HTTP_PUT, "/2/instances/%s/shutdown" % instance,
+                             query)
 
   def StartupInstance(self, instance, dry_run=False):
     """Starts up an instance.
@@ -660,7 +662,8 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/2/instances/%s/startup" % instance, query)
+    return self._SendRequest(HTTP_PUT, "/2/instances/%s/startup" % instance,
+                             query)
 
   def ReinstallInstance(self, instance, os, no_startup=False):
     """Reinstalls an instance.
@@ -676,7 +679,8 @@ class GanetiRapiClient(object):
     query = [("os", os)]
     if no_startup:
       query.append(("nostartup", 1))
-    self._SendRequest(HTTP_POST, "/2/instances/%s/reinstall" % instance, query)
+    return self._SendRequest(HTTP_POST, "/2/instances/%s/reinstall" % instance,
+                             query)
 
   def ReplaceInstanceDisks(self, instance, disks, mode="replace_auto",
                            remote_node=None, iallocator="hail", dry_run=False):
@@ -758,7 +762,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/2/jobs/%d" % job_id, query)
+    return self._SendRequest(HTTP_DELETE, "/2/jobs/%d" % job_id, query)
 
   def GetNodes(self, bulk=False):
     """Gets all nodes in the cluster.

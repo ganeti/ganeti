@@ -186,7 +186,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("tag", ["awesome"])
 
   def testDeleteClusterTags(self):
-    self.client.DeleteClusterTags(["awesome"], dry_run=True)
+    self.rapi.AddResponse("5107")
+    self.assertEqual(5107, self.client.DeleteClusterTags(["awesome"],
+                                                         dry_run=True))
     self.assertHandler(rlib2.R_2_tags)
     self.assertDryRun()
     self.assertQuery("tag", ["awesome"])
@@ -237,15 +239,19 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("tag", ["awesome"])
 
   def testDeleteInstanceTags(self):
-    self.client.DeleteInstanceTags("foo", ["awesome"], dry_run=True)
+    self.rapi.AddResponse("25826")
+    self.assertEqual(25826, self.client.DeleteInstanceTags("foo", ["awesome"],
+                                                           dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name_tags)
     self.assertItems(["foo"])
     self.assertDryRun()
     self.assertQuery("tag", ["awesome"])
 
   def testRebootInstance(self):
-    self.client.RebootInstance("i-bar", reboot_type="hard",
-                               ignore_secondaries=True, dry_run=True)
+    self.rapi.AddResponse("6146")
+    job_id = self.client.RebootInstance("i-bar", reboot_type="hard",
+                                        ignore_secondaries=True, dry_run=True)
+    self.assertEqual(6146, job_id)
     self.assertHandler(rlib2.R_2_instances_name_reboot)
     self.assertItems(["i-bar"])
     self.assertDryRun()
@@ -253,19 +259,25 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("ignore_secondaries", ["True"])
 
   def testShutdownInstance(self):
-    self.client.ShutdownInstance("foo-instance", dry_run=True)
+    self.rapi.AddResponse("1487")
+    self.assertEqual(1487, self.client.ShutdownInstance("foo-instance",
+                                                        dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name_shutdown)
     self.assertItems(["foo-instance"])
     self.assertDryRun()
 
   def testStartupInstance(self):
-    self.client.StartupInstance("bar-instance", dry_run=True)
+    self.rapi.AddResponse("27149")
+    self.assertEqual(27149, self.client.StartupInstance("bar-instance",
+                                                        dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name_startup)
     self.assertItems(["bar-instance"])
     self.assertDryRun()
 
   def testReinstallInstance(self):
-    self.client.ReinstallInstance("baz-instance", "DOS", no_startup=True)
+    self.rapi.AddResponse("19119")
+    self.assertEqual(19119, self.client.ReinstallInstance("baz-instance", "DOS",
+                                                          no_startup=True))
     self.assertHandler(rlib2.R_2_instances_name_reinstall)
     self.assertItems(["baz-instance"])
     self.assertQuery("os", ["DOS"])
@@ -313,7 +325,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertItems(["1234"])
 
   def testDeleteJob(self):
-    self.client.DeleteJob(999, dry_run=True)
+    self.rapi.AddResponse("[true, \"Job 123 will be canceled\"]")
+    self.assertEqual([True, "Job 123 will be canceled"],
+                     self.client.DeleteJob(999, dry_run=True))
     self.assertHandler(rlib2.R_2_jobs_id)
     self.assertItems(["999"])
     self.assertDryRun()
@@ -425,7 +439,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("tag", ["awesome"])
 
   def testDeleteNodeTags(self):
-    self.client.DeleteNodeTags("node-w", ["awesome"], dry_run=True)
+    self.rapi.AddResponse("16861")
+    self.assertEqual(16861, self.client.DeleteNodeTags("node-w", ["awesome"],
+                                                       dry_run=True))
     self.assertHandler(rlib2.R_2_nodes_name_tags)
     self.assertItems(["node-w"])
     self.assertDryRun()
