@@ -566,16 +566,28 @@ def IsProcessAlive(pid):
   @return: True if the process exists
 
   """
+  def _TryStat(name):
+    try:
+      os.stat(name)
+      return True
+    except EnvironmentError, err:
+      if err.errno in (errno.ENOENT, errno.ENOTDIR):
+        return False
+      elif err.errno == errno.EINVAL:
+        raise RetryAgain(err)
+      raise
+
+  assert isinstance(pid, int), "pid must be an integer"
   if pid <= 0:
     return False
 
+  proc_entry = "/proc/%d/status" % pid
+  # /proc in a multiprocessor environment can have strange behaviors.
+  # Retry the os.stat a few times until we get a good result.
   try:
-    os.stat("/proc/%d/status" % pid)
-    return True
-  except EnvironmentError, err:
-    if err.errno in (errno.ENOENT, errno.ENOTDIR):
-      return False
-    raise
+    return Retry(_TryStat, (0.01, 1.5, 0.1), 0.5, args=[proc_entry])
+  except RetryTimeout, err:
+    err.RaiseInner()
 
 
 def ReadPidFile(pidfile):
