@@ -287,7 +287,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
       script.write("export BRIDGE=%s\n" % nic.nicparams[constants.NIC_LINK])
     script.write("export INTERFACE=$1\n")
-    script.write("export TAGS=\"%s\"\n" % " ".join(instance.tags))
+    if instance.tags:
+      script.write("export TAGS=\"%s\"\n" % " ".join(instance.tags))
     # TODO: make this configurable at ./configure time
     script.write("if [ -x '%s' ]; then\n" % self._KVM_NETWORK_SCRIPT)
     script.write("  # Execute the user-specific vif file\n")
