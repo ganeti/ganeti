@@ -760,8 +760,8 @@ class GanetiRapiClient(object):
     """
     return self._SendRequest(HTTP_GET, "/2/jobs/%d" % job_id, None, None)
 
-  def DeleteJob(self, job_id, dry_run=False):
-    """Deletes a job.
+  def CancelJob(self, job_id, dry_run=False):
+    """Cancels a job.
 
     @type job_id: int
     @param job_id: id of the job to delete

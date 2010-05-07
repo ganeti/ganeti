@@ -324,10 +324,10 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertHandler(rlib2.R_2_jobs_id)
     self.assertItems(["1234"])
 
-  def testDeleteJob(self):
+  def testCancelJob(self):
     self.rapi.AddResponse("[true, \"Job 123 will be canceled\"]")
     self.assertEqual([True, "Job 123 will be canceled"],
-                     self.client.DeleteJob(999, dry_run=True))
+                     self.client.CancelJob(999, dry_run=True))
     self.assertHandler(rlib2.R_2_jobs_id)
     self.assertItems(["999"])
     self.assertDryRun()
