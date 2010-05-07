@@ -27,6 +27,7 @@ import unittest
 import warnings
 
 from ganeti import http
+from ganeti import serializer
 
 from ganeti.rapi import connector
 from ganeti.rapi import rlib2
@@ -133,12 +134,10 @@ class RapiMockTest(unittest.TestCase):
     self.failUnless(isinstance(rapi.GetLastHandler(), rlib2.R_version))
 
 
-class GanetiRapiClientTests(unittest.TestCase):
-  """Tests for remote API client.
-
-  """
-
+class GanetiRapiClientTests(testutils.GanetiTestCase):
   def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
     self.rapi = RapiMock()
     self.http = OpenerDirectorMock(self.rapi)
     self.client = client.GanetiRapiClient('master.foo.com')
@@ -323,6 +322,19 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertEqual({"foo": "bar"}, self.client.GetJobStatus(1234))
     self.assertHandler(rlib2.R_2_jobs_id)
     self.assertItems(["1234"])
+
+  def testWaitForJobChange(self):
+    fields = ["id", "summary"]
+    expected = {
+      "job_info": [123, "something"],
+      "log_entries": [],
+      }
+
+    self.rapi.AddResponse(serializer.DumpJson(expected))
+    result = self.client.WaitForJobChange(123, fields, [], -1)
+    self.assertEqualValues(expected, result)
+    self.assertHandler(rlib2.R_2_jobs_id_wait)
+    self.assertItems(["123"])
 
   def testCancelJob(self):
     self.rapi.AddResponse("[true, \"Job 123 will be canceled\"]")

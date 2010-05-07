@@ -760,6 +760,21 @@ class GanetiRapiClient(object):
     """
     return self._SendRequest(HTTP_GET, "/2/jobs/%d" % job_id, None, None)
 
+  def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
+    """Waits for job changes.
+
+    @type job_id: int
+    @param job_id: Job ID for which to wait
+
+    """
+    body = {
+      "fields": fields,
+      "previous_job_info": prev_job_info,
+      "previous_log_serial": prev_log_serial,
+      }
+
+    return self._SendRequest(HTTP_GET, "/2/jobs/%s/wait" % job_id, None, body)
+
   def CancelJob(self, job_id, dry_run=False):
     """Cancels a job.
 
