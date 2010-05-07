@@ -333,8 +333,6 @@ class GanetiRapiClient(object):
     self._port = port
     self._logger = logger
 
-    self._version = None
-
     self._base_url = "https://%s:%s" % (host, port)
 
     handlers = [_HTTPSHandler(self._logger, config_ssl_verification)]
@@ -357,32 +355,25 @@ class GanetiRapiClient(object):
       "User-Agent": self.USER_AGENT,
       }
 
-  def _MakeUrl(self, path, query=None, prepend_version=True):
+  def _MakeUrl(self, path, query=None):
     """Constructs the URL to pass to the HTTP client.
 
     @type path: str
     @param path: HTTP URL path
     @type query: list of two-tuples
     @param query: query arguments to pass to urllib.urlencode
-    @type prepend_version: bool
-    @param prepend_version: whether to automatically fetch and prepend the
-        Ganeti RAPI version to the URL path
 
     @rtype:  str
     @return: URL path
 
     """
-    if prepend_version:
-      path = "/%d%s" % (self.GetVersion(), path)
-
     return "https://%(host)s:%(port)d%(path)s?%(query)s" % {
         "host": self._host,
         "port": self._port,
         "path": path,
         "query": urllib.urlencode(query or [])}
 
-  def _SendRequest(self, method, path, query=None, content=None,
-                   prepend_version=True):
+  def _SendRequest(self, method, path, query=None, content=None):
     """Sends an HTTP request.
 
     This constructs a full URL, encodes and decodes HTTP bodies, and
@@ -396,9 +387,6 @@ class GanetiRapiClient(object):
     @param query: query arguments to pass to urllib.urlencode
     @type content: str or None
     @param content: HTTP body content
-    @type prepend_version: bool
-    @param prepend_version: whether to automatically fetch and prepend the
-        Ganeti RAPI version to the URL path
 
     @rtype: str
     @return: JSON-Decoded response
@@ -410,7 +398,7 @@ class GanetiRapiClient(object):
     if content:
       content = simplejson.JSONEncoder(sort_keys=True).encode(content)
 
-    url = self._MakeUrl(path, query, prepend_version)
+    url = self._MakeUrl(path, query)
 
     req = _RapiRequest(method, url, self._headers, content)
 
@@ -442,10 +430,7 @@ class GanetiRapiClient(object):
     @return: Ganeti Remote API version
 
     """
-    if self._version is None:
-      self._version = self._SendRequest(HTTP_GET, "/version",
-                                        prepend_version=False)
-    return self._version
+    return self._SendRequest(HTTP_GET, "/version")
 
   def GetOperatingSystems(self):
     """Gets the Operating Systems running in the Ganeti cluster.
@@ -454,7 +439,7 @@ class GanetiRapiClient(object):
     @return: operating systems
 
     """
-    return self._SendRequest(HTTP_GET, "/os")
+    return self._SendRequest(HTTP_GET, "/2/os")
 
   def GetInfo(self):
     """Gets info about the cluster.
@@ -463,7 +448,7 @@ class GanetiRapiClient(object):
     @return: information about the cluster
 
     """
-    return self._SendRequest(HTTP_GET, "/info")
+    return self._SendRequest(HTTP_GET, "/2/info")
 
   def GetClusterTags(self):
     """Gets the cluster tags.
@@ -472,7 +457,7 @@ class GanetiRapiClient(object):
     @return: cluster tags
 
     """
-    return self._SendRequest(HTTP_GET, "/tags")
+    return self._SendRequest(HTTP_GET, "/2/tags")
 
   def AddClusterTags(self, tags, dry_run=False):
     """Adds tags to the cluster.
@@ -490,7 +475,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_PUT, "/tags", query)
+    return self._SendRequest(HTTP_PUT, "/2/tags", query)
 
   def DeleteClusterTags(self, tags, dry_run=False):
     """Deletes tags from the cluster.
@@ -505,7 +490,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/tags", query)
+    self._SendRequest(HTTP_DELETE, "/2/tags", query)
 
   def GetInstances(self, bulk=False):
     """Gets information about instances on the cluster.
@@ -521,7 +506,7 @@ class GanetiRapiClient(object):
     if bulk:
       query.append(("bulk", 1))
 
-    instances = self._SendRequest(HTTP_GET, "/instances", query)
+    instances = self._SendRequest(HTTP_GET, "/2/instances", query)
     if bulk:
       return instances
     else:
@@ -538,7 +523,7 @@ class GanetiRapiClient(object):
     @return: info about the instance
 
     """
-    return self._SendRequest(HTTP_GET, "/instances/%s" % instance)
+    return self._SendRequest(HTTP_GET, "/2/instances/%s" % instance)
 
   def CreateInstance(self, dry_run=False):
     """Creates a new instance.
@@ -555,7 +540,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_POST, "/instances", query)
+    return self._SendRequest(HTTP_POST, "/2/instances", query)
 
   def DeleteInstance(self, instance, dry_run=False):
     """Deletes an instance.
@@ -571,7 +556,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_DELETE, "/instances/%s" % instance, query)
+    return self._SendRequest(HTTP_DELETE, "/2/instances/%s" % instance, query)
 
   def GetInstanceTags(self, instance):
     """Gets tags for an instance.
@@ -583,7 +568,7 @@ class GanetiRapiClient(object):
     @return: tags for the instance
 
     """
-    return self._SendRequest(HTTP_GET, "/instances/%s/tags" % instance)
+    return self._SendRequest(HTTP_GET, "/2/instances/%s/tags" % instance)
 
   def AddInstanceTags(self, instance, tags, dry_run=False):
     """Adds tags to an instance.
@@ -603,7 +588,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_PUT, "/instances/%s/tags" % instance, query)
+    return self._SendRequest(HTTP_PUT, "/2/instances/%s/tags" % instance, query)
 
   def DeleteInstanceTags(self, instance, tags, dry_run=False):
     """Deletes tags from an instance.
@@ -620,7 +605,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/instances/%s/tags" % instance, query)
+    self._SendRequest(HTTP_DELETE, "/2/instances/%s/tags" % instance, query)
 
   def RebootInstance(self, instance, reboot_type=None, ignore_secondaries=None,
                      dry_run=False):
@@ -645,7 +630,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_POST, "/instances/%s/reboot" % instance, query)
+    self._SendRequest(HTTP_POST, "/2/instances/%s/reboot" % instance, query)
 
   def ShutdownInstance(self, instance, dry_run=False):
     """Shuts down an instance.
@@ -660,7 +645,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/instances/%s/shutdown" % instance, query)
+    self._SendRequest(HTTP_PUT, "/2/instances/%s/shutdown" % instance, query)
 
   def StartupInstance(self, instance, dry_run=False):
     """Starts up an instance.
@@ -675,7 +660,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/instances/%s/startup" % instance, query)
+    self._SendRequest(HTTP_PUT, "/2/instances/%s/startup" % instance, query)
 
   def ReinstallInstance(self, instance, os, no_startup=False):
     """Reinstalls an instance.
@@ -691,7 +676,7 @@ class GanetiRapiClient(object):
     query = [("os", os)]
     if no_startup:
       query.append(("nostartup", 1))
-    self._SendRequest(HTTP_POST, "/instances/%s/reinstall" % instance, query)
+    self._SendRequest(HTTP_POST, "/2/instances/%s/reinstall" % instance, query)
 
   def ReplaceInstanceDisks(self, instance, disks, mode="replace_auto",
                            remote_node=None, iallocator="hail", dry_run=False):
@@ -737,7 +722,7 @@ class GanetiRapiClient(object):
       query.append(("dry-run", 1))
 
     return self._SendRequest(HTTP_POST,
-                             "/instances/%s/replace-disks" % instance, query)
+                             "/2/instances/%s/replace-disks" % instance, query)
 
   def GetJobs(self):
     """Gets all jobs for the cluster.
@@ -746,7 +731,7 @@ class GanetiRapiClient(object):
     @return: job ids for the cluster
 
     """
-    return [int(j["id"]) for j in self._SendRequest(HTTP_GET, "/jobs")]
+    return [int(j["id"]) for j in self._SendRequest(HTTP_GET, "/2/jobs")]
 
   def GetJobStatus(self, job_id):
     """Gets the status of a job.
@@ -758,7 +743,7 @@ class GanetiRapiClient(object):
     @return: job status
 
     """
-    return self._SendRequest(HTTP_GET, "/jobs/%d" % job_id)
+    return self._SendRequest(HTTP_GET, "/2/jobs/%d" % job_id)
 
   def DeleteJob(self, job_id, dry_run=False):
     """Deletes a job.
@@ -773,7 +758,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/jobs/%d" % job_id, query)
+    self._SendRequest(HTTP_DELETE, "/2/jobs/%d" % job_id, query)
 
   def GetNodes(self, bulk=False):
     """Gets all nodes in the cluster.
@@ -790,7 +775,7 @@ class GanetiRapiClient(object):
     if bulk:
       query.append(("bulk", 1))
 
-    nodes = self._SendRequest(HTTP_GET, "/nodes", query)
+    nodes = self._SendRequest(HTTP_GET, "/2/nodes", query)
     if bulk:
       return nodes
     else:
@@ -806,7 +791,7 @@ class GanetiRapiClient(object):
     @return: info about the node
 
     """
-    return self._SendRequest(HTTP_GET, "/nodes/%s" % node)
+    return self._SendRequest(HTTP_GET, "/2/nodes/%s" % node)
 
   def EvacuateNode(self, node, iallocator=None, remote_node=None,
                    dry_run=False):
@@ -838,7 +823,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_POST, "/nodes/%s/evacuate" % node, query)
+    return self._SendRequest(HTTP_POST, "/2/nodes/%s/evacuate" % node, query)
 
   def MigrateNode(self, node, live=True, dry_run=False):
     """Migrates all primary instances from a node.
@@ -860,7 +845,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_POST, "/nodes/%s/migrate" % node, query)
+    return self._SendRequest(HTTP_POST, "/2/nodes/%s/migrate" % node, query)
 
   def GetNodeRole(self, node):
     """Gets the current role for a node.
@@ -872,7 +857,7 @@ class GanetiRapiClient(object):
     @return: the current role for a node
 
     """
-    return self._SendRequest(HTTP_GET, "/nodes/%s/role" % node)
+    return self._SendRequest(HTTP_GET, "/2/nodes/%s/role" % node)
 
   def SetNodeRole(self, node, role, force=False):
     """Sets the role for a node.
@@ -894,7 +879,7 @@ class GanetiRapiClient(object):
       raise InvalidNodeRole("%s is not a valid node role.", role)
 
     query = [("force", force)]
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/role" % node, query,
+    return self._SendRequest(HTTP_PUT, "/2/nodes/%s/role" % node, query,
                              content=role)
 
   def GetNodeStorageUnits(self, node, storage_type, output_fields):
@@ -918,7 +903,7 @@ class GanetiRapiClient(object):
       raise InvalidStorageType("%s is an invalid storage type.", storage_type)
 
     query = [("storage_type", storage_type), ("output_fields", output_fields)]
-    return self._SendRequest(HTTP_GET, "/nodes/%s/storage" % node, query)
+    return self._SendRequest(HTTP_GET, "/2/nodes/%s/storage" % node, query)
 
   def ModifyNodeStorageUnits(self, node, storage_type, name, allocatable=True):
     """Modifies parameters of storage units on the node.
@@ -945,7 +930,8 @@ class GanetiRapiClient(object):
         ("storage_type", storage_type), ("name", name),
         ("allocatable", allocatable)
         ]
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/storage/modify" % node, query)
+    return self._SendRequest(HTTP_PUT, "/2/nodes/%s/storage/modify" % node,
+                             query)
 
   def RepairNodeStorageUnits(self, node, storage_type, name):
     """Repairs a storage unit on the node.
@@ -967,7 +953,8 @@ class GanetiRapiClient(object):
       raise InvalidStorageType("%s is an invalid storage type.", storage_type)
 
     query = [("storage_type", storage_type), ("name", name)]
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/storage/repair" % node, query)
+    return self._SendRequest(HTTP_PUT, "/2/nodes/%s/storage/repair" % node,
+                             query)
 
   def GetNodeTags(self, node):
     """Gets the tags for a node.
@@ -979,7 +966,7 @@ class GanetiRapiClient(object):
     @return: tags for the node
 
     """
-    return self._SendRequest(HTTP_GET, "/nodes/%s/tags" % node)
+    return self._SendRequest(HTTP_GET, "/2/nodes/%s/tags" % node)
 
   def AddNodeTags(self, node, tags, dry_run=False):
     """Adds tags to a node.
@@ -999,7 +986,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/tags" % node, query,
+    return self._SendRequest(HTTP_PUT, "/2/nodes/%s/tags" % node, query,
                              content=tags)
 
   def DeleteNodeTags(self, node, tags, dry_run=False):
@@ -1020,4 +1007,4 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_DELETE, "/nodes/%s/tags" % node, query)
+    return self._SendRequest(HTTP_DELETE, "/2/nodes/%s/tags" % node, query)
