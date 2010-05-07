@@ -356,24 +356,6 @@ class GanetiRapiClient(object):
       "User-Agent": self.USER_AGENT,
       }
 
-  def _MakeUrl(self, path, query=None):
-    """Constructs the URL to pass to the HTTP client.
-
-    @type path: str
-    @param path: HTTP URL path
-    @type query: list of two-tuples
-    @param query: query arguments to pass to urllib.urlencode
-
-    @rtype:  str
-    @return: URL path
-
-    """
-    return "https://%(host)s:%(port)d%(path)s?%(query)s" % {
-        "host": self._host,
-        "port": self._port,
-        "path": path,
-        "query": urllib.urlencode(query or [])}
-
   def _SendRequest(self, method, path, query=None, content=None):
     """Sends an HTTP request.
 
@@ -396,14 +378,20 @@ class GanetiRapiClient(object):
     @raises GanetiApiError: If an invalid response is returned
 
     """
+    assert path.startswith("/")
+
     if content:
       encoded_content = self._json_encoder.encode(content)
     else:
       encoded_content = None
 
-    url = self._MakeUrl(path, query)
+    # Build URL
+    url = [self._base_url, path]
+    if query:
+      url.append("?")
+      url.append(urllib.urlencode(query))
 
-    req = _RapiRequest(method, url, self._headers, encoded_content)
+    req = _RapiRequest(method, "".join(url), self._headers, encoded_content)
 
     try:
       resp = self._http.open(req)
