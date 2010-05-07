@@ -1604,6 +1604,10 @@ class TestMakedirs(unittest.TestCase):
 
 
 class TestRetry(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self.retries = 0
+
   @staticmethod
   def _RaiseRetryAgain():
     raise utils.RetryAgain()
@@ -1611,12 +1615,25 @@ class TestRetry(testutils.GanetiTestCase):
   def _WrongNestedLoop(self):
     return utils.Retry(self._RaiseRetryAgain, 0.01, 0.02)
 
+  def _RetryAndSucceed(self, retries):
+    if self.retries < retries:
+      self.retries += 1
+      raise utils.RetryAgain()
+    else:
+      return True
+
   def testRaiseTimeout(self):
     self.failUnlessRaises(utils.RetryTimeout, utils.Retry,
                           self._RaiseRetryAgain, 0.01, 0.02)
+    self.failUnlessRaises(utils.RetryTimeout, utils.Retry,
+                          self._RetryAndSucceed, 0.01, 0, args=[1])
+    self.failUnlessEqual(self.retries, 1)
 
   def testComplete(self):
     self.failUnlessEqual(utils.Retry(lambda: True, 0, 1), True)
+    self.failUnlessEqual(utils.Retry(self._RetryAndSucceed, 0, 1, args=[2]),
+                         True)
+    self.failUnlessEqual(self.retries, 2)
 
   def testNestedLoop(self):
     try:
