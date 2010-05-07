@@ -306,6 +306,7 @@ class GanetiRapiClient(object):
 
   """
   USER_AGENT = "Ganeti RAPI Client"
+  _json_encoder = simplejson.JSONEncoder(sort_keys=True)
 
   def __init__(self, host, port=GANETI_RAPI_PORT,
                username=None, password=None,
@@ -396,32 +397,38 @@ class GanetiRapiClient(object):
 
     """
     if content:
-      content = simplejson.JSONEncoder(sort_keys=True).encode(content)
+      encoded_content = self._json_encoder.encode(content)
+    else:
+      encoded_content = None
 
     url = self._MakeUrl(path, query)
 
-    req = _RapiRequest(method, url, self._headers, content)
+    req = _RapiRequest(method, url, self._headers, encoded_content)
 
     try:
       resp = self._http.open(req)
-      resp_content = resp.read()
+      encoded_response_content = resp.read()
     except (OpenSSL.SSL.Error, OpenSSL.crypto.Error), err:
       raise CertificateError("SSL issue: %s" % err)
 
-    if resp_content:
-      resp_content = simplejson.loads(resp_content)
+    if encoded_response_content:
+      response_content = simplejson.loads(encoded_response_content)
+    else:
+      response_content = None
 
     # TODO: Are there other status codes that are valid? (redirect?)
     if resp.code != HTTP_OK:
-      if isinstance(resp_content, dict):
+      if isinstance(response_content, dict):
         msg = ("%s %s: %s" %
-            (resp_content["code"], resp_content["message"],
-             resp_content["explain"]))
+               (response_content["code"],
+                response_content["message"],
+                response_content["explain"]))
       else:
-        msg = resp_content
+        msg = str(response_content)
+
       raise GanetiApiError(msg)
 
-    return resp_content
+    return response_content
 
   def GetVersion(self):
     """Gets the Remote API version running on the cluster.
