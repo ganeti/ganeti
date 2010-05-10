@@ -1321,7 +1321,7 @@ class TestForceDictType(unittest.TestCase):
 
 
 class TestIsAbsNormPath(unittest.TestCase):
-  """Testing case for IsProcessAlive"""
+  """Testing case for IsAbsNormPath"""
 
   def _pathTestHelper(self, path, result):
     if result:
