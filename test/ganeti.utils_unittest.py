@@ -1320,8 +1320,8 @@ class TestForceDictType(unittest.TestCase):
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': '4 L'})
 
 
-class TestIsAbsNormPath(unittest.TestCase):
-  """Testing case for IsAbsNormPath"""
+class TestIsNormAbsPath(unittest.TestCase):
+  """Testing case for IsNormAbsPath"""
 
   def _pathTestHelper(self, path, result):
     if result:
