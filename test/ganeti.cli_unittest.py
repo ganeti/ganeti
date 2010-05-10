@@ -29,6 +29,8 @@ import testutils
 
 from ganeti import constants
 from ganeti import cli
+from ganeti import errors
+from ganeti import utils
 from ganeti.errors import OpPrereqError, ParameterError
 
 
@@ -100,7 +102,7 @@ class TestIdentKeyVal(unittest.TestCase):
 
 
 class TestToStream(unittest.TestCase):
-  """Thes the ToStream functions"""
+  """Test the ToStream functions"""
 
   def testBasic(self):
     for data in ["foo",
@@ -244,6 +246,176 @@ class TestGenerateTable(unittest.TestCase):
       ]
     self._test(self.HEADERS, ["f1", "f2"], None, data,
                None, None, "m", exp)
+
+
+class _MockJobPollCb(cli.JobPollCbBase, cli.JobPollReportCbBase):
+  def __init__(self, tc, job_id):
+    self.tc = tc
+    self.job_id = job_id
+    self._wfjcr = []
+    self._jobstatus = []
+    self._expect_notchanged = False
+    self._expect_log = []
+
+  def CheckEmpty(self):
+    self.tc.assertFalse(self._wfjcr)
+    self.tc.assertFalse(self._jobstatus)
+    self.tc.assertFalse(self._expect_notchanged)
+    self.tc.assertFalse(self._expect_log)
+
+  def AddWfjcResult(self, *args):
+    self._wfjcr.append(args)
+
+  def AddQueryJobsResult(self, *args):
+    self._jobstatus.append(args)
+
+  def WaitForJobChangeOnce(self, job_id, fields,
+                           prev_job_info, prev_log_serial):
+    self.tc.assertEqual(job_id, self.job_id)
+    self.tc.assertEqualValues(fields, ["status"])
+    self.tc.assertFalse(self._expect_notchanged)
+    self.tc.assertFalse(self._expect_log)
+
+    (exp_prev_job_info, exp_prev_log_serial, result) = self._wfjcr.pop(0)
+    self.tc.assertEqualValues(prev_job_info, exp_prev_job_info)
+    self.tc.assertEqual(prev_log_serial, exp_prev_log_serial)
+
+    if result == constants.JOB_NOTCHANGED:
+      self._expect_notchanged = True
+    elif result:
+      (_, logmsgs) = result
+      if logmsgs:
+        self._expect_log.extend(logmsgs)
+
+    return result
+
+  def QueryJobs(self, job_ids, fields):
+    self.tc.assertEqual(job_ids, [self.job_id])
+    self.tc.assertEqualValues(fields, ["status", "opstatus", "opresult"])
+    self.tc.assertFalse(self._expect_notchanged)
+    self.tc.assertFalse(self._expect_log)
+
+    result = self._jobstatus.pop(0)
+    self.tc.assertEqual(len(fields), len(result))
+    return [result]
+
+  def ReportLogMessage(self, job_id, serial, timestamp, log_type, log_msg):
+    self.tc.assertEqual(job_id, self.job_id)
+    self.tc.assertEqualValues((serial, timestamp, log_type, log_msg),
+                              self._expect_log.pop(0))
+
+  def ReportNotChanged(self, job_id, status):
+    self.tc.assertEqual(job_id, self.job_id)
+    self.tc.assert_(self._expect_notchanged)
+    self._expect_notchanged = False
+
+
+class TestGenericPollJob(testutils.GanetiTestCase):
+  def testSuccessWithLog(self):
+    job_id = 29609
+    cbs = _MockJobPollCb(self, job_id)
+
+    cbs.AddWfjcResult(None, None, constants.JOB_NOTCHANGED)
+
+    cbs.AddWfjcResult(None, None,
+                      ((constants.JOB_STATUS_QUEUED, ), None))
+
+    cbs.AddWfjcResult((constants.JOB_STATUS_QUEUED, ), None,
+                      constants.JOB_NOTCHANGED)
+
+    cbs.AddWfjcResult((constants.JOB_STATUS_QUEUED, ), None,
+                      ((constants.JOB_STATUS_RUNNING, ),
+                       [(1, utils.SplitTime(1273491611.0),
+                         constants.ELOG_MESSAGE, "Step 1"),
+                        (2, utils.SplitTime(1273491615.9),
+                         constants.ELOG_MESSAGE, "Step 2"),
+                        (3, utils.SplitTime(1273491625.02),
+                         constants.ELOG_MESSAGE, "Step 3"),
+                        (4, utils.SplitTime(1273491635.05),
+                         constants.ELOG_MESSAGE, "Step 4"),
+                        (37, utils.SplitTime(1273491645.0),
+                         constants.ELOG_MESSAGE, "Step 5"),
+                        (203, utils.SplitTime(127349155.0),
+                         constants.ELOG_MESSAGE, "Step 6")]))
+
+    cbs.AddWfjcResult((constants.JOB_STATUS_RUNNING, ), 203,
+                      ((constants.JOB_STATUS_RUNNING, ),
+                       [(300, utils.SplitTime(1273491711.01),
+                         constants.ELOG_MESSAGE, "Step X"),
+                        (302, utils.SplitTime(1273491815.8),
+                         constants.ELOG_MESSAGE, "Step Y"),
+                        (303, utils.SplitTime(1273491925.32),
+                         constants.ELOG_MESSAGE, "Step Z")]))
+
+    cbs.AddWfjcResult((constants.JOB_STATUS_RUNNING, ), 303,
+                      ((constants.JOB_STATUS_SUCCESS, ), None))
+
+    cbs.AddQueryJobsResult(constants.JOB_STATUS_SUCCESS,
+                           [constants.OP_STATUS_SUCCESS,
+                            constants.OP_STATUS_SUCCESS],
+                           ["Hello World", "Foo man bar"])
+
+    self.assertEqual(["Hello World", "Foo man bar"],
+                     cli.GenericPollJob(job_id, cbs, cbs))
+    cbs.CheckEmpty()
+
+  def testJobLost(self):
+    job_id = 13746
+
+    cbs = _MockJobPollCb(self, job_id)
+    cbs.AddWfjcResult(None, None, constants.JOB_NOTCHANGED)
+    cbs.AddWfjcResult(None, None, None)
+    self.assertRaises(errors.JobLost, cli.GenericPollJob, job_id, cbs, cbs)
+    cbs.CheckEmpty()
+
+  def testError(self):
+    job_id = 31088
+
+    cbs = _MockJobPollCb(self, job_id)
+    cbs.AddWfjcResult(None, None, constants.JOB_NOTCHANGED)
+    cbs.AddWfjcResult(None, None, ((constants.JOB_STATUS_ERROR, ), None))
+    cbs.AddQueryJobsResult(constants.JOB_STATUS_ERROR,
+                           [constants.OP_STATUS_SUCCESS,
+                            constants.OP_STATUS_ERROR],
+                           ["Hello World", "Error code 123"])
+    self.assertRaises(errors.OpExecError, cli.GenericPollJob, job_id, cbs, cbs)
+    cbs.CheckEmpty()
+
+  def testError2(self):
+    job_id = 22235
+
+    cbs = _MockJobPollCb(self, job_id)
+    cbs.AddWfjcResult(None, None, ((constants.JOB_STATUS_ERROR, ), None))
+    encexc = errors.EncodeException(errors.LockError("problem"))
+    cbs.AddQueryJobsResult(constants.JOB_STATUS_ERROR,
+                           [constants.OP_STATUS_ERROR], [encexc])
+    self.assertRaises(errors.LockError, cli.GenericPollJob, job_id, cbs, cbs)
+    cbs.CheckEmpty()
+
+  def testWeirdError(self):
+    job_id = 28847
+
+    cbs = _MockJobPollCb(self, job_id)
+    cbs.AddWfjcResult(None, None, ((constants.JOB_STATUS_ERROR, ), None))
+    cbs.AddQueryJobsResult(constants.JOB_STATUS_ERROR,
+                           [constants.OP_STATUS_RUNNING,
+                            constants.OP_STATUS_RUNNING],
+                           [None, None])
+    self.assertRaises(errors.OpExecError, cli.GenericPollJob, job_id, cbs, cbs)
+    cbs.CheckEmpty()
+
+  def testCancel(self):
+    job_id = 4275
+
+    cbs = _MockJobPollCb(self, job_id)
+    cbs.AddWfjcResult(None, None, constants.JOB_NOTCHANGED)
+    cbs.AddWfjcResult(None, None, ((constants.JOB_STATUS_CANCELING, ), None))
+    cbs.AddQueryJobsResult(constants.JOB_STATUS_CANCELING,
+                           [constants.OP_STATUS_CANCELING,
+                            constants.OP_STATUS_CANCELING],
+                           [None, None])
+    self.assertRaises(errors.OpExecError, cli.GenericPollJob, job_id, cbs, cbs)
+    cbs.CheckEmpty()
 
 
 if __name__ == '__main__':
