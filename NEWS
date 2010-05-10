@@ -8,6 +8,7 @@ Version 2.1.2.1
 
 Fix a bug which prevented untagged KVM instances from starting.
 
+
 Version 2.1.2
 -------------
 
@@ -103,7 +104,6 @@ etc. Among others:
   waiting for a lock
 - The logs of the master daemon now show the PID/UID/GID of the
   connected client
-
 
 
 Version 2.1.1
