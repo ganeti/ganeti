@@ -2657,7 +2657,7 @@ def StartImportExportDaemon(mode, key_name, ca, host, port, instance,
     assert ca is not None
 
   for i in [key_path, cert_path]:
-    if os.path.exists(i):
+    if not os.path.exists(i):
       _Fail("File '%s' does not exist" % i)
 
   status_dir = _CreateImportExportStatusDir(prefix)
