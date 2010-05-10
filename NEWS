@@ -9,8 +9,115 @@ Version 2.2.0
   RFC2616 (HTTP/1.1), section 7.2.1)
 
 
+Version 2.1.2.1
+---------------
+
+*(Released Fri, 7 May 2010)*
+
+Fix a bug which prevented untagged KVM instances from starting.
+
+
+Version 2.1.2
+-------------
+
+*(Released Fri, 7 May 2010)*
+
+Another release with a long development cycle, during which many
+different features were added.
+
+Significant features
+~~~~~~~~~~~~~~~~~~~~
+
+The KVM hypervisor now can run the individual instances as non-root, to
+reduce the impact of a VM being hijacked due to bugs in the
+hypervisor. It is possible to run all instances as a single (non-root)
+user, to manually specify a user for each instance, or to dynamically
+allocate a user out of a cluster-wide pool to each instance, with the
+guarantee that no two instances will run under the same user ID on any
+given node.
+
+An experimental RAPI client library, that can be used standalone
+(without the other Ganeti libraries), is provided in the source tree as
+``lib/rapi/client.py``. Note this client might change its interface in
+the future, as we iterate on its capabilities.
+
+A new command, ``gnt-cluster renew-crypto`` has been added to easily
+replace the cluster's certificates and crypto keys. This might help in
+case they have been compromised, or have simply expired.
+
+A new disk option for instance creation has been added that allows one
+to "adopt" currently existing logical volumes, with data
+preservation. This should allow easier migration to Ganeti from
+unmanaged (or managed via other software) instances.
+
+Another disk improvement is the possibility to convert between redundant
+(DRBD) and plain (LVM) disk configuration for an instance. This should
+allow better scalability (starting with one node and growing the
+cluster, or shrinking a two-node cluster to one node).
+
+A new feature that could help with automated node failovers has been
+implemented: if a node sees itself as offline (by querying the master
+candidates), it will try to shutdown (hard) all instances and any active
+DRBD devices. This reduces the risk of duplicate instances if an
+external script automatically failovers the instances on such nodes. To
+enable this, the cluster parameter ``maintain_node_health`` should be
+enabled; in the future this option (per the name) will enable other
+automatic maintenance features.
+
+Instance export/import now will reuse the original instance
+specifications for all parameters; that means exporting an instance,
+deleting it and the importing it back should give an almost identical
+instance. Note that the default import behaviour has changed from
+before, where it created only one NIC; now it recreates the original
+number of NICs.
+
+Cluster verify has added a few new checks: SSL certificates validity,
+/etc/hosts consistency across the cluster, etc.
+
+Other changes
+~~~~~~~~~~~~~
+
+As usual, many internal changes were done, documentation fixes,
+etc. Among others:
+
+- Fixed cluster initialization with disabled cluster storage (regression
+  introduced in 2.1.1)
+- File-based storage supports growing the disks
+- Fixed behaviour of node role changes
+- Fixed cluster verify for some corner cases, plus a general rewrite of
+  cluster verify to allow future extension with more checks
+- Fixed log spamming by watcher and node daemon (regression introduced
+  in 2.1.1)
+- Fixed possible validation issues when changing the list of enabled
+  hypervisors
+- Fixed cleanup of /etc/hosts during node removal
+- Fixed RAPI response for invalid methods
+- Fixed bug with hashed passwords in ``ganeti-rapi`` daemon
+- Multiple small improvements to the KVM hypervisor (VNC usage, booting
+  from ide disks, etc.)
+- Allow OS changes without re-installation (to record a changed OS
+  outside of Ganeti, or to allow OS renames)
+- Allow instance creation without OS installation (useful for example if
+  the OS will be installed manually, or restored from a backup not in
+  Ganeti format)
+- Implemented option to make cluster ``copyfile`` use the replication
+  network
+- Added list of enabled hypervisors to ssconf (possibly useful for
+  external scripts)
+- Added a new tool (``tools/cfgupgrade12``) that allows upgrading from
+  1.2 clusters
+- A partial form of node re-IP is possible via node readd, which now
+  allows changed node primary IP
+- Command line utilities now show an informational message if the job is
+  waiting for a lock
+- The logs of the master daemon now show the PID/UID/GID of the
+  connected client
+
+
 Version 2.1.1
 -------------
+
+*(Released Fri, 12 Mar 2010)*
 
 During the 2.1.0 long release candidate cycle, a lot of improvements and
 changes have accumulated with were released later as 2.1.1.
@@ -126,6 +233,8 @@ New features
 Version 2.1.0
 -------------
 
+*(Released Tue, 2 Mar 2010)*
+
 Ganeti 2.1 brings many improvements with it. Major changes:
 
 - Added infrastructure to ease automated disk repairs
@@ -225,6 +334,8 @@ Details
 Version 2.0.6
 -------------
 
+*(Released Thu, 4 Feb 2010)*
+
 - Fix cleaner behaviour on nodes not in a cluster (Debian bug 568105)
 - Fix a string formatting bug
 - Improve safety of the code in some error paths
@@ -234,6 +345,8 @@ Version 2.0.6
 Version 2.0.5
 -------------
 
+*(Released Thu, 17 Dec 2009)*
+
 - Fix security issue due to missing validation of iallocator names; this
   allows local and remote execution of arbitrary executables
 - Fix failure of gnt-node list during instance removal
@@ -242,6 +355,8 @@ Version 2.0.5
 
 Version 2.0.4
 -------------
+
+*(Released Wed, 30 Sep 2009)*
 
 - Fixed many wrong messages
 - Fixed a few bugs related to the locking library
@@ -286,6 +401,8 @@ Version 2.0.4
 Version 2.0.3
 -------------
 
+*(Released Fri, 7 Aug 2009)*
+
 - Added ``--ignore-size`` to the ``gnt-instance activate-disks`` command
   to allow using the pre-2.0.2 behaviour in activation, if any existing
   instances have mismatched disk sizes in the configuration
@@ -301,6 +418,8 @@ Version 2.0.3
 
 Version 2.0.2
 -------------
+
+*(Released Fri, 17 Jul 2009)*
 
 - Added experimental support for stripped logical volumes; this should
   enhance performance but comes with a higher complexity in the block
@@ -334,6 +453,8 @@ Version 2.0.2
 Version 2.0.1
 -------------
 
+*(Released Tue, 16 Jun 2009)*
+
 - added ``-H``/``-B`` startup parameters to ``gnt-instance``, which will
   allow re-adding the start in single-user option (regression from 1.2)
 - the watcher writes the instance status to a file, to allow monitoring
@@ -364,11 +485,15 @@ Version 2.0.1
 Version 2.0.0 final
 -------------------
 
+*(Released Wed, 27 May 2009)*
+
 - no changes from rc5
 
 
 Version 2.0 release candidate 5
 -------------------------------
+
+*(Released Wed, 20 May 2009)*
 
 - fix a couple of bugs (validation, argument checks)
 - fix ``gnt-cluster getmaster`` on non-master nodes (regression)
@@ -378,6 +503,8 @@ Version 2.0 release candidate 5
 
 Version 2.0 release candidate 4
 -------------------------------
+
+*(Released Mon, 27 Apr 2009)*
 
 - change the OS list to not require locks; this helps with big clusters
 - fix ``gnt-cluster verify`` and ``gnt-cluster verify-disks`` when the
@@ -392,6 +519,8 @@ Version 2.0 release candidate 4
 Version 2.0 release candidate 3
 -------------------------------
 
+*(Released Wed, 8 Apr 2009)*
+
 - Change the internal locking model of some ``gnt-node`` commands, in
   order to reduce contention (and blocking of master daemon) when
   batching many creation/reinstall jobs
@@ -404,6 +533,8 @@ Version 2.0 release candidate 3
 Version 2.0 release candidate 2
 -------------------------------
 
+*(Released Fri, 27 Mar 2009)*
+
 - Now the cfgupgrade scripts works and can upgrade 1.2.7 clusters to 2.0
 - Fix watcher startup sequence, improves the behaviour of busy clusters
 - Some other fixes in ``gnt-cluster verify``, ``gnt-instance
@@ -414,6 +545,8 @@ Version 2.0 release candidate 2
 
 Version 2.0 release candidate 1
 -------------------------------
+
+*(Released Mon, 2 Mar 2009)*
 
 - More documentation updates, now all docs should be more-or-less
   up-to-date
@@ -426,6 +559,8 @@ Version 2.0 release candidate 1
 
 Version 2.0 beta 2
 ------------------
+
+*(Released Thu, 19 Feb 2009)*
 
 - Xen PVM and KVM have switched the default value for the instance root
   disk to the first partition on the first drive, instead of the whole
@@ -442,6 +577,8 @@ Version 2.0 beta 2
 
 Version 2.0 beta 1
 ------------------
+
+*(Released Mon, 26 Jan 2009)*
 
 - Version 2 is a general rewrite of the code and therefore the
   differences are too many to list, see the design document for 2.0 in
@@ -473,6 +610,8 @@ Version 2.0 beta 1
 Version 1.2.7
 -------------
 
+*(Released Tue, 13 Jan 2009)*
+
 - Change the default reboot type in ``gnt-instance reboot`` to "hard"
 - Reuse the old instance mac address by default on instance import, if
   the instance name is the same.
@@ -498,6 +637,8 @@ Version 1.2.7
 Version 1.2.6
 -------------
 
+*(Released Wed, 24 Sep 2008)*
+
 - new ``--hvm-nic-type`` and ``--hvm-disk-type`` flags to control the
   type of disk exported to fully virtualized instances.
 - provide access to the serial console of HVM instances
@@ -521,6 +662,8 @@ Version 1.2.6
 Version 1.2.5
 -------------
 
+*(Released Tue, 22 Jul 2008)*
+
 - note: the allowed size and number of tags per object were reduced
 - fix a bug in ``gnt-cluster verify`` with inconsistent volume groups
 - fixed twisted 8.x compatibility
@@ -537,6 +680,8 @@ Version 1.2.5
 
 Version 1.2.4
 -------------
+
+*(Released Fri, 13 Jun 2008)*
 
 - Experimental readonly, REST-based remote API implementation;
   automatically started on master node, TCP port 5080, if enabled by
@@ -581,6 +726,8 @@ Version 1.2.4
 Version 1.2.3
 -------------
 
+*(Released Mon, 18 Feb 2008)*
+
 - more tweaks to the disk activation code (especially helpful for DRBD)
 - change the default ``gnt-instance list`` output format, now there is
   one combined status field (see the manpage for the exact values this
@@ -594,6 +741,8 @@ Version 1.2.3
 
 Version 1.2.2
 -------------
+
+*(Released Wed, 30 Jan 2008)*
 
 - fix ``gnt-instance modify`` breakage introduced in 1.2.1 with the HVM
   support (issue 23)
@@ -611,6 +760,8 @@ Version 1.2.2
 
 Version 1.2.1
 -------------
+
+*(Released Wed, 16 Jan 2008)*
 
 - experimental HVM support, read the install document, section
   "Initializing the cluster"
@@ -630,6 +781,8 @@ Version 1.2.1
 Version 1.2.0
 -------------
 
+*(Released Tue, 4 Dec 2007)*
+
 - Log the ``xm create`` output to the node daemon log on failure (to
   help diagnosing the error)
 - In debug mode, log all external commands output if failed to the logs
@@ -638,6 +791,8 @@ Version 1.2.0
 
 Version 1.2b3
 -------------
+
+*(Released Wed, 28 Nov 2007)*
 
 - Another round of updates to the DRBD 8 code to deal with more failures
   in the replace secondary node operation
@@ -648,6 +803,8 @@ Version 1.2b3
 
 Version 1.2b2
 -------------
+
+*(Released Tue, 13 Nov 2007)*
 
 - Change configuration file format from Python's Pickle to JSON.
   Upgrading is possible using the cfgupgrade utility.

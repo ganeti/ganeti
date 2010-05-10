@@ -53,13 +53,8 @@ def GetUserFiles(user, mkdir=False):
     raise errors.OpExecError("Cannot resolve home of user %s" % user)
 
   ssh_dir = utils.PathJoin(user_dir, ".ssh")
-  if not os.path.lexists(ssh_dir):
-    if mkdir:
-      try:
-        os.mkdir(ssh_dir, 0700)
-      except EnvironmentError, err:
-        raise errors.OpExecError("Can't create .ssh dir for user %s: %s" %
-                                 (user, str(err)))
+  if mkdir:
+    utils.EnsureDirs([(ssh_dir, constants.SECURE_DIR_MODE)])
   elif not os.path.isdir(ssh_dir):
     raise errors.OpExecError("path ~%s/.ssh is not a directory" % user)
 
@@ -161,7 +156,7 @@ class SshRunner:
                                       strict_host_check, private_key,
                                       quiet=quiet))
     if tty:
-      argv.append("-t")
+      argv.extend(["-t", "-t"])
     argv.extend(["%s@%s" % (user, hostname), command])
     return argv
 

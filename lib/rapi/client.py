@@ -98,7 +98,7 @@ class GanetiRapiClient(object):
   USER_AGENT = "Ganeti RAPI Client"
 
   def __init__(self, master_hostname, port=5080, username=None, password=None,
-               ssl_cert=None):
+               ssl_cert_file=None):
     """Constructor.
 
     @type master_hostname: str
@@ -109,23 +109,32 @@ class GanetiRapiClient(object):
     @param username: the username to connect with
     @type password: str
     @param password: the password to connect with
-    @type ssl_cert: str or None
-    @param ssl_cert: the expected SSL certificate. if None, SSL certificate
-        will not be verified
+    @type ssl_cert_file: str or None
+    @param ssl_cert_file: path to the expected SSL certificate. if None, SSL
+        certificate will not be verified
 
     """
     self._master_hostname = master_hostname
     self._port = port
-    if ssl_cert:
-      _VerifyCertificate(self._master_hostname, self._port, ssl_cert)
 
+    self._version = None
     self._http = httplib2.Http()
+
+    # Older versions of httplib2 don't support the connection_type argument
+    # to request(), so we have to manually specify the connection object in the
+    # internal dict.
+    base_url = self._MakeUrl("/", prepend_version=False)
+    scheme, authority, _, _, _ = httplib2.parse_uri(base_url)
+    conn_key = "%s:%s" % (scheme, authority)
+    self._http.connections[conn_key] = \
+      HTTPSConnectionOpenSSL(master_hostname, port, cert_file=ssl_cert_file)
+
     self._headers = {
         "Accept": "text/plain",
         "Content-type": "application/x-www-form-urlencoded",
         "User-Agent": self.USER_AGENT}
-    self._version = None
-    if username and password:
+
+    if username is not None and password is not None:
       self._http.add_credentials(username, password)
 
   def _MakeUrl(self, path, query=None, prepend_version=True):
@@ -144,9 +153,7 @@ class GanetiRapiClient(object):
 
     """
     if prepend_version:
-      if not self._version:
-        self._GetVersionInternal()
-      path = "/%d%s" % (self._version, path)
+      path = "/%d%s" % (self.GetVersion(), path)
 
     return "https://%(host)s:%(port)d%(path)s?%(query)s" % {
         "host": self._master_hostname,
@@ -176,15 +183,19 @@ class GanetiRapiClient(object):
     @rtype: str
     @return: JSON-Decoded response
 
+    @raises CertificateError: If an invalid SSL certificate is found
     @raises GanetiApiError: If an invalid response is returned
 
     """
     if content:
-      simplejson.JSONEncoder(sort_keys=True).encode(content)
+      content = simplejson.JSONEncoder(sort_keys=True).encode(content)
 
     url = self._MakeUrl(path, query, prepend_version)
-    resp_headers, resp_content = self._http.request(
-        url, method, body=content, headers=self._headers)
+    try:
+      resp_headers, resp_content = self._http.request(url, method,
+          body=content, headers=self._headers)
+    except (crypto.Error, SSL.Error):
+      raise CertificateError("Invalid SSL certificate.")
 
     if resp_content:
       resp_content = simplejson.loads(resp_content)
@@ -201,26 +212,16 @@ class GanetiRapiClient(object):
 
     return resp_content
 
-  def _GetVersionInternal(self):
-    """Gets the Remote API version running on the cluster.
-
-    @rtype: int
-    @return: Ganeti version
-
-    """
-    self._version = self._SendRequest(HTTP_GET, "/version",
-                                      prepend_version=False)
-    return self._version
-
   def GetVersion(self):
     """Gets the Remote API version running on the cluster.
 
     @rtype: int
-    @return: Ganeti version
+    @return: Ganeti Remote API version
 
     """
-    if not self._version:
-      self._GetVersionInternal()
+    if self._version is None:
+      self._version = self._SendRequest(HTTP_GET, "/version",
+                                        prepend_version=False)
     return self._version
 
   def GetOperatingSystems(self):
@@ -841,26 +842,3 @@ class HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
     ssl = SSL.Connection(ctx, sock)
     ssl.connect((self.host, self.port))
     self.sock = httplib.FakeSocket(sock, ssl)
-
-
-def _VerifyCertificate(hostname, port, cert_file):
-  """Verifies the SSL certificate for the given host/port.
-
-  @type hostname: str
-  @param hostname: the ganeti cluster master whose certificate to verify
-  @type port: int
-  @param port: the port on which the RAPI is running
-  @type cert_file: str
-  @param cert_file: filename of the expected SSL certificate
-
-  @raises CertificateError: If an invalid SSL certificate is found
-
-  """
-  https = HTTPSConnectionOpenSSL(hostname, port, cert_file=cert_file)
-  try:
-    try:
-      https.request(HTTP_GET, "/version")
-    except (crypto.Error, SSL.Error):
-      raise CertificateError("Invalid SSL certificate.")
-  finally:
-    https.close()

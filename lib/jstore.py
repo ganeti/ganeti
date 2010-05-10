@@ -21,7 +21,6 @@
 
 """Module implementing the job queue handling."""
 
-import os
 import errno
 
 from ganeti import constants
@@ -79,13 +78,8 @@ def InitAndVerifyQueue(must_lock):
            locking mode.
 
   """
-  # Make sure our directories exists
-  for path in (constants.QUEUE_DIR, constants.JOB_QUEUE_ARCHIVE_DIR):
-    try:
-      os.mkdir(path, 0700)
-    except OSError, err:
-      if err.errno not in (errno.EEXIST, ):
-        raise
+  dirs = [(d, constants.JOB_QUEUE_DIRS_MODE) for d in constants.JOB_QUEUE_DIRS]
+  utils.EnsureDirs(dirs)
 
   # Lock queue
   queue_lock = utils.FileLock.Open(constants.JOB_QUEUE_LOCK_FILE)

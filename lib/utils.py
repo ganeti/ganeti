@@ -833,16 +833,28 @@ def IsProcessAlive(pid):
   @return: True if the process exists
 
   """
+  def _TryStat(name):
+    try:
+      os.stat(name)
+      return True
+    except EnvironmentError, err:
+      if err.errno in (errno.ENOENT, errno.ENOTDIR):
+        return False
+      elif err.errno == errno.EINVAL:
+        raise RetryAgain(err)
+      raise
+
+  assert isinstance(pid, int), "pid must be an integer"
   if pid <= 0:
     return False
 
+  proc_entry = "/proc/%d/status" % pid
+  # /proc in a multiprocessor environment can have strange behaviors.
+  # Retry the os.stat a few times until we get a good result.
   try:
-    os.stat("/proc/%d/status" % pid)
-    return True
-  except EnvironmentError, err:
-    if err.errno in (errno.ENOENT, errno.ENOTDIR):
-      return False
-    raise
+    return Retry(_TryStat, (0.01, 1.5, 0.1), 0.5, args=[proc_entry])
+  except RetryTimeout, err:
+    err.RaiseInner()
 
 
 def ReadPidFile(pidfile):
@@ -2975,11 +2987,24 @@ def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
 class RetryTimeout(Exception):
   """Retry loop timed out.
 
+  Any arguments which was passed by the retried function to RetryAgain will be
+  preserved in RetryTimeout, if it is raised. If such argument was an exception
+  the RaiseInner helper method will reraise it.
+
   """
+  def RaiseInner(self):
+    if self.args and isinstance(self.args[0], Exception):
+      raise self.args[0]
+    else:
+      raise RetryTimeout(*self.args)
 
 
 class RetryAgain(Exception):
   """Retry again.
+
+  Any arguments passed to RetryAgain will be preserved, if a timeout occurs, as
+  arguments to RetryTimeout. If an exception is passed, the RaiseInner() method
+  of the RetryTimeout() method can be used to reraise it.
 
   """
 
@@ -3089,11 +3114,12 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
   assert calc_delay is None or callable(calc_delay)
 
   while True:
+    retry_args = []
     try:
       # pylint: disable-msg=W0142
       return fn(*args)
-    except RetryAgain:
-      pass
+    except RetryAgain, err:
+      retry_args = err.args
     except RetryTimeout:
       raise errors.ProgrammerError("Nested retry loop detected that didn't"
                                    " handle RetryTimeout")
@@ -3101,7 +3127,8 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
     remaining_time = end_time - _time_fn()
 
     if remaining_time < 0.0:
-      raise RetryTimeout()
+      # pylint: disable-msg=W0142
+      raise RetryTimeout(*retry_args)
 
     assert remaining_time >= 0.0
 
