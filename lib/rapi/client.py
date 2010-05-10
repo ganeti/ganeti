@@ -760,7 +760,7 @@ class GanetiRapiClient(object):
     @return: job status
 
     """
-    return self._SendRequest(HTTP_GET, "/2/jobs/%d" % job_id, None, None)
+    return self._SendRequest(HTTP_GET, "/2/jobs/%s" % job_id, None, None)
 
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
     """Waits for job changes.
@@ -790,7 +790,7 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_DELETE, "/2/jobs/%d" % job_id, query, None)
+    return self._SendRequest(HTTP_DELETE, "/2/jobs/%s" % job_id, query, None)
 
   def GetNodes(self, bulk=False):
     """Gets all nodes in the cluster.
