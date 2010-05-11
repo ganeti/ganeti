@@ -54,7 +54,6 @@ VALID_REPLACEMENT_MODES = frozenset([
 VALID_NODE_ROLES = frozenset([
   "drained", "master", "master-candidate", "offline", "regular",
   ])
-VALID_STORAGE_TYPES = frozenset(["file", "lvm-pv", "lvm-vg"])
 
 
 class Error(Exception):
@@ -82,13 +81,6 @@ class GanetiApiError(Error):
 
 class InvalidReplacementMode(Error):
   """Raised when an invalid disk replacement mode is attempted.
-
-  """
-  pass
-
-
-class InvalidStorageType(Error):
-  """Raised when an invalid storage type is used.
 
   """
   pass
@@ -420,14 +412,6 @@ class GanetiRapiClient(object):
       raise GanetiApiError(msg, code=resp.code)
 
     return response_content
-
-  @staticmethod
-  def _CheckStorageType(storage_type):
-    """Checks a storage type for validity.
-
-    """
-    if storage_type not in VALID_STORAGE_TYPES:
-      raise InvalidStorageType("%s is an invalid storage type" % storage_type)
 
   def GetVersion(self):
     """Gets the Remote API version running on the cluster.
@@ -965,12 +949,7 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id where results can be retrieved
 
-    @raise InvalidStorageType: If an invalid storage type is specified
-
     """
-    # TODO: Add default for storage_type & output_fields
-    self._CheckStorageType(storage_type)
-
     query = [
       ("storage_type", storage_type),
       ("output_fields", output_fields),
@@ -995,11 +974,7 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id
 
-    @raise InvalidStorageType: If an invalid storage type is specified
-
     """
-    self._CheckStorageType(storage_type)
-
     query = [
       ("storage_type", storage_type),
       ("name", name),
@@ -1023,11 +998,7 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id
 
-    @raise InvalidStorageType: If an invalid storage type is specified
-
     """
-    self._CheckStorageType(storage_type)
-
     query = [
       ("storage_type", storage_type),
       ("name", name),
