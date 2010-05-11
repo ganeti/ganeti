@@ -52,7 +52,7 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
      TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime, \
-     UnescapeAndSplit, RunParts, PathJoin, HostInfo
+     UnescapeAndSplit, RunParts, PathJoin, HostInfo, ReadOneLineFile
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError, OpPrereqError
@@ -539,6 +539,83 @@ class TestReadFile(testutils.GanetiTestCase):
   def testError(self):
     self.assertRaises(EnvironmentError, utils.ReadFile,
                       "/dev/null/does-not-exist")
+
+
+class TestReadOneLineFile(testutils.GanetiTestCase):
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+  def testDefault(self):
+    data = ReadOneLineFile(self._TestDataFilename("cert1.pem"))
+    self.assertEqual(len(data), 27)
+    self.assertEqual(data, "-----BEGIN CERTIFICATE-----")
+
+  def testNotStrict(self):
+    data = ReadOneLineFile(self._TestDataFilename("cert1.pem"), strict=False)
+    self.assertEqual(len(data), 27)
+    self.assertEqual(data, "-----BEGIN CERTIFICATE-----")
+
+  def testStrictFailure(self):
+    self.assertRaises(errors.GenericError, ReadOneLineFile,
+                      self._TestDataFilename("cert1.pem"), strict=True)
+
+  def testLongLine(self):
+    dummydata = (1024 * "Hello World! ")
+    myfile = self._CreateTempFile()
+    utils.WriteFile(myfile, data=dummydata)
+    datastrict = ReadOneLineFile(myfile, strict=True)
+    datalax = ReadOneLineFile(myfile, strict=False)
+    self.assertEqual(dummydata, datastrict)
+    self.assertEqual(dummydata, datalax)
+
+  def testNewline(self):
+    myfile = self._CreateTempFile()
+    myline = "myline"
+    for nl in ["", "\n", "\r\n"]:
+      dummydata = "%s%s" % (myline, nl)
+      utils.WriteFile(myfile, data=dummydata)
+      datalax = ReadOneLineFile(myfile, strict=False)
+      self.assertEqual(myline, datalax)
+      datastrict = ReadOneLineFile(myfile, strict=True)
+      self.assertEqual(myline, datastrict)
+
+  def testWhitespaceAndMultipleLines(self):
+    myfile = self._CreateTempFile()
+    for nl in ["", "\n", "\r\n"]:
+      for ws in [" ", "\t", "\t\t  \t", "\t "]:
+        dummydata = (1024 * ("Foo bar baz %s%s" % (ws, nl)))
+        utils.WriteFile(myfile, data=dummydata)
+        datalax = ReadOneLineFile(myfile, strict=False)
+        if nl:
+          self.assert_(set("\r\n") & set(dummydata))
+          self.assertRaises(errors.GenericError, ReadOneLineFile,
+                            myfile, strict=True)
+          explen = len("Foo bar baz ") + len(ws)
+          self.assertEqual(len(datalax), explen)
+          self.assertEqual(datalax, dummydata[:explen])
+          self.assertFalse(set("\r\n") & set(datalax))
+        else:
+          datastrict = ReadOneLineFile(myfile, strict=True)
+          self.assertEqual(dummydata, datastrict)
+          self.assertEqual(dummydata, datalax)
+
+  def testEmptylines(self):
+    myfile = self._CreateTempFile()
+    myline = "myline"
+    for nl in ["\n", "\r\n"]:
+      for ol in ["", "otherline"]:
+        dummydata = "%s%s%s%s%s%s" % (nl, nl, myline, nl, ol, nl)
+        utils.WriteFile(myfile, data=dummydata)
+        self.assert_(set("\r\n") & set(dummydata))
+        datalax = ReadOneLineFile(myfile, strict=False)
+        self.assertEqual(myline, datalax)
+        if ol:
+          self.assertRaises(errors.GenericError, ReadOneLineFile,
+                            myfile, strict=True)
+        else:
+          datastrict = ReadOneLineFile(myfile, strict=True)
+          self.assertEqual(myline, datastrict)
 
 
 class TestTimestampForFilename(unittest.TestCase):
