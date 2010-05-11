@@ -1383,27 +1383,20 @@ def EnsureDirs(dirs):
       raise errors.GenericError("%s is not a directory" % dir_name)
 
 
-def ReadFile(file_name, size=-1, oneline=False):
+def ReadFile(file_name, size=-1):
   """Reads a file.
 
   @type size: int
   @param size: Read at most size bytes (if negative, entire file)
-  @type oneline: bool
-  @param oneline: Whether to read only one line (newline char is not included)
   @rtype: str
   @return: the (possibly partial) content of the file
 
   """
   f = open(file_name, "r")
   try:
-    if oneline:
-      data = f.readline(size).rstrip("\r\n")
-    else:
-      data = f.read(size)
+    return f.read(size)
   finally:
     f.close()
-
-  return data
 
 
 def WriteFile(file_name, fn=None, data=None,
