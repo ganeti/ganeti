@@ -450,6 +450,18 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertItems(["node-z"])
     self.assertQuery("storage_type", ["lvm-pv"])
     self.assertQuery("name", ["hda"])
+    self.assertQuery("allocatable", None)
+
+    for allocatable, query_allocatable in [(True, "1"), (False, "0")]:
+      self.rapi.AddResponse("7205")
+      job_id = self.client.ModifyNodeStorageUnits("node-z", "lvm-pv", "hda",
+                                                  allocatable=allocatable)
+      self.assertEqual(7205, job_id)
+      self.assertHandler(rlib2.R_2_nodes_name_storage_modify)
+      self.assertItems(["node-z"])
+      self.assertQuery("storage_type", ["lvm-pv"])
+      self.assertQuery("name", ["hda"])
+      self.assertQuery("allocatable", [query_allocatable])
 
   def testRepairNodeStorageUnits(self):
     self.rapi.AddResponse("99")

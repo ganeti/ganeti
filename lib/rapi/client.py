@@ -987,7 +987,7 @@ class GanetiRapiClient(object):
                              ("/%s/nodes/%s/storage" %
                               (GANETI_RAPI_VERSION, node)), query, None)
 
-  def ModifyNodeStorageUnits(self, node, storage_type, name, allocatable=True):
+  def ModifyNodeStorageUnits(self, node, storage_type, name, allocatable=None):
     """Modifies parameters of storage units on the node.
 
     @type node: str
@@ -996,8 +996,9 @@ class GanetiRapiClient(object):
     @param storage_type: storage type whose units to modify
     @type name: str
     @param name: name of the storage unit
-    @type allocatable: bool
-    @param allocatable: TODO: Document me
+    @type allocatable: bool or None
+    @param allocatable: Whether to set the "allocatable" flag on the storage
+                        unit (None=no modification, True=set, False=unset)
 
     @rtype: int
     @return: job id
@@ -1006,8 +1007,10 @@ class GanetiRapiClient(object):
     query = [
       ("storage_type", storage_type),
       ("name", name),
-      ("allocatable", allocatable),
       ]
+
+    if allocatable is not None:
+      query.append(("allocatable", allocatable))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/nodes/%s/storage/modify" %
