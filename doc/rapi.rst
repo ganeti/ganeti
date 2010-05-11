@@ -651,6 +651,30 @@ while by a resource we refer to an instance's disk, or NIC, etc.
 
 Cancel a not-yet-started job.
 
+
+``/2/jobs/[job_id]/wait``
++++++++++++++++++++++++++
+
+``GET``
+~~~~~~~
+
+Waits for changes on a job. Takes the following body parameters in a
+dict:
+
+``fields``
+  The job fields on which to watch for changes.
+
+``previous_job_info``
+  Previously received field values or None if not yet available.
+
+``previous_log_serial``
+  Highest log serial number received so far or None if not yet
+  available.
+
+Returns None if no changes have been detected and a dict with two keys,
+``job_info`` and ``log_entries`` otherwise.
+
+
 ``/2/nodes``
 ++++++++++++
 

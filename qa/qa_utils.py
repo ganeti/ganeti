@@ -150,6 +150,7 @@ def UploadFile(node, src):
 
   Caller needs to remove the returned file on the node when it's not needed
   anymore.
+
   """
   # Make sure nobody else has access to it while preserving local permissions
   mode = os.stat(src).st_mode & 0700
@@ -169,6 +170,22 @@ def UploadFile(node, src):
     return p.stdout.read().strip()
   finally:
     f.close()
+
+
+def BackupFile(node, path):
+  """Creates a backup of a file on the node and returns the filename.
+
+  Caller needs to remove the returned file on the node when it's not needed
+  anymore.
+
+  """
+  cmd = ("tmp=$(tempfile --prefix .gnt --directory=$(dirname %s)) && "
+         "[[ -f \"$tmp\" ]] && "
+         "cp %s $tmp && "
+         "echo $tmp") % (utils.ShellQuote(path), utils.ShellQuote(path))
+
+  # Return temporary filename
+  return GetCommandOutput(node, cmd).strip()
 
 
 def _ResolveName(cmd, key):

@@ -281,10 +281,13 @@ def main():
 
   rapi_user = "ganeti-qa"
   rapi_secret = utils.GenerateSecret()
-  qa_rapi.OpenerFactory.SetCredentials(rapi_user, rapi_secret)
 
   RunEnvTests()
   SetupCluster(rapi_user, rapi_secret)
+
+  # Load RAPI certificate
+  qa_rapi.Setup(rapi_user, rapi_secret)
+
   RunClusterTests()
   RunOsTests()
 

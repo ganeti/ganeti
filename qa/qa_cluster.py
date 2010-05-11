@@ -185,48 +185,61 @@ def TestClusterRenewCrypto():
   AssertNotEqual(StartSSH(master["primary"],
                           utils.ShellQuoteArgs(cmd)).wait(), 0)
 
-  # Custom RAPI certificate
-  fh = tempfile.NamedTemporaryFile()
-
-  # Ensure certificate doesn't cause "gnt-cluster verify" to complain
-  validity = constants.SSL_CERT_EXPIRATION_WARN * 3
-
-  utils.GenerateSelfSignedSslCert(fh.name, validity=validity)
-
-  tmpcert = qa_utils.UploadFile(master["primary"], fh.name)
+  rapi_cert_backup = qa_utils.BackupFile(master["primary"],
+                                         constants.RAPI_CERT_FILE)
   try:
+    # Custom RAPI certificate
+    fh = tempfile.NamedTemporaryFile()
+
+    # Ensure certificate doesn't cause "gnt-cluster verify" to complain
+    validity = constants.SSL_CERT_EXPIRATION_WARN * 3
+
+    utils.GenerateSelfSignedSslCert(fh.name, validity=validity)
+
+    tmpcert = qa_utils.UploadFile(master["primary"], fh.name)
+    try:
+      cmd = ["gnt-cluster", "renew-crypto", "--force",
+             "--rapi-certificate=%s" % tmpcert]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+    finally:
+      cmd = ["rm", "-f", tmpcert]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    # Custom cluster domain secret
+    cds_fh = tempfile.NamedTemporaryFile()
+    cds_fh.write(utils.GenerateSecret())
+    cds_fh.write("\n")
+    cds_fh.flush()
+
+    tmpcds = qa_utils.UploadFile(master["primary"], cds_fh.name)
+    try:
+      cmd = ["gnt-cluster", "renew-crypto", "--force",
+             "--cluster-domain-secret=%s" % tmpcds]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+    finally:
+      cmd = ["rm", "-f", tmpcds]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    # Normal case
     cmd = ["gnt-cluster", "renew-crypto", "--force",
-           "--rapi-certificate=%s" % tmpcert]
+           "--new-cluster-certificate", "--new-confd-hmac-key",
+           "--new-rapi-certificate", "--new-cluster-domain-secret"]
+    AssertEqual(StartSSH(master["primary"],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    # Restore RAPI certificate
+    cmd = ["gnt-cluster", "renew-crypto", "--force",
+           "--rapi-certificate=%s" % rapi_cert_backup]
     AssertEqual(StartSSH(master["primary"],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
   finally:
-    cmd = ["rm", "-f", tmpcert]
+    cmd = ["rm", "-f", rapi_cert_backup]
     AssertEqual(StartSSH(master["primary"],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  # Custom cluster domain secret
-  cds_fh = tempfile.NamedTemporaryFile()
-  cds_fh.write(utils.GenerateSecret())
-  cds_fh.write("\n")
-  cds_fh.flush()
-
-  tmpcds = qa_utils.UploadFile(master["primary"], cds_fh.name)
-  try:
-    cmd = ["gnt-cluster", "renew-crypto", "--force",
-           "--cluster-domain-secret=%s" % tmpcds]
-    AssertEqual(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
-  finally:
-    cmd = ["rm", "-f", tmpcds]
-    AssertEqual(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  # Normal case
-  cmd = ["gnt-cluster", "renew-crypto", "--force",
-         "--new-cluster-certificate", "--new-confd-hmac-key",
-         "--new-rapi-certificate", "--new-cluster-domain-secret"]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
 def TestClusterBurnin():

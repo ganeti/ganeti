@@ -22,30 +22,35 @@
 """Ganeti RAPI client."""
 
 import httplib
-import httplib2
+import urllib2
+import logging
 import simplejson
 import socket
 import urllib
-from OpenSSL import SSL
-from OpenSSL import crypto
+import OpenSSL
+import distutils.version
 
+
+GANETI_RAPI_PORT = 5080
+GANETI_RAPI_VERSION = 2
 
 HTTP_DELETE = "DELETE"
 HTTP_GET = "GET"
 HTTP_PUT = "PUT"
 HTTP_POST = "POST"
+HTTP_OK = 200
+HTTP_APP_JSON = "application/json"
+
 REPLACE_DISK_PRI = "replace_on_primary"
 REPLACE_DISK_SECONDARY = "replace_on_secondary"
 REPLACE_DISK_CHG = "replace_new_secondary"
 REPLACE_DISK_AUTO = "replace_auto"
-VALID_REPLACEMENT_MODES = frozenset([
-    REPLACE_DISK_PRI, REPLACE_DISK_SECONDARY, REPLACE_DISK_CHG,
-    REPLACE_DISK_AUTO
-    ])
-VALID_NODE_ROLES = frozenset([
-    "drained", "master", "master-candidate", "offline", "regular"
-    ])
-VALID_STORAGE_TYPES = frozenset(["file", "lvm-pv", "lvm-vg"])
+
+NODE_ROLE_DRAINED = "drained"
+NODE_ROLE_MASTER_CANDIATE = "master-candidate"
+NODE_ROLE_MASTER = "master"
+NODE_ROLE_OFFLINE = "offline"
+NODE_ROLE_REGULAR = "regular"
 
 
 class Error(Exception):
@@ -66,119 +71,311 @@ class GanetiApiError(Error):
   """Generic error raised from Ganeti API.
 
   """
-  pass
+  def __init__(self, msg, code=None):
+    Error.__init__(self, msg)
+    self.code = code
 
 
-class InvalidReplacementMode(Error):
-  """Raised when an invalid disk replacement mode is attempted.
+def FormatX509Name(x509_name):
+  """Formats an X509 name.
 
-  """
-  pass
-
-
-class InvalidStorageType(Error):
-  """Raised when an invalid storage type is used.
+  @type x509_name: OpenSSL.crypto.X509Name
 
   """
-  pass
+  try:
+    # Only supported in pyOpenSSL 0.7 and above
+    get_components_fn = x509_name.get_components
+  except AttributeError:
+    return repr(x509_name)
+  else:
+    return "".join("/%s=%s" % (name, value)
+                   for name, value in get_components_fn())
 
 
-class InvalidNodeRole(Error):
-  """Raised when an invalid node role is used.
+class CertAuthorityVerify:
+  """Certificate verificator for SSL context.
+
+  Configures SSL context to verify server's certificate.
 
   """
-  pass
+  _CAPATH_MINVERSION = "0.9"
+  _DEFVFYPATHS_MINVERSION = "0.9"
+
+  _PYOPENSSL_VERSION = OpenSSL.__version__
+  _PARSED_PYOPENSSL_VERSION = distutils.version.LooseVersion(_PYOPENSSL_VERSION)
+
+  _SUPPORT_CAPATH = (_PARSED_PYOPENSSL_VERSION >= _CAPATH_MINVERSION)
+  _SUPPORT_DEFVFYPATHS = (_PARSED_PYOPENSSL_VERSION >= _DEFVFYPATHS_MINVERSION)
+
+  def __init__(self, cafile=None, capath=None, use_default_verify_paths=False):
+    """Initializes this class.
+
+    @type cafile: string
+    @param cafile: In which file we can find the certificates
+    @type capath: string
+    @param capath: In which directory we can find the certificates
+    @type use_default_verify_paths: bool
+    @param use_default_verify_paths: Whether the platform provided CA
+                                     certificates are to be used for
+                                     verification purposes
+
+    """
+    self._cafile = cafile
+    self._capath = capath
+    self._use_default_verify_paths = use_default_verify_paths
+
+    if self._capath is not None and not self._SUPPORT_CAPATH:
+      raise Error(("PyOpenSSL %s has no support for a CA directory,"
+                   " version %s or above is required") %
+                  (self._PYOPENSSL_VERSION, self._CAPATH_MINVERSION))
+
+    if self._use_default_verify_paths and not self._SUPPORT_DEFVFYPATHS:
+      raise Error(("PyOpenSSL %s has no support for using default verification"
+                   " paths, version %s or above is required") %
+                  (self._PYOPENSSL_VERSION, self._DEFVFYPATHS_MINVERSION))
+
+  @staticmethod
+  def _VerifySslCertCb(logger, _, cert, errnum, errdepth, ok):
+    """Callback for SSL certificate verification.
+
+    @param logger: Logging object
+
+    """
+    if ok:
+      log_fn = logger.debug
+    else:
+      log_fn = logger.error
+
+    log_fn("Verifying SSL certificate at depth %s, subject '%s', issuer '%s'",
+           errdepth, FormatX509Name(cert.get_subject()),
+           FormatX509Name(cert.get_issuer()))
+
+    if not ok:
+      try:
+        # Only supported in pyOpenSSL 0.7 and above
+        # pylint: disable-msg=E1101
+        fn = OpenSSL.crypto.X509_verify_cert_error_string
+      except AttributeError:
+        errmsg = ""
+      else:
+        errmsg = ":%s" % fn(errnum)
+
+      logger.error("verify error:num=%s%s", errnum, errmsg)
+
+    return ok
+
+  def __call__(self, ctx, logger):
+    """Configures an SSL context to verify certificates.
+
+    @type ctx: OpenSSL.SSL.Context
+    @param ctx: SSL context
+
+    """
+    if self._use_default_verify_paths:
+      ctx.set_default_verify_paths()
+
+    if self._cafile or self._capath:
+      if self._SUPPORT_CAPATH:
+        ctx.load_verify_locations(self._cafile, self._capath)
+      else:
+        ctx.load_verify_locations(self._cafile)
+
+    ctx.set_verify(OpenSSL.SSL.VERIFY_PEER,
+                   lambda conn, cert, errnum, errdepth, ok: \
+                     self._VerifySslCertCb(logger, conn, cert,
+                                           errnum, errdepth, ok))
+
+
+class _HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
+  """HTTPS Connection handler that verifies the SSL certificate.
+
+  """
+  def __init__(self, *args, **kwargs):
+    """Initializes this class.
+
+    """
+    httplib.HTTPSConnection.__init__(self, *args, **kwargs)
+    self._logger = None
+    self._config_ssl_verification = None
+
+  def Setup(self, logger, config_ssl_verification):
+    """Sets the SSL verification config function.
+
+    @param logger: Logging object
+    @type config_ssl_verification: callable
+
+    """
+    assert self._logger is None
+    assert self._config_ssl_verification is None
+
+    self._logger = logger
+    self._config_ssl_verification = config_ssl_verification
+
+  def connect(self):
+    """Connect to the server specified when the object was created.
+
+    This ensures that SSL certificates are verified.
+
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
+    ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
+
+    if self._config_ssl_verification:
+      self._config_ssl_verification(ctx, self._logger)
+
+    ssl = OpenSSL.SSL.Connection(ctx, sock)
+    ssl.connect((self.host, self.port))
+
+    self.sock = httplib.FakeSocket(sock, ssl)
+
+
+class _HTTPSHandler(urllib2.HTTPSHandler):
+  def __init__(self, logger, config_ssl_verification):
+    """Initializes this class.
+
+    @param logger: Logging object
+    @type config_ssl_verification: callable
+    @param config_ssl_verification: Function to configure SSL context for
+                                    certificate verification
+
+    """
+    urllib2.HTTPSHandler.__init__(self)
+    self._logger = logger
+    self._config_ssl_verification = config_ssl_verification
+
+  def _CreateHttpsConnection(self, *args, **kwargs):
+    """Wrapper around L{_HTTPSConnectionOpenSSL} to add SSL verification.
+
+    This wrapper is necessary provide a compatible API to urllib2.
+
+    """
+    conn = _HTTPSConnectionOpenSSL(*args, **kwargs)
+    conn.Setup(self._logger, self._config_ssl_verification)
+    return conn
+
+  def https_open(self, req):
+    """Creates HTTPS connection.
+
+    Called by urllib2.
+
+    """
+    return self.do_open(self._CreateHttpsConnection, req)
+
+
+class _RapiRequest(urllib2.Request):
+  def __init__(self, method, url, headers, data):
+    """Initializes this class.
+
+    """
+    urllib2.Request.__init__(self, url, data=data, headers=headers)
+    self._method = method
+
+  def get_method(self):
+    """Returns the HTTP request method.
+
+    """
+    return self._method
 
 
 class GanetiRapiClient(object):
   """Ganeti RAPI client.
 
   """
-
   USER_AGENT = "Ganeti RAPI Client"
+  _json_encoder = simplejson.JSONEncoder(sort_keys=True)
 
-  def __init__(self, master_hostname, port=5080, username=None, password=None,
-               ssl_cert_file=None):
+  def __init__(self, host, port=GANETI_RAPI_PORT,
+               username=None, password=None,
+               config_ssl_verification=None, ignore_proxy=False,
+               logger=logging):
     """Constructor.
 
-    @type master_hostname: str
-    @param master_hostname: the ganeti cluster master to interact with
+    @type host: string
+    @param host: the ganeti cluster master to interact with
     @type port: int
-    @param port: the port on which the RAPI is running. (default is 5080)
-    @type username: str
+    @param port: the port on which the RAPI is running (default is 5080)
+    @type username: string
     @param username: the username to connect with
-    @type password: str
+    @type password: string
     @param password: the password to connect with
-    @type ssl_cert_file: str or None
-    @param ssl_cert_file: path to the expected SSL certificate. if None, SSL
-        certificate will not be verified
+    @type config_ssl_verification: callable
+    @param config_ssl_verification: Function to configure SSL context for
+                                    certificate verification
+    @type ignore_proxy: bool
+    @param ignore_proxy: Whether to ignore proxy settings
+    @param logger: Logging object
 
     """
-    self._master_hostname = master_hostname
+    self._host = host
     self._port = port
+    self._logger = logger
 
-    self._version = None
-    self._http = httplib2.Http()
+    self._base_url = "https://%s:%s" % (host, port)
 
-    # Older versions of httplib2 don't support the connection_type argument
-    # to request(), so we have to manually specify the connection object in the
-    # internal dict.
-    base_url = self._MakeUrl("/", prepend_version=False)
-    scheme, authority, _, _, _ = httplib2.parse_uri(base_url)
-    conn_key = "%s:%s" % (scheme, authority)
-    self._http.connections[conn_key] = \
-      HTTPSConnectionOpenSSL(master_hostname, port, cert_file=ssl_cert_file)
+    handlers = [_HTTPSHandler(self._logger, config_ssl_verification)]
+
+    if username is not None:
+      pwmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+      pwmgr.add_password(None, self._base_url, username, password)
+      handlers.append(urllib2.HTTPBasicAuthHandler(pwmgr))
+    elif password:
+      raise Error("Specified password without username")
+
+    if ignore_proxy:
+      handlers.append(urllib2.ProxyHandler({}))
+
+    self._http = urllib2.build_opener(*handlers) # pylint: disable-msg=W0142
 
     self._headers = {
-        "Accept": "text/plain",
-        "Content-type": "application/x-www-form-urlencoded",
-        "User-Agent": self.USER_AGENT}
+      "Accept": HTTP_APP_JSON,
+      "Content-type": HTTP_APP_JSON,
+      "User-Agent": self.USER_AGENT,
+      }
 
-    if username is not None and password is not None:
-      self._http.add_credentials(username, password)
+  @staticmethod
+  def _EncodeQuery(query):
+    """Encode query values for RAPI URL.
 
-  def _MakeUrl(self, path, query=None, prepend_version=True):
-    """Constructs the URL to pass to the HTTP client.
-
-    @type path: str
-    @param path: HTTP URL path
     @type query: list of two-tuples
-    @param query: query arguments to pass to urllib.urlencode
-    @type prepend_version: bool
-    @param prepend_version: whether to automatically fetch and prepend the
-        Ganeti RAPI version to the URL path
-
-    @rtype:  str
-    @return: URL path
+    @param query: Query arguments
+    @rtype: list
+    @return: Query list with encoded values
 
     """
-    if prepend_version:
-      path = "/%d%s" % (self.GetVersion(), path)
+    result = []
 
-    return "https://%(host)s:%(port)d%(path)s?%(query)s" % {
-        "host": self._master_hostname,
-        "port": self._port,
-        "path": path,
-        "query": urllib.urlencode(query or [])}
+    for name, value in query:
+      if value is None:
+        result.append((name, ""))
 
-  def _SendRequest(self, method, path, query=None, content=None,
-                   prepend_version=True):
+      elif isinstance(value, bool):
+        # Boolean values must be encoded as 0 or 1
+        result.append((name, int(value)))
+
+      elif isinstance(value, (list, tuple, dict)):
+        raise ValueError("Invalid query data type %r" % type(value).__name__)
+
+      else:
+        result.append((name, value))
+
+    return result
+
+  def _SendRequest(self, method, path, query, content):
     """Sends an HTTP request.
 
     This constructs a full URL, encodes and decodes HTTP bodies, and
     handles invalid responses in a pythonic way.
 
-    @type method: str
+    @type method: string
     @param method: HTTP method to use
-    @type path: str
+    @type path: string
     @param path: HTTP URL path
     @type query: list of two-tuples
     @param query: query arguments to pass to urllib.urlencode
     @type content: str or None
     @param content: HTTP body content
-    @type prepend_version: bool
-    @param prepend_version: whether to automatically fetch and prepend the
-        Ganeti RAPI version to the URL path
 
     @rtype: str
     @return: JSON-Decoded response
@@ -187,30 +384,45 @@ class GanetiRapiClient(object):
     @raises GanetiApiError: If an invalid response is returned
 
     """
+    assert path.startswith("/")
+
     if content:
-      content = simplejson.JSONEncoder(sort_keys=True).encode(content)
+      encoded_content = self._json_encoder.encode(content)
+    else:
+      encoded_content = None
 
-    url = self._MakeUrl(path, query, prepend_version)
+    # Build URL
+    url = [self._base_url, path]
+    if query:
+      url.append("?")
+      url.append(urllib.urlencode(self._EncodeQuery(query)))
+
+    req = _RapiRequest(method, "".join(url), self._headers, encoded_content)
+
     try:
-      resp_headers, resp_content = self._http.request(url, method,
-          body=content, headers=self._headers)
-    except (crypto.Error, SSL.Error):
-      raise CertificateError("Invalid SSL certificate.")
+      resp = self._http.open(req)
+      encoded_response_content = resp.read()
+    except (OpenSSL.SSL.Error, OpenSSL.crypto.Error), err:
+      raise CertificateError("SSL issue: %r" % err)
 
-    if resp_content:
-      resp_content = simplejson.loads(resp_content)
+    if encoded_response_content:
+      response_content = simplejson.loads(encoded_response_content)
+    else:
+      response_content = None
 
     # TODO: Are there other status codes that are valid? (redirect?)
-    if resp_headers.status != 200:
-      if isinstance(resp_content, dict):
+    if resp.code != HTTP_OK:
+      if isinstance(response_content, dict):
         msg = ("%s %s: %s" %
-            (resp_content["code"], resp_content["message"],
-             resp_content["explain"]))
+               (response_content["code"],
+                response_content["message"],
+                response_content["explain"]))
       else:
-        msg = resp_content
-      raise GanetiApiError(msg)
+        msg = str(response_content)
 
-    return resp_content
+      raise GanetiApiError(msg, code=resp.code)
+
+    return response_content
 
   def GetVersion(self):
     """Gets the Remote API version running on the cluster.
@@ -219,10 +431,7 @@ class GanetiRapiClient(object):
     @return: Ganeti Remote API version
 
     """
-    if self._version is None:
-      self._version = self._SendRequest(HTTP_GET, "/version",
-                                        prepend_version=False)
-    return self._version
+    return self._SendRequest(HTTP_GET, "/version", None, None)
 
   def GetOperatingSystems(self):
     """Gets the Operating Systems running in the Ganeti cluster.
@@ -231,7 +440,8 @@ class GanetiRapiClient(object):
     @return: operating systems
 
     """
-    return self._SendRequest(HTTP_GET, "/os")
+    return self._SendRequest(HTTP_GET, "/%s/os" % GANETI_RAPI_VERSION,
+                             None, None)
 
   def GetInfo(self):
     """Gets info about the cluster.
@@ -240,7 +450,8 @@ class GanetiRapiClient(object):
     @return: information about the cluster
 
     """
-    return self._SendRequest(HTTP_GET, "/info")
+    return self._SendRequest(HTTP_GET, "/%s/info" % GANETI_RAPI_VERSION,
+                             None, None)
 
   def GetClusterTags(self):
     """Gets the cluster tags.
@@ -249,7 +460,8 @@ class GanetiRapiClient(object):
     @return: cluster tags
 
     """
-    return self._SendRequest(HTTP_GET, "/tags")
+    return self._SendRequest(HTTP_GET, "/%s/tags" % GANETI_RAPI_VERSION,
+                             None, None)
 
   def AddClusterTags(self, tags, dry_run=False):
     """Adds tags to the cluster.
@@ -267,7 +479,8 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_PUT, "/tags", query)
+    return self._SendRequest(HTTP_PUT, "/%s/tags" % GANETI_RAPI_VERSION,
+                             query, None)
 
   def DeleteClusterTags(self, tags, dry_run=False):
     """Deletes tags from the cluster.
@@ -282,7 +495,8 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/tags", query)
+    return self._SendRequest(HTTP_DELETE, "/%s/tags" % GANETI_RAPI_VERSION,
+                             query, None)
 
   def GetInstances(self, bulk=False):
     """Gets information about instances on the cluster.
@@ -298,12 +512,13 @@ class GanetiRapiClient(object):
     if bulk:
       query.append(("bulk", 1))
 
-    instances = self._SendRequest(HTTP_GET, "/instances", query)
+    instances = self._SendRequest(HTTP_GET,
+                                  "/%s/instances" % GANETI_RAPI_VERSION,
+                                  query, None)
     if bulk:
       return instances
     else:
       return [i["id"] for i in instances]
-
 
   def GetInstanceInfo(self, instance):
     """Gets information about an instance.
@@ -315,7 +530,9 @@ class GanetiRapiClient(object):
     @return: info about the instance
 
     """
-    return self._SendRequest(HTTP_GET, "/instances/%s" % instance)
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/instances/%s" %
+                              (GANETI_RAPI_VERSION, instance)), None, None)
 
   def CreateInstance(self, dry_run=False):
     """Creates a new instance.
@@ -332,7 +549,8 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_POST, "/instances", query)
+    return self._SendRequest(HTTP_POST, "/%s/instances" % GANETI_RAPI_VERSION,
+                             query, None)
 
   def DeleteInstance(self, instance, dry_run=False):
     """Deletes an instance.
@@ -348,7 +566,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_DELETE, "/instances/%s" % instance, query)
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/instances/%s" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def GetInstanceTags(self, instance):
     """Gets tags for an instance.
@@ -360,7 +580,9 @@ class GanetiRapiClient(object):
     @return: tags for the instance
 
     """
-    return self._SendRequest(HTTP_GET, "/instances/%s/tags" % instance)
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/instances/%s/tags" %
+                              (GANETI_RAPI_VERSION, instance)), None, None)
 
   def AddInstanceTags(self, instance, tags, dry_run=False):
     """Adds tags to an instance.
@@ -380,7 +602,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_PUT, "/instances/%s/tags" % instance, query)
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/tags" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def DeleteInstanceTags(self, instance, tags, dry_run=False):
     """Deletes tags from an instance.
@@ -397,7 +621,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/instances/%s/tags" % instance, query)
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/instances/%s/tags" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def RebootInstance(self, instance, reboot_type=None, ignore_secondaries=None,
                      dry_run=False):
@@ -422,7 +648,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_POST, "/instances/%s/reboot" % instance, query)
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/instances/%s/reboot" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def ShutdownInstance(self, instance, dry_run=False):
     """Shuts down an instance.
@@ -437,7 +665,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/instances/%s/shutdown" % instance, query)
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/shutdown" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def StartupInstance(self, instance, dry_run=False):
     """Starts up an instance.
@@ -452,7 +682,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_PUT, "/instances/%s/startup" % instance, query)
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/startup" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def ReinstallInstance(self, instance, os, no_startup=False):
     """Reinstalls an instance.
@@ -468,53 +700,52 @@ class GanetiRapiClient(object):
     query = [("os", os)]
     if no_startup:
       query.append(("nostartup", 1))
-    self._SendRequest(HTTP_POST, "/instances/%s/reinstall" % instance, query)
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/instances/%s/reinstall" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def ReplaceInstanceDisks(self, instance, disks, mode="replace_auto",
-                           remote_node=None, iallocator="hail", dry_run=False):
+  def ReplaceInstanceDisks(self, instance, disks=None, mode=REPLACE_DISK_AUTO,
+                           remote_node=None, iallocator=None, dry_run=False):
     """Replaces disks on an instance.
 
     @type instance: str
     @param instance: instance whose disks to replace
-    @type disks: list of str
-    @param disks: disks to replace
+    @type disks: list of ints
+    @param disks: Indexes of disks to replace
     @type mode: str
-    @param mode: replacement mode to use. defaults to replace_auto
+    @param mode: replacement mode to use (defaults to replace_auto)
     @type remote_node: str or None
     @param remote_node: new secondary node to use (for use with
-        replace_new_secondary mdoe)
+        replace_new_secondary mode)
     @type iallocator: str or None
     @param iallocator: instance allocator plugin to use (for use with
-        replace_auto mdoe).  default is hail
+                       replace_auto mode)
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
     @rtype: int
     @return: job id
 
-    @raises InvalidReplacementMode: If an invalid disk replacement mode is given
-    @raises GanetiApiError: If no secondary node is given with a non-auto
-        replacement mode is requested.
-
     """
-    if mode not in VALID_REPLACEMENT_MODES:
-      raise InvalidReplacementMode("%s is not a valid disk replacement mode.",
-                                   mode)
+    query = [
+      ("mode", mode),
+      ]
 
-    query = [("mode", mode), ("disks", ",".join(disks))]
+    if disks:
+      query.append(("disks", ",".join(str(idx) for idx in disks)))
 
-    if mode is REPLACE_DISK_AUTO:
-      query.append(("iallocator", iallocator))
-    elif mode is REPLACE_DISK_SECONDARY:
-      if remote_node is None:
-        raise GanetiApiError("You must supply a new secondary node.")
+    if remote_node:
       query.append(("remote_node", remote_node))
+
+    if iallocator:
+      query.append(("iallocator", iallocator))
 
     if dry_run:
       query.append(("dry-run", 1))
 
     return self._SendRequest(HTTP_POST,
-                             "/instances/%s/replace-disks" % instance, query)
+                             ("/%s/instances/%s/replace-disks" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def GetJobs(self):
     """Gets all jobs for the cluster.
@@ -523,7 +754,10 @@ class GanetiRapiClient(object):
     @return: job ids for the cluster
 
     """
-    return [int(j["id"]) for j in self._SendRequest(HTTP_GET, "/jobs")]
+    return [int(j["id"])
+            for j in self._SendRequest(HTTP_GET,
+                                       "/%s/jobs" % GANETI_RAPI_VERSION,
+                                       None, None)]
 
   def GetJobStatus(self, job_id):
     """Gets the status of a job.
@@ -535,10 +769,29 @@ class GanetiRapiClient(object):
     @return: job status
 
     """
-    return self._SendRequest(HTTP_GET, "/jobs/%d" % job_id)
+    return self._SendRequest(HTTP_GET,
+                             "/%s/jobs/%s" % (GANETI_RAPI_VERSION, job_id),
+                             None, None)
 
-  def DeleteJob(self, job_id, dry_run=False):
-    """Deletes a job.
+  def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
+    """Waits for job changes.
+
+    @type job_id: int
+    @param job_id: Job ID for which to wait
+
+    """
+    body = {
+      "fields": fields,
+      "previous_job_info": prev_job_info,
+      "previous_log_serial": prev_log_serial,
+      }
+
+    return self._SendRequest(HTTP_GET,
+                             "/%s/jobs/%s/wait" % (GANETI_RAPI_VERSION, job_id),
+                             None, body)
+
+  def CancelJob(self, job_id, dry_run=False):
+    """Cancels a job.
 
     @type job_id: int
     @param job_id: id of the job to delete
@@ -550,7 +803,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    self._SendRequest(HTTP_DELETE, "/jobs/%d" % job_id, query)
+    return self._SendRequest(HTTP_DELETE,
+                             "/%s/jobs/%s" % (GANETI_RAPI_VERSION, job_id),
+                             query, None)
 
   def GetNodes(self, bulk=False):
     """Gets all nodes in the cluster.
@@ -567,7 +822,8 @@ class GanetiRapiClient(object):
     if bulk:
       query.append(("bulk", 1))
 
-    nodes = self._SendRequest(HTTP_GET, "/nodes", query)
+    nodes = self._SendRequest(HTTP_GET, "/%s/nodes" % GANETI_RAPI_VERSION,
+                              query, None)
     if bulk:
       return nodes
     else:
@@ -583,7 +839,9 @@ class GanetiRapiClient(object):
     @return: info about the node
 
     """
-    return self._SendRequest(HTTP_GET, "/nodes/%s" % node)
+    return self._SendRequest(HTTP_GET,
+                             "/%s/nodes/%s" % (GANETI_RAPI_VERSION, node),
+                             None, None)
 
   def EvacuateNode(self, node, iallocator=None, remote_node=None,
                    dry_run=False):
@@ -604,10 +862,10 @@ class GanetiRapiClient(object):
     @raises GanetiApiError: if an iallocator and remote_node are both specified
 
     """
-    query = []
     if iallocator and remote_node:
-      raise GanetiApiError("Only one of iallocator or remote_node can be used.")
+      raise GanetiApiError("Only one of iallocator or remote_node can be used")
 
+    query = []
     if iallocator:
       query.append(("iallocator", iallocator))
     if remote_node:
@@ -615,7 +873,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_POST, "/nodes/%s/evacuate" % node, query)
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/nodes/%s/evacuate" %
+                              (GANETI_RAPI_VERSION, node)), query, None)
 
   def MigrateNode(self, node, live=True, dry_run=False):
     """Migrates all primary instances from a node.
@@ -637,7 +897,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_POST, "/nodes/%s/migrate" % node, query)
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/nodes/%s/migrate" %
+                              (GANETI_RAPI_VERSION, node)), query, None)
 
   def GetNodeRole(self, node):
     """Gets the current role for a node.
@@ -649,7 +911,9 @@ class GanetiRapiClient(object):
     @return: the current role for a node
 
     """
-    return self._SendRequest(HTTP_GET, "/nodes/%s/role" % node)
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/nodes/%s/role" %
+                              (GANETI_RAPI_VERSION, node)), None, None)
 
   def SetNodeRole(self, node, role, force=False):
     """Sets the role for a node.
@@ -664,15 +928,14 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id
 
-    @raise InvalidNodeRole: If an invalid node role is specified
-
     """
-    if role not in VALID_NODE_ROLES:
-      raise InvalidNodeRole("%s is not a valid node role.", role)
+    query = [
+      ("force", force),
+      ]
 
-    query = [("force", force)]
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/role" % node, query,
-                             content=role)
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/nodes/%s/role" %
+                              (GANETI_RAPI_VERSION, node)), query, role)
 
   def GetNodeStorageUnits(self, node, storage_type, output_fields):
     """Gets the storage units for a node.
@@ -687,17 +950,17 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id where results can be retrieved
 
-    @raise InvalidStorageType: If an invalid storage type is specified
-
     """
-    # TODO: Add default for storage_type & output_fields
-    if storage_type not in VALID_STORAGE_TYPES:
-      raise InvalidStorageType("%s is an invalid storage type.", storage_type)
+    query = [
+      ("storage_type", storage_type),
+      ("output_fields", output_fields),
+      ]
 
-    query = [("storage_type", storage_type), ("output_fields", output_fields)]
-    return self._SendRequest(HTTP_GET, "/nodes/%s/storage" % node, query)
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/nodes/%s/storage" %
+                              (GANETI_RAPI_VERSION, node)), query, None)
 
-  def ModifyNodeStorageUnits(self, node, storage_type, name, allocatable=True):
+  def ModifyNodeStorageUnits(self, node, storage_type, name, allocatable=None):
     """Modifies parameters of storage units on the node.
 
     @type node: str
@@ -706,23 +969,25 @@ class GanetiRapiClient(object):
     @param storage_type: storage type whose units to modify
     @type name: str
     @param name: name of the storage unit
-    @type allocatable: bool
-    @param allocatable: TODO: Document me
+    @type allocatable: bool or None
+    @param allocatable: Whether to set the "allocatable" flag on the storage
+                        unit (None=no modification, True=set, False=unset)
 
     @rtype: int
     @return: job id
 
-    @raise InvalidStorageType: If an invalid storage type is specified
-
     """
-    if storage_type not in VALID_STORAGE_TYPES:
-      raise InvalidStorageType("%s is an invalid storage type.", storage_type)
-
     query = [
-        ("storage_type", storage_type), ("name", name),
-        ("allocatable", allocatable)
-        ]
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/storage/modify" % node, query)
+      ("storage_type", storage_type),
+      ("name", name),
+      ]
+
+    if allocatable is not None:
+      query.append(("allocatable", allocatable))
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/nodes/%s/storage/modify" %
+                              (GANETI_RAPI_VERSION, node)), query, None)
 
   def RepairNodeStorageUnits(self, node, storage_type, name):
     """Repairs a storage unit on the node.
@@ -737,14 +1002,15 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id
 
-    @raise InvalidStorageType: If an invalid storage type is specified
-
     """
-    if storage_type not in VALID_STORAGE_TYPES:
-      raise InvalidStorageType("%s is an invalid storage type.", storage_type)
+    query = [
+      ("storage_type", storage_type),
+      ("name", name),
+      ]
 
-    query = [("storage_type", storage_type), ("name", name)]
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/storage/repair" % node, query)
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/nodes/%s/storage/repair" %
+                              (GANETI_RAPI_VERSION, node)), query, None)
 
   def GetNodeTags(self, node):
     """Gets the tags for a node.
@@ -756,7 +1022,9 @@ class GanetiRapiClient(object):
     @return: tags for the node
 
     """
-    return self._SendRequest(HTTP_GET, "/nodes/%s/tags" % node)
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/nodes/%s/tags" %
+                              (GANETI_RAPI_VERSION, node)), None, None)
 
   def AddNodeTags(self, node, tags, dry_run=False):
     """Adds tags to a node.
@@ -776,8 +1044,9 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_PUT, "/nodes/%s/tags" % node, query,
-                             content=tags)
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/nodes/%s/tags" %
+                              (GANETI_RAPI_VERSION, node)), query, tags)
 
   def DeleteNodeTags(self, node, tags, dry_run=False):
     """Delete tags from a node.
@@ -797,48 +1066,6 @@ class GanetiRapiClient(object):
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_DELETE, "/nodes/%s/tags" % node, query)
-
-
-class HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
-  """HTTPS Connection handler that verifies the SSL certificate.
-
-  """
-
-  # pylint: disable-msg=W0142
-  def __init__(self, *args, **kwargs):
-    """Constructor.
-
-    """
-    httplib.HTTPSConnection.__init__(self, *args, **kwargs)
-
-    self._ssl_cert = None
-    if self.cert_file:
-      f = open(self.cert_file, "r")
-      self._ssl_cert = crypto.load_certificate(crypto.FILETYPE_PEM, f.read())
-      f.close()
-
-  # pylint: disable-msg=W0613
-  def _VerifySSLCertCallback(self, conn, cert, errnum, errdepth, ok):
-    """Verifies the SSL certificate provided by the peer.
-
-    """
-    return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and
-            self._ssl_cert.digest("md5") == cert.digest("md5"))
-
-  def connect(self):
-    """Connect to the server specified when the object was created.
-
-    This ensures that SSL certificates are verified.
-
-    """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ctx = SSL.Context(SSL.SSLv23_METHOD)
-    ctx.set_options(SSL.OP_NO_SSLv2)
-    ctx.use_certificate(self._ssl_cert)
-    ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
-                   self._VerifySSLCertCallback)
-
-    ssl = SSL.Connection(ctx, sock)
-    ssl.connect((self.host, self.port))
-    self.sock = httplib.FakeSocket(sock, ssl)
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/nodes/%s/tags" %
+                              (GANETI_RAPI_VERSION, node)), query, None)

@@ -1840,7 +1840,7 @@ class LUVerifyCluster(LogicalUnit):
     feedback_fn("* Verifying orphan volumes")
     self._VerifyOrphanVolumes(node_vol_should, node_image)
 
-    feedback_fn("* Verifying oprhan instances")
+    feedback_fn("* Verifying orphan instances")
     self._VerifyOrphanInstances(instancelist, node_image)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.skip_set:

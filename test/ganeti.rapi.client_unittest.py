@@ -22,22 +22,16 @@
 """Script for unittesting the RAPI client module"""
 
 
-try:
-  import httplib2
-  BaseHttp = httplib2.Http
-  from ganeti.rapi import client
-except ImportError:
-  httplib2 = None
-  BaseHttp = object
-
 import re
 import unittest
 import warnings
 
 from ganeti import http
+from ganeti import serializer
 
 from ganeti.rapi import connector
 from ganeti.rapi import rlib2
+from ganeti.rapi import client
 
 import testutils
 
@@ -56,81 +50,73 @@ def _GetPathFromUri(uri):
     return None
 
 
-class HttpResponseMock(dict):
-  """Dumb mock of httplib2.Response.
+class HttpResponseMock:
+  """Dumb mock of httplib.HTTPResponse.
 
   """
 
-  def __init__(self, status):
-    self.status = status
-    self['status'] = status
+  def __init__(self, code, data):
+    self.code = code
+    self._data = data
+
+  def read(self):
+    return self._data
 
 
-class HttpMock(BaseHttp):
-  """Mock for httplib.Http.
+class OpenerDirectorMock:
+  """Mock for urllib.OpenerDirector.
 
   """
 
   def __init__(self, rapi):
     self._rapi = rapi
-    self._last_request = None
+    self.last_request = None
 
-  last_request_url = property(lambda self: self._last_request[0])
-  last_request_method = property(lambda self: self._last_request[1])
-  last_request_body = property(lambda self: self._last_request[2])
+  def open(self, req):
+    self.last_request = req
 
-  def request(self, url, method, body, headers):
-    self._last_request = (url, method, body)
-    code, resp_body = self._rapi.FetchResponse(_GetPathFromUri(url), method)
-    return HttpResponseMock(code), resp_body
+    path = _GetPathFromUri(req.get_full_url())
+    code, resp_body = self._rapi.FetchResponse(path, req.get_method())
+    return HttpResponseMock(code, resp_body)
 
 
 class RapiMock(object):
-
   def __init__(self):
     self._mapper = connector.Mapper()
     self._responses = []
     self._last_handler = None
 
-  def AddResponse(self, response):
-    self._responses.insert(0, response)
-
-  def PopResponse(self):
-    if len(self._responses) > 0:
-      return self._responses.pop()
-    else:
-      return None
+  def AddResponse(self, response, code=200):
+    self._responses.insert(0, (code, response))
 
   def GetLastHandler(self):
     return self._last_handler
 
   def FetchResponse(self, path, method):
-    code = 200
-    response = None
-
     try:
       HandlerClass, items, args = self._mapper.getController(path)
       self._last_handler = HandlerClass(items, args, None)
       if not hasattr(self._last_handler, method.upper()):
-        code = 400
-        response = "Bad request"
+        raise http.HttpNotImplemented(message="Method not implemented")
+
     except http.HttpException, ex:
       code = ex.code
       response = ex.message
+    else:
+      if not self._responses:
+        raise Exception("No responses")
 
-    if not response:
-      response = self.PopResponse()
+      (code, response) = self._responses.pop()
 
     return code, response
 
 
 class RapiMockTest(unittest.TestCase):
-
   def test(self):
     rapi = RapiMock()
     path = "/version"
     self.assertEqual((404, None), rapi.FetchResponse("/foo", "GET"))
-    self.assertEqual((400, "Bad request"),
+    self.assertEqual((501, "Method not implemented"),
                      rapi.FetchResponse("/version", "POST"))
     rapi.AddResponse("2")
     code, response = rapi.FetchResponse("/version", "GET")
@@ -139,14 +125,12 @@ class RapiMockTest(unittest.TestCase):
     self.failUnless(isinstance(rapi.GetLastHandler(), rlib2.R_version))
 
 
-class GanetiRapiClientTests(unittest.TestCase):
-  """Tests for remote API client.
-
-  """
-
+class GanetiRapiClientTests(testutils.GanetiTestCase):
   def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
     self.rapi = RapiMock()
-    self.http = HttpMock(self.rapi)
+    self.http = OpenerDirectorMock(self.rapi)
     self.client = client.GanetiRapiClient('master.foo.com')
     self.client._http = self.http
     # Hard-code the version for easier testing.
@@ -166,6 +150,39 @@ class GanetiRapiClientTests(unittest.TestCase):
 
   def assertDryRun(self):
     self.assertTrue(self.rapi.GetLastHandler().dryRun())
+
+  def testEncodeQuery(self):
+    query = [
+      ("a", None),
+      ("b", 1),
+      ("c", 2),
+      ("d", "Foo"),
+      ("e", True),
+      ]
+
+    expected = [
+      ("a", ""),
+      ("b", 1),
+      ("c", 2),
+      ("d", "Foo"),
+      ("e", 1),
+      ]
+
+    self.assertEqualValues(self.client._EncodeQuery(query),
+                           expected)
+
+    # invalid types
+    for i in [[1, 2, 3], {"moo": "boo"}, (1, 2, 3)]:
+      self.assertRaises(ValueError, self.client._EncodeQuery, [("x", i)])
+
+  def testHttpError(self):
+    self.rapi.AddResponse(None, code=404)
+    try:
+      self.client.GetJobStatus(15140)
+    except client.GanetiApiError, err:
+      self.assertEqual(err.code, 404)
+    else:
+      self.fail("Didn't raise exception")
 
   def testGetVersion(self):
     self.client._version = None
@@ -192,7 +209,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("tag", ["awesome"])
 
   def testDeleteClusterTags(self):
-    self.client.DeleteClusterTags(["awesome"], dry_run=True)
+    self.rapi.AddResponse("5107")
+    self.assertEqual(5107, self.client.DeleteClusterTags(["awesome"],
+                                                         dry_run=True))
     self.assertHandler(rlib2.R_2_tags)
     self.assertDryRun()
     self.assertQuery("tag", ["awesome"])
@@ -243,35 +262,45 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("tag", ["awesome"])
 
   def testDeleteInstanceTags(self):
-    self.client.DeleteInstanceTags("foo", ["awesome"], dry_run=True)
+    self.rapi.AddResponse("25826")
+    self.assertEqual(25826, self.client.DeleteInstanceTags("foo", ["awesome"],
+                                                           dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name_tags)
     self.assertItems(["foo"])
     self.assertDryRun()
     self.assertQuery("tag", ["awesome"])
 
   def testRebootInstance(self):
-    self.client.RebootInstance("i-bar", reboot_type="hard",
-                               ignore_secondaries=True, dry_run=True)
+    self.rapi.AddResponse("6146")
+    job_id = self.client.RebootInstance("i-bar", reboot_type="hard",
+                                        ignore_secondaries=True, dry_run=True)
+    self.assertEqual(6146, job_id)
     self.assertHandler(rlib2.R_2_instances_name_reboot)
     self.assertItems(["i-bar"])
     self.assertDryRun()
     self.assertQuery("type", ["hard"])
-    self.assertQuery("ignore_secondaries", ["True"])
+    self.assertQuery("ignore_secondaries", ["1"])
 
   def testShutdownInstance(self):
-    self.client.ShutdownInstance("foo-instance", dry_run=True)
+    self.rapi.AddResponse("1487")
+    self.assertEqual(1487, self.client.ShutdownInstance("foo-instance",
+                                                        dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name_shutdown)
     self.assertItems(["foo-instance"])
     self.assertDryRun()
 
   def testStartupInstance(self):
-    self.client.StartupInstance("bar-instance", dry_run=True)
+    self.rapi.AddResponse("27149")
+    self.assertEqual(27149, self.client.StartupInstance("bar-instance",
+                                                        dry_run=True))
     self.assertHandler(rlib2.R_2_instances_name_startup)
     self.assertItems(["bar-instance"])
     self.assertDryRun()
 
   def testReinstallInstance(self):
-    self.client.ReinstallInstance("baz-instance", "DOS", no_startup=True)
+    self.rapi.AddResponse("19119")
+    self.assertEqual(19119, self.client.ReinstallInstance("baz-instance", "DOS",
+                                                          no_startup=True))
     self.assertHandler(rlib2.R_2_instances_name_reinstall)
     self.assertItems(["baz-instance"])
     self.assertQuery("os", ["DOS"])
@@ -280,31 +309,29 @@ class GanetiRapiClientTests(unittest.TestCase):
   def testReplaceInstanceDisks(self):
     self.rapi.AddResponse("999")
     job_id = self.client.ReplaceInstanceDisks("instance-name",
-        ["hda", "hdc"], dry_run=True)
+        disks=[0, 1], dry_run=True, iallocator="hail")
     self.assertEqual(999, job_id)
     self.assertHandler(rlib2.R_2_instances_name_replace_disks)
     self.assertItems(["instance-name"])
-    self.assertQuery("disks", ["hda,hdc"])
+    self.assertQuery("disks", ["0,1"])
     self.assertQuery("mode", ["replace_auto"])
     self.assertQuery("iallocator", ["hail"])
     self.assertDryRun()
 
-    self.assertRaises(client.InvalidReplacementMode,
-                      self.client.ReplaceInstanceDisks,
-                      "instance_a", ["hda"], mode="invalid_mode")
-    self.assertRaises(client.GanetiApiError,
-                      self.client.ReplaceInstanceDisks,
-                      "instance-foo", ["hda"], mode="replace_on_secondary")
-
     self.rapi.AddResponse("1000")
     job_id = self.client.ReplaceInstanceDisks("instance-bar",
-        ["hda"], mode="replace_on_secondary", remote_node="foo-node",
+        disks=[1], mode="replace_on_secondary", remote_node="foo-node",
         dry_run=True)
     self.assertEqual(1000, job_id)
     self.assertItems(["instance-bar"])
-    self.assertQuery("disks", ["hda"])
+    self.assertQuery("disks", ["1"])
     self.assertQuery("remote_node", ["foo-node"])
     self.assertDryRun()
+
+    self.rapi.AddResponse("5175")
+    self.assertEqual(5175, self.client.ReplaceInstanceDisks("instance-moo"))
+    self.assertItems(["instance-moo"])
+    self.assertQuery("disks", None)
 
   def testGetJobs(self):
     self.rapi.AddResponse('[ { "id": "123", "uri": "\\/2\\/jobs\\/123" },'
@@ -318,8 +345,23 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertHandler(rlib2.R_2_jobs_id)
     self.assertItems(["1234"])
 
-  def testDeleteJob(self):
-    self.client.DeleteJob(999, dry_run=True)
+  def testWaitForJobChange(self):
+    fields = ["id", "summary"]
+    expected = {
+      "job_info": [123, "something"],
+      "log_entries": [],
+      }
+
+    self.rapi.AddResponse(serializer.DumpJson(expected))
+    result = self.client.WaitForJobChange(123, fields, [], -1)
+    self.assertEqualValues(expected, result)
+    self.assertHandler(rlib2.R_2_jobs_id_wait)
+    self.assertItems(["123"])
+
+  def testCancelJob(self):
+    self.rapi.AddResponse("[true, \"Job 123 will be canceled\"]")
+    self.assertEqual([True, "Job 123 will be canceled"],
+                     self.client.CancelJob(999, dry_run=True))
     self.assertHandler(rlib2.R_2_jobs_id)
     self.assertItems(["999"])
     self.assertDryRun()
@@ -383,11 +425,8 @@ class GanetiRapiClientTests(unittest.TestCase):
         self.client.SetNodeRole("node-foo", "master-candidate", force=True))
     self.assertHandler(rlib2.R_2_nodes_name_role)
     self.assertItems(["node-foo"])
-    self.assertQuery("force", ["True"])
-    self.assertEqual("\"master-candidate\"", self.http.last_request_body)
-
-    self.assertRaises(client.InvalidNodeRole,
-                      self.client.SetNodeRole, "node-bar", "fake-role")
+    self.assertQuery("force", ["1"])
+    self.assertEqual("\"master-candidate\"", self.http.last_request.data)
 
   def testGetNodeStorageUnits(self):
     self.rapi.AddResponse("42")
@@ -398,10 +437,6 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("storage_type", ["lvm-pv"])
     self.assertQuery("output_fields", ["fields"])
 
-    self.assertRaises(client.InvalidStorageType,
-                      self.client.GetNodeStorageUnits,
-                      "node-y", "floppy-disk", "fields")
-
   def testModifyNodeStorageUnits(self):
     self.rapi.AddResponse("14")
     self.assertEqual(14,
@@ -410,10 +445,27 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertItems(["node-z"])
     self.assertQuery("storage_type", ["lvm-pv"])
     self.assertQuery("name", ["hda"])
+    self.assertQuery("allocatable", None)
 
-    self.assertRaises(client.InvalidStorageType,
-                      self.client.ModifyNodeStorageUnits,
-                      "node-n", "floppy-disk", "hdc")
+    for allocatable, query_allocatable in [(True, "1"), (False, "0")]:
+      self.rapi.AddResponse("7205")
+      job_id = self.client.ModifyNodeStorageUnits("node-z", "lvm-pv", "hda",
+                                                  allocatable=allocatable)
+      self.assertEqual(7205, job_id)
+      self.assertHandler(rlib2.R_2_nodes_name_storage_modify)
+      self.assertItems(["node-z"])
+      self.assertQuery("storage_type", ["lvm-pv"])
+      self.assertQuery("name", ["hda"])
+      self.assertQuery("allocatable", [query_allocatable])
+
+  def testRepairNodeStorageUnits(self):
+    self.rapi.AddResponse("99")
+    self.assertEqual(99, self.client.RepairNodeStorageUnits("node-z", "lvm-pv",
+                                                            "hda"))
+    self.assertHandler(rlib2.R_2_nodes_name_storage_repair)
+    self.assertItems(["node-z"])
+    self.assertQuery("storage_type", ["lvm-pv"])
+    self.assertQuery("name", ["hda"])
 
   def testGetNodeTags(self):
     self.rapi.AddResponse("[\"fry\", \"bender\"]")
@@ -431,7 +483,9 @@ class GanetiRapiClientTests(unittest.TestCase):
     self.assertQuery("tag", ["awesome"])
 
   def testDeleteNodeTags(self):
-    self.client.DeleteNodeTags("node-w", ["awesome"], dry_run=True)
+    self.rapi.AddResponse("16861")
+    self.assertEqual(16861, self.client.DeleteNodeTags("node-w", ["awesome"],
+                                                       dry_run=True))
     self.assertHandler(rlib2.R_2_nodes_name_tags)
     self.assertItems(["node-w"])
     self.assertDryRun()
@@ -439,7 +493,4 @@ class GanetiRapiClientTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  if httplib2 is None:
-    warnings.warn("These tests require the httplib2 library")
-  else:
-    testutils.GanetiTestProgram()
+  testutils.GanetiTestProgram()

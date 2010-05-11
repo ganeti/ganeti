@@ -39,6 +39,7 @@ import OpenSSL
 import warnings
 import distutils.version
 import glob
+import md5
 
 import ganeti
 import testutils
@@ -660,6 +661,82 @@ class TestMatchNameComponent(unittest.TestCase):
                      "Ts2.ex")
     self.assertEqual(MatchNameComponent("TS2.ex", mlist, case_sensitive=False),
                      None)
+
+
+class TestReadFile(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.tmpdir = tempfile.mkdtemp()
+    self.fname = utils.PathJoin(self.tmpdir, "data1")
+
+  def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
+
+    shutil.rmtree(self.tmpdir)
+
+  def testReadAll(self):
+    data = utils.ReadFile(self._TestDataFilename("cert1.pem"))
+    self.assertEqual(len(data), 814)
+
+    h = md5.new()
+    h.update(data)
+    self.assertEqual(h.hexdigest(), "a491efb3efe56a0535f924d5f8680fd4")
+
+  def testReadSize(self):
+    data = utils.ReadFile(self._TestDataFilename("cert1.pem"),
+                          size=100)
+    self.assertEqual(len(data), 100)
+
+    h = md5.new()
+    h.update(data)
+    self.assertEqual(h.hexdigest(), "893772354e4e690b9efd073eed433ce7")
+
+  def testReadOneline(self):
+    data = utils.ReadFile(self._TestDataFilename("cert1.pem"),
+                          oneline=True)
+    self.assertEqual(len(data), 27)
+    self.assertEqual(data, "-----BEGIN CERTIFICATE-----")
+
+  def testReadOnelineSize(self):
+    dummydata = (1024 * "Hello World! ")
+    self.assertFalse(set("\r\n") & set(dummydata))
+
+    utils.WriteFile(self.fname, data=dummydata)
+
+    data = utils.ReadFile(self.fname, oneline=True, size=555)
+    self.assertEqual(len(data), 555)
+    self.assertEqual(data, dummydata[:555])
+    self.assertFalse(set("\r\n") & set(data))
+
+  def testReadOnelineSize2(self):
+    for end in ["\n", "\r\n"]:
+      dummydata = (1024 * ("Hello World%s" % end))
+      self.assert_(set("\r\n") & set(dummydata))
+
+      utils.WriteFile(self.fname, data=dummydata)
+
+      data = utils.ReadFile(self.fname, oneline=True, size=555)
+      self.assertEqual(len(data), len("Hello World"))
+      self.assertEqual(data, dummydata[:11])
+      self.assertFalse(set("\r\n") & set(data))
+
+  def testReadOnelineWhitespace(self):
+    for ws in [" ", "\t", "\t\t  \t", "\t "]:
+      dummydata = (1024 * ("Foo bar baz %s\n" % ws))
+      self.assert_(set("\r\n") & set(dummydata))
+
+      utils.WriteFile(self.fname, data=dummydata)
+
+      data = utils.ReadFile(self.fname, oneline=True, size=555)
+      explen = len("Foo bar baz ") + len(ws)
+      self.assertEqual(len(data), explen)
+      self.assertEqual(data, dummydata[:explen])
+      self.assertFalse(set("\r\n") & set(data))
+
+  def testError(self):
+    self.assertRaises(EnvironmentError, utils.ReadFile,
+                      utils.PathJoin(self.tmpdir, "does-not-exist"))
 
 
 class TestTimestampForFilename(unittest.TestCase):
