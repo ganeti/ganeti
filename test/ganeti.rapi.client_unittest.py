@@ -428,9 +428,6 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertQuery("force", ["1"])
     self.assertEqual("\"master-candidate\"", self.http.last_request.data)
 
-    self.assertRaises(client.InvalidNodeRole,
-                      self.client.SetNodeRole, "node-bar", "fake-role")
-
   def testGetNodeStorageUnits(self):
     self.rapi.AddResponse("42")
     self.assertEqual(42,

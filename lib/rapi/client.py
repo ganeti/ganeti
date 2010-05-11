@@ -45,9 +45,12 @@ REPLACE_DISK_PRI = "replace_on_primary"
 REPLACE_DISK_SECONDARY = "replace_on_secondary"
 REPLACE_DISK_CHG = "replace_new_secondary"
 REPLACE_DISK_AUTO = "replace_auto"
-VALID_NODE_ROLES = frozenset([
-  "drained", "master", "master-candidate", "offline", "regular",
-  ])
+
+NODE_ROLE_DRAINED = "drained"
+NODE_ROLE_MASTER_CANDIATE = "master-candidate"
+NODE_ROLE_MASTER = "master"
+NODE_ROLE_OFFLINE = "offline"
+NODE_ROLE_REGULAR = "regular"
 
 
 class Error(Exception):
@@ -71,13 +74,6 @@ class GanetiApiError(Error):
   def __init__(self, msg, code=None):
     Error.__init__(self, msg)
     self.code = code
-
-
-class InvalidNodeRole(Error):
-  """Raised when an invalid node role is used.
-
-  """
-  pass
 
 
 def FormatX509Name(x509_name):
@@ -932,13 +928,10 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id
 
-    @raise InvalidNodeRole: If an invalid node role is specified
-
     """
-    if role not in VALID_NODE_ROLES:
-      raise InvalidNodeRole("%s is not a valid node role" % role)
-
-    query = [("force", force)]
+    query = [
+      ("force", force),
+      ]
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/nodes/%s/role" %
