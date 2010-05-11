@@ -151,6 +151,30 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
   def assertDryRun(self):
     self.assertTrue(self.rapi.GetLastHandler().dryRun())
 
+  def testEncodeQuery(self):
+    query = [
+      ("a", None),
+      ("b", 1),
+      ("c", 2),
+      ("d", "Foo"),
+      ("e", True),
+      ]
+
+    expected = [
+      ("a", ""),
+      ("b", 1),
+      ("c", 2),
+      ("d", "Foo"),
+      ("e", 1),
+      ]
+
+    self.assertEqualValues(self.client._EncodeQuery(query),
+                           expected)
+
+    # invalid types
+    for i in [[1, 2, 3], {"moo": "boo"}, (1, 2, 3)]:
+      self.assertRaises(ValueError, self.client._EncodeQuery, [("x", i)])
+
   def testHttpError(self):
     self.rapi.AddResponse(None, code=404)
     try:
@@ -255,7 +279,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertItems(["i-bar"])
     self.assertDryRun()
     self.assertQuery("type", ["hard"])
-    self.assertQuery("ignore_secondaries", ["True"])
+    self.assertQuery("ignore_secondaries", ["1"])
 
   def testShutdownInstance(self):
     self.rapi.AddResponse("1487")
@@ -403,7 +427,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
         self.client.SetNodeRole("node-foo", "master-candidate", force=True))
     self.assertHandler(rlib2.R_2_nodes_name_role)
     self.assertItems(["node-foo"])
-    self.assertQuery("force", ["True"])
+    self.assertQuery("force", ["1"])
     self.assertEqual("\"master-candidate\"", self.http.last_request.data)
 
     self.assertRaises(client.InvalidNodeRole,

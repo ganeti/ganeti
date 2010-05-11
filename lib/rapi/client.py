@@ -351,6 +351,34 @@ class GanetiRapiClient(object):
       "User-Agent": self.USER_AGENT,
       }
 
+  @staticmethod
+  def _EncodeQuery(query):
+    """Encode query values for RAPI URL.
+
+    @type query: list of two-tuples
+    @param query: Query arguments
+    @rtype: list
+    @return: Query list with encoded values
+
+    """
+    result = []
+
+    for name, value in query:
+      if value is None:
+        result.append((name, ""))
+
+      elif isinstance(value, bool):
+        # Boolean values must be encoded as 0 or 1
+        result.append((name, int(value)))
+
+      elif isinstance(value, (list, tuple, dict)):
+        raise ValueError("Invalid query data type %r" % type(value).__name__)
+
+      else:
+        result.append((name, value))
+
+    return result
+
   def _SendRequest(self, method, path, query, content):
     """Sends an HTTP request.
 
@@ -384,7 +412,7 @@ class GanetiRapiClient(object):
     url = [self._base_url, path]
     if query:
       url.append("?")
-      url.append(urllib.urlencode(query))
+      url.append(urllib.urlencode(self._EncodeQuery(query)))
 
     req = _RapiRequest(method, "".join(url), self._headers, encoded_content)
 
