@@ -45,12 +45,6 @@ REPLACE_DISK_PRI = "replace_on_primary"
 REPLACE_DISK_SECONDARY = "replace_on_secondary"
 REPLACE_DISK_CHG = "replace_new_secondary"
 REPLACE_DISK_AUTO = "replace_auto"
-VALID_REPLACEMENT_MODES = frozenset([
-  REPLACE_DISK_PRI,
-  REPLACE_DISK_SECONDARY,
-  REPLACE_DISK_CHG,
-  REPLACE_DISK_AUTO,
-  ])
 VALID_NODE_ROLES = frozenset([
   "drained", "master", "master-candidate", "offline", "regular",
   ])
@@ -77,13 +71,6 @@ class GanetiApiError(Error):
   def __init__(self, msg, code=None):
     Error.__init__(self, msg)
     self.code = code
-
-
-class InvalidReplacementMode(Error):
-  """Raised when an invalid disk replacement mode is attempted.
-
-  """
-  pass
 
 
 class InvalidNodeRole(Error):
@@ -721,14 +708,14 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s/reinstall" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def ReplaceInstanceDisks(self, instance, disks, mode=REPLACE_DISK_AUTO,
+  def ReplaceInstanceDisks(self, instance, disks=None, mode=REPLACE_DISK_AUTO,
                            remote_node=None, iallocator=None, dry_run=False):
     """Replaces disks on an instance.
 
     @type instance: str
     @param instance: instance whose disks to replace
-    @type disks: list of str
-    @param disks: disks to replace
+    @type disks: list of ints
+    @param disks: Indexes of disks to replace
     @type mode: str
     @param mode: replacement mode to use (defaults to replace_auto)
     @type remote_node: str or None
@@ -743,26 +730,19 @@ class GanetiRapiClient(object):
     @rtype: int
     @return: job id
 
-    @raises InvalidReplacementMode: If an invalid disk replacement mode is given
-    @raises GanetiApiError: If no secondary node is given with a non-auto
-        replacement mode is requested.
-
     """
-    if mode not in VALID_REPLACEMENT_MODES:
-      raise InvalidReplacementMode("%s is not a valid disk replacement mode" %
-                                   mode)
-
     query = [
       ("mode", mode),
-      ("disks", ",".join(disks)),
       ]
 
-    if mode == REPLACE_DISK_AUTO:
-      query.append(("iallocator", iallocator))
-    elif mode == REPLACE_DISK_SECONDARY:
-      if remote_node is None:
-        raise GanetiApiError("Missing secondary node")
+    if disks:
+      query.append(("disks", ",".join(str(idx) for idx in disks)))
+
+    if remote_node:
       query.append(("remote_node", remote_node))
+
+    if iallocator:
+      query.append(("iallocator", iallocator))
 
     if dry_run:
       query.append(("dry-run", 1))
