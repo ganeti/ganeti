@@ -81,40 +81,32 @@ class OpenerDirectorMock:
 
 
 class RapiMock(object):
-
   def __init__(self):
     self._mapper = connector.Mapper()
     self._responses = []
     self._last_handler = None
 
-  def AddResponse(self, response):
-    self._responses.insert(0, response)
-
-  def PopResponse(self):
-    if len(self._responses) > 0:
-      return self._responses.pop()
-    else:
-      return None
+  def AddResponse(self, response, code=200):
+    self._responses.insert(0, (code, response))
 
   def GetLastHandler(self):
     return self._last_handler
 
   def FetchResponse(self, path, method):
-    code = 200
-    response = None
-
     try:
       HandlerClass, items, args = self._mapper.getController(path)
       self._last_handler = HandlerClass(items, args, None)
       if not hasattr(self._last_handler, method.upper()):
-        code = 501
-        response = "Method not implemented"
+        raise http.HttpNotImplemented(message="Method not implemented")
+
     except http.HttpException, ex:
       code = ex.code
       response = ex.message
+    else:
+      if not self._responses:
+        raise Exception("No responses")
 
-    if not response:
-      response = self.PopResponse()
+      (code, response) = self._responses.pop()
 
     return code, response
 
