@@ -151,6 +151,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
   def assertDryRun(self):
     self.assertTrue(self.rapi.GetLastHandler().dryRun())
 
+  def testHttpError(self):
+    self.rapi.AddResponse(None, code=404)
+    try:
+      self.client.GetJobStatus(15140)
+    except client.GanetiApiError, err:
+      self.assertEqual(err.code, 404)
+    else:
+      self.fail("Didn't raise exception")
+
   def testGetVersion(self):
     self.client._version = None
     self.rapi.AddResponse("2")

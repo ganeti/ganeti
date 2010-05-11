@@ -74,7 +74,9 @@ class GanetiApiError(Error):
   """Generic error raised from Ganeti API.
 
   """
-  pass
+  def __init__(self, msg, code=None):
+    Error.__init__(self, msg)
+    self.code = code
 
 
 class InvalidReplacementMode(Error):
@@ -414,7 +416,7 @@ class GanetiRapiClient(object):
       else:
         msg = str(response_content)
 
-      raise GanetiApiError(msg)
+      raise GanetiApiError(msg, code=resp.code)
 
     return response_content
 
