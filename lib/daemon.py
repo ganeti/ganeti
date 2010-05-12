@@ -241,7 +241,8 @@ class Mainloop(object):
     self._signal_wait.append(owner)
 
 
-def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
+def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
+                console_logging=False):
   """Shared main function for daemons.
 
   @type daemon_name: string
@@ -258,6 +259,9 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
   @type exec_fn: function which accepts (options, args)
   @param exec_fn: function that's executed with the daemon's pid file held, and
                   runs the daemon itself.
+  @type console_logging: boolean
+  @param console_logging: if True, the daemon will fall back to the system
+                          console if logging fails
 
   """
   optionparser.add_option("-f", "--foreground", dest="fork",
@@ -325,7 +329,8 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
                        stderr_logging=not options.fork,
                        multithreaded=multithread,
                        program=daemon_name,
-                       syslog=options.syslog)
+                       syslog=options.syslog,
+                       console_logging=console_logging)
     logging.info("%s daemon startup", daemon_name)
     exec_fn(options, args)
   finally:
