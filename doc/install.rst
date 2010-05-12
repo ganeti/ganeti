@@ -470,13 +470,13 @@ To be able to install instances you need to have an Operating System
 installation script. An example OS that works under Debian and can
 install Debian and Ubuntu instace OSes is provided on the project web
 site.  Download it from the project page and follow the instructions in
-the ``README`` file.  Here is the installation procedure (replace 0.7
+the ``README`` file.  Here is the installation procedure (replace 0.9
 with the latest version that is compatible with your ganeti version)::
 
   cd /usr/local/src/
-  wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-0.7.tar.gz
-  tar xzf ganeti-instance-debootstrap-0.7.tar.gz
-  cd ganeti-instance-debootstrap-0.7
+  wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-0.9.tar.gz
+  tar xzf ganeti-instance-debootstrap-0.9.tar.gz
+  cd ganeti-instance-debootstrap-0.9
   ./configure
   make
   make install
@@ -493,6 +493,20 @@ installed.
    Use this command on all nodes to install the required packages::
 
      apt-get install debootstrap dump kpartx
+
+.. admonition:: KVM
+
+   In order for debootstrap instances to be able to shutdown cleanly
+   they must install have basic acpi support inside the instance. Which
+   packages are needed depend on the exact flavor of debian or ubuntu
+   which you're installing, but the example defaults file has a
+   commented out configuration line that works for debian lenny and
+   squeeze::
+
+     EXTRA_PKGS="acpi-support-base,console-tools,udev"
+
+   kbd can be used instead of console-tools, and more packages can be
+   added, of course, if needed.
 
 Alternatively, you can create your own OS definitions. See the manpage
 :manpage:`ganeti-os-interface`.
