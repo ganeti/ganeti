@@ -311,10 +311,12 @@ def main():
       RunTest(qa_rapi.TestNode, pnode)
 
       if qa_config.TestEnabled("instance-add-plain-disk"):
-        rapi_instance = RunTest(qa_rapi.TestRapiInstanceAdd, pnode)
-        RunCommonInstanceTests(rapi_instance)
-        RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance)
-        del rapi_instance
+        for use_client in [True, False]:
+          rapi_instance = RunTest(qa_rapi.TestRapiInstanceAdd, pnode,
+                                  use_client)
+          RunCommonInstanceTests(rapi_instance)
+          RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
+          del rapi_instance
 
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
