@@ -170,6 +170,8 @@ LOG_WATCHER = LOG_DIR + "watcher.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"
 LOG_BURNIN = LOG_DIR + "burnin.log"
 
+DEV_CONSOLE = "/dev/console"
+
 # one of 'no', 'yes', 'only'
 SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
 SYSLOG_NO = "no"
