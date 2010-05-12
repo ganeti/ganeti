@@ -45,6 +45,7 @@ from ganeti import opcodes
 from ganeti import http
 from ganeti import constants
 from ganeti import cli
+from ganeti import utils
 from ganeti import rapi
 from ganeti.rapi import baserlib
 
@@ -85,6 +86,9 @@ _NR_MAP = {
 
 # Request data version field
 _REQ_DATA_VERSION = "__version__"
+
+# Feature string for instance creation request data version 1
+_INST_CREATE_REQV1 = "instance-create-reqv1"
 
 # Timeout for /2/jobs/[job_id]/wait. Gives job up to 10 seconds to change.
 _WFJC_TIMEOUT = 10
@@ -127,7 +131,7 @@ class R_2_features(baserlib.R_Generic):
     """Returns list of optional RAPI features implemented.
 
     """
-    return []
+    return [_INST_CREATE_REQV1]
 
 
 class R_2_os(baserlib.R_Generic):
@@ -486,6 +490,100 @@ class R_2_nodes_name_storage_repair(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseInstanceCreateRequestVersion1(data, dry_run):
+  """Parses an instance creation request version 1.
+
+  @rtype: L{opcodes.OpCreateInstance}
+  @return: Instance creation opcode
+
+  """
+  # Disks
+  disks_input = baserlib.CheckParameter(data, "disks", exptype=list)
+
+  disks = []
+  for idx, i in enumerate(disks_input):
+    baserlib.CheckType(i, dict, "Disk %d specification" % idx)
+
+    # Size is mandatory
+    try:
+      size = i["size"]
+    except KeyError:
+      raise http.HttpBadRequest("Disk %d specification wrong: missing disk"
+                                " size" % idx)
+
+    disk = {
+      "size": size,
+      }
+
+    # Optional disk access mode
+    try:
+      disk_access = i["mode"]
+    except KeyError:
+      pass
+    else:
+      disk["mode"] = disk_access
+
+    disks.append(disk)
+
+  assert len(disks_input) == len(disks)
+
+  # Network interfaces
+  nics_input = baserlib.CheckParameter(data, "nics", exptype=list)
+
+  nics = []
+  for idx, i in enumerate(nics_input):
+    baserlib.CheckType(i, dict, "NIC %d specification" % idx)
+
+    nic = {}
+
+    for field in ["mode", "ip", "link", "bridge"]:
+      try:
+        value = i[field]
+      except KeyError:
+        continue
+
+      nic[field] = value
+
+    nics.append(nic)
+
+  assert len(nics_input) == len(nics)
+
+  # HV/BE parameters
+  hvparams = baserlib.CheckParameter(data, "hvparams", default={})
+  utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
+
+  beparams = baserlib.CheckParameter(data, "beparams", default={})
+  utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
+
+  return opcodes.OpCreateInstance(
+    mode=baserlib.CheckParameter(data, "mode"),
+    instance_name=baserlib.CheckParameter(data, "name"),
+    os_type=baserlib.CheckParameter(data, "os", default=None),
+    force_variant=baserlib.CheckParameter(data, "force_variant",
+                                          default=False),
+    pnode=baserlib.CheckParameter(data, "pnode", default=None),
+    snode=baserlib.CheckParameter(data, "snode", default=None),
+    disk_template=baserlib.CheckParameter(data, "disk_template"),
+    disks=disks,
+    nics=nics,
+    src_node=baserlib.CheckParameter(data, "src_node", default=None),
+    src_path=baserlib.CheckParameter(data, "src_path", default=None),
+    start=baserlib.CheckParameter(data, "start", default=True),
+    wait_for_sync=True,
+    ip_check=baserlib.CheckParameter(data, "ip_check", default=True),
+    name_check=baserlib.CheckParameter(data, "name_check", default=True),
+    file_storage_dir=baserlib.CheckParameter(data, "file_storage_dir",
+                                             default=None),
+    file_driver=baserlib.CheckParameter(data, "file_driver",
+                                        default=constants.FD_LOOP),
+    iallocator=baserlib.CheckParameter(data, "iallocator", default=None),
+    hypervisor=baserlib.CheckParameter(data, "hypervisor", default=None),
+    hvparams=hvparams,
+    beparams=beparams,
+    dry_run=dry_run,
+    )
+
+
 class R_2_instances(baserlib.R_Generic):
   """/2/instances resource.
 
@@ -509,10 +607,13 @@ class R_2_instances(baserlib.R_Generic):
   def _ParseVersion0CreateRequest(self):
     """Parses an instance creation request version 0.
 
+    Request data version 0 is deprecated and should not be used anymore.
+
     @rtype: L{opcodes.OpCreateInstance}
     @return: Instance creation opcode
 
     """
+    # Do not modify anymore, request data version 0 is deprecated
     beparams = baserlib.MakeParamsDict(self.req.request_body,
                                        constants.BES_PARAMETERS)
     hvparams = baserlib.MakeParamsDict(self.req.request_body,
@@ -541,6 +642,7 @@ class R_2_instances(baserlib.R_Generic):
     if fn("bridge", None) is not None:
       nics[0]["bridge"] = fn("bridge")
 
+    # Do not modify anymore, request data version 0 is deprecated
     return opcodes.OpCreateInstance(
       mode=constants.INSTANCE_CREATE,
       instance_name=fn('name'),
@@ -559,7 +661,7 @@ class R_2_instances(baserlib.R_Generic):
       hvparams=hvparams,
       beparams=beparams,
       file_storage_dir=fn('file_storage_dir', None),
-      file_driver=fn('file_driver', 'loop'),
+      file_driver=fn('file_driver', constants.FD_LOOP),
       dry_run=bool(self.dryRun()),
       )
 
@@ -577,6 +679,9 @@ class R_2_instances(baserlib.R_Generic):
 
     if data_version == 0:
       op = self._ParseVersion0CreateRequest()
+    elif data_version == 1:
+      op = _ParseInstanceCreateRequestVersion1(self.req.request_body,
+                                               self.dryRun())
     else:
       raise http.HttpBadRequest("Unsupported request data version %s" %
                                 data_version)

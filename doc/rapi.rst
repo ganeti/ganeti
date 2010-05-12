@@ -369,6 +369,57 @@ nodes selected for the instance.
 
 Returns: a job ID that can be used later for polling.
 
+Body parameters:
+
+``__version__`` (int, required)
+  Must be ``1`` (older Ganeti versions used a different format for
+  instance creation requests, version ``0``, but that format is not
+  documented).
+``name`` (string, required)
+  Instance name
+``disk_template`` (string, required)
+  Disk template for instance
+``disks`` (list, required)
+  List of disk definitions. Example: ``[{"size": 100}, {"size": 5}]``.
+  Each disk definition must contain a ``size`` value and can contain an
+  optional ``mode`` value denoting the disk access mode (``ro`` or
+  ``rw``).
+``nics`` (list, required)
+  List of NIC (network interface) definitions. Example: ``[{}, {},
+  {"ip": "1.2.3.4"}]``. Each NIC definition can contain the optional
+  values ``ip``, ``mode``, ``link`` and ``bridge``.
+``os`` (string)
+  Instance operating system.
+``force_variant`` (bool)
+  Whether to force an unknown variant.
+``pnode`` (string)
+  Primary node.
+``snode`` (string)
+  Secondary node.
+``src_node`` (string)
+  Source node for import.
+``src_path`` (string)
+  Source directory for import.
+``start`` (bool)
+  Whether to start instance after creation.
+``ip_check`` (bool)
+  Whether to ensure instance's IP address is inactive.
+``name_check`` (bool)
+  Whether to ensure instance's name is resolvable.
+``file_storage_dir`` (string)
+  File storage directory.
+``file_driver`` (string)
+  File storage driver.
+``iallocator`` (string)
+  Instance allocator name.
+``hypervisor`` (string)
+  Hypervisor name.
+``hvparams`` (dict)
+  Hypervisor parameters, hypervisor-dependent.
+``beparams``
+  Backend parameters.
+
+
 ``/2/instances/[instance_name]``
 ++++++++++++++++++++++++++++++++
 
