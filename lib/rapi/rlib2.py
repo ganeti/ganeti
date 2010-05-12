@@ -83,6 +83,9 @@ _NR_MAP = {
   "R": _NR_REGULAR,
   }
 
+# Request data version field
+_REQ_DATA_VERSION = "__version__"
+
 # Timeout for /2/jobs/[job_id]/wait. Gives job up to 10 seconds to change.
 _WFJC_TIMEOUT = 10
 
@@ -491,15 +494,13 @@ class R_2_instances(baserlib.R_Generic):
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
                                    uri_fields=("id", "uri"))
 
-  def POST(self):
-    """Create an instance.
+  def _ParseVersion0CreateRequest(self):
+    """Parses an instance creation request version 0.
 
-    @return: a job id
+    @rtype: L{opcodes.OpCreateInstance}
+    @return: Instance creation opcode
 
     """
-    if not isinstance(self.req.request_body, dict):
-      raise http.HttpBadRequest("Invalid body contents, not a dictionary")
-
     beparams = baserlib.MakeParamsDict(self.req.request_body,
                                        constants.BES_PARAMETERS)
     hvparams = baserlib.MakeParamsDict(self.req.request_body,
@@ -516,6 +517,7 @@ class R_2_instances(baserlib.R_Generic):
         raise http.HttpBadRequest("Disk %d specification wrong: should"
                                   " be an integer" % idx)
       disks.append({"size": d})
+
     # nic processing (one nic only)
     nics = [{"mac": fn("mac", constants.VALUE_AUTO)}]
     if fn("ip", None) is not None:
@@ -527,7 +529,7 @@ class R_2_instances(baserlib.R_Generic):
     if fn("bridge", None) is not None:
       nics[0]["bridge"] = fn("bridge")
 
-    op = opcodes.OpCreateInstance(
+    return opcodes.OpCreateInstance(
       mode=constants.INSTANCE_CREATE,
       instance_name=fn('name'),
       disks=disks,
@@ -548,6 +550,24 @@ class R_2_instances(baserlib.R_Generic):
       file_driver=fn('file_driver', 'loop'),
       dry_run=bool(self.dryRun()),
       )
+
+  def POST(self):
+    """Create an instance.
+
+    @return: a job id
+
+    """
+    if not isinstance(self.req.request_body, dict):
+      raise http.HttpBadRequest("Invalid body contents, not a dictionary")
+
+    # Default to request data version 0
+    data_version = self.getBodyParameter(_REQ_DATA_VERSION, 0)
+
+    if data_version == 0:
+      op = self._ParseVersion0CreateRequest()
+    else:
+      raise http.HttpBadRequest("Unsupported request data version %s" %
+                                request_version)
 
     return baserlib.SubmitJob([op])
 
