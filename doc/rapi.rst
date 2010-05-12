@@ -280,6 +280,19 @@ It supports the following commands: ``PUT``.
 Redistribute configuration to all nodes. The result will be a job id.
 
 
+``/2/features``
++++++++++++++++
+
+``GET``
+~~~~~~~
+
+Returns a list of features supported by the RAPI server. Available
+features:
+
+``instance-create-reqv1``
+  Instance creation request data version 1 supported.
+
+
 ``/2/instances``
 ++++++++++++++++
 

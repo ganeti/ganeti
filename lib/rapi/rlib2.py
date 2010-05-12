@@ -118,6 +118,18 @@ class R_2_info(baserlib.R_Generic):
     return client.QueryClusterInfo()
 
 
+class R_2_features(baserlib.R_Generic):
+  """/2/features resource.
+
+  """
+  @staticmethod
+  def GET():
+    """Returns list of optional RAPI features implemented.
+
+    """
+    return []
+
+
 class R_2_os(baserlib.R_Generic):
   """/2/os resource.
 

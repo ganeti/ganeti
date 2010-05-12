@@ -190,6 +190,12 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(2, self.client.GetVersion())
     self.assertHandler(rlib2.R_version)
 
+  def testGetFeatures(self):
+    for features in [[], ["foo", "bar", "baz"]]:
+      self.rapi.AddResponse(serializer.DumpJson(features))
+      self.assertEqual(features, self.client.GetFeatures())
+      self.assertHandler(rlib2.R_2_features)
+
   def testGetOperatingSystems(self):
     self.rapi.AddResponse("[\"beos\"]")
     self.assertEqual(["beos"], self.client.GetOperatingSystems())

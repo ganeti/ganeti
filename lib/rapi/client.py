@@ -39,6 +39,7 @@ HTTP_GET = "GET"
 HTTP_PUT = "PUT"
 HTTP_POST = "POST"
 HTTP_OK = 200
+HTTP_NOT_FOUND = 404
 HTTP_APP_JSON = "application/json"
 
 REPLACE_DISK_PRI = "replace_on_primary"
@@ -432,6 +433,23 @@ class GanetiRapiClient(object):
 
     """
     return self._SendRequest(HTTP_GET, "/version", None, None)
+
+  def GetFeatures(self):
+    """Gets the list of optional features supported by RAPI server.
+
+    @rtype: list
+    @return: List of optional features
+
+    """
+    try:
+      return self._SendRequest(HTTP_GET, "/%s/features" % GANETI_RAPI_VERSION,
+                               None, None)
+    except GanetiApiError, err:
+      # Older RAPI servers don't support this resource
+      if err.code == HTTP_NOT_FOUND:
+        return []
+
+      raise
 
   def GetOperatingSystems(self):
     """Gets the Operating Systems running in the Ganeti cluster.
