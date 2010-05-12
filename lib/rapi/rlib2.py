@@ -567,7 +567,7 @@ class R_2_instances(baserlib.R_Generic):
       op = self._ParseVersion0CreateRequest()
     else:
       raise http.HttpBadRequest("Unsupported request data version %s" %
-                                request_version)
+                                data_version)
 
     return baserlib.SubmitJob([op])
 
