@@ -868,7 +868,7 @@ def ReadPidFile(pidfile):
 
   """
   try:
-    raw_data = ReadFile(pidfile)
+    raw_data = ReadOneLineFile(pidfile)
   except EnvironmentError, err:
     if err.errno != errno.ENOENT:
       logging.exception("Can't read pid file")
@@ -1681,27 +1681,20 @@ def EnsureDirs(dirs):
       raise errors.GenericError("%s is not a directory" % dir_name)
 
 
-def ReadFile(file_name, size=-1, oneline=False):
+def ReadFile(file_name, size=-1):
   """Reads a file.
 
   @type size: int
   @param size: Read at most size bytes (if negative, entire file)
-  @type oneline: bool
-  @param oneline: Whether to read only one line (newline char is not included)
   @rtype: str
   @return: the (possibly partial) content of the file
 
   """
   f = open(file_name, "r")
   try:
-    if oneline:
-      data = f.readline(size).rstrip("\r\n")
-    else:
-      data = f.read(size)
+    return f.read(size)
   finally:
     f.close()
-
-  return data
 
 
 def WriteFile(file_name, fn=None, data=None,
@@ -1801,6 +1794,24 @@ def WriteFile(file_name, fn=None, data=None,
       RemoveFile(new_name)
 
   return result
+
+
+def ReadOneLineFile(file_name, strict=False):
+  """Return the first non-empty line from a file.
+
+  @type strict: boolean
+  @param strict: if True, abort if the file has more than one
+      non-empty line
+
+  """
+  file_lines = ReadFile(file_name).splitlines()
+  full_lines = filter(bool, file_lines)
+  if not file_lines or not full_lines:
+    raise errors.GenericError("No data in one-liner file %s" % file_name)
+  elif strict and len(full_lines) > 1:
+    raise errors.GenericError("Too many lines in one-liner file %s" %
+                              file_name)
+  return full_lines[0]
 
 
 def FirstFree(seq, base=0):
