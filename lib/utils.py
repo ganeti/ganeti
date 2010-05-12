@@ -601,7 +601,7 @@ def ReadPidFile(pidfile):
 
   """
   try:
-    raw_data = ReadFile(pidfile)
+    raw_data = ReadOneLineFile(pidfile)
   except EnvironmentError, err:
     if err.errno != errno.ENOENT:
       logging.exception("Can't read pid file")

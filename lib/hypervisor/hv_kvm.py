@@ -235,7 +235,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     if os.path.exists(uid_file):
       try:
-        uid = int(utils.ReadFile(uid_file))
+        uid = int(utils.ReadOneLineFile(uid_file))
         return uid
       except EnvironmentError:
         logging.warning("Can't read uid file", exc_info=True)
@@ -634,7 +634,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     vnc_pwd = None
     if vnc_pwd_file:
       try:
-        vnc_pwd = utils.ReadFile(vnc_pwd_file)
+        vnc_pwd = utils.ReadOneLineFile(vnc_pwd_file, strict=True)
       except EnvironmentError, err:
         raise errors.HypervisorError("Failed to open VNC password file %s: %s"
                                      % (vnc_pwd_file, err))
