@@ -2102,7 +2102,8 @@ class LogFileHandler(logging.FileHandler):
 
 
 def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
-                 multithreaded=False, syslog=constants.SYSLOG_USAGE):
+                 multithreaded=False, syslog=constants.SYSLOG_USAGE,
+                 console_logging=False):
   """Configures the logging module.
 
   @type logfile: str
@@ -2121,6 +2122,9 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
       - if no, syslog is not used
       - if yes, syslog is used (in addition to file-logging)
       - if only, only syslog is used
+  @type console_logging: boolean
+  @param console_logging: if True, will use a FileHandler which falls back to
+      the system console if logging fails
   @raise EnvironmentError: if we can't open the log file and
       syslog/stderr logging is disabled
 
@@ -2172,7 +2176,10 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
     # the error if stderr_logging is True, and if false we re-raise the
     # exception since otherwise we could run but without any logs at all
     try:
-      logfile_handler = logging.FileHandler(logfile)
+      if console_logging:
+        logfile_handler = LogFileHandler(logfile)
+      else:
+        logfile_handler = logging.FileHandler(logfile)
       logfile_handler.setFormatter(formatter)
       if debug:
         logfile_handler.setLevel(logging.DEBUG)
