@@ -403,7 +403,7 @@ class GanetiRapiClient(object):
       resp = self._http.open(req)
       encoded_response_content = resp.read()
     except (OpenSSL.SSL.Error, OpenSSL.crypto.Error), err:
-      raise CertificateError("SSL issue: %r" % err)
+      raise CertificateError("SSL issue: %s (%r)" % (err, err))
 
     if encoded_response_content:
       response_content = simplejson.loads(encoded_response_content)
