@@ -11,7 +11,12 @@ Software Requirements
 
 Before installing, please verify that you have the following programs:
 
-- `Xen Hypervisor <http://www.xen.org/>`_, version 3.0.x or 3.1
+- `Xen Hypervisor <http://www.xen.org/>`_, version 3.0 or above, if
+  running on Xen
+- `KVM Hypervisor <http://www.linux-kvm.org>`_, version 72 or above, if
+  running on KVM. In order to use advanced features, such as live
+  migration, virtio, etc, an even newer version is recommended (qemu-kvm
+  versions 0.11.X or above have shown good behavior).
 - `DRBD <http://www.drbd.org/>`_, kernel module and userspace utils,
   version 8.0.7 or above
 - `LVM2 <http://sourceware.org/lvm2/>`_
