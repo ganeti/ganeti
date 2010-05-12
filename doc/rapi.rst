@@ -136,6 +136,11 @@ Usage examples
 You can access the API using your favorite programming language as long
 as it supports network connections.
 
+Ganeti RAPI client
+++++++++++++++++++
+
+Ganeti includes a standalone RAPI client, ``lib/rapi/client.py``.
+
 Shell
 +++++
 

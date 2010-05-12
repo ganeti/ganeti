@@ -21,6 +21,9 @@
 
 """Ganeti RAPI client."""
 
+# No Ganeti-specific modules should be imported. The RAPI client is supposed to
+# be standalone.
+
 import httplib
 import urllib2
 import logging
