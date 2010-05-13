@@ -1772,7 +1772,7 @@ def Mlockall():
   libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
 
   if libc.mlockall(_MCL_CURRENT | _MCL_FUTURE):
-    logging.error("Cannot set memory lock: %s" %
+    logging.error("Cannot set memory lock: %s",
                   os.strerror(libc.__errno_location().contents.value))
     return
 
