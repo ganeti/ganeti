@@ -2092,7 +2092,7 @@ class LogFileHandler(logging.FileHandler):
 
     """
     try:
-      logging.Filehandler.handleError(self, record)
+      logging.FileHandler.handleError(self, record)
     except Exception:
       try:
         self.console.write("Cannot log message:\n%s\n" % self.format(record))
