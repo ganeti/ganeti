@@ -25,6 +25,7 @@
 
 import logging
 import time
+import OpenSSL
 
 from ganeti import constants
 from ganeti import errors
@@ -966,6 +967,48 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
   return [bool(dtp.success) for dtp in all_dtp]
 
 
+class _RemoteExportCb(ImportExportCbBase):
+  def __init__(self, feedback_fn, disk_count):
+    """Initializes this class.
+
+    """
+    ImportExportCbBase.__init__(self)
+    self._feedback_fn = feedback_fn
+    self._dresults = [None] * disk_count
+
+  @property
+  def disk_results(self):
+    """Returns per-disk results.
+
+    """
+    return self._dresults
+
+  def ReportConnected(self, ie, private):
+    """Called when a connection has been established.
+
+    """
+    (idx, _) = private
+
+    self._feedback_fn("Disk %s is now sending data" % idx)
+
+  def ReportFinished(self, ie, private):
+    """Called when a transfer has finished.
+
+    """
+    (idx, finished_fn) = private
+
+    if ie.success:
+      self._feedback_fn("Disk %s finished sending data" % idx)
+    else:
+      self._feedback_fn("Disk %s failed to send data: %s (recent output: %r)" %
+                        (idx, ie.final_message, ie.recent_output))
+
+    self._dresults[idx] = bool(ie.success)
+
+    if finished_fn:
+      finished_fn()
+
+
 class ExportInstanceHelper:
   def __init__(self, lu, feedback_fn, instance):
     """Initializes this class.
@@ -1088,6 +1131,45 @@ class ExportInstanceHelper:
 
     return (fin_resu, dresults)
 
+  def RemoteExport(self, x509_key_name, dest_x509_ca, disk_info, timeouts):
+    """Inter-cluster instance export.
+
+    @type x509_key_name: string
+    @param x509_key_name: X509 key name for encrypting data
+    @type dest_x509_ca: OpenSSL.crypto.X509
+    @param dest_x509_ca: Remote peer X509 CA object
+    @type disk_info: list
+    @param disk_info: Per-disk destination information
+    @type timeouts: L{ImportExportTimeouts}
+    @param timeouts: Timeouts for this import
+
+    """
+    instance = self._instance
+
+    assert len(disk_info) == len(instance.disks)
+
+    cbs = _RemoteExportCb(self._feedback_fn, len(instance.disks))
+
+    dest_ca_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                                  dest_x509_ca)
+
+    ieloop = ImportExportLoop(self._lu)
+    try:
+      for idx, (dev, (host, port, _, _)) in enumerate(zip(instance.disks,
+                                                          disk_info)):
+        self._feedback_fn("Sending disk %s to %s:%s" % (idx, host, port))
+        finished_fn = compat.partial(self._TransferFinished, idx)
+        ieloop.Add(DiskExport(self._lu, instance.primary_node,
+                              x509_key_name, dest_ca_pem, host, port, instance,
+                              constants.IEIO_SCRIPT, (dev, idx),
+                              timeouts, cbs, private=(idx, finished_fn)))
+
+      ieloop.Run()
+    finally:
+      ieloop.FinalizeAll()
+
+    return (True, cbs.disk_results)
+
   def _TransferFinished(self, idx):
     """Called once a transfer has finished.
 
@@ -1152,3 +1234,64 @@ def CheckRemoteExportHandshake(cds, handshake):
             (constants.RIE_VERSION, version))
 
   return None
+
+
+def _GetRieDiskInfoMessage(disk_index, host, port):
+  """Returns the hashed text for import/export disk information.
+
+  @type disk_index: number
+  @param disk_index: Index of disk (included in hash)
+  @type host: string
+  @param host: Hostname
+  @type port: number
+  @param port: Daemon port
+
+  """
+  return "%s:%s:%s" % (disk_index, host, port)
+
+
+def CheckRemoteExportDiskInfo(cds, disk_index, disk_info):
+  """Verifies received disk information for an export.
+
+  @type cds: string
+  @param cds: Cluster domain secret
+  @type disk_index: number
+  @param disk_index: Index of disk (included in hash)
+  @type disk_info: sequence
+  @param disk_info: Disk information sent by remote peer
+
+  """
+  try:
+    (host, port, hmac_digest, hmac_salt) = disk_info
+  except (TypeError, ValueError), err:
+    raise errors.GenericError("Invalid data: %s" % err)
+
+  if not (host and port):
+    raise errors.GenericError("Missing destination host or port")
+
+  msg = _GetRieDiskInfoMessage(disk_index, host, port)
+
+  if not utils.VerifySha1Hmac(cds, msg, hmac_digest, salt=hmac_salt):
+    raise errors.GenericError("HMAC is wrong")
+
+  return (host, port)
+
+
+def ComputeRemoteImportDiskInfo(cds, salt, disk_index, host, port):
+  """Computes the signed disk information for a remote import.
+
+  @type cds: string
+  @param cds: Cluster domain secret
+  @type salt: string
+  @param salt: HMAC salt
+  @type disk_index: number
+  @param disk_index: Index of disk (included in hash)
+  @type host: string
+  @param host: Hostname
+  @type port: number
+  @param port: Daemon port
+
+  """
+  msg = _GetRieDiskInfoMessage(disk_index, host, port)
+  hmac_digest = utils.Sha1Hmac(cds, msg, salt=salt)
+  return (host, port, hmac_digest, salt)

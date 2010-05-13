@@ -668,13 +668,32 @@ class OpPrepareExport(OpCode):
 
 
 class OpExportInstance(OpCode):
-  """Export an instance."""
+  """Export an instance.
+
+  For local exports, the export destination is the node name. For remote
+  exports, the export destination is a list of tuples, each consisting of
+  hostname/IP address, port, HMAC and HMAC salt. The HMAC is calculated using
+  the cluster domain secret over the value "${index}:${hostname}:${port}". The
+  destination X509 CA must be a signed certificate.
+
+  @ivar mode: Export mode (one of L{constants.EXPORT_MODES})
+  @ivar target_node: Export destination
+  @ivar x509_key_name: X509 key to use (remote export only)
+  @ivar destination_x509_ca: Destination X509 CA in PEM format (remote export
+                             only)
+
+  """
   OP_ID = "OP_BACKUP_EXPORT"
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
+    # TODO: Rename target_node as it changes meaning for different export modes
+    # (e.g. "destination")
     "instance_name", "target_node", "shutdown", "shutdown_timeout",
     "remove_instance",
     "ignore_remove_failures",
+    "mode",
+    "x509_key_name",
+    "destination_x509_ca",
     ]
 
 

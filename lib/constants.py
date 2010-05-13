@@ -328,6 +328,14 @@ REPLACE_DISK_SEC = "replace_on_secondary"  # replace disks on secondary
 REPLACE_DISK_CHG = "replace_new_secondary" # change secondary node
 REPLACE_DISK_AUTO = "replace_auto"
 
+# Instance export mode
+EXPORT_MODE_LOCAL = "local"
+EXPORT_MODE_REMOTE = "remote"
+EXPORT_MODES = frozenset([
+  EXPORT_MODE_LOCAL,
+  EXPORT_MODE_REMOTE,
+  ])
+
 # lock recalculate mode
 LOCKS_REPLACE = 'replace'
 LOCKS_APPEND = 'append'
@@ -342,6 +350,9 @@ RIE_HANDSHAKE = "Hi, I'm Ganeti"
 
 # Remote import/export certificate validity in seconds
 RIE_CERT_VALIDITY = 24 * 60 * 60
+
+# Remote import/export connect timeout for socat
+RIE_CONNECT_TIMEOUT = 60
 
 DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN,
                             DT_DRBD8, DT_FILE])

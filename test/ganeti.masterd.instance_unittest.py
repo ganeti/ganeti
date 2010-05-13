@@ -26,12 +26,14 @@ import sys
 import unittest
 
 from ganeti import constants
+from ganeti import errors
 from ganeti import utils
 from ganeti import masterd
 
 from ganeti.masterd.instance import \
   ImportExportTimeouts, _TimeoutExpired, _DiskImportExportBase, \
-  ComputeRemoteExportHandshake, CheckRemoteExportHandshake
+  ComputeRemoteExportHandshake, CheckRemoteExportHandshake, \
+  ComputeRemoteImportDiskInfo, CheckRemoteExportDiskInfo
 
 import testutils
 
@@ -84,6 +86,37 @@ class TestRieHandshake(unittest.TestCase):
     msg = "%s:%s" % (version, constants.RIE_HANDSHAKE)
     hs = (version, utils.Sha1Hmac(cds, msg, salt=salt), salt)
     self.assert_(CheckRemoteExportHandshake(cds, hs))
+
+
+class TestRieDiskInfo(unittest.TestCase):
+  def test(self):
+    cds = "bbf46ea9a"
+    salt = "ee5ad9"
+    di = ComputeRemoteImportDiskInfo(cds, salt, 0, "node1", 1234)
+    self.assertEqual(CheckRemoteExportDiskInfo(cds, 0, di),
+                     ("node1", 1234))
+
+    for i in range(1, 100):
+      # Wrong disk index
+      self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                        cds, i, di)
+
+  def testCheckErrors(self):
+    cds = "0776450535a"
+    self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                      cds, 0, "")
+    self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                      cds, 0, ())
+    self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                      cds, 0, ("", 1, 2, 3, 4, 5))
+
+    # No host/port
+    self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                      cds, 0, ("", 0, "", ""))
+
+    # Wrong hash
+    self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                      cds, 0, ("nodeX", 123, "fakehash", "xyz"))
 
 
 if __name__ == "__main__":

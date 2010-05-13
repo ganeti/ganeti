@@ -8903,23 +8903,41 @@ class LUExportInstance(LogicalUnit):
     self.remove_instance = getattr(self.op, "remove_instance", False)
     self.ignore_remove_failures = getattr(self.op, "ignore_remove_failures",
                                           False)
+    self.export_mode = getattr(self.op, "mode", constants.EXPORT_MODE_LOCAL)
+    self.x509_key_name = getattr(self.op, "x509_key_name", None)
+    self.dest_x509_ca_pem = getattr(self.op, "destination_x509_ca", None)
 
     if self.remove_instance and not self.op.shutdown:
       raise errors.OpPrereqError("Can not remove instance without shutting it"
                                  " down before")
 
+    if self.export_mode not in constants.EXPORT_MODES:
+      raise errors.OpPrereqError("Invalid export mode %r" % self.export_mode,
+                                 errors.ECODE_INVAL)
+
+    if self.export_mode == constants.EXPORT_MODE_REMOTE:
+      if not self.x509_key_name:
+        raise errors.OpPrereqError("Missing X509 key name for encryption",
+                                   errors.ECODE_INVAL)
+
+      if not self.dest_x509_ca_pem:
+        raise errors.OpPrereqError("Missing destination X509 CA",
+                                   errors.ECODE_INVAL)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
 
-    # FIXME: lock only instance primary and destination node
-    #
-    # Sad but true, for now we have do lock all nodes, as we don't know where
-    # the previous export might be, and and in this LU we search for it and
-    # remove it from its current node. In the future we could fix this by:
-    #  - making a tasklet to search (share-lock all), then create the new one,
-    #    then one to remove, after
-    #  - removing the removal operation altogether
-    self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+    # Lock all nodes for local exports
+    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+      # FIXME: lock only instance primary and destination node
+      #
+      # Sad but true, for now we have do lock all nodes, as we don't know where
+      # the previous export might be, and in this LU we search for it and
+      # remove it from its current node. In the future we could fix this by:
+      #  - making a tasklet to search (share-lock all), then create the new one,
+      #    then one to remove, after
+      #  - removing the removal operation altogether
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def DeclareLocks(self, level):
     """Last minute lock declaration."""
@@ -8932,15 +8950,21 @@ class LUExportInstance(LogicalUnit):
 
     """
     env = {
+      "EXPORT_MODE": self.export_mode,
       "EXPORT_NODE": self.op.target_node,
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
       "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
       # TODO: Generic function for boolean env variables
       "REMOVE_INSTANCE": str(bool(self.remove_instance)),
       }
+
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = [self.cfg.GetMasterNode(), self.instance.primary_node,
-          self.op.target_node]
+
+    nl = [self.cfg.GetMasterNode(), self.instance.primary_node]
+
+    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+      nl.append(self.op.target_node)
+
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -8950,17 +8974,70 @@ class LUExportInstance(LogicalUnit):
 
     """
     instance_name = self.op.instance_name
+
     self.instance = self.cfg.GetInstanceInfo(instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
 
-    self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
-    self.dst_node = self.cfg.GetNodeInfo(self.op.target_node)
-    assert self.dst_node is not None
+    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+      self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
+      self.dst_node = self.cfg.GetNodeInfo(self.op.target_node)
+      assert self.dst_node is not None
 
-    _CheckNodeOnline(self, self.dst_node.name)
-    _CheckNodeNotDrained(self, self.dst_node.name)
+      _CheckNodeOnline(self, self.dst_node.name)
+      _CheckNodeNotDrained(self, self.dst_node.name)
+
+      self._cds = None
+      self.dest_x509_ca = None
+
+    elif self.export_mode == constants.EXPORT_MODE_REMOTE:
+      self.dst_node = None
+
+      if len(self.op.target_node) != len(self.instance.disks):
+        raise errors.OpPrereqError(("Received destination information for %s"
+                                    " disks, but instance %s has %s disks") %
+                                   (len(self.op.target_node), instance_name,
+                                    len(self.instance.disks)),
+                                   errors.ECODE_INVAL)
+
+      cds = _GetClusterDomainSecret()
+
+      # Check X509 key name
+      try:
+        (key_name, hmac_digest, hmac_salt) = self.x509_key_name
+      except (TypeError, ValueError), err:
+        raise errors.OpPrereqError("Invalid data for X509 key name: %s" % err)
+
+      if not utils.VerifySha1Hmac(cds, key_name, hmac_digest, salt=hmac_salt):
+        raise errors.OpPrereqError("HMAC for X509 key name is wrong",
+                                   errors.ECODE_INVAL)
+
+      # Load and verify CA
+      try:
+        (cert, _) = utils.LoadSignedX509Certificate(self.dest_x509_ca_pem, cds)
+      except OpenSSL.crypto.Error, err:
+        raise errors.OpPrereqError("Unable to load destination X509 CA (%s)" %
+                                   (err, ), errors.ECODE_INVAL)
+
+      (errcode, msg) = utils.VerifyX509Certificate(cert, None, None)
+      if errcode is not None:
+        raise errors.OpPrereqError("Invalid destination X509 CA (%s)" % (msg, ),
+                                   errors.ECODE_INVAL)
+
+      self.dest_x509_ca = cert
+
+      # Verify target information
+      for idx, disk_data in enumerate(self.op.target_node):
+        try:
+          masterd.instance.CheckRemoteExportDiskInfo(cds, idx, disk_data)
+        except errors.GenericError, err:
+          raise errors.OpPrereqError("Target info for disk %s: %s" % (idx, err),
+                                     errors.ECODE_INVAL)
+
+    else:
+      raise errors.ProgrammerError("Unhandled export mode %r" %
+                                   self.export_mode)
 
     # instance disk type verification
     # TODO: Implement export support for file-based disks
@@ -8976,6 +9053,8 @@ class LUExportInstance(LogicalUnit):
     exports will be removed from the nodes A, B and D.
 
     """
+    assert self.export_mode != constants.EXPORT_MODE_REMOTE
+
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(self.dst_node.name)
 
@@ -8999,6 +9078,8 @@ class LUExportInstance(LogicalUnit):
     """Export an instance to an image in the cluster.
 
     """
+    assert self.export_mode in constants.EXPORT_MODES
+
     instance = self.instance
     src_node = instance.primary_node
 
@@ -9029,7 +9110,17 @@ class LUExportInstance(LogicalUnit):
 
       helper.CreateSnapshots()
       try:
-        (fin_resu, dresults) = helper.LocalExport(self.dst_node)
+        if self.export_mode == constants.EXPORT_MODE_LOCAL:
+          (fin_resu, dresults) = helper.LocalExport(self.dst_node)
+        elif self.export_mode == constants.EXPORT_MODE_REMOTE:
+          connect_timeout = constants.RIE_CONNECT_TIMEOUT
+          timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
+
+          (key_name, _, _) = self.x509_key_name
+          (fin_resu, dresults) = helper.RemoteExport(key_name,
+                                                     self.dest_x509_ca,
+                                                     self.op.target_node,
+                                                     timeouts)
       finally:
         helper.Cleanup()
 
@@ -9053,7 +9144,8 @@ class LUExportInstance(LogicalUnit):
         _RemoveInstance(self, feedback_fn, instance,
                         self.ignore_remove_failures)
 
-    self._CleanupExports(feedback_fn)
+    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+      self._CleanupExports(feedback_fn)
 
     return fin_resu, dresults
 
