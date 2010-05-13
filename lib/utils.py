@@ -1769,9 +1769,11 @@ def Mlockall():
   # By declaring this variable as a pointer to an integer we can then access
   # its value correctly, should the mlockall call fail, in order to see what
   # the actual error code was.
+  # pylint: disable-msg=W0212
   libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
 
   if libc.mlockall(_MCL_CURRENT | _MCL_FUTURE):
+    # pylint: disable-msg=W0212
     logging.error("Cannot set memory lock: %s",
                   os.strerror(libc.__errno_location().contents.value))
     return
@@ -2084,7 +2086,7 @@ class LogFileHandler(logging.FileHandler):
     logging.FileHandler.__init__(self, filename, mode, encoding)
     self.console = open(constants.DEV_CONSOLE, "a")
 
-  def handleError(self, record):
+  def handleError(self, record): # pylint: disable-msg=C0103
     """Handle errors which occur during an emit() call.
 
     Try to handle errors with FileHandler method, if it fails write to
@@ -2093,10 +2095,10 @@ class LogFileHandler(logging.FileHandler):
     """
     try:
       logging.FileHandler.handleError(self, record)
-    except Exception:
+    except Exception: # pylint: disable-msg=W0703
       try:
         self.console.write("Cannot log message:\n%s\n" % self.format(record))
-      except Exception:
+      except Exception: # pylint: disable-msg=W0703
         # Log handler tried everything it could, now just give up
         pass
 

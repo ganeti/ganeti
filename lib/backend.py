@@ -2678,7 +2678,7 @@ def PowercycleNode(hypervisor_type):
   # ensure the child is running on ram
   try:
     utils.Mlockall()
-  except Exception:
+  except Exception: # pylint: disable-msg=W0703
     pass
   time.sleep(5)
   hyper.PowercycleNode()
