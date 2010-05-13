@@ -882,7 +882,8 @@ def main():
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
-  daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded)
+  daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded,
+                     console_logging=True)
 
 
 if __name__ == '__main__':
