@@ -599,6 +599,13 @@ def _CheckStorageType(storage_type):
     _RequireFileStorage()
 
 
+def _GetClusterDomainSecret():
+  """Reads the cluster domain secret.
+
+  """
+  return utils.ReadOneLineFile(constants.CLUSTER_DOMAIN_SECRET_FILE,
+                               strict=True)
+
 
 def _CheckInstanceDown(lu, instance, reason):
   """Ensure that an instance is not running."""
