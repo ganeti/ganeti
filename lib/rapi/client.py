@@ -21,6 +21,9 @@
 
 """Ganeti RAPI client."""
 
+# No Ganeti-specific modules should be imported. The RAPI client is supposed to
+# be standalone.
+
 import httplib
 import urllib2
 import logging
@@ -39,6 +42,7 @@ HTTP_GET = "GET"
 HTTP_PUT = "PUT"
 HTTP_POST = "POST"
 HTTP_OK = 200
+HTTP_NOT_FOUND = 404
 HTTP_APP_JSON = "application/json"
 
 REPLACE_DISK_PRI = "replace_on_primary"
@@ -51,6 +55,10 @@ NODE_ROLE_MASTER_CANDIATE = "master-candidate"
 NODE_ROLE_MASTER = "master"
 NODE_ROLE_OFFLINE = "offline"
 NODE_ROLE_REGULAR = "regular"
+
+# Internal constants
+_REQ_DATA_VERSION_FIELD = "__version__"
+_INST_CREATE_REQV1 = "instance-create-reqv1"
 
 
 class Error(Exception):
@@ -433,6 +441,23 @@ class GanetiRapiClient(object):
     """
     return self._SendRequest(HTTP_GET, "/version", None, None)
 
+  def GetFeatures(self):
+    """Gets the list of optional features supported by RAPI server.
+
+    @rtype: list
+    @return: List of optional features
+
+    """
+    try:
+      return self._SendRequest(HTTP_GET, "/%s/features" % GANETI_RAPI_VERSION,
+                               None, None)
+    except GanetiApiError, err:
+      # Older RAPI servers don't support this resource
+      if err.code == HTTP_NOT_FOUND:
+        return []
+
+      raise
+
   def GetOperatingSystems(self):
     """Gets the Operating Systems running in the Ganeti cluster.
 
@@ -534,23 +559,64 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s" %
                               (GANETI_RAPI_VERSION, instance)), None, None)
 
-  def CreateInstance(self, dry_run=False):
+  def CreateInstance(self, mode, name, disk_template, disks, nics,
+                     **kwargs):
     """Creates a new instance.
 
+    More details for parameters can be found in the RAPI documentation.
+
+    @type mode: string
+    @param mode: Instance creation mode
+    @type name: string
+    @param name: Hostname of the instance to create
+    @type disk_template: string
+    @param disk_template: Disk template for instance (e.g. plain, diskless,
+                          file, or drbd)
+    @type disks: list of dicts
+    @param disks: List of disk definitions
+    @type nics: list of dicts
+    @param nics: List of NIC definitions
     @type dry_run: bool
-    @param dry_run: whether to perform a dry run
+    @keyword dry_run: whether to perform a dry run
 
     @rtype: int
     @return: job id
 
     """
-    # TODO: Pass arguments needed to actually create an instance.
     query = []
-    if dry_run:
+
+    if kwargs.get("dry_run"):
       query.append(("dry-run", 1))
 
+    if _INST_CREATE_REQV1 in self.GetFeatures():
+      # All required fields for request data version 1
+      body = {
+        _REQ_DATA_VERSION_FIELD: 1,
+        "mode": mode,
+        "name": name,
+        "disk_template": disk_template,
+        "disks": disks,
+        "nics": nics,
+        }
+
+      conflicts = set(kwargs.iterkeys()) & set(body.iterkeys())
+      if conflicts:
+        raise GanetiApiError("Required fields can not be specified as"
+                             " keywords: %s" % ", ".join(conflicts))
+
+      body.update((key, value) for key, value in kwargs.iteritems()
+                  if key != "dry_run")
+    else:
+      # TODO: Implement instance creation request data version 0
+      # When implementing version 0, care should be taken to refuse unknown
+      # parameters and invalid values. The interface of this function must stay
+      # exactly the same for version 0 and 1 (e.g. they aren't allowed to
+      # require different data types).
+      raise NotImplementedError("Support for instance creation request data"
+                                " version 0 is not yet implemented")
+
     return self._SendRequest(HTTP_POST, "/%s/instances" % GANETI_RAPI_VERSION,
-                             query, None)
+                             query, body)
 
   def DeleteInstance(self, instance, dry_run=False):
     """Deletes an instance.

@@ -242,7 +242,7 @@ class Mainloop(object):
 
 
 def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
-                multithreaded=False,
+                multithreaded=False, console_logging=False,
                 default_ssl_cert=None, default_ssl_key=None):
   """Shared main function for daemons.
 
@@ -262,6 +262,9 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
                   runs the daemon itself.
   @type multithreaded: bool
   @param multithreaded: Whether the daemon uses threads
+  @type console_logging: boolean
+  @param console_logging: if True, the daemon will fall back to the system
+                          console if logging fails
   @type default_ssl_cert: string
   @param default_ssl_cert: Default SSL certificate path
   @type default_ssl_key: string
@@ -345,7 +348,8 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
                        stderr_logging=not options.fork,
                        multithreaded=multithreaded,
                        program=daemon_name,
-                       syslog=options.syslog)
+                       syslog=options.syslog,
+                       console_logging=console_logging)
     logging.info("%s daemon startup", daemon_name)
     exec_fn(options, args)
   finally:

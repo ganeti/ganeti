@@ -190,6 +190,12 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(2, self.client.GetVersion())
     self.assertHandler(rlib2.R_version)
 
+  def testGetFeatures(self):
+    for features in [[], ["foo", "bar", "baz"]]:
+      self.rapi.AddResponse(serializer.DumpJson(features))
+      self.assertEqual(features, self.client.GetFeatures())
+      self.assertHandler(rlib2.R_2_features)
+
   def testGetOperatingSystems(self):
     self.rapi.AddResponse("[\"beos\"]")
     self.assertEqual(["beos"], self.client.GetOperatingSystems())
@@ -233,11 +239,49 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_instances_name)
     self.assertItems(["instance"])
 
+  def testCreateInstanceOldVersion(self):
+    self.rapi.AddResponse(serializer.DumpJson([]))
+    self.assertRaises(NotImplementedError, self.client.CreateInstance,
+                      "create", "inst1.example.com", "plain", [], [],
+                      dry_run=True)
+
   def testCreateInstance(self):
-    self.rapi.AddResponse("1234")
-    self.assertEqual(1234, self.client.CreateInstance(dry_run=True))
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._INST_CREATE_REQV1]))
+    self.rapi.AddResponse("23030")
+    job_id = self.client.CreateInstance("create", "inst1.example.com",
+                                        "plain", [], [], dry_run=True)
+    self.assertEqual(job_id, 23030)
     self.assertHandler(rlib2.R_2_instances)
     self.assertDryRun()
+
+    data = serializer.LoadJson(self.http.last_request.data)
+
+    for field in ["dry_run", "beparams", "hvparams", "start"]:
+      self.assertFalse(field in data)
+
+    self.assertEqual(data["name"], "inst1.example.com")
+    self.assertEqual(data["disk_template"], "plain")
+
+  def testCreateInstance2(self):
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._INST_CREATE_REQV1]))
+    self.rapi.AddResponse("24740")
+    job_id = self.client.CreateInstance("import", "inst2.example.com",
+                                        "drbd8", [{"size": 100,}],
+                                        [{}, {"bridge": "br1", }],
+                                        dry_run=False, start=True,
+                                        pnode="node1", snode="node9",
+                                        ip_check=False)
+    self.assertEqual(job_id, 24740)
+    self.assertHandler(rlib2.R_2_instances)
+
+    data = serializer.LoadJson(self.http.last_request.data)
+    self.assertEqual(data[rlib2._REQ_DATA_VERSION], 1)
+    self.assertEqual(data["name"], "inst2.example.com")
+    self.assertEqual(data["disk_template"], "drbd8")
+    self.assertEqual(data["start"], True)
+    self.assertEqual(data["ip_check"], False)
+    self.assertEqualValues(data["disks"], [{"size": 100,}])
+    self.assertEqualValues(data["nics"], [{}, {"bridge": "br1", }])
 
   def testDeleteInstance(self):
     self.rapi.AddResponse("1234")

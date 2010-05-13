@@ -108,6 +108,17 @@ def _DecodeImportExportIO(ieio, ieioargs):
   return ieioargs
 
 
+class MlockallRequestExecutor(http.server.HttpServerRequestExecutor):
+  """Custom Request Executor class that ensures NodeHttpServer children are
+  locked in ram.
+
+  """
+  def __init__(self, *args, **kwargs):
+    utils.Mlockall()
+
+    http.server.HttpServerRequestExecutor.__init__(self, *args, **kwargs)
+
+
 class NodeHttpServer(http.server.HttpServer):
   """The server implementation.
 
@@ -895,6 +906,8 @@ def ExecNoded(options, _):
   """Main node daemon function, executed with the PID file held.
 
   """
+  utils.Mlockall()
+
   # Read SSL certificate
   if options.ssl:
     ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
@@ -911,7 +924,8 @@ def ExecNoded(options, _):
 
   mainloop = daemon.Mainloop()
   server = NodeHttpServer(mainloop, options.bind_address, options.port,
-                          ssl_params=ssl_params, ssl_verify_peer=True)
+                          ssl_params=ssl_params, ssl_verify_peer=True,
+                          request_executor_class=MlockallRequestExecutor)
   server.Start()
   try:
     mainloop.Run()
@@ -934,7 +948,8 @@ def main():
   dirs.append((constants.IMPORT_EXPORT_DIR, constants.IMPORT_EXPORT_DIR_MODE))
   daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded,
                      default_ssl_cert=constants.NODED_CERT_FILE,
-                     default_ssl_key=constants.NODED_CERT_FILE)
+                     default_ssl_key=constants.NODED_CERT_FILE,
+                     console_logging=True)
 
 
 if __name__ == '__main__':

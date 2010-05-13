@@ -59,6 +59,11 @@ try:
 except ImportError:
   import sha as sha1
 
+try:
+  import ctypes
+except ImportError:
+  ctypes = None
+
 from ganeti import errors
 from ganeti import constants
 
@@ -95,6 +100,10 @@ _STRUCT_UCRED_SIZE = struct.calcsize(_STRUCT_UCRED)
 # Certificate verification results
 (CERT_WARNING,
  CERT_ERROR) = range(1, 3)
+
+# Flags for mlockall() (from bits/mman.h)
+_MCL_CURRENT = 1
+_MCL_FUTURE = 2
 
 
 class RunResult(object):
@@ -2037,6 +2046,39 @@ def CloseFDs(noclose_fds=None):
     _CloseFDNoErr(fd)
 
 
+def Mlockall():
+  """Lock current process' virtual address space into RAM.
+
+  This is equivalent to the C call mlockall(MCL_CURRENT|MCL_FUTURE),
+  see mlock(2) for more details. This function requires ctypes module.
+
+  """
+  if ctypes is None:
+    logging.warning("Cannot set memory lock, ctypes module not found")
+    return
+
+  libc = ctypes.cdll.LoadLibrary("libc.so.6")
+  if libc is None:
+    logging.error("Cannot set memory lock, ctypes cannot load libc")
+    return
+
+  # Some older version of the ctypes module don't have built-in functionality
+  # to access the errno global variable, where function error codes are stored.
+  # By declaring this variable as a pointer to an integer we can then access
+  # its value correctly, should the mlockall call fail, in order to see what
+  # the actual error code was.
+  # pylint: disable-msg=W0212
+  libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
+
+  if libc.mlockall(_MCL_CURRENT | _MCL_FUTURE):
+    # pylint: disable-msg=W0212
+    logging.error("Cannot set memory lock: %s",
+                  os.strerror(libc.__errno_location().contents.value))
+    return
+
+  logging.debug("Memory lock set")
+
+
 def Daemonize(logfile):
   """Daemonize the current process.
 
@@ -2325,8 +2367,43 @@ def GetDaemonPort(daemon_name):
   return port
 
 
+class LogFileHandler(logging.FileHandler):
+  """Log handler that doesn't fallback to stderr.
+
+  When an error occurs while writing on the logfile, logging.FileHandler tries
+  to log on stderr. This doesn't work in ganeti since stderr is redirected to
+  the logfile. This class avoids failures reporting errors to /dev/console.
+
+  """
+  def __init__(self, filename, mode="a", encoding=None):
+    """Open the specified file and use it as the stream for logging.
+
+    Also open /dev/console to report errors while logging.
+
+    """
+    logging.FileHandler.__init__(self, filename, mode, encoding)
+    self.console = open(constants.DEV_CONSOLE, "a")
+
+  def handleError(self, record): # pylint: disable-msg=C0103
+    """Handle errors which occur during an emit() call.
+
+    Try to handle errors with FileHandler method, if it fails write to
+    /dev/console.
+
+    """
+    try:
+      logging.FileHandler.handleError(self, record)
+    except Exception: # pylint: disable-msg=W0703
+      try:
+        self.console.write("Cannot log message:\n%s\n" % self.format(record))
+      except Exception: # pylint: disable-msg=W0703
+        # Log handler tried everything it could, now just give up
+        pass
+
+
 def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
-                 multithreaded=False, syslog=constants.SYSLOG_USAGE):
+                 multithreaded=False, syslog=constants.SYSLOG_USAGE,
+                 console_logging=False):
   """Configures the logging module.
 
   @type logfile: str
@@ -2345,6 +2422,9 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
       - if no, syslog is not used
       - if yes, syslog is used (in addition to file-logging)
       - if only, only syslog is used
+  @type console_logging: boolean
+  @param console_logging: if True, will use a FileHandler which falls back to
+      the system console if logging fails
   @raise EnvironmentError: if we can't open the log file and
       syslog/stderr logging is disabled
 
@@ -2396,7 +2476,10 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
     # the error if stderr_logging is True, and if false we re-raise the
     # exception since otherwise we could run but without any logs at all
     try:
-      logfile_handler = logging.FileHandler(logfile)
+      if console_logging:
+        logfile_handler = LogFileHandler(logfile)
+      else:
+        logfile_handler = logging.FileHandler(logfile)
       logfile_handler.setFormatter(formatter)
       if debug:
         logfile_handler.setLevel(logging.DEBUG)

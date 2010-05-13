@@ -2916,6 +2916,11 @@ def PowercycleNode(hypervisor_type):
     pid = 0
   if pid > 0:
     return "Reboot scheduled in 5 seconds"
+  # ensure the child is running on ram
+  try:
+    utils.Mlockall()
+  except Exception: # pylint: disable-msg=W0703
+    pass
   time.sleep(5)
   hyper.PowercycleNode()
 

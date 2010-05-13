@@ -292,6 +292,35 @@ wasn't closed during the timeout, the waiting function returns to its
 caller nonetheless.
 
 
+Node daemon availability
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently, when a Ganeti node suffers serious system disk damage, the
+migration/failover of an instance may not correctly shutdown the virtual
+machine on the broken node causing instances duplication. The ``gnt-node
+powercycle`` command can be used to force a node reboot and thus to
+avoid duplicated instances. This command relies on node daemon
+availability, though, and thus can fail if the node daemon has some
+pages swapped out of ram, for example.
+
+
+Proposed changes
+++++++++++++++++
+
+The proposed solution forces node daemon to run exclusively in RAM. It
+uses python ctypes to to call ``mlockall(MCL_CURRENT | MCL_FUTURE)`` on
+the node daemon process and all its children. In addition another log
+handler has been implemented for node daemon to redirect to
+``/dev/console`` messages that cannot be written on the logfile.
+
+With these changes node daemon can successfully run basic tasks such as
+a powercycle request even when the system disk is heavily damaged and
+reading/writing to disk fails constantly.
+
+
 Feature changes
 ---------------
 

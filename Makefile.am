@@ -353,10 +353,12 @@ python_tests = \
 	test/ganeti.opcodes_unittest.py \
 	test/ganeti.rapi.client_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
+	test/ganeti.rapi.rlib2_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils_unittest.py \
+	test/ganeti.utils_mlockall_unittest.py \
 	test/ganeti.workerpool_unittest.py \
 	test/docs_unittest.py \
 	test/tempfile_fork_unittest.py

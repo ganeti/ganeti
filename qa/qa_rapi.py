@@ -262,22 +262,41 @@ def _WaitForRapiJob(job_id):
   rapi.client_utils.PollJob(_rapi_client, job_id, cli.StdioJobPollReportCb())
 
 
-def TestRapiInstanceAdd(node):
+def TestRapiInstanceAdd(node, use_client):
   """Test adding a new instance via RAPI"""
   instance = qa_config.AcquireInstance()
   try:
-    body = {
-      "name": instance["name"],
-      "os": qa_config.get("os"),
-      "disk_template": constants.DT_PLAIN,
-      "pnode": node["primary"],
-      "memory": utils.ParseUnit(qa_config.get("mem")),
-      "disks": [utils.ParseUnit(size) for size in qa_config.get("disk")],
-      }
+    memory = utils.ParseUnit(qa_config.get("mem"))
+    disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
 
-    (job_id, ) = _DoTests([
-      ("/2/instances", _VerifyReturnsJob, "POST", body),
-      ])
+    if use_client:
+      disks = [{"size": size} for size in disk_sizes]
+      nics = [{}]
+
+      beparams = {
+        constants.BE_MEMORY: memory,
+        }
+
+      job_id = _rapi_client.CreateInstance(constants.INSTANCE_CREATE,
+                                           instance["name"],
+                                           constants.DT_PLAIN,
+                                           disks, nics,
+                                           os=qa_config.get("os"),
+                                           pnode=node["primary"],
+                                           beparams=beparams)
+    else:
+      body = {
+        "name": instance["name"],
+        "os": qa_config.get("os"),
+        "disk_template": constants.DT_PLAIN,
+        "pnode": node["primary"],
+        "memory": memory,
+        "disks": disk_sizes,
+        }
+
+      (job_id, ) = _DoTests([
+        ("/2/instances", _VerifyReturnsJob, "POST", body),
+        ])
 
     _WaitForRapiJob(job_id)
 
@@ -287,11 +306,14 @@ def TestRapiInstanceAdd(node):
     raise
 
 
-def TestRapiInstanceRemove(instance):
+def TestRapiInstanceRemove(instance, use_client):
   """Test removing instance via RAPI"""
-  (job_id, ) = _DoTests([
-    ("/2/instances/%s" % instance["name"], _VerifyReturnsJob, "DELETE", None),
-    ])
+  if use_client:
+    job_id = _rapi_client.DeleteInstance(instance["name"])
+  else:
+    (job_id, ) = _DoTests([
+      ("/2/instances/%s" % instance["name"], _VerifyReturnsJob, "DELETE", None),
+      ])
 
   _WaitForRapiJob(job_id)
 
