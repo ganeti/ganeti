@@ -72,7 +72,26 @@ class AsyncoreScheduler(sched.scheduler):
     sched.scheduler.__init__(self, timefunc, AsyncoreDelayFunction)
 
 
-class AsyncUDPSocket(asyncore.dispatcher):
+class GanetiBaseAsyncoreDispatcher(asyncore.dispatcher):
+  """Base Ganeti Asyncore Dispacher
+
+  """
+  # this method is overriding an asyncore.dispatcher method
+  def handle_error(self):
+    """Log an error in handling any request, and proceed.
+
+    """
+    logging.exception("Error while handling asyncore request")
+
+  # this method is overriding an asyncore.dispatcher method
+  def writable(self):
+    """Most of the time we don't want to check for writability.
+
+    """
+    return False
+
+
+class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
   """An improved asyncore udp socket.
 
   """
@@ -80,7 +99,7 @@ class AsyncUDPSocket(asyncore.dispatcher):
     """Constructor for AsyncUDPSocket
 
     """
-    asyncore.dispatcher.__init__(self)
+    GanetiBaseAsyncoreDispatcher.__init__(self)
     self._out_queue = []
     self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -118,13 +137,6 @@ class AsyncUDPSocket(asyncore.dispatcher):
     (ip, port, payload) = self._out_queue[0]
     utils.IgnoreSignals(self.sendto, payload, 0, (ip, port))
     self._out_queue.pop(0)
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_error(self):
-    """Log an error in handling any request, and proceed.
-
-    """
-    logging.exception("Error while handling asyncore request")
 
   def enqueue_send(self, ip, port, payload):
     """Enqueue a datagram to be sent when possible
