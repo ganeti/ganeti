@@ -53,6 +53,13 @@
     </para>
 
     <para>
+      By default, in order to be able to support features such as node
+      powercycling even on systems with a very damaged root disk, ganeti-noded
+      mlocks itself in ram. You can disable this feature by passing in the
+      <option>--no-mlock</option>.
+    </para>
+
+    <para>
       For testing purposes, you can give the <option>-f</option>
       option and the program won't detach from the running terminal.
     </para>
