@@ -181,10 +181,11 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
         result = self._ops.handle_request(method, args)
         success = True
       except errors.GenericError, err:
+        logging.exception("Unexpected exception")
         success = False
         result = errors.EncodeException(err)
       except:
-        logging.error("Unexpected exception", exc_info=True)
+        logging.exception("Unexpected exception")
         err = sys.exc_info()
         result = "Caught exception: %s" % str(err[1])
 
