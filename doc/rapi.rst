@@ -375,6 +375,8 @@ Body parameters:
   Must be ``1`` (older Ganeti versions used a different format for
   instance creation requests, version ``0``, but that format is not
   documented).
+``mode``
+  Instance creation mode (string, required).
 ``name`` (string, required)
   Instance name
 ``disk_template`` (string, required)
