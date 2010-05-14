@@ -400,12 +400,19 @@ class GanetiRapiClient(object):
       encoded_content = None
 
     # Build URL
-    url = [self._base_url, path]
+    urlparts = [self._base_url, path]
     if query:
-      url.append("?")
-      url.append(urllib.urlencode(self._EncodeQuery(query)))
+      urlparts.append("?")
+      urlparts.append(urllib.urlencode(self._EncodeQuery(query)))
 
-    req = _RapiRequest(method, "".join(url), self._headers, encoded_content)
+    url = "".join(urlparts)
+
+    self._logger.debug("Sending request %s %s to %s:%s"
+                       " (headers=%r, content=%r)",
+                       method, url, self._host, self._port, self._headers,
+                       encoded_content)
+
+    req = _RapiRequest(method, url, self._headers, encoded_content)
 
     try:
       resp = self._http.open(req)
