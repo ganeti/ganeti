@@ -570,7 +570,7 @@ def RetryOnSignal(fn, *args, **kwargs):
   while True:
     try:
       return fn(*args, **kwargs)
-    except EnvironmentError, err:
+    except (EnvironmentError, socket.error), err:
       if err.errno != errno.EINTR:
         raise
     except select.error, err:
