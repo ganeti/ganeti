@@ -25,7 +25,6 @@
 import asyncore
 import os
 import signal
-import errno
 import logging
 import sched
 import time
