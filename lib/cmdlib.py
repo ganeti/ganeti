@@ -8078,6 +8078,7 @@ class LUQueryInstanceData(NoHooksLU):
         "os": instance.os,
         # this happens to be the same format used for hooks
         "nics": _NICListToTuple(self, instance.nics),
+        "disk_template": instance.disk_template,
         "disks": disks,
         "hypervisor": instance.hypervisor,
         "network_port": instance.network_port,
