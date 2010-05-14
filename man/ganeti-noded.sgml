@@ -61,6 +61,27 @@
       Debug-level message can be activated by giving the
       <option>-d</option> option.
     </para>
+
+    <para>
+      Logging to syslog, rather than its own log file, can be enabled by
+      passing in the <option>--syslog</option> option.
+    </para>
+
+    <para>
+      The ganeti-noded daemon listens to port 1811 TCP, on all interfaces, by
+      default. This can be overridden by an entry in /etc/services or by
+      passing the <option>-p</option> option. The <option>-b</option> option
+      can be used to specify the address to bind to (defaults to 0.0.0.0).
+    </para>
+
+    <para>
+      Ganeti noded communication is protected via SSL, with a key generated at
+      cluster init time. This can be disabled with the
+      <option>--no-ssl</option> option, or a different ssl key and certificate
+      can be specified using the <option>-K</option> and <option>-C</option>
+      options.
+    </para>
+
     <refsect2>
       <title>ROLE</title>
       <para>
