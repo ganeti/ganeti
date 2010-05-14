@@ -94,15 +94,8 @@ class AsyncUDPSocket(asyncore.dispatcher):
 
   # this method is overriding an asyncore.dispatcher method
   def handle_read(self):
-    try:
-      payload, address = self.recvfrom(constants.MAX_UDP_DATA_SIZE)
-    except socket.error, err:
-      if err.errno == errno.EINTR:
-        # we got a signal while trying to read. no need to do anything,
-        # handle_read will be called again if there is data on the socket.
-        return
-      else:
-        raise
+    payload, address = utils.IgnoreSignals(self.recvfrom,
+                                           constants.MAX_UDP_DATA_SIZE)
     ip, port = address
     self.handle_datagram(payload, ip, port)
 
@@ -124,16 +117,7 @@ class AsyncUDPSocket(asyncore.dispatcher):
       logging.error("handle_write called with empty output queue")
       return
     (ip, port, payload) = self._out_queue[0]
-    try:
-      self.sendto(payload, 0, (ip, port))
-    except socket.error, err:
-      if err.errno == errno.EINTR:
-        # we got a signal while trying to write. no need to do anything,
-        # handle_write will be called again because we haven't emptied the
-        # _out_queue, and we'll try again
-        return
-      else:
-        raise
+    utils.IgnoreSignals(self.sendto, payload, 0, (ip, port))
     self._out_queue.pop(0)
 
   # this method is overriding an asyncore.dispatcher method

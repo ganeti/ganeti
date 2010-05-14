@@ -2507,6 +2507,20 @@ def RunInSeparateProcess(fn, *args):
   return bool(exitcode)
 
 
+def IgnoreSignals(fn, *args, **kwargs):
+  """Tries to call a function ignoring failures due to EINTR.
+
+  """
+  try:
+    return fn(*args, **kwargs)
+  except (EnvironmentError, socket.error), err:
+    if err.errno != errno.EINTR:
+      raise
+  except select.error, err:
+    if not (err.args and err.args[0] == errno.EINTR):
+      raise
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 
