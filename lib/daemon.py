@@ -92,7 +92,8 @@ class AsyncUDPSocket(asyncore.dispatcher):
     # differ and treat all messages equally.
     pass
 
-  def do_read(self):
+  # this method is overriding an asyncore.dispatcher method
+  def handle_read(self):
     try:
       payload, address = self.recvfrom(constants.MAX_UDP_DATA_SIZE)
     except socket.error, err:
@@ -104,15 +105,6 @@ class AsyncUDPSocket(asyncore.dispatcher):
         raise
     ip, port = address
     self.handle_datagram(payload, ip, port)
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_read(self):
-    try:
-      self.do_read()
-    except: # pylint: disable-msg=W0702
-      # we need to catch any exception here, log it, but proceed, because even
-      # if we failed handling a single request, we still want to continue.
-      logging.error("Unexpected exception", exc_info=True)
 
   def handle_datagram(self, payload, ip, port):
     """Handle an already read udp datagram
@@ -128,26 +120,28 @@ class AsyncUDPSocket(asyncore.dispatcher):
 
   # this method is overriding an asyncore.dispatcher method
   def handle_write(self):
+    if not self._out_queue:
+      logging.error("handle_write called with empty output queue")
+      return
+    (ip, port, payload) = self._out_queue[0]
     try:
-      if not self._out_queue:
-        logging.error("handle_write called with empty output queue")
+      self.sendto(payload, 0, (ip, port))
+    except socket.error, err:
+      if err.errno == errno.EINTR:
+        # we got a signal while trying to write. no need to do anything,
+        # handle_write will be called again because we haven't emptied the
+        # _out_queue, and we'll try again
         return
-      (ip, port, payload) = self._out_queue[0]
-      try:
-        self.sendto(payload, 0, (ip, port))
-      except socket.error, err:
-        if err.errno == errno.EINTR:
-          # we got a signal while trying to write. no need to do anything,
-          # handle_write will be called again because we haven't emptied the
-          # _out_queue, and we'll try again
-          return
-        else:
-          raise
-      self._out_queue.pop(0)
-    except: # pylint: disable-msg=W0702
-      # we need to catch any exception here, log it, but proceed, because even
-      # if we failed sending a single datagram we still want to continue.
-      logging.error("Unexpected exception", exc_info=True)
+      else:
+        raise
+    self._out_queue.pop(0)
+
+  # this method is overriding an asyncore.dispatcher method
+  def handle_error(self):
+    """Log an error in handling any request, and proceed.
+
+    """
+    logging.exception("Error while handling asyncore request")
 
   def enqueue_send(self, ip, port, payload):
     """Enqueue a datagram to be sent when possible
@@ -169,7 +163,7 @@ class AsyncUDPSocket(asyncore.dispatcher):
     """
     result = utils.WaitForFdCondition(self, select.POLLIN, timeout)
     if result is not None and result & select.POLLIN:
-      self.do_read()
+      self.handle_read()
       return True
     else:
       return False
