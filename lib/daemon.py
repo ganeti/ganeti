@@ -126,6 +126,7 @@ class AsyncUDPSocket(asyncore.dispatcher):
     # something scheduled to be written
     return bool(self._out_queue)
 
+  # this method is overriding an asyncore.dispatcher method
   def handle_write(self):
     try:
       if not self._out_queue:
