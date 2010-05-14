@@ -552,7 +552,7 @@ class GanetiRapiClient(object):
     else:
       return [i["id"] for i in instances]
 
-  def GetInstanceInfo(self, instance):
+  def GetInstance(self, instance):
     """Gets information about an instance.
 
     @type instance: str
@@ -565,6 +565,24 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_GET,
                              ("/%s/instances/%s" %
                               (GANETI_RAPI_VERSION, instance)), None, None)
+
+  def GetInstanceInfo(self, instance, static=None):
+    """Gets information about an instance.
+
+    @type instance: string
+    @param instance: Instance name
+    @rtype: string
+    @return: Job ID
+
+    """
+    if static is not None:
+      query = [("static", static)]
+    else:
+      query = None
+
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/instances/%s/info" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def CreateInstance(self, mode, name, disk_template, disks, nics,
                      **kwargs):
@@ -902,7 +920,7 @@ class GanetiRapiClient(object):
     else:
       return [n["id"] for n in nodes]
 
-  def GetNodeInfo(self, node):
+  def GetNode(self, node):
     """Gets information about a node.
 
     @type node: str

@@ -233,11 +233,30 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_instances)
     self.assertBulk()
 
-  def testGetInstanceInfo(self):
+  def testGetInstance(self):
     self.rapi.AddResponse("[]")
-    self.assertEqual([], self.client.GetInstanceInfo("instance"))
+    self.assertEqual([], self.client.GetInstance("instance"))
     self.assertHandler(rlib2.R_2_instances_name)
     self.assertItems(["instance"])
+
+  def testGetInstanceInfo(self):
+    self.rapi.AddResponse("21291")
+    self.assertEqual(21291, self.client.GetInstanceInfo("inst3"))
+    self.assertHandler(rlib2.R_2_instances_name_info)
+    self.assertItems(["inst3"])
+    self.assertQuery("static", None)
+
+    self.rapi.AddResponse("3428")
+    self.assertEqual(3428, self.client.GetInstanceInfo("inst31", static=False))
+    self.assertHandler(rlib2.R_2_instances_name_info)
+    self.assertItems(["inst31"])
+    self.assertQuery("static", ["0"])
+
+    self.rapi.AddResponse("15665")
+    self.assertEqual(15665, self.client.GetInstanceInfo("inst32", static=True))
+    self.assertHandler(rlib2.R_2_instances_name_info)
+    self.assertItems(["inst32"])
+    self.assertQuery("static", ["1"])
 
   def testCreateInstanceOldVersion(self):
     self.rapi.AddResponse(serializer.DumpJson([]))
@@ -424,9 +443,9 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_nodes)
     self.assertBulk()
 
-  def testGetNodeInfo(self):
+  def testGetNode(self):
     self.rapi.AddResponse("{}")
-    self.assertEqual({}, self.client.GetNodeInfo("node-foo"))
+    self.assertEqual({}, self.client.GetNode("node-foo"))
     self.assertHandler(rlib2.R_2_nodes_name)
     self.assertItems(["node-foo"])
 
