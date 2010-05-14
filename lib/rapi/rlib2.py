@@ -312,8 +312,10 @@ class R_2_nodes_name(baserlib.R_Generic):
     """
     node_name = self.items[0]
     client = baserlib.GetClient()
-    result = client.QueryNodes(names=[node_name], fields=N_FIELDS,
-                               use_locking=self.useLocking())
+
+    result = baserlib.HandleItemQueryErrors(client.QueryNodes,
+                                            names=[node_name], fields=N_FIELDS,
+                                            use_locking=self.useLocking())
 
     return baserlib.MapFields(N_FIELDS, result[0])
 
@@ -699,8 +701,11 @@ class R_2_instances_name(baserlib.R_Generic):
     """
     client = baserlib.GetClient()
     instance_name = self.items[0]
-    result = client.QueryInstances(names=[instance_name], fields=I_FIELDS,
-                                   use_locking=self.useLocking())
+
+    result = baserlib.HandleItemQueryErrors(client.QueryInstances,
+                                            names=[instance_name],
+                                            fields=I_FIELDS,
+                                            use_locking=self.useLocking())
 
     return baserlib.MapFields(I_FIELDS, result[0])
 
