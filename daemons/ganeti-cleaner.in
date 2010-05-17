@@ -20,20 +20,43 @@
 
 set -e
 
+cleanup_master() {
+  # Return if machine is not part of a cluster
+  [[ -e $DATA_DIR/ssconf_master_node ]] || return 0
+
+  # Return if queue archive directory doesn't exist
+  [[ -d $QUEUE_ARCHIVE_DIR ]] || return 0
+
+  # Remove old jobs
+  find $QUEUE_ARCHIVE_DIR -mindepth 2 -type f -mtime +$REMOVE_AFTER -print0 | \
+  xargs -r0 rm -vf
+}
+
 DATA_DIR=@LOCALSTATEDIR@/lib/ganeti
+CLEANER_LOG_DIR=@LOCALSTATEDIR@/log/ganeti/cleaner
 QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
 
 # Define how many days archived jobs should be left alone
 REMOVE_AFTER=21
 
-# Exit if machine is not part of a cluster
-[[ -e $DATA_DIR/ssconf_master_node ]] || exit 0
+# Define how many log files to keep around (usually one per day)
+KEEP_LOGS=50
 
-# Exit if queue archive directory doesn't exist
-[[ -d $QUEUE_ARCHIVE_DIR ]] || exit 0
+# Log file for this run
+LOG_FILE=$CLEANER_LOG_DIR/cleaner-$(date +'%Y-%m-%dT%H_%M').$$.log
 
-# Remove old jobs
-find $QUEUE_ARCHIVE_DIR -mindepth 2 -type f -mtime +$REMOVE_AFTER -print0 | \
-xargs -r0 rm -f
+# Create log directory
+mkdir -p $CLEANER_LOG_DIR
+
+# Redirect all output to log file
+exec >>$LOG_FILE 2>&1
+
+echo "Cleaner started at $(date)"
+
+# Remove old cleaner log files
+find $CLEANER_LOG_DIR -maxdepth 1 -type f | sort | head -n -$KEEP_LOGS | \
+xargs -r rm -vf
+
+cleanup_master
 
 exit 0
