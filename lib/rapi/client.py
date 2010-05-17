@@ -419,6 +419,8 @@ class GanetiRapiClient(object):
       encoded_response_content = resp.read()
     except (OpenSSL.SSL.Error, OpenSSL.crypto.Error), err:
       raise CertificateError("SSL issue: %s (%r)" % (err, err))
+    except urllib2.HTTPError, err:
+      raise GanetiApiError(str(err), code=err.code)
 
     if encoded_response_content:
       response_content = simplejson.loads(encoded_response_content)
