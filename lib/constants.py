@@ -623,6 +623,7 @@ NV_PVLIST = "pvlist"
 NV_DRBDLIST = "drbd-list"
 NV_NODESETUP = "nodesetup"
 NV_TIME = "time"
+NV_MASTERIP = "master-ip"
 
 # SSL certificate check constants (in days)
 SSL_CERT_EXPIRATION_WARN = 30

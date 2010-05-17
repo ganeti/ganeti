@@ -195,6 +195,20 @@ def SubmitJob(op, cl=None):
     raise http.HttpGatewayTimeout("Timeout while talking to the master"
                                   " daemon. Error: %s" % str(err))
 
+
+def HandleItemQueryErrors(fn, *args, **kwargs):
+  """Converts errors when querying a single item.
+
+  """
+  try:
+    return fn(*args, **kwargs)
+  except errors.OpPrereqError, err:
+    if len(err.args) == 2 and err.args[1] == errors.ECODE_NOENT:
+      raise http.HttpNotFound()
+
+    raise
+
+
 def GetClient():
   """Geric wrapper for luxi.Client(), for better http compatiblity.
 

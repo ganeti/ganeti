@@ -906,7 +906,11 @@ def ExecNoded(options, _):
   """Main node daemon function, executed with the PID file held.
 
   """
-  utils.Mlockall()
+  if options.mlock:
+    utils.Mlockall()
+    request_executor_class = MlockallRequestExecutor
+  else:
+    request_executor_class = http.server.HttpServerRequestExecutor
 
   # Read SSL certificate
   if options.ssl:
@@ -925,7 +929,7 @@ def ExecNoded(options, _):
   mainloop = daemon.Mainloop()
   server = NodeHttpServer(mainloop, options.bind_address, options.port,
                           ssl_params=ssl_params, ssl_verify_peer=True,
-                          request_executor_class=MlockallRequestExecutor)
+                          request_executor_class=request_executor_class)
   server.Start()
   try:
     mainloop.Run()
@@ -941,6 +945,10 @@ def main():
                         usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
                         version="%%prog (ganeti) %s" %
                         constants.RELEASE_VERSION)
+  parser.add_option("--no-mlock", dest="mlock",
+                    help="Do not mlock the node memory in ram",
+                    default=True, action="store_false")
+
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))

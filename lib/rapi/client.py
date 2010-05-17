@@ -400,12 +400,19 @@ class GanetiRapiClient(object):
       encoded_content = None
 
     # Build URL
-    url = [self._base_url, path]
+    urlparts = [self._base_url, path]
     if query:
-      url.append("?")
-      url.append(urllib.urlencode(self._EncodeQuery(query)))
+      urlparts.append("?")
+      urlparts.append(urllib.urlencode(self._EncodeQuery(query)))
 
-    req = _RapiRequest(method, "".join(url), self._headers, encoded_content)
+    url = "".join(urlparts)
+
+    self._logger.debug("Sending request %s %s to %s:%s"
+                       " (headers=%r, content=%r)",
+                       method, url, self._host, self._port, self._headers,
+                       encoded_content)
+
+    req = _RapiRequest(method, url, self._headers, encoded_content)
 
     try:
       resp = self._http.open(req)
@@ -545,7 +552,7 @@ class GanetiRapiClient(object):
     else:
       return [i["id"] for i in instances]
 
-  def GetInstanceInfo(self, instance):
+  def GetInstance(self, instance):
     """Gets information about an instance.
 
     @type instance: str
@@ -558,6 +565,24 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_GET,
                              ("/%s/instances/%s" %
                               (GANETI_RAPI_VERSION, instance)), None, None)
+
+  def GetInstanceInfo(self, instance, static=None):
+    """Gets information about an instance.
+
+    @type instance: string
+    @param instance: Instance name
+    @rtype: string
+    @return: Job ID
+
+    """
+    if static is not None:
+      query = [("static", static)]
+    else:
+      query = None
+
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/instances/%s/info" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
 
   def CreateInstance(self, mode, name, disk_template, disks, nics,
                      **kwargs):
@@ -895,7 +920,7 @@ class GanetiRapiClient(object):
     else:
       return [n["id"] for n in nodes]
 
-  def GetNodeInfo(self, node):
+  def GetNode(self, node):
     """Gets information about a node.
 
     @type node: str

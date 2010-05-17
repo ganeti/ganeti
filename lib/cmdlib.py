@@ -1339,6 +1339,18 @@ class LUVerifyCluster(LogicalUnit):
                    "tcp communication with node '%s': %s",
                    anode, nresult[constants.NV_NODENETTEST][anode])
 
+    test = constants.NV_MASTERIP not in nresult
+    _ErrorIf(test, self.ENODENET, node,
+             "node hasn't returned node master IP reachability data")
+    if not test:
+      if not nresult[constants.NV_MASTERIP]:
+        if node == self.master_node:
+          msg = "the master node cannot reach the master IP (not configured?)"
+        else:
+          msg = "cannot reach the master IP"
+        _ErrorIf(True, self.ENODENET, node, msg)
+
+
   def _VerifyInstance(self, instance, instanceconfig, node_image):
     """Verify an instance.
 
@@ -1673,6 +1685,8 @@ class LUVerifyCluster(LogicalUnit):
     # FIXME: verify OS list
     # do local checksums
     master_files = [constants.CLUSTER_CONF_FILE]
+    master_node = self.master_node = self.cfg.GetMasterNode()
+    master_ip = self.cfg.GetMasterIP()
 
     file_names = ssconf.SimpleStore().GetFileList()
     file_names.extend(constants.ALL_CERT_FILES)
@@ -1696,6 +1710,7 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
       constants.NV_NODESETUP: None,
       constants.NV_TIME: None,
+      constants.NV_MASTERIP: (master_node, master_ip),
       }
 
     if vg_name is not None:
@@ -1742,7 +1757,6 @@ class LUVerifyCluster(LogicalUnit):
                                            self.cfg.GetClusterName())
     nvinfo_endtime = time.time()
 
-    master_node = self.cfg.GetMasterNode()
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
     feedback_fn("* Verifying node status")
@@ -8055,6 +8069,7 @@ class LUQueryInstanceData(NoHooksLU):
         "os": instance.os,
         # this happens to be the same format used for hooks
         "nics": _NICListToTuple(self, instance.nics),
+        "disk_template": instance.disk_template,
         "disks": disks,
         "hypervisor": instance.hypervisor,
         "network_port": instance.network_port,

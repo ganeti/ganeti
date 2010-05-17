@@ -40,6 +40,7 @@ import warnings
 import distutils.version
 import glob
 import md5
+import errno
 
 import ganeti
 import testutils
@@ -1152,8 +1153,8 @@ class TestOwnIpAddress(unittest.TestCase):
   def testNowOwnAddress(self):
     """check that I don't own an address"""
 
-    # network 192.0.2.0/24 is reserved for test/documentation as per
-    # rfc 3330, so we *should* not have an address of this range... if
+    # Network 192.0.2.0/24 is reserved for test/documentation as per
+    # RFC 5735, so we *should* not have an address of this range... if
     # this fails, we should extend the test to multiple addresses
     DST_IP = "192.0.2.1"
     self.failIf(OwnIpAddress(DST_IP), "Should not own IP address %s" % DST_IP)
@@ -2208,6 +2209,42 @@ class TestHmacFunctions(unittest.TestCase):
                                       ("7f264f8114c9066afc9b"
                                        "b7636e1786d996d3cc0d"),
                                       salt="xyz0"))
+
+
+class TestIgnoreSignals(unittest.TestCase):
+  """Test the IgnoreSignals decorator"""
+
+  @staticmethod
+  def _Raise(exception):
+    raise exception
+
+  @staticmethod
+  def _Return(rval):
+    return rval
+
+  def testIgnoreSignals(self):
+    sock_err_intr = socket.error(errno.EINTR, "Message")
+    sock_err_intr.errno = errno.EINTR
+    sock_err_inval = socket.error(errno.EINVAL, "Message")
+    sock_err_inval.errno = errno.EINVAL
+
+    env_err_intr = EnvironmentError(errno.EINTR, "Message")
+    env_err_inval = EnvironmentError(errno.EINVAL, "Message")
+
+    self.assertRaises(socket.error, self._Raise, sock_err_intr)
+    self.assertRaises(socket.error, self._Raise, sock_err_inval)
+    self.assertRaises(EnvironmentError, self._Raise, env_err_intr)
+    self.assertRaises(EnvironmentError, self._Raise, env_err_inval)
+
+    self.assertEquals(utils.IgnoreSignals(self._Raise, sock_err_intr), None)
+    self.assertEquals(utils.IgnoreSignals(self._Raise, env_err_intr), None)
+    self.assertRaises(socket.error, utils.IgnoreSignals, self._Raise,
+                      sock_err_inval)
+    self.assertRaises(EnvironmentError, utils.IgnoreSignals, self._Raise,
+                      env_err_inval)
+
+    self.assertEquals(utils.IgnoreSignals(self._Return, True), True)
+    self.assertEquals(utils.IgnoreSignals(self._Return, 33), 33)
 
 
 if __name__ == '__main__':

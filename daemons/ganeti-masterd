@@ -170,9 +170,10 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
         result = self._ops.handle_request(method, args)
         success = True
       except errors.GenericError, err:
+        logging.exception("Unexpected exception")
         result = errors.EncodeException(err)
       except:
-        logging.error("Unexpected exception", exc_info=True)
+        logging.exception("Unexpected exception")
         result = "Caught exception: %s" % str(sys.exc_info()[1])
 
       self.send_message(luxi.FormatResponse(success, result))

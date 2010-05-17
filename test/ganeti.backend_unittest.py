@@ -28,6 +28,7 @@ import tempfile
 import unittest
 
 from ganeti import utils
+from ganeti import constants
 from ganeti import backend
 
 import testutils
@@ -67,6 +68,28 @@ class TestX509Certificates(unittest.TestCase):
                       name, cryptodir=self.tmpdir)
 
     self.assertEqual(utils.ListVisibleFiles(self.tmpdir), [name])
+
+
+class TestNodeVerify(testutils.GanetiTestCase):
+  def testMasterIPLocalhost(self):
+    # this a real functional test, but requires localhost to be reachable
+    local_data = (utils.HostInfo().name, constants.LOCALHOST_IP_ADDRESS)
+    result = backend.VerifyNode({constants.NV_MASTERIP: local_data}, None)
+    self.failUnless(constants.NV_MASTERIP in result,
+                    "Master IP data not returned")
+    self.failUnless(result[constants.NV_MASTERIP], "Cannot reach localhost")
+
+  def testMasterIPUnreachable(self):
+    # Network 192.0.2.0/24 is reserved for test/documentation as per
+    # RFC 5735
+    bad_data =  ("master.example.com", "192.0.2.1")
+    # we just test that whatever TcpPing returns, VerifyNode returns too
+    utils.TcpPing = lambda a, b, source=None: False
+    result = backend.VerifyNode({constants.NV_MASTERIP: bad_data}, None)
+    self.failUnless(constants.NV_MASTERIP in result,
+                    "Master IP data not returned")
+    self.failIf(result[constants.NV_MASTERIP],
+                "Result from utils.TcpPing corrupted")
 
 
 if __name__ == "__main__":
