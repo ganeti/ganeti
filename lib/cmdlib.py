@@ -6103,8 +6103,7 @@ class LUCreateInstance(LogicalUnit):
     self.adopt_disks = has_adopt
 
     # verify creation mode
-    if self.op.mode not in (constants.INSTANCE_CREATE,
-                            constants.INSTANCE_IMPORT):
+    if self.op.mode not in constants.INSTANCE_CREATE_MODES:
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
 
@@ -6114,6 +6113,9 @@ class LUCreateInstance(LogicalUnit):
       self.op.instance_name = self.hostname1.name
       # used in CheckPrereq for ip ping check
       self.check_ip = self.hostname1.ip
+    elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
+      raise errors.OpPrereqError("Remote imports require names to be checked" %
+                                 errors.ECODE_INVAL)
     else:
       self.check_ip = None
 
@@ -6133,6 +6135,8 @@ class LUCreateInstance(LogicalUnit):
                                  " node must be given",
                                  errors.ECODE_INVAL)
 
+    self._cds = _GetClusterDomainSecret()
+
     if self.op.mode == constants.INSTANCE_IMPORT:
       # On import force_variant must be True, because if we forced it at
       # initial install, our only chance when importing it back is that it
@@ -6142,7 +6146,7 @@ class LUCreateInstance(LogicalUnit):
       if self.op.no_install:
         self.LogInfo("No-installation mode has no effect during import")
 
-    else: # INSTANCE_CREATE
+    elif self.op.mode == constants.INSTANCE_CREATE:
       if getattr(self.op, "os_type", None) is None:
         raise errors.OpPrereqError("No guest OS specified",
                                    errors.ECODE_INVAL)
@@ -6150,6 +6154,51 @@ class LUCreateInstance(LogicalUnit):
       if self.op.disk_template is None:
         raise errors.OpPrereqError("No disk template specified",
                                    errors.ECODE_INVAL)
+
+    elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
+      # Check handshake to ensure both clusters have the same domain secret
+      src_handshake = getattr(self.op, "source_handshake", None)
+      if not src_handshake:
+        raise errors.OpPrereqError("Missing source handshake",
+                                   errors.ECODE_INVAL)
+
+      errmsg = masterd.instance.CheckRemoteExportHandshake(self._cds,
+                                                           src_handshake)
+      if errmsg:
+        raise errors.OpPrereqError("Invalid handshake: %s" % errmsg,
+                                   errors.ECODE_INVAL)
+
+      # Load and check source CA
+      self.source_x509_ca_pem = getattr(self.op, "source_x509_ca", None)
+      if not self.source_x509_ca_pem:
+        raise errors.OpPrereqError("Missing source X509 CA",
+                                   errors.ECODE_INVAL)
+
+      try:
+        (cert, _) = utils.LoadSignedX509Certificate(self.source_x509_ca_pem,
+                                                    self._cds)
+      except OpenSSL.crypto.Error, err:
+        raise errors.OpPrereqError("Unable to load source X509 CA (%s)" %
+                                   (err, ), errors.ECODE_INVAL)
+
+      (errcode, msg) = utils.VerifyX509Certificate(cert, None, None)
+      if errcode is not None:
+        raise errors.OpPrereqError("Invalid source X509 CA (%s)" % (msg, ),
+                                   errors.ECODE_INVAL)
+
+      self.source_x509_ca = cert
+
+      src_instance_name = getattr(self.op, "source_instance_name", None)
+      if not src_instance_name:
+        raise errors.OpPrereqError("Missing source instance name",
+                                   errors.ECODE_INVAL)
+
+      self.source_instance_name = \
+        utils.GetHostInfo(utils.HostInfo.NormalizeName(src_instance_name)).name
+
+    else:
+      raise errors.OpPrereqError("Invalid instance creation mode %r" %
+                                 self.op.mode, errors.ECODE_INVAL)
 
   def ExpandNames(self):
     """ExpandNames for CreateInstance.
@@ -6828,6 +6877,30 @@ class LUCreateInstance(LogicalUnit):
         if not compat.all(import_result):
           self.LogWarning("Some disks for instance %s on node %s were not"
                           " imported successfully" % (instance, pnode_name))
+
+      elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
+        feedback_fn("* preparing remote import...")
+        connect_timeout = constants.RIE_CONNECT_TIMEOUT
+        timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
+
+        disk_results = masterd.instance.RemoteImport(self, feedback_fn, iobj,
+                                                     self.source_x509_ca,
+                                                     self._cds, timeouts)
+        if not compat.all(disk_results):
+          # TODO: Should the instance still be started, even if some disks
+          # failed to import (valid for local imports, too)?
+          self.LogWarning("Some disks for instance %s on node %s were not"
+                          " imported successfully" % (instance, pnode_name))
+
+        # Run rename script on newly imported instance
+        assert iobj.name == instance
+        feedback_fn("Running rename script for %s" % instance)
+        result = self.rpc.call_instance_run_rename(pnode_name, iobj,
+                                                   self.source_instance_name,
+                                                   self.op.debug_level)
+        if result.fail_msg:
+          self.LogWarning("Failed to run rename script for %s on node"
+                          " %s: %s" % (instance, pnode_name, result.fail_msg))
 
       else:
         # also checked in the prereq part

@@ -343,6 +343,12 @@ LOCKS_APPEND = 'append'
 # instance creation modes
 INSTANCE_CREATE = "create"
 INSTANCE_IMPORT = "import"
+INSTANCE_REMOTE_IMPORT = "remote-import"
+INSTANCE_CREATE_MODES = frozenset([
+  INSTANCE_CREATE,
+  INSTANCE_IMPORT,
+  INSTANCE_REMOTE_IMPORT,
+  ])
 
 # Remote import/export handshake message and version
 RIE_VERSION = 0
@@ -703,6 +709,7 @@ OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
 # Execution log types
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
+ELOG_REMOTE_IMPORT = "remote-import"
 
 # max dynamic devices
 MAX_NICS = 8

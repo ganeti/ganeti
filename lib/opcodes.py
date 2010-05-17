@@ -460,7 +460,15 @@ class OpNodeEvacuationStrategy(OpCode):
 # instance opcodes
 
 class OpCreateInstance(OpCode):
-  """Create an instance."""
+  """Create an instance.
+
+  @ivar instance_name: Instance name
+  @ivar mode: Instance creation mode (one of L{constants.INSTANCE_CREATE_MODES})
+  @ivar source_handshake: Signed handshake from source (remote import only)
+  @ivar source_x509_ca: Source X509 CA in PEM format (remote import only)
+  @ivar source_instance_name: Previous name of instance (remote import only)
+
+  """
   OP_ID = "OP_INSTANCE_CREATE"
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
@@ -473,6 +481,9 @@ class OpCreateInstance(OpCode):
     "file_storage_dir", "file_driver",
     "iallocator",
     "hypervisor", "hvparams", "beparams",
+    "source_handshake",
+    "source_x509_ca",
+    "source_instance_name",
     "dry_run",
     ]
 

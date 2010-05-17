@@ -1189,6 +1189,159 @@ class ExportInstanceHelper:
       self._RemoveSnapshot(idx)
 
 
+class _RemoteImportCb(ImportExportCbBase):
+  def __init__(self, feedback_fn, cds, x509_cert_pem, disk_count,
+               external_address):
+    """Initializes this class.
+
+    @type cds: string
+    @param cds: Cluster domain secret
+    @type x509_cert_pem: string
+    @param x509_cert_pem: CA used for signing import key
+    @type disk_count: number
+    @param disk_count: Number of disks
+    @type external_address: string
+    @param external_address: External address of destination node
+
+    """
+    ImportExportCbBase.__init__(self)
+    self._feedback_fn = feedback_fn
+    self._cds = cds
+    self._x509_cert_pem = x509_cert_pem
+    self._disk_count = disk_count
+    self._external_address = external_address
+
+    self._dresults = [None] * disk_count
+    self._daemon_port = [None] * disk_count
+
+    self._salt = utils.GenerateSecret(8)
+
+  @property
+  def disk_results(self):
+    """Returns per-disk results.
+
+    """
+    return self._dresults
+
+  def _CheckAllListening(self):
+    """Checks whether all daemons are listening.
+
+    If all daemons are listening, the information is sent to the client.
+
+    """
+    if not compat.all(dp is not None for dp in self._daemon_port):
+      return
+
+    host = self._external_address
+
+    disks = []
+    for idx, port in enumerate(self._daemon_port):
+      disks.append(ComputeRemoteImportDiskInfo(self._cds, self._salt,
+                                               idx, host, port))
+
+    assert len(disks) == self._disk_count
+
+    self._feedback_fn(constants.ELOG_REMOTE_IMPORT, {
+      "disks": disks,
+      "x509_ca": self._x509_cert_pem,
+      })
+
+  def ReportListening(self, ie, private):
+    """Called when daemon started listening.
+
+    """
+    (idx, ) = private
+
+    self._feedback_fn("Disk %s is now listening" % idx)
+
+    assert self._daemon_port[idx] is None
+
+    self._daemon_port[idx] = ie.listen_port
+
+    self._CheckAllListening()
+
+  def ReportConnected(self, ie, private):
+    """Called when a connection has been established.
+
+    """
+    (idx, ) = private
+
+    self._feedback_fn("Disk %s is now receiving data" % idx)
+
+  def ReportFinished(self, ie, private):
+    """Called when a transfer has finished.
+
+    """
+    (idx, ) = private
+
+    # Daemon is certainly no longer listening
+    self._daemon_port[idx] = None
+
+    if ie.success:
+      self._feedback_fn("Disk %s finished receiving data" % idx)
+    else:
+      self._feedback_fn(("Disk %s failed to receive data: %s"
+                         " (recent output: %r)") %
+                        (idx, ie.final_message, ie.recent_output))
+
+    self._dresults[idx] = bool(ie.success)
+
+
+def RemoteImport(lu, feedback_fn, instance, source_x509_ca, cds, timeouts):
+  """Imports an instance from another cluster.
+
+  @param lu: Logical unit instance
+  @param feedback_fn: Feedback function
+  @type instance: L{objects.Instance}
+  @param instance: Instance object
+  @type source_x509_ca: OpenSSL.crypto.X509
+  @param source_x509_ca: Import source's X509 CA
+  @type cds: string
+  @param cds: Cluster domain secret
+  @type timeouts: L{ImportExportTimeouts}
+  @param timeouts: Timeouts for this import
+
+  """
+  source_ca_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                                  source_x509_ca)
+
+  # Create crypto key
+  result = lu.rpc.call_x509_cert_create(instance.primary_node,
+                                        constants.RIE_CERT_VALIDITY)
+  result.Raise("Can't create X509 key and certificate on %s" % result.node)
+
+  (x509_key_name, x509_cert_pem) = result.payload
+  try:
+    # Load certificate
+    x509_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                                x509_cert_pem)
+
+    # Sign certificate
+    signed_x509_cert_pem = \
+      utils.SignX509Certificate(x509_cert, cds, utils.GenerateSecret(8))
+
+    cbs = _RemoteImportCb(feedback_fn, cds, signed_x509_cert_pem,
+                          len(instance.disks), instance.primary_node)
+
+    ieloop = ImportExportLoop(lu)
+    try:
+      for idx, dev in enumerate(instance.disks):
+        ieloop.Add(DiskImport(lu, instance.primary_node,
+                              x509_key_name, source_ca_pem, instance,
+                              constants.IEIO_SCRIPT, (dev, idx),
+                              timeouts, cbs, private=(idx, )))
+
+      ieloop.Run()
+    finally:
+      ieloop.FinalizeAll()
+  finally:
+    # Remove crypto key and certificate
+    result = lu.rpc.call_x509_cert_remove(instance.primary_node, x509_key_name)
+    result.Raise("Can't remove X509 key and certificate on %s" % result.node)
+
+  return cbs.disk_results
+
+
 def _GetImportExportHandshakeMessage(version):
   """Returns the handshake message for a RIE protocol version.
 
