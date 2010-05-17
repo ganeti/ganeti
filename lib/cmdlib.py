@@ -8978,8 +8978,13 @@ class LUExportInstance(LogicalUnit):
 
     # Remove instance if requested
     if self.remove_instance:
-      feedback_fn("Removing instance %s" % instance.name)
-      _RemoveInstance(self, feedback_fn, instance, self.ignore_remove_failures)
+      if not (compat.all(dresults) and fin_resu):
+        feedback_fn("Not removing instance %s as parts of the export failed" %
+                    instance.name)
+      else:
+        feedback_fn("Removing instance %s" % instance.name)
+        _RemoveInstance(self, feedback_fn, instance,
+                        self.ignore_remove_failures)
 
     self._CleanupExports(feedback_fn)
 
