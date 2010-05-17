@@ -296,11 +296,8 @@ main = do
   printKeys $ printStats PInitial ini_stats
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
-  when (length bad_nodes > 0) $ do
-         -- This is failn1 case, so we print the same final stats and
-         -- exit early
-         printResults nl num_instances 0 [(FailN1, 1)]
-         exitWith ExitSuccess
+      stop_allocation = length bad_nodes > 0
+      result_noalloc = ([(FailN1, 1)]::FailStats, nl, [])
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
@@ -319,8 +316,10 @@ main = do
   (case optTieredSpec opts of
      Nothing -> return ()
      Just tspec -> do
-       let tresu = tieredAlloc nl il (iofspec tspec) req_nodes []
-       (_, trl_nl, trl_ixes) <- exitifbad tresu
+       (_, trl_nl, trl_ixes) <-
+           if stop_allocation
+           then return result_noalloc
+           else exitifbad (tieredAlloc nl il (iofspec tspec) req_nodes [])
        let fin_trl_ixes = reverse trl_ixes
            ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
            spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
@@ -347,8 +346,10 @@ main = do
 
   -- Run the standard (avg-mode) allocation
 
-  let result = iterateDepth nl il reqinst req_nodes []
-  (ereason, fin_nl, ixes) <- exitifbad result
+  (ereason, fin_nl, ixes) <-
+      if stop_allocation
+      then return result_noalloc
+      else exitifbad (iterateDepth nl il reqinst req_nodes [])
 
   let allocs = length ixes
       fin_ixes = reverse ixes
