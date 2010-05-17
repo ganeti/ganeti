@@ -1007,8 +1007,8 @@ class TestOwnIpAddress(unittest.TestCase):
   def testNowOwnAddress(self):
     """check that I don't own an address"""
 
-    # network 192.0.2.0/24 is reserved for test/documentation as per
-    # rfc 3330, so we *should* not have an address of this range... if
+    # Network 192.0.2.0/24 is reserved for test/documentation as per
+    # RFC 5735, so we *should* not have an address of this range... if
     # this fails, we should extend the test to multiple addresses
     DST_IP = "192.0.2.1"
     self.failIf(OwnIpAddress(DST_IP), "Should not own IP address %s" % DST_IP)
