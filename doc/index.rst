@@ -22,6 +22,7 @@ Contents:
    hooks.rst
    iallocator.rst
    rapi.rst
+   move-instance.rst
    devnotes.rst
    news.rst
    glossary.rst

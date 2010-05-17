@@ -162,6 +162,7 @@ docrst = \
 	doc/install-quick.rst \
 	doc/install.rst \
 	doc/locking.rst \
+	doc/move-instance.rst \
 	doc/news.rst \
 	doc/rapi.rst \
 	doc/security.rst \
@@ -242,6 +243,7 @@ dist_tools_SCRIPTS = \
 	tools/cfgupgrade12 \
 	tools/cluster-merge \
 	tools/lvmstrap \
+	tools/move-instance \
 	tools/sanitize-config
 
 pkglib_python_scripts = \
