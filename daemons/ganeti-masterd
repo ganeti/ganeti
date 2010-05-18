@@ -147,7 +147,6 @@ class IOServer(SocketServer.UnixStreamServer):
 
 class ClientRqHandler(SocketServer.BaseRequestHandler):
   """Client handler"""
-  EOM = '\3'
   READ_SIZE = 4096
 
   def setup(self):
@@ -201,7 +200,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
       data = self.request.recv(self.READ_SIZE)
       if not data:
         return None
-      new_msgs = (self._buffer + data).split(self.EOM)
+      new_msgs = (self._buffer + data).split(constants.LUXI_EOM)
       self._buffer = new_msgs.pop()
       self._msgs.extend(new_msgs)
     return self._msgs.popleft()
@@ -209,7 +208,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
   def send_message(self, msg):
     #print "sending", msg
     # TODO: sendall is not guaranteed to send everything
-    self.request.sendall(msg + self.EOM)
+    self.request.sendall(msg + constants.LUXI_EOM)
 
 
 class ClientOps:

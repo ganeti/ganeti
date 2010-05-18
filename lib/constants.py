@@ -172,6 +172,9 @@ LOG_BURNIN = LOG_DIR + "burnin.log"
 
 DEV_CONSOLE = "/dev/console"
 
+# luxi related constants
+LUXI_EOM = "\3"
+
 # one of 'no', 'yes', 'only'
 SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
 SYSLOG_NO = "no"
@@ -323,7 +326,6 @@ INISECT_HYP = "hypervisor"
 INISECT_BEP = "backend"
 
 # dynamic device modification
-
 DDM_ADD = 'add'
 DDM_REMOVE = 'remove'
 
