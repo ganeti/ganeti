@@ -86,6 +86,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_SECURITY_DOMAIN: hv_base.NO_CHECK,
     constants.HV_KVM_FLAG:
       hv_base.ParamInSet(False, constants.HT_KVM_FLAG_VALUES),
+    constants.HV_VHOST_NET: hv_base.NO_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -611,19 +612,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-runas", hvp[constants.HV_SECURITY_DOMAIN]])
 
     if not kvm_nics:
-      kvm_cmd.extend(['-net', 'none'])
+      kvm_cmd.extend(["-net", "none"])
     else:
+      tap_extra = ""
       nic_type = hvparams[constants.HV_NIC_TYPE]
       if nic_type == constants.HT_NIC_PARAVIRTUAL:
         nic_model = "model=virtio"
+        if hvparams[constants.HV_VHOST_NET]:
+          tap_extra = ",vhost=on"
       else:
         nic_model = "model=%s" % nic_type
 
       for nic_seq, nic in enumerate(kvm_nics):
         nic_val = "nic,vlan=%s,macaddr=%s,%s" % (nic_seq, nic.mac, nic_model)
         script = self._WriteNetScript(instance, nic_seq, nic)
-        kvm_cmd.extend(['-net', nic_val])
-        kvm_cmd.extend(['-net', 'tap,vlan=%s,script=%s' % (nic_seq, script)])
+        tap_val = "tap,vlan=%s,script=%s%s" % (nic_seq, script, tap_extra)
+        kvm_cmd.extend(["-net", nic_val])
+        kvm_cmd.extend(["-net", tap_val])
         temp_files.append(script)
 
     if incoming:

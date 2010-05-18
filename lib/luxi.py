@@ -115,15 +115,12 @@ class Transport:
 
   """
 
-  def __init__(self, address, timeouts=None, eom=None):
+  def __init__(self, address, timeouts=None):
     """Constructor for the Client class.
 
     Arguments:
       - address: a valid address the the used transport class
       - timeout: a list of timeouts, to be used on connect and read/write
-      - eom: an identifier to be used as end-of-message which the
-        upper-layer will guarantee that this identifier will not appear
-        in any message
 
     There are two timeouts used since we might want to wait for a long
     time for a response, but the connect timeout should be lower.
@@ -145,11 +142,6 @@ class Transport:
     self.socket = None
     self._buffer = ""
     self._msgs = collections.deque()
-
-    if eom is None:
-      self.eom = '\3'
-    else:
-      self.eom = eom
 
     try:
       self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -196,13 +188,13 @@ class Transport:
     This just sends a message and doesn't wait for the response.
 
     """
-    if self.eom in msg:
+    if constants.LUXI_EOM in msg:
       raise ProtocolError("Message terminator found in payload")
 
     self._CheckSocket()
     try:
       # TODO: sendall is not guaranteed to send everything
-      self.socket.sendall(msg + self.eom)
+      self.socket.sendall(msg + constants.LUXI_EOM)
     except socket.timeout, err:
       raise TimeoutError("Sending timeout: %s" % str(err))
 
@@ -232,7 +224,7 @@ class Transport:
         break
       if not data:
         raise ConnectionClosedError("Connection closed while reading")
-      new_msgs = (self._buffer + data).split(self.eom)
+      new_msgs = (self._buffer + data).split(constants.LUXI_EOM)
       self._buffer = new_msgs.pop()
       self._msgs.extend(new_msgs)
     return self._msgs.popleft()

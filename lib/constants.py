@@ -170,6 +170,9 @@ LOG_BURNIN = LOG_DIR + "burnin.log"
 
 DEV_CONSOLE = "/dev/console"
 
+# luxi related constants
+LUXI_EOM = "\3"
+
 # one of 'no', 'yes', 'only'
 SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
 SYSLOG_NO = "no"
@@ -345,7 +348,6 @@ INISECT_HYP = "hypervisor"
 INISECT_BEP = "backend"
 
 # dynamic device modification
-
 DDM_ADD = 'add'
 DDM_REMOVE = 'remove'
 
@@ -461,6 +463,7 @@ HV_DISK_CACHE = "disk_cache"
 HV_SECURITY_MODEL = "security_model"
 HV_SECURITY_DOMAIN = "security_domain"
 HV_KVM_FLAG = "kvm_flag"
+HV_VHOST_NET = "vhost_net"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -491,6 +494,7 @@ HVS_PARAMETER_TYPES = {
   HV_SECURITY_MODEL: VTYPE_STRING,
   HV_SECURITY_DOMAIN: VTYPE_STRING,
   HV_KVM_FLAG: VTYPE_STRING,
+  HV_VHOST_NET: VTYPE_BOOL,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -757,6 +761,7 @@ HVC_DEFAULTS = {
     HV_SECURITY_MODEL: HT_SM_NONE,
     HV_SECURITY_DOMAIN: '',
     HV_KVM_FLAG: "",
+    HV_VHOST_NET: False,
     },
   HT_FAKE: {
     },
