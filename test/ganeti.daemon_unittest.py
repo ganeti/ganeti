@@ -484,5 +484,67 @@ class TestAsyncStreamServerUnixPath(TestAsyncStreamServerTCP):
     TestAsyncStreamServerTCP.tearDown(self)
 
 
+class TestAsyncAwaker(testutils.GanetiTestCase):
+  """Test daemon.AsyncAwaker"""
+
+  family = socket.AF_INET
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self.mainloop = daemon.Mainloop()
+    self.awaker = daemon.AsyncAwaker(signal_fn=self.handle_signal)
+    self.signal_count = 0
+    self.signal_terminate_count = 1
+
+  def tearDown(self):
+    self.awaker.close()
+
+  def handle_signal(self):
+    self.signal_count += 1
+    self.signal_terminate_count -= 1
+    if self.signal_terminate_count <= 0:
+      os.kill(os.getpid(), signal.SIGTERM)
+
+  def testBasicSignaling(self):
+    self.awaker.signal()
+    self.mainloop.Run()
+    self.assertEquals(self.signal_count, 1)
+
+  def testDoubleSignaling(self):
+    self.awaker.signal()
+    self.awaker.signal()
+    self.mainloop.Run()
+    # The second signal is never delivered
+    self.assertEquals(self.signal_count, 1)
+
+  def testReallyDoubleSignaling(self):
+    self.assert_(self.awaker.readable())
+    self.awaker.signal()
+    # Let's suppose two threads overlap, and both find need_signal True
+    self.awaker.need_signal = True
+    self.awaker.signal()
+    self.mainloop.Run()
+    # We still get only one signaling
+    self.assertEquals(self.signal_count, 1)
+
+  def testNoSignalFnArgument(self):
+    myawaker = daemon.AsyncAwaker()
+    self.assertRaises(socket.error, myawaker.handle_read)
+    myawaker.signal()
+    myawaker.handle_read()
+    self.assertRaises(socket.error, myawaker.handle_read)
+    myawaker.signal()
+    myawaker.signal()
+    myawaker.handle_read()
+    self.assertRaises(socket.error, myawaker.handle_read)
+    myawaker.close()
+
+  def testWrongSignalFnArgument(self):
+    self.assertRaises(AssertionError, daemon.AsyncAwaker, 1)
+    self.assertRaises(AssertionError, daemon.AsyncAwaker, "string")
+    self.assertRaises(AssertionError, daemon.AsyncAwaker, signal_fn=1)
+    self.assertRaises(AssertionError, daemon.AsyncAwaker, signal_fn="string")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

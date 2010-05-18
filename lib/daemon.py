@@ -312,6 +312,58 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
       return False
 
 
+class AsyncAwaker(GanetiBaseAsyncoreDispatcher):
+  """A way to notify the asyncore loop that something is going on.
+
+  If an asyncore daemon is multithreaded when a thread tries to push some data
+  to a socket, the main loop handling asynchronous requests might be sleeping
+  waiting on a select(). To avoid this it can create an instance of the
+  AsyncAwaker, which other threads can use to wake it up.
+
+  """
+  def __init__(self, signal_fn=None):
+    """Constructor for AsyncAwaker
+
+    @type signal_fn: function
+    @param signal_fn: function to call when awaken
+
+    """
+    GanetiBaseAsyncoreDispatcher.__init__(self)
+    assert signal_fn == None or callable(signal_fn)
+    (self.in_socket, self.out_socket) = socket.socketpair(socket.AF_UNIX,
+                                                          socket.SOCK_STREAM)
+    self.in_socket.setblocking(0)
+    self.set_socket(self.in_socket)
+    self.need_signal = True
+    self.signal_fn = signal_fn
+    self.connected = True
+
+  # this method is overriding an asyncore.dispatcher method
+  def handle_read(self):
+    utils.IgnoreSignals(self.recv, 4096)
+    if self.signal_fn:
+      self.signal_fn()
+    self.need_signal = True
+
+  # this method is overriding an asyncore.dispatcher method
+  def close(self):
+    asyncore.dispatcher.close(self)
+    self.out_socket.close()
+
+  def signal(self):
+    """Signal the asyncore main loop.
+
+    Any data we send here will be ignored, but it will cause the select() call
+    to return.
+
+    """
+    # Yes, there is a race condition here. No, we don't care, at worst we're
+    # sending more than one wakeup token, which doesn't harm at all.
+    if self.need_signal:
+      self.need_signal = False
+      self.out_socket.send("\0")
+
+
 class Mainloop(object):
   """Generic mainloop for daemons
 
