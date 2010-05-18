@@ -33,6 +33,105 @@ As for 2.1 we divide the 2.2 design into three areas:
 Core changes
 ------------
 
+Master Daemon Scaling improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Current state and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently the Ganeti master daemon is based on four sets of threads:
+
+- The main thread (1 thread) just accepts connections on the master
+  socket
+- The client worker pool (16 threads) handles those connections,
+  one thread per connected socket, parses luxi requests, and sends data
+  back to the clients
+- The job queue worker pool (25 threads) executes the actual jobs
+  submitted by the clients
+- The rpc worker pool (10 threads) interacts with the nodes via
+  http-based-rpc
+
+This means that every masterd currently runs 52 threads to do its job.
+Being able to reduce the number of thread sets would make the master's
+architecture a lot simpler. Moreover having less threads can help
+decrease lock contention, log pollution and memory usage.
+Also, with the current architecture, masterd suffers from quite a few
+scalability issues:
+
+- Since the 16 client worker threads handle one connection each, it's
+  very easy to exhaust them, by just connecting to masterd 16 times and
+  not sending any data. While we could perhaps make those pools
+  resizable, increasing the number of threads won't help with lock
+  contention.
+- Some luxi operations (in particular REQ_WAIT_FOR_JOB_CHANGE) make the
+  relevant client thread block on its job for a relatively long time.
+  This makes it easier to exhaust the 16 client threads.
+- The job queue lock is quite heavily contended, and certain easily
+  reproducible workloads show that's it's very easy to put masterd in
+  trouble: for example running ~15 background instance reinstall jobs,
+  results in a master daemon that, even without having finished the
+  client worker threads, can't answer simple job list requests, or
+  submit more jobs.
+
+Proposed changes
+++++++++++++++++
+
+In order to be able to interact with the master daemon even when it's
+under heavy load, and  to make it simpler to add core functionality
+(such as an asynchronous rpc client) we propose three subsequent levels
+of changes to the master core architecture.
+
+After making this change we'll be able to re-evaluate the size of our
+thread pool, if we see that we can make most threads in the client
+worker pool always idle. In the future we should also investigate making
+the rpc client asynchronous as well, so that we can make masterd a lot
+smaller in number of threads, and memory size, and thus also easier to
+understand, debug, and scale.
+
+Connection handling
+^^^^^^^^^^^^^^^^^^^
+
+We'll move the main thread of ganeti-masterd to asyncore, so that it can
+share the mainloop code with all other Ganeti daemons. Then all luxi
+clients will be asyncore clients, and I/O to/from them will be handled
+by the master thread asynchronously. Data will be read from the client
+sockets as it becomes available, and kept in a buffer, then when a
+complete message is found, it's passed to a client worker thread for
+parsing and processing. The client worker thread is responsible for
+serializing the reply, which can then be sent asynchronously by the main
+thread on the socket.
+
+Wait for job change
+^^^^^^^^^^^^^^^^^^^
+
+The REQ_WAIT_FOR_JOB_CHANGE luxi request is changed to be
+subscription-based, so that the executing thread doesn't have to be
+waiting for the changes to arrive. Threads producing messages (job queue
+executors) will make sure that when there is a change another thread is
+awaken and delivers it to the waiting clients. This can be either a
+dedicated "wait for job changes" thread or pool, or one of the client
+workers, depending on what's easier to implement. In either case the
+main asyncore thread will only be involved in pushing of the actual
+data, and not in fetching/serializing it.
+
+Other features to look at, when implementing this code are:
+
+  - Possibility not to need the job lock to know which updates to push.
+  - Possibility to signal clients about to time out, when no update has
+    been received, not to despair and to keep waiting (luxi level
+    keepalive).
+  - Possibility to defer updates if they are too frequent, providing
+    them at a maximum rate (lower priority).
+
+Job Queue lock
+^^^^^^^^^^^^^^
+
+Our tests show that the job queue lock is a point of high contention.
+We'll try to decrease its contention, either by more granular locking,
+the use of shared/exclusive locks, or reducing the size of the critical
+sections. This section of the design should be updated with the proposed
+changes for the 2.2 release, with regards to the job queue.
+
 Remote procedure call timeouts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
