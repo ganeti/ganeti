@@ -530,6 +530,14 @@ $(REPLACE_VARS_SED): Makefile
 	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
 	  echo 's#@RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
 	  echo 's#@PKGLIBDIR@#$(pkglibdir)#g'; \
+	  echo 's#@GNTMASTERUSER@#$(MASTERD_USER)#g'; \
+	  echo 's#@GNTRAPIUSER@#$(RAPI_USER)#g'; \
+	  echo 's#@GNTCONFDUSER@#$(CONFD_USER)#g'; \
+	  echo 's#@GNTNODEDUSER@#$(NODED_USER)#g'; \
+	  echo 's#@GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
+	  echo 's#@GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
+	  echo 's#@GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
+	  echo 's#@GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	} > $@
 
 # We need to create symlinks because "make distcheck" will not install Python
