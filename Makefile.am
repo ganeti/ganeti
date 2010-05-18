@@ -399,6 +399,7 @@ srclink_files = \
 	man/footer.sgml \
 	test/daemon-util_unittest.bash \
 	test/import-export_unittest.bash \
+	test/check-cert-expired_unittest.bash \
 	$(all_python_code)
 
 check_python_code = \
