@@ -723,6 +723,115 @@ KVM VNC access                Not supported        Unknown
 ============================  ===================  ====================
 
 
+Privilege Separation
+--------------------
+
+Current state and short comings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As of Ganeti 2.2 we introduced privilege separation. This was affecting
+just Ganeti RAPI and also that just in a quickly short term solution. In
+this release we iterate again over it and make it more advanced and
+stable. This also means we'll remove the privilege separation again from
+the core and put it completely external so the daemons will be started
+on the final user already.
+
+Additionally this involves removing SSH code out auf bootstrap and core
+component and put it into a separate script. This means every
+daemon/script will assume that a working ssh setup is in place.
+
+Implementation
+~~~~~~~~~~~~~~
+
+We need to partially revert changes done in Ganeti 2.2 to move on the
+long term solution. This involves removing the drop privileges code in
+``daemons.py`` as this is already done on startup time by
+``start-stop-daemon`` util.
+
+The ssh code will be separated into one single script called upon
+``gnt-node add`` which guarantees that the SSH setup is done and
+functioning.
+
+Additionally some of the utils.WriteFile calls needs to be adjusted
+for the new permissions and ownerships.
+
+Security Domains
+~~~~~~~~~~~~~~~~
+
+In order to separate the permissions of file sets we separate them
+into the following 3 overall security domain chunks:
+
+1. Public: ``0755`` respectively ``0644``
+2. Ganeti wide: shared between the daemons (gntdaemons)
+3. Secret files: shared just between a specified set of daemons/users
+
+So for point 3 this tables shows the correlation of the sets to groups
+and their users:
+
+=== ========== ============================== ==========================
+Set Group      Users                          Description
+=== ========== ============================== ==========================
+A   gntrapi    gntrapi, gntmasterd            Share data between
+                                              gntrapi & gntmasterd
+B   gntadmins  gntrapi, gntmasterd, *users*   Shared between users who
+                                              needs to call gntmasterd
+C   gntconfd   gntconfd, gntmasterd           Share data between
+                                              gntconfd & gntmasterd
+D   gntmasterd gntmasterd                     masterd only; Currently
+                                              only to redistribute the
+                                              configuration, has access
+                                              to all files under
+                                              ``lib/ganeti``
+E   gntdaemons gntmasterd, gntrapi, gntconfd  Shared between the various
+                                              Ganeti daemons to exchange
+                                              data
+=== ========== ============================== ==========================
+
+Restricted commands
+~~~~~~~~~~~~~~~~~~~
+
+The following commands needs still root to fulfill their functions:
+
+::
+
+  gnt-cluster {init|destroy|command|copyfile|rename|masterfailover|renew-crypto}
+  gnt-node {add|remove}
+  gnt-instance {console}
+
+Directory structure & permissions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here's how we propose to change the filesystem hierachy and their
+permissions.
+
+Assuming it follows the defaults: ``gnt${daemon}`` for user and
+the groups from the section `Security Domains`_::
+
+  ${localstatedir}/lib/ganeti/ (0755; gntmasterd:gntmasterd)
+     cluster-domain-secret (0600; gntmasterd:gntmasterd)
+     config.data (0640; gntmasterd:gntconfd)
+     hmac.key (0440; gntmasterd:gntconfd)
+     known_host (0644; gntmasterd:gntmasterd)
+     queue/ (0700; gntmasterd:gntmasterd)
+       archive/ (0700; gntmasterd:gntmasterd)
+         * (0600; gntmasterd:gntmasterd)
+       * (0600; gntmasterd:gntmasterd)
+     rapi.pem (0440; gntrapi:gntrapi)
+     rapi_users (0640; gntrapi:gntrapi)
+     server.pem (0440; gntmasterd:gntmasterd)
+     ssconf_* (0444; root:gntmasterd)
+     uidpool/ (0750; root:gntmasterd)
+     watcher.data (0600; root:gntmasterd)
+  ${localstatedir}/run/ganeti/ (0770; gntmasterd:gntdaemons)
+     socket/ (0750; gntmasterd:gntadmins)
+       ganeti-master (0770; gntmasterd:gntadmins)
+  ${localstatedir}/log/ganeti/ (0770; gntmasterd:gntdaemons)
+     master-daemon.log (0600; gntmasterd:gntdaemons)
+     rapi-daemon.log (0600; gntrapi:gntdaemons)
+     conf-daemon.log (0600; gntconfd:gntdaemons)
+     node-daemon.log (0600; gntnoded:gntdaemons)
+
+
 Feature changes
 ===============
 
