@@ -381,12 +381,20 @@ def GetTransportCommand(mode, socat_stderr_fd):
                (utils.ShellQuoteArgs(GetSocatCommand(mode)),
                 socat_stderr_fd))
 
-  # TODO: Make compression configurable
+  compr = options.compress
+
+  assert compr in constants.IEC_ALL
 
   if mode == constants.IEM_IMPORT:
-    transport_cmd = "%s | gunzip -c" % socat_cmd
+    if compr == constants.IEC_GZIP:
+      transport_cmd = "%s | gunzip -c" % socat_cmd
+    else:
+      transport_cmd = socat_cmd
   elif mode == constants.IEM_EXPORT:
-    transport_cmd = "gzip -c | %s" % socat_cmd
+    if compr == constants.IEC_GZIP:
+      transport_cmd = "gzip -c | %s" % socat_cmd
+    else:
+      transport_cmd = socat_cmd
   else:
     raise Error("Invalid mode")
 
@@ -554,6 +562,10 @@ def ParseOptions():
   parser.add_option("--connect-timeout", dest="connect_timeout", action="store",
                     type="int", default=DEFAULT_CONNECT_TIMEOUT,
                     help="Timeout for connection to be established (seconds)")
+  parser.add_option("--compress", dest="compress", action="store",
+                    type="choice", help="Compression method",
+                    metavar="[%s]" % "|".join(constants.IEC_ALL),
+                    choices=list(constants.IEC_ALL), default=constants.IEC_GZIP)
   parser.add_option("--cmd-prefix", dest="cmd_prefix", action="store",
                     type="string", help="Command prefix")
   parser.add_option("--cmd-suffix", dest="cmd_suffix", action="store",

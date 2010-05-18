@@ -210,6 +210,14 @@ IMPORT_EXPORT_DAEMON = _autoconf.PKGLIBDIR + "/import-export"
 IEM_IMPORT = "import"
 IEM_EXPORT = "export"
 
+# Import/export transport compression
+IEC_NONE = "none"
+IEC_GZIP = "gzip"
+IEC_ALL = frozenset([
+  IEC_NONE,
+  IEC_GZIP,
+  ])
+
 # Import/export I/O
 # Direct file I/O, equivalent to a shell's I/O redirection using '<' or '>'
 IEIO_FILE = "file"

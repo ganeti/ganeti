@@ -87,6 +87,7 @@ cmd_prefix=
 cmd_suffix=
 connect_timeout=10
 connect_retries=1
+compress=gzip
 
 $impexpd >/dev/null 2>&1 &&
   err "daemon-util succeeded without parameters"
@@ -99,6 +100,9 @@ $impexpd $src_statusfile >/dev/null 2>&1 &&
 
 $impexpd $src_statusfile invalidmode >/dev/null 2>&1 &&
   err "daemon-util succeeded with invalid mode"
+
+$impexpd $src_statusfile import --compression=rot13 >/dev/null 2>&1 &&
+  err "daemon-util succeeded with invalid compression"
 
 cat $(get_testfile proc_drbd8.txt) $(get_testfile cert1.pem) > $testdata
 
@@ -140,7 +144,8 @@ do_export_to_port() {
     --key=$src_x509 --cert=$src_x509 --ca=$dst_x509 \
     --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix" \
     --connect-timeout=$connect_timeout \
-    --connect-retries=$connect_retries
+    --connect-retries=$connect_retries \
+    --compress=$compress
 }
 
 do_import() {
@@ -149,7 +154,8 @@ do_import() {
     --key=$dst_x509 --cert=$dst_x509 --ca=$src_x509 \
     --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix" \
     --connect-timeout=$connect_timeout \
-    --connect-retries=$connect_retries
+    --connect-retries=$connect_retries \
+    --compress=$compress
 }
 
 upto 'Generate X509 certificates and keys'
@@ -232,5 +238,29 @@ do_import &>$dst_output & imppid=$!
 { sleep 1; : | do_export; } &>$src_output & exppid=$!
 checkpids $exppid $imppid || \
   err 'Listening with timeout failed when it should not'
+
+upto 'No compression'
+reset_status
+compress=none do_import > $statusdir/recv-nocompr 2>$dst_output & imppid=$!
+{ write_data | compress=none do_export; } &>$src_output & exppid=$!
+checkpids $exppid $imppid || err 'An error occurred'
+cmp $testdata $statusdir/recv-nocompr || \
+  err 'Received data does not match input'
+
+upto 'Compression mismatch A'
+reset_status
+compress=none do_import > $statusdir/recv-miscompr 2>$dst_output & imppid=$!
+{ write_data | compress=gzip do_export; } &>$src_output & exppid=$!
+checkpids $exppid $imppid || err 'An error occurred'
+cmp -s $testdata $statusdir/recv-miscompr && \
+  err 'Received data matches input when it should not'
+
+upto 'Compression mismatch B'
+reset_status
+compress=gzip do_import > $statusdir/recv-miscompr2 2>$dst_output & imppid=$!
+{ write_data | compress=none do_export; } &>$src_output & exppid=$!
+checkpids $exppid $imppid && err 'Did not fail when it should'
+cmp -s $testdata $statusdir/recv-miscompr2 && \
+  err 'Received data matches input when it should not'
 
 exit 0
