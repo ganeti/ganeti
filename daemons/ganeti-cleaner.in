@@ -32,9 +32,24 @@ cleanup_master() {
   xargs -r0 rm -vf
 }
 
+cleanup_node() {
+  # Return if directory for crypto keys doesn't exist
+  [[ -d $CRYPTO_DIR ]] || return 0
+
+  find $CRYPTO_DIR -mindepth 1 -maxdepth 1 -type d | \
+  while read dir; do
+    if $CHECK_CERT_EXPIRED $dir/cert; then
+      rm -vf $dir/{cert,key}
+      rmdir -v --ignore-fail-on-non-empty $dir
+    fi
+  done
+}
+
 DATA_DIR=@LOCALSTATEDIR@/lib/ganeti
 CLEANER_LOG_DIR=@LOCALSTATEDIR@/log/ganeti/cleaner
 QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
+CRYPTO_DIR=@LOCALSTATEDIR@/run/ganeti/crypto
+CHECK_CERT_EXPIRED=@PKGLIBDIR@/check-cert-expired
 
 # Define how many days archived jobs should be left alone
 REMOVE_AFTER=21
@@ -58,5 +73,6 @@ find $CLEANER_LOG_DIR -maxdepth 1 -type f | sort | head -n -$KEEP_LOGS | \
 xargs -r rm -vf
 
 cleanup_master
+cleanup_node
 
 exit 0

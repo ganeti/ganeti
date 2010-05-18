@@ -1,0 +1,76 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2010 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+"""Tool to detect expired X509 certificates.
+
+"""
+
+# pylint: disable-msg=C0103
+# C0103: Invalid name check-cert-expired
+
+import os.path
+import sys
+import OpenSSL
+
+from ganeti import constants
+from ganeti import cli
+from ganeti import utils
+
+
+def main():
+  """Main routine.
+
+  """
+  program = os.path.basename(sys.argv[0])
+
+  if len(sys.argv) != 2:
+    cli.ToStderr("Usage: %s <certificate-path>", program)
+    sys.exit(constants.EXIT_FAILURE)
+
+  filename = sys.argv[1]
+
+  # Read certificate
+  try:
+    cert_pem = utils.ReadFile(filename)
+  except EnvironmentError, err:
+    cli.ToStderr("Unable to read %s: %s", filename, err)
+    sys.exit(constants.EXIT_FAILURE)
+
+  # Check validity
+  try:
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           cert_pem)
+
+    (errcode, msg) = utils.VerifyX509Certificate(cert, None, None)
+    if msg:
+      cli.ToStderr("%s: %s", filename, msg)
+    if errcode == utils.CERT_ERROR:
+      sys.exit(constants.EXIT_SUCCESS)
+
+  except (KeyboardInterrupt, SystemExit):
+    raise
+  except Exception, err: # pylint: disable-msg=W0703
+    cli.ToStderr("Unable to check %s: %s", filename, err)
+
+  sys.exit(constants.EXIT_FAILURE)
+
+
+if __name__ == "__main__":
+  main()

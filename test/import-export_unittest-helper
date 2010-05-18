@@ -33,6 +33,7 @@ from ganeti import serializer
 
 RETRY_INTERVAL = 0.1
 TIMEOUT = int(os.getenv("TIMEOUT", 10))
+VALIDITY = int(os.getenv("VALIDITY", 1))
 
 
 def _GetImportExportData(filename):
@@ -68,7 +69,7 @@ def main():
   elif what == "connected":
     WaitForConnected(filename)
   elif what == "gencert":
-    utils.GenerateSelfSignedSslCert(filename, validity=1)
+    utils.GenerateSelfSignedSslCert(filename, validity=VALIDITY)
   else:
     raise Exception("Unknown command '%s'" % what)
 

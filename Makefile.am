@@ -245,7 +245,8 @@ dist_tools_SCRIPTS = \
 	tools/sanitize-config
 
 pkglib_python_scripts = \
-	daemons/import-export
+	daemons/import-export \
+	tools/check-cert-expired
 
 pkglib_SCRIPTS = \
 	daemons/daemon-util \
@@ -366,6 +367,7 @@ python_tests = \
 dist_TESTS = \
 	test/daemon-util_unittest.bash \
 	test/import-export_unittest.bash \
+	test/check-cert-expired_unittest.bash \
 	$(python_tests)
 
 nodist_TESTS =

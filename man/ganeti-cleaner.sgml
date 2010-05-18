@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 11, 2009</date>">
+  <!ENTITY dhdate      "<date>May 17, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -19,6 +19,7 @@
   <refentryinfo>
     <copyright>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -45,13 +46,16 @@
 
     <para>
       The <command>&dhpackage;</command> is a periodically run script to clean
-      old job files from the job queue archive.
+      old job files from the job queue archive and to remove expired X509
+      certificates and keys.
     </para>
 
     <para>
       <command>&dhpackage;</command> automatically removes all files older than
       21 days from
-      <filename>@LOCALSTATEDIR@/lib/ganeti/queue/archive</filename>.
+      <filename>@LOCALSTATEDIR@/lib/ganeti/queue/archive</filename> and all
+      expired certificates and keys from
+      <filename>@LOCALSTATEDIR@/run/ganeti/crypto</filename>
     </para>
 
   </refsect1>
