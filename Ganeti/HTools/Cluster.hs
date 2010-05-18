@@ -170,9 +170,7 @@ updateCStats cs node =
           , csTmem = x_tmem + Node.tMem node
           , csTdsk = x_tdsk + Node.tDsk node
           , csTcpu = x_tcpu + Node.tCpu node
-          , csVcpu = if inc_vcpu == Node.noLimitInt
-                     then Node.noLimitInt
-                     else x_vcpu + inc_vcpu
+          , csVcpu = x_vcpu + inc_vcpu
           , csXmem = x_xmem + Node.xMem node
           , csNmem = x_nmem + Node.nMem node
           , csNinst = x_ninst + length (Node.pList node)
@@ -197,9 +195,7 @@ computeAllocationDelta cini cfin =
                 csTmem = t_mem, csTdsk = t_dsk, csVcpu = v_cpu } = cfin
         rini = RSpec i_icpu i_imem i_idsk
         rfin = RSpec (f_icpu - i_icpu) (f_imem - i_imem) (f_idsk - i_idsk)
-        un_cpu = if v_cpu == Node.noLimitInt
-                 then Node.noLimitInt
-                 else v_cpu - f_icpu
+        un_cpu = v_cpu - f_icpu
         runa = RSpec un_cpu (truncate t_mem - f_imem) (truncate t_dsk - f_idsk)
     in (rini, rfin, runa)
 

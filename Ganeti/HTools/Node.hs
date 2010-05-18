@@ -58,7 +58,6 @@ module Ganeti.HTools.Node
     , AssocList
     , AllocElement
     , noSecondary
-    , noLimitInt
     ) where
 
 import Data.List
@@ -133,14 +132,6 @@ type AllocElement = (List, Instance.Instance, [Node])
 noSecondary :: T.Ndx
 noSecondary = -1
 
--- | No limit value
-noLimit :: Double
-noLimit = -1
-
--- | No limit int value
-noLimitInt :: Int
-noLimitInt = -1
-
 -- * Helper functions
 
 -- | Add a tag to a tagmap
@@ -204,14 +195,22 @@ create name_init mem_t_init mem_n_init mem_f_init
          , pCpu = 0
          , offline = offline_init
          , xMem = 0
-         , mDsk = noLimit
-         , mCpu = noLimit
-         , loDsk = noLimitInt
-         , hiCpu = noLimitInt
+         , mDsk = T.defReservedDiskRatio
+         , mCpu = T.defVcpuRatio
+         , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
+         , hiCpu = mCpuTohiCpu T.defVcpuRatio cpu_t_init
          , utilPool = T.baseUtil
          , utilLoad = T.zeroUtil
          , pTags = Map.empty
          }
+
+-- | Conversion formula from mDsk/tDsk to loDsk
+mDskToloDsk :: Double -> Double -> Int
+mDskToloDsk mval tdsk = floor (mval * tdsk)
+
+-- | Conversion formula from mCpu/tCpu to hiCpu
+mCpuTohiCpu :: Double -> Double -> Int
+mCpuTohiCpu mval tcpu = floor (mval * tcpu)
 
 -- | Changes the index.
 --
@@ -235,18 +234,11 @@ setXmem t val = t { xMem = val }
 
 -- | Sets the max disk usage ratio
 setMdsk :: Node -> Double -> Node
-setMdsk t val = t { mDsk = val,
-                    loDsk = if val == noLimit
-                             then noLimitInt
-                             else floor (val * tDsk t) }
+setMdsk t val = t { mDsk = val, loDsk = mDskToloDsk val (tDsk t) }
 
 -- | Sets the max cpu usage ratio
 setMcpu :: Node -> Double -> Node
-setMcpu t val = t { mCpu = val, hiCpu = hcpu }
-    where new_hcpu = floor (val * tCpu t)::Int
-          hcpu = if new_hcpu < 0
-                 then noLimitInt
-                 else new_hcpu
+setMcpu t val = t { mCpu = val, hiCpu = mCpuTohiCpu val (tCpu t) }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: P.PeerMap -> P.Elem
@@ -401,12 +393,9 @@ availDisk :: Node -> Int
 availDisk t =
     let _f = fDsk t
         _l = loDsk t
-    in
-      if _l == noLimitInt
-      then _f
-      else if _f < _l
-           then 0
-           else _f - _l
+    in if _f < _l
+       then 0
+       else _f - _l
 
 -- * Display functions
 

@@ -35,6 +35,8 @@ module Ganeti.HTools.Types
     , baseUtil
     , addUtil
     , subUtil
+    , defVcpuRatio
+    , defReservedDiskRatio
     , Placement
     , IMove(..)
     , MoveJob
@@ -123,6 +125,14 @@ connTimeout = 15
 -- | The default timeout for queries (when using non-file methods).
 queryTimeout :: Int
 queryTimeout = 60
+
+-- | Default vcpu-to-pcpu ratio (randomly chosen value).
+defVcpuRatio :: Double
+defVcpuRatio = 64
+
+-- | Default max disk usage ratio.
+defReservedDiskRatio :: Double
+defReservedDiskRatio = 0
 
 {-|
 

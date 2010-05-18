@@ -129,8 +129,8 @@ defaultOptions  = Options
  , optLuxi        = Nothing
  , optMaster      = ""
  , optMaxLength   = -1
- , optMcpu        = -1
- , optMdsk        = -1
+ , optMcpu        = defVcpuRatio
+ , optMdsk        = defReservedDiskRatio
  , optMinScore    = 1e-9
  , optNoHeaders   = False
  , optNodeSim     = Nothing
@@ -225,7 +225,8 @@ oLuxiSocket = Option "L" ["luxi"]
 oMaxCpu :: OptType
 oMaxCpu = Option "" ["max-cpu"]
           (ReqArg (\ n opts -> Ok opts { optMcpu = read n }) "RATIO")
-          "maximum virtual-to-physical cpu ratio for nodes"
+          "maximum virtual-to-physical cpu ratio for nodes (from 1\
+          \ upwards) [64]"
 
 oMaxSolLength :: OptType
 oMaxSolLength = Option "l" ["max-length"]
@@ -236,7 +237,7 @@ oMaxSolLength = Option "l" ["max-length"]
 oMinDisk :: OptType
 oMinDisk = Option "" ["min-disk"]
            (ReqArg (\ n opts -> Ok opts { optMdsk = read n }) "RATIO")
-           "minimum free disk space for nodes (between 0 and 1)"
+           "minimum free disk space for nodes (between 0 and 1) [0]"
 
 oMinScore :: OptType
 oMinScore = Option "e" ["min-score"]
