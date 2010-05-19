@@ -212,7 +212,7 @@ ensureQuoted v = if not (all (\c -> (isAlphaNum c || c == '.')) v)
                  then '\'':v ++ "'"
                  else v
 
--- | Format a list of key/values as a shell fragment
+-- | Format a list of key\/values as a shell fragment
 printKeys :: [(String, String)] -> IO ()
 printKeys = mapM_ (\(k, v) ->
                    printf "HTS_%s=%s\n" (map toUpper k) (ensureQuoted v))
