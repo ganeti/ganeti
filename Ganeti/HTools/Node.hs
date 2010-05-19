@@ -41,6 +41,10 @@ module Ganeti.HTools.Node
     , setSec
     , setMdsk
     , setMcpu
+    -- * Tag maps
+    , addTags
+    , delTags
+    , rejectAddTags
     -- * Instance (re)location
     , removePri
     , removeSec
@@ -48,6 +52,8 @@ module Ganeti.HTools.Node
     , addSec
     -- * Stats
     , availDisk
+    , availMem
+    , availCpu
     , conflictingPrimaries
     -- * Formatting
     , defaultFields
@@ -396,6 +402,24 @@ availDisk t =
     in if _f < _l
        then 0
        else _f - _l
+
+-- | Computes the amount of available memory on a given node
+availMem :: Node -> Int
+availMem t =
+    let _f = fMem t
+        _l = rMem t
+    in if _f < _l
+       then 0
+       else _f - _l
+
+-- | Computes the amount of available memory on a given node
+availCpu :: Node -> Int
+availCpu t =
+    let _u = uCpu t
+        _l = hiCpu t
+    in if _l >= _u
+       then _l - _u
+       else 0
 
 -- * Display functions
 

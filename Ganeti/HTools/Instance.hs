@@ -68,16 +68,6 @@ instance T.Element Instance where
     setName = setName
     setIdx  = setIdx
 
--- | Base memory unit.
-unitMem :: Int
-unitMem = 64
--- | Base disk unit.
-unitDsk :: Int
-unitDsk = 256
--- | Base vcpus unit.
-unitCpu :: Int
-unitCpu = 1
-
 -- | Running instance states.
 runningStates :: [String]
 runningStates = ["running", "ERROR_up"]
@@ -156,16 +146,16 @@ setMovable t m = t { movable = m }
 -- | Try to shrink the instance based on the reason why we can't
 -- allocate it.
 shrinkByType :: Instance -> T.FailMode -> T.Result Instance
-shrinkByType inst T.FailMem = let v = mem inst - unitMem
-                              in if v < unitMem
+shrinkByType inst T.FailMem = let v = mem inst - T.unitMem
+                              in if v < T.unitMem
                                  then T.Bad "out of memory"
                                  else T.Ok inst { mem = v }
-shrinkByType inst T.FailDisk = let v = dsk inst - unitDsk
-                               in if v < unitDsk
+shrinkByType inst T.FailDisk = let v = dsk inst - T.unitDsk
+                               in if v < T.unitDsk
                                   then T.Bad "out of disk"
                                   else T.Ok inst { dsk = v }
-shrinkByType inst T.FailCPU = let v = vcpus inst - unitCpu
-                              in if v < unitCpu
+shrinkByType inst T.FailCPU = let v = vcpus inst - T.unitCpu
+                              in if v < T.unitCpu
                                  then T.Bad "out of vcpus"
                                  else T.Ok inst { vcpus = v }
 shrinkByType _ f = T.Bad $ "Unhandled failure mode " ++ show f

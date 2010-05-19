@@ -37,6 +37,9 @@ module Ganeti.HTools.Types
     , subUtil
     , defVcpuRatio
     , defReservedDiskRatio
+    , unitMem
+    , unitCpu
+    , unitDsk
     , Placement
     , IMove(..)
     , MoveJob
@@ -134,6 +137,18 @@ defVcpuRatio = 64
 defReservedDiskRatio :: Double
 defReservedDiskRatio = 0
 
+-- | Base memory unit.
+unitMem :: Int
+unitMem = 64
+
+-- | Base disk unit.
+unitDsk :: Int
+unitDsk = 256
+
+-- | Base vcpus unit.
+unitCpu :: Int
+unitCpu = 1
+
 {-|
 
 This is similar to the JSON library Result type - *very* similar, but
@@ -166,6 +181,7 @@ type FailStats = [(FailMode, Int)]
 -- | Either-like data-type customized for our failure modes
 data OpResult a = OpFail FailMode -- ^ Failed operation
                 | OpGood a        -- ^ Success operation
+                  deriving (Show)
 
 instance Monad OpResult where
     (OpGood x) >>= fn = fn x
