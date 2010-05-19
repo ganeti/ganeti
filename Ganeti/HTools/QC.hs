@@ -35,6 +35,7 @@ module Ganeti.HTools.QC
 import Test.QuickCheck
 import Test.QuickCheck.Batch
 import Data.Maybe
+import qualified Data.Map
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -47,10 +48,27 @@ import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
 
+-- | Maximum memory (1TiB, somewhat random value)
+maxMem :: Int
+maxMem = 1024 * 1024
+
+-- | Maximum disk (1PiB, somewhat random value)
+maxDsk :: Int
+maxDsk = 1024 * 1024 * 1024
+
+-- | Max CPUs (1024, somewhat random value)
+maxCpu :: Int
+maxCpu = 1024
+
 -- | Simple checker for whether OpResult is fail or pass
 isFailure :: Types.OpResult a -> Bool
 isFailure (Types.OpFail _) = True
 isFailure _ = False
+
+-- | Simple checker for whether Result is fail or pass
+isOk :: Types.Result a -> Bool
+isOk (Types.Ok _ ) = True
+isOk _ = False
 
 -- copied from the introduction to quickcheck
 instance Arbitrary Char where
@@ -60,32 +78,38 @@ instance Arbitrary Char where
 instance Arbitrary Instance.Instance where
     arbitrary = do
       name <- arbitrary
-      mem <- choose(0, 100)
-      dsk <- choose(0, 100)
+      mem <- choose (0, maxMem)
+      dsk <- choose (0, maxDsk)
       run_st <- elements ["ERROR_up", "ERROR_down", "ADMIN_down"
                          , "ERROR_nodedown", "ERROR_nodeoffline"
                          , "running"
                          , "no_such_status1", "no_such_status2"]
       pn <- arbitrary
       sn <- arbitrary
-      vcpus <- arbitrary
+      vcpus <- choose (0, maxCpu)
       return $ Instance.create name mem dsk vcpus run_st [] pn sn
 
 -- and a random node
 instance Arbitrary Node.Node where
     arbitrary = do
       name <- arbitrary
-      mem_t <- arbitrary
+      mem_t <- choose (0, maxMem)
       mem_f <- choose (0, mem_t)
       mem_n <- choose (0, mem_t - mem_f)
-      dsk_t <- arbitrary
+      dsk_t <- choose (0, maxDsk)
       dsk_f <- choose (0, dsk_t)
-      cpu_t <- arbitrary
+      cpu_t <- choose (0, maxCpu)
       offl <- arbitrary
       let n = Node.create name (fromIntegral mem_t) mem_n mem_f
-              (fromIntegral dsk_t) dsk_f cpu_t offl
+              (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl
           n' = Node.buildPeers n Container.empty
       return n'
+
+setInstanceSmallerThanNode node inst =
+    inst { Instance.mem = (Node.availMem node) `div` 2
+         , Instance.dsk = (Node.availDisk node) `div` 2
+         , Instance.vcpus = (Node.availCpu node) `div` 2
+         }
 
 -- | Make sure add is idempotent
 prop_PeerMap_addIdempotent pmap key em =
@@ -178,6 +202,50 @@ prop_Instance_runStatus_False inst =
     in
       run_tx `notElem` Instance.runningStates ==> not run_st
 
+prop_Instance_shrinkMG inst =
+    Instance.mem inst >= 2 * Types.unitMem ==>
+        case Instance.shrinkByType inst Types.FailMem of
+          Types.Ok inst' ->
+              Instance.mem inst' == Instance.mem inst - Types.unitMem
+          _ -> False
+    where _types = (inst::Instance.Instance)
+
+prop_Instance_shrinkMF inst =
+    Instance.mem inst < 2 * Types.unitMem ==>
+        not . isOk $ Instance.shrinkByType inst Types.FailMem
+    where _types = (inst::Instance.Instance)
+
+prop_Instance_shrinkCG inst =
+    Instance.vcpus inst >= 2 * Types.unitCpu ==>
+        case Instance.shrinkByType inst Types.FailCPU of
+          Types.Ok inst' ->
+              Instance.vcpus inst' == Instance.vcpus inst - Types.unitCpu
+          _ -> False
+    where _types = (inst::Instance.Instance)
+
+prop_Instance_shrinkCF inst =
+    Instance.vcpus inst < 2 * Types.unitCpu ==>
+        not . isOk $ Instance.shrinkByType inst Types.FailCPU
+    where _types = (inst::Instance.Instance)
+
+prop_Instance_shrinkDG inst =
+    Instance.dsk inst >= 2 * Types.unitDsk ==>
+        case Instance.shrinkByType inst Types.FailDisk of
+          Types.Ok inst' ->
+              Instance.dsk inst' == Instance.dsk inst - Types.unitDsk
+          _ -> False
+    where _types = (inst::Instance.Instance)
+
+prop_Instance_shrinkDF inst =
+    Instance.dsk inst < 2 * Types.unitDsk ==>
+        not . isOk $ Instance.shrinkByType inst Types.FailDisk
+    where _types = (inst::Instance.Instance)
+
+prop_Instance_setMovable inst m =
+    Instance.movable inst' == m
+    where _types = (inst::Instance.Instance, m::Bool)
+          inst' = Instance.setMovable inst m
+
 testInstance =
     [ run prop_Instance_setIdx
     , run prop_Instance_setName
@@ -186,6 +254,13 @@ testInstance =
     , run prop_Instance_setBoth
     , run prop_Instance_runStatus_True
     , run prop_Instance_runStatus_False
+    , run prop_Instance_shrinkMG
+    , run prop_Instance_shrinkMF
+    , run prop_Instance_shrinkCG
+    , run prop_Instance_shrinkCF
+    , run prop_Instance_shrinkDG
+    , run prop_Instance_shrinkDF
+    , run prop_Instance_setMovable
     ]
 
 -- Instance text loader tests
@@ -224,13 +299,35 @@ testText =
 -- Node tests
 
 -- | Check that an instance add with too high memory or disk will be rejected
-prop_Node_addPri node inst = (Instance.mem inst >= Node.fMem node ||
-                              Instance.dsk inst >= Node.fDsk node) &&
-                             not (Node.failN1 node)
-                             ==>
-                             isFailure (Node.addPri node inst)
+prop_Node_addPriFM node inst = Instance.mem inst >= Node.fMem node &&
+                               not (Node.failN1 node)
+                               ==>
+                               case Node.addPri node inst'' of
+                                 Types.OpFail Types.FailMem -> True
+                                 _ -> False
     where _types = (node::Node.Node, inst::Instance.Instance)
+          inst' = setInstanceSmallerThanNode node inst
+          inst'' = inst' { Instance.mem = Instance.mem inst }
 
+prop_Node_addPriFD node inst = Instance.dsk inst >= Node.fDsk node &&
+                               not (Node.failN1 node)
+                               ==>
+                               case Node.addPri node inst'' of
+                                 Types.OpFail Types.FailDisk -> True
+                                 _ -> False
+    where _types = (node::Node.Node, inst::Instance.Instance)
+          inst' = setInstanceSmallerThanNode node inst
+          inst'' = inst' { Instance.dsk = Instance.dsk inst }
+
+prop_Node_addPriFC node inst = Instance.vcpus inst > Node.availCpu node &&
+                               not (Node.failN1 node)
+                               ==>
+                               case Node.addPri node inst'' of
+                                 Types.OpFail Types.FailCPU -> True
+                                 _ -> False
+    where _types = (node::Node.Node, inst::Instance.Instance)
+          inst' = setInstanceSmallerThanNode node inst
+          inst'' = inst' { Instance.vcpus = Instance.vcpus inst }
 
 -- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addSec node inst pdx =
@@ -240,9 +337,43 @@ prop_Node_addSec node inst pdx =
     ==> isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
+newtype SmallRatio = SmallRatio Double deriving Show
+instance Arbitrary SmallRatio where
+    arbitrary = do
+      v <- choose (0, 1)
+      return $ SmallRatio v
+
+-- | Check mdsk setting
+prop_Node_setMdsk node mx =
+    Node.loDsk node' >= 0 &&
+    fromIntegral (Node.loDsk node') <= Node.tDsk node &&
+    Node.availDisk node' >= 0 &&
+    Node.availDisk node' <= Node.fDsk node' &&
+    fromIntegral (Node.availDisk node') <= Node.tDsk node'
+    where _types = (node::Node.Node, mx::SmallRatio)
+          node' = Node.setMdsk node mx'
+          SmallRatio mx' = mx
+
+-- Check tag maps
+prop_Node_tagMaps_idempotent tags =
+    Node.delTags (Node.addTags m tags) tags == m
+    where _types = (tags::[String])
+          m = Data.Map.empty
+
+prop_Node_tagMaps_reject tags =
+    not (null tags) ==>
+    any (\t -> Node.rejectAddTags m [t]) tags
+    where _types = (tags::[String])
+          m = Node.addTags (Data.Map.empty) tags
+
 testNode =
-    [ run prop_Node_addPri
+    [ run prop_Node_addPriFM
+    , run prop_Node_addPriFD
+    , run prop_Node_addPriFC
     , run prop_Node_addSec
+    , run prop_Node_setMdsk
+    , run prop_Node_tagMaps_idempotent
+    , run prop_Node_tagMaps_reject
     ]
 
 
@@ -260,6 +391,18 @@ prop_Score_Zero node count =
     -- this should be much lower than the default score in CLI.hs
     in score <= 1e-15
 
+-- | Check that cluster stats are sane
+prop_CStats_sane node count =
+    (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
+     (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
+    let fn = Node.buildPeers node Container.empty
+        nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]
+        nl = Container.fromAssocList nlst
+        cstats = Cluster.totalResources nl
+    in Cluster.csAdsk cstats >= 0 &&
+       Cluster.csAdsk cstats <= Cluster.csFdsk cstats
+
 testCluster =
     [ run prop_Score_Zero
+    , run prop_CStats_sane
     ]
