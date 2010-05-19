@@ -94,6 +94,24 @@ class TestMainloop(testutils.GanetiTestCase):
     self.assertEquals(self.sendsig_events, [signal.SIGCHLD, signal.SIGTERM])
     self.assertEquals(self.onsignal_events, self.sendsig_events)
 
+  def testReRun(self):
+    self.mainloop.RegisterSignal(self)
+    self.mainloop.scheduler.enter(0.1, 1, self._SendSig, [signal.SIGCHLD])
+    self.mainloop.scheduler.enter(0.2, 1, self._SendSig, [signal.SIGCHLD])
+    self.mainloop.scheduler.enter(0.3, 1, self._SendSig, [signal.SIGTERM])
+    self.mainloop.scheduler.enter(0.4, 1, self._SendSig, [signal.SIGCHLD])
+    self.mainloop.scheduler.enter(0.5, 1, self._SendSig, [signal.SIGCHLD])
+    self.mainloop.Run()
+    self.assertEquals(self.sendsig_events,
+                      [signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM])
+    self.assertEquals(self.onsignal_events, self.sendsig_events)
+    self.mainloop.scheduler.enter(0.3, 1, self._SendSig, [signal.SIGTERM])
+    self.mainloop.Run()
+    self.assertEquals(self.sendsig_events,
+                      [signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM,
+                       signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM])
+    self.assertEquals(self.onsignal_events, self.sendsig_events)
+
 
 class _MyAsyncUDPSocket(daemon.AsyncUDPSocket):
 
