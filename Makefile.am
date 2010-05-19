@@ -323,6 +323,7 @@ python_tests = \
 	test/ganeti.backend_unittest.py \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
+	test/ganeti.daemon_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
 	test/ganeti.compat_unittest.py \
 	test/ganeti.confd.client_unittest.py \
