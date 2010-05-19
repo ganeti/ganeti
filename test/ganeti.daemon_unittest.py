@@ -117,6 +117,20 @@ class TestMainloop(testutils.GanetiTestCase):
                        signal.SIGCHLD, signal.SIGCHLD, signal.SIGTERM])
     self.assertEquals(self.onsignal_events, self.sendsig_events)
 
+  def testPriority(self):
+    # for events at the same time, the highest priority one executes first
+    now = time.time()
+    self.mainloop.scheduler.enterabs(now + 0.1, 2, self._SendSig,
+                                     [signal.SIGCHLD])
+    self.mainloop.scheduler.enterabs(now + 0.1, 1, self._SendSig,
+                                     [signal.SIGTERM])
+    self.mainloop.Run()
+    self.assertEquals(self.sendsig_events, [signal.SIGTERM])
+    self.mainloop.scheduler.enter(0.2, 1, self._SendSig, [signal.SIGTERM])
+    self.mainloop.Run()
+    self.assertEquals(self.sendsig_events,
+                      [signal.SIGTERM, signal.SIGCHLD, signal.SIGTERM])
+
 
 class _MyAsyncUDPSocket(daemon.AsyncUDPSocket):
 
