@@ -104,6 +104,7 @@ data CStats = CStats { csFmem :: Int    -- ^ Cluster free mem
                      , csScore :: Score -- ^ The cluster score
                      , csNinst :: Int   -- ^ The total number of instances
                      }
+            deriving (Show)
 
 -- | Currently used, possibly to allocate, unallocable
 type AllocStats = (RSpec, RSpec, RSpec)
