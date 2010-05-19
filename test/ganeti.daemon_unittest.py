@@ -25,6 +25,7 @@ import unittest
 import signal
 import os
 import socket
+import time
 
 from ganeti import daemon
 
@@ -82,13 +83,17 @@ class TestMainloop(testutils.GanetiTestCase):
 
   def testDeferredCancel(self):
     self.mainloop.RegisterSignal(self)
-    self.mainloop.scheduler.enter(0.1, 1, self._SendSig, [signal.SIGCHLD])
-    handle1 = self.mainloop.scheduler.enter(0.3, 2, self._SendSig,
-                                           [signal.SIGCHLD])
-    handle2 = self.mainloop.scheduler.enter(0.4, 2, self._SendSig,
-                                           [signal.SIGCHLD])
-    self.mainloop.scheduler.enter(0, 1, self._CancelEvent, [handle1])
-    self.mainloop.scheduler.enter(0, 1, self._CancelEvent, [handle2])
+    now = time.time()
+    self.mainloop.scheduler.enterabs(now + 0.1, 1, self._SendSig,
+                                     [signal.SIGCHLD])
+    handle1 = self.mainloop.scheduler.enterabs(now + 0.3, 2, self._SendSig,
+                                               [signal.SIGCHLD])
+    handle2 = self.mainloop.scheduler.enterabs(now + 0.4, 2, self._SendSig,
+                                               [signal.SIGCHLD])
+    self.mainloop.scheduler.enterabs(now + 0.2, 1, self._CancelEvent,
+                                     [handle1])
+    self.mainloop.scheduler.enterabs(now + 0.2, 1, self._CancelEvent,
+                                     [handle2])
     self.mainloop.scheduler.enter(0.5, 1, self._SendSig, [signal.SIGTERM])
     self.mainloop.Run()
     self.assertEquals(self.sendsig_events, [signal.SIGCHLD, signal.SIGTERM])
