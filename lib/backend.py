@@ -2617,15 +2617,12 @@ def _CreateImportExportStatusDir(prefix):
                                   (prefix, utils.TimestampForFilename())))
 
 
-def StartImportExportDaemon(mode, key_name, ca, host, port, instance,
-                            ieio, ieioargs):
+def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
   """Starts an import or export daemon.
 
   @param mode: Import/output mode
-  @type key_name: string
-  @param key_name: RSA key name (None to use cluster certificate)
-  @type ca: string:
-  @param ca: Remote CA in PEM format (None to use cluster certificate)
+  @type opts: L{objects.ImportExportOptions}
+  @param opts: Daemon options
   @type host: string
   @param host: Remote host for export (None for import)
   @type port: int
@@ -2651,21 +2648,21 @@ def StartImportExportDaemon(mode, key_name, ca, host, port, instance,
   else:
     _Fail("Invalid mode %r", mode)
 
-  if (key_name is None) ^ (ca is None):
+  if (opts.key_name is None) ^ (opts.ca_pem is None):
     _Fail("Cluster certificate can only be used for both key and CA")
 
   (cmd_env, cmd_prefix, cmd_suffix) = \
     _GetImportExportIoCommand(instance, mode, ieio, ieioargs)
 
-  if key_name is None:
+  if opts.key_name is None:
     # Use server.pem
     key_path = constants.NODED_CERT_FILE
     cert_path = constants.NODED_CERT_FILE
-    assert ca is None
+    assert opts.ca_pem is None
   else:
     (_, key_path, cert_path) = _GetX509Filenames(constants.CRYPTO_KEYS_DIR,
-                                                 key_name)
-    assert ca is not None
+                                                 opts.key_name)
+    assert opts.ca_pem is not None
 
   for i in [key_path, cert_path]:
     if not os.path.exists(i):
@@ -2677,10 +2674,13 @@ def StartImportExportDaemon(mode, key_name, ca, host, port, instance,
     pid_file = utils.PathJoin(status_dir, _IES_PID_FILE)
     ca_file = utils.PathJoin(status_dir, _IES_CA_FILE)
 
-    if ca is None:
+    if opts.ca_pem is None:
       # Use server.pem
       ca = utils.ReadFile(constants.NODED_CERT_FILE)
+    else:
+      ca = opts.ca_pem
 
+    # Write CA file
     utils.WriteFile(ca_file, data=ca, mode=0400)
 
     cmd = [

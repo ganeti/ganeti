@@ -847,23 +847,27 @@ class NodeHttpServer(http.server.HttpServer):
     """Starts an import daemon.
 
     """
-    (x509_key_name, source_x509_ca, instance, dest, dest_args) = params
-    return backend.StartImportExportDaemon(constants.IEM_IMPORT,
-                                           x509_key_name, source_x509_ca,
+    (opts_s, instance, dest, dest_args) = params
+
+    opts = objects.ImportExportOptions.FromDict(opts_s)
+
+    return backend.StartImportExportDaemon(constants.IEM_IMPORT, opts,
                                            None, None,
                                            objects.Instance.FromDict(instance),
                                            dest,
                                            _DecodeImportExportIO(dest,
                                                                  dest_args))
+
   @staticmethod
   def perspective_export_start(params):
     """Starts an export daemon.
 
     """
-    (x509_key_name, dest_x509_ca, host, port, instance,
-     source, source_args) = params
-    return backend.StartImportExportDaemon(constants.IEM_EXPORT,
-                                           x509_key_name, dest_x509_ca,
+    (opts_s, host, port, instance, source, source_args) = params
+
+    opts = objects.ImportExportOptions.FromDict(opts_s)
+
+    return backend.StartImportExportDaemon(constants.IEM_EXPORT, opts,
                                            host, port,
                                            objects.Instance.FromDict(instance),
                                            source,

@@ -121,17 +121,15 @@ def _TimeoutExpired(epoch, timeout, _time_fn=time.time):
 class _DiskImportExportBase(object):
   MODE_TEXT = None
 
-  def __init__(self, lu, node_name, x509_key_name, remote_x509_ca,
+  def __init__(self, lu, node_name, opts,
                instance, timeouts, cbs, private=None):
     """Initializes this class.
 
     @param lu: Logical unit instance
     @type node_name: string
     @param node_name: Node name for import
-    @type x509_key_name: string
-    @param x509_key_name: Name of X509 key (None for node daemon key)
-    @type remote_x509_ca: string
-    @param remote_x509_ca: Remote peer's CA (None for node daemon certificate)
+    @type opts: L{objects.ImportExportOptions}
+    @param opts: Import/export daemon options
     @type instance: L{objects.Instance}
     @param instance: Instance object
     @type timeouts: L{ImportExportTimeouts}
@@ -145,8 +143,7 @@ class _DiskImportExportBase(object):
 
     self._lu = lu
     self.node_name = node_name
-    self._x509_key_name = x509_key_name
-    self._remote_x509_ca = remote_x509_ca
+    self._opts = opts
     self._instance = instance
     self._timeouts = timeouts
     self._cbs = cbs
@@ -433,17 +430,15 @@ class _DiskImportExportBase(object):
 class DiskImport(_DiskImportExportBase):
   MODE_TEXT = "import"
 
-  def __init__(self, lu, node_name, x509_key_name, source_x509_ca, instance,
+  def __init__(self, lu, node_name, opts, instance,
                dest, dest_args, timeouts, cbs, private=None):
     """Initializes this class.
 
     @param lu: Logical unit instance
     @type node_name: string
     @param node_name: Node name for import
-    @type x509_key_name: string
-    @param x509_key_name: Name of X509 key (None for node daemon key)
-    @type source_x509_ca: string
-    @param source_x509_ca: Remote peer's CA (None for node daemon certificate)
+    @type opts: L{objects.ImportExportOptions}
+    @param opts: Import/export daemon options
     @type instance: L{objects.Instance}
     @param instance: Instance object
     @param dest: I/O destination
@@ -455,8 +450,7 @@ class DiskImport(_DiskImportExportBase):
     @param private: Private data for callback functions
 
     """
-    _DiskImportExportBase.__init__(self, lu, node_name,
-                                   x509_key_name, source_x509_ca,
+    _DiskImportExportBase.__init__(self, lu, node_name, opts,
                                    instance, timeouts, cbs, private)
     self._dest = dest
     self._dest_args = dest_args
@@ -478,9 +472,8 @@ class DiskImport(_DiskImportExportBase):
     """Starts the import daemon.
 
     """
-    return self._lu.rpc.call_import_start(self.node_name,
-                                          self._x509_key_name,
-                                          self._remote_x509_ca, self._instance,
+    return self._lu.rpc.call_import_start(self.node_name, self._opts,
+                                          self._instance,
                                           self._dest, self._dest_args)
 
   def CheckListening(self):
@@ -526,7 +519,7 @@ class DiskImport(_DiskImportExportBase):
 class DiskExport(_DiskImportExportBase):
   MODE_TEXT = "export"
 
-  def __init__(self, lu, node_name, x509_key_name, dest_x509_ca,
+  def __init__(self, lu, node_name, opts,
                dest_host, dest_port, instance, source, source_args,
                timeouts, cbs, private=None):
     """Initializes this class.
@@ -534,10 +527,8 @@ class DiskExport(_DiskImportExportBase):
     @param lu: Logical unit instance
     @type node_name: string
     @param node_name: Node name for import
-    @type x509_key_name: string
-    @param x509_key_name: Name of X509 key (None for node daemon key)
-    @type dest_x509_ca: string
-    @param dest_x509_ca: Remote peer's CA (None for node daemon certificate)
+    @type opts: L{objects.ImportExportOptions}
+    @param opts: Import/export daemon options
     @type dest_host: string
     @param dest_host: Destination host name or IP address
     @type dest_port: number
@@ -553,8 +544,7 @@ class DiskExport(_DiskImportExportBase):
     @param private: Private data for callback functions
 
     """
-    _DiskImportExportBase.__init__(self, lu, node_name,
-                                   x509_key_name, dest_x509_ca,
+    _DiskImportExportBase.__init__(self, lu, node_name, opts,
                                    instance, timeouts, cbs, private)
     self._dest_host = dest_host
     self._dest_port = dest_port
@@ -565,8 +555,7 @@ class DiskExport(_DiskImportExportBase):
     """Starts the export daemon.
 
     """
-    return self._lu.rpc.call_export_start(self.node_name, self._x509_key_name,
-                                          self._remote_x509_ca,
+    return self._lu.rpc.call_export_start(self.node_name, self._opts,
                                           self._dest_host, self._dest_port,
                                           self._instance, self._source,
                                           self._source_args)
@@ -819,10 +808,11 @@ class _TransferInstDestCb(_TransferInstCbBase):
 
     self.feedback_fn("%s is now listening, starting export" % dtp.data.name)
 
+    opts = objects.ImportExportOptions(key_name=None, ca_pem=None)
+
     # Start export on source node
-    de = DiskExport(self.lu, self.src_node, None, None, self.dest_ip,
-                    ie.listen_port, self.instance,
-                    dtp.data.src_io, dtp.data.src_ioargs,
+    de = DiskExport(self.lu, self.src_node, opts, self.dest_ip, ie.listen_port,
+                    self.instance, dtp.data.src_io, dtp.data.src_ioargs,
                     self.timeouts, self.src_cbs, private=dtp)
     ie.loop.Add(de)
 
@@ -924,6 +914,7 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
            each transfer
 
   """
+  opts = objects.ImportExportOptions(key_name=None, ca_pem=None)
   timeouts = ImportExportTimeouts(constants.DISK_TRANSFER_CONNECT_TIMEOUT)
   src_cbs = _TransferInstSourceCb(lu, feedback_fn, instance, timeouts,
                                   src_node, None, dest_node, dest_ip)
@@ -941,7 +932,7 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
 
         dtp = _DiskTransferPrivate(transfer, True)
 
-        di = DiskImport(lu, dest_node, None, None, instance,
+        di = DiskImport(lu, dest_node, opts, instance,
                         transfer.dest_io, transfer.dest_ioargs,
                         timeouts, dest_cbs, private=dtp)
         ieloop.Add(di)
@@ -1131,13 +1122,11 @@ class ExportInstanceHelper:
 
     return (fin_resu, dresults)
 
-  def RemoteExport(self, x509_key_name, dest_x509_ca, disk_info, timeouts):
+  def RemoteExport(self, opts, disk_info, timeouts):
     """Inter-cluster instance export.
 
-    @type x509_key_name: string
-    @param x509_key_name: X509 key name for encrypting data
-    @type dest_x509_ca: OpenSSL.crypto.X509
-    @param dest_x509_ca: Remote peer X509 CA object
+    @type opts: L{objects.ImportExportOptions}
+    @param opts: Import/export daemon options
     @type disk_info: list
     @param disk_info: Per-disk destination information
     @type timeouts: L{ImportExportTimeouts}
@@ -1150,9 +1139,6 @@ class ExportInstanceHelper:
 
     cbs = _RemoteExportCb(self._feedback_fn, len(instance.disks))
 
-    dest_ca_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                  dest_x509_ca)
-
     ieloop = ImportExportLoop(self._lu)
     try:
       for idx, (dev, (host, port, _, _)) in enumerate(zip(instance.disks,
@@ -1160,7 +1146,7 @@ class ExportInstanceHelper:
         self._feedback_fn("Sending disk %s to %s:%s" % (idx, host, port))
         finished_fn = compat.partial(self._TransferFinished, idx)
         ieloop.Add(DiskExport(self._lu, instance.primary_node,
-                              x509_key_name, dest_ca_pem, host, port, instance,
+                              opts, host, port, instance,
                               constants.IEIO_SCRIPT, (dev, idx),
                               timeouts, cbs, private=(idx, finished_fn)))
 
@@ -1316,6 +1302,10 @@ def RemoteImport(lu, feedback_fn, instance, source_x509_ca, cds, timeouts):
     x509_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                                 x509_cert_pem)
 
+    # Import daemon options
+    opts = objects.ImportExportOptions(key_name=x509_key_name,
+                                       ca_pem=source_ca_pem)
+
     # Sign certificate
     signed_x509_cert_pem = \
       utils.SignX509Certificate(x509_cert, cds, utils.GenerateSecret(8))
@@ -1326,8 +1316,7 @@ def RemoteImport(lu, feedback_fn, instance, source_x509_ca, cds, timeouts):
     ieloop = ImportExportLoop(lu)
     try:
       for idx, dev in enumerate(instance.disks):
-        ieloop.Add(DiskImport(lu, instance.primary_node,
-                              x509_key_name, source_ca_pem, instance,
+        ieloop.Add(DiskImport(lu, instance.primary_node, opts, instance,
                               constants.IEIO_SCRIPT, (dev, idx),
                               timeouts, cbs, private=(idx, )))
 

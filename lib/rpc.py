@@ -1202,8 +1202,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "x509_cert_remove", [name])
 
-  def call_import_start(self, node, x509_key_name, source_x509_ca,
-                        instance, dest, dest_args):
+  def call_import_start(self, node, opts, instance, dest, dest_args):
     """Starts a listener for an import.
 
     This is a single-node call.
@@ -1215,11 +1214,11 @@ class RpcRunner(object):
 
     """
     return self._SingleNodeCall(node, "import_start",
-                                [x509_key_name, source_x509_ca,
+                                [opts.ToDict(),
                                  self._InstDict(instance), dest,
                                  _EncodeImportExportIO(dest, dest_args)])
 
-  def call_export_start(self, node, x509_key_name, dest_x509_ca, host, port,
+  def call_export_start(self, node, opts, host, port,
                         instance, source, source_args):
     """Starts an export daemon.
 
@@ -1232,7 +1231,7 @@ class RpcRunner(object):
 
     """
     return self._SingleNodeCall(node, "export_start",
-                                [x509_key_name, dest_x509_ca, host, port,
+                                [opts.ToDict(), host, port,
                                  self._InstDict(instance), source,
                                  _EncodeImportExportIO(source, source_args)])
 

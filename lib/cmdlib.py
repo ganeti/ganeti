@@ -9190,9 +9190,15 @@ class LUExportInstance(LogicalUnit):
           timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
 
           (key_name, _, _) = self.x509_key_name
-          (fin_resu, dresults) = helper.RemoteExport(key_name,
-                                                     self.dest_x509_ca,
-                                                     self.op.target_node,
+
+          dest_ca_pem = \
+            OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                            self.dest_x509_ca)
+
+          opts = objects.ImportExportOptions(key_name=key_name,
+                                             ca_pem=dest_ca_pem)
+
+          (fin_resu, dresults) = helper.RemoteExport(opts, self.op.target_node,
                                                      timeouts)
       finally:
         helper.Cleanup()

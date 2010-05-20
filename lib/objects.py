@@ -1022,6 +1022,19 @@ class ImportExportStatus(ConfigObject):
     ] + _TIMESTAMPS
 
 
+class ImportExportOptions(ConfigObject):
+  """Options for import/export daemon
+
+  @ivar key_name: X509 key name (None for cluster certificate)
+  @ivar ca_pem: Remote peer CA in PEM format (None for cluster certificate)
+
+  """
+  __slots__ = [
+    "key_name",
+    "ca_pem",
+    ]
+
+
 class ConfdRequest(ConfigObject):
   """Object holding a confd request.
 
