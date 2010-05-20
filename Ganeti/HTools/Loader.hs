@@ -153,7 +153,7 @@ extractExTags =
     map (drop (length exTagsPrefix)) .
     filter (isPrefixOf exTagsPrefix)
 
--- | Extracts the common suffix from node/instance names
+-- | Extracts the common suffix from node\/instance names
 commonSuffix :: Node.List -> Instance.List -> String
 commonSuffix nl il =
     let node_names = map Node.name $ Container.elems nl
