@@ -743,7 +743,7 @@ class ImportExportLoop:
 
 class _TransferInstCbBase(ImportExportCbBase):
   def __init__(self, lu, feedback_fn, instance, timeouts, src_node, src_cbs,
-               dest_node, dest_ip):
+               dest_node, dest_ip, export_opts):
     """Initializes this class.
 
     """
@@ -757,6 +757,7 @@ class _TransferInstCbBase(ImportExportCbBase):
     self.src_cbs = src_cbs
     self.dest_node = dest_node
     self.dest_ip = dest_ip
+    self.export_opts = export_opts
 
 
 class _TransferInstSourceCb(_TransferInstCbBase):
@@ -808,10 +809,9 @@ class _TransferInstDestCb(_TransferInstCbBase):
 
     self.feedback_fn("%s is now listening, starting export" % dtp.data.name)
 
-    opts = objects.ImportExportOptions(key_name=None, ca_pem=None)
-
     # Start export on source node
-    de = DiskExport(self.lu, self.src_node, opts, self.dest_ip, ie.listen_port,
+    de = DiskExport(self.lu, self.src_node, self.export_opts,
+                    self.dest_ip, ie.listen_port,
                     self.instance, dtp.data.src_io, dtp.data.src_ioargs,
                     self.timeouts, self.src_cbs, private=dtp)
     ie.loop.Add(de)
@@ -914,12 +914,23 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
            each transfer
 
   """
-  opts = objects.ImportExportOptions(key_name=None, ca_pem=None)
+  # Compress only if transfer is to another node
+  if src_node == dest_node:
+    compress = constants.IEC_NONE
+  else:
+    compress = constants.IEC_GZIP
+
+  logging.debug("Source node %s, destination node %s, compression '%s'",
+                src_node, dest_node, compress)
+
+  opts = objects.ImportExportOptions(key_name=None, ca_pem=None,
+                                     compress=compress)
+
   timeouts = ImportExportTimeouts(constants.DISK_TRANSFER_CONNECT_TIMEOUT)
   src_cbs = _TransferInstSourceCb(lu, feedback_fn, instance, timeouts,
-                                  src_node, None, dest_node, dest_ip)
+                                  src_node, None, dest_node, dest_ip, opts)
   dest_cbs = _TransferInstDestCb(lu, feedback_fn, instance, timeouts,
-                                 src_node, src_cbs, dest_node, dest_ip)
+                                 src_node, src_cbs, dest_node, dest_ip, opts)
 
   all_dtp = []
 

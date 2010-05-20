@@ -2697,6 +2697,9 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
     if port:
       cmd.append("--port=%s" % port)
 
+    if opts.compress:
+      cmd.append("--compress=%s" % opts.compress)
+
     if cmd_prefix:
       cmd.append("--cmd-prefix=%s" % cmd_prefix)
 
