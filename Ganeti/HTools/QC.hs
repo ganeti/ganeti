@@ -36,6 +36,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Batch
 import Data.Maybe
 import qualified Data.Map
+import qualified Data.IntMap as IntMap
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -47,6 +48,8 @@ import qualified Ganeti.HTools.PeerMap as PeerMap
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
+
+-- * Constants
 
 -- | Maximum memory (1TiB, somewhat random value)
 maxMem :: Int
@@ -60,6 +63,8 @@ maxDsk = 1024 * 1024 * 8
 maxCpu :: Int
 maxCpu = 1024
 
+-- * Helper functions
+
 -- | Simple checker for whether OpResult is fail or pass
 isFailure :: Types.OpResult a -> Bool
 isFailure (Types.OpFail _) = True
@@ -69,6 +74,36 @@ isFailure _ = False
 isOk :: Types.Result a -> Bool
 isOk (Types.Ok _ ) = True
 isOk _ = False
+
+-- | Update an instance to be smaller than a node
+setInstanceSmallerThanNode node inst =
+    inst { Instance.mem = (Node.availMem node) `div` 2
+         , Instance.dsk = (Node.availDisk node) `div` 2
+         , Instance.vcpus = (Node.availCpu node) `div` 2
+         }
+
+-- | Create an instance given its spec
+createInstance mem dsk vcpus =
+    Instance.create "inst-unnamed" mem dsk vcpus "running" [] (-1) (-1)
+
+-- | Create a small cluster by repeating a node spec
+makeSmallCluster :: Node.Node -> Int -> Node.List
+makeSmallCluster node count =
+    let fn = Node.buildPeers node Container.empty
+        namelst = map (\n -> (Node.name n, n)) (replicate count fn)
+        (_, nlst) = Loader.assignIndices namelst
+    in Container.fromAssocList nlst
+
+-- | Checks if a node is "big" enough
+isNodeBig :: Node.Node -> Int -> Bool
+isNodeBig node size = Node.availDisk node > size * Types.unitDsk
+                      && Node.availMem node > size * Types.unitMem
+                      && Node.availCpu node > size * Types.unitCpu
+
+canBalance :: Cluster.Table -> Bool -> Bool -> Bool
+canBalance tbl dm evac = isJust $ Cluster.tryBalance tbl dm evac
+
+-- * Arbitrary instances
 
 -- copied from the introduction to quickcheck
 instance Arbitrary Char where
@@ -105,11 +140,7 @@ instance Arbitrary Node.Node where
           n' = Node.buildPeers n Container.empty
       return n'
 
-setInstanceSmallerThanNode node inst =
-    inst { Instance.mem = (Node.availMem node) `div` 2
-         , Instance.dsk = (Node.availDisk node) `div` 2
-         , Instance.vcpus = (Node.availCpu node) `div` 2
-         }
+-- * Actual tests
 
 -- | Make sure add is idempotent
 prop_PeerMap_addIdempotent pmap key em =
@@ -394,7 +425,7 @@ prop_Score_Zero node count =
 -- | Check that cluster stats are sane
 prop_CStats_sane node count =
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
-     (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
+     (Node.availDisk node > 0) && (Node.availMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
         nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]
         nl = Container.fromAssocList nlst
@@ -402,7 +433,102 @@ prop_CStats_sane node count =
     in Cluster.csAdsk cstats >= 0 &&
        Cluster.csAdsk cstats <= Cluster.csFdsk cstats
 
+-- | Check that one instance is allocated correctly, without
+-- rebalances needed
+prop_ClusterAlloc_sane node inst =
+    forAll (choose (5, 20)) $ \count ->
+    not (Node.offline node)
+            && not (Node.failN1 node)
+            && Node.availDisk node > 0
+            && Node.availMem node > 0
+            ==>
+    let nl = makeSmallCluster node count
+        il = Container.empty
+        rqnodes = 2
+        inst' = setInstanceSmallerThanNode node inst
+    in case Cluster.tryAlloc nl il inst' rqnodes of
+         Types.Bad _ -> False
+         Types.Ok (errs, _, sols3) ->
+             case sols3 of
+               [] -> False
+               (_, (xnl, xi, _)):[] ->
+                   let cv = Cluster.compCV xnl
+                       il' = Container.add (Instance.idx xi) xi il
+                       tbl = Cluster.Table xnl il' cv []
+                   in not (canBalance tbl True False)
+               _ -> False
+
+-- | Checks that on a 2-5 node cluster, we can allocate a random
+-- instance spec via tiered allocation (whatever the original instance
+-- spec), on either one or two nodes
+prop_ClusterCanTieredAlloc node inst =
+    forAll (choose (2, 5)) $ \count ->
+    forAll (choose (1, 2)) $ \rqnodes ->
+    not (Node.offline node)
+            && not (Node.failN1 node)
+            && isNodeBig node 4
+            ==>
+    let nl = makeSmallCluster node count
+        il = Container.empty
+    in case Cluster.tieredAlloc nl il inst rqnodes [] of
+         Types.Bad _ -> False
+         Types.Ok (_, _, ixes) -> not (null ixes)
+
+-- | Checks that on a 4-8 node cluster, once we allocate an instance,
+-- we can also evacuate it
+prop_ClusterAllocEvac node inst =
+    forAll (choose (4, 8)) $ \count ->
+    not (Node.offline node)
+            && not (Node.failN1 node)
+            && isNodeBig node 4
+            ==>
+    let nl = makeSmallCluster node count
+        il = Container.empty
+        rqnodes = 2
+        inst' = setInstanceSmallerThanNode node inst
+    in case Cluster.tryAlloc nl il inst' rqnodes of
+         Types.Bad _ -> False
+         Types.Ok (errs, _, sols3) ->
+             case sols3 of
+               [] -> False
+               (_, (xnl, xi, _)):[] ->
+                   let sdx = Instance.sNode xi
+                       il' = Container.add (Instance.idx xi) xi il
+                   in case Cluster.tryEvac xnl il' [sdx] of
+                        Just _ -> True
+                        _ -> False
+               _ -> False
+
+-- | Check that allocating multiple instances on a cluster, then
+-- adding an empty node, results in a valid rebalance
+prop_ClusterAllocBalance node =
+    forAll (choose (3, 5)) $ \count ->
+    not (Node.offline node)
+            && not (Node.failN1 node)
+            && isNodeBig node 4
+            && not (isNodeBig node 8)
+            ==>
+    let nl = makeSmallCluster node count
+        (hnode, nl') = IntMap.deleteFindMax nl
+        il = Container.empty
+        rqnodes = 2
+        i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
+    in case Cluster.iterateAlloc nl' il i_templ rqnodes [] of
+         Types.Bad _ -> False
+         Types.Ok (_, xnl, insts) ->
+                   let ynl = Container.add (Node.idx hnode) hnode xnl
+                       cv = Cluster.compCV ynl
+                       il' = foldl (\l i ->
+                                        Container.add (Instance.idx i) i l)
+                             il insts
+                       tbl = Cluster.Table ynl il' cv []
+                   in canBalance tbl True False
+
 testCluster =
     [ run prop_Score_Zero
     , run prop_CStats_sane
+    , run prop_ClusterAlloc_sane
+    , run prop_ClusterCanTieredAlloc
+    , run prop_ClusterAllocEvac
+    , run prop_ClusterAllocBalance
     ]

@@ -476,18 +476,16 @@ checkMove nodes_idx disk_moves ini_tbl victims =
        else best_tbl
 
 -- | Check if we are allowed to go deeper in the balancing
-
-doNextBalance :: Table       -- ^ The starting table
-              -> Int         -- ^ Remaining length
-              -> Score       -- ^ Score at which to stop
-              -> Bool -- ^ The resulting table and commands
+doNextBalance :: Table     -- ^ The starting table
+              -> Int       -- ^ Remaining length
+              -> Score     -- ^ Score at which to stop
+              -> Bool      -- ^ The resulting table and commands
 doNextBalance ini_tbl max_rounds min_score =
     let Table _ _ ini_cv ini_plc = ini_tbl
         ini_plc_len = length ini_plc
     in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
 
 -- | Run a balance move
-
 tryBalance :: Table       -- ^ The starting table
            -> Bool        -- ^ Allow disk moves
            -> Bool        -- ^ Only evacuate moves
@@ -599,7 +597,7 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
                                 \destinations required (" ++ show reqn ++
                                                   "), only one supported"
 
--- | Try to allocate an instance on the cluster.
+-- | Try to evacuate a list of nodes.
 tryEvac :: (Monad m) =>
             Node.List       -- ^ The node list
          -> Instance.List   -- ^ The instance list
