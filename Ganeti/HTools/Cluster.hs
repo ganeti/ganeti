@@ -59,6 +59,9 @@ module Ganeti.HTools.Cluster
     , tryReloc
     , tryEvac
     , collapseFailures
+    -- * Allocation functions
+    , iterateAlloc
+    , tieredAlloc
     ) where
 
 import Data.List
@@ -616,6 +619,44 @@ tryEvac nl il ex_ndx =
                                   show idx
                         ) (nl, ([], 0, [])) all_insts
       return sol
+
+-- | Recursively place instances on the cluster until we're out of space
+iterateAlloc :: Node.List
+             -> Instance.List
+             -> Instance.Instance
+             -> Int
+             -> [Instance.Instance]
+             -> Result (FailStats, Node.List, [Instance.Instance])
+iterateAlloc nl il newinst nreq ixes =
+      let depth = length ixes
+          newname = printf "new-%d" depth::String
+          newidx = length (Container.elems il) + depth
+          newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
+      in case tryAlloc nl il newi2 nreq of
+           Bad s -> Bad s
+           Ok (errs, _, sols3) ->
+               case sols3 of
+                 [] -> Ok (collapseFailures errs, nl, ixes)
+                 (_, (xnl, xi, _)):[] ->
+                     iterateAlloc xnl il newinst nreq $! (xi:ixes)
+                 _ -> Bad "Internal error: multiple solutions for single\
+                          \ allocation"
+
+tieredAlloc :: Node.List
+            -> Instance.List
+            -> Instance.Instance
+            -> Int
+            -> [Instance.Instance]
+            -> Result (FailStats, Node.List, [Instance.Instance])
+tieredAlloc nl il newinst nreq ixes =
+    case iterateAlloc nl il newinst nreq ixes of
+      Bad s -> Bad s
+      Ok (errs, nl', ixes') ->
+          case Instance.shrinkByType newinst . fst . last $
+               sortBy (comparing snd) errs of
+            Bad _ -> Ok (errs, nl', ixes')
+            Ok newinst' ->
+                tieredAlloc nl' il newinst' nreq ixes'
 
 -- * Formatting functions
 

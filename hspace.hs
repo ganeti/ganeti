@@ -117,45 +117,6 @@ clusterData = [ ("MEM", printf "%.0f" . Cluster.csTmem)
               , ("VCPU", printf "%d" . Cluster.csVcpu)
               ]
 
--- | Recursively place instances on the cluster until we're out of space
-iterateDepth :: Node.List
-             -> Instance.List
-             -> Instance.Instance
-             -> Int
-             -> [Instance.Instance]
-             -> Result (FailStats, Node.List, [Instance.Instance])
-iterateDepth nl il newinst nreq ixes =
-      let depth = length ixes
-          newname = printf "new-%d" depth::String
-          newidx = length (Container.elems il) + depth
-          newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
-      in case Cluster.tryAlloc nl il newi2 nreq of
-           Bad s -> Bad s
-           Ok (errs, _, sols3) ->
-               case sols3 of
-                 [] -> Ok (Cluster.collapseFailures errs, nl, ixes)
-                 (_, (xnl, xi, _)):[] ->
-                     iterateDepth xnl il newinst nreq $! (xi:ixes)
-                 _ -> Bad "Internal error: multiple solutions for single\
-                          \ allocation"
-
-tieredAlloc :: Node.List
-            -> Instance.List
-            -> Instance.Instance
-            -> Int
-            -> [Instance.Instance]
-            -> Result (FailStats, Node.List, [Instance.Instance])
-tieredAlloc nl il newinst nreq ixes =
-    case iterateDepth nl il newinst nreq ixes of
-      Bad s -> Bad s
-      Ok (errs, nl', ixes') ->
-          case Instance.shrinkByType newinst . fst . last $
-               sortBy (comparing snd) errs of
-            Bad _ -> Ok (errs, nl', ixes')
-            Ok newinst' ->
-                tieredAlloc nl' il newinst' nreq ixes'
-
-
 -- | Function to print stats for a given phase
 printStats :: Phase -> Cluster.CStats -> [(String, String)]
 printStats ph cs =
@@ -320,7 +281,8 @@ main = do
        (_, trl_nl, trl_ixes) <-
            if stop_allocation
            then return result_noalloc
-           else exitifbad (tieredAlloc nl il (iofspec tspec) req_nodes [])
+           else exitifbad (Cluster.tieredAlloc nl il (iofspec tspec)
+                                  req_nodes [])
        let fin_trl_ixes = reverse trl_ixes
            ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
            spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
@@ -350,7 +312,7 @@ main = do
   (ereason, fin_nl, ixes) <-
       if stop_allocation
       then return result_noalloc
-      else exitifbad (iterateDepth nl il reqinst req_nodes [])
+      else exitifbad (Cluster.iterateAlloc nl il reqinst req_nodes [])
 
   let allocs = length ixes
       fin_ixes = reverse ixes
