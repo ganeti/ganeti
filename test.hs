@@ -36,7 +36,7 @@ import Ganeti.HTools.QC
 options :: TestOptions
 options = TestOptions
       { no_of_tests         = 500
-      , length_of_tests     = 5
+      , length_of_tests     = 10
       , debug_tests         = False }
 
 

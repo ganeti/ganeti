@@ -52,9 +52,9 @@ import qualified Ganeti.HTools.Utils as Utils
 maxMem :: Int
 maxMem = 1024 * 1024
 
--- | Maximum disk (1PiB, somewhat random value)
+-- | Maximum disk (8TiB, somewhat random value)
 maxDsk :: Int
-maxDsk = 1024 * 1024 * 1024
+maxDsk = 1024 * 1024 * 8
 
 -- | Max CPUs (1024, somewhat random value)
 maxCpu :: Int
