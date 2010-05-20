@@ -147,9 +147,6 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
       # new watch. This is not a race condition, though, since we're anyway
       # going to realod the file after setting up the new watch.
       self.callback(False)
-    except errors.ConfdFatalError, err:
-      logging.critical("Critical error, shutting down: %s", err)
-      sys.exit(constants.EXIT_FAILURE)
     except:
       # we need to catch any exception here, log it, but proceed, because even
       # if we failed handling a single request, we still want the confd to
@@ -165,9 +162,6 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
 
     try:
       self.callback(True)
-    except errors.ConfdFatalError, err:
-      logging.critical("Critical error, shutting down: %s", err)
-      sys.exit(constants.EXIT_FAILURE)
     except:
       # we need to catch any exception here, log it, but proceed, because even
       # if we failed handling a single request, we still want the confd to
