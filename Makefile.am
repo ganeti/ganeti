@@ -22,6 +22,7 @@ httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
+impexpddir = $(pkgpythondir)/impexpd
 toolsdir = $(pkglibdir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
 
@@ -40,6 +41,7 @@ DIRS = \
 	lib/confd \
 	lib/http \
 	lib/hypervisor \
+	lib/impexpd \
 	lib/masterd \
 	lib/rapi \
 	man \
@@ -147,6 +149,9 @@ confd_PYTHON = \
 masterd_PYTHON = \
 	lib/masterd/__init__.py \
 	lib/masterd/instance.py
+
+impexpd_PYTHON = \
+	lib/impexpd/__init__.py
 
 docrst = \
 	doc/admin.rst \
@@ -350,6 +355,7 @@ python_tests = \
 	test/ganeti.errors_unittest.py \
 	test/ganeti.hooks_unittest.py \
 	test/ganeti.http_unittest.py \
+	test/ganeti.impexpd_unittest.py \
 	test/ganeti.locking_unittest.py \
 	test/ganeti.luxi_unittest.py \
 	test/ganeti.masterd.instance_unittest.py \
@@ -397,6 +403,7 @@ all_python_code = \
 	$(http_PYTHON) \
 	$(confd_PYTHON) \
 	$(masterd_PYTHON) \
+	$(impexpd_PYTHON) \
 	$(noinst_PYTHON)
 
 srclink_files = \
