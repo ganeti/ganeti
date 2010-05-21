@@ -31,6 +31,7 @@ try:
 except ImportError:
   import pyinotify
 
+from ganeti import daemon
 from ganeti import errors
 
 # We contributed the AsyncNotifier class back to python-pyinotify, and it's
@@ -63,6 +64,16 @@ class AsyncNotifier(asyncore.file_dispatcher):
   def handle_read(self):
     self.notifier.read_events()
     self.notifier.process_events()
+
+
+class ErrorLoggingAsyncNotifier(AsyncNotifier,
+                                daemon.GanetiBaseAsyncoreDispatcher):
+  """An asyncnotifier that can survive errors in the callbacks.
+
+  We define this as a separate class, since we don't want to make AsyncNotifier
+  diverge from what we contributed upstream.
+
+  """
 
 
 class SingleFileEventHandler(pyinotify.ProcessEvent):

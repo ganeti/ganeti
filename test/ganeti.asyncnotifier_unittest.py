@@ -57,8 +57,8 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
                                                           self.cbk[i],
                                                           self.chk_files[i])
                       for i in range(len(self.NOTIFIERS))]
-    self.notifiers = [asyncnotifier.AsyncNotifier(self.wms[i],
-                                                  self.ihandler[i])
+    self.notifiers = [asyncnotifier.ErrorLoggingAsyncNotifier(self.wms[i],
+                                                              self.ihandler[i])
                        for i in range(len(self.NOTIFIERS))]
     # TERM notifier is enabled by default, as we use it to get out of the loop
     self.ihandler[self.NOTIFIER_TERM].enable()
