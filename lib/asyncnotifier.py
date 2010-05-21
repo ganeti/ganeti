@@ -133,14 +133,7 @@ class SingleFileEventHandler(pyinotify.ProcessEvent):
     # by the callback by calling "enable" again on us.
     logging.debug("Received 'ignored' inotify event for %s", event.path)
     self.watch_handle = None
-
-    try:
-      self.callback(False)
-    except: # pylint: disable-msg=W0702
-      # we need to catch any exception here, log it, but proceed, because even
-      # if we failed handling a single request, we still want our daemon to
-      # proceed.
-      logging.error("Unexpected exception", exc_info=True)
+    self.callback(False)
 
   # pylint: disable-msg=C0103
   # this overrides a method in pyinotify.ProcessEvent
@@ -150,14 +143,7 @@ class SingleFileEventHandler(pyinotify.ProcessEvent):
     # replacing any file with a new one, at filesystem level, rather than
     # actually changing it. (see utils.WriteFile)
     logging.debug("Received 'modify' inotify event for %s", event.path)
-
-    try:
-      self.callback(True)
-    except: # pylint: disable-msg=W0702
-      # we need to catch any exception here, log it, but proceed, because even
-      # if we failed handling a single request, we still want our daemon to
-      # proceed.
-      logging.error("Unexpected exception", exc_info=True)
+    self.callback(True)
 
   def process_default(self, event):
     logging.error("Received unhandled inotify event: %s", event)
