@@ -320,6 +320,7 @@ TEST_FILES = \
 	test/data/proc_drbd83.txt
 
 python_tests = \
+	test/ganeti.asyncnotifier_unittest.py \
 	test/ganeti.backend_unittest.py \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
