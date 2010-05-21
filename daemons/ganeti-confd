@@ -88,96 +88,6 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
         logging.error("Reply too big to fit in an udp packet.")
 
 
-class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
-
-  def __init__(self, watch_manager, callback,
-               filename=constants.CLUSTER_CONF_FILE):
-    """Constructor for ConfdInotifyEventHandler
-
-    @type watch_manager: pyinotify.WatchManager
-    @param watch_manager: ganeti-confd inotify watch manager
-    @type callback: function accepting a boolean
-    @param callback: function to call when an inotify event happens
-    @type filename: string
-    @param filename: config file to watch
-
-    """
-    # pylint: disable-msg=W0231
-    # no need to call the parent's constructor
-    self.watch_manager = watch_manager
-    self.callback = callback
-    self.mask = pyinotify.EventsCodes.ALL_FLAGS["IN_IGNORED"] | \
-                pyinotify.EventsCodes.ALL_FLAGS["IN_MODIFY"]
-    self.file = filename
-    self.watch_handle = None
-
-  def enable(self):
-    """Watch the given file
-
-    """
-    if self.watch_handle is None:
-      result = self.watch_manager.add_watch(self.file, self.mask)
-      if not self.file in result or result[self.file] <= 0:
-        raise errors.InotifyError("Could not add inotify watcher")
-      else:
-        self.watch_handle = result[self.file]
-
-  def disable(self):
-    """Stop watching the given file
-
-    """
-    if self.watch_handle is not None:
-      result = self.watch_manager.rm_watch(self.watch_handle)
-      if result[self.watch_handle]:
-        self.watch_handle = None
-
-  def process_IN_IGNORED(self, event):
-    # Due to the fact that we monitor just for the cluster config file (rather
-    # than for the whole data dir) when the file is replaced with another one
-    # (which is what happens normally in ganeti) we're going to receive an
-    # IN_IGNORED event from inotify, because of the file removal (which is
-    # contextual with the replacement). In such a case we need to create
-    # another watcher for the "new" file.
-    logging.debug("Received 'ignored' inotify event for %s", event.path)
-    self.watch_handle = None
-
-    try:
-      # Since the kernel believes the file we were interested in is gone, it's
-      # not going to notify us of any other events, until we set up, here, the
-      # new watch. This is not a race condition, though, since we're anyway
-      # going to realod the file after setting up the new watch.
-      self.callback(False)
-    except errors.ConfdFatalError, err:
-      logging.critical("Critical error, shutting down: %s", err)
-      sys.exit(constants.EXIT_FAILURE)
-    except:
-      # we need to catch any exception here, log it, but proceed, because even
-      # if we failed handling a single request, we still want the confd to
-      # continue working.
-      logging.error("Unexpected exception", exc_info=True)
-
-  def process_IN_MODIFY(self, event):
-    # This gets called when the config file is modified. Note that this doesn't
-    # usually happen in Ganeti, as the config file is normally replaced by a
-    # new one, at filesystem level, rather than actually modified (see
-    # utils.WriteFile)
-    logging.debug("Received 'modify' inotify event for %s", event.path)
-
-    try:
-      self.callback(True)
-    except errors.ConfdFatalError, err:
-      logging.critical("Critical error, shutting down: %s", err)
-      sys.exit(constants.EXIT_FAILURE)
-    except:
-      # we need to catch any exception here, log it, but proceed, because even
-      # if we failed handling a single request, we still want the confd to
-      # continue working.
-      logging.error("Unexpected exception", exc_info=True)
-
-  def process_default(self, event):
-    logging.error("Received unhandled inotify event: %s", event)
-
-
 class ConfdConfigurationReloader(object):
   """Logic to control when to reload the ganeti configuration
 
@@ -202,8 +112,11 @@ class ConfdConfigurationReloader(object):
     self.last_notification = 0
 
     # Asyncronous inotify handler for config changes
+    cfg_file = constants.CLUSTER_CONF_FILE
     self.wm = pyinotify.WatchManager()
-    self.inotify_handler = ConfdInotifyEventHandler(self.wm, self.OnInotify)
+    self.inotify_handler = asyncnotifier.SingleFileEventHandler(self.wm,
+                                                                self.OnInotify,
+                                                                cfg_file)
     self.notifier = asyncnotifier.AsyncNotifier(self.wm, self.inotify_handler)
 
     self.timer_handle = None

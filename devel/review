@@ -196,14 +196,31 @@ copy_commit() {
   GIT_EDITOR="$me --commit-editor \"\$@\"" git commit -c "$rev" -s
 }
 
-main() {
-  local range="$1" target_branch="$2"
+usage() {
+  echo "Usage: $me_plain [from..to] <target-branch>" >&2
+  echo "  If not passed from..to defaults to target-branch..HEAD" >&2
+  exit 1
+}
 
-  if [[ -z "$target_branch" || "$range" != *..* ]]
-  then
-    echo "Usage: $me_plain <from..to> <target-branch>" >&2
-    exit 1
-  fi
+main() {
+  local range target_branch
+
+  case "$#" in
+  1)
+    target_branch="$1"
+    range="$target_branch..$(git rev-parse HEAD)"
+  ;;
+  2)
+    range="$1"
+    target_branch="$2"
+    if [[ "$range" != *..* ]]; then
+      usage
+    fi
+  ;;
+  *)
+    usage
+  ;;
+  esac
 
   git checkout "$target_branch"
   local old_head=$(git rev-parse HEAD)

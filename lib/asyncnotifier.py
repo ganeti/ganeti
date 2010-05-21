@@ -23,6 +23,7 @@
 
 
 import asyncore
+import logging
 
 try:
   # pylint: disable-msg=E0611
@@ -30,7 +31,11 @@ try:
 except ImportError:
   import pyinotify
 
+from ganeti import errors
 
+# We contributed the AsyncNotifier class back to python-pyinotify, and it's
+# part of their codebase since version 0.8.7. This code can be removed once
+# we'll be ready to depend on python-pyinotify >= 0.8.7
 class AsyncNotifier(asyncore.file_dispatcher):
   """An asyncore dispatcher for inotify events.
 
@@ -58,3 +63,93 @@ class AsyncNotifier(asyncore.file_dispatcher):
   def handle_read(self):
     self.notifier.read_events()
     self.notifier.process_events()
+
+
+class SingleFileEventHandler(pyinotify.ProcessEvent):
+  """Handle modify events for a single file.
+
+  """
+
+  def __init__(self, watch_manager, callback, filename):
+    """Constructor for SingleFileEventHandler
+
+    @type watch_manager: pyinotify.WatchManager
+    @param watch_manager: inotify watch manager
+    @type callback: function accepting a boolean
+    @param callback: function to call when an inotify event happens
+    @type filename: string
+    @param filename: config file to watch
+
+    """
+    # pylint: disable-msg=W0231
+    # no need to call the parent's constructor
+    self.watch_manager = watch_manager
+    self.callback = callback
+    self.mask = pyinotify.EventsCodes.ALL_FLAGS["IN_IGNORED"] | \
+                pyinotify.EventsCodes.ALL_FLAGS["IN_MODIFY"]
+    self.file = filename
+    self.watch_handle = None
+
+  def enable(self):
+    """Watch the given file
+
+    """
+    if self.watch_handle is None:
+      result = self.watch_manager.add_watch(self.file, self.mask)
+      if not self.file in result or result[self.file] <= 0:
+        raise errors.InotifyError("Could not add inotify watcher")
+      else:
+        self.watch_handle = result[self.file]
+
+  def disable(self):
+    """Stop watching the given file
+
+    """
+    if self.watch_handle is not None:
+      result = self.watch_manager.rm_watch(self.watch_handle)
+      if result[self.watch_handle]:
+        self.watch_handle = None
+
+  # pylint: disable-msg=C0103
+  # this overrides a method in pyinotify.ProcessEvent
+  def process_IN_IGNORED(self, event):
+    # Due to the fact that we monitor just for the cluster config file (rather
+    # than for the whole data dir) when the file is replaced with another one
+    # (which is what happens normally in ganeti) we're going to receive an
+    # IN_IGNORED event from inotify, because of the file removal (which is
+    # contextual with the replacement). In such a case we need to create
+    # another watcher for the "new" file.
+    logging.debug("Received 'ignored' inotify event for %s", event.path)
+    self.watch_handle = None
+
+    try:
+      # Since the kernel believes the file we were interested in is gone, it's
+      # not going to notify us of any other events, until we set up, here, the
+      # new watch. This is not a race condition, though, since we're anyway
+      # going to realod the file after setting up the new watch.
+      self.callback(False)
+    except: # pylint: disable-msg=W0702
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed handling a single request, we still want our daemon to
+      # proceed.
+      logging.error("Unexpected exception", exc_info=True)
+
+  # pylint: disable-msg=C0103
+  # this overrides a method in pyinotify.ProcessEvent
+  def process_IN_MODIFY(self, event):
+    # This gets called when the config file is modified. Note that this doesn't
+    # usually happen in Ganeti, as the config file is normally replaced by a
+    # new one, at filesystem level, rather than actually modified (see
+    # utils.WriteFile)
+    logging.debug("Received 'modify' inotify event for %s", event.path)
+
+    try:
+      self.callback(True)
+    except: # pylint: disable-msg=W0702
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed handling a single request, we still want our daemon to
+      # proceed.
+      logging.error("Unexpected exception", exc_info=True)
+
+  def process_default(self, event):
+    logging.error("Received unhandled inotify event: %s", event)

@@ -305,15 +305,6 @@ class JobQueueFull(JobQueueError):
   """
 
 
-class ConfdFatalError(GenericError):
-  """A fatal failure in Ganeti confd.
-
-  Events that compromise the ability of confd to proceed further.
-  (for example: inability to load the config file)
-
-  """
-
-
 class ConfdRequestError(GenericError):
   """A request error in Ganeti confd.
 
