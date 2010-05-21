@@ -34,14 +34,27 @@ except ImportError:
 from ganeti import asyncnotifier
 from ganeti import daemon
 from ganeti import utils
+from ganeti import errors
 
 import testutils
+
+
+class _MyErrorLoggingAsyncNotifier(asyncnotifier.ErrorLoggingAsyncNotifier):
+  def __init__(self, *args, **kwargs):
+    asyncnotifier.ErrorLoggingAsyncNotifier.__init__(self, *args, **kwargs)
+    self.error_count = 0
+
+  def handle_error(self):
+    self.error_count += 1
+    # We should also terminate while handling an error, so that any unexpected
+    # error is registered and can be checked.
+    os.kill(os.getpid(), signal.SIGTERM)
 
 
 class TestSingleFileEventHandler(testutils.GanetiTestCase):
   """Test daemon.Mainloop"""
 
-  NOTIFIERS = [NOTIFIER_TERM, NOTIFIER_NORM] = range(2)
+  NOTIFIERS = [NOTIFIER_TERM, NOTIFIER_NORM, NOTIFIER_ERR] = range(3)
 
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
@@ -57,8 +70,8 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
                                                           self.cbk[i],
                                                           self.chk_files[i])
                       for i in range(len(self.NOTIFIERS))]
-    self.notifiers = [asyncnotifier.ErrorLoggingAsyncNotifier(self.wms[i],
-                                                              self.ihandler[i])
+    self.notifiers = [_MyErrorLoggingAsyncNotifier(self.wms[i],
+                                                   self.ihandler[i])
                        for i in range(len(self.NOTIFIERS))]
     # TERM notifier is enabled by default, as we use it to get out of the loop
     self.ihandler[self.NOTIFIER_TERM].enable()
@@ -73,12 +86,16 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
       self.notified[self.i] = True
       if self.i == self.testobj.NOTIFIER_TERM:
         os.kill(os.getpid(), signal.SIGTERM)
+      elif self.i == self.testobj.NOTIFIER_ERR:
+        raise errors.GenericError("an error")
 
   def testReplace(self):
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
     self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testEnableDisable(self):
     self.ihandler[self.NOTIFIER_TERM].enable()
@@ -91,6 +108,8 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
     self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testDoubleEnable(self):
     self.ihandler[self.NOTIFIER_TERM].enable()
@@ -99,6 +118,8 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
     self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testDefaultDisabled(self):
     utils.WriteFile(self.chk_files[self.NOTIFIER_NORM], data="dummy")
@@ -107,6 +128,8 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     self.assert_(self.notified[self.NOTIFIER_TERM])
     # NORM notifier is disabled by default
     self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
   def testBothEnabled(self):
     self.ihandler[self.NOTIFIER_NORM].enable()
@@ -115,6 +138,17 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
     self.assert_(self.notified[self.NOTIFIER_NORM])
+    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+
+  def testError(self):
+    self.ihandler[self.NOTIFIER_ERR].enable()
+    utils.WriteFile(self.chk_files[self.NOTIFIER_ERR], data="dummy")
+    self.mainloop.Run()
+    self.assert_(self.notified[self.NOTIFIER_ERR])
+    self.assertEquals(self.notifiers[self.NOTIFIER_ERR].error_count, 1)
+    self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
+    self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
 
 
 if __name__ == "__main__":
