@@ -30,10 +30,8 @@ import errno
 import logging
 import optparse
 import os
-import re
 import select
 import signal
-import socket
 import subprocess
 import sys
 import time
@@ -46,30 +44,6 @@ from ganeti import objects
 from ganeti import locking
 from ganeti import impexpd
 
-
-#: Used to recognize point at which socat(1) starts to listen on its socket.
-#: The local address is required for the remote peer to connect (in particular
-#: the port number).
-LISTENING_RE = re.compile(r"^listening on\s+"
-                          r"AF=(?P<family>\d+)\s+"
-                          r"(?P<address>.+):(?P<port>\d+)$", re.I)
-
-#: Used to recognize point at which socat(1) is sending data over the wire
-TRANSFER_LOOP_RE = re.compile(r"^starting data transfer loop with FDs\s+.*$",
-                              re.I)
-
-SOCAT_LOG_DEBUG = "D"
-SOCAT_LOG_INFO = "I"
-SOCAT_LOG_NOTICE = "N"
-SOCAT_LOG_WARNING = "W"
-SOCAT_LOG_ERROR = "E"
-SOCAT_LOG_FATAL = "F"
-
-SOCAT_LOG_IGNORE = frozenset([
-  SOCAT_LOG_DEBUG,
-  SOCAT_LOG_INFO,
-  SOCAT_LOG_NOTICE,
-  ])
 
 #: How many lines to keep in the status file
 MAX_RECENT_OUTPUT_LINES = 20
@@ -86,10 +60,6 @@ DEFAULT_CONNECT_TIMEOUT = 60
 
 # Global variable for options
 options = None
-
-
-class Error(Exception):
-  """Generic exception"""
 
 
 def SetupLogging():
@@ -118,22 +88,6 @@ def SetupLogging():
   child_logger.setLevel(logging.NOTSET)
 
   return child_logger
-
-
-def _VerifyListening(family, address, port):
-  """Verify address given as listening address by socat.
-
-  """
-  # TODO: Implement IPv6 support
-  if family != socket.AF_INET:
-    raise Error("Address family %r not supported" % family)
-
-  try:
-    packed_address = socket.inet_pton(family, address)
-  except socket.error:
-    raise Error("Invalid address %r for family %s" % (address, family))
-
-  return (socket.inet_ntop(family, packed_address), port)
 
 
 class StatusFile:
@@ -223,67 +177,6 @@ class StatusFile:
                     mode=0400)
 
 
-def _ProcessSocatOutput(status_file, level, msg):
-  """Interprets socat log output.
-
-  """
-  if level == SOCAT_LOG_NOTICE:
-    if status_file.GetListenPort() is None:
-      # TODO: Maybe implement timeout to not listen forever
-      m = LISTENING_RE.match(msg)
-      if m:
-        (_, port) = _VerifyListening(int(m.group("family")), m.group("address"),
-                                     int(m.group("port")))
-
-        status_file.SetListenPort(port)
-        return True
-
-    if not status_file.GetConnected():
-      m = TRANSFER_LOOP_RE.match(msg)
-      if m:
-        status_file.SetConnected()
-        return True
-
-  return False
-
-
-def ProcessOutput(line, status_file, logger, socat):
-  """Takes care of child process output.
-
-  @param status_file: Status file manager
-  @param logger: Child output logger
-  @type socat: bool
-  @param socat: Whether it's a socat output line
-  @type line: string
-  @param line: Child output line
-
-  """
-  force_update = False
-  forward_line = line
-
-  if socat:
-    level = None
-    parts = line.split(None, 4)
-
-    if len(parts) == 5:
-      (_, _, _, level, msg) = parts
-
-      force_update = _ProcessSocatOutput(status_file, level, msg)
-
-      if options.debug or (level and level not in SOCAT_LOG_IGNORE):
-        forward_line = "socat: %s %s" % (level, msg)
-      else:
-        forward_line = None
-    else:
-      forward_line = "socat: %s" % line
-
-  if forward_line:
-    logger.info(forward_line)
-    status_file.AddRecentOutput(forward_line)
-
-  status_file.Update(force_update)
-
-
 def ProcessChildIO(child, socat_stderr_read_fd, status_file, child_logger,
                    signal_notify, signal_handler, mode):
   """Handles the child processes' output.
@@ -297,96 +190,92 @@ def ProcessChildIO(child, socat_stderr_read_fd, status_file, child_logger,
   # readable again.
   socat_stderr_read = os.fdopen(socat_stderr_read_fd, "r", 0)
 
-  script_stderr_lines = utils.LineSplitter(ProcessOutput, status_file,
-                                           child_logger, False)
+  child_io_proc = impexpd.ChildIOProcessor(options.debug, status_file,
+                                           child_logger)
   try:
-    socat_stderr_lines = utils.LineSplitter(ProcessOutput, status_file,
-                                            child_logger, True)
-    try:
-      fdmap = {
-        child.stderr.fileno(): (child.stderr, script_stderr_lines),
-        socat_stderr_read.fileno(): (socat_stderr_read, socat_stderr_lines),
-        signal_notify.fileno(): (signal_notify, None),
-        }
+    fdmap = {
+      child.stderr.fileno():
+        (child.stderr, child_io_proc.GetLineSplitter(impexpd.PROG_OTHER)),
+      socat_stderr_read.fileno():
+        (socat_stderr_read, child_io_proc.GetLineSplitter(impexpd.PROG_SOCAT)),
+      signal_notify.fileno(): (signal_notify, None),
+      }
 
-      poller = select.poll()
-      for fd in fdmap:
-        utils.SetNonblockFlag(fd, True)
-        poller.register(fd, select.POLLIN)
+    poller = select.poll()
+    for fd in fdmap:
+      utils.SetNonblockFlag(fd, True)
+      poller.register(fd, select.POLLIN)
 
-      if options.connect_timeout and mode == constants.IEM_IMPORT:
-        listen_timeout = locking.RunningTimeout(options.connect_timeout, True)
-      else:
-        listen_timeout = None
+    if options.connect_timeout and mode == constants.IEM_IMPORT:
+      listen_timeout = locking.RunningTimeout(options.connect_timeout, True)
+    else:
+      listen_timeout = None
 
-      exit_timeout = None
+    exit_timeout = None
 
-      while True:
-        # Break out of loop if only signal notify FD is left
-        if len(fdmap) == 1 and signal_notify.fileno() in fdmap:
+    while True:
+      # Break out of loop if only signal notify FD is left
+      if len(fdmap) == 1 and signal_notify.fileno() in fdmap:
+        break
+
+      timeout = None
+
+      if listen_timeout and not exit_timeout:
+        if status_file.GetConnected():
+          listen_timeout = None
+        elif listen_timeout.Remaining() < 0:
+          logging.info("Child process didn't establish connection in time")
+          child.Kill(signal.SIGTERM)
+          exit_timeout = \
+            locking.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
+          # Next block will calculate timeout
+        else:
+          # Not yet connected, check again in a second
+          timeout = 1000
+
+      if exit_timeout:
+        timeout = exit_timeout.Remaining() * 1000
+        if timeout < 0:
+          logging.info("Child process didn't exit in time")
           break
 
-        timeout = None
+      for fd, event in utils.RetryOnSignal(poller.poll, timeout):
+        if event & (select.POLLIN | event & select.POLLPRI):
+          (from_, to) = fdmap[fd]
 
-        if listen_timeout and not exit_timeout:
-          if status_file.GetConnected():
-            listen_timeout = None
-          elif listen_timeout.Remaining() < 0:
-            logging.info("Child process didn't establish connection in time")
-            child.Kill(signal.SIGTERM)
-            exit_timeout = \
-              locking.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
-            # Next block will calculate timeout
+          # Read up to 1 KB of data
+          data = from_.read(1024)
+          if data:
+            if to:
+              to.write(data)
+            elif fd == signal_notify.fileno():
+              # Signal handling
+              if signal_handler.called:
+                signal_handler.Clear()
+                if exit_timeout:
+                  logging.info("Child process still has about %0.2f seconds"
+                               " to exit", exit_timeout.Remaining())
+                else:
+                  logging.info("Giving child process %0.2f seconds to exit",
+                               CHILD_LINGER_TIMEOUT)
+                  exit_timeout = \
+                    locking.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
           else:
-            # Not yet connected, check again in a second
-            timeout = 1000
-
-        if exit_timeout:
-          timeout = exit_timeout.Remaining() * 1000
-          if timeout < 0:
-            logging.info("Child process didn't exit in time")
-            break
-
-        for fd, event in utils.RetryOnSignal(poller.poll, timeout):
-          if event & (select.POLLIN | event & select.POLLPRI):
-            (from_, to) = fdmap[fd]
-
-            # Read up to 1 KB of data
-            data = from_.read(1024)
-            if data:
-              if to:
-                to.write(data)
-              elif fd == signal_notify.fileno():
-                # Signal handling
-                if signal_handler.called:
-                  signal_handler.Clear()
-                  if exit_timeout:
-                    logging.info("Child process still has about %0.2f seconds"
-                                 " to exit", exit_timeout.Remaining())
-                  else:
-                    logging.info("Giving child process %0.2f seconds to exit",
-                                 CHILD_LINGER_TIMEOUT)
-                    exit_timeout = \
-                      locking.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
-            else:
-              poller.unregister(fd)
-              del fdmap[fd]
-
-          elif event & (select.POLLNVAL | select.POLLHUP |
-                        select.POLLERR):
             poller.unregister(fd)
             del fdmap[fd]
 
-        script_stderr_lines.flush()
-        socat_stderr_lines.flush()
+        elif event & (select.POLLNVAL | select.POLLHUP |
+                      select.POLLERR):
+          poller.unregister(fd)
+          del fdmap[fd]
 
-      # If there was a timeout calculator, we were waiting for the child to
-      # finish, e.g. due to a signal
-      return not bool(exit_timeout)
-    finally:
-      socat_stderr_lines.close()
+      child_io_proc.FlushAll()
+
+    # If there was a timeout calculator, we were waiting for the child to
+    # finish, e.g. due to a signal
+    return not bool(exit_timeout)
   finally:
-    script_stderr_lines.close()
+    child_io_proc.CloseAll()
 
 
 def ParseOptions():

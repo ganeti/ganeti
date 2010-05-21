@@ -23,6 +23,8 @@
 
 """
 
+import re
+import socket
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -30,12 +32,43 @@ from ganeti import errors
 from ganeti import utils
 
 
+#: Used to recognize point at which socat(1) starts to listen on its socket.
+#: The local address is required for the remote peer to connect (in particular
+#: the port number).
+LISTENING_RE = re.compile(r"^listening on\s+"
+                          r"AF=(?P<family>\d+)\s+"
+                          r"(?P<address>.+):(?P<port>\d+)$", re.I)
+
+#: Used to recognize point at which socat(1) is sending data over the wire
+TRANSFER_LOOP_RE = re.compile(r"^starting data transfer loop with FDs\s+.*$",
+                              re.I)
+
+SOCAT_LOG_DEBUG = "D"
+SOCAT_LOG_INFO = "I"
+SOCAT_LOG_NOTICE = "N"
+SOCAT_LOG_WARNING = "W"
+SOCAT_LOG_ERROR = "E"
+SOCAT_LOG_FATAL = "F"
+
+SOCAT_LOG_IGNORE = frozenset([
+  SOCAT_LOG_DEBUG,
+  SOCAT_LOG_INFO,
+  SOCAT_LOG_NOTICE,
+  ])
+
 #: Buffer size: at most this many bytes are transferred at once
 BUFSIZE = 1024 * 1024
 
 # Common options for socat
 SOCAT_TCP_OPTS = ["keepalive", "keepidle=60", "keepintvl=10", "keepcnt=5"]
 SOCAT_OPENSSL_OPTS = ["verify=1", "cipher=HIGH", "method=TLSv1"]
+
+(PROG_OTHER,
+ PROG_SOCAT) = range(1, 3)
+PROG_ALL = frozenset([
+  PROG_OTHER,
+  PROG_SOCAT,
+  ])
 
 
 class CommandBuilder(object):
@@ -181,3 +214,113 @@ class CommandBuilder(object):
       buf.write(self._opts.cmd_suffix)
 
     return self.GetBashCommand(buf.getvalue())
+
+
+def _VerifyListening(family, address, port):
+  """Verify address given as listening address by socat.
+
+  """
+  # TODO: Implement IPv6 support
+  if family != socket.AF_INET:
+    raise errors.GenericError("Address family %r not supported" % family)
+
+  try:
+    packed_address = socket.inet_pton(family, address)
+  except socket.error:
+    raise errors.GenericError("Invalid address %r for family %s" %
+                              (address, family))
+
+  return (socket.inet_ntop(family, packed_address), port)
+
+
+class ChildIOProcessor(object):
+  def __init__(self, debug, status_file, logger):
+    """Initializes this class.
+
+    """
+    self._debug = debug
+    self._status_file = status_file
+    self._logger = logger
+
+    self._splitter = dict([(prog, utils.LineSplitter(self._ProcessOutput, prog))
+                           for prog in PROG_ALL])
+
+  def GetLineSplitter(self, prog):
+    """Returns the line splitter for a program.
+
+    """
+    return self._splitter[prog]
+
+  def FlushAll(self):
+    """Flushes all line splitters.
+
+    """
+    for ls in self._splitter.itervalues():
+      ls.flush()
+
+  def CloseAll(self):
+    """Closes all line splitters.
+
+    """
+    for ls in self._splitter.itervalues():
+      ls.close()
+    self._splitter.clear()
+
+  def _ProcessOutput(self, line, prog):
+    """Takes care of child process output.
+
+    @type line: string
+    @param line: Child output line
+    @type prog: number
+    @param prog: Program from which the line originates
+
+    """
+    force_update = False
+    forward_line = line
+
+    if prog == PROG_SOCAT:
+      level = None
+      parts = line.split(None, 4)
+
+      if len(parts) == 5:
+        (_, _, _, level, msg) = parts
+
+        force_update = self._ProcessSocatOutput(self._status_file, level, msg)
+
+        if self._debug or (level and level not in SOCAT_LOG_IGNORE):
+          forward_line = "socat: %s %s" % (level, msg)
+        else:
+          forward_line = None
+      else:
+        forward_line = "socat: %s" % line
+
+    if forward_line:
+      self._logger.info(forward_line)
+      self._status_file.AddRecentOutput(forward_line)
+
+    self._status_file.Update(force_update)
+
+  @staticmethod
+  def _ProcessSocatOutput(status_file, level, msg):
+    """Interprets socat log output.
+
+    """
+    if level == SOCAT_LOG_NOTICE:
+      if status_file.GetListenPort() is None:
+        # TODO: Maybe implement timeout to not listen forever
+        m = LISTENING_RE.match(msg)
+        if m:
+          (_, port) = _VerifyListening(int(m.group("family")),
+                                       m.group("address"),
+                                       int(m.group("port")))
+
+          status_file.SetListenPort(port)
+          return True
+
+      if not status_file.GetConnected():
+        m = TRANSFER_LOOP_RE.match(msg)
+        if m:
+          status_file.SetConnected()
+          return True
+
+    return False
