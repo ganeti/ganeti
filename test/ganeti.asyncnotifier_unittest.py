@@ -41,79 +41,80 @@ import testutils
 class TestSingleFileEventHandler(testutils.GanetiTestCase):
   """Test daemon.Mainloop"""
 
+  NOTIFIERS = [NOTIFIER_TERM, NOTIFIER_NORM] = range(2)
+
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
     self.mainloop = daemon.Mainloop()
-    notifier_count = 2
-    self.chk_files = [self._CreateTempFile() for i in range(notifier_count)]
-    self.notified = [False for i in range(notifier_count)]
+    self.chk_files = [self._CreateTempFile() for i in self.NOTIFIERS]
+    self.notified = [False for i in self.NOTIFIERS]
     # We need one watch manager per notifier, as those contain the file
     # descriptor which is monitored by asyncore
-    self.wms = [pyinotify.WatchManager() for i in range(notifier_count)]
-    self.cbk = [self.OnInotifyCallback(self.notified, i)
-                  for i in range(notifier_count)]
+    self.wms = [pyinotify.WatchManager() for i in self.NOTIFIERS]
+    self.cbk = [self.OnInotifyCallback(self, i)
+                 for i in range(len(self.NOTIFIERS))]
     self.ihandler = [asyncnotifier.SingleFileEventHandler(self.wms[i],
                                                           self.cbk[i],
                                                           self.chk_files[i])
-                      for i in range(notifier_count)]
+                      for i in range(len(self.NOTIFIERS))]
     self.notifiers = [asyncnotifier.AsyncNotifier(self.wms[i],
                                                   self.ihandler[i])
-                       for i in range(notifier_count)]
-    # notifier 0 is enabled by default, as we use it to get out of the loop
-    self.ihandler[0].enable()
+                       for i in range(len(self.NOTIFIERS))]
+    # TERM notifier is enabled by default, as we use it to get out of the loop
+    self.ihandler[self.NOTIFIER_TERM].enable()
 
   class OnInotifyCallback:
-    def __init__(self, notified, i):
-      self.notified = notified
+    def __init__(self, testobj, i):
+      self.testobj = testobj
+      self.notified = testobj.notified
       self.i = i
 
     def __call__(self, enabled):
       self.notified[self.i] = True
-      # notifier 0 is special as we use it to terminate the mainloop
-      if self.i == 0:
+      if self.i == self.testobj.NOTIFIER_TERM:
         os.kill(os.getpid(), signal.SIGTERM)
 
   def testReplace(self):
-    utils.WriteFile(self.chk_files[0], data="dummy")
+    utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[0])
-    self.assert_(not self.notified[1])
+    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assert_(not self.notified[self.NOTIFIER_NORM])
 
   def testEnableDisable(self):
-    self.ihandler[0].enable()
-    self.ihandler[0].disable()
-    self.ihandler[0].disable()
-    self.ihandler[0].enable()
-    self.ihandler[0].disable()
-    self.ihandler[0].enable()
-    utils.WriteFile(self.chk_files[0], data="dummy")
+    self.ihandler[self.NOTIFIER_TERM].enable()
+    self.ihandler[self.NOTIFIER_TERM].disable()
+    self.ihandler[self.NOTIFIER_TERM].disable()
+    self.ihandler[self.NOTIFIER_TERM].enable()
+    self.ihandler[self.NOTIFIER_TERM].disable()
+    self.ihandler[self.NOTIFIER_TERM].enable()
+    utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[0])
-    self.assert_(not self.notified[1])
+    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assert_(not self.notified[self.NOTIFIER_NORM])
 
   def testDoubleEnable(self):
-    self.ihandler[0].enable()
-    self.ihandler[0].enable()
-    utils.WriteFile(self.chk_files[0], data="dummy")
+    self.ihandler[self.NOTIFIER_TERM].enable()
+    self.ihandler[self.NOTIFIER_TERM].enable()
+    utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[0])
-    self.assert_(not self.notified[1])
+    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assert_(not self.notified[self.NOTIFIER_NORM])
 
   def testDefaultDisabled(self):
-    utils.WriteFile(self.chk_files[1], data="dummy")
-    utils.WriteFile(self.chk_files[0], data="dummy")
+    utils.WriteFile(self.chk_files[self.NOTIFIER_NORM], data="dummy")
+    utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[0])
-    # notifier 1 is disabled by default
-    self.assert_(not self.notified[1])
+    self.assert_(self.notified[self.NOTIFIER_TERM])
+    # NORM notifier is disabled by default
+    self.assert_(not self.notified[self.NOTIFIER_NORM])
 
   def testBothEnabled(self):
-    self.ihandler[1].enable()
-    utils.WriteFile(self.chk_files[1], data="dummy")
-    utils.WriteFile(self.chk_files[0], data="dummy")
+    self.ihandler[self.NOTIFIER_NORM].enable()
+    utils.WriteFile(self.chk_files[self.NOTIFIER_NORM], data="dummy")
+    utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
-    self.assert_(self.notified[0])
-    self.assert_(self.notified[1])
+    self.assert_(self.notified[self.NOTIFIER_TERM])
+    self.assert_(self.notified[self.NOTIFIER_NORM])
 
 
 if __name__ == "__main__":

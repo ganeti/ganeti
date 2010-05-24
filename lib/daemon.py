@@ -168,6 +168,7 @@ class Mainloop(object):
 
   @utils.SignalHandled([signal.SIGCHLD])
   @utils.SignalHandled([signal.SIGTERM])
+  @utils.SignalHandled([signal.SIGINT])
   def Run(self, signal_handlers=None):
     """Runs the mainloop.
 
@@ -194,7 +195,7 @@ class Mainloop(object):
         handler = signal_handlers[sig]
         if handler.called:
           self._CallSignalWaiters(sig)
-          running = (sig != signal.SIGTERM)
+          running = sig not in (signal.SIGTERM, signal.SIGINT)
           handler.Clear()
 
   def _CallSignalWaiters(self, signum):
