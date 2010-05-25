@@ -30,6 +30,7 @@ module Ganeti.HTools.Text
     (
       loadData
     , loadInst
+    , loadNode
     ) where
 
 import Control.Monad

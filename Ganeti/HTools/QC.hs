@@ -200,13 +200,24 @@ testContainer =
 
 -- Simple instance tests, we only have setter/getters
 
+prop_Instance_creat inst =
+    Instance.name inst == Instance.alias inst
+
 prop_Instance_setIdx inst idx =
     Instance.idx (Instance.setIdx inst idx) == idx
     where _types = (inst::Instance.Instance, idx::Types.Idx)
 
 prop_Instance_setName inst name =
-    Instance.name (Instance.setName inst name) == name
+    Instance.name newinst == name &&
+    Instance.alias newinst == name
     where _types = (inst::Instance.Instance, name::String)
+          newinst = Instance.setName inst name
+
+prop_Instance_setAlias inst name =
+    Instance.name newinst == Instance.name inst &&
+    Instance.alias newinst == name
+    where _types = (inst::Instance.Instance, name::String)
+          newinst = Instance.setAlias inst name
 
 prop_Instance_setPri inst pdx =
     Instance.pNode (Instance.setPri inst pdx) == pdx
@@ -278,8 +289,10 @@ prop_Instance_setMovable inst m =
           inst' = Instance.setMovable inst m
 
 testInstance =
-    [ run prop_Instance_setIdx
+    [ run prop_Instance_creat
+    , run prop_Instance_setIdx
     , run prop_Instance_setName
+    , run prop_Instance_setAlias
     , run prop_Instance_setPri
     , run prop_Instance_setSec
     , run prop_Instance_setBoth
@@ -297,17 +310,22 @@ testInstance =
 -- Instance text loader tests
 
 prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
+    not (null pnode) && pdx >= 0 && sdx >= 0 ==>
     let vcpus_s = show vcpus
         dsk_s = show dsk
         mem_s = show mem
-        rsnode = snode ++ "a" -- non-empty secondary node
         rsdx = if pdx == sdx
                then sdx + 1
                else sdx
-        ndx = [(pnode, pdx), (rsnode, rsdx)]
+        ndx = if null snode
+              then [(pnode, pdx)]
+              else [(pnode, pdx), (snode, rsdx)]
         tags = ""
         inst = Text.loadInst ndx
-               [name, mem_s, dsk_s, vcpus_s, status, pnode, rsnode, tags]::
+               [name, mem_s, dsk_s, vcpus_s, status, pnode, snode, tags]::
+               Maybe (String, Instance.Instance)
+        fail1 = Text.loadInst ndx
+               [name, mem_s, dsk_s, vcpus_s, status, pnode, pnode, tags]::
                Maybe (String, Instance.Instance)
         _types = ( name::String, mem::Int, dsk::Int
                  , vcpus::Int, status::String
@@ -321,10 +339,50 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
              Instance.vcpus i == vcpus &&
              Instance.mem i == mem &&
              Instance.pNode i == pdx &&
-             Instance.sNode i == rsdx)
+             Instance.sNode i == (if null snode
+                                  then Node.noSecondary
+                                  else rsdx) &&
+             isNothing fail1)
+
+prop_Text_Load_InstanceFail ktn fields =
+    length fields /= 8 ==> isNothing $ Text.loadInst ktn fields
+
+prop_Text_Load_Node name tm nm fm td fd tc fo =
+    let conv v = if v < 0
+                    then "?"
+                    else show v
+        tm_s = conv tm
+        nm_s = conv nm
+        fm_s = conv fm
+        td_s = conv td
+        fd_s = conv fd
+        tc_s = conv tc
+        fo_s = if fo
+               then "Y"
+               else "N"
+        any_broken = any (< 0) [tm, nm, fm, td, fd, tc]
+    in case Text.loadNode [name, tm_s, nm_s, fm_s, td_s, fd_s, tc_s, fo_s] of
+         Nothing -> False
+         Just (name', node) ->
+             if fo || any_broken
+             then Node.offline node
+             else (Node.name node == name' && name' == name &&
+                   Node.alias node == name &&
+                   Node.tMem node == fromIntegral tm &&
+                   Node.nMem node == nm &&
+                   Node.fMem node == fm &&
+                   Node.tDsk node == fromIntegral td &&
+                   Node.fDsk node == fd &&
+                   Node.tCpu node == fromIntegral tc)
+
+prop_Text_Load_NodeFail fields =
+    length fields /= 8 ==> isNothing $ Text.loadNode fields
 
 testText =
     [ run prop_Text_Load_Instance
+    , run prop_Text_Load_InstanceFail
+    , run prop_Text_Load_Node
+    , run prop_Text_Load_NodeFail
     ]
 
 -- Node tests
