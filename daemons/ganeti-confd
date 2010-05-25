@@ -117,7 +117,8 @@ class ConfdConfigurationReloader(object):
     self.inotify_handler = asyncnotifier.SingleFileEventHandler(self.wm,
                                                                 self.OnInotify,
                                                                 cfg_file)
-    self.notifier = asyncnotifier.AsyncNotifier(self.wm, self.inotify_handler)
+    notifier_class = asyncnotifier.ErrorLoggingAsyncNotifier
+    self.notifier = notifier_class(self.wm, self.inotify_handler)
 
     self.timer_handle = None
     self._EnableTimer()
