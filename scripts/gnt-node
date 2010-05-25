@@ -28,6 +28,11 @@
 
 import sys
 
+try:
+  import roman
+except ImportError:
+  roman = None
+
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import utils
@@ -207,6 +212,10 @@ def ListNodes(opts, args):
                "pinst_cnt", "sinst_cnt",
                "ctotal", "serial_no"]
 
+  latinfriendlyfields = ["pinst_cnt", "sinst_cnt",
+                         "ctotal", "cnodes", "csockets",
+                         "serial_no"]
+
   list_type_fields = ("pinst_list", "sinst_list", "tags")
   # change raw values to nicer strings
   for row in output:
@@ -223,6 +232,12 @@ def ListNodes(opts, args):
         val = utils.FormatTime(val)
       elif val is None:
         val = "?"
+      elif (roman is not None and opts.roman_integers
+            and field in latinfriendlyfields):
+        try:
+          val = roman.toRoman(val)
+        except roman.RomanError:
+          pass
       row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,
@@ -662,7 +677,7 @@ commands = {
     "[<node_name>...]", "Show information about the node(s)"),
   'list': (
     ListNodes, ARGS_MANY_NODES,
-    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
+    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
     "[nodes...]",
     "Lists the nodes in the cluster. The available fields are (see the man"
     " page for details): %s. The default field list is (in order): %s." %

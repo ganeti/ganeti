@@ -114,6 +114,7 @@ __all__ = [
   "READD_OPT",
   "REBOOT_TYPE_OPT",
   "REMOVE_UIDS_OPT",
+  "ROMAN_OPT",
   "SECONDARY_IP_OPT",
   "SELECT_OS_OPT",
   "SEP_OPT",
@@ -949,6 +950,12 @@ REMOVE_UIDS_OPT = cli_option("--remove-uids", default=None,
                              help=("A list of user-ids or user-id"
                                    " ranges separated by commas, to be"
                                    " removed from the user-id pool"))
+
+ROMAN_OPT = cli_option("--roman",
+                       dest="roman_integers", default=False,
+                       action="store_true",
+                       help="Use roman numbers for positive integers")
+
 
 
 def _ParseArgs(argv, commands, aliases):
