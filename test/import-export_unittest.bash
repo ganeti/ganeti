@@ -82,6 +82,7 @@ dst_portfile=$statusdir/dst.port
 other_x509=$statusdir/other.pem
 
 testdata=$statusdir/data1
+largetestdata=$statusdir/data2
 
 cmd_prefix=
 cmd_suffix=
@@ -106,6 +107,17 @@ $impexpd $src_statusfile import --compression=rot13 >/dev/null 2>&1 &&
 
 cat $(get_testfile proc_drbd8.txt) $(get_testfile cert1.pem) > $testdata
 
+# Generate about 7.5 MB of test data
+{ tmp="$(<$testdata)"
+  for (( i=0; i < 100; ++i )); do
+    echo "$tmp $tmp $tmp $tmp $tmp $tmp"
+  done
+  dd if=/dev/zero bs=1024 count=4096 2>/dev/null
+  for (( i=0; i < 100; ++i )); do
+    echo "$tmp $tmp $tmp $tmp $tmp $tmp"
+  done
+} > $largetestdata
+
 impexpd_helper() {
   $PYTHON $(get_testpath)/import-export_unittest-helper "$@"
 }
@@ -119,10 +131,12 @@ reset_status() {
 }
 
 write_data() {
+  local fname=${1:-$testdata}
+
   # Wait for connection to be established
   impexpd_helper $dst_statusfile connected
 
-  cat $testdata
+  cat $fname
 }
 
 do_export() {
@@ -132,6 +146,7 @@ do_export() {
   local port=$(< $dst_portfile)
 
   test -n "$port" || err 'Empty port file'
+  test "$port" != None || err 'Missing port'
 
   do_export_to_port $port
 }
@@ -262,5 +277,13 @@ compress=gzip do_import > $statusdir/recv-miscompr2 2>$dst_output & imppid=$!
 checkpids $exppid $imppid && err 'Did not fail when it should'
 cmp -s $testdata $statusdir/recv-miscompr2 && \
   err 'Received data matches input when it should not'
+
+upto 'Large transfer'
+reset_status
+do_import > $statusdir/recv-large 2>$dst_output & imppid=$!
+{ write_data $largetestdata | do_export; } &>$src_output & exppid=$!
+checkpids $exppid $imppid || err 'An error occurred'
+cmp $largetestdata $statusdir/recv-large || \
+  err 'Received data does not match input'
 
 exit 0
