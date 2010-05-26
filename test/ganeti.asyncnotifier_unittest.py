@@ -46,9 +46,7 @@ class _MyErrorLoggingAsyncNotifier(asyncnotifier.ErrorLoggingAsyncNotifier):
 
   def handle_error(self):
     self.error_count += 1
-    # We should also terminate while handling an error, so that any unexpected
-    # error is registered and can be checked.
-    os.kill(os.getpid(), signal.SIGTERM)
+    raise
 
 
 class TestSingleFileEventHandler(testutils.GanetiTestCase):
@@ -144,7 +142,7 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
   def testError(self):
     self.ihandler[self.NOTIFIER_ERR].enable()
     utils.WriteFile(self.chk_files[self.NOTIFIER_ERR], data="dummy")
-    self.mainloop.Run()
+    self.assertRaises(errors.GenericError, self.mainloop.Run)
     self.assert_(self.notified[self.NOTIFIER_ERR])
     self.assertEquals(self.notifiers[self.NOTIFIER_ERR].error_count, 1)
     self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)

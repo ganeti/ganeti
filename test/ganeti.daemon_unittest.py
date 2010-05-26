@@ -28,6 +28,7 @@ import socket
 import time
 
 from ganeti import daemon
+from ganeti import errors
 
 import testutils
 
@@ -158,6 +159,7 @@ class _MyAsyncUDPSocket(daemon.AsyncUDPSocket):
 
   def handle_error(self):
     self.error_count += 1
+    raise
 
 
 class TestAsyncUDPSocket(testutils.GanetiTestCase):
@@ -214,6 +216,14 @@ class TestAsyncUDPSocket(testutils.GanetiTestCase):
     self.client.enqueue_send("127.0.0.1", self.port, "p3")
     self.client.enqueue_send("127.0.0.1", self.port, "error")
     self.client.enqueue_send("127.0.0.1", self.port, "terminate")
+    self.assertRaises(errors.GenericError, self.mainloop.Run)
+    self.assertEquals(self.server.received,
+                      ["p1", "p2", "error"])
+    self.assertEquals(self.server.error_count, 1)
+    self.assertRaises(errors.GenericError, self.mainloop.Run)
+    self.assertEquals(self.server.received,
+                      ["p1", "p2", "error", "p3", "error"])
+    self.assertEquals(self.server.error_count, 2)
     self.mainloop.Run()
     self.assertEquals(self.server.received,
                       ["p1", "p2", "error", "p3", "error", "terminate"])
