@@ -23,9 +23,13 @@
 
 """
 
+import os
 import re
 import socket
 import logging
+import signal
+import errno
+import time
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -57,6 +61,17 @@ SOCAT_LOG_IGNORE = frozenset([
   SOCAT_LOG_NOTICE,
   ])
 
+#: Used to parse GNU dd(1) statistics
+DD_INFO_RE = re.compile(r"^(?P<bytes>\d+)\s*byte(?:|s)\s.*\scopied,\s*"
+                        r"(?P<seconds>[\d.]+)\s*s(?:|econds),.*$", re.I)
+
+#: Used to ignore "N+N records in/out" on dd(1)'s stderr
+DD_STDERR_IGNORE = re.compile(r"^\d+\+\d+\s*records\s+(?:in|out)$", re.I)
+
+#: Signal upon which dd(1) will print statistics (on some platforms, SIGINFO is
+#: unavailable and SIGUSR1 is used instead)
+DD_INFO_SIGNAL = getattr(signal, "SIGINFO", signal.SIGUSR1)
+
 #: Buffer size: at most this many bytes are transferred at once
 BUFSIZE = 1024 * 1024
 
@@ -65,26 +80,36 @@ SOCAT_TCP_OPTS = ["keepalive", "keepidle=60", "keepintvl=10", "keepcnt=5"]
 SOCAT_OPENSSL_OPTS = ["verify=1", "cipher=HIGH", "method=TLSv1"]
 
 (PROG_OTHER,
- PROG_SOCAT) = range(1, 3)
+ PROG_SOCAT,
+ PROG_DD,
+ PROG_DD_PID) = range(1, 5)
 PROG_ALL = frozenset([
   PROG_OTHER,
   PROG_SOCAT,
+  PROG_DD,
+  PROG_DD_PID,
   ])
 
 
 class CommandBuilder(object):
-  def __init__(self, mode, opts, socat_stderr_fd):
+  def __init__(self, mode, opts, socat_stderr_fd, dd_stderr_fd, dd_pid_fd):
     """Initializes this class.
 
     @param mode: Daemon mode (import or export)
     @param opts: Options object
     @type socat_stderr_fd: int
     @param socat_stderr_fd: File descriptor socat should write its stderr to
+    @type dd_stderr_fd: int
+    @param dd_stderr_fd: File descriptor dd should write its stderr to
+    @type dd_pid_fd: int
+    @param dd_pid_fd: File descriptor the child should write dd's PID to
 
     """
     self._opts = opts
     self._mode = mode
     self._socat_stderr_fd = socat_stderr_fd
+    self._dd_stderr_fd = dd_stderr_fd
+    self._dd_pid_fd = dd_pid_fd
 
   @staticmethod
   def GetBashCommand(cmd):
@@ -172,6 +197,18 @@ class CommandBuilder(object):
                  (utils.ShellQuoteArgs(self._GetSocatCommand()),
                   self._socat_stderr_fd))
 
+    dd_cmd = StringIO()
+    # Setting LC_ALL since we want to parse the output and explicitely
+    # redirecting stdin, as the background process (dd) would have /dev/null as
+    # stdin otherwise
+    dd_cmd.write("{ LC_ALL=C dd bs=%s <&0 2>&%d & pid=${!};" %
+                 (BUFSIZE, self._dd_stderr_fd))
+    # Send PID to daemon
+    dd_cmd.write(" echo $pid >&%d;" % self._dd_pid_fd)
+    # And wait for dd
+    dd_cmd.write(" wait $pid;")
+    dd_cmd.write(" }")
+
     compr = self._opts.compress
 
     assert compr in constants.IEC_ALL
@@ -181,15 +218,17 @@ class CommandBuilder(object):
         transport_cmd = "%s | gunzip -c" % socat_cmd
       else:
         transport_cmd = socat_cmd
+
+      transport_cmd += " | %s" % dd_cmd.getvalue()
     elif self._mode == constants.IEM_EXPORT:
       if compr == constants.IEC_GZIP:
         transport_cmd = "gzip -c | %s" % socat_cmd
       else:
         transport_cmd = socat_cmd
+
+      transport_cmd = "%s | %s" % (dd_cmd.getvalue(), transport_cmd)
     else:
       raise errors.GenericError("Invalid mode '%s'" % self._mode)
-
-    # TODO: Use "dd" to measure processed data (allows to give an ETA)
 
     # TODO: Run transport as separate user
     # The transport uses its own shell to simplify running it as a separate user
@@ -235,7 +274,7 @@ def _VerifyListening(family, address, port):
 
 
 class ChildIOProcessor(object):
-  def __init__(self, debug, status_file, logger):
+  def __init__(self, debug, status_file, logger, throughput_samples):
     """Initializes this class.
 
     """
@@ -245,6 +284,14 @@ class ChildIOProcessor(object):
 
     self._splitter = dict([(prog, utils.LineSplitter(self._ProcessOutput, prog))
                            for prog in PROG_ALL])
+
+    self._dd_pid = None
+    self._dd_ready = False
+    self._dd_tp_samples = throughput_samples
+    self._dd_progress = []
+
+    # Expected size of transferred data
+    self._exp_size = None
 
   def GetLineSplitter(self, prog):
     """Returns the line splitter for a program.
@@ -266,6 +313,38 @@ class ChildIOProcessor(object):
     for ls in self._splitter.itervalues():
       ls.close()
     self._splitter.clear()
+
+  def NotifyDd(self):
+    """Tells dd(1) to write statistics.
+
+    """
+    if self._dd_pid is None:
+      # Can't notify
+      return False
+
+    if not self._dd_ready:
+      # There's a race condition between starting the program and sending
+      # signals.  The signal handler is only registered after some time, so we
+      # have to check whether the program is ready. If it isn't, sending a
+      # signal will invoke the default handler (and usually abort the program).
+      if not utils.IsProcessHandlingSignal(self._dd_pid, DD_INFO_SIGNAL):
+        logging.debug("dd is not yet ready for signal %s", DD_INFO_SIGNAL)
+        return False
+
+      logging.debug("dd is now handling signal %s", DD_INFO_SIGNAL)
+      self._dd_ready = True
+
+    logging.debug("Sending signal %s to PID %s", DD_INFO_SIGNAL, self._dd_pid)
+    try:
+      os.kill(self._dd_pid, DD_INFO_SIGNAL)
+    except EnvironmentError, err:
+      if err.errno != errno.ESRCH:
+        raise
+
+      # Process no longer exists
+      self._dd_pid = None
+
+    return True
 
   def _ProcessOutput(self, line, prog):
     """Takes care of child process output.
@@ -294,6 +373,21 @@ class ChildIOProcessor(object):
           forward_line = None
       else:
         forward_line = "socat: %s" % line
+
+    elif prog == PROG_DD:
+      (should_forward, force_update) = self._ProcessDdOutput(line)
+
+      if should_forward or self._debug:
+        forward_line = "dd: %s" % line
+      else:
+        forward_line = None
+
+    elif prog == PROG_DD_PID:
+      if self._dd_pid:
+        raise RuntimeError("dd PID reported more than once")
+      logging.debug("Received dd PID %r", line)
+      self._dd_pid = int(line)
+      forward_line = None
 
     if forward_line:
       self._logger.info(forward_line)
@@ -326,3 +420,73 @@ class ChildIOProcessor(object):
           return True
 
     return False
+
+  def _ProcessDdOutput(self, line):
+    """Interprets a line of dd(1)'s output.
+
+    """
+    m = DD_INFO_RE.match(line)
+    if m:
+      seconds = float(m.group("seconds"))
+      mbytes = utils.BytesToMebibyte(int(m.group("bytes")))
+      self._UpdateDdProgress(seconds, mbytes)
+      return (False, True)
+
+    m = DD_STDERR_IGNORE.match(line)
+    if m:
+      # Ignore
+      return (False, False)
+
+    # Forward line
+    return (True, False)
+
+  def _UpdateDdProgress(self, seconds, mbytes):
+    """Updates the internal status variables for dd(1) progress.
+
+    @type seconds: float
+    @param seconds: Timestamp of this update
+    @type mbytes: float
+    @param mbytes: Total number of MiB transferred so far
+
+    """
+    # Add latest sample
+    self._dd_progress.append((seconds, mbytes))
+
+    # Remove old samples
+    del self._dd_progress[:-self._dd_tp_samples]
+
+    # Calculate throughput
+    throughput = _CalcThroughput(self._dd_progress)
+
+    # Calculate percent and ETA
+    percent = None
+    eta = None
+
+    if self._exp_size is not None:
+      if self._exp_size != 0:
+        percent = max(0, min(100, (100.0 * mbytes) / self._exp_size))
+
+      if throughput:
+        eta = max(0, float(self._exp_size - mbytes) / throughput)
+
+    self._status_file.SetProgress(mbytes, throughput, percent, eta)
+
+
+def _CalcThroughput(samples):
+  """Calculates the throughput in MiB/second.
+
+  @type samples: sequence
+  @param samples: List of samples, each consisting of a (timestamp, mbytes)
+                  tuple
+  @rtype: float or None
+  @return: Throughput in MiB/second
+
+  """
+  if len(samples) < 2:
+    # Can't calculate throughput
+    return None
+
+  (start_time, start_mbytes) = samples[0]
+  (end_time, end_mbytes) = samples[-1]
+
+  return (float(end_mbytes) - start_mbytes) / (float(end_time) - start_time)

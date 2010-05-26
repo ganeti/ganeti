@@ -35,6 +35,7 @@ import signal
 import subprocess
 import sys
 import time
+import math
 
 from ganeti import constants
 from ganeti import cli
@@ -56,6 +57,16 @@ CHILD_LINGER_TIMEOUT = 5.0
 
 #: How long to wait for a connection to be established
 DEFAULT_CONNECT_TIMEOUT = 60
+
+#: Get dd(1) statistics every few seconds
+DD_STATISTICS_INTERVAL = 5.0
+
+#: Seconds for throughput calculation
+DD_THROUGHPUT_INTERVAL = 60.0
+
+#: Number of samples for throughput calculation
+DD_THROUGHPUT_SAMPLES = int(math.ceil(float(DD_THROUGHPUT_INTERVAL) /
+                                      DD_STATISTICS_INTERVAL))
 
 
 # Global variable for options
@@ -140,6 +151,24 @@ class StatusFile:
     """
     return self._data.connected
 
+  def SetProgress(self, mbytes, throughput, percent, eta):
+    """Sets how much data has been transferred so far.
+
+    @type mbytes: number
+    @param mbytes: Transferred amount of data in MiB.
+    @type throughput: float
+    @param throughput: MiB/second
+    @type percent: number
+    @param percent: Percent processed
+    @type eta: number
+    @param eta: Expected number of seconds until done
+
+    """
+    self._data.progress_mbytes = mbytes
+    self._data.progress_throughput = throughput
+    self._data.progress_percent = percent
+    self._data.progress_eta = eta
+
   def SetExitStatus(self, exit_status, error_message):
     """Sets the exit status and an error message.
 
@@ -177,7 +206,8 @@ class StatusFile:
                     mode=0400)
 
 
-def ProcessChildIO(child, socat_stderr_read_fd, status_file, child_logger,
+def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
+                   dd_pid_read_fd, status_file, child_logger,
                    signal_notify, signal_handler, mode):
   """Handles the child processes' output.
 
@@ -189,15 +219,24 @@ def ProcessChildIO(child, socat_stderr_read_fd, status_file, child_logger,
   # might buffer data while poll(2) won't mark its file descriptor as
   # readable again.
   socat_stderr_read = os.fdopen(socat_stderr_read_fd, "r", 0)
+  dd_stderr_read = os.fdopen(dd_stderr_read_fd, "r", 0)
+  dd_pid_read = os.fdopen(dd_pid_read_fd, "r", 0)
+
+  tp_samples = DD_THROUGHPUT_SAMPLES
 
   child_io_proc = impexpd.ChildIOProcessor(options.debug, status_file,
-                                           child_logger)
+                                           child_logger,
+                                           throughput_samples=tp_samples)
   try:
     fdmap = {
       child.stderr.fileno():
         (child.stderr, child_io_proc.GetLineSplitter(impexpd.PROG_OTHER)),
       socat_stderr_read.fileno():
         (socat_stderr_read, child_io_proc.GetLineSplitter(impexpd.PROG_SOCAT)),
+      dd_pid_read.fileno():
+        (dd_pid_read, child_io_proc.GetLineSplitter(impexpd.PROG_DD_PID)),
+      dd_stderr_read.fileno():
+        (dd_stderr_read, child_io_proc.GetLineSplitter(impexpd.PROG_DD)),
       signal_notify.fileno(): (signal_notify, None),
       }
 
@@ -212,6 +251,7 @@ def ProcessChildIO(child, socat_stderr_read_fd, status_file, child_logger,
       listen_timeout = None
 
     exit_timeout = None
+    dd_stats_timeout = None
 
     while True:
       # Break out of loop if only signal notify FD is left
@@ -238,6 +278,24 @@ def ProcessChildIO(child, socat_stderr_read_fd, status_file, child_logger,
         if timeout < 0:
           logging.info("Child process didn't exit in time")
           break
+
+      if (not dd_stats_timeout) or dd_stats_timeout.Remaining() < 0:
+        notify_status = child_io_proc.NotifyDd()
+        if notify_status:
+          # Schedule next notification
+          dd_stats_timeout = locking.RunningTimeout(DD_STATISTICS_INTERVAL,
+                                                    True)
+        else:
+          # Try again soon (dd isn't ready yet)
+          dd_stats_timeout = locking.RunningTimeout(1.0, True)
+
+      if dd_stats_timeout:
+        dd_timeout = max(0, dd_stats_timeout.Remaining() * 1000)
+
+        if timeout is None:
+          timeout = dd_timeout
+        else:
+          timeout = min(timeout, dd_timeout)
 
       for fd, event in utils.RetryOnSignal(poller.poll, timeout):
         if event & (select.POLLIN | event & select.POLLPRI):
@@ -410,14 +468,22 @@ def main():
       # Pipe to receive socat's stderr output
       (socat_stderr_read_fd, socat_stderr_write_fd) = os.pipe()
 
+      # Pipe to receive dd's stderr output
+      (dd_stderr_read_fd, dd_stderr_write_fd) = os.pipe()
+
+      # Pipe to receive dd's PID
+      (dd_pid_read_fd, dd_pid_write_fd) = os.pipe()
+
       # Get child process command
-      cmd_builder = impexpd.CommandBuilder(mode, options, socat_stderr_write_fd)
+      cmd_builder = impexpd.CommandBuilder(mode, options, socat_stderr_write_fd,
+                                           dd_stderr_write_fd, dd_pid_write_fd)
       cmd = cmd_builder.GetCommand()
 
       logging.debug("Starting command %r", cmd)
 
       # Start child process
-      child = ChildProcess(cmd, [socat_stderr_write_fd])
+      child = ChildProcess(cmd, [socat_stderr_write_fd, dd_stderr_write_fd,
+                                 dd_pid_write_fd])
       try:
         def _ForwardSignal(signum, _):
           """Forwards signals to child process.
@@ -438,10 +504,12 @@ def main():
           try:
             # Close child's side
             utils.RetryOnSignal(os.close, socat_stderr_write_fd)
+            utils.RetryOnSignal(os.close, dd_stderr_write_fd)
+            utils.RetryOnSignal(os.close, dd_pid_write_fd)
 
-            if ProcessChildIO(child, socat_stderr_read_fd, status_file,
-                              child_logger, signal_wakeup, signal_handler,
-                              mode):
+            if ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
+                              dd_pid_read_fd, status_file, child_logger,
+                              signal_wakeup, signal_handler, mode):
               # The child closed all its file descriptors and there was no
               # signal
               # TODO: Implement timeout instead of waiting indefinitely

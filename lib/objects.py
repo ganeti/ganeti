@@ -1017,6 +1017,10 @@ class ImportExportStatus(ConfigObject):
     "recent_output",
     "listen_port",
     "connected",
+    "progress_mbytes",
+    "progress_throughput",
+    "progress_eta",
+    "progress_percent",
     "exit_status",
     "error_message",
     ] + _TIMESTAMPS

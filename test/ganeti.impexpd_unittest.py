@@ -76,7 +76,7 @@ class TestCommandBuilder(unittest.TestCase):
                                         cmd_prefix=cmd_prefix,
                                         cmd_suffix=cmd_suffix)
 
-                builder = impexpd.CommandBuilder(mode, opts, 1)
+                builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
 
                 # Check complete command
                 cmd = builder.GetCommand()
@@ -108,7 +108,7 @@ class TestCommandBuilder(unittest.TestCase):
                             ca="/some/path/with,a/,comma")
 
     for mode in [constants.IEM_IMPORT, constants.IEM_EXPORT]:
-      builder = impexpd.CommandBuilder(mode, opts, 1)
+      builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
       self.assertRaises(errors.GenericError, builder.GetCommand)
 
   def testModeError(self):
@@ -117,8 +117,27 @@ class TestCommandBuilder(unittest.TestCase):
     assert mode not in [constants.IEM_IMPORT, constants.IEM_EXPORT]
 
     opts = CmdBuilderConfig(host="localhost", port=1234)
-    builder = impexpd.CommandBuilder(mode, opts, 1)
+    builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
     self.assertRaises(errors.GenericError, builder.GetCommand)
+
+
+class TestCalcThroughput(unittest.TestCase):
+  def test(self):
+    self.assertEqual(impexpd._CalcThroughput([]), None)
+    self.assertEqual(impexpd._CalcThroughput([(0, 0)]), None)
+
+    samples = [
+      (0.0, 0.0),
+      (10.0, 100.0),
+      ]
+    self.assertAlmostEqual(impexpd._CalcThroughput(samples), 10.0, 3)
+
+    samples = [
+      (5.0, 7.0),
+      (10.0, 100.0),
+      (16.0, 181.0),
+      ]
+    self.assertAlmostEqual(impexpd._CalcThroughput(samples), 15.818, 3)
 
 
 if __name__ == "__main__":
