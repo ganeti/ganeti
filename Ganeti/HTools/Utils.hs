@@ -97,6 +97,10 @@ fromJResult :: Monad m => J.Result a -> m a
 fromJResult (J.Error x) = fail x
 fromJResult (J.Ok x) = return x
 
+annotateJResult :: Monad m => String -> J.Result a -> m a
+annotateJResult s (J.Error x) = fail (s ++ ": " ++ x)
+annotateJResult _ (J.Ok x) = return x
+
 -- | Tries to read a string from a JSON value.
 --
 -- In case the value was not a string, we fail the read (in the
@@ -116,7 +120,8 @@ fromObj :: (J.JSON a, Monad m) => String -> [(String, J.JSValue)] -> m a
 fromObj k o =
     case lookup k o of
       Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
-      Just val -> fromJResult $ J.readJSON val
+      Just val -> annotateJResult (printf "key '%s', value '%s'" k (show val))
+                  (J.readJSON val)
 
 -- | Annotate a Result with an ownership information
 annotateResult :: String -> Result a -> Result a
@@ -127,7 +132,7 @@ annotateResult _ v = v
 -- than fromObj
 tryFromObj :: (J.JSON a) =>
               String -> [(String, J.JSValue)] -> String -> Result a
-tryFromObj t o k = annotateResult (t ++ " key '" ++ k ++ "'") (fromObj k o)
+tryFromObj t o k = annotateResult t (fromObj k o)
 
 -- | Small wrapper over readJSON.
 fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a
