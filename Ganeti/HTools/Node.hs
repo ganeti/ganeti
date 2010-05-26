@@ -455,7 +455,7 @@ showField t field =
       "nload" -> printf "%5.3f" uN
       "ptags" -> intercalate "," . map (\(k, v) -> printf "%s=%d" k v) .
                  Map.toList $ pTags t
-      _ -> printf "<unknown field>"
+      _ -> T.unknownField
     where
       T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
                   T.dskWeight = uD, T.netWeight = uN } = utilLoad t
@@ -489,7 +489,7 @@ showHeader field =
       "dload" -> ("lDsk", True)
       "nload" -> ("lNet", True)
       "ptags" -> ("PrimaryTags", False)
-      _ -> ("<unknown field>", False)
+      _ -> (T.unknownField, False)
 
 -- | String converter for the node list functionality.
 list :: [String] -> Node -> [String]

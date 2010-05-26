@@ -387,6 +387,24 @@ testText =
 
 -- Node tests
 
+prop_Node_setAlias node name =
+    Node.name newnode == Node.name node &&
+    Node.alias newnode == name
+    where _types = (node::Node.Node, name::String)
+          newnode = Node.setAlias node name
+
+prop_Node_setOffline node status =
+    Node.offline newnode == status
+    where newnode = Node.setOffline node status
+
+prop_Node_setXmem node xm =
+    Node.xMem newnode == xm
+    where newnode = Node.setXmem node xm
+
+prop_Node_setMcpu node mc =
+    Node.mCpu newnode == mc
+    where newnode = Node.setMcpu node mc
+
 -- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addPriFM node inst = Instance.mem inst >= Node.fMem node &&
                                not (Node.failN1 node)
@@ -438,7 +456,8 @@ prop_Node_setMdsk node mx =
     fromIntegral (Node.loDsk node') <= Node.tDsk node &&
     Node.availDisk node' >= 0 &&
     Node.availDisk node' <= Node.fDsk node' &&
-    fromIntegral (Node.availDisk node') <= Node.tDsk node'
+    fromIntegral (Node.availDisk node') <= Node.tDsk node' &&
+    Node.mDsk node' == mx'
     where _types = (node::Node.Node, mx::SmallRatio)
           node' = Node.setMdsk node mx'
           SmallRatio mx' = mx
@@ -455,14 +474,24 @@ prop_Node_tagMaps_reject tags =
     where _types = (tags::[String])
           m = Node.addTags (Data.Map.empty) tags
 
+prop_Node_showField node =
+  forAll (elements Node.defaultFields) $ \ field ->
+  fst (Node.showHeader field) /= Types.unknownField &&
+  Node.showField node field /= Types.unknownField
+
 testNode =
-    [ run prop_Node_addPriFM
+    [ run prop_Node_setAlias
+    , run prop_Node_setOffline
+    , run prop_Node_setMcpu
+    , run prop_Node_setXmem
+    , run prop_Node_addPriFM
     , run prop_Node_addPriFD
     , run prop_Node_addPriFC
     , run prop_Node_addSec
     , run prop_Node_setMdsk
     , run prop_Node_tagMaps_idempotent
     , run prop_Node_tagMaps_reject
+    , run prop_Node_showField
     ]
 
 

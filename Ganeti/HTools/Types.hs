@@ -40,6 +40,7 @@ module Ganeti.HTools.Types
     , unitMem
     , unitCpu
     , unitDsk
+    , unknownField
     , Placement
     , IMove(..)
     , MoveJob
@@ -117,6 +118,10 @@ data IMove = Failover                -- ^ Failover the instance (f)
 -- | Formatted solution output for one move (involved nodes and
 -- commands
 type MoveJob = ([Ndx], Idx, IMove, [String])
+
+-- | Unknown field in table output
+unknownField :: String
+unknownField = "<unknown field>"
 
 -- | A list of command elements
 type JobSet = [MoveJob]
