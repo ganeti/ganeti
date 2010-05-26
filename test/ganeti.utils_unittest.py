@@ -79,6 +79,104 @@ class TestIsProcessAlive(unittest.TestCase):
                  "nonexisting process detected")
 
 
+class TestGetProcStatusPath(unittest.TestCase):
+  def test(self):
+    self.assert_("/1234/" in utils._GetProcStatusPath(1234))
+    self.assertNotEqual(utils._GetProcStatusPath(1),
+                        utils._GetProcStatusPath(2))
+
+
+class TestIsProcessHandlingSignal(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testParseSigsetT(self):
+    self.assertEqual(len(utils._ParseSigsetT("0")), 0)
+    self.assertEqual(utils._ParseSigsetT("1"), set([1]))
+    self.assertEqual(utils._ParseSigsetT("1000a"), set([2, 4, 17]))
+    self.assertEqual(utils._ParseSigsetT("810002"), set([2, 17, 24, ]))
+    self.assertEqual(utils._ParseSigsetT("0000000180000202"),
+                     set([2, 10, 32, 33]))
+    self.assertEqual(utils._ParseSigsetT("0000000180000002"),
+                     set([2, 32, 33]))
+    self.assertEqual(utils._ParseSigsetT("0000000188000002"),
+                     set([2, 28, 32, 33]))
+    self.assertEqual(utils._ParseSigsetT("000000004b813efb"),
+                     set([1, 2, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 17,
+                          24, 25, 26, 28, 31]))
+    self.assertEqual(utils._ParseSigsetT("ffffff"), set(range(1, 25)))
+
+  def testGetProcStatusField(self):
+    for field in ["SigCgt", "Name", "FDSize"]:
+      for value in ["", "0", "cat", "  1234 KB"]:
+        pstatus = "\n".join([
+          "VmPeak: 999 kB",
+          "%s: %s" % (field, value),
+          "TracerPid: 0",
+          ])
+        result = utils._GetProcStatusField(pstatus, field)
+        self.assertEqual(result, value.strip())
+
+  def test(self):
+    sp = utils.PathJoin(self.tmpdir, "status")
+
+    utils.WriteFile(sp, data="\n".join([
+      "Name:   bash",
+      "State:  S (sleeping)",
+      "SleepAVG:       98%",
+      "Pid:    22250",
+      "PPid:   10858",
+      "TracerPid:      0",
+      "SigBlk: 0000000000010000",
+      "SigIgn: 0000000000384004",
+      "SigCgt: 000000004b813efb",
+      "CapEff: 0000000000000000",
+      ]))
+
+    self.assert_(utils.IsProcessHandlingSignal(1234, 10, status_path=sp))
+
+  def testNoSigCgt(self):
+    sp = utils.PathJoin(self.tmpdir, "status")
+
+    utils.WriteFile(sp, data="\n".join([
+      "Name:   bash",
+      ]))
+
+    self.assertRaises(RuntimeError, utils.IsProcessHandlingSignal,
+                      1234, 10, status_path=sp)
+
+  def testNoSuchFile(self):
+    sp = utils.PathJoin(self.tmpdir, "notexist")
+
+    self.assertFalse(utils.IsProcessHandlingSignal(1234, 10, status_path=sp))
+
+  @staticmethod
+  def _TestRealProcess():
+    signal.signal(signal.SIGUSR1, signal.SIG_DFL)
+    if utils.IsProcessHandlingSignal(os.getpid(), signal.SIGUSR1):
+      raise Exception("SIGUSR1 is handled when it should not be")
+
+    signal.signal(signal.SIGUSR1, lambda signum, frame: None)
+    if not utils.IsProcessHandlingSignal(os.getpid(), signal.SIGUSR1):
+      raise Exception("SIGUSR1 is not handled when it should be")
+
+    signal.signal(signal.SIGUSR1, signal.SIG_IGN)
+    if utils.IsProcessHandlingSignal(os.getpid(), signal.SIGUSR1):
+      raise Exception("SIGUSR1 is not handled when it should be")
+
+    signal.signal(signal.SIGUSR1, signal.SIG_DFL)
+    if utils.IsProcessHandlingSignal(os.getpid(), signal.SIGUSR1):
+      raise Exception("SIGUSR1 is handled when it should not be")
+
+    return True
+
+  def testRealProcess(self):
+    self.assert_(utils.RunInSeparateProcess(self._TestRealProcess))
+
+
 class TestPidFileFunctions(unittest.TestCase):
   """Tests for WritePidFile, RemovePidFile and ReadPidFile"""
 

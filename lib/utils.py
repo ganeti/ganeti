@@ -844,6 +844,17 @@ def ForceDictType(target, key_types, allowed_values=None):
         raise errors.TypeEnforcementError(msg)
 
 
+def _GetProcStatusPath(pid):
+  """Returns the path for a PID's proc status file.
+
+  @type pid: int
+  @param pid: Process ID
+  @rtype: string
+
+  """
+  return "/proc/%d/status" % pid
+
+
 def IsProcessAlive(pid):
   """Check if a given pid exists on the system.
 
@@ -870,13 +881,97 @@ def IsProcessAlive(pid):
   if pid <= 0:
     return False
 
-  proc_entry = "/proc/%d/status" % pid
   # /proc in a multiprocessor environment can have strange behaviors.
   # Retry the os.stat a few times until we get a good result.
   try:
-    return Retry(_TryStat, (0.01, 1.5, 0.1), 0.5, args=[proc_entry])
+    return Retry(_TryStat, (0.01, 1.5, 0.1), 0.5,
+                 args=[_GetProcStatusPath(pid)])
   except RetryTimeout, err:
     err.RaiseInner()
+
+
+def _ParseSigsetT(sigset):
+  """Parse a rendered sigset_t value.
+
+  This is the opposite of the Linux kernel's fs/proc/array.c:render_sigset_t
+  function.
+
+  @type sigset: string
+  @param sigset: Rendered signal set from /proc/$pid/status
+  @rtype: set
+  @return: Set of all enabled signal numbers
+
+  """
+  result = set()
+
+  signum = 0
+  for ch in reversed(sigset):
+    chv = int(ch, 16)
+
+    # The following could be done in a loop, but it's easier to read and
+    # understand in the unrolled form
+    if chv & 1:
+      result.add(signum + 1)
+    if chv & 2:
+      result.add(signum + 2)
+    if chv & 4:
+      result.add(signum + 3)
+    if chv & 8:
+      result.add(signum + 4)
+
+    signum += 4
+
+  return result
+
+
+def _GetProcStatusField(pstatus, field):
+  """Retrieves a field from the contents of a proc status file.
+
+  @type pstatus: string
+  @param pstatus: Contents of /proc/$pid/status
+  @type field: string
+  @param field: Name of field whose value should be returned
+  @rtype: string
+
+  """
+  for line in pstatus.splitlines():
+    parts = line.split(":", 1)
+
+    if len(parts) < 2 or parts[0] != field:
+      continue
+
+    return parts[1].strip()
+
+  return None
+
+
+def IsProcessHandlingSignal(pid, signum, status_path=None):
+  """Checks whether a process is handling a signal.
+
+  @type pid: int
+  @param pid: Process ID
+  @type signum: int
+  @param signum: Signal number
+  @rtype: bool
+
+  """
+  if status_path is None:
+    status_path = _GetProcStatusPath(pid)
+
+  try:
+    proc_status = ReadFile(status_path)
+  except EnvironmentError, err:
+    # In at least one case, reading /proc/$pid/status failed with ESRCH.
+    if err.errno in (errno.ENOENT, errno.ENOTDIR, errno.EINVAL, errno.ESRCH):
+      return False
+    raise
+
+  sigcgt = _GetProcStatusField(proc_status, "SigCgt")
+  if sigcgt is None:
+    raise RuntimeError("%s is missing 'SigCgt' field" % status_path)
+
+  # Now check whether signal is handled
+  return signum in _ParseSigsetT(sigcgt)
 
 
 def ReadPidFile(pidfile):
