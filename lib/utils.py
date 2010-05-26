@@ -645,6 +645,24 @@ def RemoveFile(filename):
       raise
 
 
+def RemoveDir(dirname):
+  """Remove an empty directory.
+
+  Remove a directory, ignoring non-existing ones.
+  Other errors are passed. This includes the case,
+  where the directory is not empty, so it can't be removed.
+
+  @type dirname: str
+  @param dirname: the empty directory to be removed
+
+  """
+  try:
+    os.rmdir(dirname)
+  except OSError, err:
+    if err.errno != errno.ENOENT:
+      raise
+
+
 def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
   """Renames a file.
 
