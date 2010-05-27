@@ -29,14 +29,18 @@ module Ganeti.HTools.QC
     , testInstance
     , testNode
     , testText
+    , testOpCodes
     , testCluster
     ) where
 
 import Test.QuickCheck
 import Test.QuickCheck.Batch
 import Data.Maybe
+import Control.Monad
+import qualified Text.JSON as J
 import qualified Data.Map
 import qualified Data.IntMap as IntMap
+import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -139,6 +143,33 @@ instance Arbitrary Node.Node where
               (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl
           n' = Node.buildPeers n Container.empty
       return n'
+
+-- replace disks
+instance Arbitrary OpCodes.ReplaceDisksMode where
+  arbitrary = elements [ OpCodes.ReplaceOnPrimary
+                       , OpCodes.ReplaceOnSecondary
+                       , OpCodes.ReplaceNewSecondary
+                       , OpCodes.ReplaceAuto
+                       ]
+
+instance Arbitrary OpCodes.OpCode where
+  arbitrary = do
+    op_id <- elements [ "OP_TEST_DELAY"
+                      , "OP_INSTANCE_REPLACE_DISKS"
+                      , "OP_INSTANCE_FAILOVER"
+                      , "OP_INSTANCE_MIGRATE"
+                      ]
+    (case op_id of
+        "OP_TEST_DELAY" ->
+          liftM3 OpCodes.OpTestDelay arbitrary arbitrary arbitrary
+        "OP_INSTANCE_REPLACE_DISKS" ->
+          liftM5 OpCodes.OpReplaceDisks arbitrary arbitrary
+          arbitrary arbitrary arbitrary
+        "OP_INSTANCE_FAILOVER" ->
+          liftM2 OpCodes.OpFailoverInstance arbitrary arbitrary
+        "OP_INSTANCE_MIGRATE" ->
+          liftM3 OpCodes.OpMigrateInstance arbitrary arbitrary arbitrary
+        _ -> fail "Wrong opcode")
 
 -- * Actual tests
 
@@ -619,3 +650,15 @@ testCluster =
     , run prop_ClusterAllocEvac
     , run prop_ClusterAllocBalance
     ]
+
+-- | Check that opcode serialization is idempotent
+
+prop_OpCodes_serialization op =
+  case J.readJSON (J.showJSON op) of
+    J.Error _ -> False
+    J.Ok op' -> op == op'
+  where _types = (op::OpCodes.OpCode)
+
+testOpCodes =
+  [ run prop_OpCodes_serialization
+  ]

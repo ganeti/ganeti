@@ -68,6 +68,7 @@ main = do
   runTests "Instance" fastOptions $ wrap testInstance
   runTests "Node" fastOptions $ wrap testNode
   runTests "Text" fastOptions $ wrap testText
+  runTests "OpCodes" fastOptions $ wrap testOpCodes
   runTests "Cluster" slowOptions $ wrap testCluster
   terr <- readIORef errs
   (if terr > 0

@@ -40,7 +40,7 @@ data ReplaceDisksMode = ReplaceOnPrimary
                   | ReplaceOnSecondary
                   | ReplaceNewSecondary
                   | ReplaceAuto
-                  deriving Show
+                  deriving (Show, Eq)
 
 instance JSON ReplaceDisksMode where
     showJSON m = case m of
@@ -60,7 +60,7 @@ data OpCode = OpTestDelay Double Bool [String]
               [Int] (Maybe String)
             | OpFailoverInstance String Bool
             | OpMigrateInstance String Bool Bool
-            deriving Show
+            deriving (Show, Eq)
 
 
 opID :: OpCode -> String
