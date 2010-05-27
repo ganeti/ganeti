@@ -31,6 +31,7 @@ module Ganeti.HTools.Utils
     , readEitherString
     , loadJSArray
     , fromObj
+    , maybeFromObj
     , tryFromObj
     , fromJVal
     , asJSObject
@@ -41,6 +42,7 @@ module Ganeti.HTools.Utils
     , annotateResult
     ) where
 
+import Control.Monad (liftM)
 import Data.List
 import qualified Text.JSON as J
 import Text.Printf (printf)
@@ -114,13 +116,28 @@ loadJSArray :: (Monad m)
                -> m [J.JSObject J.JSValue]
 loadJSArray s = fromJResult s . J.decodeStrict
 
--- | Reads a the value of a key in a JSON object.
+-- | Reads the value of a key in a JSON object.
 fromObj :: (J.JSON a, Monad m) => String -> [(String, J.JSValue)] -> m a
 fromObj k o =
     case lookup k o of
       Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
-      Just val -> fromJResult (printf "key '%s', value '%s'" k (show val))
-                  (J.readJSON val)
+      Just val -> fromKeyValue k val
+
+-- | Reads the value of an optional key in a JSON object.
+maybeFromObj :: (J.JSON a, Monad m) => String -> [(String, J.JSValue)]
+                -> m (Maybe a)
+maybeFromObj k o =
+    case lookup k o of
+      Nothing -> return Nothing
+      Just val -> liftM Just (fromKeyValue k val)
+
+-- | Reads a JValue, that originated from an object key
+fromKeyValue :: (J.JSON a, Monad m)
+              => String     -- ^ The key name
+              -> J.JSValue  -- ^ The value to read
+              -> m a
+fromKeyValue k val =
+  fromJResult (printf "key '%s', value '%s'" k (show val)) (J.readJSON val)
 
 -- | Annotate a Result with an ownership information
 annotateResult :: String -> Result a -> Result a

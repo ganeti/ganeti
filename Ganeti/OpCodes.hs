@@ -81,10 +81,10 @@ loadOpCode v = do
                  return $ OpTestDelay duration on_master on_nodes
     "OP_INSTANCE_REPLACE_DISKS" -> do
                  inst <- fromObj "instance_name" o
-                 node <- fromObj "remote_node" o
+                 node <- maybeFromObj "remote_node" o
                  mode <- fromObj "mode" o
                  disks <- fromObj "disks" o
-                 ialloc <- fromObj "iallocator" o
+                 ialloc <- maybeFromObj "iallocator" o
                  return $ OpReplaceDisks inst node mode disks ialloc
     "OP_INSTANCE_FAILOVER" -> do
                  inst <- fromObj "instance_name" o
