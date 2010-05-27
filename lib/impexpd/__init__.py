@@ -25,6 +25,7 @@
 
 import re
 import socket
+import logging
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -320,6 +321,7 @@ class ChildIOProcessor(object):
       if not status_file.GetConnected():
         m = TRANSFER_LOOP_RE.match(msg)
         if m:
+          logging.debug("Connection established")
           status_file.SetConnected()
           return True
 

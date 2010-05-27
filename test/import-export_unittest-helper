@@ -24,6 +24,7 @@
 import os
 import sys
 import errno
+import time
 
 from ganeti import constants
 from ganeti import utils
@@ -36,25 +37,50 @@ TIMEOUT = int(os.getenv("TIMEOUT", 10))
 VALIDITY = int(os.getenv("VALIDITY", 1))
 
 
+def Log(msg, *args):
+  if args:
+    line = msg % args
+  else:
+    line = msg
+
+  sys.stderr.write("%0.6f, pid %s: %s\n" % (time.time(), os.getpid(), line))
+  sys.stderr.flush()
+
+
 def _GetImportExportData(filename):
   try:
     data = utils.ReadFile(filename)
   except EnvironmentError, err:
+    Log("%s = %s", filename, err)
     if err.errno != errno.ENOENT:
       raise
     raise utils.RetryAgain()
+
+  Log("%s = %s", filename, data.strip())
 
   return objects.ImportExportStatus.FromDict(serializer.LoadJson(data))
 
 
 def _CheckConnected(filename):
   if not _GetImportExportData(filename).connected:
+    Log("Not connected")
     raise utils.RetryAgain()
+
+  Log("Connected")
+
+
+def _CheckListenPort(filename):
+  port = _GetImportExportData(filename).listen_port
+  if not port:
+    Log("No port")
+    raise utils.RetryAgain()
+  Log("Listening on %s", port)
+  return port
 
 
 def WaitForListenPort(filename):
-  return utils.Retry(lambda: _GetImportExportData(filename).listen_port,
-                     RETRY_INTERVAL, TIMEOUT)
+  return utils.Retry(_CheckListenPort, RETRY_INTERVAL, TIMEOUT,
+                     args=(filename, ))
 
 
 def WaitForConnected(filename):

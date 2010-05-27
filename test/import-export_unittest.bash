@@ -67,6 +67,10 @@ get_testfile() {
   echo "$(get_testpath)/data/$1"
 }
 
+upto() {
+  echo "$(date '+%F %T'):" "$@" '...'
+}
+
 statusdir=$(mktemp -d)
 trap "rm -rf $statusdir" EXIT
 
@@ -89,6 +93,8 @@ cmd_suffix=
 connect_timeout=10
 connect_retries=1
 compress=gzip
+
+upto 'Command line parameter tests'
 
 $impexpd >/dev/null 2>&1 &&
   err "daemon-util succeeded without parameters"
@@ -122,10 +128,6 @@ impexpd_helper() {
   $PYTHON $(get_testpath)/import-export_unittest-helper "$@"
 }
 
-upto() {
-  echo "$(date '+%F %T'):" "$@" '...'
-}
-
 reset_status() {
   rm -f $src_statusfile $dst_output $dst_statusfile $dst_output $dst_portfile
 }
@@ -134,6 +136,9 @@ write_data() {
   local fname=${1:-$testdata}
 
   # Wait for connection to be established
+  impexpd_helper $src_statusfile connected
+
+  # And just to be sure, also wait for destination to report as connected
   impexpd_helper $dst_statusfile connected
 
   cat $fname
