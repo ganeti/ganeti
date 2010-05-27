@@ -29,17 +29,18 @@ import Data.IORef
 import Test.QuickCheck.Batch
 import System.IO
 import System.Exit
+import System (getArgs)
 
 import Ganeti.HTools.QC
 
-fastOptions :: TestOptions
-fastOptions = TestOptions
+fast :: TestOptions
+fast = TestOptions
               { no_of_tests         = 500
               , length_of_tests     = 10
               , debug_tests         = False }
 
-slowOptions :: TestOptions
-slowOptions = TestOptions
+slow :: TestOptions
+slow = TestOptions
               { no_of_tests         = 50
               , length_of_tests     = 100
               , debug_tests         = False }
@@ -59,17 +60,26 @@ wrapTest ir t to = do
       _ -> return ()
     return tr
 
+allTests :: [(String, TestOptions, [TestOptions -> IO TestResult])]
+allTests =
+  [ ("PeerMap", fast, testPeerMap)
+  , ("Container", fast, testContainer)
+  , ("Instance", fast, testInstance)
+  , ("Node", fast, testNode)
+  , ("Text", fast, testText)
+  , ("OpCodes", fast, testOpCodes)
+  , ("Cluster", slow, testCluster)
+  ]
+
 main :: IO ()
 main = do
   errs <- newIORef 0
   let wrap = map (wrapTest errs)
-  runTests "PeerMap" fastOptions $ wrap testPeerMap
-  runTests "Container" fastOptions $ wrap testContainer
-  runTests "Instance" fastOptions $ wrap testInstance
-  runTests "Node" fastOptions $ wrap testNode
-  runTests "Text" fastOptions $ wrap testText
-  runTests "OpCodes" fastOptions $ wrap testOpCodes
-  runTests "Cluster" slowOptions $ wrap testCluster
+  args <- getArgs
+  let tests = if null args
+              then allTests
+              else filter (\(name, _, _) -> name `elem` args) allTests
+  mapM_ (\(name, opts, tl) -> runTests name opts (wrap tl)) tests
   terr <- readIORef errs
   (if terr > 0
    then do
