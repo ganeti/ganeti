@@ -112,8 +112,11 @@ readEitherString v =
       _ -> fail "Wrong JSON type"
 
 -- | Converts a JSON message into an array of JSON objects.
-loadJSArray :: (Monad m) => String -> m [J.JSObject J.JSValue]
-loadJSArray = fromJResult . J.decodeStrict
+loadJSArray :: (Monad m)
+               => String -- ^ Operation description (for error reporting)
+               -> String -- ^ Input message
+               -> m [J.JSObject J.JSValue]
+loadJSArray s = annotateJResult s . J.decodeStrict
 
 -- | Reads a the value of a key in a JSON object.
 fromObj :: (J.JSON a, Monad m) => String -> [(String, J.JSValue)] -> m a

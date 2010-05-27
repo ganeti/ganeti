@@ -65,11 +65,13 @@ getInstances :: NameAssoc
              -> String
              -> Result [(String, Instance.Instance)]
 getInstances ktn body =
-    loadJSArray body >>= mapM (parseInstance ktn . fromJSObject)
+    loadJSArray "Parsing instance data" body >>=
+    mapM (parseInstance ktn . fromJSObject)
 
 -- | Parse a node list in JSON format.
 getNodes :: String -> Result [(String, Node.Node)]
-getNodes body = loadJSArray body >>= mapM (parseNode . fromJSObject)
+getNodes body = loadJSArray "Parsing node data" body >>=
+                mapM (parseNode . fromJSObject)
 
 -- | Construct an instance from a JSON object.
 parseInstance :: [(String, Ndx)]
