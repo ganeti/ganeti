@@ -97,7 +97,7 @@ parseNode n a = do
 parseData :: String         -- ^ The JSON message as received from Ganeti
           -> Result Request -- ^ A (possible valid) request
 parseData body = do
-  decoded <- fromJResult $ decodeStrict body
+  decoded <- fromJResult "Parsing input IAllocator message" (decodeStrict body)
   let obj = fromJSObject decoded
   -- request parser
   request <- liftM fromJSObject (fromObj "request" obj)

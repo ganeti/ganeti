@@ -93,13 +93,9 @@ varianceCoeff lst =
 -- * JSON-related functions
 
 -- | Converts a JSON Result into a monadic value.
-fromJResult :: Monad m => J.Result a -> m a
-fromJResult (J.Error x) = fail x
-fromJResult (J.Ok x) = return x
-
-annotateJResult :: Monad m => String -> J.Result a -> m a
-annotateJResult s (J.Error x) = fail (s ++ ": " ++ x)
-annotateJResult _ (J.Ok x) = return x
+fromJResult :: Monad m => String -> J.Result a -> m a
+fromJResult s (J.Error x) = fail (s ++ ": " ++ x)
+fromJResult _ (J.Ok x) = return x
 
 -- | Tries to read a string from a JSON value.
 --
@@ -116,14 +112,14 @@ loadJSArray :: (Monad m)
                => String -- ^ Operation description (for error reporting)
                -> String -- ^ Input message
                -> m [J.JSObject J.JSValue]
-loadJSArray s = annotateJResult s . J.decodeStrict
+loadJSArray s = fromJResult s . J.decodeStrict
 
 -- | Reads a the value of a key in a JSON object.
 fromObj :: (J.JSON a, Monad m) => String -> [(String, J.JSValue)] -> m a
 fromObj k o =
     case lookup k o of
       Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
-      Just val -> annotateJResult (printf "key '%s', value '%s'" k (show val))
+      Just val -> fromJResult (printf "key '%s', value '%s'" k (show val))
                   (J.readJSON val)
 
 -- | Annotate a Result with an ownership information

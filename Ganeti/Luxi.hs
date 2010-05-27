@@ -150,7 +150,8 @@ buildCall msg args =
 -- call was successful.
 validateResult :: String -> Result JSValue
 validateResult s = do
-  oarr <- fromJResult $ decodeStrict s::Result (JSObject JSValue)
+  oarr <- fromJResult "Parsing LUXI response"
+          (decodeStrict s)::Result (JSObject JSValue)
   let arr = J.fromJSObject oarr
   status <- fromObj (strOfKey Success) arr::Result Bool
   let rkey = strOfKey Result

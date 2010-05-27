@@ -130,5 +130,5 @@ loadData master = do -- IO monad
     let (node_names, node_idx) = assignIndices node_data
     inst_data <- inst_body >>= getInstances node_names
     let (_, inst_idx) = assignIndices inst_data
-    tags_data <- tags_body >>= (fromJResult . decodeStrict)
+    tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
     return (node_idx, inst_idx, tags_data)
