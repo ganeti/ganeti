@@ -58,20 +58,75 @@ decrease lock contention, log pollution and memory usage.
 Also, with the current architecture, masterd suffers from quite a few
 scalability issues:
 
-- Since the 16 client worker threads handle one connection each, it's
-  very easy to exhaust them, by just connecting to masterd 16 times and
-  not sending any data. While we could perhaps make those pools
-  resizable, increasing the number of threads won't help with lock
-  contention.
-- Some luxi operations (in particular REQ_WAIT_FOR_JOB_CHANGE) make the
-  relevant client thread block on its job for a relatively long time.
-  This makes it easier to exhaust the 16 client threads.
-- The job queue lock is quite heavily contended, and certain easily
-  reproducible workloads show that's it's very easy to put masterd in
-  trouble: for example running ~15 background instance reinstall jobs,
-  results in a master daemon that, even without having finished the
-  client worker threads, can't answer simple job list requests, or
-  submit more jobs.
+Core daemon connection handling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Since the 16 client worker threads handle one connection each, it's very
+easy to exhaust them, by just connecting to masterd 16 times and not
+sending any data. While we could perhaps make those pools resizable,
+increasing the number of threads won't help with lock contention nor
+with better handling long running operations making sure the client is
+informed that everything is proceeding, and doesn't need to time out.
+
+Wait for job change
+^^^^^^^^^^^^^^^^^^^
+
+The REQ_WAIT_FOR_JOB_CHANGE luxi operation makes the relevant client
+thread block on its job for a relative long time. This is another easy
+way to exhaust the 16 client threads, and a place where clients often
+time out, moreover this operation is negative for the job queue lock
+contention (see below).
+
+Job Queue lock
+^^^^^^^^^^^^^^
+
+The job queue lock is quite heavily contended, and certain easily
+reproducible workloads show that's it's very easy to put masterd in
+trouble: for example running ~15 background instance reinstall jobs,
+results in a master daemon that, even without having finished the
+client worker threads, can't answer simple job list requests, or
+submit more jobs.
+
+Currently the job queue lock is an exclusive non-fair lock insulating
+the following job queue methods (called by the client workers).
+
+  - AddNode
+  - RemoveNode
+  - SubmitJob
+  - SubmitManyJobs
+  - WaitForJobChanges
+  - CancelJob
+  - ArchiveJob
+  - AutoArchiveJobs
+  - QueryJobs
+  - Shutdown
+
+Moreover the job queue lock is acquired outside of the job queue in two
+other classes:
+
+  - jqueue._JobQueueWorker (in RunTask) before executing the opcode, after
+    finishing its executing and when handling an exception.
+  - jqueue._OpExecCallbacks (in NotifyStart and Feedback) when the
+    processor (mcpu.Processor) is about to start working on the opcode
+    (after acquiring the necessary locks) and when any data is sent back
+    via the feedback function.
+
+Of those the major critical points are:
+
+  - Submit[Many]Job, QueryJobs, WaitForJobChanges, which can easily slow
+    down and block client threads up to making the respective clients
+    time out.
+  - The code paths in NotifyStart, Feedback, and RunTask, which slow
+    down job processing between clients and otherwise non-related jobs.
+
+To increase the pain:
+
+  - WaitForJobChanges is a bad offender because it's implemented with a
+    notified condition which awakes waiting threads, who then try to
+    acquire the global lock again
+  - Many should-be-fast code paths are slowed down by replicating the
+    change to remote nodes, and thus waiting, with the lock held, on
+    remote rpcs to complete (starting, finishing, and submitting jobs)
 
 Proposed changes
 ++++++++++++++++
@@ -116,7 +171,10 @@ data, and not in fetching/serializing it.
 
 Other features to look at, when implementing this code are:
 
-  - Possibility not to need the job lock to know which updates to push.
+  - Possibility not to need the job lock to know which updates to push:
+    if the thread producing the data pushed a copy of the update for the
+    waiting clients, the thread sending it won't need to acquire the
+    lock again to fetch the actual data.
   - Possibility to signal clients about to time out, when no update has
     been received, not to despair and to keep waiting (luxi level
     keepalive).
@@ -126,11 +184,31 @@ Other features to look at, when implementing this code are:
 Job Queue lock
 ^^^^^^^^^^^^^^
 
-Our tests show that the job queue lock is a point of high contention.
-We'll try to decrease its contention, either by more granular locking,
-the use of shared/exclusive locks, or reducing the size of the critical
-sections. This section of the design should be updated with the proposed
-changes for the 2.2 release, with regards to the job queue.
+In order to decrease the job queue lock contention, we will change the
+code paths in the following ways, initially:
+
+  - A per-job lock will be introduced. All operations affecting only one
+    job (for example feedback, starting/finishing notifications,
+    subscribing to or watching a job) will only require the job lock.
+    This should be a leaf lock, but if a situation arises in which it
+    must be acquired together with the global job queue lock the global
+    one must always be acquired last (for the global section).
+  - The locks will be converted to a sharedlock. Any read-only operation
+    will be able to proceed in parallel.
+  - During remote update (which happens already per-job) we'll drop the
+    job lock level to shared mode, so that activities reading the lock
+    (for example job change notifications or QueryJobs calls) will be
+    able to proceed in parallel.
+  - The wait for job changes improvements proposed above will be
+    implemented.
+
+In the future other improvements may include splitting off some of the
+work (eg replication of a job to remote nodes) to a separate thread pool
+or asynchronous thread, not tied with the code path for answering client
+requests or the one executing the "real" work. This can be discussed
+again after we used the more granular job queue in production and tested
+its benefits.
+
 
 Remote procedure call timeouts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
