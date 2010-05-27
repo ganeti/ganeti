@@ -58,5 +58,26 @@ class TestPartial(testutils.GanetiTestCase):
                            (("Foo", ), {"xyz": 999,}))
 
 
+class TestTryToRoman(testutils.GanetiTestCase):
+  """test the compat.TryToRoman function"""
+
+  def testAFewIntegers(self):
+    self.assertEquals(compat.TryToRoman(0), 0)
+    self.assertEquals(compat.TryToRoman(1), "I")
+    self.assertEquals(compat.TryToRoman(4), "IV")
+    self.assertEquals(compat.TryToRoman(5), "V")
+
+  def testStrings(self):
+    self.assertEquals(compat.TryToRoman("astring"), "astring")
+    self.assertEquals(compat.TryToRoman("5"), "5")
+
+  def testDontConvert(self):
+    self.assertEquals(compat.TryToRoman(0, convert=False), 0)
+    self.assertEquals(compat.TryToRoman(1, convert=False), 1)
+    self.assertEquals(compat.TryToRoman(7, convert=False), 7)
+    self.assertEquals(compat.TryToRoman("astring", convert=False), "astring")
+    self.assertEquals(compat.TryToRoman("19", convert=False), "19")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

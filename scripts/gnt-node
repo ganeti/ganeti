@@ -28,15 +28,11 @@
 
 import sys
 
-try:
-  import roman
-except ImportError:
-  roman = None
-
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import constants
+from ganeti import compat
 from ganeti import errors
 from ganeti import bootstrap
 
@@ -232,12 +228,8 @@ def ListNodes(opts, args):
         val = utils.FormatTime(val)
       elif val is None:
         val = "?"
-      elif (roman is not None and opts.roman_integers
-            and field in latinfriendlyfields):
-        try:
-          val = roman.toRoman(val)
-        except roman.RomanError:
-          pass
+      elif opts.roman_integers and field in latinfriendlyfields:
+        val = compat.TryToRoman(val)
       row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,

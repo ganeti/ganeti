@@ -30,6 +30,11 @@ try:
 except ImportError:
   functools = None
 
+try:
+  import roman
+except ImportError:
+  roman = None
+
 
 def all(seq, pred=bool): # pylint: disable-msg=W0622
   """Returns True if pred(x) is True for every element in the iterable.
@@ -80,6 +85,29 @@ def _partial(func, *args, **keywords): # pylint: disable-msg=W0622
   newfunc.args = args
   newfunc.keywords = keywords
   return newfunc
+
+
+def TryToRoman(val, convert=True):
+  """Try to convert a value to roman numerals
+
+  If the roman module could be loaded convert the given value to a roman
+  numeral. Gracefully fail back to leaving the value untouched.
+
+  @type val: integer
+  @param val: value to convert
+  @type convert: boolean
+  @param convert: if False, don't try conversion at all
+  @rtype: string or typeof(val)
+  @return: roman numeral for val, or val if conversion didn't succeed
+
+  """
+  if roman is not None and convert:
+    try:
+      return roman.toRoman(val)
+    except roman.RomanError:
+      return val
+  else:
+    return val
 
 
 if functools is None:
