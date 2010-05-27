@@ -208,10 +208,6 @@ def ListNodes(opts, args):
                "pinst_cnt", "sinst_cnt",
                "ctotal", "serial_no"]
 
-  latinfriendlyfields = ["pinst_cnt", "sinst_cnt",
-                         "ctotal", "cnodes", "csockets",
-                         "serial_no"]
-
   list_type_fields = ("pinst_list", "sinst_list", "tags")
   # change raw values to nicer strings
   for row in output:
@@ -228,7 +224,7 @@ def ListNodes(opts, args):
         val = utils.FormatTime(val)
       elif val is None:
         val = "?"
-      elif opts.roman_integers and field in latinfriendlyfields:
+      elif opts.roman_integers and isinstance(val, int):
         val = compat.TryToRoman(val)
       row[idx] = str(val)
 
