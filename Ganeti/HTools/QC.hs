@@ -566,7 +566,7 @@ prop_ClusterAlloc_sane node inst =
         inst' = setInstanceSmallerThanNode node inst
     in case Cluster.tryAlloc nl il inst' rqnodes of
          Types.Bad _ -> False
-         Types.Ok (errs, _, sols3) ->
+         Types.Ok (_, _, sols3) ->
              case sols3 of
                [] -> False
                (_, (xnl, xi, _)):[] ->
@@ -606,7 +606,7 @@ prop_ClusterAllocEvac node inst =
         inst' = setInstanceSmallerThanNode node inst
     in case Cluster.tryAlloc nl il inst' rqnodes of
          Types.Bad _ -> False
-         Types.Ok (errs, _, sols3) ->
+         Types.Ok (_, _, sols3) ->
              case sols3 of
                [] -> False
                (_, (xnl, xi, _)):[] ->

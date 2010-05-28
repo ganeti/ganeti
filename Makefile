@@ -18,7 +18,9 @@ all: $(HPROGS)
 $(HALLPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
 	$(GHC) --make $(HFLAGS) $(HEXTRA) $@
 
-test: HEXTRA=-fhpc -Wwarn
+test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
+	-fno-warn-monomorphism-restriction -fno-warn-orphans \
+	-fno-warn-missing-methods -fno-warn-unused-imports
 
 $(DOCS) : %.html : %
 	rst2html $< $@
