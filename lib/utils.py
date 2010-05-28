@@ -1388,6 +1388,11 @@ def EnsureDirs(dirs):
       if err.errno != errno.EEXIST:
         raise errors.GenericError("Cannot create needed directory"
                                   " '%s': %s" % (dir_name, err))
+    try:
+      os.chmod(dir_name, dir_mode)
+    except EnvironmentError, err:
+      raise errors.GenericError("Cannot change directory permissions on"
+                                " '%s': %s" % (dir_name, err))
     if not os.path.isdir(dir_name):
       raise errors.GenericError("%s is not a directory" % dir_name)
 
