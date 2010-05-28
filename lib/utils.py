@@ -55,17 +55,13 @@ import IN
 from cStringIO import StringIO
 
 try:
-  from hashlib import sha1
-except ImportError:
-  import sha as sha1
-
-try:
   import ctypes
 except ImportError:
   ctypes = None
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import compat
 
 
 _locksheld = []
@@ -748,10 +744,7 @@ def _FingerprintFile(filename):
 
   f = open(filename)
 
-  if callable(sha1):
-    fp = sha1()
-  else:
-    fp = sha1.new()
+  fp = compat.sha1_hash()
   while True:
     data = f.read(4096)
     if not data:
@@ -2799,7 +2792,7 @@ def Sha1Hmac(key, text, salt=None):
   else:
     salted_text = text
 
-  return hmac.new(key, salted_text, sha1).hexdigest()
+  return hmac.new(key, salted_text, compat.sha1).hexdigest()
 
 
 def VerifySha1Hmac(key, text, digest, salt=None):

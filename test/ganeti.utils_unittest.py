@@ -39,12 +39,12 @@ import OpenSSL
 import warnings
 import distutils.version
 import glob
-import md5
 import errno
 
 import ganeti
 import testutils
 from ganeti import constants
+from ganeti import compat
 from ganeti import utils
 from ganeti import errors
 from ganeti import serializer
@@ -670,7 +670,7 @@ class TestReadFile(testutils.GanetiTestCase):
     data = utils.ReadFile(self._TestDataFilename("cert1.pem"))
     self.assertEqual(len(data), 814)
 
-    h = md5.new()
+    h = compat.md5_hash()
     h.update(data)
     self.assertEqual(h.hexdigest(), "a491efb3efe56a0535f924d5f8680fd4")
 
@@ -679,7 +679,7 @@ class TestReadFile(testutils.GanetiTestCase):
                           size=100)
     self.assertEqual(len(data), 100)
 
-    h = md5.new()
+    h = compat.md5_hash()
     h.update(data)
     self.assertEqual(h.hexdigest(), "893772354e4e690b9efd073eed433ce7")
 

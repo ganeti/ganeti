@@ -31,6 +31,25 @@ except ImportError:
   functools = None
 
 
+# compat.md5_hash and compat.sha1_hash can be called to generate and md5 and a
+# sha1 hashing modules, under python 2.4, 2.5 and 2.6, even though some changes
+# went on. compat.sha1 is python-version specific and is used for python
+# modules (hmac, for example) which have changed their behavior as well from
+# one version to the other.
+try:
+  # Yes, we're not using the imports in this module.
+  # pylint: disable-msg=W0611
+  from hashlib import md5 as md5_hash
+  from hashlib import sha1 as sha1_hash
+  # this additional version is needed for compatibility with the hmac module
+  sha1 = sha1_hash
+except ImportError:
+  from md5 import new as md5_hash
+  import sha
+  sha1 = sha
+  sha1_hash = sha.new
+
+
 def all(seq, pred=bool): # pylint: disable-msg=W0622
   """Returns True if pred(x) is True for every element in the iterable.
 

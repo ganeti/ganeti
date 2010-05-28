@@ -28,15 +28,10 @@ import base64
 import binascii
 
 from ganeti import utils
+from ganeti import compat
 from ganeti import http
 
 from cStringIO import StringIO
-
-try:
-  from hashlib import md5
-except ImportError:
-  from md5 import new as md5
-
 
 # Digest types from RFC2617
 HTTP_BASIC_AUTH = "Basic"
@@ -271,7 +266,7 @@ class HttpServerRequestAuthentication(object):
         # There can not be a valid password for this case
         raise AssertionError("No authentication realm")
 
-      expha1 = md5()
+      expha1 = compat.md5_hash()
       expha1.update("%s:%s:%s" % (username, realm, password))
 
       return (expected_password.lower() == expha1.hexdigest().lower())
