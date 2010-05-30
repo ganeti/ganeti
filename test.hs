@@ -56,7 +56,9 @@ wrapTest ir t to = do
     tr <- t to
     case tr of
       TestFailed _ _ -> incIORef ir
-      TestAborted _ -> incIORef ir
+      TestAborted e -> do
+        incIORef ir
+        putStrLn ("Failure during test: <" ++ show e ++ ">")
       _ -> return ()
     return tr
 
