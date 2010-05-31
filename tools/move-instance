@@ -290,7 +290,6 @@ class InstanceMove(object):
     self.dest_snode = dest_snode
     self.dest_iallocator = dest_iallocator
 
-    self.success = None
     self.error_message = None
 
 
@@ -311,17 +310,12 @@ class MoveRuntime(object):
     self.source_to_dest = threading.Condition(self.lock)
     self.dest_to_source = threading.Condition(self.lock)
 
-    # Set when threads should abort
-    self.abort = None
-
     # Source information
-    self.src_success = None
     self.src_error_message = None
     self.src_expinfo = None
     self.src_instinfo = None
 
     # Destination information
-    self.dest_success = None
     self.dest_error_message = None
     self.dest_impinfo = None
 
@@ -340,27 +334,21 @@ class MoveRuntime(object):
       # Call inner function
       fn(*args)
 
-      success = True
       errmsg = None
     except Abort:
-      success = False
       errmsg = "Aborted"
     except Exception, err:
       logging.exception("Caught unhandled exception")
-      success = False
       errmsg = str(err)
+
+    setattr(self, "%s_error_message" % prefix, errmsg)
 
     self.lock.acquire()
     try:
-      # Tell all threads to abort
-      self.abort = True
       self.source_to_dest.notifyAll()
       self.dest_to_source.notifyAll()
     finally:
       self.lock.release()
-
-    setattr(self, "%s_success" % prefix, success)
-    setattr(self, "%s_error_message" % prefix, errmsg)
 
   def CheckAbort(self):
     """Check whether thread should be aborted.
@@ -368,7 +356,8 @@ class MoveRuntime(object):
     @raise Abort: When thread should be aborted
 
     """
-    if self.abort:
+    if not (self.src_error_message is None and
+            self.dest_error_message is None):
       logging.info("Aborting")
       raise Abort()
 
@@ -652,7 +641,6 @@ class MoveSourceWorker(workerpool.BaseWorker):
       finally:
         dest_thread.join()
 
-      move.success = (mrt.src_success and mrt.dest_success)
       if mrt.src_error_message or mrt.dest_error_message:
         move.error_message = ("Source error: %s, destination error: %s" %
                               (mrt.src_error_message, mrt.dest_error_message))
@@ -660,7 +648,6 @@ class MoveSourceWorker(workerpool.BaseWorker):
         move.error_message = None
     except Exception, err: # pylint: disable-msg=W0703
       logging.exception("Caught unhandled exception")
-      move.success = False
       move.error_message = str(err)
 
 
@@ -850,17 +837,17 @@ def main():
     else:
       name = "%s as %s" % (move.src_instance_name, move.dest_instance_name)
 
-    if move.success and not move.error_message:
-      msg = "Success"
-    else:
+    if move.error_message:
       msg = "Failed (%s)" % move.error_message
+    else:
+      msg = "Success"
 
     logging.info("%s: %s", name, msg)
 
-  if compat.all(move.success for move in moves):
-    sys.exit(constants.EXIT_SUCCESS)
+  if compat.any(move.error_message for move in moves):
+    sys.exit(constants.EXIT_FAILURE)
 
-  sys.exit(constants.EXIT_FAILURE)
+  sys.exit(constants.EXIT_SUCCESS)
 
 
 if __name__ == "__main__":
