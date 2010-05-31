@@ -2518,10 +2518,12 @@ def IgnoreSignals(fn, *args, **kwargs):
   """
   try:
     return fn(*args, **kwargs)
-  except (EnvironmentError, socket.error), err:
+  except EnvironmentError, err:
     if err.errno != errno.EINTR:
       raise
-  except select.error, err:
+  except (select.error, socket.error), err:
+    # In python 2.6 and above select.error is an IOError, so it's handled
+    # above, in 2.5 and below it's not, and it's handled here.
     if not (err.args and err.args[0] == errno.EINTR):
       raise
 
