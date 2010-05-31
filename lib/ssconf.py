@@ -336,6 +336,9 @@ class SimpleStore(object):
       for name, value in values.iteritems():
         if value and not value.endswith("\n"):
           value += "\n"
+        if len(value) > self._MAX_SIZE:
+          raise errors.ConfigurationError("ssconf file %s above maximum size" %
+                                          name)
         utils.WriteFile(self.KeyToFilename(name), data=value, mode=0444)
     finally:
       ssconf_lock.Unlock()
