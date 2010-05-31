@@ -78,6 +78,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_USB_MOUSE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
+    constants.HV_MIGRATION_BANDWIDTH: hv_base.NO_CHECK,
+    constants.HV_MIGRATION_DOWNTIME: hv_base.NO_CHECK,
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     constants.HV_DISK_CACHE:
       hv_base.ParamInSet(True, constants.HT_VALID_CACHE_TYPES),
@@ -810,6 +812,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if not live:
       self._CallMonitorCommand(instance_name, 'stop')
+
+    migrate_command = ('migrate_set_speed %dm' %
+        instance.hvparams[constants.HV_MIGRATION_BANDWIDTH])
+    self._CallMonitorCommand(instance_name, migrate_command)
+
+    migrate_command = ('migrate_set_downtime %dms' %
+        instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
+    self._CallMonitorCommand(instance_name, migrate_command)
 
     migrate_command = 'migrate -d tcp:%s:%s' % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)

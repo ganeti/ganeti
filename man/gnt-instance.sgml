@@ -658,6 +658,24 @@
               </listitem>
             </varlistentry>
 
+            <varlistentry>
+              <term>migration_downtime</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>The maximum amount of time (in ms) a KVM instance is
+                allowed to be frozen during a live migration, in order to copy
+                dirty memory pages. Default value is 30ms, but you may need to
+                increase this value for busy instances.
+                </simpara>
+
+                <simpara>This option is only effective with kvm versions >= 87
+                and qemu-kvm versions >= 0.11.0.
+                </simpara>
+
+              </listitem>
+            </varlistentry>
+
           </variablelist>
 
         </para>
