@@ -2517,6 +2517,7 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
                     constants.RAPI_CERT_FILE,
                     constants.RAPI_USERS_FILE,
                     constants.CONFD_HMAC_KEY,
+                    constants.CLUSTER_DOMAIN_SECRET_FILE,
                    ])
 
   enabled_hypervisors = lu.cfg.GetClusterInfo().enabled_hypervisors

@@ -193,6 +193,7 @@ def _BuildUploadFileList():
     constants.RAPI_CERT_FILE,
     constants.RAPI_USERS_FILE,
     constants.CONFD_HMAC_KEY,
+    constants.CLUSTER_DOMAIN_SECRET_FILE,
     ])
 
   for hv_name in constants.HYPER_TYPES:
