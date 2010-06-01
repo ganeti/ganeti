@@ -690,7 +690,24 @@
                 <simpara>This option is only effective with kvm versions >= 87
                 and qemu-kvm versions >= 0.11.0.
                 </simpara>
+              </listitem>
+            </varlistentry>
 
+            <varlistentry>
+              <term>use_chroot</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>This boolean option determines wether to run the KVM
+                instance in a chroot directory.
+                </simpara>
+                <para>If it is set to <quote>true</quote>, an empty directory
+                is created before starting the instance and its path is passed via
+                the -chroot flag to kvm.
+                The directory is removed when the instance is stopped.
+                </para>
+
+                <simpara>It is set to <quote>false</quote> by default.</simpara>
               </listitem>
             </varlistentry>
 

@@ -29,6 +29,7 @@ import time
 
 from ganeti import daemon
 from ganeti import errors
+from ganeti import utils
 
 import testutils
 
@@ -172,10 +173,14 @@ class TestAsyncUDPSocket(testutils.GanetiTestCase):
     self.client = _MyAsyncUDPSocket()
     self.server.bind(("127.0.0.1", 0))
     self.port = self.server.getsockname()[1]
+    # Save utils.IgnoreSignals so we can do evil things to it...
+    self.saved_utils_ignoresignals = utils.IgnoreSignals
 
   def tearDown(self):
     self.server.close()
     self.client.close()
+    # ...and restore it as well
+    utils.IgnoreSignals = self.saved_utils_ignoresignals
     testutils.GanetiTestCase.tearDown(self)
 
   def testNoDoubleBind(self):
@@ -228,6 +233,17 @@ class TestAsyncUDPSocket(testutils.GanetiTestCase):
     self.assertEquals(self.server.received,
                       ["p1", "p2", "error", "p3", "error", "terminate"])
     self.assertEquals(self.server.error_count, 2)
+
+  def testSignaledWhileReceiving(self):
+    utils.IgnoreSignals = lambda fn, *args, **kwargs: None
+    self.client.enqueue_send("127.0.0.1", self.port, "p1")
+    self.client.enqueue_send("127.0.0.1", self.port, "p2")
+    self.server.handle_read()
+    self.assertEquals(self.server.received, [])
+    self.client.enqueue_send("127.0.0.1", self.port, "terminate")
+    utils.IgnoreSignals = self.saved_utils_ignoresignals
+    self.mainloop.Run()
+    self.assertEquals(self.server.received, ["p1", "p2", "terminate"])
 
 
 if __name__ == "__main__":
