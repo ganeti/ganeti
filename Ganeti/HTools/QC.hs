@@ -680,6 +680,7 @@ prop_Loader_lookupInstanceIdx kti inst =
         findIndex (\p -> fst p == inst) kti) of
     (Nothing, Nothing) -> True
     (Just idx, Just ex) -> idx == snd (kti !! ex)
+    _ -> False
 
 prop_Loader_assignIndices enames =
   length nassoc == length enames &&
