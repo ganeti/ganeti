@@ -112,10 +112,12 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
 
   # this method is overriding an asyncore.dispatcher method
   def handle_read(self):
-    payload, address = utils.IgnoreSignals(self.recvfrom,
-                                           constants.MAX_UDP_DATA_SIZE)
-    ip, port = address
-    self.handle_datagram(payload, ip, port)
+    recv_result = utils.IgnoreSignals(self.recvfrom,
+                                      constants.MAX_UDP_DATA_SIZE)
+    if recv_result is not None:
+      payload, address = recv_result
+      ip, port = address
+      self.handle_datagram(payload, ip, port)
 
   def handle_datagram(self, payload, ip, port):
     """Handle an already read udp datagram
