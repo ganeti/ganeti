@@ -32,6 +32,7 @@ from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import constants
+from ganeti import compat
 from ganeti import errors
 from ganeti import bootstrap
 
@@ -223,6 +224,8 @@ def ListNodes(opts, args):
         val = utils.FormatTime(val)
       elif val is None:
         val = "?"
+      elif opts.roman_integers and isinstance(val, int):
+        val = compat.TryToRoman(val)
       row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,
@@ -662,7 +665,7 @@ commands = {
     "[<node_name>...]", "Show information about the node(s)"),
   'list': (
     ListNodes, ARGS_MANY_NODES,
-    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
+    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
     "[nodes...]",
     "Lists the nodes in the cluster. The available fields are (see the man"
     " page for details): %s. The default field list is (in order): %s." %

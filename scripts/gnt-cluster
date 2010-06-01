@@ -216,7 +216,7 @@ def ShowClusterMaster(opts, args):
   return 0
 
 
-def _PrintGroupedParams(paramsdict, level=1):
+def _PrintGroupedParams(paramsdict, level=1, roman=False):
   """Print Grouped parameters (be, nic, disk) by group.
 
   @type paramsdict: dict of dicts
@@ -229,7 +229,9 @@ def _PrintGroupedParams(paramsdict, level=1):
   for item, val in sorted(paramsdict.items()):
     if isinstance(val, dict):
       ToStdout("%s- %s:", indent, item)
-      _PrintGroupedParams(val, level=level + 1)
+      _PrintGroupedParams(val, level=level + 1, roman=roman)
+    elif roman and isinstance(val, int):
+      ToStdout("%s  %s: %s", indent, item, compat.TryToRoman(val))
     else:
       ToStdout("%s  %s: %s", indent, item, val)
 
@@ -276,19 +278,23 @@ def ShowClusterConfig(opts, args):
   _PrintGroupedParams(result["os_hvp"])
 
   ToStdout("Cluster parameters:")
-  ToStdout("  - candidate pool size: %s", result["candidate_pool_size"])
+  ToStdout("  - candidate pool size: %s",
+            compat.TryToRoman(result["candidate_pool_size"],
+                              convert=opts.roman_integers))
   ToStdout("  - master netdev: %s", result["master_netdev"])
   ToStdout("  - lvm volume group: %s", result["volume_group_name"])
   ToStdout("  - file storage path: %s", result["file_storage_dir"])
   ToStdout("  - maintenance of node health: %s",
            result["maintain_node_health"])
-  ToStdout("  - uid pool: %s", uidpool.FormatUidPool(result["uid_pool"]))
+  ToStdout("  - uid pool: %s",
+            uidpool.FormatUidPool(result["uid_pool"],
+                                  roman=opts.roman_integers))
 
   ToStdout("Default instance parameters:")
-  _PrintGroupedParams(result["beparams"])
+  _PrintGroupedParams(result["beparams"], roman=opts.roman_integers)
 
   ToStdout("Default nic parameters:")
-  _PrintGroupedParams(result["nicparams"])
+  _PrintGroupedParams(result["nicparams"], roman=opts.roman_integers)
 
   return 0
 
@@ -817,8 +823,8 @@ commands = {
     [NODE_LIST_OPT],
     "[-n node...] <command>", "Runs a command on all (or only some) nodes"),
   'info': (
-    ShowClusterConfig, ARGS_NONE, [],
-    "", "Show cluster configuration"),
+    ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],
+    "[--roman]", "Show cluster configuration"),
   'list-tags': (
     ListTags, ARGS_NONE, [], "", "List the tags of the cluster"),
   'add-tags': (

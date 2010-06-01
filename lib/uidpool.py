@@ -36,6 +36,7 @@ import random
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import compat
 from ganeti import utils
 
 
@@ -114,16 +115,17 @@ def RemoveFromUidPool(uid_pool, remove_uids):
     uid_pool.remove(uid_range)
 
 
-def _FormatUidRange(lower, higher):
+def _FormatUidRange(lower, higher, roman=False):
   """Convert a user-id range definition into a string.
 
   """
   if lower == higher:
-    return str(lower)
-  return "%s-%s" % (lower, higher)
+    return str(compat.TryToRoman(lower, convert=roman))
+  return "%s-%s" % (compat.TryToRoman(lower, convert=roman),
+                    compat.TryToRoman(higher, convert=roman))
 
 
-def FormatUidPool(uid_pool, separator=None):
+def FormatUidPool(uid_pool, separator=None, roman=False):
   """Convert the internal representation of the user-id pool into a string.
 
   The output format is also accepted by ParseUidPool()
@@ -136,7 +138,7 @@ def FormatUidPool(uid_pool, separator=None):
   """
   if separator is None:
     separator = ", "
-  return separator.join([_FormatUidRange(lower, higher)
+  return separator.join([_FormatUidRange(lower, higher, roman=roman)
                          for lower, higher in uid_pool])
 
 

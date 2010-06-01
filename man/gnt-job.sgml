@@ -210,7 +210,15 @@
           <varlistentry>
             <term>opstart</term>
             <listitem>
-              <simpara>the list of opcode start times</simpara>
+              <simpara>the list of opcode start times (before
+              acquiring locks)</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>opexec</term>
+            <listitem>
+              <simpara>the list of opcode execution start times (after
+              acquiring any necessary locks)</simpara>
             </listitem>
           </varlistentry>
           <varlistentry>

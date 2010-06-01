@@ -30,6 +30,11 @@ try:
 except ImportError:
   functools = None
 
+try:
+  import roman
+except ImportError:
+  roman = None
+
 
 # compat.md5_hash and compat.sha1_hash can be called to generate and md5 and a
 # sha1 hashing modules, under python 2.4, 2.5 and 2.6, even though some changes
@@ -99,6 +104,29 @@ def _partial(func, *args, **keywords): # pylint: disable-msg=W0622
   newfunc.args = args
   newfunc.keywords = keywords
   return newfunc
+
+
+def TryToRoman(val, convert=True):
+  """Try to convert a value to roman numerals
+
+  If the roman module could be loaded convert the given value to a roman
+  numeral. Gracefully fail back to leaving the value untouched.
+
+  @type val: integer
+  @param val: value to convert
+  @type convert: boolean
+  @param convert: if False, don't try conversion at all
+  @rtype: string or typeof(val)
+  @return: roman numeral for val, or val if conversion didn't succeed
+
+  """
+  if roman is not None and convert:
+    try:
+      return roman.toRoman(val)
+    except roman.RomanError:
+      return val
+  else:
+    return val
 
 
 if functools is None:

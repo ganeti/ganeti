@@ -202,12 +202,20 @@
 
       <cmdsynopsis>
         <command>info</command>
+        <arg>--roman</arg>
       </cmdsynopsis>
 
       <para>
         Shows runtime cluster information: cluster name, architecture
         (32 or 64 bit), master node, node list and instance list.
       </para>
+
+      <para>
+        Passing the <option>--roman</option> option gnt-cluster info will try
+        to print its integer fields in a latin friendly way. This allows
+        further diffusion of Ganeti among ancient cultures.
+      </para>
+
     </refsect2>
 
     <refsect2>
@@ -417,6 +425,21 @@
                 file, under the
                 key <quote>xend-relocation-port</quote>.
               </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>migration_bandwidth</term>
+            <listitem>
+              <simpara>Valid for the KVM hypervisor.</simpara>
+
+              <para>
+                This option specifies the maximum bandwidth that KVM will
+                use for instance live migrations. The value is in MiB/s.
+              </para>
+
+              <simpara>This option is only effective with kvm versions >= 78
+              and qemu-kvm versions >= 0.10.0.
+              </simpara>
             </listitem>
           </varlistentry>
         </variablelist>

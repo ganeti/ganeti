@@ -213,6 +213,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     ini_info = self.GetInstanceInfo(instance.name)
 
+    if ini_info is None:
+      raise errors.HypervisorError("Failed to reboot instance %s,"
+                                   " not running" % instance.name)
+
     result = utils.RunCmd(["xm", "reboot", instance.name])
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
@@ -223,7 +227,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
       new_info = self.GetInstanceInfo(instance.name)
 
       # check if the domain ID has changed or the run time has decreased
-      if new_info[1] != ini_info[1] or new_info[5] < ini_info[5]:
+      if (new_info is not None and
+          (new_info[1] != ini_info[1] or new_info[5] < ini_info[5])):
         return
 
       raise utils.RetryAgain()

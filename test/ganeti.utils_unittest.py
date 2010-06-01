@@ -2245,5 +2245,26 @@ class TestIgnoreSignals(unittest.TestCase):
     self.assertEquals(utils.IgnoreSignals(self._Return, 33), 33)
 
 
+class TestEnsureDirs(unittest.TestCase):
+  """Tests for EnsureDirs"""
+
+  def setUp(self):
+    self.dir = tempfile.mkdtemp()
+    self.old_umask = os.umask(0777)
+
+  def testEnsureDirs(self):
+    utils.EnsureDirs([
+        (utils.PathJoin(self.dir, "foo"), 0777),
+        (utils.PathJoin(self.dir, "bar"), 0000),
+        ])
+    self.assertEquals(os.stat(utils.PathJoin(self.dir, "foo"))[0] & 0777, 0777)
+    self.assertEquals(os.stat(utils.PathJoin(self.dir, "bar"))[0] & 0777, 0000)
+
+  def tearDown(self):
+    os.rmdir(utils.PathJoin(self.dir, "foo"))
+    os.rmdir(utils.PathJoin(self.dir, "bar"))
+    os.rmdir(self.dir)
+    os.umask(self.old_umask)
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

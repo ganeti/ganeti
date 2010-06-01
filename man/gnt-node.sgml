@@ -253,6 +253,8 @@
         <arg>--units=<replaceable>UNITS</replaceable></arg>
         <arg>-o <replaceable>[+]FIELD,...</replaceable></arg>
         <sbr>
+        <arg>--roman</arg>
+        <sbr>
         <arg rep="repeat">node</arg>
       </cmdsynopsis>
 
@@ -283,6 +285,12 @@
         free disk/memory. The <option>--sync</option> can be used to
         grab locks for all the nodes and ensure consistent view of the
         cluster (but this might stall the query for a long time).
+      </para>
+
+      <para>
+        Passing the <option>--roman</option> option gnt-node list will try to
+        output some of its fields in a latin-friendly way. This is not the
+        default for backwards compatibility.
       </para>
 
       <para>

@@ -421,6 +421,8 @@ class GanetiRapiClient(object):
       raise CertificateError("SSL issue: %s (%r)" % (err, err))
     except urllib2.HTTPError, err:
       raise GanetiApiError(str(err), code=err.code)
+    except urllib2.URLError, err:
+      raise GanetiApiError(str(err))
 
     if encoded_response_content:
       response_content = simplejson.loads(encoded_response_content)
