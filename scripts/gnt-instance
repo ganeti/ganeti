@@ -34,6 +34,7 @@ from cStringIO import StringIO
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
+from ganeti import compat
 from ganeti import utils
 from ganeti import errors
 
@@ -323,6 +324,8 @@ def ListInstances(opts, args):
         val = ",".join(str(item) for item in val)
       elif val is None:
         val = "-"
+      if opts.roman_integers and isinstance(val, int):
+        val = compat.TryToRoman(val)
       row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,
@@ -941,16 +944,18 @@ def ConnectToInstanceConsole(opts, args):
       os._exit(1) # pylint: disable-msg=W0212
 
 
-def _FormatLogicalID(dev_type, logical_id):
+def _FormatLogicalID(dev_type, logical_id, roman):
   """Formats the logical_id of a disk.
 
   """
   if dev_type == constants.LD_DRBD8:
     node_a, node_b, port, minor_a, minor_b, key = logical_id
     data = [
-      ("nodeA", "%s, minor=%s" % (node_a, minor_a)),
-      ("nodeB", "%s, minor=%s" % (node_b, minor_b)),
-      ("port", port),
+      ("nodeA", "%s, minor=%s" % (node_a, compat.TryToRoman(minor_a,
+                                                            convert=roman))),
+      ("nodeB", "%s, minor=%s" % (node_b, compat.TryToRoman(minor_b,
+                                                            convert=roman))),
+      ("port", compat.TryToRoman(port, convert=roman)),
       ("auth key", key),
       ]
   elif dev_type == constants.LD_LV:
@@ -962,7 +967,7 @@ def _FormatLogicalID(dev_type, logical_id):
   return data
 
 
-def _FormatBlockDevInfo(idx, top_level, dev, static):
+def _FormatBlockDevInfo(idx, top_level, dev, static, roman):
   """Show block device information.
 
   This is only used by L{ShowInstanceConfig}, but it's too big to be
@@ -977,6 +982,8 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
   @type static: boolean
   @param static: wheter the device information doesn't contain
       runtime information but only static data
+  @type roman: boolean
+  @param roman: whether to try to use roman integers
   @return: a list of either strings, tuples or lists
       (which should be formatted at a higher indent level)
 
@@ -998,19 +1005,19 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
     if major is None:
       major_string = "N/A"
     else:
-      major_string = str(major)
+      major_string = str(compat.TryToRoman(major, convert=roman))
 
     if minor is None:
       minor_string = "N/A"
     else:
-      minor_string = str(minor)
+      minor_string = str(compat.TryToRoman(minor, convert=roman))
 
     txt += ("%s (%s:%s)" % (path, major_string, minor_string))
     if dtype in (constants.LD_DRBD8, ):
       if syncp is not None:
         sync_text = "*RECOVERING* %5.2f%%," % syncp
         if estt:
-          sync_text += " ETA %ds" % estt
+          sync_text += " ETA %ss" % compat.TryToRoman(estt, convert=roman)
         else:
           sync_text += " ETA unknown"
       else:
@@ -1039,9 +1046,9 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
     if dev["iv_name"] is not None:
       txt = dev["iv_name"]
     else:
-      txt = "disk %d" % idx
+      txt = "disk %s" % compat.TryToRoman(idx, convert=roman)
   else:
-    txt = "child %d" % idx
+    txt = "child %s" % compat.TryToRoman(idx, convert=roman)
   if isinstance(dev["size"], int):
     nice_size = utils.FormatUnit(dev["size"], "h")
   else:
@@ -1052,7 +1059,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
     data.append(("access mode", dev["mode"]))
   if dev["logical_id"] is not None:
     try:
-      l_id = _FormatLogicalID(dev["dev_type"], dev["logical_id"])
+      l_id = _FormatLogicalID(dev["dev_type"], dev["logical_id"], roman)
     except ValueError:
       l_id = [str(dev["logical_id"])]
     if len(l_id) == 1:
@@ -1070,7 +1077,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
   if dev["children"]:
     data.append("child devices:")
     for c_idx, child in enumerate(dev["children"]):
-      data.append(_FormatBlockDevInfo(c_idx, False, child, static))
+      data.append(_FormatBlockDevInfo(c_idx, False, child, static, roman))
   d1.append(data)
   return d1
 
@@ -1137,7 +1144,9 @@ def ShowInstanceConfig(opts, args):
     instance = result[instance_name]
     buf.write("Instance name: %s\n" % instance["name"])
     buf.write("UUID: %s\n" % instance["uuid"])
-    buf.write("Serial number: %s\n" % instance["serial_no"])
+    buf.write("Serial number: %s\n" %
+              compat.TryToRoman(instance["serial_no"],
+                                convert=opts.roman_integers))
     buf.write("Creation time: %s\n" % utils.FormatTime(instance["ctime"]))
     buf.write("Modification time: %s\n" % utils.FormatTime(instance["mtime"]))
     buf.write("State: configured to be %s" % instance["config_state"])
@@ -1151,7 +1160,9 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - secondaries: %s\n" % utils.CommaJoin(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
     if instance.has_key("network_port"):
-      buf.write("  Allocated network port: %s\n" % instance["network_port"])
+      buf.write("  Allocated network port: %s\n" %
+                compat.TryToRoman(instance["network_port"],
+                                  convert=opts.roman_integers))
     buf.write("  Hypervisor: %s\n" % instance["hypervisor"])
 
     # custom VNC console information
@@ -1181,10 +1192,12 @@ def ShowInstanceConfig(opts, args):
         val = "default (%s)" % instance["hv_actual"][key]
       buf.write("    - %s: %s\n" % (key, val))
     buf.write("  Hardware:\n")
-    buf.write("    - VCPUs: %d\n" %
-              instance["be_actual"][constants.BE_VCPUS])
-    buf.write("    - memory: %dMiB\n" %
-              instance["be_actual"][constants.BE_MEMORY])
+    buf.write("    - VCPUs: %s\n" %
+              compat.TryToRoman(instance["be_actual"][constants.BE_VCPUS],
+                                convert=opts.roman_integers))
+    buf.write("    - memory: %sMiB\n" %
+              compat.TryToRoman(instance["be_actual"][constants.BE_MEMORY],
+                                convert=opts.roman_integers))
     buf.write("    - NICs:\n")
     for idx, (ip, mac, mode, link) in enumerate(instance["nics"]):
       buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %
@@ -1192,7 +1205,8 @@ def ShowInstanceConfig(opts, args):
     buf.write("  Disks:\n")
 
     for idx, device in enumerate(instance["disks"]):
-      _FormatList(buf, _FormatBlockDevInfo(idx, True, device, opts.static), 2)
+      _FormatList(buf, _FormatBlockDevInfo(idx, True, device, opts.static,
+                  opts.roman_integers), 2)
 
   ToStdout(buf.getvalue().rstrip('\n'))
   return retcode
@@ -1379,12 +1393,12 @@ commands = {
     " (only for instances of type file and lv)"),
   'info': (
     ShowInstanceConfig, ARGS_MANY_INSTANCES,
-    [STATIC_OPT, ALL_OPT],
+    [STATIC_OPT, ALL_OPT, ROMAN_OPT],
     "[-s] {--all | <instance>...}",
     "Show information on the specified instance(s)"),
   'list': (
     ListInstances, ARGS_MANY_INSTANCES,
-    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
+    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
     "[<instance>...]",
     "Lists the instances and their status. The available fields are"
     " (see the man page for details): status, oper_state, oper_ram,"

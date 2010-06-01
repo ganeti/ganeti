@@ -1015,6 +1015,7 @@ instance5: 11225
           <arg>--no-headers</arg>
           <arg>--separator=<replaceable>SEPARATOR</replaceable></arg>
           <arg>-o <replaceable>[+]FIELD,...</replaceable></arg>
+          <arg>--roman</arg>
           <arg rep="repeat">instance</arg>
         </cmdsynopsis>
 
@@ -1029,6 +1030,11 @@ instance5: 11225
           initial header line. The <option>--separator</option> option
           takes an argument which denotes what will be used between
           the output fields. Both these options are to help scripting.
+        </para>
+
+        <para>
+          The <option>--roman</option> option allows latin people to better
+          understand the cluster instances' status.
         </para>
 
         <para>
@@ -1389,6 +1395,7 @@ instance5: 11225
             <arg>-s</arg>
             <arg>--static</arg>
           </group>
+          <arg>--roman</arg>
           <group choice="req">
             <arg>--all</arg>
             <arg rep="repeat"><replaceable>instance</replaceable></arg>
@@ -1412,6 +1419,13 @@ instance5: 11225
           Use the <option>--all</option> to get info about all instances,
           rather than explicitly passing the ones you're interested in.
         </para>
+
+        <para>
+          The <option>--roman</option> option can be used to cause envy among
+          people who like ancient cultures, but are stuck with non-latin-friendly
+          cluster virtualization technologies.
+        </para>
+
       </refsect3>
 
       <refsect3>
