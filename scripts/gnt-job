@@ -80,6 +80,7 @@ def ListJobs(opts, args):
       "oplog": "OpCode_log",
       "summary": "Summary",
       "opstart": "OpCode_start",
+      "opexec": "OpCode_exec",
       "opend": "OpCode_end",
       "start_ts": "Start",
       "end_ts": "End",
@@ -106,7 +107,7 @@ def ListJobs(opts, args):
         val = ",".join(val)
       elif field in ("start_ts", "end_ts", "received_ts"):
         val = FormatTimestamp(val)
-      elif field in ("opstart", "opend"):
+      elif field in ("opstart", "opexec", "opend"):
         val = [FormatTimestamp(entry) for entry in val]
       elif field == "lock_status" and not val:
         val = "-"
@@ -212,7 +213,7 @@ def ShowJobs(opts, args):
 
   selected_fields = [
     "id", "status", "ops", "opresult", "opstatus", "oplog",
-    "opstart", "opend", "received_ts", "start_ts", "end_ts",
+    "opstart", "opexec", "opend", "received_ts", "start_ts", "end_ts",
     ]
 
   result = GetClient().QueryJobs(args, selected_fields)
@@ -235,7 +236,7 @@ def ShowJobs(opts, args):
       continue
 
     (job_id, status, ops, opresult, opstatus, oplog,
-     opstart, opend, recv_ts, start_ts, end_ts) = entry
+     opstart, opexec, opend, recv_ts, start_ts, end_ts) = entry
     format(0, "Job ID: %s" % job_id)
     if status in _USER_JOB_STATUS:
       status = _USER_JOB_STATUS[status]
@@ -275,14 +276,18 @@ def ShowJobs(opts, args):
     else:
       format(1, "Total processing time: N/A")
     format(1, "Opcodes:")
-    for (opcode, result, status, log, s_ts, e_ts) in \
-            zip(ops, opresult, opstatus, oplog, opstart, opend):
+    for (opcode, result, status, log, s_ts, x_ts, e_ts) in \
+            zip(ops, opresult, opstatus, oplog, opstart, opexec, opend):
       format(2, "%s" % opcode["OP_ID"])
       format(3, "Status: %s" % status)
       if isinstance(s_ts, (tuple, list)):
         format(3, "Processing start: %s" % FormatTimestamp(s_ts))
       else:
         format(3, "No processing start time")
+      if isinstance(x_ts, (tuple, list)):
+        format(3, "Execution start:  %s" % FormatTimestamp(x_ts))
+      else:
+        format(3, "No execution start time")
       if isinstance(e_ts, (tuple, list)):
         format(3, "Processing end:   %s" % FormatTimestamp(e_ts))
       else:

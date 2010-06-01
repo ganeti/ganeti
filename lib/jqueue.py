@@ -77,11 +77,12 @@ class _QueuedOpCode(object):
   @ivar status: the current status
   @ivar result: the result of the LU execution
   @ivar start_timestamp: timestamp for the start of the execution
+  @ivar exec_timestamp: timestamp for the actual LU Exec() function invocation
   @ivar stop_timestamp: timestamp for the end of the execution
 
   """
   __slots__ = ["input", "status", "result", "log",
-               "start_timestamp", "end_timestamp",
+               "start_timestamp", "exec_timestamp", "end_timestamp",
                "__weakref__"]
 
   def __init__(self, op):
@@ -96,6 +97,7 @@ class _QueuedOpCode(object):
     self.result = None
     self.log = []
     self.start_timestamp = None
+    self.exec_timestamp = None
     self.end_timestamp = None
 
   @classmethod
@@ -114,6 +116,7 @@ class _QueuedOpCode(object):
     obj.result = state["result"]
     obj.log = state["log"]
     obj.start_timestamp = state.get("start_timestamp", None)
+    obj.exec_timestamp = state.get("exec_timestamp", None)
     obj.end_timestamp = state.get("end_timestamp", None)
     return obj
 
@@ -130,6 +133,7 @@ class _QueuedOpCode(object):
       "result": self.result,
       "log": self.log,
       "start_timestamp": self.start_timestamp,
+      "exec_timestamp": self.exec_timestamp,
       "end_timestamp": self.end_timestamp,
       }
 
@@ -385,6 +389,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
         raise CancelJob()
 
       self._op.status = constants.OP_STATUS_RUNNING
+      self._op.exec_timestamp = TimeStampNow()
     finally:
       self._queue.release()
 
@@ -1383,6 +1388,8 @@ class JobQueue(object):
         row.append([op.log for op in job.ops])
       elif fname == "opstart":
         row.append([op.start_timestamp for op in job.ops])
+      elif fname == "opexec":
+        row.append([op.exec_timestamp for op in job.ops])
       elif fname == "opend":
         row.append([op.end_timestamp for op in job.ops])
       elif fname == "received_ts":
