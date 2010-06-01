@@ -31,10 +31,12 @@ module Ganeti.HTools.QC
     , testText
     , testOpCodes
     , testCluster
+    , testLoader
     ) where
 
 import Test.QuickCheck
 import Test.QuickCheck.Batch
+import Data.List (findIndex)
 import Data.Maybe
 import Control.Monad
 import qualified Text.JSON as J
@@ -661,4 +663,50 @@ prop_OpCodes_serialization op =
 
 testOpCodes =
   [ run prop_OpCodes_serialization
+  ]
+
+-- | Loader tests
+
+prop_Loader_lookupNode ktn inst node =
+  isJust (Loader.lookupNode ktn inst node) == (node `elem` names)
+    where names = map fst ktn
+
+prop_Loader_lookupInstance kti inst =
+  isJust (Loader.lookupInstance kti inst) == (inst `elem` names)
+    where names = map fst kti
+
+prop_Loader_lookupInstanceIdx kti inst =
+  case (Loader.lookupInstance kti inst,
+        findIndex (\p -> fst p == inst) kti) of
+    (Nothing, Nothing) -> True
+    (Just idx, Just ex) -> idx == snd (kti !! ex)
+
+prop_Loader_assignIndices enames =
+  length nassoc == length enames &&
+  length kt == length enames &&
+  (if not (null enames)
+   then maximum (map fst kt) == (length enames) - 1
+   else True)
+  where (nassoc, kt) = Loader.assignIndices enames
+        _types = (enames::[(String, Node.Node)])
+
+
+-- | Checks that the number of primary instances recorded on the nodes
+-- is zero
+prop_Loader_mergeData ns =
+  let na = map (\n -> (Node.idx n, n)) ns
+  in case Loader.mergeData [] [] [] (na, [], []) of
+    Types.Bad _ -> False
+    Types.Ok (nl, il, _) ->
+      let nodes = Container.elems nl
+          instances = Container.elems il
+      in (sum . map (length . Node.pList)) nodes == 0 &&
+         length instances == 0
+
+testLoader =
+  [ run prop_Loader_lookupNode
+  , run prop_Loader_lookupInstance
+  , run prop_Loader_lookupInstanceIdx
+  , run prop_Loader_assignIndices
+  , run prop_Loader_mergeData
   ]

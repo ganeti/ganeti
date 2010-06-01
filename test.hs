@@ -70,6 +70,7 @@ allTests =
   , ("Node", fast, testNode)
   , ("Text", fast, testText)
   , ("OpCodes", fast, testOpCodes)
+  , ("Loader", fast, testLoader)
   , ("Cluster", slow, testCluster)
   ]
 
