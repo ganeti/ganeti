@@ -81,11 +81,14 @@ isOk :: Types.Result a -> Bool
 isOk (Types.Ok _ ) = True
 isOk _ = False
 
+isBad :: Types.Result a  -> Bool
+isBad = not . isOk
+
 -- | Update an instance to be smaller than a node
 setInstanceSmallerThanNode node inst =
-    inst { Instance.mem = (Node.availMem node) `div` 2
-         , Instance.dsk = (Node.availDisk node) `div` 2
-         , Instance.vcpus = (Node.availCpu node) `div` 2
+    inst { Instance.mem = Node.availMem node `div` 2
+         , Instance.dsk = Node.availDisk node `div` 2
+         , Instance.vcpus = Node.availCpu node `div` 2
          }
 
 -- | Create an instance given its spec
@@ -283,12 +286,10 @@ prop_Instance_shrinkMG inst =
           Types.Ok inst' ->
               Instance.mem inst' == Instance.mem inst - Types.unitMem
           _ -> False
-    where _types = (inst::Instance.Instance)
 
 prop_Instance_shrinkMF inst =
     Instance.mem inst < 2 * Types.unitMem ==>
-        not . isOk $ Instance.shrinkByType inst Types.FailMem
-    where _types = (inst::Instance.Instance)
+        isBad $ Instance.shrinkByType inst Types.FailMem
 
 prop_Instance_shrinkCG inst =
     Instance.vcpus inst >= 2 * Types.unitCpu ==>
@@ -296,12 +297,10 @@ prop_Instance_shrinkCG inst =
           Types.Ok inst' ->
               Instance.vcpus inst' == Instance.vcpus inst - Types.unitCpu
           _ -> False
-    where _types = (inst::Instance.Instance)
 
 prop_Instance_shrinkCF inst =
     Instance.vcpus inst < 2 * Types.unitCpu ==>
-        not . isOk $ Instance.shrinkByType inst Types.FailCPU
-    where _types = (inst::Instance.Instance)
+        isBad $ Instance.shrinkByType inst Types.FailCPU
 
 prop_Instance_shrinkDG inst =
     Instance.dsk inst >= 2 * Types.unitDsk ==>
@@ -309,17 +308,14 @@ prop_Instance_shrinkDG inst =
           Types.Ok inst' ->
               Instance.dsk inst' == Instance.dsk inst - Types.unitDsk
           _ -> False
-    where _types = (inst::Instance.Instance)
 
 prop_Instance_shrinkDF inst =
     Instance.dsk inst < 2 * Types.unitDsk ==>
-        not . isOk $ Instance.shrinkByType inst Types.FailDisk
-    where _types = (inst::Instance.Instance)
+        isBad $ Instance.shrinkByType inst Types.FailDisk
 
 prop_Instance_setMovable inst m =
     Instance.movable inst' == m
-    where _types = (inst::Instance.Instance, m::Bool)
-          inst' = Instance.setMovable inst m
+    where inst' = Instance.setMovable inst m
 
 testInstance =
     [ run prop_Instance_creat
@@ -399,14 +395,14 @@ prop_Text_Load_Node name tm nm fm td fd tc fo =
          Just (name', node) ->
              if fo || any_broken
              then Node.offline node
-             else (Node.name node == name' && name' == name &&
-                   Node.alias node == name &&
-                   Node.tMem node == fromIntegral tm &&
-                   Node.nMem node == nm &&
-                   Node.fMem node == fm &&
-                   Node.tDsk node == fromIntegral td &&
-                   Node.fDsk node == fd &&
-                   Node.tCpu node == fromIntegral tc)
+             else Node.name node == name' && name' == name &&
+                  Node.alias node == name &&
+                  Node.tMem node == fromIntegral tm &&
+                  Node.nMem node == nm &&
+                  Node.fMem node == fm &&
+                  Node.tDsk node == fromIntegral td &&
+                  Node.fDsk node == fd &&
+                  Node.tCpu node == fromIntegral tc
 
 prop_Text_Load_NodeFail fields =
     length fields /= 8 ==> isNothing $ Text.loadNode fields
@@ -498,14 +494,12 @@ prop_Node_setMdsk node mx =
 -- Check tag maps
 prop_Node_tagMaps_idempotent tags =
     Node.delTags (Node.addTags m tags) tags == m
-    where _types = (tags::[String])
-          m = Data.Map.empty
+    where m = Data.Map.empty
 
 prop_Node_tagMaps_reject tags =
     not (null tags) ==>
     any (\t -> Node.rejectAddTags m [t]) tags
-    where _types = (tags::[String])
-          m = Node.addTags (Data.Map.empty) tags
+    where m = Node.addTags Data.Map.empty tags
 
 prop_Node_showField node =
   forAll (elements Node.defaultFields) $ \ field ->
@@ -659,7 +653,7 @@ prop_OpCodes_serialization op =
   case J.readJSON (J.showJSON op) of
     J.Error _ -> False
     J.Ok op' -> op == op'
-  where _types = (op::OpCodes.OpCode)
+  where _types = op::OpCodes.OpCode
 
 testOpCodes =
   [ run prop_OpCodes_serialization
@@ -686,10 +680,10 @@ prop_Loader_assignIndices enames =
   length nassoc == length enames &&
   length kt == length enames &&
   (if not (null enames)
-   then maximum (map fst kt) == (length enames) - 1
+   then maximum (map fst kt) == length enames - 1
    else True)
   where (nassoc, kt) = Loader.assignIndices enames
-        _types = (enames::[(String, Node.Node)])
+        _types = enames::[(String, Node.Node)]
 
 
 -- | Checks that the number of primary instances recorded on the nodes
@@ -702,7 +696,7 @@ prop_Loader_mergeData ns =
       let nodes = Container.elems nl
           instances = Container.elems il
       in (sum . map (length . Node.pList)) nodes == 0 &&
-         length instances == 0
+         null instances
 
 testLoader =
   [ run prop_Loader_lookupNode
