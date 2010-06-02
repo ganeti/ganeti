@@ -60,6 +60,8 @@ such. Among others:
   - Fix a race condition in live migrating a KVM instance, when stat()
     on the old proc status file returned EINVAL, which is an unexpected
     value.
+  - Fixed manpage checking with newer man and utf-8 charachters. But now
+    you need the en_US.UTF-8 locale enabled to build Ganeti from git.
 
 
 Version 2.1.2.1

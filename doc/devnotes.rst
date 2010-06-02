@@ -14,6 +14,7 @@ Most dependencies from :doc:`install-quick`, plus:
 - `python-sphinx <http://sphinx.pocoo.org/>`_
   (tested with version 0.6.1)
 - `graphviz <http://www.graphviz.org/>`_
+- the `en_US.UTF-8` locale must be enabled on the system
 
 To generate unittest coverage reports (``make coverage``), `coverage
 <http://pypi.python.org/pypi/coverage>`_ needs to be installed.
