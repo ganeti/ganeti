@@ -2192,7 +2192,7 @@ def Mlockall():
   logging.debug("Memory lock set")
 
 
-def Daemonize(logfile):
+def Daemonize(logfile, run_uid, run_gid):
   """Daemonize the current process.
 
   This detaches the current process from the controlling terminal and
@@ -2200,6 +2200,10 @@ def Daemonize(logfile):
 
   @type logfile: str
   @param logfile: the logfile to which we should redirect stdout/stderr
+  @type run_uid: int
+  @param run_uid: Run the child under this uid
+  @type run_gid: int
+  @param run_gid: Run the child under this gid
   @rtype: int
   @return: the value zero
 
@@ -2213,6 +2217,11 @@ def Daemonize(logfile):
   pid = os.fork()
   if (pid == 0):  # The first child.
     os.setsid()
+    # FIXME: When removing again and moving to start-stop-daemon privilege drop
+    #        make sure to check for config permission and bail out when invoked
+    #        with wrong user.
+    os.setgid(run_gid)
+    os.setuid(run_uid)
     # this might fail
     pid = os.fork() # Fork a second child.
     if (pid == 0):  # The second child.

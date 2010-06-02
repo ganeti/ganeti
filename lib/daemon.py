@@ -24,7 +24,9 @@
 
 import asyncore
 import asynchat
+import grp
 import os
+import pwd
 import signal
 import logging
 import sched
@@ -36,6 +38,10 @@ import sys
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
+
+
+_DEFAULT_RUN_USER = "root"
+_DEFAULT_RUN_GROUP = "root"
 
 
 class SchedulerBreakout(Exception):
@@ -434,7 +440,8 @@ class Mainloop(object):
 
 def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
                 multithreaded=False, console_logging=False,
-                default_ssl_cert=None, default_ssl_key=None):
+                default_ssl_cert=None, default_ssl_key=None,
+                user=_DEFAULT_RUN_USER, group=_DEFAULT_RUN_GROUP):
   """Shared main function for daemons.
 
   @type daemon_name: string
@@ -460,6 +467,10 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
   @param default_ssl_cert: Default SSL certificate path
   @type default_ssl_key: string
   @param default_ssl_key: Default SSL key path
+  @param user: Default user to run as
+  @type user: string
+  @param group: Default group to run as
+  @type group: string
 
   """
   optionparser.add_option("-f", "--foreground", dest="fork",
@@ -529,8 +540,14 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
   utils.EnsureDirs(dirs)
 
   if options.fork:
+    try:
+      uid = pwd.getpwnam(user).pw_uid
+      gid = grp.getgrnam(group).gr_gid
+    except KeyError:
+      raise errors.ConfigurationError("User or group not existing on system:"
+                                      " %s:%s" % (user, group))
     utils.CloseFDs()
-    utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
+    utils.Daemonize(constants.DAEMONS_LOGFILES[daemon_name], uid, gid)
 
   utils.WritePidFile(daemon_name)
   try:
