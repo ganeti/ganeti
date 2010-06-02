@@ -33,7 +33,8 @@ from ganeti import masterd
 from ganeti.masterd.instance import \
   ImportExportTimeouts, _TimeoutExpired, _DiskImportExportBase, \
   ComputeRemoteExportHandshake, CheckRemoteExportHandshake, \
-  ComputeRemoteImportDiskInfo, CheckRemoteExportDiskInfo
+  ComputeRemoteImportDiskInfo, CheckRemoteExportDiskInfo, \
+  FormatProgress
 
 import testutils
 
@@ -45,9 +46,18 @@ class TestMisc(unittest.TestCase):
     self.assertEqual(tmo.listen, ImportExportTimeouts.DEFAULT_LISTEN_TIMEOUT)
     self.assertEqual(tmo.ready, ImportExportTimeouts.DEFAULT_READY_TIMEOUT)
     self.assertEqual(tmo.error, ImportExportTimeouts.DEFAULT_ERROR_TIMEOUT)
+    self.assertEqual(tmo.progress,
+                     ImportExportTimeouts.DEFAULT_PROGRESS_INTERVAL)
 
     tmo = ImportExportTimeouts(999)
     self.assertEqual(tmo.connect, 999)
+
+    tmo = ImportExportTimeouts(1, listen=2, error=3, ready=4, progress=5)
+    self.assertEqual(tmo.connect, 1)
+    self.assertEqual(tmo.listen, 2)
+    self.assertEqual(tmo.error, 3)
+    self.assertEqual(tmo.ready, 4)
+    self.assertEqual(tmo.progress, 5)
 
   def testTimeoutExpired(self):
     self.assert_(_TimeoutExpired(100, 300, _time_fn=lambda: 500))
@@ -117,6 +127,16 @@ class TestRieDiskInfo(unittest.TestCase):
     # Wrong hash
     self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
                       cds, 0, ("nodeX", 123, "fakehash", "xyz"))
+
+
+class TestFormatProgress(unittest.TestCase):
+  def test(self):
+    FormatProgress((0, 0, None, None))
+    FormatProgress((100, 3.3, 30, None))
+    FormatProgress((100, 3.3, 30, 900))
+
+    self.assertEqual(FormatProgress((1500, 12, 30, None)),
+                     "1.5G, 12.0 MiB/s, 30%")
 
 
 if __name__ == "__main__":

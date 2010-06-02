@@ -50,17 +50,22 @@ class ImportExportTimeouts(object):
   #: Time after which daemon must be listening
   DEFAULT_LISTEN_TIMEOUT = 10
 
+  #: Progress update interval
+  DEFAULT_PROGRESS_INTERVAL = 60
+
   __slots__ = [
     "error",
     "ready",
     "listen",
     "connect",
+    "progress",
     ]
 
   def __init__(self, connect,
                listen=DEFAULT_LISTEN_TIMEOUT,
                error=DEFAULT_ERROR_TIMEOUT,
-               ready=DEFAULT_READY_TIMEOUT):
+               ready=DEFAULT_READY_TIMEOUT,
+               progress=DEFAULT_PROGRESS_INTERVAL):
     """Initializes this class.
 
     @type connect: number
@@ -71,12 +76,15 @@ class ImportExportTimeouts(object):
     @param error: Length of time until errors cause hard failure
     @type ready: number
     @param ready: Timeout for daemon to become ready
+    @type progress: number
+    @param progress: Progress update interval
 
     """
     self.error = error
     self.ready = ready
     self.listen = listen
     self.connect = connect
+    self.progress = progress
 
 
 class ImportExportCbBase(object):
@@ -94,6 +102,15 @@ class ImportExportCbBase(object):
 
   def ReportConnected(self, ie, private):
     """Called when a connection has been established.
+
+    @type ie: Subclass of L{_DiskImportExportBase}
+    @param ie: Import/export object
+    @param private: Private data passed to import/export object
+
+    """
+
+  def ReportProgress(self, ie, private):
+    """Called when new progress information should be reported.
 
     @type ie: Subclass of L{_DiskImportExportBase}
     @param ie: Import/export object
@@ -157,6 +174,7 @@ class _DiskImportExportBase(object):
     self._ts_connected = None
     self._ts_finished = None
     self._ts_cleanup = None
+    self._ts_last_progress = None
     self._ts_last_error = None
 
     # Transfer status
@@ -176,6 +194,19 @@ class _DiskImportExportBase(object):
       return self._daemon.recent_output
 
     return None
+
+  @property
+  def progress(self):
+    """Returns transfer progress information.
+
+    """
+    if not self._daemon:
+      return None
+
+    return (self._daemon.progress_mbytes,
+            self._daemon.progress_throughput,
+            self._daemon.progress_percent,
+            self._daemon.progress_eta)
 
   @property
   def active(self):
@@ -345,6 +376,18 @@ class _DiskImportExportBase(object):
 
     return False
 
+  def _CheckProgress(self):
+    """Checks whether a progress update should be reported.
+
+    """
+    if ((self._ts_last_progress is None or
+         _TimeoutExpired(self._ts_last_progress, self._timeouts.progress)) and
+        self._daemon and
+        self._daemon.progress_mbytes is not None and
+        self._daemon.progress_throughput is not None):
+      self._cbs.ReportProgress(self, self._private)
+      self._ts_last_progress = time.time()
+
   def CheckFinished(self):
     """Checks whether the daemon exited.
 
@@ -358,6 +401,8 @@ class _DiskImportExportBase(object):
       return True
 
     if self._daemon.exit_status is None:
+      # TODO: Adjust delay for ETA expiring soon
+      self._CheckProgress()
       return False
 
     self._ts_finished = time.time()
@@ -404,8 +449,6 @@ class _DiskImportExportBase(object):
     """Finalizes this import/export.
 
     """
-    assert error or self.success is not None
-
     if self._daemon_name:
       logging.info("Finalizing %s %r on %s",
                    self.MODE_TEXT, self._daemon_name, self.node_name)
@@ -574,6 +617,27 @@ class DiskExport(_DiskImportExportBase):
     assert self._ts_begin is not None
 
     return self._ts_begin
+
+
+def FormatProgress(progress):
+  """Formats progress information for user consumption
+
+  """
+  (mbytes, throughput, percent, _) = progress
+
+  parts = [
+    utils.FormatUnit(mbytes, "h"),
+
+    # Not using FormatUnit as it doesn't support kilobytes
+    "%0.1f MiB/s" % throughput,
+    ]
+
+  if percent is not None:
+    parts.append("%d%%" % percent)
+
+  # TODO: Format ETA
+
+  return utils.CommaJoin(parts)
 
 
 class ImportExportLoop:
@@ -771,6 +835,16 @@ class _TransferInstSourceCb(_TransferInstCbBase):
 
     self.feedback_fn("%s is sending data on %s" %
                      (dtp.data.name, ie.node_name))
+
+  def ReportProgress(self, ie, dtp):
+    """Called when new progress information should be reported.
+
+    """
+    progress = ie.progress
+    if not progress:
+      return
+
+    self.feedback_fn("%s sent %s" % (dtp.data.name, FormatProgress(progress)))
 
   def ReportFinished(self, ie, dtp):
     """Called when a transfer has finished.
@@ -992,6 +1066,18 @@ class _RemoteExportCb(ImportExportCbBase):
     (idx, _) = private
 
     self._feedback_fn("Disk %s is now sending data" % idx)
+
+  def ReportProgress(self, ie, private):
+    """Called when new progress information should be reported.
+
+    """
+    (idx, _) = private
+
+    progress = ie.progress
+    if not progress:
+      return
+
+    self._feedback_fn("Disk %s sent %s" % (idx, FormatProgress(progress)))
 
   def ReportFinished(self, ie, private):
     """Called when a transfer has finished.
