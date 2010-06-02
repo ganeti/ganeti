@@ -45,6 +45,7 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
 import Ganeti.Jobs (JobStatus)
+import Ganeti.OpCodes (OpCode)
 
 -- * Utility functions
 
@@ -59,19 +60,19 @@ withTimeout secs descr action = do
 -- * Generic protocol functionality
 
 -- | Currently supported Luxi operations.
-data LuxiOp = QueryInstances
-            | QueryNodes
-            | QueryJobs
+data LuxiOp = QueryInstances [String] [String] Bool
+            | QueryNodes [String] [String] Bool
+            | QueryJobs [Int] [String]
             | QueryClusterInfo
-            | SubmitManyJobs
+            | SubmitManyJobs [[OpCode]]
 
 -- | The serialisation of LuxiOps into strings in messages.
 strOfOp :: LuxiOp -> String
-strOfOp QueryNodes = "QueryNodes"
-strOfOp QueryInstances = "QueryInstances"
-strOfOp QueryJobs = "QueryJobs"
-strOfOp QueryClusterInfo = "QueryClusterInfo"
-strOfOp SubmitManyJobs = "SubmitManyJobs"
+strOfOp QueryNodes {}       = "QueryNodes"
+strOfOp QueryInstances {}   = "QueryInstances"
+strOfOp QueryJobs {}        = "QueryJobs"
+strOfOp QueryClusterInfo {} = "QueryClusterInfo"
+strOfOp SubmitManyJobs {}   = "SubmitManyJobs"
 
 -- | The end-of-message separator.
 eOM :: Char
@@ -133,15 +134,20 @@ recvMsg s = do
   writeIORef (rbuf s) nbuf
   return msg
 
+-- | Compute the serialized form of a Luxi operation
+opToArgs :: LuxiOp -> JSValue
+opToArgs (QueryInstances names fields lock) = J.showJSON (names, fields, lock)
+opToArgs (QueryNodes names fields lock) = J.showJSON (names, fields, lock)
+opToArgs (QueryJobs ids fields) = J.showJSON (map show ids, fields)
+opToArgs (QueryClusterInfo) = J.showJSON ()
+opToArgs (SubmitManyJobs ops) = J.showJSON ops
+
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method
-          -> JSValue -- ^ The arguments
           -> String  -- ^ The serialized form
-buildCall msg args =
-    let ja = [(strOfKey Method,
-               JSString $ toJSString $ strOfOp msg::JSValue),
-              (strOfKey Args,
-               args::JSValue)
+buildCall lo =
+    let ja = [ (strOfKey Method, JSString $ toJSString $ strOfOp lo::JSValue)
+             , (strOfKey Args, opToArgs lo::JSValue)
              ]
         jo = toJSObject ja
     in encodeStrict jo
@@ -160,17 +166,17 @@ validateResult s = do
    else fromObj rkey arr >>= fail)
 
 -- | Generic luxi method call.
-callMethod :: LuxiOp -> JSValue -> Client -> IO (Result JSValue)
-callMethod method args s = do
-  sendMsg s $ buildCall method args
+callMethod :: LuxiOp -> Client -> IO (Result JSValue)
+callMethod method s = do
+  sendMsg s $ buildCall method
   result <- recvMsg s
   let rval = validateResult result
   return rval
 
 -- | Specialized submitManyJobs call.
-submitManyJobs :: Client -> JSValue -> IO (Result [String])
+submitManyJobs :: Client -> [[OpCode]] -> IO (Result [String])
 submitManyJobs s jobs = do
-  rval <- callMethod SubmitManyJobs jobs s
+  rval <- callMethod (SubmitManyJobs jobs) s
   -- map each result (status, payload) pair into a nice Result ADT
   return $ case rval of
              Bad x -> Bad x
@@ -187,7 +193,7 @@ submitManyJobs s jobs = do
 -- | Custom queryJobs call.
 queryJobsStatus :: Client -> [String] -> IO (Result [JobStatus])
 queryJobsStatus s jids = do
-  rval <- callMethod QueryJobs (J.showJSON (jids, ["status"])) s
+  rval <- callMethod (QueryJobs (map read jids) ["status"]) s
   return $ case rval of
              Bad x -> Bad x
              Ok y -> case J.readJSON y::(J.Result [[JobStatus]]) of

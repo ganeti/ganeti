@@ -35,7 +35,6 @@ import System.IO
 import qualified System
 
 import Text.Printf (printf, hPrintf)
-import Text.JSON (showJSON)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -48,7 +47,6 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
 import qualified Ganeti.Luxi as L
-import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Jobs
 
 -- | Options list and functions
@@ -126,10 +124,6 @@ formatOneline ini_cv plc_len fin_cv =
     printf "%.8f %d %.8f %8.3f" ini_cv plc_len fin_cv
                (if fin_cv == 0 then 1 else ini_cv / fin_cv)
 
--- | Submits a list of jobs and waits for all to finish execution
-execJobs :: L.Client -> [[OpCodes.OpCode]] -> IO (Result [String])
-execJobs client = L.submitManyJobs client . showJSON
-
 -- | Polls a set of jobs at a fixed interval until all are finished
 -- one way or another
 waitForJobs :: L.Client -> [String] -> IO (Result [JobStatus])
@@ -160,7 +154,7 @@ execJobSet master nl il (js:jss) = do
   putStrLn $ "Executing jobset for instances " ++ commaJoin descr
   jrs <- bracket (L.getClient master) L.closeClient
          (\client -> do
-            jids <- execJobs client jobs
+            jids <- L.submitManyJobs client jobs
             case jids of
               Bad x -> return $ Bad x
               Ok x -> do

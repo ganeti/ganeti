@@ -50,43 +50,31 @@ toArray v =
 -- * Data querying functionality
 
 -- | The input data for node query.
-queryNodesMsg :: JSValue
+queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
-    let nnames = JSArray []
-        fnames = ["name",
-                  "mtotal", "mnode", "mfree",
-                  "dtotal", "dfree",
-                  "ctotal",
-                  "offline", "drained"]
-        fields = JSArray $ map (JSString . toJSString) fnames
-        use_locking = JSBool False
-    in JSArray [nnames, fields, use_locking]
+  L.QueryNodes [] ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
+                   "ctotal", "offline", "drained"] False
 
 -- | The input data for instance query.
-queryInstancesMsg :: JSValue
+queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
-    let nnames = JSArray []
-        fnames = ["name",
-                  "disk_usage", "be/memory", "be/vcpus",
-                  "status", "pnode", "snodes", "tags", "oper_ram"]
-        fields = JSArray $ map (JSString . toJSString) fnames
-        use_locking = JSBool False
-    in JSArray [nnames, fields, use_locking]
+  L.QueryInstances [] ["name", "disk_usage", "be/memory", "be/vcpus",
+                       "status", "pnode", "snodes", "tags", "oper_ram"] False
 
 -- | The input data for cluster query
-queryClusterInfoMsg :: JSValue
-queryClusterInfoMsg = JSArray []
+queryClusterInfoMsg :: L.LuxiOp
+queryClusterInfoMsg = L.QueryClusterInfo
 
 -- | Wraper over callMethod doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
-queryNodes = L.callMethod L.QueryNodes queryNodesMsg
+queryNodes = L.callMethod queryNodesMsg
 
 -- | Wraper over callMethod doing instance query.
 queryInstances :: L.Client -> IO (Result JSValue)
-queryInstances = L.callMethod L.QueryInstances queryInstancesMsg
+queryInstances = L.callMethod queryInstancesMsg
 
 queryClusterInfo :: L.Client -> IO (Result JSValue)
-queryClusterInfo = L.callMethod L.QueryClusterInfo queryClusterInfoMsg
+queryClusterInfo = L.callMethod queryClusterInfoMsg
 
 -- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
