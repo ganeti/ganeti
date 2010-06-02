@@ -2261,6 +2261,19 @@ def EnsureDaemon(name):
   return True
 
 
+def StopDaemon(name):
+  """Stop daemon
+
+  """
+  result = RunCmd([constants.DAEMON_UTIL, "stop", name])
+  if result.failed:
+    logging.error("Can't stop daemon '%s', failure %s, output: %s",
+                  name, result.fail_reason, result.output)
+    return False
+
+  return True
+
+
 def WritePidFile(name):
   """Write the current process pidfile.
 

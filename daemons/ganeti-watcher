@@ -47,7 +47,10 @@ from ganeti import luxi
 from ganeti import ssconf
 from ganeti import bdev
 from ganeti import hypervisor
+from ganeti import rapi
 from ganeti.confd import client as confd_client
+
+import ganeti.rapi.client # pylint: disable-msg=W0611
 
 
 MAXTRIES = 5
@@ -595,6 +598,34 @@ def OpenStateFile(path):
   return os.fdopen(statefile_fd, "w+")
 
 
+def IsRapiResponding(hostname):
+  """Connects to RAPI port and does a simple test.
+
+  Connects to RAPI port of hostname and does a simple test. At this time, the
+  test is GetVersion.
+
+  @type hostname: string
+  @param hostname: hostname of the node to connect to.
+  @rtype: bool
+  @return: Whether RAPI is working properly
+
+  """
+  ssl_config = rapi.client.CertAuthorityVerify(constants.RAPI_CERT_FILE)
+  rapi_client = \
+    rapi.client.GanetiRapiClient(hostname,
+                                 config_ssl_verification=ssl_config)
+  try:
+    master_version = rapi_client.GetVersion()
+  except rapi.client.CertificateError, err:
+    logging.warning("RAPI Error: CertificateError (%s)", err)
+    return False
+  except rapi.client.GanetiApiError, err:
+    logging.warning("RAPI Error: GanetiApiError (%s)", err)
+    return False
+  logging.debug("RAPI Result: master_version is %s", master_version)
+  return master_version == constants.RAPI_VERSION
+
+
 def ParseOptions():
   """Parse the command line options.
 
@@ -667,6 +698,18 @@ def main():
 
       # we are on master now
       utils.EnsureDaemon(constants.RAPI)
+
+      # If RAPI isn't responding to queries, try one restart.
+      logging.debug("Attempting to talk with RAPI.")
+      if not IsRapiResponding(constants.LOCALHOST_IP_ADDRESS):
+        logging.warning("Couldn't get answer from Ganeti RAPI daemon."
+                        " Restarting Ganeti RAPI.")
+        utils.StopDaemon(constants.RAPI)
+        utils.EnsureDaemon(constants.RAPI)
+        logging.debug("Second attempt to talk with RAPI")
+        if not IsRapiResponding(constants.LOCALHOST_IP_ADDRESS):
+          logging.fatal("RAPI is not responding. Please investigate.")
+      logging.debug("Successfully talked to RAPI.")
 
       try:
         watcher = Watcher(options, notepad)
