@@ -17,7 +17,7 @@ The node deamon now tries to mlock itself into memory, unless the
 its logs, and falls back to console logging. This allows emergency
 features such as ``gnt-node powercycle`` to work even in the event of a
 broken node disk (tested offlining the disk hosting the node's
-filesystem and dropping its memory caches. don't try this at home)
+filesystem and dropping its memory caches; don't try this at home)
 
 KVM: add vhost-net acceleration support. It can be tested with a new
 enough version of the kernel and of qemu-kvm.
@@ -40,8 +40,8 @@ this feature, before using it, by checking for its presence in the
 ``features`` RAPI resource.
 
 Now with ancient latin support. Try it passing the ``--roman`` option to
-``gnt-instance info, gnt-cluster info or gnt-node list`` (requires the
-python-roman module to be installed, in order to work).
+``gnt-instance info``, ``gnt-cluster info`` or ``gnt-node list``
+(requires the python-roman module to be installed, in order to work).
 
 Other changes
 ~~~~~~~~~~~~~
