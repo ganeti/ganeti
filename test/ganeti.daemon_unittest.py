@@ -28,7 +28,9 @@ import socket
 import time
 
 from ganeti import daemon
+from ganeti import constants
 from ganeti import utils
+from ganeti import errors
 
 import testutils
 
@@ -234,6 +236,11 @@ class TestAsyncUDPSocket(testutils.GanetiTestCase):
     utils.IgnoreSignals = self.saved_utils_ignoresignals
     self.mainloop.Run()
     self.assertEquals(self.server.received, ["p1", "p2", "terminate"])
+
+  def testOversizedDatagram(self):
+    oversized_data = (constants.MAX_UDP_DATA_SIZE + 1) * "a"
+    self.assertRaises(errors.UdpDataSizeError, self.client.enqueue_send,
+                      "127.0.0.1", self.port, oversized_data)
 
 
 if __name__ == "__main__":
