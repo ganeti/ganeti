@@ -514,6 +514,9 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "PKGLIBDIR = '$(pkglibdir)'"; \
 	  echo "DRBD_BARRIERS = $(DRBD_BARRIERS)"; \
 	  echo "SYSLOG_USAGE = '$(SYSLOG_USAGE)'"; \
+	  echo "DAEMONS_GROUP = '$(DAEMONS_GROUP)'"; \
+	  echo "MASTERD_USER = '$(MASTERD_USER)'"; \
+	  echo "RAPI_USER = '$(RAPI_USER)'"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile

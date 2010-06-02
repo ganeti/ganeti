@@ -214,21 +214,23 @@ def CheckRapi(options, args):
 
   ssconf.CheckMaster(options.debug)
 
+  # Read SSL certificate (this is a little hackish to read the cert as root)
+  if options.ssl:
+    options.ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
+                                            ssl_cert_path=options.ssl_cert)
+  else:
+    options.ssl_params = None
+
 
 def ExecRapi(options, _):
   """Main remote API function, executed with the PID file held.
 
   """
-  # Read SSL certificate
-  if options.ssl:
-    ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
-                                    ssl_cert_path=options.ssl_cert)
-  else:
-    ssl_params = None
 
   mainloop = daemon.Mainloop()
   server = RemoteApiHttpServer(mainloop, options.bind_address, options.port,
-                               ssl_params=ssl_params, ssl_verify_peer=False,
+                               ssl_params=options.ssl_params,
+                               ssl_verify_peer=False,
                                request_executor_class=JsonErrorRequestExecutor)
   # pylint: disable-msg=E1101
   # it seems pylint doesn't see the second parent class there
@@ -251,7 +253,8 @@ def main():
   dirs.append((constants.LOG_OS_DIR, 0750))
   daemon.GenericMain(constants.RAPI, parser, dirs, CheckRapi, ExecRapi,
                      default_ssl_cert=constants.RAPI_CERT_FILE,
-                     default_ssl_key=constants.RAPI_CERT_FILE)
+                     default_ssl_key=constants.RAPI_CERT_FILE,
+                     user=constants.RAPI_USER, group=constants.DAEMONS_GROUP)
 
 
 if __name__ == "__main__":
