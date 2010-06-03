@@ -2613,7 +2613,8 @@ def _WaitForSync(lu, instance, disks=None, oneshot=False):
       if mstat.sync_percent is not None:
         done = False
         if mstat.estimated_time is not None:
-          rem_time = "%d estimated seconds remaining" % mstat.estimated_time
+          rem_time = ("%s remaining (estimated)" %
+                      utils.FormatSeconds(mstat.estimated_time))
           max_time = mstat.estimated_time
         else:
           rem_time = "no time estimate"

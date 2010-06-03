@@ -623,7 +623,7 @@ def FormatProgress(progress):
   """Formats progress information for user consumption
 
   """
-  (mbytes, throughput, percent, _) = progress
+  (mbytes, throughput, percent, eta) = progress
 
   parts = [
     utils.FormatUnit(mbytes, "h"),
@@ -635,7 +635,8 @@ def FormatProgress(progress):
   if percent is not None:
     parts.append("%d%%" % percent)
 
-  # TODO: Format ETA
+  if eta is not None:
+    parts.append("ETA %s" % utils.FormatSeconds(eta))
 
   return utils.CommaJoin(parts)
 
