@@ -1,0 +1,67 @@
+#!/bin/bash
+
+set -e
+
+LIBDIR="@LOCALSTATEDIR@/lib"
+DATADIR="${LIBDIR}/ganeti"
+RUNDIR="@LOCALSTATEDIR@/run"
+GNTRUNDIR="${RUNDIR}/ganeti"
+LOGDIR="@LOCALSTATEDIR@/log"
+GNTLOGDIR="${LOGDIR}/ganeti"
+
+_fileset_owner() {
+  case "$1" in
+    masterd)
+      echo "@GNTMASTERUSER@:@GNTMASTERDGROUP@"
+      ;;
+    confd)
+      echo "@GNTCONFDUSER@:@GNTCONFDGROUP@"
+      ;;
+    rapi)
+      echo "@GNTRAPIUSER@:@GNTRAPIGROUP@"
+      ;;
+    daemons)
+      echo "@GNTMASTERUSER@:@GNTDAEMONSGROUP@"
+      ;;
+    *)
+      echo "root:root"
+      ;;
+  esac
+}
+
+_ensure_dir() {
+  local dir="$1"
+  local perm="$2"
+  local owner="$3"
+
+  [ -d "${dir}" ] || mkdir "${dir}"
+  chmod ${perm} "${dir}"
+  chown ${owner} "${dir}"
+}
+
+_ensure_rundir() {
+  _ensure_dir "${GNTRUNDIR}" 0775 "$(_fileset_owner "daemons")"
+  _ensure_dir "${GNTRUNDIR}/socket" 0750 "$(_fileset_owner "daemons")"
+}
+
+_ensure_logdir() {
+  _ensure_dir "${GNTLOGDIR}" 0770 "$(_fileset_owner "daemons")"
+
+  chown $(_fileset_owner "rapi") "${GNTLOGDIR}/rapi-daemon.log"
+}
+
+_operate_while_hold() {
+  local fn=$1
+  local path=$2
+  shift 2
+
+  (cd "${path}";
+   ${fn} "$@")
+}
+
+main() {
+  _operate_while_hold "_ensure_rundir" "${RUNDIR}"
+  _operate_while_hold "_ensure_logdir" "${LOGDIR}"
+}
+
+main "$@"

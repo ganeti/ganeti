@@ -64,6 +64,7 @@ CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
 	autotools/replace_vars.sed \
 	daemons/daemon-util \
+	daemons/ensure-dirs \
 	daemons/ganeti-cleaner \
 	devel/upload \
 	doc/examples/bash_completion \
@@ -257,6 +258,7 @@ pkglib_python_scripts = \
 
 pkglib_SCRIPTS = \
 	daemons/daemon-util \
+	daemons/ensure-dirs \
 	$(pkglib_python_scripts)
 
 EXTRA_DIST = \
@@ -270,6 +272,7 @@ EXTRA_DIST = \
 	autotools/testrunner \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
+	daemons/ensure-dirs.in \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
 	devel/upload.in \
@@ -541,6 +544,7 @@ $(REPLACE_VARS_SED): Makefile
 	  echo 's#@GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
 	  echo 's#@GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
+	  echo 's#@GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	} > $@
 
 # We need to create symlinks because "make distcheck" will not install Python

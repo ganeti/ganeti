@@ -149,6 +149,8 @@ start() {
   # Read $<daemon>_ARGS and $EXTRA_<daemon>_ARGS
   eval local args="\"\$${ucname}_ARGS \$EXTRA_${ucname}_ARGS\""
 
+  @PKGLIBDIR@/ensure-dirs
+
   start-stop-daemon --start --quiet --oknodo \
     --pidfile $(_daemon_pidfile $name) \
     --startas $(_daemon_executable $name) \
