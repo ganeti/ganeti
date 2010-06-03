@@ -259,6 +259,19 @@
         DISK_... variables).
       </para>
 
+      <para>
+        To provide the user with an estimate on how long the export will take,
+        a predicted size can be written to the file descriptor passed in the
+        variable <envar>EXP_SIZE_FD</envar>. The value is in bytes and must be
+        terminated by a newline character (\n). Older versions of Ganeti don't
+        support this feature, hence the variable should be checked before use.
+        Example: <screen>
+if test -n "$EXP_SIZE_FD"; then
+  blockdev --getsize64 $blockdev >&amp;$EXP_SIZE_FD
+fi
+</screen>
+      </para>
+
     </refsect2>
 
     <refsect2>

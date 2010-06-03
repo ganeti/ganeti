@@ -223,6 +223,8 @@ IEC_ALL = frozenset([
   IEC_GZIP,
   ])
 
+IE_CUSTOM_SIZE = "fd"
+
 # Import/export I/O
 # Direct file I/O, equivalent to a shell's I/O redirection using '<' or '>'
 IEIO_FILE = "file"

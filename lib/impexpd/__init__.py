@@ -82,12 +82,14 @@ SOCAT_OPENSSL_OPTS = ["verify=1", "cipher=HIGH", "method=TLSv1"]
 (PROG_OTHER,
  PROG_SOCAT,
  PROG_DD,
- PROG_DD_PID) = range(1, 5)
+ PROG_DD_PID,
+ PROG_EXP_SIZE) = range(1, 6)
 PROG_ALL = frozenset([
   PROG_OTHER,
   PROG_SOCAT,
   PROG_DD,
   PROG_DD_PID,
+  PROG_EXP_SIZE,
   ])
 
 
@@ -274,7 +276,7 @@ def _VerifyListening(family, address, port):
 
 
 class ChildIOProcessor(object):
-  def __init__(self, debug, status_file, logger, throughput_samples):
+  def __init__(self, debug, status_file, logger, throughput_samples, exp_size):
     """Initializes this class.
 
     """
@@ -291,7 +293,7 @@ class ChildIOProcessor(object):
     self._dd_progress = []
 
     # Expected size of transferred data
-    self._exp_size = None
+    self._exp_size = exp_size
 
   def GetLineSplitter(self, prog):
     """Returns the line splitter for a program.
@@ -388,6 +390,22 @@ class ChildIOProcessor(object):
       logging.debug("Received dd PID %r", line)
       self._dd_pid = int(line)
       forward_line = None
+
+    elif prog == PROG_EXP_SIZE:
+      logging.debug("Received predicted size %r", line)
+      forward_line = None
+
+      if line:
+        try:
+          exp_size = utils.BytesToMebibyte(int(line))
+        except (ValueError, TypeError), err:
+          logging.error("Failed to convert predicted size %r to number: %s",
+                        line, err)
+          exp_size = None
+      else:
+        exp_size = None
+
+      self._exp_size = exp_size
 
     if forward_line:
       self._logger.info(forward_line)
