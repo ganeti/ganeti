@@ -9,6 +9,69 @@ Version 2.2.0
   RFC2616 (HTTP/1.1), section 7.2.1)
 
 
+Version 2.1.3
+-------------
+
+*(Unreleased)*
+
+A medium sized development cycle. Some new features, and some
+fixes/small improvements/cleanups.
+
+Significant features
+~~~~~~~~~~~~~~~~~~~~
+
+The node deamon now tries to mlock itself into memory, unless the
+``--no-mlock`` flag is passed. It also doesn't fail if it can't write
+its logs, and falls back to console logging. This allows emergency
+features such as ``gnt-node powercycle`` to work even in the event of a
+broken node disk (tested offlining the disk hosting the node's
+filesystem and dropping its memory caches. don't try this at home)
+
+KVM: add vhost-net acceleration support. It can be tested with a new
+enough version of the kernel and of qemu-kvm.
+
+KVM: Add instance chrooting feature. If you use privilege dropping for
+your VMs you can also now force them to chroot to an empty directory,
+before starting the emulated guest.
+
+KVM: Add maximum migration bandwith and maximum downtime tweaking
+support (requires a new-enough version of qemu-kvm).
+
+Cluster verify will now warn if the master node doesn't have the master
+ip configured on it.
+
+Add a new (incompatible) instance creation request format to RAPI which
+supports all parameters (previously only a subset was supported, and it
+wasn't possible to extend the old format to accomodate all the new
+features. The old format is still supported, and a client can check for
+this feature, before using it, by checking for its presence in the
+``features`` RAPI resource.
+
+Now with ancient latin support. Try it passing the ``--roman`` option to
+``gnt-instance info, gnt-cluster info or gnt-node list`` (requires the
+python-roman module to be installed, in order to work).
+
+Other changes
+~~~~~~~~~~~~~
+
+As usual many internal code refactorings, documentation updates, and
+such. Among others:
+
+  - Lots of improvements and cleanups to the experimental Remote API
+    (RAPI) client library.
+  - A new unit test suite for the core daemon libraries.
+  - A fix to creating missing directories makes sure the umask is not
+    applied anymore. This enforces the same directory permissions
+    everywhere.
+  - Better handling terminating daemons with ctrl+c (used when running
+    them in debugging mode).
+  - Fix a race condition in live migrating a KVM instance, when stat()
+    on the old proc status file returned EINVAL, which is an unexpected
+    value.
+  - Fixed manpage checking with newer man and utf-8 charachters. But now
+    you need the en_US.UTF-8 locale enabled to build Ganeti from git.
+
+
 Version 2.1.2.1
 ---------------
 
