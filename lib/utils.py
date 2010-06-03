@@ -3188,6 +3188,31 @@ def FormatTime(val):
   return time.strftime("%F %T", time.localtime(val))
 
 
+def FormatSeconds(secs):
+  """Formats seconds for easier reading.
+
+  @type secs: number
+  @param secs: Number of seconds
+  @rtype: string
+  @return: Formatted seconds (e.g. "2d 9h 19m 49s")
+
+  """
+  parts = []
+
+  secs = round(secs, 0)
+
+  if secs > 0:
+    # Negative values would be a bit tricky
+    for unit, one in [("d", 24 * 60 * 60), ("h", 60 * 60), ("m", 60)]:
+      (complete, secs) = divmod(secs, one)
+      if complete or parts:
+        parts.append("%d%s" % (complete, unit))
+
+  parts.append("%ds" % secs)
+
+  return " ".join(parts)
+
+
 def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
   """Reads the watcher pause file.
 

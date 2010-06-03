@@ -2364,5 +2364,27 @@ class TestEnsureDirs(unittest.TestCase):
     os.rmdir(self.dir)
     os.umask(self.old_umask)
 
+
+class TestFormatSeconds(unittest.TestCase):
+  def test(self):
+    self.assertEqual(utils.FormatSeconds(1), "1s")
+    self.assertEqual(utils.FormatSeconds(3600), "1h 0m 0s")
+    self.assertEqual(utils.FormatSeconds(3599), "59m 59s")
+    self.assertEqual(utils.FormatSeconds(7200), "2h 0m 0s")
+    self.assertEqual(utils.FormatSeconds(7201), "2h 0m 1s")
+    self.assertEqual(utils.FormatSeconds(7281), "2h 1m 21s")
+    self.assertEqual(utils.FormatSeconds(29119), "8h 5m 19s")
+    self.assertEqual(utils.FormatSeconds(19431228), "224d 21h 33m 48s")
+    self.assertEqual(utils.FormatSeconds(-1), "-1s")
+    self.assertEqual(utils.FormatSeconds(-282), "-282s")
+    self.assertEqual(utils.FormatSeconds(-29119), "-29119s")
+
+  def testFloat(self):
+    self.assertEqual(utils.FormatSeconds(1.3), "1s")
+    self.assertEqual(utils.FormatSeconds(1.9), "2s")
+    self.assertEqual(utils.FormatSeconds(3912.12311), "1h 5m 12s")
+    self.assertEqual(utils.FormatSeconds(3912.8), "1h 5m 13s")
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
