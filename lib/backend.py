@@ -2526,6 +2526,7 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
   env = None
   prefix = None
   suffix = None
+  exp_size = None
 
   if ieio == constants.IEIO_FILE:
     (filename, ) = ieargs
@@ -2550,6 +2551,14 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     elif mode == constants.IEM_EXPORT:
       suffix = "< %s" % quoted_filename
 
+      # Retrieve file size
+      try:
+        st = os.stat(filename)
+      except EnvironmentError, err:
+        logging.error("Can't stat(2) %s: %s", filename, err)
+      else:
+        exp_size = utils.BytesToMebibyte(st.st_size)
+
   elif ieio == constants.IEIO_RAW_DISK:
     (disk, ) = ieargs
 
@@ -2573,6 +2582,7 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
                                    real_disk.dev_path,
                                    str(1024 * 1024), # 1 MB
                                    str(disk.size))
+      exp_size = disk.size
 
   elif ieio == constants.IEIO_SCRIPT:
     (disk, disk_index, ) = ieargs
@@ -2603,10 +2613,13 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     elif mode == constants.IEM_EXPORT:
       prefix = "%s |" % script_cmd
 
+    # Let script predict size
+    exp_size = constants.IE_CUSTOM_SIZE
+
   else:
     _Fail("Invalid %s I/O mode %r", mode, ieio)
 
-  return (env, prefix, suffix)
+  return (env, prefix, suffix, exp_size)
 
 
 def _CreateImportExportStatusDir(prefix):
@@ -2652,7 +2665,7 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
   if (opts.key_name is None) ^ (opts.ca_pem is None):
     _Fail("Cluster certificate can only be used for both key and CA")
 
-  (cmd_env, cmd_prefix, cmd_suffix) = \
+  (cmd_env, cmd_prefix, cmd_suffix, exp_size) = \
     _GetImportExportIoCommand(instance, mode, ieio, ieioargs)
 
   if opts.key_name is None:
@@ -2700,6 +2713,9 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
 
     if opts.compress:
       cmd.append("--compress=%s" % opts.compress)
+
+    if exp_size is not None:
+      cmd.append("--expected-size=%s" % exp_size)
 
     if cmd_prefix:
       cmd.append("--cmd-prefix=%s" % cmd_prefix)
