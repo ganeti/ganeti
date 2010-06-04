@@ -380,7 +380,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     We do nothing on a failure, as we did not change anything at accept time.
 
     @type instance: L{objects.Instance}
-    @param instance: instance whose migration is being aborted
+    @param instance: instance whose migration is being finalized
     @type info: string
     @param info: content of the xen config file on the source node
     @type success: boolean

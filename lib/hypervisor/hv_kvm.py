@@ -821,7 +821,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     Stop the incoming mode KVM.
 
     @type instance: L{objects.Instance}
-    @param instance: instance whose migration is being aborted
+    @param instance: instance whose migration is being finalized
 
     """
     if success:

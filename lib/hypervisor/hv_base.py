@@ -245,7 +245,7 @@ class BaseHypervisor(object):
     Since by default we do no preparation, we also don't have anything to do
 
     @type instance: L{objects.Instance}
-    @param instance: instance whose migration is being aborted
+    @param instance: instance whose migration is being finalized
     @type info: string/data (opaque)
     @param info: migration information, from the source node
     @type success: boolean
