@@ -7943,6 +7943,11 @@ class LUGrowDisk(LogicalUnit):
     """
     instance = self.instance
     disk = self.disk
+
+    disks_ok, _ = _AssembleInstanceDisks(self, self.instance, disks=[disk])
+    if not disks_ok:
+      raise errors.OpExecError("Cannot activate block device to grow")
+
     for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, disk, self.op.amount)
@@ -7958,10 +7963,16 @@ class LUGrowDisk(LogicalUnit):
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance, feedback_fn)
     if self.op.wait_for_sync:
-      disk_abort = not _WaitForSync(self, instance)
+      disk_abort = not _WaitForSync(self, instance, disks=[disk])
       if disk_abort:
         self.proc.LogWarning("Warning: disk sync-ing has not returned a good"
                              " status.\nPlease check the instance.")
+      if not instance.admin_up:
+        _SafeShutdownInstanceDisks(self, instance, disks=[disk])
+    elif not instance.admin_up:
+      self.proc.LogWarning("Not shutting down the disk even if the instance is"
+                           " not supposed to be running because no wait for"
+                           " sync mode was requested.")
 
 
 class LUQueryInstanceData(NoHooksLU):
