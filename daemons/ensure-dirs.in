@@ -47,6 +47,7 @@ _ensure_rundir() {
 _ensure_logdir() {
   _ensure_dir "${GNTLOGDIR}" 0770 "$(_fileset_owner "daemons")"
 
+  touch "${GNTLOGDIR}/rapi-daemon.log"
   chown $(_fileset_owner "rapi") "${GNTLOGDIR}/rapi-daemon.log"
 }
 
