@@ -49,6 +49,24 @@ import ganeti.http.client  # pylint: disable-msg=W0611
 # Module level variable
 _http_manager = None
 
+# Various time constants for the timeout table
+_TMO_URGENT = 60 # one minute
+_TMO_FAST = 5 * 60 # five minutes
+_TMO_NORMAL = 15 * 60 # 15 minutes
+_TMO_SLOW = 3600 # one hour
+_TMO_4HRS = 4 * 3600
+_TMO_1DAY = 86400
+
+# Timeout table that will be built later by decorators
+# Guidelines for choosing timeouts:
+# - call used during watcher: timeout -> 1min, _TMO_URGENT
+# - trivial (but be sure it is trivial) (e.g. reading a file): 5min, _TMO_FAST
+# - other calls: 15 min, _TMO_NORMAL
+# - special calls (instance add, etc.): either _TMO_SLOW (1h) or huge timeouts
+
+_TIMEOUTS = {
+}
+
 
 def Init():
   """Initializes the module-global HTTP client manager.
@@ -76,6 +94,21 @@ def Shutdown():
   if _http_manager:
     _http_manager.Shutdown()
     _http_manager = None
+
+
+def _RpcTimeout(secs):
+  """Timeout decorator.
+
+  When applied to a rpc call_* function, it updates the global timeout
+  table with the given function/timeout.
+
+  """
+  def decorator(f):
+    name = f.__name__
+    assert name.startswith("call_")
+    _TIMEOUTS[name[len("call_"):]] = secs
+    return f
+  return decorator
 
 
 class RpcResult(object):
@@ -179,6 +212,8 @@ class Client:
 
   """
   def __init__(self, procedure, body, port):
+    assert procedure in _TIMEOUTS, ("New RPC call not declared in the"
+                                    " timeouts table")
     self.procedure = procedure
     self.body = body
     self.port = port
@@ -220,6 +255,9 @@ class Client:
     """
     if address is None:
       address = name
+
+    if read_timeout is None:
+      read_timeout = _TIMEOUTS[self.procedure]
 
     self.nc[name] = \
       http.client.HttpClientRequest(address, self.port, http.HTTP_PUT,
@@ -449,6 +487,7 @@ class RpcRunner(object):
   # Begin RPC calls
   #
 
+  @_RpcTimeout(_TMO_URGENT)
   def call_lv_list(self, node_list, vg_name):
     """Gets the logical volumes present in a given volume group.
 
@@ -457,6 +496,7 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "lv_list", [vg_name])
 
+  @_RpcTimeout(_TMO_URGENT)
   def call_vg_list(self, node_list):
     """Gets the volume group list.
 
@@ -465,6 +505,7 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "vg_list", [])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_storage_list(self, node_list, su_name, su_args, name, fields):
     """Get list of storage units.
 
@@ -474,6 +515,7 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "storage_list",
                                [su_name, su_args, name, fields])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_storage_modify(self, node, su_name, su_args, name, changes):
     """Modify a storage unit.
 
@@ -483,6 +525,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "storage_modify",
                                 [su_name, su_args, name, changes])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_storage_execute(self, node, su_name, su_args, name, op):
     """Executes an operation on a storage unit.
 
@@ -492,6 +535,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "storage_execute",
                                 [su_name, su_args, name, op])
 
+  @_RpcTimeout(_TMO_URGENT)
   def call_bridges_exist(self, node, bridges_list):
     """Checks if a node has all the bridges given.
 
@@ -504,6 +548,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "bridges_exist", [bridges_list])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_instance_start(self, node, instance, hvp, bep):
     """Starts an instance.
 
@@ -513,6 +558,7 @@ class RpcRunner(object):
     idict = self._InstDict(instance, hvp=hvp, bep=bep)
     return self._SingleNodeCall(node, "instance_start", [idict])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_instance_shutdown(self, node, instance, timeout):
     """Stops an instance.
 
@@ -522,6 +568,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_shutdown",
                                 [self._InstDict(instance), timeout])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_migration_info(self, node, instance):
     """Gather the information necessary to prepare an instance migration.
 
@@ -536,6 +583,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "migration_info",
                                 [self._InstDict(instance)])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_accept_instance(self, node, instance, info, target):
     """Prepare a node to accept an instance.
 
@@ -554,6 +602,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "accept_instance",
                                 [self._InstDict(instance), info, target])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_finalize_migration(self, node, instance, info, success):
     """Finalize any target-node migration specific operation.
 
@@ -575,6 +624,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "finalize_migration",
                                 [self._InstDict(instance), info, success])
 
+  @_RpcTimeout(_TMO_SLOW)
   def call_instance_migrate(self, node, instance, target, live):
     """Migrate an instance.
 
@@ -594,6 +644,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_migrate",
                                 [self._InstDict(instance), target, live])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_instance_reboot(self, node, inst, reboot_type, shutdown_timeout):
     """Reboots an instance.
 
@@ -604,6 +655,7 @@ class RpcRunner(object):
                                 [self._InstDict(inst), reboot_type,
                                  shutdown_timeout])
 
+  @_RpcTimeout(_TMO_1DAY)
   def call_instance_os_add(self, node, inst, reinstall, debug):
     """Installs an OS on the given instance.
 
@@ -613,6 +665,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_os_add",
                                 [self._InstDict(inst), reinstall, debug])
 
+  @_RpcTimeout(_TMO_SLOW)
   def call_instance_run_rename(self, node, inst, old_name, debug):
     """Run the OS rename script for an instance.
 
@@ -622,6 +675,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_run_rename",
                                 [self._InstDict(inst), old_name, debug])
 
+  @_RpcTimeout(_TMO_URGENT)
   def call_instance_info(self, node, instance, hname):
     """Returns information about a single instance.
 
@@ -637,6 +691,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "instance_info", [instance, hname])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_instance_migratable(self, node, instance):
     """Checks whether the given instance can be migrated.
 
@@ -651,6 +706,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_migratable",
                                 [self._InstDict(instance)])
 
+  @_RpcTimeout(_TMO_URGENT)
   def call_all_instances_info(self, node_list, hypervisor_list):
     """Returns information about all instances on the given nodes.
 
@@ -665,6 +721,7 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "all_instances_info",
                                [hypervisor_list])
 
+  @_RpcTimeout(_TMO_URGENT)
   def call_instance_list(self, node_list, hypervisor_list):
     """Returns the list of running instances on a given node.
 
@@ -678,6 +735,7 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "instance_list", [hypervisor_list])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_node_tcp_ping(self, node, source, target, port, timeout,
                          live_port_needed):
     """Do a TcpPing on the remote node
@@ -689,6 +747,7 @@ class RpcRunner(object):
                                 [source, target, port, timeout,
                                  live_port_needed])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_node_has_ip_address(self, node, address):
     """Checks if a node has the given IP address.
 
@@ -697,6 +756,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "node_has_ip_address", [address])
 
+  @_RpcTimeout(_TMO_URGENT)
   def call_node_info(self, node_list, vg_name, hypervisor_type):
     """Return node information.
 
@@ -718,6 +778,7 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "node_info",
                                [vg_name, hypervisor_type])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
     """Add a node to the cluster.
 
@@ -727,6 +788,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "node_add",
                                 [dsa, dsapub, rsa, rsapub, ssh, sshpub])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_node_verify(self, node_list, checkdict, cluster_name):
     """Request verification of given parameters.
 
@@ -737,6 +799,7 @@ class RpcRunner(object):
                                [checkdict, cluster_name])
 
   @classmethod
+  @_RpcTimeout(_TMO_FAST)
   def call_node_start_master(cls, node, start_daemons, no_voting):
     """Tells a node to activate itself as a master.
 
@@ -747,6 +810,7 @@ class RpcRunner(object):
                                      [start_daemons, no_voting])
 
   @classmethod
+  @_RpcTimeout(_TMO_FAST)
   def call_node_stop_master(cls, node, stop_daemons):
     """Tells a node to demote itself from master status.
 
@@ -756,6 +820,7 @@ class RpcRunner(object):
     return cls._StaticSingleNodeCall(node, "node_stop_master", [stop_daemons])
 
   @classmethod
+  @_RpcTimeout(_TMO_URGENT)
   def call_master_info(cls, node_list):
     """Query master info.
 
@@ -766,6 +831,7 @@ class RpcRunner(object):
     return cls._StaticMultiNodeCall(node_list, "master_info", [])
 
   @classmethod
+  @_RpcTimeout(_TMO_URGENT)
   def call_version(cls, node_list):
     """Query node version.
 
@@ -774,6 +840,7 @@ class RpcRunner(object):
     """
     return cls._StaticMultiNodeCall(node_list, "version", [])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_create(self, node, bdev, size, owner, on_primary, info):
     """Request creation of a given block device.
 
@@ -783,6 +850,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_create",
                                 [bdev.ToDict(), size, owner, on_primary, info])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_remove(self, node, bdev):
     """Request removal of a given block device.
 
@@ -791,6 +859,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "blockdev_remove", [bdev.ToDict()])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_rename(self, node, devlist):
     """Request rename of the given block devices.
 
@@ -800,6 +869,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_rename",
                                 [(d.ToDict(), uid) for d, uid in devlist])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_assemble(self, node, disk, owner, on_primary):
     """Request assembling of a given block device.
 
@@ -809,6 +879,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_assemble",
                                 [disk.ToDict(), owner, on_primary])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_shutdown(self, node, disk):
     """Request shutdown of a given block device.
 
@@ -817,6 +888,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "blockdev_shutdown", [disk.ToDict()])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_addchildren(self, node, bdev, ndevs):
     """Request adding a list of children to a (mirroring) device.
 
@@ -827,6 +899,7 @@ class RpcRunner(object):
                                 [bdev.ToDict(),
                                  [disk.ToDict() for disk in ndevs]])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_removechildren(self, node, bdev, ndevs):
     """Request removing a list of children from a (mirroring) device.
 
@@ -837,6 +910,7 @@ class RpcRunner(object):
                                 [bdev.ToDict(),
                                  [disk.ToDict() for disk in ndevs]])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_getmirrorstatus(self, node, disks):
     """Request status of a (mirroring) device.
 
@@ -850,6 +924,7 @@ class RpcRunner(object):
                         for i in result.payload]
     return result
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_find(self, node, disk):
     """Request identification of a given block device.
 
@@ -861,6 +936,7 @@ class RpcRunner(object):
       result.payload = objects.BlockDevStatus.FromDict(result.payload)
     return result
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_close(self, node, instance_name, disks):
     """Closes the given block devices.
 
@@ -870,6 +946,7 @@ class RpcRunner(object):
     params = [instance_name, [cf.ToDict() for cf in disks]]
     return self._SingleNodeCall(node, "blockdev_close", params)
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_getsizes(self, node, disks):
     """Returns the size of the given disks.
 
@@ -879,6 +956,7 @@ class RpcRunner(object):
     params = [[cf.ToDict() for cf in disks]]
     return self._SingleNodeCall(node, "blockdev_getsize", params)
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_drbd_disconnect_net(self, node_list, nodes_ip, disks):
     """Disconnects the network of the given drbd devices.
 
@@ -888,6 +966,7 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "drbd_disconnect_net",
                                [nodes_ip, [cf.ToDict() for cf in disks]])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_drbd_attach_net(self, node_list, nodes_ip,
                            disks, instance_name, multimaster):
     """Disconnects the given drbd devices.
@@ -899,6 +978,7 @@ class RpcRunner(object):
                                [nodes_ip, [cf.ToDict() for cf in disks],
                                 instance_name, multimaster])
 
+  @_RpcTimeout(_TMO_SLOW)
   def call_drbd_wait_sync(self, node_list, nodes_ip, disks):
     """Waits for the synchronization of drbd devices is complete.
 
@@ -909,6 +989,7 @@ class RpcRunner(object):
                                [nodes_ip, [cf.ToDict() for cf in disks]])
 
   @classmethod
+  @_RpcTimeout(_TMO_NORMAL)
   def call_upload_file(cls, node_list, file_name, address_list=None):
     """Upload a file.
 
@@ -935,6 +1016,7 @@ class RpcRunner(object):
                                     address_list=address_list)
 
   @classmethod
+  @_RpcTimeout(_TMO_NORMAL)
   def call_write_ssconf_files(cls, node_list, values):
     """Write ssconf files.
 
@@ -943,6 +1025,7 @@ class RpcRunner(object):
     """
     return cls._StaticMultiNodeCall(node_list, "write_ssconf_files", [values])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_os_diagnose(self, node_list):
     """Request a diagnose of OS definitions.
 
@@ -951,6 +1034,7 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "os_diagnose", [])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_os_get(self, node, name):
     """Returns an OS definition.
 
@@ -962,6 +1046,7 @@ class RpcRunner(object):
       result.payload = objects.OS.FromDict(result.payload)
     return result
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_hooks_runner(self, node_list, hpath, phase, env):
     """Call the hooks runner.
 
@@ -975,6 +1060,7 @@ class RpcRunner(object):
     params = [hpath, phase, env]
     return self._MultiNodeCall(node_list, "hooks_runner", params)
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_iallocator_runner(self, node, name, idata):
     """Call an iallocator on a remote node
 
@@ -987,6 +1073,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "iallocator_runner", [name, idata])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_grow(self, node, cf_bdev, amount):
     """Request a snapshot of the given block device.
 
@@ -996,6 +1083,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_grow",
                                 [cf_bdev.ToDict(), amount])
 
+  @_RpcTimeout(_TMO_1DAY)
   def call_blockdev_export(self, node, cf_bdev,
                            dest_node, dest_path, cluster_name):
     """Export a given disk to another node.
@@ -1007,6 +1095,7 @@ class RpcRunner(object):
                                 [cf_bdev.ToDict(), dest_node, dest_path,
                                  cluster_name])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_snapshot(self, node, cf_bdev):
     """Request a snapshot of the given block device.
 
@@ -1015,6 +1104,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "blockdev_snapshot", [cf_bdev.ToDict()])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_finalize_export(self, node, instance, snap_disks):
     """Request the completion of an export operation.
 
@@ -1033,6 +1123,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "finalize_export",
                                 [self._InstDict(instance), flat_disks])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_export_info(self, node, path):
     """Queries the export information in a given path.
 
@@ -1041,6 +1132,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "export_info", [path])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_export_list(self, node_list):
     """Gets the stored exports list.
 
@@ -1049,6 +1141,7 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "export_list", [])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_export_remove(self, node, export):
     """Requests removal of a given export.
 
@@ -1058,6 +1151,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "export_remove", [export])
 
   @classmethod
+  @_RpcTimeout(_TMO_NORMAL)
   def call_node_leave_cluster(cls, node, modify_ssh_setup):
     """Requests a node to clean the cluster information it has.
 
@@ -1070,6 +1164,7 @@ class RpcRunner(object):
     return cls._StaticSingleNodeCall(node, "node_leave_cluster",
                                      [modify_ssh_setup])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_node_volumes(self, node_list):
     """Gets all volumes on node(s).
 
@@ -1078,6 +1173,7 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "node_volumes", [])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_node_demote_from_mc(self, node):
     """Demote a node from the master candidate role.
 
@@ -1086,6 +1182,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "node_demote_from_mc", [])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_node_powercycle(self, node, hypervisor):
     """Tries to powercycle a node.
 
@@ -1094,14 +1191,17 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "node_powercycle", [hypervisor])
 
+  @_RpcTimeout(None)
   def call_test_delay(self, node_list, duration):
     """Sleep for a fixed time on given node(s).
 
     This is a multi-node call.
 
     """
-    return self._MultiNodeCall(node_list, "test_delay", [duration])
+    return self._MultiNodeCall(node_list, "test_delay", [duration],
+                               read_timeout=int(duration + 5))
 
+  @_RpcTimeout(_TMO_FAST)
   def call_file_storage_dir_create(self, node, file_storage_dir):
     """Create the given file storage directory.
 
@@ -1111,6 +1211,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "file_storage_dir_create",
                                 [file_storage_dir])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_file_storage_dir_remove(self, node, file_storage_dir):
     """Remove the given file storage directory.
 
@@ -1120,6 +1221,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "file_storage_dir_remove",
                                 [file_storage_dir])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_file_storage_dir_rename(self, node, old_file_storage_dir,
                                    new_file_storage_dir):
     """Rename file storage directory.
@@ -1131,6 +1233,7 @@ class RpcRunner(object):
                                 [old_file_storage_dir, new_file_storage_dir])
 
   @classmethod
+  @_RpcTimeout(_TMO_FAST)
   def call_jobqueue_update(cls, node_list, address_list, file_name, content):
     """Update job queue.
 
@@ -1142,6 +1245,7 @@ class RpcRunner(object):
                                     address_list=address_list)
 
   @classmethod
+  @_RpcTimeout(_TMO_NORMAL)
   def call_jobqueue_purge(cls, node):
     """Purge job queue.
 
@@ -1151,6 +1255,7 @@ class RpcRunner(object):
     return cls._StaticSingleNodeCall(node, "jobqueue_purge", [])
 
   @classmethod
+  @_RpcTimeout(_TMO_FAST)
   def call_jobqueue_rename(cls, node_list, address_list, rename):
     """Rename a job queue file.
 
@@ -1161,6 +1266,7 @@ class RpcRunner(object):
                                     address_list=address_list)
 
   @classmethod
+  @_RpcTimeout(_TMO_FAST)
   def call_jobqueue_set_drain(cls, node_list, drain_flag):
     """Set the drain flag on the queue.
 
@@ -1175,6 +1281,7 @@ class RpcRunner(object):
     return cls._StaticMultiNodeCall(node_list, "jobqueue_set_drain",
                                     [drain_flag])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_hypervisor_validate_params(self, node_list, hvname, hvparams):
     """Validate the hypervisor params.
 
@@ -1193,6 +1300,7 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "hypervisor_validate_params",
                                [hvname, hv_full])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_x509_cert_create(self, node, validity):
     """Creates a new X509 certificate for SSL/TLS.
 
@@ -1204,6 +1312,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "x509_cert_create", [validity])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_x509_cert_remove(self, node, name):
     """Removes a X509 certificate.
 
@@ -1215,6 +1324,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "x509_cert_remove", [name])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_import_start(self, node, opts, instance, dest, dest_args):
     """Starts a listener for an import.
 
@@ -1231,6 +1341,7 @@ class RpcRunner(object):
                                  self._InstDict(instance), dest,
                                  _EncodeImportExportIO(dest, dest_args)])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_export_start(self, node, opts, host, port,
                         instance, source, source_args):
     """Starts an export daemon.
@@ -1248,6 +1359,7 @@ class RpcRunner(object):
                                  self._InstDict(instance), source,
                                  _EncodeImportExportIO(source, source_args)])
 
+  @_RpcTimeout(_TMO_FAST)
   def call_impexp_status(self, node, names):
     """Gets the status of an import or export.
 
@@ -1277,6 +1389,7 @@ class RpcRunner(object):
 
     return result
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_impexp_abort(self, node, name):
     """Aborts an import or export.
 
@@ -1290,6 +1403,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "impexp_abort", [name])
 
+  @_RpcTimeout(_TMO_NORMAL)
   def call_impexp_cleanup(self, node, name):
     """Cleans up after an import or export.
 
