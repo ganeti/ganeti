@@ -558,7 +558,7 @@ def _RequireOpenQueue(fn):
   functions usually called from other classes. Note that this should
   be applied only to methods (not plain functions), since it expects
   that the decorated function is called with a first argument that has
-  a '_queue_lock' argument.
+  a '_queue_filelock' argument.
 
   @warning: Use this decorator only after utils.LockedMethod!
 
@@ -571,7 +571,7 @@ def _RequireOpenQueue(fn):
   """
   def wrapper(self, *args, **kwargs):
     # pylint: disable-msg=W0212
-    assert self._queue_lock is not None, "Queue should be open"
+    assert self._queue_filelock is not None, "Queue should be open"
     return fn(self, *args, **kwargs)
   return wrapper
 
@@ -606,8 +606,9 @@ class JobQueue(object):
     self.acquire = self._lock.acquire
     self.release = self._lock.release
 
-    # Initialize
-    self._queue_lock = jstore.InitAndVerifyQueue(must_lock=True)
+    # Initialize the queue, and acquire the filelock.
+    # This ensures no other process is working on the job queue.
+    self._queue_filelock = jstore.InitAndVerifyQueue(must_lock=True)
 
     # Read serial file
     self._last_serial = jstore.ReadSerial()
@@ -1414,5 +1415,5 @@ class JobQueue(object):
     """
     self._wpool.TerminateWorkers()
 
-    self._queue_lock.Close()
-    self._queue_lock = None
+    self._queue_filelock.Close()
+    self._queue_filelock = None
