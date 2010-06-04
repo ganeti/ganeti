@@ -2565,19 +2565,21 @@ class LURedistributeConfig(NoHooksLU):
     _RedistributeAncillaryFiles(self)
 
 
-def _WaitForSync(lu, instance, oneshot=False):
+def _WaitForSync(lu, instance, disks=None, oneshot=False):
   """Sleep and poll for an instance's disk to sync.
 
   """
-  if not instance.disks:
+  if not instance.disks or disks is not None and not disks:
     return True
+
+  disks = _ExpandCheckDisks(instance, disks)
 
   if not oneshot:
     lu.proc.LogInfo("Waiting for instance %s to sync disks." % instance.name)
 
   node = instance.primary_node
 
-  for dev in instance.disks:
+  for dev in disks:
     lu.cfg.SetDiskID(dev, node)
 
   # TODO: Convert to utils.Retry
@@ -2588,7 +2590,7 @@ def _WaitForSync(lu, instance, oneshot=False):
     max_time = 0
     done = True
     cumul_degraded = False
-    rstats = lu.rpc.call_blockdev_getmirrorstatus(node, instance.disks)
+    rstats = lu.rpc.call_blockdev_getmirrorstatus(node, disks)
     msg = rstats.fail_msg
     if msg:
       lu.LogWarning("Can't get any data from node %s: %s", node, msg)
@@ -2603,7 +2605,7 @@ def _WaitForSync(lu, instance, oneshot=False):
     for i, mstat in enumerate(rstats):
       if mstat is None:
         lu.LogWarning("Can't compute data for node %s/%s",
-                           node, instance.disks[i].iv_name)
+                           node, disks[i].iv_name)
         continue
 
       cumul_degraded = (cumul_degraded or
@@ -2616,8 +2618,7 @@ def _WaitForSync(lu, instance, oneshot=False):
         else:
           rem_time = "no time estimate"
         lu.proc.LogInfo("- device %s: %5.2f%% done, %s" %
-                        (instance.disks[i].iv_name, mstat.sync_percent,
-                         rem_time))
+                        (disks[i].iv_name, mstat.sync_percent, rem_time))
 
     # if we're done but degraded, let's do a few small retries, to
     # make sure we see a stable and not transient situation; therefore
@@ -3852,7 +3853,7 @@ class LUActivateInstanceDisks(NoHooksLU):
     return disks_info
 
 
-def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
+def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
                            ignore_size=False):
   """Prepare the block devices for an instance.
 
@@ -3862,6 +3863,8 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance for whose disks we assemble
+  @type disks: list of L{objects.Disk} or None
+  @param disks: which disks to assemble (or all, if None)
   @type ignore_secondaries: boolean
   @param ignore_secondaries: if true, errors on secondary nodes
       won't result in an error return from the function
@@ -3877,6 +3880,8 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
   device_info = []
   disks_ok = True
   iname = instance.name
+  disks = _ExpandCheckDisks(instance, disks)
+
   # With the two passes mechanism we try to reduce the window of
   # opportunity for the race condition of switching DRBD to primary
   # before handshaking occured, but we do not eliminate it
@@ -3887,7 +3892,7 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
   # SyncSource, etc.)
 
   # 1st pass, assemble on all nodes in secondary mode
-  for inst_disk in instance.disks:
+  for inst_disk in disks:
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
       if ignore_size:
         node_disk = node_disk.Copy()
@@ -3905,7 +3910,7 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
   # FIXME: race condition on drbd migration to primary
 
   # 2nd pass, do only the primary node
-  for inst_disk in instance.disks:
+  for inst_disk in disks:
     dev_path = None
 
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
@@ -3930,7 +3935,7 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
   # leave the disks configured for the primary node
   # this is a workaround that would be fixed better by
   # improving the logical/physical id handling
-  for disk in instance.disks:
+  for disk in disks:
     lu.cfg.SetDiskID(disk, instance.primary_node)
 
   return disks_ok, device_info
@@ -3985,7 +3990,7 @@ class LUDeactivateInstanceDisks(NoHooksLU):
     _SafeShutdownInstanceDisks(self, instance)
 
 
-def _SafeShutdownInstanceDisks(lu, instance):
+def _SafeShutdownInstanceDisks(lu, instance, disks=None):
   """Shutdown block devices of an instance.
 
   This function checks if an instance is running, before calling
@@ -3993,10 +3998,28 @@ def _SafeShutdownInstanceDisks(lu, instance):
 
   """
   _CheckInstanceDown(lu, instance, "cannot shutdown disks")
-  _ShutdownInstanceDisks(lu, instance)
+  _ShutdownInstanceDisks(lu, instance, disks=disks)
 
 
-def _ShutdownInstanceDisks(lu, instance, ignore_primary=False):
+def _ExpandCheckDisks(instance, disks):
+  """Return the instance disks selected by the disks list
+
+  @type disks: list of L{objects.Disk} or None
+  @param disks: selected disks
+  @rtype: list of L{objects.Disk}
+  @return: selected instance disks to act on
+
+  """
+  if disks is None:
+    return instance.disks
+  else:
+    if not set(disks).issubset(instance.disks):
+      raise errors.ProgrammerError("Can only act on disks belonging to the"
+                                   " target instance")
+    return disks
+
+
+def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   """Shutdown block devices of an instance.
 
   This does the shutdown on all nodes of the instance.
@@ -4006,7 +4029,9 @@ def _ShutdownInstanceDisks(lu, instance, ignore_primary=False):
 
   """
   all_result = True
-  for disk in instance.disks:
+  disks = _ExpandCheckDisks(instance, disks)
+
+  for disk in disks:
     for node, top_disk in disk.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(top_disk, node)
       result = lu.rpc.call_blockdev_shutdown(node, top_disk)
@@ -7990,6 +8015,11 @@ class LUGrowDisk(LogicalUnit):
     """
     instance = self.instance
     disk = self.disk
+
+    disks_ok, _ = _AssembleInstanceDisks(self, self.instance, disks=[disk])
+    if not disks_ok:
+      raise errors.OpExecError("Cannot activate block device to grow")
+
     for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, disk, self.op.amount)
@@ -8005,10 +8035,16 @@ class LUGrowDisk(LogicalUnit):
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance, feedback_fn)
     if self.op.wait_for_sync:
-      disk_abort = not _WaitForSync(self, instance)
+      disk_abort = not _WaitForSync(self, instance, disks=[disk])
       if disk_abort:
         self.proc.LogWarning("Warning: disk sync-ing has not returned a good"
                              " status.\nPlease check the instance.")
+      if not instance.admin_up:
+        _SafeShutdownInstanceDisks(self, instance, disks=[disk])
+    elif not instance.admin_up:
+      self.proc.LogWarning("Not shutting down the disk even if the instance is"
+                           " not supposed to be running because no wait for"
+                           " sync mode was requested.")
 
 
 class LUQueryInstanceData(NoHooksLU):
