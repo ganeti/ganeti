@@ -45,7 +45,7 @@ HTTP_CLIENT_THREADS = 10
 
 class HttpClientRequest(object):
   def __init__(self, host, port, method, path, headers=None, post_data=None,
-               ssl_params=None, ssl_verify_peer=False):
+               ssl_params=None, ssl_verify_peer=False, read_timeout=None):
     """Describes an HTTP request.
 
     @type host: string
@@ -65,6 +65,9 @@ class HttpClientRequest(object):
     @type ssl_verify_peer: bool
     @param ssl_verify_peer: Whether to compare our certificate with
         server's certificate
+    @type read_timeout: int
+    @param read_timeout: if passed, it will be used as the read
+        timeout while reading the response from the server
 
     """
     if post_data is not None:
@@ -82,6 +85,7 @@ class HttpClientRequest(object):
     self.path = path
     self.headers = headers
     self.post_data = post_data
+    self.read_timeout = read_timeout
 
     self.success = None
     self.error = None
@@ -315,10 +319,14 @@ class HttpClientRequestExecutor(http.HttpBase):
     """
     response_msg = http.HttpMessage()
 
+    if self.request.read_timeout is None:
+      timeout = self.READ_TIMEOUT
+    else:
+      timeout = self.request.read_timeout
+
     try:
       response_msg_reader = \
-        _HttpServerToClientMessageReader(self.sock, response_msg,
-                                         self.READ_TIMEOUT)
+        _HttpServerToClientMessageReader(self.sock, response_msg, timeout)
     except http.HttpSocketTimeout:
       raise http.HttpError("Timeout while reading response")
     except socket.error, err:

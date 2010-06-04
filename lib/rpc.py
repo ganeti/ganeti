@@ -188,7 +188,7 @@ class Client:
       http.HttpSslParams(ssl_key_path=constants.NODED_CERT_FILE,
                          ssl_cert_path=constants.NODED_CERT_FILE)
 
-  def ConnectList(self, node_list, address_list=None):
+  def ConnectList(self, node_list, address_list=None, read_timeout=None):
     """Add a list of nodes to the target nodes.
 
     @type node_list: list
@@ -196,6 +196,9 @@ class Client:
     @type address_list: list or None
     @keyword address_list: either None or a list with node addresses,
         which must have the same length as the node list
+    @type read_timeout: int
+    @param read_timeout: overwrites the default read timeout for the
+        given operation
 
     """
     if address_list is None:
@@ -204,9 +207,9 @@ class Client:
       assert len(node_list) == len(address_list), \
              "Name and address lists should have the same length"
     for node, address in zip(node_list, address_list):
-      self.ConnectNode(node, address)
+      self.ConnectNode(node, address, read_timeout=read_timeout)
 
-  def ConnectNode(self, name, address=None):
+  def ConnectNode(self, name, address=None, read_timeout=None):
     """Add a node to the target list.
 
     @type name: str
@@ -223,7 +226,8 @@ class Client:
                                     "/%s" % self.procedure,
                                     post_data=self.body,
                                     ssl_params=self._ssl_params,
-                                    ssl_verify_peer=True)
+                                    ssl_verify_peer=True,
+                                    read_timeout=read_timeout)
 
   def GetResults(self):
     """Call nodes and return results.
@@ -318,7 +322,7 @@ class RpcRunner(object):
         nic['nicparams'])
     return idict
 
-  def _ConnectList(self, client, node_list, call):
+  def _ConnectList(self, client, node_list, call, read_timeout=None):
     """Helper for computing node addresses.
 
     @type client: L{ganeti.rpc.Client}
@@ -328,6 +332,9 @@ class RpcRunner(object):
     @type call: string
     @param call: the name of the remote procedure call, for filling in
         correctly any eventual offline nodes' results
+    @type read_timeout: int
+    @param read_timeout: overwrites the default read timeout for the
+        given operation
 
     """
     all_nodes = self._cfg.GetAllNodesInfo()
@@ -345,10 +352,11 @@ class RpcRunner(object):
       addr_list.append(val)
       name_list.append(node)
     if name_list:
-      client.ConnectList(name_list, address_list=addr_list)
+      client.ConnectList(name_list, address_list=addr_list,
+                         read_timeout=read_timeout)
     return skip_dict
 
-  def _ConnectNode(self, client, node, call):
+  def _ConnectNode(self, client, node, call, read_timeout=None):
     """Helper for computing one node's address.
 
     @type client: L{ganeti.rpc.Client}
@@ -358,6 +366,9 @@ class RpcRunner(object):
     @type call: string
     @param call: the name of the remote procedure call, for filling in
         correctly any eventual offline nodes' results
+    @type read_timeout: int
+    @param read_timeout: overwrites the default read timeout for the
+        given operation
 
     """
     node_info = self._cfg.GetNodeInfo(node)
@@ -367,49 +378,51 @@ class RpcRunner(object):
       addr = node_info.primary_ip
     else:
       addr = None
-    client.ConnectNode(node, address=addr)
+    client.ConnectNode(node, address=addr, read_timeout=read_timeout)
 
-  def _MultiNodeCall(self, node_list, procedure, args):
+  def _MultiNodeCall(self, node_list, procedure, args, read_timeout=None):
     """Helper for making a multi-node call
 
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, self.port)
-    skip_dict = self._ConnectList(c, node_list, procedure)
+    skip_dict = self._ConnectList(c, node_list, procedure,
+                                  read_timeout=read_timeout)
     skip_dict.update(c.GetResults())
     return skip_dict
 
   @classmethod
   def _StaticMultiNodeCall(cls, node_list, procedure, args,
-                           address_list=None):
+                           address_list=None, read_timeout=None):
     """Helper for making a multi-node static call
 
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
-    c.ConnectList(node_list, address_list=address_list)
+    c.ConnectList(node_list, address_list=address_list,
+                  read_timeout=read_timeout)
     return c.GetResults()
 
-  def _SingleNodeCall(self, node, procedure, args):
+  def _SingleNodeCall(self, node, procedure, args, read_timeout=None):
     """Helper for making a single-node call
 
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, self.port)
-    result = self._ConnectNode(c, node, procedure)
+    result = self._ConnectNode(c, node, procedure, read_timeout=read_timeout)
     if result is None:
       # we did connect, node is not offline
       result = c.GetResults()[node]
     return result
 
   @classmethod
-  def _StaticSingleNodeCall(cls, node, procedure, args):
+  def _StaticSingleNodeCall(cls, node, procedure, args, read_timeout=None):
     """Helper for making a single-node static call
 
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
-    c.ConnectNode(node)
+    c.ConnectNode(node, read_timeout=read_timeout)
     return c.GetResults()[node]
 
   @staticmethod
