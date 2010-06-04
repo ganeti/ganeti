@@ -640,26 +640,40 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param incoming: (target_host_ip, port)
 
     """
-    hvp = instance.hvparams
+    # Small _ExecuteKVMRuntime hv parameters programming howto:
+    #  - conf_hvp contains the parameters as configured on ganeti. they might
+    #    have changed since the instance started; only use them if the change
+    #    won't affect the inside of the instance (which hasn't been rebooted).
+    #  - up_hvp contains the parameters as they were when the instance was
+    #    started, plus any new parameter which has been added between ganeti
+    #    versions: it is paramount that those default to a value which won't
+    #    affect the inside of the instance as well.
+    conf_hvp = instance.hvparams
     name = instance.name
     self._CheckDown(name)
 
     temp_files = []
 
-    kvm_cmd, kvm_nics, hvparams = kvm_runtime
+    kvm_cmd, kvm_nics, up_hvp = kvm_runtime
+    up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
-    security_model = hvp[constants.HV_SECURITY_MODEL]
+    # We know it's safe to run as a different user upon migration, so we'll use
+    # the latest conf, from conf_hvp.
+    security_model = conf_hvp[constants.HV_SECURITY_MODEL]
     if security_model == constants.HT_SM_USER:
-      kvm_cmd.extend(["-runas", hvp[constants.HV_SECURITY_DOMAIN]])
+      kvm_cmd.extend(["-runas", conf_hvp[constants.HV_SECURITY_DOMAIN]])
 
+    # We have reasons to believe changing something like the nic driver/type
+    # upon migration won't exactly fly with the instance kernel, so for nic
+    # related parameters we'll use up_hvp
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
       tap_extra = ""
-      nic_type = hvparams[constants.HV_NIC_TYPE]
+      nic_type = up_hvp[constants.HV_NIC_TYPE]
       if nic_type == constants.HT_NIC_PARAVIRTUAL:
         nic_model = "model=virtio"
-        if hvparams[constants.HV_VHOST_NET]:
+        if up_hvp[constants.HV_VHOST_NET]:
           tap_extra = ",vhost=on"
       else:
         nic_model = "model=%s" % nic_type
@@ -676,7 +690,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       target, port = incoming
       kvm_cmd.extend(['-incoming', 'tcp:%s:%s' % (target, port)])
 
-    vnc_pwd_file = hvp[constants.HV_VNC_PASSWORD_FILE]
+    # Changing the vnc password doesn't bother the guest that much. At most it
+    # will surprise people who connect to it. Whether positively or negatively
+    # it's debatable.
+    vnc_pwd_file = conf_hvp[constants.HV_VNC_PASSWORD_FILE]
     vnc_pwd = None
     if vnc_pwd_file:
       try:
@@ -685,7 +702,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Failed to open VNC password file %s: %s"
                                      % (vnc_pwd_file, err))
 
-    if hvp[constants.HV_KVM_USE_CHROOT]:
+    if conf_hvp[constants.HV_KVM_USE_CHROOT]:
       utils.EnsureDirs([(self._InstanceChrootDir(name),
                          constants.SECURE_DIR_MODE)])
 
