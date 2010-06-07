@@ -64,7 +64,12 @@ data LuxiOp = QueryInstances [String] [String] Bool
             | QueryNodes [String] [String] Bool
             | QueryJobs [Int] [String]
             | QueryClusterInfo
+            | SubmitJob [OpCode]
             | SubmitManyJobs [[OpCode]]
+            | WaitForJobChange Int [String] JSValue JSValue Int
+            | ArchiveJob Int
+            | AutoArchiveJobs Int Int
+              deriving (Show)
 
 -- | The serialisation of LuxiOps into strings in messages.
 strOfOp :: LuxiOp -> String
@@ -73,6 +78,10 @@ strOfOp QueryInstances {}   = "QueryInstances"
 strOfOp QueryJobs {}        = "QueryJobs"
 strOfOp QueryClusterInfo {} = "QueryClusterInfo"
 strOfOp SubmitManyJobs {}   = "SubmitManyJobs"
+strOfOp WaitForJobChange {} = "WaitForJobChange"
+strOfOp SubmitJob {}        = "SubmitJob"
+strOfOp ArchiveJob {}       = "ArchiveJob"
+strOfOp AutoArchiveJobs {}  = "AutoArchiveJobs"
 
 -- | The end-of-message separator.
 eOM :: Char
@@ -141,6 +150,14 @@ opToArgs (QueryNodes names fields lock) = J.showJSON (names, fields, lock)
 opToArgs (QueryJobs ids fields) = J.showJSON (map show ids, fields)
 opToArgs (QueryClusterInfo) = J.showJSON ()
 opToArgs (SubmitManyJobs ops) = J.showJSON ops
+opToArgs (SubmitJob j) = J.showJSON j
+-- This is special, since the JSON library doesn't export an instance
+-- of a 5-tuple
+opToArgs (WaitForJobChange a b c d e) =
+    JSArray [ J.showJSON a, J.showJSON b, J.showJSON c
+            , J.showJSON d, J.showJSON e]
+opToArgs (ArchiveJob a) = J.showJSON a
+opToArgs (AutoArchiveJobs a b) = J.showJSON (a, b)
 
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method
