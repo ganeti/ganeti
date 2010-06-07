@@ -63,25 +63,37 @@ withTimeout secs descr action = do
 data LuxiOp = QueryInstances [String] [String] Bool
             | QueryNodes [String] [String] Bool
             | QueryJobs [Int] [String]
+            | QueryExports [String] Bool
+            | QueryConfigValues [String]
             | QueryClusterInfo
+            | QueryTags String String
             | SubmitJob [OpCode]
             | SubmitManyJobs [[OpCode]]
             | WaitForJobChange Int [String] JSValue JSValue Int
             | ArchiveJob Int
             | AutoArchiveJobs Int Int
+            | CancelJob Int
+            | SetDrainFlag Bool
+            | SetWatcherPause Double
               deriving (Show)
 
 -- | The serialisation of LuxiOps into strings in messages.
 strOfOp :: LuxiOp -> String
-strOfOp QueryNodes {}       = "QueryNodes"
-strOfOp QueryInstances {}   = "QueryInstances"
-strOfOp QueryJobs {}        = "QueryJobs"
-strOfOp QueryClusterInfo {} = "QueryClusterInfo"
-strOfOp SubmitManyJobs {}   = "SubmitManyJobs"
-strOfOp WaitForJobChange {} = "WaitForJobChange"
-strOfOp SubmitJob {}        = "SubmitJob"
-strOfOp ArchiveJob {}       = "ArchiveJob"
-strOfOp AutoArchiveJobs {}  = "AutoArchiveJobs"
+strOfOp QueryNodes {}        = "QueryNodes"
+strOfOp QueryInstances {}    = "QueryInstances"
+strOfOp QueryJobs {}         = "QueryJobs"
+strOfOp QueryExports {}      = "QueryExports"
+strOfOp QueryConfigValues {} = "QueryConfigValues"
+strOfOp QueryClusterInfo {}  = "QueryClusterInfo"
+strOfOp QueryTags {}         = "QueryTags"
+strOfOp SubmitManyJobs {}    = "SubmitManyJobs"
+strOfOp WaitForJobChange {}  = "WaitForJobChange"
+strOfOp SubmitJob {}         = "SubmitJob"
+strOfOp ArchiveJob {}        = "ArchiveJob"
+strOfOp AutoArchiveJobs {}   = "AutoArchiveJobs"
+strOfOp CancelJob {}         = "CancelJob"
+strOfOp SetDrainFlag {}      = "SetDrainFlag"
+strOfOp SetWatcherPause {}   = "SetWatcherPause"
 
 -- | The end-of-message separator.
 eOM :: Char
@@ -145,19 +157,25 @@ recvMsg s = do
 
 -- | Compute the serialized form of a Luxi operation
 opToArgs :: LuxiOp -> JSValue
-opToArgs (QueryInstances names fields lock) = J.showJSON (names, fields, lock)
 opToArgs (QueryNodes names fields lock) = J.showJSON (names, fields, lock)
+opToArgs (QueryInstances names fields lock) = J.showJSON (names, fields, lock)
 opToArgs (QueryJobs ids fields) = J.showJSON (map show ids, fields)
+opToArgs (QueryExports nodes lock) = J.showJSON (nodes, lock)
+opToArgs (QueryConfigValues fields) = J.showJSON fields
 opToArgs (QueryClusterInfo) = J.showJSON ()
-opToArgs (SubmitManyJobs ops) = J.showJSON ops
+opToArgs (QueryTags kind name) =  J.showJSON (kind, name)
 opToArgs (SubmitJob j) = J.showJSON j
+opToArgs (SubmitManyJobs ops) = J.showJSON ops
 -- This is special, since the JSON library doesn't export an instance
 -- of a 5-tuple
 opToArgs (WaitForJobChange a b c d e) =
     JSArray [ J.showJSON a, J.showJSON b, J.showJSON c
             , J.showJSON d, J.showJSON e]
-opToArgs (ArchiveJob a) = J.showJSON a
+opToArgs (ArchiveJob a) = J.showJSON (show a)
 opToArgs (AutoArchiveJobs a b) = J.showJSON (a, b)
+opToArgs (CancelJob a) = J.showJSON (show a)
+opToArgs (SetDrainFlag flag) = J.showJSON flag
+opToArgs (SetWatcherPause duration) = J.showJSON [duration]
 
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method
