@@ -80,7 +80,8 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
                           new_cds, rapi_cert_pem=None, cds=None,
                           nodecert_file=constants.NODED_CERT_FILE,
                           rapicert_file=constants.RAPI_CERT_FILE,
-                          hmackey_file=constants.CONFD_HMAC_KEY):
+                          hmackey_file=constants.CONFD_HMAC_KEY,
+                          cds_file=constants.CLUSTER_DOMAIN_SECRET_FILE):
   """Updates the cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -134,15 +135,12 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
 
   # Cluster domain secret
   if cds:
-    logging.debug("Writing cluster domain secret to %s",
-                  constants.CLUSTER_DOMAIN_SECRET_FILE)
-    utils.WriteFile(constants.CLUSTER_DOMAIN_SECRET_FILE,
-                    data=cds, backup=True)
+    logging.debug("Writing cluster domain secret to %s", cds_file)
+    utils.WriteFile(cds_file, data=cds, backup=True)
 
-  elif new_cds or not os.path.exists(constants.CLUSTER_DOMAIN_SECRET_FILE):
-    logging.debug("Generating new cluster domain secret at %s",
-                  constants.CLUSTER_DOMAIN_SECRET_FILE)
-    GenerateHmacKey(constants.CLUSTER_DOMAIN_SECRET_FILE)
+  elif new_cds or not os.path.exists(cds_file):
+    logging.debug("Generating new cluster domain secret at %s", cds_file)
+    GenerateHmacKey(cds_file)
 
 
 def _InitGanetiServerSetup(master_name):

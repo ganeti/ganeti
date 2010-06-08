@@ -123,6 +123,7 @@ def main():
   options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"
   options.RAPI_CERT_FILE = options.data_dir + "/rapi.pem"
   options.CONFD_HMAC_KEY = options.data_dir + "/hmac.key"
+  options.CDS_FILE = options.data_dir + "/cluster-domain-secret"
 
   SetupLogging()
 
@@ -178,7 +179,8 @@ def main():
       bootstrap.GenerateClusterCrypto(False, False, False, False,
                                       nodecert_file=options.SERVER_PEM_PATH,
                                       rapicert_file=options.RAPI_CERT_FILE,
-                                      hmackey_file=options.CONFD_HMAC_KEY)
+                                      hmackey_file=options.CONFD_HMAC_KEY,
+                                      cds_file=options.CDS_FILE)
 
   except:
     logging.critical("Writing configuration failed. It is probably in an"
