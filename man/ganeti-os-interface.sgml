@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>October 02, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>7</manvolnum>">
@@ -31,14 +31,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.1</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>ganeti-os-interface</refname>
 
-    <refpurpose>specifications for guest OS types
-    </refpurpose>
-
+    <refpurpose>Specifications for guest OS types</refpurpose>
   </refnamediv>
 
   <refsect1>
@@ -75,7 +73,7 @@
         <varlistentry>
           <term>OS_API_VERSION</term>
           <listitem>
-            <simpara>The OS api version that the rest of the
+            <simpara>The OS API version that the rest of the
             environment conforms to.</simpara>
           </listitem>
         </varlistentry>
@@ -89,11 +87,11 @@
         <varlistentry>
           <term>INSTANCE_OS</term>
           <listitem>
-            <simpara>The name os the instance's OS as Ganeti knows
+            <simpara>The name of the instance's OS as Ganeti knows
             it. This can simplify the OS scripts by providing the same
             scripts under multiple names, and then the scripts can use
             this name to alter their behaviour.</simpara>
-            <simpara>Under OS api 15 changing the script behavior based
+            <simpara>With OS API 15 changing the script behavior based
             on this variable is deprecated: OS_VARIANT should be used
             instead (see below).</simpara>
           </listitem>
@@ -105,7 +103,7 @@
             must support all variants listed under its
             <filename>variants.list</filename> file, and may support more.
             Any more supported variants should be properly documented in the
-            per-os documentation.</simpara>
+            per-OS  documentation.</simpara>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -233,7 +231,7 @@
       <para>The <envar>INSTANCE_REINSTALL</envar> variable is set to '1' when
       this create request is reinstalling and existing instance, rather than
       creating one anew. This can be used, for example, to preserve some
-      data in the old instance in an os-specific way.</para>
+      data in the old instance in an OS-specific way.</para>
 
     </refsect2>
 
@@ -328,11 +326,11 @@ fi
       <title>ganeti_api_version</title>
       <para>
         The <filename>ganeti_api_version</filename> file is a plain
-        text file containing the version(s) of the guest OS api that
+        text file containing the version(s) of the guest OS API that
         this OS definition complies with, one per line. The version
         documented by this man page is 15, so this file must contain
         the number 15 followed by a newline if only this version is
-        supported. A script compatible more than one ganeti version
+        supported. A script compatible with more than one Ganeti version
         should contain the most recent version first (i.e. 15),
         followed by the old version(s) (in this case 10 and/or 5).
       </para>
@@ -353,11 +351,11 @@ fi
     <title>NOTES</title>
 
     <refsect2>
-      <title>Retrocompatibility</title>
+      <title>Backwards compatibility</title>
 
       <para>
-        Ganeti 2.1 is compatible with both api version 10, and 15.
-        In api version 10 the <filename>variants.list</filename>
+        Ganeti 2.2 is compatible with both API version 10, and 15.
+        In API version 10 the <filename>variants.list</filename>
         file is ignored and no OS_VARIANT environment variable is
         passed.
       </para>
@@ -394,7 +392,7 @@ fi
         <title>Version 5 to 10</title>
 
         <para>
-          The method os passing data has changed from command line
+          The method for passing data has changed from command line
           options to environment variables, so scripts should be
           modified to use these. For an example of how this can be
           done in a way compatible with both versions, feel free to

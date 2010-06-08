@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 12, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -30,12 +30,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>ganeti administration, cluster-wide</refpurpose>
+    <refpurpose>Ganeti administration, cluster-wide</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -50,7 +50,7 @@
 
     <para>
       The <command>&dhpackage;</command> is used for cluster-wide
-      administration in the ganeti system.
+      administration in the Ganeti system.
     </para>
 
   </refsect1>
@@ -293,7 +293,7 @@
 
       <para>
         The <option>-g</option> option will let you specify a volume group
-        different than 'xenvg' for ganeti to use when creating instance disks.
+        different than "xenvg" for Ganeti to use when creating instance disks.
         This volume group must have the same name on all nodes. Once the
         cluster is initialized this can be altered by using the
         <command>modify</command> command. If you don't want to use lvm
@@ -564,12 +564,14 @@
       <para>
         The <option>--no-voting</option> option skips the remote node agreement
         checks. This is dangerous, but necessary in some cases (for example
-        failing over the master role in a 2 node cluster with the original master
-        down). If the original master then comes up, it won't be able to start
-        its master daemon because it won't have enough votes, but so won't the
-        new master, if the master daemon ever needs a restart. You can pass
-        --no-voting to ganeti-masterd on the new master to solve this problem,
-        and gnt-cluster redist-conf to make sure the cluster is consistent again.
+        failing over the master role in a 2 node cluster with the original
+        master down). If the original master then comes up, it won't be able to
+        start its master daemon because it won't have enough votes, but so
+        won't the new master, if the master daemon ever needs a restart. You
+        can pass <option>--no-voting</option> to
+        <command>ganeti-masterd</command> on the new master to solve this
+        problem, and run <command>gnt-cluster redist-conf</command> to make
+        sure the cluster is consistent again.
       </para>
 
     </refsect2>
@@ -900,7 +902,7 @@
       </para>
 
       <para>
-        If the <option>--no-nplus1-mem</option> option is given, ganeti won't
+        If the <option>--no-nplus1-mem</option> option is given, Ganeti won't
         check whether if it loses a node it can restart all the instances on
         their secondaries (and report an error otherwise).
       </para>

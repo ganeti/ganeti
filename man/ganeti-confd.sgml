@@ -1,7 +1,7 @@
 <!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
 
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>October 21, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -26,12 +26,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.1</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>ganeti conf daemon</refpurpose>
+    <refpurpose>Ganeti conf daemon</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -87,8 +87,8 @@
         The confd protocol is an HMAC authenticated json-encoded custom format,
         over UDP. A client library is provided to make it easy to write
         software to query confd. More information can be found in the Ganeti
-        2.1 design doc, and an example usage can be seen in the (external) nbma
-        daemon for ganeti.
+        2.1 design doc, and an example usage can be seen in the (external) NBMA
+        daemon for Ganeti.
       </para>
     </refsect2>
 

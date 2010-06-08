@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 12, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>7</manvolnum>">
@@ -22,6 +22,7 @@
       <year>2007</year>
       <year>2008</year>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -30,7 +31,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -51,10 +52,9 @@
     <title>DESCRIPTION</title>
 
     <para>
-      The ganeti software manages physical nodes and virtual instances
+      The Ganeti software manages physical nodes and virtual instances
       of a cluster based on a virtualization software. The current
-      version (2.0) supports Xen 3.0 (also tested with 3.1) and KVM
-      hypervisors.
+      version (2.2) supports Xen 3.x and KVM (72 or above) as hypervisors.
     </para>
 
   </refsect1>
@@ -134,7 +134,7 @@
           <varlistentry>
             <term>offline</term>
             <listitem>
-              <para>These nodes are still recorder in the ganeti
+              <para>These nodes are still recorded in the Ganeti
               configuration, but except for the master daemon startup
               voting procedure, they are not actually contacted by the
               master. This state was added in order to allow broken

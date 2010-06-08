@@ -38,7 +38,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Ganeti'
-copyright = u'2006, 2007, 2008, 2009, Google Inc.'
+copyright = u'2006, 2007, 2008, 2009, 2010, Google Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

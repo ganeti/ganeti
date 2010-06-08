@@ -1244,7 +1244,7 @@ watch command::
   Mon Oct 26 00:22:52 2009 adding instance instance1 to cluster config
   Mon Oct 26 00:22:52 2009  - INFO: Waiting for instance instance1 to sync disks.
   …
-  Mon Oct 26 00:23:03 2009 creating os for instance xen-devi-18.fra.corp.google.com on node mpgntac4.fra.corp.google.com
+  Mon Oct 26 00:23:03 2009 creating os for instance instance1 on node node1
   Mon Oct 26 00:23:03 2009 * running the instance OS create scripts...
   Mon Oct 26 00:23:13 2009 * starting instance...
   node1#
@@ -1373,6 +1373,13 @@ randomized), the resulting file can be used as a safety copy of the
 cluster config - while not trivial, the layout of the cluster can be
 recreated from it and if the instance disks have not been lost it
 permits recovery from the loss of all master candidates.
+
+move-instance
++++++++++++++
+
+See :doc:`separate documentation for move-instance <move-instance>`.
+
+.. TODO: document cluster-merge tool
 
 
 Other Ganeti projects

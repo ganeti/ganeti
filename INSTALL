@@ -20,7 +20,6 @@ Before installing, please verify that you have the following programs:
 - `DRBD <http://www.drbd.org/>`_, kernel module and userspace utils,
   version 8.0.7 or above
 - `LVM2 <http://sourceware.org/lvm2/>`_
-- `OpenSSL <http://www.openssl.org/>`_
 - `OpenSSH <http://www.openssh.com/portable.html>`_
 - `bridge utilities <http://www.linuxfoundation.org/en/Net:Bridge>`_
 - `iproute2 <http://www.linuxfoundation.org/en/Net:Iproute2>`_

@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 12, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -30,12 +30,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>node administration</refpurpose>
+    <refpurpose>Node administration</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -50,7 +50,7 @@
 
     <para>
       The <command>&dhpackage;</command> is used for managing the
-      (physical) nodes in the ganeti system.
+      (physical) nodes in the Ganeti system.
     </para>
 
   </refsect1>
@@ -75,7 +75,7 @@
         This command is used to join a new node to the cluster. You
         will have to provide the password for root of the node to be
         able to add the node in the cluster. The command needs to be
-        run on the ganeti master.
+        run on the Ganeti master.
       </para>
 
       <para>
@@ -992,7 +992,7 @@ node2 lvm-pv /dev/sdb1 698.6G   0M 698.6G Y
         This commands (tries to) forcefully reboot a node. It is a
         command that can be used if the node environemnt is broken,
         such that the admin can no longer login over ssh, but the
-        ganeti node daemon is still working.
+        Ganeti node daemon is still working.
       </para>
 
       <para>

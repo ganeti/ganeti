@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 12, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -22,6 +22,7 @@
       <year>2007</year>
       <year>2008</year>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -30,12 +31,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>debug commands</refpurpose>
+    <refpurpose>Debug commands</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -50,7 +51,7 @@
 
     <para>
       The <command>&dhpackage;</command> is used for debugging the
-      ganeti system.
+      Ganeti system.
     </para>
 
   </refsect1>
@@ -101,7 +102,7 @@
       </para>
 
       <para>
-        This build of ganeti will look for iallocator scripts in the
+        This build of Ganeti will look for iallocator scripts in the
         following directories: <filename
         class="directory">@CUSTOM_IALLOCATOR_SEARCH_PATH@</filename>;
         for more details about this framework, see the HTML or PDF

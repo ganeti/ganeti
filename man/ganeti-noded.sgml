@@ -1,7 +1,7 @@
 <!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
 
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 11, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -21,6 +21,7 @@
       <year>2007</year>
       <year>2008</year>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -29,12 +30,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>ganeti node daemon</refpurpose>
+    <refpurpose>Ganeti node daemon</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -49,14 +50,18 @@
 
     <para>
       The <command>&dhpackage;</command> is the daemon which is
-      responsible for the node functions in the ganeti system.
+      responsible for the node functions in the Ganeti system.
     </para>
 
     <para>
       By default, in order to be able to support features such as node
-      powercycling even on systems with a very damaged root disk, ganeti-noded
-      mlocks itself in ram. You can disable this feature by passing in the
-      <option>--no-mlock</option>.
+      powercycling even on systems with a very damaged root disk,
+      <command>ganeti-noded</command> locks itself in RAM using
+      <citerefentry>
+        <refentrytitle>mlockall</refentrytitle>
+        <manvolnum>2</manvolnum>
+      </citerefentry>. You can disable this feature by passing in the
+      <option>--no-mlock</option> to the daemon.
     </para>
 
     <para>
@@ -75,16 +80,17 @@
     </para>
 
     <para>
-      The ganeti-noded daemon listens to port 1811 TCP, on all interfaces, by
-      default. This can be overridden by an entry in /etc/services or by
-      passing the <option>-p</option> option. The <option>-b</option> option
-      can be used to specify the address to bind to (defaults to 0.0.0.0).
+      The <command>ganeti-noded</command> daemon listens to port 1811 TCP, on
+      all interfaces, by default. This can be overridden by an entry the
+      services database (<filename>/etc/services</filename>) or by passing the
+      <option>-p</option> option. The <option>-b</option> option can be used to
+      specify the address to bind to (defaults to 0.0.0.0).
     </para>
 
     <para>
       Ganeti noded communication is protected via SSL, with a key generated at
       cluster init time. This can be disabled with the
-      <option>--no-ssl</option> option, or a different ssl key and certificate
+      <option>--no-ssl</option> option, or a different SSL key and certificate
       can be specified using the <option>-K</option> and <option>-C</option>
       options.
     </para>
@@ -113,8 +119,8 @@
     <refsect2>
       <title>COMMUNICATION PROTOCOL</title>
       <para>
-        Currently the master-node RPC is done using a simple json-RPC
-        over HTTP(S).
+        Currently the master-node RPC is done using a simple RPC protocol built
+        using JSON over HTTP(S).
       </para>
     </refsect2>
 

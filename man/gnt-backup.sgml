@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 11, 2009</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -30,12 +30,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.1</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>ganeti instance import/export</refpurpose>
+    <refpurpose>Ganeti instance import/export</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -50,8 +50,8 @@
 
     <para>
       The <command>&dhpackage;</command> is used for importing and exporting
-      instances and their configuration from a ganeti system. It is useful for
-      backing instances up and also to migrate them between clusters.
+      instances and their configuration from a Ganeti system. It is useful for
+      backing up instances and also to migrate them between clusters.
     </para>
 
   </refsect1>

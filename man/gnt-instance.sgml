@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>January 22, 2010</date>">
+  <!ENTITY dhdate      "<date>June 08, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -31,12 +31,12 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>Ganeti 2.2</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>ganeti instance administration</refpurpose>
+    <refpurpose>Ganeti instance administration</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -51,7 +51,7 @@
 
     <para>
       The <command>&dhpackage;</command> is used for instance
-      administration in the ganeti system.
+      administration in the Ganeti system.
     </para>
 
   </refsect1>
@@ -611,7 +611,7 @@
                 <quote>none</quote>, <quote>user</quote> or
                 <quote>pool</quote>. Under <quote>none</quote>, the
                 default, nothing is done and instances are run as
-                the ganeti daemon user (normally root).
+                the Ganeti daemon user (normally root).
                 </simpara>
 
                 <simpara>Under <quote>user</quote> kvm will drop
@@ -633,8 +633,8 @@
               <listitem>
                 <simpara>Valid for the KVM hypervisor.</simpara>
 
-                <simpara>Under security model <quote>user</quote> the username to
-                run the instance under. It must be a valid username
+                <simpara>Under security model <quote>user</quote> the username
+                to run the instance under. It must be a valid username
                 existing on the host.
                 </simpara>
                 <simpara>Cannot be set under security model <quote>none</quote>
@@ -702,8 +702,8 @@
                 instance in a chroot directory.
                 </simpara>
                 <para>If it is set to <quote>true</quote>, an empty directory
-                is created before starting the instance and its path is passed via
-                the -chroot flag to kvm.
+                is created before starting the instance and its path is passed
+                via the <option>-chroot</option> flag to kvm.
                 The directory is removed when the instance is stopped.
                 </para>
 
@@ -1152,7 +1152,7 @@ instance5: 11225
             <varlistentry>
               <term>ip</term>
               <listitem>
-                <simpara>the ip address ganeti recognizes as associated with
+                <simpara>the ip address Ganeti recognizes as associated with
                 the first instance interface</simpara>
               </listitem>
             </varlistentry>
@@ -2411,7 +2411,7 @@ node1.example.com:disk/1:/dev/drbd1
         <para>
           If the <option>--cleanup</option> option is passed, the
           operation changes from migration to attempting recovery from
-          a failed previous migration. In this mode, ganeti checks if
+          a failed previous migration. In this mode, Ganeti checks if
           the instance runs on the correct node (and updates its
           configuration if not) and ensures the instances's disks are
           configured correctly. In this mode, the
