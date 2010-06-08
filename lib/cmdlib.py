@@ -6116,9 +6116,15 @@ class LUCreateInstance(LogicalUnit):
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
                                  errors.ECODE_INVAL)
-    # check disk information: either all adopt, or no adopt
+
+    # check nics' parameter names
+    for nic in self.op.nics:
+      utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
+
+    # check disks. parameter names and consistent adopt/no-adopt strategy
     has_adopt = has_no_adopt = False
     for disk in self.op.disks:
+      utils.ForceDictType(disk, constants.IDISK_PARAMS_TYPES)
       if "adopt" in disk:
         has_adopt = True
       else:
@@ -8170,6 +8176,7 @@ class LUSetInstanceParams(LogicalUnit):
     # Disk validation
     disk_addremove = 0
     for disk_op, disk_dict in self.op.disks:
+      utils.ForceDictType(disk_dict, constants.IDISK_PARAMS_TYPES)
       if disk_op == constants.DDM_REMOVE:
         disk_addremove += 1
         continue
@@ -8223,6 +8230,7 @@ class LUSetInstanceParams(LogicalUnit):
     # NIC validation
     nic_addremove = 0
     for nic_op, nic_dict in self.op.nics:
+      utils.ForceDictType(nic_dict, constants.INIC_PARAMS_TYPES)
       if nic_op == constants.DDM_REMOVE:
         nic_addremove += 1
         continue
