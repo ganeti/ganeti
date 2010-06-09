@@ -1026,9 +1026,6 @@ class JobQueue(object):
   def SetDrainFlag(drain_flag):
     """Sets the drain flag for the queue.
 
-    This is similar to the function L{backend.JobQueueSetDrainFlag},
-    and in the future we might merge them.
-
     @type drain_flag: boolean
     @param drain_flag: Whether to set or unset the drain flag
 

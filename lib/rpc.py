@@ -1265,22 +1265,6 @@ class RpcRunner(object):
     return cls._StaticMultiNodeCall(node_list, "jobqueue_rename", rename,
                                     address_list=address_list)
 
-  @classmethod
-  @_RpcTimeout(_TMO_FAST)
-  def call_jobqueue_set_drain(cls, node_list, drain_flag):
-    """Set the drain flag on the queue.
-
-    This is a multi-node call.
-
-    @type node_list: list
-    @param node_list: the list of nodes to query
-    @type drain_flag: bool
-    @param drain_flag: if True, will set the drain flag, otherwise reset it.
-
-    """
-    return cls._StaticMultiNodeCall(node_list, "jobqueue_set_drain",
-                                    [drain_flag])
-
   @_RpcTimeout(_TMO_NORMAL)
   def call_hypervisor_validate_params(self, node_list, hvname, hvparams):
     """Validate the hypervisor params.
