@@ -2248,11 +2248,18 @@ class JobExecutor(object):
     SetGenericOpcodeOpts(ops, self.opts)
     self.queue.append((name, ops))
 
-  def SubmitPending(self):
+  def SubmitPending(self, each=False):
     """Submit all pending jobs.
 
     """
-    results = self.cl.SubmitManyJobs([row[1] for row in self.queue])
+    if each:
+      results = []
+      for row in self.queue:
+        # SubmitJob will remove the success status, but raise an exception if
+        # the submission fails, so we'll notice that anyway.
+        results.append([True, self.cl.SubmitJob(row[1])])
+    else:
+      results = self.cl.SubmitManyJobs([row[1] for row in self.queue])
     for (idx, ((status, data), (name, _))) in enumerate(zip(results,
                                                             self.queue)):
       self.jobs.append((idx, status, data, name))
