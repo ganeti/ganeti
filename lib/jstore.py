@@ -36,16 +36,11 @@ def _ReadNumericFile(file_name):
 
   """
   try:
-    fd = open(file_name, "r")
-  except IOError, err:
+    return int(utils.ReadFile(file_name))
+  except EnvironmentError, err:
     if err.errno in (errno.ENOENT, ):
       return None
     raise
-
-  try:
-    return int(fd.read(128))
-  finally:
-    fd.close()
 
 
 def ReadSerial():
