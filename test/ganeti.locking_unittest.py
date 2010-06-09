@@ -704,6 +704,9 @@ class TestSharedLockInCondition(_ThreadedTestCase):
   def setUp(self):
     _ThreadedTestCase.setUp(self)
     self.sl = locking.SharedLock()
+    self.setCondition()
+
+  def setCondition(self):
     self.cond = threading.Condition(self.sl)
 
   def testKeepMode(self):
@@ -717,6 +720,13 @@ class TestSharedLockInCondition(_ThreadedTestCase):
     self.cond.wait(0)
     self.assert_(self.sl._is_owned(shared=0))
     self.cond.release()
+
+
+class TestSharedLockInPipeCondition(TestSharedLockInCondition):
+  """SharedLock as a pipe condition lock tests"""
+
+  def setCondition(self):
+    self.cond = locking.PipeCondition(self.sl)
 
 
 class TestSSynchronizedDecorator(_ThreadedTestCase):
