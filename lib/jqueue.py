@@ -446,6 +446,15 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     finally:
       self._queue.release()
 
+  @locking.ssynchronized(_big_jqueue_lock)
+  def _AppendFeedback(self, timestamp, log_type, log_msg):
+    """Internal feedback append function, with locks
+
+    """
+    self._job.log_serial += 1
+    self._op.log.append((self._job.log_serial, timestamp, log_type, log_msg))
+    self._queue.UpdateJobUnlocked(self._job, replicate=False)
+
   def Feedback(self, *args):
     """Append a log entry.
 
@@ -461,14 +470,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     # The time is split to make serialization easier and not lose
     # precision.
     timestamp = utils.SplitTime(time.time())
-
-    self._queue.acquire()
-    try:
-      self._job.log_serial += 1
-      self._op.log.append((self._job.log_serial, timestamp, log_type, log_msg))
-      self._queue.UpdateJobUnlocked(self._job, replicate=False)
-    finally:
-      self._queue.release()
+    self._AppendFeedback(timestamp, log_type, log_msg)
 
   def ReportLocks(self, msg):
     """Write locking information to the job.
