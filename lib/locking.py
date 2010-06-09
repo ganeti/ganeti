@@ -384,54 +384,6 @@ class PipeCondition(_BaseCondition):
     return bool(self._nwaiters)
 
 
-class _CountingCondition(object):
-  """Wrapper for Python's built-in threading.Condition class.
-
-  This wrapper keeps a count of active waiters. We can't access the internal
-  "__waiters" attribute of threading.Condition because it's not thread-safe.
-
-  """
-  __slots__ = [
-    "_cond",
-    "_nwaiters",
-    ]
-
-  def __init__(self, lock):
-    """Initializes this class.
-
-    """
-    object.__init__(self)
-    self._cond = threading.Condition(lock=lock)
-    self._nwaiters = 0
-
-  def notifyAll(self): # pylint: disable-msg=C0103
-    """Notifies the condition.
-
-    """
-    return self._cond.notifyAll()
-
-  def wait(self, timeout=None):
-    """Waits for the condition to be notified.
-
-    @type timeout: float or None
-    @param timeout: Waiting timeout (can be None)
-
-    """
-    assert self._nwaiters >= 0
-
-    self._nwaiters += 1
-    try:
-      return self._cond.wait(timeout=timeout)
-    finally:
-      self._nwaiters -= 1
-
-  def has_waiting(self):
-    """Returns whether there are active waiters.
-
-    """
-    return bool(self._nwaiters)
-
-
 class SharedLock(object):
   """Implements a shared lock.
 
