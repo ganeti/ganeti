@@ -1334,22 +1334,15 @@ class TestListVisibleFiles(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.path)
 
-  def _test(self, files, expected):
-    # Sort a copy
-    expected = expected[:]
-    expected.sort()
-
+  def _CreateFiles(self, files):
     for name in files:
-      f = open(os.path.join(self.path, name), 'w')
-      try:
-        f.write("Test\n")
-      finally:
-        f.close()
+      utils.WriteFile(os.path.join(self.path, name), data="test")
 
+  def _test(self, files, expected):
+    self._CreateFiles(files)
     found = ListVisibleFiles(self.path)
-    found.sort()
-
-    self.assertEqual(found, expected)
+    # by default ListVisibleFiles sorts its output
+    self.assertEqual(found, sorted(expected))
 
   def testAllVisible(self):
     files = ["a", "b", "c"]
@@ -1365,6 +1358,20 @@ class TestListVisibleFiles(unittest.TestCase):
     files = ["a", "b", ".c"]
     expected = ["a", "b"]
     self._test(files, expected)
+
+  def testForceSort(self):
+    files = ["c", "b", "a"]
+    self._CreateFiles(files)
+    found = ListVisibleFiles(self.path, sort=True)
+    self.assertEqual(found, sorted(files))
+
+  def testForceNonSort(self):
+    files = ["c", "b", "a"]
+    self._CreateFiles(files)
+    found = ListVisibleFiles(self.path, sort=False)
+    # We can't actually check that they weren't sorted, because they might come
+    # out sorted by chance
+    self.assertEqual(set(found), set(files))
 
   def testNonAbsolutePath(self):
     self.failUnlessRaises(errors.ProgrammerError, ListVisibleFiles, "abc")
