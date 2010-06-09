@@ -378,9 +378,10 @@ python_tests = \
 	test/tempfile_fork_unittest.py
 
 dist_TESTS = \
-	test/daemon-util_unittest.bash \
-	test/import-export_unittest.bash \
 	test/check-cert-expired_unittest.bash \
+	test/daemon-util_unittest.bash \
+	test/ganeti-cleaner_unittest.bash \
+	test/import-export_unittest.bash \
 	$(python_tests)
 
 nodist_TESTS =
@@ -411,9 +412,10 @@ all_python_code = \
 
 srclink_files = \
 	man/footer.sgml \
-	test/daemon-util_unittest.bash \
-	test/import-export_unittest.bash \
 	test/check-cert-expired_unittest.bash \
+	test/daemon-util_unittest.bash \
+	test/ganeti-cleaner_unittest.bash \
+	test/import-export_unittest.bash \
 	$(all_python_code)
 
 check_python_code = \
@@ -428,6 +430,8 @@ lint_python_code = \
 	$(BUILD_BASH_COMPLETION)
 
 test/daemon-util_unittest.bash: daemons/daemon-util
+
+test/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@

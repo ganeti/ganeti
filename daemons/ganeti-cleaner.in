@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,11 +45,14 @@ cleanup_node() {
   done
 }
 
-DATA_DIR=@LOCALSTATEDIR@/lib/ganeti
-CLEANER_LOG_DIR=@LOCALSTATEDIR@/log/ganeti/cleaner
+# Overridden by unittest
+: ${LOCALSTATEDIR:=@LOCALSTATEDIR@}
+: ${CHECK_CERT_EXPIRED:=@PKGLIBDIR@/check-cert-expired}
+
+DATA_DIR=$LOCALSTATEDIR/lib/ganeti
+CLEANER_LOG_DIR=$LOCALSTATEDIR/log/ganeti/cleaner
 QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
-CRYPTO_DIR=@LOCALSTATEDIR@/run/ganeti/crypto
-CHECK_CERT_EXPIRED=@PKGLIBDIR@/check-cert-expired
+CRYPTO_DIR=$LOCALSTATEDIR/run/ganeti/crypto
 
 # Define how many days archived jobs should be left alone
 REMOVE_AFTER=21
