@@ -698,6 +698,27 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(Queue.Empty, self.done.get_nowait)
 
 
+class TestSharedLockInCondition(_ThreadedTestCase):
+  """SharedLock as a condition lock tests"""
+
+  def setUp(self):
+    _ThreadedTestCase.setUp(self)
+    self.sl = locking.SharedLock()
+    self.cond = threading.Condition(self.sl)
+
+  def testKeepMode(self):
+    self.cond.acquire(shared=1)
+    self.assert_(self.sl._is_owned(shared=1))
+    self.cond.wait(0)
+    self.assert_(self.sl._is_owned(shared=1))
+    self.cond.release()
+    self.cond.acquire(shared=0)
+    self.assert_(self.sl._is_owned(shared=0))
+    self.cond.wait(0)
+    self.assert_(self.sl._is_owned(shared=0))
+    self.cond.release()
+
+
 class TestSSynchronizedDecorator(_ThreadedTestCase):
   """Shared Lock Synchronized decorator test"""
 

@@ -692,6 +692,14 @@ class SharedLock(object):
     finally:
       self.__lock.release()
 
+  def _release_save(self):
+    shared = self.__is_sharer()
+    self.release()
+    return shared
+
+  def _acquire_restore(self, shared):
+    self.acquire(shared=shared)
+
 
 # Whenever we want to acquire a full LockSet we pass None as the value
 # to acquire.  Hide this behind this nicely named constant.
