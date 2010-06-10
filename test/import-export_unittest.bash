@@ -88,18 +88,11 @@ src_x509=$statusdir/src.pem
 dst_statusfile=$statusdir/dst.status
 dst_output=$statusdir/dst.output
 dst_x509=$statusdir/dst.pem
-dst_portfile=$statusdir/dst.port
 
 other_x509=$statusdir/other.pem
 
 testdata=$statusdir/data1
 largetestdata=$statusdir/data2
-
-cmd_prefix=
-cmd_suffix=
-connect_timeout=10
-connect_retries=1
-compress=gzip
 
 upto 'Command line parameter tests'
 
@@ -136,36 +129,28 @@ impexpd_helper() {
   $PYTHON $(get_testpath)/import-export_unittest-helper "$@"
 }
 
-reset_status() {
-  rm -f $src_statusfile $dst_output $dst_statusfile $dst_output $dst_portfile
+start_test() {
+  upto "$@"
+
+  rm -f $src_statusfile $dst_output $dst_statusfile $dst_output
   rm -f $gencert_output
+
+  imppid=
+  exppid=
+
+  cmd_prefix=
+  cmd_suffix=
+  connect_timeout=30
+  connect_retries=1
+  compress=gzip
 }
 
-write_data() {
-  local fname=${1:-$testdata}
-
-  # Wait for connection to be established
-  impexpd_helper $src_statusfile connected
-
-  # And just to be sure, also wait for destination to report as connected
-  impexpd_helper $dst_statusfile connected
-
-  cat $fname
+wait_import_ready() {
+  # Wait for listening port
+  impexpd_helper $dst_statusfile listen-port
 }
 
 do_export() {
-  # Wait for listening port
-  impexpd_helper $dst_statusfile listen-port > $dst_portfile
-
-  local port=$(< $dst_portfile)
-
-  test -n "$port" || err 'Empty port file'
-  test "$port" != None || err 'Missing port'
-
-  do_export_to_port $port
-}
-
-do_export_to_port() {
   local port=$1
 
   $impexpd $src_statusfile export --bind=127.0.0.1 \
@@ -194,116 +179,124 @@ impexpd_helper $other_x509 gencert 2>$gencert_output & othercertpid=$!
 checkpids $srccertpid $dstcertpid $othercertpid || \
   err 'Failed to generate certificates'
 
-upto 'Normal case'
-reset_status
+start_test 'Normal case'
 do_import > $statusdir/recv1 2>$dst_output & imppid=$!
-{ write_data | do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid || err 'An error occurred'
 cmp $testdata $statusdir/recv1 || err 'Received data does not match input'
 
-upto 'Export using wrong CA'
-reset_status
+start_test 'Export using wrong CA'
 # Setting lower timeout to not wait for too long
 connect_timeout=1 do_import &>$dst_output & imppid=$!
-: | dst_x509=$other_x509 do_export &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  : | dst_x509=$other_x509 do_export $port >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid && err 'Export did not fail when using wrong CA'
 
-upto 'Import using wrong CA'
-reset_status
+start_test 'Import using wrong CA'
 # Setting lower timeout to not wait for too long
 src_x509=$other_x509 connect_timeout=1 do_import &>$dst_output & imppid=$!
-: | do_export &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  : | do_export $port >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid && err 'Import did not fail when using wrong CA'
 
-upto 'Suffix command on import'
-reset_status
+start_test 'Suffix command on import'
 cmd_suffix="| cksum > $statusdir/recv2" do_import &>$dst_output & imppid=$!
-{ write_data | do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid || err 'Testing additional commands failed'
 cmp $statusdir/recv2 <(cksum < $testdata) || \
   err 'Checksum of received data does not match'
 
-upto 'Prefix command on export'
-reset_status
+start_test 'Prefix command on export'
 do_import > $statusdir/recv3 2>$dst_output & imppid=$!
-{ write_data | cmd_prefix="cksum |" do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  cmd_prefix='cksum |' do_export $port <$testdata >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid || err 'Testing additional commands failed'
 cmp $statusdir/recv3 <(cksum < $testdata) || \
   err 'Received checksum does not match'
 
-upto 'Failing prefix command on export'
-reset_status
-: | cmd_prefix='exit 1;' do_export_to_port 0 &>$src_output & exppid=$!
+start_test 'Failing prefix command on export'
+: | cmd_prefix='exit 1;' do_export 0 &>$src_output & exppid=$!
 checkpids $exppid && err 'Prefix command on export did not fail when it should'
 
-upto 'Failing suffix command on export'
-reset_status
-do_import >&$src_output & imppid=$!
-: | cmd_suffix='| exit 1' do_export &>$dst_output & exppid=$!
+start_test 'Failing suffix command on export'
+do_import >&$dst_output & imppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  : | cmd_suffix='| exit 1' do_export $port >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $imppid $exppid && \
   err 'Suffix command on export did not fail when it should'
 
-upto 'Failing prefix command on import'
-reset_status
+start_test 'Failing prefix command on import'
 cmd_prefix='exit 1;' do_import &>$dst_output & imppid=$!
 checkpids $imppid && err 'Prefix command on import did not fail when it should'
 
-upto 'Failing suffix command on import'
-reset_status
+start_test 'Failing suffix command on import'
 cmd_suffix='| exit 1' do_import &>$dst_output & imppid=$!
-: | do_export &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  : | do_export $port >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $imppid $exppid && \
   err 'Suffix command on import did not fail when it should'
 
-upto 'Listen timeout A'
-reset_status
+start_test 'Listen timeout A'
 # Setting lower timeout to not wait too long (there won't be anything trying to
 # connect)
 connect_timeout=1 do_import &>$dst_output & imppid=$!
 checkpids $imppid && \
   err 'Listening with timeout did not fail when it should'
 
-upto 'Listen timeout B'
-reset_status
+start_test 'Listen timeout B'
 do_import &>$dst_output & imppid=$!
-{ sleep 1; : | do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  { sleep 1; : | do_export $port; } >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid || \
   err 'Listening with timeout failed when it should not'
 
-upto 'Connect timeout'
-reset_status
+start_test 'Connect timeout'
 # Setting lower timeout as nothing will be listening on port 0
-: | connect_timeout=1 do_export_to_port 0 &>$src_output & exppid=$!
+: | connect_timeout=1 do_export 0 &>$src_output & exppid=$!
 checkpids $exppid && err 'Connection did not time out when it should'
 
-upto 'No compression'
-reset_status
+start_test 'No compression'
 compress=none do_import > $statusdir/recv-nocompr 2>$dst_output & imppid=$!
-{ write_data | compress=none do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  compress=none do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid || err 'An error occurred'
 cmp $testdata $statusdir/recv-nocompr || \
   err 'Received data does not match input'
 
-upto 'Compression mismatch A'
-reset_status
+start_test 'Compression mismatch A'
 compress=none do_import > $statusdir/recv-miscompr 2>$dst_output & imppid=$!
-{ write_data | compress=gzip do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  compress=gzip do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid || err 'An error occurred'
 cmp -s $testdata $statusdir/recv-miscompr && \
   err 'Received data matches input when it should not'
 
-upto 'Compression mismatch B'
-reset_status
+start_test 'Compression mismatch B'
 compress=gzip do_import > $statusdir/recv-miscompr2 2>$dst_output & imppid=$!
-{ write_data | compress=none do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  compress=none do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid && err 'Did not fail when it should'
 cmp -s $testdata $statusdir/recv-miscompr2 && \
   err 'Received data matches input when it should not'
 
-upto 'Large transfer'
-reset_status
+start_test 'Large transfer'
 do_import > $statusdir/recv-large 2>$dst_output & imppid=$!
-{ write_data $largetestdata | do_export; } &>$src_output & exppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  do_export $port < $largetestdata >>$src_output 2>&1 & exppid=$!
+fi
 checkpids $exppid $imppid || err 'An error occurred'
 cmp $largetestdata $statusdir/recv-large || \
   err 'Received data does not match input'

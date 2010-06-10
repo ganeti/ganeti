@@ -32,8 +32,8 @@ from ganeti import objects
 from ganeti import serializer
 
 
-RETRY_INTERVAL = 0.1
-TIMEOUT = int(os.getenv("TIMEOUT", 10))
+RETRY_INTERVAL = (0.1, 1.1, 1)
+TIMEOUT = int(os.getenv("TIMEOUT", 30))
 VALIDITY = int(os.getenv("VALIDITY", 1))
 
 
