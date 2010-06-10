@@ -33,6 +33,11 @@ err() {
 }
 
 show_output() {
+  if [[ -s "$gencert_output" ]]; then
+    echo
+    echo 'Generating certificates:'
+    cat $gencert_output
+  fi
   if [[ -s "$dst_output" ]]; then
     echo
     echo 'Import output:'
@@ -73,6 +78,8 @@ upto() {
 
 statusdir=$(mktemp -d)
 trap "rm -rf $statusdir" EXIT
+
+gencert_output=$statusdir/gencert.output
 
 src_statusfile=$statusdir/src.status
 src_output=$statusdir/src.output
@@ -130,6 +137,7 @@ impexpd_helper() {
 
 reset_status() {
   rm -f $src_statusfile $dst_output $dst_statusfile $dst_output $dst_portfile
+  rm -f $gencert_output
 }
 
 write_data() {
@@ -179,9 +187,11 @@ do_import() {
 }
 
 upto 'Generate X509 certificates and keys'
-impexpd_helper $src_x509 gencert
-impexpd_helper $dst_x509 gencert
-impexpd_helper $other_x509 gencert
+impexpd_helper $src_x509 gencert 2>$gencert_output & srccertpid=$!
+impexpd_helper $dst_x509 gencert 2>$gencert_output & dstcertpid=$!
+impexpd_helper $other_x509 gencert 2>$gencert_output & othercertpid=$!
+checkpids $srccertpid $dstcertpid $othercertpid || \
+  err 'Failed to generate certificates'
 
 upto 'Normal case'
 reset_status

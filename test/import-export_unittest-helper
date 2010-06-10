@@ -90,6 +90,8 @@ def WaitForConnected(filename):
 def main():
   (filename, what) = sys.argv[1:]
 
+  Log("Running helper for %s %s", filename, what)
+
   if what == "listen-port":
     print WaitForListenPort(filename)
   elif what == "connected":
