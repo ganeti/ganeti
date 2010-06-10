@@ -118,6 +118,7 @@ $impexpd $src_statusfile invalidmode >/dev/null 2>&1 &&
 $impexpd $src_statusfile import --compression=rot13 >/dev/null 2>&1 &&
   err "daemon-util succeeded with invalid compression"
 
+upto 'Generate test data'
 cat $(get_testfile proc_drbd8.txt) $(get_testfile cert1.pem) > $testdata
 
 # Generate about 7.5 MB of test data
@@ -268,6 +269,12 @@ do_import &>$dst_output & imppid=$!
 { sleep 1; : | do_export; } &>$src_output & exppid=$!
 checkpids $exppid $imppid || \
   err 'Listening with timeout failed when it should not'
+
+upto 'Connect timeout'
+reset_status
+# Setting lower timeout as nothing will be listening on port 0
+: | connect_timeout=1 do_export_to_port 0 &>$src_output & exppid=$!
+checkpids $exppid && err 'Connection did not time out when it should'
 
 upto 'No compression'
 reset_status
