@@ -5461,15 +5461,15 @@ class TLMigrateInstance(Tasklet):
 
     target_node = secondary_nodes[0]
     # check memory requirements on the secondary node
-    _CheckNodeFreeMemory(self, target_node, "migrating instance %s" %
+    _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
                          instance.name, i_be[constants.BE_MEMORY],
                          instance.hypervisor)
 
     # check bridge existance
-    _CheckInstanceBridgesExist(self, instance, node=target_node)
+    _CheckInstanceBridgesExist(self.lu, instance, node=target_node)
 
     if not self.cleanup:
-      _CheckNodeNotDrained(self, target_node)
+      _CheckNodeNotDrained(self.lu, target_node)
       result = self.rpc.call_instance_migratable(instance.primary_node,
                                                  instance)
       result.Raise("Can't migrate, please use failover",
@@ -5658,7 +5658,7 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* checking disk consistency between source and target")
     for dev in instance.disks:
-      if not _CheckDiskConsistency(self, dev, target_node, False):
+      if not _CheckDiskConsistency(self.lu, dev, target_node, False):
         raise errors.OpExecError("Disk %s is degraded or not fully"
                                  " synchronized on target node,"
                                  " aborting migrate." % dev.iv_name)
