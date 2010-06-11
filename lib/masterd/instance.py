@@ -209,6 +209,13 @@ class _DiskImportExportBase(object):
             self._daemon.progress_eta)
 
   @property
+  def magic(self):
+    """Returns the magic value for this import/export.
+
+    """
+    return self._opts.magic
+
+  @property
   def active(self):
     """Determines whether this transport is still active.
 

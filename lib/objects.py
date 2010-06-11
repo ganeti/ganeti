@@ -1032,12 +1032,14 @@ class ImportExportOptions(ConfigObject):
   @ivar key_name: X509 key name (None for cluster certificate)
   @ivar ca_pem: Remote peer CA in PEM format (None for cluster certificate)
   @ivar compress: Compression method (one of L{constants.IEC_ALL})
+  @ivar magic: Used to ensure the connection goes to the right disk
 
   """
   __slots__ = [
     "key_name",
     "ca_pem",
     "compress",
+    "magic",
     ]
 
 

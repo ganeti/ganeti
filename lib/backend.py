@@ -2696,6 +2696,9 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
     if opts.compress:
       cmd.append("--compress=%s" % opts.compress)
 
+    if opts.magic:
+      cmd.append("--magic=%s" % opts.magic)
+
     if exp_size is not None:
       cmd.append("--expected-size=%s" % exp_size)
 
