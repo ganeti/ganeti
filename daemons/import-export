@@ -384,6 +384,8 @@ def ParseOptions():
   parser.add_option("--expected-size", dest="exp_size", action="store",
                     type="string", default=None,
                     help="Expected import/export size (MiB)")
+  parser.add_option("--magic", dest="magic", action="store",
+                    type="string", default=None, help="Magic string")
   parser.add_option("--cmd-prefix", dest="cmd_prefix", action="store",
                     type="string", help="Command prefix")
   parser.add_option("--cmd-suffix", dest="cmd_suffix", action="store",
@@ -420,6 +422,10 @@ def ParseOptions():
       # Won't return
       parser.error("Invalid value for --expected-size: %s (%s)" %
                    (options.exp_size, err))
+
+  if not (options.magic is None or constants.IE_MAGIC_RE.match(options.magic)):
+    parser.error("Magic must match regular expression %s" %
+                 constants.IE_MAGIC_RE.pattern)
 
   return (status_file_path, mode)
 

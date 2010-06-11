@@ -122,6 +122,11 @@ for mode in import export; do
     $impexpd $src_statusfile $mode --port="$port" >/dev/null 2>&1 &&
       err "daemon-util succeeded with invalid port '$port'"
   done
+
+  for magic in '' ' ' 'this`is' 'invalid!magic' 'he"re'; do
+    $impexpd $src_statusfile $mode --magic="$magic" >/dev/null 2>&1 &&
+      err "daemon-util succeeded with invalid magic '$magic'"
+  done
 done
 
 upto 'Generate test data'
@@ -156,6 +161,7 @@ start_test() {
   connect_timeout=30
   connect_retries=1
   compress=gzip
+  magic=
 }
 
 wait_import_ready() {
@@ -172,7 +178,7 @@ do_export() {
     --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix" \
     --connect-timeout=$connect_timeout \
     --connect-retries=$connect_retries \
-    --compress=$compress
+    --compress=$compress ${magic:+--magic="$magic"}
 }
 
 do_import() {
@@ -182,7 +188,7 @@ do_import() {
     --cmd-prefix="$cmd_prefix" --cmd-suffix="$cmd_suffix" \
     --connect-timeout=$connect_timeout \
     --connect-retries=$connect_retries \
-    --compress=$compress
+    --compress=$compress ${magic:+--magic="$magic"}
 }
 
 upto 'Generate X509 certificates and keys'
@@ -304,6 +310,40 @@ fi
 checkpids $exppid $imppid && err 'Did not fail when it should'
 cmp -s $testdata $statusdir/recv-miscompr2 && \
   err 'Received data matches input when it should not'
+
+start_test 'Magic without compression'
+compress=none magic=MagicValue13582 \
+do_import > $statusdir/recv-magic1 2>$dst_output & imppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  compress=none magic=MagicValue13582 \
+  do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
+checkpids $exppid $imppid || err 'An error occurred'
+cmp $testdata $statusdir/recv-magic1 || err 'Received data does not match input'
+
+start_test 'Magic with compression'
+compress=gzip magic=yzD1FBH7Iw \
+do_import > $statusdir/recv-magic2 2>$dst_output & imppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  compress=gzip magic=yzD1FBH7Iw \
+  do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
+checkpids $exppid $imppid || err 'An error occurred'
+cmp $testdata $statusdir/recv-magic2 || err 'Received data does not match input'
+
+start_test 'Magic mismatch A (same length)'
+magic=h0tmIKXK do_import > $statusdir/recv-magic3 2>$dst_output & imppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  magic=bo6m9uAw do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
+checkpids $exppid $imppid && err 'Did not fail when it should'
+
+start_test 'Magic mismatch B'
+magic=AUxVEWXVr5GK do_import > $statusdir/recv-magic4 2>$dst_output & imppid=$!
+if port=$(wait_import_ready 2>$src_output); then
+  magic=74RiP9KP do_export $port < $testdata >>$src_output 2>&1 & exppid=$!
+fi
+checkpids $exppid $imppid && err 'Did not fail when it should'
 
 start_test 'Large transfer'
 do_import > $statusdir/recv-large 2>$dst_output & imppid=$!

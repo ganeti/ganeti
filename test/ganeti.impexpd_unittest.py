@@ -45,6 +45,7 @@ class CmdBuilderConfig(objects.ConfigObject):
     "host",
     "port",
     "compress",
+    "magic",
     "connect_timeout",
     "connect_retries",
     "cmd_prefix",
@@ -66,6 +67,20 @@ class TestCommandBuilder(unittest.TestCase):
         comprcmd = "gzip"
 
       for compress in [constants.IEC_NONE, constants.IEC_GZIP]:
+        for magic in [None, 10 * "-", "HelloWorld", "J9plh4nFo2",
+                      "24A02A81-2264-4B51-A882-A2AB9D85B420"]:
+          opts = CmdBuilderConfig(magic=magic, compress=compress)
+          builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
+
+          magic_cmd = builder._GetMagicCommand()
+          dd_cmd = builder._GetDdCommand()
+
+          if magic:
+            self.assert_(("M=%s" % magic) in magic_cmd)
+            self.assert_(("M=%s" % magic) in dd_cmd)
+          else:
+            self.assertFalse(magic_cmd)
+
         for host in ["localhost", "1.2.3.4", "192.0.2.99"]:
           for port in [0, 1, 1234, 7856, 45452]:
             for cmd_prefix in [None, "PrefixCommandGoesHere|",

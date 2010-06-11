@@ -115,6 +115,9 @@ class CommandBuilder(object):
     self._dd_stderr_fd = dd_stderr_fd
     self._dd_pid_fd = dd_pid_fd
 
+    assert (self._opts.magic is None or
+            constants.IE_MAGIC_RE.match(self._opts.magic))
+
   @staticmethod
   def GetBashCommand(cmd):
     """Prepares a command to be run in Bash.
@@ -197,21 +200,63 @@ class CommandBuilder(object):
       ",".join(addr1), ",".join(addr2)
       ]
 
+  def _GetMagicCommand(self):
+    """Returns the command to read/write the magic value.
+
+    """
+    if not self._opts.magic:
+      return None
+
+    # Prefix to ensure magic isn't interpreted as option to "echo"
+    magic = "M=%s" % self._opts.magic
+
+    cmd = StringIO()
+
+    if self._mode == constants.IEM_IMPORT:
+      cmd.write("{ ")
+      cmd.write(utils.ShellQuoteArgs(["read", "-n", str(len(magic)), "magic"]))
+      cmd.write(" && ")
+      cmd.write("if test \"$magic\" != %s; then" % utils.ShellQuote(magic))
+      cmd.write(" echo %s >&2;" % utils.ShellQuote("Magic value mismatch"))
+      cmd.write(" exit 1;")
+      cmd.write("fi;")
+      cmd.write(" }")
+
+    elif self._mode == constants.IEM_EXPORT:
+      cmd.write(utils.ShellQuoteArgs(["echo", "-E", "-n", magic]))
+
+    else:
+      raise errors.GenericError("Invalid mode '%s'" % self._mode)
+
+    return cmd.getvalue()
+
   def _GetDdCommand(self):
     """Returns the command for measuring throughput.
 
     """
     dd_cmd = StringIO()
+
+    magic_cmd = self._GetMagicCommand()
+    if magic_cmd:
+      dd_cmd.write("{ ")
+      dd_cmd.write(magic_cmd)
+      dd_cmd.write(" && ")
+
+    dd_cmd.write("{ ")
     # Setting LC_ALL since we want to parse the output and explicitely
     # redirecting stdin, as the background process (dd) would have /dev/null as
     # stdin otherwise
-    dd_cmd.write("{ LC_ALL=C dd bs=%s <&0 2>&%d & pid=${!};" %
+    dd_cmd.write("LC_ALL=C dd bs=%s <&0 2>&%d & pid=${!};" %
                  (BUFSIZE, self._dd_stderr_fd))
     # Send PID to daemon
     dd_cmd.write(" echo $pid >&%d;" % self._dd_pid_fd)
     # And wait for dd
     dd_cmd.write(" wait $pid;")
     dd_cmd.write(" }")
+
+    if magic_cmd:
+      dd_cmd.write(" }")
+
     return dd_cmd.getvalue()
 
   def _GetTransportCommand(self):

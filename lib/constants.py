@@ -225,6 +225,8 @@ IEC_ALL = frozenset([
 
 IE_CUSTOM_SIZE = "fd"
 
+IE_MAGIC_RE = re.compile(r"^[-_.a-zA-Z0-9]{5,100}$")
+
 # Import/export I/O
 # Direct file I/O, equivalent to a shell's I/O redirection using '<' or '>'
 IEIO_FILE = "file"
