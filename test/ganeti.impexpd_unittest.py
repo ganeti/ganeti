@@ -111,6 +111,25 @@ class TestCommandBuilder(unittest.TestCase):
       builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
       self.assertRaises(errors.GenericError, builder.GetCommand)
 
+  def testOptionLengthError(self):
+    testopts = [
+      CmdBuilderConfig(bind="0.0.0.0" + ("A" * impexpd.SOCAT_OPTION_MAXLEN),
+                       port=1234, ca="/tmp/ca"),
+      CmdBuilderConfig(host="localhost", port=1234,
+                       ca="/tmp/ca" + ("B" * impexpd.SOCAT_OPTION_MAXLEN)),
+      CmdBuilderConfig(host="localhost", port=1234,
+                       key="/tmp/key" + ("B" * impexpd.SOCAT_OPTION_MAXLEN)),
+      ]
+
+    for opts in testopts:
+      for mode in [constants.IEM_IMPORT, constants.IEM_EXPORT]:
+        builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
+        self.assertRaises(errors.GenericError, builder.GetCommand)
+
+      opts.host = "localhost" + ("A" * impexpd.SOCAT_OPTION_MAXLEN)
+      builder = impexpd.CommandBuilder(constants.IEM_EXPORT, opts, 1, 2, 3)
+      self.assertRaises(errors.GenericError, builder.GetCommand)
+
   def testModeError(self):
     mode = "foobarbaz"
 

@@ -79,6 +79,8 @@ BUFSIZE = 1024 * 1024
 SOCAT_TCP_OPTS = ["keepalive", "keepidle=60", "keepintvl=10", "keepcnt=5"]
 SOCAT_OPENSSL_OPTS = ["verify=1", "cipher=HIGH", "method=TLSv1"]
 
+SOCAT_OPTION_MAXLEN = 400
+
 (PROG_OTHER,
  PROG_SOCAT,
  PROG_DD,
@@ -168,6 +170,10 @@ class CommandBuilder(object):
 
     for i in [addr1, addr2]:
       for value in i:
+        if len(value) > SOCAT_OPTION_MAXLEN:
+          raise errors.GenericError("Socat option longer than %s"
+                                    " characters: %r" %
+                                    (SOCAT_OPTION_MAXLEN, value))
         if "," in value:
           raise errors.GenericError("Comma not allowed in socat option"
                                     " value: %r" % value)
