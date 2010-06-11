@@ -197,14 +197,10 @@ class CommandBuilder(object):
       ",".join(addr1), ",".join(addr2)
       ]
 
-  def _GetTransportCommand(self):
-    """Returns the command for the transport part of the daemon.
+  def _GetDdCommand(self):
+    """Returns the command for measuring throughput.
 
     """
-    socat_cmd = ("%s 2>&%d" %
-                 (utils.ShellQuoteArgs(self._GetSocatCommand()),
-                  self._socat_stderr_fd))
-
     dd_cmd = StringIO()
     # Setting LC_ALL since we want to parse the output and explicitely
     # redirecting stdin, as the background process (dd) would have /dev/null as
@@ -216,32 +212,46 @@ class CommandBuilder(object):
     # And wait for dd
     dd_cmd.write(" wait $pid;")
     dd_cmd.write(" }")
+    return dd_cmd.getvalue()
+
+  def _GetTransportCommand(self):
+    """Returns the command for the transport part of the daemon.
+
+    """
+    socat_cmd = ("%s 2>&%d" %
+                 (utils.ShellQuoteArgs(self._GetSocatCommand()),
+                  self._socat_stderr_fd))
+    dd_cmd = self._GetDdCommand()
 
     compr = self._opts.compress
 
     assert compr in constants.IEC_ALL
 
+    parts = []
+
     if self._mode == constants.IEM_IMPORT:
-      if compr == constants.IEC_GZIP:
-        transport_cmd = "%s | gunzip -c" % socat_cmd
-      else:
-        transport_cmd = socat_cmd
+      parts.append(socat_cmd)
 
-      transport_cmd += " | %s" % dd_cmd.getvalue()
+      if compr == constants.IEC_GZIP:
+        parts.append("gunzip -c")
+
+      parts.append(dd_cmd)
+
     elif self._mode == constants.IEM_EXPORT:
-      if compr == constants.IEC_GZIP:
-        transport_cmd = "gzip -c | %s" % socat_cmd
-      else:
-        transport_cmd = socat_cmd
+      parts.append(dd_cmd)
 
-      transport_cmd = "%s | %s" % (dd_cmd.getvalue(), transport_cmd)
+      if compr == constants.IEC_GZIP:
+        parts.append("gzip -c")
+
+      parts.append(socat_cmd)
+
     else:
       raise errors.GenericError("Invalid mode '%s'" % self._mode)
 
     # TODO: Run transport as separate user
     # The transport uses its own shell to simplify running it as a separate user
     # in the future.
-    return self.GetBashCommand(transport_cmd)
+    return self.GetBashCommand(" | ".join(parts))
 
   def GetCommand(self):
     """Returns the complete child process command.
