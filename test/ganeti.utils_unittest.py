@@ -1910,6 +1910,32 @@ class TestHostInfo(unittest.TestCase):
       HostInfo.NormalizeName(value)
 
 
+class TestValidateServiceName(unittest.TestCase):
+  def testValid(self):
+    testnames = [
+      0, 1, 2, 3, 1024, 65000, 65534, 65535,
+      "ganeti",
+      "gnt-masterd",
+      "HELLO_WORLD_SVC",
+      "hello.world.1",
+      "0", "80", "1111", "65535",
+      ]
+
+    for name in testnames:
+      self.assertEqual(utils.ValidateServiceName(name), name)
+
+  def testInvalid(self):
+    testnames = [
+      -15756, -1, 65536, 133428083,
+      "", "Hello World!", "!", "'", "\"", "\t", "\n", "`",
+      "-8546", "-1", "65536",
+      (129 * "A"),
+      ]
+
+    for name in testnames:
+      self.assertRaises(OpPrereqError, utils.ValidateServiceName, name)
+
+
 class TestParseAsn1Generalizedtime(unittest.TestCase):
   def test(self):
     # UTC

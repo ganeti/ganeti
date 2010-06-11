@@ -81,6 +81,8 @@ X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
                              HEX_CHAR_RE, HEX_CHAR_RE),
                             re.S | re.I)
 
+_VALID_SERVICE_NAME_RE = re.compile("^[-_.a-zA-Z0-9]{1,128}$")
+
 # Structure definition for getsockopt(SOL_SOCKET, SO_PEERCRED, ...):
 # struct ucred { pid_t pid; uid_t uid; gid_t gid; };
 #
@@ -1153,6 +1155,30 @@ class HostInfo:
     if hostname.endswith("."):
       hostname = hostname.rstrip(".")
     return hostname
+
+
+def ValidateServiceName(name):
+  """Validate the given service name.
+
+  @type name: number or string
+  @param name: Service name or port specification
+
+  """
+  try:
+    numport = int(name)
+  except (ValueError, TypeError):
+    # Non-numeric service name
+    valid = _VALID_SERVICE_NAME_RE.match(name)
+  else:
+    # Numeric port (protocols other than TCP or UDP might need adjustments
+    # here)
+    valid = (numport >= 0 and numport < (1 << 16))
+
+  if not valid:
+    raise errors.OpPrereqError("Invalid service name '%s'" % name,
+                               errors.ECODE_INVAL)
+
+  return name
 
 
 def GetHostInfo(name=None):
