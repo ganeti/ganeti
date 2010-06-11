@@ -919,11 +919,8 @@ class JobQueue(object):
     else:
       return None
 
-  def _GetJobIDsUnlocked(self, archived=False):
+  def _GetJobIDsUnlocked(self):
     """Return all known job IDs.
-
-    If the parameter archived is True, archived jobs IDs will be
-    included. Currently this argument is unused.
 
     The method only looks at disk because it's a requirement that all
     jobs are present on disk (so in the _memcache we don't have any
@@ -933,7 +930,6 @@ class JobQueue(object):
     @return: the list of job IDs
 
     """
-    # pylint: disable-msg=W0613
     jlist = [self._ExtractJobID(name) for name in self._ListJobFiles()]
     jlist = utils.NiceSort(jlist)
     return jlist
@@ -1319,7 +1315,7 @@ class JobQueue(object):
     archived_count = 0
     last_touched = 0
 
-    all_job_ids = self._GetJobIDsUnlocked(archived=False)
+    all_job_ids = self._GetJobIDsUnlocked()
     pending = []
     for idx, job_id in enumerate(all_job_ids):
       last_touched = idx + 1
