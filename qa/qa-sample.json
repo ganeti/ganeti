@@ -87,6 +87,9 @@
     "# Disabled by default because it takes rather long": null,
     "instance-replace-disks": false,
 
+    "# Whether to test the tools/move-instance utility": null,
+    "inter-cluster-instance-move": false,
+
     "# Make sure not to include the disk(s) required for Dom0 to be": null,
     "# included in the volume group used for instances. Otherwise": null,
     "# whole system may stop working until restarted.": null,

@@ -122,25 +122,29 @@ def GetSSHCommand(node, cmd, strict=True):
   args.append(node)
   args.append(cmd)
 
-  print 'SSH:', utils.ShellQuoteArgs(args)
-
   return args
+
+
+def StartLocalCommand(cmd, **kwargs):
+  """Starts a local command.
+
+  """
+  print "Command: %s" % utils.ShellQuoteArgs(cmd)
+  return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
 def StartSSH(node, cmd, strict=True):
   """Starts SSH.
 
   """
-  return subprocess.Popen(GetSSHCommand(node, cmd, strict=strict),
-                          shell=False)
+  return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict))
 
 
 def GetCommandOutput(node, cmd):
   """Returns the output of a command executed on the given node.
 
   """
-  p = subprocess.Popen(GetSSHCommand(node, cmd),
-                       shell=False, stdout=subprocess.PIPE)
+  p = StartLocalCommand(GetSSHCommand(node, cmd), stdout=subprocess.PIPE)
   AssertEqual(p.wait(), 0)
   return p.stdout.read()
 

@@ -39,11 +39,13 @@ import qa_utils
 import qa_error
 
 from qa_utils import (AssertEqual, AssertNotEqual, AssertIn, AssertMatch,
-                      StartSSH)
+                      StartLocalCommand)
 
 
 _rapi_ca = None
 _rapi_client = None
+_rapi_username = None
+_rapi_password = None
 
 
 def Setup(username, password):
@@ -52,6 +54,11 @@ def Setup(username, password):
   """
   global _rapi_ca
   global _rapi_client
+  global _rapi_username
+  global _rapi_password
+
+  _rapi_username = username
+  _rapi_password = password
 
   master = qa_config.GetMasterNode()
 
@@ -332,3 +339,32 @@ def TestRapiInstanceRemove(instance, use_client):
   _WaitForRapiJob(job_id)
 
   qa_config.ReleaseInstance(instance)
+
+
+def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
+  """Test tools/move-instance"""
+  master = qa_config.GetMasterNode()
+
+  rapi_pw_file = tempfile.NamedTemporaryFile()
+  rapi_pw_file.write(_rapi_password)
+  rapi_pw_file.flush()
+
+  # TODO: Run some instance tests before moving back
+  for srcname, destname in [(src_instance["name"], dest_instance["name"]),
+                            (dest_instance["name"], src_instance["name"])]:
+    cmd = [
+      "../tools/move-instance",
+      "--verbose",
+      "--src-ca-file=%s" % _rapi_ca.name,
+      "--src-username=%s" % _rapi_username,
+      "--src-password-file=%s" % rapi_pw_file.name,
+      "--dest-instance-name=%s" % destname,
+      "--dest-primary-node=%s" % pnode["primary"],
+      "--dest-secondary-node=%s" % snode["primary"],
+
+      master["primary"],
+      master["primary"],
+      srcname,
+      ]
+
+    AssertEqual(StartLocalCommand(cmd).wait(), 0)

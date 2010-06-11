@@ -208,6 +208,19 @@ def RunExportImportTests(instance, pnode):
     finally:
       qa_config.ReleaseNode(expnode)
 
+  if (qa_rapi.Enabled() and
+      qa_config.TestEnabled("inter-cluster-instance-move")):
+    newinst = qa_config.AcquireInstance()
+    try:
+      pnode2 = qa_config.AcquireNode(exclude=pnode)
+      try:
+        RunTest(qa_rapi.TestInterClusterInstanceMove, instance, newinst,
+                pnode2, pnode)
+      finally:
+        qa_config.ReleaseNode(pnode2)
+    finally:
+      qa_config.ReleaseInstance(newinst)
+
 
 def RunDaemonTests(instance, pnode):
   """Test the ganeti-watcher script.
