@@ -1741,13 +1741,11 @@ def OwnIpAddress(address):
                  source=constants.LOCALHOST_IP_ADDRESS)
 
 
-def ListVisibleFiles(path, sort=True):
+def ListVisibleFiles(path):
   """Returns a list of visible files in a directory.
 
   @type path: str
   @param path: the directory to enumerate
-  @type sort: boolean
-  @param sort: whether to provide a sorted output
   @rtype: list
   @return: the list of all files not starting with a dot
   @raise ProgrammerError: if L{path} is not an absolue and normalized path
@@ -1757,8 +1755,6 @@ def ListVisibleFiles(path, sort=True):
     raise errors.ProgrammerError("Path passed to ListVisibleFiles is not"
                                  " absolute/normalized: '%s'" % path)
   files = [i for i in os.listdir(path) if not i.startswith(".")]
-  if sort:
-    files.sort()
   return files
 
 

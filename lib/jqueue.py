@@ -913,7 +913,7 @@ class JobQueue(object):
 
     """
     jlist = []
-    for filename in utils.ListVisibleFiles(constants.QUEUE_DIR, sort=False):
+    for filename in utils.ListVisibleFiles(constants.QUEUE_DIR):
       m = self._RE_JOB_FILE.match(filename)
       if m:
         jlist.append(m.group(1))

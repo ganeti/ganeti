@@ -1341,8 +1341,7 @@ class TestListVisibleFiles(unittest.TestCase):
   def _test(self, files, expected):
     self._CreateFiles(files)
     found = ListVisibleFiles(self.path)
-    # by default ListVisibleFiles sorts its output
-    self.assertEqual(found, sorted(expected))
+    self.assertEqual(set(found), set(expected))
 
   def testAllVisible(self):
     files = ["a", "b", "c"]
@@ -1358,20 +1357,6 @@ class TestListVisibleFiles(unittest.TestCase):
     files = ["a", "b", ".c"]
     expected = ["a", "b"]
     self._test(files, expected)
-
-  def testForceSort(self):
-    files = ["c", "b", "a"]
-    self._CreateFiles(files)
-    found = ListVisibleFiles(self.path, sort=True)
-    self.assertEqual(found, sorted(files))
-
-  def testForceNonSort(self):
-    files = ["c", "b", "a"]
-    self._CreateFiles(files)
-    found = ListVisibleFiles(self.path, sort=False)
-    # We can't actually check that they weren't sorted, because they might come
-    # out sorted by chance
-    self.assertEqual(set(found), set(files))
 
   def testNonAbsolutePath(self):
     self.failUnlessRaises(errors.ProgrammerError, ListVisibleFiles, "abc")
