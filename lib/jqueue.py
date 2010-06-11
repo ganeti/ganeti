@@ -901,48 +901,27 @@ class JobQueue(object):
     return utils.PathJoin(constants.JOB_QUEUE_ARCHIVE_DIR,
                           cls._GetArchiveDirectory(job_id), "job-%s" % job_id)
 
-  @classmethod
-  def _ExtractJobID(cls, name):
-    """Extract the job id from a filename.
-
-    @type name: str
-    @param name: the job filename
-    @rtype: job id or None
-    @return: the job id corresponding to the given filename,
-        or None if the filename does not represent a valid
-        job file
-
-    """
-    m = cls._RE_JOB_FILE.match(name)
-    if m:
-      return m.group(1)
-    else:
-      return None
-
-  def _GetJobIDsUnlocked(self):
+  def _GetJobIDsUnlocked(self, sort=True):
     """Return all known job IDs.
 
     The method only looks at disk because it's a requirement that all
     jobs are present on disk (so in the _memcache we don't have any
     extra IDs).
 
+    @type sort: boolean
+    @param sort: perform sorting on the returned job ids
     @rtype: list
     @return: the list of job IDs
 
     """
-    jlist = [self._ExtractJobID(name) for name in self._ListJobFiles()]
-    jlist = utils.NiceSort(jlist)
+    jlist = []
+    for filename in utils.ListVisibleFiles(constants.QUEUE_DIR, sort=False):
+      m = self._RE_JOB_FILE.match(filename)
+      if m:
+        jlist.append(m.group(1))
+    if sort:
+      jlist = utils.NiceSort(jlist)
     return jlist
-
-  def _ListJobFiles(self):
-    """Returns the list of current job files.
-
-    @rtype: list
-    @return: the list of job file names
-
-    """
-    return [name for name in utils.ListVisibleFiles(constants.QUEUE_DIR)
-            if self._RE_JOB_FILE.match(name)]
 
   def _LoadJobUnlocked(self, job_id):
     """Loads a job from the disk or memory.
@@ -1051,7 +1030,7 @@ class JobQueue(object):
       raise errors.JobQueueDrainError("Job queue is drained, refusing job")
 
     # Check job queue size
-    size = len(self._ListJobFiles())
+    size = len(self._GetJobIDsUnlocked(sort=False))
     if size >= constants.JOB_QUEUE_SIZE_SOFT_LIMIT:
       # TODO: Autoarchive jobs. Make sure it's not done on every job
       # submission, though.
