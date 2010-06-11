@@ -177,8 +177,7 @@ class _QueuedJob(object):
 
     """
     if not ops:
-      # TODO: use a better exception
-      raise Exception("No opcodes")
+      raise errors.GenericError("A job needs at least one opcode")
 
     self.queue = queue
     self.id = job_id
