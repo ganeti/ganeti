@@ -1239,8 +1239,8 @@ class ExportInstanceHelper:
 
     ieloop = ImportExportLoop(self._lu)
     try:
-      for idx, (dev, (host, port, _, _)) in enumerate(zip(instance.disks,
-                                                          disk_info)):
+      for idx, (dev, (host, port)) in enumerate(zip(instance.disks,
+                                                    disk_info)):
         self._feedback_fn("Sending disk %s to %s:%s" % (idx, host, port))
         finished_fn = compat.partial(self._TransferFinished, idx)
         ieloop.Add(DiskExport(self._lu, instance.primary_node,
@@ -1514,7 +1514,8 @@ def CheckRemoteExportDiskInfo(cds, disk_index, disk_info):
   if not utils.VerifySha1Hmac(cds, msg, hmac_digest, salt=hmac_salt):
     raise errors.GenericError("HMAC is wrong")
 
-  return (host, port)
+  return (utils.HostInfo.NormalizeName(host),
+          utils.ValidateServiceName(port))
 
 
 def ComputeRemoteImportDiskInfo(cds, salt, disk_index, host, port):

@@ -111,6 +111,20 @@ class TestRieDiskInfo(unittest.TestCase):
       self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
                         cds, i, di)
 
+  def testInvalidHostPort(self):
+    cds = "3ZoJY8KtGJ"
+    salt = "drK5oYiHWD"
+
+    for host in [",", "...", "Hello World", "`", "!", "#", "\\"]:
+      di = ComputeRemoteImportDiskInfo(cds, salt, 0, host, 1234)
+      self.assertRaises(errors.OpPrereqError,
+                        CheckRemoteExportDiskInfo, cds, 0, di)
+
+    for port in [-1, 792825908, "HelloWorld!", "`#", "\\\"", "_?_"]:
+      di = ComputeRemoteImportDiskInfo(cds, salt, 0, "localhost", port)
+      self.assertRaises(errors.OpPrereqError,
+                        CheckRemoteExportDiskInfo, cds, 0, di)
+
   def testCheckErrors(self):
     cds = "0776450535a"
     self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,

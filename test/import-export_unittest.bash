@@ -108,8 +108,21 @@ $impexpd $src_statusfile >/dev/null 2>&1 &&
 $impexpd $src_statusfile invalidmode >/dev/null 2>&1 &&
   err "daemon-util succeeded with invalid mode"
 
-$impexpd $src_statusfile import --compression=rot13 >/dev/null 2>&1 &&
-  err "daemon-util succeeded with invalid compression"
+for mode in import export; do
+  $impexpd $src_statusfile $mode --compression=rot13 >/dev/null 2>&1 &&
+    err "daemon-util succeeded with invalid compression"
+
+  for host in '' '  ' ' s p a c e' ... , foo.example.net... \
+              'some"evil"name' 'x\ny\tmoo'; do
+    $impexpd $src_statusfile $mode --host="$host" >/dev/null 2>&1 &&
+      err "daemon-util succeeded with invalid host '$host'"
+  done
+
+  for port in '' ' ' -1234 'some ` port " here'; do
+    $impexpd $src_statusfile $mode --port="$port" >/dev/null 2>&1 &&
+      err "daemon-util succeeded with invalid port '$port'"
+  done
+done
 
 upto 'Generate test data'
 cat $(get_testfile proc_drbd8.txt) $(get_testfile cert1.pem) > $testdata

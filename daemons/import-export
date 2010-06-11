@@ -40,6 +40,7 @@ import math
 from ganeti import constants
 from ganeti import cli
 from ganeti import utils
+from ganeti import errors
 from ganeti import serializer
 from ganeti import objects
 from ganeti import locking
@@ -400,6 +401,16 @@ def ParseOptions():
                   constants.IEM_EXPORT):
     # Won't return
     parser.error("Invalid mode: %s" % mode)
+
+  # Normalize and check parameters
+  if options.host is not None:
+    try:
+      options.host = utils.HostInfo.NormalizeName(options.host)
+    except errors.OpPrereqError, err:
+      parser.error("Invalid hostname '%s': %s" % (options.host, err))
+
+  if options.port is not None:
+    options.port = utils.ValidateServiceName(options.port)
 
   if (options.exp_size is not None and
       options.exp_size != constants.IE_CUSTOM_SIZE):

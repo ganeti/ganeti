@@ -9100,6 +9100,7 @@ class LUExportInstance(LogicalUnit):
       _CheckNodeNotDrained(self, self.dst_node.name)
 
       self._cds = None
+      self.dest_disk_info = None
       self.dest_x509_ca = None
 
     elif self.export_mode == constants.EXPORT_MODE_REMOTE:
@@ -9139,12 +9140,19 @@ class LUExportInstance(LogicalUnit):
       self.dest_x509_ca = cert
 
       # Verify target information
+      disk_info = []
       for idx, disk_data in enumerate(self.op.target_node):
         try:
-          masterd.instance.CheckRemoteExportDiskInfo(cds, idx, disk_data)
+          (host, port) = masterd.instance.CheckRemoteExportDiskInfo(cds, idx,
+                                                                    disk_data)
         except errors.GenericError, err:
           raise errors.OpPrereqError("Target info for disk %s: %s" % (idx, err),
                                      errors.ECODE_INVAL)
+
+        disk_info.append((host, port))
+
+      assert len(disk_info) == len(self.op.target_node)
+      self.dest_disk_info = disk_info
 
     else:
       raise errors.ProgrammerError("Unhandled export mode %r" %
@@ -9236,7 +9244,7 @@ class LUExportInstance(LogicalUnit):
           opts = objects.ImportExportOptions(key_name=key_name,
                                              ca_pem=dest_ca_pem)
 
-          (fin_resu, dresults) = helper.RemoteExport(opts, self.op.target_node,
+          (fin_resu, dresults) = helper.RemoteExport(opts, self.dest_disk_info,
                                                      timeouts)
       finally:
         helper.Cleanup()
