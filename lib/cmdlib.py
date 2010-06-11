@@ -9143,13 +9143,13 @@ class LUExportInstance(LogicalUnit):
       disk_info = []
       for idx, disk_data in enumerate(self.op.target_node):
         try:
-          (host, port) = masterd.instance.CheckRemoteExportDiskInfo(cds, idx,
-                                                                    disk_data)
+          (host, port, magic) = \
+            masterd.instance.CheckRemoteExportDiskInfo(cds, idx, disk_data)
         except errors.GenericError, err:
           raise errors.OpPrereqError("Target info for disk %s: %s" % (idx, err),
                                      errors.ECODE_INVAL)
 
-        disk_info.append((host, port))
+        disk_info.append((host, port, magic))
 
       assert len(disk_info) == len(self.op.target_node)
       self.dest_disk_info = disk_info
@@ -9241,10 +9241,8 @@ class LUExportInstance(LogicalUnit):
             OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                             self.dest_x509_ca)
 
-          opts = objects.ImportExportOptions(key_name=key_name,
-                                             ca_pem=dest_ca_pem)
-
-          (fin_resu, dresults) = helper.RemoteExport(opts, self.dest_disk_info,
+          (fin_resu, dresults) = helper.RemoteExport(self.dest_disk_info,
+                                                     key_name, dest_ca_pem,
                                                      timeouts)
       finally:
         helper.Cleanup()

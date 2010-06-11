@@ -102,9 +102,9 @@ class TestRieDiskInfo(unittest.TestCase):
   def test(self):
     cds = "bbf46ea9a"
     salt = "ee5ad9"
-    di = ComputeRemoteImportDiskInfo(cds, salt, 0, "node1", 1234)
+    di = ComputeRemoteImportDiskInfo(cds, salt, 0, "node1", 1234, "mag111")
     self.assertEqual(CheckRemoteExportDiskInfo(cds, 0, di),
-                     ("node1", 1234))
+                     ("node1", 1234, "mag111"))
 
     for i in range(1, 100):
       # Wrong disk index
@@ -116,12 +116,12 @@ class TestRieDiskInfo(unittest.TestCase):
     salt = "drK5oYiHWD"
 
     for host in [",", "...", "Hello World", "`", "!", "#", "\\"]:
-      di = ComputeRemoteImportDiskInfo(cds, salt, 0, host, 1234)
+      di = ComputeRemoteImportDiskInfo(cds, salt, 0, host, 1234, "magic")
       self.assertRaises(errors.OpPrereqError,
                         CheckRemoteExportDiskInfo, cds, 0, di)
 
     for port in [-1, 792825908, "HelloWorld!", "`#", "\\\"", "_?_"]:
-      di = ComputeRemoteImportDiskInfo(cds, salt, 0, "localhost", port)
+      di = ComputeRemoteImportDiskInfo(cds, salt, 0, "localhost", port, "magic")
       self.assertRaises(errors.OpPrereqError,
                         CheckRemoteExportDiskInfo, cds, 0, di)
 
@@ -136,11 +136,15 @@ class TestRieDiskInfo(unittest.TestCase):
 
     # No host/port
     self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
-                      cds, 0, ("", 0, "", ""))
+                      cds, 0, ("", 1234, "magic", "", ""))
+    self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                      cds, 0, ("host", 0, "magic", "", ""))
+    self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
+                      cds, 0, ("host", 1234, "", "", ""))
 
     # Wrong hash
     self.assertRaises(errors.GenericError, CheckRemoteExportDiskInfo,
-                      cds, 0, ("nodeX", 123, "fakehash", "xyz"))
+                      cds, 0, ("nodeX", 123, "magic", "fakehash", "xyz"))
 
 
 class TestFormatProgress(unittest.TestCase):
