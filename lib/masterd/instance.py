@@ -996,11 +996,8 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
            each transfer
 
   """
-  # Compress only if transfer is to another node
-  if src_node == dest_node:
-    compress = constants.IEC_NONE
-  else:
-    compress = constants.IEC_GZIP
+  # Disable compression for all moves as these are all within the same cluster
+  compress = constants.IEC_NONE
 
   logging.debug("Source node %s, destination node %s, compression '%s'",
                 src_node, dest_node, compress)
