@@ -1911,6 +1911,37 @@ def OSFromDisk(name, base_dir=None):
   return payload
 
 
+def OSCoreEnv(inst_os, debug=0):
+  """Calculate the basic environment for an os script.
+
+  @type inst_os: L{objects.OS}
+  @param inst_os: operating system for which the environment is being built
+  @type debug: integer
+  @param debug: debug level (0 or 1, for OS Api 10)
+  @rtype: dict
+  @return: dict of environment variables
+  @raise errors.BlockDeviceError: if the block device
+      cannot be found
+
+  """
+  result = {}
+  api_version = \
+    max(constants.OS_API_VERSIONS.intersection(inst_os.api_versions))
+  result['OS_API_VERSION'] = '%d' % api_version
+  result['OS_NAME'] = inst_os.name
+  result['DEBUG_LEVEL'] = '%d' % debug
+
+  # OS variants
+  if api_version >= constants.OS_API_V15:
+    try:
+      variant = inst_os.name.split('+', 1)[1]
+    except IndexError:
+      variant = inst_os.supported_variants[0]
+    result['OS_VARIANT'] = variant
+
+  return result
+
+
 def OSEnvironment(instance, inst_os, debug=0):
   """Calculate the environment for an os script.
 
@@ -1926,22 +1957,15 @@ def OSEnvironment(instance, inst_os, debug=0):
       cannot be found
 
   """
-  result = {}
-  api_version = \
-    max(constants.OS_API_VERSIONS.intersection(inst_os.api_versions))
-  result['OS_API_VERSION'] = '%d' % api_version
+  result = OSCoreEnv(inst_os, debug)
+
   result['INSTANCE_NAME'] = instance.name
   result['INSTANCE_OS'] = instance.os
   result['HYPERVISOR'] = instance.hypervisor
   result['DISK_COUNT'] = '%d' % len(instance.disks)
   result['NIC_COUNT'] = '%d' % len(instance.nics)
-  result['DEBUG_LEVEL'] = '%d' % debug
-  if api_version >= constants.OS_API_V15:
-    try:
-      variant = instance.os.split('+', 1)[1]
-    except IndexError:
-      variant = inst_os.supported_variants[0]
-    result['OS_VARIANT'] = variant
+
+  # Disks
   for idx, disk in enumerate(instance.disks):
     real_disk = _OpenRealBD(disk)
     result['DISK_%d_PATH' % idx] = real_disk.dev_path
@@ -1954,6 +1978,8 @@ def OSEnvironment(instance, inst_os, debug=0):
     elif disk.dev_type == constants.LD_FILE:
       result['DISK_%d_BACKEND_TYPE' % idx] = \
         'file:%s' % disk.physical_id[0]
+
+  # NICs
   for idx, nic in enumerate(instance.nics):
     result['NIC_%d_MAC' % idx] = nic.mac
     if nic.ip:
@@ -1967,6 +1993,7 @@ def OSEnvironment(instance, inst_os, debug=0):
       result['NIC_%d_FRONTEND_TYPE' % idx] = \
         instance.hvparams[constants.HV_NIC_TYPE]
 
+  # HV/BE params
   for source, kind in [(instance.beparams, "BE"), (instance.hvparams, "HV")]:
     for key, value in source.items():
       result["INSTANCE_%s_%s" % (kind, key)] = str(value)

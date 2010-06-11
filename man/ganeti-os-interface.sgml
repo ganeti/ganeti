@@ -86,14 +86,15 @@
         </varlistentry>
         <varlistentry>
           <term>INSTANCE_OS</term>
+          <term>OS_NAME</term>
           <listitem>
-            <simpara>The name of the instance's OS as Ganeti knows
-            it. This can simplify the OS scripts by providing the same
-            scripts under multiple names, and then the scripts can use
-            this name to alter their behaviour.</simpara>
-            <simpara>With OS API 15 changing the script behavior based
-            on this variable is deprecated: OS_VARIANT should be used
-            instead (see below).</simpara>
+            <simpara>Both names point to the name of the instance's OS
+            as Ganeti knows it. This can simplify the OS scripts by
+            providing the same scripts under multiple names, and then
+            the scripts can use this name to alter their
+            behaviour.</simpara> <simpara>With OS API 15 changing the
+            script behavior based on this variable is deprecated:
+            OS_VARIANT should be used instead (see below).</simpara>
           </listitem>
         </varlistentry>
         <varlistentry>
