@@ -30,7 +30,8 @@ PROTOCOL_VERSION = 40
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_V10 = 10
 OS_API_V15 = 15
-OS_API_VERSIONS = frozenset([OS_API_V10, OS_API_V15])
+OS_API_V20 = 20
+OS_API_VERSIONS = frozenset([OS_API_V10, OS_API_V15, OS_API_V20])
 EXPORT_VERSION = 0
 RAPI_VERSION = 2
 
@@ -448,11 +449,16 @@ OS_SCRIPT_CREATE = 'create'
 OS_SCRIPT_IMPORT = 'import'
 OS_SCRIPT_EXPORT = 'export'
 OS_SCRIPT_RENAME = 'rename'
+OS_SCRIPT_VERIFY = 'verify'
 OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT,
-                        OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME])
+                        OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME,
+                        OS_SCRIPT_VERIFY])
 
 OS_API_FILE = 'ganeti_api_version'
 OS_VARIANTS_FILE = 'variants.list'
+OS_PARAMETERS_FILE = 'parameters.list'
+
+OS_VALIDATE_PARAMETERS = 'parameters'
 
 # ssh constants
 SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR

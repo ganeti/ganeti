@@ -815,7 +815,13 @@ class Instance(TaggableObject):
 
 
 class OS(ConfigObject):
-  """Config object representing an operating system."""
+  """Config object representing an operating system.
+
+  @type supported_parameters: list
+  @ivar supported_parameters: a list of tuples, name and description,
+      containing the supported parameters by this OS
+
+  """
   __slots__ = [
     "name",
     "path",
@@ -824,7 +830,9 @@ class OS(ConfigObject):
     "export_script",
     "import_script",
     "rename_script",
+    "verify_script",
     "supported_variants",
+    "supported_parameters",
     ]
 
 
