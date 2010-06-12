@@ -329,7 +329,7 @@ class RpcRunner(object):
     self._cfg = cfg
     self.port = utils.GetDaemonPort(constants.NODED)
 
-  def _InstDict(self, instance, hvp=None, bep=None):
+  def _InstDict(self, instance, hvp=None, bep=None, osp=None):
     """Convert the given instance to a dict.
 
     This is done via the instance's ToDict() method and additionally
@@ -341,6 +341,8 @@ class RpcRunner(object):
     @param hvp: a dictionary with overridden hypervisor parameters
     @type bep: dict or None
     @param bep: a dictionary with overridden backend parameters
+    @type osp: dict or None
+    @param osp: a dictionary with overriden os parameters
     @rtype: dict
     @return: the instance dict, with the hvparams filled with the
         cluster defaults
@@ -354,6 +356,9 @@ class RpcRunner(object):
     idict["beparams"] = cluster.FillBE(instance)
     if bep is not None:
       idict["beparams"].update(bep)
+    idict["osparams"] = cluster.SimpleFillOS(instance.os, instance.osparams)
+    if osp is not None:
+      idict["osparams"].update(osp)
     for nic in idict["nics"]:
       nic['nicparams'] = objects.FillDict(
         cluster.nicparams[constants.PP_DEFAULT],

@@ -1930,11 +1930,13 @@ def OSFromDisk(name, base_dir=None):
   return payload
 
 
-def OSCoreEnv(inst_os, debug=0):
+def OSCoreEnv(inst_os, os_params, debug=0):
   """Calculate the basic environment for an os script.
 
   @type inst_os: L{objects.OS}
   @param inst_os: operating system for which the environment is being built
+  @type os_params: dict
+  @param os_params: the OS parameters
   @type debug: integer
   @param debug: debug level (0 or 1, for OS Api 10)
   @rtype: dict
@@ -1958,6 +1960,10 @@ def OSCoreEnv(inst_os, debug=0):
       variant = inst_os.supported_variants[0]
     result['OS_VARIANT'] = variant
 
+  # OS params
+  for pname, pvalue in os_params.items():
+    result['OSP_%s' % pname.upper()] = pvalue
+
   return result
 
 
@@ -1976,7 +1982,7 @@ def OSEnvironment(instance, inst_os, debug=0):
       cannot be found
 
   """
-  result = OSCoreEnv(inst_os, debug)
+  result = OSCoreEnv(inst_os, instance.osparams, debug=debug)
 
   result['INSTANCE_NAME'] = instance.name
   result['INSTANCE_OS'] = instance.os

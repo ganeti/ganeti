@@ -657,6 +657,7 @@ class Instance(TaggableObject):
     "hypervisor",
     "hvparams",
     "beparams",
+    "osparams",
     "admin_up",
     "nics",
     "disks",
@@ -812,6 +813,8 @@ class Instance(TaggableObject):
           del self.hvparams[key]
         except KeyError:
           pass
+    if self.osparams is None:
+      self.osparams = {}
 
 
 class OS(ConfigObject):
@@ -869,6 +872,7 @@ class Cluster(TaggableObject):
     "hvparams",
     "os_hvp",
     "beparams",
+    "osparams",
     "nicparams",
     "candidate_pool_size",
     "modify_etc_hosts",
@@ -892,6 +896,10 @@ class Cluster(TaggableObject):
 
     if self.os_hvp is None:
       self.os_hvp = {}
+
+    # osparams added before 2.2
+    if self.osparams is None:
+      self.osparams = {}
 
     self.beparams = UpgradeGroupedParams(self.beparams,
                                          constants.BEC_DEFAULTS)
@@ -1042,6 +1050,26 @@ class Cluster(TaggableObject):
 
     """
     return FillDict(self.nicparams.get(constants.PP_DEFAULT, {}), nicparams)
+
+  def SimpleFillOS(self, os_name, os_params):
+    """Fill an instance's osparams dict with cluster defaults.
+
+    @type os_name: string
+    @param os_name: the OS name to use
+    @type os_params: dict
+    @param os_params: the dict to fill with default values
+    @rtype: dict
+    @return: a copy of the instance's osparams with missing keys filled from
+        the cluster defaults
+
+    """
+    name_only = os_name.split("+", 1)[0]
+    # base OS
+    result = self.osparams.get(name_only, {})
+    # OS with variant
+    result = FillDict(result, self.osparams.get(os_name, {}))
+    # specified params
+    return FillDict(result, os_params)
 
 
 class BlockDevStatus(ConfigObject):
