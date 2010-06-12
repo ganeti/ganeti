@@ -274,8 +274,11 @@ def ShowClusterConfig(opts, args):
   ToStdout("Hypervisor parameters:")
   _PrintGroupedParams(result["hvparams"])
 
-  ToStdout("OS specific hypervisor parameters:")
+  ToStdout("OS-specific hypervisor parameters:")
   _PrintGroupedParams(result["os_hvp"])
+
+  ToStdout("OS parameters:")
+  _PrintGroupedParams(result["osparams"])
 
   ToStdout("Cluster parameters:")
   ToStdout("  - candidate pool size: %s",
