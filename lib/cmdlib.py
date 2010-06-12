@@ -6130,7 +6130,7 @@ class LUCreateInstance(LogicalUnit):
   _OP_REQP = ["instance_name", "disks",
               "mode", "start",
               "wait_for_sync", "ip_check", "nics",
-              "hvparams", "beparams"]
+              "hvparams", "beparams", "osparams"]
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -6580,6 +6580,9 @@ class LUCreateInstance(LogicalUnit):
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
     self.be_full = cluster.SimpleFillBE(self.op.beparams)
 
+    # build os parameters
+    self.os_full = cluster.SimpleFillOS(self.op.os_type, self.op.osparams)
+
     # now that hvp/bep are in final format, let's reset to defaults,
     # if told to do so
     if self.op.identify_defaults:
@@ -6807,6 +6810,8 @@ class LUCreateInstance(LogicalUnit):
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
     _CheckNodeHasOS(self, pnode.name, self.op.os_type, self.op.force_variant)
+    # check OS parameters (remotely)
+    _CheckOSParams(self, True, nodenames, self.op.os_type, self.os_full)
 
     _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
 
@@ -6863,6 +6868,7 @@ class LUCreateInstance(LogicalUnit):
                             beparams=self.op.beparams,
                             hvparams=self.op.hvparams,
                             hypervisor=self.op.hypervisor,
+                            osparams=self.op.osparams,
                             )
 
     if self.adopt_disks:

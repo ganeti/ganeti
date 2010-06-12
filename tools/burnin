@@ -114,6 +114,7 @@ OPTIONS = [
                  metavar="<OS>",
                  completion_suggest=cli.OPT_COMPL_ONE_OS),
   cli.HYPERVISOR_OPT,
+  cli.OSPARAMS_OPT,
   cli.cli_option("--disk-size", dest="disk_size",
                  help="Disk size (determines disk count)",
                  default="128m", type="string", metavar="<size,size,...>",
@@ -570,6 +571,7 @@ class Burner(object):
                                     beparams=self.bep,
                                     hvparams=self.hvp,
                                     hypervisor=self.hypervisor,
+                                    osparams=self.opts.osparams,
                                     )
       remove_instance = lambda name: lambda: self.to_rem.append(name)
       self.ExecOrQueue(instance, [op], post_process=remove_instance(instance))
@@ -722,6 +724,7 @@ class Burner(object):
                                         iallocator=self.opts.iallocator,
                                         beparams=self.bep,
                                         hvparams=self.hvp,
+                                        osparams=self.opts.osparams,
                                         )
 
       erem_op = opcodes.OpRemoveExport(instance_name=instance)

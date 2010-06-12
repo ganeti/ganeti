@@ -111,6 +111,7 @@ __all__ = [
   "ON_PRIMARY_OPT",
   "ON_SECONDARY_OPT",
   "OFFLINE_OPT",
+  "OSPARAMS_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
   "RAPI_CERT_OPT",
@@ -615,6 +616,10 @@ IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
 OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>",
                     completion_suggest=OPT_COMPL_ONE_OS)
+
+OSPARAMS_OPT = cli_option("-O", "--os-parameters", dest="osparams",
+                         type="keyval", default={},
+                         help="OS parameters")
 
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,
@@ -1833,6 +1838,7 @@ def GenericInstanceCreate(mode, opts, args):
                                 hypervisor=hypervisor,
                                 hvparams=hvparams,
                                 beparams=opts.beparams,
+                                osparams=opts.osparams,
                                 mode=mode,
                                 start=start,
                                 os_type=os_type,

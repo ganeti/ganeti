@@ -480,7 +480,7 @@ class OpCreateInstance(OpCode):
     "wait_for_sync", "ip_check", "name_check",
     "file_storage_dir", "file_driver",
     "iallocator",
-    "hypervisor", "hvparams", "beparams",
+    "hypervisor", "hvparams", "beparams", "osparams",
     "source_handshake",
     "source_x509_ca",
     "source_instance_name",
