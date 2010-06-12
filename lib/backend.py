@@ -1781,6 +1781,7 @@ def DiagnoseOS(top_dirs=None):
           - status True/False is the validity of the OS
           - diagnose is the error message for an invalid OS, otherwise empty
           - variants is a list of supported OS variants, if any
+          - parameters is a list of (name, help) parameters, if any
 
   """
   if top_dirs is None:
@@ -1800,10 +1801,11 @@ def DiagnoseOS(top_dirs=None):
         if status:
           diagnose = ""
           variants = os_inst.supported_variants
+          parameters = os_inst.supported_parameters
         else:
           diagnose = os_inst
-          variants = []
-        result.append((name, os_path, status, diagnose, variants))
+          variants = parameters = []
+        result.append((name, os_path, status, diagnose, variants, parameters))
 
   return result
 
@@ -1845,6 +1847,11 @@ def _TryOSFromDisk(name, base_dir=None):
   if max(api_versions) >= constants.OS_API_V15:
     os_files[constants.OS_VARIANTS_FILE] = ''
 
+  if max(api_versions) >= constants.OS_API_V20:
+    os_files[constants.OS_PARAMETERS_FILE] = ''
+  else:
+    del os_files[constants.OS_SCRIPT_VERIFY]
+
   for filename in os_files:
     os_files[filename] = utils.PathJoin(os_dir, filename)
 
@@ -1874,12 +1881,24 @@ def _TryOSFromDisk(name, base_dir=None):
     if not variants:
       return False, ("No supported os variant found")
 
+  parameters = []
+  if constants.OS_PARAMETERS_FILE in os_files:
+    parameters_file = os_files[constants.OS_PARAMETERS_FILE]
+    try:
+      parameters = utils.ReadFile(parameters_file).splitlines()
+    except EnvironmentError, err:
+      return False, ("Error while reading the OS parameters file at %s: %s" %
+                     (parameters_file, _ErrnoOrStr(err)))
+    parameters = [v.split(None, 1) for v in parameters]
+
   os_obj = objects.OS(name=name, path=os_dir,
                       create_script=os_files[constants.OS_SCRIPT_CREATE],
                       export_script=os_files[constants.OS_SCRIPT_EXPORT],
                       import_script=os_files[constants.OS_SCRIPT_IMPORT],
                       rename_script=os_files[constants.OS_SCRIPT_RENAME],
+                      verify_script=os_files[constants.OS_SCRIPT_VERIFY],
                       supported_variants=variants,
+                      supported_parameters=parameters,
                       api_versions=api_versions)
   return True, os_obj
 

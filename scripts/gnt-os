@@ -114,7 +114,7 @@ def DiagnoseOS(opts, args):
       nodes_hidden[node_name] = []
       if node_info: # at least one entry in the per-node list
         (first_os_path, first_os_status, first_os_msg,
-         first_os_variants) = node_info.pop(0)
+         first_os_variants, _) = node_info.pop(0)
         if not first_os_variants:
           first_os_variants = []
         first_os_msg = ("%s (path: %s) [variants: %s]" %
