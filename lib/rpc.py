@@ -1046,6 +1046,16 @@ class RpcRunner(object):
       result.payload = objects.OS.FromDict(result.payload)
     return result
 
+  @_RpcTimeout(_TMO_FAST)
+  def call_os_validate(self, required, nodes, name, checks, params):
+    """Run a validation routine for a given OS.
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(nodes, "os_validate",
+                               [required, name, checks, params])
+
   @_RpcTimeout(_TMO_NORMAL)
   def call_hooks_runner(self, node_list, hpath, phase, env):
     """Call the hooks runner.

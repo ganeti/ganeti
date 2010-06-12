@@ -459,6 +459,7 @@ OS_VARIANTS_FILE = 'variants.list'
 OS_PARAMETERS_FILE = 'parameters.list'
 
 OS_VALIDATE_PARAMETERS = 'parameters'
+OS_VALIDATE_CALLS = frozenset([OS_VALIDATE_PARAMETERS])
 
 # ssh constants
 SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR

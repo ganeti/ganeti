@@ -6091,6 +6091,35 @@ def _CheckHVParams(lu, nodenames, hvname, hvparams):
     info.Raise("Hypervisor parameter validation failed on node %s" % node)
 
 
+def _CheckOSParams(lu, required, nodenames, osname, osparams):
+  """OS parameters validation.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit for which we check
+  @type required: boolean
+  @param required: whether the validation should fail if the OS is not
+      found
+  @type nodenames: list
+  @param nodenames: the list of nodes on which we should check
+  @type osname: string
+  @param osname: the name of the hypervisor we should use
+  @type osparams: dict
+  @param osparams: the parameters which we need to check
+  @raise errors.OpPrereqError: if the parameters are not valid
+
+  """
+  result = lu.rpc.call_os_validate(required, nodenames, osname,
+                                   [constants.OS_VALIDATE_PARAMETERS],
+                                   osparams)
+  for node, nres in result.items():
+    # we don't check for offline cases since this should be run only
+    # against the master node and/or an instance's nodes
+    nres.Raise("OS Parameters validation failed on node %s" % node)
+    if not nres.payload:
+      lu.LogInfo("OS %s not found on node %s, validation skipped",
+                 osname, node)
+
+
 class LUCreateInstance(LogicalUnit):
   """Create an instance.
 

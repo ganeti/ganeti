@@ -2457,6 +2457,67 @@ def ValidateHVParams(hvname, hvparams):
     _Fail(str(err), log=False)
 
 
+def _CheckOSPList(os_obj, parameters):
+  """Check whether a list of parameters is supported by the OS.
+
+  @type os_obj: L{objects.OS}
+  @param os_obj: OS object to check
+  @type parameters: list
+  @param parameters: the list of parameters to check
+
+  """
+  supported = [v[0] for v in os_obj.supported_parameters]
+  delta = frozenset(parameters).difference(supported)
+  if delta:
+    _Fail("The following parameters are not supported"
+          " by the OS %s: %s" % (os_obj.name, utils.CommaJoin(delta)))
+
+
+def ValidateOS(required, osname, checks, osparams):
+  """Validate the given OS' parameters.
+
+  @type required: boolean
+  @param required: whether absence of the OS should translate into
+      failure or not
+  @type osname: string
+  @param osname: the OS to be validated
+  @type checks: list
+  @param checks: list of the checks to run (currently only 'parameters')
+  @type osparams: dict
+  @param osparams: dictionary with OS parameters
+  @rtype: boolean
+  @return: True if the validation passed, or False if the OS was not
+      found and L{required} was false
+
+  """
+  if not constants.OS_VALIDATE_CALLS.issuperset(checks):
+    _Fail("Unknown checks required for OS %s: %s", osname,
+          set(checks).difference(constants.OS_VALIDATE_CALLS))
+
+  name_only = osname.split("+", 1)[0]
+  status, tbv = _TryOSFromDisk(name_only, None)
+
+  if not status:
+    if required:
+      _Fail(tbv)
+    else:
+      return False
+
+  if constants.OS_VALIDATE_PARAMETERS in checks:
+    _CheckOSPList(tbv, osparams.keys())
+
+  validate_env = OSCoreEnv(tbv, osparams)
+  result = utils.RunCmd([tbv.verify_script] + checks, env=validate_env,
+                        cwd=tbv.path)
+  if result.failed:
+    logging.error("os validate command '%s' returned error: %s output: %s",
+                  result.cmd, result.fail_reason, result.output)
+    _Fail("OS validation script failed (%s), output: %s",
+          result.fail_reason, result.output, log=False)
+
+  return True
+
+
 def DemoteFromMC():
   """Demotes the current node from master candidate role.
 
