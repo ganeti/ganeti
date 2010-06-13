@@ -751,11 +751,11 @@ def _NICListToTuple(lu, nics):
 
   """
   hooks_nics = []
-  c_nicparams = lu.cfg.GetClusterInfo().nicparams[constants.PP_DEFAULT]
+  cluster = lu.cfg.GetClusterInfo()
   for nic in nics:
     ip = nic.ip
     mac = nic.mac
-    filled_params = objects.FillDict(c_nicparams, nic.nicparams)
+    filled_params = cluster.SimpleFillNIC(nic.nicparams)
     mode = filled_params[constants.NIC_MODE]
     link = filled_params[constants.NIC_LINK]
     hooks_nics.append((ip, mac, mode, link))
@@ -827,14 +827,12 @@ def _DecideSelfPromotion(lu, exceptions=None):
   return mc_now < mc_should
 
 
-def _CheckNicsBridgesExist(lu, target_nics, target_node,
-                               profile=constants.PP_DEFAULT):
+def _CheckNicsBridgesExist(lu, target_nics, target_node):
   """Check that the brigdes needed by a list of nics exist.
 
   """
-  c_nicparams = lu.cfg.GetClusterInfo().nicparams[profile]
-  paramslist = [objects.FillDict(c_nicparams, nic.nicparams)
-                for nic in target_nics]
+  cluster = lu.cfg.GetClusterInfo()
+  paramslist = [cluster.SimpleFillNIC(nic.nicparams) for nic in target_nics]
   brlist = [params[constants.NIC_LINK] for params in paramslist
             if params[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED]
   if brlist:
@@ -2332,13 +2330,11 @@ class LUSetClusterParams(LogicalUnit):
     # validate params changes
     if self.op.beparams:
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-      self.new_beparams = objects.FillDict(
-        cluster.beparams[constants.PP_DEFAULT], self.op.beparams)
+      self.new_beparams = cluster.SimpleFillBE(self.op.beparams)
 
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
-      self.new_nicparams = objects.FillDict(
-        cluster.nicparams[constants.PP_DEFAULT], self.op.nicparams)
+      self.new_nicparams = cluster.SimpleFillNIC(self.op.nicparams)
       objects.NIC.CheckParameterSyntax(self.new_nicparams)
       nic_errors = []
 
@@ -4816,8 +4812,7 @@ class LUQueryInstances(NoHooksLU):
       iout = []
       i_hv = cluster.FillHV(instance, skip_globals=True)
       i_be = cluster.FillBE(instance)
-      i_nicp = [objects.FillDict(cluster.nicparams[constants.PP_DEFAULT],
-                                 nic.nicparams) for nic in instance.nics]
+      i_nicp = [cluster.SimpleFillNIC(nic.nicparams) for nic in instance.nics]
       for field in self.op.output_fields:
         st_match = self._FIELDS_STATIC.Matches(field)
         if field in self._SIMPLE_FIELDS:
@@ -6470,17 +6465,17 @@ class LUCreateInstance(LogicalUnit):
 
     """
     # hvparams
-    hv_defs = cluster.GetHVDefaults(self.op.hypervisor, self.op.os_type)
+    hv_defs = cluster.SimpleFillHV(self.op.hypervisor, self.op.os_type, {})
     for name in self.op.hvparams.keys():
       if name in hv_defs and hv_defs[name] == self.op.hvparams[name]:
         del self.op.hvparams[name]
     # beparams
-    be_defs = cluster.beparams.get(constants.PP_DEFAULT, {})
+    be_defs = cluster.SimpleFillBE({})
     for name in self.op.beparams.keys():
       if name in be_defs and be_defs[name] == self.op.beparams[name]:
         del self.op.beparams[name]
     # nic params
-    nic_defs = cluster.nicparams.get(constants.PP_DEFAULT, {})
+    nic_defs = cluster.SimpleFillNIC({})
     for nic in self.op.nics:
       for name in constants.NICS_PARAMETERS:
         if name in nic and name in nic_defs and nic[name] == nic_defs[name]:
@@ -6514,9 +6509,8 @@ class LUCreateInstance(LogicalUnit):
 
     # check hypervisor parameter syntax (locally)
     utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
-    filled_hvp = objects.FillDict(cluster.GetHVDefaults(self.op.hypervisor,
-                                                        self.op.os_type),
-                                  self.op.hvparams)
+    filled_hvp = cluster.SimpleFillHV(self.op.hypervisor, self.op.os_type,
+                                      self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
     self.hv_full = filled_hvp
@@ -6525,8 +6519,7 @@ class LUCreateInstance(LogicalUnit):
 
     # fill and remember the beparams dict
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-    self.be_full = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
-                                    self.op.beparams)
+    self.be_full = cluster.SimpleFillBE(self.op.beparams)
 
     # now that hvp/bep are in final format, let's reset to defaults,
     # if told to do so
@@ -6599,8 +6592,7 @@ class LUCreateInstance(LogicalUnit):
       if link:
         nicparams[constants.NIC_LINK] = link
 
-      check_params = objects.FillDict(cluster.nicparams[constants.PP_DEFAULT],
-                                      nicparams)
+      check_params = cluster.SimpleFillNIC(nicparams)
       objects.NIC.CheckParameterSyntax(check_params)
       self.nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
 
@@ -8382,7 +8374,6 @@ class LUSetInstanceParams(LogicalUnit):
     if self.op.nics:
       args['nics'] = []
       nic_override = dict(self.op.nics)
-      c_nicparams = self.cluster.nicparams[constants.PP_DEFAULT]
       for idx, nic in enumerate(self.instance.nics):
         if idx in nic_override:
           this_nic_override = nic_override[idx]
@@ -8399,7 +8390,7 @@ class LUSetInstanceParams(LogicalUnit):
         if idx in self.nic_pnew:
           nicparams = self.nic_pnew[idx]
         else:
-          nicparams = objects.FillDict(c_nicparams, nic.nicparams)
+          nicparams = self.cluster.SimpleFillNIC(nic.nicparams)
         mode = nicparams[constants.NIC_MODE]
         link = nicparams[constants.NIC_LINK]
         args['nics'].append((ip, mac, mode, link))
@@ -9699,9 +9690,7 @@ class IAllocator(object):
     for iinfo, beinfo in i_list:
       nic_data = []
       for nic in iinfo.nics:
-        filled_params = objects.FillDict(
-            cluster_info.nicparams[constants.PP_DEFAULT],
-            nic.nicparams)
+        filled_params = cluster_info.SimpleFillNIC(nic.nicparams)
         nic_dict = {"mac": nic.mac,
                     "ip": nic.ip,
                     "mode": filled_params[constants.NIC_MODE],

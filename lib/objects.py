@@ -961,9 +961,31 @@ class Cluster(TaggableObject):
 
     return ret_dict
 
+  def SimpleFillHV(self, hv_name, os_name, hvparams, skip_globals=False):
+    """Fill a given hvparams dict with cluster defaults.
+
+    @type hv_name: string
+    @param hv_name: the hypervisor to use
+    @type os_name: string
+    @param os_name: the OS to use for overriding the hypervisor defaults
+    @type skip_globals: boolean
+    @param skip_globals: if True, the global hypervisor parameters will
+        not be filled
+    @rtype: dict
+    @return: a copy of the given hvparams with missing keys filled from
+        the cluster defaults
+
+    """
+    if skip_globals:
+      skip_keys = constants.HVC_GLOBALS
+    else:
+      skip_keys = []
+
+    def_dict = self.GetHVDefaults(hv_name, os_name, skip_keys=skip_keys)
+    return FillDict(def_dict, hvparams, skip_keys=skip_keys)
 
   def FillHV(self, instance, skip_globals=False):
-    """Fill an instance's hvparams dict.
+    """Fill an instance's hvparams dict with cluster defaults.
 
     @type instance: L{objects.Instance}
     @param instance: the instance parameter to fill
@@ -975,17 +997,23 @@ class Cluster(TaggableObject):
         the cluster defaults
 
     """
-    if skip_globals:
-      skip_keys = constants.HVC_GLOBALS
-    else:
-      skip_keys = []
+    return self.SimpleFillHV(instance.hypervisor, instance.os,
+                             instance.hvparams, skip_globals)
 
-    def_dict = self.GetHVDefaults(instance.hypervisor, instance.os,
-                                  skip_keys=skip_keys)
-    return FillDict(def_dict, instance.hvparams, skip_keys=skip_keys)
+  def SimpleFillBE(self, beparams):
+    """Fill a given beparams dict with cluster defaults.
+
+    @type beparam: dict
+    @param beparam: the dict to fill
+    @rtype: dict
+    @return: a copy of the passed in beparams with missing keys filled
+        from the cluster defaults
+
+    """
+    return FillDict(self.beparams.get(constants.PP_DEFAULT, {}), beparams)
 
   def FillBE(self, instance):
-    """Fill an instance's beparams dict.
+    """Fill an instance's beparams dict with cluster defaults.
 
     @type instance: L{objects.Instance}
     @param instance: the instance parameter to fill
@@ -994,8 +1022,19 @@ class Cluster(TaggableObject):
         the cluster defaults
 
     """
-    return FillDict(self.beparams.get(constants.PP_DEFAULT, {}),
-                    instance.beparams)
+    return self.SimpleFillBE(instance.beparams)
+
+  def SimpleFillNIC(self, nicparams):
+    """Fill a given nicparams dict with cluster defaults.
+
+    @type nicparam: dict
+    @param nicparam: the dict to fill
+    @rtype: dict
+    @return: a copy of the passed in nicparams with missing keys filled
+        from the cluster defaults
+
+    """
+    return FillDict(self.nicparams.get(constants.PP_DEFAULT, {}), nicparams)
 
 
 class BlockDevStatus(ConfigObject):
