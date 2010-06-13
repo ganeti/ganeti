@@ -303,6 +303,7 @@ class OpSetClusterParams(OpCode):
     "hvparams",
     "os_hvp",
     "beparams",
+    "osparams",
     "nicparams",
     "candidate_pool_size",
     "maintain_node_health",

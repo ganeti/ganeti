@@ -168,15 +168,29 @@ def ModifyOS(opts, args):
   """
   os = args[0]
 
+  if opts.hvparams:
+    os_hvp = {os: dict(opts.hvparams)}
+  else:
+    os_hvp = None
+
+  if opts.osparams:
+    osp = {os: opts.osparams}
+  else:
+    osp = None
+
+  if not (os_hvp or osp):
+    ToStderr("At least one of OS parameters or hypervisor parameters"
+             " must be passed")
+    return 1
+
   op = opcodes.OpSetClusterParams(vg_name=None,
                                   enabled_hypervisors=None,
                                   hvparams=None,
                                   beparams=None,
                                   nicparams=None,
                                   candidate_pool_size=None,
-                                  os_hvp={
-                                    os: dict(opts.hvparams)
-                                    })
+                                  os_hvp=os_hvp,
+                                  osparams=osp)
   SubmitOpCode(op)
 
   return 0
@@ -184,11 +198,13 @@ def ModifyOS(opts, args):
 
 commands = {
   'list': (
-    ListOS, ARGS_NONE, [NOHDR_OPT], "", "Lists all valid OSes on the master"),
+    ListOS, ARGS_NONE, [NOHDR_OPT], "", "Lists all valid operating systems"
+    " on the cluster"),
   'diagnose': (
-    DiagnoseOS, ARGS_NONE, [], "", "Diagnose all OSes"),
+    DiagnoseOS, ARGS_NONE, [], "", "Diagnose all operating systems"),
   'modify': (
-    ModifyOS, ARGS_ONE_OS, [HVLIST_OPT], "", "Modify os parameters"),
+    ModifyOS, ARGS_ONE_OS, [HVLIST_OPT, OSPARAMS_OPT], "",
+    "Modify the OS parameters"),
   }
 
 if __name__ == '__main__':

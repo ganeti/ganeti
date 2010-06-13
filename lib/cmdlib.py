@@ -2426,6 +2426,30 @@ class LUSetClusterParams(LogicalUnit):
             else:
               self.new_os_hvp[os_name][hv_name].update(hv_dict)
 
+    # os parameters
+    self.new_osp = objects.FillDict(cluster.osparams, {})
+    if self.op.osparams:
+      if not isinstance(self.op.osparams, dict):
+        raise errors.OpPrereqError("Invalid 'osparams' parameter on input",
+                                   errors.ECODE_INVAL)
+      for os_name, osp in self.op.osparams.items():
+        if not isinstance(osp, dict):
+          raise errors.OpPrereqError(("Invalid 'osparams' parameter on"
+                                      " input"), errors.ECODE_INVAL)
+        if os_name not in self.new_osp:
+          self.new_osp[os_name] = {}
+
+        self.new_osp[os_name] = _GetUpdatedParams(self.new_osp[os_name], osp,
+                                                  use_none=True)
+
+        if not self.new_osp[os_name]:
+          # we removed all parameters
+          del self.new_osp[os_name]
+        else:
+          # check the parameter validity (remote check)
+          _CheckOSParams(self, False, [self.cfg.GetMasterNode()],
+                         os_name, self.new_osp[os_name])
+
     # changes to the hypervisor list
     if self.op.enabled_hypervisors is not None:
       self.hv_list = self.op.enabled_hypervisors
@@ -2502,6 +2526,8 @@ class LUSetClusterParams(LogicalUnit):
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
     if self.op.nicparams:
       self.cluster.nicparams[constants.PP_DEFAULT] = self.new_nicparams
+    if self.op.osparams:
+      self.cluster.osparams = self.new_osp
 
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
