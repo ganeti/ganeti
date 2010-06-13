@@ -4197,8 +4197,7 @@ class LUStartupInstance(LogicalUnit):
       # check hypervisor parameter syntax (locally)
       cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(self.hvparams, constants.HVS_PARAMETER_TYPES)
-      filled_hvp = objects.FillDict(cluster.hvparams[instance.hypervisor],
-                                    instance.hvparams)
+      filled_hvp = cluster.FillHV(instance)
       filled_hvp.update(self.hvparams)
       hv_type = hypervisor.GetHypervisor(instance.hypervisor)
       hv_type.CheckParameterSyntax(filled_hvp)
