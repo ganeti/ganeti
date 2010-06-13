@@ -8330,6 +8330,8 @@ class LUSetInstanceParams(LogicalUnit):
       self.op.os_name = None
     if not hasattr(self.op, "force_variant"):
       self.op.force_variant = False
+    if not hasattr(self.op, "osparams"):
+      self.op.osparams = None
     self.op.force = getattr(self.op, "force", False)
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name):
@@ -8528,6 +8530,14 @@ class LUSetInstanceParams(LogicalUnit):
     pnode = instance.primary_node
     nodelist = list(instance.all_nodes)
 
+    # OS change
+    if self.op.os_name and not self.op.force:
+      _CheckNodeHasOS(self, instance.primary_node, self.op.os_name,
+                      self.op.force_variant)
+      instance_os = self.op.os_name
+    else:
+      instance_os = instance.os
+
     if self.op.disk_template:
       if instance.disk_template == self.op.disk_template:
         raise errors.OpPrereqError("Instance already has disk template %s" %
@@ -8564,13 +8574,23 @@ class LUSetInstanceParams(LogicalUnit):
 
     # beparams processing
     if self.op.beparams:
-      i_bedict = _GetUpdatedParams(instance.beparams, self.op.beparams)
+      i_bedict = _GetUpdatedParams(instance.beparams, self.op.beparams,
+                                   use_none=True)
       utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
       be_new = cluster.SimpleFillBE(i_bedict)
       self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)
     else:
       self.be_new = self.be_inst = {}
+
+    # osparams processing
+    if self.op.osparams:
+      i_osdict = _GetUpdatedParams(instance.osparams, self.op.osparams)
+      _CheckOSParams(self, True, nodelist, instance_os, i_osdict)
+      self.os_new = cluster.SimpleFillOS(instance_os, i_osdict)
+      self.os_inst = i_osdict # the new dict (without defaults)
+    else:
+      self.os_new = self.os_inst = {}
 
     self.warn = []
 
@@ -8726,11 +8746,6 @@ class LUSetInstanceParams(LogicalUnit):
                                      " are 0 to %d" %
                                      (disk_op, len(instance.disks)),
                                      errors.ECODE_INVAL)
-
-    # OS change
-    if self.op.os_name and not self.op.force:
-      _CheckNodeHasOS(self, instance.primary_node, self.op.os_name,
-                      self.op.force_variant)
 
     return
 
@@ -8945,6 +8960,12 @@ class LUSetInstanceParams(LogicalUnit):
     # OS change
     if self.op.os_name:
       instance.os = self.op.os_name
+
+    # osparams changes
+    if self.op.osparams:
+      instance.osparams = self.os_inst
+      for key, val in self.op.osparams.iteritems():
+        result.append(("os/%s" % key, val))
 
     self.cfg.Update(instance, feedback_fn)
 

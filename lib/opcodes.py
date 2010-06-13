@@ -636,7 +636,7 @@ class OpSetInstanceParams(OpCode):
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
     "instance_name",
-    "hvparams", "beparams", "force",
+    "hvparams", "beparams", "osparams", "force",
     "nics", "disks", "disk_template",
     "remote_node", "os_name", "force_variant",
     ]
