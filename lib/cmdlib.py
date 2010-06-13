@@ -475,7 +475,8 @@ def _GetWantedInstances(lu, instances):
   return wanted
 
 
-def _GetUpdatedParams(old_params, update_dict):
+def _GetUpdatedParams(old_params, update_dict,
+                      use_default=True, use_none=False):
   """Return the new version of a parameter dictionary.
 
   @type old_params: dict
@@ -484,13 +485,20 @@ def _GetUpdatedParams(old_params, update_dict):
   @param update_dict: dict containing new parameter values, or
       constants.VALUE_DEFAULT to reset the parameter to its default
       value
+  @param use_default: boolean
+  @type use_default: whether to recognise L{constants.VALUE_DEFAULT}
+      values as 'to be deleted' values
+  @param use_none: boolean
+  @type use_none: whether to recognise C{None} values as 'to be
+      deleted' values
   @rtype: dict
   @return: the new parameter dictionary
 
   """
   params_copy = copy.deepcopy(old_params)
   for key, val in update_dict.iteritems():
-    if val == constants.VALUE_DEFAULT:
+    if ((use_default and val == constants.VALUE_DEFAULT) or
+        (use_none and val is None)):
       try:
         del params_copy[key]
       except KeyError:
