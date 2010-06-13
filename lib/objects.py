@@ -882,7 +882,6 @@ class Cluster(TaggableObject):
         self.hvparams[hypervisor] = FillDict(
             constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
 
-    # TODO: Figure out if it's better to put this into OS than Cluster
     if self.os_hvp is None:
       self.os_hvp = {}
 
