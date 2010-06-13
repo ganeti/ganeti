@@ -2150,6 +2150,10 @@ def FinalizeExport(instance, snap_disks):
   for name, value in instance.beparams.items():
     config.set(constants.INISECT_BEP, name, str(value))
 
+  config.add_section(constants.INISECT_OSP)
+  for name, value in instance.osparams.items():
+    config.set(constants.INISECT_OSP, name, str(value))
+
   utils.WriteFile(utils.PathJoin(destdir, constants.EXPORT_CONF_FILE),
                   data=config.Dumps())
   shutil.rmtree(finaldestdir, ignore_errors=True)

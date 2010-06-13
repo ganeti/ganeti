@@ -396,6 +396,7 @@ INISECT_EXP = "export"
 INISECT_INS = "instance"
 INISECT_HYP = "hypervisor"
 INISECT_BEP = "backend"
+INISECT_OSP = "os"
 
 # dynamic device modification
 DDM_ADD = 'add'

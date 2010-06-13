@@ -6553,6 +6553,12 @@ class LUCreateInstance(LogicalUnit):
             einfo.has_option(constants.INISECT_INS, name)):
           self.op.beparams[name] = einfo.get(constants.INISECT_INS, name)
 
+    if einfo.has_section(constants.INISECT_OSP):
+      # use the parameters, without overriding
+      for name, value in einfo.items(constants.INISECT_OSP):
+        if name not in self.op.osparams:
+          self.op.osparams[name] = value
+
   def _RevertToDefaults(self, cluster):
     """Revert the instance parameters to the default values.
 
@@ -6573,6 +6579,11 @@ class LUCreateInstance(LogicalUnit):
       for name in constants.NICS_PARAMETERS:
         if name in nic and name in nic_defs and nic[name] == nic_defs[name]:
           del nic[name]
+    # osparams
+    os_defs = cluster.SimpleFillOS(self.op.os_type, {})
+    for name in self.op.osparams.keys():
+      if name in os_defs and os_defs[name] == self.op.osparams[name]:
+        del self.op.osparams[name]
 
   def CheckPrereq(self):
     """Check prerequisites.
