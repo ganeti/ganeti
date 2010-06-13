@@ -473,6 +473,31 @@ def _GetWantedInstances(lu, instances):
   return wanted
 
 
+def _GetUpdatedParams(old_params, update_dict):
+  """Return the new version of a parameter dictionary.
+
+  @type old_params: dict
+  @param old_params: old parameters
+  @type update_dict: dict
+  @param update_dict: dict containing new parameter values, or
+      constants.VALUE_DEFAULT to reset the parameter to its default
+      value
+  @rtype: dict
+  @return: the new parameter dictionary
+
+  """
+  params_copy = copy.deepcopy(old_params)
+  for key, val in update_dict.iteritems():
+    if val == constants.VALUE_DEFAULT:
+      try:
+        del params_copy[key]
+      except KeyError:
+        pass
+    else:
+      params_copy[key] = val
+  return params_copy
+
+
 def _CheckOutputFields(static, dynamic, selected):
   """Checks whether all selected fields are valid.
 
@@ -8410,39 +8435,6 @@ class LUSetInstanceParams(LogicalUnit):
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
-  @staticmethod
-  def _GetUpdatedParams(old_params, update_dict,
-                        default_values, parameter_types):
-    """Return the new params dict for the given params.
-
-    @type old_params: dict
-    @param old_params: old parameters
-    @type update_dict: dict
-    @param update_dict: dict containing new parameter values,
-                        or constants.VALUE_DEFAULT to reset the
-                        parameter to its default value
-    @type default_values: dict
-    @param default_values: default values for the filled parameters
-    @type parameter_types: dict
-    @param parameter_types: dict mapping target dict keys to types
-                            in constants.ENFORCEABLE_TYPES
-    @rtype: (dict, dict)
-    @return: (new_parameters, filled_parameters)
-
-    """
-    params_copy = copy.deepcopy(old_params)
-    for key, val in update_dict.iteritems():
-      if val == constants.VALUE_DEFAULT:
-        try:
-          del params_copy[key]
-        except KeyError:
-          pass
-      else:
-        params_copy[key] = val
-    utils.ForceDictType(params_copy, parameter_types)
-    params_filled = objects.FillDict(default_values, params_copy)
-    return (params_copy, params_filled)
-
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -8481,13 +8473,13 @@ class LUSetInstanceParams(LogicalUnit):
 
     # hvparams processing
     if self.op.hvparams:
-      i_hvdict, hv_new = self._GetUpdatedParams(
-                             instance.hvparams, self.op.hvparams,
-                             cluster.hvparams[instance.hypervisor],
-                             constants.HVS_PARAMETER_TYPES)
+      hv_type = instance.hypervisor
+      i_hvdict = _GetUpdatedParams(instance.hvparams, self.op.hvparams)
+      utils.ForceDictType(i_hvdict, constants.HVS_PARAMETER_TYPES)
+      hv_new = cluster.SimpleFillHV(hv_type, instance.os, i_hvdict)
+
       # local check
-      hypervisor.GetHypervisor(
-        instance.hypervisor).CheckParameterSyntax(hv_new)
+      hypervisor.GetHypervisor(hv_type).CheckParameterSyntax(hv_new)
       _CheckHVParams(self, nodelist, instance.hypervisor, hv_new)
       self.hv_new = hv_new # the new actual values
       self.hv_inst = i_hvdict # the new dict (without defaults)
@@ -8496,10 +8488,9 @@ class LUSetInstanceParams(LogicalUnit):
 
     # beparams processing
     if self.op.beparams:
-      i_bedict, be_new = self._GetUpdatedParams(
-                             instance.beparams, self.op.beparams,
-                             cluster.beparams[constants.PP_DEFAULT],
-                             constants.BES_PARAMETER_TYPES)
+      i_bedict = _GetUpdatedParams(instance.beparams, self.op.beparams)
+      utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
+      be_new = cluster.SimpleFillBE(i_bedict)
       self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)
     else:
@@ -8592,10 +8583,10 @@ class LUSetInstanceParams(LogicalUnit):
       if 'bridge' in nic_dict:
         update_params_dict[constants.NIC_LINK] = nic_dict['bridge']
 
-      new_nic_params, new_filled_nic_params = \
-          self._GetUpdatedParams(old_nic_params, update_params_dict,
-                                 cluster.nicparams[constants.PP_DEFAULT],
-                                 constants.NICS_PARAMETER_TYPES)
+      new_nic_params = _GetUpdatedParams(old_nic_params,
+                                         update_params_dict)
+      utils.ForceDictType(new_nic_params, constants.NICS_PARAMETER_TYPES)
+      new_filled_nic_params = cluster.SimpleFillNIC(new_nic_params)
       objects.NIC.CheckParameterSyntax(new_filled_nic_params)
       self.nic_pinst[nic_op] = new_nic_params
       self.nic_pnew[nic_op] = new_filled_nic_params
