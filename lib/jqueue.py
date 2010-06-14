@@ -621,10 +621,7 @@ class JobQueue(object):
                        if n.master_candidate)
 
     # Remove master node
-    try:
-      del self._nodes[self._my_hostname]
-    except KeyError:
-      pass
+    self._nodes.pop(self._my_hostname, None)
 
     # TODO: Check consistency across nodes
 
@@ -734,11 +731,7 @@ class JobQueue(object):
     @param node_name: the name of the node to remove
 
     """
-    try:
-      # The queue is removed by the "leave node" RPC call.
-      del self._nodes[node_name]
-    except KeyError:
-      pass
+    self._nodes.pop(node_name, None)
 
   @staticmethod
   def _CheckRpcResult(result, nodes, failmsg):
