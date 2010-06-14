@@ -1031,21 +1031,6 @@ class JobQueue(object):
 
     return job
 
-  def _GetJobsUnlocked(self, job_ids):
-    """Return a list of jobs based on their IDs.
-
-    @type job_ids: list
-    @param job_ids: either an empty list (meaning all jobs),
-        or a list of job IDs
-    @rtype: list
-    @return: the list of job objects
-
-    """
-    if not job_ids:
-      job_ids = self._GetJobIDsUnlocked()
-
-    return [self._LoadJobUnlocked(job_id) for job_id in job_ids]
-
   def SafeLoadJobFromDisk(self, job_id):
     """Load the given job file from disk.
 
@@ -1426,13 +1411,8 @@ class JobQueue(object):
 
     return (archived_count, len(all_job_ids) - last_touched)
 
-  @utils.LockedMethod
-  @_RequireOpenQueue
   def QueryJobs(self, job_ids, fields):
     """Returns a list of jobs in queue.
-
-    This is a wrapper of L{_GetJobsUnlocked}, which actually does the
-    processing for each job.
 
     @type job_ids: list
     @param job_ids: sequence of job identifiers or None for all
@@ -1444,12 +1424,19 @@ class JobQueue(object):
 
     """
     jobs = []
+    list_all = False
+    if not job_ids:
+      # Since files are added to/removed from the queue atomically, there's no
+      # risk of getting the job ids in an inconsistent state.
+      job_ids = self._GetJobIDsUnlocked()
+      list_all = True
 
-    for job in self._GetJobsUnlocked(job_ids):
-      if job is None:
-        jobs.append(None)
-      else:
+    for job_id in job_ids:
+      job = self.SafeLoadJobFromDisk(job_id)
+      if job is not None:
         jobs.append(job.GetInfo(fields))
+      elif not list_all:
+        jobs.append(None)
 
     return jobs
 
