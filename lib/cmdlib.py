@@ -2780,7 +2780,7 @@ class LUDiagnoseOS(NoHooksLU):
         valid = True
         variants = None
         for osl in os_data.values():
-          valid = valid and osl and osl[0][1]
+          valid = bool(valid and osl and osl[0][1])
           if not valid:
             variants = set()
             break
