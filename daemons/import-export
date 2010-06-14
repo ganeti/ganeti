@@ -459,7 +459,7 @@ class ChildProcess(subprocess.Popen):
 
     """
     logging.info("Sending signal %s to child process", signum)
-    os.killpg(self.pid, signum)
+    utils.IgnoreProcessNotFound(os.killpg, self.pid, signum)
 
   def ForceQuit(self):
     """Ensure child process is no longer running.

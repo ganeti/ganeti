@@ -2342,8 +2342,7 @@ def KillProcess(pid, signal_=signal.SIGTERM, timeout=30,
   """
   def _helper(pid, signal_, wait):
     """Simple helper to encapsulate the kill/waitpid sequence"""
-    os.kill(pid, signal_)
-    if wait:
+    if IgnoreProcessNotFound(os.kill, pid, signal_) and wait:
       try:
         os.waitpid(pid, os.WNOHANG)
       except OSError:
@@ -3120,6 +3119,26 @@ def RunInSeparateProcess(fn, *args):
                               (exitcode, signum))
 
   return bool(exitcode)
+
+
+def IgnoreProcessNotFound(fn, *args, **kwargs):
+  """Ignores ESRCH when calling a process-related function.
+
+  ESRCH is raised when a process is not found.
+
+  @rtype: bool
+  @return: Whether process was found
+
+  """
+  try:
+    fn(*args, **kwargs)
+  except EnvironmentError, err:
+    # Ignore ESRCH
+    if err.errno == errno.ESRCH:
+      return False
+    raise
+
+  return True
 
 
 def IgnoreSignals(fn, *args, **kwargs):

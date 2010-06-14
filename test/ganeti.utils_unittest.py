@@ -2393,5 +2393,27 @@ class TestFormatSeconds(unittest.TestCase):
     self.assertEqual(utils.FormatSeconds(3912.8), "1h 5m 13s")
 
 
+class RunIgnoreProcessNotFound(unittest.TestCase):
+  @staticmethod
+  def _WritePid(fd):
+    os.write(fd, str(os.getpid()))
+    os.close(fd)
+    return True
+
+  def test(self):
+    (pid_read_fd, pid_write_fd) = os.pipe()
+
+    # Start short-lived process which writes its PID to pipe
+    self.assert_(utils.RunInSeparateProcess(self._WritePid, pid_write_fd))
+    os.close(pid_write_fd)
+
+    # Read PID from pipe
+    pid = int(os.read(pid_read_fd, 1024))
+    os.close(pid_read_fd)
+
+    # Try to send signal to process which exited recently
+    self.assertFalse(utils.IgnoreProcessNotFound(os.kill, pid, 0))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

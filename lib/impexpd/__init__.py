@@ -344,6 +344,7 @@ class ChildIOProcessor(object):
         raise
 
       # Process no longer exists
+      logging.debug("dd exited")
       self._dd_pid = None
 
     return True

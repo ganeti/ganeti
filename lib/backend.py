@@ -2764,7 +2764,7 @@ def AbortImportExport(name):
   if pid:
     logging.info("Import/export %s is running with PID %s, sending SIGTERM",
                  name, pid)
-    os.kill(pid, signal.SIGTERM)
+    utils.IgnoreProcessNotFound(os.kill, pid, signal.SIGTERM)
 
 
 def CleanupImportExport(name):
