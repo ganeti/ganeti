@@ -83,6 +83,17 @@
     </para>
 
     <cmdsynopsis>
+      <command>info</command>
+    </cmdsynopsis>
+
+    <para>
+      This command will list detailed information about each OS
+      available in the cluster, including its validity status, the
+      supported API versions, the supported parameters (if any) and
+      their documentations, etc.
+    </para>
+
+    <cmdsynopsis>
       <command>modify</command>
       <arg>-H <replaceable>HYPERVISOR</replaceable><arg>:<arg choice="plain" rep="repeat">option=<replaceable>value</replaceable></arg></arg></arg>
       <arg choice="req"><replaceable>OS</replaceable></arg>

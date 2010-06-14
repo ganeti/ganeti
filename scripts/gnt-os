@@ -70,6 +70,55 @@ def ListOS(opts, args):
   return 0
 
 
+def ShowOSInfo(opts, args):
+  """List detailed information about OSes in the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants",
+                                           "parameters", "api_versions"],
+                            names=[])
+  result = SubmitOpCode(op, opts=opts)
+
+  if not result:
+    ToStderr("Can't get the OS list")
+    return 1
+
+  do_filter = bool(args)
+
+  for (name, valid, variants, parameters, api_versions) in result:
+    if do_filter:
+      if name not in args:
+        continue
+      else:
+        args.remove(name)
+    ToStdout("%s:", name)
+    ToStdout("  - valid: %s", valid)
+    if valid:
+      ToStdout("  - API versions:")
+      for version in sorted(api_versions):
+        ToStdout("    - %s", version)
+      ToStdout("  - variants:")
+      for vname in variants:
+        ToStdout("    - %s", vname)
+      ToStdout("  - parameters:")
+      for pname, pdesc in parameters:
+        ToStdout("    - %s: %s", pname, pdesc)
+    ToStdout("")
+
+  if args:
+    for name in args:
+      ToStdout("%s: ", name)
+      ToStdout("")
+
+  return 0
+
+
 def _OsStatus(status, diagnose):
   """Beautifier function for OS status.
 
@@ -203,6 +252,9 @@ commands = {
     " on the cluster"),
   'diagnose': (
     DiagnoseOS, ARGS_NONE, [], "", "Diagnose all operating systems"),
+  'info': (
+    ShowOSInfo, [ArgOs()], [], "", "Show detailed information about "
+    "operating systems"),
   'modify': (
     ModifyOS, ARGS_ONE_OS, [HVLIST_OPT, OSPARAMS_OPT], "",
     "Modify the OS parameters"),
