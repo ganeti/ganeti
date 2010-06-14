@@ -9229,6 +9229,17 @@ class LUExportInstance(LogicalUnit):
 
       helper.CreateSnapshots()
       try:
+        if (self.op.shutdown and instance.admin_up and
+            not self.remove_instance):
+          assert not activate_disks
+          feedback_fn("Starting instance %s" % instance.name)
+          result = self.rpc.call_instance_start(src_node, instance, None, None)
+          msg = result.fail_msg
+          if msg:
+            feedback_fn("Failed to start instance: %s" % msg)
+            _ShutdownInstanceDisks(self, instance)
+            raise errors.OpExecError("Could not start instance: %s" % msg)
+
         if self.export_mode == constants.EXPORT_MODE_LOCAL:
           (fin_resu, dresults) = helper.LocalExport(self.dst_node)
         elif self.export_mode == constants.EXPORT_MODE_REMOTE:
