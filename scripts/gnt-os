@@ -114,17 +114,18 @@ def DiagnoseOS(opts, args):
       nodes_hidden[node_name] = []
       if node_info: # at least one entry in the per-node list
         (first_os_path, first_os_status, first_os_msg,
-         first_os_variants, _) = node_info.pop(0)
+         first_os_variants, _, first_os_api) = node_info.pop(0)
         if not first_os_variants:
           first_os_variants = []
-        first_os_msg = ("%s (path: %s) [variants: %s]" %
+        first_os_msg = ("%s (path: %s) [variants: %s] [api: %s]" %
                         (_OsStatus(first_os_status, first_os_msg),
-                         first_os_path, utils.CommaJoin(first_os_variants)))
+                         first_os_path, utils.CommaJoin(first_os_variants),
+                         utils.CommaJoin(first_os_api)))
         if first_os_status:
           nodes_valid[node_name] = first_os_msg
         else:
           nodes_bad[node_name] = first_os_msg
-        for hpath, hstatus, hmsg in node_info:
+        for hpath, hstatus, hmsg, _, _, _ in node_info:
           nodes_hidden[node_name].append("    [hidden] path: %s, status: %s" %
                                          (hpath, _OsStatus(hstatus, hmsg)))
       else:

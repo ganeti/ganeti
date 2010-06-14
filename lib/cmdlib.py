@@ -2738,9 +2738,8 @@ class LUDiagnoseOS(NoHooksLU):
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet()
-  _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants")
-  # Fields that need calculation of global os validity
-  _FIELDS_NEEDVALID = frozenset(["valid", "variants"])
+  _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants",
+                                   "parameters", "api_versions")
 
   def ExpandNames(self):
     if self.op.names:
@@ -2772,7 +2771,7 @@ class LUDiagnoseOS(NoHooksLU):
     @rtype: dict
     @return: a dictionary with osnames as keys and as value another
         map, with nodes as keys and tuples of (path, status, diagnose,
-        variants, parameters) as values, eg::
+        variants, parameters, api_versions) as values, eg::
 
           {"debian-etch": {"node1": [(/usr/lib/..., True, "", [], []),
                                      (/srv/..., False, "invalid api")],
@@ -2789,15 +2788,18 @@ class LUDiagnoseOS(NoHooksLU):
     for node_name, nr in rlist.items():
       if nr.fail_msg or not nr.payload:
         continue
-      for name, path, status, diagnose, variants, params in nr.payload:
+      for (name, path, status, diagnose, variants,
+           params, api_versions) in nr.payload:
         if name not in all_os:
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
           all_os[name] = {}
           for nname in good_nodes:
             all_os[name][nname] = []
+        # convert params from [name, help] to (name, help)
+        params = [tuple(v) for v in params]
         all_os[name][node_name].append((path, status, diagnose,
-                                        variants, params))
+                                        variants, params, api_versions))
     return all_os
 
   def Exec(self, feedback_fn):
@@ -2808,25 +2810,25 @@ class LUDiagnoseOS(NoHooksLU):
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     pol = self._DiagnoseByOS(node_data)
     output = []
-    calc_valid = self._FIELDS_NEEDVALID.intersection(self.op.output_fields)
-    calc_variants = "variants" in self.op.output_fields
 
     for os_name, os_data in pol.items():
       row = []
-      if calc_valid:
-        valid = True
-        variants = None
-        for osl in os_data.values():
-          valid = bool(valid and osl and osl[0][1])
-          if not valid:
-            variants = set()
-            break
-          if calc_variants:
-            node_variants = osl[0][3]
-            if variants is None:
-              variants = set(node_variants)
-            else:
-              variants.intersection_update(node_variants)
+      valid = True
+      (variants, params, api_versions) = null_state = (set(), set(), set())
+      for idx, osl in enumerate(os_data.values()):
+        valid = bool(valid and osl and osl[0][1])
+        if not valid:
+          (variants, params, api_versions) = null_state
+          break
+        node_variants, node_params, node_api = osl[0][3:6]
+        if idx == 0: # first entry
+          variants = set(node_variants)
+          params = set(node_params)
+          api_versions = set(node_api)
+        else: # keep consistency
+          variants.intersection_update(node_variants)
+          params.intersection_update(node_params)
+          api_versions.intersection_update(node_api)
 
       for field in self.op.output_fields:
         if field == "name":
@@ -2840,6 +2842,10 @@ class LUDiagnoseOS(NoHooksLU):
             val[node_name] = nos_list
         elif field == "variants":
           val = list(variants)
+        elif field == "parameters":
+          val = list(params)
+        elif field == "api_versions":
+          val = list(api_versions)
         else:
           raise errors.ParameterError(field)
         row.append(val)
