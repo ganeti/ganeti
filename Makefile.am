@@ -52,6 +52,16 @@ DIRS = \
 	test/data \
 	tools
 
+BUILDTIME_DIRS = \
+	doc/api \
+	doc/coverage \
+	doc/html
+
+DIRCHECK_EXCLUDE = \
+	$(BUILDTIME_DIRS) \
+	ganeti-[0-9]*.[0-9]*.[0-9]* \
+	doc/html/_*
+
 MAINTAINERCLEANFILES = \
 	$(docpng) \
 	$(maninput) \
@@ -59,7 +69,7 @@ MAINTAINERCLEANFILES = \
 	doc/news.rst
 
 maintainer-clean-local:
-	rm -rf doc/api doc/html doc/coverage
+	rm -rf $(BUILDTIME_DIRS)
 
 CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
@@ -570,7 +580,30 @@ stamp-srclinks: Makefile stamp-directories
 ganeti:
 	cd $(top_builddir) && test -h "$@" || { rm -f $@ && $(LN_S) lib $@; }
 
-check-local:
+.PHONY: check-dirs
+check-dirs: $(BUILT_SOURCES)
+	set -e; \
+	find . -type d \( \( -name . \) -o \( \
+		-name .git -o \
+		-name autom4te.cache \
+		\) -prune -o -print \) | { \
+		error=; \
+		while read dir; do \
+			case "$$dir" in \
+				$(strip $(patsubst %,(./%) ;;,$(DIRCHECK_EXCLUDE) $(DIRS))) \
+				*) error=1; echo "Directory $$dir not listed in Makefile" >&2 ;; \
+			esac; \
+		done; \
+		for dir in $(DIRS); do \
+			if ! test -d "$$dir"; then \
+				echo "Directory $$dir listed in DIRS does not exist" >&2; \
+				error=1; \
+			fi \
+		done; \
+		if test -n "$$error"; then exit 1; else exit 0; fi; \
+	}
+
+check-local: check-dirs
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 
 .PHONY: lint
