@@ -36,6 +36,7 @@ DIRS = \
 	doc \
 	doc/examples \
 	doc/examples/hooks \
+	doc/examples/gnt-debug \
 	lib \
 	lib/build \
 	lib/confd \
