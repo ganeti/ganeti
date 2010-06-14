@@ -122,9 +122,9 @@
       </cmdsynopsis>
 
       <para>
-        Run a test opcode (a sleep) on the master (internally in the
-        command) and on selected nodes (via an RPC call). This server
-        no other purpose but to execute a test operation.
+        Run a test opcode (a sleep) on the master and on selected nodes
+        (via an RPC call). This serves no other purpose but to execute a
+        test operation.
       </para>
 
       <para>
@@ -154,28 +154,27 @@
       </cmdsynopsis>
 
       <para>
-        This command builds a list of opcodes from JSON-format files
-        and submits for each file a job to the master daemon. It can
-        be used to test some options that are not available via the
-        command line.
+        This command builds a list of opcodes from files in JSON format
+        and submits a job per file to the master daemon. It can be used
+        to test options that are not available via command line.
       </para>
 
       <para>
-        The <option>verbose</option> option will job the job IDs of
-        the submitted jobs and the progress in waiting for the jobs;
-        the <option>timing-stats</option> option will show some
-        overall statistics with the number of total opcodes and jobs
-        submitted, and time time for each stage (submit, exec, total).
+        The <option>verbose</option> option will additionally display
+        the corresponding job IDs and the progress in waiting for the
+        jobs; the <option>timing-stats</option> option will show some
+        overall statistics inluding the number of total opcodes, jobs
+        submitted and time spent in each stage (submit, exec, total).
       </para>
 
       <para>
         The <option>job-repeat</option> and <option>op-repeat</option>
-        options allow to submit multiple copies of the passed
-        arguments; the job repeat will cause N copies of each job
-        (input file) to be submitted (equivalent to passing the
-        arguments N times) while the op repeat will cause each job to
-        contain multiple copies of the opcodes (equivalent to each
-        file containing N copies of the opcodes).
+        options allow to submit multiple copies of the passed arguments;
+        job-repeat will cause N copies of each job (input file) to be
+        submitted (equivalent to passing the arguments N times) while
+        op-repeat will cause N copies of each of the opcodes in the file
+        to be executed (equivalent to each file containing N copies of
+        the opcodes).
       </para>
 
     </refsect2>
