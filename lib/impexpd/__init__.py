@@ -77,7 +77,8 @@ BUFSIZE = 1024 * 1024
 
 # Common options for socat
 SOCAT_TCP_OPTS = ["keepalive", "keepidle=60", "keepintvl=10", "keepcnt=5"]
-SOCAT_OPENSSL_OPTS = ["verify=1", "cipher=HIGH", "method=TLSv1"]
+SOCAT_OPENSSL_OPTS = ["verify=1", "method=TLSv1",
+                      "cipher=%s" % constants.OPENSSL_CIPHERS]
 
 SOCAT_OPTION_MAXLEN = 400
 
