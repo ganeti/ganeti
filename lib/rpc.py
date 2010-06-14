@@ -193,7 +193,7 @@ class RpcResult(object):
     else:
       ec = errors.OpExecError
     if ecode is not None:
-      args = (msg, prereq)
+      args = (msg, ecode)
     else:
       args = (msg, )
     raise ec(*args) # pylint: disable-msg=W0142

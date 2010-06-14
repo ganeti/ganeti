@@ -1863,7 +1863,7 @@ def _TryOSFromDisk(name, base_dir=None):
         return False, ("File '%s' under path '%s' is not executable" %
                        (filename, os_dir))
 
-  variants = None
+  variants = []
   if constants.OS_VARIANTS_FILE in os_files:
     variants_file = os_files[constants.OS_VARIANTS_FILE]
     try:

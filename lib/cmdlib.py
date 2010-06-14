@@ -2760,14 +2760,14 @@ class LUDiagnoseOS(NoHooksLU):
         for osl in os_data.values():
           valid = valid and osl and osl[0][1]
           if not valid:
-            variants = None
+            variants = set()
             break
           if calc_variants:
             node_variants = osl[0][3]
             if variants is None:
-              variants = node_variants
+              variants = set(node_variants)
             else:
-              variants = [v for v in variants if v in node_variants]
+              variants.intersection_update(node_variants)
 
       for field in self.op.output_fields:
         if field == "name":
@@ -2780,7 +2780,7 @@ class LUDiagnoseOS(NoHooksLU):
           for node_name, nos_list in os_data.items():
             val[node_name] = nos_list
         elif field == "variants":
-          val =  variants
+          val = list(variants)
         else:
           raise errors.ParameterError(field)
         row.append(val)
@@ -4175,8 +4175,7 @@ class LUStartupInstance(LogicalUnit):
       # check hypervisor parameter syntax (locally)
       cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(self.hvparams, constants.HVS_PARAMETER_TYPES)
-      filled_hvp = objects.FillDict(cluster.hvparams[instance.hypervisor],
-                                    instance.hvparams)
+      filled_hvp = cluster.FillHV(instance)
       filled_hvp.update(self.hvparams)
       hv_type = hypervisor.GetHypervisor(instance.hypervisor)
       hv_type.CheckParameterSyntax(filled_hvp)
@@ -5450,15 +5449,15 @@ class TLMigrateInstance(Tasklet):
 
     target_node = secondary_nodes[0]
     # check memory requirements on the secondary node
-    _CheckNodeFreeMemory(self, target_node, "migrating instance %s" %
+    _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
                          instance.name, i_be[constants.BE_MEMORY],
                          instance.hypervisor)
 
     # check bridge existance
-    _CheckInstanceBridgesExist(self, instance, node=target_node)
+    _CheckInstanceBridgesExist(self.lu, instance, node=target_node)
 
     if not self.cleanup:
-      _CheckNodeNotDrained(self, target_node)
+      _CheckNodeNotDrained(self.lu, target_node)
       result = self.rpc.call_instance_migratable(instance.primary_node,
                                                  instance)
       result.Raise("Can't migrate, please use failover",
@@ -5647,7 +5646,7 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* checking disk consistency between source and target")
     for dev in instance.disks:
-      if not _CheckDiskConsistency(self, dev, target_node, False):
+      if not _CheckDiskConsistency(self.lu, dev, target_node, False):
         raise errors.OpExecError("Disk %s is degraded or not fully"
                                  " synchronized on target node,"
                                  " aborting migrate." % dev.iv_name)
@@ -6105,9 +6104,15 @@ class LUCreateInstance(LogicalUnit):
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
                                  errors.ECODE_INVAL)
-    # check disk information: either all adopt, or no adopt
+
+    # check nics' parameter names
+    for nic in self.op.nics:
+      utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)
+
+    # check disks. parameter names and consistent adopt/no-adopt strategy
     has_adopt = has_no_adopt = False
     for disk in self.op.disks:
+      utils.ForceDictType(disk, constants.IDISK_PARAMS_TYPES)
       if "adopt" in disk:
         has_adopt = True
       else:
@@ -8243,6 +8248,7 @@ class LUSetInstanceParams(LogicalUnit):
     # Disk validation
     disk_addremove = 0
     for disk_op, disk_dict in self.op.disks:
+      utils.ForceDictType(disk_dict, constants.IDISK_PARAMS_TYPES)
       if disk_op == constants.DDM_REMOVE:
         disk_addremove += 1
         continue
@@ -8296,6 +8302,7 @@ class LUSetInstanceParams(LogicalUnit):
     # NIC validation
     nic_addremove = 0
     for nic_op, nic_dict in self.op.nics:
+      utils.ForceDictType(nic_dict, constants.INIC_PARAMS_TYPES)
       if nic_op == constants.DDM_REMOVE:
         nic_addremove += 1
         continue
