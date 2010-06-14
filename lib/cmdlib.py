@@ -2782,14 +2782,14 @@ class LUDiagnoseOS(NoHooksLU):
         for osl in os_data.values():
           valid = valid and osl and osl[0][1]
           if not valid:
-            variants = None
+            variants = set()
             break
           if calc_variants:
             node_variants = osl[0][3]
             if variants is None:
-              variants = node_variants
+              variants = set(node_variants)
             else:
-              variants = [v for v in variants if v in node_variants]
+              variants.intersection_update(node_variants)
 
       for field in self.op.output_fields:
         if field == "name":
@@ -2802,7 +2802,7 @@ class LUDiagnoseOS(NoHooksLU):
           for node_name, nos_list in os_data.items():
             val[node_name] = nos_list
         elif field == "variants":
-          val =  variants
+          val = list(variants)
         else:
           raise errors.ParameterError(field)
         row.append(val)
