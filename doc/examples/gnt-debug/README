@@ -1,0 +1,21 @@
+In order to submit arbitrary jobs to ganeti one can call gnt-debug submit-job
+passing a suitably formatted json file. A few examples of those files are
+included here.
+
+Using delay0.json and delay50.json in conjunction with submit-job for example
+allows one to submit rapidly many short delay job (using --job-repeat),
+repeating the sleep opcode any number of times (using --op-repeat), either all
+at the same time or one at a time (with --each). This can be used to check the
+performance of the job queue.
+
+Examples:
+
+# Run 40 jobs with 10 opcodes each:
+gnt-debug submit-job --op-repeat 10 --job-repeat 40 --timing-stats delay0.json
+
+# Run 40 jobs with 1 opcode each:
+gnt-debug submit-job --op-repeat 1 --job-repeat 40 --timing-stats delay0.json
+
+# Run 40 jobs with 10 opcodes each and submit one at a time:
+gnt-debug submit-job --op-repeat 10 --job-repeat 40 --timing-stats --each delay0.json
+

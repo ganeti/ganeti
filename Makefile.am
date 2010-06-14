@@ -289,6 +289,9 @@ EXTRA_DIST = \
 	doc/examples/ganeti.default-debug \
 	doc/examples/hooks/ethers \
 	doc/examples/hooks/ipsec.in \
+	doc/examples/gnt-debug/README \
+	doc/examples/gnt-debug/delay0.json \
+	doc/examples/gnt-debug/delay50.json \
 	test/testutils.py \
 	test/mocks.py \
 	$(dist_TESTS) \
