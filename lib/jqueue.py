@@ -325,6 +325,51 @@ class _QueuedJob(object):
 
     return entries
 
+  def GetInfo(self, fields):
+    """Returns information about a job.
+
+    @type fields: list
+    @param fields: names of fields to return
+    @rtype: list
+    @return: list with one element for each field
+    @raise errors.OpExecError: when an invalid field
+        has been passed
+
+    """
+    row = []
+    for fname in fields:
+      if fname == "id":
+        row.append(self.id)
+      elif fname == "status":
+        row.append(self.CalcStatus())
+      elif fname == "ops":
+        row.append([op.input.__getstate__() for op in self.ops])
+      elif fname == "opresult":
+        row.append([op.result for op in self.ops])
+      elif fname == "opstatus":
+        row.append([op.status for op in self.ops])
+      elif fname == "oplog":
+        row.append([op.log for op in self.ops])
+      elif fname == "opstart":
+        row.append([op.start_timestamp for op in self.ops])
+      elif fname == "opexec":
+        row.append([op.exec_timestamp for op in self.ops])
+      elif fname == "opend":
+        row.append([op.end_timestamp for op in self.ops])
+      elif fname == "received_ts":
+        row.append(self.received_timestamp)
+      elif fname == "start_ts":
+        row.append(self.start_timestamp)
+      elif fname == "end_ts":
+        row.append(self.end_timestamp)
+      elif fname == "lock_status":
+        row.append(self.lock_status)
+      elif fname == "summary":
+        row.append([op.input.Summary() for op in self.ops])
+      else:
+        raise errors.OpExecError("Invalid self query field '%s'" % fname)
+    return row
+
   def MarkUnfinishedOps(self, status, result):
     """Mark unfinished opcodes with a given status and result.
 
@@ -1158,7 +1203,7 @@ class JobQueue(object):
       logging.debug("Waiting for changes in job %s", job_id)
 
       status = job.CalcStatus()
-      job_info = self._GetJobInfoUnlocked(job, fields)
+      job_info = job.GetInfo(fields)
       log_entries = job.GetLogEntries(prev_log_serial)
 
       # Serializing and deserializing data can cause type changes (e.g. from
@@ -1352,54 +1397,6 @@ class JobQueue(object):
 
     return (archived_count, len(all_job_ids) - last_touched)
 
-  @staticmethod
-  def _GetJobInfoUnlocked(job, fields):
-    """Returns information about a job.
-
-    @type job: L{_QueuedJob}
-    @param job: the job which we query
-    @type fields: list
-    @param fields: names of fields to return
-    @rtype: list
-    @return: list with one element for each field
-    @raise errors.OpExecError: when an invalid field
-        has been passed
-
-    """
-    row = []
-    for fname in fields:
-      if fname == "id":
-        row.append(job.id)
-      elif fname == "status":
-        row.append(job.CalcStatus())
-      elif fname == "ops":
-        row.append([op.input.__getstate__() for op in job.ops])
-      elif fname == "opresult":
-        row.append([op.result for op in job.ops])
-      elif fname == "opstatus":
-        row.append([op.status for op in job.ops])
-      elif fname == "oplog":
-        row.append([op.log for op in job.ops])
-      elif fname == "opstart":
-        row.append([op.start_timestamp for op in job.ops])
-      elif fname == "opexec":
-        row.append([op.exec_timestamp for op in job.ops])
-      elif fname == "opend":
-        row.append([op.end_timestamp for op in job.ops])
-      elif fname == "received_ts":
-        row.append(job.received_timestamp)
-      elif fname == "start_ts":
-        row.append(job.start_timestamp)
-      elif fname == "end_ts":
-        row.append(job.end_timestamp)
-      elif fname == "lock_status":
-        row.append(job.lock_status)
-      elif fname == "summary":
-        row.append([op.input.Summary() for op in job.ops])
-      else:
-        raise errors.OpExecError("Invalid job query field '%s'" % fname)
-    return row
-
   @utils.LockedMethod
   @_RequireOpenQueue
   def QueryJobs(self, job_ids, fields):
@@ -1423,7 +1420,7 @@ class JobQueue(object):
       if job is None:
         jobs.append(None)
       else:
-        jobs.append(self._GetJobInfoUnlocked(job, fields))
+        jobs.append(job.GetInfo(fields))
 
     return jobs
 
