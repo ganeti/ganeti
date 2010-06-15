@@ -694,20 +694,21 @@ VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
 
 # Node verify constants
+NV_DRBDLIST = "drbd-list"
 NV_FILELIST = "filelist"
 NV_HVINFO = "hvinfo"
 NV_HYPERVISOR = "hypervisor"
 NV_INSTANCELIST = "instancelist"
+NV_LVLIST = "lvlist"
+NV_MASTERIP = "master-ip"
 NV_NODELIST = "nodelist"
 NV_NODENETTEST = "node-net-test"
+NV_NODESETUP = "nodesetup"
+NV_OSLIST = "oslist"
+NV_PVLIST = "pvlist"
+NV_TIME = "time"
 NV_VERSION = "version"
 NV_VGLIST = "vglist"
-NV_LVLIST = "lvlist"
-NV_PVLIST = "pvlist"
-NV_DRBDLIST = "drbd-list"
-NV_NODESETUP = "nodesetup"
-NV_TIME = "time"
-NV_MASTERIP = "master-ip"
 
 # SSL certificate check constants (in days)
 SSL_CERT_EXPIRATION_WARN = 30

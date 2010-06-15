@@ -1115,6 +1115,7 @@ class LUVerifyCluster(LogicalUnit):
   ENODELVM = (TNODE, "ENODELVM")
   ENODEN1 = (TNODE, "ENODEN1")
   ENODENET = (TNODE, "ENODENET")
+  ENODEOS = (TNODE, "ENODEOS")
   ENODEORPHANINSTANCE = (TNODE, "ENODEORPHANINSTANCE")
   ENODEORPHANLV = (TNODE, "ENODEORPHANLV")
   ENODERPC = (TNODE, "ENODERPC")
@@ -1130,6 +1131,8 @@ class LUVerifyCluster(LogicalUnit):
   class NodeImage(object):
     """A class representing the logical and physical status of a node.
 
+    @type name: string
+    @ivar name: the node name to which this object refers
     @ivar volumes: a structure as returned from
         L{ganeti.backend.GetVolumeList} (runtime)
     @ivar instances: a list of running instances (runtime)
@@ -1149,9 +1152,14 @@ class LUVerifyCluster(LogicalUnit):
     @ivar hyp_fail: whether the RPC call didn't return the instance list
     @type ghost: boolean
     @ivar ghost: whether this is a known node or not (config)
+    @type os_fail: boolean
+    @ivar os_fail: whether the RPC call didn't return valid OS data
+    @type oslist: list
+    @ivar oslist: list of OSes as diagnosed by DiagnoseOS
 
     """
-    def __init__(self, offline=False):
+    def __init__(self, offline=False, name=None):
+      self.name = name
       self.volumes = {}
       self.instances = []
       self.pinst = []
@@ -1164,6 +1172,8 @@ class LUVerifyCluster(LogicalUnit):
       self.lvm_fail = False
       self.hyp_fail = False
       self.ghost = False
+      self.os_fail = False
+      self.oslist = {}
 
   def ExpandNames(self):
     self.needed_locks = {
@@ -1574,6 +1584,100 @@ class LUVerifyCluster(LogicalUnit):
       _ErrorIf(test, self.ENODEDRBD, node,
                "unallocated drbd minor %d is in use", minor)
 
+  def _UpdateNodeOS(self, ninfo, nresult, nimg):
+    """Builds the node OS structures.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param nimg: the node image object
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    remote_os = nresult.get(constants.NV_OSLIST, None)
+    test = (not isinstance(remote_os, list) or
+            not compat.all(remote_os,
+                           lambda v: isinstance(v, list) and len(v) == 7))
+
+    _ErrorIf(test, self.ENODEOS, node,
+             "node hasn't returned valid OS data")
+
+    nimg.os_fail = test
+
+    if test:
+      return
+
+    os_dict = {}
+
+    for (name, os_path, status, diagnose,
+         variants, parameters, api_ver) in nresult[constants.NV_OSLIST]:
+
+      if name not in os_dict:
+        os_dict[name] = []
+
+      # parameters is a list of lists instead of list of tuples due to
+      # JSON lacking a real tuple type, fix it:
+      parameters = [tuple(v) for v in parameters]
+      os_dict[name].append((os_path, status, diagnose,
+                            set(variants), set(parameters), set(api_ver)))
+
+    nimg.oslist = os_dict
+
+  def _VerifyNodeOS(self, ninfo, nimg, base):
+    """Verifies the node OS list.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nimg: the node image object
+    @param base: the 'template' node we match against (e.g. from the master)
+
+    """
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    assert not nimg.os_fail, "Entered _VerifyNodeOS with failed OS rpc?"
+
+    for os_name, os_data in nimg.oslist.items():
+      assert os_data, "Empty OS status for OS %s?!" % os_name
+      f_path, f_status, f_diag, f_var, f_param, f_api = os_data[0]
+      _ErrorIf(not f_status, self.ENODEOS, node,
+               "Invalid OS %s (located at %s): %s", os_name, f_path, f_diag)
+      _ErrorIf(len(os_data) > 1, self.ENODEOS, node,
+               "OS '%s' has multiple entries (first one shadows the rest): %s",
+               os_name, utils.CommaJoin([v[0] for v in os_data]))
+      # this will catched in backend too
+      _ErrorIf(compat.any(f_api, lambda v: v >= constants.OS_API_V15)
+               and not f_var, self.ENODEOS, node,
+               "OS %s with API at least %d does not declare any variant",
+               os_name, constants.OS_API_V15)
+      # comparisons with the 'base' image
+      test = os_name not in base.oslist
+      _ErrorIf(test, self.ENODEOS, node,
+               "Extra OS %s not present on reference node (%s)",
+               os_name, base.name)
+      if test:
+        continue
+      assert base.oslist[os_name], "Base node has empty OS status?"
+      _, b_status, _, b_var, b_param, b_api = base.oslist[os_name][0]
+      if not b_status:
+        # base OS is invalid, skipping
+        continue
+      for kind, a, b in [("API version", f_api, b_api),
+                         ("variants list", f_var, b_var),
+                         ("parameters", f_param, b_param)]:
+        _ErrorIf(a != b, self.ENODEOS, node,
+                 "OS %s %s differs from reference node %s: %s vs. %s",
+                 kind, os_name, base.name,
+                 utils.CommaJoin(a), utils.CommaJoin(a))
+
+    # check any missing OSes
+    missing = set(base.oslist.keys()).difference(nimg.oslist.keys())
+    _ErrorIf(missing, self.ENODEOS, node,
+             "OSes present on reference node %s but missing on this node: %s",
+             base.name, utils.CommaJoin(missing))
+
   def _UpdateNodeVolumes(self, ninfo, nresult, nimg, vg_name):
     """Verifies and updates the node volume data.
 
@@ -1751,6 +1855,7 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_NODESETUP: None,
       constants.NV_TIME: None,
       constants.NV_MASTERIP: (master_node, master_ip),
+      constants.NV_OSLIST: None,
       }
 
     if vg_name is not None:
@@ -1760,7 +1865,8 @@ class LUVerifyCluster(LogicalUnit):
       node_verify_param[constants.NV_DRBDLIST] = None
 
     # Build our expected cluster state
-    node_image = dict((node.name, self.NodeImage(offline=node.offline))
+    node_image = dict((node.name, self.NodeImage(offline=node.offline,
+                                                 name=node.name))
                       for node in nodeinfo)
 
     for instance in instancelist:
@@ -1769,7 +1875,7 @@ class LUVerifyCluster(LogicalUnit):
       for nname in inst_config.all_nodes:
         if nname not in node_image:
           # ghost node
-          gnode = self.NodeImage()
+          gnode = self.NodeImage(name=nname)
           gnode.ghost = True
           node_image[nname] = gnode
 
@@ -1800,6 +1906,9 @@ class LUVerifyCluster(LogicalUnit):
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
     feedback_fn("* Verifying node status")
+
+    refos_img = None
+
     for node_i in nodeinfo:
       node = node_i.name
       nimg = node_image[node]
@@ -1841,6 +1950,11 @@ class LUVerifyCluster(LogicalUnit):
       self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
       self._UpdateNodeInstances(node_i, nresult, nimg)
       self._UpdateNodeInfo(node_i, nresult, nimg, vg_name)
+      self._UpdateNodeOS(node_i, nresult, nimg)
+      if not nimg.os_fail:
+        if refos_img is None:
+          refos_img = nimg
+        self._VerifyNodeOS(node_i, nimg, refos_img)
 
     feedback_fn("* Verifying instance status")
     for instance in instancelist:

@@ -599,6 +599,9 @@ def VerifyNode(what, cluster_name):
   if constants.NV_TIME in what:
     result[constants.NV_TIME] = utils.SplitTime(time.time())
 
+  if constants.NV_OSLIST in what:
+    result[constants.NV_OSLIST] = DiagnoseOS()
+
   return result
 
 
