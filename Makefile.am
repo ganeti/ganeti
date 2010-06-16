@@ -358,6 +358,7 @@ TEST_FILES = \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd83.txt \
+	test/data/sys_drbd_usermode_helper.txt \
 	test/import-export_unittest-helper
 
 python_tests = \

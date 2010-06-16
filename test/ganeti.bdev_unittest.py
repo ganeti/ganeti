@@ -143,6 +143,19 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.failUnlessRaises(errors.BlockDeviceError,
                           bdev.DRBD8._GetProcData, filename=temp_file)
 
+  def testHelper(self):
+    """Test reading usermode_helper in /sys."""
+    sys_drbd_helper = self._TestDataFilename("sys_drbd_usermode_helper.txt")
+    drbd_helper = bdev.DRBD8.GetUsermodeHelper(filename=sys_drbd_helper)
+    self.failUnlessEqual(drbd_helper, "/bin/true")
+
+  def testHelperIOErrors(self):
+    """Test handling of errors while reading usermode_helper in /sys."""
+    temp_file = self._CreateTempFile()
+    os.unlink(temp_file)
+    self.failUnlessRaises(errors.BlockDeviceError,
+                          bdev.DRBD8.GetUsermodeHelper, filename=temp_file)
+
   def testMinorNotFound(self):
     """Test not-found-minor in /proc"""
     self.failUnless(9 not in self.mass_data)

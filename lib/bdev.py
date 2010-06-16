@@ -825,6 +825,7 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
   _ST_CONNECTED = "Connected"
 
   _STATUS_FILE = "/proc/drbd"
+  _USERMODE_HELPER_FILE = "/sys/module/drbd/parameters/usermode_helper"
 
   @staticmethod
   def _GetProcData(filename=_STATUS_FILE):
@@ -901,6 +902,23 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
       retval['proto2'] = values[5]
 
     return retval
+
+  @staticmethod
+  def GetUsermodeHelper(filename=_USERMODE_HELPER_FILE):
+    """Returns DRBD usermode_helper currently set.
+
+    """
+    try:
+      helper = utils.ReadFile(filename).splitlines()[0]
+    except EnvironmentError, err:
+      if err.errno == errno.ENOENT:
+        _ThrowError("The file %s cannot be opened, check if the module"
+                    " is loaded (%s)", filename, str(err))
+      else:
+        _ThrowError("Can't read DRBD helper file %s: %s", filename, str(err))
+    if not helper:
+      _ThrowError("Can't read any data from %s", filename)
+    return helper
 
   @staticmethod
   def _DevPath(minor):
