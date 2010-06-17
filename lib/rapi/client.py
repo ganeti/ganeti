@@ -24,6 +24,7 @@
 # No Ganeti-specific modules should be imported. The RAPI client is supposed to
 # be standalone.
 
+import sys
 import httplib
 import urllib2
 import logging
@@ -198,6 +199,10 @@ class _HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
   """HTTPS Connection handler that verifies the SSL certificate.
 
   """
+  # Python before version 2.6 had its own httplib.FakeSocket wrapper for
+  # sockets
+  _SUPPORT_FAKESOCKET = (sys.hexversion < 0x2060000)
+
   def __init__(self, *args, **kwargs):
     """Initializes this class.
 
@@ -236,7 +241,35 @@ class _HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
     ssl = OpenSSL.SSL.Connection(ctx, sock)
     ssl.connect((self.host, self.port))
 
-    self.sock = httplib.FakeSocket(sock, ssl)
+    if self._SUPPORT_FAKESOCKET:
+      self.sock = httplib.FakeSocket(sock, ssl)
+    else:
+      self.sock = _SslSocketWrapper(ssl)
+
+
+class _SslSocketWrapper(object):
+  def __init__(self, sock):
+    """Initializes this class.
+
+    """
+    self._sock = sock
+
+  def __getattr__(self, name):
+    """Forward everything to underlying socket.
+
+    """
+    return getattr(self._sock, name)
+
+  def makefile(self, mode, bufsize):
+    """Fake makefile method.
+
+    makefile() on normal file descriptors uses dup2(2), which doesn't work with
+    SSL sockets and therefore is not implemented by pyOpenSSL. This fake method
+    works with the httplib module, but might not work for other modules.
+
+    """
+    # pylint: disable-msg=W0212
+    return socket._fileobject(self._sock, mode, bufsize)
 
 
 class _HTTPSHandler(urllib2.HTTPSHandler):
