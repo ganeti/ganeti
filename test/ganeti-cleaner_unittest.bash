@@ -75,15 +75,13 @@ run_cleaner() {
 create_archived_jobs() {
   local i jobdir touchargs
   local jobarchive=$queuedir/archive
-  local large=$(( RANDOM * RANDOM ))
   local old_ts=$(date -d '25 days ago' +%Y%m%d%H%M)
 
   # Remove jobs from previous run
   find $jobarchive -mindepth 1 -type f | xargs -r rm
 
   i=0
-  for job_id in {1..50} $(( large % RANDOM )) $RANDOM \
-                $(( large - 1 )) $large $(( large + 1 ))
+  for job_id in {1..50} 469581574 19857 1420164 494433 2448521
   do
     jobdir=$jobarchive/$(( job_id / 10 ))
     test -d $jobdir || mkdir $jobdir
