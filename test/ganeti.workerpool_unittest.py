@@ -31,10 +31,35 @@ from ganeti import workerpool
 
 import testutils
 
+class CountingContext(object):
 
-class DummyBaseWorker(workerpool.BaseWorker):
-  def RunTask(self, text):
-    pass
+  def __init__(self):
+    self._lock = threading.Condition(threading.Lock())
+    self.done = 0
+
+  def DoneTask(self):
+    self._lock.acquire()
+    try:
+      self.done += 1
+    finally:
+      self._lock.release()
+
+  def GetDoneTasks(self):
+    self._lock.acquire()
+    try:
+      return self.done
+    finally:
+      self._lock.release()
+
+  @staticmethod
+  def UpdateChecksum(current, value):
+    return zlib.adler32(str(value), current)
+
+
+class CountingBaseWorker(workerpool.BaseWorker):
+
+  def RunTask(self, ctx, text):
+    ctx.DoneTask()
 
 
 class ChecksumContext:
@@ -61,21 +86,24 @@ class ChecksumBaseWorker(workerpool.BaseWorker):
 class TestWorkerpool(unittest.TestCase):
   """Workerpool tests"""
 
-  def testDummy(self):
-    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
+  def testCounting(self):
+    ctx = CountingContext()
+    wp = workerpool.WorkerPool("Test", 3, CountingBaseWorker)
     try:
       self._CheckWorkerCount(wp, 3)
 
       for i in range(10):
-        wp.AddTask("Hello world %s" % i)
+        wp.AddTask(ctx, "Hello world %s" % i)
 
       wp.Quiesce()
     finally:
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
+    self.assertEquals(ctx.GetDoneTasks(), 10)
+
   def testNoTasks(self):
-    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
+    wp = workerpool.WorkerPool("Test", 3, CountingBaseWorker)
     try:
       self._CheckWorkerCount(wp, 3)
       self._CheckNoTasks(wp)
@@ -84,7 +112,7 @@ class TestWorkerpool(unittest.TestCase):
       self._CheckWorkerCount(wp, 0)
 
   def testNoTasksQuiesce(self):
-    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
+    wp = workerpool.WorkerPool("Test", 3, CountingBaseWorker)
     try:
       self._CheckWorkerCount(wp, 3)
       self._CheckNoTasks(wp)
@@ -122,14 +150,15 @@ class TestWorkerpool(unittest.TestCase):
       self._CheckWorkerCount(wp, 0)
 
   def testAddManyTasks(self):
-    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
+    ctx = CountingContext()
+    wp = workerpool.WorkerPool("Test", 3, CountingBaseWorker)
     try:
       self._CheckWorkerCount(wp, 3)
 
-      wp.AddManyTasks(["Hello world %s" % i for i in range(10)])
-      wp.AddTask("A separate hello")
-      wp.AddTask("Once more, hi!")
-      wp.AddManyTasks([("Hello world %s" % i, ) for i in range(10)])
+      wp.AddManyTasks([(ctx, "Hello world %s" % i, ) for i in range(10)])
+      wp.AddTask(ctx, "A separate hello")
+      wp.AddTask(ctx, "Once more, hi!")
+      wp.AddManyTasks([(ctx, "Hello world %s" % i, ) for i in range(10)])
 
       wp.Quiesce()
 
@@ -137,6 +166,8 @@ class TestWorkerpool(unittest.TestCase):
     finally:
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
+
+    self.assertEquals(ctx.GetDoneTasks(), 22)
 
   def _CheckNoTasks(self, wp):
     wp._lock.acquire()
