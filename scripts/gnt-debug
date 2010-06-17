@@ -59,8 +59,6 @@ def Delay(opts, args):
 def GenericOpCodes(opts, args):
   """Send any opcode to the master.
 
-  @todo: The function is broken and needs to be converted to the
-      current job queue API
   @param opts: the command line options selected by the user
   @type args: list
   @param args: should contain only one element, the path of
