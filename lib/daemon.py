@@ -339,6 +339,8 @@ class AsyncAwaker(GanetiBaseAsyncoreDispatcher):
     (self.in_socket, self.out_socket) = socket.socketpair(socket.AF_UNIX,
                                                           socket.SOCK_STREAM)
     self.in_socket.setblocking(0)
+    self.in_socket.shutdown(socket.SHUT_WR)
+    self.out_socket.shutdown(socket.SHUT_RD)
     self.set_socket(self.in_socket)
     self.need_signal = True
     self.signal_fn = signal_fn
