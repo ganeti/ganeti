@@ -180,6 +180,13 @@ class WorkerPool(object):
 
   # TODO: Implement dynamic resizing?
 
+  def _WaitWhileQuiescingUnlocked(self):
+    """Wait until the worker pool has finished quiescing.
+
+    """
+    while self._quiescing:
+      self._pool_to_pool.wait()
+
   def AddTask(self, *args):
     """Adds a task to the queue.
 
@@ -188,15 +195,30 @@ class WorkerPool(object):
     """
     self._lock.acquire()
     try:
-      # Don't add new tasks while we're quiescing
-      while self._quiescing:
-        self._pool_to_pool.wait()
+      self._WaitWhileQuiescingUnlocked()
 
-      # Add task to internal queue
       self._tasks.append(args)
 
       # Wake one idling worker up
       self._pool_to_worker.notify()
+    finally:
+      self._lock.release()
+
+  def AddManyTasks(self, tasks):
+    """Add a list of tasks to the queue.
+
+    @type tasks: list of tuples
+    @param tasks: list of args passed to L{BaseWorker.RunTask}
+
+    """
+    self._lock.acquire()
+    try:
+      self._WaitWhileQuiescingUnlocked()
+
+      self._tasks.extend(tasks)
+
+      for _ in tasks:
+        self._pool_to_worker.notify()
     finally:
       self._lock.release()
 

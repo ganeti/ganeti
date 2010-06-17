@@ -121,6 +121,23 @@ class TestWorkerpool(unittest.TestCase):
       wp.TerminateWorkers()
       self._CheckWorkerCount(wp, 0)
 
+  def testAddManyTasks(self):
+    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
+    try:
+      self._CheckWorkerCount(wp, 3)
+
+      wp.AddManyTasks(["Hello world %s" % i for i in range(10)])
+      wp.AddTask("A separate hello")
+      wp.AddTask("Once more, hi!")
+      wp.AddManyTasks([("Hello world %s" % i, ) for i in range(10)])
+
+      wp.Quiesce()
+
+      self._CheckNoTasks(wp)
+    finally:
+      wp.TerminateWorkers()
+      self._CheckWorkerCount(wp, 0)
+
   def _CheckNoTasks(self, wp):
     wp._lock.acquire()
     try:
