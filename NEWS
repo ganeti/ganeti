@@ -1,8 +1,10 @@
 News
 ====
 
-Version 2.2.0
--------------
+Version 2.2.0 beta 0
+--------------------
+
+*(Released Thu, 17 Jun 2010)*
 
 - Added tool (``move-instance``) and infrastructure to move instances
   between separate clusters (see :doc:`separate documentation
