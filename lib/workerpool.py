@@ -27,6 +27,8 @@ import collections
 import logging
 import threading
 
+from ganeti import compat
+
 
 class BaseWorker(threading.Thread, object):
   """Base worker class for worker pools.
@@ -211,6 +213,9 @@ class WorkerPool(object):
     @param tasks: list of args passed to L{BaseWorker.RunTask}
 
     """
+    assert compat.all(isinstance(task, (tuple, list)) for task in tasks), \
+      "Each task must be a sequence"
+
     self._lock.acquire()
     try:
       self._WaitWhileQuiescingUnlocked()
