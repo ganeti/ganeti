@@ -1,6 +1,25 @@
 News
 ====
 
+Version 2.1.4
+-------------
+
+*(Released Thu, 17 Jun 2010)*
+
+A small bugfix release:
+
+  - Fix live migration of KVM instances started with older Ganeti
+    versions which had fewer hypervisor parameters
+  - Fix gnt-instance grow-disk on down instances
+  - Fix an error-reporting bug during instance migration
+  - Better checking of the ``--net`` and ``--disk`` values, to avoid
+    silently ignoring broken ones
+  - Fix an RPC error reporting bug affecting, for example, RAPI client
+    users
+  - Fix bug triggered by different API version os-es on different nodes
+  - Fix a bug in instance startup with custom hvparams: OS level
+    parameters would fail to be applied.
+
 Version 2.1.3
 -------------
 
