@@ -1002,8 +1002,8 @@ class Cluster(TaggableObject):
   def SimpleFillBE(self, beparams):
     """Fill a given beparams dict with cluster defaults.
 
-    @type beparam: dict
-    @param beparam: the dict to fill
+    @type beparams: dict
+    @param beparams: the dict to fill
     @rtype: dict
     @return: a copy of the passed in beparams with missing keys filled
         from the cluster defaults
@@ -1026,8 +1026,8 @@ class Cluster(TaggableObject):
   def SimpleFillNIC(self, nicparams):
     """Fill a given nicparams dict with cluster defaults.
 
-    @type nicparam: dict
-    @param nicparam: the dict to fill
+    @type nicparams: dict
+    @param nicparams: the dict to fill
     @rtype: dict
     @return: a copy of the passed in nicparams with missing keys filled
         from the cluster defaults
