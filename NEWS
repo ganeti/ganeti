@@ -4,7 +4,7 @@ News
 Version 2.1.4
 -------------
 
-*(Released Thu, 17 Jun 2010)*
+*(Released Fri, 18 Jun 2010)*
 
 A small bugfix release:
 
@@ -19,6 +19,9 @@ A small bugfix release:
   - Fix bug triggered by different API version os-es on different nodes
   - Fix a bug in instance startup with custom hvparams: OS level
     parameters would fail to be applied.
+  - Fix the RAPI client under Python 2.6 (but more work is needed to
+    make it work completely well with OpenSSL)
+  - Fix handling of errors when resolving names from DNS
 
 Version 2.1.3
 -------------
