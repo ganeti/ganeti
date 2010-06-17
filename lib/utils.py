@@ -3184,34 +3184,6 @@ def IgnoreSignals(fn, *args, **kwargs):
       raise
 
 
-def LockedMethod(fn):
-  """Synchronized object access decorator.
-
-  This decorator is intended to protect access to an object using the
-  object's own lock which is hardcoded to '_lock'.
-
-  """
-  def _LockDebug(*args, **kwargs):
-    if debug_locks:
-      logging.debug(*args, **kwargs)
-
-  def wrapper(self, *args, **kwargs):
-    # pylint: disable-msg=W0212
-    assert hasattr(self, '_lock')
-    lock = self._lock
-    _LockDebug("Waiting for %s", lock)
-    lock.acquire()
-    try:
-      _LockDebug("Acquired %s", lock)
-      result = fn(self, *args, **kwargs)
-    finally:
-      _LockDebug("Releasing %s", lock)
-      lock.release()
-      _LockDebug("Released %s", lock)
-    return result
-  return wrapper
-
-
 def LockFile(fd):
   """Locks a file using POSIX locks.
 
