@@ -661,4 +661,6 @@ coverage: $(BUILT_SOURCES) $(python_tests)
 
 commit-check: distcheck lint apidoc
 
+-include ./Makefile.local
+
 # vim: set noet :

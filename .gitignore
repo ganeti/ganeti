@@ -12,6 +12,7 @@
 # /
 /Makefile
 /Makefile.in
+/Makefile.local
 /TAGS
 /aclocal.m4
 /autom4te.cache
