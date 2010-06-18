@@ -53,7 +53,8 @@ from ganeti import masterd
 import ganeti.masterd.instance # pylint: disable-msg=W0611
 
 
-# need to define these here before the actual LUs
+# Modifiable default values; need to define these here before the
+# actual LUs
 
 def _EmptyList():
   """Returns an empty list.
@@ -69,6 +70,125 @@ def _EmptyDict():
   return {}
 
 
+# Some basic types
+def _TNotNone(val):
+  """Checks if the given value is not None.
+
+  """
+  return val is not None
+
+
+def _TNone(val):
+  """Checks if the given value is None.
+
+  """
+  return val is None
+
+
+def _TBool(val):
+  """Checks if the given value is a boolean.
+
+  """
+  return isinstance(val, bool)
+
+
+def _TInt(val):
+  """Checks if the given value is an integer.
+
+  """
+  return isinstance(val, int)
+
+
+def _TFloat(val):
+  """Checks if the given value is a float.
+
+  """
+  return isinstance(val, float)
+
+
+def _TString(val):
+  """Checks if the given value is a string.
+
+  """
+  return isinstance(val, basestring)
+
+
+def _TTrue(val):
+  """Checks if a given value evaluates to a boolean True value.
+
+  """
+  return bool(val)
+
+
+def _TElemOf(target_list):
+  """Builds a function that checks if a given value is a member of a list.
+
+  """
+  return lambda val: val in target_list
+
+
+# Container types
+def _TList(val):
+  """Checks if the given value is a list.
+
+  """
+  return isinstance(val, list)
+
+
+def _TDict(val):
+  """Checks if the given value is a dictionary.
+
+  """
+  return isinstance(val, dict)
+
+
+# Combinator types
+def _TAnd(*args):
+  """Combine multiple functions using an AND operation.
+
+  """
+  def fn(val):
+    return compat.all(t(val) for t in args)
+  return fn
+
+
+def _TOr(*args):
+  """Combine multiple functions using an AND operation.
+
+  """
+  def fn(val):
+    return compat.any(t(val) for t in args)
+  return fn
+
+
+# Type aliases
+
+# non-empty string
+_TNEString = _TAnd(_TString, _TTrue)
+
+
+# positive integer
+_TPInt = _TAnd(_TInt, lambda v: v >= 0)
+
+
+def _TListOf(my_type):
+  """Checks if a given value is a list with all elements of the same type.
+
+  """
+  return _TAnd(_TList,
+               lambda lst: compat.all(lst, my_type))
+
+
+def _TDictOf(key_type, val_type):
+  """Checks a dict type for the type of its key/values.
+
+  """
+  return _TAnd(_TDict,
+               lambda my_dict: (compat.all(my_dict.keys(), key_type) and
+                                compat.all(my_dict.values(), val_type)))
+
+
+# End types
 class LogicalUnit(object):
   """Logical Unit base class.
 
@@ -138,10 +258,17 @@ class LogicalUnit(object):
           dval = aval
         setattr(self.op, aname, dval)
 
-    for attr_name in self._OP_REQP:
-      attr_val = getattr(op, attr_name, None)
-      if attr_val is None:
+    for attr_name, test in self._OP_REQP:
+      if not hasattr(op, attr_name):
         raise errors.OpPrereqError("Required parameter '%s' missing" %
+                                   attr_name, errors.ECODE_INVAL)
+      attr_val = getattr(op, attr_name, None)
+      if not callable(test):
+        raise errors.ProgrammerError("Validation for parameter '%s' failed,"
+                                     " given type is not a proper type (%s)" %
+                                     (attr_name, test))
+      if not test(attr_val):
+        raise errors.OpPrereqError("Parameter '%s' has invalid type" %
                                    attr_name, errors.ECODE_INVAL)
 
     self.CheckArguments()
@@ -466,10 +593,6 @@ def _GetWantedNodes(lu, nodes):
   @raise errors.ProgrammerError: if the nodes parameter is wrong type
 
   """
-  if not isinstance(nodes, list):
-    raise errors.OpPrereqError("Invalid argument type 'nodes'",
-                               errors.ECODE_INVAL)
-
   if not nodes:
     raise errors.ProgrammerError("_GetWantedNodes should only be called with a"
       " non-empty list of nodes whose name is to be expanded.")
@@ -491,10 +614,6 @@ def _GetWantedInstances(lu, instances):
   @raise errors.OpPrereqError: if any of the passed instances is not found
 
   """
-  if not isinstance(instances, list):
-    raise errors.OpPrereqError("Invalid argument type 'instances'",
-                               errors.ECODE_INVAL)
-
   if instances:
     wanted = [_ExpandInstanceName(lu.cfg, name) for name in instances]
   else:
@@ -659,6 +778,7 @@ def _CheckStorageType(storage_type):
                                errors.ECODE_INVAL)
   if storage_type == constants.ST_FILE:
     _RequireFileStorage()
+  return True
 
 
 def _GetClusterDomainSecret():
@@ -683,18 +803,6 @@ def _CheckInstanceDown(lu, instance, reason):
   if instance.name in ins_l.payload:
     raise errors.OpPrereqError("Instance %s is running, %s" %
                                (instance.name, reason), errors.ECODE_STATE)
-
-
-def _CheckExportMode(mode):
-  """Ensures that a given export mode is valid.
-
-  @param mode: the export mode to check
-  @raise errors.OpPrereqError: when the export mode is not valid
-
-  """
-  if mode not in constants.EXPORT_MODES:
-    raise errors.OpPrereqError("Invalid export mode %r" % mode,
-                               errors.ECODE_INVAL)
 
 
 def _ExpandItemName(fn, name, kind):
@@ -1126,7 +1234,12 @@ class LUVerifyCluster(LogicalUnit):
   """
   HPATH = "cluster-verify"
   HTYPE = constants.HTYPE_CLUSTER
-  _OP_REQP = ["skip_checks", "verbose", "error_codes", "debug_simulate_errors"]
+  _OP_REQP = [
+    ("skip_checks", _TListOf(_TElemOf(constants.VERIFY_OPTIONAL_CHECKS))),
+    ("verbose", _TBool),
+    ("error_codes", _TBool),
+    ("debug_simulate_errors", _TBool),
+    ]
   REQ_BGL = False
 
   TCLUSTER = "cluster"
@@ -1800,18 +1913,6 @@ class LUVerifyCluster(LogicalUnit):
           _ErrorIf(True, self.ENODERPC, node,
                    "node returned invalid LVM info, check LVM status")
 
-  def CheckArguments(self):
-    """Check arguments.
-
-    Transform the list of checks we're going to skip into a set and check that
-    all its members are valid.
-
-    """
-    self.skip_set = frozenset(self.op.skip_checks)
-    if not constants.VERIFY_OPTIONAL_CHECKS.issuperset(self.skip_set):
-      raise errors.OpPrereqError("Invalid checks to be skipped specified",
-                                 errors.ECODE_INVAL)
-
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -2044,7 +2145,7 @@ class LUVerifyCluster(LogicalUnit):
     feedback_fn("* Verifying orphan instances")
     self._VerifyOrphanInstances(instancelist, node_image)
 
-    if constants.VERIFY_NPLUSONE_MEM not in self.skip_set:
+    if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
       self._VerifyNPlusOneMemory(node_image, instanceinfo)
 
@@ -2191,13 +2292,8 @@ class LURepairDiskSizes(NoHooksLU):
   """Verifies the cluster disks sizes.
 
   """
-  _OP_REQP = ["instances"]
+  _OP_REQP = [("instances", _TListOf(_TNEString))]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    if not isinstance(self.op.instances, list):
-      raise errors.OpPrereqError("Invalid argument type 'instances'",
-                                 errors.ECODE_INVAL)
 
   def ExpandNames(self):
     if self.op.instances:
@@ -2314,7 +2410,7 @@ class LURenameCluster(LogicalUnit):
   """
   HPATH = "cluster-rename"
   HTYPE = constants.HTYPE_CLUSTER
-  _OP_REQP = ["name"]
+  _OP_REQP = [("name", _TNEString)]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2414,12 +2510,20 @@ class LUSetClusterParams(LogicalUnit):
   """
   HPATH = "cluster-modify"
   HTYPE = constants.HTYPE_CLUSTER
-  _OP_REQP = []
+  _OP_REQP = [
+    ("hvparams", _TOr(_TDictOf(_TNEString, _TDict), _TNone)),
+    ("os_hvp", _TOr(_TDictOf(_TNEString, _TDict), _TNone)),
+    ("osparams", _TOr(_TDictOf(_TNEString, _TDict), _TNone)),
+    ("enabled_hypervisors",
+     _TOr(_TAnd(_TListOf(_TElemOf(constants.HYPER_TYPES)), _TTrue), _TNone)),
+    ]
   _OP_DEFS = [
     ("candidate_pool_size", None),
     ("uid_pool", None),
     ("add_uids", None),
     ("remove_uids", None),
+    ("hvparams", None),
+    ("ov_hvp", None),
     ]
   REQ_BGL = False
 
@@ -2539,9 +2643,6 @@ class LUSetClusterParams(LogicalUnit):
     # hypervisor list/parameters
     self.new_hvparams = new_hvp = objects.FillDict(cluster.hvparams, {})
     if self.op.hvparams:
-      if not isinstance(self.op.hvparams, dict):
-        raise errors.OpPrereqError("Invalid 'hvparams' parameter on input",
-                                   errors.ECODE_INVAL)
       for hv_name, hv_dict in self.op.hvparams.items():
         if hv_name not in self.new_hvparams:
           self.new_hvparams[hv_name] = hv_dict
@@ -2551,13 +2652,7 @@ class LUSetClusterParams(LogicalUnit):
     # os hypervisor parameters
     self.new_os_hvp = objects.FillDict(cluster.os_hvp, {})
     if self.op.os_hvp:
-      if not isinstance(self.op.os_hvp, dict):
-        raise errors.OpPrereqError("Invalid 'os_hvp' parameter on input",
-                                   errors.ECODE_INVAL)
       for os_name, hvs in self.op.os_hvp.items():
-        if not isinstance(hvs, dict):
-          raise errors.OpPrereqError(("Invalid 'os_hvp' parameter on"
-                                      " input"), errors.ECODE_INVAL)
         if os_name not in self.new_os_hvp:
           self.new_os_hvp[os_name] = hvs
         else:
@@ -2570,13 +2665,7 @@ class LUSetClusterParams(LogicalUnit):
     # os parameters
     self.new_osp = objects.FillDict(cluster.osparams, {})
     if self.op.osparams:
-      if not isinstance(self.op.osparams, dict):
-        raise errors.OpPrereqError("Invalid 'osparams' parameter on input",
-                                   errors.ECODE_INVAL)
       for os_name, osp in self.op.osparams.items():
-        if not isinstance(osp, dict):
-          raise errors.OpPrereqError(("Invalid 'osparams' parameter on"
-                                      " input"), errors.ECODE_INVAL)
         if os_name not in self.new_osp:
           self.new_osp[os_name] = {}
 
@@ -2594,16 +2683,6 @@ class LUSetClusterParams(LogicalUnit):
     # changes to the hypervisor list
     if self.op.enabled_hypervisors is not None:
       self.hv_list = self.op.enabled_hypervisors
-      if not self.hv_list:
-        raise errors.OpPrereqError("Enabled hypervisors list must contain at"
-                                   " least one member",
-                                   errors.ECODE_INVAL)
-      invalid_hvs = set(self.hv_list) - constants.HYPER_TYPES
-      if invalid_hvs:
-        raise errors.OpPrereqError("Enabled hypervisors contains invalid"
-                                   " entries: %s" %
-                                   utils.CommaJoin(invalid_hvs),
-                                   errors.ECODE_INVAL)
       for hv in self.hv_list:
         # if the hypervisor doesn't already exist in the cluster
         # hvparams, we initialize it to empty, and then (in both
@@ -2871,7 +2950,10 @@ class LUDiagnoseOS(NoHooksLU):
   """Logical unit for OS diagnose/query.
 
   """
-  _OP_REQP = ["output_fields", "names"]
+  _OP_REQP = [
+    ("output_fields", _TListOf(_TNEString)),
+    ("names", _TListOf(_TNEString)),
+    ]
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet()
   _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants",
@@ -2992,7 +3074,7 @@ class LURemoveNode(LogicalUnit):
   """
   HPATH = "node-remove"
   HTYPE = constants.HTYPE_NODE
-  _OP_REQP = ["node_name"]
+  _OP_REQP = [("node_name", _TNEString)]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3085,7 +3167,11 @@ class LUQueryNodes(NoHooksLU):
 
   """
   # pylint: disable-msg=W0142
-  _OP_REQP = ["output_fields", "names", "use_locking"]
+  _OP_REQP = [
+    ("output_fields", _TListOf(_TNEString)),
+    ("names", _TListOf(_TNEString)),
+    ("use_locking", _TBool),
+    ]
   REQ_BGL = False
 
   _SIMPLE_FIELDS = ["name", "serial_no", "ctime", "mtime", "uuid",
@@ -3238,7 +3324,10 @@ class LUQueryNodeVolumes(NoHooksLU):
   """Logical unit for getting volumes on node(s).
 
   """
-  _OP_REQP = ["nodes", "output_fields"]
+  _OP_REQP = [
+    ("nodes", _TListOf(_TNEString)),
+    ("output_fields", _TListOf(_TNEString)),
+    ]
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet("phys", "vg", "name", "size", "instance")
   _FIELDS_STATIC = utils.FieldSet("node")
@@ -3317,14 +3406,16 @@ class LUQueryNodeStorage(NoHooksLU):
   """Logical unit for getting information on storage units on node(s).
 
   """
-  _OP_REQP = ["nodes", "storage_type", "output_fields"]
+  _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
+  _OP_REQP = [
+    ("nodes", _TListOf(_TNEString)),
+    ("storage_type", _CheckStorageType),
+    ("output_fields", _TListOf(_TNEString)),
+    ]
   _OP_DEFS = [("name", None)]
   REQ_BGL = False
-  _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
 
   def CheckArguments(self):
-    _CheckStorageType(self.op.storage_type)
-
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=utils.FieldSet(*constants.VALID_STORAGE_FIELDS),
                        selected=self.op.output_fields)
@@ -3404,13 +3495,16 @@ class LUModifyNodeStorage(NoHooksLU):
   """Logical unit for modifying a storage volume on a node.
 
   """
-  _OP_REQP = ["node_name", "storage_type", "name", "changes"]
+  _OP_REQP = [
+    ("node_name", _TNEString),
+    ("storage_type", _CheckStorageType),
+    ("name", _TNEString),
+    ("changes", _TDict),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
-
-    _CheckStorageType(self.op.storage_type)
 
     storage_type = self.op.storage_type
 
@@ -3451,7 +3545,9 @@ class LUAddNode(LogicalUnit):
   """
   HPATH = "node-add"
   HTYPE = constants.HTYPE_NODE
-  _OP_REQP = ["node_name"]
+  _OP_REQP = [
+    ("node_name", _TNEString),
+    ]
   _OP_DEFS = [("secondary_ip", None)]
 
   def CheckArguments(self):
@@ -3682,7 +3778,7 @@ class LUSetNodeParams(LogicalUnit):
   """
   HPATH = "node-modify"
   HTYPE = constants.HTYPE_NODE
-  _OP_REQP = ["node_name"]
+  _OP_REQP = [("node_name", _TNEString)]
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -3843,7 +3939,10 @@ class LUPowercycleNode(NoHooksLU):
   """Powercycles a node.
 
   """
-  _OP_REQP = ["node_name", "force"]
+  _OP_REQP = [
+    ("node_name", _TNEString),
+    ("force", _TBool),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -3970,7 +4069,7 @@ class LUActivateInstanceDisks(NoHooksLU):
   """Bring up an instance's disks.
 
   """
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = [("instance_name", _TNEString)]
   _OP_DEFS = [("ignore_size", False)]
   REQ_BGL = False
 
@@ -4114,7 +4213,7 @@ class LUDeactivateInstanceDisks(NoHooksLU):
   """Shutdown an instance's disks.
 
   """
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = [("instance_name", _TNEString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -4277,7 +4376,12 @@ class LUStartupInstance(LogicalUnit):
   """
   HPATH = "instance-start"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "force"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("force", _TBool),
+    ("beparams", _TDict),
+    ("hvparams", _TDict),
+    ]
   _OP_DEFS = [
     ("beparams", _EmptyDict),
     ("hvparams", _EmptyDict),
@@ -4287,18 +4391,8 @@ class LUStartupInstance(LogicalUnit):
   def CheckArguments(self):
     # extra beparams
     if self.op.beparams:
-      if not isinstance(self.op.beparams, dict):
-        raise errors.OpPrereqError("Invalid beparams passed: %s, expected"
-                                   " dict" % (type(self.op.beparams), ),
-                                   errors.ECODE_INVAL)
       # fill the beparams dict
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-
-    if self.op.hvparams:
-      if not isinstance(self.op.hvparams, dict):
-        raise errors.OpPrereqError("Invalid hvparams passed: %s, expected"
-                                   " dict" % (type(self.op.hvparams), ),
-                                   errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -4380,16 +4474,13 @@ class LURebootInstance(LogicalUnit):
   """
   HPATH = "instance-reboot"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "ignore_secondaries", "reboot_type"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("ignore_secondaries", _TBool),
+    ("reboot_type", _TElemOf(constants.REBOOT_TYPES)),
+    ]
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    if self.op.reboot_type not in constants.REBOOT_TYPES:
-      raise errors.OpPrereqError("Invalid reboot type '%s', not one of %s" %
-                                  (self.op.reboot_type,
-                                   utils.CommaJoin(constants.REBOOT_TYPES)),
-                                 errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -4464,7 +4555,7 @@ class LUShutdownInstance(LogicalUnit):
   """
   HPATH = "instance-stop"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = [("instance_name", _TNEString)]
   _OP_DEFS = [("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
 
@@ -4515,7 +4606,7 @@ class LUReinstallInstance(LogicalUnit):
   """
   HPATH = "instance-reinstall"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = [("instance_name", _TNEString)]
   _OP_DEFS = [
     ("os_type", None),
     ("force_variant", False),
@@ -4588,20 +4679,11 @@ class LURecreateInstanceDisks(LogicalUnit):
   """
   HPATH = "instance-recreate-disks"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "disks"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("disks", _TListOf(_TPInt)),
+    ]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    """Check the arguments.
-
-    """
-    if not isinstance(self.op.disks, list):
-      raise errors.OpPrereqError("Invalid disks parameter", errors.ECODE_INVAL)
-    for item in self.op.disks:
-      if (not isinstance(item, int) or
-          item < 0):
-        raise errors.OpPrereqError("Invalid disk specification '%s'" %
-                                   str(item), errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -4661,7 +4743,10 @@ class LURenameInstance(LogicalUnit):
   """
   HPATH = "instance-rename"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "new_name"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("new_name", _TNEString),
+    ]
   _OP_DEFS = [("ignore_ip", False)]
 
   def BuildHooksEnv(self):
@@ -4752,7 +4837,10 @@ class LURemoveInstance(LogicalUnit):
   """
   HPATH = "instance-remove"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "ignore_failures"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("ignore_failures", _TBool),
+    ]
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
 
@@ -4836,7 +4924,11 @@ class LUQueryInstances(NoHooksLU):
 
   """
   # pylint: disable-msg=W0142
-  _OP_REQP = ["output_fields", "names", "use_locking"]
+  _OP_REQP = [
+    ("output_fields", _TListOf(_TNEString)),
+    ("names", _TListOf(_TNEString)),
+    ("use_locking", _TBool),
+    ]
   REQ_BGL = False
   _SIMPLE_FIELDS = ["name", "os", "network_port", "hypervisor",
                     "serial_no", "ctime", "mtime", "uuid"]
@@ -5114,7 +5206,10 @@ class LUFailoverInstance(LogicalUnit):
   """
   HPATH = "instance-failover"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "ignore_consistency"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("ignore_consistency", _TBool),
+    ]
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
 
@@ -5265,7 +5360,11 @@ class LUMigrateInstance(LogicalUnit):
   """
   HPATH = "instance-migrate"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "live", "cleanup"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("live", _TBool),
+    ("cleanup", _TBool),
+    ]
 
   REQ_BGL = False
 
@@ -5313,7 +5412,10 @@ class LUMoveInstance(LogicalUnit):
   """
   HPATH = "instance-move"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "target_node"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("target_node", _TNEString),
+    ]
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
 
@@ -5489,7 +5591,10 @@ class LUMigrateNode(LogicalUnit):
   """
   HPATH = "node-migrate"
   HTYPE = constants.HTYPE_NODE
-  _OP_REQP = ["node_name", "live"]
+  _OP_REQP = [
+    ("node_name", _TNEString),
+    ("live", _TBool),
+    ]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -6223,10 +6328,18 @@ class LUCreateInstance(LogicalUnit):
   """
   HPATH = "instance-add"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "disks",
-              "mode", "start",
-              "wait_for_sync", "ip_check", "nics",
-              "hvparams", "beparams", "osparams"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("mode", _TElemOf(constants.INSTANCE_CREATE_MODES)),
+    ("start", _TBool),
+    ("wait_for_sync", _TBool),
+    ("ip_check", _TBool),
+    ("disks", _TListOf(_TDict)),
+    ("nics", _TListOf(_TDict)),
+    ("hvparams", _TDict),
+    ("beparams", _TDict),
+    ("osparams", _TDict),
+    ]
   _OP_DEFS = [
     ("name_check", True),
     ("no_install", False),
@@ -6290,11 +6403,6 @@ class LUCreateInstance(LogicalUnit):
                                    " instance import", errors.ECODE_INVAL)
 
     self.adopt_disks = has_adopt
-
-    # verify creation mode
-    if self.op.mode not in constants.INSTANCE_CREATE_MODES:
-      raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
-                                 self.op.mode, errors.ECODE_INVAL)
 
     # instance name verification
     if self.op.name_check:
@@ -7128,7 +7236,7 @@ class LUConnectConsole(NoHooksLU):
   console.
 
   """
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = [("instance_name", _TNEString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -7179,7 +7287,11 @@ class LUReplaceDisks(LogicalUnit):
   """
   HPATH = "mirrors-replace"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "mode", "disks"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("mode", _TElemOf(constants.REPLACE_MODES)),
+    ("disks", _TListOf(_TPInt)),
+    ]
   _OP_DEFS = [
     ("remote_node", None),
     ("iallocator", None),
@@ -7920,7 +8032,7 @@ class LURepairNodeStorage(NoHooksLU):
   """Repairs the volume group on a node.
 
   """
-  _OP_REQP = ["node_name"]
+  _OP_REQP = [("node_name", _TNEString)]
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -7985,7 +8097,7 @@ class LUNodeEvacuationStrategy(NoHooksLU):
   """Computes the node evacuation strategy.
 
   """
-  _OP_REQP = ["nodes"]
+  _OP_REQP = [("nodes", _TListOf(_TNEString))]
   _OP_DEFS = [
     ("remote_node", None),
     ("iallocator", None),
@@ -8038,7 +8150,12 @@ class LUGrowDisk(LogicalUnit):
   """
   HPATH = "disk-grow"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "disk", "amount", "wait_for_sync"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("disk", _TInt),
+    ("amount", _TInt),
+    ("wait_for_sync", _TBool),
+    ]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -8132,13 +8249,11 @@ class LUQueryInstanceData(NoHooksLU):
   """Query runtime instance data.
 
   """
-  _OP_REQP = ["instances", "static"]
+  _OP_REQP = [
+    ("instances", _TListOf(_TNEString)),
+    ("static", _TBool),
+    ]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    if not isinstance(self.op.instances, list):
-      raise errors.OpPrereqError("Invalid argument type 'instances'",
-                                 errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self.needed_locks = {}
@@ -8294,7 +8409,7 @@ class LUSetInstanceParams(LogicalUnit):
   """
   HPATH = "instance-modify"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = [("instance_name", _TNEString)]
   _OP_DEFS = [
     ("nics", _EmptyList),
     ("disks", _EmptyList),
@@ -8956,7 +9071,7 @@ class LUQueryExports(NoHooksLU):
   """Query the exports list
 
   """
-  _OP_REQP = ['nodes']
+  _OP_REQP = [("nodes", _TListOf(_TNEString))]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -8993,14 +9108,11 @@ class LUPrepareExport(NoHooksLU):
   """Prepares an instance for an export and returns useful information.
 
   """
-  _OP_REQP = ["instance_name", "mode"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("mode", _TElemOf(constants.EXPORT_MODES)),
+    ]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    """Check the arguments.
-
-    """
-    _CheckExportMode(self.op.mode)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -9053,7 +9165,12 @@ class LUExportInstance(LogicalUnit):
   """
   HPATH = "instance-export"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "target_node", "shutdown"]
+  _OP_REQP = [
+    ("instance_name", _TNEString),
+    ("target_node", _TNEString),
+    ("shutdown", _TBool),
+    ("mode", _TElemOf(constants.EXPORT_MODES)),
+    ]
   _OP_DEFS = [
     ("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT),
     ("remove_instance", False),
@@ -9074,8 +9191,6 @@ class LUExportInstance(LogicalUnit):
     if self.op.remove_instance and not self.op.shutdown:
       raise errors.OpPrereqError("Can not remove instance without shutting it"
                                  " down before")
-
-    _CheckExportMode(self.op.mode)
 
     if self.op.mode == constants.EXPORT_MODE_REMOTE:
       if not self.x509_key_name:
@@ -9339,7 +9454,7 @@ class LURemoveExport(NoHooksLU):
   """Remove exports related to the named instance.
 
   """
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = [("instance_name", _TNEString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -9418,7 +9533,10 @@ class LUGetTags(TagsLU):
   """Returns the tags of a given object.
 
   """
-  _OP_REQP = ["kind", "name"]
+  _OP_REQP = [
+    ("kind", _TElemOf(constants.VALID_TAG_TYPES)),
+    ("name", _TNEString),
+    ]
   REQ_BGL = False
 
   def Exec(self, feedback_fn):
@@ -9432,7 +9550,7 @@ class LUSearchTags(NoHooksLU):
   """Searches the tags for a given pattern.
 
   """
-  _OP_REQP = ["pattern"]
+  _OP_REQP = [("pattern", _TNEString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -9472,7 +9590,11 @@ class LUAddTags(TagsLU):
   """Sets a tag on a given object.
 
   """
-  _OP_REQP = ["kind", "name", "tags"]
+  _OP_REQP = [
+    ("kind", _TElemOf(constants.VALID_TAG_TYPES)),
+    ("name", _TNEString),
+    ("tags", _TListOf(objects.TaggableObject.ValidateTag)),
+    ]
   REQ_BGL = False
 
   def CheckPrereq(self):
@@ -9501,7 +9623,11 @@ class LUDelTags(TagsLU):
   """Delete a list of tags from a given object.
 
   """
-  _OP_REQP = ["kind", "name", "tags"]
+  _OP_REQP = [
+    ("kind", _TElemOf(constants.VALID_TAG_TYPES)),
+    ("name", _TNEString),
+    ("tags", _TListOf(objects.TaggableObject.ValidateTag)),
+    ]
   REQ_BGL = False
 
   def CheckPrereq(self):
@@ -9538,7 +9664,11 @@ class LUTestDelay(NoHooksLU):
   time.
 
   """
-  _OP_REQP = ["duration", "on_master", "on_nodes"]
+  _OP_REQP = [
+    ("duration", _TFloat),
+    ("on_master", _TBool),
+    ("on_nodes", _TListOf(_TNEString)),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -9918,10 +10048,19 @@ class LUTestAllocator(NoHooksLU):
   This LU runs the allocator tests
 
   """
-  _OP_REQP = ["direction", "mode", "name"]
+  _OP_REQP = [
+    ("direction", _TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)),
+    ("mode", _TElemOf(constants.VALID_IALLOCATOR_MODES)),
+    ("name", _TNEString),
+    ("nics", _TOr(_TNone, _TListOf(
+      _TDictOf(_TElemOf(["mac", "ip", "bridge"]), _TNEString)))),
+    ("disks", _TOr(_TNone, _TList)),
+    ]
   _OP_DEFS = [
     ("hypervisor", None),
     ("allocator", None),
+    ("nics", None),
+    ("disks", None),
     ]
 
   def CheckPrereq(self):
@@ -9931,7 +10070,7 @@ class LUTestAllocator(NoHooksLU):
 
     """
     if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
-      for attr in ["name", "mem_size", "disks", "disk_template",
+      for attr in ["mem_size", "disks", "disk_template",
                    "os", "tags", "nics", "vcpus"]:
         if not hasattr(self.op, attr):
           raise errors.OpPrereqError("Missing attribute '%s' on opcode input" %
@@ -9943,13 +10082,6 @@ class LUTestAllocator(NoHooksLU):
       if not isinstance(self.op.nics, list):
         raise errors.OpPrereqError("Invalid parameter 'nics'",
                                    errors.ECODE_INVAL)
-      for row in self.op.nics:
-        if (not isinstance(row, dict) or
-            "mac" not in row or
-            "ip" not in row or
-            "bridge" not in row):
-          raise errors.OpPrereqError("Invalid contents of the 'nics'"
-                                     " parameter", errors.ECODE_INVAL)
       if not isinstance(self.op.disks, list):
         raise errors.OpPrereqError("Invalid parameter 'disks'",
                                    errors.ECODE_INVAL)
@@ -9964,9 +10096,6 @@ class LUTestAllocator(NoHooksLU):
       if self.op.hypervisor is None:
         self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
-      if not hasattr(self.op, "name"):
-        raise errors.OpPrereqError("Missing attribute 'name' on opcode input",
-                                   errors.ECODE_INVAL)
       fname = _ExpandInstanceName(self.cfg, self.op.name)
       self.op.name = fname
       self.relocate_from = self.cfg.GetInstanceInfo(fname).secondary_nodes

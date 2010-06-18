@@ -353,6 +353,12 @@ REPLACE_DISK_PRI = "replace_on_primary"    # replace disks on primary
 REPLACE_DISK_SEC = "replace_on_secondary"  # replace disks on secondary
 REPLACE_DISK_CHG = "replace_new_secondary" # change secondary node
 REPLACE_DISK_AUTO = "replace_auto"
+REPLACE_MODES = frozenset([
+  REPLACE_DISK_PRI,
+  REPLACE_DISK_SEC,
+  REPLACE_DISK_CHG,
+  REPLACE_DISK_AUTO,
+  ])
 
 # Instance export mode
 EXPORT_MODE_LOCAL = "local"
@@ -414,6 +420,11 @@ EXIT_CONFIRMATION = 13 # need user confirmation
 TAG_CLUSTER = "cluster"
 TAG_NODE = "node"
 TAG_INSTANCE = "instance"
+VALID_TAG_TYPES = frozenset([
+  TAG_CLUSTER,
+  TAG_NODE,
+  TAG_INSTANCE,
+  ])
 MAX_TAG_LEN = 128
 MAX_TAGS_PER_OBJ = 4096
 
@@ -718,9 +729,18 @@ SSL_CERT_EXPIRATION_ERROR = 7
 IALLOCATOR_VERSION = 2
 IALLOCATOR_DIR_IN = "in"
 IALLOCATOR_DIR_OUT = "out"
+VALID_IALLOCATOR_DIRECTIONS = frozenset([
+  IALLOCATOR_DIR_IN,
+  IALLOCATOR_DIR_OUT,
+  ])
 IALLOCATOR_MODE_ALLOC = "allocate"
 IALLOCATOR_MODE_RELOC = "relocate"
 IALLOCATOR_MODE_MEVAC = "multi-evacuate"
+VALID_IALLOCATOR_MODES = frozenset([
+  IALLOCATOR_MODE_ALLOC,
+  IALLOCATOR_MODE_RELOC,
+  IALLOCATOR_MODE_MEVAC,
+  ])
 IALLOCATOR_SEARCH_PATH = _autoconf.IALLOCATOR_SEARCH_PATH
 
 # Job queue
