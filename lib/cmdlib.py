@@ -1800,8 +1800,8 @@ class LUVerifyCluster(LogicalUnit):
           _ErrorIf(True, self.ENODERPC, node,
                    "node returned invalid LVM info, check LVM status")
 
-  def CheckPrereq(self):
-    """Check prerequisites.
+  def CheckArguments(self):
+    """Check arguments.
 
     Transform the list of checks we're going to skip into a set and check that
     all its members are valid.
@@ -3412,15 +3412,6 @@ class LUModifyNodeStorage(NoHooksLU):
 
     _CheckStorageType(self.op.storage_type)
 
-  def ExpandNames(self):
-    self.needed_locks = {
-      locking.LEVEL_NODE: self.op.node_name,
-      }
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    """
     storage_type = self.op.storage_type
 
     try:
@@ -3436,6 +3427,11 @@ class LUModifyNodeStorage(NoHooksLU):
                                  " storage units of type '%s': %r" %
                                  (storage_type, list(diff)),
                                  errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    self.needed_locks = {
+      locking.LEVEL_NODE: self.op.node_name,
+      }
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
@@ -4288,6 +4284,22 @@ class LUStartupInstance(LogicalUnit):
     ]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    # extra beparams
+    if self.op.beparams:
+      if not isinstance(self.op.beparams, dict):
+        raise errors.OpPrereqError("Invalid beparams passed: %s, expected"
+                                   " dict" % (type(self.op.beparams), ),
+                                   errors.ECODE_INVAL)
+      # fill the beparams dict
+      utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
+
+    if self.op.hvparams:
+      if not isinstance(self.op.hvparams, dict):
+        raise errors.OpPrereqError("Invalid hvparams passed: %s, expected"
+                                   " dict" % (type(self.op.hvparams), ),
+                                   errors.ECODE_INVAL)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
 
@@ -4314,22 +4326,8 @@ class LUStartupInstance(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
-    # extra beparams
-    if self.op.beparams:
-      if not isinstance(self.op.beparams, dict):
-        raise errors.OpPrereqError("Invalid beparams passed: %s, expected"
-                                   " dict" % (type(self.op.beparams), ),
-                                   errors.ECODE_INVAL)
-      # fill the beparams dict
-      utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-
     # extra hvparams
     if self.op.hvparams:
-      if not isinstance(self.op.hvparams, dict):
-        raise errors.OpPrereqError("Invalid hvparams passed: %s, expected"
-                                   " dict" % (type(self.op.hvparams), ),
-                                   errors.ECODE_INVAL)
-
       # check hypervisor parameter syntax (locally)
       cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
@@ -4705,7 +4703,6 @@ class LURenameInstance(LogicalUnit):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (name_info.ip, new_name),
                                    errors.ECODE_NOTUNIQUE)
-
 
   def Exec(self, feedback_fn):
     """Reinstall the instance.
@@ -7931,6 +7928,14 @@ class LURepairNodeStorage(NoHooksLU):
 
     _CheckStorageType(self.op.storage_type)
 
+    storage_type = self.op.storage_type
+
+    if (constants.SO_FIX_CONSISTENCY not in
+        constants.VALID_STORAGE_OPERATIONS.get(storage_type, [])):
+      raise errors.OpPrereqError("Storage units of type '%s' can not be"
+                                 " repaired" % storage_type,
+                                 errors.ECODE_INVAL)
+
   def ExpandNames(self):
     self.needed_locks = {
       locking.LEVEL_NODE: [self.op.node_name],
@@ -7954,14 +7959,6 @@ class LURepairNodeStorage(NoHooksLU):
     """Check prerequisites.
 
     """
-    storage_type = self.op.storage_type
-
-    if (constants.SO_FIX_CONSISTENCY not in
-        constants.VALID_STORAGE_OPERATIONS.get(storage_type, [])):
-      raise errors.OpPrereqError("Storage units of type '%s' can not be"
-                                 " repaired" % storage_type,
-                                 errors.ECODE_INVAL)
-
     # Check whether any instance on this node has faulty disks
     for inst in _GetNodeInstances(self.cfg, self.op.node_name):
       if not inst.admin_up:
@@ -8079,7 +8076,6 @@ class LUGrowDisk(LogicalUnit):
     nodenames = list(instance.all_nodes)
     for node in nodenames:
       _CheckNodeOnline(self, node)
-
 
     self.instance = instance
 
