@@ -2196,11 +2196,12 @@ class LURepairDiskSizes(NoHooksLU):
   _OP_REQP = ["instances"]
   REQ_BGL = False
 
-  def ExpandNames(self):
+  def CheckArguments(self):
     if not isinstance(self.op.instances, list):
       raise errors.OpPrereqError("Invalid argument type 'instances'",
                                  errors.ECODE_INVAL)
 
+  def ExpandNames(self):
     if self.op.instances:
       self.wanted_names = []
       for name in self.op.instances:
@@ -2883,7 +2884,7 @@ class LUDiagnoseOS(NoHooksLU):
   _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants",
                                    "parameters", "api_versions")
 
-  def ExpandNames(self):
+  def CheckArguments(self):
     if self.op.names:
       raise errors.OpPrereqError("Selective OS query not supported",
                                  errors.ECODE_INVAL)
@@ -2892,6 +2893,7 @@ class LUDiagnoseOS(NoHooksLU):
                        dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
+  def ExpandNames(self):
     # Lock all nodes, in shared mode
     # Temporary removal of locks, should be reverted later
     # TODO: reintroduce locks when they are lighter-weight
@@ -3116,11 +3118,12 @@ class LUQueryNodes(NoHooksLU):
     "role"] + _SIMPLE_FIELDS
     )
 
-  def ExpandNames(self):
+  def CheckArguments(self):
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
+  def ExpandNames(self):
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_NODE] = 1
 
@@ -3260,11 +3263,12 @@ class LUQueryNodeVolumes(NoHooksLU):
   _FIELDS_DYNAMIC = utils.FieldSet("phys", "vg", "name", "size", "instance")
   _FIELDS_STATIC = utils.FieldSet("node")
 
-  def ExpandNames(self):
+  def CheckArguments(self):
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
+  def ExpandNames(self):
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_NODE] = 1
     if not self.op.nodes:
@@ -3986,12 +3990,13 @@ class LUQueryConfigValues(NoHooksLU):
   _FIELDS_STATIC = utils.FieldSet("cluster_name", "master_node", "drain_flag",
                                   "watcher_pause")
 
-  def ExpandNames(self):
-    self.needed_locks = {}
-
+  def CheckArguments(self):
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
+
+  def ExpandNames(self):
+    self.needed_locks = {}
 
   def CheckPrereq(self):
     """No prerequisites.
@@ -4435,14 +4440,14 @@ class LURebootInstance(LogicalUnit):
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    if self.op.reboot_type not in constants.REBOOT_TYPES:
+      raise errors.OpPrereqError("Invalid reboot type '%s', not one of %s" %
+                                  (self.op.reboot_type,
+                                   utils.CommaJoin(constants.REBOOT_TYPES)),
+                                 errors.ECODE_INVAL)
+
   def ExpandNames(self):
-    if self.op.reboot_type not in [constants.INSTANCE_REBOOT_SOFT,
-                                   constants.INSTANCE_REBOOT_HARD,
-                                   constants.INSTANCE_REBOOT_FULL]:
-      raise errors.ParameterError("reboot type not in [%s, %s, %s]" %
-                                  (constants.INSTANCE_REBOOT_SOFT,
-                                   constants.INSTANCE_REBOOT_HARD,
-                                   constants.INSTANCE_REBOOT_FULL))
     self._ExpandAndLockInstance()
 
   def BuildHooksEnv(self):
@@ -4914,11 +4919,12 @@ class LUQueryInstances(NoHooksLU):
   _FIELDS_DYNAMIC = utils.FieldSet("oper_state", "oper_ram", "status")
 
 
-  def ExpandNames(self):
+  def CheckArguments(self):
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
+  def ExpandNames(self):
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_INSTANCE] = 1
     self.share_locks[locking.LEVEL_NODE] = 1
@@ -8283,13 +8289,14 @@ class LUQueryInstanceData(NoHooksLU):
   _OP_REQP = ["instances", "static"]
   REQ_BGL = False
 
-  def ExpandNames(self):
-    self.needed_locks = {}
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
-
+  def CheckArguments(self):
     if not isinstance(self.op.instances, list):
       raise errors.OpPrereqError("Invalid argument type 'instances'",
                                  errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
     if self.op.instances:
       self.wanted_names = []
