@@ -261,7 +261,7 @@ class LogicalUnit(object):
                       idx + 1, len(self.tasklets))
         tl.CheckPrereq()
     else:
-      raise NotImplementedError
+      pass
 
   def Exec(self, feedback_fn):
     """Execute the LU.
@@ -441,7 +441,7 @@ class Tasklet:
     hasn't been done before.
 
     """
-    raise NotImplementedError
+    pass
 
   def Exec(self, feedback_fn):
     """Execute the tasklet.
@@ -1017,12 +1017,6 @@ class LUPostInitCluster(LogicalUnit):
     env = {"OP_TARGET": self.cfg.GetClusterName()}
     mn = self.cfg.GetMasterNode()
     return env, [], [mn]
-
-  def CheckPrereq(self):
-    """No prerequisites to check.
-
-    """
-    return True
 
   def Exec(self, feedback_fn):
     """Nothing to do.
@@ -2132,14 +2126,6 @@ class LUVerifyDisks(NoHooksLU):
     }
     self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This has no prerequisites.
-
-    """
-    pass
-
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
 
@@ -2764,11 +2750,6 @@ class LURedistributeConfig(NoHooksLU):
     }
     self.share_locks[locking.LEVEL_NODE] = 1
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    """
-
   def Exec(self, feedback_fn):
     """Redistribute the configuration.
 
@@ -2912,11 +2893,6 @@ class LUDiagnoseOS(NoHooksLU):
     self.needed_locks = {}
     #self.share_locks[locking.LEVEL_NODE] = 1
     #self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    """
 
   @staticmethod
   def _DiagnoseByOS(rlist):
@@ -3150,14 +3126,6 @@ class LUQueryNodes(NoHooksLU):
       # if we don't request only static fields, we need to lock the nodes
       self.needed_locks[locking.LEVEL_NODE] = self.wanted
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    """
-    # The validation of the node list is done in the _GetWantedNodes,
-    # if non empty, and if empty, there's no validation to do
-    pass
-
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
@@ -3289,19 +3257,11 @@ class LUQueryNodeVolumes(NoHooksLU):
       self.needed_locks[locking.LEVEL_NODE] = \
         _GetWantedNodes(self, self.op.nodes)
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This checks that the fields required are valid output fields.
-
-    """
-    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
-
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
-    nodenames = self.nodes
+    nodenames = self.acquired_locks[locking.LEVEL_NODE]
     volumes = self.rpc.call_node_volumes(nodenames)
 
     ilist = [self.cfg.GetInstanceInfo(iname) for iname
@@ -3379,18 +3339,12 @@ class LUQueryNodeStorage(NoHooksLU):
     else:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This checks that the fields required are valid output fields.
-
-    """
-    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
-
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
+    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
+
     # Always get name to sort by
     if constants.SF_NAME in self.op.output_fields:
       fields = self.op.output_fields[:]
@@ -3912,14 +3866,6 @@ class LUPowercycleNode(NoHooksLU):
     """
     self.needed_locks = {}
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This LU has no prereqs.
-
-    """
-    pass
-
   def Exec(self, feedback_fn):
     """Reboots a node.
 
@@ -3939,12 +3885,6 @@ class LUQueryClusterInfo(NoHooksLU):
 
   def ExpandNames(self):
     self.needed_locks = {}
-
-  def CheckPrereq(self):
-    """No prerequsites needed for this LU.
-
-    """
-    pass
 
   def Exec(self, feedback_fn):
     """Return cluster config.
@@ -4009,12 +3949,6 @@ class LUQueryConfigValues(NoHooksLU):
 
   def ExpandNames(self):
     self.needed_locks = {}
-
-  def CheckPrereq(self):
-    """No prerequisites.
-
-    """
-    pass
 
   def Exec(self, feedback_fn):
     """Dump a representation of the cluster config to the standard output.
@@ -4956,12 +4890,6 @@ class LUQueryInstances(NoHooksLU):
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE and self.do_locking:
       self._LockInstancesNodes()
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    """
-    pass
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
@@ -8081,9 +8009,6 @@ class LUNodeEvacuationStrategy(NoHooksLU):
       self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
       locks[locking.LEVEL_NODE] = self.op.nodes + [self.op.remote_node]
 
-  def CheckPrereq(self):
-    pass
-
   def Exec(self, feedback_fn):
     if self.op.remote_node is not None:
       instances = []
@@ -8251,7 +8176,6 @@ class LUQueryInstanceData(NoHooksLU):
 
     self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
                              in self.wanted_names]
-    return
 
   def _ComputeBlockdevStatus(self, node, instance_name, dev):
     """Returns the status of a block device
@@ -9048,12 +8972,6 @@ class LUQueryExports(NoHooksLU):
       self.needed_locks[locking.LEVEL_NODE] = \
         _GetWantedNodes(self, self.op.nodes)
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    """
-    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
-
   def Exec(self, feedback_fn):
     """Compute the list of all the exported system images.
 
@@ -9063,6 +8981,7 @@ class LUQueryExports(NoHooksLU):
         that node.
 
     """
+    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
     rpcresult = self.rpc.call_export_list(self.nodes)
     result = {}
     for node in rpcresult:
@@ -9434,11 +9353,6 @@ class LURemoveExport(NoHooksLU):
     # we can remove exports also for a removed instance)
     self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-    """
-    pass
-
   def Exec(self, feedback_fn):
     """Remove any export.
 
@@ -9650,11 +9564,6 @@ class LUTestDelay(NoHooksLU):
       # more information.
       self.op.on_nodes = _GetWantedNodes(self, self.op.on_nodes)
       self.needed_locks[locking.LEVEL_NODE] = self.op.on_nodes
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    """
 
   def _TestDelay(self):
     """Do the actual sleep.
