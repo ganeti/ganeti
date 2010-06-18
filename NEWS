@@ -30,6 +30,29 @@ Version 2.2.0 beta 0
   ``EXP_SIZE_FD``
 
 
+Version 2.1.4
+-------------
+
+*(Released Fri, 18 Jun 2010)*
+
+A small bugfix release:
+
+  - Fix live migration of KVM instances started with older Ganeti
+    versions which had fewer hypervisor parameters
+  - Fix gnt-instance grow-disk on down instances
+  - Fix an error-reporting bug during instance migration
+  - Better checking of the ``--net`` and ``--disk`` values, to avoid
+    silently ignoring broken ones
+  - Fix an RPC error reporting bug affecting, for example, RAPI client
+    users
+  - Fix bug triggered by different API version os-es on different nodes
+  - Fix a bug in instance startup with custom hvparams: OS level
+    parameters would fail to be applied.
+  - Fix the RAPI client under Python 2.6 (but more work is needed to
+    make it work completely well with OpenSSL)
+  - Fix handling of errors when resolving names from DNS
+
+
 Version 2.1.3
 -------------
 

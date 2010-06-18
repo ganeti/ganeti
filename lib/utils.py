@@ -1129,8 +1129,9 @@ class HostInfo:
     """
     try:
       result = socket.gethostbyname_ex(hostname)
-    except socket.gaierror, err:
-      # hostname not found in DNS
+    except (socket.gaierror, socket.herror, socket.error), err:
+      # hostname not found in DNS, or other socket exception in the
+      # (code, description format)
       raise errors.ResolverError(hostname, err.args[0], err.args[1])
 
     return result
