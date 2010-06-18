@@ -53,6 +53,22 @@ from ganeti import masterd
 import ganeti.masterd.instance # pylint: disable-msg=W0611
 
 
+# need to define these here before the actual LUs
+
+def _EmptyList():
+  """Returns an empty list.
+
+  """
+  return []
+
+
+def _EmptyDict():
+  """Returns an empty dict.
+
+  """
+  return {}
+
+
 class LogicalUnit(object):
   """Logical Unit base class.
 
@@ -69,11 +85,14 @@ class LogicalUnit(object):
 
   @ivar dry_run_result: the value (if any) that will be returned to the caller
       in dry-run mode (signalled by opcode dry_run parameter)
+  @cvar _OP_DEFS: a list of opcode attributes and the defaults values
+      they should get if not already existing
 
   """
   HPATH = None
   HTYPE = None
   _OP_REQP = []
+  _OP_DEFS = []
   REQ_BGL = True
 
   def __init__(self, processor, op, context, rpc):
@@ -110,6 +129,14 @@ class LogicalUnit(object):
 
     # Tasklets
     self.tasklets = None
+
+    for aname, aval in self._OP_DEFS:
+      if not hasattr(self.op, aname):
+        if callable(aval):
+          dval = aval()
+        else:
+          dval = aval
+        setattr(self.op, aname, dval)
 
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)
@@ -2389,17 +2416,18 @@ class LUSetClusterParams(LogicalUnit):
   HPATH = "cluster-modify"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = []
+  _OP_DEFS = [
+    ("candidate_pool_size", None),
+    ("uid_pool", None),
+    ("add_uids", None),
+    ("remove_uids", None),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
     """Check parameters
 
     """
-    for attr in ["candidate_pool_size",
-                 "uid_pool", "add_uids", "remove_uids"]:
-      if not hasattr(self.op, attr):
-        setattr(self.op, attr, None)
-
     if self.op.candidate_pool_size is not None:
       try:
         self.op.candidate_pool_size = int(self.op.candidate_pool_size)
@@ -3314,6 +3342,7 @@ class LUQueryNodeStorage(NoHooksLU):
 
   """
   _OP_REQP = ["nodes", "storage_type", "output_fields"]
+  _OP_DEFS = [("name", None)]
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
 
@@ -3340,8 +3369,6 @@ class LUQueryNodeStorage(NoHooksLU):
     This checks that the fields required are valid output fields.
 
     """
-    self.op.name = getattr(self.op, "name", None)
-
     self.nodes = self.acquired_locks[locking.LEVEL_NODE]
 
   def Exec(self, feedback_fn):
@@ -3459,6 +3486,7 @@ class LUAddNode(LogicalUnit):
   HPATH = "node-add"
   HTYPE = constants.HTYPE_NODE
   _OP_REQP = ["node_name"]
+  _OP_DEFS = [("secondary_ip", None)]
 
   def CheckArguments(self):
     # validate/normalize the node name
@@ -3498,13 +3526,12 @@ class LUAddNode(LogicalUnit):
 
     node = dns_data.name
     primary_ip = self.op.primary_ip = dns_data.ip
-    secondary_ip = getattr(self.op, "secondary_ip", None)
-    if secondary_ip is None:
-      secondary_ip = primary_ip
-    if not utils.IsValidIP(secondary_ip):
+    if self.op.secondary_ip is None:
+      self.op.secondary_ip = primary_ip
+    if not utils.IsValidIP(self.op.secondary_ip):
       raise errors.OpPrereqError("Invalid secondary IP given",
                                  errors.ECODE_INVAL)
-    self.op.secondary_ip = secondary_ip
+    secondary_ip = self.op.secondary_ip
 
     node_list = cfg.GetNodeList()
     if not self.op.readd and node in node_list:
@@ -3997,6 +4024,7 @@ class LUActivateInstanceDisks(NoHooksLU):
 
   """
   _OP_REQP = ["instance_name"]
+  _OP_DEFS = [("ignore_size", False)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -4018,8 +4046,6 @@ class LUActivateInstanceDisks(NoHooksLU):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
-    if not hasattr(self.op, "ignore_size"):
-      self.op.ignore_size = False
 
   def Exec(self, feedback_fn):
     """Activate the disks.
@@ -4305,6 +4331,10 @@ class LUStartupInstance(LogicalUnit):
   HPATH = "instance-start"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "force"]
+  _OP_DEFS = [
+    ("beparams", _EmptyDict),
+    ("hvparams", _EmptyDict),
+    ]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -4334,33 +4364,29 @@ class LUStartupInstance(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
     # extra beparams
-    self.beparams = getattr(self.op, "beparams", {})
-    if self.beparams:
-      if not isinstance(self.beparams, dict):
+    if self.op.beparams:
+      if not isinstance(self.op.beparams, dict):
         raise errors.OpPrereqError("Invalid beparams passed: %s, expected"
-                                   " dict" % (type(self.beparams), ),
+                                   " dict" % (type(self.op.beparams), ),
                                    errors.ECODE_INVAL)
       # fill the beparams dict
-      utils.ForceDictType(self.beparams, constants.BES_PARAMETER_TYPES)
-      self.op.beparams = self.beparams
+      utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
 
     # extra hvparams
-    self.hvparams = getattr(self.op, "hvparams", {})
-    if self.hvparams:
-      if not isinstance(self.hvparams, dict):
+    if self.op.hvparams:
+      if not isinstance(self.op.hvparams, dict):
         raise errors.OpPrereqError("Invalid hvparams passed: %s, expected"
-                                   " dict" % (type(self.hvparams), ),
+                                   " dict" % (type(self.op.hvparams), ),
                                    errors.ECODE_INVAL)
 
       # check hypervisor parameter syntax (locally)
       cluster = self.cfg.GetClusterInfo()
-      utils.ForceDictType(self.hvparams, constants.HVS_PARAMETER_TYPES)
+      utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
       filled_hvp = cluster.FillHV(instance)
-      filled_hvp.update(self.hvparams)
+      filled_hvp.update(self.op.hvparams)
       hv_type = hypervisor.GetHypervisor(instance.hypervisor)
       hv_type.CheckParameterSyntax(filled_hvp)
       _CheckHVParams(self, instance.all_nodes, instance.hypervisor, filled_hvp)
-      self.op.hvparams = self.hvparams
 
     _CheckNodeOnline(self, instance.primary_node)
 
@@ -4392,7 +4418,7 @@ class LUStartupInstance(LogicalUnit):
     _StartInstanceDisks(self, instance, force)
 
     result = self.rpc.call_instance_start(node_current, instance,
-                                          self.hvparams, self.beparams)
+                                          self.op.hvparams, self.op.beparams)
     msg = result.fail_msg
     if msg:
       _ShutdownInstanceDisks(self, instance)
@@ -4406,14 +4432,8 @@ class LURebootInstance(LogicalUnit):
   HPATH = "instance-reboot"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "ignore_secondaries", "reboot_type"]
+  _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    """Check the arguments.
-
-    """
-    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
-                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
 
   def ExpandNames(self):
     if self.op.reboot_type not in [constants.INSTANCE_REBOOT_SOFT,
@@ -4434,7 +4454,7 @@ class LURebootInstance(LogicalUnit):
     env = {
       "IGNORE_SECONDARIES": self.op.ignore_secondaries,
       "REBOOT_TYPE": self.op.reboot_type,
-      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
+      "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
@@ -4471,11 +4491,11 @@ class LURebootInstance(LogicalUnit):
         self.cfg.SetDiskID(disk, node_current)
       result = self.rpc.call_instance_reboot(node_current, instance,
                                              reboot_type,
-                                             self.shutdown_timeout)
+                                             self.op.shutdown_timeout)
       result.Raise("Could not reboot instance")
     else:
       result = self.rpc.call_instance_shutdown(node_current, instance,
-                                               self.shutdown_timeout)
+                                               self.op.shutdown_timeout)
       result.Raise("Could not shutdown instance for full reboot")
       _ShutdownInstanceDisks(self, instance)
       _StartInstanceDisks(self, instance, ignore_secondaries)
@@ -4496,14 +4516,8 @@ class LUShutdownInstance(LogicalUnit):
   HPATH = "instance-stop"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name"]
+  _OP_DEFS = [("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    """Check the arguments.
-
-    """
-    self.timeout = getattr(self.op, "timeout",
-                           constants.DEFAULT_SHUTDOWN_TIMEOUT)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -4515,7 +4529,7 @@ class LUShutdownInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
-    env["TIMEOUT"] = self.timeout
+    env["TIMEOUT"] = self.op.timeout
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
@@ -4536,7 +4550,7 @@ class LUShutdownInstance(LogicalUnit):
     """
     instance = self.instance
     node_current = instance.primary_node
-    timeout = self.timeout
+    timeout = self.op.timeout
     self.cfg.MarkInstanceDown(instance.name)
     result = self.rpc.call_instance_shutdown(node_current, instance, timeout)
     msg = result.fail_msg
@@ -4553,6 +4567,10 @@ class LUReinstallInstance(LogicalUnit):
   HPATH = "instance-reinstall"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name"]
+  _OP_DEFS = [
+    ("os_type", None),
+    ("force_variant", False),
+    ]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -4585,8 +4603,6 @@ class LUReinstallInstance(LogicalUnit):
                                  errors.ECODE_INVAL)
     _CheckInstanceDown(self, instance, "cannot reinstall")
 
-    self.op.os_type = getattr(self.op, "os_type", None)
-    self.op.force_variant = getattr(self.op, "force_variant", False)
     if self.op.os_type is not None:
       # OS verification
       pnode = _ExpandNodeName(self.cfg, instance.primary_node)
@@ -4697,6 +4713,7 @@ class LURenameInstance(LogicalUnit):
   HPATH = "instance-rename"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "new_name"]
+  _OP_DEFS = [("ignore_ip", False)]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4732,7 +4749,7 @@ class LURenameInstance(LogicalUnit):
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
                                  new_name, errors.ECODE_EXISTS)
 
-    if not getattr(self.op, "ignore_ip", False):
+    if not self.op.ignore_ip:
       if utils.TcpPing(name_info.ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (name_info.ip, new_name),
@@ -4788,14 +4805,8 @@ class LURemoveInstance(LogicalUnit):
   HPATH = "instance-remove"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "ignore_failures"]
+  _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    """Check the arguments.
-
-    """
-    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
-                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -4813,7 +4824,7 @@ class LURemoveInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
-    env["SHUTDOWN_TIMEOUT"] = self.shutdown_timeout
+    env["SHUTDOWN_TIMEOUT"] = self.op.shutdown_timeout
     nl = [self.cfg.GetMasterNode()]
     nl_post = list(self.instance.all_nodes) + nl
     return env, nl, nl_post
@@ -4837,7 +4848,7 @@ class LURemoveInstance(LogicalUnit):
                  instance.name, instance.primary_node)
 
     result = self.rpc.call_instance_shutdown(instance.primary_node, instance,
-                                             self.shutdown_timeout)
+                                             self.op.shutdown_timeout)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_failures:
@@ -5161,14 +5172,8 @@ class LUFailoverInstance(LogicalUnit):
   HPATH = "instance-failover"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "ignore_consistency"]
+  _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    """Check the arguments.
-
-    """
-    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
-                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -5190,7 +5195,7 @@ class LUFailoverInstance(LogicalUnit):
     target_node = instance.secondary_nodes[0]
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
-      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
+      "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       "OLD_PRIMARY": source_node,
       "OLD_SECONDARY": target_node,
       "NEW_PRIMARY": target_node,
@@ -5266,7 +5271,7 @@ class LUFailoverInstance(LogicalUnit):
                  instance.name, source_node)
 
     result = self.rpc.call_instance_shutdown(source_node, instance,
-                                             self.shutdown_timeout)
+                                             self.op.shutdown_timeout)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_consistency:
@@ -5294,7 +5299,7 @@ class LUFailoverInstance(LogicalUnit):
                    instance.name, target_node)
 
       disks_ok, _ = _AssembleInstanceDisks(self, instance,
-                                               ignore_secondaries=True)
+                                           ignore_secondaries=True)
       if not disks_ok:
         _ShutdownInstanceDisks(self, instance)
         raise errors.OpExecError("Can't activate the instance's disks")
@@ -5366,14 +5371,8 @@ class LUMoveInstance(LogicalUnit):
   HPATH = "instance-move"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "target_node"]
+  _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    """Check the arguments.
-
-    """
-    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
-                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -5394,7 +5393,7 @@ class LUMoveInstance(LogicalUnit):
     """
     env = {
       "TARGET_NODE": self.op.target_node,
-      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
+      "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode()] + [self.instance.primary_node,
@@ -5460,7 +5459,7 @@ class LUMoveInstance(LogicalUnit):
                  instance.name, source_node)
 
     result = self.rpc.call_instance_shutdown(source_node, instance,
-                                             self.shutdown_timeout)
+                                             self.op.shutdown_timeout)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_consistency:
@@ -6285,24 +6284,31 @@ class LUCreateInstance(LogicalUnit):
               "mode", "start",
               "wait_for_sync", "ip_check", "nics",
               "hvparams", "beparams", "osparams"]
+  _OP_DEFS = [
+    ("name_check", True),
+    ("no_install", False),
+    ("os_type", None),
+    ("force_variant", False),
+    ("source_handshake", None),
+    ("source_x509_ca", None),
+    ("source_instance_name", None),
+    ("src_node", None),
+    ("src_path", None),
+    ("pnode", None),
+    ("snode", None),
+    ("iallocator", None),
+    ("hypervisor", None),
+    ("disk_template", None),
+    ("identify_defaults", None),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
     """Check arguments.
 
     """
-    # set optional parameters to none if they don't exist
-    for attr in ["pnode", "snode", "iallocator", "hypervisor",
-                 "disk_template", "identify_defaults"]:
-      if not hasattr(self.op, attr):
-        setattr(self.op, attr, None)
-
     # do not require name_check to ease forward/backward compatibility
     # for tools
-    if not hasattr(self.op, "name_check"):
-      self.op.name_check = True
-    if not hasattr(self.op, "no_install"):
-      self.op.no_install = False
     if self.op.no_install and self.op.start:
       self.LogInfo("No-installation mode selected, disabling startup")
       self.op.start = False
@@ -6387,17 +6393,16 @@ class LUCreateInstance(LogicalUnit):
         self.LogInfo("No-installation mode has no effect during import")
 
     elif self.op.mode == constants.INSTANCE_CREATE:
-      if getattr(self.op, "os_type", None) is None:
+      if self.op.os_type is None:
         raise errors.OpPrereqError("No guest OS specified",
                                    errors.ECODE_INVAL)
-      self.op.force_variant = getattr(self.op, "force_variant", False)
       if self.op.disk_template is None:
         raise errors.OpPrereqError("No disk template specified",
                                    errors.ECODE_INVAL)
 
     elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
       # Check handshake to ensure both clusters have the same domain secret
-      src_handshake = getattr(self.op, "source_handshake", None)
+      src_handshake = self.op.source_handshake
       if not src_handshake:
         raise errors.OpPrereqError("Missing source handshake",
                                    errors.ECODE_INVAL)
@@ -6409,7 +6414,7 @@ class LUCreateInstance(LogicalUnit):
                                    errors.ECODE_INVAL)
 
       # Load and check source CA
-      self.source_x509_ca_pem = getattr(self.op, "source_x509_ca", None)
+      self.source_x509_ca_pem = self.op.source_x509_ca
       if not self.source_x509_ca_pem:
         raise errors.OpPrereqError("Missing source X509 CA",
                                    errors.ECODE_INVAL)
@@ -6428,7 +6433,7 @@ class LUCreateInstance(LogicalUnit):
 
       self.source_x509_ca = cert
 
-      src_instance_name = getattr(self.op, "source_instance_name", None)
+      src_instance_name = self.op.source_instance_name
       if not src_instance_name:
         raise errors.OpPrereqError("Missing source instance name",
                                    errors.ECODE_INVAL)
@@ -6469,8 +6474,8 @@ class LUCreateInstance(LogicalUnit):
 
     # in case of import lock the source node too
     if self.op.mode == constants.INSTANCE_IMPORT:
-      src_node = getattr(self.op, "src_node", None)
-      src_path = getattr(self.op, "src_path", None)
+      src_node = self.op.src_node
+      src_path = self.op.src_path
 
       if src_path is None:
         self.op.src_path = src_path = self.op.instance_name
@@ -7232,16 +7237,14 @@ class LUReplaceDisks(LogicalUnit):
   HPATH = "mirrors-replace"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mode", "disks"]
+  _OP_DEFS = [
+    ("remote_node", None),
+    ("iallocator", None),
+    ("early_release", None),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
-    if not hasattr(self.op, "remote_node"):
-      self.op.remote_node = None
-    if not hasattr(self.op, "iallocator"):
-      self.op.iallocator = None
-    if not hasattr(self.op, "early_release"):
-      self.op.early_release = False
-
     TLReplaceDisks.CheckArguments(self.op.mode, self.op.remote_node,
                                   self.op.iallocator)
 
@@ -7308,16 +7311,14 @@ class LUEvacuateNode(LogicalUnit):
   HPATH = "node-evacuate"
   HTYPE = constants.HTYPE_NODE
   _OP_REQP = ["node_name"]
+  _OP_DEFS = [
+    ("remote_node", None),
+    ("iallocator", None),
+    ("early_release", False),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
-    if not hasattr(self.op, "remote_node"):
-      self.op.remote_node = None
-    if not hasattr(self.op, "iallocator"):
-      self.op.iallocator = None
-    if not hasattr(self.op, "early_release"):
-      self.op.early_release = False
-
     TLReplaceDisks.CheckArguments(constants.REPLACE_DISK_CHG,
                                   self.op.remote_node,
                                   self.op.iallocator)
@@ -8129,13 +8130,13 @@ class LUNodeEvacuationStrategy(NoHooksLU):
 
   """
   _OP_REQP = ["nodes"]
+  _OP_DEFS = [
+    ("remote_node", None),
+    ("iallocator", None),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
-    if not hasattr(self.op, "remote_node"):
-      self.op.remote_node = None
-    if not hasattr(self.op, "iallocator"):
-      self.op.iallocator = None
     if self.op.remote_node is not None and self.op.iallocator is not None:
       raise errors.OpPrereqError("Give either the iallocator or the new"
                                  " secondary, not both", errors.ECODE_INVAL)
@@ -8442,28 +8443,21 @@ class LUSetInstanceParams(LogicalUnit):
   HPATH = "instance-modify"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name"]
+  _OP_DEFS = [
+    ("nics", _EmptyList),
+    ("disks", _EmptyList),
+    ("beparams", _EmptyDict),
+    ("hvparams", _EmptyDict),
+    ("disk_template", None),
+    ("remote_node", None),
+    ("os_name", None),
+    ("force_variant", False),
+    ("osparams", None),
+    ("force", False),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
-    if not hasattr(self.op, 'nics'):
-      self.op.nics = []
-    if not hasattr(self.op, 'disks'):
-      self.op.disks = []
-    if not hasattr(self.op, 'beparams'):
-      self.op.beparams = {}
-    if not hasattr(self.op, 'hvparams'):
-      self.op.hvparams = {}
-    if not hasattr(self.op, "disk_template"):
-      self.op.disk_template = None
-    if not hasattr(self.op, "remote_node"):
-      self.op.remote_node = None
-    if not hasattr(self.op, "os_name"):
-      self.op.os_name = None
-    if not hasattr(self.op, "force_variant"):
-      self.op.force_variant = False
-    if not hasattr(self.op, "osparams"):
-      self.op.osparams = None
-    self.op.force = getattr(self.op, "force", False)
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
@@ -8650,8 +8644,6 @@ class LUSetInstanceParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
-    self.force = self.op.force
-
     # checking the new params on the primary/secondary nodes
 
     instance = self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
@@ -8725,7 +8717,7 @@ class LUSetInstanceParams(LogicalUnit):
 
     self.warn = []
 
-    if constants.BE_MEMORY in self.op.beparams and not self.force:
+    if constants.BE_MEMORY in self.op.beparams and not self.op.force:
       mem_check_list = [pnode]
       if be_new[constants.BE_AUTO_BALANCE]:
         # either we changed auto_balance to yes or it was from before
@@ -8824,7 +8816,7 @@ class LUSetInstanceParams(LogicalUnit):
         msg = self.rpc.call_bridges_exist(pnode, [nic_bridge]).fail_msg
         if msg:
           msg = "Error checking bridges on node %s: %s" % (pnode, msg)
-          if self.force:
+          if self.op.force:
             self.warn.append(msg)
           else:
             raise errors.OpPrereqError(msg, errors.ECODE_ENVIRON)
@@ -9217,33 +9209,32 @@ class LUExportInstance(LogicalUnit):
   HPATH = "instance-export"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "target_node", "shutdown"]
+  _OP_DEFS = [
+    ("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT),
+    ("remove_instance", False),
+    ("ignore_remove_failures", False),
+    ("mode", constants.EXPORT_MODE_LOCAL),
+    ("x509_key_name", None),
+    ("destination_x509_ca", None),
+    ]
   REQ_BGL = False
 
   def CheckArguments(self):
     """Check the arguments.
 
     """
-    _CheckBooleanOpField(self.op, "remove_instance")
-    _CheckBooleanOpField(self.op, "ignore_remove_failures")
+    self.x509_key_name = self.op.x509_key_name
+    self.dest_x509_ca_pem = self.op.destination_x509_ca
 
-    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
-                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
-    self.remove_instance = getattr(self.op, "remove_instance", False)
-    self.ignore_remove_failures = getattr(self.op, "ignore_remove_failures",
-                                          False)
-    self.export_mode = getattr(self.op, "mode", constants.EXPORT_MODE_LOCAL)
-    self.x509_key_name = getattr(self.op, "x509_key_name", None)
-    self.dest_x509_ca_pem = getattr(self.op, "destination_x509_ca", None)
-
-    if self.remove_instance and not self.op.shutdown:
+    if self.op.remove_instance and not self.op.shutdown:
       raise errors.OpPrereqError("Can not remove instance without shutting it"
                                  " down before")
 
-    if self.export_mode not in constants.EXPORT_MODES:
-      raise errors.OpPrereqError("Invalid export mode %r" % self.export_mode,
+    if self.op.mode not in constants.EXPORT_MODES:
+      raise errors.OpPrereqError("Invalid export mode %r" % self.op.mode,
                                  errors.ECODE_INVAL)
 
-    if self.export_mode == constants.EXPORT_MODE_REMOTE:
+    if self.op.mode == constants.EXPORT_MODE_REMOTE:
       if not self.x509_key_name:
         raise errors.OpPrereqError("Missing X509 key name for encryption",
                                    errors.ECODE_INVAL)
@@ -9256,14 +9247,14 @@ class LUExportInstance(LogicalUnit):
     self._ExpandAndLockInstance()
 
     # Lock all nodes for local exports
-    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+    if self.op.mode == constants.EXPORT_MODE_LOCAL:
       # FIXME: lock only instance primary and destination node
       #
       # Sad but true, for now we have do lock all nodes, as we don't know where
       # the previous export might be, and in this LU we search for it and
       # remove it from its current node. In the future we could fix this by:
-      #  - making a tasklet to search (share-lock all), then create the new one,
-      #    then one to remove, after
+      #  - making a tasklet to search (share-lock all), then create the
+      #    new one, then one to remove, after
       #  - removing the removal operation altogether
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
@@ -9278,19 +9269,19 @@ class LUExportInstance(LogicalUnit):
 
     """
     env = {
-      "EXPORT_MODE": self.export_mode,
+      "EXPORT_MODE": self.op.mode,
       "EXPORT_NODE": self.op.target_node,
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
-      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
+      "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       # TODO: Generic function for boolean env variables
-      "REMOVE_INSTANCE": str(bool(self.remove_instance)),
+      "REMOVE_INSTANCE": str(bool(self.op.remove_instance)),
       }
 
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
 
     nl = [self.cfg.GetMasterNode(), self.instance.primary_node]
 
-    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+    if self.op.mode == constants.EXPORT_MODE_LOCAL:
       nl.append(self.op.target_node)
 
     return env, nl, nl
@@ -9308,7 +9299,7 @@ class LUExportInstance(LogicalUnit):
           "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
 
-    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+    if self.op.mode == constants.EXPORT_MODE_LOCAL:
       self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
       self.dst_node = self.cfg.GetNodeInfo(self.op.target_node)
       assert self.dst_node is not None
@@ -9320,7 +9311,7 @@ class LUExportInstance(LogicalUnit):
       self.dest_disk_info = None
       self.dest_x509_ca = None
 
-    elif self.export_mode == constants.EXPORT_MODE_REMOTE:
+    elif self.op.mode == constants.EXPORT_MODE_REMOTE:
       self.dst_node = None
 
       if len(self.op.target_node) != len(self.instance.disks):
@@ -9351,8 +9342,8 @@ class LUExportInstance(LogicalUnit):
 
       (errcode, msg) = utils.VerifyX509Certificate(cert, None, None)
       if errcode is not None:
-        raise errors.OpPrereqError("Invalid destination X509 CA (%s)" % (msg, ),
-                                   errors.ECODE_INVAL)
+        raise errors.OpPrereqError("Invalid destination X509 CA (%s)" %
+                                   (msg, ), errors.ECODE_INVAL)
 
       self.dest_x509_ca = cert
 
@@ -9363,8 +9354,8 @@ class LUExportInstance(LogicalUnit):
           (host, port, magic) = \
             masterd.instance.CheckRemoteExportDiskInfo(cds, idx, disk_data)
         except errors.GenericError, err:
-          raise errors.OpPrereqError("Target info for disk %s: %s" % (idx, err),
-                                     errors.ECODE_INVAL)
+          raise errors.OpPrereqError("Target info for disk %s: %s" %
+                                     (idx, err), errors.ECODE_INVAL)
 
         disk_info.append((host, port, magic))
 
@@ -9373,7 +9364,7 @@ class LUExportInstance(LogicalUnit):
 
     else:
       raise errors.ProgrammerError("Unhandled export mode %r" %
-                                   self.export_mode)
+                                   self.op.mode)
 
     # instance disk type verification
     # TODO: Implement export support for file-based disks
@@ -9389,7 +9380,7 @@ class LUExportInstance(LogicalUnit):
     exports will be removed from the nodes A, B and D.
 
     """
-    assert self.export_mode != constants.EXPORT_MODE_REMOTE
+    assert self.op.mode != constants.EXPORT_MODE_REMOTE
 
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(self.dst_node.name)
@@ -9414,7 +9405,7 @@ class LUExportInstance(LogicalUnit):
     """Export an instance to an image in the cluster.
 
     """
-    assert self.export_mode in constants.EXPORT_MODES
+    assert self.op.mode in constants.EXPORT_MODES
 
     instance = self.instance
     src_node = instance.primary_node
@@ -9423,7 +9414,7 @@ class LUExportInstance(LogicalUnit):
       # shutdown the instance, but not the disks
       feedback_fn("Shutting down instance %s" % instance.name)
       result = self.rpc.call_instance_shutdown(src_node, instance,
-                                               self.shutdown_timeout)
+                                               self.op.shutdown_timeout)
       # TODO: Maybe ignore failures if ignore_remove_failures is set
       result.Raise("Could not shutdown instance %s on"
                    " node %s" % (instance.name, src_node))
@@ -9447,7 +9438,7 @@ class LUExportInstance(LogicalUnit):
       helper.CreateSnapshots()
       try:
         if (self.op.shutdown and instance.admin_up and
-            not self.remove_instance):
+            not self.op.remove_instance):
           assert not activate_disks
           feedback_fn("Starting instance %s" % instance.name)
           result = self.rpc.call_instance_start(src_node, instance, None, None)
@@ -9457,9 +9448,9 @@ class LUExportInstance(LogicalUnit):
             _ShutdownInstanceDisks(self, instance)
             raise errors.OpExecError("Could not start instance: %s" % msg)
 
-        if self.export_mode == constants.EXPORT_MODE_LOCAL:
+        if self.op.mode == constants.EXPORT_MODE_LOCAL:
           (fin_resu, dresults) = helper.LocalExport(self.dst_node)
-        elif self.export_mode == constants.EXPORT_MODE_REMOTE:
+        elif self.op.mode == constants.EXPORT_MODE_REMOTE:
           connect_timeout = constants.RIE_CONNECT_TIMEOUT
           timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
 
@@ -9486,16 +9477,16 @@ class LUExportInstance(LogicalUnit):
         _ShutdownInstanceDisks(self, instance)
 
     # Remove instance if requested
-    if self.remove_instance:
+    if self.op.remove_instance:
       if not (compat.all(dresults) and fin_resu):
         feedback_fn("Not removing instance %s as parts of the export failed" %
                     instance.name)
       else:
         feedback_fn("Removing instance %s" % instance.name)
         _RemoveInstance(self, feedback_fn, instance,
-                        self.ignore_remove_failures)
+                        self.op.ignore_remove_failures)
 
-    if self.export_mode == constants.EXPORT_MODE_LOCAL:
+    if self.op.mode == constants.EXPORT_MODE_LOCAL:
       self._CleanupExports(feedback_fn)
 
     return fin_resu, dresults
@@ -10095,6 +10086,10 @@ class LUTestAllocator(NoHooksLU):
 
   """
   _OP_REQP = ["direction", "mode", "name"]
+  _OP_DEFS = [
+    ("hypervisor", None),
+    ("allocator", None),
+    ]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -10133,7 +10128,7 @@ class LUTestAllocator(NoHooksLU):
             row["mode"] not in ['r', 'w']):
           raise errors.OpPrereqError("Invalid contents of the 'disks'"
                                      " parameter", errors.ECODE_INVAL)
-      if not hasattr(self.op, "hypervisor") or self.op.hypervisor is None:
+      if self.op.hypervisor is None:
         self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       if not hasattr(self.op, "name"):
@@ -10151,7 +10146,7 @@ class LUTestAllocator(NoHooksLU):
                                  self.op.mode, errors.ECODE_INVAL)
 
     if self.op.direction == constants.IALLOCATOR_DIR_OUT:
-      if not hasattr(self.op, "allocator") or self.op.allocator is None:
+      if self.op.allocator is None:
         raise errors.OpPrereqError("Missing allocator name",
                                    errors.ECODE_INVAL)
     elif self.op.direction != constants.IALLOCATOR_DIR_IN:
