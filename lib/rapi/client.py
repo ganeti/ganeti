@@ -1022,7 +1022,7 @@ class GanetiRapiClient(object):
                              None, None)
 
   def EvacuateNode(self, node, iallocator=None, remote_node=None,
-                   dry_run=False):
+                   dry_run=False, early_release=False):
     """Evacuates instances from a Ganeti node.
 
     @type node: str
@@ -1033,11 +1033,16 @@ class GanetiRapiClient(object):
     @param remote_node: node to evaucate to
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @type early_release: bool
+    @param early_release: whether to enable parallelization
 
-    @rtype: int
-    @return: job id
+    @rtype: list
+    @return: list of (job ID, instance name, new secondary node); if
+        dry_run was specified, then the actual move jobs were not
+        submitted and the job IDs will be C{None}
 
-    @raises GanetiApiError: if an iallocator and remote_node are both specified
+    @raises GanetiApiError: if an iallocator and remote_node are both
+        specified
 
     """
     if iallocator and remote_node:
@@ -1050,6 +1055,8 @@ class GanetiRapiClient(object):
       query.append(("remote_node", remote_node))
     if dry_run:
       query.append(("dry-run", 1))
+    if early_release:
+      query.append(("early_release", 1))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/nodes/%s/evacuate" %

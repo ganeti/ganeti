@@ -389,12 +389,32 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
     node_name = self.items[0]
     remote_node = self._checkStringVariable("remote_node", default=None)
     iallocator = self._checkStringVariable("iallocator", default=None)
+    early_r = bool(self._checkIntVariable("early_release", default=0))
+    dry_run = bool(self.dryRun())
 
-    op = opcodes.OpEvacuateNode(node_name=node_name,
-                                remote_node=remote_node,
-                                iallocator=iallocator)
+    cl = baserlib.GetClient()
 
-    return baserlib.SubmitJob([op])
+    op = opcodes.OpNodeEvacuationStrategy(nodes=[node_name],
+                                          iallocator=iallocator,
+                                          remote_node=remote_node)
+
+    job_id = baserlib.SubmitJob([op], cl)
+    # we use custom feedback function, instead of print we log the status
+    result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)
+
+    jobs = []
+    for iname, node in result:
+      if dry_run:
+        jid = None
+      else:
+        op = opcodes.OpReplaceDisks(instance_name=iname,
+                                    remote_node=node, disks=[],
+                                    mode=constants.REPLACE_DISK_CHG,
+                                    early_release=early_r)
+        jid = baserlib.SubmitJob([op])
+      jobs.append((jid, iname, node))
+
+    return jobs
 
 
 class R_2_nodes_name_migrate(baserlib.R_Generic):

@@ -863,6 +863,21 @@ parameters must be passed::
     evacuate?iallocator=[iallocator]
     evacuate?remote_node=[nodeX.example.com]
 
+The result value will be a list, each element being a triple of the job
+id (for this specific evacuation), the instance which is being evacuated
+by this job, and the node to which it is being relocated. In case the
+node is already empty, the result will be an empty list (without any
+jobs being submitted).
+
+And additional parameter ``early_release`` signifies whether to try to
+parallelize the evacuations, at the risk of increasing I/O contention
+and increasing the chances of data loss, if the primary node of any of
+the instances being evacuated is not fully healthy.
+
+If the dry-run parameter was specified, then the evacuation jobs were
+not actually submitted, and the job IDs will be null.
+
+
 ``/2/nodes/[node_name]/migrate``
 +++++++++++++++++++++++++++++++++
 
