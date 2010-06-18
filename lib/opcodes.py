@@ -432,15 +432,6 @@ class OpPowercycleNode(OpCode):
     ]
 
 
-class OpEvacuateNode(OpCode):
-  """Relocate secondary instances from a node."""
-  OP_ID = "OP_NODE_EVACUATE"
-  OP_DSC_FIELD = "node_name"
-  __slots__ = [
-    "node_name", "remote_node", "iallocator", "early_release",
-    ]
-
-
 class OpMigrateNode(OpCode):
   """Migrate all instances from a node."""
   OP_ID = "OP_NODE_MIGRATE"
