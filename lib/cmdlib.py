@@ -685,6 +685,18 @@ def _CheckInstanceDown(lu, instance, reason):
                                (instance.name, reason), errors.ECODE_STATE)
 
 
+def _CheckExportMode(mode):
+  """Ensures that a given export mode is valid.
+
+  @param mode: the export mode to check
+  @raise errors.OpPrereqError: when the export mode is not valid
+
+  """
+  if mode not in constants.EXPORT_MODES:
+    raise errors.OpPrereqError("Invalid export mode %r" % mode,
+                               errors.ECODE_INVAL)
+
+
 def _ExpandItemName(fn, name, kind):
   """Expand an item name.
 
@@ -9160,9 +9172,7 @@ class LUPrepareExport(NoHooksLU):
     """Check the arguments.
 
     """
-    if self.op.mode not in constants.EXPORT_MODES:
-      raise errors.OpPrereqError("Invalid export mode %r" % self.op.mode,
-                                 errors.ECODE_INVAL)
+    _CheckExportMode(self.op.mode)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -9237,9 +9247,7 @@ class LUExportInstance(LogicalUnit):
       raise errors.OpPrereqError("Can not remove instance without shutting it"
                                  " down before")
 
-    if self.op.mode not in constants.EXPORT_MODES:
-      raise errors.OpPrereqError("Invalid export mode %r" % self.op.mode,
-                                 errors.ECODE_INVAL)
+    _CheckExportMode(self.op.mode)
 
     if self.op.mode == constants.EXPORT_MODE_REMOTE:
       if not self.x509_key_name:
