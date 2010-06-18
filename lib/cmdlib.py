@@ -3254,7 +3254,7 @@ class LUModifyNodeStorage(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.opnode_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
     _CheckStorageType(self.op.storage_type)
 
