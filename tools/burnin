@@ -700,8 +700,9 @@ class Burner(object):
                           (enode, pnode, snode))
 
       exp_op = opcodes.OpExportInstance(instance_name=instance,
-                                           target_node=enode,
-                                           shutdown=True)
+                                        target_node=enode,
+                                        mode=constants.EXPORT_MODE_LOCAL,
+                                        shutdown=True)
       rem_op = opcodes.OpRemoveInstance(instance_name=instance,
                                         ignore_failures=True)
       imp_dir = utils.PathJoin(constants.EXPORT_DIR, full_name)
