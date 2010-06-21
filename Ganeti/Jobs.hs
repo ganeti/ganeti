@@ -70,7 +70,6 @@ data JobStatus = JOB_STATUS_QUEUED
                | JOB_STATUS_CANCELING
                | JOB_STATUS_CANCELED
                | JOB_STATUS_ERROR
-               | JOB_STATUS_GONE
                  deriving (Eq, Enum, Ord, Bounded, Show)
 
 instance JSON JobStatus where
@@ -83,7 +82,6 @@ instance JSON JobStatus where
                 JOB_STATUS_CANCELED -> "canceled"
                 JOB_STATUS_SUCCESS -> "success"
                 JOB_STATUS_ERROR -> "error"
-                JOB_STATUS_GONE -> "gone" -- Fake status
     readJSON s = case readJSON s of
       J.Ok "queued" -> J.Ok JOB_STATUS_QUEUED
       J.Ok "waiting" -> J.Ok JOB_STATUS_WAITLOCK

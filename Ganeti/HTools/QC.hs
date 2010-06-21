@@ -30,6 +30,7 @@ module Ganeti.HTools.QC
     , testNode
     , testText
     , testOpCodes
+    , testJobs
     , testCluster
     , testLoader
     ) where
@@ -43,6 +44,7 @@ import qualified Text.JSON as J
 import qualified Data.Map
 import qualified Data.IntMap as IntMap
 import qualified Ganeti.OpCodes as OpCodes
+import qualified Ganeti.Jobs as Jobs
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -175,6 +177,12 @@ instance Arbitrary OpCodes.OpCode where
         "OP_INSTANCE_MIGRATE" ->
           liftM3 OpCodes.OpMigrateInstance arbitrary arbitrary arbitrary
         _ -> fail "Wrong opcode")
+
+instance Arbitrary Jobs.OpStatus where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Jobs.JobStatus where
+  arbitrary = elements [minBound..maxBound]
 
 -- * Actual tests
 
@@ -657,6 +665,24 @@ prop_OpCodes_serialization op =
 
 testOpCodes =
   [ run prop_OpCodes_serialization
+  ]
+
+-- | Check that (queued) job/opcode status serialization is idempotent
+prop_OpStatus_serialization os =
+  case J.readJSON (J.showJSON os) of
+    J.Error _ -> False
+    J.Ok os' -> os == os'
+  where _types = os::Jobs.OpStatus
+
+prop_JobStatus_serialization js =
+  case J.readJSON (J.showJSON js) of
+    J.Error _ -> False
+    J.Ok js' -> js == js'
+  where _types = js::Jobs.JobStatus
+
+testJobs =
+  [ run prop_OpStatus_serialization
+  , run prop_JobStatus_serialization
   ]
 
 -- | Loader tests
