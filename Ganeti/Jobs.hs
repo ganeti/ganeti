@@ -33,33 +33,33 @@ import qualified Text.JSON as J
 -- | The JobStatus data type. Note that this is ordered especially
 -- such that greater\/lesser comparison on values of this type makes
 -- sense.
-data JobStatus = JobQueued
-               | JobWaitLock
-               | JobRunning
-               | JobSuccess
-               | JobCanceling
-               | JobCanceled
-               | JobError
-               | JobGone
+data JobStatus = JOB_STATUS_QUEUED
+               | JOB_STATUS_WAITLOCK
+               | JOB_STATUS_RUNNING
+               | JOB_STATUS_SUCCESS
+               | JOB_STATUS_CANCELING
+               | JOB_STATUS_CANCELED
+               | JOB_STATUS_ERROR
+               | JOB_STATUS_GONE
                  deriving (Eq, Enum, Ord, Bounded, Show)
 
 instance JSON JobStatus where
     showJSON js = showJSON w
         where w = case js of
-                    JobQueued -> "queued"
-                    JobWaitLock -> "waiting"
-                    JobCanceling -> "canceling"
-                    JobRunning -> "running"
-                    JobCanceled -> "canceled"
-                    JobSuccess -> "success"
-                    JobError -> "error"
-                    JobGone -> "gone" -- Fake status
+                JOB_STATUS_QUEUED -> "queued"
+                JOB_STATUS_WAITLOCK -> "waiting"
+                JOB_STATUS_CANCELING -> "canceling"
+                JOB_STATUS_RUNNING -> "running"
+                JOB_STATUS_CANCELED -> "canceled"
+                JOB_STATUS_SUCCESS -> "success"
+                JOB_STATUS_ERROR -> "error"
+                JOB_STATUS_GONE -> "gone" -- Fake status
     readJSON s = case readJSON s of
-                   J.Ok "queued" -> J.Ok JobQueued
-                   J.Ok "waiting" -> J.Ok JobWaitLock
-                   J.Ok "canceling" -> J.Ok JobCanceling
-                   J.Ok "running" -> J.Ok JobRunning
-                   J.Ok "success" -> J.Ok JobSuccess
-                   J.Ok "canceled" -> J.Ok JobCanceled
-                   J.Ok "error" -> J.Ok JobError
-                   _ -> J.Error ("Unknown job status " ++ show s)
+      J.Ok "queued" -> J.Ok JOB_STATUS_QUEUED
+      J.Ok "waiting" -> J.Ok JOB_STATUS_WAITLOCK
+      J.Ok "canceling" -> J.Ok JOB_STATUS_CANCELING
+      J.Ok "running" -> J.Ok JOB_STATUS_RUNNING
+      J.Ok "success" -> J.Ok JOB_STATUS_SUCCESS
+      J.Ok "canceled" -> J.Ok JOB_STATUS_CANCELED
+      J.Ok "error" -> J.Ok JOB_STATUS_ERROR
+      _ -> J.Error ("Unknown job status " ++ show s)

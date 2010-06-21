@@ -131,7 +131,7 @@ waitForJobs client jids = do
   sts <- L.queryJobsStatus client jids
   case sts of
     Bad x -> return $ Bad x
-    Ok s -> if any (<= JobRunning) s
+    Ok s -> if any (<= JOB_STATUS_RUNNING) s
             then do
               -- TODO: replace hardcoded value with a better thing
               threadDelay (1000000 * 15)
@@ -140,7 +140,7 @@ waitForJobs client jids = do
 
 -- | Check that a set of job statuses is all success
 checkJobsStatus :: [JobStatus] -> Bool
-checkJobsStatus = all (== JobSuccess)
+checkJobsStatus = all (== JOB_STATUS_SUCCESS)
 
 -- | Execute an entire jobset
 execJobSet :: String -> Node.List
