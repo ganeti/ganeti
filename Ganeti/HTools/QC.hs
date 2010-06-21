@@ -667,7 +667,7 @@ testOpCodes =
   [ run prop_OpCodes_serialization
   ]
 
--- | Check that (queued) job/opcode status serialization is idempotent
+-- | Check that (queued) job\/opcode status serialization is idempotent
 prop_OpStatus_serialization os =
   case J.readJSON (J.showJSON os) of
     J.Error _ -> False
