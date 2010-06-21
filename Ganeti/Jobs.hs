@@ -24,11 +24,41 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Jobs
-    ( JobStatus(..)
+    ( OpStatus(..)
+    , JobStatus(..)
     ) where
 
 import Text.JSON (readJSON, showJSON, JSON)
 import qualified Text.JSON as J
+
+data OpStatus = OP_STATUS_QUEUED
+              | OP_STATUS_WAITLOCK
+              | OP_STATUS_CANCELING
+              | OP_STATUS_RUNNING
+              | OP_STATUS_CANCELED
+              | OP_STATUS_SUCCESS
+              | OP_STATUS_ERROR
+                deriving (Eq, Enum, Bounded, Show)
+
+instance JSON OpStatus where
+    showJSON os = showJSON w
+      where w = case os of
+              OP_STATUS_QUEUED -> "queued"
+              OP_STATUS_WAITLOCK -> "waiting"
+              OP_STATUS_CANCELING -> "canceling"
+              OP_STATUS_RUNNING -> "running"
+              OP_STATUS_CANCELED -> "canceled"
+              OP_STATUS_SUCCESS -> "success"
+              OP_STATUS_ERROR -> "error"
+    readJSON s = case readJSON s of
+      J.Ok "queued" -> J.Ok OP_STATUS_QUEUED
+      J.Ok "waiting" -> J.Ok OP_STATUS_WAITLOCK
+      J.Ok "canceling" -> J.Ok OP_STATUS_CANCELING
+      J.Ok "running" -> J.Ok OP_STATUS_RUNNING
+      J.Ok "canceled" -> J.Ok OP_STATUS_CANCELED
+      J.Ok "success" -> J.Ok OP_STATUS_SUCCESS
+      J.Ok "error" -> J.Ok OP_STATUS_ERROR
+      _ -> J.Error ("Unknown opcode status " ++ show s)
 
 -- | The JobStatus data type. Note that this is ordered especially
 -- such that greater\/lesser comparison on values of this type makes
