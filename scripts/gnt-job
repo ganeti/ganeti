@@ -200,7 +200,7 @@ def ShowJobs(opts, args):
   @return: the desired exit code
 
   """
-  def format(level, text):
+  def format_msg(level, text):
     """Display the text indented."""
     ToStdout("%s%s", "  " * level, text)
 
@@ -222,33 +222,33 @@ def ShowJobs(opts, args):
 
   for idx, entry in enumerate(result):
     if not first:
-      format(0, "")
+      format_msg(0, "")
     else:
       first = False
 
     if entry is None:
       if idx <= len(args):
-        format(0, "Job ID %s not found" % args[idx])
+        format_msg(0, "Job ID %s not found" % args[idx])
       else:
         # this should not happen, when we don't pass args it will be a
         # valid job returned
-        format(0, "Job ID requested as argument %s not found" % (idx + 1))
+        format_msg(0, "Job ID requested as argument %s not found" % (idx + 1))
       continue
 
     (job_id, status, ops, opresult, opstatus, oplog,
      opstart, opexec, opend, recv_ts, start_ts, end_ts) = entry
-    format(0, "Job ID: %s" % job_id)
+    format_msg(0, "Job ID: %s" % job_id)
     if status in _USER_JOB_STATUS:
       status = _USER_JOB_STATUS[status]
     else:
       raise errors.ProgrammerError("Unknown job status code '%s'" % status)
 
-    format(1, "Status: %s" % status)
+    format_msg(1, "Status: %s" % status)
 
     if recv_ts is not None:
-      format(1, "Received:         %s" % FormatTimestamp(recv_ts))
+      format_msg(1, "Received:         %s" % FormatTimestamp(recv_ts))
     else:
-      format(1, "Missing received timestamp (%s)" % str(recv_ts))
+      format_msg(1, "Missing received timestamp (%s)" % str(recv_ts))
 
     if start_ts is not None:
       if recv_ts is not None:
@@ -256,9 +256,10 @@ def ShowJobs(opts, args):
         delta = " (delta %.6fs)" % d1
       else:
         delta = ""
-      format(1, "Processing start: %s%s" % (FormatTimestamp(start_ts), delta))
+      format_msg(1, "Processing start: %s%s" %
+                 (FormatTimestamp(start_ts), delta))
     else:
-      format(1, "Processing start: unknown (%s)" % str(start_ts))
+      format_msg(1, "Processing start: unknown (%s)" % str(start_ts))
 
     if end_ts is not None:
       if start_ts is not None:
@@ -266,61 +267,62 @@ def ShowJobs(opts, args):
         delta = " (delta %.6fs)" % d2
       else:
         delta = ""
-      format(1, "Processing end:   %s%s" % (FormatTimestamp(end_ts), delta))
+      format_msg(1, "Processing end:   %s%s" %
+                 (FormatTimestamp(end_ts), delta))
     else:
-      format(1, "Processing end:   unknown (%s)" % str(end_ts))
+      format_msg(1, "Processing end:   unknown (%s)" % str(end_ts))
 
     if end_ts is not None and recv_ts is not None:
       d3 = end_ts[0] - recv_ts[0] + (end_ts[1] - recv_ts[1]) / 1000000.0
-      format(1, "Total processing time: %.6f seconds" % d3)
+      format_msg(1, "Total processing time: %.6f seconds" % d3)
     else:
-      format(1, "Total processing time: N/A")
-    format(1, "Opcodes:")
+      format_msg(1, "Total processing time: N/A")
+    format_msg(1, "Opcodes:")
     for (opcode, result, status, log, s_ts, x_ts, e_ts) in \
             zip(ops, opresult, opstatus, oplog, opstart, opexec, opend):
-      format(2, "%s" % opcode["OP_ID"])
-      format(3, "Status: %s" % status)
+      format_msg(2, "%s" % opcode["OP_ID"])
+      format_msg(3, "Status: %s" % status)
       if isinstance(s_ts, (tuple, list)):
-        format(3, "Processing start: %s" % FormatTimestamp(s_ts))
+        format_msg(3, "Processing start: %s" % FormatTimestamp(s_ts))
       else:
-        format(3, "No processing start time")
+        format_msg(3, "No processing start time")
       if isinstance(x_ts, (tuple, list)):
-        format(3, "Execution start:  %s" % FormatTimestamp(x_ts))
+        format_msg(3, "Execution start:  %s" % FormatTimestamp(x_ts))
       else:
-        format(3, "No execution start time")
+        format_msg(3, "No execution start time")
       if isinstance(e_ts, (tuple, list)):
-        format(3, "Processing end:   %s" % FormatTimestamp(e_ts))
+        format_msg(3, "Processing end:   %s" % FormatTimestamp(e_ts))
       else:
-        format(3, "No processing end time")
-      format(3, "Input fields:")
+        format_msg(3, "No processing end time")
+      format_msg(3, "Input fields:")
       for key, val in opcode.iteritems():
         if key == "OP_ID":
           continue
         if isinstance(val, (tuple, list)):
           val = ",".join([str(item) for item in val])
-        format(4, "%s: %s" % (key, val))
+        format_msg(4, "%s: %s" % (key, val))
       if result is None:
-        format(3, "No output data")
+        format_msg(3, "No output data")
       elif isinstance(result, (tuple, list)):
         if not result:
-          format(3, "Result: empty sequence")
+          format_msg(3, "Result: empty sequence")
         else:
-          format(3, "Result:")
+          format_msg(3, "Result:")
           for elem in result:
-            format(4, result_helper(elem))
+            format_msg(4, result_helper(elem))
       elif isinstance(result, dict):
         if not result:
-          format(3, "Result: empty dictionary")
+          format_msg(3, "Result: empty dictionary")
         else:
           for key, val in result.iteritems():
-            format(4, "%s: %s" % (key, result_helper(val)))
+            format_msg(4, "%s: %s" % (key, result_helper(val)))
       else:
-        format(3, "Result: %s" % result)
-      format(3, "Execution log:")
+        format_msg(3, "Result: %s" % result)
+      format_msg(3, "Execution log:")
       for serial, log_ts, log_type, log_msg in log:
         time_txt = FormatTimestamp(log_ts)
         encoded = utils.SafeEncode(log_msg)
-        format(4, "%s:%s:%s %s" % (serial, time_txt, log_type, encoded))
+        format_msg(4, "%s:%s:%s %s" % (serial, time_txt, log_type, encoded))
   return 0
 
 
