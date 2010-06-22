@@ -985,7 +985,19 @@ class JobQueue(object):
       logging.debug("Found job %s in memcache", job_id)
       return job
 
-    job = self._LoadJobFromDisk(job_id)
+    try:
+      job = self._LoadJobFromDisk(job_id)
+    except errors.JobFileCorrupted:
+      old_path = self._GetJobPath(job_id)
+      new_path = self._GetArchivedJobPath(job_id)
+      if old_path == new_path:
+        # job already archived (future case)
+        logging.exception("Can't parse job %s", job_id)
+      else:
+        # non-archived case
+        logging.exception("Can't parse job %s, will archive.", job_id)
+        self._RenameFilesUnlocked([(old_path, new_path)])
+      return None
 
     self._memcache[job_id] = job
     logging.debug("Added job %s to the cache", job_id)
@@ -1015,15 +1027,7 @@ class JobQueue(object):
       data = serializer.LoadJson(raw_data)
       job = _QueuedJob.Restore(self, data)
     except Exception, err: # pylint: disable-msg=W0703
-      new_path = self._GetArchivedJobPath(job_id)
-      if filepath == new_path:
-        # job already archived (future case)
-        logging.exception("Can't parse job %s", job_id)
-      else:
-        # non-archived case
-        logging.exception("Can't parse job %s, will archive.", job_id)
-        self._RenameFilesUnlocked([(filepath, new_path)])
-      return None
+      raise errors.JobFileCorrupted(err)
 
     return job
 

@@ -184,6 +184,12 @@ class JobLost(GenericError):
   """
 
 
+class JobFileCorrupted(GenericError):
+  """Job file could not be properly decoded/restored.
+
+  """
+
+
 class ResolverError(GenericError):
   """Host name cannot be resolved.
 
