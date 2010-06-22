@@ -457,6 +457,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     try:
       self._job.log_serial += 1
       self._op.log.append((self._job.log_serial, timestamp, log_type, log_msg))
+      self._queue.UpdateJobUnlocked(self._job, replicate=False)
 
       self._job.change.notifyAll()
     finally:
