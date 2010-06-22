@@ -162,7 +162,6 @@ class _QueuedJob(object):
   @ivar start_timestmap: the timestamp for start of execution
   @ivar end_timestamp: the timestamp for end of execution
   @ivar lock_status: In-memory locking information for debugging
-  @ivar change: a Condition variable we use for waiting for job changes
 
   """
   # pylint: disable-msg=W0212
@@ -196,9 +195,6 @@ class _QueuedJob(object):
 
     # In-memory attributes
     self.lock_status = None
-
-    # Condition to wait for changes
-    self.change = threading.Condition(self.queue._lock)
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -236,9 +232,6 @@ class _QueuedJob(object):
       for log_entry in op.log:
         obj.log_serial = max(obj.log_serial, log_entry[0])
       obj.ops.append(op)
-
-    # Condition to wait for changes
-    obj.change = threading.Condition(obj.queue._lock)
 
     return obj
 
@@ -465,8 +458,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
       self._job.log_serial += 1
       self._op.log.append((self._job.log_serial, timestamp, log_type, log_msg))
       self._queue.UpdateJobUnlocked(self._job, replicate=False)
-
-      self._job.change.notifyAll()
     finally:
       self._queue.release()
 
@@ -1296,9 +1287,6 @@ class JobQueue(object):
     data = serializer.DumpJson(job.Serialize(), indent=False)
     logging.debug("Writing job %s to %s", job.id, filename)
     self._UpdateJobQueueFile(filename, data, replicate)
-
-    # Notify waiters about potential changes
-    job.change.notifyAll()
 
   def WaitForJobChanges(self, job_id, fields, prev_job_info, prev_log_serial,
                         timeout):
