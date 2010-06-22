@@ -959,17 +959,17 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
       sectors = int(result.stdout)
     except (TypeError, ValueError):
       _ThrowError("Invalid output from blockdev: '%s'", result.stdout)
-    bytes = sectors * 512
-    if bytes < 128 * 1024 * 1024: # less than 128MiB
-      _ThrowError("Meta device too small (%.2fMib)", (bytes / 1024 / 1024))
+    num_bytes = sectors * 512
+    if num_bytes < 128 * 1024 * 1024: # less than 128MiB
+      _ThrowError("Meta device too small (%.2fMib)", (num_bytes / 1024 / 1024))
     # the maximum *valid* size of the meta device when living on top
     # of LVM is hard to compute: it depends on the number of stripes
     # and the PE size; e.g. a 2-stripe, 64MB PE will result in a 128MB
     # (normal size), but an eight-stripe 128MB PE will result in a 1GB
     # size meta device; as such, we restrict it to 1GB (a little bit
     # too generous, but making assumptions about PE size is hard)
-    if bytes > 1024 * 1024 * 1024:
-      _ThrowError("Meta device too big (%.2fMiB)", (bytes / 1024 / 1024))
+    if num_bytes > 1024 * 1024 * 1024:
+      _ThrowError("Meta device too big (%.2fMiB)", (num_bytes / 1024 / 1024))
 
   def Rename(self, new_id):
     """Rename a device.

@@ -2000,9 +2000,9 @@ def GenerateTable(headers, fields, separator, data,
 
   if separator is None:
     mlens = [0 for name in fields]
-    format = ' '.join(format_fields)
+    format_str = ' '.join(format_fields)
   else:
-    format = separator.replace("%", "%%").join(format_fields)
+    format_str = separator.replace("%", "%%").join(format_fields)
 
   for row in data:
     if row is None:
@@ -2028,7 +2028,7 @@ def GenerateTable(headers, fields, separator, data,
         mlens[idx] = max(mlens[idx], len(hdr))
         args.append(mlens[idx])
       args.append(hdr)
-    result.append(format % tuple(args))
+    result.append(format_str % tuple(args))
 
   if separator is None:
     assert len(mlens) == len(fields)
@@ -2044,7 +2044,7 @@ def GenerateTable(headers, fields, separator, data,
       if separator is None:
         args.append(mlens[idx])
       args.append(line[idx])
-    result.append(format % tuple(args))
+    result.append(format_str % tuple(args))
 
   return result
 
