@@ -1046,6 +1046,25 @@ class JobQueue(object):
 
     return [self._LoadJobUnlocked(job_id) for job_id in job_ids]
 
+  def SafeLoadJobFromDisk(self, job_id):
+    """Load the given job file from disk.
+
+    Given a job file, read, load and restore it in a _QueuedJob format.
+    In case of error reading the job, it gets returned as None, and the
+    exception is logged.
+
+    @type job_id: string
+    @param job_id: job identifier
+    @rtype: L{_QueuedJob} or None
+    @return: either None or the job object
+
+    """
+    try:
+      return self._LoadJobFromDisk(job_id)
+    except (errors.JobFileCorrupted, EnvironmentError):
+      logging.exception("Can't load/parse job %s", job_id)
+      return None
+
   @staticmethod
   def _IsQueueMarkedDrain():
     """Check if the queue is marked from drain.
