@@ -106,3 +106,7 @@ disable-msg-cat=
 
 # Disable the message(s) with the given id(s).
 disable-msg=W0511,R0922,W0201
+
+# The new pylint 0.21+ style (plus the similarities checker, which is no longer
+# a separate opiton, but a generic disable control)
+disable=W0511,R0922,W0201,R0922,R0801,I0011
