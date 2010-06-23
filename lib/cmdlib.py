@@ -164,11 +164,11 @@ def _TOr(*args):
 # Type aliases
 
 # non-empty string
-_TNEString = _TAnd(_TString, _TTrue)
+_TNonEmptyString = _TAnd(_TString, _TTrue)
 
 
 # positive integer
-_TPInt = _TAnd(_TInt, lambda v: v >= 0)
+_TPositiveInt = _TAnd(_TInt, lambda v: v >= 0)
 
 
 def _TListOf(my_type):
@@ -2292,7 +2292,7 @@ class LURepairDiskSizes(NoHooksLU):
   """Verifies the cluster disks sizes.
 
   """
-  _OP_REQP = [("instances", _TListOf(_TNEString))]
+  _OP_REQP = [("instances", _TListOf(_TNonEmptyString))]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -2410,7 +2410,7 @@ class LURenameCluster(LogicalUnit):
   """
   HPATH = "cluster-rename"
   HTYPE = constants.HTYPE_CLUSTER
-  _OP_REQP = [("name", _TNEString)]
+  _OP_REQP = [("name", _TNonEmptyString)]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2511,9 +2511,9 @@ class LUSetClusterParams(LogicalUnit):
   HPATH = "cluster-modify"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = [
-    ("hvparams", _TOr(_TDictOf(_TNEString, _TDict), _TNone)),
-    ("os_hvp", _TOr(_TDictOf(_TNEString, _TDict), _TNone)),
-    ("osparams", _TOr(_TDictOf(_TNEString, _TDict), _TNone)),
+    ("hvparams", _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
+    ("os_hvp", _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
+    ("osparams", _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
     ("enabled_hypervisors",
      _TOr(_TAnd(_TListOf(_TElemOf(constants.HYPER_TYPES)), _TTrue), _TNone)),
     ]
@@ -2951,8 +2951,8 @@ class LUDiagnoseOS(NoHooksLU):
 
   """
   _OP_REQP = [
-    ("output_fields", _TListOf(_TNEString)),
-    ("names", _TListOf(_TNEString)),
+    ("output_fields", _TListOf(_TNonEmptyString)),
+    ("names", _TListOf(_TNonEmptyString)),
     ]
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet()
@@ -3074,7 +3074,7 @@ class LURemoveNode(LogicalUnit):
   """
   HPATH = "node-remove"
   HTYPE = constants.HTYPE_NODE
-  _OP_REQP = [("node_name", _TNEString)]
+  _OP_REQP = [("node_name", _TNonEmptyString)]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3168,8 +3168,8 @@ class LUQueryNodes(NoHooksLU):
   """
   # pylint: disable-msg=W0142
   _OP_REQP = [
-    ("output_fields", _TListOf(_TNEString)),
-    ("names", _TListOf(_TNEString)),
+    ("output_fields", _TListOf(_TNonEmptyString)),
+    ("names", _TListOf(_TNonEmptyString)),
     ("use_locking", _TBool),
     ]
   REQ_BGL = False
@@ -3325,8 +3325,8 @@ class LUQueryNodeVolumes(NoHooksLU):
 
   """
   _OP_REQP = [
-    ("nodes", _TListOf(_TNEString)),
-    ("output_fields", _TListOf(_TNEString)),
+    ("nodes", _TListOf(_TNonEmptyString)),
+    ("output_fields", _TListOf(_TNonEmptyString)),
     ]
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet("phys", "vg", "name", "size", "instance")
@@ -3408,9 +3408,9 @@ class LUQueryNodeStorage(NoHooksLU):
   """
   _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
   _OP_REQP = [
-    ("nodes", _TListOf(_TNEString)),
+    ("nodes", _TListOf(_TNonEmptyString)),
     ("storage_type", _CheckStorageType),
-    ("output_fields", _TListOf(_TNEString)),
+    ("output_fields", _TListOf(_TNonEmptyString)),
     ]
   _OP_DEFS = [("name", None)]
   REQ_BGL = False
@@ -3496,9 +3496,9 @@ class LUModifyNodeStorage(NoHooksLU):
 
   """
   _OP_REQP = [
-    ("node_name", _TNEString),
+    ("node_name", _TNonEmptyString),
     ("storage_type", _CheckStorageType),
-    ("name", _TNEString),
+    ("name", _TNonEmptyString),
     ("changes", _TDict),
     ]
   REQ_BGL = False
@@ -3546,7 +3546,7 @@ class LUAddNode(LogicalUnit):
   HPATH = "node-add"
   HTYPE = constants.HTYPE_NODE
   _OP_REQP = [
-    ("node_name", _TNEString),
+    ("node_name", _TNonEmptyString),
     ]
   _OP_DEFS = [("secondary_ip", None)]
 
@@ -3778,7 +3778,7 @@ class LUSetNodeParams(LogicalUnit):
   """
   HPATH = "node-modify"
   HTYPE = constants.HTYPE_NODE
-  _OP_REQP = [("node_name", _TNEString)]
+  _OP_REQP = [("node_name", _TNonEmptyString)]
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -3940,7 +3940,7 @@ class LUPowercycleNode(NoHooksLU):
 
   """
   _OP_REQP = [
-    ("node_name", _TNEString),
+    ("node_name", _TNonEmptyString),
     ("force", _TBool),
     ]
   REQ_BGL = False
@@ -4069,7 +4069,7 @@ class LUActivateInstanceDisks(NoHooksLU):
   """Bring up an instance's disks.
 
   """
-  _OP_REQP = [("instance_name", _TNEString)]
+  _OP_REQP = [("instance_name", _TNonEmptyString)]
   _OP_DEFS = [("ignore_size", False)]
   REQ_BGL = False
 
@@ -4213,7 +4213,7 @@ class LUDeactivateInstanceDisks(NoHooksLU):
   """Shutdown an instance's disks.
 
   """
-  _OP_REQP = [("instance_name", _TNEString)]
+  _OP_REQP = [("instance_name", _TNonEmptyString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -4377,7 +4377,7 @@ class LUStartupInstance(LogicalUnit):
   HPATH = "instance-start"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("force", _TBool),
     ("beparams", _TDict),
     ("hvparams", _TDict),
@@ -4475,7 +4475,7 @@ class LURebootInstance(LogicalUnit):
   HPATH = "instance-reboot"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("ignore_secondaries", _TBool),
     ("reboot_type", _TElemOf(constants.REBOOT_TYPES)),
     ]
@@ -4555,7 +4555,7 @@ class LUShutdownInstance(LogicalUnit):
   """
   HPATH = "instance-stop"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = [("instance_name", _TNEString)]
+  _OP_REQP = [("instance_name", _TNonEmptyString)]
   _OP_DEFS = [("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
 
@@ -4606,7 +4606,7 @@ class LUReinstallInstance(LogicalUnit):
   """
   HPATH = "instance-reinstall"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = [("instance_name", _TNEString)]
+  _OP_REQP = [("instance_name", _TNonEmptyString)]
   _OP_DEFS = [
     ("os_type", None),
     ("force_variant", False),
@@ -4680,8 +4680,8 @@ class LURecreateInstanceDisks(LogicalUnit):
   HPATH = "instance-recreate-disks"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
-    ("disks", _TListOf(_TPInt)),
+    ("instance_name", _TNonEmptyString),
+    ("disks", _TListOf(_TPositiveInt)),
     ]
   REQ_BGL = False
 
@@ -4744,8 +4744,8 @@ class LURenameInstance(LogicalUnit):
   HPATH = "instance-rename"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
-    ("new_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
+    ("new_name", _TNonEmptyString),
     ]
   _OP_DEFS = [("ignore_ip", False)]
 
@@ -4838,7 +4838,7 @@ class LURemoveInstance(LogicalUnit):
   HPATH = "instance-remove"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("ignore_failures", _TBool),
     ]
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
@@ -4925,8 +4925,8 @@ class LUQueryInstances(NoHooksLU):
   """
   # pylint: disable-msg=W0142
   _OP_REQP = [
-    ("output_fields", _TListOf(_TNEString)),
-    ("names", _TListOf(_TNEString)),
+    ("output_fields", _TListOf(_TNonEmptyString)),
+    ("names", _TListOf(_TNonEmptyString)),
     ("use_locking", _TBool),
     ]
   REQ_BGL = False
@@ -5207,7 +5207,7 @@ class LUFailoverInstance(LogicalUnit):
   HPATH = "instance-failover"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("ignore_consistency", _TBool),
     ]
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
@@ -5361,7 +5361,7 @@ class LUMigrateInstance(LogicalUnit):
   HPATH = "instance-migrate"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("live", _TBool),
     ("cleanup", _TBool),
     ]
@@ -5413,8 +5413,8 @@ class LUMoveInstance(LogicalUnit):
   HPATH = "instance-move"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
-    ("target_node", _TNEString),
+    ("instance_name", _TNonEmptyString),
+    ("target_node", _TNonEmptyString),
     ]
   _OP_DEFS = [("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT)]
   REQ_BGL = False
@@ -5592,7 +5592,7 @@ class LUMigrateNode(LogicalUnit):
   HPATH = "node-migrate"
   HTYPE = constants.HTYPE_NODE
   _OP_REQP = [
-    ("node_name", _TNEString),
+    ("node_name", _TNonEmptyString),
     ("live", _TBool),
     ]
   REQ_BGL = False
@@ -6329,7 +6329,7 @@ class LUCreateInstance(LogicalUnit):
   HPATH = "instance-add"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("mode", _TElemOf(constants.INSTANCE_CREATE_MODES)),
     ("start", _TBool),
     ("wait_for_sync", _TBool),
@@ -7236,7 +7236,7 @@ class LUConnectConsole(NoHooksLU):
   console.
 
   """
-  _OP_REQP = [("instance_name", _TNEString)]
+  _OP_REQP = [("instance_name", _TNonEmptyString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -7288,9 +7288,9 @@ class LUReplaceDisks(LogicalUnit):
   HPATH = "mirrors-replace"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("mode", _TElemOf(constants.REPLACE_MODES)),
-    ("disks", _TListOf(_TPInt)),
+    ("disks", _TListOf(_TPositiveInt)),
     ]
   _OP_DEFS = [
     ("remote_node", None),
@@ -8032,7 +8032,7 @@ class LURepairNodeStorage(NoHooksLU):
   """Repairs the volume group on a node.
 
   """
-  _OP_REQP = [("node_name", _TNEString)]
+  _OP_REQP = [("node_name", _TNonEmptyString)]
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -8097,7 +8097,7 @@ class LUNodeEvacuationStrategy(NoHooksLU):
   """Computes the node evacuation strategy.
 
   """
-  _OP_REQP = [("nodes", _TListOf(_TNEString))]
+  _OP_REQP = [("nodes", _TListOf(_TNonEmptyString))]
   _OP_DEFS = [
     ("remote_node", None),
     ("iallocator", None),
@@ -8151,7 +8151,7 @@ class LUGrowDisk(LogicalUnit):
   HPATH = "disk-grow"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("disk", _TInt),
     ("amount", _TInt),
     ("wait_for_sync", _TBool),
@@ -8250,7 +8250,7 @@ class LUQueryInstanceData(NoHooksLU):
 
   """
   _OP_REQP = [
-    ("instances", _TListOf(_TNEString)),
+    ("instances", _TListOf(_TNonEmptyString)),
     ("static", _TBool),
     ]
   REQ_BGL = False
@@ -8409,7 +8409,7 @@ class LUSetInstanceParams(LogicalUnit):
   """
   HPATH = "instance-modify"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = [("instance_name", _TNEString)]
+  _OP_REQP = [("instance_name", _TNonEmptyString)]
   _OP_DEFS = [
     ("nics", _EmptyList),
     ("disks", _EmptyList),
@@ -9071,7 +9071,7 @@ class LUQueryExports(NoHooksLU):
   """Query the exports list
 
   """
-  _OP_REQP = [("nodes", _TListOf(_TNEString))]
+  _OP_REQP = [("nodes", _TListOf(_TNonEmptyString))]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -9109,7 +9109,7 @@ class LUPrepareExport(NoHooksLU):
 
   """
   _OP_REQP = [
-    ("instance_name", _TNEString),
+    ("instance_name", _TNonEmptyString),
     ("mode", _TElemOf(constants.EXPORT_MODES)),
     ]
   REQ_BGL = False
@@ -9166,8 +9166,8 @@ class LUExportInstance(LogicalUnit):
   HPATH = "instance-export"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = [
-    ("instance_name", _TNEString),
-    ("target_node", _TNEString),
+    ("instance_name", _TNonEmptyString),
+    ("target_node", _TNonEmptyString),
     ("shutdown", _TBool),
     ("mode", _TElemOf(constants.EXPORT_MODES)),
     ]
@@ -9454,7 +9454,7 @@ class LURemoveExport(NoHooksLU):
   """Remove exports related to the named instance.
 
   """
-  _OP_REQP = [("instance_name", _TNEString)]
+  _OP_REQP = [("instance_name", _TNonEmptyString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -9535,7 +9535,7 @@ class LUGetTags(TagsLU):
   """
   _OP_REQP = [
     ("kind", _TElemOf(constants.VALID_TAG_TYPES)),
-    ("name", _TNEString),
+    ("name", _TNonEmptyString),
     ]
   REQ_BGL = False
 
@@ -9550,7 +9550,7 @@ class LUSearchTags(NoHooksLU):
   """Searches the tags for a given pattern.
 
   """
-  _OP_REQP = [("pattern", _TNEString)]
+  _OP_REQP = [("pattern", _TNonEmptyString)]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -9592,7 +9592,7 @@ class LUAddTags(TagsLU):
   """
   _OP_REQP = [
     ("kind", _TElemOf(constants.VALID_TAG_TYPES)),
-    ("name", _TNEString),
+    ("name", _TNonEmptyString),
     ("tags", _TListOf(objects.TaggableObject.ValidateTag)),
     ]
   REQ_BGL = False
@@ -9625,7 +9625,7 @@ class LUDelTags(TagsLU):
   """
   _OP_REQP = [
     ("kind", _TElemOf(constants.VALID_TAG_TYPES)),
-    ("name", _TNEString),
+    ("name", _TNonEmptyString),
     ("tags", _TListOf(objects.TaggableObject.ValidateTag)),
     ]
   REQ_BGL = False
@@ -9667,7 +9667,7 @@ class LUTestDelay(NoHooksLU):
   _OP_REQP = [
     ("duration", _TFloat),
     ("on_master", _TBool),
-    ("on_nodes", _TListOf(_TNEString)),
+    ("on_nodes", _TListOf(_TNonEmptyString)),
     ]
   REQ_BGL = False
 
@@ -10051,9 +10051,9 @@ class LUTestAllocator(NoHooksLU):
   _OP_REQP = [
     ("direction", _TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)),
     ("mode", _TElemOf(constants.VALID_IALLOCATOR_MODES)),
-    ("name", _TNEString),
+    ("name", _TNonEmptyString),
     ("nics", _TOr(_TNone, _TListOf(
-      _TDictOf(_TElemOf(["mac", "ip", "bridge"]), _TNEString)))),
+      _TDictOf(_TElemOf(["mac", "ip", "bridge"]), _TNonEmptyString)))),
     ("disks", _TOr(_TNone, _TList)),
     ]
   _OP_DEFS = [
