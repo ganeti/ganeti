@@ -793,7 +793,7 @@ class ImportExportLoop:
           logging.exception("%s failed", diskie.MODE_TEXT)
           diskie.Finalize(error=str(err))
 
-      if not compat.any([diskie.active for diskie in self._queue]):
+      if not compat.any(diskie.active for diskie in self._queue):
         break
 
       # Wait a bit
@@ -1060,11 +1060,11 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
     ieloop.FinalizeAll()
 
   assert len(all_dtp) == len(all_transfers)
-  assert compat.all([(dtp.src_export is None or
+  assert compat.all((dtp.src_export is None or
                       dtp.src_export.success is not None) and
                      (dtp.dest_import is None or
                       dtp.dest_import.success is not None)
-                     for dtp in all_dtp]), \
+                     for dtp in all_dtp), \
          "Not all imports/exports are finalized"
 
   return [bool(dtp.success) for dtp in all_dtp]

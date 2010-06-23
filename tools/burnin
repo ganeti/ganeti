@@ -987,7 +987,7 @@ class Burner(object):
         self.BurnReplaceDisks2()
 
       if (opts.disk_template in constants.DTS_GROWABLE and
-          compat.any(self.disk_growth, lambda n: n > 0)):
+          compat.any(n > 0 for n in self.disk_growth)):
         self.BurnGrowDisks()
 
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:

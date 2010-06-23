@@ -55,29 +55,31 @@ except ImportError:
   sha1_hash = sha.new
 
 
-def all(seq, pred=bool): # pylint: disable-msg=W0622
-  """Returns True if pred(x) is True for every element in the iterable.
-
-  Please note that this function provides a C{pred} parameter which isn't
-  available in the version included in Python 2.5 and above.
+def _all(seq):
+  """Returns True if all elements in the iterable are True.
 
   """
-  for _ in itertools.ifilterfalse(pred, seq):
+  for _ in itertools.ifilterfalse(bool, seq):
     return False
   return True
 
-
-def any(seq, pred=bool): # pylint: disable-msg=W0622
-  """Returns True if pred(x) is True for at least one element in the iterable.
-
-  Please note that this function provides a C{pred} parameter which isn't
-  available in the version included in Python 2.5 and above.
+def _any(seq):
+  """Returns True if any element of the iterable are True.
 
   """
-  for _ in itertools.ifilter(pred, seq):
+  for _ in itertools.ifilter(bool, seq):
     return True
   return False
 
+try:
+  all = all # pylint: disable-msg=W0622
+except NameError:
+  all = _all
+
+try:
+  any = any # pylint: disable-msg=W0622
+except NameError:
+  any = _any
 
 def partition(seq, pred=bool): # pylint: disable-msg=W0622
   """Partition a list in two, based on the given predicate.
@@ -106,6 +108,12 @@ def _partial(func, *args, **keywords): # pylint: disable-msg=W0622
   return newfunc
 
 
+if functools is None:
+  partial = _partial
+else:
+  partial = functools.partial
+
+
 def TryToRoman(val, convert=True):
   """Try to convert a value to roman numerals
 
@@ -128,8 +136,3 @@ def TryToRoman(val, convert=True):
   else:
     return val
 
-
-if functools is None:
-  partial = _partial
-else:
-  partial = functools.partial

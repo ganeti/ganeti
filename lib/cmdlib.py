@@ -176,7 +176,7 @@ def _TListOf(my_type):
 
   """
   return _TAnd(_TList,
-               lambda lst: compat.all(lst, my_type))
+               lambda lst: compat.all(my_type(v) for v in lst))
 
 
 def _TDictOf(key_type, val_type):
@@ -184,8 +184,9 @@ def _TDictOf(key_type, val_type):
 
   """
   return _TAnd(_TDict,
-               lambda my_dict: (compat.all(my_dict.keys(), key_type) and
-                                compat.all(my_dict.values(), val_type)))
+               lambda my_dict: (compat.all(key_type(v) for v in my_dict.keys())
+                                and compat.all(val_type(v)
+                                               for v in my_dict.values())))
 
 
 # End types
@@ -1744,8 +1745,8 @@ class LUVerifyCluster(LogicalUnit):
 
     remote_os = nresult.get(constants.NV_OSLIST, None)
     test = (not isinstance(remote_os, list) or
-            not compat.all(remote_os,
-                           lambda v: isinstance(v, list) and len(v) == 7))
+            not compat.all(isinstance(v, list) and len(v) == 7
+                           for v in remote_os))
 
     _ErrorIf(test, self.ENODEOS, node,
              "node hasn't returned valid OS data")
@@ -1794,7 +1795,7 @@ class LUVerifyCluster(LogicalUnit):
                "OS '%s' has multiple entries (first one shadows the rest): %s",
                os_name, utils.CommaJoin([v[0] for v in os_data]))
       # this will catched in backend too
-      _ErrorIf(compat.any(f_api, lambda v: v >= constants.OS_API_V15)
+      _ErrorIf(compat.any(v >= constants.OS_API_V15 for v in f_api)
                and not f_var, self.ENODEOS, node,
                "OS %s with API at least %d does not declare any variant",
                os_name, constants.OS_API_V15)

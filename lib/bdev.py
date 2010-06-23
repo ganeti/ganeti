@@ -389,7 +389,7 @@ class LogicalVolume(BlockDev):
     pvs_info.reverse()
 
     pvlist = [ pv[1] for pv in pvs_info ]
-    if compat.any(pvlist, lambda v: ":" in v):
+    if compat.any(":" in v for v in pvlist):
       _ThrowError("Some of your PVs have the invalid character ':' in their"
                   " name, this is not supported - please filter them out"
                   " in lvm.conf using either 'filter' or 'preferred_names'")
@@ -463,7 +463,7 @@ class LogicalVolume(BlockDev):
     """
     if (not cls._VALID_NAME_RE.match(name) or
         name in cls._INVALID_NAMES or
-        compat.any(cls._INVALID_SUBSTRINGS, lambda x: x in name)):
+        compat.any(substring in name for substring in cls._INVALID_SUBSTRINGS)):
       _ThrowError("Invalid LVM name '%s'", name)
 
   def Remove(self):
