@@ -766,7 +766,7 @@ class OpTestDelay(OpCode):
   """
   OP_ID = "OP_TEST_DELAY"
   OP_DSC_FIELD = "duration"
-  __slots__ = ["duration", "on_master", "on_nodes"]
+  __slots__ = ["duration", "on_master", "on_nodes", "repeat"]
 
 
 class OpTestAllocator(OpCode):

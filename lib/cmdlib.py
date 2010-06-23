@@ -9484,6 +9484,12 @@ class LUTestDelay(NoHooksLU):
   _OP_REQP = ["duration", "on_master", "on_nodes"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    # TODO: convert to the type system
+    self.op.repeat = getattr(self.op, "repeat", 0)
+    if self.op.repeat < 0:
+      raise errors.OpPrereqError("Repetition count cannot be negative")
+
   def ExpandNames(self):
     """Expand names and set required locks.
 
@@ -9503,7 +9509,7 @@ class LUTestDelay(NoHooksLU):
 
     """
 
-  def Exec(self, feedback_fn):
+  def _TestDelay(self):
     """Do the actual sleep.
 
     """
@@ -9514,6 +9520,18 @@ class LUTestDelay(NoHooksLU):
       result = self.rpc.call_test_delay(self.op.on_nodes, self.op.duration)
       for node, node_result in result.items():
         node_result.Raise("Failure during rpc call to node %s" % node)
+
+  def Exec(self, feedback_fn):
+    """Execute the test delay opcode, with the wanted repetitions.
+
+    """
+    if self.op.repeat == 0:
+      self._TestDelay()
+    else:
+      top_value = self.op.repeat - 1
+      for i in range(self.op.repeat):
+        self.LogInfo("Test delay iteration %d/%d" % (i, top_value))
+        self._TestDelay()
 
 
 class IAllocator(object):
