@@ -9668,14 +9668,12 @@ class LUTestDelay(NoHooksLU):
     ("duration", _TFloat),
     ("on_master", _TBool),
     ("on_nodes", _TListOf(_TNonEmptyString)),
+    ("repeat", _TPositiveInt)
+    ]
+  _OP_DEFS = [
+    ("repeat", 0),
     ]
   REQ_BGL = False
-
-  def CheckArguments(self):
-    # TODO: convert to the type system
-    self.op.repeat = getattr(self.op, "repeat", 0)
-    if self.op.repeat < 0:
-      raise errors.OpPrereqError("Repetition count cannot be negative")
 
   def ExpandNames(self):
     """Expand names and set required locks.
