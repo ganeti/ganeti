@@ -6391,9 +6391,10 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Either all disks are adopted or none is",
                                  errors.ECODE_INVAL)
     if has_adopt:
-      if self.op.disk_template != constants.DT_PLAIN:
-        raise errors.OpPrereqError("Disk adoption is only supported for the"
-                                   " 'plain' disk template",
+      if self.op.disk_template not in constants.DTS_MAY_ADOPT:
+        raise errors.OpPrereqError("Disk adoption is not supported for the"
+                                   " '%s' disk template" %
+                                   self.op.disk_template,
                                    errors.ECODE_INVAL)
       if self.op.iallocator is not None:
         raise errors.OpPrereqError("Disk adoption not allowed with an"

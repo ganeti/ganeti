@@ -325,6 +325,9 @@ DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE])
 # the set of disk templates which can be grown
 DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE])
 
+# the set of disk templates that allow adoption
+DTS_MAY_ADOPT = frozenset([DT_PLAIN])
+
 # logical disk types
 LD_LV = "lvm"
 LD_DRBD8 = "drbd8"
