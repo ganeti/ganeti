@@ -809,7 +809,188 @@ kvm processes, and extend the user limitation to use a user pool.
 Finally we'll look into namespaces and containers, although that might
 slip after the 2.2 release.
 
+
 External interface changes
 --------------------------
 
+
+OS API
+~~~~~~
+
+The OS variants implementation in Ganeti 2.1 didn't prove to be useful
+enough to alleviate the need to hack around the Ganeti API in order to
+provide flexible OS parameters.
+
+As such, for Ganeti 2.2 we will provide support for arbitrary OS
+parameters. However, since OSes are not registered in Ganeti, but
+instead discovered at runtime, the interface is not entirely
+straightforward.
+
+Furthermore, to support the system administrator in keeping OSes
+properly in sync across the nodes of a cluster, Ganeti will also verify
+(if existing) the consistence of a new ``os_version`` file.
+
+These changes to the OS API will bump the API version to 20.
+
+
+OS version
+++++++++++
+
+A new ``os_version`` file will be supported by Ganeti. This file is not
+required, but if existing, its contents will be checked for consistency
+across nodes. The file should hold only one line of text (any extra data
+will be discarded), and its contents will be shown in the OS information
+and diagnose commands.
+
+It is recommended that OS authors increase the contents of this file for
+any changes; at a minimum, modifications that change the behaviour of
+import/export scripts must increase the version, since they break
+intra-cluster migration.
+
+Parameters
+++++++++++
+
+The interface between Ganeti and the OS scripts will be based on
+environment variables, and as such the parameters and their values will
+need to be valid in this context.
+
+Names
+^^^^^
+
+The parameter names will be declared in a new file, ``parameters.list``,
+together with a one-line documentation (whitespace-separated). Example::
+
+  $ cat parameters.list
+  ns1    Specifies the first name server to add to /etc/resolv.conf
+  extra_packages  Specifies additional packages to install
+  rootfs_size     Specifies the root filesystem size (the rest will be left unallocated)
+  track  Specifies the distribution track, one of 'stable', 'testing' or 'unstable'
+
+As seen above, the documentation can be separate via multiple
+spaces/tabs from the names.
+
+The parameter names as read from the file will be used for the command
+line interface in lowercased form; as such, there shouldn't be any two
+parameters which differ in case only.
+
+Values
+^^^^^^
+
+The values of the parameters are, from Ganeti's point of view,
+completely freeform. If a given parameter has, from the OS' point of
+view, a fixed set of valid values, these should be documented as such
+and verified by the OS, but Ganeti will not handle such parameters
+specially.
+
+An empty value must be handled identically as a missing parameter. In
+other words, the validation script should only test for non-empty
+values, and not for declared versus undeclared parameters.
+
+Furthermore, each parameter should have an (internal to the OS) default
+value, that will be used if not passed from Ganeti. More precisely, it
+should be possible for any parameter to specify a value that will have
+the same effect as not passing the parameter, and no in no case should
+the absence of a parameter be treated as an exceptional case (outside
+the value space).
+
+
+Environment variables
++++++++++++++++++++++
+
+The parameters will be exposed in the environment upper-case and
+prefixed with the string ``OSP_``. For example, a parameter declared in
+the 'parameters' file as ``ns1`` will appear in the environment as the
+variable ``OSP_NS1``.
+
+Validation
+++++++++++
+
+For the purpose of parameter name/value validation, the OS scripts
+*must* provide an additional script, named ``verify``. This script will
+be called with the argument ``parameters``, and all the parameters will
+be passed in via environment variables, as described above.
+
+The script should signify result/failure based on its exit code, and
+show explanatory messages either on its standard output or standard
+error. These messages will be passed on to the master, and stored as in
+the OpCode result/error message.
+
+The parameters must be constructed to be independent of the instance
+specifications. In general, the validation script will only be called
+with the parameter variables set, but not with the normal per-instance
+variables, in order for Ganeti to be able to validate default parameters
+too, when they change. Validation will only be performed on one cluster
+node, and it will be up to the ganeti administrator to keep the OS
+scripts in sync between all nodes.
+
+Instance operations
++++++++++++++++++++
+
+The parameters will be passed, as described above, to all the other
+instance operations (creation, import, export). Ideally, these scripts
+will not abort with parameter validation errors, if the ``verify``
+script has verified them correctly.
+
+Note: when changing an instance's OS type, any OS parameters defined at
+instance level will be kept as-is. If the parameters differ between the
+new and the old OS, the user should manually remove/update them as
+needed.
+
+Declaration and modification
+++++++++++++++++++++++++++++
+
+Since the OSes are not registered in Ganeti, we will only make a 'weak'
+link between the parameters as declared in Ganeti and the actual OSes
+existing on the cluster.
+
+It will be possible to declare parameters either globally, per cluster
+(where they are indexed per OS/variant), or individually, per
+instance. The declaration of parameters will not be tied to current
+existing OSes. When specifying a parameter, if the OS exists, it will be
+validated; if not, then it will simply be stored as-is.
+
+A special note is that it will not be possible to 'unset' at instance
+level a parameter that is declared globally. Instead, at instance level
+the parameter should be given an explicit value, or the default value as
+explained above.
+
+CLI interface
++++++++++++++
+
+The modification of global (default) parameters will be done via the
+``gnt-os`` command, and the per-instance parameters via the
+``gnt-instance`` command. Both these commands will take an addition
+``--os-parameters`` or ``-O`` flag that specifies the parameters in the
+familiar comma-separated, key=value format. For removing a parameter, a
+``-key`` syntax will be used, e.g.::
+
+  # initial modification
+  $ gnt-instance modify -O use_dchp=true instance1
+  # later revert (to the cluster default, or the OS default if not
+  # defined at cluster level)
+  $ gnt-instance modify -O -use_dhcp instance1
+
+Internal storage
+++++++++++++++++
+
+Internally, the OS parameters will be stored in a new ``osparams``
+attribute. The global parameters will be stored on the cluster object,
+and the value of this attribute will be a dictionary indexed by OS name
+(this also accepts an OS+variant name, which will override a simple OS
+name, see below), and for values the key/name dictionary. For the
+instances, the value will be directly the key/name dictionary.
+
+Overriding rules
+++++++++++++++++
+
+Any instance-specific parameters will override any variant-specific
+parameters, which in turn will override any global parameters. The
+global parameters, in turn, override the built-in defaults (of the OS
+scripts).
+
+
 .. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:
