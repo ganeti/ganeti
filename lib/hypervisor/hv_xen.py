@@ -549,7 +549,7 @@ class XenHvmHypervisor(XenHypervisor):
       hv_base.ParamInSet(True, constants.HT_HVM_VALID_NIC_TYPES),
     constants.HV_PAE: hv_base.NO_CHECK,
     constants.HV_VNC_BIND_ADDRESS:
-      (False, utils.IsValidIP,
+      (False, utils.IsValidIP4,
        "VNC bind address is not a valid IP address", None, None),
     constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,

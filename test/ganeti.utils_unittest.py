@@ -2426,5 +2426,43 @@ class RunIgnoreProcessNotFound(unittest.TestCase):
     self.assertFalse(utils.IgnoreProcessNotFound(os.kill, pid, 0))
 
 
+class TestIsValidIP4(unittest.TestCase):
+  def test(self):
+    self.assert_(utils.IsValidIP4("127.0.0.1"))
+    self.assert_(utils.IsValidIP4("0.0.0.0"))
+    self.assert_(utils.IsValidIP4("255.255.255.255"))
+    self.assertFalse(utils.IsValidIP4("0"))
+    self.assertFalse(utils.IsValidIP4("1"))
+    self.assertFalse(utils.IsValidIP4("1.1.1"))
+    self.assertFalse(utils.IsValidIP4("255.255.255.256"))
+    self.assertFalse(utils.IsValidIP4("::1"))
+
+
+class TestIsValidIP6(unittest.TestCase):
+  def test(self):
+    self.assert_(utils.IsValidIP6("::"))
+    self.assert_(utils.IsValidIP6("::1"))
+    self.assert_(utils.IsValidIP6("1" + (":1" * 7)))
+    self.assert_(utils.IsValidIP6("ffff" + (":ffff" * 7)))
+    self.assertFalse(utils.IsValidIP6("0"))
+    self.assertFalse(utils.IsValidIP6(":1"))
+    self.assertFalse(utils.IsValidIP6("f" + (":f" * 6)))
+    self.assertFalse(utils.IsValidIP6("fffg" + (":ffff" * 7)))
+    self.assertFalse(utils.IsValidIP6("fffff" + (":ffff" * 7)))
+    self.assertFalse(utils.IsValidIP6("1" + (":1" * 8)))
+    self.assertFalse(utils.IsValidIP6("127.0.0.1"))
+
+
+class TestIsValidIP(unittest.TestCase):
+  def test(self):
+    self.assert_(utils.IsValidIP("0.0.0.0"))
+    self.assert_(utils.IsValidIP("127.0.0.1"))
+    self.assert_(utils.IsValidIP("::"))
+    self.assert_(utils.IsValidIP("::1"))
+    self.assertFalse(utils.IsValidIP("0"))
+    self.assertFalse(utils.IsValidIP("1.1.1.256"))
+    self.assertFalse(utils.IsValidIP("a:g::1"))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

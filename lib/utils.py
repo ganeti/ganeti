@@ -1292,22 +1292,64 @@ def TryConvert(fn, val):
   return nv
 
 
-def IsValidIP(ip):
-  """Verifies the syntax of an IPv4 address.
+def _GenericIsValidIP(family, ip):
+  """Generic internal version of ip validation.
 
-  This function checks if the IPv4 address passes is valid or not based
-  on syntax (not IP range, class calculations, etc.).
+  @type family: int
+  @param family: socket.AF_INET | socket.AF_INET6
+  @type ip: str
+  @param ip: the address to be checked
+  @rtype: boolean
+  @return: True if ip is valid, False otherwise
+
+  """
+  try:
+    socket.inet_pton(family, ip)
+    return True
+  except socket.error:
+    return False
+
+
+def IsValidIP4(ip):
+  """Verifies an IPv4 address.
+
+  This function checks if the given address is a valid IPv4 address.
 
   @type ip: str
   @param ip: the address to be checked
-  @rtype: a regular expression match object
-  @return: a regular expression match object, or None if the
-      address is not valid
+  @rtype: boolean
+  @return: True if ip is valid, False otherwise
 
   """
-  unit = "(0|[1-9]\d{0,2})"
-  #TODO: convert and return only boolean
-  return re.match("^%s\.%s\.%s\.%s$" % (unit, unit, unit, unit), ip)
+  return _GenericIsValidIP(socket.AF_INET, ip)
+
+
+def IsValidIP6(ip):
+  """Verifies an IPv6 address.
+
+  This function checks if the given address is a valid IPv6 address.
+
+  @type ip: str
+  @param ip: the address to be checked
+  @rtype: boolean
+  @return: True if ip is valid, False otherwise
+
+  """
+  return _GenericIsValidIP(socket.AF_INET6, ip)
+
+
+def IsValidIP(ip):
+  """Verifies an IP address.
+
+  This function checks if the given IP address (both IPv4 and IPv6) is valid.
+
+  @type ip: str
+  @param ip: the address to be checked
+  @rtype: boolean
+  @return: True if ip is valid, False otherwise
+
+  """
+  return IsValidIP4(ip) or IsValidIP6(ip)
 
 
 def IsValidShellParam(word):

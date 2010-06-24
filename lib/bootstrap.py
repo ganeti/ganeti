@@ -259,7 +259,7 @@ def InitCluster(cluster_name, mac_prefix,
                                errors.ECODE_NOTUNIQUE)
 
   if secondary_ip:
-    if not utils.IsValidIP(secondary_ip):
+    if not utils.IsValidIP4(secondary_ip):
       raise errors.OpPrereqError("Invalid secondary ip given",
                                  errors.ECODE_INVAL)
     if (secondary_ip != hostname.ip and
