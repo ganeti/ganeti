@@ -1352,6 +1352,24 @@ def IsValidIP(ip):
   return IsValidIP4(ip) or IsValidIP6(ip)
 
 
+def GetAddressFamily(ip):
+  """Get the address family of the given address.
+
+  @type ip: str
+  @param ip: ip address whose family will be returned
+  @rtype: int
+  @return: socket.AF_INET or socket.AF_INET6
+  @raise errors.GenericError: for invalid addresses
+
+  """
+  if IsValidIP6(ip):
+    return socket.AF_INET6
+  elif IsValidIP4(ip):
+    return socket.AF_INET
+  else:
+    raise errors.GenericError("Address %s not valid" % ip)
+
+
 def IsValidShellParam(word):
   """Verifies is the given word is safe from the shell's p.o.v.
 

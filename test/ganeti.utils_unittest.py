@@ -2464,5 +2464,15 @@ class TestIsValidIP(unittest.TestCase):
     self.assertFalse(utils.IsValidIP("a:g::1"))
 
 
+class TestGetAddressFamily(unittest.TestCase):
+  def test(self):
+    self.assertEqual(utils.GetAddressFamily("127.0.0.1"), socket.AF_INET)
+    self.assertEqual(utils.GetAddressFamily("10.2.0.127"), socket.AF_INET)
+    self.assertEqual(utils.GetAddressFamily("::1"), socket.AF_INET6)
+    self.assertEqual(utils.GetAddressFamily("fe80::a00:27ff:fe08:5048"),
+                     socket.AF_INET6)
+    self.assertRaises(errors.GenericError, utils.GetAddressFamily, "0")
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
