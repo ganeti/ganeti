@@ -718,6 +718,7 @@ VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
 
 # Node verify constants
+NV_DRBDHELPER = "drbd-helper"
 NV_DRBDLIST = "drbd-list"
 NV_FILELIST = "filelist"
 NV_HVINFO = "hvinfo"

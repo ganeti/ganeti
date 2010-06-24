@@ -584,6 +584,16 @@ def VerifyNode(what, cluster_name):
       used_minors = str(err)
     result[constants.NV_DRBDLIST] = used_minors
 
+  if constants.NV_DRBDHELPER in what:
+    status = True
+    try:
+      payload = bdev.BaseDRBD.GetUsermodeHelper()
+    except errors.BlockDeviceError, err:
+      logging.error("Can't get DRBD usermode helper: %s", str(err))
+      status = False
+      payload = str(err)
+    result[constants.NV_DRBDHELPER] = (status, payload)
+
   if constants.NV_NODESETUP in what:
     result[constants.NV_NODESETUP] = tmpr = []
     if not os.path.isdir("/sys/block") or not os.path.isdir("/sys/class/net"):
