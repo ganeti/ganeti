@@ -60,7 +60,7 @@ class TestConfigRunner(unittest.TestCase):
   def _init_cluster(self, cfg):
     """Initializes the cfg object"""
     me = utils.HostInfo()
-    ip = constants.LOCALHOST_IP_ADDRESS
+    ip = constants.IP4_ADDRESS_LOCALHOST
 
     cluster_config = objects.Cluster(
       serial_no=1,

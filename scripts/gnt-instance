@@ -1187,7 +1187,7 @@ def ShowInstanceConfig(opts, args):
     if vnc_bind_address:
       port = instance["network_port"]
       display = int(port) - constants.VNC_BASE_PORT
-      if display > 0 and vnc_bind_address == constants.BIND_ADDRESS_GLOBAL:
+      if display > 0 and vnc_bind_address == constants.IP4_ADDRESS_ANY:
         vnc_console_port = "%s:%s (display %s)" % (instance["pnode"],
                                                    port,
                                                    display)

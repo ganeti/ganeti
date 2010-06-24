@@ -701,13 +701,13 @@ def main():
 
       # If RAPI isn't responding to queries, try one restart.
       logging.debug("Attempting to talk with RAPI.")
-      if not IsRapiResponding(constants.LOCALHOST_IP_ADDRESS):
+      if not IsRapiResponding(constants.IP4_ADDRESS_LOCALHOST):
         logging.warning("Couldn't get answer from Ganeti RAPI daemon."
                         " Restarting Ganeti RAPI.")
         utils.StopDaemon(constants.RAPI)
         utils.EnsureDaemon(constants.RAPI)
         logging.debug("Second attempt to talk with RAPI")
-        if not IsRapiResponding(constants.LOCALHOST_IP_ADDRESS):
+        if not IsRapiResponding(constants.IP4_ADDRESS_LOCALHOST):
           logging.fatal("RAPI is not responding. Please investigate.")
       logging.debug("Successfully talked to RAPI.")
 

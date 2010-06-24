@@ -539,7 +539,7 @@ def VerifyNode(what, cluster_name):
     # rest of the function)
     master_name, master_ip = what[constants.NV_MASTERIP]
     if master_name == my_name:
-      source = constants.LOCALHOST_IP_ADDRESS
+      source = constants.IP4_ADDRESS_LOCALHOST
     else:
       source = None
     result[constants.NV_MASTERIP] = utils.TcpPing(master_ip, port,

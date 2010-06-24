@@ -1169,7 +1169,7 @@ class TestTcpPing(unittest.TestCase):
 
   def setUp(self):
     self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.listener.bind((constants.LOCALHOST_IP_ADDRESS, 0))
+    self.listener.bind((constants.IP4_ADDRESS_LOCALHOST, 0))
     self.listenerport = self.listener.getsockname()[1]
     self.listener.listen(1)
 
@@ -1179,15 +1179,15 @@ class TestTcpPing(unittest.TestCase):
     del self.listenerport
 
   def testTcpPingToLocalHostAccept(self):
-    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+    self.assert_(TcpPing(constants.IP4_ADDRESS_LOCALHOST,
                          self.listenerport,
                          timeout=10,
                          live_port_needed=True,
-                         source=constants.LOCALHOST_IP_ADDRESS,
+                         source=constants.IP4_ADDRESS_LOCALHOST,
                          ),
                  "failed to connect to test listener")
 
-    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+    self.assert_(TcpPing(constants.IP4_ADDRESS_LOCALHOST,
                          self.listenerport,
                          timeout=10,
                          live_port_needed=True,
@@ -1200,7 +1200,7 @@ class TestTcpPingDeaf(unittest.TestCase):
 
   def setUp(self):
     self.deaflistener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.deaflistener.bind((constants.LOCALHOST_IP_ADDRESS, 0))
+    self.deaflistener.bind((constants.IP4_ADDRESS_LOCALHOST, 0))
     self.deaflistenerport = self.deaflistener.getsockname()[1]
 
   def tearDown(self):
@@ -1208,15 +1208,15 @@ class TestTcpPingDeaf(unittest.TestCase):
     del self.deaflistenerport
 
   def testTcpPingToLocalHostAcceptDeaf(self):
-    self.failIf(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+    self.failIf(TcpPing(constants.IP4_ADDRESS_LOCALHOST,
                         self.deaflistenerport,
                         timeout=constants.TCP_PING_TIMEOUT,
                         live_port_needed=True,
-                        source=constants.LOCALHOST_IP_ADDRESS,
+                        source=constants.IP4_ADDRESS_LOCALHOST,
                         ), # need successful connect(2)
                 "successfully connected to deaf listener")
 
-    self.failIf(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+    self.failIf(TcpPing(constants.IP4_ADDRESS_LOCALHOST,
                         self.deaflistenerport,
                         timeout=constants.TCP_PING_TIMEOUT,
                         live_port_needed=True,
@@ -1224,15 +1224,15 @@ class TestTcpPingDeaf(unittest.TestCase):
                 "successfully connected to deaf listener (no source addr)")
 
   def testTcpPingToLocalHostNoAccept(self):
-    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+    self.assert_(TcpPing(constants.IP4_ADDRESS_LOCALHOST,
                          self.deaflistenerport,
                          timeout=constants.TCP_PING_TIMEOUT,
                          live_port_needed=False,
-                         source=constants.LOCALHOST_IP_ADDRESS,
+                         source=constants.IP4_ADDRESS_LOCALHOST,
                          ), # ECONNREFUSED is OK
                  "failed to ping alive host on deaf port")
 
-    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+    self.assert_(TcpPing(constants.IP4_ADDRESS_LOCALHOST,
                          self.deaflistenerport,
                          timeout=constants.TCP_PING_TIMEOUT,
                          live_port_needed=False,
@@ -1245,7 +1245,7 @@ class TestOwnIpAddress(unittest.TestCase):
 
   def testOwnLoopback(self):
     """check having the loopback ip"""
-    self.failUnless(OwnIpAddress(constants.LOCALHOST_IP_ADDRESS),
+    self.failUnless(OwnIpAddress(constants.IP4_ADDRESS_LOCALHOST),
                     "Should own the loopback address")
 
   def testNowOwnAddress(self):

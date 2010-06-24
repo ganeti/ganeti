@@ -1740,7 +1740,7 @@ def OwnIpAddress(address):
 
   """
   return TcpPing(address, constants.DEFAULT_NODED_PORT,
-                 source=constants.LOCALHOST_IP_ADDRESS)
+                 source=constants.IP4_ADDRESS_LOCALHOST)
 
 
 def ListVisibleFiles(path):
