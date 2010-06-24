@@ -495,7 +495,6 @@ class _WaitForJobChangesHelper(object):
   @ivar notifier: inotify single-threaded notifier, used for watching
 
   """
-
   def __init__(self, job_id, fields, prev_job_info, prev_log_serial, queue):
     self.job_id = job_id
     self.fields = fields
