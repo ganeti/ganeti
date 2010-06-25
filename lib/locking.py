@@ -36,16 +36,25 @@ from ganeti import utils
 from ganeti import compat
 
 
-def ssynchronized(lock, shared=0):
+def ssynchronized(mylock, shared=0):
   """Shared Synchronization decorator.
 
   Calls the function holding the given lock, either in exclusive or shared
   mode. It requires the passed lock to be a SharedLock (or support its
   semantics).
 
+  @type mylock: lockable object or string
+  @param mylock: lock to acquire or class member name of the lock to acquire
+
   """
   def wrap(fn):
     def sync_function(*args, **kwargs):
+      if isinstance(mylock, basestring):
+        assert args, "cannot ssynchronize on non-class method: self not found"
+        # args[0] is "self"
+        lock = getattr(args[0], mylock)
+      else:
+        lock = mylock
       lock.acquire(shared=shared)
       try:
         return fn(*args, **kwargs)
