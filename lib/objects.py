@@ -364,6 +364,12 @@ class ConfigData(ConfigObject):
       node.UpgradeConfig()
     for instance in self.instances.values():
       instance.UpgradeConfig()
+    if self.cluster.drbd_usermode_helper is None:
+      # To decide if we set an helper let's check if at least one instance has
+      # a DRBD disk. This does not cover all the possible scenarios but it
+      # gives a good approximation.
+      if self.HasAnyDiskOfType(constants.LD_DRBD8):
+        self.cluster.drbd_usermode_helper = constants.DEFAULT_DRBD_HELPER
 
 
 class NIC(ConfigObject):
