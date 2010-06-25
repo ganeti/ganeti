@@ -68,6 +68,7 @@ class TestConfigRunner(unittest.TestCase):
       highest_used_port=(constants.FIRST_DRBD_PORT - 1),
       mac_prefix="aa:00:00",
       volume_group_name="xenvg",
+      drbd_usermode_helper="/bin/true",
       nicparams={constants.PP_DEFAULT: constants.NICC_DEFAULTS},
       tcpudp_port_pool=set(),
       enabled_hypervisors=[constants.HT_FAKE],

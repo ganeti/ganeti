@@ -1420,6 +1420,22 @@ class ConfigWriter:
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetDRBDHelper(self):
+    """Return DRBD usermode helper.
+
+    """
+    return self._config_data.cluster.drbd_usermode_helper
+
+  @locking.ssynchronized(_config_lock)
+  def SetDRBDHelper(self, drbd_helper):
+    """Set DRBD usermode helper.
+
+    """
+    self._config_data.cluster.drbd_usermode_helper = drbd_helper
+    self._config_data.cluster.serial_no += 1
+    self._WriteConfig()
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetMACPrefix(self):
     """Return the mac prefix.
 
