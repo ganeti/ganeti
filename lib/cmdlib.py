@@ -2519,22 +2519,6 @@ class LURenameCluster(LogicalUnit):
                         " the master, please restart manually: %s", msg)
 
 
-def _RecursiveCheckIfLVMBased(disk):
-  """Check if the given disk or its children are lvm-based.
-
-  @type disk: L{objects.Disk}
-  @param disk: the disk to check
-  @rtype: boolean
-  @return: boolean indicating whether a LD_LV dev_type was found or not
-
-  """
-  if disk.children:
-    for chdisk in disk.children:
-      if _RecursiveCheckIfLVMBased(chdisk):
-        return True
-  return disk.dev_type == constants.LD_LV
-
-
 class LUSetClusterParams(LogicalUnit):
   """Change the parameters of the cluster.
 
@@ -2598,13 +2582,9 @@ class LUSetClusterParams(LogicalUnit):
 
     """
     if self.op.vg_name is not None and not self.op.vg_name:
-      instances = self.cfg.GetAllInstancesInfo().values()
-      for inst in instances:
-        for disk in inst.disks:
-          if _RecursiveCheckIfLVMBased(disk):
-            raise errors.OpPrereqError("Cannot disable lvm storage while"
-                                       " lvm-based instances exist",
-                                       errors.ECODE_INVAL)
+      if self.cfg.HasAnyDiskOfType(constants.LD_LV):
+        raise errors.OpPrereqError("Cannot disable lvm storage while lvm-based"
+                                   " instances exist", errors.ECODE_INVAL)
 
     node_list = self.acquired_locks[locking.LEVEL_NODE]
 

@@ -340,6 +340,21 @@ class ConfigData(ConfigObject):
     obj.instances = cls._ContainerFromDicts(obj.instances, dict, Instance)
     return obj
 
+  def HasAnyDiskOfType(self, dev_type):
+    """Check if in there is at disk of the given type in the configuration.
+
+    @type dev_type: L{constants.LDS_BLOCK}
+    @param dev_type: the type to look for
+    @rtype: boolean
+    @return: boolean indicating if a disk of the given type was found or not
+
+    """
+    for instance in self.instances.values():
+      for disk in instance.disks:
+        if disk.IsBasedOnDiskType(dev_type):
+          return True
+    return False
+
   def UpgradeConfig(self):
     """Fill defaults for missing configuration values.
 
@@ -436,6 +451,21 @@ class Disk(ConfigObject):
     if self.dev_type == constants.LD_DRBD8:
       return 0
     return -1
+
+  def IsBasedOnDiskType(self, dev_type):
+    """Check if the disk or its children are based on the given type.
+
+    @type dev_type: L{constants.LDS_BLOCK}
+    @param dev_type: the type to look for
+    @rtype: boolean
+    @return: boolean indicating if a device of the given type was found or not
+
+    """
+    if self.children:
+      for child in self.children:
+        if child.IsBasedOnDiskType(dev_type):
+          return True
+    return self.dev_type == dev_type
 
   def GetNodes(self, node):
     """This function returns the nodes this device lives on.

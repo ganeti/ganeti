@@ -1452,6 +1452,13 @@ class ConfigWriter:
     """
     return self._config_data.cluster
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def HasAnyDiskOfType(self, dev_type):
+    """Check if in there is at disk of the given type in the configuration.
+
+    """
+    return self._config_data.HasAnyDiskOfType(dev_type)
+
   @locking.ssynchronized(_config_lock)
   def Update(self, target, feedback_fn):
     """Notify function to be called after updates.
