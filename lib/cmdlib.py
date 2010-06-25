@@ -1816,7 +1816,7 @@ class LUVerifyCluster(LogicalUnit):
         _ErrorIf(a != b, self.ENODEOS, node,
                  "OS %s %s differs from reference node %s: %s vs. %s",
                  kind, os_name, base.name,
-                 utils.CommaJoin(a), utils.CommaJoin(a))
+                 utils.CommaJoin(a), utils.CommaJoin(b))
 
     # check any missing OSes
     missing = set(base.oslist.keys()).difference(nimg.oslist.keys())

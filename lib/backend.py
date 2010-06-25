@@ -1903,7 +1903,8 @@ def _TryOSFromDisk(name, base_dir=None):
                       export_script=os_files[constants.OS_SCRIPT_EXPORT],
                       import_script=os_files[constants.OS_SCRIPT_IMPORT],
                       rename_script=os_files[constants.OS_SCRIPT_RENAME],
-                      verify_script=os_files[constants.OS_SCRIPT_VERIFY],
+                      verify_script=os_files.get(constants.OS_SCRIPT_VERIFY,
+                                                 None),
                       supported_variants=variants,
                       supported_parameters=parameters,
                       api_versions=api_versions)
