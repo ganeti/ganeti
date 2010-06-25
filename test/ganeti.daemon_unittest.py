@@ -470,6 +470,30 @@ class TestAsyncStreamServerTCP(testutils.GanetiTestCase):
     self.mainloop.Run()
     self.assertEquals(len(self.connections), 1)
 
+  def testSendMessage(self):
+    self.connect_terminate_count = None
+    self.message_terminate_count = 3
+    client1 = self.getClient()
+    client2 = self.getClient()
+    client1.send("one\3composed\3message\3")
+    self.mainloop.Run()
+    self.assertEquals(self.messages[0], ["one", "composed", "message"])
+    self.assertFalse(self.connections[0].writable())
+    self.assertFalse(self.connections[1].writable())
+    self.connections[0].send_message("r0")
+    self.assert_(self.connections[0].writable())
+    self.assertFalse(self.connections[1].writable())
+    self.connections[0].send_message("r1")
+    self.connections[0].send_message("r2")
+    # We currently have no way to terminate the mainloop on write events, but
+    # let's assume handle_write will be called if writable() is True.
+    while self.connections[0].writable():
+      self.connections[0].handle_write()
+    client1.setblocking(0)
+    client2.setblocking(0)
+    self.assertEquals(client1.recv(4096), "r0\3r1\3r2\3")
+    self.assertRaises(socket.error, client2.recv, 4096)
+
 
 class TestAsyncStreamServerUnixPath(TestAsyncStreamServerTCP):
   """Test daemon.AsyncStreamServer with a Unix path connection"""

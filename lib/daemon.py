@@ -24,6 +24,7 @@
 
 import asyncore
 import asynchat
+import collections
 import grp
 import os
 import pwd
@@ -199,6 +200,7 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
     self.set_terminator(terminator)
     self.ibuffer = []
     self.next_incoming_message = 0
+    self.oqueue = collections.deque()
 
   # this method is overriding an asynchat.async_chat method
   def collect_incoming_data(self, data):
@@ -224,6 +226,36 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
     pass
     # TODO: move this method to raise NotImplementedError
     # raise NotImplementedError
+
+  def send_message(self, message):
+    """Send a message to the remote peer. This function is thread-safe.
+
+    @type message: string
+    @param message: message to send, without the terminator
+
+    @warning: If calling this function from a thread different than the one
+    performing the main asyncore loop, remember that you have to wake that one
+    up.
+
+    """
+    # If we just append the message we received to the output queue, this
+    # function can be safely called by multiple threads at the same time, and
+    # we don't need locking, since deques are thread safe.
+    self.oqueue.append(message)
+
+  # this method is overriding an asyncore.dispatcher method
+  def writable(self):
+    # the output queue may become full just after we called writable. This only
+    # works if we know we'll have something else waking us up from the select,
+    # in such case, anyway.
+    return asynchat.async_chat.writable(self) or self.oqueue
+
+  # this method is overriding an asyncore.dispatcher method
+  def handle_write(self):
+    if self.oqueue:
+      data = self.oqueue.popleft()
+      self.push(data + self.terminator)
+    self.initiate_send()
 
   def close_log(self):
     logging.info("Closing connection from %s",
