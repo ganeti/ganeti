@@ -175,7 +175,8 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
   separator. For each complete message handle_message is called.
 
   """
-  def __init__(self, connected_socket, peer_address, terminator, family):
+  def __init__(self, connected_socket, peer_address, terminator, family,
+               unhandled_limit):
     """AsyncTerminatedMessageStream constructor.
 
     @type connected_socket: socket.socket
@@ -185,6 +186,8 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
     @param terminator: terminator separating messages in the stream
     @type family: integer
     @param family: socket family
+    @type unhandled_limit: integer or None
+    @param unhandled_limit: maximum unanswered messages
 
     """
     # python 2.4/2.5 uses conn=... while 2.6 has sock=... we have to cheat by
@@ -197,22 +200,36 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
     self.family = family
     self.peer_address = peer_address
     self.terminator = terminator
+    self.unhandled_limit = unhandled_limit
     self.set_terminator(terminator)
     self.ibuffer = []
-    self.next_incoming_message = 0
+    self.receive_count = 0
+    self.send_count = 0
     self.oqueue = collections.deque()
+    self.iqueue = collections.deque()
 
   # this method is overriding an asynchat.async_chat method
   def collect_incoming_data(self, data):
     self.ibuffer.append(data)
 
+  def _can_handle_message(self):
+    return (self.unhandled_limit is None or
+            (self.receive_count < self.send_count + self.unhandled_limit) and
+             not self.iqueue)
+
   # this method is overriding an asynchat.async_chat method
   def found_terminator(self):
     message = "".join(self.ibuffer)
     self.ibuffer = []
-    message_id = self.next_incoming_message
-    self.next_incoming_message += 1
-    self.handle_message(message, message_id)
+    message_id = self.receive_count
+    # We need to increase the receive_count after checking if the message can
+    # be handled, but before calling handle_message
+    can_handle = self._can_handle_message()
+    self.receive_count += 1
+    if can_handle:
+      self.handle_message(message, message_id)
+    else:
+      self.iqueue.append((message, message_id))
 
   def handle_message(self, message, message_id):
     """Handle a terminated message.
@@ -240,8 +257,15 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
     """
     # If we just append the message we received to the output queue, this
     # function can be safely called by multiple threads at the same time, and
-    # we don't need locking, since deques are thread safe.
+    # we don't need locking, since deques are thread safe. handle_write in the
+    # asyncore thread will handle the next input message if there are any
+    # enqueued.
     self.oqueue.append(message)
+
+  # this method is overriding an asyncore.dispatcher method
+  def readable(self):
+    # read from the socket if we can handle the next requests
+    return self._can_handle_message() and asynchat.async_chat.readable(self)
 
   # this method is overriding an asyncore.dispatcher method
   def writable(self):
@@ -253,8 +277,14 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
   # this method is overriding an asyncore.dispatcher method
   def handle_write(self):
     if self.oqueue:
+      # if we have data in the output queue, then send_message was called.
+      # this means we can process one more message from the input queue, if
+      # there are any.
       data = self.oqueue.popleft()
       self.push(data + self.terminator)
+      self.send_count += 1
+      if self.iqueue:
+        self.handle_message(*self.iqueue.popleft())
     self.initiate_send()
 
   def close_log(self):

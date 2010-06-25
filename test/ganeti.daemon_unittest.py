@@ -273,10 +273,11 @@ class _MyAsyncStreamServer(daemon.AsyncStreamServer):
 class _MyMessageStreamHandler(daemon.AsyncTerminatedMessageStream):
 
   def __init__(self, connected_socket, client_address, terminator, family,
-               message_fn, client_id):
+               message_fn, client_id, unhandled_limit):
     daemon.AsyncTerminatedMessageStream.__init__(self, connected_socket,
                                                  client_address,
-                                                 terminator, family)
+                                                 terminator, family,
+                                                 unhandled_limit)
     self.message_fn = message_fn
     self.client_id = client_id
     self.error_count = 0
@@ -301,6 +302,7 @@ class TestAsyncStreamServerTCP(testutils.GanetiTestCase):
     self.server = _MyAsyncStreamServer(self.family, self.address,
                                        self.handle_connection)
     self.client_handler = _MyMessageStreamHandler
+    self.unhandled_limit = None
     self.terminator = "\3"
     self.address = self.server.getsockname()
     self.clients = []
@@ -339,7 +341,7 @@ class TestAsyncStreamServerTCP(testutils.GanetiTestCase):
     client_handler = self.client_handler(connected_socket, client_address,
                                          self.terminator, self.family,
                                          self.handle_message,
-                                         client_id)
+                                         client_id, self.unhandled_limit)
     self.connections.append(client_handler)
     self.countTerminate("connect_terminate_count")
 
@@ -493,6 +495,61 @@ class TestAsyncStreamServerTCP(testutils.GanetiTestCase):
     client2.setblocking(0)
     self.assertEquals(client1.recv(4096), "r0\3r1\3r2\3")
     self.assertRaises(socket.error, client2.recv, 4096)
+
+  def testLimitedUnhandledMessages(self):
+    self.connect_terminate_count = None
+    self.message_terminate_count = 3
+    self.unhandled_limit = 2
+    client1 = self.getClient()
+    client2 = self.getClient()
+    client1.send("one\3composed\3long\3message\3")
+    client2.send("c2one\3")
+    self.mainloop.Run()
+    self.assertEquals(self.messages[0], ["one", "composed"])
+    self.assertEquals(self.messages[1], ["c2one"])
+    self.assertFalse(self.connections[0].readable())
+    self.assert_(self.connections[1].readable())
+    self.connections[0].send_message("r0")
+    self.message_terminate_count = None
+    client1.send("another\3")
+    # when we write replies messages queued also get handled, but not the ones
+    # in the socket.
+    while self.connections[0].writable():
+      self.connections[0].handle_write()
+    self.assertFalse(self.connections[0].readable())
+    self.assertEquals(self.messages[0], ["one", "composed", "long"])
+    self.connections[0].send_message("r1")
+    self.connections[0].send_message("r2")
+    while self.connections[0].writable():
+      self.connections[0].handle_write()
+    self.assertEquals(self.messages[0], ["one", "composed", "long", "message"])
+    self.assert_(self.connections[0].readable())
+
+  def testLimitedUnhandledMessagesOne(self):
+    self.connect_terminate_count = None
+    self.message_terminate_count = 2
+    self.unhandled_limit = 1
+    client1 = self.getClient()
+    client2 = self.getClient()
+    client1.send("one\3composed\3message\3")
+    client2.send("c2one\3")
+    self.mainloop.Run()
+    self.assertEquals(self.messages[0], ["one"])
+    self.assertEquals(self.messages[1], ["c2one"])
+    self.assertFalse(self.connections[0].readable())
+    self.assertFalse(self.connections[1].readable())
+    self.connections[0].send_message("r0")
+    self.message_terminate_count = None
+    while self.connections[0].writable():
+      self.connections[0].handle_write()
+    self.assertFalse(self.connections[0].readable())
+    self.assertEquals(self.messages[0], ["one", "composed"])
+    self.connections[0].send_message("r2")
+    self.connections[0].send_message("r3")
+    while self.connections[0].writable():
+      self.connections[0].handle_write()
+    self.assertEquals(self.messages[0], ["one", "composed", "message"])
+    self.assert_(self.connections[0].readable())
 
 
 class TestAsyncStreamServerUnixPath(TestAsyncStreamServerTCP):
