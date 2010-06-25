@@ -1287,6 +1287,7 @@ class LUVerifyCluster(LogicalUnit):
   EINSTANCEMISSINGDISK = (TINSTANCE, "EINSTANCEMISSINGDISK")
   EINSTANCEWRONGNODE = (TINSTANCE, "EINSTANCEWRONGNODE")
   ENODEDRBD = (TNODE, "ENODEDRBD")
+  ENODEDRBDHELPER = (TNODE, "ENODEDRBDHELPER")
   ENODEFILECHECK = (TNODE, "ENODEFILECHECK")
   ENODEHOOKS = (TNODE, "ENODEHOOKS")
   ENODEHV = (TNODE, "ENODEHV")
@@ -1715,19 +1716,35 @@ class LUVerifyCluster(LogicalUnit):
                "file '%s' should not exist"
                " on non master candidates", file_name)
 
-  def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_map):
+  def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_helper,
+                      drbd_map):
     """Verifies and the node DRBD status.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
     @param nresult: the remote results for the node
     @param instanceinfo: the dict of instances
+    @param drbd_helper: the configured DRBD usermode helper
     @param drbd_map: the DRBD map as returned by
         L{ganeti.config.ConfigWriter.ComputeDRBDMap}
 
     """
     node = ninfo.name
     _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    if drbd_helper:
+      helper_result = nresult.get(constants.NV_DRBDHELPER, None)
+      test = (helper_result == None)
+      _ErrorIf(test, self.ENODEDRBDHELPER, node,
+               "no drbd usermode helper returned")
+      if helper_result:
+        status, payload = helper_result
+        test = not status
+        _ErrorIf(test, self.ENODEDRBDHELPER, node,
+                 "drbd usermode helper check unsuccessful: %s", payload)
+        test = status and (payload != drbd_helper)
+        _ErrorIf(test, self.ENODEDRBDHELPER, node,
+                 "wrong drbd usermode helper: %s", payload)
 
     # compute the DRBD minors
     node_drbd = {}
@@ -1979,6 +1996,7 @@ class LUVerifyCluster(LogicalUnit):
       _ErrorIf(errcode, self.ECLUSTERCERT, None, msg, code=errcode)
 
     vg_name = self.cfg.GetVGName()
+    drbd_helper = self.cfg.GetDRBDHelper()
     hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
     cluster = self.cfg.GetClusterInfo()
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
@@ -2029,6 +2047,9 @@ class LUVerifyCluster(LogicalUnit):
       node_verify_param[constants.NV_LVLIST] = vg_name
       node_verify_param[constants.NV_PVLIST] = [vg_name]
       node_verify_param[constants.NV_DRBDLIST] = None
+
+    if drbd_helper:
+      node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
 
     # Build our expected cluster state
     node_image = dict((node.name, self.NodeImage(offline=node.offline,
@@ -2110,7 +2131,8 @@ class LUVerifyCluster(LogicalUnit):
       self._VerifyNodeLVM(node_i, nresult, vg_name)
       self._VerifyNodeFiles(node_i, nresult, file_names, local_checksums,
                             master_files)
-      self._VerifyNodeDrbd(node_i, nresult, instanceinfo, all_drbd_map)
+      self._VerifyNodeDrbd(node_i, nresult, instanceinfo, drbd_helper,
+                           all_drbd_map)
       self._VerifyNodeTime(node_i, nresult, nvinfo_starttime, nvinfo_endtime)
 
       self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
