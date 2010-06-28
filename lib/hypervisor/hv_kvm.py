@@ -517,7 +517,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if utils.IsValidIP(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
-          if vnc_bind_address == '0.0.0.0':
+          if vnc_bind_address == constants.IP4_ADDRESS_ANY:
             vnc_arg = ':%d' % (display)
           else:
             vnc_arg = '%s:%d' % (vnc_bind_address, display)

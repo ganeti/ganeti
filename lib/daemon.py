@@ -551,7 +551,7 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
                           choices=["no", "yes", "only"])
 
   if daemon_name in constants.DAEMONS_PORTS:
-    default_bind_address = "0.0.0.0"
+    default_bind_address = constants.IP4_ADDRESS_ANY
     default_port = utils.GetDaemonPort(daemon_name)
 
     # For networked daemons we allow choosing the port and bind address
