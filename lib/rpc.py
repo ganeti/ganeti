@@ -993,6 +993,15 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "drbd_wait_sync",
                                [nodes_ip, [cf.ToDict() for cf in disks]])
 
+  @_RpcTimeout(_TMO_URGENT)
+  def call_drbd_helper(self, node_list):
+    """Gets drbd helper.
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(node_list, "drbd_helper", [])
+
   @classmethod
   @_RpcTimeout(_TMO_NORMAL)
   def call_upload_file(cls, node_list, file_name, address_list=None):

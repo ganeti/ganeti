@@ -3055,6 +3055,16 @@ def DrbdWaitSync(nodes_ip, disks):
   return (alldone, min_resync)
 
 
+def GetDrbdUsermodeHelper():
+  """Returns DRBD usermode helper currently configured.
+
+  """
+  try:
+    return bdev.BaseDRBD.GetUsermodeHelper()
+  except errors.BlockDeviceError, err:
+    _Fail(str(err))
+
+
 def PowercycleNode(hypervisor_type):
   """Hard-powercycle the node.
 

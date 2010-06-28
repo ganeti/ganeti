@@ -361,6 +361,13 @@ class NodeHttpServer(http.server.HttpServer):
     disks = [objects.Disk.FromDict(cf) for cf in disks]
     return backend.DrbdWaitSync(nodes_ip, disks)
 
+  @staticmethod
+  def perspective_drbd_helper(params):
+    """Query drbd helper.
+
+    """
+    return backend.GetDrbdUsermodeHelper()
+
   # export/import  --------------------------
 
   @staticmethod
