@@ -63,6 +63,14 @@ def InitCluster(opts, args):
   if opts.lvm_storage and not opts.vg_name:
     vg_name = constants.DEFAULT_VG
 
+  if not opts.drbd_storage and opts.drbd_helper:
+    ToStderr("Options --no-drbd-storage and --drbd-usermode-helper conflict.")
+    return 1
+
+  drbd_helper = opts.drbd_helper
+  if opts.drbd_storage and not opts.drbd_helper:
+    drbd_helper = constants.DEFAULT_DRBD_HELPER
+
   hvlist = opts.enabled_hypervisors
   if hvlist is None:
     hvlist = constants.DEFAULT_ENABLED_HYPERVISOR
@@ -111,6 +119,7 @@ def InitCluster(opts, args):
                         modify_etc_hosts=opts.modify_etc_hosts,
                         modify_ssh_setup=opts.modify_ssh_setup,
                         maintain_node_health=opts.maintain_node_health,
+                        drbd_helper=drbd_helper,
                         uid_pool=uid_pool,
                         )
   op = opcodes.OpPostInitCluster()
@@ -286,6 +295,7 @@ def ShowClusterConfig(opts, args):
                               convert=opts.roman_integers))
   ToStdout("  - master netdev: %s", result["master_netdev"])
   ToStdout("  - lvm volume group: %s", result["volume_group_name"])
+  ToStdout("  - drbd usermode helper: %s", result["drbd_usermode_helper"])
   ToStdout("  - file storage path: %s", result["file_storage_dir"])
   ToStdout("  - maintenance of node health: %s",
            result["maintain_node_health"])
@@ -643,6 +653,7 @@ def SetClusterParams(opts, args):
 
   """
   if not (not opts.lvm_storage or opts.vg_name or
+          not opts.drbd_storage or opts.drbd_helper or
           opts.enabled_hypervisors or opts.hvparams or
           opts.beparams or opts.nicparams or
           opts.candidate_pool_size is not None or
@@ -660,6 +671,14 @@ def SetClusterParams(opts, args):
 
   if not opts.lvm_storage:
     vg_name = ""
+
+  drbd_helper = opts.drbd_helper
+  if not opts.drbd_storage and opts.drbd_helper:
+    ToStderr("Options --no-drbd-storage and --drbd-usermode-helper conflict.")
+    return 1
+
+  if not opts.drbd_storage:
+    drbd_helper = ""
 
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:
@@ -692,6 +711,7 @@ def SetClusterParams(opts, args):
     remove_uids = uidpool.ParseUidPool(remove_uids)
 
   op = opcodes.OpSetClusterParams(vg_name=vg_name,
+                                  drbd_helper=drbd_helper,
                                   enabled_hypervisors=hvlist,
                                   hvparams=hvparams,
                                   os_hvp=None,
@@ -784,7 +804,7 @@ commands = {
      HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, NIC_PARAMS_OPT,
      NOLVM_STORAGE_OPT, NOMODIFY_ETCHOSTS_OPT, NOMODIFY_SSH_SETUP_OPT,
      SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
-     UIDPOOL_OPT],
+     UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   'destroy': (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -854,7 +874,8 @@ commands = {
     SetClusterParams, ARGS_NONE,
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
-     UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT],
+     UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
+     NODRBD_STORAGE_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
