@@ -4075,6 +4075,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "candidate_pool_size": cluster.candidate_pool_size,
       "master_netdev": cluster.master_netdev,
       "volume_group_name": cluster.volume_group_name,
+      "drbd_usermode_helper": cluster.drbd_usermode_helper,
       "file_storage_dir": cluster.file_storage_dir,
       "maintain_node_health": cluster.maintain_node_health,
       "ctime": cluster.ctime,
