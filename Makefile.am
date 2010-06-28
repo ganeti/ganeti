@@ -388,6 +388,7 @@ python_tests = \
 	test/ganeti.utils_unittest.py \
 	test/ganeti.utils_mlockall_unittest.py \
 	test/ganeti.workerpool_unittest.py \
+	test/cfgupgrade_unittest.py \
 	test/docs_unittest.py \
 	test/tempfile_fork_unittest.py
 
