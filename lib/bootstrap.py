@@ -39,6 +39,7 @@ from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
 from ganeti import hypervisor
+from ganeti import bdev
 
 
 def _InitSSHSetup():
@@ -210,12 +211,13 @@ def _InitFileStorage(file_storage_dir):
   return file_storage_dir
 
 
+#pylint: disable-msg=R0913
 def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
                 modify_etc_hosts=True, modify_ssh_setup=True,
-                maintain_node_health=False,
+                maintain_node_health=False, drbd_helper=None,
                 uid_pool=None):
   """Initialise the cluster.
 
@@ -277,6 +279,20 @@ def InitCluster(cluster_name, mac_prefix,
     if vgstatus:
       raise errors.OpPrereqError("Error: %s\nspecify --no-lvm-storage if"
                                  " you are not using lvm" % vgstatus,
+                                 errors.ECODE_INVAL)
+
+  if drbd_helper is not None:
+    try:
+      curr_helper = bdev.BaseDRBD.GetUsermodeHelper()
+    except errors.BlockDeviceError, err:
+      raise errors.OpPrereqError("Error while checking drbd helper"
+                                 " (specify --no-drbd-storage if you are not"
+                                 " using drbd): %s" % str(err),
+                                 errors.ECODE_ENVIRON)
+    if drbd_helper != curr_helper:
+      raise errors.OpPrereqError("Error: requiring %s as drbd helper but %s"
+                                 " is the current helper" % (drbd_helper,
+                                                             curr_helper),
                                  errors.ECODE_INVAL)
 
   file_storage_dir = _InitFileStorage(file_storage_dir)
@@ -344,6 +360,7 @@ def InitCluster(cluster_name, mac_prefix,
     mtime=now,
     uuid=utils.NewUUID(),
     maintain_node_health=maintain_node_health,
+    drbd_usermode_helper=drbd_helper,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
