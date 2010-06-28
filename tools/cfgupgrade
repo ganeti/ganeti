@@ -116,7 +116,7 @@ def main():
 
   # Check whether it's a Ganeti configuration directory
   if not (os.path.isfile(options.CONFIG_DATA_PATH) and
-          os.path.isfile(options.SERVER_PEM_PATH) or
+          os.path.isfile(options.SERVER_PEM_PATH) and
           os.path.isfile(options.KNOWN_HOSTS_PATH)):
     raise Error(("%s does not seem to be a Ganeti configuration"
                  " directory") % options.data_dir)
