@@ -383,7 +383,8 @@ class NIC(ConfigObject):
         self.nicparams[constants.NIC_MODE] = constants.NIC_MODE_BRIDGED
         self.nicparams[constants.NIC_LINK] = self.bridge
     # bridge is no longer used it 2.1. The slot is left there to support
-    # upgrading, but will be removed in 2.2
+    # upgrading, but can be removed once upgrades to the current version
+    # straight from 2.0 are deprecated.
     if self.bridge is not None:
       self.bridge = None
 
@@ -917,11 +918,13 @@ class Cluster(TaggableObject):
       self.modify_ssh_setup = True
 
     # default_bridge is no longer used it 2.1. The slot is left there to
-    # support auto-upgrading, but will be removed in 2.2
+    # support auto-upgrading. It can be removed once we decide to deprecate
+    # upgrading straight from 2.0.
     if self.default_bridge is not None:
       self.default_bridge = None
 
-    # default_hypervisor is just the first enabled one in 2.1
+    # default_hypervisor is just the first enabled one in 2.1. This slot and
+    # code can be removed once upgrading straight from 2.0 is deprecated.
     if self.default_hypervisor is not None:
       self.enabled_hypervisors = ([self.default_hypervisor] +
         [hvname for hvname in self.enabled_hypervisors
