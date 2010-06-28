@@ -1237,9 +1237,11 @@ class ConfigWriter:
     This is because some data elements need uniqueness across the
     whole configuration, etc.
 
-    @warning: this function will call L{_WriteConfig()}, so it needs
-        to either be called with the lock held or from a safe place
-        (the constructor)
+    @warning: this function will call L{_WriteConfig()}, but also
+        L{DropECReservations} so it needs to be called only from a
+        "safe" place (the constructor). If one wanted to call it with
+        the lock held, a DropECReservationUnlocked would need to be
+        created first, to avoid causing deadlock.
 
     """
     modified = False
