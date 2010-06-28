@@ -61,6 +61,7 @@ __all__ = [
   "DISK_OPT",
   "DISK_TEMPLATE_OPT",
   "DRAINED_OPT",
+  "DRBD_HELPER_OPT",
   "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
   "ERROR_CODES_OPT",
@@ -93,6 +94,7 @@ __all__ = [
   "NIC_PARAMS_OPT",
   "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
+  "NODRBD_STORAGE_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
   "NO_INSTALL_OPT",
@@ -988,6 +990,13 @@ ROMAN_OPT = cli_option("--roman",
                        action="store_true",
                        help="Use roman numbers for positive integers")
 
+DRBD_HELPER_OPT = cli_option("--drbd-usermode-helper", dest="drbd_helper",
+                             action="store", default=None,
+                             help="Specifies usermode helper for DRBD")
+
+NODRBD_STORAGE_OPT = cli_option("--no-drbd-storage", dest="drbd_storage",
+                                action="store_false", default=True,
+                                help="Disable support for DRBD")
 
 
 def _ParseArgs(argv, commands, aliases):
