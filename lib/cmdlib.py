@@ -2561,6 +2561,7 @@ class LUSetClusterParams(LogicalUnit):
     ("remove_uids", None, _NoType),
     ("maintain_node_health", None, _TMaybeBool),
     ("nicparams", None, _TOr(_TDict, _TNone)),
+    ("drbd_helper", None, _TOr(_TString, _TNone)),
     ]
   REQ_BGL = False
 
@@ -2608,6 +2609,12 @@ class LUSetClusterParams(LogicalUnit):
         raise errors.OpPrereqError("Cannot disable lvm storage while lvm-based"
                                    " instances exist", errors.ECODE_INVAL)
 
+    if self.op.drbd_helper is not None and not self.op.drbd_helper:
+      if self.cfg.HasAnyDiskOfType(constants.LD_DRBD8):
+        raise errors.OpPrereqError("Cannot disable drbd helper while"
+                                   " drbd-based instances exist",
+                                   errors.ECODE_INVAL)
+
     node_list = self.acquired_locks[locking.LEVEL_NODE]
 
     # if vg_name not None, checks given volume group on all nodes
@@ -2626,6 +2633,24 @@ class LUSetClusterParams(LogicalUnit):
         if vgstatus:
           raise errors.OpPrereqError("Error on node '%s': %s" %
                                      (node, vgstatus), errors.ECODE_ENVIRON)
+
+    if self.op.drbd_helper:
+      # checks given drbd helper on all nodes
+      helpers = self.rpc.call_drbd_helper(node_list)
+      for node in node_list:
+        ninfo = self.cfg.GetNodeInfo(node)
+        if ninfo.offline:
+          self.LogInfo("Not checking drbd helper on offline node %s", node)
+          continue
+        msg = helpers[node].fail_msg
+        if msg:
+          raise errors.OpPrereqError("Error checking drbd helper on node"
+                                     " '%s': %s" % (node, msg),
+                                     errors.ECODE_ENVIRON)
+        node_helper = helpers[node].payload
+        if node_helper != self.op.drbd_helper:
+          raise errors.OpPrereqError("Error on node '%s': drbd helper is %s" %
+                                     (node, node_helper), errors.ECODE_ENVIRON)
 
     self.cluster = cluster = self.cfg.GetClusterInfo()
     # validate params changes
@@ -2756,6 +2781,15 @@ class LUSetClusterParams(LogicalUnit):
       else:
         feedback_fn("Cluster LVM configuration already in desired"
                     " state, not changing")
+    if self.op.drbd_helper is not None:
+      new_helper = self.op.drbd_helper
+      if not new_helper:
+        new_helper = None
+      if new_helper != self.cfg.GetDRBDHelper():
+        self.cfg.SetDRBDHelper(new_helper)
+      else:
+        feedback_fn("Cluster DRBD helper already in desired state,"
+                    " not changing")
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
     if self.op.os_hvp:

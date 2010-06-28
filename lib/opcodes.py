@@ -299,6 +299,7 @@ class OpSetClusterParams(OpCode):
   OP_ID = "OP_CLUSTER_SET_PARAMS"
   __slots__ = [
     "vg_name",
+    "drbd_helper",
     "enabled_hypervisors",
     "hvparams",
     "os_hvp",
