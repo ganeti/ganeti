@@ -269,6 +269,8 @@ class LogicalUnit(object):
                                      " given type is not a proper type (%s)" %
                                      (attr_name, test))
       if not test(attr_val):
+        logging.error("OpCode %s, parameter %s, has invalid type %s/value %s",
+                      self.op.OP_ID, attr_name, type(attr_val), attr_val)
         raise errors.OpPrereqError("Parameter '%s' has invalid type" %
                                    attr_name, errors.ECODE_INVAL)
 
@@ -10053,7 +10055,8 @@ class LUTestAllocator(NoHooksLU):
     ("mode", _TElemOf(constants.VALID_IALLOCATOR_MODES)),
     ("name", _TNonEmptyString),
     ("nics", _TOr(_TNone, _TListOf(
-      _TDictOf(_TElemOf(["mac", "ip", "bridge"]), _TNonEmptyString)))),
+      _TDictOf(_TElemOf(["mac", "ip", "bridge"]),
+               _TOr(_TNone, _TNonEmptyString))))),
     ("disks", _TOr(_TNone, _TList)),
     ]
   _OP_DEFS = [
