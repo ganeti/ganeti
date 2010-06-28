@@ -112,13 +112,13 @@ def main():
     usertext = ("%s MUST be run on the master node. Is this the master"
                 " node and are ALL instances down?" % program)
     if not cli.AskUser(usertext):
-      sys.exit(1)
+      sys.exit(constants.EXIT_FAILURE)
 
   # Check whether it's a Ganeti configuration directory
   if not (os.path.isfile(options.CONFIG_DATA_PATH) and
           os.path.isfile(options.SERVER_PEM_PATH) or
           os.path.isfile(options.KNOWN_HOSTS_PATH)):
-    raise Error(("%s does not seem to be a known Ganeti configuration"
+    raise Error(("%s does not seem to be a Ganeti configuration"
                  " directory") % options.data_dir)
 
   config_data = serializer.LoadJson(utils.ReadFile(options.CONFIG_DATA_PATH))
@@ -138,11 +138,19 @@ def main():
     raise Error("Inconsistent configuration: found config_version in"
                 " configuration file")
 
-  if config_major == 2 and config_minor == 0:
+  # Upgrade from 2.0/2.1 to 2.2
+  if config_major == 2 and config_minor in (0, 1):
     if config_revision != 0:
-      logging.warning("Config revision is not 0")
+      logging.warning("Config revision is %s, not 0", config_revision)
 
-    config_data["version"] = constants.BuildVersion(2, 1, 0)
+    config_data["version"] = constants.BuildVersion(2, 2, 0)
+
+  elif config_major == 2 and config_minor == 2:
+    logging.info("No changes necessary")
+
+  else:
+    raise Error("Configuration version %d.%d.%d not supported by this tool" %
+                (config_major, config_minor, config_revision))
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
@@ -159,7 +167,7 @@ def main():
                                       hmackey_file=options.CONFD_HMAC_KEY,
                                       cds_file=options.CDS_FILE)
 
-  except:
+  except Exception:
     logging.critical("Writing configuration failed. It is probably in an"
                      " inconsistent state and needs manual intervention.")
     raise
