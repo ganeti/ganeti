@@ -90,6 +90,9 @@ def main():
   parser.add_option('--path', help="Convert configuration in this"
                     " directory instead of '%s'" % constants.DATA_DIR,
                     default=constants.DATA_DIR, dest="data_dir")
+  parser.add_option("--no-verify",
+                    help="Do not verify configuration after upgrade",
+                    action="store_true", dest="no_verify", default=False)
   (options, args) = parser.parse_args()
 
   # We need to keep filenames locally because they might be renamed between
@@ -173,7 +176,7 @@ def main():
     raise
 
   # test loading the config file
-  if not options.dry_run:
+  if not (options.dry_run or options.no_verify):
     logging.info("Testing the new config file...")
     cfg = config.ConfigWriter(cfg_file=options.CONFIG_DATA_PATH,
                               offline=True)
