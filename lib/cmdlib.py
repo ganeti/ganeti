@@ -2523,7 +2523,7 @@ class LUSetClusterParams(LogicalUnit):
     ("add_uids", None),
     ("remove_uids", None),
     ("hvparams", None),
-    ("ov_hvp", None),
+    ("os_hvp", None),
     ]
   REQ_BGL = False
 

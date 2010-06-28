@@ -2521,6 +2521,9 @@ def ValidateOS(required, osname, checks, osparams):
     else:
       return False
 
+  if max(tbv.api_versions) < constants.OS_API_V20:
+    return True
+
   if constants.OS_VALIDATE_PARAMETERS in checks:
     _CheckOSPList(tbv, osparams.keys())
 
