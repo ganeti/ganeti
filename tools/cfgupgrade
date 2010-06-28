@@ -44,29 +44,6 @@ from ganeti import config
 options = None
 args = None
 
-# Dictionary with instance old keys, and new hypervisor keys
-INST_HV_CHG = {
-  'hvm_pae': constants.HV_PAE,
-  'vnc_bind_address': constants.HV_VNC_BIND_ADDRESS,
-  'initrd_path': constants.HV_INITRD_PATH,
-  'hvm_nic_type': constants.HV_NIC_TYPE,
-  'kernel_path': constants.HV_KERNEL_PATH,
-  'hvm_acpi': constants.HV_ACPI,
-  'hvm_cdrom_image_path': constants.HV_CDROM_IMAGE_PATH,
-  'hvm_boot_order': constants.HV_BOOT_ORDER,
-  'hvm_disk_type': constants.HV_DISK_TYPE,
-  }
-
-# Instance beparams changes
-INST_BE_CHG = {
-  'vcpus': constants.BE_VCPUS,
-  'memory': constants.BE_MEMORY,
-  'auto_balance': constants.BE_AUTO_BALANCE,
-  }
-
-# Field names
-F_SERIAL = 'serial_no'
-
 
 class Error(Exception):
   """Generic exception"""
