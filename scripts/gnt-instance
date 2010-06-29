@@ -387,6 +387,7 @@ def BatchCreate(opts, args):
                     "hypervisor": None,
                     "hvparams": {},
                     "file_storage_dir": None,
+                    "force_variant": False,
                     "file_driver": 'loop'}
 
   def _PopulateWithDefaults(spec):
