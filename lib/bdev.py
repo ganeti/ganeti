@@ -1079,7 +1079,10 @@ class DRBD8(BaseDRBD):
     # pyparsing setup
     lbrace = pyp.Literal("{").suppress()
     rbrace = pyp.Literal("}").suppress()
+    lbracket = pyp.Literal("[").suppress()
+    rbracket = pyp.Literal("]").suppress()
     semi = pyp.Literal(";").suppress()
+    colon = pyp.Literal(":").suppress()
     # this also converts the value to an int
     number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t: int(t[0]))
 
@@ -1092,19 +1095,19 @@ class DRBD8(BaseDRBD):
     # value types
     value = pyp.Word(pyp.alphanums + '_-/.:')
     quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
-    addr_type = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
-                 pyp.Optional(pyp.Literal("ipv6")).suppress())
-    addr_port = (addr_type + pyp.Word(pyp.nums + '.') +
-                 pyp.Literal(':').suppress() + number)
+    ipv4_addr = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
+                 pyp.Word(pyp.nums + ".") + colon + number)
+    ipv6_addr = (pyp.Optional(pyp.Literal("ipv6")).suppress() +
+                 pyp.Optional(lbracket) + pyp.Word(pyp.hexnums + ":") +
+                 pyp.Optional(rbracket) + colon + number)
     # meta device, extended syntax
-    meta_value = ((value ^ quoted) + pyp.Literal('[').suppress() +
-                  number + pyp.Word(']').suppress())
+    meta_value = ((value ^ quoted) + lbracket + number + rbracket)
     # device name, extended syntax
     device_value = pyp.Literal("minor").suppress() + number
 
     # a statement
     stmt = (~rbrace + keyword + ~lbrace +
-            pyp.Optional(addr_port ^ value ^ quoted ^ meta_value ^
+            pyp.Optional(ipv4_addr ^ ipv6_addr ^ value ^ quoted ^ meta_value ^
                          device_value) +
             pyp.Optional(defa) + semi +
             pyp.Optional(pyp.restOfLine).suppress())
@@ -1280,8 +1283,22 @@ class DRBD8(BaseDRBD):
     # about its peer.
     cls._SetMinorSyncSpeed(minor, constants.SYNC_SPEED)
 
+    if utils.IsValidIP6(lhost):
+      if not utils.IsValidIP6(rhost):
+        _ThrowError("drbd%d: can't connect ip %s to ip %s" %
+                    (minor, lhost, rhost))
+      family = "ipv6"
+    elif utils.IsValidIP4(lhost):
+      if not utils.IsValidIP4(rhost):
+        _ThrowError("drbd%d: can't connect ip %s to ip %s" %
+                    (minor, lhost, rhost))
+      family = "ipv4"
+    else:
+      _ThrowError("drbd%d: Invalid ip %s" % (minor, lhost))
+
     args = ["drbdsetup", cls._DevPath(minor), "net",
-            "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport), protocol,
+            "%s:%s:%s" % (family, lhost, lport),
+            "%s:%s:%s" % (family, rhost, rport), protocol,
             "-A", "discard-zero-changes",
             "-B", "consensus",
             "--create-device",

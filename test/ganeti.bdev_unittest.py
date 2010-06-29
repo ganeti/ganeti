@@ -62,9 +62,9 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     """Test drbdsetup show parser creation"""
     bdev.DRBD8._GetShowParser()
 
-  def testParserBoth80(self):
-    """Test drbdsetup show parser for disk and network"""
-    data = self._ReadTestData("bdev-both.txt")
+  def testParser80(self):
+    """Test drbdsetup show parser for disk and network version 8.0"""
+    data = self._ReadTestData("bdev-drbd-8.0.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
@@ -73,20 +73,20 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
                                   ("192.168.1.2", 11000)),
                     "Wrong network info (8.0.x)")
 
-  def testParserBoth83(self):
-    """Test drbdsetup show parser for disk and network"""
-    data = self._ReadTestData("bdev-8.3-both.txt")
+  def testParser83(self):
+    """Test drbdsetup show parser for disk and network version 8.3"""
+    data = self._ReadTestData("bdev-drbd-8.3.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
     self.failUnless(self._has_net(result, ("192.168.1.1", 11000),
                                   ("192.168.1.2", 11000)),
-                    "Wrong network info (8.2.x)")
+                    "Wrong network info (8.0.x)")
 
-  def testParserNet(self):
-    """Test drbdsetup show parser for disk and network"""
-    data = self._ReadTestData("bdev-net.txt")
+  def testParserNetIP4(self):
+    """Test drbdsetup show parser for IPv4 network"""
+    data = self._ReadTestData("bdev-drbd-net-ip4.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
@@ -94,11 +94,23 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
                     "Should not find local disk info")
     self.failUnless(self._has_net(result, ("192.168.1.1", 11002),
                                   ("192.168.1.2", 11002)),
-                    "Wrong network info")
+                    "Wrong network info (IPv4)")
+
+  def testParserNetIP6(self):
+    """Test drbdsetup show parser for IPv6 network"""
+    data = self._ReadTestData("bdev-drbd-net-ip6.txt")
+    result = bdev.DRBD8._GetDevInfo(data)
+    self.failUnless(("local_dev" not in result and
+                     "meta_dev" not in result and
+                     "meta_index" not in result),
+                    "Should not find local disk info")
+    self.failUnless(self._has_net(result, ("2001:db8:65::1", 11048),
+                                  ("2001:db8:66::1", 11048)),
+                    "Wrong network info (IPv6)")
 
   def testParserDisk(self):
-    """Test drbdsetup show parser for disk and network"""
-    data = self._ReadTestData("bdev-disk.txt")
+    """Test drbdsetup show parser for disk"""
+    data = self._ReadTestData("bdev-drbd-disk.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),

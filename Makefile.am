@@ -348,10 +348,11 @@ maninput = \
 	$(patsubst %.html,%.html.in,$(manhtml))
 
 TEST_FILES = \
-	test/data/bdev-both.txt \
-	test/data/bdev-8.3-both.txt \
-	test/data/bdev-disk.txt \
-	test/data/bdev-net.txt \
+	test/data/bdev-drbd-8.0.txt \
+	test/data/bdev-drbd-8.3.txt \
+	test/data/bdev-drbd-disk.txt \
+	test/data/bdev-drbd-net-ip4.txt \
+	test/data/bdev-drbd-net-ip6.txt \
 	test/data/cert1.pem \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
