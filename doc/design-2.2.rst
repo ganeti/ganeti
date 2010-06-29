@@ -687,6 +687,37 @@ Miscellaneous notes
   requirements.
 
 
+Privilege separation
+~~~~~~~~~~~~~~~~~~~~
+
+Current state and shortcomings
+++++++++++++++++++++++++++++++
+
+All Ganeti daemons are run under the user root. This is not ideal from a
+security perspective as for possible exploitation of any daemon the user
+has full access to the system.
+
+In order to overcome this situation we'll allow Ganeti to run its daemon
+under different users and a dedicated group. This also will allow some
+side effects, like letting the user run some ``gnt-*`` commands if one
+is in the same group.
+
+Implementation
+++++++++++++++
+
+For Ganeti 2.2 the implementation will be focused on a the RAPI daemon
+only. This involves changes to ``daemons.py`` so it's possible to drop
+privileges on daemonize the process. Though, this will be a short term
+solution which will be replaced by a privilege drop already on daemon
+startup in Ganeti 2.3.
+
+It also needs changes in the master daemon to create the socket with new
+permissions/owners to allow RAPI access. There will be no other
+permission/owner changes in the file structure as the RAPI daemon is
+started with root permission. In that time it will read all needed files
+and then drop privileges before contacting the master daemon.
+
+
 Feature changes
 ---------------
 
