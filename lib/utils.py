@@ -55,6 +55,7 @@ import IN
 from cStringIO import StringIO
 
 try:
+  # pylint: disable-msg=F0401
   import ctypes
 except ImportError:
   ctypes = None

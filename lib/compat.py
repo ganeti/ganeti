@@ -26,11 +26,13 @@
 import itertools
 
 try:
+  # pylint: disable-msg=F0401
   import functools
 except ImportError:
   functools = None
 
 try:
+  # pylint: disable-msg=F0401
   import roman
 except ImportError:
   roman = None
@@ -42,6 +44,7 @@ except ImportError:
 # modules (hmac, for example) which have changed their behavior as well from
 # one version to the other.
 try:
+  # pylint: disable-msg=F0401
   # Yes, we're not using the imports in this module.
   # pylint: disable-msg=W0611
   from hashlib import md5 as md5_hash
@@ -72,12 +75,16 @@ def _any(seq):
   return False
 
 try:
-  all = all # pylint: disable-msg=W0622
+  # pylint: disable-msg=E0601
+  # pylint: disable-msg=W0622
+  all = all
 except NameError:
   all = _all
 
 try:
-  any = any # pylint: disable-msg=W0622
+  # pylint: disable-msg=E0601
+  # pylint: disable-msg=W0622
+  any = any
 except NameError:
   any = _any
 
