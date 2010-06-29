@@ -75,8 +75,8 @@ class TestIsProcessAlive(unittest.TestCase):
     elif pid_non_existing < 0:
       raise SystemError("can't fork")
     os.waitpid(pid_non_existing, 0)
-    self.assert_(not IsProcessAlive(pid_non_existing),
-                 "nonexisting process detected")
+    self.assertFalse(IsProcessAlive(pid_non_existing),
+                     "nonexisting process detected")
 
 
 class TestGetProcStatusPath(unittest.TestCase):
@@ -1667,7 +1667,7 @@ class TestIsNormAbsPath(unittest.TestCase):
       self.assert_(IsNormAbsPath(path),
           "Path %s should result absolute and normalized" % path)
     else:
-      self.assert_(not IsNormAbsPath(path),
+      self.assertFalse(IsNormAbsPath(path),
           "Path %s should not result absolute and normalized" % path)
 
   def testBase(self):
@@ -2064,7 +2064,7 @@ class TestMakedirs(unittest.TestCase):
 
   def testRecursiveExisting(self):
     path = utils.PathJoin(self.tmpdir, "B/moo/xyz")
-    self.assert_(not os.path.exists(path))
+    self.assertFalse(os.path.exists(path))
     os.mkdir(utils.PathJoin(self.tmpdir, "B"))
     utils.Makedirs(path)
     self.assert_(os.path.isdir(path))

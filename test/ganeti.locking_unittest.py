@@ -90,7 +90,7 @@ class _ConditionTestCase(_ThreadedTestCase):
     self.cond = cls(self.lock)
 
   def _testAcquireRelease(self):
-    self.assert_(not self.cond._is_owned())
+    self.assertFalse(self.cond._is_owned())
     self.assertRaises(RuntimeError, self.cond.wait)
     self.assertRaises(RuntimeError, self.cond.notifyAll)
 
@@ -100,7 +100,7 @@ class _ConditionTestCase(_ThreadedTestCase):
     self.assert_(self.cond._is_owned())
     self.cond.release()
 
-    self.assert_(not self.cond._is_owned())
+    self.assertFalse(self.cond._is_owned())
     self.assertRaises(RuntimeError, self.cond.wait)
     self.assertRaises(RuntimeError, self.cond.notifyAll)
 
@@ -122,7 +122,7 @@ class _ConditionTestCase(_ThreadedTestCase):
     self.assertEqual(self.done.get(True, 1), "NN")
     self.assert_(self.cond._is_owned())
     self.cond.release()
-    self.assert_(not self.cond._is_owned())
+    self.assertFalse(self.cond._is_owned())
 
 
 class TestSingleNotifyPipeCondition(_ConditionTestCase):
@@ -259,25 +259,25 @@ class TestSharedLock(_ThreadedTestCase):
     self.sl = locking.SharedLock()
 
   def testSequenceAndOwnership(self):
-    self.assert_(not self.sl._is_owned())
+    self.assertFalse(self.sl._is_owned())
     self.sl.acquire(shared=1)
     self.assert_(self.sl._is_owned())
     self.assert_(self.sl._is_owned(shared=1))
-    self.assert_(not self.sl._is_owned(shared=0))
+    self.assertFalse(self.sl._is_owned(shared=0))
     self.sl.release()
-    self.assert_(not self.sl._is_owned())
+    self.assertFalse(self.sl._is_owned())
     self.sl.acquire()
     self.assert_(self.sl._is_owned())
-    self.assert_(not self.sl._is_owned(shared=1))
+    self.assertFalse(self.sl._is_owned(shared=1))
     self.assert_(self.sl._is_owned(shared=0))
     self.sl.release()
-    self.assert_(not self.sl._is_owned())
+    self.assertFalse(self.sl._is_owned())
     self.sl.acquire(shared=1)
     self.assert_(self.sl._is_owned())
     self.assert_(self.sl._is_owned(shared=1))
-    self.assert_(not self.sl._is_owned(shared=0))
+    self.assertFalse(self.sl._is_owned(shared=0))
     self.sl.release()
-    self.assert_(not self.sl._is_owned())
+    self.assertFalse(self.sl._is_owned())
 
   def testBooleanValue(self):
     # semaphores are supposed to return a true value on a successful acquire
@@ -747,9 +747,9 @@ class TestSSynchronizedDecorator(_ThreadedTestCase):
 
   def testDecoratedFunctions(self):
     self._doItExclusive()
-    self.assert_(not _decoratorlock._is_owned())
+    self.assertFalse(_decoratorlock._is_owned())
     self._doItSharer()
-    self.assert_(not _decoratorlock._is_owned())
+    self.assertFalse(_decoratorlock._is_owned())
 
   def testSharersCanCoexist(self):
     _decoratorlock.acquire(shared=1)
@@ -1026,8 +1026,8 @@ class TestLockSet(_ThreadedTestCase):
           self.ls.release()
         else:
           self.assert_(acquired is None)
-          self.assert_(not self.ls._list_owned())
-          self.assert_(not self.ls._is_owned())
+          self.assertFalse(self.ls._list_owned())
+          self.assertFalse(self.ls._is_owned())
           self.done.put("not acquired")
 
       self._addThread(target=_AcquireOne)
@@ -1099,7 +1099,7 @@ class TestLockSet(_ThreadedTestCase):
 
         self.ls.release(names=name)
 
-      self.assert_(not self.ls._list_owned())
+      self.assertFalse(self.ls._list_owned())
 
       self._waitThreads()
 

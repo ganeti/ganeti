@@ -91,7 +91,7 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
-    self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertFalse(self.notified[self.NOTIFIER_NORM])
     self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
     self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
@@ -105,7 +105,7 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
-    self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertFalse(self.notified[self.NOTIFIER_NORM])
     self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
     self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
@@ -115,7 +115,7 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     utils.WriteFile(self.chk_files[self.NOTIFIER_TERM], data="dummy")
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
-    self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertFalse(self.notified[self.NOTIFIER_NORM])
     self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
     self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
@@ -125,7 +125,7 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     self.mainloop.Run()
     self.assert_(self.notified[self.NOTIFIER_TERM])
     # NORM notifier is disabled by default
-    self.assert_(not self.notified[self.NOTIFIER_NORM])
+    self.assertFalse(self.notified[self.NOTIFIER_NORM])
     self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
     self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
 
