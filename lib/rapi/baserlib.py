@@ -354,22 +354,22 @@ class R_Generic(object):
     """Check if the request specifies locking.
 
     """
-    return self._checkIntVariable('lock')
+    return bool(self._checkIntVariable("lock"))
 
   def useBulk(self):
     """Check if the request specifies bulk querying.
 
     """
-    return self._checkIntVariable('bulk')
+    return bool(self._checkIntVariable("bulk"))
 
   def useForce(self):
     """Check if the request specifies a forced operation.
 
     """
-    return self._checkIntVariable('force')
+    return bool(self._checkIntVariable("force"))
 
   def dryRun(self):
     """Check if the request specifies dry-run mode.
 
     """
-    return self._checkIntVariable('dry-run')
+    return bool(self._checkIntVariable("dry-run"))
