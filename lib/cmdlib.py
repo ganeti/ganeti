@@ -4750,8 +4750,10 @@ class LURenameInstance(LogicalUnit):
   _OP_REQP = [
     ("instance_name", _TNonEmptyString),
     ("new_name", _TNonEmptyString),
+    ("ignore_ip", _TBool),
+    ("check_name", _TBool),
     ]
-  _OP_DEFS = [("ignore_ip", False)]
+  _OP_DEFS = [("ignore_ip", False), ("check_name", True)]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4779,9 +4781,12 @@ class LURenameInstance(LogicalUnit):
     self.instance = instance
 
     # new name verification
-    name_info = utils.GetHostInfo(self.op.new_name)
+    if self.op.check_name:
+      name_info = utils.GetHostInfo(self.op.new_name)
+      self.op.new_name = name_info.name
 
-    self.op.new_name = new_name = name_info.name
+    new_name = self.op.new_name
+
     instance_list = self.cfg.GetInstanceList()
     if new_name in instance_list:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %

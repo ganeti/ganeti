@@ -502,7 +502,7 @@ class OpRenameInstance(OpCode):
   """Rename an instance."""
   OP_ID = "OP_INSTANCE_RENAME"
   __slots__ = [
-    "instance_name", "ignore_ip", "new_name",
+    "instance_name", "ignore_ip", "new_name", "check_name",
     ]
 
 
