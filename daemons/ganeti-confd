@@ -48,6 +48,7 @@ from ganeti.confd import server as confd_server
 from ganeti import constants
 from ganeti import errors
 from ganeti import daemon
+from ganeti import netutils
 
 
 class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
@@ -58,14 +59,15 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
     """Constructor for ConfdAsyncUDPServer
 
     @type bind_address: string
-    @param bind_address: socket bind address ('' for all)
+    @param bind_address: socket bind address
     @type port: int
     @param port: udp port
     @type processor: L{confd.server.ConfdProcessor}
     @param processor: ConfdProcessor to use to handle queries
 
     """
-    daemon.AsyncUDPSocket.__init__(self)
+    daemon.AsyncUDPSocket.__init__(self,
+                                   netutils.GetAddressFamily(bind_address))
     self.bind_address = bind_address
     self.port = port
     self.processor = processor
@@ -250,6 +252,10 @@ def CheckConfd(_, args):
   if not os.path.isfile(constants.CONFD_HMAC_KEY):
     print >> sys.stderr, "Need HMAC key %s to run" % constants.CONFD_HMAC_KEY
     sys.exit(constants.EXIT_FAILURE)
+
+  # TODO: once we have a cluster param specifying the address family
+  # preference, we need to check if the requested options.bind_address does not
+  # conflict with that. If so, we might warn or EXIT_FAILURE.
 
 
 def ExecConfd(options, _):

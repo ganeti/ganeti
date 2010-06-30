@@ -149,8 +149,8 @@ class TestMainloop(testutils.GanetiTestCase):
 
 class _MyAsyncUDPSocket(daemon.AsyncUDPSocket):
 
-  def __init__(self):
-    daemon.AsyncUDPSocket.__init__(self)
+  def __init__(self, family):
+    daemon.AsyncUDPSocket.__init__(self, family)
     self.received = []
     self.error_count = 0
 
@@ -166,15 +166,17 @@ class _MyAsyncUDPSocket(daemon.AsyncUDPSocket):
     raise
 
 
-class TestAsyncUDPSocket(testutils.GanetiTestCase):
-  """Test daemon.AsyncUDPSocket"""
+class _BaseAsyncUDPSocketTest:
+  """Base class for  AsyncUDPSocket tests"""
+
+  family = None
+  address = None
 
   def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
     self.mainloop = daemon.Mainloop()
-    self.server = _MyAsyncUDPSocket()
-    self.client = _MyAsyncUDPSocket()
-    self.server.bind(("127.0.0.1", 0))
+    self.server = _MyAsyncUDPSocket(self.family)
+    self.client = _MyAsyncUDPSocket(self.family)
+    self.server.bind((self.address, 0))
     self.port = self.server.getsockname()[1]
     # Save utils.IgnoreSignals so we can do evil things to it...
     self.saved_utils_ignoresignals = utils.IgnoreSignals
@@ -187,38 +189,38 @@ class TestAsyncUDPSocket(testutils.GanetiTestCase):
     testutils.GanetiTestCase.tearDown(self)
 
   def testNoDoubleBind(self):
-    self.assertRaises(socket.error, self.client.bind, ("127.0.0.1", self.port))
+    self.assertRaises(socket.error, self.client.bind, (self.address, self.port))
 
   def testAsyncClientServer(self):
-    self.client.enqueue_send("127.0.0.1", self.port, "p1")
-    self.client.enqueue_send("127.0.0.1", self.port, "p2")
-    self.client.enqueue_send("127.0.0.1", self.port, "terminate")
+    self.client.enqueue_send(self.address, self.port, "p1")
+    self.client.enqueue_send(self.address, self.port, "p2")
+    self.client.enqueue_send(self.address, self.port, "terminate")
     self.mainloop.Run()
     self.assertEquals(self.server.received, ["p1", "p2", "terminate"])
 
   def testSyncClientServer(self):
     self.client.handle_write()
-    self.client.enqueue_send("127.0.0.1", self.port, "p1")
-    self.client.enqueue_send("127.0.0.1", self.port, "p2")
+    self.client.enqueue_send(self.address, self.port, "p1")
+    self.client.enqueue_send(self.address, self.port, "p2")
     while self.client.writable():
       self.client.handle_write()
     self.server.process_next_packet()
     self.assertEquals(self.server.received, ["p1"])
     self.server.process_next_packet()
     self.assertEquals(self.server.received, ["p1", "p2"])
-    self.client.enqueue_send("127.0.0.1", self.port, "p3")
+    self.client.enqueue_send(self.address, self.port, "p3")
     while self.client.writable():
       self.client.handle_write()
     self.server.process_next_packet()
     self.assertEquals(self.server.received, ["p1", "p2", "p3"])
 
   def testErrorHandling(self):
-    self.client.enqueue_send("127.0.0.1", self.port, "p1")
-    self.client.enqueue_send("127.0.0.1", self.port, "p2")
-    self.client.enqueue_send("127.0.0.1", self.port, "error")
-    self.client.enqueue_send("127.0.0.1", self.port, "p3")
-    self.client.enqueue_send("127.0.0.1", self.port, "error")
-    self.client.enqueue_send("127.0.0.1", self.port, "terminate")
+    self.client.enqueue_send(self.address, self.port, "p1")
+    self.client.enqueue_send(self.address, self.port, "p2")
+    self.client.enqueue_send(self.address, self.port, "error")
+    self.client.enqueue_send(self.address, self.port, "p3")
+    self.client.enqueue_send(self.address, self.port, "error")
+    self.client.enqueue_send(self.address, self.port, "terminate")
     self.assertRaises(errors.GenericError, self.mainloop.Run)
     self.assertEquals(self.server.received,
                       ["p1", "p2", "error"])
@@ -234,11 +236,11 @@ class TestAsyncUDPSocket(testutils.GanetiTestCase):
 
   def testSignaledWhileReceiving(self):
     utils.IgnoreSignals = lambda fn, *args, **kwargs: None
-    self.client.enqueue_send("127.0.0.1", self.port, "p1")
-    self.client.enqueue_send("127.0.0.1", self.port, "p2")
+    self.client.enqueue_send(self.address, self.port, "p1")
+    self.client.enqueue_send(self.address, self.port, "p2")
     self.server.handle_read()
     self.assertEquals(self.server.received, [])
-    self.client.enqueue_send("127.0.0.1", self.port, "terminate")
+    self.client.enqueue_send(self.address, self.port, "terminate")
     utils.IgnoreSignals = self.saved_utils_ignoresignals
     self.mainloop.Run()
     self.assertEquals(self.server.received, ["p1", "p2", "terminate"])
@@ -246,7 +248,37 @@ class TestAsyncUDPSocket(testutils.GanetiTestCase):
   def testOversizedDatagram(self):
     oversized_data = (constants.MAX_UDP_DATA_SIZE + 1) * "a"
     self.assertRaises(errors.UdpDataSizeError, self.client.enqueue_send,
-                      "127.0.0.1", self.port, oversized_data)
+                      self.address, self.port, oversized_data)
+
+
+class TestAsyncIP4UDPSocket(testutils.GanetiTestCase, _BaseAsyncUDPSocketTest):
+  """Test IP4 daemon.AsyncUDPSocket"""
+
+  family = socket.AF_INET
+  address = "127.0.0.1"
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    _BaseAsyncUDPSocketTest.setUp(self)
+
+  def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
+    _BaseAsyncUDPSocketTest.tearDown(self)
+
+
+class TestAsyncIP6UDPSocket(testutils.GanetiTestCase, _BaseAsyncUDPSocketTest):
+  """Test IP6 daemon.AsyncUDPSocket"""
+
+  family = socket.AF_INET6
+  address = "::1"
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    _BaseAsyncUDPSocketTest.setUp(self)
+
+  def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
+    _BaseAsyncUDPSocketTest.tearDown(self)
 
 
 class _MyAsyncStreamServer(daemon.AsyncStreamServer):

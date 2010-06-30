@@ -22,6 +22,7 @@
 """Script for unittesting the confd client module"""
 
 
+import socket
 import unittest
 
 from ganeti import confd
@@ -96,8 +97,11 @@ class MockTime(ResettableMock):
     self.mytime += delta
 
 
-class TestClient(unittest.TestCase):
-  """Client tests"""
+class _BaseClientTest:
+  """Base class for client tests"""
+  mc_list = None
+  new_peers = None
+  family = None
 
   def setUp(self):
     self.mock_time = MockTime()
@@ -105,16 +109,6 @@ class TestClient(unittest.TestCase):
     confd.client.ConfdAsyncUDPClient = MockConfdAsyncUDPClient
     self.logger = MockLogger()
     hmac_key = "mykeydata"
-    self.mc_list = ['10.0.0.1',
-                    '10.0.0.2',
-                    '10.0.0.3',
-                    '10.0.0.4',
-                    '10.0.0.5',
-                    '10.0.0.6',
-                    '10.0.0.7',
-                    '10.0.0.8',
-                    '10.0.0.9',
-                   ]
     self.callback = MockCallback()
     self.client = confd.client.ConfdClient(hmac_key, self.mc_list,
                                            self.callback, logger=self.logger)
@@ -178,13 +172,60 @@ class TestClient(unittest.TestCase):
     self.assertEquals(self.callback.call_count, 1)
 
   def testUpdatePeerList(self):
-    new_peers = ['1.2.3.4', '1.2.3.5']
-    self.client.UpdatePeerList(new_peers)
-    self.assertEquals(self.client._peers, new_peers)
+    self.client.UpdatePeerList(self.new_peers)
+    self.assertEquals(self.client._peers, self.new_peers)
     req = confd.client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
     self.client.SendRequest(req)
-    self.assertEquals(self.client._socket.send_count, len(new_peers))
-    self.assert_(self.client._socket.last_address in new_peers)
+    self.assertEquals(self.client._socket.send_count, len(self.new_peers))
+    self.assert_(self.client._socket.last_address in self.new_peers)
+
+  def testSetPeersFamily(self):
+    self.client._SetPeersAddressFamily()
+    self.assertEquals(self.client._family, self.family)
+    mixed_peers = ["1.2.3.6", "2001:db8:beef::13"]
+    self.client.UpdatePeerList(mixed_peers)
+    self.assertRaises(errors.ConfdClientError,
+                      self.client._SetPeersAddressFamily)
+
+
+class TestIP4Client(unittest.TestCase, _BaseClientTest):
+  """Client tests"""
+  mc_list = ["10.0.0.1",
+             "10.0.0.2",
+             "10.0.0.3",
+             "10.0.0.4",
+             "10.0.0.5",
+             "10.0.0.6",
+             "10.0.0.7",
+             "10.0.0.8",
+             "10.0.0.9",
+            ]
+  new_peers = ["1.2.3.4", "1.2.3.5"]
+  family = socket.AF_INET
+
+  def setUp(self):
+    unittest.TestCase.setUp(self)
+    _BaseClientTest.setUp(self)
+
+
+class TestIP6Client(unittest.TestCase, _BaseClientTest):
+  """Client tests"""
+  mc_list = ["2001:db8::1",
+             "2001:db8::2",
+             "2001:db8::3",
+             "2001:db8::4",
+             "2001:db8::5",
+             "2001:db8::6",
+             "2001:db8::7",
+             "2001:db8::8",
+             "2001:db8::9",
+            ]
+  new_peers = ["2001:db8:beef::11", "2001:db8:beef::12"]
+  family = socket.AF_INET6
+
+  def setUp(self):
+    unittest.TestCase.setUp(self)
+    _BaseClientTest.setUp(self)
 
 
 if __name__ == '__main__':

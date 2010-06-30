@@ -310,13 +310,14 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
   """An improved asyncore udp socket.
 
   """
-  def __init__(self):
+  def __init__(self, family):
     """Constructor for AsyncUDPSocket
 
     """
     GanetiBaseAsyncoreDispatcher.__init__(self)
     self._out_queue = []
-    self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self._family = family
+    self.create_socket(family, socket.SOCK_DGRAM)
 
   # this method is overriding an asyncore.dispatcher method
   def handle_connect(self):
@@ -331,7 +332,12 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
                                       constants.MAX_UDP_DATA_SIZE)
     if recv_result is not None:
       payload, address = recv_result
-      ip, port = address
+      if self._family == socket.AF_INET6:
+        # we ignore 'flow info' and 'scope id' as we don't need them
+        ip, port, _, _ = address
+      else:
+        ip, port = address
+
       self.handle_datagram(payload, ip, port)
 
   def handle_datagram(self, payload, ip, port):
