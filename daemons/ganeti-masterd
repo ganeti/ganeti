@@ -63,7 +63,7 @@ EXIT_NODESETUP_ERROR = constants.EXIT_NODESETUP_ERROR
 
 
 class ClientRequestWorker(workerpool.BaseWorker):
-   # pylint: disable-msg=W0221
+  # pylint: disable-msg=W0221
   def RunTask(self, server, message, client):
     """Process the request.
 
@@ -95,7 +95,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
       client.send_message(reply)
       # awake the main thread so that it can write out the data.
       server.awaker.signal()
-    except:
+    except: # pylint: disable-msg=W0702
       logging.exception("Send error")
       client.close_log()
 
