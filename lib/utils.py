@@ -1762,8 +1762,12 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
       than C{EADDRNOTAVAIL} will be ignored
 
   """
-  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  try:
+    family = GetAddressFamily(target)
+  except errors.GenericError:
+    return False
 
+  sock = socket.socket(family, socket.SOCK_STREAM)
   success = False
 
   if source is not None:
