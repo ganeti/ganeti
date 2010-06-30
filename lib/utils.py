@@ -1794,8 +1794,8 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
 def OwnIpAddress(address):
   """Check if the current host has the the given IP address.
 
-  Currently this is done by TCP-pinging the address from the loopback
-  address.
+  This is done by trying to bind the given address. We return True if we
+  succeed or false if a socket.error is raised.
 
   @type address: string
   @param address: the address to check
@@ -1803,8 +1803,17 @@ def OwnIpAddress(address):
   @return: True if we own the address
 
   """
-  return TcpPing(address, constants.DEFAULT_NODED_PORT,
-                 source=constants.IP4_ADDRESS_LOCALHOST)
+  family = GetAddressFamily(address)
+  s = socket.socket(family, socket.SOCK_DGRAM)
+  success = False
+  try:
+    s.bind((address, 0))
+    success = True
+  except socket.error:
+    success = False
+  finally:
+    s.close()
+  return success
 
 
 def ListVisibleFiles(path):
