@@ -70,6 +70,14 @@ def _EmptyDict():
   return {}
 
 
+#: The without-default default value
+_NoDefault = object()
+
+
+#: The no-type (value to complex to check it in the type system)
+_NoType = object()
+
+
 # Some basic types
 def _TNotNone(val):
   """Checks if the given value is not None.
@@ -163,12 +171,23 @@ def _TOr(*args):
 
 # Type aliases
 
-# non-empty string
+#: a non-empty string
 _TNonEmptyString = _TAnd(_TString, _TTrue)
 
 
-# positive integer
+#: a maybe non-empty string
+_TMaybeString = _TOr(_TNonEmptyString, _TNone)
+
+
+#: a maybe boolean (bool or none)
+_TMaybeBool = _TOr(_TBool, _TNone)
+
+
+#: a positive integer
 _TPositiveInt = _TAnd(_TInt, lambda v: v >= 0)
+
+#: a strictly positive integer
+_TStrictPositiveInt = _TAnd(_TInt, lambda v: v > 0)
 
 
 def _TListOf(my_type):
@@ -187,6 +206,27 @@ def _TDictOf(key_type, val_type):
                lambda my_dict: (compat.all(key_type(v) for v in my_dict.keys())
                                 and compat.all(val_type(v)
                                                for v in my_dict.values())))
+
+
+# Common opcode attributes
+
+#: output fields for a query operation
+_POutputFields = ("output_fields", _NoDefault, _TListOf(_TNonEmptyString))
+
+
+#: the shutdown timeout
+_PShutdownTimeout = ("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT,
+                     _TPositiveInt)
+
+#: the force parameter
+_PForce = ("force", False, _TBool)
+
+#: a required instance name (for single-instance LUs)
+_PInstanceName = ("instance_name", _NoDefault, _TNonEmptyString)
+
+
+#: a required node name (for single-node LUs)
+_PNodeName = ("node_name", _NoDefault, _TNonEmptyString)
 
 
 # End types
