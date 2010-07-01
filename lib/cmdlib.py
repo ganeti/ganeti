@@ -8649,13 +8649,13 @@ class LUSetInstanceParams(LogicalUnit):
                                    " %s to %s" % (instance.disk_template,
                                                   self.op.disk_template),
                                    errors.ECODE_INVAL)
+      _CheckInstanceDown(self, instance, "cannot change disk template")
       if self.op.disk_template in constants.DTS_NET_MIRROR:
         _CheckNodeOnline(self, self.op.remote_node)
         _CheckNodeNotDrained(self, self.op.remote_node)
         disks = [{"size": d.size} for d in instance.disks]
         required = _ComputeDiskSize(self.op.disk_template, disks)
         _CheckNodesFreeDisk(self, [self.op.remote_node], required)
-        _CheckInstanceDown(self, instance, "cannot change disk template")
 
     # hvparams processing
     if self.op.hvparams:

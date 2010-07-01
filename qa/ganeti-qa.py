@@ -355,7 +355,9 @@ def main():
           instance = RunTest(func, pnode, snode)
           RunCommonInstanceTests(instance)
           if qa_config.TestEnabled('instance-convert-disk'):
+            RunTest(qa_instance.TestInstanceShutdown, instance)
             RunTest(qa_instance.TestInstanceConvertDisk, instance, snode)
+            RunTest(qa_instance.TestInstanceStartup, instance)
           RunExportImportTests(instance, pnode)
           RunHardwareFailureTests(instance, pnode, snode)
           RunTest(qa_instance.TestInstanceRemove, instance)

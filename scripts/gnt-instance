@@ -387,6 +387,7 @@ def BatchCreate(opts, args):
                     "hypervisor": None,
                     "hvparams": {},
                     "file_storage_dir": None,
+                    "force_variant": False,
                     "file_driver": 'loop'}
 
   def _PopulateWithDefaults(spec):
@@ -478,7 +479,7 @@ def BatchCreate(opts, args):
                                   disk_template=specs['template'],
                                   mode=constants.INSTANCE_CREATE,
                                   os_type=specs['os'],
-                                  force_variant=opts.force_variant,
+                                  force_variant=specs["force_variant"],
                                   pnode=specs['primary_node'],
                                   snode=specs['secondary_node'],
                                   nics=tmp_nics,

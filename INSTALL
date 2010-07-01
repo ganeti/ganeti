@@ -30,6 +30,9 @@ Before installing, please verify that you have the following programs:
 - `pyparsing Python module <http://pyparsing.wikispaces.com/>`_
 - `pyinotify Python module <http://trac.dbzteam.org/pyinotify/>`_
 - `PycURL Python module <http://pycurl.sourceforge.net/>`_
+- `ctypes Python module
+  <http://starship.python.net/crew/theller/ctypes/>`_, if running on
+  python 2.4 (optional, used for node daemon memory locking)
 - `socat <http://www.dest-unreach.org/socat/>`_
 
 These programs are supplied as part of most Linux distributions, so

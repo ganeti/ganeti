@@ -30,6 +30,24 @@ Version 2.2.0 beta 0
   ``EXP_SIZE_FD``
 
 
+Version 2.1.5
+-------------
+
+*(Released Thu, 01 Jul 2010)*
+
+A small bugfix release:
+  - Fix disk adoption: broken by strict --disk option checking in 2.1.4
+  - Fix batch-create: broken in the whole 2.1 series due to a lookup on
+    a non-existing option
+  - Fix instance create: the --force-variant option was ignored
+  - Improve pylint 0.21 compatibility and warnings with Python 2.6
+  - Fix modify node storage with non-FQDN arguments
+  - Fix RAPI client to authenticate under Python 2.6 when used
+    for more than 5 requests needing authentication
+  - Fix gnt-instance modify -t (storage) giving a wrong error message
+    when converting a non-shutdown drbd instance to plain
+
+
 Version 2.1.4
 -------------
 

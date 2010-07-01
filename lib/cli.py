@@ -1810,6 +1810,7 @@ def GenericInstanceCreate(mode, opts, args):
   if mode == constants.INSTANCE_CREATE:
     start = opts.start
     os_type = opts.os
+    force_variant = opts.force_variant
     src_node = None
     src_path = None
     no_install = opts.no_install
@@ -1817,6 +1818,7 @@ def GenericInstanceCreate(mode, opts, args):
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None
+    force_variant = False
     src_node = opts.src_node
     src_path = opts.src_dir
     no_install = None
@@ -1842,6 +1844,7 @@ def GenericInstanceCreate(mode, opts, args):
                                 mode=mode,
                                 start=start,
                                 os_type=os_type,
+                                force_variant=force_variant,
                                 src_node=src_node,
                                 src_path=src_path,
                                 no_install=no_install,
