@@ -357,10 +357,12 @@ class GanetiRapiClient(object):
 
     handlers = [_HTTPSHandler(self._logger, config_ssl_verification)]
 
+    self._httpauthhandler = None
     if username is not None:
       pwmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
       pwmgr.add_password(None, self._base_url, username, password)
-      handlers.append(urllib2.HTTPBasicAuthHandler(pwmgr))
+      self._httpauthhandler = urllib2.HTTPBasicAuthHandler(pwmgr)
+      handlers.append(self._httpauthhandler)
     elif password:
       raise Error("Specified password without username")
 
@@ -450,6 +452,11 @@ class GanetiRapiClient(object):
     try:
       resp = self._http.open(req)
       encoded_response_content = resp.read()
+      # Workaround for python 2.6: reset the retried count of the http handler,
+      # or it'll fail after ~5 requests made with the same client. Under python
+      # 2.4 and 2.5 this variable is not used.
+      if self._httpauthhandler is not None:
+        self._httpauthhandler.retried = 0
     except (OpenSSL.SSL.Error, OpenSSL.crypto.Error), err:
       raise CertificateError("SSL issue: %s (%r)" % (err, err))
     except urllib2.HTTPError, err:
