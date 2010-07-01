@@ -719,20 +719,6 @@ def _CheckOutputFields(static, dynamic, selected):
                                % ",".join(delta), errors.ECODE_INVAL)
 
 
-def _CheckBooleanOpField(op, name):
-  """Validates boolean opcode parameters.
-
-  This will ensure that an opcode parameter is either a boolean value,
-  or None (but that it always exists).
-
-  """
-  val = getattr(op, name, None)
-  if not (val is None or isinstance(val, bool)):
-    raise errors.OpPrereqError("Invalid boolean parameter '%s' (%s)" %
-                               (name, str(val)), errors.ECODE_INVAL)
-  setattr(op, name, val)
-
-
 def _CheckGlobalHvParams(params):
   """Validates that given hypervisor params are not global ones.
 
