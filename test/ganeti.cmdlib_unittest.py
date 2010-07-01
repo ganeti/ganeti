@@ -28,8 +28,11 @@ import time
 import tempfile
 import shutil
 
+from ganeti import mcpu
 from ganeti import cmdlib
+from ganeti import opcodes
 from ganeti import errors
+from ganeti import utils
 
 import testutils
 
@@ -55,6 +58,40 @@ class TestCertVerification(testutils.GanetiTestCase):
     invalid_cert = self._TestDataFilename("bdev-net.txt")
     (errcode, msg) = cmdlib._VerifyCertificate(invalid_cert)
     self.assertEqual(errcode, cmdlib.LUVerifyCluster.ETYPE_ERROR)
+
+
+class TestOpcodeParams(testutils.GanetiTestCase):
+  def testParamsStructures(self):
+    for op in sorted(mcpu.Processor.DISPATCH_TABLE):
+      lu = mcpu.Processor.DISPATCH_TABLE[op]
+      lu_name = lu.__name__
+      self.failIf(hasattr(lu, "_OP_REQP"), "LU '%s' has old-style _OP_REQP" %
+                  lu_name)
+      self.failIf(hasattr(lu, "_OP_DEFS"), "LU '%s' has old-style _OP_DEFS" %
+                  lu_name)
+      # this needs to remain a list!
+      defined_params = [v[0] for v in lu._OP_PARAMS]
+      for row in lu._OP_PARAMS:
+        # this relies on there being at least one element
+        param_name = row[0]
+        self.failIf(len(row) != 3, "LU '%s' parameter %s has invalid length" %
+                    (lu_name, param_name))
+        self.failIf(defined_params.count(param_name) > 1, "LU '%s' parameter"
+                    " '%s' is defined multiple times" % (lu_name, param_name))
+
+  def testParamsDefined(self):
+    for op in sorted(mcpu.Processor.DISPATCH_TABLE):
+      lu = mcpu.Processor.DISPATCH_TABLE[op]
+      lu_name = lu.__name__
+      # TODO: this doesn't deal with recursive slots definitions
+      all_params = set(op.__slots__)
+      defined_params = set(v[0] for v in lu._OP_PARAMS)
+      missing = all_params.difference(defined_params)
+      self.failIf(missing, "Undeclared parameter types for LU '%s': %s" %
+                  (lu_name, utils.CommaJoin(missing)))
+      extra = defined_params.difference(all_params)
+      self.failIf(extra, "Extra parameter types for LU '%s': %s" %
+                  (lu_name, utils.CommaJoin(extra)))
 
 
 if __name__ == "__main__":
