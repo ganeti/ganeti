@@ -1807,10 +1807,11 @@ def OwnIpAddress(address):
   s = socket.socket(family, socket.SOCK_DGRAM)
   success = False
   try:
-    s.bind((address, 0))
-    success = True
-  except socket.error:
-    success = False
+    try:
+      s.bind((address, 0))
+      success = True
+    except socket.error:
+      success = False
   finally:
     s.close()
   return success
