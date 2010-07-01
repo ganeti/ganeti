@@ -810,6 +810,7 @@ def _CheckDiskTemplate(template):
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
   if template == constants.DT_FILE:
     _RequireFileStorage()
+  return True
 
 
 def _CheckStorageType(storage_type):
