@@ -72,13 +72,13 @@ def Setup(username, password):
   _rapi_ca.flush()
 
   port = qa_config.get("rapi-port", default=constants.DEFAULT_RAPI_PORT)
-  cfg_ssl = rapi.client.CertAuthorityVerify(cafile=_rapi_ca.name)
+  cfg_curl = rapi.client.GenericCurlConfig(cafile=_rapi_ca.name,
+                                           proxy="")
 
   _rapi_client = rapi.client.GanetiRapiClient(master["primary"], port=port,
                                               username=username,
                                               password=password,
-                                              config_ssl_verification=cfg_ssl,
-                                              ignore_proxy=True)
+                                              curl_config_fn=cfg_curl)
 
   print "RAPI protocol version: %s" % _rapi_client.GetVersion()
 

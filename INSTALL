@@ -29,6 +29,7 @@ Before installing, please verify that you have the following programs:
 - `simplejson Python module <http://code.google.com/p/simplejson/>`_
 - `pyparsing Python module <http://pyparsing.wikispaces.com/>`_
 - `pyinotify Python module <http://trac.dbzteam.org/pyinotify/>`_
+- `PycURL Python module <http://pycurl.sourceforge.net/>`_
 - `socat <http://www.dest-unreach.org/socat/>`_
 
 These programs are supplied as part of most Linux distributions, so
@@ -39,7 +40,8 @@ packages, except for DRBD and Xen::
 
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
                     python python-pyopenssl openssl python-pyparsing \
-                    python-simplejson python-pyinotify socat
+                    python-simplejson python-pyinotify python-pycurl \
+                    socat
 
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.

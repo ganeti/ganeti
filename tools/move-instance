@@ -148,18 +148,18 @@ class RapiClientFactory:
     self.src_cluster_name = src_cluster_name
     self.dest_cluster_name = dest_cluster_name
 
+    # TODO: Implement timeouts for RAPI connections
     # TODO: Support for using system default paths for verifying SSL certificate
-    # (already implemented in CertAuthorityVerify)
     logging.debug("Using '%s' as source CA", options.src_ca_file)
-    src_ssl_config = rapi.client.CertAuthorityVerify(cafile=options.src_ca_file)
+    src_curl_config = rapi.client.GenericCurlConfig(cafile=options.src_ca_file)
 
     if options.dest_ca_file:
       logging.debug("Using '%s' as destination CA", options.dest_ca_file)
-      dest_ssl_config = \
-        rapi.client.CertAuthorityVerify(cafile=options.dest_ca_file)
+      dest_curl_config = \
+        rapi.client.GenericCurlConfig(cafile=options.dest_ca_file)
     else:
       logging.debug("Using source CA for destination")
-      dest_ssl_config = src_ssl_config
+      dest_curl_config = src_curl_config
 
     logging.debug("Source RAPI server is %s:%s",
                   src_cluster_name, options.src_rapi_port)
@@ -182,7 +182,7 @@ class RapiClientFactory:
     self.GetSourceClient = lambda: \
       rapi.client.GanetiRapiClient(src_cluster_name,
                                    port=options.src_rapi_port,
-                                   config_ssl_verification=src_ssl_config,
+                                   curl_config_fn=src_curl_config,
                                    username=src_username,
                                    password=src_password)
 
@@ -212,7 +212,7 @@ class RapiClientFactory:
     self.GetDestClient = lambda: \
       rapi.client.GanetiRapiClient(dest_cluster_name,
                                    port=dest_rapi_port,
-                                   config_ssl_verification=dest_ssl_config,
+                                   curl_config_fn=dest_curl_config,
                                    username=dest_username,
                                    password=dest_password)
 
@@ -771,6 +771,7 @@ def CheckOptions(parser, options, args):
   return (src_cluster_name, dest_cluster_name, instance_names)
 
 
+@rapi.client.UsesRapiClient
 def main():
   """Main routine.
 

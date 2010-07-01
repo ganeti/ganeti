@@ -610,10 +610,9 @@ def IsRapiResponding(hostname):
   @return: Whether RAPI is working properly
 
   """
-  ssl_config = rapi.client.CertAuthorityVerify(constants.RAPI_CERT_FILE)
-  rapi_client = \
-    rapi.client.GanetiRapiClient(hostname,
-                                 config_ssl_verification=ssl_config)
+  curl_config = rapi.client.GenericCurlConfig(cafile=constants.RAPI_CERT_FILE)
+  rapi_client = rapi.client.GanetiRapiClient(hostname,
+                                             curl_config_fn=curl_config)
   try:
     master_version = rapi_client.GetVersion()
   except rapi.client.CertificateError, err:
@@ -646,6 +645,7 @@ def ParseOptions():
   return options, args
 
 
+@rapi.client.UsesRapiClient
 def main():
   """Main function.
 

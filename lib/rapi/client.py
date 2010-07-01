@@ -19,20 +19,30 @@
 # 02110-1301, USA.
 
 
-"""Ganeti RAPI client."""
+"""Ganeti RAPI client.
+
+@attention: To use the RAPI client, the application B{must} call
+            C{pycurl.global_init} during initialization and
+            C{pycurl.global_cleanup} before exiting the process. This is very
+            important in multi-threaded programs. See curl_global_init(3) and
+            curl_global_cleanup(3) for details. The decorator L{UsesRapiClient}
+            can be used.
+
+"""
 
 # No Ganeti-specific modules should be imported. The RAPI client is supposed to
 # be standalone.
 
-import sys
-import httplib
-import urllib2
 import logging
 import simplejson
-import socket
 import urllib
-import OpenSSL
-import distutils.version
+import threading
+import pycurl
+
+try:
+  from cStringIO import StringIO
+except ImportError:
+  from StringIO import StringIO
 
 
 GANETI_RAPI_PORT = 5080
@@ -61,6 +71,19 @@ NODE_ROLE_REGULAR = "regular"
 _REQ_DATA_VERSION_FIELD = "__version__"
 _INST_CREATE_REQV1 = "instance-create-reqv1"
 
+# Older pycURL versions don't have all error constants
+try:
+  _CURLE_SSL_CACERT = pycurl.E_SSL_CACERT
+  _CURLE_SSL_CACERT_BADFILE = pycurl.E_SSL_CACERT_BADFILE
+except AttributeError:
+  _CURLE_SSL_CACERT = 60
+  _CURLE_SSL_CACERT_BADFILE = 77
+
+_CURL_SSL_CERT_ERRORS = frozenset([
+  _CURLE_SSL_CACERT,
+  _CURLE_SSL_CACERT_BADFILE,
+  ])
+
 
 class Error(Exception):
   """Base error class for this module.
@@ -85,239 +108,123 @@ class GanetiApiError(Error):
     self.code = code
 
 
-def FormatX509Name(x509_name):
-  """Formats an X509 name.
-
-  @type x509_name: OpenSSL.crypto.X509Name
+def UsesRapiClient(fn):
+  """Decorator for code using RAPI client to initialize pycURL.
 
   """
-  try:
-    # Only supported in pyOpenSSL 0.7 and above
-    get_components_fn = x509_name.get_components
-  except AttributeError:
-    return repr(x509_name)
-  else:
-    return "".join("/%s=%s" % (name, value)
-                   for name, value in get_components_fn())
+  def wrapper(*args, **kwargs):
+    # curl_global_init(3) and curl_global_cleanup(3) must be called with only
+    # one thread running. This check is just a safety measure -- it doesn't
+    # cover all cases.
+    assert threading.activeCount() == 1, \
+           "Found active threads when initializing pycURL"
+
+    pycurl.global_init(pycurl.GLOBAL_ALL)
+    try:
+      return fn(*args, **kwargs)
+    finally:
+      pycurl.global_cleanup()
+
+  return wrapper
 
 
-class CertAuthorityVerify:
-  """Certificate verificator for SSL context.
+def GenericCurlConfig(verbose=False, use_signal=False,
+                      use_curl_cabundle=False, cafile=None, capath=None,
+                      proxy=None, verify_hostname=False,
+                      connect_timeout=None, timeout=None,
+                      _pycurl_version_fn=pycurl.version_info):
+  """Curl configuration function generator.
 
-  Configures SSL context to verify server's certificate.
+  @type verbose: bool
+  @param verbose: Whether to set cURL to verbose mode
+  @type use_signal: bool
+  @param use_signal: Whether to allow cURL to use signals
+  @type use_curl_cabundle: bool
+  @param use_curl_cabundle: Whether to use cURL's default CA bundle
+  @type cafile: string
+  @param cafile: In which file we can find the certificates
+  @type capath: string
+  @param capath: In which directory we can find the certificates
+  @type proxy: string
+  @param proxy: Proxy to use, None for default behaviour and empty string for
+                disabling proxies (see curl_easy_setopt(3))
+  @type verify_hostname: bool
+  @param verify_hostname: Whether to verify the remote peer certificate's
+                          commonName
+  @type connect_timeout: number
+  @param connect_timeout: Timeout for establishing connection in seconds
+  @type timeout: number
+  @param timeout: Timeout for complete transfer in seconds (see
+                  curl_easy_setopt(3)).
 
   """
-  _CAPATH_MINVERSION = "0.9"
-  _DEFVFYPATHS_MINVERSION = "0.9"
+  if use_curl_cabundle and (cafile or capath):
+    raise Error("Can not use default CA bundle when CA file or path is set")
 
-  _PYOPENSSL_VERSION = OpenSSL.__version__
-  _PARSED_PYOPENSSL_VERSION = distutils.version.LooseVersion(_PYOPENSSL_VERSION)
+  def _ConfigCurl(curl, logger):
+    """Configures a cURL object
 
-  _SUPPORT_CAPATH = (_PARSED_PYOPENSSL_VERSION >= _CAPATH_MINVERSION)
-  _SUPPORT_DEFVFYPATHS = (_PARSED_PYOPENSSL_VERSION >= _DEFVFYPATHS_MINVERSION)
-
-  def __init__(self, cafile=None, capath=None, use_default_verify_paths=False):
-    """Initializes this class.
-
-    @type cafile: string
-    @param cafile: In which file we can find the certificates
-    @type capath: string
-    @param capath: In which directory we can find the certificates
-    @type use_default_verify_paths: bool
-    @param use_default_verify_paths: Whether the platform provided CA
-                                     certificates are to be used for
-                                     verification purposes
+    @type curl: pycurl.Curl
+    @param curl: cURL object
 
     """
-    self._cafile = cafile
-    self._capath = capath
-    self._use_default_verify_paths = use_default_verify_paths
+    logger.debug("Using cURL version %s", pycurl.version)
 
-    if self._capath is not None and not self._SUPPORT_CAPATH:
-      raise Error(("PyOpenSSL %s has no support for a CA directory,"
-                   " version %s or above is required") %
-                  (self._PYOPENSSL_VERSION, self._CAPATH_MINVERSION))
+    # pycurl.version_info returns a tuple with information about the used
+    # version of libcurl. Item 5 is the SSL library linked to it.
+    # e.g.: (3, '7.18.0', 463360, 'x86_64-pc-linux-gnu', 1581, 'GnuTLS/2.0.4',
+    # 0, '1.2.3.3', ...)
+    sslver = _pycurl_version_fn()[5]
+    if not sslver:
+      raise Error("No SSL support in cURL")
 
-    if self._use_default_verify_paths and not self._SUPPORT_DEFVFYPATHS:
-      raise Error(("PyOpenSSL %s has no support for using default verification"
-                   " paths, version %s or above is required") %
-                  (self._PYOPENSSL_VERSION, self._DEFVFYPATHS_MINVERSION))
-
-  @staticmethod
-  def _VerifySslCertCb(logger, _, cert, errnum, errdepth, ok):
-    """Callback for SSL certificate verification.
-
-    @param logger: Logging object
-
-    """
-    if ok:
-      log_fn = logger.debug
+    lcsslver = sslver.lower()
+    if lcsslver.startswith("openssl/"):
+      pass
+    elif lcsslver.startswith("gnutls/"):
+      if capath:
+        raise Error("cURL linked against GnuTLS has no support for a"
+                    " CA path (%s)" % (pycurl.version, ))
     else:
-      log_fn = logger.error
+      raise NotImplementedError("cURL uses unsupported SSL version '%s'" %
+                                sslver)
 
-    log_fn("Verifying SSL certificate at depth %s, subject '%s', issuer '%s'",
-           errdepth, FormatX509Name(cert.get_subject()),
-           FormatX509Name(cert.get_issuer()))
+    curl.setopt(pycurl.VERBOSE, verbose)
+    curl.setopt(pycurl.NOSIGNAL, not use_signal)
 
-    if not ok:
-      try:
-        # Only supported in pyOpenSSL 0.7 and above
-        # pylint: disable-msg=E1101
-        fn = OpenSSL.crypto.X509_verify_cert_error_string
-      except AttributeError:
-        errmsg = ""
-      else:
-        errmsg = ":%s" % fn(errnum)
-
-      logger.error("verify error:num=%s%s", errnum, errmsg)
-
-    return ok
-
-  def __call__(self, ctx, logger):
-    """Configures an SSL context to verify certificates.
-
-    @type ctx: OpenSSL.SSL.Context
-    @param ctx: SSL context
-
-    """
-    if self._use_default_verify_paths:
-      ctx.set_default_verify_paths()
-
-    if self._cafile or self._capath:
-      if self._SUPPORT_CAPATH:
-        ctx.load_verify_locations(self._cafile, self._capath)
-      else:
-        ctx.load_verify_locations(self._cafile)
-
-    ctx.set_verify(OpenSSL.SSL.VERIFY_PEER,
-                   lambda conn, cert, errnum, errdepth, ok: \
-                     self._VerifySslCertCb(logger, conn, cert,
-                                           errnum, errdepth, ok))
-
-
-class _HTTPSConnectionOpenSSL(httplib.HTTPSConnection):
-  """HTTPS Connection handler that verifies the SSL certificate.
-
-  """
-  # Python before version 2.6 had its own httplib.FakeSocket wrapper for
-  # sockets
-  _SUPPORT_FAKESOCKET = (sys.hexversion < 0x2060000)
-
-  def __init__(self, *args, **kwargs):
-    """Initializes this class.
-
-    """
-    httplib.HTTPSConnection.__init__(self, *args, **kwargs)
-    self._logger = None
-    self._config_ssl_verification = None
-
-  def Setup(self, logger, config_ssl_verification):
-    """Sets the SSL verification config function.
-
-    @param logger: Logging object
-    @type config_ssl_verification: callable
-
-    """
-    assert self._logger is None
-    assert self._config_ssl_verification is None
-
-    self._logger = logger
-    self._config_ssl_verification = config_ssl_verification
-
-  def connect(self):
-    """Connect to the server specified when the object was created.
-
-    This ensures that SSL certificates are verified.
-
-    """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
-    ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
-
-    if self._config_ssl_verification:
-      self._config_ssl_verification(ctx, self._logger)
-
-    ssl = OpenSSL.SSL.Connection(ctx, sock)
-    ssl.connect((self.host, self.port))
-
-    if self._SUPPORT_FAKESOCKET:
-      self.sock = httplib.FakeSocket(sock, ssl)
+    # Whether to verify remote peer's CN
+    if verify_hostname:
+      # curl_easy_setopt(3): "When CURLOPT_SSL_VERIFYHOST is 2, that
+      # certificate must indicate that the server is the server to which you
+      # meant to connect, or the connection fails. [...] When the value is 1,
+      # the certificate must contain a Common Name field, but it doesn't matter
+      # what name it says. [...]"
+      curl.setopt(pycurl.SSL_VERIFYHOST, 2)
     else:
-      self.sock = _SslSocketWrapper(ssl)
+      curl.setopt(pycurl.SSL_VERIFYHOST, 0)
 
+    if cafile or capath or use_curl_cabundle:
+      # Require certificates to be checked
+      curl.setopt(pycurl.SSL_VERIFYPEER, True)
+      if cafile:
+        curl.setopt(pycurl.CAINFO, str(cafile))
+      if capath:
+        curl.setopt(pycurl.CAPATH, str(capath))
+      # Not changing anything for using default CA bundle
+    else:
+      # Disable SSL certificate verification
+      curl.setopt(pycurl.SSL_VERIFYPEER, False)
 
-class _SslSocketWrapper(object):
-  def __init__(self, sock):
-    """Initializes this class.
+    if proxy is not None:
+      curl.setopt(pycurl.PROXY, str(proxy))
 
-    """
-    self._sock = sock
+    # Timeouts
+    if connect_timeout is not None:
+      curl.setopt(pycurl.CONNECTTIMEOUT, connect_timeout)
+    if timeout is not None:
+      curl.setopt(pycurl.TIMEOUT, timeout)
 
-  def __getattr__(self, name):
-    """Forward everything to underlying socket.
-
-    """
-    return getattr(self._sock, name)
-
-  def makefile(self, mode, bufsize):
-    """Fake makefile method.
-
-    makefile() on normal file descriptors uses dup2(2), which doesn't work with
-    SSL sockets and therefore is not implemented by pyOpenSSL. This fake method
-    works with the httplib module, but might not work for other modules.
-
-    """
-    # pylint: disable-msg=W0212
-    return socket._fileobject(self._sock, mode, bufsize)
-
-
-class _HTTPSHandler(urllib2.HTTPSHandler):
-  def __init__(self, logger, config_ssl_verification):
-    """Initializes this class.
-
-    @param logger: Logging object
-    @type config_ssl_verification: callable
-    @param config_ssl_verification: Function to configure SSL context for
-                                    certificate verification
-
-    """
-    urllib2.HTTPSHandler.__init__(self)
-    self._logger = logger
-    self._config_ssl_verification = config_ssl_verification
-
-  def _CreateHttpsConnection(self, *args, **kwargs):
-    """Wrapper around L{_HTTPSConnectionOpenSSL} to add SSL verification.
-
-    This wrapper is necessary provide a compatible API to urllib2.
-
-    """
-    conn = _HTTPSConnectionOpenSSL(*args, **kwargs)
-    conn.Setup(self._logger, self._config_ssl_verification)
-    return conn
-
-  def https_open(self, req):
-    """Creates HTTPS connection.
-
-    Called by urllib2.
-
-    """
-    return self.do_open(self._CreateHttpsConnection, req)
-
-
-class _RapiRequest(urllib2.Request):
-  def __init__(self, method, url, headers, data):
-    """Initializes this class.
-
-    """
-    urllib2.Request.__init__(self, url, data=data, headers=headers)
-    self._method = method
-
-  def get_method(self):
-    """Returns the HTTP request method.
-
-    """
-    return self._method
+  return _ConfigCurl
 
 
 class GanetiRapiClient(object):
@@ -328,10 +235,9 @@ class GanetiRapiClient(object):
   _json_encoder = simplejson.JSONEncoder(sort_keys=True)
 
   def __init__(self, host, port=GANETI_RAPI_PORT,
-               username=None, password=None,
-               config_ssl_verification=None, ignore_proxy=False,
-               logger=logging):
-    """Constructor.
+               username=None, password=None, logger=logging,
+               curl_config_fn=None, curl=None):
+    """Initializes this class.
 
     @type host: string
     @param host: the ganeti cluster master to interact with
@@ -341,11 +247,8 @@ class GanetiRapiClient(object):
     @param username: the username to connect with
     @type password: string
     @param password: the password to connect with
-    @type config_ssl_verification: callable
-    @param config_ssl_verification: Function to configure SSL context for
-                                    certificate verification
-    @type ignore_proxy: bool
-    @param ignore_proxy: Whether to ignore proxy settings
+    @type curl_config_fn: callable
+    @param curl_config_fn: Function to configure C{pycurl.Curl} object
     @param logger: Logging object
 
     """
@@ -355,25 +258,37 @@ class GanetiRapiClient(object):
 
     self._base_url = "https://%s:%s" % (host, port)
 
-    handlers = [_HTTPSHandler(self._logger, config_ssl_verification)]
+    # Create pycURL object if not supplied
+    if not curl:
+      curl = pycurl.Curl()
 
+    # Default cURL settings
+    curl.setopt(pycurl.VERBOSE, False)
+    curl.setopt(pycurl.FOLLOWLOCATION, False)
+    curl.setopt(pycurl.MAXREDIRS, 5)
+    curl.setopt(pycurl.NOSIGNAL, True)
+    curl.setopt(pycurl.USERAGENT, self.USER_AGENT)
+    curl.setopt(pycurl.SSL_VERIFYHOST, 0)
+    curl.setopt(pycurl.SSL_VERIFYPEER, False)
+    curl.setopt(pycurl.HTTPHEADER, [
+      "Accept: %s" % HTTP_APP_JSON,
+      "Content-type: %s" % HTTP_APP_JSON,
+      ])
+
+    # Setup authentication
     if username is not None:
-      pwmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-      pwmgr.add_password(None, self._base_url, username, password)
-      handlers.append(urllib2.HTTPBasicAuthHandler(pwmgr))
+      if password is None:
+        raise Error("Password not specified")
+      curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
+      curl.setopt(pycurl.USERPWD, str("%s:%s" % (username, password)))
     elif password:
       raise Error("Specified password without username")
 
-    if ignore_proxy:
-      handlers.append(urllib2.ProxyHandler({}))
+    # Call external configuration function
+    if curl_config_fn:
+      curl_config_fn(curl, logger)
 
-    self._http = urllib2.build_opener(*handlers) # pylint: disable-msg=W0142
-
-    self._headers = {
-      "Accept": HTTP_APP_JSON,
-      "Content-type": HTTP_APP_JSON,
-      "User-Agent": self.USER_AGENT,
-      }
+    self._curl = curl
 
   @staticmethod
   def _EncodeQuery(query):
@@ -427,10 +342,12 @@ class GanetiRapiClient(object):
     """
     assert path.startswith("/")
 
+    curl = self._curl
+
     if content:
       encoded_content = self._json_encoder.encode(content)
     else:
-      encoded_content = None
+      encoded_content = ""
 
     # Build URL
     urlparts = [self._base_url, path]
@@ -440,30 +357,43 @@ class GanetiRapiClient(object):
 
     url = "".join(urlparts)
 
-    self._logger.debug("Sending request %s %s to %s:%s"
-                       " (headers=%r, content=%r)",
-                       method, url, self._host, self._port, self._headers,
-                       encoded_content)
+    self._logger.debug("Sending request %s %s to %s:%s (content=%r)",
+                       method, url, self._host, self._port, encoded_content)
 
-    req = _RapiRequest(method, url, self._headers, encoded_content)
+    # Buffer for response
+    encoded_resp_body = StringIO()
+
+    # Configure cURL
+    curl.setopt(pycurl.CUSTOMREQUEST, str(method))
+    curl.setopt(pycurl.URL, str(url))
+    curl.setopt(pycurl.POSTFIELDS, str(encoded_content))
+    curl.setopt(pycurl.WRITEFUNCTION, encoded_resp_body.write)
 
     try:
-      resp = self._http.open(req)
-      encoded_response_content = resp.read()
-    except (OpenSSL.SSL.Error, OpenSSL.crypto.Error), err:
-      raise CertificateError("SSL issue: %s (%r)" % (err, err))
-    except urllib2.HTTPError, err:
-      raise GanetiApiError(str(err), code=err.code)
-    except urllib2.URLError, err:
-      raise GanetiApiError(str(err))
+      # Send request and wait for response
+      try:
+        curl.perform()
+      except pycurl.error, err:
+        if err.args[0] in _CURL_SSL_CERT_ERRORS:
+          raise CertificateError("SSL certificate error %s" % err)
 
-    if encoded_response_content:
-      response_content = simplejson.loads(encoded_response_content)
+        raise GanetiApiError(str(err))
+    finally:
+      # Reset settings to not keep references to large objects in memory
+      # between requests
+      curl.setopt(pycurl.POSTFIELDS, "")
+      curl.setopt(pycurl.WRITEFUNCTION, lambda _: None)
+
+    # Get HTTP response code
+    http_code = curl.getinfo(pycurl.RESPONSE_CODE)
+
+    # Was anything written to the response buffer?
+    if encoded_resp_body.tell():
+      response_content = simplejson.loads(encoded_resp_body.getvalue())
     else:
       response_content = None
 
-    # TODO: Are there other status codes that are valid? (redirect?)
-    if resp.code != HTTP_OK:
+    if http_code != HTTP_OK:
       if isinstance(response_content, dict):
         msg = ("%s %s: %s" %
                (response_content["code"],
@@ -472,7 +402,7 @@ class GanetiRapiClient(object):
       else:
         msg = str(response_content)
 
-      raise GanetiApiError(msg, code=resp.code)
+      raise GanetiApiError(msg, code=http_code)
 
     return response_content
 

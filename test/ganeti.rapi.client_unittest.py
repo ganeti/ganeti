@@ -25,7 +25,9 @@
 import re
 import unittest
 import warnings
+import pycurl
 
+from ganeti import constants
 from ganeti import http
 from ganeti import serializer
 
@@ -50,34 +52,36 @@ def _GetPathFromUri(uri):
     return None
 
 
-class HttpResponseMock:
-  """Dumb mock of httplib.HTTPResponse.
-
-  """
-
-  def __init__(self, code, data):
-    self.code = code
-    self._data = data
-
-  def read(self):
-    return self._data
-
-
-class OpenerDirectorMock:
-  """Mock for urllib.OpenerDirector.
-
-  """
-
+class FakeCurl:
   def __init__(self, rapi):
     self._rapi = rapi
-    self.last_request = None
+    self._opts = {}
+    self._info = {}
 
-  def open(self, req):
-    self.last_request = req
+  def setopt(self, opt, value):
+    self._opts[opt] = value
 
-    path = _GetPathFromUri(req.get_full_url())
-    code, resp_body = self._rapi.FetchResponse(path, req.get_method())
-    return HttpResponseMock(code, resp_body)
+  def getopt(self, opt):
+    return self._opts.get(opt)
+
+  def unsetopt(self, opt):
+    self._opts.pop(opt, None)
+
+  def getinfo(self, info):
+    return self._info[info]
+
+  def perform(self):
+    method = self._opts[pycurl.CUSTOMREQUEST]
+    url = self._opts[pycurl.URL]
+    request_body = self._opts[pycurl.POSTFIELDS]
+    writefn = self._opts[pycurl.WRITEFUNCTION]
+
+    path = _GetPathFromUri(url)
+    (code, resp_body) = self._rapi.FetchResponse(path, method, request_body)
+
+    self._info[pycurl.RESPONSE_CODE] = code
+    if resp_body is not None:
+      writefn(resp_body)
 
 
 class RapiMock(object):
@@ -85,6 +89,7 @@ class RapiMock(object):
     self._mapper = connector.Mapper()
     self._responses = []
     self._last_handler = None
+    self._last_req_data = None
 
   def AddResponse(self, response, code=200):
     self._responses.insert(0, (code, response))
@@ -92,7 +97,12 @@ class RapiMock(object):
   def GetLastHandler(self):
     return self._last_handler
 
-  def FetchResponse(self, path, method):
+  def GetLastRequestData(self):
+    return self._last_req_data
+
+  def FetchResponse(self, path, method, request_body):
+    self._last_req_data = request_body
+
     try:
       HandlerClass, items, args = self._mapper.getController(path)
       self._last_handler = HandlerClass(items, args, None)
@@ -111,18 +121,192 @@ class RapiMock(object):
     return code, response
 
 
+class TestConstants(unittest.TestCase):
+  def test(self):
+    self.assertEqual(client.GANETI_RAPI_PORT, constants.DEFAULT_RAPI_PORT)
+    self.assertEqual(client.GANETI_RAPI_VERSION, constants.RAPI_VERSION)
+    self.assertEqual(client.HTTP_APP_JSON, http.HTTP_APP_JSON)
+    self.assertEqual(client._REQ_DATA_VERSION_FIELD, rlib2._REQ_DATA_VERSION)
+    self.assertEqual(client._INST_CREATE_REQV1, rlib2._INST_CREATE_REQV1)
+
+
 class RapiMockTest(unittest.TestCase):
   def test(self):
     rapi = RapiMock()
     path = "/version"
-    self.assertEqual((404, None), rapi.FetchResponse("/foo", "GET"))
+    self.assertEqual((404, None), rapi.FetchResponse("/foo", "GET", None))
     self.assertEqual((501, "Method not implemented"),
-                     rapi.FetchResponse("/version", "POST"))
+                     rapi.FetchResponse("/version", "POST", None))
     rapi.AddResponse("2")
-    code, response = rapi.FetchResponse("/version", "GET")
+    code, response = rapi.FetchResponse("/version", "GET", None)
     self.assertEqual(200, code)
     self.assertEqual("2", response)
     self.failUnless(isinstance(rapi.GetLastHandler(), rlib2.R_version))
+
+
+def _FakeNoSslPycurlVersion():
+  # Note: incomplete version tuple
+  return (3, "7.16.0", 462848, "mysystem", 1581, None, 0)
+
+
+def _FakeFancySslPycurlVersion():
+  # Note: incomplete version tuple
+  return (3, "7.16.0", 462848, "mysystem", 1581, "FancySSL/1.2.3", 0)
+
+
+def _FakeOpenSslPycurlVersion():
+  # Note: incomplete version tuple
+  return (2, "7.15.5", 462597, "othersystem", 668, "OpenSSL/0.9.8c", 0)
+
+
+def _FakeGnuTlsPycurlVersion():
+  # Note: incomplete version tuple
+  return (3, "7.18.0", 463360, "somesystem", 1581, "GnuTLS/2.0.4", 0)
+
+
+class TestExtendedConfig(unittest.TestCase):
+  def testAuth(self):
+    curl = FakeCurl(RapiMock())
+    cl = client.GanetiRapiClient("master.example.com",
+                                 username="user", password="pw",
+                                 curl=curl)
+
+    self.assertEqual(curl.getopt(pycurl.HTTPAUTH), pycurl.HTTPAUTH_BASIC)
+    self.assertEqual(curl.getopt(pycurl.USERPWD), "user:pw")
+
+  def testInvalidAuth(self):
+    # No username
+    self.assertRaises(client.Error, client.GanetiRapiClient,
+                      "master-a.example.com", password="pw")
+    # No password
+    self.assertRaises(client.Error, client.GanetiRapiClient,
+                      "master-b.example.com", username="user")
+
+  def testCertVerifyInvalidCombinations(self):
+    self.assertRaises(client.Error, client.GenericCurlConfig,
+                      use_curl_cabundle=True, cafile="cert1.pem")
+    self.assertRaises(client.Error, client.GenericCurlConfig,
+                      use_curl_cabundle=True, capath="certs/")
+    self.assertRaises(client.Error, client.GenericCurlConfig,
+                      use_curl_cabundle=True,
+                      cafile="cert1.pem", capath="certs/")
+
+  def testProxySignalVerifyHostname(self):
+    for use_gnutls in [False, True]:
+      if use_gnutls:
+        pcverfn = _FakeGnuTlsPycurlVersion
+      else:
+        pcverfn = _FakeOpenSslPycurlVersion
+
+      for proxy in ["", "http://127.0.0.1:1234"]:
+        for use_signal in [False, True]:
+          for verify_hostname in [False, True]:
+            cfgfn = client.GenericCurlConfig(proxy=proxy, use_signal=use_signal,
+                                             verify_hostname=verify_hostname,
+                                             _pycurl_version_fn=pcverfn)
+
+            curl = FakeCurl(RapiMock())
+            cl = client.GanetiRapiClient("master.example.com",
+                                         curl_config_fn=cfgfn, curl=curl)
+
+            self.assertEqual(curl.getopt(pycurl.PROXY), proxy)
+            self.assertEqual(curl.getopt(pycurl.NOSIGNAL), not use_signal)
+
+            if verify_hostname:
+              self.assertEqual(curl.getopt(pycurl.SSL_VERIFYHOST), 2)
+            else:
+              self.assertEqual(curl.getopt(pycurl.SSL_VERIFYHOST), 0)
+
+  def testNoCertVerify(self):
+    cfgfn = client.GenericCurlConfig()
+
+    curl = FakeCurl(RapiMock())
+    cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
+                                 curl=curl)
+
+    self.assertFalse(curl.getopt(pycurl.SSL_VERIFYPEER))
+    self.assertFalse(curl.getopt(pycurl.CAINFO))
+    self.assertFalse(curl.getopt(pycurl.CAPATH))
+
+  def testCertVerifyCurlBundle(self):
+    cfgfn = client.GenericCurlConfig(use_curl_cabundle=True)
+
+    curl = FakeCurl(RapiMock())
+    cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
+                                 curl=curl)
+
+    self.assert_(curl.getopt(pycurl.SSL_VERIFYPEER))
+    self.assertFalse(curl.getopt(pycurl.CAINFO))
+    self.assertFalse(curl.getopt(pycurl.CAPATH))
+
+  def testCertVerifyCafile(self):
+    mycert = "/tmp/some/UNUSED/cert/file.pem"
+    cfgfn = client.GenericCurlConfig(cafile=mycert)
+
+    curl = FakeCurl(RapiMock())
+    cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
+                                 curl=curl)
+
+    self.assert_(curl.getopt(pycurl.SSL_VERIFYPEER))
+    self.assertEqual(curl.getopt(pycurl.CAINFO), mycert)
+    self.assertFalse(curl.getopt(pycurl.CAPATH))
+
+  def testCertVerifyCapath(self):
+    certdir = "/tmp/some/UNUSED/cert/directory"
+    pcverfn = _FakeOpenSslPycurlVersion
+    cfgfn = client.GenericCurlConfig(capath=certdir,
+                                     _pycurl_version_fn=pcverfn)
+
+    curl = FakeCurl(RapiMock())
+    cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
+                                 curl=curl)
+
+    self.assert_(curl.getopt(pycurl.SSL_VERIFYPEER))
+    self.assertEqual(curl.getopt(pycurl.CAPATH), certdir)
+    self.assertFalse(curl.getopt(pycurl.CAINFO))
+
+  def testCertVerifyCapathGnuTls(self):
+    certdir = "/tmp/some/UNUSED/cert/directory"
+    pcverfn = _FakeGnuTlsPycurlVersion
+    cfgfn = client.GenericCurlConfig(capath=certdir,
+                                     _pycurl_version_fn=pcverfn)
+
+    curl = FakeCurl(RapiMock())
+    self.assertRaises(client.Error, client.GanetiRapiClient,
+                      "master.example.com", curl_config_fn=cfgfn, curl=curl)
+
+  def testCertVerifyNoSsl(self):
+    certdir = "/tmp/some/UNUSED/cert/directory"
+    pcverfn = _FakeNoSslPycurlVersion
+    cfgfn = client.GenericCurlConfig(capath=certdir,
+                                     _pycurl_version_fn=pcverfn)
+
+    curl = FakeCurl(RapiMock())
+    self.assertRaises(client.Error, client.GanetiRapiClient,
+                      "master.example.com", curl_config_fn=cfgfn, curl=curl)
+
+  def testCertVerifyFancySsl(self):
+    certdir = "/tmp/some/UNUSED/cert/directory"
+    pcverfn = _FakeFancySslPycurlVersion
+    cfgfn = client.GenericCurlConfig(capath=certdir,
+                                     _pycurl_version_fn=pcverfn)
+
+    curl = FakeCurl(RapiMock())
+    self.assertRaises(NotImplementedError, client.GanetiRapiClient,
+                      "master.example.com", curl_config_fn=cfgfn, curl=curl)
+
+  def testCertVerifyCapath(self):
+    for connect_timeout in [None, 1, 5, 10, 30, 60, 300]:
+      for timeout in [None, 1, 30, 60, 3600, 24 * 3600]:
+        cfgfn = client.GenericCurlConfig(connect_timeout=connect_timeout,
+                                         timeout=timeout)
+
+        curl = FakeCurl(RapiMock())
+        cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
+                                     curl=curl)
+
+        self.assertEqual(curl.getopt(pycurl.CONNECTTIMEOUT), connect_timeout)
+        self.assertEqual(curl.getopt(pycurl.TIMEOUT), timeout)
 
 
 class GanetiRapiClientTests(testutils.GanetiTestCase):
@@ -130,11 +314,20 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     testutils.GanetiTestCase.setUp(self)
 
     self.rapi = RapiMock()
-    self.http = OpenerDirectorMock(self.rapi)
-    self.client = client.GanetiRapiClient('master.foo.com')
-    self.client._http = self.http
-    # Hard-code the version for easier testing.
-    self.client._version = 2
+    self.curl = FakeCurl(self.rapi)
+    self.client = client.GanetiRapiClient("master.example.com",
+                                          curl=self.curl)
+
+    # Signals should be disabled by default
+    self.assert_(self.curl.getopt(pycurl.NOSIGNAL))
+
+    # No auth and no proxy
+    self.assertFalse(self.curl.getopt(pycurl.USERPWD))
+    self.assert_(self.curl.getopt(pycurl.PROXY) is None)
+
+    # Content-type is required for requests
+    headers = self.curl.getopt(pycurl.HTTPHEADER)
+    self.assert_("Content-type: application/json" in headers)
 
   def assertHandler(self, handler_cls):
     self.failUnless(isinstance(self.rapi.GetLastHandler(), handler_cls))
@@ -273,7 +466,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_instances)
     self.assertDryRun()
 
-    data = serializer.LoadJson(self.http.last_request.data)
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
 
     for field in ["dry_run", "beparams", "hvparams", "start"]:
       self.assertFalse(field in data)
@@ -293,7 +486,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(job_id, 24740)
     self.assertHandler(rlib2.R_2_instances)
 
-    data = serializer.LoadJson(self.http.last_request.data)
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
     self.assertEqual(data[rlib2._REQ_DATA_VERSION], 1)
     self.assertEqual(data["name"], "inst2.example.com")
     self.assertEqual(data["disk_template"], "drbd8")
@@ -411,7 +604,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_instances_name_export)
     self.assertItems(["inst2"])
 
-    data = serializer.LoadJson(self.http.last_request.data)
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
     self.assertEqual(data["mode"], "local")
     self.assertEqual(data["destination"], "nodeX")
     self.assertEqual(data["shutdown"], True)
@@ -509,7 +702,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_nodes_name_role)
     self.assertItems(["node-foo"])
     self.assertQuery("force", ["1"])
-    self.assertEqual("\"master-candidate\"", self.http.last_request.data)
+    self.assertEqual("\"master-candidate\"", self.rapi.GetLastRequestData())
 
   def testGetNodeStorageUnits(self):
     self.rapi.AddResponse("42")
@@ -576,4 +769,4 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
 
 
 if __name__ == '__main__':
-  testutils.GanetiTestProgram()
+  client.UsesRapiClient(testutils.GanetiTestProgram)()

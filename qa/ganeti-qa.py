@@ -39,6 +39,9 @@ import qa_tags
 import qa_utils
 
 from ganeti import utils
+from ganeti import rapi
+
+import ganeti.rapi.client
 
 
 def RunTest(fn, *args):
@@ -269,6 +272,7 @@ def RunHardwareFailureTests(instance, pnode, snode):
             instance, pnode, snode)
 
 
+@rapi.client.UsesRapiClient
 def main():
   """Main program.
 
