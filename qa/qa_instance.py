@@ -215,7 +215,8 @@ def TestInstanceConvertDisk(instance, snode):
   cmd = ['gnt-instance', 'modify', '-t', 'plain', instance['name']]
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
-  cmd = ['gnt-instance', 'modify', '-t', 'drbd', '-n', snode, instance['name']]
+  cmd = ['gnt-instance', 'modify', '-t', 'drbd', '-n', snode['primary'],
+         instance['name']]
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
