@@ -31,6 +31,9 @@ much memory.
 
 """
 
+# pylint: disable-msg=R0904
+# R0904: Too many public methods
+
 import os
 import random
 import logging
@@ -1410,6 +1413,13 @@ class ConfigWriter:
       constants.SS_MAINTAIN_NODE_HEALTH: str(cluster.maintain_node_health),
       constants.SS_UID_POOL: uid_pool,
       }
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetSsconfValues(self):
+    """Wrapper using lock around _UnlockedGetSsconf().
+
+    """
+    return self._UnlockedGetSsconfValues()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetVGName(self):

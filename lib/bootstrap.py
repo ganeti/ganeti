@@ -41,6 +41,7 @@ from ganeti import serializer
 from ganeti import hypervisor
 from ganeti import bdev
 from ganeti import netutils
+from ganeti import backend
 
 
 def _InitSSHSetup():
@@ -325,9 +326,6 @@ def InitCluster(cluster_name, mac_prefix,
     hv_class = hypervisor.GetHypervisor(hv_name)
     hv_class.CheckParameterSyntax(hv_params)
 
-  # set up the inter-node password and certificate, start noded
-  _InitGanetiServerSetup(hostname.name)
-
   # set up ssh config and /etc/hosts
   sshline = utils.ReadFile(constants.SSH_HOST_RSA_PUB)
   sshkey = sshline.split(" ")[1]
@@ -385,9 +383,14 @@ def InitCluster(cluster_name, mac_prefix,
                                     offline=False, drained=False,
                                     )
   InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
-  cfg = config.ConfigWriter()
+  cfg = config.ConfigWriter(offline=True)
   ssh.WriteKnownHostsFile(cfg, constants.SSH_KNOWN_HOSTS_FILE)
   cfg.Update(cfg.GetClusterInfo(), logging.error)
+  backend.WriteSsconfFiles(cfg.GetSsconfValues())
+
+
+  # set up the inter-node password and certificate
+  _InitGanetiServerSetup(hostname.name)
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
