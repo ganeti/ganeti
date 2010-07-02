@@ -247,7 +247,7 @@ def main():
   """
   parser = optparse.OptionParser(description="Ganeti Remote API",
                     usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
-                    version="%%prog (ganeti) %s" % constants.RAPI_VERSION)
+                    version="%%prog (ganeti) %s" % constants.RELEASE_VERSION)
 
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
