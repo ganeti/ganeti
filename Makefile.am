@@ -585,7 +585,7 @@ ganeti:
 
 .PHONY: check-dirs
 check-dirs: $(BUILT_SOURCES)
-	set -e; \
+	@set -e; \
 	find . -type d \( \( -name . \) -o \( \
 		-name .git -o \
 		-name autom4te.cache \
