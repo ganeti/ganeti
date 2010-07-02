@@ -56,7 +56,17 @@ class FakeHttpPool:
       self._response_fn(req)
 
 
+def GetFakeSimpleStoreClass(fn):
+  class FakeSimpleStore:
+    GetNodePrimaryIPList = fn
+
+  return FakeSimpleStore
+
+
 class TestClient(unittest.TestCase):
+  def _FakeAddressLookup(self, map):
+    return lambda node_list: [map.get(node) for node in node_list]
+
   def _GetVersionResponse(self, req):
     self.assertEqual(req.host, "localhost")
     self.assertEqual(req.port, 24094)
@@ -66,7 +76,8 @@ class TestClient(unittest.TestCase):
     req.resp_body = serializer.DumpJson((True, 123))
 
   def testVersionSuccess(self):
-    client = rpc.Client("version", None, 24094)
+    fn = self._FakeAddressLookup({"localhost": "localhost"})
+    client = rpc.Client("version", None, 24094, address_lookup_fn=fn)
     client.ConnectNode("localhost")
     pool = FakeHttpPool(self._GetVersionResponse)
     result = client.GetResults(http_pool=pool)
@@ -90,7 +101,8 @@ class TestClient(unittest.TestCase):
 
   def testMultiVersionSuccess(self):
     nodes = ["node%s" % i for i in range(50)]
-    client = rpc.Client("version", None, 23245)
+    fn = self._FakeAddressLookup(dict(zip(nodes, nodes)))
+    client = rpc.Client("version", None, 23245, address_lookup_fn=fn)
     client.ConnectList(nodes)
 
     pool = FakeHttpPool(self._GetMultiVersionResponse)
@@ -115,7 +127,9 @@ class TestClient(unittest.TestCase):
     req.resp_body = serializer.DumpJson((False, "Unknown error"))
 
   def testVersionFailure(self):
-    client = rpc.Client("version", None, 5903)
+    lookup_map = {"aef9ur4i.example.com": "aef9ur4i.example.com"}
+    fn = self._FakeAddressLookup(lookup_map)
+    client = rpc.Client("version", None, 5903, address_lookup_fn=fn)
     client.ConnectNode("aef9ur4i.example.com")
     pool = FakeHttpPool(self._GetVersionResponseFail)
     result = client.GetResults(http_pool=pool)
@@ -152,6 +166,7 @@ class TestClient(unittest.TestCase):
 
   def testHttpError(self):
     nodes = ["uaf6pbbv%s" % i for i in range(50)]
+    fn = self._FakeAddressLookup(dict(zip(nodes, nodes)))
 
     httperrnodes = set(nodes[1::7])
     self.assertEqual(len(httperrnodes), 7)
@@ -161,7 +176,7 @@ class TestClient(unittest.TestCase):
 
     self.assertEqual(len(set(nodes) - failnodes - httperrnodes), 29)
 
-    client = rpc.Client("vg_list", None, 15165)
+    client = rpc.Client("vg_list", None, 15165, address_lookup_fn=fn)
     client.ConnectList(nodes)
 
     pool = FakeHttpPool(compat.partial(self._GetHttpErrorResponse,
@@ -203,7 +218,9 @@ class TestClient(unittest.TestCase):
     req.resp_body = serializer.DumpJson("invalid response")
 
   def testInvalidResponse(self):
-    client = rpc.Client("version", None, 19978)
+    lookup_map = {"oqo7lanhly.example.com": "oqo7lanhly.example.com"}
+    fn = self._FakeAddressLookup(lookup_map)
+    client = rpc.Client("version", None, 19978, address_lookup_fn=fn)
     for fn in [self._GetInvalidResponseA, self._GetInvalidResponseB]:
       client.ConnectNode("oqo7lanhly.example.com")
       pool = FakeHttpPool(fn)
@@ -217,6 +234,34 @@ class TestClient(unittest.TestCase):
       self.assertEqual(lhresp.call, "version")
       self.assertRaises(errors.OpExecError, lhresp.Raise, "failed")
       self.assertEqual(pool.reqcount, 1)
+
+  def testAddressLookupSimpleStore(self):
+    addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
+    node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
+    node_addr_list = [ " ".join(t) for t in zip(node_list, addr_list)]
+    ssc = GetFakeSimpleStoreClass(lambda s: node_addr_list)
+    result = rpc._AddressLookup(node_list, ssc=ssc)
+    self.assertEqual(result, addr_list)
+
+  def testAddressLookupNSLookup(self):
+    addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
+    node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
+    ssc = GetFakeSimpleStoreClass(lambda s: [])
+    node_addr_map = dict(zip(node_list, addr_list))
+    nslookup_fn = lambda name: (None, None, [node_addr_map.get(name)])
+    result = rpc._AddressLookup(node_list, ssc=ssc, nslookup_fn=nslookup_fn)
+    self.assertEqual(result, addr_list)
+
+  def testAddressLookupBoth(self):
+    addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
+    node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
+    n = len(addr_list) / 2
+    node_addr_list = [ " ".join(t) for t in zip(node_list[n:], addr_list[n:])]
+    ssc = GetFakeSimpleStoreClass(lambda s: node_addr_list)
+    node_addr_map = dict(zip(node_list[:n], addr_list[:n]))
+    nslookup_fn = lambda name: (None, None, [node_addr_map.get(name)])
+    result = rpc._AddressLookup(node_list, ssc=ssc, nslookup_fn=nslookup_fn)
+    self.assertEqual(result, addr_list)
 
 
 if __name__ == "__main__":
