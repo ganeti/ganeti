@@ -304,6 +304,7 @@ AC_PYTHON_MODULE(OpenSSL, t)
 AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
+AC_PYTHON_MODULE(pycurl, t)
 
 AC_CONFIG_FILES([ Makefile ])
 
