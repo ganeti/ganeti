@@ -1148,6 +1148,27 @@ class TestEtcHosts(testutils.GanetiTestCase):
     self.assertFileMode(self.tmpname, 0644)
 
 
+class TestGetMounts(unittest.TestCase):
+  """Test case for GetMounts()."""
+
+  TESTDATA = (
+    "rootfs /     rootfs rw 0 0\n"
+    "none   /sys  sysfs  rw,nosuid,nodev,noexec,relatime 0 0\n"
+    "none   /proc proc   rw,nosuid,nodev,noexec,relatime 0 0\n")
+
+  def setUp(self):
+    self.tmpfile = tempfile.NamedTemporaryFile()
+    utils.WriteFile(self.tmpfile.name, data=self.TESTDATA)
+
+  def testGetMounts(self):
+    self.assertEqual(utils.GetMounts(filename=self.tmpfile.name),
+      [
+        ("rootfs", "/", "rootfs", "rw"),
+        ("none", "/sys", "sysfs", "rw,nosuid,nodev,noexec,relatime"),
+        ("none", "/proc", "proc", "rw,nosuid,nodev,noexec,relatime"),
+      ])
+
+
 class TestShellQuoting(unittest.TestCase):
   """Test case for shell quoting functions"""
 

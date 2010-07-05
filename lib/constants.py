@@ -176,6 +176,8 @@ LOG_BURNIN = LOG_DIR + "burnin.log"
 
 DEV_CONSOLE = "/dev/console"
 
+PROC_MOUNTS = "/proc/mounts"
+
 # luxi related constants
 LUXI_EOM = "\3"
 

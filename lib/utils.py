@@ -3156,6 +3156,26 @@ def CalculateDirectorySize(path):
   return BytesToMebibyte(size)
 
 
+def GetMounts(filename=constants.PROC_MOUNTS):
+  """Returns the list of mounted filesystems.
+
+  This function is Linux-specific.
+
+  @param filename: path of mounts file (/proc/mounts by default)
+  @rtype: list of tuples
+  @return: list of mount entries (device, mountpoint, fstype, options)
+
+  """
+  # TODO(iustin): investigate non-Linux options (e.g. via mount output)
+  data = []
+  mountlines = ReadFile(filename).splitlines()
+  for line in mountlines:
+    device, mountpoint, fstype, options, _ = line.split(None, 4)
+    data.append((device, mountpoint, fstype, options))
+
+  return data
+
+
 def GetFilesystemStats(path):
   """Returns the total and free space on a filesystem.
 
