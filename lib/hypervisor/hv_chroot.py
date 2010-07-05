@@ -83,23 +83,15 @@ class ChrootManager(hv_base.BaseHypervisor):
   def _GetMountSubdirs(path):
     """Return the list of mountpoints under a given path.
 
-    This function is Linux-specific.
-
     """
-    #TODO(iustin): investigate and document non-linux options
-    #(e.g. via mount output)
-    data = []
-    fh = open("/proc/mounts", "r")
-    try:
-      for line in fh:
-        _, mountpoint, _ = line.split(" ", 2)
-        if (mountpoint.startswith(path) and
-            mountpoint != path):
-          data.append(mountpoint)
-    finally:
-      fh.close()
-    data.sort(key=lambda x: x.count("/"), reverse=True)
-    return data
+    result = []
+    for _, mountpoint, _, _ in utils.GetMounts():
+      if (mountpoint.startswith(path) and
+          mountpoint != path):
+        result.append(mountpoint)
+
+    result.sort(key=lambda x: x.count("/"), reverse=True)
+    return result
 
   @classmethod
   def _InstanceDir(cls, instance_name):
