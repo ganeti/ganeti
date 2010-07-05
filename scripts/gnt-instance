@@ -621,7 +621,7 @@ def RenameInstance(opts, args):
   @return: the desired exit code
 
   """
-  if not opts.check_name:
+  if not opts.name_check:
     if not AskUser("As you disabled the check of the DNS entry, please verify"
                    " that '%s' is a FQDN. Continue?" % args[1]):
       return 1
@@ -629,7 +629,7 @@ def RenameInstance(opts, args):
   op = opcodes.OpRenameInstance(instance_name=args[0],
                                 new_name=args[1],
                                 ignore_ip=not opts.ip_check,
-                                check_name=opts.check_name)
+                                check_name=opts.name_check)
   SubmitOrSend(op, opts)
   return 0
 
