@@ -44,6 +44,7 @@ from ganeti import rpc
 from ganeti import objects
 from ganeti import serializer
 from ganeti import uidpool
+from ganeti import netutils
 
 
 _config_lock = locking.SharedLock()
@@ -150,7 +151,7 @@ class ConfigWriter:
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
     # file than after it was modified
-    self._my_hostname = utils.HostInfo().name
+    self._my_hostname = netutils.HostInfo().name
     self._last_cluster_serial = -1
     self._OpenConfig()
 

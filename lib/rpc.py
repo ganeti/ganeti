@@ -41,6 +41,7 @@ from ganeti import http
 from ganeti import serializer
 from ganeti import constants
 from ganeti import errors
+from ganeti import netutils
 
 # pylint has a bug here, doesn't see this import
 import ganeti.http.client  # pylint: disable-msg=W0611
@@ -327,7 +328,7 @@ class RpcRunner(object):
 
     """
     self._cfg = cfg
-    self.port = utils.GetDaemonPort(constants.NODED)
+    self.port = netutils.GetDaemonPort(constants.NODED)
 
   def _InstDict(self, instance, hvp=None, bep=None, osp=None):
     """Convert the given instance to a dict.
@@ -441,7 +442,7 @@ class RpcRunner(object):
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
+    c = Client(procedure, body, netutils.GetDaemonPort(constants.NODED))
     c.ConnectList(node_list, address_list=address_list,
                   read_timeout=read_timeout)
     return c.GetResults()
@@ -464,7 +465,7 @@ class RpcRunner(object):
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
+    c = Client(procedure, body, netutils.GetDaemonPort(constants.NODED))
     c.ConnectNode(node, read_timeout=read_timeout)
     return c.GetResults()[node]
 

@@ -33,6 +33,7 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import objects
 from ganeti import compat
+from ganeti import netutils
 
 
 # Size of reads in _CanReadDevice
@@ -1301,13 +1302,13 @@ class DRBD8(BaseDRBD):
     # about its peer.
     cls._SetMinorSyncSpeed(minor, constants.SYNC_SPEED)
 
-    if utils.IsValidIP6(lhost):
-      if not utils.IsValidIP6(rhost):
+    if netutils.IsValidIP6(lhost):
+      if not netutils.IsValidIP6(rhost):
         _ThrowError("drbd%d: can't connect ip %s to ip %s" %
                     (minor, lhost, rhost))
       family = "ipv6"
-    elif utils.IsValidIP4(lhost):
-      if not utils.IsValidIP4(rhost):
+    elif netutils.IsValidIP4(lhost):
+      if not netutils.IsValidIP4(rhost):
         _ThrowError("drbd%d: can't connect ip %s to ip %s" %
                     (minor, lhost, rhost))
       family = "ipv4"

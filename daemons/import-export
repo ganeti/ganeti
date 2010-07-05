@@ -45,6 +45,7 @@ from ganeti import serializer
 from ganeti import objects
 from ganeti import locking
 from ganeti import impexpd
+from ganeti import netutils
 
 
 #: How many lines to keep in the status file
@@ -407,7 +408,7 @@ def ParseOptions():
   # Normalize and check parameters
   if options.host is not None:
     try:
-      options.host = utils.HostInfo.NormalizeName(options.host)
+      options.host = netutils.HostInfo.NormalizeName(options.host)
     except errors.OpPrereqError, err:
       parser.error("Invalid hostname '%s': %s" % (options.host, err))
 

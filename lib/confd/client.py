@@ -62,6 +62,7 @@ from ganeti import errors
 from ganeti import confd
 from ganeti import ssconf
 from ganeti import compat
+from ganeti import netutils
 
 
 class ConfdAsyncUDPClient(daemon.AsyncUDPSocket):
@@ -144,7 +145,7 @@ class ConfdClient:
     self._requests = {}
 
     if self._confd_port is None:
-      self._confd_port = utils.GetDaemonPort(constants.CONFD)
+      self._confd_port = netutils.GetDaemonPort(constants.CONFD)
 
   def UpdatePeerList(self, peers):
     """Update the list of peers

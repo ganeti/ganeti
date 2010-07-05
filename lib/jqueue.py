@@ -53,6 +53,7 @@ from ganeti import mcpu
 from ganeti import utils
 from ganeti import jstore
 from ganeti import rpc
+from ganeti import netutils
 
 
 JOBQUEUE_THREADS = 25
@@ -762,7 +763,7 @@ class JobQueue(object):
     """
     self.context = context
     self._memcache = weakref.WeakValueDictionary()
-    self._my_hostname = utils.HostInfo().name
+    self._my_hostname = netutils.HostInfo().name
 
     # The Big JobQueue lock. If a code block or method acquires it in shared
     # mode safe it must guarantee concurrency with all the code acquiring it in

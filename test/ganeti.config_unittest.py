@@ -35,6 +35,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import objects
 from ganeti import utils
+from ganeti import netutils
 
 import testutils
 
@@ -59,7 +60,7 @@ class TestConfigRunner(unittest.TestCase):
 
   def _init_cluster(self, cfg):
     """Initializes the cfg object"""
-    me = utils.HostInfo()
+    me = netutils.HostInfo()
     ip = constants.IP4_ADDRESS_LOCALHOST
 
     cluster_config = objects.Cluster(

@@ -30,6 +30,7 @@ import unittest
 from ganeti import utils
 from ganeti import constants
 from ganeti import backend
+from ganeti import netutils
 
 import testutils
 
@@ -73,7 +74,7 @@ class TestX509Certificates(unittest.TestCase):
 class TestNodeVerify(testutils.GanetiTestCase):
   def testMasterIPLocalhost(self):
     # this a real functional test, but requires localhost to be reachable
-    local_data = (utils.HostInfo().name, constants.IP4_ADDRESS_LOCALHOST)
+    local_data = (netutils.HostInfo().name, constants.IP4_ADDRESS_LOCALHOST)
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data}, None)
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
@@ -84,12 +85,12 @@ class TestNodeVerify(testutils.GanetiTestCase):
     # RFC 5735
     bad_data =  ("master.example.com", "192.0.2.1")
     # we just test that whatever TcpPing returns, VerifyNode returns too
-    utils.TcpPing = lambda a, b, source=None: False
+    netutils.TcpPing = lambda a, b, source=None: False
     result = backend.VerifyNode({constants.NV_MASTERIP: bad_data}, None)
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failIf(result[constants.NV_MASTERIP],
-                "Result from utils.TcpPing corrupted")
+                "Result from netutils.TcpPing corrupted")
 
 
 if __name__ == "__main__":

@@ -58,6 +58,7 @@ from ganeti import bdev
 from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
+from ganeti import netutils
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -258,8 +259,8 @@ def StartMaster(start_daemons, no_voting):
   master_netdev, master_ip, _ = GetMasterInfo()
 
   err_msgs = []
-  if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
-    if utils.OwnIpAddress(master_ip):
+  if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+    if netutils.OwnIpAddress(master_ip):
       # we already have the ip:
       logging.debug("Master IP already configured, doing nothing")
     else:
@@ -487,8 +488,8 @@ def VerifyNode(what, cluster_name):
 
   """
   result = {}
-  my_name = utils.HostInfo().name
-  port = utils.GetDaemonPort(constants.NODED)
+  my_name = netutils.HostInfo().name
+  port = netutils.GetDaemonPort(constants.NODED)
 
   if constants.NV_HYPERVISOR in what:
     result[constants.NV_HYPERVISOR] = tmp = {}
@@ -525,10 +526,10 @@ def VerifyNode(what, cluster_name):
     else:
       for name, pip, sip in what[constants.NV_NODENETTEST]:
         fail = []
-        if not utils.TcpPing(pip, port, source=my_pip):
+        if not netutils.TcpPing(pip, port, source=my_pip):
           fail.append("primary")
         if sip != pip:
-          if not utils.TcpPing(sip, port, source=my_sip):
+          if not netutils.TcpPing(sip, port, source=my_sip):
             fail.append("secondary")
         if fail:
           tmp[name] = ("failure using the %s interface(s)" %
@@ -542,7 +543,7 @@ def VerifyNode(what, cluster_name):
       source = constants.IP4_ADDRESS_LOCALHOST
     else:
       source = None
-    result[constants.NV_MASTERIP] = utils.TcpPing(master_ip, port,
+    result[constants.NV_MASTERIP] = netutils.TcpPing(master_ip, port,
                                                   source=source)
 
   if constants.NV_LVLIST in what:
@@ -2591,7 +2592,7 @@ def CreateX509Certificate(validity, cryptodir=constants.CRYPTO_KEYS_DIR):
 
   """
   (key_pem, cert_pem) = \
-    utils.GenerateSelfSignedX509Cert(utils.HostInfo.SysName(),
+    utils.GenerateSelfSignedX509Cert(netutils.HostInfo.SysName(),
                                      min(validity, _MAX_SSL_CERT_VALIDITY))
 
   cert_dir = tempfile.mkdtemp(dir=cryptodir,
@@ -2934,7 +2935,7 @@ def _FindDisks(nodes_ip, disks):
 
   """
   # set the correct physical ID
-  my_name = utils.HostInfo().name
+  my_name = netutils.HostInfo().name
   for cf in disks:
     cf.SetPhysicalID(my_name, nodes_ip)
 

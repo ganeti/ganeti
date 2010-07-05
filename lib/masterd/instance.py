@@ -32,6 +32,7 @@ from ganeti import errors
 from ganeti import compat
 from ganeti import utils
 from ganeti import objects
+from ganeti import netutils
 
 
 class _ImportExportError(Exception):
@@ -1553,7 +1554,7 @@ def CheckRemoteExportDiskInfo(cds, disk_index, disk_info):
   if not utils.VerifySha1Hmac(cds, msg, hmac_digest, salt=hmac_salt):
     raise errors.GenericError("HMAC is wrong")
 
-  return (utils.HostInfo.NormalizeName(host),
+  return (netutils.HostInfo.NormalizeName(host),
           utils.ValidateServiceName(port),
           magic)
 

@@ -40,6 +40,7 @@ from ganeti import ssconf
 from ganeti import serializer
 from ganeti import hypervisor
 from ganeti import bdev
+from ganeti import netutils
 
 
 def _InitSSHSetup():
@@ -239,7 +240,7 @@ def InitCluster(cluster_name, mac_prefix,
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-  hostname = utils.GetHostInfo()
+  hostname = netutils.GetHostInfo()
 
   if hostname.ip.startswith("127."):
     raise errors.OpPrereqError("This host's IP resolves to the private"
@@ -247,25 +248,26 @@ def InitCluster(cluster_name, mac_prefix,
                                (hostname.ip, constants.ETC_HOSTS),
                                errors.ECODE_ENVIRON)
 
-  if not utils.OwnIpAddress(hostname.ip):
+  if not netutils.OwnIpAddress(hostname.ip):
     raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                " to %s,\nbut this ip address does not"
                                " belong to this host. Aborting." %
                                hostname.ip, errors.ECODE_ENVIRON)
 
-  clustername = utils.GetHostInfo(utils.HostInfo.NormalizeName(cluster_name))
+  clustername = \
+    netutils.GetHostInfo(netutils.HostInfo.NormalizeName(cluster_name))
 
-  if utils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
+  if netutils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
                    timeout=5):
     raise errors.OpPrereqError("Cluster IP already active. Aborting.",
                                errors.ECODE_NOTUNIQUE)
 
   if secondary_ip:
-    if not utils.IsValidIP4(secondary_ip):
+    if not netutils.IsValidIP4(secondary_ip):
       raise errors.OpPrereqError("Invalid secondary ip given",
                                  errors.ECODE_INVAL)
     if (secondary_ip != hostname.ip and
-        not utils.OwnIpAddress(secondary_ip)):
+        not netutils.OwnIpAddress(secondary_ip)):
       raise errors.OpPrereqError("You gave %s as secondary IP,"
                                  " but it does not belong to this host." %
                                  secondary_ip, errors.ECODE_ENVIRON)
@@ -574,7 +576,7 @@ def MasterFailover(no_voting=False):
   total_timeout = 30
   # Here we have a phase where no master should be running
   def _check_ip():
-    if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+    if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
       raise utils.RetryAgain()
 
   try:
@@ -641,7 +643,7 @@ def GatherMasterVotes(node_list):
   @return: list of (node, votes)
 
   """
-  myself = utils.HostInfo().name
+  myself = netutils.HostInfo().name
   try:
     node_list.remove(myself)
   except ValueError:

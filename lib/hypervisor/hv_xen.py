@@ -30,6 +30,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti.hypervisor import hv_base
+from ganeti import netutils
 
 
 class XenHypervisor(hv_base.BaseHypervisor):
@@ -409,7 +410,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
 
-    if not utils.TcpPing(target, port, live_port_needed=True):
+    if not netutils.TcpPing(target, port, live_port_needed=True):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
@@ -549,7 +550,7 @@ class XenHvmHypervisor(XenHypervisor):
       hv_base.ParamInSet(True, constants.HT_HVM_VALID_NIC_TYPES),
     constants.HV_PAE: hv_base.NO_CHECK,
     constants.HV_VNC_BIND_ADDRESS:
-      (False, utils.IsValidIP4,
+      (False, netutils.IsValidIP4,
        "VNC bind address is not a valid IP address", None, None),
     constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,

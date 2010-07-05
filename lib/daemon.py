@@ -39,6 +39,7 @@ import sys
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
+from ganeti import netutils
 
 
 _DEFAULT_RUN_USER = "root"
@@ -156,7 +157,7 @@ class AsyncStreamServer(GanetiBaseAsyncoreDispatcher):
       if self.family == socket.AF_UNIX:
         # override the client address, as for unix sockets nothing meaningful
         # is passed in from accept anyway
-        client_address = utils.GetSocketCredentials(connected_socket)
+        client_address = netutils.GetSocketCredentials(connected_socket)
       logging.info("Accepted connection from %s",
                    FormatAddress(self.family, client_address))
       self.handle_connection(connected_socket, client_address)
@@ -552,7 +553,7 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
 
   if daemon_name in constants.DAEMONS_PORTS:
     default_bind_address = constants.IP4_ADDRESS_ANY
-    default_port = utils.GetDaemonPort(daemon_name)
+    default_port = netutils.GetDaemonPort(daemon_name)
 
     # For networked daemons we allow choosing the port and bind address
     optionparser.add_option("-p", "--port", dest="port",

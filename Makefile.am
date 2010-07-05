@@ -119,6 +119,7 @@ pkgpython_PYTHON = \
 	lib/locking.py \
 	lib/luxi.py \
 	lib/mcpu.py \
+	lib/netutils.py \
 	lib/objects.py \
 	lib/opcodes.py \
 	lib/rpc.py \
@@ -380,6 +381,7 @@ python_tests = \
 	test/ganeti.luxi_unittest.py \
 	test/ganeti.masterd.instance_unittest.py \
 	test/ganeti.mcpu_unittest.py \
+	test/ganeti.netutils_unittest.py \
 	test/ganeti.objects_unittest.py \
 	test/ganeti.opcodes_unittest.py \
 	test/ganeti.rapi.client_unittest.py \

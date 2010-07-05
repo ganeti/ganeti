@@ -22,6 +22,7 @@
 """Module implementing a fake ConfigWriter"""
 
 from ganeti import utils
+from ganeti import netutils
 
 
 FAKE_CLUSTER_KEY = ("AAAAB3NzaC1yc2EAAAABIwAAAQEAsuGLw70et3eApJ/ZEJkAVZogIrm"
@@ -49,7 +50,7 @@ class FakeConfig:
         return "test.cluster"
 
     def GetMasterNode(self):
-        return utils.HostInfo().name
+        return netutils.HostInfo().name
 
     def GetDefaultIAllocator(Self):
         return "testallocator"

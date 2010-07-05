@@ -35,6 +35,7 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import serializer
 from ganeti import objects
+from ganeti import netutils
 
 
 SSCONF_LOCK_TIMEOUT = 10
@@ -477,7 +478,7 @@ def GetMasterAndMyself(ss=None):
   """
   if ss is None:
     ss = SimpleStore()
-  return ss.GetMasterNode(), utils.HostInfo().name
+  return ss.GetMasterNode(), netutils.HostInfo().name
 
 
 def CheckMaster(debug, ss=None):

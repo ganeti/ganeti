@@ -35,6 +35,7 @@ from ganeti import constants
 from ganeti import compat
 from ganeti import errors
 from ganeti import bootstrap
+from ganeti import netutils
 
 
 #: default list of field for L{ListNodes}
@@ -134,7 +135,7 @@ def AddNode(opts, args):
 
   """
   cl = GetClient()
-  dns_data = utils.GetHostInfo(utils.HostInfo.NormalizeName(args[0]))
+  dns_data = netutils.GetHostInfo(netutils.HostInfo.NormalizeName(args[0]))
   node = dns_data.name
   readd = opts.readd
 

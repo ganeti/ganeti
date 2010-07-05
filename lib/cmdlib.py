@@ -49,6 +49,7 @@ from ganeti import ssconf
 from ganeti import uidpool
 from ganeti import compat
 from ganeti import masterd
+from ganeti import netutils
 
 import ganeti.masterd.instance # pylint: disable-msg=W0611
 
@@ -2513,7 +2514,7 @@ class LURenameCluster(LogicalUnit):
     """Verify that the passed name is a valid one.
 
     """
-    hostname = utils.GetHostInfo(self.op.name)
+    hostname = netutils.GetHostInfo(self.op.name)
 
     new_name = hostname.name
     self.ip = new_ip = hostname.ip
@@ -2524,7 +2525,7 @@ class LURenameCluster(LogicalUnit):
                                  " cluster has changed",
                                  errors.ECODE_INVAL)
     if new_ip != old_ip:
-      if utils.TcpPing(new_ip, constants.DEFAULT_NODED_PORT):
+      if netutils.TcpPing(new_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("The given cluster IP address (%s) is"
                                    " reachable on the network. Aborting." %
                                    new_ip, errors.ECODE_NOTUNIQUE)
@@ -3654,7 +3655,7 @@ class LUAddNode(LogicalUnit):
 
   def CheckArguments(self):
     # validate/normalize the node name
-    self.op.node_name = utils.HostInfo.NormalizeName(self.op.node_name)
+    self.op.node_name = netutils.HostInfo.NormalizeName(self.op.node_name)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3686,13 +3687,13 @@ class LUAddNode(LogicalUnit):
     node_name = self.op.node_name
     cfg = self.cfg
 
-    dns_data = utils.GetHostInfo(node_name)
+    dns_data = netutils.GetHostInfo(node_name)
 
     node = dns_data.name
     primary_ip = self.op.primary_ip = dns_data.ip
     if self.op.secondary_ip is None:
       self.op.secondary_ip = primary_ip
-    if not utils.IsValidIP4(self.op.secondary_ip):
+    if not netutils.IsValidIP4(self.op.secondary_ip):
       raise errors.OpPrereqError("Invalid secondary IP given",
                                  errors.ECODE_INVAL)
     secondary_ip = self.op.secondary_ip
@@ -3744,13 +3745,13 @@ class LUAddNode(LogicalUnit):
                                    errors.ECODE_INVAL)
 
     # checks reachability
-    if not utils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
+    if not netutils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Node not reachable by ping",
                                  errors.ECODE_ENVIRON)
 
     if not newbie_singlehomed:
       # check reachability from my secondary ip to newbie's secondary ip
-      if not utils.TcpPing(secondary_ip, constants.DEFAULT_NODED_PORT,
+      if not netutils.TcpPing(secondary_ip, constants.DEFAULT_NODED_PORT,
                            source=myself.secondary_ip):
         raise errors.OpPrereqError("Node secondary ip not reachable by TCP"
                                    " based ping to noded port",
@@ -4885,7 +4886,7 @@ class LURenameInstance(LogicalUnit):
 
     # new name verification
     if self.op.check_name:
-      name_info = utils.GetHostInfo(self.op.new_name)
+      name_info = netutils.GetHostInfo(self.op.new_name)
       self.op.new_name = name_info.name
 
     new_name = self.op.new_name
@@ -4896,7 +4897,7 @@ class LURenameInstance(LogicalUnit):
                                  new_name, errors.ECODE_EXISTS)
 
     if not self.op.ignore_ip:
-      if utils.TcpPing(name_info.ip, constants.DEFAULT_NODED_PORT):
+      if netutils.TcpPing(name_info.ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (name_info.ip, new_name),
                                    errors.ECODE_NOTUNIQUE)
@@ -6492,7 +6493,9 @@ class LUCreateInstance(LogicalUnit):
       self.LogInfo("No-installation mode selected, disabling startup")
       self.op.start = False
     # validate/normalize the instance name
-    self.op.instance_name = utils.HostInfo.NormalizeName(self.op.instance_name)
+    self.op.instance_name = \
+      netutils.HostInfo.NormalizeName(self.op.instance_name)
+
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
@@ -6530,7 +6533,7 @@ class LUCreateInstance(LogicalUnit):
 
     # instance name verification
     if self.op.name_check:
-      self.hostname1 = utils.GetHostInfo(self.op.instance_name)
+      self.hostname1 = netutils.GetHostInfo(self.op.instance_name)
       self.op.instance_name = self.hostname1.name
       # used in CheckPrereq for ip ping check
       self.check_ip = self.hostname1.ip
@@ -6610,8 +6613,8 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("Missing source instance name",
                                    errors.ECODE_INVAL)
 
-      self.source_instance_name = \
-        utils.GetHostInfo(utils.HostInfo.NormalizeName(src_instance_name)).name
+      norm_name = netutils.HostInfo.NormalizeName(src_instance_name)
+      self.source_instance_name = netutils.GetHostInfo(norm_name).name
 
     else:
       raise errors.OpPrereqError("Invalid instance creation mode %r" %
@@ -6955,7 +6958,7 @@ class LUCreateInstance(LogicalUnit):
                                      errors.ECODE_INVAL)
         nic_ip = self.hostname1.ip
       else:
-        if not utils.IsValidIP4(ip):
+        if not netutils.IsValidIP4(ip):
           raise errors.OpPrereqError("Given IP address '%s' doesn't look"
                                      " like a valid IP" % ip,
                                      errors.ECODE_INVAL)
@@ -7061,7 +7064,7 @@ class LUCreateInstance(LogicalUnit):
 
     # ip ping checks (we use the same ip that was resolved in ExpandNames)
     if self.op.ip_check:
-      if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
+      if netutils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (self.check_ip, self.op.instance_name),
                                    errors.ECODE_NOTUNIQUE)
@@ -8630,7 +8633,7 @@ class LUSetInstanceParams(LogicalUnit):
         if nic_ip.lower() == constants.VALUE_NONE:
           nic_dict['ip'] = None
         else:
-          if not utils.IsValidIP4(nic_ip):
+          if not netutils.IsValidIP4(nic_ip):
             raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip,
                                        errors.ECODE_INVAL)
 

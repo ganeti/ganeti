@@ -49,6 +49,7 @@ from ganeti import bdev
 from ganeti import hypervisor
 from ganeti import rapi
 from ganeti.confd import client as confd_client
+from ganeti import netutils
 
 import ganeti.rapi.client # pylint: disable-msg=W0611
 
@@ -209,7 +210,7 @@ class NodeMaintenance(object):
     """Check node status versus cluster desired state.
 
     """
-    my_name = utils.HostInfo().name
+    my_name = netutils.HostInfo().name
     req = confd_client.ConfdClientRequest(type=
                                           constants.CONFD_REQ_NODE_ROLE_BYNAME,
                                           query=my_name)
@@ -438,7 +439,7 @@ class Watcher(object):
   def __init__(self, opts, notepad):
     self.notepad = notepad
     master = client.QueryConfigValues(["master_node"])[0]
-    if master != utils.HostInfo().name:
+    if master != netutils.HostInfo().name:
       raise NotMasterError("This is not the master node")
     # first archive old jobs
     self.ArchiveJobs(opts.job_age)

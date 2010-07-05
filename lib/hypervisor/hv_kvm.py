@@ -41,6 +41,7 @@ from ganeti import objects
 from ganeti import uidpool
 from ganeti import ssconf
 from ganeti.hypervisor import hv_base
+from ganeti import netutils
 
 
 class KVMHypervisor(hv_base.BaseHypervisor):
@@ -71,7 +72,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_ACPI: hv_base.NO_CHECK,
     constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
     constants.HV_VNC_BIND_ADDRESS:
-      (False, lambda x: (utils.IsValidIP4(x) or utils.IsNormAbsPath(x)),
+      (False, lambda x: (netutils.IsValidIP4(x) or utils.IsNormAbsPath(x)),
        "the VNC bind address must be either a valid IP address or an absolute"
        " pathname", None, None),
     constants.HV_VNC_TLS: hv_base.NO_CHECK,
@@ -514,7 +515,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      if utils.IsValidIP4(vnc_bind_address):
+      if netutils.IsValidIP4(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == constants.IP4_ADDRESS_ANY:
@@ -866,7 +867,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not alive:
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
-    if not utils.TcpPing(target, port, live_port_needed=True):
+    if not netutils.TcpPing(target, port, live_port_needed=True):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 

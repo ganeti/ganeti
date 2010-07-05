@@ -54,6 +54,7 @@ from ganeti import ssconf
 from ganeti import workerpool
 from ganeti import rpc
 from ganeti import bootstrap
+from ganeti import netutils
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -421,7 +422,7 @@ def CheckAgreement():
   other node to be up too to confirm our status.
 
   """
-  myself = utils.HostInfo().name
+  myself = netutils.HostInfo().name
   #temp instantiation of a config writer, used only to get the node list
   cfg = config.ConfigWriter()
   node_list = cfg.GetNodeList()

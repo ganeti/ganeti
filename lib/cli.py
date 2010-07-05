@@ -38,6 +38,7 @@ from ganeti import ssconf
 from ganeti import rpc
 from ganeti import ssh
 from ganeti import compat
+from ganeti import netutils
 
 from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -1624,7 +1625,7 @@ def FormatError(err):
   elif isinstance(err, errors.HooksFailure):
     obuf.write("Failure: hooks general failure: %s" % msg)
   elif isinstance(err, errors.ResolverError):
-    this_host = utils.HostInfo.SysName()
+    this_host = netutils.HostInfo.SysName()
     if err.args[0] == this_host:
       msg = "Failure: can't resolve my own hostname ('%s')"
     else:
