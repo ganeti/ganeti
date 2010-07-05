@@ -164,8 +164,17 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     # separate pseudo-TTY instances
     out.append("lxc.pts = 255")
-    # standard TTYs/console
+    # standard TTYs
     out.append("lxc.tty = 6")
+    # console log file
+    console_log = utils.PathJoin(self._ROOT_DIR, instance.name + ".console")
+    try:
+      utils.WriteFile(console_log, data="", mode=constants.SECURE_FILE_MODE)
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Creating console log file %s for"
+                                   " instance %s failed: %s" %
+                                   (console_log, instance.name, err))
+    out.append("lxc.console = %s" % console_log)
 
     # root FS
     out.append("lxc.rootfs = %s" % root_dir)
