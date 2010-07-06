@@ -845,8 +845,12 @@ def ExecNoded(options, _):
 
   """
   if options.mlock:
-    utils.Mlockall()
     request_executor_class = MlockallRequestExecutor
+    try:
+      utils.Mlockall()
+    except errors.NoCtypesError:
+      logging.warning("Cannot set memory lock, ctypes module not found")
+      request_executor_class = http.server.HttpServerRequestExecutor
   else:
     request_executor_class = http.server.HttpServerRequestExecutor
 

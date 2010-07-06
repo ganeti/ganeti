@@ -1772,18 +1772,19 @@ def CloseFDs(noclose_fds=None):
     _CloseFDNoErr(fd)
 
 
-def Mlockall():
+def Mlockall(_ctypes=ctypes):
   """Lock current process' virtual address space into RAM.
 
   This is equivalent to the C call mlockall(MCL_CURRENT|MCL_FUTURE),
   see mlock(2) for more details. This function requires ctypes module.
 
-  """
-  if ctypes is None:
-    logging.warning("Cannot set memory lock, ctypes module not found")
-    return
+  @raises errors.NoCtypesError: if ctypes module is not found
 
-  libc = ctypes.cdll.LoadLibrary("libc.so.6")
+  """
+  if _ctypes is None:
+    raise errors.NoCtypesError()
+
+  libc = _ctypes.cdll.LoadLibrary("libc.so.6")
   if libc is None:
     logging.error("Cannot set memory lock, ctypes cannot load libc")
     return
@@ -1794,7 +1795,7 @@ def Mlockall():
   # its value correctly, should the mlockall call fail, in order to see what
   # the actual error code was.
   # pylint: disable-msg=W0212
-  libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
+  libc.__errno_location.restype = _ctypes.POINTER(_ctypes.c_int)
 
   if libc.mlockall(_MCL_CURRENT | _MCL_FUTURE):
     # pylint: disable-msg=W0212

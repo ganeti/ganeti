@@ -336,6 +336,12 @@ class UdpDataSizeError(GenericError):
   """
 
 
+class NoCtypesError(GenericError):
+  """python ctypes module is not found in the system.
+
+  """
+
+
 # errors should be added above
 
 
