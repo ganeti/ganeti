@@ -418,6 +418,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._job = job
     self._op = op
 
+  @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyStart(self):
     """Mark the opcode as running, not lock-waiting.
 
@@ -427,22 +428,21 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     Processor.ExecOpCode) set to OP_STATUS_WAITLOCK.
 
     """
-    self._queue.acquire(shared=1)
-    try:
-      assert self._op.status in (constants.OP_STATUS_WAITLOCK,
-                                 constants.OP_STATUS_CANCELING)
+    assert self._op.status in (constants.OP_STATUS_WAITLOCK,
+                               constants.OP_STATUS_CANCELING)
 
-      # All locks are acquired by now
-      self._job.lock_status = None
+    # All locks are acquired by now
+    self._job.lock_status = None
 
-      # Cancel here if we were asked to
-      if self._op.status == constants.OP_STATUS_CANCELING:
-        raise CancelJob()
+    # Cancel here if we were asked to
+    if self._op.status == constants.OP_STATUS_CANCELING:
+      raise CancelJob()
 
-      self._op.status = constants.OP_STATUS_RUNNING
-      self._op.exec_timestamp = TimeStampNow()
-    finally:
-      self._queue.release()
+    self._op.status = constants.OP_STATUS_RUNNING
+    self._op.exec_timestamp = TimeStampNow()
+
+    # And finally replicate the job status
+    self._queue.UpdateJobUnlocked(self._job)
 
   @locking.ssynchronized(_QUEUE, shared=1)
   def _AppendFeedback(self, timestamp, log_type, log_msg):
