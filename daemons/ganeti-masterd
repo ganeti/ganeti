@@ -513,7 +513,7 @@ def CheckMasterd(options, args):
     sys.exit(constants.EXIT_FAILURE)
 
 
-def ExecMasterd (options, args): # pylint: disable-msg=W0613
+def ExecMasterd(options, args): # pylint: disable-msg=W0613
   """Main master daemon function, executed with the PID file held.
 
   """

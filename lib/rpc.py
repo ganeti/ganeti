@@ -34,6 +34,8 @@ import os
 import logging
 import zlib
 import base64
+import pycurl
+import threading
 
 from ganeti import utils
 from ganeti import objects
@@ -47,8 +49,12 @@ from ganeti import netutils
 import ganeti.http.client  # pylint: disable-msg=W0611
 
 
-# Module level variable
-_http_manager = None
+# Timeout for connecting to nodes (seconds)
+_RPC_CONNECT_TIMEOUT = 5
+
+_RPC_CLIENT_HEADERS = [
+  "Content-type: %s" % http.HTTP_APP_JSON,
+  ]
 
 # Various time constants for the timeout table
 _TMO_URGENT = 60 # one minute
@@ -72,29 +78,62 @@ _TIMEOUTS = {
 def Init():
   """Initializes the module-global HTTP client manager.
 
-  Must be called before using any RPC function.
+  Must be called before using any RPC function and while exactly one thread is
+  running.
 
   """
-  global _http_manager # pylint: disable-msg=W0603
+  # curl_global_init(3) and curl_global_cleanup(3) must be called with only
+  # one thread running. This check is just a safety measure -- it doesn't
+  # cover all cases.
+  assert threading.activeCount() == 1, \
+         "Found more than one active thread when initializing pycURL"
 
-  assert not _http_manager, "RPC module initialized more than once"
+  logging.info("Using PycURL %s", pycurl.version)
 
-  http.InitSsl()
-
-  _http_manager = http.client.HttpClientManager()
+  pycurl.global_init(pycurl.GLOBAL_ALL)
 
 
 def Shutdown():
   """Stops the module-global HTTP client manager.
 
-  Must be called before quitting the program.
+  Must be called before quitting the program and while exactly one thread is
+  running.
 
   """
-  global _http_manager # pylint: disable-msg=W0603
+  pycurl.global_cleanup()
 
-  if _http_manager:
-    _http_manager.Shutdown()
-    _http_manager = None
+
+def _ConfigRpcCurl(curl):
+  noded_cert = str(constants.NODED_CERT_FILE)
+
+  curl.setopt(pycurl.FOLLOWLOCATION, False)
+  curl.setopt(pycurl.CAINFO, noded_cert)
+  curl.setopt(pycurl.SSL_VERIFYHOST, 0)
+  curl.setopt(pycurl.SSL_VERIFYPEER, True)
+  curl.setopt(pycurl.SSLCERTTYPE, "PEM")
+  curl.setopt(pycurl.SSLCERT, noded_cert)
+  curl.setopt(pycurl.SSLKEYTYPE, "PEM")
+  curl.setopt(pycurl.SSLKEY, noded_cert)
+  curl.setopt(pycurl.CONNECTTIMEOUT, _RPC_CONNECT_TIMEOUT)
+
+
+class _RpcThreadLocal(threading.local):
+  def GetHttpClientPool(self):
+    """Returns a per-thread HTTP client pool.
+
+    @rtype: L{http.client.HttpClientPool}
+
+    """
+    try:
+      pool = self.hcp
+    except AttributeError:
+      pool = http.client.HttpClientPool(_ConfigRpcCurl)
+      self.hcp = pool
+
+    return pool
+
+
+_thread_local = _RpcThreadLocal()
 
 
 def _RpcTimeout(secs):
@@ -218,11 +257,7 @@ class Client:
     self.procedure = procedure
     self.body = body
     self.port = port
-    self.nc = {}
-
-    self._ssl_params = \
-      http.HttpSslParams(ssl_key_path=constants.NODED_CERT_FILE,
-                         ssl_cert_path=constants.NODED_CERT_FILE)
+    self._request = {}
 
   def ConnectList(self, node_list, address_list=None, read_timeout=None):
     """Add a list of nodes to the target nodes.
@@ -260,28 +295,28 @@ class Client:
     if read_timeout is None:
       read_timeout = _TIMEOUTS[self.procedure]
 
-    self.nc[name] = \
-      http.client.HttpClientRequest(address, self.port, http.HTTP_PUT,
-                                    "/%s" % self.procedure,
-                                    post_data=self.body,
-                                    ssl_params=self._ssl_params,
-                                    ssl_verify_peer=True,
+    self._request[name] = \
+      http.client.HttpClientRequest(str(address), self.port,
+                                    http.HTTP_PUT, str("/%s" % self.procedure),
+                                    headers=_RPC_CLIENT_HEADERS,
+                                    post_data=str(self.body),
                                     read_timeout=read_timeout)
 
-  def GetResults(self):
+  def GetResults(self, http_pool=None):
     """Call nodes and return results.
 
     @rtype: list
     @return: List of RPC results
 
     """
-    assert _http_manager, "RPC module not initialized"
+    if not http_pool:
+      http_pool = _thread_local.GetHttpClientPool()
 
-    _http_manager.ExecRequests(self.nc.values())
+    http_pool.ProcessRequests(self._request.values())
 
     results = {}
 
-    for name, req in self.nc.iteritems():
+    for name, req in self._request.iteritems():
       if req.success and req.resp_status_code == http.HTTP_OK:
         results[name] = RpcResult(data=serializer.LoadJson(req.resp_body),
                                   node=name, call=self.procedure)

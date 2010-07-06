@@ -87,12 +87,6 @@ class TestMisc(unittest.TestCase):
     self.assert_(message_reader_class.START_LINE_LENGTH_MAX > 0)
     self.assert_(message_reader_class.HEADER_LENGTH_MAX > 0)
 
-  def testClientSizeLimits(self):
-    """Test HTTP client size limits"""
-    message_reader_class = http.client._HttpServerToClientMessageReader
-    self.assert_(message_reader_class.START_LINE_LENGTH_MAX > 0)
-    self.assert_(message_reader_class.HEADER_LENGTH_MAX > 0)
-
   def testFormatAuthHeader(self):
     self.assertEqual(http.auth._FormatAuthHeader("Basic", {}),
                      "Basic")
@@ -328,6 +322,77 @@ class TestReadPasswordFile(testutils.GanetiTestCase):
 
     self.assertEqual(users["user2"].password, "pw")
     self.assertEqual(users["user2"].options, ["write", "read"])
+
+
+class TestClientRequest(unittest.TestCase):
+  def testRepr(self):
+    cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",
+                                       headers=[], post_data="Hello World")
+    self.assert_(repr(cr).startswith("<"))
+
+  def testNoHeaders(self):
+    cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",
+                                       headers=None)
+    self.assert_(isinstance(cr.headers, list))
+    self.assertEqual(cr.headers, [])
+    self.assertEqual(cr.url, "https://localhost:1234/version")
+
+  def testOldStyleHeaders(self):
+    headers = {
+      "Content-type": "text/plain",
+      "Accept": "text/html",
+      }
+    cr = http.client.HttpClientRequest("localhost", 16481, "GET", "/vg_list",
+                                       headers=headers)
+    self.assert_(isinstance(cr.headers, list))
+    self.assertEqual(sorted(cr.headers), [
+      "Accept: text/html",
+      "Content-type: text/plain",
+      ])
+    self.assertEqual(cr.url, "https://localhost:16481/vg_list")
+
+  def testNewStyleHeaders(self):
+    headers = [
+      "Accept: text/html",
+      "Content-type: text/plain; charset=ascii",
+      "Server: httpd 1.0",
+      ]
+    cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",
+                                       headers=headers)
+    self.assert_(isinstance(cr.headers, list))
+    self.assertEqual(sorted(cr.headers), sorted(headers))
+    self.assertEqual(cr.url, "https://localhost:1234/version")
+
+  def testPostData(self):
+    cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version",
+                                       post_data="Hello World")
+    self.assertEqual(cr.post_data, "Hello World")
+
+  def testNoPostData(self):
+    cr = http.client.HttpClientRequest("localhost", 1234, "GET", "/version")
+    self.assertEqual(cr.post_data, "")
+
+  def testIdentity(self):
+    # These should all use different connections, hence also have a different
+    # identity
+    cr1 = http.client.HttpClientRequest("localhost", 1234, "GET", "/version")
+    cr2 = http.client.HttpClientRequest("localhost", 9999, "GET", "/version")
+    cr3 = http.client.HttpClientRequest("node1", 1234, "GET", "/version")
+    cr4 = http.client.HttpClientRequest("node1", 9999, "GET", "/version")
+
+    self.assertEqual(len(set([cr1.identity, cr2.identity,
+                              cr3.identity, cr4.identity])), 4)
+
+    # But this one should have the same
+    cr1vglist = http.client.HttpClientRequest("localhost", 1234,
+                                              "GET", "/vg_list")
+    self.assertEqual(cr1.identity, cr1vglist.identity)
+
+
+class TestClient(unittest.TestCase):
+  def test(self):
+    pool = http.client.HttpClientPool(None)
+    self.assertFalse(pool._pool)
 
 
 if __name__ == '__main__':
