@@ -563,7 +563,19 @@ def MasterFailover(no_voting=False):
     logging.error("Could not disable the master role on the old master"
                  " %s, please disable manually: %s", old_master, msg)
 
+  master_ip = sstore.GetMasterIP()
+  total_timeout = 30
   # Here we have a phase where no master should be running
+  def _check_ip():
+    if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+      raise utils.RetryAgain()
+
+  try:
+    utils.Retry(_check_ip, (1, 1.5, 5), total_timeout)
+  except utils.RetryTimeout:
+    logging.warning("The master IP is still reachable after %s seconds,"
+                    " continuing but activating the master on the current"
+                    " node will probably fail", total_timeout)
 
   # instantiate a real config writer, as we now know we have the
   # configuration data
