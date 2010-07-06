@@ -142,7 +142,17 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     # TODO: read container info from the cgroup mountpoint
-    return (instance_name, 0, 0, 0, 0, 0)
+
+    result = utils.RunCmd(["lxc-info", "-n", instance_name])
+    if result.failed:
+      raise errors.HypervisorError("Can't run lxc-info: %s" % result.output)
+    # lxc-info output examples:
+    # 'ganeti-lxc-test1' is STOPPED
+    # 'ganeti-lxc-test1' is RUNNING
+    _, state = result.stdout.rsplit(None, 1)
+    if state == "RUNNING":
+      return (instance_name, 0, 0, 0, 0, 0)
+    return None
 
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
