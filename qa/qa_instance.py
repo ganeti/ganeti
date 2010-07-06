@@ -111,9 +111,11 @@ def TestInstanceReboot(instance):
   """gnt-instance reboot"""
   master = qa_config.GetMasterNode()
 
-  for reboottype in ["soft", "hard", "full"]:
-    cmd = ['gnt-instance', 'reboot', '--type=%s' % reboottype,
-           instance['name']]
+  options = qa_config.get('options', {})
+  reboot_types = options.get("reboot-types", constants.REBOOT_TYPES)
+
+  for rtype in reboot_types:
+    cmd = ['gnt-instance', 'reboot', '--type=%s' % rtype, instance['name']]
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
 

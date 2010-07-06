@@ -157,6 +157,8 @@ OPTIONS = [
   cli.cli_option("--no-reboot", dest="do_reboot",
                  help="Skip instance reboot", action="store_false",
                  default=True),
+  cli.cli_option("--reboot-types", dest="reboot_types",
+                 help="Specify the reboot types", default=None),
   cli.cli_option("--no-activate-disks", dest="do_activate_disks",
                  help="Skip disk activation/deactivation",
                  action="store_false", default=True),
@@ -481,6 +483,14 @@ class Burner(object):
     self.hvp = {}
     if options.hypervisor:
       self.hypervisor, self.hvp = options.hypervisor
+
+    if options.reboot_types is None:
+      options.reboot_types = constants.REBOOT_TYPES
+    else:
+      options.reboot_types = options.reboot_types.split(",")
+      rt_diff = set(options.reboot_types).difference(constants.REBOOT_TYPES)
+      if rt_diff:
+        Err("Invalid reboot types specified: %s" % utils.CommaJoin(rt_diff))
 
     socket.setdefaulttimeout(options.net_timeout)
 
@@ -815,7 +825,7 @@ class Burner(object):
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
       ops = []
-      for reboot_type in constants.REBOOT_TYPES:
+      for reboot_type in self.opts.reboot_types:
         op = opcodes.OpRebootInstance(instance_name=instance,
                                       reboot_type=reboot_type,
                                       ignore_secondaries=False)

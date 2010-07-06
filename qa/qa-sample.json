@@ -96,7 +96,8 @@
     "burnin-in-parallel": false,
     "burnin-check-instances": false,
     "burnin-rename": "xen-test-rename",
-    "burnin-reboot": true
+    "burnin-reboot": true,
+    "reboot-types": ["soft", "hard", "full"]
   },
 
   "# vim: set syntax=javascript :": null
