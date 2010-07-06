@@ -227,8 +227,9 @@ def GenericManyOps(operation, fn):
     for name in inames:
       op = fn(name, opts)
       jex.QueueJob(name, op)
-    jex.WaitOrShow(not opts.submit_only)
-    return 0
+    results = jex.WaitOrShow(not opts.submit_only)
+    rcode = compat.all(row[0] for row in results)
+    return int(not rcode)
   return realfn
 
 
