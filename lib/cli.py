@@ -2364,3 +2364,4 @@ class JobExecutor(object):
           ToStdout("%s: %s", result, name)
         else:
           ToStderr("Failure for %s: %s", name, result)
+      return [row[1:3] for row in self.jobs]
