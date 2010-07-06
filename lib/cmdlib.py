@@ -9506,15 +9506,25 @@ class LUExportInstance(LogicalUnit):
         feedback_fn("Deactivating disks for %s" % instance.name)
         _ShutdownInstanceDisks(self, instance)
 
+    if not (compat.all(dresults) and fin_resu):
+      failures = []
+      if not fin_resu:
+        failures.append("export finalization")
+      if not compat.all(dresults):
+        fdsk = utils.CommaJoin(idx for (idx, dsk) in enumerate(dresults)
+                               if not dsk)
+        failures.append("disk export: disk(s) %s" % fdsk)
+
+      raise errors.OpExecError("Export failed, errors in %s" %
+                               utils.CommaJoin(failures))
+
+    # At this point, the export was successful, we can cleanup/finish
+
     # Remove instance if requested
     if self.op.remove_instance:
-      if not (compat.all(dresults) and fin_resu):
-        feedback_fn("Not removing instance %s as parts of the export failed" %
-                    instance.name)
-      else:
-        feedback_fn("Removing instance %s" % instance.name)
-        _RemoveInstance(self, feedback_fn, instance,
-                        self.op.ignore_remove_failures)
+      feedback_fn("Removing instance %s" % instance.name)
+      _RemoveInstance(self, feedback_fn, instance,
+                      self.op.ignore_remove_failures)
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
       self._CleanupExports(feedback_fn)

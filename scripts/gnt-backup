@@ -80,26 +80,8 @@ def ExportInstance(opts, args):
                                 remove_instance=opts.remove_instance,
                                 ignore_remove_failures=ignore_remove_failures)
 
-  fin_resu, dlist = SubmitOpCode(op, opts=opts)
-  if not isinstance(dlist, list):
-    ToStderr("Cannot parse execution results")
-    return 1
-  # TODO: handle diskless instances
-  if dlist.count(False) == 0:
-    # all OK
-    rcode = 0
-  elif dlist.count(True) == 0:
-    ToStderr("Error: No disks were backed up successfully."
-             " The export doesn't have any valid data,"
-             " it is recommended to retry the operation.")
-    rcode = 1
-  else:
-    ToStderr("Partial export failure: %d disks backed up, %d disks failed.",
-             dlist.count(True), dlist.count(False))
-    rcode = 2
-  if not fin_resu:
-    rcode = 1
-  return rcode
+  SubmitOpCode(op, opts=opts)
+  return 0
 
 
 def ImportInstance(opts, args):
