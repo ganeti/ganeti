@@ -868,7 +868,7 @@
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>disk_templace</term>
+              <term>disk_template</term>
               <listitem>
                 <simpara>The disk template to use for the instance,
                 the same as in the <command>add</command>
