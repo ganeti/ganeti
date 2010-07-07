@@ -252,6 +252,7 @@ def TestClusterBurnin():
   check_inst = options.get('burnin-check-instances', False)
   do_rename = options.get('burnin-rename', '')
   do_reboot = options.get('burnin-reboot', True)
+  reboot_types = options.get("reboot-types", constants.REBOOT_TYPES)
 
   # Get as many instances as we need
   instances = []
@@ -283,6 +284,8 @@ def TestClusterBurnin():
         cmd.append('--rename=%s' % do_rename)
       if not do_reboot:
         cmd.append('--no-reboot')
+      else:
+        cmd.append('--reboot-types=%s' % ",".join(reboot_types))
       cmd += [inst['name'] for inst in instances]
       AssertEqual(StartSSH(master['primary'],
                            utils.ShellQuoteArgs(cmd)).wait(), 0)
