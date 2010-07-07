@@ -123,6 +123,38 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     return utils.PathJoin(cls._ROOT_DIR, instance_name + ".conf")
 
+  @classmethod
+  def _GetCgroupMountPoint(cls):
+    for _, mountpoint, fstype, _ in utils.GetMounts():
+      if fstype == "cgroup":
+        return mountpoint
+    raise errors.HypervisorError("The cgroup filesystem is not mounted")
+
+  @classmethod
+  def _GetCgroupCpuList(cls, instance_name):
+    """Return the list of CPU ids for an instance.
+
+    """
+    cgroup = cls._GetCgroupMountPoint()
+    try:
+      cpus = utils.ReadFile(utils.PathJoin(cgroup,
+                                           instance_name,
+                                           "cpuset.cpus"))
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Getting CPU list for instance"
+                                   " %s failed: %s" % (instance_name, err))
+    # cpuset.cpus format: comma-separated list of CPU ids
+    # or dash-separated id ranges
+    # Example: "0-1,3"
+    cpu_list = []
+    for range_def in cpus.split(","):
+      boundaries = range_def.split("-")
+      n_elements = len(boundaries)
+      lower = int(boundaries[0])
+      higher = int(boundaries[n_elements - 1])
+      cpu_list.extend(range(lower, higher + 1))
+    return cpu_list
+
   def ListInstances(self):
     """Get the list of running instances.
 
@@ -150,8 +182,11 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # 'ganeti-lxc-test1' is STOPPED
     # 'ganeti-lxc-test1' is RUNNING
     _, state = result.stdout.rsplit(None, 1)
+
+    cpu_list = self._GetCgroupCpuList(instance_name)
+
     if state == "RUNNING":
-      return (instance_name, 0, 0, 0, 0, 0)
+      return (instance_name, 0, 0, len(cpu_list), 0, 0)
     return None
 
   def GetAllInstancesInfo(self):
