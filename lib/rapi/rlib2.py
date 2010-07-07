@@ -58,7 +58,7 @@ I_FIELDS = ["name", "admin_state", "os",
             "network_port",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
-            "oper_state", "oper_ram", "status",
+            "oper_state", "oper_ram", "oper_vcpus", "status",
             ] + _COMMON_FIELDS
 
 N_FIELDS = ["name", "offline", "master_candidate", "drained",

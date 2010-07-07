@@ -5063,7 +5063,10 @@ class LUQueryInstances(NoHooksLU):
                                    if name not in constants.HVC_GLOBALS] +
                                   ["be/%s" % name
                                    for name in constants.BES_PARAMETERS])
-  _FIELDS_DYNAMIC = utils.FieldSet("oper_state", "oper_ram", "status")
+  _FIELDS_DYNAMIC = utils.FieldSet("oper_state",
+                                   "oper_ram",
+                                   "oper_vcpus",
+                                   "status")
 
 
   def CheckArguments(self):
@@ -5192,6 +5195,13 @@ class LUQueryInstances(NoHooksLU):
             val = None
           elif instance.name in live_data:
             val = live_data[instance.name].get("memory", "?")
+          else:
+            val = "-"
+        elif field == "oper_vcpus":
+          if instance.primary_node in bad_nodes:
+            val = None
+          elif instance.name in live_data:
+            val = live_data[instance.name].get("vcpus", "?")
           else:
             val = "-"
         elif field == "vcpus":

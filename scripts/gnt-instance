@@ -258,6 +258,7 @@ def ListInstances(opts, args):
       "snodes": "Secondary_Nodes", "admin_state": "Autostart",
       "oper_state": "Running",
       "oper_ram": "Memory", "disk_template": "Disk_template",
+      "oper_vcpus": "VCPUs",
       "ip": "IP_address", "mac": "MAC_address",
       "nic_mode": "NIC_Mode", "nic_link": "NIC_Link",
       "bridge": "Bridge",
@@ -314,6 +315,9 @@ def ListInstances(opts, args):
         else:
           val = "stopped"
       elif field == "oper_ram":
+        if val is None:
+          val = "(node down)"
+      elif field == "oper_vcpus":
         if val is None:
           val = "(node down)"
       elif field == "sda_size" or field == "sdb_size":
@@ -1423,8 +1427,9 @@ commands = {
     "[<instance>...]",
     "Lists the instances and their status. The available fields are"
     " (see the man page for details): status, oper_state, oper_ram,"
-    " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
-    " ip, mac, nic_mode, nic_link, sda_size, sdb_size, vcpus, serial_no,"
+    " oper_vcpus, name, os, pnode, snodes, admin_state, admin_ram,"
+    " disk_template, ip, mac, nic_mode, nic_link, sda_size, sdb_size,"
+    " vcpus, serial_no,"
     " nic.count, nic.mac/N, nic.ip/N, nic.mode/N, nic.link/N,"
     " nic.macs, nic.ips, nic.modes, nic.links,"
     " disk.count, disk.size/N, disk.sizes,"

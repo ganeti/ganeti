@@ -1150,6 +1150,13 @@ instance5: 11225
               </listitem>
             </varlistentry>
             <varlistentry>
+              <term>oper_vcpus</term>
+              <listitem>
+                <simpara>the actual number of VCPUs the instance is using
+                  as seen by the hypervisor</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
               <term>ip</term>
               <listitem>
                 <simpara>the ip address Ganeti recognizes as associated with
@@ -1400,7 +1407,8 @@ instance5: 11225
         <para>
           There is a subtle grouping about the available output
           fields: all fields except for <option>oper_state</option>,
-          <option>oper_ram</option> and <option>status</option> are
+          <option>oper_ram</option>, <option>oper_vcpus</option> and
+          <option>status</option> are
           configuration value and not run-time values. So if you don't
           select any of the these fields, the query will be satisfied
           instantly from the cluster configuration, without having to

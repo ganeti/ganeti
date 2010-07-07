@@ -88,7 +88,7 @@ INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
                    "disk_template", "disk.sizes",
                    "nic.ips", "nic.macs", "nic.modes", "nic.links",
                    "beparams", "hvparams",
-                   "oper_state", "oper_ram", "status", "tags")
+                   "oper_state", "oper_ram", "oper_vcpus", "status", "tags")
 
 NODE_FIELDS = ("name", "dtotal", "dfree",
                "mtotal", "mnode", "mfree",
