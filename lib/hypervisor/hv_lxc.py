@@ -195,10 +195,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @return: [(name, id, memory, vcpus, stat, times),...]
 
     """
-    # TODO: read container info from the cgroup mountpoint
     data = []
     for name in self.ListInstances():
-      data.append((name, 0, 0, 0, 0, 0))
+      data.append(self.GetInstanceInfo(name))
     return data
 
   def _CreateConfigFile(self, instance, root_dir):
