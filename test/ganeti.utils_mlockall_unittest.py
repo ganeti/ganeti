@@ -28,13 +28,28 @@ This test is run in a separate process because it changes memory behaviour.
 import unittest
 
 from ganeti import utils
+from ganeti import errors
 
 import testutils
 
 
-class TestResetTempfileModule(unittest.TestCase):
+class TestMlockallWithCtypes(unittest.TestCase):
+  """Whether Mlockall() works if ctypes is present.
+
+  """
+
   def test(self):
-    utils.Mlockall()
+    if utils.ctypes:
+      utils.Mlockall()
+
+
+class TestMlockallWithNoCtypes(unittest.TestCase):
+  """Whether Mlockall() raises an error if ctypes is not present.
+
+  """
+
+  def test(self):
+    self.assertRaises(errors.NoCtypesError, utils.Mlockall, _ctypes=None)
 
 
 if __name__ == "__main__":
