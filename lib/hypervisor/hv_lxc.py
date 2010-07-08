@@ -167,7 +167,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     result = utils.RunCmd(["lxc-ls"])
     if result.failed:
-      raise errors.HypervisorError("Can't run lxc-ls: %s" % result.output)
+      raise errors.HypervisorError("Running lxc-ls failed: %s" % result.output)
     return result.stdout.splitlines()
 
   def GetInstanceInfo(self, instance_name):
@@ -183,7 +183,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     result = utils.RunCmd(["lxc-info", "-n", instance_name])
     if result.failed:
-      raise errors.HypervisorError("Can't run lxc-info: %s" % result.output)
+      raise errors.HypervisorError("Running lxc-info failed: %s" %
+                                   result.output)
     # lxc-info output examples:
     # 'ganeti-lxc-test1' is STOPPED
     # 'ganeti-lxc-test1' is RUNNING
@@ -269,7 +270,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     try:
       utils.EnsureDirs([(root_dir, self._DIR_MODE)])
     except errors.GenericError, err:
-      raise HypervisorError("Cannot create instance directory: %s", str(err))
+      raise HypervisorError("Creating instance directory failed: %s", str(err))
 
     conf_file = self._InstanceConfFile(instance.name)
     utils.WriteFile(conf_file, data=self._CreateConfigFile(instance, root_dir))
@@ -290,7 +291,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       sda_dev_path = block_devices[0][1]
       result = utils.RunCmd(["mount", sda_dev_path, root_dir])
       if result.failed:
-        raise HypervisorError("Can't mount the chroot dir: %s" % result.output)
+        raise HypervisorError("Mounting the root dir of LXC instance %s"
+                              " failed: %s" % (instance.name, result.output))
     result = utils.RunCmd(["lxc-start", "-n", instance.name,
                            "-o", log_file,
                            "-l", "DEBUG",
@@ -320,8 +322,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       if not retry and not force:
         result = utils.RunCmd(["chroot", root_dir, "poweroff"])
         if result.failed:
-          raise HypervisorError("Can't run 'poweroff' for the instance: %s" %
-                                result.output)
+          raise HypervisorError("Running 'poweroff' on the instance"
+                                " failed: %s" % result.output)
       time.sleep(2)
       result = utils.RunCmd(["lxc-stop", "-n", name])
       if result.failed:
@@ -339,7 +341,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       msg = ("Processes still alive in the chroot: %s" %
              utils.RunCmd("fuser -vm %s" % root_dir).output)
       logging.error(msg)
-      raise HypervisorError("Can't umount the chroot dir: %s (%s)" %
+      raise HypervisorError("Unmounting the chroot dir failed: %s (%s)" %
                             (result.output, msg))
 
   def RebootInstance(self, instance):
@@ -399,4 +401,4 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @param live: whether to do a live or non-live migration
 
     """
-    raise HypervisorError("Migration not supported by the LXC hypervisor")
+    raise HypervisorError("Migration is not supported by the LXC hypervisor")
