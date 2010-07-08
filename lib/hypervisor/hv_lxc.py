@@ -189,12 +189,11 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # 'ganeti-lxc-test1' is STOPPED
     # 'ganeti-lxc-test1' is RUNNING
     _, state = result.stdout.rsplit(None, 1)
+    if state != "RUNNING":
+      return None
 
     cpu_list = self._GetCgroupCpuList(instance_name)
-
-    if state == "RUNNING":
-      return (instance_name, 0, 0, len(cpu_list), 0, 0)
-    return None
+    return (instance_name, 0, 0, len(cpu_list), 0, 0)
 
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
