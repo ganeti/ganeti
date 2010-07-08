@@ -65,7 +65,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   """
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/lxc"
-  _LOG_FILE = constants.LOG_DIR + "hv_lxc.log"
   _DEVS = [
     "c 1:3",   # /dev/null
     "c 1:5",   # /dev/zero
@@ -122,6 +121,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     return utils.PathJoin(cls._ROOT_DIR, instance_name + ".conf")
+
+  @classmethod
+  def _InstanceLogFile(cls, instance_name):
+    """Return the log file for an instance.
+
+    """
+    return utils.PathJoin(cls._ROOT_DIR, instance_name + ".log")
 
   @classmethod
   def _GetCgroupMountPoint(cls):
@@ -268,6 +274,15 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     conf_file = self._InstanceConfFile(instance.name)
     utils.WriteFile(conf_file, data=self._CreateConfigFile(instance, root_dir))
 
+    log_file = self._InstanceLogFile(instance.name)
+    if not os.path.exists(log_file):
+      try:
+        utils.WriteFile(log_file, data="", mode=constants.SECURE_FILE_MODE)
+      except EnvironmentError, err:
+        raise errors.HypervisorError("Creating hypervisor log file %s for"
+                                     " instance %s failed: %s" %
+                                     (log_file, instance.name, err))
+
     if not os.path.ismount(root_dir):
       if not block_devices:
         raise HypervisorError("LXC needs at least one disk")
@@ -276,9 +291,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       result = utils.RunCmd(["mount", sda_dev_path, root_dir])
       if result.failed:
         raise HypervisorError("Can't mount the chroot dir: %s" % result.output)
-    # TODO: replace the global log file with a per-instance log file
     result = utils.RunCmd(["lxc-start", "-n", instance.name,
-                           "-o", self._LOG_FILE, "-l", "DEBUG",
+                           "-o", log_file,
+                           "-l", "DEBUG",
                            "-f", conf_file, "-d"])
     if result.failed:
       raise HypervisorError("Running the lxc-start script failed: %s" %
