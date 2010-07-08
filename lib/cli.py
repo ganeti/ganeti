@@ -1503,6 +1503,7 @@ def FormatLogMessage(log_type, log_msg):
   return utils.SafeEncode(log_msg)
 
 
+def PollJob(job_id, cl=None, feedback_fn=None, reporter=None):
   """Function to poll for the result of a job.
 
   @type job_id: job identified
@@ -1515,15 +1516,18 @@ def FormatLogMessage(log_type, log_msg):
   if cl is None:
     cl = GetClient()
 
-  if feedback_fn:
-    reporter = FeedbackFnJobPollReportCb(feedback_fn)
-  else:
-    reporter = StdioJobPollReportCb()
+  if reporter is None:
+    if feedback_fn:
+      reporter = FeedbackFnJobPollReportCb(feedback_fn)
+    else:
+      reporter = StdioJobPollReportCb()
+  elif feedback_fn:
+    raise errors.ProgrammerError("Can't specify reporter and feedback function")
 
   return GenericPollJob(job_id, _LuxiJobPollCb(cl), reporter)
 
 
-def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None):
+def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None, reporter=None):
   """Legacy function to submit an opcode.
 
   This is just a simple wrapper over the construction of the processor
@@ -1538,7 +1542,8 @@ def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None):
 
   job_id = SendJob([op], cl)
 
-  op_results = PollJob(job_id, cl=cl, feedback_fn=feedback_fn)
+  op_results = PollJob(job_id, cl=cl, feedback_fn=feedback_fn,
+                       reporter=reporter)
 
   return op_results[0]
 
