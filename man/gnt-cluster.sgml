@@ -254,6 +254,8 @@
         <sbr>
         <arg>--uid-pool <replaceable>user-id pool definition</replaceable></arg>
         <sbr>
+        <arg>-I <replaceable>default instance allocator</replaceable></arg>
+        <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -537,6 +539,18 @@
         the user-id pool feature is disabled.
       </para>
 
+      <para>
+	The <option>-I (--default-iallocator)</option> option specifies the
+	default instance allocator. The instance allocator will be used for
+	operations like instance creation, instance and node migration, etc.
+	when no manual override is specified. If this option is not specified,
+	the default instance allocator will be blank, which means that relevant
+	operations will require the administrator to manually specify either an
+        instance allocator, or a set of nodes.
+	The default iallocator can be changed later using the
+        <command>modify</command> command.
+      </para>
+
     </refsect2>
 
     <refsect2>
@@ -604,6 +618,8 @@
         <arg choice="opt">-C <replaceable>candidate_pool_size</replaceable></arg>
         <sbr>
         <arg>--maintain-node-health <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
+        <sbr>
+        <arg choice="opt">-I <replaceable>default instance allocator</replaceable></arg>
 
       </cmdsynopsis>
 
@@ -617,8 +633,9 @@
           <option>--hypervisor-parameters</option>,
           <option>--backend-parameters</option>,
           <option>--nic-parameters</option>,
-          <option>--maintain-node-health</option> and
-          <option>--uid-pool</option> options are
+          <option>--maintain-node-health</option>,
+          <option>--uid-pool</option> and
+          <option>-I</option> options are
           described in the <command>init</command> command.
         </para>
 
