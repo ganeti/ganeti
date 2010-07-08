@@ -219,15 +219,16 @@ def GetClient():
     raise http.HttpBadGateway("Master seems to unreachable: %s" % str(err))
 
 
-def FeedbackFn(ts, log_type, log_msg): # pylint: disable-msg=W0613
-  """Feedback logging function for http case.
+def FeedbackFn(msg):
+  """Feedback logging function for jobs.
 
   We don't have a stdout for printing log messages, so log them to the
   http log at least.
 
-  @param ts: the timestamp (unused)
+  @param msg: the message
 
   """
+  (_, log_type, log_msg) = msg
   logging.info("%s: %s", log_type, log_msg)
 
 
