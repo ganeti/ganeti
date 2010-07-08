@@ -6541,10 +6541,7 @@ class LUCreateInstance(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     ### Node/iallocator related checks
-    if [self.op.iallocator, self.op.pnode].count(None) != 1:
-      raise errors.OpPrereqError("One and only one of iallocator and primary"
-                                 " node must be given",
-                                 errors.ECODE_INVAL)
+    _CheckIAllocatorOrNode(self, "iallocator", "pnode")
 
     self._cds = _GetClusterDomainSecret()
 
