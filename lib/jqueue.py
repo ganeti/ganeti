@@ -575,6 +575,7 @@ class _WaitForJobChangesHelper(object):
     self.notifier.process_events()
 
   def WaitForChanges(self, timeout):
+    self._SetupInotify()
     try:
       return utils.Retry(self._CheckForChanges,
                          utils.RETRY_REMAINING_TIME,
