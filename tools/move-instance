@@ -250,7 +250,7 @@ class MoveJobPollReportCb(cli.JobPollReportCbBase):
       return
 
     logging.info("[%s] %s", time.ctime(utils.MergeTime(timestamp)),
-                 utils.SafeEncode(log_msg))
+                 cli.FormatLogMessage(log_type, log_msg))
 
   def ReportNotChanged(self, job_id, status):
     """Called if a job hasn't changed in a while.

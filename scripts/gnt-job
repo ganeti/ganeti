@@ -321,7 +321,7 @@ def ShowJobs(opts, args):
       format_msg(3, "Execution log:")
       for serial, log_ts, log_type, log_msg in log:
         time_txt = FormatTimestamp(log_ts)
-        encoded = utils.SafeEncode(log_msg)
+        encoded = FormatLogMessage(log_type, log_msg)
         format_msg(4, "%s:%s:%s %s" % (serial, time_txt, log_type, encoded))
   return 0
 

@@ -161,6 +161,7 @@ __all__ = [
   "GenerateTable",
   "AskUser",
   "FormatTimestamp",
+  "FormatLogMessage",
   # Tags functions
   "ListTags",
   "AddTags",
@@ -1474,7 +1475,7 @@ class StdioJobPollReportCb(JobPollReportCbBase):
 
     """
     ToStdout("%s %s", time.ctime(utils.MergeTime(timestamp)),
-             utils.SafeEncode(log_msg))
+             FormatLogMessage(log_type, log_msg))
 
   def ReportNotChanged(self, job_id, status):
     """Called if a job hasn't changed in a while.
@@ -1492,7 +1493,16 @@ class StdioJobPollReportCb(JobPollReportCbBase):
       self.notified_waitlock = True
 
 
-def PollJob(job_id, cl=None, feedback_fn=None):
+def FormatLogMessage(log_type, log_msg):
+  """Formats a job message according to its type.
+
+  """
+  if log_type != constants.ELOG_MESSAGE:
+    log_msg = str(log_msg)
+
+  return utils.SafeEncode(log_msg)
+
+
   """Function to poll for the result of a job.
 
   @type job_id: job identified

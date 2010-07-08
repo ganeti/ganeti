@@ -418,5 +418,16 @@ class TestGenericPollJob(testutils.GanetiTestCase):
     cbs.CheckEmpty()
 
 
+class TestFormatLogMessage(unittest.TestCase):
+  def test(self):
+    self.assertEqual(cli.FormatLogMessage(constants.ELOG_MESSAGE,
+                                          "Hello World"),
+                     "Hello World")
+    self.assertRaises(TypeError, cli.FormatLogMessage,
+                      constants.ELOG_MESSAGE, [1, 2, 3])
+
+    self.assert_(cli.FormatLogMessage("some other type", (1, 2, 3)))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
