@@ -8219,9 +8219,7 @@ class LUNodeEvacuationStrategy(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    if self.op.remote_node is not None and self.op.iallocator is not None:
-      raise errors.OpPrereqError("Give either the iallocator or the new"
-                                 " secondary, not both", errors.ECODE_INVAL)
+    _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
 
   def ExpandNames(self):
     self.op.nodes = _GetWantedNodes(self, self.op.nodes)

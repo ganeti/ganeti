@@ -253,11 +253,6 @@ def EvacuateNode(opts, args):
   dst_node = opts.dst_node
   iallocator = opts.iallocator
 
-  cnt = [dst_node, iallocator].count(None)
-  if cnt != 1:
-    raise errors.OpPrereqError("One and only one of the -n and -I"
-                               " options must be passed", errors.ECODE_INVAL)
-
   op = opcodes.OpNodeEvacuationStrategy(nodes=args,
                                         iallocator=iallocator,
                                         remote_node=dst_node)
