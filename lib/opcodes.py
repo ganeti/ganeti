@@ -311,6 +311,7 @@ class OpSetClusterParams(OpCode):
     "uid_pool",
     "add_uids",
     "remove_uids",
+    "default_iallocator",
     ]
 
 

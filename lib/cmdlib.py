@@ -2562,6 +2562,7 @@ class LUSetClusterParams(LogicalUnit):
     ("maintain_node_health", None, _TMaybeBool),
     ("nicparams", None, _TOr(_TDict, _TNone)),
     ("drbd_helper", None, _TOr(_TString, _TNone)),
+    ("default_iallocator", None, _TMaybeString),
     ]
   REQ_BGL = False
 
@@ -2767,6 +2768,14 @@ class LUSetClusterParams(LogicalUnit):
           hv_class.CheckParameterSyntax(new_osp)
           _CheckHVParams(self, node_list, hv_name, new_osp)
 
+    if self.op.default_iallocator:
+      alloc_script = utils.FindFile(self.op.default_iallocator,
+                                    constants.IALLOCATOR_SEARCH_PATH,
+                                    os.path.isfile)
+      if alloc_script is None:
+        raise errors.OpPrereqError("Invalid default iallocator script '%s'"
+                                   " specified" % self.op.default_iallocator,
+                                   errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Change the parameters of the cluster.
@@ -2820,6 +2829,9 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.uid_pool is not None:
       self.cluster.uid_pool = self.op.uid_pool
+
+    if self.op.default_iallocator is not None:
+      self.cluster.default_iallocator = self.op.default_iallocator
 
     self.cfg.Update(self.cluster, feedback_fn)
 
@@ -4083,6 +4095,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "uuid": cluster.uuid,
       "tags": list(cluster.GetTags()),
       "uid_pool": cluster.uid_pool,
+      "default_iallocator": cluster.default_iallocator,
       }
 
     return result

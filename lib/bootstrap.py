@@ -218,7 +218,7 @@ def InitCluster(cluster_name, mac_prefix,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
                 modify_etc_hosts=True, modify_ssh_setup=True,
                 maintain_node_health=False, drbd_helper=None,
-                uid_pool=None):
+                uid_pool=None, default_iallocator=None):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -333,6 +333,15 @@ def InitCluster(cluster_name, mac_prefix,
   if modify_ssh_setup:
     _InitSSHSetup()
 
+  if default_iallocator is not None:
+    alloc_script = utils.FindFile(default_iallocator,
+                                  constants.IALLOCATOR_SEARCH_PATH,
+                                  os.path.isfile)
+    if alloc_script is None:
+      raise errors.OpPrereqError("Invalid default iallocator script '%s'"
+                                 " specified" % default_iallocator,
+                                 errors.ECODE_INVAL)
+
   now = time.time()
 
   # init of cluster config file
@@ -361,6 +370,7 @@ def InitCluster(cluster_name, mac_prefix,
     uuid=utils.NewUUID(),
     maintain_node_health=maintain_node_health,
     drbd_usermode_helper=drbd_helper,
+    default_iallocator=default_iallocator,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

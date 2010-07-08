@@ -121,6 +121,7 @@ def InitCluster(opts, args):
                         maintain_node_health=opts.maintain_node_health,
                         drbd_helper=drbd_helper,
                         uid_pool=uid_pool,
+                        default_iallocator=opts.default_iallocator,
                         )
   op = opcodes.OpPostInitCluster()
   SubmitOpCode(op, opts=opts)
@@ -302,6 +303,7 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - uid pool: %s",
             uidpool.FormatUidPool(result["uid_pool"],
                                   roman=opts.roman_integers))
+  ToStdout("  - default instance allocator: %s", result["default_iallocator"])
 
   ToStdout("Default instance parameters:")
   _PrintGroupedParams(result["beparams"], roman=opts.roman_integers)
@@ -660,7 +662,8 @@ def SetClusterParams(opts, args):
           opts.uid_pool is not None or
           opts.maintain_node_health is not None or
           opts.add_uids is not None or
-          opts.remove_uids is not None):
+          opts.remove_uids is not None or
+          opts.default_iallocator is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -721,7 +724,8 @@ def SetClusterParams(opts, args):
                                   maintain_node_health=mnh,
                                   uid_pool=uid_pool,
                                   add_uids=add_uids,
-                                  remove_uids=remove_uids)
+                                  remove_uids=remove_uids,
+                                  default_iallocator=opts.default_iallocator)
   SubmitOpCode(op, opts=opts)
   return 0
 
@@ -804,7 +808,8 @@ commands = {
      HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, NIC_PARAMS_OPT,
      NOLVM_STORAGE_OPT, NOMODIFY_ETCHOSTS_OPT, NOMODIFY_SSH_SETUP_OPT,
      SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
-     UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT],
+     UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
+     DEFAULT_IALLOCATOR_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   'destroy': (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -875,7 +880,7 @@ commands = {
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
-     NODRBD_STORAGE_OPT],
+     NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

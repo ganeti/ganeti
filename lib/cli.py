@@ -75,6 +75,7 @@ __all__ = [
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
+  "DEFAULT_IALLOCATOR_OPT",
   "IDENTIFY_DEFAULTS_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_FAILURES_OPT",
@@ -612,6 +613,12 @@ FILESTORE_DRIVER_OPT = cli_option("--file-driver", dest="file_driver",
 IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
                             help="Select nodes for the instance automatically"
                             " using the <NAME> iallocator plugin",
+                            default=None, type="string",
+                            completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
+
+DEFAULT_IALLOCATOR_OPT = cli_option("-I", "--default-iallocator",
+                            metavar="<NAME>",
+                            help="Set the default instance allocator plugin",
                             default=None, type="string",
                             completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
 

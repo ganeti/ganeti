@@ -816,6 +816,13 @@ class ConfigWriter:
     """
     return self._config_data.cluster.rsahostkeypub
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetDefaultIAllocator(self):
+    """Get the default instance allocator for this cluster.
+
+    """
+    return self._config_data.cluster.default_iallocator
+
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):
     """Add an instance to the config.

@@ -917,6 +917,7 @@ class Cluster(TaggableObject):
     "modify_ssh_setup",
     "maintain_node_health",
     "uid_pool",
+    "default_iallocator",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -974,6 +975,9 @@ class Cluster(TaggableObject):
 
     if self.uid_pool is None:
       self.uid_pool = []
+
+    if self.default_iallocator is None:
+      self.default_iallocator = ""
 
   def ToDict(self):
     """Custom function for cluster.
