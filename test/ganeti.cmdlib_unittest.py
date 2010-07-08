@@ -35,6 +35,7 @@ from ganeti import errors
 from ganeti import utils
 
 import testutils
+import mocks
 
 
 class TestCertVerification(testutils.GanetiTestCase):
@@ -92,6 +93,58 @@ class TestOpcodeParams(testutils.GanetiTestCase):
       extra = defined_params.difference(all_params)
       self.failIf(extra, "Extra parameter types for LU '%s': %s" %
                   (lu_name, utils.CommaJoin(extra)))
+
+
+class TestIAllocatorChecks(testutils.GanetiTestCase):
+  def testFunction(self):
+    class TestLU(object):
+      def __init__(self, opcode):
+        self.cfg = mocks.FakeConfig()
+        self.op = opcode
+
+    class TestOpcode(opcodes.OpCode):
+      OP_ID = "OP_TEST"
+      __slots__ = ["iallocator", "node"]
+
+    default_iallocator = mocks.FakeConfig().GetDefaultIAllocator()
+    other_iallocator = default_iallocator + "_not"
+
+    op = TestOpcode()
+    lu = TestLU(op)
+
+    c_i = lambda: cmdlib._CheckIAllocatorOrNode(lu, "iallocator", "node")
+
+    # Neither node nor iallocator given
+    op.iallocator = None
+    op.node = None
+    c_i()
+    self.assertEqual(lu.op.iallocator, default_iallocator)
+    self.assertEqual(lu.op.node, None)
+
+    # Both, iallocator and node given
+    op.iallocator = "test"
+    op.node = "test"
+    self.assertRaises(errors.OpPrereqError, c_i)
+
+    # Only iallocator given
+    op.iallocator = other_iallocator
+    op.node = None
+    c_i()
+    self.assertEqual(lu.op.iallocator, other_iallocator)
+    self.assertEqual(lu.op.node, None)
+
+    # Only node given
+    op.iallocator = None
+    op.node = "node"
+    c_i()
+    self.assertEqual(lu.op.iallocator, None)
+    self.assertEqual(lu.op.node, "node")
+
+    # No node, iallocator or default iallocator
+    op.iallocator = None
+    op.node = None
+    lu.cfg.GetDefaultIAllocator = lambda: None
+    self.assertRaises(errors.OpPrereqError, c_i)
 
 
 if __name__ == "__main__":

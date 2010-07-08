@@ -51,6 +51,9 @@ class FakeConfig:
     def GetMasterNode(self):
         return utils.HostInfo().name
 
+    def GetDefaultIAllocator(Self):
+        return "testallocator"
+
 
 class FakeProc:
     """Fake processor object"""
