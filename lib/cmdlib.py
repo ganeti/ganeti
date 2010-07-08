@@ -1143,6 +1143,38 @@ def _FindFaultyInstanceDisks(cfg, rpc, instance, node_name, prereq):
   return faulty
 
 
+def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
+  """Check the sanity of iallocator and node arguments and use the
+  cluster-wide iallocator if appropriate.
+
+  Check that at most one of (iallocator, node) is specified. If none is
+  specified, then the LU's opcode's iallocator slot is filled with the
+  cluster-wide default iallocator.
+
+  @type iallocator_slot: string
+  @param iallocator_slot: the name of the opcode iallocator slot
+  @type node_slot: string
+  @param node_slot: the name of the opcode target node slot
+
+  """
+  node = getattr(lu.op, node_slot, None)
+  iallocator = getattr(lu.op, iallocator_slot, None)
+
+  if node is not None and iallocator is not None:
+    raise errors.OpPrereqError("Do not specify both, iallocator and node.",
+                               errors.ECODE_INVAL)
+  elif node is None and iallocator is None:
+    default_iallocator = lu.cfg.GetDefaultIAllocator()
+    if default_iallocator:
+      setattr(lu.op, iallocator_slot, default_iallocator)
+    else:
+      raise errors.OpPrereqError("No iallocator or node given and no"
+                                 " cluster-wide default iallocator found."
+                                 " Please specify either an iallocator or a"
+                                 " node, or set a cluster-wide default"
+                                 " iallocator.")
+
+
 class LUPostInitCluster(LogicalUnit):
   """Logical unit for running hooks after cluster initialization.
 
