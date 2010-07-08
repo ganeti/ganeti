@@ -59,6 +59,9 @@ class FakeConfig:
 class FakeProc:
     """Fake processor object"""
 
+    def Log(self, msg, *args, **kwargs):
+        pass
+
     def LogWarning(self, msg, *args, **kwargs):
         pass
 

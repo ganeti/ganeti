@@ -278,6 +278,7 @@ class LogicalUnit(object):
     self.recalculate_locks = {}
     self.__ssh = None
     # logging
+    self.Log = processor.Log # pylint: disable-msg=C0103
     self.LogWarning = processor.LogWarning # pylint: disable-msg=C0103
     self.LogInfo = processor.LogInfo # pylint: disable-msg=C0103
     self.LogStep = processor.LogStep # pylint: disable-msg=C0103

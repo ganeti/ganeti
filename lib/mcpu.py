@@ -321,7 +321,7 @@ class Processor(object):
     hm = HooksMaster(self.rpc.call_hooks_runner, lu)
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
-                     self._Feedback, None)
+                     self.Log, None)
 
     if getattr(lu.op, "dry_run", False):
       # in this mode, no post-hooks are run, and the config is not
@@ -332,10 +332,10 @@ class Processor(object):
       return lu.dry_run_result
 
     try:
-      result = lu.Exec(self._Feedback)
+      result = lu.Exec(self.Log)
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
       result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
-                                self._Feedback, result)
+                                self.Log, result)
     finally:
       # FIXME: This needs locks if not lu_class.REQ_BGL
       if write_count != self.context.cfg.write_count:
@@ -470,7 +470,7 @@ class Processor(object):
     finally:
       self._cbs = None
 
-  def _Feedback(self, *args):
+  def Log(self, *args):
     """Forward call to feedback callback function.
 
     """
@@ -482,7 +482,7 @@ class Processor(object):
 
     """
     logging.debug("Step %d/%d %s", current, total, message)
-    self._Feedback("STEP %d/%d %s" % (current, total, message))
+    self.Log("STEP %d/%d %s" % (current, total, message))
 
   def LogWarning(self, message, *args, **kwargs):
     """Log a warning to the logs and the user.
@@ -499,9 +499,9 @@ class Processor(object):
       message = message % tuple(args)
     if message:
       logging.warning(message)
-      self._Feedback(" - WARNING: %s" % message)
+      self.Log(" - WARNING: %s" % message)
     if "hint" in kwargs:
-      self._Feedback("      Hint: %s" % kwargs["hint"])
+      self.Log("      Hint: %s" % kwargs["hint"])
 
   def LogInfo(self, message, *args):
     """Log an informational message to the logs and the user.
@@ -510,7 +510,7 @@ class Processor(object):
     if args:
       message = message % tuple(args)
     logging.info(message)
-    self._Feedback(" - INFO: %s" % message)
+    self.Log(" - INFO: %s" % message)
 
   def GetECId(self):
     if not self._ec_id:
