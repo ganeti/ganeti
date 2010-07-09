@@ -422,7 +422,7 @@ man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2MAN)" || \
 	  { echo 'docbook2man' not found during configure; exit 1; }
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $(notdir $(@:.in=)) $@
-	$(CHECK_MAN) $@
+	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN) $@; fi
 
 man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2HTML)" || \
