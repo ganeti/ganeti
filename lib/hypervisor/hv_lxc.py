@@ -88,6 +88,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   _DIR_MODE = 0755
 
   PARAMETERS = {
+    constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
     }
 
   def __init__(self):
@@ -149,17 +150,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     except EnvironmentError, err:
       raise errors.HypervisorError("Getting CPU list for instance"
                                    " %s failed: %s" % (instance_name, err))
-    # cpuset.cpus format: comma-separated list of CPU ids
-    # or dash-separated id ranges
-    # Example: "0-1,3"
-    cpu_list = []
-    for range_def in cpus.split(","):
-      boundaries = range_def.split("-")
-      n_elements = len(boundaries)
-      lower = int(boundaries[0])
-      higher = int(boundaries[n_elements - 1])
-      cpu_list.extend(range(lower, higher + 1))
-    return cpu_list
+
+    return utils.ParseCpuMask(cpus)
 
   def ListInstances(self):
     """Get the list of running instances.
@@ -207,7 +199,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return data
 
   def _CreateConfigFile(self, instance, root_dir):
-    """Create an lxc.conf file for an instance"""
+    """Create an lxc.conf file for an instance.
+
+    """
     out = []
     # hostname
     out.append("lxc.utsname = %s" % instance.name)
@@ -230,6 +224,19 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     out.append("lxc.rootfs = %s" % root_dir)
 
     # TODO: additional mounts, if we disable CAP_SYS_ADMIN
+
+    # CPUs
+    if instance.hvparams[constants.HV_CPU_MASK]:
+      cpu_list = utils.ParseCpuMask(instance.hvparams[constants.HV_CPU_MASK])
+      cpus_in_mask = len(cpu_list)
+      if cpus_in_mask != instance.beparams["vcpus"]:
+        raise errors.HypervisorError("Number of VCPUs (%d) doesn't match"
+                                     " the number of CPUs in the"
+                                     " cpu_mask (%d)" %
+                                     (instance.beparams["vcpus"],
+                                      cpus_in_mask))
+      out.append("lxc.cgroup.cpuset.cpus = %s" %
+                 instance.hvparams[constants.HV_CPU_MASK])
 
     # Device control
     # deny direct device access
@@ -261,8 +268,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   def StartInstance(self, instance, block_devices):
     """Start an instance.
 
-    For LCX, we try to mount the block device and execute 'lxc-start
-    start' (we use volatile containers).
+    For LCX, we try to mount the block device and execute 'lxc-start'.
+    We use volatile containers.
 
     """
     root_dir = self._InstanceDir(instance.name)

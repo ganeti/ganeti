@@ -711,6 +711,24 @@
               </listitem>
             </varlistentry>
 
+            <varlistentry>
+              <term>cpu_mask</term>
+              <listitem>
+                <simpara>Valid for the LXC hypervisor.</simpara>
+
+                <simpara>The processes belonging to the given instance are
+                only scheduled on the specified CPUs.
+                </simpara>
+
+                <simpara>
+                The parameter format is a comma-separated list of CPU IDs or
+                CPU ID ranges. The ranges are defined by a lower and higher
+                boundary, separated by a dash. The boundaries are inclusive.
+                </simpara>
+
+              </listitem>
+            </varlistentry>
+
           </variablelist>
 
         </para>

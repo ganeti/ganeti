@@ -545,6 +545,7 @@ HV_SECURITY_DOMAIN = "security_domain"
 HV_KVM_FLAG = "kvm_flag"
 HV_VHOST_NET = "vhost_net"
 HV_KVM_USE_CHROOT = "use_chroot"
+HV_CPU_MASK = "cpu_mask"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -580,6 +581,7 @@ HVS_PARAMETER_TYPES = {
   HV_KVM_FLAG: VTYPE_STRING,
   HV_VHOST_NET: VTYPE_BOOL,
   HV_KVM_USE_CHROOT: VTYPE_BOOL,
+  HV_CPU_MASK: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -918,6 +920,7 @@ HVC_DEFAULTS = {
     HV_INIT_SCRIPT: "/ganeti-chroot",
     },
   HT_LXC: {
+    HV_CPU_MASK: "",
     },
   }
 

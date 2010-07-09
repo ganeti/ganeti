@@ -47,6 +47,14 @@ from ganeti import utils
 from ganeti import constants
 
 
+def _IsCpuMaskWellFormed(cpu_mask):
+  try:
+    cpu_list = utils.ParseCpuMask(cpu_mask)
+  except errors.ParseError, _:
+    return False
+  return isinstance(cpu_list, list) and len(cpu_list) > 0
+
+
 # Read the BaseHypervisor.PARAMETERS docstring for the syntax of the
 # _CHECK values
 
@@ -58,6 +66,12 @@ _FILE_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
 _DIR_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
              os.path.isdir, "not found or not a directory")
 
+# CPU mask must be well-formed
+# TODO: implement node level check for the CPU mask
+_CPU_MASK_CHECK = (_IsCpuMaskWellFormed,
+                   "CPU mask definition is not well-formed",
+                   None, None)
+
 # nice wrappers for users
 REQ_FILE_CHECK = (True, ) + _FILE_CHECK
 OPT_FILE_CHECK = (False, ) + _FILE_CHECK
@@ -65,6 +79,8 @@ REQ_DIR_CHECK = (True, ) + _DIR_CHECK
 OPT_DIR_CHECK = (False, ) + _DIR_CHECK
 NET_PORT_CHECK = (True, lambda x: x > 0 and x < 65535, "invalid port number",
                   None, None)
+OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
+REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
 
 # no checks at all
 NO_CHECK = (False, None, None, None, None)
