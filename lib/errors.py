@@ -228,6 +228,14 @@ class UnitParseError(GenericError):
   """
 
 
+class ParseError(GenericError):
+  """Generic parse error.
+
+  Raised when unable to parse user input.
+
+  """
+
+
 class TypeEnforcementError(GenericError):
   """Unable to enforce data type.
 

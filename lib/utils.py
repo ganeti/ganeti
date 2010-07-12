@@ -1299,6 +1299,45 @@ def ParseUnit(input_string):
   return value
 
 
+def ParseCpuMask(cpu_mask):
+  """Parse a CPU mask definition and return the list of CPU IDs.
+
+  CPU mask format: comma-separated list of CPU IDs
+  or dash-separated ID ranges
+  Example: "0-2,5" -> "0,1,2,5"
+
+  @type cpu_mask: str
+  @param cpu_mask: CPU mask definition
+  @rtype: list of int
+  @return: list of CPU IDs
+
+  """
+  if not cpu_mask:
+    return []
+  cpu_list = []
+  for range_def in cpu_mask.split(","):
+    boundaries = range_def.split("-")
+    n_elements = len(boundaries)
+    if n_elements > 2:
+      raise errors.ParseError("Invalid CPU ID range definition"
+                              " (only one hyphen allowed): %s" % range_def)
+    try:
+      lower = int(boundaries[0])
+    except (ValueError, TypeError), err:
+      raise errors.ParseError("Invalid CPU ID value for lower boundary of"
+                              " CPU ID range: %s" % str(err))
+    try:
+      higher = int(boundaries[-1])
+    except (ValueError, TypeError), err:
+      raise errors.ParseError("Invalid CPU ID value for higher boundary of"
+                              " CPU ID range: %s" % str(err))
+    if lower > higher:
+      raise errors.ParseError("Invalid CPU ID range definition"
+                              " (%d > %d): %s" % (lower, higher, range_def))
+    cpu_list.extend(range(lower, higher + 1))
+  return cpu_list
+
+
 def AddAuthorizedKey(file_name, key):
   """Adds an SSH public key to an authorized_keys file.
 

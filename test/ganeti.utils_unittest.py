@@ -996,6 +996,28 @@ class TestParseUnit(unittest.TestCase):
       self.assertRaises(errors.UnitParseError, ParseUnit, '1,3' + suffix)
 
 
+class TestParseCpuMask(unittest.TestCase):
+  """Test case for the ParseCpuMask function."""
+
+  def testWellFormed(self):
+    self.assertEqual(utils.ParseCpuMask(""), [])
+    self.assertEqual(utils.ParseCpuMask("1"), [1])
+    self.assertEqual(utils.ParseCpuMask("0-2,4,5-5"), [0,1,2,4,5])
+
+  def testInvalidInput(self):
+    self.assertRaises(errors.ParseError,
+                      utils.ParseCpuMask,
+                      "garbage")
+    self.assertRaises(errors.ParseError,
+                      utils.ParseCpuMask,
+                      "0,")
+    self.assertRaises(errors.ParseError,
+                      utils.ParseCpuMask,
+                      "0-1-2")
+    self.assertRaises(errors.ParseError,
+                      utils.ParseCpuMask,
+                      "2-1")
+
 class TestSshKeys(testutils.GanetiTestCase):
   """Test case for the AddAuthorizedKey function"""
 
