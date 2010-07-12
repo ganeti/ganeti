@@ -81,7 +81,7 @@ class TestCommandBuilder(unittest.TestCase):
           else:
             self.assertFalse(magic_cmd)
 
-        for host in ["localhost", "1.2.3.4", "192.0.2.99"]:
+        for host in ["localhost", "198.51.100.4", "192.0.2.99"]:
           for port in [0, 1, 1234, 7856, 45452]:
             for cmd_prefix in [None, "PrefixCommandGoesHere|",
                                "dd if=/dev/hda bs=1048576 |"]:

@@ -29,8 +29,8 @@ _this_host {
 	device			minor 0;
 	disk			"/dev/xenvg/test.data";
 	meta-disk		"/dev/xenvg/test.meta" [ 0 ];
-	address			ipv4 192.168.1.1:11000;
+	address			ipv4 192.0.2.1:11000;
 }
 _remote_host {
-	address			ipv4 192.168.1.2:11000;
+	address			ipv4 192.0.2.2:11000;
 }

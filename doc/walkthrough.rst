@@ -17,7 +17,7 @@ a step-by-step example to managing instances and the cluster.
 Our simulated, example cluster will have three machines, named
 ``node1``, ``node2``, ``node3``. Note that in real life machines will
 usually FQDNs but here we use short names for brevity. We will use a
-secondary network for replication data, ``192.168.2.0/24``, with nodes
+secondary network for replication data, ``192.0.2.0/24``, with nodes
 having the last octet the same as their index. The cluster name will be
 ``example-cluster``. All nodes have the same simulated hardware
 configuration, two disks of 750GB, 32GB of memory and 4 CPUs.
@@ -32,7 +32,7 @@ Cluster creation
 Follow the :doc:`install` document and prepare the nodes. Then it's time
 to initialise the cluster::
 
-  node1# gnt-cluster init -s 192.168.2.1 --enabled-hypervisors=xen-pvm cluster
+  node1# gnt-cluster init -s 192.0.2.1 --enabled-hypervisors=xen-pvm example-cluster
   node1#
 
 The creation was fine. Let's check that one node we have is functioning
@@ -55,24 +55,24 @@ correctly::
 
 Since this proceeded correctly, let's add the other two nodes::
 
-  node1# gnt-node add -s 192.168.2.2 node2
+  node1# gnt-node add -s 192.0.2.2 node2
   -- WARNING --
   Performing this operation is going to replace the ssh daemon keypair
   on the target machine (node2) with the ones of the current one
   and grant full intra-cluster ssh root access to/from it
 
-  The authenticity of host 'node2 (192.168.1.2)' can't be established.
+  The authenticity of host 'node2 (192.0.2.2)' can't be established.
   RSA key fingerprint is 9f:…
   Are you sure you want to continue connecting (yes/no)? yes
   root@node2's password:
   Mon Oct 26 02:11:54 2009  - INFO: Node will be a master candidate
-  node1# gnt-node add -s 192.168.2.3 node3
+  node1# gnt-node add -s 192.0.2.3 node3
   -- WARNING --
   Performing this operation is going to replace the ssh daemon keypair
   on the target machine (node2) with the ones of the current one
   and grant full intra-cluster ssh root access to/from it
 
-  The authenticity of host 'node3 (192.168.1.3)' can't be established.
+  The authenticity of host 'node3 (192.0.2.3)' can't be established.
   RSA key fingerprint is 9f:…
   Are you sure you want to continue connecting (yes/no)? yes
   root@node2's password:
@@ -378,8 +378,8 @@ which has one primary and one secondary instance, crashes::
 
   node1# gnt-node info node3
   Node name: node3
-    primary ip: 172.24.227.1
-    secondary ip: 192.168.2.3
+    primary ip: 198.51.100.1
+    secondary ip: 192.0.2.3
     master candidate: True
     drained: False
     offline: False
@@ -578,7 +578,7 @@ Let's say node3 has been repaired and is now ready to be
 reused. Re-adding it is simple::
 
   node1# gnt-node add --readd node3
-  The authenticity of host 'node3 (172.24.227.1)' can't be established.
+  The authenticity of host 'node3 (198.51.100.1)' can't be established.
   RSA key fingerprint is 9f:2e:5a:2e:e0:bd:00:09:e4:5c:32:f2:27:57:7a:f4.
   Are you sure you want to continue connecting (yes/no)? yes
   Mon Oct 26 05:27:39 2009  - INFO: Readding a node, the offline/drained flags were reset

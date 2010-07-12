@@ -28,8 +28,8 @@ _this_host {
 	device			"/dev/drbd63";
 	disk			"/dev/xenvg/test.data";
 	meta-disk		"/dev/xenvg/test.meta" [ 0 ];
-	address			192.168.1.1:11000;
+	address			192.0.2.1:11000;
 }
 _remote_host {
-	address			192.168.1.2:11000;
+	address			192.0.2.2:11000;
 }

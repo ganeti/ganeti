@@ -98,9 +98,9 @@ and not just *node1*.
    but for Ganeti you need to have::
 
      127.0.0.1       localhost
-     192.168.1.1     node1.example.com node1
+     192.0.2.1     node1.example.com node1
 
-   replacing ``192.168.1.1`` with your node's address. Also, the file
+   replacing ``192.0.2.1`` with your node's address. Also, the file
    ``/etc/hostname`` which configures the hostname of the system
    should contain ``node1.example.com`` and not just ``node1`` (you
    need to run the command ``/etc/init.d/hostname.sh start`` after
@@ -179,13 +179,13 @@ other. For example::
   (xend-relocation-server yes)
   (xend-relocation-port 8002)
   (xend-relocation-address '')
-  (xend-relocation-hosts-allow '^192\\.168\\.3\\.[0-9]+$')
+  (xend-relocation-hosts-allow '^192\\.0\\.2\\.[0-9]+$')
 
 
 The second line assumess that the hypervisor parameter
 ``migration_port`` is set 8002, otherwise modify it to match. The last
 line assumes that all your nodes have secondary IPs in the
-192.168.3.0/24 network, adjust it accordingly to your setup.
+192.0.2.0/24 network, adjust it accordingly to your setup.
 
 .. admonition:: Debian
 

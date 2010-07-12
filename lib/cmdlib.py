@@ -379,11 +379,11 @@ class LogicalUnit(object):
       # Acquire all nodes and one instance
       self.needed_locks = {
         locking.LEVEL_NODE: locking.ALL_SET,
-        locking.LEVEL_INSTANCE: ['instance1.example.tld'],
+        locking.LEVEL_INSTANCE: ['instance1.example.com'],
       }
       # Acquire just two nodes
       self.needed_locks = {
-        locking.LEVEL_NODE: ['node1.example.tld', 'node2.example.tld'],
+        locking.LEVEL_NODE: ['node1.example.com', 'node2.example.com'],
       }
       # Acquire no locks
       self.needed_locks = {} # No, you can't leave it to the default value None

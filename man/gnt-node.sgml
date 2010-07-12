@@ -107,7 +107,7 @@
         Example:
         <screen>
 # gnt-node add node5.example.com
-# gnt-node add -s 192.168.44.5 node5.example.com
+# gnt-node add -s 192.0.2.5 node5.example.com
         </screen>
       </para>
     </refsect2>

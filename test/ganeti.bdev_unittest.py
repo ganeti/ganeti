@@ -69,8 +69,8 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
-    self.failUnless(self._has_net(result, ("192.168.1.1", 11000),
-                                  ("192.168.1.2", 11000)),
+    self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
+                                  ("192.0.2.2", 11000)),
                     "Wrong network info (8.0.x)")
 
   def testParser83(self):
@@ -80,8 +80,8 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
                     "Wrong local disk info")
-    self.failUnless(self._has_net(result, ("192.168.1.1", 11000),
-                                  ("192.168.1.2", 11000)),
+    self.failUnless(self._has_net(result, ("192.0.2.1", 11000),
+                                  ("192.0.2.2", 11000)),
                     "Wrong network info (8.0.x)")
 
   def testParserNetIP4(self):
@@ -92,8 +92,8 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
                      "meta_dev" not in result and
                      "meta_index" not in result),
                     "Should not find local disk info")
-    self.failUnless(self._has_net(result, ("192.168.1.1", 11002),
-                                  ("192.168.1.2", 11002)),
+    self.failUnless(self._has_net(result, ("192.0.2.1", 11002),
+                                  ("192.0.2.2", 11002)),
                     "Wrong network info (IPv4)")
 
   def testParserNetIP6(self):

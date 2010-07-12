@@ -375,8 +375,8 @@ Input message, new instance allocation::
     "nodes": {
       "node1.example.com": {
         "total_disk": 858276,
-        "primary_ip": "192.168.1.1",
-        "secondary_ip": "192.168.2.1",
+        "primary_ip": "198.51.100.1",
+        "secondary_ip": "192.0.2.1",
         "tags": [],
         "free_memory": 3505,
         "free_disk": 856740,
@@ -384,8 +384,8 @@ Input message, new instance allocation::
       },
       "node2.example.com": {
         "total_disk": 858240,
-        "primary_ip": "192.168.1.3",
-        "secondary_ip": "192.168.2.3",
+        "primary_ip": "198.51.100.2",
+        "secondary_ip": "192.0.2.2",
         "tags": ["test"],
         "free_memory": 3505,
         "free_disk": 848320,
@@ -393,8 +393,8 @@ Input message, new instance allocation::
       },
       "node3.example.com.com": {
         "total_disk": 572184,
-        "primary_ip": "192.168.1.3",
-        "secondary_ip": "192.168.2.3",
+        "primary_ip": "198.51.100.3",
+        "secondary_ip": "192.0.2.3",
         "tags": [],
         "free_memory": 3505,
         "free_disk": 570648,

@@ -182,7 +182,7 @@ class _BaseClientTest:
   def testSetPeersFamily(self):
     self.client._SetPeersAddressFamily()
     self.assertEquals(self.client._family, self.family)
-    mixed_peers = ["1.2.3.6", "2001:db8:beef::13"]
+    mixed_peers = ["192.0.2.99", "2001:db8:beef::13"]
     self.client.UpdatePeerList(mixed_peers)
     self.assertRaises(errors.ConfdClientError,
                       self.client._SetPeersAddressFamily)
@@ -190,17 +190,17 @@ class _BaseClientTest:
 
 class TestIP4Client(unittest.TestCase, _BaseClientTest):
   """Client tests"""
-  mc_list = ["10.0.0.1",
-             "10.0.0.2",
-             "10.0.0.3",
-             "10.0.0.4",
-             "10.0.0.5",
-             "10.0.0.6",
-             "10.0.0.7",
-             "10.0.0.8",
-             "10.0.0.9",
+  mc_list = ["192.0.2.1",
+             "192.0.2.2",
+             "192.0.2.3",
+             "192.0.2.4",
+             "192.0.2.5",
+             "192.0.2.6",
+             "192.0.2.7",
+             "192.0.2.8",
+             "192.0.2.9",
             ]
-  new_peers = ["1.2.3.4", "1.2.3.5"]
+  new_peers = ["198.51.100.1", "198.51.100.2"]
   family = socket.AF_INET
 
   def setUp(self):

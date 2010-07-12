@@ -82,7 +82,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
 
   def testMasterIPUnreachable(self):
     # Network 192.0.2.0/24 is reserved for test/documentation as per
-    # RFC 5735
+    # RFC 5737
     bad_data =  ("master.example.com", "192.0.2.1")
     # we just test that whatever TcpPing returns, VerifyNode returns too
     netutils.TcpPing = lambda a, b, source=None: False

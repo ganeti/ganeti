@@ -18,7 +18,7 @@
 # 02110-1301, USA.
 
 # To set user mappings, use this command:
-#   git config gnt-review.johndoe 'John Doe <johndoe@domain.tld>'
+#   git config gnt-review.johndoe 'John Doe <johndoe@example.com>'
 
 # To disable strict mode (enabled by default):
 #   git config gnt-review.strict false

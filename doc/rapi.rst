@@ -388,8 +388,8 @@ Body parameters:
   ``rw``).
 ``nics`` (list, required)
   List of NIC (network interface) definitions. Example: ``[{}, {},
-  {"ip": "1.2.3.4"}]``. Each NIC definition can contain the optional
-  values ``ip``, ``mode``, ``link`` and ``bridge``.
+  {"ip": "198.51.100.4"}]``. Each NIC definition can contain the
+  optional values ``ip``, ``mode``, ``link`` and ``bridge``.
 ``os`` (string)
   Instance operating system.
 ``force_variant`` (bool)

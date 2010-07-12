@@ -21,8 +21,8 @@ syncer {
 protocol C;
 _this_host {
 	device			"/dev/drbd59";
-	address			192.168.1.1:11002;
+	address			192.0.2.1:11002;
 }
 _remote_host {
-	address			192.168.1.2:11002;
+	address			192.0.2.2:11002;
 }

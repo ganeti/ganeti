@@ -335,7 +335,7 @@ class TestOwnIpAddress(unittest.TestCase):
     """check that I don't own an address"""
 
     # Network 192.0.2.0/24 is reserved for test/documentation as per
-    # RFC 5735, so we *should* not have an address of this range... if
+    # RFC 5737, so we *should* not have an address of this range... if
     # this fails, we should extend the test to multiple addresses
     DST_IP = "192.0.2.1"
     self.failIf(netutils.OwnIpAddress(DST_IP),

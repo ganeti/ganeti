@@ -14,12 +14,12 @@
     {
       "# Master node": null,
       "primary": "xen-test-0",
-      "secondary": "192.168.1.1"
+      "secondary": "192.0.2.1"
     },
 
     {
       "primary": "xen-test-1",
-      "secondary": "192.168.1.2"
+      "secondary": "192.0.2.2"
     }
   ],
 

@@ -67,7 +67,7 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
 
       # Two NICs
       [
-        { "ip": "1.2.3.4", "mode": constants.NIC_MODE_ROUTED, },
+        { "ip": "192.0.2.6", "mode": constants.NIC_MODE_ROUTED, },
         { "mode": constants.NIC_MODE_BRIDGED, "link": "n0", "bridge": "br1", },
       ],
 
