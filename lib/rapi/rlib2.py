@@ -508,22 +508,22 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
 
     # Size is mandatory
     try:
-      size = i["size"]
+      size = i[constants.IDISK_SIZE]
     except KeyError:
       raise http.HttpBadRequest("Disk %d specification wrong: missing disk"
                                 " size" % idx)
 
     disk = {
-      "size": size,
+      constants.IDISK_SIZE: size,
       }
 
     # Optional disk access mode
     try:
-      disk_access = i["mode"]
+      disk_access = i[constants.IDISK_MODE]
     except KeyError:
       pass
     else:
-      disk["mode"] = disk_access
+      disk[constants.IDISK_MODE] = disk_access
 
     disks.append(disk)
 
@@ -538,7 +538,7 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
 
     nic = {}
 
-    for field in ["mode", "ip", "link", "bridge"]:
+    for field in constants.INIC_PARAMS:
       try:
         value = i[field]
       except KeyError:

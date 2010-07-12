@@ -67,7 +67,9 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
 
       # Two NICs
       [
-        { "ip": "1.2.3.4", "mode": constants.NIC_MODE_ROUTED, },
+        { "ip": "1.2.3.4", "mode": constants.NIC_MODE_ROUTED,
+          "mac": "01:23:45:67:68:9A",
+        },
         { "mode": constants.NIC_MODE_BRIDGED, "link": "n0", "bridge": "br1", },
       ],
 
@@ -122,21 +124,16 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
                   self.assertEqual(len(op.disks), len(disks))
                   self.assertEqual(len(op.nics), len(nics))
 
-                  self.assert_(compat.all(opdisk.get("size") ==
-                                          disk.get("size") and
-                                          opdisk.get("mode") ==
-                                          disk.get("mode") and
-                                          "unknown" not in opdisk
-                                          for opdisk, disk in zip(op.disks,
-                                                                  disks)))
+                  for opdisk, disk in zip(op.disks, disks):
+                    for key in constants.IDISK_PARAMS:
+                      self.assertEqual(opdisk.get(key), disk.get(key))
+                    self.assertFalse("unknown" in opdisk)
 
-                  self.assert_(compat.all(opnic.get("size") ==
-                                          nic.get("size") and
-                                          opnic.get("mode") ==
-                                          nic.get("mode") and
-                                          "unknown" not in opnic and
-                                          "foobar" not in opnic
-                                          for opnic, nic in zip(op.nics, nics)))
+                  for opnic, nic in zip(op.nics, nics):
+                    for key in constants.INIC_PARAMS:
+                      self.assertEqual(opnic.get(key), nic.get(key))
+                    self.assertFalse("unknown" in opnic)
+                    self.assertFalse("foobar" in opnic)
 
                   if beparams is None:
                     self.assertEqualValues(op.beparams, {})
