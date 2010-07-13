@@ -1338,18 +1338,22 @@ def ParseCpuMask(cpu_mask):
   return cpu_list
 
 
-def AddAuthorizedKey(file_name, key):
+def AddAuthorizedKey(file_obj, key):
   """Adds an SSH public key to an authorized_keys file.
 
-  @type file_name: str
-  @param file_name: path to authorized_keys file
+  @type file_obj: str or file handle
+  @param file_obj: path to authorized_keys file
   @type key: str
   @param key: string containing key
 
   """
   key_fields = key.split()
 
-  f = open(file_name, 'a+')
+  if isinstance(file_obj, basestring):
+    f = open(file_obj, 'a+')
+  else:
+    f = file_obj
+
   try:
     nl = True
     for line in f:
