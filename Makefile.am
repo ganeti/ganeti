@@ -264,6 +264,7 @@ dist_tools_SCRIPTS = \
 	tools/cluster-merge \
 	tools/lvmstrap \
 	tools/move-instance \
+	tools/setup-ssh \
 	tools/sanitize-config
 
 pkglib_python_scripts = \

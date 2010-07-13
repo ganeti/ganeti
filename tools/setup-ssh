@@ -1,0 +1,235 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2010 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+"""Tool to setup the SSH configuration on a remote node.
+
+This is needed before we can join the node into the cluster.
+
+"""
+
+import getpass
+import logging
+import paramiko
+import os.path
+import optparse
+import sys
+
+from ganeti import cli
+from ganeti import constants
+from ganeti import errors
+from ganeti import netutils
+from ganeti import ssh
+from ganeti import utils
+
+
+class RemoteCommandError(errors.GenericError):
+  """Exception if remote command was not successful.
+
+  """
+
+
+def _RunRemoteCommand(transport, command):
+  """Invokes and wait for the command over SSH.
+
+  @param transport: The paramiko transport instance
+  @param command: The command to be executed
+
+  """
+  chan = transport.open_session()
+  chan.set_combine_stderr(True)
+  output_handler = chan.makefile("r")
+  chan.exec_command(command)
+
+  result = chan.recv_exit_status()
+  msg = output_handler.read()
+
+  out_msg = "'%s' exited with status code %s, output %r" % (command, result,
+                                                            msg)
+
+  # If result is -1 (no exit status provided) we assume it was not successful
+  if result:
+    raise RemoteCommandError(out_msg)
+
+  if msg:
+    logging.info(out_msg)
+
+
+def _InvokeDaemonUtil(transport, command):
+  """Invokes daemon-util on the remote side.
+
+  @param transport: The paramiko transport instance
+  @param command: The daemon-util command to be run
+
+  """
+  _RunRemoteCommand(transport, "%s %s" % (constants.DAEMON_UTIL, command))
+
+
+def _WriteSftpFile(sftp, name, perm, data):
+  """SFTPs data to a remote file.
+
+  @param sftp: A open paramiko SFTP client
+  @param name: The remote file name
+  @param perm: The remote file permission
+  @param data: The data to write
+
+  """
+  remote_file = sftp.open(name, "w")
+  try:
+    sftp.chmod(name, perm)
+    remote_file.write(data)
+  finally:
+    remote_file.close()
+
+
+def SetupSSH(transport):
+  """Sets the SSH up on the other side.
+
+  @param transport: The paramiko transport instance
+
+  """
+  priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
+  keyfiles = [
+    (constants.SSH_HOST_DSA_PRIV, 0600),
+    (constants.SSH_HOST_DSA_PUB, 0644),
+    (constants.SSH_HOST_RSA_PRIV, 0600),
+    (constants.SSH_HOST_RSA_PUB, 0644),
+    (priv_key, 0600),
+    (pub_key, 0644),
+    ]
+
+  sftp = transport.open_sftp_client()
+
+  filemap = dict((name, (utils.ReadFile(name), perm))
+                 for (name, perm) in keyfiles)
+
+  auth_path = os.path.dirname(auth_keys)
+
+  try:
+    sftp.mkdir(auth_path, 0700)
+  except IOError:
+    # Sadly paramiko doesn't provide errno or similiar
+    # so we can just assume that the path already exists
+    logging.info("Path %s seems already to exist on remote node. Ignore.",
+                 auth_path)
+
+  for name, (data, perm) in filemap.iteritems():
+    _WriteSftpFile(sftp, name, perm, data)
+
+  authorized_keys = sftp.open(auth_keys, "a+")
+  try:
+    # We don't have to close, as the close happened already in AddAuthorizedKey
+    utils.AddAuthorizedKey(authorized_keys, filemap[pub_key][0])
+  finally:
+    authorized_keys.close()
+
+  _InvokeDaemonUtil(transport, "reload-ssh-keys")
+
+
+def SetupNodeDaemon(transport):
+  """Sets the node daemon up on the other side.
+
+  @param transport: The paramiko transport instance
+
+  """
+  noded_cert = utils.ReadFile(constants.NODED_CERT_FILE)
+
+  sftp = transport.open_sftp_client()
+  _WriteSftpFile(sftp, constants.NODED_CERT_FILE, 0400, noded_cert)
+
+  _InvokeDaemonUtil(transport, "start %s" % constants.NODED)
+
+
+def ParseOptions():
+  """Parses options passed to program.
+
+  """
+  program = os.path.basename(sys.argv[0])
+
+  parser = optparse.OptionParser(usage=("%prog [--debug|--verbose] <node>"
+                                        " <node...>"), prog=program)
+  parser.add_option(cli.DEBUG_OPT)
+  parser.add_option(cli.VERBOSE_OPT)
+
+  (options, args) = parser.parse_args()
+
+  return (options, args)
+
+
+def SetupLogging(options):
+  """Sets up the logging.
+
+  @param options: Parsed options
+
+  """
+  fmt = "%(asctime)s: %(threadName)s "
+  if options.debug or options.verbose:
+    fmt += "%(levelname)s "
+  fmt += "%(message)s"
+
+  formatter = logging.Formatter(fmt)
+
+  file_handler = logging.FileHandler(constants.LOG_SETUP_SSH)
+  stderr_handler = logging.StreamHandler()
+  stderr_handler.setFormatter(formatter)
+  file_handler.setFormatter(formatter)
+  file_handler.setLevel(logging.DEBUG)
+
+  if options.debug:
+    stderr_handler.setLevel(logging.NOTSET)
+  elif options.verbose:
+    stderr_handler.setLevel(logging.INFO)
+  else:
+    stderr_handler.setLevel(logging.ERROR)
+
+  # This is the paramiko logger instance
+  paramiko_logger = logging.getLogger("paramiko")
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(stderr_handler)
+  root_logger.addHandler(file_handler)
+  paramiko_logger.addHandler(file_handler)
+
+
+def main():
+  """Main routine.
+
+  """
+  (options, args) = ParseOptions()
+
+  SetupLogging(options)
+
+  passwd = getpass.getpass(prompt="%s password:" % constants.GANETI_RUNAS)
+
+  for host in args:
+    transport = paramiko.Transport((host, netutils.GetDaemonPort("ssh")))
+    transport.connect(username=constants.GANETI_RUNAS, password=passwd)
+    try:
+      try:
+        SetupSSH(transport)
+        SetupNodeDaemon(transport)
+      except errors.GenericError, err:
+        logging.fatal("While doing setup on host %s an error occured: %s", host,
+                      err)
+    finally:
+      transport.close()
+
+
+if __name__ == "__main__":
+  main()
