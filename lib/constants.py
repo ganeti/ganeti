@@ -147,6 +147,7 @@ DAEMONS_PORTS = {
   NODED: ("tcp", 1811),
   CONFD: ("udp", 1814),
   RAPI: ("tcp", 5080),
+  "ssh": ("tcp", 22),
   # used in the ganeti-nbma project
   NLD: ("udp", 1816),
 }
@@ -175,6 +176,7 @@ LOG_OS_DIR = LOG_DIR + "os"
 LOG_WATCHER = LOG_DIR + "watcher.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"
 LOG_BURNIN = LOG_DIR + "burnin.log"
+LOG_SETUP_SSH = LOG_DIR + "setup-ssh.log"
 
 DEV_CONSOLE = "/dev/console"
 
