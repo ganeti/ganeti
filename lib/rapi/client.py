@@ -70,6 +70,13 @@ NODE_ROLE_REGULAR = "regular"
 # Internal constants
 _REQ_DATA_VERSION_FIELD = "__version__"
 _INST_CREATE_REQV1 = "instance-create-reqv1"
+_INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link", "bridge"])
+_INST_CREATE_V0_DISK_PARAMS = frozenset(["size"])
+_INST_CREATE_V0_PARAMS = frozenset([
+  "os", "pnode", "snode", "iallocator", "start", "ip_check", "name_check",
+  "hypervisor", "file_storage_dir", "file_driver", "dry_run",
+  ])
+_INST_CREATE_V0_DPARAMS = frozenset(["beparams", "hvparams"])
 
 # Older pycURL versions don't have all error constants
 try:
@@ -599,13 +606,82 @@ class GanetiRapiClient(object):
       body.update((key, value) for key, value in kwargs.iteritems()
                   if key != "dry_run")
     else:
-      # TODO: Implement instance creation request data version 0
-      # When implementing version 0, care should be taken to refuse unknown
-      # parameters and invalid values. The interface of this function must stay
+      # Old request format (version 0)
+
+      # The following code must make sure that an exception is raised when an
+      # unsupported setting is requested by the caller. Otherwise this can lead
+      # to bugs difficult to find. The interface of this function must stay
       # exactly the same for version 0 and 1 (e.g. they aren't allowed to
       # require different data types).
-      raise NotImplementedError("Support for instance creation request data"
-                                " version 0 is not yet implemented")
+
+      # Validate disks
+      for idx, disk in enumerate(disks):
+        unsupported = set(disk.keys()) - _INST_CREATE_V0_DISK_PARAMS
+        if unsupported:
+          raise GanetiApiError("Server supports request version 0 only, but"
+                               " disk %s specifies the unsupported parameters"
+                               " %s, allowed are %s" %
+                               (idx, unsupported,
+                                list(_INST_CREATE_V0_DISK_PARAMS)))
+
+      assert (len(_INST_CREATE_V0_DISK_PARAMS) == 1 and
+              "size" in _INST_CREATE_V0_DISK_PARAMS)
+      disk_sizes = [disk["size"] for disk in disks]
+
+      # Validate NICs
+      if not nics:
+        raise GanetiApiError("Server supports request version 0 only, but"
+                             " no NIC specified")
+      elif len(nics) > 1:
+        raise GanetiApiError("Server supports request version 0 only, but"
+                             " more than one NIC specified")
+
+      assert len(nics) == 1
+
+      unsupported = set(nics[0].keys()) - _INST_NIC_PARAMS
+      if unsupported:
+        raise GanetiApiError("Server supports request version 0 only, but"
+                             " NIC 0 specifies the unsupported parameters %s,"
+                             " allowed are %s" %
+                             (unsupported, list(_INST_NIC_PARAMS)))
+
+      # Validate other parameters
+      unsupported = (set(kwargs.keys()) - _INST_CREATE_V0_PARAMS -
+                     _INST_CREATE_V0_DPARAMS)
+      if unsupported:
+        allowed = _INST_CREATE_V0_PARAMS.union(_INST_CREATE_V0_DPARAMS)
+        raise GanetiApiError("Server supports request version 0 only, but"
+                             " the following unsupported parameters are"
+                             " specified: %s, allowed are %s" %
+                             (unsupported, list(allowed)))
+
+      # All required fields for request data version 0
+      body = {
+        _REQ_DATA_VERSION_FIELD: 0,
+        "name": name,
+        "disk_template": disk_template,
+        "disks": disk_sizes,
+        }
+
+      # NIC fields
+      assert len(nics) == 1
+      assert not (set(body.keys()) & set(nics[0].keys()))
+      body.update(nics[0])
+
+      # Copy supported fields
+      assert not (set(body.keys()) & set(kwargs.keys()))
+      body.update(dict((key, value) for key, value in kwargs.items()
+                       if key in _INST_CREATE_V0_PARAMS))
+
+      # Merge dictionaries
+      for i in (value for key, value in kwargs.items()
+                if key in _INST_CREATE_V0_DPARAMS):
+        assert not (set(body.keys()) & set(i.keys()))
+        body.update(i)
+
+      assert not (set(kwargs.keys()) -
+                  (_INST_CREATE_V0_PARAMS | _INST_CREATE_V0_DPARAMS))
+      assert not (set(body.keys()) & _INST_CREATE_V0_DPARAMS)
 
     return self._SendRequest(HTTP_POST, "/%s/instances" % GANETI_RAPI_VERSION,
                              query, body)

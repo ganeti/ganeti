@@ -94,6 +94,9 @@ class RapiMock(object):
   def AddResponse(self, response, code=200):
     self._responses.insert(0, (code, response))
 
+  def CountPending(self):
+    return len(self._responses)
+
   def GetLastHandler(self):
     return self._last_handler
 
@@ -128,6 +131,7 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.HTTP_APP_JSON, http.HTTP_APP_JSON)
     self.assertEqual(client._REQ_DATA_VERSION_FIELD, rlib2._REQ_DATA_VERSION)
     self.assertEqual(client._INST_CREATE_REQV1, rlib2._INST_CREATE_REQV1)
+    self.assertEqual(client._INST_NIC_PARAMS, constants.INIC_PARAMS)
 
 
 class RapiMockTest(unittest.TestCase):
@@ -389,6 +393,10 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
       self.assertEqual(features, self.client.GetFeatures())
       self.assertHandler(rlib2.R_2_features)
 
+  def testGetFeaturesNotFound(self):
+    self.rapi.AddResponse(None, code=404)
+    self.assertEqual([], self.client.GetFeatures())
+
   def testGetOperatingSystems(self):
     self.rapi.AddResponse("[\"beos\"]")
     self.assertEqual(["beos"], self.client.GetOperatingSystems())
@@ -452,10 +460,91 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertQuery("static", ["1"])
 
   def testCreateInstanceOldVersion(self):
-    self.rapi.AddResponse(serializer.DumpJson([]))
-    self.assertRaises(NotImplementedError, self.client.CreateInstance,
-                      "create", "inst1.example.com", "plain", [], [],
-                      dry_run=True)
+    # No NICs
+    self.rapi.AddResponse(None, code=404)
+    self.assertRaises(client.GanetiApiError, self.client.CreateInstance,
+                      "create", "inst1.example.com", "plain", [], [])
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    # More than one NIC
+    self.rapi.AddResponse(None, code=404)
+    self.assertRaises(client.GanetiApiError, self.client.CreateInstance,
+                      "create", "inst1.example.com", "plain", [],
+                      [{}, {}, {}])
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    # Unsupported NIC fields
+    self.rapi.AddResponse(None, code=404)
+    self.assertRaises(client.GanetiApiError, self.client.CreateInstance,
+                      "create", "inst1.example.com", "plain", [],
+                      [{"x": True, "y": False}])
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    # Unsupported disk fields
+    self.rapi.AddResponse(None, code=404)
+    self.assertRaises(client.GanetiApiError, self.client.CreateInstance,
+                      "create", "inst1.example.com", "plain",
+                      [{}, {"moo": "foo",}], [{}])
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    # Unsupported fields
+    self.rapi.AddResponse(None, code=404)
+    self.assertRaises(client.GanetiApiError, self.client.CreateInstance,
+                      "create", "inst1.example.com", "plain", [], [{}],
+                      hello_world=123)
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    self.rapi.AddResponse(None, code=404)
+    self.assertRaises(client.GanetiApiError, self.client.CreateInstance,
+                      "create", "inst1.example.com", "plain", [], [{}],
+                      memory=128)
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    # Normal creation
+    testnics = [
+      [{}],
+      [{ "mac": constants.VALUE_AUTO, }],
+      [{ "ip": "192.0.2.99", "mode": constants.NIC_MODE_ROUTED, }],
+      ]
+
+    testdisks = [
+      [],
+      [{ "size": 128, }],
+      [{ "size": 321, }, { "size": 4096, }],
+      ]
+
+    for idx, nics in enumerate(testnics):
+      for disks in testdisks:
+        beparams = {
+          constants.BE_MEMORY: 512,
+          constants.BE_AUTO_BALANCE: False,
+          }
+        hvparams = {
+          constants.HV_MIGRATION_PORT: 9876,
+          constants.HV_VNC_TLS: True,
+          }
+
+        self.rapi.AddResponse(None, code=404)
+        self.rapi.AddResponse(serializer.DumpJson(3122617 + idx))
+        job_id = self.client.CreateInstance("create", "inst1.example.com",
+                                            "plain", disks, nics,
+                                            pnode="node99", dry_run=True,
+                                            hvparams=hvparams,
+                                            beparams=beparams)
+        self.assertEqual(job_id, 3122617 + idx)
+        self.assertHandler(rlib2.R_2_instances)
+        self.assertDryRun()
+        self.assertEqual(self.rapi.CountPending(), 0)
+
+        data = serializer.LoadJson(self.rapi.GetLastRequestData())
+        self.assertEqual(data["name"], "inst1.example.com")
+        self.assertEqual(data["disk_template"], "plain")
+        self.assertEqual(data["pnode"], "node99")
+        self.assertEqual(data[constants.BE_MEMORY], 512)
+        self.assertEqual(data[constants.BE_AUTO_BALANCE], False)
+        self.assertEqual(data[constants.HV_MIGRATION_PORT], 9876)
+        self.assertEqual(data[constants.HV_VNC_TLS], True)
+        self.assertEqual(data["disks"], [disk["size"] for disk in disks])
 
   def testCreateInstance(self):
     self.rapi.AddResponse(serializer.DumpJson([rlib2._INST_CREATE_REQV1]))
