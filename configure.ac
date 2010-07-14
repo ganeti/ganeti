@@ -317,6 +317,13 @@ AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
 
+# This is optional but then we've limited functionality
+AC_PYTHON_MODULE(paramiko)
+if test "$HAVE_PYMOD_PARAMIKO" = "no"; then
+  AC_MSG_WARN([You do not have paramiko installed. While this is optional you
+               have to setup SSH and noded on the joining nodes yourself.])
+fi
+
 AC_CONFIG_FILES([ Makefile ])
 
 AC_OUTPUT
