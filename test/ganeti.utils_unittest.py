@@ -2220,7 +2220,7 @@ class TestFormatSeconds(unittest.TestCase):
     self.assertEqual(utils.FormatSeconds(3912.8), "1h 5m 13s")
 
 
-class RunIgnoreProcessNotFound(unittest.TestCase):
+class TestIgnoreProcessNotFound(unittest.TestCase):
   @staticmethod
   def _WritePid(fd):
     os.write(fd, str(os.getpid()))
