@@ -376,6 +376,7 @@ python_tests = \
 	test/ganeti.errors_unittest.py \
 	test/ganeti.hooks_unittest.py \
 	test/ganeti.http_unittest.py \
+	test/ganeti.hypervisor.hv_kvm_unittest.py \
 	test/ganeti.impexpd_unittest.py \
 	test/ganeti.jqueue_unittest.py \
 	test/ganeti.locking_unittest.py \
