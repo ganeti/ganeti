@@ -1548,6 +1548,48 @@ def ShellQuoteArgs(args):
   return ' '.join([ShellQuote(i) for i in args])
 
 
+class ShellWriter:
+  """Helper class to write scripts with indentation.
+
+  """
+  INDENT_STR = "  "
+
+  def __init__(self, fh):
+    """Initializes this class.
+
+    """
+    self._fh = fh
+    self._indent = 0
+
+  def IncIndent(self):
+    """Increase indentation level by 1.
+
+    """
+    self._indent += 1
+
+  def DecIndent(self):
+    """Decrease indentation level by 1.
+
+    """
+    assert self._indent > 0
+    self._indent -= 1
+
+  def Write(self, txt, *args):
+    """Write line to output file.
+
+    """
+    assert self._indent >= 0
+
+    self._fh.write(self._indent * self.INDENT_STR)
+
+    if args:
+      self._fh.write(txt % args)
+    else:
+      self._fh.write(txt)
+
+    self._fh.write("\n")
+
+
 def ListVisibleFiles(path):
   """Returns a list of visible files in a directory.
 

@@ -40,43 +40,6 @@ from ganeti import build
 from ganeti import _autoconf
 
 
-class ShellWriter:
-  """Helper class to write scripts with indentation.
-
-  """
-  INDENT_STR = "  "
-
-  def __init__(self, fh):
-    self._fh = fh
-    self._indent = 0
-
-  def IncIndent(self):
-    """Increase indentation level by 1.
-
-    """
-    self._indent += 1
-
-  def DecIndent(self):
-    """Decrease indentation level by 1.
-
-    """
-    assert self._indent > 0
-    self._indent -= 1
-
-  def Write(self, txt, *args):
-    """Write line to output file.
-
-    """
-    self._fh.write(self._indent * self.INDENT_STR)
-
-    if args:
-      self._fh.write(txt % args)
-    else:
-      self._fh.write(txt)
-
-    self._fh.write("\n")
-
-
 def WritePreamble(sw):
   """Writes the script preamble.
 
@@ -630,7 +593,7 @@ def GetCommands(filename, module):
 
 def main():
   buf = StringIO()
-  sw = ShellWriter(buf)
+  sw = utils.ShellWriter(buf)
 
   WritePreamble(sw)
 

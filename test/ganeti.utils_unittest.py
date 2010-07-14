@@ -38,6 +38,7 @@ import time
 import unittest
 import warnings
 import OpenSSL
+from cStringIO import StringIO
 
 import testutils
 from ganeti import constants
@@ -2240,6 +2241,49 @@ class TestIgnoreProcessNotFound(unittest.TestCase):
 
     # Try to send signal to process which exited recently
     self.assertFalse(utils.IgnoreProcessNotFound(os.kill, pid, 0))
+
+
+class TestShellWriter(unittest.TestCase):
+  def test(self):
+    buf = StringIO()
+    sw = utils.ShellWriter(buf)
+    sw.Write("#!/bin/bash")
+    sw.Write("if true; then")
+    sw.IncIndent()
+    try:
+      sw.Write("echo true")
+
+      sw.Write("for i in 1 2 3")
+      sw.Write("do")
+      sw.IncIndent()
+      try:
+        self.assertEqual(sw._indent, 2)
+        sw.Write("date")
+      finally:
+        sw.DecIndent()
+      sw.Write("done")
+    finally:
+      sw.DecIndent()
+    sw.Write("echo %s", utils.ShellQuote("Hello World"))
+    sw.Write("exit 0")
+
+    self.assertEqual(sw._indent, 0)
+
+    output = buf.getvalue()
+
+    self.assert_(output.endswith("\n"))
+
+    lines = output.splitlines()
+    self.assertEqual(len(lines), 9)
+    self.assertEqual(lines[0], "#!/bin/bash")
+    self.assert_(re.match(r"^\s+date$", lines[5]))
+    self.assertEqual(lines[7], "echo 'Hello World'")
+
+  def testEmpty(self):
+    buf = StringIO()
+    sw = utils.ShellWriter(buf)
+    sw = None
+    self.assertEqual(buf.getvalue(), "")
 
 
 if __name__ == '__main__':
