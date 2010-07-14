@@ -151,84 +151,6 @@ class HostInfo:
     return hostname
 
 
-def _GenericIsValidIP(family, ip):
-  """Generic internal version of ip validation.
-
-  @type family: int
-  @param family: socket.AF_INET | socket.AF_INET6
-  @type ip: str
-  @param ip: the address to be checked
-  @rtype: boolean
-  @return: True if ip is valid, False otherwise
-
-  """
-  try:
-    socket.inet_pton(family, ip)
-    return True
-  except socket.error:
-    return False
-
-
-def IsValidIP4(ip):
-  """Verifies an IPv4 address.
-
-  This function checks if the given address is a valid IPv4 address.
-
-  @type ip: str
-  @param ip: the address to be checked
-  @rtype: boolean
-  @return: True if ip is valid, False otherwise
-
-  """
-  return _GenericIsValidIP(socket.AF_INET, ip)
-
-
-def IsValidIP6(ip):
-  """Verifies an IPv6 address.
-
-  This function checks if the given address is a valid IPv6 address.
-
-  @type ip: str
-  @param ip: the address to be checked
-  @rtype: boolean
-  @return: True if ip is valid, False otherwise
-
-  """
-  return _GenericIsValidIP(socket.AF_INET6, ip)
-
-
-def IsValidIP(ip):
-  """Verifies an IP address.
-
-  This function checks if the given IP address (both IPv4 and IPv6) is valid.
-
-  @type ip: str
-  @param ip: the address to be checked
-  @rtype: boolean
-  @return: True if ip is valid, False otherwise
-
-  """
-  return IsValidIP4(ip) or IsValidIP6(ip)
-
-
-def GetAddressFamily(ip):
-  """Get the address family of the given address.
-
-  @type ip: str
-  @param ip: ip address whose family will be returned
-  @rtype: int
-  @return: socket.AF_INET or socket.AF_INET6
-  @raise errors.GenericError: for invalid addresses
-
-  """
-  if IsValidIP6(ip):
-    return socket.AF_INET6
-  elif IsValidIP4(ip):
-    return socket.AF_INET
-  else:
-    raise errors.GenericError("Address %s not valid" % ip)
-
-
 def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   """Simple ping implementation using TCP connect(2).
 
@@ -251,7 +173,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
 
   """
   try:
-    family = GetAddressFamily(target)
+    family = IPAddress.GetAddressFamily(target)
   except errors.GenericError:
     return False
 
@@ -279,32 +201,6 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   return success
 
 
-def OwnIpAddress(address):
-  """Check if the current host has the the given IP address.
-
-  This is done by trying to bind the given address. We return True if we
-  succeed or false if a socket.error is raised.
-
-  @type address: string
-  @param address: the address to check
-  @rtype: bool
-  @return: True if we own the address
-
-  """
-  family = GetAddressFamily(address)
-  s = socket.socket(family, socket.SOCK_DGRAM)
-  success = False
-  try:
-    try:
-      s.bind((address, 0))
-      success = True
-    except socket.error:
-      success = False
-  finally:
-    s.close()
-  return success
-
-
 def GetDaemonPort(daemon_name):
   """Get the daemon port for this cluster.
 
@@ -327,3 +223,239 @@ def GetDaemonPort(daemon_name):
     port = default_port
 
   return port
+
+
+class IPAddress(object):
+  """Class that represents an IP address.
+
+  """
+  iplen = 0
+  family = None
+  loopback_cidr = None
+
+  @staticmethod
+  def _GetIPIntFromString(address):
+    """Abstract method to please pylint.
+
+    """
+    raise NotImplementedError
+
+  @classmethod
+  def IsValid(cls, address):
+    """Validate a IP address.
+
+    @type address: str
+    @param address: IP address to be checked
+    @rtype: bool
+    @return: True if valid, False otherwise
+
+    """
+    if cls.family is None:
+      try:
+        family = cls.GetAddressFamily(address)
+      except errors.IPAddressError:
+        return False
+    else:
+      family = cls.family
+
+    try:
+      socket.inet_pton(family, address)
+      return True
+    except socket.error:
+      return False
+
+  @classmethod
+  def Own(cls, address):
+    """Check if the current host has the the given IP address.
+
+    This is done by trying to bind the given address. We return True if we
+    succeed or false if a socket.error is raised.
+
+    @type address: str
+    @param address: IP address to be checked
+    @rtype: bool
+    @return: True if we own the address, False otherwise
+
+    """
+    if cls.family is None:
+      try:
+        family = cls.GetAddressFamily(address)
+      except errors.IPAddressError:
+        return False
+    else:
+      family = cls.family
+
+    s = socket.socket(family, socket.SOCK_DGRAM)
+    success = False
+    try:
+      try:
+        s.bind((address, 0))
+        success = True
+      except socket.error:
+        success = False
+    finally:
+      s.close()
+    return success
+
+  @classmethod
+  def InNetwork(cls, cidr, address):
+    """Determine whether an address is within a network.
+
+    @type cidr: string
+    @param cidr: Network in CIDR notation, e.g. '192.0.2.0/24', '2001:db8::/64'
+    @type address: str
+    @param address: IP address
+    @rtype: bool
+    @return: True if address is in cidr, False otherwise
+
+    """
+    address_int = cls._GetIPIntFromString(address)
+    subnet = cidr.split("/")
+    assert len(subnet) == 2
+    try:
+      prefix = int(subnet[1])
+    except ValueError:
+      return False
+
+    assert 0 <= prefix <= cls.iplen
+    target_int = cls._GetIPIntFromString(subnet[0])
+    # Convert prefix netmask to integer value of netmask
+    netmask_int = (2**cls.iplen)-1 ^ ((2**cls.iplen)-1 >> prefix)
+    # Calculate hostmask
+    hostmask_int = netmask_int ^ (2**cls.iplen)-1
+    # Calculate network address by and'ing netmask
+    network_int = target_int & netmask_int
+    # Calculate broadcast address by or'ing hostmask
+    broadcast_int = target_int | hostmask_int
+
+    return network_int <= address_int <= broadcast_int
+
+  @staticmethod
+  def GetAddressFamily(address):
+    """Get the address family of the given address.
+
+    @type address: str
+    @param address: ip address whose family will be returned
+    @rtype: int
+    @return: socket.AF_INET or socket.AF_INET6
+    @raise errors.GenericError: for invalid addresses
+
+    """
+    try:
+      return IP4Address(address).family
+    except errors.IPAddressError:
+      pass
+
+    try:
+      return IP6Address(address).family
+    except errors.IPAddressError:
+      pass
+
+    raise errors.IPAddressError("Invalid address '%s'" % address)
+
+  @classmethod
+  def IsLoopback(cls, address):
+    """Determine whether it is a loopback address.
+
+    @type address: str
+    @param address: IP address to be checked
+    @rtype: bool
+    @return: True if loopback, False otherwise
+
+    """
+    try:
+      return cls.InNetwork(cls.loopback_cidr, address)
+    except errors.IPAddressError:
+      return False
+
+
+class IP4Address(IPAddress):
+  """IPv4 address class.
+
+  """
+  iplen = 32
+  family = socket.AF_INET
+  loopback_cidr = "127.0.0.0/8"
+
+  def __init__(self, address):
+    """Constructor for IPv4 address.
+
+    @type address: str
+    @param address: IP address
+    @raises errors.IPAddressError: if address invalid
+
+    """
+    IPAddress.__init__(self)
+    if not self.IsValid(address):
+      raise errors.IPAddressError("IPv4 Address %s invalid" % address)
+
+    self.address = address
+
+  @staticmethod
+  def _GetIPIntFromString(address):
+    """Get integer value of IPv4 address.
+
+    @type address: str
+    @param: IPv6 address
+    @rtype: int
+    @return: integer value of given IP address
+
+    """
+    address_int = 0
+    parts = address.split(".")
+    assert len(parts) == 4
+    for part in parts:
+      address_int = (address_int << 8) | int(part)
+
+    return address_int
+
+
+class IP6Address(IPAddress):
+  """IPv6 address class.
+
+  """
+  iplen = 128
+  family = socket.AF_INET6
+  loopback_cidr = "::1/128"
+
+  def __init__(self, address):
+    """Constructor for IPv6 address.
+
+    @type address: str
+    @param address: IP address
+    @raises errors.IPAddressError: if address invalid
+
+    """
+    IPAddress.__init__(self)
+    if not self.IsValid(address):
+      raise errors.IPAddressError("IPv6 Address [%s] invalid" % address)
+    self.address = address
+
+  @staticmethod
+  def _GetIPIntFromString(address):
+    """Get integer value of IPv6 address.
+
+    @type address: str
+    @param: IPv6 address
+    @rtype: int
+    @return: integer value of given IP address
+
+    """
+    doublecolons = address.count("::")
+    assert not doublecolons > 1
+    if doublecolons == 1:
+      # We have a shorthand address, expand it
+      parts = []
+      twoparts = address.split("::")
+      sep = len(twoparts[0].split(':')) + len(twoparts[1].split(':'))
+      parts = twoparts[0].split(':')
+      [parts.append("0") for _ in range(8 - sep)]
+      parts += twoparts[1].split(':')
+    else:
+      parts = address.split(":")
+
+    address_int = 0
+    for part in parts:
+      address_int = (address_int << 16) + int(part or '0', 16)
+
+    return address_int

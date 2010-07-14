@@ -3712,7 +3712,7 @@ class LUAddNode(LogicalUnit):
     primary_ip = self.op.primary_ip = dns_data.ip
     if self.op.secondary_ip is None:
       self.op.secondary_ip = primary_ip
-    if not netutils.IsValidIP4(self.op.secondary_ip):
+    if not netutils.IP4Address.IsValid(self.op.secondary_ip):
       raise errors.OpPrereqError("Invalid secondary IP given",
                                  errors.ECODE_INVAL)
     secondary_ip = self.op.secondary_ip
@@ -7015,7 +7015,7 @@ class LUCreateInstance(LogicalUnit):
                                      errors.ECODE_INVAL)
         nic_ip = self.hostname1.ip
       else:
-        if not netutils.IsValidIP4(ip):
+        if not netutils.IP4Address.IsValid(ip):
           raise errors.OpPrereqError("Given IP address '%s' doesn't look"
                                      " like a valid IP" % ip,
                                      errors.ECODE_INVAL)
@@ -8690,7 +8690,7 @@ class LUSetInstanceParams(LogicalUnit):
         if nic_ip.lower() == constants.VALUE_NONE:
           nic_dict['ip'] = None
         else:
-          if not netutils.IsValidIP4(nic_ip):
+          if not netutils.IP4Address.IsValid(nic_ip):
             raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip,
                                        errors.ECODE_INVAL)
 

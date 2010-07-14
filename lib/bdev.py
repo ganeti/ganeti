@@ -1301,13 +1301,13 @@ class DRBD8(BaseDRBD):
     # about its peer.
     cls._SetMinorSyncSpeed(minor, constants.SYNC_SPEED)
 
-    if netutils.IsValidIP6(lhost):
-      if not netutils.IsValidIP6(rhost):
+    if netutils.IP6Address.IsValid(lhost):
+      if not netutils.IP6Address.IsValid(rhost):
         _ThrowError("drbd%d: can't connect ip %s to ip %s" %
                     (minor, lhost, rhost))
       family = "ipv6"
-    elif netutils.IsValidIP4(lhost):
-      if not netutils.IsValidIP4(rhost):
+    elif netutils.IP4Address.IsValid(lhost):
+      if not netutils.IP4Address.IsValid(rhost):
         _ThrowError("drbd%d: can't connect ip %s to ip %s" %
                     (minor, lhost, rhost))
       family = "ipv4"

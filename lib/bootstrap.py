@@ -245,13 +245,13 @@ def InitCluster(cluster_name, mac_prefix,
 
   hostname = netutils.GetHostInfo()
 
-  if hostname.ip.startswith("127."):
-    raise errors.OpPrereqError("This host's IP resolves to the private"
-                               " range (%s). Please fix DNS or %s." %
+  if netutils.IP4Address.IsLoopback(hostname.ip):
+    raise errors.OpPrereqError("This host's IP (%s) resolves to a loopback"
+                               " address. Please fix DNS or %s." %
                                (hostname.ip, constants.ETC_HOSTS),
                                errors.ECODE_ENVIRON)
 
-  if not netutils.OwnIpAddress(hostname.ip):
+  if not netutils.IPAddress.Own(hostname.ip):
     raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                " to %s,\nbut this ip address does not"
                                " belong to this host. Aborting." %
@@ -266,11 +266,11 @@ def InitCluster(cluster_name, mac_prefix,
                                errors.ECODE_NOTUNIQUE)
 
   if secondary_ip:
-    if not netutils.IsValidIP4(secondary_ip):
+    if not netutils.IP4Address.IsValid(secondary_ip):
       raise errors.OpPrereqError("Invalid secondary ip given",
                                  errors.ECODE_INVAL)
     if (secondary_ip != hostname.ip and
-        not netutils.OwnIpAddress(secondary_ip)):
+        not netutils.IPAddress.Own(secondary_ip)):
       raise errors.OpPrereqError("You gave %s as secondary IP,"
                                  " but it does not belong to this host." %
                                  secondary_ip, errors.ECODE_ENVIRON)

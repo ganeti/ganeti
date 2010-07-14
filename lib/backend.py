@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -279,7 +279,7 @@ def StartMaster(start_daemons, no_voting):
   # or activate the IP
   else:
     if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
-      if netutils.OwnIpAddress(master_ip):
+      if netutils.IPAddress.Own(master_ip):
         # we already have the ip:
         logging.debug("Master IP already configured, doing nothing")
       else:

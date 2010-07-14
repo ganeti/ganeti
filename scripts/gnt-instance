@@ -1218,7 +1218,7 @@ def ShowInstanceConfig(opts, args):
         vnc_console_port = "%s:%s (display %s)" % (instance["pnode"],
                                                    port,
                                                    display)
-      elif display > 0 and netutils.IsValidIP4(vnc_bind_address):
+      elif display > 0 and netutils.IP4Address.IsValid(vnc_bind_address):
         vnc_console_port = ("%s:%s (node %s) (display %s)" %
                              (vnc_bind_address, port,
                               instance["pnode"], display))

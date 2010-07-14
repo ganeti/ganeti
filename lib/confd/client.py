@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -391,11 +391,11 @@ class ConfdClient:
       raise errors.ConfdClientError("Peer list empty")
     try:
       peer = self._peers[0]
-      self._family = netutils.GetAddressFamily(peer)
+      self._family = netutils.IPAddress.GetAddressFamily(peer)
       for peer in self._peers[1:]:
-        if netutils.GetAddressFamily(peer) != self._family:
+        if netutils.IPAddress.GetAddressFamily(peer) != self._family:
           raise errors.ConfdClientError("Peers must be of same address family")
-    except errors.GenericError:
+    except errors.IPAddressError:
       raise errors.ConfdClientError("Peer address %s invalid" % peer)
 
 

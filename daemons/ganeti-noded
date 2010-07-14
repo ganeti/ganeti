@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -598,7 +598,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Checks if a node has the given ip address.
 
     """
-    return netutils.OwnIpAddress(params[0])
+    return netutils.IPAddress.Own(params[0])
 
   @staticmethod
   def perspective_node_info(params):

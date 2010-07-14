@@ -175,7 +175,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_ACPI: hv_base.NO_CHECK,
     constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
     constants.HV_VNC_BIND_ADDRESS:
-      (False, lambda x: (netutils.IsValidIP4(x) or utils.IsNormAbsPath(x)),
+      (False, lambda x: (netutils.IP4Address.IsValid(x) or
+                         utils.IsNormAbsPath(x)),
        "the VNC bind address must be either a valid IP address or an absolute"
        " pathname", None, None),
     constants.HV_VNC_TLS: hv_base.NO_CHECK,
@@ -572,7 +573,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      if netutils.IsValidIP4(vnc_bind_address):
+      if netutils.IP4Address.IsValid(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == constants.IP4_ADDRESS_ANY:

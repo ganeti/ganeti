@@ -140,52 +140,114 @@ class TestHostInfo(unittest.TestCase):
       netutils.HostInfo.NormalizeName(value)
 
 
-class TestIsValidIP4(unittest.TestCase):
-  def test(self):
-    self.assert_(netutils.IsValidIP4("127.0.0.1"))
-    self.assert_(netutils.IsValidIP4("0.0.0.0"))
-    self.assert_(netutils.IsValidIP4("255.255.255.255"))
-    self.assertFalse(netutils.IsValidIP4("0"))
-    self.assertFalse(netutils.IsValidIP4("1"))
-    self.assertFalse(netutils.IsValidIP4("1.1.1"))
-    self.assertFalse(netutils.IsValidIP4("255.255.255.256"))
-    self.assertFalse(netutils.IsValidIP4("::1"))
+class TestIPAddress(unittest.TestCase):
+  def testIsValid(self):
+    self.assert_(netutils.IPAddress.IsValid("0.0.0.0"))
+    self.assert_(netutils.IPAddress.IsValid("127.0.0.1"))
+    self.assert_(netutils.IPAddress.IsValid("::"))
+    self.assert_(netutils.IPAddress.IsValid("::1"))
+
+  def testNotIsValid(self):
+    self.assertFalse(netutils.IPAddress.IsValid("0"))
+    self.assertFalse(netutils.IPAddress.IsValid("1.1.1.256"))
+    self.assertFalse(netutils.IPAddress.IsValid("a:g::1"))
 
 
-class TestIsValidIP6(unittest.TestCase):
-  def test(self):
-    self.assert_(netutils.IsValidIP6("::"))
-    self.assert_(netutils.IsValidIP6("::1"))
-    self.assert_(netutils.IsValidIP6("1" + (":1" * 7)))
-    self.assert_(netutils.IsValidIP6("ffff" + (":ffff" * 7)))
-    self.assertFalse(netutils.IsValidIP6("0"))
-    self.assertFalse(netutils.IsValidIP6(":1"))
-    self.assertFalse(netutils.IsValidIP6("f" + (":f" * 6)))
-    self.assertFalse(netutils.IsValidIP6("fffg" + (":ffff" * 7)))
-    self.assertFalse(netutils.IsValidIP6("fffff" + (":ffff" * 7)))
-    self.assertFalse(netutils.IsValidIP6("1" + (":1" * 8)))
-    self.assertFalse(netutils.IsValidIP6("127.0.0.1"))
+  def testGetAddressFamily(self):
+    fn = netutils.IPAddress.GetAddressFamily
+    self.assertEqual(fn("127.0.0.1"), socket.AF_INET)
+    self.assertEqual(fn("10.2.0.127"), socket.AF_INET)
+    self.assertEqual(fn("::1"), socket.AF_INET6)
+    self.assertEqual(fn("2001:db8::1"), socket.AF_INET6)
+    self.assertRaises(errors.IPAddressError, fn, "0")
+
+  def testOwnLoopback(self):
+    # FIXME: In a pure IPv6 environment this is no longer true
+    self.assert_(netutils.IPAddress.Own("127.0.0.1"),
+                 "Should own 127.0.0.1 address")
+
+  def testNotOwnAddress(self):
+    self.assertFalse(netutils.IPAddress.Own("2001:db8::1"),
+                     "Should not own IP address 2001:db8::1")
+    self.assertFalse(netutils.IPAddress.Own("192.0.2.1"),
+                     "Should not own IP address 192.0.2.1")
 
 
-class TestIsValidIP(unittest.TestCase):
-  def test(self):
-    self.assert_(netutils.IsValidIP("0.0.0.0"))
-    self.assert_(netutils.IsValidIP("127.0.0.1"))
-    self.assert_(netutils.IsValidIP("::"))
-    self.assert_(netutils.IsValidIP("::1"))
-    self.assertFalse(netutils.IsValidIP("0"))
-    self.assertFalse(netutils.IsValidIP("1.1.1.256"))
-    self.assertFalse(netutils.IsValidIP("a:g::1"))
+class TestIP4Address(unittest.TestCase):
+  def testGetIPIntFromString(self):
+    fn = netutils.IP4Address._GetIPIntFromString
+    self.assertEqual(fn("0.0.0.0"), 0)
+    self.assertEqual(fn("0.0.0.1"), 1)
+    self.assertEqual(fn("127.0.0.1"), 2130706433)
+    self.assertEqual(fn("192.0.2.129"), 3221226113)
+    self.assertEqual(fn("255.255.255.255"), 2**32 - 1)
+    self.assertNotEqual(fn("0.0.0.0"), 1)
+    self.assertNotEqual(fn("0.0.0.0"), 1)
+
+  def testIsValid(self):
+    self.assert_(netutils.IP4Address.IsValid("0.0.0.0"))
+    self.assert_(netutils.IP4Address.IsValid("127.0.0.1"))
+    self.assert_(netutils.IP4Address.IsValid("192.0.2.199"))
+    self.assert_(netutils.IP4Address.IsValid("255.255.255.255"))
+
+  def testNotIsValid(self):
+    self.assertFalse(netutils.IP4Address.IsValid("0"))
+    self.assertFalse(netutils.IP4Address.IsValid("1"))
+    self.assertFalse(netutils.IP4Address.IsValid("1.1.1"))
+    self.assertFalse(netutils.IP4Address.IsValid("255.255.255.256"))
+    self.assertFalse(netutils.IP4Address.IsValid("::1"))
+
+  def testInNetwork(self):
+    self.assert_(netutils.IP4Address.InNetwork("127.0.0.0/8", "127.0.0.1"))
+
+  def testNotInNetwork(self):
+    self.assertFalse(netutils.IP4Address.InNetwork("192.0.2.0/24",
+                                                   "127.0.0.1"))
+
+  def testIsLoopback(self):
+    self.assert_(netutils.IP4Address.IsLoopback("127.0.0.1"))
+
+  def testNotIsLoopback(self):
+    self.assertFalse(netutils.IP4Address.IsLoopback("192.0.2.1"))
 
 
-class TestGetAddressFamily(unittest.TestCase):
-  def test(self):
-    self.assertEqual(netutils.GetAddressFamily("127.0.0.1"), socket.AF_INET)
-    self.assertEqual(netutils.GetAddressFamily("10.2.0.127"), socket.AF_INET)
-    self.assertEqual(netutils.GetAddressFamily("::1"), socket.AF_INET6)
-    self.assertEqual(netutils.GetAddressFamily("fe80::a00:27ff:fe08:5048"),
-                     socket.AF_INET6)
-    self.assertRaises(errors.GenericError, netutils.GetAddressFamily, "0")
+class TestIP6Address(unittest.TestCase):
+  def testGetIPIntFromString(self):
+    fn = netutils.IP6Address._GetIPIntFromString
+    self.assertEqual(fn("::"), 0)
+    self.assertEqual(fn("::1"), 1)
+    self.assertEqual(fn("2001:db8::1"),
+                     42540766411282592856903984951653826561L)
+    self.assertEqual(fn("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 2**128-1)
+    self.assertNotEqual(netutils.IP6Address._GetIPIntFromString("::2"), 1)
+
+  def testIsValid(self):
+    self.assert_(netutils.IP6Address.IsValid("::"))
+    self.assert_(netutils.IP6Address.IsValid("::1"))
+    self.assert_(netutils.IP6Address.IsValid("1" + (":1" * 7)))
+    self.assert_(netutils.IP6Address.IsValid("ffff" + (":ffff" * 7)))
+    self.assert_(netutils.IP6Address.IsValid("::"))
+
+  def testNotIsValid(self):
+    self.assertFalse(netutils.IP6Address.IsValid("0"))
+    self.assertFalse(netutils.IP6Address.IsValid(":1"))
+    self.assertFalse(netutils.IP6Address.IsValid("f" + (":f" * 6)))
+    self.assertFalse(netutils.IP6Address.IsValid("fffg" + (":ffff" * 7)))
+    self.assertFalse(netutils.IP6Address.IsValid("fffff" + (":ffff" * 7)))
+    self.assertFalse(netutils.IP6Address.IsValid("1" + (":1" * 8)))
+    self.assertFalse(netutils.IP6Address.IsValid("127.0.0.1"))
+
+  def testInNetwork(self):
+    self.assert_(netutils.IP6Address.InNetwork("::1/128", "::1"))
+
+  def testNotInNetwork(self):
+    self.assertFalse(netutils.IP6Address.InNetwork("2001:db8::1/128", "::1"))
+
+  def testIsLoopback(self):
+    self.assert_(netutils.IP6Address.IsLoopback("::1"))
+
+  def testNotIsLoopback(self):
+    self.assertFalse(netutils.IP6Address.IsLoopback("2001:db8::1"))
 
 
 class _BaseTcpPingTest:
@@ -321,25 +383,6 @@ class TestIP6TcpPingDeaf(unittest.TestCase, _BaseTcpPingDeafTest):
   def tearDown(self):
     unittest.TestCase.tearDown(self)
     _BaseTcpPingDeafTest.tearDown(self)
-
-
-class TestOwnIpAddress(unittest.TestCase):
-  """Testcase for OwnIpAddress"""
-
-  def testOwnLoopback(self):
-    """check having the loopback ip"""
-    self.failUnless(netutils.OwnIpAddress(constants.IP4_ADDRESS_LOCALHOST),
-                    "Should own the loopback address")
-
-  def testNowOwnAddress(self):
-    """check that I don't own an address"""
-
-    # Network 192.0.2.0/24 is reserved for test/documentation as per
-    # RFC 5737, so we *should* not have an address of this range... if
-    # this fails, we should extend the test to multiple addresses
-    DST_IP = "192.0.2.1"
-    self.failIf(netutils.OwnIpAddress(DST_IP),
-                "Should not own IP address %s" % DST_IP)
 
 
 if __name__ == "__main__":
