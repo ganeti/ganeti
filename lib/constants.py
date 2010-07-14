@@ -785,6 +785,11 @@ JOB_STATUS_RUNNING = "running"
 JOB_STATUS_CANCELED = "canceled"
 JOB_STATUS_SUCCESS = "success"
 JOB_STATUS_ERROR = "error"
+JOBS_FINALIZED = frozenset([
+  JOB_STATUS_CANCELED,
+  JOB_STATUS_SUCCESS,
+  JOB_STATUS_ERROR,
+  ])
 
 # OpCode status
 # not yet finalized

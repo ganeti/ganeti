@@ -54,6 +54,7 @@ from ganeti import utils
 from ganeti import jstore
 from ganeti import rpc
 from ganeti import netutils
+from ganeti import compat
 
 
 JOBQUEUE_THREADS = 25
@@ -481,65 +482,33 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._job.lock_status = msg
 
 
-class _WaitForJobChangesHelper(object):
-  """Helper class using initofy to wait for changes in a job file.
+class _JobChangesChecker(object):
+  def __init__(self, fields, prev_job_info, prev_log_serial):
+    """Initializes this class.
 
-  This class takes a previous job status and serial, and alerts the client when
-  the current job status has changed.
-
-  @type job_id: string
-  @ivar job_id: id of the job we're watching
-  @type prev_job_info: string
-  @ivar prev_job_info: previous job info, as passed by the luxi client
-  @type prev_log_serial: string
-  @ivar prev_log_serial: previous job serial, as passed by the luxi client
-  @type queue: L{JobQueue}
-  @ivar queue: job queue (used for a few utility functions)
-  @type job_path: string
-  @ivar job_path: absolute path of the job file
-  @type wm: pyinotify.WatchManager (or None)
-  @ivar wm: inotify watch manager to watch for changes
-  @type inotify_handler: L{asyncnotifier.SingleFileEventHandler}
-  @ivar inotify_handler: single file event handler, used for watching
-  @type notifier: pyinotify.Notifier
-  @ivar notifier: inotify single-threaded notifier, used for watching
-
-  """
-  def __init__(self, job_id, fields, prev_job_info, prev_log_serial, queue):
-    self.job_id = job_id
-    self.fields = fields
-    self.prev_job_info = prev_job_info
-    self.prev_log_serial = prev_log_serial
-    self.queue = queue
-    # pylint: disable-msg=W0212
-    self.job_path = self.queue._GetJobPath(self.job_id)
-    self.wm = None
-    self.inotify_handler = None
-    self.notifier = None
-
-  def _SetupInotify(self):
-    """Create the inotify
-
-    @raises errors.InotifyError: if the notifier cannot be setup
+    @type fields: list of strings
+    @param fields: Fields requested by LUXI client
+    @type prev_job_info: string
+    @param prev_job_info: previous job info, as passed by the LUXI client
+    @type prev_log_serial: string
+    @param prev_log_serial: previous job serial, as passed by the LUXI client
 
     """
-    if self.wm:
-      return
-    self.wm = pyinotify.WatchManager()
-    self.inotify_handler = asyncnotifier.SingleFileEventHandler(self.wm,
-                                                                self.OnInotify,
-                                                                self.job_path)
-    self.notifier = pyinotify.Notifier(self.wm, self.inotify_handler)
-    self.inotify_handler.enable()
+    self._fields = fields
+    self._prev_job_info = prev_job_info
+    self._prev_log_serial = prev_log_serial
 
-  def _LoadDiskStatus(self):
-    job = self.queue.SafeLoadJobFromDisk(self.job_id)
-    if not job:
-      raise errors.JobLost()
-    self.job_status = job.CalcStatus()
+  def __call__(self, job):
+    """Checks whether job has changed.
 
-    job_info = job.GetInfo(self.fields)
-    log_entries = job.GetLogEntries(self.prev_log_serial)
+    @type job: L{_QueuedJob}
+    @param job: Job object
+
+    """
+    status = job.CalcStatus()
+    job_info = job.GetInfo(self._fields)
+    log_entries = job.GetLogEntries(self._prev_log_serial)
+
     # Serializing and deserializing data can cause type changes (e.g. from
     # tuple to list) or precision loss. We're doing it here so that we get
     # the same modifications as the data received from the client. Without
@@ -547,48 +516,163 @@ class _WaitForJobChangesHelper(object):
     # significantly different.
     # TODO: we just deserialized from disk, investigate how to make sure that
     # the job info and log entries are compatible to avoid this further step.
-    self.job_info = serializer.LoadJson(serializer.DumpJson(job_info))
-    self.log_entries = serializer.LoadJson(serializer.DumpJson(log_entries))
+    # TODO: Doing something like in testutils.py:UnifyValueType might be more
+    # efficient, though floats will be tricky
+    job_info = serializer.LoadJson(serializer.DumpJson(job_info))
+    log_entries = serializer.LoadJson(serializer.DumpJson(log_entries))
 
-  def _CheckForChanges(self):
-    self._LoadDiskStatus()
     # Don't even try to wait if the job is no longer running, there will be
     # no changes.
-    if (self.job_status not in (constants.JOB_STATUS_QUEUED,
-                                constants.JOB_STATUS_RUNNING,
-                                constants.JOB_STATUS_WAITLOCK) or
-        self.prev_job_info != self.job_info or
-        (self.log_entries and self.prev_log_serial != self.log_entries[0][0])):
-      logging.debug("Job %s changed", self.job_id)
-      return (self.job_info, self.log_entries)
+    if (status not in (constants.JOB_STATUS_QUEUED,
+                       constants.JOB_STATUS_RUNNING,
+                       constants.JOB_STATUS_WAITLOCK) or
+        job_info != self._prev_job_info or
+        (log_entries and self._prev_log_serial != log_entries[0][0])):
+      logging.debug("Job %s changed", job.id)
+      return (job_info, log_entries)
 
-    raise utils.RetryAgain()
+    return None
 
-  def OnInotify(self, notifier_enabled):
-    if not notifier_enabled:
-      self.inotify_handler.enable()
 
-  def WaitFn(self, timeout):
-    self._SetupInotify()
-    if self.notifier.check_events(timeout*1000):
-      self.notifier.read_events()
-    self.notifier.process_events()
+class _JobFileChangesWaiter(object):
+  def __init__(self, filename):
+    """Initializes this class.
 
-  def WaitForChanges(self, timeout):
-    self._SetupInotify()
+    @type filename: string
+    @param filename: Path to job file
+    @raises errors.InotifyError: if the notifier cannot be setup
+
+    """
+    self._wm = pyinotify.WatchManager()
+    self._inotify_handler = \
+      asyncnotifier.SingleFileEventHandler(self._wm, self._OnInotify, filename)
+    self._notifier = \
+      pyinotify.Notifier(self._wm, default_proc_fun=self._inotify_handler)
     try:
-      return utils.Retry(self._CheckForChanges,
-                         utils.RETRY_REMAINING_TIME,
-                         timeout,
-                         wait_fn=self.WaitFn)
+      self._inotify_handler.enable()
+    except Exception:
+      # pyinotify doesn't close file descriptors automatically
+      self._notifier.stop()
+      raise
+
+  def _OnInotify(self, notifier_enabled):
+    """Callback for inotify.
+
+    """
+    if not notifier_enabled:
+      self._inotify_handler.enable()
+
+  def Wait(self, timeout):
+    """Waits for the job file to change.
+
+    @type timeout: float
+    @param timeout: Timeout in seconds
+    @return: Whether there have been events
+
+    """
+    assert timeout >= 0
+    have_events = self._notifier.check_events(timeout * 1000)
+    if have_events:
+      self._notifier.read_events()
+    self._notifier.process_events()
+    return have_events
+
+  def Close(self):
+    """Closes underlying notifier and its file descriptor.
+
+    """
+    self._notifier.stop()
+
+
+class _JobChangesWaiter(object):
+  def __init__(self, filename):
+    """Initializes this class.
+
+    @type filename: string
+    @param filename: Path to job file
+
+    """
+    self._filewaiter = None
+    self._filename = filename
+
+  def Wait(self, timeout):
+    """Waits for a job to change.
+
+    @type timeout: float
+    @param timeout: Timeout in seconds
+    @return: Whether there have been events
+
+    """
+    if self._filewaiter:
+      return self._filewaiter.Wait(timeout)
+
+    # Lazy setup: Avoid inotify setup cost when job file has already changed.
+    # If this point is reached, return immediately and let caller check the job
+    # file again in case there were changes since the last check. This avoids a
+    # race condition.
+    self._filewaiter = _JobFileChangesWaiter(self._filename)
+
+    return True
+
+  def Close(self):
+    """Closes underlying waiter.
+
+    """
+    if self._filewaiter:
+      self._filewaiter.Close()
+
+
+class _WaitForJobChangesHelper(object):
+  """Helper class using inotify to wait for changes in a job file.
+
+  This class takes a previous job status and serial, and alerts the client when
+  the current job status has changed.
+
+  """
+  @staticmethod
+  def _CheckForChanges(job_load_fn, check_fn):
+    job = job_load_fn()
+    if not job:
+      raise errors.JobLost()
+
+    result = check_fn(job)
+    if result is None:
+      raise utils.RetryAgain()
+
+    return result
+
+  def __call__(self, filename, job_load_fn,
+               fields, prev_job_info, prev_log_serial, timeout):
+    """Waits for changes on a job.
+
+    @type filename: string
+    @param filename: File on which to wait for changes
+    @type job_load_fn: callable
+    @param job_load_fn: Function to load job
+    @type fields: list of strings
+    @param fields: Which fields to check for changes
+    @type prev_job_info: list or None
+    @param prev_job_info: Last job information returned
+    @type prev_log_serial: int
+    @param prev_log_serial: Last job message serial number
+    @type timeout: float
+    @param timeout: maximum time to wait in seconds
+
+    """
+    try:
+      check_fn = _JobChangesChecker(fields, prev_job_info, prev_log_serial)
+      waiter = _JobChangesWaiter(filename)
+      try:
+        return utils.Retry(compat.partial(self._CheckForChanges,
+                                          job_load_fn, check_fn),
+                           utils.RETRY_REMAINING_TIME, timeout,
+                           wait_fn=waiter.Wait)
+      finally:
+        waiter.Close()
     except (errors.InotifyError, errors.JobLost):
       return None
     except utils.RetryTimeout:
       return constants.JOB_NOTCHANGED
-
-  def Close(self):
-    if self.wm:
-      self.notifier.stop()
 
 
 class _JobQueueWorker(workerpool.BaseWorker):
@@ -1314,7 +1398,7 @@ class JobQueue(object):
     @type prev_log_serial: int
     @param prev_log_serial: Last job message serial number
     @type timeout: float
-    @param timeout: maximum time to wait
+    @param timeout: maximum time to wait in seconds
     @rtype: tuple (job info, log entries)
     @return: a tuple of the job information as required via
         the fields parameter, and the log entries as a list
@@ -1325,12 +1409,12 @@ class JobQueue(object):
         as such by the clients
 
     """
-    helper = _WaitForJobChangesHelper(job_id, fields, prev_job_info,
-                                      prev_log_serial, self)
-    try:
-      return helper.WaitForChanges(timeout)
-    finally:
-      helper.Close()
+    load_fn = compat.partial(self.SafeLoadJobFromDisk, job_id)
+
+    helper = _WaitForJobChangesHelper()
+
+    return helper(self._GetJobPath(job_id), load_fn,
+                  fields, prev_job_info, prev_log_serial, timeout)
 
   @locking.ssynchronized(_LOCK)
   @_RequireOpenQueue
@@ -1380,9 +1464,7 @@ class JobQueue(object):
     archive_jobs = []
     rename_files = []
     for job in jobs:
-      if job.CalcStatus() not in (constants.JOB_STATUS_CANCELED,
-                                  constants.JOB_STATUS_SUCCESS,
-                                  constants.JOB_STATUS_ERROR):
+      if job.CalcStatus() not in constants.JOBS_FINALIZED:
         logging.debug("Job %s is not yet done", job.id)
         continue
 
