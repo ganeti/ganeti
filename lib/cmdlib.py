@@ -1433,14 +1433,11 @@ class LUVerifyCluster(LogicalUnit):
       self.bad = self.bad or cond
 
   def _VerifyNode(self, ninfo, nresult):
-    """Run multiple tests against a node.
+    """Perform some basic validation on data returned from a node.
 
-    Test list:
-
-      - compares ganeti version
-      - checks vg existence and size > 20G
-      - checks config file checksum
-      - checks ssh to other nodes
+    - check the result data structure is well formed and has all the mandatory
+      fields
+    - check ganeti version
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
