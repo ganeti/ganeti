@@ -571,6 +571,7 @@
         <command>migrate</command>
         <arg>-f</arg>
         <arg>--non-live</arg>
+        <arg>--migration-type=live|non-live</arg>
         <arg choice="req"><replaceable>node</replaceable></arg>
       </cmdsynopsis>
 
@@ -582,8 +583,9 @@
 
       <para>
         As for the <command>gnt-instance migrate</command> command,
-        the <option>--no-live</option> option can be given to do a
-        non-live migration.
+        the options <option>--no-live</option>
+        and <option>--migration-type</option> can be given to
+        influence the migration type.
       </para>
 
       <para>

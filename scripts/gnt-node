@@ -360,7 +360,16 @@ def MigrateNode(opts, args):
                                (",".join("'%s'" % name for name in pinst))):
     return 2
 
-  op = opcodes.OpMigrateNode(node_name=args[0], live=opts.live)
+  # this should be removed once --non-live is deprecated
+  if not opts.live and opts.migration_type is not None:
+    raise errors.OpPrereqError("Only one of the --non-live and "
+                               "--migration-type options can be passed",
+                               errors.ECODE_INVAL)
+  if not opts.live: # --non-live passed
+    live = constants.HT_MIGRATION_NONLIVE
+  else:
+    live = opts.migration_type
+  op = opcodes.OpMigrateNode(node_name=args[0], live=live)
   SubmitOpCode(op, cl=cl, opts=opts)
 
 
@@ -652,7 +661,7 @@ commands = {
     "Stops the primary instances on a node and start them on their"
     " secondary node (only for instances with drbd disk template)"),
   'migrate': (
-    MigrateNode, ARGS_ONE_NODE, [FORCE_OPT, NONLIVE_OPT],
+    MigrateNode, ARGS_ONE_NODE, [FORCE_OPT, NONLIVE_OPT, MIGRATION_TYPE_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),

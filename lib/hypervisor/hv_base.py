@@ -44,6 +44,7 @@ import logging
 
 from ganeti import errors
 from ganeti import utils
+from ganeti import constants
 
 
 # Read the BaseHypervisor.PARAMETERS docstring for the syntax of the
@@ -70,6 +71,10 @@ NO_CHECK = (False, None, None, None, None)
 
 # required, but no other checks
 REQUIRED_CHECK = (True, None, None, None, None)
+
+# migration type
+MIGRATION_TYPE_CHECK = (True, lambda x: x in constants.HT_MIGRATION_TYPES,
+                        "invalid migration type", None, None)
 
 
 def ParamInSet(required, my_set):

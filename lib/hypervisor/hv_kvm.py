@@ -194,6 +194,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     constants.HV_MIGRATION_BANDWIDTH: hv_base.NO_CHECK,
     constants.HV_MIGRATION_DOWNTIME: hv_base.NO_CHECK,
+    constants.HV_MIGRATION_TYPE: hv_base.MIGRATION_TYPE_CHECK,
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     constants.HV_DISK_CACHE:
       hv_base.ParamInSet(True, constants.HT_VALID_CACHE_TYPES),

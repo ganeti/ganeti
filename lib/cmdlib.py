@@ -232,6 +232,10 @@ _PInstanceName = ("instance_name", _NoDefault, _TNonEmptyString)
 #: a required node name (for single-node LUs)
 _PNodeName = ("node_name", _NoDefault, _TNonEmptyString)
 
+#: the migration type (live/non-live)
+_PMigrationLive = ("live", None, _TOr(_TNone,
+                                      _TElemOf(constants.HT_MIGRATION_TYPES)))
+
 
 # End types
 class LogicalUnit(object):
@@ -5486,7 +5490,7 @@ class LUMigrateInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("live", True, _TBool),
+    _PMigrationLive,
     ("cleanup", False, _TBool),
     ]
 
@@ -5499,7 +5503,7 @@ class LUMigrateInstance(LogicalUnit):
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
-                                       self.op.live, self.op.cleanup)
+                                       self.op.cleanup)
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
@@ -5717,7 +5721,7 @@ class LUMigrateNode(LogicalUnit):
   HTYPE = constants.HTYPE_NODE
   _OP_PARAMS = [
     _PNodeName,
-    ("live", False, _TBool),
+    _PMigrationLive,
     ]
   REQ_BGL = False
 
@@ -5738,7 +5742,7 @@ class LUMigrateNode(LogicalUnit):
       logging.debug("Migrating instance %s", inst.name)
       names.append(inst.name)
 
-      tasklets.append(TLMigrateInstance(self, inst.name, self.op.live, False))
+      tasklets.append(TLMigrateInstance(self, inst.name, False))
 
     self.tasklets = tasklets
 
@@ -5765,7 +5769,7 @@ class LUMigrateNode(LogicalUnit):
 
 
 class TLMigrateInstance(Tasklet):
-  def __init__(self, lu, instance_name, live, cleanup):
+  def __init__(self, lu, instance_name, cleanup):
     """Initializes this class.
 
     """
@@ -5773,8 +5777,8 @@ class TLMigrateInstance(Tasklet):
 
     # Parameters
     self.instance_name = instance_name
-    self.live = live
     self.cleanup = cleanup
+    self.live = False # will be overridden later
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5814,6 +5818,13 @@ class TLMigrateInstance(Tasklet):
                    prereq=True, ecode=errors.ECODE_STATE)
 
     self.instance = instance
+
+    if self.lu.op.live is None:
+      # read the default value from the hypervisor
+      i_hv = self.cfg.GetClusterInfo().FillHV(instance, skip_globals=False)
+      self.lu.op.live = i_hv[constants.HV_MIGRATION_TYPE]
+
+    self.live = self.lu.op.live == constants.HT_MIGRATION_LIVE
 
   def _WaitUntilSync(self):
     """Poll with custom rpc for disk sync.

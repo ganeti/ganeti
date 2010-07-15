@@ -897,7 +897,17 @@ def MigrateInstance(opts, args):
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live,
+  # this should be removed once --non-live is deprecated
+  if not opts.live and opts.migration_type is not None:
+    raise errors.OpPrereqError("Only one of the --non-live and "
+                               "--migration-type options can be passed",
+                               errors.ECODE_INVAL)
+  if not opts.live: # --non-live passed
+    live = constants.HT_MIGRATION_NONLIVE
+  else:
+    live = opts.migration_type
+
+  op = opcodes.OpMigrateInstance(instance_name=instance_name, live=live,
                                  cleanup=opts.cleanup)
   SubmitOpCode(op, cl=cl, opts=opts)
   return 0
@@ -1409,7 +1419,7 @@ commands = {
     " using the remote mirror (only for instances of type drbd)"),
   'migrate': (
     MigrateInstance, ARGS_ONE_INSTANCE,
-    [FORCE_OPT, NONLIVE_OPT, CLEANUP_OPT],
+    [FORCE_OPT, NONLIVE_OPT, MIGRATION_TYPE_OPT, CLEANUP_OPT],
     "[-f] <instance>", "Migrate instance to its secondary node"
     " (only for instances of type drbd)"),
   'move': (

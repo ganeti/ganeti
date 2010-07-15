@@ -87,6 +87,7 @@ __all__ = [
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
   "MC_OPT",
+  "MIGRATION_TYPE_OPT",
   "NET_OPT",
   "NEW_CLUSTER_CERT_OPT",
   "NEW_CLUSTER_DOMAIN_SECRET_OPT",
@@ -697,6 +698,12 @@ NONLIVE_OPT = cli_option("--non-live", dest="live",
                          help="Do a non-live migration (this usually means"
                          " freeze the instance, save the state, transfer and"
                          " only then resume running on the secondary node)")
+
+MIGRATION_TYPE_OPT = cli_option("--migration-type", dest="migration_type",
+                                default=None,
+                                choices=list(constants.HT_MIGRATION_TYPES),
+                                help="Override default migration type (choose"
+                                " either live or non-live")
 
 NODE_PLACEMENT_OPT = cli_option("-n", "--node", dest="node",
                                 help="Target node and optional secondary node",
