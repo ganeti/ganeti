@@ -33,6 +33,7 @@ from ganeti import cmdlib
 from ganeti import opcodes
 from ganeti import errors
 from ganeti import utils
+from ganeti import luxi
 
 import testutils
 import mocks
@@ -145,6 +146,14 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
     op.node = None
     lu.cfg.GetDefaultIAllocator = lambda: None
     self.assertRaises(errors.OpPrereqError, c_i)
+
+
+class TestLUTestJobqueue(unittest.TestCase):
+  def test(self):
+    self.assert_(cmdlib.LUTestJobqueue._CLIENT_CONNECT_TIMEOUT <
+                 (luxi.WFJC_TIMEOUT * 0.75),
+                 msg=("Client timeout too high, might not notice bugs"
+                      " in WaitForJobChange"))
 
 
 if __name__ == "__main__":

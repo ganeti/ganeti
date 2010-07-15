@@ -809,6 +809,18 @@ OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
 ELOG_REMOTE_IMPORT = "remote-import"
+ELOG_JQUEUE_TEST = "jqueue-test"
+
+# Job queue test
+JQT_MSGPREFIX = "TESTMSG="
+JQT_EXPANDNAMES = "expandnames"
+JQT_EXEC = "exec"
+JQT_LOGMSG = "logmsg"
+JQT_ALL = frozenset([
+  JQT_EXPANDNAMES,
+  JQT_EXEC,
+  JQT_LOGMSG,
+  ])
 
 # max dynamic devices
 MAX_NICS = 8

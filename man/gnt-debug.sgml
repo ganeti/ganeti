@@ -179,6 +179,19 @@
 
     </refsect2>
 
+    <refsect2>
+      <title>TEST-JOBQUEUE</title>
+
+      <cmdsynopsis>
+        <command>test-jobqueue</command>
+      </cmdsynopsis>
+
+      <para>
+        Executes a few tests on the job queue. This command might generate
+        failed jobs deliberately.
+      </para>
+    </refsect2>
+
   </refsect1>
 
   &footer;

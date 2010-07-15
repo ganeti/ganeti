@@ -784,6 +784,19 @@ class OpTestAllocator(OpCode):
     ]
 
 
+class OpTestJobqueue(OpCode):
+  """Utility opcode to test some aspects of the job queue.
+
+  """
+  OP_ID = "OP_TEST_JQUEUE"
+  __slots__ = [
+    "notify_waitlock",
+    "notify_exec",
+    "log_messages",
+    "fail",
+    ]
+
+
 OP_MAPPING = dict([(v.OP_ID, v) for v in globals().values()
                    if (isinstance(v, type) and issubclass(v, OpCode) and
                        hasattr(v, "OP_ID"))])

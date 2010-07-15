@@ -220,6 +220,7 @@ class Processor(object):
     # test lu
     opcodes.OpTestDelay: cmdlib.LUTestDelay,
     opcodes.OpTestAllocator: cmdlib.LUTestAllocator,
+    opcodes.OpTestJobqueue: cmdlib.LUTestJobqueue,
     }
 
   def __init__(self, context, ec_id):

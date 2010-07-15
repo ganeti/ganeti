@@ -28,9 +28,12 @@
 import sys
 import simplejson
 import time
+import socket
+import logging
 
 from ganeti.cli import *
 from ganeti import cli
+from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import errors
@@ -155,6 +158,154 @@ def TestAllocator(opts, args):
   return 0
 
 
+class _JobQueueTestReporter(cli.StdioJobPollReportCb):
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    cli.StdioJobPollReportCb.__init__(self)
+    self._testmsgs = []
+    self._job_id = None
+
+  def GetTestMessages(self):
+    """Returns all test log messages received so far.
+
+    """
+    return self._testmsgs
+
+  def GetJobId(self):
+    """Returns the job ID.
+
+    """
+    return self._job_id
+
+  def ReportLogMessage(self, job_id, serial, timestamp, log_type, log_msg):
+    """Handles a log message.
+
+    """
+    if self._job_id is None:
+      self._job_id = job_id
+    elif self._job_id != job_id:
+      raise errors.ProgrammerError("The same reporter instance was used for"
+                                   " more than one job")
+
+    if log_type == constants.ELOG_JQUEUE_TEST:
+      (sockname, test, arg) = log_msg
+      return self._ProcessTestMessage(job_id, sockname, test, arg)
+
+    elif (log_type == constants.ELOG_MESSAGE and
+          log_msg.startswith(constants.JQT_MSGPREFIX)):
+      self._testmsgs.append(log_msg[len(constants.JQT_MSGPREFIX):])
+      return
+
+    return cli.StdioJobPollReportCb.ReportLogMessage(self, job_id, serial,
+                                                     timestamp, log_type,
+                                                     log_msg)
+
+  def _ProcessTestMessage(self, job_id, sockname, test, arg):
+    """Handles a job queue test message.
+
+    """
+    if test not in constants.JQT_ALL:
+      raise errors.OpExecError("Received invalid test message %s" % test)
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+      sock.settimeout(30.0)
+
+      logging.debug("Connecting to %s", sockname)
+      sock.connect(sockname)
+
+      logging.debug("Checking status")
+      jobdetails = cli.GetClient().QueryJobs([job_id], ["status"])[0]
+      if not jobdetails:
+        raise errors.OpExecError("Can't find job %s" % job_id)
+
+      status = jobdetails[0]
+
+      logging.debug("Status of job %s is %s", job_id, status)
+
+      if test == constants.JQT_EXPANDNAMES:
+        if status != constants.JOB_STATUS_WAITLOCK:
+          raise errors.OpExecError("Job status while expanding names is '%s',"
+                                   " not '%s' as expected" %
+                                   (status, constants.JOB_STATUS_WAITLOCK))
+      elif test in (constants.JQT_EXEC, constants.JQT_LOGMSG):
+        if status != constants.JOB_STATUS_RUNNING:
+          raise errors.OpExecError("Job status while executing opcode is '%s',"
+                                   " not '%s' as expected" %
+                                   (status, constants.JOB_STATUS_RUNNING))
+
+      if test == constants.JQT_LOGMSG:
+        if len(self._testmsgs) != arg:
+          raise errors.OpExecError("Received %s test messages when %s are"
+                                   " expected" % (len(self._testmsgs), arg))
+    finally:
+      logging.debug("Closing socket")
+      sock.close()
+
+
+def TestJobqueue(opts, _):
+  """Runs a few tests on the job queue.
+
+  """
+  test_messages = [
+    "Hello World",
+    "A",
+    "",
+    "B"
+    "Foo|bar|baz",
+    utils.TimestampForFilename(),
+    ]
+
+  for fail in [False, True]:
+    if fail:
+      ToStdout("Testing job failure")
+    else:
+      ToStdout("Testing job success")
+
+    op = opcodes.OpTestJobqueue(notify_waitlock=True,
+                                notify_exec=True,
+                                log_messages=test_messages,
+                                fail=fail)
+
+    reporter = _JobQueueTestReporter()
+    try:
+      SubmitOpCode(op, reporter=reporter, opts=opts)
+    except errors.OpExecError, err:
+      if not fail:
+        raise
+      # Ignore error
+    else:
+      if fail:
+        raise errors.OpExecError("Job didn't fail when it should")
+
+    # Check received log messages
+    if reporter.GetTestMessages() != test_messages:
+      raise errors.OpExecError("Received test messages don't match input"
+                               " (input %r, received %r)" %
+                               (test_messages, reporter.GetTestMessages()))
+
+    # Check final status
+    job_id = reporter.GetJobId()
+
+    jobdetails = cli.GetClient().QueryJobs([job_id], ["status"])[0]
+    if not jobdetails:
+      raise errors.OpExecError("Can't find job %s" % job_id)
+
+    if fail:
+      exp_status = constants.JOB_STATUS_ERROR
+    else:
+      exp_status = constants.JOB_STATUS_SUCCESS
+
+    final_status = jobdetails[0]
+    if final_status != exp_status:
+      raise errors.OpExecError("Final job status is %s, not %s as expected" %
+                               (final_status, exp_status))
+
+  return 0
+
+
 commands = {
   'delay': (
     Delay, [ArgUnknown(min=1, max=1)],
@@ -206,6 +357,9 @@ commands = {
                 help="Comma separated list of tags"),
      ],
     "{opts...} <instance>", "Executes a TestAllocator OpCode"),
+  "test-jobqueue": (
+    TestJobqueue, ARGS_NONE, [],
+    "", "Test a few aspects of the job queue")
   }
 
 

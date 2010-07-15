@@ -36,6 +36,9 @@ import platform
 import logging
 import copy
 import OpenSSL
+import socket
+import tempfile
+import shutil
 
 from ganeti import ssh
 from ganeti import utils
@@ -9846,6 +9849,145 @@ class LUTestDelay(NoHooksLU):
       for i in range(self.op.repeat):
         self.LogInfo("Test delay iteration %d/%d" % (i, top_value))
         self._TestDelay()
+
+
+class LUTestJobqueue(NoHooksLU):
+  """Utility LU to test some aspects of the job queue.
+
+  """
+  _OP_PARAMS = [
+    ("notify_waitlock", False, _TBool),
+    ("notify_exec", False, _TBool),
+    ("log_messages", _EmptyList, _TListOf(_TString)),
+    ("fail", False, _TBool),
+    ]
+  REQ_BGL = False
+
+  # Must be lower than default timeout for WaitForJobChange to see whether it
+  # notices changed jobs
+  _CLIENT_CONNECT_TIMEOUT = 20.0
+  _CLIENT_CONFIRM_TIMEOUT = 60.0
+
+  @classmethod
+  def _NotifyUsingSocket(cls, cb, errcls):
+    """Opens a Unix socket and waits for another program to connect.
+
+    @type cb: callable
+    @param cb: Callback to send socket name to client
+    @type errcls: class
+    @param errcls: Exception class to use for errors
+
+    """
+    # Using a temporary directory as there's no easy way to create temporary
+    # sockets without writing a custom loop around tempfile.mktemp and
+    # socket.bind
+    tmpdir = tempfile.mkdtemp()
+    try:
+      tmpsock = utils.PathJoin(tmpdir, "sock")
+
+      logging.debug("Creating temporary socket at %s", tmpsock)
+      sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      try:
+        sock.bind(tmpsock)
+        sock.listen(1)
+
+        # Send details to client
+        cb(tmpsock)
+
+        # Wait for client to connect before continuing
+        sock.settimeout(cls._CLIENT_CONNECT_TIMEOUT)
+        try:
+          (conn, _) = sock.accept()
+        except socket.error, err:
+          raise errcls("Client didn't connect in time (%s)" % err)
+      finally:
+        sock.close()
+    finally:
+      # Remove as soon as client is connected
+      shutil.rmtree(tmpdir)
+
+    # Wait for client to close
+    try:
+      try:
+        conn.settimeout(cls._CLIENT_CONFIRM_TIMEOUT)
+        conn.recv(1)
+      except socket.error, err:
+        raise errcls("Client failed to confirm notification (%s)" % err)
+    finally:
+      conn.close()
+
+  def _SendNotification(self, test, arg, sockname):
+    """Sends a notification to the client.
+
+    @type test: string
+    @param test: Test name
+    @param arg: Test argument (depends on test)
+    @type sockname: string
+    @param sockname: Socket path
+
+    """
+    self.Log(constants.ELOG_JQUEUE_TEST, (sockname, test, arg))
+
+  def _Notify(self, prereq, test, arg):
+    """Notifies the client of a test.
+
+    @type prereq: bool
+    @param prereq: Whether this is a prereq-phase test
+    @type test: string
+    @param test: Test name
+    @param arg: Test argument (depends on test)
+
+    """
+    if prereq:
+      errcls = errors.OpPrereqError
+    else:
+      errcls = errors.OpExecError
+
+    return self._NotifyUsingSocket(compat.partial(self._SendNotification,
+                                                  test, arg),
+                                   errcls)
+
+  def CheckArguments(self):
+    self.checkargs_calls = getattr(self, "checkargs_calls", 0) + 1
+    self.expandnames_calls = 0
+
+  def ExpandNames(self):
+    checkargs_calls = getattr(self, "checkargs_calls", 0)
+    if checkargs_calls < 1:
+      raise errors.ProgrammerError("CheckArguments was not called")
+
+    self.expandnames_calls += 1
+
+    if self.op.notify_waitlock:
+      self._Notify(True, constants.JQT_EXPANDNAMES, None)
+
+    self.LogInfo("Expanding names")
+
+    # Get lock on master node (just to get a lock, not for a particular reason)
+    self.needed_locks = {
+      locking.LEVEL_NODE: self.cfg.GetMasterNode(),
+      }
+
+  def Exec(self, feedback_fn):
+    if self.expandnames_calls < 1:
+      raise errors.ProgrammerError("ExpandNames was not called")
+
+    if self.op.notify_exec:
+      self._Notify(False, constants.JQT_EXEC, None)
+
+    self.LogInfo("Executing")
+
+    if self.op.log_messages:
+      for idx, msg in enumerate(self.op.log_messages):
+        self.LogInfo("Sending log message %s", idx + 1)
+        feedback_fn(constants.JQT_MSGPREFIX + msg)
+        # Report how many test messages have been sent
+        self._Notify(False, constants.JQT_LOGMSG, idx + 1)
+
+    if self.op.fail:
+      raise errors.OpExecError("Opcode failure was requested")
+
+    return True
 
 
 class IAllocator(object):
