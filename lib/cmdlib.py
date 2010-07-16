@@ -1442,9 +1442,9 @@ class LUVerifyCluster(LogicalUnit):
   def _VerifyNode(self, ninfo, nresult):
     """Perform some basic validation on data returned from a node.
 
-    - check the result data structure is well formed and has all the mandatory
-      fields
-    - check ganeti version
+      - check the result data structure is well formed and has all the
+        mandatory fields
+      - check ganeti version
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
