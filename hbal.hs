@@ -193,7 +193,9 @@ main = do
       all_names = concatMap allNames all_nodes
       offline_wrong = filter (`notElem` all_names) offline_names
       offline_indices = map Node.idx $
-                        filter (\n -> Node.name n `elem` offline_names)
+                        filter (\n ->
+                                 Node.name n `elem` offline_names ||
+                                 Node.alias n `elem` offline_names)
                                all_nodes
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
