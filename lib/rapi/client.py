@@ -351,7 +351,7 @@ class GanetiRapiClient(object):
 
     curl = self._curl
 
-    if content:
+    if content is not None:
       encoded_content = self._json_encoder.encode(content)
     else:
       encoded_content = ""
