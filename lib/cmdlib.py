@@ -9920,6 +9920,8 @@ class LUTestJobqueue(NoHooksLU):
     # Wait for client to close
     try:
       try:
+        # pylint: disable-msg=E1101
+        # Instance of '_socketobject' has no ... member
         conn.settimeout(cls._CLIENT_CONFIRM_TIMEOUT)
         conn.recv(1)
       except socket.error, err:

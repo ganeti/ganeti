@@ -272,7 +272,7 @@ def TestJobqueue(opts, _):
     reporter = _JobQueueTestReporter()
     try:
       SubmitOpCode(op, reporter=reporter, opts=opts)
-    except errors.OpExecError, err:
+    except errors.OpExecError:
       if not fail:
         raise
       # Ignore error
