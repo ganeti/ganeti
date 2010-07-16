@@ -1033,7 +1033,8 @@ def _ParseArgs(argv, commands, aliases):
     binary = argv[0].split("/")[-1]
 
   if len(argv) > 1 and argv[1] == "--version":
-    ToStdout("%s (ganeti) %s", binary, constants.RELEASE_VERSION)
+    ToStdout("%s (ganeti %s) %s", binary, constants.VCS_VERSION,
+             constants.RELEASE_VERSION)
     # Quit right away. That way we don't have to care about this special
     # argument. optparse.py does it the same.
     sys.exit(0)

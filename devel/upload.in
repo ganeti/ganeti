@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 # This is a test script to ease development and testing on test clusters.
 # It should not be used to update production environments.
 
-# Usage: upload.sh node-{1,2,3}
+# Usage: upload node-{1,2,3}
 # it will upload the python libraries to
 # $prefix/lib/python2.4/site-packages/ganeti and the command line utils to
 # $prefix/sbin. It needs passwordless root login to the nodes.
@@ -63,6 +63,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 set ${hosts}
+
+make regen-vcs-version
 
 TXD=`mktemp -d`
 trap 'rm -rf $TXD' EXIT
