@@ -30,6 +30,26 @@ Version 2.2.0 beta 0
   ``EXP_SIZE_FD``
 
 
+Version 2.1.6
+-------------
+
+*(Released Fri, 16 Jul 2010)*
+
+Bugfixes only:
+  - Add an option to only select some reboot types during qa/burnin.
+    (on some hypervisors consequent reboots are not supported)
+  - Fix infrequent race condition in master failover. Sometimes the old
+    master ip address would be still detected as up for a short time
+    after it was removed, causing failover to fail.
+  - Decrease mlockall warnings when the ctypes module is missing. On
+    Python 2.4 we support running even if no ctypes module is installed,
+    but we were too verbose about this issue.
+  - Fix building on old distributions, on which man doesn't have a
+    --warnings option.
+  - Fix RAPI not to ignore the MAC address on instance creation
+  - Implement the old instance creation format in the RAPI client.
+
+
 Version 2.1.5
 -------------
 
