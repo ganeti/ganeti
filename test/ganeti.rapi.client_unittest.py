@@ -698,6 +698,31 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(data["destination"], "nodeX")
     self.assertEqual(data["shutdown"], True)
 
+  def testMigrateInstanceDefaults(self):
+    self.rapi.AddResponse("24873")
+    job_id = self.client.MigrateInstance("inst91")
+    self.assertEqual(job_id, 24873)
+    self.assertHandler(rlib2.R_2_instances_name_migrate)
+    self.assertItems(["inst91"])
+
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
+    self.assertFalse(data)
+
+  def testMigrateInstance(self):
+    for mode in constants.HT_MIGRATION_MODES:
+      for cleanup in [False, True]:
+        self.rapi.AddResponse("31910")
+        job_id = self.client.MigrateInstance("inst289", mode=mode,
+                                             cleanup=cleanup)
+        self.assertEqual(job_id, 31910)
+        self.assertHandler(rlib2.R_2_instances_name_migrate)
+        self.assertItems(["inst289"])
+
+        data = serializer.LoadJson(self.rapi.GetLastRequestData())
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data["mode"], mode)
+        self.assertEqual(data["cleanup"], cleanup)
+
   def testGetJobs(self):
     self.rapi.AddResponse('[ { "id": "123", "uri": "\\/2\\/jobs\\/123" },'
                           '  { "id": "124", "uri": "\\/2\\/jobs\\/124" } ]')

@@ -931,6 +931,29 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s/export" %
                               (GANETI_RAPI_VERSION, instance)), None, body)
 
+  def MigrateInstance(self, instance, mode=None, cleanup=None):
+    """Starts up an instance.
+
+    @type instance: string
+    @param instance: Instance name
+    @type mode: string
+    @param mode: Migration mode
+    @type cleanup: bool
+    @param cleanup: Whether to clean up a previously failed migration
+
+    """
+    body = {}
+
+    if mode is not None:
+      body["mode"] = mode
+
+    if cleanup is not None:
+      body["cleanup"] = cleanup
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/migrate" %
+                              (GANETI_RAPI_VERSION, instance)), None, body)
+
   def GetJobs(self):
     """Gets all jobs for the cluster.
 
