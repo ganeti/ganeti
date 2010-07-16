@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008 Google Inc.
+# Copyright (C) 2007, 2008, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ import asyncore
 
 from ganeti import http
 from ganeti import utils
+from ganeti import netutils
 
 
 WEEKDAYNAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -478,8 +479,8 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     self.mainloop = mainloop
     self.local_address = local_address
     self.port = port
-
-    self.socket = self._CreateSocket(ssl_params, ssl_verify_peer)
+    family = netutils.IPAddress.GetAddressFamily(local_address)
+    self.socket = self._CreateSocket(ssl_params, ssl_verify_peer, family)
 
     # Allow port to be reused
     self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

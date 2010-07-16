@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008 Google Inc.
+# Copyright (C) 2007, 2008, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -570,7 +570,7 @@ class HttpBase(object):
     self._ssl_key = None
     self._ssl_cert = None
 
-  def _CreateSocket(self, ssl_params, ssl_verify_peer):
+  def _CreateSocket(self, ssl_params, ssl_verify_peer, family):
     """Creates a TCP socket and initializes SSL if needed.
 
     @type ssl_params: HttpSslParams
@@ -578,11 +578,14 @@ class HttpBase(object):
     @type ssl_verify_peer: bool
     @param ssl_verify_peer: Whether to require client certificate
         and compare it with our certificate
+    @type family: int
+    @param family: socket.AF_INET | socket.AF_INET6
 
     """
-    self._ssl_params = ssl_params
+    assert family in (socket.AF_INET, socket.AF_INET6)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self._ssl_params = ssl_params
+    sock = socket.socket(family, socket.SOCK_STREAM)
 
     # Should we enable SSL?
     self.using_ssl = ssl_params is not None
