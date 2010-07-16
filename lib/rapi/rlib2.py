@@ -991,6 +991,38 @@ class R_2_instances_name_export(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseMigrateInstanceRequest(name, data):
+  """Parses a request for an instance migration.
+
+  @rtype: L{opcodes.OpMigrateInstance}
+  @return: Instance migration opcode
+
+  """
+  mode = baserlib.CheckParameter(data, "mode", default=None)
+  cleanup = baserlib.CheckParameter(data, "cleanup", exptype=bool,
+                                    default=False)
+
+  return opcodes.OpMigrateInstance(instance_name=name, mode=mode,
+                                   cleanup=cleanup)
+
+
+class R_2_instances_name_migrate(baserlib.R_Generic):
+  """/2/instances/[instance_name]/migrate resource.
+
+  """
+  def PUT(self):
+    """Migrates an instance.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+
+    op = _ParseMigrateInstanceRequest(self.items[0], self.request_body)
+
+    return baserlib.SubmitJob([op])
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 

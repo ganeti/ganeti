@@ -223,5 +223,36 @@ class TestParseExportInstanceRequest(testutils.GanetiTestCase):
                       { "remove_instance": "False", })
 
 
+class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.Parse = rlib2._ParseMigrateInstanceRequest
+
+  def test(self):
+    name = "instYooho6ek"
+
+    for cleanup in [False, True]:
+      for mode in constants.HT_MIGRATION_MODES:
+        data = {
+          "cleanup": cleanup,
+          "mode": mode,
+          }
+        op = self.Parse(name, data)
+        self.assert_(isinstance(op, opcodes.OpMigrateInstance))
+        self.assertEqual(op.instance_name, name)
+        self.assertEqual(op.mode, mode)
+        self.assertEqual(op.cleanup, cleanup)
+
+  def testDefaults(self):
+    name = "instnohZeex0"
+
+    op = self.Parse(name, {})
+    self.assert_(isinstance(op, opcodes.OpMigrateInstance))
+    self.assertEqual(op.instance_name, name)
+    self.assertEqual(op.mode, None)
+    self.assertFalse(op.cleanup)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

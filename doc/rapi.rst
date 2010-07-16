@@ -629,6 +629,26 @@ Body parameters:
   Destination X509 CA (remote export only).
 
 
+``/2/instances/[instance_name]/migrate``
+++++++++++++++++++++++++++++++++++++++++
+
+Migrates an instance.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``mode`` (string)
+  Migration mode.
+``cleanup`` (bool)
+  Whether a previously failed migration should be cleaned up.
+
+
 ``/2/instances/[instance_name]/tags``
 +++++++++++++++++++++++++++++++++++++
 
