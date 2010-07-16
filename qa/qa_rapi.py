@@ -341,6 +341,14 @@ def TestRapiInstanceRemove(instance, use_client):
   qa_config.ReleaseInstance(instance)
 
 
+def TestRapiInstanceMigrate(instance):
+  """Test migrating instance via RAPI"""
+  # Move to secondary node
+  _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
+  # And back to previous primary
+  _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
+
+
 def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()

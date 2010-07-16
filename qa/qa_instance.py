@@ -160,6 +160,20 @@ def TestInstanceFailover(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+def TestInstanceMigrate(instance):
+  """gnt-instance migrate"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ["gnt-instance", "migrate", "--force", instance["name"]]
+  AssertEqual(StartSSH(master["primary"],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # ... and back
+  cmd = ["gnt-instance", "migrate", "--force", instance["name"]]
+  AssertEqual(StartSSH(master["primary"],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 def TestInstanceInfo(instance):
   """gnt-instance info"""
   master = qa_config.GetMasterNode()

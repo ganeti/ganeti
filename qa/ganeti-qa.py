@@ -254,6 +254,12 @@ def RunHardwareFailureTests(instance, pnode, snode):
   if qa_config.TestEnabled('instance-failover'):
     RunTest(qa_instance.TestInstanceFailover, instance)
 
+  if qa_config.TestEnabled("instance-migrate"):
+    RunTest(qa_instance.TestInstanceMigrate, instance)
+
+    if qa_rapi.Enabled():
+      RunTest(qa_rapi.TestRapiInstanceMigrate, instance)
+
   if qa_config.TestEnabled('instance-replace-disks'):
     othernode = qa_config.AcquireNode(exclude=[pnode, snode])
     try:

@@ -72,6 +72,7 @@
     "instance-import": true,
     "instance-info": true,
     "instance-list": true,
+    "instance-migrate": true,
     "instance-modify": true,
     "instance-reboot": true,
     "instance-reinstall": true,
