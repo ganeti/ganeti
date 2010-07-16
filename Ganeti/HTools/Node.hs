@@ -322,7 +322,9 @@ removeSec t inst =
         old_peers = peers t
         old_peem = P.find pnode old_peers
         new_peem =  old_peem - Instance.mem inst
-        new_peers = P.add pnode new_peem old_peers
+        new_peers = if new_peem > 0
+                    then P.add pnode new_peem old_peers
+                    else P.remove pnode old_peers
         old_rmem = rMem t
         new_rmem = if old_peem < old_rmem
                    then old_rmem
