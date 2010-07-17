@@ -108,6 +108,8 @@ class BaseWorker(threading.Thread, object):
           logging.debug("Done with task %r", self._current_task)
         except: # pylint: disable-msg=W0702
           logging.exception("Caught unhandled exception")
+
+        assert self._HasRunningTaskUnlocked()
       finally:
         # Notify pool
         pool._lock.acquire()
@@ -117,6 +119,8 @@ class BaseWorker(threading.Thread, object):
             pool._worker_to_pool.notifyAll()
         finally:
           pool._lock.release()
+
+      assert not self._HasRunningTaskUnlocked()
 
     logging.debug("Terminates")
 
