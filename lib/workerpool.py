@@ -52,10 +52,17 @@ class BaseWorker(threading.Thread, object):
     self._current_task = None
 
   def ShouldTerminate(self):
-    """Returns whether a worker should terminate.
+    """Returns whether this worker should terminate.
+
+    Should only be called from within L{RunTask}.
 
     """
-    return self.pool.ShouldWorkerTerminate(self)
+    self.pool._lock.acquire()
+    try:
+      assert self._HasRunningTaskUnlocked()
+      return self.pool._ShouldWorkerTerminateUnlocked(self)
+    finally:
+      self.pool._lock.release()
 
   def _HasRunningTaskUnlocked(self):
     """Returns whether this worker is currently running a task.
@@ -248,16 +255,6 @@ class WorkerPool(object):
 
     """
     return (worker in self._termworkers)
-
-  def ShouldWorkerTerminate(self, worker):
-    """Returns whether a worker should terminate.
-
-    """
-    self._lock.acquire()
-    try:
-      return self._ShouldWorkerTerminateUnlocked(worker)
-    finally:
-      self._lock.release()
 
   def _HasRunningTasksUnlocked(self):
     """Checks whether there's a task running in a worker.
