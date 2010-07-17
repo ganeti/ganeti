@@ -63,16 +63,6 @@ class BaseWorker(threading.Thread, object):
     """
     return (self._current_task is not None)
 
-  def HasRunningTask(self):
-    """Returns whether this worker is currently running a task.
-
-    """
-    self.pool._lock.acquire()
-    try:
-      return self._HasRunningTaskUnlocked()
-    finally:
-      self.pool._lock.release()
-
   def run(self):
     """Main thread function.
 
@@ -81,7 +71,7 @@ class BaseWorker(threading.Thread, object):
     """
     pool = self.pool
 
-    assert not self.HasRunningTask()
+    assert self._current_task is None
 
     while True:
       try:
