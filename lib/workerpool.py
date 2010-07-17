@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2008 Google Inc.
+# Copyright (C) 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -189,6 +189,14 @@ class WorkerPool(object):
     while self._quiescing:
       self._pool_to_pool.wait()
 
+  def _AddTaskUnlocked(self, args):
+    assert isinstance(args, (tuple, list)), "Arguments must be a sequence"
+
+    self._tasks.append(args)
+
+    # Notify a waiting worker
+    self._pool_to_worker.notify()
+
   def AddTask(self, *args):
     """Adds a task to the queue.
 
@@ -198,11 +206,7 @@ class WorkerPool(object):
     self._lock.acquire()
     try:
       self._WaitWhileQuiescingUnlocked()
-
-      self._tasks.append(args)
-
-      # Wake one idling worker up
-      self._pool_to_worker.notify()
+      self._AddTaskUnlocked(args)
     finally:
       self._lock.release()
 
@@ -220,10 +224,8 @@ class WorkerPool(object):
     try:
       self._WaitWhileQuiescingUnlocked()
 
-      self._tasks.extend(tasks)
-
-      for _ in tasks:
-        self._pool_to_worker.notify()
+      for args in tasks:
+        self._AddTaskUnlocked(args)
     finally:
       self._lock.release()
 
