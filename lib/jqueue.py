@@ -912,7 +912,7 @@ class JobQueue(object):
           status = job.CalcStatus()
 
           if status in (constants.JOB_STATUS_QUEUED, ):
-            self._wpool.AddTask(job)
+            self._wpool.AddTask((job, ))
 
           elif status in (constants.JOB_STATUS_RUNNING,
                           constants.JOB_STATUS_WAITLOCK,
@@ -1339,7 +1339,7 @@ class JobQueue(object):
 
     """
     job_id = self._NewSerialsUnlocked(1)[0]
-    self._wpool.AddTask(self._SubmitJobUnlocked(job_id, ops))
+    self._wpool.AddTask((self._SubmitJobUnlocked(job_id, ops), ))
     return job_id
 
   @locking.ssynchronized(_LOCK)

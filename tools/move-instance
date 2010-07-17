@@ -819,7 +819,7 @@ def main():
   try:
     # Add instance moves to workerpool
     for move in moves:
-      wp.AddTask(rapi_factory, move)
+      wp.AddTask((rapi_factory, move))
 
     # Wait for all moves to finish
     wp.Quiesce()

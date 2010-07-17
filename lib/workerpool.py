@@ -189,9 +189,10 @@ class WorkerPool(object):
     # Notify a waiting worker
     self._pool_to_worker.notify()
 
-  def AddTask(self, *args):
+  def AddTask(self, args):
     """Adds a task to the queue.
 
+    @type args: sequence
     @param args: arguments passed to L{BaseWorker.RunTask}
 
     """

@@ -114,7 +114,7 @@ class MasterClientHandler(daemon.AsyncTerminatedMessageStream):
     self.server = server
 
   def handle_message(self, message, _):
-    self.server.request_workers.AddTask(self.server, message, self)
+    self.server.request_workers.AddTask((self.server, message, self))
 
 
 class MasterServer(daemon.AsyncStreamServer):

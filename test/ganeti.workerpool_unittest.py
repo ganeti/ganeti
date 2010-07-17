@@ -93,7 +93,7 @@ class TestWorkerpool(unittest.TestCase):
       self._CheckWorkerCount(wp, 3)
 
       for i in range(10):
-        wp.AddTask(ctx, "Hello world %s" % i)
+        wp.AddTask((ctx, "Hello world %s" % i))
 
       wp.Quiesce()
     finally:
@@ -133,7 +133,7 @@ class TestWorkerpool(unittest.TestCase):
       checksum = ChecksumContext.CHECKSUM_START
       for i in range(1, 100):
         checksum = ChecksumContext.UpdateChecksum(checksum, i)
-        wp.AddTask(ctx, i)
+        wp.AddTask((ctx, i))
 
       wp.Quiesce()
 
@@ -156,8 +156,8 @@ class TestWorkerpool(unittest.TestCase):
       self._CheckWorkerCount(wp, 3)
 
       wp.AddManyTasks([(ctx, "Hello world %s" % i, ) for i in range(10)])
-      wp.AddTask(ctx, "A separate hello")
-      wp.AddTask(ctx, "Once more, hi!")
+      wp.AddTask((ctx, "A separate hello"))
+      wp.AddTask((ctx, "Once more, hi!"))
       wp.AddManyTasks([(ctx, "Hello world %s" % i, ) for i in range(10)])
 
       wp.Quiesce()
@@ -180,7 +180,7 @@ class TestWorkerpool(unittest.TestCase):
                         [i for i in range(10)])
 
       wp.AddManyTasks([(ctx, "Hello world %s" % i, ) for i in range(10)])
-      wp.AddTask(ctx, "A separate hello")
+      wp.AddTask((ctx, "A separate hello"))
 
       wp.Quiesce()
 
