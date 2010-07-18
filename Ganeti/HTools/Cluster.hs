@@ -766,9 +766,10 @@ printSolution nl il sol =
 -- | Print the node list.
 printNodes :: Node.List -> [String] -> String
 printNodes nl fs =
-    let fields = if null fs
-                 then Node.defaultFields
-                 else fs
+    let fields = case fs of
+          [] -> Node.defaultFields
+          "+":rest -> Node.defaultFields ++ rest
+          _ -> fs
         snl = sortBy (comparing Node.idx) (Container.elems nl)
         (header, isnum) = unzip $ map Node.showHeader fields
     in unlines . map ((:) ' ' .  intercalate " ") $

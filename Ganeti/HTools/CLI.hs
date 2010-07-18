@@ -286,7 +286,10 @@ oPrintInsts = Option "" ["print-instances"]
 oPrintNodes :: OptType
 oPrintNodes = Option "p" ["print-nodes"]
               (OptArg ((\ f opts ->
-                            let splitted = sepSplit ',' f
+                            let (prefix, realf) = case f of
+                                  '+':rest -> (["+"], rest)
+                                  _ -> ([], f)
+                                splitted = prefix ++ sepSplit ',' realf
                             in Ok opts { optShowNodes = Just splitted }) .
                        fromMaybe []) "FIELDS")
               "print the final node list"
