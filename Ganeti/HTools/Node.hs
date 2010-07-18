@@ -431,6 +431,7 @@ availCpu t =
 showField :: Node -> String -> String
 showField t field =
     case field of
+      "idx"  -> printf "%4d" $ idx t
       "name" -> alias t
       "fqdn" -> name t
       "status" -> if offline t then "-"
@@ -446,8 +447,10 @@ showField t field =
       "fdsk" -> printf "%5d" $ fDsk t `div` 1024
       "tcpu" -> printf "%4.0f" $ tCpu t
       "ucpu" -> printf "%4d" $ uCpu t
-      "plist" -> printf "%3d" $ length (pList t)
-      "slist" -> printf "%3d" $ length (sList t)
+      "pcnt" -> printf "%3d" $ length (pList t)
+      "scnt" -> printf "%3d" $ length (sList t)
+      "plist" -> show $ pList t
+      "slist" -> show $ sList t
       "pfmem" -> printf "%6.4f" $ pMem t
       "pfdsk" -> printf "%6.4f" $ pDsk t
       "rcpu"  -> printf "%5.2f" $ pCpu t
@@ -457,6 +460,7 @@ showField t field =
       "nload" -> printf "%5.3f" uN
       "ptags" -> intercalate "," . map (\(k, v) -> printf "%s=%d" k v) .
                  Map.toList $ pTags t
+      "peermap" -> show $ peers t
       _ -> T.unknownField
     where
       T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
@@ -467,6 +471,7 @@ showField t field =
 showHeader :: String -> (String, Bool)
 showHeader field =
     case field of
+      "idx" -> ("Index", True)
       "name" -> ("Name", False)
       "fqdn" -> ("Name", False)
       "status" -> ("F", False)
@@ -481,8 +486,10 @@ showHeader field =
       "fdsk" -> ("f_dsk", True)
       "tcpu" -> ("pcpu", True)
       "ucpu" -> ("vcpu", True)
-      "plist" -> ("pri", True)
-      "slist" -> ("sec", True)
+      "pcnt" -> ("pcnt", True)
+      "scnt" -> ("scnt", True)
+      "plist" -> ("primaries", True)
+      "slist" -> ("secondaries", True)
       "pfmem" -> ("p_fmem", True)
       "pfdsk" -> ("p_fdsk", True)
       "rcpu"  -> ("r_cpu", True)
@@ -491,6 +498,7 @@ showHeader field =
       "dload" -> ("lDsk", True)
       "nload" -> ("lNet", True)
       "ptags" -> ("PrimaryTags", False)
+      "peermap" -> ("PeerMap", False)
       _ -> (T.unknownField, False)
 
 -- | String converter for the node list functionality.
@@ -501,6 +509,6 @@ list fields t = map (showField t) fields
 defaultFields :: [String]
 defaultFields =
     [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
-    , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "plist", "slist"
+    , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "pcnt", "scnt"
     , "pfmem", "pfdsk", "rcpu"
     , "cload", "mload", "dload", "nload" ]
