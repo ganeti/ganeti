@@ -265,8 +265,8 @@ main = do
                       printf "Initial score: %.8f\n" ini_cv)
 
   unless oneline $ putStrLn "Trying to minimize the CV..."
-  let imlen = Container.maxNameLen il
-      nmlen = Container.maxNameLen nl
+  let imlen = maximum . map (length . Instance.alias) $ Container.elems il
+      nmlen = maximum . map (length . Node.alias) $ Container.elems nl
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
