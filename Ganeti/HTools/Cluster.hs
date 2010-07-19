@@ -39,7 +39,6 @@ module Ganeti.HTools.Cluster
     -- * First phase functions
     , computeBadItems
     -- * Second phase functions
-    , printSolution
     , printSolutionLine
     , formatCmds
     , involvedNodes
@@ -750,18 +749,6 @@ formatCmds =
     concatMap (\(jsn, js) -> concatMap (formatJob jsn (length js))
                              (zip [1..] js)) .
     zip [1..]
-
--- | Converts a solution to string format.
-printSolution :: Node.List
-              -> Instance.List
-              -> [Placement]
-              -> ([String], [[String]])
-printSolution nl il sol =
-    let
-        nmlen = Container.maxNameLen nl
-        imlen = Container.maxNameLen il
-    in
-      unzip $ zipWith (printSolutionLine nl il nmlen imlen) sol [1..]
 
 -- | Print the node list.
 printNodes :: Node.List -> [String] -> String
