@@ -222,6 +222,12 @@ OPENSSL_CIPHERS = "HIGH:-DES:-3DES:-EXPORT:-ADH"
 # Digest used to sign certificates ("openssl x509" uses SHA1 by default)
 X509_CERT_SIGN_DIGEST = "SHA1"
 
+# Default validity of certificates in days
+X509_CERT_DEFAULT_VALIDITY = 365 * 5
+
+# commonName (CN) used in certificates
+X509_CERT_CN = "ganeti.example.com"
+
 X509_CERT_SIGNATURE_HEADER = "X-Ganeti-Signature"
 
 IMPORT_EXPORT_DAEMON = _autoconf.PKGLIBDIR + "/import-export"

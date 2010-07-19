@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -3365,11 +3365,22 @@ def GenerateSelfSignedX509Cert(common_name, validity):
   return (key_pem, cert_pem)
 
 
-def GenerateSelfSignedSslCert(filename, validity=(5 * 365)):
+def GenerateSelfSignedSslCert(filename, common_name=constants.X509_CERT_CN,
+                              validity=constants.X509_CERT_DEFAULT_VALIDITY):
   """Legacy function to generate self-signed X509 certificate.
 
+  @type filename = str
+  @param filename = path to write certificate to
+  @type common_name: string
+  @param common_name: commonName value
+  @type validity: int
+  @param validity: validity of certificate in number of days
+
   """
-  (key_pem, cert_pem) = GenerateSelfSignedX509Cert(None,
+  # TODO: Investigate using the cluster name instead of X505_CERT_CN for
+  # common_name, as cluster-renames are very seldom, and it'd be nice if RAPI
+  # and node daemon certificates have the proper Subject/Issuer.
+  (key_pem, cert_pem) = GenerateSelfSignedX509Cert(common_name,
                                                    validity * 24 * 60 * 60)
 
   WriteFile(filename, mode=0400, data=key_pem + cert_pem)

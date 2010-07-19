@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -149,7 +149,10 @@ def _InitGanetiServerSetup(master_name):
   """Setup the necessary configuration for the initial node daemon.
 
   This creates the nodepass file containing the shared password for
-  the cluster and also generates the SSL certificate.
+  the cluster, generates the SSL certificate and starts the node daemon.
+
+  @type master_name: str
+  @param master_name: Name of the master node
 
   """
   # Generate cluster secrets
@@ -322,7 +325,7 @@ def InitCluster(cluster_name, mac_prefix,
     hv_class = hypervisor.GetHypervisor(hv_name)
     hv_class.CheckParameterSyntax(hv_params)
 
-  # set up the inter-node password and certificate
+  # set up the inter-node password and certificate, start noded
   _InitGanetiServerSetup(hostname.name)
 
   # set up ssh config and /etc/hosts
