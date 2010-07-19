@@ -2583,6 +2583,8 @@ class LURenameCluster(LogicalUnit):
         self.LogWarning("Could not re-enable the master role on"
                         " the master, please restart manually: %s", msg)
 
+    return clustername
+
 
 class LUSetClusterParams(LogicalUnit):
   """Change the parameters of the cluster.
@@ -4964,6 +4966,8 @@ class LURenameInstance(LogicalUnit):
         self.proc.LogWarning(msg)
     finally:
       _ShutdownInstanceDisks(self, inst)
+
+    return inst.name
 
 
 class LURemoveInstance(LogicalUnit):

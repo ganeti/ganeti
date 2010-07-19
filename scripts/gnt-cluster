@@ -162,17 +162,25 @@ def RenameCluster(opts, args):
   @return: the desired exit code
 
   """
-  name = args[0]
+  cl = GetClient()
+
+  (cluster_name, ) = cl.QueryConfigValues(["cluster_name"])
+
+  new_name = args[0]
   if not opts.force:
-    usertext = ("This will rename the cluster to '%s'. If you are connected"
-                " over the network to the cluster name, the operation is very"
-                " dangerous as the IP address will be removed from the node"
-                " and the change may not go through. Continue?") % name
+    usertext = ("This will rename the cluster from '%s' to '%s'. If you are"
+                " connected over the network to the cluster name, the"
+                " operation is very dangerous as the IP address will be"
+                " removed from the node and the change may not go through."
+                " Continue?") % (cluster_name, new_name)
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpRenameCluster(name=name)
-  SubmitOpCode(op, opts=opts)
+  op = opcodes.OpRenameCluster(name=new_name)
+  result = SubmitOpCode(op, opts=opts, cl=cl)
+
+  ToStdout("Cluster renamed from '%s' to '%s'", cluster_name, result)
+
   return 0
 
 
