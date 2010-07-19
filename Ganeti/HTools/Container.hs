@@ -48,7 +48,6 @@ module Ganeti.HTools.Container
     , keys
     -- * Element functions
     , nameOf
-    , maxNameLen
     , findByName
     ) where
 
@@ -98,10 +97,6 @@ addTwo k1 v1 k2 v2 = add k1 v1 . add k2 v2
 -- | Compute the name of an element in a container.
 nameOf :: (T.Element a) => Container a -> Key -> String
 nameOf c k = T.nameOf $ find k c
-
--- | Compute the maximum name length in an Element Container.
-maxNameLen :: (T.Element a) => Container a -> Int
-maxNameLen = maximum . map (length . T.nameOf) . elems
 
 -- | Find an element by name in a Container; this is a very slow function.
 findByName :: (T.Element a, Monad m) =>
