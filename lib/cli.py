@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -87,7 +87,7 @@ __all__ = [
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
   "MC_OPT",
-  "MIGRATION_TYPE_OPT",
+  "MIGRATION_MODE_OPT",
   "NET_OPT",
   "NEW_CLUSTER_CERT_OPT",
   "NEW_CLUSTER_DOMAIN_SECRET_OPT",
@@ -699,10 +699,10 @@ NONLIVE_OPT = cli_option("--non-live", dest="live",
                          " freeze the instance, save the state, transfer and"
                          " only then resume running on the secondary node)")
 
-MIGRATION_TYPE_OPT = cli_option("--migration-type", dest="migration_type",
+MIGRATION_MODE_OPT = cli_option("--migration-mode", dest="migration_mode",
                                 default=None,
-                                choices=list(constants.HT_MIGRATION_TYPES),
-                                help="Override default migration type (choose"
+                                choices=list(constants.HT_MIGRATION_MODES),
+                                help="Override default migration mode (choose"
                                 " either live or non-live")
 
 NODE_PLACEMENT_OPT = cli_option("-n", "--node", dest="node",

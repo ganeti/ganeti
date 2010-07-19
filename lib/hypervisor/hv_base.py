@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -89,8 +89,8 @@ NO_CHECK = (False, None, None, None, None)
 REQUIRED_CHECK = (True, None, None, None, None)
 
 # migration type
-MIGRATION_TYPE_CHECK = (True, lambda x: x in constants.HT_MIGRATION_TYPES,
-                        "invalid migration type", None, None)
+MIGRATION_MODE_CHECK = (True, lambda x: x in constants.HT_MIGRATION_MODES,
+                        "invalid migration mode", None, None)
 
 
 def ParamInSet(required, my_set):

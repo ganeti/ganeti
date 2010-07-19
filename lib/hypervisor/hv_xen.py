@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -458,7 +458,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_ROOT_PATH: hv_base.REQUIRED_CHECK,
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
-    constants.HV_MIGRATION_TYPE: hv_base.MIGRATION_TYPE_CHECK,
+    constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
     }
 
   @classmethod
@@ -557,7 +557,7 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,
     constants.HV_VNC_PASSWORD_FILE: hv_base.REQ_FILE_CHECK,
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
-    constants.HV_MIGRATION_TYPE: hv_base.MIGRATION_TYPE_CHECK,
+    constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     }
 

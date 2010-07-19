@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -234,7 +234,7 @@ _PNodeName = ("node_name", _NoDefault, _TNonEmptyString)
 
 #: the migration type (live/non-live)
 _PMigrationLive = ("live", None, _TOr(_TNone,
-                                      _TElemOf(constants.HT_MIGRATION_TYPES)))
+                                      _TElemOf(constants.HT_MIGRATION_MODES)))
 
 
 # End types
@@ -5822,7 +5822,7 @@ class TLMigrateInstance(Tasklet):
     if self.lu.op.live is None:
       # read the default value from the hypervisor
       i_hv = self.cfg.GetClusterInfo().FillHV(instance, skip_globals=False)
-      self.lu.op.live = i_hv[constants.HV_MIGRATION_TYPE]
+      self.lu.op.live = i_hv[constants.HV_MIGRATION_MODE]
 
     self.live = self.lu.op.live == constants.HT_MIGRATION_LIVE
 

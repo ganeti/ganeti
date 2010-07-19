@@ -2407,7 +2407,7 @@ node1.example.com:disk/1:/dev/drbd1
           <command>migrate</command>
           <arg>-f</arg>
           <arg>--non-live</arg>
-          <arg>--migration-type=live|non-live</arg>
+          <arg>--migration-mode=live|non-live</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -2425,7 +2425,7 @@ node1.example.com:disk/1:/dev/drbd1
 
         <para>
           The <option>--non-live</option>
-          and <option>--migration-type=non-live</option> options will
+          and <option>--migration-mode=non-live</option> options will
           switch (for the hypervisors that support it) between a
           "fully live" (i.e. the interruption is as minimal as
           possible) migration and one in which the instance is frozen,
@@ -2434,7 +2434,7 @@ node1.example.com:disk/1:/dev/drbd1
           for two different methods. In any case, it is not an error
           to pass this parameter (it will just be ignored if the
           hypervisor doesn't support it). The
-          option <option>--migration-type=live</option> option will
+          option <option>--migration-mode=live</option> option will
           request a fully-live migration. The default, when neither
           option is passed, depends on the hypervisor parameters (and
           can be viewed with the <command>gnt-cluster info</command>

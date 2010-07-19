@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -361,14 +361,14 @@ def MigrateNode(opts, args):
     return 2
 
   # this should be removed once --non-live is deprecated
-  if not opts.live and opts.migration_type is not None:
+  if not opts.live and opts.migration_mode is not None:
     raise errors.OpPrereqError("Only one of the --non-live and "
-                               "--migration-type options can be passed",
+                               "--migration-mode options can be passed",
                                errors.ECODE_INVAL)
   if not opts.live: # --non-live passed
     live = constants.HT_MIGRATION_NONLIVE
   else:
-    live = opts.migration_type
+    live = opts.migration_mode
   op = opcodes.OpMigrateNode(node_name=args[0], live=live)
   SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -661,7 +661,7 @@ commands = {
     "Stops the primary instances on a node and start them on their"
     " secondary node (only for instances with drbd disk template)"),
   'migrate': (
-    MigrateNode, ARGS_ONE_NODE, [FORCE_OPT, NONLIVE_OPT, MIGRATION_TYPE_OPT],
+    MigrateNode, ARGS_ONE_NODE, [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),
