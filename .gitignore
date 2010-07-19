@@ -26,6 +26,7 @@
 /ganeti
 /stamp-directories
 /stamp-srclinks
+/vcs-version
 /*.patch
 /*.tar.bz2
 /*.tar.gz
