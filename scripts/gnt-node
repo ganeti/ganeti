@@ -366,10 +366,10 @@ def MigrateNode(opts, args):
                                "--migration-mode options can be passed",
                                errors.ECODE_INVAL)
   if not opts.live: # --non-live passed
-    live = constants.HT_MIGRATION_NONLIVE
+    mode = constants.HT_MIGRATION_NONLIVE
   else:
-    live = opts.migration_mode
-  op = opcodes.OpMigrateNode(node_name=args[0], live=live)
+    mode = opts.migration_mode
+  op = opcodes.OpMigrateNode(node_name=args[0], mode=mode)
   SubmitOpCode(op, cl=cl, opts=opts)
 
 

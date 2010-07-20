@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -440,7 +440,7 @@ class OpMigrateNode(OpCode):
   OP_DSC_FIELD = "node_name"
   __slots__ = [
     "node_name",
-    "live",
+    "mode",
     ]
 
 
@@ -559,11 +559,12 @@ class OpMigrateInstance(OpCode):
   node.
 
   @ivar instance_name: the name of the instance
+  @ivar mode: the migration mode (live, non-live or None for auto)
 
   """
   OP_ID = "OP_INSTANCE_MIGRATE"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name", "live", "cleanup"]
+  __slots__ = ["instance_name", "mode", "cleanup"]
 
 
 class OpMoveInstance(OpCode):

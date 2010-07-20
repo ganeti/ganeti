@@ -903,11 +903,11 @@ def MigrateInstance(opts, args):
                                "--migration-mode options can be passed",
                                errors.ECODE_INVAL)
   if not opts.live: # --non-live passed
-    live = constants.HT_MIGRATION_NONLIVE
+    mode = constants.HT_MIGRATION_NONLIVE
   else:
-    live = opts.migration_mode
+    mode = opts.migration_mode
 
-  op = opcodes.OpMigrateInstance(instance_name=instance_name, live=live,
+  op = opcodes.OpMigrateInstance(instance_name=instance_name, mode=mode,
                                  cleanup=opts.cleanup)
   SubmitOpCode(op, cl=cl, opts=opts)
   return 0
