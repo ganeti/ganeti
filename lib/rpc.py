@@ -874,16 +874,6 @@ class RpcRunner(object):
                                [vg_name, hypervisor_type])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
-    """Add a node to the cluster.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "node_add",
-                                [dsa, dsapub, rsa, rsapub, ssh, sshpub])
-
-  @_RpcTimeout(_TMO_NORMAL)
   def call_node_verify(self, node_list, checkdict, cluster_name):
     """Request verification of given parameters.
 

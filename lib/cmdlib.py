@@ -1249,7 +1249,6 @@ class LUDestroyCluster(LogicalUnit):
 
     """
     master = self.cfg.GetMasterNode()
-    modify_ssh_setup = self.cfg.GetClusterInfo().modify_ssh_setup
 
     # Run post hooks on master node before it's removed
     hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
@@ -1261,11 +1260,6 @@ class LUDestroyCluster(LogicalUnit):
 
     result = self.rpc.call_node_stop_master(master, False)
     result.Raise("Could not disable the master role")
-
-    if modify_ssh_setup:
-      priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
-      utils.CreateBackup(priv_key)
-      utils.CreateBackup(pub_key)
 
     return master
 
@@ -3827,23 +3821,6 @@ class LUAddNode(LogicalUnit):
       raise errors.OpExecError("Version mismatch master version %s,"
                                " node version %s" %
                                (constants.PROTOCOL_VERSION, result.payload))
-
-    # setup ssh on node
-    if self.cfg.GetClusterInfo().modify_ssh_setup:
-      logging.info("Copy ssh key to node %s", node)
-      priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
-      keyarray = []
-      keyfiles = [constants.SSH_HOST_DSA_PRIV, constants.SSH_HOST_DSA_PUB,
-                  constants.SSH_HOST_RSA_PRIV, constants.SSH_HOST_RSA_PUB,
-                  priv_key, pub_key]
-
-      for i in keyfiles:
-        keyarray.append(utils.ReadFile(i))
-
-      result = self.rpc.call_node_add(node, keyarray[0], keyarray[1],
-                                      keyarray[2], keyarray[3], keyarray[4],
-                                      keyarray[5])
-      result.Raise("Cannot transfer ssh keys to the new node")
 
     # Add node to our /etc/hosts, and add key to known_hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:

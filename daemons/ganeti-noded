@@ -609,14 +609,6 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.GetNodeInfo(vgname, hypervisor_type)
 
   @staticmethod
-  def perspective_node_add(params):
-    """Complete the registration of this node in the cluster.
-
-    """
-    return backend.AddNode(params[0], params[1], params[2],
-                           params[3], params[4], params[5])
-
-  @staticmethod
   def perspective_node_verify(params):
     """Run a verify sequence on this node.
 

@@ -349,54 +349,6 @@ def StopMaster(stop_daemons):
                     result.cmd, result.exit_code, result.output)
 
 
-def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
-  """Joins this node to the cluster.
-
-  This does the following:
-      - updates the hostkeys of the machine (rsa and dsa)
-      - adds the ssh private key to the user
-      - adds the ssh public key to the users' authorized_keys file
-
-  @type dsa: str
-  @param dsa: the DSA private key to write
-  @type dsapub: str
-  @param dsapub: the DSA public key to write
-  @type rsa: str
-  @param rsa: the RSA private key to write
-  @type rsapub: str
-  @param rsapub: the RSA public key to write
-  @type sshkey: str
-  @param sshkey: the SSH private key to write
-  @type sshpub: str
-  @param sshpub: the SSH public key to write
-  @rtype: boolean
-  @return: the success of the operation
-
-  """
-  sshd_keys =  [(constants.SSH_HOST_RSA_PRIV, rsa, 0600),
-                (constants.SSH_HOST_RSA_PUB, rsapub, 0644),
-                (constants.SSH_HOST_DSA_PRIV, dsa, 0600),
-                (constants.SSH_HOST_DSA_PUB, dsapub, 0644)]
-  for name, content, mode in sshd_keys:
-    utils.WriteFile(name, data=content, mode=mode)
-
-  try:
-    priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS,
-                                                    mkdir=True)
-  except errors.OpExecError, err:
-    _Fail("Error while processing user ssh files: %s", err, exc=True)
-
-  for name, content in [(priv_key, sshkey), (pub_key, sshpub)]:
-    utils.WriteFile(name, data=content, mode=0600)
-
-  utils.AddAuthorizedKey(auth_keys, sshpub)
-
-  result = utils.RunCmd([constants.DAEMON_UTIL, "reload-ssh-keys"])
-  if result.failed:
-    _Fail("Unable to reload SSH keys (command %r, exit code %s, output %r)",
-          result.cmd, result.exit_code, result.output)
-
-
 def LeaveCluster(modify_ssh_setup):
   """Cleans up and remove the current node.
 
