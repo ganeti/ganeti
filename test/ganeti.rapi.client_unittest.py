@@ -644,7 +644,8 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
 
   def testReinstallInstance(self):
     self.rapi.AddResponse("19119")
-    self.assertEqual(19119, self.client.ReinstallInstance("baz-instance", "DOS",
+    self.assertEqual(19119, self.client.ReinstallInstance("baz-instance",
+                                                          os="DOS",
                                                           no_startup=True))
     self.assertHandler(rlib2.R_2_instances_name_reinstall)
     self.assertItems(["baz-instance"])

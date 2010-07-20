@@ -820,18 +820,21 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s/startup" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def ReinstallInstance(self, instance, os, no_startup=False):
+  def ReinstallInstance(self, instance, os=None, no_startup=False):
     """Reinstalls an instance.
 
     @type instance: str
-    @param instance: the instance to reinstall
-    @type os: str
-    @param os: the os to reinstall
+    @param instance: The instance to reinstall
+    @type os: str or None
+    @param os: The operating system to reinstall. If None, the instance's
+        current operating system will be installed again
     @type no_startup: bool
-    @param no_startup: whether to start the instance automatically
+    @param no_startup: Whether to start the instance automatically
 
     """
-    query = [("os", os)]
+    query = []
+    if os:
+      query.append(("os", os))
     if no_startup:
       query.append(("nostartup", 1))
     return self._SendRequest(HTTP_POST,
