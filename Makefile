@@ -18,7 +18,7 @@ all: $(HPROGS)
 $(HALLPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
 	$(GHC) --make $(HFLAGS) $(HEXTRA) $@
 
-test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
+test live-test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-monomorphism-restriction -fno-warn-orphans \
 	-fno-warn-missing-methods -fno-warn-unused-imports
 
@@ -92,6 +92,18 @@ ifeq ($(T),markup)
 	hpc markup --destdir=coverage test $(HPCEXCL)
 else
 	hpc report test $(HPCEXCL)
+endif
+
+live-test: all
+	rm -f *.tix *.mix
+	./live-test.sh
+	# combine the tix files
+	hpc sum $(HPCEXCL) $(addsuffix .tix,$(HPROGS)) --output=live-test.tix
+ifeq ($(T),markup)
+	mkdir -p coverage
+	hpc markup --destdir=coverage live-test $(HPCEXCL)
+else
+	hpc report live-test $(HPCEXCL)
 endif
 
 tags:
