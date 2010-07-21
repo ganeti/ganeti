@@ -233,9 +233,10 @@ compDetailedCV nl =
         mem_cv = varianceCoeff mem_l
         -- metric: disk covariance
         dsk_cv = varianceCoeff dsk_l
-        n1_l = length $ filter Node.failN1 nodes
-        -- metric: count of failN1 nodes
-        n1_score = fromIntegral n1_l::Double
+        -- metric: count of instances living on N1 failing nodes
+        n1_score = fromIntegral . sum . map (\n -> length (Node.sList n) +
+                                                   length (Node.pList n)) .
+                   filter Node.failN1 $ nodes :: Double
         res_l = map Node.pRem nodes
         -- metric: reserved memory covariance
         res_cv = varianceCoeff res_l
