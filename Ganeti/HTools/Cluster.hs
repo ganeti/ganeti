@@ -289,8 +289,9 @@ applyMove nl inst Failover =
         old_s = Container.find old_sdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
+        force_p = Node.offline old_p
         new_nl = do -- Maybe monad
-          new_p <- Node.addPri int_s inst
+          new_p <- Node.addPriEx force_p int_s inst
           new_s <- Node.addSec int_p inst old_sdx
           let new_inst = Instance.setBoth inst old_sdx old_pdx
           return (Container.addTwo old_pdx new_s old_sdx new_p nl,
@@ -306,13 +307,14 @@ applyMove nl inst (ReplacePrimary new_pdx) =
         tgt_n = Container.find new_pdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
+        force_p = Node.offline old_p
         new_nl = do -- Maybe monad
           -- check that the current secondary can host the instance
           -- during the migration
-          tmp_s <- Node.addPri int_s inst
+          tmp_s <- Node.addPriEx force_p int_s inst
           let tmp_s' = Node.removePri tmp_s inst
-          new_p <- Node.addPri tgt_n inst
-          new_s <- Node.addSec tmp_s' inst new_pdx
+          new_p <- Node.addPriEx force_p tgt_n inst
+          new_s <- Node.addSecEx force_p tmp_s' inst new_pdx
           let new_inst = Instance.setPri inst new_pdx
           return (Container.add new_pdx new_p $
                   Container.addTwo old_pdx int_p old_sdx new_s nl,
@@ -326,8 +328,9 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
         old_s = Container.find old_sdx nl
         tgt_n = Container.find new_sdx nl
         int_s = Node.removeSec old_s inst
+        force_s = Node.offline old_s
         new_inst = Instance.setSec inst new_sdx
-        new_nl = Node.addSec tgt_n inst old_pdx >>=
+        new_nl = Node.addSecEx force_s tgt_n inst old_pdx >>=
                  \new_s -> return (Container.addTwo new_sdx
                                    new_s old_sdx int_s nl,
                                    new_inst, old_pdx, new_sdx)
@@ -342,9 +345,10 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
         tgt_n = Container.find new_pdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
+        force_s = Node.offline old_s
         new_nl = do -- Maybe monad
           new_p <- Node.addPri tgt_n inst
-          new_s <- Node.addSec int_p inst new_pdx
+          new_s <- Node.addSecEx force_s int_p inst new_pdx
           let new_inst = Instance.setBoth inst new_pdx old_pdx
           return (Container.add new_pdx new_p $
                   Container.addTwo old_pdx new_s old_sdx int_s nl,
@@ -360,9 +364,10 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
         tgt_n = Container.find new_sdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
+        force_p = Node.offline old_p
         new_nl = do -- Maybe monad
-          new_p <- Node.addPri int_s inst
-          new_s <- Node.addSec tgt_n inst old_sdx
+          new_p <- Node.addPriEx force_p int_s inst
+          new_s <- Node.addSecEx force_p tgt_n inst old_sdx
           let new_inst = Instance.setBoth inst old_sdx new_sdx
           return (Container.add new_sdx new_s $
                   Container.addTwo old_sdx new_p old_pdx int_p nl,
