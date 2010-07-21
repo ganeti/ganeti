@@ -49,7 +49,9 @@ module Ganeti.HTools.Node
     , removePri
     , removeSec
     , addPri
+    , addPriEx
     , addSec
+    , addSecEx
     -- * Stats
     , availDisk
     , availMem
@@ -339,9 +341,21 @@ removeSec t inst =
          , failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp
          , pRem = new_prem, utilLoad = new_load }
 
--- | Adds a primary instance.
+-- | Adds a primary instance (basic version).
 addPri :: Node -> Instance.Instance -> T.OpResult Node
-addPri t inst =
+addPri = addPriEx False
+
+-- | Adds a primary instance (extended version).
+addPriEx :: Bool               -- ^ Whether to override the N+1 and
+                               -- other /soft/ checks, useful if we
+                               -- come from a worse status
+                               -- (e.g. offline)
+         -> Node               -- ^ The target node
+         -> Instance.Instance  -- ^ The instance to add
+         -> T.OpResult Node    -- ^ The result of the operation,
+                               -- either the new version of the node
+                               -- or a failure mode
+addPriEx force t inst =
     let iname = Instance.idx inst
         new_mem = fMem t - Instance.mem inst
         new_dsk = fDsk t - Instance.dsk inst
@@ -353,11 +367,13 @@ addPri t inst =
         new_load = utilLoad t `T.addUtil` Instance.util inst
         inst_tags = Instance.tags inst
         old_tags = pTags t
+        strict = not force
     in case () of
          _ | new_mem <= 0 -> T.OpFail T.FailMem
-           | new_dsk <= 0 || mDsk t > new_dp -> T.OpFail T.FailDisk
-           | new_failn1 && not (failN1 t) -> T.OpFail T.FailMem
-           | l_cpu >= 0 && l_cpu < new_pcpu -> T.OpFail T.FailCPU
+           | new_dsk <= 0 -> T.OpFail T.FailDisk
+           | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
+           | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
+           | l_cpu >= 0 && l_cpu < new_pcpu && strict -> T.OpFail T.FailCPU
            | rejectAddTags old_tags inst_tags -> T.OpFail T.FailTags
            | otherwise ->
                let new_plist = iname:pList t
@@ -369,9 +385,13 @@ addPri t inst =
                          , pTags = addTags old_tags inst_tags }
                in T.OpGood r
 
--- | Adds a secondary instance.
+-- | Adds a secondary instance (basic version).
 addSec :: Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
-addSec t inst pdx =
+addSec = addSecEx False
+
+-- | Adds a secondary instance (extended version).
+addSecEx :: Bool -> Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
+addSecEx force t inst pdx =
     let iname = Instance.idx inst
         old_peers = peers t
         old_mem = fMem t
@@ -385,10 +405,12 @@ addSec t inst pdx =
         old_load = utilLoad t
         new_load = old_load { T.dskWeight = T.dskWeight old_load +
                                             T.dskWeight (Instance.util inst) }
+        strict = not force
     in case () of
-         _ | new_dsk <= 0 || mDsk t > new_dp -> T.OpFail T.FailDisk
+         _ | new_dsk <= 0 -> T.OpFail T.FailDisk
+           | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
            | Instance.mem inst >= old_mem -> T.OpFail T.FailMem
-           | new_failn1 && not (failN1 t) -> T.OpFail T.FailMem
+           | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
            | otherwise ->
                let new_slist = iname:sList t
                    r = t { sList = new_slist, fDsk = new_dsk
