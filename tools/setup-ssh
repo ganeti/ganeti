@@ -24,6 +24,9 @@ This is needed before we can join the node into the cluster.
 
 """
 
+# pylint: disable-msg=C0103
+# C0103: Invalid name setup-ssh
+
 import getpass
 import logging
 import paramiko
