@@ -202,21 +202,24 @@ computeAllocationDelta cini cfin =
         runa = RSpec un_cpu (truncate t_mem - f_imem) (truncate t_dsk - f_idsk)
     in (rini, rfin, runa)
 
--- | The names of the individual elements in the CV list
-detailedCVNames :: [String]
-detailedCVNames = [ "free_mem_cv"
-                  , "free_disk_cv"
-                  , "n1_cnt"
-                  , "reserved_mem_cv"
-                  , "offline_all_cnt"
-                  , "offline_pri_cnt"
-                  , "vcpu_ratio_cv"
-                  , "cpu_load_cv"
-                  , "mem_load_cv"
-                  , "disk_load_cv"
-                  , "net_load_cv"
-                  , "pri_tags_score"
-                  ]
+-- | The names and weights of the individual elements in the CV list
+detailedCVInfo :: [(Double, String)]
+detailedCVInfo = [ (1,  "free_mem_cv")
+                 , (1,  "free_disk_cv")
+                 , (1,  "n1_cnt")
+                 , (1,  "reserved_mem_cv")
+                 , (4,  "offline_all_cnt")
+                 , (16, "offline_pri_cnt")
+                 , (1,  "vcpu_ratio_cv")
+                 , (1,  "cpu_load_cv")
+                 , (1,  "mem_load_cv")
+                 , (1,  "disk_load_cv")
+                 , (1,  "net_load_cv")
+                 , (1,  "pri_tags_score")
+                 ]
+
+detailedCVWeights :: [Double]
+detailedCVWeights = map fst detailedCVInfo
 
 -- | Compute the mem and disk covariance.
 compDetailedCV :: Node.List -> [Double]
@@ -265,7 +268,7 @@ compDetailedCV nl =
 
 -- | Compute the /total/ variance.
 compCV :: Node.List -> Double
-compCV = sum . compDetailedCV
+compCV = sum . zipWith (*) detailedCVWeights . compDetailedCV
 
 -- | Compute online nodes from a Node.List
 getOnline :: Node.List -> [Node.Node]
@@ -797,9 +800,10 @@ printInsts nl il =
 printStats :: Node.List -> String
 printStats nl =
     let dcvs = compDetailedCV nl
-        hd = zip (detailedCVNames ++ repeat "unknown") dcvs
-        formatted = map (\(header, val) ->
-                             printf "%s=%.8f" header val::String) hd
+        (weights, names) = unzip detailedCVInfo
+        hd = zip3 (weights ++ repeat 1) (names ++ repeat "unknown") dcvs
+        formatted = map (\(w, header, val) ->
+                             printf "%s=%.8f(x%.2f)" header val w::String) hd
     in intercalate ", " formatted
 
 -- | Convert a placement into a list of OpCodes (basically a job).
