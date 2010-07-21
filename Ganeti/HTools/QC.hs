@@ -45,17 +45,23 @@ import qualified Data.Map
 import qualified Data.IntMap as IntMap
 import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.Jobs as Jobs
+import qualified Ganeti.Luxi
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.ExtLoader
 import qualified Ganeti.HTools.IAlloc as IAlloc
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Loader as Loader
+import qualified Ganeti.HTools.Luxi
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.PeerMap as PeerMap
+import qualified Ganeti.HTools.Rapi
+import qualified Ganeti.HTools.Simu
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
+import qualified Ganeti.HTools.Version
 
 -- * Constants
 
