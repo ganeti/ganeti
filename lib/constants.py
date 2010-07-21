@@ -124,6 +124,7 @@ SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 RAPI_USERS_FILE = DATA_DIR + "/rapi_users"
 QUEUE_DIR = DATA_DIR + "/queue"
 DAEMON_UTIL = _autoconf.PKGLIBDIR + "/daemon-util"
+SETUP_SSH = _autoconf.TOOLSDIR + "/setup-ssh"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 ENABLE_FILE_STORAGE = _autoconf.ENABLE_FILE_STORAGE

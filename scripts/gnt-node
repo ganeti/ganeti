@@ -34,7 +34,6 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import compat
 from ganeti import errors
-from ganeti import bootstrap
 from ganeti import netutils
 
 
@@ -112,6 +111,12 @@ _REPAIRABLE_STORAGE_TYPES = \
 _MODIFIABLE_STORAGE_TYPES = constants.MODIFIABLE_STORAGE_FIELDS.keys()
 
 
+NONODE_SETUP_OPT = cli_option("--no-node-setup", default=True,
+                              action="store_false", dest="node_setup",
+                              help=("Do not make initial SSH setup on remote"
+                                    " node (needs to be done manually)"))
+
+
 def ConvertStorageType(user_storage_type):
   """Converts a user storage type to its internal name.
 
@@ -121,6 +126,32 @@ def ConvertStorageType(user_storage_type):
   except KeyError:
     raise errors.OpPrereqError("Unknown storage type: %s" % user_storage_type,
                                errors.ECODE_INVAL)
+
+
+def _RunSetupSSH(options, nodes):
+  """Wrapper around utils.RunCmd to call setup-ssh
+
+  @param options: The command line options
+  @param nodes: The nodes to setup
+
+  """
+  cmd = [constants.SETUP_SSH]
+
+  # Pass --debug|--verbose to the external script if set on our invocation
+  # --debug overrides --verbose
+  if options.debug:
+    cmd.append("--debug")
+  elif options.verbose:
+    cmd.append("--verbose")
+
+  cmd.extend(nodes)
+
+  result = utils.RunCmd(cmd, interactive=True)
+
+  if result.failed:
+    errmsg = ("Command '%s' failed with exit code %s; output %r" %
+              (result.cmd, result.exit_code, result.output))
+    raise errors.OpExecError(errmsg)
 
 
 @UsesRPC
@@ -160,7 +191,6 @@ def AddNode(opts, args):
 
   # read the cluster name from the master
   output = cl.QueryConfigValues(['cluster_name'])
-  cluster_name = output[0]
 
   if not readd:
     ToStderr("-- WARNING -- \n"
@@ -170,7 +200,8 @@ def AddNode(opts, args):
              " current one\n"
              "and grant full intra-cluster ssh root access to/from it\n", node)
 
-  bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
+  if opts.node_setup:
+    _RunSetupSSH(opts, [node])
 
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=sip,
                          readd=opts.readd)
@@ -645,8 +676,9 @@ def SetNodeParams(opts, args):
 commands = {
   'add': (
     AddNode, [ArgHost(min=1, max=1)],
-    [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT],
-    "[-s ip] [--readd] [--no-ssh-key-check] <node_name>",
+    [SECONDARY_IP_OPT, READD_OPT, NONODE_SETUP_OPT, VERBOSE_OPT],
+    "[-s ip] [--readd] [--no-node-setup]  [--verbose] "
+    " <node_name>",
     "Add a node to the cluster"),
   'evacuate': (
     EvacuateNode, [ArgNode(min=1)],
