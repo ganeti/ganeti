@@ -18,12 +18,6 @@ Ganeti 2.1 will add features to help further automatization of cluster
 operations, further improve scalability to even bigger clusters, and
 make it easier to debug the Ganeti core.
 
-Background
-==========
-
-Overview
-========
-
 Detailed design
 ===============
 

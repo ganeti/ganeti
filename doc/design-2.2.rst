@@ -11,15 +11,6 @@ adding new features and improvements over 2.1, in a timely fashion.
 
 .. contents:: :depth: 4
 
-Objective
-=========
-
-Background
-==========
-
-Overview
-========
-
 Detailed design
 ===============
 
