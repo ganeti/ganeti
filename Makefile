@@ -98,7 +98,8 @@ live-test: all
 	rm -f *.tix *.mix
 	./live-test.sh
 	# combine the tix files
-	hpc sum $(HPCEXCL) $(addsuffix .tix,$(HPROGS)) --output=live-test.tix
+	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HPROGS)) \
+	  --output=live-test.tix
 ifeq ($(T),markup)
 	mkdir -p coverage
 	hpc markup --destdir=coverage live-test $(HPCEXCL)
