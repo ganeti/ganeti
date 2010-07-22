@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.QC
-    ( testPeerMap
+    ( testUtils
+    , testPeerMap
     , testContainer
     , testInstance
     , testNode
@@ -191,6 +192,21 @@ instance Arbitrary Jobs.JobStatus where
   arbitrary = elements [minBound..maxBound]
 
 -- * Actual tests
+
+-- | Test utils separator/joiner functions
+
+-- If the list is not just an empty element, and if the elements do
+-- not contain commas, then join+split should be idepotent
+prop_Utils_commaJoinSplit lst = lst /= [""] &&
+                                all (not . elem ',') lst ==>
+                                Utils.sepSplit ',' (Utils.commaJoin lst) == lst
+-- Split and join should always be idempotent
+prop_Utils_commaSplitJoin s = Utils.commaJoin (Utils.sepSplit ',' s) == s
+
+testUtils =
+  [ run prop_Utils_commaJoinSplit
+  , run prop_Utils_commaSplitJoin
+  ]
 
 -- | Make sure add is idempotent
 prop_PeerMap_addIdempotent pmap key em =

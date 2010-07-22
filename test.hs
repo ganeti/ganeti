@@ -64,7 +64,8 @@ wrapTest ir t to = do
 
 allTests :: [(String, TestOptions, [TestOptions -> IO TestResult])]
 allTests =
-  [ ("PeerMap", fast, testPeerMap)
+  [ ("Utils", fast, testUtils)
+  , ("PeerMap", fast, testPeerMap)
   , ("Container", fast, testContainer)
   , ("Instance", fast, testInstance)
   , ("Node", fast, testNode)

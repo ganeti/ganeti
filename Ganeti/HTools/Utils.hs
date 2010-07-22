@@ -25,7 +25,6 @@ module Ganeti.HTools.Utils
     (
       debug
     , sepSplit
-    , fst3
     , varianceCoeff
     , commaJoin
     , readEitherString
@@ -72,10 +71,6 @@ sepSplit sep s
     | otherwise           = x:sepSplit sep ys
     where (x, xs) = break (== sep) s
           ys = drop 1 xs
-
--- | Simple version of 'fst' for a triple
-fst3 :: (a, b, c) -> a
-fst3 (a, _, _) = a
 
 -- * Mathematical functions
 
