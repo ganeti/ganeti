@@ -775,7 +775,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(1111, self.client.MigrateNode("node-a", dry_run=True))
     self.assertHandler(rlib2.R_2_nodes_name_migrate)
     self.assertItems(["node-a"])
-    self.assertQuery("live", ["1"])
+    self.assert_("mode" not in self.rapi.GetLastHandler().queryargs)
+    self.assertDryRun()
+
+    self.rapi.AddResponse("1112")
+    self.assertEqual(1112, self.client.MigrateNode("node-a", dry_run=True,
+                                                   mode="live"))
+    self.assertHandler(rlib2.R_2_nodes_name_migrate)
+    self.assertItems(["node-a"])
+    self.assertQuery("mode", ["live"])
     self.assertDryRun()
 
   def testGetNodeRole(self):

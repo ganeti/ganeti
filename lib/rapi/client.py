@@ -1068,13 +1068,14 @@ class GanetiRapiClient(object):
                              ("/%s/nodes/%s/evacuate" %
                               (GANETI_RAPI_VERSION, node)), query, None)
 
-  def MigrateNode(self, node, live=True, dry_run=False):
+  def MigrateNode(self, node, mode=None, dry_run=False):
     """Migrates all primary instances from a node.
 
     @type node: str
     @param node: node to migrate
-    @type live: bool
-    @param live: whether to use live migration
+    @type mode: string
+    @param mode: if passed, it will overwrite the live migration type,
+        otherwise the hypervisor default will be used
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
@@ -1083,8 +1084,8 @@ class GanetiRapiClient(object):
 
     """
     query = []
-    if live:
-      query.append(("live", 1))
+    if mode is not None:
+      query.append(("mode", mode))
     if dry_run:
       query.append(("dry-run", 1))
 
