@@ -3369,8 +3369,8 @@ def GenerateSelfSignedSslCert(filename, common_name=constants.X509_CERT_CN,
                               validity=constants.X509_CERT_DEFAULT_VALIDITY):
   """Legacy function to generate self-signed X509 certificate.
 
-  @type filename = str
-  @param filename = path to write certificate to
+  @type filename: str
+  @param filename: path to write certificate to
   @type common_name: string
   @param common_name: commonName value
   @type validity: int
