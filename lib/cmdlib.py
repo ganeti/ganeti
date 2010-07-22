@@ -8778,6 +8778,10 @@ class LUSetInstanceParams(LogicalUnit):
                                    errors.ECODE_INVAL)
       _CheckInstanceDown(self, instance, "cannot change disk template")
       if self.op.disk_template in constants.DTS_NET_MIRROR:
+        if self.op.remote_node == pnode:
+          raise errors.OpPrereqError("Given new secondary node %s is the same"
+                                     " as the primary node of the instance" %
+                                     self.op.remote_node, errors.ECODE_STATE)
         _CheckNodeOnline(self, self.op.remote_node)
         _CheckNodeNotDrained(self, self.op.remote_node)
         disks = [{"size": d.size} for d in instance.disks]
