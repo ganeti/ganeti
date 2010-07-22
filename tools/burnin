@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -669,10 +669,10 @@ class Burner(object):
     Log("Migrating instances")
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
-      op1 = opcodes.OpMigrateInstance(instance_name=instance, live=True,
+      op1 = opcodes.OpMigrateInstance(instance_name=instance, mode=None,
                                       cleanup=False)
 
-      op2 = opcodes.OpMigrateInstance(instance_name=instance, live=True,
+      op2 = opcodes.OpMigrateInstance(instance_name=instance, mode=None,
                                       cleanup=True)
       Log("migration and migration cleanup", indent=2)
       self.ExecOrQueue(instance, [op1, op2])
