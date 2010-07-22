@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -426,9 +426,19 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
 
     """
     node_name = self.items[0]
-    live = bool(self._checkIntVariable("live", default=1))
 
-    op = opcodes.OpMigrateNode(node_name=node_name, live=live)
+    if "live" in self.queryargs and "mode" in self.queryargs:
+      raise http.HttpBadRequest("Only one of 'live' and 'mode' should"
+                                " be passed")
+    elif "live" in self.queryargs:
+      if self._checkIntVariable("live", default=1):
+        mode = constants.HT_MIGRATION_LIVE
+      else:
+        mode = constants.HT_MIGRATION_NONLIVE
+    else:
+      mode = self._checkStringVariable("mode", default=None)
+
+    op = opcodes.OpMigrateNode(node_name=node_name, mode=mode)
 
     return baserlib.SubmitJob([op])
 
