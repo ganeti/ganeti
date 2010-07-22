@@ -193,8 +193,6 @@ instance Arbitrary Jobs.JobStatus where
 
 -- * Actual tests
 
--- | Test utils separator/joiner functions
-
 -- If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idepotent
 prop_Utils_commaJoinSplit lst = lst /= [""] &&
