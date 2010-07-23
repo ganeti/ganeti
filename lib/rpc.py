@@ -151,6 +151,23 @@ def _RpcTimeout(secs):
   return decorator
 
 
+def RunWithRPC(fn):
+  """RPC-wrapper decorator.
+
+  When applied to a function, it runs it with the RPC system
+  initialized, and it shutsdown the system afterwards. This means the
+  function must be called without RPC being initialized.
+
+  """
+  def wrapper(*args, **kwargs):
+    Init()
+    try:
+      return fn(*args, **kwargs)
+    finally:
+      Shutdown()
+  return wrapper
+
+
 class RpcResult(object):
   """RPC Result class.
 

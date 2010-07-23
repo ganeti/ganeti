@@ -1192,14 +1192,7 @@ def CalculateOSNames(os_name, os_variants):
     return [os_name]
 
 
-def UsesRPC(fn):
-  def wrapper(*args, **kwargs):
-    rpc.Init()
-    try:
-      return fn(*args, **kwargs)
-    finally:
-      rpc.Shutdown()
-  return wrapper
+UsesRPC = rpc.RunWithRPC
 
 
 def AskUser(text, choices=None):

@@ -402,6 +402,7 @@ def _SetWatcherPause(until):
   return until
 
 
+@rpc.RunWithRPC
 def CheckAgreement():
   """Check the agreement on who is the master.
 
@@ -462,14 +463,6 @@ def CheckAgreement():
   return result
 
 
-def CheckAgreementWithRpc():
-  rpc.Init()
-  try:
-    return CheckAgreement()
-  finally:
-    rpc.Shutdown()
-
-
 def CheckMasterd(options, args):
   """Initial checks whether to run or exit with a failure.
 
@@ -509,7 +502,7 @@ def CheckMasterd(options, args):
 
   # CheckAgreement uses RPC and threads, hence it needs to be run in a separate
   # process before we call utils.Daemonize in the current process.
-  if not utils.RunInSeparateProcess(CheckAgreementWithRpc):
+  if not utils.RunInSeparateProcess(CheckAgreement):
     sys.exit(constants.EXIT_FAILURE)
 
 
