@@ -312,6 +312,7 @@ class OpSetClusterParams(OpCode):
     "add_uids",
     "remove_uids",
     "default_iallocator",
+    "reserved_lvs",
     ]
 
 

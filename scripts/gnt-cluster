@@ -668,7 +668,8 @@ def SetClusterParams(opts, args):
           opts.maintain_node_health is not None or
           opts.add_uids is not None or
           opts.remove_uids is not None or
-          opts.default_iallocator is not None):
+          opts.default_iallocator is not None or
+          opts.reserved_lvs is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -718,6 +719,12 @@ def SetClusterParams(opts, args):
   if remove_uids is not None:
     remove_uids = uidpool.ParseUidPool(remove_uids)
 
+  if opts.reserved_lvs is not None:
+    if opts.reserved_lvs == "":
+      opts.reserved_lvs = []
+    else:
+      opts.reserved_lvs = utils.UnescapeAndSplit(opts.reserved_lvs, sep=",")
+
   op = opcodes.OpSetClusterParams(vg_name=vg_name,
                                   drbd_helper=drbd_helper,
                                   enabled_hypervisors=hvlist,
@@ -730,7 +737,8 @@ def SetClusterParams(opts, args):
                                   uid_pool=uid_pool,
                                   add_uids=add_uids,
                                   remove_uids=remove_uids,
-                                  default_iallocator=opts.default_iallocator)
+                                  default_iallocator=opts.default_iallocator,
+                                  reserved_lvs=opts.reserved_lvs)
   SubmitOpCode(op, opts=opts)
   return 0
 
@@ -885,7 +893,7 @@ commands = {
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
-     NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT],
+     NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

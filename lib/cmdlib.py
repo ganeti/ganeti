@@ -2606,6 +2606,7 @@ class LUSetClusterParams(LogicalUnit):
     ("nicparams", None, _TOr(_TDict, _TNone)),
     ("drbd_helper", None, _TOr(_TString, _TNone)),
     ("default_iallocator", None, _TMaybeString),
+    ("reserved_lvs", None, _TOr(_TListOf(_TNonEmptyString), _TNone)),
     ]
   REQ_BGL = False
 
@@ -2875,6 +2876,9 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.default_iallocator is not None:
       self.cluster.default_iallocator = self.op.default_iallocator
+
+    if self.op.reserved_lvs is not None:
+      self.cluster.reserved_lvs = self.op.reserved_lvs
 
     self.cfg.Update(self.cluster, feedback_fn)
 

@@ -540,14 +540,14 @@
       </para>
 
       <para>
-	The <option>-I (--default-iallocator)</option> option specifies the
-	default instance allocator. The instance allocator will be used for
-	operations like instance creation, instance and node migration, etc.
-	when no manual override is specified. If this option is not specified,
-	the default instance allocator will be blank, which means that relevant
-	operations will require the administrator to manually specify either an
+        The <option>-I (--default-iallocator)</option> option specifies the
+        default instance allocator. The instance allocator will be used for
+        operations like instance creation, instance and node migration, etc.
+        when no manual override is specified. If this option is not specified,
+        the default instance allocator will be blank, which means that relevant
+        operations will require the administrator to manually specify either an
         instance allocator, or a set of nodes.
-	The default iallocator can be changed later using the
+        The default iallocator can be changed later using the
         <command>modify</command> command.
       </para>
 
@@ -621,6 +621,9 @@
         <sbr>
         <arg choice="opt">-I <replaceable>default instance allocator</replaceable></arg>
 
+        <sbr>
+        <arg>--reserved-lvs=<replaceable>NAMES</replaceable></arg>
+
       </cmdsynopsis>
 
         <para>
@@ -655,6 +658,26 @@
         The <option>--add-uids</option> and <option>--remove-uids</option>
         options can be used to modify the user-id pool by adding/removing
         a list of user-ids or user-id ranges.
+      </para>
+
+      <para>
+        The option <option>--reserved-lvs</option> specifies a list
+        (comma-separated) of logical volume group names (regular
+        expressions) that will be ignored by the cluster verify
+        operation. This is useful if the volume group used for Ganeti
+        is shared with the system for other uses. Note that it's not
+        recommended to create and mark as ignored logical volume names
+        which match Ganeti's own name format (starting with UUID and
+        then <literal>.diskN</literal>), as this option only skips the
+        verification, but not the actual use of the names given.
+      </para>
+
+      <para>
+        To remove all reserved logical volumes, pass in an empty
+        argument to the option, as in <option>--reserved-lvs=</option>
+        or <option>--reserved-lvs ''</option>.
+      </para>
+
     </refsect2>
 
     <refsect2>

@@ -124,6 +124,7 @@ __all__ = [
   "REBOOT_TYPE_OPT",
   "REMOVE_INSTANCE_OPT",
   "REMOVE_UIDS_OPT",
+  "RESERVED_LVS_OPT",
   "ROMAN_OPT",
   "SECONDARY_IP_OPT",
   "SELECT_OS_OPT",
@@ -1000,6 +1001,12 @@ REMOVE_UIDS_OPT = cli_option("--remove-uids", default=None,
                              help=("A list of user-ids or user-id"
                                    " ranges separated by commas, to be"
                                    " removed from the user-id pool"))
+
+RESERVED_LVS_OPT = cli_option("--reserved-lvs", default=None,
+                             action="store", dest="reserved_lvs",
+                             help=("A comma-separated list of reserved"
+                                   " logical volumes names, that will be"
+                                   " ignored by cluster verify"))
 
 ROMAN_OPT = cli_option("--roman",
                        dest="roman_integers", default=False,
