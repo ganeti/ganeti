@@ -38,6 +38,7 @@ echo Checking command line
 for prog in hscan hbal hail hspace; do
     ./$prog --version
     ./$prog --help
+    ! ./$prog --no-such-option
 done
 
 echo Testing hscan/rapi
@@ -46,6 +47,10 @@ echo Testing hscan/luxi
 ./hscan -d$T -L$LUXI -p
 echo Comparing hscan results...
 diff -u $T/$RAPI.data $T/LOCAL.data
+
+FN=$(head -n1 $T/$RAPI.data|cut -d \| -f1)
+FI=$($CLUSTER head -n1 /var/lib/ganeti/ssconf_instance_list)
+
 
 echo Testing hbal/luxi
 ./hbal -L$LUXI -p --print-instances -C$T/hbal-luxi-cmds.sh
@@ -56,29 +61,48 @@ bash -n $T/hbal-rapi-cmds.sh
 echo Testing hbal/text
 ./hbal -t$T/$RAPI.data -p --print-instances -C$T/hbal-text-cmds.sh
 bash -n $T/hbal-text-cmds.sh
+echo Comparing hbal results
+diff -u $T/hbal-luxi-cmds.sh $T/hbal-rapi-cmds.sh
+diff -u $T/hbal-luxi-cmds.sh $T/hbal-text-cmds.sh
+
 
 echo Testing hbal/text with evacuation mode
 ./hbal -t$T/$RAPI.data -E
+echo Testing hbal/text with no disk moves
+./hbal -t$T/$RAPI.data --no-disk-moves
 echo Testing hbal/text with offline node mode
-FN=$(head -n1 $T/$RAPI.data|cut -d \| -f1)
 ./hbal -t$T/$RAPI.data -O$FN
+echo Testing hbal/text with utilization data
+echo "$FI 2 2 2 2" > $T/util.data
+./hbal -t$T/$RAPI.data -U $T/util.data
+echo Testing hbal/text with bad utilization data
+echo "$FI 2 a 3b" > $T/util.data
+! ./hbal -t$T/$RAPI.data -U $T/util.data
+echo Testing hbal/text with instance exclusion
+./hbal -t$T/$RAPI.data --exclude-instances=$FI
+! ./hbal -t$T/$RAPI.data --exclude-instances=no_such_instance
+echo Testing hbal/text with tag exclusion
+./hbal -t $T/$RAPI.data --exclusion-tags=no_such_tag
+echo Testing hbal multiple backend failure
+! ./hbal -t $T/$RAPI.data -L$LUXI
+echo Testing hbal no backend failure
+! ./hbal
 
 echo Getting data files for hail
-IR=`$CLUSTER head -n1 /var/lib/ganeti/ssconf_instance_list`
 for dtemplate in plain drbd; do
   $CLUSTER gnt-debug allocator --dir in --mode allocate --mem 128m \
       --disks 128m -t $dtemplate -o no_such_os no_such_instance \
       > $T/h-alloc-$dtemplate.json
 done
 $CLUSTER gnt-debug allocator --dir in --mode relocate \
-    -o no_such_os $IR > $T/h-reloc.json
+    -o no_such_os $FI > $T/h-reloc.json
 $CLUSTER gnt-debug allocator --dir in --mode multi-evacuate \
     $FN > $T/h-evacuate.json
 for dtemplate in plain drbd; do
   echo Testing hail/allocate-$dtemplate
   ./hail $T/h-alloc-$dtemplate.json
 done
-echo Testing hail/relocate for instance $IR
+echo Testing hail/relocate for instance $FI
 ./hail $T/h-reloc.json
 echo Testing hail/evacuate for node $FN
 ./hail $T/h-evacuate.json
@@ -95,6 +119,7 @@ check_hspace_out() {
 }
 
 TIER="--tiered 102400,8192,2"
+SIMU="--simu=10,6835937,32768,4"
 echo Testing hspace/luxi
 ./hspace -L$LUXI $TIER -v > $HOUT
 ( check_hspace_out ) || exit 1
@@ -106,6 +131,13 @@ echo Testing hspace/text
 ( check_hspace_out ) || exit 1
 echo Testing hspace/simu
 # ~6T disk space, 32G ram, 4 VCPUs
-./hspace --simu=10,6835937,32768,4 $TIER -v > $HOUT
+./hspace $SIMU $TIER -v > $HOUT
 ( check_hspace_out ) || exit 1
+# Wrong tiered spec input
+! ./hspace $SIMU --tiered 1,2,3x
+! ./hspace $SIMU --tiered 1,2,x
+! ./hspace $SIMU --tiered 1,2
+# Wrong simu spec
+! ./hspace --simu=1,2,x
+
 echo All OK
