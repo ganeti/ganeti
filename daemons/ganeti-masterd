@@ -463,6 +463,16 @@ def CheckAgreement():
   return result
 
 
+@rpc.RunWithRPC
+def ActivateMasterIP():
+  # activate ip
+  master_node = ssconf.SimpleStore().GetMasterNode()
+  result = rpc.RpcRunner.call_node_start_master(master_node, False, False)
+  msg = result.fail_msg
+  if msg:
+    logging.error("Can't activate master IP address: %s", msg)
+
+
 def CheckMasterd(options, args):
   """Initial checks whether to run or exit with a failure.
 
@@ -505,6 +515,12 @@ def CheckMasterd(options, args):
   if not utils.RunInSeparateProcess(CheckAgreement):
     sys.exit(constants.EXIT_FAILURE)
 
+  # ActivateMasterIP also uses RPC/threads, so we run it again via a
+  # separate process.
+
+  # TODO: decide whether failure to activate the master IP is a fatal error
+  utils.RunInSeparateProcess(ActivateMasterIP)
+
 
 def ExecMasterd(options, args): # pylint: disable-msg=W0613
   """Main master daemon function, executed with the PID file held.
@@ -520,13 +536,6 @@ def ExecMasterd(options, args): # pylint: disable-msg=W0613
   try:
     rpc.Init()
     try:
-      # activate ip
-      master_node = ssconf.SimpleStore().GetMasterNode()
-      result = rpc.RpcRunner.call_node_start_master(master_node, False, False)
-      msg = result.fail_msg
-      if msg:
-        logging.error("Can't activate master IP address: %s", msg)
-
       master.setup_queue()
       try:
         mainloop.Run()
