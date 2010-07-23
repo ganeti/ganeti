@@ -242,13 +242,14 @@ def GetMasterInfo():
 def StartMaster(start_daemons, no_voting):
   """Activate local node as master node.
 
-  The function will always try activate the IP address of the master
-  (unless someone else has it). It will also start the master daemons,
-  based on the start_daemons parameter.
+  The function will either try activate the IP address of the master
+  (unless someone else has it) or also start the master daemons, based
+  on the start_daemons parameter.
 
   @type start_daemons: boolean
-  @param start_daemons: whether to also start the master
-      daemons (ganeti-masterd and ganeti-rapi)
+  @param start_daemons: whether to start the master daemons
+      (ganeti-masterd and ganeti-rapi), or (if false) activate the
+      master ip
   @type no_voting: boolean
   @param no_voting: whether to start ganeti-masterd without a node vote
       (if start_daemons is True), but still non-interactively
@@ -259,28 +260,7 @@ def StartMaster(start_daemons, no_voting):
   master_netdev, master_ip, _ = GetMasterInfo()
 
   err_msgs = []
-  if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
-    if netutils.OwnIpAddress(master_ip):
-      # we already have the ip:
-      logging.debug("Master IP already configured, doing nothing")
-    else:
-      msg = "Someone else has the master ip, not activating"
-      logging.error(msg)
-      err_msgs.append(msg)
-  else:
-    result = utils.RunCmd(["ip", "address", "add", "%s/32" % master_ip,
-                           "dev", master_netdev, "label",
-                           "%s:0" % master_netdev])
-    if result.failed:
-      msg = "Can't activate master IP: %s" % result.output
-      logging.error(msg)
-      err_msgs.append(msg)
-
-    result = utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev,
-                           "-s", master_ip, master_ip])
-    # we'll ignore the exit code of arping
-
-  # and now start the master and rapi daemons
+  # either start the master and rapi daemons
   if start_daemons:
     if no_voting:
       masterd_args = "--no-voting --yes-do-it"
@@ -296,6 +276,28 @@ def StartMaster(start_daemons, no_voting):
       msg = "Can't start Ganeti master: %s" % result.output
       logging.error(msg)
       err_msgs.append(msg)
+  # or activate the IP
+  else:
+    if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+      if netutils.OwnIpAddress(master_ip):
+        # we already have the ip:
+        logging.debug("Master IP already configured, doing nothing")
+      else:
+        msg = "Someone else has the master ip, not activating"
+        logging.error(msg)
+        err_msgs.append(msg)
+    else:
+      result = utils.RunCmd(["ip", "address", "add", "%s/32" % master_ip,
+                             "dev", master_netdev, "label",
+                             "%s:0" % master_netdev])
+      if result.failed:
+        msg = "Can't activate master IP: %s" % result.output
+        logging.error(msg)
+        err_msgs.append(msg)
+
+      result = utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev,
+                             "-s", master_ip, master_ip])
+      # we'll ignore the exit code of arping
 
   if err_msgs:
     _Fail("; ".join(err_msgs))
