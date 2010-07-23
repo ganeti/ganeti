@@ -30,9 +30,7 @@ module Main (main) where
 import Data.List
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import Monad
-#ifdef NO_CURL
 import System (exitWith, ExitCode(..))
-#endif
 import System.IO
 import System.FilePath
 import qualified System
@@ -139,9 +137,10 @@ writeData :: Int
           -> String
           -> Options
           -> Result (Node.List, Instance.List, String)
-          -> IO ()
+          -> IO Bool
 writeData _ name _ (Bad err) =
-    printf "\nError for %s: failed to load data. Details:\n%s\n" name err
+  printf "\nError for %s: failed to load data. Details:\n%s\n" name err >>
+  return False
 
 writeData nlen name opts (Ok (nl, il, adata)) = do
   printf "%-*s " nlen name :: IO ()
@@ -154,7 +153,7 @@ writeData nlen name opts (Ok (nl, il, adata)) = do
   when (isJust shownodes) $
        putStr $ Cluster.printNodes nl (fromJust shownodes)
   writeFile (oname <.> "data") adata
-
+  return True
 
 -- | Main function.
 main :: IO ()
@@ -176,14 +175,16 @@ main = do
          let lsock = fromMaybe defaultLuxiSocket (optLuxi opts)
          let name = local
          input_data <- Luxi.loadData lsock
-         writeData nlen name opts (processData input_data)
+         result <- writeData nlen name opts (processData input_data)
+         when (not result) $ exitWith $ ExitFailure 2
 
 #ifndef NO_CURL
-  mapM_ (\ name ->
-            do
-              input_data <- Rapi.loadData name
-              writeData nlen name opts (processData input_data)
-        ) clusters
+  results <- mapM (\ name ->
+                    do
+                      input_data <- Rapi.loadData name
+                      writeData nlen name opts (processData input_data)
+                  ) clusters
+  when (not $ all id results) $ exitWith (ExitFailure 2)
 #else
   when (not $ null clusters) $ do
     putStrLn "RAPI/curl backend disabled at compile time, cannot scan clusters"
