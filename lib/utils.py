@@ -1462,16 +1462,17 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
   WriteFile(file_name, fn=_WriteEtcHosts, mode=0644)
 
 
-def AddHostToEtcHosts(hostname):
+def AddHostToEtcHosts(hostname, ip):
   """Wrapper around SetEtcHostsEntry.
 
   @type hostname: str
   @param hostname: a hostname that will be resolved and added to
       L{constants.ETC_HOSTS}
+  @type ip: str
+  @param ip: The ip address of the host
 
   """
-  SetEtcHostsEntry(constants.ETC_HOSTS, hostname.ip, hostname.name,
-                   [hostname.name.split(".")[0]])
+  SetEtcHostsEntry(constants.ETC_HOSTS, ip, hostname, [hostname.split(".")[0]])
 
 
 def RemoveEtcHostsEntry(file_name, hostname):

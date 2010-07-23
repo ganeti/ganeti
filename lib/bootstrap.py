@@ -348,7 +348,7 @@ def InitCluster(cluster_name, mac_prefix,
   sshkey = sshline.split(" ")[1]
 
   if modify_etc_hosts:
-    utils.AddHostToEtcHosts(hostname)
+    utils.AddHostToEtcHosts(hostname.name, hostname.ip)
 
   if modify_ssh_setup:
     _InitSSHSetup()

@@ -3272,8 +3272,11 @@ class LURemoveNode(LogicalUnit):
 
     # Remove node from our /etc/hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:
-      # FIXME: this should be done via an rpc call to node daemon
-      utils.RemoveHostFromEtcHosts(node.name)
+      master_node = self.cfg.GetMasterNode()
+      result = self.rpc.call_etc_hosts_modify(master_node,
+                                              constants.ETC_HOSTS_REMOVE,
+                                              node.name, None)
+      result.Raise("Can't update hosts file with new host data")
       _RedistributeAncillaryFiles(self)
 
 
@@ -3829,8 +3832,12 @@ class LUAddNode(LogicalUnit):
 
     # Add node to our /etc/hosts, and add key to known_hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:
-      # FIXME: this should be done via an rpc call to node daemon
-      utils.AddHostToEtcHosts(self.hostname)
+      master_node = self.cfg.GetMasterNode()
+      result = self.rpc.call_etc_hosts_modify(master_node,
+                                              constants.ETC_HOSTS_ADD,
+                                              self.hostname.name,
+                                              self.hostname.ip)
+      result.Raise("Can't update hosts file with new host data")
 
     if new_node.secondary_ip != new_node.primary_ip:
       result = self.rpc.call_node_has_ip_address(new_node.name,
