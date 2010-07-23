@@ -874,6 +874,22 @@ class RpcRunner(object):
                                [vg_name, hypervisor_type])
 
   @_RpcTimeout(_TMO_NORMAL)
+  def call_etc_hosts_modify(self, node, mode, name, ip):
+    """Modify hosts file with name
+
+    @type node: string
+    @param node: The node to call
+    @type mode: string
+    @param mode: The mode to operate. Currently "add" or "remove"
+    @type name: string
+    @param name: The host name to be modified
+    @type ip: string
+    @param ip: The ip of the entry (just valid if mode is "add")
+
+    """
+    return self._SingleNodeCall(node, "etc_hosts_modify", [mode, name, ip])
+
+  @_RpcTimeout(_TMO_NORMAL)
   def call_node_verify(self, node_list, checkdict, cluster_name):
     """Request verification of given parameters.
 

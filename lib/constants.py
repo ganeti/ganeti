@@ -841,6 +841,10 @@ ELOG_PROGRESS = "progress"
 ELOG_REMOTE_IMPORT = "remote-import"
 ELOG_JQUEUE_TEST = "jqueue-test"
 
+# /etc/hosts modification
+ETC_HOSTS_ADD = "add"
+ETC_HOSTS_REMOVE = "remove"
+
 # Job queue test
 JQT_MSGPREFIX = "TESTMSG="
 JQT_EXPANDNAMES = "expandnames"

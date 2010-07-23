@@ -350,6 +350,28 @@ def StopMaster(stop_daemons):
                     result.cmd, result.exit_code, result.output)
 
 
+def EtcHostsModify(mode, host, ip):
+  """Modify a host entry in /etc/hosts.
+
+  @param mode: The mode to operate. Either add or remove entry
+  @param host: The host to operate on
+  @param ip: The ip associated with the entry
+
+  """
+  if mode == constants.ETC_HOSTS_ADD:
+    if not ip:
+      RPCFail("Mode 'add' needs 'ip' parameter, but parameter not"
+              " present")
+    utils.AddHostToEtcHosts(host, ip)
+  elif mode == constants.ETC_HOSTS_REMOVE:
+    if ip:
+      RPCFail("Mode 'remove' does not allow 'ip' parameter, but"
+              " parameter is present")
+    utils.RemoveHostFromEtcHosts(host)
+  else:
+    RPCFail("Mode not supported")
+
+
 def LeaveCluster(modify_ssh_setup):
   """Cleans up and remove the current node.
 

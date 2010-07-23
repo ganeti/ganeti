@@ -609,6 +609,15 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.GetNodeInfo(vgname, hypervisor_type)
 
   @staticmethod
+  def perspective_etc_hosts_modify(params):
+    """Modify a node entry in /etc/hosts.
+
+    """
+    backend.EtcHostsModify(params[0], params[1], params[2])
+
+    return True
+
+  @staticmethod
   def perspective_node_verify(params):
     """Run a verify sequence on this node.
 
