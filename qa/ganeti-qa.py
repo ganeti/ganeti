@@ -102,6 +102,9 @@ def RunClusterTests():
   if qa_config.TestEnabled('cluster-verify'):
     RunTest(qa_cluster.TestClusterVerify)
 
+  if qa_config.TestEnabled('cluster-reserved-lvs'):
+    RunTest(qa_cluster.TestClusterReservedLvs)
+
   if qa_config.TestEnabled('cluster-rename'):
     RunTest(qa_cluster.TestClusterRename)
 

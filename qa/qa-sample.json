@@ -48,6 +48,7 @@
     "cluster-renew-crypto": true,
     "cluster-destroy": true,
     "cluster-rename": true,
+    "cluster-reserved-lvs": true,
 
     "node-info": true,
     "node-volumes": true,

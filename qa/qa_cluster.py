@@ -136,6 +136,27 @@ def TestClusterVerify():
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
+def TestClusterReservedLvs():
+  """gnt-cluster reserved lvs"""
+  master = qa_config.GetMasterNode()
+  CVERIFY = ['gnt-cluster', 'verify']
+  for rcode, cmd in [
+    (0, CVERIFY),
+    (0, ['gnt-cluster', 'modify', '--reserved-lvs', '']),
+    (0, ['lvcreate', '-L1G', '-nqa-test', 'xenvg']),
+    (1, CVERIFY),
+    (0, ['gnt-cluster', 'modify', '--reserved-lvs', 'qa-test,other-test']),
+    (0, CVERIFY),
+    (0, ['gnt-cluster', 'modify', '--reserved-lvs', 'qa-.*']),
+    (0, CVERIFY),
+    (0, ['gnt-cluster', 'modify', '--reserved-lvs', '']),
+    (1, CVERIFY),
+    (0, ['lvremove', '-f', 'xenvg/qa-test']),
+    (0, CVERIFY),
+    ]:
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), rcode)
+
 
 def TestClusterInfo():
   """gnt-cluster info"""
