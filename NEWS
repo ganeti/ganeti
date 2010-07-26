@@ -1,6 +1,78 @@
 Ganeti-htools release notes
 ===========================
 
+
+Version 0.2.6 (Mon, 26 Jul 2010)
+--------------------------------
+
+Exactly three months since the last release. Many internal changes, plus
+a couple of important changes in the balancing algorithm.
+
+First, the balancing may now introduce N+1 errors, if this solves other,
+more critical problems. For the moment, this means that moving instances
+away from offline nodes is allowed even if it creates N+1 errors, and
+that means evacuation can be done in more cases.
+
+Second, the scoring for N+1 has changed. In previous versions, it simply
+counted the number of failing N+1 nodes, which means moving an instance
+away from a N+1 failed node (but without the node 'clearing' the N+1
+status) was not reflected in the cluster score. As such, the balancing
+algorithm managed to clear N+1 errors only sometimes, since usually it
+takes more than one move for this, and the first prerequisite move was
+not 'rewarded' appropriately and thus it was not selected. Now, it is
+possible to fix many more error cases than before: on a simulated 40
+node cluster full with instances (symmetrically allocated on all nodes),
+around five nodes can be evacuated before N+1 errors can be solved,
+whereas 0.2.5 could evacuate at best one node.
+
+There were some other internal changes to the scoring algorithm, such
+that now the metrics have associated weights, and they are not all of
+the same importance anymore. As of now, the only change is that offline
+instances have a higher weight, which should favour proper node
+evacuations.
+
+Among the other changes:
+
+- fixed the hspace KM_POOL_* metrics, which were returned as the final
+  state and not as the delta between the initial and final states
+- fixed hspace handling of N+1 failing clusters: before, it used to
+  generate a 'fake' response, and the structure of this response was not
+  always in sync with the real responses, leading to missing items;
+  currently it proceeds correctly through the code (skipping the
+  computation), and uses the same display mechanisms as the normal case
+- fixed hscan exit code for RAPI failures: previously it finished with
+  success even if all the clusters failed, which was creating issues
+  with the live-test script; now it exits with exit code 2 for RAPI
+  failures (unfortunately this is still not optimal as LUXI failures
+  will use exit code 1, the same as the command line)
+- changed the limit values for CPU/disk, which previously were used
+  optionally, whereas now they are always used; the default cpu ratio
+  limit is now 64 VCPUs per PCPU
+- changed the internal handling of the short name vs. original
+  (Ganeti-provided) name; now internally we always use the full name,
+  and only in display routines we show the shortened (called 'alias')
+  name; as a result, the -O and --excluded-instances options now accept
+  both the full name and the shortened name
+- changed internal handling of JSON conversions and errors, such that
+  now we show a better context for failure messages, which should help
+  with diagnosing the malformed message
+- changed the names for a few node fields, and added some more nodes;
+  this is most likely to help with debugging, and not with regular
+  operation though
+- changed the node fields option to allow the '+' prefix to mean 'extend
+  the default fields list' rather than start from fresh (similar to
+  Ganeti's implementation)
+- a few internal changes related to the LUXI protocol implementation,
+  which should make it more safe against potential bugs, one
+  optiomization that should help with large messages, and some patches
+  in preparation for potential expansion of the LUXI backend functionality
+
+And finally, many improvements on unittests and the live-test
+script. Test coverage is much enhanced, and the test infrastructure has
+better error reporting; this should lead down-the-road to better code
+and fewer bugs…
+
+
 Version 0.2.5 (Mon, 26 Apr 2010)
 --------------------------------
 
