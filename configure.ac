@@ -141,9 +141,9 @@ AC_ARG_WITH([user-prefix],
     [prefix for daemon users]
     [ (default is to run all daemons as root)]
   )],
-  [user_masterd="root";
+  [user_masterd="${withval}masterd";
    user_rapi="${withval}rapi";
-   user_confd="root";
+   user_confd="${withval}confd";
    user_noded="root"],
   [user_masterd="root";
    user_rapi="root";
@@ -160,10 +160,10 @@ AC_ARG_WITH([group-prefix],
     [prefix for daemon POSIX groups]
     [ (default is to run all daemons under group root)]
   )],
-  [group_rapi="root";
-   group_admin="root";
-   group_confd="root";
-   group_masterd="root";
+  [group_rapi="${withval}rapi";
+   group_admin="${withval}admin";
+   group_confd="${withval}confd";
+   group_masterd="${withval}masterd";
    group_daemons="${withval}daemons";],
   [group_rapi="root";
    group_admin="root";
