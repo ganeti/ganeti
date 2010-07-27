@@ -565,11 +565,7 @@ def main():
   parser.add_option("--yes-do-it", dest="yes_do_it",
                     help="Override interactive check for --no-voting",
                     default=False, action="store_true")
-  dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE),
-          (constants.SOCKET_DIR, constants.SOCKET_DIR_MODE),
-         ]
-  daemon.GenericMain(constants.MASTERD, parser, dirs,
-                     CheckMasterd, ExecMasterd,
+  daemon.GenericMain(constants.MASTERD, parser, CheckMasterd, ExecMasterd,
                      multithreaded=True)
 
 

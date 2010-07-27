@@ -293,9 +293,7 @@ def main():
                         version="%%prog (ganeti) %s" %
                         constants.RELEASE_VERSION)
 
-  dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
-  dirs.append((constants.LOCK_DIR, 1777))
-  daemon.GenericMain(constants.CONFD, parser, dirs, CheckConfd, ExecConfd)
+  daemon.GenericMain(constants.CONFD, parser, CheckConfd, ExecConfd)
 
 
 if __name__ == "__main__":

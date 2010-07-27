@@ -965,12 +965,7 @@ def main():
                     help="Do not mlock the node memory in ram",
                     default=True, action="store_false")
 
-  dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
-  dirs.append((constants.LOG_OS_DIR, 0750))
-  dirs.append((constants.LOCK_DIR, 1777))
-  dirs.append((constants.CRYPTO_KEYS_DIR, constants.CRYPTO_KEYS_DIR_MODE))
-  dirs.append((constants.IMPORT_EXPORT_DIR, constants.IMPORT_EXPORT_DIR_MODE))
-  daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded,
+  daemon.GenericMain(constants.NODED, parser, CheckNoded, ExecNoded,
                      default_ssl_cert=constants.NODED_CERT_FILE,
                      default_ssl_key=constants.NODED_CERT_FILE,
                      console_logging=True)

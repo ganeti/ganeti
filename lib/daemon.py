@@ -487,7 +487,7 @@ class Mainloop(object):
     self._signal_wait.append(owner)
 
 
-def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
+def GenericMain(daemon_name, optionparser, check_fn, exec_fn,
                 multithreaded=False, console_logging=False,
                 default_ssl_cert=None, default_ssl_key=None):
   """Shared main function for daemons.
@@ -497,9 +497,6 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
   @type optionparser: optparse.OptionParser
   @param optionparser: initialized optionparser with daemon-specific options
                        (common -f -d options will be handled by this module)
-  @type dirs: list of (string, integer)
-  @param dirs: list of directories that must be created if they don't exist,
-               and the permissions to be used to create them
   @type check_fn: function which accepts (options, args)
   @param check_fn: function that checks start conditions and exits if they're
                    not met
@@ -587,8 +584,6 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
 
   if check_fn is not None:
     check_fn(options, args)
-
-  utils.EnsureDirs(dirs)
 
   if options.fork:
     utils.CloseFDs()
