@@ -564,10 +564,10 @@
     </refsect2>
 
     <refsect2>
-      <title>MASTERFAILOVER</title>
+      <title>MASTER-FAILOVER</title>
 
       <cmdsynopsis>
-        <command>masterfailover</command>
+        <command>master-failover</command>
         <arg>--no-voting</arg>
       </cmdsynopsis>
 

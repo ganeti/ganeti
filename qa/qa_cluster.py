@@ -320,16 +320,16 @@ def TestClusterBurnin():
 
 
 def TestClusterMasterFailover():
-  """gnt-cluster masterfailover"""
+  """gnt-cluster master-failover"""
   master = qa_config.GetMasterNode()
 
   failovermaster = qa_config.AcquireNode(exclude=master)
   try:
-    cmd = ['gnt-cluster', 'masterfailover']
+    cmd = ['gnt-cluster', 'master-failover']
     AssertEqual(StartSSH(failovermaster['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
 
-    cmd = ['gnt-cluster', 'masterfailover']
+    cmd = ['gnt-cluster', 'master-failover']
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
   finally:

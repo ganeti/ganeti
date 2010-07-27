@@ -680,7 +680,7 @@ Failing over the master node
 If you want to promote a different node to the master role (for whatever
 reason), run on any other master-candidate node the command::
 
-  gnt-cluster masterfailover
+  gnt-cluster master-failover
 
 and the node you ran it on is now the new master. In case you try to run
 this on a non master-candidate node, you will get an error telling you

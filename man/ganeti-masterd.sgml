@@ -75,8 +75,8 @@
       <para>
         The only action that can be done without the master daemon is
         the failover of the master role to another node in the
-        cluster, via the <command>gnt-cluster masterfailover</command>
-        command.
+        cluster, via the <command>gnt-cluster
+        master-failover</command> command.
       </para>
 
       <para>

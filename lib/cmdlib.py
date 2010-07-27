@@ -3965,7 +3965,7 @@ class LUSetNodeParams(LogicalUnit):
       # we can't change the master's node flags
       if self.op.node_name == self.cfg.GetMasterNode():
         raise errors.OpPrereqError("The master role can be changed"
-                                   " only via masterfailover",
+                                   " only via master-failover",
                                    errors.ECODE_INVAL)
 
 

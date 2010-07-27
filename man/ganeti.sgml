@@ -110,7 +110,7 @@
             <listitem>
               <para>The node receives the full cluster configuration
               (configuration file and jobs) and can become a master
-              via the <command>gnt-cluster masterfailover</command>
+              via the <command>gnt-cluster master-failover</command>
               command. Nodes that are not in this state cannot
               transition into the master role due to missing
               state.</para>

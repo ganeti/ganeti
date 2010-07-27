@@ -854,7 +854,7 @@ commands = {
   'repair-disk-sizes': (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [],
     "", "Updates mismatches in recorded disk sizes"),
-  'masterfailover': (
+  'master-failover': (
     MasterFailover, ARGS_NONE, [NOVOTING_OPT],
     "", "Makes the current node the master"),
   'version': (
@@ -914,5 +914,12 @@ commands = {
   }
 
 
+#: dictionary with aliases for commands
+aliases = {
+  'masterfailover': 'master-failover',
+}
+
+
 if __name__ == '__main__':
-  sys.exit(GenericMain(commands, override={"tag_type": constants.TAG_CLUSTER}))
+  sys.exit(GenericMain(commands, override={"tag_type": constants.TAG_CLUSTER},
+                       aliases=aliases))
