@@ -622,7 +622,7 @@ tryEvac nl il ex_ndx =
                              csol@(_, (nl'', _, _)):_ ->
                                  return (nl'', (fm, cs, csol:rsols))
                              _ -> fail $ "Can't evacuate instance " ++
-                                  show idx
+                                  Instance.name (Container.find idx il)
                         ) (nl, ([], 0, [])) all_insts
       return sol
 
