@@ -253,8 +253,7 @@ def main():
   dirs.append((constants.LOG_OS_DIR, 0750))
   daemon.GenericMain(constants.RAPI, parser, dirs, CheckRapi, ExecRapi,
                      default_ssl_cert=constants.RAPI_CERT_FILE,
-                     default_ssl_key=constants.RAPI_CERT_FILE,
-                     user=constants.RAPI_USER, group=constants.DAEMONS_GROUP)
+                     default_ssl_key=constants.RAPI_CERT_FILE)
 
 
 if __name__ == "__main__":
