@@ -74,6 +74,8 @@ _gather_files() {
 }
 
 _ensure_datadir() {
+  local full_run="$1"
+
   _ensure_dir ${DATADIR} 0755 "$(_fileset_owner masterd)"
   _ensure_dir ${DATADIR}/queue 0700 "$(_fileset_owner masterd)"
   _ensure_dir ${DATADIR}/queue/archive 0700 "$(_fileset_owner masterd)"
@@ -94,15 +96,17 @@ _ensure_datadir() {
   touch ${DATADIR}/queue/lock
   _ensure_file ${DATADIR}/queue/lock 0600 "$(_fileset_owner masterd)"
 
-  for file in $(_gather_files ${DATADIR}/queue 0600 @GNTMASTERUSER@ \
-                @GNTMASTERDGROUP@); do
-    _ensure_file "${file}" 0600 "$(_fileset_owner masterd)"
-  done
+  if ! [[ -z "${full_run}" ]]; then
+    for file in $(_gather_files ${DATADIR}/queue 0600 @GNTMASTERUSER@ \
+                  @GNTMASTERDGROUP@); do
+      _ensure_file "${file}" 0600 "$(_fileset_owner masterd)"
+    done
 
-  for file in $(_gather_files ${DATADIR} 0600 root \
-                @GNTMASTERDGROUP@ -name 'ssconf_*'); do
-    _ensure_file "${file}" 0444 "$(_fileset_owner noded)"
-  done
+    for file in $(_gather_files ${DATADIR} 0600 root \
+                  @GNTMASTERDGROUP@ -name 'ssconf_*'); do
+      _ensure_file "${file}" 0444 "$(_fileset_owner noded)"
+    done
+  fi
 }
 
 _ensure_rundir() {
@@ -143,7 +147,15 @@ _operate_while_hold() {
 }
 
 main() {
-  _operate_while_hold "_ensure_datadir" ${DATADIR}
+  local full_run
+
+  while getopts "f" OPTION; do
+    case ${OPTION} in
+      f) full_run=1 ;;
+    esac
+  done
+
+  _operate_while_hold "_ensure_datadir" ${DATADIR} ${full_run}
   _operate_while_hold "_ensure_rundir" ${RUNDIR}
   _operate_while_hold "_ensure_logdir" ${LOGDIR}
   _operate_while_hold "_ensure_lockdir" @LOCALSTATEDIR@
