@@ -1682,6 +1682,9 @@ def FormatError(err):
   elif isinstance(err, luxi.TimeoutError):
     obuf.write("Timeout while talking to the master daemon. Error:\n"
                "%s" % msg)
+  elif isinstance(err, luxi.PermissionError):
+    obuf.write("It seems you don't have permissions to connect to the"
+               " master daemon.\nPlease retry as a different user.")
   elif isinstance(err, luxi.ProtocolError):
     obuf.write("Unhandled protocol error while talking to the master daemon:\n"
                "%s" % msg)

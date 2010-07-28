@@ -190,7 +190,10 @@ def SubmitJob(op, cl=None):
   except errors.JobQueueDrainError:
     raise http.HttpServiceUnavailable("Job queue is drained, cannot submit")
   except luxi.NoMasterError, err:
-    raise http.HttpBadGateway("Master seems to unreachable: %s" % str(err))
+    raise http.HttpBadGateway("Master seems to be unreachable: %s" % str(err))
+  except luxi.PermissionError:
+    raise http.HttpInternalServerError("Internal error: no permission to"
+                                       " connect to the master daemon")
   except luxi.TimeoutError, err:
     raise http.HttpGatewayTimeout("Timeout while talking to the master"
                                   " daemon. Error: %s" % str(err))
@@ -217,6 +220,9 @@ def GetClient():
     return luxi.Client()
   except luxi.NoMasterError, err:
     raise http.HttpBadGateway("Master seems to unreachable: %s" % str(err))
+  except luxi.PermissionError:
+    raise http.HttpInternalServerError("Internal error: no permission to"
+                                       " connect to the master daemon")
 
 
 def FeedbackFn(msg):

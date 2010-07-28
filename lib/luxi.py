@@ -70,19 +70,19 @@ WFJC_TIMEOUT = (DEF_RWTO - 1) / 2
 
 
 class ProtocolError(errors.GenericError):
-  """Denotes an error in the LUXI protocol"""
+  """Denotes an error in the LUXI protocol."""
 
 
 class ConnectionClosedError(ProtocolError):
-  """Connection closed error"""
+  """Connection closed error."""
 
 
 class TimeoutError(ProtocolError):
-  """Operation timeout error"""
+  """Operation timeout error."""
 
 
 class RequestError(ProtocolError):
-  """Error on request
+  """Error on request.
 
   This signifies an error in the request format or request handling,
   but not (e.g.) an error in starting up an instance.
@@ -95,10 +95,18 @@ class RequestError(ProtocolError):
 
 
 class NoMasterError(ProtocolError):
-  """The master cannot be reached
+  """The master cannot be reached.
 
   This means that the master daemon is not running or the socket has
   been removed.
+
+  """
+
+
+class PermissionError(ProtocolError):
+  """Permission denied while connecting to the master socket.
+
+  This means the user doesn't have the proper rights.
 
   """
 
@@ -168,9 +176,12 @@ class Transport:
     except socket.timeout, err:
       raise TimeoutError("Connect timed out: %s" % str(err))
     except socket.error, err:
-      if err.args[0] in (errno.ENOENT, errno.ECONNREFUSED):
+      error_code = err.args[0]
+      if error_code in (errno.ENOENT, errno.ECONNREFUSED):
         raise NoMasterError(address)
-      if err.args[0] == errno.EAGAIN:
+      elif error_code in (errno.EPERM, errno.EACCES):
+        raise PermissionError(address)
+      elif error_code == errno.EAGAIN:
         # Server's socket backlog is full at the moment
         raise utils.RetryAgain()
       raise
