@@ -681,8 +681,9 @@ apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(BUILT_SOURCES)
 .PHONY: TAGS
 TAGS: $(BUILT_SOURCES)
 	rm -f TAGS
-	find . -path './lib/*.py' -o -path 'scripts/gnt-*' -o \
-	  -path 'daemons/ganeti-*' -o -path 'tools/*' | \
+	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
+	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
+	  -path './qa/*.py' | \
 	  etags -
 
 .PHONY: coverage
