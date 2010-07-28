@@ -107,6 +107,7 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
                   "nics": nics,
                   "mode": mode,
                   "disk_template": disk_template,
+                  "os": "debootstrap",
                   }
 
                 if beparams is not None:
@@ -152,7 +153,8 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
       "disks": [],
       "nics": [],
       "mode": constants.INSTANCE_CREATE,
-      "disk_template": constants.DT_PLAIN
+      "disk_template": constants.DT_PLAIN,
+      "os": "debootstrap",
       }
 
     for name in reqfields.keys():

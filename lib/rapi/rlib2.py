@@ -590,7 +590,8 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
   return opcodes.OpCreateInstance(
     mode=baserlib.CheckParameter(data, "mode"),
     instance_name=baserlib.CheckParameter(data, "name"),
-    os_type=baserlib.CheckParameter(data, "os", default=None),
+    os_type=baserlib.CheckParameter(data, "os"),
+    osparams=baserlib.CheckParameter(data, "osparams", default={}),
     force_variant=baserlib.CheckParameter(data, "force_variant",
                                           default=False),
     pnode=baserlib.CheckParameter(data, "pnode", default=None),
