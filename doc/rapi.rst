@@ -390,8 +390,11 @@ Body parameters:
   List of NIC (network interface) definitions. Example: ``[{}, {},
   {"ip": "198.51.100.4"}]``. Each NIC definition can contain the
   optional values ``ip``, ``mode``, ``link`` and ``bridge``.
-``os`` (string)
+``os`` (string, required)
   Instance operating system.
+``osparams`` (dictionary)
+  Dictionary with OS parameters. If not valid for the given OS, the job
+  will fail.
 ``force_variant`` (bool)
   Whether to force an unknown variant.
 ``pnode`` (string)
