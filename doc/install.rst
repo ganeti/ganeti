@@ -288,12 +288,16 @@ instances on a node.
    configure any drbd devices. You can do this by prefixing all
    *resource* lines in the file with the keyword *skip*, like this::
 
-     skip resource r0 {
-       ...
+     skip {
+       resource r0 {
+         ...
+       }
      }
 
-     skip resource "r1" {
-       ...
+     skip {
+       resource "r1" {
+         ...
+       }
      }
 
 Other required software
