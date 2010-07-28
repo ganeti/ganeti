@@ -1648,7 +1648,7 @@ def FormatError(err):
   elif isinstance(err, errors.HooksFailure):
     obuf.write("Failure: hooks general failure: %s" % msg)
   elif isinstance(err, errors.ResolverError):
-    this_host = netutils.HostInfo.SysName()
+    this_host = netutils.Hostname.GetSysName()
     if err.args[0] == this_host:
       msg = "Failure: can't resolve my own hostname ('%s')"
     else:

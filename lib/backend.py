@@ -490,7 +490,7 @@ def VerifyNode(what, cluster_name):
 
   """
   result = {}
-  my_name = netutils.HostInfo().name
+  my_name = netutils.Hostname.GetSysName()
   port = netutils.GetDaemonPort(constants.NODED)
 
   if constants.NV_HYPERVISOR in what:
@@ -2595,7 +2595,7 @@ def CreateX509Certificate(validity, cryptodir=constants.CRYPTO_KEYS_DIR):
 
   """
   (key_pem, cert_pem) = \
-    utils.GenerateSelfSignedX509Cert(netutils.HostInfo.SysName(),
+    utils.GenerateSelfSignedX509Cert(netutils.Hostname.GetSysName(),
                                      min(validity, _MAX_SSL_CERT_VALIDITY))
 
   cert_dir = tempfile.mkdtemp(dir=cryptodir,
@@ -2938,7 +2938,7 @@ def _FindDisks(nodes_ip, disks):
 
   """
   # set the correct physical ID
-  my_name = netutils.HostInfo().name
+  my_name = netutils.Hostname.GetSysName()
   for cf in disks:
     cf.SetPhysicalID(my_name, nodes_ip)
 

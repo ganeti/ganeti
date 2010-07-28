@@ -1461,8 +1461,8 @@ def AddHostToEtcHosts(hostname):
       L{constants.ETC_HOSTS}
 
   """
-  hi = netutils.HostInfo(name=hostname)
-  SetEtcHostsEntry(constants.ETC_HOSTS, hi.ip, hi.name, [hi.ShortName()])
+  SetEtcHostsEntry(constants.ETC_HOSTS, netutils.Hostname.GetIP(hostname),
+                   hostname, [hostname.split(".")[0]])
 
 
 def RemoveEtcHostsEntry(file_name, hostname):
@@ -1518,9 +1518,8 @@ def RemoveHostFromEtcHosts(hostname):
       L{constants.ETC_HOSTS}
 
   """
-  hi = netutils.HostInfo(name=hostname)
-  RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.name)
-  RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName())
+  RemoveEtcHostsEntry(constants.ETC_HOSTS, hostname)
+  RemoveEtcHostsEntry(constants.ETC_HOSTS, hostname.split(".")[0])
 
 
 def TimestampForFilename():

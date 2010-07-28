@@ -1554,7 +1554,7 @@ def CheckRemoteExportDiskInfo(cds, disk_index, disk_info):
   if not utils.VerifySha1Hmac(cds, msg, hmac_digest, salt=hmac_salt):
     raise errors.GenericError("HMAC is wrong")
 
-  return (netutils.HostInfo.NormalizeName(host),
+  return (netutils.Hostname.GetNormalizedName(host),
           utils.ValidateServiceName(port),
           magic)
 

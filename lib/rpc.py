@@ -259,7 +259,7 @@ class RpcResult(object):
 
 def _AddressLookup(node_list,
                    ssc=ssconf.SimpleStore,
-                   nslookup_fn=netutils.HostInfo.LookupHostname):
+                   nslookup_fn=netutils.Hostname.GetIP):
   """Return addresses for given node names.
 
   @type node_list: list
@@ -272,22 +272,14 @@ def _AddressLookup(node_list,
   @returns: List of corresponding addresses, if found
 
   """
-  def _NSLookup(name):
-    _, _, addrs = nslookup_fn(name)
-    return addrs[0]
-
+  iplist = ssc().GetNodePrimaryIPList()
   addresses = []
-  try:
-    iplist = ssc().GetNodePrimaryIPList()
-    ipmap = dict(entry.split() for entry in iplist)
-    for node in node_list:
-      address = ipmap.get(node)
-      if address is None:
-        address = _NSLookup(node)
-      addresses.append(address)
-  except errors.ConfigurationError:
-    # Address not found in so we do a NS lookup
-    addresses = [_NSLookup(node) for node in node_list]
+  ipmap = dict(entry.split() for entry in iplist)
+  for node in node_list:
+    address = ipmap.get(node)
+    if address is None:
+      address = nslookup_fn(node)
+    addresses.append(address)
 
   return addresses
 

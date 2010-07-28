@@ -154,7 +154,7 @@ class ConfigWriter:
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
     # file than after it was modified
-    self._my_hostname = netutils.HostInfo().name
+    self._my_hostname = netutils.Hostname.GetSysName()
     self._last_cluster_serial = -1
     self._OpenConfig()
 

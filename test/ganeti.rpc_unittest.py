@@ -248,7 +248,7 @@ class TestClient(unittest.TestCase):
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     ssc = GetFakeSimpleStoreClass(lambda s: [])
     node_addr_map = dict(zip(node_list, addr_list))
-    nslookup_fn = lambda name: (None, None, [node_addr_map.get(name)])
+    nslookup_fn = lambda name: node_addr_map.get(name)
     result = rpc._AddressLookup(node_list, ssc=ssc, nslookup_fn=nslookup_fn)
     self.assertEqual(result, addr_list)
 
@@ -259,7 +259,7 @@ class TestClient(unittest.TestCase):
     node_addr_list = [ " ".join(t) for t in zip(node_list[n:], addr_list[n:])]
     ssc = GetFakeSimpleStoreClass(lambda s: node_addr_list)
     node_addr_map = dict(zip(node_list[:n], addr_list[:n]))
-    nslookup_fn = lambda name: (None, None, [node_addr_map.get(name)])
+    nslookup_fn = lambda name: node_addr_map.get(name)
     result = rpc._AddressLookup(node_list, ssc=ssc, nslookup_fn=nslookup_fn)
     self.assertEqual(result, addr_list)
 

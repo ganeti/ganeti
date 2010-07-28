@@ -2527,7 +2527,7 @@ class LURenameCluster(LogicalUnit):
     """Verify that the passed name is a valid one.
 
     """
-    hostname = netutils.GetHostInfo(self.op.name)
+    hostname = netutils.GetHostname(name=self.op.name)
 
     new_name = hostname.name
     self.ip = new_ip = hostname.ip
@@ -3674,7 +3674,7 @@ class LUAddNode(LogicalUnit):
 
   def CheckArguments(self):
     # validate/normalize the node name
-    self.op.node_name = netutils.HostInfo.NormalizeName(self.op.node_name)
+    self.op.node_name = netutils.Hostname.GetNormalizedName(self.op.node_name)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3703,13 +3703,11 @@ class LUAddNode(LogicalUnit):
     Any errors are signaled by raising errors.OpPrereqError.
 
     """
-    node_name = self.op.node_name
+    hostname = netutils.GetHostname(name=self.op.node_name)
+    node = hostname.name
     cfg = self.cfg
 
-    dns_data = netutils.GetHostInfo(node_name)
-
-    node = dns_data.name
-    primary_ip = self.op.primary_ip = dns_data.ip
+    primary_ip = self.op.primary_ip = hostname.ip
     if self.op.secondary_ip is None:
       self.op.secondary_ip = primary_ip
     if not netutils.IP4Address.IsValid(self.op.secondary_ip):
@@ -4915,19 +4913,18 @@ class LURenameInstance(LogicalUnit):
 
     new_name = self.op.new_name
     if self.op.name_check:
-      hostinfo = netutils.HostInfo(netutils.HostInfo.NormalizeName(new_name))
-      new_name = hostinfo.name
+      hostname = netutils.GetHostname(name=new_name)
+      new_name = hostname.name
       if (self.op.ip_check and
-          netutils.TcpPing(hostinfo.ip, constants.DEFAULT_NODED_PORT)):
+          netutils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT)):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (hostinfo.ip, new_name),
+                                   (hostname.ip, new_name),
                                    errors.ECODE_NOTUNIQUE)
 
     instance_list = self.cfg.GetInstanceList()
     if new_name in instance_list:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
                                  new_name, errors.ECODE_EXISTS)
-
 
   def Exec(self, feedback_fn):
     """Reinstall the instance.
@@ -6551,7 +6548,7 @@ class LUCreateInstance(LogicalUnit):
       self.op.start = False
     # validate/normalize the instance name
     self.op.instance_name = \
-      netutils.HostInfo.NormalizeName(self.op.instance_name)
+      netutils.Hostname.GetNormalizedName(self.op.instance_name)
 
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
@@ -6590,7 +6587,7 @@ class LUCreateInstance(LogicalUnit):
 
     # instance name verification
     if self.op.name_check:
-      self.hostname1 = netutils.GetHostInfo(self.op.instance_name)
+      self.hostname1 = netutils.GetHostname(name=self.op.instance_name)
       self.op.instance_name = self.hostname1.name
       # used in CheckPrereq for ip ping check
       self.check_ip = self.hostname1.ip
@@ -6670,8 +6667,8 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("Missing source instance name",
                                    errors.ECODE_INVAL)
 
-      norm_name = netutils.HostInfo.NormalizeName(src_instance_name)
-      self.source_instance_name = netutils.GetHostInfo(norm_name).name
+      self.source_instance_name = \
+          netutils.GetHostname(name=src_instance_name).name
 
     else:
       raise errors.OpPrereqError("Invalid instance creation mode %r" %

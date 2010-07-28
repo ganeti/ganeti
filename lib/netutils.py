@@ -62,44 +62,48 @@ def GetSocketCredentials(sock):
   return struct.unpack(_STRUCT_UCRED, peercred)
 
 
-def GetHostInfo(name=None):
-  """Lookup host name and raise an OpPrereqError for failures"""
+def GetHostname(name=None, family=None):
+  """Returns a Hostname object.
 
+  @type name: str
+  @param name: hostname or None
+  @type family: int
+  @param family: AF_INET | AF_INET6 | None
+  @rtype: L{Hostname}
+  @return: Hostname object
+  @raise: errors.OpPrereqError
+
+  """
   try:
-    return HostInfo(name)
+    return Hostname(name=name, family=family)
   except errors.ResolverError, err:
     raise errors.OpPrereqError("The given name (%s) does not resolve: %s" %
                                (err[0], err[2]), errors.ECODE_RESOLVER)
 
 
-class HostInfo:
-  """Class implementing resolver and hostname functionality
+class Hostname:
+  """Class implementing resolver and hostname functionality.
 
   """
-  _VALID_NAME_RE = re.compile("^[a-z0-9._-]{1,255}$")
-
-  def __init__(self, name=None):
+  def __init__(self, name=None, family=None):
     """Initialize the host name object.
 
-    If the name argument is not passed, it will use this system's
-    name.
+    If the name argument is None, it will use this system's name.
+
+    @type family: int
+    @param family: AF_INET | AF_INET6 | None
+    @type name: str
+    @param name: hostname or None
 
     """
     if name is None:
-      name = self.SysName()
+      name = self.GetSysName()
 
-    self.query = name
-    self.name, self.aliases, self.ipaddrs = self.LookupHostname(name)
-    self.ip = self.ipaddrs[0]
-
-  def ShortName(self):
-    """Returns the hostname without domain.
-
-    """
-    return self.name.split('.')[0]
+    self.name = self.GetNormalizedName(name)
+    self.ip = self.GetIP(self.name, family=family)
 
   @staticmethod
-  def SysName():
+  def GetSysName():
     """Return the current system's name.
 
     This is simply a wrapper over C{socket.gethostname()}.
@@ -108,29 +112,37 @@ class HostInfo:
     return socket.gethostname()
 
   @staticmethod
-  def LookupHostname(hostname):
-    """Look up hostname
+  def GetIP(hostname, family=None):
+    """Return IP address of given hostname.
+
+    Supports both IPv4 and IPv6.
 
     @type hostname: str
     @param hostname: hostname to look up
-
-    @rtype: tuple
-    @return: a tuple (name, aliases, ipaddrs) as returned by
-        C{socket.gethostbyname_ex}
+    @type family: int
+    @param family: AF_INET | AF_INET6 | None
+    @rtype: str
+    @return: IP address
     @raise errors.ResolverError: in case of errors in resolving
 
     """
     try:
-      result = socket.gethostbyname_ex(hostname)
+      if family in (socket.AF_INET, socket.AF_INET6):
+        result = socket.getaddrinfo(hostname, None, family)
+      else:
+        result = socket.getaddrinfo(hostname, None, socket.AF_INET)
     except (socket.gaierror, socket.herror, socket.error), err:
       # hostname not found in DNS, or other socket exception in the
       # (code, description format)
       raise errors.ResolverError(hostname, err.args[0], err.args[1])
 
-    return result
+    # getaddrinfo() returns a list of 5-tupes (family, socktype, proto,
+    # canonname, sockaddr). We return the first tuple's first address in
+    # sockaddr
+    return result[0][4][0]
 
-  @classmethod
-  def NormalizeName(cls, hostname):
+  @staticmethod
+  def GetNormalizedName(hostname):
     """Validate and normalize the given hostname.
 
     @attention: the validation is a bit more relaxed than the standards
@@ -138,8 +150,9 @@ class HostInfo:
     @raise errors.OpPrereqError: when the name is not valid
 
     """
+    valid_name_re = re.compile("^[a-z0-9._-]{1,255}$")
     hostname = hostname.lower()
-    if (not cls._VALID_NAME_RE.match(hostname) or
+    if (not valid_name_re.match(hostname) or
         # double-dots, meaning empty label
         ".." in hostname or
         # empty initial label

@@ -135,8 +135,7 @@ def AddNode(opts, args):
 
   """
   cl = GetClient()
-  dns_data = netutils.GetHostInfo(netutils.HostInfo.NormalizeName(args[0]))
-  node = dns_data.name
+  node = netutils.GetHostname(name=args[0]).name
   readd = opts.readd
 
   try:

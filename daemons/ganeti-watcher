@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -215,7 +215,7 @@ class NodeMaintenance(object):
     """Check node status versus cluster desired state.
 
     """
-    my_name = netutils.HostInfo().name
+    my_name = netutils.Hostname.GetSysName()
     req = confd_client.ConfdClientRequest(type=
                                           constants.CONFD_REQ_NODE_ROLE_BYNAME,
                                           query=my_name)
@@ -466,7 +466,7 @@ class Watcher(object):
   def __init__(self, opts, notepad):
     self.notepad = notepad
     master = client.QueryConfigValues(["master_node"])[0]
-    if master != netutils.HostInfo().name:
+    if master != netutils.Hostname.GetSysName():
       raise NotMasterError("This is not the master node")
     # first archive old jobs
     self.ArchiveJobs(opts.job_age)

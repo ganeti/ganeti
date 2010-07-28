@@ -244,7 +244,7 @@ def InitCluster(cluster_name, mac_prefix,
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-  hostname = netutils.GetHostInfo()
+  hostname = netutils.GetHostname()
 
   if netutils.IP4Address.IsLoopback(hostname.ip):
     raise errors.OpPrereqError("This host's IP (%s) resolves to a loopback"
@@ -258,8 +258,7 @@ def InitCluster(cluster_name, mac_prefix,
                                " belong to this host. Aborting." %
                                hostname.ip, errors.ECODE_ENVIRON)
 
-  clustername = \
-    netutils.GetHostInfo(netutils.HostInfo.NormalizeName(cluster_name))
+  clustername = netutils.GetHostname(name=cluster_name)
 
   if netutils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
                    timeout=5):
@@ -649,7 +648,7 @@ def GatherMasterVotes(node_list):
   @return: list of (node, votes)
 
   """
-  myself = netutils.HostInfo().name
+  myself = netutils.Hostname.GetSysName()
   try:
     node_list.remove(myself)
   except ValueError:

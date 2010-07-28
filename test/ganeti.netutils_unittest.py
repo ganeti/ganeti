@@ -102,21 +102,21 @@ class TestGetSocketCredentials(unittest.TestCase):
     self.assertEqual(gid, os.getgid())
 
 
-class TestHostInfo(unittest.TestCase):
-  """Testing case for HostInfo"""
+class TestHostname(unittest.TestCase):
+  """Testing case for Hostname"""
 
   def testUppercase(self):
     data = "AbC.example.com"
-    self.failUnlessEqual(netutils.HostInfo.NormalizeName(data), data.lower())
+    self.assertEqual(netutils.Hostname.GetNormalizedName(data), data.lower())
 
   def testTooLongName(self):
     data = "a.b." + "c" * 255
-    self.failUnlessRaises(errors.OpPrereqError,
-                          netutils.HostInfo.NormalizeName, data)
+    self.assertRaises(errors.OpPrereqError,
+                      netutils.Hostname.GetNormalizedName, data)
 
   def testTrailingDot(self):
     data = "a.b.c"
-    self.failUnlessEqual(netutils.HostInfo.NormalizeName(data + "."), data)
+    self.assertEqual(netutils.Hostname.GetNormalizedName(data + "."), data)
 
   def testInvalidName(self):
     data = [
@@ -126,8 +126,8 @@ class TestHostInfo(unittest.TestCase):
       "a..b",
       ]
     for value in data:
-      self.failUnlessRaises(errors.OpPrereqError,
-                            netutils.HostInfo.NormalizeName, value)
+      self.assertRaises(errors.OpPrereqError,
+                        netutils.Hostname.GetNormalizedName, value)
 
   def testValidName(self):
     data = [
@@ -137,7 +137,7 @@ class TestHostInfo(unittest.TestCase):
       "a.b.c",
       ]
     for value in data:
-      netutils.HostInfo.NormalizeName(value)
+      self.assertEqual(netutils.Hostname.GetNormalizedName(value), value)
 
 
 class TestIPAddress(unittest.TestCase):

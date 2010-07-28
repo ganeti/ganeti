@@ -849,7 +849,7 @@ class JobQueue(object):
     """
     self.context = context
     self._memcache = weakref.WeakValueDictionary()
-    self._my_hostname = netutils.HostInfo().name
+    self._my_hostname = netutils.Hostname.GetSysName()
 
     # The Big JobQueue lock. If a code block or method acquires it in shared
     # mode safe it must guarantee concurrency with all the code acquiring it in

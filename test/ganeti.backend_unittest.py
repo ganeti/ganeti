@@ -74,7 +74,8 @@ class TestX509Certificates(unittest.TestCase):
 class TestNodeVerify(testutils.GanetiTestCase):
   def testMasterIPLocalhost(self):
     # this a real functional test, but requires localhost to be reachable
-    local_data = (netutils.HostInfo().name, constants.IP4_ADDRESS_LOCALHOST)
+    local_data = (netutils.Hostname.GetSysName(),
+                  constants.IP4_ADDRESS_LOCALHOST)
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data}, None)
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")

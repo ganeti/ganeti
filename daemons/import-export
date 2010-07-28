@@ -408,7 +408,7 @@ def ParseOptions():
   # Normalize and check parameters
   if options.host is not None:
     try:
-      options.host = netutils.HostInfo.NormalizeName(options.host)
+      options.host = netutils.Hostname.GetNormalizedName(options.host)
     except errors.OpPrereqError, err:
       parser.error("Invalid hostname '%s': %s" % (options.host, err))
 

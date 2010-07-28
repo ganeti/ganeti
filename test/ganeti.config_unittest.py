@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ class TestConfigRunner(unittest.TestCase):
 
   def _init_cluster(self, cfg):
     """Initializes the cfg object"""
-    me = netutils.HostInfo()
+    me = netutils.Hostname()
     ip = constants.IP4_ADDRESS_LOCALHOST
 
     cluster_config = objects.Cluster(
