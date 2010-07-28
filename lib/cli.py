@@ -1688,6 +1688,8 @@ def FormatError(err):
   elif isinstance(err, luxi.ProtocolError):
     obuf.write("Unhandled protocol error while talking to the master daemon:\n"
                "%s" % msg)
+  elif isinstance(err, errors.JobLost):
+    obuf.write("Error checking job status: %s" % msg)
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, JobSubmittedException):
@@ -2326,12 +2328,13 @@ class JobExecutor(object):
     assert result
 
     for job_data, status in zip(self.jobs, result):
-      if status[0] in (constants.JOB_STATUS_QUEUED,
-                    constants.JOB_STATUS_WAITLOCK,
-                    constants.JOB_STATUS_CANCELING):
-        # job is still waiting
+      if (isinstance(status, list) and status and
+          status[0] in (constants.JOB_STATUS_QUEUED,
+                        constants.JOB_STATUS_WAITLOCK,
+                        constants.JOB_STATUS_CANCELING)):
+        # job is still present and waiting
         continue
-      # good candidate found
+      # good candidate found (either running job or lost job)
       self.jobs.remove(job_data)
       return job_data
 
@@ -2367,6 +2370,11 @@ class JobExecutor(object):
       try:
         job_result = PollJob(jid, cl=self.cl, feedback_fn=self.feedback_fn)
         success = True
+      except errors.JobLost, err:
+        _, job_result = FormatError(err)
+        ToStderr("Job %s for %s has been archived, cannot check its result",
+                 jid, name)
+        success = False
       except (errors.GenericError, luxi.ProtocolError), err:
         _, job_result = FormatError(err)
         success = False
