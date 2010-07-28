@@ -4870,9 +4870,18 @@ class LURenameInstance(LogicalUnit):
   _OP_PARAMS = [
     _PInstanceName,
     ("new_name", _NoDefault, _TNonEmptyString),
-    ("ignore_ip", False, _TBool),
-    ("check_name", True, _TBool),
+    ("ip_check", False, _TBool),
+    ("name_check", True, _TBool),
     ]
+
+  def CheckArguments(self):
+    """Check arguments.
+
+    """
+    if self.op.ip_check and not self.op.name_check:
+      # TODO: make the ip check more flexible and not depend on the name check
+      raise errors.OpPrereqError("Cannot do ip check without a name check",
+                                 errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4899,23 +4908,21 @@ class LURenameInstance(LogicalUnit):
     _CheckInstanceDown(self, instance, "cannot rename")
     self.instance = instance
 
-    # new name verification
-    if self.op.check_name:
-      name_info = netutils.GetHostInfo(self.op.new_name)
-      self.op.new_name = name_info.name
-
     new_name = self.op.new_name
+    if self.op.name_check:
+      hostinfo = netutils.HostInfo(netutils.HostInfo.NormalizeName(new_name))
+      new_name = hostinfo.name
+      if (self.op.ip_check and
+          netutils.TcpPing(hostinfo.ip, constants.DEFAULT_NODED_PORT)):
+        raise errors.OpPrereqError("IP %s of instance %s already in use" %
+                                   (hostinfo.ip, new_name),
+                                   errors.ECODE_NOTUNIQUE)
 
     instance_list = self.cfg.GetInstanceList()
     if new_name in instance_list:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
                                  new_name, errors.ECODE_EXISTS)
 
-    if not self.op.ignore_ip:
-      if netutils.TcpPing(name_info.ip, constants.DEFAULT_NODED_PORT):
-        raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (name_info.ip, new_name),
-                                   errors.ECODE_NOTUNIQUE)
 
   def Exec(self, feedback_fn):
     """Reinstall the instance.
@@ -6527,7 +6534,7 @@ class LUCreateInstance(LogicalUnit):
 
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
-      raise errors.OpPrereqError("Cannot do ip checks without a name check",
+      raise errors.OpPrereqError("Cannot do ip check without a name check",
                                  errors.ECODE_INVAL)
 
     # check nics' parameter names
