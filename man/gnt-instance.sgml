@@ -1633,8 +1633,7 @@ instance5: 11225
           are selected (either by passing multiple arguments or by
           using the <option>--node</option>,
           <option>--primary</option>, <option>--secondary</option> or
-          <option>--all</option> options), the user must pass both the
-          <option>--force</option> and
+          <option>--all</option> options), the user must pass the
           <option>--force-multiple</option> options to skip the
           interactive confirmation.
         </para>
