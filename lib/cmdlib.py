@@ -6507,7 +6507,7 @@ class LUCreateInstance(LogicalUnit):
     ("os_type", None, _TMaybeString),
     ("force_variant", False, _TBool),
     ("source_handshake", None, _TOr(_TList, _TNone)),
-    ("source_x509_ca", None, _TOr(_TList, _TNone)),
+    ("source_x509_ca", None, _TMaybeString),
     ("source_instance_name", None, _TMaybeString),
     ("src_node", None, _TMaybeString),
     ("src_path", None, _TMaybeString),
