@@ -805,7 +805,8 @@ def GetInstanceMigratable(instance):
   for idx in range(len(instance.disks)):
     link_name = _GetBlockDevSymlinkPath(iname, idx)
     if not os.path.islink(link_name):
-      _Fail("Instance %s was not restarted since ganeti 1.2.5", iname)
+      logging.warning("Instance %s is missing symlink %s for disk %d",
+                      iname, link_name, idx)
 
 
 def GetAllInstancesInfo(hypervisor_list):
