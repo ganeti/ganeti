@@ -490,7 +490,8 @@ class MoveDestExecutor(object):
                              source_x509_ca=expinfo["x509_ca"],
                              source_instance_name=instance["name"],
                              beparams=instance["be_instance"],
-                             hvparams=instance["hv_instance"])
+                             hvparams=instance["hv_instance"],
+                             osparams=instance["os_instance"])
 
 
 class MoveSourceExecutor(object):
