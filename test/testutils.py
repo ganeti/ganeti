@@ -45,6 +45,19 @@ class GanetiTestProgram(unittest.TestProgram):
     sys.stderr.write("Running %s\n" % self.progName)
     sys.stderr.flush()
 
+    # Ensure assertions will be evaluated
+    if not __debug__:
+      raise Exception("Not running in debug mode, assertions would not be"
+                      " evaluated")
+
+    # Check again, this time with a real assertion
+    try:
+      assert False
+    except AssertionError:
+      pass
+    else:
+      raise Exception("Assertion not evaluated")
+
     return unittest.TestProgram.runTests(self)
 
 
