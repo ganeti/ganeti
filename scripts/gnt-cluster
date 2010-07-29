@@ -517,6 +517,24 @@ def MasterFailover(opts, args):
   return bootstrap.MasterFailover(no_voting=opts.no_voting)
 
 
+def MasterPing(opts, args):
+  """Checks if the master is alive.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  try:
+    cl = GetClient()
+    cl.QueryClusterInfo()
+    return 0
+  except Exception: # pylint: disable-msg=W0703
+    return 1
+
+
 def SearchTags(opts, args):
   """Searches the tags on all the cluster.
 
@@ -857,6 +875,9 @@ commands = {
   'master-failover': (
     MasterFailover, ARGS_NONE, [NOVOTING_OPT],
     "", "Makes the current node the master"),
+  'master-ping': (
+    MasterPing, ARGS_NONE, [],
+    "", "Checks if the master is alive"),
   'version': (
     ShowClusterVersion, ARGS_NONE, [],
     "", "Shows the cluster version"),
