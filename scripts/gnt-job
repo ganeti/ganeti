@@ -134,10 +134,13 @@ def ArchiveJobs(opts, args):
   """
   client = GetClient()
 
+  rcode = 0
   for job_id in args:
-    client.ArchiveJob(job_id)
+    if not client.ArchiveJob(job_id):
+      ToStderr("Failed to archive job with ID '%s'", job_id)
+      rcode = 1
 
-  return 0
+  return rcode
 
 
 def AutoArchiveJobs(opts, args):

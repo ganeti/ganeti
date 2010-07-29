@@ -1194,6 +1194,8 @@ class JobQueue(object):
 
     try:
       job = self._LoadJobFromDisk(job_id)
+      if job is None:
+        return job
     except errors.JobFileCorrupted:
       old_path = self._GetJobPath(job_id)
       new_path = self._GetArchivedJobPath(job_id)
