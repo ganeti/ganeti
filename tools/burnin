@@ -375,7 +375,7 @@ class Burner(object):
 
   def CommitQueue(self):
     """Execute all submitted opcodes in case of parallel burnin"""
-    if not self.opts.parallel:
+    if not self.opts.parallel or not self.queued_ops:
       return
 
     if self.queue_retry:
