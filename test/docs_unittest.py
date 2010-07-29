@@ -92,11 +92,16 @@ class TestDocs(unittest.TestCase):
 
       prevline = line
 
+    prefix_exception = frozenset(["/", "/version", "/2"])
+
     undocumented = []
 
     for key, handler in resources.iteritems():
       # Regex objects
       if hasattr(key, "match"):
+        self.assert_(key.pattern.startswith("^/2/"),
+                     msg="Pattern %r does not start with '^/2/'" % key.pattern)
+
         found = False
         for title in titles:
           if (title.startswith("``") and
@@ -107,10 +112,14 @@ class TestDocs(unittest.TestCase):
 
         if not found:
           # TODO: Find better way of identifying resource
-          undocumented.append(str(handler))
+          undocumented.append(key.pattern)
 
-      elif ("``%s``" % key) not in titles:
-        undocumented.append(key)
+      else:
+        self.assert_(key.startswith("/2/") or key in prefix_exception,
+                     msg="Path %r does not start with '/2/'" % key)
+
+        if ("``%s``" % key) not in titles:
+          undocumented.append(key)
 
     self.failIf(undocumented,
                 msg=("Missing RAPI resource documentation for %s" %
