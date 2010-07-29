@@ -164,7 +164,7 @@ example, the cluster might still have 100GiB disk free, but with no
 memory left for instances, we cannot allocate another instance, so in
 effect the disk space is unallocable. Note that the CPUs here
 represent instance virtual CPUs, and in case the \fI--max-cpu\fR
-option hasn't been specified this will be -1.
+option hasn't been specified this will be \-1.
 
 .TP
 .I ALLOC_USAGE
@@ -247,7 +247,7 @@ It is possible to customise the listed information by passing a
 comma\(hyseparated list of field names to this option (the field list
 is currently undocumented), or to extend the default field list by
 prefixing the additional field list with a plus sign. By default, the
-node list will contain these informations:
+node list will contain the following information:
 .RS
 .TP
 .B F

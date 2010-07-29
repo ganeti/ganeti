@@ -32,7 +32,7 @@ select the node which, when chosen as the primary node, gives the best
 score.
 
 For dual\(hynode allocations (mirrored instances), we chose the best
-pair; this is the only choice where the algoritm is non\(hytrivial
+pair; this is the only choice where the algorithm is non\(hytrivial
 with regard to cluster size.
 
 For node evacuations (\fImulti-evacuate\fR mode), we iterate over all
@@ -52,7 +52,7 @@ tags will be read from the cluster tags, configured as follows:
 - use their suffix as the prefix for exclusion tags
 
 For example, given a cluster tag like \fBhtools:iextags:service\fR,
-all instance tags of the form \fBservice:X\fR will be confidered as
+all instance tags of the form \fBservice:X\fR will be considered as
 exclusion tags, meaning that (e.g.) two instances which both have a
 tag \fBservice:foo\fR will not be placed on the same primary node.
 
