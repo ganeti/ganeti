@@ -750,9 +750,10 @@ class _JobQueueWorker(workerpool.BaseWorker):
               try:
                 op.status = constants.OP_STATUS_ERROR
                 if isinstance(err, errors.GenericError):
-                  op.result = errors.EncodeException(err)
+                  to_encode = err
                 else:
-                  op.result = str(err)
+                  to_encode = errors.OpExecError(str(err))
+                op.result = errors.EncodeException(to_encode)
                 op.end_timestamp = TimeStampNow()
                 logging.info("Op %s/%s: Error in opcode %s: %s",
                              idx + 1, count, op_summary, err)
