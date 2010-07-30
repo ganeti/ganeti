@@ -77,6 +77,8 @@ class TestParameterNames(unittest.TestCase):
     for kind, source in [('hypervisor', constants.HVS_PARAMETER_TYPES),
                          ('backend', constants.BES_PARAMETER_TYPES),
                          ('nic', constants.NICS_PARAMETER_TYPES),
+                         ("instdisk", constants.IDISK_PARAMS_TYPES),
+                         ("instnic", constants.INIC_PARAMS_TYPES),
                         ]:
       for key in source:
         self.failUnless(self.VALID_NAME.match(key),
