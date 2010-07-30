@@ -1,6 +1,82 @@
 News
 ====
 
+Version 2.2.0 rc0
+-----------------
+
+*(UNRELEASED)*
+
+Important change: the internal RPC mechanism between Ganeti nodes has
+changed from using a home-grown http library (based on the Python base
+libraries) to use the PycURL library. This requires that PycURL is
+installed on nodes. Please note that on Debian/Ubuntu, PycURL is linked
+against GnuTLS by default. cURL's support for GnuTLS had known issues
+before cURL 7.21.0 and we recommend using the latest cURL release or
+linking against OpenSSL. Most other distributions already link PycURL
+and cURL against OpenSSL. The command::
+
+  python -c 'import pycurl; print pycurl.version'
+
+can be used to determine the libraries PycURL and cURL are linked
+against.
+
+Other significant changes:
+
+- Rewrote much of the internals of the job queue, in order to achieve
+  better parallelism; this decouples job query operations from the job
+  processing, and it should allow much nicer behaviour of the master
+  daemon under load, and it also has uncovered some long-standing bugs
+  related to the job serialisation (now fixed)
+- Added a default iallocator setting to the cluster parameters,
+  eliminating the need to always pass nodes or an iallocator for
+  operations that require selection of new node(s)
+- Added experimental support for the LXC virtualization method
+- Added support for OS parameters, which allows the installation of
+  instances to pass parameter to OS scripts in order to customise the
+  instance
+- Added a hypervisor parameter controlling the migration type (live or
+  non-live), since hypervisors have various levels of reliability; this
+  has renamed the 'live' parameter to 'mode'
+- Added a cluster parameter ``reserved_lvs`` that denotes reserved
+  logical volumes, meaning that cluster verify will ignore them and not
+  flag their presence as errors
+- The watcher will now reset the error count for failed instances after
+  8 hours, thus allowing self-healing if the problem that caused the
+  instances to be down/fail to start has cleared in the meantime
+- Added a cluster parameter ``drbd_usermode_helper`` that makes Ganeti
+  check for, and warn, if the drbd module parameter ``usermode_helper``
+  is not consistent with the cluster-wide setting; this is needed to
+  make diagnose easier of failed drbd creations
+- Started adding base IPv6 support, but this is not yet
+  enabled/available for use
+- Rename operations (cluster, instance) will now return the new name,
+  which is especially useful if a short name was passed in
+- Added support for instance migration in RAPI
+- Added a tool to pre-configure nodes for the SSH setup, before joining
+  them to the cluster; this will allow in the future a simplified model
+  for node joining (but not yet fully enabled in 2.2); this needs the
+  paramiko python library
+- Fixed handling of name-resolving errors
+- Fixed consistency of job results on the error path
+- Fixed master-failover race condition when executed multiple times in
+  sequence
+- Fixed many bugs related to the job queue (mostly introduced during the
+  2.2 development cycle, so not all are impacting 2.1)
+- Fixed instance migration with missing disk symlinks
+- Fixed handling of unknown jobs in ``gnt-job archive``
+- And many other small fixes/improvements
+
+Internal changes:
+
+- Enhanced both the unittest and the QA coverage
+- Switched the opcode validation to a generic model, and extended the
+  validation to all opcode parameters
+- Changed more parts of the code that write shell scripts to use the
+  same class for this
+- Switched the master daemon to use the asyncore library for the Luxi
+  server endpoint
+
+
 Version 2.2.0 beta 0
 --------------------
 
