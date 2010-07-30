@@ -949,7 +949,7 @@ class GanetiRapiClient(object):
                               (GANETI_RAPI_VERSION, instance)), None, body)
 
   def MigrateInstance(self, instance, mode=None, cleanup=None):
-    """Starts up an instance.
+    """Migrates an instance.
 
     @type instance: string
     @param instance: Instance name
