@@ -243,7 +243,7 @@ class GanetiRapiClient(object):
 
   def __init__(self, host, port=GANETI_RAPI_PORT,
                username=None, password=None, logger=logging,
-               curl_config_fn=None, curl=None):
+               curl_config_fn=None, curl_factory=None):
     """Initializes this class.
 
     @type host: string
@@ -259,14 +259,28 @@ class GanetiRapiClient(object):
     @param logger: Logging object
 
     """
-    self._host = host
-    self._port = port
+    self._username = username
+    self._password = password
     self._logger = logger
+    self._curl_config_fn = curl_config_fn
+    self._curl_factory = curl_factory
 
     self._base_url = "https://%s:%s" % (host, port)
 
-    # Create pycURL object if not supplied
-    if not curl:
+    if username is not None:
+      if password is None:
+        raise Error("Password not specified")
+    elif password:
+      raise Error("Specified password without username")
+
+  def _CreateCurl(self):
+    """Creates a cURL object.
+
+    """
+    # Create pycURL object if no factory is provided
+    if self._curl_factory:
+      curl = self._curl_factory()
+    else:
       curl = pycurl.Curl()
 
     # Default cURL settings
@@ -282,20 +296,20 @@ class GanetiRapiClient(object):
       "Content-type: %s" % HTTP_APP_JSON,
       ])
 
-    # Setup authentication
-    if username is not None:
-      if password is None:
-        raise Error("Password not specified")
+    assert ((self._username is None and self._password is None) ^
+            (self._username is not None and self._password is not None))
+
+    if self._username:
+      # Setup authentication
       curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-      curl.setopt(pycurl.USERPWD, str("%s:%s" % (username, password)))
-    elif password:
-      raise Error("Specified password without username")
+      curl.setopt(pycurl.USERPWD,
+                  str("%s:%s" % (self._username, self._password)))
 
     # Call external configuration function
-    if curl_config_fn:
-      curl_config_fn(curl, logger)
+    if self._curl_config_fn:
+      self._curl_config_fn(curl, self._logger)
 
-    self._curl = curl
+    return curl
 
   @staticmethod
   def _EncodeQuery(query):
@@ -349,7 +363,7 @@ class GanetiRapiClient(object):
     """
     assert path.startswith("/")
 
-    curl = self._curl
+    curl = self._CreateCurl()
 
     if content is not None:
       encoded_content = self._json_encoder.encode(content)
@@ -364,8 +378,8 @@ class GanetiRapiClient(object):
 
     url = "".join(urlparts)
 
-    self._logger.debug("Sending request %s %s to %s:%s (content=%r)",
-                       method, url, self._host, self._port, encoded_content)
+    self._logger.debug("Sending request %s %s (content=%r)",
+                       method, url, encoded_content)
 
     # Buffer for response
     encoded_resp_body = StringIO()
