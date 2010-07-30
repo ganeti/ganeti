@@ -1023,6 +1023,38 @@ class R_2_instances_name_migrate(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseRenameInstanceRequest(name, data):
+  """Parses a request for renaming an instance.
+
+  @rtype: L{opcodes.OpRenameInstance}
+  @return: Instance rename opcode
+
+  """
+  new_name = baserlib.CheckParameter(data, "new_name")
+  ip_check = baserlib.CheckParameter(data, "ip_check", default=True)
+  name_check = baserlib.CheckParameter(data, "name_check", default=True)
+
+  return opcodes.OpRenameInstance(instance_name=name, new_name=new_name,
+                                  name_check=name_check, ip_check=ip_check)
+
+
+class R_2_instances_name_rename(baserlib.R_Generic):
+  """/2/instances/[instance_name]/rename resource.
+
+  """
+  def PUT(self):
+    """Changes the name of an instance.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+
+    op = _ParseRenameInstanceRequest(self.items[0], self.request_body)
+
+    return baserlib.SubmitJob([op])
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 

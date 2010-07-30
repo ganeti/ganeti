@@ -254,5 +254,46 @@ class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
     self.assertFalse(op.cleanup)
 
 
+class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.Parse = rlib2._ParseRenameInstanceRequest
+
+  def test(self):
+    name = "instij0eeph7"
+
+    for new_name in ["ua0aiyoo", "fai3ongi"]:
+      for ip_check in [False, True]:
+        for name_check in [False, True]:
+          data = {
+            "new_name": new_name,
+            "ip_check": ip_check,
+            "name_check": name_check,
+            }
+
+          op = self.Parse(name, data)
+          self.assert_(isinstance(op, opcodes.OpRenameInstance))
+          self.assertEqual(op.instance_name, name)
+          self.assertEqual(op.new_name, new_name)
+          self.assertEqual(op.ip_check, ip_check)
+          self.assertEqual(op.name_check, name_check)
+
+  def testDefaults(self):
+    name = "instahchie3t"
+
+    for new_name in ["thag9mek", "quees7oh"]:
+      data = {
+        "new_name": new_name,
+        }
+
+      op = self.Parse(name, data)
+      self.assert_(isinstance(op, opcodes.OpRenameInstance))
+      self.assertEqual(op.instance_name, name)
+      self.assertEqual(op.new_name, new_name)
+      self.assert_(op.ip_check)
+      self.assert_(op.name_check)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

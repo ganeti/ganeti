@@ -649,6 +649,28 @@ Body parameters:
   Whether a previously failed migration should be cleaned up.
 
 
+``/2/instances/[instance_name]/rename``
+++++++++++++++++++++++++++++++++++++++++
+
+Renames an instance.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``new_name`` (string, required)
+  New instance name.
+``ip_check`` (bool)
+  Whether to ensure instance's IP address is inactive.
+``name_check`` (bool)
+  Whether to ensure instance's name is resolvable.
+
+
 ``/2/instances/[instance_name]/tags``
 +++++++++++++++++++++++++++++++++++++
 
