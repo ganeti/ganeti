@@ -4,7 +4,7 @@ News
 Version 2.2.0 rc0
 -----------------
 
-*(UNRELEASED)*
+*(Released Fri, 30 Jul 2010)*
 
 Important change: the internal RPC mechanism between Ganeti nodes has
 changed from using a home-grown http library (based on the Python base
