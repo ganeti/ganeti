@@ -460,15 +460,15 @@ class MoveDestExecutor(object):
     disk_template = instance["disk_template"]
 
     disks = [{
-      "size": i["size"],
-      "mode": i["mode"],
+      constants.IDISK_SIZE: i["size"],
+      constants.IDISK_MODE: i["mode"],
       } for i in instance["disks"]]
 
     nics = [{
-      "ip": ip,
-      "mac": mac,
-      "mode": mode,
-      "link": link,
+      constants.INIC_IP: ip,
+      constants.INIC_MAC: mac,
+      constants.INIC_MODE: mode,
+      constants.INIC_LINK: link,
       } for ip, mac, mode, link in instance["nics"]]
 
     # TODO: Should this be the actual up/down status? (run_state)
