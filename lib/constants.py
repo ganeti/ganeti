@@ -510,11 +510,13 @@ REBOOT_TYPES = frozenset([INSTANCE_REBOOT_SOFT,
                           INSTANCE_REBOOT_FULL])
 
 VTYPE_STRING = 'string'
+VTYPE_MAYBE_STRING = "maybe-string"
 VTYPE_BOOL = 'bool'
 VTYPE_SIZE = 'size' # size, in MiBs
 VTYPE_INT = 'int'
 ENFORCEABLE_TYPES = frozenset([
                       VTYPE_STRING,
+                      VTYPE_MAYBE_STRING,
                       VTYPE_BOOL,
                       VTYPE_SIZE,
                       VTYPE_INT,

@@ -786,8 +786,10 @@ def ForceDictType(target, key_types, allowed_values=None):
       msg = "'%s' has non-enforceable type %s" % (key, ktype)
       raise errors.ProgrammerError(msg)
 
-    if ktype == constants.VTYPE_STRING:
-      if not isinstance(target[key], basestring):
+    if ktype in (constants.VTYPE_STRING, constants.VTYPE_MAYBE_STRING):
+      if target[key] is None and ktype == constants.VTYPE_MAYBE_STRING:
+        pass
+      elif not isinstance(target[key], basestring):
         if isinstance(target[key], bool) and not target[key]:
           target[key] = ''
         else:

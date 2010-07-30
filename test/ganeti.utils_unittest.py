@@ -1503,6 +1503,7 @@ class TestForceDictType(unittest.TestCase):
       'b': constants.VTYPE_BOOL,
       'c': constants.VTYPE_STRING,
       'd': constants.VTYPE_SIZE,
+      "e": constants.VTYPE_MAYBE_STRING,
       }
 
   def _fdt(self, dict, allowed_values=None):
@@ -1526,12 +1527,17 @@ class TestForceDictType(unittest.TestCase):
     self.assertEqual(self._fdt({'b': 'True'}), {'b': True})
     self.assertEqual(self._fdt({'d': '4'}), {'d': 4})
     self.assertEqual(self._fdt({'d': '4M'}), {'d': 4})
+    self.assertEqual(self._fdt({"e": None, }), {"e": None, })
+    self.assertEqual(self._fdt({"e": "Hello World", }), {"e": "Hello World", })
+    self.assertEqual(self._fdt({"e": False, }), {"e": '', })
 
   def testErrors(self):
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'a': 'astring'})
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'c': True})
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': 'astring'})
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': '4 L'})
+    self.assertRaises(errors.TypeEnforcementError, self._fdt, {"e": object(), })
+    self.assertRaises(errors.TypeEnforcementError, self._fdt, {"e": [], })
 
 
 class TestIsNormAbsPath(unittest.TestCase):
