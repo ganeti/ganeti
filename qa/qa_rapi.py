@@ -349,6 +349,15 @@ def TestRapiInstanceMigrate(instance):
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
 
 
+def TestRapiInstanceRename(instance, rename_target):
+  """Test renaming instance via RAPI"""
+  rename_source = instance["name"]
+
+  for name1, name2 in [(rename_source, rename_target),
+                       (rename_target, rename_source)]:
+    _WaitForRapiJob(_rapi_client.RenameInstance(name1, name2))
+
+
 def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()

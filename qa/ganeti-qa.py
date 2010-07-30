@@ -175,9 +175,16 @@ def RunCommonInstanceTests(instance):
     RunTest(qa_instance.TestInstanceReboot, instance)
 
   if qa_config.TestEnabled('instance-rename'):
-    RunTest(qa_instance.TestInstanceShutdown, instance)
-    RunTest(qa_instance.TestInstanceRename, instance)
-    RunTest(qa_instance.TestInstanceStartup, instance)
+    rename_target = qa_config.get("rename", None)
+    if rename_target is None:
+      print qa_utils.FormatError("Can rename instance, 'rename' entry is"
+                                 " missing from configuration")
+    else:
+      RunTest(qa_instance.TestInstanceShutdown, instance)
+      RunTest(qa_instance.TestInstanceRename, instance, rename_target)
+      if qa_rapi.Enabled():
+        RunTest(qa_rapi.TestRapiInstanceRename, instance, rename_target)
+      RunTest(qa_instance.TestInstanceStartup, instance)
 
   if qa_config.TestEnabled('tags'):
     RunTest(qa_tags.TestInstanceTags, instance)

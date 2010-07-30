@@ -129,15 +129,11 @@ def TestInstanceReinstall(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-def TestInstanceRename(instance):
+def TestInstanceRename(instance, rename_target):
   """gnt-instance rename"""
   master = qa_config.GetMasterNode()
 
   rename_source = instance['name']
-  rename_target = qa_config.get('rename', None)
-  if rename_target is None:
-    print qa_utils.FormatError('"rename" entry is missing')
-    return
 
   for name1, name2 in [(rename_source, rename_target),
                        (rename_target, rename_source)]:
