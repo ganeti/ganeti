@@ -971,6 +971,33 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s/migrate" %
                               (GANETI_RAPI_VERSION, instance)), None, body)
 
+  def RenameInstance(self, instance, new_name, ip_check=None, name_check=None):
+    """Changes the name of an instance.
+
+    @type instance: string
+    @param instance: Instance name
+    @type new_name: string
+    @param new_name: New instance name
+    @type ip_check: bool
+    @param ip_check: Whether to ensure instance's IP address is inactive
+    @type name_check: bool
+    @param name_check: Whether to ensure instance's name is resolvable
+
+    """
+    body = {
+      "new_name": new_name,
+      }
+
+    if ip_check is not None:
+      body["ip_check"] = ip_check
+
+    if name_check is not None:
+      body["name_check"] = name_check
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/rename" %
+                              (GANETI_RAPI_VERSION, instance)), None, body)
+
   def GetJobs(self):
     """Gets all jobs for the cluster.
 

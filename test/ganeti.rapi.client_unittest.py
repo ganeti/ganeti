@@ -741,6 +741,35 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
         self.assertEqual(data["mode"], mode)
         self.assertEqual(data["cleanup"], cleanup)
 
+  def testRenameInstanceDefaults(self):
+    new_name = "newnametha7euqu"
+    self.rapi.AddResponse("8791")
+    job_id = self.client.RenameInstance("inst18821", new_name)
+    self.assertEqual(job_id, 8791)
+    self.assertHandler(rlib2.R_2_instances_name_rename)
+    self.assertItems(["inst18821"])
+
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
+    self.assertEqualValues(data, {"new_name": new_name, })
+
+  def testRenameInstance(self):
+    new_name = "new-name-yiux1iin"
+    for ip_check in [False, True]:
+      for name_check in [False, True]:
+        self.rapi.AddResponse("24776")
+        job_id = self.client.RenameInstance("inst20967", new_name,
+                                             ip_check=ip_check,
+                                             name_check=name_check)
+        self.assertEqual(job_id, 24776)
+        self.assertHandler(rlib2.R_2_instances_name_rename)
+        self.assertItems(["inst20967"])
+
+        data = serializer.LoadJson(self.rapi.GetLastRequestData())
+        self.assertEqual(len(data), 3)
+        self.assertEqual(data["new_name"], new_name)
+        self.assertEqual(data["ip_check"], ip_check)
+        self.assertEqual(data["name_check"], name_check)
+
   def testGetJobs(self):
     self.rapi.AddResponse('[ { "id": "123", "uri": "\\/2\\/jobs\\/123" },'
                           '  { "id": "124", "uri": "\\/2\\/jobs\\/124" } ]')
