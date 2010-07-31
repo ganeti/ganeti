@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Rapi
     (
       loadData
+    , parseData
     ) where
 
 import Network.Curl
@@ -117,18 +118,28 @@ parseNode a = do
                     dtotal dfree ctotal False)
   return (name, node)
 
--- | Builds the cluster data from an URL.
-loadData :: String -- ^ Cluster or URL to use as source
-         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
-loadData master = do -- IO monad
+-- | Loads the raw cluster data from an URL.
+readData :: String -- ^ Cluster or URL to use as source
+         -> IO (Result String, Result String, Result String)
+readData master = do
   let url = formatHost master
   node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
   inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
   tags_body <- getUrl $ printf "%s/2/tags" url
-  return $ do -- Result monad
-    node_data <- node_body >>= getNodes
-    let (node_names, node_idx) = assignIndices node_data
-    inst_data <- inst_body >>= getInstances node_names
-    let (_, inst_idx) = assignIndices inst_data
-    tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
-    return (node_idx, inst_idx, tags_data)
+  return (node_body, inst_body, tags_body)
+
+-- | Builds the cluster data from the raw Rapi content
+parseData :: (Result String, Result String, Result String)
+          -> Result (Node.AssocList, Instance.AssocList, [String])
+parseData (node_body, inst_body, tags_body) = do
+  node_data <- node_body >>= getNodes
+  let (node_names, node_idx) = assignIndices node_data
+  inst_data <- inst_body >>= getInstances node_names
+  let (_, inst_idx) = assignIndices inst_data
+  tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
+  return (node_idx, inst_idx, tags_data)
+
+-- | Top level function for data loading
+loadData :: String -- ^ Cluster or URL to use as source
+            -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
+loadData master = readData master >>= return . parseData
