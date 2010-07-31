@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Text
     (
       loadData
+    , parseData
     , loadInst
     , loadNode
     , serializeInstances
@@ -136,19 +137,27 @@ loadTabular lines_data convert_fn = do
   kerows <- mapM convert_fn rows
   return $ assignIndices kerows
 
+-- | Load the cluser data from disk.
+readData :: String -- ^ Path to the text file
+         -> IO String
+readData = readFile
+
 -- | Builds the cluster data from text input.
-loadData :: String -- ^ Path to the text file
-         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
-loadData afile = do -- IO monad
-  fdata <- readFile afile
+parseData :: String -- ^ Text data
+          -> Result (Node.AssocList, Instance.AssocList, [String])
+parseData fdata = do
   let flines = lines fdata
       (nlines, ilines) = break null flines
-  return $ do
-    ifixed <- case ilines of
-                [] -> Bad "Invalid format of the input file (no instance data)"
-                _:xs -> Ok xs
-    {- node file: name t_mem n_mem f_mem t_disk f_disk -}
-    (ktn, nl) <- loadTabular nlines loadNode
-    {- instance file: name mem disk status pnode snode -}
-    (_, il) <- loadTabular ifixed (loadInst ktn)
-    return (nl, il, [])
+  ifixed <- case ilines of
+    [] -> Bad "Invalid format of the input file (no instance data)"
+    _:xs -> Ok xs
+  {- node file: name t_mem n_mem f_mem t_disk f_disk -}
+  (ktn, nl) <- loadTabular nlines loadNode
+  {- instance file: name mem disk status pnode snode -}
+  (_, il) <- loadTabular ifixed (loadInst ktn)
+  return (nl, il, [])
+
+-- | Top level function for data loading
+loadData :: String -- ^ Path to the text file
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
+loadData afile = readData afile >>= return . parseData
