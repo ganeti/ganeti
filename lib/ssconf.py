@@ -281,6 +281,7 @@ class SimpleStore(object):
     constants.SS_NODE_SECONDARY_IPS,
     constants.SS_OFFLINE_NODES,
     constants.SS_ONLINE_NODES,
+    constants.SS_PRIMARY_IP_FAMILY,
     constants.SS_INSTANCE_LIST,
     constants.SS_RELEASE_VERSION,
     constants.SS_HYPERVISOR_LIST,
@@ -459,6 +460,16 @@ class SimpleStore(object):
     """
     data = self._ReadFile(constants.SS_UID_POOL)
     return data
+
+  def GetPrimaryIPFamily(self):
+    """Return the cluster-wide primary address family.
+
+    """
+    try:
+      return int(self._ReadFile(constants.SS_PRIMARY_IP_FAMILY))
+    except (ValueError, TypeError), err:
+      raise errors.ConfigurationError("Error while trying to parse primary ip"
+                                      " family: %s" % err)
 
 
 def GetMasterAndMyself(ss=None):

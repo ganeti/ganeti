@@ -827,6 +827,15 @@ class ConfigWriter:
     """
     return self._config_data.cluster.default_iallocator
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetPrimaryIPFamily(self):
+    """Get cluster primary ip family.
+
+    @return: primary ip family
+
+    """
+    return self._config_data.cluster.primary_ip_family
+
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):
     """Add an instance to the config.
@@ -1407,6 +1416,7 @@ class ConfigWriter:
       constants.SS_NODE_SECONDARY_IPS: node_snd_ips_data,
       constants.SS_OFFLINE_NODES: off_data,
       constants.SS_ONLINE_NODES: on_data,
+      constants.SS_PRIMARY_IP_FAMILY: str(cluster.primary_ip_family),
       constants.SS_INSTANCE_LIST: instance_data,
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       constants.SS_HYPERVISOR_LIST: hypervisor_list,
