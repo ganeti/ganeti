@@ -348,7 +348,7 @@ def InitCluster(cluster_name, mac_prefix,
   sshkey = sshline.split(" ")[1]
 
   if modify_etc_hosts:
-    utils.AddHostToEtcHosts(hostname.name)
+    utils.AddHostToEtcHosts(hostname)
 
   if modify_ssh_setup:
     _InitSSHSetup()
@@ -480,7 +480,9 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   @param ssh_key_check: whether to do a strict key check
 
   """
-  sshrunner = ssh.SshRunner(cluster_name)
+  family = ssconf.SimpleStore().GetPrimaryIPFamily()
+  sshrunner = ssh.SshRunner(cluster_name,
+                            ipv6=family==netutils.IP6Address.family)
 
   noded_cert = utils.ReadFile(constants.NODED_CERT_FILE)
   rapi_cert = utils.ReadFile(constants.RAPI_CERT_FILE)
@@ -502,6 +504,10 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   if not confd_hmac_key.endswith("\n"):
     confd_hmac_key += "\n"
 
+  bind_address = constants.IP4_ADDRESS_ANY
+  if family == netutils.IP6Address.family:
+    bind_address = constants.IP6_ADDRESS_ANY
+
   # set up inter-node password and certificate and restarts the node daemon
   # and then connect with ssh to set password and start ganeti-noded
   # note that all the below variables are sanitized at this point,
@@ -515,13 +521,13 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n"
                "chmod 0400 %s %s %s && "
-               "%s start %s" %
+               "%s start %s -b '%s'" %
                (constants.NODED_CERT_FILE, noded_cert,
                 constants.RAPI_CERT_FILE, rapi_cert,
                 constants.CONFD_HMAC_KEY, confd_hmac_key,
                 constants.NODED_CERT_FILE, constants.RAPI_CERT_FILE,
                 constants.CONFD_HMAC_KEY,
-                constants.DAEMON_UTIL, constants.NODED))
+                constants.DAEMON_UTIL, constants.NODED, bind_address))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
                          ask_key=ssh_key_check,

@@ -3675,7 +3675,9 @@ class LUAddNode(LogicalUnit):
 
   def CheckArguments(self):
     # validate/normalize the node name
-    self.op.node_name = netutils.Hostname.GetNormalizedName(self.op.node_name)
+    self.hostname = netutils.GetHostname(name=self.op.node_name,
+                                         family=self.cfg.GetPrimaryIPFamily())
+    self.op.node_name = self.hostname.name
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3704,17 +3706,17 @@ class LUAddNode(LogicalUnit):
     Any errors are signaled by raising errors.OpPrereqError.
 
     """
-    hostname = netutils.GetHostname(name=self.op.node_name)
-    node = hostname.name
     cfg = self.cfg
-
+    hostname = self.hostname
+    node = hostname.name
     primary_ip = self.op.primary_ip = hostname.ip
     if self.op.secondary_ip is None:
       self.op.secondary_ip = primary_ip
-    if not netutils.IP4Address.IsValid(self.op.secondary_ip):
-      raise errors.OpPrereqError("Invalid secondary IP given",
-                                 errors.ECODE_INVAL)
+
     secondary_ip = self.op.secondary_ip
+    if not netutils.IP4Address.IsValid(secondary_ip):
+      raise errors.OpPrereqError("Secondary IP (%s) needs to be a valid IPv4"
+                                 " address" % secondary_ip, errors.ECODE_INVAL)
 
     node_list = cfg.GetNodeList()
     if not self.op.readd and node in node_list:
@@ -3846,7 +3848,7 @@ class LUAddNode(LogicalUnit):
     # Add node to our /etc/hosts, and add key to known_hosts
     if self.cfg.GetClusterInfo().modify_etc_hosts:
       # FIXME: this should be done via an rpc call to node daemon
-      utils.AddHostToEtcHosts(new_node.name)
+      utils.AddHostToEtcHosts(self.hostname)
 
     if new_node.secondary_ip != new_node.primary_ip:
       result = self.rpc.call_node_has_ip_address(new_node.name,

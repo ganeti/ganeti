@@ -59,6 +59,7 @@ class FakeHttpPool:
 def GetFakeSimpleStoreClass(fn):
   class FakeSimpleStore:
     GetNodePrimaryIPList = fn
+    GetPrimaryIPFamily = lambda _: None
 
   return FakeSimpleStore
 
@@ -239,16 +240,16 @@ class TestClient(unittest.TestCase):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     node_addr_list = [ " ".join(t) for t in zip(node_list, addr_list)]
-    ssc = GetFakeSimpleStoreClass(lambda s: node_addr_list)
+    ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     result = rpc._AddressLookup(node_list, ssc=ssc)
     self.assertEqual(result, addr_list)
 
   def testAddressLookupNSLookup(self):
     addr_list = ["192.0.2.%d" % n for n in range(0, 255, 13)]
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
-    ssc = GetFakeSimpleStoreClass(lambda s: [])
+    ssc = GetFakeSimpleStoreClass(lambda _: [])
     node_addr_map = dict(zip(node_list, addr_list))
-    nslookup_fn = lambda name: node_addr_map.get(name)
+    nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._AddressLookup(node_list, ssc=ssc, nslookup_fn=nslookup_fn)
     self.assertEqual(result, addr_list)
 
@@ -257,10 +258,18 @@ class TestClient(unittest.TestCase):
     node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
     n = len(addr_list) / 2
     node_addr_list = [ " ".join(t) for t in zip(node_list[n:], addr_list[n:])]
-    ssc = GetFakeSimpleStoreClass(lambda s: node_addr_list)
+    ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
     node_addr_map = dict(zip(node_list[:n], addr_list[:n]))
-    nslookup_fn = lambda name: node_addr_map.get(name)
+    nslookup_fn = lambda name, family=None: node_addr_map.get(name)
     result = rpc._AddressLookup(node_list, ssc=ssc, nslookup_fn=nslookup_fn)
+    self.assertEqual(result, addr_list)
+
+  def testAddressLookupIPv6(self):
+    addr_list = ["2001:db8::%d" % n for n in range(0, 255, 13)]
+    node_list = ["node%d.example.com" % n for n in range(0, 255, 13)]
+    node_addr_list = [ " ".join(t) for t in zip(node_list, addr_list)]
+    ssc = GetFakeSimpleStoreClass(lambda _: node_addr_list)
+    result = rpc._AddressLookup(node_list, ssc=ssc)
     self.assertEqual(result, addr_list)
 
 

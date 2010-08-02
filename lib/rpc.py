@@ -272,13 +272,15 @@ def _AddressLookup(node_list,
   @returns: List of corresponding addresses, if found
 
   """
-  iplist = ssc().GetNodePrimaryIPList()
+  ss = ssc()
+  iplist = ss.GetNodePrimaryIPList()
+  family = ss.GetPrimaryIPFamily()
   addresses = []
   ipmap = dict(entry.split() for entry in iplist)
   for node in node_list:
     address = ipmap.get(node)
     if address is None:
-      address = nslookup_fn(node)
+      address = nslookup_fn(node, family=family)
     addresses.append(address)
 
   return addresses

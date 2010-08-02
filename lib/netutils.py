@@ -132,7 +132,7 @@ class Hostname:
       if family in (socket.AF_INET, socket.AF_INET6):
         result = socket.getaddrinfo(hostname, None, family)
       else:
-        result = socket.getaddrinfo(hostname, None, socket.AF_INET)
+        result = socket.getaddrinfo(hostname, None)
     except (socket.gaierror, socket.herror, socket.error), err:
       # hostname not found in DNS, or other socket exception in the
       # (code, description format)

@@ -61,7 +61,6 @@ except ImportError:
 from ganeti import errors
 from ganeti import constants
 from ganeti import compat
-from ganeti import netutils
 
 
 _locksheld = []
@@ -1461,8 +1460,8 @@ def AddHostToEtcHosts(hostname):
       L{constants.ETC_HOSTS}
 
   """
-  SetEtcHostsEntry(constants.ETC_HOSTS, netutils.Hostname.GetIP(hostname),
-                   hostname, [hostname.split(".")[0]])
+  SetEtcHostsEntry(constants.ETC_HOSTS, hostname.ip, hostname.name,
+                   [hostname.name.split(".")[0]])
 
 
 def RemoveEtcHostsEntry(file_name, hostname):
