@@ -119,6 +119,7 @@ __all__ = [
   "OSPARAMS_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
+  "PRIMARY_IP_VERSION_OPT",
   "RAPI_CERT_OPT",
   "READD_OPT",
   "REBOOT_TYPE_OPT",
@@ -1020,6 +1021,13 @@ DRBD_HELPER_OPT = cli_option("--drbd-usermode-helper", dest="drbd_helper",
 NODRBD_STORAGE_OPT = cli_option("--no-drbd-storage", dest="drbd_storage",
                                 action="store_false", default=True,
                                 help="Disable support for DRBD")
+
+PRIMARY_IP_VERSION_OPT = \
+    cli_option("--primary-ip-version", default=constants.IP4_VERSION,
+               action="store", dest="primary_ip_version",
+               metavar="%d|%d" % (constants.IP4_VERSION,
+                                  constants.IP6_VERSION),
+               help="Cluster-wide IP version for primary IP")
 
 
 def _ParseArgs(argv, commands, aliases):

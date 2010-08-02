@@ -2527,7 +2527,8 @@ class LURenameCluster(LogicalUnit):
     """Verify that the passed name is a valid one.
 
     """
-    hostname = netutils.GetHostname(name=self.op.name)
+    hostname = netutils.GetHostname(name=self.op.name,
+                                    family=self.cfg.GetPrimaryIPFamily())
 
     new_name = hostname.name
     self.ip = new_ip = hostname.ip
@@ -4117,6 +4118,11 @@ class LUQueryClusterInfo(NoHooksLU):
         if hv_name in cluster.enabled_hypervisors:
           os_hvp[os_name][hv_name] = hv_params
 
+    # Convert ip_family to ip_version
+    primary_ip_version = constants.IP4_VERSION
+    if cluster.primary_ip_family == netutils.IP6Address.family:
+      primary_ip_version = constants.IP6_VERSION
+
     result = {
       "software_version": constants.RELEASE_VERSION,
       "protocol_version": constants.PROTOCOL_VERSION,
@@ -4147,6 +4153,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "uid_pool": cluster.uid_pool,
       "default_iallocator": cluster.default_iallocator,
       "reserved_lvs": cluster.reserved_lvs,
+      "primary_ip_version": primary_ip_version,
       }
 
     return result

@@ -287,7 +287,12 @@ def StartMaster(start_daemons, no_voting):
         logging.error(msg)
         err_msgs.append(msg)
     else:
-      result = utils.RunCmd(["ip", "address", "add", "%s/32" % master_ip,
+      netmask = 32
+      if netutils.IP6Address.IsValid(master_ip):
+        netmask = 128
+
+      result = utils.RunCmd(["ip", "address", "add",
+                             "%s/%d" % (master_ip, netmask),
                              "dev", master_netdev, "label",
                              "%s:0" % master_netdev])
       if result.failed:
@@ -295,9 +300,12 @@ def StartMaster(start_daemons, no_voting):
         logging.error(msg)
         err_msgs.append(msg)
 
-      result = utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev,
-                             "-s", master_ip, master_ip])
-      # we'll ignore the exit code of arping
+      # we ignore the exit code of the following cmds
+      if netutils.IP4Address.IsValid(master_ip):
+        utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
+                      master_ip, master_ip])
+      elif netutils.IP6Address.IsValid(master_ip):
+        utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
 
   if err_msgs:
     _Fail("; ".join(err_msgs))
@@ -322,7 +330,12 @@ def StopMaster(stop_daemons):
   # GetMasterInfo will raise an exception if not able to return data
   master_netdev, master_ip, _ = GetMasterInfo()
 
-  result = utils.RunCmd(["ip", "address", "del", "%s/32" % master_ip,
+  netmask = 32
+  if netutils.IP6Address.IsValid(master_ip):
+    netmask = 128
+
+  result = utils.RunCmd(["ip", "address", "del",
+                         "%s/%d" % (master_ip, netmask),
                          "dev", master_netdev])
   if result.failed:
     logging.error("Can't remove the master IP, error: %s", result.output)

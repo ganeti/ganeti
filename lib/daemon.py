@@ -40,6 +40,7 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
+from ganeti import ssconf
 
 
 _DEFAULT_RUN_USER = "root"
@@ -542,6 +543,16 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
 
   if daemon_name in constants.DAEMONS_PORTS:
     default_bind_address = constants.IP4_ADDRESS_ANY
+    try:
+      family = ssconf.SimpleStore().GetPrimaryIPFamily()
+      if family == netutils.IP6Address.family:
+        default_bind_address = constants.IP6_ADDRESS_ANY
+    except errors.ConfigurationError:
+      # This case occurs when adding a node, as there is no ssconf available
+      # when noded is first started. In that case, however, the correct
+      # bind_address must be passed
+      pass
+
     default_port = netutils.GetDaemonPort(daemon_name)
 
     # For networked daemons we allow choosing the port and bind address
@@ -549,7 +560,7 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
                             help="Network port (default: %s)" % default_port,
                             default=default_port, type="int")
     optionparser.add_option("-b", "--bind", dest="bind_address",
-                            help=("Bind address (default: %s)" %
+                            help=("Bind address (default: '%s')" %
                                   default_bind_address),
                             default=default_bind_address, metavar="ADDRESS")
 
