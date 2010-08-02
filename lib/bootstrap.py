@@ -223,7 +223,8 @@ def InitCluster(cluster_name, mac_prefix,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
                 modify_etc_hosts=True, modify_ssh_setup=True,
                 maintain_node_health=False, drbd_helper=None,
-                uid_pool=None, default_iallocator=None):
+                uid_pool=None, default_iallocator=None,
+                primary_ip_version=None):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -244,38 +245,55 @@ def InitCluster(cluster_name, mac_prefix,
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-  hostname = netutils.GetHostname()
 
-  if netutils.IP4Address.IsLoopback(hostname.ip):
+  ipcls = None
+  if primary_ip_version == constants.IP4_VERSION:
+    ipcls = netutils.IP4Address
+  elif primary_ip_version == constants.IP6_VERSION:
+    ipcls = netutils.IP6Address
+  else:
+    raise errors.OpPrereqError("Invalid primary ip version: %d." %
+                               primary_ip_version)
+
+  hostname = netutils.GetHostname(family=ipcls.family)
+  if not ipcls.IsValid(hostname.ip):
+    raise errors.OpPrereqError("This host's IP (%s) is not a valid IPv%d"
+                               " address." % (hostname.ip, primary_ip_version))
+
+  if ipcls.IsLoopback(hostname.ip):
     raise errors.OpPrereqError("This host's IP (%s) resolves to a loopback"
                                " address. Please fix DNS or %s." %
                                (hostname.ip, constants.ETC_HOSTS),
                                errors.ECODE_ENVIRON)
 
-  if not netutils.IPAddress.Own(hostname.ip):
+  if not ipcls.Own(hostname.ip):
     raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                " to %s,\nbut this ip address does not"
                                " belong to this host. Aborting." %
                                hostname.ip, errors.ECODE_ENVIRON)
 
-  clustername = netutils.GetHostname(name=cluster_name)
+  clustername = netutils.GetHostname(name=cluster_name, family=ipcls.family)
 
-  if netutils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
-                   timeout=5):
+  if netutils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT, timeout=5):
     raise errors.OpPrereqError("Cluster IP already active. Aborting.",
                                errors.ECODE_NOTUNIQUE)
 
-  if secondary_ip:
-    if not netutils.IP4Address.IsValid(secondary_ip):
-      raise errors.OpPrereqError("Invalid secondary ip given",
-                                 errors.ECODE_INVAL)
-    if (secondary_ip != hostname.ip and
-        not netutils.IPAddress.Own(secondary_ip)):
-      raise errors.OpPrereqError("You gave %s as secondary IP,"
-                                 " but it does not belong to this host." %
-                                 secondary_ip, errors.ECODE_ENVIRON)
-  else:
+  if not secondary_ip:
+    if primary_ip_version == constants.IP6_VERSION:
+      raise errors.OpPrereqError("When using a IPv6 primary address, a valid"
+                                 " IPv4 address must be given as secondary."
+                                 " Aborting.", errors.ECODE_INVAL)
     secondary_ip = hostname.ip
+
+  if not netutils.IP4Address.IsValid(secondary_ip):
+    raise errors.OpPrereqError("Secondary IP address (%s) has to be a valid"
+                               " IPv4 address." % secondary_ip,
+                               errors.ECODE_INVAL)
+
+  if not netutils.IP4Address.Own(secondary_ip):
+    raise errors.OpPrereqError("You gave %s as secondary IP,"
+                               " but it does not belong to this host." %
+                               secondary_ip, errors.ECODE_ENVIRON)
 
   if vg_name is not None:
     # Check if volume group is valid
@@ -373,6 +391,7 @@ def InitCluster(cluster_name, mac_prefix,
     maintain_node_health=maintain_node_health,
     drbd_usermode_helper=drbd_helper,
     default_iallocator=default_iallocator,
+    primary_ip_family=ipcls.family,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -919,6 +919,7 @@ class Cluster(TaggableObject):
     "maintain_node_health",
     "uid_pool",
     "default_iallocator",
+    "primary_ip_family",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
