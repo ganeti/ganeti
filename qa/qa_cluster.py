@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -79,6 +79,9 @@ def TestClusterInit(rapi_user, rapi_secret):
 
   # Initialize cluster
   cmd = ['gnt-cluster', 'init']
+
+  cmd.append("--primary-ip-version=%d" %
+             qa_config.get("primary_ip_version", 4))
 
   if master.get('secondary', None):
     cmd.append('--secondary-ip=%s' % master['secondary'])

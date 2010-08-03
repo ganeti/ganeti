@@ -2,6 +2,7 @@
   "name": "xen-test",
   "rename": "xen-test-rename",
   "enabled-hypervisors": "xen-pvm",
+  "primary_ip_version": 4,
 
   "os": "debian-etch",
   "mem": "512M",

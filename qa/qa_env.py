@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,14 +69,19 @@ def TestIcmpPing():
   """
   nodes = qa_config.get('nodes')
 
+  pingargs = ['-w', '3', '-c', '1 ']
+  pingprimary = "ping"
+  if qa_config.get("primary_ip_version") == 6:
+    pingprimary = "ping6"
+
   for node in nodes:
     check = []
     for i in nodes:
-      check.append(i['primary'])
+      cmd = [pingprimary] + pingargs + [i['primary']]
+      check.append(utils.ShellQuoteArgs(cmd))
       if i.has_key('secondary'):
-        check.append(i['secondary'])
+        cmd = ["ping"] + pingargs + [i["secondary"]]
+        check.append(utils.ShellQuoteArgs(cmd))
 
-    ping = lambda ip: utils.ShellQuoteArgs(['ping', '-w', '3', '-c', '1', ip])
-    cmd = ' && '.join([ping(i) for i in check])
-
-    AssertEqual(StartSSH(node['primary'], cmd).wait(), 0)
+    cmdall = ' && '.join(check)
+    AssertEqual(StartSSH(node['primary'], cmdall).wait(), 0)
