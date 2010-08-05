@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,43 @@ from ganeti import bdev
 from ganeti import errors
 
 import testutils
+
+
+class TestBaseDRBD(testutils.GanetiTestCase):
+  def testGetVersion(self):
+    data = [
+      ["version: 8.0.12 (api:76/proto:86-91)"],
+      ["version: 8.2.7 (api:88/proto:0-100)"],
+      ["version: 8.3.7.49 (api:188/proto:13-191)"],
+    ]
+    result = [
+      {
+      "k_major": 8,
+      "k_minor": 0,
+      "k_point": 12,
+      "api": 76,
+      "proto": 86,
+      "proto2": "91",
+      },
+      {
+      "k_major": 8,
+      "k_minor": 2,
+      "k_point": 7,
+      "api": 88,
+      "proto": 0,
+      "proto2": "100",
+      },
+      {
+      "k_major": 8,
+      "k_minor": 3,
+      "k_point": 7,
+      "api": 188,
+      "proto": 13,
+      "proto2": "191",
+      }
+    ]
+    for d,r in zip(data, result):
+      self.assertEqual(bdev.BaseDRBD._GetVersion(d), r)
 
 
 class TestDRBD8Runner(testutils.GanetiTestCase):

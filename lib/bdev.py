@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -815,7 +815,7 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
   0.7 and 8.x versions of DRBD.
 
   """
-  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)"
+  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:\.\d+)?"
                            r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
   _VALID_LINE_RE = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
   _UNUSED_LINE_RE = re.compile("^ *([0-9]+): cs:Unconfigured$")
@@ -873,7 +873,7 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
     return results
 
   @classmethod
-  def _GetVersion(cls):
+  def _GetVersion(cls, proc_data):
     """Return the DRBD version.
 
     This will return a dict with keys:
@@ -885,7 +885,6 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
       - proto2 (only on drbd > 8.2.X)
 
     """
-    proc_data = cls._GetProcData()
     first_line = proc_data[0].strip()
     version = cls._VERSION_RE.match(first_line)
     if not version:
@@ -1034,7 +1033,7 @@ class DRBD8(BaseDRBD):
         children = []
     super(DRBD8, self).__init__(unique_id, children, size)
     self.major = self._DRBD_MAJOR
-    version = self._GetVersion()
+    version = self._GetVersion(self._GetProcData())
     if version['k_major'] != 8 :
       _ThrowError("Mismatch in DRBD kernel version and requested ganeti"
                   " usage: kernel is %s.%s, ganeti wants 8.x",
@@ -1260,7 +1259,7 @@ class DRBD8(BaseDRBD):
     if size:
       args.extend(["-d", "%sm" % size])
     if not constants.DRBD_BARRIERS: # disable barriers, if configured so
-      version = cls._GetVersion()
+      version = cls._GetVersion(cls._GetProcData())
       # various DRBD versions support different disk barrier options;
       # what we aim here is to revert back to the 'drain' method of
       # disk flushes and to disable metadata barriers, in effect going
