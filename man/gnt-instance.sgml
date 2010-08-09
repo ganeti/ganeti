@@ -1654,6 +1654,7 @@ instance5: 11225
         <cmdsynopsis>
           <command>rename</command>
           <arg>--no-ip-check</arg>
+          <arg>--no-name-check</arg>
           <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
           <arg choice="req"><replaceable>new_name</replaceable></arg>
@@ -1667,6 +1668,14 @@ instance5: 11225
           (in order to prevent duplicate IPs the next time the
           instance is started). The IP test can be skipped if the
           <option>--no-ip-check</option> option is passed.
+        </para>
+
+        <para>
+          The <option>--no-name-check</option> skips the check for the
+          new instance name via the resolver (e.g. in DNS or /etc/hosts,
+          depending on your setup). Since the name check is used to
+          compute the IP address, if you pass this option you must
+          also pass the <option>--no-ip-check</option> option.
         </para>
 
         <para>
