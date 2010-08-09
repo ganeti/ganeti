@@ -24,6 +24,7 @@ Before installing, please verify that you have the following programs:
 - `bridge utilities <http://www.linuxfoundation.org/en/Net:Bridge>`_
 - `iproute2 <http://www.linuxfoundation.org/en/Net:Iproute2>`_
 - `arping <http://www.skbuff.net/iputils/>`_ (part of iputils)
+- `ndisc6 <http://www.remlab.net/ndisc6/>`_ (if using IPv6)
 - `Python <http://www.python.org/>`_, version 2.4 or above, not 3.0
 - `Python OpenSSL bindings <http://pyopenssl.sourceforge.net/>`_
 - `simplejson Python module <http://code.google.com/p/simplejson/>`_
@@ -44,9 +45,9 @@ Debian/Ubuntu, you can use this command line to install all required
 packages, except for DRBD and Xen::
 
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-                    python python-pyopenssl openssl python-pyparsing \
-                    python-simplejson python-pyinotify python-pycurl \
-                    socat
+                    ndisc6 python python-pyopenssl openssl \
+                    python-pyparsing python-simplejson \
+                    python-pyinotify python-pycurl socat
 
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.

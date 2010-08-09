@@ -256,6 +256,8 @@
         <sbr>
         <arg>-I <replaceable>default instance allocator</replaceable></arg>
         <sbr>
+        <arg>--primary-ip-version <replaceable>version</replaceable></arg>
+        <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -549,6 +551,13 @@
         instance allocator, or a set of nodes.
         The default iallocator can be changed later using the
         <command>modify</command> command.
+      </para>
+
+      <para>
+        The <option>--primary-ip-version</option> option specifies the
+        IP version used for the primary address. Possible values are 4 and
+        6 for IPv4 and IPv6, respectively. This option is used when resolving
+        node names and the cluster name.
       </para>
 
     </refsect2>
