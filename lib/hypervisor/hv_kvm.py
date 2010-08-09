@@ -547,10 +547,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         vnc_arg = 'unix:%s/%s.vnc' % (vnc_bind_address, instance.name)
 
       kvm_cmd.extend(['-vnc', vnc_arg])
-
-      # Also add a tablet USB device to act as a mouse
-      # This solves various mouse alignment issues
-      kvm_cmd.extend(['-usbdevice', 'tablet'])
     else:
       kvm_cmd.extend(['-nographic'])
 
