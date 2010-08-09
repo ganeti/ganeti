@@ -508,11 +508,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-append', ' '.join(root_append)])
 
     mouse_type = hvp[constants.HV_USB_MOUSE]
+    vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
+
     if mouse_type:
       kvm_cmd.extend(['-usb'])
       kvm_cmd.extend(['-usbdevice', mouse_type])
+    elif vnc_bind_address:
+      kvm_cmd.extend(['-usbdevice', constants.HT_MOUSE_TABLET])
 
-    vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
       if utils.IsValidIP(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
