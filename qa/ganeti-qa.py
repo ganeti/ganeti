@@ -204,6 +204,8 @@ def RunExportImportTests(instance, pnode):
 
   """
   if qa_config.TestEnabled('instance-export'):
+    RunTest(qa_instance.TestInstanceExportNoTarget, instance)
+
     expnode = qa_config.AcquireNode(exclude=pnode)
     try:
       name = RunTest(qa_instance.TestInstanceExport, instance, expnode)

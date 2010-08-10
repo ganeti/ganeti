@@ -31,6 +31,7 @@ import sys
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
+from ganeti import errors
 
 
 _VALUE_TRUE = "true"
@@ -72,6 +73,9 @@ def ExportInstance(opts, args):
 
   """
   ignore_remove_failures = opts.ignore_remove_failures
+
+  if not opts.node:
+    raise errors.OpPrereqError("Target node must be specified")
 
   op = opcodes.OpExportInstance(instance_name=args[0],
                                 target_node=opts.node,

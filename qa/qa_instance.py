@@ -280,7 +280,7 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
 
 
 def TestInstanceExport(instance, node):
-  """gnt-backup export"""
+  """gnt-backup export -n ..."""
   master = qa_config.GetMasterNode()
 
   cmd = ['gnt-backup', 'export', '-n', node['primary'], instance['name']]
@@ -298,6 +298,15 @@ def TestInstanceExportWithRemove(instance, node):
          instance['name']]
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestInstanceExportNoTarget(instance):
+  """gnt-backup export (without target node, should fail)"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ["gnt-backup", "export", instance["name"]]
+  AssertNotEqual(StartSSH(master['primary'],
+                          utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
 def TestInstanceImport(node, newinst, expnode, name):
