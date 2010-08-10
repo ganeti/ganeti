@@ -56,7 +56,7 @@ def GetUserFiles(user, mkdir=False):
   if mkdir:
     utils.EnsureDirs([(ssh_dir, constants.SECURE_DIR_MODE)])
   elif not os.path.isdir(ssh_dir):
-    raise errors.OpExecError("path ~%s/.ssh is not a directory" % user)
+    raise errors.OpExecError("Path %s is not a directory" % ssh_dir)
 
   return [utils.PathJoin(ssh_dir, base)
           for base in ["id_dsa", "id_dsa.pub", "authorized_keys"]]
