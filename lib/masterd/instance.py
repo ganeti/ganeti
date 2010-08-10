@@ -1052,7 +1052,7 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
 
         dtp.dest_import = di
       else:
-        dtp = _DiskTransferPrivate(None, False)
+        dtp = _DiskTransferPrivate(None, False, None)
 
       all_dtp.append(dtp)
 
