@@ -86,8 +86,14 @@ CONFIG_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, CONFIG_REVISION)
 
 # user separation
 DAEMONS_GROUP = _autoconf.DAEMONS_GROUP
+ADMIN_GROUP = _autoconf.ADMIN_GROUP
 MASTERD_USER = _autoconf.MASTERD_USER
+MASTERD_GROUP = _autoconf.MASTERD_GROUP
 RAPI_USER = _autoconf.RAPI_USER
+RAPI_GROUP = _autoconf.RAPI_GROUP
+CONFD_USER = _autoconf.CONFD_USER
+CONFD_GROUP = _autoconf.CONFD_GROUP
+NODED_USER = _autoconf.NODED_USER
 
 # file paths
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"

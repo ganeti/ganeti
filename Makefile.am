@@ -124,6 +124,7 @@ pkgpython_PYTHON = \
 	lib/objects.py \
 	lib/opcodes.py \
 	lib/rpc.py \
+	lib/runtime.py \
 	lib/serializer.py \
 	lib/ssconf.py \
 	lib/ssh.py \
@@ -393,6 +394,7 @@ python_tests = \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.rapi.rlib2_unittest.py \
 	test/ganeti.rpc_unittest.py \
+	test/ganeti.runtime_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.uidpool_unittest.py \
@@ -565,8 +567,14 @@ lib/_autoconf.py: Makefile stamp-directories vcs-version
 	  echo "DRBD_BARRIERS = $(DRBD_BARRIERS)"; \
 	  echo "SYSLOG_USAGE = '$(SYSLOG_USAGE)'"; \
 	  echo "DAEMONS_GROUP = '$(DAEMONS_GROUP)'"; \
+	  echo "ADMIN_GROUP = '$(ADMIN_GROUP)'"; \
 	  echo "MASTERD_USER = '$(MASTERD_USER)'"; \
+	  echo "MASTERD_GROUP = '$(MASTERD_GROUP)'"; \
 	  echo "RAPI_USER = '$(RAPI_USER)'"; \
+	  echo "RAPI_GROUP = '$(RAPI_GROUP)'"; \
+	  echo "CONFD_USER = '$(CONFD_USER)'"; \
+	  echo "CONFD_GROUP = '$(CONFD_GROUP)'"; \
+	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
 
