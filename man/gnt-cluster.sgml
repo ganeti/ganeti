@@ -228,7 +228,7 @@
         <sbr>
         <arg>-g <replaceable>vg-name</replaceable></arg>
         <sbr>
-        <arg>--master-netdev <replaceable>vg-name</replaceable></arg>
+        <arg>--master-netdev <replaceable>interface-name</replaceable></arg>
         <sbr>
         <arg>-m <replaceable>mac-prefix</replaceable></arg>
         <sbr>
