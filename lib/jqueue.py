@@ -438,8 +438,10 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
 
     # Cancel here if we were asked to
     if self._op.status == constants.OP_STATUS_CANCELING:
+      logging.debug("Canceling opcode")
       raise CancelJob()
 
+    logging.debug("Opcode is now running")
     self._op.status = constants.OP_STATUS_RUNNING
     self._op.exec_timestamp = TimeStampNow()
 
@@ -713,8 +715,11 @@ class _JobQueueWorker(workerpool.BaseWorker):
             queue.acquire(shared=1)
             try:
               if op.status == constants.OP_STATUS_CANCELED:
+                logging.debug("Canceling opcode")
                 raise CancelJob()
               assert op.status == constants.OP_STATUS_QUEUED
+              logging.debug("Opcode %s/%s waiting for locks",
+                            idx + 1, count)
               op.status = constants.OP_STATUS_WAITLOCK
               op.result = None
               op.start_timestamp = TimeStampNow()
@@ -732,6 +737,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
 
             queue.acquire(shared=1)
             try:
+              logging.debug("Opcode %s/%s succeeded", idx + 1, count)
               op.status = constants.OP_STATUS_SUCCESS
               op.result = result
               op.end_timestamp = TimeStampNow()
@@ -748,6 +754,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
             queue.acquire(shared=1)
             try:
               try:
+                logging.debug("Opcode %s/%s failed", idx + 1, count)
                 op.status = constants.OP_STATUS_ERROR
                 if isinstance(err, errors.GenericError):
                   to_encode = err
@@ -1025,6 +1032,7 @@ class JobQueue(object):
         names and the second one with the node addresses
 
     """
+    # TODO: Change to "tuple(map(list, zip(*self._nodes.items())))"?
     name_list = self._nodes.keys()
     addr_list = [self._nodes[name] for name in name_list]
     return name_list, addr_list
