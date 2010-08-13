@@ -62,6 +62,15 @@ class TestErrors(testutils.GanetiTestCase):
     self.assertRaises(errors.GenericError, errors.MaybeRaise,
                       ("GenericError", ["Hello"]))
 
+  def testGetEncodedError(self):
+    self.assertEqualValues(errors.GetEncodedError(["GenericError",
+                                                   ("Hello", 123, "World")]),
+                           (errors.GenericError, ("Hello", 123, "World")))
+    self.assertEqualValues(errors.GetEncodedError(["GenericError", []]),
+                           (errors.GenericError, ()))
+    self.assertFalse(errors.GetEncodedError(["NoErrorClass",
+                                             ("Hello", 123, "World")]))
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
