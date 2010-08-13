@@ -10040,6 +10040,7 @@ class LUTestJobqueue(NoHooksLU):
     self.LogInfo("Executing")
 
     if self.op.log_messages:
+      self._Notify(False, constants.JQT_STARTMSG, len(self.op.log_messages))
       for idx, msg in enumerate(self.op.log_messages):
         self.LogInfo("Sending log message %s", idx + 1)
         feedback_fn(constants.JQT_MSGPREFIX + msg)
