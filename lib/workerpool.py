@@ -78,9 +78,8 @@ class BaseWorker(threading.Thread, object):
     """
     pool = self.pool
 
-    assert self._current_task is None
-
     while True:
+      assert self._current_task is None
       try:
         # Wait on lock to be told either to terminate or to do a task
         pool._lock.acquire()
@@ -97,7 +96,11 @@ class BaseWorker(threading.Thread, object):
 
           self._current_task = task
 
+          # No longer needed, dispose of reference
+          del task
+
           assert self._HasRunningTaskUnlocked()
+
         finally:
           pool._lock.release()
 
