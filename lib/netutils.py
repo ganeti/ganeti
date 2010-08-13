@@ -472,3 +472,29 @@ class IP6Address(IPAddress):
       address_int = (address_int << 16) + int(part or '0', 16)
 
     return address_int
+
+def FormatAddress(family, address):
+  """Format a socket address
+
+  @type family: integer
+  @param family: socket family (one of socket.AF_*)
+  @type address: family specific (usually tuple)
+  @param address: address, as reported by this class
+
+  """
+  if family == socket.AF_UNIX and len(address) == 3:
+    return "pid=%s, uid=%s, gid=%s" % address
+
+  if family in (socket.AF_INET, socket.AF_INET6) and len(address) == 2:
+    host, port = address
+    if family == socket.AF_INET6:
+      res = "[%s]" % host
+    else:
+      res = host
+
+    if port is not None:
+      res += ":%s" % port
+
+    return res
+
+  raise errors.ParameterError(family, address)

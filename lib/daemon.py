@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -100,23 +100,6 @@ class GanetiBaseAsyncoreDispatcher(asyncore.dispatcher):
     return False
 
 
-def FormatAddress(family, address):
-  """Format a client's address
-
-  @type family: integer
-  @param family: socket family (one of socket.AF_*)
-  @type address: family specific (usually tuple)
-  @param address: address, as reported by this class
-
-  """
-  if family == socket.AF_INET and len(address) == 2:
-    return "%s:%d" % address
-  elif family == socket.AF_UNIX and len(address) == 3:
-    return "pid=%s, uid=%s, gid=%s" % address
-  else:
-    return str(address)
-
-
 class AsyncStreamServer(GanetiBaseAsyncoreDispatcher):
   """A stream server to use with asyncore.
 
@@ -159,7 +142,7 @@ class AsyncStreamServer(GanetiBaseAsyncoreDispatcher):
         # is passed in from accept anyway
         client_address = netutils.GetSocketCredentials(connected_socket)
       logging.info("Accepted connection from %s",
-                   FormatAddress(self.family, client_address))
+                   netutils.FormatAddress(self.family, client_address))
       self.handle_connection(connected_socket, client_address)
 
   def handle_connection(self, connected_socket, client_address):
@@ -290,7 +273,7 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
 
   def close_log(self):
     logging.info("Closing connection from %s",
-                 FormatAddress(self.family, self.peer_address))
+                 netutils.FormatAddress(self.family, self.peer_address))
     self.close()
 
   # this method is overriding an asyncore.dispatcher method

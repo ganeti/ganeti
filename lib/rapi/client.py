@@ -35,6 +35,7 @@
 
 import logging
 import simplejson
+import socket
 import urllib
 import threading
 import pycurl
@@ -265,7 +266,13 @@ class GanetiRapiClient(object):
     self._curl_config_fn = curl_config_fn
     self._curl_factory = curl_factory
 
-    self._base_url = "https://%s:%s" % (host, port)
+    try:
+      socket.inet_pton(socket.AF_INET6, host)
+      address = "[%s]:%s" % (host, port)
+    except socket.error:
+      address = "%s:%s" % (host, port)
+
+    self._base_url = "https://%s" % address
 
     if username is not None:
       if password is None:

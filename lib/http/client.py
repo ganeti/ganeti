@@ -28,6 +28,7 @@ from cStringIO import StringIO
 
 from ganeti import http
 from ganeti import compat
+from ganeti import netutils
 
 
 class HttpClientRequest(object):
@@ -104,8 +105,13 @@ class HttpClientRequest(object):
     """Returns the full URL for this requests.
 
     """
+    if netutils.IPAddress.IsValid(self.host):
+      family = netutils.IPAddress.GetAddressFamily(self.host)
+      address = netutils.FormatAddress(family, (self.host, self.port))
+    else:
+      address = "%s:%s" % (self.host, self.port)
     # TODO: Support for non-SSL requests
-    return "https://%s:%s%s" % (self.host, self.port, self.path)
+    return "https://%s%s" % (address, self.path)
 
   @property
   def identity(self):
