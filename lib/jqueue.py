@@ -420,6 +420,15 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._job = job
     self._op = op
 
+  def _CheckCancel(self):
+    """Raises an exception to cancel the job if asked to.
+
+    """
+    # Cancel here if we were asked to
+    if self._op.status == constants.OP_STATUS_CANCELING:
+      logging.debug("Canceling opcode")
+      raise CancelJob()
+
   @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyStart(self):
     """Mark the opcode as running, not lock-waiting.
@@ -437,9 +446,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._job.lock_status = None
 
     # Cancel here if we were asked to
-    if self._op.status == constants.OP_STATUS_CANCELING:
-      logging.debug("Canceling opcode")
-      raise CancelJob()
+    self._CheckCancel()
 
     logging.debug("Opcode is now running")
     self._op.status = constants.OP_STATUS_RUNNING
@@ -480,8 +487,14 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     Called whenever the LU processor is waiting for a lock or has acquired one.
 
     """
+    assert self._op.status in (constants.OP_STATUS_WAITLOCK,
+                               constants.OP_STATUS_CANCELING)
+
     # Not getting the queue lock because this is a single assignment
     self._job.lock_status = msg
+
+    # Cancel here if we were asked to
+    self._CheckCancel()
 
 
 class _JobChangesChecker(object):
