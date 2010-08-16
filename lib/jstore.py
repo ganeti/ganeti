@@ -25,6 +25,7 @@ import errno
 
 from ganeti import constants
 from ganeti import errors
+from ganeti import runtime
 from ganeti import utils
 
 
@@ -73,8 +74,7 @@ def InitAndVerifyQueue(must_lock):
            locking mode.
 
   """
-  dirs = [(d, constants.JOB_QUEUE_DIRS_MODE) for d in constants.JOB_QUEUE_DIRS]
-  utils.EnsureDirs(dirs)
+  getents = runtime.GetEnts()
 
   # Lock queue
   queue_lock = utils.FileLock.Open(constants.JOB_QUEUE_LOCK_FILE)
@@ -99,6 +99,7 @@ def InitAndVerifyQueue(must_lock):
       if version is None:
         # Write new version file
         utils.WriteFile(constants.JOB_QUEUE_VERSION_FILE,
+                        uid=getents.masterd_uid, gid=getents.masterd_gid,
                         data="%s\n" % constants.JOB_QUEUE_VERSION)
 
         # Read again
@@ -112,6 +113,7 @@ def InitAndVerifyQueue(must_lock):
       if serial is None:
         # Write new serial file
         utils.WriteFile(constants.JOB_QUEUE_SERIAL_FILE,
+                        uid=getents.masterd_uid, gid=getents.masterd_gid,
                         data="%s\n" % 0)
 
         # Read again

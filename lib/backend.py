@@ -59,6 +59,7 @@ from ganeti import objects
 from ganeti import ssconf
 from ganeti import serializer
 from ganeti import netutils
+from ganeti import runtime
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -2403,9 +2404,11 @@ def JobQueueUpdate(file_name, content):
 
   """
   _EnsureJobQueueFile(file_name)
+  getents = runtime.GetEnts()
 
   # Write and replace the file atomically
-  utils.WriteFile(file_name, data=_Decompress(content))
+  utils.WriteFile(file_name, data=_Decompress(content), uid=getents.masterd_uid,
+                  gid=getents.masterd_gid)
 
 
 def JobQueueRename(old, new):

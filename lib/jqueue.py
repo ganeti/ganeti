@@ -53,6 +53,7 @@ from ganeti import mcpu
 from ganeti import utils
 from ganeti import jstore
 from ganeti import rpc
+from ganeti import runtime
 from ganeti import netutils
 from ganeti import compat
 
@@ -1070,7 +1071,9 @@ class JobQueue(object):
     @param replicate: whether to spread the changes to the remote nodes
 
     """
-    utils.WriteFile(file_name, data=data)
+    getents = runtime.GetEnts()
+    utils.WriteFile(file_name, data=data, uid=getents.masterd_uid,
+                    gid=getents.masterd_gid)
 
     if replicate:
       names, addrs = self._GetNodeIp()
@@ -1314,8 +1317,11 @@ class JobQueue(object):
     @param drain_flag: Whether to set or unset the drain flag
 
     """
+    getents = runtime.GetEnts()
+
     if drain_flag:
-      utils.WriteFile(constants.JOB_QUEUE_DRAIN_FILE, data="", close=True)
+      utils.WriteFile(constants.JOB_QUEUE_DRAIN_FILE, data="", close=True,
+                      uid=getents.masterd_uid, gid=getents.masterd_gid)
     else:
       utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
 
