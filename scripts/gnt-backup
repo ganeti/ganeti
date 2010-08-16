@@ -75,7 +75,8 @@ def ExportInstance(opts, args):
   ignore_remove_failures = opts.ignore_remove_failures
 
   if not opts.node:
-    raise errors.OpPrereqError("Target node must be specified")
+    raise errors.OpPrereqError("Target node must be specified",
+                               errors.ECODE_INVAL)
 
   op = opcodes.OpExportInstance(instance_name=args[0],
                                 target_node=opts.node,
