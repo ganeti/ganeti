@@ -442,6 +442,7 @@ class OpMigrateNode(OpCode):
   __slots__ = [
     "node_name",
     "mode",
+    "live",
     ]
 
 
@@ -565,7 +566,7 @@ class OpMigrateInstance(OpCode):
   """
   OP_ID = "OP_INSTANCE_MIGRATE"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name", "mode", "cleanup"]
+  __slots__ = ["instance_name", "mode", "cleanup", "live"]
 
 
 class OpMoveInstance(OpCode):

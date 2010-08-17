@@ -236,6 +236,9 @@ _PNodeName = ("node_name", _NoDefault, _TNonEmptyString)
 _PMigrationMode = ("mode", None, _TOr(_TNone,
                                       _TElemOf(constants.HT_MIGRATION_MODES)))
 
+#: the obsolete 'live' mode (boolean)
+_PMigrationLive = ("live", None, _TMaybeBool)
+
 
 # End types
 class LogicalUnit(object):
@@ -5512,6 +5515,7 @@ class LUMigrateInstance(LogicalUnit):
   _OP_PARAMS = [
     _PInstanceName,
     _PMigrationMode,
+    _PMigrationLive,
     ("cleanup", False, _TBool),
     ]
 
@@ -5743,6 +5747,7 @@ class LUMigrateNode(LogicalUnit):
   _OP_PARAMS = [
     _PNodeName,
     _PMigrationMode,
+    _PMigrationLive,
     ]
   REQ_BGL = False
 
@@ -5847,7 +5852,19 @@ class TLMigrateInstance(Tasklet):
 
     self.instance = instance
 
-    if self.lu.op.mode is None:
+    if self.lu.op.live is not None and self.lu.op.mode is not None:
+      raise errors.OpPrereqError("Only one of the 'live' and 'mode'"
+                                 " parameters are accepted",
+                                 errors.ECODE_INVAL)
+    if self.lu.op.live is not None:
+      if self.lu.op.live:
+        self.lu.op.mode = constants.HT_MIGRATION_LIVE
+      else:
+        self.lu.op.mode = constants.HT_MIGRATION_NONLIVE
+      # reset the 'live' parameter to None so that repeated
+      # invocations of CheckPrereq do not raise an exception
+      self.lu.op.live = None
+    elif self.lu.op.mode is None:
       # read the default value from the hypervisor
       i_hv = self.cfg.GetClusterInfo().FillHV(instance, skip_globals=False)
       self.lu.op.mode = i_hv[constants.HV_MIGRATION_MODE]
