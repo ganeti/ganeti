@@ -757,6 +757,11 @@ class _JobQueueWorker(workerpool.BaseWorker):
               if idx == count - 1:
                 job.lock_status = None
                 job.end_timestamp = TimeStampNow()
+
+                # Consistency check
+                assert compat.all(i.status == constants.OP_STATUS_SUCCESS
+                                  for i in job.ops)
+
               queue.UpdateJobUnlocked(job)
             finally:
               queue.release()
@@ -780,6 +785,17 @@ class _JobQueueWorker(workerpool.BaseWorker):
                 op.end_timestamp = TimeStampNow()
                 logging.info("Op %s/%s: Error in opcode %s: %s",
                              idx + 1, count, op_summary, err)
+
+                to_encode = errors.OpExecError("Preceding opcode failed")
+                job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
+                                      errors.EncodeException(to_encode))
+
+                # Consistency check
+                assert compat.all(i.status == constants.OP_STATUS_SUCCESS
+                                  for i in job.ops[:idx])
+                assert compat.all(i.status == constants.OP_STATUS_ERROR and
+                                  errors.GetEncodedError(i.result)
+                                  for i in job.ops[idx:])
               finally:
                 job.lock_status = None
                 job.end_timestamp = TimeStampNow()
