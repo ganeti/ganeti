@@ -375,12 +375,12 @@ Body parameters:
   Must be ``1`` (older Ganeti versions used a different format for
   instance creation requests, version ``0``, but that format is not
   documented).
-``mode``
-  Instance creation mode (string, required).
+``mode`` (string, required)
+  Instance creation mode.
 ``name`` (string, required)
-  Instance name
+  Instance name.
 ``disk_template`` (string, required)
-  Disk template for instance
+  Disk template for instance.
 ``disks`` (list, required)
   List of disk definitions. Example: ``[{"size": 100}, {"size": 5}]``.
   Each disk definition must contain a ``size`` value and can contain an
@@ -417,7 +417,7 @@ Body parameters:
   File storage driver.
 ``iallocator`` (string)
   Instance allocator name.
-``source_handshake``
+``source_handshake`` (list)
   Signed handshake from source (remote import only).
 ``source_x509_ca`` (string)
   Source X509 CA in PEM format (remote import only).
@@ -427,7 +427,7 @@ Body parameters:
   Hypervisor name.
 ``hvparams`` (dict)
   Hypervisor parameters, hypervisor-dependent.
-``beparams``
+``beparams`` (dict)
   Backend parameters.
 
 
