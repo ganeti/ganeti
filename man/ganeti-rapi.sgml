@@ -94,7 +94,7 @@
     <para>
       The users and their rights are defined in a file named
       <filename>rapi_users</filename>, located in the <filename
-      class="directory">@LOCALSTATEDIR@/ganeti</filename>
+      class="directory">@LOCALSTATEDIR@/lib/ganeti</filename>
       directory. The users should be listed one per line, in the
       following format:
     </para>
