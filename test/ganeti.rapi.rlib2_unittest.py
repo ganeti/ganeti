@@ -295,5 +295,68 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
       self.assert_(op.name_check)
 
 
+class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.Parse = rlib2._ParseModifyInstanceRequest
+
+  def test(self):
+    name = "instush8gah"
+
+    test_disks = [
+      [],
+      [(1, { constants.IDISK_MODE: constants.DISK_RDWR, })],
+      ]
+
+    for osparams in [{}, { "some": "value", "other": "Hello World", }]:
+      for hvparams in [{}, { constants.HV_KERNEL_PATH: "/some/kernel", }]:
+        for beparams in [{}, { constants.BE_MEMORY: 128, }]:
+          for force in [False, True]:
+            for nics in [[], [(0, { constants.INIC_IP: "192.0.2.1", })]]:
+              for disks in test_disks:
+                for disk_template in constants.DISK_TEMPLATES:
+                  data = {
+                    "osparams": osparams,
+                    "hvparams": hvparams,
+                    "beparams": beparams,
+                    "nics": nics,
+                    "disks": disks,
+                    "force": force,
+                    "disk_template": disk_template,
+                    }
+
+                  op = self.Parse(name, data)
+                  self.assert_(isinstance(op, opcodes.OpSetInstanceParams))
+                  self.assertEqual(op.instance_name, name)
+                  self.assertEqual(op.hvparams, hvparams)
+                  self.assertEqual(op.beparams, beparams)
+                  self.assertEqual(op.osparams, osparams)
+                  self.assertEqual(op.force, force)
+                  self.assertEqual(op.nics, nics)
+                  self.assertEqual(op.disks, disks)
+                  self.assertEqual(op.disk_template, disk_template)
+                  self.assert_(op.remote_node is None)
+                  self.assert_(op.os_name is None)
+                  self.assertFalse(op.force_variant)
+
+  def testDefaults(self):
+    name = "instir8aish31"
+
+    op = self.Parse(name, {})
+    self.assert_(isinstance(op, opcodes.OpSetInstanceParams))
+    self.assertEqual(op.instance_name, name)
+    self.assertEqual(op.hvparams, {})
+    self.assertEqual(op.beparams, {})
+    self.assertEqual(op.osparams, {})
+    self.assertFalse(op.force)
+    self.assertEqual(op.nics, [])
+    self.assertEqual(op.disks, [])
+    self.assert_(op.disk_template is None)
+    self.assert_(op.remote_node is None)
+    self.assert_(op.os_name is None)
+    self.assertFalse(op.force_variant)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

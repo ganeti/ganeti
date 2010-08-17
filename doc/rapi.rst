@@ -671,6 +671,45 @@ Body parameters:
   Whether to ensure instance's name is resolvable.
 
 
+``/2/instances/[instance_name]/modify``
+++++++++++++++++++++++++++++++++++++++++
+
+Modifies an instance.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``osparams`` (dict)
+  Dictionary with OS parameters.
+``hvparams`` (dict)
+  Hypervisor parameters, hypervisor-dependent.
+``beparams`` (dict)
+  Backend parameters.
+``force`` (bool)
+  Whether to force the operation.
+``nics`` (list)
+  List of NIC changes. Each item is of the form ``(op, settings)``.
+  ``op`` can be ``add`` to add a new NIC with the specified settings,
+  ``remove`` to remove the last NIC or a number to modify the settings
+  of the NIC with that index.
+``disks`` (list)
+  List of disk changes. See ``nics``.
+``disk_template`` (string)
+  Disk template for instance.
+``remote_node`` (string)
+  Secondary node (used when changing disk template).
+``os_name`` (string)
+  Change instance's OS name. Does not reinstall the instance.
+``force_variant`` (bool)
+  Whether to force an unknown variant.
+
+
 ``/2/instances/[instance_name]/tags``
 +++++++++++++++++++++++++++++++++++++
 
