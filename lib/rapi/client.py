@@ -725,6 +725,23 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
+  def ModifyInstance(self, instance, **kwargs):
+    """Modifies an instance.
+
+    More details for parameters can be found in the RAPI documentation.
+
+    @type instance: string
+    @param instance: Instance name
+    @rtype: int
+    @return: job id
+
+    """
+    body = kwargs
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/modify" %
+                              (GANETI_RAPI_VERSION, instance)), None, body)
+
   def GetInstanceTags(self, instance):
     """Gets tags for an instance.
 

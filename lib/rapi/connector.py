@@ -217,6 +217,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern, job_id_pattern):
       rlib2.R_2_instances_name_migrate,
     re.compile(r'^/2/instances/(%s)/rename$' % instance_name_pattern):
       rlib2.R_2_instances_name_rename,
+    re.compile(r'^/2/instances/(%s)/modify$' % instance_name_pattern):
+      rlib2.R_2_instances_name_modify,
 
     "/2/jobs": rlib2.R_2_jobs,
     re.compile(r"^/2/jobs/(%s)$" % job_id_pattern):

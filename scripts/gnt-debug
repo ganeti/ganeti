@@ -164,14 +164,16 @@ class _JobQueueTestReporter(cli.StdioJobPollReportCb):
 
     """
     cli.StdioJobPollReportCb.__init__(self)
-    self._testmsgs = []
+    self._expected_msgcount = 0
+    self._all_testmsgs = []
+    self._testmsgs = None
     self._job_id = None
 
   def GetTestMessages(self):
     """Returns all test log messages received so far.
 
     """
-    return self._testmsgs
+    return self._all_testmsgs
 
   def GetJobId(self):
     """Returns the job ID.
@@ -195,7 +197,12 @@ class _JobQueueTestReporter(cli.StdioJobPollReportCb):
 
     elif (log_type == constants.ELOG_MESSAGE and
           log_msg.startswith(constants.JQT_MSGPREFIX)):
-      self._testmsgs.append(log_msg[len(constants.JQT_MSGPREFIX):])
+      if self._testmsgs is None:
+        raise errors.OpExecError("Received test message without a preceding"
+                                 " start message")
+      testmsg = log_msg[len(constants.JQT_MSGPREFIX):]
+      self._testmsgs.append(testmsg)
+      self._all_testmsgs.append(testmsg)
       return
 
     return cli.StdioJobPollReportCb.ReportLogMessage(self, job_id, serial,
@@ -236,7 +243,10 @@ class _JobQueueTestReporter(cli.StdioJobPollReportCb):
                                    " not '%s' as expected" %
                                    (status, constants.JOB_STATUS_RUNNING))
 
-      if test == constants.JQT_LOGMSG:
+      if test == constants.JQT_STARTMSG:
+        logging.debug("Expecting %s test messages", arg)
+        self._testmsgs = []
+      elif test == constants.JQT_LOGMSG:
         if len(self._testmsgs) != arg:
           raise errors.OpExecError("Received %s test messages when %s are"
                                    " expected" % (len(self._testmsgs), arg))
@@ -249,47 +259,120 @@ def TestJobqueue(opts, _):
   """Runs a few tests on the job queue.
 
   """
-  test_messages = [
-    "Hello World",
-    "A",
-    "",
-    "B"
-    "Foo|bar|baz",
-    utils.TimestampForFilename(),
-    ]
+  (TM_SUCCESS,
+   TM_MULTISUCCESS,
+   TM_FAIL,
+   TM_PARTFAIL) = range(4)
+  TM_ALL = frozenset([TM_SUCCESS, TM_MULTISUCCESS, TM_FAIL, TM_PARTFAIL])
 
-  for fail in [False, True]:
-    if fail:
-      ToStdout("Testing job failure")
+  for mode in TM_ALL:
+    test_messages = [
+      "Testing mode %s" % mode,
+      "Hello World",
+      "A",
+      "",
+      "B"
+      "Foo|bar|baz",
+      utils.TimestampForFilename(),
+      ]
+
+    fail = mode in (TM_FAIL, TM_PARTFAIL)
+
+    if mode == TM_PARTFAIL:
+      ToStdout("Testing partial job failure")
+      ops = [
+        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
+                               log_messages=test_messages, fail=False),
+        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
+                               log_messages=test_messages, fail=False),
+        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
+                               log_messages=test_messages, fail=True),
+        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
+                               log_messages=test_messages, fail=False),
+        ]
+      expect_messages = 3 * [test_messages]
+      expect_opstatus = [
+        constants.OP_STATUS_SUCCESS,
+        constants.OP_STATUS_SUCCESS,
+        constants.OP_STATUS_ERROR,
+        constants.OP_STATUS_ERROR,
+        ]
+      expect_resultlen = 2
+    elif mode == TM_MULTISUCCESS:
+      ToStdout("Testing multiple successful opcodes")
+      ops = [
+        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
+                               log_messages=test_messages, fail=False),
+        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
+                               log_messages=test_messages, fail=False),
+        ]
+      expect_messages = 2 * [test_messages]
+      expect_opstatus = [
+        constants.OP_STATUS_SUCCESS,
+        constants.OP_STATUS_SUCCESS,
+        ]
+      expect_resultlen = 2
     else:
-      ToStdout("Testing job success")
+      if mode == TM_SUCCESS:
+        ToStdout("Testing job success")
+        expect_opstatus = [constants.OP_STATUS_SUCCESS]
+      elif mode == TM_FAIL:
+        ToStdout("Testing job failure")
+        expect_opstatus = [constants.OP_STATUS_ERROR]
+      else:
+        raise errors.ProgrammerError("Unknown test mode %s" % mode)
 
-    op = opcodes.OpTestJobqueue(notify_waitlock=True,
-                                notify_exec=True,
-                                log_messages=test_messages,
-                                fail=fail)
+      ops = [
+        opcodes.OpTestJobqueue(notify_waitlock=True,
+                               notify_exec=True,
+                               log_messages=test_messages,
+                               fail=fail)
+        ]
+      expect_messages = [test_messages]
+      expect_resultlen = 1
+
+    cl = cli.GetClient()
+    cli.SetGenericOpcodeOpts(ops, opts)
+
+    # Send job to master daemon
+    job_id = cli.SendJob(ops, cl=cl)
 
     reporter = _JobQueueTestReporter()
+    results = None
+
     try:
-      SubmitOpCode(op, reporter=reporter, opts=opts)
-    except errors.OpExecError:
+      results = cli.PollJob(job_id, cl=cl, reporter=reporter)
+    except errors.OpExecError, err:
       if not fail:
         raise
-      # Ignore error
+      ToStdout("Ignoring error: %s", err)
     else:
       if fail:
         raise errors.OpExecError("Job didn't fail when it should")
 
+    # Check length of result
+    if fail:
+      if results is not None:
+        raise errors.OpExecError("Received result from failed job")
+    elif len(results) != expect_resultlen:
+      raise errors.OpExecError("Received %s results (%s), expected %s" %
+                               (len(results), results, expect_resultlen))
+
     # Check received log messages
-    if reporter.GetTestMessages() != test_messages:
+    all_messages = [i for j in expect_messages for i in j]
+    if reporter.GetTestMessages() != all_messages:
       raise errors.OpExecError("Received test messages don't match input"
                                " (input %r, received %r)" %
-                               (test_messages, reporter.GetTestMessages()))
+                               (all_messages, reporter.GetTestMessages()))
 
     # Check final status
-    job_id = reporter.GetJobId()
+    reported_job_id = reporter.GetJobId()
+    if reported_job_id != job_id:
+      raise errors.OpExecError("Reported job ID %s doesn't match"
+                               "submission job ID %s" %
+                               (reported_job_id, job_id))
 
-    jobdetails = cli.GetClient().QueryJobs([job_id], ["status"])[0]
+    jobdetails = cli.GetClient().QueryJobs([job_id], ["status", "opstatus"])[0]
     if not jobdetails:
       raise errors.OpExecError("Can't find job %s" % job_id)
 
@@ -298,10 +381,19 @@ def TestJobqueue(opts, _):
     else:
       exp_status = constants.JOB_STATUS_SUCCESS
 
-    final_status = jobdetails[0]
+    (final_status, final_opstatus) = jobdetails
     if final_status != exp_status:
       raise errors.OpExecError("Final job status is %s, not %s as expected" %
                                (final_status, exp_status))
+    if len(final_opstatus) != len(ops):
+      raise errors.OpExecError("Did not receive status for all opcodes (got %s,"
+                               " expected %s)" %
+                               (len(final_opstatus), len(ops)))
+    if final_opstatus != expect_opstatus:
+      raise errors.OpExecError("Opcode status is %s, expected %s" %
+                               (final_opstatus, expect_opstatus))
+
+  ToStdout("Job queue test successful")
 
   return 0
 

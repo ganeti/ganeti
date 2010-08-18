@@ -420,6 +420,15 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._job = job
     self._op = op
 
+  def _CheckCancel(self):
+    """Raises an exception to cancel the job if asked to.
+
+    """
+    # Cancel here if we were asked to
+    if self._op.status == constants.OP_STATUS_CANCELING:
+      logging.debug("Canceling opcode")
+      raise CancelJob()
+
   @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyStart(self):
     """Mark the opcode as running, not lock-waiting.
@@ -437,9 +446,9 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._job.lock_status = None
 
     # Cancel here if we were asked to
-    if self._op.status == constants.OP_STATUS_CANCELING:
-      raise CancelJob()
+    self._CheckCancel()
 
+    logging.debug("Opcode is now running")
     self._op.status = constants.OP_STATUS_RUNNING
     self._op.exec_timestamp = TimeStampNow()
 
@@ -478,8 +487,14 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     Called whenever the LU processor is waiting for a lock or has acquired one.
 
     """
+    assert self._op.status in (constants.OP_STATUS_WAITLOCK,
+                               constants.OP_STATUS_CANCELING)
+
     # Not getting the queue lock because this is a single assignment
     self._job.lock_status = msg
+
+    # Cancel here if we were asked to
+    self._CheckCancel()
 
 
 class _JobChangesChecker(object):
@@ -713,8 +728,11 @@ class _JobQueueWorker(workerpool.BaseWorker):
             queue.acquire(shared=1)
             try:
               if op.status == constants.OP_STATUS_CANCELED:
+                logging.debug("Canceling opcode")
                 raise CancelJob()
               assert op.status == constants.OP_STATUS_QUEUED
+              logging.debug("Opcode %s/%s waiting for locks",
+                            idx + 1, count)
               op.status = constants.OP_STATUS_WAITLOCK
               op.result = None
               op.start_timestamp = TimeStampNow()
@@ -732,9 +750,18 @@ class _JobQueueWorker(workerpool.BaseWorker):
 
             queue.acquire(shared=1)
             try:
+              logging.debug("Opcode %s/%s succeeded", idx + 1, count)
               op.status = constants.OP_STATUS_SUCCESS
               op.result = result
               op.end_timestamp = TimeStampNow()
+              if idx == count - 1:
+                job.lock_status = None
+                job.end_timestamp = TimeStampNow()
+
+                # Consistency check
+                assert compat.all(i.status == constants.OP_STATUS_SUCCESS
+                                  for i in job.ops)
+
               queue.UpdateJobUnlocked(job)
             finally:
               queue.release()
@@ -748,6 +775,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
             queue.acquire(shared=1)
             try:
               try:
+                logging.debug("Opcode %s/%s failed", idx + 1, count)
                 op.status = constants.OP_STATUS_ERROR
                 if isinstance(err, errors.GenericError):
                   to_encode = err
@@ -757,7 +785,20 @@ class _JobQueueWorker(workerpool.BaseWorker):
                 op.end_timestamp = TimeStampNow()
                 logging.info("Op %s/%s: Error in opcode %s: %s",
                              idx + 1, count, op_summary, err)
+
+                to_encode = errors.OpExecError("Preceding opcode failed")
+                job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
+                                      errors.EncodeException(to_encode))
+
+                # Consistency check
+                assert compat.all(i.status == constants.OP_STATUS_SUCCESS
+                                  for i in job.ops[:idx])
+                assert compat.all(i.status == constants.OP_STATUS_ERROR and
+                                  errors.GetEncodedError(i.result)
+                                  for i in job.ops[idx:])
               finally:
+                job.lock_status = None
+                job.end_timestamp = TimeStampNow()
                 queue.UpdateJobUnlocked(job)
             finally:
               queue.release()
@@ -768,6 +809,9 @@ class _JobQueueWorker(workerpool.BaseWorker):
         try:
           job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
                                 "Job canceled by request")
+          job.lock_status = None
+          job.end_timestamp = TimeStampNow()
+          queue.UpdateJobUnlocked(job)
         finally:
           queue.release()
       except errors.GenericError, err:
@@ -775,19 +819,8 @@ class _JobQueueWorker(workerpool.BaseWorker):
       except:
         logging.exception("Unhandled exception")
     finally:
-      queue.acquire(shared=1)
-      try:
-        try:
-          job.lock_status = None
-          job.end_timestamp = TimeStampNow()
-          queue.UpdateJobUnlocked(job)
-        finally:
-          job_id = job.id
-          status = job.CalcStatus()
-      finally:
-        queue.release()
-
-      logging.info("Finished job %s, status = %s", job_id, status)
+      status = job.CalcStatus()
+      logging.info("Finished job %s, status = %s", job.id, status)
 
 
 class _JobQueueWorkerPool(workerpool.WorkerPool):
@@ -1025,6 +1058,7 @@ class JobQueue(object):
         names and the second one with the node addresses
 
     """
+    # TODO: Change to "tuple(map(list, zip(*self._nodes.items())))"?
     name_list = self._nodes.keys()
     addr_list = [self._nodes[name] for name in name_list]
     return name_list, addr_list

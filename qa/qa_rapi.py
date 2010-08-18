@@ -358,6 +358,28 @@ def TestRapiInstanceRename(instance, rename_target):
     _WaitForRapiJob(_rapi_client.RenameInstance(name1, name2))
 
 
+def TestRapiInstanceModify(instance):
+  """Test modifying instance via RAPI"""
+  def _ModifyInstance(**kwargs):
+    _WaitForRapiJob(_rapi_client.ModifyInstance(instance["name"], **kwargs))
+
+  _ModifyInstance(hvparams={
+    constants.HV_KERNEL_ARGS: "single",
+    })
+
+  _ModifyInstance(beparams={
+    constants.BE_VCPUS: 3,
+    })
+
+  _ModifyInstance(beparams={
+    constants.BE_VCPUS: constants.VALUE_DEFAULT,
+    })
+
+  _ModifyInstance(hvparams={
+    constants.HV_KERNEL_ARGS: constants.VALUE_DEFAULT,
+    })
+
+
 def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()

@@ -400,6 +400,25 @@ def EncodeException(err):
   return (err.__class__.__name__, err.args)
 
 
+def GetEncodedError(result):
+  """If this looks like an encoded Ganeti exception, return it.
+
+  This function tries to parse the passed argument and if it looks
+  like an encoding done by EncodeException, it will return the class
+  object and arguments.
+
+  """
+  tlt = (tuple, list)
+  if (isinstance(result, tlt) and len(result) == 2 and
+      isinstance(result[1], tlt)):
+    # custom ganeti errors
+    errcls = GetErrorClass(result[0])
+    if errcls:
+      return (errcls, tuple(result[1]))
+
+  return None
+
+
 def MaybeRaise(result):
   """If this looks like an encoded Ganeti exception, raise it.
 
@@ -407,10 +426,7 @@ def MaybeRaise(result):
   like an encoding done by EncodeException, it will re-raise it.
 
   """
-  tlt = (tuple, list)
-  if (isinstance(result, tlt) and len(result) == 2 and
-      isinstance(result[1], tlt)):
-    # custom ganeti errors
-    err_class = GetErrorClass(result[0])
-    if err_class is not None:
-      raise err_class, tuple(result[1])
+  error = GetEncodedError(result)
+  if error:
+    (errcls, args) = error
+    raise errcls, args

@@ -375,12 +375,12 @@ Body parameters:
   Must be ``1`` (older Ganeti versions used a different format for
   instance creation requests, version ``0``, but that format is not
   documented).
-``mode``
-  Instance creation mode (string, required).
+``mode`` (string, required)
+  Instance creation mode.
 ``name`` (string, required)
-  Instance name
+  Instance name.
 ``disk_template`` (string, required)
-  Disk template for instance
+  Disk template for instance.
 ``disks`` (list, required)
   List of disk definitions. Example: ``[{"size": 100}, {"size": 5}]``.
   Each disk definition must contain a ``size`` value and can contain an
@@ -417,7 +417,7 @@ Body parameters:
   File storage driver.
 ``iallocator`` (string)
   Instance allocator name.
-``source_handshake``
+``source_handshake`` (list)
   Signed handshake from source (remote import only).
 ``source_x509_ca`` (string)
   Source X509 CA in PEM format (remote import only).
@@ -427,7 +427,7 @@ Body parameters:
   Hypervisor name.
 ``hvparams`` (dict)
   Hypervisor parameters, hypervisor-dependent.
-``beparams``
+``beparams`` (dict)
   Backend parameters.
 
 
@@ -669,6 +669,45 @@ Body parameters:
   Whether to ensure instance's IP address is inactive.
 ``name_check`` (bool)
   Whether to ensure instance's name is resolvable.
+
+
+``/2/instances/[instance_name]/modify``
+++++++++++++++++++++++++++++++++++++++++
+
+Modifies an instance.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``osparams`` (dict)
+  Dictionary with OS parameters.
+``hvparams`` (dict)
+  Hypervisor parameters, hypervisor-dependent.
+``beparams`` (dict)
+  Backend parameters.
+``force`` (bool)
+  Whether to force the operation.
+``nics`` (list)
+  List of NIC changes. Each item is of the form ``(op, settings)``.
+  ``op`` can be ``add`` to add a new NIC with the specified settings,
+  ``remove`` to remove the last NIC or a number to modify the settings
+  of the NIC with that index.
+``disks`` (list)
+  List of disk changes. See ``nics``.
+``disk_template`` (string)
+  Disk template for instance.
+``remote_node`` (string)
+  Secondary node (used when changing disk template).
+``os_name`` (string)
+  Change instance's OS name. Does not reinstall the instance.
+``force_variant`` (bool)
+  Whether to force an unknown variant.
 
 
 ``/2/instances/[instance_name]/tags``

@@ -843,10 +843,12 @@ JQT_MSGPREFIX = "TESTMSG="
 JQT_EXPANDNAMES = "expandnames"
 JQT_EXEC = "exec"
 JQT_LOGMSG = "logmsg"
+JQT_STARTMSG = "startmsg"
 JQT_ALL = frozenset([
   JQT_EXPANDNAMES,
   JQT_EXEC,
   JQT_LOGMSG,
+  JQT_STARTMSG,
   ])
 
 # max dynamic devices

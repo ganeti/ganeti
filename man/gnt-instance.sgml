@@ -729,6 +729,18 @@
               </listitem>
             </varlistentry>
 
+            <varlistentry>
+              <term>usb_mouse</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>This option specifies the usb mouse type to be used.
+                It can be <quote>mouse</quote> or <quote>tablet</quote>. When
+                using VNC it's recommended to set it to <quote>tablet</quote>.
+                </simpara>
+              </listitem>
+            </varlistentry>
+
           </variablelist>
 
         </para>

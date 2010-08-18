@@ -1055,6 +1055,56 @@ class R_2_instances_name_rename(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseModifyInstanceRequest(name, data):
+  """Parses a request for modifying an instance.
+
+  @rtype: L{opcodes.OpSetInstanceParams}
+  @return: Instance modify opcode
+
+  """
+  osparams = baserlib.CheckParameter(data, "osparams", default={})
+  force = baserlib.CheckParameter(data, "force", default=False)
+  nics = baserlib.CheckParameter(data, "nics", default=[])
+  disks = baserlib.CheckParameter(data, "disks", default=[])
+  disk_template = baserlib.CheckParameter(data, "disk_template", default=None)
+  remote_node = baserlib.CheckParameter(data, "remote_node", default=None)
+  os_name = baserlib.CheckParameter(data, "os_name", default=None)
+  force_variant = baserlib.CheckParameter(data, "force_variant", default=False)
+
+  # HV/BE parameters
+  hvparams = baserlib.CheckParameter(data, "hvparams", default={})
+  utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES,
+                      allowed_values=[constants.VALUE_DEFAULT])
+
+  beparams = baserlib.CheckParameter(data, "beparams", default={})
+  utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES,
+                      allowed_values=[constants.VALUE_DEFAULT])
+
+  return opcodes.OpSetInstanceParams(instance_name=name, hvparams=hvparams,
+                                     beparams=beparams, osparams=osparams,
+                                     force=force, nics=nics, disks=disks,
+                                     disk_template=disk_template,
+                                     remote_node=remote_node, os_name=os_name,
+                                     force_variant=force_variant)
+
+
+class R_2_instances_name_modify(baserlib.R_Generic):
+  """/2/instances/[instance_name]/modify resource.
+
+  """
+  def PUT(self):
+    """Changes some parameters of an instance.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+
+    op = _ParseModifyInstanceRequest(self.items[0], self.request_body)
+
+    return baserlib.SubmitJob([op])
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 

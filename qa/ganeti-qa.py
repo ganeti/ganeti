@@ -162,6 +162,8 @@ def RunCommonInstanceTests(instance):
 
   if qa_config.TestEnabled('instance-modify'):
     RunTest(qa_instance.TestInstanceModify, instance)
+    if qa_rapi.Enabled():
+      RunTest(qa_rapi.TestRapiInstanceModify, instance)
 
   if qa_config.TestEnabled('instance-console'):
     RunTest(qa_instance.TestInstanceConsole, instance)
