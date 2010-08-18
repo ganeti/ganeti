@@ -566,11 +566,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-append', ' '.join(root_append)])
 
     mouse_type = hvp[constants.HV_USB_MOUSE]
+    vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
+
     if mouse_type:
       kvm_cmd.extend(['-usb'])
       kvm_cmd.extend(['-usbdevice', mouse_type])
+    elif vnc_bind_address:
+      kvm_cmd.extend(['-usbdevice', constants.HT_MOUSE_TABLET])
 
-    vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
       if netutils.IsValidIP4(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
@@ -605,10 +608,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         vnc_arg = 'unix:%s/%s.vnc' % (vnc_bind_address, instance.name)
 
       kvm_cmd.extend(['-vnc', vnc_arg])
-
-      # Also add a tablet USB device to act as a mouse
-      # This solves various mouse alignment issues
-      kvm_cmd.extend(['-usbdevice', 'tablet'])
     else:
       kvm_cmd.extend(['-nographic'])
 
