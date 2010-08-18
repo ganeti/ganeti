@@ -136,6 +136,16 @@ def TestClusterVerify():
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
+
+def TestJobqueue():
+  """gnt-debug test-jobqueue"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ["gnt-debug", "test-jobqueue"]
+  AssertEqual(StartSSH(master["primary"],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
   master = qa_config.GetMasterNode()
