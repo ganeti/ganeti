@@ -152,7 +152,6 @@ class TestIPAddress(unittest.TestCase):
     self.assertFalse(netutils.IPAddress.IsValid("1.1.1.256"))
     self.assertFalse(netutils.IPAddress.IsValid("a:g::1"))
 
-
   def testGetAddressFamily(self):
     fn = netutils.IPAddress.GetAddressFamily
     self.assertEqual(fn("127.0.0.1"), socket.AF_INET)

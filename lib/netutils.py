@@ -473,6 +473,7 @@ class IP6Address(IPAddress):
 
     return address_int
 
+
 def FormatAddress(family, address):
   """Format a socket address
 

@@ -387,7 +387,6 @@ def InitCluster(cluster_name, mac_prefix,
   cfg.Update(cfg.GetClusterInfo(), logging.error)
   backend.WriteSsconfFiles(cfg.GetSsconfValues())
 
-
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(hostname.name)
 
