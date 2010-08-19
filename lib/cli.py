@@ -62,6 +62,7 @@ __all__ = [
   "DISK_OPT",
   "DISK_TEMPLATE_OPT",
   "DRAINED_OPT",
+  "DRY_RUN_OPT",
   "DRBD_HELPER_OPT",
   "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
@@ -575,11 +576,11 @@ SYNC_OPT = cli_option("--sync", dest="do_locking",
                       help=("Grab locks while doing the queries"
                             " in order to ensure more consistent results"))
 
-_DRY_RUN_OPT = cli_option("--dry-run", default=False,
-                          action="store_true",
-                          help=("Do not execute the operation, just run the"
-                                " check steps and verify it it could be"
-                                " executed"))
+DRY_RUN_OPT = cli_option("--dry-run", default=False,
+                         action="store_true",
+                         help=("Do not execute the operation, just run the"
+                               " check steps and verify it it could be"
+                               " executed"))
 
 VERBOSE_OPT = cli_option("-v", "--verbose", default=False,
                          action="store_true",
@@ -1088,7 +1089,7 @@ def _ParseArgs(argv, commands, aliases):
     cmd = aliases[cmd]
 
   func, args_def, parser_opts, usage, description = commands[cmd]
-  parser = OptionParser(option_list=parser_opts + [_DRY_RUN_OPT, DEBUG_OPT],
+  parser = OptionParser(option_list=parser_opts + [DEBUG_OPT],
                         description=description,
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))
@@ -1591,7 +1592,8 @@ def SetGenericOpcodeOpts(opcode_list, options):
   if not options:
     return
   for op in opcode_list:
-    op.dry_run = options.dry_run
+    if hasattr(options, "dry_run"):
+      op.dry_run = options.dry_run
     op.debug_level = options.debug
 
 
