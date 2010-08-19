@@ -1437,38 +1437,29 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
   @param aliases: the list of aliases to add for the hostname
 
   """
-  # FIXME: use WriteFile + fn rather than duplicating its efforts
   # Ensure aliases are unique
   aliases = UniqueSequence([hostname] + aliases)[1:]
 
-  fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
-  try:
-    out = os.fdopen(fd, 'w')
+  def _WriteEtcHosts(fd):
+    # Duplicating file descriptor because os.fdopen's result will automatically
+    # close the descriptor, but we would still like to have its functionality.
+    out = os.fdopen(os.dup(fd), "w")
     try:
-      f = open(file_name, 'r')
-      try:
-        for line in f:
-          fields = line.split()
-          if fields and not fields[0].startswith('#') and ip == fields[0]:
-            continue
-          out.write(line)
+      for line in ReadFile(file_name).splitlines(True):
+        fields = line.split()
+        if fields and not fields[0].startswith("#") and ip == fields[0]:
+          continue
+        out.write(line)
 
-        out.write("%s\t%s" % (ip, hostname))
-        if aliases:
-          out.write(" %s" % ' '.join(aliases))
-        out.write('\n')
-
-        out.flush()
-        os.fsync(out)
-        os.chmod(tmpname, 0644)
-        os.rename(tmpname, file_name)
-      finally:
-        f.close()
+      out.write("%s\t%s" % (ip, hostname))
+      if aliases:
+        out.write(" %s" % " ".join(aliases))
+      out.write("\n")
+      out.flush()
     finally:
       out.close()
-  except:
-    RemoveFile(tmpname)
-    raise
+
+  WriteFile(file_name, fn=_WriteEtcHosts, mode=0644)
 
 
 def AddHostToEtcHosts(hostname):
@@ -1494,37 +1485,29 @@ def RemoveEtcHostsEntry(file_name, hostname):
   @param hostname: the hostname to be removed
 
   """
-  # FIXME: use WriteFile + fn rather than duplicating its efforts
-  fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
-  try:
-    out = os.fdopen(fd, 'w')
+  def _WriteEtcHosts(fd):
+    # Duplicating file descriptor because os.fdopen's result will automatically
+    # close the descriptor, but we would still like to have its functionality.
+    out = os.fdopen(os.dup(fd), "w")
     try:
-      f = open(file_name, 'r')
-      try:
-        for line in f:
-          fields = line.split()
-          if len(fields) > 1 and not fields[0].startswith('#'):
-            names = fields[1:]
-            if hostname in names:
-              while hostname in names:
-                names.remove(hostname)
-              if names:
-                out.write("%s %s\n" % (fields[0], ' '.join(names)))
-              continue
+      for line in ReadFile(file_name).splitlines(True):
+        fields = line.split()
+        if len(fields) > 1 and not fields[0].startswith("#"):
+          names = fields[1:]
+          if hostname in names:
+            while hostname in names:
+              names.remove(hostname)
+            if names:
+              out.write("%s %s\n" % (fields[0], " ".join(names)))
+            continue
 
-          out.write(line)
+        out.write(line)
 
-        out.flush()
-        os.fsync(out)
-        os.chmod(tmpname, 0644)
-        os.rename(tmpname, file_name)
-      finally:
-        f.close()
+      out.flush()
     finally:
       out.close()
-  except:
-    RemoveFile(tmpname)
-    raise
+
+  WriteFile(file_name, fn=_WriteEtcHosts, mode=0644)
 
 
 def RemoveHostFromEtcHosts(hostname):
