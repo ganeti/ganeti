@@ -85,6 +85,8 @@ class Hostname:
   """Class implementing resolver and hostname functionality.
 
   """
+  _VALID_NAME_RE = re.compile("^[a-z0-9._-]{1,255}$")
+
   def __init__(self, name=None, family=None):
     """Initialize the host name object.
 
@@ -139,10 +141,13 @@ class Hostname:
     # getaddrinfo() returns a list of 5-tupes (family, socktype, proto,
     # canonname, sockaddr). We return the first tuple's first address in
     # sockaddr
-    return result[0][4][0]
+    try:
+      return result[0][4][0]
+    except IndexError, err:
+      raise errors.ResolverError("Unknown error in getaddrinfo(): %s" % err)
 
-  @staticmethod
-  def GetNormalizedName(hostname):
+  @classmethod
+  def GetNormalizedName(cls, hostname):
     """Validate and normalize the given hostname.
 
     @attention: the validation is a bit more relaxed than the standards
@@ -150,9 +155,8 @@ class Hostname:
     @raise errors.OpPrereqError: when the name is not valid
 
     """
-    valid_name_re = re.compile("^[a-z0-9._-]{1,255}$")
     hostname = hostname.lower()
-    if (not valid_name_re.match(hostname) or
+    if (not cls._VALID_NAME_RE.match(hostname) or
         # double-dots, meaning empty label
         ".." in hostname or
         # empty initial label
