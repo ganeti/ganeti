@@ -153,20 +153,6 @@ def SetupSSH(transport):
   _InvokeDaemonUtil(transport, "reload-ssh-keys")
 
 
-def SetupNodeDaemon(transport):
-  """Sets the node daemon up on the other side.
-
-  @param transport: The paramiko transport instance
-
-  """
-  noded_cert = utils.ReadFile(constants.NODED_CERT_FILE)
-
-  sftp = transport.open_sftp_client()
-  _WriteSftpFile(sftp, constants.NODED_CERT_FILE, 0400, noded_cert)
-
-  _InvokeDaemonUtil(transport, "start %s" % constants.NODED)
-
-
 def ParseOptions():
   """Parses options passed to program.
 
@@ -383,7 +369,6 @@ def main():
     try:
       try:
         SetupSSH(transport)
-        SetupNodeDaemon(transport)
       except errors.GenericError, err:
         logging.error("While doing setup on host %s an error occured: %s",
                       host, err)
