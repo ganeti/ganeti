@@ -639,7 +639,8 @@ def RenameInstance(opts, args):
                                 name_check=opts.name_check)
   result = SubmitOrSend(op, opts)
 
-  ToStdout("Instance '%s' renamed to '%s'", args[0], result)
+  if result:
+    ToStdout("Instance '%s' renamed to '%s'", args[0], result)
 
   return 0
 

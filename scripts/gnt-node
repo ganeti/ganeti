@@ -449,7 +449,8 @@ def PowercycleNode(opts, args):
 
   op = opcodes.OpPowercycleNode(node_name=node, force=opts.force)
   result = SubmitOpCode(op, opts=opts)
-  ToStderr(result)
+  if result:
+    ToStderr(result)
   return 0
 
 

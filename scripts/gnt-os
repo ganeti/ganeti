@@ -254,7 +254,7 @@ def ModifyOS(opts, args):
                                   candidate_pool_size=None,
                                   os_hvp=os_hvp,
                                   osparams=osp)
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
 
   return 0
 

@@ -179,7 +179,8 @@ def RenameCluster(opts, args):
   op = opcodes.OpRenameCluster(name=new_name)
   result = SubmitOpCode(op, opts=opts, cl=cl)
 
-  ToStdout("Cluster renamed from '%s' to '%s'", cluster_name, result)
+  if result:
+    ToStdout("Cluster renamed from '%s' to '%s'", cluster_name, result)
 
   return 0
 
