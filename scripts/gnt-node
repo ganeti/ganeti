@@ -679,14 +679,14 @@ commands = {
   'modify': (
     SetNodeParams, ARGS_ONE_NODE,
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
-     AUTO_PROMOTE_OPT],
+     AUTO_PROMOTE_OPT, DRY_RUN_OPT],
     "<node_name>", "Alters the parameters of a node"),
   'powercycle': (
     PowercycleNode, ARGS_ONE_NODE,
-    [FORCE_OPT, CONFIRM_OPT],
+    [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT],
     "<node_name>", "Tries to forcefully powercycle a node"),
   'remove': (
-    RemoveNode, ARGS_ONE_NODE, [],
+    RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT],
     "<node_name>", "Removes a node from the cluster"),
   'volumes': (
     ListVolumes, [ArgNode()],
@@ -703,14 +703,14 @@ commands = {
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_MODIFIABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
-    [ALLOCATABLE_OPT],
+    [ALLOCATABLE_OPT, DRY_RUN_OPT],
     "<node_name> <storage_type> <name>", "Modify storage volume on a node"),
   'repair-storage': (
     RepairStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_REPAIRABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
-    [IGNORE_CONSIST_OPT],
+    [IGNORE_CONSIST_OPT, DRY_RUN_OPT],
     "<node_name> <storage_type> <name>",
     "Repairs a storage volume on a node"),
   'list-tags': (

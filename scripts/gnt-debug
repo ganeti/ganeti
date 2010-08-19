@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -407,6 +407,7 @@ commands = {
                 action="append", help="Select nodes to sleep on"),
      cli_option("-r", "--repeat", type="int", default="0", dest="repeat",
                 help="Number of times to repeat the sleep"),
+     DRY_RUN_OPT,
      ],
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
   'submit-job': (
@@ -420,6 +421,7 @@ commands = {
                 action="store_true", help="Show timing stats"),
      cli_option("--each", default=False, action="store_true",
                 help="Submit each job separately"),
+     DRY_RUN_OPT,
      ],
     "<op_list_file...>", "Submits jobs built from json files"
     " containing a list of serialized opcodes"),
@@ -447,6 +449,7 @@ commands = {
                 help="Select number of VCPUs for the instance"),
      cli_option("--tags", default=None,
                 help="Comma separated list of tags"),
+     DRY_RUN_OPT,
      ],
     "{opts...} <instance>", "Executes a TestAllocator OpCode"),
   "test-jobqueue": (

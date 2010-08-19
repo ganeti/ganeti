@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -136,6 +136,7 @@ import_opts = [
   SRC_DIR_OPT,
   SRC_NODE_OPT,
   SUBMIT_OPT,
+  DRY_RUN_OPT,
   ]
 
 
@@ -147,7 +148,7 @@ commands = {
   'export': (
     ExportInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT, SHUTDOWN_TIMEOUT_OPT,
-     REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT],
+     REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT, DRY_RUN_OPT],
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   'import': (
@@ -155,7 +156,7 @@ commands = {
     "[...] -t disk-type -n node[:secondary-node] <name>",
     "Imports an instance from an exported image"),
   'remove': (
-    RemoveExport, [ArgUnknown(min=1, max=1)], [],
+    RemoveExport, [ArgUnknown(min=1, max=1)], [DRY_RUN_OPT],
     "<name>", "Remove exports of named instance from the filesystem."),
   }
 

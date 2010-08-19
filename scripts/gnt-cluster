@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -856,22 +856,23 @@ commands = {
     "", "Destroy cluster"),
   'rename': (
     RenameCluster, [ArgHost(min=1, max=1)],
-    [FORCE_OPT],
+    [FORCE_OPT, DRY_RUN_OPT],
     "<new_name>",
     "Renames the cluster"),
   'redist-conf': (
-    RedistributeConfig, ARGS_NONE, [SUBMIT_OPT],
+    RedistributeConfig, ARGS_NONE, [SUBMIT_OPT, DRY_RUN_OPT],
     "", "Forces a push of the configuration file and ssconf files"
     " to the nodes in the cluster"),
   'verify': (
     VerifyCluster, ARGS_NONE,
-    [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT],
+    [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
+     DRY_RUN_OPT],
     "", "Does a check on the cluster configuration"),
   'verify-disks': (
     VerifyDisks, ARGS_NONE, [],
     "", "Does a check on the cluster disk status"),
   'repair-disk-sizes': (
-    RepairDiskSizes, ARGS_MANY_INSTANCES, [],
+    RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT],
     "", "Updates mismatches in recorded disk sizes"),
   'master-failover': (
     MasterFailover, ARGS_NONE, [NOVOTING_OPT],
@@ -923,7 +924,8 @@ commands = {
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
-     NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT],
+     NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT,
+     DRY_RUN_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

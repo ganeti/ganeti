@@ -1402,6 +1402,7 @@ add_opts = [
   NO_INSTALL_OPT,
   OS_SIZE_OPT,
   SUBMIT_OPT,
+  DRY_RUN_OPT,
   ]
 
 commands = {
@@ -1410,7 +1411,7 @@ commands = {
     "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
     "Creates and adds a new instance to the cluster"),
   'batch-create': (
-    BatchCreate, [ArgFile(min=1, max=1)], [],
+    BatchCreate, [ArgFile(min=1, max=1)], [DRY_RUN_OPT],
     "<instances.json>",
     "Create a bunch of instances based on specs in the file."),
   'console': (
@@ -1419,17 +1420,19 @@ commands = {
     "[--show-cmd] <instance>", "Opens a console on the specified instance"),
   'failover': (
     FailoverInstance, ARGS_ONE_INSTANCE,
-    [FORCE_OPT, IGNORE_CONSIST_OPT, SUBMIT_OPT, SHUTDOWN_TIMEOUT_OPT],
+    [FORCE_OPT, IGNORE_CONSIST_OPT, SUBMIT_OPT, SHUTDOWN_TIMEOUT_OPT,
+     DRY_RUN_OPT],
     "[-f] <instance>", "Stops the instance and starts it on the backup node,"
     " using the remote mirror (only for instances of type drbd)"),
   'migrate': (
     MigrateInstance, ARGS_ONE_INSTANCE,
-    [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, CLEANUP_OPT],
+    [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, CLEANUP_OPT, DRY_RUN_OPT],
     "[-f] <instance>", "Migrate instance to its secondary node"
     " (only for instances of type drbd)"),
   'move': (
     MoveInstance, ARGS_ONE_INSTANCE,
-    [FORCE_OPT, SUBMIT_OPT, SINGLE_NODE_OPT, SHUTDOWN_TIMEOUT_OPT],
+    [FORCE_OPT, SUBMIT_OPT, SINGLE_NODE_OPT, SHUTDOWN_TIMEOUT_OPT,
+     DRY_RUN_OPT],
     "[-f] <instance>", "Move instance to an arbitrary node"
     " (only for instances of type file and lv)"),
   'info': (
@@ -1459,63 +1462,67 @@ commands = {
     [FORCE_OPT, OS_OPT, FORCE_VARIANT_OPT, m_force_multi, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT,
-     SUBMIT_OPT],
+     SUBMIT_OPT, DRY_RUN_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (
     RemoveInstance, ARGS_ONE_INSTANCE,
-    [FORCE_OPT, SHUTDOWN_TIMEOUT_OPT, IGNORE_FAILURES_OPT, SUBMIT_OPT],
+    [FORCE_OPT, SHUTDOWN_TIMEOUT_OPT, IGNORE_FAILURES_OPT, SUBMIT_OPT,
+     DRY_RUN_OPT],
     "[-f] <instance>", "Shuts down the instance and removes it"),
   'rename': (
     RenameInstance,
     [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],
-    [NOIPCHECK_OPT, NONAMECHECK_OPT, SUBMIT_OPT],
+    [NOIPCHECK_OPT, NONAMECHECK_OPT, SUBMIT_OPT, DRY_RUN_OPT],
     "<instance> <new_name>", "Rename the instance"),
   'replace-disks': (
     ReplaceDisks, ARGS_ONE_INSTANCE,
     [AUTO_REPLACE_OPT, DISKIDX_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT,
-     NEW_SECONDARY_OPT, ON_PRIMARY_OPT, ON_SECONDARY_OPT, SUBMIT_OPT],
+     NEW_SECONDARY_OPT, ON_PRIMARY_OPT, ON_SECONDARY_OPT, SUBMIT_OPT,
+     DRY_RUN_OPT],
     "[-s|-p|-n NODE|-I NAME] <instance>",
     "Replaces all disks for the instance"),
   'modify': (
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,
      DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
-     OSPARAMS_OPT],
+     OSPARAMS_OPT, DRY_RUN_OPT],
     "<instance>", "Alters the parameters of an instance"),
   'shutdown': (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
     [m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
-     m_inst_tags_opt, m_inst_opt, m_force_multi, TIMEOUT_OPT, SUBMIT_OPT],
+     m_inst_tags_opt, m_inst_opt, m_force_multi, TIMEOUT_OPT, SUBMIT_OPT,
+     DRY_RUN_OPT],
     "<instance>", "Stops an instance"),
   'startup': (
     GenericManyOps("startup", _StartupInstance), [ArgInstance()],
     [FORCE_OPT, m_force_multi, m_node_opt, m_pri_node_opt, m_sec_node_opt,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
      m_inst_tags_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT, HVOPTS_OPT,
-     BACKEND_OPT],
+     BACKEND_OPT, DRY_RUN_OPT],
     "<instance>", "Starts an instance"),
   'reboot': (
     GenericManyOps("reboot", _RebootInstance), [ArgInstance()],
     [m_force_multi, REBOOT_TYPE_OPT, IGNORE_SECONDARIES_OPT, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
-     m_inst_tags_opt, SHUTDOWN_TIMEOUT_OPT],
+     m_inst_tags_opt, SHUTDOWN_TIMEOUT_OPT, DRY_RUN_OPT],
     "<instance>", "Reboots an instance"),
   'activate-disks': (
-    ActivateDisks, ARGS_ONE_INSTANCE, [SUBMIT_OPT, IGNORE_SIZE_OPT],
+    ActivateDisks, ARGS_ONE_INSTANCE,
+    [SUBMIT_OPT, IGNORE_SIZE_OPT],
     "<instance>", "Activate an instance's disks"),
   'deactivate-disks': (
-    DeactivateDisks, ARGS_ONE_INSTANCE, [SUBMIT_OPT],
+    DeactivateDisks, ARGS_ONE_INSTANCE, [SUBMIT_OPT, DRY_RUN_OPT],
     "<instance>", "Deactivate an instance's disks"),
   'recreate-disks': (
-    RecreateDisks, ARGS_ONE_INSTANCE, [SUBMIT_OPT, DISKIDX_OPT],
+    RecreateDisks, ARGS_ONE_INSTANCE, [SUBMIT_OPT, DISKIDX_OPT, DRY_RUN_OPT],
     "<instance>", "Recreate an instance's disks"),
   'grow-disk': (
     GrowDisk,
     [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1),
      ArgUnknown(min=1, max=1)],
-    [SUBMIT_OPT, NWSYNC_OPT],
+    [SUBMIT_OPT, NWSYNC_OPT, DRY_RUN_OPT],
     "<instance> <disk> <size>", "Grow an instance's disk"),
   'list-tags': (
     ListTags, ARGS_ONE_INSTANCE, [],
