@@ -154,12 +154,59 @@ Job priorities
 Current state and shortcomings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. TODO: Describe current situation
+Currently all jobs and opcodes have the same priority. Once a job
+started executing, its thread won't be released until all opcodes got
+their locks and did their work. When a job is finished, the next job is
+selected strictly by its incoming order. This does not mean jobs are run
+in their incoming order—locks and other delays can cause them to be
+stalled for some time.
+
+In some situations, e.g. an emergency shutdown, one may want to run a
+job as soon as possible. This is not possible currently if there are
+pending jobs in the queue.
 
 Proposed changes
 ~~~~~~~~~~~~~~~~
 
-.. TODO: Describe changes to job queue and potentially client programs
+Each opcode will be assigned a priority on submission. Opcode priorities
+are integers and the lower the number, the higher the opcode's priority
+is. Within the same priority, jobs and opcodes are initially processed
+in their incoming order.
+
+Submitted opcodes can have one of the priorities listed below. Other
+priorities are reserved for internal use. The absolute range is
+-20..+19. Opcodes submitted without a priority (e.g. by older clients)
+are assigned the default priority.
+
+  - High (-10)
+  - Normal (0, default)
+  - Low (+10)
+
+As a change from the current model where executing a job blocks one
+thread for the whole duration, the new job processor must return the job
+to the queue after each opcode and also if it can't get all locks in a
+reasonable timeframe. This will allow opcodes of higher priority
+submitted in the meantime to be processed or opcodes of the same
+priority to try to get their locks. When added to the job queue's
+workerpool, the priority is determined by the first unprocessed opcode
+in the job.
+
+If an opcode is deferred, the job will go back to the "queued" status,
+even though it's just waiting to try to acquire its locks again later.
+
+If an opcode can not be processed after a certain number of retries or a
+certain amount of time, it should increase its priority. This will avoid
+starvation.
+
+A job's priority can never go below -20. If a job hits priority -20, it
+must acquire its locks in blocking mode.
+
+Opcode priorities are synchronized to disk in order to be restored after
+a restart or crash of the master daemon.
+
+Priorities also need to be considered inside the locking library to
+ensure opcodes with higher priorities get locks first, but the design
+changes for this will be discussed in a separate section.
 
 Worker pool
 +++++++++++
