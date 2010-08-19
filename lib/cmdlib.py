@@ -6176,6 +6176,16 @@ class LUCreateInstance(LogicalUnit):
                                  " node must be given",
                                  errors.ECODE_INVAL)
 
+    if self.op.pnode is not None:
+      if self.op.disk_template in constants.DTS_NET_MIRROR:
+        if self.op.snode is None:
+          raise errors.OpPrereqError("The networked disk templates need"
+                                     " a mirror node", errors.ECODE_INVAL)
+      elif self.op.snode:
+        self.LogWarning("Secondary node will be ignored on non-mirrored disk"
+                        " template")
+        self.op.snode = None
+
     if self.op.mode == constants.INSTANCE_IMPORT:
       # On import force_variant must be True, because if we forced it at
       # initial install, our only chance when importing it back is that it
@@ -6666,9 +6676,6 @@ class LUCreateInstance(LogicalUnit):
 
     # mirror node verification
     if self.op.disk_template in constants.DTS_NET_MIRROR:
-      if self.op.snode is None:
-        raise errors.OpPrereqError("The networked disk templates need"
-                                   " a mirror node", errors.ECODE_INVAL)
       if self.op.snode == pnode.name:
         raise errors.OpPrereqError("The secondary node cannot be the"
                                    " primary node.", errors.ECODE_INVAL)
