@@ -158,7 +158,8 @@ def _BuildCmdEnvironment(env, reset):
   return cmd_env
 
 
-def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False):
+def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
+           interactive=False):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -177,6 +178,9 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False):
       directory for the command; the default will be /
   @type reset_env: boolean
   @param reset_env: whether to reset or keep the default os environment
+  @type interactive: boolean
+  @param interactive: weather we pipe stdin, stdout and stderr
+                      (default behaviour) or run the command interactive
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise errors.ProgrammerError: if we call this when forks are disabled
@@ -184,6 +188,10 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False):
   """
   if no_fork:
     raise errors.ProgrammerError("utils.RunCmd() called with fork() disabled")
+
+  if output and interactive:
+    raise errors.ProgrammerError("Parameters 'output' and 'interactive' can"
+                                 " not be provided at the same time")
 
   if isinstance(cmd, basestring):
     strcmd = cmd
@@ -202,7 +210,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False):
 
   try:
     if output is None:
-      out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd)
+      out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd, interactive)
     else:
       status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
       out = err = ""
@@ -418,7 +426,7 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
   os._exit(1) # pylint: disable-msg=W0212
 
 
-def _RunCmdPipe(cmd, env, via_shell, cwd):
+def _RunCmdPipe(cmd, env, via_shell, cwd, interactive):
   """Run a command and return its output.
 
   @type  cmd: string or list
@@ -429,46 +437,57 @@ def _RunCmdPipe(cmd, env, via_shell, cwd):
   @param via_shell: if we should run via the shell
   @type cwd: string
   @param cwd: the working directory for the program
+  @type interactive: boolean
+  @param interactive: Run command interactive (without piping)
   @rtype: tuple
   @return: (out, err, status)
 
   """
   poller = select.poll()
+
+  stderr = subprocess.PIPE
+  stdout = subprocess.PIPE
+  stdin = subprocess.PIPE
+
+  if interactive:
+    stderr = stdout = stdin = None
+
   child = subprocess.Popen(cmd, shell=via_shell,
-                           stderr=subprocess.PIPE,
-                           stdout=subprocess.PIPE,
-                           stdin=subprocess.PIPE,
+                           stderr=stderr,
+                           stdout=stdout,
+                           stdin=stdin,
                            close_fds=True, env=env,
                            cwd=cwd)
 
-  child.stdin.close()
-  poller.register(child.stdout, select.POLLIN)
-  poller.register(child.stderr, select.POLLIN)
   out = StringIO()
   err = StringIO()
-  fdmap = {
-    child.stdout.fileno(): (out, child.stdout),
-    child.stderr.fileno(): (err, child.stderr),
-    }
-  for fd in fdmap:
-    SetNonblockFlag(fd, True)
+  if not interactive:
+    child.stdin.close()
+    poller.register(child.stdout, select.POLLIN)
+    poller.register(child.stderr, select.POLLIN)
+    fdmap = {
+      child.stdout.fileno(): (out, child.stdout),
+      child.stderr.fileno(): (err, child.stderr),
+      }
+    for fd in fdmap:
+      SetNonblockFlag(fd, True)
 
-  while fdmap:
-    pollresult = RetryOnSignal(poller.poll)
+    while fdmap:
+      pollresult = RetryOnSignal(poller.poll)
 
-    for fd, event in pollresult:
-      if event & select.POLLIN or event & select.POLLPRI:
-        data = fdmap[fd][1].read()
-        # no data from read signifies EOF (the same as POLLHUP)
-        if not data:
+      for fd, event in pollresult:
+        if event & select.POLLIN or event & select.POLLPRI:
+          data = fdmap[fd][1].read()
+          # no data from read signifies EOF (the same as POLLHUP)
+          if not data:
+            poller.unregister(fd)
+            del fdmap[fd]
+            continue
+          fdmap[fd][0].write(data)
+        if (event & select.POLLNVAL or event & select.POLLHUP or
+            event & select.POLLERR):
           poller.unregister(fd)
           del fdmap[fd]
-          continue
-        fdmap[fd][0].write(data)
-      if (event & select.POLLNVAL or event & select.POLLHUP or
-          event & select.POLLERR):
-        poller.unregister(fd)
-        del fdmap[fd]
 
   out = out.getvalue()
   err = err.getvalue()
