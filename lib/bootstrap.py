@@ -512,26 +512,15 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   # and then connect with ssh to set password and start ganeti-noded
   # note that all the below variables are sanitized at this point,
   # either by being constants or by the checks above
-  # TODO: Could this command exceed a shell's maximum command length?
-  mycommand = ("umask 077 && "
-               "cat > '%s' << '!EOF.' && \n"
-               "%s!EOF.\n"
-               "cat > '%s' << '!EOF.' && \n"
-               "%s!EOF.\n"
-               "cat > '%s' << '!EOF.' && \n"
-               "%s!EOF.\n"
-               "chmod 0400 %s %s %s && "
-               "%s start %s -b '%s'" %
-               (constants.NODED_CERT_FILE, noded_cert,
-                constants.RAPI_CERT_FILE, rapi_cert,
-                constants.CONFD_HMAC_KEY, confd_hmac_key,
-                constants.NODED_CERT_FILE, constants.RAPI_CERT_FILE,
-                constants.CONFD_HMAC_KEY,
-                constants.DAEMON_UTIL, constants.NODED, bind_address))
+  sshrunner.CopyFileToNode(node, constants.NODED_CERT_FILE)
+  sshrunner.CopyFileToNode(node, constants.RAPI_CERT_FILE)
+  sshrunner.CopyFileToNode(node, constants.CONFD_HMAC_KEY)
+  mycommand = ("%s start %s -b '%s'" % (constants.DAEMON_UTIL, constants.NODED,
+                                        bind_address))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
                          ask_key=ssh_key_check,
-                         use_cluster_key=False,
+                         use_cluster_key=True,
                          strict_host_check=ssh_key_check)
   if result.failed:
     raise errors.OpExecError("Remote command on node %s, error: %s,"
