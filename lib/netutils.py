@@ -98,20 +98,32 @@ class Hostname:
     @param name: hostname or None
 
     """
-    if name is None:
-      name = self.GetSysName()
-
-    self.name = self.GetNormalizedName(name)
+    self.name = self.GetNormalizedName(self.GetFqdn(name))
     self.ip = self.GetIP(self.name, family=family)
 
-  @staticmethod
-  def GetSysName():
-    """Return the current system's name.
-
-    This is simply a wrapper over C{socket.gethostname()}.
+  @classmethod
+  def GetSysName(cls):
+    """Legacy method the get the current system's name.
 
     """
-    return socket.gethostname()
+    return cls.GetFqdn()
+
+  @staticmethod
+  def GetFqdn(hostname=None):
+    """Return fqdn.
+
+    If hostname is None the system's fqdn is returned.
+
+    @type hostname: str
+    @param hostname: name to be fqdn'ed
+    @rtype: str
+    @return: fqdn of given name, if it exists, unmodified name otherwise
+
+    """
+    if hostname is None:
+      return socket.getfqdn()
+    else:
+      return socket.getfqdn(hostname)
 
   @staticmethod
   def GetIP(hostname, family=None):
