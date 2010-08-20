@@ -269,20 +269,20 @@ def InitCluster(cluster_name, mac_prefix,
   if not ipcls.Own(hostname.ip):
     raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                " to %s,\nbut this ip address does not"
-                               " belong to this host. Aborting." %
+                               " belong to this host" %
                                hostname.ip, errors.ECODE_ENVIRON)
 
   clustername = netutils.GetHostname(name=cluster_name, family=ipcls.family)
 
   if netutils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT, timeout=5):
-    raise errors.OpPrereqError("Cluster IP already active. Aborting.",
+    raise errors.OpPrereqError("Cluster IP already active",
                                errors.ECODE_NOTUNIQUE)
 
   if not secondary_ip:
     if primary_ip_version == constants.IP6_VERSION:
       raise errors.OpPrereqError("When using a IPv6 primary address, a valid"
-                                 " IPv4 address must be given as secondary."
-                                 " Aborting.", errors.ECODE_INVAL)
+                                 " IPv4 address must be given as secondary",
+                                 errors.ECODE_INVAL)
     secondary_ip = hostname.ip
 
   if not netutils.IP4Address.IsValid(secondary_ip):

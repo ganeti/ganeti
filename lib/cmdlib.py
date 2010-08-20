@@ -2535,7 +2535,7 @@ class LURenameCluster(LogicalUnit):
     if new_ip != old_ip:
       if netutils.TcpPing(new_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("The given cluster IP address (%s) is"
-                                   " reachable on the network. Aborting." %
+                                   " reachable on the network" %
                                    new_ip, errors.ECODE_NOTUNIQUE)
 
     self.op.name = new_name
@@ -3668,9 +3668,10 @@ class LUAddNode(LogicalUnit):
     ]
 
   def CheckArguments(self):
+    self.primary_ip_family = self.cfg.GetPrimaryIPFamily()
     # validate/normalize the node name
     self.hostname = netutils.GetHostname(name=self.op.node_name,
-                                         family=self.cfg.GetPrimaryIPFamily())
+                                         family=self.primary_ip_family)
     self.op.node_name = self.hostname.name
 
   def BuildHooksEnv(self):
@@ -3705,6 +3706,10 @@ class LUAddNode(LogicalUnit):
     node = hostname.name
     primary_ip = self.op.primary_ip = hostname.ip
     if self.op.secondary_ip is None:
+      if self.primary_ip_family == netutils.IP6Address.family:
+        raise errors.OpPrereqError("When using a IPv6 primary address, a valid"
+                                   " IPv4 address must be given as secondary",
+                                   errors.ECODE_INVAL)
       self.op.secondary_ip = primary_ip
 
     secondary_ip = self.op.secondary_ip
@@ -6994,7 +6999,7 @@ class LUCreateInstance(LogicalUnit):
       elif ip.lower() == constants.VALUE_AUTO:
         if not self.op.name_check:
           raise errors.OpPrereqError("IP address set to auto but name checks"
-                                     " have been skipped. Aborting.",
+                                     " have been skipped",
                                      errors.ECODE_INVAL)
         nic_ip = self.hostname1.ip
       else:
