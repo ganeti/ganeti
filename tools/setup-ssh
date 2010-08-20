@@ -201,12 +201,13 @@ def SetupLogging(options):
   else:
     stderr_handler.setLevel(logging.ERROR)
 
-  # This is the paramiko logger instance
-  paramiko_logger = logging.getLogger("paramiko")
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(stderr_handler)
   root_logger.addHandler(file_handler)
+
+  # This is the paramiko logger instance
+  paramiko_logger = logging.getLogger("paramiko")
   paramiko_logger.addHandler(file_handler)
 
 
@@ -220,18 +221,39 @@ def main():
 
   passwd = getpass.getpass(prompt="%s password:" % constants.GANETI_RUNAS)
 
+  # Below, we need to join() the transport objects, as otherwise the
+  # following happens:
+  # - the main thread finishes
+  # - the atexit functions run (in the main thread), and cause the
+  #   logging file to be closed
+  # - a tiny bit later, the transport thread is finally ending, and
+  #   wants to log one more message, which fails as the file is closed
+  #   now
+
   for host in args:
     transport = paramiko.Transport((host, netutils.GetDaemonPort("ssh")))
-    transport.connect(username=constants.GANETI_RUNAS, password=passwd)
+    try:
+      transport.connect(username=constants.GANETI_RUNAS, password=passwd)
+    except Exception, err:
+      logging.error("Connection or authentication failed to host %s: %s",
+                    host, err)
+      transport.close()
+      # this is needed for compatibility with older Paramiko or Python
+      # versions
+      transport.join()
+      continue
     try:
       try:
         SetupSSH(transport)
         SetupNodeDaemon(transport)
       except errors.GenericError, err:
-        logging.fatal("While doing setup on host %s an error occured: %s", host,
-                      err)
+        logging.error("While doing setup on host %s an error occured: %s",
+                      host, err)
     finally:
       transport.close()
+      # this is needed for compatibility with older Paramiko or Python
+      # versions
+      transport.join()
 
 
 if __name__ == "__main__":
