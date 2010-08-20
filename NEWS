@@ -88,7 +88,7 @@ Version 2.2.0 beta 0
 - Added per-request RPC timeout
 - RAPI now requires a Content-Type header for requests with a body (e.g.
   ``PUT`` or ``POST``) which must be set to ``application/json`` (see
-  RFC2616 (HTTP/1.1), section 7.2.1)
+  :rfc:`2616` (HTTP/1.1), section 7.2.1)
 - ``ganeti-watcher`` attempts to restart ``ganeti-rapi`` if RAPI is not
   reachable
 - Implemented initial support for running Ganeti daemons as separate

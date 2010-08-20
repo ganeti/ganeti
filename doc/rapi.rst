@@ -53,7 +53,7 @@ Example::
 
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is
-   described in RFC2617_ ("HTTP Authentication"), sections 3.2.2.2 and
+   described in :rfc:`2617` ("HTTP Authentication"), sections 3.2.2.2 and
    3.3. The reason for using it over another algorithm is forward
    compatibility. If ``ganeti-rapi`` were to implement HTTP Digest
    authentication in the future, the same hash could be used.
@@ -65,11 +65,10 @@ Protocol
 --------
 
 The protocol used is JSON_ over HTTP designed after the REST_ principle.
-HTTP Basic authentication as per RFC2617_ is supported.
+HTTP Basic authentication as per :rfc:`2617` is supported.
 
 .. _JSON: http://www.json.org/
 .. _REST: http://en.wikipedia.org/wiki/Representational_State_Transfer
-.. _RFC2617: http://tools.ietf.org/rfc/rfc2617.txt
 
 
 A note on JSON as used by RAPI
@@ -108,9 +107,9 @@ problems.
 PUT or POST?
 ------------
 
-According to RFC2616 the main difference between PUT and POST is that
-POST can create new resources but PUT can only create the resource the
-URI was pointing to on the PUT request.
+According to :rfc:`2616` the main difference between PUT and POST is
+that POST can create new resources but PUT can only create the resource
+the URI was pointing to on the PUT request.
 
 Unfortunately, due to historic reasons, the Ganeti RAPI library is not
 consistent with this usage, so just use the methods as documented below
