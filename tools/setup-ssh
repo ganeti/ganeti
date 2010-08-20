@@ -129,7 +129,7 @@ def SetupSSH(transport):
   except IOError:
     # Sadly paramiko doesn't provide errno or similiar
     # so we can just assume that the path already exists
-    logging.info("Path %s seems already to exist on remote node. Ignore.",
+    logging.info("Path %s seems already to exist on remote node. Ignoring.",
                  auth_path)
 
   for name, (data, perm) in filemap.iteritems():
@@ -192,23 +192,25 @@ def SetupLogging(options):
   stderr_handler = logging.StreamHandler()
   stderr_handler.setFormatter(formatter)
   file_handler.setFormatter(formatter)
-  file_handler.setLevel(logging.DEBUG)
+  file_handler.setLevel(logging.INFO)
 
   if options.debug:
-    stderr_handler.setLevel(logging.NOTSET)
+    stderr_handler.setLevel(logging.DEBUG)
   elif options.verbose:
     stderr_handler.setLevel(logging.INFO)
   else:
-    stderr_handler.setLevel(logging.ERROR)
+    stderr_handler.setLevel(logging.WARNING)
 
   root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
+  root_logger.setLevel(logging.INFO)
   root_logger.addHandler(stderr_handler)
   root_logger.addHandler(file_handler)
 
   # This is the paramiko logger instance
   paramiko_logger = logging.getLogger("paramiko")
   paramiko_logger.addHandler(file_handler)
+  # We don't want to debug Paramiko, so filter anything below warning
+  paramiko_logger.setLevel(logging.WARNING)
 
 
 def main():
