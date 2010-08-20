@@ -37,7 +37,7 @@ def _NodeAdd(node, readd=False):
   elif readd and not node.get('_added', False):
     raise qa_error.Error("Node %s not yet in cluster" % node['primary'])
 
-  cmd = ['gnt-node', 'add', "--no-ssh-key-check"]
+  cmd = ['gnt-node', 'add']
   if node.get('secondary', None):
     cmd.append('--secondary-ip=%s' % node['secondary'])
   if readd:
