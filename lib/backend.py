@@ -225,7 +225,7 @@ def GetMasterInfo():
   for consumption here or from the node daemon.
 
   @rtype: tuple
-  @return: master_netdev, master_ip, master_name
+  @return: master_netdev, master_ip, master_name, primary_ip_family
   @raise RPCFail: in case of errors
 
   """
@@ -234,9 +234,10 @@ def GetMasterInfo():
     master_netdev = cfg.GetMasterNetdev()
     master_ip = cfg.GetMasterIP()
     master_node = cfg.GetMasterNode()
+    primary_ip_family = cfg.GetPrimaryIPFamily()
   except errors.ConfigurationError, err:
     _Fail("Cluster configuration incomplete: %s", err, exc=True)
-  return (master_netdev, master_ip, master_node)
+  return (master_netdev, master_ip, master_node, primary_ip_family)
 
 
 def StartMaster(start_daemons, no_voting):
@@ -257,7 +258,7 @@ def StartMaster(start_daemons, no_voting):
 
   """
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _ = GetMasterInfo()
+  master_netdev, master_ip, _, family = GetMasterInfo()
 
   err_msgs = []
   # either start the master and rapi daemons
@@ -287,12 +288,12 @@ def StartMaster(start_daemons, no_voting):
         logging.error(msg)
         err_msgs.append(msg)
     else:
-      netmask = 32
-      if netutils.IP6Address.IsValid(master_ip):
-        netmask = 128
+      ipcls = netutils.IP4Address
+      if family == netutils.IP6Address.family:
+        ipcls = netutils.IP6Address
 
       result = utils.RunCmd(["ip", "address", "add",
-                             "%s/%d" % (master_ip, netmask),
+                             "%s/%d" % (master_ip, ipcls.iplen),
                              "dev", master_netdev, "label",
                              "%s:0" % master_netdev])
       if result.failed:
@@ -301,10 +302,10 @@ def StartMaster(start_daemons, no_voting):
         err_msgs.append(msg)
 
       # we ignore the exit code of the following cmds
-      if netutils.IP4Address.IsValid(master_ip):
+      if ipcls == netutils.IP4Address:
         utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
                       master_ip, master_ip])
-      elif netutils.IP6Address.IsValid(master_ip):
+      elif ipcls == netutils.IP6Address:
         utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
 
   if err_msgs:
@@ -328,14 +329,14 @@ def StopMaster(stop_daemons):
   # need to decide in which case we fail the RPC for this
 
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _ = GetMasterInfo()
+  master_netdev, master_ip, _, family = GetMasterInfo()
 
-  netmask = 32
-  if netutils.IP6Address.IsValid(master_ip):
-    netmask = 128
+  ipcls = netutils.IP4Address
+  if family == netutils.IP6Address.family:
+    ipcls = netutils.IP6Address
 
   result = utils.RunCmd(["ip", "address", "del",
-                         "%s/%d" % (master_ip, netmask),
+                         "%s/%d" % (master_ip, ipcls.iplen),
                          "dev", master_netdev])
   if result.failed:
     logging.error("Can't remove the master IP, error: %s", result.output)
