@@ -137,6 +137,14 @@ def SetupSSH(transport):
 
   authorized_keys = sftp.open(auth_keys, "a+")
   try:
+    # Due to the way SFTPFile and BufferedFile are implemented,
+    # opening in a+ mode and then issuing a read(), readline() or
+    # iterating over the file (which uses read() internally) will see
+    # an empty file, since the paramiko internal file position and the
+    # OS-level file-position are desynchronized; therefore, we issue
+    # an explicit seek to resynchronize these; writes should (note
+    # should) still go to the right place
+    authorized_keys.seek(0, 0)
     # We don't have to close, as the close happened already in AddAuthorizedKey
     utils.AddAuthorizedKey(authorized_keys, filemap[pub_key][0])
   finally:
