@@ -210,7 +210,7 @@ def SetupLogging(options):
     stderr_handler.setLevel(logging.WARNING)
 
   root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.INFO)
+  root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(stderr_handler)
   root_logger.addHandler(file_handler)
 
@@ -221,14 +221,16 @@ def SetupLogging(options):
   paramiko_logger.setLevel(logging.WARNING)
 
 
-def main():
-  """Main routine.
+def LoadPrivateKeys(options):
+  """Load the list of available private keys
+
+  It loads the standard ssh key from disk and then tries to connect to
+  the ssh agent too.
+
+  @rtype: list
+  @return: a list of C{paramiko.PKey}
 
   """
-  (options, args) = ParseOptions()
-
-  SetupLogging(options)
-
   if options.key_type == "rsa":
     pkclass = paramiko.RSAKey
   elif options.key_type == "dsa":
@@ -243,6 +245,58 @@ def main():
   except (paramiko.SSHException, EnvironmentError), err:
     logging.critical("Can't load private key %s: %s", options.private_key, err)
     sys.exit(1)
+
+  try:
+    agent = paramiko.Agent()
+    agent_keys = agent.get_keys()
+  except paramiko.SSHException, err:
+    # this will only be seen when the agent is broken/uses invalid
+    # protocol; for non-existing agent, get_keys() will just return an
+    # empty tuple
+    logging.warning("Can't connect to the ssh agent: %s; skipping its use",
+                    err)
+    agent_keys = []
+
+  return [private_key] + list(agent_keys)
+
+
+def LoginViaKeys(transport, username, keys):
+  """Try to login on the given transport via a list of keys.
+
+  @param transport: the transport to use
+  @param username: the username to login as
+  @type keys: list
+  @param keys: list of C{paramiko.PKey} to use for authentication
+  @rtype: boolean
+  @return: True or False depending on whether the login was
+      successfull or not
+
+  """
+  for private_key in keys:
+    try:
+      transport.auth_publickey(username, private_key)
+      fpr = ":".join("%02x" % ord(i) for i in private_key.get_fingerprint())
+      if isinstance(private_key, paramiko.AgentKey):
+        logging.debug("Authentication via the ssh-agent key %s", fpr)
+      else:
+        logging.debug("Authenticated via public key %s", fpr)
+      return True
+    except paramiko.SSHException:
+      continue
+  else:
+    # all keys exhausted
+    return False
+
+
+def main():
+  """Main routine.
+
+  """
+  (options, args) = ParseOptions()
+
+  SetupLogging(options)
+
+  all_keys = LoadPrivateKeys(options)
 
   passwd = None
   username = constants.GANETI_RUNAS
@@ -261,10 +315,9 @@ def main():
     transport = paramiko.Transport((host, ssh_port))
     transport.start_client()
     try:
-      try:
-        transport.auth_publickey(username, private_key)
+      if LoginViaKeys(transport, username, all_keys):
         logging.info("Authenticated to %s via public key", host)
-      except paramiko.SSHException:
+      else:
         logging.warning("Authentication to %s via public key failed, trying"
                         " password", host)
         if passwd is None:
