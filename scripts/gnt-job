@@ -85,7 +85,6 @@ def ListJobs(opts, args):
       "start_ts": "Start",
       "end_ts": "End",
       "received_ts": "Received",
-      "lock_status": "LockStatus",
       }
   else:
     headers = None
@@ -109,8 +108,6 @@ def ListJobs(opts, args):
         val = FormatTimestamp(val)
       elif field in ("opstart", "opexec", "opend"):
         val = [FormatTimestamp(entry) for entry in val]
-      elif field == "lock_status" and not val:
-        val = "-"
 
       row[idx] = str(val)
 
