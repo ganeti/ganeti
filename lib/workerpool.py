@@ -49,7 +49,10 @@ class BaseWorker(threading.Thread, object):
     """
     super(BaseWorker, self).__init__(name=worker_id)
     self.pool = pool
+    self._worker_id = worker_id
     self._current_task = None
+
+    assert self.getName() == worker_id
 
   def ShouldTerminate(self):
     """Returns whether this worker should terminate.
@@ -63,6 +66,23 @@ class BaseWorker(threading.Thread, object):
       return self.pool._ShouldWorkerTerminateUnlocked(self)
     finally:
       self.pool._lock.release()
+
+  def SetTaskName(self, taskname):
+    """Sets the name of the current task.
+
+    Should only be called from within L{RunTask}.
+
+    @type taskname: string
+    @param taskname: Task's name
+
+    """
+    if taskname:
+      name = "%s/%s" % (self._worker_id, taskname)
+    else:
+      name = self._worker_id
+
+    # Set thread name
+    self.setName(name)
 
   def _HasRunningTaskUnlocked(self):
     """Returns whether this worker is currently running a task.
@@ -107,7 +127,11 @@ class BaseWorker(threading.Thread, object):
         # Run the actual task
         try:
           logging.debug("Starting task %r", self._current_task)
-          self.RunTask(*self._current_task)
+          assert self.getName() == self._worker_id
+          try:
+            self.RunTask(*self._current_task)
+          finally:
+            self.SetTaskName(None)
           logging.debug("Done with task %r", self._current_task)
         except: # pylint: disable-msg=W0702
           logging.exception("Caught unhandled exception")
