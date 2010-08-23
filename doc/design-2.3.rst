@@ -7,9 +7,6 @@ the 2.2 version.
 
 .. contents:: :depth: 4
 
-Detailed design
-===============
-
 As for 2.1 and 2.2 we divide the 2.3 design into three areas:
 
 - core changes, which affect the master daemon/job queue/locking or
@@ -18,23 +15,23 @@ As for 2.1 and 2.2 we divide the 2.3 design into three areas:
 - external interface changes (e.g. command line, os api, hooks, ...)
 
 Core changes
-------------
+============
 
 Job priorities
-~~~~~~~~~~~~~~
+--------------
 
 Current state and shortcomings
-++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. TODO: Describe current situation
 
 Proposed changes
-++++++++++++++++
+~~~~~~~~~~~~~~~~
 
 .. TODO: Describe changes to job queue and potentially client programs
 
 Worker pool
-^^^^^^^^^^^
++++++++++++
 
 To support job priorities in the job queue, the worker pool underlying
 the job queue must be enhanced to support task priorities. Currently
@@ -69,7 +66,7 @@ With these changes, the job queue will be able to implement per-job
 priorities.
 
 IPv6 support
-~~~~~~~~~~~~
+------------
 
 Currently Ganeti does not support IPv6. This is true for nodes as well
 as instances. Due to the fact that IPv4 exhaustion is threateningly near
@@ -77,7 +74,7 @@ the need of using IPv6 is increasing, especially given that bigger and
 bigger clusters are supported.
 
 Supported IPv6 setup
-++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~
 
 In Ganeti 2.3 we introduce additionally to the ordinary pure IPv4
 setup a hybrid IPv6/IPv4 mode. The latter works as follows:
@@ -102,7 +99,7 @@ intra-cluster communication without propagating them across layer 3
 boundaries.
 
 netutils: Utilities for handling common network tasks
-+++++++++++++++++++++++++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently common util functions are kept in the utils modules. Since
 this module grows bigger and bigger network-related functions are moved
@@ -110,13 +107,13 @@ to a separate module named *netutils*. Additionally all these utilities
 will be IPv6-enabled.
 
 Cluster initialization
-++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned above there will be two different setups in terms of IP
 addressing: pure IPv4 and hybrid IPv6/IPv4 address. To choose that a
 new cluster init parameter *--primary-ip-version* is introduced. This is
 needed as a given name can resolve to both an IPv4 and IPv6 address on a
-dual-stack host effectively making it impossible to infer that bit. 
+dual-stack host effectively making it impossible to infer that bit.
 
 Once a cluster is initialized and the primary IP version chosen all
 nodes that join have to conform to that setup. In the case of our
@@ -128,7 +125,7 @@ every time a daemon starts to determine the default bind address (either
 daemon listening on network sockets to the IPv6 address.
 
 Node addition
-+++++++++++++
+~~~~~~~~~~~~~
 
 When adding a new node to a IPv6/IPv4 cluster it must have a IPv6
 address to be used as primary and a IPv4 address used as secondary. As
@@ -139,13 +136,13 @@ case there is no ssconf available when noded is started and therefore
 the correct address needs to be passed to it.
 
 Name resolution
-+++++++++++++++
+~~~~~~~~~~~~~~~
 
 Since the gethostbyname*() functions do not support IPv6 name resolution
 will be done by using the recommended getaddrinfo().
 
 IPv4-only components
-++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~
 
 ============================  ===================  ====================
 Component                     IPv6 Status          Planned Version
@@ -157,11 +154,11 @@ KVM VNC access                Not supported        Unknown
 
 
 Feature changes
----------------
+===============
 
 
 External interface changes
---------------------------
+==========================
 
 
 .. vim: set textwidth=72 :
