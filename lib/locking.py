@@ -731,7 +731,7 @@ class LockSet:
     self.__lockdict = {}
 
     for mname in members:
-      self.__lockdict[mname] = SharedLock("%s/%s" % (name, mname))
+      self.__lockdict[mname] = SharedLock(self._GetLockName(mname))
 
     # The owner dict contains the set of locks each thread owns. For
     # performance each thread can access its own key without a global lock on
@@ -741,6 +741,12 @@ class LockSet:
     # do anything different than __owners[threading.currentThread()], or there
     # will be trouble.
     self.__owners = {}
+
+  def _GetLockName(self, mname):
+    """Returns the name for a member lock.
+
+    """
+    return "%s/%s" % (self.name, mname)
 
   def _is_owned(self):
     """Is the current thread a current level owner?"""
@@ -1049,7 +1055,7 @@ class LockSet:
                                (invalid_names, self.name))
 
       for lockname in names:
-        lock = SharedLock("%s/%s" % (self.name, lockname))
+        lock = SharedLock(self._GetLockName(lockname))
 
         if acquired:
           lock.acquire(shared=shared)
