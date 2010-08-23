@@ -53,7 +53,7 @@ Example::
 
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is
-   described in RFC2617_ ("HTTP Authentication"), sections 3.2.2.2 and
+   described in :rfc:`2617` ("HTTP Authentication"), sections 3.2.2.2 and
    3.3. The reason for using it over another algorithm is forward
    compatibility. If ``ganeti-rapi`` were to implement HTTP Digest
    authentication in the future, the same hash could be used.
@@ -65,19 +65,51 @@ Protocol
 --------
 
 The protocol used is JSON_ over HTTP designed after the REST_ principle.
-HTTP Basic authentication as per RFC2617_ is supported.
+HTTP Basic authentication as per :rfc:`2617` is supported.
 
 .. _JSON: http://www.json.org/
 .. _REST: http://en.wikipedia.org/wiki/Representational_State_Transfer
-.. _RFC2617: http://tools.ietf.org/rfc/rfc2617.txt
+
+
+A note on JSON as used by RAPI
+++++++++++++++++++++++++++++++
+
+JSON_ as used by Ganeti RAPI does not conform to the specification in
+:rfc:`4627`. Section 2 defines a JSON text to be either an object
+(``{"key": "value", …}``) or an array (``[1, 2, 3, …]``). In violation
+of this RAPI uses plain strings (``"master-candidate"``, ``"1234"``) for
+some requests or responses. Changing this now would likely break
+existing clients and cause a lot of trouble.
+
+.. highlight:: ruby
+
+Unlike Python's `JSON encoder and decoder
+<http://docs.python.org/library/json.html>`_, other programming
+languages or libraries may only provide a strict implementation, not
+allowing plain values. For those, responses can usually be wrapped in an
+array whose first element is then used, e.g. the response ``"1234"``
+becomes ``["1234"]``. This works equally well for more complex values.
+Example in Ruby::
+
+  require "json"
+
+  # Insert code to get response here
+  response = "\"1234\""
+
+  decoded = JSON.parse("[#{response}]").first
+
+Short of modifying the encoder to allow encoding to a less strict
+format, requests will have to be formatted by hand. Newer RAPI requests
+already use a dictionary as their input data and shouldn't cause any
+problems.
 
 
 PUT or POST?
 ------------
 
-According to RFC2616 the main difference between PUT and POST is that
-POST can create new resources but PUT can only create the resource the
-URI was pointing to on the PUT request.
+According to :rfc:`2616` the main difference between PUT and POST is
+that POST can create new resources but PUT can only create the resource
+the URI was pointing to on the PUT request.
 
 Unfortunately, due to historic reasons, the Ganeti RAPI library is not
 consistent with this usage, so just use the methods as documented below

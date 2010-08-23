@@ -411,7 +411,7 @@ between clusters before instances can be moved. If the third party does
 not know the secret, it can't forge the certificates or redirect the
 data. Unless disabled by a new cluster parameter, verifying the HMAC
 signatures must be mandatory. The HMAC signature for X509 certificates
-will be prepended to the certificate similar to an RFC822 header and
+will be prepended to the certificate similar to an :rfc:`822` header and
 only covers the certificate (from ``-----BEGIN CERTIFICATE-----`` to
 ``-----END CERTIFICATE-----``). The header name will be
 ``X-Ganeti-Signature`` and its value will have the format

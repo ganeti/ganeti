@@ -129,7 +129,7 @@ def SetupSSH(transport):
   except IOError:
     # Sadly paramiko doesn't provide errno or similiar
     # so we can just assume that the path already exists
-    logging.info("Path %s seems already to exist on remote node. Ignore.",
+    logging.info("Path %s seems already to exist on remote node. Ignoring.",
                  auth_path)
 
   for name, (data, perm) in filemap.iteritems():
@@ -137,6 +137,14 @@ def SetupSSH(transport):
 
   authorized_keys = sftp.open(auth_keys, "a+")
   try:
+    # Due to the way SFTPFile and BufferedFile are implemented,
+    # opening in a+ mode and then issuing a read(), readline() or
+    # iterating over the file (which uses read() internally) will see
+    # an empty file, since the paramiko internal file position and the
+    # OS-level file-position are desynchronized; therefore, we issue
+    # an explicit seek to resynchronize these; writes should (note
+    # should) still go to the right place
+    authorized_keys.seek(0, 0)
     # We don't have to close, as the close happened already in AddAuthorizedKey
     utils.AddAuthorizedKey(authorized_keys, filemap[pub_key][0])
   finally:
@@ -169,6 +177,14 @@ def ParseOptions():
                                         " <node...>"), prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
+  default_key = ssh.GetUserFiles(constants.GANETI_RUNAS)[0]
+  parser.add_option(optparse.Option("-f", dest="private_key",
+                                    default=default_key,
+                                    help="The private key to (try to) use for"
+                                    "authentication "))
+  parser.add_option(optparse.Option("--key-type", dest="key_type",
+                                    choices=("rsa", "dsa"), default="dsa",
+                                    help="The private key type (rsa or dsa)"))
 
   (options, args) = parser.parse_args()
 
@@ -192,22 +208,92 @@ def SetupLogging(options):
   stderr_handler = logging.StreamHandler()
   stderr_handler.setFormatter(formatter)
   file_handler.setFormatter(formatter)
-  file_handler.setLevel(logging.DEBUG)
+  file_handler.setLevel(logging.INFO)
 
   if options.debug:
-    stderr_handler.setLevel(logging.NOTSET)
+    stderr_handler.setLevel(logging.DEBUG)
   elif options.verbose:
     stderr_handler.setLevel(logging.INFO)
   else:
-    stderr_handler.setLevel(logging.ERROR)
+    stderr_handler.setLevel(logging.WARNING)
 
-  # This is the paramiko logger instance
-  paramiko_logger = logging.getLogger("paramiko")
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(stderr_handler)
   root_logger.addHandler(file_handler)
+
+  # This is the paramiko logger instance
+  paramiko_logger = logging.getLogger("paramiko")
   paramiko_logger.addHandler(file_handler)
+  # We don't want to debug Paramiko, so filter anything below warning
+  paramiko_logger.setLevel(logging.WARNING)
+
+
+def LoadPrivateKeys(options):
+  """Load the list of available private keys
+
+  It loads the standard ssh key from disk and then tries to connect to
+  the ssh agent too.
+
+  @rtype: list
+  @return: a list of C{paramiko.PKey}
+
+  """
+  if options.key_type == "rsa":
+    pkclass = paramiko.RSAKey
+  elif options.key_type == "dsa":
+    pkclass = paramiko.DSSKey
+  else:
+    logging.critical("Unknown key type %s selected (choose either rsa or dsa)",
+                     options.key_type)
+    sys.exit(1)
+
+  try:
+    private_key = pkclass.from_private_key_file(options.private_key)
+  except (paramiko.SSHException, EnvironmentError), err:
+    logging.critical("Can't load private key %s: %s", options.private_key, err)
+    sys.exit(1)
+
+  try:
+    agent = paramiko.Agent()
+    agent_keys = agent.get_keys()
+  except paramiko.SSHException, err:
+    # this will only be seen when the agent is broken/uses invalid
+    # protocol; for non-existing agent, get_keys() will just return an
+    # empty tuple
+    logging.warning("Can't connect to the ssh agent: %s; skipping its use",
+                    err)
+    agent_keys = []
+
+  return [private_key] + list(agent_keys)
+
+
+def LoginViaKeys(transport, username, keys):
+  """Try to login on the given transport via a list of keys.
+
+  @param transport: the transport to use
+  @param username: the username to login as
+  @type keys: list
+  @param keys: list of C{paramiko.PKey} to use for authentication
+  @rtype: boolean
+  @return: True or False depending on whether the login was
+      successfull or not
+
+  """
+  for private_key in keys:
+    try:
+      transport.auth_publickey(username, private_key)
+      fpr = ":".join("%02x" % ord(i) for i in private_key.get_fingerprint())
+      if isinstance(private_key, paramiko.AgentKey):
+        logging.debug("Authentication via the ssh-agent key %s", fpr)
+      else:
+        logging.debug("Authenticated via public key %s", fpr)
+      return True
+    except paramiko.SSHException:
+      continue
+  else:
+    # all keys exhausted
+    return False
 
 
 def main():
@@ -218,20 +304,54 @@ def main():
 
   SetupLogging(options)
 
-  passwd = getpass.getpass(prompt="%s password:" % constants.GANETI_RUNAS)
+  all_keys = LoadPrivateKeys(options)
+
+  passwd = None
+  username = constants.GANETI_RUNAS
+  ssh_port = netutils.GetDaemonPort("ssh")
+
+  # Below, we need to join() the transport objects, as otherwise the
+  # following happens:
+  # - the main thread finishes
+  # - the atexit functions run (in the main thread), and cause the
+  #   logging file to be closed
+  # - a tiny bit later, the transport thread is finally ending, and
+  #   wants to log one more message, which fails as the file is closed
+  #   now
 
   for host in args:
-    transport = paramiko.Transport((host, netutils.GetDaemonPort("ssh")))
-    transport.connect(username=constants.GANETI_RUNAS, password=passwd)
+    transport = paramiko.Transport((host, ssh_port))
+    transport.start_client()
+    try:
+      if LoginViaKeys(transport, username, all_keys):
+        logging.info("Authenticated to %s via public key", host)
+      else:
+        logging.warning("Authentication to %s via public key failed, trying"
+                        " password", host)
+        if passwd is None:
+          passwd = getpass.getpass(prompt="%s password:" % username)
+        transport.auth_password(username=username, password=passwd)
+        logging.info("Authenticated to %s via password", host)
+    except paramiko.SSHException, err:
+      logging.error("Connection or authentication failed to host %s: %s",
+                    host, err)
+      transport.close()
+      # this is needed for compatibility with older Paramiko or Python
+      # versions
+      transport.join()
+      continue
     try:
       try:
         SetupSSH(transport)
         SetupNodeDaemon(transport)
       except errors.GenericError, err:
-        logging.fatal("While doing setup on host %s an error occured: %s", host,
-                      err)
+        logging.error("While doing setup on host %s an error occured: %s",
+                      host, err)
     finally:
       transport.close()
+      # this is needed for compatibility with older Paramiko or Python
+      # versions
+      transport.join()
 
 
 if __name__ == "__main__":

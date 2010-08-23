@@ -167,13 +167,11 @@ class _QueuedJob(object):
   @ivar received_timestamp: the timestamp for when the job was received
   @ivar start_timestmap: the timestamp for start of execution
   @ivar end_timestamp: the timestamp for end of execution
-  @ivar lock_status: In-memory locking information for debugging
 
   """
   # pylint: disable-msg=W0212
   __slots__ = ["queue", "id", "ops", "log_serial",
                "received_timestamp", "start_timestamp", "end_timestamp",
-               "lock_status", "change",
                "__weakref__"]
 
   def __init__(self, queue, job_id, ops):
@@ -198,9 +196,6 @@ class _QueuedJob(object):
     self.received_timestamp = TimeStampNow()
     self.start_timestamp = None
     self.end_timestamp = None
-
-    # In-memory attributes
-    self.lock_status = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -227,9 +222,6 @@ class _QueuedJob(object):
     obj.received_timestamp = state.get("received_timestamp", None)
     obj.start_timestamp = state.get("start_timestamp", None)
     obj.end_timestamp = state.get("end_timestamp", None)
-
-    # In-memory attributes
-    obj.lock_status = None
 
     obj.ops = []
     obj.log_serial = 0
@@ -368,8 +360,6 @@ class _QueuedJob(object):
         row.append(self.start_timestamp)
       elif fname == "end_ts":
         row.append(self.end_timestamp)
-      elif fname == "lock_status":
-        row.append(self.lock_status)
       elif fname == "summary":
         row.append([op.input.Summary() for op in self.ops])
       else:
@@ -439,16 +429,15 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     Processor.ExecOpCode) set to OP_STATUS_WAITLOCK.
 
     """
+    assert self._op in self._job.ops
     assert self._op.status in (constants.OP_STATUS_WAITLOCK,
                                constants.OP_STATUS_CANCELING)
-
-    # All locks are acquired by now
-    self._job.lock_status = None
 
     # Cancel here if we were asked to
     self._CheckCancel()
 
     logging.debug("Opcode is now running")
+
     self._op.status = constants.OP_STATUS_RUNNING
     self._op.exec_timestamp = TimeStampNow()
 
@@ -489,9 +478,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     """
     assert self._op.status in (constants.OP_STATUS_WAITLOCK,
                                constants.OP_STATUS_CANCELING)
-
-    # Not getting the queue lock because this is a single assignment
-    self._job.lock_status = msg
 
     # Cancel here if we were asked to
     self._CheckCancel()
@@ -755,7 +741,6 @@ class _JobQueueWorker(workerpool.BaseWorker):
               op.result = result
               op.end_timestamp = TimeStampNow()
               if idx == count - 1:
-                job.lock_status = None
                 job.end_timestamp = TimeStampNow()
 
                 # Consistency check
@@ -797,7 +782,6 @@ class _JobQueueWorker(workerpool.BaseWorker):
                                   errors.GetEncodedError(i.result)
                                   for i in job.ops[idx:])
               finally:
-                job.lock_status = None
                 job.end_timestamp = TimeStampNow()
                 queue.UpdateJobUnlocked(job)
             finally:
@@ -809,7 +793,6 @@ class _JobQueueWorker(workerpool.BaseWorker):
         try:
           job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
                                 "Job canceled by request")
-          job.lock_status = None
           job.end_timestamp = TimeStampNow()
           queue.UpdateJobUnlocked(job)
         finally:

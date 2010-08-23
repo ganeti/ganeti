@@ -255,7 +255,7 @@ class SshRunner:
       if node.startswith(remotehostname + "."):
         msg = "hostname not FQDN"
       else:
-        msg = "hostname mistmatch"
+        msg = "hostname mismatch"
       return False, ("%s: expected %s but got %s" %
                      (msg, node, remotehostname))
 

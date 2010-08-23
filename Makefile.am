@@ -685,7 +685,7 @@ TAGS: $(BUILT_SOURCES)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
 	  -path './qa/*.py' | \
-	  etags -
+	  etags -l python -
 
 .PHONY: coverage
 coverage: $(BUILT_SOURCES) $(python_tests)
