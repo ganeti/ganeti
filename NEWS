@@ -1,6 +1,26 @@
 News
 ====
 
+Version 2.2.0 rc1
+-----------------
+
+*(Released Mon, 23 Aug 2010)*
+
+- Support DRBD versions of the format "a.b.c.d"
+- Updated manpages
+- Re-introduce support for usage from multiple threads in RAPI client
+- Instance renames and modify via RAPI
+- Work around race condition between processing and archival in job
+  queue
+- Mark opcodes following failed one as failed, too
+- Job field ``lock_status`` was removed due to difficulties making it
+  work with the changed job queue in Ganeti 2.2; a better way to monitor
+  locks is expected for a later 2.2.x release
+- Fixed dry-run behaviour with many commands
+- Support ``ssh-agent`` again when adding nodes
+- Many additional bugfixes
+
+
 Version 2.2.0 rc0
 -----------------
 
