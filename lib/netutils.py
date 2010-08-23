@@ -71,7 +71,7 @@ def GetHostname(name=None, family=None):
   @param family: AF_INET | AF_INET6 | None
   @rtype: L{Hostname}
   @return: Hostname object
-  @raise: errors.OpPrereqError
+  @raise errors.OpPrereqError: in case of errors in resolving
 
   """
   try:
@@ -425,7 +425,7 @@ class IP4Address(IPAddress):
     """Get integer value of IPv4 address.
 
     @type address: str
-    @param: IPv6 address
+    @param address: IPv6 address
     @rtype: int
     @return: integer value of given IP address
 
@@ -465,7 +465,7 @@ class IP6Address(IPAddress):
     """Get integer value of IPv6 address.
 
     @type address: str
-    @param: IPv6 address
+    @param address: IPv6 address
     @rtype: int
     @return: integer value of given IP address
 

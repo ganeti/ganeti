@@ -266,8 +266,8 @@ def _AddressLookup(node_list,
   @param node_list: List of node names
   @type ssc: class
   @param ssc: SimpleStore class that is used to obtain node->ip mappings
-  @type lookup_fn: callable
-  @param lookup_fn: function use to do NS lookup
+  @type nslookup_fn: callable
+  @param nslookup_fn: function use to do NS lookup
   @rtype: list of addresses and/or None's
   @returns: List of corresponding addresses, if found
 
