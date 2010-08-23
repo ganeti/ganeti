@@ -27,9 +27,11 @@ import unittest
 import time
 import Queue
 import threading
+import random
 
 from ganeti import locking
 from ganeti import errors
+from ganeti import utils
 
 import testutils
 
@@ -1420,6 +1422,156 @@ class TestGanetiLockManager(_ThreadedTestCase):
     self._waitThreads()
     self.assertEqual(self.done.get(True, 1), 'DONE')
     self.GL.release(locking.LEVEL_CLUSTER, ['BGL'])
+
+
+class TestLockMonitor(_ThreadedTestCase):
+  def setUp(self):
+    _ThreadedTestCase.setUp(self)
+    self.lm = locking.LockMonitor()
+
+  def testSingleThread(self):
+    locks = []
+
+    for i in range(100):
+      name = "TestLock%s" % i
+      locks.append(locking.SharedLock(name, monitor=self.lm))
+
+    self.assertEqual(len(self.lm._locks), len(locks))
+
+    # Delete all locks
+    del locks[:]
+
+    # The garbage collector might needs some time
+    def _CheckLocks():
+      if self.lm._locks:
+        raise utils.RetryAgain()
+
+    utils.Retry(_CheckLocks, 0.1, 30.0)
+
+    self.assertFalse(self.lm._locks)
+
+  def testMultiThread(self):
+    locks = []
+
+    def _CreateLock(prev, next, name):
+      prev.wait()
+      locks.append(locking.SharedLock(name, monitor=self.lm))
+      if next:
+        next.set()
+
+    expnames = []
+
+    first = threading.Event()
+    prev = first
+
+    # Use a deterministic random generator
+    for i in random.Random(4263).sample(range(100), 33):
+      name = "MtTestLock%s" % i
+      expnames.append(name)
+
+      ev = threading.Event()
+      self._addThread(target=_CreateLock, args=(prev, ev, name))
+      prev = ev
+
+    # Add locks
+    first.set()
+    self._waitThreads()
+
+    # Check order in which locks were added
+    self.assertEqual([i.name for i in locks], expnames)
+
+    # Sync queries are not supported
+    self.assertRaises(NotImplementedError, self.lm.QueryLocks, ["name"], True)
+
+    # Check query result
+    self.assertEqual(self.lm.QueryLocks(["name", "mode", "owner"], False),
+                     [[name, None, None] for name in utils.NiceSort(expnames)])
+
+    # Test exclusive acquire
+    for tlock in locks[::4]:
+      tlock.acquire(shared=0)
+      try:
+        def _GetExpResult(name):
+          if tlock.name == name:
+            return [name, "exclusive", [threading.currentThread().getName()]]
+          return [name, None, None]
+
+        self.assertEqual(self.lm.QueryLocks(["name", "mode", "owner"], False),
+                         [_GetExpResult(name)
+                          for name in utils.NiceSort(expnames)])
+      finally:
+        tlock.release()
+
+    # Test shared acquire
+    def _Acquire(lock, shared, ev):
+      lock.acquire(shared=shared)
+      try:
+        ev.wait()
+      finally:
+        lock.release()
+
+    for tlock1 in locks[::11]:
+      for tlock2 in locks[::-15]:
+        if tlock2 == tlock1:
+          continue
+
+        for tlock3 in locks[::10]:
+          if tlock3 == tlock2:
+            continue
+
+          ev = threading.Event()
+
+          # Acquire locks
+          tthreads1 = []
+          for i in range(3):
+            tthreads1.append(self._addThread(target=_Acquire,
+                                             args=(tlock1, 1, ev)))
+          tthread2 = self._addThread(target=_Acquire, args=(tlock2, 1, ev))
+          tthread3 = self._addThread(target=_Acquire, args=(tlock3, 0, ev))
+
+          # Check query result
+          for (name, mode, owner) in self.lm.QueryLocks(["name", "mode",
+                                                         "owner"], False):
+            if name == tlock1.name:
+              self.assertEqual(mode, "shared")
+              self.assertEqual(set(owner), set(i.getName() for i in tthreads1))
+              continue
+
+            if name == tlock2.name:
+              self.assertEqual(mode, "shared")
+              self.assertEqual(owner, [tthread2.getName()])
+              continue
+
+            if name == tlock3.name:
+              self.assertEqual(mode, "exclusive")
+              self.assertEqual(owner, [tthread3.getName()])
+              continue
+
+            self.assert_(name in expnames)
+            self.assert_(mode is None)
+            self.assert_(owner is None)
+
+          # Release locks again
+          ev.set()
+
+          self._waitThreads()
+
+          self.assertEqual(self.lm.QueryLocks(["name", "mode", "owner"], False),
+                           [[name, None, None]
+                            for name in utils.NiceSort(expnames)])
+
+  def testDelete(self):
+    lock = locking.SharedLock("TestLock", monitor=self.lm)
+
+    self.assertEqual(len(self.lm._locks), 1)
+    self.assertEqual(self.lm.QueryLocks(["name", "mode", "owner"], False),
+                     [[lock.name, None, None]])
+
+    lock.delete()
+
+    self.assertEqual(self.lm.QueryLocks(["name", "mode", "owner"], False),
+                     [[lock.name, "deleted", None]])
+    self.assertEqual(len(self.lm._locks), 1)
 
 
 if __name__ == '__main__':

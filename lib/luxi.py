@@ -59,6 +59,7 @@ REQ_QUERY_EXPORTS = "QueryExports"
 REQ_QUERY_CONFIG_VALUES = "QueryConfigValues"
 REQ_QUERY_CLUSTER_INFO = "QueryClusterInfo"
 REQ_QUERY_TAGS = "QueryTags"
+REQ_QUERY_LOCKS = "QueryLocks"
 REQ_QUEUE_SET_DRAIN_FLAG = "SetDrainFlag"
 REQ_SET_WATCHER_PAUSE = "SetWatcherPause"
 
@@ -490,3 +491,6 @@ class Client(object):
 
   def QueryTags(self, kind, name):
     return self.CallMethod(REQ_QUERY_TAGS, (kind, name))
+
+  def QueryLocks(self, fields, sync):
+    return self.CallMethod(REQ_QUERY_LOCKS, (fields, sync))

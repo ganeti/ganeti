@@ -84,6 +84,7 @@ __all__ = [
   "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
+  "INTERVAL_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
@@ -928,6 +929,11 @@ SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                          dest="shutdown_timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait for instance shutdown")
+
+INTERVAL_OPT = cli_option("--interval", dest="interval", type="int",
+                          default=None,
+                          help=("Number of seconds between repetions of the"
+                                " command"))
 
 EARLY_RELEASE_OPT = cli_option("--early-release",
                                dest="early_release", default=False,

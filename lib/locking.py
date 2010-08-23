@@ -30,6 +30,8 @@ import select
 import threading
 import time
 import errno
+import weakref
+import logging
 
 from ganeti import errors
 from ganeti import utils
@@ -409,6 +411,7 @@ class SharedLock(object):
 
   """
   __slots__ = [
+    "__weakref__",
     "__active_shr_c",
     "__inactive_shr_c",
     "__deleted",
@@ -421,10 +424,12 @@ class SharedLock(object):
 
   __condition_class = PipeCondition
 
-  def __init__(self, name):
+  def __init__(self, name, monitor=None):
     """Construct a new SharedLock.
 
     @param name: the name of the lock
+    @type monitor: L{LockMonitor}
+    @param monitor: Lock monitor with which to register
 
     """
     object.__init__(self)
@@ -447,6 +452,55 @@ class SharedLock(object):
 
     # is this lock in the deleted state?
     self.__deleted = False
+
+    # Register with lock monitor
+    if monitor:
+      monitor.RegisterLock(self)
+
+  def GetInfo(self, fields):
+    """Retrieves information for querying locks.
+
+    @type fields: list of strings
+    @param fields: List of fields to return
+
+    """
+    self.__lock.acquire()
+    try:
+      info = []
+
+      # Note: to avoid unintentional race conditions, no references to
+      # modifiable objects should be returned unless they were created in this
+      # function.
+      for fname in fields:
+        if fname == "name":
+          info.append(self.name)
+        elif fname == "mode":
+          if self.__deleted:
+            info.append("deleted")
+            assert not (self.__exc or self.__shr)
+          elif self.__exc:
+            info.append("exclusive")
+          elif self.__shr:
+            info.append("shared")
+          else:
+            info.append(None)
+        elif fname == "owner":
+          if self.__exc:
+            owner = [self.__exc]
+          else:
+            owner = self.__shr
+
+          if owner:
+            assert not self.__deleted
+            info.append([i.getName() for i in owner])
+          else:
+            info.append(None)
+        else:
+          raise errors.OpExecError("Invalid query field '%s'" % fname)
+
+      return info
+    finally:
+      self.__lock.release()
 
   def __check_deleted(self):
     """Raises an exception if the lock has been deleted.
@@ -671,6 +725,8 @@ class SharedLock(object):
         self.__deleted = True
         self.__exc = None
 
+        assert not (self.__exc or self.__shr), "Found owner during deletion"
+
         # Notify all acquires. They'll throw an error.
         while self.__pending:
           self.__pending.pop().notifyAll()
@@ -713,15 +769,20 @@ class LockSet:
   @ivar name: the name of the lockset
 
   """
-  def __init__(self, members, name):
+  def __init__(self, members, name, monitor=None):
     """Constructs a new LockSet.
 
     @type members: list of strings
     @param members: initial members of the set
+    @type monitor: L{LockMonitor}
+    @param monitor: Lock monitor with which to register member locks
 
     """
     assert members is not None, "members parameter is not a list"
     self.name = name
+
+    # Lock monitor
+    self.__monitor = monitor
 
     # Used internally to guarantee coherency.
     self.__lock = SharedLock(name)
@@ -731,7 +792,8 @@ class LockSet:
     self.__lockdict = {}
 
     for mname in members:
-      self.__lockdict[mname] = SharedLock(self._GetLockName(mname))
+      self.__lockdict[mname] = SharedLock(self._GetLockName(mname),
+                                          monitor=monitor)
 
     # The owner dict contains the set of locks each thread owns. For
     # performance each thread can access its own key without a global lock on
@@ -1055,7 +1117,7 @@ class LockSet:
                                (invalid_names, self.name))
 
       for lockname in names:
-        lock = SharedLock(self._GetLockName(lockname))
+        lock = SharedLock(self._GetLockName(lockname), monitor=self.__monitor)
 
         if acquired:
           lock.acquire(shared=shared)
@@ -1193,13 +1255,24 @@ class GanetiLockManager:
 
     self.__class__._instance = self
 
+    self._monitor = LockMonitor()
+
     # The keyring contains all the locks, at their level and in the correct
     # locking order.
     self.__keyring = {
-      LEVEL_CLUSTER: LockSet([BGL], "bgl lockset"),
-      LEVEL_NODE: LockSet(nodes, "nodes lockset"),
-      LEVEL_INSTANCE: LockSet(instances, "instances lockset"),
-    }
+      LEVEL_CLUSTER: LockSet([BGL], "BGL", monitor=self._monitor),
+      LEVEL_NODE: LockSet(nodes, "nodes", monitor=self._monitor),
+      LEVEL_INSTANCE: LockSet(instances, "instances",
+                              monitor=self._monitor),
+      }
+
+  def QueryLocks(self, fields, sync):
+    """Queries information from all locks.
+
+    See L{LockMonitor.QueryLocks}.
+
+    """
+    return self._monitor.QueryLocks(fields, sync)
 
   def _names(self, level):
     """List the lock names at the given level.
@@ -1352,3 +1425,59 @@ class GanetiLockManager:
            "Cannot remove locks at a level while not owning it or"
            " owning some at a greater one")
     return self.__keyring[level].remove(names)
+
+
+class LockMonitor(object):
+  _LOCK_ATTR = "_lock"
+
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    self._lock = SharedLock("LockMonitor")
+
+    # Tracked locks. Weak references are used to avoid issues with circular
+    # references and deletion.
+    self._locks = weakref.WeakKeyDictionary()
+
+  @ssynchronized(_LOCK_ATTR)
+  def RegisterLock(self, lock):
+    """Registers a new lock.
+
+    """
+    logging.debug("Registering lock %s", lock.name)
+    assert lock not in self._locks, "Duplicate lock registration"
+    assert not compat.any(lock.name == i.name for i in self._locks.keys()), \
+           "Found duplicate lock name"
+    self._locks[lock] = None
+
+  @ssynchronized(_LOCK_ATTR)
+  def _GetLockInfo(self, fields):
+    """Get information from all locks while the monitor lock is held.
+
+    """
+    result = {}
+
+    for lock in self._locks.keys():
+      assert lock.name not in result, "Found duplicate lock name"
+      result[lock.name] = lock.GetInfo(fields)
+
+    return result
+
+  def QueryLocks(self, fields, sync):
+    """Queries information from all locks.
+
+    @type fields: list of strings
+    @param fields: List of fields to return
+    @type sync: boolean
+    @param sync: Whether to operate in synchronous mode
+
+    """
+    if sync:
+      raise NotImplementedError("Synchronous queries are not implemented")
+
+    # Get all data without sorting
+    result = self._GetLockInfo(fields)
+
+    # Sort by name
+    return [result[name] for name in utils.NiceSort(result.keys())]
