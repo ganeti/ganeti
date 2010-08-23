@@ -490,15 +490,21 @@ class IP6Address(IPAddress):
     return address_int
 
 
-def FormatAddress(family, address):
+def FormatAddress(address, family=None):
   """Format a socket address
 
-  @type family: integer
-  @param family: socket family (one of socket.AF_*)
   @type address: family specific (usually tuple)
   @param address: address, as reported by this class
+  @type family: integer
+  @param family: socket family (one of socket.AF_*) or None
 
   """
+  if family is None:
+    try:
+      family = IPAddress.GetAddressFamily(address[0])
+    except errors.IPAddressError:
+      raise errors.ParameterError(address)
+
   if family == socket.AF_UNIX and len(address) == 3:
     return "pid=%s, uid=%s, gid=%s" % address
 

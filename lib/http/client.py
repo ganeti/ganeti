@@ -106,8 +106,7 @@ class HttpClientRequest(object):
 
     """
     if netutils.IPAddress.IsValid(self.host):
-      family = netutils.IPAddress.GetAddressFamily(self.host)
-      address = netutils.FormatAddress(family, (self.host, self.port))
+      address = netutils.FormatAddress((self.host, self.port))
     else:
       address = "%s:%s" % (self.host, self.port)
     # TODO: Support for non-SSL requests

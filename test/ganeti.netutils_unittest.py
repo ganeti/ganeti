@@ -388,30 +388,38 @@ class TestFormatAddress(unittest.TestCase):
   """Testcase for FormatAddress"""
 
   def testFormatAddressUnixSocket(self):
-    res1 = netutils.FormatAddress(socket.AF_UNIX, ("12352", 0, 0))
+    res1 = netutils.FormatAddress(("12352", 0, 0), family=socket.AF_UNIX)
     self.assertEqual(res1, "pid=12352, uid=0, gid=0")
 
   def testFormatAddressIP4(self):
-    res1 = netutils.FormatAddress(socket.AF_INET, ("127.0.0.1", 1234))
+    res1 = netutils.FormatAddress(("127.0.0.1", 1234), family=socket.AF_INET)
     self.assertEqual(res1, "127.0.0.1:1234")
-    res2 = netutils.FormatAddress(socket.AF_INET, ("192.0.2.32", None))
+    res2 = netutils.FormatAddress(("192.0.2.32", None), family=socket.AF_INET)
     self.assertEqual(res2, "192.0.2.32")
 
   def testFormatAddressIP6(self):
-    res1 = netutils.FormatAddress(socket.AF_INET6, ("::1", 1234))
+    res1 = netutils.FormatAddress(("::1", 1234), family=socket.AF_INET6)
     self.assertEqual(res1, "[::1]:1234")
-    res2 = netutils.FormatAddress(socket.AF_INET6, ("::1", None))
+    res2 = netutils.FormatAddress(("::1", None), family=socket.AF_INET6)
     self.assertEqual(res2, "[::1]")
-    res2 = netutils.FormatAddress(socket.AF_INET6, ("2001:db8::beef", "80"))
+    res2 = netutils.FormatAddress(("2001:db8::beef", "80"),
+                                  family=socket.AF_INET6)
     self.assertEqual(res2, "[2001:db8::beef]:80")
 
+  def testFormatAddressWithoutFamily(self):
+    res1 = netutils.FormatAddress(("127.0.0.1", 1234))
+    self.assertEqual(res1, "127.0.0.1:1234")
+    res2 = netutils.FormatAddress(("::1", 1234))
+    self.assertEqual(res2, "[::1]:1234")
+
+
   def testInvalidFormatAddress(self):
-    self.assertRaises(errors.ParameterError,
-                      netutils.FormatAddress, None, ("::1", None))
-    self.assertRaises(errors.ParameterError,
-                      netutils.FormatAddress, socket.AF_INET, "127.0.0.1")
-    self.assertRaises(errors.ParameterError,
-                      netutils.FormatAddress, socket.AF_INET, ("::1"))
+    self.assertRaises(errors.ParameterError, netutils.FormatAddress,
+                      "127.0.0.1")
+    self.assertRaises(errors.ParameterError, netutils.FormatAddress,
+                      "127.0.0.1", family=socket.AF_INET)
+    self.assertRaises(errors.ParameterError, netutils.FormatAddress,
+                      ("::1"), family=socket.AF_INET )
 
 
 if __name__ == "__main__":

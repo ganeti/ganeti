@@ -143,7 +143,7 @@ class AsyncStreamServer(GanetiBaseAsyncoreDispatcher):
         # is passed in from accept anyway
         client_address = netutils.GetSocketCredentials(connected_socket)
       logging.info("Accepted connection from %s",
-                   netutils.FormatAddress(self.family, client_address))
+                   netutils.FormatAddress(client_address, family=self.family))
       self.handle_connection(connected_socket, client_address)
 
   def handle_connection(self, connected_socket, client_address):
@@ -274,7 +274,7 @@ class AsyncTerminatedMessageStream(asynchat.async_chat):
 
   def close_log(self):
     logging.info("Closing connection from %s",
-                 netutils.FormatAddress(self.family, self.peer_address))
+                 netutils.FormatAddress(self.peer_address, family=self.family))
     self.close()
 
   # this method is overriding an asyncore.dispatcher method
