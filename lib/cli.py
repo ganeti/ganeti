@@ -195,6 +195,7 @@ __all__ = [
   "cli_option",
   "SplitNodeOption",
   "CalculateOSNames",
+  "ParseFields",
   ]
 
 NO_PREFIX = "no_"
@@ -1198,6 +1199,24 @@ def CalculateOSNames(os_name, os_variants):
     return ['%s+%s' % (os_name, v) for v in os_variants]
   else:
     return [os_name]
+
+
+def ParseFields(selected, default):
+  """Parses the values of "--field"-like options.
+
+  @type selected: string or None
+  @param selected: User-selected options
+  @type default: list
+  @param default: Default fields
+
+  """
+  if selected is None:
+    return default
+
+  if selected.startswith("+"):
+    return default + selected[1:].split(",")
+
+  return selected.split(",")
 
 
 UsesRPC = rpc.RunWithRPC

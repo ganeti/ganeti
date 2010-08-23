@@ -46,6 +46,10 @@ _LIST_DEF_FIELDS = [
   ]
 
 
+#: Default field list for L{ListVolumes}
+_LIST_VOL_DEF_FIELDS = ["node", "phys", "vg", "name", "size", "instance"]
+
+
 #: default list of field for L{ListStorage}
 _LIST_STOR_DEF_FIELDS = [
   constants.SF_NODE,
@@ -188,12 +192,7 @@ def ListNodes(opts, args):
   @return: the desired exit code
 
   """
-  if opts.output is None:
-    selected_fields = _LIST_DEF_FIELDS
-  elif opts.output.startswith("+"):
-    selected_fields = _LIST_DEF_FIELDS + opts.output[1:].split(",")
-  else:
-    selected_fields = opts.output.split(",")
+  selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
   output = GetClient().QueryNodes(args, selected_fields, opts.do_locking)
 
@@ -466,11 +465,7 @@ def ListVolumes(opts, args):
   @return: the desired exit code
 
   """
-  if opts.output is None:
-    selected_fields = ["node", "phys", "vg",
-                       "name", "size", "instance"]
-  else:
-    selected_fields = opts.output.split(",")
+  selected_fields = ParseFields(opts.output, _LIST_VOL_DEF_FIELDS)
 
   op = opcodes.OpQueryNodeVolumes(nodes=args, output_fields=selected_fields)
   output = SubmitOpCode(op, opts=opts)
@@ -514,12 +509,7 @@ def ListStorage(opts, args):
 
   storage_type = ConvertStorageType(opts.user_storage_type)
 
-  if opts.output is None:
-    selected_fields = _LIST_STOR_DEF_FIELDS
-  elif opts.output.startswith("+"):
-    selected_fields = _LIST_STOR_DEF_FIELDS + opts.output[1:].split(",")
-  else:
-    selected_fields = opts.output.split(",")
+  selected_fields = ParseFields(opts.output, _LIST_STOR_DEF_FIELDS)
 
   op = opcodes.OpQueryNodeStorage(nodes=args,
                                   storage_type=storage_type,

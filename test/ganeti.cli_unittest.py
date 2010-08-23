@@ -429,5 +429,18 @@ class TestFormatLogMessage(unittest.TestCase):
     self.assert_(cli.FormatLogMessage("some other type", (1, 2, 3)))
 
 
+class TestParseFields(unittest.TestCase):
+  def test(self):
+    self.assertEqual(cli.ParseFields(None, []), [])
+    self.assertEqual(cli.ParseFields("name,foo,hello", []),
+                     ["name", "foo", "hello"])
+    self.assertEqual(cli.ParseFields(None, ["def", "ault", "fields", "here"]),
+                     ["def", "ault", "fields", "here"])
+    self.assertEqual(cli.ParseFields("name,foo", ["def", "ault"]),
+                     ["name", "foo"])
+    self.assertEqual(cli.ParseFields("+name,foo", ["def", "ault"]),
+                     ["def", "ault", "name", "foo"])
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

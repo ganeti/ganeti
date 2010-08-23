@@ -244,12 +244,7 @@ def ListInstances(opts, args):
   @return: the desired exit code
 
   """
-  if opts.output is None:
-    selected_fields = _LIST_DEF_FIELDS
-  elif opts.output.startswith("+"):
-    selected_fields = _LIST_DEF_FIELDS + opts.output[1:].split(",")
-  else:
-    selected_fields = opts.output.split(",")
+  selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
   output = GetClient().QueryInstances(args, selected_fields, opts.do_locking)
 
