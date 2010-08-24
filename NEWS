@@ -125,6 +125,22 @@ Version 2.2.0 beta 0
   see the ``ganeti-os-interface(7)`` manpage and look for
   ``EXP_SIZE_FD``
 
+Version 2.1.7
+-------------
+
+*(Released Tue, 24 Aug 2010)*
+
+Bugfixes only:
+  - Don't ignore secondary node silently on non-mirrored disk templates
+    (issue 113)
+  - Fix --master-netdev arg name in gnt-cluster(8) (issue 114)
+  - Fix usb_mouse parameter breaking with vnc_console (issue 109)
+  - Properly document the usb_mouse parameter
+  - Fix path in ganeti-rapi(8) (issue 116)
+  - Adjust error message when the ganeti user's .ssh directory is
+    missing
+  - Add same-node-check when changing the disk template to drbd
+
 
 Version 2.1.6
 -------------
