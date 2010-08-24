@@ -1503,9 +1503,10 @@ class TestLockMonitor(_ThreadedTestCase):
         tlock.release()
 
     # Test shared acquire
-    def _Acquire(lock, shared, ev):
+    def _Acquire(lock, shared, ev, notify):
       lock.acquire(shared=shared)
       try:
+        notify.set()
         ev.wait()
       finally:
         lock.release()
@@ -1513,21 +1514,38 @@ class TestLockMonitor(_ThreadedTestCase):
     for tlock1 in locks[::11]:
       for tlock2 in locks[::-15]:
         if tlock2 == tlock1:
+          # Avoid deadlocks
           continue
 
         for tlock3 in locks[::10]:
-          if tlock3 == tlock2:
+          if tlock3 in (tlock2, tlock1):
+            # Avoid deadlocks
             continue
 
-          ev = threading.Event()
+          releaseev = threading.Event()
 
           # Acquire locks
+          acquireev = []
           tthreads1 = []
           for i in range(3):
+            ev = threading.Event()
             tthreads1.append(self._addThread(target=_Acquire,
-                                             args=(tlock1, 1, ev)))
-          tthread2 = self._addThread(target=_Acquire, args=(tlock2, 1, ev))
-          tthread3 = self._addThread(target=_Acquire, args=(tlock3, 0, ev))
+                                             args=(tlock1, 1, releaseev, ev)))
+            acquireev.append(ev)
+
+          ev = threading.Event()
+          tthread2 = self._addThread(target=_Acquire,
+                                     args=(tlock2, 1, releaseev, ev))
+          acquireev.append(ev)
+
+          ev = threading.Event()
+          tthread3 = self._addThread(target=_Acquire,
+                                     args=(tlock3, 0, releaseev, ev))
+          acquireev.append(ev)
+
+          # Wait for all locks to be acquired
+          for i in acquireev:
+            i.wait()
 
           # Check query result
           for (name, mode, owner) in self.lm.QueryLocks(["name", "mode",
@@ -1552,7 +1570,7 @@ class TestLockMonitor(_ThreadedTestCase):
             self.assert_(owner is None)
 
           # Release locks again
-          ev.set()
+          releaseev.set()
 
           self._waitThreads()
 
