@@ -26,10 +26,23 @@
 
 import os
 import logging
+import re
 
 from ganeti import utils
 from ganeti import errors
 from ganeti import constants
+
+
+def FormatParamikoFingerprint(fingerprint):
+  """Formats the fingerprint of L{paramiko.PKey.get_fingerprint()}
+
+  @type fingerprint: str
+  @param fingerprint: PKey fingerprint
+  @return The string hex representation of the fingerprint
+
+  """
+  assert len(fingerprint) % 2 == 0
+  return ":".join(re.findall(r"..", fingerprint.lower()))
 
 
 def GetUserFiles(user, mkdir=False):
