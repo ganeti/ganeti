@@ -7,7 +7,7 @@ files, as produced by gnt-node and gnt-instance list.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,15 +31,54 @@ module Ganeti.HTools.Text
       loadData
     , loadInst
     , loadNode
+    , serializeInstances
+    , serializeNodes
     ) where
 
 import Control.Monad
+import Data.List
+
+import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+
+-- | Serialize a single node
+serializeNode :: Node.Node -> String
+serializeNode node =
+    printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c" (Node.name node)
+               (Node.tMem node) (Node.nMem node) (Node.fMem node)
+               (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
+               (if Node.offline node then 'Y' else 'N')
+
+-- | Generate node file data from node objects
+serializeNodes :: Node.List -> String
+serializeNodes = unlines . map serializeNode . Container.elems
+
+-- | Serialize a single instance
+serializeInstance :: Node.List -> Instance.Instance -> String
+serializeInstance nl inst =
+    let
+        iname = Instance.name inst
+        pnode = Container.nameOf nl (Instance.pNode inst)
+        sidx = Instance.sNode inst
+        snode = (if sidx == Node.noSecondary
+                    then ""
+                    else Container.nameOf nl sidx)
+    in
+      printf "%s|%d|%d|%d|%s|%s|%s|%s"
+             iname (Instance.mem inst) (Instance.dsk inst)
+             (Instance.vcpus inst) (Instance.runSt inst)
+             pnode snode (intercalate "," (Instance.tags inst))
+
+-- | Generate instance file data from instance objects
+serializeInstances :: Node.List -> Instance.List -> String
+serializeInstances nl =
+    unlines . map (serializeInstance nl) . Container.elems
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
