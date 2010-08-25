@@ -1,6 +1,26 @@
 News
 ====
 
+Version 2.2.0 rc1
+-----------------
+
+*(Released Mon, 23 Aug 2010)*
+
+- Support DRBD versions of the format "a.b.c.d"
+- Updated manpages
+- Re-introduce support for usage from multiple threads in RAPI client
+- Instance renames and modify via RAPI
+- Work around race condition between processing and archival in job
+  queue
+- Mark opcodes following failed one as failed, too
+- Job field ``lock_status`` was removed due to difficulties making it
+  work with the changed job queue in Ganeti 2.2; a better way to monitor
+  locks is expected for a later 2.2.x release
+- Fixed dry-run behaviour with many commands
+- Support ``ssh-agent`` again when adding nodes
+- Many additional bugfixes
+
+
 Version 2.2.0 rc0
 -----------------
 
@@ -104,6 +124,22 @@ Version 2.2.0 beta 0
 - Added support for showing estimated time when exporting an instance,
   see the ``ganeti-os-interface(7)`` manpage and look for
   ``EXP_SIZE_FD``
+
+Version 2.1.7
+-------------
+
+*(Released Tue, 24 Aug 2010)*
+
+Bugfixes only:
+  - Don't ignore secondary node silently on non-mirrored disk templates
+    (issue 113)
+  - Fix --master-netdev arg name in gnt-cluster(8) (issue 114)
+  - Fix usb_mouse parameter breaking with vnc_console (issue 109)
+  - Properly document the usb_mouse parameter
+  - Fix path in ganeti-rapi(8) (issue 116)
+  - Adjust error message when the ganeti user's .ssh directory is
+    missing
+  - Add same-node-check when changing the disk template to drbd
 
 
 Version 2.1.6

@@ -84,6 +84,7 @@ __all__ = [
   "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
+  "INTERVAL_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
@@ -196,6 +197,7 @@ __all__ = [
   "cli_option",
   "SplitNodeOption",
   "CalculateOSNames",
+  "ParseFields",
   ]
 
 NO_PREFIX = "no_"
@@ -929,6 +931,11 @@ SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait for instance shutdown")
 
+INTERVAL_OPT = cli_option("--interval", dest="interval", type="int",
+                          default=None,
+                          help=("Number of seconds between repetions of the"
+                                " command"))
+
 EARLY_RELEASE_OPT = cli_option("--early-release",
                                dest="early_release", default=False,
                                action="store_true",
@@ -1206,6 +1213,24 @@ def CalculateOSNames(os_name, os_variants):
     return ['%s+%s' % (os_name, v) for v in os_variants]
   else:
     return [os_name]
+
+
+def ParseFields(selected, default):
+  """Parses the values of "--field"-like options.
+
+  @type selected: string or None
+  @param selected: User-selected options
+  @type default: list
+  @param default: Default fields
+
+  """
+  if selected is None:
+    return default
+
+  if selected.startswith("+"):
+    return default + selected[1:].split(",")
+
+  return selected.split(",")
 
 
 UsesRPC = rpc.RunWithRPC

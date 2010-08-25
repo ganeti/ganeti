@@ -227,12 +227,6 @@
               <simpara>the list of opcode end times</simpara>
             </listitem>
           </varlistentry>
-          <varlistentry>
-            <term>lock_status</term>
-            <listitem>
-              <simpara>the lock status (useful for debugging)</simpara>
-            </listitem>
-          </varlistentry>
         </variablelist>
       </para>
 

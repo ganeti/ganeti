@@ -690,6 +690,8 @@ class _JobQueueWorker(workerpool.BaseWorker):
     @param job: the job to be processed
 
     """
+    self.SetTaskName("Job%s" % job.id)
+
     logging.info("Processing job %s", job.id)
     proc = mcpu.Processor(self.pool.queue.context, job.id)
     queue = job.queue

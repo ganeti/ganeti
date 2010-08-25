@@ -77,6 +77,13 @@ class ChecksumContext:
 
 class ChecksumBaseWorker(workerpool.BaseWorker):
   def RunTask(self, ctx, number):
+    name = "number%s" % number
+    self.SetTaskName(name)
+
+    # This assertion needs to be checked before updating the checksum. A
+    # failing assertion will then cause the result to be wrong.
+    assert self.getName() == ("%s/%s" % (self._worker_id, name))
+
     ctx.lock.acquire()
     try:
       ctx.checksum = ctx.UpdateChecksum(ctx.checksum, number)

@@ -61,12 +61,7 @@ def ListJobs(opts, args):
   @return: the desired exit code
 
   """
-  if opts.output is None:
-    selected_fields = _LIST_DEF_FIELDS
-  elif opts.output.startswith("+"):
-    selected_fields = _LIST_DEF_FIELDS + opts.output[1:].split(",")
-  else:
-    selected_fields = opts.output.split(",")
+  selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
   output = GetClient().QueryJobs(args, selected_fields)
   if not opts.no_headers:
@@ -85,7 +80,6 @@ def ListJobs(opts, args):
       "start_ts": "Start",
       "end_ts": "End",
       "received_ts": "Received",
-      "lock_status": "LockStatus",
       }
   else:
     headers = None
@@ -109,8 +103,6 @@ def ListJobs(opts, args):
         val = FormatTimestamp(val)
       elif field in ("opstart", "opexec", "opend"):
         val = [FormatTimestamp(entry) for entry in val]
-      elif field == "lock_status" and not val:
-        val = "-"
 
       row[idx] = str(val)
 

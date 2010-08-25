@@ -69,7 +69,10 @@ class BaseWorker(threading.Thread, object):
     """
     super(BaseWorker, self).__init__(name=worker_id)
     self.pool = pool
+    self._worker_id = worker_id
     self._current_task = None
+
+    assert self.getName() == worker_id
 
   def ShouldTerminate(self):
     """Returns whether this worker should terminate.
@@ -99,6 +102,23 @@ class BaseWorker(threading.Thread, object):
       return priority
     finally:
       self.pool._lock.release()
+
+  def SetTaskName(self, taskname):
+    """Sets the name of the current task.
+
+    Should only be called from within L{RunTask}.
+
+    @type taskname: string
+    @param taskname: Task's name
+
+    """
+    if taskname:
+      name = "%s/%s" % (self._worker_id, taskname)
+    else:
+      name = self._worker_id
+
+    # Set thread name
+    self.setName(name)
 
   def _HasRunningTaskUnlocked(self):
     """Returns whether this worker is currently running a task.
@@ -147,7 +167,11 @@ class BaseWorker(threading.Thread, object):
           # Run the actual task
           assert defer is None
           logging.debug("Starting task %r, priority %s", args, priority)
-          self.RunTask(*args) # pylint: disable-msg=W0142
+          assert self.getName() == self._worker_id
+          try:
+            self.RunTask(*args) # pylint: disable-msg=W0142
+          finally:
+            self.SetTaskName(None)
           logging.debug("Done with task %r, priority %s", args, priority)
         except DeferTask, err:
           defer = err
@@ -159,7 +183,6 @@ class BaseWorker(threading.Thread, object):
           logging.debug("Deferring task %r, new priority %s", defer.priority)
 
           assert self._HasRunningTaskUnlocked()
-
         except: # pylint: disable-msg=W0702
           logging.exception("Caught unhandled exception")
 
