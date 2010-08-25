@@ -31,6 +31,7 @@ import re
 from ganeti import utils
 from ganeti import errors
 from ganeti import constants
+from ganeti import netutils
 
 
 def FormatParamikoFingerprint(fingerprint):
@@ -220,6 +221,9 @@ class SshRunner:
     command = [constants.SCP, "-p"]
     command.extend(self._BuildSshOptions(True, False, True, True))
     command.append(filename)
+    if netutils.IP6Address.IsValid(node):
+      node = netutils.FormatAddress((node, None))
+
     command.append("%s:%s" % (node, filename))
 
     result = utils.RunCmd(command)
