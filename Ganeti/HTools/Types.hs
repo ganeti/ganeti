@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -83,7 +83,7 @@ data DynUtil = DynUtil
     , memWeight :: Weight -- ^ Standardised memory load
     , dskWeight :: Weight -- ^ Standardised disk I\/O usage
     , netWeight :: Weight -- ^ Standardised network usage
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 -- | Initial empty utilisation
 zeroUtil :: DynUtil

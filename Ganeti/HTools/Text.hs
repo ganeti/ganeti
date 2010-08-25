@@ -32,6 +32,7 @@ module Ganeti.HTools.Text
     , loadInst
     , loadNode
     , serializeInstances
+    , serializeNode
     , serializeNodes
     ) where
 

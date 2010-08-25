@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -119,7 +119,7 @@ data Node = Node
     , utilPool :: T.DynUtil -- ^ Total utilisation capacity
     , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
     , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 instance T.Element Node where
     nameOf = name

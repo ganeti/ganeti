@@ -456,11 +456,19 @@ prop_Text_Load_Node name tm nm fm td fd tc fo =
 prop_Text_Load_NodeFail fields =
     length fields /= 8 ==> isNothing $ Text.loadNode fields
 
+prop_Text_NodeLSIdempotent node =
+    (Text.loadNode .
+         Utils.sepSplit '|' . Text.serializeNode) n ==
+    Just (Node.name n, n)
+    -- override failN1 to what loadNode returns by default
+    where n = node { Node.failN1 = True, Node.offline = False }
+
 testText =
     [ run prop_Text_Load_Instance
     , run prop_Text_Load_InstanceFail
     , run prop_Text_Load_Node
     , run prop_Text_Load_NodeFail
+    , run prop_Text_NodeLSIdempotent
     ]
 
 -- Node tests
