@@ -17,6 +17,137 @@ As for 2.1 and 2.2 we divide the 2.3 design into three areas:
 Core changes
 ============
 
+Node Groups
+-----------
+
+Current state and shortcomings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently all nodes of a Ganeti cluster are considered as part of the
+same pool, for allocation purposes: DRBD instances for example can be
+allocated on any two nodes.
+
+This does cause a problem in cases where nodes are not all equally
+connected to each other. For example if a cluster is created over two
+set of machines, each connected to its own switch, the internal bandwidth
+between machines connected to the same switch might be bigger than the
+bandwidth for inter-switch connections.
+
+Moreover some operations inside a cluster require all nodes to be locked
+together for inter-node consistency, and won't scale if we increase the
+number of nodes to a few hundreds.
+
+Proposed changes
+~~~~~~~~~~~~~~~~
+
+With this change we'll divide Ganeti nodes into groups. Nothing will
+change for clusters with only one node group, the default one. Bigger
+cluster instead will be able to have more than one group, and each node
+will belong to exactly one.
+
+Node group management
++++++++++++++++++++++
+
+To manage node groups and the nodes belonging to them, the following new
+commands/flags will be introduced::
+
+  gnt-node group-add <group> # add a new node group
+  gnt-node group-del <group> # delete an empty group
+  gnt-node group-list # list node groups
+  gnt-node group-rename <oldname> <newname> # rename a group
+  gnt-node list/info -g <group> # list only nodes belongin to a group
+  gnt-node add -g <group> # add a node to a certain group
+  gnt-node modify -g <group> # move a node to a new group
+
+Instance level changes
+++++++++++++++++++++++
+
+Instances will be able to live in only one group at a time. This is
+mostly important for DRBD instances, in which case both their primary
+and secondary nodes will need to be in the same group. To support this
+we envision the following changes:
+
+  - The cluster will have a default group, which will initially be
+  - Instance allocation will happen to the cluster's default group
+    (which will be changable via gnt-cluster modify or RAPI) unless a
+    group is explicitely specified in the creation job (with -g or via
+    RAPI). Iallocator will be only passed the nodes belonging to that
+    group.
+  - Moving an instance between groups can only happen via an explicit
+    operation, which for example in the case of DRBD will work by
+    performing internally a replace-disks, a migration, and a second
+    replace-disks. It will be possible to cleanup an interrupted
+    group-move operation.
+  - Cluster verify will signal an error if an instance has been left
+    mid-transition between groups.
+  - Intra-group instance migration/failover will check that the target
+    group will be able to accept the instance network/storage wise, and
+    fail otherwise. In the future we may be able to make some parameter
+    changed during the move, but in the first version we expect an
+    import/export if this is not possible.
+  - From an allocation point of view, inter-group movements will be
+    shown to a iallocator as a new allocation over the target group.
+    Only in a future version we may add allocator extensions to decide
+    which group the instance should be in. In the meantime we expect
+    Ganeti administrators to either put instances on different groups by
+    filling all groups first, or to have their own strategy based on the
+    instance needs.
+
+Cluster/Internal/Config level changes
++++++++++++++++++++++++++++++++++++++
+
+We expect the following changes for cluster management:
+
+  - Frequent multinode operations, such as os-diagnose or cluster-verify
+    will act one group at a time. The default group will be used if none
+    is passed. Command line tools will have a way to easily target all
+    groups, by generating one job per group.
+  - Groups will have a human-readable name, but will internally always
+    be referenced by a UUID, which will be immutable. For example the
+    cluster object will contain the UUID of the default group, each node
+    will contain the UUID of the group it belongs to, etc. This is done
+    to simplify referencing while keeping it easy to handle renames and
+    movements. If we see that this works well, we'll transition other
+    config objects (instances, nodes) to the same model.
+  - The addition of a new per-group lock will be evaluated, if we can
+    transition some operations now requiring the BGL to it.
+  - Master candidate status will be allowed to be spread among groups.
+    For the first version we won't add any restriction over how this is
+    done, although in the future we may have a minimum number of master
+    candidates which Ganeti will try to keep in each group, for example.
+
+Other work and future changes
++++++++++++++++++++++++++++++
+
+Commands like gnt-cluster command/copyfile will continue to work on the
+whole cluster, but it will be possible to target one group only by
+specifying it.
+
+Commands which allow selection of sets of resources (for example
+gnt-instance start/stop) will be able to select them by node group as
+well.
+
+Initially node groups won't be taggable objects, to simplify the first
+implementation, but we expect this to be easy to add in a future version
+should we see it's useful.
+
+We envision groups as a good place to enhance cluster scalability. In
+the future we may want to use them ad units for configuration diffusion,
+to allow a better master scalability. For example it could be possible
+to change some all-nodes RPCs to contact each group once, from the
+master, and make one node in the group perform internal diffusion. We
+won't implement this in the first version, but we'll evaluate it for the
+future, if we see scalability problems on big multi-group clusters.
+
+When Ganeti will support more storage models (eg. SANs, sheepdog, ceph)
+we expect groups to be the basis for this, allowing for example a
+different sheepdog/ceph cluster, or a different SAN to be connected to
+each group. In some cases this will mean that inter-group move operation
+will be necessarily performed with instance downtime, unless the
+hypervisor has block-migrate functionality, and we implement support for
+it (this would be theoretically possible, today, with KVM, for example).
+
+
 Job priorities
 --------------
 
