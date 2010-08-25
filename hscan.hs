@@ -45,7 +45,7 @@ import qualified Ganeti.HTools.Rapi as Rapi
 #endif
 import qualified Ganeti.HTools.Luxi as Luxi
 import qualified Ganeti.HTools.Loader as Loader
-import Ganeti.HTools.Text (serializeNodes, serializeInstances)
+import Ganeti.HTools.Text (serializeCluster)
 
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Types
@@ -94,9 +94,7 @@ processData :: Result (Node.AssocList, Instance.AssocList, [String])
 processData input_data = do
   (nl, il, _) <- input_data >>= Loader.mergeData [] [] []
   let (_, fix_nl) = Loader.checkData nl il
-  let ndata = serializeNodes nl
-      idata = serializeInstances nl il
-      adata = ndata ++ ['\n'] ++ idata
+      adata = serializeCluster nl il
   return (fix_nl, il, adata)
 
 -- | Writes cluster data out

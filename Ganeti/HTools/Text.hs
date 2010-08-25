@@ -34,6 +34,7 @@ module Ganeti.HTools.Text
     , serializeInstances
     , serializeNode
     , serializeNodes
+    , serializeCluster
     ) where
 
 import Control.Monad
@@ -80,6 +81,13 @@ serializeInstance nl inst =
 serializeInstances :: Node.List -> Instance.List -> String
 serializeInstances nl =
     unlines . map (serializeInstance nl) . Container.elems
+
+-- | Generate complete cluster data from node and instance lists
+serializeCluster :: Node.List -> Instance.List -> String
+serializeCluster nl il =
+  let ndata = serializeNodes nl
+      idata = serializeInstances nl il
+  in ndata ++ ['\n'] ++ idata
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
