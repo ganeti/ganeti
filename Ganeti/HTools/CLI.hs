@@ -8,7 +8,7 @@ and this is more IO oriented.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -60,6 +60,7 @@ module Ganeti.HTools.CLI
     , oPrintNodes
     , oQuiet
     , oRapiMaster
+    , oSaveCluster
     , oShowHelp
     , oShowVer
     , oTieredSpec
@@ -105,6 +106,7 @@ data Options = Options
     , optOffline     :: [String]       -- ^ Names of offline nodes
     , optOneline     :: Bool           -- ^ Switch output to a single line
     , optOutPath     :: FilePath       -- ^ Path to the output directory
+    , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
     , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
     , optShowHelp    :: Bool           -- ^ Just show the help
     , optShowInsts   :: Bool           -- ^ Whether to show the instance map
@@ -137,6 +139,7 @@ defaultOptions  = Options
  , optOffline     = []
  , optOneline     = False
  , optOutPath     = "."
+ , optSaveCluster = Nothing
  , optShowCmds    = Nothing
  , optShowHelp    = False
  , optShowInsts   = False
@@ -303,6 +306,11 @@ oRapiMaster :: OptType
 oRapiMaster = Option "m" ["master"]
               (ReqArg (\ m opts -> Ok opts { optMaster = m }) "ADDRESS")
               "collect data via RAPI at the given ADDRESS"
+
+oSaveCluster :: OptType
+oSaveCluster = Option "S" ["save"]
+            (ReqArg (\ f opts -> Ok opts { optSaveCluster = Just f }) "FILE")
+            "Save cluster state at the end of the processing to FILE"
 
 oShowHelp :: OptType
 oShowHelp = Option "h" ["help"]
