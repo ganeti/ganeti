@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ module Ganeti.HTools.QC
 
 import Test.QuickCheck
 import Test.QuickCheck.Batch
-import Data.List (findIndex)
+import Data.List (findIndex, intercalate)
 import Data.Maybe
 import Control.Monad
 import qualified Text.JSON as J
@@ -127,10 +127,31 @@ canBalance tbl dm evac = isJust $ Cluster.tryBalance tbl dm evac
 instance Arbitrary Char where
     arbitrary = choose ('\32', '\128')
 
+newtype DNSChar = DNSChar { dnsGetChar::Char }
+instance Arbitrary DNSChar where
+    arbitrary = do
+      x <- elements (['a'..'z'] ++ ['0'..'9'] ++ "_-")
+      return (DNSChar x)
+
+getName :: Gen String
+getName = do
+  n <- choose (1, 64)
+  dn <- vector n::Gen [DNSChar]
+  return (map dnsGetChar dn)
+
+
+getFQDN :: Gen String
+getFQDN = do
+  felem <- getName
+  ncomps <- choose (1, 4)
+  frest <- vector ncomps::Gen [[DNSChar]]
+  let frest' = map (map dnsGetChar) frest
+  return (felem ++ "." ++ intercalate "." frest')
+
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
     arbitrary = do
-      name <- arbitrary
+      name <- getFQDN
       mem <- choose (0, maxMem)
       dsk <- choose (0, maxDsk)
       run_st <- elements ["ERROR_up", "ERROR_down", "ADMIN_down"
@@ -145,7 +166,7 @@ instance Arbitrary Instance.Instance where
 -- and a random node
 instance Arbitrary Node.Node where
     arbitrary = do
-      name <- arbitrary
+      name <- getFQDN
       mem_t <- choose (0, maxMem)
       mem_f <- choose (0, mem_t)
       mem_n <- choose (0, mem_t - mem_f)
