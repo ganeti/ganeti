@@ -261,7 +261,7 @@ main = do
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
       stop_allocation = length bad_nodes > 0
-      result_noalloc = ([(FailN1, 1)]::FailStats, nl, [])
+      result_noalloc = ([(FailN1, 1)]::FailStats, nl, il, [])
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
@@ -280,7 +280,7 @@ main = do
   (case optTieredSpec opts of
      Nothing -> return ()
      Just tspec -> do
-       (_, trl_nl, trl_ixes) <-
+       (_, trl_nl, _, trl_ixes) <-
            if stop_allocation
            then return result_noalloc
            else exitifbad (Cluster.tieredAlloc nl il (iofspec tspec)
@@ -311,7 +311,7 @@ main = do
 
   -- Run the standard (avg-mode) allocation
 
-  (ereason, fin_nl, ixes) <-
+  (ereason, fin_nl, _, ixes) <-
       if stop_allocation
       then return result_noalloc
       else exitifbad (Cluster.iterateAlloc nl il reqinst req_nodes [])

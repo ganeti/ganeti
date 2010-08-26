@@ -7,7 +7,7 @@ goes into the "Main" module for the individual binaries.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -632,7 +632,8 @@ iterateAlloc :: Node.List
              -> Instance.Instance
              -> Int
              -> [Instance.Instance]
-             -> Result (FailStats, Node.List, [Instance.Instance])
+             -> Result (FailStats, Node.List, Instance.List,
+                        [Instance.Instance])
 iterateAlloc nl il newinst nreq ixes =
       let depth = length ixes
           newname = printf "new-%d" depth::String
@@ -642,9 +643,10 @@ iterateAlloc nl il newinst nreq ixes =
            Bad s -> Bad s
            Ok (errs, _, sols3) ->
                case sols3 of
-                 [] -> Ok (collapseFailures errs, nl, ixes)
+                 [] -> Ok (collapseFailures errs, nl, il, ixes)
                  (_, (xnl, xi, _)):[] ->
-                     iterateAlloc xnl il newinst nreq $! (xi:ixes)
+                     iterateAlloc xnl (Container.add newidx xi il)
+                                  newinst nreq $! (xi:ixes)
                  _ -> Bad "Internal error: multiple solutions for single\
                           \ allocation"
 
@@ -653,16 +655,17 @@ tieredAlloc :: Node.List
             -> Instance.Instance
             -> Int
             -> [Instance.Instance]
-            -> Result (FailStats, Node.List, [Instance.Instance])
+            -> Result (FailStats, Node.List, Instance.List,
+                       [Instance.Instance])
 tieredAlloc nl il newinst nreq ixes =
     case iterateAlloc nl il newinst nreq ixes of
       Bad s -> Bad s
-      Ok (errs, nl', ixes') ->
+      Ok (errs, nl', il', ixes') ->
           case Instance.shrinkByType newinst . fst . last $
                sortBy (comparing snd) errs of
-            Bad _ -> Ok (errs, nl', ixes')
+            Bad _ -> Ok (errs, nl', il', ixes')
             Ok newinst' ->
-                tieredAlloc nl' il newinst' nreq ixes'
+                tieredAlloc nl' il' newinst' nreq ixes'
 
 -- * Formatting functions
 
