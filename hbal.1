@@ -442,6 +442,12 @@ collecting via RAPI or LUXI). This or one of the other backends must
 be selected.
 
 .TP
+.BI "-S" datafile ", --save-cluster=" datafile
+If given, the state of the cluster at the end of the balancing is
+saved to the given file. This allows re-feeding the cluster state to
+either hbal itself or for example hspace.
+
+.TP
 .BI "-m" cluster
 Collect data directly from the
 .I cluster
