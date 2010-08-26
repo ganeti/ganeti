@@ -409,7 +409,7 @@ addSecEx force t inst pdx =
     in case () of
          _ | new_dsk <= 0 -> T.OpFail T.FailDisk
            | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
-           | Instance.mem inst >= old_mem -> T.OpFail T.FailMem
+           | Instance.mem inst >= old_mem && strict -> T.OpFail T.FailMem
            | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
            | otherwise ->
                let new_slist = iname:sList t
