@@ -38,6 +38,10 @@ from ganeti import utils
 from ganeti import compat
 
 
+_EXCLUSIVE_TEXT = "exclusive"
+_SHARED_TEXT = "shared"
+
+
 def ssynchronized(mylock, shared=0):
   """Shared Synchronization decorator.
 
@@ -343,7 +347,7 @@ class PipeCondition(_BaseCondition):
 
   """
   __slots__ = [
-    "_nwaiters",
+    "_waiters",
     "_single_condition",
     ]
 
@@ -354,7 +358,7 @@ class PipeCondition(_BaseCondition):
 
     """
     _BaseCondition.__init__(self, lock)
-    self._nwaiters = 0
+    self._waiters = set()
     self._single_condition = self._single_condition_class(self._lock)
 
   def wait(self, timeout=None):
@@ -368,15 +372,14 @@ class PipeCondition(_BaseCondition):
 
     # Keep local reference to the pipe. It could be replaced by another thread
     # notifying while we're waiting.
-    my_condition = self._single_condition
+    cond = self._single_condition
 
-    assert self._nwaiters >= 0
-    self._nwaiters += 1
+    self._waiters.add(threading.currentThread())
     try:
-      my_condition.wait(timeout)
+      cond.wait(timeout)
     finally:
-      assert self._nwaiters > 0
-      self._nwaiters -= 1
+      self._check_owned()
+      self._waiters.remove(threading.currentThread())
 
   def notifyAll(self): # pylint: disable-msg=C0103
     """Notify all currently waiting threads.
@@ -386,13 +389,21 @@ class PipeCondition(_BaseCondition):
     self._single_condition.notifyAll()
     self._single_condition = self._single_condition_class(self._lock)
 
+  def get_waiting(self):
+    """Returns a list of all waiting threads.
+
+    """
+    self._check_owned()
+
+    return self._waiters
+
   def has_waiting(self):
     """Returns whether there are active waiters.
 
     """
     self._check_owned()
 
-    return bool(self._nwaiters)
+    return bool(self._waiters)
 
 
 class SharedLock(object):
@@ -479,9 +490,9 @@ class SharedLock(object):
             info.append("deleted")
             assert not (self.__exc or self.__shr)
           elif self.__exc:
-            info.append("exclusive")
+            info.append(_EXCLUSIVE_TEXT)
           elif self.__shr:
-            info.append("shared")
+            info.append(_SHARED_TEXT)
           else:
             info.append(None)
         elif fname == "owner":
@@ -495,6 +506,21 @@ class SharedLock(object):
             info.append([i.getName() for i in owner])
           else:
             info.append(None)
+        elif fname == "pending":
+          data = []
+
+          for cond in self.__pending:
+            if cond in (self.__active_shr_c, self.__inactive_shr_c):
+              mode = _SHARED_TEXT
+            else:
+              mode = _EXCLUSIVE_TEXT
+
+            # This function should be fast as it runs with the lock held. Hence
+            # not using utils.NiceSort.
+            data.append((mode, sorted([i.getName()
+                                       for i in cond.get_waiting()])))
+
+          info.append(data)
         else:
           raise errors.OpExecError("Invalid query field '%s'" % fname)
 

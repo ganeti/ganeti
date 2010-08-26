@@ -240,6 +240,12 @@
               <simpara>Current lock owner(s)</simpara>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>pending</term>
+            <listitem>
+              <simpara>Threads waiting for the lock</simpara>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </para>
 
