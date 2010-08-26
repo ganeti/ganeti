@@ -268,7 +268,7 @@ main = do
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
-                    (rspecCpu spx) "ADMIN_down" [] (-1) (-1)
+                    (rspecCpu spx) "running" [] (-1) (-1)
       exitifbad val = (case val of
                          Bad s -> do
                            hPrintf stderr "Failure: %s\n" s :: IO ()
