@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -46,6 +46,8 @@ import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
+import Ganeti.HTools.Text (serializeCluster)
+
 import qualified Ganeti.Luxi as L
 import Ganeti.Jobs
 
@@ -72,6 +74,7 @@ options =
     , oDynuFile
     , oExTags
     , oExInst
+    , oSaveCluster
     , oShowVer
     , oShowHelp
     ]
@@ -303,12 +306,12 @@ main = do
             writeFile out_path (shTemplate ++ cmd_data)
             printf "The commands have been written to file '%s'\n" out_path)
 
-  when (optExecJobs opts && not (null ord_plc))
-           (case optLuxi opts of
-              Nothing -> do
-                hPutStrLn stderr "Execution of commands possible only on LUXI"
-                exitWith $ ExitFailure 1
-              Just master -> execJobSet master fin_nl il cmd_jobs)
+  when (isJust $ optSaveCluster opts) $
+       do
+         let out_path = fromJust $ optSaveCluster opts
+             adata = serializeCluster fin_nl fin_il
+         writeFile out_path adata
+         printf "The cluster state has been written to file '%s'\n" out_path
 
   when (optShowInsts opts) $ do
          putStrLn ""
@@ -330,3 +333,10 @@ main = do
                        (Cluster.csFmem fin_cs) (Cluster.csFdsk fin_cs)
   when oneline $
          putStrLn $ formatOneline ini_cv (length ord_plc) fin_cv
+
+  when (optExecJobs opts && not (null ord_plc))
+           (case optLuxi opts of
+              Nothing -> do
+                hPutStrLn stderr "Execution of commands possible only on LUXI"
+                exitWith $ ExitFailure 1
+              Just master -> execJobSet master fin_nl il cmd_jobs)
