@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ import Data.Maybe (isJust, fromJust)
 import Data.Ord (comparing)
 import Monad
 import System (exitWith, ExitCode(..))
+import System.FilePath
 import System.IO
 import qualified System
 
@@ -46,6 +47,7 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
+import Ganeti.HTools.Text (serializeCluster)
 
 -- | Options list and functions
 options :: [OptType]
@@ -65,6 +67,7 @@ options =
     , oMaxCpu
     , oMinDisk
     , oTieredSpec
+    , oSaveCluster
     , oShowVer
     , oShowHelp
     ]
@@ -280,7 +283,7 @@ main = do
   (case optTieredSpec opts of
      Nothing -> return ()
      Just tspec -> do
-       (_, trl_nl, _, trl_ixes) <-
+       (_, trl_nl, trl_il, trl_ixes) <-
            if stop_allocation
            then return result_noalloc
            else exitifbad (Cluster.tieredAlloc nl il (iofspec tspec)
@@ -305,13 +308,21 @@ main = do
          hPutStrLn stderr "Tiered allocation status:"
          hPutStrLn stderr $ Cluster.printNodes trl_nl (fromJust shownodes)
 
+       when (isJust $ optSaveCluster opts) $
+            do
+              let out_path = (fromJust $ optSaveCluster opts) <.> "tiered"
+                  adata = serializeCluster trl_nl trl_il
+              writeFile out_path adata
+              hPrintf stderr "The cluster state after tiered allocation\
+                             \ has been written to file '%s'\n"
+                             out_path
        printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
        printKeys [("TSPEC", intercalate " " spec_map')]
        printAllocationStats nl trl_nl)
 
   -- Run the standard (avg-mode) allocation
 
-  (ereason, fin_nl, _, ixes) <-
+  (ereason, fin_nl, fin_il, ixes) <-
       if stop_allocation
       then return result_noalloc
       else exitifbad (Cluster.iterateAlloc nl il reqinst req_nodes [])
@@ -330,5 +341,14 @@ main = do
          hPutStrLn stderr ""
          hPutStrLn stderr "Final cluster status:"
          hPutStrLn stderr $ Cluster.printNodes fin_nl (fromJust shownodes)
+
+  when (isJust $ optSaveCluster opts) $
+       do
+         let out_path = (fromJust $ optSaveCluster opts) <.> "alloc"
+             adata = serializeCluster fin_nl fin_il
+         writeFile out_path adata
+         hPrintf stderr "The cluster state after standard allocation\
+                        \ has been written to file '%s'\n"
+                 out_path
 
   printResults fin_nl num_instances allocs sreason
