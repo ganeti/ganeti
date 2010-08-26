@@ -2,6 +2,19 @@ Ganeti-htools release notes
 ===========================
 
 
+Version 0.2.7 (Unreleased)
+--------------------------
+
+Bug fixes:
+
+- fixed the error message for hail multi-evacuation mode
+
+New features:
+
+- add a new option ``-S`` to hbal and hspace that saves the cluster
+  state at the end of the processing in the text format used by the
+  ``-t`` option, for later re-processing
+
 Version 0.2.6 (Mon, 26 Jul 2010)
 --------------------------------
 
