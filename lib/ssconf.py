@@ -29,6 +29,7 @@ configuration data, which is mostly static and available to all nodes.
 import sys
 import re
 import os
+import errno
 
 from ganeti import errors
 from ganeti import constants
@@ -307,7 +308,7 @@ class SimpleStore(object):
     filename = self._cfg_dir + '/' + self._SS_FILEPREFIX + key
     return filename
 
-  def _ReadFile(self, key):
+  def _ReadFile(self, key, default=None):
     """Generic routine to read keys.
 
     This will read the file which holds the value requested. Errors
@@ -318,6 +319,8 @@ class SimpleStore(object):
     try:
       data = utils.ReadFile(filename, size=self._MAX_SIZE)
     except EnvironmentError, err:
+      if err.errno == errno.ENOENT and default is not None:
+        return default
       raise errors.ConfigurationError("Can't read from the ssconf file:"
                                       " '%s'" % str(err))
     data = data.rstrip('\n')
@@ -466,7 +469,8 @@ class SimpleStore(object):
 
     """
     try:
-      return int(self._ReadFile(constants.SS_PRIMARY_IP_FAMILY))
+      return int(self._ReadFile(constants.SS_PRIMARY_IP_FAMILY,
+                                default=netutils.IP4Address.family))
     except (ValueError, TypeError), err:
       raise errors.ConfigurationError("Error while trying to parse primary ip"
                                       " family: %s" % err)
