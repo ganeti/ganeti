@@ -44,6 +44,7 @@ _LIST_LOCKS_DEF_FIELDS = [
   "name",
   "mode",
   "owner",
+  "pending",
   ]
 
 
@@ -423,6 +424,7 @@ def ListLocks(opts, args): # pylint: disable-msg=W0613
       "name": "Name",
       "mode": "Mode",
       "owner": "Owner",
+      "pending": "Pending",
       }
   else:
     headers = None
@@ -436,10 +438,13 @@ def ListLocks(opts, args): # pylint: disable-msg=W0613
       for idx, field in enumerate(selected_fields):
         val = row[idx]
 
-        if field in ("mode", "owner") and val is None:
+        if field in ("mode", "owner", "pending") and not val:
           val = "-"
         elif field == "owner":
-          val = utils.CommaJoin(val)
+          val = ",".join(val)
+        elif field == "pending":
+          val = utils.CommaJoin("%s:%s" % (mode, ",".join(threads))
+                                for mode, threads in val)
 
         row[idx] = str(val)
 
