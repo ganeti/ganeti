@@ -2,7 +2,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Utils
     (
       debug
+    , debugFn
+    , debugXy
     , sepSplit
     , varianceCoeff
     , commaJoin
@@ -55,6 +57,14 @@ import Ganeti.HTools.Types
 -- | To be used only for debugging, breaks referential integrity.
 debug :: Show a => a -> a
 debug x = trace (show x) x
+
+-- | Displays a modified form of the second parameter before returning it
+debugFn :: Show b => (a -> b) -> a -> a
+debugFn fn x = debug (fn x) `seq` x
+
+-- | Show the first parameter before returning the second one
+debugXy :: Show a => a -> b -> b
+debugXy a b = debug a `seq` b
 
 -- * Miscelaneous
 
