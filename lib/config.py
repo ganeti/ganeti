@@ -48,6 +48,7 @@ from ganeti import objects
 from ganeti import serializer
 from ganeti import uidpool
 from ganeti import netutils
+from ganeti import runtime
 
 
 _config_lock = locking.SharedLock("ConfigWriter")
@@ -134,7 +135,7 @@ class ConfigWriter:
   @ivar _all_rms: a list of all temporary reservation managers
 
   """
-  def __init__(self, cfg_file=None, offline=False):
+  def __init__(self, cfg_file=None, offline=False, _getents=runtime.GetEnts):
     self.write_count = 0
     self._lock = _config_lock
     self._config_data = None
@@ -143,6 +144,7 @@ class ConfigWriter:
       self._cfg_file = constants.CLUSTER_CONF_FILE
     else:
       self._cfg_file = cfg_file
+    self._getents = _getents
     self._temporary_ids = TemporaryReservationManager()
     self._temporary_drbds = {}
     self._temporary_macs = TemporaryReservationManager()
@@ -1342,7 +1344,8 @@ class ConfigWriter:
     self._BumpSerialNo()
     txt = serializer.Dump(self._config_data.ToDict())
 
-    utils.WriteFile(destination, data=txt)
+    getents = self._getents()
+    utils.WriteFile(destination, data=txt, gid=getents.confd_gid, mode=0640)
 
     self.write_count += 1
 

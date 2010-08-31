@@ -38,6 +38,11 @@ from ganeti import utils
 from ganeti import netutils
 
 import testutils
+import mocks
+
+
+def _StubGetEntResolver():
+  return mocks.FakeGetentResolver()
 
 
 class TestConfigRunner(unittest.TestCase):
@@ -55,7 +60,8 @@ class TestConfigRunner(unittest.TestCase):
 
   def _get_object(self):
     """Returns a instance of ConfigWriter"""
-    cfg = config.ConfigWriter(cfg_file=self.cfg_file, offline=True)
+    cfg = config.ConfigWriter(cfg_file=self.cfg_file, offline=True,
+                              _getents=_StubGetEntResolver)
     return cfg
 
   def _init_cluster(self, cfg):
