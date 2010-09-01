@@ -49,6 +49,8 @@ module Ganeti.HTools.CLI
     , oMaxCpu
     , oMaxSolLength
     , oMinDisk
+    , oMinGain
+    , oMinGainLim
     , oMinScore
     , oNoHeaders
     , oNodeSim
@@ -100,6 +102,8 @@ data Options = Options
     , optMaxLength   :: Int            -- ^ Stop after this many steps
     , optMcpu        :: Double         -- ^ Max cpu ratio for nodes
     , optMdsk        :: Double         -- ^ Max disk usage ratio for nodes
+    , optMinGain     :: Score          -- ^ Min gain we aim for in a step
+    , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
     , optMinScore    :: Score          -- ^ The minimum score we aim for
     , optNoHeaders   :: Bool           -- ^ Do not show a header line
     , optNodeSim     :: Maybe String   -- ^ Cluster simulation mode
@@ -133,6 +137,8 @@ defaultOptions  = Options
  , optMaxLength   = -1
  , optMcpu        = defVcpuRatio
  , optMdsk        = defReservedDiskRatio
+ , optMinGain     = 1e-2
+ , optMinGainLim  = 1e-1
  , optMinScore    = 1e-9
  , optNoHeaders   = False
  , optNodeSim     = Nothing
@@ -242,10 +248,20 @@ oMinDisk = Option "" ["min-disk"]
            (ReqArg (\ n opts -> Ok opts { optMdsk = read n }) "RATIO")
            "minimum free disk space for nodes (between 0 and 1) [0]"
 
+oMinGain :: OptType
+oMinGain = Option "g" ["min-gain"]
+            (ReqArg (\ g opts -> Ok opts { optMinGain = read g }) "DELTA")
+            "minimum gain to aim for in a balancing step before giving up"
+
+oMinGainLim :: OptType
+oMinGainLim = Option "" ["min-gain-limit"]
+            (ReqArg (\ g opts -> Ok opts { optMinGainLim = read g }) "SCORE")
+            "minimum cluster score for which we start checking the min-gain"
+
 oMinScore :: OptType
 oMinScore = Option "e" ["min-score"]
             (ReqArg (\ e opts -> Ok opts { optMinScore = read e }) "EPSILON")
-            " mininum score to aim for"
+            "mininum score to aim for"
 
 oNoHeaders :: OptType
 oNoHeaders = Option "" ["no-headers"]
