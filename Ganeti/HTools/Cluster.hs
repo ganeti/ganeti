@@ -497,8 +497,10 @@ doNextBalance ini_tbl max_rounds min_score =
 tryBalance :: Table       -- ^ The starting table
            -> Bool        -- ^ Allow disk moves
            -> Bool        -- ^ Only evacuate moves
+           -> Score       -- ^ Min gain threshold
+           -> Score       -- ^ Min gain
            -> Maybe Table -- ^ The resulting table and commands
-tryBalance ini_tbl disk_moves evac_mode =
+tryBalance ini_tbl disk_moves evac_mode mg_limit min_gain =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
         all_inst' = if evac_mode
@@ -514,7 +516,7 @@ tryBalance ini_tbl disk_moves evac_mode =
         fin_tbl = checkMove node_idx disk_moves ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
-      if fin_cv < ini_cv
+      if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
       then Just fin_tbl -- this round made success, return the new table
       else Nothing
 

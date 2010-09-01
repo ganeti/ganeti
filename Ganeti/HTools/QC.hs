@@ -119,7 +119,7 @@ isNodeBig node size = Node.availDisk node > size * Types.unitDsk
                       && Node.availCpu node > size * Types.unitCpu
 
 canBalance :: Cluster.Table -> Bool -> Bool -> Bool
-canBalance tbl dm evac = isJust $ Cluster.tryBalance tbl dm evac
+canBalance tbl dm evac = isJust $ Cluster.tryBalance tbl dm evac 0 0
 
 -- * Arbitrary instances
 
