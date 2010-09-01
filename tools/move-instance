@@ -437,7 +437,7 @@ class MoveDestExecutor(object):
       mrt.dest_to_source.release()
 
   @staticmethod
-  def _CreateInstance(cl, name, snode, pnode, iallocator, instance, expinfo):
+  def _CreateInstance(cl, name, pnode, snode, iallocator, instance, expinfo):
     """Starts the instance creation in remote import mode.
 
     @type cl: L{rapi.client.GanetiRapiClient}
