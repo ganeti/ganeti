@@ -25,6 +25,7 @@ Algorithm options:
 .BI "[ --min-disk " disk-ratio " ]"
 .BI "[ -l " limit " ]"
 .BI "[ -e " score " ]"
+.BI "[ -g " delta " ] [ --min-gain-limit " threshold " ]"
 .BI "[ -O " name... " ]"
 .B "[ --no-disk-moves ]"
 .BI "[ -U " util-file " ]"
@@ -395,6 +396,22 @@ value, we exit the algorithm
 The default value of the parameter is currently \fI1e-9\fR (chosen
 empirically).
 .RE
+
+.TP
+.BI "-g" delta ", --min-gain=" delta
+Since the balancing algorithm can sometimes result in just very tiny
+improvements, that bring less gain that they cost in relocation time,
+this parameter (defaulting to 0.01) represents the minimum gain we
+require during a step, to continue balancing.
+
+.TP
+.BI "--min-gain-limit=" threshold
+The above min-gain option will only take effect if the cluster score
+is already below \fIthreshold\fR (defaults to 0.1). The rationale
+behind this setting is that at high cluster scores (badly balanced
+clusters), we don't want to abort the rebalance too quickly, as later
+gains might still be significant. However, under the threshold, the
+total gain is only the threshold value, so we can exit early.
 
 .TP
 .BI "--no-disk-moves"
