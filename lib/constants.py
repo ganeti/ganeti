@@ -841,6 +841,16 @@ OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
                            OP_STATUS_SUCCESS,
                            OP_STATUS_ERROR])
 
+# OpCode priority
+OP_PRIO_LOWEST = +19
+OP_PRIO_HIGHEST = -20
+
+OP_PRIO_LOW = +10
+OP_PRIO_NORMAL = 0
+OP_PRIO_HIGH = -10
+
+OP_PRIO_DEFAULT = OP_PRIO_NORMAL
+
 # Execution log types
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"

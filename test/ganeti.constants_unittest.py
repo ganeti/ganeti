@@ -26,6 +26,7 @@ import unittest
 import re
 
 from ganeti import constants
+from ganeti import locking
 
 import testutils
 
@@ -67,6 +68,14 @@ class TestConstants(unittest.TestCase):
   def testSslCertExpiration(self):
     self.failUnless(constants.SSL_CERT_EXPIRATION_ERROR <
                     constants.SSL_CERT_EXPIRATION_WARN)
+
+  def testOpCodePriority(self):
+    self.failUnless(constants.OP_PRIO_LOWEST > constants.OP_PRIO_LOW)
+    self.failUnless(constants.OP_PRIO_LOW > constants.OP_PRIO_NORMAL)
+    self.failUnlessEqual(constants.OP_PRIO_NORMAL, locking._DEFAULT_PRIORITY)
+    self.failUnlessEqual(constants.OP_PRIO_DEFAULT, locking._DEFAULT_PRIORITY)
+    self.failUnless(constants.OP_PRIO_NORMAL > constants.OP_PRIO_HIGH)
+    self.failUnless(constants.OP_PRIO_HIGH > constants.OP_PRIO_HIGHEST)
 
 
 class TestParameterNames(unittest.TestCase):
