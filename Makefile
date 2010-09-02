@@ -23,7 +23,7 @@ test live-test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-missing-methods -fno-warn-unused-imports
 
 $(DOCS) : %.html : %
-	rst2html $< $@
+	rst2html -v --strict $< $@
 
 doc: $(DOCS) Ganeti/HTools/Version.hs
 	rm -rf $(HDDIR)/*
