@@ -148,7 +148,7 @@ def _RunSetupSSH(options, nodes):
     cmd.append("--debug")
   elif options.verbose:
     cmd.append("--verbose")
-  if options.ssh_key_check:
+  if not options.ssh_key_check:
     cmd.append("--no-ssh-key-check")
 
   cmd.extend(nodes)
