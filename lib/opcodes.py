@@ -480,7 +480,6 @@ class OpCreateInstance(OpCode):
     "source_handshake",
     "source_x509_ca",
     "source_instance_name",
-    "dry_run",
     ]
 
 
