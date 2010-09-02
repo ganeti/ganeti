@@ -32,6 +32,8 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import errors
 from ganeti import jqueue
+from ganeti import opcodes
+from ganeti import compat
 
 import testutils
 
@@ -237,6 +239,104 @@ class TestEncodeOpError(unittest.TestCase):
     encerr = jqueue._EncodeOpError("Hello World")
     self.assert_(isinstance(encerr, tuple))
     self.assertRaises(errors.OpExecError, errors.MaybeRaise, encerr)
+
+
+class TestQueuedOpCode(unittest.TestCase):
+  def testDefaults(self):
+    def _Check(op):
+      self.assertFalse(hasattr(op.input, "dry_run"))
+      self.assertEqual(op.priority, constants.OP_PRIO_DEFAULT)
+      self.assertFalse(op.log)
+      self.assert_(op.start_timestamp is None)
+      self.assert_(op.exec_timestamp is None)
+      self.assert_(op.end_timestamp is None)
+      self.assert_(op.result is None)
+      self.assertEqual(op.status, constants.OP_STATUS_QUEUED)
+
+    op1 = jqueue._QueuedOpCode(opcodes.OpTestDelay())
+    _Check(op1)
+    op2 = jqueue._QueuedOpCode.Restore(op1.Serialize())
+    _Check(op2)
+    self.assertEqual(op1.Serialize(), op2.Serialize())
+
+  def testPriority(self):
+    def _Check(op):
+      assert constants.OP_PRIO_DEFAULT != constants.OP_PRIO_HIGH, \
+             "Default priority equals high priority; test can't work"
+      self.assertEqual(op.priority, constants.OP_PRIO_HIGH)
+      self.assertEqual(op.status, constants.OP_STATUS_QUEUED)
+
+    inpop = opcodes.OpGetTags(priority=constants.OP_PRIO_HIGH)
+    op1 = jqueue._QueuedOpCode(inpop)
+    _Check(op1)
+    op2 = jqueue._QueuedOpCode.Restore(op1.Serialize())
+    _Check(op2)
+    self.assertEqual(op1.Serialize(), op2.Serialize())
+
+
+class TestQueuedJob(unittest.TestCase):
+  def testDefaults(self):
+    job_id = 4260
+    ops = [
+      opcodes.OpGetTags(),
+      opcodes.OpTestDelay(),
+      ]
+
+    def _Check(job):
+      self.assertEqual(job.id, job_id)
+      self.assertEqual(job.log_serial, 0)
+      self.assert_(job.received_timestamp)
+      self.assert_(job.start_timestamp is None)
+      self.assert_(job.end_timestamp is None)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
+      self.assert_(repr(job).startswith("<"))
+      self.assertEqual(len(job.ops), len(ops))
+      self.assert_(compat.all(inp.__getstate__() == op.input.__getstate__()
+                              for (inp, op) in zip(ops, job.ops)))
+
+    job1 = jqueue._QueuedJob(None, job_id, ops)
+    _Check(job1)
+    job2 = jqueue._QueuedJob.Restore(None, job1.Serialize())
+    _Check(job2)
+    self.assertEqual(job1.Serialize(), job2.Serialize())
+
+  def testPriority(self):
+    job_id = 4283
+    ops = [
+      opcodes.OpGetTags(priority=constants.OP_PRIO_DEFAULT),
+      opcodes.OpTestDelay(),
+      ]
+
+    def _Check(job):
+      self.assertEqual(job.id, job_id)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assert_(repr(job).startswith("<"))
+
+    job = jqueue._QueuedJob(None, job_id, ops)
+    _Check(job)
+    self.assert_(compat.all(op.priority == constants.OP_PRIO_DEFAULT
+                            for op in job.ops))
+    self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
+
+    # Increase first
+    job.ops[0].priority -= 1
+    _Check(job)
+    self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT - 1)
+
+    # Mark opcode as finished
+    job.ops[0].status = constants.OP_STATUS_SUCCESS
+    _Check(job)
+    self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
+
+    # Increase second
+    job.ops[1].priority -= 10
+    self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT - 10)
+
+    # Test increasing first
+    job.ops[0].status = constants.OP_STATUS_RUNNING
+    job.ops[0].priority -= 19
+    self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT - 20)
 
 
 if __name__ == "__main__":

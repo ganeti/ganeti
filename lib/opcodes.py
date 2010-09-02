@@ -117,10 +117,11 @@ class OpCode(BaseOpCode):
                children of this class.
   @ivar dry_run: Whether the LU should be run in dry-run mode, i.e. just
                  the check steps
+  @ivar priority: Opcode priority for queue
 
   """
   OP_ID = "OP_ABSTRACT"
-  __slots__ = ["dry_run", "debug_level"]
+  __slots__ = ["dry_run", "debug_level", "priority"]
 
   def __getstate__(self):
     """Specialized getstate for opcodes.

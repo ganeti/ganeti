@@ -95,7 +95,7 @@ class _QueuedOpCode(object):
   @ivar stop_timestamp: timestamp for the end of the execution
 
   """
-  __slots__ = ["input", "status", "result", "log",
+  __slots__ = ["input", "status", "result", "log", "priority",
                "start_timestamp", "exec_timestamp", "end_timestamp",
                "__weakref__"]
 
@@ -113,6 +113,9 @@ class _QueuedOpCode(object):
     self.start_timestamp = None
     self.exec_timestamp = None
     self.end_timestamp = None
+
+    # Get initial priority (it might change during the lifetime of this opcode)
+    self.priority = getattr(op, "priority", constants.OP_PRIO_DEFAULT)
 
   @classmethod
   def Restore(cls, state):
@@ -132,6 +135,7 @@ class _QueuedOpCode(object):
     obj.start_timestamp = state.get("start_timestamp", None)
     obj.exec_timestamp = state.get("exec_timestamp", None)
     obj.end_timestamp = state.get("end_timestamp", None)
+    obj.priority = state.get("priority", constants.OP_PRIO_DEFAULT)
     return obj
 
   def Serialize(self):
@@ -149,6 +153,7 @@ class _QueuedOpCode(object):
       "start_timestamp": self.start_timestamp,
       "exec_timestamp": self.exec_timestamp,
       "end_timestamp": self.end_timestamp,
+      "priority": self.priority,
       }
 
 
@@ -301,6 +306,24 @@ class _QueuedJob(object):
       status = constants.JOB_STATUS_SUCCESS
 
     return status
+
+  def CalcPriority(self):
+    """Gets the current priority for this job.
+
+    Only unfinished opcodes are considered. When all are done, the default
+    priority is used.
+
+    @rtype: int
+
+    """
+    priorities = [op.priority for op in self.ops
+                  if op.status not in constants.OPS_FINALIZED]
+
+    if not priorities:
+      # All opcodes are done, assume default priority
+      return constants.OP_PRIO_DEFAULT
+
+    return min(priorities)
 
   def GetLogEntries(self, newer_than):
     """Selectively returns the log entries.
