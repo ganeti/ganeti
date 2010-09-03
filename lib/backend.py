@@ -306,7 +306,11 @@ def StartMaster(start_daemons, no_voting):
         utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
                       master_ip, master_ip])
       elif ipcls == netutils.IP6Address:
-        utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
+        try:
+          utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
+        except errors.OpExecError:
+          # TODO: Better error reporting
+          logging.warning("Can't execute ndisc6, please install if missing")
 
   if err_msgs:
     _Fail("; ".join(err_msgs))
