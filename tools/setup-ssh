@@ -231,7 +231,7 @@ def SetupLogging(options):
 
 
 def LoadPrivateKeys(options):
-  """Load the list of available private keys
+  """Load the list of available private keys.
 
   It loads the standard ssh key from disk and then tries to connect to
   the ssh agent too.
@@ -298,9 +298,9 @@ def LoginViaKeys(transport, username, keys):
 
 
 def LoadKnownHosts():
-  """Loads the known hosts
+  """Load the known hosts.
 
-    @return L{paramiko.util.load_host_keys} dict
+  @return: paramiko.util.load_host_keys dict
 
   """
   homedir = utils.GetHomeDir(constants.GANETI_RUNAS)

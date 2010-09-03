@@ -34,11 +34,11 @@ from ganeti import constants
 
 
 def FormatParamikoFingerprint(fingerprint):
-  """Formats the fingerprint of L{paramiko.PKey.get_fingerprint()}
+  """Format paramiko PKey fingerprint.
 
   @type fingerprint: str
   @param fingerprint: PKey fingerprint
-  @return The string hex representation of the fingerprint
+  @return: The string hex representation of the fingerprint
 
   """
   assert len(fingerprint) % 2 == 0
