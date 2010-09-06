@@ -1272,6 +1272,15 @@ class ConfigWriter:
       if item.uuid is None:
         item.uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
         modified = True
+    if not self._config_data.nodegroups:
+      default_nodegroup_uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
+      default_nodegroup = objects.NodeGroup(
+          uuid=default_nodegroup_uuid,
+          name="default",
+          members=[],
+          )
+      self._config_data.nodegroups[default_nodegroup_uuid] = default_nodegroup
+      modified = True
     if modified:
       self._WriteConfig()
       # This is ok even if it acquires the internal lock, as _UpgradeConfig is
