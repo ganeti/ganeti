@@ -45,7 +45,7 @@ from socket import AF_INET
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
-           "OS", "Node", "Cluster", "FillDict"]
+           "OS", "Node", "NodeGroup", "Cluster", "FillDict"]
 
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
@@ -889,6 +889,35 @@ class Node(TaggableObject):
     "offline",
     "drained",
     ] + _TIMESTAMPS + _UUID
+
+
+class NodeGroup(ConfigObject):
+  """Config object representing a node group."""
+  __slots__ = [
+    "name",
+    "members",
+    ] + _TIMESTAMPS + _UUID
+
+  def ToDict(self):
+    """Custom function for nodegroup.
+
+    This discards the members object, which gets recalculated and is only kept in memory.
+
+    """
+    mydict = super(NodeGroup, self).ToDict()
+    del mydict["members"]
+    return mydict
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for nodegroup.
+
+    The members slot is initialized to an empty list, upon deserialization.
+
+    """
+    obj = super(NodeGroup, cls).FromDict(val)
+    obj.members = []
+    return obj
 
 
 class Cluster(TaggableObject):
