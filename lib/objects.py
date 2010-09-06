@@ -316,8 +316,14 @@ class TaggableObject(ConfigObject):
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
-  __slots__ = (["version", "cluster", "nodes", "instances", "serial_no"] +
-               _TIMESTAMPS)
+  __slots__ = [
+    "version",
+    "cluster",
+    "nodes",
+    "nodegroups",
+    "instances",
+    "serial_no",
+    ] + _TIMESTAMPS
 
   def ToDict(self):
     """Custom function for top-level config data.
@@ -328,7 +334,7 @@ class ConfigData(ConfigObject):
     """
     mydict = super(ConfigData, self).ToDict()
     mydict["cluster"] = mydict["cluster"].ToDict()
-    for key in "nodes", "instances":
+    for key in "nodes", "instances", "nodegroups":
       mydict[key] = self._ContainerToDicts(mydict[key])
 
     return mydict
@@ -342,6 +348,7 @@ class ConfigData(ConfigObject):
     obj.cluster = Cluster.FromDict(obj.cluster)
     obj.nodes = cls._ContainerFromDicts(obj.nodes, dict, Node)
     obj.instances = cls._ContainerFromDicts(obj.instances, dict, Instance)
+    obj.nodegroups = cls._ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
     return obj
 
   def HasAnyDiskOfType(self, dev_type):
@@ -368,6 +375,10 @@ class ConfigData(ConfigObject):
       node.UpgradeConfig()
     for instance in self.instances.values():
       instance.UpgradeConfig()
+    if self.nodegroups is None:
+      self.nodegroups = {}
+    for nodegroup in self.nodegroups.values():
+      nodegroup.UpgradeConfig()
     if self.cluster.drbd_usermode_helper is None:
       # To decide if we set an helper let's check if at least one instance has
       # a DRBD disk. This does not cover all the possible scenarios but it
