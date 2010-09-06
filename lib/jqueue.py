@@ -1370,6 +1370,7 @@ class JobQueue(object):
     @return: the job object to be queued
     @raise errors.JobQueueDrainError: if the job queue is marked for draining
     @raise errors.JobQueueFull: if the job queue has too many jobs in it
+    @raise errors.GenericError: If an opcode is not valid
 
     """
     # Ok when sharing the big job queue lock, as the drain file is created when
@@ -1381,6 +1382,13 @@ class JobQueue(object):
       raise errors.JobQueueFull()
 
     job = _QueuedJob(self, job_id, ops)
+
+    # Check priority
+    for idx, op in enumerate(job.ops):
+      if op.priority not in constants.OP_PRIO_SUBMIT_VALID:
+        allowed = utils.CommaJoin(constants.OP_PRIO_SUBMIT_VALID)
+        raise errors.GenericError("Opcode %s has invalid priority %s, allowed"
+                                  " are %s" % (idx, op.priority, allowed))
 
     # Write to disk
     self.UpdateJobUnlocked(job)
