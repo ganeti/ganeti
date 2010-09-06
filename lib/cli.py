@@ -122,6 +122,7 @@ __all__ = [
   "OS_OPT",
   "OS_SIZE_OPT",
   "PRIMARY_IP_VERSION_OPT",
+  "PRIORITY_OPT",
   "RAPI_CERT_OPT",
   "READD_OPT",
   "REBOOT_TYPE_OPT",
@@ -202,6 +203,18 @@ __all__ = [
 
 NO_PREFIX = "no_"
 UN_PREFIX = "-"
+
+#: Priorities (sorted)
+_PRIORITY_NAMES = [
+  ("low", constants.OP_PRIO_LOW),
+  ("normal", constants.OP_PRIO_NORMAL),
+  ("high", constants.OP_PRIO_HIGH),
+  ]
+
+#: Priority dictionary for easier lookup
+# TODO: Replace this and _PRIORITY_NAMES with a single sorted dictionary once
+# we migrate to Python 2.6
+_PRIONAME_TO_VALUE = dict(_PRIORITY_NAMES)
 
 
 class _Argument:
@@ -1036,6 +1049,11 @@ PRIMARY_IP_VERSION_OPT = \
                metavar="%d|%d" % (constants.IP4_VERSION,
                                   constants.IP6_VERSION),
                help="Cluster-wide IP version for primary IP")
+
+PRIORITY_OPT = cli_option("--priority", default=None, dest="priority",
+                          metavar="|".join(name for name, _ in _PRIORITY_NAMES),
+                          choices=_PRIONAME_TO_VALUE.keys(),
+                          help="Priority for opcode(s) processing")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT]
