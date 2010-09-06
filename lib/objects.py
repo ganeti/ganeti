@@ -41,6 +41,8 @@ from cStringIO import StringIO
 from ganeti import errors
 from ganeti import constants
 
+from socket import AF_INET
+
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
            "OS", "Node", "Cluster", "FillDict"]
@@ -984,6 +986,10 @@ class Cluster(TaggableObject):
     # reserved_lvs added before 2.2
     if self.reserved_lvs is None:
       self.reserved_lvs = []
+
+    # primary_ip_family added before 2.3
+    if self.primary_ip_family is None:
+      self.primary_ip_family = AF_INET
 
   def ToDict(self):
     """Custom function for cluster.
