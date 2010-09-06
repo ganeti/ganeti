@@ -461,6 +461,13 @@ class ConfigWriter:
                       (node.name, node.master_candidate, node.drain,
                        node.offline))
 
+    # nodegroups checks
+    for nodegroup_uuid in data.nodegroups:
+      nodegroup = data.nodegroups[nodegroup_uuid]
+      if nodegroup.uuid != nodegroup_uuid:
+        result.append("nodegroup '%s' (uuid: '%s') indexed by wrong uuid '%s'"
+                      % (nodegroup.name, nodegroup.uuid, nodegroup_uuid))
+
     # drbd minors check
     _, duplicates = self._UnlockedComputeDRBDMap()
     for node, minor, instance_a, instance_b in duplicates:
