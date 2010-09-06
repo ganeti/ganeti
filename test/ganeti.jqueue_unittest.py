@@ -220,5 +220,24 @@ class TestWaitForJobChangesHelper(unittest.TestCase):
                       ["status"], None, None, 1.0) is None)
 
 
+class TestEncodeOpError(unittest.TestCase):
+  def test(self):
+    encerr = jqueue._EncodeOpError(errors.LockError("Test 1"))
+    self.assert_(isinstance(encerr, tuple))
+    self.assertRaises(errors.LockError, errors.MaybeRaise, encerr)
+
+    encerr = jqueue._EncodeOpError(errors.GenericError("Test 2"))
+    self.assert_(isinstance(encerr, tuple))
+    self.assertRaises(errors.GenericError, errors.MaybeRaise, encerr)
+
+    encerr = jqueue._EncodeOpError(NotImplementedError("Foo"))
+    self.assert_(isinstance(encerr, tuple))
+    self.assertRaises(errors.OpExecError, errors.MaybeRaise, encerr)
+
+    encerr = jqueue._EncodeOpError("Hello World")
+    self.assert_(isinstance(encerr, tuple))
+    self.assertRaises(errors.OpExecError, errors.MaybeRaise, encerr)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
