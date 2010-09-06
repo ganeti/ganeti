@@ -32,7 +32,6 @@ import os.path
 import sys
 import optparse
 import logging
-import socket
 
 from ganeti import constants
 from ganeti import serializer
@@ -69,16 +68,6 @@ def SetupLogging():
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(stderr_handler)
-
-
-def Cluster22To23(cluster):
-  """Upgrades the cluster object from 2.2 to 2.3.
-
-  """
-  logging.info("Upgrading the cluster object")
-  if "primary_ip_family" not in cluster:
-    # Add primary ip family to config
-    cluster["primary_ip_family"] = socket.AF_INET
 
 
 def main():
@@ -161,8 +150,6 @@ def main():
 
   elif config_major == 2 and config_minor == 2:
     logging.info("No changes necessary")
-    # TODO: For Ganeti 2.3 uncomment the following line
-    # Cluster22To23(config_data["cluster"])
 
   else:
     raise Error("Configuration version %d.%d.%d not supported by this tool" %
