@@ -462,11 +462,16 @@ class ConfigWriter:
                        node.offline))
 
     # nodegroups checks
+    nodegroups_names = set()
     for nodegroup_uuid in data.nodegroups:
       nodegroup = data.nodegroups[nodegroup_uuid]
       if nodegroup.uuid != nodegroup_uuid:
         result.append("nodegroup '%s' (uuid: '%s') indexed by wrong uuid '%s'"
                       % (nodegroup.name, nodegroup.uuid, nodegroup_uuid))
+      if nodegroup.name in nodegroups_names:
+        result.append("duplicate nodegroup name '%s'" % nodegroup.name)
+      else:
+        nodegroups_names.add(nodegroup.name)
 
     # drbd minors check
     _, duplicates = self._UnlockedComputeDRBDMap()
