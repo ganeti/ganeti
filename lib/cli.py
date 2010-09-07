@@ -1029,6 +1029,9 @@ NODRBD_STORAGE_OPT = cli_option("--no-drbd-storage", dest="drbd_storage",
                                 action="store_false", default=True,
                                 help="Disable support for DRBD")
 
+#: Options provided by all commands
+COMMON_OPTS = [DEBUG_OPT]
+
 
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
@@ -1096,7 +1099,7 @@ def _ParseArgs(argv, commands, aliases):
     cmd = aliases[cmd]
 
   func, args_def, parser_opts, usage, description = commands[cmd]
-  parser = OptionParser(option_list=parser_opts + [DEBUG_OPT],
+  parser = OptionParser(option_list=parser_opts + COMMON_OPTS,
                         description=description,
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))

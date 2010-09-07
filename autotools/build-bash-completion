@@ -575,11 +575,14 @@ def GetCommands(filename, module):
   help_option = cli.cli_option("-h", "--help", default=False,
                                action="store_true")
 
-  for (_, _, optdef, _, _) in commands.itervalues():
+  for name, (_, _, optdef, _, _) in commands.items():
     if help_option not in optdef:
       optdef.append(help_option)
-    if cli.DEBUG_OPT not in optdef:
-      optdef.append(cli.DEBUG_OPT)
+    for opt in cli.COMMON_OPTS:
+      if opt in optdef:
+        raise Exception("Common option '%s' listed for command '%s' in %s" %
+                        (opt, name, filename))
+      optdef.append(opt)
 
   # Use aliases
   aliases = getattr(module, "aliases", {})
