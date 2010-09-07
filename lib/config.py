@@ -468,6 +468,9 @@ class ConfigWriter:
       if nodegroup.uuid != nodegroup_uuid:
         result.append("nodegroup '%s' (uuid: '%s') indexed by wrong uuid '%s'"
                       % (nodegroup.name, nodegroup.uuid, nodegroup_uuid))
+      if utils.UUID_RE.match(nodegroup.name.lower()):
+        result.append("nodegroup '%s' (uuid: '%s') has uuid-like name" %
+                      (nodegroup.name, nodegroup.uuid))
       if nodegroup.name in nodegroups_names:
         result.append("duplicate nodegroup name '%s'" % nodegroup.name)
       else:
