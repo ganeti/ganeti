@@ -117,6 +117,15 @@ def WritePreamble(sw):
       sw.DecIndent()
     sw.Write("}")
 
+  sw.Write("_ganeti_nodegroup() {")
+  sw.IncIndent()
+  try:
+    nodegroups_path = os.path.join(constants.DATA_DIR, "ssconf_nodegroups")
+    sw.Write("cat %s 2>/dev/null || :", utils.ShellQuote(nodegroups_path))
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
   # Params: <offset> <options with values> <options without values>
   # Result variable: $first_arg_idx
   sw.Write("_ganeti_find_first_arg() {")
@@ -324,6 +333,8 @@ class CompletionWriter:
           WriteCompReply(sw, "-W \"$(_ganeti_os)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_ONE_IALLOCATOR:
           WriteCompReply(sw, "-W \"$(_ganeti_iallocator)\"", cur=cur)
+        elif suggest == cli.OPT_COMPL_ONE_NODEGROUP:
+          WriteCompReply(sw, "-W \"$(_ganeti_nodegroup)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_INST_ADD_NODES:
           sw.Write("local tmp= node1= pfx= curvalue=\"${optcur#*:}\"")
 
