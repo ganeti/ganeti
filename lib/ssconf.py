@@ -288,6 +288,7 @@ class SimpleStore(object):
     constants.SS_HYPERVISOR_LIST,
     constants.SS_MAINTAIN_NODE_HEALTH,
     constants.SS_UID_POOL,
+    constants.SS_NODEGROUPS,
     )
   _MAX_SIZE = 131072
 
@@ -423,6 +424,14 @@ class SimpleStore(object):
 
     """
     data = self._ReadFile(constants.SS_NODE_SECONDARY_IPS)
+    nl = data.splitlines(False)
+    return nl
+
+  def GetNodegroupList(self):
+    """Return the list of nodegroups.
+
+    """
+    data = self._ReadFile(constants.SS_NODEGROUPS)
     nl = data.splitlines(False)
     return nl
 

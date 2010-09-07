@@ -1485,6 +1485,10 @@ class ConfigWriter:
 
     uid_pool = uidpool.FormatUidPool(cluster.uid_pool, separator="\n")
 
+    nodegroups = ["%s %s" % (nodegroup.uuid, nodegroup.name) for nodegroup in
+                  self._config_data.nodegroups.values()]
+    nodegroups_data = fn(utils.NiceSort(nodegroups))
+
     return {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_CLUSTER_TAGS: cluster_tags,
@@ -1505,6 +1509,7 @@ class ConfigWriter:
       constants.SS_HYPERVISOR_LIST: hypervisor_list,
       constants.SS_MAINTAIN_NODE_HEALTH: str(cluster.maintain_node_health),
       constants.SS_UID_POOL: uid_pool,
+      constants.SS_NODEGROUPS: nodegroups_data,
       }
 
   @locking.ssynchronized(_config_lock, shared=1)
