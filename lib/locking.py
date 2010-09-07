@@ -32,6 +32,7 @@ import time
 import errno
 import weakref
 import logging
+import heapq
 
 from ganeti import errors
 from ganeti import utils
@@ -40,6 +41,8 @@ from ganeti import compat
 
 _EXCLUSIVE_TEXT = "exclusive"
 _SHARED_TEXT = "shared"
+
+_DEFAULT_PRIORITY = 0
 
 
 def ssynchronized(mylock, shared=0):
@@ -406,6 +409,19 @@ class PipeCondition(_BaseCondition):
     return bool(self._waiters)
 
 
+class _PipeConditionWithMode(PipeCondition):
+  __slots__ = [
+    "shared",
+    ]
+
+  def __init__(self, lock, shared):
+    """Initializes this class.
+
+    """
+    self.shared = shared
+    PipeCondition.__init__(self, lock)
+
+
 class SharedLock(object):
   """Implements a shared lock.
 
@@ -413,9 +429,13 @@ class SharedLock(object):
   acquire_shared().  In order to acquire the lock in an exclusive way threads
   can call acquire_exclusive().
 
-  The lock prevents starvation but does not guarantee that threads will acquire
-  the shared lock in the order they queued for it, just that they will
-  eventually do so.
+  Notes on data structures: C{__pending} contains a priority queue (heapq) of
+  all pending acquires: C{[(priority1: prioqueue1), (priority2: prioqueue2),
+  ...]}. Each per-priority queue contains a normal in-order list of conditions
+  to be notified when the lock can be acquired. Shared locks are grouped
+  together by priority and the condition for them is stored in
+  C{__pending_shared} if it already exists. C{__pending_by_prio} keeps
+  references for the per-priority queues indexed by priority for faster access.
 
   @type name: string
   @ivar name: the name of the lock
@@ -423,17 +443,17 @@ class SharedLock(object):
   """
   __slots__ = [
     "__weakref__",
-    "__active_shr_c",
-    "__inactive_shr_c",
     "__deleted",
     "__exc",
     "__lock",
     "__pending",
+    "__pending_by_prio",
+    "__pending_shared",
     "__shr",
     "name",
     ]
 
-  __condition_class = PipeCondition
+  __condition_class = _PipeConditionWithMode
 
   def __init__(self, name, monitor=None):
     """Construct a new SharedLock.
@@ -452,10 +472,8 @@ class SharedLock(object):
 
     # Queue containing waiting acquires
     self.__pending = []
-
-    # Active and inactive conditions for shared locks
-    self.__active_shr_c = self.__condition_class(self.__lock)
-    self.__inactive_shr_c = self.__condition_class(self.__lock)
+    self.__pending_by_prio = {}
+    self.__pending_shared = {}
 
     # Current lock holders
     self.__shr = set()
@@ -509,16 +527,18 @@ class SharedLock(object):
         elif fname == "pending":
           data = []
 
-          for cond in self.__pending:
-            if cond in (self.__active_shr_c, self.__inactive_shr_c):
-              mode = _SHARED_TEXT
-            else:
-              mode = _EXCLUSIVE_TEXT
+          # Sorting instead of copying and using heaq functions for simplicity
+          for (_, prioqueue) in sorted(self.__pending):
+            for cond in prioqueue:
+              if cond.shared:
+                mode = _SHARED_TEXT
+              else:
+                mode = _EXCLUSIVE_TEXT
 
-            # This function should be fast as it runs with the lock held. Hence
-            # not using utils.NiceSort.
-            data.append((mode, sorted([i.getName()
-                                       for i in cond.get_waiting()])))
+              # This function should be fast as it runs with the lock held.
+              # Hence not using utils.NiceSort.
+              data.append((mode, sorted(i.getName()
+                                        for i in cond.get_waiting())))
 
           info.append(data)
         else:
@@ -584,7 +604,23 @@ class SharedLock(object):
     """
     self.__lock.acquire()
     try:
-      return len(self.__pending)
+      return sum(len(prioqueue) for (_, prioqueue) in self.__pending)
+    finally:
+      self.__lock.release()
+
+  def _check_empty(self):
+    """Checks whether there are any pending acquires.
+
+    @rtype: bool
+
+    """
+    self.__lock.acquire()
+    try:
+      # Order is important: __find_first_pending_queue modifies __pending
+      return not (self.__find_first_pending_queue() or
+                  self.__pending or
+                  self.__pending_by_prio or
+                  self.__pending_shared)
     finally:
       self.__lock.release()
 
@@ -606,20 +642,42 @@ class SharedLock(object):
     else:
       return len(self.__shr) == 0 and self.__exc is None
 
+  def __find_first_pending_queue(self):
+    """Tries to find the topmost queued entry with pending acquires.
+
+    Removes empty entries while going through the list.
+
+    """
+    while self.__pending:
+      (priority, prioqueue) = self.__pending[0]
+
+      if not prioqueue:
+        heapq.heappop(self.__pending)
+        del self.__pending_by_prio[priority]
+        assert priority not in self.__pending_shared
+        continue
+
+      if prioqueue:
+        return prioqueue
+
+    return None
+
   def __is_on_top(self, cond):
     """Checks whether the passed condition is on top of the queue.
 
     The caller must make sure the queue isn't empty.
 
     """
-    return self.__pending[0] == cond
+    return cond == self.__find_first_pending_queue()[0]
 
-  def __acquire_unlocked(self, shared, timeout):
+  def __acquire_unlocked(self, shared, timeout, priority):
     """Acquire a shared lock.
 
     @param shared: whether to acquire in shared mode; by default an
         exclusive lock will be acquired
     @param timeout: maximum waiting time before giving up
+    @type priority: integer
+    @param priority: Priority for acquiring lock
 
     """
     self.__check_deleted()
@@ -628,26 +686,46 @@ class SharedLock(object):
     assert not self.__is_owned(), ("double acquire() on a non-recursive lock"
                                    " %s" % self.name)
 
+    # Remove empty entries from queue
+    self.__find_first_pending_queue()
+
     # Check whether someone else holds the lock or there are pending acquires.
     if not self.__pending and self.__can_acquire(shared):
       # Apparently not, can acquire lock directly.
       self.__do_acquire(shared)
       return True
 
-    if shared:
-      wait_condition = self.__active_shr_c
+    prioqueue = self.__pending_by_prio.get(priority, None)
 
-      # Check if we're not yet in the queue
-      if wait_condition not in self.__pending:
-        self.__pending.append(wait_condition)
+    if shared:
+      # Try to re-use condition for shared acquire
+      wait_condition = self.__pending_shared.get(priority, None)
+      assert (wait_condition is None or
+              (wait_condition.shared and wait_condition in prioqueue))
     else:
-      wait_condition = self.__condition_class(self.__lock)
-      # Always add to queue
-      self.__pending.append(wait_condition)
+      wait_condition = None
+
+    if wait_condition is None:
+      if prioqueue is None:
+        assert priority not in self.__pending_by_prio
+
+        prioqueue = []
+        heapq.heappush(self.__pending, (priority, prioqueue))
+        self.__pending_by_prio[priority] = prioqueue
+
+      wait_condition = self.__condition_class(self.__lock, shared)
+      prioqueue.append(wait_condition)
+
+      if shared:
+        # Keep reference for further shared acquires on same priority. This is
+        # better than trying to find it in the list of pending acquires.
+        assert priority not in self.__pending_shared
+        self.__pending_shared[priority] = wait_condition
 
     try:
       # Wait until we become the topmost acquire in the queue or the timeout
       # expires.
+      # TODO: Decrease timeout with spurious notifications
       while not (self.__is_on_top(wait_condition) and
                  self.__can_acquire(shared)):
         # Wait for notification
@@ -664,12 +742,15 @@ class SharedLock(object):
         return True
     finally:
       # Remove condition from queue if there are no more waiters
-      if not wait_condition.has_waiting() and not self.__deleted:
-        self.__pending.remove(wait_condition)
+      if not wait_condition.has_waiting():
+        prioqueue.remove(wait_condition)
+        if wait_condition.shared:
+          del self.__pending_shared[priority]
 
     return False
 
-  def acquire(self, shared=0, timeout=None, test_notify=None):
+  def acquire(self, shared=0, timeout=None, priority=_DEFAULT_PRIORITY,
+              test_notify=None):
     """Acquire a shared lock.
 
     @type shared: integer (0/1) used as a boolean
@@ -677,6 +758,8 @@ class SharedLock(object):
         exclusive lock will be acquired
     @type timeout: float
     @param timeout: maximum waiting time before giving up
+    @type priority: integer
+    @param priority: Priority for acquiring lock
     @type test_notify: callable or None
     @param test_notify: Special callback function for unittesting
 
@@ -687,7 +770,7 @@ class SharedLock(object):
       if __debug__ and callable(test_notify):
         test_notify()
 
-      return self.__acquire_unlocked(shared, timeout)
+      return self.__acquire_unlocked(shared, timeout, priority)
     finally:
       self.__lock.release()
 
@@ -710,18 +793,14 @@ class SharedLock(object):
         self.__shr.remove(threading.currentThread())
 
       # Notify topmost condition in queue
-      if self.__pending:
-        first_condition = self.__pending[0]
-        first_condition.notifyAll()
-
-        if first_condition == self.__active_shr_c:
-          self.__active_shr_c = self.__inactive_shr_c
-          self.__inactive_shr_c = first_condition
+      prioqueue = self.__find_first_pending_queue()
+      if prioqueue:
+        prioqueue[0].notifyAll()
 
     finally:
       self.__lock.release()
 
-  def delete(self, timeout=None):
+  def delete(self, timeout=None, priority=_DEFAULT_PRIORITY):
     """Delete a Shared Lock.
 
     This operation will declare the lock for removal. First the lock will be
@@ -730,6 +809,8 @@ class SharedLock(object):
 
     @type timeout: float
     @param timeout: maximum waiting time before giving up
+    @type priority: integer
+    @param priority: Priority for acquiring lock
 
     """
     self.__lock.acquire()
@@ -742,7 +823,7 @@ class SharedLock(object):
       acquired = self.__is_exclusive()
 
       if not acquired:
-        acquired = self.__acquire_unlocked(0, timeout)
+        acquired = self.__acquire_unlocked(0, timeout, priority)
 
         assert self.__is_exclusive() and not self.__is_sharer(), \
           "Lock wasn't acquired in exclusive mode"
@@ -754,8 +835,11 @@ class SharedLock(object):
         assert not (self.__exc or self.__shr), "Found owner during deletion"
 
         # Notify all acquires. They'll throw an error.
-        while self.__pending:
-          self.__pending.pop().notifyAll()
+        for (_, prioqueue) in self.__pending:
+          for cond in prioqueue:
+            cond.notifyAll()
+
+        assert self.__deleted
 
       return acquired
     finally:
@@ -908,7 +992,8 @@ class LockSet:
         self.__lock.release()
     return set(result)
 
-  def acquire(self, names, timeout=None, shared=0, test_notify=None):
+  def acquire(self, names, timeout=None, shared=0, priority=_DEFAULT_PRIORITY,
+              test_notify=None):
     """Acquire a set of resource locks.
 
     @type names: list of strings (or string)
@@ -919,6 +1004,8 @@ class LockSet:
         exclusive lock will be acquired
     @type timeout: float or None
     @param timeout: Maximum time to acquire all locks
+    @type priority: integer
+    @param priority: Priority for acquiring locks
     @type test_notify: callable or None
     @param test_notify: Special callback function for unittesting
 
@@ -945,7 +1032,7 @@ class LockSet:
         if isinstance(names, basestring):
           names = [names]
 
-        return self.__acquire_inner(names, False, shared,
+        return self.__acquire_inner(names, False, shared, priority,
                                     running_timeout.Remaining, test_notify)
 
       else:
@@ -954,18 +1041,18 @@ class LockSet:
         # Some of them may then be deleted later, but we'll cope with this.
         #
         # We'd like to acquire this lock in a shared way, as it's nice if
-        # everybody else can use the instances at the same time. If are
+        # everybody else can use the instances at the same time. If we are
         # acquiring them exclusively though they won't be able to do this
         # anyway, though, so we'll get the list lock exclusively as well in
         # order to be able to do add() on the set while owning it.
-        if not self.__lock.acquire(shared=shared,
+        if not self.__lock.acquire(shared=shared, priority=priority,
                                    timeout=running_timeout.Remaining()):
           raise _AcquireTimeout()
         try:
           # note we own the set-lock
           self._add_owned()
 
-          return self.__acquire_inner(self.__names(), True, shared,
+          return self.__acquire_inner(self.__names(), True, shared, priority,
                                       running_timeout.Remaining, test_notify)
         except:
           # We shouldn't have problems adding the lock to the owners list, but
@@ -978,13 +1065,15 @@ class LockSet:
     except _AcquireTimeout:
       return None
 
-  def __acquire_inner(self, names, want_all, shared, timeout_fn, test_notify):
+  def __acquire_inner(self, names, want_all, shared, priority,
+                      timeout_fn, test_notify):
     """Inner logic for acquiring a number of locks.
 
     @param names: Names of the locks to be acquired
     @param want_all: Whether all locks in the set should be acquired
     @param shared: Whether to acquire in shared mode
     @param timeout_fn: Function returning remaining timeout
+    @param priority: Priority for acquiring locks
     @param test_notify: Special callback function for unittesting
 
     """
@@ -1028,6 +1117,7 @@ class LockSet:
         try:
           # raises LockError if the lock was deleted
           acq_success = lock.acquire(shared=shared, timeout=timeout,
+                                     priority=priority,
                                      test_notify=test_notify_fn)
         except errors.LockError:
           if want_all:
@@ -1146,6 +1236,8 @@ class LockSet:
         lock = SharedLock(self._GetLockName(lockname), monitor=self.__monitor)
 
         if acquired:
+          # No need for priority or timeout here as this lock has just been
+          # created
           lock.acquire(shared=shared)
           # now the lock cannot be deleted, we have it!
           try:

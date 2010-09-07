@@ -205,8 +205,8 @@ Opcode priorities are synchronized to disk in order to be restored after
 a restart or crash of the master daemon.
 
 Priorities also need to be considered inside the locking library to
-ensure opcodes with higher priorities get locks first, but the design
-changes for this will be discussed in a separate section.
+ensure opcodes with higher priorities get locks first. See
+:ref:`locking priorities <locking-priorities>` for more details.
 
 Worker pool
 +++++++++++
@@ -242,6 +242,59 @@ changing its own priority. This is useful for the following cases:
 
 With these changes, the job queue will be able to implement per-job
 priorities.
+
+.. _locking-priorities:
+
+Locking
++++++++
+
+In order to support priorities in Ganeti's own lock classes,
+``locking.SharedLock`` and ``locking.LockSet``, the internal structure
+of the former class needs to be changed. The last major change in this
+area was done for Ganeti 2.1 and can be found in the respective
+:doc:`design document <design-2.1>`.
+
+The plain list (``[]``) used as a queue is replaced by a heap queue,
+similar to the `worker pool`_. The heap or priority queue does automatic
+sorting, thereby automatically taking care of priorities. For each
+priority there's a plain list with pending acquires, like the single
+queue of pending acquires before this change.
+
+When the lock is released, the code locates the list of pending acquires
+for the highest priority waiting. The first condition (index 0) is
+notified. Once all waiting threads received the notification, the
+condition is removed from the list. If the list of conditions is empty
+it's removed from the heap queue.
+
+Like before, shared acquires are grouped and skip ahead of exclusive
+acquires if there's already an existing shared acquire for a priority.
+To accomplish this, a separate dictionary of shared acquires per
+priority is maintained.
+
+To simplify the code and reduce memory consumption, the concept of the
+"active" and "inactive" condition for shared acquires is abolished. The
+lock can't predict what priorities the next acquires will use and even
+keeping a cache can become computationally expensive for arguable
+benefit (the underlying POSIX pipe, see ``pipe(2)``, needs to be
+re-created for each notification anyway).
+
+The following diagram shows a possible state of the internal queue from
+a high-level view. Conditions are shown as (waiting) threads. Assuming
+no modifications are made to the queue (e.g. more acquires or timeouts),
+the lock would be acquired by the threads in this order (concurrent
+acquires in parentheses): ``threadE1``, ``threadE2``, (``threadS1``,
+``threadS2``, ``threadS3``), (``threadS4``, ``threadS5``), ``threadE3``,
+``threadS6``, ``threadE4``, ``threadE5``.
+
+::
+
+  [
+    (0, [exc/threadE1, exc/threadE2, shr/threadS1/threadS2/threadS3]),
+    (2, [shr/threadS4/threadS5]),
+    (10, [exc/threadE3]),
+    (33, [shr/threadS6, exc/threadE4, exc/threadE5]),
+  ]
+
 
 IPv6 support
 ------------
