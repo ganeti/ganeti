@@ -409,9 +409,9 @@ class PipeCondition(_BaseCondition):
 class SharedLock(object):
   """Implements a shared lock.
 
-  Multiple threads can acquire the lock in a shared way, calling
-  acquire_shared().  In order to acquire the lock in an exclusive way threads
-  can call acquire_exclusive().
+  Multiple threads can acquire the lock in a shared way by calling
+  C{acquire(shared=1)}. In order to acquire the lock in an exclusive way
+  threads can call C{acquire(shared=0)}.
 
   The lock prevents starvation but does not guarantee that threads will acquire
   the shared lock in the order they queued for it, just that they will
