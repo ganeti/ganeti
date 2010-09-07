@@ -676,6 +676,18 @@ class _WaitForJobChangesHelper(object):
       return constants.JOB_NOTCHANGED
 
 
+def _EncodeOpError(err):
+  """Encodes an error which occurred while processing an opcode.
+
+  """
+  if isinstance(err, errors.GenericError):
+    to_encode = err
+  else:
+    to_encode = errors.OpExecError(str(err))
+
+  return errors.EncodeException(to_encode)
+
+
 class _JobQueueWorker(workerpool.BaseWorker):
   """The actual job workers.
 
@@ -764,18 +776,14 @@ class _JobQueueWorker(workerpool.BaseWorker):
               try:
                 logging.debug("Opcode %s/%s failed", idx + 1, count)
                 op.status = constants.OP_STATUS_ERROR
-                if isinstance(err, errors.GenericError):
-                  to_encode = err
-                else:
-                  to_encode = errors.OpExecError(str(err))
-                op.result = errors.EncodeException(to_encode)
+                op.result = _EncodeOpError(err)
                 op.end_timestamp = TimeStampNow()
                 logging.info("Op %s/%s: Error in opcode %s: %s",
                              idx + 1, count, op_summary, err)
 
                 to_encode = errors.OpExecError("Preceding opcode failed")
                 job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
-                                      errors.EncodeException(to_encode))
+                                      _EncodeOpError(to_encode))
 
                 # Consistency check
                 assert compat.all(i.status == constants.OP_STATUS_SUCCESS

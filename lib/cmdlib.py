@@ -6531,7 +6531,6 @@ class LUCreateInstance(LogicalUnit):
     ("identify_defaults", False, _TBool),
     ("file_driver", None, _TOr(_TNone, _TElemOf(constants.FILE_DRIVER))),
     ("file_storage_dir", None, _TMaybeString),
-    ("dry_run", False, _TBool),
     ]
   REQ_BGL = False
 

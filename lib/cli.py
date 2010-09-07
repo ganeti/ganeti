@@ -1037,6 +1037,9 @@ PRIMARY_IP_VERSION_OPT = \
                                   constants.IP6_VERSION),
                help="Cluster-wide IP version for primary IP")
 
+#: Options provided by all commands
+COMMON_OPTS = [DEBUG_OPT]
+
 
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
@@ -1104,7 +1107,7 @@ def _ParseArgs(argv, commands, aliases):
     cmd = aliases[cmd]
 
   func, args_def, parser_opts, usage, description = commands[cmd]
-  parser = OptionParser(option_list=parser_opts + [DEBUG_OPT],
+  parser = OptionParser(option_list=parser_opts + COMMON_OPTS,
                         description=description,
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))
