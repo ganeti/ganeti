@@ -347,7 +347,7 @@ def main():
     if options.ssh_key_check:
       if not our_server_key:
         hexified_key = ssh.FormatParamikoFingerprint(
-            server_key.get_fingerprint())
+            paramiko.util.hexify(server_key.get_fingerprint()))
         msg = ("Unable to verify hostkey of host %s: %s. Do you want to accept"
                " it?" % (host, hexified_key))
 
