@@ -377,17 +377,14 @@ class _QueuedJob(object):
     @param result: the opcode result
 
     """
-    try:
-      not_marked = True
-      for op in self.ops:
-        if op.status in constants.OPS_FINALIZED:
-          assert not_marked, "Finalized opcodes found after non-finalized ones"
-          continue
-        op.status = status
-        op.result = result
-        not_marked = False
-    finally:
-      self.queue.UpdateJobUnlocked(self)
+    not_marked = True
+    for op in self.ops:
+      if op.status in constants.OPS_FINALIZED:
+        assert not_marked, "Finalized opcodes found after non-finalized ones"
+        continue
+      op.status = status
+      op.result = result
+      not_marked = False
 
 
 class _OpExecCallbacks(mcpu.OpExecCbBase):
@@ -947,6 +944,7 @@ class JobQueue(object):
             logging.warning("Unfinished job %s found: %s", job.id, job)
             job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
                                   "Unclean master daemon shutdown")
+            self.UpdateJobUnlocked(job)
 
         logging.info("Job queue inspection finished")
       finally:
@@ -1474,12 +1472,16 @@ class JobQueue(object):
     if job_status == constants.JOB_STATUS_QUEUED:
       job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
                             "Job canceled by request")
-      return (True, "Job %s canceled" % job.id)
+      msg = "Job %s canceled" % job.id
 
     elif job_status == constants.JOB_STATUS_WAITLOCK:
       # The worker will notice the new status and cancel the job
       job.MarkUnfinishedOps(constants.OP_STATUS_CANCELING, None)
-      return (True, "Job %s will be canceled" % job.id)
+      msg = "Job %s will be canceled" % job.id
+
+    self.UpdateJobUnlocked(job)
+
+    return (True, msg)
 
   @_RequireOpenQueue
   def _ArchiveJobsUnlocked(self, jobs):
