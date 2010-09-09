@@ -93,8 +93,8 @@ we envision the following changes:
     filling all groups first, or to have their own strategy based on the
     instance needs.
 
-Cluster/Internal/Config level changes
-+++++++++++++++++++++++++++++++++++++
+Internal changes
+++++++++++++++++
 
 We expect the following changes for cluster management:
 
@@ -146,6 +146,345 @@ each group. In some cases this will mean that inter-group move operation
 will be necessarily performed with instance downtime, unless the
 hypervisor has block-migrate functionality, and we implement support for
 it (this would be theoretically possible, today, with KVM, for example).
+
+Scalability issues with big clusters
+------------------------------------
+
+Current and future issues
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Assuming the node groups feature will enable bigger clusters, other
+parts of Ganeti will be impacted even more by the (in effect) bigger
+clusters.
+
+While many areas will be impacted, one is the most important: the fact
+that the watcher still needs to be able to repair instance data on the
+current 5 minutes time-frame (a shorter time-frame would be even
+better). This means that the watcher itself needs to have parallelism
+when dealing with node groups.
+
+Also, the iallocator plugins are being fed data from Ganeti but also
+need access to the full cluster state, and in general we still rely on
+being able to compute the full cluster state somewhat “cheaply” and
+on-demand. This conflicts with the goal of disconnecting the different
+node groups, and to keep the same parallelism while growing the cluster
+size.
+
+Another issue is that the current capacity calculations are done
+completely outside Ganeti (and they need access to the entire cluster
+state), and this prevents keeping the capacity numbers in sync with the
+cluster state. While this is still acceptable for smaller clusters where
+a small number of allocations/removal are presumed to occur between two
+periodic capacity calculations, on bigger clusters where we aim to
+parallelise heavily between node groups this is no longer true.
+
+
+
+As proposed changes, the main change is introducing a cluster state
+cache (not serialised to disk), and to update many of the LUs and
+cluster operations to account for it. Furthermore, the capacity
+calculations will be integrated via a new OpCode/LU, so that we have
+faster feedback (instead of periodic computation).
+
+Cluster state cache
+~~~~~~~~~~~~~~~~~~~
+
+A new cluster state cache will be introduced. The cache relies on two
+main ideas:
+
+- the total node memory, CPU count are very seldom changing; the total
+  node disk space is also slow changing, but can change at runtime; the
+  free memory and free disk will change significantly for some jobs, but
+  on a short timescale; in general, these values will mostly “constant”
+  during the lifetime of a job
+- we already have a periodic set of jobs that query the node and
+  instance state, driven the by :command:`ganeti-watcher` command, and
+  we're just discarding the results after acting on them
+
+Given the above, it makes sense to cache inside the master daemon the
+results of node and instance state (with a focus on the node state).
+
+The cache will not be serialised to disk, and will be for the most part
+transparent to the outside of the master daemon.
+
+Cache structure
++++++++++++++++
+
+The cache will be oriented with a focus on node groups, so that it will
+be easy to invalidate an entire node group, or a subset of nodes, or the
+entire cache. The instances will be stored in the node group of their
+primary node.
+
+Furthermore, since the node and instance properties determine the
+capacity statistics in a deterministic way, the cache will also hold, at
+each node group level, the total capacity as determined by the new
+capacity iallocator mode.
+
+Cache updates
++++++++++++++
+
+The cache will be updated whenever a query for a node state returns
+“full” node information (so as to keep the cache state for a given node
+consistent). Partial results will not update the cache (see next
+paragraph).
+
+Since the there will be no way to feed the cache from outside, and we
+would like to have a consistent cache view when driven by the watcher,
+we'll introduce a new OpCode/LU for the watcher to run, instead of the
+current separate opcodes (see below in the watcher section).
+
+Updates to a node that change a node's specs “downward” (e.g. less
+memory) will invalidate the capacity data. Updates that increase the
+node will not invalidate the capacity, as we're more interested in “at
+least available” correctness, not “at most available”.
+
+Cache invalidations
++++++++++++++++++++
+
+If a partial node query is done (e.g. just for the node free space), and
+the returned values don't match with the cache, then the entire node
+state will be invalidated.
+
+By default, all LUs will invalidate the caches for all nodes and
+instances they lock. If an LU uses the BGL, then it will invalidate the
+entire cache. In time, it is expected that LUs will be modified to not
+invalidate, if they are not expected to change the node's and/or
+instance's state (e.g. ``LUConnectConsole``, or
+``LUActivateInstanceDisks``).
+
+Invalidation of a node's properties will also invalidate the capacity
+data associated with that node.
+
+Cache lifetime
+++++++++++++++
+
+The cache elements will have an upper bound on their lifetime; the
+proposal is to make this an hour, which should be a high enough value to
+cover the watcher being blocked by a medium-term job (e.g. 20-30
+minutes).
+
+Cache usage
++++++++++++
+
+The cache will be used by default for most queries (e.g. a Luxi call,
+without locks, for the entire cluster). Since this will be a change from
+the current behaviour, we'll need to allow non-cached responses,
+e.g. via a ``--cache=off`` or similar argument (which will force the
+query).
+
+The cache will also be used for the iallocator runs, so that computing
+allocation solution can proceed independent from other jobs which lock
+parts of the cluster. This is important as we need to separate
+allocation on one group from exclusive blocking jobs on other node
+groups.
+
+The capacity calculations will also use the cache—this is detailed in
+the respective sections.
+
+Watcher operation
+~~~~~~~~~~~~~~~~~
+
+As detailed in the cluster cache section, the watcher also needs
+improvements in order to scale with the the cluster size.
+
+As a first improvement, the proposal is to introduce a new OpCode/LU
+pair that runs with locks held over the entire query sequence (the
+current watcher runs a job with two opcodes, which grab and release the
+locks individually). The new opcode will be called
+``OpUpdateNodeGroupCache`` and will do the following:
+
+- try to acquire all node/instance locks (to examine in more depth, and
+  possibly alter) in the given node group
+- invalidate the cache for the node group
+- acquire node and instance state (possibly via a new single RPC call
+  that combines node and instance information)
+- update cache
+- return the needed data
+
+The reason for the per-node group query is that we don't want a busy
+node group to prevent instance maintenance in other node
+groups. Therefore, the watcher will introduce parallelism across node
+groups, and it will possible to have overlapping watcher runs. The new
+execution sequence will be:
+
+- the parent watcher process acquires global watcher lock
+- query the list of node groups (lockless or very short locks only)
+- fork N children, one for each node group
+- release the global lock
+- poll/wait for the children to finish
+
+Each forked children will do the following:
+
+- try to acquire the per-node group watcher lock
+- if fail to acquire, exit with special code telling the parent that the
+  node group is already being managed by a watcher process
+- otherwise, submit a OpUpdateNodeGroupCache job
+- get results (possibly after a long time, due to busy group)
+- run the needed maintenance operations for the current group
+
+This new mode of execution means that the master watcher processes might
+overlap in running, but not the individual per-node group child
+processes.
+
+This change allows us to keep (almost) the same parallelism when using a
+bigger cluster with node groups versus two separate clusters.
+
+
+Cost of periodic cache updating
++++++++++++++++++++++++++++++++
+
+Currently the watcher only does “small” queries for the node and
+instance state, and at first sight changing it to use the new OpCode
+which populates the cache with the entire state might introduce
+additional costs, which must be payed every five minutes.
+
+However, the OpCodes that the watcher submits are using the so-called
+dynamic fields (need to contact the remote nodes), and the LUs are not
+selective—they always grab all the node and instance state. So in the
+end, we have the same cost, it just becomes explicit rather than
+implicit.
+
+This ‘grab all node state’ behaviour is what makes the cache worth
+implementing.
+
+Intra-node group scalability
+++++++++++++++++++++++++++++
+
+The design above only deals with inter-node group issues. It still makes
+sense to run instance maintenance for nodes A and B if only node C is
+locked (all being in the same node group).
+
+This problem is commonly encountered in previous Ganeti versions, and it
+should be handled similarly, by tweaking lock lifetime in long-duration
+jobs.
+
+TODO: add more ideas here.
+
+
+State file maintenance
+++++++++++++++++++++++
+
+The splitting of node group maintenance to different children which will
+run in parallel requires that the state file handling changes from
+monolithic updates to partial ones.
+
+There are two file that the watcher maintains:
+
+- ``$LOCALSTATEDIR/lib/ganeti/watcher.data``, its internal state file,
+  used for deciding internal actions
+- ``$LOCALSTATEDIR/run/ganeti/instance-status``, a file designed for
+  external consumption
+
+For the first file, since it's used only internally to the watchers, we
+can move to a per node group configuration.
+
+For the second file, even if it's used as an external interface, we will
+need to make some changes to it: because the different node groups can
+return results at different times, we need to either split the file into
+per-group files or keep the single file and add a per-instance timestamp
+(currently the file holds only the instance name and state).
+
+The proposal is that each child process maintains its own node group
+file, and the master process will, right after querying the node group
+list, delete any extra per-node group state file. This leaves the
+consumers to run a simple ``cat instance-status.group-*`` to obtain the
+entire list of instance and their states. If needed, the modify
+timestamp of each file can be used to determine the age of the results.
+
+
+Capacity calculations
+~~~~~~~~~~~~~~~~~~~~~
+
+Currently, the capacity calculations are done completely outside
+Ganeti. As explained in the current problems section, this needs to
+account better for the cluster state changes.
+
+Therefore a new OpCode will be introduced, ``OpComputeCapacity``, that
+will either return the current capacity numbers (if available), or
+trigger a new capacity calculation, via the iallocator framework, which
+will get a new method called ``capacity``.
+
+This method will feed the cluster state (for the complete set of node
+group, or alternative just a subset) to the iallocator plugin (either
+the specified one, or the default is none is specified), and return the
+new capacity in the format currently exported by the htools suite and
+known as the “tiered specs” (see :manpage:`hspace(1)`).
+
+tspec cluster parameters
+++++++++++++++++++++++++
+
+Currently, the “tspec” calculations done in :command:`hspace` require
+some additional parameters:
+
+- maximum instance size
+- type of instance storage
+- maximum ratio of virtual CPUs per physical CPUs
+- minimum disk free
+
+For the integration in Ganeti, there are multiple ways to pass these:
+
+- ignored by Ganeti, and being the responsibility of the iallocator
+  plugin whether to use these at all or not
+- as input to the opcode
+- as proper cluster parameters
+
+Since the first option is not consistent with the intended changes, a
+combination of the last two is proposed:
+
+- at cluster level, we'll have cluster-wide defaults
+- at node groups, we'll allow overriding the cluster defaults
+- and if they are passed in via the opcode, they will override for the
+  current computation the values
+
+Whenever the capacity is requested via different parameters, it will
+invalidate the cache, even if otherwise the cache is up-to-date.
+
+The new parameters are:
+
+- max_inst_spec: (int, int, int), the maximum instance specification
+  accepted by this cluster or node group, in the order of memory, disk,
+  vcpus;
+- default_template: string, the default disk template to use
+- max_cpu_ratio: double, the maximum ratio of VCPUs/PCPUs
+- max_disk_usage: double, the maximum disk usage (as a ratio)
+
+These might also be used in instance creations (to be determined later,
+after they are introduced).
+
+OpCode details
+++++++++++++++
+
+Input:
+
+- iallocator: string (optional, otherwise uses the cluster default)
+- cached: boolean, optional, defaults to true, and denotes whether we
+  accept cached responses
+- the above new parameters, optional; if they are passed, they will
+  overwrite all node group's parameters
+
+Output:
+
+- cluster: list of tuples (memory, disk, vcpu, count), in decreasing
+  order of specifications; the first three members represent the
+  instance specification, the last one the count of how many instances
+  of this specification can be created on the cluster
+- node_groups: a dictionary keyed by node group UUID, with values a
+  dictionary:
+
+  - tspecs: a list like the cluster one
+  - additionally, the new cluster parameters, denoting the input
+    parameters that were used for this node group
+
+- ctime: the date the result has been computed; this represents the
+  oldest creation time amongst all node groups (so as to accurately
+  represent how much out-of-date the global response is)
+
+Note that due to the way the tspecs are computed, for any given
+specification, the total available count is the count for the given
+entry, plus the sum of counts for higher specifications.
+
+Also note that the node group information is provided just
+informationally, not for allocation decisions.
 
 
 Job priorities
