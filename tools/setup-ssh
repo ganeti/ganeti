@@ -38,6 +38,7 @@ from ganeti import cli
 from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
+from ganeti import ssconf
 from ganeti import ssh
 from ganeti import utils
 
@@ -46,6 +47,54 @@ class RemoteCommandError(errors.GenericError):
   """Exception if remote command was not successful.
 
   """
+
+
+class JoinCheckError(errors.GenericError):
+  """Exception raised if join check fails.
+
+  """
+
+
+def _CheckJoin(transport):
+  """Checks if a join is safe or dangerous.
+
+  Note: This function relies on the fact, that all
+  hosts have the same configuration at compile time of
+  Ganeti. So that the constants do not mismatch.
+
+  @param transport: The paramiko transport instance
+  @return: True if the join is safe; False otherwise
+
+  """
+  sftp = transport.open_sftp_client()
+  ss = ssconf.SimpleStore()
+  ss_cluster_name_path = ss.KeyToFilename(constants.SS_CLUSTER_NAME)
+
+  cluster_files = {
+    ss_cluster_name_path: utils.ReadFile(ss_cluster_name_path),
+    constants.NODED_CERT_FILE: utils.ReadFile(constants.NODED_CERT_FILE),
+    }
+
+  try:
+    remote_noded_file = _ReadSftpFile(sftp, constants.NODED_CERT_FILE)
+  except IOError:
+    # We can just assume that the file doesn't exist as such error reporting
+    # is lacking from paramiko
+    #
+    # We don't have the noded certificate. As without the cert, the
+    # noded is not running, we are on the safe bet to say that this
+    # node doesn't belong to a cluster
+    return True
+
+  try:
+    remote_cluster_name = _ReadSftpFile(sftp, ss_cluster_name_path)
+  except IOError:
+    # This can indicate that a previous join was not successful
+    # So if the noded cert was found and matches we are fine
+    return cluster_files[constants.NODED_CERT_FILE] == remote_noded_file
+
+  return (cluster_files[constants.NODED_CERT_FILE] == remote_noded_file and
+          cluster_files[ss_cluster_name_path] == remote_cluster_name)
 
 
 def _RunRemoteCommand(transport, command):
@@ -82,6 +131,21 @@ def _InvokeDaemonUtil(transport, command):
 
   """
   _RunRemoteCommand(transport, "%s %s" % (constants.DAEMON_UTIL, command))
+
+
+def _ReadSftpFile(sftp, filename):
+  """Reads a file over sftp.
+
+  @param sftp: An open paramiko SFTP client
+  @param filename: The filename of the file to read
+  @return: The content of the file
+
+  """
+  remote_file = sftp.open(filename, "r")
+  try:
+    return remote_file.read()
+  finally:
+    remote_file.close()
 
 
 def _WriteSftpFile(sftp, name, perm, data):
@@ -159,8 +223,8 @@ def ParseOptions():
   """
   program = os.path.basename(sys.argv[0])
 
-  parser = optparse.OptionParser(usage=("%prog [--debug|--verbose] <node>"
-                                        " <node...>"), prog=program)
+  parser = optparse.OptionParser(usage=("%prog [--debug|--verbose] [--force]"
+                                        " <node> <node...>"), prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option(cli.NOSSH_KEYCHECK_OPT)
@@ -172,6 +236,9 @@ def ParseOptions():
   parser.add_option(optparse.Option("--key-type", dest="key_type",
                                     choices=("rsa", "dsa"), default="dsa",
                                     help="The private key type (rsa or dsa)"))
+  parser.add_option(optparse.Option("-j", "--force-join", dest="force_join",
+                                    action="store_true", default=False,
+                                    help="Force the join of the host"))
 
   (options, args) = parser.parse_args()
 
@@ -368,6 +435,12 @@ def main():
       continue
     try:
       try:
+        if not _CheckJoin(transport):
+          if options.force_join:
+            logging.warning("Host %s failed join check, forced to continue",
+                            host)
+          else:
+            raise JoinCheckError("Host %s failed join check" % host)
         SetupSSH(transport)
       except errors.GenericError, err:
         logging.error("While doing setup on host %s an error occured: %s",
