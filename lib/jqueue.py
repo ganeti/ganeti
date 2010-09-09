@@ -945,11 +945,11 @@ class JobQueue(object):
 
       status = job.CalcStatus()
 
-      if status in (constants.JOB_STATUS_QUEUED, ):
+      if status in (constants.JOB_STATUS_QUEUED,
+                    constants.JOB_STATUS_WAITLOCK):
         self._wpool.AddTask((job, ))
 
       elif status in (constants.JOB_STATUS_RUNNING,
-                      constants.JOB_STATUS_WAITLOCK,
                       constants.JOB_STATUS_CANCELING):
         logging.warning("Unfinished job %s found: %s", job.id, job)
         job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
