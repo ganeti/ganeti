@@ -3790,11 +3790,14 @@ class LUAddNode(LogicalUnit):
       self.new_node = self.cfg.GetNodeInfo(node)
       assert self.new_node is not None, "Can't retrieve locked node %s" % node
     else:
+      # TODO: process an arbitrary non-default nodegroup
+      nodegroup = cfg.LookupNodeGroup(None)
       self.new_node = objects.Node(name=node,
                                    primary_ip=primary_ip,
                                    secondary_ip=secondary_ip,
                                    master_candidate=self.master_candidate,
-                                   offline=False, drained=False)
+                                   offline=False, drained=False,
+                                   nodegroup=nodegroup)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.

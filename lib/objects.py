@@ -901,6 +901,7 @@ class Node(TaggableObject):
     "master_candidate",
     "offline",
     "drained",
+    "nodegroup",
     ] + _TIMESTAMPS + _UUID
 
 

@@ -1065,6 +1065,7 @@ class ConfigWriter:
 
     node.serial_no = 1
     node.ctime = node.mtime = time.time()
+    self._UnlockedAddNodeToGroup(node.name, node.nodegroup)
     self._config_data.nodes[node.name] = node
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
@@ -1079,6 +1080,7 @@ class ConfigWriter:
     if node_name not in self._config_data.nodes:
       raise errors.ConfigurationError("Unknown node '%s'" % node_name)
 
+    self._UnlockedRemoveNodeFromGroup(self._config_data.nodes[node_name])
     del self._config_data.nodes[node_name]
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
@@ -1239,6 +1241,34 @@ class ConfigWriter:
 
     return mod_list
 
+  def _UnlockedAddNodeToGroup(self, node_name, nodegroup_uuid):
+    """Add a given node to the specified group.
+
+    """
+    if nodegroup_uuid not in self._config_data.nodegroups:
+      # This can happen if a node group gets deleted between its lookup and
+      # when we're adding the first node to it, since we don't keep a lock in
+      # the meantime. It's ok though, as we'll fail cleanly if the node group
+      # is not found anymore.
+      raise errors.OpExecError("Unknown nodegroup: %s" % nodegroup_uuid)
+    if node_name not in self._config_data.nodegroups[nodegroup_uuid].members:
+      self._config_data.nodegroups[nodegroup_uuid].members.append(node_name)
+
+  def _UnlockedRemoveNodeFromGroup(self, node):
+    """Remove a given node from its group.
+
+    """
+    nodegroup = node.nodegroup
+    if nodegroup not in self._config_data.nodegroups:
+      logging.warning("Warning: node '%s' has a non-existing nodegroup '%s'"
+                      " (while being removed from it)", node.name, nodegroup)
+    nodegroup_obj = self._config_data.nodegroups[nodegroup]
+    if node.name not in nodegroup_obj.members:
+      logging.warning("Warning: node '%s' not a member of its nodegroup '%s'"
+                      " (while being removed from it)", node.name, nodegroup)
+    else:
+      nodegroup_obj.members.remove(node.name)
+
   def _BumpSerialNo(self):
     """Bump up the serial number of the config.
 
@@ -1312,6 +1342,15 @@ class ConfigWriter:
           )
       self._config_data.nodegroups[default_nodegroup_uuid] = default_nodegroup
       modified = True
+    for node in self._config_data.nodes.values():
+      if not node.nodegroup:
+        node.nodegroup = self.LookupNodeGroup(None)
+        modified = True
+      # This is technically *not* an upgrade, but needs to be done both when
+      # nodegroups are being added, and upon normally loading the config,
+      # because the members list of a node group is discarded upon
+      # serializing/deserializing the object.
+      self._UnlockedAddNodeToGroup(node.name, node.nodegroup)
     if modified:
       self._WriteConfig()
       # This is ok even if it acquires the internal lock, as _UpgradeConfig is
