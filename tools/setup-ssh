@@ -374,6 +374,8 @@ def main():
 
   SetupLogging(options)
 
+  errs = 0
+
   all_keys = LoadPrivateKeys(options)
 
   passwd = None
@@ -400,7 +402,7 @@ def main():
     if options.ssh_key_check:
       if not our_server_key:
         hexified_key = ssh.FormatParamikoFingerprint(
-            server_key.get_fingerprint())
+            paramiko.util.hexify(server_key.get_fingerprint()))
         msg = ("Unable to verify hostkey of host %s: %s. Do you want to accept"
                " it?" % (host, hexified_key))
 
@@ -443,13 +445,17 @@ def main():
             raise JoinCheckError("Host %s failed join check" % host)
         SetupSSH(transport)
       except errors.GenericError, err:
-        logging.error("While doing setup on host %s an error occured: %s",
+        logging.error("While doing setup on host %s an error occurred: %s",
                       host, err)
+        errs += 1
     finally:
       transport.close()
       # this is needed for compatibility with older Paramiko or Python
       # versions
       transport.join()
+
+    if errs > 0:
+      sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -425,9 +425,9 @@ class _PipeConditionWithMode(PipeCondition):
 class SharedLock(object):
   """Implements a shared lock.
 
-  Multiple threads can acquire the lock in a shared way, calling
-  acquire_shared().  In order to acquire the lock in an exclusive way threads
-  can call acquire_exclusive().
+  Multiple threads can acquire the lock in a shared way by calling
+  C{acquire(shared=1)}. In order to acquire the lock in an exclusive way
+  threads can call C{acquire(shared=0)}.
 
   Notes on data structures: C{__pending} contains a priority queue (heapq) of
   all pending acquires: C{[(priority1: prioqueue1), (priority2: prioqueue2),
