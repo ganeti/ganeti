@@ -595,7 +595,10 @@ class HttpBase(object):
 
     ctx = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
     ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
-    ctx.set_cipher_list(constants.OPENSSL_CIPHERS)
+
+    ciphers = self.GetSslCiphers()
+    logging.debug("Setting SSL cipher string %s", ciphers)
+    ctx.set_cipher_list(ciphers)
 
     ctx.use_privatekey(self._ssl_key)
     ctx.use_certificate(self._ssl_cert)
@@ -607,6 +610,12 @@ class HttpBase(object):
                      self._SSLVerifyCallback)
 
     return OpenSSL.SSL.Connection(ctx, sock)
+
+  def GetSslCiphers(self): # pylint: disable-msg=R0201
+    """Returns the ciphers string for SSL.
+
+    """
+    return constants.OPENSSL_CIPHERS
 
   def _SSLVerifyCallback(self, conn, cert, errnum, errdepth, ok):
     """Verify the certificate provided by the peer
