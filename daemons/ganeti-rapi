@@ -32,6 +32,12 @@ import sys
 import os
 import os.path
 
+try:
+  from pyinotify import pyinotify # pylint: disable-msg=E0611
+except ImportError:
+  import pyinotify
+
+from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import http
 from ganeti import daemon
@@ -89,9 +95,36 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
 
     # Load password file
     if os.path.isfile(constants.RAPI_USERS_FILE):
-      self._users = http.auth.ReadPasswordFile(constants.RAPI_USERS_FILE)
+      wm = pyinotify.WatchManager()
+      hdl = asyncnotifier.SingleFileEventHandler(wm, self._OnUsersFileUpdate,
+                                                 constants.RAPI_USERS_FILE)
+      self._users_inotify_handler = hdl
+      asyncnotifier.AsyncNotifier(wm, default_proc_fun=hdl)
+      self._users = None
+      self._OnUsersFileUpdate(False)
     else:
       self._users = None
+
+  def _OnUsersFileUpdate(self, notifier_enabled):
+    """Called upon update of the RAPI users file by pyinotify.
+
+    @type notifier_enabled: boolean
+    @param notifier_enabled: whether the notifier is still enabled
+
+    """
+    logging.info("Reloading modified %s", constants.RAPI_USERS_FILE)
+
+    try:
+      users = http.auth.ReadPasswordFile(constants.RAPI_USERS_FILE)
+      self._users = users
+    except Exception, err: # pylint: disable-msg=W0703
+      # We don't care about the type of exception
+      logging.error("Error while reading %s: %s", constants.RAPI_USERS_FILE,
+                    err)
+
+    # Renable the watch again if we'd an atomic update of the file (e.g. mv)
+    if not notifier_enabled:
+      self._users_inotify_handler.enable()
 
   def _GetRequestContext(self, req):
     """Returns the context for a request.
