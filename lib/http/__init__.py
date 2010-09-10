@@ -611,7 +611,7 @@ class HttpBase(object):
 
     return OpenSSL.SSL.Connection(ctx, sock)
 
-  def GetSslCiphers(self):
+  def GetSslCiphers(self): # pylint: disable-msg=R0201
     """Returns the ciphers string for SSL.
 
     """
