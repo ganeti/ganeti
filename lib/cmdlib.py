@@ -3668,6 +3668,7 @@ class LUAddNode(LogicalUnit):
     ("primary_ip", None, _NoType),
     ("secondary_ip", None, _TMaybeString),
     ("readd", False, _TBool),
+    ("nodegroup", None, _TMaybeString)
     ]
 
   def CheckArguments(self):
@@ -3676,6 +3677,9 @@ class LUAddNode(LogicalUnit):
     self.hostname = netutils.GetHostname(name=self.op.node_name,
                                          family=self.primary_ip_family)
     self.op.node_name = self.hostname.name
+    if self.op.readd and self.op.nodegroup:
+      raise errors.OpPrereqError("Cannot pass a nodegroup when a node is"
+                                 " being readded", errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3790,8 +3794,7 @@ class LUAddNode(LogicalUnit):
       self.new_node = self.cfg.GetNodeInfo(node)
       assert self.new_node is not None, "Can't retrieve locked node %s" % node
     else:
-      # TODO: process an arbitrary non-default nodegroup
-      nodegroup = cfg.LookupNodeGroup(None)
+      nodegroup = cfg.LookupNodeGroup(self.op.nodegroup)
       self.new_node = objects.Node(name=node,
                                    primary_ip=primary_ip,
                                    secondary_ip=secondary_ip,

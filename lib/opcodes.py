@@ -363,7 +363,7 @@ class OpAddNode(OpCode):
   """
   OP_ID = "OP_NODE_ADD"
   OP_DSC_FIELD = "node_name"
-  __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd"]
+  __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd", "nodegroup"]
 
 
 class OpQueryNodes(OpCode):

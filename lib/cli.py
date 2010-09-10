@@ -99,6 +99,7 @@ __all__ = [
   "NIC_PARAMS_OPT",
   "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
+  "NODEGROUP_OPT",
   "NODRBD_STORAGE_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
@@ -736,6 +737,13 @@ NODE_LIST_OPT = cli_option("-n", "--node", dest="nodes", default=[],
                            help="Use only this node (can be used multiple"
                            " times, if not given defaults to all nodes)",
                            completion_suggest=OPT_COMPL_ONE_NODE)
+
+NODEGROUP_OPT = cli_option("-g", "--nodegroup",
+                           dest="nodegroup",
+                           help="Node group (name or uuid)",
+                           metavar="<nodegroup>",
+                           default=None, type="string",
+                           completion_suggest=OPT_COMPL_ONE_NODEGROUP)
 
 SINGLE_NODE_OPT = cli_option("-n", "--node", dest="node", help="Target node",
                              metavar="<node>",

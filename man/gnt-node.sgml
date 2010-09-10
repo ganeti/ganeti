@@ -64,6 +64,7 @@
         <command>add</command>
         <arg>--readd</arg>
         <arg>-s <replaceable>secondary_ip</replaceable></arg>
+        <arg>-g <replaceable>nodegroup</replaceable></arg>
         <arg choice="req"><replaceable>nodename</replaceable></arg>
       </cmdsynopsis>
 
@@ -104,10 +105,17 @@
       </para>
 
       <para>
+        The <option>-g</option> is used to add the new node into a specific
+        node group, specified by uuid or name. If only one node group exists
+        you can skip this option, otherwise it's mandatory.
+      </para>
+
+      <para>
         Example:
         <screen>
 # gnt-node add node5.example.com
 # gnt-node add -s 192.0.2.5 node5.example.com
+# gnt-node add -g group2 -s 192.0.2.9 node9.group2.example.com
         </screen>
       </para>
     </refsect2>
