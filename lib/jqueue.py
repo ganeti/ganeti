@@ -467,10 +467,8 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     timestamp = utils.SplitTime(time.time())
     self._AppendFeedback(timestamp, log_type, log_msg)
 
-  def ReportLocks(self, msg):
-    """Write locking information to the job.
-
-    Called whenever the LU processor is waiting for a lock or has acquired one.
+  def CheckCancel(self):
+    """Check whether job has been cancelled.
 
     """
     assert self._op.status in (constants.OP_STATUS_WAITLOCK,
