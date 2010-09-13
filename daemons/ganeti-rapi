@@ -44,6 +44,7 @@ from ganeti import daemon
 from ganeti import ssconf
 from ganeti import luxi
 from ganeti import serializer
+from ganeti import compat
 from ganeti.rapi import connector
 
 import ganeti.http.auth   # pylint: disable-msg=W0611
@@ -88,43 +89,32 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
 
   def __init__(self, *args, **kwargs):
     # pylint: disable-msg=W0233
-  # it seems pylint doesn't see the second parent class there
+    # it seems pylint doesn't see the second parent class there
     http.server.HttpServer.__init__(self, *args, **kwargs)
     http.auth.HttpServerRequestAuthentication.__init__(self)
     self._resmap = connector.Mapper()
+    self._users = None
 
-    # Load password file
-    if os.path.isfile(constants.RAPI_USERS_FILE):
-      wm = pyinotify.WatchManager()
-      hdl = asyncnotifier.SingleFileEventHandler(wm, self._OnUsersFileUpdate,
-                                                 constants.RAPI_USERS_FILE)
-      self._users_inotify_handler = hdl
-      asyncnotifier.AsyncNotifier(wm, default_proc_fun=hdl)
-      self._users = None
-      self._OnUsersFileUpdate(False)
-    else:
-      self._users = None
+  def LoadUsers(self, filename):
+    """Loads a file containing users and passwords.
 
-  def _OnUsersFileUpdate(self, notifier_enabled):
-    """Called upon update of the RAPI users file by pyinotify.
-
-    @type notifier_enabled: boolean
-    @param notifier_enabled: whether the notifier is still enabled
+    @type filename: string
+    @param filename: Path to file
 
     """
-    logging.info("Reloading modified %s", constants.RAPI_USERS_FILE)
+    if not os.path.isfile(constants.RAPI_USERS_FILE):
+      logging.warning("Users file %s not found", filename)
+      return False
 
     try:
-      users = http.auth.ReadPasswordFile(constants.RAPI_USERS_FILE)
-      self._users = users
+      users = http.auth.ReadPasswordFile(filename)
     except Exception, err: # pylint: disable-msg=W0703
       # We don't care about the type of exception
-      logging.error("Error while reading %s: %s", constants.RAPI_USERS_FILE,
-                    err)
+      logging.error("Error while reading %s: %s", filename, err)
+      return False
 
-    # Renable the watch again if we'd an atomic update of the file (e.g. mv)
-    if not notifier_enabled:
-      self._users_inotify_handler.enable()
+    self._users = users
+    return True
 
   def _GetRequestContext(self, req):
     """Returns the context for a request.
@@ -236,6 +226,41 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
     return serializer.DumpJson(result)
 
 
+class FileWatcher:
+  def __init__(self, filename, cb):
+    """Initializes this class.
+
+    @type filename: string
+    @param filename: File to watch
+    @type cb: callable
+    @param cb: Function called on file change
+
+    """
+    self._filename = filename
+    self._cb = cb
+
+    wm = pyinotify.WatchManager()
+    self._handler = asyncnotifier.SingleFileEventHandler(wm, self._OnInotify,
+                                                         filename)
+    asyncnotifier.AsyncNotifier(wm, default_proc_fun=self._handler)
+    self._handler.enable()
+
+  def _OnInotify(self, notifier_enabled):
+    """Called upon update of the RAPI users file by pyinotify.
+
+    @type notifier_enabled: boolean
+    @param notifier_enabled: whether the notifier is still enabled
+
+    """
+    logging.info("Reloading modified %s", self._filename)
+
+    self._cb()
+
+    # Renable the watch again if we'd an atomic update of the file (e.g. mv)
+    if not notifier_enabled:
+      self._handler.enable()
+
+
 def CheckRapi(options, args):
   """Initial checks whether to run or exit with a failure.
 
@@ -265,6 +290,14 @@ def ExecRapi(options, _):
                                ssl_params=options.ssl_params,
                                ssl_verify_peer=False,
                                request_executor_class=JsonErrorRequestExecutor)
+
+  if os.path.exists(constants.RAPI_USERS_FILE):
+    # Setup file watcher (it'll be driven by asyncore)
+    FileWatcher(constants.RAPI_USERS_FILE,
+                compat.partial(server.LoadUsers, constants.RAPI_USERS_FILE))
+
+  server.LoadUsers(constants.RAPI_USERS_FILE)
+
   # pylint: disable-msg=E1101
   # it seems pylint doesn't see the second parent class there
   server.Start()
