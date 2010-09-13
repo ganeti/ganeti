@@ -845,6 +845,30 @@ class ConfigWriter:
     """
     return self._config_data.cluster.primary_ip_family
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def LookupNodeGroup(self, target):
+    """Lookup a node group.
+
+    @type target: string or None
+    @param  target: group name or uuid or None to look for the default
+    @rtype: string
+    @return: nodegroup uuid
+    @raises errors.OpPrereqError: when the target group cannot be found
+
+    """
+    if target is None:
+      if len(self._config_data.nodegroups) != 1:
+        raise errors.OpPrereqError("More than one nodegroup exists. Target"
+                                   " group must be specified explicitely.")
+      else:
+        return self._config_data.nodegroups.keys()[0]
+    if target in self._config_data.nodegroups:
+      return target
+    for nodegroup in self._config_data.nodegroups.values():
+      if nodegroup.name == target:
+        return nodegroup.uuid
+    raise errors.OpPrereqError("Nodegroup '%s' not found", target)
+
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):
     """Add an instance to the config.
