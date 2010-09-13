@@ -202,6 +202,8 @@ class ConfigObject(object):
     if not isinstance(c_type, type):
       raise TypeError("Container type %s passed to _ContainerFromDicts is"
                       " not a type" % type(c_type))
+    if source is None:
+      source = c_type()
     if c_type is dict:
       ret = dict([(k, e_type.FromDict(v)) for k, v in source.iteritems()])
     elif c_type in (list, tuple, set, frozenset):
