@@ -915,7 +915,8 @@ class NodeGroup(ConfigObject):
   def ToDict(self):
     """Custom function for nodegroup.
 
-    This discards the members object, which gets recalculated and is only kept in memory.
+    This discards the members object, which gets recalculated and is only kept
+    in memory.
 
     """
     mydict = super(NodeGroup, self).ToDict()
