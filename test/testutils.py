@@ -35,12 +35,32 @@ def GetSourceDir():
   return os.environ.get("TOP_SRCDIR", ".")
 
 
+def _SetupLogging(verbose):
+  """Setupup logging infrastructure.
+
+  """
+  fmt = logging.Formatter("%(asctime)s: %(threadName)s"
+                          " %(levelname)s %(message)s")
+
+  if verbose:
+    handler = logging.StreamHandler()
+  else:
+    handler = logging.FileHandler(os.devnull, "a")
+
+  handler.setLevel(logging.NOTSET)
+  handler.setFormatter(fmt)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(handler)
+
+
 class GanetiTestProgram(unittest.TestProgram):
   def runTests(self):
-    """
+    """Runs all tests.
 
     """
-    logging.basicConfig(filename=os.devnull)
+    _SetupLogging("LOGTOSTDERR" in os.environ)
 
     sys.stderr.write("Running %s\n" % self.progName)
     sys.stderr.flush()
