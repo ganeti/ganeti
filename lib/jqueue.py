@@ -410,6 +410,26 @@ class _QueuedJob(object):
       op.result = result
       not_marked = False
 
+  def Cancel(self):
+    status = self.CalcStatus()
+
+    if status not in (constants.JOB_STATUS_QUEUED,
+                      constants.JOB_STATUS_WAITLOCK):
+      logging.debug("Job %s is no longer waiting in the queue", self.id)
+      return (False, "Job %s is no longer waiting in the queue" % self.id)
+
+    if status == constants.JOB_STATUS_QUEUED:
+      self.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
+                             "Job canceled by request")
+      msg = "Job %s canceled" % self.id
+
+    elif status == constants.JOB_STATUS_WAITLOCK:
+      # The worker will notice the new status and cancel the job
+      self.MarkUnfinishedOps(constants.OP_STATUS_CANCELING, None)
+      msg = "Job %s will be canceled" % self.id
+
+    return (True, msg)
+
 
 class _OpExecCallbacks(mcpu.OpExecCbBase):
   def __init__(self, queue, job, op):
@@ -1502,26 +1522,12 @@ class JobQueue(object):
       logging.debug("Job %s not found", job_id)
       return (False, "Job %s not found" % job_id)
 
-    job_status = job.CalcStatus()
+    (success, msg) = job.Cancel()
 
-    if job_status not in (constants.JOB_STATUS_QUEUED,
-                          constants.JOB_STATUS_WAITLOCK):
-      logging.debug("Job %s is no longer waiting in the queue", job.id)
-      return (False, "Job %s is no longer waiting in the queue" % job.id)
+    if success:
+      self.UpdateJobUnlocked(job)
 
-    if job_status == constants.JOB_STATUS_QUEUED:
-      job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
-                            "Job canceled by request")
-      msg = "Job %s canceled" % job.id
-
-    elif job_status == constants.JOB_STATUS_WAITLOCK:
-      # The worker will notice the new status and cancel the job
-      job.MarkUnfinishedOps(constants.OP_STATUS_CANCELING, None)
-      msg = "Job %s will be canceled" % job.id
-
-    self.UpdateJobUnlocked(job)
-
-    return (True, msg)
+    return (success, msg)
 
   @_RequireOpenQueue
   def _ArchiveJobsUnlocked(self, jobs):
