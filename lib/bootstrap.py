@@ -530,8 +530,10 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   sshrunner.CopyFileToNode(node, constants.NODED_CERT_FILE)
   sshrunner.CopyFileToNode(node, constants.RAPI_CERT_FILE)
   sshrunner.CopyFileToNode(node, constants.CONFD_HMAC_KEY)
-  mycommand = ("%s start %s -b '%s'" % (constants.DAEMON_UTIL, constants.NODED,
-                                        bind_address))
+  mycommand = ("%s stop-all; %s start %s -b '%s'" % (constants.DAEMON_UTIL,
+                                                     constants.DAEMON_UTIL,
+                                                     constants.NODED,
+                                                     bind_address))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
                          ask_key=ssh_key_check,
