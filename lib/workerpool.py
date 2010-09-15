@@ -180,7 +180,8 @@ class BaseWorker(threading.Thread, object):
             # Use same priority
             defer.priority = priority
 
-          logging.debug("Deferring task %r, new priority %s", defer.priority)
+          logging.debug("Deferring task %r, new priority %s",
+                        args, defer.priority)
 
           assert self._HasRunningTaskUnlocked()
         except: # pylint: disable-msg=W0702
