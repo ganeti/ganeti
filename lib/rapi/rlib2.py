@@ -1122,10 +1122,10 @@ class _R_Tags(baserlib.R_Generic):
     """
     baserlib.R_Generic.__init__(self, items, queryargs, req)
 
-    if self.TAG_LEVEL != constants.TAG_CLUSTER:
-      self.name = items[0]
+    if self.TAG_LEVEL == constants.TAG_CLUSTER:
+      self.name = None
     else:
-      self.name = ""
+      self.name = items[0]
 
   def GET(self):
     """Returns a list of tags.
