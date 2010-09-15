@@ -29,9 +29,12 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Data.List
 import Data.Maybe (isJust, fromJust)
+import Data.IORef
 import Monad
 import System (exitWith, ExitCode(..))
 import System.IO
+import System.Posix.Process
+import System.Posix.Signals
 import qualified System
 
 import Text.Printf (printf, hPrintf)
@@ -152,10 +155,16 @@ checkJobsStatus = all (== JOB_STATUS_SUCCESS)
 
 -- | Execute an entire jobset
 execJobSet :: String -> Node.List
-           -> Instance.List -> [JobSet] -> IO ()
-execJobSet _      _  _  [] = return ()
-execJobSet master nl il (js:jss) = do
+           -> Instance.List -> IORef Int -> [JobSet] -> IO ()
+execJobSet _      _  _  _    [] = return ()
+execJobSet master nl il cref alljss@(js:jss) = do
   -- map from jobset (htools list of positions) to [[opcodes]]
+  cancel <- readIORef cref
+  when (cancel > 0) $ do
+    putStrLn ("Exiting early due to user request, " ++ show (length alljss) ++
+              " jobset(s) remaining.")
+    exitWith $ ExitFailure 1
+
   let jobs = map (\(_, idx, move, _) ->
                       Cluster.iMoveToJob nl il idx move) js
   let descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
@@ -174,11 +183,29 @@ execJobSet master nl il (js:jss) = do
        hPutStrLn stderr $ "Cannot compute job status, aborting: " ++ show x
        return ()
      Ok x -> if checkJobsStatus x
-             then execJobSet master nl il jss
+             then execJobSet master nl il cref jss
              else do
                hPutStrLn stderr $ "Not all jobs completed successfully: " ++
                          show x
                hPutStrLn stderr "Aborting.")
+
+-- | Signal handler
+handleSig :: IORef Int -> IO ()
+handleSig cref = do
+  cnt <- atomicModifyIORef cref (\x -> let y = x + 1
+                                       in (y, y))
+  when (cnt > 1) $ do
+    putStrLn "Double cancel request, exiting now..."
+    exitImmediately $ ExitFailure 1
+  when (cnt > 0) $ putStrLn ("Cancel request registered, will exit at" ++
+                             " the end of the current job set...")
+
+runJobSet :: String -> Node.List -> Instance.List -> [JobSet] -> IO ()
+runJobSet master fin_nl il cmd_jobs = do
+  cref <- newIORef 0
+  mapM_ (\sig -> installHandler sig (Catch (handleSig cref)) Nothing)
+    [softwareTermination, keyboardSignal]
+  execJobSet master fin_nl il cref cmd_jobs
 
 -- | Main function.
 main :: IO ()
@@ -346,4 +373,4 @@ main = do
               Nothing -> do
                 hPutStrLn stderr "Execution of commands possible only on LUXI"
                 exitWith $ ExitFailure 1
-              Just master -> execJobSet master fin_nl il cmd_jobs)
+              Just master -> runJobSet master fin_nl il cmd_jobs)
