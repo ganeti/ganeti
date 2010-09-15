@@ -43,6 +43,9 @@ from ganeti import bdev
 from ganeti import netutils
 from ganeti import backend
 
+# ec_id for InitConfig's temporary reservation manager
+_INITCONF_ECID = "initconfig-ecid"
+
 
 def _InitSSHSetup():
   """Setup the SSH configuration for the cluster.
@@ -387,7 +390,6 @@ def InitCluster(cluster_name, mac_prefix,
     uid_pool=uid_pool,
     ctime=now,
     mtime=now,
-    uuid=utils.NewUUID(),
     maintain_node_health=maintain_node_health,
     drbd_usermode_helper=drbd_helper,
     default_iallocator=default_iallocator,
@@ -432,13 +434,26 @@ def InitConfig(version, cluster_config, master_node_config,
   @param cfg_file: configuration file path
 
   """
+  uuid_generator = config.TemporaryReservationManager()
+  cluster_config.uuid = uuid_generator.Generate([], utils.NewUUID,
+                                                _INITCONF_ECID)
+  master_node_config.uuid = uuid_generator.Generate([], utils.NewUUID,
+                                                    _INITCONF_ECID)
   nodes = {
     master_node_config.name: master_node_config,
     }
-
+  default_nodegroup = objects.NodeGroup(
+    uuid=uuid_generator.Generate([], utils.NewUUID, _INITCONF_ECID),
+    name="default",
+    members=[master_node_config.name],
+    )
+  nodegroups = {
+    default_nodegroup.uuid: default_nodegroup,
+    }
   now = time.time()
   config_data = objects.ConfigData(version=version,
                                    cluster=cluster_config,
+                                   nodegroups=nodegroups,
                                    nodes=nodes,
                                    instances={},
                                    serial_no=1,
