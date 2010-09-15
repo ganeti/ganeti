@@ -9739,7 +9739,8 @@ class LUGetTags(TagsLU):
   """
   _OP_PARAMS = [
     ("kind", _NoDefault, _TElemOf(constants.VALID_TAG_TYPES)),
-    ("name", _NoDefault, _TNonEmptyString),
+    # Name is only meaningful for nodes and instances
+    ("name", _NoDefault, _TMaybeString),
     ]
   REQ_BGL = False
 
@@ -9798,7 +9799,8 @@ class LUAddTags(TagsLU):
   """
   _OP_PARAMS = [
     ("kind", _NoDefault, _TElemOf(constants.VALID_TAG_TYPES)),
-    ("name", _NoDefault, _TNonEmptyString),
+    # Name is only meaningful for nodes and instances
+    ("name", _NoDefault, _TMaybeString),
     ("tags", _NoDefault, _TListOf(_TNonEmptyString)),
     ]
   REQ_BGL = False
@@ -9831,7 +9833,8 @@ class LUDelTags(TagsLU):
   """
   _OP_PARAMS = [
     ("kind", _NoDefault, _TElemOf(constants.VALID_TAG_TYPES)),
-    ("name", _NoDefault, _TNonEmptyString),
+    # Name is only meaningful for nodes and instances
+    ("name", _NoDefault, _TMaybeString),
     ("tags", _NoDefault, _TListOf(_TNonEmptyString)),
     ]
   REQ_BGL = False
