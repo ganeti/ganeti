@@ -275,6 +275,10 @@ class TestQueuedOpCode(unittest.TestCase):
 
 
 class TestQueuedJob(unittest.TestCase):
+  def test(self):
+    self.assertRaises(errors.GenericError, jqueue._QueuedJob,
+                      None, 1, [])
+
   def testDefaults(self):
     job_id = 4260
     ops = [
@@ -294,6 +298,10 @@ class TestQueuedJob(unittest.TestCase):
       self.assertEqual(len(job.ops), len(ops))
       self.assert_(compat.all(inp.__getstate__() == op.input.__getstate__()
                               for (inp, op) in zip(ops, job.ops)))
+      self.assertRaises(errors.OpExecError, job.GetInfo,
+                        ["unknown-field"])
+      self.assertEqual(job.GetInfo(["summary"]),
+                       [[op.input.Summary() for op in job.ops]])
 
     job1 = jqueue._QueuedJob(None, job_id, ops)
     _Check(job1)
