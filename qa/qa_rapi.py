@@ -124,7 +124,7 @@ def _DoTests(uris):
       else:
         AssertEqual(data, verify)
 
-      results.append(data)
+    results.append(data)
 
   return results
 
