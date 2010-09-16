@@ -1943,7 +1943,7 @@ def OSFromDisk(name, base_dir=None):
   @raise RPCFail: if we don't find a valid OS
 
   """
-  name_only = name.split("+", 1)[0]
+  name_only = objects.OS.GetName(name)
   status, payload = _TryOSFromDisk(name_only, base_dir)
 
   if not status:
@@ -1978,9 +1978,8 @@ def OSCoreEnv(os_name, inst_os, os_params, debug=0):
 
   # OS variants
   if api_version >= constants.OS_API_V15:
-    try:
-      variant = os_name.split('+', 1)[1]
-    except IndexError:
+    variant = objects.OS.GetVariant(os_name)
+    if not variant:
       variant = inst_os.supported_variants[0]
     result['OS_VARIANT'] = variant
 
@@ -2528,7 +2527,7 @@ def ValidateOS(required, osname, checks, osparams):
     _Fail("Unknown checks required for OS %s: %s", osname,
           set(checks).difference(constants.OS_VALIDATE_CALLS))
 
-  name_only = osname.split("+", 1)[0]
+  name_only = objects.OS.GetName(osname)
   status, tbv = _TryOSFromDisk(name_only, None)
 
   if not status:

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -861,6 +861,9 @@ class OS(ConfigObject):
   @ivar supported_parameters: a list of tuples, name and description,
       containing the supported parameters by this OS
 
+  @type VARIANT_DELIM: string
+  @cvar VARIANT_DELIM: the variant delimiter
+
   """
   __slots__ = [
     "name",
@@ -874,6 +877,41 @@ class OS(ConfigObject):
     "supported_variants",
     "supported_parameters",
     ]
+
+  VARIANT_DELIM = "+"
+
+  @classmethod
+  def SplitNameVariant(cls, name):
+    """Splits the name into the proper name and variant.
+
+    @param name: the OS (unprocessed) name
+    @rtype: list
+    @return: a list of two elements; if the original name didn't
+        contain a variant, it's returned as an empty string
+
+    """
+    nv = name.split(cls.VARIANT_DELIM, 1)
+    if len(nv) == 1:
+      nv.append("")
+    return nv
+
+  @classmethod
+  def GetName(cls, name):
+    """Returns the proper name of the os (without the variant).
+
+    @param name: the OS (unprocessed) name
+
+    """
+    return cls.SplitNameVariant(name)[0]
+
+  @classmethod
+  def GetVariant(cls, name):
+    """Returns the variant the os (without the base name).
+
+    @param name: the OS (unprocessed) name
+
+    """
+    return cls.SplitNameVariant(name)[1]
 
 
 class Node(TaggableObject):

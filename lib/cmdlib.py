@@ -1088,9 +1088,8 @@ def _CheckOSVariant(os_obj, name):
   """
   if not os_obj.supported_variants:
     return
-  try:
-    variant = name.split("+", 1)[1]
-  except IndexError:
+  variant = objects.OS.GetVariant(name)
+  if not variant:
     raise errors.OpPrereqError("OS name must include a variant",
                                errors.ECODE_INVAL)
 
