@@ -6636,6 +6636,10 @@ class LUCreateInstance(LogicalUnit):
       if self.op.os_type is None:
         raise errors.OpPrereqError("No guest OS specified",
                                    errors.ECODE_INVAL)
+      if self.op.os_type in self.cfg.GetClusterInfo().blacklisted_oss:
+        raise errors.OpPrereqError("Guest OS '%s' is not allowed for"
+                                   " installation" % self.op.os_type,
+                                   errors.ECODE_STATE)
       if self.op.disk_template is None:
         raise errors.OpPrereqError("No disk template specified",
                                    errors.ECODE_INVAL)
