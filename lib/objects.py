@@ -957,6 +957,8 @@ class Cluster(TaggableObject):
     "maintain_node_health",
     "uid_pool",
     "default_iallocator",
+    "hidden_oss",
+    "blacklisted_oss",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1021,6 +1023,13 @@ class Cluster(TaggableObject):
     # reserved_lvs added before 2.2
     if self.reserved_lvs is None:
       self.reserved_lvs = []
+
+    # hidden and blacklisted operating systems added before 2.2.1
+    if self.hidden_oss is None:
+      self.hidden_oss = []
+
+    if self.blacklisted_oss is None:
+      self.blacklisted_oss = []
 
   def ToDict(self):
     """Custom function for cluster.
