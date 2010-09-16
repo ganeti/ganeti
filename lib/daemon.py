@@ -39,6 +39,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
 from ganeti import ssconf
+from ganeti import runtime
 
 
 class SchedulerBreakout(Exception):
@@ -487,6 +488,30 @@ class Mainloop(object):
     self._signal_wait.append(owner)
 
 
+def _VerifyDaemonUser(daemon_name):
+  """Verifies the process uid matches the configured uid.
+
+  This method verifies that a daemon is started as the user it is intended to be
+  run
+
+  @param daemon_name: The name of daemon to be started
+  @return: A tuple with the first item indicating success or not,
+           the second item current uid and third with expected uid
+
+  """
+  getents = runtime.GetEnts()
+  running_uid = os.getuid()
+  daemon_uids = {
+    constants.MASTERD: getents.masterd_uid,
+    constants.RAPI: getents.rapi_uid,
+    constants.NODED: getents.noded_uid,
+    constants.CONFD: getents.confd_uid,
+    }
+
+  return (daemon_uids[daemon_name] == running_uid, running_uid,
+          daemon_uids[daemon_name])
+
+
 def GenericMain(daemon_name, optionparser, check_fn, exec_fn,
                 multithreaded=False, console_logging=False,
                 default_ssl_cert=None, default_ssl_key=None):
@@ -581,6 +606,13 @@ def GenericMain(daemon_name, optionparser, check_fn, exec_fn,
     # TODO: By initiating http.HttpSslParams here we would only read the files
     # once and have a proper validation (isfile returns False on directories)
     # at the same time.
+
+  result, running_uid, expected_uid = _VerifyDaemonUser(daemon_name)
+  if not result:
+    msg = ("%s started using wrong user ID (%d), expected %d" %
+           (daemon_name, running_uid, expected_uid))
+    print >> sys.stderr, msg
+    sys.exit(constants.EXIT_FAILURE)
 
   if check_fn is not None:
     check_fn(options, args)
