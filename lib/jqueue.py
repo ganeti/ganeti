@@ -491,10 +491,8 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     timestamp = utils.SplitTime(time.time())
     self._AppendFeedback(timestamp, log_type, log_msg)
 
-  def ReportLocks(self, msg):
-    """Write locking information to the job.
-
-    Called whenever the LU processor is waiting for a lock or has acquired one.
+  def CheckCancel(self):
+    """Check whether job has been cancelled.
 
     """
     assert self._op.status in (constants.OP_STATUS_WAITLOCK,
@@ -969,11 +967,11 @@ class JobQueue(object):
 
       status = job.CalcStatus()
 
-      if status in (constants.JOB_STATUS_QUEUED,
-                    constants.JOB_STATUS_WAITLOCK):
+      if status in (constants.JOB_STATUS_QUEUED, ):
         self._wpool.AddTask((job, ))
 
       elif status in (constants.JOB_STATUS_RUNNING,
+                      constants.JOB_STATUS_WAITLOCK,
                       constants.JOB_STATUS_CANCELING):
         logging.warning("Unfinished job %s found: %s", job.id, job)
         job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
