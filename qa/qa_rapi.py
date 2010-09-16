@@ -116,6 +116,7 @@ def _DoTests(uris):
   for uri, verify, method, body in uris:
     assert uri.startswith("/")
 
+    print "%s %s" % (method, uri)
     data = _rapi_client._SendRequest(method, uri, None, body)
 
     if verify is not None:
@@ -124,7 +125,7 @@ def _DoTests(uris):
       else:
         AssertEqual(data, verify)
 
-      results.append(data)
+    results.append(data)
 
   return results
 
@@ -259,9 +260,24 @@ def TestTags(kind, name, tags):
   def _VerifyTags(data):
     AssertEqual(sorted(tags), sorted(data))
 
+  query = "&".join("tag=%s" % i for i in tags)
+
+  # Add tags
+  (job_id, ) = _DoTests([
+    ("%s?%s" % (uri, query), _VerifyReturnsJob, "PUT", None),
+    ])
+  _WaitForRapiJob(job_id)
+
+  # Retrieve tags
   _DoTests([
     (uri, _VerifyTags, 'GET', None),
     ])
+
+  # Remove tags
+  (job_id, ) = _DoTests([
+    ("%s?%s" % (uri, query), _VerifyReturnsJob, "DELETE", None),
+    ])
+  _WaitForRapiJob(job_id)
 
 
 def _WaitForRapiJob(job_id):

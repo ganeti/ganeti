@@ -66,12 +66,12 @@ def _TestTags(kind, name):
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
-  if qa_rapi.Enabled():
-    qa_rapi.TestTags(kind, name, _TEMP_TAG_NAMES)
-
   cmd = cmdfn('remove-tags') + _TEMP_TAG_NAMES
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  if qa_rapi.Enabled():
+    qa_rapi.TestTags(kind, name, _TEMP_TAG_NAMES)
 
 
 def TestClusterTags():

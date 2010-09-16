@@ -176,6 +176,8 @@ class OpCode(BaseOpCode):
     field_name = getattr(self, "OP_DSC_FIELD", None)
     if field_name:
       field_value = getattr(self, field_name, None)
+      if isinstance(field_value, (list, tuple)):
+        field_value = ",".join(str(i) for i in field_value)
       txt = "%s(%s)" % (txt, field_value)
     return txt
 

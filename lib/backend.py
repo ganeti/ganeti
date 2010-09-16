@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1945,9 +1945,11 @@ def OSFromDisk(name, base_dir=None):
   return payload
 
 
-def OSCoreEnv(inst_os, os_params, debug=0):
+def OSCoreEnv(os_name, inst_os, os_params, debug=0):
   """Calculate the basic environment for an os script.
 
+  @type os_name: str
+  @param os_name: full operating system name (including variant)
   @type inst_os: L{objects.OS}
   @param inst_os: operating system for which the environment is being built
   @type os_params: dict
@@ -1970,7 +1972,7 @@ def OSCoreEnv(inst_os, os_params, debug=0):
   # OS variants
   if api_version >= constants.OS_API_V15:
     try:
-      variant = inst_os.name.split('+', 1)[1]
+      variant = os_name.split('+', 1)[1]
     except IndexError:
       variant = inst_os.supported_variants[0]
     result['OS_VARIANT'] = variant
@@ -1997,7 +1999,7 @@ def OSEnvironment(instance, inst_os, debug=0):
       cannot be found
 
   """
-  result = OSCoreEnv(inst_os, instance.osparams, debug=debug)
+  result = OSCoreEnv(instance.os, inst_os, instance.osparams, debug=debug)
 
   result['INSTANCE_NAME'] = instance.name
   result['INSTANCE_OS'] = instance.os
@@ -2536,7 +2538,7 @@ def ValidateOS(required, osname, checks, osparams):
   if constants.OS_VALIDATE_PARAMETERS in checks:
     _CheckOSPList(tbv, osparams.keys())
 
-  validate_env = OSCoreEnv(tbv, osparams)
+  validate_env = OSCoreEnv(osname, tbv, osparams)
   result = utils.RunCmd([tbv.verify_script] + checks, env=validate_env,
                         cwd=tbv.path)
   if result.failed:
