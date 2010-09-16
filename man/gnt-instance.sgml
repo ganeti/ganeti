@@ -200,8 +200,8 @@
             <varlistentry>
               <term>mac</term>
               <listitem>
-                <simpara>either a value or <constant>GENERATE</constant>
-                  to generate a new unique MAC</simpara>
+                <simpara>either a value or 'generate' to generate a
+                  new unique MAC</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
