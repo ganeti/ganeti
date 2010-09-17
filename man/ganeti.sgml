@@ -231,6 +231,37 @@
     </refsect2>
   </refsect1>
 
+  <refsect1>
+    <title>Common options</title>
+
+    <para>
+      Many Ganeti commands provide the following options. The availability for
+      a certain command can be checked by calling the command using the
+      <option>--help</option> option.
+    </para>
+
+    <cmdsynopsis>
+      <command>gnt-<replaceable>...</replaceable> <replaceable>command</replaceable></command>
+      <arg>--dry-run</arg>
+      <arg>--priority <group choice="req">
+        <arg>low</arg>
+        <arg>normal</arg>
+        <arg>high</arg>
+      </group></arg>
+    </cmdsynopsis>
+
+    <para>
+      The <option>--dry-run</option> option can be used to check whether an
+      operation would succeed.
+    </para>
+
+    <para>
+      The option <option>--priority</option> sets the priority for opcodes
+      submitted by the command.
+    </para>
+
+  </refsect1>
+
   &footer;
 
 </refentry>
