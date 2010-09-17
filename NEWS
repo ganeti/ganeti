@@ -1,6 +1,17 @@
 News
 ====
 
+Version 2.2.0 rc2
+-----------------
+
+*(unreleased)*
+
+- Fixed OS_VARIANT variable for OS scripts
+- Fixed cluster tag operations via RAPI
+- Made ``setup-ssh`` exit with non-zero code if an error occurred
+- Disabled RAPI CA checks in watcher
+
+
 Version 2.2.0 rc1
 -----------------
 
