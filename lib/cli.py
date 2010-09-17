@@ -1064,7 +1064,7 @@ PRIMARY_IP_VERSION_OPT = \
 PRIORITY_OPT = cli_option("--priority", default=None, dest="priority",
                           metavar="|".join(name for name, _ in _PRIORITY_NAMES),
                           choices=_PRIONAME_TO_VALUE.keys(),
-                          help="Priority for opcode(s) processing")
+                          help="Priority for opcode processing")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT]
@@ -1657,9 +1657,11 @@ def SetGenericOpcodeOpts(opcode_list, options):
   if not options:
     return
   for op in opcode_list:
+    op.debug_level = options.debug
     if hasattr(options, "dry_run"):
       op.dry_run = options.dry_run
-    op.debug_level = options.debug
+    if getattr(options, "priority", None) is not None:
+      op.priority = _PRIONAME_TO_VALUE[options.priority]
 
 
 def GetClient():

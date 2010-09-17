@@ -471,7 +471,7 @@ commands = {
                 action="append", help="Select nodes to sleep on"),
      cli_option("-r", "--repeat", type="int", default="0", dest="repeat",
                 help="Number of times to repeat the sleep"),
-     DRY_RUN_OPT,
+     DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
   'submit-job': (
@@ -485,7 +485,7 @@ commands = {
                 action="store_true", help="Show timing stats"),
      cli_option("--each", default=False, action="store_true",
                 help="Submit each job separately"),
-     DRY_RUN_OPT,
+     DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "<op_list_file...>", "Submits jobs built from json files"
     " containing a list of serialized opcodes"),
@@ -513,11 +513,11 @@ commands = {
                 help="Select number of VCPUs for the instance"),
      cli_option("--tags", default=None,
                 help="Comma separated list of tags"),
-     DRY_RUN_OPT,
+     DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "{opts...} <instance>", "Executes a TestAllocator OpCode"),
   "test-jobqueue": (
-    TestJobqueue, ARGS_NONE, [],
+    TestJobqueue, ARGS_NONE, [PRIORITY_OPT],
     "", "Test a few aspects of the job queue"),
   "locks": (
     ListLocks, ARGS_NONE, [NOHDR_OPT, SEP_OPT, FIELDS_OPT, INTERVAL_OPT],
