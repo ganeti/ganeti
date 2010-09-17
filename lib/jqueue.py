@@ -411,6 +411,13 @@ class _QueuedJob(object):
       not_marked = False
 
   def Cancel(self):
+    """Marks job as canceled/-ing if possible.
+
+    @rtype: tuple; (bool, string)
+    @return: Boolean describing whether job was successfully canceled or marked
+      as canceling and a text message
+
+    """
     status = self.CalcStatus()
 
     if status not in (constants.JOB_STATUS_QUEUED,
