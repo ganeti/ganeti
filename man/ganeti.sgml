@@ -193,7 +193,7 @@
           <varlistentry>
             <term>canceling</term>
             <listitem>
-              <para>The jos is waiting for locks, but is has been
+              <para>The job is waiting for locks, but is has been
               marked for cancellation. It will not transition to
               <emphasis>running</emphasis>, but to
               <emphasis>canceled</emphasis>.
