@@ -375,7 +375,7 @@ def AddTags(opts, args):
   if not args:
     raise errors.OpPrereqError("No tags to be added")
   op = opcodes.OpAddTags(kind=kind, name=name, tags=args)
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
 
 
 def RemoveTags(opts, args):
@@ -392,7 +392,7 @@ def RemoveTags(opts, args):
   if not args:
     raise errors.OpPrereqError("No tags to be removed")
   op = opcodes.OpDelTags(kind=kind, name=name, tags=args)
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
 
 
 def check_unit(option, opt, value): # pylint: disable-msg=W0613

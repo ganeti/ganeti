@@ -136,6 +136,7 @@ def _OsStatus(status, diagnose):
   else:
     return "invalid - %s" % diagnose
 
+
 def DiagnoseOS(opts, args):
   """Analyse all OSes on this cluster.
 
