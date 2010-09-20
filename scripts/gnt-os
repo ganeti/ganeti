@@ -82,7 +82,8 @@ def ShowOSInfo(opts, args):
 
   """
   op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants",
-                                           "parameters", "api_versions"],
+                                           "parameters", "api_versions",
+                                           "blacklisted", "hidden"],
                             names=[])
   result = SubmitOpCode(op, opts=opts)
 
@@ -92,7 +93,7 @@ def ShowOSInfo(opts, args):
 
   do_filter = bool(args)
 
-  for (name, valid, variants, parameters, api_versions) in result:
+  for (name, valid, variants, parameters, api_versions, blk, hid) in result:
     if do_filter:
       if name not in args:
         continue
@@ -100,6 +101,8 @@ def ShowOSInfo(opts, args):
         args.remove(name)
     ToStdout("%s:", name)
     ToStdout("  - valid: %s", valid)
+    ToStdout("  - hidden: %s", hid)
+    ToStdout("  - blacklisted: %s", blk)
     if valid:
       ToStdout("  - API versions:")
       for version in sorted(api_versions):
@@ -148,7 +151,8 @@ def DiagnoseOS(opts, args):
 
   """
   op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants",
-                                           "node_status"], names=[])
+                                           "node_status", "hidden",
+                                           "blacklisted"], names=[])
   result = SubmitOpCode(op, opts=opts)
 
   if not result:
@@ -157,7 +161,7 @@ def DiagnoseOS(opts, args):
 
   has_bad = False
 
-  for os_name, _, os_variants, node_data in result:
+  for os_name, _, os_variants, node_data, hid, blk in result:
     nodes_valid = {}
     nodes_bad = {}
     nodes_hidden = {}
@@ -173,6 +177,7 @@ def DiagnoseOS(opts, args):
         else:
           max_os_api = 0
           fo_msg += " [no API versions declared]"
+
         if max_os_api >= constants.OS_API_V15:
           if fo_variants:
             fo_msg += " [variants: %s]" % utils.CommaJoin(fo_variants)
@@ -210,7 +215,12 @@ def DiagnoseOS(opts, args):
         for msg in nodes_hidden[node_name]:
           ToStdout(msg)
 
-    ToStdout("OS: %s [global status: %s]", os_name, status)
+    st_msg = "OS: %s [global status: %s]" % (os_name, status)
+    if hid:
+      st_msg += " [hidden]"
+    if blk:
+      st_msg += " [blacklisted]"
+    ToStdout(st_msg)
     if os_variants:
       ToStdout("  Variants: [%s]" % utils.CommaJoin(os_variants))
     _OutputPerNodeOSStatus(nodes_valid)

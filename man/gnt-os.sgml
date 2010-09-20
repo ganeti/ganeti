@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>June 08, 2010</date>">
+  <!ENTITY dhdate      "<date>September 20, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -67,6 +67,11 @@
       Gives the list of available/supported OS to use in the
       instances. When creating the instance you can give the OS-name
       as an option.
+    </para>
+
+    <para>
+      Note that hidden or blacklisted OSes are not displayed by this
+      command, use <command>diagnose</command> for showing those.
     </para>
 
     <cmdsynopsis>

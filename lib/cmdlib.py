@@ -3072,9 +3072,11 @@ class LUDiagnoseOS(NoHooksLU):
     ("names", _EmptyList, _TListOf(_TNonEmptyString)),
     ]
   REQ_BGL = False
+  _HID = "hidden"
+  _BLK = "blacklisted"
   _FIELDS_STATIC = utils.FieldSet()
   _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants",
-                                   "parameters", "api_versions")
+                                   "parameters", "api_versions", _HID, _BLK)
 
   def CheckArguments(self):
     if self.op.names:
@@ -3141,6 +3143,7 @@ class LUDiagnoseOS(NoHooksLU):
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     pol = self._DiagnoseByOS(node_data)
     output = []
+    cluster = self.cfg.GetClusterInfo()
 
     for os_name, os_data in pol.items():
       row = []
@@ -3161,6 +3164,12 @@ class LUDiagnoseOS(NoHooksLU):
           params.intersection_update(node_params)
           api_versions.intersection_update(node_api)
 
+      is_hid = os_name in cluster.hidden_oss
+      is_blk = os_name in cluster.blacklisted_oss
+      if ((self._HID not in self.op.output_fields and is_hid) or
+          (self._BLK not in self.op.output_fields and is_blk)):
+        continue
+
       for field in self.op.output_fields:
         if field == "name":
           val = os_name
@@ -3177,6 +3186,10 @@ class LUDiagnoseOS(NoHooksLU):
           val = list(params)
         elif field == "api_versions":
           val = list(api_versions)
+        elif field == self._HID:
+          val = is_hid
+        elif field == self._BLK:
+          val = is_blk
         else:
           raise errors.ParameterError(field)
         row.append(val)
