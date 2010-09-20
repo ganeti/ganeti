@@ -346,6 +346,81 @@ class TestQueuedJob(unittest.TestCase):
     job.ops[0].priority -= 19
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT - 20)
 
+  def testCalcStatus(self):
+    def _Queued(ops):
+      # The default status is "queued"
+      self.assert_(compat.all(op.status == constants.OP_STATUS_QUEUED
+                              for op in ops))
+
+    def _Waitlock1(ops):
+      ops[0].status = constants.OP_STATUS_WAITLOCK
+
+    def _Waitlock2(ops):
+      ops[0].status = constants.OP_STATUS_SUCCESS
+      ops[1].status = constants.OP_STATUS_SUCCESS
+      ops[2].status = constants.OP_STATUS_WAITLOCK
+
+    def _Running(ops):
+      ops[0].status = constants.OP_STATUS_SUCCESS
+      ops[1].status = constants.OP_STATUS_RUNNING
+      for op in ops[2:]:
+        op.status = constants.OP_STATUS_QUEUED
+
+    def _Canceling1(ops):
+      ops[0].status = constants.OP_STATUS_SUCCESS
+      ops[1].status = constants.OP_STATUS_SUCCESS
+      for op in ops[2:]:
+        op.status = constants.OP_STATUS_CANCELING
+
+    def _Canceling2(ops):
+      for op in ops:
+        op.status = constants.OP_STATUS_CANCELING
+
+    def _Canceled(ops):
+      for op in ops:
+        op.status = constants.OP_STATUS_CANCELED
+
+    def _Error1(ops):
+      for idx, op in enumerate(ops):
+        if idx > 3:
+          op.status = constants.OP_STATUS_ERROR
+        else:
+          op.status = constants.OP_STATUS_SUCCESS
+
+    def _Error2(ops):
+      for op in ops:
+        op.status = constants.OP_STATUS_ERROR
+
+    def _Success(ops):
+      for op in ops:
+        op.status = constants.OP_STATUS_SUCCESS
+
+    tests = {
+      constants.JOB_STATUS_QUEUED: [_Queued],
+      constants.JOB_STATUS_WAITLOCK: [_Waitlock1, _Waitlock2],
+      constants.JOB_STATUS_RUNNING: [_Running],
+      constants.JOB_STATUS_CANCELING: [_Canceling1, _Canceling2],
+      constants.JOB_STATUS_CANCELED: [_Canceled],
+      constants.JOB_STATUS_ERROR: [_Error1, _Error2],
+      constants.JOB_STATUS_SUCCESS: [_Success],
+      }
+
+    def _NewJob():
+      job = jqueue._QueuedJob(None, 1,
+                              [opcodes.OpTestDelay() for _ in range(10)])
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assert_(compat.all(op.status == constants.OP_STATUS_QUEUED
+                              for op in job.ops))
+      return job
+
+    for status in constants.JOB_STATUS_ALL:
+      sttests = tests[status]
+      assert sttests
+      for fn in sttests:
+        job = _NewJob()
+        fn(job.ops)
+        self.assertEqual(job.CalcStatus(), status)
+
 
 class _FakeQueueForProc:
   def __init__(self):
