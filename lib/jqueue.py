@@ -203,7 +203,14 @@ class _QueuedJob(object):
     self.start_timestamp = None
     self.end_timestamp = None
 
-    self.current_op = None
+    self._InitInMemory(self)
+
+  @staticmethod
+  def _InitInMemory(obj):
+    """Initializes in-memory variables.
+
+    """
+    obj.current_op = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -239,7 +246,7 @@ class _QueuedJob(object):
         obj.log_serial = max(obj.log_serial, log_entry[0])
       obj.ops.append(op)
 
-    obj.current_op = None
+    cls._InitInMemory(obj)
 
     return obj
 
