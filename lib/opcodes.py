@@ -802,6 +802,18 @@ class OpTestJobqueue(OpCode):
     ]
 
 
+class OpTestDummy(OpCode):
+  """Utility opcode used by unittests.
+
+  """
+  OP_ID = "OP_TEST_DUMMY"
+  __slots__ = [
+    "result",
+    "messages",
+    "fail",
+    ]
+
+
 OP_MAPPING = dict([(v.OP_ID, v) for v in globals().values()
                    if (isinstance(v, type) and issubclass(v, OpCode) and
                        hasattr(v, "OP_ID"))])

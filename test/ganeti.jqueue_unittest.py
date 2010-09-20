@@ -347,5 +347,505 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT - 20)
 
 
+class _FakeQueueForProc:
+  def __init__(self):
+    self._acquired = False
+
+  def IsAcquired(self):
+    return self._acquired
+
+  def acquire(self, shared=0):
+    assert shared == 1
+    self._acquired = True
+
+  def release(self):
+    assert self._acquired
+    self._acquired = False
+
+  def UpdateJobUnlocked(self, job, replicate=None):
+    # TODO: Ensure job is updated at the correct places
+    pass
+
+
+class _FakeExecOpCodeForProc:
+  def __init__(self, before_start, after_start):
+    self._before_start = before_start
+    self._after_start = after_start
+
+  def __call__(self, op, cbs):
+    assert isinstance(op, opcodes.OpTestDummy)
+
+    if self._before_start:
+      self._before_start()
+
+    cbs.NotifyStart()
+
+    if self._after_start:
+      self._after_start(op, cbs)
+
+    if op.fail:
+      raise errors.OpExecError("Error requested (%s)" % op.result)
+
+    return op.result
+
+
+class TestJobProcessor(unittest.TestCase):
+  def _CreateJob(self, queue, job_id, ops):
+    job = jqueue._QueuedJob(queue, job_id, ops)
+    self.assertFalse(job.start_timestamp)
+    self.assertFalse(job.end_timestamp)
+    self.assertEqual(len(ops), len(job.ops))
+    self.assert_(compat.all(op.input == inp
+                            for (op, inp) in zip(job.ops, ops)))
+    self.assertEqual(job.GetInfo(["ops"]), [[op.__getstate__() for op in ops]])
+    return job
+
+  def _GenericCheckJob(self, job):
+    assert compat.all(isinstance(op.input, opcodes.OpTestDummy)
+                      for op in job.ops)
+
+    self.assertEqual(job.GetInfo(["opstart", "opexec", "opend"]),
+                     [[op.start_timestamp for op in job.ops],
+                      [op.exec_timestamp for op in job.ops],
+                      [op.end_timestamp for op in job.ops]])
+    self.assertEqual(job.GetInfo(["received_ts", "start_ts", "end_ts"]),
+                     [job.received_timestamp,
+                      job.start_timestamp,
+                      job.end_timestamp])
+    self.assert_(job.start_timestamp)
+    self.assert_(job.end_timestamp)
+    self.assertEqual(job.start_timestamp, job.ops[0].start_timestamp)
+
+  def testSuccess(self):
+    queue = _FakeQueueForProc()
+
+    for (job_id, opcount) in [(25351, 1), (6637, 3),
+                              (24644, 10), (32207, 100)]:
+      ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+             for i in range(opcount)]
+
+      # Create job
+      job = self._CreateJob(queue, job_id, ops)
+
+      def _BeforeStart():
+        self.assertFalse(queue.IsAcquired())
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+
+      def _AfterStart(op, cbs):
+        self.assertFalse(queue.IsAcquired())
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+
+        # Job is running, cancelling shouldn't be possible
+        (success, _) = job.Cancel()
+        self.assertFalse(success)
+
+      opexec = _FakeExecOpCodeForProc(_BeforeStart, _AfterStart)
+
+      for idx in range(len(ops)):
+        result = jqueue._JobProcessor(queue, opexec, job)()
+        if idx == len(ops) - 1:
+          # Last opcode
+          self.assert_(result)
+        else:
+          self.assertFalse(result)
+
+          self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+          self.assert_(job.start_timestamp)
+          self.assertFalse(job.end_timestamp)
+
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_SUCCESS)
+      self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_SUCCESS])
+      self.assertEqual(job.GetInfo(["opresult"]),
+                       [[op.input.result for op in job.ops]])
+      self.assertEqual(job.GetInfo(["opstatus"]),
+                       [len(job.ops) * [constants.OP_STATUS_SUCCESS]])
+      self.assert_(compat.all(op.start_timestamp and op.end_timestamp
+                              for op in job.ops))
+
+      self._GenericCheckJob(job)
+
+      # Finished jobs can't be processed any further
+      self.assertRaises(errors.ProgrammerError,
+                        jqueue._JobProcessor(queue, opexec, job))
+
+  def testOpcodeError(self):
+    queue = _FakeQueueForProc()
+
+    testdata = [
+      (17077, 1, 0, 0),
+      (1782, 5, 2, 2),
+      (18179, 10, 9, 9),
+      (4744, 10, 3, 8),
+      (23816, 100, 39, 45),
+      ]
+
+    for (job_id, opcount, failfrom, failto) in testdata:
+      # Prepare opcodes
+      ops = [opcodes.OpTestDummy(result="Res%s" % i,
+                                 fail=(failfrom <= i and
+                                       i <= failto))
+             for i in range(opcount)]
+
+      # Create job
+      job = self._CreateJob(queue, job_id, ops)
+
+      opexec = _FakeExecOpCodeForProc(None, None)
+
+      for idx in range(len(ops)):
+        result = jqueue._JobProcessor(queue, opexec, job)()
+
+        if idx in (failfrom, len(ops) - 1):
+          # Last opcode
+          self.assert_(result)
+          break
+
+        self.assertFalse(result)
+
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+      # Check job status
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_ERROR)
+      self.assertEqual(job.GetInfo(["id"]), [job_id])
+      self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_ERROR])
+
+      # Check opcode status
+      data = zip(job.ops,
+                 job.GetInfo(["opstatus"])[0],
+                 job.GetInfo(["opresult"])[0])
+
+      for idx, (op, opstatus, opresult) in enumerate(data):
+        if idx < failfrom:
+          assert not op.input.fail
+          self.assertEqual(opstatus, constants.OP_STATUS_SUCCESS)
+          self.assertEqual(opresult, op.input.result)
+        elif idx <= failto:
+          assert op.input.fail
+          self.assertEqual(opstatus, constants.OP_STATUS_ERROR)
+          self.assertRaises(errors.OpExecError, errors.MaybeRaise, opresult)
+        else:
+          assert not op.input.fail
+          self.assertEqual(opstatus, constants.OP_STATUS_ERROR)
+          self.assertRaises(errors.OpExecError, errors.MaybeRaise, opresult)
+
+      self.assert_(compat.all(op.start_timestamp and op.end_timestamp
+                              for op in job.ops[:failfrom]))
+
+      self._GenericCheckJob(job)
+
+      # Finished jobs can't be processed any further
+      self.assertRaises(errors.ProgrammerError,
+                        jqueue._JobProcessor(queue, opexec, job))
+
+  def testCancelWhileInQueue(self):
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(5)]
+
+    # Create job
+    job_id = 17045
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    # Mark as cancelled
+    (success, _) = job.Cancel()
+    self.assert_(success)
+
+    self.assert_(compat.all(op.status == constants.OP_STATUS_CANCELED
+                            for op in job.ops))
+
+    opexec = _FakeExecOpCodeForProc(None, None)
+    jqueue._JobProcessor(queue, opexec, job)()
+
+    # Check result
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_CANCELED)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_CANCELED])
+    self.assertFalse(job.start_timestamp)
+    self.assert_(job.end_timestamp)
+    self.assertFalse(compat.any(op.start_timestamp or op.end_timestamp
+                                for op in job.ops))
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_CANCELED for _ in job.ops],
+                      ["Job canceled by request" for _ in job.ops]])
+
+  def testCancelWhileWaitlock(self):
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(5)]
+
+    # Create job
+    job_id = 11009
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    def _BeforeStart():
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+
+      # Mark as cancelled
+      (success, _) = job.Cancel()
+      self.assert_(success)
+
+      self.assert_(compat.all(op.status == constants.OP_STATUS_CANCELING
+                              for op in job.ops))
+
+    def _AfterStart(op, cbs):
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+
+    opexec = _FakeExecOpCodeForProc(_BeforeStart, _AfterStart)
+
+    jqueue._JobProcessor(queue, opexec, job)()
+
+    # Check result
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_CANCELED)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_CANCELED])
+    self.assert_(job.start_timestamp)
+    self.assert_(job.end_timestamp)
+    self.assertFalse(compat.all(op.start_timestamp and op.end_timestamp
+                                for op in job.ops))
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_CANCELED for _ in job.ops],
+                      ["Job canceled by request" for _ in job.ops]])
+
+  def testCancelWhileRunning(self):
+    # Tests canceling a job with finished opcodes and more, unprocessed ones
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(3)]
+
+    # Create job
+    job_id = 28492
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    opexec = _FakeExecOpCodeForProc(None, None)
+
+    # Run one opcode
+    self.assertFalse(jqueue._JobProcessor(queue, opexec, job)())
+
+    # Job goes back to queued
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_QUEUED,
+                       constants.OP_STATUS_QUEUED],
+                      ["Res0", None, None]])
+
+    # Mark as cancelled
+    (success, _) = job.Cancel()
+    self.assert_(success)
+
+    # Try processing another opcode (this will actually cancel the job)
+    self.assert_(jqueue._JobProcessor(queue, opexec, job)())
+
+    # Check result
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_CANCELED)
+    self.assertEqual(job.GetInfo(["id"]), [job_id])
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_CANCELED])
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_CANCELED,
+                       constants.OP_STATUS_CANCELED],
+                      ["Res0", "Job canceled by request",
+                       "Job canceled by request"]])
+
+  def testPartiallyRun(self):
+    # Tests calling the processor on a job that's been partially run before the
+    # program was restarted
+    queue = _FakeQueueForProc()
+
+    opexec = _FakeExecOpCodeForProc(None, None)
+
+    for job_id, successcount in [(30697, 1), (2552, 4), (12489, 9)]:
+      ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+             for i in range(10)]
+
+      # Create job
+      job = self._CreateJob(queue, job_id, ops)
+
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+      for _ in range(successcount):
+        self.assertFalse(jqueue._JobProcessor(queue, opexec, job)())
+
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assertEqual(job.GetInfo(["opstatus"]),
+                       [[constants.OP_STATUS_SUCCESS
+                         for _ in range(successcount)] +
+                        [constants.OP_STATUS_QUEUED
+                         for _ in range(len(ops) - successcount)]])
+
+      self.assert_(job.current_op)
+
+      # Serialize and restore (simulates program restart)
+      newjob = jqueue._QueuedJob.Restore(queue, job.Serialize())
+      self.assertFalse(newjob.current_op)
+      self._TestPartial(newjob, successcount)
+
+  def _TestPartial(self, job, successcount):
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+    self.assertEqual(job.start_timestamp, job.ops[0].start_timestamp)
+
+    queue = _FakeQueueForProc()
+    opexec = _FakeExecOpCodeForProc(None, None)
+
+    for remaining in reversed(range(len(job.ops) - successcount)):
+      result = jqueue._JobProcessor(queue, opexec, job)()
+
+      if remaining == 0:
+        # Last opcode
+        self.assert_(result)
+        break
+
+      self.assertFalse(result)
+
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_SUCCESS)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(job.GetInfo(["opresult"]),
+                     [[op.input.result for op in job.ops]])
+    self.assertEqual(job.GetInfo(["opstatus"]),
+                     [[constants.OP_STATUS_SUCCESS for _ in job.ops]])
+    self.assert_(compat.all(op.start_timestamp and op.end_timestamp
+                            for op in job.ops))
+
+    self._GenericCheckJob(job)
+
+    # Finished jobs can't be processed any further
+    self.assertRaises(errors.ProgrammerError,
+                      jqueue._JobProcessor(queue, opexec, job))
+
+    # ... also after being restored
+    job2 = jqueue._QueuedJob.Restore(queue, job.Serialize())
+    self.assertRaises(errors.ProgrammerError,
+                      jqueue._JobProcessor(queue, opexec, job2))
+
+  def testProcessorOnRunningJob(self):
+    ops = [opcodes.OpTestDummy(result="result", fail=False)]
+
+    queue = _FakeQueueForProc()
+    opexec = _FakeExecOpCodeForProc(None, None)
+
+    # Create job
+    job = self._CreateJob(queue, 9571, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    job.ops[0].status = constants.OP_STATUS_RUNNING
+
+    assert len(job.ops) == 1
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+
+    # Calling on running job must fail
+    self.assertRaises(errors.ProgrammerError,
+                      jqueue._JobProcessor(queue, opexec, job))
+
+  def testLogMessages(self):
+    # Tests the "Feedback" callback function
+    queue = _FakeQueueForProc()
+
+    messages = {
+      1: [
+        (None, "Hello"),
+        (None, "World"),
+        (constants.ELOG_MESSAGE, "there"),
+        ],
+      4: [
+        (constants.ELOG_JQUEUE_TEST, (1, 2, 3)),
+        (constants.ELOG_JQUEUE_TEST, ("other", "type")),
+        ],
+      }
+    ops = [opcodes.OpTestDummy(result="Logtest%s" % i, fail=False,
+                               messages=messages.get(i, []))
+           for i in range(5)]
+
+    # Create job
+    job = self._CreateJob(queue, 29386, ops)
+
+    def _BeforeStart():
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+
+    def _AfterStart(op, cbs):
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+
+      self.assertRaises(AssertionError, cbs.Feedback,
+                        "too", "many", "arguments")
+
+      for (log_type, msg) in op.messages:
+        if log_type:
+          cbs.Feedback(log_type, msg)
+        else:
+          cbs.Feedback(msg)
+
+    opexec = _FakeExecOpCodeForProc(_BeforeStart, _AfterStart)
+
+    for remaining in reversed(range(len(job.ops))):
+      result = jqueue._JobProcessor(queue, opexec, job)()
+
+      if remaining == 0:
+        # Last opcode
+        self.assert_(result)
+        break
+
+      self.assertFalse(result)
+
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_SUCCESS)
+    self.assertEqual(job.GetInfo(["opresult"]),
+                     [[op.input.result for op in job.ops]])
+
+    logmsgcount = sum(len(m) for m in messages.values())
+
+    self._CheckLogMessages(job, logmsgcount)
+
+    # Serialize and restore (simulates program restart)
+    newjob = jqueue._QueuedJob.Restore(queue, job.Serialize())
+    self._CheckLogMessages(newjob, logmsgcount)
+
+    # Check each message
+    prevserial = -1
+    for idx, oplog in enumerate(job.GetInfo(["oplog"])[0]):
+      for (serial, timestamp, log_type, msg) in oplog:
+        (exptype, expmsg) = messages.get(idx).pop(0)
+        if exptype:
+          self.assertEqual(log_type, exptype)
+        else:
+          self.assertEqual(log_type, constants.ELOG_MESSAGE)
+        self.assertEqual(expmsg, msg)
+        self.assert_(serial > prevserial)
+        prevserial = serial
+
+  def _CheckLogMessages(self, job, count):
+    # Check serial
+    self.assertEqual(job.log_serial, count)
+
+    # No filter
+    self.assertEqual(job.GetLogEntries(None),
+                     [entry for entries in job.GetInfo(["oplog"])[0] if entries
+                      for entry in entries])
+
+    # Filter with serial
+    assert count > 3
+    self.assert_(job.GetLogEntries(3))
+    self.assertEqual(job.GetLogEntries(3),
+                     [entry for entries in job.GetInfo(["oplog"])[0] if entries
+                      for entry in entries][3:])
+
+    # No log message after highest serial
+    self.assertFalse(job.GetLogEntries(count))
+    self.assertFalse(job.GetLogEntries(count + 3))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

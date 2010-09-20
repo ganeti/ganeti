@@ -176,7 +176,7 @@ class _QueuedJob(object):
 
   """
   # pylint: disable-msg=W0212
-  __slots__ = ["queue", "id", "ops", "log_serial",
+  __slots__ = ["queue", "id", "ops", "log_serial", "current_op",
                "received_timestamp", "start_timestamp", "end_timestamp",
                "__weakref__"]
 
@@ -202,6 +202,8 @@ class _QueuedJob(object):
     self.received_timestamp = TimeStampNow()
     self.start_timestamp = None
     self.end_timestamp = None
+
+    self.current_op = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -236,6 +238,8 @@ class _QueuedJob(object):
       for log_entry in op.log:
         obj.log_serial = max(obj.log_serial, log_entry[0])
       obj.ops.append(op)
+
+    obj.current_op = None
 
     return obj
 
@@ -734,6 +738,211 @@ def _EncodeOpError(err):
   return errors.EncodeException(to_encode)
 
 
+class _JobProcessor(object):
+  def __init__(self, queue, opexec_fn, job):
+    """Initializes this class.
+
+    """
+    self.queue = queue
+    self.opexec_fn = opexec_fn
+    self.job = job
+
+  @staticmethod
+  def _FindNextOpcode(job):
+    """Locates the next opcode to run.
+
+    @type job: L{_QueuedJob}
+    @param job: Job object
+
+    """
+    # Create some sort of a cache to speed up locating next opcode for future
+    # lookups
+    # TODO: Consider splitting _QueuedJob.ops into two separate lists, one for
+    # pending and one for processed ops.
+    if job.current_op is None:
+      job.current_op = enumerate(job.ops)
+
+    # Find next opcode to run
+    while True:
+      try:
+        (idx, op) = job.current_op.next()
+      except StopIteration:
+        raise errors.ProgrammerError("Called for a finished job")
+
+      if op.status == constants.OP_STATUS_RUNNING:
+        # Found an opcode already marked as running
+        raise errors.ProgrammerError("Called for job marked as running")
+
+      log_prefix = "Op %s/%s" % (idx + 1, len(job.ops))
+      summary = op.input.Summary()
+
+      if op.status == constants.OP_STATUS_CANCELED:
+        # Cancelled jobs are handled by the caller
+        assert not compat.any(i.status != constants.OP_STATUS_CANCELED
+                              for i in job.ops[idx:])
+
+      elif op.status in constants.OPS_FINALIZED:
+        # This is a job that was partially completed before master daemon
+        # shutdown, so it can be expected that some opcodes are already
+        # completed successfully (if any did error out, then the whole job
+        # should have been aborted and not resubmitted for processing).
+        logging.info("%s: opcode %s already processed, skipping",
+                     log_prefix, summary)
+        continue
+
+      return (idx, op, log_prefix, summary)
+
+  @staticmethod
+  def _MarkWaitlock(job, op):
+    """Marks an opcode as waiting for locks.
+
+    The job's start timestamp is also set if necessary.
+
+    @type job: L{_QueuedJob}
+    @param job: Job object
+    @type job: L{_QueuedOpCode}
+    @param job: Opcode object
+
+    """
+    assert op in job.ops
+
+    op.status = constants.OP_STATUS_WAITLOCK
+    op.result = None
+    op.start_timestamp = TimeStampNow()
+
+    if job.start_timestamp is None:
+      job.start_timestamp = op.start_timestamp
+
+  def _ExecOpCodeUnlocked(self, log_prefix, op, summary):
+    """Processes one opcode and returns the result.
+
+    """
+    assert op.status == constants.OP_STATUS_WAITLOCK
+
+    try:
+      # Make sure not to hold queue lock while calling ExecOpCode
+      result = self.opexec_fn(op.input,
+                              _OpExecCallbacks(self.queue, self.job, op))
+    except CancelJob:
+      logging.exception("%s: Canceling job", log_prefix)
+      assert op.status == constants.OP_STATUS_CANCELING
+      return (constants.OP_STATUS_CANCELING, None)
+    except Exception, err: # pylint: disable-msg=W0703
+      logging.exception("%s: Caught exception in %s", log_prefix, summary)
+      return (constants.OP_STATUS_ERROR, _EncodeOpError(err))
+    else:
+      logging.debug("%s: %s successful", log_prefix, summary)
+      return (constants.OP_STATUS_SUCCESS, result)
+
+  def __call__(self):
+    """Continues execution of a job.
+
+    @rtype: bool
+    @return: True if job is finished, False if processor needs to be called
+             again
+
+    """
+    queue = self.queue
+    job = self.job
+
+    logging.debug("Processing job %s", job.id)
+
+    queue.acquire(shared=1)
+    try:
+      opcount = len(job.ops)
+
+      (opidx, op, log_prefix, op_summary) = self._FindNextOpcode(job)
+
+      # Consistency check
+      assert compat.all(i.status in (constants.OP_STATUS_QUEUED,
+                                     constants.OP_STATUS_CANCELED)
+                        for i in job.ops[opidx:])
+
+      assert op.status in (constants.OP_STATUS_QUEUED,
+                           constants.OP_STATUS_WAITLOCK,
+                           constants.OP_STATUS_CANCELED)
+
+      if op.status != constants.OP_STATUS_CANCELED:
+        # Prepare to start opcode
+        self._MarkWaitlock(job, op)
+
+        assert op.status == constants.OP_STATUS_WAITLOCK
+        assert job.CalcStatus() == constants.JOB_STATUS_WAITLOCK
+
+        # Write to disk
+        queue.UpdateJobUnlocked(job)
+
+        logging.info("%s: opcode %s waiting for locks", log_prefix, op_summary)
+
+        queue.release()
+        try:
+          (op_status, op_result) = \
+            self._ExecOpCodeUnlocked(log_prefix, op, op_summary)
+        finally:
+          queue.acquire(shared=1)
+
+        # Finalize opcode
+        op.end_timestamp = TimeStampNow()
+        op.status = op_status
+        op.result = op_result
+
+        if op.status == constants.OP_STATUS_CANCELING:
+          assert not compat.any(i.status != constants.OP_STATUS_CANCELING
+                                for i in job.ops[opidx:])
+        else:
+          assert op.status in constants.OPS_FINALIZED
+
+      # Ensure all opcodes so far have been successful
+      assert (opidx == 0 or
+              compat.all(i.status == constants.OP_STATUS_SUCCESS
+                         for i in job.ops[:opidx]))
+
+      if op.status == constants.OP_STATUS_SUCCESS:
+        finalize = False
+
+      elif op.status == constants.OP_STATUS_ERROR:
+        # Ensure failed opcode has an exception as its result
+        assert errors.GetEncodedError(job.ops[opidx].result)
+
+        to_encode = errors.OpExecError("Preceding opcode failed")
+        job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
+                              _EncodeOpError(to_encode))
+        finalize = True
+
+        # Consistency check
+        assert compat.all(i.status == constants.OP_STATUS_ERROR and
+                          errors.GetEncodedError(i.result)
+                          for i in job.ops[opidx:])
+
+      elif op.status == constants.OP_STATUS_CANCELING:
+        job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
+                              "Job canceled by request")
+        finalize = True
+
+      elif op.status == constants.OP_STATUS_CANCELED:
+        finalize = True
+
+      else:
+        raise errors.ProgrammerError("Unknown status '%s'" % op.status)
+
+      # Finalizing or last opcode?
+      if finalize or opidx == (opcount - 1):
+        # All opcodes have been run, finalize job
+        job.end_timestamp = TimeStampNow()
+
+      # Write to disk. If the job status is final, this is the final write
+      # allowed. Once the file has been written, it can be archived anytime.
+      queue.UpdateJobUnlocked(job)
+
+      if finalize or opidx == (opcount - 1):
+        logging.info("Finished job %s, status = %s", job.id, job.CalcStatus())
+        return True
+
+      return False
+    finally:
+      queue.release()
+
+
 class _JobQueueWorker(workerpool.BaseWorker):
   """The actual job workers.
 
@@ -741,125 +950,23 @@ class _JobQueueWorker(workerpool.BaseWorker):
   def RunTask(self, job): # pylint: disable-msg=W0221
     """Job executor.
 
-    This functions processes a job. It is closely tied to the _QueuedJob and
-    _QueuedOpCode classes.
+    This functions processes a job. It is closely tied to the L{_QueuedJob} and
+    L{_QueuedOpCode} classes.
 
     @type job: L{_QueuedJob}
     @param job: the job to be processed
 
     """
+    queue = job.queue
+    assert queue == self.pool.queue
+
     self.SetTaskName("Job%s" % job.id)
 
-    logging.info("Processing job %s", job.id)
-    proc = mcpu.Processor(self.pool.queue.context, job.id)
-    queue = job.queue
-    try:
-      try:
-        count = len(job.ops)
-        for idx, op in enumerate(job.ops):
-          op_summary = op.input.Summary()
-          if op.status == constants.OP_STATUS_SUCCESS:
-            # this is a job that was partially completed before master
-            # daemon shutdown, so it can be expected that some opcodes
-            # are already completed successfully (if any did error
-            # out, then the whole job should have been aborted and not
-            # resubmitted for processing)
-            logging.info("Op %s/%s: opcode %s already processed, skipping",
-                         idx + 1, count, op_summary)
-            continue
-          try:
-            logging.info("Op %s/%s: Starting opcode %s", idx + 1, count,
-                         op_summary)
+    proc = mcpu.Processor(queue.context, job.id)
 
-            queue.acquire(shared=1)
-            try:
-              if op.status == constants.OP_STATUS_CANCELED:
-                logging.debug("Canceling opcode")
-                raise CancelJob()
-              assert op.status == constants.OP_STATUS_QUEUED
-              logging.debug("Opcode %s/%s waiting for locks",
-                            idx + 1, count)
-              op.status = constants.OP_STATUS_WAITLOCK
-              op.result = None
-              op.start_timestamp = TimeStampNow()
-              if idx == 0: # first opcode
-                job.start_timestamp = op.start_timestamp
-              queue.UpdateJobUnlocked(job)
-
-              input_opcode = op.input
-            finally:
-              queue.release()
-
-            # Make sure not to hold queue lock while calling ExecOpCode
-            result = proc.ExecOpCode(input_opcode,
-                                     _OpExecCallbacks(queue, job, op))
-
-            queue.acquire(shared=1)
-            try:
-              logging.debug("Opcode %s/%s succeeded", idx + 1, count)
-              op.status = constants.OP_STATUS_SUCCESS
-              op.result = result
-              op.end_timestamp = TimeStampNow()
-              if idx == count - 1:
-                job.end_timestamp = TimeStampNow()
-
-                # Consistency check
-                assert compat.all(i.status == constants.OP_STATUS_SUCCESS
-                                  for i in job.ops)
-
-              queue.UpdateJobUnlocked(job)
-            finally:
-              queue.release()
-
-            logging.info("Op %s/%s: Successfully finished opcode %s",
-                         idx + 1, count, op_summary)
-          except CancelJob:
-            # Will be handled further up
-            raise
-          except Exception, err:
-            queue.acquire(shared=1)
-            try:
-              try:
-                logging.debug("Opcode %s/%s failed", idx + 1, count)
-                op.status = constants.OP_STATUS_ERROR
-                op.result = _EncodeOpError(err)
-                op.end_timestamp = TimeStampNow()
-                logging.info("Op %s/%s: Error in opcode %s: %s",
-                             idx + 1, count, op_summary, err)
-
-                to_encode = errors.OpExecError("Preceding opcode failed")
-                job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
-                                      _EncodeOpError(to_encode))
-
-                # Consistency check
-                assert compat.all(i.status == constants.OP_STATUS_SUCCESS
-                                  for i in job.ops[:idx])
-                assert compat.all(i.status == constants.OP_STATUS_ERROR and
-                                  errors.GetEncodedError(i.result)
-                                  for i in job.ops[idx:])
-              finally:
-                job.end_timestamp = TimeStampNow()
-                queue.UpdateJobUnlocked(job)
-            finally:
-              queue.release()
-            raise
-
-      except CancelJob:
-        queue.acquire(shared=1)
-        try:
-          job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
-                                "Job canceled by request")
-          job.end_timestamp = TimeStampNow()
-          queue.UpdateJobUnlocked(job)
-        finally:
-          queue.release()
-      except errors.GenericError, err:
-        logging.exception("Ganeti exception")
-      except:
-        logging.exception("Unhandled exception")
-    finally:
-      status = job.CalcStatus()
-      logging.info("Finished job %s, status = %s", job.id, status)
+    if not _JobProcessor(queue, proc.ExecOpCode, job)():
+      # Schedule again
+      raise workerpool.DeferTask()
 
 
 class _JobQueueWorkerPool(workerpool.WorkerPool):
