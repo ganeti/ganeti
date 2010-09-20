@@ -5442,6 +5442,7 @@ class LUFailoverInstance(LogicalUnit):
 
     """
     instance = self.instance
+    primary_node = self.cfg.GetNodeInfo(instance.primary_node)
 
     source_node = instance.primary_node
     target_node = instance.secondary_nodes[0]
@@ -5465,7 +5466,7 @@ class LUFailoverInstance(LogicalUnit):
                                              self.op.shutdown_timeout)
     msg = result.fail_msg
     if msg:
-      if self.op.ignore_consistency:
+      if self.op.ignore_consistency or primary_node.offline:
         self.proc.LogWarning("Could not shutdown instance %s on node %s."
                              " Proceeding anyway. Please make sure node"
                              " %s is down. Error details: %s",
