@@ -40,8 +40,8 @@ from ganeti import cmdlib
 from ganeti import locking
 
 
-class _LockAcquireTimeout(Exception):
-  """Internal exception to report timeouts on acquiring locks.
+class LockAcquireTimeout(Exception):
+  """Exception to report timeouts on acquiring locks.
 
   """
 
@@ -328,7 +328,7 @@ class Processor(object):
                                         calc_timeout())
 
           if acquired is None:
-            raise _LockAcquireTimeout()
+            raise LockAcquireTimeout()
 
         else:
           # Adding locks
@@ -361,59 +361,53 @@ class Processor(object):
 
     return result
 
-  def ExecOpCode(self, op, cbs):
+  def ExecOpCode(self, op, cbs, timeout=None):
     """Execute an opcode.
 
     @type op: an OpCode instance
     @param op: the opcode to be executed
     @type cbs: L{OpExecCbBase}
     @param cbs: Runtime callbacks
+    @type timeout: float or None
+    @param timeout: Maximum time to acquire all locks, None for no timeout
+    @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
+        amount of time
 
     """
     if not isinstance(op, opcodes.OpCode):
       raise errors.ProgrammerError("Non-opcode instance passed"
                                    " to ExecOpcode")
 
+    lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
+    if lu_class is None:
+      raise errors.OpCodeUnknown("Unknown opcode")
+
+    if timeout is None:
+      calc_timeout = lambda: None
+    else:
+      calc_timeout = locking.RunningTimeout(timeout, False).Remaining
+
     self._cbs = cbs
     try:
-      lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
-      if lu_class is None:
-        raise errors.OpCodeUnknown("Unknown opcode")
+      # Acquire the Big Ganeti Lock exclusively if this LU requires it,
+      # and in a shared fashion otherwise (to prevent concurrent run with
+      # an exclusive LU.
+      if self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
+                            not lu_class.REQ_BGL, calc_timeout()) is None:
+        raise LockAcquireTimeout()
 
-      timeout_strategy = _LockAttemptTimeoutStrategy()
+      try:
+        lu = lu_class(self, op, self.context, self.rpc)
+        lu.ExpandNames()
+        assert lu.needed_locks is not None, "needed_locks not set by LU"
 
-      while True:
         try:
-          acquire_timeout = timeout_strategy.CalcRemainingTimeout()
-
-          # Acquire the Big Ganeti Lock exclusively if this LU requires it,
-          # and in a shared fashion otherwise (to prevent concurrent run with
-          # an exclusive LU.
-          if self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
-                                not lu_class.REQ_BGL, acquire_timeout) is None:
-            raise _LockAcquireTimeout()
-
-          try:
-            lu = lu_class(self, op, self.context, self.rpc)
-            lu.ExpandNames()
-            assert lu.needed_locks is not None, "needed_locks not set by LU"
-
-            try:
-              return self._LockAndExecLU(lu, locking.LEVEL_INSTANCE,
-                                         timeout_strategy.CalcRemainingTimeout)
-            finally:
-              if self._ec_id:
-                self.context.cfg.DropECReservations(self._ec_id)
-
-          finally:
-            self.context.glm.release(locking.LEVEL_CLUSTER)
-
-        except _LockAcquireTimeout:
-          # Timeout while waiting for lock, try again
-          pass
-
-        timeout_strategy = timeout_strategy.NextAttempt()
-
+          return self._LockAndExecLU(lu, locking.LEVEL_INSTANCE, calc_timeout)
+        finally:
+          if self._ec_id:
+            self.context.cfg.DropECReservations(self._ec_id)
+      finally:
+        self.context.glm.release(locking.LEVEL_CLUSTER)
     finally:
       self._cbs = None
 
