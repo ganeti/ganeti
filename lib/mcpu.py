@@ -71,60 +71,40 @@ def _CalculateLockAttemptTimeouts():
   return result
 
 
-class _LockAttemptTimeoutStrategy(object):
+class LockAttemptTimeoutStrategy(object):
   """Class with lock acquire timeout strategy.
 
   """
   __slots__ = [
-    "_attempt",
+    "_timeouts",
     "_random_fn",
-    "_start_time",
     "_time_fn",
-    "_running_timeout",
     ]
 
   _TIMEOUT_PER_ATTEMPT = _CalculateLockAttemptTimeouts()
 
-  def __init__(self, attempt=0, _time_fn=time.time, _random_fn=random.random):
+  def __init__(self, _time_fn=time.time, _random_fn=random.random):
     """Initializes this class.
 
-    @type attempt: int
-    @param attempt: Current attempt number
     @param _time_fn: Time function for unittests
     @param _random_fn: Random number generator for unittests
 
     """
     object.__init__(self)
 
-    if attempt < 0:
-      raise ValueError("Attempt must be zero or positive")
-
-    self._attempt = attempt
+    self._timeouts = iter(self._TIMEOUT_PER_ATTEMPT)
     self._time_fn = _time_fn
     self._random_fn = _random_fn
 
+  def NextAttempt(self):
+    """Returns the timeout for the next attempt.
+
+    """
     try:
-      timeout = self._TIMEOUT_PER_ATTEMPT[attempt]
-    except IndexError:
+      timeout = self._timeouts.next()
+    except StopIteration:
       # No more timeouts, do blocking acquire
       timeout = None
-
-    self._running_timeout = locking.RunningTimeout(timeout, False,
-                                                   _time_fn=_time_fn)
-
-  def NextAttempt(self):
-    """Returns the strategy for the next attempt.
-
-    """
-    return _LockAttemptTimeoutStrategy(attempt=self._attempt + 1,
-                                       _time_fn=self._time_fn,
-                                       _random_fn=self._random_fn)
-
-  def CalcRemainingTimeout(self):
-    """Returns the remaining timeout.
-
-    """
-    timeout = self._running_timeout.Remaining()
 
     if timeout is not None:
       # Add a small variation (-/+ 5%) to timeout. This helps in situations

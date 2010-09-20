@@ -31,32 +31,27 @@ import testutils
 
 class TestLockAttemptTimeoutStrategy(unittest.TestCase):
   def testConstants(self):
-    tpa = mcpu._LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT
+    tpa = mcpu.LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT
     self.assert_(len(tpa) > 10)
     self.assert_(sum(tpa) >= 150.0)
 
   def testSimple(self):
-    strat = mcpu._LockAttemptTimeoutStrategy(_random_fn=lambda: 0.5,
-                                             _time_fn=lambda: 0.0)
-
-    self.assertEqual(strat._attempt, 0)
+    strat = mcpu.LockAttemptTimeoutStrategy(_random_fn=lambda: 0.5,
+                                            _time_fn=lambda: 0.0)
 
     prev = None
-    for i in range(len(mcpu._LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT)):
-      timeout = strat.CalcRemainingTimeout()
+    for i in range(len(strat._TIMEOUT_PER_ATTEMPT)):
+      timeout = strat.NextAttempt()
       self.assert_(timeout is not None)
 
       self.assert_(timeout <= 10.0)
       self.assert_(timeout >= 0.0)
       self.assert_(prev is None or timeout >= prev)
 
-      strat = strat.NextAttempt()
-      self.assertEqual(strat._attempt, i + 1)
-
       prev = timeout
 
     for _ in range(10):
-      self.assert_(strat.CalcRemainingTimeout() is None)
+      self.assert_(strat.NextAttempt() is None)
 
 
 if __name__ == "__main__":
