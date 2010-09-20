@@ -176,7 +176,7 @@ class _QueuedJob(object):
 
   """
   # pylint: disable-msg=W0212
-  __slots__ = ["queue", "id", "ops", "log_serial", "current_op",
+  __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter",
                "received_timestamp", "start_timestamp", "end_timestamp",
                "__weakref__"]
 
@@ -210,7 +210,7 @@ class _QueuedJob(object):
     """Initializes in-memory variables.
 
     """
-    obj.current_op = None
+    obj.ops_iter = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -766,13 +766,13 @@ class _JobProcessor(object):
     # lookups
     # TODO: Consider splitting _QueuedJob.ops into two separate lists, one for
     # pending and one for processed ops.
-    if job.current_op is None:
-      job.current_op = enumerate(job.ops)
+    if job.ops_iter is None:
+      job.ops_iter = enumerate(job.ops)
 
     # Find next opcode to run
     while True:
       try:
-        (idx, op) = job.current_op.next()
+        (idx, op) = job.ops_iter.next()
       except StopIteration:
         raise errors.ProgrammerError("Called for a finished job")
 

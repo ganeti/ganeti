@@ -756,11 +756,11 @@ class TestJobProcessor(unittest.TestCase):
                         [constants.OP_STATUS_QUEUED
                          for _ in range(len(ops) - successcount)]])
 
-      self.assert_(job.current_op)
+      self.assert_(job.ops_iter)
 
       # Serialize and restore (simulates program restart)
       newjob = jqueue._QueuedJob.Restore(queue, job.Serialize())
-      self.assertFalse(newjob.current_op)
+      self.assertFalse(newjob.ops_iter)
       self._TestPartial(newjob, successcount)
 
   def _TestPartial(self, job, successcount):
