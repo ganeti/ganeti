@@ -510,16 +510,16 @@ class Burner(object):
       Err(msg, exit_code=err_code)
     self.nodes = [data[0] for data in result if not (data[1] or data[2])]
 
-    op_diagnose = opcodes.OpDiagnoseOS(output_fields=["name", "valid",
-                                                      "variants"], names=[])
+    op_diagnose = opcodes.OpDiagnoseOS(output_fields=["name", "variants"],
+                                       names=[])
     result = self.ExecOp(True, op_diagnose)
 
     if not result:
       Err("Can't get the OS list")
 
     found = False
-    for (name, valid, variants) in result:
-      if valid and self.opts.os in cli.CalculateOSNames(name, variants):
+    for (name, variants) in result:
+      if self.opts.os in cli.CalculateOSNames(name, variants):
         found = True
         break
 

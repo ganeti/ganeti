@@ -3122,8 +3122,9 @@ class LUDiagnoseOS(NoHooksLU):
   REQ_BGL = False
   _HID = "hidden"
   _BLK = "blacklisted"
+  _VLD = "valid"
   _FIELDS_STATIC = utils.FieldSet()
-  _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants",
+  _FIELDS_DYNAMIC = utils.FieldSet("name", _VLD, "node_status", "variants",
                                    "parameters", "api_versions", _HID, _BLK)
 
   def CheckArguments(self):
@@ -3215,13 +3216,14 @@ class LUDiagnoseOS(NoHooksLU):
       is_hid = os_name in cluster.hidden_oss
       is_blk = os_name in cluster.blacklisted_oss
       if ((self._HID not in self.op.output_fields and is_hid) or
-          (self._BLK not in self.op.output_fields and is_blk)):
+          (self._BLK not in self.op.output_fields and is_blk) or
+          (self._VLD not in self.op.output_fields and not valid)):
         continue
 
       for field in self.op.output_fields:
         if field == "name":
           val = os_name
-        elif field == "valid":
+        elif field == self._VLD:
           val = valid
         elif field == "node_status":
           # this is just a copy of the dict

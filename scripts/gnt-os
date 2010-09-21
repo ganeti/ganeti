@@ -44,8 +44,7 @@ def ListOS(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants"],
-                            names=[])
+  op = opcodes.OpDiagnoseOS(output_fields=["name", "variants"], names=[])
   result = SubmitOpCode(op, opts=opts)
 
   if not result:
@@ -58,9 +57,8 @@ def ListOS(opts, args):
     headers = None
 
   os_names = []
-  for (name, valid, variants) in result:
-    if valid:
-      os_names.extend([[n] for n in CalculateOSNames(name, variants)])
+  for (name, variants) in result:
+    os_names.extend([[n] for n in CalculateOSNames(name, variants)])
 
   data = GenerateTable(separator=None, headers=headers, fields=["name"],
                        data=os_names, units=None)

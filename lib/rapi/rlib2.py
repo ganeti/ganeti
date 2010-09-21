@@ -148,8 +148,7 @@ class R_2_os(baserlib.R_Generic):
 
     """
     cl = baserlib.GetClient()
-    op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants"],
-                              names=[])
+    op = opcodes.OpDiagnoseOS(output_fields=["name", "variants"], names=[])
     job_id = baserlib.SubmitJob([op], cl)
     # we use custom feedback function, instead of print we log the status
     result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)
@@ -159,9 +158,8 @@ class R_2_os(baserlib.R_Generic):
       raise http.HttpBadGateway(message="Can't get OS list")
 
     os_names = []
-    for (name, valid, variants) in diagnose_data:
-      if valid:
-        os_names.extend(cli.CalculateOSNames(name, variants))
+    for (name, variants) in diagnose_data:
+      os_names.extend(cli.CalculateOSNames(name, variants))
 
     return os_names
 
