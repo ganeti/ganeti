@@ -154,6 +154,13 @@ def _TDict(val):
   return isinstance(val, dict)
 
 
+def _TIsLength(size):
+  """Check is the given container is of the given size.
+
+  """
+  return lambda container: len(container) == size
+
+
 # Combinator types
 def _TAnd(*args):
   """Combine multiple functions using an AND operation.
@@ -171,6 +178,13 @@ def _TOr(*args):
   def fn(val):
     return compat.any(t(val) for t in args)
   return fn
+
+
+def _TMap(fn, test):
+  """Checks that a modified version of the argument passes the given test.
+
+  """
+  return lambda val: test(fn(val))
 
 
 # Type aliases
