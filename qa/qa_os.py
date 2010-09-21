@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -73,6 +73,19 @@ def _TestOsModify(hvp_dict, expected_result=0):
   cmd.append(_TEMP_OS_NAME)
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), expected_result)
+
+
+def _TestOsStates():
+  """gnt-os modify, more stuff"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ["gnt-os", "modify"]
+
+  for param in ["hidden", "blacklisted"]:
+    for val in ["yes", "no"]:
+      new_cmd = cmd + ["--%s" % param, val, _TEMP_OS_NAME]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(new_cmd)).wait(), 0)
 
 
 def _SetupTempOs(node, dir, valid):
@@ -181,3 +194,9 @@ def TestOsModifyInvalid():
     }
 
   return _TestOsModify(hv_dict, 1)
+
+
+def TestOsStates():
+  """Testing OS states"""
+
+  return _TestOsStates()
