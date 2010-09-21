@@ -686,6 +686,51 @@ kvm processes, and extend the user limitation to use a user pool.
 Finally we'll look into namespaces and containers, although that might
 slip after the 2.2 release.
 
+New OS states
+-------------
+
+Separate from the OS external changes, described below, we'll add some
+internal changes to the OS.
+
+Current state and shortcomings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two issues related to the handling of the OSes.
+
+First, it's impossible to disable an OS for new instances, since that
+will also break reinstallations and renames of existing instances. To
+phase out an OS definition, without actually having to modify the OS
+scripts, it would be ideal to be able to restrict new installations but
+keep the rest of the functionality available.
+
+Second, ``gnt-instance reinstall --select-os`` shows all the OSes
+available on the clusters. Some OSes might exist only for debugging and
+diagnose, and not for end-user availability. For this, it would be
+useful to "hide" a set of OSes, but keep it otherwise functional.
+
+Proposed changes
+~~~~~~~~~~~~~~~~
+
+Two new cluster-level attributes will be added, holding the list of OSes
+hidden from the user and respectively the list of OSes which are
+blacklisted from new installations.
+
+These lists will be modifiable via ``gnt-os modify`` (implemented via
+``OpSetClusterParams``), such that even not-yet-existing OSes can be
+preseeded into a given state.
+
+For the hidden OSes, they are fully functional except that they are not
+returned in the default OS list (as computed via ``OpDiagnoseOS``),
+unless the hidden state is requested.
+
+For the blacklisted OSes, they are also not shown (unless the
+blacklisted state is requested), and they are also prevented from
+installation via ``OpCreateInstance`` (in create mode).
+
+Both these attributes are per-OS, not per-variant. Thus they apply to
+all of an OS' variants, and it's impossible to blacklist or hide just
+one variant. Further improvements might allow a given OS variant to be
+blacklisted, as opposed to whole OSes.
 
 External interface changes
 ==========================
