@@ -52,6 +52,7 @@ __all__ = [
   "AUTO_PROMOTE_OPT",
   "AUTO_REPLACE_OPT",
   "BACKEND_OPT",
+  "BLK_OS_OPT",
   "CLEANUP_OPT",
   "CLUSTER_DOMAIN_SECRET_OPT",
   "CONFIRM_OPT",
@@ -73,6 +74,7 @@ __all__ = [
   "FORCE_OPT",
   "FORCE_VARIANT_OPT",
   "GLOBAL_FILEDIR_OPT",
+  "HID_OS_OPT",
   "HVLIST_OPT",
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
@@ -1028,6 +1030,15 @@ DRBD_HELPER_OPT = cli_option("--drbd-usermode-helper", dest="drbd_helper",
 NODRBD_STORAGE_OPT = cli_option("--no-drbd-storage", dest="drbd_storage",
                                 action="store_false", default=True,
                                 help="Disable support for DRBD")
+
+HID_OS_OPT = cli_option("--hidden", dest="hidden",
+                        type="bool", default=None, metavar=_YORNO,
+                        help="Sets the hidden flag on the OS")
+
+BLK_OS_OPT = cli_option("--blacklisted", dest="blacklisted",
+                        type="bool", default=None, metavar=_YORNO,
+                        help="Sets the blacklisted flag on the OS")
+
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT]

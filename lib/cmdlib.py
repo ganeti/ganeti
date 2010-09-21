@@ -2625,6 +2625,16 @@ class LUSetClusterParams(LogicalUnit):
     ("drbd_helper", None, _TOr(_TString, _TNone)),
     ("default_iallocator", None, _TMaybeString),
     ("reserved_lvs", None, _TOr(_TListOf(_TNonEmptyString), _TNone)),
+    ("hidden_oss", None, _TOr(_TListOf(\
+          _TAnd(_TList,
+                _TIsLength(2),
+                _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
+          _TNone)),
+    ("blacklisted_oss", None, _TOr(_TListOf(\
+          _TAnd(_TList,
+                _TIsLength(2),
+                _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
+          _TNone)),
     ]
   REQ_BGL = False
 
@@ -2897,6 +2907,30 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.reserved_lvs is not None:
       self.cluster.reserved_lvs = self.op.reserved_lvs
+
+    def helper_oss(aname, mods, desc):
+      lst = getattr(self.cluster, aname)
+      for key, val in mods:
+        if key == constants.DDM_ADD:
+          if val in lst:
+            feedback_fn("OS %s already in %s, ignoring", val, desc)
+          else:
+            lst.append(val)
+        elif key == constants.DDM_REMOVE:
+          if val in lst:
+            lst.remove(val)
+          else:
+            feedback_fn("OS %s not found in %s, ignoring", val, desc)
+        else:
+          raise errors.ProgrammerError("Invalid modification '%s'" % key)
+
+    if self.op.hidden_oss:
+      helper_oss("hidden_oss", self.op.hidden_oss,
+                 "hidden OS list")
+
+    if self.op.blacklisted_oss:
+      helper_oss("blacklisted_oss", self.op.blacklisted_oss,
+                 "blacklisted OS list")
 
     self.cfg.Update(self.cluster, feedback_fn)
 
