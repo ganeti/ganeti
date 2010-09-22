@@ -90,6 +90,9 @@ _VALID_SERVICE_NAME_RE = re.compile("^[-_.a-zA-Z0-9]{1,128}$")
 _MCL_CURRENT = 1
 _MCL_FUTURE = 2
 
+#: MAC checker regexp
+_MAC_CHECK = re.compile("^([0-9a-f]{2}:){5}[0-9a-f]{2}$", re.I)
+
 
 class RunResult(object):
   """Holds the result of running external programs.
@@ -2004,8 +2007,7 @@ def NormalizeAndValidateMac(mac):
   @raise errors.OpPrereqError: If the MAC isn't valid
 
   """
-  mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$", re.I)
-  if not mac_check.match(mac):
+  if not _MAC_CHECK.match(mac):
     raise errors.OpPrereqError("Invalid MAC address specified: %s" %
                                mac, errors.ECODE_INVAL)
 
