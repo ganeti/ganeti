@@ -1534,8 +1534,6 @@ commands = {
 
 #: dictionary with aliases for commands
 aliases = {
-  'activate_block_devs': 'activate-disks',
-  'replace_disks': 'replace-disks',
   'start': 'startup',
   'stop': 'shutdown',
   }
