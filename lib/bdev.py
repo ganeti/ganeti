@@ -418,7 +418,40 @@ class LogicalVolume(BlockDev):
     return LogicalVolume(unique_id, children, size)
 
   @staticmethod
-  def GetPVInfo(vg_names, filter_allocatable=True):
+  def _GetVolumeInfo(lvm_cmd, fields):
+    """Returns LVM Volumen infos using lvm_cmd
+
+    @param lvm_cmd: Should be one of "pvs", "vgs" or "lvs"
+    @param fields: Fields to return
+    @return: A list of dicts each with the parsed fields
+
+    """
+    if not fields:
+      raise errors.ProgrammerError("No fields specified")
+
+    sep = "|"
+    cmd = [lvm_cmd, "--noheadings", "--nosuffix", "--units=m", "--unbuffered",
+           "--separator=%s" % sep, "-o%s" % ",".join(fields)]
+
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      raise errors.CommandError("Can't get the volume information: %s - %s" %
+                                (result.fail_reason, result.output))
+
+    data = []
+    for line in result.stdout.splitlines():
+      splitted_fields = line.strip().split(sep)
+
+      if len(fields) != len(splitted_fields):
+        raise errors.CommandError("Can't parse %s output: line '%s'" %
+                                  (lvm_cmd, line))
+
+      data.append(splitted_fields)
+
+    return data
+
+  @classmethod
+  def GetPVInfo(cls, vg_names, filter_allocatable=True):
     """Get the free space info for PVs in a volume group.
 
     @param vg_names: list of volume group names, if empty all will be returned
@@ -428,28 +461,51 @@ class LogicalVolume(BlockDev):
     @return: list of tuples (free_space, name) with free_space in mebibytes
 
     """
-    sep = "|"
-    command = ["pvs", "--noheadings", "--nosuffix", "--units=m",
-               "-opv_name,vg_name,pv_free,pv_attr", "--unbuffered",
-               "--separator=%s" % sep ]
-    result = utils.RunCmd(command)
-    if result.failed:
-      logging.error("Can't get the PV information: %s - %s",
-                    result.fail_reason, result.output)
+    try:
+      info = cls._GetVolumeInfo("pvs", ["pv_name", "vg_name", "pv_free",
+                                        "pv_attr"])
+    except errors.GenericError, err:
+      logging.error("Can't get PV information: %s", err)
       return None
+
     data = []
-    for line in result.stdout.splitlines():
-      fields = line.strip().split(sep)
-      if len(fields) != 4:
-        logging.error("Can't parse pvs output: line '%s'", line)
-        return None
+    for pv_name, vg_name, pv_free, pv_attr in info:
       # (possibly) skip over pvs which are not allocatable
-      if filter_allocatable and fields[3][0] != 'a':
+      if filter_allocatable and pv_attr[0] != "a":
         continue
       # (possibly) skip over pvs which are not in the right volume group(s)
-      if vg_names and fields[1] not in vg_names:
+      if vg_names and vg_name not in vg_names:
         continue
-      data.append((float(fields[2]), fields[0], fields[1]))
+      data.append((float(pv_free), pv_name, vg_name))
+
+    return data
+
+  @classmethod
+  def GetVGInfo(cls, vg_names, filter_readonly=True):
+    """Get the free space info for specific VGs.
+
+    @param vg_names: list of volume group names, if empty all will be returned
+    @param filter_readonly: whether to skip over readonly VGs
+
+    @rtype: list
+    @return: list of tuples (free_space, name) with free_space in mebibytes
+
+    """
+    try:
+      info = cls._GetVolumeInfo("vgs", ["vg_name", "vg_free", "vg_attr"])
+    except errors.GenericError, err:
+      logging.error("Can't get VG information: %s", err)
+      return None
+
+    data = []
+    for vg_name, vg_free, vg_attr in info:
+      # (possibly) skip over vgs which are not writable
+      if filter_readonly and vg_attr[0] == "r":
+        continue
+      # (possibly) skip over vgs which are not in the right volume group(s)
+      if vg_names and vg_name not in vg_names:
+        continue
+      data.append((float(vg_free), vg_name))
 
     return data
 
@@ -643,12 +699,10 @@ class LogicalVolume(BlockDev):
     snap = LogicalVolume((self._vg_name, snap_name), None, size)
     _IgnoreError(snap.Remove)
 
-    pvs_info = self.GetPVInfo([self._vg_name])
-    if not pvs_info:
-      _ThrowError("Can't compute PV info for vg %s", self._vg_name)
-    pvs_info.sort()
-    pvs_info.reverse()
-    free_size, _, _ = pvs_info[0]
+    vg_info = self.GetVGInfo([self._vg_name])
+    if not vg_info:
+      _ThrowError("Can't compute VG info for vg %s", self._vg_name)
+    free_size, _ = vg_info[0]
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)
