@@ -27,6 +27,7 @@ import unittest
 import tempfile
 import shutil
 import errno
+import itertools
 
 from ganeti import constants
 from ganeti import utils
@@ -34,6 +35,7 @@ from ganeti import errors
 from ganeti import jqueue
 from ganeti import opcodes
 from ganeti import compat
+from ganeti import mcpu
 
 import testutils
 
@@ -447,11 +449,11 @@ class _FakeExecOpCodeForProc:
     self._before_start = before_start
     self._after_start = after_start
 
-  def __call__(self, op, cbs):
+  def __call__(self, op, cbs, timeout=None):
     assert isinstance(op, opcodes.OpTestDummy)
 
     if self._before_start:
-      self._before_start()
+      self._before_start(timeout)
 
     cbs.NotifyStart()
 
@@ -464,7 +466,7 @@ class _FakeExecOpCodeForProc:
     return op.result
 
 
-class TestJobProcessor(unittest.TestCase):
+class _JobProcessorTestUtils:
   def _CreateJob(self, queue, job_id, ops):
     job = jqueue._QueuedJob(queue, job_id, ops)
     self.assertFalse(job.start_timestamp)
@@ -475,6 +477,8 @@ class TestJobProcessor(unittest.TestCase):
     self.assertEqual(job.GetInfo(["ops"]), [[op.__getstate__() for op in ops]])
     return job
 
+
+class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
   def _GenericCheckJob(self, job):
     assert compat.all(isinstance(op.input, opcodes.OpTestDummy)
                       for op in job.ops)
@@ -502,7 +506,7 @@ class TestJobProcessor(unittest.TestCase):
       # Create job
       job = self._CreateJob(queue, job_id, ops)
 
-      def _BeforeStart():
+      def _BeforeStart(_):
         self.assertFalse(queue.IsAcquired())
         self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
 
@@ -656,7 +660,7 @@ class TestJobProcessor(unittest.TestCase):
 
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
 
-    def _BeforeStart():
+    def _BeforeStart(_):
       self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
 
@@ -845,7 +849,7 @@ class TestJobProcessor(unittest.TestCase):
     # Create job
     job = self._CreateJob(queue, 29386, ops)
 
-    def _BeforeStart():
+    def _BeforeStart(_):
       self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
 
@@ -920,6 +924,191 @@ class TestJobProcessor(unittest.TestCase):
     # No log message after highest serial
     self.assertFalse(job.GetLogEntries(count))
     self.assertFalse(job.GetLogEntries(count + 3))
+
+
+class _FakeTimeoutStrategy:
+  def __init__(self, timeouts):
+    self.timeouts = timeouts
+    self.attempts = 0
+    self.last_timeout = None
+
+  def NextAttempt(self):
+    self.attempts += 1
+    if self.timeouts:
+      timeout = self.timeouts.pop(0)
+    else:
+      timeout = None
+    self.last_timeout = timeout
+    return timeout
+
+
+class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
+  def setUp(self):
+    self.queue = _FakeQueueForProc()
+    self.job = None
+    self.curop = None
+    self.opcounter = None
+    self.timeout_strategy = None
+    self.retries = 0
+    self.prev_tsop = None
+    self.prev_prio = None
+    self.gave_lock = None
+    self.done_lock_before_blocking = False
+
+  def _BeforeStart(self, timeout):
+    job = self.job
+
+    self.assertFalse(self.queue.IsAcquired())
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+
+    ts = self.timeout_strategy
+
+    self.assert_(timeout is None or isinstance(timeout, (int, float)))
+    self.assertEqual(timeout, ts.last_timeout)
+
+    self.gave_lock = True
+
+    if (self.curop == 3 and
+        job.ops[self.curop].priority == constants.OP_PRIO_HIGHEST + 3):
+      # Give locks before running into blocking acquire
+      assert self.retries == 7
+      self.retries = 0
+      self.done_lock_before_blocking = True
+      return
+
+    if self.retries > 0:
+      self.assert_(timeout is not None)
+      self.retries -= 1
+      self.gave_lock = False
+      raise mcpu.LockAcquireTimeout()
+
+    if job.ops[self.curop].priority == constants.OP_PRIO_HIGHEST:
+      assert self.retries == 0, "Didn't exhaust all retries at highest priority"
+      assert not ts.timeouts
+      self.assert_(timeout is None)
+
+  def _AfterStart(self, op, cbs):
+    job = self.job
+
+    self.assertFalse(self.queue.IsAcquired())
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+
+    # Job is running, cancelling shouldn't be possible
+    (success, _) = job.Cancel()
+    self.assertFalse(success)
+
+  def _NextOpcode(self):
+    self.curop = self.opcounter.next()
+    self.prev_prio = self.job.ops[self.curop].priority
+
+  def _NewTimeoutStrategy(self):
+    job = self.job
+
+    self.assertEqual(self.retries, 0)
+
+    if self.prev_tsop == self.curop:
+      # Still on the same opcode, priority must've been increased
+      self.assertEqual(self.prev_prio, job.ops[self.curop].priority + 1)
+
+    if self.curop == 1:
+      # Normal retry
+      timeouts = range(10, 31, 10)
+      self.retries = len(timeouts) - 1
+
+    elif self.curop == 2:
+      # Let this run into a blocking acquire
+      timeouts = range(11, 61, 12)
+      self.retries = len(timeouts)
+
+    elif self.curop == 3:
+      # Wait for priority to increase, but give lock before blocking acquire
+      timeouts = range(12, 100, 14)
+      self.retries = len(timeouts)
+
+      self.assertFalse(self.done_lock_before_blocking)
+
+    elif self.curop == 4:
+      self.assert_(self.done_lock_before_blocking)
+
+      # Timeouts, but no need to retry
+      timeouts = range(10, 31, 10)
+      self.retries = 0
+
+    elif self.curop == 5:
+      # Normal retry
+      timeouts = range(19, 100, 11)
+      self.retries = len(timeouts)
+
+    else:
+      timeouts = []
+      self.retries = 0
+
+    assert len(job.ops) == 10
+    assert self.retries <= len(timeouts)
+
+    ts = _FakeTimeoutStrategy(timeouts)
+
+    self.timeout_strategy = ts
+    self.prev_tsop = self.curop
+    self.prev_prio = job.ops[self.curop].priority
+
+    return ts
+
+  def testTimeout(self):
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(10)]
+
+    # Create job
+    job_id = 15801
+    job = self._CreateJob(self.queue, job_id, ops)
+    self.job = job
+
+    self.opcounter = itertools.count(0)
+
+    opexec = _FakeExecOpCodeForProc(self._BeforeStart, self._AfterStart)
+    tsf = self._NewTimeoutStrategy
+
+    self.assertFalse(self.done_lock_before_blocking)
+
+    for i in itertools.count(0):
+      proc = jqueue._JobProcessor(self.queue, opexec, job,
+                                  _timeout_strategy_factory=tsf)
+
+      result = proc(_nextop_fn=self._NextOpcode)
+      if result:
+        self.assertFalse(job.cur_opctx)
+        break
+
+      self.assertFalse(result)
+
+      if self.gave_lock:
+        self.assertFalse(job.cur_opctx)
+      else:
+        self.assert_(job.cur_opctx)
+        self.assertEqual(job.cur_opctx._timeout_strategy._fn,
+                         self.timeout_strategy.NextAttempt)
+
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assert_(job.start_timestamp)
+      self.assertFalse(job.end_timestamp)
+
+    self.assertEqual(self.curop, len(job.ops) - 1)
+    self.assertEqual(self.job, job)
+    self.assertEqual(self.opcounter.next(), len(job.ops))
+    self.assert_(self.done_lock_before_blocking)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_SUCCESS)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(job.GetInfo(["opresult"]),
+                     [[op.input.result for op in job.ops]])
+    self.assertEqual(job.GetInfo(["opstatus"]),
+                     [len(job.ops) * [constants.OP_STATUS_SUCCESS]])
+    self.assert_(compat.all(op.start_timestamp and op.end_timestamp
+                            for op in job.ops))
+
+    # Finished jobs can't be processed any further
+    self.assertRaises(errors.ProgrammerError,
+                      jqueue._JobProcessor(self.queue, opexec, job))
 
 
 if __name__ == "__main__":

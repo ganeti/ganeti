@@ -176,7 +176,7 @@ class _QueuedJob(object):
 
   """
   # pylint: disable-msg=W0212
-  __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter",
+  __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter", "cur_opctx",
                "received_timestamp", "start_timestamp", "end_timestamp",
                "__weakref__"]
 
@@ -211,6 +211,7 @@ class _QueuedJob(object):
 
     """
     obj.ops_iter = None
+    obj.cur_opctx = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -745,8 +746,40 @@ def _EncodeOpError(err):
   return errors.EncodeException(to_encode)
 
 
+class _TimeoutStrategyWrapper:
+  def __init__(self, fn):
+    """Initializes this class.
+
+    """
+    self._fn = fn
+    self._next = None
+
+  def _Advance(self):
+    """Gets the next timeout if necessary.
+
+    """
+    if self._next is None:
+      self._next = self._fn()
+
+  def Peek(self):
+    """Returns the next timeout.
+
+    """
+    self._Advance()
+    return self._next
+
+  def Next(self):
+    """Returns the current timeout and advances the internal state.
+
+    """
+    self._Advance()
+    result = self._next
+    self._next = None
+    return result
+
+
 class _OpExecContext:
-  def __init__(self, op, index, log_prefix):
+  def __init__(self, op, index, log_prefix, timeout_strategy_factory):
     """Initializes this class.
 
     """
@@ -755,22 +788,60 @@ class _OpExecContext:
     self.log_prefix = log_prefix
     self.summary = op.input.Summary()
 
+    self._timeout_strategy_factory = timeout_strategy_factory
+    self._ResetTimeoutStrategy()
+
+  def _ResetTimeoutStrategy(self):
+    """Creates a new timeout strategy.
+
+    """
+    self._timeout_strategy = \
+      _TimeoutStrategyWrapper(self._timeout_strategy_factory().NextAttempt)
+
+  def CheckPriorityIncrease(self):
+    """Checks whether priority can and should be increased.
+
+    Called when locks couldn't be acquired.
+
+    """
+    op = self.op
+
+    # Exhausted all retries and next round should not use blocking acquire
+    # for locks?
+    if (self._timeout_strategy.Peek() is None and
+        op.priority > constants.OP_PRIO_HIGHEST):
+      logging.debug("Increasing priority")
+      op.priority -= 1
+      self._ResetTimeoutStrategy()
+      return True
+
+    return False
+
+  def GetNextLockTimeout(self):
+    """Returns the next lock acquire timeout.
+
+    """
+    return self._timeout_strategy.Next()
+
 
 class _JobProcessor(object):
-  def __init__(self, queue, opexec_fn, job):
+  def __init__(self, queue, opexec_fn, job,
+               _timeout_strategy_factory=mcpu.LockAttemptTimeoutStrategy):
     """Initializes this class.
 
     """
     self.queue = queue
     self.opexec_fn = opexec_fn
     self.job = job
+    self._timeout_strategy_factory = _timeout_strategy_factory
 
   @staticmethod
-  def _FindNextOpcode(job):
+  def _FindNextOpcode(job, timeout_strategy_factory):
     """Locates the next opcode to run.
 
     @type job: L{_QueuedJob}
     @param job: Job object
+    @param timeout_strategy_factory: Callable to create new timeout strategy
 
     """
     # Create some sort of a cache to speed up locating next opcode for future
@@ -791,7 +862,8 @@ class _JobProcessor(object):
         # Found an opcode already marked as running
         raise errors.ProgrammerError("Called for job marked as running")
 
-      opctx = _OpExecContext(op, idx, "Op %s/%s" % (idx + 1, len(job.ops)))
+      opctx = _OpExecContext(op, idx, "Op %s/%s" % (idx + 1, len(job.ops)),
+                             timeout_strategy_factory)
 
       if op.status == constants.OP_STATUS_CANCELED:
         # Cancelled jobs are handled by the caller
@@ -838,10 +910,18 @@ class _JobProcessor(object):
 
     assert op.status == constants.OP_STATUS_WAITLOCK
 
+    timeout = opctx.GetNextLockTimeout()
+
     try:
       # Make sure not to hold queue lock while calling ExecOpCode
       result = self.opexec_fn(op.input,
-                              _OpExecCallbacks(self.queue, self.job, op))
+                              _OpExecCallbacks(self.queue, self.job, op),
+                              timeout=timeout)
+    except mcpu.LockAcquireTimeout:
+      assert timeout is not None, "Received timeout for blocking acquire"
+      logging.debug("Couldn't acquire locks in %0.6fs", timeout)
+      assert op.status == constants.OP_STATUS_WAITLOCK
+      return (constants.OP_STATUS_QUEUED, None)
     except CancelJob:
       logging.exception("%s: Canceling job", opctx.log_prefix)
       assert op.status == constants.OP_STATUS_CANCELING
@@ -855,9 +935,10 @@ class _JobProcessor(object):
                     opctx.log_prefix, opctx.summary)
       return (constants.OP_STATUS_SUCCESS, result)
 
-  def __call__(self):
+  def __call__(self, _nextop_fn=None):
     """Continues execution of a job.
 
+    @param _nextop_fn: Callback function for tests
     @rtype: bool
     @return: True if job is finished, False if processor needs to be called
              again
@@ -872,7 +953,14 @@ class _JobProcessor(object):
     try:
       opcount = len(job.ops)
 
-      opctx = self._FindNextOpcode(job)
+      # Is a previous opcode still pending?
+      if job.cur_opctx:
+        opctx = job.cur_opctx
+      else:
+        if __debug__ and _nextop_fn:
+          _nextop_fn()
+        opctx = self._FindNextOpcode(job, self._timeout_strategy_factory)
+
       op = opctx.op
 
       # Consistency check
@@ -883,6 +971,9 @@ class _JobProcessor(object):
       assert op.status in (constants.OP_STATUS_QUEUED,
                            constants.OP_STATUS_WAITLOCK,
                            constants.OP_STATUS_CANCELED)
+
+      assert (op.priority <= constants.OP_PRIO_LOWEST and
+              op.priority >= constants.OP_PRIO_HIGHEST)
 
       if op.status != constants.OP_STATUS_CANCELED:
         # Prepare to start opcode
@@ -903,62 +994,87 @@ class _JobProcessor(object):
         finally:
           queue.acquire(shared=1)
 
-        # Finalize opcode
-        op.end_timestamp = TimeStampNow()
         op.status = op_status
         op.result = op_result
 
-        if op.status == constants.OP_STATUS_CANCELING:
-          assert not compat.any(i.status != constants.OP_STATUS_CANCELING
-                                for i in job.ops[opctx.index:])
+        if op.status == constants.OP_STATUS_QUEUED:
+          # Couldn't get locks in time
+          assert not op.end_timestamp
         else:
-          assert op.status in constants.OPS_FINALIZED
+          # Finalize opcode
+          op.end_timestamp = TimeStampNow()
 
-      # Ensure all opcodes so far have been successful
-      assert (opctx.index == 0 or
-              compat.all(i.status == constants.OP_STATUS_SUCCESS
-                         for i in job.ops[:opctx.index]))
+          if op.status == constants.OP_STATUS_CANCELING:
+            assert not compat.any(i.status != constants.OP_STATUS_CANCELING
+                                  for i in job.ops[opctx.index:])
+          else:
+            assert op.status in constants.OPS_FINALIZED
 
-      if op.status == constants.OP_STATUS_SUCCESS:
+      if op.status == constants.OP_STATUS_QUEUED:
         finalize = False
 
-      elif op.status == constants.OP_STATUS_ERROR:
-        # Ensure failed opcode has an exception as its result
-        assert errors.GetEncodedError(job.ops[opctx.index].result)
+        opctx.CheckPriorityIncrease()
 
-        to_encode = errors.OpExecError("Preceding opcode failed")
-        job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
-                              _EncodeOpError(to_encode))
-        finalize = True
+        # Keep around for another round
+        job.cur_opctx = opctx
 
-        # Consistency check
-        assert compat.all(i.status == constants.OP_STATUS_ERROR and
-                          errors.GetEncodedError(i.result)
-                          for i in job.ops[opctx.index:])
+        assert (op.priority <= constants.OP_PRIO_LOWEST and
+                op.priority >= constants.OP_PRIO_HIGHEST)
 
-      elif op.status == constants.OP_STATUS_CANCELING:
-        job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
-                              "Job canceled by request")
-        finalize = True
+        # In no case must the status be finalized here
+        assert job.CalcStatus() == constants.JOB_STATUS_QUEUED
 
-      elif op.status == constants.OP_STATUS_CANCELED:
-        finalize = True
+        queue.UpdateJobUnlocked(job)
 
       else:
-        raise errors.ProgrammerError("Unknown status '%s'" % op.status)
+        # Ensure all opcodes so far have been successful
+        assert (opctx.index == 0 or
+                compat.all(i.status == constants.OP_STATUS_SUCCESS
+                           for i in job.ops[:opctx.index]))
 
-      # Finalizing or last opcode?
-      if finalize or opctx.index == (opcount - 1):
-        # All opcodes have been run, finalize job
-        job.end_timestamp = TimeStampNow()
+        # Reset context
+        job.cur_opctx = None
 
-      # Write to disk. If the job status is final, this is the final write
-      # allowed. Once the file has been written, it can be archived anytime.
-      queue.UpdateJobUnlocked(job)
+        if op.status == constants.OP_STATUS_SUCCESS:
+          finalize = False
 
-      if finalize or opctx.index == (opcount - 1):
-        logging.info("Finished job %s, status = %s", job.id, job.CalcStatus())
-        return True
+        elif op.status == constants.OP_STATUS_ERROR:
+          # Ensure failed opcode has an exception as its result
+          assert errors.GetEncodedError(job.ops[opctx.index].result)
+
+          to_encode = errors.OpExecError("Preceding opcode failed")
+          job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
+                                _EncodeOpError(to_encode))
+          finalize = True
+
+          # Consistency check
+          assert compat.all(i.status == constants.OP_STATUS_ERROR and
+                            errors.GetEncodedError(i.result)
+                            for i in job.ops[opctx.index:])
+
+        elif op.status == constants.OP_STATUS_CANCELING:
+          job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
+                                "Job canceled by request")
+          finalize = True
+
+        elif op.status == constants.OP_STATUS_CANCELED:
+          finalize = True
+
+        else:
+          raise errors.ProgrammerError("Unknown status '%s'" % op.status)
+
+        # Finalizing or last opcode?
+        if finalize or opctx.index == (opcount - 1):
+          # All opcodes have been run, finalize job
+          job.end_timestamp = TimeStampNow()
+
+        # Write to disk. If the job status is final, this is the final write
+        # allowed. Once the file has been written, it can be archived anytime.
+        queue.UpdateJobUnlocked(job)
+
+        if finalize or opctx.index == (opcount - 1):
+          logging.info("Finished job %s, status = %s", job.id, job.CalcStatus())
+          return True
 
       return False
     finally:
@@ -988,7 +1104,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
 
     if not _JobProcessor(queue, proc.ExecOpCode, job)():
       # Schedule again
-      raise workerpool.DeferTask()
+      raise workerpool.DeferTask(priority=job.CalcPriority())
 
 
 class _JobQueueWorkerPool(workerpool.WorkerPool):
