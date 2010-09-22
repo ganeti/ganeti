@@ -3194,7 +3194,8 @@ class LUDiagnoseOS(NoHooksLU):
     output = []
     cluster = self.cfg.GetClusterInfo()
 
-    for os_name, os_data in pol.items():
+    for os_name in utils.NiceSort(pol.keys()):
+      os_data = pol[os_name]
       row = []
       valid = True
       (variants, params, api_versions) = null_state = (set(), set(), set())
@@ -3231,7 +3232,7 @@ class LUDiagnoseOS(NoHooksLU):
           for node_name, nos_list in os_data.items():
             val[node_name] = nos_list
         elif field == "variants":
-          val = list(variants)
+          val = utils.NiceSort(list(variants))
         elif field == "parameters":
           val = list(params)
         elif field == "api_versions":
