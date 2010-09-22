@@ -4,7 +4,7 @@ News
 Version 2.2.0 rc2
 -----------------
 
-*(unreleased)*
+*(Released Wed, 22 Sep 2010)*
 
 - Fixed OS_VARIANT variable for OS scripts
 - Fixed cluster tag operations via RAPI
