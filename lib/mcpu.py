@@ -218,7 +218,7 @@ class Processor(object):
     self.rpc = rpc.RpcRunner(context.cfg)
     self.hmclass = HooksMaster
 
-  def _AcquireLocks(self, level, names, shared, timeout):
+  def _AcquireLocks(self, level, names, shared, timeout, priority):
     """Acquires locks via the Ganeti lock manager.
 
     @type level: int
@@ -235,7 +235,7 @@ class Processor(object):
       self._cbs.CheckCancel()
 
     acquired = self.context.glm.acquire(level, names, shared=shared,
-                                        timeout=timeout)
+                                        timeout=timeout, priority=priority)
 
     return acquired
 
@@ -270,7 +270,7 @@ class Processor(object):
 
     return result
 
-  def _LockAndExecLU(self, lu, level, calc_timeout):
+  def _LockAndExecLU(self, lu, level, calc_timeout, priority):
     """Execute a Logical Unit, with the needed locks.
 
     This is a recursive function that starts locking the given level, and
@@ -305,7 +305,7 @@ class Processor(object):
           needed_locks = lu.needed_locks[level]
 
           acquired = self._AcquireLocks(level, needed_locks, share,
-                                        calc_timeout())
+                                        calc_timeout(), priority)
 
           if acquired is None:
             raise LockAcquireTimeout()
@@ -328,7 +328,7 @@ class Processor(object):
         try:
           lu.acquired_locks[level] = acquired
 
-          result = self._LockAndExecLU(lu, level + 1, calc_timeout)
+          result = self._LockAndExecLU(lu, level + 1, calc_timeout, priority)
         finally:
           if level in lu.remove_locks:
             self.context.glm.remove(level, lu.remove_locks[level])
@@ -337,11 +337,11 @@ class Processor(object):
           self.context.glm.release(level)
 
     else:
-      result = self._LockAndExecLU(lu, level + 1, calc_timeout)
+      result = self._LockAndExecLU(lu, level + 1, calc_timeout, priority)
 
     return result
 
-  def ExecOpCode(self, op, cbs, timeout=None):
+  def ExecOpCode(self, op, cbs, timeout=None, priority=None):
     """Execute an opcode.
 
     @type op: an OpCode instance
@@ -350,6 +350,8 @@ class Processor(object):
     @param cbs: Runtime callbacks
     @type timeout: float or None
     @param timeout: Maximum time to acquire all locks, None for no timeout
+    @type priority: number or None
+    @param priority: Priority for acquiring lock(s)
     @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
         amount of time
 
@@ -373,7 +375,8 @@ class Processor(object):
       # and in a shared fashion otherwise (to prevent concurrent run with
       # an exclusive LU.
       if self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
-                            not lu_class.REQ_BGL, calc_timeout()) is None:
+                            not lu_class.REQ_BGL, calc_timeout(),
+                            priority) is None:
         raise LockAcquireTimeout()
 
       try:
@@ -382,7 +385,8 @@ class Processor(object):
         assert lu.needed_locks is not None, "needed_locks not set by LU"
 
         try:
-          return self._LockAndExecLU(lu, locking.LEVEL_INSTANCE, calc_timeout)
+          return self._LockAndExecLU(lu, locking.LEVEL_INSTANCE, calc_timeout,
+                                     priority)
         finally:
           if self._ec_id:
             self.context.cfg.DropECReservations(self._ec_id)
