@@ -488,24 +488,26 @@ class LogicalVolume(BlockDev):
     @param filter_readonly: whether to skip over readonly VGs
 
     @rtype: list
-    @return: list of tuples (free_space, name) with free_space in mebibytes
+    @return: list of tuples (free_space, total_size, name) with free_space in
+             MiB
 
     """
     try:
-      info = cls._GetVolumeInfo("vgs", ["vg_name", "vg_free", "vg_attr"])
+      info = cls._GetVolumeInfo("vgs", ["vg_name", "vg_free", "vg_attr",
+                                        "vg_size"])
     except errors.GenericError, err:
       logging.error("Can't get VG information: %s", err)
       return None
 
     data = []
-    for vg_name, vg_free, vg_attr in info:
+    for vg_name, vg_free, vg_attr, vg_size in info:
       # (possibly) skip over vgs which are not writable
       if filter_readonly and vg_attr[0] == "r":
         continue
       # (possibly) skip over vgs which are not in the right volume group(s)
       if vg_names and vg_name not in vg_names:
         continue
-      data.append((float(vg_free), vg_name))
+      data.append((float(vg_free), float(vg_size), vg_name))
 
     return data
 
@@ -702,7 +704,7 @@ class LogicalVolume(BlockDev):
     vg_info = self.GetVGInfo([self._vg_name])
     if not vg_info:
       _ThrowError("Can't compute VG info for vg %s", self._vg_name)
-    free_size, _ = vg_info[0]
+    free_size, _, _ = vg_info[0]
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)

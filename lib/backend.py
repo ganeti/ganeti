@@ -439,9 +439,15 @@ def GetNodeInfo(vgname, hypervisor_type):
 
   """
   outputarray = {}
-  vginfo = _GetVGInfo(vgname)
-  outputarray['vg_size'] = vginfo['vg_size']
-  outputarray['vg_free'] = vginfo['vg_free']
+
+  vginfo = bdev.LogicalVolume.GetVGInfo([vgname])
+  vg_free = vg_size = None
+  if vginfo:
+    vg_free = int(round(vginfo[0][0], 0))
+    vg_size = int(round(vginfo[0][1], 0))
+
+  outputarray['vg_size'] = vg_size
+  outputarray['vg_free'] = vg_free
 
   hyper = hypervisor.GetHypervisor(hypervisor_type)
   hyp_info = hyper.GetNodeInfo()
@@ -928,46 +934,6 @@ def RunRenameInstance(instance, old_name, debug):
              for val in utils.TailFile(logfile, lines=20)]
     _Fail("OS rename script failed (%s), last lines in the"
           " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
-
-
-def _GetVGInfo(vg_name):
-  """Get information about the volume group.
-
-  @type vg_name: str
-  @param vg_name: the volume group which we query
-  @rtype: dict
-  @return:
-    A dictionary with the following keys:
-      - C{vg_size} is the total size of the volume group in MiB
-      - C{vg_free} is the free size of the volume group in MiB
-      - C{pv_count} are the number of physical disks in that VG
-
-    If an error occurs during gathering of data, we return the same dict
-    with keys all set to None.
-
-  """
-  retdic = dict.fromkeys(["vg_size", "vg_free", "pv_count"])
-
-  retval = utils.RunCmd(["vgs", "-ovg_size,vg_free,pv_count", "--noheadings",
-                         "--nosuffix", "--units=m", "--separator=:", vg_name])
-
-  if retval.failed:
-    logging.error("volume group %s not present", vg_name)
-    return retdic
-  valarr = retval.stdout.strip().rstrip(':').split(':')
-  if len(valarr) == 3:
-    try:
-      retdic = {
-        "vg_size": int(round(float(valarr[0]), 0)),
-        "vg_free": int(round(float(valarr[1]), 0)),
-        "pv_count": int(valarr[2]),
-        }
-    except (TypeError, ValueError), err:
-      logging.exception("Fail to parse vgs output: %s", err)
-  else:
-    logging.error("vgs output has the wrong number of fields (expected"
-                  " three): %s", str(valarr))
-  return retdic
 
 
 def _GetBlockDevSymlinkPath(instance_name, idx):
