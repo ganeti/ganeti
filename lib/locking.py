@@ -749,7 +749,7 @@ class SharedLock(object):
 
     return False
 
-  def acquire(self, shared=0, timeout=None, priority=_DEFAULT_PRIORITY,
+  def acquire(self, shared=0, timeout=None, priority=None,
               test_notify=None):
     """Acquire a shared lock.
 
@@ -764,6 +764,9 @@ class SharedLock(object):
     @param test_notify: Special callback function for unittesting
 
     """
+    if priority is None:
+      priority = _DEFAULT_PRIORITY
+
     self.__lock.acquire()
     try:
       # We already got the lock, notify now
@@ -800,7 +803,7 @@ class SharedLock(object):
     finally:
       self.__lock.release()
 
-  def delete(self, timeout=None, priority=_DEFAULT_PRIORITY):
+  def delete(self, timeout=None, priority=None):
     """Delete a Shared Lock.
 
     This operation will declare the lock for removal. First the lock will be
@@ -813,6 +816,9 @@ class SharedLock(object):
     @param priority: Priority for acquiring lock
 
     """
+    if priority is None:
+      priority = _DEFAULT_PRIORITY
+
     self.__lock.acquire()
     try:
       assert not self.__is_sharer(), "Cannot delete() a lock while sharing it"
@@ -992,7 +998,7 @@ class LockSet:
         self.__lock.release()
     return set(result)
 
-  def acquire(self, names, timeout=None, shared=0, priority=_DEFAULT_PRIORITY,
+  def acquire(self, names, timeout=None, shared=0, priority=None,
               test_notify=None):
     """Acquire a set of resource locks.
 
@@ -1021,6 +1027,9 @@ class LockSet:
     # Check we don't already own locks at this level
     assert not self._is_owned(), ("Cannot acquire locks in the same set twice"
                                   " (lockset %s)" % self.name)
+
+    if priority is None:
+      priority = _DEFAULT_PRIORITY
 
     # We need to keep track of how long we spent waiting for a lock. The
     # timeout passed to this function is over all lock acquires.
