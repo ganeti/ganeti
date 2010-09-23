@@ -1452,7 +1452,7 @@ class GanetiLockManager:
     """
     return level == LEVEL_CLUSTER and (names is None or BGL in names)
 
-  def acquire(self, level, names, timeout=None, shared=0):
+  def acquire(self, level, names, timeout=None, shared=0, priority=None):
     """Acquire a set of resource locks, at the same level.
 
     @type level: member of locking.LEVELS
@@ -1465,6 +1465,8 @@ class GanetiLockManager:
         an exclusive lock will be acquired
     @type timeout: float
     @param timeout: Maximum time to acquire all locks
+    @type priority: integer
+    @param priority: Priority for acquiring lock
 
     """
     assert level in LEVELS, "Invalid locking level %s" % level
@@ -1483,7 +1485,8 @@ class GanetiLockManager:
            " while owning some at a greater one")
 
     # Acquire the locks in the set.
-    return self.__keyring[level].acquire(names, shared=shared, timeout=timeout)
+    return self.__keyring[level].acquire(names, shared=shared, timeout=timeout,
+                                         priority=priority)
 
   def release(self, level, names=None):
     """Release a set of resource locks, at the same level.
