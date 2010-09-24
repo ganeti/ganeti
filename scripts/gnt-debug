@@ -37,6 +37,7 @@ from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import errors
+from ganeti import compat
 
 
 #: Default fields for L{ListLocks}
@@ -167,6 +168,64 @@ def TestAllocator(opts, args):
   return 0
 
 
+def _TestJobSubmission(opts):
+  """Tests submitting jobs.
+
+  """
+  ToStdout("Testing job submission")
+
+  testdata = [
+    (0, 0, constants.OP_PRIO_LOWEST),
+    (0, 0, constants.OP_PRIO_HIGHEST),
+    ]
+
+  for priority in (constants.OP_PRIO_SUBMIT_VALID |
+                   frozenset([constants.OP_PRIO_LOWEST,
+                              constants.OP_PRIO_HIGHEST])):
+    for offset in [-1, +1]:
+      testdata.extend([
+        (0, 0, priority + offset),
+        (3, 0, priority + offset),
+        (0, 3, priority + offset),
+        (4, 2, priority + offset),
+        ])
+
+  cl = cli.GetClient()
+
+  for before, after, failpriority in testdata:
+    ops = []
+    ops.extend([opcodes.OpTestDelay(duration=0) for _ in range(before)])
+    ops.append(opcodes.OpTestDelay(duration=0, priority=failpriority))
+    ops.extend([opcodes.OpTestDelay(duration=0) for _ in range(after)])
+
+    try:
+      cl.SubmitJob(ops)
+    except errors.GenericError, err:
+      if opts.debug:
+        ToStdout("Ignoring error: %s", err)
+    else:
+      raise errors.OpExecError("Submitting opcode with priority %s did not"
+                               " fail when it should (allowed are %s)" %
+                               (failpriority, constants.OP_PRIO_SUBMIT_VALID))
+
+    jobs = [
+      [opcodes.OpTestDelay(duration=0),
+       opcodes.OpTestDelay(duration=0, dry_run=False),
+       opcodes.OpTestDelay(duration=0, dry_run=True)],
+      ops,
+      ]
+    result = cl.SubmitManyJobs(jobs)
+    if not (len(result) == 2 and
+            compat.all(len(i) == 2 for i in result) and
+            compat.all(isinstance(i[1], basestring) for i in result) and
+            result[0][0] and not result[1][0]):
+      raise errors.OpExecError("Submitting multiple jobs did not work as"
+                               " expected, result %s" % result)
+    assert len(result) == 2
+
+  ToStdout("Job submission tests were successful")
+
+
 class _JobQueueTestReporter(cli.StdioJobPollReportCb):
   def __init__(self):
     """Initializes this class.
@@ -268,6 +327,8 @@ def TestJobqueue(opts, _):
   """Runs a few tests on the job queue.
 
   """
+  _TestJobSubmission(opts)
+
   (TM_SUCCESS,
    TM_MULTISUCCESS,
    TM_FAIL,
