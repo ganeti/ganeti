@@ -889,8 +889,8 @@ class _JobProcessor(object):
 
     @type job: L{_QueuedJob}
     @param job: Job object
-    @type job: L{_QueuedOpCode}
-    @param job: Opcode object
+    @type op: L{_QueuedOpCode}
+    @param op: Opcode object
 
     """
     assert op in job.ops
