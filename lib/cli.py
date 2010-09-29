@@ -1801,6 +1801,30 @@ def GenericMain(commands, override=None, aliases=None):
   return result
 
 
+def ParseNicOption(optvalue):
+  """Parses the value of the --net option(s).
+
+  """
+  try:
+    nic_max = max(int(nidx[0]) + 1 for nidx in optvalue)
+  except (TypeError, ValueError), err:
+    raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
+
+  nics = [{}] * nic_max
+  for nidx, ndict in optvalue:
+    nidx = int(nidx)
+
+    if not isinstance(ndict, dict):
+      raise errors.OpPrereqError("Invalid nic/%d value: expected dict,"
+                                 " got %s" % (nidx, ndict))
+
+    utils.ForceDictType(ndict, constants.INIC_PARAMS_TYPES)
+
+    nics[nidx] = ndict
+
+  return nics
+
+
 def GenericInstanceCreate(mode, opts, args):
   """Add an instance to the cluster via either creation or import.
 
@@ -1822,17 +1846,7 @@ def GenericInstanceCreate(mode, opts, args):
     hypervisor, hvparams = opts.hypervisor
 
   if opts.nics:
-    try:
-      nic_max = max(int(nidx[0]) + 1 for nidx in opts.nics)
-    except ValueError, err:
-      raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
-    nics = [{}] * nic_max
-    for nidx, ndict in opts.nics:
-      nidx = int(nidx)
-      if not isinstance(ndict, dict):
-        msg = "Invalid nic/%d value: expected dict, got %s" % (nidx, ndict)
-        raise errors.OpPrereqError(msg)
-      nics[nidx] = ndict
+    nics = ParseNicOption(opts.nics)
   elif opts.no_nics:
     # no nics
     nics = []

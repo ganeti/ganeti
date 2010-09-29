@@ -442,5 +442,26 @@ class TestParseFields(unittest.TestCase):
                      ["def", "ault", "name", "foo"])
 
 
+class TestParseNicOption(unittest.TestCase):
+  def test(self):
+    self.assertEqual(cli.ParseNicOption([("0", { "link": "eth0", })]),
+                     [{ "link": "eth0", }])
+    self.assertEqual(cli.ParseNicOption([("5", { "ip": "192.0.2.7", })]),
+                     [{}, {}, {}, {}, {}, { "ip": "192.0.2.7", }])
+
+  def testErrors(self):
+    for i in [None, "", "abc", "zero", "Hello World", "\0", []]:
+      self.assertRaises(errors.OpPrereqError, cli.ParseNicOption,
+                        [(i, { "link": "eth0", })])
+      self.assertRaises(errors.OpPrereqError, cli.ParseNicOption,
+                        [("0", i)])
+
+    self.assertRaises(errors.TypeEnforcementError, cli.ParseNicOption,
+                      [(0, { True: False, })])
+
+    self.assertRaises(errors.TypeEnforcementError, cli.ParseNicOption,
+                      [(3, { "mode": [], })])
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
