@@ -24,7 +24,8 @@
 """
 
 
-import simplejson
+from ganeti import utils
+from ganeti import serializer
 
 import qa_error
 
@@ -39,11 +40,7 @@ def Load(path):
   """
   global cfg
 
-  f = open(path, 'r')
-  try:
-    cfg = simplejson.load(f)
-  finally:
-    f.close()
+  cfg = serializer.LoadJson(utils.ReadFile(path))
 
   Validate()
 
