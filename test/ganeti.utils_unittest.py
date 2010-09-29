@@ -1244,11 +1244,8 @@ class TestListVisibleFiles(unittest.TestCase):
 class TestNewUUID(unittest.TestCase):
   """Test case for NewUUID"""
 
-  _re_uuid = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
-                        '[a-f0-9]{4}-[a-f0-9]{12}$')
-
   def runTest(self):
-    self.failUnless(self._re_uuid.match(utils.NewUUID()))
+    self.failUnless(utils.UUID_RE.match(utils.NewUUID()))
 
 
 class TestUniqueSequence(unittest.TestCase):
