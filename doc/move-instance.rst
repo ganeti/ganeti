@@ -83,6 +83,8 @@ destination-related options default to the source value (e.g. setting
   When moving a single instance: Secondary node on destination cluster.
 ``--iallocator``
   Iallocator for creating instance on destination cluster.
+``--hypervisor-parameters``/``--backend-parameters``/``--os-parameters``/``--net``
+  When moving a single instance: Override instances' parameters.
 ``--parallel``
   Number of instance moves to run in parallel.
 ``--verbose``/``--debug``
