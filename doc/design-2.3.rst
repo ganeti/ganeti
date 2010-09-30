@@ -12,7 +12,7 @@ As for 2.1 and 2.2 we divide the 2.3 design into three areas:
 - core changes, which affect the master daemon/job queue/locking or
   all/most logical units
 - logical unit/feature changes
-- external interface changes (e.g. command line, os api, hooks, ...)
+- external interface changes (e.g. command line, OS API, hooks, ...)
 
 Core changes
 ============
@@ -55,7 +55,7 @@ commands/flags will be introduced::
   gnt-node group-del <group> # delete an empty group
   gnt-node group-list # list node groups
   gnt-node group-rename <oldname> <newname> # rename a group
-  gnt-node list/info -g <group> # list only nodes belongin to a group
+  gnt-node list/info -g <group> # list only nodes belonging to a group
   gnt-node add -g <group> # add a node to a certain group
   gnt-node modify -g <group> # move a node to a new group
 
@@ -69,8 +69,8 @@ we envision the following changes:
 
   - The cluster will have a default group, which will initially be
   - Instance allocation will happen to the cluster's default group
-    (which will be changable via gnt-cluster modify or RAPI) unless a
-    group is explicitely specified in the creation job (with -g or via
+    (which will be changeable via ``gnt-cluster modify`` or RAPI) unless
+    a group is explicitly specified in the creation job (with -g or via
     RAPI). Iallocator will be only passed the nodes belonging to that
     group.
   - Moving an instance between groups can only happen via an explicit
@@ -119,13 +119,13 @@ We expect the following changes for cluster management:
 Other work and future changes
 +++++++++++++++++++++++++++++
 
-Commands like gnt-cluster command/copyfile will continue to work on the
-whole cluster, but it will be possible to target one group only by
-specifying it.
+Commands like ``gnt-cluster command``/``gnt-cluster copyfile`` will
+continue to work on the whole cluster, but it will be possible to target
+one group only by specifying it.
 
 Commands which allow selection of sets of resources (for example
-gnt-instance start/stop) will be able to select them by node group as
-well.
+``gnt-instance start``/``gnt-instance stop``) will be able to select
+them by node group as well.
 
 Initially node groups won't be taggable objects, to simplify the first
 implementation, but we expect this to be easy to add in a future version
@@ -139,9 +139,9 @@ master, and make one node in the group perform internal diffusion. We
 won't implement this in the first version, but we'll evaluate it for the
 future, if we see scalability problems on big multi-group clusters.
 
-When Ganeti will support more storage models (eg. SANs, sheepdog, ceph)
+When Ganeti will support more storage models (e.g. SANs, Sheepdog, Ceph)
 we expect groups to be the basis for this, allowing for example a
-different sheepdog/ceph cluster, or a different SAN to be connected to
+different Sheepdog/Ceph cluster, or a different SAN to be connected to
 each group. In some cases this will mean that inter-group move operation
 will be necessarily performed with instance downtime, unless the
 hypervisor has block-migrate functionality, and we implement support for
@@ -176,7 +176,7 @@ state), and this prevents keeping the capacity numbers in sync with the
 cluster state. While this is still acceptable for smaller clusters where
 a small number of allocations/removal are presumed to occur between two
 periodic capacity calculations, on bigger clusters where we aim to
-parallelise heavily between node groups this is no longer true.
+parallelize heavily between node groups this is no longer true.
 
 
 
@@ -238,8 +238,8 @@ memory) will invalidate the capacity data. Updates that increase the
 node will not invalidate the capacity, as we're more interested in “at
 least available” correctness, not “at most available”.
 
-Cache invalidations
-+++++++++++++++++++
+Cache invalidation
+++++++++++++++++++
 
 If a partial node query is done (e.g. just for the node free space), and
 the returned values don't match with the cache, then the entire node
@@ -540,7 +540,7 @@ starvation.
 A job's priority can never go below -20. If a job hits priority -20, it
 must acquire its locks in blocking mode.
 
-Opcode priorities are synchronized to disk in order to be restored after
+Opcode priorities are synchronised to disk in order to be restored after
 a restart or crash of the master daemon.
 
 Priorities also need to be considered inside the locking library to
@@ -671,10 +671,10 @@ boundaries.
 netutils: Utilities for handling common network tasks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Currently common util functions are kept in the utils modules. Since
-this module grows bigger and bigger network-related functions are moved
-to a separate module named *netutils*. Additionally all these utilities
-will be IPv6-enabled.
+Currently common utility functions are kept in the ``utils`` module.
+Since this module grows bigger and bigger network-related functions are
+moved to a separate module named *netutils*. Additionally all these
+utilities will be IPv6-enabled.
 
 Cluster initialization
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -726,34 +726,33 @@ KVM VNC access                Not supported        Unknown
 Privilege Separation
 --------------------
 
-Current state and short comings
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Current state and shortcomings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As of Ganeti 2.2 we introduced privilege separation. This was affecting
-just Ganeti RAPI and also that just in a quickly short term solution. In
-this release we iterate again over it and make it more advanced and
-stable. This also means we'll remove the privilege separation again from
-the core and put it completely external so the daemons will be started
-on the final user already.
-
-Additionally this involves removing SSH code out auf bootstrap and core
-component and put it into a separate script. This means every
-daemon/script will assume that a working ssh setup is in place.
+In Ganeti 2.2 we introduced privilege separation for the RAPI daemon.
+This was done directly in the daemon's code in the process of
+daemonizing itself. Doing so leads to several potential issues. For
+example, a file could be opened while the code is still running as
+``root`` and for some reason not be closed again. Even after changing
+the user ID, the file descriptor can be written to.
 
 Implementation
 ~~~~~~~~~~~~~~
 
-We need to partially revert changes done in Ganeti 2.2 to move on the
-long term solution. This involves removing the drop privileges code in
-``daemons.py`` as this is already done on startup time by
-``start-stop-daemon`` util.
+To address these shortcomings, daemons will be started under the target
+user right away. The ``start-stop-daemon`` utility used to start daemons
+supports the ``--chuid`` option to change user and group ID before
+starting the executable.
 
-The ssh code will be separated into one single script called upon
-``gnt-node add`` which guarantees that the SSH setup is done and
-functioning.
+The intermediate solution for the RAPI daemon from Ganeti 2.2 will be
+removed again.
 
-Additionally some of the utils.WriteFile calls needs to be adjusted
-for the new permissions and ownerships.
+Files written by the daemons may need to have an explicit owner and
+group set (easily done through ``utils.WriteFile``).
+
+All SSH-related code is removed from the ``ganeti.bootstrap`` module and
+core components and moved to a separate script. The core code will
+simply assume a working SSH setup to be in place.
 
 Security Domains
 ~~~~~~~~~~~~~~~~
@@ -763,7 +762,7 @@ into the following 3 overall security domain chunks:
 
 1. Public: ``0755`` respectively ``0644``
 2. Ganeti wide: shared between the daemons (gntdaemons)
-3. Secret files: shared just between a specified set of daemons/users
+3. Secret files: shared among a specific set of daemons/users
 
 So for point 3 this tables shows the correlation of the sets to groups
 and their users:
@@ -772,11 +771,11 @@ and their users:
 Set Group      Users                          Description
 === ========== ============================== ==========================
 A   gntrapi    gntrapi, gntmasterd            Share data between
-                                              gntrapi & gntmasterd
+                                              gntrapi and gntmasterd
 B   gntadmins  gntrapi, gntmasterd, *users*   Shared between users who
                                               needs to call gntmasterd
 C   gntconfd   gntconfd, gntmasterd           Share data between
-                                              gntconfd & gntmasterd
+                                              gntconfd and gntmasterd
 D   gntmasterd gntmasterd                     masterd only; Currently
                                               only to redistribute the
                                               configuration, has access
@@ -798,10 +797,10 @@ The following commands needs still root to fulfill their functions:
   gnt-node {add|remove}
   gnt-instance {console}
 
-Directory structure & permissions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Directory structure and permissions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here's how we propose to change the filesystem hierachy and their
+Here's how we propose to change the filesystem hierarchy and their
 permissions.
 
 Assuming it follows the defaults: ``gnt${daemon}`` for user and
