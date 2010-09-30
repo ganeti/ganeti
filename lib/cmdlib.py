@@ -4916,7 +4916,7 @@ class LURenameInstance(LogicalUnit):
     new_name = self.op.new_name
     if self.op.name_check:
       hostinfo = netutils.HostInfo(netutils.HostInfo.NormalizeName(new_name))
-      new_name = hostinfo.name
+      new_name = self.op.new_name = hostinfo.name
       if (self.op.ip_check and
           netutils.TcpPing(hostinfo.ip, constants.DEFAULT_NODED_PORT)):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
