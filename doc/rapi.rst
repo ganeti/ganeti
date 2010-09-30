@@ -1004,10 +1004,15 @@ It supports the following commands: ``POST``.
 ``POST``
 ~~~~~~~~
 
-No parameters are required, but the bool parameter ``live`` can be set
-to use live migration (if available).
+If no mode is explicitly specified, each instances' hypervisor default
+migration mode will be used. Query parameters:
 
-    migrate?live=[0|1]
+``live`` (bool)
+  If set, use live migration if available.
+``mode`` (string)
+  Sets migration mode, ``live`` for live migration and ``non-live`` for
+  non-live migration. Supported by Ganeti 2.2 and above.
+
 
 ``/2/nodes/[node_name]/role``
 +++++++++++++++++++++++++++++
