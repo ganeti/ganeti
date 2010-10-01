@@ -66,8 +66,6 @@
     "instance-add-drbd-disk": true,
     "instance-convert-disk": true,
 
-    "instance-automatic-restart": false,
-    "instance-consecutive-failures": false,
     "instance-export": true,
     "instance-failover": true,
     "instance-import": true,
@@ -79,6 +77,10 @@
     "instance-reinstall": true,
     "instance-rename": true,
     "instance-shutdown": true,
+
+    "# cron/ganeti-watcher should be disabled for these tests": null,
+    "instance-automatic-restart": false,
+    "instance-consecutive-failures": false,
 
     "# This test might fail with certain hypervisor types, depending": null,
     "# on whether they support the `gnt-instance console' command.": null,

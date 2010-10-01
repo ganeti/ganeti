@@ -60,8 +60,10 @@ def get(name, default=None):
 
 
 def TestEnabled(test):
-  """Returns True if the given test is enabled."""
-  return cfg.get('tests', {}).get(test, False)
+  """Returns True if the given test is enabled.
+
+  """
+  return cfg.get("tests", {}).get(test, True)
 
 
 def GetMasterNode():
