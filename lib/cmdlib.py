@@ -4224,7 +4224,7 @@ class LUQueryConfigValues(NoHooksLU):
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet()
   _FIELDS_STATIC = utils.FieldSet("cluster_name", "master_node", "drain_flag",
-                                  "watcher_pause")
+                                  "watcher_pause", "volume_group_name")
 
   def CheckArguments(self):
     _CheckOutputFields(static=self._FIELDS_STATIC,
@@ -4248,6 +4248,8 @@ class LUQueryConfigValues(NoHooksLU):
         entry = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
       elif field == "watcher_pause":
         entry = utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
+      elif field == "volume_group_name":
+        entry = self.cfg.GetVGName()
       else:
         raise errors.ParameterError(field)
       values.append(entry)
