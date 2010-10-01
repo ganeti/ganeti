@@ -9927,12 +9927,13 @@ class LUDelTags(TagsLU):
       objects.TaggableObject.ValidateTag(tag)
     del_tags = frozenset(self.op.tags)
     cur_tags = self.target.GetTags()
-    if not del_tags <= cur_tags:
-      diff_tags = del_tags - cur_tags
-      diff_names = ["'%s'" % tag for tag in diff_tags]
-      diff_names.sort()
+
+    diff_tags = del_tags - cur_tags
+    if diff_tags:
+      diff_names = ("'%s'" % i for i in sorted(diff_tags))
       raise errors.OpPrereqError("Tag(s) %s not found" %
-                                 (",".join(diff_names)), errors.ECODE_NOENT)
+                                 (utils.CommaJoin(diff_names), ),
+                                 errors.ECODE_NOENT)
 
   def Exec(self, feedback_fn):
     """Remove the tag from the object.
