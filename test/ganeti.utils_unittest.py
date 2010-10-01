@@ -2314,5 +2314,15 @@ class TestShellWriter(unittest.TestCase):
     self.assertEqual(buf.getvalue(), "")
 
 
+class TestCommaJoin(unittest.TestCase):
+  def test(self):
+    self.assertEqual(utils.CommaJoin([]), "")
+    self.assertEqual(utils.CommaJoin([1, 2, 3]), "1, 2, 3")
+    self.assertEqual(utils.CommaJoin(["Hello"]), "Hello")
+    self.assertEqual(utils.CommaJoin(["Hello", "World"]), "Hello, World")
+    self.assertEqual(utils.CommaJoin(["Hello", "World", 99]),
+                     "Hello, World, 99")
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
