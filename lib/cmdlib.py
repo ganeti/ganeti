@@ -9786,6 +9786,9 @@ class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
       self.op.name = _ExpandInstanceName(self.cfg, self.op.name)
       self.needed_locks[locking.LEVEL_INSTANCE] = self.op.name
 
+    # FIXME: Acquire BGL for cluster tag operations (as of this writing it's
+    # not possible to acquire the BGL based on opcode parameters)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -9811,6 +9814,12 @@ class LUGetTags(TagsLU):
     ("name", _NoDefault, _TMaybeString),
     ]
   REQ_BGL = False
+
+  def ExpandNames(self):
+    TagsLU.ExpandNames(self)
+
+    # Share locks as this is only a read operation
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
   def Exec(self, feedback_fn):
     """Returns the tag list.
