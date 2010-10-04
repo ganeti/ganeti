@@ -1,6 +1,14 @@
 News
 ====
 
+Version 2.2.0
+-------------
+
+*(Released Mon, 4 Oct 2010)*
+
+- Fixed regression in ``gnt-instance rename``
+
+
 Version 2.2.0 rc2
 -----------------
 
