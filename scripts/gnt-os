@@ -273,8 +273,8 @@ def ModifyOS(opts, args):
 
   op = opcodes.OpSetClusterParams(os_hvp=os_hvp,
                                   osparams=osp,
-                                  hidden_oss=ohid,
-                                  blacklisted_oss=oblk)
+                                  hidden_os=ohid,
+                                  blacklisted_os=oblk)
   SubmitOpCode(op, opts=opts)
 
   return 0
