@@ -4226,7 +4226,7 @@ class LUQueryConfigValues(NoHooksLU):
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet()
   _FIELDS_STATIC = utils.FieldSet("cluster_name", "master_node", "drain_flag",
-                                  "watcher_pause")
+                                  "watcher_pause", "volume_group_name")
 
   def CheckArguments(self):
     _CheckOutputFields(static=self._FIELDS_STATIC,
@@ -4250,6 +4250,8 @@ class LUQueryConfigValues(NoHooksLU):
         entry = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
       elif field == "watcher_pause":
         entry = utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
+      elif field == "volume_group_name":
+        entry = self.cfg.GetVGName()
       else:
         raise errors.ParameterError(field)
       values.append(entry)
@@ -9785,6 +9787,9 @@ class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
       self.op.name = _ExpandInstanceName(self.cfg, self.op.name)
       self.needed_locks[locking.LEVEL_INSTANCE] = self.op.name
 
+    # FIXME: Acquire BGL for cluster tag operations (as of this writing it's
+    # not possible to acquire the BGL based on opcode parameters)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -9810,6 +9815,12 @@ class LUGetTags(TagsLU):
     ("name", _NoDefault, _TMaybeString),
     ]
   REQ_BGL = False
+
+  def ExpandNames(self):
+    TagsLU.ExpandNames(self)
+
+    # Share locks as this is only a read operation
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
   def Exec(self, feedback_fn):
     """Returns the tag list.
@@ -9917,12 +9928,13 @@ class LUDelTags(TagsLU):
       objects.TaggableObject.ValidateTag(tag)
     del_tags = frozenset(self.op.tags)
     cur_tags = self.target.GetTags()
-    if not del_tags <= cur_tags:
-      diff_tags = del_tags - cur_tags
-      diff_names = ["'%s'" % tag for tag in diff_tags]
-      diff_names.sort()
+
+    diff_tags = del_tags - cur_tags
+    if diff_tags:
+      diff_names = ("'%s'" % i for i in sorted(diff_tags))
       raise errors.OpPrereqError("Tag(s) %s not found" %
-                                 (",".join(diff_names)), errors.ECODE_NOENT)
+                                 (utils.CommaJoin(diff_names), ),
+                                 errors.ECODE_NOENT)
 
   def Exec(self, feedback_fn):
     """Remove the tag from the object.

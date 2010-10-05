@@ -436,8 +436,10 @@ def VerifyDisks(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
+
   op = opcodes.OpVerifyDisks()
-  result = SubmitOpCode(op, opts=opts)
+  result = SubmitOpCode(op, opts=opts, cl=cl)
   if not isinstance(result, (list, tuple)) or len(result) != 3:
     raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
 
@@ -459,13 +461,15 @@ def VerifyDisks(opts, args):
       op = opcodes.OpActivateInstanceDisks(instance_name=iname)
       try:
         ToStdout("Activating disks for instance '%s'", iname)
-        SubmitOpCode(op, opts=opts)
+        SubmitOpCode(op, opts=opts, cl=cl)
       except errors.GenericError, err:
         nret, msg = FormatError(err)
         retcode |= nret
         ToStderr("Error activating disks for instance %s: %s", iname, msg)
 
   if missing:
+    (vg_name, ) = cl.QueryConfigValues(["volume_group_name"])
+
     for iname, ival in missing.iteritems():
       all_missing = compat.all(x[0] in bad_nodes for x in ival)
       if all_missing:
@@ -476,11 +480,12 @@ def VerifyDisks(opts, args):
         ival.sort()
         for node, vol in ival:
           if node in bad_nodes:
-            ToStdout("\tbroken node %s /dev/xenvg/%s", node, vol)
+            ToStdout("\tbroken node %s /dev/%s/%s", node, vg_name, vol)
           else:
-            ToStdout("\t%s /dev/xenvg/%s", node, vol)
+            ToStdout("\t%s /dev/%s/%s", node, vg_name, vol)
+
     ToStdout("You need to run replace_disks for all the above"
-           " instances, if this message persist after fixing nodes.")
+             " instances, if this message persist after fixing nodes.")
     retcode |= 1
 
   return retcode

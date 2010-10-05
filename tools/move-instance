@@ -36,6 +36,7 @@ from ganeti import cli
 from ganeti import constants
 from ganeti import utils
 from ganeti import workerpool
+from ganeti import objects
 from ganeti import compat
 from ganeti import rapi
 
@@ -269,7 +270,8 @@ class InstanceMove(object):
 
   """
   def __init__(self, src_instance_name, dest_instance_name,
-               dest_pnode, dest_snode, dest_iallocator):
+               dest_pnode, dest_snode, dest_iallocator,
+               hvparams, beparams, osparams, nics):
     """Initializes this class.
 
     @type src_instance_name: string
@@ -282,6 +284,14 @@ class InstanceMove(object):
     @param dest_snode: Name of secondary node on destination cluster
     @type dest_iallocator: string or None
     @param dest_iallocator: Name of iallocator to use
+    @type hvparams: dict or None
+    @param hvparams: Hypervisor parameters to override
+    @type beparams: dict or None
+    @param beparams: Backend parameters to override
+    @type osparams: dict or None
+    @param osparams: OS parameters to override
+    @type nics: dict or None
+    @param nics: NICs to override
 
     """
     self.src_instance_name = src_instance_name
@@ -289,6 +299,10 @@ class InstanceMove(object):
     self.dest_pnode = dest_pnode
     self.dest_snode = dest_snode
     self.dest_iallocator = dest_iallocator
+    self.hvparams = hvparams
+    self.beparams = beparams
+    self.osparams = osparams
+    self.nics = nics
 
     self.error_message = None
 
@@ -414,7 +428,9 @@ class MoveDestExecutor(object):
     job_id = self._CreateInstance(dest_client, mrt.move.dest_instance_name,
                                   mrt.move.dest_pnode, mrt.move.dest_snode,
                                   mrt.move.dest_iallocator,
-                                  mrt.src_instinfo, mrt.src_expinfo)
+                                  mrt.src_instinfo, mrt.src_expinfo,
+                                  mrt.move.hvparams, mrt.move.beparams,
+                                  mrt.move.beparams, mrt.move.nics)
     mrt.PollJob(dest_client, job_id,
                 remote_import_fn=compat.partial(self._SetImportInfo, mrt))
 
@@ -437,7 +453,9 @@ class MoveDestExecutor(object):
       mrt.dest_to_source.release()
 
   @staticmethod
-  def _CreateInstance(cl, name, pnode, snode, iallocator, instance, expinfo):
+  def _CreateInstance(cl, name, pnode, snode, iallocator, instance, expinfo,
+                      override_hvparams, override_beparams, override_osparams,
+                      override_nics):
     """Starts the instance creation in remote import mode.
 
     @type cl: L{rapi.client.GanetiRapiClient}
@@ -454,6 +472,14 @@ class MoveDestExecutor(object):
     @param instance: Instance details from source cluster
     @type expinfo: dict
     @param expinfo: Prepared export information from source cluster
+    @type override_hvparams: dict or None
+    @param override_hvparams: Hypervisor parameters to override
+    @type override_beparams: dict or None
+    @param override_beparams: Backend parameters to override
+    @type override_osparams: dict or None
+    @param override_osparams: OS parameters to override
+    @type override_nics: dict or None
+    @param override_nics: NICs to override
     @return: Job ID
 
     """
@@ -471,11 +497,31 @@ class MoveDestExecutor(object):
       constants.INIC_LINK: link,
       } for ip, mac, mode, link in instance["nics"]]
 
+    if len(override_nics) > len(nics):
+      raise Error("Can not create new NICs")
+
+    if override_nics:
+      assert len(override_nics) <= len(nics)
+      for idx, (nic, override) in enumerate(zip(nics, override_nics)):
+        nics[idx] = objects.FillDict(nic, override)
+
     # TODO: Should this be the actual up/down status? (run_state)
     start = (instance["config_state"] == "up")
 
     assert len(disks) == len(instance["disks"])
     assert len(nics) == len(instance["nics"])
+
+    inst_beparams = instance["be_instance"]
+    if not inst_beparams:
+      inst_beparams = {}
+
+    inst_hvparams = instance["hv_instance"]
+    if not inst_hvparams:
+      inst_hvparams = {}
+
+    inst_osparams = instance["os_instance"]
+    if not inst_osparams:
+      inst_osparams = {}
 
     return cl.CreateInstance(constants.INSTANCE_REMOTE_IMPORT,
                              name, disk_template, disks, nics,
@@ -489,9 +535,12 @@ class MoveDestExecutor(object):
                              source_handshake=expinfo["handshake"],
                              source_x509_ca=expinfo["x509_ca"],
                              source_instance_name=instance["name"],
-                             beparams=instance["be_instance"],
-                             hvparams=instance["hv_instance"],
-                             osparams=instance["os_instance"])
+                             beparams=objects.FillDict(inst_beparams,
+                                                       override_beparams),
+                             hvparams=objects.FillDict(inst_hvparams,
+                                                       override_hvparams),
+                             osparams=objects.FillDict(inst_osparams,
+                                                       override_osparams))
 
 
 class MoveSourceExecutor(object):
@@ -708,6 +757,10 @@ def ParseOptions():
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option(cli.IALLOCATOR_OPT)
+  parser.add_option(cli.BACKEND_OPT)
+  parser.add_option(cli.HVOPTS_OPT)
+  parser.add_option(cli.OSPARAMS_OPT)
+  parser.add_option(cli.NET_OPT)
   parser.add_option(SRC_RAPI_PORT_OPT)
   parser.add_option(SRC_CA_FILE_OPT)
   parser.add_option(SRC_USERNAME_OPT)
@@ -757,13 +810,24 @@ def CheckOptions(parser, options, args):
             options.dest_primary_node or
             options.dest_secondary_node):
       parser.error("An iallocator or the destination node is required")
+
+    if options.hvparams:
+      utils.ForceDictType(options.hvparams, constants.HVS_PARAMETER_TYPES)
+
+    if options.beparams:
+      utils.ForceDictType(options.beparams, constants.BES_PARAMETER_TYPES)
+
+    if options.nics:
+      options.nics = cli.ParseNicOption(options.nics)
   else:
     # Moving more than one instance
     if (options.dest_instance_name or options.dest_primary_node or
-        options.dest_secondary_node):
-      parser.error("The options --dest-instance-name, --dest-primary-node and"
-                   " --dest-secondary-node can only be used when moving exactly"
-                   " one instance")
+        options.dest_secondary_node or options.hvparams or
+        options.beparams or options.osparams or options.nics):
+      parser.error("The options --dest-instance-name, --dest-primary-node,"
+                   " --dest-secondary-node, --hypervisor-parameters,"
+                   " --backend-parameters, --os-parameters and --net can"
+                   " only be used when moving exactly one instance")
 
     if not options.iallocator:
       parser.error("An iallocator must be specified for moving more than one"
@@ -797,6 +861,9 @@ def main():
   assert len(instance_names) == 1 or options.iallocator
   assert (len(instance_names) > 1 or options.iallocator or
           options.dest_primary_node or options.dest_secondary_node)
+  assert (len(instance_names) == 1 or
+          not (options.hvparams or options.beparams or options.osparams or
+               options.nics))
 
   # Prepare list of instance moves
   moves = []
@@ -811,7 +878,9 @@ def main():
     moves.append(InstanceMove(src_instance_name, dest_instance_name,
                               options.dest_primary_node,
                               options.dest_secondary_node,
-                              options.iallocator))
+                              options.iallocator, options.hvparams,
+                              options.beparams, options.osparams,
+                              options.nics))
 
   assert len(moves) == len(instance_names)
 

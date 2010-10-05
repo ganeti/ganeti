@@ -416,6 +416,7 @@ def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
       "--dest-instance-name=%s" % destname,
       "--dest-primary-node=%s" % pnode["primary"],
       "--dest-secondary-node=%s" % snode["primary"],
+      "--net=0:mac=%s" % constants.VALUE_GENERATE,
 
       master["primary"],
       master["primary"],
