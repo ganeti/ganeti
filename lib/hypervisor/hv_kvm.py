@@ -570,8 +570,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     mem_path = hvp[constants.HV_MEM_PATH]
     if mem_path:
-      kvm_cmd.extend(["-mem-path", mem_path])
-      kvm_cmd.extend(["-mem-prealloc"])
+      kvm_cmd.extend(["-mem-path", mem_path, "-mem-prealloc"])
 
     mouse_type = hvp[constants.HV_USB_MOUSE]
     vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
