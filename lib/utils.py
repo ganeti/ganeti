@@ -408,20 +408,7 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
 
     # Open PID file
     if pidfile:
-      try:
-        # TODO: Atomic replace with another locked file instead of writing into
-        # it after creating
-        fd_pidfile = os.open(pidfile, os.O_WRONLY | os.O_CREAT, 0600)
-
-        # Lock the PID file (and fail if not possible to do so). Any code
-        # wanting to send a signal to the daemon should try to lock the PID
-        # file before reading it. If acquiring the lock succeeds, the daemon is
-        # no longer running and the signal should not be sent.
-        LockFile(fd_pidfile)
-
-        os.write(fd_pidfile, "%d\n" % os.getpid())
-      except Exception, err:
-        raise Exception("Creating and locking PID file failed: %s" % err)
+      fd_pidfile = WritePidFile(pidfile)
 
       # Keeping the file open to hold the lock
       noclose_fds.append(fd_pidfile)
@@ -2217,23 +2204,31 @@ def StopDaemon(name):
   return True
 
 
-def WritePidFile(name):
+def WritePidFile(pidfile):
   """Write the current process pidfile.
 
   The file will be written to L{constants.RUN_GANETI_DIR}I{/name.pid}
 
   @type name: str
   @param name: the daemon name to use
+  @param pid: if passed, will be used instead of getpid()
   @raise errors.GenericError: if the pid file already exists and
       points to a live process
 
   """
-  pid = os.getpid()
-  pidfilename = DaemonPidFileName(name)
-  if IsProcessAlive(ReadPidFile(pidfilename)):
-    raise errors.GenericError("%s contains a live process" % pidfilename)
+  # We don't rename nor truncate the file to not drop locks under
+  # existing processes
+  fd_pidfile = os.open(pidfile, os.O_WRONLY | os.O_CREAT, 0600)
 
-  WriteFile(pidfilename, data="%d\n" % pid)
+  # Lock the PID file (and fail if not possible to do so). Any code
+  # wanting to send a signal to the daemon should try to lock the PID
+  # file before reading it. If acquiring the lock succeeds, the daemon is
+  # no longer running and the signal should not be sent.
+  LockFile(fd_pidfile)
+
+  os.write(fd_pidfile, "%d\n" % os.getpid())
+
+  return fd_pidfile
 
 
 def RemovePidFile(name):

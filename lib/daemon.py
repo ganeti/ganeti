@@ -621,7 +621,7 @@ def GenericMain(daemon_name, optionparser, check_fn, exec_fn,
     utils.CloseFDs()
     utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
 
-  utils.WritePidFile(daemon_name)
+  utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
   try:
     utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
                        debug=options.debug,

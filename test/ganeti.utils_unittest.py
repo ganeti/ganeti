@@ -177,13 +177,15 @@ class TestPidFileFunctions(unittest.TestCase):
 
   def testPidFileFunctions(self):
     pid_file = self.f_dpn('test')
-    utils.WritePidFile('test')
+    fd = utils.WritePidFile(self.f_dpn('test'))
     self.failUnless(os.path.exists(pid_file),
                     "PID file should have been created")
     read_pid = utils.ReadPidFile(pid_file)
     self.failUnlessEqual(read_pid, os.getpid())
     self.failUnless(utils.IsProcessAlive(read_pid))
-    self.failUnlessRaises(errors.GenericError, utils.WritePidFile, 'test')
+    self.failUnlessRaises(errors.LockError, utils.WritePidFile,
+                          self.f_dpn('test'))
+    os.close(fd)
     utils.RemovePidFile('test')
     self.failIf(os.path.exists(pid_file),
                 "PID file should not exist anymore")
@@ -194,6 +196,9 @@ class TestPidFileFunctions(unittest.TestCase):
     fh.close()
     self.failUnlessEqual(utils.ReadPidFile(pid_file), 0,
                          "ReadPidFile should return 0 for invalid pid file")
+    # but now, even with the file existing, we should be able to lock it
+    fd = utils.WritePidFile(self.f_dpn('test'))
+    os.close(fd)
     utils.RemovePidFile('test')
     self.failIf(os.path.exists(pid_file),
                 "PID file should not exist anymore")
@@ -203,7 +208,7 @@ class TestPidFileFunctions(unittest.TestCase):
     r_fd, w_fd = os.pipe()
     new_pid = os.fork()
     if new_pid == 0: #child
-      utils.WritePidFile('child')
+      utils.WritePidFile(self.f_dpn('child'))
       os.write(w_fd, 'a')
       signal.pause()
       os._exit(0)
