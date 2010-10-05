@@ -252,6 +252,38 @@ def SetupDaemonEnv(cwd="/", umask=077):
   os.setsid()
 
 
+def SetupDaemonFDs(output_file, output_fd):
+  """Setups up a daemon's file descriptors.
+
+  @param output_file: if not None, the file to which to redirect
+      stdout/stderr
+  @param output_fd: if not None, the file descriptor for stdout/stderr
+
+  """
+  # check that at most one is defined
+  assert [output_file, output_fd].count(None) >= 1
+
+  # Open /dev/null (read-only, only for stdin)
+  devnull_fd = os.open(os.devnull, os.O_RDONLY)
+
+  if output_fd is not None:
+    pass
+  elif output_file is not None:
+    # Open output file
+    try:
+      output_fd = os.open(output_file,
+                          os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0600)
+    except EnvironmentError, err:
+      raise Exception("Opening output file failed: %s" % err)
+  else:
+    output_fd = os.open(os.devnull, os.O_WRONLY)
+
+  # Redirect standard I/O
+  os.dup2(devnull_fd, 0)
+  os.dup2(output_fd, 1)
+  os.dup2(output_fd, 2)
+
+
 def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
                 pidfile=None):
   """Start a daemon process after forking twice.
@@ -398,27 +430,7 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
     else:
       fd_pidfile = None
 
-    # Open /dev/null
-    fd_devnull = os.open(os.devnull, os.O_RDWR)
-
-    assert not output or (bool(output) ^ (fd_output is not None))
-
-    if fd_output is not None:
-      pass
-    elif output:
-      # Open output file
-      try:
-        # TODO: Implement flag to set append=yes/no
-        fd_output = os.open(output, os.O_WRONLY | os.O_CREAT, 0600)
-      except EnvironmentError, err:
-        raise Exception("Opening output file failed: %s" % err)
-    else:
-      fd_output = fd_devnull
-
-    # Redirect standard I/O
-    os.dup2(fd_devnull, 0)
-    os.dup2(fd_output, 1)
-    os.dup2(fd_output, 2)
+    SetupDaemonFDs(output, fd_output)
 
     # Send daemon PID to parent
     RetryOnSignal(os.write, pidpipe_write, str(os.getpid()))
@@ -2162,14 +2174,7 @@ def Daemonize(logfile):
   else:
     os._exit(0) # Exit parent of the first child.
 
-  for fd in range(3):
-    _CloseFDNoErr(fd)
-  i = os.open("/dev/null", os.O_RDONLY) # stdin
-  assert i == 0, "Can't close/reopen stdin"
-  i = os.open(logfile, os.O_WRONLY|os.O_CREAT|os.O_APPEND, 0600) # stdout
-  assert i == 1, "Can't close/reopen stdout"
-  # Duplicate standard output to standard error.
-  os.dup2(1, 2)
+  SetupDaemonFDs(logfile, None)
   return 0
 
 
