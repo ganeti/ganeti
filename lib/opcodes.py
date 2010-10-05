@@ -316,8 +316,8 @@ class OpSetClusterParams(OpCode):
     "remove_uids",
     "default_iallocator",
     "reserved_lvs",
-    "hidden_oss",
-    "blacklisted_oss",
+    "hidden_os",
+    "blacklisted_os",
     ]
 
 

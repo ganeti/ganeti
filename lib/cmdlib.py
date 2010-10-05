@@ -2620,12 +2620,12 @@ class LUSetClusterParams(LogicalUnit):
     ("drbd_helper", None, _TOr(_TString, _TNone)),
     ("default_iallocator", None, _TMaybeString),
     ("reserved_lvs", None, _TOr(_TListOf(_TNonEmptyString), _TNone)),
-    ("hidden_oss", None, _TOr(_TListOf(\
+    ("hidden_os", None, _TOr(_TListOf(\
           _TAnd(_TList,
                 _TIsLength(2),
                 _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
           _TNone)),
-    ("blacklisted_oss", None, _TOr(_TListOf(\
+    ("blacklisted_os", None, _TOr(_TListOf(\
           _TAnd(_TList,
                 _TIsLength(2),
                 _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
@@ -2903,7 +2903,8 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.reserved_lvs is not None:
       self.cluster.reserved_lvs = self.op.reserved_lvs
 
-    def helper_oss(aname, mods, desc):
+    def helper_os(aname, mods, desc):
+      desc += " OS list"
       lst = getattr(self.cluster, aname)
       for key, val in mods:
         if key == constants.DDM_ADD:
@@ -2919,13 +2920,11 @@ class LUSetClusterParams(LogicalUnit):
         else:
           raise errors.ProgrammerError("Invalid modification '%s'" % key)
 
-    if self.op.hidden_oss:
-      helper_oss("hidden_oss", self.op.hidden_oss,
-                 "hidden OS list")
+    if self.op.hidden_os:
+      helper_os("hidden_os", self.op.hidden_os, "hidden")
 
-    if self.op.blacklisted_oss:
-      helper_oss("blacklisted_oss", self.op.blacklisted_oss,
-                 "blacklisted OS list")
+    if self.op.blacklisted_os:
+      helper_os("blacklisted_os", self.op.blacklisted_os, "blacklisted")
 
     self.cfg.Update(self.cluster, feedback_fn)
 
@@ -3209,8 +3208,8 @@ class LUDiagnoseOS(NoHooksLU):
           params.intersection_update(node_params)
           api_versions.intersection_update(node_api)
 
-      is_hid = os_name in cluster.hidden_oss
-      is_blk = os_name in cluster.blacklisted_oss
+      is_hid = os_name in cluster.hidden_os
+      is_blk = os_name in cluster.blacklisted_os
       if ((self._HID not in self.op.output_fields and is_hid) or
           (self._BLK not in self.op.output_fields and is_blk) or
           (self._VLD not in self.op.output_fields and not valid)):
@@ -6702,7 +6701,7 @@ class LUCreateInstance(LogicalUnit):
       if self.op.os_type is None:
         raise errors.OpPrereqError("No guest OS specified",
                                    errors.ECODE_INVAL)
-      if self.op.os_type in self.cfg.GetClusterInfo().blacklisted_oss:
+      if self.op.os_type in self.cfg.GetClusterInfo().blacklisted_os:
         raise errors.OpPrereqError("Guest OS '%s' is not allowed for"
                                    " installation" % self.op.os_type,
                                    errors.ECODE_STATE)
