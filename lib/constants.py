@@ -427,8 +427,9 @@ INISECT_BEP = "backend"
 INISECT_OSP = "os"
 
 # dynamic device modification
-DDM_ADD = 'add'
-DDM_REMOVE = 'remove'
+DDM_ADD = "add"
+DDM_REMOVE = "remove"
+DDMS_VALUES = frozenset([DDM_ADD, DDM_REMOVE])
 
 # common exit codes
 EXIT_SUCCESS = 0

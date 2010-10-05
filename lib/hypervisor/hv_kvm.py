@@ -213,6 +213,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
 
+  _VERSION_RE = re.compile(r"\b(\d+)\.(\d+)\.(\d+)\b")
+
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
     ]
@@ -815,6 +817,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError(msg)
 
     return result
+
+  @classmethod
+  def _GetKVMVersion(cls):
+    """Return the installed KVM version
+
+    @return: (version, v_maj, v_min, v_rev), or None
+
+    """
+    result = utils.RunCmd([constants.KVM_PATH, "--help"])
+    if result.failed:
+      return None
+    match = cls._VERSION_RE.search(result.output.splitlines()[0])
+    if not match:
+      return None
+    return (match.group(0), match.group(1), match.group(2), match.group(3))
 
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.

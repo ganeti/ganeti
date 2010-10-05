@@ -524,8 +524,7 @@ def ReinstallInstance(opts, args):
 
   # second, if requested, ask for an OS
   if opts.select_os is True:
-    op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants"],
-                              names=[])
+    op = opcodes.OpDiagnoseOS(output_fields=["name", "variants"], names=[])
     result = SubmitOpCode(op, opts=opts)
 
     if not result:
@@ -535,12 +534,11 @@ def ReinstallInstance(opts, args):
     ToStdout("Available OS templates:")
     number = 0
     choices = []
-    for (name, valid, variants) in result:
-      if valid:
-        for entry in CalculateOSNames(name, variants):
-          ToStdout("%3s: %s", number, entry)
-          choices.append(("%s" % number, entry, entry))
-          number += 1
+    for (name, variants) in result:
+      for entry in CalculateOSNames(name, variants):
+        ToStdout("%3s: %s", number, entry)
+        choices.append(("%s" % number, entry, entry))
+        number += 1
 
     choices.append(('x', 'exit', 'Exit gnt-instance reinstall'))
     selected = AskUser("Enter OS template number (or x to abort):",

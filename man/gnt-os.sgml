@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>June 08, 2010</date>">
+  <!ENTITY dhdate      "<date>September 20, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -69,6 +69,11 @@
       as an option.
     </para>
 
+    <para>
+      Note that hidden or blacklisted OSes are not displayed by this
+      command, use <command>diagnose</command> for showing those.
+    </para>
+
     <cmdsynopsis>
       <command>diagnose</command>
     </cmdsynopsis>
@@ -100,12 +105,28 @@
     </cmdsynopsis>
 
     <para>
-      This command will allow you to modify OS parameters. At the moment
-      we just support per-os-hypervisor settings. You can run modify
+      This command will allow you to modify OS parameters.
+
+    </para>
+
+    <para>
+      To modify the per-OS hypervisor parameters (which override the
+      global hypervisor parameters), you can run modify
       <option>-H</option> with the same syntax as in
       <command>gnt-cluster init</command> to override default hypervisor
       parameters of the cluster for specified
       <replaceable>OS</replaceable> argument.
+    </para>
+
+    <para>
+      To modify the hidden and blacklisted states of an OS, pass the
+      options <option>--hidden <replaceable>yes|no</replaceable></option>,
+      or respectively <option>--blacklisted ...</option>. The 'hidden'
+      state means that an OS won't be listed by default in the OS
+      list, but is available for installation. The 'blacklisted' state
+      means that the OS is not listed and is also not allowed for new
+      instance creations (but can be used for reinstalling old
+      instances).
     </para>
 
     <para>

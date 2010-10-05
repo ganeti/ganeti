@@ -11,24 +11,22 @@ adding new features and improvements over 2.1, in a timely fashion.
 
 .. contents:: :depth: 4
 
-Detailed design
-===============
-
 As for 2.1 we divide the 2.2 design into three areas:
 
 - core changes, which affect the master daemon/job queue/locking or
   all/most logical units
 - logical unit/feature changes
-- external interface changes (eg. command line, os api, hooks, ...)
+- external interface changes (e.g. command line, OS API, hooks, ...)
+
 
 Core changes
-------------
+============
 
 Master Daemon Scaling improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
 
 Current state and shortcomings
-++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently the Ganeti master daemon is based on four sets of threads:
 
@@ -50,7 +48,7 @@ Also, with the current architecture, masterd suffers from quite a few
 scalability issues:
 
 Core daemon connection handling
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++++++++++++
 
 Since the 16 client worker threads handle one connection each, it's very
 easy to exhaust them, by just connecting to masterd 16 times and not
@@ -60,7 +58,7 @@ with better handling long running operations making sure the client is
 informed that everything is proceeding, and doesn't need to time out.
 
 Wait for job change
-^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++
 
 The REQ_WAIT_FOR_JOB_CHANGE luxi operation makes the relevant client
 thread block on its job for a relative long time. This is another easy
@@ -69,7 +67,7 @@ time out, moreover this operation is negative for the job queue lock
 contention (see below).
 
 Job Queue lock
-^^^^^^^^^^^^^^
+++++++++++++++
 
 The job queue lock is quite heavily contended, and certain easily
 reproducible workloads show that's it's very easy to put masterd in
@@ -120,7 +118,7 @@ To increase the pain:
     remote rpcs to complete (starting, finishing, and submitting jobs)
 
 Proposed changes
-++++++++++++++++
+~~~~~~~~~~~~~~~~
 
 In order to be able to interact with the master daemon even when it's
 under heavy load, and  to make it simpler to add core functionality
@@ -135,7 +133,7 @@ smaller in number of threads, and memory size, and thus also easier to
 understand, debug, and scale.
 
 Connection handling
-^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++
 
 We'll move the main thread of ganeti-masterd to asyncore, so that it can
 share the mainloop code with all other Ganeti daemons. Then all luxi
@@ -148,7 +146,7 @@ serializing the reply, which can then be sent asynchronously by the main
 thread on the socket.
 
 Wait for job change
-^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++
 
 The REQ_WAIT_FOR_JOB_CHANGE luxi request is changed to be
 subscription-based, so that the executing thread doesn't have to be
@@ -173,7 +171,7 @@ Other features to look at, when implementing this code are:
     them at a maximum rate (lower priority).
 
 Job Queue lock
-^^^^^^^^^^^^^^
+++++++++++++++
 
 In order to decrease the job queue lock contention, we will change the
 code paths in the following ways, initially:
@@ -201,154 +199,11 @@ again after we used the more granular job queue in production and tested
 its benefits.
 
 
-Remote procedure call timeouts
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Current state and shortcomings
-++++++++++++++++++++++++++++++
-
-The current RPC protocol used by Ganeti is based on HTTP. Every request
-consists of an HTTP PUT request (e.g. ``PUT /hooks_runner HTTP/1.0``)
-and doesn't return until the function called has returned. Parameters
-and return values are encoded using JSON.
-
-On the server side, ``ganeti-noded`` handles every incoming connection
-in a separate process by forking just after accepting the connection.
-This process exits after sending the response.
-
-There is one major problem with this design: Timeouts can not be used on
-a per-request basis. Neither client or server know how long it will
-take. Even if we might be able to group requests into different
-categories (e.g. fast and slow), this is not reliable.
-
-If a node has an issue or the network connection fails while a request
-is being handled, the master daemon can wait for a long time for the
-connection to time out (e.g. due to the operating system's underlying
-TCP keep-alive packets or timeouts). While the settings for keep-alive
-packets can be changed using Linux-specific socket options, we prefer to
-use application-level timeouts because these cover both machine down and
-unresponsive node daemon cases.
-
-Proposed changes
-++++++++++++++++
-
-RPC glossary
-^^^^^^^^^^^^
-
-Function call ID
-  Unique identifier returned by ``ganeti-noded`` after invoking a
-  function.
-Function process
-  Process started by ``ganeti-noded`` to call actual (backend) function.
-
-Protocol
-^^^^^^^^
-
-Initially we chose HTTP as our RPC protocol because there were existing
-libraries, which, unfortunately, turned out to miss important features
-(such as SSL certificate authentication) and we had to write our own.
-
-This proposal can easily be implemented using HTTP, though it would
-likely be more efficient and less complicated to use the LUXI protocol
-already used to communicate between client tools and the Ganeti master
-daemon. Switching to another protocol can occur at a later point. This
-proposal should be implemented using HTTP as its underlying protocol.
-
-The LUXI protocol currently contains two functions, ``WaitForJobChange``
-and ``AutoArchiveJobs``, which can take a longer time. They both support
-a parameter to specify the timeout. This timeout is usually chosen as
-roughly half of the socket timeout, guaranteeing a response before the
-socket times out. After the specified amount of time,
-``AutoArchiveJobs`` returns and reports the number of archived jobs.
-``WaitForJobChange`` returns and reports a timeout. In both cases, the
-functions can be called again.
-
-A similar model can be used for the inter-node RPC protocol. In some
-sense, the node daemon will implement a light variant of *"node daemon
-jobs"*. When the function call is sent, it specifies an initial timeout.
-If the function didn't finish within this timeout, a response is sent
-with a unique identifier, the function call ID. The client can then
-choose to wait for the function to finish again with a timeout.
-Inter-node RPC calls would no longer be blocking indefinitely and there
-would be an implicit ping-mechanism.
-
-Request handling
-^^^^^^^^^^^^^^^^
-
-To support the protocol changes described above, the way the node daemon
-handles request will have to change. Instead of forking and handling
-every connection in a separate process, there should be one child
-process per function call and the master process will handle the
-communication with clients and the function processes using asynchronous
-I/O.
-
-Function processes communicate with the parent process via stdio and
-possibly their exit status. Every function process has a unique
-identifier, though it shouldn't be the process ID only (PIDs can be
-recycled and are prone to race conditions for this use case). The
-proposed format is ``${ppid}:${cpid}:${time}:${random}``, where ``ppid``
-is the ``ganeti-noded`` PID, ``cpid`` the child's PID, ``time`` the
-current Unix timestamp with decimal places and ``random`` at least 16
-random bits.
-
-The following operations will be supported:
-
-``StartFunction(fn_name, fn_args, timeout)``
-  Starts a function specified by ``fn_name`` with arguments in
-  ``fn_args`` and waits up to ``timeout`` seconds for the function
-  to finish. Fire-and-forget calls can be made by specifying a timeout
-  of 0 seconds (e.g. for powercycling the node). Returns three values:
-  function call ID (if not finished), whether function finished (or
-  timeout) and the function's return value.
-``WaitForFunction(fnc_id, timeout)``
-  Waits up to ``timeout`` seconds for function call to finish. Return
-  value same as ``StartFunction``.
-
-In the future, ``StartFunction`` could support an additional parameter
-to specify after how long the function process should be aborted.
-
-Simplified timing diagram::
-
-  Master daemon        Node daemon                      Function process
-   |
-  Call function
-  (timeout 10s) -----> Parse request and fork for ----> Start function
-                       calling actual function, then     |
-                       wait up to 10s for function to    |
-                       finish                            |
-                        |                                |
-                       ...                              ...
-                        |                                |
-  Examine return <----  |                                |
-  value and wait                                         |
-  again -------------> Wait another 10s for function     |
-                        |                                |
-                       ...                              ...
-                        |                                |
-  Examine return <----  |                                |
-  value and wait                                         |
-  again -------------> Wait another 10s for function     |
-                        |                                |
-                       ...                              ...
-                        |                                |
-                        |                               Function ends,
-                       Get return value and forward <-- process exits
-  Process return <---- it to caller
-  value and continue
-   |
-
-.. TODO: Convert diagram above to graphviz/dot graphic
-
-On process termination (e.g. after having been sent a ``SIGTERM`` or
-``SIGINT`` signal), ``ganeti-noded`` should send ``SIGTERM`` to all
-function processes and wait for all of them to terminate.
-
-
 Inter-cluster instance moves
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 Current state and shortcomings
-++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With the current design of Ganeti, moving whole instances between
 different clusters involves a lot of manual work. There are several ways
@@ -359,10 +214,10 @@ necessary in the new environment. The goal is to improve and automate
 this process in Ganeti 2.2.
 
 Proposed changes
-++++++++++++++++
+~~~~~~~~~~~~~~~~
 
 Authorization, Authentication and Security
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++
 
 Until now, each Ganeti cluster was a self-contained entity and wouldn't
 talk to other Ganeti clusters. Nodes within clusters only had to trust
@@ -424,7 +279,7 @@ equivalent to the source cluster and must verify the server's
 certificate while providing a client certificate to the server.
 
 Copying data
-^^^^^^^^^^^^
+++++++++++++
 
 To simplify the implementation, we decided to operate at a block-device
 level only, allowing us to easily support non-DRBD instance moves.
@@ -442,7 +297,7 @@ consumption, everything is read from the disk and sent over the network
 directly, where it'll be written to the new block device directly again.
 
 Workflow
-^^^^^^^^
+++++++++
 
 #. Third party tells source cluster to shut down instance, asks for the
    instance specification and for the public part of an encryption key
@@ -510,7 +365,7 @@ Workflow
 #. Source cluster removes the instance if requested
 
 Instance move in pseudo code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++
 
 .. highlight:: python
 
@@ -651,7 +506,7 @@ clusters and what happens on both clusters.
 .. highlight:: text
 
 Miscellaneous notes
-^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++
 
 - A very similar system could also be used for instance exports within
   the same cluster. Currently OpenSSH is being used, but could be
@@ -679,10 +534,10 @@ Miscellaneous notes
 
 
 Privilege separation
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 Current state and shortcomings
-++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All Ganeti daemons are run under the user root. This is not ideal from a
 security perspective as for possible exploitation of any daemon the user
@@ -694,7 +549,7 @@ side effects, like letting the user run some ``gnt-*`` commands if one
 is in the same group.
 
 Implementation
-++++++++++++++
+~~~~~~~~~~~~~~
 
 For Ganeti 2.2 the implementation will be focused on a the RAPI daemon
 only. This involves changes to ``daemons.py`` so it's possible to drop
@@ -710,13 +565,13 @@ and then drop privileges before contacting the master daemon.
 
 
 Feature changes
----------------
+===============
 
 KVM Security
-~~~~~~~~~~~~
+------------
 
 Current state and shortcomings
-++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently all kvm processes run as root. Taking ownership of the
 hypervisor process, from inside a virtual machine, would mean a full
@@ -725,7 +580,7 @@ authentication secrets, full access to all running instances, and the
 option of subverting other basic services on the cluster (eg: ssh).
 
 Proposed changes
-++++++++++++++++
+~~~~~~~~~~~~~~~~
 
 We would like to decrease the surface of attack available if an
 hypervisor is compromised. We can do so adding different features to
@@ -734,7 +589,7 @@ possibilities, in the absence of a local privilege escalation attack, to
 subvert the node.
 
 Dropping privileges in kvm to a single user (easy)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++++++++
 
 By passing the ``-runas`` option to kvm, we can make it drop privileges.
 The user can be chosen by an hypervisor parameter, so that each instance
@@ -761,7 +616,7 @@ But the following would remain an option:
 - read unprotected data on the node filesystem
 
 Running kvm in a chroot (slightly harder)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++++++++++++++++++++++
 
 By passing the ``-chroot`` option to kvm, we can restrict the kvm
 process in its own (possibly empty) root directory. We need to set this
@@ -784,7 +639,7 @@ It would still be possible though to:
 
 
 Running kvm with a pool of users (slightly harder)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++++++++
 
 If rather than passing a single user as an hypervisor parameter, we have
 a pool of useable ones, we can dynamically choose a free one to use and
@@ -795,7 +650,7 @@ This would mean interfering between machines would be impossible, and
 can still be combined with the chroot benefits.
 
 Running iptables rules to limit network interaction (easy)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 These don't need to be handled by Ganeti, but we can ship examples. If
 the users used to run VMs would be blocked from sending some or all
@@ -808,7 +663,7 @@ we can properly apply, without limiting the instance legitimate traffic.
 
 
 Running kvm inside a container (even harder)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++
 
 Recent linux kernels support different process namespaces through
 control groups. PIDs, users, filesystems and even network interfaces can
@@ -820,7 +675,7 @@ interface, thus reducing performance, so we may want to avoid that, and
 just rely on iptables.
 
 Implementation plan
-+++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~
 
 We will first implement dropping privileges for kvm processes as a
 single user, and most probably backport it to 2.1. Then we'll ship
@@ -831,13 +686,58 @@ kvm processes, and extend the user limitation to use a user pool.
 Finally we'll look into namespaces and containers, although that might
 slip after the 2.2 release.
 
+New OS states
+-------------
+
+Separate from the OS external changes, described below, we'll add some
+internal changes to the OS.
+
+Current state and shortcomings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two issues related to the handling of the OSes.
+
+First, it's impossible to disable an OS for new instances, since that
+will also break reinstallations and renames of existing instances. To
+phase out an OS definition, without actually having to modify the OS
+scripts, it would be ideal to be able to restrict new installations but
+keep the rest of the functionality available.
+
+Second, ``gnt-instance reinstall --select-os`` shows all the OSes
+available on the clusters. Some OSes might exist only for debugging and
+diagnose, and not for end-user availability. For this, it would be
+useful to "hide" a set of OSes, but keep it otherwise functional.
+
+Proposed changes
+~~~~~~~~~~~~~~~~
+
+Two new cluster-level attributes will be added, holding the list of OSes
+hidden from the user and respectively the list of OSes which are
+blacklisted from new installations.
+
+These lists will be modifiable via ``gnt-os modify`` (implemented via
+``OpSetClusterParams``), such that even not-yet-existing OSes can be
+preseeded into a given state.
+
+For the hidden OSes, they are fully functional except that they are not
+returned in the default OS list (as computed via ``OpDiagnoseOS``),
+unless the hidden state is requested.
+
+For the blacklisted OSes, they are also not shown (unless the
+blacklisted state is requested), and they are also prevented from
+installation via ``OpCreateInstance`` (in create mode).
+
+Both these attributes are per-OS, not per-variant. Thus they apply to
+all of an OS' variants, and it's impossible to blacklist or hide just
+one variant. Further improvements might allow a given OS variant to be
+blacklisted, as opposed to whole OSes.
 
 External interface changes
---------------------------
+==========================
 
 
 OS API
-~~~~~~
+------
 
 The OS variants implementation in Ganeti 2.1 didn't prove to be useful
 enough to alleviate the need to hack around the Ganeti API in order to
@@ -856,7 +756,7 @@ These changes to the OS API will bump the API version to 20.
 
 
 OS version
-++++++++++
+~~~~~~~~~~
 
 A new ``os_version`` file will be supported by Ganeti. This file is not
 required, but if existing, its contents will be checked for consistency
@@ -870,14 +770,14 @@ import/export scripts must increase the version, since they break
 intra-cluster migration.
 
 Parameters
-++++++++++
+~~~~~~~~~~
 
 The interface between Ganeti and the OS scripts will be based on
 environment variables, and as such the parameters and their values will
 need to be valid in this context.
 
 Names
-^^^^^
++++++
 
 The parameter names will be declared in a new file, ``parameters.list``,
 together with a one-line documentation (whitespace-separated). Example::
@@ -896,7 +796,7 @@ line interface in lowercased form; as such, there shouldn't be any two
 parameters which differ in case only.
 
 Values
-^^^^^^
+++++++
 
 The values of the parameters are, from Ganeti's point of view,
 completely freeform. If a given parameter has, from the OS' point of
@@ -917,7 +817,7 @@ the value space).
 
 
 Environment variables
-+++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^
 
 The parameters will be exposed in the environment upper-case and
 prefixed with the string ``OSP_``. For example, a parameter declared in

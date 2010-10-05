@@ -154,6 +154,13 @@ def _TDict(val):
   return isinstance(val, dict)
 
 
+def _TIsLength(size):
+  """Check is the given container is of the given size.
+
+  """
+  return lambda container: len(container) == size
+
+
 # Combinator types
 def _TAnd(*args):
   """Combine multiple functions using an AND operation.
@@ -171,6 +178,13 @@ def _TOr(*args):
   def fn(val):
     return compat.any(t(val) for t in args)
   return fn
+
+
+def _TMap(fn, test):
+  """Checks that a modified version of the argument passes the given test.
+
+  """
+  return lambda val: test(fn(val))
 
 
 # Type aliases
@@ -1088,9 +1102,8 @@ def _CheckOSVariant(os_obj, name):
   """
   if not os_obj.supported_variants:
     return
-  try:
-    variant = name.split("+", 1)[1]
-  except IndexError:
+  variant = objects.OS.GetVariant(name)
+  if not variant:
     raise errors.OpPrereqError("OS name must include a variant",
                                errors.ECODE_INVAL)
 
@@ -2607,6 +2620,16 @@ class LUSetClusterParams(LogicalUnit):
     ("drbd_helper", None, _TOr(_TString, _TNone)),
     ("default_iallocator", None, _TMaybeString),
     ("reserved_lvs", None, _TOr(_TListOf(_TNonEmptyString), _TNone)),
+    ("hidden_oss", None, _TOr(_TListOf(\
+          _TAnd(_TList,
+                _TIsLength(2),
+                _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
+          _TNone)),
+    ("blacklisted_oss", None, _TOr(_TListOf(\
+          _TAnd(_TList,
+                _TIsLength(2),
+                _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
+          _TNone)),
     ]
   REQ_BGL = False
 
@@ -2880,6 +2903,30 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.reserved_lvs is not None:
       self.cluster.reserved_lvs = self.op.reserved_lvs
 
+    def helper_oss(aname, mods, desc):
+      lst = getattr(self.cluster, aname)
+      for key, val in mods:
+        if key == constants.DDM_ADD:
+          if val in lst:
+            feedback_fn("OS %s already in %s, ignoring", val, desc)
+          else:
+            lst.append(val)
+        elif key == constants.DDM_REMOVE:
+          if val in lst:
+            lst.remove(val)
+          else:
+            feedback_fn("OS %s not found in %s, ignoring", val, desc)
+        else:
+          raise errors.ProgrammerError("Invalid modification '%s'" % key)
+
+    if self.op.hidden_oss:
+      helper_oss("hidden_oss", self.op.hidden_oss,
+                 "hidden OS list")
+
+    if self.op.blacklisted_oss:
+      helper_oss("blacklisted_oss", self.op.blacklisted_oss,
+                 "blacklisted OS list")
+
     self.cfg.Update(self.cluster, feedback_fn)
 
 
@@ -3068,9 +3115,12 @@ class LUDiagnoseOS(NoHooksLU):
     ("names", _EmptyList, _TListOf(_TNonEmptyString)),
     ]
   REQ_BGL = False
+  _HID = "hidden"
+  _BLK = "blacklisted"
+  _VLD = "valid"
   _FIELDS_STATIC = utils.FieldSet()
-  _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants",
-                                   "parameters", "api_versions")
+  _FIELDS_DYNAMIC = utils.FieldSet("name", _VLD, "node_status", "variants",
+                                   "parameters", "api_versions", _HID, _BLK)
 
   def CheckArguments(self):
     if self.op.names:
@@ -3137,8 +3187,10 @@ class LUDiagnoseOS(NoHooksLU):
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     pol = self._DiagnoseByOS(node_data)
     output = []
+    cluster = self.cfg.GetClusterInfo()
 
-    for os_name, os_data in pol.items():
+    for os_name in utils.NiceSort(pol.keys()):
+      os_data = pol[os_name]
       row = []
       valid = True
       (variants, params, api_versions) = null_state = (set(), set(), set())
@@ -3157,10 +3209,17 @@ class LUDiagnoseOS(NoHooksLU):
           params.intersection_update(node_params)
           api_versions.intersection_update(node_api)
 
+      is_hid = os_name in cluster.hidden_oss
+      is_blk = os_name in cluster.blacklisted_oss
+      if ((self._HID not in self.op.output_fields and is_hid) or
+          (self._BLK not in self.op.output_fields and is_blk) or
+          (self._VLD not in self.op.output_fields and not valid)):
+        continue
+
       for field in self.op.output_fields:
         if field == "name":
           val = os_name
-        elif field == "valid":
+        elif field == self._VLD:
           val = valid
         elif field == "node_status":
           # this is just a copy of the dict
@@ -3168,11 +3227,15 @@ class LUDiagnoseOS(NoHooksLU):
           for node_name, nos_list in os_data.items():
             val[node_name] = nos_list
         elif field == "variants":
-          val = list(variants)
+          val = utils.NiceSort(list(variants))
         elif field == "parameters":
           val = list(params)
         elif field == "api_versions":
           val = list(api_versions)
+        elif field == self._HID:
+          val = is_hid
+        elif field == self._BLK:
+          val = is_blk
         else:
           raise errors.ParameterError(field)
         row.append(val)
@@ -4918,7 +4981,7 @@ class LURenameInstance(LogicalUnit):
     new_name = self.op.new_name
     if self.op.name_check:
       hostname = netutils.GetHostname(name=new_name)
-      new_name = hostname.name
+      new_name = self.op.new_name = hostname.name
       if (self.op.ip_check and
           netutils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT)):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
@@ -6639,6 +6702,10 @@ class LUCreateInstance(LogicalUnit):
       if self.op.os_type is None:
         raise errors.OpPrereqError("No guest OS specified",
                                    errors.ECODE_INVAL)
+      if self.op.os_type in self.cfg.GetClusterInfo().blacklisted_oss:
+        raise errors.OpPrereqError("Guest OS '%s' is not allowed for"
+                                   " installation" % self.op.os_type,
+                                   errors.ECODE_STATE)
       if self.op.disk_template is None:
         raise errors.OpPrereqError("No disk template specified",
                                    errors.ECODE_INVAL)

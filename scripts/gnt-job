@@ -290,9 +290,10 @@ def ShowJobs(opts, args):
       else:
         format_msg(3, "No processing end time")
       format_msg(3, "Input fields:")
-      for key, val in opcode.iteritems():
+      for key in utils.NiceSort(opcode.keys()):
         if key == "OP_ID":
           continue
+        val = opcode[key]
         if isinstance(val, (tuple, list)):
           val = ",".join([str(item) for item in val])
         format_msg(4, "%s: %s" % (key, val))

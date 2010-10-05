@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -140,6 +140,22 @@ class TestClusterObject(unittest.TestCase):
                                  hvparams={})
     self.assertEqual(self.fake_cl.os_hvp[os][constants.HT_XEN_PVM],
                      self.fake_cl.FillHV(fake_inst))
+
+
+class TestOS(unittest.TestCase):
+  ALL_DATA = [
+    "debootstrap",
+    "debootstrap+default",
+    "debootstrap++default",
+    ]
+
+  def testSplitNameVariant(self):
+    for name in self.ALL_DATA:
+      self.assertEqual(len(objects.OS.SplitNameVariant(name)), 2)
+
+  def testVariant(self):
+    self.assertEqual(objects.OS.GetVariant("debootstrap"), "")
+    self.assertEqual(objects.OS.GetVariant("debootstrap+default"), "default")
 
 
 if __name__ == '__main__':

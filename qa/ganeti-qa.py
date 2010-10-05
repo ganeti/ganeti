@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -145,6 +145,7 @@ def RunOsTests():
   RunTest(qa_os.TestOsPartiallyValid)
   RunTest(qa_os.TestOsModifyValid)
   RunTest(qa_os.TestOsModifyInvalid)
+  RunTest(qa_os.TestOsStates)
 
 
 def RunCommonInstanceTests(instance):
