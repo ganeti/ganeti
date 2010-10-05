@@ -258,7 +258,7 @@ def CheckConfd(_, args):
   # conflict with that. If so, we might warn or EXIT_FAILURE.
 
 
-def ExecConfd(options, _):
+def ExecConfd(options, _dummy1, _dummy2):
   """Main confd function, executed with PID file held
 
   """
@@ -293,7 +293,7 @@ def main():
                         version="%%prog (ganeti) %s" %
                         constants.RELEASE_VERSION)
 
-  daemon.GenericMain(constants.CONFD, parser, CheckConfd, ExecConfd)
+  daemon.GenericMain(constants.CONFD, parser, CheckConfd, None, ExecConfd)
 
 
 if __name__ == "__main__":

@@ -530,7 +530,7 @@ def CheckMasterd(options, args):
   utils.RunInSeparateProcess(ActivateMasterIP)
 
 
-def ExecMasterd(options, args): # pylint: disable-msg=W0613
+def ExecMasterd(options, args, _): # pylint: disable-msg=W0613
   """Main master daemon function, executed with the PID file held.
 
   """
@@ -568,8 +568,8 @@ def main():
   parser.add_option("--yes-do-it", dest="yes_do_it",
                     help="Override interactive check for --no-voting",
                     default=False, action="store_true")
-  daemon.GenericMain(constants.MASTERD, parser, CheckMasterd, ExecMasterd,
-                     multithreaded=True)
+  daemon.GenericMain(constants.MASTERD, parser, CheckMasterd, None,
+                     ExecMasterd, multithreaded=True)
 
 
 if __name__ == "__main__":

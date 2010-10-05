@@ -914,7 +914,7 @@ def CheckNoded(_, args):
     sys.exit(constants.EXIT_FAILURE)
 
 
-def ExecNoded(options, _):
+def ExecNoded(options, _dummy1, _dummy2):
   """Main node daemon function, executed with the PID file held.
 
   """
@@ -965,7 +965,7 @@ def main():
                     help="Do not mlock the node memory in ram",
                     default=True, action="store_false")
 
-  daemon.GenericMain(constants.NODED, parser, CheckNoded, ExecNoded,
+  daemon.GenericMain(constants.NODED, parser, CheckNoded, None, ExecNoded,
                      default_ssl_cert=constants.NODED_CERT_FILE,
                      default_ssl_key=constants.NODED_CERT_FILE,
                      console_logging=True)

@@ -512,7 +512,8 @@ def _VerifyDaemonUser(daemon_name):
           daemon_uids[daemon_name])
 
 
-def GenericMain(daemon_name, optionparser, check_fn, exec_fn,
+def GenericMain(daemon_name, optionparser,
+                check_fn, prepare_fn, exec_fn,
                 multithreaded=False, console_logging=False,
                 default_ssl_cert=None, default_ssl_key=None):
   """Shared main function for daemons.
@@ -525,7 +526,11 @@ def GenericMain(daemon_name, optionparser, check_fn, exec_fn,
   @type check_fn: function which accepts (options, args)
   @param check_fn: function that checks start conditions and exits if they're
                    not met
-  @type exec_fn: function which accepts (options, args)
+  @type prepare_fn: function which accepts (options, args)
+  @param prepare_fn: function that is run before forking, or None;
+      it's result will be passed as the third parameter to exec_fn, or
+      if None was passed in, we will just pass None to exec_fn
+  @type exec_fn: function which accepts (options, args, prepare_results)
   @param exec_fn: function that's executed with the daemon's pid file held, and
                   runs the daemon itself.
   @type multithreaded: bool
@@ -631,6 +636,11 @@ def GenericMain(daemon_name, optionparser, check_fn, exec_fn,
                        syslog=options.syslog,
                        console_logging=console_logging)
     logging.info("%s daemon startup", daemon_name)
-    exec_fn(options, args)
+    if callable(prepare_fn):
+      prep_results = prepare_fn(options, args)
+    else:
+      prep_results = None
+
+    exec_fn(options, args, prep_results)
   finally:
     utils.RemovePidFile(daemon_name)
