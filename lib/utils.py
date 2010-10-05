@@ -237,6 +237,21 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   return RunResult(exitcode, signal_, out, err, strcmd)
 
 
+def SetupDaemonEnv(cwd="/", umask=077):
+  """Setup a daemon's environment.
+
+  This should be called between the first and second fork, due to
+  setsid usage.
+
+  @param cwd: the directory to which to chdir
+  @param umask: the umask to setup
+
+  """
+  os.chdir(cwd)
+  os.umask(umask)
+  os.setsid()
+
+
 def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
                 pidfile=None):
   """Start a daemon process after forking twice.
@@ -344,9 +359,7 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
     _CloseFDNoErr(pidpipe_read)
 
     # First child process
-    os.chdir("/")
-    os.umask(077)
-    os.setsid()
+    SetupDaemonEnv()
 
     # And fork for the second time
     pid = os.fork()
@@ -354,7 +367,8 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
       # Exit first child process
       os._exit(0) # pylint: disable-msg=W0212
 
-    # Make sure pipe is closed on execv* (and thereby notifies original process)
+    # Make sure pipe is closed on execv* (and thereby notifies
+    # original process)
     SetCloseOnExecFlag(errpipe_write, True)
 
     # List of file descriptors to be left open
@@ -2132,18 +2146,16 @@ def Daemonize(logfile):
   """
   # pylint: disable-msg=W0212
   # yes, we really want os._exit
-  UMASK = 077
-  WORKDIR = "/"
 
   # this might fail
   pid = os.fork()
   if (pid == 0):  # The first child.
-    os.setsid()
+    SetupDaemonEnv()
+
     # this might fail
     pid = os.fork() # Fork a second child.
     if (pid == 0):  # The second child.
-      os.chdir(WORKDIR)
-      os.umask(UMASK)
+      pass # nothing special to do in the child
     else:
       # exit() or _exit()?  See below.
       os._exit(0) # Exit parent (the first child) of the second child.
