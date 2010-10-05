@@ -205,6 +205,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(False, constants.HT_KVM_FLAG_VALUES),
     constants.HV_VHOST_NET: hv_base.NO_CHECK,
     constants.HV_KVM_USE_CHROOT: hv_base.NO_CHECK,
+    constants.HV_MEM_PATH: hv_base.OPT_DIR_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -566,6 +567,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if hvp[constants.HV_SERIAL_CONSOLE]:
         root_append.append('console=ttyS0,38400')
       kvm_cmd.extend(['-append', ' '.join(root_append)])
+
+    mem_path = hvp[constants.HV_MEM_PATH]
+    if mem_path:
+      kvm_cmd.extend(["-mem-path", mem_path])
+      kvm_cmd.extend(["-mem-prealloc"])
 
     mouse_type = hvp[constants.HV_USB_MOUSE]
     vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]

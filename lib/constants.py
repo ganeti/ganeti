@@ -558,6 +558,7 @@ HV_KVM_FLAG = "kvm_flag"
 HV_VHOST_NET = "vhost_net"
 HV_KVM_USE_CHROOT = "use_chroot"
 HV_CPU_MASK = "cpu_mask"
+HV_MEM_PATH = "mem_path"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -594,6 +595,7 @@ HVS_PARAMETER_TYPES = {
   HV_VHOST_NET: VTYPE_BOOL,
   HV_KVM_USE_CHROOT: VTYPE_BOOL,
   HV_CPU_MASK: VTYPE_STRING,
+  HV_MEM_PATH: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -934,6 +936,7 @@ HVC_DEFAULTS = {
     HV_KVM_FLAG: "",
     HV_VHOST_NET: False,
     HV_KVM_USE_CHROOT: False,
+    HV_MEM_PATH: "",
     },
   HT_FAKE: {
     },

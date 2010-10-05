@@ -659,6 +659,19 @@
             </varlistentry>
 
             <varlistentry>
+              <term>mem_path</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>This option passes the -mem-path argument to kvm with
+                the path (on the node) to the mount point of the hugetlbfs
+                file system, along with the -mem-prealloc argument too.
+                </simpara>
+
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term>use_chroot</term>
               <listitem>
                 <simpara>Valid for the KVM hypervisor.</simpara>
