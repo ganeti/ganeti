@@ -914,8 +914,8 @@ def CheckNoded(_, args):
     sys.exit(constants.EXIT_FAILURE)
 
 
-def ExecNoded(options, _dummy1, _dummy2):
-  """Main node daemon function, executed with the PID file held.
+def PrepNoded(options, _):
+  """Preparation node daemon function, executed with the PID file held.
 
   """
   if options.mlock:
@@ -947,6 +947,13 @@ def ExecNoded(options, _dummy1, _dummy2):
                           ssl_params=ssl_params, ssl_verify_peer=True,
                           request_executor_class=request_executor_class)
   server.Start()
+  return (mainloop, server)
+
+def ExecNoded(options, args, prep_data): # pylint: disable-msg=W0613
+  """Main node daemon function, executed with the PID file held.
+
+  """
+  (mainloop, server) = prep_data
   try:
     mainloop.Run()
   finally:
@@ -965,7 +972,7 @@ def main():
                     help="Do not mlock the node memory in ram",
                     default=True, action="store_false")
 
-  daemon.GenericMain(constants.NODED, parser, CheckNoded, None, ExecNoded,
+  daemon.GenericMain(constants.NODED, parser, CheckNoded, PrepNoded, ExecNoded,
                      default_ssl_cert=constants.NODED_CERT_FILE,
                      default_ssl_key=constants.NODED_CERT_FILE,
                      console_logging=True)

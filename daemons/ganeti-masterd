@@ -530,8 +530,8 @@ def CheckMasterd(options, args):
   utils.RunInSeparateProcess(ActivateMasterIP)
 
 
-def ExecMasterd(options, args, _): # pylint: disable-msg=W0613
-  """Main master daemon function, executed with the PID file held.
+def PrepMasterd(options, _):
+  """Prep master daemon function, executed with the PID file held.
 
   """
   # This is safe to do as the pid file guarantees against
@@ -541,6 +541,14 @@ def ExecMasterd(options, args, _): # pylint: disable-msg=W0613
   mainloop = daemon.Mainloop()
   master = MasterServer(mainloop, constants.MASTER_SOCKET,
                         options.uid, options.gid)
+  return (mainloop, master)
+
+
+def ExecMasterd(options, args, prep_data): # pylint: disable-msg=W0613
+  """Main master daemon function, executed with the PID file held.
+
+  """
+  (mainloop, master) = prep_data
   try:
     rpc.Init()
     try:
@@ -568,7 +576,7 @@ def main():
   parser.add_option("--yes-do-it", dest="yes_do_it",
                     help="Override interactive check for --no-voting",
                     default=False, action="store_true")
-  daemon.GenericMain(constants.MASTERD, parser, CheckMasterd, None,
+  daemon.GenericMain(constants.MASTERD, parser, CheckMasterd, PrepMasterd,
                      ExecMasterd, multithreaded=True)
 
 

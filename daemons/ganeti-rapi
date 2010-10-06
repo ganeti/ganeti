@@ -280,8 +280,8 @@ def CheckRapi(options, args):
     options.ssl_params = None
 
 
-def ExecRapi(options, _dummy1, _dummy2):
-  """Main remote API function, executed with the PID file held.
+def PrepRapi(options, _):
+  """Prep remote API function, executed with the PID file held.
 
   """
 
@@ -301,6 +301,13 @@ def ExecRapi(options, _dummy1, _dummy2):
   # pylint: disable-msg=E1101
   # it seems pylint doesn't see the second parent class there
   server.Start()
+  return (mainloop, server)
+
+def ExecRapi(options, args, prep_data): # pylint: disable-msg=W0613
+  """Main remote API function, executed with the PID file held.
+
+  """
+  (mainloop, server) = prep_data
   try:
     mainloop.Run()
   finally:
@@ -315,7 +322,7 @@ def main():
                     usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
                     version="%%prog (ganeti) %s" % constants.RELEASE_VERSION)
 
-  daemon.GenericMain(constants.RAPI, parser, CheckRapi, None, ExecRapi,
+  daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
                      default_ssl_cert=constants.RAPI_CERT_FILE,
                      default_ssl_key=constants.RAPI_CERT_FILE)
 

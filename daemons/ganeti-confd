@@ -258,12 +258,13 @@ def CheckConfd(_, args):
   # conflict with that. If so, we might warn or EXIT_FAILURE.
 
 
-def ExecConfd(options, _dummy1, _dummy2):
-  """Main confd function, executed with PID file held
+def PrepConfd(options, _):
+  """Prep confd function, executed with PID file held
 
   """
   # TODO: clarify how the server and reloader variables work (they are
   # not used)
+
   # pylint: disable-msg=W0612
   mainloop = daemon.Mainloop()
 
@@ -281,6 +282,14 @@ def ExecConfd(options, _dummy1, _dummy2):
   # Configuration reloader
   reloader = ConfdConfigurationReloader(processor, mainloop)
 
+  return mainloop
+
+
+def ExecConfd(options, args, prep_data): # pylint: disable-msg=W0613
+  """Main confd function, executed with PID file held
+
+  """
+  mainloop = prep_data
   mainloop.Run()
 
 
@@ -293,7 +302,7 @@ def main():
                         version="%%prog (ganeti) %s" %
                         constants.RELEASE_VERSION)
 
-  daemon.GenericMain(constants.CONFD, parser, CheckConfd, None, ExecConfd)
+  daemon.GenericMain(constants.CONFD, parser, CheckConfd, PrepConfd, ExecConfd)
 
 
 if __name__ == "__main__":
