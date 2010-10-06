@@ -1,6 +1,6 @@
 #
 
-# Copyright (C) 2007, 2008 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -405,22 +405,26 @@ def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
   rapi_pw_file.flush()
 
   # TODO: Run some instance tests before moving back
-  for srcname, destname in [(src_instance["name"], dest_instance["name"]),
-                            (dest_instance["name"], src_instance["name"])]:
+
+  # note: pnode is the *current* primary node, so we move it first to
+  # snode, then back
+  for si, di, pn, sn in [(src_instance["name"], dest_instance["name"],
+                          snode["primary"], pnode["primary"]),
+                         (dest_instance["name"], src_instance["name"],
+                          pnode["primary"], snode["primary"])]:
     cmd = [
       "../tools/move-instance",
       "--verbose",
       "--src-ca-file=%s" % _rapi_ca.name,
       "--src-username=%s" % _rapi_username,
       "--src-password-file=%s" % rapi_pw_file.name,
-      "--dest-instance-name=%s" % destname,
-      "--dest-primary-node=%s" % pnode["primary"],
-      "--dest-secondary-node=%s" % snode["primary"],
+      "--dest-instance-name=%s" % di,
+      "--dest-primary-node=%s" % pn,
+      "--dest-secondary-node=%s" % sn,
       "--net=0:mac=%s" % constants.VALUE_GENERATE,
-
       master["primary"],
       master["primary"],
-      srcname,
+      si,
       ]
 
     AssertEqual(StartLocalCommand(cmd).wait(), 0)
