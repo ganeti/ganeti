@@ -234,7 +234,7 @@ def RunExportImportTests(instance, pnode):
       pnode2 = qa_config.AcquireNode(exclude=pnode)
       try:
         RunTest(qa_rapi.TestInterClusterInstanceMove, instance, newinst,
-                pnode2, pnode)
+                pnode, pnode2)
       finally:
         qa_config.ReleaseNode(pnode2)
     finally:
