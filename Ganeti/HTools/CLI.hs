@@ -346,7 +346,8 @@ oTieredSpec = Option "" ["tiered-alloc"]
                           tspec <-
                               case prs of
                                 [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
-                                _ -> Bad $ "Invalid specification: " ++ inp
+                                _ -> Bad $ "Invalid specification: " ++ inp ++
+                                     ", expected disk,ram,cpu"
                           return $ opts { optTieredSpec = Just tspec } )
               "TSPEC")
              "enable tiered specs allocation, given as 'disk,ram,cpu'"
