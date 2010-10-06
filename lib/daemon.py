@@ -491,8 +491,8 @@ class Mainloop(object):
 def _VerifyDaemonUser(daemon_name):
   """Verifies the process uid matches the configured uid.
 
-  This method verifies that a daemon is started as the user it is intended to be
-  run
+  This method verifies that a daemon is started as the user it is
+  intended to be run
 
   @param daemon_name: The name of daemon to be started
   @return: A tuple with the first item indicating success or not,
@@ -510,6 +510,33 @@ def _VerifyDaemonUser(daemon_name):
 
   return (daemon_uids[daemon_name] == running_uid, running_uid,
           daemon_uids[daemon_name])
+
+
+def _BeautifyError(err):
+  """Try to format an error better.
+
+  Since we're dealing with daemon startup errors, in many cases this
+  will be due to socket error and such, so we try to format these cases better.
+
+  @param err: an exception object
+  @rtype: string
+  @return: the formatted error description
+
+  """
+  try:
+    if isinstance(err, socket.error):
+      return "Socket-related error: %s (errno=%s)" % (err.args[1], err.args[0])
+    elif isinstance(err, EnvironmentError):
+      if err.filename is None:
+        return "%s (errno=%s)" % (err.strerror, err.errno)
+      else:
+        return "%s (file %s) (errno=%s)" % (err.strerror, err.filename,
+                                            err.errno)
+    else:
+      return str(err)
+  except Exception: # pylint: disable-msg=W0703
+    logging.exception("Error while handling existing error %s", err)
+    return "%s" % str(err)
 
 
 def GenericMain(daemon_name, optionparser,
@@ -645,7 +672,7 @@ def GenericMain(daemon_name, optionparser,
       logging.info("%s daemon startup", daemon_name)
     except Exception, err:
       if wpipe is not None:
-        os.write(wpipe, str(err))
+        os.write(wpipe, _BeautifyError(err))
       raise
 
     if wpipe is not None:
