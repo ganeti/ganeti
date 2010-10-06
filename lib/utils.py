@@ -348,8 +348,8 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
         finally:
           _CloseFDNoErr(errpipe_write)
 
-        # Wait for daemon to be started (or an error message to arrive) and read
-        # up to 100 KB as an error message
+        # Wait for daemon to be started (or an error message to
+        # arrive) and read up to 100 KB as an error message
         errormsg = RetryOnSignal(os.read, errpipe_read, 100 * 1024)
       finally:
         _CloseFDNoErr(errpipe_read)
@@ -2146,6 +2146,12 @@ def Daemonize(logfile):
   # pylint: disable-msg=W0212
   # yes, we really want os._exit
 
+  # TODO: do another attempt to merge Daemonize and StartDaemon, or at
+  # least abstract the pipe functionality between them
+
+  # Create pipe for sending error messages
+  (rpipe, wpipe) = os.pipe()
+
   # this might fail
   pid = os.fork()
   if (pid == 0):  # The first child.
@@ -2154,15 +2160,24 @@ def Daemonize(logfile):
     # this might fail
     pid = os.fork() # Fork a second child.
     if (pid == 0):  # The second child.
-      pass # nothing special to do in the child
+      _CloseFDNoErr(rpipe)
     else:
       # exit() or _exit()?  See below.
       os._exit(0) # Exit parent (the first child) of the second child.
   else:
-    os._exit(0) # Exit parent of the first child.
+    _CloseFDNoErr(wpipe)
+    # Wait for daemon to be started (or an error message to
+    # arrive) and read up to 100 KB as an error message
+    errormsg = RetryOnSignal(os.read, rpipe, 100 * 1024)
+    if errormsg:
+      sys.stderr.write("Error when starting daemon process: %r\n" % errormsg)
+      rcode = 1
+    else:
+      rcode = 0
+    os._exit(rcode) # Exit parent of the first child.
 
   SetupDaemonFDs(logfile, None)
-  return 0
+  return wpipe
 
 
 def DaemonPidFileName(name):

@@ -624,22 +624,34 @@ def GenericMain(daemon_name, optionparser,
 
   if options.fork:
     utils.CloseFDs()
-    utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
+    wpipe = utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
+  else:
+    wpipe = None
 
   utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
   try:
-    utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
-                       debug=options.debug,
-                       stderr_logging=not options.fork,
-                       multithreaded=multithreaded,
-                       program=daemon_name,
-                       syslog=options.syslog,
-                       console_logging=console_logging)
-    logging.info("%s daemon startup", daemon_name)
-    if callable(prepare_fn):
-      prep_results = prepare_fn(options, args)
-    else:
-      prep_results = None
+    try:
+      utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
+                         debug=options.debug,
+                         stderr_logging=not options.fork,
+                         multithreaded=multithreaded,
+                         program=daemon_name,
+                         syslog=options.syslog,
+                         console_logging=console_logging)
+      if callable(prepare_fn):
+        prep_results = prepare_fn(options, args)
+      else:
+        prep_results = None
+      logging.info("%s daemon startup", daemon_name)
+    except Exception, err:
+      if wpipe is not None:
+        os.write(wpipe, str(err))
+      raise
+
+    if wpipe is not None:
+      # we're done with the preparation phase, we close the pipe to
+      # let the parent know it's safe to exit
+      os.close(wpipe)
 
     exec_fn(options, args, prep_results)
   finally:
