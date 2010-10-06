@@ -144,18 +144,20 @@ complete value for this variable could be: \fB4096,102400,2=225
 2560,102400,2=20 512,102400,2=21\fR.
 
 .TP
-.I KM_USED_CPU, KM_USED_MEM, KM_USED_DSK
+.I KM_USED_CPU, KM_USED_NPU, KM_USED_MEM, KM_USED_DSK
 These represents the metrics of used resources at the start of the
-computation (only for tiered allocation mode).
+computation (only for tiered allocation mode). The NPU value is
+"normalized" CPU count, i.e. the number of virtual CPUs divided by the
+maximum ratio of the virtual to physical CPUs.
 
 .TP
-.I KM_POOL_CPU, KM_POOL_MEM, KM_POOL_DSK
+.I KM_POOL_CPU, KM_POOL_NPU, KM_POOL_MEM, KM_POOL_DSK
 These represents the total resources allocated during the tiered
 allocation process. In effect, they represent how much is readily
 available for allocation.
 
 .TP
-.I KM_UNAV_CPU, KM_UNAV_MEM, KM_UNAV_DSK
+.I KM_UNAV_CPU, KM_POOL_NPU, KM_UNAV_MEM, KM_UNAV_DSK
 These represents the resources left over (either free as in
 unallocable or allocable on their own) after the tiered allocation has
 been completed. They represent better the actual unallocable

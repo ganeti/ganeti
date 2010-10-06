@@ -154,21 +154,22 @@ printResults fin_nl num_instances allocs sreason = do
   -- this should be the final entry
   printKeys [("OK", "1")]
 
-formatRSpec :: String -> RSpec -> [(String, String)]
-formatRSpec s r =
+formatRSpec :: Double -> String -> RSpec -> [(String, String)]
+formatRSpec m_cpu s r =
     [ ("KM_" ++ s ++ "_CPU", show $ rspecCpu r)
+    , ("KM_" ++ s ++ "_NPU", show $ fromIntegral (rspecCpu r) / m_cpu)
     , ("KM_" ++ s ++ "_MEM", show $ rspecMem r)
     , ("KM_" ++ s ++ "_DSK", show $ rspecDsk r)
     ]
 
-printAllocationStats :: Node.List -> Node.List -> IO ()
-printAllocationStats ini_nl fin_nl = do
+printAllocationStats :: Double -> Node.List -> Node.List -> IO ()
+printAllocationStats m_cpu ini_nl fin_nl = do
   let ini_stats = Cluster.totalResources ini_nl
       fin_stats = Cluster.totalResources fin_nl
       (rini, ralo, runa) = Cluster.computeAllocationDelta ini_stats fin_stats
-  printKeys $ formatRSpec "USED" rini
-  printKeys $ formatRSpec "POOL" ralo
-  printKeys $ formatRSpec "UNAV" runa
+  printKeys $ formatRSpec m_cpu  "USED" rini
+  printKeys $ formatRSpec m_cpu "POOL"ralo
+  printKeys $ formatRSpec m_cpu "UNAV" runa
 
 -- | Ensure a value is quoted if needed
 ensureQuoted :: String -> String
@@ -318,7 +319,7 @@ main = do
                              out_path
        printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
        printKeys [("TSPEC", intercalate " " spec_map')]
-       printAllocationStats nl trl_nl)
+       printAllocationStats m_cpu nl trl_nl)
 
   -- Run the standard (avg-mode) allocation
 
