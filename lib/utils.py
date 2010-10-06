@@ -435,14 +435,29 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
   except: # pylint: disable-msg=W0702
     try:
       # Report errors to original process
-      buf = str(sys.exc_info()[1])
-
-      RetryOnSignal(os.write, errpipe_write, buf)
+      WriteErrorToFD(errpipe_write, str(sys.exc_info()[1]))
     except: # pylint: disable-msg=W0702
       # Ignore errors in error handling
       pass
 
   os._exit(1) # pylint: disable-msg=W0212
+
+
+def WriteErrorToFD(fd, err):
+  """Possibly write an error message to a fd.
+
+  @type fd: None or int (file descriptor)
+  @param fd: if not None, the error will be written to this fd
+  @param err: string, the error message
+
+  """
+  if fd is None:
+    return
+
+  if not err:
+    err = "<unknown error>"
+
+  RetryOnSignal(os.write, fd, err)
 
 
 def _RunCmdPipe(cmd, env, via_shell, cwd, interactive):

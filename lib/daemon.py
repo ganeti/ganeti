@@ -671,8 +671,7 @@ def GenericMain(daemon_name, optionparser,
         prep_results = None
       logging.info("%s daemon startup", daemon_name)
     except Exception, err:
-      if wpipe is not None:
-        os.write(wpipe, _BeautifyError(err))
+      utils.WriteErrorToFD(wpipe, _BeautifyError(err))
       raise
 
     if wpipe is not None:
