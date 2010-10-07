@@ -203,8 +203,12 @@ def RunCommonInstanceTests(instance):
     RunTest(qa_rapi.TestInstance, instance)
 
 
-def RunExportImportTests(instance, pnode):
+def RunExportImportTests(instance, pnode, snode):
   """Tries to export and import the instance.
+
+  @param pnode: current primary node of the instance
+  @param snode: current secondary node of the instance, if any,
+      otherwise None
 
   """
   if qa_config.TestEnabled('instance-export'):
@@ -231,12 +235,16 @@ def RunExportImportTests(instance, pnode):
       qa_config.TestEnabled("inter-cluster-instance-move")):
     newinst = qa_config.AcquireInstance()
     try:
-      pnode2 = qa_config.AcquireNode(exclude=pnode)
+      if snode is None:
+        excl = [pnode]
+      else:
+        excl = [pnode, snode]
+      tnode = qa_config.AcquireNode(exclude=excl)
       try:
         RunTest(qa_rapi.TestInterClusterInstanceMove, instance, newinst,
-                pnode, pnode2)
+                pnode, snode, tnode)
       finally:
-        qa_config.ReleaseNode(pnode2)
+        qa_config.ReleaseNode(tnode)
     finally:
       qa_config.ReleaseInstance(newinst)
 
@@ -360,7 +368,7 @@ def main():
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
       RunCommonInstanceTests(instance)
-      RunExportImportTests(instance, pnode)
+      RunExportImportTests(instance, pnode, None)
       RunDaemonTests(instance, pnode)
       RunTest(qa_instance.TestInstanceRemove, instance)
       del instance
@@ -380,7 +388,7 @@ def main():
             RunTest(qa_instance.TestInstanceShutdown, instance)
             RunTest(qa_instance.TestInstanceConvertDisk, instance, snode)
             RunTest(qa_instance.TestInstanceStartup, instance)
-          RunExportImportTests(instance, pnode)
+          RunExportImportTests(instance, pnode, snode)
           RunHardwareFailureTests(instance, pnode, snode)
           RunTest(qa_instance.TestInstanceRemove, instance)
           del instance
