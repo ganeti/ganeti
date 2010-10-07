@@ -432,22 +432,19 @@ class _QueuedJob(object):
     """
     status = self.CalcStatus()
 
-    if status not in (constants.JOB_STATUS_QUEUED,
-                      constants.JOB_STATUS_WAITLOCK):
-      logging.debug("Job %s is no longer waiting in the queue", self.id)
-      return (False, "Job %s is no longer waiting in the queue" % self.id)
-
     if status == constants.JOB_STATUS_QUEUED:
       self.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
                              "Job canceled by request")
-      msg = "Job %s canceled" % self.id
+      return (True, "Job %s canceled" % self.id)
 
     elif status == constants.JOB_STATUS_WAITLOCK:
       # The worker will notice the new status and cancel the job
       self.MarkUnfinishedOps(constants.OP_STATUS_CANCELING, None)
-      msg = "Job %s will be canceled" % self.id
+      return (True, "Job %s will be canceled" % self.id)
 
-    return (True, msg)
+    else:
+      logging.debug("Job %s is no longer waiting in the queue", self.id)
+      return (False, "Job %s is no longer waiting in the queue" % self.id)
 
 
 class _OpExecCallbacks(mcpu.OpExecCbBase):
