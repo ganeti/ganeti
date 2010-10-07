@@ -2,18 +2,30 @@ Ganeti-htools release notes
 ===========================
 
 
-Version 0.2.7 (Unreleased)
---------------------------
+Version 0.2.7 (Thu, 07 Oct 2010)
+--------------------------------
 
 Bug fixes:
 
 - fixed the error message for hail multi-evacuation mode
+- improve evacuation mode for offline secondary nodes (ignore available
+  memory)
 
 New features:
 
 - add a new option ``-S`` to hbal and hspace that saves the cluster
   state at the end of the processing in the text format used by the
   ``-t`` option, for later re-processing
+- a two new options to hbal, -g and --min-gain-limit, that should help
+  in limiting the number of balances steps with a low gain in the final
+  stages
+- hbal, when executing jobs, will now wait for the current jobs to
+  finish at the first stop (e.g. ^C); if the user wants immediate exit,
+  another signal should be sent
+- added “normalized” physical CPU units in hspace output (NPU), which
+  represents units of physical CPUs free/used, based on the max-cpu
+  ratio
+
 
 Version 0.2.6 (Mon, 26 Jul 2010)
 --------------------------------
