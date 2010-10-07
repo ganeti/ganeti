@@ -396,7 +396,8 @@ def TestRapiInstanceModify(instance):
     })
 
 
-def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
+def TestInterClusterInstanceMove(src_instance, dest_instance,
+                                 pnode, snode, tnode):
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()
 
@@ -406,12 +407,18 @@ def TestInterClusterInstanceMove(src_instance, dest_instance, pnode, snode):
 
   # TODO: Run some instance tests before moving back
 
-  # note: pnode is the *current* primary node, so we move it first to
-  # snode, then back
+  if snode is None:
+    # instance is not redundant, but we still need to pass a node
+    # (which will be ignored)
+    fsec = tnode
+  else:
+    fsec = snode
+  # note: pnode:snode are the *current* nodes, so we move it first to
+  # tnode:pnode, then back to pnode:snode
   for si, di, pn, sn in [(src_instance["name"], dest_instance["name"],
-                          snode["primary"], pnode["primary"]),
+                          tnode["primary"], pnode["primary"]),
                          (dest_instance["name"], src_instance["name"],
-                          pnode["primary"], snode["primary"])]:
+                          pnode["primary"], fsec["primary"])]:
     cmd = [
       "../tools/move-instance",
       "--verbose",
