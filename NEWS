@@ -1,6 +1,14 @@
 News
 ====
 
+Version 2.2.0.1
+---------------
+
+*(Released Fri, 8 Oct 2010)*
+
+- Rebuild with a newer autotools version, to fix python 2.6 compatibility
+
+
 Version 2.2.0
 -------------
 
