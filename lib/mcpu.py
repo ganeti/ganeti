@@ -229,6 +229,8 @@ class Processor(object):
     @param shared: Whether the locks should be acquired in shared mode
     @type timeout: None or float
     @param timeout: Timeout for acquiring the locks
+    @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
+        amount of time
 
     """
     if self._cbs:
@@ -236,6 +238,9 @@ class Processor(object):
 
     acquired = self.context.glm.acquire(level, names, shared=shared,
                                         timeout=timeout, priority=priority)
+
+    if acquired is None:
+      raise LockAcquireTimeout()
 
     return acquired
 
@@ -306,10 +311,6 @@ class Processor(object):
 
           acquired = self._AcquireLocks(level, needed_locks, share,
                                         calc_timeout(), priority)
-
-          if acquired is None:
-            raise LockAcquireTimeout()
-
         else:
           # Adding locks
           add_locks = lu.add_locks[level]
@@ -374,11 +375,9 @@ class Processor(object):
       # Acquire the Big Ganeti Lock exclusively if this LU requires it,
       # and in a shared fashion otherwise (to prevent concurrent run with
       # an exclusive LU.
-      if self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
-                            not lu_class.REQ_BGL, calc_timeout(),
-                            priority) is None:
-        raise LockAcquireTimeout()
-
+      self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
+                          not lu_class.REQ_BGL, calc_timeout(),
+                          priority)
       try:
         lu = lu_class(self, op, self.context, self.rpc)
         lu.ExpandNames()
