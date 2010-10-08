@@ -69,6 +69,7 @@ def ListJobs(opts, args):
     headers = {
       "id": "ID",
       "status": "Status",
+      "priority": "Prio",
       "ops": "OpCodes",
       "opresult": "OpCode_result",
       "opstatus": "OpCode_status",
@@ -77,12 +78,15 @@ def ListJobs(opts, args):
       "opstart": "OpCode_start",
       "opexec": "OpCode_exec",
       "opend": "OpCode_end",
+      "oppriority": "OpCode_prio",
       "start_ts": "Start",
       "end_ts": "End",
       "received_ts": "Received",
       }
   else:
     headers = None
+
+  numfields = ["priority"]
 
   # change raw values to nicer strings
   for row_id, row in enumerate(output):
@@ -107,7 +111,8 @@ def ListJobs(opts, args):
       row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,
-                       fields=selected_fields, data=output)
+                       fields=selected_fields, data=output,
+                       numfields=numfields)
   for line in data:
     ToStdout(line)
 

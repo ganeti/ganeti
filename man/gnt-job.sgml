@@ -160,6 +160,12 @@
             </listitem>
           </varlistentry>
           <varlistentry>
+            <term>priority</term>
+            <listitem>
+              <simpara>current priority of the job</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
             <term>received_ts</term>
             <listitem>
               <simpara>the timestamp the job was received</simpara>
@@ -225,6 +231,12 @@
             <term>opend</term>
             <listitem>
               <simpara>the list of opcode end times</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>oppriority</term>
+            <listitem>
+              <simpara>the priority of each opcode</simpara>
             </listitem>
           </varlistentry>
         </variablelist>
