@@ -921,7 +921,14 @@ class _JobProcessor(object):
     except mcpu.LockAcquireTimeout:
       assert timeout is not None, "Received timeout for blocking acquire"
       logging.debug("Couldn't acquire locks in %0.6fs", timeout)
-      assert op.status == constants.OP_STATUS_WAITLOCK
+
+      assert op.status in (constants.OP_STATUS_WAITLOCK,
+                           constants.OP_STATUS_CANCELING)
+
+      # Was job cancelled while we were waiting for the lock?
+      if op.status == constants.OP_STATUS_CANCELING:
+        return (constants.OP_STATUS_CANCELING, None)
+
       return (constants.OP_STATUS_QUEUED, None)
     except CancelJob:
       logging.exception("%s: Canceling job", opctx.log_prefix)
