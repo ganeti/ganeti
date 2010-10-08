@@ -1,6 +1,31 @@
 News
 ====
 
+Version 2.2.1 rc0
+-----------------
+
+*(Released Thu, 7 Oct 2010)*
+
+- Fixed issue 125, replace hardcoded “xenvg” in ``gnt-cluster`` with
+  value retrieved from master
+- Added support for blacklisted or hidden OS definitions
+- Added simple lock monitor (accessible via (``gnt-debug locks``)
+- Added support for -mem-path in KVM hypervisor abstraction layer
+- Allow overriding instance parameters in tool for inter-cluster
+  instance moves (``tools/move-instance``)
+- Improved opcode summaries (e.g. in ``gnt-job list``)
+- Improve consistency of OS listing by sorting it
+- Documentation updates
+
+
+Version 2.2.0.1
+---------------
+
+*(Released Fri, 8 Oct 2010)*
+
+- Rebuild with a newer autotools version, to fix python 2.6 compatibility
+
+
 Version 2.2.0
 -------------
 
