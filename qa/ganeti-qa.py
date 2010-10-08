@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
 #
 
 # Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
@@ -44,6 +44,16 @@ from ganeti import rapi
 import ganeti.rapi.client
 
 
+def _FormatHeader(line, end=72, char="-"):
+  """Fill a line up to the end column.
+
+  """
+  line = "---- " + line + " "
+  line += "-" * (end-len(line))
+  line = line.rstrip()
+  return line
+
+
 def RunTest(fn, *args):
   """Runs a test after printing a header.
 
@@ -51,16 +61,22 @@ def RunTest(fn, *args):
   if fn.__doc__:
     desc = fn.__doc__.splitlines()[0].strip()
   else:
-    desc = '%r' % fn
+    desc = "%r" % fn
 
-  now = str(datetime.datetime.now())
+  desc = desc.rstrip(".")
+
+  tstart = datetime.datetime.now()
 
   print
-  print '---', now, ('-' * (55 - len(now)))
-  print desc
-  print '-' * 60
+  print _FormatHeader("%s start %s" % (tstart, desc))
 
-  return fn(*args)
+  try:
+    retval = fn(*args)
+    return retval
+  finally:
+    tstop = datetime.datetime.now()
+    tdelta = tstop - tstart
+    print _FormatHeader("%s time=%s %s" % (tstop, tdelta, desc))
 
 
 def RunEnvTests():
