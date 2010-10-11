@@ -26,6 +26,7 @@ import os
 import unittest
 import time
 import tempfile
+from cStringIO import StringIO
 
 from ganeti import http
 
@@ -290,32 +291,24 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
           self.assert_(ac.called)
 
 
-class TestReadPasswordFile(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    self.tmpfile = tempfile.NamedTemporaryFile()
-
+class TestReadPasswordFile(unittest.TestCase):
   def testSimple(self):
-    self.tmpfile.write("user1 password")
-    self.tmpfile.flush()
-
-    users = http.auth.ReadPasswordFile(self.tmpfile.name)
+    users = http.auth.ParsePasswordFile("user1 password")
     self.assertEqual(len(users), 1)
     self.assertEqual(users["user1"].password, "password")
     self.assertEqual(len(users["user1"].options), 0)
 
   def testOptions(self):
-    self.tmpfile.write("# Passwords\n")
-    self.tmpfile.write("user1 password\n")
-    self.tmpfile.write("\n")
-    self.tmpfile.write("# Comment\n")
-    self.tmpfile.write("user2 pw write,read\n")
-    self.tmpfile.write("   \t# Another comment\n")
-    self.tmpfile.write("invalidline\n")
-    self.tmpfile.flush()
+    buf = StringIO()
+    buf.write("# Passwords\n")
+    buf.write("user1 password\n")
+    buf.write("\n")
+    buf.write("# Comment\n")
+    buf.write("user2 pw write,read\n")
+    buf.write("   \t# Another comment\n")
+    buf.write("invalidline\n")
 
-    users = http.auth.ReadPasswordFile(self.tmpfile.name)
+    users = http.auth.ParsePasswordFile(buf.getvalue())
     self.assertEqual(len(users), 2)
     self.assertEqual(users["user1"].password, "password")
     self.assertEqual(len(users["user1"].options), 0)

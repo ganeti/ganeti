@@ -45,6 +45,7 @@ from ganeti import ssconf
 from ganeti import luxi
 from ganeti import serializer
 from ganeti import compat
+from ganeti import utils
 from ganeti.rapi import connector
 
 import ganeti.http.auth   # pylint: disable-msg=W0611
@@ -102,15 +103,17 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
     @param filename: Path to file
 
     """
-    if not os.path.isfile(constants.RAPI_USERS_FILE):
-      logging.warning("Users file %s not found", filename)
+    try:
+      contents = utils.ReadFile(filename)
+    except EnvironmentError, err:
+      logging.warning("Error while reading %s: %s", filename, err)
       return False
 
     try:
-      users = http.auth.ReadPasswordFile(filename)
+      users = http.auth.ParsePasswordFile(contents)
     except Exception, err: # pylint: disable-msg=W0703
       # We don't care about the type of exception
-      logging.error("Error while reading %s: %s", filename, err)
+      logging.error("Error while parsing %s: %s", filename, err)
       return False
 
     self._users = users
