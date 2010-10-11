@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,6 +55,7 @@ _RPC_CONNECT_TIMEOUT = 5
 
 _RPC_CLIENT_HEADERS = [
   "Content-type: %s" % http.HTTP_APP_JSON,
+  "Expect:",
   ]
 
 # Various time constants for the timeout table
