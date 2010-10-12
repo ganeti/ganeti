@@ -227,7 +227,7 @@ def InitCluster(cluster_name, mac_prefix,
                 modify_etc_hosts=True, modify_ssh_setup=True,
                 maintain_node_health=False, drbd_helper=None,
                 uid_pool=None, default_iallocator=None,
-                primary_ip_version=None):
+                primary_ip_version=None, prealloc_wipe_disks=False):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -394,6 +394,7 @@ def InitCluster(cluster_name, mac_prefix,
     drbd_usermode_helper=drbd_helper,
     default_iallocator=default_iallocator,
     primary_ip_family=ipcls.family,
+    prealloc_wipe_disks=prealloc_wipe_disks,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

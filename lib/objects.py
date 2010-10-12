@@ -1006,6 +1006,7 @@ class Cluster(TaggableObject):
     "hidden_os",
     "blacklisted_os",
     "primary_ip_family",
+    "prealloc_wipe_disks",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1081,6 +1082,9 @@ class Cluster(TaggableObject):
     # primary_ip_family added before 2.3
     if self.primary_ip_family is None:
       self.primary_ip_family = AF_INET
+
+    if self.prealloc_wipe_disks is None:
+      self.prealloc_wipe_disks = False
 
   def ToDict(self):
     """Custom function for cluster.
