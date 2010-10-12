@@ -2237,13 +2237,13 @@ def StopDaemon(name):
 def WritePidFile(pidfile):
   """Write the current process pidfile.
 
-  The file will be written to L{constants.RUN_GANETI_DIR}I{/name.pid}
-
-  @type name: str
-  @param name: the daemon name to use
-  @param pid: if passed, will be used instead of getpid()
-  @raise errors.GenericError: if the pid file already exists and
+  @type pidfile: sting
+  @param pidfile: the path to the file to be written
+  @raise errors.LockError: if the pid file already exists and
       points to a live process
+  @rtype: int
+  @return: the file descriptor of the lock file; do not close this unless
+      you want to unlock the pid file
 
   """
   # We don't rename nor truncate the file to not drop locks under
