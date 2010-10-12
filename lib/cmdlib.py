@@ -7523,7 +7523,12 @@ class LUConnectConsole(NoHooksLU):
     node_insts.Raise("Can't get node information from %s" % node)
 
     if instance.name not in node_insts.payload:
-      raise errors.OpExecError("Instance %s is not running." % instance.name)
+      if instance.admin_up:
+        state = "ERROR_down"
+      else:
+        state = "ADMIN_down"
+      raise errors.OpExecError("Instance %s is not running (state %s)" %
+                               (instance.name, state))
 
     logging.debug("Connecting to console of %s on %s", instance.name, node)
 
