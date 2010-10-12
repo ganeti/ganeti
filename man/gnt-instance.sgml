@@ -136,7 +136,7 @@
           interpreted (when no unit is given) in mebibytes. You can
           also use one of the suffixes
           <literal>m</literal>, <literal>g</literal> or
-          <literal>t</literal> to specificy the exact the units used;
+          <literal>t</literal> to specify the exact the units used;
           these suffixes map to mebibytes, gibibytes and tebibytes.
         </para>
 
@@ -633,9 +633,9 @@
               <listitem>
                 <simpara>Valid for the KVM hypervisor.</simpara>
 
-                <simpara>Under security model <quote>user</quote> the username
-                to run the instance under. It must be a valid username
-                existing on the host.
+                <simpara>Under security model <quote>user</quote> the
+                username to run the instance under. It must be a valid
+                username existing on the host.
                 </simpara>
                 <simpara>Cannot be set under security model <quote>none</quote>
                 or <quote>pool</quote>.
@@ -714,13 +714,17 @@
                 <simpara>This boolean option determines wether to run the KVM
                 instance in a chroot directory.
                 </simpara>
-                <para>If it is set to <quote>true</quote>, an empty directory
-                is created before starting the instance and its path is passed
-                via the <option>-chroot</option> flag to kvm.
-                The directory is removed when the instance is stopped.
+
+                <para>If it is set to <quote>true</quote>, an empty
+                directory is created before starting the instance and
+                its path is passed via the <option>-chroot</option>
+                flag to kvm.  The directory is removed when the
+                instance is stopped.
                 </para>
 
-                <simpara>It is set to <quote>false</quote> by default.</simpara>
+                <simpara>It is set to <quote>false</quote> by
+                default.</simpara>
+
               </listitem>
             </varlistentry>
 
@@ -1025,7 +1029,8 @@
         </para>
 
         <para>
-          The command will display the job id for each submitted instance, as follows:
+          The command will display the job id for each submitted
+          instance, as follows:
           <screen>
 # gnt-instance batch-create instances.json
 instance3: 11224
@@ -1092,6 +1097,8 @@ instance5: 11225
           <command>list</command>
           <arg>--no-headers</arg>
           <arg>--separator=<replaceable>SEPARATOR</replaceable></arg>
+        <sbr>
+        <arg>--units=<replaceable>UNITS</replaceable></arg>
           <arg>-o <replaceable>[+]FIELD,...</replaceable></arg>
           <arg>--roman</arg>
           <arg rep="repeat">instance</arg>
@@ -1108,6 +1115,16 @@ instance5: 11225
           initial header line. The <option>--separator</option> option
           takes an argument which denotes what will be used between
           the output fields. Both these options are to help scripting.
+        </para>
+
+        <para>
+          The units used to display the numeric values in the output
+          varies, depending on the options given. By default, the values
+          will be formatted in the most appropriate unit. If the
+          <option>--separator</option> option is given, then the values
+          are shown in mebibytes to allow parsing by scripts. In both
+          cases, the <option>--units</option> option can be used to
+          enforce a given output unit.
         </para>
 
         <para>
