@@ -4049,6 +4049,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "default_iallocator": cluster.default_iallocator,
       "reserved_lvs": cluster.reserved_lvs,
       "primary_ip_version": primary_ip_version,
+      "prealloc_wipe_disks": cluster.prealloc_wipe_disks,
       }
 
     return result

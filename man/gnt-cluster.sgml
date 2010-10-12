@@ -258,6 +258,8 @@
         <sbr>
         <arg>--primary-ip-version <replaceable>version</replaceable></arg>
         <sbr>
+        <arg>--prealloc-wipe-disks</arg>
+        <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -351,6 +353,13 @@
         the list of enabled hypervisors, and the first entry of this list
         will be used by default. Currently, the following hypervisors are
         available:
+      </para>
+
+      <para>
+        The <option>--prealloc-wipe-disks</option> sets a cluster wide
+        configuration value for wiping disks prior to allocation. This
+        increases security on instance level as the instance can't
+        access untouched data from it's underlying storage.
       </para>
 
       <para>
