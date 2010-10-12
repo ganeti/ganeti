@@ -53,205 +53,36 @@ from ganeti import uidpool
 from ganeti import compat
 from ganeti import masterd
 from ganeti import netutils
+from ganeti import ht
 
 import ganeti.masterd.instance # pylint: disable-msg=W0611
-
-
-# Modifiable default values; need to define these here before the
-# actual LUs
-
-def _EmptyList():
-  """Returns an empty list.
-
-  """
-  return []
-
-
-def _EmptyDict():
-  """Returns an empty dict.
-
-  """
-  return {}
-
-
-#: The without-default default value
-_NoDefault = object()
-
-
-#: The no-type (value to complex to check it in the type system)
-_NoType = object()
-
-
-# Some basic types
-def _TNotNone(val):
-  """Checks if the given value is not None.
-
-  """
-  return val is not None
-
-
-def _TNone(val):
-  """Checks if the given value is None.
-
-  """
-  return val is None
-
-
-def _TBool(val):
-  """Checks if the given value is a boolean.
-
-  """
-  return isinstance(val, bool)
-
-
-def _TInt(val):
-  """Checks if the given value is an integer.
-
-  """
-  return isinstance(val, int)
-
-
-def _TFloat(val):
-  """Checks if the given value is a float.
-
-  """
-  return isinstance(val, float)
-
-
-def _TString(val):
-  """Checks if the given value is a string.
-
-  """
-  return isinstance(val, basestring)
-
-
-def _TTrue(val):
-  """Checks if a given value evaluates to a boolean True value.
-
-  """
-  return bool(val)
-
-
-def _TElemOf(target_list):
-  """Builds a function that checks if a given value is a member of a list.
-
-  """
-  return lambda val: val in target_list
-
-
-# Container types
-def _TList(val):
-  """Checks if the given value is a list.
-
-  """
-  return isinstance(val, list)
-
-
-def _TDict(val):
-  """Checks if the given value is a dictionary.
-
-  """
-  return isinstance(val, dict)
-
-
-def _TIsLength(size):
-  """Check is the given container is of the given size.
-
-  """
-  return lambda container: len(container) == size
-
-
-# Combinator types
-def _TAnd(*args):
-  """Combine multiple functions using an AND operation.
-
-  """
-  def fn(val):
-    return compat.all(t(val) for t in args)
-  return fn
-
-
-def _TOr(*args):
-  """Combine multiple functions using an AND operation.
-
-  """
-  def fn(val):
-    return compat.any(t(val) for t in args)
-  return fn
-
-
-def _TMap(fn, test):
-  """Checks that a modified version of the argument passes the given test.
-
-  """
-  return lambda val: test(fn(val))
-
-
-# Type aliases
-
-#: a non-empty string
-_TNonEmptyString = _TAnd(_TString, _TTrue)
-
-
-#: a maybe non-empty string
-_TMaybeString = _TOr(_TNonEmptyString, _TNone)
-
-
-#: a maybe boolean (bool or none)
-_TMaybeBool = _TOr(_TBool, _TNone)
-
-
-#: a positive integer
-_TPositiveInt = _TAnd(_TInt, lambda v: v >= 0)
-
-#: a strictly positive integer
-_TStrictPositiveInt = _TAnd(_TInt, lambda v: v > 0)
-
-
-def _TListOf(my_type):
-  """Checks if a given value is a list with all elements of the same type.
-
-  """
-  return _TAnd(_TList,
-               lambda lst: compat.all(my_type(v) for v in lst))
-
-
-def _TDictOf(key_type, val_type):
-  """Checks a dict type for the type of its key/values.
-
-  """
-  return _TAnd(_TDict,
-               lambda my_dict: (compat.all(key_type(v) for v in my_dict.keys())
-                                and compat.all(val_type(v)
-                                               for v in my_dict.values())))
-
 
 # Common opcode attributes
 
 #: output fields for a query operation
-_POutputFields = ("output_fields", _NoDefault, _TListOf(_TNonEmptyString))
+_POutputFields = ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString))
 
 
 #: the shutdown timeout
 _PShutdownTimeout = ("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                     _TPositiveInt)
+                     ht.TPositiveInt)
 
 #: the force parameter
-_PForce = ("force", False, _TBool)
+_PForce = ("force", False, ht.TBool)
 
 #: a required instance name (for single-instance LUs)
-_PInstanceName = ("instance_name", _NoDefault, _TNonEmptyString)
+_PInstanceName = ("instance_name", ht.NoDefault, ht.TNonEmptyString)
 
 
 #: a required node name (for single-node LUs)
-_PNodeName = ("node_name", _NoDefault, _TNonEmptyString)
+_PNodeName = ("node_name", ht.NoDefault, ht.TNonEmptyString)
 
 #: the migration type (live/non-live)
-_PMigrationMode = ("mode", None, _TOr(_TNone,
-                                      _TElemOf(constants.HT_MIGRATION_MODES)))
+_PMigrationMode = ("mode", None,
+                   ht.TOr(ht.TNone, ht.TElemOf(constants.HT_MIGRATION_MODES)))
 
 #: the obsolete 'live' mode (boolean)
-_PMigrationLive = ("live", None, _TMaybeBool)
+_PMigrationLive = ("live", None, ht.TMaybeBool)
 
 
 # End types
@@ -320,7 +151,7 @@ class LogicalUnit(object):
     op_id = self.op.OP_ID
     for attr_name, aval, test in self._OP_PARAMS:
       if not hasattr(op, attr_name):
-        if aval == _NoDefault:
+        if aval == ht.NoDefault:
           raise errors.OpPrereqError("Required parameter '%s.%s' missing" %
                                      (op_id, attr_name), errors.ECODE_INVAL)
         else:
@@ -330,7 +161,7 @@ class LogicalUnit(object):
             dval = aval
           setattr(self.op, attr_name, dval)
       attr_val = getattr(op, attr_name)
-      if test == _NoType:
+      if test == ht.NoType:
         # no tests here
         continue
       if not callable(test):
@@ -1317,11 +1148,11 @@ class LUVerifyCluster(LogicalUnit):
   HPATH = "cluster-verify"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_PARAMS = [
-    ("skip_checks", _EmptyList,
-     _TListOf(_TElemOf(constants.VERIFY_OPTIONAL_CHECKS))),
-    ("verbose", False, _TBool),
-    ("error_codes", False, _TBool),
-    ("debug_simulate_errors", False, _TBool),
+    ("skip_checks", ht.EmptyList,
+     ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS))),
+    ("verbose", False, ht.TBool),
+    ("error_codes", False, ht.TBool),
+    ("debug_simulate_errors", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -2398,7 +2229,7 @@ class LURepairDiskSizes(NoHooksLU):
   """Verifies the cluster disks sizes.
 
   """
-  _OP_PARAMS = [("instances", _EmptyList, _TListOf(_TNonEmptyString))]
+  _OP_PARAMS = [("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString))]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -2516,7 +2347,7 @@ class LURenameCluster(LogicalUnit):
   """
   HPATH = "cluster-rename"
   HTYPE = constants.HTYPE_CLUSTER
-  _OP_PARAMS = [("name", _NoDefault, _TNonEmptyString)]
+  _OP_PARAMS = [("name", ht.NoDefault, ht.TNonEmptyString)]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2604,32 +2435,37 @@ class LUSetClusterParams(LogicalUnit):
   HPATH = "cluster-modify"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_PARAMS = [
-    ("vg_name", None, _TMaybeString),
+    ("vg_name", None, ht.TMaybeString),
     ("enabled_hypervisors", None,
-     _TOr(_TAnd(_TListOf(_TElemOf(constants.HYPER_TYPES)), _TTrue), _TNone)),
-    ("hvparams", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
-    ("beparams", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
-    ("os_hvp", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
-    ("osparams", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
-    ("candidate_pool_size", None, _TOr(_TStrictPositiveInt, _TNone)),
-    ("uid_pool", None, _NoType),
-    ("add_uids", None, _NoType),
-    ("remove_uids", None, _NoType),
-    ("maintain_node_health", None, _TMaybeBool),
-    ("nicparams", None, _TOr(_TDict, _TNone)),
-    ("drbd_helper", None, _TOr(_TString, _TNone)),
-    ("default_iallocator", None, _TMaybeString),
-    ("reserved_lvs", None, _TOr(_TListOf(_TNonEmptyString), _TNone)),
-    ("hidden_os", None, _TOr(_TListOf(\
-          _TAnd(_TList,
-                _TIsLength(2),
-                _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
-          _TNone)),
-    ("blacklisted_os", None, _TOr(_TListOf(\
-          _TAnd(_TList,
-                _TIsLength(2),
-                _TMap(lambda v: v[0], _TElemOf(constants.DDMS_VALUES)))),
-          _TNone)),
+     ht.TOr(ht.TAnd(ht.TListOf(ht.TElemOf(constants.HYPER_TYPES)), ht.TTrue),
+            ht.TNone)),
+    ("hvparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
+                              ht.TNone)),
+    ("beparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
+                              ht.TNone)),
+    ("os_hvp", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
+                            ht.TNone)),
+    ("osparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
+                              ht.TNone)),
+    ("candidate_pool_size", None, ht.TOr(ht.TStrictPositiveInt, ht.TNone)),
+    ("uid_pool", None, ht.NoType),
+    ("add_uids", None, ht.NoType),
+    ("remove_uids", None, ht.NoType),
+    ("maintain_node_health", None, ht.TMaybeBool),
+    ("nicparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone)),
+    ("default_iallocator", None, ht.TMaybeString),
+    ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone)),
+    ("hidden_os", None, ht.TOr(ht.TListOf(\
+          ht.TAnd(ht.TList,
+                ht.TIsLength(2),
+                ht.TMap(lambda v: v[0], ht.TElemOf(constants.DDMS_VALUES)))),
+          ht.TNone)),
+    ("blacklisted_os", None, ht.TOr(ht.TListOf(\
+          ht.TAnd(ht.TList,
+                ht.TIsLength(2),
+                ht.TMap(lambda v: v[0], ht.TElemOf(constants.DDMS_VALUES)))),
+          ht.TNone)),
     ]
   REQ_BGL = False
 
@@ -3111,7 +2947,7 @@ class LUDiagnoseOS(NoHooksLU):
   """
   _OP_PARAMS = [
     _POutputFields,
-    ("names", _EmptyList, _TListOf(_TNonEmptyString)),
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ]
   REQ_BGL = False
   _HID = "hidden"
@@ -3349,8 +3185,8 @@ class LUQueryNodes(NoHooksLU):
   # pylint: disable-msg=W0142
   _OP_PARAMS = [
     _POutputFields,
-    ("names", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("use_locking", False, _TBool),
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("use_locking", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -3505,8 +3341,8 @@ class LUQueryNodeVolumes(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("nodes", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("output_fields", _NoDefault, _TListOf(_TNonEmptyString)),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
     ]
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet("phys", "vg", "name", "size", "instance")
@@ -3588,10 +3424,10 @@ class LUQueryNodeStorage(NoHooksLU):
   """
   _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
   _OP_PARAMS = [
-    ("nodes", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("storage_type", _NoDefault, _CheckStorageType),
-    ("output_fields", _NoDefault, _TListOf(_TNonEmptyString)),
-    ("name", None, _TMaybeString),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("storage_type", ht.NoDefault, _CheckStorageType),
+    ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    ("name", None, ht.TMaybeString),
     ]
   REQ_BGL = False
 
@@ -3677,9 +3513,9 @@ class LUModifyNodeStorage(NoHooksLU):
   """
   _OP_PARAMS = [
     _PNodeName,
-    ("storage_type", _NoDefault, _CheckStorageType),
-    ("name", _NoDefault, _TNonEmptyString),
-    ("changes", _NoDefault, _TDict),
+    ("storage_type", ht.NoDefault, _CheckStorageType),
+    ("name", ht.NoDefault, ht.TNonEmptyString),
+    ("changes", ht.NoDefault, ht.TDict),
     ]
   REQ_BGL = False
 
@@ -3727,10 +3563,10 @@ class LUAddNode(LogicalUnit):
   HTYPE = constants.HTYPE_NODE
   _OP_PARAMS = [
     _PNodeName,
-    ("primary_ip", None, _NoType),
-    ("secondary_ip", None, _TMaybeString),
-    ("readd", False, _TBool),
-    ("nodegroup", None, _TMaybeString)
+    ("primary_ip", None, ht.NoType),
+    ("secondary_ip", None, ht.TMaybeString),
+    ("readd", False, ht.TBool),
+    ("nodegroup", None, ht.TMaybeString)
     ]
 
   def CheckArguments(self):
@@ -3960,10 +3796,10 @@ class LUSetNodeParams(LogicalUnit):
   HTYPE = constants.HTYPE_NODE
   _OP_PARAMS = [
     _PNodeName,
-    ("master_candidate", None, _TMaybeBool),
-    ("offline", None, _TMaybeBool),
-    ("drained", None, _TMaybeBool),
-    ("auto_promote", False, _TBool),
+    ("master_candidate", None, ht.TMaybeBool),
+    ("offline", None, ht.TMaybeBool),
+    ("drained", None, ht.TMaybeBool),
+    ("auto_promote", False, ht.TBool),
     _PForce,
     ]
   REQ_BGL = False
@@ -4264,7 +4100,7 @@ class LUActivateInstanceDisks(NoHooksLU):
   """
   _OP_PARAMS = [
     _PInstanceName,
-    ("ignore_size", False, _TBool),
+    ("ignore_size", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -4576,8 +4412,8 @@ class LUStartupInstance(LogicalUnit):
   _OP_PARAMS = [
     _PInstanceName,
     _PForce,
-    ("hvparams", _EmptyDict, _TDict),
-    ("beparams", _EmptyDict, _TDict),
+    ("hvparams", ht.EmptyDict, ht.TDict),
+    ("beparams", ht.EmptyDict, ht.TDict),
     ]
   REQ_BGL = False
 
@@ -4669,8 +4505,8 @@ class LURebootInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("ignore_secondaries", False, _TBool),
-    ("reboot_type", _NoDefault, _TElemOf(constants.REBOOT_TYPES)),
+    ("ignore_secondaries", False, ht.TBool),
+    ("reboot_type", ht.NoDefault, ht.TElemOf(constants.REBOOT_TYPES)),
     _PShutdownTimeout,
     ]
   REQ_BGL = False
@@ -4750,7 +4586,7 @@ class LUShutdownInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, _TPositiveInt),
+    ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt),
     ]
   REQ_BGL = False
 
@@ -4803,8 +4639,8 @@ class LUReinstallInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("os_type", None, _TMaybeString),
-    ("force_variant", False, _TBool),
+    ("os_type", None, ht.TMaybeString),
+    ("force_variant", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -4876,7 +4712,7 @@ class LURecreateInstanceDisks(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("disks", _EmptyList, _TListOf(_TPositiveInt)),
+    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt)),
     ]
   REQ_BGL = False
 
@@ -4940,9 +4776,9 @@ class LURenameInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("new_name", _NoDefault, _TNonEmptyString),
-    ("ip_check", False, _TBool),
-    ("name_check", True, _TBool),
+    ("new_name", ht.NoDefault, ht.TNonEmptyString),
+    ("ip_check", False, ht.TBool),
+    ("name_check", True, ht.TBool),
     ]
 
   def CheckArguments(self):
@@ -5046,7 +4882,7 @@ class LURemoveInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("ignore_failures", False, _TBool),
+    ("ignore_failures", False, ht.TBool),
     _PShutdownTimeout,
     ]
   REQ_BGL = False
@@ -5132,9 +4968,9 @@ class LUQueryInstances(NoHooksLU):
   """
   # pylint: disable-msg=W0142
   _OP_PARAMS = [
-    ("output_fields", _NoDefault, _TListOf(_TNonEmptyString)),
-    ("names", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("use_locking", False, _TBool),
+    ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("use_locking", False, ht.TBool),
     ]
   REQ_BGL = False
   _SIMPLE_FIELDS = ["name", "os", "network_port", "hypervisor",
@@ -5432,7 +5268,7 @@ class LUFailoverInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("ignore_consistency", False, _TBool),
+    ("ignore_consistency", False, ht.TBool),
     _PShutdownTimeout,
     ]
   REQ_BGL = False
@@ -5589,7 +5425,7 @@ class LUMigrateInstance(LogicalUnit):
     _PInstanceName,
     _PMigrationMode,
     _PMigrationLive,
-    ("cleanup", False, _TBool),
+    ("cleanup", False, ht.TBool),
     ]
 
   REQ_BGL = False
@@ -5640,7 +5476,7 @@ class LUMoveInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("target_node", _NoDefault, _TNonEmptyString),
+    ("target_node", ht.NoDefault, ht.TNonEmptyString),
     _PShutdownTimeout,
     ]
   REQ_BGL = False
@@ -6583,32 +6419,32 @@ class LUCreateInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("mode", _NoDefault, _TElemOf(constants.INSTANCE_CREATE_MODES)),
-    ("start", True, _TBool),
-    ("wait_for_sync", True, _TBool),
-    ("ip_check", True, _TBool),
-    ("name_check", True, _TBool),
-    ("disks", _NoDefault, _TListOf(_TDict)),
-    ("nics", _NoDefault, _TListOf(_TDict)),
-    ("hvparams", _EmptyDict, _TDict),
-    ("beparams", _EmptyDict, _TDict),
-    ("osparams", _EmptyDict, _TDict),
-    ("no_install", None, _TMaybeBool),
-    ("os_type", None, _TMaybeString),
-    ("force_variant", False, _TBool),
-    ("source_handshake", None, _TOr(_TList, _TNone)),
-    ("source_x509_ca", None, _TMaybeString),
-    ("source_instance_name", None, _TMaybeString),
-    ("src_node", None, _TMaybeString),
-    ("src_path", None, _TMaybeString),
-    ("pnode", None, _TMaybeString),
-    ("snode", None, _TMaybeString),
-    ("iallocator", None, _TMaybeString),
-    ("hypervisor", None, _TMaybeString),
-    ("disk_template", _NoDefault, _CheckDiskTemplate),
-    ("identify_defaults", False, _TBool),
-    ("file_driver", None, _TOr(_TNone, _TElemOf(constants.FILE_DRIVER))),
-    ("file_storage_dir", None, _TMaybeString),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.INSTANCE_CREATE_MODES)),
+    ("start", True, ht.TBool),
+    ("wait_for_sync", True, ht.TBool),
+    ("ip_check", True, ht.TBool),
+    ("name_check", True, ht.TBool),
+    ("disks", ht.NoDefault, ht.TListOf(ht.TDict)),
+    ("nics", ht.NoDefault, ht.TListOf(ht.TDict)),
+    ("hvparams", ht.EmptyDict, ht.TDict),
+    ("beparams", ht.EmptyDict, ht.TDict),
+    ("osparams", ht.EmptyDict, ht.TDict),
+    ("no_install", None, ht.TMaybeBool),
+    ("os_type", None, ht.TMaybeString),
+    ("force_variant", False, ht.TBool),
+    ("source_handshake", None, ht.TOr(ht.TList, ht.TNone)),
+    ("source_x509_ca", None, ht.TMaybeString),
+    ("source_instance_name", None, ht.TMaybeString),
+    ("src_node", None, ht.TMaybeString),
+    ("src_path", None, ht.TMaybeString),
+    ("pnode", None, ht.TMaybeString),
+    ("snode", None, ht.TMaybeString),
+    ("iallocator", None, ht.TMaybeString),
+    ("hypervisor", None, ht.TMaybeString),
+    ("disk_template", ht.NoDefault, _CheckDiskTemplate),
+    ("identify_defaults", False, ht.TBool),
+    ("file_driver", None, ht.TOr(ht.TNone, ht.TElemOf(constants.FILE_DRIVER))),
+    ("file_storage_dir", None, ht.TMaybeString),
     ]
   REQ_BGL = False
 
@@ -7559,11 +7395,11 @@ class LUReplaceDisks(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("mode", _NoDefault, _TElemOf(constants.REPLACE_MODES)),
-    ("disks", _EmptyList, _TListOf(_TPositiveInt)),
-    ("remote_node", None, _TMaybeString),
-    ("iallocator", None, _TMaybeString),
-    ("early_release", False, _TBool),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.REPLACE_MODES)),
+    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt)),
+    ("remote_node", None, ht.TMaybeString),
+    ("iallocator", None, ht.TMaybeString),
+    ("early_release", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -8302,9 +8138,9 @@ class LURepairNodeStorage(NoHooksLU):
   """
   _OP_PARAMS = [
     _PNodeName,
-    ("storage_type", _NoDefault, _CheckStorageType),
-    ("name", _NoDefault, _TNonEmptyString),
-    ("ignore_consistency", False, _TBool),
+    ("storage_type", ht.NoDefault, _CheckStorageType),
+    ("name", ht.NoDefault, ht.TNonEmptyString),
+    ("ignore_consistency", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -8369,9 +8205,9 @@ class LUNodeEvacuationStrategy(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("nodes", _NoDefault, _TListOf(_TNonEmptyString)),
-    ("remote_node", None, _TMaybeString),
-    ("iallocator", None, _TMaybeString),
+    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    ("remote_node", None, ht.TMaybeString),
+    ("iallocator", None, ht.TMaybeString),
     ]
   REQ_BGL = False
 
@@ -8421,9 +8257,9 @@ class LUGrowDisk(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("disk", _NoDefault, _TInt),
-    ("amount", _NoDefault, _TInt),
-    ("wait_for_sync", True, _TBool),
+    ("disk", ht.NoDefault, ht.TInt),
+    ("amount", ht.NoDefault, ht.TInt),
+    ("wait_for_sync", True, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -8519,8 +8355,8 @@ class LUQueryInstanceData(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("instances", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("static", False, _TBool),
+    ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("static", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -8680,15 +8516,15 @@ class LUSetInstanceParams(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("nics", _EmptyList, _TList),
-    ("disks", _EmptyList, _TList),
-    ("beparams", _EmptyDict, _TDict),
-    ("hvparams", _EmptyDict, _TDict),
-    ("disk_template", None, _TMaybeString),
-    ("remote_node", None, _TMaybeString),
-    ("os_name", None, _TMaybeString),
-    ("force_variant", False, _TBool),
-    ("osparams", None, _TOr(_TDict, _TNone)),
+    ("nics", ht.EmptyList, ht.TList),
+    ("disks", ht.EmptyList, ht.TList),
+    ("beparams", ht.EmptyDict, ht.TDict),
+    ("hvparams", ht.EmptyDict, ht.TDict),
+    ("disk_template", None, ht.TMaybeString),
+    ("remote_node", None, ht.TMaybeString),
+    ("os_name", None, ht.TMaybeString),
+    ("force_variant", False, ht.TBool),
+    ("osparams", None, ht.TOr(ht.TDict, ht.TNone)),
     _PForce,
     ]
   REQ_BGL = False
@@ -9345,8 +9181,8 @@ class LUQueryExports(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("nodes", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("use_locking", False, _TBool),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("use_locking", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -9386,7 +9222,7 @@ class LUPrepareExport(NoHooksLU):
   """
   _OP_PARAMS = [
     _PInstanceName,
-    ("mode", _NoDefault, _TElemOf(constants.EXPORT_MODES)),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.EXPORT_MODES)),
     ]
   REQ_BGL = False
 
@@ -9443,14 +9279,14 @@ class LUExportInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
-    ("target_node", _NoDefault, _TOr(_TNonEmptyString, _TList)),
-    ("shutdown", True, _TBool),
+    ("target_node", ht.NoDefault, ht.TOr(ht.TNonEmptyString, ht.TList)),
+    ("shutdown", True, ht.TBool),
     _PShutdownTimeout,
-    ("remove_instance", False, _TBool),
-    ("ignore_remove_failures", False, _TBool),
-    ("mode", constants.EXPORT_MODE_LOCAL, _TElemOf(constants.EXPORT_MODES)),
-    ("x509_key_name", None, _TOr(_TList, _TNone)),
-    ("destination_x509_ca", None, _TMaybeString),
+    ("remove_instance", False, ht.TBool),
+    ("ignore_remove_failures", False, ht.TBool),
+    ("mode", constants.EXPORT_MODE_LOCAL, ht.TElemOf(constants.EXPORT_MODES)),
+    ("x509_key_name", None, ht.TOr(ht.TList, ht.TNone)),
+    ("destination_x509_ca", None, ht.TMaybeString),
     ]
   REQ_BGL = False
 
@@ -9822,9 +9658,9 @@ class LUGetTags(TagsLU):
 
   """
   _OP_PARAMS = [
-    ("kind", _NoDefault, _TElemOf(constants.VALID_TAG_TYPES)),
+    ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES)),
     # Name is only meaningful for nodes and instances
-    ("name", _NoDefault, _TMaybeString),
+    ("name", ht.NoDefault, ht.TMaybeString),
     ]
   REQ_BGL = False
 
@@ -9846,7 +9682,7 @@ class LUSearchTags(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("pattern", _NoDefault, _TNonEmptyString),
+    ("pattern", ht.NoDefault, ht.TNonEmptyString),
     ]
   REQ_BGL = False
 
@@ -9888,10 +9724,10 @@ class LUAddTags(TagsLU):
 
   """
   _OP_PARAMS = [
-    ("kind", _NoDefault, _TElemOf(constants.VALID_TAG_TYPES)),
+    ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES)),
     # Name is only meaningful for nodes and instances
-    ("name", _NoDefault, _TMaybeString),
-    ("tags", _NoDefault, _TListOf(_TNonEmptyString)),
+    ("name", ht.NoDefault, ht.TMaybeString),
+    ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
     ]
   REQ_BGL = False
 
@@ -9922,10 +9758,10 @@ class LUDelTags(TagsLU):
 
   """
   _OP_PARAMS = [
-    ("kind", _NoDefault, _TElemOf(constants.VALID_TAG_TYPES)),
+    ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES)),
     # Name is only meaningful for nodes and instances
-    ("name", _NoDefault, _TMaybeString),
-    ("tags", _NoDefault, _TListOf(_TNonEmptyString)),
+    ("name", ht.NoDefault, ht.TMaybeString),
+    ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
     ]
   REQ_BGL = False
 
@@ -9965,10 +9801,10 @@ class LUTestDelay(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("duration", _NoDefault, _TFloat),
-    ("on_master", True, _TBool),
-    ("on_nodes", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("repeat", 0, _TPositiveInt)
+    ("duration", ht.NoDefault, ht.TFloat),
+    ("on_master", True, ht.TBool),
+    ("on_nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("repeat", 0, ht.TPositiveInt)
     ]
   REQ_BGL = False
 
@@ -10016,10 +9852,10 @@ class LUTestJobqueue(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("notify_waitlock", False, _TBool),
-    ("notify_exec", False, _TBool),
-    ("log_messages", _EmptyList, _TListOf(_TString)),
-    ("fail", False, _TBool),
+    ("notify_waitlock", False, ht.TBool),
+    ("notify_exec", False, ht.TBool),
+    ("log_messages", ht.EmptyList, ht.TListOf(ht.TString)),
+    ("fail", False, ht.TBool),
     ]
   REQ_BGL = False
 
@@ -10486,21 +10322,22 @@ class LUTestAllocator(NoHooksLU):
 
   """
   _OP_PARAMS = [
-    ("direction", _NoDefault, _TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)),
-    ("mode", _NoDefault, _TElemOf(constants.VALID_IALLOCATOR_MODES)),
-    ("name", _NoDefault, _TNonEmptyString),
-    ("nics", _NoDefault, _TOr(_TNone, _TListOf(
-      _TDictOf(_TElemOf(["mac", "ip", "bridge"]),
-               _TOr(_TNone, _TNonEmptyString))))),
-    ("disks", _NoDefault, _TOr(_TNone, _TList)),
-    ("hypervisor", None, _TMaybeString),
-    ("allocator", None, _TMaybeString),
-    ("tags", _EmptyList, _TListOf(_TNonEmptyString)),
-    ("mem_size", None, _TOr(_TNone, _TPositiveInt)),
-    ("vcpus", None, _TOr(_TNone, _TPositiveInt)),
-    ("os", None, _TMaybeString),
-    ("disk_template", None, _TMaybeString),
-    ("evac_nodes", None, _TOr(_TNone, _TListOf(_TNonEmptyString))),
+    ("direction", ht.NoDefault,
+     ht.TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.VALID_IALLOCATOR_MODES)),
+    ("name", ht.NoDefault, ht.TNonEmptyString),
+    ("nics", ht.NoDefault, ht.TOr(ht.TNone, ht.TListOf(
+      ht.TDictOf(ht.TElemOf(["mac", "ip", "bridge"]),
+               ht.TOr(ht.TNone, ht.TNonEmptyString))))),
+    ("disks", ht.NoDefault, ht.TOr(ht.TNone, ht.TList)),
+    ("hypervisor", None, ht.TMaybeString),
+    ("allocator", None, ht.TMaybeString),
+    ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("mem_size", None, ht.TOr(ht.TNone, ht.TPositiveInt)),
+    ("vcpus", None, ht.TOr(ht.TNone, ht.TPositiveInt)),
+    ("os", None, ht.TMaybeString),
+    ("disk_template", None, ht.TMaybeString),
+    ("evac_nodes", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString))),
     ]
 
   def CheckPrereq(self):

@@ -115,6 +115,7 @@ pkgpython_PYTHON = \
 	lib/constants.py \
 	lib/daemon.py \
 	lib/errors.py \
+	lib/ht.py \
 	lib/jqueue.py \
 	lib/jstore.py \
 	lib/locking.py \
