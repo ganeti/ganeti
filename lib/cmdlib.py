@@ -5151,7 +5151,8 @@ class LUQueryInstances(NoHooksLU):
                                     r"(nic)\.(bridge)/([0-9]+)",
                                     r"(nic)\.(macs|ips|modes|links|bridges)",
                                     r"(disk|nic)\.(count)",
-                                    "hvparams",
+                                    "hvparams", "custom_hvparams",
+                                    "custom_beparams", "custom_nicparams",
                                     ] + _SIMPLE_FIELDS +
                                   ["hv/%s" % name
                                    for name in constants.HVS_PARAMETERS
@@ -5329,6 +5330,8 @@ class LUQueryInstances(NoHooksLU):
             val = instance.nics[0].mac
           else:
             val = None
+        elif field == "custom_nicparams":
+          val = [nic.nicparams for nic in instance.nics]
         elif field == "sda_size" or field == "sdb_size":
           idx = ord(field[2]) - ord('a')
           try:
@@ -5340,12 +5343,16 @@ class LUQueryInstances(NoHooksLU):
           val = _ComputeDiskSize(instance.disk_template, disk_sizes)
         elif field == "tags":
           val = list(instance.GetTags())
+        elif field == "custom_hvparams":
+          val = instance.hvparams # not filled!
         elif field == "hvparams":
           val = i_hv
         elif (field.startswith(HVPREFIX) and
               field[len(HVPREFIX):] in constants.HVS_PARAMETERS and
               field[len(HVPREFIX):] not in constants.HVC_GLOBALS):
           val = i_hv.get(field[len(HVPREFIX):], None)
+        elif field == "custom_beparams":
+          val = instance.beparams
         elif field == "beparams":
           val = i_be
         elif (field.startswith(BEPREFIX) and
