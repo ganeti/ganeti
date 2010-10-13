@@ -24,6 +24,8 @@
 import unittest
 import signal
 import os
+import tempfile
+import shutil
 
 try:
   # pylint: disable-msg=E0611
@@ -147,6 +149,24 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     self.assertEquals(self.notifiers[self.NOTIFIER_ERR].error_count, 1)
     self.assertEquals(self.notifiers[self.NOTIFIER_NORM].error_count, 0)
     self.assertEquals(self.notifiers[self.NOTIFIER_TERM].error_count, 0)
+
+
+class TestSingleFileEventHandlerError(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def test(self):
+    wm = pyinotify.WatchManager()
+    handler = asyncnotifier.SingleFileEventHandler(wm, None,
+                                                   utils.PathJoin(self.tmpdir,
+                                                                  "nonexist"))
+    self.assertRaises(errors.InotifyError, handler.enable)
+    self.assertRaises(errors.InotifyError, handler.enable)
+    handler.disable()
+    self.assertRaises(errors.InotifyError, handler.enable)
 
 
 if __name__ == "__main__":

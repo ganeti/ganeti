@@ -76,11 +76,58 @@ class ErrorLoggingAsyncNotifier(AsyncNotifier,
   """
 
 
-class SingleFileEventHandler(pyinotify.ProcessEvent):
+class FileEventHandlerBase(pyinotify.ProcessEvent):
+  """Base class for file event handlers.
+
+  @ivar watch_manager: Inotify watch manager
+
+  """
+  def __init__(self, watch_manager):
+    """Initializes this class.
+
+    @type watch_manager: pyinotify.WatchManager
+    @param watch_manager: inotify watch manager
+
+    """
+    # pylint: disable-msg=W0231
+    # no need to call the parent's constructor
+    self.watch_manager = watch_manager
+
+  def process_default(self, event):
+    logging.error("Received unhandled inotify event: %s", event)
+
+  def AddWatch(self, filename, mask):
+    """Adds a file watch.
+
+    @param filename: Path to file
+    @param mask: Inotify event mask
+    @return: Result
+
+    """
+    result = self.watch_manager.add_watch(filename, mask)
+
+    ret = result.get(filename, -1)
+    if ret <= 0:
+      raise errors.InotifyError("Could not add inotify watcher (%s)" % ret)
+
+    return result[filename]
+
+  def RemoveWatch(self, handle):
+    """Removes a handle from the watcher.
+
+    @param handle: Inotify handle
+    @return: Whether removal was successful
+
+    """
+    result = self.watch_manager.rm_watch(handle)
+
+    return result[handle]
+
+
+class SingleFileEventHandler(FileEventHandlerBase):
   """Handle modify events for a single file.
 
   """
-
   def __init__(self, watch_manager, callback, filename):
     """Constructor for SingleFileEventHandler
 
@@ -92,34 +139,32 @@ class SingleFileEventHandler(pyinotify.ProcessEvent):
     @param filename: config file to watch
 
     """
-    # pylint: disable-msg=W0231
-    # no need to call the parent's constructor
-    self.watch_manager = watch_manager
-    self.callback = callback
-    self.mask = pyinotify.EventsCodes.ALL_FLAGS["IN_IGNORED"] | \
-                pyinotify.EventsCodes.ALL_FLAGS["IN_MODIFY"]
-    self.file = filename
-    self.watch_handle = None
+    FileEventHandlerBase.__init__(self, watch_manager)
+
+    self._callback = callback
+    self._filename = filename
+
+    self._watch_handle = None
 
   def enable(self):
-    """Watch the given file
+    """Watch the given file.
 
     """
-    if self.watch_handle is None:
-      result = self.watch_manager.add_watch(self.file, self.mask)
-      if not self.file in result or result[self.file] <= 0:
-        raise errors.InotifyError("Could not add inotify watcher")
-      else:
-        self.watch_handle = result[self.file]
+    if self._watch_handle is not None:
+      return
+
+    # Class '...' has no 'IN_...' member, pylint: disable-msg=E1103
+    mask = (pyinotify.EventsCodes.IN_MODIFY |
+            pyinotify.EventsCodes.IN_IGNORED)
+
+    self._watch_handle = self.AddWatch(self._filename, mask)
 
   def disable(self):
-    """Stop watching the given file
+    """Stop watching the given file.
 
     """
-    if self.watch_handle is not None:
-      result = self.watch_manager.rm_watch(self.watch_handle)
-      if result[self.watch_handle]:
-        self.watch_handle = None
+    if self._watch_handle is not None and self.RemoveWatch(self._watch_handle):
+      self._watch_handle = None
 
   # pylint: disable-msg=C0103
   # this overrides a method in pyinotify.ProcessEvent
@@ -132,8 +177,8 @@ class SingleFileEventHandler(pyinotify.ProcessEvent):
     # case we'll need to create a watcher for the "new" file. This can be done
     # by the callback by calling "enable" again on us.
     logging.debug("Received 'ignored' inotify event for %s", event.path)
-    self.watch_handle = None
-    self.callback(False)
+    self._watch_handle = None
+    self._callback(False)
 
   # pylint: disable-msg=C0103
   # this overrides a method in pyinotify.ProcessEvent
@@ -143,7 +188,4 @@ class SingleFileEventHandler(pyinotify.ProcessEvent):
     # replacing any file with a new one, at filesystem level, rather than
     # actually changing it. (see utils.WriteFile)
     logging.debug("Received 'modify' inotify event for %s", event.path)
-    self.callback(True)
-
-  def process_default(self, event):
-    logging.error("Received unhandled inotify event: %s", event)
+    self._callback(True)
