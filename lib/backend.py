@@ -2214,7 +2214,7 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name, debug):
                       " output: %s", command, result.fail_reason,
                       result.output)
         final_result.append("error importing disk %d: %s, %s" %
-                            (idx, result.fail_reason, result.output[-100]))
+                            (idx, result.fail_reason, result.output[-100:]))
 
   if final_result:
     _Fail("; ".join(final_result), log=False)
