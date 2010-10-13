@@ -31,6 +31,7 @@ import optparse
 import sys
 import os
 import os.path
+import errno
 
 try:
   from pyinotify import pyinotify # pylint: disable-msg=E0611
@@ -103,20 +104,27 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
     @param filename: Path to file
 
     """
+    logging.info("Reading users file at %s", filename)
     try:
-      contents = utils.ReadFile(filename)
-    except EnvironmentError, err:
-      logging.warning("Error while reading %s: %s", filename, err)
-      return False
+      try:
+        contents = utils.ReadFile(filename)
+      except EnvironmentError, err:
+        self._users = None
+        if err.errno == errno.ENOENT:
+          logging.warning("No users file at %s", filename)
+        else:
+          logging.warning("Error while reading %s: %s", filename, err)
+        return False
 
-    try:
       users = http.auth.ParsePasswordFile(contents)
+
     except Exception, err: # pylint: disable-msg=W0703
       # We don't care about the type of exception
       logging.error("Error while parsing %s: %s", filename, err)
       return False
 
     self._users = users
+
     return True
 
   def _GetRequestContext(self, req):
@@ -229,39 +237,51 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
     return serializer.DumpJson(result)
 
 
-class FileWatcher:
-  def __init__(self, filename, cb):
+class FileEventHandler(asyncnotifier.FileEventHandlerBase):
+  def __init__(self, wm, path, cb):
     """Initializes this class.
 
-    @type filename: string
-    @param filename: File to watch
+    @param wm: Inotify watch manager
+    @type path: string
+    @param path: File path
     @type cb: callable
     @param cb: Function called on file change
 
     """
-    self._filename = filename
+    asyncnotifier.FileEventHandlerBase.__init__(self, wm)
+
     self._cb = cb
+    self._filename = os.path.basename(path)
 
-    wm = pyinotify.WatchManager()
-    self._handler = asyncnotifier.SingleFileEventHandler(wm, self._OnInotify,
-                                                         filename)
-    asyncnotifier.AsyncNotifier(wm, default_proc_fun=self._handler)
-    self._handler.enable()
+    # Class '...' has no 'IN_...' member, pylint: disable-msg=E1103
+    mask = (pyinotify.EventsCodes.IN_CLOSE_WRITE |
+            pyinotify.EventsCodes.IN_DELETE |
+            pyinotify.EventsCodes.IN_MOVED_FROM |
+            pyinotify.EventsCodes.IN_MOVED_TO)
 
-  def _OnInotify(self, notifier_enabled):
-    """Called upon update of the RAPI users file by pyinotify.
+    self._handle = self.AddWatch(os.path.dirname(path), mask)
 
-    @type notifier_enabled: boolean
-    @param notifier_enabled: whether the notifier is still enabled
+  def process_default(self, event):
+    """Called upon inotify event.
 
     """
-    logging.info("Reloading modified %s", self._filename)
+    if event.name == self._filename:
+      logging.debug("Received inotify event %s", event)
+      self._cb()
 
-    self._cb()
 
-    # Renable the watch again if we'd an atomic update of the file (e.g. mv)
-    if not notifier_enabled:
-      self._handler.enable()
+def SetupFileWatcher(filename, cb):
+  """Configures an inotify watcher for a file.
+
+  @type filename: string
+  @param filename: File to watch
+  @type cb: callable
+  @param cb: Function called on file change
+
+  """
+  wm = pyinotify.WatchManager()
+  handler = FileEventHandler(wm, filename, cb)
+  asyncnotifier.AsyncNotifier(wm, default_proc_fun=handler)
 
 
 def CheckRapi(options, args):
@@ -294,17 +314,18 @@ def PrepRapi(options, _):
                                ssl_verify_peer=False,
                                request_executor_class=JsonErrorRequestExecutor)
 
-  if os.path.exists(constants.RAPI_USERS_FILE):
-    # Setup file watcher (it'll be driven by asyncore)
-    FileWatcher(constants.RAPI_USERS_FILE,
-                compat.partial(server.LoadUsers, constants.RAPI_USERS_FILE))
+  # Setup file watcher (it'll be driven by asyncore)
+  SetupFileWatcher(constants.RAPI_USERS_FILE,
+                   compat.partial(server.LoadUsers, constants.RAPI_USERS_FILE))
 
   server.LoadUsers(constants.RAPI_USERS_FILE)
 
   # pylint: disable-msg=E1101
   # it seems pylint doesn't see the second parent class there
   server.Start()
+
   return (mainloop, server)
+
 
 def ExecRapi(options, args, prep_data): # pylint: disable-msg=W0613
   """Main remote API function, executed with the PID file held.
