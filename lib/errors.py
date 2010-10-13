@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -105,6 +105,16 @@ class ConfigurationError(GenericError):
 
   Things like having an instance with a primary node that doesn't
   exist in the config or such raise this exception.
+
+  """
+  pass
+
+
+class ConfigVersionMismatch(ConfigurationError):
+  """Version mismatch in the configuration file.
+
+  The error has two arguments: the expected and the actual found
+  version.
 
   """
   pass

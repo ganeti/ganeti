@@ -499,6 +499,28 @@ def CheckMasterd(options, args):
                           (constants.MASTERD_USER, constants.DAEMONS_GROUP))
     sys.exit(constants.EXIT_FAILURE)
 
+  # Check the configuration is sane before anything else
+  try:
+    config.ConfigWriter()
+  except errors.ConfigVersionMismatch, err:
+    v1 = "%s.%s.%s" % constants.SplitVersion(err.args[0])
+    v2 = "%s.%s.%s" % constants.SplitVersion(err.args[1])
+    print >> sys.stderr,  \
+        ("Configuration version mismatch. The current Ganeti software"
+         " expects version %s, but the on-disk configuration file has"
+         " version %s. This is likely the result of upgrading the"
+         " software without running the upgrade procedure. Please contact"
+         " your cluster administrator or complete the upgrade using the"
+         " cfgupgrade utility, after reading the upgrade notes." %
+         (v1, v2))
+    sys.exit(constants.EXIT_FAILURE)
+  except errors.ConfigurationError, err:
+    print >> sys.stderr, \
+        ("Configuration error while opening the configuration file: %s\n"
+         "This might be caused by an incomplete software upgrade or"
+         " by a corrupted configuration file. Until the problem is fixed"
+         " the master daemon cannot start." % str(err))
+    sys.exit(constants.EXIT_FAILURE)
 
   # If CheckMaster didn't fail we believe we are the master, but we have to
   # confirm with the other nodes.

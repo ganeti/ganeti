@@ -67,10 +67,7 @@ def _ValidateConfig(data):
 
   """
   if data.version != constants.CONFIG_VERSION:
-    raise errors.ConfigurationError("Cluster configuration version"
-                                    " mismatch, got %s instead of %s" %
-                                    (data.version,
-                                     constants.CONFIG_VERSION))
+    raise errors.ConfigVersionMismatch(constants.CONFIG_VERSION, data.version)
 
 
 class TemporaryReservationManager:
