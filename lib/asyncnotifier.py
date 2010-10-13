@@ -153,9 +153,10 @@ class SingleFileEventHandler(FileEventHandlerBase):
     if self._watch_handle is not None:
       return
 
-    # Class '...' has no 'IN_...' member, pylint: disable-msg=E1103
-    mask = (pyinotify.EventsCodes.IN_MODIFY |
-            pyinotify.EventsCodes.IN_IGNORED)
+    # Different Pyinotify versions have the flag constants at different places,
+    # hence not accessing them directly
+    mask = (pyinotify.EventsCodes.ALL_FLAGS["IN_MODIFY"] |
+            pyinotify.EventsCodes.ALL_FLAGS["IN_IGNORED"])
 
     self._watch_handle = self.AddWatch(self._filename, mask)
 

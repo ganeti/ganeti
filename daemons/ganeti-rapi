@@ -253,11 +253,12 @@ class FileEventHandler(asyncnotifier.FileEventHandlerBase):
     self._cb = cb
     self._filename = os.path.basename(path)
 
-    # Class '...' has no 'IN_...' member, pylint: disable-msg=E1103
-    mask = (pyinotify.EventsCodes.IN_CLOSE_WRITE |
-            pyinotify.EventsCodes.IN_DELETE |
-            pyinotify.EventsCodes.IN_MOVED_FROM |
-            pyinotify.EventsCodes.IN_MOVED_TO)
+    # Different Pyinotify versions have the flag constants at different places,
+    # hence not accessing them directly
+    mask = (pyinotify.EventsCodes.ALL_FLAGS["IN_CLOSE_WRITE"] |
+            pyinotify.EventsCodes.ALL_FLAGS["IN_DELETE"] |
+            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_FROM"] |
+            pyinotify.EventsCodes.ALL_FLAGS["IN_MOVED_TO"])
 
     self._handle = self.AddWatch(os.path.dirname(path), mask)
 
