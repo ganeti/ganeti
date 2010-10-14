@@ -550,6 +550,7 @@ class HttpSslParams(object):
     """
     self.ssl_key_pem = utils.ReadFile(ssl_key_path)
     self.ssl_cert_pem = utils.ReadFile(ssl_cert_path)
+    self.ssl_cert_path = ssl_cert_path
 
   def GetKey(self):
     return OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
@@ -608,6 +609,15 @@ class HttpBase(object):
       ctx.set_verify(OpenSSL.SSL.VERIFY_PEER |
                      OpenSSL.SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                      self._SSLVerifyCallback)
+
+      # Also add our certificate as a trusted CA to be sent to the client.
+      # This is required at least for GnuTLS clients to work.
+      try:
+        # This will fail for PyOpenssl versions before 0.10
+        ctx.add_client_ca(self._ssl_cert)
+      except AttributeError:
+        # Fall back to letting OpenSSL read the certificate file directly.
+        ctx.load_client_ca(ssl_params.ssl_cert_path)
 
     return OpenSSL.SSL.Connection(ctx, sock)
 
