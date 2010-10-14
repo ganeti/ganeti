@@ -105,6 +105,10 @@ def SetupCluster(rapi_user, rapi_secret):
   else:
     # consider the nodes are already there
     qa_node.MarkNodeAddedAll()
+
+  # enable the watcher (unconditionally)
+  RunTest(qa_daemon.TestResumeWatcher)
+
   if qa_config.TestEnabled('node-info'):
     RunTest(qa_node.TestNodeInfo)
 
@@ -274,14 +278,16 @@ def RunDaemonTests(instance, pnode):
   consecutive_failures = \
     qa_config.TestEnabled('instance-consecutive-failures')
 
+  RunTest(qa_daemon.TestPauseWatcher)
   if automatic_restart or consecutive_failures:
-    qa_daemon.PrintCronWarning()
 
     if automatic_restart:
       RunTest(qa_daemon.TestInstanceAutomaticRestart, pnode, instance)
 
     if consecutive_failures:
       RunTest(qa_daemon.TestInstanceConsecutiveFailures, pnode, instance)
+
+  RunTest(qa_daemon.TestResumeWatcher)
 
 
 def RunHardwareFailureTests(instance, pnode, snode):
@@ -349,7 +355,7 @@ def main():
   SetupCluster(rapi_user, rapi_secret)
 
   # Load RAPI certificate
-  qa_rapi.Setup(rapi_user, rapi_secret)
+  #qa_rapi.Setup(rapi_user, rapi_secret)
 
   RunClusterTests()
   RunOsTests()

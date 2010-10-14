@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, StartSSH
+from qa_utils import AssertEqual, AssertMatch, StartSSH, GetCommandOutput
 
 
 def _InstanceRunning(node, name):
@@ -89,19 +89,41 @@ def _RunWatcherDaemon():
   """
   master = qa_config.GetMasterNode()
 
-  cmd = ['ganeti-watcher', '-d']
-  AssertEqual(StartSSH(master['primary'],
+  cmd = ["ganeti-watcher", "-d", "--ignore-pause"]
+  AssertEqual(StartSSH(master["primary"],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-def PrintCronWarning():
-  """Shows a warning about the cron job.
+def TestPauseWatcher():
+  """Tests and pauses the watcher.
 
   """
-  msg = ("For the following tests it's recommended to turn off the"
-         " ganeti-watcher cronjob.")
-  print
-  print qa_utils.FormatWarning(msg)
+  master = qa_config.GetMasterNode()
+
+  cmd = ["gnt-cluster", "watcher", "pause", "4h"]
+  AssertEqual(StartSSH(master["primary"],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  cmd = ["gnt-cluster", "watcher", "info"]
+  output = GetCommandOutput(master["primary"],
+                            utils.ShellQuoteArgs(cmd))
+  AssertMatch(output, r"^.*\bis paused\b.*")
+
+
+def TestResumeWatcher():
+  """Tests and unpauses the watcher.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  cmd = ["gnt-cluster", "watcher", "continue"]
+  AssertEqual(StartSSH(master["primary"],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  cmd = ["gnt-cluster", "watcher", "info"]
+  output = GetCommandOutput(master["primary"],
+                            utils.ShellQuoteArgs(cmd))
+  AssertMatch(output, r"^.*\bis not paused\b.*")
 
 
 def TestInstanceAutomaticRestart(node, instance):
