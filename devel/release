@@ -46,6 +46,26 @@ echo "Cloning the repository under $TMPDIR ..."
 git clone -q "$URL" dist
 cd dist
 git checkout $TAG
+
+# Check minimum aclocal version for releasing
+MIN_ACLOCAL_VERSION=( 1 11 1 )
+ACLOCAL_VERSION=$(${ACLOCAL:-aclocal} --version | head -1 | \
+                 sed -e 's/^[^0-9]*\([0-9\.]*\)$/\1/')
+
+ACLOCAL_VERSION_REST=$ACLOCAL_VERSION
+for v in ${MIN_ACLOCAL_VERSION[@]}; do
+ ACLOCAL_VERSION_PART=${ACLOCAL_VERSION_REST%%.*}
+ ACLOCAL_VERSION_REST=${ACLOCAL_VERSION_REST#$ACLOCAL_VERSION_PART.}
+ if [[ $v -eq $ACLOCAL_VERSION_PART ]]; then
+   continue
+ elif [[ $v -lt $ACLOCAL_VERSION_PART ]]; then
+   break
+ else # gt
+   echo "aclocal version $ACLOCAL_VERSION is too old (< 1.11.1)"
+   exit 1
+ fi
+done
+
 ./autogen.sh
 ./configure
 
