@@ -355,7 +355,7 @@ def main():
   SetupCluster(rapi_user, rapi_secret)
 
   # Load RAPI certificate
-  #qa_rapi.Setup(rapi_user, rapi_secret)
+  qa_rapi.Setup(rapi_user, rapi_secret)
 
   RunClusterTests()
   RunOsTests()
