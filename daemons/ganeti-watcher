@@ -671,6 +671,8 @@ def ParseOptions():
   parser.add_option("-A", "--job-age", dest="job_age",
                     help="Autoarchive jobs older than this age (default"
                     " 6 hours)", default=6*3600)
+  parser.add_option("--ignore-pause", dest="ignore_pause", default=False,
+                    action="store_true", help="Ignore cluster pause setting")
   options, args = parser.parse_args()
   options.job_age = cli.ParseTimespec(options.job_age)
   return options, args
@@ -692,7 +694,7 @@ def main():
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)
 
-  if ShouldPause():
+  if ShouldPause() and not options.ignore_pause:
     logging.debug("Pause has been set, exiting")
     sys.exit(constants.EXIT_SUCCESS)
 

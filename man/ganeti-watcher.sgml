@@ -41,6 +41,10 @@
     <cmdsynopsis>
       <command>&dhpackage; </command>
 
+      <arg><option>--debug</option></arg>
+      <arg><option>--job-age=<replaceable>age</replaceable></option></arg>
+      <arg><option>--ignore-pause</option></arg>
+
     </cmdsynopsis>
   </refsynopsisdiv>
   <refsect1>
@@ -53,6 +57,20 @@
       and another one that runs on every node.
     </para>
 
+    <para>
+      If the watcher is disabled at cluster level (via
+      the <command>gnt-cluster watcher pause</command> command), it
+      will exit without doing anything. The cluster-level pause can be
+      overriden via the <option>--ignore-pause</option> option, for
+      example if during a maintenance the watcher needs to be disabled
+      in general, but the administrator wants to run it just once.
+    </para>
+
+    <para>
+      The <option>--debug</option> option will increase the verbosity
+      of the watcher and also activate logging to the standard error.
+    </para>
+
     <refsect2>
       <title>Master operations</title>
 
@@ -63,9 +81,16 @@
       </para>
 
       <para>
-        Its other function is to <quote>repair</quote> DRBD links by
+        Another function is to <quote>repair</quote> DRBD links by
         reactivating the block devices of instances which have
         secondaries on nodes that have been rebooted.
+      </para>
+
+      <para>
+        The watcher will also archive old jobs (older than the age
+        given via the <option>--job-age</option> option, which
+        defaults to 6 hours), in order to keep the job queue
+        manageable.
       </para>
 
     </refsect2>
@@ -96,7 +121,7 @@
       <para>
         The watcher does synchronous queries but will submit jobs for
         executing the changes. Due to locking, it could be that the jobs
-        execute much later than the watcher executes them.
+        execute much later than the watcher submits them.
       </para>
 
     </refsect2>
