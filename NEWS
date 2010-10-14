@@ -1,6 +1,19 @@
 News
 ====
 
+Version 2.2.1 rc1
+-----------------
+
+*(Released Thu, 14 Oct 2010)*
+
+- Fix interaction between Curl/GnuTLS and the Python's HTTP server
+  (thanks Apollon Oikonomopoulos!), finally allowing the use of Curl
+  with GnuTLS
+- Fix problems with interaction between Curl and Python's HTTP server,
+  resulting in increased speed in many RPC calls
+- Improve our release script to prevent breakage with older aclocal and
+  Python 2.6
+
 Version 2.2.1 rc0
 -----------------
 
