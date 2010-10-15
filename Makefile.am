@@ -453,6 +453,7 @@ check_python_code = \
 
 lint_python_code = \
 	ganeti \
+	ganeti/http/server.py \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
 	$(pkglib_python_scripts) \
