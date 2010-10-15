@@ -29,8 +29,7 @@ Run the following command (only use ``PYTHON=...`` if you need to use a
 different python version)::
 
   ./autogen.sh && \
-  ./configure PYTHON=python2.4 \
-    --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
+  ./configure --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
 
 
 Packaging notes
