@@ -297,8 +297,8 @@ def ParsePasswordFile(contents):
   options are optional and separated by comma (','). Empty lines and comments
   ('#') are ignored.
 
-  @type file_name: str
-  @param file_name: Path to password file
+  @type contents: str
+  @param contents: Contents of password file
   @rtype: dict
   @return: Dictionary containing L{PasswordFileUser} instances
 
