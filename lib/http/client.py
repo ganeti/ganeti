@@ -148,6 +148,10 @@ class _HttpClient(object):
     curl.setopt(pycurl.USERAGENT, http.HTTP_GANETI_VERSION)
     curl.setopt(pycurl.PROXY, "")
 
+    # Disable SSL session ID caching (pycurl >= 7.16.0)
+    if hasattr(pycurl, "SSL_SESSIONID_CACHE"):
+      curl.setopt(pycurl.SSL_SESSIONID_CACHE, False)
+
     # Pass cURL object to external config function
     if curl_config_fn:
       curl_config_fn(curl)
