@@ -178,6 +178,24 @@ def TestEmptyCluster():
     ("/2/os", None, 'GET', None),
     ])
 
+  # Test HTTP Not Found
+  for method in ["GET", "PUT", "POST", "DELETE"]:
+    try:
+      _DoTests([("/99/resource/not/here/99", None, method, None)])
+    except rapi.client.GanetiApiError, err:
+      AssertEqual(err.code, 404)
+    else:
+      raise qa_error.Error("Non-existent resource didn't return HTTP 404")
+
+  # Test HTTP Not Implemented
+  for method in ["PUT", "POST", "DELETE"]:
+    try:
+      _DoTests([("/version", None, method, None)])
+    except rapi.client.GanetiApiError, err:
+      AssertEqual(err.code, 501)
+    else:
+      raise qa_error.Error("Non-implemented method didn't fail")
+
 
 def TestInstance(instance):
   """Testing getting instance(s) info via remote API.
