@@ -2959,6 +2959,33 @@ def CommaJoin(names):
   return ", ".join([str(val) for val in names])
 
 
+def FindMatch(data, name):
+  """Tries to find an item in a dictionary matching a name.
+
+  Callers have to ensure the data names aren't contradictory (e.g. a regexp
+  that matches a string). If the name isn't a direct key, all regular
+  expression objects in the dictionary are matched against it.
+
+  @type data: dict
+  @param data: Dictionary containing data
+  @type name: string
+  @param name: Name to look for
+  @rtype: tuple; (value in dictionary, matched groups as list)
+
+  """
+  if name in data:
+    return (data[name], [])
+
+  for key, value in data.items():
+    # Regex objects
+    if hasattr(key, "match"):
+      m = key.match(name)
+      if m:
+        return (value, list(m.groups()))
+
+  return None
+
+
 def BytesToMebibyte(value):
   """Converts bytes to mebibytes.
 

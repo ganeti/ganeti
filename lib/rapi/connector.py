@@ -31,6 +31,7 @@ import re
 
 from ganeti import constants
 from ganeti import http
+from ganeti import utils
 
 from ganeti.rapi import baserlib
 from ganeti.rapi import rlib2
@@ -76,25 +77,15 @@ class Mapper:
       query = None
       args = {}
 
-    result = None
+    # Try to find handler for request path
+    result = utils.FindMatch(self._connector, path)
 
-    for key, handler in self._connector.iteritems():
-      # Regex objects
-      if hasattr(key, "match"):
-        m = key.match(path)
-        if m:
-          result = (handler, list(m.groups()), args)
-          break
-
-      # String objects
-      elif key == path:
-        result = (handler, [], args)
-        break
-
-    if result:
-      return result
-    else:
+    if result is None:
       raise http.HttpNotFound()
+
+    (handler, groups) = result
+
+    return (handler, groups, args)
 
 
 class R_root(baserlib.R_Generic):

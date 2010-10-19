@@ -2326,5 +2326,35 @@ class TestCommaJoin(unittest.TestCase):
                      "Hello, World, 99")
 
 
+class TestFindMatch(unittest.TestCase):
+  def test(self):
+    data = {
+      "aaaa": "Four A",
+      "bb": {"Two B": True},
+      re.compile(r"^x(foo|bar|bazX)([0-9]+)$"): (1, 2, 3),
+      }
+
+    self.assertEqual(utils.FindMatch(data, "aaaa"), ("Four A", []))
+    self.assertEqual(utils.FindMatch(data, "bb"), ({"Two B": True}, []))
+
+    for i in ["foo", "bar", "bazX"]:
+      for j in range(1, 100, 7):
+        self.assertEqual(utils.FindMatch(data, "x%s%s" % (i, j)),
+                         ((1, 2, 3), [i, str(j)]))
+
+  def testNoMatch(self):
+    self.assert_(utils.FindMatch({}, "") is None)
+    self.assert_(utils.FindMatch({}, "foo") is None)
+    self.assert_(utils.FindMatch({}, 1234) is None)
+
+    data = {
+      "X": "Hello World",
+      re.compile("^(something)$"): "Hello World",
+      }
+
+    self.assert_(utils.FindMatch(data, "") is None)
+    self.assert_(utils.FindMatch(data, "Hello World") is None)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
