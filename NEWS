@@ -1,6 +1,14 @@
 News
 ====
 
+Version 2.2.1
+-------------
+
+*(Released Tue, 19 Oct 2010)*
+
+- Disable SSL session ID cache in RPC client
+
+
 Version 2.2.1 rc1
 -----------------
 
@@ -13,6 +21,7 @@ Version 2.2.1 rc1
   resulting in increased speed in many RPC calls
 - Improve our release script to prevent breakage with older aclocal and
   Python 2.6
+
 
 Version 2.2.1 rc0
 -----------------
