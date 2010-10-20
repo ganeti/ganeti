@@ -1651,6 +1651,8 @@ instance5: 11225
             <arg>--secondary</arg>
             <arg>--all</arg>
           </group>
+          <sbr>
+          <arg choice="opt">-O <replaceable>OS_PARAMETERS</replaceable></arg>
           <arg>--submit</arg>
           <arg choice="opt" rep="repeat"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
@@ -1665,7 +1667,8 @@ instance5: 11225
         <para>
           The <option>--select-os</option> option switches to an
           interactive OS reinstall. The user is prompted to select the OS
-          template from the list of available OS templates.
+          template from the list of available OS templates. OS parameters
+          can be overridden using <option>-O</option>.
         </para>
 
         <para>
@@ -1686,7 +1689,6 @@ instance5: 11225
           ID will be shown so that it can be examined via
           <command>gnt-job info</command>.
         </para>
-
 
       </refsect3>
 

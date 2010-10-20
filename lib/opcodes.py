@@ -492,7 +492,7 @@ class OpReinstallInstance(OpCode):
   """Reinstall an instance's OS."""
   OP_ID = "OP_INSTANCE_REINSTALL"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name", "os_type", "force_variant"]
+  __slots__ = ["instance_name", "os_type", "force_variant", "osparams"]
 
 
 class OpRemoveInstance(OpCode):

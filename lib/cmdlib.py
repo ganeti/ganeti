@@ -4672,6 +4672,7 @@ class LUReinstallInstance(LogicalUnit):
     _PInstanceName,
     ("os_type", None, ht.TMaybeString),
     ("force_variant", False, ht.TBool),
+    ("osparams", None, ht.TOr(ht.TDict, ht.TNone)),
     ]
   REQ_BGL = False
 
@@ -4709,6 +4710,18 @@ class LUReinstallInstance(LogicalUnit):
       # OS verification
       pnode = _ExpandNodeName(self.cfg, instance.primary_node)
       _CheckNodeHasOS(self, pnode, self.op.os_type, self.op.force_variant)
+      instance_os = self.op.os_name
+    else:
+      instance_os = instance.os
+
+    nodelist = list(instance.all_nodes)
+
+    if self.op.osparams:
+      i_osdict = _GetUpdatedParams(instance.osparams, self.op.osparams)
+      _CheckOSParams(self, True, nodelist, instance_os, i_osdict)
+      self.os_inst = i_osdict # the new dict (without defaults)
+    else:
+      self.os_inst = None
 
     self.instance = instance
 
@@ -4721,6 +4734,7 @@ class LUReinstallInstance(LogicalUnit):
     if self.op.os_type is not None:
       feedback_fn("Changing OS to '%s'..." % self.op.os_type)
       inst.os = self.op.os_type
+      # Write to configuration
       self.cfg.Update(inst, feedback_fn)
 
     _StartInstanceDisks(self, inst, None)
@@ -4728,7 +4742,8 @@ class LUReinstallInstance(LogicalUnit):
       feedback_fn("Running the instance OS create scripts...")
       # FIXME: pass debug option from opcode to backend
       result = self.rpc.call_instance_os_add(inst.primary_node, inst, True,
-                                             self.op.debug_level)
+                                             self.op.debug_level,
+                                             osparams=self.os_inst)
       result.Raise("Could not install OS for instance %s on node %s" %
                    (inst.name, inst.primary_node))
     finally:

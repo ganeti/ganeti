@@ -572,7 +572,8 @@ def ReinstallInstance(opts, args):
   for instance_name in inames:
     op = opcodes.OpReinstallInstance(instance_name=instance_name,
                                      os_type=os_name,
-                                     force_variant=opts.force_variant)
+                                     force_variant=opts.force_variant,
+                                     osparams=opts.osparams)
     jex.QueueJob(instance_name, op)
 
   jex.WaitOrShow(not opts.submit_only)
@@ -1459,7 +1460,7 @@ commands = {
     [FORCE_OPT, OS_OPT, FORCE_VARIANT_OPT, m_force_multi, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT,
-     SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+     SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT, OSPARAMS_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (
     RemoveInstance, ARGS_ONE_INSTANCE,

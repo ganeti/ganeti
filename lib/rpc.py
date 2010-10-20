@@ -433,7 +433,7 @@ class RpcRunner(object):
     @type bep: dict or None
     @param bep: a dictionary with overridden backend parameters
     @type osp: dict or None
-    @param osp: a dictionary with overriden os parameters
+    @param osp: a dictionary with overridden os parameters
     @rtype: dict
     @return: the instance dict, with the hvparams filled with the
         cluster defaults
@@ -752,14 +752,15 @@ class RpcRunner(object):
                                  shutdown_timeout])
 
   @_RpcTimeout(_TMO_1DAY)
-  def call_instance_os_add(self, node, inst, reinstall, debug):
+  def call_instance_os_add(self, node, inst, reinstall, debug, osparams=None):
     """Installs an OS on the given instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_os_add",
-                                [self._InstDict(inst), reinstall, debug])
+                                [self._InstDict(inst, osp=osparams),
+                                 reinstall, debug])
 
   @_RpcTimeout(_TMO_SLOW)
   def call_instance_run_rename(self, node, inst, old_name, debug):
