@@ -1741,6 +1741,7 @@ instance5: 11225
           <command>startup</command>
           <sbr>
           <arg>--force</arg>
+          <arg>--ignore-offline</arg>
           <sbr>
           <arg>--force-multiple</arg>
           <sbr>
@@ -1848,7 +1849,9 @@ instance5: 11225
 
         <para>
           Use <option>--force</option> to start even if secondary disks are
-          failing.
+          failing. <option>--ignore-offline</option> can be used to ignore
+          offline primary nodes and mark the instance as started even if
+          the primary is not available.
         </para>
 
         <para>
@@ -1904,6 +1907,7 @@ instance5: 11225
           <arg>--timeout=<replaceable>N</replaceable></arg>
           <sbr>
           <arg>--force-multiple</arg>
+          <arg>--ignore-offline</arg>
           <sbr>
           <group choice="opt">
             <arg>--instance</arg>
@@ -1954,6 +1958,12 @@ instance5: 11225
           <command>gnt-job info</command>.
         </para>
 
+        <para>
+          <option>--ignore-offline</option> can be used to ignore offline
+          primary nodes and force the instance to be marked as stopped. This
+          option should be used with care as it can lead to an
+          inconsistent cluster state.
+        </para>
 
         <para>
           Example:

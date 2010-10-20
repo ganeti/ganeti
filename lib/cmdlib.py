@@ -73,6 +73,8 @@ _PForce = ("force", False, ht.TBool)
 #: a required instance name (for single-instance LUs)
 _PInstanceName = ("instance_name", ht.NoDefault, ht.TNonEmptyString)
 
+#: Whether to ignore offline nodes
+_PIgnoreOfflineNodes = ("ignore_offline_nodes", False, ht.TBool)
 
 #: a required node name (for single-node LUs)
 _PNodeName = ("node_name", ht.NoDefault, ht.TNonEmptyString)
@@ -4413,6 +4415,7 @@ class LUStartupInstance(LogicalUnit):
   _OP_PARAMS = [
     _PInstanceName,
     _PForce,
+    _PIgnoreOfflineNodes,
     ("hvparams", ht.EmptyDict, ht.TDict),
     ("beparams", ht.EmptyDict, ht.TDict),
     ]
@@ -4461,21 +4464,30 @@ class LUStartupInstance(LogicalUnit):
       hv_type.CheckParameterSyntax(filled_hvp)
       _CheckHVParams(self, instance.all_nodes, instance.hypervisor, filled_hvp)
 
-    _CheckNodeOnline(self, instance.primary_node)
+    self.primary_offline = self.cfg.GetNodeInfo(instance.primary_node).offline
 
-    bep = self.cfg.GetClusterInfo().FillBE(instance)
-    # check bridges existence
-    _CheckInstanceBridgesExist(self, instance)
+    if self.primary_offline and self.op.ignore_offline_nodes:
+      self.proc.LogWarning("Ignoring offline primary node")
 
-    remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                              instance.name,
-                                              instance.hypervisor)
-    remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True, ecode=errors.ECODE_ENVIRON)
-    if not remote_info.payload: # not running already
-      _CheckNodeFreeMemory(self, instance.primary_node,
-                           "starting instance %s" % instance.name,
-                           bep[constants.BE_MEMORY], instance.hypervisor)
+      if self.op.hvparams or self.op.beparams:
+        self.proc.LogWarning("Overridden parameters are ignored")
+    else:
+      _CheckNodeOnline(self, instance.primary_node)
+
+      bep = self.cfg.GetClusterInfo().FillBE(instance)
+
+      # check bridges existence
+      _CheckInstanceBridgesExist(self, instance)
+
+      remote_info = self.rpc.call_instance_info(instance.primary_node,
+                                                instance.name,
+                                                instance.hypervisor)
+      remote_info.Raise("Error checking node %s" % instance.primary_node,
+                        prereq=True, ecode=errors.ECODE_ENVIRON)
+      if not remote_info.payload: # not running already
+        _CheckNodeFreeMemory(self, instance.primary_node,
+                             "starting instance %s" % instance.name,
+                             bep[constants.BE_MEMORY], instance.hypervisor)
 
   def Exec(self, feedback_fn):
     """Start the instance.
@@ -4486,16 +4498,20 @@ class LUStartupInstance(LogicalUnit):
 
     self.cfg.MarkInstanceUp(instance.name)
 
-    node_current = instance.primary_node
+    if self.primary_offline:
+      assert self.op.ignore_offline_nodes
+      self.proc.LogInfo("Primary node offline, marked instance as started")
+    else:
+      node_current = instance.primary_node
 
-    _StartInstanceDisks(self, instance, force)
+      _StartInstanceDisks(self, instance, force)
 
-    result = self.rpc.call_instance_start(node_current, instance,
-                                          self.op.hvparams, self.op.beparams)
-    msg = result.fail_msg
-    if msg:
-      _ShutdownInstanceDisks(self, instance)
-      raise errors.OpExecError("Could not start instance: %s" % msg)
+      result = self.rpc.call_instance_start(node_current, instance,
+                                            self.op.hvparams, self.op.beparams)
+      msg = result.fail_msg
+      if msg:
+        _ShutdownInstanceDisks(self, instance)
+        raise errors.OpExecError("Could not start instance: %s" % msg)
 
 
 class LURebootInstance(LogicalUnit):
@@ -4587,6 +4603,7 @@ class LUShutdownInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_PARAMS = [
     _PInstanceName,
+    _PIgnoreOfflineNodes,
     ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt),
     ]
   REQ_BGL = False
@@ -4614,7 +4631,14 @@ class LUShutdownInstance(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, self.instance.primary_node)
+
+    self.primary_offline = \
+      self.cfg.GetNodeInfo(self.instance.primary_node).offline
+
+    if self.primary_offline and self.op.ignore_offline_nodes:
+      self.proc.LogWarning("Ignoring offline primary node")
+    else:
+      _CheckNodeOnline(self, self.instance.primary_node)
 
   def Exec(self, feedback_fn):
     """Shutdown the instance.
@@ -4623,13 +4647,19 @@ class LUShutdownInstance(LogicalUnit):
     instance = self.instance
     node_current = instance.primary_node
     timeout = self.op.timeout
-    self.cfg.MarkInstanceDown(instance.name)
-    result = self.rpc.call_instance_shutdown(node_current, instance, timeout)
-    msg = result.fail_msg
-    if msg:
-      self.proc.LogWarning("Could not shutdown instance: %s" % msg)
 
-    _ShutdownInstanceDisks(self, instance)
+    self.cfg.MarkInstanceDown(instance.name)
+
+    if self.primary_offline:
+      assert self.op.ignore_offline_nodes
+      self.proc.LogInfo("Primary node offline, marked instance as stopped")
+    else:
+      result = self.rpc.call_instance_shutdown(node_current, instance, timeout)
+      msg = result.fail_msg
+      if msg:
+        self.proc.LogWarning("Could not shutdown instance: %s" % msg)
+
+      _ShutdownInstanceDisks(self, instance)
 
 
 class LUReinstallInstance(LogicalUnit):

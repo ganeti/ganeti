@@ -519,7 +519,7 @@ class OpStartupInstance(OpCode):
   OP_ID = "OP_INSTANCE_STARTUP"
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
-    "instance_name", "force", "hvparams", "beparams",
+    "instance_name", "force", "hvparams", "beparams", "ignore_offline_nodes",
     ]
 
 
@@ -527,7 +527,9 @@ class OpShutdownInstance(OpCode):
   """Shutdown an instance."""
   OP_ID = "OP_INSTANCE_SHUTDOWN"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name", "timeout"]
+  __slots__ = [
+    "instance_name", "timeout", "ignore_offline_nodes",
+    ]
 
 
 class OpRebootInstance(OpCode):

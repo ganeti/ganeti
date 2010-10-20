@@ -83,6 +83,7 @@ __all__ = [
   "IDENTIFY_DEFAULTS_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_FAILURES_OPT",
+  "IGNORE_OFFLINE_OPT",
   "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
@@ -584,6 +585,11 @@ FORCE_OPT = cli_option("-f", "--force", dest="force", action="store_true",
 
 CONFIRM_OPT = cli_option("--yes", dest="confirm", action="store_true",
                          default=False, help="Do not require confirmation")
+
+IGNORE_OFFLINE_OPT = cli_option("--ignore-offline", dest="ignore_offline",
+                                  action="store_true", default=False,
+                                  help=("Ignore offline nodes and do as much"
+                                        " as possible"))
 
 TAG_SRC_OPT = cli_option("--from", dest="tags_source",
                          default=None, help="File with tag names")
