@@ -363,13 +363,15 @@ def main():
   if qa_config.TestEnabled('tags'):
     RunTest(qa_tags.TestClusterTags)
 
-  if qa_config.TestEnabled('node-readd'):
-    master = qa_config.GetMasterNode()
-    pnode = qa_config.AcquireNode(exclude=master)
-    try:
+  pnode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
+  try:
+    if qa_config.TestEnabled('node-readd'):
       RunTest(qa_node.TestNodeReadd, pnode)
-    finally:
-      qa_config.ReleaseNode(pnode)
+
+    if qa_config.TestEnabled("node-modify"):
+      RunTest(qa_node.TestNodeModify, pnode)
+  finally:
+    qa_config.ReleaseNode(pnode)
 
   pnode = qa_config.AcquireNode()
   try:

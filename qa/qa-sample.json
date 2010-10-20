@@ -55,6 +55,7 @@
     "node-volumes": true,
     "node-readd": true,
     "node-storage": true,
+    "node-modify": true,
 
     "# This test needs at least three nodes": null,
     "node-evacuate": false,

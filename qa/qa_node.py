@@ -219,3 +219,20 @@ def TestNodeEvacuate(node, node2):
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
   finally:
     qa_config.ReleaseNode(node3)
+
+
+def TestNodeModify(node):
+  """gnt-node modify"""
+  master = qa_config.GetMasterNode()
+
+  for flag in ["master-candidate", "drained", "offline"]:
+    for value in ["yes", "no"]:
+      cmd = ["gnt-node", "modify", "--force",
+             "--%s=%s" % (flag, value), node["primary"]]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  cmd = ["gnt-node", "modify", "--master-candidate=yes", "--auto-promote",
+         node["primary"]]
+  AssertEqual(StartSSH(master["primary"],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
