@@ -8832,10 +8832,9 @@ class LUSetInstanceParams(LogicalUnit):
     if self.op.osparams:
       i_osdict = _GetUpdatedParams(instance.osparams, self.op.osparams)
       _CheckOSParams(self, True, nodelist, instance_os, i_osdict)
-      self.os_new = cluster.SimpleFillOS(instance_os, i_osdict)
       self.os_inst = i_osdict # the new dict (without defaults)
     else:
-      self.os_new = self.os_inst = {}
+      self.os_inst = {}
 
     self.warn = []
 
