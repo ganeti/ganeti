@@ -1287,6 +1287,34 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
   return device.unique_id
 
 
+def _WipeDevice(path):
+  """This function actually wipes the device.
+
+  @param path: The path to the device to wipe
+
+  """
+  result = utils.RunCmd("%s%s" % (constants.WIPE_CMD, utils.ShellQuote(path)))
+
+  if result.failed:
+    _Fail("Wipe command '%s' exited with error: %s; output: %s", result.cmd,
+          result.fail_reason, result.output)
+
+
+def BlockdevWipe(disk):
+  """Wipes a block device.
+
+  @type disk: L{objects.Disk}
+  @param disk: the disk object we want to wipe
+
+  """
+  try:
+    rdev = _RecursiveFindBD(disk)
+  except errors.BlockDeviceError, err:
+    _Fail("Cannot execute wipe for device %s: device not found", err)
+
+  _WipeDevice(rdev.dev_path)
+
+
 def BlockdevRemove(disk):
   """Remove a block device.
 
