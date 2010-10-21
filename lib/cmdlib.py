@@ -2456,7 +2456,7 @@ class LUSetClusterParams(LogicalUnit):
     ("maintain_node_health", None, ht.TMaybeBool),
     ("nicparams", None, ht.TOr(ht.TDict, ht.TNone)),
     ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone)),
-    ("default_iallocator", None, ht.TMaybeString),
+    ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone)),
     ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone)),
     ("hidden_os", None, ht.TOr(ht.TListOf(\
           ht.TAnd(ht.TList,
