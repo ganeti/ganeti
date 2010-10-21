@@ -176,6 +176,16 @@ AC_SUBST(CONFD_GROUP, $group_confd)
 AC_SUBST(MASTERD_GROUP, $group_masterd)
 AC_SUBST(DAEMONS_GROUP, $group_daemons)
 
+# --with-wipe-cmd=...
+AC_ARG_WITH([wipe-cmd],
+  [AS_HELP_STRING([--with-wipe-cmd=COMMAND],
+    [wipe command including all options. Path will be appended to this value]
+    [ (default is dd if=/dev/zero bs=1024k oflag=direct of=)]
+  )],
+  [wipe_cmd="${withval}"],
+  [wipe_cmd="dd if=/dev/zero bs=1024k oflag=direct of="])
+AC_SUBST(WIPE_CMD, $wipe_cmd)
+
 # Print the config to the user
 AC_MSG_NOTICE([Running ganeti-masterd as $group_masterd:$group_masterd])
 AC_MSG_NOTICE([Running ganeti-rapi as $user_rapi:$group_rapi])

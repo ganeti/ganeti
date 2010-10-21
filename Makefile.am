@@ -578,6 +578,7 @@ lib/_autoconf.py: Makefile stamp-directories vcs-version
 	  echo "CONFD_GROUP = '$(CONFD_GROUP)'"; \
 	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "VCS_VERSION = '$$VCSVER'"; \
+	  echo "WIPE_CMD = '$(WIPE_CMD)'"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile

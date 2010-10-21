@@ -95,6 +95,9 @@ CONFD_USER = _autoconf.CONFD_USER
 CONFD_GROUP = _autoconf.CONFD_GROUP
 NODED_USER = _autoconf.NODED_USER
 
+# Wipe
+WIPE_CMD = _autoconf.WIPE_CMD
+
 # file paths
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
 RUN_DIR = _autoconf.LOCALSTATEDIR + "/run"
