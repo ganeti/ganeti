@@ -442,7 +442,10 @@ def main():
             logging.warning("Host %s failed join check, forced to continue",
                             host)
           else:
-            raise JoinCheckError("Host %s failed join check" % host)
+            raise JoinCheckError(("Host %s failed join check; Please verify"
+                                  " that the host was not previously joined"
+                                  " to another cluster and use --force-join"
+                                  " to continue") % host)
         SetupSSH(transport)
       except errors.GenericError, err:
         logging.error("While doing setup on host %s an error occurred: %s",
