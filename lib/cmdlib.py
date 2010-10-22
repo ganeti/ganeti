@@ -4710,7 +4710,7 @@ class LUReinstallInstance(LogicalUnit):
       # OS verification
       pnode = _ExpandNodeName(self.cfg, instance.primary_node)
       _CheckNodeHasOS(self, pnode, self.op.os_type, self.op.force_variant)
-      instance_os = self.op.os_name
+      instance_os = self.op.os_type
     else:
       instance_os = instance.os
 
