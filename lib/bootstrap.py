@@ -602,11 +602,35 @@ def MasterFailover(no_voting=False):
 
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
+  try:
+    # instantiate a real config writer, as we now know we have the
+    # configuration data
+    cfg = config.ConfigWriter()
+
+    cluster_info = cfg.GetClusterInfo()
+    cluster_info.master_node = new_master
+    # this will also regenerate the ssconf files, since we updated the
+    # cluster info
+    cfg.Update(cluster_info, logging.error)
+  except errors.ConfigurationError, err:
+    logging.error("Error while trying to set the new master: %s",
+                  str(err))
+    return 1
+
+  # if cfg.Update worked, then it means the old master daemon won't be
+  # able now to write its own config file (we rely on locking in both
+  # backend.UploadFile() and ConfigWriter._Write(); hence the next
+  # step is to kill the old master
+
+  logging.info("Stopping the master daemon on node %s", old_master)
+
   result = rpc.RpcRunner.call_node_stop_master(old_master, True)
   msg = result.fail_msg
   if msg:
     logging.error("Could not disable the master role on the old master"
                  " %s, please disable manually: %s", old_master, msg)
+
+  logging.info("Checking master IP non-reachability...")
 
   master_ip = sstore.GetMasterIP()
   total_timeout = 30
@@ -622,15 +646,7 @@ def MasterFailover(no_voting=False):
                     " continuing but activating the master on the current"
                     " node will probably fail", total_timeout)
 
-  # instantiate a real config writer, as we now know we have the
-  # configuration data
-  cfg = config.ConfigWriter()
-
-  cluster_info = cfg.GetClusterInfo()
-  cluster_info.master_node = new_master
-  # this will also regenerate the ssconf files, since we updated the
-  # cluster info
-  cfg.Update(cluster_info, logging.error)
+  logging.info("Starting the master daemons on the new master")
 
   result = rpc.RpcRunner.call_node_start_master(new_master, True, no_voting)
   msg = result.fail_msg
@@ -639,6 +655,7 @@ def MasterFailover(no_voting=False):
                   " %s, please check: %s", new_master, msg)
     rcode = 1
 
+  logging.info("Master failed over from %s to %s", old_master, new_master)
   return rcode
 
 
