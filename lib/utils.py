@@ -1872,6 +1872,46 @@ def WriteFile(file_name, fn=None, data=None,
   return result
 
 
+def GetFileID(path=None, fd=None):
+  """Returns the file 'id', i.e. the dev/inode and mtime information.
+
+  Either the path to the file or the fd must be given.
+
+  @param path: the file path
+  @param fd: a file descriptor
+  @return: a tuple of (device number, inode number, mtime)
+
+  """
+  if [path, fd].count(None) != 1:
+    raise errors.ProgrammerError("One and only one of fd/path must be given")
+
+  if fd is None:
+    st = os.stat(path)
+  else:
+    st = os.fstat(fd)
+
+  return (st.st_dev, st.st_ino, st.st_mtime)
+
+
+def VerifyFileID(fi_disk, fi_ours):
+  """Verifies that two file IDs are matching.
+
+  Differences in the inode/device are not accepted, but and older
+  timestamp for fi_disk is accepted.
+
+  @param fi_disk: tuple (dev, inode, mtime) representing the actual
+      file data
+  @param fi_ours: tuple (dev, inode, mtime) representing the last
+      written file data
+  @rtype: boolean
+
+  """
+  (d1, i1, m1) = fi_disk
+  (d2, i2, m2) = fi_ours
+
+  return (d1, i1) == (d2, i2) and m1 <= m2
+
+
 def ReadOneLineFile(file_name, strict=False):
   """Return the first non-empty line from a file.
 

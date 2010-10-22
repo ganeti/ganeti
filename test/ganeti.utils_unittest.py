@@ -2356,5 +2356,24 @@ class TestFindMatch(unittest.TestCase):
     self.assert_(utils.FindMatch(data, "Hello World") is None)
 
 
+class TestFileID(testutils.GanetiTestCase):
+  def testEquality(self):
+    name = self._CreateTempFile()
+    oldi = utils.GetFileID(path=name)
+    self.failUnless(utils.VerifyFileID(oldi, oldi))
+
+  def testUpdate(self):
+    name = self._CreateTempFile()
+    oldi = utils.GetFileID(path=name)
+    os.utime(name, None)
+    fd = os.open(name, os.O_RDWR)
+    try:
+      newi = utils.GetFileID(fd=fd)
+      self.failUnless(utils.VerifyFileID(oldi, newi))
+      self.failUnless(utils.VerifyFileID(newi, oldi))
+    finally:
+      os.close(fd)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
