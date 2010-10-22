@@ -1699,8 +1699,9 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
   raw_data = _Decompress(data)
 
-  utils.WriteFile(file_name, data=raw_data, mode=mode, uid=uid, gid=gid,
-                  atime=atime, mtime=mtime)
+  utils.SafeWriteFile(file_name, None,
+                      data=raw_data, mode=mode, uid=uid, gid=gid,
+                      atime=atime, mtime=mtime)
 
 
 def WriteSsconfFiles(values):
