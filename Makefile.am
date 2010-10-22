@@ -138,6 +138,7 @@ pkgpython_PYTHON = \
 	lib/netutils.py \
 	lib/objects.py \
 	lib/opcodes.py \
+	lib/query.py \
 	lib/rpc.py \
 	lib/runtime.py \
 	lib/serializer.py \
@@ -442,6 +443,7 @@ python_tests = \
 	test/ganeti.netutils_unittest.py \
 	test/ganeti.objects_unittest.py \
 	test/ganeti.opcodes_unittest.py \
+	test/ganeti.query_unittest.py \
 	test/ganeti.rapi.client_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.rapi.rlib2_unittest.py \
