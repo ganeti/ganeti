@@ -2374,6 +2374,21 @@ class TestFileID(testutils.GanetiTestCase):
     finally:
       os.close(fd)
 
+  def testWriteFile(self):
+    name = self._CreateTempFile()
+    oldi = utils.GetFileID(path=name)
+    mtime = oldi[2]
+    os.utime(name, (mtime + 10, mtime + 10))
+    self.assertRaises(errors.LockError, utils.SafeWriteFile, name,
+                      oldi, data="")
+    os.utime(name, (mtime - 10, mtime - 10))
+    utils.SafeWriteFile(name, oldi, data="")
+    oldi = utils.GetFileID(path=name)
+    mtime = oldi[2]
+    os.utime(name, (mtime + 10, mtime + 10))
+    # this doesn't raise, since we passed None
+    utils.SafeWriteFile(name, None, data="")
+
 
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

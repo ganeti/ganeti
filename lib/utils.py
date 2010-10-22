@@ -1912,6 +1912,31 @@ def VerifyFileID(fi_disk, fi_ours):
   return (d1, i1) == (d2, i2) and m1 <= m2
 
 
+def SafeWriteFile(file_name, file_id, **kwargs):
+  """Wraper over L{WriteFile} that locks the target file.
+
+  By keeping the target file locked during WriteFile, we ensure that
+  cooperating writers will safely serialise access to the file.
+
+  @type file_name: str
+  @param file_name: the target filename
+  @type file_id: tuple
+  @param file_id: a result from L{GetFileID}
+
+  """
+  fd = os.open(file_name, os.O_RDONLY | os.O_CREAT)
+  try:
+    LockFile(fd)
+    if file_id is not None:
+      disk_id = GetFileID(fd=fd)
+      if not VerifyFileID(disk_id, file_id):
+        raise errors.LockError("Cannot overwrite file %s, it has been modified"
+                               " since last written" % file_name)
+    return WriteFile(file_name, **kwargs)
+  finally:
+    os.close(fd)
+
+
 def ReadOneLineFile(file_name, strict=False):
   """Return the first non-empty line from a file.
 
