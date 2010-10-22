@@ -453,7 +453,7 @@ class ConfigWriter:
       if [node.master_candidate, node.drained, node.offline].count(True) > 1:
         result.append("Node %s state is invalid: master_candidate=%s,"
                       " drain=%s, offline=%s" %
-                      (node.name, node.master_candidate, node.drain,
+                      (node.name, node.master_candidate, node.drained,
                        node.offline))
 
     # drbd minors check
