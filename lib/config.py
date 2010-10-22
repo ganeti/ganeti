@@ -155,6 +155,7 @@ class ConfigWriter:
     # file than after it was modified
     self._my_hostname = netutils.Hostname.GetSysName()
     self._last_cluster_serial = -1
+    self._cfg_id = None
     self._OpenConfig()
 
   # this method needs to be static, so that we can call it on the class
@@ -1320,6 +1321,8 @@ class ConfigWriter:
     # And finally run our (custom) config upgrade sequence
     self._UpgradeConfig()
 
+    self._cfg_id = utils.GetFileID(path=self._cfg_file)
+
   def _UpgradeConfig(self):
     """Run upgrade steps that cannot be done purely in the objects.
 
@@ -1430,7 +1433,17 @@ class ConfigWriter:
     txt = serializer.Dump(self._config_data.ToDict())
 
     getents = self._getents()
-    utils.WriteFile(destination, data=txt, gid=getents.confd_gid, mode=0640)
+    try:
+      fd = utils.SafeWriteFile(destination, self._cfg_id, data=txt,
+                               close=False, gid=getents.confd_gid, mode=0640)
+    except errors.LockError:
+      raise errors.ConfigurationError("The configuration file has been"
+                                      " modified since the last write, cannot"
+                                      " update")
+    try:
+      self._cfg_id = utils.GetFileID(fd=fd)
+    finally:
+      os.close(fd)
 
     self.write_count += 1
 
