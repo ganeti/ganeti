@@ -213,14 +213,19 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled('tags'):
     RunTest(qa_tags.TestInstanceTags, instance)
 
+  if qa_rapi.Enabled():
+    RunTest(qa_rapi.TestInstance, instance)
+
+
+def RunCommonNodeTests():
+  """Run a few common node tests.
+
+  """
   if qa_config.TestEnabled('node-volumes'):
     RunTest(qa_node.TestNodeVolumes)
 
   if qa_config.TestEnabled("node-storage"):
     RunTest(qa_node.TestNodeStorage)
-
-  if qa_rapi.Enabled():
-    RunTest(qa_rapi.TestInstance, instance)
 
 
 def RunExportImportTests(instance, pnode, snode):
@@ -362,6 +367,8 @@ def main():
 
   if qa_config.TestEnabled('tags'):
     RunTest(qa_tags.TestClusterTags)
+
+  RunCommonNodeTests()
 
   pnode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   try:
