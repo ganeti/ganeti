@@ -132,7 +132,8 @@ class ConfigWriter:
   @ivar _all_rms: a list of all temporary reservation managers
 
   """
-  def __init__(self, cfg_file=None, offline=False, _getents=runtime.GetEnts):
+  def __init__(self, cfg_file=None, offline=False, _getents=runtime.GetEnts,
+               accept_foreign=False):
     self.write_count = 0
     self._lock = _config_lock
     self._config_data = None
@@ -156,7 +157,7 @@ class ConfigWriter:
     self._my_hostname = netutils.Hostname.GetSysName()
     self._last_cluster_serial = -1
     self._cfg_id = None
-    self._OpenConfig()
+    self._OpenConfig(accept_foreign)
 
   # this method needs to be static, so that we can call it on the class
   @staticmethod
@@ -1291,7 +1292,7 @@ class ConfigWriter:
             self._config_data.nodegroups.values() +
             [self._config_data.cluster])
 
-  def _OpenConfig(self):
+  def _OpenConfig(self, accept_foreign):
     """Read the config data from disk.
 
     """
@@ -1309,6 +1310,13 @@ class ConfigWriter:
         not hasattr(data.cluster, 'rsahostkeypub')):
       raise errors.ConfigurationError("Incomplete configuration"
                                       " (missing cluster.rsahostkeypub)")
+
+    if data.cluster.master_node != self._my_hostname and not accept_foreign:
+      msg = ("The configuration denotes node %s as master, while my"
+             " hostname is %s; opening a foreign configuration is only"
+             " possible in accept_foreign mode" %
+             (data.cluster.master_node, self._my_hostname))
+      raise errors.ConfigurationError(msg)
 
     # Upgrade configuration if needed
     data.UpgradeConfig()

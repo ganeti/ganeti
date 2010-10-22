@@ -605,7 +605,7 @@ def MasterFailover(no_voting=False):
   try:
     # instantiate a real config writer, as we now know we have the
     # configuration data
-    cfg = config.ConfigWriter()
+    cfg = config.ConfigWriter(accept_foreign=True)
 
     cluster_info = cfg.GetClusterInfo()
     cluster_info.master_node = new_master
