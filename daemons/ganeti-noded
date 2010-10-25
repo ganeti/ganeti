@@ -184,6 +184,15 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.BlockdevCreate(bdev, size, owner, on_primary, info)
 
   @staticmethod
+  def perspective_blockdev_wipe(params):
+    """Wipe a block device.
+
+    """
+    bdev_s, offset, size = params
+    bdev = objects.Disk.FromDict(bdev_s)
+    return backend.BlockdevWipe(bdev, offset, size)
+
+  @staticmethod
   def perspective_blockdev_remove(params):
     """Remove a block device.
 

@@ -953,6 +953,16 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_create",
                                 [bdev.ToDict(), size, owner, on_primary, info])
 
+  @_RpcTimeout(_TMO_SLOW)
+  def call_blockdev_wipe(self, node, bdev, offset, size):
+    """Request wipe at given offset with given size of a block device.
+
+    This is a single-node call.
+
+    """
+    return self._SingleNodeCall(node, "blockdev_wipe",
+                                [bdev.ToDict(), offset, size])
+
   @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_remove(self, node, bdev):
     """Request removal of a given block device.
