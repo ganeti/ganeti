@@ -10185,7 +10185,6 @@ class IAllocator(object):
     i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
 
     # node data
-    node_results = {}
     node_list = cfg.GetNodeList()
 
     if self.mode == constants.IALLOCATOR_MODE_ALLOC:
@@ -10200,6 +10199,19 @@ class IAllocator(object):
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
                                        cluster_info.enabled_hypervisors)
+
+    data["nodes"] = self._ComputeNodeData(cfg, node_data, node_iinfo, i_list)
+
+    data["instances"] = self._ComputeInstanceData(cluster_info, i_list)
+
+    self.in_data = data
+
+  @staticmethod
+  def _ComputeNodeData(cfg, node_data, node_iinfo, i_list):
+    """Compute global node data.
+
+    """
+    node_results = {}
     for nname, nresult in node_data.items():
       # first fill in static (config-based) values
       ninfo = cfg.GetNodeInfo(nname)
@@ -10256,9 +10268,14 @@ class IAllocator(object):
         pnr.update(pnr_dyn)
 
       node_results[nname] = pnr
-    data["nodes"] = node_results
 
-    # instance data
+    return node_results
+
+  @staticmethod
+  def _ComputeInstanceData(cluster_info, i_list):
+    """Compute global instance data.
+
+    """
     instance_data = {}
     for iinfo, beinfo in i_list:
       nic_data = []
@@ -10288,9 +10305,7 @@ class IAllocator(object):
                                                  pir["disks"])
       instance_data[iinfo.name] = pir
 
-    data["instances"] = instance_data
-
-    self.in_data = data
+    return instance_data
 
   def _AddNewInstance(self):
     """Add new instance data to allocator structure.
