@@ -1287,32 +1287,50 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
   return device.unique_id
 
 
-def _WipeDevice(path):
+def _WipeDevice(path, offset, size):
   """This function actually wipes the device.
 
   @param path: The path to the device to wipe
+  @param offset: The offset in MiB in the file
+  @param size: The size in MiB to write
 
   """
-  result = utils.RunCmd("%s%s" % (constants.WIPE_CMD, utils.ShellQuote(path)))
+  cmd = [constants.DD_CMD, "if=/dev/zero", "seek=%d" % offset,
+         "bs=%d" % constants.WIPE_BLOCK_SIZE, "oflag=direct", "of=%s" % path,
+         "count=%d" % size]
+  result = utils.RunCmd(cmd)
 
   if result.failed:
     _Fail("Wipe command '%s' exited with error: %s; output: %s", result.cmd,
           result.fail_reason, result.output)
 
 
-def BlockdevWipe(disk):
+def BlockdevWipe(disk, offset, size):
   """Wipes a block device.
 
   @type disk: L{objects.Disk}
   @param disk: the disk object we want to wipe
+  @type offset: int
+  @param offset: The offset in MiB in the file
+  @type size: int
+  @param size: The size in MiB to write
 
   """
   try:
     rdev = _RecursiveFindBD(disk)
-  except errors.BlockDeviceError, err:
-    _Fail("Cannot execute wipe for device %s: device not found", err)
+  except errors.BlockDeviceError:
+    rdev = None
 
-  _WipeDevice(rdev.dev_path)
+  if not rdev:
+    _Fail("Cannot execute wipe for device %s: device not found", disk.iv_name)
+
+  # Do cross verify some of the parameters
+  if offset > rdev.size:
+    _Fail("Offset is bigger than device size")
+  if (offset + size) > rdev.size:
+    _Fail("The provided offset and size to wipe is bigger than device size")
+
+  _WipeDevice(rdev.dev_path, offset, size)
 
 
 def BlockdevRemove(disk):

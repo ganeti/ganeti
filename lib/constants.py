@@ -96,7 +96,8 @@ CONFD_GROUP = _autoconf.CONFD_GROUP
 NODED_USER = _autoconf.NODED_USER
 
 # Wipe
-WIPE_CMD = _autoconf.WIPE_CMD
+DD_CMD = "dd"
+WIPE_BLOCK_SIZE = 1024**2
 
 # file paths
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
