@@ -1995,8 +1995,9 @@ def OSEnvironment(instance, inst_os, debug=0):
   """
   result = OSCoreEnv(instance.os, inst_os, instance.osparams, debug=debug)
 
-  result['INSTANCE_NAME'] = instance.name
-  result['INSTANCE_OS'] = instance.os
+  for attr in ["name", "os", "uuid", "ctime", "mtime"]:
+    result["INSTANCE_%s" % attr.upper()] = str(getattr(instance, attr))
+
   result['HYPERVISOR'] = instance.hypervisor
   result['DISK_COUNT'] = '%d' % len(instance.disks)
   result['NIC_COUNT'] = '%d' % len(instance.nics)
