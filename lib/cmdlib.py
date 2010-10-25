@@ -6657,9 +6657,6 @@ class LUCreateInstance(LogicalUnit):
       self.op.instance_name = self.hostname1.name
       # used in CheckPrereq for ip ping check
       self.check_ip = self.hostname1.ip
-    elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
-      raise errors.OpPrereqError("Remote imports require names to be checked",
-                                 errors.ECODE_INVAL)
     else:
       self.check_ip = None
 
