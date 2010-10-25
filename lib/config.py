@@ -1079,7 +1079,7 @@ class ConfigWriter:
 
     node.serial_no = 1
     node.ctime = node.mtime = time.time()
-    self._UnlockedAddNodeToGroup(node.name, node.nodegroup)
+    self._UnlockedAddNodeToGroup(node.name, node.group)
     self._config_data.nodes[node.name] = node
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
@@ -1264,7 +1264,7 @@ class ConfigWriter:
       # when we're adding the first node to it, since we don't keep a lock in
       # the meantime. It's ok though, as we'll fail cleanly if the node group
       # is not found anymore.
-      raise errors.OpExecError("Unknown nodegroup: %s" % nodegroup_uuid)
+      raise errors.OpExecError("Unknown node group: %s" % nodegroup_uuid)
     if node_name not in self._config_data.nodegroups[nodegroup_uuid].members:
       self._config_data.nodegroups[nodegroup_uuid].members.append(node_name)
 
@@ -1272,13 +1272,13 @@ class ConfigWriter:
     """Remove a given node from its group.
 
     """
-    nodegroup = node.nodegroup
+    nodegroup = node.group
     if nodegroup not in self._config_data.nodegroups:
-      logging.warning("Warning: node '%s' has a non-existing nodegroup '%s'"
+      logging.warning("Warning: node '%s' has unknown node group '%s'"
                       " (while being removed from it)", node.name, nodegroup)
     nodegroup_obj = self._config_data.nodegroups[nodegroup]
     if node.name not in nodegroup_obj.members:
-      logging.warning("Warning: node '%s' not a member of its nodegroup '%s'"
+      logging.warning("Warning: node '%s' not a member of its node group '%s'"
                       " (while being removed from it)", node.name, nodegroup)
     else:
       nodegroup_obj.members.remove(node.name)
@@ -1366,14 +1366,14 @@ class ConfigWriter:
       self._config_data.nodegroups[default_nodegroup_uuid] = default_nodegroup
       modified = True
     for node in self._config_data.nodes.values():
-      if not node.nodegroup:
-        node.nodegroup = self.LookupNodeGroup(None)
+      if not node.group:
+        node.group = self.LookupNodeGroup(None)
         modified = True
       # This is technically *not* an upgrade, but needs to be done both when
       # nodegroups are being added, and upon normally loading the config,
       # because the members list of a node group is discarded upon
       # serializing/deserializing the object.
-      self._UnlockedAddNodeToGroup(node.name, node.nodegroup)
+      self._UnlockedAddNodeToGroup(node.name, node.group)
     if modified:
       self._WriteConfig()
       # This is ok even if it acquires the internal lock, as _UpgradeConfig is

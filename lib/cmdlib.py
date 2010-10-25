@@ -3568,7 +3568,7 @@ class LUAddNode(LogicalUnit):
     ("primary_ip", None, ht.NoType),
     ("secondary_ip", None, ht.TMaybeString),
     ("readd", False, ht.TBool),
-    ("nodegroup", None, ht.TMaybeString)
+    ("group", None, ht.TMaybeString)
     ]
 
   def CheckArguments(self):
@@ -3577,8 +3577,8 @@ class LUAddNode(LogicalUnit):
     self.hostname = netutils.GetHostname(name=self.op.node_name,
                                          family=self.primary_ip_family)
     self.op.node_name = self.hostname.name
-    if self.op.readd and self.op.nodegroup:
-      raise errors.OpPrereqError("Cannot pass a nodegroup when a node is"
+    if self.op.readd and self.op.group:
+      raise errors.OpPrereqError("Cannot pass a node group when a node is"
                                  " being readded", errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
@@ -3694,13 +3694,13 @@ class LUAddNode(LogicalUnit):
       self.new_node = self.cfg.GetNodeInfo(node)
       assert self.new_node is not None, "Can't retrieve locked node %s" % node
     else:
-      nodegroup = cfg.LookupNodeGroup(self.op.nodegroup)
+      node_group = cfg.LookupNodeGroup(self.op.group)
       self.new_node = objects.Node(name=node,
                                    primary_ip=primary_ip,
                                    secondary_ip=secondary_ip,
                                    master_candidate=self.master_candidate,
                                    offline=False, drained=False,
-                                   nodegroup=nodegroup)
+                                   group=node_group)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.

@@ -939,7 +939,7 @@ class Node(TaggableObject):
     "master_candidate",
     "offline",
     "drained",
-    "nodegroup",
+    "group",
     ] + _TIMESTAMPS + _UUID
 
 

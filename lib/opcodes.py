@@ -363,11 +363,13 @@ class OpAddNode(OpCode):
                name is already in the cluster; use this parameter to 'repair'
                a node that had its configuration broken, or was reinstalled
                without removal from the cluster.
+  @type group: C{str}
+  @ivar group: The node group to which this node will belong.
 
   """
   OP_ID = "OP_NODE_ADD"
   OP_DSC_FIELD = "node_name"
-  __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd", "nodegroup"]
+  __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd", "group"]
 
 
 class OpQueryNodes(OpCode):

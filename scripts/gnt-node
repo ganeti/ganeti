@@ -214,7 +214,7 @@ def AddNode(opts, args):
   bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
 
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=sip,
-                         readd=opts.readd, nodegroup=opts.nodegroup)
+                         readd=opts.readd, group=opts.nodegroup)
   SubmitOpCode(op, opts=opts)
 
 
