@@ -10200,11 +10200,23 @@ class IAllocator(object):
       self.rpc.call_all_instances_info(node_list,
                                        cluster_info.enabled_hypervisors)
 
+    data["nodegroups"] = self._ComputeNodeGroupData(cfg)
+
     data["nodes"] = self._ComputeNodeData(cfg, node_data, node_iinfo, i_list)
 
     data["instances"] = self._ComputeInstanceData(cluster_info, i_list)
 
     self.in_data = data
+
+  @staticmethod
+  def _ComputeNodeGroupData(cfg):
+    """Compute node groups data.
+
+    """
+    ng = {}
+    for guuid, gdata in cfg.GetAllNodeGroupsInfo().items():
+      ng[guuid] = { "name": gdata.name }
+    return ng
 
   @staticmethod
   def _ComputeNodeData(cfg, node_data, node_iinfo, i_list):

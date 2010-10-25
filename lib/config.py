@@ -876,6 +876,13 @@ class ConfigWriter:
         return nodegroup.uuid
     raise errors.OpPrereqError("Nodegroup '%s' not found", target)
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetAllNodeGroupsInfo(self):
+    """Get the configuration of all node groups.
+
+    """
+    return dict(self._config_data.nodegroups)
+
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):
     """Add an instance to the config.
