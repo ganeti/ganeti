@@ -18,8 +18,8 @@ rebalance the cluster.
 **Quick start** (see the installation section for more details):
 
 - (have the ghc compiler and the prerequisite libraries installed)
-- make
-- ./hbal -m $cluster -C -p
+- ``make``
+- ``./hbal -m $cluster -C -p``
 - look at the original and final cluster layout, and if acceptable,
   execute the given commands
 
@@ -35,7 +35,7 @@ cluster as equal as possible in their resource usage. It tries to
 repeatedly move each instance one step, so that the cluster score
 becomes better. We stop when no further move can improve the score.
 
-For algorithm details and usage, see the man page hbal(1).
+For algorithm details and usage, see the man page ``hbal(1)``.
 
 IAllocator plugin
 ~~~~~~~~~~~~~~~~~
@@ -46,7 +46,7 @@ needs to be installed in Ganeti's iallocator search path—usually
 ``/usr/lib/ganeti/iallocators`` or
 ``/usr/local/lib/ganeti/iallocators``, and after that it can be used via
 ganeti's ``--iallocator`` option (in various gnt-node/gnt-instance
-commands). See the man page hail(1) for more details.
+commands). See the man page ``hail(1)`` for more details.
 
 Cluster capacity estimator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,12 +88,13 @@ If installing from source, you need a working ghc compiler (6.8 at
 least) and some extra Haskell libraries which usually need to be
 installed manually:
 
-- json (http://hackage.haskell.org/package/json)
-- curl (http://hackage.haskell.org/package/curl)
-- network (http://hackage.haskell.org/package/network)
+- `json <http://hackage.haskell.org/package/json>`_
+- `curl <http://hackage.haskell.org/package/curl>`_
+- `network <http://hackage.haskell.org/package/network>`_
 
 Once these are installed, just typing *make* in the top-level directory
-should be enough.
+should be enough. If you edit the documentation sources, you will need
+the ``pandoc`` program to rebuilt it.
 
 Only the ``hail`` program needs to be installed in a specific place, the
 other tools are not location-dependent.

@@ -1,4 +1,5 @@
 HPROGS = hbal hscan hail hspace
+MANS = $(HPROGS:%=man/%.1)
 HALLPROGS = $(HPROGS) test
 HSRCS := $(wildcard Ganeti/HTools/*.hs) $(wildcard Ganeti/*.hs)
 HDDIR = apidoc
@@ -13,7 +14,8 @@ HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
 
 # Haskell rules
 
-all: $(HPROGS)
+all: $(HPROGS) $(MANS)
+
 
 $(HALLPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
 	$(GHC) --make $(HFLAGS) $(HEXTRA) $@
@@ -23,7 +25,10 @@ test live-test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-missing-methods -fno-warn-unused-imports
 
 $(DOCS) : %.html : %
-	rst2html -v --strict $< $@
+	pandoc -f rst -t html -o $@ $<
+
+%.1: %.rst
+	pandoc -s -f rst -t man -o $@ $<
 
 doc: $(DOCS) Ganeti/HTools/Version.hs
 	rm -rf $(HDDIR)/*
@@ -72,7 +77,7 @@ dist: regen-version Ganeti/HTools/Version.hs doc
 	rm -f $$ANAME $$ANAME.gz ; \
 	git archive --format=tar --prefix=$$PFX/ HEAD > $$ANAME ; \
 	tar -r -f $$ANAME --owner root --group root \
-	    --transform="s,^,$$PFX/," version apidoc $(DOCS) ; \
+	    --transform="s,^,$$PFX/," version apidoc $(DOCS) $(MANS); \
 	gzip -v9 $$ANAME ; \
 	TMPDIR=$$(mktemp -d) ; \
 	tar xzf $$ANAME.gz -C $$TMPDIR; \

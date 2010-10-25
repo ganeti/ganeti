@@ -2,6 +2,10 @@
 /.hpc
 /coverage
 
+/man/*.1
+
+/doc/*.html
+
 *.o
 *.patch
 *.diff
