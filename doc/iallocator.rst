@@ -239,6 +239,9 @@ nodes
   i_pri_up_memory:
     total memory required by running primary instances
 
+  group:
+    the node group that this node belongs to
+
   No allocations should be made on nodes having either the ``drained``
   or ``offline`` flags set. More details about these of node status
   flags is available in the manpage :manpage:`ganeti(7)`.

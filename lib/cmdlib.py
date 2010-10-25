@@ -10234,6 +10234,7 @@ class IAllocator(object):
         "offline": ninfo.offline,
         "drained": ninfo.drained,
         "master_candidate": ninfo.master_candidate,
+        "group": ninfo.group,
         }
 
       if not (ninfo.offline or ninfo.drained):
