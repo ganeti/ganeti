@@ -6287,6 +6287,58 @@ def _GetInstanceInfoText(instance):
   return "originstname+%s" % instance.name
 
 
+def _CalcEta(time_taken, written, total_size):
+  """Calculates the ETA based on size written and total size.
+
+  @param time_taken: The time taken so far
+  @param written: amount written so far
+  @param total_size: The total size of data to be written
+  @return: The remaining time in seconds
+
+  """
+  avg_time = time_taken / float(written)
+  return (total_size - written) * avg_time
+
+
+def _WipeDisks(lu, instance):
+  """Wipes instance disks.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance whose disks we should create
+  @return: the success of the wipe
+
+  """
+  node = instance.primary_node
+  for idx, device in enumerate(instance.disks):
+    lu.LogInfo("* Wiping disk %d", idx)
+    logging.info("Wiping disk %d for instance %s", idx, instance.name)
+
+    # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
+    # MAX_WIPE_CHUNK at max
+    wipe_chunk_size = min(constants.MAX_WIPE_CHUNK, device.size / 100.0 *
+                          constants.MIN_WIPE_CHUNK_PERCENT)
+
+    offset = 0
+    size = device.size
+    last_output = 0
+    start_time = time.time()
+
+    while offset < size:
+      wipe_size = min(wipe_chunk_size, size - offset)
+      result = lu.rpc.call_blockdev_wipe(node, device, offset, wipe_size)
+      result.Raise("Could not wipe disk %d at offset %d for size %d" %
+                   (idx, offset, wipe_size))
+      now = time.time()
+      offset += wipe_size
+      if now - last_output >= 60:
+        eta = _CalcEta(now - start_time, offset, size)
+        lu.LogInfo(" - done: %.1f%% ETA: %s" %
+                   (offset / float(size) * 100, utils.FormatSeconds(eta)))
+        last_output = now
+
+
 def _CreateDisks(lu, instance, to_skip=None, target_node=None):
   """Create all disks for an instance.
 
@@ -7260,6 +7312,18 @@ class LUCreateInstance(LogicalUnit):
         finally:
           self.cfg.ReleaseDRBDMinors(instance)
           raise
+
+      if self.cfg.GetClusterInfo().prealloc_wipe_disks:
+        feedback_fn("* wiping instance disks...")
+        try:
+          _WipeDisks(self, iobj)
+        except errors.OpExecError:
+          self.LogWarning("Device wiping failed, reverting...")
+          try:
+            _RemoveDisks(self, iobj)
+          finally:
+            self.cfg.ReleaseDRBDMinors(instance)
+            raise
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
