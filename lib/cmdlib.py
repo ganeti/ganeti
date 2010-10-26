@@ -3197,7 +3197,8 @@ class LUQueryNodes(NoHooksLU):
   REQ_BGL = False
 
   _SIMPLE_FIELDS = ["name", "serial_no", "ctime", "mtime", "uuid",
-                    "master_candidate", "offline", "drained"]
+                    "master_candidate", "offline", "drained",
+                    "master_capable", "vm_capable"]
 
   _FIELDS_DYNAMIC = utils.FieldSet(
     "dtotal", "dfree",
@@ -10244,6 +10245,8 @@ class IAllocator(object):
         "drained": ninfo.drained,
         "master_candidate": ninfo.master_candidate,
         "group": ninfo.group,
+        "master_capable": ninfo.master_capable,
+        "vm_capable": ninfo.vm_capable,
         }
 
       if not (ninfo.offline or ninfo.drained):

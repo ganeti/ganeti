@@ -77,7 +77,8 @@ _LIST_HEADERS = {
   "master": "IsMaster",
   "offline": "Offline", "drained": "Drained",
   "role": "Role",
-  "ctime": "CTime", "mtime": "MTime", "uuid": "UUID"
+  "ctime": "CTime", "mtime": "MTime", "uuid": "UUID",
+  "master_capable": "MasterCapable", "vm_capable": "VMCapable",
   }
 
 
@@ -251,7 +252,8 @@ def ListNodes(opts, args):
       val = row[idx]
       if field in list_type_fields:
         val = ",".join(val)
-      elif field in ('master', 'master_candidate', 'offline', 'drained'):
+      elif field in ('master', 'master_candidate', 'offline', 'drained',
+                     'master_capable', 'vm_capable'):
         if val:
           val = 'Y'
         else:

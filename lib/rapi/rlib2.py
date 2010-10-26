@@ -69,6 +69,7 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "ctotal", "cnodes", "csockets",
             "pip", "sip", "role",
             "pinst_list", "sinst_list",
+            "master_capable", "vm_capable",
             ] + _COMMON_FIELDS
 
 _NR_DRAINED = "drained"

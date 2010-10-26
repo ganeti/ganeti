@@ -524,6 +524,18 @@
               </para>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>master_capable</term>
+            <listitem>
+              <para>whether the node can become a master candidate</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>vm_capable</term>
+            <listitem>
+              <para>whether the node can host instances</para>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </para>
 
