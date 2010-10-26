@@ -626,6 +626,7 @@
         <arg>--master-candidate=<option>yes|no</option></arg>
         <arg>--drained=<option>yes|no</option></arg>
         <arg>--offline=<option>yes|no</option></arg>
+        <arg>--master-capable=<option>yes|no</option></arg>
         <arg>--auto-promote</arg>
         <arg choice="req"><replaceable>node</replaceable></arg>
       </cmdsynopsis>
@@ -634,8 +635,8 @@
         This command changes the role of the node. Each options takes
         either a literal <literal>yes</literal> or
         <literal>no</literal>, and only one option should be given as
-        <literal>yes</literal>. The meaning of the roles are described
-        in the manpage <citerefentry>
+        <literal>yes</literal>. The meaning of the roles and flags are
+        described in the manpage <citerefentry>
         <refentrytitle>ganeti</refentrytitle> <manvolnum>7</manvolnum>
         </citerefentry>.
       </para>

@@ -659,6 +659,7 @@ def SetNodeParams(opts, args):
                                master_candidate=opts.master_candidate,
                                offline=opts.offline,
                                drained=opts.drained,
+                               master_capable=opts.master_capable,
                                force=opts.force,
                                auto_promote=opts.auto_promote)
 
@@ -710,7 +711,7 @@ commands = {
     (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
   'modify': (
     SetNodeParams, ARGS_ONE_NODE,
-    [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
+    [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT, CAPAB_MASTER_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name>", "Alters the parameters of a node"),
   'powercycle': (
