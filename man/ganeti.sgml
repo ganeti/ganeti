@@ -147,6 +147,39 @@
     </refsect2>
 
     <refsect2>
+      <title>Node flags</title>
+
+      <para>Nodes have two flags which govern which roles they can take:
+        <variablelist>
+          <varlistentry>
+            <term>master_capable</term>
+            <listitem>
+              <para>
+                The node can become a master candidate, and
+                furthermore the master node. When this flag is
+                disabled, the node cannot become a candidate; this can
+                be useful for special networking cases, or less
+                reliable hardware.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>vm_capable</term>
+            <listitem>
+              <para>
+                The node can host instances. When enabled (the default
+                state), the node will participate in instance
+                allocation, capacity calculation, etc. When disabled,
+                the node will be skipped in many cluster checks and
+                operations.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>Cluster configuration</title>
 
       <para>The master node keeps and is responsible for the cluster

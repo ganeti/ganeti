@@ -78,6 +78,22 @@ Depending on the role, each node will run a set of daemons:
 - the :command:`ganeti-masterd` daemon which runs on the master node and
   allows control of the cluster
 
+Beside the node role, there are other node flags that influence its
+behaviour:
+
+- the *master_capable* flag denotes whether the node can ever become a
+  master candidate; setting this to 'no' means that auto-promotion will
+  never make this node a master candidate; this flag can be useful for a
+  remote node that only runs local instances, and having it become a
+  master is impractical due to networking or other constraints
+- the *vm_capable* flag denotes whether the node can host instances or
+  not; for example, one might use a non-vm_capable node just as a master
+  candidate, for configuration backups; setting this flag to no
+  disallows placement of instances of this node, deactivates hypervisor
+  and related checks on it (e.g. bridge checks, LVM check, etc.), and
+  removes it from cluster capacity computations
+
+
 Instance
 ~~~~~~~~
 

@@ -487,6 +487,48 @@ Also note that the node group information is provided just
 informationally, not for allocation decisions.
 
 
+Node flags
+----------
+
+Current state and shortcomings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently all nodes are, from the point of view of their capabilities,
+homogeneous. This means the cluster considers all nodes capable of
+becoming master candidates, and of hosting instances.
+
+This prevents some deployment scenarios: e.g. having a Ganeti instance
+(in another cluster) be just a master candidate, in case all other
+master candidates go down (but not, of course, host instances), or
+having a node in a remote location just host instances but not become
+master, etc.
+
+Proposed changes
+~~~~~~~~~~~~~~~~
+
+Two new capability flags will be added to the node:
+
+- master_capable, denoting whether the node can become a master
+  candidate or master
+- vm_capable, denoting whether the node can host instances
+
+In terms of the other flags, master_capable is a stronger version of
+"not master candidate", and vm_capable is a stronger version of
+"drained".
+
+For the master_capable flag, it will affect auto-promotion code and node
+modifications.
+
+The vm_capable flag will affect the iallocator protocol, capacity
+calculations, node checks in cluster verify, and will interact in novel
+ways with locking (unfortunately).
+
+It is envisaged that most nodes will be both vm_capable and
+master_capable, and just a few will have one of these flags
+removed. Ganeti itself will allow clearing of both flags, even though
+this doesn't make much sense currently.
+
+
 Job priorities
 --------------
 
