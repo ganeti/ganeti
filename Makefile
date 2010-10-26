@@ -25,10 +25,10 @@ test live-test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-missing-methods -fno-warn-unused-imports
 
 $(DOCS) : %.html : %
-	pandoc -f rst -t html -o $@ $<
+	LANG=en_US.UTF-8 pandoc -f rst -t html -o $@ $<
 
 %.1: %.rst
-	pandoc -s -f rst -t man -o $@ $<
+	LANG=en_US.UTF-8 pandoc -s -f rst -t man -o $@ $<
 
 doc: $(DOCS) Ganeti/HTools/Version.hs
 	rm -rf $(HDDIR)/*
