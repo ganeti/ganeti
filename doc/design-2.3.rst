@@ -33,7 +33,7 @@ set of machines, each connected to its own switch, the internal bandwidth
 between machines connected to the same switch might be bigger than the
 bandwidth for inter-switch connections.
 
-Moreover some operations inside a cluster require all nodes to be locked
+Moreover, some operations inside a cluster require all nodes to be locked
 together for inter-node consistency, and won't scale if we increase the
 number of nodes to a few hundreds.
 
@@ -41,15 +41,15 @@ Proposed changes
 ~~~~~~~~~~~~~~~~
 
 With this change we'll divide Ganeti nodes into groups. Nothing will
-change for clusters with only one node group, the default one. Bigger
-cluster instead will be able to have more than one group, and each node
-will belong to exactly one.
+change for clusters with only one node group. Bigger clusters will be
+able to have more than one group, and each node will belong to exactly
+one.
 
 Node group management
 +++++++++++++++++++++
 
 To manage node groups and the nodes belonging to them, the following new
-commands/flags will be introduced::
+commands and flags will be introduced::
 
   gnt-node group-add <group> # add a new node group
   gnt-node group-del <group> # delete an empty group
@@ -76,11 +76,11 @@ we envision the following changes:
   - Moving an instance between groups can only happen via an explicit
     operation, which for example in the case of DRBD will work by
     performing internally a replace-disks, a migration, and a second
-    replace-disks. It will be possible to cleanup an interrupted
+    replace-disks. It will be possible to clean up an interrupted
     group-move operation.
   - Cluster verify will signal an error if an instance has been left
     mid-transition between groups.
-  - Intra-group instance migration/failover will check that the target
+  - Inter-group instance migration/failover will check that the target
     group will be able to accept the instance network/storage wise, and
     fail otherwise. In the future we may be able to make some parameter
     changed during the move, but in the first version we expect an
@@ -99,7 +99,7 @@ Internal changes
 We expect the following changes for cluster management:
 
   - Frequent multinode operations, such as os-diagnose or cluster-verify
-    will act one group at a time. The default group will be used if none
+    will act on one group at a time. The default group will be used if none
     is passed. Command line tools will have a way to easily target all
     groups, by generating one job per group.
   - Groups will have a human-readable name, but will internally always
@@ -132,7 +132,7 @@ implementation, but we expect this to be easy to add in a future version
 should we see it's useful.
 
 We envision groups as a good place to enhance cluster scalability. In
-the future we may want to use them ad units for configuration diffusion,
+the future we may want to use them as units for configuration diffusion,
 to allow a better master scalability. For example it could be possible
 to change some all-nodes RPCs to contact each group once, from the
 master, and make one node in the group perform internal diffusion. We
@@ -195,14 +195,14 @@ main ideas:
 - the total node memory, CPU count are very seldom changing; the total
   node disk space is also slow changing, but can change at runtime; the
   free memory and free disk will change significantly for some jobs, but
-  on a short timescale; in general, these values will mostly “constant”
+  on a short timescale; in general, these values will be mostly “constant”
   during the lifetime of a job
 - we already have a periodic set of jobs that query the node and
   instance state, driven the by :command:`ganeti-watcher` command, and
   we're just discarding the results after acting on them
 
-Given the above, it makes sense to cache inside the master daemon the
-results of node and instance state (with a focus on the node state).
+Given the above, it makes sense to cache the results of node and instance
+state (with a focus on the node state) inside the master daemon.
 
 The cache will not be serialised to disk, and will be for the most part
 transparent to the outside of the master daemon.
@@ -228,7 +228,7 @@ The cache will be updated whenever a query for a node state returns
 consistent). Partial results will not update the cache (see next
 paragraph).
 
-Since the there will be no way to feed the cache from outside, and we
+Since there will be no way to feed the cache from outside, and we
 would like to have a consistent cache view when driven by the watcher,
 we'll introduce a new OpCode/LU for the watcher to run, instead of the
 current separate opcodes (see below in the watcher section).
@@ -278,7 +278,7 @@ parts of the cluster. This is important as we need to separate
 allocation on one group from exclusive blocking jobs on other node
 groups.
 
-The capacity calculations will also use the cache—this is detailed in
+The capacity calculations will also use the cache. This is detailed in
 the respective sections.
 
 Watcher operation
@@ -406,7 +406,7 @@ will get a new method called ``capacity``.
 
 This method will feed the cluster state (for the complete set of node
 group, or alternative just a subset) to the iallocator plugin (either
-the specified one, or the default is none is specified), and return the
+the specified one, or the default if none is specified), and return the
 new capacity in the format currently exported by the htools suite and
 known as the “tiered specs” (see :manpage:`hspace(1)`).
 
