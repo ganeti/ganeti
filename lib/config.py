@@ -1198,7 +1198,7 @@ class ConfigWriter:
     for node in self._config_data.nodes.values():
       if exceptions and node.name in exceptions:
         continue
-      if not (node.offline or node.drained):
+      if not (node.offline or node.drained) and node.master_capable:
         mc_max += 1
       if node.master_candidate:
         mc_now += 1
@@ -1239,7 +1239,7 @@ class ConfigWriter:
           break
         node = self._config_data.nodes[name]
         if (node.master_candidate or node.offline or node.drained or
-            node.name in exceptions):
+            node.name in exceptions or not node.master_capable):
           continue
         mod_list.append(node)
         node.master_candidate = True

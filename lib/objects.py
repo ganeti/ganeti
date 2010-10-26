@@ -940,7 +940,21 @@ class Node(TaggableObject):
     "offline",
     "drained",
     "group",
+    "master_capable",
+    "vm_capable",
     ] + _TIMESTAMPS + _UUID
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    # pylint: disable-msg=E0203
+    # because these are "defined" via slots, not manually
+    if self.master_capable is None:
+      self.master_capable = True
+
+    if self.vm_capable is None:
+      self.vm_capable = True
 
 
 class NodeGroup(ConfigObject):

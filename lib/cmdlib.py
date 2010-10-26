@@ -3703,6 +3703,8 @@ class LUAddNode(LogicalUnit):
                                    primary_ip=primary_ip,
                                    secondary_ip=secondary_ip,
                                    master_candidate=self.master_candidate,
+                                   master_capable=True,
+                                   vm_capable=True,
                                    offline=False, drained=False,
                                    group=node_group)
 
