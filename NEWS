@@ -1,6 +1,14 @@
 News
 ====
 
+Version 2.3 rc0
+---------------
+
+*(unreleased)*
+
+- Adding instance disk wipe prior allocation. This is a cluster wide
+  option and can be set/modified using --prealloc-wipe-disks.
+
 Version 2.2.1
 -------------
 
