@@ -318,6 +318,7 @@ class OpSetClusterParams(OpCode):
     "reserved_lvs",
     "hidden_os",
     "blacklisted_os",
+    "prealloc_wipe_disks",
     ]
 
 

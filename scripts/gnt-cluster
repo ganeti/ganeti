@@ -42,11 +42,6 @@ from ganeti import objects
 from ganeti import uidpool
 from ganeti import compat
 
-PREALLOC_WIPE_DISKS_OPT = cli_option("--prealloc-wipe-disks", default=False,
-                                     action="store_true",
-                                     dest="prealloc_wipe_disks",
-                                     help=("Wipe disks prior to instance"
-                                           " creation"))
 
 @UsesRPC
 def InitCluster(opts, args):
@@ -109,6 +104,9 @@ def InitCluster(opts, args):
   uid_pool = opts.uid_pool
   if uid_pool is not None:
     uid_pool = uidpool.ParseUidPool(uid_pool)
+
+  if opts.prealloc_wipe_disks is None:
+    opts.prealloc_wipe_disks = False
 
   try:
     primary_ip_version = int(opts.primary_ip_version)
@@ -716,7 +714,8 @@ def SetClusterParams(opts, args):
           opts.add_uids is not None or
           opts.remove_uids is not None or
           opts.default_iallocator is not None or
-          opts.reserved_lvs is not None):
+          opts.reserved_lvs is not None or
+          opts.prealloc_wipe_disks is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -785,6 +784,7 @@ def SetClusterParams(opts, args):
                                   add_uids=add_uids,
                                   remove_uids=remove_uids,
                                   default_iallocator=opts.default_iallocator,
+                                  prealloc_wipe_disks=opts.prealloc_wipe_disks,
                                   reserved_lvs=opts.reserved_lvs)
   SubmitOpCode(op, opts=opts)
   return 0
@@ -945,7 +945,7 @@ commands = {
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
      NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

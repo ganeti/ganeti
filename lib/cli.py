@@ -125,6 +125,7 @@ __all__ = [
   "OSPARAMS_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
+  "PREALLOC_WIPE_DISKS_OPT",
   "PRIMARY_IP_VERSION_OPT",
   "PRIORITY_OPT",
   "RAPI_CERT_OPT",
@@ -1081,6 +1082,12 @@ HID_OS_OPT = cli_option("--hidden", dest="hidden",
 BLK_OS_OPT = cli_option("--blacklisted", dest="blacklisted",
                         type="bool", default=None, metavar=_YORNO,
                         help="Sets the blacklisted flag on the OS")
+
+PREALLOC_WIPE_DISKS_OPT = cli_option("--prealloc-wipe-disks", default=None,
+                                     type="bool", metavar=_YORNO,
+                                     dest="prealloc_wipe_disks",
+                                     help=("Wipe disks prior to instance"
+                                           " creation"))
 
 
 #: Options provided by all commands

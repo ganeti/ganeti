@@ -258,7 +258,7 @@
         <sbr>
         <arg>--primary-ip-version <replaceable>version</replaceable></arg>
         <sbr>
-        <arg>--prealloc-wipe-disks</arg>
+        <arg>--prealloc-wipe-disks <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
         <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
@@ -658,6 +658,8 @@
         <sbr>
         <arg>--maintain-node-health <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
         <sbr>
+        <arg choice="opt">--prealloc-wipe-disks <group choice="req"><arg>yes</arg><arg>no</arg></group></arg>
+        <sbr>
         <arg choice="opt">-I <replaceable>default instance allocator</replaceable></arg>
 
         <sbr>
@@ -676,6 +678,7 @@
           <option>--backend-parameters</option>,
           <option>--nic-parameters</option>,
           <option>--maintain-node-health</option>,
+          <option>--prealloc-wipe-disks</option>,
           <option>--uid-pool</option> options are described in
           the <command>init</command> command.
         </para>

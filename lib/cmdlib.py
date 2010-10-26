@@ -2454,6 +2454,7 @@ class LUSetClusterParams(LogicalUnit):
     ("add_uids", None, ht.NoType),
     ("remove_uids", None, ht.NoType),
     ("maintain_node_health", None, ht.TMaybeBool),
+    ("prealloc_wipe_disks", None, ht.TMaybeBool),
     ("nicparams", None, ht.TOr(ht.TDict, ht.TNone)),
     ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone)),
     ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone)),
@@ -2725,6 +2726,9 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.maintain_node_health is not None:
       self.cluster.maintain_node_health = self.op.maintain_node_health
+
+    if self.op.prealloc_wipe_disks is not None:
+      self.cluster.prealloc_wipe_disks = self.op.prealloc_wipe_disks
 
     if self.op.add_uids is not None:
       uidpool.AddToUidPool(self.cluster.uid_pool, self.op.add_uids)
