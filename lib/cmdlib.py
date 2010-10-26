@@ -3814,6 +3814,7 @@ class LUSetNodeParams(LogicalUnit):
     ("offline", None, ht.TMaybeBool),
     ("drained", None, ht.TMaybeBool),
     ("auto_promote", False, ht.TBool),
+    ("master_capable", None, ht.TMaybeBool),
     _PForce,
     ]
   REQ_BGL = False
@@ -3829,7 +3830,8 @@ class LUSetNodeParams(LogicalUnit):
 
   def CheckArguments(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
-    all_mods = [self.op.offline, self.op.master_candidate, self.op.drained]
+    all_mods = [self.op.offline, self.op.master_candidate, self.op.drained,
+                self.op.master_capable]
     if all_mods.count(None) == len(all_mods):
       raise errors.OpPrereqError("Please pass at least one modification",
                                  errors.ECODE_INVAL)
@@ -3841,7 +3843,8 @@ class LUSetNodeParams(LogicalUnit):
     # Boolean value that tells us whether we might be demoting from MC
     self.might_demote = (self.op.master_candidate == False or
                          self.op.offline == True or
-                         self.op.drained == True)
+                         self.op.drained == True or
+                         self.op.master_capable == False)
 
     self.lock_all = self.op.auto_promote and self.might_demote
 
@@ -3862,6 +3865,7 @@ class LUSetNodeParams(LogicalUnit):
       "MASTER_CANDIDATE": str(self.op.master_candidate),
       "OFFLINE": str(self.op.offline),
       "DRAINED": str(self.op.drained),
+      "MASTER_CAPABLE": str(self.op.master_capable),
       }
     nl = [self.cfg.GetMasterNode(),
           self.op.node_name]
@@ -3884,6 +3888,10 @@ class LUSetNodeParams(LogicalUnit):
                                    " only via master-failover",
                                    errors.ECODE_INVAL)
 
+    if self.op.master_candidate and not node.master_capable:
+      raise errors.OpPrereqError("Node %s is not master capable, cannot make"
+                                 " it a master candidate" % node.name,
+                                 errors.ECODE_STATE)
 
     if node.master_candidate and self.might_demote and not self.lock_all:
       assert not self.op.auto_promote, "auto-promote set but lock_all not"
@@ -3911,10 +3919,16 @@ class LUSetNodeParams(LogicalUnit):
     # away from the respective state, as only real changes are kept
 
     # If we're being deofflined/drained, we'll MC ourself if needed
-    if self.op.drained == False or self.op.offline == False:
+    if (self.op.drained == False or self.op.offline == False or
+        (self.op.master_capable and not node.master_capable)):
       if _DecideSelfPromotion(self):
         self.op.master_candidate = True
         self.LogInfo("Auto-promoting node to master candidate")
+
+    # If we're no longer master capable, we'll demote ourselves from MC
+    if self.op.master_capable == False and node.master_candidate:
+      self.LogInfo("Demoting from master candidate")
+      self.op.master_candidate = False
 
   def Exec(self, feedback_fn):
     """Modifies a node.
@@ -3941,6 +3955,10 @@ class LUSetNodeParams(LogicalUnit):
 
     result = []
     changed_mc = [old_role, new_role].count(self._ROLE_CANDIDATE) == 1
+
+    if self.op.master_capable is not None:
+      node.master_capable = self.op.master_capable
+      result.append(("master_capable", str(self.op.master_capable)))
 
     # Tell the node to demote itself, if no longer MC and not offline
     if (old_role == self._ROLE_CANDIDATE and

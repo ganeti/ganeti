@@ -430,6 +430,7 @@ class OpSetNodeParams(OpCode):
     "offline",
     "drained",
     "auto_promote",
+    "master_capable",
     ]
 
 
