@@ -3797,6 +3797,11 @@ class LUAddNode(LogicalUnit):
 class LUSetNodeParams(LogicalUnit):
   """Modifies the parameters of a node.
 
+  @cvar _F2R: a dictionary from tuples of flags (mc, drained, offline)
+      to the node role (as _ROLE_*)
+  @cvar _R2F: a dictionary from node role to tuples of flags
+  @cvar _FLAGS: a list of attribute names corresponding to the flags
+
   """
   HPATH = "node-modify"
   HTYPE = constants.HTYPE_NODE
@@ -3809,11 +3814,20 @@ class LUSetNodeParams(LogicalUnit):
     _PForce,
     ]
   REQ_BGL = False
+  (_ROLE_CANDIDATE, _ROLE_DRAINED, _ROLE_OFFLINE, _ROLE_REGULAR) = range(4)
+  _F2R = {
+    (True, False, False): _ROLE_CANDIDATE,
+    (False, True, False): _ROLE_DRAINED,
+    (False, False, True): _ROLE_OFFLINE,
+    (False, False, False): _ROLE_REGULAR,
+    }
+  _R2F = dict((v, k) for k, v in _F2R.items())
+  _FLAGS = ["master_candidate", "drained", "offline"]
 
   def CheckArguments(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained]
-    if all_mods.count(None) == 3:
+    if all_mods.count(None) == len(all_mods):
       raise errors.OpPrereqError("Please pass at least one modification",
                                  errors.ECODE_INVAL)
     if all_mods.count(True) > 1:
@@ -3821,16 +3835,12 @@ class LUSetNodeParams(LogicalUnit):
                                  " state at the same time",
                                  errors.ECODE_INVAL)
 
-    # Boolean value that tells us whether we're offlining or draining the node
-    self.offline_or_drain = (self.op.offline == True or
-                             self.op.drained == True)
-    self.deoffline_or_drain = (self.op.offline == False or
-                               self.op.drained == False)
+    # Boolean value that tells us whether we might be demoting from MC
     self.might_demote = (self.op.master_candidate == False or
-                         self.offline_or_drain)
+                         self.op.offline == True or
+                         self.op.drained == True)
 
     self.lock_all = self.op.auto_promote and self.might_demote
-
 
   def ExpandNames(self):
     if self.lock_all:
@@ -3881,70 +3891,66 @@ class LUSetNodeParams(LogicalUnit):
       if mc_remaining < mc_should:
         raise errors.OpPrereqError("Not enough master candidates, please"
                                    " pass auto_promote to allow promotion",
-                                   errors.ECODE_INVAL)
+                                   errors.ECODE_STATE)
 
-    if (self.op.master_candidate == True and
-        ((node.offline and not self.op.offline == False) or
-         (node.drained and not self.op.drained == False))):
-      raise errors.OpPrereqError("Node '%s' is offline or drained, can't set"
-                                 " to master_candidate" % node.name,
-                                 errors.ECODE_INVAL)
+    self.old_flags = old_flags = (node.master_candidate,
+                                  node.drained, node.offline)
+    assert old_flags in self._F2R, "Un-handled old flags  %s" % str(old_flags)
+    self.old_role = self._F2R[old_flags]
+
+    # Check for ineffective changes
+    for attr in self._FLAGS:
+      if (getattr(self.op, attr) == False and getattr(node, attr) == False):
+        self.LogInfo("Ignoring request to unset flag %s, already unset", attr)
+        setattr(self.op, attr, None)
+
+    # Past this point, any flag change to False means a transition
+    # away from the respective state, as only real changes are kept
 
     # If we're being deofflined/drained, we'll MC ourself if needed
-    if (self.deoffline_or_drain and not self.offline_or_drain and not
-        self.op.master_candidate == True and not node.master_candidate):
-      self.op.master_candidate = _DecideSelfPromotion(self)
-      if self.op.master_candidate:
-        self.LogInfo("Autopromoting node to master candidate")
-
-    return
+    if self.op.drained == False or self.op.offline == False:
+      if _DecideSelfPromotion(self):
+        self.op.master_candidate = True
+        self.LogInfo("Auto-promoting node to master candidate")
 
   def Exec(self, feedback_fn):
     """Modifies a node.
 
     """
     node = self.node
+    old_role = self.old_role
+
+    assert [getattr(self.op, attr) for attr in self._FLAGS].count(True) <= 1
+
+    # compute new flags
+    if self.op.master_candidate:
+      new_role = self._ROLE_CANDIDATE
+    elif self.op.drained:
+      new_role = self._ROLE_DRAINED
+    elif self.op.offline:
+      new_role = self._ROLE_OFFLINE
+    elif False in [self.op.master_candidate, self.op.drained, self.op.offline]:
+      # False is still in new flags, which means we're un-setting (the
+      # only) True flag
+      new_role = self._ROLE_REGULAR
+    else: # no new flags, nothing, keep old role
+      new_role = old_role
 
     result = []
-    changed_mc = False
+    changed_mc = [old_role, new_role].count(self._ROLE_CANDIDATE) == 1
 
-    if self.op.offline is not None:
-      node.offline = self.op.offline
-      result.append(("offline", str(self.op.offline)))
-      if self.op.offline == True:
-        if node.master_candidate:
-          node.master_candidate = False
-          changed_mc = True
-          result.append(("master_candidate", "auto-demotion due to offline"))
-        if node.drained:
-          node.drained = False
-          result.append(("drained", "clear drained status due to offline"))
+    # Tell the node to demote itself, if no longer MC and not offline
+    if (old_role == self._ROLE_CANDIDATE and
+        new_role != self._ROLE_OFFLINE and new_role != old_role):
+      msg = self.rpc.call_node_demote_from_mc(node.name).fail_msg
+      if msg:
+        self.LogWarning("Node failed to demote itself: %s", msg)
 
-    if self.op.master_candidate is not None:
-      node.master_candidate = self.op.master_candidate
-      changed_mc = True
-      result.append(("master_candidate", str(self.op.master_candidate)))
-      if self.op.master_candidate == False:
-        rrc = self.rpc.call_node_demote_from_mc(node.name)
-        msg = rrc.fail_msg
-        if msg:
-          self.LogWarning("Node failed to demote itself: %s" % msg)
-
-    if self.op.drained is not None:
-      node.drained = self.op.drained
-      result.append(("drained", str(self.op.drained)))
-      if self.op.drained == True:
-        if node.master_candidate:
-          node.master_candidate = False
-          changed_mc = True
-          result.append(("master_candidate", "auto-demotion due to drain"))
-          rrc = self.rpc.call_node_demote_from_mc(node.name)
-          msg = rrc.fail_msg
-          if msg:
-            self.LogWarning("Node failed to demote itself: %s" % msg)
-        if node.offline:
-          node.offline = False
-          result.append(("offline", "clear offline status due to drain"))
+    new_flags = self._R2F[new_role]
+    for of, nf, desc in zip(self.old_flags, new_flags, self._FLAGS):
+      if of != nf:
+        result.append((desc, str(nf)))
+    (node.master_candidate, node.drained, node.offline) = new_flags
 
     # we locked all nodes, we adjust the CP before updating this node
     if self.lock_all:
