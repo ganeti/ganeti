@@ -119,7 +119,12 @@ def _ConfigRpcCurl(curl):
   curl.setopt(pycurl.CONNECTTIMEOUT, _RPC_CONNECT_TIMEOUT)
 
 
-class _RpcThreadLocal(threading.local):
+# Aliasing this module avoids the following warning by epydoc: "Warning: No
+# information available for ganeti.rpc._RpcThreadLocal's base threading.local"
+_threading = threading
+
+
+class _RpcThreadLocal(_threading.local):
   def GetHttpClientPool(self):
     """Returns a per-thread HTTP client pool.
 
@@ -133,6 +138,10 @@ class _RpcThreadLocal(threading.local):
       self.hcp = pool
 
     return pool
+
+
+# Remove module alias (see above)
+del _threading
 
 
 _thread_local = _RpcThreadLocal()
