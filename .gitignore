@@ -67,6 +67,7 @@
 /man/*.in
 
 # scripts
+/scripts/gnt-backup
 /scripts/gnt-cluster
 /scripts/gnt-debug
 /scripts/gnt-instance

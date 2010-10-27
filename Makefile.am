@@ -139,6 +139,7 @@ pkgpython_PYTHON = \
 
 client_PYTHON = \
 	lib/client/__init__.py \
+	lib/client/gnt_backup.py \
 	lib/client/gnt_cluster.py \
 	lib/client/gnt_debug.py \
 	lib/client/gnt_instance.py \
@@ -261,6 +262,7 @@ gnt_scripts = \
 	scripts/gnt-os
 
 PYTHON_BOOTSTRAP = \
+	scripts/gnt-backup \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
 	scripts/gnt-instance \
@@ -273,8 +275,7 @@ dist_sbin_SCRIPTS = \
 	daemons/ganeti-watcher \
 	daemons/ganeti-masterd \
 	daemons/ganeti-confd \
-	daemons/ganeti-rapi \
-	scripts/gnt-backup
+	daemons/ganeti-rapi
 
 nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP) \
