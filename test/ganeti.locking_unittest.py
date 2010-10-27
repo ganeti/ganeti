@@ -1419,8 +1419,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
     _ThreadedTestCase.setUp(self)
     self.nodes=['n1', 'n2']
     self.instances=['i1', 'i2', 'i3']
-    self.GL = locking.GanetiLockManager(nodes=self.nodes,
-                                        instances=self.instances)
+    self.GL = locking.GanetiLockManager(self.nodes, self.instances)
 
   def tearDown(self):
     # Don't try this at home...
@@ -1435,7 +1434,7 @@ class TestGanetiLockManager(_ThreadedTestCase):
       self.assertEqual(i, locking.LEVELS[i])
 
   def testDoubleGLFails(self):
-    self.assertRaises(AssertionError, locking.GanetiLockManager)
+    self.assertRaises(AssertionError, locking.GanetiLockManager, [], [])
 
   def testLockNames(self):
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))

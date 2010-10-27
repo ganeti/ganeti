@@ -1367,7 +1367,7 @@ class GanetiLockManager:
   """
   _instance = None
 
-  def __init__(self, nodes=None, instances=None):
+  def __init__(self, nodes, instances):
     """Constructs a new GanetiLockManager object.
 
     There should be only a GanetiLockManager object at any time, so this
