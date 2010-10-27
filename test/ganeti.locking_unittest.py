@@ -1535,6 +1535,20 @@ class TestGanetiLockManager(_ThreadedTestCase):
     self.assertRaises(AssertionError, self.GL.acquire,
                       locking.LEVEL_INSTANCE, ['i2'])
 
+  def testModifiableLevels(self):
+    self.assertRaises(AssertionError, self.GL.add, locking.LEVEL_CLUSTER,
+                      ['BGL2'])
+    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'])
+    self.GL.add(locking.LEVEL_INSTANCE, ['i4'])
+    self.GL.remove(locking.LEVEL_INSTANCE, ['i3'])
+    self.GL.remove(locking.LEVEL_INSTANCE, ['i1'])
+    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set(['i2', 'i4']))
+    self.GL.add(locking.LEVEL_NODE, ['n3'])
+    self.GL.remove(locking.LEVEL_NODE, ['n1'])
+    self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(['n2', 'n3']))
+    self.assertRaises(AssertionError, self.GL.remove, locking.LEVEL_CLUSTER,
+                      ['BGL2'])
+
   # Helper function to run as a thread that shared the BGL and then acquires
   # some locks at another level.
   def _doLock(self, level, names, shared):
