@@ -139,7 +139,8 @@ pkgpython_PYTHON = \
 
 client_PYTHON = \
 	lib/client/__init__.py \
-	lib/client/gnt_debug.py
+	lib/client/gnt_debug.py \
+	lib/client/gnt_os.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
@@ -256,7 +257,8 @@ gnt_scripts = \
 	scripts/gnt-os
 
 PYTHON_BOOTSTRAP = \
-	scripts/gnt-debug
+	scripts/gnt-debug \
+	scripts/gnt-os
 
 dist_sbin_SCRIPTS = \
 	daemons/ganeti-noded \
@@ -268,8 +270,7 @@ dist_sbin_SCRIPTS = \
 	scripts/gnt-cluster \
 	scripts/gnt-instance \
 	scripts/gnt-job \
-	scripts/gnt-node \
-	scripts/gnt-os
+	scripts/gnt-node
 
 nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP) \

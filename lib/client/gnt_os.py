@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2006, 2007, 2010 Google Inc.
@@ -25,8 +25,6 @@
 # W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-os
-
-import sys
 
 from ganeti.cli import *
 from ganeti import constants
@@ -298,5 +296,6 @@ commands = {
     "", "Modify the OS parameters"),
   }
 
-if __name__ == '__main__':
-  sys.exit(GenericMain(commands))
+
+def Main():
+  return GenericMain(commands)
