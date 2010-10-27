@@ -425,29 +425,33 @@ def ShowNodeConfig(opts, args):
   cl = GetClient()
   result = cl.QueryNodes(fields=["name", "pip", "sip",
                                  "pinst_list", "sinst_list",
-                                 "master_candidate", "drained", "offline"],
+                                 "master_candidate", "drained", "offline",
+                                 "master_capable", "vm_capable"],
                          names=args, use_locking=False)
 
   for (name, primary_ip, secondary_ip, pinst, sinst,
-       is_mc, drained, offline) in result:
+       is_mc, drained, offline, master_capable, vm_capable) in result:
     ToStdout("Node name: %s", name)
     ToStdout("  primary ip: %s", primary_ip)
     ToStdout("  secondary ip: %s", secondary_ip)
     ToStdout("  master candidate: %s", is_mc)
     ToStdout("  drained: %s", drained)
     ToStdout("  offline: %s", offline)
-    if pinst:
-      ToStdout("  primary for instances:")
-      for iname in utils.NiceSort(pinst):
-        ToStdout("    - %s", iname)
-    else:
-      ToStdout("  primary for no instances")
-    if sinst:
-      ToStdout("  secondary for instances:")
-      for iname in utils.NiceSort(sinst):
-        ToStdout("    - %s", iname)
-    else:
-      ToStdout("  secondary for no instances")
+    ToStdout("  master_capable: %s", master_capable)
+    ToStdout("  vm_capable: %s", vm_capable)
+    if vm_capable:
+      if pinst:
+        ToStdout("  primary for instances:")
+        for iname in utils.NiceSort(pinst):
+          ToStdout("    - %s", iname)
+      else:
+        ToStdout("  primary for no instances")
+      if sinst:
+        ToStdout("  secondary for instances:")
+        for iname in utils.NiceSort(sinst):
+          ToStdout("    - %s", iname)
+      else:
+        ToStdout("  secondary for no instances")
 
   return 0
 
