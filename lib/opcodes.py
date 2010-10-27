@@ -431,6 +431,7 @@ class OpSetNodeParams(OpCode):
     "drained",
     "auto_promote",
     "master_capable",
+    "vm_capable",
     ]
 
 

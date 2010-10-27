@@ -3904,6 +3904,7 @@ class LUSetNodeParams(LogicalUnit):
     ("drained", None, ht.TMaybeBool),
     ("auto_promote", False, ht.TBool),
     ("master_capable", None, ht.TMaybeBool),
+    ("vm_capable", None, ht.TMaybeBool),
     _PForce,
     ]
   REQ_BGL = False
@@ -3920,7 +3921,7 @@ class LUSetNodeParams(LogicalUnit):
   def CheckArguments(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained,
-                self.op.master_capable]
+                self.op.master_capable, self.op.vm_capable]
     if all_mods.count(None) == len(all_mods):
       raise errors.OpPrereqError("Please pass at least one modification",
                                  errors.ECODE_INVAL)
@@ -3955,6 +3956,7 @@ class LUSetNodeParams(LogicalUnit):
       "OFFLINE": str(self.op.offline),
       "DRAINED": str(self.op.drained),
       "MASTER_CAPABLE": str(self.op.master_capable),
+      "VM_CAPABLE": str(self.op.vm_capable),
       }
     nl = [self.cfg.GetMasterNode(),
           self.op.node_name]
@@ -3981,6 +3983,13 @@ class LUSetNodeParams(LogicalUnit):
       raise errors.OpPrereqError("Node %s is not master capable, cannot make"
                                  " it a master candidate" % node.name,
                                  errors.ECODE_STATE)
+
+    if self.op.vm_capable == False:
+      (ipri, isec) = self.cfg.GetNodeInstances(self.op.node_name)
+      if ipri or isec:
+        raise errors.OpPrereqError("Node %s hosts instances, cannot unset"
+                                   " the vm_capable flag" % node.name,
+                                   errors.ECODE_STATE)
 
     if node.master_candidate and self.might_demote and not self.lock_all:
       assert not self.op.auto_promote, "auto-promote set but lock_all not"
@@ -4043,34 +4052,36 @@ class LUSetNodeParams(LogicalUnit):
       new_role = old_role
 
     result = []
-    changed_mc = [old_role, new_role].count(self._ROLE_CANDIDATE) == 1
 
-    if self.op.master_capable is not None:
-      node.master_capable = self.op.master_capable
-      result.append(("master_capable", str(self.op.master_capable)))
+    for attr in ["master_capable", "vm_capable"]:
+      val = getattr(self.op, attr)
+      if val is not None:
+        setattr(node, attr, val)
+        result.append((attr, str(val)))
 
-    # Tell the node to demote itself, if no longer MC and not offline
-    if (old_role == self._ROLE_CANDIDATE and
-        new_role != self._ROLE_OFFLINE and new_role != old_role):
-      msg = self.rpc.call_node_demote_from_mc(node.name).fail_msg
-      if msg:
-        self.LogWarning("Node failed to demote itself: %s", msg)
+    if new_role != old_role:
+      # Tell the node to demote itself, if no longer MC and not offline
+      if old_role == self._ROLE_CANDIDATE and new_role != self._ROLE_OFFLINE:
+        msg = self.rpc.call_node_demote_from_mc(node.name).fail_msg
+        if msg:
+          self.LogWarning("Node failed to demote itself: %s", msg)
 
-    new_flags = self._R2F[new_role]
-    for of, nf, desc in zip(self.old_flags, new_flags, self._FLAGS):
-      if of != nf:
-        result.append((desc, str(nf)))
-    (node.master_candidate, node.drained, node.offline) = new_flags
+      new_flags = self._R2F[new_role]
+      for of, nf, desc in zip(self.old_flags, new_flags, self._FLAGS):
+        if of != nf:
+          result.append((desc, str(nf)))
+      (node.master_candidate, node.drained, node.offline) = new_flags
 
-    # we locked all nodes, we adjust the CP before updating this node
-    if self.lock_all:
-      _AdjustCandidatePool(self, [node.name])
+      # we locked all nodes, we adjust the CP before updating this node
+      if self.lock_all:
+        _AdjustCandidatePool(self, [node.name])
 
     # this will trigger configuration file update, if needed
     self.cfg.Update(node, feedback_fn)
 
-    # this will trigger job queue propagation or cleanup
-    if changed_mc:
+    # this will trigger job queue propagation or cleanup if the mc
+    # flag changed
+    if [old_role, new_role].count(self._ROLE_CANDIDATE) == 1:
       self.context.ReaddNode(node)
 
     return result
