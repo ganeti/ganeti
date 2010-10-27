@@ -2875,7 +2875,7 @@ def _UploadHelper(lu, nodes, fname):
         lu.proc.LogWarning(msg)
 
 
-def _RedistributeAncillaryFiles(lu, additional_nodes=None):
+def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
   """Distribute additional files which are part of the cluster configuration.
 
   ConfigWriter takes care of distributing the config and ssconf files, but
@@ -2884,15 +2884,23 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
 
   @param lu: calling logical unit
   @param additional_nodes: list of nodes not in the config to distribute to
+  @type additional_vm: boolean
+  @param additional_vm: whether the additional nodes are vm-capable or not
 
   """
   # 1. Gather target nodes
   myself = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
   dist_nodes = lu.cfg.GetOnlineNodeList()
+  nvm_nodes = lu.cfg.GetNonVmCapableNodeList()
+  vm_nodes = [name for name in dist_nodes if name not in nvm_nodes]
   if additional_nodes is not None:
     dist_nodes.extend(additional_nodes)
+    if additional_vm:
+      vm_nodes.extend(additional_nodes)
   if myself.name in dist_nodes:
     dist_nodes.remove(myself.name)
+  if myself.name in vm_nodes:
+    vm_nodes.remove(myself.name)
 
   # 2. Gather files to distribute
   dist_files = set([constants.ETC_HOSTS,
@@ -2903,14 +2911,17 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
                     constants.CLUSTER_DOMAIN_SECRET_FILE,
                    ])
 
+  vm_files = set()
   enabled_hypervisors = lu.cfg.GetClusterInfo().enabled_hypervisors
   for hv_name in enabled_hypervisors:
     hv_class = hypervisor.GetHypervisor(hv_name)
-    dist_files.update(hv_class.GetAncillaryFiles())
+    vm_files.update(hv_class.GetAncillaryFiles())
 
   # 3. Perform the files upload
   for fname in dist_files:
     _UploadHelper(lu, dist_nodes, fname)
+  for fname in vm_files:
+    _UploadHelper(lu, vm_nodes, fname)
 
 
 class LURedistributeConfig(NoHooksLU):
