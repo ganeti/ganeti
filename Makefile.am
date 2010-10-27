@@ -23,6 +23,7 @@ httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
+watcherdir = $(pkgpythondir)/watcher
 impexpddir = $(pkgpythondir)/impexpd
 toolsdir = $(pkglibdir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
@@ -47,6 +48,7 @@ DIRS = \
 	lib/impexpd \
 	lib/masterd \
 	lib/rapi \
+	lib/watcher \
 	man \
 	qa \
 	test \
@@ -188,6 +190,9 @@ masterd_PYTHON = \
 impexpd_PYTHON = \
 	lib/impexpd/__init__.py
 
+watcher_PYTHON = \
+	lib/watcher/__init__.py
+
 docrst = \
 	doc/admin.rst \
 	doc/design-2.0.rst \
@@ -270,6 +275,7 @@ gnt_scripts = \
 	scripts/gnt-os
 
 PYTHON_BOOTSTRAP = \
+	daemons/ganeti-watcher \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
@@ -280,7 +286,6 @@ PYTHON_BOOTSTRAP = \
 
 dist_sbin_SCRIPTS = \
 	daemons/ganeti-noded \
-	daemons/ganeti-watcher \
 	daemons/ganeti-masterd \
 	daemons/ganeti-confd \
 	daemons/ganeti-rapi
@@ -468,6 +473,7 @@ all_python_code = \
 	$(confd_PYTHON) \
 	$(masterd_PYTHON) \
 	$(impexpd_PYTHON) \
+	$(watcher_PYTHON) \
 	$(noinst_PYTHON)
 
 srclink_files = \
@@ -634,6 +640,7 @@ $(REPLACE_VARS_SED): Makefile
 	} > $@
 
 # Using deferred evaluation
+daemons/ganeti-watcher: MODULE = ganeti.watcher
 scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
 
 $(PYTHON_BOOTSTRAP): Makefile | $(all_dirfiles)

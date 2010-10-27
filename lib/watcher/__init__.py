@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
@@ -679,7 +679,7 @@ def ParseOptions():
 
 
 @rapi.client.UsesRapiClient
-def main():
+def Main():
   """Main function.
 
   """
@@ -689,18 +689,18 @@ def main():
 
   if args: # watcher doesn't take any arguments
     print >> sys.stderr, ("Usage: %s [-f] " % sys.argv[0])
-    sys.exit(constants.EXIT_FAILURE)
+    return constants.EXIT_FAILURE
 
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)
 
   if ShouldPause() and not options.ignore_pause:
     logging.debug("Pause has been set, exiting")
-    sys.exit(constants.EXIT_SUCCESS)
+    return constants.EXIT_SUCCESS
 
   statefile = OpenStateFile(constants.WATCHER_STATEFILE)
   if not statefile:
-    sys.exit(constants.EXIT_FAILURE)
+    return constants.EXIT_FAILURE
 
   update_file = False
   try:
@@ -719,13 +719,13 @@ def main():
         # this is, from cli.GetClient, a not-master case
         logging.debug("Not on master, exiting")
         update_file = True
-        sys.exit(constants.EXIT_SUCCESS)
+        return constants.EXIT_SUCCESS
       except luxi.NoMasterError, err:
         logging.warning("Master seems to be down (%s), trying to restart",
                         str(err))
         if not utils.EnsureDaemon(constants.MASTERD):
           logging.critical("Can't start the master, exiting")
-          sys.exit(constants.EXIT_FAILURE)
+          return constants.EXIT_FAILURE
         # else retry the connection
         client = cli.GetClient()
 
@@ -749,7 +749,7 @@ def main():
       except errors.ConfigurationError:
         # Just exit if there's no configuration
         update_file = True
-        sys.exit(constants.EXIT_SUCCESS)
+        return constants.EXIT_SUCCESS
 
       watcher.Run()
       update_file = True
@@ -763,18 +763,16 @@ def main():
     raise
   except NotMasterError:
     logging.debug("Not master, exiting")
-    sys.exit(constants.EXIT_NOTMASTER)
+    return constants.EXIT_NOTMASTER
   except errors.ResolverError, err:
     logging.error("Cannot resolve hostname '%s', exiting.", err.args[0])
-    sys.exit(constants.EXIT_NODESETUP_ERROR)
+    return constants.EXIT_NODESETUP_ERROR
   except errors.JobQueueFull:
     logging.error("Job queue is full, can't query cluster state")
   except errors.JobQueueDrainError:
     logging.error("Job queue is drained, can't maintain cluster state")
   except Exception, err:
     logging.exception(str(err))
-    sys.exit(constants.EXIT_FAILURE)
+    return constants.EXIT_FAILURE
 
-
-if __name__ == '__main__':
-  main()
+  return constants.EXIT_SUCCESS
