@@ -2509,15 +2509,7 @@ class LURenameCluster(LogicalUnit):
         node_list.remove(master)
       except ValueError:
         pass
-      result = self.rpc.call_upload_file(node_list,
-                                         constants.SSH_KNOWN_HOSTS_FILE)
-      for to_node, to_result in result.iteritems():
-        msg = to_result.fail_msg
-        if msg:
-          msg = ("Copy of file %s to node %s failed: %s" %
-                 (constants.SSH_KNOWN_HOSTS_FILE, to_node, msg))
-          self.proc.LogWarning(msg)
-
+      _UploadHelper(self, node_list, constants.SSH_KNOWN_HOSTS_FILE)
     finally:
       result = self.rpc.call_node_start_master(master, False, False)
       msg = result.fail_msg
@@ -2869,6 +2861,20 @@ class LUSetClusterParams(LogicalUnit):
     self.cfg.Update(self.cluster, feedback_fn)
 
 
+def _UploadHelper(lu, nodes, fname):
+  """Helper for uploading a file and showing warnings.
+
+  """
+  if os.path.exists(fname):
+    result = lu.rpc.call_upload_file(nodes, fname)
+    for to_node, to_result in result.items():
+      msg = to_result.fail_msg
+      if msg:
+        msg = ("Copy of file %s to node %s failed: %s" %
+               (fname, to_node, msg))
+        lu.proc.LogWarning(msg)
+
+
 def _RedistributeAncillaryFiles(lu, additional_nodes=None):
   """Distribute additional files which are part of the cluster configuration.
 
@@ -2904,14 +2910,7 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
 
   # 3. Perform the files upload
   for fname in dist_files:
-    if os.path.exists(fname):
-      result = lu.rpc.call_upload_file(dist_nodes, fname)
-      for to_node, to_result in result.items():
-        msg = to_result.fail_msg
-        if msg:
-          msg = ("Copy of file %s to node %s failed: %s" %
-                 (fname, to_node, msg))
-          lu.proc.LogWarning(msg)
+    _UploadHelper(lu, dist_nodes, fname)
 
 
 class LURedistributeConfig(NoHooksLU):
