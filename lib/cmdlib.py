@@ -603,7 +603,7 @@ def _CheckNodeOnline(lu, node):
   """
   if lu.cfg.GetNodeInfo(node).offline:
     raise errors.OpPrereqError("Can't use offline node %s" % node,
-                               errors.ECODE_INVAL)
+                               errors.ECODE_STATE)
 
 
 def _CheckNodeNotDrained(lu, node):
@@ -616,7 +616,20 @@ def _CheckNodeNotDrained(lu, node):
   """
   if lu.cfg.GetNodeInfo(node).drained:
     raise errors.OpPrereqError("Can't use drained node %s" % node,
-                               errors.ECODE_INVAL)
+                               errors.ECODE_STATE)
+
+
+def _CheckNodeVmCapable(lu, node):
+  """Ensure that a given node is vm capable.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @raise errors.OpPrereqError: if the node is not vm capable
+
+  """
+  if not lu.cfg.GetNodeInfo(node).vm_capable:
+    raise errors.OpPrereqError("Can't use non-vm_capable node %s" % node,
+                               errors.ECODE_STATE)
 
 
 def _CheckNodeHasOS(lu, node, os_name, force_variant):
