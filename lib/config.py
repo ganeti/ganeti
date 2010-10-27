@@ -1139,6 +1139,25 @@ class ConfigWriter:
     """
     return self._UnlockedGetNodeInfo(node_name)
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeInstances(self, node_name):
+    """Get the instances of a node, as stored in the config.
+
+    @param node_name: the node name, e.g. I{node1.example.com}
+
+    @rtype: (list, list)
+    @return: a tuple with two lists: the primary and the secondary instances
+
+    """
+    pri = []
+    sec = []
+    for inst in self._config_data.instances.values():
+      if inst.primary_node == node_name:
+        pri.append(inst.name)
+      if node_name in inst.secondary_nodes:
+        sec.append(inst.name)
+    return (pri, sec)
+
   def _UnlockedGetNodeList(self):
     """Return the list of nodes which are in the configuration.
 
@@ -1171,6 +1190,15 @@ class ConfigWriter:
 
     """
     return self._UnlockedGetOnlineNodeList()
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNonVmCapableNodeList(self):
+    """Return the list of nodes which are not vm capable.
+
+    """
+    all_nodes = [self._UnlockedGetNodeInfo(node)
+                 for node in self._UnlockedGetNodeList()]
+    return [node.name for node in all_nodes if not node.vm_capable]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodesInfo(self):
