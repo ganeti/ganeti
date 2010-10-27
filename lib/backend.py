@@ -491,8 +491,9 @@ def VerifyNode(what, cluster_name):
   result = {}
   my_name = netutils.Hostname.GetSysName()
   port = netutils.GetDaemonPort(constants.NODED)
+  vm_capable = my_name not in what.get(constants.NV_VMNODES, [])
 
-  if constants.NV_HYPERVISOR in what:
+  if constants.NV_HYPERVISOR in what and vm_capable:
     result[constants.NV_HYPERVISOR] = tmp = {}
     for hv_name in what[constants.NV_HYPERVISOR]:
       try:
@@ -547,14 +548,14 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_MASTERIP] = netutils.TcpPing(master_ip, port,
                                                   source=source)
 
-  if constants.NV_LVLIST in what:
+  if constants.NV_LVLIST in what and vm_capable:
     try:
       val = GetVolumeList(what[constants.NV_LVLIST])
     except RPCFail, err:
       val = str(err)
     result[constants.NV_LVLIST] = val
 
-  if constants.NV_INSTANCELIST in what:
+  if constants.NV_INSTANCELIST in what and vm_capable:
     # GetInstanceList can fail
     try:
       val = GetInstanceList(what[constants.NV_INSTANCELIST])
@@ -562,10 +563,10 @@ def VerifyNode(what, cluster_name):
       val = str(err)
     result[constants.NV_INSTANCELIST] = val
 
-  if constants.NV_VGLIST in what:
+  if constants.NV_VGLIST in what and vm_capable:
     result[constants.NV_VGLIST] = utils.ListVolumeGroups()
 
-  if constants.NV_PVLIST in what:
+  if constants.NV_PVLIST in what and vm_capable:
     result[constants.NV_PVLIST] = \
       bdev.LogicalVolume.GetPVInfo(what[constants.NV_PVLIST],
                                    filter_allocatable=False)
@@ -574,11 +575,11 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,
                                     constants.RELEASE_VERSION)
 
-  if constants.NV_HVINFO in what:
+  if constants.NV_HVINFO in what and vm_capable:
     hyper = hypervisor.GetHypervisor(what[constants.NV_HVINFO])
     result[constants.NV_HVINFO] = hyper.GetNodeInfo()
 
-  if constants.NV_DRBDLIST in what:
+  if constants.NV_DRBDLIST in what and vm_capable:
     try:
       used_minors = bdev.DRBD8.GetUsedDevs().keys()
     except errors.BlockDeviceError, err:
@@ -586,7 +587,7 @@ def VerifyNode(what, cluster_name):
       used_minors = str(err)
     result[constants.NV_DRBDLIST] = used_minors
 
-  if constants.NV_DRBDHELPER in what:
+  if constants.NV_DRBDHELPER in what and vm_capable:
     status = True
     try:
       payload = bdev.BaseDRBD.GetUsermodeHelper()
@@ -611,7 +612,7 @@ def VerifyNode(what, cluster_name):
   if constants.NV_TIME in what:
     result[constants.NV_TIME] = utils.SplitTime(time.time())
 
-  if constants.NV_OSLIST in what:
+  if constants.NV_OSLIST in what and vm_capable:
     result[constants.NV_OSLIST] = DiagnoseOS()
 
   return result

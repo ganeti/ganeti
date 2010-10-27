@@ -1219,9 +1219,11 @@ class LUVerifyCluster(LogicalUnit):
     @ivar os_fail: whether the RPC call didn't return valid OS data
     @type oslist: list
     @ivar oslist: list of OSes as diagnosed by DiagnoseOS
+    @type vm_capable: boolean
+    @ivar vm_capable: whether the node can host instances
 
     """
-    def __init__(self, offline=False, name=None):
+    def __init__(self, offline=False, name=None, vm_capable=True):
       self.name = name
       self.volumes = {}
       self.instances = []
@@ -1231,6 +1233,7 @@ class LUVerifyCluster(LogicalUnit):
       self.mfree = 0
       self.dfree = 0
       self.offline = offline
+      self.vm_capable = vm_capable
       self.rpc_fail = False
       self.lvm_fail = False
       self.hyp_fail = False
@@ -1335,7 +1338,7 @@ class LUVerifyCluster(LogicalUnit):
                   code=self.ETYPE_WARNING)
 
     hyp_result = nresult.get(constants.NV_HYPERVISOR, None)
-    if isinstance(hyp_result, dict):
+    if ninfo.vm_capable and isinstance(hyp_result, dict):
       for hv_name, hv_result in hyp_result.iteritems():
         test = hv_result is not None
         _ErrorIf(test, self.ENODEHV, node,
@@ -2010,6 +2013,7 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_TIME: None,
       constants.NV_MASTERIP: (master_node, master_ip),
       constants.NV_OSLIST: None,
+      constants.NV_VMNODES: self.cfg.GetNonVmCapableNodeList(),
       }
 
     if vg_name is not None:
@@ -2023,7 +2027,8 @@ class LUVerifyCluster(LogicalUnit):
 
     # Build our expected cluster state
     node_image = dict((node.name, self.NodeImage(offline=node.offline,
-                                                 name=node.name))
+                                                 name=node.name,
+                                                 vm_capable=node.vm_capable))
                       for node in nodeinfo)
 
     for instance in instancelist:
@@ -2100,22 +2105,24 @@ class LUVerifyCluster(LogicalUnit):
       nresult = all_nvinfo[node].payload
 
       nimg.call_ok = self._VerifyNode(node_i, nresult)
+      self._VerifyNodeTime(node_i, nresult, nvinfo_starttime, nvinfo_endtime)
       self._VerifyNodeNetwork(node_i, nresult)
-      self._VerifyNodeLVM(node_i, nresult, vg_name)
       self._VerifyNodeFiles(node_i, nresult, file_names, local_checksums,
                             master_files)
-      self._VerifyNodeDrbd(node_i, nresult, instanceinfo, drbd_helper,
-                           all_drbd_map)
-      self._VerifyNodeTime(node_i, nresult, nvinfo_starttime, nvinfo_endtime)
 
-      self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
-      self._UpdateNodeInstances(node_i, nresult, nimg)
-      self._UpdateNodeInfo(node_i, nresult, nimg, vg_name)
-      self._UpdateNodeOS(node_i, nresult, nimg)
-      if not nimg.os_fail:
-        if refos_img is None:
-          refos_img = nimg
-        self._VerifyNodeOS(node_i, nimg, refos_img)
+      if nimg.vm_capable:
+        self._VerifyNodeLVM(node_i, nresult, vg_name)
+        self._VerifyNodeDrbd(node_i, nresult, instanceinfo, drbd_helper,
+                             all_drbd_map)
+
+        self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
+        self._UpdateNodeInstances(node_i, nresult, nimg)
+        self._UpdateNodeInfo(node_i, nresult, nimg, vg_name)
+        self._UpdateNodeOS(node_i, nresult, nimg)
+        if not nimg.os_fail:
+          if refos_img is None:
+            refos_img = nimg
+          self._VerifyNodeOS(node_i, nimg, refos_img)
 
     feedback_fn("* Verifying instance status")
     for instance in instancelist:
@@ -2162,10 +2169,12 @@ class LUVerifyCluster(LogicalUnit):
       _ErrorIf(inst_nodes_offline, self.EINSTANCEBADNODE, instance,
                "instance lives on offline node(s) %s",
                utils.CommaJoin(inst_nodes_offline))
-      # ... or ghost nodes
+      # ... or ghost/non-vm_capable nodes
       for node in inst_config.all_nodes:
         _ErrorIf(node_image[node].ghost, self.EINSTANCEBADNODE, instance,
                  "instance lives on ghost node %s", node)
+        _ErrorIf(not node_image[node].vm_capable, self.EINSTANCEBADNODE,
+                 instance, "instance lives on non-vm_capable node %s", node)
 
     feedback_fn("* Verifying orphan volumes")
     reserved = utils.FieldSet(*cluster.reserved_lvs)
