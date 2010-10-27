@@ -1283,18 +1283,21 @@ class LockSet:
 #   the same time.
 LEVEL_CLUSTER = 0
 LEVEL_INSTANCE = 1
-LEVEL_NODE = 2
+LEVEL_NODEGROUP = 2
+LEVEL_NODE = 3
 
 LEVELS = [LEVEL_CLUSTER,
           LEVEL_INSTANCE,
+          LEVEL_NODEGROUP,
           LEVEL_NODE]
 
 # Lock levels which are modifiable
-LEVELS_MOD = [LEVEL_NODE, LEVEL_INSTANCE]
+LEVELS_MOD = [LEVEL_NODE, LEVEL_NODEGROUP, LEVEL_INSTANCE]
 
 LEVEL_NAMES = {
   LEVEL_CLUSTER: "cluster",
   LEVEL_INSTANCE: "instance",
+  LEVEL_NODEGROUP: "nodegroup",
   LEVEL_NODE: "node",
   }
 
@@ -1313,13 +1316,14 @@ class GanetiLockManager:
   """
   _instance = None
 
-  def __init__(self, nodes, instances):
+  def __init__(self, nodes, nodegroups, instances):
     """Constructs a new GanetiLockManager object.
 
     There should be only a GanetiLockManager object at any time, so this
     function raises an error if this is not the case.
 
     @param nodes: list of node names
+    @param nodegroups: list of nodegroup uuids
     @param instances: list of instance names
 
     """
@@ -1335,6 +1339,7 @@ class GanetiLockManager:
     self.__keyring = {
       LEVEL_CLUSTER: LockSet([BGL], "BGL", monitor=self._monitor),
       LEVEL_NODE: LockSet(nodes, "nodes", monitor=self._monitor),
+      LEVEL_NODEGROUP: LockSet(nodegroups, "nodegroups", monitor=self._monitor),
       LEVEL_INSTANCE: LockSet(instances, "instances",
                               monitor=self._monitor),
       }

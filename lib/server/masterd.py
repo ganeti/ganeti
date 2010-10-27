@@ -359,6 +359,7 @@ class GanetiContext(object):
     # Locking manager
     self.glm = locking.GanetiLockManager(
                 self.cfg.GetNodeList(),
+                self.cfg.GetNodeGroupList(),
                 self.cfg.GetInstanceList())
 
     # Job queue
