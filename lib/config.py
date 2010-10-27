@@ -883,6 +883,13 @@ class ConfigWriter:
     """
     return dict(self._config_data.nodegroups)
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeGroupList(self):
+    """Get a list of node groups.
+
+    """
+    return self._config_data.nodegroups.keys()
+
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):
     """Add an instance to the config.
