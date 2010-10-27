@@ -504,7 +504,7 @@ doc/examples/hooks/%: doc/examples/hooks/%.in \
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
-	lib/cli.py $(gnt_scripts) tools/burnin
+	lib/cli.py $(gnt_scripts) $(client_PYTHON) tools/burnin
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_BASH_COMPLETION) > $@
 
 doc/%.png: doc/%.dot
