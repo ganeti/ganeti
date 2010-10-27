@@ -213,7 +213,9 @@ def AddNode(opts, args):
   bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
 
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=sip,
-                         readd=opts.readd, group=opts.nodegroup)
+                         readd=opts.readd, group=opts.nodegroup,
+                         vm_capable=opts.vm_capable,
+                         master_capable=opts.master_capable)
   SubmitOpCode(op, opts=opts)
 
 
@@ -678,7 +680,8 @@ commands = {
   'add': (
     AddNode, [ArgHost(min=1, max=1)],
     [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT, NONODE_SETUP_OPT,
-     VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT],
+     VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT, CAPAB_MASTER_OPT,
+     CAPAB_VM_OPT],
     "[-s ip] [--readd] [--no-ssh-key-check] [--no-node-setup]  [--verbose] "
     " <node_name>",
     "Add a node to the cluster"),

@@ -3681,8 +3681,11 @@ class LUAddNode(LogicalUnit):
     ("primary_ip", None, ht.NoType),
     ("secondary_ip", None, ht.TMaybeString),
     ("readd", False, ht.TBool),
-    ("group", None, ht.TMaybeString)
+    ("group", None, ht.TMaybeString),
+    ("master_capable", None, ht.TMaybeBool),
+    ("vm_capable", None, ht.TMaybeBool),
     ]
+  _NFLAGS = ["master_capable", "vm_capable"]
 
   def CheckArguments(self):
     self.primary_ip_family = self.cfg.GetPrimaryIPFamily()
@@ -3705,6 +3708,8 @@ class LUAddNode(LogicalUnit):
       "NODE_NAME": self.op.node_name,
       "NODE_PIP": self.op.primary_ip,
       "NODE_SIP": self.op.secondary_ip,
+      "MASTER_CAPABLE": str(self.op.master_capable),
+      "VM_CAPABLE": str(self.op.vm_capable),
       }
     nodes_0 = self.cfg.GetNodeList()
     nodes_1 = nodes_0 + [self.op.node_name, ]
@@ -3768,6 +3773,27 @@ class LUAddNode(LogicalUnit):
                                    " existing node %s" % existing_node.name,
                                    errors.ECODE_NOTUNIQUE)
 
+    # After this 'if' block, None is no longer a valid value for the
+    # _capable op attributes
+    if self.op.readd:
+      old_node = self.cfg.GetNodeInfo(node)
+      assert old_node is not None, "Can't retrieve locked node %s" % node
+      for attr in self._NFLAGS:
+        if getattr(self.op, attr) is None:
+          setattr(self.op, attr, getattr(old_node, attr))
+    else:
+      for attr in self._NFLAGS:
+        if getattr(self.op, attr) is None:
+          setattr(self.op, attr, True)
+
+    if self.op.readd and not self.op.vm_capable:
+      pri, sec = cfg.GetNodeInstances(node)
+      if pri or sec:
+        raise errors.OpPrereqError("Node %s being re-added with vm_capable"
+                                   " flag set to false, but it already holds"
+                                   " instances" % node,
+                                   errors.ECODE_STATE)
+
     # check that the type of the node (single versus dual homed) is the
     # same as for the master
     myself = cfg.GetNodeInfo(self.cfg.GetMasterNode())
@@ -3801,19 +3827,19 @@ class LUAddNode(LogicalUnit):
     else:
       exceptions = []
 
-    self.master_candidate = _DecideSelfPromotion(self, exceptions=exceptions)
+    if self.op.master_capable:
+      self.master_candidate = _DecideSelfPromotion(self, exceptions=exceptions)
+    else:
+      self.master_candidate = False
 
     if self.op.readd:
-      self.new_node = self.cfg.GetNodeInfo(node)
-      assert self.new_node is not None, "Can't retrieve locked node %s" % node
+      self.new_node = old_node
     else:
       node_group = cfg.LookupNodeGroup(self.op.group)
       self.new_node = objects.Node(name=node,
                                    primary_ip=primary_ip,
                                    secondary_ip=secondary_ip,
                                    master_candidate=self.master_candidate,
-                                   master_capable=True,
-                                   vm_capable=True,
                                    offline=False, drained=False,
                                    group=node_group)
 
@@ -3835,6 +3861,10 @@ class LUAddNode(LogicalUnit):
       new_node.master_candidate = self.master_candidate
       if self.changed_primary_ip:
         new_node.primary_ip = self.op.primary_ip
+
+    # copy the master/vm_capable flags
+    for attr in self._NFLAGS:
+      setattr(new_node, attr, getattr(self.op, attr))
 
     # notify the user about any possible mc promotion
     if new_node.master_candidate:
@@ -3901,7 +3931,8 @@ class LUAddNode(LogicalUnit):
           self.LogWarning("Node failed to demote itself from master"
                           " candidate status: %s" % msg)
     else:
-      _RedistributeAncillaryFiles(self, additional_nodes=[node])
+      _RedistributeAncillaryFiles(self, additional_nodes=[node],
+                                  additional_vm=self.op.vm_capable)
       self.context.AddNode(new_node, self.proc.GetECId())
 
 

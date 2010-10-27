@@ -65,6 +65,8 @@
         <arg>--readd</arg>
         <arg>-s <replaceable>secondary_ip</replaceable></arg>
         <arg>-g <replaceable>nodegroup</replaceable></arg>
+        <arg>--master-capable=<option>yes|no</option></arg>
+        <arg>--vm-capable=<option>yes|no</option></arg>
         <arg choice="req"><replaceable>nodename</replaceable></arg>
       </cmdsynopsis>
 
@@ -108,6 +110,13 @@
         The <option>-g</option> is used to add the new node into a specific
         node group, specified by uuid or name. If only one node group exists
         you can skip this option, otherwise it's mandatory.
+      </para>
+
+      <para>
+        The <option>vm_capable</option>
+        and <option>master_capable</option> options are described
+        in <citerefentry><refentrytitle>ganeti</refentrytitle><manvolnum>7</manvolnum></citerefentry>,
+        and are used to set the properties of the new node.
       </para>
 
       <para>

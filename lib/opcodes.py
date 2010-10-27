@@ -366,11 +366,16 @@ class OpAddNode(OpCode):
                without removal from the cluster.
   @type group: C{str}
   @ivar group: The node group to which this node will belong.
+  @type vm_capable: C{bool}
+  @ivar vm_capable: The vm_capable node attribute
+  @type master_capable: C{bool}
+  @ivar master_capable: The master_capable node attribute
 
   """
   OP_ID = "OP_NODE_ADD"
   OP_DSC_FIELD = "node_name"
-  __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd", "group"]
+  __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd", "group",
+               "vm_capable", "master_capable"]
 
 
 class OpQueryNodes(OpCode):
