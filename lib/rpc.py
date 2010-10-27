@@ -1047,6 +1047,22 @@ class RpcRunner(object):
     return result
 
   @_RpcTimeout(_TMO_NORMAL)
+  def call_blockdev_getmirrorstatus_multi(self, node_list, node_disks):
+    """Request status of (mirroring) devices from multiple nodes.
+
+    This is a multi-node call.
+
+    """
+    result = self._MultiNodeCall(node_list, "blockdev_getmirrorstatus_multi",
+                                 [dict((name, [dsk.ToDict() for dsk in disks])
+                                       for name, disks in node_disks.items())])
+    for nres in result.values():
+      if not nres.fail_msg:
+        nres.payload = [objects.BlockDevStatus.FromDict(i)
+                        for i in nres.payload]
+    return result
+
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_find(self, node, disk):
     """Request identification of a given block device.
 

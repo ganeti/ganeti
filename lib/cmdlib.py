@@ -1168,7 +1168,7 @@ class LUVerifyCluster(LogicalUnit):
   EINSTANCEDOWN = (TINSTANCE, "EINSTANCEDOWN")
   EINSTANCELAYOUT = (TINSTANCE, "EINSTANCELAYOUT")
   EINSTANCEMISSINGDISK = (TINSTANCE, "EINSTANCEMISSINGDISK")
-  EINSTANCEMISSINGDISK = (TINSTANCE, "EINSTANCEMISSINGDISK")
+  EINSTANCEFAULTYDISK = (TINSTANCE, "EINSTANCEFAULTYDISK")
   EINSTANCEWRONGNODE = (TINSTANCE, "EINSTANCEWRONGNODE")
   ENODEDRBD = (TNODE, "ENODEDRBD")
   ENODEDRBDHELPER = (TNODE, "ENODEDRBDHELPER")
@@ -1341,7 +1341,6 @@ class LUVerifyCluster(LogicalUnit):
         _ErrorIf(test, self.ENODEHV, node,
                  "hypervisor %s verify failure: '%s'", hv_name, hv_result)
 
-
     test = nresult.get(constants.NV_NODESETUP,
                            ["Missing NODESETUP results"])
     _ErrorIf(test, self.ENODESETUP, node, "node setup error: %s",
@@ -1460,8 +1459,8 @@ class LUVerifyCluster(LogicalUnit):
           msg = "cannot reach the master IP"
         _ErrorIf(True, self.ENODENET, node, msg)
 
-
-  def _VerifyInstance(self, instance, instanceconfig, node_image):
+  def _VerifyInstance(self, instance, instanceconfig, node_image,
+                      diskstatus):
     """Verify an instance.
 
     This function checks to see if the required block devices are
@@ -1496,6 +1495,18 @@ class LUVerifyCluster(LogicalUnit):
         test = instance in n_img.instances
         _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
                  "instance should not run on node %s", node)
+
+    diskdata = [(nname, disk, idx)
+                for (nname, disks) in diskstatus.items()
+                for idx, disk in enumerate(disks)]
+
+    for nname, bdev_status, idx in diskdata:
+      _ErrorIf(not bdev_status,
+               self.EINSTANCEFAULTYDISK, instance,
+               "couldn't retrieve status for disk/%s on %s", idx, nname)
+      _ErrorIf(bdev_status and bdev_status.ldisk_status == constants.LDS_FAULTY,
+               self.EINSTANCEFAULTYDISK, instance,
+               "disk/%s on %s is faulty", idx, nname)
 
   def _VerifyOrphanVolumes(self, node_vol_should, node_image, reserved):
     """Verify if there are any unknown volumes in the cluster.
@@ -1847,6 +1858,80 @@ class LUVerifyCluster(LogicalUnit):
           _ErrorIf(True, self.ENODERPC, node,
                    "node returned invalid LVM info, check LVM status")
 
+  def _CollectDiskInfo(self, nodelist, node_image, instanceinfo):
+    """Gets per-disk status information for all instances.
+
+    @type nodelist: list of strings
+    @param nodelist: Node names
+    @type node_image: dict of (name, L{objects.Node})
+    @param node_image: Node objects
+    @type instanceinfo: dict of (name, L{objects.Instance})
+    @param instanceinfo: Instance objects
+
+    """
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    node_disks = {}
+    node_disks_devonly = {}
+
+    for nname in nodelist:
+      disks = [(inst, disk)
+               for instlist in [node_image[nname].pinst,
+                                node_image[nname].sinst]
+               for inst in instlist
+               for disk in instanceinfo[inst].disks]
+
+      if not disks:
+        # No need to collect data
+        continue
+
+      node_disks[nname] = disks
+
+      # Creating copies as SetDiskID below will modify the objects and that can
+      # lead to incorrect data returned from nodes
+      devonly = [dev.Copy() for (_, dev) in disks]
+
+      for dev in devonly:
+        self.cfg.SetDiskID(dev, nname)
+
+      node_disks_devonly[nname] = devonly
+
+    assert len(node_disks) == len(node_disks_devonly)
+
+    # Collect data from all nodes with disks
+    result = self.rpc.call_blockdev_getmirrorstatus_multi(node_disks.keys(),
+                                                          node_disks_devonly)
+
+    assert len(result) == len(node_disks)
+
+    instdisk = {}
+
+    for (nname, nres) in result.items():
+      if nres.offline:
+        # Ignore offline node
+        continue
+
+      disks = node_disks[nname]
+
+      msg = nres.fail_msg
+      _ErrorIf(msg, self.ENODERPC, nname,
+               "while getting disk information: %s", nres.fail_msg)
+      if msg:
+        # No data from this node
+        data = len(disks) * [None]
+      else:
+        data = nres.payload
+
+      for ((inst, _), status) in zip(disks, data):
+        instdisk.setdefault(inst, {}).setdefault(nname, []).append(status)
+
+    assert compat.all(len(statuses) == len(instanceinfo[inst].disks) and
+                      len(nnames) <= len(instanceinfo[inst].all_nodes)
+                      for inst, nnames in instdisk.items()
+                      for nname, statuses in nnames.items())
+
+    return instdisk
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -1977,6 +2062,9 @@ class LUVerifyCluster(LogicalUnit):
 
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
+    feedback_fn("* Gathering disk information (%s nodes)" % len(nodelist))
+    instdisk = self._CollectDiskInfo(nodelist, node_image, instanceinfo)
+
     feedback_fn("* Verifying node status")
 
     refos_img = None
@@ -2034,7 +2122,8 @@ class LUVerifyCluster(LogicalUnit):
       if verbose:
         feedback_fn("* Verifying instance %s" % instance)
       inst_config = instanceinfo[instance]
-      self._VerifyInstance(instance, inst_config, node_image)
+      self._VerifyInstance(instance, inst_config, node_image,
+                           instdisk[instance])
       inst_nodes_offline = []
 
       pnode = inst_config.primary_node
