@@ -5777,6 +5777,7 @@ class LUMoveInstance(LogicalUnit):
 
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
+    _CheckNodeVmCapable(self, target_node)
 
     if instance.admin_up:
       # check memory requirements on the secondary node
@@ -7365,6 +7366,9 @@ class LUCreateInstance(LogicalUnit):
     if pnode.drained:
       raise errors.OpPrereqError("Cannot use drained primary node '%s'" %
                                  pnode.name, errors.ECODE_STATE)
+    if not pnode.vm_capable:
+      raise errors.OpPrereqError("Cannot use non-vm_capable primary node"
+                                 " '%s'" % pnode.name, errors.ECODE_STATE)
 
     self.secondaries = []
 
@@ -7375,6 +7379,7 @@ class LUCreateInstance(LogicalUnit):
                                    " primary node.", errors.ECODE_INVAL)
       _CheckNodeOnline(self, self.op.snode)
       _CheckNodeNotDrained(self, self.op.snode)
+      _CheckNodeVmCapable(self, self.op.snode)
       self.secondaries.append(self.op.snode)
 
     nodenames = [pnode.name] + self.secondaries
@@ -7956,6 +7961,7 @@ class TLReplaceDisks(Tasklet):
         check_nodes = [self.new_node, self.other_node]
 
         _CheckNodeNotDrained(self.lu, remote_node)
+        _CheckNodeVmCapable(self.lu, remote_node)
 
         old_node_info = self.cfg.GetNodeInfo(secondary_node)
         assert old_node_info is not None
