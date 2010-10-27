@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
@@ -25,7 +25,6 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-instance
 
-import sys
 import os
 import itertools
 import simplejson
@@ -1544,6 +1543,6 @@ aliases = {
   }
 
 
-if __name__ == '__main__':
-  sys.exit(GenericMain(commands, aliases=aliases,
-                       override={"tag_type": constants.TAG_INSTANCE}))
+def Main():
+  return GenericMain(commands, aliases=aliases,
+                     override={"tag_type": constants.TAG_INSTANCE})

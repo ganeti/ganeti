@@ -141,6 +141,7 @@ client_PYTHON = \
 	lib/client/__init__.py \
 	lib/client/gnt_cluster.py \
 	lib/client/gnt_debug.py \
+	lib/client/gnt_instance.py \
 	lib/client/gnt_job.py \
 	lib/client/gnt_node.py \
 	lib/client/gnt_os.py
@@ -262,6 +263,7 @@ gnt_scripts = \
 PYTHON_BOOTSTRAP = \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
+	scripts/gnt-instance \
 	scripts/gnt-job \
 	scripts/gnt-node \
 	scripts/gnt-os
@@ -272,8 +274,7 @@ dist_sbin_SCRIPTS = \
 	daemons/ganeti-masterd \
 	daemons/ganeti-confd \
 	daemons/ganeti-rapi \
-	scripts/gnt-backup \
-	scripts/gnt-instance
+	scripts/gnt-backup
 
 nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP) \
