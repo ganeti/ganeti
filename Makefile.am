@@ -725,6 +725,15 @@ distcheck-hook:
 		echo "Found backup files in final archive." 1>&2; \
 		exit 1; \
 	fi
+	if test -n "$(BUILD_RELEASE)" && \
+	   grep -n -H -E '^\*.*unreleased' $(top_distdir)/NEWS; then \
+		echo "Found unreleased version in NEWS." >&2; \
+		exit 1; \
+	fi
+
+# When building a release, stricter checks should be used
+distcheck-release: export BUILD_RELEASE = 1
+distcheck-release: distcheck
 
 install-exec-local:
 	@mkdir_p@ "$(DESTDIR)${localstatedir}/lib/ganeti" \
