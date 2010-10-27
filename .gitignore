@@ -69,5 +69,6 @@
 # scripts
 /scripts/gnt-cluster
 /scripts/gnt-debug
+/scripts/gnt-job
 /scripts/gnt-node
 /scripts/gnt-os
