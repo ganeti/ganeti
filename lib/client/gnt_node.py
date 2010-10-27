@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
@@ -25,8 +25,6 @@
 # W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-node
-
-import sys
 
 from ganeti.cli import *
 from ganeti import bootstrap
@@ -760,5 +758,5 @@ commands = {
   }
 
 
-if __name__ == '__main__':
-  sys.exit(GenericMain(commands, override={"tag_type": constants.TAG_NODE}))
+def Main():
+  return GenericMain(commands, override={"tag_type": constants.TAG_NODE})
