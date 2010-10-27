@@ -649,7 +649,9 @@ def SetNodeParams(opts, args):
   @return: the desired exit code
 
   """
-  if [opts.master_candidate, opts.drained, opts.offline].count(None) == 3:
+  all_changes = [opts.master_candidate, opts.drained, opts.offline,
+                 opts.master_capable, opts.vm_capable]
+  if all_changes.count(None) == len(all_changes):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -658,6 +660,7 @@ def SetNodeParams(opts, args):
                                offline=opts.offline,
                                drained=opts.drained,
                                master_capable=opts.master_capable,
+                               vm_capable=opts.vm_capable,
                                force=opts.force,
                                auto_promote=opts.auto_promote)
 
@@ -709,7 +712,8 @@ commands = {
     (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
   'modify': (
     SetNodeParams, ARGS_ONE_NODE,
-    [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT, CAPAB_MASTER_OPT,
+    [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
+     CAPAB_MASTER_OPT, CAPAB_VM_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name>", "Alters the parameters of a node"),
   'powercycle': (

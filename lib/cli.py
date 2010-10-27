@@ -54,6 +54,7 @@ __all__ = [
   "BACKEND_OPT",
   "BLK_OS_OPT",
   "CAPAB_MASTER_OPT",
+  "CAPAB_VM_OPT",
   "CLEANUP_OPT",
   "CLUSTER_DOMAIN_SECRET_OPT",
   "CONFIRM_OPT",
@@ -874,6 +875,10 @@ DRAINED_OPT = cli_option("-D", "--drained", dest="drained", metavar=_YORNO,
 CAPAB_MASTER_OPT = cli_option("--master-capable", dest="master_capable",
                     type="bool", default=None, metavar=_YORNO,
                     help="Set the master_capable flag on the node")
+
+CAPAB_VM_OPT = cli_option("--vm-capable", dest="vm_capable",
+                    type="bool", default=None, metavar=_YORNO,
+                    help="Set the vm_capable flag on the node")
 
 ALLOCATABLE_OPT = cli_option("--allocatable", dest="allocatable",
                              type="bool", default=None, metavar=_YORNO,

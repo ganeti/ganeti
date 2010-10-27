@@ -627,6 +627,7 @@
         <arg>--drained=<option>yes|no</option></arg>
         <arg>--offline=<option>yes|no</option></arg>
         <arg>--master-capable=<option>yes|no</option></arg>
+        <arg>--vm-capable=<option>yes|no</option></arg>
         <arg>--auto-promote</arg>
         <arg choice="req"><replaceable>node</replaceable></arg>
       </cmdsynopsis>
