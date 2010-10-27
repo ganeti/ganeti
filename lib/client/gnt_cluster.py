@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2006, 2007, 2010 Google Inc.
@@ -26,7 +26,6 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-cluster
 
-import sys
 import os.path
 import time
 import OpenSSL
@@ -964,6 +963,6 @@ aliases = {
 }
 
 
-if __name__ == '__main__':
-  sys.exit(GenericMain(commands, override={"tag_type": constants.TAG_CLUSTER},
-                       aliases=aliases))
+def Main():
+  return GenericMain(commands, override={"tag_type": constants.TAG_CLUSTER},
+                     aliases=aliases)
