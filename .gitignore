@@ -8,6 +8,7 @@
 *.py[co]
 *.swp
 *~
+.dir
 
 # /
 /Makefile
@@ -24,7 +25,6 @@
 /config.status
 /configure
 /ganeti
-/stamp-directories
 /stamp-srclinks
 /vcs-version
 /*.patch
