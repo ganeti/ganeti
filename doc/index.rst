@@ -18,6 +18,7 @@ Contents:
    design-2.1.rst
    design-2.2.rst
    design-2.3.rst
+   design-oob.rst
    cluster-merge.rst
    locking.rst
    hooks.rst
