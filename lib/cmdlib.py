@@ -4068,7 +4068,7 @@ class LUSetNodeParams(LogicalUnit):
     self.old_flags = old_flags = (node.master_candidate,
                                   node.drained, node.offline)
     assert old_flags in self._F2R, "Un-handled old flags  %s" % str(old_flags)
-    self.old_role = self._F2R[old_flags]
+    self.old_role = old_role = self._F2R[old_flags]
 
     # Check for ineffective changes
     for attr in self._FLAGS:
@@ -4091,16 +4091,8 @@ class LUSetNodeParams(LogicalUnit):
       self.LogInfo("Demoting from master candidate")
       self.op.master_candidate = False
 
-  def Exec(self, feedback_fn):
-    """Modifies a node.
-
-    """
-    node = self.node
-    old_role = self.old_role
-
+    # Compute new role
     assert [getattr(self.op, attr) for attr in self._FLAGS].count(True) <= 1
-
-    # compute new flags
     if self.op.master_candidate:
       new_role = self._ROLE_CANDIDATE
     elif self.op.drained:
@@ -4113,6 +4105,16 @@ class LUSetNodeParams(LogicalUnit):
       new_role = self._ROLE_REGULAR
     else: # no new flags, nothing, keep old role
       new_role = old_role
+
+    self.new_role = new_role
+
+  def Exec(self, feedback_fn):
+    """Modifies a node.
+
+    """
+    node = self.node
+    old_role = self.old_role
+    new_role = self.new_role
 
     result = []
 
