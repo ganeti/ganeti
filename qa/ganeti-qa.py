@@ -430,15 +430,19 @@ def main():
 
     if (qa_config.TestEnabled('instance-add-plain-disk') and
         qa_config.TestEnabled("instance-export")):
-      instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
-      expnode = qa_config.AcquireNode(exclude=pnode)
-      try:
-        RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
-        RunTest(qa_instance.TestBackupList, expnode)
-      finally:
-        qa_config.ReleaseNode(expnode)
-      del expnode
-      del instance
+      for shutdown in [False, True]:
+        instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
+        expnode = qa_config.AcquireNode(exclude=pnode)
+        try:
+          if shutdown:
+            # Stop instance before exporting and removing it
+            RunTest(qa_instance.TestInstanceShutdown, instance)
+          RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
+          RunTest(qa_instance.TestBackupList, expnode)
+        finally:
+          qa_config.ReleaseNode(expnode)
+        del expnode
+        del instance
 
   finally:
     qa_config.ReleaseNode(pnode)

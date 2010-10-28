@@ -9618,10 +9618,6 @@ class LUExportInstance(LogicalUnit):
     self.x509_key_name = self.op.x509_key_name
     self.dest_x509_ca_pem = self.op.destination_x509_ca
 
-    if self.op.remove_instance and not self.op.shutdown:
-      raise errors.OpPrereqError("Can not remove instance without shutting it"
-                                 " down before")
-
     if self.op.mode == constants.EXPORT_MODE_REMOTE:
       if not self.x509_key_name:
         raise errors.OpPrereqError("Missing X509 key name for encryption",
@@ -9686,6 +9682,11 @@ class LUExportInstance(LogicalUnit):
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
+
+    if (self.op.remove_instance and self.instance.admin_up and
+        not self.op.shutdown):
+      raise errors.OpPrereqError("Can not remove instance without shutting it"
+                                 " down before")
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
       self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
