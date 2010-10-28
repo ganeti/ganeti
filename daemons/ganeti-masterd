@@ -72,7 +72,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
     client_ops = ClientOps(server)
 
     try:
-      (method, args) = luxi.ParseRequest(message)
+      (method, args, version) = luxi.ParseRequest(message)
     except luxi.ProtocolError, err:
       logging.error("Protocol Error: %s", err)
       client.close_log()
@@ -80,6 +80,11 @@ class ClientRequestWorker(workerpool.BaseWorker):
 
     success = False
     try:
+      # Verify client's version if there was one in the request
+      if version is not None and version != constants.LUXI_VERSION:
+        raise errors.LuxiError("LUXI version mismatch, server %s, request %s" %
+                               (constants.LUXI_VERSION, version))
+
       result = client_ops.handle_request(method, args)
       success = True
     except errors.GenericError, err:

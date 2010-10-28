@@ -1023,6 +1023,25 @@ hexadecimal, and 0x93 represents DRBD's major number. Thus we can see
 from the above that instance2 has /dev/drbd0, instance3 /dev/drbd1, and
 instance4 /dev/drbd2.
 
+LUXI version mismatch
++++++++++++++++++++++
+
+LUXI is the protocol used for communication between clients and the
+master daemon. Starting in Ganeti 2.3, the peers exchange their version
+in each message. When they don't match, an error is raised::
+
+  $ gnt-node modify -O yes node3
+  Unhandled Ganeti error: LUXI version mismatch, server 2020000, request 2030000
+
+Usually this means that server and client are from different Ganeti
+versions or import their libraries from different, consistent paths
+(e.g. an older version installed in another place). You can print the
+import path for Ganeti's modules using the following command (note that
+depending on your setup you might have to use an explicit version in the
+Python command, e.g. ``python2.6``)::
+
+  python -c 'import ganeti; print ganeti.__file__'
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst

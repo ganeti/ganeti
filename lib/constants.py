@@ -199,6 +199,7 @@ PROC_MOUNTS = "/proc/mounts"
 
 # luxi related constants
 LUXI_EOM = "\3"
+LUXI_VERSION = CONFIG_VERSION
 
 # one of 'no', 'yes', 'only'
 SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
