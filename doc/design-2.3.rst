@@ -51,61 +51,102 @@ Node group management
 To manage node groups and the nodes belonging to them, the following new
 commands and flags will be introduced::
 
-  gnt-node group-add <group> # add a new node group
-  gnt-node group-del <group> # delete an empty group
-  gnt-node group-list # list node groups
-  gnt-node group-rename <oldname> <newname> # rename a group
-  gnt-node list/info -g <group> # list only nodes belonging to a group
-  gnt-node add -g <group> # add a node to a certain group
-  gnt-node modify -g <group> # move a node to a new group
+  gnt-group add <group> # add a new node group
+  gnt-group del <group> # delete an empty node group
+  gnt-group list # list node groups
+  gnt-group rename <oldname> <newname> # rename a node group
+  gnt-node {list,info} -g <group> # list only nodes belonging to a node group
+  gnt-node modify -g <group> # assign a node to a node group
+
+Node group attributes
++++++++++++++++++++++
+
+In clusters with more than one node group, it may be desirable to
+establish local policies regarding which groups should be preferred when
+performing allocation of new instances, or inter-group instance migrations.
+
+To help with this, we will provide an ``alloc_policy`` attribute for
+node groups. Such attribute will be honored by iallocator plugins when
+making automatic decisions regarding instance placement.
+
+The ``alloc_policy`` attribute can have the following values:
+
+- unallocable: the node group should not be a candidate for instance
+  allocations, and the operation should fail if only groups in this
+  state could be found that would satisfy the requirements.
+
+- last_resort: the node group should not be used for instance
+  allocations, unless this would be the only way to have the operation
+  succeed.
+
+- preferred: the node group can be used freely for allocation of
+  instances (this is the default state for newly created node
+  groups). Note that prioritization among groups in this state will be
+  deferred to the  iallocator plugin that's being used.
+
+Node group operations
++++++++++++++++++++++
+
+One operation at the node group level will be initially provided::
+
+  gnt-group drain <group>
+
+The purpose of this operation is to migrate all instances in a given
+node group to other groups in the cluster, e.g. to reclaim capacity if
+there are enough free resources in other node groups that share a
+storage pool with the evacuated group.
 
 Instance level changes
 ++++++++++++++++++++++
 
-Instances will be able to live in only one group at a time. This is
-mostly important for DRBD instances, in which case both their primary
-and secondary nodes will need to be in the same group. To support this
-we envision the following changes:
+With the introduction of node groups, instances will be required to live
+in only one group at a time; this is mostly important for DRBD
+instances, which will not be allowed to have their primary and secondary
+nodes in different node groups. To support this, we envision the
+following changes:
 
-  - The cluster will have a default group, which will initially be
-  - Instance allocation will happen to the cluster's default group
-    (which will be changeable via ``gnt-cluster modify`` or RAPI) unless
-    a group is explicitly specified in the creation job (with -g or via
-    RAPI). Iallocator will be only passed the nodes belonging to that
+  - The iallocator interface will be augmented, and node groups exposed,
+    so that plugins will be able to make a decision regarding the group
+    in which to place a new instance. By default, all node groups will
+    be considered, but it will be possible to include a list of groups
+    in the creation job, in which case the plugin will limit itself to
+    considering those; in both cases, the ``alloc_policy`` attribute
+    will be honored.
+  - If, on the other hand, a primary and secondary nodes are specified
+    for a new instance, they will be required to be on the same node
     group.
   - Moving an instance between groups can only happen via an explicit
     operation, which for example in the case of DRBD will work by
     performing internally a replace-disks, a migration, and a second
     replace-disks. It will be possible to clean up an interrupted
     group-move operation.
-  - Cluster verify will signal an error if an instance has been left
-    mid-transition between groups.
-  - Inter-group instance migration/failover will check that the target
-    group will be able to accept the instance network/storage wise, and
-    fail otherwise. In the future we may be able to make some parameter
-    changed during the move, but in the first version we expect an
-    import/export if this is not possible.
-  - From an allocation point of view, inter-group movements will be
-    shown to a iallocator as a new allocation over the target group.
-    Only in a future version we may add allocator extensions to decide
-    which group the instance should be in. In the meantime we expect
-    Ganeti administrators to either put instances on different groups by
-    filling all groups first, or to have their own strategy based on the
-    instance needs.
+  - Cluster verify will signal an error if an instance has nodes
+    belonging to different groups. Additionally, changing the group of a
+    given node will be initially only allowed if the node is empty, as a
+    straightforward mechanism to avoid creating such situation.
+  - Inter-group instance migration will have the same operation modes as
+    new instance allocation, defined above: letting an iallocator plugin
+    decide the target group, possibly restricting the set of node groups
+    to consider, or specifying a target primary and secondary nodes. In
+    both cases, the target group or nodes must be able to accept the
+    instance network- and storage-wise; the operation will fail
+    otherwise, though in the future we may be able to allow some
+    parameter to be changed together with the move (in the meantime, an
+    import/export will be required in this scenario).
 
 Internal changes
 ++++++++++++++++
 
 We expect the following changes for cluster management:
 
-  - Frequent multinode operations, such as os-diagnose or cluster-verify
-    will act on one group at a time. The default group will be used if none
-    is passed. Command line tools will have a way to easily target all
-    groups, by generating one job per group.
+  - Frequent multinode operations, such as os-diagnose or cluster-verify,
+    will act on one group at a time, which will have to be specified in
+    all cases, except for clusters with just one group. Command line
+    tools will also have a way to easily target all groups, by
+    generating one job per group.
   - Groups will have a human-readable name, but will internally always
-    be referenced by a UUID, which will be immutable. For example the
-    cluster object will contain the UUID of the default group, each node
-    will contain the UUID of the group it belongs to, etc. This is done
+    be referenced by a UUID, which will be immutable; for example, nodes
+    will contain the UUID of the group they belong to. This is done
     to simplify referencing while keeping it easy to handle renames and
     movements. If we see that this works well, we'll transition other
     config objects (instances, nodes) to the same model.
@@ -482,9 +523,6 @@ Output:
 Note that due to the way the tspecs are computed, for any given
 specification, the total available count is the count for the given
 entry, plus the sum of counts for higher specifications.
-
-Also note that the node group information is provided just
-informationally, not for allocation decisions.
 
 
 Node flags
