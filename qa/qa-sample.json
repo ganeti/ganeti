@@ -38,6 +38,7 @@
     "os": true,
     "tags": true,
     "rapi": true,
+    "test-jobqueue": true,
 
     "create-cluster": true,
     "cluster-verify": true,

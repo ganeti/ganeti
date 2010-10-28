@@ -101,10 +101,12 @@ def SetupCluster(rapi_user, rapi_secret):
   if qa_config.TestEnabled('create-cluster'):
     RunTest(qa_cluster.TestClusterInit, rapi_user, rapi_secret)
     RunTest(qa_node.TestNodeAddAll)
-    RunTest(qa_cluster.TestJobqueue)
   else:
     # consider the nodes are already there
     qa_node.MarkNodeAddedAll()
+
+  if qa_config.TestEnabled("test-jobqueue"):
+    RunTest(qa_cluster.TestJobqueue)
 
   # enable the watcher (unconditionally)
   RunTest(qa_daemon.TestResumeWatcher)
