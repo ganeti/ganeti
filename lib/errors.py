@@ -372,6 +372,12 @@ class IPAddressError(GenericError):
   """
 
 
+class LuxiError(GenericError):
+  """LUXI error.
+
+  """
+
+
 # errors should be added above
 
 

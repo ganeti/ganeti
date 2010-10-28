@@ -70,7 +70,7 @@ DEF_RWTO = 60
 WFJC_TIMEOUT = (DEF_RWTO - 1) / 2
 
 
-class ProtocolError(errors.GenericError):
+class ProtocolError(errors.LuxiError):
   """Denotes an error in the LUXI protocol."""
 
 
