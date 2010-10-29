@@ -115,27 +115,9 @@ def RemoveExport(opts, args):
 
 # this is defined separately due to readability only
 import_opts = [
-  BACKEND_OPT,
-  DISK_OPT,
-  DISK_TEMPLATE_OPT,
-  FILESTORE_DIR_OPT,
-  FILESTORE_DRIVER_OPT,
-  HYPERVISOR_OPT,
-  IALLOCATOR_OPT,
   IDENTIFY_DEFAULTS_OPT,
-  NET_OPT,
-  NODE_PLACEMENT_OPT,
-  NOIPCHECK_OPT,
-  NONAMECHECK_OPT,
-  NONICS_OPT,
-  NWSYNC_OPT,
-  OSPARAMS_OPT,
-  OS_SIZE_OPT,
   SRC_DIR_OPT,
   SRC_NODE_OPT,
-  SUBMIT_OPT,
-  DRY_RUN_OPT,
-  PRIORITY_OPT,
   ]
 
 
@@ -152,7 +134,7 @@ commands = {
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   'import': (
-    ImportInstance, ARGS_ONE_INSTANCE, import_opts,
+    ImportInstance, ARGS_ONE_INSTANCE, COMMON_CREATE_OPTS + import_opts,
     "[...] -t disk-type -n node[:secondary-node] <name>",
     "Imports an instance from an exported image"),
   'remove': (

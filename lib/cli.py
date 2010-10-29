@@ -207,6 +207,7 @@ __all__ = [
   "SplitNodeOption",
   "CalculateOSNames",
   "ParseFields",
+  "COMMON_CREATE_OPTS",
   ]
 
 NO_PREFIX = "no_"
@@ -1102,6 +1103,29 @@ PREALLOC_WIPE_DISKS_OPT = cli_option("--prealloc-wipe-disks", default=None,
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT]
+
+# common options for creating instances. add and import then add their own
+# specific ones.
+COMMON_CREATE_OPTS = [
+  BACKEND_OPT,
+  DISK_OPT,
+  DISK_TEMPLATE_OPT,
+  FILESTORE_DIR_OPT,
+  FILESTORE_DRIVER_OPT,
+  HYPERVISOR_OPT,
+  IALLOCATOR_OPT,
+  NET_OPT,
+  NODE_PLACEMENT_OPT,
+  NOIPCHECK_OPT,
+  NONAMECHECK_OPT,
+  NONICS_OPT,
+  NWSYNC_OPT,
+  OSPARAMS_OPT,
+  OS_SIZE_OPT,
+  SUBMIT_OPT,
+  DRY_RUN_OPT,
+  PRIORITY_OPT,
+  ]
 
 
 def _ParseArgs(argv, commands, aliases):

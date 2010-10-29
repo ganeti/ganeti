@@ -18,7 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-
-"""Empty file for package definition.
+"""Common command line client code.
 
 """

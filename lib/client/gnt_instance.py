@@ -1377,33 +1377,15 @@ m_inst_tags_opt = cli_option("--tags", dest="multi_mode",
 
 # this is defined separately due to readability only
 add_opts = [
-  BACKEND_OPT,
-  DISK_OPT,
-  DISK_TEMPLATE_OPT,
-  FILESTORE_DIR_OPT,
-  FILESTORE_DRIVER_OPT,
-  HYPERVISOR_OPT,
-  IALLOCATOR_OPT,
-  NET_OPT,
-  NODE_PLACEMENT_OPT,
-  NOIPCHECK_OPT,
-  NONAMECHECK_OPT,
-  NONICS_OPT,
   NOSTART_OPT,
-  NWSYNC_OPT,
-  OSPARAMS_OPT,
   OS_OPT,
   FORCE_VARIANT_OPT,
   NO_INSTALL_OPT,
-  OS_SIZE_OPT,
-  SUBMIT_OPT,
-  DRY_RUN_OPT,
-  PRIORITY_OPT,
   ]
 
 commands = {
   'add': (
-    AddInstance, [ArgHost(min=1, max=1)], add_opts,
+    AddInstance, [ArgHost(min=1, max=1)], COMMON_CREATE_OPTS + add_opts,
     "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
     "Creates and adds a new instance to the cluster"),
   'batch-create': (
