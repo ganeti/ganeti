@@ -902,7 +902,7 @@ CP_SIZE_OPT = cli_option("-C", "--candidate-pool-size", default=None,
                          dest="candidate_pool_size", type="int",
                          help="Set the candidate pool size")
 
-VG_NAME_OPT = cli_option("-g", "--vg-name", dest="vg_name",
+VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help="Enables LVM and specifies the volume group"
                          " name (cluster-wide) for disk allocation [xenvg]",
                          metavar="VG", default=None)

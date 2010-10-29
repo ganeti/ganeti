@@ -226,7 +226,7 @@
         <sbr>
         <arg>-s <replaceable>secondary_ip</replaceable></arg>
         <sbr>
-        <arg>-g <replaceable>vg-name</replaceable></arg>
+        <arg>--vg-name <replaceable>vg-name</replaceable></arg>
         <sbr>
         <arg>--master-netdev <replaceable>interface-name</replaceable></arg>
         <sbr>
@@ -298,7 +298,7 @@
       </para>
 
       <para>
-        The <option>-g</option> option will let you specify a volume group
+        The <option>--vg-name</option> option will let you specify a volume group
         different than "xenvg" for Ganeti to use when creating instance disks.
         This volume group must have the same name on all nodes. Once the
         cluster is initialized this can be altered by using the
@@ -635,7 +635,7 @@
       <cmdsynopsis>
         <command>modify</command>
         <sbr>
-        <arg choice="opt">-g <replaceable>vg-name</replaceable></arg>
+        <arg choice="opt">--vg-name <replaceable>vg-name</replaceable></arg>
         <sbr>
         <arg choice="opt">--no-lvm-storage</arg>
         <sbr>
@@ -672,7 +672,7 @@
         </para>
 
         <para>
-          The <option>-g</option>, <option>--no-lvm-storarge</option>,
+          The <option>--vg-name</option>, <option>--no-lvm-storarge</option>,
           <option>--enabled-hypervisors</option>,
           <option>--hypervisor-parameters</option>,
           <option>--backend-parameters</option>,
