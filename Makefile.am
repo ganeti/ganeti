@@ -23,6 +23,7 @@ httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
+serverdir = $(pkgpythondir)/server
 watcherdir = $(pkgpythondir)/watcher
 impexpddir = $(pkgpythondir)/impexpd
 toolsdir = $(pkglibdir)/tools
@@ -48,6 +49,7 @@ DIRS = \
 	lib/impexpd \
 	lib/masterd \
 	lib/rapi \
+	lib/server \
 	lib/watcher \
 	man \
 	qa \
@@ -192,6 +194,9 @@ impexpd_PYTHON = \
 
 watcher_PYTHON = \
 	lib/watcher/__init__.py
+
+server_PYTHON = \
+	lib/server/__init__.py
 
 docrst = \
 	doc/admin.rst \
@@ -469,6 +474,7 @@ all_python_code = \
 	$(client_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(rapi_PYTHON) \
+	$(server_PYTHON) \
 	$(http_PYTHON) \
 	$(confd_PYTHON) \
 	$(masterd_PYTHON) \
@@ -640,6 +646,7 @@ $(REPLACE_VARS_SED): Makefile
 	} > $@
 
 # Using deferred evaluation
+daemons/ganeti-%: MODULE = ganeti.server.$(patsubst ganeti-%,%,$(notdir $@))
 daemons/ganeti-watcher: MODULE = ganeti.watcher
 scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
 
