@@ -504,7 +504,8 @@ lint_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
 	$(pkglib_python_scripts) \
-	$(BUILD_BASH_COMPLETION)
+	$(BUILD_BASH_COMPLETION) \
+	$(PYTHON_BOOTSTRAP)
 
 test/daemon-util_unittest.bash: daemons/daemon-util
 
@@ -672,7 +673,7 @@ $(PYTHON_BOOTSTRAP): Makefile | $(all_dirfiles)
 	  echo '# Temporarily alias commands until bash completion'; \
 	  echo '# generator is changed'; \
 	  echo 'if hasattr(main, "commands"):'; \
-	  echo '  commands = main.commands'; \
+		echo '  commands = main.commands # pylint: disable-msg=E1101'; \
 	  echo; \
 	  echo 'if __name__ == "__main__":'; \
 	  echo '  sys.exit(main.Main())'; \
