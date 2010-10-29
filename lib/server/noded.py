@@ -973,6 +973,7 @@ def PrepNoded(options, _):
   server.Start()
   return (mainloop, server)
 
+
 def ExecNoded(options, args, prep_data): # pylint: disable-msg=W0613
   """Main node daemon function, executed with the PID file held.
 
@@ -984,7 +985,7 @@ def ExecNoded(options, args, prep_data): # pylint: disable-msg=W0613
     server.Stop()
 
 
-def main():
+def Main():
   """Main function for the node daemon.
 
   """
@@ -1000,7 +1001,3 @@ def main():
                      default_ssl_cert=constants.NODED_CERT_FILE,
                      default_ssl_key=constants.NODED_CERT_FILE,
                      console_logging=True)
-
-
-if __name__ == '__main__':
-  main()

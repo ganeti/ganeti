@@ -198,7 +198,8 @@ watcher_PYTHON = \
 server_PYTHON = \
 	lib/server/__init__.py \
 	lib/server/confd.py \
-	lib/server/masterd.py
+	lib/server/masterd.py \
+	lib/server/noded.py
 
 docrst = \
 	doc/admin.rst \
@@ -284,6 +285,7 @@ gnt_scripts = \
 PYTHON_BOOTSTRAP = \
 	daemons/ganeti-confd \
 	daemons/ganeti-masterd \
+	daemons/ganeti-noded \
 	daemons/ganeti-watcher \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
@@ -294,7 +296,6 @@ PYTHON_BOOTSTRAP = \
 	scripts/gnt-os
 
 dist_sbin_SCRIPTS = \
-	daemons/ganeti-noded \
 	daemons/ganeti-rapi
 
 nodist_sbin_SCRIPTS = \
