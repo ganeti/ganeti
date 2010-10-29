@@ -39,6 +39,7 @@
 /daemons/ganeti-confd
 /daemons/ganeti-masterd
 /daemons/ganeti-noded
+/daemons/ganeti-rapi
 /daemons/ganeti-watcher
 
 # devel

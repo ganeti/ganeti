@@ -339,7 +339,7 @@ def ExecRapi(options, args, prep_data): # pylint: disable-msg=W0613
     server.Stop()
 
 
-def main():
+def Main():
   """Main function.
 
   """
@@ -350,7 +350,3 @@ def main():
   daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
                      default_ssl_cert=constants.RAPI_CERT_FILE,
                      default_ssl_key=constants.RAPI_CERT_FILE)
-
-
-if __name__ == "__main__":
-  main()

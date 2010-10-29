@@ -199,7 +199,8 @@ server_PYTHON = \
 	lib/server/__init__.py \
 	lib/server/confd.py \
 	lib/server/masterd.py \
-	lib/server/noded.py
+	lib/server/noded.py \
+	lib/server/rapi.py
 
 docrst = \
 	doc/admin.rst \
@@ -287,6 +288,7 @@ PYTHON_BOOTSTRAP = \
 	daemons/ganeti-masterd \
 	daemons/ganeti-noded \
 	daemons/ganeti-watcher \
+	daemons/ganeti-rapi \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
@@ -295,8 +297,7 @@ PYTHON_BOOTSTRAP = \
 	scripts/gnt-node \
 	scripts/gnt-os
 
-dist_sbin_SCRIPTS = \
-	daemons/ganeti-rapi
+dist_sbin_SCRIPTS =
 
 nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP) \
