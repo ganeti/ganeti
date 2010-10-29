@@ -590,7 +590,7 @@ def ExecMasterd(options, args, prep_data): # pylint: disable-msg=W0613
     utils.RemoveFile(constants.MASTER_SOCKET)
 
 
-def main():
+def Main():
   """Main function"""
   parser = OptionParser(description="Ganeti master daemon",
                         usage="%prog [-f] [-d]",
@@ -605,7 +605,3 @@ def main():
                     default=False, action="store_true")
   daemon.GenericMain(constants.MASTERD, parser, CheckMasterd, PrepMasterd,
                      ExecMasterd, multithreaded=True)
-
-
-if __name__ == "__main__":
-  main()

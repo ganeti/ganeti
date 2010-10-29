@@ -36,6 +36,7 @@
 /daemons/daemon-util
 /daemons/ensure-dirs
 /daemons/ganeti-cleaner
+/daemons/ganeti-masterd
 /daemons/ganeti-watcher
 
 # devel
