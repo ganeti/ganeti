@@ -293,7 +293,7 @@ def ExecConfd(options, args, prep_data): # pylint: disable-msg=W0613
   mainloop.Run()
 
 
-def main():
+def Main():
   """Main function for the confd daemon.
 
   """
@@ -303,7 +303,3 @@ def main():
                         constants.RELEASE_VERSION)
 
   daemon.GenericMain(constants.CONFD, parser, CheckConfd, PrepConfd, ExecConfd)
-
-
-if __name__ == "__main__":
-  main()
