@@ -656,7 +656,7 @@ def SetNodeParams(opts, args):
 
   """
   all_changes = [opts.master_candidate, opts.drained, opts.offline,
-                 opts.master_capable, opts.vm_capable]
+                 opts.master_capable, opts.vm_capable, opts.secondary_ip]
   if all_changes.count(None) == len(all_changes):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -667,6 +667,7 @@ def SetNodeParams(opts, args):
                                drained=opts.drained,
                                master_capable=opts.master_capable,
                                vm_capable=opts.vm_capable,
+                               secondary_ip=opts.secondary_ip,
                                force=opts.force,
                                auto_promote=opts.auto_promote)
 
@@ -720,7 +721,7 @@ commands = {
   'modify': (
     SetNodeParams, ARGS_ONE_NODE,
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
-     CAPAB_MASTER_OPT, CAPAB_VM_OPT,
+     CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name>", "Alters the parameters of a node"),
   'powercycle': (

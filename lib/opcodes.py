@@ -437,6 +437,7 @@ class OpSetNodeParams(OpCode):
     "auto_promote",
     "master_capable",
     "vm_capable",
+    "secondary_ip",
     ]
 
 

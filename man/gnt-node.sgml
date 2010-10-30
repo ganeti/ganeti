@@ -637,6 +637,7 @@
         <arg>--offline=<option>yes|no</option></arg>
         <arg>--master-capable=<option>yes|no</option></arg>
         <arg>--vm-capable=<option>yes|no</option></arg>
+        <arg>-s <replaceable>secondary_ip</replaceable></arg>
         <arg>--auto-promote</arg>
         <arg choice="req"><replaceable>node</replaceable></arg>
       </cmdsynopsis>
@@ -669,6 +670,12 @@
         <screen>
 # gnt-node modify --offline=yes node1.example.com
         </screen>
+      </para>
+
+      <para>
+        The <option>-s</option> can be used to change the node's secondary ip.
+        No drbd instances can be running on the node, while this operation is
+        taking place.
       </para>
 
       <para>Example (setting the node back to online and master candidate):
