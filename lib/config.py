@@ -877,6 +877,21 @@ class ConfigWriter:
     raise errors.OpPrereqError("Nodegroup '%s' not found", target)
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeGroup(self, uuid):
+    """Lookup a node group.
+
+    @type uuid: string
+    @param uuid: group UUID
+    @rtype: L{objects.NodeGroup} or None
+    @return: nodegroup object, or None if not found
+
+    """
+    if uuid not in self._config_data.nodegroups:
+      return None
+
+    return self._config_data.nodegroups[uuid]
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodeGroupsInfo(self):
     """Get the configuration of all node groups.
 
