@@ -854,12 +854,12 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def LookupNodeGroup(self, target):
-    """Lookup a node group.
+    """Lookup a node group's UUID.
 
     @type target: string or None
-    @param  target: group name or uuid or None to look for the default
+    @param target: group name or UUID or None to look for the default
     @rtype: string
-    @return: nodegroup uuid
+    @return: nodegroup UUID
     @raises errors.OpPrereqError: when the target group cannot be found
 
     """
