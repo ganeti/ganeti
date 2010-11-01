@@ -209,8 +209,11 @@ def _ResolveName(cmd, key):
 def ResolveInstanceName(instance):
   """Gets the full name of an instance.
 
+  @type instance: string
+  @param instance: Instance name
+
   """
-  return _ResolveName(['gnt-instance', 'info', instance['name']],
+  return _ResolveName(['gnt-instance', 'info', instance],
                       'Instance name')
 
 

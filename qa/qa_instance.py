@@ -287,7 +287,7 @@ def TestInstanceExport(instance, node):
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
-  return qa_utils.ResolveInstanceName(instance)
+  return qa_utils.ResolveInstanceName(instance["name"])
 
 
 def TestInstanceExportWithRemove(instance, node):
@@ -340,7 +340,7 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
   master = qa_config.GetMasterNode()
   sq = utils.ShellQuoteArgs
 
-  instance_full = qa_utils.ResolveInstanceName(instance)
+  instance_full = qa_utils.ResolveInstanceName(instance["name"])
   node_full = qa_utils.ResolveNodeName(node)
   node2_full = qa_utils.ResolveNodeName(node2)
 

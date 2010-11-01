@@ -131,7 +131,7 @@ def TestInstanceAutomaticRestart(node, instance):
 
   """
   master = qa_config.GetMasterNode()
-  inst_name = qa_utils.ResolveInstanceName(instance)
+  inst_name = qa_utils.ResolveInstanceName(instance["name"])
 
   _ResetWatcherDaemon()
   _XmShutdownInstance(node, inst_name)
@@ -152,7 +152,7 @@ def TestInstanceConsecutiveFailures(node, instance):
 
   """
   master = qa_config.GetMasterNode()
-  inst_name = qa_utils.ResolveInstanceName(instance)
+  inst_name = qa_utils.ResolveInstanceName(instance["name"])
 
   _ResetWatcherDaemon()
 
