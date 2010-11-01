@@ -995,6 +995,9 @@ class ConfigWriter:
                                                              inst.name,
                                                              disk.iv_name))
 
+    # Force update of ssconf files
+    self._config_data.cluster.serial_no += 1
+
     self._config_data.instances[inst.name] = inst
     self._WriteConfig()
 
