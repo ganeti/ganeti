@@ -33,7 +33,7 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, AssertNotEqual, StartSSH
+from qa_utils import AssertEqual, AssertNotEqual, AssertIn, StartSSH
 
 
 def _GetDiskStatePath(disk):
@@ -61,6 +61,9 @@ def _DiskTest(node, disk_template):
 
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    _CheckSsconfInstanceList(instance["name"])
+
     return instance
   except:
     qa_config.ReleaseInstance(instance)
@@ -129,6 +132,30 @@ def TestInstanceReinstall(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+def _ReadSsconfInstanceList():
+  """Reads ssconf_instance_list from the master node.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  cmd = ["cat", utils.PathJoin(constants.DATA_DIR,
+                               "ssconf_%s" % constants.SS_INSTANCE_LIST)]
+
+  return qa_utils.GetCommandOutput(master["primary"],
+                                   utils.ShellQuoteArgs(cmd)).splitlines()
+
+
+def _CheckSsconfInstanceList(instance):
+  """Checks if a certain instance is in the ssconf instance list.
+
+  @type instance: string
+  @param instance: Instance name
+
+  """
+  AssertIn(qa_utils.ResolveInstanceName(instance),
+           _ReadSsconfInstanceList())
+
+
 def TestInstanceRename(instance, rename_target):
   """gnt-instance rename"""
   master = qa_config.GetMasterNode()
@@ -137,9 +164,11 @@ def TestInstanceRename(instance, rename_target):
 
   for name1, name2 in [(rename_source, rename_target),
                        (rename_target, rename_source)]:
+    _CheckSsconfInstanceList(name1)
     cmd = ['gnt-instance', 'rename', name1, name2]
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+    _CheckSsconfInstanceList(name2)
 
 
 def TestInstanceFailover(instance):
