@@ -275,7 +275,7 @@ def ParseRequest(msg):
 
   method = request.get(KEY_METHOD, None) # pylint: disable-msg=E1103
   args = request.get(KEY_ARGS, None) # pylint: disable-msg=E1103
-  version = request.get(KEY_VERSION, None)
+  version = request.get(KEY_VERSION, None) # pylint: disable-msg=E1103
 
   if method is None or args is None:
     logging.error("LUXI request missing method or arguments: %r", msg)
@@ -301,7 +301,8 @@ def ParseResponse(msg):
           KEY_RESULT in data):
     raise ProtocolError("Invalid response from server: %r" % data)
 
-  return (data[KEY_SUCCESS], data[KEY_RESULT], data.get(KEY_VERSION, None))
+  return (data[KEY_SUCCESS], data[KEY_RESULT],
+          data.get(KEY_VERSION, None)) # pylint: disable-msg=E1103
 
 
 def FormatResponse(success, result, version=None):
