@@ -6,8 +6,41 @@ Version 2.3 rc0
 
 *(unreleased)*
 
-- Adding instance disk wipe prior allocation. This is a cluster wide
-  option and can be set/modified using --prealloc-wipe-disks.
+- Fixed clearing of the default iallocator using ``gnt-cluster modify``
+- Fixed master failover race with watcher
+- Fixed a bug in ``gnt-node modify`` which could lead to an inconsistent
+  configuration
+- Accept previously stopped instance for export with instance removal
+- Simplify and extend the environment variables for instance OS scripts
+- Added new node flags, ``master_capable`` and ``vm_capable``
+- Added optional instance disk wiping prior during allocation. This is a
+  cluster-wide option and can be set/modified using
+  ``gnt-cluster {init,modify} --prealloc-wipe-disks``.
+- Added IPv6 support, see :doc:`design document <design-2.3>` and
+  :doc:`install-quick`
+- Added a new watcher option (``--ignore-pause``)
+- Added option to ignore offline node on instance start/stop
+  (``--ignore-offline``)
+- Allow overriding OS parameters with ``gnt-instance reinstall``
+- Implemented privilege separation for all daemons except
+  ``ganeti-noded``, see ``configure`` options
+- Complain if an instance's disk is marked faulty in ``gnt-cluster
+  verify``
+- Implemented job priorities (see ``ganeti(7)`` manpage)
+- Ignore failures while shutting down instances during failover from
+  offline node
+- Exit daemon's bootstrap process only once daemon is ready
+- Export more information via ``LUQueryInstances``/remote API
+- Improved documentation, QA and unittests
+- RAPI daemon now watches ``rapi_users`` all the time and doesn't need a
+  restart if the file was created or changed
+- Added LUXI protocol version sent with each request and response,
+  allowing detection of server/client mismatches
+- Moved the Python scripts among gnt-* and ganeti-* modules
+- Moved all code related to setting up SSH to an external script,
+  ``setup-ssh``
+- Infrastructure changes for node group support in future versions
+
 
 Version 2.2.1
 -------------
@@ -1161,7 +1194,7 @@ Version 1.2b2
   post-configuration update hook)
 - Other small bugfixes
 
-.. vim: set textwidth=72 :
+.. vim: set textwidth=72 syntax=rst :
 .. Local Variables:
 .. mode: rst
 .. fill-column: 72
