@@ -1,8 +1,8 @@
 News
 ====
 
-Version 2.3 rc0
----------------
+Version 2.3.0 rc0
+-----------------
 
 *(Released Tue, 2 Nov 2010)*
 
@@ -38,7 +38,7 @@ Version 2.3 rc0
   restart if the file was created or changed
 - Added LUXI protocol version sent with each request and response,
   allowing detection of server/client mismatches
-- Moved the Python scripts among gnt-* and ganeti-* modules
+- Moved the Python scripts among gnt-* and ganeti-* into modules
 - Moved all code related to setting up SSH to an external script,
   ``setup-ssh``
 - Infrastructure changes for node group support in future versions
