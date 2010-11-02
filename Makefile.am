@@ -732,6 +732,7 @@ dist-hook:
 	$(MAKE) regen-vcs-version && \
 	rm -f $(top_distdir)/vcs-version && \
 	cp -p $(srcdir)/vcs-version $(top_distdir)
+	rm $(top_distdir)/doc/html/.dir
 
 # a distcheck hook rule for catching revision control directories
 distcheck-hook:
