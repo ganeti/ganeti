@@ -4,7 +4,7 @@ News
 Version 2.3 rc0
 ---------------
 
-*(unreleased)*
+*(Released Tue, 2 Nov 2010)*
 
 - Fixed clearing of the default iallocator using ``gnt-cluster modify``
 - Fixed master failover race with watcher
@@ -22,6 +22,8 @@ Version 2.3 rc0
 - Added option to ignore offline node on instance start/stop
   (``--ignore-offline``)
 - Allow overriding OS parameters with ``gnt-instance reinstall``
+- Added ability to change node's secondary IP address using ``gnt-node
+  modify``
 - Implemented privilege separation for all daemons except
   ``ganeti-noded``, see ``configure`` options
 - Complain if an instance's disk is marked faulty in ``gnt-cluster
