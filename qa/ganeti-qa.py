@@ -416,6 +416,8 @@ def main():
         snode = qa_config.AcquireNode(exclude=pnode)
         try:
           instance = RunTest(func, pnode, snode)
+          if qa_config.TestEnabled("cluster-verify"):
+            RunTest(qa_cluster.TestClusterVerify)
           RunCommonInstanceTests(instance)
           if qa_config.TestEnabled('instance-convert-disk'):
             RunTest(qa_instance.TestInstanceShutdown, instance)
