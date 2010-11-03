@@ -1057,9 +1057,13 @@ class RpcRunner(object):
                                  [dict((name, [dsk.ToDict() for dsk in disks])
                                        for name, disks in node_disks.items())])
     for nres in result.values():
-      if not nres.fail_msg:
-        nres.payload = [objects.BlockDevStatus.FromDict(i)
-                        for i in nres.payload]
+      if nres.fail_msg:
+        continue
+
+      for idx, (success, status) in enumerate(nres.payload):
+        if success:
+          nres.payload[idx] = (success, objects.BlockDevStatus.FromDict(status))
+
     return result
 
   @_RpcTimeout(_TMO_NORMAL)

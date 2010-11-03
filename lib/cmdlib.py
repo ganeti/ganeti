@@ -1539,15 +1539,17 @@ class LUVerifyCluster(LogicalUnit):
         _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
                  "instance should not run on node %s", node)
 
-    diskdata = [(nname, disk, idx)
+    diskdata = [(nname, success, status, idx)
                 for (nname, disks) in diskstatus.items()
-                for idx, disk in enumerate(disks)]
+                for idx, (success, status) in enumerate(disks)]
 
-    for nname, bdev_status, idx in diskdata:
-      _ErrorIf(not bdev_status,
+    for nname, success, bdev_status, idx in diskdata:
+      _ErrorIf(instanceconfig.admin_up and not success,
                self.EINSTANCEFAULTYDISK, instance,
-               "couldn't retrieve status for disk/%s on %s", idx, nname)
-      _ErrorIf(bdev_status and bdev_status.ldisk_status == constants.LDS_FAULTY,
+               "couldn't retrieve status for disk/%s on %s: %s",
+               idx, nname, bdev_status)
+      _ErrorIf((instanceconfig.admin_up and success and
+                bdev_status.ldisk_status == constants.LDS_FAULTY),
                self.EINSTANCEFAULTYDISK, instance,
                "disk/%s on %s is faulty", idx, nname)
 

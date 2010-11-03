@@ -1539,9 +1539,7 @@ def BlockdevGetmirrorstatus(disks):
   @type disks: list of L{objects.Disk}
   @param disks: the list of disks which we should query
   @rtype: disk
-  @return:
-      a list of (mirror_done, estimated_time) tuples, which
-      are the result of L{bdev.BlockDev.CombinedSyncStatus}
+  @return: List of L{objects.BlockDevStatus}, one for each disk
   @raise errors.BlockDeviceError: if any of the disks cannot be
       found
 
@@ -1555,6 +1553,37 @@ def BlockdevGetmirrorstatus(disks):
     stats.append(rbd.CombinedSyncStatus())
 
   return stats
+
+
+def BlockdevGetmirrorstatusMulti(disks):
+  """Get the mirroring status of a list of devices.
+
+  @type disks: list of L{objects.Disk}
+  @param disks: the list of disks which we should query
+  @rtype: disk
+  @return: List of tuples, (bool, status), one for each disk; bool denotes
+    success/failure, status is L{objects.BlockDevStatus} on success, string
+    otherwise
+
+  """
+  result = []
+  for disk in disks:
+    try:
+      rbd = _RecursiveFindBD(disk)
+      if rbd is None:
+        result.append((False, "Can't find device %s" % disk))
+        continue
+
+      status = rbd.CombinedSyncStatus()
+    except errors.BlockDeviceError, err:
+      logging.exception("Error while getting disk status")
+      result.append((False, str(err)))
+    else:
+      result.append((True, status))
+
+  assert len(disks) == len(result)
+
+  return result
 
 
 def _RecursiveFindBD(disk):
