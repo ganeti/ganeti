@@ -751,6 +751,15 @@ distcheck-hook:
 		echo "Found backup files in final archive." 1>&2; \
 		exit 1; \
 	fi
+# Empty files or directories should not be distributed. They can cause
+# unnecessary warnings for packagers. Directories used by automake during
+# distcheck must be excluded.
+	if find $(top_distdir) -empty -and -not \( \
+			-path $(top_distdir)/_build -or \
+			-path $(top_distdir)/_inst \) | grep .; then \
+		echo "Found empty files or directories in final archive." 1>&2; \
+		exit 1; \
+	fi
 	if test -n "$(BUILD_RELEASE)" && \
 	   grep -n -H -E '^\*.*unreleased' $(top_distdir)/NEWS; then \
 		echo "Found unreleased version in NEWS." >&2; \
