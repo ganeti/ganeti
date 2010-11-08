@@ -57,10 +57,13 @@ DIRS = \
 	test/data \
 	tools
 
-BUILDTIME_DIRS = \
+BUILDTIME_DIR_AUTOCREATE = \
 	scripts \
 	doc/api \
-	doc/coverage \
+	doc/coverage
+
+BUILDTIME_DIRS = \
+	$(BUILDTIME_DIR_AUTOCREATE) \
 	doc/html
 
 DIRCHECK_EXCLUDE = \
@@ -68,7 +71,7 @@ DIRCHECK_EXCLUDE = \
 	ganeti-[0-9]*.[0-9]*.[0-9]* \
 	doc/html/_*
 
-all_dirfiles = $(addsuffix /.dir,$(DIRS) $(BUILDTIME_DIRS))
+all_dirfiles = $(addsuffix /.dir,$(DIRS) $(BUILDTIME_DIR_AUTOCREATE))
 
 MAINTAINERCLEANFILES = \
 	$(docpng) \
@@ -227,9 +230,10 @@ docrst = \
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 
 doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
-	$(RUN_IN_TEMPDIR) | doc/html/.dir
+	$(RUN_IN_TEMPDIR)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
+	@mkdir_p@ $(dir $@)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(SPHINX) -q -W -b html \
 	    -d . \
 	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
@@ -733,7 +737,6 @@ dist-hook:
 	$(MAKE) regen-vcs-version && \
 	rm -f $(top_distdir)/vcs-version && \
 	cp -p $(srcdir)/vcs-version $(top_distdir)
-	rm $(top_distdir)/doc/html/.dir
 
 # a distcheck hook rule for catching revision control directories
 distcheck-hook:
@@ -747,6 +750,15 @@ distcheck-hook:
 	fi
 	if find $(top_distdir) -name '*~' | grep .; then \
 		echo "Found backup files in final archive." 1>&2; \
+		exit 1; \
+	fi
+# Empty files or directories should not be distributed. They can cause
+# unnecessary warnings for packagers. Directories used by automake during
+# distcheck must be excluded.
+	if find $(top_distdir) -empty -and -not \( \
+			-path $(top_distdir)/_build -or \
+			-path $(top_distdir)/_inst \) | grep .; then \
+		echo "Found empty files or directories in final archive." 1>&2; \
 		exit 1; \
 	fi
 	if test -n "$(BUILD_RELEASE)" && \

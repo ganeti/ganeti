@@ -186,11 +186,25 @@
           </listitem>
         </varlistentry>
         <varlistentry>
+          <term>NIC_%N_MODE</term>
+          <listitem>
+            <simpara>The NIC mode, either routed or bridged</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
           <term>NIC_%N_BRIDGE</term>
           <listitem>
-            <simpara>The bridge to which this NIC will be attached
-            to.</simpara>
+            <simpara>The bridge to which this NIC will be attached. This
+            variable is defined only when the NIC is in bridged mode.</simpara>
           </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>NIC_%N_LINK</term>
+          <listitem>
+           <simpara>If the NIC is in bridged mode, this is the same as
+            NIC_%N_BRIDGE. If it is in routed mode, the routing table
+            which will be used by the hypervisor to insert the appropriate
+            routes.</simpara> </listitem>
         </varlistentry>
         <varlistentry>
           <term>NIC_%N_FRONTEND_TYPE</term>
