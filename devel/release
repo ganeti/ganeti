@@ -71,8 +71,8 @@ done
 
 VERSION=$(sed -n -e '/^PACKAGE_VERSION =/ s/^PACKAGE_VERSION = // p' Makefile)
 
-make distcheck
-fakeroot make dist
+make distcheck-release
+fakeroot make dist-release
 tar tzvf ganeti-$VERSION.tar.gz
 
 echo
