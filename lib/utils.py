@@ -96,6 +96,10 @@ _MCL_FUTURE = 2
 #: MAC checker regexp
 _MAC_CHECK = re.compile("^([0-9a-f]{2}:){5}[0-9a-f]{2}$", re.I)
 
+(_TIMEOUT_NONE,
+ _TIMEOUT_TERM,
+ _TIMEOUT_KILL) = range(3)
+
 
 class RunResult(object):
   """Holds the result of running external programs.
@@ -120,7 +124,8 @@ class RunResult(object):
                "failed", "fail_reason", "cmd"]
 
 
-  def __init__(self, exit_code, signal_, stdout, stderr, cmd):
+  def __init__(self, exit_code, signal_, stdout, stderr, cmd, timeout_action,
+               timeout):
     self.cmd = cmd
     self.exit_code = exit_code
     self.signal = signal_
@@ -128,12 +133,23 @@ class RunResult(object):
     self.stderr = stderr
     self.failed = (signal_ is not None or exit_code != 0)
 
+    fail_msgs = []
     if self.signal is not None:
-      self.fail_reason = "terminated by signal %s" % self.signal
+      fail_msgs.append("terminated by signal %s" % self.signal)
     elif self.exit_code is not None:
-      self.fail_reason = "exited with exit code %s" % self.exit_code
+      fail_msgs.append("exited with exit code %s" % self.exit_code)
     else:
-      self.fail_reason = "unable to determine termination reason"
+      fail_msgs.append("unable to determine termination reason")
+
+    if timeout_action == _TIMEOUT_TERM:
+      fail_msgs.append("terminated after timeout of %.2f seconds" % timeout)
+    elif timeout_action == _TIMEOUT_KILL:
+      fail_msgs.append(("force termination after timeout of %.2f seconds"
+                        " and linger for another %.2f seconds") %
+                       (timeout, constants.CHILD_LINGER_TIMEOUT))
+
+    if fail_msgs and self.failed:
+      self.fail_reason = CommaJoin(fail_msgs)
 
     if self.failed:
       logging.debug("Command '%s' failed (%s); output: %s",
@@ -165,7 +181,7 @@ def _BuildCmdEnvironment(env, reset):
 
 
 def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
-           interactive=False):
+           interactive=False, timeout=None):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -187,6 +203,9 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   @type interactive: boolean
   @param interactive: weather we pipe stdin, stdout and stderr
                       (default behaviour) or run the command interactive
+  @type timeout: int
+  @param timeout: If not None, timeout in seconds until child process gets
+                  killed
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise errors.ProgrammerError: if we call this when forks are disabled
@@ -216,8 +235,10 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
 
   try:
     if output is None:
-      out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd, interactive)
+      out, err, status, timeout_action = _RunCmdPipe(cmd, cmd_env, shell, cwd,
+                                                     interactive, timeout)
     else:
+      timeout_action = _TIMEOUT_NONE
       status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
       out = err = ""
   except OSError, err:
@@ -234,7 +255,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
     exitcode = None
     signal_ = -status
 
-  return RunResult(exitcode, signal_, out, err, strcmd)
+  return RunResult(exitcode, signal_, out, err, strcmd, timeout_action, timeout)
 
 
 def SetupDaemonEnv(cwd="/", umask=077):
@@ -460,7 +481,28 @@ def WriteErrorToFD(fd, err):
   RetryOnSignal(os.write, fd, err)
 
 
-def _RunCmdPipe(cmd, env, via_shell, cwd, interactive):
+def _CheckIfAlive(child):
+  """Raises L{RetryAgain} if child is still alive.
+
+  @raises RetryAgain: If child is still alive
+
+  """
+  if child.poll() is None:
+    raise RetryAgain()
+
+
+def _WaitForProcess(child, timeout):
+  """Waits for the child to terminate or until we reach timeout.
+
+  """
+  try:
+    Retry(_CheckIfAlive, (1.0, 1.2, 5.0), max(0, timeout), args=[child])
+  except RetryTimeout:
+    pass
+
+
+def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout,
+                _linger_timeout=constants.CHILD_LINGER_TIMEOUT):
   """Run a command and return its output.
 
   @type  cmd: string or list
@@ -473,6 +515,8 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive):
   @param cwd: the working directory for the program
   @type interactive: boolean
   @param interactive: Run command interactive (without piping)
+  @type timeout: int
+  @param timeout: Timeout after the programm gets terminated
   @rtype: tuple
   @return: (out, err, status)
 
@@ -495,6 +539,21 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive):
 
   out = StringIO()
   err = StringIO()
+
+  linger_timeout = None
+
+  if timeout is None:
+    poll_timeout = None
+  else:
+    poll_timeout = RunningTimeout(timeout, True).Remaining
+
+  msg_timeout = ("Command %s (%d) run into execution timeout, terminating" %
+                 (cmd, child.pid))
+  msg_linger = ("Command %s (%d) run into linger timeout, killing" %
+                (cmd, child.pid))
+
+  timeout_action = _TIMEOUT_NONE
+
   if not interactive:
     child.stdin.close()
     poller.register(child.stdout, select.POLLIN)
@@ -507,7 +566,26 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive):
       SetNonblockFlag(fd, True)
 
     while fdmap:
-      pollresult = RetryOnSignal(poller.poll)
+      if poll_timeout:
+        current_timeout = poll_timeout()
+        if current_timeout < 0:
+          if linger_timeout is None:
+            logging.warning(msg_timeout)
+            if child.poll() is None:
+              timeout_action = _TIMEOUT_TERM
+              IgnoreProcessNotFound(os.kill, child.pid, signal.SIGTERM)
+            linger_timeout = RunningTimeout(_linger_timeout, True).Remaining
+          lt = linger_timeout()
+          if lt < 0:
+            break
+
+          pt = max(0, lt)
+        else:
+          pt = current_timeout
+      else:
+        pt = None
+
+      pollresult = RetryOnSignal(poller.poll, pt)
 
       for fd, event in pollresult:
         if event & select.POLLIN or event & select.POLLPRI:
@@ -523,11 +601,35 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive):
           poller.unregister(fd)
           del fdmap[fd]
 
+  if timeout is not None:
+    assert callable(poll_timeout)
+
+    # We have no I/O left but it might still run
+    if child.poll() is None:
+      _WaitForProcess(child, poll_timeout())
+
+    # Terminate if still alive after timeout
+    if child.poll() is None:
+      if linger_timeout is None:
+        logging.warning(msg_timeout)
+        timeout_action = _TIMEOUT_TERM
+        IgnoreProcessNotFound(os.kill, child.pid, signal.SIGTERM)
+        lt = _linger_timeout
+      else:
+        lt = linger_timeout()
+      _WaitForProcess(child, lt)
+
+    # Okay, still alive after timeout and linger timeout? Kill it!
+    if child.poll() is None:
+      timeout_action = _TIMEOUT_KILL
+      logging.warning(msg_linger)
+      IgnoreProcessNotFound(os.kill, child.pid, signal.SIGKILL)
+
   out = out.getvalue()
   err = err.getvalue()
 
   status = child.wait()
-  return out, err, status
+  return out, err, status, timeout_action
 
 
 def _RunCmdFile(cmd, env, via_shell, output, cwd):

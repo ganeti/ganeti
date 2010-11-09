@@ -53,9 +53,6 @@ MAX_RECENT_OUTPUT_LINES = 20
 #: Don't update status file more than once every 5 seconds (unless forced)
 MIN_UPDATE_INTERVAL = 5.0
 
-#: Give child process up to 5 seconds to exit after sending a signal
-CHILD_LINGER_TIMEOUT = 5.0
-
 #: How long to wait for a connection to be established
 DEFAULT_CONNECT_TIMEOUT = 60
 
@@ -276,7 +273,7 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
           logging.info("Child process didn't establish connection in time")
           child.Kill(signal.SIGTERM)
           exit_timeout = \
-            utils.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
+            utils.RunningTimeout(constants.CHILD_LINGER_TIMEOUT, True)
           # Next block will calculate timeout
         else:
           # Not yet connected, check again in a second
@@ -323,9 +320,9 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
                                " to exit", exit_timeout.Remaining())
                 else:
                   logging.info("Giving child process %0.2f seconds to exit",
-                               CHILD_LINGER_TIMEOUT)
+                               constants.CHILD_LINGER_TIMEOUT)
                   exit_timeout = \
-                    utils.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
+                    utils.RunningTimeout(constants.CHILD_LINGER_TIMEOUT, True)
           else:
             poller.unregister(fd)
             del fdmap[fd]

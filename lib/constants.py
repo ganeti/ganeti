@@ -423,6 +423,8 @@ RIE_CERT_VALIDITY = 24 * 60 * 60
 
 # Remote import/export connect timeout for socat
 RIE_CONNECT_TIMEOUT = 60
+#: Give child process up to 5 seconds to exit after sending a signal
+CHILD_LINGER_TIMEOUT = 5.0
 
 DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN,
                             DT_DRBD8, DT_FILE])

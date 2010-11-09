@@ -237,6 +237,12 @@ class TestRunCmd(testutils.GanetiTestCase):
     testutils.GanetiTestCase.setUp(self)
     self.magic = time.ctime() + " ganeti test"
     self.fname = self._CreateTempFile()
+    self.fifo_tmpdir = tempfile.mkdtemp()
+    self.fifo_file = os.path.join(self.fifo_tmpdir, "ganeti_test_fifo")
+    os.mkfifo(self.fifo_file)
+
+  def tearDown(self):
+    shutil.rmtree(self.fifo_tmpdir)
 
   def testOk(self):
     """Test successful exit code"""
@@ -283,6 +289,38 @@ class TestRunCmd(testutils.GanetiTestCase):
     result = RunCmd(["python", "-c", "import os; os.kill(os.getpid(), 15)"])
     self.assertEqual(result.signal, 15)
     self.assertEqual(result.output, "")
+
+  def testTimeoutClean(self):
+    cmd = "trap 'exit 0' TERM; read < %s" % self.fifo_file
+    result = RunCmd(["/bin/sh", "-c", cmd], timeout=0.2)
+    self.assertEqual(result.exit_code, 0)
+
+  def testTimeoutCleanInteractive(self):
+    cmd = "trap 'exit 0' TERM; read"
+    result = RunCmd(["/bin/sh", "-c", cmd], interactive=True, timeout=0.2)
+    self.assertEqual(result.exit_code, 0)
+
+  def testTimeoutNonClean(self):
+    for exit_code in (1, 10, 17, 29):
+      cmd = "trap 'exit %i' TERM; read" % exit_code
+      result = RunCmd(["/bin/sh", "-c", cmd], interactive=True, timeout=0.2)
+      self.assert_(result.failed)
+      self.assertEqual(result.exit_code, exit_code)
+
+  def testTimeoutKill(self):
+    cmd = "trap '' TERM; read < %s" % self.fifo_file
+    timeout = 0.2
+    strcmd = utils.ShellQuoteArgs(["/bin/sh", "-c", cmd])
+    out, err, status, ta = utils._RunCmdPipe(strcmd, {}, True, "/", False,
+                                             timeout, _linger_timeout=0.2)
+    self.assert_(status < 0)
+    self.assertEqual(-status, signal.SIGKILL)
+
+  def testTimeoutOutputAfterTerm(self):
+    cmd = "trap 'echo sigtermed; exit 1' TERM; read < %s" % self.fifo_file
+    result = RunCmd(["/bin/sh", "-c", cmd], timeout=0.2)
+    self.assert_(result.failed)
+    self.assertEqual(result.stdout, "sigtermed\n")
 
   def testListRun(self):
     """Test list runs"""
