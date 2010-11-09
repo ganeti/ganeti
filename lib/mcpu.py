@@ -38,6 +38,7 @@ from ganeti import errors
 from ganeti import rpc
 from ganeti import cmdlib
 from ganeti import locking
+from ganeti import utils
 
 
 class LockAcquireTimeout(Exception):
@@ -368,7 +369,7 @@ class Processor(object):
     if timeout is None:
       calc_timeout = lambda: None
     else:
-      calc_timeout = locking.RunningTimeout(timeout, False).Remaining
+      calc_timeout = utils.RunningTimeout(timeout, False).Remaining
 
     self._cbs = cbs
     try:

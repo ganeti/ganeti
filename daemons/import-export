@@ -43,7 +43,6 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import serializer
 from ganeti import objects
-from ganeti import locking
 from ganeti import impexpd
 from ganeti import netutils
 
@@ -256,7 +255,7 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
       poller.register(fd, select.POLLIN)
 
     if options.connect_timeout and mode == constants.IEM_IMPORT:
-      listen_timeout = locking.RunningTimeout(options.connect_timeout, True)
+      listen_timeout = utils.RunningTimeout(options.connect_timeout, True)
     else:
       listen_timeout = None
 
@@ -277,7 +276,7 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
           logging.info("Child process didn't establish connection in time")
           child.Kill(signal.SIGTERM)
           exit_timeout = \
-            locking.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
+            utils.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
           # Next block will calculate timeout
         else:
           # Not yet connected, check again in a second
@@ -293,11 +292,10 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
         notify_status = child_io_proc.NotifyDd()
         if notify_status:
           # Schedule next notification
-          dd_stats_timeout = locking.RunningTimeout(DD_STATISTICS_INTERVAL,
-                                                    True)
+          dd_stats_timeout = utils.RunningTimeout(DD_STATISTICS_INTERVAL, True)
         else:
           # Try again soon (dd isn't ready yet)
-          dd_stats_timeout = locking.RunningTimeout(1.0, True)
+          dd_stats_timeout = utils.RunningTimeout(1.0, True)
 
       if dd_stats_timeout:
         dd_timeout = max(0, dd_stats_timeout.Remaining() * 1000)
@@ -327,7 +325,7 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
                   logging.info("Giving child process %0.2f seconds to exit",
                                CHILD_LINGER_TIMEOUT)
                   exit_timeout = \
-                    locking.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
+                    utils.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
           else:
             poller.unregister(fd)
             del fdmap[fd]

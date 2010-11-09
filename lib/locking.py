@@ -28,7 +28,6 @@
 import os
 import select
 import threading
-import time
 import errno
 import weakref
 import logging
@@ -73,59 +72,6 @@ def ssynchronized(mylock, shared=0):
   return wrap
 
 
-class RunningTimeout(object):
-  """Class to calculate remaining timeout when doing several operations.
-
-  """
-  __slots__ = [
-    "_allow_negative",
-    "_start_time",
-    "_time_fn",
-    "_timeout",
-    ]
-
-  def __init__(self, timeout, allow_negative, _time_fn=time.time):
-    """Initializes this class.
-
-    @type timeout: float
-    @param timeout: Timeout duration
-    @type allow_negative: bool
-    @param allow_negative: Whether to return values below zero
-    @param _time_fn: Time function for unittests
-
-    """
-    object.__init__(self)
-
-    if timeout is not None and timeout < 0.0:
-      raise ValueError("Timeout must not be negative")
-
-    self._timeout = timeout
-    self._allow_negative = allow_negative
-    self._time_fn = _time_fn
-
-    self._start_time = None
-
-  def Remaining(self):
-    """Returns the remaining timeout.
-
-    """
-    if self._timeout is None:
-      return None
-
-    # Get start time on first calculation
-    if self._start_time is None:
-      self._start_time = self._time_fn()
-
-    # Calculate remaining time
-    remaining_timeout = self._start_time + self._timeout - self._time_fn()
-
-    if not self._allow_negative:
-      # Ensure timeout is always >= 0
-      return max(0.0, remaining_timeout)
-
-    return remaining_timeout
-
-
 class _SingleNotifyPipeConditionWaiter(object):
   """Helper class for SingleNotifyPipeCondition
 
@@ -155,7 +101,7 @@ class _SingleNotifyPipeConditionWaiter(object):
     @param timeout: Timeout for waiting (can be None)
 
     """
-    running_timeout = RunningTimeout(timeout, True)
+    running_timeout = utils.RunningTimeout(timeout, True)
 
     while True:
       remaining_time = running_timeout.Remaining()
@@ -1033,7 +979,7 @@ class LockSet:
 
     # We need to keep track of how long we spent waiting for a lock. The
     # timeout passed to this function is over all lock acquires.
-    running_timeout = RunningTimeout(timeout, False)
+    running_timeout = utils.RunningTimeout(timeout, False)
 
     try:
       if names is not None:
