@@ -215,7 +215,7 @@ detailedCVInfo = [ (1,  "free_mem_cv")
                  , (1,  "mem_load_cv")
                  , (1,  "disk_load_cv")
                  , (1,  "net_load_cv")
-                 , (1,  "pri_tags_score")
+                 , (2,  "pri_tags_score")
                  ]
 
 detailedCVWeights :: [Double]
