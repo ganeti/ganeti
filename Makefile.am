@@ -334,6 +334,7 @@ EXTRA_DIST = \
 	autotools/build-bash-completion \
 	autotools/check-python-code \
 	autotools/check-man \
+	autotools/check-tar \
 	autotools/docbook-wrapper \
 	autotools/gen-coverage \
 	autotools/testrunner \
@@ -768,8 +769,16 @@ distcheck-hook:
 	fi
 
 # When building a release, stricter checks should be used
-distcheck-release: export BUILD_RELEASE = 1
+distcheck-release dist-release: export BUILD_RELEASE = 1
 distcheck-release: distcheck
+
+dist-release: dist
+	set -e; \
+	for i in $(DIST_ARCHIVES); do \
+		echo -n "Checking $$i ... "; \
+		autotools/check-tar < $$i; \
+		echo OK; \
+	done
 
 install-exec-local:
 	@mkdir_p@ "$(DESTDIR)${localstatedir}/lib/ganeti" \
