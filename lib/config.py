@@ -81,7 +81,7 @@ class TemporaryReservationManager:
     self._ec_reserved = {}
 
   def Reserved(self, resource):
-    for holder_reserved in self._ec_reserved.items():
+    for holder_reserved in self._ec_reserved.values():
       if resource in holder_reserved:
         return True
     return False
