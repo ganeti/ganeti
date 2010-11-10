@@ -220,6 +220,7 @@ XEN_INITRD = _autoconf.XEN_INITRD
 KVM_PATH = _autoconf.KVM_PATH
 SOCAT_PATH = _autoconf.SOCAT_PATH
 SOCAT_USE_ESCAPE = _autoconf.SOCAT_USE_ESCAPE
+SOCAT_USE_COMPRESS = _autoconf.SOCAT_USE_COMPRESS
 SOCAT_ESCAPE_CODE = "0x1d"
 
 # For RSA keys more bits are better, but they also make operations more

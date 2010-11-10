@@ -613,6 +613,7 @@ lib/_autoconf.py: Makefile vcs-version | lib/.dir
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
 	  echo "SOCAT_PATH = '$(SOCAT)'"; \
 	  echo "SOCAT_USE_ESCAPE = $(SOCAT_USE_ESCAPE)"; \
+	  echo "SOCAT_USE_COMPRESS = $(SOCAT_USE_COMPRESS)"; \
 	  echo "LVM_STRIPECOUNT = $(LVM_STRIPECOUNT)"; \
 	  echo "TOOLSDIR = '$(toolsdir)'"; \
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \

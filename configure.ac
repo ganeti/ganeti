@@ -297,6 +297,29 @@ fi
 
 AC_SUBST(SOCAT_USE_ESCAPE)
 
+SOCAT_USE_COMPRESS=
+AC_ARG_ENABLE([socat-compress],
+  [AS_HELP_STRING([--enable-socat-compress],
+    [use OpenSSL compression option available in patched socat builds
+     (see INSTALL for details; default: detect automatically)])],
+  [[if test "$enableval" = yes; then
+      SOCAT_USE_COMPRESS=True
+    else
+      SOCAT_USE_COMPRESS=False
+    fi
+  ]])
+
+if test -z "$SOCAT_USE_COMPRESS"
+then
+  if $SOCAT -hhh | grep -w -q openssl-compress; then
+    SOCAT_USE_COMPRESS=True
+  else
+    SOCAT_USE_COMPRESS=False
+  fi
+fi
+
+AC_SUBST(SOCAT_USE_COMPRESS)
+
 if man --help | grep -q -e --warnings
 then
   MAN_HAS_WARNINGS=1

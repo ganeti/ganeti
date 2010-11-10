@@ -80,6 +80,11 @@ SOCAT_TCP_OPTS = ["keepalive", "keepidle=60", "keepintvl=10", "keepcnt=5"]
 SOCAT_OPENSSL_OPTS = ["verify=1", "method=TLSv1",
                       "cipher=%s" % constants.OPENSSL_CIPHERS]
 
+if constants.SOCAT_USE_COMPRESS:
+  # Disables all compression in by OpenSSL. Only supported in patched versions
+  # of socat (as of November 2010). See INSTALL for more information.
+  SOCAT_OPENSSL_OPTS.append("compress=none")
+
 SOCAT_OPTION_MAXLEN = 400
 
 (PROG_OTHER,
