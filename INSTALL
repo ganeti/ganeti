@@ -34,7 +34,8 @@ Before installing, please verify that you have the following programs:
 - `ctypes Python module
   <http://starship.python.net/crew/theller/ctypes/>`_, if running on
   python 2.4 (optional, used for node daemon memory locking)
-- `socat <http://www.dest-unreach.org/socat/>`_
+- `socat <http://www.dest-unreach.org/socat/>`_, see :ref:`note
+  <socat-note>` below
 - `Paramiko <http://www.lag.net/paramiko/>`_, if you want automated SSH
   setup; optional otherwise but manual setup of the nodes required
 
@@ -51,6 +52,29 @@ packages, except for DRBD and Xen::
 
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.
+
+.. _socat-note:
+.. note::
+  Ganeti's import/export functionality uses ``socat`` with OpenSSL for
+  transferring data between nodes. By default, OpenSSL 0.9.8 and above
+  employ transparent compression of all data using zlib if supported by
+  both sides of a connection. In cases where a lot of data is
+  transferred, this can lead to an increased CPU usage. Additionally,
+  Ganeti already compresses all data using ``gzip`` where it makes sense
+  (for inter-cluster instance moves).
+
+  To remedey this situation, patches implementing a new ``socat`` option
+  for disabling OpenSSL compression have been contributed and will
+  likely be included in the next feature release. Until then, users or
+  distributions need to apply the patches on their own.
+
+  Ganeti will use the option if it's detected by the ``configure``
+  script; auto-detection can be disabled by explicitely passing
+  ``--enable-socat-compress`` (use the option to disable compression) or
+  ``--disable-socat-compress`` (don't use the option).
+
+  The patches and more information can be found on
+  http://www.dest-unreach.org/socat/contrib/socat-opensslcompress.html.
 
 
 Installation of the software
