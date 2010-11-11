@@ -77,6 +77,7 @@ _LIST_HEADERS = {
   "role": "Role",
   "ctime": "CTime", "mtime": "MTime", "uuid": "UUID",
   "master_capable": "MasterCapable", "vm_capable": "VMCapable",
+  "group": "Group", "group.uuid": "GroupUUID",
   }
 
 

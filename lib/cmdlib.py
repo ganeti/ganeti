@@ -3361,8 +3361,9 @@ class LUQueryNodes(NoHooksLU):
     "pinst_cnt", "sinst_cnt",
     "pinst_list", "sinst_list",
     "pip", "sip", "tags",
-    "master",
-    "role"] + _SIMPLE_FIELDS
+    "master", "role",
+    "group.uuid", "group",
+    ] + _SIMPLE_FIELDS
     )
 
   def CheckArguments(self):
@@ -3403,6 +3404,11 @@ class LUQueryNodes(NoHooksLU):
 
     nodenames = utils.NiceSort(nodenames)
     nodelist = [all_info[name] for name in nodenames]
+
+    if "group" in self.op.output_fields:
+      groups = self.cfg.GetAllNodeGroupsInfo()
+    else:
+      groups = {}
 
     # begin data gathering
 
@@ -3485,6 +3491,14 @@ class LUQueryNodes(NoHooksLU):
             val = "O"
           else:
             val = "R"
+        elif field == "group.uuid":
+          val = node.group
+        elif field == "group":
+          ng = groups.get(node.group, None)
+          if ng is None:
+            val = "<unknown>"
+          else:
+            val = ng.name
         else:
           raise errors.ParameterError(field)
         node_output.append(val)

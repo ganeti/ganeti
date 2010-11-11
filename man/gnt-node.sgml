@@ -545,6 +545,20 @@
               <para>whether the node can host instances</para>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>group</term>
+            <listitem>
+              <para>the name of the node's group, if known (the query
+              is done without locking, so data consistency is not
+              guaranteed)</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>group.uuid</term>
+            <listitem>
+              <para>the UUID of the node's group</para>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </para>
 
