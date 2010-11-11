@@ -88,8 +88,8 @@ class TemporaryReservationManager:
 
   def Reserve(self, ec_id, resource):
     if self.Reserved(resource):
-      raise errors.ReservationError("Duplicate reservation for resource: %s." %
-                                    (resource))
+      raise errors.ReservationError("Duplicate reservation for resource '%s'"
+                                    % str(resource))
     if ec_id not in self._ec_reserved:
       self._ec_reserved[ec_id] = set([resource])
     else:

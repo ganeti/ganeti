@@ -37,6 +37,8 @@ from ganeti import objects
 from ganeti import utils
 from ganeti import netutils
 
+from ganeti.config import TemporaryReservationManager
+
 import testutils
 import mocks
 
@@ -184,6 +186,24 @@ class TestConfigRunner(unittest.TestCase):
                       CheckSyntax, {mode: m_bridged, link: None})
     self.assertRaises(errors.ConfigurationError,
                       CheckSyntax, {mode: m_bridged, link: ''})
+
+
+class TestTRM(unittest.TestCase):
+  EC_ID = 1
+
+  def testEmpty(self):
+    t = TemporaryReservationManager()
+    t.Reserve(self.EC_ID, "a")
+    self.assertFalse(t.Reserved(self.EC_ID))
+    self.assertTrue(t.Reserved("a"))
+    self.assertEqual(len(t.GetReserved()), 1)
+
+  def testDuplicate(self):
+    t = TemporaryReservationManager()
+    t.Reserve(self.EC_ID, "a")
+    self.assertRaises(errors.ReservationError, t.Reserve, 2, "a")
+    t.DropECReservations(self.EC_ID)
+    self.assertFalse(t.Reserved("a"))
 
 
 if __name__ == '__main__':
