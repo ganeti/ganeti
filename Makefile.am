@@ -365,7 +365,7 @@ EXTRA_DIST = \
 	test/mocks.py \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
-	man/footer.sgml \
+	man/footer.sgml man/footer.rst \
 	$(mansgml) \
 	$(maninput) \
 	qa/ganeti-qa.py \
@@ -403,7 +403,8 @@ mansgml = $(patsubst %.7,%.sgml,$(patsubst %.8,%.sgml,$(man_MANS)))
 manhtml = $(patsubst %.sgml,%.html,$(mansgml))
 maninput = \
 	$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) \
-	$(patsubst %.html,%.html.in,$(manhtml))
+	$(patsubst %.html,%.html.in,$(manhtml)) \
+	man/footer.man
 
 TEST_FILES = \
 	test/data/bdev-drbd-8.0.txt \
@@ -494,7 +495,7 @@ all_python_code = \
 	$(noinst_PYTHON)
 
 srclink_files = \
-	man/footer.sgml \
+	man/footer.sgml man/footer.rst \
 	test/check-cert-expired_unittest.bash \
 	test/daemon-util_unittest.bash \
 	test/ganeti-cleaner_unittest.bash \
@@ -539,6 +540,11 @@ doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
 doc/%.png: doc/%.dot
 	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
 	$(DOT) -Tpng -o $@ $<
+
+man/footer.man: man/footer.rst
+	@test -n "$(PANDOC)" || \
+	  { echo 'pandoc' not found during configure; exit 1; }
+	$(PANDOC) -f rst -t man -o $@ $<
 
 man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2MAN)" || \
