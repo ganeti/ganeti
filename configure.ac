@@ -242,6 +242,13 @@ then
   AC_MSG_WARN([docbook2html not found, man pages rebuild will not be possible])
 fi
 
+AC_ARG_VAR(PANDOC, [pandoc path])
+AC_PATH_PROG(PANDOC, [pandoc], [])
+if test -z "$PANDOC"
+then
+  AC_MSG_WARN([pandoc not found, man pages rebuild will not be possible])
+fi
+
 # Check for python-sphinx
 AC_ARG_VAR(SPHINX, [sphinx-build path])
 AC_PATH_PROG(SPHINX, [sphinx-build], [])
