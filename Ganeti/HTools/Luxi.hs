@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ toArray v =
 queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
   L.QueryNodes [] ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
-                   "ctotal", "offline", "drained"] False
+                   "ctotal", "offline", "drained", "vm_capable"] False
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -114,13 +114,14 @@ getNodes arr = toArray arr >>= mapM parseNode
 -- | Construct a node from a JSON object.
 parseNode :: JSValue -> Result (String, Node.Node)
 parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
-                   , ctotal, offline, drained ])
+                   , ctotal, offline, drained, vm_capable ])
     = do
   xname <- annotateResult "Parsing new node" (fromJVal name)
   let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
   xoffline <- convert offline
   xdrained <- convert drained
-  node <- (if xoffline || xdrained
+  xvm_capable <- convert vm_capable
+  node <- (if xoffline || xdrained || not xvm_capable
            then return $ Node.create xname 0 0 0 0 0 0 True
            else do
              xmtotal  <- convert mtotal
