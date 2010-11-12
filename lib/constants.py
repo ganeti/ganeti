@@ -915,6 +915,43 @@ JQT_ALL = frozenset([
   JQT_STARTMSG,
   ])
 
+# Query resources
+QR_INSTANCE = "instance"
+QR_NODE = "node"
+
+#: List of resources which can be queried using L{opcodes.OpQuery}
+QR_OP_QUERY = frozenset([QR_INSTANCE, QR_NODE])
+
+# Query field types
+QFT_UNKNOWN = "unknown"
+QFT_TEXT = "text"
+QFT_BOOL = "bool"
+QFT_NUMBER = "number"
+QFT_UNIT = "unit"
+QFT_TIMESTAMP = "timestamp"
+QFT_OTHER = "other"
+
+#: All query field types
+QFT_ALL = frozenset([
+  QFT_UNKNOWN,
+  QFT_TEXT,
+  QFT_BOOL,
+  QFT_NUMBER,
+  QFT_UNIT,
+  QFT_TIMESTAMP,
+  QFT_OTHER,
+  ])
+
+# Query result field status (don't change values as they're used by clients)
+#: Normal field status
+QRFS_NORMAL = 0
+#: Unknown field
+QRFS_UNKNOWN = 1
+#: No data
+QRFS_NODATA = 2
+#: Value unavailable for item
+QRFS_UNAVAIL = 3
+
 # max dynamic devices
 MAX_NICS = 8
 MAX_DISKS = 16
