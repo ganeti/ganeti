@@ -57,26 +57,70 @@ In Python code, the objects described below will be implemented using
 subclasses of ``objects.ConfigObject``, providing existing facilities
 for de-/serializing.
 
-.. _query-request:
+Regular expressions
++++++++++++++++++++
 
-Query request
-+++++++++++++
+As it turned out, only very few fields for instances used regular
+expressions, all of which can easily be turned into static field names.
+Therefore their use in field names is dropped. Reasons:
 
-Each query operation will take a single parameter, a query request
-dictionary with the following properties:
+- When regexps are used and a field name is not listed as a simple
+  string in the field dictionary, all keys in the field dictionary have
+  to be checked whether they're a regular expression object and if so,
+  matched (see ``utils.FindMatch``).
+- Code becomes simpler. There would be no need anymore to care about
+  regular expressions as field names—they'd all be simple strings, even
+  if there are many more. The list of field names would be static once
+  built at module-load time.
+- There's the issue of formatting titles for the clients. Should it be
+  done in the server? In the client? The field definition's title would
+  contain backreferences to the regexp groups in the field name
+  (``re.MatchObject.expand`` can be used). With just strings, the field
+  definitions can be passed directly to the client. They're static.
+- Only a side note: In the memory consumed for 1'000
+  ``_sre.SRE_Pattern`` objects (as returned by ``re.compile`` for an
+  expression with one group) one can easily store 10'000 strings of the
+  same length (the regexp objects keep the expression string around, so
+  compiling the expression always uses more memory).
 
-``kind``
-  Denotes request kind. One of the following strings:
 
-  ``query``
-    Execute a query on items, optionally filtered (see below). For a
-    description of the result see :ref:`query-result`.
-  ``fields``
-    Return list of supported fields as :ref:`field definitions
-    <field-def>`. For a complete description of the result see
-    :ref:`fields-result`.
+.. _item-types:
 
-``filter``
+Item types
+++++++++++
+
+The proposal is to implement this new interface for the following
+items:
+
+``instance``
+  Instances
+``node``
+  Nodes
+``job``
+  Jobs
+``lock``
+  Locks
+
+.. _data-query:
+
+Data query
+++++++++++
+
+.. _data-query-request:
+
+Request
+^^^^^^^
+
+The request is a dictionary with the following entries:
+
+``kind`` (string, required)
+  An :ref:`item type <item-types>`.
+``fields`` (list of strings, required)
+  List of names of fields to return. Example::
+
+    ["name", "mem", "nic0.ip", "disk0.size", "disk1.size"]
+
+``filter`` (optional)
   This will be used to filter queries. In this implementation only names
   can be filtered to replace the previous ``names`` parameter to
   queries. An empty filter (``None``) will return all items. To retrieve
@@ -98,33 +142,37 @@ Support for synchronous queries, currently available in the interface
 but disabled in the master daemon, will be dropped. Direct calls to
 opcodes have to be used instead.
 
-.. _query-result:
+.. _data-query-response:
 
-New query result format
-+++++++++++++++++++++++
+Response
+^^^^^^^^
 
 The result is a dictionary with the following entries:
 
-``fields``
+``fields`` (list of :ref:`field definitions <field-def>`)
   In-order list of a :ref:`field definition <field-def>` for each
   requested field, unknown fields are returned with the kind
   ``unknown``. Length must be equal to number of requested fields.
-``data``
-  A list of lists, one list for each item found. Each item's list must
-  have one entry for each field listed in ``fields``. Each field entry
-  is a tuple of ``(status, value)``. ``status`` must be one of the
-  following values:
+``data`` (list of lists of tuples)
+  List of lists, one list for each item found. Each item's list must
+  have one entry for each field listed in ``fields`` (meaning their
+  length is equal). Each field entry is a tuple of ``(status, value)``.
+  ``status`` must be one of the following values:
 
   Normal (numeric 0)
     Value is available and matches the kind in the :ref:`field
     definition <field-def>`.
-  Value unavailable (numeric 1)
+  Unknown field (numeric 1)
+    Field for this column is not known. Value must be ``None``.
+  No data (numeric 2)
     Exact meaning depends on query, e.g. node is unreachable or marked
     offline. Value must be ``None``.
-  Unknown field (numeric 2)
-    Field for this column is not known. Value must be ``None``.
+  Value unavailable for item (numeric 3)
+    Used if, for example, NIC 3 is requested for an instance with only
+    one network interface. Value must be ``None``.
 
-Example::
+Example response after requesting the fields ``name``, ``mfree``,
+``xyz``, ``mtotal``, ``nic0.ip``, ``nic1.ip`` and ``nic2.ip``::
 
   {
     "fields": [
@@ -133,24 +181,53 @@ Example::
       # Unknown field
       { "name": "xyz", "title": None, "kind": "unknown", },
       { "name": "mtotal", "title": "MemTotal", "kind": "unit", },
+      { "name": "nic0.ip", "title": "Nic.IP/0", "kind": "text", },
+      { "name": "nic1.ip", "title": "Nic.IP/1", "kind": "text", },
+      { "name": "nic2.ip", "title": "Nic.IP/2", "kind": "text", },
       ],
 
     "data": [
-      [(0, "node1"), (0, 128), (2, None), (0, 4096)],
-      # Node not available
-      [(0, "node2"), (1, None), (2, None), (1, None)],
+      [(0, "node1"), (0, 128), (1, None), (0, 4096),
+       (0, "192.0.2.1"), (0, "192.0.2.2"), (3, None)],
+      [(0, "node2"), (0, 96), (1, None), (0, 5000),
+       (0, "192.0.2.21"), (0, "192.0.2.39"), (3, "192.0.2.90")],
+      # Node not available, can't get "mfree" or "mtotal"
+      [(0, "node3"), (2, None), (1, None), (2, None),
+       (0, "192.0.2.30"), (3, None), (3, None)],
       ],
   }
 
-.. _fields-result:
+.. _fields-query:
 
-Field query result format
-+++++++++++++++++++++++++
+Fields query
+++++++++++++
+
+.. _fields-query-request:
+
+Request
+^^^^^^^
+
+The request is a dictionary with the following entries:
+
+``kind`` (string, required)
+  An :ref:`item type <item-types>`.
+``fields`` (list of strings, optional)
+  List of names of fields to return. If not set, all fields are
+  returned. Example::
+
+    ["name", "mem", "nic0.ip", "disk0.size", "disk1.size"]
+
+.. _fields-query-response:
+
+Response
+^^^^^^^^
 
 The result is a dictionary with the following entries:
 
-``fields``
-  List of :ref:`field definitions <field-def>` for each available field.
+``fields`` (list of :ref:`field definitions <field-def>`)
+  List of a :ref:`field definition <field-def>` for each field. If
+  ``fields`` was set in the request and contained an unknown field, it
+  is returned as type ``unknown``.
 
 Example::
 
@@ -159,6 +236,16 @@ Example::
       { "name": "name", "title": "Name", "kind": "text", },
       { "name": "mfree", "title": "MemFree", "kind": "unit", },
       { "name": "mtotal", "title": "MemTotal", "kind": "unit", },
+      { "name": "nic0.ip", "title": "Nic.IP/0", "kind": "text", },
+      { "name": "nic1.ip", "title": "Nic.IP/1", "kind": "text", },
+      { "name": "nic2.ip", "title": "Nic.IP/2", "kind": "text", },
+      { "name": "nic3.ip", "title": "Nic.IP/3", "kind": "text", },
+      # …
+      { "name": "disk0.size", "title": "Disk.Size/0", "kind": "unit", },
+      { "name": "disk1.size", "title": "Disk.Size/1", "kind": "unit", },
+      { "name": "disk2.size", "title": "Disk.Size/2", "kind": "unit", },
+      { "name": "disk3.size", "title": "Disk.Size/3", "kind": "unit", },
+      # …
       ]
   }
 
@@ -169,19 +256,15 @@ Field definition
 
 A field definition is a dictionary with the following entries:
 
-``name``
-  The field name as a regular expression. The latter is necessary to
-  represent dynamic fields (e.g. NIC 3 of an instance).
-``title``
+``name`` (string)
+  Field name. Must only contain characters matching ``[a-z0-9/._]``.
+``title`` (string)
   Human-readable title to use in output. Must not contain whitespace.
-``kind``
+``kind`` (string)
   Field type, one of the following:
 
-.. TODO: Investigate whether there are fields with floating point
-.. numbers
-
   ``unknown``
-    Unknown field (only used for :ref:`data queries <query-request>`)
+    Unknown field
   ``text``
     String
   ``bool``
@@ -190,12 +273,17 @@ A field definition is a dictionary with the following entries:
     Numeric
   ``unit``
     Numeric, in megabytes
+  ``timestamp``
+    Unix timestamp in seconds since the epoch
   ``other``
     Free-form type, depending on query
 
   More types can be added in the future, so clients should default to
   formatting any unknown types the same way as "other", which should be
   a string representation in most cases.
+
+.. TODO: Investigate whether there are fields with floating point
+.. numbers
 
 Example 1 (item name)::
 
@@ -227,19 +315,33 @@ Old result format
 +++++++++++++++++
 
 To limit the amount of code necessary, the :ref:`new result format
-<query-result>` will be converted for older clients. Unavailable values
-are set to ``None``. If unknown fields were requested, the whole query
-fails as the client expects exactly the fields it requested.
+<data-query-response>` will be converted for clients calling the old
+methods.  Unavailable values are set to ``None``. If unknown fields were
+requested, the whole query fails as the client expects exactly the
+fields it requested.
+
+.. _luxi:
 
 LUXI
 ++++
 
 Currently query calls take a number of parameters, e.g. names, fields
 and whether to use locking. These will continue to work and return the
-:ref:`old result format <old-result-format>`. To use the new query
-requests, the same calls must be invoked with a single parameter as the
-:ref:`query object <query-request>`. Only clients using the new call
-syntax will be able to make use of new features such as filters.
+:ref:`old result format <old-result-format>`. Only clients using the
+new calls described below will be able to make use of new features such
+as filters. Two new calls are introduced:
+
+``Query``
+  Execute a query on items, optionally filtered. Takes a single
+  parameter, a :ref:`query object <data-query-request>` encoded as a
+  dictionary and returns a :ref:`data query response
+  <data-query-response`.
+``QueryFields``
+  Return list of supported fields as :ref:`field definitions
+  <field-def>`. Takes a single parameter, a :ref:`fields query object
+  <fields-query-request>` encoded as a dictionary and returns a
+  :ref:`fields query response <fields-query-response>`.
+
 
 Python
 ++++++
@@ -257,6 +359,24 @@ to include field definitions). The proposal here is to add a new
 parameter to allow clients to execute the requests described in this
 proposal directly and to receive the unmodified result. The new formats
 are a lot more verbose, flexible and extensible.
+
+.. _cli-programs:
+
+CLI programs
+++++++++++++
+
+Command line programs might have difficulties to display the verbose
+status data to the user. There are several options:
+
+- Use colours to indicate missing values
+- Display status as value in parentheses, e.g. "(unavailable)"
+- Hide unknown columns from the result table and print a warning
+- Exit with non-zero code to indicate failures and/or missing data
+
+Some are better for interactive usage, some better for use by other
+programs. It is expected that a combination will be used. The column
+separator (``--separator=…``) can be used to differentiate between
+interactive and programmatic usage.
 
 
 Other discussed solutions
