@@ -254,5 +254,209 @@ class TestQuery(unittest.TestCase):
                       for i in range(1, 10)])
 
 
+class TestGetNodeRole(unittest.TestCase):
+  def testMaster(self):
+    node = objects.Node(name="node1")
+    self.assertEqual(query._GetNodeRole(node, "node1"), "M")
+
+  def testMasterCandidate(self):
+    node = objects.Node(name="node1", master_candidate=True)
+    self.assertEqual(query._GetNodeRole(node, "master"), "C")
+
+  def testRegular(self):
+    node = objects.Node(name="node1")
+    self.assertEqual(query._GetNodeRole(node, "master"), "R")
+
+  def testDrained(self):
+    node = objects.Node(name="node1", drained=True)
+    self.assertEqual(query._GetNodeRole(node, "master"), "D")
+
+  def testOffline(self):
+    node = objects.Node(name="node1", offline=True)
+    self.assertEqual(query._GetNodeRole(node, "master"), "O")
+
+
+class TestNodeQuery(unittest.TestCase):
+  def _Create(self, selected):
+    return query.Query(query.NODE_FIELDS, selected)
+
+  def testSimple(self):
+    nodes = [
+      objects.Node(name="node1", drained=False),
+      objects.Node(name="node2", drained=True),
+      objects.Node(name="node3", drained=False),
+      ]
+    for live_data in [None, dict.fromkeys([node.name for node in nodes], {})]:
+      nqd = query.NodeQueryData(nodes, live_data, None, None, None, None)
+
+      q = self._Create(["name", "drained"])
+      self.assertEqual(q.RequestedData(), set([query.NQ_CONFIG]))
+      self.assertEqual(q.Query(nqd),
+                       [[(constants.QRFS_NORMAL, "node1"),
+                         (constants.QRFS_NORMAL, False)],
+                        [(constants.QRFS_NORMAL, "node2"),
+                         (constants.QRFS_NORMAL, True)],
+                        [(constants.QRFS_NORMAL, "node3"),
+                         (constants.QRFS_NORMAL, False)],
+                       ])
+      self.assertEqual(q.OldStyleQuery(nqd),
+                       [["node1", False],
+                        ["node2", True],
+                        ["node3", False]])
+
+  def test(self):
+    selected = query.NODE_FIELDS.keys()
+    field_index = dict((field, idx) for idx, field in enumerate(selected))
+
+    q = self._Create(selected)
+    self.assertEqual(q.RequestedData(),
+                     set([query.NQ_CONFIG, query.NQ_LIVE, query.NQ_INST,
+                          query.NQ_GROUP]))
+
+    node_names = ["node%s" % i for i in range(20)]
+    master_name = node_names[3]
+    nodes = [
+      objects.Node(name=name,
+                   primary_ip="192.0.2.%s" % idx,
+                   secondary_ip="192.0.100.%s" % idx,
+                   serial_no=7789 * idx,
+                   master_candidate=(name != master_name and idx % 3 == 0),
+                   offline=False,
+                   drained=False,
+                   vm_capable=False,
+                   master_capable=False,
+                   group="default",
+                   ctime=1290006900,
+                   mtime=1290006913,
+                   uuid="fd9ccebe-6339-43c9-a82e-94bbe575%04d" % idx)
+      for idx, name in enumerate(node_names)
+      ]
+
+    master_node = nodes[3]
+    master_node.AddTag("masternode")
+    master_node.AddTag("another")
+    master_node.AddTag("tag")
+    assert master_node.name == master_name
+
+    live_data_name = node_names[4]
+    assert live_data_name != master_name
+
+    fake_live_data = {
+      "bootid": "a2504766-498e-4b25-b21e-d23098dc3af4",
+      "cnodes": 4,
+      "csockets": 4,
+      "ctotal": 8,
+      "mnode": 128,
+      "mfree": 100,
+      "mtotal": 4096,
+      "dfree": 5 * 1024 * 1024,
+      "dtotal": 100 * 1024 * 1024,
+      }
+
+    assert (sorted(query._NODE_LIVE_FIELDS.keys()) ==
+            sorted(fake_live_data.keys()))
+
+    live_data = dict.fromkeys(node_names, {})
+    live_data[live_data_name] = \
+      dict((query._NODE_LIVE_FIELDS[name][2], value)
+           for name, value in fake_live_data.items())
+
+    node_to_primary = dict((name, set()) for name in node_names)
+    node_to_primary[master_name].update(["inst1", "inst2"])
+
+    node_to_secondary = dict((name, set()) for name in node_names)
+    node_to_secondary[live_data_name].update(["instX", "instY", "instZ"])
+
+    ng_uuid = "492b4b74-8670-478a-b98d-4c53a76238e6"
+    groups = {
+      ng_uuid: objects.NodeGroup(name="ng1", uuid=ng_uuid),
+      }
+
+    master_node.group = ng_uuid
+
+    nqd = query.NodeQueryData(nodes, live_data, master_name,
+                              node_to_primary, node_to_secondary, groups)
+    result = q.Query(nqd)
+    self.assert_(compat.all(len(row) == len(selected) for row in result))
+    self.assertEqual([row[field_index["name"]] for row in result],
+                     [(constants.QRFS_NORMAL, name) for name in node_names])
+
+    node_to_row = dict((row[field_index["name"]][1], idx)
+                       for idx, row in enumerate(result))
+
+    master_row = result[node_to_row[master_name]]
+    self.assert_(master_row[field_index["master"]])
+    self.assert_(master_row[field_index["role"]], "M")
+    self.assertEqual(master_row[field_index["group"]],
+                     (constants.QRFS_NORMAL, "ng1"))
+    self.assertEqual(master_row[field_index["group.uuid"]],
+                     (constants.QRFS_NORMAL, ng_uuid))
+
+    self.assert_(row[field_index["pip"]] == node.primary_ip and
+                 row[field_index["sip"]] == node.secondary_ip and
+                 set(row[field_index["tags"]]) == node.GetTags() and
+                 row[field_index["serial_no"]] == node.serial_no and
+                 row[field_index["role"]] == query._GetNodeRole(node,
+                                                                master_name) and
+                 (node.name == master_name or
+                  (row[field_index["group"]] == "<unknown>" and
+                   row[field_index["group.uuid"]] is None))
+                 for row, node in zip(result, nodes))
+
+    live_data_row = result[node_to_row[live_data_name]]
+
+    for (field, value) in fake_live_data.items():
+      self.assertEqual(live_data_row[field_index[field]],
+                       (constants.QRFS_NORMAL, value))
+
+    self.assertEqual(master_row[field_index["pinst_cnt"]],
+                     (constants.QRFS_NORMAL, 2))
+    self.assertEqual(live_data_row[field_index["sinst_cnt"]],
+                     (constants.QRFS_NORMAL, 3))
+    self.assertEqual(master_row[field_index["pinst_list"]],
+                     (constants.QRFS_NORMAL,
+                      list(node_to_primary[master_name])))
+    self.assertEqual(live_data_row[field_index["sinst_list"]],
+                     (constants.QRFS_NORMAL,
+                      list(node_to_secondary[live_data_name])))
+
+  def testGetLiveNodeField(self):
+    nodes = [
+      objects.Node(name="node1", drained=False),
+      objects.Node(name="node2", drained=True),
+      objects.Node(name="node3", drained=False),
+      ]
+    live_data = dict.fromkeys([node.name for node in nodes], {})
+
+    # No data
+    nqd = query.NodeQueryData(None, None, None, None, None, None)
+    self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
+                                             nqd, None),
+                     (constants.QRFS_NODATA, None))
+
+    # Missing field
+    ctx = _QueryData(None, curlive_data={
+      "some": 1,
+      "other": 2,
+      })
+    self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
+                                             ctx, None),
+                     (constants.QRFS_UNAVAIL, None))
+
+    # Wrong format/datatype
+    ctx = _QueryData(None, curlive_data={
+      "hello": ["Hello World"],
+      "other": 2,
+      })
+    self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
+                                             ctx, None),
+                     (constants.QRFS_UNAVAIL, None))
+
+    # Wrong field type
+    ctx = _QueryData(None, curlive_data={"hello": 123})
+    self.assertRaises(AssertionError, query._GetLiveNodeField,
+                      "hello", constants.QFT_BOOL, ctx, None)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
