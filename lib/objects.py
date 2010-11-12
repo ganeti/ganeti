@@ -1380,6 +1380,21 @@ class ConfdReply(ConfigObject):
     ]
 
 
+class QueryFieldDefinition(ConfigObject):
+  """Object holding a query field definition.
+
+  @ivar name: Field name as a regular expression
+  @ivar title: Human-readable title
+  @ivar kind: Field type
+
+  """
+  __slots__ = [
+    "name",
+    "title",
+    "kind",
+    ]
+
+
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
   """Simple wrapper over ConfigParse that allows serialization.
 
