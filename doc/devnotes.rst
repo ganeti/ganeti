@@ -9,8 +9,7 @@ Most dependencies from :doc:`install-quick`, plus:
 - `GNU make <http://www.gnu.org/software/make/>`_
 - `GNU tar <http://www.gnu.org/software/tar/>`_
 - `Gzip <http://www.gnu.org/software/gzip/>`_
-- `Docbook tools <http://sources.redhat.com/docbook-tools/>`_
-  (docbook2html and docbook2man)
+- `pandoc <http://johnmacfarlane.net/pandoc/>`_
 - `python-sphinx <http://sphinx.pocoo.org/>`_
   (tested with version 0.6.1)
 - `graphviz <http://www.graphviz.org/>`_

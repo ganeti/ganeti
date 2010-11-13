@@ -10,7 +10,6 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 
 ACLOCAL_AMFLAGS = -I autotools
-DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
@@ -336,7 +335,6 @@ EXTRA_DIST = \
 	autotools/check-python-code \
 	autotools/check-man \
 	autotools/check-tar \
-	autotools/docbook-wrapper \
 	autotools/gen-coverage \
 	autotools/testrunner \
 	$(RUN_IN_TEMPDIR) \

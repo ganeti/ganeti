@@ -227,21 +227,7 @@ AC_SUBST(SYSLOG_USAGE, $SYSLOG)
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
-# Check for docbook programs
-AC_ARG_VAR(DOCBOOK2MAN, [docbook2man path])
-AC_PATH_PROG(DOCBOOK2MAN, [docbook2man], [])
-if test -z "$DOCBOOK2MAN"
-then
-  AC_MSG_WARN([docbook2man not found, man pages rebuild will not be possible])
-fi
-
-AC_ARG_VAR(DOCBOOK2HTML, [docbook2html path])
-AC_PATH_PROG(DOCBOOK2HTML, [docbook2html], [])
-if test -z "$DOCBOOK2HTML"
-then
-  AC_MSG_WARN([docbook2html not found, man pages rebuild will not be possible])
-fi
-
+# Check for pandoc
 AC_ARG_VAR(PANDOC, [pandoc path])
 AC_PATH_PROG(PANDOC, [pandoc], [])
 if test -z "$PANDOC"
