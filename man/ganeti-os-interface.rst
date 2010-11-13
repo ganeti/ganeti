@@ -1,0 +1,270 @@
+ganeti-os-interface(7) Ganeti | Version @GANETI_VERSION@
+========================================================
+
+Name
+----
+
+ganeti-os-interface - Specifications for guest OS types
+
+DESCRIPTION
+-----------
+
+The method of supporting guest operating systems in Ganeti is to
+have, for each guest OS type, a directory containing a number of
+required files.
+
+REFERENCE
+---------
+
+There are six required files: *create*, *import*, *export*, *rename*
+(executables), *ganeti_api_version* and *variants.list* (text files).
+
+Common environment
+~~~~~~~~~~~~~~~~~~
+
+All commands will get their input via environment variables. A
+common set of variables will be exported for all commands, and some
+of them might have extra ones. Note that all counts are
+zero-based.
+
+
+
+OS_API_VERSION
+    The OS API version that the rest of the environment conforms to.
+
+INSTANCE_NAME
+    The instance name the script should operate on.
+
+INSTANCE_OS, OS_NAME
+    Both names point to the name of the instance's OS as Ganeti knows
+    it. This can simplify the OS scripts by providing the same scripts
+    under multiple names, and then the scripts can use this name to
+    alter their behaviour.
+
+    With OS API 15 changing the script behavior based on this variable
+    is deprecated: OS_VARIANT should be used instead (see below).
+
+OS_VARIANT
+    The variant of the OS which should be installed. Each OS must
+    support all variants listed under its variants.list file, and may
+    support more. Any more supported variants should be properly
+    documented in the per-OS documentation.
+
+HYPERVISOR
+    The hypervisor of this instance.
+
+DISK_COUNT
+    The number of disks the instance has. The actual disk defitions are
+    in a set of additional variables. The instance's disk will be
+    numbered from 0 to this value minus one.
+
+DISK_%N_PATH
+    The path to the storage for disk N of the instance. This might be
+    either a block device or a regular file, in which case the OS
+    scripts should use ``losetup`` (if they need to mount it). E.g. the
+    first disk of the instance might be exported as
+    ``DISK_0_PATH=/dev/drbd0``.
+
+DISK_%N_ACCESS
+    This is how the hypervisor will export the instance disks: either
+    read-write (``rw``) or read-only (``ro``).
+
+DISK_%N_FRONTEND_TYPE
+    (Optional) If applicable to the current hypervisor type: the type
+    of the device exported by the hypervisor. For example, the Xen HVM
+    hypervisor can export disks as either ``paravirtual`` or
+    ``ioemu``.
+
+DISK_%N_BACKEND_TYPE
+    How files are visible on the node side. This can be either
+    ``block`` (when using block devices) or ``file:type``, where
+    ``type`` is either ``loop`` or ``blktap`` depending on how the
+    hypervisor will be configured.  Note that not all backend types
+    apply to all hypervisors.
+
+NIC_COUNT
+    Similar to the ``DISK_COUNT``, this represents the number of NICs
+    of the instance.
+
+NIC_%N_MAC
+    The MAC address associated with this interface.
+
+NIC_%N_IP
+    The IP address, if any, associated with the N-th NIC of the
+    instance.
+
+NIC_%N_MODE
+    The NIC mode, either routed or bridged
+
+NIC_%N_BRIDGE
+    The bridge to which this NIC will be attached. This variable is
+    defined only when the NIC is in bridged mode.
+
+NIC_%N_LINK
+    If the NIC is in bridged mode, this is the same as
+    ``NIC_%N_BRIDGE``.  If it is in routed mode, the routing table
+    which will be used by the hypervisor to insert the appropriate
+    routes.
+
+NIC_%N_FRONTEND_TYPE
+    (Optional) If applicable, the type of the exported NIC to the
+    instance, this can be one of: ``rtl8139``, ``ne2k_pci``,
+    ``ne2k_isa``, ``paravirtual``.
+
+DEBUG_LEVEL
+    If non-zero, this should cause the OS script to generate verbose
+    logs of its execution, for troubleshooting purposes. Currently
+    only ``0`` and ``1`` are valid values.
+
+
+create
+~~~~~~
+
+The **create** command is used for creating a new instance from
+scratch. It has no additional environment variables bside the
+common ones.
+
+The ``INSTANCE_NAME`` variable denotes the name of the instance,
+which is guaranteed to resolve to an IP address. The create script
+should configure the instance according to this name. It can
+configure the IP statically or not, depending on the deployment
+environment.
+
+The ``INSTANCE_REINSTALL`` variable is set to ``1`` when this create
+request is reinstalling and existing instance, rather than creating
+one anew. This can be used, for example, to preserve some data in the
+old instance in an OS-specific way.
+
+export
+~~~~~~
+
+This command is used in order to make a backup of a given disk of
+the instance. The command should write to stdout a dump of the
+given block device. The output of this program will be passed
+during restore to the **import** command.
+
+The specific disk to backup is denoted by two additional environment
+variables: ``EXPORT_INDEX`` which denotes the index in the instance
+disks structure (and could be used for example to skip the second disk
+if not needed for backup) and ``EXPORT_PATH`` which has the same value
+as ``DISK_N_PATH`` but is duplicate here for easier usage by shell
+scripts (rather than parse the ``DISK_...`` variables).
+
+To provide the user with an estimate on how long the export will take,
+a predicted size can be written to the file descriptor passed in the
+variable ``EXP_SIZE_FD``. The value is in bytes and must be terminated
+by a newline character (``\n``). Older versions of Ganeti don't
+support this feature, hence the variable should be checked before
+use. Example::
+
+    if test -n "$EXP_SIZE_FD"; then
+      blockdev --getsize64 $blockdev >&$EXP_SIZE_FD
+    fi
+
+import
+~~~~~~
+
+The **import** command is used for restoring an instance from a
+backup as done by **export**. The arguments are the similar to
+those passed to **export**, whose output will be provided on
+stdin.
+
+The difference in variables is that the current disk is called by
+``IMPORT_DEVICE`` and ``IMPORT_INDEX`` (instead of ``EXPORT_...``).
+
+rename
+~~~~~~
+
+This command is used in order to perform a rename at the instance
+OS level, after the instance has been renamed in Ganeti. The
+command should do whatever steps are required to ensure that the
+instance is updated to use the new name, if the operating system
+supports it.
+
+Note that it is acceptable for the rename script to do nothing at
+all, however be warned that in this case, there will be a
+desynchronization between what gnt-instance list shows you and the
+actual hostname of the instance.
+
+The script will be passed one additional environment variable
+called ``OLD_INSTANCE_NAME`` which holds the old instance name. The
+``INSTANCE_NAME`` variable holds the new instance name.
+
+A very simple rename script should at least change the hostname and
+IP address of the instance, leaving the administrator to update the
+other services.
+
+ganeti_api_version
+~~~~~~~~~~~~~~~~~~
+
+The ganeti_api_version file is a plain text file containing the
+version(s) of the guest OS API that this OS definition complies
+with, one per line. The version documented by this man page is 15,
+so this file must contain the number 15 followed by a newline if
+only this version is supported. A script compatible with more than
+one Ganeti version should contain the most recent version first
+(i.e. 15), followed by the old version(s) (in this case 10 and/or
+5).
+
+variants.list
+~~~~~~~~~~~~~
+
+variants.list is a plain text file containing all the declared
+supported variants for this OS, one per line. At least one variant
+must be supported.
+
+NOTES
+-----
+
+Backwards compatibility
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Ganeti 2.2 is compatible with both API version 10, and 15. In API
+version 10 the variants.list file is ignored and no OS_VARIANT
+environment variable is passed.
+
+Common behaviour
+~~~~~~~~~~~~~~~~
+
+All the scripts should display an usage message when called with a
+wrong number of arguments or when the first argument is ``-h`` or
+``--help``.
+
+Upgrading from old versions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Version 10 to 15
+^^^^^^^^^^^^^^^^
+
+The ``variants.list`` file has been added, so OSes should support at
+least one variant, declaring it in that file and must be prepared to
+parse the OS_VARIANT environment variable. OSes are free to support
+more variants than just the declared ones.
+
+Version 5 to 10
+^^^^^^^^^^^^^^^
+
+The method for passing data has changed from command line options
+to environment variables, so scripts should be modified to use
+these. For an example of how this can be done in a way compatible
+with both versions, feel free to look at the debootstrap instance's
+common.sh auxiliary script.
+
+Also, instances can have now a variable number of disks, not only
+two, and a variable number of NICs (instead of fixed one), so the
+scripts should deal with this. The biggest change is in the
+import/export, which are called once per disk, instead of once per
+instance.
+
+Version 4 to 5
+^^^^^^^^^^^^^^
+
+The rename script has been added. If you don't want to do any
+changes on the instances after a rename, you can migrate the OS
+definition to version 5 by creating the rename script simply as::
+
+    #!/bin/sh
+
+    exit 0
+
+Note that the script must be executable.
