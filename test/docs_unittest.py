@@ -131,7 +131,7 @@ class TestManpages(unittest.TestCase):
 
   @staticmethod
   def _ReadManFile(name):
-    return utils.ReadFile("%s/man/%s.sgml" %
+    return utils.ReadFile("%s/man/%s.rst" %
                           (testutils.GetSourceDir(), name))
 
   @staticmethod
@@ -148,8 +148,8 @@ class TestManpages(unittest.TestCase):
     missing = []
 
     for cmd in commands:
-      pattern = "<cmdsynopsis>\s*<command>%s</command>" % re.escape(cmd)
-      if not re.findall(pattern, mantext, re.S):
+      pattern = r"^(\| )?\*\*%s\*\*" % re.escape(cmd)
+      if not re.findall(pattern, mantext, re.DOTALL | re.MULTILINE):
         missing.append(cmd)
 
     self.failIf(missing,

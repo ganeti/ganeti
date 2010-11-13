@@ -365,8 +365,8 @@ EXTRA_DIST = \
 	test/mocks.py \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
-	man/footer.sgml man/footer.rst \
-	$(mansgml) \
+	man/footer.rst \
+	$(manrst) \
 	$(maninput) \
 	qa/ganeti-qa.py \
 	qa/qa-sample.json \
@@ -399,12 +399,12 @@ man_MANS = \
 	man/gnt-node.8 \
 	man/gnt-os.8
 
-mansgml = $(patsubst %.7,%.sgml,$(patsubst %.8,%.sgml,$(man_MANS)))
-manhtml = $(patsubst %.sgml,%.html,$(mansgml))
+manrst = $(patsubst %.7,%.rst,$(patsubst %.8,%.rst,$(man_MANS)))
+manhtml = $(patsubst %.rst,%.html,$(manrst))
 maninput = \
 	$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) \
 	$(patsubst %.html,%.html.in,$(manhtml)) \
-	man/footer.man
+	man/footer.man man/footer.html
 
 TEST_FILES = \
 	test/data/bdev-drbd-8.0.txt \
@@ -495,7 +495,7 @@ all_python_code = \
 	$(noinst_PYTHON)
 
 srclink_files = \
-	man/footer.sgml man/footer.rst \
+	man/footer.rst \
 	test/check-cert-expired_unittest.bash \
 	test/daemon-util_unittest.bash \
 	test/ganeti-cleaner_unittest.bash \
@@ -546,16 +546,24 @@ man/footer.man: man/footer.rst
 	  { echo 'pandoc' not found during configure; exit 1; }
 	$(PANDOC) -f rst -t man -o $@ $<
 
-man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
-	@test -n "$(DOCBOOK2MAN)" || \
-	  { echo 'docbook2man' not found during configure; exit 1; }
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $(notdir $(@:.in=)) $@
+man/footer.html: man/footer.rst
+	@test -n "$(PANDOC)" || \
+	  { echo 'pandoc' not found during configure; exit 1; }
+	$(PANDOC) -f rst -t html -o $@ $<
+
+man/%.7.in man/%.8.in: man/%.rst man/footer.man
+	@test -n "$(PANDOC)" || \
+	  { echo 'pandoc' not found during configure; exit 1; }
+	$(PANDOC) -s -f rst -t man -A man/footer.man $< | \
+	  sed -e 's/\\@/@/g' > $@
 	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN) $@; fi
 
-man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
-	@test -n "$(DOCBOOK2HTML)" || \
-	  { echo 'docbook2html' not found during configure; exit 1; }
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $(notdir $(@:.in=)) $@
+man/%.html.in: man/%.rst man/footer.html
+	@test -n "$(PANDOC)" || \
+	  { echo 'pandoc' not found during configure; exit 1; }
+	$(PANDOC) -s -f rst -t html -A man/footer.html $< | \
+	  sed -e 's/\\@/@/g' > $@
+
 
 man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
