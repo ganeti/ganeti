@@ -656,6 +656,8 @@ $(REPLACE_VARS_SED): Makefile
 	  echo 's#@CUSTOM_XEN_BOOTLOADER@#$(XEN_BOOTLOADER)#g'; \
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
+	  echo 's#@CUSTOM_IALLOCATOR_SEARCH_PATH@#$(IALLOCATOR_SEARCH_PATH)#g'; \
+	  echo 's#@CUSTOM_EXPORT_DIR@#$(EXPORT_DIR)#g'; \
 	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
 	  echo 's#@RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
 	  echo 's#@PKGLIBDIR@#$(pkglibdir)#g'; \

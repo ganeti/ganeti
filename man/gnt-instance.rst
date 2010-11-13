@@ -435,14 +435,13 @@ If you do not want gnt-instance to wait for the disk mirror to be
 synced, use the ``--no-wait-for-sync`` option.
 
 The ``--file-storage-dir`` specifies the relative path under the
-cluster-wide file storage directory to store file-based disks. It
-is useful for having different subdirectories for different
+cluster-wide file storage directory to store file-based disks. It is
+useful for having different subdirectories for different
 instances. The full path of the directory where the disk files are
-stored will consist of cluster-wide file storage directory +
-optional subdirectory + instance name. Example:
-/srv/ganeti/file-storage/mysubdir/instance1.example.com. This
-option is only relevant for instances using the file storage
-backend.
+stored will consist of cluster-wide file storage directory + optional
+subdirectory + instance name. Example:
+``@RPL_FILE_STORAGE_DIR@``*/mysubdir/instance1.example.com*. This
+option is only relevant for instances using the file storage backend.
 
 The ``--file-driver`` specifies the driver to use for file-based
 disks. Note that currently these drivers work with the xen
