@@ -1,6 +1,20 @@
 News
 ====
 
+Version 2.1.8
+-------------
+
+*(Released Tue, 16 Nov 2010)*
+
+Some more bugfixes. Unless critical bugs occur, this will be the last
+2.1 release:
+
+  - Fix case of MAC special-values
+  - Fix mac checker regex
+  - backend: Fix typo causing “out of range” error
+  - Add mising --units in gnt-instance list man page
+
+
 Version 2.1.7
 -------------
 
@@ -16,6 +30,7 @@ Bugfixes only:
   - Adjust error message when the ganeti user's .ssh directory is
     missing
   - Add same-node-check when changing the disk template to drbd
+
 
 Version 2.1.6
 -------------
