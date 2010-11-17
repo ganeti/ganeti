@@ -49,6 +49,7 @@
     "cluster-destroy": true,
     "cluster-rename": true,
     "cluster-reserved-lvs": true,
+    "cluster-modify": true,
 
     "node-info": true,
     "node-volumes": true,
