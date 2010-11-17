@@ -2613,7 +2613,7 @@ class LUSetClusterParams(LogicalUnit):
     ("enabled_hypervisors", None,
      _TOr(_TAnd(_TListOf(_TElemOf(constants.HYPER_TYPES)), _TTrue), _TNone)),
     ("hvparams", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
-    ("beparams", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
+    ("beparams", None, _TOr(_TDict, _TNone)),
     ("os_hvp", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
     ("osparams", None, _TOr(_TDictOf(_TNonEmptyString, _TDict), _TNone)),
     ("candidate_pool_size", None, _TOr(_TStrictPositiveInt, _TNone)),
