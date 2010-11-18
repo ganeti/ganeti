@@ -86,6 +86,9 @@ def _TestOsStates():
       new_cmd = cmd + ["--%s" % param, val, _TEMP_OS_NAME]
       AssertEqual(StartSSH(master["primary"],
                            utils.ShellQuoteArgs(new_cmd)).wait(), 0)
+      # check that double-running the command is OK
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(new_cmd)).wait(), 0)
 
 
 def _SetupTempOs(node, dir, valid):
