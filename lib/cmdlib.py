@@ -2882,14 +2882,14 @@ class LUSetClusterParams(LogicalUnit):
       for key, val in mods:
         if key == constants.DDM_ADD:
           if val in lst:
-            feedback_fn("OS %s already in %s, ignoring", val, desc)
+            feedback_fn("OS %s already in %s, ignoring" % (val, desc))
           else:
             lst.append(val)
         elif key == constants.DDM_REMOVE:
           if val in lst:
             lst.remove(val)
           else:
-            feedback_fn("OS %s not found in %s, ignoring", val, desc)
+            feedback_fn("OS %s not found in %s, ignoring" % (val, desc))
         else:
           raise errors.ProgrammerError("Invalid modification '%s'" % key)
 
