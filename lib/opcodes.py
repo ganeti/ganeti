@@ -330,6 +330,37 @@ class OpRedistributeConfig(OpCode):
   OP_ID = "OP_CLUSTER_REDIST_CONF"
   __slots__ = []
 
+
+class OpQuery(OpCode):
+  """Query for resources/items.
+
+  @ivar what: Resources to query for, must be one of L{constants.QR_OP_QUERY}
+  @ivar fields: List of fields to retrieve
+  @ivar filter: Query filter
+
+  """
+  OP_ID = "OP_QUERY"
+  __slots__ = [
+    "what",
+    "fields",
+    "filter",
+    ]
+
+
+class OpQueryFields(OpCode):
+  """Query for available resource/item fields.
+
+  @ivar what: Resources to query for, must be one of L{constants.QR_OP_QUERY}
+  @ivar fields: List of fields to retrieve
+
+  """
+  OP_ID = "OP_QUERY_FIELDS"
+  __slots__ = [
+    "what",
+    "fields",
+    ]
+
+
 # node opcodes
 
 class OpRemoveNode(OpCode):

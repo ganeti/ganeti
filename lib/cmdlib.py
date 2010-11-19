@@ -3693,6 +3693,83 @@ class LUQueryNodeStorage(NoHooksLU):
     return result
 
 
+def _InstanceQuery(*args): # pylint: disable-msg=W0613
+  """Dummy until instance queries have been converted to query2.
+
+  """
+  raise NotImplementedError
+
+
+#: Query type implementations
+_QUERY_IMPL = {
+  constants.QR_INSTANCE: _InstanceQuery,
+  constants.QR_NODE: _NodeQuery,
+  }
+
+
+def _GetQueryImplementation(name):
+  """Returns the implemtnation for a query type.
+
+  @param name: Query type, must be one of L{constants.QR_OP_QUERY}
+
+  """
+  try:
+    return _QUERY_IMPL[name]
+  except KeyError:
+    raise errors.OpPrereqError("Unknown query resource '%s'" % name,
+                               errors.ECODE_INVAL)
+
+
+class LUQuery(NoHooksLU):
+  """Query for resources/items of a certain kind.
+
+  """
+  # pylint: disable-msg=W0142
+  _OP_PARAMS = [
+    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY)),
+    ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    ("filter", None, ht.TOr(ht.TNone,
+                            ht.TListOf(ht.TOr(ht.TNonEmptyString, ht.TList)))),
+    ]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    qcls = _GetQueryImplementation(self.op.what)
+    names = qlang.ReadSimpleFilter("name", self.op.filter)
+
+    self.impl = qcls(names, self.op.fields, False)
+
+  def ExpandNames(self):
+    self.impl.ExpandNames(self)
+
+  def DeclareLocks(self, level):
+    self.impl.DeclareLocks(self, level)
+
+  def Exec(self, feedback_fn):
+    return self.impl.NewStyleQuery(self)
+
+
+class LUQueryFields(NoHooksLU):
+  """Query for resources/items of a certain kind.
+
+  """
+  # pylint: disable-msg=W0142
+  _OP_PARAMS = [
+    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY)),
+    ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString))),
+    ]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    self.qcls = _GetQueryImplementation(self.op.what)
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+
+  def Exec(self, feedback_fn):
+    return self.qcls.FieldsQuery(self.op.fields)
+
+
 class LUModifyNodeStorage(NoHooksLU):
   """Logical unit for modifying a storage volume on a node.
 

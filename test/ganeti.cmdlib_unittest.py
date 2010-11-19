@@ -28,6 +28,7 @@ import time
 import tempfile
 import shutil
 
+from ganeti import constants
 from ganeti import mcpu
 from ganeti import cmdlib
 from ganeti import opcodes
@@ -154,6 +155,22 @@ class TestLUTestJobqueue(unittest.TestCase):
                  (luxi.WFJC_TIMEOUT * 0.75),
                  msg=("Client timeout too high, might not notice bugs"
                       " in WaitForJobChange"))
+
+
+class TestLUQuery(unittest.TestCase):
+  def test(self):
+    self.assertEqual(sorted(cmdlib._QUERY_IMPL.keys()),
+                     sorted(constants.QR_OP_QUERY))
+
+    assert constants.QR_NODE in constants.QR_OP_QUERY
+    assert constants.QR_INSTANCE in constants.QR_OP_QUERY
+
+    for i in constants.QR_OP_QUERY:
+      self.assert_(cmdlib._GetQueryImplementation(i))
+
+    self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation, "")
+    self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation,
+                      "xyz")
 
 
 if __name__ == "__main__":

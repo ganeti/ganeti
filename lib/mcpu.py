@@ -154,6 +154,8 @@ class Processor(object):
     opcodes.OpSetClusterParams: cmdlib.LUSetClusterParams,
     opcodes.OpRedistributeConfig: cmdlib.LURedistributeConfig,
     opcodes.OpRepairDiskSizes: cmdlib.LURepairDiskSizes,
+    opcodes.OpQuery: cmdlib.LUQuery,
+    opcodes.OpQueryFields: cmdlib.LUQueryFields,
     # node lu
     opcodes.OpAddNode: cmdlib.LUAddNode,
     opcodes.OpQueryNodes: cmdlib.LUQueryNodes,
