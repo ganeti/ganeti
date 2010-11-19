@@ -44,6 +44,20 @@ Version 2.3.0 rc0
 - Infrastructure changes for node group support in future versions
 
 
+Version 2.2.2
+-------------
+
+*(Released Fri, 19 Nov 2010)*
+
+A few small bugs fixed, and some improvements to the build system:
+
+- Fix documentation regarding conversion to drbd
+- Fix validation of parameters in cluster modify (``gnt-cluster modify
+  -B``)
+- Fix error handling in node modify with multiple changes
+- Allow remote imports without checked names
+
+
 Version 2.2.1
 -------------
 
@@ -233,6 +247,21 @@ Version 2.2.0 beta 0
 - Added support for showing estimated time when exporting an instance,
   see the ``ganeti-os-interface(7)`` manpage and look for
   ``EXP_SIZE_FD``
+
+
+Version 2.1.8
+-------------
+
+*(Released Tue, 16 Nov 2010)*
+
+Some more bugfixes. Unless critical bugs occur, this will be the last
+2.1 release:
+
+- Fix case of MAC special-values
+- Fix mac checker regex
+- backend: Fix typo causing “out of range” error
+- Add missing --units in gnt-instance list man page
+
 
 Version 2.1.7
 -------------
