@@ -1,6 +1,22 @@
 News
 ====
 
+Version 2.3.0 rc1
+-----------------
+
+*(Released Fri, 19 Nov 2010)*
+
+A number of bugfixes and documentation updates:
+
+- Update ganeti-os-interface documentation
+- Fixed a bug related to duplicate MACs or similar items which should be
+  unique
+- Fix breakage in OS state modify
+- Reinstall instance: disallow offline secondaries (fixes bug related to
+  OS changing but reinstall failing)
+- plus all the other fixes between 2.2.1 and 2.2.2
+
+
 Version 2.3.0 rc0
 -----------------
 
