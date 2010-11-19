@@ -76,7 +76,12 @@ class TestClusterObject(unittest.TestCase):
       "ubuntu-hardy": {
         },
       }
-    self.fake_cl = objects.Cluster(hvparams=hvparams, os_hvp=os_hvp)
+    ndparams = {
+        constants.ND_OOB_PROGRAM: "/bin/cluster-oob"
+        }
+
+    self.fake_cl = objects.Cluster(hvparams=hvparams, os_hvp=os_hvp,
+                                   ndparams=ndparams)
     self.fake_cl.UpgradeConfig()
 
   def testGetHVDefaults(self):
@@ -140,6 +145,54 @@ class TestClusterObject(unittest.TestCase):
                                  hvparams={})
     self.assertEqual(self.fake_cl.os_hvp[os][constants.HT_XEN_PVM],
                      self.fake_cl.FillHV(fake_inst))
+
+  def testFillNdParamsCluster(self):
+    fake_node = objects.Node(name="test",
+                             ndparams={},
+                             group="testgroup")
+    fake_group = objects.NodeGroup(name="testgroup",
+                                   ndparams={})
+    self.assertEqual(self.fake_cl.ndparams,
+                     self.fake_cl.FillND(fake_node, fake_group))
+
+  def testFillNdParamsNodeGroup(self):
+    fake_node = objects.Node(name="test",
+                             ndparams={},
+                             group="testgroup")
+    group_ndparams = {
+        constants.ND_OOB_PROGRAM: "/bin/group-oob"
+        }
+    fake_group = objects.NodeGroup(name="testgroup",
+                                   ndparams=group_ndparams)
+    self.assertEqual(group_ndparams,
+                     self.fake_cl.FillND(fake_node, fake_group))
+
+  def testFillNdParamsNode(self):
+    node_ndparams = {
+        constants.ND_OOB_PROGRAM: "/bin/node-oob"
+        }
+    fake_node = objects.Node(name="test",
+                             ndparams=node_ndparams,
+                             group="testgroup")
+    fake_group = objects.NodeGroup(name="testgroup",
+                                   ndparams={})
+    self.assertEqual(node_ndparams,
+                     self.fake_cl.FillND(fake_node, fake_group))
+
+  def testFillNdParamsAll(self):
+    node_ndparams = {
+        constants.ND_OOB_PROGRAM: "/bin/node-oob"
+        }
+    fake_node = objects.Node(name="test",
+                             ndparams=node_ndparams,
+                             group="testgroup")
+    group_ndparams = {
+        constants.ND_OOB_PROGRAM: "/bin/group-oob"
+        }
+    fake_group = objects.NodeGroup(name="testgroup",
+                                   ndparams=group_ndparams)
+    self.assertEqual(node_ndparams,
+                     self.fake_cl.FillND(fake_node, fake_group))
 
 
 class TestOS(unittest.TestCase):

@@ -634,6 +634,15 @@ BES_PARAMETER_TYPES = {
 
 BES_PARAMETERS = frozenset(BES_PARAMETER_TYPES.keys())
 
+# Node parameter names
+ND_OOB_PROGRAM = "oob_program"
+
+NDS_PARAMETER_TYPES = {
+    ND_OOB_PROGRAM: VTYPE_MAYBE_STRING,
+    }
+
+NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
+
 # Instance Parameters Profile
 PP_DEFAULT = "default"
 
@@ -1008,6 +1017,10 @@ BEC_DEFAULTS = {
   BE_MEMORY: 128,
   BE_VCPUS: 1,
   BE_AUTO_BALANCE: True,
+  }
+
+NDC_DEFAULTS = {
+  ND_OOB_PROGRAM: None,
   }
 
 NICC_DEFAULTS = {

@@ -942,6 +942,7 @@ class Node(TaggableObject):
     "group",
     "master_capable",
     "vm_capable",
+    "ndparams",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -956,12 +957,16 @@ class Node(TaggableObject):
     if self.vm_capable is None:
       self.vm_capable = True
 
+    if self.ndparams is None:
+      self.ndparams = {}
+
 
 class NodeGroup(ConfigObject):
   """Config object representing a node group."""
   __slots__ = [
     "name",
     "members",
+    "ndparams",
     ] + _TIMESTAMPS + _UUID
 
   def ToDict(self):
@@ -985,6 +990,35 @@ class NodeGroup(ConfigObject):
     obj = super(NodeGroup, cls).FromDict(val)
     obj.members = []
     return obj
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    if self.ndparams is None:
+      self.ndparams = {}
+
+  def FillND(self, node):
+    """Return filled out ndparams for L{object.Node}
+
+    @type node: L{objects.Node}
+    @param node: A Node object to fill
+    @return a copy of the node's ndparams with defaults filled
+
+    """
+    return self.SimpleFillND(node.ndparams)
+
+  def SimpleFillND(self, ndparams):
+    """Fill a given ndparams dict with defaults.
+
+    @type ndparams: dict
+    @param ndparams: the dict to fill
+    @rtype: dict
+    @return: a copy of the passed in ndparams with missing keys filled
+        from the cluster defaults
+
+    """
+    return FillDict(self.ndparams, ndparams)
 
 
 class Cluster(TaggableObject):
@@ -1011,6 +1045,7 @@ class Cluster(TaggableObject):
     "beparams",
     "osparams",
     "nicparams",
+    "ndparams",
     "candidate_pool_size",
     "modify_etc_hosts",
     "modify_ssh_setup",
@@ -1042,6 +1077,9 @@ class Cluster(TaggableObject):
     # osparams added before 2.2
     if self.osparams is None:
       self.osparams = {}
+
+    if self.ndparams is None:
+      self.ndparams = constants.NDC_DEFAULTS
 
     self.beparams = UpgradeGroupedParams(self.beparams,
                                          constants.BEC_DEFAULTS)
@@ -1235,6 +1273,30 @@ class Cluster(TaggableObject):
     result = FillDict(result, self.osparams.get(os_name, {}))
     # specified params
     return FillDict(result, os_params)
+
+  def FillND(self, node, nodegroup):
+    """Return filled out ndparams for L{objects.NodeGroup} and L{object.Node}
+
+    @type node: L{objects.Node}
+    @param node: A Node object to fill
+    @type nodegroup: L{objects.NodeGroup}
+    @param nodegroup: A Node object to fill
+    @return a copy of the node's ndparams with defaults filled
+
+    """
+    return self.SimpleFillND(nodegroup.FillND(node))
+
+  def SimpleFillND(self, ndparams):
+    """Fill a given ndparams dict with defaults.
+
+    @type ndparams: dict
+    @param ndparams: the dict to fill
+    @rtype: dict
+    @return: a copy of the passed in ndparams with missing keys filled
+        from the cluster defaults
+
+    """
+    return FillDict(self.ndparams, ndparams)
 
 
 class BlockDevStatus(ConfigObject):
