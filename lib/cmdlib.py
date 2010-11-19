@@ -3422,6 +3422,83 @@ class LURemoveNode(LogicalUnit):
       _RedistributeAncillaryFiles(self)
 
 
+class _NodeQuery(_QueryBase):
+  FIELDS = query.NODE_FIELDS
+
+  def ExpandNames(self, lu):
+    lu.needed_locks = {}
+    lu.share_locks[locking.LEVEL_NODE] = 1
+
+    if self.names:
+      self.wanted = _GetWantedNodes(lu, self.names)
+    else:
+      self.wanted = locking.ALL_SET
+
+    self.do_locking = (self.use_locking and
+                       query.NQ_LIVE in self.requested_data)
+
+    if self.do_locking:
+      # if we don't request only static fields, we need to lock the nodes
+      lu.needed_locks[locking.LEVEL_NODE] = self.wanted
+
+  def DeclareLocks(self, _):
+    pass
+
+  def _GetQueryData(self, lu):
+    """Computes the list of nodes and their attributes.
+
+    """
+    all_info = lu.cfg.GetAllNodesInfo()
+
+    if self.do_locking:
+      nodenames = lu.acquired_locks[locking.LEVEL_NODE]
+    elif self.wanted != locking.ALL_SET:
+      nodenames = self.wanted
+      missing = set(nodenames).difference(all_info.keys())
+      if missing:
+        raise errors.OpExecError("Some nodes were removed before retrieving"
+                                 " their data: %s" % missing)
+    else:
+      nodenames = all_info.keys()
+
+    nodenames = utils.NiceSort(nodenames)
+
+    # Gather data as requested
+    if query.NQ_LIVE in self.requested_data:
+      node_data = lu.rpc.call_node_info(nodenames, lu.cfg.GetVGName(),
+                                        lu.cfg.GetHypervisorType())
+      live_data = dict((name, nresult.payload)
+                       for (name, nresult) in node_data.items()
+                       if not nresult.fail_msg and nresult.payload)
+    else:
+      live_data = None
+
+    if query.NQ_INST in self.requested_data:
+      node_to_primary = dict([(name, set()) for name in nodenames])
+      node_to_secondary = dict([(name, set()) for name in nodenames])
+
+      inst_data = lu.cfg.GetAllInstancesInfo()
+
+      for inst in inst_data.values():
+        if inst.primary_node in node_to_primary:
+          node_to_primary[inst.primary_node].add(inst.name)
+        for secnode in inst.secondary_nodes:
+          if secnode in node_to_secondary:
+            node_to_secondary[secnode].add(inst.name)
+    else:
+      node_to_primary = None
+      node_to_secondary = None
+
+    if query.NQ_GROUP in self.requested_data:
+      groups = lu.cfg.GetAllNodeGroupsInfo()
+    else:
+      groups = {}
+
+    return query.NodeQueryData([all_info[name] for name in nodenames],
+                               live_data, lu.cfg.GetMasterNode(),
+                               node_to_primary, node_to_secondary, groups)
+
+
 class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
 
@@ -3434,165 +3511,15 @@ class LUQueryNodes(NoHooksLU):
     ]
   REQ_BGL = False
 
-  _SIMPLE_FIELDS = ["name", "serial_no", "ctime", "mtime", "uuid",
-                    "master_candidate", "offline", "drained",
-                    "master_capable", "vm_capable"]
-
-  _FIELDS_DYNAMIC = utils.FieldSet(
-    "dtotal", "dfree",
-    "mtotal", "mnode", "mfree",
-    "bootid",
-    "ctotal", "cnodes", "csockets",
-    )
-
-  _FIELDS_STATIC = utils.FieldSet(*[
-    "pinst_cnt", "sinst_cnt",
-    "pinst_list", "sinst_list",
-    "pip", "sip", "tags",
-    "master", "role",
-    "group.uuid", "group",
-    ] + _SIMPLE_FIELDS
-    )
-
   def CheckArguments(self):
-    _CheckOutputFields(static=self._FIELDS_STATIC,
-                       dynamic=self._FIELDS_DYNAMIC,
-                       selected=self.op.output_fields)
+    self.nq = _NodeQuery(self.op.names, self.op.output_fields,
+                         self.op.use_locking)
 
   def ExpandNames(self):
-    self.needed_locks = {}
-    self.share_locks[locking.LEVEL_NODE] = 1
-
-    if self.op.names:
-      self.wanted = _GetWantedNodes(self, self.op.names)
-    else:
-      self.wanted = locking.ALL_SET
-
-    self.do_node_query = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
-    self.do_locking = self.do_node_query and self.op.use_locking
-    if self.do_locking:
-      # if we don't request only static fields, we need to lock the nodes
-      self.needed_locks[locking.LEVEL_NODE] = self.wanted
+    self.nq.ExpandNames(self)
 
   def Exec(self, feedback_fn):
-    """Computes the list of nodes and their attributes.
-
-    """
-    all_info = self.cfg.GetAllNodesInfo()
-    if self.do_locking:
-      nodenames = self.acquired_locks[locking.LEVEL_NODE]
-    elif self.wanted != locking.ALL_SET:
-      nodenames = self.wanted
-      missing = set(nodenames).difference(all_info.keys())
-      if missing:
-        raise errors.OpExecError(
-          "Some nodes were removed before retrieving their data: %s" % missing)
-    else:
-      nodenames = all_info.keys()
-
-    nodenames = utils.NiceSort(nodenames)
-    nodelist = [all_info[name] for name in nodenames]
-
-    if "group" in self.op.output_fields:
-      groups = self.cfg.GetAllNodeGroupsInfo()
-    else:
-      groups = {}
-
-    # begin data gathering
-
-    if self.do_node_query:
-      live_data = {}
-      node_data = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
-                                          self.cfg.GetHypervisorType())
-      for name in nodenames:
-        nodeinfo = node_data[name]
-        if not nodeinfo.fail_msg and nodeinfo.payload:
-          nodeinfo = nodeinfo.payload
-          fn = utils.TryConvert
-          live_data[name] = {
-            "mtotal": fn(int, nodeinfo.get('memory_total', None)),
-            "mnode": fn(int, nodeinfo.get('memory_dom0', None)),
-            "mfree": fn(int, nodeinfo.get('memory_free', None)),
-            "dtotal": fn(int, nodeinfo.get('vg_size', None)),
-            "dfree": fn(int, nodeinfo.get('vg_free', None)),
-            "ctotal": fn(int, nodeinfo.get('cpu_total', None)),
-            "bootid": nodeinfo.get('bootid', None),
-            "cnodes": fn(int, nodeinfo.get('cpu_nodes', None)),
-            "csockets": fn(int, nodeinfo.get('cpu_sockets', None)),
-            }
-        else:
-          live_data[name] = {}
-    else:
-      live_data = dict.fromkeys(nodenames, {})
-
-    node_to_primary = dict([(name, set()) for name in nodenames])
-    node_to_secondary = dict([(name, set()) for name in nodenames])
-
-    inst_fields = frozenset(("pinst_cnt", "pinst_list",
-                             "sinst_cnt", "sinst_list"))
-    if inst_fields & frozenset(self.op.output_fields):
-      inst_data = self.cfg.GetAllInstancesInfo()
-
-      for inst in inst_data.values():
-        if inst.primary_node in node_to_primary:
-          node_to_primary[inst.primary_node].add(inst.name)
-        for secnode in inst.secondary_nodes:
-          if secnode in node_to_secondary:
-            node_to_secondary[secnode].add(inst.name)
-
-    master_node = self.cfg.GetMasterNode()
-
-    # end data gathering
-
-    output = []
-    for node in nodelist:
-      node_output = []
-      for field in self.op.output_fields:
-        if field in self._SIMPLE_FIELDS:
-          val = getattr(node, field)
-        elif field == "pinst_list":
-          val = list(node_to_primary[node.name])
-        elif field == "sinst_list":
-          val = list(node_to_secondary[node.name])
-        elif field == "pinst_cnt":
-          val = len(node_to_primary[node.name])
-        elif field == "sinst_cnt":
-          val = len(node_to_secondary[node.name])
-        elif field == "pip":
-          val = node.primary_ip
-        elif field == "sip":
-          val = node.secondary_ip
-        elif field == "tags":
-          val = list(node.GetTags())
-        elif field == "master":
-          val = node.name == master_node
-        elif self._FIELDS_DYNAMIC.Matches(field):
-          val = live_data[node.name].get(field, None)
-        elif field == "role":
-          if node.name == master_node:
-            val = "M"
-          elif node.master_candidate:
-            val = "C"
-          elif node.drained:
-            val = "D"
-          elif node.offline:
-            val = "O"
-          else:
-            val = "R"
-        elif field == "group.uuid":
-          val = node.group
-        elif field == "group":
-          ng = groups.get(node.group, None)
-          if ng is None:
-            val = "<unknown>"
-          else:
-            val = ng.name
-        else:
-          raise errors.ParameterError(field)
-        node_output.append(val)
-      output.append(node_output)
-
-    return output
+    return self.nq.OldStyleQuery(self)
 
 
 class LUQueryNodeVolumes(NoHooksLU):
