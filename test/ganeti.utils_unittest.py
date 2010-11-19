@@ -295,18 +295,6 @@ class TestRunCmd(testutils.GanetiTestCase):
     result = RunCmd(["/bin/sh", "-c", cmd], timeout=0.2)
     self.assertEqual(result.exit_code, 0)
 
-  def testTimeoutCleanInteractive(self):
-    cmd = "trap 'exit 0' TERM; read"
-    result = RunCmd(["/bin/sh", "-c", cmd], interactive=True, timeout=0.2)
-    self.assertEqual(result.exit_code, 0)
-
-  def testTimeoutNonClean(self):
-    for exit_code in (1, 10, 17, 29):
-      cmd = "trap 'exit %i' TERM; read" % exit_code
-      result = RunCmd(["/bin/sh", "-c", cmd], interactive=True, timeout=0.2)
-      self.assert_(result.failed)
-      self.assertEqual(result.exit_code, exit_code)
-
   def testTimeoutKill(self):
     cmd = "trap '' TERM; read < %s" % self.fifo_file
     timeout = 0.2
