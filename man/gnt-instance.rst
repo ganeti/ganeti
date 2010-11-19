@@ -834,7 +834,7 @@ MODIFY
 | [-B *BACKEND\_PARAMETERS*]
 | [--net add*[:options]* \| --net remove \| --net *N:options*]
 | [--disk add:size=*SIZE* \| --disk remove \| --disk *N*:mode=*MODE*]
-| [-t {plain \| drbd}]
+| [-t plain | -t drbd -n *new_secondary*]
 | [--os-name=*OS* [--force-variant]]
 | [--submit]
 | {*instance*}
@@ -849,9 +849,10 @@ name=value[,...]. For details which options can be specified, see
 the **add** command.
 
 The ``-t`` option will change the disk template of the instance.
-Currently only conversions between the plain and drbd disk
-templates are supported, and the instance must be stopped before
-attempting the conversion.
+Currently only conversions between the plain and drbd disk templates
+are supported, and the instance must be stopped before attempting the
+conversion. When changing from the plain to the drbd disk template, a
+new secondary node must be specified via the ``-n`` option.
 
 The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
 ``--disk remove`` option will remove the last disk of the

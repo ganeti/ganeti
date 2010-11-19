@@ -171,6 +171,34 @@ def TestClusterReservedLvs():
                          utils.ShellQuoteArgs(cmd)).wait(), rcode)
 
 
+def TestClusterModifyBe():
+  """gnt-cluster modify -B"""
+  master = qa_config.GetMasterNode()
+
+  for rcode, cmd in [
+    # mem
+    (0, ["gnt-cluster", "modify", "-B", "memory=256"]),
+    (0, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 256$'"]),
+    (1, ["gnt-cluster", "modify", "-B", "memory=a"]),
+    (0, ["gnt-cluster", "modify", "-B", "memory=128"]),
+    (0, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 128$'"]),
+    # vcpus
+    (0, ["gnt-cluster", "modify", "-B", "vcpus=4"]),
+    (0, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 4$'"]),
+    (1, ["gnt-cluster", "modify", "-B", "vcpus=a"]),
+    (0, ["gnt-cluster", "modify", "-B", "vcpus=1"]),
+    (0, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 1$'"]),
+    # auto_balance
+    (0, ["gnt-cluster", "modify", "-B", "auto_balance=False"]),
+    (0, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: False$'"]),
+    (1, ["gnt-cluster", "modify", "-B", "auto_balance=1"]),
+    (0, ["gnt-cluster", "modify", "-B", "auto_balance=True"]),
+    (0, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: True$'"]),
+    ]:
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), rcode)
+
+
 def TestClusterInfo():
   """gnt-cluster info"""
   master = qa_config.GetMasterNode()

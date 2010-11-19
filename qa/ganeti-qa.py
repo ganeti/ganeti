@@ -128,6 +128,10 @@ def RunClusterTests():
   if qa_config.TestEnabled('cluster-reserved-lvs'):
     RunTest(qa_cluster.TestClusterReservedLvs)
 
+  if qa_config.TestEnabled("cluster-modify"):
+    RunTest(qa_cluster.TestClusterModifyBe)
+    # TODO: add more cluster modify tests
+
   if qa_config.TestEnabled('cluster-rename'):
     RunTest(qa_cluster.TestClusterRename)
 
