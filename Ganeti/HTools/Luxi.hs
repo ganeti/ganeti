@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Luxi
     (
       loadData
+    , parseData
     ) where
 
 import qualified Control.Exception as E
@@ -145,9 +146,9 @@ getClusterTags v = do
 -- * Main loader functionality
 
 -- | Builds the cluster data from an URL.
-loadData :: String -- ^ Unix socket to use as source
-         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
-loadData master =
+readData :: String -- ^ Unix socket to use as source
+         -> IO (Result JSValue, Result JSValue, Result JSValue)
+readData master =
   E.bracket
        (L.getClient master)
        L.closeClient
@@ -155,11 +156,20 @@ loadData master =
           nodes <- queryNodes s
           instances <- queryInstances s
           cinfo <- queryClusterInfo s
-          return $ do -- Result monad
-            node_data <- nodes >>= getNodes
-            let (node_names, node_idx) = assignIndices node_data
-            inst_data <- instances >>= getInstances node_names
-            let (_, inst_idx) = assignIndices inst_data
-            ctags <- cinfo >>= getClusterTags
-            return (node_idx, inst_idx, ctags)
+          return (nodes, instances, cinfo)
        )
+
+parseData :: (Result JSValue, Result JSValue, Result JSValue)
+          -> Result (Node.AssocList, Instance.AssocList, [String])
+parseData (nodes, instances, cinfo) = do
+  node_data <- nodes >>= getNodes
+  let (node_names, node_idx) = assignIndices node_data
+  inst_data <- instances >>= getInstances node_names
+  let (_, inst_idx) = assignIndices inst_data
+  ctags <- cinfo >>= getClusterTags
+  return (node_idx, inst_idx, ctags)
+
+-- | Top level function for data loading
+loadData :: String -- ^ Unix socket to use as source
+            -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
+loadData master = readData master >>= return . parseData
