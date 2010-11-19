@@ -54,6 +54,8 @@ from ganeti import compat
 from ganeti import masterd
 from ganeti import netutils
 from ganeti import ht
+from ganeti import query
+from ganeti import qlang
 
 import ganeti.masterd.instance # pylint: disable-msg=W0611
 
@@ -484,6 +486,83 @@ class Tasklet:
 
     """
     raise NotImplementedError
+
+
+class _QueryBase:
+  """Base for query utility classes.
+
+  """
+  #: Attribute holding field definitions
+  FIELDS = None
+
+  def __init__(self, names, fields, use_locking):
+    """Initializes this class.
+
+    """
+    self.names = names
+    self.use_locking = use_locking
+
+    self.query = query.Query(self.FIELDS, fields)
+    self.requested_data = self.query.RequestedData()
+
+  @classmethod
+  def FieldsQuery(cls, fields):
+    """Returns list of available fields.
+
+    @return: List of L{objects.QueryFieldDefinition}
+
+    """
+    if fields is None:
+      # Client requests all fields
+      fdefs = query.GetAllFields(cls.FIELDS.values())
+    else:
+      fdefs = query.Query(cls.FIELDS, fields).GetFields()
+
+    return {
+      "fields": [fdef.ToDict() for fdef in fdefs],
+      }
+
+  def ExpandNames(self, lu):
+    """Expand names for this query.
+
+    See L{LogicalUnit.ExpandNames}.
+
+    """
+    raise NotImplementedError()
+
+  def DeclareLocks(self, level):
+    """Declare locks for this query.
+
+    See L{LogicalUnit.DeclareLocks}.
+
+    """
+    raise NotImplementedError()
+
+  def _GetQueryData(self, lu):
+    """Collects all data for this query.
+
+    @return: Query data object
+
+    """
+    raise NotImplementedError()
+
+  def NewStyleQuery(self, lu):
+    """Collect data and execute query.
+
+    """
+    data = self._GetQueryData(lu)
+
+    return {
+      "data": self.query.Query(data),
+      "fields": [fdef.ToDict()
+                 for fdef in self.query.GetFields()],
+      }
+
+  def OldStyleQuery(self, lu):
+    """Collect data and execute query.
+
+    """
+    return self.query.OldStyleQuery(self._GetQueryData(lu))
 
 
 def _GetWantedNodes(lu, nodes):
