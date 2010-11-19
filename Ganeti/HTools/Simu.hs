@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Simu
     (
       loadData
+    , parseData
     ) where
 
 import Text.Printf (printf)
@@ -50,16 +51,21 @@ parseDesc desc =
       _ -> fail "Invalid cluster specification"
 
 -- | Builds the cluster data from node\/instance files.
+parseData :: String -- ^ Cluster description in text format
+         -> Result (Node.AssocList, Instance.AssocList, [String])
+parseData ndata = do
+  (cnt, disk, mem, cpu) <- parseDesc ndata
+  let nodes = map (\idx ->
+                    let n = Node.create (printf "node%03d" idx)
+                            (fromIntegral mem) 0 mem
+                            (fromIntegral disk) disk
+                            (fromIntegral cpu) False
+                    in (idx, Node.setIdx n idx)
+                  ) [1..cnt]
+  return (nodes, [], [])
+
+-- | Builds the cluster data from node\/instance files.
 loadData :: String -- ^ Cluster description in text format
          -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
-loadData ndata = -- IO monad, just for consistency with the other loaders
-  return $ do
-    (cnt, disk, mem, cpu) <- parseDesc ndata
-    let nodes = map (\idx ->
-                         let n = Node.create (printf "node%03d" idx)
-                                 (fromIntegral mem) 0 mem
-                                 (fromIntegral disk) disk
-                                 (fromIntegral cpu) False
-                         in (idx, Node.setIdx n idx)
-                    ) [1..cnt]
-    return (nodes, [], [])
+loadData = -- IO monad, just for consistency with the other loaders
+  return . parseData
