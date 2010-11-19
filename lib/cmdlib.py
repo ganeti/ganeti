@@ -3513,8 +3513,8 @@ class LUQueryNodeVolumes(NoHooksLU):
 
   """
   _OP_PARAMS = [
+    _POutputFields,
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
     ]
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet("phys", "vg", "name", "size", "instance")
@@ -3596,9 +3596,9 @@ class LUQueryNodeStorage(NoHooksLU):
   """
   _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
   _OP_PARAMS = [
+    _POutputFields,
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ("storage_type", ht.NoDefault, _CheckStorageType),
-    ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
     ("name", None, ht.TMaybeString),
     ]
   REQ_BGL = False
@@ -5330,7 +5330,7 @@ class LUQueryInstances(NoHooksLU):
   """
   # pylint: disable-msg=W0142
   _OP_PARAMS = [
-    ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    _POutputFields,
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ("use_locking", False, ht.TBool),
     ]
