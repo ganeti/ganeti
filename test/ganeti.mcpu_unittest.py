@@ -25,6 +25,7 @@
 import unittest
 
 from ganeti import mcpu
+from ganeti import opcodes
 
 import testutils
 
@@ -52,6 +53,15 @@ class TestLockAttemptTimeoutStrategy(unittest.TestCase):
 
     for _ in range(10):
       self.assert_(strat.NextAttempt() is None)
+
+
+class TestDispatchTable(unittest.TestCase):
+  def test(self):
+    for opcls in opcodes.OP_MAPPING.values():
+      if opcls is opcodes.OpCode or opcls is opcodes.OpTestDummy:
+        continue
+      self.assert_(opcls in mcpu.Processor.DISPATCH_TABLE,
+                   msg="%s missing handler class" % opcls)
 
 
 if __name__ == "__main__":
