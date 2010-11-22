@@ -179,6 +179,18 @@ class ConfigWriter:
     return mac
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetNdParams(self, node):
+    """Get the node params populated with cluster defaults.
+
+    @type node: L{object.Node}
+    @param node: The node we want to know the params for
+    @return: A dict with the filled in node params
+
+    """
+    nodegroup = self._UnlockedGetNodeGroup(node.group)
+    return self._config_data.cluster.FillND(node, nodegroup)
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GenerateMAC(self, ec_id):
     """Generate a MAC for an instance.
 
@@ -876,8 +888,7 @@ class ConfigWriter:
         return nodegroup.uuid
     raise errors.OpPrereqError("Nodegroup '%s' not found", target)
 
-  @locking.ssynchronized(_config_lock, shared=1)
-  def GetNodeGroup(self, uuid):
+  def _UnlockedGetNodeGroup(self, uuid):
     """Lookup a node group.
 
     @type uuid: string
@@ -890,6 +901,18 @@ class ConfigWriter:
       return None
 
     return self._config_data.nodegroups[uuid]
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeGroup(self, uuid):
+    """Lookup a node group.
+
+    @type uuid: string
+    @param uuid: group UUID
+    @rtype: L{objects.NodeGroup} or None
+    @return: nodegroup object, or None if not found
+
+    """
+    return self._UnlockedGetNodeGroup(uuid)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodeGroupsInfo(self):

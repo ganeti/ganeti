@@ -79,6 +79,7 @@ class TestConfigRunner(unittest.TestCase):
       volume_group_name="xenvg",
       drbd_usermode_helper="/bin/true",
       nicparams={constants.PP_DEFAULT: constants.NICC_DEFAULTS},
+      ndparams=constants.NDC_DEFAULTS,
       tcpudp_port_pool=set(),
       enabled_hypervisors=[constants.HT_FAKE],
       master_node=me.name,
@@ -186,6 +187,22 @@ class TestConfigRunner(unittest.TestCase):
                       CheckSyntax, {mode: m_bridged, link: None})
     self.assertRaises(errors.ConfigurationError,
                       CheckSyntax, {mode: m_bridged, link: ''})
+
+  def testGetNdParamsDefault(self):
+    cfg = self._get_object()
+    node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
+    self.assertEqual(cfg.GetNdParams(node), constants.NDC_DEFAULTS)
+
+  def testGetNdParamsModifiedNode(self):
+    my_ndparams = {
+        constants.ND_OOB_PROGRAM: "/bin/node-oob",
+        }
+
+    cfg = self._get_object()
+    node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
+    node.ndparams = my_ndparams
+    cfg.Update(node, None)
+    self.assertEqual(cfg.GetNdParams(node), my_ndparams)
 
 
 class TestTRM(unittest.TestCase):
