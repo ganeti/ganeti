@@ -37,8 +37,7 @@ import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject,
-                            defaultUUID)
+import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject)
 
 -- * Utility functions
 
@@ -55,7 +54,8 @@ toArray v =
 queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
   L.QueryNodes [] ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
-                   "ctotal", "offline", "drained", "vm_capable"] False
+                   "ctotal", "offline", "drained", "vm_capable",
+                   "group.uuid"] False
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -116,15 +116,16 @@ getNodes arr = toArray arr >>= mapM parseNode
 -- | Construct a node from a JSON object.
 parseNode :: JSValue -> Result (String, Node.Node)
 parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
-                   , ctotal, offline, drained, vm_capable ])
+                   , ctotal, offline, drained, vm_capable, g_uuid ])
     = do
   xname <- annotateResult "Parsing new node" (fromJVal name)
   let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
   xoffline <- convert offline
   xdrained <- convert drained
   xvm_capable <- convert vm_capable
+  xguuid   <- convert g_uuid
   node <- (if xoffline || xdrained || not xvm_capable
-           then return $ Node.create xname 0 0 0 0 0 0 True defaultUUID
+           then return $ Node.create xname 0 0 0 0 0 0 True xguuid
            else do
              xmtotal  <- convert mtotal
              xmnode   <- convert mnode
@@ -133,7 +134,7 @@ parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
              xdfree   <- convert dfree
              xctotal  <- convert ctotal
              return $ Node.create xname xmtotal xmnode xmfree
-                    xdtotal xdfree xctotal False defaultUUID)
+                    xdtotal xdfree xctotal False xguuid)
   return (xname, node)
 
 parseNode v = fail ("Invalid node query result: " ++ show v)
