@@ -567,21 +567,17 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout,
 
     while fdmap:
       if poll_timeout:
-        current_timeout = poll_timeout() * 1000
-        if current_timeout < 0:
+        pt = poll_timeout() * 1000
+        if pt < 0:
           if linger_timeout is None:
             logging.warning(msg_timeout)
             if child.poll() is None:
               timeout_action = _TIMEOUT_TERM
               IgnoreProcessNotFound(os.kill, child.pid, signal.SIGTERM)
             linger_timeout = RunningTimeout(_linger_timeout, True).Remaining
-          lt = linger_timeout() * 1000
-          if lt < 0:
+          pt = linger_timeout() * 1000
+          if pt < 0:
             break
-
-          pt = max(0, lt)
-        else:
-          pt = current_timeout
       else:
         pt = None
 
