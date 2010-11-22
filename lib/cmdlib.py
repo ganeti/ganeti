@@ -6508,13 +6508,12 @@ def _GenerateUniqueNames(lu, exts):
   return results
 
 
-def _GenerateDRBD8Branch(lu, primary, secondary, size, names, iv_name,
+def _GenerateDRBD8Branch(lu, primary, secondary, size, vgname, names, iv_name,
                          p_minor, s_minor):
   """Generate a drbd8 device complete with its children.
 
   """
   port = lu.cfg.AllocatePort()
-  vgname = lu.cfg.GetVGName()
   shared_secret = lu.cfg.GenerateDRBDSecret(lu.proc.GetECId())
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                           logical_id=(vgname, names[0]))
@@ -6533,7 +6532,7 @@ def _GenerateDiskTemplate(lu, template_name,
                           instance_name, primary_node,
                           secondary_nodes, disk_info,
                           file_storage_dir, file_driver,
-                          base_index):
+                          base_index, feedback_fn):
   """Generate the entire disk layout for a given template type.
 
   """
@@ -6552,8 +6551,10 @@ def _GenerateDiskTemplate(lu, template_name,
                                       for i in range(disk_count)])
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
+      vg = disk.get("vg", vgname)
+      feedback_fn("* disk %i, vg %s, name %s" % (idx, vg, names[idx]))
       disk_dev = objects.Disk(dev_type=constants.LD_LV, size=disk["size"],
-                              logical_id=(vgname, names[idx]),
+                              logical_id=(vg, names[idx]),
                               iv_name="disk/%d" % disk_index,
                               mode=disk["mode"])
       disks.append(disk_dev)
@@ -6571,8 +6572,9 @@ def _GenerateDiskTemplate(lu, template_name,
       names.append(lv_prefix + "_meta")
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
+      vg = disk.get("vg", vgname)
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
-                                      disk["size"], names[idx*2:idx*2+2],
+                                      disk["size"], vg, names[idx*2:idx*2+2],
                                       "disk/%d" % disk_index,
                                       minors[idx*2], minors[idx*2+1])
       disk_dev.mode = disk["mode"]
@@ -7408,7 +7410,8 @@ class LUCreateInstance(LogicalUnit):
       except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
-      new_disk = {"size": size, "mode": mode}
+      vg = disk.get("vg", self.cfg.GetVGName())
+      new_disk = {"size": size, "mode": mode, "vg": vg}
       if "adopt" in disk:
         new_disk["adopt"] = disk["adopt"]
       self.disks.append(new_disk)
@@ -7593,7 +7596,8 @@ class LUCreateInstance(LogicalUnit):
                                   self.disks,
                                   file_storage_dir,
                                   self.op.file_driver,
-                                  0)
+                                  0,
+                                  feedback_fn)
 
     iobj = objects.Instance(name=instance, os=self.op.os_type,
                             primary_node=pnode_name,
@@ -9389,7 +9393,7 @@ class LUSetInstanceParams(LogicalUnit):
     disk_info = [{"size": d.size, "mode": d.mode} for d in instance.disks]
     new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
                                       instance.name, pnode, [snode],
-                                      disk_info, None, None, 0)
+                                      disk_info, None, None, 0, feedback_fn)
     info = _GetInstanceInfoText(instance)
     feedback_fn("Creating aditional volumes...")
     # first, create the missing data and meta devices
@@ -9507,7 +9511,7 @@ class LUSetInstanceParams(LogicalUnit):
                                          [disk_dict],
                                          file_path,
                                          file_driver,
-                                         disk_idx_base)[0]
+                                         disk_idx_base, feedback_fn)[0]
         instance.disks.append(new_disk)
         info = _GetInstanceInfoText(instance)
 
