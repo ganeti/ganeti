@@ -296,10 +296,9 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.assertEqual(result.exit_code, 0)
 
   def testTimeoutKill(self):
-    cmd = "trap '' TERM; read < %s" % self.fifo_file
+    cmd = ["/bin/sh", "-c", "trap '' TERM; read < %s" % self.fifo_file]
     timeout = 0.2
-    strcmd = utils.ShellQuoteArgs(["/bin/sh", "-c", cmd])
-    out, err, status, ta = utils._RunCmdPipe(strcmd, {}, True, "/", False,
+    out, err, status, ta = utils._RunCmdPipe(cmd, {}, False, "/", False,
                                              timeout, _linger_timeout=0.2)
     self.assert_(status < 0)
     self.assertEqual(-status, signal.SIGKILL)
