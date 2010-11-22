@@ -53,10 +53,11 @@ import qualified Ganeti.HTools.Instance as Instance
 -- | Serialize a single node
 serializeNode :: Node.Node -> String
 serializeNode node =
-    printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c" (Node.name node)
+    printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s" (Node.name node)
                (Node.tMem node) (Node.nMem node) (Node.fMem node)
                (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
                (if Node.offline node then 'Y' else 'N')
+               (Node.group node)
 
 -- | Generate node file data from node objects
 serializeNodes :: Node.List -> String
@@ -92,10 +93,13 @@ serializeCluster nl il =
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
-loadNode [name, tm, nm, fm, td, fd, tc, fo] = do
+-- compatibility wrapper for old text files
+loadNode [name, tm, nm, fm, td, fd, tc, fo] =
+  loadNode [name, tm, nm, fm, td, fd, tc, fo, defaultUUID]
+loadNode [name, tm, nm, fm, td, fd, tc, fo, gu] = do
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
-          return $ Node.create name 0 0 0 0 0 0 True defaultUUID
+          return $ Node.create name 0 0 0 0 0 0 True gu
       else do
         vtm <- tryRead name tm
         vnm <- tryRead name nm
@@ -103,7 +107,7 @@ loadNode [name, tm, nm, fm, td, fd, tc, fo] = do
         vtd <- tryRead name td
         vfd <- tryRead name fd
         vtc <- tryRead name tc
-        return $ Node.create name vtm vnm vfm vtd vfd vtc False defaultUUID
+        return $ Node.create name vtm vnm vfm vtd vfd vtc False gu
   return (name, new_node)
 loadNode s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
