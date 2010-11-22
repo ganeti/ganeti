@@ -87,15 +87,21 @@ sepSplit sep s
 -- Simple and slow statistical functions, please replace with better
 -- versions
 
--- | The covariance of the list
+-- | Our modified standard deviation function (not, it's not the variance)
 varianceCoeff :: [Double] -> Double
 varianceCoeff lst =
-    let ll = fromIntegral (length lst)::Double -- length of list
-        mv = sum lst / ll   -- mean value
-        av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
-        bv = sqrt (av / ll) -- stddev
-        cv = bv / ll        -- covariance
-    in cv
+  -- first, calculate the list length and sum lst in a single step,
+  -- for performance reasons
+  let (ll', sx) = foldl' (\(rl, rs) e ->
+                           let rl' = rl + 1
+                               rs' = rs + e
+                           in rl' `seq` rs' `seq` (rl', rs')) (0::Int, 0) lst
+      ll = fromIntegral ll'::Double
+      mv = sx / ll
+      av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
+      bv = sqrt (av / ll) -- stddev
+      cv = bv / ll        -- standard deviation divided by list length
+  in cv
 
 -- * JSON-related functions
 
