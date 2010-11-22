@@ -429,6 +429,8 @@ Body parameters:
   will fail.
 ``force_variant`` (bool)
   Whether to force an unknown variant.
+``no_install`` (bool)
+  Do not install the OS (will enable no-start)
 ``pnode`` (string)
   Primary node.
 ``snode`` (string)

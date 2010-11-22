@@ -595,6 +595,7 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
     osparams=baserlib.CheckParameter(data, "osparams", default={}),
     force_variant=baserlib.CheckParameter(data, "force_variant",
                                           default=False),
+    no_install=baserlib.CheckParameter(data, "no_install", default=False),
     pnode=baserlib.CheckParameter(data, "pnode", default=None),
     snode=baserlib.CheckParameter(data, "snode", default=None),
     disk_template=baserlib.CheckParameter(data, "disk_template"),
