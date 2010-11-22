@@ -95,7 +95,7 @@ loadNode :: (Monad m) => [String] -> m (String, Node.Node)
 loadNode [name, tm, nm, fm, td, fd, tc, fo] = do
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
-          return $ Node.create name 0 0 0 0 0 0 True
+          return $ Node.create name 0 0 0 0 0 0 True defaultUUID
       else do
         vtm <- tryRead name tm
         vnm <- tryRead name nm
@@ -103,7 +103,7 @@ loadNode [name, tm, nm, fm, td, fd, tc, fo] = do
         vtd <- tryRead name td
         vfd <- tryRead name fd
         vtc <- tryRead name tc
-        return $ Node.create name vtm vnm vfm vtd vfd vtc False
+        return $ Node.create name vtm vnm vfm vtd vfd vtc False defaultUUID
   return (name, new_node)
 loadNode s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 

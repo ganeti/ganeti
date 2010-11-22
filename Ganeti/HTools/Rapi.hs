@@ -106,7 +106,7 @@ parseNode a = do
   offline <- extract "offline"
   drained <- extract "drained"
   node <- (if offline || drained
-           then return $ Node.create name 0 0 0 0 0 0 True
+           then return $ Node.create name 0 0 0 0 0 0 True defaultUUID
            else do
              mtotal  <- extract "mtotal"
              mnode   <- extract "mnode"
@@ -115,7 +115,7 @@ parseNode a = do
              dfree   <- extract "dfree"
              ctotal  <- extract "ctotal"
              return $ Node.create name mtotal mnode mfree
-                    dtotal dfree ctotal False)
+                    dtotal dfree ctotal False defaultUUID)
   return (name, node)
 
 -- | Loads the raw cluster data from an URL.

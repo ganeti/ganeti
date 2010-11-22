@@ -37,7 +37,8 @@ import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject)
+import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject,
+                            defaultUUID)
 
 -- * Utility functions
 
@@ -123,7 +124,7 @@ parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
   xdrained <- convert drained
   xvm_capable <- convert vm_capable
   node <- (if xoffline || xdrained || not xvm_capable
-           then return $ Node.create xname 0 0 0 0 0 0 True
+           then return $ Node.create xname 0 0 0 0 0 0 True defaultUUID
            else do
              xmtotal  <- convert mtotal
              xmnode   <- convert mnode
@@ -132,7 +133,7 @@ parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
              xdfree   <- convert dfree
              xctotal  <- convert ctotal
              return $ Node.create xname xmtotal xmnode xmfree
-                    xdtotal xdfree xctotal False)
+                    xdtotal xdfree xctotal False defaultUUID)
   return (xname, node)
 
 parseNode v = fail ("Invalid node query result: " ++ show v)

@@ -68,7 +68,7 @@ module Ganeti.HTools.Node
     , noSecondary
     ) where
 
-import Data.List
+import Data.List hiding (group)
 import qualified Data.Map as Map
 import qualified Data.Foldable as Foldable
 import Text.Printf (printf)
@@ -119,6 +119,7 @@ data Node = Node
     , utilPool :: T.DynUtil -- ^ Total utilisation capacity
     , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
     , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
+    , group    :: String    -- ^ The node's group (as UUID)
     } deriving (Show, Eq)
 
 instance T.Element Node where
@@ -182,9 +183,9 @@ conflictingPrimaries (Node { pTags = t }) = Foldable.sum t - Map.size t
 -- The index and the peers maps are empty, and will be need to be
 -- update later via the 'setIdx' and 'buildPeers' functions.
 create :: String -> Double -> Int -> Int -> Double
-       -> Int -> Double -> Bool -> Node
+       -> Int -> Double -> Bool -> String -> Node
 create name_init mem_t_init mem_n_init mem_f_init
-       dsk_t_init dsk_f_init cpu_t_init offline_init =
+       dsk_t_init dsk_f_init cpu_t_init offline_init group_init =
     Node { name = name_init
          , alias = name_init
          , tMem = mem_t_init
@@ -213,6 +214,7 @@ create name_init mem_t_init mem_n_init mem_f_init
          , utilPool = T.baseUtil
          , utilLoad = T.zeroUtil
          , pTags = Map.empty
+         , group = group_init
          }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk
@@ -483,6 +485,7 @@ showField t field =
       "ptags" -> intercalate "," . map (\(k, v) -> printf "%s=%d" k v) .
                  Map.toList $ pTags t
       "peermap" -> show $ peers t
+      "group.uuid" -> group t
       _ -> T.unknownField
     where
       T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
@@ -521,6 +524,7 @@ showHeader field =
       "nload" -> ("lNet", True)
       "ptags" -> ("PrimaryTags", False)
       "peermap" -> ("PeerMap", False)
+      "group.uuid" -> ("GroupUUID", False)
       _ -> (T.unknownField, False)
 
 -- | String converter for the node list functionality.
