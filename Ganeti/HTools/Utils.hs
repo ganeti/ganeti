@@ -41,6 +41,7 @@ module Ganeti.HTools.Utils
     , tryRead
     , formatTable
     , annotateResult
+    , defaultUUID
     ) where
 
 import Control.Monad (liftM)
@@ -209,3 +210,7 @@ formatTable vals numpos =
                              ) flds
                     ) (zip3 vtrans numpos mlens)
    in transpose expnd
+
+-- | Default UUID (just a string, not a real UUID)
+defaultUUID :: String
+defaultUUID = "00000000-0000-0000-0000-000000000000"
