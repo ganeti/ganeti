@@ -80,8 +80,9 @@ parseNode :: String           -- ^ The node's name
 parseNode n a = do
   offline <- fromObj "offline" a
   drained <- fromObj "drained" a
+  guuid   <- fromObj "group" a
   node <- (if offline || drained
-           then return $ Node.create n 0 0 0 0 0 0 True defaultUUID
+           then return $ Node.create n 0 0 0 0 0 0 True guuid
            else do
              mtotal <- fromObj "total_memory" a
              mnode  <- fromObj "reserved_memory" a
@@ -90,7 +91,7 @@ parseNode n a = do
              dfree  <- fromObj "free_disk"    a
              ctotal <- fromObj "total_cpus"   a
              return $ Node.create n mtotal mnode mfree
-                    dtotal dfree ctotal False defaultUUID)
+                    dtotal dfree ctotal False guuid)
   return (n, node)
 
 -- | Top-level parser.
