@@ -105,8 +105,9 @@ parseNode a = do
   let extract s = tryFromObj ("Node '" ++ name ++ "'") a s
   offline <- extract "offline"
   drained <- extract "drained"
+  guuid   <- extract "group.uuid"
   node <- (if offline || drained
-           then return $ Node.create name 0 0 0 0 0 0 True defaultUUID
+           then return $ Node.create name 0 0 0 0 0 0 True guuid
            else do
              mtotal  <- extract "mtotal"
              mnode   <- extract "mnode"
@@ -115,7 +116,7 @@ parseNode a = do
              dfree   <- extract "dfree"
              ctotal  <- extract "ctotal"
              return $ Node.create name mtotal mnode mfree
-                    dtotal dfree ctotal False defaultUUID)
+                    dtotal dfree ctotal False guuid)
   return (name, node)
 
 -- | Loads the raw cluster data from an URL.
