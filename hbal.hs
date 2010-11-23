@@ -189,22 +189,26 @@ execJobSet master nl il cref alljss@(js:jss) = do
                          show x
                hPutStrLn stderr "Aborting.")
 
--- | Signal handler
-handleSig :: IORef Int -> IO ()
-handleSig cref = do
-  cnt <- atomicModifyIORef cref (\x -> let y = x + 1
-                                       in (y, y))
-  when (cnt > 1) $ do
-    putStrLn "Double cancel request, exiting now..."
-    exitImmediately $ ExitFailure 1
-  when (cnt > 0) $ putStrLn ("Cancel request registered, will exit at" ++
-                             " the end of the current job set...")
+-- | Signal handler for graceful termination
+hangleSigInt :: IORef Int -> IO ()
+hangleSigInt cref = do
+  writeIORef cref 1
+  putStrLn ("Cancel request registered, will exit at" ++
+            " the end of the current job set...")
+
+-- | Signal handler for immediate termination
+hangleSigTerm :: IORef Int -> IO ()
+hangleSigTerm cref = do
+  -- update the cref to 2, just for consistency
+  writeIORef cref 2
+  putStrLn "Double cancel request, exiting now..."
+  exitImmediately $ ExitFailure 2
 
 runJobSet :: String -> Node.List -> Instance.List -> [JobSet] -> IO ()
 runJobSet master fin_nl il cmd_jobs = do
   cref <- newIORef 0
-  mapM_ (\sig -> installHandler sig (Catch (handleSig cref)) Nothing)
-    [softwareTermination, keyboardSignal]
+  mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
+    [(hangleSigTerm, softwareTermination), (hangleSigInt, keyboardSignal)]
   execJobSet master fin_nl il cref cmd_jobs
 
 -- | Main function.
