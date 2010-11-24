@@ -2589,6 +2589,7 @@ class LUSetClusterParams(LogicalUnit):
     ("maintain_node_health", None, ht.TMaybeBool),
     ("prealloc_wipe_disks", None, ht.TMaybeBool),
     ("nicparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
     ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone)),
     ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone)),
     ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone)),
@@ -2697,6 +2698,10 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.beparams:
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
       self.new_beparams = cluster.SimpleFillBE(self.op.beparams)
+
+    if self.op.ndparams:
+      utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+      self.new_ndparams = cluster.SimpleFillND(self.op.ndparams)
 
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
@@ -2851,6 +2856,8 @@ class LUSetClusterParams(LogicalUnit):
       self.cluster.nicparams[constants.PP_DEFAULT] = self.new_nicparams
     if self.op.osparams:
       self.cluster.osparams = self.new_osp
+    if self.op.ndparams:
+      self.cluster.ndparams = self.new_ndparams
 
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
@@ -3741,6 +3748,7 @@ class LUAddNode(LogicalUnit):
     ("group", None, ht.TMaybeString),
     ("master_capable", None, ht.TMaybeBool),
     ("vm_capable", None, ht.TMaybeBool),
+    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
     ]
   _NFLAGS = ["master_capable", "vm_capable"]
 
@@ -3900,6 +3908,9 @@ class LUAddNode(LogicalUnit):
                                    offline=False, drained=False,
                                    group=node_group)
 
+    if self.op.ndparams:
+      utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
@@ -3926,6 +3937,9 @@ class LUAddNode(LogicalUnit):
     # notify the user about any possible mc promotion
     if new_node.master_candidate:
       self.LogInfo("Node will be a master candidate")
+
+    if self.op.ndparams:
+      new_node.ndparams = self.op.ndparams
 
     # check connectivity
     result = self.rpc.call_version([node])[node]
@@ -4007,6 +4021,7 @@ class LUSetNodeParams(LogicalUnit):
     ("master_capable", None, ht.TMaybeBool),
     ("vm_capable", None, ht.TMaybeBool),
     ("secondary_ip", None, ht.TMaybeString),
+    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
     _PForce,
     ]
   REQ_BGL = False
@@ -4220,6 +4235,11 @@ class LUSetNodeParams(LogicalUnit):
                                        " based ping to node daemon port",
                                        errors.ECODE_ENVIRON)
 
+    if self.op.ndparams:
+      new_ndparams = _GetUpdatedParams(self.node.ndparams, self.op.ndparams)
+      utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
+      self.new_ndparams = new_ndparams
+
   def Exec(self, feedback_fn):
     """Modifies a node.
 
@@ -4229,6 +4249,9 @@ class LUSetNodeParams(LogicalUnit):
     new_role = self.new_role
 
     result = []
+
+    if self.op.ndparams:
+      node.ndparams = self.new_ndparams
 
     for attr in ["master_capable", "vm_capable"]:
       val = getattr(self.op, attr)

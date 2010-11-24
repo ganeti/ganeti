@@ -309,6 +309,7 @@ class OpSetClusterParams(OpCode):
     "beparams",
     "osparams",
     "nicparams",
+    "ndparams",
     "candidate_pool_size",
     "maintain_node_health",
     "uid_pool",
@@ -375,7 +376,7 @@ class OpAddNode(OpCode):
   OP_ID = "OP_NODE_ADD"
   OP_DSC_FIELD = "node_name"
   __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd", "group",
-               "vm_capable", "master_capable"]
+               "vm_capable", "master_capable", "ndparams"]
 
 
 class OpQueryNodes(OpCode):
@@ -438,6 +439,7 @@ class OpSetNodeParams(OpCode):
     "master_capable",
     "vm_capable",
     "secondary_ip",
+    "ndparams",
     ]
 
 
