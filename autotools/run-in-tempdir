@@ -8,4 +8,4 @@ trap "rm -rf $tmpdir" EXIT
 cp -r daemons scripts lib tools test $tmpdir
 mv $tmpdir/lib $tmpdir/ganeti
 
-cd $tmpdir && "$@"
+cd $tmpdir && GANETI_TEMP_DIR="$tmpdir" "$@"
