@@ -24,6 +24,7 @@ set -e
 shopt -s extglob
 
 readonly version=$1
+readonly newsfile=$2
 readonly numpat='+([0-9])'
 
 case "$version" in
@@ -41,7 +42,7 @@ esac
 
 readonly newsver="Version ${version/~/}"
 
-if ! grep -q -x "$newsver" NEWS
+if ! grep -q -x "$newsver" $newsfile
 then
   echo "Unable to find heading '$newsver' in NEWS" >&2
   exit 1

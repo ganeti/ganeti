@@ -638,7 +638,7 @@ check-dirs: $(BUILT_SOURCES)
 
 check-local: check-dirs
 	$(CHECK_PYTHON_CODE) $(check_python_code)
-	$(CHECK_VERSION) $(VERSION)
+	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 
 .PHONY: lint
 lint: ganeti $(BUILT_SOURCES)
