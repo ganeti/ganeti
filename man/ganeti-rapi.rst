@@ -38,8 +38,8 @@ All query operations are allowed without authentication. Only the
 modification operations require authentication, in the form of basic
 authentication.
 
-The users and their rights are defined in a file named rapi_users,
-located in the ``@LOCALSTATEDIR@/lib/ganeti`` directory. The users
+The users and their rights are defined in the
+``@LOCALSTATEDIR@/lib/ganeti/rapi/users`` file. The users
 should be listed one per line, in the following format::
 
     username password options

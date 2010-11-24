@@ -80,6 +80,7 @@ _ensure_datadir() {
   _ensure_dir ${DATADIR}/queue 0700 "$(_fileset_owner masterd)"
   _ensure_dir ${DATADIR}/queue/archive 0700 "$(_fileset_owner masterd)"
   _ensure_dir ${DATADIR}/uidpool 0750 "$(_fileset_owner noded)"
+  _ensure_dir ${DATADIR}/rapi 0750 "$(_fileset_owner rapi)"
 
   # We ignore these files if they don't exists (incomplete setup)
   _ensure_file ${DATADIR}/cluster-domain-secret 0640 \
@@ -88,7 +89,7 @@ _ensure_datadir() {
   _ensure_file ${DATADIR}/hmac.key 0440 "$(_fileset_owner confd)" || :
   _ensure_file ${DATADIR}/known_hosts 0644 "$(_fileset_owner masterd)" || :
   _ensure_file ${DATADIR}/rapi.pem 0440 "$(_fileset_owner rapi)" || :
-  _ensure_file ${DATADIR}/rapi_users 0640 "$(_fileset_owner rapi)" || :
+  _ensure_file ${DATADIR}/rapi/users 0640 "$(_fileset_owner rapi)" || :
   _ensure_file ${DATADIR}/server.pem 0440 "$(_fileset_owner masterd)" || :
   _ensure_file ${DATADIR}/queue/serial 0600 "$(_fileset_owner masterd)" || :
 

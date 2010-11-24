@@ -57,6 +57,8 @@ class TestCfgupgrade(unittest.TestCase):
     self.config_path = utils.PathJoin(self.tmpdir, "config.data")
     self.noded_cert_path = utils.PathJoin(self.tmpdir, "server.pem")
     self.rapi_cert_path = utils.PathJoin(self.tmpdir, "rapi.pem")
+    self.rapi_users_path = utils.PathJoin(self.tmpdir, "rapi", "users")
+    self.rapi_users_path_pre24 = utils.PathJoin(self.tmpdir, "rapi_users")
     self.known_hosts_path = utils.PathJoin(self.tmpdir, "known_hosts")
     self.confd_hmac_path = utils.PathJoin(self.tmpdir, "hmac.key")
     self.cds_path = utils.PathJoin(self.tmpdir, "cluster-domain-secret")
@@ -122,11 +124,56 @@ class TestCfgupgrade(unittest.TestCase):
     newcfg = self._LoadConfig()
     self.assertEqual(newcfg["version"], expversion)
 
+  def testRapiUsers(self):
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+
+    utils.WriteFile(self.rapi_users_path_pre24, data="some user\n")
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
+
+    self.assert_(os.path.islink(self.rapi_users_path_pre24))
+    self.assert_(os.path.isfile(self.rapi_users_path))
+    for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
+      self.assertEqual(utils.ReadFile(path), "some user\n")
+
+  def testRapiUsers24AndAbove(self):
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+
+    os.mkdir(os.path.dirname(self.rapi_users_path))
+    utils.WriteFile(self.rapi_users_path, data="other user\n")
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
+
+    self.assert_(os.path.islink(self.rapi_users_path_pre24))
+    self.assert_(os.path.isfile(self.rapi_users_path))
+    for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
+      self.assertEqual(utils.ReadFile(path), "other user\n")
+
+  def testRapiUsersExistingSymlink(self):
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+
+    os.symlink(self.rapi_users_path, self.rapi_users_path_pre24)
+    utils.WriteFile(self.rapi_users_path_pre24, data="hello world\n")
+
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), False)
+
+    self.assert_(os.path.isfile(self.rapi_users_path))
+    self.assert_(os.path.islink(self.rapi_users_path_pre24))
+    for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
+      self.assertEqual(utils.ReadFile(path), "hello world\n")
+
   def testUpgradeFrom_2_0(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 0, 0), False)
 
   def testUpgradeFrom_2_1(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 1, 0), False)
+
+  def testUpgradeFrom_2_2(self):
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), False)
+
+  def testUpgradeFrom_2_3(self):
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
 
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
@@ -136,6 +183,12 @@ class TestCfgupgrade(unittest.TestCase):
 
   def testUpgradeDryRunFrom_2_1(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 1, 0), True)
+
+  def testUpgradeDryRunFrom_2_2(self):
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), True)
+
+  def testUpgradeDryRunFrom_2_3(self):
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), True)
 
   def testUpgradeCurrentDryRun(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, True)

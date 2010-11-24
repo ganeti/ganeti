@@ -102,6 +102,8 @@ def main():
   options.SERVER_PEM_PATH = options.data_dir + "/server.pem"
   options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"
   options.RAPI_CERT_FILE = options.data_dir + "/rapi.pem"
+  options.RAPI_USERS_FILE = options.data_dir + "/rapi/users"
+  options.RAPI_USERS_FILE_PRE24 = options.data_dir + "/rapi_users"
   options.CONFD_HMAC_KEY = options.data_dir + "/hmac.key"
   options.CDS_FILE = options.data_dir + "/cluster-domain-secret"
 
@@ -154,6 +156,18 @@ def main():
   else:
     raise Error("Configuration version %d.%d.%d not supported by this tool" %
                 (config_major, config_minor, config_revision))
+
+  if os.path.isfile(options.RAPI_USERS_FILE_PRE24):
+    logging.info("Found pre-2.4 RAPI users file at %s, renaming to %s",
+                 options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
+    utils.RenameFile(options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE,
+                     mkdir=True, mkdir_mode=0750)
+
+  # Create a symlink for RAPI users file
+  if not os.path.islink(options.RAPI_USERS_FILE_PRE24):
+    logging.info("Creating symlink from %s to %s",
+                 options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
+    os.symlink(options.RAPI_USERS_FILE, options.RAPI_USERS_FILE_PRE24)
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
