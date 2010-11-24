@@ -105,6 +105,7 @@ __all__ = [
   "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
   "NODEGROUP_OPT",
+  "NODE_PARAMS_OPT",
   "NODRBD_STORAGE_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
@@ -1099,6 +1100,10 @@ PREALLOC_WIPE_DISKS_OPT = cli_option("--prealloc-wipe-disks", default=None,
                                      dest="prealloc_wipe_disks",
                                      help=("Wipe disks prior to instance"
                                            " creation"))
+
+NODE_PARAMS_OPT = cli_option("--node-parameters", dest="ndparams",
+                             type="keyval", default={},
+                             help="Node parameters")
 
 
 #: Options provided by all commands
