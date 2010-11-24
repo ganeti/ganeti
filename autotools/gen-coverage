@@ -24,10 +24,12 @@ set -e
 : ${PYTHON:=python}
 : ${COVERAGE_FILE:?}
 : ${TEXT_COVERAGE:?}
+: ${GANETI_TEMP_DIR:?}
 
-omit=$($PYTHON -c 'import sys;
-print " ".join(["--omit=%s/" % i for i in
-                set([sys.prefix, sys.exec_prefix])])')
+omit=$($PYTHON -c 'import sys; import os;
+print ",".join("%s/" % i for i in set([sys.prefix, sys.exec_prefix,
+   os.environ["GANETI_TEMP_DIR"] + "/test"]))')
+omit="--omit=$omit"
 
 $COVERAGE erase
 
