@@ -4039,7 +4039,7 @@ class LUSetNodeParams(LogicalUnit):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained,
                 self.op.master_capable, self.op.vm_capable,
-                self.op.secondary_ip]
+                self.op.secondary_ip, self.op.ndparams]
     if all_mods.count(None) == len(all_mods):
       raise errors.OpPrereqError("Please pass at least one modification",
                                  errors.ECODE_INVAL)
