@@ -1270,9 +1270,12 @@ class ExportInstanceHelper:
     try:
       for idx, (dev, (host, port, magic)) in enumerate(zip(instance.disks,
                                                            disk_info)):
+        # Decide whether to use IPv6
+        ipv6 = netutils.IP6Address.IsValid(host)
+
         opts = objects.ImportExportOptions(key_name=key_name,
                                            ca_pem=dest_ca_pem,
-                                           magic=magic)
+                                           magic=magic, ipv6=ipv6)
 
         self._feedback_fn("Sending disk %s to %s:%s" % (idx, host, port))
         finished_fn = compat.partial(self._TransferFinished, idx)
@@ -1404,13 +1407,16 @@ class _RemoteImportCb(ImportExportCbBase):
     self._dresults[idx] = bool(ie.success)
 
 
-def RemoteImport(lu, feedback_fn, instance, source_x509_ca, cds, timeouts):
+def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
+                 cds, timeouts):
   """Imports an instance from another cluster.
 
   @param lu: Logical unit instance
   @param feedback_fn: Feedback function
   @type instance: L{objects.Instance}
   @param instance: Instance object
+  @type pnode: L{objects.Node}
+  @param pnode: Primary node of instance as an object
   @type source_x509_ca: OpenSSL.crypto.X509
   @param source_x509_ca: Import source's X509 CA
   @type cds: string
@@ -1423,6 +1429,9 @@ def RemoteImport(lu, feedback_fn, instance, source_x509_ca, cds, timeouts):
                                                   source_x509_ca)
 
   magic_base = utils.GenerateSecret(6)
+
+  # Decide whether to use IPv6
+  ipv6 = netutils.IP6Address.IsValid(pnode.primary_ip)
 
   # Create crypto key
   result = lu.rpc.call_x509_cert_create(instance.primary_node,
@@ -1440,7 +1449,7 @@ def RemoteImport(lu, feedback_fn, instance, source_x509_ca, cds, timeouts):
       utils.SignX509Certificate(x509_cert, cds, utils.GenerateSecret(8))
 
     cbs = _RemoteImportCb(feedback_fn, cds, signed_x509_cert_pem,
-                          len(instance.disks), instance.primary_node)
+                          len(instance.disks), pnode.primary_ip)
 
     ieloop = ImportExportLoop(lu)
     try:
@@ -1450,7 +1459,7 @@ def RemoteImport(lu, feedback_fn, instance, source_x509_ca, cds, timeouts):
         # Import daemon options
         opts = objects.ImportExportOptions(key_name=x509_key_name,
                                            ca_pem=source_ca_pem,
-                                           magic=magic)
+                                           magic=magic, ipv6=ipv6)
 
         ieloop.Add(DiskImport(lu, instance.primary_node, opts, instance,
                               constants.IEIO_SCRIPT, (dev, idx),
@@ -1554,7 +1563,12 @@ def CheckRemoteExportDiskInfo(cds, disk_index, disk_info):
   if not utils.VerifySha1Hmac(cds, msg, hmac_digest, salt=hmac_salt):
     raise errors.GenericError("HMAC is wrong")
 
-  return (netutils.Hostname.GetNormalizedName(host),
+  if netutils.IP6Address.IsValid(host) or netutils.IP4Address.IsValid(host):
+    destination = host
+  else:
+    destination = netutils.Hostname.GetNormalizedName(host)
+
+  return (destination,
           utils.ValidateServiceName(port),
           magic)
 

@@ -7802,9 +7802,11 @@ class LUCreateInstance(LogicalUnit):
         connect_timeout = constants.RIE_CONNECT_TIMEOUT
         timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
 
-        disk_results = masterd.instance.RemoteImport(self, feedback_fn, iobj,
-                                                     self.source_x509_ca,
-                                                     self._cds, timeouts)
+        assert iobj.primary_node == self.pnode.name
+        disk_results = \
+          masterd.instance.RemoteImport(self, feedback_fn, iobj, self.pnode,
+                                        self.source_x509_ca,
+                                        self._cds, timeouts)
         if not compat.all(disk_results):
           # TODO: Should the instance still be started, even if some disks
           # failed to import (valid for local imports, too)?
@@ -9550,7 +9552,6 @@ class LUSetInstanceParams(LogicalUnit):
       if msg:
         self.LogWarning("Could not remove metadata for disk %d on node %s,"
                         " continuing anyway: %s", idx, pnode, msg)
-
 
   def Exec(self, feedback_fn):
     """Modifies an instance.
