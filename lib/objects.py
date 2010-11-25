@@ -1334,6 +1334,7 @@ class ImportExportOptions(ConfigObject):
   @ivar ca_pem: Remote peer CA in PEM format (None for cluster certificate)
   @ivar compress: Compression method (one of L{constants.IEC_ALL})
   @ivar magic: Used to ensure the connection goes to the right disk
+  @ivar ipv6: Whether to use IPv6
 
   """
   __slots__ = [
@@ -1341,6 +1342,7 @@ class ImportExportOptions(ConfigObject):
     "ca_pem",
     "compress",
     "magic",
+    "ipv6",
     ]
 
 

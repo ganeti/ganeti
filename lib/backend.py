@@ -2878,6 +2878,11 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
     if port:
       cmd.append("--port=%s" % port)
 
+    if opts.ipv6:
+      cmd.append("--ipv6")
+    else:
+      cmd.append("--ipv4")
+
     if opts.compress:
       cmd.append("--compress=%s" % opts.compress)
 
