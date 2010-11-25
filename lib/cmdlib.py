@@ -4705,6 +4705,68 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
                                errors.ECODE_NORES)
 
 
+def _CheckNodesFreeDiskPerVG(lu, nodenames, req_sizes):
+  """Checks if nodes have enough free disk space in the all VGs.
+
+  This function check if all given nodes have the needed amount of
+  free disk. In case any node has less disk or we cannot get the
+  information from the node, this function raise an OpPrereqError
+  exception.
+
+  @type lu: C{LogicalUnit}
+  @param lu: a logical unit from which we get configuration data
+  @type nodenames: C{list}
+  @param nodenames: the list of node names to check
+  @type req_sizes: C{dict}
+  @param req_sizes: the hash of vg and corresponding amount of disk in
+      MiB to check for
+  @raise errors.OpPrereqError: if the node doesn't have enough disk,
+      or we cannot check the node
+
+  """
+  if req_sizes is not None:
+    for vg, req_size in req_sizes.iteritems():
+      _CheckNodesFreeDiskOnVG(lu, nodenames, vg, req_size)
+
+
+def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
+  """Checks if nodes have enough free disk space in the specified VG.
+
+  This function check if all given nodes have the needed amount of
+  free disk. In case any node has less disk or we cannot get the
+  information from the node, this function raise an OpPrereqError
+  exception.
+
+  @type lu: C{LogicalUnit}
+  @param lu: a logical unit from which we get configuration data
+  @type nodenames: C{list}
+  @param nodenames: the list of node names to check
+  @type vg: C{str}
+  @param vg: the volume group to check
+  @type requested: C{int}
+  @param requested: the amount of disk in MiB to check for
+  @raise errors.OpPrereqError: if the node doesn't have enough disk,
+      or we cannot check the node
+
+  """
+  nodeinfo = lu.rpc.call_node_info(nodenames, vg,
+                                   lu.cfg.GetHypervisorType())
+  for node in nodenames:
+    info = nodeinfo[node]
+    info.Raise("Cannot get current information from node %s" % node,
+               prereq=True, ecode=errors.ECODE_ENVIRON)
+    vg_free = info.payload.get("vg_free", None)
+    if not isinstance(vg_free, int):
+      raise errors.OpPrereqError("Can't compute free disk space on node"
+                                 " %s for vg %s, result was '%s'" %
+                                 (node, vg, vg_free), errors.ECODE_ENVIRON)
+    if requested > vg_free:
+      raise errors.OpPrereqError("Not enough disk space on target node %s"
+                                 " vg %s: required %d MiB, available %d MiB" %
+                                 (node, vg, requested, vg_free),
+                                 errors.ECODE_NORES)
+
+
 def _CheckNodesFreeDisk(lu, nodenames, requested):
   """Checks if nodes have enough free disk space in the default VG.
 
@@ -6774,6 +6836,35 @@ def _RemoveDisks(lu, instance, target_node=None):
 
   return all_result
 
+
+def _ComputeDiskSizePerVG(disk_template, disks):
+  """Compute disk size requirements in the volume group
+
+  """
+  def _compute(disks, payload):
+    """Universal algorithm
+
+    """
+    vgs = {}
+    for disk in disks:
+      vgs[disk["vg"]] = vgs.get("vg", 0) + disk["size"] + payload
+
+    return vgs
+
+  # Required free disk space as a function of disk and swap space
+  req_size_dict = {
+    constants.DT_DISKLESS: None,
+    constants.DT_PLAIN: _compute(disks, 0),
+    # 128 MB are added for drbd metadata for each disk
+    constants.DT_DRBD8: _compute(disks, 128),
+    constants.DT_FILE: None,
+  }
+
+  if disk_template not in req_size_dict:
+    raise errors.ProgrammerError("Disk template '%s' size requirement"
+                                 " is unknown" %  disk_template)
+
+  return req_size_dict[disk_template]
 
 def _ComputeDiskSize(disk_template, disks):
   """Compute disk size requirements in the volume group
