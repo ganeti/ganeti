@@ -9264,7 +9264,10 @@ class LUSetInstanceParams(LogicalUnit):
                                      self.op.remote_node, errors.ECODE_STATE)
         _CheckNodeOnline(self, self.op.remote_node)
         _CheckNodeNotDrained(self, self.op.remote_node)
-        disks = [{"size": d.size, "vg": d.vg} for d in instance.disks]
+        # FIXME: here we assume that the old instance type is DT_PLAIN
+        assert instance.disk_template == constants.DT_PLAIN
+        disks = [{"size": d.size, "vg": d.logical_id[0]}
+                 for d in instance.disks]
         required = _ComputeDiskSizePerVG(self.op.disk_template, disks)
         _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
 
