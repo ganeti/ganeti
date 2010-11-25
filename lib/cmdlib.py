@@ -7623,20 +7623,20 @@ class LUCreateInstance(LogicalUnit):
 
     nodenames = [pnode.name] + self.secondaries
 
-    req_size = _ComputeDiskSize(self.op.disk_template,
-                                self.disks)
+    if not self.adopt_disks:
+      # Check lv size requirements, if not adopting
+      req_sizes = _ComputeDiskSizePerVG(self.op.disk_template, self.disks)
+      _CheckNodesFreeDiskPerVG(self, nodenames, req_sizes)
 
-    # Check lv size requirements, if not adopting
-    if req_size is not None and not self.adopt_disks:
-      _CheckNodesFreeDisk(self, nodenames, req_size)
-
-    if self.adopt_disks: # instead, we must check the adoption data
+    else: # instead, we must check the adoption data
       all_lvs = set([i["adopt"] for i in self.disks])
       if len(all_lvs) != len(self.disks):
         raise errors.OpPrereqError("Duplicate volume names given for adoption",
                                    errors.ECODE_INVAL)
       for lv_name in all_lvs:
         try:
+          # FIXME: VG must be provided here. Else all LVs with the
+          # same name will be locked on all VGs.
           self.cfg.ReserveLV(lv_name, self.proc.GetECId())
         except errors.ReservationError:
           raise errors.OpPrereqError("LV named %s used by another instance" %
@@ -8855,9 +8855,10 @@ class LUGrowDisk(LogicalUnit):
     self.disk = instance.FindDisk(self.op.disk)
 
     if instance.disk_template != constants.DT_FILE:
-      # TODO: check the free disk space for file, when that feature will be
-      # supported
-      _CheckNodesFreeDisk(self, nodenames, self.op.amount)
+      # TODO: check the free disk space for file, when that feature
+      # will be supported
+      _CheckNodesFreeDiskPerVG(self, nodenames,
+                               {self.disk.physical_id[0]: self.op.amount})
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
@@ -9299,9 +9300,9 @@ class LUSetInstanceParams(LogicalUnit):
                                      self.op.remote_node, errors.ECODE_STATE)
         _CheckNodeOnline(self, self.op.remote_node)
         _CheckNodeNotDrained(self, self.op.remote_node)
-        disks = [{"size": d.size} for d in instance.disks]
-        required = _ComputeDiskSize(self.op.disk_template, disks)
-        _CheckNodesFreeDisk(self, [self.op.remote_node], required)
+        disks = [{"size": d.size, "vg": d.vg} for d in instance.disks]
+        required = _ComputeDiskSizePerVG(self.op.disk_template, disks)
+        _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
 
     # hvparams processing
     if self.op.hvparams:
