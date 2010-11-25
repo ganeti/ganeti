@@ -215,7 +215,7 @@ def AddNode(opts, args):
 
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=sip,
                          readd=opts.readd, group=opts.nodegroup,
-                         vm_capable=opts.vm_capable,
+                         vm_capable=opts.vm_capable, ndparams=opts.ndparams,
                          master_capable=opts.master_capable)
   SubmitOpCode(op, opts=opts)
 
@@ -657,7 +657,8 @@ def SetNodeParams(opts, args):
 
   """
   all_changes = [opts.master_candidate, opts.drained, opts.offline,
-                 opts.master_capable, opts.vm_capable, opts.secondary_ip]
+                 opts.master_capable, opts.vm_capable, opts.secondary_ip,
+                 opts.ndparams]
   if all_changes.count(None) == len(all_changes):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -670,6 +671,7 @@ def SetNodeParams(opts, args):
                                vm_capable=opts.vm_capable,
                                secondary_ip=opts.secondary_ip,
                                force=opts.force,
+                               ndparams=opts.ndparams,
                                auto_promote=opts.auto_promote)
 
   # even if here we process the result, we allow submit only
@@ -687,7 +689,7 @@ commands = {
     AddNode, [ArgHost(min=1, max=1)],
     [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT, NONODE_SETUP_OPT,
      VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT, CAPAB_MASTER_OPT,
-     CAPAB_VM_OPT],
+     CAPAB_VM_OPT, NODE_PARAMS_OPT],
     "[-s ip] [--readd] [--no-ssh-key-check] [--no-node-setup]  [--verbose] "
     " <node_name>",
     "Add a node to the cluster"),
@@ -723,7 +725,7 @@ commands = {
     SetNodeParams, ARGS_ONE_NODE,
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
-     AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+     AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT],
     "<node_name>", "Alters the parameters of a node"),
   'powercycle': (
     PowercycleNode, ARGS_ONE_NODE,

@@ -23,9 +23,10 @@ COMMANDS
 ADD
 ~~~
 
-**add** [--readd] [-s *secondary\_ip*] [-g *nodegroup*]
-[--master-capable=``yes|no``] [--vm-capable=``yes|no``]
-{*nodename*}
+| **add** [--readd] [-s *secondary\_ip*] [-g *nodegroup*]
+| [--master-capable=``yes|no``] [--vm-capable=``yes|no``]
+| [--node-parameters *ndparams*]
+| {*nodename*}
 
 Adds the given node to the cluster.
 
@@ -52,8 +53,9 @@ The ``-g`` is used to add the new node into a specific node group,
 specified by UUID or name. If only one node group exists you can
 skip this option, otherwise it's mandatory.
 
-The ``vm_capable`` and ``master_capable`` options are described in
-**ganeti**(7), and are used to set the properties of the new node.
+The ``vm_capable``, ``master_capable`` and ``ndparams`` options are
+described in **ganeti**(7), and are used to set the properties of the
+new node.
 
 Example::
 
@@ -350,6 +352,7 @@ MODIFY
 | [--master-candidate=``yes|no``] [--drained=``yes|no``] [--offline=``yes|no``]
 | [--master-capable=``yes|no``] [--vm-capable=``yes|no``] [--auto-promote]
 | [-s *secondary_ip*]
+| [--node-parameters *ndparams*]
 | {*node*}
 
 This command changes the role of the node. Each options takes
