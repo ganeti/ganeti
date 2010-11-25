@@ -35,6 +35,7 @@ from cStringIO import StringIO
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
+from ganeti import netutils
 
 
 #: Used to recognize point at which socat(1) starts to listen on its socket.
@@ -144,6 +145,13 @@ class CommandBuilder(object):
     if self._opts.bind is not None:
       common_addr_opts.append("bind=%s" % self._opts.bind)
 
+    assert not (self._opts.ipv4 and self._opts.ipv6)
+
+    if self._opts.ipv4:
+      common_addr_opts.append("pf=ipv4")
+    elif self._opts.ipv6:
+      common_addr_opts.append("pf=ipv6")
+
     if self._mode == constants.IEM_IMPORT:
       if self._opts.port is None:
         port = 0
@@ -162,9 +170,14 @@ class CommandBuilder(object):
       addr2 = ["stdout"]
 
     elif self._mode == constants.IEM_EXPORT:
+      if self._opts.host and netutils.IP6Address.IsValid(self._opts.host):
+        host = "[%s]" % self._opts.host
+      else:
+        host = self._opts.host
+
       addr1 = ["stdin"]
       addr2 = [
-        "OPENSSL:%s:%s" % (self._opts.host, self._opts.port),
+        "OPENSSL:%s:%s" % (host, self._opts.port),
 
         # How long to wait per connection attempt
         "connect-timeout=%s" % self._opts.connect_timeout,
@@ -329,9 +342,12 @@ def _VerifyListening(family, address, port):
   """Verify address given as listening address by socat.
 
   """
-  # TODO: Implement IPv6 support
-  if family != socket.AF_INET:
+  if family not in (socket.AF_INET, socket.AF_INET6):
     raise errors.GenericError("Address family %r not supported" % family)
+
+  if (family == socket.AF_INET6 and address.startswith("[") and
+      address.endswith("]")):
+    address = address.lstrip("[").rstrip("]")
 
   try:
     packed_address = socket.inet_pton(family, address)

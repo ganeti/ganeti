@@ -362,6 +362,10 @@ def ParseOptions():
                     help="X509 CA file")
   parser.add_option("--bind", dest="bind", action="store", type="string",
                     help="Bind address")
+  parser.add_option("--ipv4", dest="ipv4", action="store_true",
+                    help="Use IPv4 only")
+  parser.add_option("--ipv6", dest="ipv6", action="store_true",
+                    help="Use IPv6 only")
   parser.add_option("--host", dest="host", action="store", type="string",
                     help="Remote hostname")
   parser.add_option("--port", dest="port", action="store", type="int",
@@ -401,7 +405,7 @@ def ParseOptions():
     parser.error("Invalid mode: %s" % mode)
 
   # Normalize and check parameters
-  if options.host is not None:
+  if options.host is not None and not netutils.IPAddress.IsValid(options.host):
     try:
       options.host = netutils.Hostname.GetNormalizedName(options.host)
     except errors.OpPrereqError, err:
@@ -422,6 +426,9 @@ def ParseOptions():
   if not (options.magic is None or constants.IE_MAGIC_RE.match(options.magic)):
     parser.error("Magic must match regular expression %s" %
                  constants.IE_MAGIC_RE.pattern)
+
+  if options.ipv4 and options.ipv6:
+    parser.error("Can only use one of --ipv4 and --ipv6")
 
   return (status_file_path, mode)
 

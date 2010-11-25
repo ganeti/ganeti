@@ -25,6 +25,7 @@ import os
 import sys
 import re
 import unittest
+import socket
 
 from ganeti import constants
 from ganeti import objects
@@ -44,6 +45,8 @@ class CmdBuilderConfig(objects.ConfigObject):
     "ca",
     "host",
     "port",
+    "ipv4",
+    "ipv6",
     "compress",
     "magic",
     "connect_timeout",
@@ -101,10 +104,10 @@ class TestCommandBuilder(unittest.TestCase):
                   self.assert_(CheckCmdWord(cmd, comprcmd))
 
                 if cmd_prefix is not None:
-                  self.assert_(cmd_prefix in i for i in cmd)
+                  self.assert_(compat.any(cmd_prefix in i for i in cmd))
 
                 if cmd_suffix is not None:
-                  self.assert_(cmd_suffix in i for i in cmd)
+                  self.assert_(compat.any(cmd_suffix in i for i in cmd))
 
                 # Check socat command
                 socat_cmd = builder._GetSocatCommand()
@@ -117,6 +120,34 @@ class TestCommandBuilder(unittest.TestCase):
                   self.assert_(("OPENSSL:%s:%s" % (host, port)) in ssl_addr)
 
                 self.assert_("verify=1" in ssl_addr)
+
+  def testIPv6(self):
+    for mode in [constants.IEM_IMPORT, constants.IEM_EXPORT]:
+      opts = CmdBuilderConfig(host="localhost", port=6789,
+                              ipv4=False, ipv6=False)
+      builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
+      cmd = builder._GetSocatCommand()
+      self.assert_(compat.all("pf=" not in i for i in cmd))
+
+      # IPv4
+      opts = CmdBuilderConfig(host="localhost", port=6789,
+                              ipv4=True, ipv6=False)
+      builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
+      cmd = builder._GetSocatCommand()
+      self.assert_(compat.any(",pf=ipv4" in i for i in cmd))
+
+      # IPv6
+      opts = CmdBuilderConfig(host="localhost", port=6789,
+                              ipv4=False, ipv6=True)
+      builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
+      cmd = builder._GetSocatCommand()
+      self.assert_(compat.any(",pf=ipv6" in i for i in cmd))
+
+      # IPv4 and IPv6
+      opts = CmdBuilderConfig(host="localhost", port=6789,
+                              ipv4=True, ipv6=True)
+      builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
+      self.assertRaises(AssertionError, builder._GetSocatCommand)
 
   def testCommaError(self):
     opts = CmdBuilderConfig(host="localhost", port=1234,
@@ -153,6 +184,39 @@ class TestCommandBuilder(unittest.TestCase):
     opts = CmdBuilderConfig(host="localhost", port=1234)
     builder = impexpd.CommandBuilder(mode, opts, 1, 2, 3)
     self.assertRaises(errors.GenericError, builder.GetCommand)
+
+
+class TestVerifyListening(unittest.TestCase):
+  def test(self):
+    self.assertEqual(impexpd._VerifyListening(socket.AF_INET,
+                                              "192.0.2.7", 1234),
+                     ("192.0.2.7", 1234))
+    self.assertEqual(impexpd._VerifyListening(socket.AF_INET6, "::1", 9876),
+                     ("::1", 9876))
+    self.assertEqual(impexpd._VerifyListening(socket.AF_INET6, "[::1]", 4563),
+                     ("::1", 4563))
+    self.assertEqual(impexpd._VerifyListening(socket.AF_INET6,
+                                              "[2001:db8::1:4563]", 4563),
+                     ("2001:db8::1:4563", 4563))
+
+  def testError(self):
+    for family in [socket.AF_UNIX, socket.AF_INET, socket.AF_INET6]:
+      self.assertRaises(errors.GenericError, impexpd._VerifyListening,
+                        family, "", 1234)
+      self.assertRaises(errors.GenericError, impexpd._VerifyListening,
+                        family, "192", 999)
+
+    for family in [socket.AF_UNIX, socket.AF_INET6]:
+      self.assertRaises(errors.GenericError, impexpd._VerifyListening,
+                        family, "192.0.2.7", 1234)
+      self.assertRaises(errors.GenericError, impexpd._VerifyListening,
+                        family, "[2001:db8::1", 1234)
+      self.assertRaises(errors.GenericError, impexpd._VerifyListening,
+                        family, "2001:db8::1]", 1234)
+
+    for family in [socket.AF_UNIX, socket.AF_INET]:
+      self.assertRaises(errors.GenericError, impexpd._VerifyListening,
+                        family, "::1", 1234)
 
 
 class TestCalcThroughput(unittest.TestCase):
