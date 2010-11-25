@@ -1102,7 +1102,7 @@ PREALLOC_WIPE_DISKS_OPT = cli_option("--prealloc-wipe-disks", default=None,
                                            " creation"))
 
 NODE_PARAMS_OPT = cli_option("--node-parameters", dest="ndparams",
-                             type="keyval", default={},
+                             type="keyval", default=None,
                              help="Node parameters")
 
 
