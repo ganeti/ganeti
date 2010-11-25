@@ -131,6 +131,7 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.HTTP_APP_JSON, http.HTTP_APP_JSON)
     self.assertEqual(client._REQ_DATA_VERSION_FIELD, rlib2._REQ_DATA_VERSION)
     self.assertEqual(client._INST_CREATE_REQV1, rlib2._INST_CREATE_REQV1)
+    self.assertEqual(client._INST_REINSTALL_REQV1, rlib2._INST_REINSTALL_REQV1)
     self.assertEqual(client._INST_NIC_PARAMS, constants.INIC_PARAMS)
 
 
@@ -660,6 +661,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertDryRun()
 
   def testReinstallInstance(self):
+    self.rapi.AddResponse(serializer.DumpJson([]))
     self.rapi.AddResponse("19119")
     self.assertEqual(19119, self.client.ReinstallInstance("baz-instance",
                                                           os="DOS",
@@ -668,6 +670,44 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertItems(["baz-instance"])
     self.assertQuery("os", ["DOS"])
     self.assertQuery("nostartup", ["1"])
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testReinstallInstanceNew(self):
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._INST_REINSTALL_REQV1]))
+    self.rapi.AddResponse("25689")
+    self.assertEqual(25689, self.client.ReinstallInstance("moo-instance",
+                                                          os="Debian",
+                                                          no_startup=True))
+    self.assertHandler(rlib2.R_2_instances_name_reinstall)
+    self.assertItems(["moo-instance"])
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
+    self.assertEqual(len(data), 2)
+    self.assertEqual(data["os"], "Debian")
+    self.assertEqual(data["start"], False)
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testReinstallInstanceWithOsparams1(self):
+    self.rapi.AddResponse(serializer.DumpJson([]))
+    self.assertRaises(client.GanetiApiError, self.client.ReinstallInstance,
+                      "doo-instance", osparams={"x": "y"})
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testReinstallInstanceWithOsparams2(self):
+    osparams = {
+      "Hello": "World",
+      "foo": "bar",
+      }
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._INST_REINSTALL_REQV1]))
+    self.rapi.AddResponse("1717")
+    self.assertEqual(1717, self.client.ReinstallInstance("zoo-instance",
+                                                         osparams=osparams))
+    self.assertHandler(rlib2.R_2_instances_name_reinstall)
+    self.assertItems(["zoo-instance"])
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
+    self.assertEqual(len(data), 2)
+    self.assertEqual(data["osparams"], osparams)
+    self.assertEqual(data["start"], True)
+    self.assertEqual(self.rapi.CountPending(), 0)
 
   def testReplaceInstanceDisks(self):
     self.rapi.AddResponse("999")

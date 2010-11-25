@@ -93,6 +93,9 @@ _REQ_DATA_VERSION = "__version__"
 # Feature string for instance creation request data version 1
 _INST_CREATE_REQV1 = "instance-create-reqv1"
 
+# Feature string for instance reinstall request version 1
+_INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
+
 # Timeout for /2/jobs/[job_id]/wait. Gives job up to 10 seconds to change.
 _WFJC_TIMEOUT = 10
 
@@ -134,7 +137,7 @@ class R_2_features(baserlib.R_Generic):
     """Returns list of optional RAPI features implemented.
 
     """
-    return [_INST_CREATE_REQV1]
+    return [_INST_CREATE_REQV1, _INST_REINSTALL_REQV1]
 
 
 class R_2_os(baserlib.R_Generic):
@@ -838,6 +841,30 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseInstanceReinstallRequest(name, data):
+  """Parses a request for reinstalling an instance.
+
+  """
+  if not isinstance(data, dict):
+    raise http.HttpBadRequest("Invalid body contents, not a dictionary")
+
+  ostype = baserlib.CheckParameter(data, "os")
+  start = baserlib.CheckParameter(data, "start", exptype=bool,
+                                  default=True)
+  osparams = baserlib.CheckParameter(data, "osparams", default=None)
+
+  ops = [
+    opcodes.OpShutdownInstance(instance_name=name),
+    opcodes.OpReinstallInstance(instance_name=name, os_type=ostype,
+                                osparams=osparams),
+    ]
+
+  if start:
+    ops.append(opcodes.OpStartupInstance(instance_name=name, force=False))
+
+  return ops
+
+
 class R_2_instances_name_reinstall(baserlib.R_Generic):
   """/2/instances/[instance_name]/reinstall resource.
 
@@ -852,16 +879,22 @@ class R_2_instances_name_reinstall(baserlib.R_Generic):
     automatically.
 
     """
-    instance_name = self.items[0]
-    ostype = self._checkStringVariable('os')
-    nostartup = self._checkIntVariable('nostartup')
-    ops = [
-      opcodes.OpShutdownInstance(instance_name=instance_name),
-      opcodes.OpReinstallInstance(instance_name=instance_name, os_type=ostype),
-      ]
-    if not nostartup:
-      ops.append(opcodes.OpStartupInstance(instance_name=instance_name,
-                                           force=False))
+    if self.request_body:
+      if self.queryargs:
+        raise http.HttpBadRequest("Can't combine query and body parameters")
+
+      body = self.request_body
+    else:
+      if not self.queryargs:
+        raise http.HttpBadRequest("Missing query parameters")
+      # Legacy interface, do not modify/extend
+      body = {
+        "os": self._checkStringVariable("os"),
+        "start": not self._checkIntVariable("nostartup"),
+        }
+
+    ops = _ParseInstanceReinstallRequest(self.items[0], body)
+
     return baserlib.SubmitJob(ops)
 
 

@@ -71,6 +71,7 @@ NODE_ROLE_REGULAR = "regular"
 # Internal constants
 _REQ_DATA_VERSION_FIELD = "__version__"
 _INST_CREATE_REQV1 = "instance-create-reqv1"
+_INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
 _INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link", "bridge"])
 _INST_CREATE_V0_DISK_PARAMS = frozenset(["size"])
 _INST_CREATE_V0_PARAMS = frozenset([
@@ -858,7 +859,8 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s/startup" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def ReinstallInstance(self, instance, os=None, no_startup=False):
+  def ReinstallInstance(self, instance, os=None, no_startup=False,
+                        osparams=None):
     """Reinstalls an instance.
 
     @type instance: str
@@ -870,6 +872,23 @@ class GanetiRapiClient(object):
     @param no_startup: Whether to start the instance automatically
 
     """
+    if _INST_REINSTALL_REQV1 in self.GetFeatures():
+      body = {
+        "start": not no_startup,
+        }
+      if os is not None:
+        body["os"] = os
+      if osparams is not None:
+        body["osparams"] = osparams
+      return self._SendRequest(HTTP_POST,
+                               ("/%s/instances/%s/reinstall" %
+                                (GANETI_RAPI_VERSION, instance)), None, body)
+
+    # Use old request format
+    if osparams:
+      raise GanetiApiError("Server does not support specifying OS parameters"
+                           " for instance reinstallation")
+
     query = []
     if os:
       query.append(("os", os))

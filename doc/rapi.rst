@@ -328,6 +328,8 @@ features:
 
 ``instance-create-reqv1``
   Instance creation request data version 1 supported.
+``instance-reinstall-reqv1``
+  Instance reinstall supports body parameters.
 
 
 ``/2/instances``
@@ -570,7 +572,20 @@ It supports the following commands: ``POST``.
 ``POST``
 ~~~~~~~~
 
-Takes the parameters ``os`` (OS template name) and ``nostartup`` (bool).
+Returns a job ID.
+
+Body parameters:
+
+``os`` (string, required)
+  Instance operating system.
+``start`` (bool, defaults to true)
+  Whether to start instance after reinstallation.
+``osparams`` (dict)
+  Dictionary with (temporary) OS parameters.
+
+For backwards compatbility, this resource also takes the query
+parameters ``os`` (OS template name) and ``nostartup`` (bool). New
+clients should use the body parameters.
 
 
 ``/2/instances/[instance_name]/replace-disks``

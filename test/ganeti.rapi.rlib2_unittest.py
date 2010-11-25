@@ -358,5 +358,56 @@ class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
     self.assertFalse(op.force_variant)
 
 
+class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.Parse = rlib2._ParseInstanceReinstallRequest
+
+  def _Check(self, ops, name):
+    expcls = [
+      opcodes.OpShutdownInstance,
+      opcodes.OpReinstallInstance,
+      opcodes.OpStartupInstance,
+      ]
+
+    self.assert_(compat.all(isinstance(op, exp)
+                            for op, exp in zip(ops, expcls)))
+    self.assert_(compat.all(op.instance_name == name for op in ops))
+
+  def test(self):
+    name = "shoo0tihohma"
+
+    ops = self.Parse(name, {"os": "sys1", "start": True,})
+    self.assertEqual(len(ops), 3)
+    self._Check(ops, name)
+    self.assertEqual(ops[1].os_type, "sys1")
+    self.assertFalse(ops[1].osparams)
+
+    ops = self.Parse(name, {"os": "sys2", "start": False,})
+    self.assertEqual(len(ops), 2)
+    self._Check(ops, name)
+    self.assertEqual(ops[1].os_type, "sys2")
+
+    osparams = {
+      "reformat": "1",
+      }
+    ops = self.Parse(name, {"os": "sys4035", "start": True,
+                            "osparams": osparams,})
+    self.assertEqual(len(ops), 3)
+    self._Check(ops, name)
+    self.assertEqual(ops[1].os_type, "sys4035")
+    self.assertEqual(ops[1].osparams, osparams)
+
+  def testDefaults(self):
+    name = "noolee0g"
+
+    ops = self.Parse(name, {"os": "linux1"})
+    self.assertEqual(len(ops), 3)
+    self._Check(ops, name)
+    self.assertEqual(ops[1].os_type, "linux1")
+    self.assertFalse(ops[1].osparams)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
