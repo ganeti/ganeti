@@ -63,7 +63,7 @@ IMPORT
 
 | **import**
 | {-n *node[:secondary-node]* | --iallocator *name*}
-| [--disk *N*:size=*VAL* [,mode=*ro|rw*]...]
+| [--disk *N*:size=*VAL* [,vg=*VG*], [,mode=*ro|rw*]...]
 | [--net *N* [:options...] | --no-nics]
 | [-B *BEPARAMS*]
 | [-H *HYPERVISOR* [: option=*value*... ]]
@@ -81,11 +81,11 @@ as visible with the **list** command.
 The ``disk`` option specifies the parameters for the disks of the
 instance. The numbering of disks starts at zero. For each disk, at
 least the size needs to be given, and optionally the access mode
-(read-only or the default of read-write) can also be specified. The
-size is interpreted (when no unit is given) in mebibytes. You can
-also use one of the suffixes m, g or t to specificy the exact the
-units used; these suffixes map to mebibytes, gibibytes and
-tebibytes.
+(read-only or the default of read-write) and LVM volume group can also
+be specified. The size is interpreted (when no unit is given) in
+mebibytes. You can also use one of the suffixes m, g or t to specificy
+the exact the units used; these suffixes map to mebibytes, gibibytes
+and tebibytes.
 
 Alternatively, a single-disk instance can be created via the ``-s``
 option which takes a single argument, the size of the disk. This is

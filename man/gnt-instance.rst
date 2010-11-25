@@ -28,7 +28,8 @@ ADD
 
 | **add**
 | {-t {diskless | file \| plain \| drbd}}
-| {--disk=*N*: {size=*VAL* \| adopt=*LV*},mode=*ro\|rw* \| -s *SIZE*}
+| {--disk=*N*: {size=*VAL* \| adopt=*LV*}[,vg=*VG*][,mode=*ro\|rw*]
+|  \| -s *SIZE*}
 | [--no-ip-check] [--no-name-check] [--no-start] [--no-install]
 | [--net=*N* [:options...] \| --no-nics]
 | [-B *BEPARAMS*]
@@ -47,10 +48,10 @@ The ``disk`` option specifies the parameters for the disks of the
 instance. The numbering of disks starts at zero, and at least one disk
 needs to be passed. For each disk, either the size or the adoption
 source needs to be given, and optionally the access mode (read-only or
-the default of read-write) can also be specified. The size is
-interpreted (when no unit is given) in mebibytes. You can also use one
-of the suffixes *m*, *g* or *t* to specify the exact the units used;
-these suffixes map to mebibytes, gibibytes and tebibytes.
+the default of read-write) and LVM volume group can also be specified.
+The size is interpreted (when no unit is given) in mebibytes. You can
+also use one of the suffixes *m*, *g* or *t* to specify the exact the
+units used; these suffixes map to mebibytes, gibibytes and tebibytes.
 
 When using the ``adopt`` key in the disk definition, Ganeti will
 reuse those volumes (instead of creating new ones) as the
@@ -477,6 +478,8 @@ Example::
       -n node1.example.com --file-storage-dir=mysubdir instance1.example.com
     # gnt-instance add -t plain --disk 0:size=30g -B memory=512 -o debian-etch \
       -n node1.example.com instance1.example.com
+    # gnt-instance add -t plain --disk 0:size=30g --disk 1:size=100g,vg=san \
+      -B memory=512 -o debian-etch -n node1.example.com instance1.example.com
     # gnt-instance add -t drbd --disk 0:size=30g -B memory=512 -o debian-etch \
       -n node1.example.com:node2.example.com instance2.example.com
 
@@ -833,7 +836,8 @@ MODIFY
 | [-H *HYPERVISOR\_PARAMETERS*]
 | [-B *BACKEND\_PARAMETERS*]
 | [--net add*[:options]* \| --net remove \| --net *N:options*]
-| [--disk add:size=*SIZE* \| --disk remove \| --disk *N*:mode=*MODE*]
+| [--disk add:size=*SIZE*[,vg=*VG*] \| --disk remove \|
+|  --disk *N*:mode=*MODE*]
 | [-t plain | -t drbd -n *new_secondary*]
 | [--os-name=*OS* [--force-variant]]
 | [--submit]
@@ -855,9 +859,10 @@ conversion. When changing from the plain to the drbd disk template, a
 new secondary node must be specified via the ``-n`` option.
 
 The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
-``--disk remove`` option will remove the last disk of the
-instance. The ``--disk`` *N*``:mode=``*MODE* option will change the
-mode of the Nth disk of the instance between read-only (``ro``) and
+optional ``vg=``*VG* option specifies LVM volume group other than default
+vg to create disk on. The ``--disk remove`` option will remove the last
+disk of the instance. The ``--disk`` *N*``:mode=``*MODE* option will change
+the mode of the Nth disk of the instance between read-only (``ro``) and
 read-write (``rw``).
 
 The ``--net add:``*options* option will add a new NIC to the

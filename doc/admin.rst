@@ -356,7 +356,7 @@ then create a Ganeti instance in the usual way, except that instead of
 passing the disk information you specify the current volumes::
 
   gnt-instance add -t plain -n HOME_NODE ... \
-    --disk 0:adopt=lv_name INSTANCE_NAME
+    --disk 0:adopt=lv_name[,vg=vg_name] INSTANCE_NAME
 
 This will take over the given logical volumes, rename them to the Ganeti
 standard (UUID-based), and without installing the OS on them start
