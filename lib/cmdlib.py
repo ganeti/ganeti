@@ -6930,6 +6930,8 @@ class LUCreateInstance(LogicalUnit):
     ("source_handshake", None, ht.TOr(ht.TList, ht.TNone)),
     ("source_x509_ca", None, ht.TMaybeString),
     ("source_instance_name", None, ht.TMaybeString),
+    ("source_shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT,
+     ht.TPositiveInt),
     ("src_node", None, ht.TMaybeString),
     ("src_path", None, ht.TMaybeString),
     ("pnode", None, ht.TMaybeString),
@@ -7799,7 +7801,11 @@ class LUCreateInstance(LogicalUnit):
 
       elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
         feedback_fn("* preparing remote import...")
-        connect_timeout = constants.RIE_CONNECT_TIMEOUT
+        # The source cluster will stop the instance before attempting to make a
+        # connection. In some cases stopping an instance can take a long time,
+        # hence the shutdown timeout is added to the connection timeout.
+        connect_timeout = (constants.RIE_CONNECT_TIMEOUT +
+                           self.op.source_shutdown_timeout)
         timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
 
         assert iobj.primary_node == self.pnode.name

@@ -481,6 +481,8 @@ class OpCreateInstance(OpCode):
   @ivar source_handshake: Signed handshake from source (remote import only)
   @ivar source_x509_ca: Source X509 CA in PEM format (remote import only)
   @ivar source_instance_name: Previous name of instance (remote import only)
+  @ivar source_shutdown_timeout: Shutdown timeout used for source instance
+    (remote import only)
 
   """
   OP_ID = "OP_INSTANCE_CREATE"
@@ -498,6 +500,7 @@ class OpCreateInstance(OpCode):
     "source_handshake",
     "source_x509_ca",
     "source_instance_name",
+    "source_shutdown_timeout",
     ]
 
 
