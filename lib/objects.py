@@ -768,8 +768,10 @@ class Instance(TaggableObject):
     @param lvmap: optional dictionary to receive the
         'node' : ['lv', ...] data.
 
-    @return: None if lvmap arg is given, otherwise, a dictionary
-        of the form { 'nodename' : ['volume1', 'volume2', ...], ... }
+    @return: None if lvmap arg is given, otherwise, a dictionary of
+        the form { 'nodename' : ['volume1', 'volume2', ...], ... };
+        volumeN is of the form "vg_name/lv_name", compatible with
+        GetVolumeList()
 
     """
     if node == None:
@@ -788,7 +790,7 @@ class Instance(TaggableObject):
 
     for dev in devs:
       if dev.dev_type == constants.LD_LV:
-        lvmap[node].append(dev.logical_id[1])
+        lvmap[node].append(dev.logical_id[0]+"/"+dev.logical_id[1])
 
       elif dev.dev_type in constants.LDS_DRBD:
         if dev.children:

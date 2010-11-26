@@ -2399,7 +2399,6 @@ class LUVerifyDisks(NoHooksLU):
     """
     result = res_nodes, res_instances, res_missing = {}, [], {}
 
-    vg_name = self.cfg.GetVGName()
     nodes = utils.NiceSort(self.cfg.GetNodeList())
     instances = [self.cfg.GetInstanceInfo(name)
                  for name in self.cfg.GetInstanceList()]
@@ -2419,11 +2418,13 @@ class LUVerifyDisks(NoHooksLU):
     if not nv_dict:
       return result
 
-    node_lvs = self.rpc.call_lv_list(nodes, vg_name)
+    vg_names = self.rpc.call_vg_list(nodes)
+    vg_names.Raise("Cannot get list of VGs")
 
     for node in nodes:
       # node_volume
-      node_res = node_lvs[node]
+      node_res = self.rpc.call_lv_list([node],
+                                       vg_names[node].payload.keys())[node]
       if node_res.offline:
         continue
       msg = node_res.fail_msg
@@ -7678,23 +7679,28 @@ class LUCreateInstance(LogicalUnit):
       _CheckNodesFreeDiskPerVG(self, nodenames, req_sizes)
 
     else: # instead, we must check the adoption data
-      all_lvs = set([i["adopt"] for i in self.disks])
+      all_lvs = set([i["vg"] + "/" + i["adopt"] for i in self.disks])
       if len(all_lvs) != len(self.disks):
         raise errors.OpPrereqError("Duplicate volume names given for adoption",
                                    errors.ECODE_INVAL)
       for lv_name in all_lvs:
         try:
-          # FIXME: VG must be provided here. Else all LVs with the
-          # same name will be locked on all VGs.
+          # FIXME: lv_name here is "vg/lv" need to ensure that other calls
+          # to ReserveLV uses the same syntax
           self.cfg.ReserveLV(lv_name, self.proc.GetECId())
         except errors.ReservationError:
           raise errors.OpPrereqError("LV named %s used by another instance" %
                                      lv_name, errors.ECODE_NOTUNIQUE)
 
+      vg_names = self.rpc.call_vg_list([pnode.name])
+      vg_names.Raise("Cannot get VG information from node %s" % pnode.name)
+
       node_lvs = self.rpc.call_lv_list([pnode.name],
-                                       self.cfg.GetVGName())[pnode.name]
+                                       vg_names[pnode.name].payload.keys()
+                                      )[pnode.name]
       node_lvs.Raise("Cannot get LV information from node %s" % pnode.name)
       node_lvs = node_lvs.payload
+
       delta = all_lvs.difference(node_lvs.keys())
       if delta:
         raise errors.OpPrereqError("Missing logical volume(s): %s" %
@@ -7707,7 +7713,7 @@ class LUCreateInstance(LogicalUnit):
                                    errors.ECODE_STATE)
       # update the size of disk based on what is found
       for dsk in self.disks:
-        dsk["size"] = int(float(node_lvs[dsk["adopt"]][0]))
+        dsk["size"] = int(float(node_lvs[dsk["vg"] + "/" + dsk["adopt"]][0]))
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 

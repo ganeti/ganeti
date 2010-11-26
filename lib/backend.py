@@ -77,7 +77,7 @@ _IES_PID_FILE = "pid"
 _IES_CA_FILE = "ca"
 
 #: Valid LVS output line regex
-_LVSLINE_REGEX = re.compile("^ *([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
+_LVSLINE_REGEX = re.compile("^ *([^|]+)\|([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
 
 
 class RPCFail(Exception):
@@ -554,7 +554,7 @@ def VerifyNode(what, cluster_name):
 
   if constants.NV_LVLIST in what and vm_capable:
     try:
-      val = GetVolumeList(what[constants.NV_LVLIST])
+      val = GetVolumeList(utils.ListVolumeGroups().keys())
     except RPCFail, err:
       val = str(err)
     result[constants.NV_LVLIST] = val
@@ -622,17 +622,17 @@ def VerifyNode(what, cluster_name):
   return result
 
 
-def GetVolumeList(vg_name):
+def GetVolumeList(vg_names):
   """Compute list of logical volumes and their size.
 
-  @type vg_name: str
-  @param vg_name: the volume group whose LVs we should list
+  @type vg_names: list
+  @param vg_names: the volume groups whose LVs we should list
   @rtype: dict
   @return:
       dictionary of all partions (key) with value being a tuple of
       their size (in MiB), inactive and online status::
 
-        {'test1': ('20.06', True, True)}
+        {'xenvg/test1': ('20.06', True, True)}
 
       in case of errors, a string is returned with the error
       details.
@@ -642,7 +642,7 @@ def GetVolumeList(vg_name):
   sep = '|'
   result = utils.RunCmd(["lvs", "--noheadings", "--units=m", "--nosuffix",
                          "--separator=%s" % sep,
-                         "-olv_name,lv_size,lv_attr", vg_name])
+                         "-ovg_name,lv_name,lv_size,lv_attr"] + vg_names)
   if result.failed:
     _Fail("Failed to list logical volumes, lvs output: %s", result.output)
 
@@ -652,7 +652,7 @@ def GetVolumeList(vg_name):
     if not match:
       logging.error("Invalid line returned from lvs output: '%s'", line)
       continue
-    name, size, attr = match.groups()
+    vg_name, name, size, attr = match.groups()
     inactive = attr[4] == '-'
     online = attr[5] == 'o'
     virtual = attr[0] == 'v'
@@ -660,7 +660,7 @@ def GetVolumeList(vg_name):
       # we don't want to report such volumes as existing, since they
       # don't really hold data
       continue
-    lvs[name] = (size, inactive, online)
+    lvs[vg_name+"/"+name] = (size, inactive, online)
 
   return lvs
 
