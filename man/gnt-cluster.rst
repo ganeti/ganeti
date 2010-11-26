@@ -134,6 +134,7 @@ INIT
 | [-I *default instance allocator*]
 | [--primary-ip-version *version*]
 | [--prealloc-wipe-disks {yes \| no}]
+| [--node-parameters *ndparams*]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -323,6 +324,10 @@ for the primary address. Possible values are 4 and 6 for IPv4 and
 IPv6, respectively. This option is used when resolving node names
 and the cluster name.
 
+The ``--node-parameters`` option allows you to set default node
+parameters for the cluster. Please see **ganeti**(7) for more
+information about supported key=value pairs.
+
 LIST-TAGS
 ~~~~~~~~~
 
@@ -378,14 +383,15 @@ MODIFY
 | [--prealloc-wipe-disks {yes \| no}]
 | [-I *default instance allocator*]
 | [--reserved-lvs=*NAMES*]
+| [--node-parameters *ndparams*]
 
 Modify the options for the cluster.
 
-The ``--vg-name``, ``--no-lvm-storarge``,
-``--enabled-hypervisors``, ``--hypervisor-parameters``,
-``--backend-parameters``, ``--nic-parameters``,
-``--maintain-node-health``, ``--prealloc-wipe-disks``,
-``--uid-pool`` options are described in the **init** command.
+The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
+``--hypervisor-parameters``, ``--backend-parameters``,
+``--nic-parameters``, ``--maintain-node-health``,
+``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters`` options
+are described in the **init** command.
 
 The ``-C`` option specifies the ``candidate_pool_size`` cluster
 parameter. This is the number of nodes that the master will try to
