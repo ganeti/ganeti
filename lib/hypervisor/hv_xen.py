@@ -312,7 +312,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
 
   @staticmethod
-  def _GetConfigFileDiskData(block_devices):
+  def _GetConfigFileDiskData(block_devices, blockdev_prefix):
     """Get disk directive for xen config file.
 
     This method builds the xen config disk directive according to the
@@ -321,6 +321,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param block_devices: list of tuples (cfdev, rldev):
         - cfdev: dict containing ganeti config disk part
         - rldev: ganeti.bdev.BlockDev object
+    @param blockdev_prefix: a string containing blockdevice prefix,
+                            e.g. "sd" for /dev/sda
 
     @return: string containing disk directive for xen instance config file
 
@@ -333,9 +335,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if len(block_devices) > 24:
       # 'z' - 'a' = 24
       raise errors.HypervisorError("Too many disks")
-    # FIXME: instead of this hardcoding here, each of PVM/HVM should
-    # directly export their info (currently HVM will just sed this info)
-    namespace = ["sd" + chr(i + ord('a')) for i in range(24)]
+    namespace = [blockdev_prefix + chr(i + ord('a')) for i in range(24)]
     for sd_name, (cfdev, dev_path) in zip(namespace, block_devices):
       if cfdev.mode == constants.DISK_RDWR:
         mode = "w"
@@ -459,6 +459,8 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
+    # TODO: Add a check for the blockdev prefix (matching [a-z:] or similar).
+    constants.HV_BLOCKDEV_PREFIX: hv_base.NO_CHECK,
     }
 
   @classmethod
@@ -509,7 +511,8 @@ class XenPvmHypervisor(XenHypervisor):
         nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
       vif_data.append("'%s'" % nic_str)
 
-    disk_data = cls._GetConfigFileDiskData(block_devices)
+    disk_data = cls._GetConfigFileDiskData(block_devices,
+                                           hvp[constants.HV_BLOCKDEV_PREFIX])
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
     config.write("disk = [%s]\n" % ",".join(disk_data))
@@ -639,13 +642,10 @@ class XenHvmHypervisor(XenHypervisor):
       vif_data.append("'%s'" % nic_str)
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
-    disk_data = cls._GetConfigFileDiskData(block_devices)
-    disk_type = hvp[constants.HV_DISK_TYPE]
-    if disk_type in (None, constants.HT_DISK_IOEMU):
-      replacement = ",ioemu:hd"
-    else:
-      replacement = ",hd"
-    disk_data = [line.replace(",sd", replacement) for line in disk_data]
+
+    disk_data = cls._GetConfigFileDiskData(block_devices,
+                                           hvp[constants.HV_BLOCKDEV_PREFIX])
+
     iso_path = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_path:
       iso = "'file:%s,hdc:cdrom,r'" % iso_path

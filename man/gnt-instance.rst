@@ -185,6 +185,13 @@ boot\_order
     interfaces. This has been fixed in more recent versions and is
     confirmed to work at least with qemu-kvm 0.11.1.
 
+blockdev\_prefix
+    Valid for the Xen HVM and PVM hypervisors.
+
+    Relevant to nonpvops guest kernels, in which the disk device names are
+    given by the host.  Allows to specify 'xvd', which helps run Red Hat based
+    installers, driven by anaconda.
+
 cdrom\_image\_path
     Valid for the Xen HVM and KVM hypervisors.
 
