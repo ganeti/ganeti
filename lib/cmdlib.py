@@ -2548,7 +2548,7 @@ class LURenameCluster(LogicalUnit):
 
       # update the known hosts file
       ssh.WriteKnownHostsFile(self.cfg, constants.SSH_KNOWN_HOSTS_FILE)
-      node_list = self.cfg.GetNodeList()
+      node_list = self.cfg.GetOnlineNodeList()
       try:
         node_list.remove(master)
       except ValueError:
