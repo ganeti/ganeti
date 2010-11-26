@@ -4690,7 +4690,7 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
       we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info([node], lu.cfg.GetVGName(), hypervisor_name)
+  nodeinfo = lu.rpc.call_node_info([node], None, hypervisor_name)
   nodeinfo[node].Raise("Can't get data from node %s" % node,
                        prereq=True, ecode=errors.ECODE_ENVIRON)
   free_mem = nodeinfo[node].payload.get('memory_free', None)
@@ -4749,8 +4749,7 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(nodenames, vg,
-                                   lu.cfg.GetHypervisorType())
+  nodeinfo = lu.rpc.call_node_info(nodenames, vg, None)
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
@@ -9314,7 +9313,7 @@ class LUSetInstanceParams(LogicalUnit):
         mem_check_list.extend(instance.secondary_nodes)
       instance_info = self.rpc.call_instance_info(pnode, instance.name,
                                                   instance.hypervisor)
-      nodeinfo = self.rpc.call_node_info(mem_check_list, self.cfg.GetVGName(),
+      nodeinfo = self.rpc.call_node_info(mem_check_list, None,
                                          instance.hypervisor)
       pninfo = nodeinfo[pnode]
       msg = pninfo.fail_msg

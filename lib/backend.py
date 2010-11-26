@@ -440,19 +440,20 @@ def GetNodeInfo(vgname, hypervisor_type):
   """
   outputarray = {}
 
-  vginfo = bdev.LogicalVolume.GetVGInfo([vgname])
-  vg_free = vg_size = None
-  if vginfo:
-    vg_free = int(round(vginfo[0][0], 0))
-    vg_size = int(round(vginfo[0][1], 0))
+  if vgname is not None:
+    vginfo = bdev.LogicalVolume.GetVGInfo([vgname])
+    vg_free = vg_size = None
+    if vginfo:
+      vg_free = int(round(vginfo[0][0], 0))
+      vg_size = int(round(vginfo[0][1], 0))
+    outputarray['vg_size'] = vg_size
+    outputarray['vg_free'] = vg_free
 
-  outputarray['vg_size'] = vg_size
-  outputarray['vg_free'] = vg_free
-
-  hyper = hypervisor.GetHypervisor(hypervisor_type)
-  hyp_info = hyper.GetNodeInfo()
-  if hyp_info is not None:
-    outputarray.update(hyp_info)
+  if hypervisor_type is not None:
+    hyper = hypervisor.GetHypervisor(hypervisor_type)
+    hyp_info = hyper.GetNodeInfo()
+    if hyp_info is not None:
+      outputarray.update(hyp_info)
 
   outputarray["bootid"] = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
 
