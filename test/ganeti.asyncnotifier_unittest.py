@@ -64,15 +64,12 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
     # We need one watch manager per notifier, as those contain the file
     # descriptor which is monitored by asyncore
     self.wms = [pyinotify.WatchManager() for i in self.NOTIFIERS]
-    self.cbk = [self.OnInotifyCallback(self, i)
-                 for i in range(len(self.NOTIFIERS))]
-    self.ihandler = [asyncnotifier.SingleFileEventHandler(self.wms[i],
-                                                          self.cbk[i],
-                                                          self.chk_files[i])
-                      for i in range(len(self.NOTIFIERS))]
-    self.notifiers = [_MyErrorLoggingAsyncNotifier(self.wms[i],
-                                                   self.ihandler[i])
-                       for i in range(len(self.NOTIFIERS))]
+    self.cbk = [self.OnInotifyCallback(self, i) for i in self.NOTIFIERS]
+    self.ihandler = [asyncnotifier.SingleFileEventHandler(wm, cb, cf)
+                     for (wm, cb, cf) in
+                     zip(self.wms, self.cbk, self.chk_files)]
+    self.notifiers = [_MyErrorLoggingAsyncNotifier(wm, ih)
+                      for (wm, ih) in zip(self.wms, self.ihandler)]
     # TERM notifier is enabled by default, as we use it to get out of the loop
     self.ihandler[self.NOTIFIER_TERM].enable()
 
