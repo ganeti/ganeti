@@ -562,6 +562,8 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
+    # TODO: Add a check for the blockdev prefix (matching [a-z:] or similar).
+    constants.HV_BLOCKDEV_PREFIX: hv_base.NO_CHECK,
     }
 
   @classmethod
