@@ -1233,6 +1233,8 @@ class LUVerifyCluster(LogicalUnit):
   ETYPE_ERROR = "ERROR"
   ETYPE_WARNING = "WARNING"
 
+  _HOOKS_INDENT_RE = re.compile("^", re.M)
+
   class NodeImage(object):
     """A class representing the logical and physical status of a node.
 
@@ -2267,7 +2269,6 @@ class LUVerifyCluster(LogicalUnit):
     # their results
     if phase == constants.HOOKS_PHASE_POST:
       # Used to change hooks' output to proper indentation
-      indent_re = re.compile('^', re.M)
       feedback_fn("* Hooks Results")
       assert hooks_results, "invalid result from hooks"
 
@@ -2288,7 +2289,7 @@ class LUVerifyCluster(LogicalUnit):
           self._ErrorIf(test, self.ENODEHOOKS, node_name,
                         "Script %s failed, output:", script)
           if test:
-            output = indent_re.sub('      ', output)
+            output = self._HOOKS_INDENT_RE.sub('      ', output)
             feedback_fn("%s" % output)
             lu_result = 0
 

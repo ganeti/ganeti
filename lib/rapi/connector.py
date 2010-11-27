@@ -92,18 +92,18 @@ class R_root(baserlib.R_Generic):
   """/ resource.
 
   """
-  @staticmethod
-  def GET():
+  _ROOT_PATTERN = re.compile("^R_([a-zA-Z0-9]+)$")
+
+  @classmethod
+  def GET(cls):
     """Show the list of mapped resources.
 
     @return: a dictionary with 'name' and 'uri' keys for each of them.
 
     """
-    root_pattern = re.compile('^R_([a-zA-Z0-9]+)$')
-
     rootlist = []
     for handler in CONNECTOR.values():
-      m = root_pattern.match(handler.__name__)
+      m = cls._ROOT_PATTERN.match(handler.__name__)
       if m:
         name = m.group(1)
         if name != 'root':

@@ -76,6 +76,9 @@ _IES_STATUS_FILE = "status"
 _IES_PID_FILE = "pid"
 _IES_CA_FILE = "ca"
 
+#: Valid LVS output line regex
+_LVSLINE_REGEX = re.compile("^ *([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
+
 
 class RPCFail(Exception):
   """Class denoting RPC failure.
@@ -643,10 +646,9 @@ def GetVolumeList(vg_name):
   if result.failed:
     _Fail("Failed to list logical volumes, lvs output: %s", result.output)
 
-  valid_line_re = re.compile("^ *([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
   for line in result.stdout.splitlines():
     line = line.strip()
-    match = valid_line_re.match(line)
+    match = _LVSLINE_REGEX.match(line)
     if not match:
       logging.error("Invalid line returned from lvs output: '%s'", line)
       continue

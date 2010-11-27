@@ -100,6 +100,15 @@ _MAC_CHECK = re.compile("^([0-9a-f]{2}:){5}[0-9a-f]{2}$", re.I)
  _TIMEOUT_TERM,
  _TIMEOUT_KILL) = range(3)
 
+#: Shell param checker regexp
+_SHELLPARAM_REGEX = re.compile(r"^[-a-zA-Z0-9._+/:%@]+$")
+
+#: Unit checker regexp
+_PARSEUNIT_REGEX = re.compile(r"^([.\d]+)\s*([a-zA-Z]+)?$")
+
+#: ASN1 time regexp
+_ANS1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
+
 
 class RunResult(object):
   """Holds the result of running external programs.
@@ -1345,7 +1354,7 @@ def IsValidShellParam(word):
   @return: True if the word is 'safe'
 
   """
-  return bool(re.match("^[-a-zA-Z0-9._+/:%@]+$", word))
+  return bool(_SHELLPARAM_REGEX.match(word))
 
 
 def BuildShellCmd(template, *args):
@@ -1414,7 +1423,7 @@ def ParseUnit(input_string):
   is always an int in MiB.
 
   """
-  m = re.match('^([.\d]+)\s*([a-zA-Z]+)?$', str(input_string))
+  m = _PARSEUNIT_REGEX.match(str(input_string))
   if not m:
     raise errors.UnitParseError("Invalid format")
 
@@ -2805,7 +2814,7 @@ def _ParseAsn1Generalizedtime(value):
   @param value: ASN1 GENERALIZEDTIME timestamp
 
   """
-  m = re.match(r"^(\d+)([-+]\d\d)(\d\d)$", value)
+  m = _ANS1_TIME_REGEX.match(value)
   if m:
     # We have an offset
     asn1time = m.group(1)
