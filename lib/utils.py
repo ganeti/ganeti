@@ -107,7 +107,7 @@ _SHELLPARAM_REGEX = re.compile(r"^[-a-zA-Z0-9._+/:%@]+$")
 _PARSEUNIT_REGEX = re.compile(r"^([.\d]+)\s*([a-zA-Z]+)?$")
 
 #: ASN1 time regexp
-_ANS1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
+_ASN1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
 
 
 class RunResult(object):
@@ -2814,7 +2814,7 @@ def _ParseAsn1Generalizedtime(value):
   @param value: ASN1 GENERALIZEDTIME timestamp
 
   """
-  m = _ANS1_TIME_REGEX.match(value)
+  m = _ASN1_TIME_REGEX.match(value)
   if m:
     # We have an offset
     asn1time = m.group(1)
