@@ -1,5 +1,6 @@
 HPROGS = hbal hscan hail hspace
 MANS = $(HPROGS:%=man/%.1)
+MANHTML = $(HPROGS:%=man/%.html)
 HALLPROGS = $(HPROGS) test
 HSRCS := $(wildcard Ganeti/HTools/*.hs) $(wildcard Ganeti/*.hs)
 HDDIR = apidoc
@@ -14,7 +15,9 @@ HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
 
 # Haskell rules
 
-all: $(HPROGS) $(MANS)
+all: $(HPROGS) man
+
+man: $(MANS) $(MANHTML)
 
 
 $(HALLPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
@@ -29,6 +32,9 @@ $(DOCS) : %.html : %
 
 %.1: %.rst
 	LANG=en_US.UTF-8 pandoc -s -f rst -t man -o $@ $<
+
+%.html: %.rst
+	LANG=en_US.UTF-8 pandoc -s -f rst -t html -o $@ $<
 
 doc: $(DOCS) Ganeti/HTools/Version.hs
 	rm -rf $(HDDIR)/*
@@ -118,4 +124,4 @@ tags:
 lint:
 	hlint -r -u .
 
-.PHONY : all doc maintainer-clean clean dist check tags regen-version
+.PHONY : all doc maintainer-clean clean dist check tags regen-version man
