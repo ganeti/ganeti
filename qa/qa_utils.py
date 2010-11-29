@@ -101,6 +101,43 @@ def AssertMatch(string, pattern):
     raise qa_error.Error("%r doesn't match /%r/" % (string, pattern))
 
 
+def AssertCommand(cmd, fail=False, node=None):
+  """Checks that a remote command succeeds.
+
+  @param cmd: either a string (the command to execute) or a list (to
+      be converted using L{utils.ShellQuoteArgs} into a string)
+  @type fail: boolean
+  @param fail: if the command is expected to fail instead of succeeding
+  @param node: if passed, it should be the node on which the command
+      should be executed, instead of the master node (can be either a
+      dict or a string)
+
+  """
+  if node is None:
+    node = qa_config.GetMasterNode()
+
+  if isinstance(node, basestring):
+    nodename = node
+  else:
+    nodename = node["primary"]
+
+  if isinstance(cmd, basestring):
+    cmdstr = cmd
+  else:
+    cmdstr = utils.ShellQuoteArgs(cmd)
+
+  rcode = StartSSH(nodename, cmdstr).wait()
+
+  if fail:
+    if rcode == 0:
+      raise qa_error.Error("Command '%s' on node %s was expected to fail but"
+                           " didn't" % (cmdstr, nodename))
+  else:
+    if rcode != 0:
+      raise qa_error.Error("Command '%s' on node %s failed, exit code %s" %
+                           (cmdstr, nodename, rcode))
+
+
 def GetSSHCommand(node, cmd, strict=True):
   """Builds SSH command to be executed.
 

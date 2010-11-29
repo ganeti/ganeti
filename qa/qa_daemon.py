@@ -32,15 +32,15 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, AssertMatch, StartSSH, GetCommandOutput
+from qa_utils import AssertMatch, AssertCommand, StartSSH, GetCommandOutput
 
 
 def _InstanceRunning(node, name):
   """Checks whether an instance is running.
 
-  Args:
-    node: Node the instance runs on
-    name: Full name of Xen instance
+  @param node: node the instance runs on
+  @param name: full name of the Xen instance
+
   """
   cmd = utils.ShellQuoteArgs(['xm', 'list', name]) + ' >/dev/null'
   ret = StartSSH(node['primary'], cmd).wait()
@@ -50,15 +50,11 @@ def _InstanceRunning(node, name):
 def _XmShutdownInstance(node, name):
   """Shuts down instance using "xm" and waits for completion.
 
-  Args:
-    node: Node the instance runs on
-    name: Full name of Xen instance
-  """
-  master = qa_config.GetMasterNode()
+  @param node: node the instance runs on
+  @param name: full name of Xen instance
 
-  cmd = ['xm', 'shutdown', name]
-  AssertEqual(StartSSH(node['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  """
+  AssertCommand(["xm", "shutdown", name], node=node)
 
   # Wait up to a minute
   end = time.time() + 60
@@ -73,25 +69,15 @@ def _XmShutdownInstance(node, name):
 def _ResetWatcherDaemon():
   """Removes the watcher daemon's state file.
 
-  Args:
-    node: Node to be reset
   """
-  master = qa_config.GetMasterNode()
-
-  cmd = ['rm', '-f', constants.WATCHER_STATEFILE]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["rm", "-f", constants.WATCHER_STATEFILE])
 
 
 def _RunWatcherDaemon():
   """Runs the ganeti-watcher daemon on the master node.
 
   """
-  master = qa_config.GetMasterNode()
-
-  cmd = ["ganeti-watcher", "-d", "--ignore-pause"]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["ganeti-watcher", "-d", "--ignore-pause"])
 
 
 def TestPauseWatcher():
@@ -100,9 +86,7 @@ def TestPauseWatcher():
   """
   master = qa_config.GetMasterNode()
 
-  cmd = ["gnt-cluster", "watcher", "pause", "4h"]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "watcher", "pause", "4h"])
 
   cmd = ["gnt-cluster", "watcher", "info"]
   output = GetCommandOutput(master["primary"],
@@ -116,9 +100,7 @@ def TestResumeWatcher():
   """
   master = qa_config.GetMasterNode()
 
-  cmd = ["gnt-cluster", "watcher", "continue"]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "watcher", "continue"])
 
   cmd = ["gnt-cluster", "watcher", "info"]
   output = GetCommandOutput(master["primary"],
@@ -130,7 +112,6 @@ def TestInstanceAutomaticRestart(node, instance):
   """Test automatic restart of instance by ganeti-watcher.
 
   """
-  master = qa_config.GetMasterNode()
   inst_name = qa_utils.ResolveInstanceName(instance["name"])
 
   _ResetWatcherDaemon()
@@ -142,16 +123,13 @@ def TestInstanceAutomaticRestart(node, instance):
   if not _InstanceRunning(node, inst_name):
     raise qa_error.Error("Daemon didn't restart instance")
 
-  cmd = ['gnt-instance', 'info', inst_name]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "info", inst_name])
 
 
 def TestInstanceConsecutiveFailures(node, instance):
   """Test five consecutive instance failures.
 
   """
-  master = qa_config.GetMasterNode()
   inst_name = qa_utils.ResolveInstanceName(instance["name"])
 
   _ResetWatcherDaemon()
@@ -168,6 +146,4 @@ def TestInstanceConsecutiveFailures(node, instance):
         msg = "Instance started when it shouldn't"
       raise qa_error.Error(msg)
 
-  cmd = ['gnt-instance', 'info', inst_name]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "info", inst_name])

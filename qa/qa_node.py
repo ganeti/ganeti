@@ -26,12 +26,10 @@ import qa_config
 import qa_error
 import qa_utils
 
-from qa_utils import AssertEqual, AssertNotEqual, StartSSH
+from qa_utils import AssertCommand
 
 
 def _NodeAdd(node, readd=False):
-  master = qa_config.GetMasterNode()
-
   if not readd and node.get('_added', False):
     raise qa_error.Error("Node %s already in cluster" % node['primary'])
   elif readd and not node.get('_added', False):
@@ -43,18 +41,14 @@ def _NodeAdd(node, readd=False):
   if readd:
     cmd.append('--readd')
   cmd.append(node['primary'])
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  AssertCommand(cmd)
 
   node['_added'] = True
 
 
 def _NodeRemove(node):
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-node', 'remove', node['primary']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-node", "remove", node["primary"]])
   node['_added'] = False
 
 
@@ -93,20 +87,12 @@ def TestNodeReadd(node):
 
 def TestNodeInfo():
   """gnt-node info"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-node', 'info']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-node", "info"])
 
 
 def TestNodeVolumes():
   """gnt-node volumes"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-node', 'volumes']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-node", "volumes"])
 
 
 def TestNodeStorage():
@@ -115,16 +101,13 @@ def TestNodeStorage():
 
   for storage_type in constants.VALID_STORAGE_TYPES:
     # Test simple list
-    cmd = ["gnt-node", "list-storage", "--storage-type", storage_type]
-    AssertEqual(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-node", "list-storage", "--storage-type", storage_type])
 
     # Test all storage fields
     cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
            "--output=%s" % ",".join(list(constants.VALID_STORAGE_FIELDS) +
                                     [constants.SF_NODE, constants.SF_TYPE])]
-    AssertEqual(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(cmd)
 
     # Get list of valid storage devices
     cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
@@ -141,8 +124,7 @@ def TestNodeStorage():
 
       # Dummy modification without any changes
       cmd = ["gnt-node", "modify-storage", node_name, storage_type, st_name]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(cmd)
 
       # Make sure we end up with the same value as before
       if st_allocatable.lower() == "y":
@@ -150,55 +132,36 @@ def TestNodeStorage():
       else:
         test_allocatable = ["yes", "no"]
 
-      if (constants.SF_ALLOCATABLE in
-          constants.MODIFIABLE_STORAGE_FIELDS.get(storage_type, [])):
-        assert_fn = AssertEqual
-      else:
-        assert_fn = AssertNotEqual
+      fail = (constants.SF_ALLOCATABLE not in
+              constants.MODIFIABLE_STORAGE_FIELDS.get(storage_type, []))
 
       for i in test_allocatable:
-        cmd = ["gnt-node", "modify-storage", "--allocatable", i,
-               node_name, storage_type, st_name]
-        assert_fn(StartSSH(master["primary"],
-                  utils.ShellQuoteArgs(cmd)).wait(), 0)
+        AssertCommand(["gnt-node", "modify-storage", "--allocatable", i,
+                       node_name, storage_type, st_name], fail=fail)
 
       # Test repair functionality
-      cmd = ["gnt-node", "repair-storage", node_name, storage_type, st_name]
-
-      if (constants.SO_FIX_CONSISTENCY in
-          constants.VALID_STORAGE_OPERATIONS.get(storage_type, [])):
-        assert_fn = AssertEqual
-      else:
-        assert_fn = AssertNotEqual
-
-      assert_fn(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+      fail = (constants.SO_FIX_CONSISTENCY not in
+              constants.VALID_STORAGE_OPERATIONS.get(storage_type, []))
+      AssertCommand(["gnt-node", "repair-storage", node_name,
+                     storage_type, st_name], fail=fail)
 
 
 def TestNodeFailover(node, node2):
   """gnt-node failover"""
-  master = qa_config.GetMasterNode()
-
   if qa_utils.GetNodeInstances(node2, secondaries=False):
     raise qa_error.UnusableNodeError("Secondary node has at least one"
                                      " primary instance. This test requires"
                                      " it to have no primary instances.")
 
   # Fail over to secondary node
-  cmd = ['gnt-node', 'failover', '-f', node['primary']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-node", "failover", "-f", node["primary"]])
 
   # ... and back again.
-  cmd = ['gnt-node', 'failover', '-f', node2['primary']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-node", "failover", "-f", node2["primary"]])
 
 
 def TestNodeEvacuate(node, node2):
   """gnt-node evacuate"""
-  master = qa_config.GetMasterNode()
-
   node3 = qa_config.AcquireNode(exclude=[node, node2])
   try:
     if qa_utils.GetNodeInstances(node3, secondaries=True):
@@ -207,32 +170,22 @@ def TestNodeEvacuate(node, node2):
                                        " it to have no secondary instances.")
 
     # Evacuate all secondary instances
-    cmd = ['gnt-node', 'evacuate', '-f',
-           "--new-secondary=%s" % node3['primary'], node2['primary']]
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-node", "evacuate", "-f",
+                   "--new-secondary=%s" % node3["primary"], node2["primary"]])
 
     # ... and back again.
-    cmd = ['gnt-node', 'evacuate', '-f',
-           "--new-secondary=%s" % node2['primary'], node3['primary']]
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-node", "evacuate", "-f",
+                   "--new-secondary=%s" % node2["primary"], node3["primary"]])
   finally:
     qa_config.ReleaseNode(node3)
 
 
 def TestNodeModify(node):
   """gnt-node modify"""
-  master = qa_config.GetMasterNode()
-
   for flag in ["master-candidate", "drained", "offline"]:
     for value in ["yes", "no"]:
-      cmd = ["gnt-node", "modify", "--force",
-             "--%s=%s" % (flag, value), node["primary"]]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["gnt-node", "modify", "--force",
+                     "--%s=%s" % (flag, value), node["primary"]])
 
-  cmd = ["gnt-node", "modify", "--master-candidate=yes", "--auto-promote",
-         node["primary"]]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-node", "modify", "--master-candidate=yes",
+                 "--auto-promote", node["primary"]])

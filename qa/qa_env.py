@@ -26,17 +26,16 @@
 from ganeti import utils
 
 import qa_config
-import qa_utils
 
-from qa_utils import AssertEqual, StartSSH
+from qa_utils import AssertCommand
 
 
 def TestSshConnection():
   """Test SSH connection.
 
   """
-  for node in qa_config.get('nodes'):
-    AssertEqual(StartSSH(node['primary'], 'exit').wait(), 0)
+  for node in qa_config.get("nodes"):
+    AssertCommand("exit", node=node)
 
 
 def TestGanetiCommands():
@@ -60,7 +59,7 @@ def TestGanetiCommands():
   cmd = ' && '.join([utils.ShellQuoteArgs(i) for i in cmds])
 
   for node in qa_config.get('nodes'):
-    AssertEqual(StartSSH(node['primary'], cmd).wait(), 0)
+    AssertCommand(cmd, node=node)
 
 
 def TestIcmpPing():
@@ -74,14 +73,14 @@ def TestIcmpPing():
   if qa_config.get("primary_ip_version") == 6:
     pingprimary = "ping6"
 
-  for node in nodes:
-    check = []
-    for i in nodes:
-      cmd = [pingprimary] + pingargs + [i['primary']]
+  check = []
+  for i in nodes:
+    cmd = [pingprimary] + pingargs + [i["primary"]]
+    check.append(utils.ShellQuoteArgs(cmd))
+    if i.has_key("secondary"):
+      cmd = ["ping"] + pingargs + [i["secondary"]]
       check.append(utils.ShellQuoteArgs(cmd))
-      if i.has_key('secondary'):
-        cmd = ["ping"] + pingargs + [i["secondary"]]
-        check.append(utils.ShellQuoteArgs(cmd))
+  cmdall = " && ".join(check)
 
-    cmdall = ' && '.join(check)
-    AssertEqual(StartSSH(node['primary'], cmdall).wait(), 0)
+  for node in nodes:
+    AssertCommand(cmdall, node=node)

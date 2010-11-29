@@ -33,7 +33,7 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, AssertNotEqual, AssertIn, StartSSH
+from qa_utils import AssertIn, AssertCommand
 
 
 def _GetDiskStatePath(disk):
@@ -48,8 +48,6 @@ def _GetGenericAddParameters():
 
 
 def _DiskTest(node, disk_template):
-  master = qa_config.GetMasterNode()
-
   instance = qa_config.AcquireInstance()
   try:
     cmd = (['gnt-instance', 'add',
@@ -59,8 +57,7 @@ def _DiskTest(node, disk_template):
            _GetGenericAddParameters())
     cmd.append(instance['name'])
 
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(cmd)
 
     _CheckSsconfInstanceList(instance["name"])
 
@@ -83,53 +80,33 @@ def TestInstanceAddWithDrbdDisk(node, node2):
 
 def TestInstanceRemove(instance):
   """gnt-instance remove"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-instance', 'remove', '-f', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "remove", "-f", instance["name"]])
 
   qa_config.ReleaseInstance(instance)
 
 
 def TestInstanceStartup(instance):
   """gnt-instance startup"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-instance', 'startup', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "startup", instance["name"]])
 
 
 def TestInstanceShutdown(instance):
   """gnt-instance shutdown"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-instance', 'shutdown', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "shutdown", instance["name"]])
 
 
 def TestInstanceReboot(instance):
   """gnt-instance reboot"""
-  master = qa_config.GetMasterNode()
-
   options = qa_config.get('options', {})
   reboot_types = options.get("reboot-types", constants.REBOOT_TYPES)
-
+  name = instance["name"]
   for rtype in reboot_types:
-    cmd = ['gnt-instance', 'reboot', '--type=%s' % rtype, instance['name']]
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-instance", "reboot", "--type=%s" % rtype, name])
 
 
 def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-instance', 'reinstall', '-f', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "reinstall", "-f", instance["name"]])
 
 
 def _ReadSsconfInstanceList():
@@ -158,66 +135,46 @@ def _CheckSsconfInstanceList(instance):
 
 def TestInstanceRename(instance, rename_target):
   """gnt-instance rename"""
-  master = qa_config.GetMasterNode()
-
   rename_source = instance['name']
 
   for name1, name2 in [(rename_source, rename_target),
                        (rename_target, rename_source)]:
     _CheckSsconfInstanceList(name1)
-    cmd = ['gnt-instance', 'rename', name1, name2]
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-instance", "rename", name1, name2])
     _CheckSsconfInstanceList(name2)
 
 
 def TestInstanceFailover(instance):
   """gnt-instance failover"""
-  master = qa_config.GetMasterNode()
-
   cmd = ['gnt-instance', 'failover', '--force', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
+  # failover ...
+  AssertCommand(cmd)
   # ... and back
-  cmd = ['gnt-instance', 'failover', '--force', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(cmd)
 
 
 def TestInstanceMigrate(instance):
   """gnt-instance migrate"""
-  master = qa_config.GetMasterNode()
-
   cmd = ["gnt-instance", "migrate", "--force", instance["name"]]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
+  # migrate ...
+  AssertCommand(cmd)
   # ... and back
-  cmd = ["gnt-instance", "migrate", "--force", instance["name"]]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(cmd)
 
 
 def TestInstanceInfo(instance):
   """gnt-instance info"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-instance', 'info', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "info", instance["name"]])
 
 
 def TestInstanceModify(instance):
   """gnt-instance modify"""
-  master = qa_config.GetMasterNode()
-
   # Assume /sbin/init exists on all systems
   test_kernel = "/sbin/init"
   test_initrd = test_kernel
 
   orig_memory = qa_config.get('mem')
-  orig_bridge = qa_config.get('bridge', 'xen-br0')
+  #orig_bridge = qa_config.get("bridge", "xen-br0")
   args = [
     ["-B", "%s=128" % constants.BE_MEMORY],
     ["-B", "%s=%s" % (constants.BE_MEMORY, orig_memory)],
@@ -240,108 +197,68 @@ def TestInstanceModify(instance):
     #["-H", "%s=%s" % (constants.HV_BOOT_ORDER, constants.VALUE_DEFAULT)],
     ]
   for alist in args:
-    cmd = ['gnt-instance', 'modify'] + alist + [instance['name']]
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-instance", "modify"] + alist + [instance["name"]])
 
   # check no-modify
-  cmd = ['gnt-instance', 'modify', instance['name']]
-  AssertNotEqual(StartSSH(master['primary'],
-                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "modify", instance["name"]], fail=True)
 
 
 def TestInstanceConvertDisk(instance, snode):
   """gnt-instance modify -t"""
-  master = qa_config.GetMasterNode()
-  cmd = ['gnt-instance', 'modify', '-t', 'plain', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-  cmd = ['gnt-instance', 'modify', '-t', 'drbd', '-n', snode['primary'],
-         instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  name = instance["name"]
+  AssertCommand(["gnt-instance", "modify", "-t", "plain", name])
+  AssertCommand(["gnt-instance", "modify", "-t", "drbd",
+                 "-n", snode["primary"], name])
 
 
 def TestInstanceList():
   """gnt-instance list"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-instance', 'list']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "list"])
 
 
 def TestInstanceConsole(instance):
   """gnt-instance console"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-instance', 'console', '--show-cmd', instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "console", "--show-cmd", instance["name"]])
 
 
 def TestReplaceDisks(instance, pnode, snode, othernode):
   """gnt-instance replace-disks"""
-  master = qa_config.GetMasterNode()
-
   def buildcmd(args):
     cmd = ['gnt-instance', 'replace-disks']
     cmd.extend(args)
     cmd.append(instance["name"])
     return cmd
 
-  cmd = buildcmd(["-p"])
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  cmd = buildcmd(["-s"])
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  cmd = buildcmd(["--new-secondary=%s" % othernode["primary"]])
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  # Restore
-  cmd = buildcmd(["--new-secondary=%s" % snode["primary"]])
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  for data in [
+    ["-p"],
+    ["-s"],
+    ["--new-secondary=%s" % othernode["primary"]],
+    # and restore
+    ["--new-secondary=%s" % snode["primary"]],
+    ]:
+    AssertCommand(buildcmd(data))
 
 
 def TestInstanceExport(instance, node):
   """gnt-backup export -n ..."""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-backup', 'export', '-n', node['primary'], instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  return qa_utils.ResolveInstanceName(instance["name"])
+  name = instance["name"]
+  AssertCommand(["gnt-backup", "export", "-n", node["primary"], name])
+  return qa_utils.ResolveInstanceName(name)
 
 
 def TestInstanceExportWithRemove(instance, node):
   """gnt-backup export --remove-instance"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-backup', 'export', '-n', node['primary'], "--remove-instance",
-         instance['name']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-backup", "export", "-n", node["primary"],
+                 "--remove-instance", instance["name"]])
 
 
 def TestInstanceExportNoTarget(instance):
   """gnt-backup export (without target node, should fail)"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ["gnt-backup", "export", instance["name"]]
-  AssertNotEqual(StartSSH(master['primary'],
-                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-backup", "export", instance["name"]], fail=True)
 
 
 def TestInstanceImport(node, newinst, expnode, name):
   """gnt-backup import"""
-  master = qa_config.GetMasterNode()
-
   cmd = (['gnt-backup', 'import',
           '--disk-template=plain',
           '--no-ip-check',
@@ -351,17 +268,12 @@ def TestInstanceImport(node, newinst, expnode, name):
           '--node=%s' % node['primary']] +
          _GetGenericAddParameters())
   cmd.append(newinst['name'])
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(cmd)
 
 
 def TestBackupList(expnode):
   """gnt-backup list"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-backup', 'list', '--node=%s' % expnode['primary']]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-backup", "list", "--node=%s" % expnode["primary"]])
 
 
 def _TestInstanceDiskFailure(instance, node, node2, onmaster):
@@ -390,7 +302,7 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
 
       m = re_disk.match(phys)
       if not m:
-        raise qa_error.Error("Unknown disk name format: %s" % disk)
+        raise qa_error.Error("Unknown disk name format: %s" % phys)
 
       name = m.group(1)
       if name not in node2disk[node_name]:
@@ -406,7 +318,7 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
     cmds = []
     for disk in disks:
       cmds.append(sq(["test", "-f", _GetDiskStatePath(disk)]))
-    AssertEqual(StartSSH(node_name, ' && '.join(cmds)).wait(), 0)
+    AssertCommand(" && ".join(cmds), node=node_name)
 
   print qa_utils.FormatInfo("Getting device paths")
   cmd = ['gnt-instance', 'activate-disks', instance['name']]
@@ -432,8 +344,7 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
     for name in node2disk[[node2_full, node_full][int(onmaster)]]:
       halted_disks.append(name)
       cmds.append(sq(["echo", "offline"]) + " >%s" % _GetDiskStatePath(name))
-    AssertEqual(StartSSH([node2, node][int(onmaster)]['primary'],
-                         ' && '.join(cmds)).wait(), 0)
+    AssertCommand(" && ".join(cmds), node=[node2, node][int(onmaster)])
 
     print qa_utils.FormatInfo("Write to disks and give some time to notice"
                               " to notice the problem")
@@ -442,52 +353,40 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
       cmds.append(sq(["dd", "count=1", "bs=512", "conv=notrunc",
                       "if=%s" % disk, "of=%s" % disk]))
     for _ in (0, 1, 2):
-      AssertEqual(StartSSH(node['primary'], ' && '.join(cmds)).wait(), 0)
+      AssertCommand(" && ".join(cmds), node=node)
       time.sleep(3)
 
     print qa_utils.FormatInfo("Debugging info")
     for name in drbddevs:
-      cmd = ['drbdsetup', name, 'show']
-      AssertEqual(StartSSH(node['primary'], sq(cmd)).wait(), 0)
+      AssertCommand(["drbdsetup", name, "show"], node=node)
 
-    cmd = ['gnt-instance', 'info', instance['name']]
-    AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+    AssertCommand(["gnt-instance", "info", instance["name"]])
 
   finally:
     print qa_utils.FormatInfo("Activating disks again")
     cmds = []
     for name in halted_disks:
       cmds.append(sq(["echo", "running"]) + " >%s" % _GetDiskStatePath(name))
-    AssertEqual(StartSSH([node2, node][int(onmaster)]['primary'],
-                         '; '.join(cmds)).wait(), 0)
+    AssertCommand("; ".join(cmds), node=[node2, node][int(onmaster)])
 
   if onmaster:
     for name in drbddevs:
-      cmd = ['drbdsetup', name, 'detach']
-      AssertEqual(StartSSH(node['primary'], sq(cmd)).wait(), 0)
+      AssertCommand(["drbdsetup", name, "detach"], node=node)
   else:
     for name in drbddevs:
-      cmd = ['drbdsetup', name, 'disconnect']
-      AssertEqual(StartSSH(node2['primary'], sq(cmd)).wait(), 0)
+      AssertCommand(["drbdsetup", name, "disconnect"], node=node2)
 
   # TODO
-  #cmd = ['vgs']
-  #AssertEqual(StartSSH([node2, node][int(onmaster)]['primary'],
-  #                     sq(cmd)).wait(), 0)
+  #AssertCommand(["vgs"], [node2, node][int(onmaster)])
 
   print qa_utils.FormatInfo("Making sure disks are up again")
-  cmd = ['gnt-instance', 'replace-disks', instance['name']]
-  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "replace-disks", instance["name"]])
 
   print qa_utils.FormatInfo("Restarting instance")
-  cmd = ['gnt-instance', 'shutdown', instance['name']]
-  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+  AssertCommand(["gnt-instance", "shutdown", instance["name"]])
+  AssertCommand(["gnt-instance", "startup", instance["name"]])
 
-  cmd = ['gnt-instance', 'startup', instance['name']]
-  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
-
-  cmd = ['gnt-cluster', 'verify']
-  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "verify"])
 
 
 def TestInstanceMasterDiskFailure(instance, node, node2):

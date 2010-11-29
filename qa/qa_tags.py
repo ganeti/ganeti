@@ -20,14 +20,11 @@
 
 """
 
-from ganeti import utils
 from ganeti import constants
 
-import qa_config
-import qa_utils
 import qa_rapi
 
-from qa_utils import AssertEqual, StartSSH
+from qa_utils import AssertCommand
 
 
 _TEMP_TAG_NAMES = ["TEMP-Ganeti-QA-Tag%d" % i for i in range(3)]
@@ -44,8 +41,6 @@ def _TestTags(kind, name):
   """Generic function for add-tags.
 
   """
-  master = qa_config.GetMasterNode()
-
   def cmdfn(subcmd):
     cmd = [_KIND_TO_COMMAND[kind], subcmd]
 
@@ -54,21 +49,13 @@ def _TestTags(kind, name):
 
     return cmd
 
-  cmd = cmdfn('add-tags') + _TEMP_TAG_NAMES
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  cmd = cmdfn('list-tags')
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  cmd = ['gnt-cluster', 'search-tags', _TEMP_TAG_RE]
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
-
-  cmd = cmdfn('remove-tags') + _TEMP_TAG_NAMES
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  for cmd in [
+    cmdfn("add-tags") + _TEMP_TAG_NAMES,
+    cmdfn("list-tags"),
+    ["gnt-cluster", "search-tags", _TEMP_TAG_RE],
+    cmdfn("remove-tags") + _TEMP_TAG_NAMES,
+    ]:
+    AssertCommand(cmd)
 
   if qa_rapi.Enabled():
     qa_rapi.TestTags(kind, name, _TEMP_TAG_NAMES)

@@ -32,17 +32,15 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, AssertNotEqual, StartSSH
+from qa_utils import AssertEqual, AssertCommand
 
 
 def _RemoveFileFromAllNodes(filename):
   """Removes a file from all nodes.
 
   """
-  for node in qa_config.get('nodes'):
-    cmd = ['rm', '-f', filename]
-    AssertEqual(StartSSH(node['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  for node in qa_config.get("nodes"):
+    AssertCommand(["rm", "-f", filename], node=node)
 
 
 def _CheckFileOnAllNodes(filename, content):
@@ -50,9 +48,8 @@ def _CheckFileOnAllNodes(filename, content):
 
   """
   cmd = utils.ShellQuoteArgs(["cat", filename])
-  for node in qa_config.get('nodes'):
-    AssertEqual(qa_utils.GetCommandOutput(node['primary'], cmd),
-                content)
+  for node in qa_config.get("nodes"):
+    AssertEqual(qa_utils.GetCommandOutput(node["primary"], cmd), content)
 
 
 def TestClusterInit(rapi_user, rapi_secret):
@@ -67,13 +64,9 @@ def TestClusterInit(rapi_user, rapi_secret):
 
     tmpru = qa_utils.UploadFile(master["primary"], fh.name)
     try:
-      cmd = ["mv", tmpru, constants.RAPI_USERS_FILE]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["mv", tmpru, constants.RAPI_USERS_FILE])
     finally:
-      cmd = ["rm", "-f", tmpru]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["rm", "-f", tmpru])
   finally:
     fh.close()
 
@@ -97,14 +90,11 @@ def TestClusterInit(rapi_user, rapi_secret):
 
   cmd.append(qa_config.get('name'))
 
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(cmd)
 
 
 def TestClusterRename():
   """gnt-cluster rename"""
-  master = qa_config.GetMasterNode()
-
   cmd = ['gnt-cluster', 'rename', '-f']
 
   original_name = qa_config.get('name')
@@ -113,117 +103,85 @@ def TestClusterRename():
     print qa_utils.FormatError('"rename" entry is missing')
     return
 
-  cmd_1 = cmd + [rename_target]
-  cmd_2 = cmd + [original_name]
-
   cmd_verify = ['gnt-cluster', 'verify']
 
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd_1)).wait(), 0)
-
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd_verify)).wait(), 0)
-
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd_2)).wait(), 0)
-
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd_verify)).wait(), 0)
+  for data in [
+    cmd + [rename_target],
+    cmd_verify,
+    cmd + [original_name],
+    cmd_verify,
+    ]:
+    AssertCommand(data)
 
 
 def TestClusterVerify():
   """gnt-cluster verify"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-cluster', 'verify']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "verify"])
 
 
 def TestJobqueue():
   """gnt-debug test-jobqueue"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ["gnt-debug", "test-jobqueue"]
-  AssertEqual(StartSSH(master["primary"],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-debug", "test-jobqueue"])
 
 
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
-  master = qa_config.GetMasterNode()
-  CVERIFY = ['gnt-cluster', 'verify']
-  for rcode, cmd in [
-    (0, CVERIFY),
-    (0, ['gnt-cluster', 'modify', '--reserved-lvs', '']),
-    (0, ['lvcreate', '-L1G', '-nqa-test', 'xenvg']),
-    (1, CVERIFY),
-    (0, ['gnt-cluster', 'modify', '--reserved-lvs', 'qa-test,other-test']),
-    (0, CVERIFY),
-    (0, ['gnt-cluster', 'modify', '--reserved-lvs', 'qa-.*']),
-    (0, CVERIFY),
-    (0, ['gnt-cluster', 'modify', '--reserved-lvs', '']),
-    (1, CVERIFY),
-    (0, ['lvremove', '-f', 'xenvg/qa-test']),
-    (0, CVERIFY),
+  CVERIFY = ["gnt-cluster", "verify"]
+  for fail, cmd in [
+    (False, CVERIFY),
+    (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
+    (False, ["lvcreate", "-L1G", "-nqa-test", "xenvg"]),
+    (True,  CVERIFY),
+    (False, ["gnt-cluster", "modify", "--reserved-lvs", "qa-test,other-test"]),
+    (False, CVERIFY),
+    (False, ["gnt-cluster", "modify", "--reserved-lvs", "qa-.*"]),
+    (False, CVERIFY),
+    (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
+    (True,  CVERIFY),
+    (False, ["lvremove", "-f", "xenvg/qa-test"]),
+    (False, CVERIFY),
     ]:
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), rcode)
+    AssertCommand(cmd, fail=fail)
 
 
 def TestClusterModifyBe():
   """gnt-cluster modify -B"""
-  master = qa_config.GetMasterNode()
-
-  for rcode, cmd in [
+  for fail, cmd in [
     # mem
-    (0, ["gnt-cluster", "modify", "-B", "memory=256"]),
-    (0, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 256$'"]),
-    (1, ["gnt-cluster", "modify", "-B", "memory=a"]),
-    (0, ["gnt-cluster", "modify", "-B", "memory=128"]),
-    (0, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 128$'"]),
+    (False, ["gnt-cluster", "modify", "-B", "memory=256"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 256$'"]),
+    (True,  ["gnt-cluster", "modify", "-B", "memory=a"]),
+    (False, ["gnt-cluster", "modify", "-B", "memory=128"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 128$'"]),
     # vcpus
-    (0, ["gnt-cluster", "modify", "-B", "vcpus=4"]),
-    (0, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 4$'"]),
-    (1, ["gnt-cluster", "modify", "-B", "vcpus=a"]),
-    (0, ["gnt-cluster", "modify", "-B", "vcpus=1"]),
-    (0, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 1$'"]),
+    (False, ["gnt-cluster", "modify", "-B", "vcpus=4"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 4$'"]),
+    (True,  ["gnt-cluster", "modify", "-B", "vcpus=a"]),
+    (False, ["gnt-cluster", "modify", "-B", "vcpus=1"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 1$'"]),
     # auto_balance
-    (0, ["gnt-cluster", "modify", "-B", "auto_balance=False"]),
-    (0, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: False$'"]),
-    (1, ["gnt-cluster", "modify", "-B", "auto_balance=1"]),
-    (0, ["gnt-cluster", "modify", "-B", "auto_balance=True"]),
-    (0, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: True$'"]),
+    (False, ["gnt-cluster", "modify", "-B", "auto_balance=False"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: False$'"]),
+    (True,  ["gnt-cluster", "modify", "-B", "auto_balance=1"]),
+    (False, ["gnt-cluster", "modify", "-B", "auto_balance=True"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: True$'"]),
     ]:
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), rcode)
+    AssertCommand(cmd, fail=fail)
 
 
 def TestClusterInfo():
   """gnt-cluster info"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-cluster', 'info']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "info"])
 
 
 def TestClusterGetmaster():
   """gnt-cluster getmaster"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-cluster', 'getmaster']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "getmaster"])
 
 
 def TestClusterVersion():
   """gnt-cluster version"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-cluster', 'version']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "version"])
 
 
 def TestClusterRenewCrypto():
@@ -238,14 +196,12 @@ def TestClusterRenewCrypto():
     ["--new-cluster-domain-secret", "--cluster-domain-secret=/dev/null"],
     ]
   for i in conflicting:
-    AssertNotEqual(StartSSH(master["primary"],
-                            utils.ShellQuoteArgs(cmd + i)).wait(), 0)
+    AssertCommand(cmd+i, fail=True)
 
   # Invalid RAPI certificate
   cmd = ["gnt-cluster", "renew-crypto", "--force",
          "--rapi-certificate=/dev/null"]
-  AssertNotEqual(StartSSH(master["primary"],
-                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(cmd, fail=True)
 
   rapi_cert_backup = qa_utils.BackupFile(master["primary"],
                                          constants.RAPI_CERT_FILE)
@@ -260,14 +216,10 @@ def TestClusterRenewCrypto():
 
     tmpcert = qa_utils.UploadFile(master["primary"], fh.name)
     try:
-      cmd = ["gnt-cluster", "renew-crypto", "--force",
-             "--rapi-certificate=%s" % tmpcert]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                     "--rapi-certificate=%s" % tmpcert])
     finally:
-      cmd = ["rm", "-f", tmpcert]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["rm", "-f", tmpcert])
 
     # Custom cluster domain secret
     cds_fh = tempfile.NamedTemporaryFile()
@@ -277,31 +229,21 @@ def TestClusterRenewCrypto():
 
     tmpcds = qa_utils.UploadFile(master["primary"], cds_fh.name)
     try:
-      cmd = ["gnt-cluster", "renew-crypto", "--force",
-             "--cluster-domain-secret=%s" % tmpcds]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                     "--cluster-domain-secret=%s" % tmpcds])
     finally:
-      cmd = ["rm", "-f", tmpcds]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["rm", "-f", tmpcds])
 
     # Normal case
-    cmd = ["gnt-cluster", "renew-crypto", "--force",
-           "--new-cluster-certificate", "--new-confd-hmac-key",
-           "--new-rapi-certificate", "--new-cluster-domain-secret"]
-    AssertEqual(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                   "--new-cluster-certificate", "--new-confd-hmac-key",
+                   "--new-rapi-certificate", "--new-cluster-domain-secret"])
 
     # Restore RAPI certificate
-    cmd = ["gnt-cluster", "renew-crypto", "--force",
-           "--rapi-certificate=%s" % rapi_cert_backup]
-    AssertEqual(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                   "--rapi-certificate=%s" % rapi_cert_backup])
   finally:
-    cmd = ["rm", "-f", rapi_cert_backup]
-    AssertEqual(StartSSH(master["primary"],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["rm", "-f", rapi_cert_backup])
 
 
 def TestClusterBurnin():
@@ -349,12 +291,10 @@ def TestClusterBurnin():
       else:
         cmd.append('--reboot-types=%s' % ",".join(reboot_types))
       cmd += [inst['name'] for inst in instances]
-      AssertEqual(StartSSH(master['primary'],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(cmd)
     finally:
-      cmd = ['rm', '-f', script]
-      AssertEqual(StartSSH(master['primary'],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+      AssertCommand(["rm", "-f", script])
+
   finally:
     for inst in instances:
       qa_config.ReleaseInstance(inst)
@@ -363,16 +303,12 @@ def TestClusterBurnin():
 def TestClusterMasterFailover():
   """gnt-cluster master-failover"""
   master = qa_config.GetMasterNode()
-
   failovermaster = qa_config.AcquireNode(exclude=master)
-  try:
-    cmd = ['gnt-cluster', 'master-failover']
-    AssertEqual(StartSSH(failovermaster['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
 
-    cmd = ['gnt-cluster', 'master-failover']
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  cmd = ["gnt-cluster", "master-failover"]
+  try:
+    AssertCommand(cmd, node=failovermaster)
+    AssertCommand(cmd, node=master)
   finally:
     qa_config.ReleaseNode(failovermaster)
 
@@ -393,9 +329,7 @@ def TestClusterCopyfile():
   testname = qa_utils.UploadFile(master['primary'], f.name)
   try:
     # Copy file to all nodes
-    cmd = ['gnt-cluster', 'copyfile', testname]
-    AssertEqual(StartSSH(master['primary'],
-                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    AssertCommand(["gnt-cluster", "copyfile", testname])
     _CheckFileOnAllNodes(testname, uniqueid)
   finally:
     _RemoveFileFromAllNodes(testname)
@@ -403,8 +337,6 @@ def TestClusterCopyfile():
 
 def TestClusterCommand():
   """gnt-cluster command"""
-  master = qa_config.GetMasterNode()
-
   uniqueid = utils.NewUUID()
   rfile = "/tmp/gnt%s" % utils.NewUUID()
   rcmd = utils.ShellQuoteArgs(['echo', '-n', uniqueid])
@@ -412,7 +344,7 @@ def TestClusterCommand():
                               "%s >%s" % (rcmd, rfile)])
 
   try:
-    AssertEqual(StartSSH(master['primary'], cmd).wait(), 0)
+    AssertCommand(cmd)
     _CheckFileOnAllNodes(rfile, uniqueid)
   finally:
     _RemoveFileFromAllNodes(rfile)
@@ -420,8 +352,4 @@ def TestClusterCommand():
 
 def TestClusterDestroy():
   """gnt-cluster destroy"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-cluster', 'destroy', '--yes-do-it']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-cluster", "destroy", "--yes-do-it"])

@@ -32,7 +32,7 @@ from ganeti import constants
 import qa_config
 import qa_utils
 
-from qa_utils import AssertEqual, StartSSH
+from qa_utils import AssertCommand
 
 
 _TEMP_OS_NAME = "TEMP-Ganeti-QA-OS"
@@ -41,26 +41,16 @@ _TEMP_OS_PATH = os.path.join(constants.OS_SEARCH_PATH[0], _TEMP_OS_NAME)
 
 def TestOsList():
   """gnt-os list"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-os', 'list']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-os", "list"])
 
 
 def TestOsDiagnose():
   """gnt-os diagnose"""
-  master = qa_config.GetMasterNode()
-
-  cmd = ['gnt-os', 'diagnose']
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["gnt-os", "diagnose"])
 
 
-def _TestOsModify(hvp_dict, expected_result=0):
+def _TestOsModify(hvp_dict, fail=False):
   """gnt-os modify"""
-  master = qa_config.GetMasterNode()
-
   cmd = ['gnt-os', 'modify']
 
   for hv_name, hv_params in hvp_dict.items():
@@ -71,24 +61,19 @@ def _TestOsModify(hvp_dict, expected_result=0):
     cmd.append('%s:%s' % (hv_name, ','.join(options)))
 
   cmd.append(_TEMP_OS_NAME)
-  AssertEqual(StartSSH(master['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), expected_result)
+  AssertCommand(cmd, fail=fail)
 
 
 def _TestOsStates():
   """gnt-os modify, more stuff"""
-  master = qa_config.GetMasterNode()
-
   cmd = ["gnt-os", "modify"]
 
   for param in ["hidden", "blacklisted"]:
     for val in ["yes", "no"]:
       new_cmd = cmd + ["--%s" % param, val, _TEMP_OS_NAME]
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(new_cmd)).wait(), 0)
+      AssertCommand(new_cmd)
       # check that double-running the command is OK
-      AssertEqual(StartSSH(master["primary"],
-                           utils.ShellQuoteArgs(new_cmd)).wait(), 0)
+      AssertCommand(new_cmd)
 
 
 def _SetupTempOs(node, dir, valid):
@@ -115,29 +100,25 @@ def _SetupTempOs(node, dir, valid):
                             (node["primary"],
                              ["an invalid", "a valid"][int(valid)]))
 
-  AssertEqual(StartSSH(node['primary'], cmd).wait(), 0)
+  AssertCommand(cmd, node=node)
 
 
 def _RemoveTempOs(node, dir):
   """Removes a temporary OS definition.
 
   """
-  cmd = ['rm', '-rf', dir]
-  AssertEqual(StartSSH(node['primary'],
-                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  AssertCommand(["rm", "-rf", dir], node=node)
 
 
 def _TestOs(mode):
   """Generic function for OS definition testing
 
   """
-  master = qa_config.GetMasterNode()
   dir = _TEMP_OS_PATH
 
   nodes = []
   try:
-    i = 0
-    for node in qa_config.get('nodes'):
+    for i, node in enumerate(qa_config.get("nodes")):
       nodes.append(node)
       if mode == 0:
         valid = False
@@ -146,15 +127,8 @@ def _TestOs(mode):
       else:
         valid = bool(i % 2)
       _SetupTempOs(node, dir, valid)
-      i += 1
 
-    cmd = ['gnt-os', 'diagnose']
-    result = StartSSH(master['primary'],
-                      utils.ShellQuoteArgs(cmd)).wait()
-    if mode == 1:
-      AssertEqual(result, 0)
-    else:
-      AssertEqual(result, 1)
+    AssertCommand(["gnt-os", "diagnose"], fail=not mode==1)
   finally:
     for node in nodes:
       _RemoveTempOs(node, dir)
@@ -196,7 +170,7 @@ def TestOsModifyInvalid():
     "blahblahblubb": {"bar": ""},
     }
 
-  return _TestOsModify(hv_dict, 1)
+  return _TestOsModify(hv_dict, fail=True)
 
 
 def TestOsStates():
