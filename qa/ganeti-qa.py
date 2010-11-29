@@ -44,7 +44,7 @@ from ganeti import rapi
 import ganeti.rapi.client
 
 
-def _FormatHeader(line, end=72, char="-"):
+def _FormatHeader(line, end=72):
   """Fill a line up to the end column.
 
   """
@@ -54,8 +54,8 @@ def _FormatHeader(line, end=72, char="-"):
   return line
 
 
-def RunTest(fn, *args):
-  """Runs a test after printing a header.
+def _DescriptionOf(fn):
+  """Computes the description of an item.
 
   """
   if fn.__doc__:
@@ -63,9 +63,16 @@ def RunTest(fn, *args):
   else:
     desc = "%r" % fn
 
-  desc = desc.rstrip(".")
+  return desc.rstrip(".")
+
+def RunTest(fn, *args):
+  """Runs a test after printing a header.
+
+  """
 
   tstart = datetime.datetime.now()
+
+  desc = _DescriptionOf(fn)
 
   print
   print _FormatHeader("%s start %s" % (tstart, desc))
@@ -79,16 +86,29 @@ def RunTest(fn, *args):
     print _FormatHeader("%s time=%s %s" % (tstop, tdelta, desc))
 
 
+def RunTestIf(testnames, fn, *args):
+  """Runs a test conditionally.
+
+  @param testnames: either a single test name in the configuration
+      file, or a list of testnames (which will be AND-ed together)
+
+  """
+  if qa_config.TestEnabled(testnames):
+    RunTest(fn, *args)
+  else:
+    tstart = datetime.datetime.now()
+    desc = _DescriptionOf(fn)
+    print _FormatHeader("%s skipping %s, test(s) %s disabled" %
+                        (tstart, desc, testnames))
+
+
 def RunEnvTests():
   """Run several environment tests.
 
   """
-  if not qa_config.TestEnabled('env'):
-    return
-
-  RunTest(qa_env.TestSshConnection)
-  RunTest(qa_env.TestIcmpPing)
-  RunTest(qa_env.TestGanetiCommands)
+  RunTestIf("env", qa_env.TestSshConnection)
+  RunTestIf("env", qa_env.TestIcmpPing)
+  RunTestIf("env", qa_env.TestGanetiCommands)
 
 
 def SetupCluster(rapi_user, rapi_secret):
@@ -98,111 +118,84 @@ def SetupCluster(rapi_user, rapi_secret):
   @param rapi_secret: Login secret for RAPI
 
   """
-  if qa_config.TestEnabled('create-cluster'):
-    RunTest(qa_cluster.TestClusterInit, rapi_user, rapi_secret)
-    RunTest(qa_node.TestNodeAddAll)
-  else:
+  RunTestIf("create-cluster", qa_cluster.TestClusterInit,
+            rapi_user, rapi_secret)
+  RunTestIf("create-cluster", qa_node.TestNodeAddAll)
+  if not qa_config.TestEnabled("create-cluster"):
     # consider the nodes are already there
     qa_node.MarkNodeAddedAll()
 
-  if qa_config.TestEnabled("test-jobqueue"):
-    RunTest(qa_cluster.TestJobqueue)
+  RunTestIf("test-jobqueue", qa_cluster.TestJobqueue)
 
   # enable the watcher (unconditionally)
   RunTest(qa_daemon.TestResumeWatcher)
 
-  if qa_config.TestEnabled('node-info'):
-    RunTest(qa_node.TestNodeInfo)
+  RunTestIf("node-info", qa_node.TestNodeInfo)
 
 
 def RunClusterTests():
   """Runs tests related to gnt-cluster.
 
   """
-  if qa_config.TestEnabled("cluster-renew-crypto"):
-    RunTest(qa_cluster.TestClusterRenewCrypto)
-
-  if qa_config.TestEnabled('cluster-verify'):
-    RunTest(qa_cluster.TestClusterVerify)
-
-  if qa_config.TestEnabled('cluster-reserved-lvs'):
-    RunTest(qa_cluster.TestClusterReservedLvs)
-
-  if qa_config.TestEnabled("cluster-modify"):
-    RunTest(qa_cluster.TestClusterModifyBe)
+  for test, fn in [
+    ("cluster-renew-crypto", qa_cluster.TestClusterRenewCrypto),
+    ("cluster-verify", qa_cluster.TestClusterVerify),
+    ("cluster-reserved-lvs", qa_cluster.TestClusterReservedLvs),
     # TODO: add more cluster modify tests
-
-  if qa_config.TestEnabled('cluster-rename'):
-    RunTest(qa_cluster.TestClusterRename)
-
-  if qa_config.TestEnabled('cluster-info'):
-    RunTest(qa_cluster.TestClusterVersion)
-    RunTest(qa_cluster.TestClusterInfo)
-    RunTest(qa_cluster.TestClusterGetmaster)
-
-  if qa_config.TestEnabled('cluster-copyfile'):
-    RunTest(qa_cluster.TestClusterCopyfile)
-
-  if qa_config.TestEnabled('cluster-command'):
-    RunTest(qa_cluster.TestClusterCommand)
-
-  if qa_config.TestEnabled('cluster-burnin'):
-    RunTest(qa_cluster.TestClusterBurnin)
-
-  if qa_config.TestEnabled('cluster-master-failover'):
-    RunTest(qa_cluster.TestClusterMasterFailover)
-
-  if qa_rapi.Enabled():
-    RunTest(qa_rapi.TestVersion)
-    RunTest(qa_rapi.TestEmptyCluster)
+    ("cluster-modify", qa_cluster.TestClusterModifyBe),
+    ("cluster-rename", qa_cluster.TestClusterRename),
+    ("cluster-info", qa_cluster.TestClusterVersion),
+    ("cluster-info", qa_cluster.TestClusterInfo),
+    ("cluster-info", qa_cluster.TestClusterGetmaster),
+    ("cluster-copyfile", qa_cluster.TestClusterCopyfile),
+    ("cluster-command", qa_cluster.TestClusterCommand),
+    ("cluster-burnin", qa_cluster.TestClusterBurnin),
+    ("cluster-master-failover", qa_cluster.TestClusterMasterFailover),
+    ("rapi", qa_rapi.TestVersion),
+    ("rapi", qa_rapi.TestEmptyCluster),
+    ]:
+    RunTestIf(test, fn)
 
 
 def RunOsTests():
   """Runs all tests related to gnt-os.
 
   """
-  if not qa_config.TestEnabled('os'):
-    return
-
-  RunTest(qa_os.TestOsList)
-  RunTest(qa_os.TestOsDiagnose)
-  RunTest(qa_os.TestOsValid)
-  RunTest(qa_os.TestOsInvalid)
-  RunTest(qa_os.TestOsPartiallyValid)
-  RunTest(qa_os.TestOsModifyValid)
-  RunTest(qa_os.TestOsModifyInvalid)
-  RunTest(qa_os.TestOsStates)
+  for fn in [
+    qa_os.TestOsList,
+    qa_os.TestOsDiagnose,
+    qa_os.TestOsValid,
+    qa_os.TestOsInvalid,
+    qa_os.TestOsPartiallyValid,
+    qa_os.TestOsModifyValid,
+    qa_os.TestOsModifyInvalid,
+    qa_os.TestOsStates,
+    ]:
+    RunTestIf("os", fn)
 
 
 def RunCommonInstanceTests(instance):
   """Runs a few tests that are common to all disk types.
 
   """
-  if qa_config.TestEnabled('instance-shutdown'):
-    RunTest(qa_instance.TestInstanceShutdown, instance)
-    RunTest(qa_instance.TestInstanceStartup, instance)
+  RunTestIf("instance-shutdown", qa_instance.TestInstanceShutdown, instance)
+  RunTestIf("instance-shutdown", qa_instance.TestInstanceStartup, instance)
 
-  if qa_config.TestEnabled('instance-list'):
-    RunTest(qa_instance.TestInstanceList)
+  RunTestIf("instance-list", qa_instance.TestInstanceList)
 
-  if qa_config.TestEnabled('instance-info'):
-    RunTest(qa_instance.TestInstanceInfo, instance)
+  RunTestIf("instance-info", qa_instance.TestInstanceInfo, instance)
 
-  if qa_config.TestEnabled('instance-modify'):
-    RunTest(qa_instance.TestInstanceModify, instance)
-    if qa_rapi.Enabled():
-      RunTest(qa_rapi.TestRapiInstanceModify, instance)
+  RunTestIf("instance-modify", qa_instance.TestInstanceModify, instance)
+  RunTestIf(["instance-modify", "rapi"],
+            qa_rapi.TestRapiInstanceModify, instance)
 
-  if qa_config.TestEnabled('instance-console'):
-    RunTest(qa_instance.TestInstanceConsole, instance)
+  RunTestIf("instance-console", qa_instance.TestInstanceConsole, instance)
 
-  if qa_config.TestEnabled('instance-reinstall'):
-    RunTest(qa_instance.TestInstanceShutdown, instance)
-    RunTest(qa_instance.TestInstanceReinstall, instance)
-    RunTest(qa_instance.TestInstanceStartup, instance)
+  RunTestIf("instance-reinstall", qa_instance.TestInstanceShutdown, instance)
+  RunTestIf("instance-reinstall", qa_instance.TestInstanceReinstall, instance)
+  RunTestIf("instance-reinstall", qa_instance.TestInstanceStartup, instance)
 
-  if qa_config.TestEnabled('instance-reboot'):
-    RunTest(qa_instance.TestInstanceReboot, instance)
+  RunTestIf("instance-reboot", qa_instance.TestInstanceReboot, instance)
 
   if qa_config.TestEnabled('instance-rename'):
     rename_target = qa_config.get("rename", None)
@@ -212,26 +205,20 @@ def RunCommonInstanceTests(instance):
     else:
       RunTest(qa_instance.TestInstanceShutdown, instance)
       RunTest(qa_instance.TestInstanceRename, instance, rename_target)
-      if qa_rapi.Enabled():
-        RunTest(qa_rapi.TestRapiInstanceRename, instance, rename_target)
+      RunTestIf("rapi", qa_rapi.TestRapiInstanceRename, instance, rename_target)
       RunTest(qa_instance.TestInstanceStartup, instance)
 
-  if qa_config.TestEnabled('tags'):
-    RunTest(qa_tags.TestInstanceTags, instance)
+  RunTestIf("tags", qa_tags.TestInstanceTags, instance)
 
-  if qa_rapi.Enabled():
-    RunTest(qa_rapi.TestInstance, instance)
+  RunTestIf("rapi", qa_rapi.TestInstance, instance)
 
 
 def RunCommonNodeTests():
   """Run a few common node tests.
 
   """
-  if qa_config.TestEnabled('node-volumes'):
-    RunTest(qa_node.TestNodeVolumes)
-
-  if qa_config.TestEnabled("node-storage"):
-    RunTest(qa_node.TestNodeStorage)
+  RunTestIf("node-volumes", qa_node.TestNodeVolumes)
+  RunTestIf("node-storage", qa_node.TestNodeStorage)
 
 
 def RunExportImportTests(instance, pnode, snode):
@@ -262,8 +249,7 @@ def RunExportImportTests(instance, pnode, snode):
     finally:
       qa_config.ReleaseNode(expnode)
 
-  if (qa_rapi.Enabled() and
-      qa_config.TestEnabled("inter-cluster-instance-move")):
+  if qa_config.TestEnabled(["rapi", "inter-cluster-instance-move"]):
     newinst = qa_config.AcquireInstance()
     try:
       if snode is None:
@@ -284,19 +270,12 @@ def RunDaemonTests(instance, pnode):
   """Test the ganeti-watcher script.
 
   """
-  automatic_restart = \
-    qa_config.TestEnabled('instance-automatic-restart')
-  consecutive_failures = \
-    qa_config.TestEnabled('instance-consecutive-failures')
-
   RunTest(qa_daemon.TestPauseWatcher)
-  if automatic_restart or consecutive_failures:
 
-    if automatic_restart:
-      RunTest(qa_daemon.TestInstanceAutomaticRestart, pnode, instance)
-
-    if consecutive_failures:
-      RunTest(qa_daemon.TestInstanceConsecutiveFailures, pnode, instance)
+  RunTestIf("instance-automatic-restart",
+            qa_daemon.TestInstanceAutomaticRestart, pnode, instance)
+  RunTestIf("instance-consecutive-failures",
+            qa_daemon.TestInstanceConsecutiveFailures, pnode, instance)
 
   RunTest(qa_daemon.TestResumeWatcher)
 
@@ -305,14 +284,11 @@ def RunHardwareFailureTests(instance, pnode, snode):
   """Test cluster internal hardware failure recovery.
 
   """
-  if qa_config.TestEnabled('instance-failover'):
-    RunTest(qa_instance.TestInstanceFailover, instance)
+  RunTestIf("instance-failover", qa_instance.TestInstanceFailover, instance)
 
-  if qa_config.TestEnabled("instance-migrate"):
-    RunTest(qa_instance.TestInstanceMigrate, instance)
-
-    if qa_rapi.Enabled():
-      RunTest(qa_rapi.TestRapiInstanceMigrate, instance)
+  RunTestIf("instance-migrate", qa_instance.TestInstanceMigrate, instance)
+  RunTestIf(["instance-migrate", "rapi"],
+            qa_rapi.TestRapiInstanceMigrate, instance)
 
   if qa_config.TestEnabled('instance-replace-disks'):
     othernode = qa_config.AcquireNode(exclude=[pnode, snode])
@@ -322,17 +298,15 @@ def RunHardwareFailureTests(instance, pnode, snode):
     finally:
       qa_config.ReleaseNode(othernode)
 
-  if qa_config.TestEnabled('node-evacuate'):
-    RunTest(qa_node.TestNodeEvacuate, pnode, snode)
+  RunTestIf("node-evacuate", qa_node.TestNodeEvacuate, pnode, snode)
 
-  if qa_config.TestEnabled('node-failover'):
-    RunTest(qa_node.TestNodeFailover, pnode, snode)
+  RunTestIf("node-failover", qa_node.TestNodeFailover, pnode, snode)
 
-  if qa_config.TestEnabled('instance-disk-failure'):
-    RunTest(qa_instance.TestInstanceMasterDiskFailure,
+  RunTestIf("instance-disk-failure", qa_instance.TestInstanceMasterDiskFailure,
             instance, pnode, snode)
-    RunTest(qa_instance.TestInstanceSecondaryDiskFailure,
-            instance, pnode, snode)
+  RunTestIf("instance-disk-failure",
+            qa_instance.TestInstanceSecondaryDiskFailure, instance,
+            pnode, snode)
 
 
 @rapi.client.UsesRapiClient
@@ -371,25 +345,20 @@ def main():
   RunClusterTests()
   RunOsTests()
 
-  if qa_config.TestEnabled('tags'):
-    RunTest(qa_tags.TestClusterTags)
+  RunTestIf("tags", qa_tags.TestClusterTags)
 
   RunCommonNodeTests()
 
   pnode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   try:
-    if qa_config.TestEnabled('node-readd'):
-      RunTest(qa_node.TestNodeReadd, pnode)
-
-    if qa_config.TestEnabled("node-modify"):
-      RunTest(qa_node.TestNodeModify, pnode)
+    RunTestIf("node-readd", qa_node.TestNodeReadd, pnode)
+    RunTestIf("node-modify", qa_node.TestNodeModify, pnode)
   finally:
     qa_config.ReleaseNode(pnode)
 
   pnode = qa_config.AcquireNode()
   try:
-    if qa_config.TestEnabled('tags'):
-      RunTest(qa_tags.TestNodeTags, pnode)
+    RunTestIf("tags", qa_tags.TestNodeTags, pnode)
 
     if qa_rapi.Enabled():
       RunTest(qa_rapi.TestNode, pnode)
@@ -420,8 +389,7 @@ def main():
         snode = qa_config.AcquireNode(exclude=pnode)
         try:
           instance = RunTest(func, pnode, snode)
-          if qa_config.TestEnabled("cluster-verify"):
-            RunTest(qa_cluster.TestClusterVerify)
+          RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
           RunCommonInstanceTests(instance)
           if qa_config.TestEnabled('instance-convert-disk'):
             RunTest(qa_instance.TestInstanceShutdown, instance)
@@ -434,8 +402,7 @@ def main():
         finally:
           qa_config.ReleaseNode(snode)
 
-    if (qa_config.TestEnabled('instance-add-plain-disk') and
-        qa_config.TestEnabled("instance-export")):
+    if qa_config.TestEnabled(["instance-add-plain-disk", "instance-export"]):
       for shutdown in [False, True]:
         instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
         expnode = qa_config.AcquireNode(exclude=pnode)
@@ -453,11 +420,9 @@ def main():
   finally:
     qa_config.ReleaseNode(pnode)
 
-  if qa_config.TestEnabled('create-cluster'):
-    RunTest(qa_node.TestNodeRemoveAll)
+  RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 
-  if qa_config.TestEnabled('cluster-destroy'):
-    RunTest(qa_cluster.TestClusterDestroy)
+  RunTestIf("cluster-destroy", qa_cluster.TestClusterDestroy)
 
 
 if __name__ == '__main__':

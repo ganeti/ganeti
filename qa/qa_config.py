@@ -26,6 +26,7 @@
 
 from ganeti import utils
 from ganeti import serializer
+from ganeti import compat
 
 import qa_error
 
@@ -59,11 +60,15 @@ def get(name, default=None):
   return cfg.get(name, default)
 
 
-def TestEnabled(test):
-  """Returns True if the given test is enabled.
+def TestEnabled(tests):
+  """Returns True if the given tests are enabled.
+
+  @param tests: a single test, or a list of tests to check
 
   """
-  return cfg.get("tests", {}).get(test, True)
+  if isinstance(tests, basestring):
+    tests = [tests]
+  return compat.all(cfg.get("tests", {}).get(t, True) for t in tests)
 
 
 def GetMasterNode():
