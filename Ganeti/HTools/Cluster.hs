@@ -61,6 +61,8 @@ module Ganeti.HTools.Cluster
     -- * Allocation functions
     , iterateAlloc
     , tieredAlloc
+    , instanceGroup
+    , findSplitInstances
     ) where
 
 import Data.List
@@ -830,3 +832,27 @@ iMoveToJob nl il idx move =
          ReplaceSecondary ns -> [ opR ns ]
          ReplaceAndFailover np -> [ opR np, opF ]
          FailoverAndReplace ns -> [ opF, opR ns ]
+
+-- | Computes the group of an instance
+instanceGroup :: Node.List -> Instance.Instance -> Result GroupID
+instanceGroup nl i =
+  let sidx = Instance.sNode i
+      pnode = Container.find (Instance.pNode i) nl
+      snode = if sidx == Node.noSecondary
+              then pnode
+              else Container.find sidx nl
+      puuid = Node.group pnode
+      suuid = Node.group snode
+  in if puuid /= suuid
+     then fail ("Instance placed accross two node groups, primary " ++ puuid ++
+                ", secondary " ++ suuid)
+     else return puuid
+
+-- | Compute the list of badly allocated instances (split across node
+-- groups)
+findSplitInstances :: Node.List -> Instance.List -> [Instance.Instance]
+findSplitInstances nl il =
+  filter (not . isOk . instanceGroup nl) (Container.elems il)
+  where isOk x = case x of
+          Bad _ -> False
+          _ -> True

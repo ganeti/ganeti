@@ -704,6 +704,22 @@ prop_ClusterAllocBalance node =
                        tbl = Cluster.Table ynl il' cv []
                    in canBalance tbl True False
 
+-- | Checks consistency
+prop_ClusterCheckConsistency node inst =
+  let nl = makeSmallCluster node 3
+      [node1, node2, node3] = Container.elems nl
+      node3' = node3 { Node.group = "other-uuid" }
+      nl' = Container.add (Node.idx node3') node3' nl
+      inst1 = Instance.setBoth inst (Node.idx node1) (Node.idx node2)
+      inst2 = Instance.setBoth inst (Node.idx node1) Node.noSecondary
+      inst3 = Instance.setBoth inst (Node.idx node1) (Node.idx node3)
+      ccheck = Cluster.findSplitInstances nl' . Container.fromAssocList
+  in null (ccheck [(0, inst1)]) &&
+     null (ccheck [(0, inst2)]) &&
+     (not . null $ ccheck [(0, inst3)])
+
+
+
 testCluster =
     [ run prop_Score_Zero
     , run prop_CStats_sane
@@ -711,6 +727,7 @@ testCluster =
     , run prop_ClusterCanTieredAlloc
     , run prop_ClusterAllocEvac
     , run prop_ClusterAllocBalance
+    , run prop_ClusterCheckConsistency
     ]
 
 -- | Check that opcode serialization is idempotent
