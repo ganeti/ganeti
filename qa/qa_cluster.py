@@ -24,6 +24,7 @@
 """
 
 import tempfile
+import os.path
 
 from ganeti import constants
 from ganeti import utils
@@ -56,6 +57,8 @@ def TestClusterInit(rapi_user, rapi_secret):
   """gnt-cluster init"""
   master = qa_config.GetMasterNode()
 
+  rapi_dir = os.path.dirname(constants.RAPI_USERS_FILE)
+
   # First create the RAPI credentials
   fh = tempfile.NamedTemporaryFile()
   try:
@@ -64,6 +67,7 @@ def TestClusterInit(rapi_user, rapi_secret):
 
     tmpru = qa_utils.UploadFile(master["primary"], fh.name)
     try:
+      AssertCommand(["mkdir", "-p", rapi_dir])
       AssertCommand(["mv", tmpru, constants.RAPI_USERS_FILE])
     finally:
       AssertCommand(["rm", "-f", tmpru])
