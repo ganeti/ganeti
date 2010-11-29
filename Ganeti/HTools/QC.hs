@@ -38,7 +38,7 @@ module Ganeti.HTools.QC
 
 import Test.QuickCheck
 import Test.QuickCheck.Batch
-import Data.List (findIndex, intercalate)
+import Data.List (findIndex, intercalate, nub)
 import Data.Maybe
 import Control.Monad
 import qualified Text.JSON as J
@@ -564,6 +564,15 @@ prop_Node_showField node =
   fst (Node.showHeader field) /= Types.unknownField &&
   Node.showField node field /= Types.unknownField
 
+
+prop_Node_computeGroups nodes =
+  let ng = Node.computeGroups nodes
+      onlyuuid = map fst ng
+  in length nodes == sum (map (length . snd) ng) &&
+     all (\(guuid, ns) -> all ((== guuid) . Node.group) ns) ng &&
+     length (nub onlyuuid) == length onlyuuid &&
+     if null nodes then True else not (null ng)
+
 testNode =
     [ run prop_Node_setAlias
     , run prop_Node_setOffline
@@ -577,6 +586,7 @@ testNode =
     , run prop_Node_tagMaps_idempotent
     , run prop_Node_tagMaps_reject
     , run prop_Node_showField
+    , run prop_Node_computeGroups
     ]
 
 

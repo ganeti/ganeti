@@ -66,11 +66,13 @@ module Ganeti.HTools.Node
     , AssocList
     , AllocElement
     , noSecondary
+    , computeGroups
     ) where
 
 import Data.List hiding (group)
 import qualified Data.Map as Map
 import qualified Data.Foldable as Foldable
+import Data.Ord (comparing)
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
@@ -538,3 +540,11 @@ defaultFields =
     , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "pcnt", "scnt"
     , "pfmem", "pfdsk", "rcpu"
     , "cload", "mload", "dload", "nload" ]
+
+-- | Split a list of nodes into a list of (node group UUID, list of
+-- associated nodes)
+computeGroups :: [Node] -> [(T.GroupID, [Node])]
+computeGroups nodes =
+  let nodes' = sortBy (comparing group) nodes
+      nodes'' = groupBy (\a b -> group a == group b) nodes'
+  in map (\nl -> (group (head nl), nl)) nodes''
