@@ -59,7 +59,7 @@ parseData ndata = do
                     let n = Node.create (printf "node%03d" idx)
                             (fromIntegral mem) 0 mem
                             (fromIntegral disk) disk
-                            (fromIntegral cpu) False defaultUUID
+                            (fromIntegral cpu) False defaultGroupID
                     in (idx, Node.setIdx n idx)
                   ) [1..cnt]
   return (nodes, [], [])

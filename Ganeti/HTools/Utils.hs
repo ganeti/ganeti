@@ -41,7 +41,7 @@ module Ganeti.HTools.Utils
     , tryRead
     , formatTable
     , annotateResult
-    , defaultUUID
+    , defaultGroupID
     ) where
 
 import Control.Monad (liftM)
@@ -211,6 +211,6 @@ formatTable vals numpos =
                     ) (zip3 vtrans numpos mlens)
    in transpose expnd
 
--- | Default UUID (just a string, not a real UUID)
-defaultUUID :: String
-defaultUUID = "00000000-0000-0000-0000-000000000000"
+-- | Default group UUID (just a string, not a real UUID)
+defaultGroupID :: GroupID
+defaultGroupID = "00000000-0000-0000-0000-000000000000"

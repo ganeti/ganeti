@@ -95,7 +95,7 @@ serializeCluster nl il =
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
 -- compatibility wrapper for old text files
 loadNode [name, tm, nm, fm, td, fd, tc, fo] =
-  loadNode [name, tm, nm, fm, td, fd, tc, fo, defaultUUID]
+  loadNode [name, tm, nm, fm, td, fd, tc, fo, defaultGroupID]
 loadNode [name, tm, nm, fm, td, fd, tc, fo, gu] = do
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then

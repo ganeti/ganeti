@@ -176,7 +176,7 @@ instance Arbitrary Node.Node where
       offl <- arbitrary
       let n = Node.create name (fromIntegral mem_t) mem_n mem_f
               (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl
-              Utils.defaultUUID
+              Utils.defaultGroupID
           n' = Node.buildPeers n Container.empty
       return n'
 

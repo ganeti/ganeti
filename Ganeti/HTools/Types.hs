@@ -29,6 +29,7 @@ module Ganeti.HTools.Types
     , NameAssoc
     , Score
     , Weight
+    , GroupID
     , RSpec(..)
     , DynUtil(..)
     , zeroUtil
@@ -68,6 +69,9 @@ type Score = Double
 
 -- | A separate name for a weight metric.
 type Weight = Double
+
+-- | The Group UUID type
+type GroupID = String
 
 -- | The resource spec type.
 data RSpec = RSpec

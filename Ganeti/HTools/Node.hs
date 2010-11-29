@@ -119,7 +119,7 @@ data Node = Node
     , utilPool :: T.DynUtil -- ^ Total utilisation capacity
     , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
     , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
-    , group    :: String    -- ^ The node's group (as UUID)
+    , group    :: T.GroupID -- ^ The node's group (as UUID)
     } deriving (Show, Eq)
 
 instance T.Element Node where
