@@ -41,6 +41,12 @@ for script; do
     echo "Forbidden function 'xrange' used in $script" >&2
   fi
 
+  if grep -n -H -E -i '#[[:space:]]*(vim|Local[[:space:]]+Variables):' "$script"
+  then
+    let ++problems
+    echo "Found editor-specific settings in $script" >&2
+  fi
+
   if [[ "$(wc --max-line-length < "$script")" -gt 80 ]]; then
     let ++problems
     echo "Longest line in $script is longer than 80 characters" >&2
