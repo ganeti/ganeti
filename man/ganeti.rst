@@ -96,6 +96,20 @@ vm_capable
     and operations.
 
 
+Node Parameters
+~~~~~~~~~~~~~~~
+
+These parameters are node specific and can be preseeded on node-group
+and cluster level.
+
+Currently we support the following node parameters:
+
+oob_program
+    Path to an executable used as the out-of-band helper as described in
+    the `Ganeti Node OOB Management Framework <design-oob.rst>`_ design
+    document.
+
+
 Cluster configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
