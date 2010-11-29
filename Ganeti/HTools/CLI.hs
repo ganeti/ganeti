@@ -41,6 +41,7 @@ module Ganeti.HTools.CLI
     , oExInst
     , oExTags
     , oExecJobs
+    , oGroup
     , oIDisk
     , oIMem
     , oINodes
@@ -95,6 +96,7 @@ data Options = Options
     , optExInst      :: [String]       -- ^ Instances to be excluded
     , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
     , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
+    , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
     , optINodes      :: Int            -- ^ Nodes required for an instance
     , optISpec       :: RSpec          -- ^ Requested instance specs
     , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
@@ -130,6 +132,7 @@ defaultOptions  = Options
  , optExInst      = []
  , optExTags      = Nothing
  , optExecJobs    = False
+ , optGroup       = Nothing
  , optINodes      = 2
  , optISpec       = RSpec 1 4096 102400
  , optLuxi        = Nothing
@@ -195,6 +198,11 @@ oExecJobs = Option "X" ["exec"]
              (NoArg (\ opts -> Ok opts { optExecJobs = True}))
              "execute the suggested moves via Luxi (only available when using\
              \ it for data gathering)"
+
+oGroup :: OptType
+oGroup = Option "G" ["group"]
+            (ReqArg (\ f o -> Ok o { optGroup = Just f }) "ID")
+            "the ID of the group to balance"
 
 oIDisk :: OptType
 oIDisk = Option "" ["disk"]
