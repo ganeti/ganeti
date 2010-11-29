@@ -402,6 +402,7 @@ def InitCluster(cluster_name, mac_prefix,
                                     serial_no=1,
                                     master_candidate=True,
                                     offline=False, drained=False,
+                                    ctime=now, mtime=now,
                                     )
   InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
   cfg = config.ConfigWriter(offline=True)
