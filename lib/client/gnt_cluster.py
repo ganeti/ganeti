@@ -78,7 +78,6 @@ def InitCluster(opts, args):
   hvparams = dict(opts.hvparams)
   beparams = opts.beparams
   nicparams = opts.nicparams
-  ndparams = opts.ndparams
 
   # prepare beparams dict
   beparams = objects.FillDict(constants.BEC_DEFAULTS, beparams)
@@ -87,10 +86,6 @@ def InitCluster(opts, args):
   # prepare nicparams dict
   nicparams = objects.FillDict(constants.NICC_DEFAULTS, nicparams)
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
-
-  # prepare ndparams dict
-  ndparams = objects.FillDict(constants.NDC_DEFAULTS, ndparams)
-  utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
 
   # prepare hvparams dict
   for hv in constants.HYPER_TYPES:
@@ -128,7 +123,6 @@ def InitCluster(opts, args):
                         hvparams=hvparams,
                         beparams=beparams,
                         nicparams=nicparams,
-                        ndparams=ndparams,
                         candidate_pool_size=opts.candidate_pool_size,
                         modify_etc_hosts=opts.modify_etc_hosts,
                         modify_ssh_setup=opts.modify_ssh_setup,
@@ -712,7 +706,7 @@ def SetClusterParams(opts, args):
   if not (not opts.lvm_storage or opts.vg_name or
           not opts.drbd_storage or opts.drbd_helper or
           opts.enabled_hypervisors or opts.hvparams or
-          opts.beparams or opts.nicparams or opts.ndparams or
+          opts.beparams or opts.nicparams or
           opts.candidate_pool_size is not None or
           opts.uid_pool is not None or
           opts.maintain_node_health is not None or
@@ -755,8 +749,6 @@ def SetClusterParams(opts, args):
   nicparams = opts.nicparams
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
 
-  ndparams = opts.ndparams
-  utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
 
   mnh = opts.maintain_node_health
 
@@ -785,7 +777,6 @@ def SetClusterParams(opts, args):
                                   os_hvp=None,
                                   beparams=beparams,
                                   nicparams=nicparams,
-                                  ndparams=ndparams,
                                   candidate_pool_size=opts.candidate_pool_size,
                                   maintain_node_health=mnh,
                                   uid_pool=uid_pool,
@@ -877,8 +868,7 @@ commands = {
      NOLVM_STORAGE_OPT, NOMODIFY_ETCHOSTS_OPT, NOMODIFY_SSH_SETUP_OPT,
      SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
-     DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT],
+     DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   'destroy': (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -954,7 +944,7 @@ commands = {
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
      NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
