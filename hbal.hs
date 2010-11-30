@@ -28,7 +28,7 @@ module Main (main) where
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Data.List
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, isNothing, fromJust)
 import Data.IORef
 import Monad
 import System (exitWith, ExitCode(..))
@@ -66,6 +66,7 @@ options =
     , oRapiMaster
     , oLuxiSocket
     , oExecJobs
+    , oGroup
     , oMaxSolLength
     , oVerbose
     , oQuiet
@@ -225,7 +226,7 @@ main = do
       verbose = optVerbose opts
       shownodes = optShowNodes opts
 
-  (fixed_nl, il, ctags) <- loadExternalData opts
+  (fixed_nl, ilf, ctags) <- loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
@@ -238,7 +239,7 @@ main = do
                                all_nodes
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
-      csf = commonSuffix fixed_nl il
+      csf = commonSuffix fixed_nl ilf
 
   when (length offline_wrong > 0) $ do
          hPrintf stderr "Wrong node name(s) set as offline: %s\n"
@@ -248,20 +249,51 @@ main = do
   let nm = Container.map (\n -> if Node.idx n `elem` offline_indices
                                 then Node.setOffline n True
                                 else n) fixed_nl
-      nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
-           nm
+      nlf = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
+            nm
 
   when (not oneline && verbose > 1) $
        putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
 
-  when (Container.size il == 0) $ do
+  when (Container.size ilf == 0) $ do
          (if oneline then putStrLn $ formatOneline 0 0 0
           else printf "Cluster is empty, exiting.\n")
          exitWith ExitSuccess
 
+  let split_insts = Cluster.findSplitInstances nlf ilf
+  when (not . null $ split_insts) $ do
+    hPutStrLn stderr "Found instances belonging to multiple node groups:"
+    mapM_ (\i -> hPutStrLn stderr $ "  " ++ Instance.name i) split_insts
+    hPutStrLn stderr "Aborting."
+    exitWith $ ExitFailure 1
+
+  let ngroups = Cluster.splitCluster nlf ilf
+  when (length ngroups > 1 && isNothing (optGroup opts)) $ do
+    hPutStrLn stderr "Found multiple node groups:"
+    mapM_ (hPutStrLn stderr . ("  " ++) . fst ) ngroups
+    hPutStrLn stderr "Aborting."
+    exitWith $ ExitFailure 1
+
   unless oneline $ printf "Loaded %d nodes, %d instances\n"
+             (Container.size nlf)
+             (Container.size ilf)
+
+  (guuid, (nl, il)) <- case optGroup opts of
+    Nothing -> return $ head ngroups
+    Just g -> case lookup g ngroups of
+      Nothing -> do
+        hPutStrLn stderr $ "Node group " ++ g ++
+          " not found. Node group list is:"
+        mapM_ (hPutStrLn stderr . ("  " ++) . fst ) ngroups
+        hPutStrLn stderr "Aborting."
+        exitWith $ ExitFailure 1
+      Just cdata -> return (g, cdata)
+
+  unless oneline $ printf "Group size %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)
+
+  putStrLn $ "Selected node group: " ++ guuid
 
   when (length csf > 0 && not oneline && verbose > 1) $
        printf "Note: Stripping common suffix of '%s' from names\n" csf

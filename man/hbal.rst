@@ -436,6 +436,11 @@ The options that can be passed to the program are as follows:
   number. For example, specifying *disk-ratio* as **0.25** means that
   at least one quarter of disk space should be left free on nodes.
 
+-G *uuid*, --group=*uuid*
+  On an multi-group cluster, select this group for
+  processing. Otherwise hbal will abort, since it cannot balance
+  multiple groups at the same time.
+
 -v, --verbose
   Increase the output verbosity. Each usage of this option will
   increase the verbosity (currently more than 2 doesn't make sense)
