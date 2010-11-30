@@ -972,7 +972,7 @@ QFT_ALL = frozenset([
 QRFS_NORMAL = 0
 #: Unknown field
 QRFS_UNKNOWN = 1
-#: No data
+#: No data (e.g. node offline)
 QRFS_NODATA = 2
 #: Value unavailable for item
 QRFS_UNAVAIL = 3
