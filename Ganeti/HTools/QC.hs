@@ -281,8 +281,38 @@ prop_Container_addTwo cdata i1 i2 =
           cont = foldl (\c x -> Container.add x x c) Container.empty cdata
           fn x1 x2 = Container.addTwo x1 x1 x2 x2
 
+prop_Container_nameOf node =
+  let nl = makeSmallCluster node 1
+      fnode = head (Container.elems nl)
+  in Container.nameOf nl (Node.idx fnode) == Node.name fnode
+
+-- We test that in a cluster, given a random node, we can find it by
+-- its name and alias, as long as all names and aliases are unique,
+-- and that we fail to find a non-existing name
+prop_Container_findByName node othername =
+  forAll (choose (1, 20)) $ \ cnt ->
+  forAll (choose (0, cnt - 1)) $ \ fidx ->
+  forAll (vector cnt) $ \ names ->
+  (length . nub) (map fst names ++ map snd names) ==
+  length names * 2 &&
+  not (othername `elem` (map fst names ++ map snd names)) ==>
+  let nl = makeSmallCluster node cnt
+      nodes = Container.elems nl
+      nodes' = map (\((name, alias), nn) -> (Node.idx nn,
+                                             nn { Node.name = name,
+                                                  Node.alias = alias }))
+               $ zip names nodes
+      nl' = Container.fromAssocList nodes'
+      target = snd (nodes' !! fidx)
+  in Container.findByName nl' (Node.name target) == Just target &&
+     Container.findByName nl' (Node.alias target) == Just target &&
+     Container.findByName nl' othername == Nothing
+
 testContainer =
-    [ run prop_Container_addTwo ]
+    [ run prop_Container_addTwo
+    , run prop_Container_nameOf
+    , run prop_Container_findByName
+    ]
 
 -- Simple instance tests, we only have setter/getters
 

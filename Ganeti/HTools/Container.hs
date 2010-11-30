@@ -32,20 +32,23 @@ module Ganeti.HTools.Container
      Container
     , Key
      -- * Creation
-    , empty
+    , IntMap.empty
+    , IntMap.singleton
     , fromAssocList
      -- * Query
-    , size
+    , IntMap.size
+    , IntMap.null
     , find
+    , IntMap.findMax
      -- * Update
     , add
     , addTwo
-    , remove
     , IntMap.map
     , IntMap.mapAccum
+    , IntMap.filter
     -- * Conversion
-    , elems
-    , keys
+    , IntMap.elems
+    , IntMap.keys
     -- * Element functions
     , nameOf
     , findByName
@@ -58,14 +61,6 @@ import qualified Ganeti.HTools.Types as T
 type Key = IntMap.Key
 type Container = IntMap.IntMap
 
--- | Create an empty container.
-empty :: Container a
-empty = IntMap.empty
-
--- | Returns the number of elements in the map.
-size :: Container a -> Int
-size = IntMap.size
-
 -- | Locate a key in the map (must exist).
 find :: Key -> Container a -> a
 find k = (IntMap.! k)
@@ -73,18 +68,6 @@ find k = (IntMap.! k)
 -- | Add or update one element to the map.
 add :: Key -> a -> Container a -> Container a
 add = IntMap.insert
-
--- | Remove an element from the map.
-remove :: Key -> Container a -> Container a
-remove = IntMap.delete
-
--- | Return the list of values in the map.
-elems :: Container a -> [a]
-elems = IntMap.elems
-
--- | Return the list of keys in the map.
-keys :: Container a -> [Key]
-keys = IntMap.keys
 
 -- | Create a map from an association list.
 fromAssocList :: [(Key, a)] -> Container a
@@ -102,7 +85,7 @@ nameOf c k = T.nameOf $ find k c
 findByName :: (T.Element a, Monad m) =>
               Container a -> String -> m a
 findByName c n =
-    let all_elems = elems c
+    let all_elems = IntMap.elems c
         result = filter ((n `elem`) . T.allNames) all_elems
     in case result of
          [item] -> return item
