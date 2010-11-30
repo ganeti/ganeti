@@ -223,10 +223,10 @@ def _InitFileStorage(file_storage_dir):
 def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
-                nicparams=None, hvparams=None, enabled_hypervisors=None,
-                modify_etc_hosts=True, modify_ssh_setup=True,
-                maintain_node_health=False, drbd_helper=None,
-                uid_pool=None, default_iallocator=None,
+                nicparams=None, ndparams=None, hvparams=None,
+                enabled_hypervisors=None, modify_etc_hosts=True,
+                modify_ssh_setup=True, maintain_node_health=False,
+                drbd_helper=None, uid_pool=None, default_iallocator=None,
                 primary_ip_version=None, prealloc_wipe_disks=False):
   """Initialise the cluster.
 
@@ -340,6 +340,11 @@ def InitCluster(cluster_name, mac_prefix,
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
   objects.NIC.CheckParameterSyntax(nicparams)
 
+  if ndparams is not None:
+    utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
+  else:
+    ndparams = dict(constants.NDC_DEFAULTS)
+
   # hvparams is a mapping of hypervisor->hvparams dict
   for hv_name, hv_params in hvparams.iteritems():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
@@ -383,6 +388,7 @@ def InitCluster(cluster_name, mac_prefix,
     enabled_hypervisors=enabled_hypervisors,
     beparams={constants.PP_DEFAULT: beparams},
     nicparams={constants.PP_DEFAULT: nicparams},
+    ndparams=ndparams,
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
     modify_etc_hosts=modify_etc_hosts,
