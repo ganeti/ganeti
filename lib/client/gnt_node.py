@@ -60,7 +60,7 @@ _LIST_STOR_DEF_FIELDS = [
   ]
 
 
-#: headers (and full field list for L{ListNodes}
+#: headers (and full field list) for L{ListNodes}
 _LIST_HEADERS = {
   "name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
   "pinst_list": "PriInstances", "sinst_list": "SecInstances",
@@ -81,7 +81,7 @@ _LIST_HEADERS = {
   }
 
 
-#: headers (and full field list for L{ListStorage}
+#: headers (and full field list) for L{ListStorage}
 _LIST_STOR_HEADERS = {
   constants.SF_NODE: "Node",
   constants.SF_TYPE: "Type",
@@ -225,7 +225,7 @@ def ListNodes(opts, args):
 
   @param opts: the command line options selected by the user
   @type args: list
-  @param args: should be an empty list
+  @param args: nodes to list, or empty for all
   @rtype: int
   @return: the desired exit code
 

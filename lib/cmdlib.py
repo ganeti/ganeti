@@ -214,7 +214,7 @@ class LogicalUnit(object):
     This method is called before starting to execute the opcode, and it should
     update all the parameters of the opcode to their canonical form (e.g. a
     short node name must be fully expanded after this method has successfully
-    completed). This way locking, hooks, logging, ecc. can work correctly.
+    completed). This way locking, hooks, logging, etc. can work correctly.
 
     LUs which implement this method must also populate the self.needed_locks
     member, as a dict with lock levels as keys, and a list of needed lock names
