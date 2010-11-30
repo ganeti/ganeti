@@ -387,9 +387,10 @@ allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
 allocateOnSingle nl inst p =
     let new_pdx = Node.idx p
         new_inst = Instance.setBoth inst new_pdx Node.noSecondary
-        new_nl = Node.addPri p inst >>= \new_p ->
-                 return (Container.add new_pdx new_p nl, new_inst, [new_p])
-    in new_nl
+    in  Node.addPri p inst >>= \new_p -> do
+      let new_nl = Container.add new_pdx new_p nl
+          new_score = compCV nl
+      return (new_nl, new_inst, [new_p], new_score)
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
@@ -397,13 +398,12 @@ allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
 allocateOnPair nl inst tgt_p tgt_s =
     let new_pdx = Node.idx tgt_p
         new_sdx = Node.idx tgt_s
-        new_nl = do -- Maybe monad
-          new_p <- Node.addPri tgt_p inst
-          new_s <- Node.addSec tgt_s inst new_pdx
-          let new_inst = Instance.setBoth inst new_pdx new_sdx
-          return (Container.addTwo new_pdx new_p new_sdx new_s nl, new_inst,
-                 [new_p, new_s])
-    in new_nl
+    in do
+      new_p <- Node.addPri tgt_p inst
+      new_s <- Node.addSec tgt_s inst new_pdx
+      let new_inst = Instance.setBoth inst new_pdx new_sdx
+          new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
+      return (new_nl, new_inst, [new_p, new_s], compCV new_nl)
 
 -- | Tries to perform an instance move and returns the best table
 -- between the original one and the new one.
@@ -535,9 +535,8 @@ collapseFailures flst =
 concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
 concatAllocs (flst, cntok, sols) (OpFail reason) = (reason:flst, cntok, sols)
 
-concatAllocs (flst, cntok, osols) (OpGood ns@(nl, _, _)) =
-    let nscore = compCV nl
-        -- Choose the old or new solution, based on the cluster score
+concatAllocs (flst, cntok, osols) (OpGood ns@(_, _, _, nscore)) =
+    let -- Choose the old or new solution, based on the cluster score
         nsols = case osols of
                   [] -> [(nscore, ns)]
                   (oscore, _):[] ->
@@ -601,7 +600,8 @@ tryReloc nl il xid 1 ex_idx =
                             let em = do
                                   (mnl, i, _, _) <-
                                       applyMove nl inst (ReplaceSecondary x)
-                                  return (mnl, i, [Container.find x mnl])
+                                  return (mnl, i, [Container.find x mnl],
+                                          compCV mnl)
                             in concatAllocs cstate em
                        ) ([], 0, []) valid_idxes
     in return sols1
@@ -624,7 +624,7 @@ tryEvac nl il ex_ndx =
                            -- FIXME: hardcoded one node here
                            (fm, cs, aes) <- tryReloc nl' il idx 1 ex_ndx
                            case aes of
-                             csol@(_, (nl'', _, _)):_ ->
+                             csol@(_, (nl'', _, _, _)):_ ->
                                  return (nl'', (fm, cs, csol:rsols))
                              _ -> fail $ "Can't evacuate instance " ++
                                   Instance.name (Container.find idx il)
@@ -649,7 +649,7 @@ iterateAlloc nl il newinst nreq ixes =
            Ok (errs, _, sols3) ->
                case sols3 of
                  [] -> Ok (collapseFailures errs, nl, il, ixes)
-                 (_, (xnl, xi, _)):[] ->
+                 (_, (xnl, xi, _, _)):[] ->
                      iterateAlloc xnl (Container.add newidx xi il)
                                   newinst nreq $! (xi:ixes)
                  _ -> Bad "Internal error: multiple solutions for single\

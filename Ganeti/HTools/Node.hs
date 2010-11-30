@@ -139,7 +139,7 @@ type List = Container.Container Node
 
 -- | A simple name for an allocation element (here just for logistic
 -- reasons)
-type AllocElement = (List, Instance.Instance, [Node])
+type AllocElement = (List, Instance.Instance, [Node], T.Score)
 
 -- | Constant node index for a non-moveable instance.
 noSecondary :: T.Ndx

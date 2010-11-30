@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -147,13 +147,13 @@ formatRVal :: RqType -> [Node.AllocElement] -> JSValue
 formatRVal _ [] = JSArray []
 
 formatRVal (Evacuate _) elems =
-    let sols = map (\(_, inst, nl) -> Instance.name inst : map Node.name nl)
+    let sols = map (\(_, inst, nl, _) -> Instance.name inst : map Node.name nl)
                elems
         jsols = map (JSArray . map (JSString . toJSString)) sols
     in JSArray jsols
 
 formatRVal _ elems =
-    let (_, _, nodes) = head elems
+    let (_, _, nodes, _) = head elems
         nodes' = map Node.name nodes
     in JSArray $ map (JSString . toJSString) nodes'
 

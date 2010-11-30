@@ -59,7 +59,7 @@ processResults (Evacuate _) as@(fstats, successes, sols) =
 
 processResults _ as@(fstats, successes, sols) =
     case sols of
-      (best, (_, _, w)):[] ->
+      (best, (_, _, w, _)):[] ->
           let tfails = length fstats
               info = printf "successes %d, failures %d,\
                             \ best score: %.8f for node(s) %s"

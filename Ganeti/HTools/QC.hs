@@ -676,9 +676,8 @@ prop_ClusterAlloc_sane node inst =
          Types.Ok (_, _, sols3) ->
              case sols3 of
                [] -> False
-               (_, (xnl, xi, _)):[] ->
-                   let cv = Cluster.compCV xnl
-                       il' = Container.add (Instance.idx xi) xi il
+               (_, (xnl, xi, _, cv)):[] ->
+                   let il' = Container.add (Instance.idx xi) xi il
                        tbl = Cluster.Table xnl il' cv []
                    in not (canBalance tbl True False)
                _ -> False
@@ -717,7 +716,7 @@ prop_ClusterAllocEvac node inst =
          Types.Ok (_, _, sols3) ->
              case sols3 of
                [] -> False
-               (_, (xnl, xi, _)):[] ->
+               (_, (xnl, xi, _, _)):[] ->
                    let sdx = Instance.sNode xi
                        il' = Container.add (Instance.idx xi) xi il
                    in case Cluster.tryEvac xnl il' [sdx] of
