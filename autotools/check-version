@@ -40,7 +40,7 @@ case "$version" in
   ;;
 esac
 
-readonly newsver="Version ${version/~/}"
+readonly newsver="Version ${version/\~/ }"
 
 if ! grep -q -x "$newsver" $newsfile
 then
