@@ -85,7 +85,7 @@ getInstances :: NameAssoc
 getInstances ktn arr = toArray arr >>= mapM (parseInstance ktn)
 
 -- | Construct an instance from a JSON object.
-parseInstance :: [(String, Ndx)]
+parseInstance :: NameAssoc
               -> JSValue
               -> Result (String, Instance.Instance)
 parseInstance ktn (JSArray [ name, disk, mem, vcpus

@@ -113,7 +113,7 @@ loadNode s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
-            [(String, Ndx)] -> [String] -> m (String, Instance.Instance)
+            NameAssoc -> [String] -> m (String, Instance.Instance)
 loadInst ktn [name, mem, dsk, vcpus, status, pnode, snode, tags] = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary
@@ -135,7 +135,7 @@ loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 -- a supplied conversion function.
 loadTabular :: (Monad m, Element a) =>
                [String] -> ([String] -> m (String, a))
-            -> m ([(String, Int)], [(Int, a)])
+            -> m (NameAssoc, [(Int, a)])
 loadTabular lines_data convert_fn = do
   let rows = map (sepSplit '|') lines_data
   kerows <- mapM convert_fn rows

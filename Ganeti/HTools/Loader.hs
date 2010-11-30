@@ -7,7 +7,7 @@ has been loaded from external sources.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -76,14 +76,14 @@ data Request = Request RqType Node.List Instance.List [String]
 -- * Functions
 
 -- | Lookups a node into an assoc list.
-lookupNode :: (Monad m) => [(String, Ndx)] -> String -> String -> m Ndx
+lookupNode :: (Monad m) => NameAssoc -> String -> String -> m Ndx
 lookupNode ktn inst node =
     case lookup node ktn of
       Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
       Just idx -> return idx
 
 -- | Lookups an instance into an assoc list.
-lookupInstance :: (Monad m) => [(String, Idx)] -> String -> m Idx
+lookupInstance :: (Monad m) => NameAssoc -> String -> m Idx
 lookupInstance kti inst =
     case lookup inst kti of
       Nothing -> fail $ "Unknown instance '" ++ inst ++ "'"

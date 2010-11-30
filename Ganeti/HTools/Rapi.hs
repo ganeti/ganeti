@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ getNodes body = loadJSArray "Parsing node data" body >>=
                 mapM (parseNode . fromJSObject)
 
 -- | Construct an instance from a JSON object.
-parseInstance :: [(String, Ndx)]
+parseInstance :: NameAssoc
               -> [(String, JSValue)]
               -> Result (String, Instance.Instance)
 parseInstance ktn a = do
