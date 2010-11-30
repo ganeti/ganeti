@@ -30,6 +30,7 @@ from ganeti import compat
 from ganeti import errors
 from ganeti import query
 from ganeti import objects
+from ganeti import cmdlib
 
 import testutils
 
@@ -456,6 +457,271 @@ class TestNodeQuery(unittest.TestCase):
     ctx = _QueryData(None, curlive_data={"hello": 123})
     self.assertRaises(AssertionError, query._GetLiveNodeField,
                       "hello", constants.QFT_BOOL, ctx, None)
+
+
+class TestInstanceQuery(unittest.TestCase):
+  def _Create(self, selected):
+    return query.Query(query.INSTANCE_FIELDS, selected)
+
+  def testSimple(self):
+    q = self._Create(["name", "be/memory", "ip"])
+    self.assertEqual(q.RequestedData(), set([query.IQ_CONFIG]))
+
+    cluster = objects.Cluster(cluster_name="testcluster",
+      hvparams=constants.HVC_DEFAULTS,
+      beparams={
+        constants.PP_DEFAULT: constants.BEC_DEFAULTS,
+        },
+      nicparams={
+        constants.PP_DEFAULT: constants.NICC_DEFAULTS,
+        })
+
+    instances = [
+      objects.Instance(name="inst1", hvparams={}, beparams={}, nics=[]),
+      objects.Instance(name="inst2", hvparams={}, nics=[],
+        beparams={
+          constants.BE_MEMORY: 512,
+        }),
+      objects.Instance(name="inst3", hvparams={}, beparams={},
+        nics=[objects.NIC(ip="192.0.2.99", nicparams={})]),
+      ]
+
+    iqd = query.InstanceQueryData(instances, cluster, None, [], [], {})
+    self.assertEqual(q.Query(iqd),
+      [[(constants.QRFS_NORMAL, "inst1"),
+        (constants.QRFS_NORMAL, 128),
+        (constants.QRFS_UNAVAIL, None),
+       ],
+       [(constants.QRFS_NORMAL, "inst2"),
+        (constants.QRFS_NORMAL, 512),
+        (constants.QRFS_UNAVAIL, None),
+       ],
+       [(constants.QRFS_NORMAL, "inst3"),
+        (constants.QRFS_NORMAL, 128),
+        (constants.QRFS_NORMAL, "192.0.2.99"),
+       ]])
+    self.assertEqual(q.OldStyleQuery(iqd),
+      [["inst1", 128, None],
+       ["inst2", 512, None],
+       ["inst3", 128, "192.0.2.99"]])
+
+  def test(self):
+    selected = query.INSTANCE_FIELDS.keys()
+    fieldidx = dict((field, idx) for idx, field in enumerate(selected))
+
+    macs = ["00:11:22:%02x:%02x:%02x" % (i % 255, i % 3, (i * 123) % 255)
+            for i in range(20)]
+
+    q = self._Create(selected)
+    self.assertEqual(q.RequestedData(),
+                     set([query.IQ_CONFIG, query.IQ_LIVE, query.IQ_DISKUSAGE]))
+
+    cluster = objects.Cluster(cluster_name="testcluster",
+      hvparams=constants.HVC_DEFAULTS,
+      beparams={
+        constants.PP_DEFAULT: constants.BEC_DEFAULTS,
+        },
+      nicparams={
+        constants.PP_DEFAULT: constants.NICC_DEFAULTS,
+        },
+      os_hvp={},
+      tcpudp_port_pool=set())
+
+    offline_nodes = ["nodeoff1", "nodeoff2"]
+    bad_nodes = ["nodebad1", "nodebad2", "nodebad3"] + offline_nodes
+    nodes = ["node%s" % i for i in range(10)] + bad_nodes
+
+    instances = [
+      objects.Instance(name="inst1", hvparams={}, beparams={}, nics=[],
+        uuid="f90eccb3-e227-4e3c-bf2a-94a21ca8f9cd",
+        ctime=1291244000, mtime=1291244400, serial_no=30,
+        admin_up=True, hypervisor=constants.HT_XEN_PVM, os="linux1",
+        primary_node="node1",
+        disk_template=constants.DT_PLAIN,
+        disks=[]),
+      objects.Instance(name="inst2", hvparams={}, nics=[],
+        uuid="73a0f8a7-068c-4630-ada2-c3440015ab1a",
+        ctime=1291211000, mtime=1291211077, serial_no=1,
+        admin_up=True, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        primary_node="node5",
+        disk_template=constants.DT_DISKLESS,
+        disks=[],
+        beparams={
+          constants.BE_MEMORY: 512,
+        }),
+      objects.Instance(name="inst3", hvparams={}, beparams={},
+        uuid="11ec8dff-fb61-4850-bfe0-baa1803ff280",
+        ctime=1291011000, mtime=1291013000, serial_no=1923,
+        admin_up=False, hypervisor=constants.HT_KVM, os="busybox",
+        primary_node="node6",
+        disk_template=constants.DT_DRBD8,
+        disks=[],
+        nics=[
+          objects.NIC(ip="192.0.2.99", mac=macs.pop(),
+                      nicparams={
+                        constants.NIC_LINK: constants.DEFAULT_BRIDGE,
+                        }),
+          objects.NIC(ip=None, mac=macs.pop(), nicparams={}),
+          ]),
+      objects.Instance(name="inst4", hvparams={}, beparams={},
+        uuid="68dab168-3ef5-4c9d-b4d3-801e0672068c",
+        ctime=1291244390, mtime=1291244395, serial_no=25,
+        admin_up=False, hypervisor=constants.HT_XEN_PVM, os="linux1",
+        primary_node="nodeoff2",
+        disk_template=constants.DT_DRBD8,
+        disks=[],
+        nics=[
+          objects.NIC(ip="192.0.2.1", mac=macs.pop(),
+                      nicparams={
+                        constants.NIC_LINK: constants.DEFAULT_BRIDGE,
+                        }),
+          objects.NIC(ip="192.0.2.2", mac=macs.pop(), nicparams={}),
+          objects.NIC(ip="192.0.2.3", mac=macs.pop(),
+                      nicparams={
+                        constants.NIC_MODE: constants.NIC_MODE_ROUTED,
+                        }),
+          objects.NIC(ip="192.0.2.4", mac=macs.pop(),
+                      nicparams={
+                        constants.NIC_MODE: constants.NIC_MODE_BRIDGED,
+                        constants.NIC_LINK: "eth123",
+                        }),
+          ]),
+      objects.Instance(name="inst5", hvparams={}, nics=[],
+        uuid="0e3dca12-5b42-4e24-98a2-415267545bd0",
+        ctime=1231211000, mtime=1261200000, serial_no=3,
+        admin_up=True, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        primary_node="nodebad2",
+        disk_template=constants.DT_DISKLESS,
+        disks=[],
+        beparams={
+          constants.BE_MEMORY: 512,
+        }),
+      objects.Instance(name="inst6", hvparams={}, nics=[],
+        uuid="72de6580-c8d5-4661-b902-38b5785bb8b3",
+        ctime=7513, mtime=11501, serial_no=13390,
+        admin_up=False, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        primary_node="node7",
+        disk_template=constants.DT_DISKLESS,
+        disks=[],
+        beparams={
+          constants.BE_MEMORY: 768,
+        }),
+      ]
+
+    disk_usage = dict((inst.name,
+                       cmdlib._ComputeDiskSize(inst.disk_template,
+                                               [{"size": disk.size}
+                                                for disk in inst.disks]))
+                      for inst in instances)
+
+    inst_bridges = {
+      "inst3": [constants.DEFAULT_BRIDGE, constants.DEFAULT_BRIDGE],
+      "inst4": [constants.DEFAULT_BRIDGE, constants.DEFAULT_BRIDGE,
+                None, "eth123"],
+      }
+
+    live_data = {
+      "inst2": {
+        "vcpus": 3,
+        },
+      "inst4": {
+        "memory": 123,
+        },
+      "inst6": {
+        "memory": 768,
+        },
+      }
+
+    iqd = query.InstanceQueryData(instances, cluster, disk_usage,
+                                  offline_nodes, bad_nodes, live_data)
+    result = q.Query(iqd)
+    self.assertEqual(len(result), len(instances))
+    self.assert_(compat.all(len(row) == len(selected)
+                            for row in result))
+
+    assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
+           "Offline nodes not included in bad nodes"
+
+    tested_status = set()
+
+    for (inst, row) in zip(instances, result):
+      assert inst.primary_node in nodes
+
+      self.assertEqual(row[fieldidx["name"]],
+                       (constants.QRFS_NORMAL, inst.name))
+
+      if inst.primary_node in offline_nodes:
+        exp_status = "ERROR_nodeoffline"
+      elif inst.primary_node in bad_nodes:
+        exp_status = "ERROR_nodedown"
+      elif inst.name in live_data:
+        if inst.admin_up:
+          exp_status = "running"
+        else:
+          exp_status = "ERROR_up"
+      elif inst.admin_up:
+        exp_status = "ERROR_down"
+      else:
+        exp_status = "ADMIN_down"
+
+      self.assertEqual(row[fieldidx["status"]],
+                       (constants.QRFS_NORMAL, exp_status))
+
+      (_, status) = row[fieldidx["status"]]
+      tested_status.add(status)
+
+      for (field, livefield) in [("oper_ram", "memory"),
+                                 ("oper_vcpus", "vcpus")]:
+        if inst.primary_node in bad_nodes:
+          exp = (constants.QRFS_NODATA, None)
+        elif inst.name in live_data:
+          value = live_data[inst.name].get(livefield, None)
+          if value is None:
+            exp = (constants.QRFS_UNAVAIL, None)
+          else:
+            exp = (constants.QRFS_NORMAL, value)
+        else:
+          exp = (constants.QRFS_UNAVAIL, None)
+
+        self.assertEqual(row[fieldidx[field]], exp)
+
+      bridges = inst_bridges.get(inst.name, [])
+      self.assertEqual(row[fieldidx["nic.bridges"]],
+                       (constants.QRFS_NORMAL, bridges))
+      if bridges:
+        self.assertEqual(row[fieldidx["bridge"]],
+                         (constants.QRFS_NORMAL, bridges[0]))
+      else:
+        self.assertEqual(row[fieldidx["bridge"]],
+                         (constants.QRFS_UNAVAIL, None))
+
+      for i in range(constants.MAX_NICS):
+        if i < len(bridges) and bridges[i] is not None:
+          exp = (constants.QRFS_NORMAL, bridges[i])
+        else:
+          exp = (constants.QRFS_UNAVAIL, None)
+        self.assertEqual(row[fieldidx["nic.bridge/%s" % i]], exp)
+
+      if inst.primary_node in bad_nodes:
+        exp = (constants.QRFS_NODATA, None)
+      else:
+        exp = (constants.QRFS_NORMAL, inst.name in live_data)
+      self.assertEqual(row[fieldidx["oper_state"]], exp)
+
+      usage = disk_usage[inst.name]
+      if usage is None:
+        usage = 0
+      self.assertEqual(row[fieldidx["disk_usage"]],
+                       (constants.QRFS_NORMAL, usage))
+
+      self.assertEqual(row[fieldidx["sda_size"]], row[fieldidx["disk.size/0"]])
+      self.assertEqual(row[fieldidx["sdb_size"]], row[fieldidx["disk.size/1"]])
+
+    # Ensure all possible status' have been tested
+    self.assertEqual(tested_status,
+                     set(["ERROR_nodeoffline", "ERROR_nodedown",
+                          "running", "ERROR_up", "ERROR_down",
+                          "ADMIN_down"]))
 
 
 if __name__ == "__main__":

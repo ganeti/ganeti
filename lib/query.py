@@ -38,6 +38,10 @@ from ganeti import ht
  NQ_LIVE,
  NQ_GROUP) = range(1, 5)
 
+(IQ_CONFIG,
+ IQ_LIVE,
+ IQ_DISKUSAGE) = range(100, 103)
+
 
 FIELD_NAME_RE = re.compile(r"^[a-z0-9/._]+$")
 TITLE_RE = re.compile(r"^[^\s]+$")
@@ -438,5 +442,493 @@ def _BuildNodeFields():
   return _PrepareFieldList(fields)
 
 
+class InstanceQueryData:
+  """Data container for instance data queries.
+
+  """
+  def __init__(self, instances, cluster, disk_usage, offline_nodes, bad_nodes,
+               live_data):
+    """Initializes this class.
+
+    @param instances: List of instance objects
+    @param cluster: Cluster object
+    @type disk_usage: dict; instance name as key
+    @param disk_usage: Per-instance disk usage
+    @type offline_nodes: list of strings
+    @param offline_nodes: List of offline nodes
+    @type bad_nodes: list of strings
+    @param bad_nodes: List of faulty nodes
+    @type live_data: dict; instance name as key
+    @param live_data: Per-instance live data
+
+    """
+    assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
+           "Offline nodes not included in bad nodes"
+    assert not (set(live_data.keys()) & set(bad_nodes)), \
+           "Found live data for bad or offline nodes"
+
+    self.instances = instances
+    self.cluster = cluster
+    self.disk_usage = disk_usage
+    self.offline_nodes = offline_nodes
+    self.bad_nodes = bad_nodes
+    self.live_data = live_data
+
+    # Used for individual rows
+    self.inst_hvparams = None
+    self.inst_beparams = None
+    self.inst_nicparams = None
+
+  def __iter__(self):
+    """Iterate over all instances.
+
+    This function has side-effects and only one instance of the resulting
+    generator should be used at a time.
+
+    """
+    for inst in self.instances:
+      self.inst_hvparams = self.cluster.FillHV(inst, skip_globals=True)
+      self.inst_beparams = self.cluster.FillBE(inst)
+      self.inst_nicparams = [self.cluster.SimpleFillNIC(nic.nicparams)
+                             for nic in inst.nics]
+
+      yield inst
+
+
+def _GetInstOperState(ctx, inst):
+  """Get instance's operational status.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  if inst.primary_node in ctx.bad_nodes:
+    return (constants.QRFS_NODATA, None)
+  else:
+    return (constants.QRFS_NORMAL, bool(ctx.live_data.get(inst.name)))
+
+
+def _GetInstLiveData(name):
+  """Build function for retrieving live data.
+
+  @type name: string
+  @param name: Live data field name
+
+  """
+  def fn(ctx, inst):
+    """Get live data for an instance.
+
+    @type ctx: L{InstanceQueryData}
+    @type inst: L{objects.Instance}
+    @param inst: Instance object
+
+    """
+    if (inst.primary_node in ctx.bad_nodes or
+        inst.primary_node in ctx.offline_nodes):
+      return (constants.QRFS_NODATA, None)
+
+    if inst.name in ctx.live_data:
+      data = ctx.live_data[inst.name]
+      if name in data:
+        return (constants.QRFS_NORMAL, data[name])
+
+    return (constants.QRFS_UNAVAIL, None)
+
+  return fn
+
+
+def _GetInstStatus(ctx, inst):
+  """Get instance status.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  if inst.primary_node in ctx.offline_nodes:
+    return (constants.QRFS_NORMAL, "ERROR_nodeoffline")
+
+  if inst.primary_node in ctx.bad_nodes:
+    return (constants.QRFS_NORMAL, "ERROR_nodedown")
+
+  if bool(ctx.live_data.get(inst.name)):
+    if inst.admin_up:
+      return (constants.QRFS_NORMAL, "running")
+    else:
+      return (constants.QRFS_NORMAL, "ERROR_up")
+
+  if inst.admin_up:
+    return (constants.QRFS_NORMAL, "ERROR_down")
+
+  return (constants.QRFS_NORMAL, "ADMIN_down")
+
+
+def _GetInstDiskSize(index):
+  """Build function for retrieving disk size.
+
+  @type index: int
+  @param index: Disk index
+
+  """
+  def fn(_, inst):
+    """Get size of a disk.
+
+    @type inst: L{objects.Instance}
+    @param inst: Instance object
+
+    """
+    try:
+      return (constants.QRFS_NORMAL, inst.disks[index].size)
+    except IndexError:
+      return (constants.QRFS_UNAVAIL, None)
+
+  return fn
+
+
+def _GetInstNic(index, cb):
+  """Build function for calling another function with an instance NIC.
+
+  @type index: int
+  @param index: NIC index
+  @type cb: callable
+  @param cb: Callback
+
+  """
+  def fn(ctx, inst):
+    """Call helper function with instance NIC.
+
+    @type ctx: L{InstanceQueryData}
+    @type inst: L{objects.Instance}
+    @param inst: Instance object
+
+    """
+    try:
+      nic = inst.nics[index]
+    except IndexError:
+      return (constants.QRFS_UNAVAIL, None)
+
+    return cb(ctx, index, nic)
+
+  return fn
+
+
+def _GetInstNicIp(ctx, _, nic): # pylint: disable-msg=W0613
+  """Get a NIC's IP address.
+
+  @type ctx: L{InstanceQueryData}
+  @type nic: L{objects.NIC}
+  @param nic: NIC object
+
+  """
+  if nic.ip is None:
+    return (constants.QRFS_UNAVAIL, None)
+  else:
+    return (constants.QRFS_NORMAL, nic.ip)
+
+
+def _GetInstNicBridge(ctx, index, _):
+  """Get a NIC's bridge.
+
+  @type ctx: L{InstanceQueryData}
+  @type index: int
+  @param index: NIC index
+
+  """
+  assert len(ctx.inst_nicparams) >= index
+
+  nicparams = ctx.inst_nicparams[index]
+
+  if nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+    return (constants.QRFS_NORMAL, nicparams[constants.NIC_LINK])
+  else:
+    return (constants.QRFS_UNAVAIL, None)
+
+
+def _GetInstAllNicBridges(ctx, inst):
+  """Get all network bridges for an instance.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  assert len(ctx.inst_nicparams) == len(inst.nics)
+
+  result = []
+
+  for nicp in ctx.inst_nicparams:
+    if nicp[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+      result.append(nicp[constants.NIC_LINK])
+    else:
+      result.append(None)
+
+  assert len(result) == len(inst.nics)
+
+  return (constants.QRFS_NORMAL, result)
+
+
+def _GetInstNicParam(name):
+  """Build function for retrieving a NIC parameter.
+
+  @type name: string
+  @param name: Parameter name
+
+  """
+  def fn(ctx, index, _):
+    """Get a NIC's bridge.
+
+    @type ctx: L{InstanceQueryData}
+    @type inst: L{objects.Instance}
+    @param inst: Instance object
+    @type nic: L{objects.NIC}
+    @param nic: NIC object
+
+    """
+    assert len(ctx.inst_nicparams) >= index
+    return (constants.QRFS_NORMAL, ctx.inst_nicparams[index][name])
+
+  return fn
+
+
+def _GetInstanceNetworkFields():
+  """Get instance fields involving network interfaces.
+
+  @return: List of field definitions used as input for L{_PrepareFieldList}
+
+  """
+  nic_mac_fn = lambda ctx, _, nic: (constants.QRFS_NORMAL, nic.mac)
+  nic_mode_fn = _GetInstNicParam(constants.NIC_MODE)
+  nic_link_fn = _GetInstNicParam(constants.NIC_LINK)
+
+  fields = [
+    # First NIC (legacy)
+    (_MakeField("ip", "IP_address", constants.QFT_TEXT), IQ_CONFIG,
+     _GetInstNic(0, _GetInstNicIp)),
+    (_MakeField("mac", "MAC_address", constants.QFT_TEXT), IQ_CONFIG,
+     _GetInstNic(0, nic_mac_fn)),
+    (_MakeField("bridge", "Bridge", constants.QFT_TEXT), IQ_CONFIG,
+     _GetInstNic(0, _GetInstNicBridge)),
+    (_MakeField("nic_mode", "NIC_Mode", constants.QFT_TEXT), IQ_CONFIG,
+     _GetInstNic(0, nic_mode_fn)),
+    (_MakeField("nic_link", "NIC_Link", constants.QFT_TEXT), IQ_CONFIG,
+     _GetInstNic(0, nic_link_fn)),
+
+    # All NICs
+    (_MakeField("nic.count", "NICs", constants.QFT_NUMBER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, len(inst.nics))),
+    (_MakeField("nic.macs", "NIC_MACs", constants.QFT_OTHER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, [nic.mac for nic in inst.nics])),
+    (_MakeField("nic.ips", "NIC_IPs", constants.QFT_OTHER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, [nic.ip for nic in inst.nics])),
+    (_MakeField("nic.modes", "NIC_modes", constants.QFT_OTHER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL,
+                        [nicp[constants.NIC_MODE]
+                         for nicp in ctx.inst_nicparams])),
+    (_MakeField("nic.links", "NIC_links", constants.QFT_OTHER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL,
+                        [nicp[constants.NIC_LINK]
+                         for nicp in ctx.inst_nicparams])),
+    (_MakeField("nic.bridges", "NIC_bridges", constants.QFT_OTHER), IQ_CONFIG,
+     _GetInstAllNicBridges),
+    ]
+
+  # NICs by number
+  for i in range(constants.MAX_NICS):
+    fields.extend([
+      (_MakeField("nic.ip/%s" % i, "NicIP/%s" % i, constants.QFT_TEXT),
+       IQ_CONFIG, _GetInstNic(i, _GetInstNicIp)),
+      (_MakeField("nic.mac/%s" % i, "NicMAC/%s" % i, constants.QFT_TEXT),
+       IQ_CONFIG, _GetInstNic(i, nic_mac_fn)),
+      (_MakeField("nic.mode/%s" % i, "NicMode/%s" % i, constants.QFT_TEXT),
+       IQ_CONFIG, _GetInstNic(i, nic_mode_fn)),
+      (_MakeField("nic.link/%s" % i, "NicLink/%s" % i, constants.QFT_TEXT),
+       IQ_CONFIG, _GetInstNic(i, nic_link_fn)),
+      (_MakeField("nic.bridge/%s" % i, "NicBridge/%s" % i, constants.QFT_TEXT),
+       IQ_CONFIG, _GetInstNic(i, _GetInstNicBridge)),
+      ])
+
+  return fields
+
+
+def _GetInstDiskUsage(ctx, inst):
+  """Get disk usage for an instance.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  usage = ctx.disk_usage[inst.name]
+
+  if usage is None:
+    usage = 0
+
+  return (constants.QRFS_NORMAL, usage)
+
+
+def _GetInstanceDiskFields():
+  """Get instance fields involving disks.
+
+  @return: List of field definitions used as input for L{_PrepareFieldList}
+
+  """
+  fields = [
+    (_MakeField("disk_usage", "DiskUsage", constants.QFT_UNIT), IQ_DISKUSAGE,
+     _GetInstDiskUsage),
+    (_MakeField("sda_size", "LegacyDisk/0", constants.QFT_UNIT), IQ_CONFIG,
+     _GetInstDiskSize(0)),
+    (_MakeField("sdb_size", "LegacyDisk/1", constants.QFT_UNIT), IQ_CONFIG,
+     _GetInstDiskSize(1)),
+    (_MakeField("disk.count", "Disks", constants.QFT_NUMBER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, len(inst.disks))),
+    (_MakeField("disk.sizes", "Disk_sizes", constants.QFT_OTHER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL,
+                        [disk.size for disk in inst.disks])),
+    ]
+
+  # Disks by number
+  fields.extend([
+    (_MakeField("disk.size/%s" % i, "Disk/%s" % i, constants.QFT_UNIT),
+     IQ_CONFIG, _GetInstDiskSize(i))
+    for i in range(constants.MAX_DISKS)
+    ])
+
+  return fields
+
+
+def _GetInstanceParameterFields():
+  """Get instance fields involving parameters.
+
+  @return: List of field definitions used as input for L{_PrepareFieldList}
+
+  """
+  # TODO: Consider moving titles closer to constants
+  be_title = {
+    constants.BE_AUTO_BALANCE: "Auto_balance",
+    constants.BE_MEMORY: "Configured_memory",
+    constants.BE_VCPUS: "VCPUs",
+    }
+
+  hv_title = {
+    constants.HV_ACPI: "ACPI",
+    constants.HV_BOOT_ORDER: "Boot_order",
+    constants.HV_CDROM_IMAGE_PATH: "CDROM_image_path",
+    constants.HV_DISK_TYPE: "Disk_type",
+    constants.HV_INITRD_PATH: "Initrd_path",
+    constants.HV_KERNEL_PATH: "Kernel_path",
+    constants.HV_NIC_TYPE: "NIC_type",
+    constants.HV_PAE: "PAE",
+    constants.HV_VNC_BIND_ADDRESS: "VNC_bind_address",
+    }
+
+  fields = [
+    # Filled parameters
+    (_MakeField("hvparams", "HypervisorParameters", constants.QFT_OTHER),
+     IQ_CONFIG, lambda ctx, _: (constants.QRFS_NORMAL, ctx.inst_hvparams)),
+    (_MakeField("beparams", "BackendParameters", constants.QFT_OTHER),
+     IQ_CONFIG, lambda ctx, _: (constants.QRFS_NORMAL, ctx.inst_beparams)),
+    (_MakeField("vcpus", "LegacyVCPUs", constants.QFT_NUMBER), IQ_CONFIG,
+     lambda ctx, _: (constants.QRFS_NORMAL,
+                     ctx.inst_beparams[constants.BE_VCPUS])),
+
+    # Unfilled parameters
+    (_MakeField("custom_hvparams", "CustomHypervisorParameters",
+                constants.QFT_OTHER),
+     IQ_CONFIG, lambda ctx, inst: (constants.QRFS_NORMAL, inst.hvparams)),
+    (_MakeField("custom_beparams", "CustomBackendParameters",
+                constants.QFT_OTHER),
+     IQ_CONFIG, lambda ctx, inst: (constants.QRFS_NORMAL, inst.beparams)),
+    (_MakeField("custom_nicparams", "CustomNicParameters",
+                constants.QFT_OTHER),
+     IQ_CONFIG, lambda ctx, inst: (constants.QRFS_NORMAL,
+                                   [nic.nicparams for nic in inst.nics])),
+    ]
+
+  # HV params
+  def _GetInstHvParam(name):
+    return lambda ctx, _: (constants.QRFS_NORMAL,
+                           ctx.inst_hvparams.get(name, None))
+
+  fields.extend([
+    # For now all hypervisor parameters are exported as QFT_OTHER
+    (_MakeField("hv/%s" % name, hv_title.get(name, "hv/%s" % name),
+                constants.QFT_OTHER),
+     IQ_CONFIG, _GetInstHvParam(name))
+    for name in constants.HVS_PARAMETERS
+    if name not in constants.HVC_GLOBALS
+    ])
+
+  # BE params
+  def _GetInstBeParam(name):
+    return lambda ctx, _: (constants.QRFS_NORMAL,
+                           ctx.inst_beparams.get(name, None))
+
+  fields.extend([
+    # For now all backend parameters are exported as QFT_OTHER
+    (_MakeField("be/%s" % name, be_title.get(name, "be/%s" % name),
+                constants.QFT_OTHER),
+     IQ_CONFIG, _GetInstBeParam(name))
+    for name in constants.BES_PARAMETERS
+    ])
+
+  return fields
+
+
+_INST_SIMPLE_FIELDS = {
+  "ctime": ("CTime", constants.QFT_TIMESTAMP),
+  "disk_template": ("Disk_template", constants.QFT_TEXT),
+  "hypervisor": ("Hypervisor", constants.QFT_TEXT),
+  "mtime": ("MTime", constants.QFT_TIMESTAMP),
+  "name": ("Node", constants.QFT_TEXT),
+  # Depending on the hypervisor, the port can be None
+  "network_port": ("Network_port", constants.QFT_OTHER),
+  "os": ("OS", constants.QFT_TEXT),
+  "serial_no": ("SerialNo", constants.QFT_NUMBER),
+  "uuid": ("UUID", constants.QFT_TEXT),
+  }
+
+
+def _BuildInstanceFields():
+  """Builds list of fields for instance queries.
+
+  """
+  fields = [
+    (_MakeField("pnode", "Primary_node", constants.QFT_TEXT), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, inst.primary_node)),
+    (_MakeField("snodes", "Secondary_Nodes", constants.QFT_OTHER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, list(inst.secondary_nodes))),
+    (_MakeField("admin_state", "Autostart", constants.QFT_BOOL), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, inst.admin_up)),
+    (_MakeField("tags", "Tags", constants.QFT_OTHER), IQ_CONFIG,
+     lambda ctx, inst: (constants.QRFS_NORMAL, list(inst.GetTags()))),
+    ]
+
+  # Add simple fields
+  fields.extend([(_MakeField(name, title, kind), IQ_CONFIG, _GetItemAttr(name))
+                 for (name, (title, kind)) in _INST_SIMPLE_FIELDS.items()])
+
+  # Fields requiring talking to the node
+  fields.extend([
+    (_MakeField("oper_state", "Running", constants.QFT_BOOL), IQ_LIVE,
+     _GetInstOperState),
+    (_MakeField("oper_ram", "RuntimeMemory", constants.QFT_UNIT), IQ_LIVE,
+     _GetInstLiveData("memory")),
+    (_MakeField("oper_vcpus", "RuntimeVCPUs", constants.QFT_NUMBER), IQ_LIVE,
+     _GetInstLiveData("vcpus")),
+    (_MakeField("status", "Status", constants.QFT_TEXT), IQ_LIVE,
+     _GetInstStatus),
+    ])
+
+  fields.extend(_GetInstanceParameterFields())
+  fields.extend(_GetInstanceDiskFields())
+  fields.extend(_GetInstanceNetworkFields())
+
+  return _PrepareFieldList(fields)
+
+
 #: Fields available for node queries
 NODE_FIELDS = _BuildNodeFields()
+
+#: Fields available for instance queries
+INSTANCE_FIELDS = _BuildInstanceFields()
