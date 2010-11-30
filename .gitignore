@@ -3,6 +3,7 @@
 /coverage
 
 /man/*.1
+/man/*.html
 
 /doc/*.html
 
