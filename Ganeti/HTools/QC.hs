@@ -121,6 +121,25 @@ isNodeBig node size = Node.availDisk node > size * Types.unitDsk
 canBalance :: Cluster.Table -> Bool -> Bool -> Bool
 canBalance tbl dm evac = isJust $ Cluster.tryBalance tbl dm evac 0 0
 
+-- | Assigns a new fresh instance to a cluster; this is not
+-- allocation, so no resource checks are done
+assignInstance :: Node.List -> Instance.List -> Instance.Instance ->
+                  Types.Idx -> Types.Idx ->
+                  (Node.List, Instance.List)
+assignInstance nl il inst pdx sdx =
+  let pnode = Container.find pdx nl
+      snode = Container.find sdx nl
+      maxiidx = if Container.null il
+                then 0
+                else fst (Container.findMax il) + 1
+      inst' = inst { Instance.idx = maxiidx,
+                     Instance.pNode = pdx, Instance.sNode = sdx }
+      pnode' = Node.setPri pnode inst'
+      snode' = Node.setSec snode inst'
+      nl' = Container.addTwo pdx pnode' sdx snode' nl
+      il' = Container.add maxiidx inst' il
+  in (nl', il')
+
 -- * Arbitrary instances
 
 -- copied from the introduction to quickcheck
@@ -748,7 +767,16 @@ prop_ClusterCheckConsistency node inst =
      null (ccheck [(0, inst2)]) &&
      (not . null $ ccheck [(0, inst3)])
 
-
+-- For now, we only test that we don't lose instances during the split
+prop_ClusterSplitCluster node inst =
+  forAll (choose (0, 100)) $ \icnt ->
+  let nl = makeSmallCluster node 2
+      (nl', il') = foldl (\(ns, is) _ -> assignInstance ns is inst 0 1)
+                   (nl, Container.empty) [1..icnt]
+      gni = Cluster.splitCluster nl' il'
+  in sum (map (Container.size . snd . snd) gni) == icnt &&
+     all (\(guuid, (nl'', _)) -> all ((== guuid) . Node.group)
+                                 (Container.elems nl'')) gni
 
 testCluster =
     [ run prop_Score_Zero
@@ -758,6 +786,7 @@ testCluster =
     , run prop_ClusterAllocEvac
     , run prop_ClusterAllocBalance
     , run prop_ClusterCheckConsistency
+    , run prop_ClusterSplitCluster
     ]
 
 -- | Check that opcode serialization is idempotent

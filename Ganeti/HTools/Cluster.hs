@@ -63,6 +63,7 @@ module Ganeti.HTools.Cluster
     , tieredAlloc
     , instanceGroup
     , findSplitInstances
+    , splitCluster
     ) where
 
 import Data.List
@@ -856,3 +857,14 @@ findSplitInstances nl il =
   where isOk x = case x of
           Bad _ -> False
           _ -> True
+
+-- | Splits a cluster into the component node groups
+splitCluster :: Node.List -> Instance.List ->
+                [(GroupID, (Node.List, Instance.List))]
+splitCluster nl il =
+  let ngroups = Node.computeGroups (Container.elems nl)
+  in map (\(guuid, nodes) ->
+           let nidxs = map Node.idx nodes
+               nodes' = zip nidxs nodes
+               instances = Container.filter ((`elem` nidxs) . Instance.pNode) il
+           in (guuid, (Container.fromAssocList nodes', instances))) ngroups
