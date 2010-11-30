@@ -55,6 +55,8 @@ module Ganeti.HTools.Types
     , queryTimeout
     ) where
 
+import qualified Data.Map as M
+
 -- | The instance index type.
 type Idx = Int
 
@@ -62,7 +64,7 @@ type Idx = Int
 type Ndx = Int
 
 -- | The type used to hold name-to-idx mappings.
-type NameAssoc = [(String, Int)]
+type NameAssoc = M.Map String Int
 
 -- | A separate name for the cluster score type.
 type Score = Double

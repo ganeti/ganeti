@@ -40,6 +40,7 @@ module Ganeti.HTools.Loader
 import Data.Function (on)
 import Data.List
 import Data.Maybe (fromJust)
+import qualified Data.Map as M
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
@@ -78,14 +79,14 @@ data Request = Request RqType Node.List Instance.List [String]
 -- | Lookups a node into an assoc list.
 lookupNode :: (Monad m) => NameAssoc -> String -> String -> m Ndx
 lookupNode ktn inst node =
-    case lookup node ktn of
+    case M.lookup node ktn of
       Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
       Just idx -> return idx
 
 -- | Lookups an instance into an assoc list.
 lookupInstance :: (Monad m) => NameAssoc -> String -> m Idx
 lookupInstance kti inst =
-    case lookup inst kti of
+    case M.lookup inst kti of
       Nothing -> fail $ "Unknown instance '" ++ inst ++ "'"
       Just idx -> return idx
 
@@ -93,9 +94,11 @@ lookupInstance kti inst =
 assignIndices :: (Element a) =>
                  [(String, a)]
               -> (NameAssoc, [(Int, a)])
-assignIndices =
-    unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
-          . zip [0..]
+assignIndices nodes =
+  let (na, idx_node) =
+          unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
+          . zip [0..] $ nodes
+  in (M.fromList na, idx_node)
 
 -- | Assoc element comparator
 assocEqual :: (Eq a) => (a, b) -> (a, b) -> Bool
