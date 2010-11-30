@@ -37,9 +37,7 @@ module Ganeti.HTools.Loader
     , Request(..)
     ) where
 
-import Data.Function (on)
 import Data.List
-import Data.Maybe (fromJust)
 import qualified Data.Map as M
 import Text.Printf (printf)
 
@@ -93,35 +91,29 @@ lookupInstance kti inst =
 -- | Given a list of elements (and their names), assign indices to them.
 assignIndices :: (Element a) =>
                  [(String, a)]
-              -> (NameAssoc, [(Int, a)])
+              -> (NameAssoc, Container.Container a)
 assignIndices nodes =
   let (na, idx_node) =
           unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
           . zip [0..] $ nodes
-  in (M.fromList na, idx_node)
-
--- | Assoc element comparator
-assocEqual :: (Eq a) => (a, b) -> (a, b) -> Bool
-assocEqual = (==) `on` fst
+  in (M.fromList na, Container.fromAssocList idx_node)
 
 -- | For each instance, add its index to its primary and secondary nodes.
-fixNodes :: [(Ndx, Node.Node)]
+fixNodes :: Node.List
          -> Instance.Instance
-         -> [(Ndx, Node.Node)]
+         -> Node.List
 fixNodes accu inst =
     let
         pdx = Instance.pNode inst
         sdx = Instance.sNode inst
-        pold = fromJust $ lookup pdx accu
+        pold = Container.find pdx accu
         pnew = Node.setPri pold inst
-        ac1 = deleteBy assocEqual (pdx, pold) accu
-        ac2 = (pdx, pnew):ac1
+        ac2 = Container.add pdx pnew accu
     in
       if sdx /= Node.noSecondary
-      then let sold = fromJust $ lookup sdx accu
+      then let sold = Container.find sdx accu
                snew = Node.setSec sold inst
-               ac3 = deleteBy assocEqual (sdx, sold) ac2
-           in (sdx, snew):ac3
+           in Container.add sdx snew ac2
       else ac2
 
 -- | Remove non-selected tags from the exclusion list
@@ -168,11 +160,11 @@ commonSuffix nl il =
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
           -> [String]             -- ^ Untouchable instances
-          -> (Node.AssocList, Instance.AssocList, [String])
+          -> (Node.List, Instance.List, [String])
           -- ^ Data from backends
           -> Result (Node.List, Instance.List, [String])
-mergeData um extags exinsts (nl, il, tags) =
-  let il2 = Container.fromAssocList il
+mergeData um extags exinsts (nl, il2, tags) =
+  let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
                           Nothing -> im -- skipping unknown instance
@@ -184,10 +176,9 @@ mergeData um extags exinsts (nl, il, tags) =
       il4 = Container.map (filterExTags allextags .
                            updateMovable exinsts) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
-      nl3 = Container.fromAssocList
-            (map (\ (k, v) -> (k, Node.buildPeers v il4)) nl2)
-      node_names = map (Node.name . snd) nl
-      inst_names = map (Instance.name . snd) il
+      nl3 = Container.map (\node -> Node.buildPeers node il4) nl2
+      node_names = map Node.name (Container.elems nl)
+      inst_names = map Instance.name il
       common_suffix = longestDomain (node_names ++ inst_names)
       snl = Container.map (computeAlias common_suffix) nl3
       sil = Container.map (computeAlias common_suffix) il4

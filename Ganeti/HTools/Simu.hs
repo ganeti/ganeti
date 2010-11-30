@@ -6,7 +6,7 @@ This module holds the code for parsing a cluster description.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -52,7 +53,7 @@ parseDesc desc =
 
 -- | Builds the cluster data from node\/instance files.
 parseData :: String -- ^ Cluster description in text format
-         -> Result (Node.AssocList, Instance.AssocList, [String])
+         -> Result (Node.List, Instance.List, [String])
 parseData ndata = do
   (cnt, disk, mem, cpu) <- parseDesc ndata
   let nodes = map (\idx ->
@@ -62,10 +63,10 @@ parseData ndata = do
                             (fromIntegral cpu) False defaultGroupID
                     in (idx, Node.setIdx n idx)
                   ) [1..cnt]
-  return (nodes, [], [])
+  return (Container.fromAssocList nodes, Container.empty, [])
 
 -- | Builds the cluster data from node\/instance files.
 loadData :: String -- ^ Cluster description in text format
-         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
+         -> IO (Result (Node.List, Instance.List, [String]))
 loadData = -- IO monad, just for consistency with the other loaders
   return . parseData

@@ -110,7 +110,7 @@ makeSmallCluster node count =
     let fn = Node.buildPeers node Container.empty
         namelst = map (\n -> (Node.name n, n)) (replicate count fn)
         (_, nlst) = Loader.assignIndices namelst
-    in Container.fromAssocList nlst
+    in nlst
 
 -- | Checks if a node is "big" enough
 isNodeBig :: Node.Node -> Int -> Bool
@@ -448,11 +448,12 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
         ndx = if null snode
               then [(pnode, pdx)]
               else [(pnode, pdx), (snode, rsdx)]
+        nl = Data.Map.fromList ndx
         tags = ""
-        inst = Text.loadInst ndx
+        inst = Text.loadInst nl
                [name, mem_s, dsk_s, vcpus_s, status, pnode, snode, tags]::
                Maybe (String, Instance.Instance)
-        fail1 = Text.loadInst ndx
+        fail1 = Text.loadInst nl
                [name, mem_s, dsk_s, vcpus_s, status, pnode, pnode, tags]::
                Maybe (String, Instance.Instance)
         _types = ( name::String, mem::Int, dsk::Int
@@ -473,7 +474,8 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
              isNothing fail1)
 
 prop_Text_Load_InstanceFail ktn fields =
-    length fields /= 8 ==> isNothing $ Text.loadInst ktn fields
+    length fields /= 8 ==> isNothing $ Text.loadInst nl fields
+    where nl = Data.Map.fromList ktn
 
 prop_Text_Load_Node name tm nm fm td fd tc fo =
     let conv v = if v < 0
@@ -822,35 +824,27 @@ testJobs =
 -- | Loader tests
 
 prop_Loader_lookupNode ktn inst node =
-  isJust (Loader.lookupNode ktn inst node) == (node `elem` names)
-    where names = map fst ktn
+  Loader.lookupNode nl inst node == Data.Map.lookup node nl
+  where nl = Data.Map.fromList ktn
 
 prop_Loader_lookupInstance kti inst =
-  isJust (Loader.lookupInstance kti inst) == (inst `elem` names)
-    where names = map fst kti
+  Loader.lookupInstance il inst == Data.Map.lookup inst il
+  where il = Data.Map.fromList kti
 
-prop_Loader_lookupInstanceIdx kti inst =
-  case (Loader.lookupInstance kti inst,
-        findIndex (\p -> fst p == inst) kti) of
-    (Nothing, Nothing) -> True
-    (Just idx, Just ex) -> idx == snd (kti !! ex)
-    _ -> False
-
-prop_Loader_assignIndices enames =
-  length nassoc == length enames &&
-  length kt == length enames &&
-  (if not (null enames)
-   then maximum (map fst kt) == length enames - 1
+prop_Loader_assignIndices nodes =
+  Data.Map.size nassoc == length nodes &&
+  Container.size kt == length nodes &&
+  (if not (null nodes)
+   then maximum (IntMap.keys kt) == length nodes - 1
    else True)
-  where (nassoc, kt) = Loader.assignIndices enames
-        _types = enames::[(String, Node.Node)]
+  where (nassoc, kt) = Loader.assignIndices (map (\n -> (Node.name n, n)) nodes)
 
 
 -- | Checks that the number of primary instances recorded on the nodes
 -- is zero
 prop_Loader_mergeData ns =
-  let na = map (\n -> (Node.idx n, n)) ns
-  in case Loader.mergeData [] [] [] (na, [], []) of
+  let na = Container.fromAssocList $ map (\n -> (Node.idx n, n)) ns
+  in case Loader.mergeData [] [] [] (na, Container.empty, []) of
     Types.Bad _ -> False
     Types.Ok (nl, il, _) ->
       let nodes = Container.elems nl
@@ -861,7 +855,6 @@ prop_Loader_mergeData ns =
 testLoader =
   [ run prop_Loader_lookupNode
   , run prop_Loader_lookupInstance
-  , run prop_Loader_lookupInstanceIdx
   , run prop_Loader_assignIndices
   , run prop_Loader_mergeData
   ]

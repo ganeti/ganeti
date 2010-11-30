@@ -131,7 +131,7 @@ readData master = do
 
 -- | Builds the cluster data from the raw Rapi content
 parseData :: (Result String, Result String, Result String)
-          -> Result (Node.AssocList, Instance.AssocList, [String])
+          -> Result (Node.List, Instance.List, [String])
 parseData (node_body, inst_body, tags_body) = do
   node_data <- node_body >>= getNodes
   let (node_names, node_idx) = assignIndices node_data
@@ -142,5 +142,5 @@ parseData (node_body, inst_body, tags_body) = do
 
 -- | Top level function for data loading
 loadData :: String -- ^ Cluster or URL to use as source
-            -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
+            -> IO (Result (Node.List, Instance.List, [String]))
 loadData master = readData master >>= return . parseData

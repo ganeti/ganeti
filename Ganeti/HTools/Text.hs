@@ -135,7 +135,7 @@ loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 -- a supplied conversion function.
 loadTabular :: (Monad m, Element a) =>
                [String] -> ([String] -> m (String, a))
-            -> m (NameAssoc, [(Int, a)])
+            -> m (NameAssoc, Container.Container a)
 loadTabular lines_data convert_fn = do
   let rows = map (sepSplit '|') lines_data
   kerows <- mapM convert_fn rows
@@ -148,7 +148,7 @@ readData = readFile
 
 -- | Builds the cluster data from text input.
 parseData :: String -- ^ Text data
-          -> Result (Node.AssocList, Instance.AssocList, [String])
+          -> Result (Node.List, Instance.List, [String])
 parseData fdata = do
   let flines = lines fdata
       (nlines, ilines) = break null flines
@@ -163,5 +163,5 @@ parseData fdata = do
 
 -- | Top level function for data loading
 loadData :: String -- ^ Path to the text file
-         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
+         -> IO (Result (Node.List, Instance.List, [String]))
 loadData afile = readData afile >>= return . parseData

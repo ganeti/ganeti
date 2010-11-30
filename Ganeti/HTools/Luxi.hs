@@ -162,7 +162,7 @@ readData master =
        )
 
 parseData :: (Result JSValue, Result JSValue, Result JSValue)
-          -> Result (Node.AssocList, Instance.AssocList, [String])
+          -> Result (Node.List, Instance.List, [String])
 parseData (nodes, instances, cinfo) = do
   node_data <- nodes >>= getNodes
   let (node_names, node_idx) = assignIndices node_data
@@ -173,5 +173,5 @@ parseData (nodes, instances, cinfo) = do
 
 -- | Top level function for data loading
 loadData :: String -- ^ Unix socket to use as source
-            -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
+            -> IO (Result (Node.List, Instance.List, [String]))
 loadData master = readData master >>= return . parseData
