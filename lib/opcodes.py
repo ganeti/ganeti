@@ -700,6 +700,14 @@ class OpGrowDisk(OpCode):
     ]
 
 
+# Node group opcodes
+
+class OpQueryGroups(OpCode):
+  """Compute the list of node groups."""
+  OP_ID = "OP_GROUP_QUERY"
+  __slots__ = ["output_fields", "names"]
+
+
 # OS opcodes
 class OpDiagnoseOS(OpCode):
   """Compute the list of guest operating systems."""

@@ -10224,6 +10224,113 @@ class LURemoveExport(NoHooksLU):
                   " Domain Name.")
 
 
+class LUQueryGroups(NoHooksLU):
+  """Logical unit for querying node groups.
+
+  """
+  # pylint: disable-msg=W0142
+  _OP_PARAMS = [
+    _POutputFields,
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ]
+
+  REQ_BGL = False
+
+  _FIELDS_DYNAMIC = utils.FieldSet()
+
+  _SIMPLE_FIELDS = ["name", "uuid"]
+
+  _FIELDS_STATIC = utils.FieldSet(
+      "node_cnt", "node_list", "pinst_cnt", "pinst_list", *_SIMPLE_FIELDS)
+
+  def CheckArguments(self):
+    _CheckOutputFields(static=self._FIELDS_STATIC,
+                       dynamic=self._FIELDS_DYNAMIC,
+                       selected=self.op.output_fields)
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+
+  def Exec(self, feedback_fn):
+    """Computes the list of groups and their attributes.
+
+    """
+    all_groups = self.cfg.GetAllNodeGroupsInfo()
+
+    if not self.op.names:
+      my_groups = utils.NiceSort(all_groups.keys())
+    else:
+      # Accept names to be either names or UUIDs.
+      all_uuid = frozenset(all_groups.keys())
+      name_to_uuid = dict((g.name, g.uuid) for g in all_groups.values())
+      my_groups = []
+      missing = []
+
+      for name in self.op.names:
+        if name in all_uuid:
+          my_groups.append(name)
+        elif name in name_to_uuid:
+          my_groups.append(name_to_uuid[name])
+        else:
+          missing.append(name)
+
+      if missing:
+        raise errors.OpPrereqError("Some groups do not exist: %s" % missing,
+                                   errors.ECODE_NOENT)
+
+    do_nodes = bool(frozenset(["node_cnt", "node_list"]).
+                    intersection(self.op.output_fields))
+
+    do_instances = bool(frozenset(["pinst_cnt", "pinst_list"]).
+                        intersection(self.op.output_fields))
+
+    # We need to map group->[nodes], and group->[instances]. The former is
+    # directly attainable, but the latter we have to do through instance->node,
+    # hence we need to process nodes even if we only need instance information.
+    if do_nodes or do_instances:
+      all_nodes = self.cfg.GetAllNodesInfo()
+      group_to_nodes = dict((all_groups[name].uuid, []) for name in my_groups)
+      node_to_group = {}
+
+      for node in all_nodes.values():
+        if node.group in group_to_nodes:
+          group_to_nodes[node.group].append(node.name)
+          node_to_group[node.name] = node.group
+
+      if do_instances:
+        all_instances = self.cfg.GetAllInstancesInfo()
+        group_to_instances = dict((all_groups[name].uuid, [])
+                                  for name in my_groups)
+        for instance in all_instances.values():
+          node = instance.primary_node
+          if node in node_to_group:
+            group_to_instances[node_to_group[node]].append(instance.name)
+
+    output = []
+
+    for name in my_groups:
+      group = all_groups[name]
+      group_output = []
+
+      for field in self.op.output_fields:
+        if field in self._SIMPLE_FIELDS:
+          val = getattr(group, field)
+        elif field == "node_list":
+          val = utils.NiceSort(group_to_nodes[group.uuid])
+        elif field == "node_cnt":
+          val = len(group_to_nodes[group.uuid])
+        elif field == "pinst_list":
+          val = utils.NiceSort(group_to_instances[group.uuid])
+        elif field == "pinst_cnt":
+          val = len(group_to_instances[group.uuid])
+        else:
+          raise errors.ParameterError(field)
+        group_output.append(val)
+      output.append(group_output)
+
+    return output
+
+
 class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   """Generic tags LU.
 
