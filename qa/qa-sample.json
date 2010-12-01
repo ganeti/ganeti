@@ -53,6 +53,8 @@
     "cluster-reserved-lvs": true,
     "cluster-modify": true,
 
+    "group-list": true,
+
     "node-info": true,
     "node-volumes": true,
     "node-readd": true,

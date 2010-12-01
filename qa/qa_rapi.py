@@ -94,6 +94,11 @@ NODE_FIELDS = ("name", "dtotal", "dfree",
                "mtotal", "mnode", "mfree",
                "pinst_cnt", "sinst_cnt", "tags")
 
+GROUP_FIELDS = frozenset([
+  "name", "uuid",
+  "node_cnt", "node_list",
+  ])
+
 JOB_FIELDS = frozenset([
   "id", "ops", "status", "summary",
   "opstatus", "opresult", "oplog",
@@ -167,12 +172,26 @@ def TestEmptyCluster():
       for entry in NODE_FIELDS:
         AssertIn(entry, node)
 
+  def _VerifyGroups(data):
+    default_group = {
+      "name": "default",
+      "uri": "/2/groups/default",
+      }
+    AssertIn(default_group, data)
+
+  def _VerifyGroupsBulk(data):
+    for group in data:
+      for field in GROUP_FIELDS:
+        AssertIn(field, group)
+
   _DoTests([
     ("/", None, 'GET', None),
     ("/2/info", _VerifyInfo, 'GET', None),
     ("/2/tags", None, 'GET', None),
     ("/2/nodes", _VerifyNodes, 'GET', None),
     ("/2/nodes?bulk=1", _VerifyNodesBulk, 'GET', None),
+    ("/2/groups", _VerifyGroups, 'GET', None),
+    ("/2/groups?bulk=1", _VerifyGroupsBulk, 'GET', None),
     ("/2/instances", [], 'GET', None),
     ("/2/instances?bulk=1", [], 'GET', None),
     ("/2/os", None, 'GET', None),

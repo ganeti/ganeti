@@ -31,6 +31,7 @@ import qa_cluster
 import qa_config
 import qa_daemon
 import qa_env
+import qa_group
 import qa_instance
 import qa_node
 import qa_os
@@ -221,6 +222,14 @@ def RunCommonNodeTests():
   RunTestIf("node-storage", qa_node.TestNodeStorage)
 
 
+def RunGroupListTests():
+  """Run tests for listing node groups.
+
+  """
+  RunTestIf("group-list", qa_group.TestGroupListDefaultFields)
+  RunTestIf("group-list", qa_group.TestGroupListAllFields)
+
+
 def RunExportImportTests(instance, pnode, snode):
   """Tries to export and import the instance.
 
@@ -348,6 +357,7 @@ def main():
   RunTestIf("tags", qa_tags.TestClusterTags)
 
   RunCommonNodeTests()
+  RunGroupListTests()
 
   pnode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   try:
@@ -374,6 +384,7 @@ def main():
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
       RunCommonInstanceTests(instance)
+      RunGroupListTests()
       RunExportImportTests(instance, pnode, None)
       RunDaemonTests(instance, pnode)
       RunTest(qa_instance.TestInstanceRemove, instance)
@@ -391,6 +402,7 @@ def main():
           instance = RunTest(func, pnode, snode)
           RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
           RunCommonInstanceTests(instance)
+          RunGroupListTests()
           if qa_config.TestEnabled('instance-convert-disk'):
             RunTest(qa_instance.TestInstanceShutdown, instance)
             RunTest(qa_instance.TestInstanceConvertDisk, instance, snode)
