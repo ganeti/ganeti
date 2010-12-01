@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ processResults :: (Monad m) =>
                -> m (String, Cluster.AllocSolution)
 processResults _ (_, _, []) = fail "No valid allocation solutions"
 processResults (Evacuate _) as@(fstats, successes, sols) =
-    let best = fst $ head sols
+    let (_, _, _, best) = head sols
         tfails = length fstats
         info = printf "for last allocation, successes %d, failures %d,\
                       \ best score: %.8f" successes tfails best::String
@@ -59,7 +59,7 @@ processResults (Evacuate _) as@(fstats, successes, sols) =
 
 processResults _ as@(fstats, successes, sols) =
     case sols of
-      (best, (_, _, w, _)):[] ->
+      (_, _, w, best):[] ->
           let tfails = length fstats
               info = printf "successes %d, failures %d,\
                             \ best score: %.8f for node(s) %s"
@@ -108,7 +108,7 @@ main = do
   let (ok, info, rn) =
           case sols of
             Ok (ginfo, (_, _, sn)) -> (True, "Request successful: " ++ ginfo,
-                                       map snd sn)
+                                       sn)
             Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rq rn
   putStrLn resp

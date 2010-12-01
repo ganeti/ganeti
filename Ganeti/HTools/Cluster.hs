@@ -81,7 +81,7 @@ import qualified Ganeti.OpCodes as OpCodes
 -- * Types
 
 -- | Allocation\/relocation solution.
-type AllocSolution = ([FailMode], Int, [(Score, Node.AllocElement)])
+type AllocSolution = ([FailMode], Int, [Node.AllocElement])
 
 -- | The complete state for the balancing solution
 data Table = Table Node.List Instance.List Score [Placement]
@@ -538,15 +538,15 @@ concatAllocs (flst, cntok, sols) (OpFail reason) = (reason:flst, cntok, sols)
 concatAllocs (flst, cntok, osols) (OpGood ns@(_, _, _, nscore)) =
     let -- Choose the old or new solution, based on the cluster score
         nsols = case osols of
-                  [] -> [(nscore, ns)]
-                  (oscore, _):[] ->
+                  [] -> [ns]
+                  (_, _, _, oscore):[] ->
                       if oscore < nscore
                       then osols
-                      else [(nscore, ns)]
+                      else [ns]
                   -- FIXME: here we simply concat to lists with more
                   -- than one element; we should instead abort, since
                   -- this is not a valid usage of this function
-                  xs -> (nscore, ns):xs
+                  xs -> ns:xs
         nsuc = cntok + 1
     -- Note: we force evaluation of nsols here in order to keep the
     -- memory profile low - we know that we will need nsols for sure
@@ -624,7 +624,7 @@ tryEvac nl il ex_ndx =
                            -- FIXME: hardcoded one node here
                            (fm, cs, aes) <- tryReloc nl' il idx 1 ex_ndx
                            case aes of
-                             csol@(_, (nl'', _, _, _)):_ ->
+                             csol@(nl'', _, _, _):_ ->
                                  return (nl'', (fm, cs, csol:rsols))
                              _ -> fail $ "Can't evacuate instance " ++
                                   Instance.name (Container.find idx il)
@@ -649,7 +649,7 @@ iterateAlloc nl il newinst nreq ixes =
            Ok (errs, _, sols3) ->
                case sols3 of
                  [] -> Ok (collapseFailures errs, nl, il, ixes)
-                 (_, (xnl, xi, _, _)):[] ->
+                 (xnl, xi, _, _):[] ->
                      iterateAlloc xnl (Container.add newidx xi il)
                                   newinst nreq $! (xi:ixes)
                  _ -> Bad "Internal error: multiple solutions for single\
