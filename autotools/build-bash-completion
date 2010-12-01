@@ -434,6 +434,8 @@ class CompletionWriter:
           choices = "$(_ganeti_instances)"
         elif isinstance(arg, cli.ArgNode):
           choices = "$(_ganeti_nodes)"
+        elif isinstance(arg, cli.ArgGroup):
+          choices = "$(_ganeti_nodegroup)"
         elif isinstance(arg, cli.ArgJobId):
           choices = "$(_ganeti_jobs)"
         elif isinstance(arg, cli.ArgOs):

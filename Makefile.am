@@ -156,6 +156,7 @@ client_PYTHON = \
 	lib/client/gnt_backup.py \
 	lib/client/gnt_cluster.py \
 	lib/client/gnt_debug.py \
+	lib/client/gnt_group.py \
 	lib/client/gnt_instance.py \
 	lib/client/gnt_job.py \
 	lib/client/gnt_node.py \
@@ -286,6 +287,7 @@ gnt_scripts = \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
+	scripts/gnt-group \
 	scripts/gnt-instance \
 	scripts/gnt-job \
 	scripts/gnt-node \
@@ -300,6 +302,7 @@ PYTHON_BOOTSTRAP = \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
+	scripts/gnt-group \
 	scripts/gnt-instance \
 	scripts/gnt-job \
 	scripts/gnt-node \
@@ -396,6 +399,7 @@ man_MANS = \
 	man/gnt-backup.8 \
 	man/gnt-cluster.8 \
 	man/gnt-debug.8 \
+	man/gnt-group.8 \
 	man/gnt-instance.8 \
 	man/gnt-job.8 \
 	man/gnt-node.8 \

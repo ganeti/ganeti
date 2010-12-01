@@ -76,6 +76,7 @@
 /scripts/gnt-backup
 /scripts/gnt-cluster
 /scripts/gnt-debug
+/scripts/gnt-group
 /scripts/gnt-instance
 /scripts/gnt-job
 /scripts/gnt-node

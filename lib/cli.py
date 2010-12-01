@@ -183,13 +183,16 @@ __all__ = [
   # command line options support infrastructure
   "ARGS_MANY_INSTANCES",
   "ARGS_MANY_NODES",
+  "ARGS_MANY_GROUPS",
   "ARGS_NONE",
   "ARGS_ONE_INSTANCE",
   "ARGS_ONE_NODE",
+  "ARGS_ONE_GROUP",
   "ARGS_ONE_OS",
   "ArgChoice",
   "ArgCommand",
   "ArgFile",
+  "ArgGroup",
   "ArgHost",
   "ArgInstance",
   "ArgJobId",
@@ -279,6 +282,13 @@ class ArgNode(_Argument):
 
   """
 
+
+class ArgGroup(_Argument):
+  """Node group argument.
+
+  """
+
+
 class ArgJobId(_Argument):
   """Job ID argument.
 
@@ -312,8 +322,10 @@ class ArgOs(_Argument):
 ARGS_NONE = []
 ARGS_MANY_INSTANCES = [ArgInstance()]
 ARGS_MANY_NODES = [ArgNode()]
+ARGS_MANY_GROUPS = [ArgGroup()]
 ARGS_ONE_INSTANCE = [ArgInstance(min=1, max=1)]
 ARGS_ONE_NODE = [ArgNode(min=1, max=1)]
+ARGS_ONE_GROUP = [ArgInstance(min=1, max=1)]
 ARGS_ONE_OS = [ArgOs(min=1, max=1)]
 
 
