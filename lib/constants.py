@@ -645,6 +645,16 @@ NDS_PARAMETER_TYPES = {
 
 NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
 
+# OOB supported commands
+OOB_POWER_ON = "power-on"
+OOB_POWER_OFF = "power-off"
+OOB_POWER_CYCLE = "power-cycle"
+OOB_POWER_STATUS = "power-status"
+OOB_HEALTH = "health"
+
+OOB_COMMANDS = frozenset([OOB_POWER_ON, OOB_POWER_OFF, OOB_POWER_CYCLE,
+                          OOB_POWER_STATUS, OOB_HEALTH])
+
 # Instance Parameters Profile
 PP_DEFAULT = "default"
 

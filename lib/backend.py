@@ -1755,6 +1755,27 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                       atime=atime, mtime=mtime)
 
 
+def RunOob(oob_program, command, node, timeout):
+  """Executes oob_program with given command on given node.
+
+  @param oob_program: The path to the executable oob_program
+  @param command: The command to invoke on oob_program
+  @param node: The node given as an argument to the program
+  @param timeout: Timeout after which we kill the oob program
+
+  @return: stdout
+  @raise RPCFail: If execution fails for some reason
+
+  """
+  result = utils.RunCmd([oob_program, command, node], timeout=timeout)
+
+  if result.failed:
+    _Fail("'%s' failed with reason '%s'; output: %s", result.cmd,
+          result.fail_reason, result.output)
+
+  return result.stdout
+
+
 def WriteSsconfFiles(values):
   """Update all ssconf files.
 
