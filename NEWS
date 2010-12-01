@@ -1,6 +1,18 @@
 News
 ====
 
+Version 2.3.1 rc1
+-----------------
+
+*(Released Wed, 1 Dec 2010)*
+
+- impexpd: Disable OpenSSL compression in socat if possible (backport
+  from master, commit e90739d625b, see :doc:`installation guide
+  <install-quick>` for details)
+- Changed unittest coverage report to exclude test scripts
+- Added script to check version format
+
+
 Version 2.3.0
 -------------
 
