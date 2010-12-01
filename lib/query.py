@@ -154,7 +154,7 @@ class Query:
       for (idx, row) in enumerate(result):
         assert _VerifyResultRow(self._fields, row), \
                ("Inconsistent result for fields %s in row %s: %r" %
-                (self._fields, idx, row))
+                (GetAllFields(self._fields), idx, row))
 
     return result
 
@@ -205,9 +205,10 @@ def _PrepareFieldList(fields):
   @return: Field dictionary for L{Query}
 
   """
-  assert len(set(fdef.title.lower()
-                 for (fdef, _, _) in fields)) == len(fields), \
-         "Duplicate title found"
+  if __debug__:
+    duplicates = utils.FindDuplicates(fdef.title.lower()
+                                      for (fdef, _, _) in fields)
+    assert not duplicates, "Duplicate title(s) found: %r" % duplicates
 
   result = {}
 
@@ -218,7 +219,8 @@ def _PrepareFieldList(fields):
     assert FIELD_NAME_RE.match(fdef.name)
     assert TITLE_RE.match(fdef.title)
     assert callable(fn)
-    assert fdef.name not in result, "Duplicate field name found"
+    assert fdef.name not in result, \
+           "Duplicate field name '%s' found" % fdef.name
 
     result[fdef.name] = field
 
