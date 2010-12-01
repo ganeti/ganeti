@@ -727,6 +727,14 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.GetMasterInfo()
 
   @staticmethod
+  def perspective_run_oob(params):
+    """Runs oob on node.
+
+    """
+    return serializer.LoadJson(backend.RunOob(params[0], params[1], params[2],
+                                              params[3]))
+
+  @staticmethod
   def perspective_write_ssconf_files(params):
     """Write ssconf files.
 

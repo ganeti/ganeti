@@ -1176,6 +1176,16 @@ class RpcRunner(object):
     """
     return cls._StaticMultiNodeCall(node_list, "write_ssconf_files", [values])
 
+  @_RpcTimeout(_TMO_NORMAL)
+  def call_run_oob(self, node, oob_program, command, remote_node):
+    """Runs OOB.
+
+    This is a single-node call.
+
+    """
+    return self._SingleNodeCall(node, "run_oob", [oob_program, command,
+                                                  remote_node])
+
   @_RpcTimeout(_TMO_FAST)
   def call_os_diagnose(self, node_list):
     """Request a diagnose of OS definitions.
