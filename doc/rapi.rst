@@ -332,6 +332,65 @@ features:
   Instance reinstall supports body parameters.
 
 
+``/2/groups``
++++++++++++++
+
+The groups resource.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Returns a list of all existing node groups.
+
+Example::
+
+    [
+      {
+        "name": "group1",
+        "uri": "\/2\/groups\/group1"
+      },
+      {
+        "name": "group2",
+        "uri": "\/2\/groups\/group2"
+      }
+    ]
+
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about node
+groups as a list.
+
+Example::
+
+    [
+      {
+        "name": "group1",
+        "node_cnt": 2,
+        "node_list": [
+          "node1.example.com",
+          "node2.example.com"
+        ],
+        "uuid": "0d7d407c-262e-49af-881a-6a430034bf43"
+      },
+      {
+        "name": "group2",
+        "node_cnt": 1,
+        "node_list": [
+          "node3.example.com"
+        ],
+        "uuid": "f5a277e7-68f9-44d3-a378-4b25ecb5df5c"
+      }
+    ]
+
+``/2/groups/[group_name]``
++++++++++++++++++++++++++++++++++
+
+Returns information about a node group.
+
+It supports the following commands: ``GET``.
+
+
 ``/2/instances``
 ++++++++++++++++
 

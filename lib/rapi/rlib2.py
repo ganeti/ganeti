@@ -73,6 +73,10 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "group.uuid",
             ] + _COMMON_FIELDS
 
+G_FIELDS = ["name", "uuid",
+            "node_cnt", "node_list",
+            ]
+
 _NR_DRAINED = "drained"
 _NR_MASTER_CANDIATE = "master-candidate"
 _NR_MASTER = "master"
@@ -524,6 +528,45 @@ class R_2_nodes_name_storage_repair(baserlib.R_Generic):
                                      storage_type=storage_type,
                                      name=name)
     return baserlib.SubmitJob([op])
+
+
+class R_2_groups(baserlib.R_Generic):
+  """/2/groups resource.
+
+  """
+  def GET(self):
+    """Returns a list of all node groups.
+
+    """
+    client = baserlib.GetClient()
+
+    if self.useBulk():
+      bulkdata = client.QueryGroups([], G_FIELDS, False)
+      return baserlib.MapBulkFields(bulkdata, G_FIELDS)
+    else:
+      data = client.QueryGroups([], ["name"], False)
+      groupnames = [row[0] for row in data]
+      return baserlib.BuildUriList(groupnames, "/2/groups/%s",
+                                   uri_fields=("name", "uri"))
+
+
+class R_2_groups_name(baserlib.R_Generic):
+  """/2/groups/[group_name] resources.
+
+  """
+  def GET(self):
+    """Send information about a node group.
+
+    """
+    group_name = self.items[0]
+    client = baserlib.GetClient()
+
+    result = baserlib.HandleItemQueryErrors(client.QueryGroups,
+                                            names=[group_name], fields=G_FIELDS,
+                                            use_locking=self.useLocking())
+
+    return baserlib.MapFields(G_FIELDS, result[0])
+
 
 
 def _ParseInstanceCreateRequestVersion1(data, dry_run):

@@ -77,10 +77,12 @@ class TestDocs(unittest.TestCase):
 
     node_name = "[node_name]"
     instance_name = "[instance_name]"
+    group_name = "[group_name]"
     job_id = "[job_id]"
 
     resources = connector.GetHandlers(re.escape(node_name),
                                       re.escape(instance_name),
+                                      re.escape(group_name),
                                       re.escape(job_id))
 
     titles = []
