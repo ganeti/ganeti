@@ -854,9 +854,6 @@ instanceGroup nl i =
 findSplitInstances :: Node.List -> Instance.List -> [Instance.Instance]
 findSplitInstances nl il =
   filter (not . isOk . instanceGroup nl) (Container.elems il)
-  where isOk x = case x of
-          Bad _ -> False
-          _ -> True
 
 -- | Splits a cluster into the component node groups
 splitCluster :: Node.List -> Instance.List ->

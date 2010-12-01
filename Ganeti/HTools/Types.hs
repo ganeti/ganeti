@@ -47,6 +47,8 @@ module Ganeti.HTools.Types
     , MoveJob
     , JobSet
     , Result(..)
+    , isOk
+    , isBad
     , Element(..)
     , FailMode(..)
     , FailStats
@@ -177,6 +179,15 @@ instance Monad Result where
     (>>=) (Ok x) fn = fn x
     return = Ok
     fail = Bad
+
+-- | Simple checker for whether Result is OK
+isOk :: Result a -> Bool
+isOk (Ok _) = True
+isOk _ = False
+
+-- | Simple checker for whether Result is a failure
+isBad :: Result a  -> Bool
+isBad = not . isOk
 
 -- | Reason for an operation's falure
 data FailMode = FailMem  -- ^ Failed due to not enough RAM

@@ -85,14 +85,6 @@ isFailure :: Types.OpResult a -> Bool
 isFailure (Types.OpFail _) = True
 isFailure _ = False
 
--- | Simple checker for whether Result is fail or pass
-isOk :: Types.Result a -> Bool
-isOk (Types.Ok _ ) = True
-isOk _ = False
-
-isBad :: Types.Result a  -> Bool
-isBad = not . isOk
-
 -- | Update an instance to be smaller than a node
 setInstanceSmallerThanNode node inst =
     inst { Instance.mem = Node.availMem node `div` 2
@@ -388,7 +380,7 @@ prop_Instance_shrinkMG inst =
 
 prop_Instance_shrinkMF inst =
     Instance.mem inst < 2 * Types.unitMem ==>
-        isBad $ Instance.shrinkByType inst Types.FailMem
+        Types.isBad $ Instance.shrinkByType inst Types.FailMem
 
 prop_Instance_shrinkCG inst =
     Instance.vcpus inst >= 2 * Types.unitCpu ==>
@@ -399,7 +391,7 @@ prop_Instance_shrinkCG inst =
 
 prop_Instance_shrinkCF inst =
     Instance.vcpus inst < 2 * Types.unitCpu ==>
-        isBad $ Instance.shrinkByType inst Types.FailCPU
+        Types.isBad $ Instance.shrinkByType inst Types.FailCPU
 
 prop_Instance_shrinkDG inst =
     Instance.dsk inst >= 2 * Types.unitDsk ==>
@@ -410,7 +402,7 @@ prop_Instance_shrinkDG inst =
 
 prop_Instance_shrinkDF inst =
     Instance.dsk inst < 2 * Types.unitDsk ==>
-        isBad $ Instance.shrinkByType inst Types.FailDisk
+        Types.isBad $ Instance.shrinkByType inst Types.FailDisk
 
 prop_Instance_setMovable inst m =
     Instance.movable inst' == m
