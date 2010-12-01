@@ -1337,6 +1337,37 @@ class TestUniqueSequence(unittest.TestCase):
     self._test(["a", "b", "a"], ["a", "b"])
 
 
+class TestFindDuplicates(unittest.TestCase):
+  """Test case for FindDuplicates"""
+
+  def _Test(self, seq, expected):
+    result = utils.FindDuplicates(seq)
+    self.assertEqual(result, utils.UniqueSequence(result))
+    self.assertEqual(set(result), set(expected))
+
+  def test(self):
+    self._Test([], [])
+    self._Test([1, 2, 3], [])
+    self._Test([9, 8, 8, 0, 5, 1, 7, 0, 6, 7], [8, 0, 7])
+    for exp in [[1, 2, 3], [3, 2, 1]]:
+      self._Test([1, 1, 2, 2, 3, 3], exp)
+
+    self._Test(["A", "a", "B"], [])
+    self._Test(["a", "A", "a", "B"], ["a"])
+    self._Test("Hello World out there!", ["e", " ", "o", "r", "t", "l"])
+
+    self._Test(self._Gen(False), [])
+    self._Test(self._Gen(True), range(1, 10))
+
+  @staticmethod
+  def _Gen(dup):
+    for i in range(10):
+      yield i
+      if dup:
+        for _ in range(i):
+          yield i
+
+
 class TestFirstFree(unittest.TestCase):
   """Test case for the FirstFree function"""
 

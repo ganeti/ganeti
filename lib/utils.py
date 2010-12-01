@@ -2196,6 +2196,29 @@ def UniqueSequence(seq):
   return [i for i in seq if i not in seen and not seen.add(i)]
 
 
+def FindDuplicates(seq):
+  """Identifies duplicates in a list.
+
+  Does not preserve element order.
+
+  @type seq: sequence
+  @param seq: Sequence with source elements
+  @rtype: list
+  @return: List of duplicate elements from seq
+
+  """
+  dup = set()
+  seen = set()
+
+  for item in seq:
+    if item in seen:
+      dup.add(item)
+    else:
+      seen.add(item)
+
+  return list(dup)
+
+
 def NormalizeAndValidateMac(mac):
   """Normalizes and check if a MAC address is valid.
 
