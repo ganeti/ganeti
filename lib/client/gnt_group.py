@@ -26,6 +26,7 @@
 
 from ganeti.cli import *
 from ganeti import compat
+from ganeti import utils
 
 
 #: default list of fields for L{ListGroups}
@@ -37,6 +38,7 @@ _LIST_HEADERS = {
   "name": "Group", "uuid": "UUID",
   "node_cnt": "Nodes", "node_list": "NodeList",
   "pinst_cnt": "Instances", "pinst_list": "InstanceList",
+  "ctime": "CTime", "mtime": "MTime", "serial_no": "SerialNo",
 }
 
 
@@ -59,8 +61,9 @@ def ListGroups(opts, args):
   else:
     headers = _LIST_HEADERS
 
-  int_type_fields = frozenset(["node_cnt", "pinst_cnt"])
+  int_type_fields = frozenset(["node_cnt", "pinst_cnt", "serial_no"])
   list_type_fields = frozenset(["node_list", "pinst_list"])
+  date_type_fields = frozenset(["mtime", "ctime"])
 
   for row in output:
     for idx, field in enumerate(desired_fields):
@@ -70,6 +73,8 @@ def ListGroups(opts, args):
         val = ",".join(val)
       elif opts.roman_integers and field in int_type_fields:
         val = compat.TryToRoman(val)
+      elif field in date_type_fields:
+        val = utils.FormatTime(val)
       elif val is None:
         val = "?"
 
@@ -88,7 +93,10 @@ commands = {
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
-    "[<group_name>...]", "Lists the node groups in the cluster."),
+    "[<group_name>...]",
+    "Lists the node groups in the cluster. The available fields are (see"
+    " the man page for details): %s. The default list is (in order): %s." %
+    (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
 }
 
 

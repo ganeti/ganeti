@@ -60,5 +60,21 @@ pinst_cnt
 pinst_list
     the list of primary instances in the group
 
+ctime
+    the creation time of the group; note that this field contains spaces
+    and as such it's harder to parse
+
+    if this attribute is not present (e.g. when upgrading from older
+    versions), then "N/A" will be shown instead
+
+mtime
+    the last modification time of the group; note that this field
+    contains spaces and as such it's harder to parse
+
+serial_no
+    the so called 'serial number' of the group; this is a numeric field
+    that is incremented each time the node is modified, and it can be
+    used to detect modifications
+
 If no group names are given, then all groups are included. Otherwise,
 only the named groups will be listed.

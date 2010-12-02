@@ -75,7 +75,8 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
 
 G_FIELDS = ["name", "uuid",
             "node_cnt", "node_list",
-            ]
+            "ctime", "mtime", "serial_no",
+            ]  # "tags" is missing to be able to use _COMMON_FIELDS here.
 
 _NR_DRAINED = "drained"
 _NR_MASTER_CANDIATE = "master-candidate"

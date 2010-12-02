@@ -10311,7 +10311,7 @@ class LUQueryGroups(NoHooksLU):
 
   _FIELDS_DYNAMIC = utils.FieldSet()
 
-  _SIMPLE_FIELDS = ["name", "uuid"]
+  _SIMPLE_FIELDS = ["name", "uuid", "ctime", "mtime", "serial_no"]
 
   _FIELDS_STATIC = utils.FieldSet(
       "node_cnt", "node_list", "pinst_cnt", "pinst_list", *_SIMPLE_FIELDS)
