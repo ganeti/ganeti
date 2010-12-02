@@ -193,6 +193,16 @@ not exist, and the hook is only executed in the master node.
 :pre-execution: master node
 :post-execution: master node
 
+OP_RENAME_GROUP
++++++++++++++++
+
+Renames a node group.
+
+:directory: group-rename
+:env. vars: OLD_NAME, NEW_NAME
+:pre-execution: master node and all nodes in the group
+:post-execution: master node and all nodes in the group
+
 
 Instance operations
 ~~~~~~~~~~~~~~~~~~~

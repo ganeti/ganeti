@@ -10533,6 +10533,78 @@ class LURemoveGroup(LogicalUnit):
     self.remove_locks[locking.LEVEL_NODEGROUP] = self.group_uuid
 
 
+class LURenameGroup(LogicalUnit):
+  HPATH = "group-rename"
+  HTYPE = constants.HTYPE_GROUP
+
+  _OP_PARAMS = [
+    ("old_name", ht.NoDefault, ht.TNonEmptyString),
+    ("new_name", ht.NoDefault, ht.TNonEmptyString),
+    ]
+
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    # This raises errors.OpPrereqError on its own:
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.old_name)
+
+    self.needed_locks = {
+      locking.LEVEL_NODEGROUP: [self.group_uuid],
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the given old_name exists as a node group, and that
+    new_name doesn't.
+
+    """
+    try:
+      new_name_uuid = self.cfg.LookupNodeGroup(self.op.new_name)
+    except errors.OpPrereqError:
+      pass
+    else:
+      raise errors.OpPrereqError("Desired new name '%s' clashes with existing"
+                                 " node group (UUID: %s)" %
+                                 (self.op.new_name, new_name_uuid),
+                                 errors.ECODE_EXISTS)
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {
+      "OLD_NAME": self.op.old_name,
+      "NEW_NAME": self.op.new_name,
+      }
+
+    mn = self.cfg.GetMasterNode()
+    all_nodes = self.cfg.GetAllNodesInfo()
+    run_nodes = [mn]
+    all_nodes.pop(mn, None)
+
+    for node in all_nodes.values():
+      if node.group == self.group_uuid:
+        run_nodes.append(node.name)
+
+    return env, run_nodes, run_nodes
+
+  def Exec(self, feedback_fn):
+    """Rename the node group.
+
+    """
+    group = self.cfg.GetNodeGroup(self.group_uuid)
+
+    if group is None:
+      raise errors.OpExecError("Could not retrieve group '%s' (UUID: %s)" %
+                               (self.op.old_name, self.group_uuid))
+
+    group.name = self.op.new_name
+    self.cfg.Update(group, feedback_fn)
+
+    return self.op.new_name
+
+
 class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   """Generic tags LU.
 

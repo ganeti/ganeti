@@ -740,6 +740,13 @@ class OpRemoveGroup(OpCode):
   __slots__ = ["group_name"]
 
 
+class OpRenameGroup(OpCode):
+  """Rename a node group in the cluster."""
+  OP_ID = "OP_GROUP_RENAME"
+  OP_DSC_FIELD = "old_name"
+  __slots__ = ["old_name", "new_name"]
+
+
 # OS opcodes
 class OpDiagnoseOS(OpCode):
   """Compute the list of guest operating systems."""

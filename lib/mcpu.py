@@ -192,6 +192,7 @@ class Processor(object):
     opcodes.OpAddGroup: cmdlib.LUAddGroup,
     opcodes.OpQueryGroups: cmdlib.LUQueryGroups,
     opcodes.OpRemoveGroup: cmdlib.LURemoveGroup,
+    opcodes.OpRenameGroup: cmdlib.LURenameGroup,
     # os lu
     opcodes.OpDiagnoseOS: cmdlib.LUDiagnoseOS,
     # exports lu
