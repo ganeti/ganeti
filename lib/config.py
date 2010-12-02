@@ -886,7 +886,8 @@ class ConfigWriter:
     for nodegroup in self._config_data.nodegroups.values():
       if nodegroup.name == target:
         return nodegroup.uuid
-    raise errors.OpPrereqError("Node group '%s' not found" % target)
+    raise errors.OpPrereqError("Node group '%s' not found" % target,
+                               errors.ECODE_NOENT)
 
   def _UnlockedGetNodeGroup(self, uuid):
     """Lookup a node group.
