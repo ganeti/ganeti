@@ -32,10 +32,7 @@ import System (exitWith, ExitCode(..))
 import System.IO
 import qualified System
 
-import Text.Printf (printf)
-
 import qualified Ganeti.HTools.Cluster as Cluster
-import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
@@ -48,27 +45,16 @@ options = [oPrintNodes, oShowVer, oShowHelp]
 
 processResults :: (Monad m) =>
                   RqType -> Cluster.AllocSolution
-               -> m (String, Cluster.AllocSolution)
-processResults _ (Cluster.AllocSolution { Cluster.asSolutions = [] }) =
-  fail "No valid allocation solutions"
-processResults (Evacuate _) as =
-    let fstats = Cluster.asFailures as
-        successes = Cluster.asAllocs as
-        (_, _, _, best) = head (Cluster.asSolutions as)
-        tfails = length fstats
-        info = printf "for last allocation, successes %d, failures %d,\
-                      \ best score: %.8f" successes tfails best::String
-    in return (info, as)
+               -> m Cluster.AllocSolution
+processResults _ (Cluster.AllocSolution { Cluster.asSolutions = [],
+                                          Cluster.asLog = msgs }) =
+  fail $ intercalate ", " msgs
+
+processResults (Evacuate _) as = return as
 
 processResults _ as =
     case Cluster.asSolutions as of
-      (_, _, w, best):[] ->
-          let tfails = length (Cluster.asFailures as)
-              info = printf "successes %d, failures %d,\
-                            \ best score: %.8f for node(s) %s"
-                            (Cluster.asAllocs as) tfails
-                            best (intercalate "/" . map Node.name $ w)::String
-          in return (info, as)
+      _:[] -> return as
       _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Process a request and return new node lists
@@ -110,8 +96,9 @@ main = do
   let sols = processRequest request >>= processResults rq
   let (ok, info, rn) =
           case sols of
-            Ok (ginfo, as) -> (True, "Request successful: " ++ ginfo,
-                               Cluster.asSolutions as)
+            Ok as -> (True, "Request successful: " ++
+                            intercalate ", " (Cluster.asLog as),
+                      Cluster.asSolutions as)
             Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rq rn
   putStrLn resp
