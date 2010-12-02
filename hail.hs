@@ -49,21 +49,24 @@ options = [oPrintNodes, oShowVer, oShowHelp]
 processResults :: (Monad m) =>
                   RqType -> Cluster.AllocSolution
                -> m (String, Cluster.AllocSolution)
-processResults _ (_, _, []) = fail "No valid allocation solutions"
-processResults (Evacuate _) as@(fstats, successes, sols) =
-    let (_, _, _, best) = head sols
+processResults _ (Cluster.AllocSolution { Cluster.asSolutions = [] }) =
+  fail "No valid allocation solutions"
+processResults (Evacuate _) as =
+    let fstats = Cluster.asFailures as
+        successes = Cluster.asAllocs as
+        (_, _, _, best) = head (Cluster.asSolutions as)
         tfails = length fstats
         info = printf "for last allocation, successes %d, failures %d,\
                       \ best score: %.8f" successes tfails best::String
     in return (info, as)
 
-processResults _ as@(fstats, successes, sols) =
-    case sols of
+processResults _ as =
+    case Cluster.asSolutions as of
       (_, _, w, best):[] ->
-          let tfails = length fstats
+          let tfails = length (Cluster.asFailures as)
               info = printf "successes %d, failures %d,\
                             \ best score: %.8f for node(s) %s"
-                            successes tfails
+                            (Cluster.asAllocs as) tfails
                             best (intercalate "/" . map Node.name $ w)::String
           in return (info, as)
       _ -> fail "Internal error: multiple allocation solutions"
@@ -107,8 +110,8 @@ main = do
   let sols = processRequest request >>= processResults rq
   let (ok, info, rn) =
           case sols of
-            Ok (ginfo, (_, _, sn)) -> (True, "Request successful: " ++ ginfo,
-                                       sn)
+            Ok (ginfo, as) -> (True, "Request successful: " ++ ginfo,
+                               Cluster.asSolutions as)
             Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rq rn
   putStrLn resp

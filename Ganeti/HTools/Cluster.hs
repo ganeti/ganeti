@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Cluster
     (
      -- * Types
-      AllocSolution
+      AllocSolution(..)
     , Table(..)
     , CStats(..)
     , AllocStats
@@ -81,7 +81,19 @@ import qualified Ganeti.OpCodes as OpCodes
 -- * Types
 
 -- | Allocation\/relocation solution.
-type AllocSolution = ([FailMode], Int, [Node.AllocElement])
+data AllocSolution = AllocSolution
+  { asFailures  :: [FailMode]          -- ^ Failure counts
+  , asAllocs    :: Int                 -- ^ Good allocation count
+  , asSolutions :: [Node.AllocElement] -- ^ The actual result, length
+                                       -- of the list depends on the
+                                       -- allocation/relocation mode
+
+  }
+
+-- | The empty solution we start with when computing allocations
+emptySolution :: AllocSolution
+emptySolution = AllocSolution { asFailures = [], asAllocs = 0
+                              , asSolutions = [] }
 
 -- | The complete state for the balancing solution
 data Table = Table Node.List Instance.List Score [Placement]
@@ -533,10 +545,12 @@ collapseFailures flst =
 -- | Update current Allocation solution and failure stats with new
 -- elements
 concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
-concatAllocs (flst, cntok, sols) (OpFail reason) = (reason:flst, cntok, sols)
+concatAllocs as (OpFail reason) = as { asFailures = reason : asFailures as }
 
-concatAllocs (flst, cntok, osols) (OpGood ns@(_, _, _, nscore)) =
+concatAllocs as (OpGood ns@(_, _, _, nscore)) =
     let -- Choose the old or new solution, based on the cluster score
+        cntok = asAllocs as
+        osols = asSolutions as
         nsols = case osols of
                   [] -> [ns]
                   (_, _, _, oscore):[] ->
@@ -553,7 +567,7 @@ concatAllocs (flst, cntok, osols) (OpGood ns@(_, _, _, nscore)) =
     -- in the next cycle, so we force evaluation of nsols, since the
     -- foldl' in the caller will only evaluate the tuple, but not the
     -- elements of the tuple
-    in nsols `seq` nsuc `seq` (flst, nsuc, nsols)
+    in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolutions = nsols }
 
 -- | Try to allocate an instance on the cluster.
 tryAlloc :: (Monad m) =>
@@ -568,14 +582,14 @@ tryAlloc nl _ inst 2 =
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
         sols = foldl' (\cstate (p, s) ->
                            concatAllocs cstate $ allocateOnPair nl inst p s
-                      ) ([], 0, []) ok_pairs
+                      ) emptySolution ok_pairs
     in return sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
         sols = foldl' (\cstate ->
                            concatAllocs cstate . allocateOnSingle nl inst
-                      ) ([], 0, []) all_nodes
+                      ) emptySolution all_nodes
     in return sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
@@ -603,7 +617,7 @@ tryReloc nl il xid 1 ex_idx =
                                   return (mnl, i, [Container.find x mnl],
                                           compCV mnl)
                             in concatAllocs cstate em
-                       ) ([], 0, []) valid_idxes
+                       ) emptySolution valid_idxes
     in return sols1
 
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
@@ -620,15 +634,23 @@ tryEvac nl il ex_ndx =
     let ex_nodes = map (`Container.find` nl) ex_ndx
         all_insts = nub . concatMap Node.sList $ ex_nodes
     in do
-      (_, sol) <- foldM (\(nl', (_, _, rsols)) idx -> do
-                           -- FIXME: hardcoded one node here
-                           (fm, cs, aes) <- tryReloc nl' il idx 1 ex_ndx
-                           case aes of
-                             csol@(nl'', _, _, _):_ ->
-                                 return (nl'', (fm, cs, csol:rsols))
-                             _ -> fail $ "Can't evacuate instance " ++
-                                  Instance.name (Container.find idx il)
-                        ) (nl, ([], 0, [])) all_insts
+      (_, sol) <- foldM (\(nl', old_as) idx -> do
+                            -- FIXME: hardcoded one node here
+                            -- (fm, cs, aes)
+                            new_as <- tryReloc nl' il idx 1 ex_ndx
+                            case asSolutions new_as of
+                              csol@(nl'', _, _, _):_ ->
+                                -- an individual relocation succeeded,
+                                -- we kind of compose the data from
+                                -- the two solutions
+                                return (nl'',
+                                        new_as { asSolutions =
+                                                    csol:asSolutions old_as })
+                              -- this relocation failed, so we fail
+                              -- the entire evac
+                              _ -> fail $ "Can't evacuate instance " ++
+                                   Instance.name (Container.find idx il)
+                        ) (nl, emptySolution) all_insts
       return sol
 
 -- | Recursively place instances on the cluster until we're out of space
@@ -646,7 +668,7 @@ iterateAlloc nl il newinst nreq ixes =
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
       in case tryAlloc nl il newi2 nreq of
            Bad s -> Bad s
-           Ok (errs, _, sols3) ->
+           Ok (AllocSolution { asFailures = errs, asSolutions = sols3 }) ->
                case sols3 of
                  [] -> Ok (collapseFailures errs, nl, il, ixes)
                  (xnl, xi, _, _):[] ->

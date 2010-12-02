@@ -673,8 +673,8 @@ prop_ClusterAlloc_sane node inst =
         inst' = setInstanceSmallerThanNode node inst
     in case Cluster.tryAlloc nl il inst' rqnodes of
          Types.Bad _ -> False
-         Types.Ok (_, _, sols3) ->
-             case sols3 of
+         Types.Ok as ->
+             case Cluster.asSolutions as of
                [] -> False
                (xnl, xi, _, cv):[] ->
                    let il' = Container.add (Instance.idx xi) xi il
@@ -713,8 +713,8 @@ prop_ClusterAllocEvac node inst =
         inst' = setInstanceSmallerThanNode node inst
     in case Cluster.tryAlloc nl il inst' rqnodes of
          Types.Bad _ -> False
-         Types.Ok (_, _, sols3) ->
-             case sols3 of
+         Types.Ok as ->
+             case Cluster.asSolutions as of
                [] -> False
                (xnl, xi, _, _):[] ->
                    let sdx = Instance.sNode xi
