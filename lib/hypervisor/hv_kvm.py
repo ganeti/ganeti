@@ -722,6 +722,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd, kvm_nics, up_hvp = kvm_runtime
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
+    kvm_version = self._GetKVMVersion()
+    if kvm_version:
+      _, v_major, v_min, v_rev = kvm_version
+    else:
+      raise errors.HypervisorError("Unable to get KVM version")
+
     # We know it's safe to run as a different user upon migration, so we'll use
     # the latest conf, from conf_hvp.
     security_model = conf_hvp[constants.HV_SECURITY_MODEL]
@@ -737,19 +743,33 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       tap_extra = ""
       nic_type = up_hvp[constants.HV_NIC_TYPE]
       if nic_type == constants.HT_NIC_PARAVIRTUAL:
-        nic_model = "model=virtio"
+        # From version 0.12.0, kvm uses a new sintax for network configuration.
+        if (v_major, v_min) >= (0,12):
+          nic_model = "virtio-net-pci"
+        else:
+          nic_model = "virtio"
+
         if up_hvp[constants.HV_VHOST_NET]:
-          tap_extra = ",vhost=on"
+          # vhost_net is only available from version 0.13.0 or newer
+          if (v_major, v_min) >= (0,13):
+            tap_extra = ",vhost=on"
+          else:
+            raise errors.HypervisorError("vhost_net is configured"
+                                        " but it is not available")
       else:
-        nic_model = "model=%s" % nic_type
+        nic_model = nic_type
 
       for nic_seq, nic in enumerate(kvm_nics):
-        nic_val = "nic,vlan=%s,macaddr=%s,%s" % (nic_seq, nic.mac, nic_model)
         script = self._WriteNetScriptFile(instance, nic_seq, nic)
-        tap_val = "tap,vlan=%s,script=%s%s" % (nic_seq, script, tap_extra)
-        kvm_cmd.extend(["-net", nic_val])
-        kvm_cmd.extend(["-net", tap_val])
         temp_files.append(script)
+        if (v_major, v_min) >= (0,12):
+          nic_val = "%s,mac=%s,netdev=netdev%s" % (nic_model, nic.mac, nic_seq)
+          tap_val = "type=tap,id=netdev%s,script=%s%s" % (nic_seq, script, tap_extra)
+          kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
+        else:
+          nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq, nic.mac, nic_model)
+          tap_val = "tap,vlan=%s,script=%s" % (nic_seq, script)
+          kvm_cmd.extend(["-net", tap_val, "-net", nic_val])
 
     if incoming:
       target, port = incoming
