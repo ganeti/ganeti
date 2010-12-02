@@ -533,7 +533,7 @@ class _QueryBase:
     """
     raise NotImplementedError()
 
-  def DeclareLocks(self, level):
+  def DeclareLocks(self, lu, level):
     """Declare locks for this query.
 
     See L{LogicalUnit.DeclareLocks}.
@@ -3512,7 +3512,7 @@ class _NodeQuery(_QueryBase):
       # if we don't request only static fields, we need to lock the nodes
       lu.needed_locks[locking.LEVEL_NODE] = self.wanted
 
-  def DeclareLocks(self, _):
+  def DeclareLocks(self, lu, level):
     pass
 
   def _GetQueryData(self, lu):
