@@ -369,6 +369,16 @@ class OpQueryFields(OpCode):
     ]
 
 
+class OpOutOfBand(OpCode):
+  """Interact with OOB."""
+  OP_ID = "OP_OUT_OF_BAND"
+  __slots__ = [
+    "node_name",
+    "command",
+    "timeout",
+    ]
+
+
 # node opcodes
 
 class OpRemoveNode(OpCode):
