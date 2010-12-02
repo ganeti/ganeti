@@ -81,6 +81,9 @@ _PIgnoreOfflineNodes = ("ignore_offline_nodes", False, ht.TBool)
 #: a required node name (for single-node LUs)
 _PNodeName = ("node_name", ht.NoDefault, ht.TNonEmptyString)
 
+#: a required node group name (for single-group LUs)
+_PGroupName = ("group_name", ht.NoDefault, ht.TNonEmptyString)
+
 #: the migration type (live/non-live)
 _PMigrationMode = ("mode", None,
                    ht.TOr(ht.TNone, ht.TElemOf(constants.HT_MIGRATION_MODES)))
@@ -10295,6 +10298,65 @@ class LURemoveExport(NoHooksLU):
       feedback_fn("Export not found. If trying to remove an export belonging"
                   " to a deleted instance please use its Fully Qualified"
                   " Domain Name.")
+
+
+class LUAddGroup(LogicalUnit):
+  """Logical unit for creating node groups.
+
+  """
+  HPATH = "group-add"
+  HTYPE = constants.HTYPE_GROUP
+
+  _OP_PARAMS = [
+    _PGroupName,
+    ]
+
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    # We need the new group's UUID here so that we can create and acquire the
+    # corresponding lock. Later, in Exec(), we'll indicate to cfg.AddNodeGroup
+    # that it should not check whether the UUID exists in the configuration.
+    self.group_uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
+    self.needed_locks = {}
+    self.add_locks[locking.LEVEL_NODEGROUP] = self.group_uuid
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the given group name is not an existing node group
+    already.
+
+    """
+    try:
+      existing_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
+    except errors.OpPrereqError:
+      pass
+    else:
+      raise errors.OpPrereqError("Desired group name '%s' already exists as a"
+                                 " node group (UUID: %s)" %
+                                 (self.op.group_name, existing_uuid),
+                                 errors.ECODE_EXISTS)
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {
+      "GROUP_NAME": self.op.group_name,
+      }
+    mn = self.cfg.GetMasterNode()
+    return env, [mn], [mn]
+
+  def Exec(self, feedback_fn):
+    """Add the node group to the cluster.
+
+    """
+    group_obj = objects.NodeGroup(name=self.op.group_name, members=[],
+                                  uuid=self.group_uuid)
+
+    self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
+    del self.remove_locks[locking.LEVEL_NODEGROUP]
 
 
 class LUQueryGroups(NoHooksLU):

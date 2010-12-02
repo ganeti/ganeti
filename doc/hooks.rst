@@ -168,6 +168,20 @@ Relocate secondary instances from a node.
 :post-execution: master node
 
 
+Node group operations
+~~~~~~~~~~~~~~~~~~~~~
+
+OP_ADD_GROUP
+++++++++++++
+
+Adds a node group to the cluster.
+
+:directory: group-add
+:env. vars: GROUP_NAME
+:pre-execution: master node
+:post-execution: master node
+
+
 Instance operations
 ~~~~~~~~~~~~~~~~~~~
 

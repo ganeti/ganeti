@@ -189,6 +189,7 @@ class Processor(object):
     opcodes.OpSetInstanceParams: cmdlib.LUSetInstanceParams,
     opcodes.OpGrowDisk: cmdlib.LUGrowDisk,
     # node group lu
+    opcodes.OpAddGroup: cmdlib.LUAddGroup,
     opcodes.OpQueryGroups: cmdlib.LUQueryGroups,
     # os lu
     opcodes.OpDiagnoseOS: cmdlib.LUDiagnoseOS,

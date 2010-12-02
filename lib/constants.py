@@ -294,6 +294,7 @@ HOOKS_VERSION = 2
 # hooks subject type (what object type does the LU deal with)
 HTYPE_CLUSTER = "CLUSTER"
 HTYPE_NODE = "NODE"
+HTYPE_GROUP = "GROUP"
 HTYPE_INSTANCE = "INSTANCE"
 
 HKR_SKIP = 0
