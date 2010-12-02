@@ -3820,11 +3820,74 @@ class LUQueryNodeStorage(NoHooksLU):
     return result
 
 
-def _InstanceQuery(*args): # pylint: disable-msg=W0613
-  """Dummy until instance queries have been converted to query2.
+class _InstanceQuery(_QueryBase):
+  FIELDS = query.INSTANCE_FIELDS
 
-  """
-  raise NotImplementedError
+  def ExpandNames(self, lu):
+    lu.needed_locks = {}
+    lu.share_locks[locking.LEVEL_INSTANCE] = 1
+    lu.share_locks[locking.LEVEL_NODE] = 1
+
+    if self.names:
+      self.wanted = _GetWantedInstances(lu, self.names)
+    else:
+      self.wanted = locking.ALL_SET
+
+    self.do_locking = (self.use_locking and
+                       query.IQ_LIVE in self.requested_data)
+    if self.do_locking:
+      lu.needed_locks[locking.LEVEL_INSTANCE] = self.wanted
+      lu.needed_locks[locking.LEVEL_NODE] = []
+      lu.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+  def DeclareLocks(self, lu, level):
+    if level == locking.LEVEL_NODE and self.do_locking:
+      lu._LockInstancesNodes() # pylint: disable-msg=W0212
+
+  def _GetQueryData(self, lu):
+    """Computes the list of instances and their attributes.
+
+    """
+    all_info = lu.cfg.GetAllInstancesInfo()
+
+    instance_names = self._GetNames(lu, all_info.keys(), locking.LEVEL_INSTANCE)
+
+    instance_list = [all_info[name] for name in instance_names]
+    nodes = frozenset([inst.primary_node for inst in instance_list])
+    hv_list = list(set([inst.hypervisor for inst in instance_list]))
+    bad_nodes = []
+    offline_nodes = []
+
+    # Gather data as requested
+    if query.IQ_LIVE in self.requested_data:
+      live_data = {}
+      node_data = lu.rpc.call_all_instances_info(nodes, hv_list)
+      for name in nodes:
+        result = node_data[name]
+        if result.offline:
+          # offline nodes will be in both lists
+          assert result.fail_msg
+          offline_nodes.append(name)
+        if result.fail_msg:
+          bad_nodes.append(name)
+        elif result.payload:
+          live_data.update(result.payload)
+        # else no instance is alive
+    else:
+      live_data = {}
+
+    if query.IQ_DISKUSAGE in self.requested_data:
+      disk_usage = dict((inst.name,
+                         _ComputeDiskSize(inst.disk_template,
+                                          [{"size": disk.size}
+                                           for disk in inst.disks]))
+                        for inst in instance_list)
+    else:
+      disk_usage = None
+
+    return query.InstanceQueryData(instance_list, lu.cfg.GetClusterInfo(),
+                                   disk_usage, offline_nodes, bad_nodes,
+                                   live_data)
 
 
 #: Query type implementations
@@ -5597,291 +5660,19 @@ class LUQueryInstances(NoHooksLU):
     ("use_locking", False, ht.TBool),
     ]
   REQ_BGL = False
-  _SIMPLE_FIELDS = ["name", "os", "network_port", "hypervisor",
-                    "serial_no", "ctime", "mtime", "uuid"]
-  _FIELDS_STATIC = utils.FieldSet(*["name", "os", "pnode", "snodes",
-                                    "admin_state",
-                                    "disk_template", "ip", "mac", "bridge",
-                                    "nic_mode", "nic_link",
-                                    "sda_size", "sdb_size", "vcpus", "tags",
-                                    "network_port", "beparams",
-                                    r"(disk)\.(size)/([0-9]+)",
-                                    r"(disk)\.(sizes)", "disk_usage",
-                                    r"(nic)\.(mac|ip|mode|link)/([0-9]+)",
-                                    r"(nic)\.(bridge)/([0-9]+)",
-                                    r"(nic)\.(macs|ips|modes|links|bridges)",
-                                    r"(disk|nic)\.(count)",
-                                    "hvparams", "custom_hvparams",
-                                    "custom_beparams", "custom_nicparams",
-                                    ] + _SIMPLE_FIELDS +
-                                  ["hv/%s" % name
-                                   for name in constants.HVS_PARAMETERS
-                                   if name not in constants.HVC_GLOBALS] +
-                                  ["be/%s" % name
-                                   for name in constants.BES_PARAMETERS])
-  _FIELDS_DYNAMIC = utils.FieldSet("oper_state",
-                                   "oper_ram",
-                                   "oper_vcpus",
-                                   "status")
-
 
   def CheckArguments(self):
-    _CheckOutputFields(static=self._FIELDS_STATIC,
-                       dynamic=self._FIELDS_DYNAMIC,
-                       selected=self.op.output_fields)
+    self.iq = _InstanceQuery(self.op.names, self.op.output_fields,
+                             self.op.use_locking)
 
   def ExpandNames(self):
-    self.needed_locks = {}
-    self.share_locks[locking.LEVEL_INSTANCE] = 1
-    self.share_locks[locking.LEVEL_NODE] = 1
-
-    if self.op.names:
-      self.wanted = _GetWantedInstances(self, self.op.names)
-    else:
-      self.wanted = locking.ALL_SET
-
-    self.do_node_query = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
-    self.do_locking = self.do_node_query and self.op.use_locking
-    if self.do_locking:
-      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted
-      self.needed_locks[locking.LEVEL_NODE] = []
-      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    self.iq.ExpandNames(self)
 
   def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE and self.do_locking:
-      self._LockInstancesNodes()
+    self.iq.DeclareLocks(self, level)
 
   def Exec(self, feedback_fn):
-    """Computes the list of nodes and their attributes.
-
-    """
-    # pylint: disable-msg=R0912
-    # way too many branches here
-    all_info = self.cfg.GetAllInstancesInfo()
-    if self.wanted == locking.ALL_SET:
-      # caller didn't specify instance names, so ordering is not important
-      if self.do_locking:
-        instance_names = self.acquired_locks[locking.LEVEL_INSTANCE]
-      else:
-        instance_names = all_info.keys()
-      instance_names = utils.NiceSort(instance_names)
-    else:
-      # caller did specify names, so we must keep the ordering
-      if self.do_locking:
-        tgt_set = self.acquired_locks[locking.LEVEL_INSTANCE]
-      else:
-        tgt_set = all_info.keys()
-      missing = set(self.wanted).difference(tgt_set)
-      if missing:
-        raise errors.OpExecError("Some instances were removed before"
-                                 " retrieving their data: %s" % missing)
-      instance_names = self.wanted
-
-    instance_list = [all_info[iname] for iname in instance_names]
-
-    # begin data gathering
-
-    nodes = frozenset([inst.primary_node for inst in instance_list])
-    hv_list = list(set([inst.hypervisor for inst in instance_list]))
-
-    bad_nodes = []
-    off_nodes = []
-    if self.do_node_query:
-      live_data = {}
-      node_data = self.rpc.call_all_instances_info(nodes, hv_list)
-      for name in nodes:
-        result = node_data[name]
-        if result.offline:
-          # offline nodes will be in both lists
-          off_nodes.append(name)
-        if result.fail_msg:
-          bad_nodes.append(name)
-        else:
-          if result.payload:
-            live_data.update(result.payload)
-          # else no instance is alive
-    else:
-      live_data = dict([(name, {}) for name in instance_names])
-
-    # end data gathering
-
-    HVPREFIX = "hv/"
-    BEPREFIX = "be/"
-    output = []
-    cluster = self.cfg.GetClusterInfo()
-    for instance in instance_list:
-      iout = []
-      i_hv = cluster.FillHV(instance, skip_globals=True)
-      i_be = cluster.FillBE(instance)
-      i_nicp = [cluster.SimpleFillNIC(nic.nicparams) for nic in instance.nics]
-      for field in self.op.output_fields:
-        st_match = self._FIELDS_STATIC.Matches(field)
-        if field in self._SIMPLE_FIELDS:
-          val = getattr(instance, field)
-        elif field == "pnode":
-          val = instance.primary_node
-        elif field == "snodes":
-          val = list(instance.secondary_nodes)
-        elif field == "admin_state":
-          val = instance.admin_up
-        elif field == "oper_state":
-          if instance.primary_node in bad_nodes:
-            val = None
-          else:
-            val = bool(live_data.get(instance.name))
-        elif field == "status":
-          if instance.primary_node in off_nodes:
-            val = "ERROR_nodeoffline"
-          elif instance.primary_node in bad_nodes:
-            val = "ERROR_nodedown"
-          else:
-            running = bool(live_data.get(instance.name))
-            if running:
-              if instance.admin_up:
-                val = "running"
-              else:
-                val = "ERROR_up"
-            else:
-              if instance.admin_up:
-                val = "ERROR_down"
-              else:
-                val = "ADMIN_down"
-        elif field == "oper_ram":
-          if instance.primary_node in bad_nodes:
-            val = None
-          elif instance.name in live_data:
-            val = live_data[instance.name].get("memory", "?")
-          else:
-            val = "-"
-        elif field == "oper_vcpus":
-          if instance.primary_node in bad_nodes:
-            val = None
-          elif instance.name in live_data:
-            val = live_data[instance.name].get("vcpus", "?")
-          else:
-            val = "-"
-        elif field == "vcpus":
-          val = i_be[constants.BE_VCPUS]
-        elif field == "disk_template":
-          val = instance.disk_template
-        elif field == "ip":
-          if instance.nics:
-            val = instance.nics[0].ip
-          else:
-            val = None
-        elif field == "nic_mode":
-          if instance.nics:
-            val = i_nicp[0][constants.NIC_MODE]
-          else:
-            val = None
-        elif field == "nic_link":
-          if instance.nics:
-            val = i_nicp[0][constants.NIC_LINK]
-          else:
-            val = None
-        elif field == "bridge":
-          if (instance.nics and
-              i_nicp[0][constants.NIC_MODE] == constants.NIC_MODE_BRIDGED):
-            val = i_nicp[0][constants.NIC_LINK]
-          else:
-            val = None
-        elif field == "mac":
-          if instance.nics:
-            val = instance.nics[0].mac
-          else:
-            val = None
-        elif field == "custom_nicparams":
-          val = [nic.nicparams for nic in instance.nics]
-        elif field == "sda_size" or field == "sdb_size":
-          idx = ord(field[2]) - ord('a')
-          try:
-            val = instance.FindDisk(idx).size
-          except errors.OpPrereqError:
-            val = None
-        elif field == "disk_usage": # total disk usage per node
-          disk_sizes = [{'size': disk.size} for disk in instance.disks]
-          val = _ComputeDiskSize(instance.disk_template, disk_sizes)
-        elif field == "tags":
-          val = list(instance.GetTags())
-        elif field == "custom_hvparams":
-          val = instance.hvparams # not filled!
-        elif field == "hvparams":
-          val = i_hv
-        elif (field.startswith(HVPREFIX) and
-              field[len(HVPREFIX):] in constants.HVS_PARAMETERS and
-              field[len(HVPREFIX):] not in constants.HVC_GLOBALS):
-          val = i_hv.get(field[len(HVPREFIX):], None)
-        elif field == "custom_beparams":
-          val = instance.beparams
-        elif field == "beparams":
-          val = i_be
-        elif (field.startswith(BEPREFIX) and
-              field[len(BEPREFIX):] in constants.BES_PARAMETERS):
-          val = i_be.get(field[len(BEPREFIX):], None)
-        elif st_match and st_match.groups():
-          # matches a variable list
-          st_groups = st_match.groups()
-          if st_groups and st_groups[0] == "disk":
-            if st_groups[1] == "count":
-              val = len(instance.disks)
-            elif st_groups[1] == "sizes":
-              val = [disk.size for disk in instance.disks]
-            elif st_groups[1] == "size":
-              try:
-                val = instance.FindDisk(st_groups[2]).size
-              except errors.OpPrereqError:
-                val = None
-            else:
-              assert False, "Unhandled disk parameter"
-          elif st_groups[0] == "nic":
-            if st_groups[1] == "count":
-              val = len(instance.nics)
-            elif st_groups[1] == "macs":
-              val = [nic.mac for nic in instance.nics]
-            elif st_groups[1] == "ips":
-              val = [nic.ip for nic in instance.nics]
-            elif st_groups[1] == "modes":
-              val = [nicp[constants.NIC_MODE] for nicp in i_nicp]
-            elif st_groups[1] == "links":
-              val = [nicp[constants.NIC_LINK] for nicp in i_nicp]
-            elif st_groups[1] == "bridges":
-              val = []
-              for nicp in i_nicp:
-                if nicp[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
-                  val.append(nicp[constants.NIC_LINK])
-                else:
-                  val.append(None)
-            else:
-              # index-based item
-              nic_idx = int(st_groups[2])
-              if nic_idx >= len(instance.nics):
-                val = None
-              else:
-                if st_groups[1] == "mac":
-                  val = instance.nics[nic_idx].mac
-                elif st_groups[1] == "ip":
-                  val = instance.nics[nic_idx].ip
-                elif st_groups[1] == "mode":
-                  val = i_nicp[nic_idx][constants.NIC_MODE]
-                elif st_groups[1] == "link":
-                  val = i_nicp[nic_idx][constants.NIC_LINK]
-                elif st_groups[1] == "bridge":
-                  nic_mode = i_nicp[nic_idx][constants.NIC_MODE]
-                  if nic_mode == constants.NIC_MODE_BRIDGED:
-                    val = i_nicp[nic_idx][constants.NIC_LINK]
-                  else:
-                    val = None
-                else:
-                  assert False, "Unhandled NIC parameter"
-          else:
-            assert False, ("Declared but unhandled variable parameter '%s'" %
-                           field)
-        else:
-          assert False, "Declared but unhandled parameter '%s'" % field
-        iout.append(val)
-      output.append(iout)
-
-    return output
+    return self.iq.OldStyleQuery(self)
 
 
 class LUFailoverInstance(LogicalUnit):
@@ -7042,6 +6833,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
                                  " is unknown" %  disk_template)
 
   return req_size_dict[disk_template]
+
 
 def _ComputeDiskSize(disk_template, disks):
   """Compute disk size requirements in the volume group
