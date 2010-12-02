@@ -55,6 +55,7 @@ module Ganeti.HTools.Cluster
     , iMoveToJob
     -- * IAllocator functions
     , tryAlloc
+    , tryMGAlloc
     , tryReloc
     , tryEvac
     , collapseFailures
@@ -619,7 +620,46 @@ tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
                              \destinations required (" ++ show reqn ++
                                                "), only two supported"
 
--- | Try to allocate an instance on the cluster.
+-- | Given a group/result, describe it as a nice (list of) messages
+solutionDescription :: (GroupID, Result AllocSolution) -> [String]
+solutionDescription (groupId, result) =
+  case result of
+    Ok solution -> map (printf "Group %s: %s" groupId) (asLog solution)
+    Bad message -> [printf "Group %s: error %s" groupId message]
+
+-- | From a list of possibly bad and possibly empty solutions, filter
+-- only the groups with a valid result
+filterMGResults :: [(GroupID, Result AllocSolution)] ->
+                   [(GroupID, AllocSolution)]
+filterMGResults =
+  filter (not . null . asSolutions . snd) .
+  map (\(y, Ok x) -> (y, x)) .
+  filter (isOk . snd)
+
+-- | Try to allocate an instance on a multi-group cluster.
+tryMGAlloc :: Node.List         -- ^ The node list
+              -> Instance.List     -- ^ The instance list
+              -> Instance.Instance -- ^ The instance to allocate
+              -> Int               -- ^ Required number of nodes
+              -> Result AllocSolution   -- ^ Possible solution list
+tryMGAlloc mgnl mgil inst cnt =
+  let groups = splitCluster mgnl mgil
+      -- TODO: currently we consider all groups preferred
+      sols = map (\(gid, (nl, il)) ->
+                   (gid, tryAlloc nl il inst cnt)) groups::
+        [(GroupID, Result AllocSolution)]
+      all_msgs = concatMap solutionDescription sols
+      goodSols = filterMGResults sols
+      extractScore = \(_, _, _, x) -> x
+      solScore = extractScore . head . asSolutions . snd
+      sortedSols = sortBy (comparing solScore) goodSols
+  in if null sortedSols
+     then Bad $ intercalate ", " all_msgs
+     else let (final_group, final_sol) = head sortedSols
+              selmsg = "Selected group: " ++ final_group
+          in Ok $ final_sol { asLog = selmsg:all_msgs }
+
+-- | Try to relocate an instance on the cluster.
 tryReloc :: (Monad m) =>
             Node.List       -- ^ The node list
          -> Instance.List   -- ^ The instance list

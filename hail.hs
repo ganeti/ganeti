@@ -63,7 +63,7 @@ processRequest :: Request
 processRequest request =
   let Request rqtype nl il _ = request
   in case rqtype of
-       Allocate xi reqn -> Cluster.tryAlloc nl il xi reqn
+       Allocate xi reqn -> Cluster.tryMGAlloc nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
        Evacuate exnodes -> Cluster.tryEvac nl il exnodes
 
