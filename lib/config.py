@@ -864,6 +864,58 @@ class ConfigWriter:
     """
     return self._config_data.cluster.primary_ip_family
 
+  @locking.ssynchronized(_config_lock)
+  def AddNodeGroup(self, group, ec_id, check_uuid=True):
+    """Add a node group to the configuration.
+
+    @type group: L{objects.NodeGroup}
+    @param group: the NodeGroup object to add
+    @type ec_id: string
+    @param ec_id: unique id for the job to use when creating a missing UUID
+    @type check_uuid: bool
+    @param check_uuid: add an UUID to the group if it doesn't have one or, if
+                       it does, ensure that it does not exist in the
+                       configuration already
+
+    """
+    self._UnlockedAddNodeGroup(group, ec_id, check_uuid)
+    self._WriteConfig()
+
+  def _UnlockedAddNodeGroup(self, group, ec_id, check_uuid):
+    """Add a node group to the configuration.
+
+    """
+    logging.info("Adding node group %s to configuration", group.name)
+
+    # Some code might need to add a node group with a pre-populated UUID
+    # generated with ConfigWriter.GenerateUniqueID(). We allow them to bypass
+    # the "does this UUID" exist already check.
+    if check_uuid:
+      self._EnsureUUID(group, ec_id)
+
+    group.serial_no = 1
+    group.ctime = group.mtime = time.time()
+
+    self._config_data.nodegroups[group.uuid] = group
+    self._config_data.cluster.serial_no += 1
+
+  @locking.ssynchronized(_config_lock)
+  def RemoveNodeGroup(self, group_uuid):
+    """Remove a node group from the configuration.
+
+    @type group_uuid: string
+    @param group_uuid: the UUID of the node group to remove
+
+    """
+    logging.info("Removing node group %s from configuration", group_uuid)
+
+    if group_uuid not in self._config_data.nodegroups:
+      raise errors.ConfigurationError("Unknown node group '%s'" % group_uuid)
+
+    del self._config_data.nodegroups[group_uuid]
+    self._config_data.cluster.serial_no += 1
+    self._WriteConfig()
+
   @locking.ssynchronized(_config_lock, shared=1)
   def LookupNodeGroup(self, target):
     """Lookup a node group's UUID.
@@ -1434,13 +1486,8 @@ class ConfigWriter:
         item.uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
         modified = True
     if not self._config_data.nodegroups:
-      default_nodegroup_uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
-      default_nodegroup = objects.NodeGroup(
-          uuid=default_nodegroup_uuid,
-          name="default",
-          members=[],
-          )
-      self._config_data.nodegroups[default_nodegroup_uuid] = default_nodegroup
+      default_nodegroup = objects.NodeGroup(name="default", members=[])
+      self._UnlockedAddNodeGroup(default_nodegroup, _UPGRADE_CONFIG_JID, True)
       modified = True
     for node in self._config_data.nodes.values():
       if not node.group:
@@ -1712,6 +1759,8 @@ class ConfigWriter:
       update_serial = True
     elif isinstance(target, objects.Instance):
       test = target in self._config_data.instances.values()
+    elif isinstance(target, objects.NodeGroup):
+      test = target in self._config_data.nodegroups.values()
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))

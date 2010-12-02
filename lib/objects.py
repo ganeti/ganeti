@@ -36,6 +36,7 @@ pass to and from external parties.
 import ConfigParser
 import re
 import copy
+import time
 from cStringIO import StringIO
 
 from ganeti import errors
@@ -954,6 +955,7 @@ class NodeGroup(ConfigObject):
     "name",
     "members",
     "ndparams",
+    "serial_no",
     ] + _TIMESTAMPS + _UUID
 
   def ToDict(self):
@@ -984,6 +986,14 @@ class NodeGroup(ConfigObject):
     """
     if self.ndparams is None:
       self.ndparams = {}
+
+    if self.serial_no is None:
+      self.serial_no = 1
+
+    # We only update mtime, and not ctime, since we would not be able to provide
+    # a correct value for creation time.
+    if self.mtime is None:
+      self.mtime = time.time()
 
   def FillND(self, node):
     """Return filled out ndparams for L{object.Node}
