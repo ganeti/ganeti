@@ -87,13 +87,13 @@ data AllocSolution = AllocSolution
   , asSolutions :: [Node.AllocElement] -- ^ The actual result, length
                                        -- of the list depends on the
                                        -- allocation/relocation mode
-
+  , asLog       :: [String]            -- ^ A list of informational messages
   }
 
 -- | The empty solution we start with when computing allocations
 emptySolution :: AllocSolution
 emptySolution = AllocSolution { asFailures = [], asAllocs = 0
-                              , asSolutions = [] }
+                              , asSolutions = [], asLog = [] }
 
 -- | The complete state for the balancing solution
 data Table = Table Node.List Instance.List Score [Placement]
@@ -569,6 +569,28 @@ concatAllocs as (OpGood ns@(_, _, _, nscore)) =
     -- elements of the tuple
     in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolutions = nsols }
 
+-- | Given a solution, generates a reasonable description for it
+describeSolution :: AllocSolution -> String
+describeSolution as =
+  let fcnt = asFailures as
+      sols = asSolutions as
+      freasons =
+        intercalate ", " . map (\(a, b) -> printf "%s: %d" (show a) b) .
+        filter ((> 0) . snd) . collapseFailures $ fcnt
+  in if null sols
+     then "No valid allocation solutions, failure reasons: " ++
+          (if null fcnt
+           then "unknown reasons"
+           else freasons)
+     else let (_, _, nodes, cv) = head sols
+          in printf ("score: %.8f, successes %d, failures %d (%s)" ++
+                     " for node(s) %s") cv (asAllocs as) (length fcnt) freasons
+             (intercalate "/" . map Node.name $ nodes)
+
+-- | Annotates a solution with the appropriate string
+annotateSolution :: AllocSolution -> AllocSolution
+annotateSolution as = as { asLog = describeSolution as : asLog as }
+
 -- | Try to allocate an instance on the cluster.
 tryAlloc :: (Monad m) =>
             Node.List         -- ^ The node list
@@ -583,14 +605,15 @@ tryAlloc nl _ inst 2 =
         sols = foldl' (\cstate (p, s) ->
                            concatAllocs cstate $ allocateOnPair nl inst p s
                       ) emptySolution ok_pairs
-    in return sols
+
+    in return $ annotateSolution sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
         sols = foldl' (\cstate ->
                            concatAllocs cstate . allocateOnSingle nl inst
                       ) emptySolution all_nodes
-    in return sols
+    in return $ annotateSolution sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
                              \destinations required (" ++ show reqn ++
@@ -649,9 +672,10 @@ tryEvac nl il ex_ndx =
                               -- this relocation failed, so we fail
                               -- the entire evac
                               _ -> fail $ "Can't evacuate instance " ++
-                                   Instance.name (Container.find idx il)
+                                   Instance.name (Container.find idx il) ++
+                                   ": " ++ describeSolution new_as
                         ) (nl, emptySolution) all_insts
-      return sol
+      return $ annotateSolution sol
 
 -- | Recursively place instances on the cluster until we're out of space
 iterateAlloc :: Node.List
