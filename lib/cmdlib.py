@@ -106,7 +106,7 @@ class LogicalUnit(object):
 
   @ivar dry_run_result: the value (if any) that will be returned to the caller
       in dry-run mode (signalled by opcode dry_run parameter)
-  @cvar _OP_PARAMS: a list of opcode attributes, their defaults values
+  @cvar _OP_PARAMS: a list of opcode attributes, the default values
       they should get if not already defined, and types they must match
 
   """
