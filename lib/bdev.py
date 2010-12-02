@@ -694,6 +694,8 @@ class LogicalVolume(BlockDev):
   def Snapshot(self, size):
     """Create a snapshot copy of an lvm block device.
 
+    @returns: tuple (vg, lv)
+
     """
     snap_name = self._lv_name + ".snap"
 
@@ -715,7 +717,7 @@ class LogicalVolume(BlockDev):
       _ThrowError("command: %s error: %s - %s",
                   result.cmd, result.fail_reason, result.output)
 
-    return snap_name
+    return (self._vg_name, snap_name)
 
   def SetInfo(self, text):
     """Update metadata with info text.

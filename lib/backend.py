@@ -2143,7 +2143,7 @@ def BlockdevSnapshot(disk):
   @type disk: L{objects.Disk}
   @param disk: the disk to be snapshotted
   @rtype: string
-  @return: snapshot disk path
+  @return: snapshot disk ID as (vg, lv)
 
   """
   if disk.dev_type == constants.LD_DRBD8:

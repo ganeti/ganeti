@@ -1151,8 +1151,6 @@ class ExportInstanceHelper:
     instance = self._instance
     src_node = instance.primary_node
 
-    vgname = self._lu.cfg.GetVGName()
-
     for idx, disk in enumerate(instance.disks):
       self._feedback_fn("Creating a snapshot of disk/%s on node %s" %
                         (idx, src_node))
@@ -1160,13 +1158,17 @@ class ExportInstanceHelper:
       # result.payload will be a snapshot of an lvm leaf of the one we
       # passed
       result = self._lu.rpc.call_blockdev_snapshot(src_node, disk)
+      new_dev = False
       msg = result.fail_msg
       if msg:
         self._lu.LogWarning("Could not snapshot disk/%s on node %s: %s",
                             idx, src_node, msg)
-        new_dev = False
+      elif (not isinstance(result.payload, (tuple, list)) or
+            len(result.payload) != 2):
+        self._lu.LogWarning("Could not snapshot disk/%s on node %s: invalid"
+                            " result '%s'", idx, src_node, result.payload)
       else:
-        disk_id = (vgname, result.payload)
+        disk_id = tuple(result.payload)
         new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
                                logical_id=disk_id, physical_id=disk_id,
                                iv_name=disk.iv_name)
