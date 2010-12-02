@@ -836,7 +836,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     match = cls._VERSION_RE.search(result.output.splitlines()[0])
     if not match:
       return None
-    return (match.group(0), match.group(1), match.group(2), match.group(3))
+
+    return (match.group(0), int(match.group(1)), int(match.group(2)),
+            int(match.group(3)))
 
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
