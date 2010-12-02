@@ -607,14 +607,18 @@ tryAlloc nl _ inst 2 =
                            concatAllocs cstate $ allocateOnPair nl inst p s
                       ) emptySolution ok_pairs
 
-    in return $ annotateSolution sols
+    in if null ok_pairs -- means we have just one node
+       then fail "Not enough online nodes"
+       else return $ annotateSolution sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
         sols = foldl' (\cstate ->
                            concatAllocs cstate . allocateOnSingle nl inst
                       ) emptySolution all_nodes
-    in return $ annotateSolution sols
+    in if null all_nodes
+       then fail "No online nodes"
+       else return $ annotateSolution sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
                              \destinations required (" ++ show reqn ++
