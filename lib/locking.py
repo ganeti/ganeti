@@ -1047,8 +1047,8 @@ class LockSet:
           # element is not there anymore.
           continue
 
-        raise errors.LockError("Non-existing lock %s in set %s" %
-                               (lname, self.name))
+        raise errors.LockError("Non-existing lock %s in set %s (it may have"
+                               " been removed)" % (lname, self.name))
 
       acquire_list.append((lname, lock))
 
@@ -1080,8 +1080,8 @@ class LockSet:
             # particular element is not there anymore.
             continue
 
-          raise errors.LockError("Non-existing lock %s in set %s" %
-                                 (lname, self.name))
+          raise errors.LockError("Non-existing lock %s in set %s (it may"
+                                 " have been removed)" % (lname, self.name))
 
         if not acq_success:
           # Couldn't get lock or timeout occurred
