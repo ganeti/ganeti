@@ -115,6 +115,9 @@ class OpCode(BaseOpCode):
 
   @cvar OP_ID: The ID of this opcode. This should be unique amongst all
                children of this class.
+  @cvar OP_DSC_FIELD: The name of a field whose value will be included in the
+                      string returned by Summary(); see the docstring of that
+                      method for details).
   @ivar dry_run: Whether the LU should be run in dry-run mode, i.e. just
                  the check steps
   @ivar priority: Opcode priority for queue
@@ -169,6 +172,11 @@ class OpCode(BaseOpCode):
 
   def Summary(self):
     """Generates a summary description of this opcode.
+
+    The summary is the value of the OP_ID attribute (without the "OP_" prefix),
+    plus the value of the OP_DSC_FIELD attribute, if one was defined; this field
+    should allow to easily identify the operation (for an instance creation job,
+    e.g., it would be the instance name).
 
     """
     # all OP_ID start with OP_, we remove that
