@@ -3184,6 +3184,75 @@ def _CheckDiskConsistency(lu, dev, node, on_primary, ldisk=False):
   return result
 
 
+class LUOutOfBand(NoHooksLU):
+  """Logical unit for OOB handling.
+
+  """
+  _OP_PARAMS = [
+    _PNodeName,
+    ("command", None, ht.TElemOf(constants.OOB_COMMANDS)),
+    ("timeout", constants.OOB_TIMEOUT, ht.TInt),
+    ]
+  REG_BGL = False
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks:
+     - the node exists in the configuration
+     - OOB is supported
+
+    Any errors are signaled by raising errors.OpPrereqError.
+
+    """
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    node = self.cfg.GetNodeInfo(self.op.node_name)
+
+    if node is None:
+      raise errors.OpPrereqError("Node %s not found" % self.op.node_name)
+
+    self.oob_program = self.cfg.GetOobProgram(node)
+
+    if not self.oob_program:
+      raise errors.OpPrereqError("OOB is not supported for node %s" %
+                                 self.op.node_name)
+
+    self.op.node_name = node.name
+    self.node = node
+
+  def ExpandNames(self):
+    """Gather locks we need.
+
+    """
+    self.needed_locks = {
+      locking.LEVEL_NODE: [self.op.node_name],
+      }
+
+  def Exec(self, feedback_fn):
+    """Execute OOB and return result if we expect any.
+
+    """
+    master_node = self.cfg.GetMasterNode()
+
+    logging.info("Executing out-of-band command '%s' using '%s' on %s",
+                 self.op.command, self.oob_program, self.op.node_name)
+    result = self.rpc.call_run_oob(master_node, self.oob_program,
+                                   self.op.command, self.op.node_name,
+                                   self.op.timeout)
+
+    result.Raise("An error occurred on execution of OOB helper")
+
+    if self.op.command == constants.OOB_HEALTH:
+      # For health we should log important events
+      for item, status in result.payload:
+        if status in [constants.OOB_STATUS_WARNING,
+                      constants.OOB_STATUS_CRITICAL]:
+          logging.warning("On node '%s' item '%s' has status '%s'",
+                          self.op.node_name, item, status)
+
+    return result.payload
+
+
 class LUDiagnoseOS(NoHooksLU):
   """Logical unit for OS diagnose/query.
 
