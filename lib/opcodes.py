@@ -733,6 +733,13 @@ class OpQueryGroups(OpCode):
   __slots__ = ["output_fields", "names"]
 
 
+class OpRemoveGroup(OpCode):
+  """Remove a node group from the cluster."""
+  OP_ID = "OP_GROUP_REMOVE"
+  OP_DSC_FIELD = "group_name"
+  __slots__ = ["group_name"]
+
+
 # OS opcodes
 class OpDiagnoseOS(OpCode):
   """Compute the list of guest operating systems."""

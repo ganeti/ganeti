@@ -181,6 +181,18 @@ Adds a node group to the cluster.
 :pre-execution: master node
 :post-execution: master node
 
+OP_REMOVE_GROUP
++++++++++++++++
+
+Removes a node group from the cluster. Since the node group must be
+empty for removal to succeed, the concept of "nodes in the group" does
+not exist, and the hook is only executed in the master node.
+
+:directory: group-remove
+:env. vars: GROUP_NAME
+:pre-execution: master node
+:post-execution: master node
+
 
 Instance operations
 ~~~~~~~~~~~~~~~~~~~

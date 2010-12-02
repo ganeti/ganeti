@@ -10466,6 +10466,73 @@ class LUQueryGroups(NoHooksLU):
     return output
 
 
+class LURemoveGroup(LogicalUnit):
+  HPATH = "group-remove"
+  HTYPE = constants.HTYPE_GROUP
+
+  _OP_PARAMS = [
+    _PGroupName,
+    ]
+
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    # This will raises errors.OpPrereqError on its own:
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
+    self.needed_locks = {
+      locking.LEVEL_NODEGROUP: [self.group_uuid],
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the given group name exists as a node group, that is
+    empty (i.e., contains no nodes), and that is not the last group of the
+    cluster.
+
+    """
+    # Verify that the group is empty.
+    group_nodes = [node.name
+                   for node in self.cfg.GetAllNodesInfo().values()
+                   if node.group == self.group_uuid]
+
+    if group_nodes:
+      raise errors.OpPrereqError("Group '%s' not empty, has the following"
+                                 " nodes: %s" %
+                                 (self.op.group_name,
+                                  utils.CommaJoin(utils.NiceSort(group_nodes))),
+                                 errors.ECODE_STATE)
+
+    # Verify the cluster would not be left group-less.
+    if len(self.cfg.GetNodeGroupList()) == 1:
+      raise errors.OpPrereqError("Group '%s' is the last group in the cluster,"
+                                 " which cannot be left without at least one"
+                                 " group" % self.op.group_name,
+                                 errors.ECODE_STATE)
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {
+      "GROUP_NAME": self.op.group_name,
+      }
+    mn = self.cfg.GetMasterNode()
+    return env, [mn], [mn]
+
+  def Exec(self, feedback_fn):
+    """Remove the node group.
+
+    """
+    try:
+      self.cfg.RemoveNodeGroup(self.group_uuid)
+    except errors.ConfigurationError:
+      raise errors.OpExecError("Group '%s' with UUID %s disappeared" %
+                               (self.op.group_name, self.group_uuid))
+
+    self.remove_locks[locking.LEVEL_NODEGROUP] = self.group_uuid
+
+
 class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   """Generic tags LU.
 
