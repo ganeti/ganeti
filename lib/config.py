@@ -477,13 +477,13 @@ class ConfigWriter:
     for nodegroup_uuid in data.nodegroups:
       nodegroup = data.nodegroups[nodegroup_uuid]
       if nodegroup.uuid != nodegroup_uuid:
-        result.append("nodegroup '%s' (uuid: '%s') indexed by wrong uuid '%s'"
+        result.append("node group '%s' (uuid: '%s') indexed by wrong uuid '%s'"
                       % (nodegroup.name, nodegroup.uuid, nodegroup_uuid))
       if utils.UUID_RE.match(nodegroup.name.lower()):
-        result.append("nodegroup '%s' (uuid: '%s') has uuid-like name" %
+        result.append("node group '%s' (uuid: '%s') has uuid-like name" %
                       (nodegroup.name, nodegroup.uuid))
       if nodegroup.name in nodegroups_names:
-        result.append("duplicate nodegroup name '%s'" % nodegroup.name)
+        result.append("duplicate node group name '%s'" % nodegroup.name)
       else:
         nodegroups_names.add(nodegroup.name)
 
@@ -877,7 +877,7 @@ class ConfigWriter:
     """
     if target is None:
       if len(self._config_data.nodegroups) != 1:
-        raise errors.OpPrereqError("More than one nodegroup exists. Target"
+        raise errors.OpPrereqError("More than one node group exists. Target"
                                    " group must be specified explicitely.")
       else:
         return self._config_data.nodegroups.keys()[0]
@@ -886,7 +886,7 @@ class ConfigWriter:
     for nodegroup in self._config_data.nodegroups.values():
       if nodegroup.name == target:
         return nodegroup.uuid
-    raise errors.OpPrereqError("Nodegroup '%s' not found" % target)
+    raise errors.OpPrereqError("Node group '%s' not found" % target)
 
   def _UnlockedGetNodeGroup(self, uuid):
     """Lookup a node group.
