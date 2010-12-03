@@ -52,7 +52,7 @@ To manage node groups and the nodes belonging to them, the following new
 commands and flags will be introduced::
 
   gnt-group add <group> # add a new node group
-  gnt-group del <group> # delete an empty node group
+  gnt-group remove <group> # delete an empty node group
   gnt-group list # list node groups
   gnt-group rename <oldname> <newname> # rename a node group
   gnt-node {list,info} -g <group> # list only nodes belonging to a node group

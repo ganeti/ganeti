@@ -26,6 +26,7 @@
 
 from ganeti.cli import *
 from ganeti import compat
+from ganeti import opcodes
 from ganeti import utils
 
 
@@ -40,6 +41,21 @@ _LIST_HEADERS = {
   "pinst_cnt": "Instances", "pinst_list": "InstanceList",
   "ctime": "CTime", "mtime": "MTime", "serial_no": "SerialNo",
 }
+
+
+def AddGroup(opts, args):
+  """Add a node group to the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: a list of length 1 with the name of the group to create
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  (group_name,) = args
+  op = opcodes.OpAddGroup(group_name=group_name)
+  SubmitOpCode(op, opts=opts)
 
 
 def ListGroups(opts, args):
@@ -89,7 +105,40 @@ def ListGroups(opts, args):
   return 0
 
 
+def RemoveGroup(opts, args):
+  """Remove a node group from the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: a list of length 1 with the name of the group to remove
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  (group_name,) = args
+  op = opcodes.OpRemoveGroup(group_name=group_name)
+  SubmitOpCode(op, opts=opts)
+
+
+def RenameGroup(opts, args):
+  """Rename a node group.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: a list of length 2, [old_name, new_name]
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  old_name, new_name = args
+  op = opcodes.OpRenameGroup(old_name=old_name, new_name=new_name)
+  SubmitOpCode(op, opts=opts)
+
+
 commands = {
+  "add": (
+    AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],
+    "<group_name>", "Add a new node group to the cluster"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
@@ -97,6 +146,13 @@ commands = {
     "Lists the node groups in the cluster. The available fields are (see"
     " the man page for details): %s. The default list is (in order): %s." %
     (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
+  "remove": (
+    RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],
+    "[--dry-run] <group_name>",
+    "Remove an (empty) node group from the cluster"),
+  "rename": (
+    RenameGroup, [ArgGroup(min=2, max=2)], [DRY_RUN_OPT],
+    "[--dry-run] <old_name> <new_name>", "Rename a node group"),
 }
 
 

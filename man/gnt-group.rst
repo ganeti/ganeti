@@ -20,6 +20,21 @@ the Ganeti system.
 COMMANDS
 --------
 
+ADD
+~~~
+
+| **add** {*group*}
+
+Creates a new group with the given name. The node group will be
+initially empty.
+
+REMOVE
+~~~~~~
+
+| **remove** {*group*}
+
+Deletes the indicated node group, which must be empty.
+
 LIST
 ~~~~
 
@@ -78,3 +93,10 @@ serial_no
 
 If no group names are given, then all groups are included. Otherwise,
 only the named groups will be listed.
+
+RENAME
+~~~~~~
+
+| **rename** {*oldname*} {*newname*}
+
+Renames a given group from *oldname* to *newname*.
