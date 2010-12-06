@@ -550,6 +550,17 @@ class R_2_groups(baserlib.R_Generic):
       return baserlib.BuildUriList(groupnames, "/2/groups/%s",
                                    uri_fields=("name", "uri"))
 
+  def POST(self):
+    """Create a node group.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+    group_name = baserlib.CheckParameter(self.request_body, "name")
+    op = opcodes.OpAddGroup(group_name=group_name, dry_run=self.dryRun())
+    return baserlib.SubmitJob([op])
+
 
 class R_2_groups_name(baserlib.R_Generic):
   """/2/groups/[group_name] resources.
@@ -568,6 +579,51 @@ class R_2_groups_name(baserlib.R_Generic):
 
     return baserlib.MapFields(G_FIELDS, result[0])
 
+  def DELETE(self):
+    """Delete a node group.
+
+    """
+    op = opcodes.OpRemoveGroup(group_name=self.items[0],
+                               dry_run=bool(self.dryRun()))
+
+    return baserlib.SubmitJob([op])
+
+
+def _ParseRenameGroupRequest(name, data, dry_run):
+  """Parses a request for renaming a node group.
+
+  @type name: string
+  @param name: name of the node group to rename
+  @type data: dict
+  @param data: the body received by the rename request
+  @type dry_run: bool
+  @param dry_run: whether to perform a dry run
+
+  @rtype: L{opcodes.OpRenameGroup}
+  @return: Node group rename opcode
+
+  """
+  old_name = name
+  new_name = baserlib.CheckParameter(data, "new_name")
+
+  return opcodes.OpRenameGroup(old_name=old_name, new_name=new_name,
+                               dry_run=dry_run)
+
+
+class R_2_groups_name_rename(baserlib.R_Generic):
+  """/2/groups/[groupe_name]/rename resource.
+
+  """
+  def PUT(self):
+    """Changes the name of a node group.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+    op = _ParseRenameGroupRequest(self.items[0], self.request_body,
+                                  self.dryRun())
+    return baserlib.SubmitJob([op])
 
 
 def _ParseInstanceCreateRequestVersion1(data, dry_run):

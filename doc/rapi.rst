@@ -337,7 +337,7 @@ features:
 
 The groups resource.
 
-It supports the following commands: ``GET``.
+It supports the following commands: ``GET``, ``POST``.
 
 ``GET``
 ~~~~~~~
@@ -383,12 +383,59 @@ Example::
       }
     ]
 
+``POST``
+~~~~~~~~
+
+Creates a node group.
+
+If the optional bool *dry-run* argument is provided, the job will not be
+actually executed, only the pre-execution checks will be done.
+
+Returns: a job ID that can be used later for polling.
+
+Body parameters:
+
+``name`` (string, required)
+  Node group name.
+
+
 ``/2/groups/[group_name]``
-+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++
 
 Returns information about a node group.
 
-It supports the following commands: ``GET``.
+It supports the following commands: ``GET``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns information about a node group, similar to the bulk output from
+the node group list.
+
+``DELETE``
+~~~~~~~~~~
+
+Deletes a node group.
+
+It supports the ``dry-run`` argument.
+
+
+``/2/groups/[group_name]/rename``
++++++++++++++++++++++++++++++++++
+
+Renames a node group.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``new_name`` (string, required)
+  New node group name.
 
 
 ``/2/instances``

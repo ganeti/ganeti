@@ -409,5 +409,38 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
     self.assertFalse(ops[1].osparams)
 
 
+class TestParseRenameGroupRequest(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.Parse = rlib2._ParseRenameGroupRequest
+
+  def test(self):
+    name = "instij0eeph7"
+    data = {
+      "new_name": "ua0aiyoo",
+      }
+
+    op = self.Parse(name, data, False)
+
+    self.assert_(isinstance(op, opcodes.OpRenameGroup))
+    self.assertEqual(op.old_name, name)
+    self.assertEqual(op.new_name, "ua0aiyoo")
+    self.assertFalse(op.dry_run)
+
+  def testDryRun(self):
+    name = "instij0eeph7"
+    data = {
+      "new_name": "ua0aiyoo",
+      }
+
+    op = self.Parse(name, data, True)
+
+    self.assert_(isinstance(op, opcodes.OpRenameGroup))
+    self.assertEqual(op.old_name, name)
+    self.assertEqual(op.new_name, "ua0aiyoo")
+    self.assert_(op.dry_run)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
