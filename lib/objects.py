@@ -1380,7 +1380,7 @@ class ConfdReply(ConfigObject):
 class QueryFieldDefinition(ConfigObject):
   """Object holding a query field definition.
 
-  @ivar name: Field name as a regular expression
+  @ivar name: Field name
   @ivar title: Human-readable title
   @ivar kind: Field type
 
@@ -1389,6 +1389,51 @@ class QueryFieldDefinition(ConfigObject):
     "name",
     "title",
     "kind",
+    ]
+
+
+class QueryRequest(ConfigObject):
+  """Object holding a query request.
+
+  """
+  __slots__ = [
+    "what",
+    "fields",
+    "filter",
+    ]
+
+
+class QueryResponse(ConfigObject):
+  """Object holding the response to a query.
+
+  @ivar fields: List of L{QueryFieldDefinition} objects
+  @ivar data: Requested data
+
+  """
+  __slots__ = [
+    "fields",
+    "data",
+    ]
+
+
+class QueryFieldsRequest(ConfigObject):
+  """Object holding a request for querying available fields.
+
+  """
+  __slots__ = [
+    "what",
+    "fields",
+    ]
+
+
+class QueryFieldsResponse(ConfigObject):
+  """Object holding the response to a query for fields.
+
+  @ivar fields: List of L{QueryFieldDefinition} objects
+
+  """
+  __slots__ = [
+    "fields",
     ]
 
 
