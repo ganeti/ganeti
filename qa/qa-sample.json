@@ -33,6 +33,15 @@
     }
   ],
 
+  "groups": {
+    "group-with-nodes": "default",
+    "inexistent-groups": [
+      "group1",
+      "group2",
+      "group3"
+    ]
+  }
+
   "tests": {
     "env": true,
     "os": true,
@@ -54,6 +63,7 @@
     "cluster-modify": true,
 
     "group-list": true,
+    "group-rwops": true,
 
     "node-info": true,
     "node-volumes": true,

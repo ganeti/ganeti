@@ -230,6 +230,12 @@ def RunGroupListTests():
   RunTestIf("group-list", qa_group.TestGroupListAllFields)
 
 
+def RunGroupRwTests():
+  """Run tests for adding/removing/renaming groups.
+
+  """
+  RunTestIf("group-rwops", qa_group.TestGroupAddRemoveRename)
+
 def RunExportImportTests(instance, pnode, snode):
   """Tries to export and import the instance.
 
@@ -358,6 +364,7 @@ def main():
 
   RunCommonNodeTests()
   RunGroupListTests()
+  RunGroupRwTests()
 
   pnode = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   try:
