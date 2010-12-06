@@ -724,7 +724,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_version = self._GetKVMVersion()
     if kvm_version:
-      _, v_major, v_min, v_rev = kvm_version
+      _, v_major, v_min, _ = kvm_version
     else:
       raise errors.HypervisorError("Unable to get KVM version")
 
@@ -744,14 +744,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       nic_type = up_hvp[constants.HV_NIC_TYPE]
       if nic_type == constants.HT_NIC_PARAVIRTUAL:
         # From version 0.12.0, kvm uses a new sintax for network configuration.
-        if (v_major, v_min) >= (0,12):
+        if (v_major, v_min) >= (0, 12):
           nic_model = "virtio-net-pci"
         else:
           nic_model = "virtio"
 
         if up_hvp[constants.HV_VHOST_NET]:
           # vhost_net is only available from version 0.13.0 or newer
-          if (v_major, v_min) >= (0,13):
+          if (v_major, v_min) >= (0, 13):
             tap_extra = ",vhost=on"
           else:
             raise errors.HypervisorError("vhost_net is configured"
@@ -762,12 +762,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       for nic_seq, nic in enumerate(kvm_nics):
         script = self._WriteNetScriptFile(instance, nic_seq, nic)
         temp_files.append(script)
-        if (v_major, v_min) >= (0,12):
+        if (v_major, v_min) >= (0, 12):
           nic_val = "%s,mac=%s,netdev=netdev%s" % (nic_model, nic.mac, nic_seq)
-          tap_val = "type=tap,id=netdev%s,script=%s%s" % (nic_seq, script, tap_extra)
+          tap_val = "type=tap,id=netdev%s,script=%s%s" % (nic_seq,
+                                                          script, tap_extra)
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
         else:
-          nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq, nic.mac, nic_model)
+          nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
+                                                         nic.mac, nic_model)
           tap_val = "tap,vlan=%s,script=%s" % (nic_seq, script)
           kvm_cmd.extend(["-net", tap_val, "-net", nic_val])
 
