@@ -39,6 +39,7 @@ from ganeti import serializer
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
+from ganeti import objects
 
 
 KEY_METHOD = "method"
@@ -53,6 +54,8 @@ REQ_WAIT_FOR_JOB_CHANGE = "WaitForJobChange"
 REQ_CANCEL_JOB = "CancelJob"
 REQ_ARCHIVE_JOB = "ArchiveJob"
 REQ_AUTOARCHIVE_JOBS = "AutoArchiveJobs"
+REQ_QUERY = "Query"
+REQ_QUERY_FIELDS = "QueryFields"
 REQ_QUERY_JOBS = "QueryJobs"
 REQ_QUERY_INSTANCES = "QueryInstances"
 REQ_QUERY_NODES = "QueryNodes"
@@ -486,6 +489,34 @@ class Client(object):
       if result != constants.JOB_NOTCHANGED:
         break
     return result
+
+  def Query(self, what, fields, filter_):
+    """Query for resources/items.
+
+    @param what: One of L{constants.QR_OP_LUXI}
+    @type fields: List of strings
+    @param fields: List of requested fields
+    @type filter_: None or list
+    @param filter_: Query filter
+    @rtype: L{objects.QueryResponse}
+
+    """
+    req = objects.QueryRequest(what=what, fields=fields, filter=filter_)
+    result = self.CallMethod(REQ_QUERY, req.ToDict())
+    return objects.QueryResponse.FromDict(result)
+
+  def QueryFields(self, what, fields):
+    """Query for available fields.
+
+    @param what: One of L{constants.QR_OP_LUXI}
+    @type fields: None or list of strings
+    @param fields: List of requested fields
+    @rtype: L{objects.QueryFieldsResponse}
+
+    """
+    req = objects.QueryFieldsRequest(what=what, fields=fields)
+    result = self.CallMethod(REQ_QUERY_FIELDS, req.ToDict())
+    return objects.QueryFieldsResponse.FromDict(result)
 
   def QueryJobs(self, job_ids, fields):
     return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))

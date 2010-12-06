@@ -55,6 +55,7 @@ from ganeti import workerpool
 from ganeti import rpc
 from ganeti import bootstrap
 from ganeti import netutils
+from ganeti import objects
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -226,6 +227,34 @@ class ClientOps:
       logging.info("Received job poll request for %s", job_id)
       return queue.WaitForJobChanges(job_id, fields, prev_job_info,
                                      prev_log_serial, timeout)
+
+    elif method == luxi.REQ_QUERY:
+      req = objects.QueryRequest.FromDict(args)
+
+      if req.what in constants.QR_OP_QUERY:
+        result = self._Query(opcodes.OpQuery(what=req.what, fields=req.fields,
+                                             filter=req.filter))
+      elif req.what in constants.QR_OP_LUXI:
+        raise NotImplementedError
+      else:
+        raise errors.OpPrereqError("Resource type '%s' unknown" % req.what,
+                                   errors.ECODE_INVAL)
+
+      return result
+
+    elif method == luxi.REQ_QUERY_FIELDS:
+      req = objects.QueryFieldsRequest.FromDict(args)
+
+      if req.what in constants.QR_OP_QUERY:
+        result = self._Query(opcodes.OpQueryFields(what=req.what,
+                                                   fields=req.fields))
+      elif req.what in constants.QR_OP_LUXI:
+        raise NotImplementedError
+      else:
+        raise errors.OpPrereqError("Resource type '%s' unknown" % req.what,
+                                   errors.ECODE_INVAL)
+
+      return result
 
     elif method == luxi.REQ_QUERY_JOBS:
       (job_ids, fields) = args

@@ -947,6 +947,10 @@ QR_NODE = "node"
 #: List of resources which can be queried using L{opcodes.OpQuery}
 QR_OP_QUERY = frozenset([QR_INSTANCE, QR_NODE])
 
+#: List of resources which can be queried using LUXI
+QR_OP_LUXI = QR_OP_QUERY.union([
+  ])
+
 # Query field types
 QFT_UNKNOWN = "unknown"
 QFT_TEXT = "text"
