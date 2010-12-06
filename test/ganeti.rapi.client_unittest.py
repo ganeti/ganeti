@@ -976,6 +976,69 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertDryRun()
     self.assertQuery("tag", ["awesome"])
 
+  def testGetGroups(self):
+    groups = [{"name": "group1",
+               "uri": "/2/groups/group1",
+               },
+              {"name": "group2",
+               "uri": "/2/groups/group2",
+               },
+              ]
+    self.rapi.AddResponse(serializer.DumpJson(groups))
+    self.assertEqual(["group1", "group2"], self.client.GetGroups())
+    self.assertHandler(rlib2.R_2_groups)
+
+  def testGetGroupsBulk(self):
+    groups = [{"name": "group1",
+               "uri": "/2/groups/group1",
+               "node_cnt": 2,
+               "node_list": ["gnt1.test",
+                             "gnt2.test",
+                             ],
+               },
+              {"name": "group2",
+               "uri": "/2/groups/group2",
+               "node_cnt": 1,
+               "node_list": ["gnt3.test",
+                             ],
+               },
+              ]
+    self.rapi.AddResponse(serializer.DumpJson(groups))
+
+    self.assertEqual(groups, self.client.GetGroups(bulk=True))
+    self.assertHandler(rlib2.R_2_groups)
+    self.assertBulk()
+
+  def testGetGroup(self):
+    group = {"ctime": None,
+             "name": "default",
+             }
+    self.rapi.AddResponse(serializer.DumpJson(group))
+    self.assertEqual({"ctime": None, "name": "default"},
+                     self.client.GetGroup("default"))
+    self.assertHandler(rlib2.R_2_groups_name)
+    self.assertItems(["default"])
+
+  def testCreateGroup(self):
+    self.rapi.AddResponse("12345")
+    job_id = self.client.CreateGroup("newgroup", dry_run=True)
+    self.assertEqual(job_id, 12345)
+    self.assertHandler(rlib2.R_2_groups)
+    self.assertDryRun()
+
+  def testDeleteGroup(self):
+    self.rapi.AddResponse("12346")
+    job_id = self.client.DeleteGroup("newgroup", dry_run=True)
+    self.assertEqual(job_id, 12346)
+    self.assertHandler(rlib2.R_2_groups_name)
+    self.assertDryRun()
+
+  def testRenameGroup(self):
+    self.rapi.AddResponse("12347")
+    job_id = self.client.RenameGroup("oldname", "newname")
+    self.assertEqual(job_id, 12347)
+    self.assertHandler(rlib2.R_2_groups_name_rename)
+
 
 if __name__ == '__main__':
   client.UsesRapiClient(testutils.GanetiTestProgram)()

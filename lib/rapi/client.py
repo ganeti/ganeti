@@ -1371,3 +1371,102 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_DELETE,
                              ("/%s/nodes/%s/tags" %
                               (GANETI_RAPI_VERSION, node)), query, None)
+
+  def GetGroups(self, bulk=False):
+    """Gets all node groups in the cluster.
+
+    @type bulk: bool
+    @param bulk: whether to return all information about the groups
+
+    @rtype: list of dict or str
+    @return: if bulk is true, a list of dictionaries with info about all node
+        groups in the cluster, else a list of names of those node groups
+
+    """
+    query = []
+    if bulk:
+      query.append(("bulk", 1))
+
+    groups = self._SendRequest(HTTP_GET, "/%s/groups" % GANETI_RAPI_VERSION,
+                               query, None)
+    if bulk:
+      return groups
+    else:
+      return [g["name"] for g in groups]
+
+  def GetGroup(self, group):
+    """Gets information about a node group.
+
+    @type group: str
+    @param group: name of the node group whose info to return
+
+    @rtype: dict
+    @return: info about the node group
+
+    """
+    return self._SendRequest(HTTP_GET,
+                             "/%s/groups/%s" % (GANETI_RAPI_VERSION, group),
+                             None, None)
+
+  def CreateGroup(self, name, dry_run=False):
+    """Creates a new node group.
+
+    @type name: str
+    @param name: the name of node group to create
+    @type dry_run: bool
+    @param dry_run: whether to peform a dry run
+
+    @rtype: int
+    @return: job id
+
+    """
+    query = []
+    if dry_run:
+      query.append(("dry-run", 1))
+
+    body = {
+      "name": name,
+      }
+
+    return self._SendRequest(HTTP_POST, "/%s/groups" % GANETI_RAPI_VERSION,
+                             query, body)
+
+  def DeleteGroup(self, group, dry_run=False):
+    """Deletes a node group.
+
+    @type group: str
+    @param group: the node group to delete
+    @type dry_run: bool
+    @param dry_run: whether to peform a dry run
+
+    @rtype: int
+    @return: job id
+
+    """
+    query = []
+    if dry_run:
+      query.append(("dry-run", 1))
+
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/groups/%s" %
+                              (GANETI_RAPI_VERSION, group)), query, None)
+
+  def RenameGroup(self, group, new_name):
+    """Changes the name of a node group.
+
+    @type group: string
+    @param group: Node group name
+    @type new_name: string
+    @param new_name: New node group name
+
+    @rtype: int
+    @return: job id
+
+    """
+    body = {
+      "new_name": new_name,
+      }
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/groups/%s/rename" %
+                              (GANETI_RAPI_VERSION, group)), None, body)
