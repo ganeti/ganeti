@@ -389,7 +389,7 @@ class ConfigData(ConfigObject):
 
 class NIC(ConfigObject):
   """Config object representing a network card."""
-  __slots__ = ["mac", "ip", "bridge", "nicparams"]
+  __slots__ = ["mac", "ip", "nicparams"]
 
   @classmethod
   def CheckParameterSyntax(cls, nicparams):
@@ -408,21 +408,6 @@ class NIC(ConfigObject):
         not nicparams[constants.NIC_LINK]):
       err = "Missing bridged nic link"
       raise errors.ConfigurationError(err)
-
-  def UpgradeConfig(self):
-    """Fill defaults for missing configuration values.
-
-    """
-    if self.nicparams is None:
-      self.nicparams = {}
-      if self.bridge is not None:
-        self.nicparams[constants.NIC_MODE] = constants.NIC_MODE_BRIDGED
-        self.nicparams[constants.NIC_LINK] = self.bridge
-    # bridge is no longer used it 2.1. The slot is left there to support
-    # upgrading, but can be removed once upgrades to the current version
-    # straight from 2.0 are deprecated.
-    if self.bridge is not None:
-      self.bridge = None
 
 
 class Disk(ConfigObject):
