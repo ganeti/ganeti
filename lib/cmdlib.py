@@ -577,12 +577,10 @@ def _GetWantedNodes(lu, nodes):
   @raise errors.ProgrammerError: if the nodes parameter is wrong type
 
   """
-  if not nodes:
-    raise errors.ProgrammerError("_GetWantedNodes should only be called with a"
-      " non-empty list of nodes whose name is to be expanded.")
+  if nodes:
+    return [_ExpandNodeName(lu.cfg, name) for name in nodes]
 
-  wanted = [_ExpandNodeName(lu.cfg, name) for name in nodes]
-  return utils.NiceSort(wanted)
+  return utils.NiceSort(lu.cfg.GetNodeList())
 
 
 def _GetWantedInstances(lu, instances):
