@@ -121,6 +121,11 @@ def SetupCluster(rapi_user, rapi_secret):
   """
   RunTestIf("create-cluster", qa_cluster.TestClusterInit,
             rapi_user, rapi_secret)
+
+  # Test on empty cluster
+  RunTestIf("node-list", qa_node.TestNodeList)
+  RunTestIf("instance-list", qa_instance.TestInstanceList)
+
   RunTestIf("create-cluster", qa_node.TestNodeAddAll)
   if not qa_config.TestEnabled("create-cluster"):
     # consider the nodes are already there
@@ -130,6 +135,8 @@ def SetupCluster(rapi_user, rapi_secret):
 
   # enable the watcher (unconditionally)
   RunTest(qa_daemon.TestResumeWatcher)
+
+  RunTestIf("node-list", qa_node.TestNodeList)
 
   RunTestIf("node-info", qa_node.TestNodeInfo)
 
@@ -216,6 +223,9 @@ def RunCommonInstanceTests(instance):
   RunTestIf("tags", qa_tags.TestInstanceTags, instance)
 
   RunTestIf("rapi", qa_rapi.TestInstance, instance)
+
+  # Lists instances, too
+  RunTestIf("node-list", qa_node.TestNodeList)
 
 
 def RunCommonNodeTests():

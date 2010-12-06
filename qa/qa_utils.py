@@ -27,8 +27,10 @@ import os
 import re
 import sys
 import subprocess
+import random
 
 from ganeti import utils
+from ganeti import compat
 
 import qa_config
 import qa_error
@@ -282,6 +284,73 @@ def GetNodeInstances(node, secondaries=False):
       instances.append(name)
 
   return instances
+
+
+def _SelectQueryFields(rnd, fields):
+  """Generates a list of fields for query tests.
+
+  """
+  # Create copy for shuffling
+  fields = list(fields)
+  rnd.shuffle(fields)
+
+  # Check all fields
+  yield fields
+  yield sorted(fields)
+
+  # Duplicate fields
+  yield fields + fields
+
+  # Check small groups of fields
+  while fields:
+    yield [fields.pop() for _ in range(rnd.randint(2, 10)) if fields]
+
+
+def _List(listcmd, fields, names):
+  """Runs a list command.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  cmd = [listcmd, "list", "--separator=|", "--no-header",
+         "--output", ",".join(fields)]
+
+  if names:
+    cmd.extend(names)
+
+  return GetCommandOutput(master["primary"],
+                          utils.ShellQuoteArgs(cmd)).splitlines()
+
+
+def GenericQueryTest(cmd, fields):
+  """Runs a number of tests on query commands.
+
+  @param cmd: Command name
+  @param fields: List of field names
+
+  """
+  rnd = random.Random(hash(cmd))
+
+  randfields = list(fields)
+  rnd.shuffle(fields)
+
+  # Test a number of field combinations
+  for testfields in _SelectQueryFields(rnd, fields):
+    AssertCommand([cmd, "list", "--output", ",".join(testfields)])
+
+  namelist_fn = compat.partial(_List, cmd, ["name"])
+
+  # When no names were requested, the list must be sorted
+  names = namelist_fn(None)
+  AssertEqual(names, utils.NiceSort(names))
+
+  # When requesting specific names, the order must be kept
+  revnames = list(reversed(names))
+  AssertEqual(namelist_fn(revnames), revnames)
+
+  randnames = list(names)
+  rnd.shuffle(randnames)
+  AssertEqual(namelist_fn(randnames), randnames)
 
 
 def _FormatWithColor(text, seq):

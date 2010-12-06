@@ -28,6 +28,7 @@ import time
 
 from ganeti import utils
 from ganeti import constants
+from ganeti import query
 
 import qa_config
 import qa_utils
@@ -209,7 +210,7 @@ def TestInstanceConvertDisk(instance, snode):
 
 def TestInstanceList():
   """gnt-instance list"""
-  AssertCommand(["gnt-instance", "list"])
+  qa_utils.GenericQueryTest("gnt-instance", query.INSTANCE_FIELDS.keys())
 
 
 def TestInstanceConsole(instance):

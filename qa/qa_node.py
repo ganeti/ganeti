@@ -21,6 +21,7 @@
 
 from ganeti import utils
 from ganeti import constants
+from ganeti import query
 
 import qa_config
 import qa_error
@@ -189,3 +190,8 @@ def TestNodeModify(node):
 
   AssertCommand(["gnt-node", "modify", "--master-candidate=yes",
                  "--auto-promote", node["primary"]])
+
+
+def TestNodeList():
+  """gnt-node list"""
+  qa_utils.GenericQueryTest("gnt-node", query.NODE_FIELDS.keys())

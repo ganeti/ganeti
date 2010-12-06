@@ -65,6 +65,7 @@
     "group-list": true,
     "group-rwops": true,
 
+    "node-list": true,
     "node-info": true,
     "node-volumes": true,
     "node-readd": true,
