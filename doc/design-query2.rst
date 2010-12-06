@@ -113,7 +113,7 @@ Request
 
 The request is a dictionary with the following entries:
 
-``kind`` (string, required)
+``what`` (string, required)
   An :ref:`item type <item-types>`.
 ``fields`` (list of strings, required)
   List of names of fields to return. Example::
@@ -209,7 +209,7 @@ Request
 
 The request is a dictionary with the following entries:
 
-``kind`` (string, required)
+``what`` (string, required)
   An :ref:`item type <item-types>`.
 ``fields`` (list of strings, optional)
   List of names of fields to return. If not set, all fields are
