@@ -3274,6 +3274,8 @@ class LUOutOfBand(NoHooksLU):
 
     result.Raise("An error occurred on execution of OOB helper")
 
+    self._CheckPayload(result)
+
     if self.op.command == constants.OOB_HEALTH:
       # For health we should log important events
       for item, status in result.payload:
@@ -3283,6 +3285,42 @@ class LUOutOfBand(NoHooksLU):
                           self.op.node_name, item, status)
 
     return result.payload
+
+  def _CheckPayload(self, result):
+    """Checks if the payload is valid.
+
+    @param result: RPC result
+    @raises errors.OpExecError: If payload is not valid
+
+    """
+    errs = []
+    if self.op.command == constants.OOB_HEALTH:
+      if not isinstance(result.payload, list):
+        errs.append("command 'health' is expected to return a list but got %s" %
+                    type(result.payload))
+      for item, status in result.payload:
+        if status not in constants.OOB_STATUSES:
+          errs.append("health item '%s' has invalid status '%s'" %
+                      (item, status))
+
+    if self.op.command == constants.OOB_POWER_STATUS:
+      if not isinstance(result.payload, dict):
+        errs.append("power-status is expected to return a dict but got %s" %
+                    type(result.payload))
+
+    if self.op.command in [
+        constants.OOB_POWER_ON,
+        constants.OOB_POWER_OFF,
+        constants.OOB_POWER_CYCLE,
+        ]:
+      if result.payload is not None:
+        errs.append("%s is expected to not return payload but got '%s'" %
+                    (self.op.command, result.payload))
+
+    if errs:
+      raise errors.OpExecError("Check of out-of-band payload failed due to %s" %
+                               utils.CommaJoin(errs))
+
 
 
 class LUDiagnoseOS(NoHooksLU):
