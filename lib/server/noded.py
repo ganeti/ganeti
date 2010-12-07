@@ -731,8 +731,12 @@ class NodeHttpServer(http.server.HttpServer):
     """Runs oob on node.
 
     """
-    return serializer.LoadJson(backend.RunOob(params[0], params[1], params[2],
-                                              params[3]))
+    output = backend.RunOob(params[0], params[1], params[2], params[3])
+    if output:
+      result = serializer.LoadJson(output)
+    else:
+      result = None
+    return result
 
   @staticmethod
   def perspective_write_ssconf_files(params):
