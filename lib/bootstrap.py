@@ -452,7 +452,7 @@ def InitConfig(version, cluster_config, master_node_config,
     }
   default_nodegroup = objects.NodeGroup(
     uuid=uuid_generator.Generate([], utils.NewUUID, _INITCONF_ECID),
-    name="default",
+    name=constants.INITIAL_NODE_GROUP_NAME,
     members=[master_node_config.name],
     )
   nodegroups = {

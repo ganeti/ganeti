@@ -1486,7 +1486,9 @@ class ConfigWriter:
         item.uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
         modified = True
     if not self._config_data.nodegroups:
-      default_nodegroup = objects.NodeGroup(name="default", members=[])
+      default_nodegroup_name = constants.INITIAL_NODE_GROUP_NAME
+      default_nodegroup = objects.NodeGroup(name=default_nodegroup_name,
+                                            members=[])
       self._UnlockedAddNodeGroup(default_nodegroup, _UPGRADE_CONFIG_JID, True)
       modified = True
     for node in self._config_data.nodes.values():

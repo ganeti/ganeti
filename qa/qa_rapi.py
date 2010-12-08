@@ -174,8 +174,8 @@ def TestEmptyCluster():
 
   def _VerifyGroups(data):
     default_group = {
-      "name": "default",
-      "uri": "/2/groups/default",
+      "name": constants.INITIAL_NODE_GROUP_NAME,
+      "uri": "/2/groups/" + constants.INITIAL_NODE_GROUP_NAME,
       }
     AssertIn(default_group, data)
 

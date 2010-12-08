@@ -19,6 +19,8 @@
 # 02110-1301, USA.
 
 
+from ganeti import constants
+
 import qa_config
 from qa_utils import AssertCommand
 
@@ -27,7 +29,8 @@ def TestGroupAddRemoveRename():
   """gnt-group add/remove/rename"""
   groups = qa_config.get("groups", {})
 
-  existing_group_with_nodes = groups.get("group-with-nodes", "default")
+  existing_group_with_nodes = groups.get("group-with-nodes",
+                                         constants.INITIAL_NODE_GROUP_NAME)
   group1, group2, group3 = groups.get("inexistent-groups",
                                       ["group1", "group2", "group3"])[:3]
 

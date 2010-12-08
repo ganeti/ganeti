@@ -1195,3 +1195,6 @@ UIDPOOL_UID_MAX = 2**32-1 # Assuming 32 bit user-ids
 
 # Name or path of the pgrep command
 PGREP = "pgrep"
+
+# Name of the node group that gets created at cluster init or upgrade
+INITIAL_NODE_GROUP_NAME = "default"
