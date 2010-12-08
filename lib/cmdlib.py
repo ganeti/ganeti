@@ -5409,7 +5409,7 @@ class LURenameInstance(LogicalUnit):
                                    errors.ECODE_NOTUNIQUE)
 
     instance_list = self.cfg.GetInstanceList()
-    if new_name in instance_list:
+    if new_name in instance_list and new_name != instance.name:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
                                  new_name, errors.ECODE_EXISTS)
 
@@ -5420,8 +5420,11 @@ class LURenameInstance(LogicalUnit):
     inst = self.instance
     old_name = inst.name
 
-    if inst.disk_template == constants.DT_FILE:
+    rename_file_storage = False
+    if (inst.disk_template == constants.DT_FILE and
+        self.op.new_name != inst.name):
       old_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
+      rename_file_storage = True
 
     self.cfg.RenameInstance(inst.name, self.op.new_name)
     # Change the instance lock. This is definitely safe while we hold the BGL
@@ -5431,7 +5434,7 @@ class LURenameInstance(LogicalUnit):
     # re-read the instance from the configuration after rename
     inst = self.cfg.GetInstanceInfo(self.op.new_name)
 
-    if inst.disk_template == constants.DT_FILE:
+    if rename_file_storage:
       new_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
       result = self.rpc.call_file_storage_dir_rename(inst.primary_node,
                                                      old_file_storage_dir,
