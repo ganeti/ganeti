@@ -1012,7 +1012,7 @@ class NodeGroup(ConfigObject):
     @param ndparams: the dict to fill
     @rtype: dict
     @return: a copy of the passed in ndparams with missing keys filled
-        from the cluster defaults
+        from the node group defaults
 
     """
     return FillDict(self.ndparams, ndparams)
