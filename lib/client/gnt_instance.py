@@ -245,97 +245,30 @@ def ListInstances(opts, args):
   """
   selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
-  output = GetClient().QueryInstances(args, selected_fields, opts.do_locking)
+  fmtoverride = dict.fromkeys(["tags", "disk.sizes", "nic.macs", "nic.ips",
+                               "nic.modes", "nic.links", "nic.bridges",
+                               "snodes"],
+                              (lambda value: ",".join(str(item)
+                                                      for item in value),
+                               False))
 
-  if not opts.no_headers:
-    headers = {
-      "name": "Instance", "os": "OS", "pnode": "Primary_node",
-      "snodes": "Secondary_Nodes", "admin_state": "Autostart",
-      "oper_state": "Running",
-      "oper_ram": "Memory", "disk_template": "Disk_template",
-      "oper_vcpus": "VCPUs",
-      "ip": "IP_address", "mac": "MAC_address",
-      "nic_mode": "NIC_Mode", "nic_link": "NIC_Link",
-      "bridge": "Bridge",
-      "sda_size": "Disk/0", "sdb_size": "Disk/1",
-      "disk_usage": "DiskUsage",
-      "status": "Status", "tags": "Tags",
-      "network_port": "Network_port",
-      "hv/kernel_path": "Kernel_path",
-      "hv/initrd_path": "Initrd_path",
-      "hv/boot_order": "Boot_order",
-      "hv/acpi": "ACPI",
-      "hv/pae": "PAE",
-      "hv/cdrom_image_path": "CDROM_image_path",
-      "hv/nic_type": "NIC_type",
-      "hv/disk_type": "Disk_type",
-      "hv/vnc_bind_address": "VNC_bind_address",
-      "serial_no": "SerialNo", "hypervisor": "Hypervisor",
-      "hvparams": "Hypervisor_parameters",
-      "be/memory": "Configured_memory",
-      "be/vcpus": "VCPUs",
-      "vcpus": "VCPUs",
-      "be/auto_balance": "Auto_balance",
-      "disk.count": "Disks", "disk.sizes": "Disk_sizes",
-      "nic.count": "NICs", "nic.ips": "NIC_IPs",
-      "nic.modes": "NIC_modes", "nic.links": "NIC_links",
-      "nic.bridges": "NIC_bridges", "nic.macs": "NIC_MACs",
-      "ctime": "CTime", "mtime": "MTime", "uuid": "UUID",
-      }
-  else:
-    headers = None
+  return GenericList(constants.QR_INSTANCE, selected_fields, args, opts.units,
+                     opts.separator, not opts.no_headers,
+                     format_override=fmtoverride)
 
-  unitfields = ["be/memory", "oper_ram", "sd(a|b)_size", "disk\.size/.*"]
-  numfields = ["be/memory", "oper_ram", "sd(a|b)_size", "be/vcpus",
-               "serial_no", "(disk|nic)\.count", "disk\.size/.*"]
 
-  list_type_fields = ("tags", "disk.sizes", "nic.macs", "nic.ips",
-                      "nic.modes", "nic.links", "nic.bridges")
-  # change raw values to nicer strings
-  for row in output:
-    for idx, field in enumerate(selected_fields):
-      val = row[idx]
-      if field == "snodes":
-        val = ",".join(val) or "-"
-      elif field == "admin_state":
-        if val:
-          val = "yes"
-        else:
-          val = "no"
-      elif field == "oper_state":
-        if val is None:
-          val = "(node down)"
-        elif val: # True
-          val = "running"
-        else:
-          val = "stopped"
-      elif field == "oper_ram":
-        if val is None:
-          val = "(node down)"
-      elif field == "oper_vcpus":
-        if val is None:
-          val = "(node down)"
-      elif field == "sda_size" or field == "sdb_size":
-        if val is None:
-          val = "N/A"
-      elif field == "ctime" or field == "mtime":
-        val = utils.FormatTime(val)
-      elif field in list_type_fields:
-        val = ",".join(str(item) for item in val)
-      elif val is None:
-        val = "-"
-      if opts.roman_integers and isinstance(val, int):
-        val = compat.TryToRoman(val)
-      row[idx] = str(val)
+def ListInstanceFields(opts, args):
+  """List instance fields.
 
-  data = GenerateTable(separator=opts.separator, headers=headers,
-                       fields=selected_fields, unitfields=unitfields,
-                       numfields=numfields, data=output, units=opts.units)
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: fields to list, or empty for all
+  @rtype: int
+  @return: the desired exit code
 
-  for line in data:
-    ToStdout(line)
-
-  return 0
+  """
+  return GenericListFields(constants.QR_INSTANCE, args, opts.separator,
+                           not opts.no_headers)
 
 
 def AddInstance(opts, args):
@@ -1421,21 +1354,18 @@ commands = {
     "Show information on the specified instance(s)"),
   'list': (
     ListInstances, ARGS_MANY_INSTANCES,
-    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
+    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
     "[<instance>...]",
-    "Lists the instances and their status. The available fields are"
-    " (see the man page for details): status, oper_state, oper_ram,"
-    " oper_vcpus, name, os, pnode, snodes, admin_state, admin_ram,"
-    " disk_template, ip, mac, nic_mode, nic_link, sda_size, sdb_size,"
-    " vcpus, serial_no,"
-    " nic.count, nic.mac/N, nic.ip/N, nic.mode/N, nic.link/N,"
-    " nic.macs, nic.ips, nic.modes, nic.links,"
-    " disk.count, disk.size/N, disk.sizes,"
-    " hv/NAME, be/memory, be/vcpus, be/auto_balance,"
-    " hypervisor."
-    " The default field"
-    " list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS),
+    "Lists the instances and their status. The available fields can be shown"
+    " using the \"list-fields\" command (see the man page for details)."
+    " The default field list is (in order): %s." %
+    utils.CommaJoin(_LIST_DEF_FIELDS),
     ),
+  "list-fields": (
+    ListInstanceFields, [ArgUnknown()],
+    [NOHDR_OPT, SEP_OPT],
+    "[fields...]",
+    "Lists all available fields for instances"),
   'reinstall': (
     ReinstallInstance, [ArgInstance()],
     [FORCE_OPT, OS_OPT, FORCE_VARIANT_OPT, m_force_multi, m_node_opt,

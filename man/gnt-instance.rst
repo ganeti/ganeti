@@ -620,7 +620,7 @@ LIST
 
 | **list**
 | [--no-headers] [--separator=*SEPARATOR*] [--units=*UNITS*]
-| [-o *[+]FIELD,...*] [--roman] [instance...]
+| [-o *[+]FIELD,...*] [instance...]
 
 Shows the currently configured instances with memory usage, disk
 usage, the node they are running on, and their run status.
@@ -636,9 +636,6 @@ formatted in the most appropriate unit. If the ``--separator``
 option is given, then the values are shown in mebibytes to allow
 parsing by scripts. In both cases, the ``--units`` option can be
 used to enforce a given output unit.
-
-The ``--roman`` option allows latin people to better understand the
-cluster instances' status.
 
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:
@@ -815,6 +812,15 @@ a reduced set of output fields.
 
 The default output field list is: name, os, pnode, admin\_state,
 oper\_state, oper\_ram.
+
+
+LIST-FIELDS
+~~~~~~~~~~
+
+**list-fields** [field...]
+
+Lists available fields for instances.
+
 
 INFO
 ^^^^
