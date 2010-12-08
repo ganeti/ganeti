@@ -508,6 +508,35 @@ class _QueryBase:
     self.query = query.Query(self.FIELDS, fields)
     self.requested_data = self.query.RequestedData()
 
+    self.do_locking = None
+    self.wanted = None
+
+  def _GetNames(self, lu, all_names, lock_level):
+    """Helper function to determine names asked for in the query.
+
+    """
+    if self.do_locking:
+      names = lu.acquired_locks[lock_level]
+    else:
+      names = all_names
+
+    if self.wanted == locking.ALL_SET:
+      assert not self.names
+      # caller didn't specify names, so ordering is not important
+      return utils.NiceSort(names)
+
+    # caller specified names and we must keep the same order
+    assert self.names
+    assert not self.do_locking or lu.acquired_locks[lock_level]
+
+    missing = set(self.wanted).difference(names)
+    if missing:
+      raise errors.OpExecError("Some items were removed before retrieving"
+                               " their data: %s" % missing)
+
+    # Return expanded names
+    return self.wanted
+
   @classmethod
   def FieldsQuery(cls, fields):
     """Returns list of available fields.
@@ -3521,18 +3550,7 @@ class _NodeQuery(_QueryBase):
     """
     all_info = lu.cfg.GetAllNodesInfo()
 
-    if self.do_locking:
-      nodenames = lu.acquired_locks[locking.LEVEL_NODE]
-    elif self.wanted != locking.ALL_SET:
-      nodenames = self.wanted
-      missing = set(nodenames).difference(all_info.keys())
-      if missing:
-        raise errors.OpExecError("Some nodes were removed before retrieving"
-                                 " their data: %s" % missing)
-    else:
-      nodenames = all_info.keys()
-
-    nodenames = utils.NiceSort(nodenames)
+    nodenames = self._GetNames(lu, all_info.keys(), locking.LEVEL_NODE)
 
     # Gather data as requested
     if query.NQ_LIVE in self.requested_data:
