@@ -452,6 +452,9 @@ EXIT_NOTMASTER = 11
 EXIT_NODESETUP_ERROR = 12
 EXIT_CONFIRMATION = 13 # need user confirmation
 
+#: Exit code for query operations with unknown fields
+EXIT_UNKNOWN_FIELD = 14
+
 # tags
 TAG_CLUSTER = "cluster"
 TAG_NODE = "node"
@@ -982,6 +985,13 @@ QRFS_UNKNOWN = 1
 QRFS_NODATA = 2
 #: Value unavailable for item
 QRFS_UNAVAIL = 3
+
+QRFS_ALL = frozenset([
+  QRFS_NORMAL,
+  QRFS_UNKNOWN,
+  QRFS_NODATA,
+  QRFS_UNAVAIL,
+  ])
 
 # max dynamic devices
 MAX_NICS = 8

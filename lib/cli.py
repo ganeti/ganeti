@@ -39,6 +39,7 @@ from ganeti import rpc
 from ganeti import ssh
 from ganeti import compat
 from ganeti import netutils
+from ganeti import qlang
 
 from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -161,6 +162,8 @@ __all__ = [
   # Generic functions for CLI programs
   "GenericMain",
   "GenericInstanceCreate",
+  "GenericList",
+  "GenericListFields",
   "GetClient",
   "GetOnlineNodes",
   "JobExecutor",
@@ -173,6 +176,7 @@ __all__ = [
   # Formatting functions
   "ToStderr", "ToStdout",
   "FormatError",
+  "FormatQueryResult",
   "GenerateTable",
   "AskUser",
   "FormatTimestamp",
@@ -229,6 +233,11 @@ _PRIORITY_NAMES = [
 # TODO: Replace this and _PRIORITY_NAMES with a single sorted dictionary once
 # we migrate to Python 2.6
 _PRIONAME_TO_VALUE = dict(_PRIORITY_NAMES)
+
+# Query result status for clients
+(QR_NORMAL,
+ QR_UNKNOWN,
+ QR_INCOMPLETE) = range(3)
 
 
 class _Argument:
@@ -2296,6 +2305,355 @@ def GenerateTable(headers, fields, separator, data,
     result.append(format_str % tuple(args))
 
   return result
+
+
+def _FormatBool(value):
+  """Formats a boolean value as a string.
+
+  """
+  if value:
+    return "Y"
+  return "N"
+
+
+#: Default formatting for query results; (callback, align right)
+_DEFAULT_FORMAT_QUERY = {
+  constants.QFT_TEXT: (str, False),
+  constants.QFT_BOOL: (_FormatBool, False),
+  constants.QFT_NUMBER: (str, True),
+  constants.QFT_TIMESTAMP: (utils.FormatTime, False),
+  constants.QFT_OTHER: (str, False),
+  constants.QFT_UNKNOWN: (str, False),
+  }
+
+
+def _GetColumnFormatter(fdef, override, unit):
+  """Returns formatting function for a field.
+
+  @type fdef: L{objects.QueryFieldDefinition}
+  @type override: dict
+  @param override: Dictionary for overriding field formatting functions,
+    indexed by field name, contents like L{_DEFAULT_FORMAT_QUERY}
+  @type unit: string
+  @param unit: Unit used for formatting fields of type L{constants.QFT_UNIT}
+  @rtype: tuple; (callable, bool)
+  @return: Returns the function to format a value (takes one parameter) and a
+    boolean for aligning the value on the right-hand side
+
+  """
+  fmt = override.get(fdef.name, None)
+  if fmt is not None:
+    return fmt
+
+  assert constants.QFT_UNIT not in _DEFAULT_FORMAT_QUERY
+
+  if fdef.kind == constants.QFT_UNIT:
+    # Can't keep this information in the static dictionary
+    return (lambda value: utils.FormatUnit(value, unit), True)
+
+  fmt = _DEFAULT_FORMAT_QUERY.get(fdef.kind, None)
+  if fmt is not None:
+    return fmt
+
+  raise NotImplementedError("Can't format column type '%s'" % fdef.kind)
+
+
+class _QueryColumnFormatter:
+  """Callable class for formatting fields of a query.
+
+  """
+  def __init__(self, fn, status_fn):
+    """Initializes this class.
+
+    @type fn: callable
+    @param fn: Formatting function
+    @type status_fn: callable
+    @param status_fn: Function to report fields' status
+
+    """
+    self._fn = fn
+    self._status_fn = status_fn
+
+  def __call__(self, data):
+    """Returns a field's string representation.
+
+    """
+    (status, value) = data
+
+    # Report status
+    self._status_fn(status)
+
+    if status == constants.QRFS_NORMAL:
+      return self._fn(value)
+
+    assert value is None, \
+           "Found value %r for abnormal status %s" % (value, status)
+
+    if status == constants.QRFS_UNKNOWN:
+      return "<unknown>"
+
+    if status == constants.QRFS_NODATA:
+      return "<nodata>"
+
+    if status == constants.QRFS_UNAVAIL:
+      return "<unavail>"
+
+    raise NotImplementedError("Unknown status %s" % status)
+
+
+def FormatQueryResult(result, unit=None, format_override=None, separator=None,
+                      header=False):
+  """Formats data in L{objects.QueryResponse}.
+
+  @type result: L{objects.QueryResponse}
+  @param result: result of query operation
+  @type unit: string
+  @param unit: Unit used for formatting fields of type L{constants.QFT_UNIT},
+    see L{utils.FormatUnit}
+  @type format_override: dict
+  @param format_override: Dictionary for overriding field formatting functions,
+    indexed by field name, contents like L{_DEFAULT_FORMAT_QUERY}
+  @type separator: string or None
+  @param separator: String used to separate fields
+  @type header: bool
+  @param header: Whether to output header row
+
+  """
+  if unit is None:
+    if separator:
+      unit = "m"
+    else:
+      unit = "h"
+
+  if format_override is None:
+    format_override = {}
+
+  stats = dict.fromkeys(constants.QRFS_ALL, 0)
+
+  def _RecordStatus(status):
+    if status in stats:
+      stats[status] += 1
+
+  columns = []
+  for fdef in result.fields:
+    assert fdef.title and fdef.name
+    (fn, align_right) = _GetColumnFormatter(fdef, format_override, unit)
+    columns.append(TableColumn(fdef.title,
+                               _QueryColumnFormatter(fn, _RecordStatus),
+                               align_right))
+
+  table = FormatTable(result.data, columns, header, separator)
+
+  # Collect statistics
+  assert len(stats) == len(constants.QRFS_ALL)
+  assert compat.all(count >= 0 for count in stats.values())
+
+  # Determine overall status. If there was no data, unknown fields must be
+  # detected via the field definitions.
+  if (stats[constants.QRFS_UNKNOWN] or
+      (not result.data and _GetUnknownFields(result.fields))):
+    status = QR_UNKNOWN
+  elif compat.any(count > 0 for key, count in stats.items()
+                  if key != constants.QRFS_NORMAL):
+    status = QR_INCOMPLETE
+  else:
+    status = QR_NORMAL
+
+  return (status, table)
+
+
+def _GetUnknownFields(fdefs):
+  """Returns list of unknown fields included in C{fdefs}.
+
+  @type fdefs: list of L{objects.QueryFieldDefinition}
+
+  """
+  return [fdef for fdef in fdefs
+          if fdef.kind == constants.QFT_UNKNOWN]
+
+
+def _WarnUnknownFields(fdefs):
+  """Prints a warning to stderr if a query included unknown fields.
+
+  @type fdefs: list of L{objects.QueryFieldDefinition}
+
+  """
+  unknown = _GetUnknownFields(fdefs)
+  if unknown:
+    ToStderr("Warning: Queried for unknown fields %s",
+             utils.CommaJoin(fdef.name for fdef in unknown))
+    return True
+
+  return False
+
+
+def GenericList(resource, fields, names, unit, separator, header, cl=None,
+                format_override=None):
+  """Generic implementation for listing all items of a resource.
+
+  @param resource: One of L{constants.QR_OP_LUXI}
+  @type fields: list of strings
+  @param fields: List of fields to query for
+  @type names: list of strings
+  @param names: Names of items to query for
+  @type unit: string or None
+  @param unit: Unit used for formatting fields of type L{constants.QFT_UNIT} or
+    None for automatic choice (human-readable for non-separator usage,
+    otherwise megabytes); this is a one-letter string
+  @type separator: string or None
+  @param separator: String used to separate fields
+  @type header: bool
+  @param header: Whether to show header row
+  @type format_override: dict
+  @param format_override: Dictionary for overriding field formatting functions,
+    indexed by field name, contents like L{_DEFAULT_FORMAT_QUERY}
+
+  """
+  if cl is None:
+    cl = GetClient()
+
+  if not names:
+    names = None
+
+  response = cl.Query(resource, fields, qlang.MakeSimpleFilter("name", names))
+
+  found_unknown = _WarnUnknownFields(response.fields)
+
+  (status, data) = FormatQueryResult(response, unit=unit, separator=separator,
+                                     header=header,
+                                     format_override=format_override)
+
+  for line in data:
+    ToStdout(line)
+
+  assert ((found_unknown and status == QR_UNKNOWN) or
+          (not found_unknown and status != QR_UNKNOWN))
+
+  if status == QR_UNKNOWN:
+    return constants.EXIT_UNKNOWN_FIELD
+
+  # TODO: Should the list command fail if not all data could be collected?
+  return constants.EXIT_SUCCESS
+
+
+def GenericListFields(resource, fields, separator, header, cl=None):
+  """Generic implementation for listing fields for a resource.
+
+  @param resource: One of L{constants.QR_OP_LUXI}
+  @type fields: list of strings
+  @param fields: List of fields to query for
+  @type separator: string or None
+  @param separator: String used to separate fields
+  @type header: bool
+  @param header: Whether to show header row
+
+  """
+  if cl is None:
+    cl = GetClient()
+
+  if not fields:
+    fields = None
+
+  response = cl.QueryFields(resource, fields)
+
+  found_unknown = _WarnUnknownFields(response.fields)
+
+  columns = [
+    TableColumn("Name", str, False),
+    TableColumn("Title", str, False),
+    # TODO: Add field description to master daemon
+    ]
+
+  rows = [[fdef.name, fdef.title] for fdef in response.fields]
+
+  for line in FormatTable(rows, columns, header, separator):
+    ToStdout(line)
+
+  if found_unknown:
+    return constants.EXIT_UNKNOWN_FIELD
+
+  return constants.EXIT_SUCCESS
+
+
+class TableColumn:
+  """Describes a column for L{FormatTable}.
+
+  """
+  def __init__(self, title, fn, align_right):
+    """Initializes this class.
+
+    @type title: string
+    @param title: Column title
+    @type fn: callable
+    @param fn: Formatting function
+    @type align_right: bool
+    @param align_right: Whether to align values on the right-hand side
+
+    """
+    self.title = title
+    self.format = fn
+    self.align_right = align_right
+
+
+def _GetColFormatString(width, align_right):
+  """Returns the format string for a field.
+
+  """
+  if align_right:
+    sign = ""
+  else:
+    sign = "-"
+
+  return "%%%s%ss" % (sign, width)
+
+
+def FormatTable(rows, columns, header, separator):
+  """Formats data as a table.
+
+  @type rows: list of lists
+  @param rows: Row data, one list per row
+  @type columns: list of L{TableColumn}
+  @param columns: Column descriptions
+  @type header: bool
+  @param header: Whether to show header row
+  @type separator: string or None
+  @param separator: String used to separate columns
+
+  """
+  if header:
+    data = [[col.title for col in columns]]
+    colwidth = [len(col.title) for col in columns]
+  else:
+    data = []
+    colwidth = [0 for _ in columns]
+
+  # Format row data
+  for row in rows:
+    assert len(row) == len(columns)
+
+    formatted = [col.format(value) for value, col in zip(row, columns)]
+
+    if separator is None:
+      # Update column widths
+      for idx, (oldwidth, value) in enumerate(zip(colwidth, formatted)):
+        # Modifying a list's items while iterating is fine
+        colwidth[idx] = max(oldwidth, len(value))
+
+    data.append(formatted)
+
+  if separator is not None:
+    # Return early if a separator is used
+    return [separator.join(row) for row in data]
+
+  if columns and not columns[-1].align_right:
+    # Avoid unnecessary spaces at end of line
+    colwidth[-1] = 0
+
+  # Build format string
+  fmt = " ".join([_GetColFormatString(width, col.align_right)
+                  for col, width in zip(columns, colwidth)])
+
+  return [fmt % tuple(row) for row in data]
 
 
 def FormatTimestamp(ts):
