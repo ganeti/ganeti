@@ -328,6 +328,7 @@ class OpSetClusterParams(OpCode):
     "hidden_os",
     "blacklisted_os",
     "prealloc_wipe_disks",
+    "master_netdev",
     ]
 
 

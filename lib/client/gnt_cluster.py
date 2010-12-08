@@ -722,6 +722,7 @@ def SetClusterParams(opts, args):
           opts.remove_uids is not None or
           opts.default_iallocator is not None or
           opts.reserved_lvs is not None or
+          opts.master_netdev is not None or
           opts.prealloc_wipe_disks is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -796,6 +797,7 @@ def SetClusterParams(opts, args):
                                   remove_uids=remove_uids,
                                   default_iallocator=opts.default_iallocator,
                                   prealloc_wipe_disks=opts.prealloc_wipe_disks,
+                                  master_netdev=opts.master_netdev,
                                   reserved_lvs=opts.reserved_lvs)
   SubmitOpCode(op, opts=opts)
   return 0
@@ -953,7 +955,7 @@ commands = {
     "{pause <timespec>|continue|info}", "Change watcher properties"),
   'modify': (
     SetClusterParams, ARGS_NONE,
-    [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
+    [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
      NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT,

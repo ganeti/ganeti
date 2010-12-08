@@ -2703,6 +2703,7 @@ class LUSetClusterParams(LogicalUnit):
     ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
     ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone)),
     ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone)),
+    ("master_netdev", None, ht.TOr(ht.TString, ht.TNone)),
     ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone)),
     ("hidden_os", None, ht.TOr(ht.TListOf(\
           ht.TAnd(ht.TList,
@@ -3019,7 +3020,26 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.blacklisted_os:
       helper_os("blacklisted_os", self.op.blacklisted_os, "blacklisted")
 
+    if self.op.master_netdev:
+      master = self.cfg.GetMasterNode()
+      feedback_fn("Shutting down master ip on the current netdev (%s)" %
+                  self.cluster.master_netdev)
+      result = self.rpc.call_node_stop_master(master, False)
+      result.Raise("Could not disable the master ip")
+      feedback_fn("Changing master_netdev from %s to %s" %
+                  (self.cluster.master_netdev, self.op.master_netdev))
+      self.cluster.master_netdev = self.op.master_netdev
+
     self.cfg.Update(self.cluster, feedback_fn)
+
+    if self.op.master_netdev:
+      feedback_fn("Starting the master ip on the new master netdev (%s)" %
+                  self.op.master_netdev)
+      result = self.rpc.call_node_start_master(master, False, False)
+      if result.fail_msg:
+        self.LogWarning("Could not re-enable the master ip on"
+                        " the master, please restart manually: %s",
+                        result.fail_msg)
 
 
 def _UploadHelper(lu, nodes, fname):

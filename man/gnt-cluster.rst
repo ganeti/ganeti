@@ -384,14 +384,15 @@ MODIFY
 | [-I *default instance allocator*]
 | [--reserved-lvs=*NAMES*]
 | [--node-parameters *ndparams*]
+| [--master-netdev *interface-name*]
 
 Modify the options for the cluster.
 
 The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
 ``--hypervisor-parameters``, ``--backend-parameters``,
 ``--nic-parameters``, ``--maintain-node-health``,
-``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters`` options
-are described in the **init** command.
+``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
+``--master-netdev`` options are described in the **init** command.
 
 The ``-C`` option specifies the ``candidate_pool_size`` cluster
 parameter. This is the number of nodes that the master will try to
