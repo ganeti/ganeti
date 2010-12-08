@@ -1392,6 +1392,29 @@ class QueryFieldDefinition(ConfigObject):
     ]
 
 
+class _QueryResponseBase(ConfigObject):
+  __slots__ = [
+    "fields",
+    ]
+
+  def ToDict(self):
+    """Custom function for serializing.
+
+    """
+    mydict = super(_QueryResponseBase, self).ToDict()
+    mydict["fields"] = self._ContainerToDicts(mydict["fields"])
+    return mydict
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for de-serializing.
+
+    """
+    obj = super(_QueryResponseBase, cls).FromDict(val)
+    obj.fields = cls._ContainerFromDicts(obj.fields, list, QueryFieldDefinition)
+    return obj
+
+
 class QueryRequest(ConfigObject):
   """Object holding a query request.
 
@@ -1403,7 +1426,7 @@ class QueryRequest(ConfigObject):
     ]
 
 
-class QueryResponse(ConfigObject):
+class QueryResponse(_QueryResponseBase):
   """Object holding the response to a query.
 
   @ivar fields: List of L{QueryFieldDefinition} objects
@@ -1411,7 +1434,6 @@ class QueryResponse(ConfigObject):
 
   """
   __slots__ = [
-    "fields",
     "data",
     ]
 
@@ -1426,14 +1448,13 @@ class QueryFieldsRequest(ConfigObject):
     ]
 
 
-class QueryFieldsResponse(ConfigObject):
+class QueryFieldsResponse(_QueryResponseBase):
   """Object holding the response to a query for fields.
 
   @ivar fields: List of L{QueryFieldDefinition} objects
 
   """
   __slots__ = [
-    "fields",
     ]
 
 

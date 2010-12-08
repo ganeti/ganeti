@@ -550,9 +550,7 @@ class _QueryBase:
     else:
       fdefs = query.Query(cls.FIELDS, fields).GetFields()
 
-    return {
-      "fields": [fdef.ToDict() for fdef in fdefs],
-      }
+    return objects.QueryFieldsResponse(fields=fdefs).ToDict()
 
   def ExpandNames(self, lu):
     """Expand names for this query.
@@ -584,11 +582,8 @@ class _QueryBase:
     """
     data = self._GetQueryData(lu)
 
-    return {
-      "data": self.query.Query(data),
-      "fields": [fdef.ToDict()
-                 for fdef in self.query.GetFields()],
-      }
+    return objects.QueryResponse(data=self.query.Query(data),
+                                 fields=self.query.GetFields()).ToDict()
 
   def OldStyleQuery(self, lu):
     """Collect data and execute query.
