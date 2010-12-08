@@ -54,7 +54,7 @@ def AddGroup(opts, args):
 
   """
   (group_name,) = args
-  op = opcodes.OpAddGroup(group_name=group_name)
+  op = opcodes.OpAddGroup(group_name=group_name, ndparams=opts.ndparams)
   SubmitOpCode(op, opts=opts)
 
 
@@ -137,7 +137,7 @@ def RenameGroup(opts, args):
 
 commands = {
   "add": (
-    AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],
+    AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, NODE_PARAMS_OPT],
     "<group_name>", "Add a new node group to the cluster"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,

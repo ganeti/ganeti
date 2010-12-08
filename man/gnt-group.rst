@@ -23,10 +23,16 @@ COMMANDS
 ADD
 ~~~
 
-| **add** {*group*}
+| **add**
+| [--node-parameters=*NDPARAMS*]
+| {*group*}
 
 Creates a new group with the given name. The node group will be
 initially empty.
+
+The ``--node-parameters`` option allows you to set default node
+parameters for nodes in the group. Please see **ganeti**(7) for more
+information about supported key=value pairs.
 
 REMOVE
 ~~~~~~

@@ -725,7 +725,10 @@ class OpAddGroup(OpCode):
   """Add a node group to the cluster."""
   OP_ID = "OP_GROUP_ADD"
   OP_DSC_FIELD = "group_name"
-  __slots__ = ["group_name"]
+  __slots__ = [
+    "group_name",
+    "ndparams",
+    ]
 
 
 class OpQueryGroups(OpCode):

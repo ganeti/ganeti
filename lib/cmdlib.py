@@ -10178,6 +10178,7 @@ class LUAddGroup(LogicalUnit):
 
   _OP_PARAMS = [
     _PGroupName,
+    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
     ]
 
   REQ_BGL = False
@@ -10207,6 +10208,9 @@ class LUAddGroup(LogicalUnit):
                                  (self.op.group_name, existing_uuid),
                                  errors.ECODE_EXISTS)
 
+    if self.op.ndparams:
+      utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -10222,7 +10226,8 @@ class LUAddGroup(LogicalUnit):
 
     """
     group_obj = objects.NodeGroup(name=self.op.group_name, members=[],
-                                  uuid=self.group_uuid)
+                                  uuid=self.group_uuid,
+                                  ndparams=self.op.ndparams)
 
     self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
     del self.remove_locks[locking.LEVEL_NODEGROUP]
