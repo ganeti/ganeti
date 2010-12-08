@@ -7,7 +7,15 @@ Version 2.4.0 rc1
 *(unreleased)*
 
 - Moved ``rapi_users`` file into separate directory, now named
-  ``…/ganeti/rapi/users``
+  ``…/ganeti/rapi/users``.
+- Changed query operations to return more detailed information, e.g.
+  whether an information is unavailable due to an offline node. To use
+  this new functionality, the LUXI call ``Query`` must be used. Field
+  information is now stored by the master daemon and can be retrieved
+  using ``QueryFields``. Instances and nodes can also be queried using
+  the new opcodes ``OpQuery`` and ``OpQueryFields``.
+- Removed support for roman numbers from ``gnt-node list`` and
+  ``gnt-instance list``.
 
 
 Version 2.3.1 rc1
