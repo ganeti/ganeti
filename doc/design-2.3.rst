@@ -82,7 +82,7 @@ The ``alloc_policy`` attribute can have the following values:
 - preferred: the node group can be used freely for allocation of
   instances (this is the default state for newly created node
   groups). Note that prioritization among groups in this state will be
-  deferred to the  iallocator plugin that's being used.
+  deferred to the iallocator plugin that's being used.
 
 Node group operations
 +++++++++++++++++++++
