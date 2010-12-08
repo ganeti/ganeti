@@ -73,3 +73,16 @@ def ReadSimpleFilter(namefield, filter_):
     result.append(value)
 
   return result
+
+
+def MakeSimpleFilter(namefield, values):
+  """Builds a filter for use with L{ReadSimpleFilter}.
+
+  @param namefield: Name of field containing item name
+  @param values: List of names
+
+  """
+  if values:
+    return [OP_OR] + [[OP_EQUAL, namefield, i] for i in values]
+
+  return None

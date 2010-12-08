@@ -56,5 +56,23 @@ class TestReadSimpleFilter(unittest.TestCase):
                         "name", i)
 
 
+class TestMakeSimpleFilter(unittest.TestCase):
+  def _Test(self, field, names, expected, parse_exp=None):
+    if parse_exp is None:
+      parse_exp = names
+
+    filter_ = qlang.MakeSimpleFilter(field, names)
+    self.assertEqual(filter_, expected)
+    self.assertEqual(qlang.ReadSimpleFilter(field, filter_), parse_exp)
+
+  def test(self):
+    self._Test("name", None, None, parse_exp=[])
+    self._Test("name", [], None)
+    self._Test("name", ["node1.example.com"],
+               ["|", ["=", "name", "node1.example.com"]])
+    self._Test("xyz", ["a", "b", "c"],
+               ["|", ["=", "xyz", "a"], ["=", "xyz", "b"], ["=", "xyz", "c"]])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
