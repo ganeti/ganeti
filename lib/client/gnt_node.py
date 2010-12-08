@@ -31,7 +31,6 @@ from ganeti import bootstrap
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import constants
-from ganeti import compat
 from ganeti import errors
 from ganeti import netutils
 
@@ -58,27 +57,6 @@ _LIST_STOR_DEF_FIELDS = [
   constants.SF_FREE,
   constants.SF_ALLOCATABLE,
   ]
-
-
-#: headers (and full field list) for L{ListNodes}
-_LIST_HEADERS = {
-  "name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
-  "pinst_list": "PriInstances", "sinst_list": "SecInstances",
-  "pip": "PrimaryIP", "sip": "SecondaryIP",
-  "dtotal": "DTotal", "dfree": "DFree",
-  "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
-  "bootid": "BootID",
-  "ctotal": "CTotal", "cnodes": "CNodes", "csockets": "CSockets",
-  "tags": "Tags",
-  "serial_no": "SerialNo",
-  "master_candidate": "MasterC",
-  "master": "IsMaster",
-  "offline": "Offline", "drained": "Drained",
-  "role": "Role",
-  "ctime": "CTime", "mtime": "MTime", "uuid": "UUID",
-  "master_capable": "MasterCapable", "vm_capable": "VMCapable",
-  "group": "Group", "group.uuid": "GroupUUID",
-  }
 
 
 #: headers (and full field list) for L{ListStorage}
@@ -232,48 +210,26 @@ def ListNodes(opts, args):
   """
   selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
-  output = GetClient().QueryNodes(args, selected_fields, opts.do_locking)
+  fmtoverride = dict.fromkeys(["pinst_list", "sinst_list", "tags"],
+                              (lambda value: ",".join(value), False))
 
-  if not opts.no_headers:
-    headers = _LIST_HEADERS
-  else:
-    headers = None
+  return GenericList(constants.QR_NODE, selected_fields, args, opts.units,
+                     opts.separator, not opts.no_headers,
+                     format_override=fmtoverride)
 
-  unitfields = ["dtotal", "dfree", "mtotal", "mnode", "mfree"]
 
-  numfields = ["dtotal", "dfree",
-               "mtotal", "mnode", "mfree",
-               "pinst_cnt", "sinst_cnt",
-               "ctotal", "serial_no"]
+def ListNodeFields(opts, args):
+  """List node fields.
 
-  list_type_fields = ("pinst_list", "sinst_list", "tags")
-  # change raw values to nicer strings
-  for row in output:
-    for idx, field in enumerate(selected_fields):
-      val = row[idx]
-      if field in list_type_fields:
-        val = ",".join(val)
-      elif field in ('master', 'master_candidate', 'offline', 'drained',
-                     'master_capable', 'vm_capable'):
-        if val:
-          val = 'Y'
-        else:
-          val = 'N'
-      elif field == "ctime" or field == "mtime":
-        val = utils.FormatTime(val)
-      elif val is None:
-        val = "?"
-      elif opts.roman_integers and isinstance(val, int):
-        val = compat.TryToRoman(val)
-      row[idx] = str(val)
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: fields to list, or empty for all
+  @rtype: int
+  @return: the desired exit code
 
-  data = GenerateTable(separator=opts.separator, headers=headers,
-                       fields=selected_fields, unitfields=unitfields,
-                       numfields=numfields, data=output, units=opts.units)
-  for line in data:
-    ToStdout(line)
-
-  return 0
+  """
+  return GenericListFields(constants.QR_NODE, args, opts.separator,
+                           not opts.no_headers)
 
 
 def EvacuateNode(opts, args):
@@ -716,11 +672,17 @@ commands = {
     "[<node_name>...]", "Show information about the node(s)"),
   'list': (
     ListNodes, ARGS_MANY_NODES,
-    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
+    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
     "[nodes...]",
-    "Lists the nodes in the cluster. The available fields are (see the man"
-    " page for details): %s. The default field list is (in order): %s." %
-    (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
+    "Lists the nodes in the cluster. The available fields can be shown using"
+    " the \"list-fields\" command (see the man page for details)."
+    " The default field list is (in order): %s." %
+    utils.CommaJoin(_LIST_DEF_FIELDS)),
+  "list-fields": (
+    ListNodeFields, [ArgUnknown()],
+    [NOHDR_OPT, SEP_OPT],
+    "[fields...]",
+    "Lists all available fields for nodes"),
   'modify': (
     SetNodeParams, ARGS_ONE_NODE,
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,

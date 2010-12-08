@@ -143,10 +143,9 @@ output will be restricted to the given names.
 LIST
 ~~~~
 
-| **list** [--sync]
+| **list**
 | [--no-headers] [--separator=*SEPARATOR*]
 | [--units=*UNITS*] [-o *[+]FIELD,...*]
-| [--roman]
 | [node...]
 
 Lists the nodes in the cluster.
@@ -163,15 +162,8 @@ option is given, then the values are shown in mebibytes to allow
 parsing by scripts. In both cases, the ``--units`` option can be
 used to enforce a given output unit.
 
-By default, the query of nodes will be done in parallel with any
-running jobs. This might give inconsistent results for the free
-disk/memory. The ``--sync`` can be used to grab locks for all the
-nodes and ensure consistent view of the cluster (but this might
-stall the query for a long time).
-
-Passing the ``--roman`` option gnt-node list will try to output
-some of its fields in a latin-friendly way. This is not the default
-for backwards compatibility.
+Queries of nodes will be done in parallel with any running jobs. This might
+give inconsistent results for the free disk/memory.
 
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:
@@ -318,6 +310,15 @@ memory for the node and for the instances (Xen).
 
 If no node names are given, then all nodes are queried. Otherwise,
 only the given nodes will be listed.
+
+
+LIST-FIELDS
+~~~~~~~~~~~
+
+**list-fields** [field...]
+
+Lists available fields for nodes.
+
 
 LIST-TAGS
 ~~~~~~~~~
