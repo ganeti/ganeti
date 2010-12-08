@@ -231,7 +231,7 @@ RSA_KEY_BITS = 2048
 # Ciphers allowed for SSL connections. For the format, see ciphers(1). A better
 # way to disable ciphers would be to use the exclamation mark (!), but socat
 # versions below 1.5 can't parse exclamation marks in options properly. When
-# modifying the ciphers, ensure to not accidentially add something after it's
+# modifying the ciphers, ensure not to accidentially add something after it's
 # been removed. Use the "openssl" utility to check the allowed ciphers, e.g.
 # "openssl ciphers -v HIGH:-DES".
 OPENSSL_CIPHERS = "HIGH:-DES:-3DES:-EXPORT:-ADH"
