@@ -34,6 +34,18 @@ The ``--node-parameters`` option allows you to set default node
 parameters for nodes in the group. Please see **ganeti**(7) for more
 information about supported key=value pairs.
 
+MODIFY
+~~~~~~
+
+| **modify**
+| [--node-parameters=*NDPARAMS*]
+| {*group*}
+
+Modifies some parameters from the node group.
+
+The ``--node-parameters`` option is documented in the **add** command
+above.
+
 REMOVE
 ~~~~~~
 

@@ -10341,6 +10341,66 @@ class LUQueryGroups(NoHooksLU):
     return output
 
 
+class LUSetGroupParams(LogicalUnit):
+  """Modifies the parameters of a node group.
+
+  """
+  HPATH = None
+  HTYPE = None
+
+  _OP_PARAMS = [
+    _PGroupName,
+    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ]
+
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    all_changes = [
+      self.op.ndparams,
+      ]
+
+    if all_changes.count(None) == len(all_changes):
+      raise errors.OpPrereqError("Please pass at least one modification",
+                                 errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    # This raises errors.OpPrereqError on its own:
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
+
+    self.needed_locks = {
+      locking.LEVEL_NODEGROUP: [self.group_uuid],
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    self.group = self.cfg.GetNodeGroup(self.group_uuid)
+
+    if self.group is None:
+      raise errors.OpExecError("Could not retrieve group '%s' (UUID: %s)" %
+                               (self.op.group_name, self.group_uuid))
+
+    if self.op.ndparams:
+      utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
+      self.new_ndparams = self.group.SimpleFillND(self.op.ndparams)
+
+  def Exec(self, feedback_fn):
+    """Modifies the node group.
+
+    """
+    result = []
+
+    if self.op.ndparams:
+      self.group.ndparams = self.new_ndparams
+      result.append(("ndparams", str(self.group.ndparams)))
+
+    self.cfg.Update(self.group, feedback_fn)
+    return result
+
+
+
 class LURemoveGroup(LogicalUnit):
   HPATH = "group-remove"
   HTYPE = constants.HTYPE_GROUP

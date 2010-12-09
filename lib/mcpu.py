@@ -191,6 +191,7 @@ class Processor(object):
     # node group lu
     opcodes.OpAddGroup: cmdlib.LUAddGroup,
     opcodes.OpQueryGroups: cmdlib.LUQueryGroups,
+    opcodes.OpSetGroupParams: cmdlib.LUSetGroupParams,
     opcodes.OpRemoveGroup: cmdlib.LURemoveGroup,
     opcodes.OpRenameGroup: cmdlib.LURenameGroup,
     # os lu

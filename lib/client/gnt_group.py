@@ -105,6 +105,36 @@ def ListGroups(opts, args):
   return 0
 
 
+def SetGroupParams(opts, args):
+  """Modifies a node group's parameters.
+
+  @param opts: the command line options seletect by the user
+  @type args: list
+  @param args: should contain only one element, the node group name
+
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  all_changes = {
+    "ndparams": opts.ndparams,
+  }
+
+  if all_changes.values().count(None) == len(all_changes):
+    ToStderr("Please give at least one of the parameters.")
+    return 1
+
+  op = opcodes.OpSetGroupParams(group_name=args[0], **all_changes)
+  result = SubmitOrSend(op, opts)
+
+  if result:
+    ToStdout("Modified node group %s", args[0])
+    for param, data in result:
+      ToStdout(" - %-5s -> %s", param, data)
+
+  return 0
+
+
 def RemoveGroup(opts, args):
   """Remove a node group from the cluster.
 
@@ -146,6 +176,10 @@ commands = {
     "Lists the node groups in the cluster. The available fields are (see"
     " the man page for details): %s. The default list is (in order): %s." %
     (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
+  "modify": (
+    SetGroupParams, ARGS_ONE_GROUP,
+    [DRY_RUN_OPT, SUBMIT_OPT, NODE_PARAMS_OPT],
+    "<group_name>", "Alters the parameters of a node group"),
   "remove": (
     RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],
     "[--dry-run] <group_name>",
