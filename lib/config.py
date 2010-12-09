@@ -1081,10 +1081,11 @@ class ConfigWriter:
       if disk.dev_type == constants.LD_FILE:
         # rename the file paths in logical and physical id
         file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
+        disk_fname = "disk%s" % disk.iv_name.split("/")[1]
         disk.physical_id = disk.logical_id = (disk.logical_id[0],
                                               utils.PathJoin(file_storage_dir,
                                                              inst.name,
-                                                             disk.iv_name))
+                                                             disk_fname))
 
     # Force update of ssconf files
     self._config_data.cluster.serial_no += 1
