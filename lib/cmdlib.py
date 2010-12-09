@@ -3243,7 +3243,7 @@ class LUOutOfBand(NoHooksLU):
     if node is None:
       raise errors.OpPrereqError("Node %s not found" % self.op.node_name)
 
-    self.oob_program = self.cfg.GetOobProgram(node)
+    self.oob_program = self.cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
 
     if not self.oob_program:
       raise errors.OpPrereqError("OOB is not supported for node %s" %
