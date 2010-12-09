@@ -25,6 +25,7 @@ ADD
 
 | **add**
 | [--node-parameters=*NDPARAMS*]
+| [--alloc-policy=*POLICY*]
 | {*group*}
 
 Creates a new group with the given name. The node group will be
@@ -34,17 +35,36 @@ The ``--node-parameters`` option allows you to set default node
 parameters for nodes in the group. Please see **ganeti**(7) for more
 information about supported key=value pairs.
 
+The ``--alloc-policy`` option allows you to set an allocation policy for
+the group at creation time. Possible values are:
+
+unallocable
+    nodes in the group should not be candidates for instance allocation,
+    and the operation (e.g., instance creation) should fail if only
+    groups in this state could be found to satisfy the requirements.
+
+last_resort
+    nodes in the group should not be used for instance allocations,
+    unless this would be the only way to have the operation succeed.
+
+preferred
+    nodes in the group can be used freely for allocation of instances
+    (this is the default). Note that prioritization among groups in this
+    state will be deferred to the iallocator plugin that's being used.
+
+
 MODIFY
 ~~~~~~
 
 | **modify**
 | [--node-parameters=*NDPARAMS*]
+| [--alloc-policy=*POLICY*]
 | {*group*}
 
 Modifies some parameters from the node group.
 
-The ``--node-parameters`` option is documented in the **add** command
-above.
+The ``--node-parameters`` and ``--alloc-policy`` optiosn are documented
+in the **add** command above.
 
 REMOVE
 ~~~~~~
@@ -92,6 +112,9 @@ pinst_cnt
 
 pinst_list
     the list of primary instances in the group
+
+alloc_policy
+    the current allocation policy for the group
 
 ctime
     the creation time of the group; note that this field contains spaces

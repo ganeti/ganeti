@@ -1408,11 +1408,13 @@ class GanetiRapiClient(object):
                              "/%s/groups/%s" % (GANETI_RAPI_VERSION, group),
                              None, None)
 
-  def CreateGroup(self, name, dry_run=False):
+  def CreateGroup(self, name, alloc_policy=None, dry_run=False):
     """Creates a new node group.
 
     @type name: str
     @param name: the name of node group to create
+    @type alloc_policy: str
+    @param alloc_policy: the desired allocation policy for the group, if any
     @type dry_run: bool
     @param dry_run: whether to peform a dry run
 
@@ -1426,6 +1428,7 @@ class GanetiRapiClient(object):
 
     body = {
       "name": name,
+      "alloc_policy": alloc_policy
       }
 
     return self._SendRequest(HTTP_POST, "/%s/groups" % GANETI_RAPI_VERSION,

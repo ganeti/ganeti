@@ -728,6 +728,7 @@ class OpAddGroup(OpCode):
   __slots__ = [
     "group_name",
     "ndparams",
+    "alloc_policy",
     ]
 
 
@@ -744,6 +745,7 @@ class OpSetGroupParams(OpCode):
   __slots__ = [
     "group_name",
     "ndparams",
+    "alloc_policy",
     ]
 
 

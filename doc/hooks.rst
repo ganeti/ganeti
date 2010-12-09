@@ -181,6 +181,16 @@ Adds a node group to the cluster.
 :pre-execution: master node
 :post-execution: master node
 
+OP_GROUP_SET_PARAMS
++++++++++++++++++++
+
+Changes a node group's parameters.
+
+:directory: group-modify
+:env. vars: GROUP_NAME, NEW_ALLOC_POLICY
+:pre-execution: master node
+:post-execution: master node
+
 OP_REMOVE_GROUP
 +++++++++++++++
 

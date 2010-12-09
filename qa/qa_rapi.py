@@ -96,6 +96,7 @@ NODE_FIELDS = ("name", "dtotal", "dfree",
 
 GROUP_FIELDS = frozenset([
   "name", "uuid",
+  "alloc_policy",
   "node_cnt", "node_list",
   ])
 

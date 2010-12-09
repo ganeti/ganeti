@@ -956,6 +956,7 @@ class NodeGroup(ConfigObject):
     "members",
     "ndparams",
     "serial_no",
+    "alloc_policy",
     ] + _TIMESTAMPS + _UUID
 
   def ToDict(self):
@@ -989,6 +990,9 @@ class NodeGroup(ConfigObject):
 
     if self.serial_no is None:
       self.serial_no = 1
+
+    if self.alloc_policy is None:
+      self.alloc_policy = constants.ALLOC_POLICY_PREFERRED
 
     # We only update mtime, and not ctime, since we would not be able to provide
     # a correct value for creation time.

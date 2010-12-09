@@ -48,6 +48,7 @@ __all__ = [
   # Command line options
   "ADD_UIDS_OPT",
   "ALLOCATABLE_OPT",
+  "ALLOC_POLICY_OPT",
   "ALL_OPT",
   "AUTO_PROMOTE_OPT",
   "AUTO_REPLACE_OPT",
@@ -1116,6 +1117,10 @@ PREALLOC_WIPE_DISKS_OPT = cli_option("--prealloc-wipe-disks", default=None,
 NODE_PARAMS_OPT = cli_option("--node-parameters", dest="ndparams",
                              type="keyval", default=None,
                              help="Node parameters")
+
+ALLOC_POLICY_OPT = cli_option("--alloc-policy", dest="alloc_policy",
+                              action="store", metavar="POLICY", default=None,
+                              help="Allocation policy for the node group")
 
 
 #: Options provided by all commands

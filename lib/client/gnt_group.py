@@ -31,12 +31,12 @@ from ganeti import utils
 
 
 #: default list of fields for L{ListGroups}
-_LIST_DEF_FIELDS = ["name", "node_cnt", "pinst_cnt"]
+_LIST_DEF_FIELDS = ["name", "node_cnt", "pinst_cnt", "alloc_policy"]
 
 
 #: headers (and full field list) for L{ListGroups}
 _LIST_HEADERS = {
-  "name": "Group", "uuid": "UUID",
+  "name": "Group", "uuid": "UUID", "alloc_policy": "AllocPolicy",
   "node_cnt": "Nodes", "node_list": "NodeList",
   "pinst_cnt": "Instances", "pinst_list": "InstanceList",
   "ctime": "CTime", "mtime": "MTime", "serial_no": "SerialNo",
@@ -54,7 +54,8 @@ def AddGroup(opts, args):
 
   """
   (group_name,) = args
-  op = opcodes.OpAddGroup(group_name=group_name, ndparams=opts.ndparams)
+  op = opcodes.OpAddGroup(group_name=group_name, ndparams=opts.ndparams,
+                          alloc_policy=opts.alloc_policy)
   SubmitOpCode(op, opts=opts)
 
 
@@ -118,13 +119,15 @@ def SetGroupParams(opts, args):
   """
   all_changes = {
     "ndparams": opts.ndparams,
+    "alloc_policy": opts.alloc_policy,
   }
 
   if all_changes.values().count(None) == len(all_changes):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  op = opcodes.OpSetGroupParams(group_name=args[0], **all_changes)
+  op = opcodes.OpSetGroupParams(group_name=args[0], # pylint: disable-msg=W0142
+                                **all_changes)
   result = SubmitOrSend(op, opts)
 
   if result:
@@ -167,7 +170,7 @@ def RenameGroup(opts, args):
 
 commands = {
   "add": (
-    AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, NODE_PARAMS_OPT],
+    AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT],
     "<group_name>", "Add a new node group to the cluster"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
@@ -178,7 +181,7 @@ commands = {
     (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
   "modify": (
     SetGroupParams, ARGS_ONE_GROUP,
-    [DRY_RUN_OPT, SUBMIT_OPT, NODE_PARAMS_OPT],
+    [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT],
     "<group_name>", "Alters the parameters of a node group"),
   "remove": (
     RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],

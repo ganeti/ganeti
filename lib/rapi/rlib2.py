@@ -74,6 +74,7 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             ] + _COMMON_FIELDS
 
 G_FIELDS = ["name", "uuid",
+            "alloc_policy",
             "node_cnt", "node_list",
             "ctime", "mtime", "serial_no",
             ]  # "tags" is missing to be able to use _COMMON_FIELDS here.
@@ -531,6 +532,21 @@ class R_2_nodes_name_storage_repair(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseCreateGroupRequest(data, dry_run):
+  """Parses a request for creating a node group.
+
+  @rtype: L{opcodes.OpAddGroup}
+  @return: Group creation opcode
+
+  """
+  group_name = baserlib.CheckParameter(data, "name")
+  alloc_policy = baserlib.CheckParameter(data, "alloc_policy", default=None)
+
+  return opcodes.OpAddGroup(group_name=group_name,
+                            alloc_policy=alloc_policy,
+                            dry_run=dry_run)
+
+
 class R_2_groups(baserlib.R_Generic):
   """/2/groups resource.
 
@@ -557,8 +573,7 @@ class R_2_groups(baserlib.R_Generic):
 
     """
     baserlib.CheckType(self.request_body, dict, "Body contents")
-    group_name = baserlib.CheckParameter(self.request_body, "name")
-    op = opcodes.OpAddGroup(group_name=group_name, dry_run=self.dryRun())
+    op = _ParseCreateGroupRequest(self.request_body, self.dryRun())
     return baserlib.SubmitJob([op])
 
 

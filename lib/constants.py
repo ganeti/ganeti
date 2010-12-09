@@ -1202,3 +1202,13 @@ PGREP = "pgrep"
 
 # Name of the node group that gets created at cluster init or upgrade
 INITIAL_NODE_GROUP_NAME = "default"
+
+# Possible values for NodeGroup.alloc_policy
+ALLOC_POLICY_PREFERRED = "preferred"
+ALLOC_POLICY_LAST_RESORT = "last_resort"
+ALLOC_POLICY_UNALLOCABLE = "unallocable"
+VALID_ALLOC_POLICIES = [
+  ALLOC_POLICY_PREFERRED,
+  ALLOC_POLICY_LAST_RESORT,
+  ALLOC_POLICY_UNALLOCABLE,
+  ]

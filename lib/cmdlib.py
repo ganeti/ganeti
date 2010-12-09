@@ -10179,6 +10179,8 @@ class LUAddGroup(LogicalUnit):
   _OP_PARAMS = [
     _PGroupName,
     ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("alloc_policy", None, ht.TOr(ht.TNone,
+                                  ht.TElemOf(constants.VALID_ALLOC_POLICIES))),
     ]
 
   REQ_BGL = False
@@ -10227,6 +10229,7 @@ class LUAddGroup(LogicalUnit):
     """
     group_obj = objects.NodeGroup(name=self.op.group_name, members=[],
                                   uuid=self.group_uuid,
+                                  alloc_policy=self.op.alloc_policy,
                                   ndparams=self.op.ndparams)
 
     self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
@@ -10247,7 +10250,8 @@ class LUQueryGroups(NoHooksLU):
 
   _FIELDS_DYNAMIC = utils.FieldSet()
 
-  _SIMPLE_FIELDS = ["name", "uuid", "ctime", "mtime", "serial_no"]
+  _SIMPLE_FIELDS = ["name", "uuid", "alloc_policy",
+                    "ctime", "mtime", "serial_no"]
 
   _FIELDS_STATIC = utils.FieldSet(
       "node_cnt", "node_list", "pinst_cnt", "pinst_list", *_SIMPLE_FIELDS)
@@ -10345,12 +10349,14 @@ class LUSetGroupParams(LogicalUnit):
   """Modifies the parameters of a node group.
 
   """
-  HPATH = None
-  HTYPE = None
+  HPATH = "group-modify"
+  HTYPE = constants.HTYPE_GROUP
 
   _OP_PARAMS = [
     _PGroupName,
     ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("alloc_policy", None, ht.TOr(ht.TNone,
+                                  ht.TElemOf(constants.VALID_ALLOC_POLICIES))),
     ]
 
   REQ_BGL = False
@@ -10358,6 +10364,7 @@ class LUSetGroupParams(LogicalUnit):
   def CheckArguments(self):
     all_changes = [
       self.op.ndparams,
+      self.op.alloc_policy,
       ]
 
     if all_changes.count(None) == len(all_changes):
@@ -10386,6 +10393,17 @@ class LUSetGroupParams(LogicalUnit):
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
       self.new_ndparams = self.group.SimpleFillND(self.op.ndparams)
 
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {
+      "GROUP_NAME": self.op.group_name,
+      "NEW_ALLOC_POLICY": self.op.alloc_policy,
+      }
+    mn = self.cfg.GetMasterNode()
+    return env, [mn], [mn]
+
   def Exec(self, feedback_fn):
     """Modifies the node group.
 
@@ -10395,6 +10413,9 @@ class LUSetGroupParams(LogicalUnit):
     if self.op.ndparams:
       self.group.ndparams = self.new_ndparams
       result.append(("ndparams", str(self.group.ndparams)))
+
+    if self.op.alloc_policy:
+      self.group.alloc_policy = self.op.alloc_policy
 
     self.cfg.Update(self.group, feedback_fn)
     return result

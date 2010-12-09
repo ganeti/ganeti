@@ -868,6 +868,9 @@ class ConfigWriter:
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
     """Add a node group to the configuration.
 
+    This method calls group.UpgradeConfig() to fill any missing attributes
+    according to their default values.
+
     @type group: L{objects.NodeGroup}
     @param group: the NodeGroup object to add
     @type ec_id: string
@@ -895,6 +898,7 @@ class ConfigWriter:
 
     group.serial_no = 1
     group.ctime = group.mtime = time.time()
+    group.UpgradeConfig()
 
     self._config_data.nodegroups[group.uuid] = group
     self._config_data.cluster.serial_no += 1
