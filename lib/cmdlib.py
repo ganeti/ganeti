@@ -10260,13 +10260,14 @@ class LUQueryGroups(NoHooksLU):
 
     """
     all_groups = self.cfg.GetAllNodeGroupsInfo()
+    name_to_uuid = dict((g.name, g.uuid) for g in all_groups.values())
 
     if not self.op.names:
-      my_groups = utils.NiceSort(all_groups.keys())
+      sorted_names = utils.NiceSort(name_to_uuid.keys())
+      my_groups = [name_to_uuid[n] for n in sorted_names]
     else:
       # Accept names to be either names or UUIDs.
       all_uuid = frozenset(all_groups.keys())
-      name_to_uuid = dict((g.name, g.uuid) for g in all_groups.values())
       my_groups = []
       missing = []
 
@@ -10312,8 +10313,8 @@ class LUQueryGroups(NoHooksLU):
 
     output = []
 
-    for name in my_groups:
-      group = all_groups[name]
+    for uuid in my_groups:
+      group = all_groups[uuid]
       group_output = []
 
       for field in self.op.output_fields:
