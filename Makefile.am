@@ -94,6 +94,7 @@ CLEANFILES = \
 	devel/upload \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
+	doc/examples/ganeti-kvm-poweroff.initd \
 	doc/examples/ganeti.cron \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec \
@@ -279,6 +280,7 @@ noinst_DATA = \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.cron \
 	doc/examples/ganeti.initd \
+	doc/examples/ganeti-kvm-poweroff.initd \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec \
 	$(manhtml)
@@ -356,6 +358,7 @@ EXTRA_DIST = \
 	doc/conf.py \
 	doc/html \
 	doc/examples/ganeti.initd.in \
+	doc/examples/ganeti-kvm-poweroff.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/gnt-config-backup.in \
 	doc/examples/dumb-allocator \

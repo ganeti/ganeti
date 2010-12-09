@@ -1,0 +1,77 @@
+#!/bin/bash
+# ganeti kvm instance poweroff
+# based on skeleton from Debian GNU/Linux
+### BEGIN INIT INFO
+# Provides:          ganeti-kvm-poweroff
+# Required-Start:
+# Required-Stop:     drbd qemu-kvm $local_fs
+# Default-Start:
+# Default-Stop: 0 1 6
+# Short-Description: Poweroff Ganeti KVM instances
+# Description: Sends system_powerdown command to Ganeti instances, otherwise
+# they will be killed.
+### END INIT INFO
+
+shopt -s nullglob
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+DESC="Ganeti KVM instance poweroff "
+
+. /lib/lsb/init-functions
+
+CONTROL_PATH="@LOCALSTATEDIR@/run/ganeti/kvm-hypervisor/ctrl"
+SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti-kvm-poweroff"
+TIMEOUT=60
+
+do_kvm_poweroff () {
+    # shutdown VMs and remove sockets of those not running
+    for vm_monitor in $CONTROL_PATH/*.monitor; do
+        if ! echo system_powerdown | \
+            socat -U UNIX:$vm_monitor STDIO > /dev/null 2>&1; then
+            # remove disconnected socket
+            rm -f $vm_monitor
+        fi
+    done
+
+    log_action_begin_msg "Waiting VMs to poweroff"
+    waiting=true
+    remaning=$TIMEOUT
+    while $waiting && [ $remaning -ne 0 ]; do
+        if [[ -z "$(find $CONTROL_PATH -name '*.monitor')" ]]; then
+            break
+        fi
+
+        echo -n "."
+        for vm_monitor in $CONTROL_PATH/*.monitor; do
+            if ! echo | socat -U UNIX:$vm_monitor STDIO > /dev/null 2>&1; then
+                rm -rf $vm_monitor
+            fi
+        done
+
+        sleep 5
+        let remaining-=5 1
+    done
+
+    if [[ -z "$(find $CONTROL_PATH -name '*.monitor')" ]]; then
+        log_action_end_msg 0
+    else
+        log_action_end_msg 1 "some VMs did not shutdown"
+    fi
+}
+
+case "$1" in
+  start)
+    # No-op
+    ;;
+  restart|reload|force-reload)
+    echo "Error: argument '$1' not supported" >&2
+    exit 3
+    ;;
+  stop)
+    do_kvm_poweroff
+    ;;
+  *)
+    echo "Usage: $0 start|stop" >&2
+    exit 3
+    ;;
+esac
