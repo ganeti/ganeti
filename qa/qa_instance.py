@@ -133,15 +133,11 @@ def _CheckSsconfInstanceList(instance):
            _ReadSsconfInstanceList())
 
 
-def TestInstanceRename(instance, rename_target):
+def TestInstanceRename(rename_source, rename_target):
   """gnt-instance rename"""
-  rename_source = instance['name']
-
-  for name1, name2 in [(rename_source, rename_target),
-                       (rename_target, rename_source)]:
-    _CheckSsconfInstanceList(name1)
-    AssertCommand(["gnt-instance", "rename", name1, name2])
-    _CheckSsconfInstanceList(name2)
+  _CheckSsconfInstanceList(rename_source)
+  AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
+  _CheckSsconfInstanceList(rename_target)
 
 
 def TestInstanceFailover(instance):
