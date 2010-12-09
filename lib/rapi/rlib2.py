@@ -604,6 +604,34 @@ class R_2_groups_name(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseModifyGroupRequest(name, data):
+  """Parses a request for modifying a node group.
+
+  @rtype: L{opcodes.OpSetGroupParams}
+  @return: Group modify opcode
+
+  """
+  alloc_policy = baserlib.CheckParameter(data, "alloc_policy", default=None)
+  return opcodes.OpSetGroupParams(group_name=name, alloc_policy=alloc_policy)
+
+
+class R_2_groups_name_modify(baserlib.R_Generic):
+  """/2/groups/[group_name]/modify resource.
+
+  """
+  def PUT(self):
+    """Changes some parameters of node group.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+
+    op = _ParseModifyGroupRequest(self.items[0], self.request_body)
+
+    return baserlib.SubmitJob([op])
+
+
 def _ParseRenameGroupRequest(name, data, dry_run):
   """Parses a request for renaming a node group.
 

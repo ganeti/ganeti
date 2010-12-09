@@ -420,6 +420,24 @@ Deletes a node group.
 It supports the ``dry-run`` argument.
 
 
+``/2/groups/[group_name]/modify``
++++++++++++++++++++++++++++++++++
+
+Modifies the parameters of a node group.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``alloc_policy`` (string)
+  If present, the new allocation policy for the node group.
+
+
 ``/2/groups/[group_name]/rename``
 +++++++++++++++++++++++++++++++++
 

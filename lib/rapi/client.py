@@ -1434,6 +1434,21 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_POST, "/%s/groups" % GANETI_RAPI_VERSION,
                              query, body)
 
+  def ModifyGroup(self, group, **kwargs):
+    """Modifies a node group.
+
+    More details for parameters can be found in the RAPI documentation.
+
+    @type group: string
+    @param group: Node group name
+    @rtype: int
+    @return: job id
+
+    """
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/groups/%s/modify" %
+                              (GANETI_RAPI_VERSION, group)), None, kwargs)
+
   def DeleteGroup(self, group, dry_run=False):
     """Deletes a node group.
 

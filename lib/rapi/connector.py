@@ -215,6 +215,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     "/2/groups": rlib2.R_2_groups,
     re.compile(r'^/2/groups/(%s)$' % group_name_pattern):
       rlib2.R_2_groups_name,
+    re.compile(r'^/2/groups/(%s)/modify$' % group_name_pattern):
+      rlib2.R_2_groups_name_modify,
     re.compile(r'^/2/groups/(%s)/rename$' % group_name_pattern):
       rlib2.R_2_groups_name_rename,
 
