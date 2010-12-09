@@ -249,6 +249,10 @@ def RunGroupRwTests():
 
   """
   RunTestIf("group-rwops", qa_group.TestGroupAddRemoveRename)
+  RunTestIf("group-rwops", qa_group.TestGroupAddWithOptions)
+  RunTestIf("group-rwops", qa_group.TestGroupModify)
+  RunTestIf("rapi", qa_rapi.TestRapiNodeGroups)
+
 
 def RunExportImportTests(instance, pnode, snode):
   """Tries to export and import the instance.

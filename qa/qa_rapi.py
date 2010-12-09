@@ -337,6 +337,68 @@ def _WaitForRapiJob(job_id):
                                    cli.StdioJobPollReportCb())
 
 
+def TestRapiNodeGroups():
+  """Test several node group operations using RAPI.
+
+  """
+  groups = qa_config.get("groups", {})
+  group1, group2, group3 = groups.get("inexistent-groups",
+                                      ["group1", "group2", "group3"])[:3]
+
+  # Create a group with no attributes
+  body = {
+    "name": group1,
+    }
+
+  (job_id, ) = _DoTests([
+    ("/2/groups", _VerifyReturnsJob, "POST", body),
+    ])
+
+  _WaitForRapiJob(job_id)
+
+  # Create a group specifying alloc_policy
+  body = {
+    "name": group2,
+    "alloc_policy": constants.ALLOC_POLICY_UNALLOCABLE,
+    }
+
+  (job_id, ) = _DoTests([
+    ("/2/groups", _VerifyReturnsJob, "POST", body),
+    ])
+
+  _WaitForRapiJob(job_id)
+
+  # Modify alloc_policy
+  body = {
+    "alloc_policy": constants.ALLOC_POLICY_UNALLOCABLE,
+    }
+
+  (job_id, ) = _DoTests([
+    ("/2/groups/%s/modify" % group1, _VerifyReturnsJob, "PUT", body),
+    ])
+
+  _WaitForRapiJob(job_id)
+
+  # Rename a group
+  body = {
+    "new_name": group3,
+    }
+
+  (job_id, ) = _DoTests([
+    ("/2/groups/%s/rename" % group2, _VerifyReturnsJob, "PUT", body),
+    ])
+
+  _WaitForRapiJob(job_id)
+
+  # Delete groups
+  for group in [group1, group3]:
+    (job_id, ) = _DoTests([
+      ("/2/groups/%s" % group, _VerifyReturnsJob, "DELETE", None),
+      ])
+
+    _WaitForRapiJob(job_id)
+
+
 def TestRapiInstanceAdd(node, use_client):
   """Test adding a new instance via RAPI"""
   instance = qa_config.AcquireInstance()

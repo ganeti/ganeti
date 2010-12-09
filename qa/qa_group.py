@@ -53,6 +53,36 @@ def TestGroupAddRemoveRename():
     AssertCommand(["gnt-group", "rename", group1, existing_group_with_nodes])
 
 
+def TestGroupAddWithOptions():
+  """gnt-group add with options"""
+  groups = qa_config.get("groups", {})
+  group1 = groups.get("inexistent-groups", ["group1"])[0]
+
+  AssertCommand(["gnt-group", "add", "--alloc-policy", "notvalid", group1],
+                fail=True)
+
+  AssertCommand(["gnt-group", "add", "--alloc-policy", "last_resort",
+                 "--node-parameters", "oob_program=/bin/true", group1])
+
+  AssertCommand(["gnt-group", "remove", group1])
+
+
+def TestGroupModify():
+  """gnt-group modify"""
+  groups = qa_config.get("groups", {})
+  group1 = groups.get("inexistent-groups", ["group1"])[0]
+
+  AssertCommand(["gnt-group", "add", group1])
+
+  try:
+    AssertCommand(["gnt-group", "modify", "--alloc-policy", "unallocable",
+                   "--node-parameters", "oob_program=/bin/false", group1])
+    AssertCommand(["gnt-group", "modify",
+                   "--alloc-policy", "notvalid", group1], fail=True)
+  finally:
+    AssertCommand(["gnt-group", "remove", group1])
+
+
 def TestGroupListDefaultFields():
   """gnt-group list"""
   AssertCommand(["gnt-group", "list"])
