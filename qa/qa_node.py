@@ -195,3 +195,8 @@ def TestNodeModify(node):
 def TestNodeList():
   """gnt-node list"""
   qa_utils.GenericQueryTest("gnt-node", query.NODE_FIELDS.keys())
+
+
+def TestNodeListFields():
+  """gnt-node list-fields"""
+  qa_utils.GenericQueryFieldsTest("gnt-node", query.NODE_FIELDS.keys())

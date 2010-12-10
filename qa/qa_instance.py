@@ -213,6 +213,11 @@ def TestInstanceList():
   qa_utils.GenericQueryTest("gnt-instance", query.INSTANCE_FIELDS.keys())
 
 
+def TestInstanceListFields():
+  """gnt-instance list-fields"""
+  qa_utils.GenericQueryFieldsTest("gnt-instance", query.INSTANCE_FIELDS.keys())
+
+
 def TestInstanceConsole(instance):
   """gnt-instance console"""
   AssertCommand(["gnt-instance", "console", "--show-cmd", instance["name"]])

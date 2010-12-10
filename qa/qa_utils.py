@@ -31,6 +31,7 @@ import random
 
 from ganeti import utils
 from ganeti import compat
+from ganeti import constants
 
 import qa_config
 import qa_error
@@ -138,6 +139,8 @@ def AssertCommand(cmd, fail=False, node=None):
     if rcode != 0:
       raise qa_error.Error("Command '%s' on node %s failed, exit code %s" %
                            (cmdstr, nodename, rcode))
+
+  return rcode
 
 
 def GetSSHCommand(node, cmd, strict=True):
@@ -351,6 +354,34 @@ def GenericQueryTest(cmd, fields):
   randnames = list(names)
   rnd.shuffle(randnames)
   AssertEqual(namelist_fn(randnames), randnames)
+
+  # Listing unknown items must fail
+  AssertCommand([cmd, "list", "this.name.certainly.does.not.exist"], fail=True)
+
+  # Check exit code for listing unknown field
+  AssertEqual(AssertCommand([cmd, "list", "--output=field/does/not/exist"],
+                            fail=True),
+              constants.EXIT_UNKNOWN_FIELD)
+
+
+def GenericQueryFieldsTest(cmd, fields):
+  master = qa_config.GetMasterNode()
+
+  # Listing fields
+  AssertCommand([cmd, "list-fields"])
+  AssertCommand([cmd, "list-fields"] + fields)
+
+  # Check listed fields (all, must be sorted)
+  realcmd = [cmd, "list-fields", "--separator=|", "--no-headers"]
+  output = GetCommandOutput(master["primary"],
+                            utils.ShellQuoteArgs(realcmd)).splitlines()
+  AssertEqual([line.split("|", 1)[0] for line in output],
+              sorted(fields))
+
+  # Check exit code for listing unknown field
+  AssertEqual(AssertCommand([cmd, "list-fields", "field/does/not/exist"],
+                            fail=True),
+              constants.EXIT_UNKNOWN_FIELD)
 
 
 def _FormatWithColor(text, seq):
