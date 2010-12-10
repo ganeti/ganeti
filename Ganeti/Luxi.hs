@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -62,6 +62,7 @@ withTimeout secs descr action = do
 -- | Currently supported Luxi operations.
 data LuxiOp = QueryInstances [String] [String] Bool
             | QueryNodes [String] [String] Bool
+            | QueryGroups [String] [String] Bool
             | QueryJobs [Int] [String]
             | QueryExports [String] Bool
             | QueryConfigValues [String]
@@ -80,6 +81,7 @@ data LuxiOp = QueryInstances [String] [String] Bool
 -- | The serialisation of LuxiOps into strings in messages.
 strOfOp :: LuxiOp -> String
 strOfOp QueryNodes {}        = "QueryNodes"
+strOfOp QueryGroups {}       = "QueryGroups"
 strOfOp QueryInstances {}    = "QueryInstances"
 strOfOp QueryJobs {}         = "QueryJobs"
 strOfOp QueryExports {}      = "QueryExports"
@@ -162,6 +164,7 @@ recvMsg s = do
 -- | Compute the serialized form of a Luxi operation
 opToArgs :: LuxiOp -> JSValue
 opToArgs (QueryNodes names fields lock) = J.showJSON (names, fields, lock)
+opToArgs (QueryGroups names fields lock) = J.showJSON (names, fields, lock)
 opToArgs (QueryInstances names fields lock) = J.showJSON (names, fields, lock)
 opToArgs (QueryJobs ids fields) = J.showJSON (map show ids, fields)
 opToArgs (QueryExports nodes lock) = J.showJSON (nodes, lock)
