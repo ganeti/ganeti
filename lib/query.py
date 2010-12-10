@@ -277,6 +277,41 @@ def _GetItemAttr(attr):
   return lambda _, item: (constants.QRFS_NORMAL, getter(item))
 
 
+def _GetItemTimestamp(getter):
+  """Returns function for getting timestamp of item.
+
+  @type getter: callable
+  @param getter: Function to retrieve timestamp attribute
+
+  """
+  def fn(_, item):
+    """Returns a timestamp of item.
+
+    """
+    timestamp = getter(item)
+    if timestamp is None:
+      # Old configs might not have all timestamps
+      return (constants.QRFS_UNAVAIL, None)
+    else:
+      return (constants.QRFS_NORMAL, timestamp)
+
+  return fn
+
+
+def _GetItemTimestampFields(datatype):
+  """Returns common timestamp fields.
+
+  @param datatype: Field data type for use by L{Query.RequestedData}
+
+  """
+  return [
+    (_MakeField("ctime", "CTime", constants.QFT_TIMESTAMP), datatype,
+     _GetItemTimestamp(operator.attrgetter("ctime"))),
+    (_MakeField("mtime", "MTime", constants.QFT_TIMESTAMP), datatype,
+     _GetItemTimestamp(operator.attrgetter("mtime"))),
+    ]
+
+
 class NodeQueryData:
   """Data container for node data queries.
 
@@ -313,11 +348,9 @@ class NodeQueryData:
 
 #: Fields that are direct attributes of an L{objects.Node} object
 _NODE_SIMPLE_FIELDS = {
-  "ctime": ("CTime", constants.QFT_TIMESTAMP),
   "drained": ("Drained", constants.QFT_BOOL),
   "master_candidate": ("MasterC", constants.QFT_BOOL),
   "master_capable": ("MasterCapable", constants.QFT_BOOL),
-  "mtime": ("MTime", constants.QFT_TIMESTAMP),
   "name": ("Node", constants.QFT_TEXT),
   "offline": ("Offline", constants.QFT_BOOL),
   "serial_no": ("SerialNo", constants.QFT_NUMBER),
@@ -438,6 +471,9 @@ def _BuildNodeFields():
      compat.partial(_GetLiveNodeField, nfield, kind))
     for (name, (title, kind, nfield)) in _NODE_LIVE_FIELDS.items()
     ])
+
+  # Add timestamps
+  fields.extend(_GetItemTimestampFields(NQ_CONFIG))
 
   return _PrepareFieldList(fields)
 
@@ -876,10 +912,8 @@ def _GetInstanceParameterFields():
 
 
 _INST_SIMPLE_FIELDS = {
-  "ctime": ("CTime", constants.QFT_TIMESTAMP),
   "disk_template": ("Disk_template", constants.QFT_TEXT),
   "hypervisor": ("Hypervisor", constants.QFT_TEXT),
-  "mtime": ("MTime", constants.QFT_TIMESTAMP),
   "name": ("Node", constants.QFT_TEXT),
   # Depending on the hypervisor, the port can be None
   "network_port": ("Network_port", constants.QFT_OTHER),
@@ -923,6 +957,7 @@ def _BuildInstanceFields():
   fields.extend(_GetInstanceParameterFields())
   fields.extend(_GetInstanceDiskFields())
   fields.extend(_GetInstanceNetworkFields())
+  fields.extend(_GetItemTimestampFields(IQ_CONFIG))
 
   return _PrepareFieldList(fields)
 

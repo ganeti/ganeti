@@ -337,6 +337,8 @@ class TestNodeQuery(unittest.TestCase):
     master_node.AddTag("masternode")
     master_node.AddTag("another")
     master_node.AddTag("tag")
+    master_node.ctime = None
+    master_node.mtime = None
     assert master_node.name == master_name
 
     live_data_name = node_names[4]
@@ -392,6 +394,10 @@ class TestNodeQuery(unittest.TestCase):
                      (constants.QRFS_NORMAL, "ng1"))
     self.assertEqual(master_row[field_index["group.uuid"]],
                      (constants.QRFS_NORMAL, ng_uuid))
+    self.assertEqual(master_row[field_index["ctime"]],
+                     (constants.QRFS_UNAVAIL, None))
+    self.assertEqual(master_row[field_index["mtime"]],
+                     (constants.QRFS_UNAVAIL, None))
 
     self.assert_(row[field_index["pip"]] == node.primary_ip and
                  row[field_index["sip"]] == node.secondary_ip and
@@ -401,7 +407,11 @@ class TestNodeQuery(unittest.TestCase):
                                                                 master_name) and
                  (node.name == master_name or
                   (row[field_index["group"]] == "<unknown>" and
-                   row[field_index["group.uuid"]] is None))
+                   row[field_index["group.uuid"]] is None and
+                   row[field_index["ctime"]] == (constants.QRFS_NORMAL,
+                                                 node.ctime) and
+                   row[field_index["mtime"]] == (constants.QRFS_NORMAL,
+                                                 node.mtime)))
                  for row, node in zip(result, nodes))
 
     live_data_row = result[node_to_row[live_data_name]]
@@ -606,7 +616,17 @@ class TestInstanceQuery(unittest.TestCase):
         beparams={
           constants.BE_MEMORY: 768,
         }),
+      objects.Instance(name="inst7", hvparams={}, nics=[],
+        uuid="ceec5dc4-b729-4f42-ae28-69b3cd24920e",
+        ctime=None, mtime=None, serial_no=1947,
+        admin_up=False, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        primary_node="node6",
+        disk_template=constants.DT_DISKLESS,
+        disks=[],
+        beparams={}),
       ]
+
+    assert not utils.FindDuplicates(inst.name for inst in instances)
 
     disk_usage = dict((inst.name,
                        cmdlib._ComputeDiskSize(inst.disk_template,
@@ -716,6 +736,14 @@ class TestInstanceQuery(unittest.TestCase):
 
       self.assertEqual(row[fieldidx["sda_size"]], row[fieldidx["disk.size/0"]])
       self.assertEqual(row[fieldidx["sdb_size"]], row[fieldidx["disk.size/1"]])
+
+      for field in ["ctime", "mtime"]:
+        if getattr(inst, field) is None:
+          # No ctime/mtime
+          exp = (constants.QRFS_UNAVAIL, None)
+        else:
+          exp = (constants.QRFS_NORMAL, getattr(inst, field))
+        self.assertEqual(row[fieldidx[field]], exp)
 
     # Ensure all possible status' have been tested
     self.assertEqual(tested_status,
