@@ -4224,6 +4224,9 @@ class LUAddNode(LogicalUnit):
     new_node = self.new_node
     node = new_node.name
 
+    # We adding a new node so we assume it's powered
+    new_node.powered = True
+
     # for re-adds, reset the offline/drained/master-candidate flags;
     # we need to reset here, otherwise offline would prevent RPC calls
     # later in the procedure; this also means that if the re-add
