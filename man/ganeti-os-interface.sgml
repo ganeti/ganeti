@@ -31,7 +31,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>Ganeti 2.2</refmiscinfo>
+    <refmiscinfo>Ganeti 2.3</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>ganeti-os-interface</refname>
@@ -369,7 +369,7 @@ fi
       <title>Backwards compatibility</title>
 
       <para>
-        Ganeti 2.2 is compatible with both API version 10, and 15.
+        Ganeti 2.3 is compatible with both API version 10, and 15.
         In API version 10 the <filename>variants.list</filename>
         file is ignored and no OS_VARIANT environment variable is
         passed.

@@ -31,7 +31,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>Ganeti 2.2</refmiscinfo>
+    <refmiscinfo>Ganeti 2.3</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -54,7 +54,7 @@
     <para>
       The Ganeti software manages physical nodes and virtual instances
       of a cluster based on a virtualization software. The current
-      version (2.2) supports Xen 3.x and KVM (72 or above) as hypervisors.
+      version (2.3) supports Xen 3.x and KVM (72 or above) as hypervisors.
     </para>
 
   </refsect1>

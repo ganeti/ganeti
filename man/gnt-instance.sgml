@@ -31,7 +31,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>Ganeti 2.2</refmiscinfo>
+    <refmiscinfo>Ganeti 2.3</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
