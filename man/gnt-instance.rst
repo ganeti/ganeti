@@ -1042,6 +1042,10 @@ resolves to must not be reachable (in order to prevent duplicate IPs
 the next time the instance is started). The IP test can be skipped if
 the ``--no-ip-check`` option is passed.
 
+Note that you can rename an instance to its same name, to force
+re-executing the os-specific rename script for that instance, if
+needed.
+
 The ``--no-name-check`` skips the check for the new instance name via
 the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
 that the resolved name matches the provided name. Since the name check
