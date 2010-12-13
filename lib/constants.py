@@ -656,6 +656,8 @@ OOB_HEALTH = "health"
 OOB_COMMANDS = frozenset([OOB_POWER_ON, OOB_POWER_OFF, OOB_POWER_CYCLE,
                           OOB_POWER_STATUS, OOB_HEALTH])
 
+OOB_POWER_STATUS_POWERED = "powered"
+
 OOB_TIMEOUT = 60 # 60 seconds
 
 OOB_STATUS_OK = "OK"

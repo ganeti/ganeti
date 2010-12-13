@@ -3283,6 +3283,7 @@ class LUOutOfBand(NoHooksLU):
 
     """
     master_node = self.cfg.GetMasterNode()
+    node = self.node
 
     logging.info("Executing out-of-band command '%s' using '%s' on %s",
                  self.op.command, self.oob_program, self.op.node_name)
@@ -3301,6 +3302,19 @@ class LUOutOfBand(NoHooksLU):
                       constants.OOB_STATUS_CRITICAL]:
           logging.warning("On node '%s' item '%s' has status '%s'",
                           self.op.node_name, item, status)
+
+    if self.op.command == constants.OOB_POWER_ON:
+      node.powered = True
+    elif self.op.command == constants.OOB_POWER_OFF:
+      node.powered = False
+    elif self.op.command == constants.OOB_POWER_STATUS:
+      powered = result.payload[constants.OOB_POWER_STATUS_POWERED]
+      if powered != self.node.powered:
+        logging.warning(("Recorded power state (%s) of node '%s' does not match"
+                         " actual power state (%s)"), node.powered,
+                        self.op.node_name, powered)
+
+    self.cfg.Update(node, feedback_fn)
 
     return result.payload
 
