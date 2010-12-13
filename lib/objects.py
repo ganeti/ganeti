@@ -931,6 +931,7 @@ class Node(TaggableObject):
     "master_capable",
     "vm_capable",
     "ndparams",
+    "powered",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -947,6 +948,9 @@ class Node(TaggableObject):
 
     if self.ndparams is None:
       self.ndparams = {}
+
+    if self.powered is None:
+      self.powered = True
 
 
 class NodeGroup(ConfigObject):
