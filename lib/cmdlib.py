@@ -11065,7 +11065,10 @@ class IAllocator(object):
     """
     ng = {}
     for guuid, gdata in cfg.GetAllNodeGroupsInfo().items():
-      ng[guuid] = { "name": gdata.name }
+      ng[guuid] = {
+        "name": gdata.name,
+        "alloc_policy": gdata.alloc_policy,
+        }
     return ng
 
   @staticmethod
