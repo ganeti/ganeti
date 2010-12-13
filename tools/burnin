@@ -171,6 +171,9 @@ OPTIONS = [
   cli.cli_option("--no-reboot", dest="do_reboot",
                  help="Skip instance reboot", action="store_false",
                  default=True),
+  cli.cli_option("--no-renamesame", dest="do_renamesame",
+                 help="Skip instance rename to same name", action="store_false",
+                 default=True),
   cli.cli_option("--reboot-types", dest="reboot_types",
                  help="Specify the reboot types", default=None),
   cli.cli_option("--no-activate-disks", dest="do_activate_disks",
@@ -872,6 +875,19 @@ class Burner(object):
 
   @_DoCheckInstances
   @_DoBatch(True)
+  def BurnRenameSame(self):
+    """Rename the instances to their own name."""
+    Log("Renaming the instances to their own name")
+    for instance in self.instances:
+      Log("instance %s", instance, indent=1)
+      op1 = self.StopInstanceOp(instance)
+      op2 = self.RenameInstanceOp(instance, instance)
+      Log("rename to the same name", indent=2)
+      op4 = self.StartInstanceOp(instance)
+      self.ExecOrQueue(instance, [op1, op2, op4])
+
+  @_DoCheckInstances
+  @_DoBatch(True)
   def BurnActivateDisks(self):
     """Activate and deactivate disks of the instances."""
     Log("Activating/deactivating disks")
@@ -1073,6 +1089,9 @@ class Burner(object):
 
       if opts.do_reboot:
         self.BurnReboot()
+
+      if opts.do_renamesame:
+        self.BurnRenameSame()
 
       if opts.do_addremove_disks:
         self.BurnAddRemoveDisks()
