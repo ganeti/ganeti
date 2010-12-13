@@ -1122,6 +1122,11 @@ ALLOC_POLICY_OPT = cli_option("--alloc-policy", dest="alloc_policy",
                               action="store", metavar="POLICY", default=None,
                               help="Allocation policy for the node group")
 
+NODE_POWERED_OPT = cli_option("--node-powered", default=None,
+                              type="bool", metavar=_YORNO,
+                              dest="node_powered",
+                              help="Specify if the SoR for node is powered")
+
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT]
