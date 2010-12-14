@@ -22,6 +22,7 @@
 from ganeti import utils
 from ganeti import constants
 from ganeti import query
+from ganeti import serializer
 
 import qa_config
 import qa_error
@@ -190,6 +191,138 @@ def TestNodeModify(node):
 
   AssertCommand(["gnt-node", "modify", "--master-candidate=yes",
                  "--auto-promote", node["primary"]])
+
+
+def _CreateOobScriptStructure():
+  """Create a simple OOB handling script and its structure."""
+  master = qa_config.GetMasterNode()
+
+  data_path = qa_utils.UploadData(master["primary"], "")
+  verify_path = qa_utils.UploadData(master["primary"], "")
+  exit_code_path = qa_utils.UploadData(master["primary"], "")
+
+  oob_script = (("#!/bin/bash\n"
+                 "echo \"$@\" > %s\n"
+                 "cat %s\n"
+                 "exit $(< %s)\n") %
+                (utils.ShellQuote(verify_path), utils.ShellQuote(data_path),
+                 utils.ShellQuote(exit_code_path)))
+  oob_path = qa_utils.UploadData(master["primary"], oob_script, mode=0700)
+
+  return [oob_path, verify_path, data_path, exit_code_path]
+
+
+def _UpdateOobFile(path, data):
+  """Updates the data file with data."""
+  master = qa_config.GetMasterNode()
+  qa_utils.UploadData(master["primary"], data, filename=path)
+
+
+def _AssertOobCall(verify_path, expected_args):
+  """Assert the OOB call was performed with expetected args."""
+  master = qa_config.GetMasterNode()
+
+  verify_output_cmd = utils.ShellQuoteArgs(["cat", verify_path])
+  output = qa_utils.GetCommandOutput(master["primary"], verify_output_cmd)
+
+  qa_utils.AssertEqual(expected_args, output.strip())
+
+
+def TestOutOfBand():
+  """gnt-node power"""
+  master = qa_config.GetMasterNode()
+
+  (oob_path, verify_path,
+   data_path, exit_code_path) = _CreateOobScriptStructure()
+
+  try:
+    AssertCommand(["gnt-cluster", "modify", "--node-parameters",
+                   "oob_program=%s" % oob_path])
+
+    # No data, exit 0
+    _UpdateOobFile(exit_code_path, "0")
+
+    AssertCommand(["gnt-node", "power", "on", master["primary"]])
+    _AssertOobCall(verify_path, "power-on %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "off", master["primary"]])
+    _AssertOobCall(verify_path, "power-off %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "cycle", master["primary"]])
+    _AssertOobCall(verify_path, "power-cycle %s" % master["primary"])
+
+    # This command should fail as it expects output which isn't provided yet
+    # But it should have called the oob helper nevermind
+    AssertCommand(["gnt-node", "power", "status", master["primary"]],
+                  fail=True)
+    _AssertOobCall(verify_path, "power-status %s" % master["primary"])
+
+    # Data, exit 0
+    _UpdateOobFile(data_path, serializer.DumpJson({ "powered": True }))
+
+    AssertCommand(["gnt-node", "power", "status", master["primary"]])
+    _AssertOobCall(verify_path, "power-status %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "on", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-on %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "off", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-off %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "cycle", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-cycle %s" % master["primary"])
+
+    # Data, exit 1 (all should fail)
+    _UpdateOobFile(exit_code_path, "1")
+
+    AssertCommand(["gnt-node", "power", "on", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-on %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "off", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-off %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "cycle", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-cycle %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "status", master["primary"]],
+                  fail=True)
+    _AssertOobCall(verify_path, "power-status %s" % master["primary"])
+
+    # No data, exit 1 (all should fail)
+    _UpdateOobFile(data_path, "")
+    AssertCommand(["gnt-node", "power", "on", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-on %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "off", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-off %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "cycle", master["primary"]], fail=True)
+    _AssertOobCall(verify_path, "power-cycle %s" % master["primary"])
+
+    AssertCommand(["gnt-node", "power", "status", master["primary"]],
+                  fail=True)
+    _AssertOobCall(verify_path, "power-status %s" % master["primary"])
+
+    # Different OOB script for node
+    verify_path2 = qa_utils.UploadData(master["primary"], "")
+    oob_script = ("#!/bin/sh\n"
+                  "echo \"$@\" > %s\n") % verify_path2
+    oob_path2 = qa_utils.UploadData(master["primary"], oob_script, mode=0700)
+
+    try:
+      AssertCommand(["gnt-node", "modify", "--node-parameters",
+                     "oob_program=%s" % oob_path2, master["primary"]])
+      AssertCommand(["gnt-node", "power", "on", master["primary"]])
+      _AssertOobCall(verify_path2, "power-on %s" % master["primary"])
+    finally:
+      AssertCommand(["gnt-node", "modify", "--node-parameters",
+                     "oob_program=default", master["primary"]])
+      AssertCommand(["rm", "-f", oob_path2, verify_path2])
+  finally:
+    AssertCommand(["gnt-cluster", "modify", "--node-parameters",
+                   "oob_program=default"])
+    AssertCommand(["rm", "-f", oob_path, verify_path, data_path,
+                   exit_code_path])
 
 
 def TestNodeList():

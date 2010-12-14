@@ -238,6 +238,7 @@ def RunCommonNodeTests():
   """
   RunTestIf("node-volumes", qa_node.TestNodeVolumes)
   RunTestIf("node-storage", qa_node.TestNodeStorage)
+  RunTestIf("node-oob", qa_node.TestOutOfBand)
 
 
 def RunGroupListTests():

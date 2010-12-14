@@ -40,7 +40,7 @@
       "group2",
       "group3"
     ]
-  }
+  },
 
   "tests": {
     "env": true,
@@ -71,6 +71,7 @@
     "node-readd": true,
     "node-storage": true,
     "node-modify": true,
+    "node-oob": true,
 
     "# This test needs at least three nodes": null,
     "node-evacuate": false,
