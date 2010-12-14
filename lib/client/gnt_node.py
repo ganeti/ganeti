@@ -211,7 +211,7 @@ def ListNodes(opts, args):
   selected_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
 
   fmtoverride = dict.fromkeys(["pinst_list", "sinst_list", "tags"],
-                              (lambda value: ",".join(value), False))
+                              (",".join, False))
 
   return GenericList(constants.QR_NODE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
