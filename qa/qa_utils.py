@@ -218,6 +218,32 @@ def UploadFile(node, src):
     f.close()
 
 
+def UploadData(node, data, mode=0600, filename=None):
+  """Uploads data to a node and returns the filename.
+
+  Caller needs to remove the returned file on the node when it's not needed
+  anymore.
+
+  """
+  if filename:
+    tmp = "tmp=%s" % utils.ShellQuote(filename)
+  else:
+    tmp = "tmp=$(tempfile --mode %o --prefix gnt)" % mode
+  cmd = ("%s && "
+         "[[ -f \"${tmp}\" ]] && "
+         "cat > \"${tmp}\" && "
+         "echo \"${tmp}\"") % tmp
+
+  p = subprocess.Popen(GetSSHCommand(node, cmd), shell=False,
+                       stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+  p.stdin.write(data)
+  p.stdin.close()
+  AssertEqual(p.wait(), 0)
+
+  # Return temporary filename
+  return p.stdout.read().strip()
+
+
 def BackupFile(node, path):
   """Creates a backup of a file on the node and returns the filename.
 
