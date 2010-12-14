@@ -895,13 +895,28 @@ class _JobProcessor(object):
 
     """
     assert op in job.ops
+    assert op.status in (constants.OP_STATUS_QUEUED,
+                         constants.OP_STATUS_WAITLOCK)
 
-    op.status = constants.OP_STATUS_WAITLOCK
+    update = False
+
     op.result = None
-    op.start_timestamp = TimeStampNow()
+
+    if op.status == constants.OP_STATUS_QUEUED:
+      op.status = constants.OP_STATUS_WAITLOCK
+      update = True
+
+    if op.start_timestamp is None:
+      op.start_timestamp = TimeStampNow()
+      update = True
 
     if job.start_timestamp is None:
       job.start_timestamp = op.start_timestamp
+      update = True
+
+    assert op.status == constants.OP_STATUS_WAITLOCK
+
+    return update
 
   def _ExecOpCodeUnlocked(self, opctx):
     """Processes one opcode and returns the result.
@@ -929,7 +944,8 @@ class _JobProcessor(object):
       if op.status == constants.OP_STATUS_CANCELING:
         return (constants.OP_STATUS_CANCELING, None)
 
-      return (constants.OP_STATUS_QUEUED, None)
+      # Stay in waitlock while trying to re-acquire lock
+      return (constants.OP_STATUS_WAITLOCK, None)
     except CancelJob:
       logging.exception("%s: Canceling job", opctx.log_prefix)
       assert op.status == constants.OP_STATUS_CANCELING
@@ -964,6 +980,7 @@ class _JobProcessor(object):
       # Is a previous opcode still pending?
       if job.cur_opctx:
         opctx = job.cur_opctx
+        job.cur_opctx = None
       else:
         if __debug__ and _nextop_fn:
           _nextop_fn()
@@ -974,7 +991,7 @@ class _JobProcessor(object):
       # Consistency check
       assert compat.all(i.status in (constants.OP_STATUS_QUEUED,
                                      constants.OP_STATUS_CANCELED)
-                        for i in job.ops[opctx.index:])
+                        for i in job.ops[opctx.index + 1:])
 
       assert op.status in (constants.OP_STATUS_QUEUED,
                            constants.OP_STATUS_WAITLOCK,
@@ -985,13 +1002,13 @@ class _JobProcessor(object):
 
       if op.status != constants.OP_STATUS_CANCELED:
         # Prepare to start opcode
-        self._MarkWaitlock(job, op)
+        if self._MarkWaitlock(job, op):
+          # Write to disk
+          queue.UpdateJobUnlocked(job)
 
         assert op.status == constants.OP_STATUS_WAITLOCK
         assert job.CalcStatus() == constants.JOB_STATUS_WAITLOCK
-
-        # Write to disk
-        queue.UpdateJobUnlocked(job)
+        assert job.start_timestamp and op.start_timestamp
 
         logging.info("%s: opcode %s waiting for locks",
                      opctx.log_prefix, opctx.summary)
@@ -1005,7 +1022,7 @@ class _JobProcessor(object):
         op.status = op_status
         op.result = op_result
 
-        if op.status == constants.OP_STATUS_QUEUED:
+        if op.status == constants.OP_STATUS_WAITLOCK:
           # Couldn't get locks in time
           assert not op.end_timestamp
         else:
@@ -1018,10 +1035,12 @@ class _JobProcessor(object):
           else:
             assert op.status in constants.OPS_FINALIZED
 
-      if op.status == constants.OP_STATUS_QUEUED:
+      if op.status == constants.OP_STATUS_WAITLOCK:
         finalize = False
 
-        opctx.CheckPriorityIncrease()
+        if opctx.CheckPriorityIncrease():
+          # Priority was changed, need to update on-disk file
+          queue.UpdateJobUnlocked(job)
 
         # Keep around for another round
         job.cur_opctx = opctx
@@ -1030,9 +1049,7 @@ class _JobProcessor(object):
                 op.priority >= constants.OP_PRIO_HIGHEST)
 
         # In no case must the status be finalized here
-        assert job.CalcStatus() == constants.JOB_STATUS_QUEUED
-
-        queue.UpdateJobUnlocked(job)
+        assert job.CalcStatus() == constants.JOB_STATUS_WAITLOCK
 
       else:
         # Ensure all opcodes so far have been successful

@@ -521,6 +521,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         self.assertRaises(IndexError, queue.GetNextUpdate)
         self.assertFalse(queue.IsAcquired())
         self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertFalse(job.cur_opctx)
 
       def _AfterStart(op, cbs):
         self.assertEqual(queue.GetNextUpdate(), (job, True))
@@ -528,6 +529,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
         self.assertFalse(queue.IsAcquired())
         self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+        self.assertFalse(job.cur_opctx)
 
         # Job is running, cancelling shouldn't be possible
         (success, _) = job.Cancel()
@@ -1049,14 +1051,19 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     self.retries = 0
     self.prev_tsop = None
     self.prev_prio = None
+    self.prev_status = None
+    self.lock_acq_prio = None
     self.gave_lock = None
     self.done_lock_before_blocking = False
 
   def _BeforeStart(self, timeout, priority):
     job = self.job
 
-    self.assertEqual(self.queue.GetNextUpdate(), (job, True))
+    # If status has changed, job must've been written
+    if self.prev_status != self.job.ops[self.curop].status:
+      self.assertEqual(self.queue.GetNextUpdate(), (job, True))
     self.assertRaises(IndexError, self.queue.GetNextUpdate)
+
     self.assertFalse(self.queue.IsAcquired())
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
 
@@ -1067,6 +1074,7 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     self.assertEqual(priority, job.ops[self.curop].priority)
 
     self.gave_lock = True
+    self.lock_acq_prio = priority
 
     if (self.curop == 3 and
         job.ops[self.curop].priority == constants.OP_PRIO_HIGHEST + 3):
@@ -1090,8 +1098,10 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
   def _AfterStart(self, op, cbs):
     job = self.job
 
+    # Setting to "running" requires an update
     self.assertEqual(self.queue.GetNextUpdate(), (job, True))
     self.assertRaises(IndexError, self.queue.GetNextUpdate)
+
     self.assertFalse(self.queue.IsAcquired())
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
 
@@ -1102,6 +1112,7 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
   def _NextOpcode(self):
     self.curop = self.opcounter.next()
     self.prev_prio = self.job.ops[self.curop].priority
+    self.prev_status = self.job.ops[self.curop].status
 
   def _NewTimeoutStrategy(self):
     job = self.job
@@ -1173,28 +1184,56 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
 
     self.assertFalse(self.done_lock_before_blocking)
 
-    for i in itertools.count(0):
+    while True:
       proc = jqueue._JobProcessor(self.queue, opexec, job,
                                   _timeout_strategy_factory=tsf)
 
       self.assertRaises(IndexError, self.queue.GetNextUpdate)
+
+      if self.curop is not None:
+        self.prev_status = self.job.ops[self.curop].status
+
+      self.lock_acq_prio = None
+
       result = proc(_nextop_fn=self._NextOpcode)
-      self.assertEqual(self.queue.GetNextUpdate(), (job, True))
-      self.assertRaises(IndexError, self.queue.GetNextUpdate)
+      assert self.curop is not None
+
+      if result or self.gave_lock:
+        # Got lock and/or job is done, result must've been written
+        self.assertFalse(job.cur_opctx)
+        self.assertEqual(self.queue.GetNextUpdate(), (job, True))
+        self.assertRaises(IndexError, self.queue.GetNextUpdate)
+        self.assertEqual(self.lock_acq_prio, job.ops[self.curop].priority)
+        self.assert_(job.ops[self.curop].exec_timestamp)
+
       if result:
         self.assertFalse(job.cur_opctx)
         break
 
       self.assertFalse(result)
 
+      if self.curop == 0:
+        self.assertEqual(job.ops[self.curop].start_timestamp,
+                         job.start_timestamp)
+
       if self.gave_lock:
-        self.assertFalse(job.cur_opctx)
+        # Opcode finished, but job not yet done
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
       else:
+        # Did not get locks
         self.assert_(job.cur_opctx)
         self.assertEqual(job.cur_opctx._timeout_strategy._fn,
                          self.timeout_strategy.NextAttempt)
+        self.assertFalse(job.ops[self.curop].exec_timestamp)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
 
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+        # If priority has changed since acquiring locks, the job must've been
+        # updated
+        if self.lock_acq_prio != job.ops[self.curop].priority:
+          self.assertEqual(self.queue.GetNextUpdate(), (job, True))
+
+      self.assertRaises(IndexError, self.queue.GetNextUpdate)
+
       self.assert_(job.start_timestamp)
       self.assertFalse(job.end_timestamp)
 
