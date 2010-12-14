@@ -903,7 +903,7 @@ cluster looks like::
   Mon Oct 26 18:59:37 2009 * Verifying orphan volumes
   Mon Oct 26 18:59:37 2009 * Verifying remaining instances
   Mon Oct 26 18:59:37 2009 * Verifying N+1 Memory redundancy
-  Mon Oct 26 18:59:37 2009   - ERROR: node node2: not enough memory on to accommodate failovers should peer node node1 fail
+  Mon Oct 26 18:59:37 2009   - ERROR: node node2: not enough memory to accommodate instance failovers should node node1 fail
   Mon Oct 26 18:59:37 2009 * Other Notes
   Mon Oct 26 18:59:37 2009 * Hooks Results
   node1#

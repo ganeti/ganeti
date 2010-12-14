@@ -1721,8 +1721,8 @@ class LUVerifyCluster(LogicalUnit):
             needed_mem += bep[constants.BE_MEMORY]
         test = n_img.mfree < needed_mem
         self._ErrorIf(test, self.ENODEN1, node,
-                      "not enough memory on to accommodate"
-                      " failovers should peer node %s fail", prinode)
+                      "not enough memory to accomodate instance failovers"
+                      " should node %s fail", prinode)
 
   def _VerifyNodeFiles(self, ninfo, nresult, file_list, local_cksum,
                        master_files):
