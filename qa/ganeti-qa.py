@@ -207,7 +207,7 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled('instance-rename'):
     rename_target = qa_config.get("rename", None)
     if rename_target is None:
-      print qa_utils.FormatError("Can rename instance, 'rename' entry is"
+      print qa_utils.FormatError("Can not rename instance, 'rename' entry is"
                                  " missing from configuration")
     else:
       RunTest(qa_instance.TestInstanceShutdown, instance)
