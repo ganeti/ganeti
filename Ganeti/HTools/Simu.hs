@@ -36,6 +36,7 @@ import Text.Printf (printf)
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -53,9 +54,10 @@ parseDesc desc =
 
 -- | Builds the cluster data from node\/instance files.
 parseData :: String -- ^ Cluster description in text format
-         -> Result (Node.List, Instance.List, [String])
+         -> Result (Group.List, Node.List, Instance.List, [String])
 parseData ndata = do
   (cnt, disk, mem, cpu) <- parseDesc ndata
+  let defgroup = Group.create "default" defaultGroupID AllocPreferred
   let nodes = map (\idx ->
                     let n = Node.create (printf "node%03d" idx)
                             (fromIntegral mem) 0 mem
@@ -63,10 +65,11 @@ parseData ndata = do
                             (fromIntegral cpu) False defaultGroupID
                     in (idx, Node.setIdx n idx)
                   ) [1..cnt]
-  return (Container.fromAssocList nodes, Container.empty, [])
+  return (Container.fromAssocList [(0, Group.setIdx defgroup 0)],
+          Container.fromAssocList nodes, Container.empty, [])
 
 -- | Builds the cluster data from node\/instance files.
 loadData :: String -- ^ Cluster description in text format
-         -> IO (Result (Node.List, Instance.List, [String]))
+         -> IO (Result (Group.List, Node.List, Instance.List, [String]))
 loadData = -- IO monad, just for consistency with the other loaders
   return . parseData

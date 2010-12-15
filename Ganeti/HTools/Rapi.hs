@@ -39,6 +39,7 @@ import Text.Printf (printf)
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -73,6 +74,11 @@ getInstances ktn body =
 getNodes :: String -> Result [(String, Node.Node)]
 getNodes body = loadJSArray "Parsing node data" body >>=
                 mapM (parseNode . fromJSObject)
+
+-- | Parse a group list in JSON format.
+getGroups :: String -> Result [(String, Group.Group)]
+getGroups body = loadJSArray "Parsing group data" body >>=
+                mapM (parseGroup . fromJSObject)
 
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc
@@ -119,28 +125,39 @@ parseNode a = do
                     dtotal dfree ctotal False guuid)
   return (name, node)
 
+-- | Construct a group from a JSON object.
+parseGroup :: [(String, JSValue)] -> Result (String, Group.Group)
+parseGroup a = do
+  name <- tryFromObj "Parsing new group" a "name"
+  let extract s = tryFromObj ("Group '" ++ name ++ "'") a s
+  uuid <- extract "uuid"
+  return (uuid, Group.create name uuid AllocPreferred)
+
 -- | Loads the raw cluster data from an URL.
 readData :: String -- ^ Cluster or URL to use as source
-         -> IO (Result String, Result String, Result String)
+         -> IO (Result String, Result String, Result String, Result String)
 readData master = do
   let url = formatHost master
+  group_body <- getUrl $ printf "%s/2/groups?bulk=1" url
   node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
   inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
   tags_body <- getUrl $ printf "%s/2/tags" url
-  return (node_body, inst_body, tags_body)
+  return (group_body, node_body, inst_body, tags_body)
 
 -- | Builds the cluster data from the raw Rapi content
-parseData :: (Result String, Result String, Result String)
-          -> Result (Node.List, Instance.List, [String])
-parseData (node_body, inst_body, tags_body) = do
+parseData :: (Result String, Result String, Result String, Result String)
+          -> Result (Group.List, Node.List, Instance.List, [String])
+parseData (group_body, node_body, inst_body, tags_body) = do
+  group_data <- group_body >>= getGroups
+  let (_, group_idx) = assignIndices group_data
   node_data <- node_body >>= getNodes
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
   tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
-  return (node_idx, inst_idx, tags_data)
+  return (group_idx, node_idx, inst_idx, tags_data)
 
 -- | Top level function for data loading
 loadData :: String -- ^ Cluster or URL to use as source
-            -> IO (Result (Node.List, Instance.List, [String]))
+            -> IO (Result (Group.List, Node.List, Instance.List, [String]))
 loadData master = readData master >>= return . parseData

@@ -34,6 +34,7 @@ import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
                   makeObj, encodeStrict, decodeStrict,
                   fromJSObject, toJSString)
 import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader
@@ -94,6 +95,14 @@ parseNode n a = do
                     dtotal dfree ctotal False guuid)
   return (n, node)
 
+-- | Parses a group as found in the cluster group list.
+parseGroup :: String              -- ^ The group UUID
+           -> [(String, JSValue)] -- ^ The JSON object
+           -> Result (String, Group.Group)
+parseGroup u a = do
+  name <- fromObj "name" a
+  return (u, Group.create name u AllocPreferred)
+
 -- | Top-level parser.
 parseData :: String         -- ^ The JSON message as received from Ganeti
           -> Result Request -- ^ A (possible valid) request
@@ -102,6 +111,10 @@ parseData body = do
   let obj = fromJSObject decoded
   -- request parser
   request <- liftM fromJSObject (fromObj "request" obj)
+  -- existing group parsing
+  glist <- liftM fromJSObject (fromObj "nodegroups" obj)
+  gobj <- mapM (\(x, y) -> asJSObject y >>= parseGroup x . fromJSObject) glist
+  let (_, gl) = assignIndices gobj
   -- existing node parsing
   nlist <- liftM fromJSObject (fromObj "nodes" obj)
   nobj <- mapM (\(x,y) -> asJSObject y >>= parseNode x . fromJSObject) nlist
@@ -114,7 +127,7 @@ parseData body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- fromObj "cluster_tags" obj
-  (map_n, map_i, ptags) <- mergeData [] [] [] (nl, il, ctags)
+  (map_g, map_n, map_i, ptags) <- mergeData [] [] [] (gl, nl, il, ctags)
   optype <- fromObj "type" request
   rqtype <-
       case optype of
@@ -140,7 +153,7 @@ parseData body = do
               let ex_ndx = map Node.idx ex_nodes
               return $ Evacuate ex_ndx
         other -> fail ("Invalid request type '" ++ other ++ "'")
-  return $ Request rqtype map_n map_i ptags
+  return $ Request rqtype map_g map_n map_i ptags
 
 -- | Format the result
 formatRVal :: RqType -> [Node.AllocElement] -> JSValue

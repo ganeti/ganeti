@@ -45,6 +45,7 @@ import Text.Printf (printf)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Group as Group
 
 import Ganeti.HTools.Types
 
@@ -70,7 +71,7 @@ data RqType
     deriving (Show)
 
 -- | A complete request, as received from Ganeti.
-data Request = Request RqType Node.List Instance.List [String]
+data Request = Request RqType Group.List Node.List Instance.List [String]
     deriving (Show)
 
 -- * Functions
@@ -168,10 +169,10 @@ commonSuffix nl il =
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
           -> [String]             -- ^ Untouchable instances
-          -> (Node.List, Instance.List, [String])
+          -> (Group.List, Node.List, Instance.List, [String])
           -- ^ Data from backends
-          -> Result (Node.List, Instance.List, [String])
-mergeData um extags exinsts (nl, il2, tags) =
+          -> Result (Group.List, Node.List, Instance.List, [String])
+mergeData um extags exinsts (gl, nl, il2, tags) =
   let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
@@ -194,7 +195,7 @@ mergeData um extags exinsts (nl, il2, tags) =
   in if not $ all (`elem` all_inst_names) exinsts
      then Bad $ "Some of the excluded instances are unknown: " ++
           show (exinsts \\ all_inst_names)
-     else Ok (snl, sil, tags)
+     else Ok (gl, snl, sil, tags)
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List

@@ -10,7 +10,7 @@ libraries implementing the low-level protocols.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Group as Group
 
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
@@ -74,7 +75,7 @@ parseUtilisation line =
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
-                 -> IO (Node.List, Instance.List, [String])
+                 -> IO (Group.List, Node.List, Instance.List, [String])
 loadExternalData opts = do
   let mhost = optMaster opts
       lsock = optLuxi opts
@@ -120,7 +121,7 @@ loadExternalData opts = do
           | otherwise -> return $ Bad "No backend selected! Exiting."
 
   let ldresult = input_data >>= Loader.mergeData util_data' exTags exInsts
-  (loaded_nl, il, tags) <-
+  (gl, loaded_nl, il, tags) <-
       (case ldresult of
          Ok x -> return x
          Bad s -> do
@@ -134,4 +135,4 @@ loadExternalData opts = do
          hPutStrLn stderr "Warning: cluster has inconsistent data:"
          hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
-  return (fixed_nl, il, tags)
+  return (gl, fixed_nl, il, tags)

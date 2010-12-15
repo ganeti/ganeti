@@ -835,9 +835,10 @@ prop_Loader_assignIndices nodes =
 -- is zero
 prop_Loader_mergeData ns =
   let na = Container.fromAssocList $ map (\n -> (Node.idx n, n)) ns
-  in case Loader.mergeData [] [] [] (na, Container.empty, []) of
+  in case Loader.mergeData [] [] []
+         (Container.empty, na, Container.empty, []) of
     Types.Bad _ -> False
-    Types.Ok (nl, il, _) ->
+    Types.Ok (_, nl, il, _) ->
       let nodes = Container.elems nl
           instances = Container.elems il
       in (sum . map (length . Node.pList)) nodes == 0 &&

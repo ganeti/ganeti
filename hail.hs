@@ -61,7 +61,7 @@ processResults _ as =
 processRequest :: Request
                -> Result Cluster.AllocSolution
 processRequest request =
-  let Request rqtype nl il _ = request
+  let Request rqtype _ nl il _ = request
   in case rqtype of
        Allocate xi reqn -> Cluster.tryMGAlloc nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
@@ -87,7 +87,7 @@ main = do
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
-  let Request rq nl _ _ = request
+  let Request rq _ nl _ _ = request
 
   when (isJust shownodes) $ do
          hPutStrLn stderr "Initial cluster status:"

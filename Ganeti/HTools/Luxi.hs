@@ -35,6 +35,7 @@ import Text.JSON.Types
 import qualified Ganeti.Luxi as L
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject)
@@ -63,9 +64,14 @@ queryInstancesMsg =
   L.QueryInstances [] ["name", "disk_usage", "be/memory", "be/vcpus",
                        "status", "pnode", "snodes", "tags", "oper_ram"] False
 
--- | The input data for cluster query
+-- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
 queryClusterInfoMsg = L.QueryClusterInfo
+
+-- | The input data for node group query.
+queryGroupsMsg :: L.LuxiOp
+queryGroupsMsg =
+  L.QueryGroups [] ["uuid", "name"] False
 
 -- | Wraper over callMethod doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
@@ -77,6 +83,10 @@ queryInstances = L.callMethod queryInstancesMsg
 
 queryClusterInfo :: L.Client -> IO (Result JSValue)
 queryClusterInfo = L.callMethod queryClusterInfoMsg
+
+-- | Wrapper over callMethod doing group query.
+queryGroups :: L.Client -> IO (Result JSValue)
+queryGroups = L.callMethod queryGroupsMsg
 
 -- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
@@ -145,11 +155,23 @@ getClusterTags v = do
   obj <- annotateResult errmsg $ asJSObject v
   tryFromObj errmsg (fromJSObject obj) "tags"
 
+getGroups :: JSValue -> Result [(String, Group.Group)]
+getGroups arr = toArray arr >>= mapM parseGroup
+
+parseGroup :: JSValue -> Result (String, Group.Group)
+parseGroup (JSArray [ uuid, name ]) = do
+  xname <- annotateResult "Parsing new group" (fromJVal name)
+  let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
+  xuuid <- convert uuid
+  return $ (xuuid, Group.create xname xuuid AllocPreferred)
+
+parseGroup v = fail ("Invalid group query result: " ++ show v)
+
 -- * Main loader functionality
 
 -- | Builds the cluster data from an URL.
 readData :: String -- ^ Unix socket to use as source
-         -> IO (Result JSValue, Result JSValue, Result JSValue)
+         -> IO (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
 readData master =
   E.bracket
        (L.getClient master)
@@ -158,20 +180,23 @@ readData master =
           nodes <- queryNodes s
           instances <- queryInstances s
           cinfo <- queryClusterInfo s
-          return (nodes, instances, cinfo)
+          groups <- queryGroups s
+          return (groups, nodes, instances, cinfo)
        )
 
-parseData :: (Result JSValue, Result JSValue, Result JSValue)
-          -> Result (Node.List, Instance.List, [String])
-parseData (nodes, instances, cinfo) = do
+parseData :: (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
+          -> Result (Group.List, Node.List, Instance.List, [String])
+parseData (groups, nodes, instances, cinfo) = do
+  group_data <- groups >>= getGroups
+  let (_, group_idx) = assignIndices group_data
   node_data <- nodes >>= getNodes
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- instances >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
   ctags <- cinfo >>= getClusterTags
-  return (node_idx, inst_idx, ctags)
+  return (group_idx, node_idx, inst_idx, ctags)
 
 -- | Top level function for data loading
 loadData :: String -- ^ Unix socket to use as source
-            -> IO (Result (Node.List, Instance.List, [String]))
+            -> IO (Result (Group.List, Node.List, Instance.List, [String]))
 loadData master = readData master >>= return . parseData

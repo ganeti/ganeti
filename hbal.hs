@@ -226,7 +226,7 @@ main = do
       verbose = optVerbose opts
       shownodes = optShowNodes opts
 
-  (fixed_nl, ilf, ctags) <- loadExternalData opts
+  (_, fixed_nl, ilf, ctags) <- loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl

@@ -47,6 +47,7 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -90,6 +91,13 @@ serializeCluster nl il =
   let ndata = serializeNodes nl
       idata = serializeInstances nl il
   in ndata ++ ['\n'] ++ idata
+
+-- | Load a group from a field list.
+loadGroup :: (Monad m) => [String] -> m (String, Group.Group)
+loadGroup [name, gid] =
+  return $ (gid, Group.create name gid AllocPreferred)
+
+loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
@@ -148,20 +156,26 @@ readData = readFile
 
 -- | Builds the cluster data from text input.
 parseData :: String -- ^ Text data
-          -> Result (Node.List, Instance.List, [String])
+          -> Result (Group.List, Node.List, Instance.List, [String])
 parseData fdata = do
   let flines = lines fdata
-      (nlines, ilines) = break null flines
+      (glines, nilines) = break null flines
+      (nlines, ilines) = break null (tail nilines)
+  nfixed <- case nlines of
+    [] -> Bad "Invalid format of the input file (no node data)"
+    xs -> Ok xs
   ifixed <- case ilines of
     [] -> Bad "Invalid format of the input file (no instance data)"
     _:xs -> Ok xs
+  {- group file: name uuid -}
+  (_, gl) <- loadTabular glines loadGroup
   {- node file: name t_mem n_mem f_mem t_disk f_disk -}
-  (ktn, nl) <- loadTabular nlines loadNode
+  (ktn, nl) <- loadTabular nfixed loadNode
   {- instance file: name mem disk status pnode snode -}
   (_, il) <- loadTabular ifixed (loadInst ktn)
-  return (nl, il, [])
+  return (gl, nl, il, [])
 
 -- | Top level function for data loading
 loadData :: String -- ^ Path to the text file
-         -> IO (Result (Node.List, Instance.List, [String]))
+         -> IO (Result (Group.List, Node.List, Instance.List, [String]))
 loadData afile = readData afile >>= return . parseData
