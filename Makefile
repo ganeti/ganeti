@@ -39,10 +39,11 @@ $(DOCS) : %.html : %
 doc: $(DOCS) Ganeti/HTools/Version.hs
 	rm -rf $(HDDIR)/*
 	mkdir -p $(HDDIR)/Ganeti/HTools
-	cp hscolour.css $(HDDIR)/Ganeti/HTools
+	HsColour -print-css > $(HDDIR)/Ganeti/hscolour.css
+	ln -s ../hscolour.css $(HDDIR)/Ganeti/HTools/hscolour.css
 	for file in $(HSRCS); do \
-		HsColour -css -anchor \
-		$$file > $(HDDIR)/Ganeti/HTools/`basename $$file .hs`.html ; \
+		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
+		HsColour -css -anchor $$file > $(HDDIR)/$$hfile ; \
 	done
 	haddock --odir $(HDDIR) --html --ignore-all-exports \
 		-t ganeti-htools -p haddock-prologue \
