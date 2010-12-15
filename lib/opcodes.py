@@ -370,9 +370,9 @@ class OpQueryFields(OpCode):
     ]
 
 
-class OpOutOfBand(OpCode):
+class OpOobCommand(OpCode):
   """Interact with OOB."""
-  OP_ID = "OP_OUT_OF_BAND"
+  OP_ID = "OP_OOB_COMMAND"
   __slots__ = [
     "node_name",
     "command",

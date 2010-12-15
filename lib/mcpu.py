@@ -211,7 +211,7 @@ class Processor(object):
     opcodes.OpTestAllocator: cmdlib.LUTestAllocator,
     opcodes.OpTestJobqueue: cmdlib.LUTestJobqueue,
     # OOB lu
-    opcodes.OpOutOfBand: cmdlib.LUOutOfBand,
+    opcodes.OpOobCommand: cmdlib.LUOobCommand,
     }
 
   def __init__(self, context, ec_id):

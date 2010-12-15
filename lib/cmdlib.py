@@ -3234,7 +3234,7 @@ def _CheckDiskConsistency(lu, dev, node, on_primary, ldisk=False):
   return result
 
 
-class LUOutOfBand(NoHooksLU):
+class LUOobCommand(NoHooksLU):
   """Logical unit for OOB handling.
 
   """

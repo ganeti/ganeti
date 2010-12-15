@@ -476,7 +476,7 @@ def PowerNode(opts, args):
 
   oob_command = "power-%s" % command
 
-  op = opcodes.OpOutOfBand(node_name=node, command=oob_command)
+  op = opcodes.OpOobCommand(node_name=node, command=oob_command)
   result = SubmitOpCode(op, opts=opts)
   if result:
     if oob_command == constants.OOB_POWER_STATUS:
