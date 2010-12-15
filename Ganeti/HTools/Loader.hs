@@ -32,6 +32,7 @@ module Ganeti.HTools.Loader
     , assignIndices
     , lookupNode
     , lookupInstance
+    , lookupGroup
     , commonSuffix
     , RqType(..)
     , Request(..)
@@ -86,6 +87,13 @@ lookupInstance :: (Monad m) => NameAssoc -> String -> m Idx
 lookupInstance kti inst =
     case M.lookup inst kti of
       Nothing -> fail $ "Unknown instance '" ++ inst ++ "'"
+      Just idx -> return idx
+
+-- | Lookups a group into an assoc list.
+lookupGroup :: (Monad m) => NameAssoc -> String -> String -> m Gdx
+lookupGroup ktg nname gname =
+    case M.lookup gname ktg of
+      Nothing -> fail $ "Unknown group '" ++ gname ++ "' for node " ++ nname
       Just idx -> return idx
 
 -- | Given a list of elements (and their names), assign indices to them.
