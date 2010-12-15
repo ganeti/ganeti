@@ -97,14 +97,17 @@ _ensure_datadir() {
   _ensure_file ${DATADIR}/queue/lock 0600 "$(_fileset_owner masterd)"
 
   if ! [[ -z "${full_run}" ]]; then
-    for file in $(_gather_files ${DATADIR}/queue 0600 @GNTMASTERUSER@ \
-                  @GNTMASTERDGROUP@); do
-      _ensure_file "${file}" 0600 "$(_fileset_owner masterd)"
+    local queue_owner="$(_fileset_owner masterd)"
+    local ssconf_owner="$(_fileset_owner noded)"
+
+    _gather_files ${DATADIR}/queue 0600 @GNTMASTERUSER@ @GNTMASTERDGROUP@ | \
+    while read path; do
+      _ensure_file "$path" 0600 "$queue_owner"
     done
 
-    for file in $(_gather_files ${DATADIR} 0600 root \
-                  @GNTMASTERDGROUP@ -name 'ssconf_*'); do
-      _ensure_file "${file}" 0444 "$(_fileset_owner noded)"
+    _gather_files ${DATADIR} 0600 root @GNTMASTERDGROUP@ -name 'ssconf_*' | \
+    while read path; do
+      _ensure_file "$path" 0444 "$ssconf_owner"
     done
   fi
 }
