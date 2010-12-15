@@ -26,10 +26,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Types
     ( Idx
     , Ndx
+    , Gdx
     , NameAssoc
     , Score
     , Weight
     , GroupID
+    , AllocPolicy(..)
     , RSpec(..)
     , DynUtil(..)
     , zeroUtil
@@ -65,6 +67,9 @@ type Idx = Int
 -- | The node index type.
 type Ndx = Int
 
+-- | The group index type.
+type Gdx = Int
+
 -- | The type used to hold name-to-idx mappings.
 type NameAssoc = M.Map String Int
 
@@ -74,8 +79,14 @@ type Score = Double
 -- | A separate name for a weight metric.
 type Weight = Double
 
--- | The Group UUID type
+-- | The Group UUID type.
 type GroupID = String
+
+-- | The Group allocation policy type.
+data AllocPolicy = AllocPreferred
+                 | AllocLastResort
+                 | AllocUnallocable
+                   deriving (Show, Eq)
 
 -- | The resource spec type.
 data RSpec = RSpec
