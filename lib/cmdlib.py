@@ -3267,15 +3267,15 @@ class LUOutOfBand(NoHooksLU):
       raise errors.OpPrereqError("OOB is not supported for node %s" %
                                  self.op.node_name)
 
-    self.op.node_name = node.name
     self.node = node
 
   def ExpandNames(self):
     """Gather locks we need.
 
     """
+    node_name = _ExpandNodeName(self.cfg, self.op.node_name)
     self.needed_locks = {
-      locking.LEVEL_NODE: [self.op.node_name],
+      locking.LEVEL_NODE: [node_name],
       }
 
   def Exec(self, feedback_fn):
