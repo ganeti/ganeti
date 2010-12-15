@@ -625,16 +625,16 @@ tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
                                                "), only two supported"
 
 -- | Given a group/result, describe it as a nice (list of) messages
-solutionDescription :: (GroupID, Result AllocSolution) -> [String]
+solutionDescription :: (Gdx, Result AllocSolution) -> [String]
 solutionDescription (groupId, result) =
   case result of
-    Ok solution -> map (printf "Group %s: %s" groupId) (asLog solution)
-    Bad message -> [printf "Group %s: error %s" groupId message]
+    Ok solution -> map (printf "Group %d: %s" groupId) (asLog solution)
+    Bad message -> [printf "Group %d: error %s" groupId message]
 
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result
-filterMGResults :: [(GroupID, Result AllocSolution)] ->
-                   [(GroupID, AllocSolution)]
+filterMGResults :: [(Gdx, Result AllocSolution)] ->
+                   [(Gdx, AllocSolution)]
 filterMGResults =
   filter (not . null . asSolutions . snd) .
   map (\(y, Ok x) -> (y, x)) .
@@ -651,7 +651,7 @@ tryMGAlloc mgnl mgil inst cnt =
       -- TODO: currently we consider all groups preferred
       sols = map (\(gid, (nl, il)) ->
                    (gid, tryAlloc nl il inst cnt)) groups::
-        [(GroupID, Result AllocSolution)]
+        [(Gdx, Result AllocSolution)]
       all_msgs = concatMap solutionDescription sols
       goodSols = filterMGResults sols
       extractScore = \(_, _, _, x) -> x
@@ -660,7 +660,7 @@ tryMGAlloc mgnl mgil inst cnt =
   in if null sortedSols
      then Bad $ intercalate ", " all_msgs
      else let (final_group, final_sol) = head sortedSols
-              selmsg = "Selected group: " ++ final_group
+              selmsg = "Selected group: " ++ show final_group
           in Ok $ final_sol { asLog = selmsg:all_msgs }
 
 -- | Try to relocate an instance on the cluster.
@@ -925,19 +925,19 @@ iMoveToJob nl il idx move =
          FailoverAndReplace ns -> [ opF, opR ns ]
 
 -- | Computes the group of an instance
-instanceGroup :: Node.List -> Instance.Instance -> Result GroupID
+instanceGroup :: Node.List -> Instance.Instance -> Result Gdx
 instanceGroup nl i =
   let sidx = Instance.sNode i
       pnode = Container.find (Instance.pNode i) nl
       snode = if sidx == Node.noSecondary
               then pnode
               else Container.find sidx nl
-      puuid = Node.group pnode
-      suuid = Node.group snode
-  in if puuid /= suuid
-     then fail ("Instance placed accross two node groups, primary " ++ puuid ++
-                ", secondary " ++ suuid)
-     else return puuid
+      pgroup = Node.group pnode
+      sgroup = Node.group snode
+  in if pgroup /= sgroup
+     then fail ("Instance placed accross two node groups, primary " ++
+                show pgroup ++ ", secondary " ++ show sgroup)
+     else return pgroup
 
 -- | Compute the list of badly allocated instances (split across node
 -- groups)
@@ -947,7 +947,7 @@ findSplitInstances nl il =
 
 -- | Splits a cluster into the component node groups
 splitCluster :: Node.List -> Instance.List ->
-                [(GroupID, (Node.List, Instance.List))]
+                [(Gdx, (Node.List, Instance.List))]
 splitCluster nl il =
   let ngroups = Node.computeGroups (Container.elems nl)
   in map (\(guuid, nodes) ->

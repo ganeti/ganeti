@@ -56,6 +56,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Luxi
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.PeerMap as PeerMap
 import qualified Ganeti.HTools.Rapi
 import qualified Ganeti.HTools.Simu
@@ -77,6 +78,17 @@ maxDsk = 1024 * 1024 * 8
 -- | Max CPUs (1024, somewhat random value)
 maxCpu :: Int
 maxCpu = 1024
+
+defGroup :: Group.Group
+defGroup = flip Group.setIdx 0 $
+               Group.create "default" Utils.defaultGroupID
+                    Types.AllocPreferred
+
+defGroupList :: Group.List
+defGroupList = Container.fromAssocList [(Group.idx defGroup, defGroup)]
+
+defGroupAssoc :: Data.Map.Map String Types.Gdx
+defGroupAssoc = Data.Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 
 -- * Helper functions
 
@@ -187,7 +199,7 @@ instance Arbitrary Node.Node where
       offl <- arbitrary
       let n = Node.create name (fromIntegral mem_t) mem_n mem_f
               (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl
-              Utils.defaultGroupID
+              0
           n' = Node.buildPeers n Container.empty
       return n'
 
@@ -483,7 +495,9 @@ prop_Text_Load_Node name tm nm fm td fd tc fo =
                then "Y"
                else "N"
         any_broken = any (< 0) [tm, nm, fm, td, fd, tc]
-    in case Text.loadNode [name, tm_s, nm_s, fm_s, td_s, fd_s, tc_s, fo_s] of
+        gid = Group.uuid defGroup
+    in case Text.loadNode defGroupAssoc
+           [name, tm_s, nm_s, fm_s, td_s, fd_s, tc_s, fo_s, gid] of
          Nothing -> False
          Just (name', node) ->
              if fo || any_broken
@@ -498,11 +512,11 @@ prop_Text_Load_Node name tm nm fm td fd tc fo =
                   Node.tCpu node == fromIntegral tc
 
 prop_Text_Load_NodeFail fields =
-    length fields /= 8 ==> isNothing $ Text.loadNode fields
+    length fields /= 8 ==> isNothing $ Text.loadNode Data.Map.empty fields
 
 prop_Text_NodeLSIdempotent node =
-    (Text.loadNode .
-         Utils.sepSplit '|' . Text.serializeNode) n ==
+    (Text.loadNode defGroupAssoc.
+         Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==
     Just (Node.name n, n)
     -- override failN1 to what loadNode returns by default
     where n = node { Node.failN1 = True, Node.offline = False }
@@ -750,7 +764,7 @@ prop_ClusterAllocBalance node =
 prop_ClusterCheckConsistency node inst =
   let nl = makeSmallCluster node 3
       [node1, node2, node3] = Container.elems nl
-      node3' = node3 { Node.group = "other-uuid" }
+      node3' = node3 { Node.group = 1 }
       nl' = Container.add (Node.idx node3') node3' nl
       inst1 = Instance.setBoth inst (Node.idx node1) (Node.idx node2)
       inst2 = Instance.setBoth inst (Node.idx node1) Node.noSecondary

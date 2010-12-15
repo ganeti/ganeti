@@ -75,15 +75,17 @@ parseInstance ktn n a = do
   return (n, Instance.setBoth (snd base) pidx sidx)
 
 -- | Parses a node as found in the cluster node list.
-parseNode :: String           -- ^ The node's name
+parseNode :: NameAssoc           -- ^ The group association
+          -> String              -- ^ The node's name
           -> [(String, JSValue)] -- ^ The JSON object
           -> Result (String, Node.Node)
-parseNode n a = do
+parseNode ktg n a = do
   offline <- fromObj "offline" a
   drained <- fromObj "drained" a
   guuid   <- fromObj "group" a
+  gidx <- lookupGroup ktg n guuid
   node <- (if offline || drained
-           then return $ Node.create n 0 0 0 0 0 0 True guuid
+           then return $ Node.create n 0 0 0 0 0 0 True gidx
            else do
              mtotal <- fromObj "total_memory" a
              mnode  <- fromObj "reserved_memory" a
@@ -92,7 +94,7 @@ parseNode n a = do
              dfree  <- fromObj "free_disk"    a
              ctotal <- fromObj "total_cpus"   a
              return $ Node.create n mtotal mnode mfree
-                    dtotal dfree ctotal False guuid)
+                    dtotal dfree ctotal False gidx)
   return (n, node)
 
 -- | Parses a group as found in the cluster group list.
@@ -114,10 +116,11 @@ parseData body = do
   -- existing group parsing
   glist <- liftM fromJSObject (fromObj "nodegroups" obj)
   gobj <- mapM (\(x, y) -> asJSObject y >>= parseGroup x . fromJSObject) glist
-  let (_, gl) = assignIndices gobj
+  let (ktg, gl) = assignIndices gobj
   -- existing node parsing
   nlist <- liftM fromJSObject (fromObj "nodes" obj)
-  nobj <- mapM (\(x,y) -> asJSObject y >>= parseNode x . fromJSObject) nlist
+  nobj <- mapM (\(x,y) ->
+                    asJSObject y >>= parseNode ktg x . fromJSObject) nlist
   let (ktn, nl) = assignIndices nobj
   -- existing instance parsing
   ilist <- fromObj "instances" obj

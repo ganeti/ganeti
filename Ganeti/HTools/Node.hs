@@ -121,7 +121,7 @@ data Node = Node
     , utilPool :: T.DynUtil -- ^ Total utilisation capacity
     , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
     , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
-    , group    :: T.GroupID -- ^ The node's group (as UUID)
+    , group    :: T.Gdx     -- ^ The node's group (index)
     } deriving (Show, Eq)
 
 instance T.Element Node where
@@ -185,7 +185,7 @@ conflictingPrimaries (Node { pTags = t }) = Foldable.sum t - Map.size t
 -- The index and the peers maps are empty, and will be need to be
 -- update later via the 'setIdx' and 'buildPeers' functions.
 create :: String -> Double -> Int -> Int -> Double
-       -> Int -> Double -> Bool -> String -> Node
+       -> Int -> Double -> Bool -> T.Gdx -> Node
 create name_init mem_t_init mem_n_init mem_f_init
        dsk_t_init dsk_f_init cpu_t_init offline_init group_init =
     Node { name = name_init
@@ -487,7 +487,6 @@ showField t field =
       "ptags" -> intercalate "," . map (\(k, v) -> printf "%s=%d" k v) .
                  Map.toList $ pTags t
       "peermap" -> show $ peers t
-      "group.uuid" -> group t
       _ -> T.unknownField
     where
       T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
@@ -526,7 +525,7 @@ showHeader field =
       "nload" -> ("lNet", True)
       "ptags" -> ("PrimaryTags", False)
       "peermap" -> ("PeerMap", False)
-      "group.uuid" -> ("GroupUUID", False)
+      -- TODO: add node fields (group.uuid, group)
       _ -> (T.unknownField, False)
 
 -- | String converter for the node list functionality.
@@ -543,7 +542,7 @@ defaultFields =
 
 -- | Split a list of nodes into a list of (node group UUID, list of
 -- associated nodes)
-computeGroups :: [Node] -> [(T.GroupID, [Node])]
+computeGroups :: [Node] -> [(T.Gdx, [Node])]
 computeGroups nodes =
   let nodes' = sortBy (comparing group) nodes
       nodes'' = groupBy (\a b -> group a == group b) nodes'

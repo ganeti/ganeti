@@ -95,7 +95,7 @@ processData :: Result (Group.List, Node.List, Instance.List, [String])
 processData input_data = do
   (gl, nl, il, _) <- input_data >>= Loader.mergeData [] [] []
   let (_, fix_nl) = Loader.checkData nl il
-      adata = serializeCluster nl il
+      adata = serializeCluster gl nl il
   return (gl, fix_nl, il, adata)
 
 -- | Writes cluster data out

@@ -62,7 +62,7 @@ parseData ndata = do
                     let n = Node.create (printf "node%03d" idx)
                             (fromIntegral mem) 0 mem
                             (fromIntegral disk) disk
-                            (fromIntegral cpu) False defaultGroupID
+                            (fromIntegral cpu) False 0
                     in (idx, Node.setIdx n idx)
                   ) [1..cnt]
   return (Container.fromAssocList [(0, Group.setIdx defgroup 0)],

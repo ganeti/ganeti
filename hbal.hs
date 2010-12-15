@@ -41,6 +41,7 @@ import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -226,7 +227,7 @@ main = do
       verbose = optVerbose opts
       shownodes = optShowNodes opts
 
-  (_, fixed_nl, ilf, ctags) <- loadExternalData opts
+  (gl, fixed_nl, ilf, ctags) <- loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
@@ -270,7 +271,7 @@ main = do
   let ngroups = Cluster.splitCluster nlf ilf
   when (length ngroups > 1 && isNothing (optGroup opts)) $ do
     hPutStrLn stderr "Found multiple node groups:"
-    mapM_ (hPutStrLn stderr . ("  " ++) . fst ) ngroups
+    mapM_ (hPutStrLn stderr . ("  " ++) . show . fst ) ngroups
     hPutStrLn stderr "Aborting."
     exitWith $ ExitFailure 1
 
@@ -278,22 +279,32 @@ main = do
              (Container.size nlf)
              (Container.size ilf)
 
-  (guuid, (nl, il)) <- case optGroup opts of
-    Nothing -> return $ head ngroups
-    Just g -> case lookup g ngroups of
+  (gname, (nl, il)) <- case optGroup opts of
+    Nothing -> do
+         let (gidx, cdata) = head ngroups
+             grp = Container.find gidx gl
+         return (Group.name grp, cdata)
+    Just g -> case Container.findByName gl g of
       Nothing -> do
         hPutStrLn stderr $ "Node group " ++ g ++
           " not found. Node group list is:"
-        mapM_ (hPutStrLn stderr . ("  " ++) . fst ) ngroups
+        mapM_ (hPutStrLn stderr . ("  " ++) . Group.name ) (Container.elems gl)
         hPutStrLn stderr "Aborting."
         exitWith $ ExitFailure 1
-      Just cdata -> return (g, cdata)
+      Just grp ->
+          case lookup (Group.idx grp) ngroups of
+            Nothing -> do
+              -- TODO: while this is unlikely to happen, log here the
+              -- actual group data to help debugging
+              hPutStrLn stderr $ "Internal failure, missing group idx"
+              exitWith $ ExitFailure 1
+            Just cdata -> return (Group.name grp, cdata)
 
   unless oneline $ printf "Group size %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)
 
-  putStrLn $ "Selected node group: " ++ guuid
+  putStrLn $ "Selected node group: " ++ gname
 
   when (length csf > 0 && not oneline && verbose > 1) $
        printf "Note: Stripping common suffix of '%s' from names\n" csf
@@ -379,7 +390,7 @@ main = do
   when (isJust $ optSaveCluster opts) $
        do
          let out_path = fromJust $ optSaveCluster opts
-             adata = serializeCluster fin_nl fin_il
+             adata = serializeCluster gl fin_nl fin_il
          writeFile out_path adata
          printf "The cluster state has been written to file '%s'\n" out_path
 

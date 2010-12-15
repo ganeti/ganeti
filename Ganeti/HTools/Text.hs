@@ -52,17 +52,18 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
 -- | Serialize a single node
-serializeNode :: Node.Node -> String
-serializeNode node =
+serializeNode :: Group.List -> Node.Node -> String
+serializeNode gl node =
     printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s" (Node.name node)
                (Node.tMem node) (Node.nMem node) (Node.fMem node)
                (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
                (if Node.offline node then 'Y' else 'N')
-               (Node.group node)
+               (Group.uuid grp)
+    where grp = Container.find (Node.group node) gl
 
 -- | Generate node file data from node objects
-serializeNodes :: Node.List -> String
-serializeNodes = unlines . map serializeNode . Container.elems
+serializeNodes :: Group.List -> Node.List -> String
+serializeNodes gl = unlines . map (serializeNode gl) . Container.elems
 
 -- | Serialize a single instance
 serializeInstance :: Node.List -> Instance.Instance -> String
@@ -86,9 +87,9 @@ serializeInstances nl =
     unlines . map (serializeInstance nl) . Container.elems
 
 -- | Generate complete cluster data from node and instance lists
-serializeCluster :: Node.List -> Instance.List -> String
-serializeCluster nl il =
-  let ndata = serializeNodes nl
+serializeCluster :: Group.List -> Node.List -> Instance.List -> String
+serializeCluster gl nl il =
+  let ndata = serializeNodes gl nl
       idata = serializeInstances nl il
   in ndata ++ ['\n'] ++ idata
 
@@ -100,14 +101,12 @@ loadGroup [name, gid] =
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 
 -- | Load a node from a field list.
-loadNode :: (Monad m) => [String] -> m (String, Node.Node)
--- compatibility wrapper for old text files
-loadNode [name, tm, nm, fm, td, fd, tc, fo] =
-  loadNode [name, tm, nm, fm, td, fd, tc, fo, defaultGroupID]
-loadNode [name, tm, nm, fm, td, fd, tc, fo, gu] = do
+loadNode :: (Monad m) => NameAssoc -> [String] -> m (String, Node.Node)
+loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] = do
+  gdx <- lookupGroup ktg name gu
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
-          return $ Node.create name 0 0 0 0 0 0 True gu
+          return $ Node.create name 0 0 0 0 0 0 True gdx
       else do
         vtm <- tryRead name tm
         vnm <- tryRead name nm
@@ -115,9 +114,9 @@ loadNode [name, tm, nm, fm, td, fd, tc, fo, gu] = do
         vtd <- tryRead name td
         vfd <- tryRead name fd
         vtc <- tryRead name tc
-        return $ Node.create name vtm vnm vfm vtd vfd vtc False gu
+        return $ Node.create name vtm vnm vfm vtd vfd vtc False gdx
   return (name, new_node)
-loadNode s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
+loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
@@ -168,9 +167,9 @@ parseData fdata = do
     [] -> Bad "Invalid format of the input file (no instance data)"
     _:xs -> Ok xs
   {- group file: name uuid -}
-  (_, gl) <- loadTabular glines loadGroup
+  (ktg, gl) <- loadTabular glines loadGroup
   {- node file: name t_mem n_mem f_mem t_disk f_disk -}
-  (ktn, nl) <- loadTabular nfixed loadNode
+  (ktn, nl) <- loadTabular nfixed (loadNode ktg)
   {- instance file: name mem disk status pnode snode -}
   (_, il) <- loadTabular ifixed (loadInst ktn)
   return (gl, nl, il, [])

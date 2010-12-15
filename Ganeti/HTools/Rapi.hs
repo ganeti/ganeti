@@ -71,9 +71,9 @@ getInstances ktn body =
     mapM (parseInstance ktn . fromJSObject)
 
 -- | Parse a node list in JSON format.
-getNodes :: String -> Result [(String, Node.Node)]
-getNodes body = loadJSArray "Parsing node data" body >>=
-                mapM (parseNode . fromJSObject)
+getNodes :: NameAssoc -> String -> Result [(String, Node.Node)]
+getNodes ktg body = loadJSArray "Parsing node data" body >>=
+                mapM (parseNode ktg . fromJSObject)
 
 -- | Parse a group list in JSON format.
 getGroups :: String -> Result [(String, Group.Group)]
@@ -105,13 +105,13 @@ parseInstance ktn a = do
   return (name, inst)
 
 -- | Construct a node from a JSON object.
-parseNode :: [(String, JSValue)] -> Result (String, Node.Node)
-parseNode a = do
+parseNode :: NameAssoc -> [(String, JSValue)] -> Result (String, Node.Node)
+parseNode ktg a = do
   name <- tryFromObj "Parsing new node" a "name"
   let extract s = tryFromObj ("Node '" ++ name ++ "'") a s
   offline <- extract "offline"
   drained <- extract "drained"
-  guuid   <- extract "group.uuid"
+  guuid   <- extract "group.uuid" >>= lookupGroup ktg name
   node <- (if offline || drained
            then return $ Node.create name 0 0 0 0 0 0 True guuid
            else do
@@ -149,8 +149,8 @@ parseData :: (Result String, Result String, Result String, Result String)
           -> Result (Group.List, Node.List, Instance.List, [String])
 parseData (group_body, node_body, inst_body, tags_body) = do
   group_data <- group_body >>= getGroups
-  let (_, group_idx) = assignIndices group_data
-  node_data <- node_body >>= getNodes
+  let (group_names, group_idx) = assignIndices group_data
+  node_data <- node_body >>= getNodes group_names
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
