@@ -271,7 +271,8 @@ main = do
   let ngroups = Cluster.splitCluster nlf ilf
   when (length ngroups > 1 && isNothing (optGroup opts)) $ do
     hPutStrLn stderr "Found multiple node groups:"
-    mapM_ (hPutStrLn stderr . ("  " ++) . show . fst ) ngroups
+    mapM_ (hPutStrLn stderr . ("  " ++) . Group.name .
+           (flip Container.find gl) . fst) ngroups
     hPutStrLn stderr "Aborting."
     exitWith $ ExitFailure 1
 
