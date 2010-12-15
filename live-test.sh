@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2010 Google Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ echo Testing hscan/luxi
 echo Comparing hscan results...
 diff -u $T/$RAPI.data $T/LOCAL.data
 
-FN=$(head -n1 $T/$RAPI.data|cut -d \| -f1)
+FN=$($CLUSTER head -n1 /var/lib/ganeti/ssconf_node_list)
 FI=$($CLUSTER head -n1 /var/lib/ganeti/ssconf_instance_list)
 
 

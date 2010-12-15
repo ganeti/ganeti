@@ -51,6 +51,15 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+-- | Serialize a single group
+serializeGroup :: Group.Group -> String
+serializeGroup grp =
+    printf "%s|%s" (Group.name grp) (Group.uuid grp)
+
+-- | Generate group file data from a group list
+serializeGroups :: Group.List -> String
+serializeGroups = unlines . map serializeGroup . Container.elems
+
 -- | Serialize a single node
 serializeNode :: Group.List -> Node.Node -> String
 serializeNode gl node =
@@ -89,9 +98,10 @@ serializeInstances nl =
 -- | Generate complete cluster data from node and instance lists
 serializeCluster :: Group.List -> Node.List -> Instance.List -> String
 serializeCluster gl nl il =
-  let ndata = serializeNodes gl nl
+  let gdata = serializeGroups gl
+      ndata = serializeNodes gl nl
       idata = serializeInstances nl il
-  in ndata ++ ['\n'] ++ idata
+  in gdata ++ ['\n'] ++ ndata ++ ['\n'] ++ idata
 
 -- | Load a group from a field list.
 loadGroup :: (Monad m) => [String] -> m (String, Group.Group)
