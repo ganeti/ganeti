@@ -593,3 +593,12 @@ enabled.
 The ``--yes`` option can be used to skip confirmation, while the
 ``--force`` option is needed if the target node is the master
 node.
+
+POWER
+~~~~~
+
+**power** on|off|cycle|status {*node*}
+
+This commands calls out to out-of-band management to change the power
+state of given node. With ``status`` you get the power status as reported
+by the out-of-band managment script.

@@ -59,6 +59,10 @@ _LIST_STOR_DEF_FIELDS = [
   ]
 
 
+#: default list of power commands
+_LIST_POWER_COMMANDS = ["on", "off", "cycle", "status"]
+
+
 #: headers (and full field list) for L{ListStorage}
 _LIST_STOR_HEADERS = {
   constants.SF_NODE: "Node",
@@ -452,6 +456,40 @@ def PowercycleNode(opts, args):
   return 0
 
 
+def PowerNode(opts, args):
+  """Change/ask power state of a node.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name of
+      the node to be removed
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  command = args[0]
+  node = args[1]
+
+  if command not in _LIST_POWER_COMMANDS:
+    ToStderr("power subcommand %s not supported." % command)
+    return constants.EXIT_FAILURE
+
+  oob_command = "power-%s" % command
+
+  op = opcodes.OpOutOfBand(node_name=node, command=oob_command)
+  result = SubmitOpCode(op, opts=opts)
+  if result:
+    if oob_command == constants.OOB_POWER_STATUS:
+      text = "The machine is %spowered"
+      if result[constants.OOB_POWER_STATUS_POWERED]:
+        result = text % ""
+      else:
+        result = text % "not "
+    ToStderr(result)
+
+  return constants.EXIT_SUCCESS
+
+
 def ListVolumes(opts, args):
   """List logical volumes on node(s).
 
@@ -693,6 +731,12 @@ commands = {
     PowercycleNode, ARGS_ONE_NODE,
     [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name>", "Tries to forcefully powercycle a node"),
+  'power': (
+    PowerNode,
+    [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
+     ArgNode(min=1, max=1)],
+    [], "on|off|cycle|status <node>",
+    "Change power state of node by calling out-of-band helper."),
   'remove': (
     RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name>", "Removes a node from the cluster"),
