@@ -131,7 +131,8 @@ parseGroup a = do
   name <- tryFromObj "Parsing new group" a "name"
   let extract s = tryFromObj ("Group '" ++ name ++ "'") a s
   uuid <- extract "uuid"
-  return (uuid, Group.create name uuid AllocPreferred)
+  apol <- extract "alloc_policy"
+  return (uuid, Group.create name uuid apol)
 
 -- | Loads the raw cluster data from an URL.
 readData :: String -- ^ Cluster or URL to use as source
