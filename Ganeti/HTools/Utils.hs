@@ -73,13 +73,13 @@ debugXy a b = debug a `seq` b
 commaJoin :: [String] -> String
 commaJoin = intercalate ","
 
--- | Split a string on a separator and return an array.
-sepSplit :: Char -> String -> [String]
+-- | Split a list on a separator and return an array.
+sepSplit :: Eq a => a -> [a] -> [[a]]
 sepSplit sep s
-    | x == "" && xs == [] = []
-    | xs == []            = [x]
-    | ys == []            = [x,""]
-    | otherwise           = x:sepSplit sep ys
+    | null s    = []
+    | null xs   = [x]
+    | null ys   = [x,[]]
+    | otherwise = x:sepSplit sep ys
     where (x, xs) = break (== sep) s
           ys = drop 1 xs
 
