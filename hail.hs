@@ -61,9 +61,9 @@ processResults _ as =
 processRequest :: Request
                -> Result Cluster.AllocSolution
 processRequest request =
-  let Request rqtype _ nl il _ = request
+  let Request rqtype gl nl il _ = request
   in case rqtype of
-       Allocate xi reqn -> Cluster.tryMGAlloc nl il xi reqn
+       Allocate xi reqn -> Cluster.tryMGAlloc gl nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
        Evacuate exnodes -> Cluster.tryEvac nl il exnodes
 
