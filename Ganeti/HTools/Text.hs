@@ -54,7 +54,8 @@ import qualified Ganeti.HTools.Instance as Instance
 -- | Serialize a single group
 serializeGroup :: Group.Group -> String
 serializeGroup grp =
-    printf "%s|%s" (Group.name grp) (Group.uuid grp)
+    printf "%s|%s|%s" (Group.name grp) (Group.uuid grp)
+               (apolToString (Group.allocPolicy grp))
 
 -- | Generate group file data from a group list
 serializeGroups :: Group.List -> String
@@ -107,8 +108,9 @@ serializeCluster gl nl il ctags =
 
 -- | Load a group from a field list.
 loadGroup :: (Monad m) => [String] -> m (String, Group.Group)
-loadGroup [name, gid] =
-  return $ (gid, Group.create name gid AllocPreferred)
+loadGroup [name, gid, apol] = do
+  xapol <- apolFromString apol
+  return $ (gid, Group.create name gid xapol)
 
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 
