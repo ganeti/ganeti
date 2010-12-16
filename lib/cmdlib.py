@@ -4249,6 +4249,8 @@ class LUAddNode(LogicalUnit):
 
     if self.op.ndparams:
       new_node.ndparams = self.op.ndparams
+    else:
+      new_node.ndparams = {}
 
     # check connectivity
     result = self.rpc.call_version([node])[node]
