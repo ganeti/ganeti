@@ -207,7 +207,7 @@ main = do
       ispec = optISpec opts
       shownodes = optShowNodes opts
 
-  (gl, fixed_nl, il, _) <- loadExternalData opts
+  (gl, fixed_nl, il, ctags) <- loadExternalData opts
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
   printKeys [ ("SPEC_RQN", printf "%d" (optINodes opts)) ]
@@ -312,7 +312,7 @@ main = do
        when (isJust $ optSaveCluster opts) $
             do
               let out_path = (fromJust $ optSaveCluster opts) <.> "tiered"
-                  adata = serializeCluster gl trl_nl trl_il
+                  adata = serializeCluster gl trl_nl trl_il ctags
               writeFile out_path adata
               hPrintf stderr "The cluster state after tiered allocation\
                              \ has been written to file '%s'\n"
@@ -346,7 +346,7 @@ main = do
   when (isJust $ optSaveCluster opts) $
        do
          let out_path = (fromJust $ optSaveCluster opts) <.> "alloc"
-             adata = serializeCluster gl fin_nl fin_il
+             adata = serializeCluster gl fin_nl fin_il ctags
          writeFile out_path adata
          hPrintf stderr "The cluster state after standard allocation\
                         \ has been written to file '%s'\n"

@@ -96,12 +96,14 @@ serializeInstances nl =
     unlines . map (serializeInstance nl) . Container.elems
 
 -- | Generate complete cluster data from node and instance lists
-serializeCluster :: Group.List -> Node.List -> Instance.List -> String
-serializeCluster gl nl il =
+serializeCluster :: Group.List -> Node.List -> Instance.List -> [String]
+                 -> String
+serializeCluster gl nl il ctags =
   let gdata = serializeGroups gl
       ndata = serializeNodes gl nl
       idata = serializeInstances nl il
-  in gdata ++ ['\n'] ++ ndata ++ ['\n'] ++ idata
+  -- note: not using 'unlines' as that adds too many newlines
+  in intercalate "\n" [gdata, ndata, idata, unlines ctags]
 
 -- | Load a group from a field list.
 loadGroup :: (Monad m) => [String] -> m (String, Group.Group)
