@@ -32,6 +32,8 @@ module Ganeti.HTools.Types
     , Weight
     , GroupID
     , AllocPolicy(..)
+    , apolFromString
+    , apolToString
     , RSpec(..)
     , DynUtil(..)
     , zeroUtil
@@ -60,6 +62,7 @@ module Ganeti.HTools.Types
     ) where
 
 import qualified Data.Map as M
+import qualified Text.JSON as JSON
 
 -- | The instance index type.
 type Idx = Int
@@ -87,6 +90,28 @@ data AllocPolicy = AllocPreferred
                  | AllocLastResort
                  | AllocUnallocable
                    deriving (Show, Eq)
+
+-- | Convert a string to an alloc policy
+apolFromString :: (Monad m) => String -> m AllocPolicy
+apolFromString s =
+    case s of
+      "preferred"   -> return AllocPreferred
+      "last_resort" -> return AllocLastResort
+      "unallocable" -> return AllocUnallocable
+      o -> fail $ "Invalid alloc policy mode: " ++ o
+
+-- | Convert an alloc policy to the Ganeti string equivalent
+apolToString :: AllocPolicy -> String
+apolToString AllocPreferred   = "preferred"
+apolToString AllocLastResort  = "last_resort"
+apolToString AllocUnallocable = "unallocable"
+
+instance JSON.JSON AllocPolicy where
+    showJSON = JSON.showJSON . apolToString
+    readJSON s = case JSON.readJSON s of
+                   JSON.Ok s' -> apolFromString s'
+                   JSON.Error e -> JSON.Error $
+                                   "Can't parse alloc_policy: " ++ e
 
 -- | The resource spec type.
 data RSpec = RSpec
