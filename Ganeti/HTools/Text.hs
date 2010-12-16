@@ -168,18 +168,19 @@ parseData :: String -- ^ Text data
           -> Result (Group.List, Node.List, Instance.List, [String])
 parseData fdata = do
   let flines = lines fdata
-  (glines, nlines, ilines) <-
+  (glines, nlines, ilines, ctags) <-
       case sepSplit "" flines of
-        [a, b, c] -> Ok (a, b, c)
+        [a, b, c, d] -> Ok (a, b, c, d)
         xs -> Bad $ printf "Invalid format of the input file: %d sections\
-                           \ instead of 3" (length xs)
+                           \ instead of 4" (length xs)
   {- group file: name uuid -}
   (ktg, gl) <- loadTabular glines loadGroup
   {- node file: name t_mem n_mem f_mem t_disk f_disk -}
   (ktn, nl) <- loadTabular nlines (loadNode ktg)
   {- instance file: name mem disk status pnode snode -}
   (_, il) <- loadTabular ilines (loadInst ktn)
-  return (gl, nl, il, [])
+  {- the tags are simply line-based, no processing needed -}
+  return (gl, nl, il, ctags)
 
 -- | Top level function for data loading
 loadData :: String -- ^ Path to the text file
