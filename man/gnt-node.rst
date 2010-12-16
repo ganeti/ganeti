@@ -354,12 +354,16 @@ MODIFY
 | [--master-capable=``yes|no``] [--vm-capable=``yes|no``] [--auto-promote]
 | [-s *secondary_ip*]
 | [--node-parameters *ndparams*]
+| [--node-powered=``yes|no``]
 | {*node*}
 
 This command changes the role of the node. Each options takes
 either a literal yes or no, and only one option should be given as
 yes. The meaning of the roles and flags are described in the
 manpage **ganeti**(7).
+
+``--node-powered`` can be used to modify state-of-record if it doesn't reflect
+the reality anymore.
 
 In case a node is demoted from the master candidate role, the
 operation will be refused unless you pass the ``--auto-promote``

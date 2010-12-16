@@ -680,7 +680,8 @@ def SetNodeParams(opts, args):
                                secondary_ip=opts.secondary_ip,
                                force=opts.force,
                                ndparams=opts.ndparams,
-                               auto_promote=opts.auto_promote)
+                               auto_promote=opts.auto_promote,
+                               powered=opts.node_powered)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -739,7 +740,8 @@ commands = {
     SetNodeParams, ARGS_ONE_NODE,
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
-     AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT],
+     AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT,
+     NODE_POWERED_OPT],
     "<node_name>", "Alters the parameters of a node"),
   'powercycle': (
     PowercycleNode, ARGS_ONE_NODE,
