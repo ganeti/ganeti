@@ -1219,6 +1219,7 @@ class LUVerifyCluster(LogicalUnit):
   EINSTANCEMISSINGDISK = (TINSTANCE, "EINSTANCEMISSINGDISK")
   EINSTANCEFAULTYDISK = (TINSTANCE, "EINSTANCEFAULTYDISK")
   EINSTANCEWRONGNODE = (TINSTANCE, "EINSTANCEWRONGNODE")
+  EINSTANCESPLITGROUPS = (TINSTANCE, "EINSTANCESPLITGROUPS")
   ENODEDRBD = (TNODE, "ENODEDRBD")
   ENODEDRBDHELPER = (TNODE, "ENODEDRBDHELPER")
   ENODEFILECHECK = (TNODE, "ENODEFILECHECK")
@@ -2048,6 +2049,7 @@ class LUVerifyCluster(LogicalUnit):
     """Verify integrity of cluster, performing various test on nodes.
 
     """
+    # This method has too many local variables. pylint: disable-msg=R0914
     self.bad = False
     _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
     verbose = self.op.verbose
@@ -2067,9 +2069,11 @@ class LUVerifyCluster(LogicalUnit):
     cluster = self.cfg.GetClusterInfo()
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
     nodeinfo = [self.cfg.GetNodeInfo(nname) for nname in nodelist]
+    nodeinfo_byname = dict(zip(nodelist, nodeinfo))
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
     instanceinfo = dict((iname, self.cfg.GetInstanceInfo(iname))
                         for iname in instancelist)
+    groupinfo = self.cfg.GetAllNodeGroupsInfo()
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
     n_offline = 0 # Count of offline nodes
@@ -2254,10 +2258,32 @@ class LUVerifyCluster(LogicalUnit):
       # FIXME: does not support file-backed instances
       if not inst_config.secondary_nodes:
         i_non_redundant.append(instance)
+
       _ErrorIf(len(inst_config.secondary_nodes) > 1, self.EINSTANCELAYOUT,
                instance, "instance has multiple secondary nodes: %s",
                utils.CommaJoin(inst_config.secondary_nodes),
                code=self.ETYPE_WARNING)
+
+      if inst_config.disk_template in constants.DTS_NET_MIRROR:
+        pnode = inst_config.primary_node
+        instance_nodes = utils.NiceSort(inst_config.all_nodes)
+        instance_groups = {}
+
+        for node in instance_nodes:
+          instance_groups.setdefault(nodeinfo_byname[node].group,
+                                     []).append(node)
+
+        pretty_list = [
+          "%s (group %s)" % (utils.CommaJoin(nodes), groupinfo[group].name)
+          # Sort so that we always list the primary node first.
+          for group, nodes in sorted(instance_groups.items(),
+                                     key=lambda (_, nodes): pnode in nodes,
+                                     reverse=True)]
+
+        self._ErrorIf(len(instance_groups) > 1, self.EINSTANCESPLITGROUPS,
+                      instance, "instance has primary and secondary nodes in"
+                      " different groups: %s", utils.CommaJoin(pretty_list),
+                      code=self.ETYPE_WARNING)
 
       if not cluster.FillBE(inst_config)[constants.BE_AUTO_BALANCE]:
         i_non_a_balanced.append(instance)
