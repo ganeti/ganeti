@@ -588,10 +588,7 @@ class _QueryBase:
     """Collect data and execute query.
 
     """
-    data = self._GetQueryData(lu)
-
-    return objects.QueryResponse(data=self.query.Query(data),
-                                 fields=self.query.GetFields()).ToDict()
+    return query.GetQueryResponse(self.query, self._GetQueryData(lu))
 
   def OldStyleQuery(self, lu):
     """Collect data and execute query.

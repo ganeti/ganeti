@@ -235,6 +235,17 @@ def _PrepareFieldList(fields):
   return result
 
 
+def GetQueryResponse(query, ctx):
+  """Prepares the response for a query.
+
+  @type query: L{Query}
+  @param ctx: Data container, see L{Query.Query}
+
+  """
+  return objects.QueryResponse(data=query.Query(ctx),
+                               fields=query.GetFields()).ToDict()
+
+
 def QueryFields(fielddefs, selected):
   """Returns list of available fields.
 
