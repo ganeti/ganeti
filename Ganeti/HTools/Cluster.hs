@@ -629,18 +629,33 @@ tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
 solutionDescription :: Group.List -> (Gdx, Result AllocSolution) -> [String]
 solutionDescription gl (groupId, result) =
   case result of
-    Ok solution -> map (printf "Group %s: %s" gname) (asLog solution)
+    Ok solution -> map (printf "Group %s (%s): %s" gname pol) (asLog solution)
     Bad message -> [printf "Group %s: error %s" gname message]
-  where gname = Group.name $ Container.find groupId gl
+  where grp = Container.find groupId gl
+        gname = Group.name grp
+        pol = apolToString (Group.allocPolicy grp)
 
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result
-filterMGResults :: [(Gdx, Result AllocSolution)] ->
-                   [(Gdx, AllocSolution)]
-filterMGResults =
+filterMGResults :: Group.List
+                -> [(Gdx, Result AllocSolution)]
+                -> [(Gdx, AllocSolution)]
+filterMGResults gl=
+  filter ((/= AllocUnallocable) . Group.allocPolicy .
+             flip Container.find gl . fst) .
   filter (not . null . asSolutions . snd) .
   map (\(y, Ok x) -> (y, x)) .
   filter (isOk . snd)
+
+-- | Sort multigroup results based on policy and score
+sortMGResults :: Group.List
+             -> [(Gdx, AllocSolution)]
+             -> [(Gdx, AllocSolution)]
+sortMGResults gl sols =
+    let extractScore = \(_, _, _, x) -> x
+        solScore (gdx, sol) = (Group.allocPolicy (Container.find gdx gl),
+                               (extractScore . head . asSolutions) sol)
+    in sortBy (comparing solScore) sols
 
 -- | Try to allocate an instance on a multi-group cluster.
 tryMGAlloc :: Group.List           -- ^ The group list
@@ -656,10 +671,8 @@ tryMGAlloc mggl mgnl mgil inst cnt =
                    (gid, tryAlloc nl il inst cnt)) groups::
         [(Gdx, Result AllocSolution)]
       all_msgs = concatMap (solutionDescription mggl) sols
-      goodSols = filterMGResults sols
-      extractScore = \(_, _, _, x) -> x
-      solScore = extractScore . head . asSolutions . snd
-      sortedSols = sortBy (comparing solScore) goodSols
+      goodSols = filterMGResults mggl sols
+      sortedSols = sortMGResults mggl goodSols
   in if null sortedSols
      then Bad $ intercalate ", " all_msgs
      else let (final_group, final_sol) = head sortedSols

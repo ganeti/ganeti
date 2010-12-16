@@ -86,10 +86,19 @@ type Weight = Double
 type GroupID = String
 
 -- | The Group allocation policy type.
-data AllocPolicy = AllocPreferred
-                 | AllocLastResort
-                 | AllocUnallocable
-                   deriving (Show, Eq)
+--
+-- Note that the order of constructors is important as the automatic
+-- Ord instance will order them in the order they are defined, so when
+-- changing this data type be careful about the interaction with the
+-- desired sorting order.
+data AllocPolicy
+    = AllocPreferred   -- ^ This is the normal status, the group
+                       -- should be used normally during allocations
+    | AllocLastResort  -- ^ This group should be used only as
+                       -- last-resort, after the preferred groups
+    | AllocUnallocable -- ^ This group must not be used for new
+                       -- allocations
+      deriving (Show, Eq, Ord)
 
 -- | Convert a string to an alloc policy
 apolFromString :: (Monad m) => String -> m AllocPolicy
