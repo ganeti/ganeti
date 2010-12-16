@@ -168,20 +168,17 @@ parseData :: String -- ^ Text data
           -> Result (Group.List, Node.List, Instance.List, [String])
 parseData fdata = do
   let flines = lines fdata
-      (glines, nilines) = break null flines
-      (nlines, ilines) = break null (tail nilines)
-  nfixed <- case nlines of
-    [] -> Bad "Invalid format of the input file (no node data)"
-    xs -> Ok xs
-  ifixed <- case ilines of
-    [] -> Bad "Invalid format of the input file (no instance data)"
-    _:xs -> Ok xs
+  (glines, nlines, ilines) <-
+      case sepSplit "" flines of
+        [a, b, c] -> Ok (a, b, c)
+        xs -> Bad $ printf "Invalid format of the input file: %d sections\
+                           \ instead of 3" (length xs)
   {- group file: name uuid -}
   (ktg, gl) <- loadTabular glines loadGroup
   {- node file: name t_mem n_mem f_mem t_disk f_disk -}
-  (ktn, nl) <- loadTabular nfixed (loadNode ktg)
+  (ktn, nl) <- loadTabular nlines (loadNode ktg)
   {- instance file: name mem disk status pnode snode -}
-  (_, il) <- loadTabular ifixed (loadInst ktn)
+  (_, il) <- loadTabular ilines (loadInst ktn)
   return (gl, nl, il, [])
 
 -- | Top level function for data loading
