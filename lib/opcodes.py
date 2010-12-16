@@ -490,6 +490,7 @@ class OpSetNodeParams(OpCode):
     "vm_capable",
     "secondary_ip",
     "ndparams",
+    "powered",
     ]
 
 

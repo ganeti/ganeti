@@ -4360,6 +4360,7 @@ class LUSetNodeParams(LogicalUnit):
     ("vm_capable", None, ht.TMaybeBool),
     ("secondary_ip", None, ht.TMaybeString),
     ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("powered", None, ht.TMaybeBool),
     _PForce,
     ]
   REQ_BGL = False
@@ -4503,11 +4504,16 @@ class LUSetNodeParams(LogicalUnit):
     # away from the respective state, as only real changes are kept
 
     # TODO: We might query the real power state if it supports OOB
-    if _SupportsOob(self.cfg, node) and (self.op.offline is False and
-                                         not node.powered):
-      raise errors.OpPrereqError(("Please power on node %s first before you"
-                                  " can reset offline state") %
-                                 self.op.node_name)
+    if _SupportsOob(self.cfg, node):
+      if self.op.offline is False and not (node.powered or
+                                           self.op.powered == True):
+        raise errors.OpPrereqError(("Please power on node %s first before you"
+                                    " can reset offline state") %
+                                   self.op.node_name)
+    elif self.op.powered is not None:
+      raise errors.OpPrereqError(("Unable to change powered state for node %s"
+                                  " which does not support out-of-band"
+                                  " handling") % self.op.node_name)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
     if (self.op.drained == False or self.op.offline == False or
@@ -4597,6 +4603,9 @@ class LUSetNodeParams(LogicalUnit):
 
     if self.op.ndparams:
       node.ndparams = self.new_ndparams
+
+    if self.op.powered is not None:
+      node.powered = self.op.powered
 
     for attr in ["master_capable", "vm_capable"]:
       val = getattr(self.op, attr)
