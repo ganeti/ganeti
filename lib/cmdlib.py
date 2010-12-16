@@ -39,7 +39,6 @@ import OpenSSL
 import socket
 import tempfile
 import shutil
-import operator
 import itertools
 
 from ganeti import ssh
@@ -559,15 +558,7 @@ class _QueryBase:
     @return: List of L{objects.QueryFieldDefinition}
 
     """
-    if fields is None:
-      # Client requests all fields, sort by name
-      fdefs = sorted(query.GetAllFields(cls.FIELDS.values()),
-                     key=operator.attrgetter("name"))
-    else:
-      # Keep order as requested by client
-      fdefs = query.Query(cls.FIELDS, fields).GetFields()
-
-    return objects.QueryFieldsResponse(fields=fdefs).ToDict()
+    return query.QueryFields(cls.FIELDS, fields)
 
   def ExpandNames(self, lu):
     """Expand names for this query.

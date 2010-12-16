@@ -235,6 +235,27 @@ def _PrepareFieldList(fields):
   return result
 
 
+def QueryFields(fielddefs, selected):
+  """Returns list of available fields.
+
+  @type fielddefs: dict
+  @param fielddefs: Field definitions
+  @type selected: list of strings
+  @param selected: List of selected fields
+  @return: List of L{objects.QueryFieldDefinition}
+
+  """
+  if selected is None:
+    # Client requests all fields, sort by name
+    fdefs = utils.NiceSort(GetAllFields(fielddefs.values()),
+                           key=operator.attrgetter("name"))
+  else:
+    # Keep order as requested by client
+    fdefs = Query(fielddefs, selected).GetFields()
+
+  return objects.QueryFieldsResponse(fields=fdefs).ToDict()
+
+
 def _MakeField(name, title, kind):
   """Wrapper for creating L{objects.QueryFieldDefinition} instances.
 

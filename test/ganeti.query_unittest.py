@@ -23,6 +23,7 @@
 
 import re
 import unittest
+import random
 
 from ganeti import constants
 from ganeti import utils
@@ -750,6 +751,32 @@ class TestInstanceQuery(unittest.TestCase):
                      set(["ERROR_nodeoffline", "ERROR_nodedown",
                           "running", "ERROR_up", "ERROR_down",
                           "ADMIN_down"]))
+
+
+class TestQueryFields(unittest.TestCase):
+  def testAllFields(self):
+    for fielddefs in [query.NODE_FIELDS, query.INSTANCE_FIELDS]:
+      result = query.QueryFields(fielddefs, None)
+      self.assert_(isinstance(result, dict))
+      response = objects.QueryFieldsResponse.FromDict(result)
+      self.assertEqual([(fdef.name, fdef.title) for fdef in response.fields],
+        [(fdef2.name, fdef2.title)
+         for (fdef2, _, _) in utils.NiceSort(fielddefs.values(),
+                                             key=lambda x: x[0].name)])
+
+  def testSomeFields(self):
+    rnd = random.Random(5357)
+
+    for _ in range(10):
+      for fielddefs in [query.NODE_FIELDS, query.INSTANCE_FIELDS]:
+        fields = [fdef
+                  for (fdef, _, _) in rnd.sample(fielddefs.values(),
+                                                 rnd.randint(5, 20))]
+        result = query.QueryFields(fielddefs, [fdef.name for fdef in fields])
+        self.assert_(isinstance(result, dict))
+        response = objects.QueryFieldsResponse.FromDict(result)
+        self.assertEqual([(fdef.name, fdef.title) for fdef in response.fields],
+                         [(fdef2.name, fdef2.title) for fdef2 in fields])
 
 
 if __name__ == "__main__":
