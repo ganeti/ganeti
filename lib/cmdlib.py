@@ -94,6 +94,19 @@ _PMigrationMode = ("mode", None,
 _PMigrationLive = ("live", None, ht.TMaybeBool)
 
 
+def _SupportsOob(cfg, node):
+  """Tells if node supports OOB.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type node: L{objects.Node}
+  @param node: The node
+  @return: The OOB script if supported or an empty string otherwise
+
+  """
+  return cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
+
+
 # End types
 class LogicalUnit(object):
   """Logical Unit base class.
@@ -3271,11 +3284,15 @@ class LUOobCommand(NoHooksLU):
     if node is None:
       raise errors.OpPrereqError("Node %s not found" % self.op.node_name)
 
-    self.oob_program = self.cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
+    self.oob_program = _SupportsOob(self.cfg, node)
 
     if not self.oob_program:
       raise errors.OpPrereqError("OOB is not supported for node %s" %
                                  self.op.node_name)
+
+    if self.op.command == constants.OOB_POWER_OFF and not node.offline:
+      raise errors.OpPrereqError(("Cannot power off node %s because it is"
+                                  " not marked offline") % self.op.node_name)
 
     self.node = node
 
@@ -4484,6 +4501,13 @@ class LUSetNodeParams(LogicalUnit):
 
     # Past this point, any flag change to False means a transition
     # away from the respective state, as only real changes are kept
+
+    # TODO: We might query the real power state if it supports OOB
+    if _SupportsOob(self.cfg, node) and (self.op.offline is False and
+                                         not node.powered):
+      raise errors.OpPrereqError(("Please power on node %s first before you"
+                                  " can reset offline state") %
+                                 self.op.node_name)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
     if (self.op.drained == False or self.op.offline == False or
