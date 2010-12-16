@@ -27,6 +27,7 @@
 # C0103: Invalid name gnt-node
 
 from ganeti.cli import *
+from ganeti import cli
 from ganeti import bootstrap
 from ganeti import opcodes
 from ganeti import utils
@@ -476,8 +477,21 @@ def PowerNode(opts, args):
 
   oob_command = "power-%s" % command
 
-  op = opcodes.OpOobCommand(node_name=node, command=oob_command)
-  result = SubmitOpCode(op, opts=opts)
+  opcodelist = []
+  if oob_command == constants.OOB_POWER_OFF:
+    opcodelist.append(opcodes.OpSetNodeParams(node_name=node, offline=True,
+                                              auto_promote=opts.auto_promote))
+
+  opcodelist.append(opcodes.OpOobCommand(node_name=node, command=oob_command))
+
+  cli.SetGenericOpcodeOpts(opcodelist, opts)
+
+  job_id = cli.SendJob(opcodelist)
+
+  # We just want the OOB Opcode status
+  # If it fails PollJob gives us the error message in it
+  result = cli.PollJob(job_id)[-1]
+
   if result:
     if oob_command == constants.OOB_POWER_STATUS:
       text = "The machine is %spowered"
@@ -735,7 +749,8 @@ commands = {
     PowerNode,
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
      ArgNode(min=1, max=1)],
-    [], "on|off|cycle|status <node>",
+    [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT],
+    "on|off|cycle|status <node>",
     "Change power state of node by calling out-of-band helper."),
   'remove': (
     RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT],
