@@ -26,10 +26,15 @@
 # Use: if running on a cluster master, just running it should be
 # enough. If running remotely, set env vars as follows: LUXI to the
 # export unix socket, RAPI to the cluster IP, CLUSTER to the command
-# used to login on the cluster (e.g. CLUSTER="ssh root@cluster").
+# used to login on the cluster (e.g. CLUSTER="ssh root@cluster"). Note
+# that when run against a multi-group cluster, the GROUP variable
+# should be set to one of the groups (some operations work only on one
+# group)
 
 set -e
 : ${RAPI:=localhost}
+GROUP=${GROUP:+-G $GROUP}
+
 T=`mktemp -d`
 trap 'rm -rf $T' EXIT
 echo Using $T as temporary dir
@@ -53,13 +58,13 @@ FI=$($CLUSTER head -n1 /var/lib/ganeti/ssconf_instance_list)
 
 
 echo Testing hbal/luxi
-./hbal -L$LUXI -p --print-instances -C$T/hbal-luxi-cmds.sh
+./hbal -L$LUXI $GROUP -p --print-instances -C$T/hbal-luxi-cmds.sh
 bash -n $T/hbal-luxi-cmds.sh
 echo Testing hbal/rapi
-./hbal -m$RAPI -p --print-instances -C$T/hbal-rapi-cmds.sh
+./hbal -m$RAPI $GROUP -p --print-instances -C$T/hbal-rapi-cmds.sh
 bash -n $T/hbal-rapi-cmds.sh
 echo Testing hbal/text
-./hbal -t$T/$RAPI.data -p --print-instances -C$T/hbal-text-cmds.sh
+./hbal -t$T/$RAPI.data $GROUP -p --print-instances -C$T/hbal-text-cmds.sh
 bash -n $T/hbal-text-cmds.sh
 echo Comparing hbal results
 diff -u $T/hbal-luxi-cmds.sh $T/hbal-rapi-cmds.sh
@@ -67,22 +72,22 @@ diff -u $T/hbal-luxi-cmds.sh $T/hbal-text-cmds.sh
 
 
 echo Testing hbal/text with evacuation mode
-./hbal -t$T/$RAPI.data -E
+./hbal -t$T/$RAPI.data $GROUP -E
 echo Testing hbal/text with no disk moves
-./hbal -t$T/$RAPI.data --no-disk-moves
+./hbal -t$T/$RAPI.data $GROUP --no-disk-moves
 echo Testing hbal/text with offline node mode
-./hbal -t$T/$RAPI.data -O$FN
+./hbal -t$T/$RAPI.data $GROUP -O$FN
 echo Testing hbal/text with utilization data
 echo "$FI 2 2 2 2" > $T/util.data
-./hbal -t$T/$RAPI.data -U $T/util.data
+./hbal -t$T/$RAPI.data $GROUP -U $T/util.data
 echo Testing hbal/text with bad utilization data
 echo "$FI 2 a 3b" > $T/util.data
-! ./hbal -t$T/$RAPI.data -U $T/util.data
+! ./hbal -t$T/$RAPI.data $GROUP -U $T/util.data
 echo Testing hbal/text with instance exclusion
-./hbal -t$T/$RAPI.data --exclude-instances=$FI
+./hbal -t$T/$RAPI.data $GROUP --exclude-instances=$FI
 ! ./hbal -t$T/$RAPI.data --exclude-instances=no_such_instance
 echo Testing hbal/text with tag exclusion
-./hbal -t $T/$RAPI.data --exclusion-tags=no_such_tag
+./hbal -t $T/$RAPI.data $GROUP --exclusion-tags=no_such_tag
 echo Testing hbal multiple backend failure
 ! ./hbal -t $T/$RAPI.data -L$LUXI
 echo Testing hbal no backend failure
