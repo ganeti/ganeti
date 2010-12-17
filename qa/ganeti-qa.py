@@ -226,6 +226,8 @@ def RunCommonInstanceTests(instance):
 
   RunTestIf("tags", qa_tags.TestInstanceTags, instance)
 
+  RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
+
   RunTestIf("rapi", qa_rapi.TestInstance, instance)
 
   # Lists instances, too
@@ -430,7 +432,6 @@ def main():
         snode = qa_config.AcquireNode(exclude=pnode)
         try:
           instance = RunTest(func, pnode, snode)
-          RunTestIf("cluster-verify", qa_cluster.TestClusterVerify)
           RunCommonInstanceTests(instance)
           RunGroupListTests()
           if qa_config.TestEnabled('instance-convert-disk'):

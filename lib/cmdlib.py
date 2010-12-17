@@ -40,6 +40,7 @@ import socket
 import tempfile
 import shutil
 import operator
+import itertools
 
 from ganeti import ssh
 from ganeti import utils
@@ -2029,12 +2030,16 @@ class LUVerifyCluster(LogicalUnit):
 
     node_disks = {}
     node_disks_devonly = {}
+    diskless_instances = set()
+    diskless = constants.DT_DISKLESS
 
     for nname in nodelist:
+      node_instances = list(itertools.chain(node_image[nname].pinst,
+                                            node_image[nname].sinst))
+      diskless_instances.update(inst for inst in node_instances
+                                if instanceinfo[inst].disk_template == diskless)
       disks = [(inst, disk)
-               for instlist in [node_image[nname].pinst,
-                                node_image[nname].sinst]
-               for inst in instlist
+               for inst in node_instances
                for disk in instanceinfo[inst].disks]
 
       if not disks:
@@ -2080,6 +2085,11 @@ class LUVerifyCluster(LogicalUnit):
 
       for ((inst, _), status) in zip(disks, data):
         instdisk.setdefault(inst, {}).setdefault(nname, []).append(status)
+
+    # Add empty entries for diskless instances.
+    for inst in diskless_instances:
+      assert inst not in instdisk
+      instdisk[inst] = {}
 
     assert compat.all(len(statuses) == len(instanceinfo[inst].disks) and
                       len(nnames) <= len(instanceinfo[inst].all_nodes)
