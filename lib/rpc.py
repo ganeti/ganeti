@@ -226,12 +226,9 @@ class RpcResult(object):
         self.fail_msg = None
         self.payload = data[1]
 
-    assert hasattr(self, "call")
-    assert hasattr(self, "data")
-    assert hasattr(self, "fail_msg")
-    assert hasattr(self, "node")
-    assert hasattr(self, "offline")
-    assert hasattr(self, "payload")
+    for attr_name in ["call", "data", "fail_msg",
+                      "node", "offline", "payload"]:
+      assert hasattr(self, attr_name), "Missing attribute %s" % attr_name
 
   @staticmethod
   def _EnsureErr(val):
