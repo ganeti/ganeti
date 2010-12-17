@@ -75,6 +75,7 @@ import Data.List
 import Data.Ord (comparing)
 import Text.Printf (printf)
 import Control.Monad
+import Control.Parallel.Strategies
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -492,13 +493,18 @@ checkMove :: [Ndx]               -- ^ Allowed target node indices
           -> Table               -- ^ The new solution
 checkMove nodes_idx disk_moves ini_tbl victims =
     let Table _ _ _ ini_plc = ini_tbl
+        -- we're using rwhnf from the Control.Parallel.Strategies
+        -- package; we don't need to use rnf as that would force too
+        -- much evaluation in single-threaded cases, and in
+        -- multi-threaded case the weak head normal form is enough to
+        -- spark the evaluation
+        tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves ini_tbl)
+                 victims
         -- iterate over all instances, computing the best move
         best_tbl =
             foldl'
-            (\ step_tbl em ->
-                 compareTables step_tbl $
-                 checkInstanceMove nodes_idx disk_moves ini_tbl em)
-            ini_tbl victims
+            (\ step_tbl new_tbl -> compareTables step_tbl new_tbl)
+            ini_tbl tables
         Table _ _ _ best_plc = best_tbl
     in if length best_plc == length ini_plc
        then ini_tbl -- no advancement

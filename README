@@ -91,6 +91,7 @@ installed manually:
 - `json <http://hackage.haskell.org/package/json>`_
 - `curl <http://hackage.haskell.org/package/curl>`_
 - `network <http://hackage.haskell.org/package/network>`_
+- `parallel <http://hackage.haskell.org/package/parallel>`_, version 1.x
 
 Once these are installed, just typing *make* in the top-level directory
 should be enough. If you edit the documentation sources, you will need
