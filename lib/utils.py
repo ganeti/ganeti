@@ -109,6 +109,9 @@ _PARSEUNIT_REGEX = re.compile(r"^([.\d]+)\s*([a-zA-Z]+)?$")
 #: ASN1 time regexp
 _ASN1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
 
+_SORTER_RE = re.compile("^%s(.*)$" % (8 * "(\D+|\d+)?"))
+_SORTER_DIGIT = re.compile("^\d+$")
+
 
 class RunResult(object):
   """Holds the result of running external programs.
@@ -1279,7 +1282,25 @@ def BridgeExists(bridge):
   return os.path.isdir("/sys/class/net/%s/bridge" % bridge)
 
 
-def NiceSort(name_list):
+def _NiceSortTryInt(val):
+  """Attempts to convert a string to an integer.
+
+  """
+  if val and _SORTER_DIGIT.match(val):
+    return int(val)
+  else:
+    return val
+
+
+def _NiceSortKey(value):
+  """Extract key for sorting.
+
+  """
+  return [_NiceSortTryInt(grp)
+          for grp in _SORTER_RE.match(value).groups()]
+
+
+def NiceSort(values, key=None):
   """Sort a list of strings based on digit and non-digit groupings.
 
   Given a list of names C{['a1', 'a10', 'a11', 'a2']} this function
@@ -1290,30 +1311,21 @@ def NiceSort(name_list):
   or no-digits. Only the first eight such groups are considered, and
   after that we just use what's left of the string.
 
-  @type name_list: list
-  @param name_list: the names to be sorted
+  @type values: list
+  @param values: the names to be sorted
+  @type key: callable or None
+  @param key: function of one argument to extract a comparison key from each
+    list element, must return string
   @rtype: list
   @return: a copy of the name list sorted with our algorithm
 
   """
-  _SORTER_BASE = "(\D+|\d+)"
-  _SORTER_FULL = "^%s%s?%s?%s?%s?%s?%s?%s?.*$" % (_SORTER_BASE, _SORTER_BASE,
-                                                  _SORTER_BASE, _SORTER_BASE,
-                                                  _SORTER_BASE, _SORTER_BASE,
-                                                  _SORTER_BASE, _SORTER_BASE)
-  _SORTER_RE = re.compile(_SORTER_FULL)
-  _SORTER_NODIGIT = re.compile("^\D*$")
-  def _TryInt(val):
-    """Attempts to convert a variable to integer."""
-    if val is None or _SORTER_NODIGIT.match(val):
-      return val
-    rval = int(val)
-    return rval
+  if key is None:
+    keyfunc = _NiceSortKey
+  else:
+    keyfunc = lambda value: _NiceSortKey(key(value))
 
-  to_sort = [([_TryInt(grp) for grp in _SORTER_RE.match(name).groups()], name)
-             for name in name_list]
-  to_sort.sort()
-  return [tup[1] for tup in to_sort]
+  return sorted(values, key=keyfunc)
 
 
 def TryConvert(fn, val):

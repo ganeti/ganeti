@@ -38,6 +38,8 @@ import time
 import unittest
 import warnings
 import OpenSSL
+import random
+import operator
 from cStringIO import StringIO
 
 import testutils
@@ -2641,6 +2643,140 @@ class TestNormalizeAndValidateMac(unittest.TestCase):
   def testNormalization(self):
     for mac in ["aa:bb:cc:dd:ee:ff", "00:AA:11:bB:22:cc"]:
       self.assertEqual(utils.NormalizeAndValidateMac(mac), mac.lower())
+
+
+class TestNiceSort(unittest.TestCase):
+  def test(self):
+    self.assertEqual(utils.NiceSort([]), [])
+    self.assertEqual(utils.NiceSort(["foo"]), ["foo"])
+    self.assertEqual(utils.NiceSort(["bar", ""]), ["", "bar"])
+    self.assertEqual(utils.NiceSort([",", "."]), [",", "."])
+    self.assertEqual(utils.NiceSort(["0.1", "0.2"]), ["0.1", "0.2"])
+    self.assertEqual(utils.NiceSort(["0;099", "0,099", "0.1", "0.2"]),
+                     ["0,099", "0.1", "0.2", "0;099"])
+
+    data = ["a0", "a1", "a99", "a20", "a2", "b10", "b70", "b00", "0000"]
+    self.assertEqual(utils.NiceSort(data),
+                     ["0000", "a0", "a1", "a2", "a20", "a99",
+                      "b00", "b10", "b70"])
+
+    data = ["a0-0", "a1-0", "a99-10", "a20-3", "a0-4", "a99-3", "a09-2",
+            "Z", "a9-1", "A", "b"]
+    self.assertEqual(utils.NiceSort(data),
+                     ["A", "Z", "a0-0", "a0-4", "a1-0", "a9-1", "a09-2",
+                      "a20-3", "a99-3", "a99-10", "b"])
+    self.assertEqual(utils.NiceSort(data, key=str.lower),
+                     ["A", "a0-0", "a0-4", "a1-0", "a9-1", "a09-2",
+                      "a20-3", "a99-3", "a99-10", "b", "Z"])
+    self.assertEqual(utils.NiceSort(data, key=str.upper),
+                     ["A", "a0-0", "a0-4", "a1-0", "a9-1", "a09-2",
+                      "a20-3", "a99-3", "a99-10", "b", "Z"])
+
+  def testLargeA(self):
+    data = [
+      "Eegah9ei", "xij88brTulHYAv8IEOyU", "3jTwJPtrXOY22bwL2YoW",
+      "Z8Ljf1Pf5eBfNg171wJR", "WvNJd91OoXvLzdEiEXa6", "uHXAyYYftCSG1o7qcCqe",
+      "xpIUJeVT1Rp", "KOt7vn1dWXi", "a07h8feON165N67PIE", "bH4Q7aCu3PUPjK3JtH",
+      "cPRi0lM7HLnSuWA2G9", "KVQqLPDjcPjf8T3oyzjcOsfkb",
+      "guKJkXnkULealVC8CyF1xefym", "pqF8dkU5B1cMnyZuREaSOADYx",
+      ]
+    self.assertEqual(utils.NiceSort(data), [
+      "3jTwJPtrXOY22bwL2YoW", "Eegah9ei", "KOt7vn1dWXi",
+      "KVQqLPDjcPjf8T3oyzjcOsfkb", "WvNJd91OoXvLzdEiEXa6",
+      "Z8Ljf1Pf5eBfNg171wJR", "a07h8feON165N67PIE", "bH4Q7aCu3PUPjK3JtH",
+      "cPRi0lM7HLnSuWA2G9", "guKJkXnkULealVC8CyF1xefym",
+      "pqF8dkU5B1cMnyZuREaSOADYx", "uHXAyYYftCSG1o7qcCqe",
+      "xij88brTulHYAv8IEOyU", "xpIUJeVT1Rp"
+      ])
+
+  def testLargeB(self):
+    data = [
+      "inst-0.0.0.0-0.0.0.0",
+      "inst-0.1.0.0-0.0.0.0",
+      "inst-0.2.0.0-0.0.0.0",
+      "inst-0.2.1.0-0.0.0.0",
+      "inst-0.2.2.0-0.0.0.0",
+      "inst-0.2.2.0-0.0.0.9",
+      "inst-0.2.2.0-0.0.3.9",
+      "inst-0.2.2.0-0.2.0.9",
+      "inst-0.2.2.0-0.9.0.9",
+      "inst-0.20.2.0-0.0.0.0",
+      "inst-0.20.2.0-0.9.0.9",
+      "inst-10.020.2.0-0.9.0.10",
+      "inst-15.020.2.0-0.9.1.00",
+      "inst-100.020.2.0-0.9.0.9",
+
+      # Only the last group, not converted to a number anymore, differs
+      "inst-100.020.2.0a999",
+      "inst-100.020.2.0b000",
+      "inst-100.020.2.0c10",
+      "inst-100.020.2.0c101",
+      "inst-100.020.2.0c2",
+      "inst-100.020.2.0c20",
+      "inst-100.020.2.0c3",
+      "inst-100.020.2.0c39123",
+      ]
+
+    rnd = random.Random(16205)
+    for _ in range(10):
+      testdata = data[:]
+      rnd.shuffle(testdata)
+      assert testdata != data
+      self.assertEqual(utils.NiceSort(testdata), data)
+
+  class _CallCount:
+    def __init__(self, fn):
+      self.count = 0
+      self.fn = fn
+
+    def __call__(self, *args):
+      self.count += 1
+      return self.fn(*args)
+
+  def testKeyfuncA(self):
+    # Generate some random numbers
+    rnd = random.Random(21131)
+    numbers = [rnd.randint(0, 10000) for _ in range(999)]
+    assert numbers != sorted(numbers)
+
+    # Convert to hex
+    data = [hex(i) for i in numbers]
+    datacopy = data[:]
+
+    keyfn = self._CallCount(lambda value: str(int(value, 16)))
+
+    # Sort with key function converting hex to decimal
+    result = utils.NiceSort(data, key=keyfn)
+
+    self.assertEqual([hex(i) for i in sorted(numbers)], result)
+    self.assertEqual(data, datacopy, msg="Input data was modified in NiceSort")
+    self.assertEqual(keyfn.count, len(numbers),
+                     msg="Key function was not called once per value")
+
+  class _TestData:
+    def __init__(self, name, value):
+      self.name = name
+      self.value = value
+
+  def testKeyfuncB(self):
+    rnd = random.Random(27396)
+    data = []
+    for i in range(123):
+      v1 = rnd.randint(0, 5)
+      v2 = rnd.randint(0, 5)
+      data.append(self._TestData("inst-%s-%s-%s" % (v1, v2, i),
+                                 (v1, v2, i)))
+    rnd.shuffle(data)
+    assert data != sorted(data, key=operator.attrgetter("name"))
+
+    keyfn = self._CallCount(operator.attrgetter("name"))
+
+    # Sort by name
+    result = utils.NiceSort(data, key=keyfn)
+
+    self.assertEqual(result, sorted(data, key=operator.attrgetter("value")))
+    self.assertEqual(keyfn.count, len(data),
+                     msg="Key function was not called once per value")
 
 
 if __name__ == '__main__':
