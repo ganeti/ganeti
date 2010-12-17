@@ -1680,8 +1680,8 @@ def RemoveHostFromEtcHosts(hostname):
 def TimestampForFilename():
   """Returns the current time formatted for filenames.
 
-  The format doesn't contain colons as some shells and applications them as
-  separators.
+  The format doesn't contain colons as some shells and applications treat them
+  as separators. Uses the local timezone.
 
   """
   return time.strftime("%Y-%m-%d_%H_%M_%S")
@@ -2838,8 +2838,11 @@ def TailFile(fname, lines=20):
 def FormatTimestampWithTZ(secs):
   """Formats a Unix timestamp with the local timezone.
 
+  @type secs: number
+  @param secs: Seconds since the Epoch (1970-01-01 00:00:00 UTC)
+
   """
-  return time.strftime("%F %T %Z", time.gmtime(secs))
+  return time.strftime("%F %T %Z", time.localtime(secs))
 
 
 def _ParseAsn1Generalizedtime(value):
@@ -3366,7 +3369,8 @@ def FormatTime(val):
   """Formats a time value.
 
   @type val: float or None
-  @param val: the timestamp as returned by time.time()
+  @param val: Timestamp as returned by time.time() (seconds since Epoch,
+    1970-01-01 00:00:00 UTC)
   @return: a string value or N/A if we don't have a valid timestamp
 
   """

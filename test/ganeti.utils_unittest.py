@@ -1682,6 +1682,23 @@ class TestSafeEncode(unittest.TestCase):
 class TestFormatTime(unittest.TestCase):
   """Testing case for FormatTime"""
 
+  @staticmethod
+  def _TestInProcess(tz, timestamp, expected):
+    os.environ["TZ"] = tz
+    time.tzset()
+    return utils.FormatTime(timestamp) == expected
+
+  def _Test(self, *args):
+    # Need to use separate process as we want to change TZ
+    self.assert_(utils.RunInSeparateProcess(self._TestInProcess, *args))
+
+  def test(self):
+    self._Test("UTC", 0, "1970-01-01 00:00:00")
+    self._Test("America/Sao_Paulo", 1292606926, "2010-12-17 15:28:46")
+    self._Test("Europe/London", 1292606926, "2010-12-17 17:28:46")
+    self._Test("Europe/Zurich", 1292606926, "2010-12-17 18:28:46")
+    self._Test("Australia/Sydney", 1292606926, "2010-12-18 04:28:46")
+
   def testNone(self):
     self.failUnlessEqual(FormatTime(None), "N/A")
 
@@ -1693,6 +1710,25 @@ class TestFormatTime(unittest.TestCase):
     FormatTime(time.time())
     # tests that we accept int input
     FormatTime(int(time.time()))
+
+
+class TestFormatTimestampWithTZ(unittest.TestCase):
+  @staticmethod
+  def _TestInProcess(tz, timestamp, expected):
+    os.environ["TZ"] = tz
+    time.tzset()
+    return utils.FormatTimestampWithTZ(timestamp) == expected
+
+  def _Test(self, *args):
+    # Need to use separate process as we want to change TZ
+    self.assert_(utils.RunInSeparateProcess(self._TestInProcess, *args))
+
+  def test(self):
+    self._Test("UTC", 0, "1970-01-01 00:00:00 UTC")
+    self._Test("America/Sao_Paulo", 1292606926, "2010-12-17 15:28:46 BRST")
+    self._Test("Europe/London", 1292606926, "2010-12-17 17:28:46 GMT")
+    self._Test("Europe/Zurich", 1292606926, "2010-12-17 18:28:46 CET")
+    self._Test("Australia/Sydney", 1292606926, "2010-12-18 04:28:46 EST")
 
 
 class RunInSeparateProcess(unittest.TestCase):
