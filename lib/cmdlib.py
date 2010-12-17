@@ -4974,7 +4974,8 @@ def _ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
       if msg:
         lu.LogWarning("Could not shutdown block device %s on node %s: %s",
                       disk.iv_name, node, msg)
-        if not ignore_primary or node != instance.primary_node:
+        if ((node == instance.primary_node and not ignore_primary) or
+            (node != instance.primary_node and not result.offline)):
           all_result = False
   return all_result
 
@@ -9674,7 +9675,7 @@ class LUSetInstanceParams(LogicalUnit):
     if self.op.disk_template:
       r_shut = _ShutdownInstanceDisks(self, instance)
       if not r_shut:
-        raise errors.OpExecError("Cannot shutdow instance disks, unable to"
+        raise errors.OpExecError("Cannot shutdown instance disks, unable to"
                                  " proceed with disk template conversion")
       mode = (instance.disk_template, self.op.disk_template)
       try:
