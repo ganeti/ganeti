@@ -38,10 +38,17 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader (RqType(..), Request(..))
+import Ganeti.HTools.ExtLoader (loadExternalData)
 
 -- | Options list and functions
 options :: [OptType]
-options = [oPrintNodes, oShowVer, oShowHelp]
+options =
+    [ oPrintNodes
+    , oDataFile
+    , oNodeSim
+    , oShowVer
+    , oShowHelp
+    ]
 
 processResults :: (Monad m) =>
                   RqType -> Cluster.AllocSolution
@@ -67,25 +74,36 @@ processRequest request =
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
        Evacuate exnodes -> Cluster.tryEvac nl il exnodes
 
+-- | Reads the request from the data file(s)
+readRequest :: Options -> [String] -> IO Request
+readRequest opts args = do
+  when (null args) $ do
+         hPutStrLn stderr "Error: this program needs an input file."
+         exitWith $ ExitFailure 1
+
+  input_data <- readFile (head args)
+  r1 <- case (parseData input_data) of
+          Bad err -> do
+            hPutStrLn stderr $ "Error: " ++ err
+            exitWith $ ExitFailure 1
+          Ok rq -> return rq
+  r2 <- if isJust (optDataFile opts) || isJust (optNodeSim opts)
+        then  do
+          (gl, nl, il, ctags) <- loadExternalData opts
+          let Request rqt _ _ _ _ = r1
+          return $ Request rqt gl nl il ctags
+        else return r1
+  return r2
+
 -- | Main function.
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
   (opts, args) <- parseOpts cmd_args "hail" options
 
-  when (null args) $ do
-         hPutStrLn stderr "Error: this program needs an input file."
-         exitWith $ ExitFailure 1
+  let shownodes = optShowNodes opts
 
-  let input_file = head args
-      shownodes = optShowNodes opts
-  input_data <- readFile input_file
-
-  request <- case (parseData input_data) of
-               Bad err -> do
-                 hPutStrLn stderr $ "Error: " ++ err
-                 exitWith $ ExitFailure 1
-               Ok rq -> return rq
+  request <- readRequest opts args
 
   let Request rq _ nl _ _ = request
 

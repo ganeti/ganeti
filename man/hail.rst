@@ -9,7 +9,7 @@ hail - Ganeti IAllocator plugin
 SYNOPSIS
 --------
 
-**hail** *input-file*
+**hail** [ **-t** *datafile* | **--simulate** *spec* ] *input-file*
 
 **hail** --version
 
@@ -48,6 +48,26 @@ them using the single-instance relocation algorithm.
 
 In all cases, the cluster scoring is identical to the hbal algorithm.
 
+OPTIONS
+-------
+
+The options that can be passed to the program are as follows:
+
+-p, --print-nodes
+  Prints the before and after node status, in a format designed to
+  allow the user to understand the node's most important
+  parameters. See the man page **hbal**(1) for more details about this
+  field.
+
+-t *datafile*, --text-data=*datafile*
+  The name of the file holding cluster information, to override the
+  data in the JSON request itself. This is mostly used for debugging.
+
+--simulate *description*
+  Similar to the **-t** option, this allows overriding the cluster
+  data with a simulated cluster. For details about the description,
+  see the man page **hspace**(1).
+
 CONFIGURATION
 -------------
 
@@ -62,6 +82,11 @@ For example, given a cluster tag like **htools:iextags:service**,
 all instance tags of the form **service:X** will be considered as
 exclusion tags, meaning that (e.g.) two instances which both have a
 tag **service:foo** will not be placed on the same primary node.
+
+OPTIONS
+-------
+
+The options that can be passed to the program are as follows:
 
 EXIT STATUS
 -----------
