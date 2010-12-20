@@ -228,12 +228,12 @@ class Transport:
       while True:
         try:
           data = self.socket.recv(4096)
+        except socket.timeout, err:
+          raise TimeoutError("Receive timeout: %s" % str(err))
         except socket.error, err:
           if err.args and err.args[0] == errno.EAGAIN:
             continue
           raise
-        except socket.timeout, err:
-          raise TimeoutError("Receive timeout: %s" % str(err))
         break
       if not data:
         raise ConnectionClosedError("Connection closed while reading")
