@@ -333,17 +333,22 @@ The options that can be passed to the program are as follows:
 --simulate *description*
   Instead of using actual data, build an empty cluster given a node
   description. The *description* parameter must be a comma-separated
-  list of four elements, describing in order:
+  list of five elements, describing in order:
 
+  - the allocation policy for this node group
   - the number of nodes in the cluster
   - the disk size of the nodes, in mebibytes
   - the memory size of the nodes, in mebibytes
   - the cpu core count for the nodes
 
-  An example description would be **B20,102400,16384,4** describing a
-  20-node cluster where each node has 100GiB of disk space, 16GiB of
-  memory and 4 CPU cores. Note that all nodes must have the same specs
-  currently.
+  An example description would be **preferred,B20,102400,16384,4**
+  describing a 20-node cluster where each node has 100GiB of disk
+  space, 16GiB of memory and 4 CPU cores. Note that all nodes must
+  have the same specs currently.
+
+  This option can be given multiple times, and each new use defines a
+  new node group. Hence different node groups can have different
+  allocation policies and node count/specifications.
 
 --tiered-alloc *spec*
   Besides the standard, fixed-size allocation, also do a tiered
