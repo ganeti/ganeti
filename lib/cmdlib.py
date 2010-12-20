@@ -1915,6 +1915,10 @@ class LUVerifyCluster(LogicalUnit):
     @param node_image: Node objects
     @type instanceinfo: dict of (name, L{objects.Instance})
     @param instanceinfo: Instance objects
+    @rtype: {instance: {node: [(succes, payload)]}}
+    @return: a dictionary of per-instance dictionaries with nodes as
+        keys and disk information as values; the disk information is a
+        list of tuples (success, payload)
 
     """
     _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
@@ -1959,20 +1963,27 @@ class LUVerifyCluster(LogicalUnit):
     instdisk = {}
 
     for (nname, nres) in result.items():
-      if nres.offline:
-        # Ignore offline node
-        continue
-
       disks = node_disks[nname]
 
-      msg = nres.fail_msg
-      _ErrorIf(msg, self.ENODERPC, nname,
-               "while getting disk information: %s", nres.fail_msg)
-      if msg:
+      if nres.offline:
         # No data from this node
-        data = len(disks) * [None]
+        data = len(disks) * [(False, "node offline")]
       else:
-        data = nres.payload
+        msg = nres.fail_msg
+        _ErrorIf(msg, self.ENODERPC, nname,
+                 "while getting disk information: %s", msg)
+        if msg:
+          # No data from this node
+          data = len(disks) * [(False, msg)]
+        else:
+          data = []
+          for idx, i in enumerate(nres.payload):
+            if isinstance(i, (tuple, list)) and len(i) == 2:
+              data.append(i)
+            else:
+              logging.warning("Invalid result from node %s, entry %d: %s",
+                              nname, idx, i)
+              data.append((False, "Invalid result from the remote node"))
 
       for ((inst, _), status) in zip(disks, data):
         instdisk.setdefault(inst, {}).setdefault(nname, []).append(status)
@@ -1983,9 +1994,12 @@ class LUVerifyCluster(LogicalUnit):
       instdisk[inst] = {}
 
     assert compat.all(len(statuses) == len(instanceinfo[inst].disks) and
-                      len(nnames) <= len(instanceinfo[inst].all_nodes)
+                      len(nnames) <= len(instanceinfo[inst].all_nodes) and
+                      compat.all(isinstance(s, (tuple, list)) and
+                                 len(s) == 2 for s in statuses)
                       for inst, nnames in instdisk.items()
                       for nname, statuses in nnames.items())
+    assert set(instdisk) == set(instanceinfo), "instdisk consistency failure"
 
     return instdisk
 
