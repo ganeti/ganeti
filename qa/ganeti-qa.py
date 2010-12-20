@@ -215,13 +215,16 @@ def RunCommonInstanceTests(instance):
     RunTest(qa_instance.TestInstanceShutdown, instance)
     # perform instance rename to the same name
     RunTest(qa_instance.TestInstanceRename, rename_source, rename_source)
-    RunTestIf("rapi", qa_rapi.TestRapiInstanceRename, rename_source, rename_source)
+    RunTestIf("rapi", qa_rapi.TestRapiInstanceRename,
+              rename_source, rename_source)
     if rename_target is not None:
       # perform instance rename to a different name, if we have one configured
       RunTest(qa_instance.TestInstanceRename, rename_source, rename_target)
       RunTest(qa_instance.TestInstanceRename, rename_target, rename_source)
-      RunTestIf("rapi", qa_rapi.TestRapiInstanceRename, rename_source, rename_target)
-      RunTestIf("rapi", qa_rapi.TestRapiInstanceRename, rename_target, rename_source)
+      RunTestIf("rapi", qa_rapi.TestRapiInstanceRename,
+                rename_source, rename_target)
+      RunTestIf("rapi", qa_rapi.TestRapiInstanceRename,
+                rename_target, rename_source)
     RunTest(qa_instance.TestInstanceStartup, instance)
 
   RunTestIf("tags", qa_tags.TestInstanceTags, instance)
