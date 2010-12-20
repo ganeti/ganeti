@@ -41,23 +41,27 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
 -- | Parse the string description into nodes.
-parseDesc :: String -> Result (Int, Int, Int, Int)
+parseDesc :: String -> Result (AllocPolicy, Int, Int, Int, Int)
 parseDesc desc =
     case sepSplit ',' desc of
-      [n, d, m, c] -> do
+      [a, n, d, m, c] -> do
+        apol <- apolFromString a
         ncount <- tryRead "node count" n
         disk <- tryRead "disk size" d
         mem <- tryRead "memory size" m
         cpu <- tryRead "cpu count" c
-        return (ncount, disk, mem, cpu)
-      _ -> fail "Invalid cluster specification"
+        return (apol, ncount, disk, mem, cpu)
+      es -> fail $ printf
+            "Invalid cluster specification, expected 5 comma-separated\
+            \ sections (allocation policy, node count, disk size,\
+            \ memory size, number of CPUs) but got %d: '%s'" (length es) desc
 
 -- | Creates a node group with the given specifications.
 createGroup :: Int    -- ^ The group index
             -> String -- ^ The group specification
             -> Result (Group.Group, [Node.Node])
 createGroup grpIndex spec = do
-  (ncount, disk, mem, cpu) <- parseDesc spec
+  (apol, ncount, disk, mem, cpu) <- parseDesc spec
   let nodes = map (\idx ->
                        Node.create (printf "node-%02d-%03d" grpIndex idx)
                                (fromIntegral mem) 0 mem
@@ -65,7 +69,7 @@ createGroup grpIndex spec = do
                                (fromIntegral cpu) False grpIndex
                   ) [1..ncount]
       grp = Group.create (printf "group-%02d" grpIndex)
-            (printf "fake-uuid-%02d" grpIndex) AllocPreferred
+            (printf "fake-uuid-%02d" grpIndex) apol
   return (grp, nodes)
 
 -- | Builds the cluster data from node\/instance files.
