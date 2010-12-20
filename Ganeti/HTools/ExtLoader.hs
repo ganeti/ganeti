@@ -83,7 +83,7 @@ loadExternalData opts = do
       simdata = optNodeSim opts
       setRapi = mhost /= ""
       setLuxi = isJust lsock
-      setSim = isJust simdata
+      setSim = (not . null) simdata
       setFile = isJust tfile
       allSet = filter id [setRapi, setLuxi, setFile]
       exTags = case optExTags opts of
@@ -116,7 +116,7 @@ loadExternalData opts = do
               wrapIO $ Rapi.loadData mhost
 #endif
           | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
-          | setSim -> Simu.loadData $ fromJust simdata
+          | setSim -> Simu.loadData simdata
           | setFile -> wrapIO $ Text.loadData $ fromJust tfile
           | otherwise -> return $ Bad "No backend selected! Exiting."
 

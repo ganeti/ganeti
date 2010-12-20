@@ -87,7 +87,7 @@ readRequest opts args = do
             hPutStrLn stderr $ "Error: " ++ err
             exitWith $ ExitFailure 1
           Ok rq -> return rq
-  r2 <- if isJust (optDataFile opts) || isJust (optNodeSim opts)
+  r2 <- if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
         then  do
           (gl, nl, il, ctags) <- loadExternalData opts
           let Request rqt _ _ _ _ = r1

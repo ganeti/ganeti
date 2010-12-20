@@ -108,7 +108,7 @@ data Options = Options
     , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
     , optMinScore    :: Score          -- ^ The minimum score we aim for
     , optNoHeaders   :: Bool           -- ^ Do not show a header line
-    , optNodeSim     :: Maybe String   -- ^ Cluster simulation mode
+    , optNodeSim     :: [String]       -- ^ Cluster simulation mode
     , optOffline     :: [String]       -- ^ Names of offline nodes
     , optOneline     :: Bool           -- ^ Switch output to a single line
     , optOutPath     :: FilePath       -- ^ Path to the output directory
@@ -144,7 +144,7 @@ defaultOptions  = Options
  , optMinGainLim  = 1e-1
  , optMinScore    = 1e-9
  , optNoHeaders   = False
- , optNodeSim     = Nothing
+ , optNodeSim     = []
  , optOffline     = []
  , optOneline     = False
  , optOutPath     = "."
@@ -278,7 +278,7 @@ oNoHeaders = Option "" ["no-headers"]
 
 oNodeSim :: OptType
 oNodeSim = Option "" ["simulate"]
-            (ReqArg (\ f o -> Ok o { optNodeSim = Just f }) "SPEC")
+            (ReqArg (\ f o -> Ok o { optNodeSim = f:optNodeSim o }) "SPEC")
             "simulate an empty cluster, given as 'num_nodes,disk,ram,cpu'"
 
 oOfflineNode :: OptType

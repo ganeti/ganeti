@@ -40,7 +40,7 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
--- | Parse the string description into nodes
+-- | Parse the string description into nodes.
 parseDesc :: String -> Result (Int, Int, Int, Int)
 parseDesc desc =
     case sepSplit ',' desc of
@@ -52,24 +52,37 @@ parseDesc desc =
         return (ncount, disk, mem, cpu)
       _ -> fail "Invalid cluster specification"
 
--- | Builds the cluster data from node\/instance files.
-parseData :: String -- ^ Cluster description in text format
-         -> Result (Group.List, Node.List, Instance.List, [String])
-parseData ndata = do
-  (cnt, disk, mem, cpu) <- parseDesc ndata
-  let defgroup = Group.create "default" defaultGroupID AllocPreferred
+-- | Creates a node group with the given specifications.
+createGroup :: Int    -- ^ The group index
+            -> String -- ^ The group specification
+            -> Result (Group.Group, [Node.Node])
+createGroup grpIndex spec = do
+  (ncount, disk, mem, cpu) <- parseDesc spec
   let nodes = map (\idx ->
-                    let n = Node.create (printf "node%03d" idx)
-                            (fromIntegral mem) 0 mem
-                            (fromIntegral disk) disk
-                            (fromIntegral cpu) False 0
-                    in (idx, Node.setIdx n idx)
-                  ) [1..cnt]
-  return (Container.fromAssocList [(0, Group.setIdx defgroup 0)],
-          Container.fromAssocList nodes, Container.empty, [])
+                       Node.create (printf "node-%02d-%03d" grpIndex idx)
+                               (fromIntegral mem) 0 mem
+                               (fromIntegral disk) disk
+                               (fromIntegral cpu) False grpIndex
+                  ) [1..ncount]
+      grp = Group.create (printf "group-%02d" grpIndex)
+            (printf "fake-uuid-%02d" grpIndex) AllocPreferred
+  return (grp, nodes)
 
 -- | Builds the cluster data from node\/instance files.
-loadData :: String -- ^ Cluster description in text format
+parseData :: [String] -- ^ Cluster description in text format
+          -> Result (Group.List, Node.List, Instance.List, [String])
+parseData ndata = do
+  grpNodeData <- mapM (uncurry createGroup) $ zip [1..] ndata
+  let (groups, nodes) = unzip grpNodeData
+      nodes' = concat nodes
+  let ktn = map (\(idx, n) -> (idx, Node.setIdx n idx))
+            $ zip [1..] nodes'
+      ktg = map (\g -> (Group.idx g, g)) groups
+  return (Container.fromAssocList ktg,
+          Container.fromAssocList ktn, Container.empty, [])
+
+-- | Builds the cluster data from node\/instance files.
+loadData :: [String] -- ^ Cluster description in text format
          -> IO (Result (Group.List, Node.List, Instance.List, [String]))
 loadData = -- IO monad, just for consistency with the other loaders
   return . parseData
