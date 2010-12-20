@@ -310,6 +310,20 @@ PYTHON_BOOTSTRAP = \
 	scripts/gnt-node \
 	scripts/gnt-os
 
+qa_scripts = \
+	qa/ganeti-qa.py \
+	qa/qa_cluster.py \
+	qa/qa_config.py \
+	qa/qa_daemon.py \
+	qa/qa_env.py \
+	qa/qa_error.py \
+	qa/qa_instance.py \
+	qa/qa_node.py \
+	qa/qa_os.py \
+	qa/qa_rapi.py \
+	qa/qa_tags.py \
+	qa/qa_utils.py
+
 dist_sbin_SCRIPTS =
 
 nodist_sbin_SCRIPTS = \
@@ -376,19 +390,8 @@ EXTRA_DIST = \
 	man/footer.rst \
 	$(manrst) \
 	$(maninput) \
-	qa/ganeti-qa.py \
 	qa/qa-sample.json \
-	qa/qa_cluster.py \
-	qa/qa_config.py \
-	qa/qa_daemon.py \
-	qa/qa_env.py \
-	qa/qa_error.py \
-	qa/qa_instance.py \
-	qa/qa_node.py \
-	qa/qa_os.py \
-	qa/qa_rapi.py \
-	qa/qa_tags.py \
-	qa/qa_utils.py
+	$(qa_scripts)
 
 man_MANS = \
 	man/ganeti.7 \
@@ -504,7 +507,8 @@ all_python_code = \
 	$(masterd_PYTHON) \
 	$(impexpd_PYTHON) \
 	$(watcher_PYTHON) \
-	$(noinst_PYTHON)
+	$(noinst_PYTHON) \
+	$(qa_scripts)
 
 srclink_files = \
 	man/footer.rst \
