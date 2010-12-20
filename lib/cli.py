@@ -1807,8 +1807,11 @@ def FormatError(err):
     obuf.write("Cannot communicate with the master daemon.\nIs it running"
                " and listening for connections?")
   elif isinstance(err, luxi.TimeoutError):
-    obuf.write("Timeout while talking to the master daemon. Error:\n"
-               "%s" % msg)
+    obuf.write("Timeout while talking to the master daemon. Jobs might have"
+               " been submitted and will continue to run even if the call"
+               " timed out. Useful commands in this situation are \"gnt-job"
+               " list\", \"gnt-job cancel\" and \"gnt-job watch\". Error:\n")
+    obuf.write(msg)
   elif isinstance(err, luxi.PermissionError):
     obuf.write("It seems you don't have permissions to connect to the"
                " master daemon.\nPlease retry as a different user.")
