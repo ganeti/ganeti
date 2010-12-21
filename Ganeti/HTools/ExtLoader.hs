@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.HTools.ExtLoader
     ( loadExternalData
-    , Loader.commonSuffix
+    , commonSuffix
     ) where
 
 import Data.Maybe (isJust, fromJust)
@@ -46,10 +46,8 @@ import qualified Ganeti.HTools.Rapi as Rapi
 #endif
 import qualified Ganeti.HTools.Simu as Simu
 import qualified Ganeti.HTools.Text as Text
-import qualified Ganeti.HTools.Loader as Loader
-import qualified Ganeti.HTools.Instance as Instance
-import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.Group as Group
+import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
+                            , commonSuffix)
 
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
@@ -75,7 +73,7 @@ parseUtilisation line =
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
-                 -> IO (Group.List, Node.List, Instance.List, [String])
+                 -> IO ClusterData
 loadExternalData opts = do
   let mhost = optMaster opts
       lsock = optLuxi opts
@@ -120,8 +118,8 @@ loadExternalData opts = do
           | setFile -> wrapIO $ Text.loadData $ fromJust tfile
           | otherwise -> return $ Bad "No backend selected! Exiting."
 
-  let ldresult = input_data >>= Loader.mergeData util_data' exTags exInsts
-  (gl, loaded_nl, il, tags) <-
+  let ldresult = input_data >>= mergeData util_data' exTags exInsts
+  cdata <-
       (case ldresult of
          Ok x -> return x
          Bad s -> do
@@ -129,10 +127,10 @@ loadExternalData opts = do
                :: IO ()
            exitWith $ ExitFailure 1
       )
-  let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il
+  let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
 
   unless (null fix_msgs || optVerbose opts == 0) $ do
          hPutStrLn stderr "Warning: cluster has inconsistent data:"
          hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
-  return (gl, fixed_nl, il, tags)
+  return cdata {cdNodes = nl}

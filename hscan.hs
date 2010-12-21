@@ -45,7 +45,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Rapi as Rapi
 #endif
 import qualified Ganeti.HTools.Luxi as Luxi
-import qualified Ganeti.HTools.Loader as Loader
+import Ganeti.HTools.Loader (checkData, mergeData, ClusterData(..))
 import Ganeti.HTools.Text (serializeCluster)
 
 import Ganeti.HTools.CLI
@@ -93,8 +93,8 @@ fixSlash = map (\x -> if x == '/' then '_' else x)
 processData :: Result (Group.List, Node.List, Instance.List, [String])
             -> Result (Group.List, Node.List, Instance.List, String)
 processData input_data = do
-  (gl, nl, il, ctags) <- input_data >>= Loader.mergeData [] [] []
-  let (_, fix_nl) = Loader.checkData nl il
+  (ClusterData gl nl il ctags) <- input_data >>= mergeData [] [] []
+  let (_, fix_nl) = checkData nl il
       adata = serializeCluster gl nl il ctags
   return (gl, fix_nl, il, adata)
 

@@ -49,6 +49,7 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
+import Ganeti.HTools.Loader (ClusterData(..))
 
 import Ganeti.HTools.Text (serializeCluster)
 
@@ -235,7 +236,7 @@ main = do
       verbose = optVerbose opts
       shownodes = optShowNodes opts
 
-  (gl, fixed_nl, ilf, ctags) <- loadExternalData opts
+  (ClusterData gl fixed_nl ilf ctags) <- loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl

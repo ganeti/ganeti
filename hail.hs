@@ -89,9 +89,9 @@ readRequest opts args = do
           Ok rq -> return rq
   r2 <- if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
         then  do
-          (gl, nl, il, ctags) <- loadExternalData opts
+          cdata <- loadExternalData opts
           let Request rqt _ = r1
-          return $ Request rqt (ClusterData gl nl il ctags)
+          return $ Request rqt cdata
         else return r1
   return r2
 

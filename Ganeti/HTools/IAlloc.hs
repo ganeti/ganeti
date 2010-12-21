@@ -130,7 +130,8 @@ parseData body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- fromObj "cluster_tags" obj
-  (map_g, map_n, map_i, ptags) <- mergeData [] [] [] (gl, nl, il, ctags)
+  cdata <- mergeData [] [] [] (gl, nl, il, ctags)
+  let map_n = cdNodes cdata
   optype <- fromObj "type" request
   rqtype <-
       case optype of
@@ -156,7 +157,7 @@ parseData body = do
               let ex_ndx = map Node.idx ex_nodes
               return $ Evacuate ex_ndx
         other -> fail ("Invalid request type '" ++ other ++ "'")
-  return $ Request rqtype (ClusterData map_g map_n map_i ptags)
+  return $ Request rqtype cdata
 
 -- | Format the result
 formatRVal :: RqType -> [Node.AllocElement] -> JSValue

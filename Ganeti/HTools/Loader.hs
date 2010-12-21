@@ -185,7 +185,7 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Untouchable instances
           -> (Group.List, Node.List, Instance.List, [String])
           -- ^ Data from backends
-          -> Result (Group.List, Node.List, Instance.List, [String])
+          -> Result ClusterData
 mergeData um extags exinsts (gl, nl, il2, tags) =
   let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->
@@ -209,7 +209,7 @@ mergeData um extags exinsts (gl, nl, il2, tags) =
   in if not $ all (`elem` all_inst_names) exinsts
      then Bad $ "Some of the excluded instances are unknown: " ++
           show (exinsts \\ all_inst_names)
-     else Ok (gl, snl, sil, tags)
+     else Ok (ClusterData gl snl sil tags)
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List

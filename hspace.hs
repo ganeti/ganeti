@@ -47,6 +47,7 @@ import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Text (serializeCluster)
+import Ganeti.HTools.Loader (ClusterData(..))
 
 -- | Options list and functions
 options :: [OptType]
@@ -206,7 +207,7 @@ main = do
       ispec = optISpec opts
       shownodes = optShowNodes opts
 
-  (gl, fixed_nl, il, ctags) <- loadExternalData opts
+  (ClusterData gl fixed_nl il ctags) <- loadExternalData opts
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
   printKeys [ ("SPEC_RQN", printf "%d" (optINodes opts)) ]
