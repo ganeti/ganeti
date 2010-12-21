@@ -333,10 +333,7 @@ main = do
          putStrLn "Initial instance map:"
          putStrLn $ Cluster.printInsts nl il
 
-  when (isJust shownodes) $
-       do
-         putStrLn "Initial cluster status:"
-         putStrLn $ Cluster.printNodes nl (fromJust shownodes)
+  maybePrintNodes shownodes "Initial cluster" (Cluster.printNodes nl)
 
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
@@ -405,19 +402,15 @@ main = do
          putStrLn "Final instance map:"
          putStr $ Cluster.printInsts fin_nl fin_il
 
-  when (isJust shownodes) $
-       do
+  maybePrintNodes shownodes "Final cluster" (Cluster.printNodes fin_nl)
+
+  when (verbose > 3) $ do
          let ini_cs = Cluster.totalResources nl
              fin_cs = Cluster.totalResources fin_nl
-         putStrLn ""
-         putStrLn "Final cluster status:"
-         putStrLn $ Cluster.printNodes fin_nl (fromJust shownodes)
-         when (verbose > 3) $
-              do
-                printf "Original: mem=%d disk=%d\n"
-                       (Cluster.csFmem ini_cs) (Cluster.csFdsk ini_cs) :: IO ()
-                printf "Final:    mem=%d disk=%d\n"
-                       (Cluster.csFmem fin_cs) (Cluster.csFdsk fin_cs)
+         printf "Original: mem=%d disk=%d\n"
+                    (Cluster.csFmem ini_cs) (Cluster.csFdsk ini_cs) :: IO ()
+         printf "Final:    mem=%d disk=%d\n"
+                    (Cluster.csFmem fin_cs) (Cluster.csFdsk fin_cs)
   when oneline $
          putStrLn $ formatOneline ini_cv (length ord_plc) fin_cv
 

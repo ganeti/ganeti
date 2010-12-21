@@ -33,6 +33,7 @@ module Ganeti.HTools.CLI
     , parseOpts
     , shTemplate
     , defaultLuxiSocket
+    , maybePrintNodes
     -- * The options
     , oDataFile
     , oDiskMoves
@@ -417,3 +418,14 @@ shTemplate =
            \    exit 0\n\
            \  fi\n\
            \}\n\n"
+
+-- | Optionally print the node list.
+maybePrintNodes :: Maybe [String]       -- ^ The field list
+                -> String               -- ^ Informational message
+                -> ([String] -> String) -- ^ Function to generate the listing
+                -> IO ()
+maybePrintNodes Nothing _ _ = return ()
+maybePrintNodes (Just fields) msg fn = do
+  hPutStrLn stderr ""
+  hPutStrLn stderr (msg ++ " status:")
+  hPutStrLn stderr $ fn fields

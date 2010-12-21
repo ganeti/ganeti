@@ -295,10 +295,8 @@ main = do
                  formatTable (map (printInstance trl_nl) (reverse trl_ixes))
                                  [False, False, False, True, True, True]
 
-       when (isJust shownodes) $ do
-         hPutStrLn stderr ""
-         hPutStrLn stderr "Tiered allocation status:"
-         hPutStrLn stderr $ Cluster.printNodes trl_nl (fromJust shownodes)
+       maybePrintNodes shownodes "Tiered allocation"
+                           (Cluster.printNodes trl_nl)
 
        maybeSaveData (optSaveCluster opts) "tiered" "after tiered allocation"
                      (ClusterData gl trl_nl trl_il ctags)
@@ -323,11 +321,7 @@ main = do
          hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
                  formatTable (map (printInstance fin_nl) fin_ixes)
                                  [False, False, False, True, True, True]
-  when (isJust shownodes) $
-       do
-         hPutStrLn stderr ""
-         hPutStrLn stderr "Final cluster status:"
-         hPutStrLn stderr $ Cluster.printNodes fin_nl (fromJust shownodes)
+  maybePrintNodes shownodes "Standard allocation" (Cluster.printNodes fin_nl)
 
   maybeSaveData (optSaveCluster opts) "alloc" "after standard allocation"
        (ClusterData gl fin_nl fin_il ctags)
