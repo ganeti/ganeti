@@ -38,7 +38,6 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
-import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 #ifndef NO_CURL
@@ -89,26 +88,25 @@ fixSlash :: String -> String
 fixSlash = map (\x -> if x == '/' then '_' else x)
 
 
--- | Generates serialized data from loader input
-processData :: Result ClusterData
-            -> Result (Group.List, Node.List, Instance.List, String)
+-- | Generates serialized data from loader input.
+processData :: Result ClusterData -> Result ClusterData
 processData input_data = do
-  cdata@(ClusterData gl nl il _) <- input_data >>= mergeData [] [] []
+  cdata@(ClusterData _ nl il _) <- input_data >>= mergeData [] [] []
   let (_, fix_nl) = checkData nl il
-      adata = serializeCluster cdata
-  return (gl, fix_nl, il, adata)
+  return cdata { cdNodes = fix_nl }
 
 -- | Writes cluster data out
 writeData :: Int
           -> String
           -> Options
-          -> Result (Group.List, Node.List, Instance.List, String)
+          -> Result ClusterData
           -> IO Bool
 writeData _ name _ (Bad err) =
   printf "\nError for %s: failed to load data. Details:\n%s\n" name err >>
   return False
 
-writeData nlen name opts (Ok (_, nl, il, adata)) = do
+writeData nlen name opts (Ok cdata) = do
+  let (ClusterData _ nl il _) = cdata
   printf "%-*s " nlen name :: IO ()
   hFlush stdout
   let shownodes = optShowNodes opts
@@ -118,7 +116,7 @@ writeData nlen name opts (Ok (_, nl, il, adata)) = do
   hFlush stdout
   when (isJust shownodes) $
        putStr $ Cluster.printNodes nl (fromJust shownodes)
-  writeFile (oname <.> "data") adata
+  writeFile (oname <.> "data") (serializeCluster cdata)
   return True
 
 -- | Main function.
