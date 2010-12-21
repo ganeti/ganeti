@@ -191,6 +191,19 @@ printInstance nl i = [ Instance.name i
                      , show (Instance.vcpus i)
                      ]
 
+-- | Optionally print the allocation map
+printAllocationMap :: Int -> String
+                   -> Node.List -> [Instance.Instance] -> IO ()
+printAllocationMap verbose msg nl ixes =
+  when (verbose > 1) $ do
+    hPutStrLn stderr msg
+    hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
+            formatTable (map (printInstance nl) (reverse ixes))
+                        -- This is the numberic-or-not field
+                        -- specification; the first three fields are
+                        -- strings, whereas the rest are numeric
+                       [False, False, False, True, True, True]
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -289,11 +302,7 @@ main = do
                                   req_nodes [])
        let spec_map' = Cluster.tieredSpecMap trl_ixes
 
-       when (verbose > 1) $ do
-         hPutStrLn stderr "Tiered allocation map"
-         hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
-                 formatTable (map (printInstance trl_nl) (reverse trl_ixes))
-                                 [False, False, False, True, True, True]
+       printAllocationMap verbose "Tiered allocation map" trl_nl trl_ixes
 
        maybePrintNodes shownodes "Tiered allocation"
                            (Cluster.printNodes trl_nl)
@@ -313,14 +322,10 @@ main = do
       else exitifbad (Cluster.iterateAlloc nl il reqinst req_nodes [])
 
   let allocs = length ixes
-      fin_ixes = reverse ixes
       sreason = reverse $ sortBy (comparing snd) ereason
 
-  when (verbose > 1) $ do
-         hPutStrLn stderr "Instance map"
-         hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
-                 formatTable (map (printInstance fin_nl) fin_ixes)
-                                 [False, False, False, True, True, True]
+  printAllocationMap verbose "Standard allocation map" fin_nl ixes
+
   maybePrintNodes shownodes "Standard allocation" (Cluster.printNodes fin_nl)
 
   maybeSaveData (optSaveCluster opts) "alloc" "after standard allocation"
