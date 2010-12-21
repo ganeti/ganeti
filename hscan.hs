@@ -90,7 +90,7 @@ fixSlash = map (\x -> if x == '/' then '_' else x)
 
 
 -- | Generates serialized data from loader input
-processData :: Result (Group.List, Node.List, Instance.List, [String])
+processData :: Result ClusterData
             -> Result (Group.List, Node.List, Instance.List, String)
 processData input_data = do
   (ClusterData gl nl il ctags) <- input_data >>= mergeData [] [] []

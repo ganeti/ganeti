@@ -850,7 +850,7 @@ prop_Loader_assignIndices nodes =
 prop_Loader_mergeData ns =
   let na = Container.fromAssocList $ map (\n -> (Node.idx n, n)) ns
   in case Loader.mergeData [] [] []
-         (Container.empty, na, Container.empty, []) of
+         (Loader.emptyCluster {Loader.cdNodes = na}) of
     Types.Bad _ -> False
     Types.Ok (Loader.ClusterData _ nl il _) ->
       let nodes = Container.elems nl

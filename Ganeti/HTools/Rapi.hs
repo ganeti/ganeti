@@ -147,7 +147,7 @@ readData master = do
 
 -- | Builds the cluster data from the raw Rapi content
 parseData :: (Result String, Result String, Result String, Result String)
-          -> Result (Group.List, Node.List, Instance.List, [String])
+          -> Result ClusterData
 parseData (group_body, node_body, inst_body, tags_body) = do
   group_data <- group_body >>= getGroups
   let (group_names, group_idx) = assignIndices group_data
@@ -156,9 +156,9 @@ parseData (group_body, node_body, inst_body, tags_body) = do
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
   tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
-  return (group_idx, node_idx, inst_idx, tags_data)
+  return (ClusterData group_idx node_idx inst_idx tags_data)
 
 -- | Top level function for data loading
 loadData :: String -- ^ Cluster or URL to use as source
-            -> IO (Result (Group.List, Node.List, Instance.List, [String]))
+         -> IO (Result ClusterData)
 loadData master = readData master >>= return . parseData

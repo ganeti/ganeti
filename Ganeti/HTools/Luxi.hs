@@ -186,7 +186,7 @@ readData master =
        )
 
 parseData :: (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
-          -> Result (Group.List, Node.List, Instance.List, [String])
+          -> Result ClusterData
 parseData (groups, nodes, instances, cinfo) = do
   group_data <- groups >>= getGroups
   let (group_names, group_idx) = assignIndices group_data
@@ -195,9 +195,9 @@ parseData (groups, nodes, instances, cinfo) = do
   inst_data <- instances >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
   ctags <- cinfo >>= getClusterTags
-  return (group_idx, node_idx, inst_idx, ctags)
+  return (ClusterData group_idx node_idx inst_idx ctags)
 
 -- | Top level function for data loading
 loadData :: String -- ^ Unix socket to use as source
-            -> IO (Result (Group.List, Node.List, Instance.List, [String]))
+         -> IO (Result ClusterData)
 loadData master = readData master >>= return . parseData

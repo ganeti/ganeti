@@ -35,10 +35,10 @@ import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
+import Ganeti.HTools.Loader
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.Instance as Instance
 
 -- | Parse the string description into nodes.
 parseDesc :: String -> Result (AllocPolicy, Int, Int, Int, Int)
@@ -74,7 +74,7 @@ createGroup grpIndex spec = do
 
 -- | Builds the cluster data from node\/instance files.
 parseData :: [String] -- ^ Cluster description in text format
-          -> Result (Group.List, Node.List, Instance.List, [String])
+          -> Result ClusterData
 parseData ndata = do
   grpNodeData <- mapM (uncurry createGroup) $ zip [1..] ndata
   let (groups, nodes) = unzip grpNodeData
@@ -82,11 +82,11 @@ parseData ndata = do
   let ktn = map (\(idx, n) -> (idx, Node.setIdx n idx))
             $ zip [1..] nodes'
       ktg = map (\g -> (Group.idx g, g)) groups
-  return (Container.fromAssocList ktg,
-          Container.fromAssocList ktn, Container.empty, [])
+  return (ClusterData (Container.fromAssocList ktg)
+                      (Container.fromAssocList ktn) Container.empty [])
 
 -- | Builds the cluster data from node\/instance files.
 loadData :: [String] -- ^ Cluster description in text format
-         -> IO (Result (Group.List, Node.List, Instance.List, [String]))
+         -> IO (Result ClusterData)
 loadData = -- IO monad, just for consistency with the other loaders
   return . parseData

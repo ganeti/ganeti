@@ -169,7 +169,7 @@ readData = readFile
 
 -- | Builds the cluster data from text input.
 parseData :: String -- ^ Text data
-          -> Result (Group.List, Node.List, Instance.List, [String])
+          -> Result ClusterData
 parseData fdata = do
   let flines = lines fdata
   (glines, nlines, ilines, ctags) <-
@@ -184,9 +184,9 @@ parseData fdata = do
   {- instance file: name mem disk status pnode snode -}
   (_, il) <- loadTabular ilines (loadInst ktn)
   {- the tags are simply line-based, no processing needed -}
-  return (gl, nl, il, ctags)
+  return (ClusterData gl nl il ctags)
 
 -- | Top level function for data loading
 loadData :: String -- ^ Path to the text file
-         -> IO (Result (Group.List, Node.List, Instance.List, [String]))
+         -> IO (Result ClusterData)
 loadData afile = readData afile >>= return . parseData

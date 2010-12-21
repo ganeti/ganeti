@@ -183,10 +183,9 @@ commonSuffix nl il =
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
           -> [String]             -- ^ Untouchable instances
-          -> (Group.List, Node.List, Instance.List, [String])
-          -- ^ Data from backends
+          -> ClusterData          -- ^ Data from backends
           -> Result ClusterData
-mergeData um extags exinsts (gl, nl, il2, tags) =
+mergeData um extags exinsts cdata@(ClusterData _ nl il2 tags) =
   let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
@@ -209,7 +208,7 @@ mergeData um extags exinsts (gl, nl, il2, tags) =
   in if not $ all (`elem` all_inst_names) exinsts
      then Bad $ "Some of the excluded instances are unknown: " ++
           show (exinsts \\ all_inst_names)
-     else Ok (ClusterData gl snl sil tags)
+     else Ok cdata { cdNodes = snl, cdInstances = sil }
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List
