@@ -34,6 +34,7 @@ module Ganeti.HTools.CLI
     , shTemplate
     , defaultLuxiSocket
     , maybePrintNodes
+    , maybePrintInsts
     -- * The options
     , oDataFile
     , oDiskMoves
@@ -429,3 +430,15 @@ maybePrintNodes (Just fields) msg fn = do
   hPutStrLn stderr ""
   hPutStrLn stderr (msg ++ " status:")
   hPutStrLn stderr $ fn fields
+
+
+-- | Optionally print the instance list.
+maybePrintInsts :: Bool   -- ^ Whether to print the instance list
+                -> String -- ^ Type of the instance map (e.g. initial)
+                -> String -- ^ The instance data
+                -> IO ()
+maybePrintInsts do_print msg instdata =
+  when do_print $ do
+    hPutStrLn stderr ""
+    hPutStrLn stderr $ msg ++ " instance map:"
+    hPutStr stderr instdata

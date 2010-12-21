@@ -233,6 +233,7 @@ main = do
   let oneline = optOneline opts
       verbose = optVerbose opts
       shownodes = optShowNodes opts
+      showinsts = optShowInsts opts
 
   ini_cdata@(ClusterData gl fixed_nl ilf ctags) <- loadExternalData opts
 
@@ -328,10 +329,7 @@ main = do
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
 
-  when (optShowInsts opts) $ do
-         putStrLn ""
-         putStrLn "Initial instance map:"
-         putStrLn $ Cluster.printInsts nl il
+  maybePrintInsts showinsts "Initial" (Cluster.printInsts nl il)
 
   maybePrintNodes shownodes "Initial cluster" (Cluster.printNodes nl)
 
@@ -397,10 +395,7 @@ main = do
   maybeSaveData (optSaveCluster opts) "balanced" "after balancing"
                 (ClusterData gl fin_nl fin_il ctags)
 
-  when (optShowInsts opts) $ do
-         putStrLn ""
-         putStrLn "Final instance map:"
-         putStr $ Cluster.printInsts fin_nl fin_il
+  maybePrintInsts showinsts "Final" (Cluster.printInsts fin_nl fin_il)
 
   maybePrintNodes shownodes "Final cluster" (Cluster.printNodes fin_nl)
 
