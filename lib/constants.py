@@ -488,6 +488,8 @@ DEFAULT_SHUTDOWN_TIMEOUT = 120
 NODE_MAX_CLOCK_SKEW = 150
 # Time for an intra-cluster disk transfer to wait for a connection
 DISK_TRANSFER_CONNECT_TIMEOUT = 30
+# Disk index separator
+DISK_SEPARATOR = _autoconf.DISK_SEPARATOR
 
 # runparts results
 (RUNPARTS_SKIP,

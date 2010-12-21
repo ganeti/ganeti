@@ -661,6 +661,7 @@ lib/_autoconf.py: Makefile vcs-version | lib/.dir
 	  echo "CONFD_GROUP = '$(CONFD_GROUP)'"; \
 	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "VCS_VERSION = '$$VCSVER'"; \
+	  echo "DISK_SEPARATOR = '$(DISK_SEPARATOR)'"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile

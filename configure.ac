@@ -223,6 +223,15 @@ then
 fi
 AC_SUBST(SYSLOG_USAGE, $SYSLOG)
 
+# --with-disk-separator=...
+AC_ARG_WITH([disk-separator],
+  [AS_HELP_STRING([--with-disk-separator=STRING],
+    [Disk index separator, useful if the default of ':' is handled specially by the hypervisor]
+  )],
+  [disk_separator="$withval"],
+  [disk_separator=":"])
+AC_SUBST(DISK_SEPARATOR, $disk_separator)
+
 # Check common programs
 AC_PROG_INSTALL
 AC_PROG_LN_S

@@ -941,8 +941,8 @@ def RunRenameInstance(instance, old_name, debug):
 
 
 def _GetBlockDevSymlinkPath(instance_name, idx):
-  return utils.PathJoin(constants.DISK_LINKS_DIR,
-                        "%s:%d" % (instance_name, idx))
+  return utils.PathJoin(constants.DISK_LINKS_DIR, "%s%s%d" %
+                        (instance_name, constants.DISK_SEPARATOR, idx))
 
 
 def _SymlinkBlockDev(instance_name, device_path, idx):
