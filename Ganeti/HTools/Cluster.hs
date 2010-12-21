@@ -62,11 +62,14 @@ module Ganeti.HTools.Cluster
     -- * Allocation functions
     , iterateAlloc
     , tieredAlloc
+    , tieredSpecMap
+     -- * Node group functions
     , instanceGroup
     , findSplitInstances
     , splitCluster
     ) where
 
+import Data.Function (on)
 import Data.List
 import Data.Ord (comparing)
 import Text.Printf (printf)
@@ -762,6 +765,7 @@ iterateAlloc nl il newinst nreq ixes =
                  _ -> Bad "Internal error: multiple solutions for single\
                           \ allocation"
 
+-- | The core of the tiered allocation mode
 tieredAlloc :: Node.List
             -> Instance.List
             -> Instance.Instance
@@ -778,6 +782,18 @@ tieredAlloc nl il newinst nreq ixes =
             Bad _ -> Ok (errs, nl', il', ixes')
             Ok newinst' ->
                 tieredAlloc nl' il' newinst' nreq ixes'
+
+-- | Compute the tiered spec string description from a list of
+-- allocated instances.
+tieredSpecMap :: [Instance.Instance]
+              -> [String]
+tieredSpecMap trl_ixes =
+    let fin_trl_ixes = reverse trl_ixes
+        ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
+        spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
+                   ix_byspec
+    in  map (\(spec, cnt) -> printf "%d,%d,%d=%d" (rspecMem spec)
+                             (rspecDsk spec) (rspecCpu spec) cnt) spec_map
 
 -- * Formatting functions
 
@@ -940,6 +956,8 @@ iMoveToJob nl il idx move =
          ReplaceSecondary ns -> [ opR ns ]
          ReplaceAndFailover np -> [ opR np, opF ]
          FailoverAndReplace ns -> [ opF, opR ns ]
+
+-- * Node group functions
 
 -- | Computes the group of an instance
 instanceGroup :: Node.List -> Instance.Instance -> Result Gdx

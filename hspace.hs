@@ -27,7 +27,6 @@ module Main (main) where
 
 import Data.Char (toUpper, isAlphaNum)
 import Data.List
-import Data.Function
 import Data.Maybe (isJust, fromJust)
 import Data.Ord (comparing)
 import Monad
@@ -289,19 +288,12 @@ main = do
            then return result_noalloc
            else exitifbad (Cluster.tieredAlloc nl il (iofspec tspec)
                                   req_nodes [])
-       let fin_trl_ixes = reverse trl_ixes
-           ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
-           spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
-                      ix_byspec::[(RSpec, Int)]
-           spec_map' = map (\(spec, cnt) ->
-                                printf "%d,%d,%d=%d" (rspecMem spec)
-                                       (rspecDsk spec) (rspecCpu spec) cnt)
-                       spec_map::[String]
+       let spec_map' = Cluster.tieredSpecMap trl_ixes
 
        when (verbose > 1) $ do
          hPutStrLn stderr "Tiered allocation map"
          hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
-                 formatTable (map (printInstance trl_nl) fin_trl_ixes)
+                 formatTable (map (printInstance trl_nl) (reverse trl_ixes))
                                  [False, False, False, True, True, True]
 
        when (isJust shownodes) $ do
