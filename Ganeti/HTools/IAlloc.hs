@@ -156,7 +156,7 @@ parseData body = do
               let ex_ndx = map Node.idx ex_nodes
               return $ Evacuate ex_ndx
         other -> fail ("Invalid request type '" ++ other ++ "'")
-  return $ Request rqtype map_g map_n map_i ptags
+  return $ Request rqtype (ClusterData map_g map_n map_i ptags)
 
 -- | Format the result
 formatRVal :: RqType -> [Node.AllocElement] -> JSValue

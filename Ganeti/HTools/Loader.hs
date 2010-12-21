@@ -73,7 +73,7 @@ data RqType
     deriving (Show)
 
 -- | A complete request, as received from Ganeti.
-data Request = Request RqType Group.List Node.List Instance.List [String]
+data Request = Request RqType ClusterData
     deriving (Show)
 
 -- | The cluster state.

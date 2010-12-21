@@ -37,7 +37,7 @@ import qualified Ganeti.HTools.Cluster as Cluster
 import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Types
-import Ganeti.HTools.Loader (RqType(..), Request(..))
+import Ganeti.HTools.Loader (RqType(..), Request(..), ClusterData(..))
 import Ganeti.HTools.ExtLoader (loadExternalData)
 
 -- | Options list and functions
@@ -68,7 +68,7 @@ processResults _ as =
 processRequest :: Request
                -> Result Cluster.AllocSolution
 processRequest request =
-  let Request rqtype gl nl il _ = request
+  let Request rqtype (ClusterData gl nl il _) = request
   in case rqtype of
        Allocate xi reqn -> Cluster.tryMGAlloc gl nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
@@ -90,8 +90,8 @@ readRequest opts args = do
   r2 <- if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
         then  do
           (gl, nl, il, ctags) <- loadExternalData opts
-          let Request rqt _ _ _ _ = r1
-          return $ Request rqt gl nl il ctags
+          let Request rqt _ = r1
+          return $ Request rqt (ClusterData gl nl il ctags)
         else return r1
   return r2
 
@@ -105,11 +105,12 @@ main = do
 
   request <- readRequest opts args
 
-  let Request rq _ nl _ _ = request
+  let Request rq cdata = request
 
   when (isJust shownodes) $ do
          hPutStrLn stderr "Initial cluster status:"
-         hPutStrLn stderr $ Cluster.printNodes nl (fromJust shownodes)
+         hPutStrLn stderr $ Cluster.printNodes (cdNodes cdata)
+                       (fromJust shownodes)
 
   let sols = processRequest request >>= processResults rq
   let (ok, info, rn) =
