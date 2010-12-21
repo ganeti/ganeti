@@ -1713,25 +1713,6 @@ class TestFormatTime(unittest.TestCase):
     FormatTime(int(time.time()))
 
 
-class TestFormatTimestampWithTZ(unittest.TestCase):
-  @staticmethod
-  def _TestInProcess(tz, timestamp, expected):
-    os.environ["TZ"] = tz
-    time.tzset()
-    return utils.FormatTimestampWithTZ(timestamp) == expected
-
-  def _Test(self, *args):
-    # Need to use separate process as we want to change TZ
-    self.assert_(utils.RunInSeparateProcess(self._TestInProcess, *args))
-
-  def test(self):
-    self._Test("UTC", 0, "1970-01-01 00:00:00 UTC")
-    self._Test("America/Sao_Paulo", 1292606926, "2010-12-17 15:28:46 BRST")
-    self._Test("Europe/London", 1292606926, "2010-12-17 17:28:46 GMT")
-    self._Test("Europe/Zurich", 1292606926, "2010-12-17 18:28:46 CET")
-    self._Test("Australia/Sydney", 1292606926, "2010-12-18 04:28:46 EST")
-
-
 class RunInSeparateProcess(unittest.TestCase):
   def test(self):
     for exp in [True, False]:

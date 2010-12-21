@@ -2835,21 +2835,12 @@ def TailFile(fname, lines=20):
   return rows[-lines:]
 
 
-def FormatTimestampWithTZ(secs):
-  """Formats a Unix timestamp with the local timezone.
-
-  @type secs: number
-  @param secs: Seconds since the Epoch (1970-01-01 00:00:00 UTC)
-
-  """
-  return time.strftime("%F %T %Z", time.localtime(secs))
-
-
 def _ParseAsn1Generalizedtime(value):
   """Parses an ASN1 GENERALIZEDTIME timestamp as used by pyOpenSSL.
 
   @type value: string
   @param value: ASN1 GENERALIZEDTIME timestamp
+  @return: Seconds since the Epoch (1970-01-01 00:00:00 UTC)
 
   """
   m = _ASN1_TIME_REGEX.match(value)
@@ -2931,19 +2922,18 @@ def _VerifyCertificateInner(expired, not_before, not_after, now,
 
     if not_before is not None and not_after is not None:
       msg += (" (valid from %s to %s)" %
-              (FormatTimestampWithTZ(not_before),
-               FormatTimestampWithTZ(not_after)))
+              (FormatTime(not_before), FormatTime(not_after)))
     elif not_before is not None:
-      msg += " (valid from %s)" % FormatTimestampWithTZ(not_before)
+      msg += " (valid from %s)" % FormatTime(not_before)
     elif not_after is not None:
-      msg += " (valid until %s)" % FormatTimestampWithTZ(not_after)
+      msg += " (valid until %s)" % FormatTime(not_after)
 
     return (CERT_ERROR, msg)
 
   elif not_before is not None and not_before > now:
     return (CERT_WARNING,
             "Certificate not yet valid (valid from %s)" %
-            FormatTimestampWithTZ(not_before))
+            FormatTime(not_before))
 
   elif not_after is not None:
     remaining_days = int((not_after - now) / (24 * 3600))
