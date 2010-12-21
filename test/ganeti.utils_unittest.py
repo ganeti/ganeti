@@ -245,6 +245,7 @@ class TestRunCmd(testutils.GanetiTestCase):
 
   def tearDown(self):
     shutil.rmtree(self.fifo_tmpdir)
+    testutils.GanetiTestCase.tearDown(self)
 
   def testOk(self):
     """Test successful exit code"""
