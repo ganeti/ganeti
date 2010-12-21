@@ -402,7 +402,7 @@ def GenericQueryFieldsTest(cmd, fields):
   output = GetCommandOutput(master["primary"],
                             utils.ShellQuoteArgs(realcmd)).splitlines()
   AssertEqual([line.split("|", 1)[0] for line in output],
-              sorted(fields))
+              utils.NiceSort(fields))
 
   # Check exit code for listing unknown field
   AssertEqual(AssertCommand([cmd, "list-fields", "field/does/not/exist"],
