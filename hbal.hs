@@ -400,7 +400,7 @@ main = do
   when (isJust $ optSaveCluster opts) $
        do
          let out_path = fromJust $ optSaveCluster opts
-             adata = serializeCluster gl fin_nl fin_il ctags
+             adata = serializeCluster (ClusterData gl fin_nl fin_il ctags)
          writeFile out_path adata
          printf "The cluster state has been written to file '%s'\n" out_path
 

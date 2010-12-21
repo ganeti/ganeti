@@ -305,7 +305,8 @@ main = do
        when (isJust $ optSaveCluster opts) $
             do
               let out_path = (fromJust $ optSaveCluster opts) <.> "tiered"
-                  adata = serializeCluster gl trl_nl trl_il ctags
+                  adata = serializeCluster
+                          (ClusterData gl trl_nl trl_il ctags)
               writeFile out_path adata
               hPrintf stderr "The cluster state after tiered allocation\
                              \ has been written to file '%s'\n"
@@ -339,7 +340,7 @@ main = do
   when (isJust $ optSaveCluster opts) $
        do
          let out_path = (fromJust $ optSaveCluster opts) <.> "alloc"
-             adata = serializeCluster gl fin_nl fin_il ctags
+             adata = serializeCluster (ClusterData gl fin_nl fin_il ctags)
          writeFile out_path adata
          hPrintf stderr "The cluster state after standard allocation\
                         \ has been written to file '%s'\n"

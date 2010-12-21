@@ -184,7 +184,7 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
           -> [String]             -- ^ Untouchable instances
           -> ClusterData          -- ^ Data from backends
-          -> Result ClusterData
+          -> Result ClusterData   -- ^ Fixed cluster data
 mergeData um extags exinsts cdata@(ClusterData _ nl il2 tags) =
   let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->

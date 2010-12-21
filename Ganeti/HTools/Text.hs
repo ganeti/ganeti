@@ -97,9 +97,8 @@ serializeInstances nl =
     unlines . map (serializeInstance nl) . Container.elems
 
 -- | Generate complete cluster data from node and instance lists
-serializeCluster :: Group.List -> Node.List -> Instance.List -> [String]
-                 -> String
-serializeCluster gl nl il ctags =
+serializeCluster :: ClusterData -> String
+serializeCluster (ClusterData gl nl il ctags) =
   let gdata = serializeGroups gl
       ndata = serializeNodes gl nl
       idata = serializeInstances nl il

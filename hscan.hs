@@ -93,9 +93,9 @@ fixSlash = map (\x -> if x == '/' then '_' else x)
 processData :: Result ClusterData
             -> Result (Group.List, Node.List, Instance.List, String)
 processData input_data = do
-  (ClusterData gl nl il ctags) <- input_data >>= mergeData [] [] []
+  cdata@(ClusterData gl nl il _) <- input_data >>= mergeData [] [] []
   let (_, fix_nl) = checkData nl il
-      adata = serializeCluster gl nl il ctags
+      adata = serializeCluster cdata
   return (gl, fix_nl, il, adata)
 
 -- | Writes cluster data out
