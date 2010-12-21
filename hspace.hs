@@ -31,7 +31,6 @@ import Data.Maybe (isJust, fromJust)
 import Data.Ord (comparing)
 import Monad
 import System (exitWith, ExitCode(..))
-import System.FilePath
 import System.IO
 import qualified System
 
@@ -46,7 +45,6 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
-import Ganeti.HTools.Text (serializeCluster)
 import Ganeti.HTools.Loader (ClusterData(..))
 
 -- | Options list and functions
@@ -302,15 +300,9 @@ main = do
          hPutStrLn stderr "Tiered allocation status:"
          hPutStrLn stderr $ Cluster.printNodes trl_nl (fromJust shownodes)
 
-       when (isJust $ optSaveCluster opts) $
-            do
-              let out_path = (fromJust $ optSaveCluster opts) <.> "tiered"
-                  adata = serializeCluster
-                          (ClusterData gl trl_nl trl_il ctags)
-              writeFile out_path adata
-              hPrintf stderr "The cluster state after tiered allocation\
-                             \ has been written to file '%s'\n"
-                             out_path
+       maybeSaveData (optSaveCluster opts) "tiered" "after tiered allocation"
+                     (ClusterData gl trl_nl trl_il ctags)
+
        printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
        printKeys [("TSPEC", intercalate " " spec_map')]
        printAllocationStats m_cpu nl trl_nl)
@@ -337,13 +329,7 @@ main = do
          hPutStrLn stderr "Final cluster status:"
          hPutStrLn stderr $ Cluster.printNodes fin_nl (fromJust shownodes)
 
-  when (isJust $ optSaveCluster opts) $
-       do
-         let out_path = (fromJust $ optSaveCluster opts) <.> "alloc"
-             adata = serializeCluster (ClusterData gl fin_nl fin_il ctags)
-         writeFile out_path adata
-         hPrintf stderr "The cluster state after standard allocation\
-                        \ has been written to file '%s'\n"
-                 out_path
+  maybeSaveData (optSaveCluster opts) "alloc" "after standard allocation"
+       (ClusterData gl fin_nl fin_il ctags)
 
   printResults fin_nl num_instances allocs sreason

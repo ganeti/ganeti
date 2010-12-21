@@ -32,10 +32,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.ExtLoader
     ( loadExternalData
     , commonSuffix
+    , maybeSaveData
     ) where
 
 import Data.Maybe (isJust, fromJust)
 import Monad
+import System.FilePath
 import System.IO
 import System
 import Text.Printf (printf, hPrintf)
@@ -134,3 +136,17 @@ loadExternalData opts = do
          hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
   return cdata {cdNodes = nl}
+
+-- | Function to save the cluster data to a file.
+maybeSaveData :: Maybe FilePath -- ^ The file prefix to save to
+              -> String         -- ^ The suffix (extension) to add
+              -> String         -- ^ Informational message
+              -> ClusterData    -- ^ The cluster data
+              -> IO ()
+maybeSaveData Nothing _ _ _ = return ()
+maybeSaveData (Just path) ext msg cdata = do
+  let adata = Text.serializeCluster cdata
+      out_path = path <.> ext
+  writeFile out_path adata
+  hPrintf stderr "The cluster state %s has been written to file '%s'\n"
+          msg out_path

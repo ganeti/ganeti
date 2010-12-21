@@ -390,10 +390,13 @@ The options that can be passed to the program are as follows:
   collecting via RAPI or LUXI). This or one of the other backends must
   be selected.
 
--S *datafile*, --save-cluster=*datafile*
-  If given, the state of the cluster at the end of the balancing is
-  saved to the given file. This allows re-feeding the cluster state to
-  either hbal itself or for example hspace.
+-S *filename*, --save-cluster=*filename*
+  If given, the state of the cluster before the balancing is saved to
+  the given file plus the extension "original"
+  (i.e. *filename*.original), and the state at the end of the
+  balancing is saved to the given file plus the extension "balanced"
+  (i.e. *filename*.balanced). This allows re-feeding the cluster state
+  to either hbal itself or for example hspace.
 
 -m *cluster*
  Collect data directly from the *cluster* given as an argument via

@@ -51,8 +51,6 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader (ClusterData(..))
 
-import Ganeti.HTools.Text (serializeCluster)
-
 import qualified Ganeti.Luxi as L
 import Ganeti.Jobs
 
@@ -236,7 +234,7 @@ main = do
       verbose = optVerbose opts
       shownodes = optShowNodes opts
 
-  (ClusterData gl fixed_nl ilf ctags) <- loadExternalData opts
+  ini_cdata@(ClusterData gl fixed_nl ilf ctags) <- loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
@@ -284,6 +282,8 @@ main = do
            (flip Container.find gl) . fst) ngroups
     hPutStrLn stderr "Aborting."
     exitWith $ ExitFailure 1
+
+  maybeSaveData (optSaveCluster opts) "original" "before balancing" ini_cdata
 
   unless oneline $ printf "Loaded %d nodes, %d instances\n"
              (Container.size nlf)
@@ -397,12 +397,8 @@ main = do
             writeFile out_path (shTemplate ++ cmd_data)
             printf "The commands have been written to file '%s'\n" out_path)
 
-  when (isJust $ optSaveCluster opts) $
-       do
-         let out_path = fromJust $ optSaveCluster opts
-             adata = serializeCluster (ClusterData gl fin_nl fin_il ctags)
-         writeFile out_path adata
-         printf "The cluster state has been written to file '%s'\n" out_path
+  maybeSaveData (optSaveCluster opts) "balanced" "after balancing"
+                (ClusterData gl fin_nl fin_il ctags)
 
   when (optShowInsts opts) $ do
          putStrLn ""
