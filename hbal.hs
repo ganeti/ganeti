@@ -155,18 +155,25 @@ waitForJobs client jids = do
 checkJobsStatus :: [JobStatus] -> Bool
 checkJobsStatus = all (== JOB_STATUS_SUCCESS)
 
+-- | Wrapper over execJobSet checking for early termination
+execWrapper :: String -> Node.List
+           -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
+execWrapper _      _  _  _    [] = return True
+execWrapper master nl il cref alljss = do
+  cancel <- readIORef cref
+  (if cancel > 0
+   then do
+     hPrintf stderr "Exiting early due to user request, %d\
+                    \ jobset(s) remaining." (length alljss)::IO ()
+     return False
+   else execJobSet master nl il cref alljss)
+
 -- | Execute an entire jobset
 execJobSet :: String -> Node.List
-           -> Instance.List -> IORef Int -> [JobSet] -> IO ()
-execJobSet _      _  _  _    [] = return ()
-execJobSet master nl il cref alljss@(js:jss) = do
+           -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
+execJobSet _      _  _  _    [] = return True
+execJobSet master nl il cref (js:jss) = do
   -- map from jobset (htools list of positions) to [[opcodes]]
-  cancel <- readIORef cref
-  when (cancel > 0) $ do
-    putStrLn ("Exiting early due to user request, " ++ show (length alljss) ++
-              " jobset(s) remaining.")
-    exitWith $ ExitFailure 1
-
   let jobs = map (\(_, idx, move, _) ->
                       Cluster.iMoveToJob nl il idx move) js
   let descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
@@ -183,13 +190,14 @@ execJobSet master nl il cref alljss@(js:jss) = do
   (case jrs of
      Bad x -> do
        hPutStrLn stderr $ "Cannot compute job status, aborting: " ++ show x
-       return ()
+       return False
      Ok x -> if checkJobsStatus x
-             then execJobSet master nl il cref jss
+             then execWrapper master nl il cref jss
              else do
                hPutStrLn stderr $ "Not all jobs completed successfully: " ++
                          show x
-               hPutStrLn stderr "Aborting.")
+               hPutStrLn stderr "Aborting."
+               return False)
 
 -- | Signal handler for graceful termination
 hangleSigInt :: IORef Int -> IO ()
@@ -206,12 +214,12 @@ hangleSigTerm cref = do
   putStrLn "Double cancel request, exiting now..."
   exitImmediately $ ExitFailure 2
 
-runJobSet :: String -> Node.List -> Instance.List -> [JobSet] -> IO ()
+runJobSet :: String -> Node.List -> Instance.List -> [JobSet] -> IO Bool
 runJobSet master fin_nl il cmd_jobs = do
   cref <- newIORef 0
   mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
     [(hangleSigTerm, softwareTermination), (hangleSigInt, keyboardSignal)]
-  execJobSet master fin_nl il cref cmd_jobs
+  execWrapper master fin_nl il cref cmd_jobs
 
 -- | Main function.
 main :: IO ()
@@ -416,9 +424,12 @@ main = do
   when oneline $
          putStrLn $ formatOneline ini_cv (length ord_plc) fin_cv
 
-  when (optExecJobs opts && not (null ord_plc))
-           (case optLuxi opts of
+  eval <-
+      if optExecJobs opts && not (null ord_plc)
+      then (case optLuxi opts of
               Nothing -> do
                 hPutStrLn stderr "Execution of commands possible only on LUXI"
-                exitWith $ ExitFailure 1
+                return False
               Just master -> runJobSet master fin_nl il cmd_jobs)
+      else return True
+  when (not eval) (exitWith (ExitFailure 1))
