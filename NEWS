@@ -2,6 +2,23 @@ Ganeti-htools release notes
 ===========================
 
 
+Version 0.2.8 (Thu, 23 Dec 2010)
+--------------------------------
+
+A bug fix release:
+
+- fixed balancing function for big clusters, which will improve corner
+  cases where hbal didn't see any solution even though the cluster was
+  obviously not well balanced
+- fixed exit code of hbal in case of (Luxi) job errors
+- changed the signal handling in hbal in order to make hbal control
+  easier: instead of synchronising on the count of signals, make SIGINT
+  cause graceful termination, and SIGTERM an immediate one
+- increased the tag exclusion weight so that it has greater importance
+  during the balancing
+- slight improvement to the speed of balancing via algorithm tweaks
+
+
 Version 0.2.7 (Thu, 07 Oct 2010)
 --------------------------------
 
