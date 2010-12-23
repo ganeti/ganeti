@@ -230,16 +230,16 @@ compDetailedCV nl =
         mem_l = map Node.pMem nodes
         dsk_l = map Node.pDsk nodes
         -- metric: memory covariance
-        mem_cv = varianceCoeff mem_l
+        mem_cv = stdDev mem_l
         -- metric: disk covariance
-        dsk_cv = varianceCoeff dsk_l
+        dsk_cv = stdDev dsk_l
         -- metric: count of instances living on N1 failing nodes
         n1_score = fromIntegral . sum . map (\n -> length (Node.sList n) +
                                                    length (Node.pList n)) .
                    filter Node.failN1 $ nodes :: Double
         res_l = map Node.pRem nodes
         -- metric: reserved memory covariance
-        res_cv = varianceCoeff res_l
+        res_cv = stdDev res_l
         -- offline instances metrics
         offline_ipri = sum . map (length . Node.pList) $ offline
         offline_isec = sum . map (length . Node.sList) $ offline
@@ -251,7 +251,7 @@ compDetailedCV nl =
         off_pri_score = fromIntegral offline_ipri::Double
         cpu_l = map Node.pCpu nodes
         -- metric: covariance of vcpu/pcpu ratio
-        cpu_cv = varianceCoeff cpu_l
+        cpu_cv = stdDev cpu_l
         -- metrics: covariance of cpu, memory, disk and network load
         (c_load, m_load, d_load, n_load) = unzip4 $
             map (\n ->
@@ -263,8 +263,7 @@ compDetailedCV nl =
         pri_tags_inst = sum $ map Node.conflictingPrimaries nodes
         pri_tags_score = fromIntegral pri_tags_inst::Double
     in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, off_pri_score, cpu_cv
-       , varianceCoeff c_load, varianceCoeff m_load
-       , varianceCoeff d_load, varianceCoeff n_load
+       , stdDev c_load, stdDev m_load , stdDev d_load, stdDev n_load
        , pri_tags_score ]
 
 -- | Compute the /total/ variance.

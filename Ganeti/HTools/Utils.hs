@@ -27,7 +27,7 @@ module Ganeti.HTools.Utils
     , debugFn
     , debugXy
     , sepSplit
-    , varianceCoeff
+    , stdDev
     , commaJoin
     , readEitherString
     , loadJSArray
@@ -87,9 +87,9 @@ sepSplit sep s
 -- Simple and slow statistical functions, please replace with better
 -- versions
 
--- | Our modified standard deviation function (not, it's not the variance)
-varianceCoeff :: [Double] -> Double
-varianceCoeff lst =
+-- | Standard deviation function
+stdDev :: [Double] -> Double
+stdDev lst =
   -- first, calculate the list length and sum lst in a single step,
   -- for performance reasons
   let (ll', sx) = foldl' (\(rl, rs) e ->
@@ -99,9 +99,7 @@ varianceCoeff lst =
       ll = fromIntegral ll'::Double
       mv = sx / ll
       av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
-      bv = sqrt (av / ll) -- stddev
-      cv = bv / ll        -- standard deviation divided by list length
-  in cv
+  in sqrt (av / ll) -- stddev
 
 -- * JSON-related functions
 
