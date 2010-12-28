@@ -157,7 +157,10 @@ annotateResult _ v = v
 -- | Try to extract a key from a object with better error reporting
 -- than fromObj
 tryFromObj :: (J.JSON a) =>
-              String -> [(String, J.JSValue)] -> String -> Result a
+              String                -- ^ Textual "owner" in error messages
+           -> [(String, J.JSValue)] -- ^ The object array
+           -> String                -- ^ The desired key from the object
+           -> Result a
 tryFromObj t o k = annotateResult t (fromObj k o)
 
 -- | Small wrapper over readJSON.
