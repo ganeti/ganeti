@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ data OpStatus = OP_STATUS_QUEUED
               | OP_STATUS_CANCELED
               | OP_STATUS_SUCCESS
               | OP_STATUS_ERROR
-                deriving (Eq, Enum, Bounded, Show)
+                deriving (Eq, Enum, Bounded, Show, Read)
 
 instance JSON OpStatus where
     showJSON os = showJSON w
@@ -70,7 +70,7 @@ data JobStatus = JOB_STATUS_QUEUED
                | JOB_STATUS_CANCELING
                | JOB_STATUS_CANCELED
                | JOB_STATUS_ERROR
-                 deriving (Eq, Enum, Ord, Bounded, Show)
+                 deriving (Eq, Enum, Ord, Bounded, Show, Read)
 
 instance JSON JobStatus where
     showJSON js = showJSON w

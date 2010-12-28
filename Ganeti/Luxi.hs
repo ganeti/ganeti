@@ -76,7 +76,7 @@ data LuxiOp = QueryInstances [String] [String] Bool
             | CancelJob Int
             | SetDrainFlag Bool
             | SetWatcherPause Double
-              deriving (Show)
+              deriving (Show, Read)
 
 -- | The serialisation of LuxiOps into strings in messages.
 strOfOp :: LuxiOp -> String

@@ -98,7 +98,7 @@ data AllocPolicy
                        -- last-resort, after the preferred groups
     | AllocUnallocable -- ^ This group must not be used for new
                        -- allocations
-      deriving (Show, Eq, Ord)
+      deriving (Show, Read, Eq, Ord)
 
 -- | Convert a string to an alloc policy
 apolFromString :: (Monad m) => String -> m AllocPolicy
@@ -127,7 +127,7 @@ data RSpec = RSpec
     { rspecCpu  :: Int  -- ^ Requested VCPUs
     , rspecMem  :: Int  -- ^ Requested memory
     , rspecDsk  :: Int  -- ^ Requested disk
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).
@@ -136,7 +136,7 @@ data DynUtil = DynUtil
     , memWeight :: Weight -- ^ Standardised memory load
     , dskWeight :: Weight -- ^ Standardised disk I\/O usage
     , netWeight :: Weight -- ^ Standardised network usage
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 -- | Initial empty utilisation
 zeroUtil :: DynUtil
@@ -166,7 +166,7 @@ data IMove = Failover                -- ^ Failover the instance (f)
            | ReplaceSecondary Ndx    -- ^ Replace secondary (r:ns)
            | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)
            | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
-             deriving (Show)
+             deriving (Show, Read)
 
 -- | Formatted solution output for one move (involved nodes and
 -- commands
@@ -217,7 +217,7 @@ mini-library here
 data Result a
     = Bad String
     | Ok a
-    deriving (Show)
+    deriving (Show, Read)
 
 instance Monad Result where
     (>>=) (Bad x) _ = Bad x
@@ -240,7 +240,7 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
               | FailTags -- ^ Failed due to tag exclusion
-                deriving (Eq, Enum, Bounded, Show)
+                deriving (Eq, Enum, Bounded, Show, Read)
 
 -- | List with failure statistics
 type FailStats = [(FailMode, Int)]
@@ -248,7 +248,7 @@ type FailStats = [(FailMode, Int)]
 -- | Either-like data-type customized for our failure modes
 data OpResult a = OpFail FailMode -- ^ Failed operation
                 | OpGood a        -- ^ Success operation
-                  deriving (Show)
+                  deriving (Show, Read)
 
 instance Monad OpResult where
     (OpGood x) >>= fn = fn x

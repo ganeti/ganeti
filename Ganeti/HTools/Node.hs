@@ -122,7 +122,7 @@ data Node = Node
     , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
     , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
     , group    :: T.Gdx     -- ^ The node's group (index)
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 instance T.Element Node where
     nameOf = name

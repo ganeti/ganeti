@@ -7,7 +7,7 @@ intelligence is in the "Node" and "Cluster" modules.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ data Instance = Instance { name :: String    -- ^ The instance name
                          , util :: T.DynUtil -- ^ Dynamic resource usage
                          , movable :: Bool   -- ^ Can the instance be moved?
                          , tags :: [String]  -- ^ List of instance tags
-                         } deriving (Show)
+                         } deriving (Show, Read)
 
 instance T.Element Instance where
     nameOf   = name

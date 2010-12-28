@@ -70,11 +70,11 @@ data RqType
     | Relocate Idx Int [Ndx]         -- ^ Move an instance to a new
                                      -- secondary node
     | Evacuate [Ndx]                 -- ^ Evacuate nodes
-    deriving (Show)
+    deriving (Show, Read)
 
 -- | A complete request, as received from Ganeti.
 data Request = Request RqType ClusterData
-    deriving (Show)
+    deriving (Show, Read)
 
 -- | The cluster state.
 data ClusterData = ClusterData
@@ -82,7 +82,7 @@ data ClusterData = ClusterData
     , cdNodes     :: Node.List     -- ^ The node list
     , cdInstances :: Instance.List -- ^ The instance list
     , cdTags      :: [String]      -- ^ The cluster tags
-    } deriving (Show)
+    } deriving (Show, Read)
 
 -- | An empty cluster.
 emptyCluster :: ClusterData

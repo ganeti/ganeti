@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ data ReplaceDisksMode = ReplaceOnPrimary
                   | ReplaceOnSecondary
                   | ReplaceNewSecondary
                   | ReplaceAuto
-                  deriving (Show, Eq)
+                  deriving (Show, Read, Eq)
 
 instance JSON ReplaceDisksMode where
     showJSON m = case m of
@@ -60,7 +60,7 @@ data OpCode = OpTestDelay Double Bool [String]
               [Int] (Maybe String)
             | OpFailoverInstance String Bool
             | OpMigrateInstance String Bool Bool
-            deriving (Show, Eq)
+            deriving (Show, Read, Eq)
 
 
 opID :: OpCode -> String

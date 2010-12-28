@@ -44,7 +44,7 @@ data Group = Group
     , uuid        :: T.GroupID     -- ^ The UUID of the group
     , idx         :: T.Gdx         -- ^ Internal index for book-keeping
     , allocPolicy :: T.AllocPolicy -- ^ The allocation policy for this group
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 -- Note: we use the name as the alias, and the UUID as the official
 -- name

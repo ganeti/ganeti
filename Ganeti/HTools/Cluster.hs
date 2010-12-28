@@ -51,6 +51,7 @@ module Ganeti.HTools.Cluster
     , doNextBalance
     , tryBalance
     , compCV
+    , compDetailedCV
     , printStats
     , iMoveToJob
     -- * IAllocator functions
@@ -102,7 +103,7 @@ emptySolution = AllocSolution { asFailures = [], asAllocs = 0
 
 -- | The complete state for the balancing solution
 data Table = Table Node.List Instance.List Score [Placement]
-             deriving (Show)
+             deriving (Show, Read)
 
 data CStats = CStats { csFmem :: Int    -- ^ Cluster free mem
                      , csFdsk :: Int    -- ^ Cluster free disk
@@ -126,7 +127,7 @@ data CStats = CStats { csFmem :: Int    -- ^ Cluster free mem
                      , csScore :: Score -- ^ The cluster score
                      , csNinst :: Int   -- ^ The total number of instances
                      }
-            deriving (Show)
+            deriving (Show, Read)
 
 -- | Currently used, possibly to allocate, unallocable
 type AllocStats = (RSpec, RSpec, RSpec)
