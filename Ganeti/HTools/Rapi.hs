@@ -29,6 +29,7 @@ module Ganeti.HTools.Rapi
     , parseData
     ) where
 
+import Data.Maybe (isJust)
 import Network.Curl
 import Network.Curl.Types ()
 import Control.Monad
@@ -80,6 +81,11 @@ getGroups :: String -> Result [(String, Group.Group)]
 getGroups body = loadJSArray "Parsing group data" body >>=
                 mapM (parseGroup . fromJSObject)
 
+getFakeGroups :: Result [(String, Group.Group)]
+getFakeGroups =
+  return $ [(defaultGroupID,
+             Group.create "default" defaultGroupID AllocPreferred)]
+
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc
               -> [(String, JSValue)]
@@ -111,7 +117,9 @@ parseNode ktg a = do
   let extract s = tryFromObj ("Node '" ++ name ++ "'") a s
   offline <- extract "offline"
   drained <- extract "drained"
-  guuid   <- extract "group.uuid" >>= lookupGroup ktg name
+  guuid   <- (if isJust $ lookup "group.uuid" a
+             then extract "group.uuid"
+             else return defaultGroupID) >>= lookupGroup ktg name
   node <- (if offline || drained
            then return $ Node.create name 0 0 0 0 0 0 True guuid
            else do
@@ -149,7 +157,12 @@ readData master = do
 parseData :: (Result String, Result String, Result String, Result String)
           -> Result ClusterData
 parseData (group_body, node_body, inst_body, tags_body) = do
-  group_data <- group_body >>= getGroups
+  group_data <-
+      -- TODO: handle different ganeti versions properly, not via "all
+      -- errors mean Ganeti 2.3"
+      case group_body of
+        Bad _ -> getFakeGroups
+        Ok v -> getGroups v
   let (group_names, group_idx) = assignIndices group_data
   node_data <- node_body >>= getNodes group_names
   let (node_names, node_idx) = assignIndices node_data
