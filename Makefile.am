@@ -324,7 +324,8 @@ qa_scripts = \
 	qa/qa_tags.py \
 	qa/qa_utils.py
 
-dist_sbin_SCRIPTS =
+dist_sbin_SCRIPTS = \
+	tools/ganeti-listrunner
 
 nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP) \
@@ -397,6 +398,7 @@ man_MANS = \
 	man/ganeti.7 \
 	man/ganeti-cleaner.8 \
 	man/ganeti-confd.8 \
+	man/ganeti-listrunner.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
