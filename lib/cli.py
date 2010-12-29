@@ -2402,6 +2402,9 @@ class _QueryColumnFormatter:
     if status == constants.QRFS_UNAVAIL:
       return "(unavail)"
 
+    if status == constants.QRFS_OFFLINE:
+      return "(offline)"
+
     raise NotImplementedError("Unknown status %s" % status)
 
 

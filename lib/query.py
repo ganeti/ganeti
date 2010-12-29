@@ -421,14 +421,19 @@ def _GetNodeGroup(ctx, node):
   return (constants.QRFS_NORMAL, ng.name)
 
 
-def _GetLiveNodeField(field, kind, ctx, _):
+def _GetLiveNodeField(field, kind, ctx, node):
   """Gets the value of a "live" field from L{NodeQueryData}.
 
   @param field: Live field name
   @param kind: Data kind, one of L{constants.QFT_ALL}
   @type ctx: L{NodeQueryData}
+  @type node: L{objects.Node}
+  @param node: Node object
 
   """
+  if node.offline:
+    return (constants.QRFS_OFFLINE, None)
+
   if not ctx.curlive_data:
     return (constants.QRFS_NODATA, None)
 
@@ -571,6 +576,8 @@ def _GetInstOperState(ctx, inst):
   @param inst: Instance object
 
   """
+  # Can't use QRFS_OFFLINE here as it would describe the instance to be offline
+  # when we actually don't know due to missing data
   if inst.primary_node in ctx.bad_nodes:
     return (constants.QRFS_NODATA, None)
   else:
@@ -594,6 +601,8 @@ def _GetInstLiveData(name):
     """
     if (inst.primary_node in ctx.bad_nodes or
         inst.primary_node in ctx.offline_nodes):
+      # Can't use QRFS_OFFLINE here as it would describe the instance to be
+      # offline when we actually don't know due to missing data
       return (constants.QRFS_NODATA, None)
 
     if inst.name in ctx.live_data:

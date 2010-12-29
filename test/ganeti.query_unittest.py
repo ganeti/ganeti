@@ -434,16 +434,17 @@ class TestNodeQuery(unittest.TestCase):
 
   def testGetLiveNodeField(self):
     nodes = [
-      objects.Node(name="node1", drained=False),
-      objects.Node(name="node2", drained=True),
-      objects.Node(name="node3", drained=False),
+      objects.Node(name="node1", drained=False, offline=False),
+      objects.Node(name="node2", drained=True, offline=False),
+      objects.Node(name="node3", drained=False, offline=False),
+      objects.Node(name="node4", drained=False, offline=True),
       ]
     live_data = dict.fromkeys([node.name for node in nodes], {})
 
     # No data
     nqd = query.NodeQueryData(None, None, None, None, None, None)
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
-                                             nqd, None),
+                                             nqd, nodes[0]),
                      (constants.QRFS_NODATA, None))
 
     # Missing field
@@ -452,7 +453,7 @@ class TestNodeQuery(unittest.TestCase):
       "other": 2,
       })
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
-                                             ctx, None),
+                                             ctx, nodes[0]),
                      (constants.QRFS_UNAVAIL, None))
 
     # Wrong format/datatype
@@ -461,13 +462,20 @@ class TestNodeQuery(unittest.TestCase):
       "other": 2,
       })
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
-                                             ctx, None),
+                                             ctx, nodes[0]),
                      (constants.QRFS_UNAVAIL, None))
+
+    # Offline node
+    assert nodes[3].offline
+    ctx = _QueryData(None, curlive_data={})
+    self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
+                                             ctx, nodes[3]),
+                     (constants.QRFS_OFFLINE, None))
 
     # Wrong field type
     ctx = _QueryData(None, curlive_data={"hello": 123})
     self.assertRaises(AssertionError, query._GetLiveNodeField,
-                      "hello", constants.QFT_BOOL, ctx, None)
+                      "hello", constants.QFT_BOOL, ctx, nodes[0])
 
 
 class TestInstanceQuery(unittest.TestCase):

@@ -170,6 +170,8 @@ The result is a dictionary with the following entries:
   Value unavailable for item (numeric 3)
     Used if, for example, NIC 3 is requested for an instance with only
     one network interface. Value must be ``None``.
+  Resource offline (numeric 4)
+    Used if resource is marked offline. Value must be ``None``.
 
 Example response after requesting the fields ``name``, ``mfree``,
 ``xyz``, ``mtotal``, ``nic0.ip``, ``nic1.ip`` and ``nic2.ip``::

@@ -379,24 +379,29 @@ class TestFormatQueryResult(unittest.TestCase):
                                    kind=constants.QFT_BOOL),
       objects.QueryFieldDefinition(name="nodata", title="NoData",
                                    kind=constants.QFT_TEXT),
+      objects.QueryFieldDefinition(name="offline", title="OffLine",
+                                   kind=constants.QFT_TEXT),
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
       [(constants.QRFS_NORMAL, 1), (constants.QRFS_UNKNOWN, None),
-       (constants.QRFS_NORMAL, False), (constants.QRFS_NORMAL, "")],
+       (constants.QRFS_NORMAL, False), (constants.QRFS_NORMAL, ""),
+       (constants.QRFS_OFFLINE, None)],
       [(constants.QRFS_NORMAL, 2), (constants.QRFS_UNKNOWN, None),
-       (constants.QRFS_NODATA, None), (constants.QRFS_NORMAL, "x")],
+       (constants.QRFS_NODATA, None), (constants.QRFS_NORMAL, "x"),
+       (constants.QRFS_OFFLINE, None)],
       [(constants.QRFS_NORMAL, 3), (constants.QRFS_UNKNOWN, None),
-       (constants.QRFS_NORMAL, False), (constants.QRFS_UNAVAIL, None)],
+       (constants.QRFS_NORMAL, False), (constants.QRFS_UNAVAIL, None),
+       (constants.QRFS_OFFLINE, None)],
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, header=True,
                                            separator="|"),
       (cli.QR_UNKNOWN, [
-      "ID|unk|Unavail|NoData",
-      "1|(unknown)|N|",
-      "2|(unknown)|(nodata)|x",
-      "3|(unknown)|N|(unavail)",
+      "ID|unk|Unavail|NoData|OffLine",
+      "1|(unknown)|N||(offline)",
+      "2|(unknown)|(nodata)|x|(offline)",
+      "3|(unknown)|N|(unavail)|(offline)",
       ]))
 
   def testNoData(self):
@@ -433,23 +438,25 @@ class TestFormatQueryResult(unittest.TestCase):
                                    kind=constants.QFT_BOOL),
       objects.QueryFieldDefinition(name="nodata", title="NoData",
                                    kind=constants.QFT_TEXT),
+      objects.QueryFieldDefinition(name="offline", title="OffLine",
+                                   kind=constants.QFT_TEXT),
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
       [(constants.QRFS_NORMAL, 1), (constants.QRFS_NORMAL, False),
-       (constants.QRFS_NORMAL, "")],
+       (constants.QRFS_NORMAL, ""), (constants.QRFS_OFFLINE, None)],
       [(constants.QRFS_NORMAL, 2), (constants.QRFS_NODATA, None),
-       (constants.QRFS_NORMAL, "x")],
+       (constants.QRFS_NORMAL, "x"), (constants.QRFS_NORMAL, "abc")],
       [(constants.QRFS_NORMAL, 3), (constants.QRFS_NORMAL, False),
-       (constants.QRFS_UNAVAIL, None)],
+       (constants.QRFS_UNAVAIL, None), (constants.QRFS_OFFLINE, None)],
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, header=False,
                                            separator="|"),
       (cli.QR_INCOMPLETE, [
-      "1|N|",
-      "2|(nodata)|x",
-      "3|N|(unavail)",
+      "1|N||(offline)",
+      "2|(nodata)|x|abc",
+      "3|N|(unavail)|(offline)",
       ]))
 
   def testInvalidFieldType(self):

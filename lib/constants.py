@@ -978,21 +978,25 @@ QFT_ALL = frozenset([
   QFT_OTHER,
   ])
 
-# Query result field status (don't change values as they're used by clients)
+# Query result field status (don't change or reuse values as they're used by
+# clients)
 #: Normal field status
 QRFS_NORMAL = 0
 #: Unknown field
 QRFS_UNKNOWN = 1
-#: No data (e.g. node offline)
+#: No data (e.g. RPC error), can be used instead of L{QRFS_OFFLINE}
 QRFS_NODATA = 2
 #: Value unavailable for item
 QRFS_UNAVAIL = 3
+#: Resource marked offline
+QRFS_OFFLINE = 4
 
 QRFS_ALL = frozenset([
   QRFS_NORMAL,
   QRFS_UNKNOWN,
   QRFS_NODATA,
   QRFS_UNAVAIL,
+  QRFS_OFFLINE,
   ])
 
 # max dynamic devices
