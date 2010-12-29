@@ -2391,13 +2391,13 @@ class _QueryColumnFormatter:
            "Found value %r for abnormal status %s" % (value, status)
 
     if status == constants.QRFS_UNKNOWN:
-      return "<unknown>"
+      return "(unknown)"
 
     if status == constants.QRFS_NODATA:
-      return "<nodata>"
+      return "(nodata)"
 
     if status == constants.QRFS_UNAVAIL:
-      return "<unavail>"
+      return "(unavail)"
 
     raise NotImplementedError("Unknown status %s" % status)
 

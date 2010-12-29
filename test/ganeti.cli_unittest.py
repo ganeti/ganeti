@@ -394,9 +394,9 @@ class TestFormatQueryResult(unittest.TestCase):
                                            separator="|"),
       (cli.QR_UNKNOWN, [
       "ID|unk|Unavail|NoData",
-      "1|<unknown>|N|",
-      "2|<unknown>|<nodata>|x",
-      "3|<unknown>|N|<unavail>",
+      "1|(unknown)|N|",
+      "2|(unknown)|(nodata)|x",
+      "3|(unknown)|N|(unavail)",
       ]))
 
   def testNoData(self):
@@ -448,8 +448,8 @@ class TestFormatQueryResult(unittest.TestCase):
                                            separator="|"),
       (cli.QR_INCOMPLETE, [
       "1|N|",
-      "2|<nodata>|x",
-      "3|N|<unavail>",
+      "2|(nodata)|x",
+      "3|N|(unavail)",
       ]))
 
   def testInvalidFieldType(self):
