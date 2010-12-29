@@ -708,10 +708,11 @@ prop_ClusterCanTieredAlloc node inst =
             ==>
     let nl = makeSmallCluster node count
         il = Container.empty
-    in case Cluster.tieredAlloc nl il inst rqnodes [] of
+    in case Cluster.tieredAlloc nl il inst rqnodes [] []of
          Types.Bad _ -> False
-         Types.Ok (_, _, il', ixes) -> not (null ixes) &&
-                                      IntMap.size il' == length ixes
+         Types.Ok (_, _, il', ixes, cstats) -> not (null ixes) &&
+                                      IntMap.size il' == length ixes &&
+                                      length ixes == length cstats
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also evacuate it
@@ -752,9 +753,9 @@ prop_ClusterAllocBalance node =
         il = Container.empty
         rqnodes = 2
         i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
-    in case Cluster.iterateAlloc nl' il i_templ rqnodes [] of
+    in case Cluster.iterateAlloc nl' il i_templ rqnodes [] [] of
          Types.Bad _ -> False
-         Types.Ok (_, xnl, il', _) ->
+         Types.Ok (_, xnl, il', _, _) ->
                    let ynl = Container.add (Node.idx hnode) hnode xnl
                        cv = Cluster.compCV ynl
                        tbl = Cluster.Table ynl il' cv []

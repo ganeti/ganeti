@@ -748,9 +748,10 @@ iterateAlloc :: Node.List
              -> Instance.Instance
              -> Int
              -> [Instance.Instance]
+             -> [CStats]
              -> Result (FailStats, Node.List, Instance.List,
-                        [Instance.Instance])
-iterateAlloc nl il newinst nreq ixes =
+                        [Instance.Instance], [CStats])
+iterateAlloc nl il newinst nreq ixes cstats =
       let depth = length ixes
           newname = printf "new-%d" depth::String
           newidx = length (Container.elems il) + depth
@@ -759,10 +760,11 @@ iterateAlloc nl il newinst nreq ixes =
            Bad s -> Bad s
            Ok (AllocSolution { asFailures = errs, asSolutions = sols3 }) ->
                case sols3 of
-                 [] -> Ok (collapseFailures errs, nl, il, ixes)
+                 [] -> Ok (collapseFailures errs, nl, il, ixes, cstats)
                  (xnl, xi, _, _):[] ->
                      iterateAlloc xnl (Container.add newidx xi il)
-                                  newinst nreq $! (xi:ixes)
+                                  newinst nreq (xi:ixes)
+                                  (totalResources xnl:cstats)
                  _ -> Bad "Internal error: multiple solutions for single\
                           \ allocation"
 
@@ -772,17 +774,18 @@ tieredAlloc :: Node.List
             -> Instance.Instance
             -> Int
             -> [Instance.Instance]
+            -> [CStats]
             -> Result (FailStats, Node.List, Instance.List,
-                       [Instance.Instance])
-tieredAlloc nl il newinst nreq ixes =
-    case iterateAlloc nl il newinst nreq ixes of
+                       [Instance.Instance], [CStats])
+tieredAlloc nl il newinst nreq ixes cstats =
+    case iterateAlloc nl il newinst nreq ixes cstats of
       Bad s -> Bad s
-      Ok (errs, nl', il', ixes') ->
+      Ok (errs, nl', il', ixes', cstats') ->
           case Instance.shrinkByType newinst . fst . last $
                sortBy (comparing snd) errs of
-            Bad _ -> Ok (errs, nl', il', ixes')
+            Bad _ -> Ok (errs, nl', il', ixes', cstats')
             Ok newinst' ->
-                tieredAlloc nl' il' newinst' nreq ixes'
+                tieredAlloc nl' il' newinst' nreq ixes' cstats'
 
 -- | Compute the tiered spec string description from a list of
 -- allocated instances.
