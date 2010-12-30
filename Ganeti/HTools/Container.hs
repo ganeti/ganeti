@@ -7,7 +7,7 @@ give the best performance for our workload.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2010 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ module Ganeti.HTools.Container
      -- * Creation
     , IntMap.empty
     , IntMap.singleton
-    , fromAssocList
+    , IntMap.fromList
      -- * Query
     , IntMap.size
     , IntMap.null
@@ -68,10 +68,6 @@ find k = (IntMap.! k)
 -- | Add or update one element to the map.
 add :: Key -> a -> Container a -> Container a
 add = IntMap.insert
-
--- | Create a map from an association list.
-fromAssocList :: [(Key, a)] -> Container a
-fromAssocList = IntMap.fromList
 
 -- | Add or update two elements of the map.
 addTwo :: Key -> a -> Key -> a -> Container a -> Container a

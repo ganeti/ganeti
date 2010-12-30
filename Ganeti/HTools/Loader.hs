@@ -119,7 +119,7 @@ assignIndices nodes =
   let (na, idx_node) =
           unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
           . zip [0..] $ nodes
-  in (M.fromList na, Container.fromAssocList idx_node)
+  in (M.fromList na, Container.fromList idx_node)
 
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: Node.List

@@ -85,7 +85,7 @@ defGroup = flip Group.setIdx 0 $
                     Types.AllocPreferred
 
 defGroupList :: Group.List
-defGroupList = Container.fromAssocList [(Group.idx defGroup, defGroup)]
+defGroupList = Container.fromList [(Group.idx defGroup, defGroup)]
 
 defGroupAssoc :: Data.Map.Map String Types.Gdx
 defGroupAssoc = Data.Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
@@ -325,7 +325,7 @@ prop_Container_findByName node othername =
                                              nn { Node.name = name,
                                                   Node.alias = alias }))
                $ zip names nodes
-      nl' = Container.fromAssocList nodes'
+      nl' = Container.fromList nodes'
       target = snd (nodes' !! fidx)
   in Container.findByName nl' (Node.name target) == Just target &&
      Container.findByName nl' (Node.alias target) == Just target &&
@@ -655,7 +655,7 @@ prop_Score_Zero node count =
      (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
         nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]
-        nl = Container.fromAssocList nlst
+        nl = Container.fromList nlst
         score = Cluster.compCV nl
     -- we can't say == 0 here as the floating point errors accumulate;
     -- this should be much lower than the default score in CLI.hs
@@ -667,7 +667,7 @@ prop_CStats_sane node count =
      (Node.availDisk node > 0) && (Node.availMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
         nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]
-        nl = Container.fromAssocList nlst
+        nl = Container.fromList nlst
         cstats = Cluster.totalResources nl
     in Cluster.csAdsk cstats >= 0 &&
        Cluster.csAdsk cstats <= Cluster.csFdsk cstats
@@ -770,7 +770,7 @@ prop_ClusterCheckConsistency node inst =
       inst1 = Instance.setBoth inst (Node.idx node1) (Node.idx node2)
       inst2 = Instance.setBoth inst (Node.idx node1) Node.noSecondary
       inst3 = Instance.setBoth inst (Node.idx node1) (Node.idx node3)
-      ccheck = Cluster.findSplitInstances nl' . Container.fromAssocList
+      ccheck = Cluster.findSplitInstances nl' . Container.fromList
   in null (ccheck [(0, inst1)]) &&
      null (ccheck [(0, inst2)]) &&
      (not . null $ ccheck [(0, inst3)])
@@ -849,7 +849,7 @@ prop_Loader_assignIndices nodes =
 -- | Checks that the number of primary instances recorded on the nodes
 -- is zero
 prop_Loader_mergeData ns =
-  let na = Container.fromAssocList $ map (\n -> (Node.idx n, n)) ns
+  let na = Container.fromList $ map (\n -> (Node.idx n, n)) ns
   in case Loader.mergeData [] [] []
          (Loader.emptyCluster {Loader.cdNodes = na}) of
     Types.Bad _ -> False

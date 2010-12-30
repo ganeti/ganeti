@@ -999,4 +999,4 @@ splitCluster nl il =
            let nidxs = map Node.idx nodes
                nodes' = zip nidxs nodes
                instances = Container.filter ((`elem` nidxs) . Instance.pNode) il
-           in (guuid, (Container.fromAssocList nodes', instances))) ngroups
+           in (guuid, (Container.fromList nodes', instances))) ngroups

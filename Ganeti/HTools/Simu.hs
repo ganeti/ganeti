@@ -82,8 +82,8 @@ parseData ndata = do
   let ktn = map (\(idx, n) -> (idx, Node.setIdx n idx))
             $ zip [1..] nodes'
       ktg = map (\g -> (Group.idx g, g)) groups
-  return (ClusterData (Container.fromAssocList ktg)
-                      (Container.fromAssocList ktn) Container.empty [])
+  return (ClusterData (Container.fromList ktg)
+                      (Container.fromList ktn) Container.empty [])
 
 -- | Builds the cluster data from node\/instance files.
 loadData :: [String] -- ^ Cluster description in text format
