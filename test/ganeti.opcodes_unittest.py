@@ -41,6 +41,7 @@ class TestOpcodes(unittest.TestCase):
 
     for cls in opcodes.OP_MAPPING.values():
       self.assert_(cls.OP_ID.startswith("OP_"))
+      self.assert_(len(cls.OP_ID) > 3)
       self.assertEqual(cls.OP_ID, cls.OP_ID.upper())
 
       self.assertRaises(TypeError, cls, unsupported_parameter="some value")
@@ -83,6 +84,11 @@ class TestOpcodes(unittest.TestCase):
       self.assert_(summary.endswith(")"))
     else:
       self.assertEqual("OP_%s" % summary, op.OP_ID)
+
+  def testOpId(self):
+    self.assertFalse(utils.FindDuplicates(cls.OP_ID
+                                          for cls in opcodes._GetOpList()))
+    self.assertEqual(len(opcodes._GetOpList()), len(opcodes.OP_MAPPING))
 
   def testParams(self):
     supported_by_all = set(["debug_level", "dry_run", "priority"])

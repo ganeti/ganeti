@@ -1234,6 +1234,15 @@ class OpTestDummy(OpCode):
     ]
 
 
-OP_MAPPING = dict([(v.OP_ID, v) for v in globals().values()
-                   if (isinstance(v, type) and issubclass(v, OpCode) and
-                       hasattr(v, "OP_ID"))])
+def _GetOpList():
+  """Returns list of all defined opcodes.
+
+  Does not eliminate duplicates by C{OP_ID}.
+
+  """
+  return [v for v in globals().values()
+          if (isinstance(v, type) and issubclass(v, OpCode) and
+              hasattr(v, "OP_ID"))]
+
+
+OP_MAPPING = dict((v.OP_ID, v) for v in _GetOpList())
