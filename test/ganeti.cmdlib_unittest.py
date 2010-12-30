@@ -35,6 +35,7 @@ from ganeti import opcodes
 from ganeti import errors
 from ganeti import utils
 from ganeti import luxi
+from ganeti import ht
 
 import testutils
 import mocks
@@ -106,7 +107,10 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
 
     class TestOpcode(opcodes.OpCode):
       OP_ID = "OP_TEST"
-      __slots__ = ["iallocator", "node"]
+      OP_PARAMS = [
+        ("iallocator", None, ht.NoType),
+        ("node", None, ht.NoType),
+        ]
 
     default_iallocator = mocks.FakeConfig().GetDefaultIAllocator()
     other_iallocator = default_iallocator + "_not"

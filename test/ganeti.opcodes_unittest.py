@@ -27,6 +27,7 @@ import unittest
 
 from ganeti import utils
 from ganeti import opcodes
+from ganeti import ht
 
 import testutils
 
@@ -69,6 +70,11 @@ class TestOpcodes(unittest.TestCase):
         self.assert_(isinstance(restored, cls))
         self._checkSummary(restored)
 
+        for name in ["x_y_z", "hello_world"]:
+          assert name not in cls._all_slots()
+          for value in [None, True, False, [], "Hello World"]:
+            self.assertRaises(AttributeError, setattr, op, name, value)
+
   def _checkSummary(self, op):
     summary = op.Summary()
 
@@ -77,6 +83,47 @@ class TestOpcodes(unittest.TestCase):
       self.assert_(summary.endswith(")"))
     else:
       self.assertEqual("OP_%s" % summary, op.OP_ID)
+
+  def testParams(self):
+    supported_by_all = set(["debug_level", "dry_run", "priority"])
+
+    self.assert_(opcodes.BaseOpCode not in opcodes.OP_MAPPING.values())
+    self.assert_(opcodes.OpCode in opcodes.OP_MAPPING.values())
+
+    for cls in opcodes.OP_MAPPING.values():
+      all_slots = cls._all_slots()
+
+      self.assertEqual(len(set(all_slots) & supported_by_all), 3,
+                       msg=("Opcode %s doesn't support all base"
+                            " parameters (%r)" % (cls.OP_ID, supported_by_all)))
+
+      # All opcodes must have OP_PARAMS
+      self.assert_(hasattr(cls, "OP_PARAMS"),
+                   msg="%s doesn't have OP_PARAMS" % cls.OP_ID)
+
+      param_names = [name for (name, _, _) in cls.GetAllParams()]
+
+      self.assertEqual(all_slots, param_names)
+
+      # Without inheritance
+      self.assertEqual(cls.__slots__, [name for (name, _, _) in cls.OP_PARAMS])
+
+      # This won't work if parameters are converted to a dictionary
+      duplicates = utils.FindDuplicates(param_names)
+      self.assertFalse(duplicates,
+                       msg=("Found duplicate parameters %r in %s" %
+                            (duplicates, cls.OP_ID)))
+
+      # Check parameter definitions
+      for attr_name, aval, test in cls.GetAllParams():
+        self.assert_(attr_name)
+        self.assert_(test is None or test is ht.NoType or callable(test),
+                     msg=("Invalid type check for %s.%s" %
+                          (cls.OP_ID, attr_name)))
+
+        if callable(aval):
+          self.assertFalse(callable(aval()),
+                           msg="Default value returned by function is callable")
 
 
 if __name__ == "__main__":
