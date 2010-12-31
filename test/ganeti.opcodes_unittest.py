@@ -87,6 +87,34 @@ class TestOpcodes(unittest.TestCase):
     else:
       self.assertEqual("OP_%s" % summary, op.OP_ID)
 
+  def testSummary(self):
+    class _TestOp(opcodes.OpCode):
+      OP_ID = "OP_TEST"
+      OP_DSC_FIELD = "data"
+      OP_PARAMS = [
+        ("data", ht.NoDefault, ht.TString),
+        ]
+
+    self.assertEqual(_TestOp(data="").Summary(), "TEST()")
+    self.assertEqual(_TestOp(data="Hello World").Summary(),
+                     "TEST(Hello World)")
+    self.assertEqual(_TestOp(data="node1.example.com").Summary(),
+                     "TEST(node1.example.com)")
+
+  def testListSummary(self):
+    class _TestOp(opcodes.OpCode):
+      OP_ID = "OP_TEST"
+      OP_DSC_FIELD = "data"
+      OP_PARAMS = [
+        ("data", ht.NoDefault, ht.TList),
+        ]
+
+    self.assertEqual(_TestOp(data=["a", "b", "c"]).Summary(),
+                     "TEST(a,b,c)")
+    self.assertEqual(_TestOp(data=["a", None, "c"]).Summary(),
+                     "TEST(a,None,c)")
+    self.assertEqual(_TestOp(data=[1, 2, 3, 4]).Summary(), "TEST(1,2,3,4)")
+
   def testOpId(self):
     self.assertFalse(utils.FindDuplicates(cls.OP_ID
                                           for cls in opcodes._GetOpList()))
