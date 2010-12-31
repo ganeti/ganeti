@@ -28,6 +28,8 @@ import unittest
 from ganeti import utils
 from ganeti import opcodes
 from ganeti import ht
+from ganeti import constants
+from ganeti import errors
 
 import testutils
 
@@ -130,6 +132,98 @@ class TestOpcodes(unittest.TestCase):
         if callable(aval):
           self.assertFalse(callable(aval()),
                            msg="Default value returned by function is callable")
+
+  def testValidateNoModification(self):
+    class _TestOp(opcodes.OpCode):
+      OP_ID = "OP_TEST"
+      OP_PARAMS = [
+        ("nodef", ht.NoDefault, ht.TMaybeString),
+        ("wdef", "default", ht.TMaybeString),
+        ("number", 0, ht.TInt),
+        ("notype", None, ht.NoType),
+        ]
+
+    # Missing required parameter "nodef"
+    op = _TestOp()
+    before = op.__getstate__()
+    self.assertRaises(errors.OpPrereqError, op.Validate, False)
+    self.assertFalse(hasattr(op, "nodef"))
+    self.assertFalse(hasattr(op, "wdef"))
+    self.assertFalse(hasattr(op, "number"))
+    self.assertFalse(hasattr(op, "notype"))
+    self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
+
+    # Required parameter "nodef" is provided
+    op = _TestOp(nodef="foo")
+    before = op.__getstate__()
+    op.Validate(False)
+    self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
+    self.assertEqual(op.nodef, "foo")
+    self.assertFalse(hasattr(op, "wdef"))
+    self.assertFalse(hasattr(op, "number"))
+    self.assertFalse(hasattr(op, "notype"))
+
+    # Missing required parameter "nodef"
+    op = _TestOp(wdef="hello", number=999)
+    before = op.__getstate__()
+    self.assertRaises(errors.OpPrereqError, op.Validate, False)
+    self.assertFalse(hasattr(op, "nodef"))
+    self.assertFalse(hasattr(op, "notype"))
+    self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
+
+    # Wrong type for "nodef"
+    op = _TestOp(nodef=987)
+    before = op.__getstate__()
+    self.assertRaises(errors.OpPrereqError, op.Validate, False)
+    self.assertEqual(op.nodef, 987)
+    self.assertFalse(hasattr(op, "notype"))
+    self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
+
+    # Testing different types for "notype"
+    op = _TestOp(nodef="foo", notype=[1, 2, 3])
+    before = op.__getstate__()
+    op.Validate(False)
+    self.assertEqual(op.nodef, "foo")
+    self.assertEqual(op.notype, [1, 2, 3])
+    self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
+
+    op = _TestOp(nodef="foo", notype="Hello World")
+    before = op.__getstate__()
+    op.Validate(False)
+    self.assertEqual(op.nodef, "foo")
+    self.assertEqual(op.notype, "Hello World")
+    self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
+
+  def testValidateSetDefaults(self):
+    class _TestOp(opcodes.OpCode):
+      OP_ID = "OP_TEST"
+      OP_PARAMS = [
+        # Static default value
+        ("value1", "default", ht.TMaybeString),
+
+        # Default value callback
+        ("value2", lambda: "result", ht.TMaybeString),
+        ]
+
+    op = _TestOp()
+    before = op.__getstate__()
+    op.Validate(True)
+    self.assertNotEqual(op.__getstate__(), before,
+                        msg="Opcode was not modified")
+    self.assertEqual(op.value1, "default")
+    self.assertEqual(op.value2, "result")
+    self.assert_(op.dry_run is None)
+    self.assert_(op.debug_level is None)
+    self.assertEqual(op.priority, constants.OP_PRIO_DEFAULT)
+
+    op = _TestOp(value1="hello", value2="world", debug_level=123)
+    before = op.__getstate__()
+    op.Validate(True)
+    self.assertNotEqual(op.__getstate__(), before,
+                        msg="Opcode was not modified")
+    self.assertEqual(op.value1, "hello")
+    self.assertEqual(op.value2, "world")
+    self.assertEqual(op.debug_level, 123)
 
 
 if __name__ == "__main__":

@@ -33,6 +33,8 @@ opcodes.
 # few public methods:
 # pylint: disable-msg=R0903
 
+import logging
+
 from ganeti import constants
 from ganeti import errors
 from ganeti import ht
@@ -235,6 +237,43 @@ class BaseOpCode(object):
     for parent in cls.__mro__:
       slots.extend(getattr(parent, "OP_PARAMS", []))
     return slots
+
+  def Validate(self, set_defaults):
+    """Validate opcode parameters, optionally setting default values.
+
+    @type set_defaults: bool
+    @param set_defaults: Whether to set default values
+    @raise errors.OpPrereqError: When a parameter value doesn't match
+                                 requirements
+
+    """
+    for (attr_name, default, test) in self.GetAllParams():
+      assert test == ht.NoType or callable(test)
+
+      if not hasattr(self, attr_name):
+        if default == ht.NoDefault:
+          raise errors.OpPrereqError("Required parameter '%s.%s' missing" %
+                                     (self.OP_ID, attr_name),
+                                     errors.ECODE_INVAL)
+        elif set_defaults:
+          if callable(default):
+            dval = default()
+          else:
+            dval = default
+          setattr(self, attr_name, dval)
+
+      if test == ht.NoType:
+        # no tests here
+        continue
+
+      if set_defaults or hasattr(self, attr_name):
+        attr_val = getattr(self, attr_name)
+        if not test(attr_val):
+          logging.error("OpCode %s, parameter %s, has invalid type %s/value %s",
+                        self.OP_ID, attr_name, type(attr_val), attr_val)
+          raise errors.OpPrereqError("Parameter '%s.%s' fails validation" %
+                                     (self.OP_ID, attr_name),
+                                     errors.ECODE_INVAL)
 
 
 class OpCode(BaseOpCode):

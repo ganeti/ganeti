@@ -54,7 +54,6 @@ from ganeti import uidpool
 from ganeti import compat
 from ganeti import masterd
 from ganeti import netutils
-from ganeti import ht
 from ganeti import query
 from ganeti import qlang
 from ganeti import opcodes
@@ -134,32 +133,8 @@ class LogicalUnit(object):
     # Tasklets
     self.tasklets = None
 
-    # The new kind-of-type-system
-    op_id = self.op.OP_ID
-    for attr_name, aval, test in self.op.GetAllParams():
-      if not hasattr(op, attr_name):
-        if aval == ht.NoDefault:
-          raise errors.OpPrereqError("Required parameter '%s.%s' missing" %
-                                     (op_id, attr_name), errors.ECODE_INVAL)
-        else:
-          if callable(aval):
-            dval = aval()
-          else:
-            dval = aval
-          setattr(self.op, attr_name, dval)
-      attr_val = getattr(op, attr_name)
-      if test == ht.NoType:
-        # no tests here
-        continue
-      if not callable(test):
-        raise errors.ProgrammerError("Validation for parameter '%s.%s' failed,"
-                                     " given type is not a proper type (%s)" %
-                                     (op_id, attr_name, test))
-      if not test(attr_val):
-        logging.error("OpCode %s, parameter %s, has invalid type %s/value %s",
-                      self.op.OP_ID, attr_name, type(attr_val), attr_val)
-        raise errors.OpPrereqError("Parameter '%s.%s' fails validation" %
-                                   (op_id, attr_name), errors.ECODE_INVAL)
+    # Validate opcode parameters and set defaults
+    self.op.Validate(True)
 
     self.CheckArguments()
 
