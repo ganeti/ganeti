@@ -990,17 +990,23 @@ class _JobProcessor(object):
 
       # Consistency check
       assert compat.all(i.status in (constants.OP_STATUS_QUEUED,
+                                     constants.OP_STATUS_CANCELING,
                                      constants.OP_STATUS_CANCELED)
                         for i in job.ops[opctx.index + 1:])
 
       assert op.status in (constants.OP_STATUS_QUEUED,
                            constants.OP_STATUS_WAITLOCK,
+                           constants.OP_STATUS_CANCELING,
                            constants.OP_STATUS_CANCELED)
 
       assert (op.priority <= constants.OP_PRIO_LOWEST and
               op.priority >= constants.OP_PRIO_HIGHEST)
 
-      if op.status != constants.OP_STATUS_CANCELED:
+      if op.status not in (constants.OP_STATUS_CANCELING,
+                           constants.OP_STATUS_CANCELED):
+        assert op.status in (constants.OP_STATUS_QUEUED,
+                             constants.OP_STATUS_WAITLOCK)
+
         # Prepare to start opcode
         if self._MarkWaitlock(job, op):
           # Write to disk

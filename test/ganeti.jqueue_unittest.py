@@ -669,7 +669,48 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
                             for op in job.ops))
 
     opexec = _FakeExecOpCodeForProc(queue, None, None)
-    jqueue._JobProcessor(queue, opexec, job)()
+    self.assert_(jqueue._JobProcessor(queue, opexec, job)())
+
+    # Check result
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_CANCELED)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_CANCELED])
+    self.assertFalse(job.start_timestamp)
+    self.assert_(job.end_timestamp)
+    self.assertFalse(compat.any(op.start_timestamp or op.end_timestamp
+                                for op in job.ops))
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_CANCELED for _ in job.ops],
+                      ["Job canceled by request" for _ in job.ops]])
+
+  def testCancelWhileWaitlockInQueue(self):
+    queue = _FakeQueueForProc()
+
+    ops = [opcodes.OpTestDummy(result="Res%s" % i, fail=False)
+           for i in range(5)]
+
+    # Create job
+    job_id = 8645
+    job = self._CreateJob(queue, job_id, ops)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    job.ops[0].status = constants.OP_STATUS_WAITLOCK
+
+    assert len(job.ops) == 5
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+
+    # Mark as cancelling
+    (success, _) = job.Cancel()
+    self.assert_(success)
+
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+    self.assert_(compat.all(op.status == constants.OP_STATUS_CANCELING
+                            for op in job.ops))
+
+    opexec = _FakeExecOpCodeForProc(queue, None, None)
+    self.assert_(jqueue._JobProcessor(queue, opexec, job)())
 
     # Check result
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_CANCELED)

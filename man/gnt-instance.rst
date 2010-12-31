@@ -852,7 +852,7 @@ MODIFY
 | [--disk add:size=*SIZE*[,vg=*VG*] \| --disk remove \|
 |  --disk *N*:mode=*MODE*]
 | [-t plain | -t drbd -n *new_secondary*]
-| [--os-name=*OS* [--force-variant]]
+| [--os-type=*OS* [--force-variant]]
 | [--submit]
 | {*instance*}
 
@@ -884,7 +884,7 @@ instance. The available options are the same as in the **add** command
 of the instance, while the ``--net`` *N*:*options* option will
 change the parameters of the Nth instance NIC.
 
-The option ``--os-name`` will change the OS name for the instance
+The option ``--os-type`` will change the OS name for the instance
 (without reinstallation). In case an OS variant is specified that
 is not found, then by default the modification is refused, unless
 ``--force-variant`` is passed. An invalid OS will also be refused,
