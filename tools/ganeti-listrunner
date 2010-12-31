@@ -354,15 +354,14 @@ def HostWorker(logdir, username, password, keys, hostname,
   which exit at the end of this function. The exit code 0 or 1 will be
   interpreted by the parent.
 
-  Args:
-    logdir: the directory where the logfiles must be created
-    username: SSH username
-    password: SSH password
-    keys: SSH keys
-    hostname: the hostname to connect to
-    executable: the executable to upload, if not None
-    command: the command to run
-    filelist: auxiliary files to upload
+  @param logdir: the directory where the logfiles must be created
+  @param username: SSH username
+  @param password: SSH password
+  @param keys: SSH keys
+  @param hostname: the hostname to connect to
+  @param executable: the executable to upload, if not None
+  @param command: the command to run
+  @param filelist: auxiliary files to upload
 
   """
   # in the child/worker process

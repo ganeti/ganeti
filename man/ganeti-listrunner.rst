@@ -30,7 +30,7 @@ authentication or Kerberos authentication is not available.
 
 It can run either a command or a script (which gets uploaded first and deleted
 after execution) on a  list  of hosts provided either via a file (one host per
-line) or as a comma-separated list on the commandline. The out‐ put (stdout and
+line) or as a comma-separated list on the commandline. The output (stdout and
 stderr are merged) of the remote execution is written to a logfile. One logfile
 per  host  is written.
 
