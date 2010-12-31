@@ -1560,7 +1560,7 @@ instance5: 11225
             </group></arg>
 
           <sbr>
-            <arg>--os-name=<replaceable>OS</replaceable> <arg>--force-variant</arg></arg>
+            <arg>--os-type=<replaceable>OS</replaceable> <arg>--force-variant</arg></arg>
 
           <sbr>
           <arg>--submit</arg>
@@ -1615,7 +1615,7 @@ instance5: 11225
         </para>
 
         <para>
-          The option <option>--os-name</option> will change the OS
+          The option <option>--os-type</option> will change the OS
           name for the instance (without reinstallation). In case an
           OS variant is specified that is not found, then by default
           the modification is refused,
