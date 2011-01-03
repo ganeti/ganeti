@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -56,6 +56,7 @@ module Ganeti.HTools.Node
     , availDisk
     , availMem
     , availCpu
+    , iMem
     , conflictingPrimaries
     -- * Formatting
     , defaultFields
@@ -452,6 +453,10 @@ availCpu t =
        then _l - _u
        else 0
 
+-- | The memory used by instances on a given node.
+iMem :: Node -> Int
+iMem t = truncate (tMem t) - nMem t - xMem t - fMem t
+
 -- * Display functions
 
 showField :: Node -> String -> String
@@ -466,7 +471,7 @@ showField t field =
       "nmem" -> printf "%5d" $ nMem t
       "xmem" -> printf "%5d" $ xMem t
       "fmem" -> printf "%5d" $ fMem t
-      "imem" -> printf "%5d" imem
+      "imem" -> printf "%5d" $ iMem t
       "rmem" -> printf "%5d" $ rMem t
       "amem" -> printf "%5d" $ fMem t - rMem t
       "tdsk" -> printf "%5.0f" $ tDsk t / 1024
@@ -491,7 +496,6 @@ showField t field =
     where
       T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
                   T.dskWeight = uD, T.netWeight = uN } = utilLoad t
-      imem = truncate (tMem t) - nMem t - xMem t - fMem t
 
 -- | Returns the header and numeric propery of a field
 showHeader :: String -> (String, Bool)
