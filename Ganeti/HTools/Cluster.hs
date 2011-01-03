@@ -7,7 +7,7 @@ goes into the "Main" module for the individual binaries.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -58,6 +58,7 @@ module Ganeti.HTools.Cluster
     , tryAlloc
     , tryMGAlloc
     , tryReloc
+    , tryMGReloc
     , tryEvac
     , collapseFailures
     -- * Allocation functions
@@ -718,6 +719,24 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
                                 \destinations required (" ++ show reqn ++
                                                   "), only one supported"
 
+tryMGReloc :: (Monad m) =>
+              Group.List      -- ^ The group list
+           -> Node.List       -- ^ The node list
+           -> Instance.List   -- ^ The instance list
+           -> Idx             -- ^ The index of the instance to move
+           -> Int             -- ^ The number of nodes required
+           -> [Ndx]           -- ^ Nodes which should not be used
+           -> m AllocSolution -- ^ Solution list
+tryMGReloc _ mgnl mgil xid ncount ex_ndx = do
+  let groups = splitCluster mgnl mgil
+      -- TODO: we only relocate inside the group for now
+      inst = Container.find xid mgil
+  (nl, il) <- case lookup (instancePriGroup mgnl inst) groups of
+                Nothing -> fail $ "Cannot find group for instance " ++
+                           Instance.name inst
+                Just v -> return v
+  tryReloc nl il xid ncount ex_ndx
+
 -- | Try to evacuate a list of nodes.
 tryEvac :: (Monad m) =>
             Node.List       -- ^ The node list
@@ -983,6 +1002,12 @@ instanceGroup nl i =
      then fail ("Instance placed accross two node groups, primary " ++
                 show pgroup ++ ", secondary " ++ show sgroup)
      else return pgroup
+
+-- | Computes the group of an instance per the primary node
+instancePriGroup :: Node.List -> Instance.Instance -> Gdx
+instancePriGroup nl i =
+  let pnode = Container.find (Instance.pNode i) nl
+  in  Node.group pnode
 
 -- | Compute the list of badly allocated instances (split across node
 -- groups)

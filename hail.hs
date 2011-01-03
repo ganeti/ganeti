@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -71,7 +71,8 @@ processRequest request =
   let Request rqtype (ClusterData gl nl il _) = request
   in case rqtype of
        Allocate xi reqn -> Cluster.tryMGAlloc gl nl il xi reqn
-       Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
+       Relocate idx reqn exnodes -> Cluster.tryMGReloc gl nl il
+                                    idx reqn exnodes
        Evacuate exnodes -> Cluster.tryEvac nl il exnodes
 
 -- | Reads the request from the data file(s)
