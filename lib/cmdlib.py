@@ -1235,6 +1235,7 @@ class LUVerifyCluster(LogicalUnit):
   ENODEVERSION = (TNODE, "ENODEVERSION")
   ENODESETUP = (TNODE, "ENODESETUP")
   ENODETIME = (TNODE, "ENODETIME")
+  ENODEOOBPATH = (TNODE, "ENODEOOBPATH")
 
   ETYPE_FIELD = "code"
   ETYPE_ERROR = "ERROR"
@@ -1825,6 +1826,22 @@ class LUVerifyCluster(LogicalUnit):
              "OSes present on reference node %s but missing on this node: %s",
              base.name, utils.CommaJoin(missing))
 
+  def _VerifyOob(self, ninfo, nresult):
+    """Verifies out of band functionality of a node.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+
+    """
+    node = ninfo.name
+    # We just have to verify the paths on master and/or master candidates
+    # as the oob helper is invoked on the master
+    if ((ninfo.master_candidate or ninfo.master) and
+        constants.NV_OOB_PATHS in nresult):
+      for path_result in nresult[constants.NV_OOB_PATHS]:
+        self._ErrorIf(path_result, self.ENODEOOBPATH, node, path_result)
+
   def _UpdateNodeVolumes(self, ninfo, nresult, nimg, vg_name):
     """Verifies and updates the node volume data.
 
@@ -2107,6 +2124,16 @@ class LUVerifyCluster(LogicalUnit):
                                                  vm_capable=node.vm_capable))
                       for node in nodeinfo)
 
+    # Gather OOB paths
+    oob_paths = []
+    for node in nodeinfo:
+      path = _SupportsOob(self.cfg, node)
+      if path and path not in oob_paths:
+        oob_paths.append(path)
+
+    if oob_paths:
+      node_verify_param[constants.NV_OOB_PATHS] = oob_paths
+
     for instance in instancelist:
       inst_config = instanceinfo[instance]
 
@@ -2185,6 +2212,8 @@ class LUVerifyCluster(LogicalUnit):
       self._VerifyNodeNetwork(node_i, nresult)
       self._VerifyNodeFiles(node_i, nresult, file_names, local_checksums,
                             master_files)
+
+      self._VerifyOob(node_i, nresult)
 
       if nimg.vm_capable:
         self._VerifyNodeLVM(node_i, nresult, vg_name)
