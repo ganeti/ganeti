@@ -552,6 +552,22 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_MASTERIP] = netutils.TcpPing(master_ip, port,
                                                   source=source)
 
+  if constants.NV_OOB_PATHS in what:
+    result[constants.NV_OOB_PATHS] = tmp = []
+    for path in what[constants.NV_OOB_PATHS]:
+      try:
+        st = os.stat(path)
+      except OSError, err:
+        tmp.append("error stating out of band helper: %s" % err)
+      else:
+        if stat.S_ISREG(st.st_mode):
+          if stat.S_IMODE(st.st_mode) & stat.S_IXUSR:
+            tmp.append(None)
+          else:
+            tmp.append("out of band helper %s is not executable" % path)
+        else:
+          tmp.append("out of band helper %s is not a file" % path)
+
   if constants.NV_LVLIST in what and vm_capable:
     try:
       val = GetVolumeList(utils.ListVolumeGroups().keys())
