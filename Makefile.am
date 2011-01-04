@@ -461,6 +461,7 @@ python_tests = \
 	test/ganeti.opcodes_unittest.py \
 	test/ganeti.qlang_unittest.py \
 	test/ganeti.query_unittest.py \
+	test/ganeti.rapi.baserlib_unittest.py \
 	test/ganeti.rapi.client_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.rapi.rlib2_unittest.py \
