@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1401,7 +1401,7 @@ class RpcRunner(object):
                                 [old_file_storage_dir, new_file_storage_dir])
 
   @classmethod
-  @_RpcTimeout(_TMO_FAST)
+  @_RpcTimeout(_TMO_URGENT)
   def call_jobqueue_update(cls, node_list, address_list, file_name, content):
     """Update job queue.
 
@@ -1423,7 +1423,7 @@ class RpcRunner(object):
     return cls._StaticSingleNodeCall(node, "jobqueue_purge", [])
 
   @classmethod
-  @_RpcTimeout(_TMO_FAST)
+  @_RpcTimeout(_TMO_URGENT)
   def call_jobqueue_rename(cls, node_list, address_list, rename):
     """Rename a job queue file.
 
