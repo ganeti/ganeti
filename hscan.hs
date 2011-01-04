@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -89,9 +89,9 @@ fixSlash = map (\x -> if x == '/' then '_' else x)
 
 
 -- | Generates serialized data from loader input.
-processData :: Result ClusterData -> Result ClusterData
+processData :: ClusterData -> Result ClusterData
 processData input_data = do
-  cdata@(ClusterData _ nl il _) <- input_data >>= mergeData [] [] []
+  cdata@(ClusterData _ nl il _) <- mergeData [] [] [] input_data
   let (_, fix_nl) = checkData nl il
   return cdata { cdNodes = fix_nl }
 
@@ -106,7 +106,20 @@ writeData _ name _ (Bad err) =
   return False
 
 writeData nlen name opts (Ok cdata) = do
-  let (ClusterData _ nl il _) = cdata
+  let fixdata = processData cdata
+  case fixdata of
+    Bad err -> printf "\nError for %s: failed to process data. Details:\n%s\n"
+               name err >> return False
+    Ok processed -> writeDataInner nlen name opts cdata processed
+
+writeDataInner :: Int
+               -> String
+               -> Options
+               -> ClusterData
+               -> ClusterData
+               -> IO Bool
+writeDataInner nlen name opts cdata fixdata = do
+  let (ClusterData _ nl il _) = fixdata
   printf "%-*s " nlen name :: IO ()
   hFlush stdout
   let shownodes = optShowNodes opts
@@ -139,14 +152,14 @@ main = do
          let lsock = fromMaybe defaultLuxiSocket (optLuxi opts)
          let name = local
          input_data <- Luxi.loadData lsock
-         result <- writeData nlen name opts (processData input_data)
+         result <- writeData nlen name opts input_data
          when (not result) $ exitWith $ ExitFailure 2
 
 #ifndef NO_CURL
   results <- mapM (\ name ->
                     do
                       input_data <- Rapi.loadData name
-                      writeData nlen name opts (processData input_data)
+                      writeData nlen name opts input_data
                   ) clusters
   when (not $ all id results) $ exitWith (ExitFailure 2)
 #else
