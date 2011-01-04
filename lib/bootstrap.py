@@ -505,27 +505,7 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   """
   family = ssconf.SimpleStore().GetPrimaryIPFamily()
   sshrunner = ssh.SshRunner(cluster_name,
-                            ipv6=family==netutils.IP6Address.family)
-
-  noded_cert = utils.ReadFile(constants.NODED_CERT_FILE)
-  rapi_cert = utils.ReadFile(constants.RAPI_CERT_FILE)
-  confd_hmac_key = utils.ReadFile(constants.CONFD_HMAC_KEY)
-
-  # in the base64 pem encoding, neither '!' nor '.' are valid chars,
-  # so we use this to detect an invalid certificate; as long as the
-  # cert doesn't contain this, the here-document will be correctly
-  # parsed by the shell sequence below. HMAC keys are hexadecimal strings,
-  # so the same restrictions apply.
-  for content in (noded_cert, rapi_cert, confd_hmac_key):
-    if re.search('^!EOF\.', content, re.MULTILINE):
-      raise errors.OpExecError("invalid SSL certificate or HMAC key")
-
-  if not noded_cert.endswith("\n"):
-    noded_cert += "\n"
-  if not rapi_cert.endswith("\n"):
-    rapi_cert += "\n"
-  if not confd_hmac_key.endswith("\n"):
-    confd_hmac_key += "\n"
+                            ipv6=(family == netutils.IP6Address.family))
 
   bind_address = constants.IP4_ADDRESS_ANY
   if family == netutils.IP6Address.family:
@@ -538,10 +518,9 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   sshrunner.CopyFileToNode(node, constants.NODED_CERT_FILE)
   sshrunner.CopyFileToNode(node, constants.RAPI_CERT_FILE)
   sshrunner.CopyFileToNode(node, constants.CONFD_HMAC_KEY)
-  mycommand = ("%s stop-all; %s start %s -b '%s'" % (constants.DAEMON_UTIL,
-                                                     constants.DAEMON_UTIL,
-                                                     constants.NODED,
-                                                     bind_address))
+  mycommand = ("%s stop-all; %s start %s -b %s" %
+               (constants.DAEMON_UTIL, constants.DAEMON_UTIL, constants.NODED,
+                utils.ShellQuote(bind_address)))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
                          ask_key=ssh_key_check,
