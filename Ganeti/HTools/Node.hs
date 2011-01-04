@@ -57,6 +57,7 @@ module Ganeti.HTools.Node
     , availMem
     , availCpu
     , iMem
+    , iDsk
     , conflictingPrimaries
     -- * Formatting
     , defaultFields
@@ -434,6 +435,10 @@ availDisk t =
     in if _f < _l
        then 0
        else _f - _l
+
+-- | Computes the amount of used disk on a given node
+iDsk :: Node -> Int
+iDsk t = truncate (tDsk t) - fDsk t
 
 -- | Computes the amount of available memory on a given node
 availMem :: Node -> Int
