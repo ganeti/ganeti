@@ -481,6 +481,20 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_GET, "/%s/info" % GANETI_RAPI_VERSION,
                              None, None)
 
+  def ModifyCluster(self, **kwargs):
+    """Modifies cluster parameters.
+
+    More details for parameters can be found in the RAPI documentation.
+
+    @rtype: int
+    @return: job id
+
+    """
+    body = kwargs
+
+    return self._SendRequest(HTTP_PUT,
+                             "/%s/modify" % GANETI_RAPI_VERSION, None, body)
+
   def GetClusterTags(self):
     """Gets the cluster tags.
 

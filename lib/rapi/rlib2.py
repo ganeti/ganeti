@@ -188,6 +188,22 @@ class R_2_redist_config(baserlib.R_Generic):
     return baserlib.SubmitJob([opcodes.OpRedistributeConfig()])
 
 
+class R_2_cluster_modify(baserlib.R_Generic):
+  """/2/modify resource.
+
+  """
+  def PUT(self):
+    """Modifies cluster parameters.
+
+    @return: a job id
+
+    """
+    op = baserlib.FillOpcode(opcodes.OpSetClusterParams, self.request_body,
+                             None)
+
+    return baserlib.SubmitJob([op])
+
+
 class R_2_jobs(baserlib.R_Generic):
   """/2/jobs resource.
 

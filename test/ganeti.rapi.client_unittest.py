@@ -1039,6 +1039,18 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(job_id, 12347)
     self.assertHandler(rlib2.R_2_groups_name_rename)
 
+  def testModifyCluster(self):
+    for mnh in [None, False, True]:
+      self.rapi.AddResponse("14470")
+      self.assertEqual(14470,
+        self.client.ModifyCluster(maintain_node_health=mnh))
+      self.assertHandler(rlib2.R_2_cluster_modify)
+      self.assertItems([])
+      data = serializer.LoadJson(self.rapi.GetLastRequestData())
+      self.assertEqual(len(data), 1)
+      self.assertEqual(data["maintain_node_health"], mnh)
+      self.assertEqual(self.rapi.CountPending(), 0)
+
 
 if __name__ == '__main__':
   client.UsesRapiClient(testutils.GanetiTestProgram)()

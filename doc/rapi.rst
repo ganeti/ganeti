@@ -332,6 +332,69 @@ features:
   Instance reinstall supports body parameters.
 
 
+``/2/modify``
+++++++++++++++++++++++++++++++++++++++++
+
+Modifies cluster parameters.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``vg_name`` (string)
+  Volume group name.
+``enabled_hypervisors`` (list)
+  List of enabled hypervisors.
+``hvparams`` (dict)
+  Cluster-wide hypervisor parameter defaults, hypervisor-dependent.
+``beparams`` (dict)
+  Cluster-wide backend parameter defaults.
+``os_hvp`` (dict)
+  Cluster-wide per-OS hypervisor parameter defaults.
+``osparams`` (dict)
+  Dictionary with OS parameters.
+``candidate_pool_size`` (int)
+  Master candidate pool size.
+``uid_pool`` (list)
+  Set UID pool. Must be list of lists describing UID ranges (two items,
+  start and end inclusive).
+``add_uids``
+  Extend UID pool. Must be list of lists describing UID ranges (two
+  items, start and end inclusive) to be added.
+``remove_uids``
+  Shrink UID pool. Must be list of lists describing UID ranges (two
+  items, start and end inclusive) to be removed.
+``maintain_node_health`` (bool)
+  Whether to automatically maintain node health.
+``prealloc_wipe_disks`` (bool)
+  Whether to wipe disks before allocating them to instances.
+``nicparams`` (dict)
+  Cluster-wide NIC parameter defaults.
+``ndparams`` (dict)
+  Cluster-wide node parameter defaults.
+``drbd_helper`` (string)
+  DRBD helper program.
+``default_iallocator`` (string)
+  Default iallocator for cluster.
+``master_netdev`` (string)
+  Master network device.
+``reserved_lvs`` (list)
+  List of reserved LVs (strings).
+``hidden_os`` (list)
+  List of modifications as lists. Each modification must have two items,
+  the operation and the OS name. The operation can be ``add`` or
+  ``remove``.
+``blacklisted_os`` (list)
+  List of modifications as lists. Each modification must have two items,
+  the operation and the OS name. The operation can be ``add`` or
+  ``remove``.
+
+
 ``/2/groups``
 +++++++++++++
 
