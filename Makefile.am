@@ -446,6 +446,7 @@ python_tests = \
 	test/ganeti.constants_unittest.py \
 	test/ganeti.errors_unittest.py \
 	test/ganeti.hooks_unittest.py \
+	test/ganeti.ht_unittest.py \
 	test/ganeti.http_unittest.py \
 	test/ganeti.hypervisor_unittest.py \
 	test/ganeti.hypervisor.hv_kvm_unittest.py \
