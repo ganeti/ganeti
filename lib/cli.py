@@ -602,7 +602,7 @@ SEP_OPT = cli_option("--separator", default=None,
 
 USEUNITS_OPT = cli_option("--units", default=None,
                           dest="units", choices=('h', 'm', 'g', 't'),
-                          help="Specify units for output (one of hmgt)")
+                          help="Specify units for output (one of h/m/g/t)")
 
 FIELDS_OPT = cli_option("-o", "--output", dest="output", action="store",
                         type="string", metavar="FIELDS",
