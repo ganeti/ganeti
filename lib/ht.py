@@ -74,7 +74,12 @@ def TInt(val):
   """Checks if the given value is an integer.
 
   """
-  return isinstance(val, int)
+  # For backwards compatibility with older Python versions, boolean values are
+  # also integers and should be excluded in this test.
+  #
+  # >>> (isinstance(False, int), isinstance(True, int))
+  # (True, True)
+  return isinstance(val, int) and not isinstance(val, bool)
 
 
 def TFloat(val):
