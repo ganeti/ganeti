@@ -120,6 +120,38 @@ def TestClusterRename():
 
 def TestClusterVerify():
   """gnt-cluster verify"""
+  oob_path_exists = "/tmp/ganeti-qa-oob-does-exist-%s" % utils.NewUUID()
+
+  AssertCommand(["gnt-cluster", "verify"])
+  AssertCommand(["gnt-cluster", "modify", "--node-parameters",
+                 "oob_program=/tmp/ganeti-qa-oob-does-not-exist-%s" %
+                 utils.NewUUID()])
+
+  AssertCommand(["gnt-cluster", "verify"], fail=True)
+
+  for node in qa_config.get("nodes"):
+    node_name = node["primary"]
+    remote_file = qa_utils.UploadData(node_name, "", mode=0400)
+    AssertCommand(["mv", remote_file, oob_path_exists], node=node_name)
+
+  try:
+    AssertCommand(["gnt-cluster", "modify", "--node-parameters",
+                   "oob_program=%s" % oob_path_exists])
+
+    AssertCommand(["gnt-cluster", "verify"], fail=True)
+
+    for node in qa_config.get("nodes"):
+      node_name = node["primary"]
+      AssertCommand(["chmod", "0500", oob_path_exists], node=node_name)
+
+    AssertCommand(["gnt-cluster", "verify"])
+  finally:
+    for node in qa_config.get("nodes"):
+      node_name = node["primary"]
+      AssertCommand(["rm", oob_path_exists], node=node_name)
+
+  AssertCommand(["gnt-cluster", "modify", "--node-parameters",
+                 "oob_program="])
   AssertCommand(["gnt-cluster", "verify"])
 
 
