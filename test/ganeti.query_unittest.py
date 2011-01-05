@@ -761,6 +761,81 @@ class TestInstanceQuery(unittest.TestCase):
                           "ADMIN_down"]))
 
 
+class TestGroupQuery(unittest.TestCase):
+
+  def setUp(self):
+    self.groups = [
+      objects.NodeGroup(name="default",
+                        uuid="c0e89160-18e7-11e0-a46e-001d0904baeb",
+                        alloc_policy=constants.ALLOC_POLICY_PREFERRED),
+      objects.NodeGroup(name="restricted",
+                        uuid="d2a40a74-18e7-11e0-9143-001d0904baeb",
+                        alloc_policy=constants.ALLOC_POLICY_LAST_RESORT),
+      ]
+
+  def _Create(self, selected):
+    return query.Query(query.GROUP_FIELDS, selected)
+
+  def testSimple(self):
+    q = self._Create(["name", "uuid", "alloc_policy"])
+    gqd = query.GroupQueryData(self.groups, None, None)
+
+    self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG]))
+
+    self.assertEqual(q.Query(gqd),
+      [[(constants.QRFS_NORMAL, "default"),
+        (constants.QRFS_NORMAL, "c0e89160-18e7-11e0-a46e-001d0904baeb"),
+        (constants.QRFS_NORMAL, constants.ALLOC_POLICY_PREFERRED)
+        ],
+       [(constants.QRFS_NORMAL, "restricted"),
+        (constants.QRFS_NORMAL, "d2a40a74-18e7-11e0-9143-001d0904baeb"),
+        (constants.QRFS_NORMAL, constants.ALLOC_POLICY_LAST_RESORT)
+        ],
+       ])
+
+  def testNodes(self):
+    groups_to_nodes = {
+      "c0e89160-18e7-11e0-a46e-001d0904baeb": ["node1", "node2"],
+      "d2a40a74-18e7-11e0-9143-001d0904baeb": ["node1", "node10", "node9"],
+      }
+
+    q = self._Create(["name", "node_cnt", "node_list"])
+    gqd = query.GroupQueryData(self.groups, groups_to_nodes, None)
+
+    self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG, query.GQ_NODE]))
+
+    self.assertEqual(q.Query(gqd),
+                     [[(constants.QRFS_NORMAL, "default"),
+                       (constants.QRFS_NORMAL, 2),
+                       (constants.QRFS_NORMAL, ["node1", "node2"]),
+                       ],
+                      [(constants.QRFS_NORMAL, "restricted"),
+                       (constants.QRFS_NORMAL, 3),
+                       (constants.QRFS_NORMAL, ["node1", "node9", "node10"]),
+                       ],
+                      ])
+
+  def testInstances(self):
+    groups_to_instances = {
+      "c0e89160-18e7-11e0-a46e-001d0904baeb": ["inst1", "inst2"],
+      "d2a40a74-18e7-11e0-9143-001d0904baeb": ["inst1", "inst10", "inst9"],
+      }
+
+    q = self._Create(["pinst_cnt", "pinst_list"])
+    gqd = query.GroupQueryData(self.groups, None, groups_to_instances)
+
+    self.assertEqual(q.RequestedData(), set([query.GQ_INST]))
+
+    self.assertEqual(q.Query(gqd),
+                     [[(constants.QRFS_NORMAL, 2),
+                       (constants.QRFS_NORMAL, ["inst1", "inst2"]),
+                       ],
+                      [(constants.QRFS_NORMAL, 3),
+                       (constants.QRFS_NORMAL, ["inst1", "inst9", "inst10"]),
+                       ],
+                      ])
+
+
 class TestQueryFields(unittest.TestCase):
   def testAllFields(self):
     for fielddefs in query.ALL_FIELD_LISTS:
