@@ -225,6 +225,7 @@ docrst = \
 	doc/news.rst \
 	doc/rapi.rst \
 	doc/security.rst \
+	doc/upgrade.rst \
 	doc/walkthrough.rst
 
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)

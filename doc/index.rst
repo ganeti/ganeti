@@ -11,6 +11,7 @@ Contents:
 
    install-quick.rst
    install.rst
+   upgrade.rst
    admin.rst
    walkthrough.rst
    security.rst
