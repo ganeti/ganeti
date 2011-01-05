@@ -757,6 +757,35 @@ class GanetiRapiClient(object):
                              ("/%s/instances/%s/modify" %
                               (GANETI_RAPI_VERSION, instance)), None, body)
 
+  def GrowInstanceDisk(self, instance, disk, amount, wait_for_sync=None):
+    """Grows a disk of an instance.
+
+    More details for parameters can be found in the RAPI documentation.
+
+    @type instance: string
+    @param instance: Instance name
+    @type disk: integer
+    @param disk: Disk index
+    @type amount: integer
+    @param amount: Grow disk by this amount (MiB)
+    @type wait_for_sync: bool
+    @param wait_for_sync: Wait for disk to synchronize
+    @rtype: int
+    @return: job id
+
+    """
+    body = {
+      "amount": amount,
+      }
+
+    if wait_for_sync is not None:
+      body["wait_for_sync"] = wait_for_sync
+
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/instances/%s/disk/%s/grow" %
+                              (GANETI_RAPI_VERSION, instance, disk)),
+                             None, body)
+
   def GetInstanceTags(self, instance):
     """Gets tags for an instance.
 

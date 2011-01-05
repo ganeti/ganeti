@@ -38,6 +38,7 @@ from ganeti.rapi import rlib2
 
 
 _NAME_PATTERN = r"[\w\._-]+"
+_DISK_PATTERN = r"\d+"
 
 # the connection map is created at the end of this file
 CONNECTOR = {}
@@ -147,7 +148,7 @@ class R_2(baserlib.R_Generic):
 
 
 def GetHandlers(node_name_pattern, instance_name_pattern,
-                group_name_pattern, job_id_pattern):
+                group_name_pattern, job_id_pattern, disk_pattern):
   """Returns all supported resources and their handlers.
 
   """
@@ -211,6 +212,9 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
       rlib2.R_2_instances_name_rename,
     re.compile(r'^/2/instances/(%s)/modify$' % instance_name_pattern):
       rlib2.R_2_instances_name_modify,
+    re.compile(r"^/2/instances/(%s)/disk/(%s)/grow$" %
+               (instance_name_pattern, disk_pattern)):
+      rlib2.R_2_instances_name_disk_grow,
 
     "/2/groups": rlib2.R_2_groups,
     re.compile(r'^/2/groups/(%s)$' % group_name_pattern):
@@ -236,4 +240,4 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
 
 
 CONNECTOR.update(GetHandlers(_NAME_PATTERN, _NAME_PATTERN, _NAME_PATTERN,
-                             constants.JOB_ID_TEMPLATE))
+                             constants.JOB_ID_TEMPLATE, _DISK_PATTERN))

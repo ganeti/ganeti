@@ -824,6 +824,26 @@ It supports the following commands: ``PUT``.
 Takes no parameters.
 
 
+``/2/instances/[instance_name]/disk/[disk_index]/grow``
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Grows one disk of an instance.
+
+Supports the following commands: ``POST``.
+
+``POST``
+~~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+``amount`` (int, required)
+  Amount of disk space to add.
+``wait_for_sync`` (bool)
+  Whether to wait for the disk to synchronize.
+
+
 ``/2/instances/[instance_name]/prepare-export``
 +++++++++++++++++++++++++++++++++++++++++++++++++
 

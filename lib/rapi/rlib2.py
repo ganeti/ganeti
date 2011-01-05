@@ -1299,6 +1299,24 @@ class R_2_instances_name_modify(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_instances_name_disk_grow(baserlib.R_Generic):
+  """/2/instances/[instance_name]/disk/[index]/grow resource.
+
+  """
+  def POST(self):
+    """Increases the size of an instance disk.
+
+    @return: a job id
+
+    """
+    op = baserlib.FillOpcode(opcodes.OpGrowDisk, self.request_body, {
+      "instance_name": self.items[0],
+      "disk": int(self.items[1]),
+      })
+
+    return baserlib.SubmitJob([op])
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 

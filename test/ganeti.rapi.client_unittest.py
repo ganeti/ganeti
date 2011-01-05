@@ -1051,6 +1051,26 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
       self.assertEqual(data["maintain_node_health"], mnh)
       self.assertEqual(self.rapi.CountPending(), 0)
 
+  def testGrowInstanceDisk(self):
+    for idx, wait_for_sync in enumerate([None, False, True]):
+      amount = 128 + (512 * idx)
+      self.assertEqual(self.rapi.CountPending(), 0)
+      self.rapi.AddResponse("30783")
+      self.assertEqual(30783,
+        self.client.GrowInstanceDisk("eze8ch", idx, amount,
+                                     wait_for_sync=wait_for_sync))
+      self.assertHandler(rlib2.R_2_instances_name_disk_grow)
+      self.assertItems(["eze8ch", str(idx)])
+      data = serializer.LoadJson(self.rapi.GetLastRequestData())
+      if wait_for_sync is None:
+        self.assertEqual(len(data), 1)
+        self.assert_("wait_for_sync" not in data)
+      else:
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data["wait_for_sync"], wait_for_sync)
+      self.assertEqual(data["amount"], amount)
+      self.assertEqual(self.rapi.CountPending(), 0)
+
 
 if __name__ == '__main__':
   client.UsesRapiClient(testutils.GanetiTestProgram)()
