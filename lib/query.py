@@ -46,6 +46,11 @@ from ganeti import ht
  LQ_OWNER,
  LQ_PENDING) = range(10, 13)
 
+(GQ_CONFIG,
+ GQ_NODE,
+ GQ_INST) = range(200, 203)
+
+
 FIELD_NAME_RE = re.compile(r"^[a-z0-9/._]+$")
 TITLE_RE = re.compile(r"^[^\s]+$")
 
@@ -1064,6 +1069,79 @@ def _BuildLockFields():
     ])
 
 
+class GroupQueryData:
+  """Data container for node group data queries.
+
+  """
+  def __init__(self, groups, group_to_nodes, group_to_instances):
+    """Initializes this class.
+
+    @param groups: List of node group objects
+    @type group_to_nodes: dict; group UUID as key
+    @param group_to_nodes: Per-group list of nodes
+    @type group_to_instances: dict; group UUID as key
+    @param group_to_instances: Per-group list of (primary) instances
+
+    """
+    self.groups = groups
+    self.group_to_nodes = group_to_nodes
+    self.group_to_instances = group_to_instances
+
+  def __iter__(self):
+    """Iterate over all node groups.
+
+    """
+    return iter(self.groups)
+
+
+_GROUP_SIMPLE_FIELDS = {
+  "alloc_policy": ("AllocPolicy", constants.QFT_TEXT),
+  "name": ("Group", constants.QFT_TEXT),
+  "serial_no": ("SerialNo", constants.QFT_NUMBER),
+  "uuid": ("UUID", constants.QFT_TEXT),
+  }
+
+
+def _BuildGroupFields():
+  """Builds list of fields for node group queries.
+
+  """
+  # Add simple fields
+  fields = [(_MakeField(name, title, kind), GQ_CONFIG, _GetItemAttr(name))
+            for (name, (title, kind)) in _GROUP_SIMPLE_FIELDS.items()]
+
+  def _GetLength(getter):
+    return lambda ctx, group: (constants.QRFS_NORMAL,
+                               len(getter(ctx)[group.uuid]))
+
+  def _GetSortedList(getter):
+    return lambda ctx, group: (constants.QRFS_NORMAL,
+                               utils.NiceSort(getter(ctx)[group.uuid]))
+
+  group_to_nodes = operator.attrgetter("group_to_nodes")
+  group_to_instances = operator.attrgetter("group_to_instances")
+
+  # Add fields for nodes
+  fields.extend([
+    (_MakeField("node_cnt", "Nodes", constants.QFT_NUMBER),
+     GQ_NODE, _GetLength(group_to_nodes)),
+    (_MakeField("node_list", "NodeList", constants.QFT_OTHER),
+     GQ_NODE, _GetSortedList(group_to_nodes)),
+    ])
+
+  # Add fields for instances
+  fields.extend([
+    (_MakeField("pinst_cnt", "Instances", constants.QFT_NUMBER),
+     GQ_INST, _GetLength(group_to_instances)),
+    (_MakeField("pinst_list", "InstanceList", constants.QFT_OTHER),
+     GQ_INST, _GetSortedList(group_to_instances)),
+    ])
+
+  fields.extend(_GetItemTimestampFields(GQ_CONFIG))
+
+  return _PrepareFieldList(fields)
+
+
 #: Fields available for node queries
 NODE_FIELDS = _BuildNodeFields()
 
@@ -1073,5 +1151,8 @@ INSTANCE_FIELDS = _BuildInstanceFields()
 #: Fields available for lock queries
 LOCK_FIELDS = _BuildLockFields()
 
+#: Fields available for node group queries
+GROUP_FIELDS = _BuildGroupFields()
+
 #: All available field lists
-ALL_FIELD_LISTS = [NODE_FIELDS, INSTANCE_FIELDS, LOCK_FIELDS]
+ALL_FIELD_LISTS = [NODE_FIELDS, INSTANCE_FIELDS, LOCK_FIELDS, GROUP_FIELDS]
