@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -44,14 +44,18 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+-- | The curl options we use
+curlOpts :: [CurlOption]
+curlOpts = [ CurlSSLVerifyPeer False
+           , CurlSSLVerifyHost 0
+           , CurlTimeout (fromIntegral queryTimeout)
+           , CurlConnectTimeout (fromIntegral connTimeout)
+           ]
+
 -- | Read an URL via curl and return the body if successful.
 getUrl :: (Monad m) => String -> IO (m String)
 getUrl url = do
-  (code, body) <- curlGetString url [CurlSSLVerifyPeer False,
-                                     CurlSSLVerifyHost 0,
-                                     CurlTimeout (fromIntegral queryTimeout),
-                                     CurlConnectTimeout
-                                     (fromIntegral connTimeout)]
+  (code, body) <- curlGetString url curlOpts
   return (case code of
             CurlOK -> return body
             _ -> fail $ printf "Curl error for '%s', error %s"
