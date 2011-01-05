@@ -9920,47 +9920,30 @@ class LUAddGroup(LogicalUnit):
     del self.remove_locks[locking.LEVEL_NODEGROUP]
 
 
-class LUQueryGroups(NoHooksLU):
-  """Logical unit for querying node groups.
+class _GroupQuery(_QueryBase):
 
-  """
-  # pylint: disable-msg=W0142
-  REQ_BGL = False
-  _FIELDS_DYNAMIC = utils.FieldSet()
-  _SIMPLE_FIELDS = ["name", "uuid", "alloc_policy",
-                    "ctime", "mtime", "serial_no"]
-  _FIELDS_STATIC = utils.FieldSet("node_cnt", "node_list", "pinst_cnt",
-                                  "pinst_list", *_SIMPLE_FIELDS)
+  FIELDS = query.GROUP_FIELDS
 
-  def CheckArguments(self):
-    _CheckOutputFields(static=self._FIELDS_STATIC,
-                       dynamic=self._FIELDS_DYNAMIC,
-                       selected=self.op.output_fields)
+  def ExpandNames(self, lu):
+    lu.needed_locks = {}
 
-  def ExpandNames(self):
-    self.needed_locks = {}
+    self._all_groups = lu.cfg.GetAllNodeGroupsInfo()
+    name_to_uuid = dict((g.name, g.uuid) for g in self._all_groups.values())
 
-  def Exec(self, feedback_fn):
-    """Computes the list of groups and their attributes.
-
-    """
-    all_groups = self.cfg.GetAllNodeGroupsInfo()
-    name_to_uuid = dict((g.name, g.uuid) for g in all_groups.values())
-
-    if not self.op.names:
-      sorted_names = utils.NiceSort(name_to_uuid.keys())
-      my_groups = [name_to_uuid[n] for n in sorted_names]
+    if not self.names:
+      self.wanted = [name_to_uuid[name]
+                     for name in utils.NiceSort(name_to_uuid.keys())]
     else:
       # Accept names to be either names or UUIDs.
-      all_uuid = frozenset(all_groups.keys())
-      my_groups = []
       missing = []
+      self.wanted = []
+      all_uuid = frozenset(self._all_groups.keys())
 
-      for name in self.op.names:
+      for name in self.names:
         if name in all_uuid:
-          my_groups.append(name)
+          self.wanted.append(name)
         elif name in name_to_uuid:
-          my_groups.append(name_to_uuid[name])
+          self.wanted.append(name_to_uuid[name])
         else:
           missing.append(name)
 
@@ -9968,18 +9951,27 @@ class LUQueryGroups(NoHooksLU):
         raise errors.OpPrereqError("Some groups do not exist: %s" % missing,
                                    errors.ECODE_NOENT)
 
-    do_nodes = bool(frozenset(["node_cnt", "node_list"]).
-                    intersection(self.op.output_fields))
+  def DeclareLocks(self, lu, level):
+    pass
 
-    do_instances = bool(frozenset(["pinst_cnt", "pinst_list"]).
-                        intersection(self.op.output_fields))
+  def _GetQueryData(self, lu):
+    """Computes the list of node groups and their attributes.
 
-    # We need to map group->[nodes], and group->[instances]. The former is
-    # directly attainable, but the latter we have to do through instance->node,
-    # hence we need to process nodes even if we only need instance information.
+    """
+    do_nodes = query.GQ_NODE in self.requested_data
+    do_instances = query.GQ_INST in self.requested_data
+
+    group_to_nodes = None
+    group_to_instances = None
+
+    # For GQ_NODE, we need to map group->[nodes], and group->[instances] for
+    # GQ_INST. The former is attainable with just GetAllNodesInfo(), but for the
+    # latter GetAllInstancesInfo() is not enough, for we have to go through
+    # instance->node. Hence, we will need to process nodes even if we only need
+    # instance information.
     if do_nodes or do_instances:
-      all_nodes = self.cfg.GetAllNodesInfo()
-      group_to_nodes = dict((all_groups[name].uuid, []) for name in my_groups)
+      all_nodes = lu.cfg.GetAllNodesInfo()
+      group_to_nodes = dict((uuid, []) for uuid in self.wanted)
       node_to_group = {}
 
       for node in all_nodes.values():
@@ -9988,37 +9980,37 @@ class LUQueryGroups(NoHooksLU):
           node_to_group[node.name] = node.group
 
       if do_instances:
-        all_instances = self.cfg.GetAllInstancesInfo()
-        group_to_instances = dict((all_groups[name].uuid, [])
-                                  for name in my_groups)
+        all_instances = lu.cfg.GetAllInstancesInfo()
+        group_to_instances = dict((uuid, []) for uuid in self.wanted)
+
         for instance in all_instances.values():
           node = instance.primary_node
           if node in node_to_group:
             group_to_instances[node_to_group[node]].append(instance.name)
 
-    output = []
+        if not do_nodes:
+          # Do not pass on node information if it was not requested.
+          group_to_nodes = None
 
-    for uuid in my_groups:
-      group = all_groups[uuid]
-      group_output = []
+    return query.GroupQueryData([self._all_groups[uuid]
+                                 for uuid in self.wanted],
+                                group_to_nodes, group_to_instances)
 
-      for field in self.op.output_fields:
-        if field in self._SIMPLE_FIELDS:
-          val = getattr(group, field)
-        elif field == "node_list":
-          val = utils.NiceSort(group_to_nodes[group.uuid])
-        elif field == "node_cnt":
-          val = len(group_to_nodes[group.uuid])
-        elif field == "pinst_list":
-          val = utils.NiceSort(group_to_instances[group.uuid])
-        elif field == "pinst_cnt":
-          val = len(group_to_instances[group.uuid])
-        else:
-          raise errors.ParameterError(field)
-        group_output.append(val)
-      output.append(group_output)
 
-    return output
+class LUQueryGroups(NoHooksLU):
+  """Logical unit for querying node groups.
+
+  """
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    self.gq = _GroupQuery(self.op.names, self.op.output_fields, False)
+
+  def ExpandNames(self):
+    self.gq.ExpandNames(self)
+
+  def Exec(self, feedback_fn):
+    return self.gq.OldStyleQuery(self)
 
 
 class LUSetGroupParams(LogicalUnit):
@@ -11016,6 +11008,7 @@ class LUTestAllocator(NoHooksLU):
 _QUERY_IMPL = {
   constants.QR_INSTANCE: _InstanceQuery,
   constants.QR_NODE: _NodeQuery,
+  constants.QR_GROUP: _GroupQuery,
   }
 
 
