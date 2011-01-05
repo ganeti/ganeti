@@ -79,6 +79,7 @@ MAINTAINERCLEANFILES = \
 	$(maninput) \
 	doc/install-quick.rst \
 	doc/news.rst \
+	doc/upgrade.rst \
 	vcs-version
 
 maintainer-clean-local:
@@ -261,6 +262,14 @@ doc/install-quick.rst: INSTALL
 	  cat $<; \
 	} > $@
 
+doc/upgrade.rst: UPGRADE
+	set -e; \
+	{ echo '.. This file is automatically updated at build time from $<.'; \
+	  echo '.. Do not edit.'; \
+	  echo; \
+	  cat $<; \
+	} > $@
+
 docdot = \
 	doc/arch-2.0.dot \
 	doc/design-2.1-lock-acquire.dot \
@@ -331,6 +340,7 @@ pkglib_SCRIPTS = \
 
 EXTRA_DIST = \
 	NEWS \
+	UPGRADE \
 	pylintrc \
 	autotools/build-bash-completion \
 	autotools/check-python-code \

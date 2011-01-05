@@ -53,6 +53,7 @@
 /doc/html
 /doc/install-quick.rst
 /doc/news.rst
+/doc/upgrade.rst
 /doc/*.in
 /doc/*.png
 
