@@ -990,7 +990,7 @@ class OpSetInstanceParams(OpCode):
     ("disks", ht.EmptyList, ht.TList),
     ("beparams", ht.EmptyDict, ht.TDict),
     ("hvparams", ht.EmptyDict, ht.TDict),
-    ("disk_template", None, _CheckDiskTemplate),
+    ("disk_template", None, ht.TOr(ht.TNone, _CheckDiskTemplate)),
     ("remote_node", None, ht.TMaybeString),
     ("os_name", None, ht.TMaybeString),
     ("force_variant", False, ht.TBool),
