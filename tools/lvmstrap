@@ -44,6 +44,7 @@ import os
 import sys
 import optparse
 import time
+import errno
 
 from ganeti.utils import RunCmd, ReadFile
 from ganeti import constants
@@ -425,7 +426,7 @@ def GetDiskList(opts):
 
     dev = ReadDev("/sys/block/%s" % name)
     CheckSysDev(name, dev)
-    inuse = not CheckReread(name)
+    inuse = InUse(name)
     # Enumerate partitions of the block device
     partitions = []
     for partname in os.listdir("/sys/block/%s" % name):
@@ -561,6 +562,25 @@ def ShowDiskInfo(opts):
     print line
 
 
+def CheckSysfsHolders(name):
+  """Check to see if a device is 'hold' at sysfs level.
+
+  This is usually the case for Physical Volumes under LVM.
+
+  @rtype: boolean
+  @return: true if the device is available according to sysfs
+
+  """
+  try:
+    contents = os.listdir("/sys/block/%s/holders/" % name)
+  except OSError, err:
+    if err.errno == errno.ENOENT:
+      contents = []
+    else:
+      raise
+  return not bool(contents)
+
+
 def CheckReread(name):
   """Check to see if a block device is in use.
 
@@ -593,6 +613,13 @@ def CheckReread(name):
     return result.failed
 
 
+def InUse(name):
+  """Returns if a disk is in use or not.
+
+  """
+  return not (CheckSysfsHolders(name) and CheckReread(name))
+
+
 def WipeDisk(name):
   """Wipes a block device.
 
@@ -604,7 +631,7 @@ def WipeDisk(name):
 
   """
 
-  if not CheckReread(name):
+  if InUse(name):
     raise OperationalError("CRITICAL: disk %s you selected seems to be in"
                            " use. ABORTING!" % name)
 
@@ -624,7 +651,8 @@ def WipeDisk(name):
                            " %d. I don't know how to cleanup. Sorry." %
                            (name, bytes_written))
 
-  if not CheckReread(name):
+  if InUse(name):
+    # try to restore the data
     fd = os.open("/dev/%s" % name, os.O_RDWR | os.O_SYNC)
     os.write(fd, olddata)
     os.close(fd)
