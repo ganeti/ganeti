@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
+{-# LANGUAGE BangPatterns #-}
+
 module Ganeti.HTools.Rapi
     (
       loadData
@@ -55,7 +57,7 @@ curlOpts = [ CurlSSLVerifyPeer False
 -- | Read an URL via curl and return the body if successful.
 getUrl :: (Monad m) => String -> IO (m String)
 getUrl url = do
-  (code, body) <- curlGetString url curlOpts
+  (code, !body) <- curlGetString url curlOpts
   return (case code of
             CurlOK -> return body
             _ -> fail $ printf "Curl error for '%s', error %s"
