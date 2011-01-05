@@ -3814,26 +3814,6 @@ class _InstanceQuery(_QueryBase):
                                    live_data)
 
 
-#: Query type implementations
-_QUERY_IMPL = {
-  constants.QR_INSTANCE: _InstanceQuery,
-  constants.QR_NODE: _NodeQuery,
-  }
-
-
-def _GetQueryImplementation(name):
-  """Returns the implemtnation for a query type.
-
-  @param name: Query type, must be one of L{constants.QR_OP_QUERY}
-
-  """
-  try:
-    return _QUERY_IMPL[name]
-  except KeyError:
-    raise errors.OpPrereqError("Unknown query resource '%s'" % name,
-                               errors.ECODE_INVAL)
-
-
 class LUQuery(NoHooksLU):
   """Query for resources/items of a certain kind.
 
@@ -11030,3 +11010,23 @@ class LUTestAllocator(NoHooksLU):
       ial.Run(self.op.allocator, validate=False)
       result = ial.out_text
     return result
+
+
+#: Query type implementations
+_QUERY_IMPL = {
+  constants.QR_INSTANCE: _InstanceQuery,
+  constants.QR_NODE: _NodeQuery,
+  }
+
+
+def _GetQueryImplementation(name):
+  """Returns the implemtnation for a query type.
+
+  @param name: Query type, must be one of L{constants.QR_OP_QUERY}
+
+  """
+  try:
+    return _QUERY_IMPL[name]
+  except KeyError:
+    raise errors.OpPrereqError("Unknown query resource '%s'" % name,
+                               errors.ECODE_INVAL)
