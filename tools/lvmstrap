@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,6 +48,7 @@ import time
 from ganeti.utils import RunCmd, ReadFile
 from ganeti import constants
 from ganeti import cli
+from ganeti import compat
 
 USAGE = ("\tlvmstrap diskinfo\n"
          "\tlvmstrap [--vgname=NAME] [--allow-removable]"
@@ -55,6 +56,14 @@ USAGE = ("\tlvmstrap diskinfo\n"
          " create")
 
 verbose_flag = False
+
+#: Supported disk types (as prefixes)
+SUPPORTED_TYPES = [
+  "hd",
+  "sd",
+  "md",
+  "ubd",
+  ]
 
 
 class Error(Exception):
@@ -167,6 +176,29 @@ def ParseOptions():
   verbose_flag = options.verbose
 
   return options, args
+
+
+def IsPartitioned(disk):
+  """Returns whether a given disk should be used partitioned or as-is.
+
+  Currently only md devices are used as is.
+
+  """
+  return not disk.startswith('md')
+
+
+def DeviceName(disk):
+  """Returns the appropriate device name for a disk.
+
+  For non-partitioned devices, it returns the name as is, otherwise it
+  returns the first partition.
+
+  """
+  if IsPartitioned(disk):
+    device = '/dev/%s1' % disk
+  else:
+    device = '/dev/%s' % disk
+  return device
 
 
 def ExecCommand(command):
@@ -379,9 +411,7 @@ def GetDiskList(opts):
   """
   dlist = []
   for name in os.listdir("/sys/block"):
-    if (not name.startswith("hd") and
-        not name.startswith("sd") and
-        not name.startswith("ubd")):
+    if not compat.any([name.startswith(pfx) for pfx in SUPPORTED_TYPES]):
       continue
 
     size = ReadSize("/sys/block/%s" % name)
@@ -534,21 +564,33 @@ def ShowDiskInfo(opts):
 def CheckReread(name):
   """Check to see if a block device is in use.
 
-  Uses blockdev to reread the partition table of a block device, and
-  thus compute the in-use status. See the discussion in GetDiskList
-  about the meaning of 'in use'.
+  Uses blockdev to reread the partition table of a block device (or
+  fuser if the device is not partitionable), and thus compute the
+  in-use status.  See the discussion in GetDiskList about the meaning
+  of 'in use'.
 
   @rtype: boolean
   @return: the in-use status of the device
 
   """
+  use_blockdev = IsPartitioned(name)
+  if use_blockdev:
+    cmd = "blockdev --rereadpt /dev/%s" % name
+  else:
+    cmd = "fuser -vam /dev/%s" % name
+
   for _ in range(3):
-    result = ExecCommand("blockdev --rereadpt /dev/%s" % name)
-    if not result.failed:
+    result = ExecCommand(cmd)
+    if not use_blockdev and result.failed:
+      break
+    elif not result.failed:
       break
     time.sleep(2)
 
-  return not result.failed
+  if use_blockdev:
+    return not result.failed
+  else:
+    return result.failed
 
 
 def WipeDisk(name):
@@ -623,12 +665,13 @@ def CreatePVOnDisk(name):
   @param name: the device name, e.g. sda
 
   """
-  result = ExecCommand("pvcreate -yff /dev/%s1 " % name)
+  device = DeviceName(name)
+  result = ExecCommand("pvcreate -yff %s" % device)
   if result.failed:
     raise OperationalError("I cannot create a physical volume on"
-                           " partition /dev/%s1. Error message: %s."
+                           " %s. Error message: %s."
                            " Please clean up yourself." %
-                           (name, result.output))
+                           (device, result.output))
 
 
 def CreateVG(vgname, disks):
@@ -640,7 +683,7 @@ def CreateVG(vgname, disks):
   @param disks: a list of disk names, e.g. ['sda','sdb']
 
   """
-  pnames = ["'/dev/%s1'" % disk for disk in disks]
+  pnames = [DeviceName(d) for d in disks]
   result = ExecCommand("vgcreate -s 64MB '%s' %s" % (vgname, " ".join(pnames)))
   if result.failed:
     raise OperationalError("I cannot create the volume group %s from"
@@ -718,7 +761,8 @@ def BootStrap():
 
   for disk in disklist:
     WipeDisk(disk)
-    PartitionDisk(disk)
+    if IsPartitioned(disk):
+      PartitionDisk(disk)
   for disk in disklist:
     CreatePVOnDisk(disk)
   CreateVG(vgname, disklist)
