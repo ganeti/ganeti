@@ -246,23 +246,11 @@ doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
 
 doc/html: doc/html/index.html
 
-doc/news.rst: NEWS
-	set -e; \
-	{ echo '.. This file is automatically updated at build time from $<.'; \
-	  echo '.. Do not edit.'; \
-	  echo; \
-	  cat $<; \
-	} > $@
-
 doc/install-quick.rst: INSTALL
-	set -e; \
-	{ echo '.. This file is automatically updated at build time from $<.'; \
-	  echo '.. Do not edit.'; \
-	  echo; \
-	  cat $<; \
-	} > $@
-
+doc/news.rst: NEWS
 doc/upgrade.rst: UPGRADE
+
+doc/install-quick.rst doc/news.rst doc/upgrade.rst:
 	set -e; \
 	{ echo '.. This file is automatically updated at build time from $<.'; \
 	  echo '.. Do not edit.'; \
