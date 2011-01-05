@@ -250,8 +250,8 @@ def RunGroupListTests():
   """Run tests for listing node groups.
 
   """
-  RunTestIf("group-list", qa_group.TestGroupListDefaultFields)
-  RunTestIf("group-list", qa_group.TestGroupListAllFields)
+  RunTestIf("group-list", qa_group.TestGroupList)
+  RunTestIf("group-list", qa_group.TestGroupListFields)
 
 
 def RunGroupRwTests():

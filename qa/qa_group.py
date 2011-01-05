@@ -20,8 +20,11 @@
 
 
 from ganeti import constants
+from ganeti import query
 
 import qa_config
+import qa_utils
+
 from qa_utils import AssertCommand
 
 
@@ -83,12 +86,11 @@ def TestGroupModify():
     AssertCommand(["gnt-group", "remove", group1])
 
 
-def TestGroupListDefaultFields():
+def TestGroupList():
   """gnt-group list"""
-  AssertCommand(["gnt-group", "list"])
+  qa_utils.GenericQueryTest("gnt-group", query.GROUP_FIELDS.keys())
 
 
-def TestGroupListAllFields():
-  """gnt-group list -o FIELDS"""
-  AssertCommand(["gnt-group", "list", "-o",
-                 "name,uuid,node_cnt,node_list,pinst_cnt,pinst_list"])
+def TestGroupListFields():
+  """gnt-group list-fields"""
+  qa_utils.GenericQueryFieldsTest("gnt-group", query.GROUP_FIELDS.keys())
