@@ -135,6 +135,13 @@ serial_no
 If no group names are given, then all groups are included. Otherwise,
 only the named groups will be listed.
 
+LIST-FIELDS
+~~~~~~~~~~~
+
+**list-fields** [field...]
+
+List available fields for node groups.
+
 RENAME
 ~~~~~~
 

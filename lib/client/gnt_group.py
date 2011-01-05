@@ -25,22 +25,13 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 
 from ganeti.cli import *
-from ganeti import compat
+from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
 
 
 #: default list of fields for L{ListGroups}
 _LIST_DEF_FIELDS = ["name", "node_cnt", "pinst_cnt", "alloc_policy"]
-
-
-#: headers (and full field list) for L{ListGroups}
-_LIST_HEADERS = {
-  "name": "Group", "uuid": "UUID", "alloc_policy": "AllocPolicy",
-  "node_cnt": "Nodes", "node_list": "NodeList",
-  "pinst_cnt": "Instances", "pinst_list": "InstanceList",
-  "ctime": "CTime", "mtime": "MTime", "serial_no": "SerialNo",
-}
 
 
 def AddGroup(opts, args):
@@ -70,40 +61,25 @@ def ListGroups(opts, args):
 
   """
   desired_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
+  fmtoverride = dict.fromkeys(["node_list", "pinst_list"], (",".join, False))
 
-  output = GetClient().QueryGroups(args, desired_fields, opts.do_locking)
+  return GenericList(constants.QR_GROUP, desired_fields, args, None,
+                     opts.separator, not opts.no_headers,
+                     format_override=fmtoverride)
 
-  if opts.no_headers:
-    headers = None
-  else:
-    headers = _LIST_HEADERS
 
-  int_type_fields = frozenset(["node_cnt", "pinst_cnt", "serial_no"])
-  list_type_fields = frozenset(["node_list", "pinst_list"])
-  date_type_fields = frozenset(["mtime", "ctime"])
+def ListGroupFields(opts, args):
+  """List node fields.
 
-  for row in output:
-    for idx, field in enumerate(desired_fields):
-      val = row[idx]
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: fields to list, or empty for all
+  @rtype: int
+  @return: the desired exit code
 
-      if field in list_type_fields:
-        val = ",".join(val)
-      elif opts.roman_integers and field in int_type_fields:
-        val = compat.TryToRoman(val)
-      elif field in date_type_fields:
-        val = utils.FormatTime(val)
-      elif val is None:
-        val = "?"
-
-      row[idx] = str(val)
-
-  data = GenerateTable(separator=opts.separator, headers=headers,
-                       fields=desired_fields, data=output)
-
-  for line in data:
-    ToStdout(line)
-
-  return 0
+  """
+  return GenericListFields(constants.QR_GROUP, args, opts.separator,
+                           not opts.no_headers)
 
 
 def SetGroupParams(opts, args):
@@ -174,11 +150,14 @@ commands = {
     "<group_name>", "Add a new node group to the cluster"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
-    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, SYNC_OPT, ROMAN_OPT],
+    [NOHDR_OPT, SEP_OPT, FIELDS_OPT],
     "[<group_name>...]",
-    "Lists the node groups in the cluster. The available fields are (see"
-    " the man page for details): %s. The default list is (in order): %s." %
-    (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
+    "Lists the node groups in the cluster. The available fields can be shown"
+    " using the \"list-fields\" command (see the man page for details)."
+    " The default list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS)),
+  "list-fields": (
+    ListGroupFields, [ArgUnknown()], [NOHDR_OPT, SEP_OPT], "[fields...]",
+    "Lists all available fields for node groups"),
   "modify": (
     SetGroupParams, ARGS_ONE_GROUP,
     [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT],
