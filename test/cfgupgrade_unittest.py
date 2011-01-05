@@ -32,13 +32,17 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import errors
 from ganeti import serializer
+from ganeti import netutils
 
 import testutils
 
 
-def _RunUpgrade(path, dry_run, no_verify):
+def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True):
   cmd = [sys.executable, "%s/tools/cfgupgrade" % testutils.GetSourceDir(),
          "--debug", "--force", "--path=%s" % path]
+
+  if ignore_hostname:
+    cmd.append("--ignore-hostname")
   if dry_run:
     cmd.append("--dry-run")
   if no_verify:
@@ -60,6 +64,7 @@ class TestCfgupgrade(unittest.TestCase):
     self.known_hosts_path = utils.PathJoin(self.tmpdir, "known_hosts")
     self.confd_hmac_path = utils.PathJoin(self.tmpdir, "hmac.key")
     self.cds_path = utils.PathJoin(self.tmpdir, "cluster-domain-secret")
+    self.ss_master_node_path = utils.PathJoin(self.tmpdir, "ssconf_master_node")
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
@@ -70,11 +75,40 @@ class TestCfgupgrade(unittest.TestCase):
   def _CreateValidConfigDir(self):
     utils.WriteFile(self.noded_cert_path, data="")
     utils.WriteFile(self.known_hosts_path, data="")
+    utils.WriteFile(self.ss_master_node_path,
+                    data="node.has.another.name.example.net")
 
   def testNoConfigDir(self):
     self.assertFalse(utils.ListVisibleFiles(self.tmpdir))
     self.assertRaises(Exception, _RunUpgrade, self.tmpdir, False, True)
     self.assertRaises(Exception, _RunUpgrade, self.tmpdir, True, True)
+
+  def testWrongHostname(self):
+    self._CreateValidConfigDir()
+
+    utils.WriteFile(self.config_path, data=serializer.DumpJson({
+      "version": constants.CONFIG_VERSION,
+      "cluster": {},
+      }))
+
+    hostname = netutils.GetHostname().name
+    assert hostname != utils.ReadOneLineFile(self.ss_master_node_path)
+
+    self.assertRaises(Exception, _RunUpgrade, self.tmpdir, False, True,
+                      ignore_hostname=False)
+
+  def testCorrectHostname(self):
+    self._CreateValidConfigDir()
+
+    utils.WriteFile(self.config_path, data=serializer.DumpJson({
+      "version": constants.CONFIG_VERSION,
+      "cluster": {},
+      }))
+
+    utils.WriteFile(self.ss_master_node_path,
+                    data="%s\n" % netutils.GetHostname().name)
+
+    _RunUpgrade(self.tmpdir, False, True, ignore_hostname=False)
 
   def testInconsistentConfig(self):
     self._CreateValidConfigDir()
