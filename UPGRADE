@@ -1,0 +1,259 @@
+Upgrade notes
+=============
+
+.. highlight:: sh
+
+This document details the steps needed to upgrade a cluster to newer versions
+of Ganeti.
+
+As a general rule the node daemons need to be restarted after each software
+upgrade; if using the provided example init.d script, this means running the
+following command on all nodes::
+
+  /etc/init.d/ganeti restart
+
+
+2.1 and above
+-------------
+
+Starting with Ganeti 2.0, upgrades between revisions (e.g. 2.1.0 to 2.1.1)
+should not need manual intervention. As a safety measure, minor releases (e.g.
+2.1.3 to 2.2.0) require the ``cfgupgrade`` command for changing the
+configuration version. Below you find the steps necessary to upgrade between
+minor releases.
+
+To run commands on all nodes, the `distributed shell (dsh)
+<http://www.netfort.gr.jp/~dancer/software/dsh.html.en>`_ can be used, e.g.
+``dsh -M -F 8 -f /var/lib/ganeti/ssconf_online_nodes gnt-cluster --version``.
+
+#. Ensure no jobs are running (master node only)::
+
+     gnt-job list
+
+#. Stop all daemons on all nodes::
+
+     /etc/init.d/ganeti stop
+
+#. Backup old configuration (master node only)::
+
+     tar czf /var/lib/ganeti-$(date +%FT%T).tar.gz -C /var/lib ganeti
+
+#. Install new Ganeti version on all nodes
+#. Run cfgupgrade on the master node::
+
+     /usr/lib/ganeti/tools/cfgupgrade --verbose --dry-run
+     /usr/lib/ganeti/tools/cfgupgrade --verbose
+
+   (``cfgupgrade`` supports a number of parameters, run it with
+   ``--help`` for more information)
+
+#. Restart daemons on all nodes::
+
+     /etc/init.d/ganeti restart
+
+#. Re-distribute configuration (master node only)::
+
+    gnt-cluster redist-conf
+
+#. Restart daemons again on all nodes::
+
+   /etc/init.d/ganeti restart
+
+#. Verify cluster (master node only)::
+
+     gnt-cluster verify
+
+
+2.0 releases
+------------
+
+2.0.3 to 2.0.4
+~~~~~~~~~~~~~~
+
+No changes needed except restarting the daemon; but rollback to 2.0.3 might
+require configuration editing.
+
+If you're using Xen-HVM instances, please double-check the network
+configuration (``nic_type`` parameter) as the defaults might have changed:
+2.0.4 adds any missing configuration items and depending on the version of the
+software the cluster has been installed with, some new keys might have been
+added.
+
+2.0.1 to 2.0.2/2.0.3
+~~~~~~~~~~~~~~~~~~~~
+
+Between 2.0.1 and 2.0.2 there have been some changes in the handling of block
+devices, which can cause some issues. 2.0.3 was then released which adds two
+new options/commands to fix this issue.
+
+If you use DRBD-type instances and see problems in instance start or
+activate-disks with messages from DRBD about "lower device too small" or
+similar, it is recoomended to:
+
+#. Run ``gnt-instance activate-disks --ignore-size $instance`` for each
+   of the affected instances
+#. Then run ``gnt-cluster repair-disk-sizes`` which will check that
+   instances have the correct disk sizes
+
+1.2 to 2.0
+----------
+
+Prerequisites:
+
+- Ganeti 1.2.7 is currently installed
+- All instances have been migrated from DRBD 0.7 to DRBD 8.x (i.e. no
+  ``remote_raid1`` disk template)
+- Upgrade to Ganeti 2.0.0~rc2 or later (~rc1 and earlier don't have the needed
+  upgrade tool)
+
+In the below steps, replace :file:`/var/lib` with ``$libdir`` if Ganeti was not
+installed with this prefix (e.g. :file:`/usr/local/var`). Same for
+:file:`/usr/lib`.
+
+Execution (all steps are required in the order given):
+
+#. Make a backup of the current configuration, for safety::
+
+    cp -a /var/lib/ganeti /var/lib/ganeti-1.2.backup
+
+#. Stop all instances::
+
+    gnt-instance stop --all
+
+#. Make sure no DRBD device are in use, the following command should show no
+   active minors::
+
+    gnt-cluster command grep cs: /proc/drbd \| grep -v cs:Unconf
+
+#. Stop the node daemons and rapi daemon on all nodes (note: should be logged
+   in not via the cluster name, but the master node name, as the command below
+   will remove the cluster ip from the master node)::
+
+    gnt-cluster command /etc/init.d/ganeti stop
+
+#. Install the new software on all nodes, either from packaging (if available)
+   or from sources; the master daemon will not start but give error messages
+   about wrong configuration file, which is normal
+#. Upgrade the configuration file::
+
+    /usr/lib/ganeti/tools/cfgupgrade12 -v --dry-run
+    /usr/lib/ganeti/tools/cfgupgrade12 -v
+
+#. Make sure ``ganeti-noded`` is running on all nodes (and start it if
+   not)
+#. Start the master daemon::
+
+    ganeti-masterd
+
+#. Check that a simple node-list works::
+
+    gnt-node list
+
+#. Redistribute updated configuration to all nodes::
+
+    gnt-cluster redist-conf
+    gnt-cluster copyfile /var/lib/ganeti/known_hosts
+
+#. Optional: if needed, install RAPI-specific certificates under
+   :file:`/var/lib/ganeti/rapi.pem` and run::
+
+    gnt-cluster copyfile /var/lib/ganeti/rapi.pem
+
+#. Run a cluster verify, this should show no problems::
+
+    gnt-cluster verify
+
+#. Remove some obsolete files::
+
+    gnt-cluster command rm /var/lib/ganeti/ssconf_node_pass
+    gnt-cluster command rm /var/lib/ganeti/ssconf_hypervisor
+
+#. Update the xen pvm (if this was a pvm cluster) setting for 1.2
+   compatibility::
+
+    gnt-cluster modify -H xen-pvm:root_path=/dev/sda
+
+#. Depending on your setup, you might also want to reset the initrd parameter::
+
+    gnt-cluster modify -H xen-pvm:initrd_path=/boot/initrd-2.6-xenU
+
+#. Reset the instance autobalance setting to default::
+
+    for i in $(gnt-instance list -o name --no-headers); do \
+      gnt-instance modify -B auto_balance=default $i; \
+    done
+
+#. Optional: start the RAPI demon::
+
+    ganeti-rapi
+
+#. Restart instances::
+
+    gnt-instance start --force-multiple --all
+
+At this point, ``gnt-cluster verify`` should show no errors and the migration
+is complete.
+
+1.2 releases
+------------
+
+1.2.4 to any other higher 1.2 version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No changes needed. Rollback will usually require manual edit of the
+configuration file.
+
+1.2.3 to 1.2.4
+~~~~~~~~~~~~~~
+
+No changes needed. Note that going back from 1.2.4 to 1.2.3 will require manual
+edit of the configuration file (since we added some HVM-related new
+attributes).
+
+1.2.2 to 1.2.3
+~~~~~~~~~~~~~~
+
+No changes needed. Note that the drbd7-to-8 upgrade tool does a disk format
+change for the DRBD metadata, so in theory this might be **risky**. It is
+advised to have (good) backups before doing the upgrade.
+
+1.2.1 to 1.2.2
+~~~~~~~~~~~~~~
+
+No changes needed.
+
+1.2.0 to 1.2.1
+~~~~~~~~~~~~~~
+
+No changes needed. Only some bugfixes and new additions that don't affect
+existing clusters.
+
+1.2.0 beta 3 to 1.2.0
+~~~~~~~~~~~~~~~~~~~~~
+
+No changes needed.
+
+1.2.0 beta 2 to beta 3
+~~~~~~~~~~~~~~~~~~~~~~
+
+No changes needed. A new version of the debian-etch-instance OS (0.3) has been
+released, but upgrading it is not required.
+
+1.2.0 beta 1 to beta 2
+~~~~~~~~~~~~~~~~~~~~~~
+
+Beta 2 switched the config file format to JSON. Steps to upgrade:
+
+#. Stop the daemons (``/etc/init.d/ganeti stop``) on all nodes
+#. Disable the cron job (default is :file:`/etc/cron.d/ganeti`)
+#. Install the new version
+#. Make a backup copy of the config file
+#. Upgrade the config file using the following command::
+
+    /usr/share/ganeti/cfgupgrade --verbose /var/lib/ganeti/config.data
+
+#. Start the daemons and run ``gnt-cluster info``, ``gnt-node list`` and
+   ``gnt-instance list`` to check if the upgrade process finished successfully
+
+The OS definition also need to be upgraded. There is a new version of the
+debian-etch-instance OS (0.2) that goes along with beta 2.

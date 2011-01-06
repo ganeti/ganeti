@@ -78,6 +78,7 @@ MAINTAINERCLEANFILES = \
 	$(maninput) \
 	doc/install-quick.rst \
 	doc/news.rst \
+	doc/upgrade.rst \
 	vcs-version
 
 maintainer-clean-local:
@@ -230,6 +231,7 @@ docrst = \
 	doc/news.rst \
 	doc/rapi.rst \
 	doc/security.rst \
+	doc/upgrade.rst \
 	doc/walkthrough.rst
 
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
@@ -249,15 +251,11 @@ doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
 
 doc/html: doc/html/index.html
 
-doc/news.rst: NEWS
-	set -e; \
-	{ echo '.. This file is automatically updated at build time from $<.'; \
-	  echo '.. Do not edit.'; \
-	  echo; \
-	  cat $<; \
-	} > $@
-
 doc/install-quick.rst: INSTALL
+doc/news.rst: NEWS
+doc/upgrade.rst: UPGRADE
+
+doc/install-quick.rst doc/news.rst doc/upgrade.rst:
 	set -e; \
 	{ echo '.. This file is automatically updated at build time from $<.'; \
 	  echo '.. Do not edit.'; \
@@ -353,6 +351,7 @@ pkglib_SCRIPTS = \
 
 EXTRA_DIST = \
 	NEWS \
+	UPGRADE \
 	pylintrc \
 	autotools/build-bash-completion \
 	autotools/check-python-code \

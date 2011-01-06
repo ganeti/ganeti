@@ -39,6 +39,7 @@ from ganeti import utils
 from ganeti import cli
 from ganeti import bootstrap
 from ganeti import config
+from ganeti import netutils
 
 
 options = None
@@ -63,11 +64,29 @@ def SetupLogging():
   elif options.verbose:
     stderr_handler.setLevel(logging.INFO)
   else:
-    stderr_handler.setLevel(logging.CRITICAL)
+    stderr_handler.setLevel(logging.WARNING)
 
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(stderr_handler)
+
+
+def CheckHostname(path):
+  """Ensures hostname matches ssconf value.
+
+  @param path: Path to ssconf file
+
+  """
+  ssconf_master_node = utils.ReadOneLineFile(path)
+  hostname = netutils.GetHostname().name
+
+  if ssconf_master_node == hostname:
+    return True
+
+  logging.warning("Warning: ssconf says master node is '%s', but this"
+                  " machine's name is '%s'; this tool must be run on"
+                  " the master node", ssconf_master_node, hostname)
+  return False
 
 
 def main():
@@ -75,8 +94,6 @@ def main():
 
   """
   global options, args # pylint: disable-msg=W0603
-
-  program = os.path.basename(sys.argv[0])
 
   # Option parsing
   parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")
@@ -87,6 +104,9 @@ def main():
   parser.add_option(cli.FORCE_OPT)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
+  parser.add_option("--ignore-hostname", dest="ignore_hostname",
+                    action="store_true", default=False,
+                    help="Don't abort if hostname doesn't match")
   parser.add_option('--path', help="Convert configuration in this"
                     " directory instead of '%s'" % constants.DATA_DIR,
                     default=constants.DATA_DIR, dest="data_dir")
@@ -106,6 +126,7 @@ def main():
   options.RAPI_USERS_FILE_PRE24 = options.data_dir + "/rapi_users"
   options.CONFD_HMAC_KEY = options.data_dir + "/hmac.key"
   options.CDS_FILE = options.data_dir + "/cluster-domain-secret"
+  options.SSCONF_MASTER_NODE = options.data_dir + "/ssconf_master_node"
 
   SetupLogging()
 
@@ -113,9 +134,16 @@ def main():
   if args:
     raise Error("No arguments expected")
 
+  # Check master name
+  if not (CheckHostname(options.SSCONF_MASTER_NODE) or options.ignore_hostname):
+    logging.error("Aborting due to hostname mismatch")
+    sys.exit(constants.EXIT_FAILURE)
+
   if not options.force:
-    usertext = ("%s MUST be run on the master node. Is this the master"
-                " node and are ALL instances down?" % program)
+    usertext = ("Please make sure you have read the upgrade notes for"
+                " Ganeti %s (available in the UPGRADE file and included"
+                " in other documentation formats). Continue with upgrading"
+                " configuration?" % constants.RELEASE_VERSION)
     if not cli.AskUser(usertext):
       sys.exit(constants.EXIT_FAILURE)
 
