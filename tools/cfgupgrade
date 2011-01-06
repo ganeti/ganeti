@@ -95,8 +95,6 @@ def main():
   """
   global options, args # pylint: disable-msg=W0603
 
-  program = os.path.basename(sys.argv[0])
-
   # Option parsing
   parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")
   parser.add_option('--dry-run', dest='dry_run',
