@@ -271,10 +271,16 @@ def ProcessChildIO(child, socat_stderr_read_fd, dd_stderr_read_fd,
       timeout = None
 
       if listen_timeout and not exit_timeout:
+        assert mode == constants.IEM_IMPORT and options.connect_timeout
         if status_file.GetConnected():
           listen_timeout = None
         elif listen_timeout.Remaining() < 0:
-          logging.info("Child process didn't establish connection in time")
+          errmsg = ("Child process didn't establish connection in time"
+                    " (%0.0fs), sending SIGTERM" % options.connect_timeout)
+          logging.error(errmsg)
+          status_file.AddRecentOutput(errmsg)
+          status_file.Update(True)
+
           child.Kill(signal.SIGTERM)
           exit_timeout = \
             locking.RunningTimeout(CHILD_LINGER_TIMEOUT, True)
