@@ -3555,6 +3555,12 @@ class _NodeQuery(_QueryBase):
       node_to_primary = None
       node_to_secondary = None
 
+    if query.NQ_OOB in self.requested_data:
+      oob_support = dict((name, bool(_SupportsOob(lu.cfg, node)))
+                         for name, node in all_info.iteritems())
+    else:
+      oob_support = None
+
     if query.NQ_GROUP in self.requested_data:
       groups = lu.cfg.GetAllNodeGroupsInfo()
     else:
@@ -3562,7 +3568,8 @@ class _NodeQuery(_QueryBase):
 
     return query.NodeQueryData([all_info[name] for name in nodenames],
                                live_data, lu.cfg.GetMasterNode(),
-                               node_to_primary, node_to_secondary, groups)
+                               node_to_primary, node_to_secondary, groups,
+                               oob_support)
 
 
 class LUQueryNodes(NoHooksLU):

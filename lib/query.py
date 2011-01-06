@@ -36,7 +36,8 @@ from ganeti import ht
 (NQ_CONFIG,
  NQ_INST,
  NQ_LIVE,
- NQ_GROUP) = range(1, 5)
+ NQ_GROUP,
+ NQ_OOB) = range(1, 6)
 
 (IQ_CONFIG,
  IQ_LIVE,
@@ -357,7 +358,7 @@ class NodeQueryData:
 
   """
   def __init__(self, nodes, live_data, master_name, node_to_primary,
-               node_to_secondary, groups):
+               node_to_secondary, groups, oob_support):
     """Initializes this class.
 
     """
@@ -367,6 +368,7 @@ class NodeQueryData:
     self.node_to_primary = node_to_primary
     self.node_to_secondary = node_to_secondary
     self.groups = groups
+    self.oob_support = oob_support
 
     # Used for individual rows
     self.curlive_data = None
@@ -429,6 +431,20 @@ def _GetNodeGroup(ctx, node):
   return (constants.QRFS_NORMAL, ng.name)
 
 
+def _GetNodePower(ctx, node):
+  """Returns the node powered state
+
+  @type ctx: L{NodeQueryData}
+  @type node: L{objects.Node}
+  @param node: Node object
+
+  """
+  if ctx.oob_support[node.name]:
+    return (constants.QRFS_NORMAL, node.powered)
+
+  return (constants.QRFS_UNAVAIL, None)
+
+
 def _GetLiveNodeField(field, kind, ctx, node):
   """Gets the value of a "live" field from L{NodeQueryData}.
 
@@ -483,6 +499,8 @@ def _BuildNodeFields():
     (_MakeField("group", "Group", constants.QFT_TEXT), NQ_GROUP, _GetNodeGroup),
     (_MakeField("group.uuid", "GroupUUID", constants.QFT_TEXT),
      NQ_CONFIG, lambda ctx, node: (constants.QRFS_NORMAL, node.group)),
+    (_MakeField("powered", "Powered", constants.QFT_BOOL), NQ_OOB,
+      _GetNodePower),
     ]
 
   def _GetLength(getter):
