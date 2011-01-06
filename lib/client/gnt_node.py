@@ -388,17 +388,19 @@ def ShowNodeConfig(opts, args):
   result = cl.QueryNodes(fields=["name", "pip", "sip",
                                  "pinst_list", "sinst_list",
                                  "master_candidate", "drained", "offline",
-                                 "master_capable", "vm_capable"],
+                                 "master_capable", "vm_capable", "powered"],
                          names=args, use_locking=False)
 
   for (name, primary_ip, secondary_ip, pinst, sinst,
-       is_mc, drained, offline, master_capable, vm_capable) in result:
+       is_mc, drained, offline, master_capable, vm_capable, powered) in result:
     ToStdout("Node name: %s", name)
     ToStdout("  primary ip: %s", primary_ip)
     ToStdout("  secondary ip: %s", secondary_ip)
     ToStdout("  master candidate: %s", is_mc)
     ToStdout("  drained: %s", drained)
     ToStdout("  offline: %s", offline)
+    if powered is not None:
+      ToStdout("  powered: %s", powered)
     ToStdout("  master_capable: %s", master_capable)
     ToStdout("  vm_capable: %s", vm_capable)
     if vm_capable:
