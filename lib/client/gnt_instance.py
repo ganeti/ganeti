@@ -25,7 +25,6 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-instance
 
-import os
 import itertools
 import simplejson
 from cStringIO import StringIO
