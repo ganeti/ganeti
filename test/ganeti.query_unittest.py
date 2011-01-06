@@ -763,7 +763,7 @@ class TestInstanceQuery(unittest.TestCase):
 
 class TestQueryFields(unittest.TestCase):
   def testAllFields(self):
-    for fielddefs in [query.NODE_FIELDS, query.INSTANCE_FIELDS]:
+    for fielddefs in query.ALL_FIELD_LISTS:
       result = query.QueryFields(fielddefs, None)
       self.assert_(isinstance(result, dict))
       response = objects.QueryFieldsResponse.FromDict(result)
@@ -776,10 +776,13 @@ class TestQueryFields(unittest.TestCase):
     rnd = random.Random(5357)
 
     for _ in range(10):
-      for fielddefs in [query.NODE_FIELDS, query.INSTANCE_FIELDS]:
-        fields = [fdef
-                  for (fdef, _, _) in rnd.sample(fielddefs.values(),
-                                                 rnd.randint(5, 20))]
+      for fielddefs in query.ALL_FIELD_LISTS:
+        if len(fielddefs) > 20:
+          sample_size = rnd.randint(5, 20)
+        else:
+          sample_size = rnd.randint(1, max(1, len(fielddefs) - 1))
+        fields = [fdef for (fdef, _, _) in rnd.sample(fielddefs.values(),
+                                                      sample_size)]
         result = query.QueryFields(fielddefs, [fdef.name for fdef in fields])
         self.assert_(isinstance(result, dict))
         response = objects.QueryFieldsResponse.FromDict(result)

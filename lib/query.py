@@ -1072,3 +1072,6 @@ INSTANCE_FIELDS = _BuildInstanceFields()
 
 #: Fields available for lock queries
 LOCK_FIELDS = _BuildLockFields()
+
+#: All available field lists
+ALL_FIELD_LISTS = [NODE_FIELDS, INSTANCE_FIELDS, LOCK_FIELDS]
