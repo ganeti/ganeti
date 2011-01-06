@@ -959,12 +959,12 @@ def ConnectToInstanceConsole(opts, args):
   if opts.show_command:
     ToStdout("%s", utils.ShellQuoteArgs(cmd))
   else:
-    try:
-      os.execvp(cmd[0], cmd)
-    finally:
-      ToStderr("Can't run console command %s with arguments:\n'%s'",
-               cmd[0], " ".join(cmd))
-      os._exit(1) # pylint: disable-msg=W0212
+    result = utils.RunCmd(cmd, interactive=True)
+    if result.failed:
+      raise errors.OpExecError("Console command \"%s\" failed: %s" %
+                               (utils.ShellQuoteArgs(cmd), result.fail_reason))
+
+  return constants.EXIT_SUCCESS
 
 
 def _FormatLogicalID(dev_type, logical_id, roman):
