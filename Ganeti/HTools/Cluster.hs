@@ -60,6 +60,7 @@ module Ganeti.HTools.Cluster
     , tryReloc
     , tryMGReloc
     , tryEvac
+    , tryMGEvac
     , collapseFailures
     -- * Allocation functions
     , iterateAlloc
@@ -582,6 +583,11 @@ concatAllocs as (OpGood ns@(_, _, _, nscore)) =
     -- elements of the tuple
     in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolutions = nsols }
 
+-- | Sums two allocation solutions (e.g. for two separate node groups).
+sumAllocs :: AllocSolution -> AllocSolution -> AllocSolution
+sumAllocs (AllocSolution af aa as al) (AllocSolution bf ba bs bl) =
+    AllocSolution (af ++ bf) (aa + ba) (as ++ bs) (al ++ bl)
+
 -- | Given a solution, generates a reasonable description for it
 describeSolution :: AllocSolution -> String
 describeSolution as =
@@ -769,13 +775,45 @@ evacInstance ex_ndx il (nl, old_as) idx = do
 tryEvac :: (Monad m) =>
             Node.List       -- ^ The node list
          -> Instance.List   -- ^ The instance list
-         -> [Ndx]           -- ^ Nodes to be evacuated
+         -> [Idx]           -- ^ Instances to be evacuated
+         -> [Ndx]           -- ^ Restricted nodes (the ones being evacuated)
          -> m AllocSolution -- ^ Solution list
-tryEvac nl il ex_ndx =
+tryEvac nl il idxs ex_ndx = do
+  (_, sol) <- foldM (evacInstance ex_ndx il) (nl, emptySolution) idxs
+  return sol
+
+-- | Multi-group evacuation of a list of nodes.
+tryMGEvac :: (Monad m) =>
+             Group.List -- ^ The group list
+          -> Node.List       -- ^ The node list
+          -> Instance.List   -- ^ The instance list
+          -> [Ndx]           -- ^ Nodes to be evacuated
+          -> m AllocSolution -- ^ Solution list
+tryMGEvac _ nl il ex_ndx =
     let ex_nodes = map (`Container.find` nl) ex_ndx
         all_insts = nub . concatMap Node.sList $ ex_nodes
+        gni = splitCluster nl il
+        -- we run the instance index list through a couple of maps to
+        -- get finally to a structure of the type [(group index,
+        -- [instance indices])]
+        all_insts' = map (\idx ->
+                              (instancePriGroup nl (Container.find idx il),
+                               idx)) all_insts
+        all_insts'' = groupBy ((==) `on` fst) all_insts'
+        all_insts3 = map (\xs -> let (gdxs, idxs) = unzip xs
+                                 in (head gdxs, idxs)) all_insts''
     in do
-      (_, sol) <- foldM (evacInstance ex_ndx il) (nl, emptySolution) all_insts
+      -- that done, we now add the per-group nl/il to the tuple
+      all_insts4 <-
+          mapM (\(gdx, idxs) -> do
+                  case lookup gdx gni of
+                    Nothing -> fail $ "Can't find group index " ++ show gdx
+                    Just (gnl, gil) -> return (gdx, gnl, gil, idxs))
+          all_insts3
+      results <- mapM (\(_, gnl, gil, idxs) -> tryEvac gnl gil idxs ex_ndx)
+                 all_insts4
+      let sol = foldl' (\orig_sol group_sol ->
+                        sumAllocs orig_sol group_sol) emptySolution results
       return $ annotateSolution sol
 
 -- | Recursively place instances on the cluster until we're out of space

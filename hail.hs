@@ -73,7 +73,7 @@ processRequest request =
        Allocate xi reqn -> Cluster.tryMGAlloc gl nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryMGReloc gl nl il
                                     idx reqn exnodes
-       Evacuate exnodes -> Cluster.tryEvac nl il exnodes
+       Evacuate exnodes -> Cluster.tryMGEvac gl nl il exnodes
 
 -- | Reads the request from the data file(s)
 readRequest :: Options -> [String] -> IO Request

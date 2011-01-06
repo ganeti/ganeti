@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -734,7 +734,7 @@ prop_ClusterAllocEvac node inst =
                (xnl, xi, _, _):[] ->
                    let sdx = Instance.sNode xi
                        il' = Container.add (Instance.idx xi) xi il
-                   in case Cluster.tryEvac xnl il' [sdx] of
+                   in case Cluster.tryEvac xnl il' [Instance.idx xi] [sdx] of
                         Just _ -> True
                         _ -> False
                _ -> False
