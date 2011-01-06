@@ -120,7 +120,7 @@ OP_ADD_NODE
 Adds a node to the cluster.
 
 :directory: node-add
-:env. vars: NODE_NAME, NODE_PIP, NODE_SIP
+:env. vars: NODE_NAME, NODE_PIP, NODE_SIP, MASTER_CAPABLE, VM_CAPABLE
 :pre-execution: all existing nodes
 :post-execution: all nodes plus the new node
 
@@ -143,7 +143,7 @@ OP_NODE_SET_PARAMS
 Changes a node's parameters.
 
 :directory: node-modify
-:env. vars: MASTER_CANDIDATE, OFFLINE, DRAINED
+:env. vars: MASTER_CANDIDATE, OFFLINE, DRAINED, MASTER_CAPABLE, VM_CAPABLE
 :pre-execution: master node, the target node
 :post-execution: master node, the target node
 
@@ -254,7 +254,7 @@ OP_BACKUP_EXPORT
 Exports the instance.
 
 :directory: instance-export
-:env. vars: EXPORT_NODE, EXPORT_DO_SHUTDOWN
+:env. vars: EXPORT_MODE, EXPORT_NODE, EXPORT_DO_SHUTDOWN, REMOVE_INSTANCE
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
@@ -274,7 +274,7 @@ OP_INSTANCE_SHUTDOWN
 Stops an instance.
 
 :directory: instance-stop
-:env. vars: only the standard instance vars
+:env. vars: TIMEOUT
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
@@ -284,7 +284,7 @@ OP_INSTANCE_REBOOT
 Reboots an instance.
 
 :directory: instance-reboot
-:env. vars: IGNORE_SECONDARIES, REBOOT_TYPE
+:env. vars: IGNORE_SECONDARIES, REBOOT_TYPE, SHUTDOWN_TIMEOUT
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
@@ -294,7 +294,7 @@ OP_INSTANCE_MODIFY
 Modifies the instance parameters.
 
 :directory: instance-modify
-:env. vars: only the standard instance vars
+:env. vars: NEW_DISK_TEMPLATE
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
@@ -306,7 +306,7 @@ INSTANCE_SECONDARIES refer to the nodes that were repectively primary
 and secondary before failover.
 
 :directory: instance-failover
-:env. vars: IGNORE_CONSISTENCY, OLD_SECONDARY, OLD_PRIMARY, NEW_SECONDARY, NEW_PRIMARY
+:env. vars: IGNORE_CONSISTENCY, SHUTDOWN_TIMEOUT, OLD_PRIMARY, OLD_SECONDARY, NEW_PRIMARY, NEW_SECONDARY
 :pre-execution: master node, secondary node
 :post-execution: master node, primary and secondary nodes
 
@@ -318,7 +318,7 @@ INSTANCE_SECONDARIES refer to the nodes that were repectively primary
 and secondary before migration.
 
 :directory: instance-migrate
-:env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP, OLD_SECONDARY, OLD_PRIMARY, NEW_SECONDARY, NEW_PRIMARY
+:env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP, OLD_PRIMARY, OLD_SECONDARY, NEW_PRIMARY, NEW_SECONDARY
 :pre-execution: master node, secondary node
 :post-execution: master node, primary and secondary nodes
 
@@ -329,7 +329,7 @@ OP_INSTANCE_REMOVE
 Remove an instance.
 
 :directory: instance-remove
-:env. vars: only the standard instance vars
+:env. vars: SHUTDOWN_TIMEOUT
 :pre-execution: master node
 :post-execution: master node, primary and secondary nodes
 
@@ -369,7 +369,7 @@ OP_INSTANCE_MOVE
 Move an instance by data-copying.
 
 :directory: instance-move
-:env. vars: TARGET_NODE
+:env. vars: TARGET_NODE, SHUTDOWN_TIMEOUT
 :pre-execution: master node, primary and target nodes
 :post-execution: master node, primary and target nodes
 
@@ -510,8 +510,14 @@ operations.
 INSTANCE_NAME
   The name of the instance which is the target of the operation.
 
+INSTANCE_BE_x,y,z,...
+  Instance BE params. There is one variable per BE param. For instance, GANETI_INSTANCE_BE_auto_balance
+
 INSTANCE_DISK_TEMPLATE
   The disk type for the instance.
+
+NEW_DISK_TEMPLATE
+  The new disk type for the instance.
 
 INSTANCE_DISK_COUNT
   The number of disks for the instance.
@@ -521,6 +527,12 @@ INSTANCE_DISKn_SIZE
 
 INSTANCE_DISKn_MODE
   Either *rw* for a read-write disk or *ro* for a read-only one.
+
+INSTANCE_HV_x,y,z,...
+  Instance hypervisor options. There is one variable per option. For instance, GANETI_INSTANCE_HV_use_bootloader
+
+INSTANCE_HYPERVISOR
+  The instance hypervisor.
 
 INSTANCE_NIC_COUNT
   The number of NICs for the instance.
@@ -533,6 +545,9 @@ INSTANCE_NICn_IP
 
 INSTANCE_NICn_MAC
   The MAC address of the *n* -th NIC of the instance.
+
+INSTANCE_NICn_MODE
+  The mode of the *n* -th NIC of the instance.
 
 INSTANCE_OS_TYPE
   The name of the instance OS.
@@ -557,6 +572,12 @@ INSTANCE_VCPUS
 
 INSTANCE_STATUS
   The run status of the instance.
+
+MASTER_CAPABLE
+  Whether a node is capable of being promoted to master.
+
+VM_CAPABLE
+  Whether the node can host instances.
 
 NODE_NAME
   The target node of this operation (not the node on which the hook
@@ -604,6 +625,9 @@ OLD_PRIMARY, NEW_PRIMARY
   For migrations/failovers, the old and respectively new primary
   nodes. These two mirror the NEW_SECONDARY/OLD_SECONDARY variables
 
+EXPORT_MODE
+  The instance export mode. Either "remote" or "local".
+
 EXPORT_NODE
   The node on which the exported image of the instance was done.
 
@@ -613,6 +637,24 @@ EXPORT_DO_SHUTDOWN
   filesystem is consistent, whereas in the "did not shutdown" case,
   the filesystem would need a check (journal replay or full fsck) in
   order to guarantee consistency.
+
+REMOVE_INSTANCE
+  Whether the instance was removed from the node.
+
+SHUTDOWN_TIMEOUT
+  Amount of time to wait for the instance to shutdown.
+
+TIMEOUT
+  Amount of time to wait before aborting the op.
+
+OLD_NAME, NEW_NAME
+  Old/new name of the node group.
+
+GROUP_NAME
+  The name of the node group.
+
+NEW_ALLOC_POLICY
+  The new allocation policy for the node group.
 
 CLUSTER_TAGS
   The list of cluster tags, space separated.
