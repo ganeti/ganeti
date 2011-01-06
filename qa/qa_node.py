@@ -346,7 +346,7 @@ def TestOutOfBand():
       AssertCommand(["rm", "-f", oob_path2, verify_path2])
   finally:
     AssertCommand(["gnt-cluster", "modify", "--node-parameters",
-                   "oob_program=default"])
+                   "oob_program="])
     AssertCommand(["rm", "-f", oob_path, verify_path, data_path,
                    exit_code_path])
 
