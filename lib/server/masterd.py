@@ -56,6 +56,7 @@ from ganeti import rpc
 from ganeti import bootstrap
 from ganeti import netutils
 from ganeti import objects
+from ganeti import query
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -234,6 +235,10 @@ class ClientOps:
       if req.what in constants.QR_OP_QUERY:
         result = self._Query(opcodes.OpQuery(what=req.what, fields=req.fields,
                                              filter=req.filter))
+      elif req.what == constants.QR_LOCK:
+        if req.filter is not None:
+          raise errors.OpPrereqError("Lock queries can't be filtered")
+        return self.server.context.glm.QueryLocks(req.fields)
       elif req.what in constants.QR_OP_LUXI:
         raise NotImplementedError
       else:
@@ -248,6 +253,8 @@ class ClientOps:
       if req.what in constants.QR_OP_QUERY:
         result = self._Query(opcodes.OpQueryFields(what=req.what,
                                                    fields=req.fields))
+      elif req.what == constants.QR_LOCK:
+        return query.QueryFields(query.LOCK_FIELDS, req.fields)
       elif req.what in constants.QR_OP_LUXI:
         raise NotImplementedError
       else:
@@ -323,7 +330,9 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_LOCKS:
       (fields, sync) = args
       logging.info("Received locks query request")
-      return self.server.context.glm.QueryLocks(fields, sync)
+      if sync:
+        raise NotImplementedError("Synchronous queries are not implemented")
+      return self.server.context.glm.OldStyleQueryLocks(fields)
 
     elif method == luxi.REQ_QUEUE_SET_DRAIN_FLAG:
       drain_flag = args

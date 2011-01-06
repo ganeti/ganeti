@@ -42,6 +42,9 @@ from ganeti import ht
  IQ_LIVE,
  IQ_DISKUSAGE) = range(100, 103)
 
+(LQ_MODE,
+ LQ_OWNER,
+ LQ_PENDING) = range(10, 13)
 
 FIELD_NAME_RE = re.compile(r"^[a-z0-9/._]+$")
 TITLE_RE = re.compile(r"^[^\s]+$")
@@ -1003,8 +1006,69 @@ def _BuildInstanceFields():
   return _PrepareFieldList(fields)
 
 
+class LockQueryData:
+  """Data container for lock data queries.
+
+  """
+  def __init__(self, lockdata):
+    """Initializes this class.
+
+    """
+    self.lockdata = lockdata
+
+  def __iter__(self):
+    """Iterate over all locks.
+
+    """
+    return iter(self.lockdata)
+
+
+def _GetLockOwners(_, data):
+  """Returns a sorted list of a lock's current owners.
+
+  """
+  (_, _, owners, _) = data
+
+  if owners:
+    owners = utils.NiceSort(owners)
+
+  return (constants.QRFS_NORMAL, owners)
+
+
+def _GetLockPending(_, data):
+  """Returns a sorted list of a lock's pending acquires.
+
+  """
+  (_, _, _, pending) = data
+
+  if pending:
+    pending = [(mode, utils.NiceSort(names))
+               for (mode, names) in pending]
+
+  return (constants.QRFS_NORMAL, pending)
+
+
+def _BuildLockFields():
+  """Builds list of fields for lock queries.
+
+  """
+  return _PrepareFieldList([
+    (_MakeField("name", "Name", constants.QFT_TEXT), None,
+     lambda ctx, (name, mode, owners, pending): (constants.QRFS_NORMAL, name)),
+    (_MakeField("mode", "Mode", constants.QFT_OTHER), LQ_MODE,
+     lambda ctx, (name, mode, owners, pending): (constants.QRFS_NORMAL, mode)),
+    (_MakeField("owner", "Owner", constants.QFT_OTHER), LQ_OWNER,
+     _GetLockOwners),
+    (_MakeField("pending", "Pending", constants.QFT_OTHER), LQ_PENDING,
+     _GetLockPending),
+    ])
+
+
 #: Fields available for node queries
 NODE_FIELDS = _BuildNodeFields()
 
 #: Fields available for instance queries
 INSTANCE_FIELDS = _BuildInstanceFields()
+
+#: Fields available for lock queries
+LOCK_FIELDS = _BuildLockFields()

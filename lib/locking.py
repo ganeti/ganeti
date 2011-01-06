@@ -32,14 +32,17 @@ import errno
 import weakref
 import logging
 import heapq
+import operator
 
 from ganeti import errors
 from ganeti import utils
 from ganeti import compat
+from ganeti import query
 
 
 _EXCLUSIVE_TEXT = "exclusive"
 _SHARED_TEXT = "shared"
+_DELETED_TEXT = "deleted"
 
 _DEFAULT_PRIORITY = 0
 
@@ -432,65 +435,60 @@ class SharedLock(object):
     if monitor:
       monitor.RegisterLock(self)
 
-  def GetInfo(self, fields):
+  def GetInfo(self, requested):
     """Retrieves information for querying locks.
 
-    @type fields: list of strings
-    @param fields: List of fields to return
+    @type requested: set
+    @param requested: Requested information, see C{query.LQ_*}
 
     """
     self.__lock.acquire()
     try:
-      info = []
-
       # Note: to avoid unintentional race conditions, no references to
       # modifiable objects should be returned unless they were created in this
       # function.
-      for fname in fields:
-        if fname == "name":
-          info.append(self.name)
-        elif fname == "mode":
-          if self.__deleted:
-            info.append("deleted")
-            assert not (self.__exc or self.__shr)
-          elif self.__exc:
-            info.append(_EXCLUSIVE_TEXT)
-          elif self.__shr:
-            info.append(_SHARED_TEXT)
-          else:
-            info.append(None)
-        elif fname == "owner":
-          if self.__exc:
-            owner = [self.__exc]
-          else:
-            owner = self.__shr
+      mode = None
+      owner_names = None
 
-          if owner:
-            assert not self.__deleted
-            info.append([i.getName() for i in owner])
-          else:
-            info.append(None)
-        elif fname == "pending":
-          data = []
+      if query.LQ_MODE in requested:
+        if self.__deleted:
+          mode = _DELETED_TEXT
+          assert not (self.__exc or self.__shr)
+        elif self.__exc:
+          mode = _EXCLUSIVE_TEXT
+        elif self.__shr:
+          mode = _SHARED_TEXT
 
-          # Sorting instead of copying and using heaq functions for simplicity
-          for (_, prioqueue) in sorted(self.__pending):
-            for cond in prioqueue:
-              if cond.shared:
-                mode = _SHARED_TEXT
-              else:
-                mode = _EXCLUSIVE_TEXT
-
-              # This function should be fast as it runs with the lock held.
-              # Hence not using utils.NiceSort.
-              data.append((mode, sorted(i.getName()
-                                        for i in cond.get_waiting())))
-
-          info.append(data)
+      # Current owner(s) are wanted
+      if query.LQ_OWNER in requested:
+        if self.__exc:
+          owner = [self.__exc]
         else:
-          raise errors.OpExecError("Invalid query field '%s'" % fname)
+          owner = self.__shr
 
-      return info
+        if owner:
+          assert not self.__deleted
+          owner_names = [i.getName() for i in owner]
+
+      # Pending acquires are wanted
+      if query.LQ_PENDING in requested:
+        pending = []
+
+        # Sorting instead of copying and using heaq functions for simplicity
+        for (_, prioqueue) in sorted(self.__pending):
+          for cond in prioqueue:
+            if cond.shared:
+              pendmode = _SHARED_TEXT
+            else:
+              pendmode = _EXCLUSIVE_TEXT
+
+            # List of names will be sorted in L{query._GetLockPending}
+            pending.append((pendmode, [i.getName()
+                                       for i in cond.get_waiting()]))
+      else:
+        pending = None
+
+      return (self.name, mode, owner_names, pending)
     finally:
       self.__lock.release()
 
@@ -1344,13 +1342,21 @@ class GanetiLockManager:
                               monitor=self._monitor),
       }
 
-  def QueryLocks(self, fields, sync):
+  def QueryLocks(self, fields):
     """Queries information from all locks.
 
     See L{LockMonitor.QueryLocks}.
 
     """
-    return self._monitor.QueryLocks(fields, sync)
+    return self._monitor.QueryLocks(fields)
+
+  def OldStyleQueryLocks(self, fields):
+    """Queries information from all locks, returning old-style data.
+
+    See L{LockMonitor.OldStyleQueryLocks}.
+
+    """
+    return self._monitor.OldStyleQueryLocks(fields)
 
   def _names(self, level):
     """List the lock names at the given level.
@@ -1533,32 +1539,46 @@ class LockMonitor(object):
     self._locks[lock] = None
 
   @ssynchronized(_LOCK_ATTR)
-  def _GetLockInfo(self, fields):
+  def _GetLockInfo(self, requested):
     """Get information from all locks while the monitor lock is held.
 
     """
-    result = {}
+    return [lock.GetInfo(requested) for lock in self._locks.keys()]
 
-    for lock in self._locks.keys():
-      assert lock.name not in result, "Found duplicate lock name"
-      result[lock.name] = lock.GetInfo(fields)
-
-    return result
-
-  def QueryLocks(self, fields, sync):
+  def _Query(self, fields):
     """Queries information from all locks.
 
     @type fields: list of strings
     @param fields: List of fields to return
-    @type sync: boolean
-    @param sync: Whether to operate in synchronous mode
 
     """
-    if sync:
-      raise NotImplementedError("Synchronous queries are not implemented")
+    qobj = query.Query(query.LOCK_FIELDS, fields)
 
-    # Get all data without sorting
-    result = self._GetLockInfo(fields)
+    # Get all data and sort by name
+    lockinfo = utils.NiceSort(self._GetLockInfo(qobj.RequestedData()),
+                              key=operator.itemgetter(0))
 
-    # Sort by name
-    return [result[name] for name in utils.NiceSort(result.keys())]
+    return (qobj, query.LockQueryData(lockinfo))
+
+  def QueryLocks(self, fields):
+    """Queries information from all locks.
+
+    @type fields: list of strings
+    @param fields: List of fields to return
+
+    """
+    (qobj, ctx) = self._Query(fields)
+
+    # Prepare query response
+    return query.GetQueryResponse(qobj, ctx)
+
+  def OldStyleQueryLocks(self, fields):
+    """Queries information from all locks, returning old-style data.
+
+    @type fields: list of strings
+    @param fields: List of fields to return
+
+    """
+    (qobj, ctx) = self._Query(fields)
+
+    return qobj.OldStyleQuery(ctx)

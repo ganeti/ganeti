@@ -951,12 +951,14 @@ JQT_ALL = frozenset([
 # Query resources
 QR_INSTANCE = "instance"
 QR_NODE = "node"
+QR_LOCK = "lock"
 
 #: List of resources which can be queried using L{opcodes.OpQuery}
 QR_OP_QUERY = frozenset([QR_INSTANCE, QR_NODE])
 
 #: List of resources which can be queried using LUXI
 QR_OP_LUXI = QR_OP_QUERY.union([
+  QR_LOCK,
   ])
 
 # Query field types

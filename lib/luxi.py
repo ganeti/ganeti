@@ -34,6 +34,7 @@ import collections
 import time
 import errno
 import logging
+import warnings
 
 from ganeti import serializer
 from ganeti import constants
@@ -543,4 +544,6 @@ class Client(object):
     return self.CallMethod(REQ_QUERY_TAGS, (kind, name))
 
   def QueryLocks(self, fields, sync):
+    warnings.warn("This LUXI call is deprecated and will be removed, use"
+                  " Query(\"%s\", ...) instead" % constants.QR_LOCK)
     return self.CallMethod(REQ_QUERY_LOCKS, (fields, sync))

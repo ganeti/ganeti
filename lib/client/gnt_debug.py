@@ -479,39 +479,34 @@ def ListLocks(opts, args): # pylint: disable-msg=W0613
   """
   selected_fields = ParseFields(opts.output, _LIST_LOCKS_DEF_FIELDS)
 
-  if not opts.no_headers:
-    headers = {
-      "name": "Name",
-      "mode": "Mode",
-      "owner": "Owner",
-      "pending": "Pending",
-      }
-  else:
-    headers = None
+  def _DashIfNone(fn):
+    def wrapper(value):
+      if not value:
+        return "-"
+      return fn(value)
+    return wrapper
+
+  def _FormatPending(value):
+    """Format pending acquires.
+
+    """
+    return utils.CommaJoin("%s:%s" % (mode, ",".join(threads))
+                           for mode, threads in value)
+
+  # Format raw values
+  fmtoverride = {
+    "mode": (_DashIfNone(str), False),
+    "owner": (_DashIfNone(",".join), False),
+    "pending": (_DashIfNone(_FormatPending), False),
+    }
 
   while True:
-    # Not reusing client as interval might be too long
-    output = GetClient().QueryLocks(selected_fields, False)
+    ret = GenericList(constants.QR_LOCK, selected_fields, None, None,
+                      opts.separator, not opts.no_headers,
+                      format_override=fmtoverride)
 
-    # change raw values to nicer strings
-    for row in output:
-      for idx, field in enumerate(selected_fields):
-        val = row[idx]
-
-        if field in ("mode", "owner", "pending") and not val:
-          val = "-"
-        elif field == "owner":
-          val = ",".join(val)
-        elif field == "pending":
-          val = utils.CommaJoin("%s:%s" % (mode, ",".join(threads))
-                                for mode, threads in val)
-
-        row[idx] = str(val)
-
-    data = GenerateTable(separator=opts.separator, headers=headers,
-                         fields=selected_fields, data=output)
-    for line in data:
-      ToStdout(line)
+    if ret != constants.EXIT_SUCCESS:
+      return ret
 
     if not opts.interval:
       break
