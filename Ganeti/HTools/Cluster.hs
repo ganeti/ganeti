@@ -737,6 +737,34 @@ tryMGReloc _ mgnl mgil xid ncount ex_ndx = do
                 Just v -> return v
   tryReloc nl il xid ncount ex_ndx
 
+-- | Change an instance's secondary node
+evacInstance :: (Monad m) =>
+                [Ndx]                      -- ^ Excluded nodes
+             -> Instance.List              -- ^ The current instance list
+             -> (Node.List, AllocSolution) -- ^ The current state
+             -> Idx                        -- ^ The instance to evacuate
+             -> m (Node.List, AllocSolution)
+evacInstance ex_ndx il (nl, old_as) idx = do
+  -- FIXME: hardcoded one node here
+
+  -- Longer explanation: evacuation is currently hardcoded to DRBD
+  -- instances (which have one secondary); hence, even if the
+  -- IAllocator protocol can request N nodes for an instance, and all
+  -- the message parsing/loading pass this, this implementation only
+  -- supports one; this situation needs to be revisited if we ever
+  -- support more than one secondary, or if we change the storage
+  -- model
+  new_as <- tryReloc nl il idx 1 ex_ndx
+  case asSolutions new_as of
+    -- an individual relocation succeeded, we kind of compose the data
+    -- from the two solutions
+    csol@(nl', _, _, _):_ ->
+        return (nl', new_as { asSolutions = csol:asSolutions old_as })
+    -- this relocation failed, so we fail the entire evac
+    _ -> fail $ "Can't evacuate instance " ++
+         Instance.name (Container.find idx il) ++
+             ": " ++ describeSolution new_as
+
 -- | Try to evacuate a list of nodes.
 tryEvac :: (Monad m) =>
             Node.List       -- ^ The node list
@@ -747,24 +775,7 @@ tryEvac nl il ex_ndx =
     let ex_nodes = map (`Container.find` nl) ex_ndx
         all_insts = nub . concatMap Node.sList $ ex_nodes
     in do
-      (_, sol) <- foldM (\(nl', old_as) idx -> do
-                            -- FIXME: hardcoded one node here
-                            -- (fm, cs, aes)
-                            new_as <- tryReloc nl' il idx 1 ex_ndx
-                            case asSolutions new_as of
-                              csol@(nl'', _, _, _):_ ->
-                                -- an individual relocation succeeded,
-                                -- we kind of compose the data from
-                                -- the two solutions
-                                return (nl'',
-                                        new_as { asSolutions =
-                                                    csol:asSolutions old_as })
-                              -- this relocation failed, so we fail
-                              -- the entire evac
-                              _ -> fail $ "Can't evacuate instance " ++
-                                   Instance.name (Container.find idx il) ++
-                                   ": " ++ describeSolution new_as
-                        ) (nl, emptySolution) all_insts
+      (_, sol) <- foldM (evacInstance ex_ndx il) (nl, emptySolution) all_insts
       return $ annotateSolution sol
 
 -- | Recursively place instances on the cluster until we're out of space
