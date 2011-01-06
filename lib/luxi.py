@@ -427,6 +427,12 @@ class Client(object):
       self._CloseTransport()
       raise
 
+  def Close(self):
+    """Close the underlying connection.
+
+    """
+    self._CloseTransport()
+
   def CallMethod(self, method, args):
     """Send a generic request and return the response.
 
