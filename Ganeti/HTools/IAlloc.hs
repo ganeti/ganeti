@@ -104,8 +104,10 @@ parseGroup :: String              -- ^ The group UUID
            -> [(String, JSValue)] -- ^ The JSON object
            -> Result (String, Group.Group)
 parseGroup u a = do
-  name <- fromObj a "name"
-  return (u, Group.create name u AllocPreferred)
+  let extract x = tryFromObj ("invalid data for group '" ++ u ++ "'") a x
+  name <- extract "name"
+  apol <- extract "alloc_policy"
+  return (u, Group.create name u apol)
 
 -- | Top-level parser.
 parseData :: String         -- ^ The JSON message as received from Ganeti
