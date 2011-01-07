@@ -212,7 +212,8 @@ server_PYTHON = \
 	lib/server/rapi.py
 
 utils_PYTHON = \
-	lib/utils/__init__.py
+	lib/utils/__init__.py \
+	lib/utils/algo.py
 
 docrst = \
 	doc/admin.rst \
@@ -478,8 +479,9 @@ python_tests = \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.uidpool_unittest.py \
-	test/ganeti.utils_unittest.py \
+	test/ganeti.utils.algo_unittest.py \
 	test/ganeti.utils_mlockall_unittest.py \
+	test/ganeti.utils_unittest.py \
 	test/ganeti.workerpool_unittest.py \
 	test/cfgupgrade_unittest.py \
 	test/docs_unittest.py \
