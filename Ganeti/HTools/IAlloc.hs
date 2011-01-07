@@ -29,6 +29,7 @@ module Ganeti.HTools.IAlloc
     ) where
 
 import Data.Either ()
+import Data.Maybe (fromMaybe)
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
                   makeObj, encodeStrict, decodeStrict,
@@ -81,12 +82,15 @@ parseNode :: NameAssoc           -- ^ The group association
           -> [(String, JSValue)] -- ^ The JSON object
           -> Result (String, Node.Node)
 parseNode ktg n a = do
-  let extract x = tryFromObj ("invalid data for node '" ++ n ++ "'") a x
+  let desc = "invalid data for node '" ++ n ++ "'"
+      extract x = tryFromObj desc a x
   offline <- extract "offline"
   drained <- extract "drained"
   guuid   <- extract "group"
+  vm_capable  <- annotateResult desc $ maybeFromObj a "vm_capable"
+  let vm_capable' = fromMaybe True vm_capable
   gidx <- lookupGroup ktg n guuid
-  node <- (if offline || drained
+  node <- (if offline || drained || not vm_capable'
            then return $ Node.create n 0 0 0 0 0 0 True gidx
            else do
              mtotal <- extract "total_memory"
