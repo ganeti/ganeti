@@ -130,7 +130,8 @@ loadJSArray s = fromJResult s . J.decodeStrict
 fromObj :: (J.JSON a, Monad m) => [(String, J.JSValue)] -> String -> m a
 fromObj o k =
     case lookup k o of
-      Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
+      Nothing -> fail $ printf "key '%s' not found, object contains only %s"
+                 k (show (map fst o))
       Just val -> fromKeyValue k val
 
 -- | Reads the value of an optional key in a JSON object.
