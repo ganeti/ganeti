@@ -989,6 +989,16 @@ class RpcRunner(object):
                                 [(d.ToDict(), uid) for d, uid in devlist])
 
   @_RpcTimeout(_TMO_NORMAL)
+  def call_blockdev_pause_resume_sync(self, node, disks, pause):
+    """Request a pause/resume of given block device.
+
+    This is a single-node call.
+
+    """
+    return self._SingleNodeCall(node, "blockdev_pause_resume_sync",
+                                [[bdev.ToDict() for bdev in disks], pause])
+
+  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_assemble(self, node, disk, owner, on_primary):
     """Request assembling of a given block device.
 

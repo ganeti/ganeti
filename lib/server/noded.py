@@ -184,6 +184,15 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.BlockdevCreate(bdev, size, owner, on_primary, info)
 
   @staticmethod
+  def perspective_blockdev_pause_resume_sync(params):
+    """Pause/resume sync of a block device.
+
+    """
+    disks_s, pause = params
+    disks = [objects.Disk.FromDict(bdev_s) for bdev_s in disks_s]
+    return backend.BlockdevPauseResumeSync(disks, pause)
+
+  @staticmethod
   def perspective_blockdev_wipe(params):
     """Wipe a block device.
 
