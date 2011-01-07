@@ -38,8 +38,8 @@ class TestConsole(unittest.TestCase):
     self._cmds = []
     self._next_cmd_exitcode = 0
 
-  def _Test(self, *args):
-    return gnt_instance._DoConsole(*args,
+  def _Test(self, console, show_command, cluster_name):
+    return gnt_instance._DoConsole(console, show_command, cluster_name,
                                    feedback_fn=self._Feedback,
                                    _runcmd_fn=self._FakeRunCmd)
 
