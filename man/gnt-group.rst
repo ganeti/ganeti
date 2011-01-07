@@ -29,7 +29,7 @@ ADD
 | {*group*}
 
 Creates a new group with the given name. The node group will be
-initially empty.
+initially empty; to add nodes to it, use ``gnt-group assign-nodes``.
 
 The ``--node-parameters`` option allows you to set default node
 parameters for nodes in the group. Please see **ganeti**(7) for more
@@ -52,6 +52,21 @@ preferred
     (this is the default). Note that prioritization among groups in this
     state will be deferred to the iallocator plugin that's being used.
 
+ASSIGN-NODES
+~~~~~~~~~~~~
+
+| **assign-nodes**
+| [--force]
+| {*group*} {*node*...}
+
+Assigns one or more nodes to the specified group, moving them from their
+original group (or groups).
+
+By default, this command will refuse to proceed if the move would split
+between groups any instance that was not previously split (a split
+instance is an instance with a mirrored disk template, e.g. DRBD, that
+has the primary and secondary nodes in different node groups). You can
+force the operation with ``--force``.
 
 MODIFY
 ~~~~~~

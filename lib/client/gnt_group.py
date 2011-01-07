@@ -50,6 +50,24 @@ def AddGroup(opts, args):
   SubmitOpCode(op, opts=opts)
 
 
+def AssignNodes(opts, args):
+  """Assign nodes to a group.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: args[0]: group to assign nodes to; args[1:]: nodes to assign
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  group_name = args[0]
+  node_names = args[1:]
+
+  op = opcodes.OpAssignGroupNodes(group_name=group_name, nodes=node_names,
+                                  force=opts.force)
+  SubmitOpCode(op, opts=opts)
+
+
 def ListGroups(opts, args):
   """List node groups and their properties.
 
@@ -148,6 +166,9 @@ commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT],
     "<group_name>", "Add a new node group to the cluster"),
+  "assign-nodes": (
+    AssignNodes, ARGS_ONE_GROUP + ARGS_MANY_NODES, [DRY_RUN_OPT, FORCE_OPT],
+    "<group_name> <node>...", "Assign nodes to a group"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT],
