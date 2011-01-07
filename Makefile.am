@@ -213,7 +213,8 @@ server_PYTHON = \
 
 utils_PYTHON = \
 	lib/utils/__init__.py \
-	lib/utils/algo.py
+	lib/utils/algo.py \
+	lib/utils/retry.py
 
 docrst = \
 	doc/admin.rst \
@@ -480,6 +481,7 @@ python_tests = \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
+	test/ganeti.utils.retry_unittest.py \
 	test/ganeti.utils_mlockall_unittest.py \
 	test/ganeti.utils_unittest.py \
 	test/ganeti.workerpool_unittest.py \
