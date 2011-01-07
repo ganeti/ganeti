@@ -1039,6 +1039,12 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertEqual(job_id, 12347)
     self.assertHandler(rlib2.R_2_groups_name_rename)
 
+  def testModifyGroup(self):
+    self.rapi.AddResponse("12348")
+    job_id = self.client.ModifyGroup("mygroup", alloc_policy="foo")
+    self.assertEqual(job_id, 12348)
+    self.assertHandler(rlib2.R_2_groups_name_modify)
+
   def testModifyCluster(self):
     for mnh in [None, False, True]:
       self.rapi.AddResponse("14470")
