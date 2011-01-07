@@ -1353,6 +1353,41 @@ def BlockdevWipe(disk, offset, size):
   _WipeDevice(rdev.dev_path, offset, size)
 
 
+def BlockdevPauseResumeSync(disks, pause):
+  """Pause or resume the sync of the block device.
+
+  @type disk: list of L{objects.Disk}
+  @param disk: the disks object we want to pause/resume
+  @type pause: bool
+  @param pause: Wheater to pause or resume
+
+  """
+  success = []
+  for disk in disks:
+    try:
+      rdev = _RecursiveFindBD(disk)
+    except errors.BlockDeviceError:
+      rdev = None
+
+    if not rdev:
+      success.append((False, ("Cannot change sync for device %s:"
+                              " device not found" % disk.iv_name)))
+      continue
+
+    result = rdev.PauseResumeSync(pause)
+
+    if result:
+      success.append((result, None))
+    else:
+      if pause:
+        msg = "Pause"
+      else:
+        msg = "Resume"
+      success.append((result, "%s for device %s failed" % (msg, disk.iv_name)))
+
+  return success
+
+
 def BlockdevRemove(disk):
   """Remove a block device.
 
