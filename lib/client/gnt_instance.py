@@ -1148,6 +1148,7 @@ def _FormatParameterDict(buf, per_inst, actual):
     val = per_inst.get(key, "default (%s)" % actual[key])
     buf.write("    - %s: %s\n" % (key, val))
 
+
 def ShowInstanceConfig(opts, args):
   """Compute instance run-time status.
 
@@ -1235,6 +1236,7 @@ def ShowInstanceConfig(opts, args):
     for idx, (ip, mac, mode, link) in enumerate(instance["nics"]):
       buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %
                 (idx, mac, ip, mode, link))
+    buf.write("  Disk template: %s\n" % instance["disk_template"])
     buf.write("  Disks:\n")
 
     for idx, device in enumerate(instance["disks"]):
