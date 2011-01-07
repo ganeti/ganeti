@@ -7691,14 +7691,9 @@ class LUConnectConsole(NoHooksLU):
     # instance and then saving the defaults in the instance itself.
     hvparams = cluster.FillHV(instance)
     beparams = cluster.FillBE(instance)
-    console_cmd = hyper.GetShellCommandForConsole(instance, hvparams, beparams)
+    console = hyper.GetInstanceConsole(instance, hvparams, beparams)
 
-    console = objects.InstanceConsole(instance=instance.name,
-                                      kind=constants.CONS_SSH,
-                                      host=node,
-                                      user="root",
-                                      command=console_cmd)
-
+    assert console.instance == instance.name
     assert console.Validate()
 
     return console.ToDict()

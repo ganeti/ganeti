@@ -31,6 +31,7 @@ import logging
 from ganeti import constants
 from ganeti import errors # pylint: disable-msg=W0611
 from ganeti import utils
+from ganeti import objects
 from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError
 
@@ -374,11 +375,15 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return self.GetLinuxNodeInfo()
 
   @classmethod
-  def GetShellCommandForConsole(cls, instance, hvparams, beparams):
+  def GetInstanceConsole(cls, instance, hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
-    return "lxc-console -n %s" % instance.name
+    return objects.InstanceConsole(instance=instance.name,
+                                   kind=constants.CONS_SSH,
+                                   host=instance.primary_node,
+                                   user=constants.GANETI_RUNAS,
+                                   command=["lxc-console", "-n", instance.name])
 
   def Verify(self):
     """Verify the hypervisor.

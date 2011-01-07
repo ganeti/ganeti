@@ -31,6 +31,7 @@ import logging
 from ganeti import constants
 from ganeti import errors # pylint: disable-msg=W0611
 from ganeti import utils
+from ganeti import objects
 from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError
 
@@ -246,15 +247,21 @@ class ChrootManager(hv_base.BaseHypervisor):
     return self.GetLinuxNodeInfo()
 
   @classmethod
-  def GetShellCommandForConsole(cls, instance, hvparams, beparams):
-    """Return a command for connecting to the console of an instance.
+  def GetInstanceConsole(cls, instance, # pylint: disable-msg=W0221
+                         hvparams, beparams, root_dir=None):
+    """Return information for connecting to the console of an instance.
 
     """
-    root_dir = cls._InstanceDir(instance.name)
-    if not os.path.ismount(root_dir):
-      raise HypervisorError("Instance %s is not running" % instance.name)
+    if root_dir is None:
+      root_dir = cls._InstanceDir(instance.name)
+      if not os.path.ismount(root_dir):
+        raise HypervisorError("Instance %s is not running" % instance.name)
 
-    return "chroot %s" % root_dir
+    return objects.InstanceConsole(instance=instance.name,
+                                   kind=constants.CONS_SSH,
+                                   host=instance.primary_node,
+                                   user=constants.GANETI_RUNAS,
+                                   command=["chroot", root_dir])
 
   def Verify(self):
     """Verify the hypervisor.

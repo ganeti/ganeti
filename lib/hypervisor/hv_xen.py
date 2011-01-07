@@ -31,6 +31,7 @@ from ganeti import errors
 from ganeti import utils
 from ganeti.hypervisor import hv_base
 from ganeti import netutils
+from ganeti import objects
 
 
 class XenHypervisor(hv_base.BaseHypervisor):
@@ -294,12 +295,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return result
 
   @classmethod
-  def GetShellCommandForConsole(cls, instance, hvparams, beparams):
+  def GetInstanceConsole(cls, instance, hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
-    return "xm console %s" % instance.name
-
+    return objects.InstanceConsole(instance=instance.name,
+                                   kind=constants.CONS_SSH,
+                                   host=instance.primary_node,
+                                   user=constants.GANETI_RUNAS,
+                                   command=["xm", "console", instance.name])
 
   def Verify(self):
     """Verify the hypervisor.

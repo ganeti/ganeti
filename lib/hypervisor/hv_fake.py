@@ -30,6 +30,7 @@ import logging
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
+from ganeti import objects
 from ganeti.hypervisor import hv_base
 
 
@@ -204,11 +205,14 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     return result
 
   @classmethod
-  def GetShellCommandForConsole(cls, instance, hvparams, beparams):
-    """Return a command for connecting to the console of an instance.
+  def GetInstanceConsole(cls, instance, hvparams, beparams):
+    """Return information for connecting to the console of an instance.
 
     """
-    return "echo Console not available for fake hypervisor"
+    return objects.InstanceConsole(instance=instance.name,
+                                   kind=constants.CONS_MESSAGE,
+                                   message=("Console not available for fake"
+                                            " hypervisor"))
 
   def Verify(self):
     """Verify the hypervisor.

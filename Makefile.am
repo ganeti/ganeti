@@ -449,7 +449,11 @@ python_tests = \
 	test/ganeti.ht_unittest.py \
 	test/ganeti.http_unittest.py \
 	test/ganeti.hypervisor_unittest.py \
+	test/ganeti.hypervisor.hv_chroot_unittest.py \
+	test/ganeti.hypervisor.hv_fake_unittest.py \
 	test/ganeti.hypervisor.hv_kvm_unittest.py \
+	test/ganeti.hypervisor.hv_lxc_unittest.py \
+	test/ganeti.hypervisor.hv_xen_unittest.py \
 	test/ganeti.impexpd_unittest.py \
 	test/ganeti.jqueue_unittest.py \
 	test/ganeti.locking_unittest.py \

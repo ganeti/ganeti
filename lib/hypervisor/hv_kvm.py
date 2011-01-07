@@ -1035,28 +1035,33 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return self.GetLinuxNodeInfo()
 
   @classmethod
-  def GetShellCommandForConsole(cls, instance, hvparams, beparams):
+  def GetInstanceConsole(cls, instance, hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
     if hvparams[constants.HV_SERIAL_CONSOLE]:
-      shell_command = ("%s STDIO,%s UNIX-CONNECT:%s" %
-                       (constants.SOCAT_PATH, cls._SocatUnixConsoleParams(),
-                        utils.ShellQuote(cls._InstanceSerial(instance.name))))
-    else:
-      shell_command = "echo 'No serial shell for instance %s'" % instance.name
+      cmd = [constants.SOCAT_PATH,
+             "STDIO,%s" % cls._SocatUnixConsoleParams(),
+             "UNIX-CONNECT:%s" % cls._InstanceSerial(instance.name)]
+      return objects.InstanceConsole(instance=instance.name,
+                                     kind=constants.CONS_SSH,
+                                     host=instance.primary_node,
+                                     user=constants.GANETI_RUNAS,
+                                     command=cmd)
 
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
-    if vnc_bind_address:
-      if instance.network_port > constants.VNC_BASE_PORT:
-        display = instance.network_port - constants.VNC_BASE_PORT
-        vnc_command = ("echo 'Instance has VNC listening on %s:%d"
-                       " (display: %d)'" % (vnc_bind_address,
-                                            instance.network_port,
-                                            display))
-        shell_command = "%s; %s" % (vnc_command, shell_command)
+    if vnc_bind_address and instance.network_port > constants.VNC_BASE_PORT:
+      display = instance.network_port - constants.VNC_BASE_PORT
+      return objects.InstanceConsole(instance=instance.name,
+                                     kind=constants.CONS_VNC,
+                                     host=vnc_bind_address,
+                                     port=instance.network_port,
+                                     display=display)
 
-    return shell_command
+    return objects.InstanceConsole(instance=instance.name,
+                                   kind=constants.CONS_MESSAGE,
+                                   message=("No serial shell for instance %s" %
+                                            instance.name))
 
   def Verify(self):
     """Verify the hypervisor.
@@ -1068,7 +1073,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       return "The kvm binary ('%s') does not exist." % constants.KVM_PATH
     if not os.path.exists(constants.SOCAT_PATH):
       return "The socat binary ('%s') does not exist." % constants.SOCAT_PATH
-
 
   @classmethod
   def CheckParameterSyntax(cls, hvparams):
