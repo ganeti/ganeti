@@ -1027,6 +1027,17 @@ class OpAddGroup(OpCode):
     ]
 
 
+class OpAssignGroupNodes(OpCode):
+  """Assign nodes to a node group."""
+  OP_ID = "OP_ASSIGN_NODES"
+  OP_DSC_FIELD = "group_name"
+  OP_PARAMS = [
+    _PGroupName,
+    _PForce,
+    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    ]
+
+
 class OpQueryGroups(OpCode):
   """Compute the list of node groups."""
   OP_ID = "OP_GROUP_QUERY"

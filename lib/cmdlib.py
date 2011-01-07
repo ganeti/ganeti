@@ -9929,6 +9929,120 @@ class LUAddGroup(LogicalUnit):
     del self.remove_locks[locking.LEVEL_NODEGROUP]
 
 
+class LUAssignGroupNodes(NoHooksLU):
+  """Logical unit for assigning nodes to groups.
+
+  """
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    # These raise errors.OpPrereqError on their own:
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
+    self.op.nodes = _GetWantedNodes(self, self.op.nodes)
+
+    # We want to lock all the affected nodes and groups. We have readily
+    # available the list of nodes, and the *destination* group. To gather the
+    # list of "source" groups, we need to fetch node information.
+    self.node_data = self.cfg.GetAllNodesInfo()
+    affected_groups = set(self.node_data[node].group for node in self.op.nodes)
+    affected_groups.add(self.group_uuid)
+
+    self.needed_locks = {
+      locking.LEVEL_NODEGROUP: list(affected_groups),
+      locking.LEVEL_NODE: self.op.nodes,
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    self.group = self.cfg.GetNodeGroup(self.group_uuid)
+    instance_data = self.cfg.GetAllInstancesInfo()
+
+    if self.group is None:
+      raise errors.OpExecError("Could not retrieve group '%s' (UUID: %s)" %
+                               (self.op.group_name, self.group_uuid))
+
+    (new_splits, previous_splits) = \
+      self.CheckAssignmentForSplitInstances([(node, self.group_uuid)
+                                             for node in self.op.nodes],
+                                            self.node_data, instance_data)
+
+    if new_splits:
+      fmt_new_splits = utils.CommaJoin(utils.NiceSort(new_splits))
+
+      if not self.op.force:
+        raise errors.OpExecError("The following instances get split by this"
+                                 " change and --force was not given: %s" %
+                                 fmt_new_splits)
+      else:
+        self.LogWarning("This operation will split the following instances: %s",
+                        fmt_new_splits)
+
+        if previous_splits:
+          self.LogWarning("In addition, these already-split instances continue"
+                          " to be spit across groups: %s",
+                          utils.CommaJoin(utils.NiceSort(previous_splits)))
+
+  def Exec(self, feedback_fn):
+    """Assign nodes to a new group.
+
+    """
+    for node in self.op.nodes:
+      self.node_data[node].group = self.group_uuid
+
+    self.cfg.Update(self.group, feedback_fn) # Saves all modified nodes.
+
+  @staticmethod
+  def CheckAssignmentForSplitInstances(changes, node_data, instance_data):
+    """Check for split instances after a node assignment.
+
+    This method considers a series of node assignments as an atomic operation,
+    and returns information about split instances after applying the set of
+    changes.
+
+    In particular, it returns information about newly split instances, and
+    instances that were already split, and remain so after the change.
+
+    Only instances whose disk template is listed in constants.DTS_NET_MIRROR are
+    considered.
+
+    @type changes: list of (node_name, new_group_uuid) pairs.
+    @param changes: list of node assignments to consider.
+    @param node_data: a dict with data for all nodes
+    @param instance_data: a dict with all instances to consider
+    @rtype: a two-tuple
+    @return: a list of instances that were previously okay and result split as a
+      consequence of this change, and a list of instances that were previously
+      split and this change does not fix.
+
+    """
+    changed_nodes = dict((node, group) for node, group in changes
+                         if node_data[node].group != group)
+
+    all_split_instances = set()
+    previously_split_instances = set()
+
+    def InstanceNodes(instance):
+      return [instance.primary_node] + list(instance.secondary_nodes)
+
+    for inst in instance_data.values():
+      if inst.disk_template not in constants.DTS_NET_MIRROR:
+        continue
+
+      instance_nodes = InstanceNodes(inst)
+
+      if len(set(node_data[node].group for node in instance_nodes)) > 1:
+        previously_split_instances.add(inst.name)
+
+      if len(set(changed_nodes.get(node, node_data[node].group)
+                 for node in instance_nodes)) > 1:
+        all_split_instances.add(inst.name)
+
+    return (list(all_split_instances - previously_split_instances),
+            list(previously_split_instances & all_split_instances))
+
+
 class _GroupQuery(_QueryBase):
 
   FIELDS = query.GROUP_FIELDS
