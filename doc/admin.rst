@@ -1159,7 +1159,7 @@ Limitations
 Note that the set of characters present in a tag and the maximum tag
 length are restricted. Currently the maximum length is 128 characters,
 there can be at most 4096 tags per object, and the set of characters is
-comprised by alphanumeric characters and additionally ``.+*/:-``.
+comprised by alphanumeric characters and additionally ``.+*/:@-``.
 
 Operations
 ++++++++++
@@ -1290,6 +1290,81 @@ info commands; Ganeti itself doesn't examine the archive directory. If
 you need to see an older job, either move the file manually in the
 top-level queue directory, or look at its contents (it's a
 JSON-formatted file).
+
+Special Ganeti deployments
+--------------------------
+
+Since Ganeti 2.4, it is possible to extend the Ganeti deployment with
+two custom scenarios: Ganeti inside Ganeti and multi-site model.
+
+Running Ganeti under Ganeti
++++++++++++++++++++++++++++
+
+It is sometimes useful to be able to use a Ganeti instance as a Ganeti
+node (part of another cluster, usually). One example scenario is two
+small clusters, where we want to have an additional master candidate
+that holds the cluster configuration and can be used for helping with
+the master voting process.
+
+However, these Ganeti instance should not host instances themselves, and
+should not be considered in the normal capacity planning, evacuation
+strategies, etc. In order to accomplish this, mark these nodes as
+non-``vm_capable``::
+
+  node1# gnt-node modify --vm-capable=no node3
+
+The vm_capable status can be listed as usual via ``gnt-node list``::
+
+  node1# gnt-node list -oname,vm_capable
+  Node  VMCapable
+  node1 Y
+  node2 Y
+  node3 N
+
+When this flag is set, the cluster will not do any operations that
+relate to instances on such nodes, e.g. hypervisor operations,
+disk-related operations, etc. Basically they will just keep the ssconf
+files, and if master candidates the full configuration.
+
+Multi-site model
+++++++++++++++++
+
+If Ganeti is deployed in multi-site model, with each site being a node
+group (so that instances are not relocated across the WAN by mistake),
+it is conceivable that either the WAN latency is high or that some sites
+have a lower reliability than others. In this case, it doesn't make
+sense to replicate the job information across all sites (or even outside
+of a “central” node group), so it should be possible to restrict which
+nodes can become master candidates via the auto-promotion algorithm.
+
+Ganeti 2.4 introduces for this purpose a new ``master_capable`` flag,
+which (when unset) prevents nodes from being marked as master
+candidates, either manually or automatically.
+
+As usual, the node modify operation can change this flag::
+
+  node1# gnt-node modify --auto-promote --master-capable=no node3
+  Fri Jan  7 06:23:07 2011  - INFO: Demoting from master candidate
+  Fri Jan  7 06:23:08 2011  - INFO: Promoted nodes to master candidate role: node4
+  Modified node node3
+   - master_capable -> False
+   - master_candidate -> False
+
+And the node list operation will list this flag::
+
+  node1# gnt-node list -oname,master_capable node1 node2 node3
+  Node  MasterCapable
+  node1 Y
+  node2 Y
+  node3 N
+
+Note that marking a node both not ``vm_capable`` and not
+``master_capable`` makes the node practically unusable from Ganeti's
+point of view. Hence these two flags should be used probably in
+contrast: some nodes will be only master candidates (master_capable but
+not vm_capable), and other nodes will only hold instances (vm_capable
+but not master_capable).
+
 
 Ganeti tools
 ------------
