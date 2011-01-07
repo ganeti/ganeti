@@ -21,11 +21,12 @@
 
 from ganeti import constants
 from ganeti import query
+from ganeti import utils
 
 import qa_config
 import qa_utils
 
-from qa_utils import AssertCommand
+from qa_utils import AssertCommand, AssertEqual, GetCommandOutput
 
 
 def TestGroupAddRemoveRename():
@@ -94,3 +95,43 @@ def TestGroupList():
 def TestGroupListFields():
   """gnt-group list-fields"""
   qa_utils.GenericQueryFieldsTest("gnt-group", query.GROUP_FIELDS.keys())
+
+
+def TestAssignNodesIncludingSplit(orig_group, node1, node2):
+  """gnt-group assign-nodes --force
+
+  Expects node1 and node2 to be primary and secondary for a common instance.
+
+  """
+  assert node1 != node2
+  groups = qa_config.get("groups", {})
+  other_group = groups.get("inexistent-groups", ["group1"])[0]
+
+  master_node = qa_config.GetMasterNode()["primary"]
+
+  def AssertInGroup(group, nodes):
+    real_output = GetCommandOutput(master_node,
+                                   "gnt-node list --no-headers -o group " +
+                                   utils.ShellQuoteArgs(nodes))
+    AssertEqual(real_output.splitlines(), [group] * len(nodes))
+
+  AssertInGroup(orig_group, [node1, node2])
+  AssertCommand(["gnt-group", "add", other_group])
+
+  try:
+    AssertCommand(["gnt-group", "assign-nodes", other_group, node1, node2])
+    AssertInGroup(other_group, [node1, node2])
+
+    # This should fail because moving node1 to orig_group would leave their
+    # common instance split between orig_group and other_group.
+    AssertCommand(["gnt-group", "assign-nodes", orig_group, node1], fail=True)
+    AssertInGroup(other_group, [node1, node2])
+
+    AssertCommand(["gnt-group", "assign-nodes", "--force", orig_group, node1])
+    AssertInGroup(orig_group, [node1])
+    AssertInGroup(other_group, [node2])
+
+    AssertCommand(["gnt-group", "assign-nodes", orig_group, node2])
+    AssertInGroup(orig_group, [node1, node2])
+  finally:
+    AssertCommand(["gnt-group", "remove", other_group])

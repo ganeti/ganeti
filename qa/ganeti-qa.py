@@ -41,6 +41,7 @@ import qa_utils
 
 from ganeti import utils
 from ganeti import rapi
+from ganeti import constants
 
 import ganeti.rapi.client
 
@@ -437,6 +438,9 @@ def main():
           instance = RunTest(func, pnode, snode)
           RunCommonInstanceTests(instance)
           RunGroupListTests()
+          RunTest(qa_group.TestAssignNodesIncludingSplit,
+                  constants.INITIAL_NODE_GROUP_NAME,
+                  pnode["primary"], snode["primary"])
           if qa_config.TestEnabled('instance-convert-disk'):
             RunTest(qa_instance.TestInstanceShutdown, instance)
             RunTest(qa_instance.TestInstanceConvertDisk, instance, snode)
