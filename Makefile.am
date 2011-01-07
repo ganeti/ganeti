@@ -26,6 +26,7 @@ rapidir = $(pkgpythondir)/rapi
 serverdir = $(pkgpythondir)/server
 watcherdir = $(pkgpythondir)/watcher
 impexpddir = $(pkgpythondir)/impexpd
+utilsdir = $(pkgpythondir)/utils
 toolsdir = $(pkglibdir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
 
@@ -50,6 +51,7 @@ DIRS = \
 	lib/masterd \
 	lib/rapi \
 	lib/server \
+	lib/utils \
 	lib/watcher \
 	man \
 	qa \
@@ -149,7 +151,6 @@ pkgpython_PYTHON = \
 	lib/ssconf.py \
 	lib/ssh.py \
 	lib/storage.py \
-	lib/utils.py \
 	lib/uidpool.py \
 	lib/workerpool.py
 
@@ -209,6 +210,9 @@ server_PYTHON = \
 	lib/server/masterd.py \
 	lib/server/noded.py \
 	lib/server/rapi.py
+
+utils_PYTHON = \
+	lib/utils/__init__.py
 
 docrst = \
 	doc/admin.rst \
@@ -514,6 +518,7 @@ all_python_code = \
 	$(confd_PYTHON) \
 	$(masterd_PYTHON) \
 	$(impexpd_PYTHON) \
+	$(utils_PYTHON) \
 	$(watcher_PYTHON) \
 	$(noinst_PYTHON) \
 	$(qa_scripts)
