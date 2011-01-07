@@ -1531,3 +1531,32 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_PUT,
                              ("/%s/groups/%s/rename" %
                               (GANETI_RAPI_VERSION, group)), None, body)
+
+
+  def AssignGroupNodes(self, group, nodes, force=False, dry_run=False):
+    """Assigns nodes to a group.
+
+    @type group: string
+    @param group: Node gropu name
+    @type nodes: list of strings
+    @param nodes: List of nodes to assign to the group
+
+    @rtype: int
+    @return: job id
+
+    """
+    query = []
+
+    if force:
+      query.append(("force", 1))
+
+    if dry_run:
+      query.append(("dry-run", 1))
+
+    body = {
+      "nodes": nodes,
+      }
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/groups/%s/assign-nodes" %
+                             (GANETI_RAPI_VERSION, group)), query, body)

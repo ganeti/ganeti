@@ -351,6 +351,9 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
   def assertDryRun(self):
     self.assertTrue(self.rapi.GetLastHandler().dryRun())
 
+  def assertUseForce(self):
+    self.assertTrue(self.rapi.GetLastHandler().useForce())
+
   def testEncodeQuery(self):
     query = [
       ("a", None),
@@ -1044,6 +1047,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     job_id = self.client.ModifyGroup("mygroup", alloc_policy="foo")
     self.assertEqual(job_id, 12348)
     self.assertHandler(rlib2.R_2_groups_name_modify)
+
+  def testAssignGroupNodes(self):
+    self.rapi.AddResponse("12349")
+    job_id = self.client.AssignGroupNodes("mygroup", ["node1", "node2"],
+                                          force=True, dry_run=True)
+    self.assertEqual(job_id, 12349)
+    self.assertHandler(rlib2.R_2_groups_name_assign_nodes)
+    self.assertDryRun()
+    self.assertUseForce()
 
   def testModifyCluster(self):
     for mnh in [None, False, True]:

@@ -685,6 +685,25 @@ class R_2_groups_name_rename(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_groups_name_assign_nodes(baserlib.R_Generic):
+  """/2/groups/[groupe_name]/assign-nodes resource.
+
+  """
+  def PUT(self):
+    """Assigns nodes to a group.
+
+    @return: a job id
+
+    """
+    op = baserlib.FillOpcode(opcodes.OpAssignGroupNodes, self.request_body, {
+      "group_name": self.items[0],
+      "dry_run": self.dryRun(),
+      "force": self.useForce(),
+      })
+
+    return baserlib.SubmitJob([op])
+
+
 def _ParseInstanceCreateRequestVersion1(data, dry_run):
   """Parses an instance creation request version 1.
 

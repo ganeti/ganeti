@@ -519,6 +519,24 @@ Body parameters:
   New node group name.
 
 
+``/2/groups/[group_name]/assign-nodes``
++++++++++++++++++++++++++++++++++++++++
+
+Assigns nodes to a group.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID. It supports the ``dry-run`` and ``force`` arguments.
+
+Body parameters:
+
+``nodes`` (list, required)
+  One or more nodes to assign to the group.
+
+
 ``/2/instances``
 ++++++++++++++++
 
