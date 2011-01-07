@@ -6527,32 +6527,52 @@ def _WipeDisks(lu, instance):
 
   """
   node = instance.primary_node
-  for idx, device in enumerate(instance.disks):
-    lu.LogInfo("* Wiping disk %d", idx)
-    logging.info("Wiping disk %d for instance %s", idx, instance.name)
+  logging.info("Pause sync of instance %s disks", instance.name)
+  result = lu.rpc.call_blockdev_pause_resume_sync(node, instance.disks, True)
 
-    # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
-    # MAX_WIPE_CHUNK at max
-    wipe_chunk_size = min(constants.MAX_WIPE_CHUNK, device.size / 100.0 *
-                          constants.MIN_WIPE_CHUNK_PERCENT)
+  for idx, success in enumerate(result.payload):
+    if not success:
+      logging.warn("pause-sync of instance %s for disks %d failed",
+                   instance.name, idx)
 
-    offset = 0
-    size = device.size
-    last_output = 0
-    start_time = time.time()
+  try:
+    for idx, device in enumerate(instance.disks):
+      lu.LogInfo("* Wiping disk %d", idx)
+      logging.info("Wiping disk %d for instance %s", idx, instance.name)
 
-    while offset < size:
-      wipe_size = min(wipe_chunk_size, size - offset)
-      result = lu.rpc.call_blockdev_wipe(node, device, offset, wipe_size)
-      result.Raise("Could not wipe disk %d at offset %d for size %d" %
-                   (idx, offset, wipe_size))
-      now = time.time()
-      offset += wipe_size
-      if now - last_output >= 60:
-        eta = _CalcEta(now - start_time, offset, size)
-        lu.LogInfo(" - done: %.1f%% ETA: %s" %
-                   (offset / float(size) * 100, utils.FormatSeconds(eta)))
-        last_output = now
+      # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
+      # MAX_WIPE_CHUNK at max
+      wipe_chunk_size = min(constants.MAX_WIPE_CHUNK, device.size / 100.0 *
+                            constants.MIN_WIPE_CHUNK_PERCENT)
+
+      offset = 0
+      size = device.size
+      last_output = 0
+      start_time = time.time()
+
+      while offset < size:
+        wipe_size = min(wipe_chunk_size, size - offset)
+        result = lu.rpc.call_blockdev_wipe(node, device, offset, wipe_size)
+        result.Raise("Could not wipe disk %d at offset %d for size %d" %
+                     (idx, offset, wipe_size))
+        now = time.time()
+        offset += wipe_size
+        if now - last_output >= 60:
+          eta = _CalcEta(now - start_time, offset, size)
+          lu.LogInfo(" - done: %.1f%% ETA: %s" %
+                     (offset / float(size) * 100, utils.FormatSeconds(eta)))
+          last_output = now
+  finally:
+    logging.info("Resume sync of instance %s disks", instance.name)
+
+    result = lu.rpc.call_blockdev_pause_resume_sync(node, instance.disks, False)
+
+    for idx, success in enumerate(result.payload):
+      if not success:
+        lu.LogWarning("Warning: Resume sync of disk %d failed. Please have a"
+                      " look at the status and troubleshoot the issue.", idx)
+        logging.warn("resume-sync of instance %s for disks %d failed",
+                     instance.name, idx)
 
 
 def _CreateDisks(lu, instance, to_skip=None, target_node=None):
