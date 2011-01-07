@@ -7693,8 +7693,15 @@ class LUConnectConsole(NoHooksLU):
     beparams = cluster.FillBE(instance)
     console_cmd = hyper.GetShellCommandForConsole(instance, hvparams, beparams)
 
-    # build ssh cmdline
-    return self.ssh.BuildCmd(node, "root", console_cmd, batch=True, tty=True)
+    console = objects.InstanceConsole(instance=instance.name,
+                                      kind=constants.CONS_SSH,
+                                      host=node,
+                                      user="root",
+                                      command=console_cmd)
+
+    assert console.Validate()
+
+    return console.ToDict()
 
 
 class LUReplaceDisks(LogicalUnit):

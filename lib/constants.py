@@ -223,6 +223,18 @@ SOCAT_USE_ESCAPE = _autoconf.SOCAT_USE_ESCAPE
 SOCAT_USE_COMPRESS = _autoconf.SOCAT_USE_COMPRESS
 SOCAT_ESCAPE_CODE = "0x1d"
 
+#: Console as SSH command
+CONS_SSH = "ssh"
+
+#: Console as VNC server
+CONS_VNC = "vnc"
+
+#: Display a message for console access
+CONS_MESSAGE = "msg"
+
+#: All console types
+CONS_ALL = frozenset([CONS_SSH, CONS_VNC, CONS_MESSAGE])
+
 # For RSA keys more bits are better, but they also make operations more
 # expensive. NIST SP 800-131 recommends a minimum of 2048 bits from the year
 # 2010 on.

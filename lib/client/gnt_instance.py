@@ -27,6 +27,7 @@
 
 import itertools
 import simplejson
+import logging
 from cStringIO import StringIO
 
 from ganeti.cli import *
@@ -36,6 +37,8 @@ from ganeti import compat
 from ganeti import utils
 from ganeti import errors
 from ganeti import netutils
+from ganeti import ssh
+from ganeti import objects
 
 
 _SHUTDOWN_CLUSTER = "cluster"
@@ -886,15 +889,66 @@ def ConnectToInstanceConsole(opts, args):
   instance_name = args[0]
 
   op = opcodes.OpConnectConsole(instance_name=instance_name)
-  cmd = SubmitOpCode(op, opts=opts)
 
-  if opts.show_command:
-    ToStdout("%s", utils.ShellQuoteArgs(cmd))
+  cl = GetClient()
+  try:
+    cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
+    console_data = SubmitOpCode(op, opts=opts, cl=cl)
+  finally:
+    # Ensure client connection is closed while external commands are run
+    cl.Close()
+
+  del cl
+
+  return _DoConsole(objects.InstanceConsole.FromDict(console_data),
+                    opts.show_command, cluster_name)
+
+
+def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
+               _runcmd_fn=utils.RunCmd):
+  """Acts based on the result of L{opcodes.OpConnectConsole}.
+
+  @type console: L{objects.InstanceConsole}
+  @param console: Console object
+  @type show_command: bool
+  @param show_command: Whether to just display commands
+  @type cluster_name: string
+  @param cluster_name: Cluster name as retrieved from master daemon
+
+  """
+  assert console.Validate()
+
+  if console.kind == constants.CONS_MESSAGE:
+    feedback_fn(console.message)
+  elif console.kind == constants.CONS_VNC:
+    feedback_fn("Instance %s has VNC listening on %s:%s (display %s),"
+                " URL <vnc://%s:%s/>",
+                console.instance, console.host, console.port,
+                console.display, console.host, console.port)
+  elif console.kind == constants.CONS_SSH:
+    # Convert to string if not already one
+    if isinstance(console.command, basestring):
+      cmd = console.command
+    else:
+      cmd = utils.ShellQuoteArgs(console.command)
+
+    srun = ssh.SshRunner(cluster_name=cluster_name)
+    ssh_cmd = srun.BuildCmd(console.host, console.user, cmd,
+                            batch=True, quiet=False, tty=True)
+
+    if show_command:
+      feedback_fn(utils.ShellQuoteArgs(ssh_cmd))
+    else:
+      result = _runcmd_fn(ssh_cmd, interactive=True)
+      if result.failed:
+        logging.error("Console command \"%s\" failed with reason '%s' and"
+                      " output %r", result.cmd, result.fail_reason,
+                      result.output)
+        raise errors.OpExecError("Connection to console of instance %s failed,"
+                                 " please check cluster configuration" %
+                                 console.instance)
   else:
-    result = utils.RunCmd(cmd, interactive=True)
-    if result.failed:
-      raise errors.OpExecError("Console command \"%s\" failed: %s" %
-                               (utils.ShellQuoteArgs(cmd), result.fail_reason))
+    raise errors.GenericError("Unknown console type '%s'" % console.kind)
 
   return constants.EXIT_SUCCESS
 
