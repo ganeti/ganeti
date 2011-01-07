@@ -2,7 +2,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -127,16 +127,16 @@ loadJSArray :: (Monad m)
 loadJSArray s = fromJResult s . J.decodeStrict
 
 -- | Reads the value of a key in a JSON object.
-fromObj :: (J.JSON a, Monad m) => String -> [(String, J.JSValue)] -> m a
-fromObj k o =
+fromObj :: (J.JSON a, Monad m) => [(String, J.JSValue)] -> String -> m a
+fromObj o k =
     case lookup k o of
       Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
       Just val -> fromKeyValue k val
 
 -- | Reads the value of an optional key in a JSON object.
-maybeFromObj :: (J.JSON a, Monad m) => String -> [(String, J.JSValue)]
-                -> m (Maybe a)
-maybeFromObj k o =
+maybeFromObj :: (J.JSON a, Monad m) =>
+             [(String, J.JSValue)] -> String -> m (Maybe a)
+maybeFromObj o k =
     case lookup k o of
       Nothing -> return Nothing
       Just val -> liftM Just (fromKeyValue k val)
@@ -161,7 +161,7 @@ tryFromObj :: (J.JSON a) =>
            -> [(String, J.JSValue)] -- ^ The object array
            -> String                -- ^ The desired key from the object
            -> Result a
-tryFromObj t o k = annotateResult t (fromObj k o)
+tryFromObj t o = annotateResult t . fromObj o
 
 -- | Small wrapper over readJSON.
 fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a

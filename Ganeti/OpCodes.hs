@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -72,28 +72,29 @@ opID (OpMigrateInstance _ _ _) = "OP_INSTANCE_MIGRATE"
 loadOpCode :: JSValue -> J.Result OpCode
 loadOpCode v = do
   o <- liftM J.fromJSObject (readJSON v)
-  op_id <- fromObj "OP_ID" o
+  let extract x = fromObj o x
+  op_id <- extract "OP_ID"
   case op_id of
     "OP_TEST_DELAY" -> do
-                 on_nodes <- fromObj "on_nodes" o
-                 on_master <- fromObj "on_master" o
-                 duration <- fromObj "duration" o
+                 on_nodes  <- extract "on_nodes"
+                 on_master <- extract "on_master"
+                 duration  <- extract "duration"
                  return $ OpTestDelay duration on_master on_nodes
     "OP_INSTANCE_REPLACE_DISKS" -> do
-                 inst <- fromObj "instance_name" o
-                 node <- maybeFromObj "remote_node" o
-                 mode <- fromObj "mode" o
-                 disks <- fromObj "disks" o
-                 ialloc <- maybeFromObj "iallocator" o
+                 inst   <- extract "instance_name"
+                 node   <- maybeFromObj o "remote_node"
+                 mode   <- extract "mode"
+                 disks  <- extract "disks"
+                 ialloc <- maybeFromObj o "iallocator"
                  return $ OpReplaceDisks inst node mode disks ialloc
     "OP_INSTANCE_FAILOVER" -> do
-                 inst <- fromObj "instance_name" o
-                 consist <- fromObj "ignore_consistency" o
+                 inst    <- extract "instance_name"
+                 consist <- extract "ignore_consistency"
                  return $ OpFailoverInstance inst consist
     "OP_INSTANCE_MIGRATE" -> do
-                 inst <- fromObj "instance_name" o
-                 live <- fromObj "live" o
-                 cleanup <- fromObj "cleanup" o
+                 inst    <- extract "instance_name"
+                 live    <- extract "live"
+                 cleanup <- extract "cleanup"
                  return $ OpMigrateInstance inst live cleanup
     _ -> J.Error $ "Unknown opcode " ++ op_id
 

@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -50,10 +50,11 @@ parseBaseInstance :: String
                   -> [(String, JSValue)]
                   -> Result (String, Instance.Instance)
 parseBaseInstance n a = do
-  disk <- fromObj "disk_space_total" a
-  mem <- fromObj "memory" a
-  vcpus <- fromObj "vcpus" a
-  tags <- fromObj "tags" a
+  let extract x = tryFromObj ("invalid data for instance '" ++ n ++ "'") a x
+  disk  <- extract "disk_space_total"
+  mem   <- extract "memory"
+  vcpus <- extract "vcpus"
+  tags  <- extract "tags"
   let running = "running"
   return (n, Instance.create n mem disk vcpus running tags 0 0)
 
@@ -64,7 +65,7 @@ parseInstance :: NameAssoc        -- ^ The node name-to-index association list
               -> Result (String, Instance.Instance)
 parseInstance ktn n a = do
   base <- parseBaseInstance n a
-  nodes <- fromObj "nodes" a
+  nodes <- fromObj a "nodes"
   pnode <- if null nodes
            then Bad $ "empty node list for instance " ++ n
            else readEitherString $ head nodes
@@ -80,19 +81,20 @@ parseNode :: NameAssoc           -- ^ The group association
           -> [(String, JSValue)] -- ^ The JSON object
           -> Result (String, Node.Node)
 parseNode ktg n a = do
-  offline <- fromObj "offline" a
-  drained <- fromObj "drained" a
-  guuid   <- fromObj "group" a
+  let extract x = tryFromObj ("invalid data for node '" ++ n ++ "'") a x
+  offline <- extract "offline"
+  drained <- extract "drained"
+  guuid   <- extract "group"
   gidx <- lookupGroup ktg n guuid
   node <- (if offline || drained
            then return $ Node.create n 0 0 0 0 0 0 True gidx
            else do
-             mtotal <- fromObj "total_memory" a
-             mnode  <- fromObj "reserved_memory" a
-             mfree  <- fromObj "free_memory"  a
-             dtotal <- fromObj "total_disk"   a
-             dfree  <- fromObj "free_disk"    a
-             ctotal <- fromObj "total_cpus"   a
+             mtotal <- extract "total_memory"
+             mnode  <- extract "reserved_memory"
+             mfree  <- extract "free_memory"
+             dtotal <- extract "total_disk"
+             dfree  <- extract "free_disk"
+             ctotal <- extract "total_cpus"
              return $ Node.create n mtotal mnode mfree
                     dtotal dfree ctotal False gidx)
   return (n, node)
@@ -102,7 +104,7 @@ parseGroup :: String              -- ^ The group UUID
            -> [(String, JSValue)] -- ^ The JSON object
            -> Result (String, Group.Group)
 parseGroup u a = do
-  name <- fromObj "name" a
+  name <- fromObj a "name"
   return (u, Group.create name u AllocPreferred)
 
 -- | Top-level parser.
@@ -111,48 +113,50 @@ parseData :: String         -- ^ The JSON message as received from Ganeti
 parseData body = do
   decoded <- fromJResult "Parsing input IAllocator message" (decodeStrict body)
   let obj = fromJSObject decoded
+      extrObj x = tryFromObj "invalid iallocator message" obj x
   -- request parser
-  request <- liftM fromJSObject (fromObj "request" obj)
+  request <- liftM fromJSObject (extrObj "request")
+  let extrReq x = tryFromObj "invalid request dict" request x
   -- existing group parsing
-  glist <- liftM fromJSObject (fromObj "nodegroups" obj)
+  glist <- liftM fromJSObject (extrObj "nodegroups")
   gobj <- mapM (\(x, y) -> asJSObject y >>= parseGroup x . fromJSObject) glist
   let (ktg, gl) = assignIndices gobj
   -- existing node parsing
-  nlist <- liftM fromJSObject (fromObj "nodes" obj)
+  nlist <- liftM fromJSObject (extrObj "nodes")
   nobj <- mapM (\(x,y) ->
                     asJSObject y >>= parseNode ktg x . fromJSObject) nlist
   let (ktn, nl) = assignIndices nobj
   -- existing instance parsing
-  ilist <- fromObj "instances" obj
+  ilist <- extrObj "instances"
   let idata = fromJSObject ilist
   iobj <- mapM (\(x,y) ->
                     asJSObject y >>= parseInstance ktn x . fromJSObject) idata
   let (kti, il) = assignIndices iobj
   -- cluster tags
-  ctags <- fromObj "cluster_tags" obj
+  ctags <- extrObj "cluster_tags"
   cdata <- mergeData [] [] [] (ClusterData gl nl il ctags)
   let map_n = cdNodes cdata
-  optype <- fromObj "type" request
+  optype <- extrReq "type"
   rqtype <-
       case optype of
         "allocate" ->
             do
-              rname <- fromObj "name" request
-              req_nodes <- fromObj "required_nodes" request
-              inew <- parseBaseInstance rname request
+              rname     <- extrReq "name"
+              req_nodes <- extrReq "required_nodes"
+              inew      <- parseBaseInstance rname request
               let io = snd inew
               return $ Allocate io req_nodes
         "relocate" ->
             do
-              rname <- fromObj "name" request
-              ridx <- lookupInstance kti rname
-              req_nodes <- fromObj "required_nodes" request
-              ex_nodes <- fromObj "relocate_from" request
-              ex_idex <- mapM (Container.findByName map_n) ex_nodes
+              rname     <- extrReq "name"
+              ridx      <- lookupInstance kti rname
+              req_nodes <- extrReq "required_nodes"
+              ex_nodes  <- extrReq "relocate_from"
+              ex_idex   <- mapM (Container.findByName map_n) ex_nodes
               return $ Relocate ridx req_nodes (map Node.idx ex_idex)
         "multi-evacuate" ->
             do
-              ex_names <- fromObj "evac_nodes" request
+              ex_names <- extrReq "evac_nodes"
               ex_nodes <- mapM (Container.findByName map_n) ex_names
               let ex_ndx = map Node.idx ex_nodes
               return $ Evacuate ex_ndx

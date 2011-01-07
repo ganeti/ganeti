@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -201,11 +201,11 @@ validateResult s = do
   oarr <- fromJResult "Parsing LUXI response"
           (decodeStrict s)::Result (JSObject JSValue)
   let arr = J.fromJSObject oarr
-  status <- fromObj (strOfKey Success) arr::Result Bool
+  status <- fromObj arr (strOfKey Success)::Result Bool
   let rkey = strOfKey Result
   (if status
-   then fromObj rkey arr
-   else fromObj rkey arr >>= fail)
+   then fromObj arr rkey
+   else fromObj arr rkey >>= fail)
 
 -- | Generic luxi method call.
 callMethod :: LuxiOp -> Client -> IO (Result JSValue)
