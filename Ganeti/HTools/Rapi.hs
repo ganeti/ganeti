@@ -31,7 +31,7 @@ module Ganeti.HTools.Rapi
     , parseData
     ) where
 
-import Data.Maybe (isJust)
+import Data.Maybe (fromMaybe)
 import Network.Curl
 import Network.Curl.Types ()
 import Control.Monad
@@ -120,14 +120,16 @@ parseInstance ktn a = do
 parseNode :: NameAssoc -> [(String, JSValue)] -> Result (String, Node.Node)
 parseNode ktg a = do
   name <- tryFromObj "Parsing new node" a "name"
-  let extract s = tryFromObj ("Node '" ++ name ++ "'") a s
+  let desc = "Node '" ++ name ++ "'"
+      extract s = tryFromObj desc a s
   offline <- extract "offline"
   drained <- extract "drained"
-  guuid   <- (if isJust $ lookup "group.uuid" a
-             then extract "group.uuid"
-             else return defaultGroupID) >>= lookupGroup ktg name
-  node <- (if offline || drained
-           then return $ Node.create name 0 0 0 0 0 0 True guuid
+  vm_cap  <- annotateResult desc $ maybeFromObj a "vm_capable"
+  let vm_cap' = fromMaybe True vm_cap
+  guuid   <- annotateResult desc $ maybeFromObj a "group.uuid"
+  guuid' <-  lookupGroup ktg name (fromMaybe defaultGroupID guuid)
+  node <- (if offline || drained || not vm_cap'
+           then return $ Node.create name 0 0 0 0 0 0 True guuid'
            else do
              mtotal  <- extract "mtotal"
              mnode   <- extract "mnode"
@@ -136,7 +138,7 @@ parseNode ktg a = do
              dfree   <- extract "dfree"
              ctotal  <- extract "ctotal"
              return $ Node.create name mtotal mnode mfree
-                    dtotal dfree ctotal False guuid)
+                    dtotal dfree ctotal False guuid')
   return (name, node)
 
 -- | Construct a group from a JSON object.
