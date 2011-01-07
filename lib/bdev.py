@@ -230,6 +230,20 @@ class BlockDev(object):
         result = result and child.SetSyncSpeed(speed)
     return result
 
+  def PauseResumeSync(self, pause):
+    """Pause/Resume the sync of the mirror.
+
+    In case this is not a mirroring device, this is no-op.
+
+    @param pause: Wheater to pause or resume
+
+    """
+    result = True
+    if self._children:
+      for child in self._children:
+        result = result and child.PauseResumeSync(pause)
+    return result
+
   def GetSyncStatus(self):
     """Returns the sync status of the device.
 
@@ -1487,6 +1501,30 @@ class DRBD8(BaseDRBD):
       return False
     children_result = super(DRBD8, self).SetSyncSpeed(kbytes)
     return self._SetMinorSyncSpeed(self.minor, kbytes) and children_result
+
+  def PauseResumeSync(self, pause):
+    """Pauses or resumes the sync of a DRBD device.
+
+    @param pause: Wether to pause or resume
+    @return: the success of the operation
+
+    """
+    if self.minor is None:
+      logging.info("Not attached during PauseSync")
+      return False
+
+    children_result = super(DRBD8, self).PauseResumeSync(pause)
+
+    if pause:
+      cmd = "pause-sync"
+    else:
+      cmd = "resume-sync"
+
+    result = utils.RunCmd(["drbdsetup", self.dev_path, cmd])
+    if result.failed:
+      logging.error("Can't %s: %s - %s", cmd,
+                    result.fail_reason, result.output)
+    return not result.failed and children_result
 
   def GetProcStatus(self):
     """Return device data from /proc.
