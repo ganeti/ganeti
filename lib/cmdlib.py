@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -10640,11 +10640,12 @@ class IAllocator(object):
       "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
       # we don't have job IDs
       }
+    ninfo = cfg.GetAllNodesInfo()
     iinfo = cfg.GetAllInstancesInfo().values()
     i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
 
     # node data
-    node_list = cfg.GetNodeList()
+    node_list = [n.name for n in ninfo.values() if n.vm_capable]
 
     if self.mode == constants.IALLOCATOR_MODE_ALLOC:
       hypervisor_name = self.hypervisor
@@ -10661,7 +10662,11 @@ class IAllocator(object):
 
     data["nodegroups"] = self._ComputeNodeGroupData(cfg)
 
-    data["nodes"] = self._ComputeNodeData(cfg, node_data, node_iinfo, i_list)
+    config_ndata = self._ComputeBasicNodeData(ninfo)
+    data["nodes"] = self._ComputeDynamicNodeData(ninfo, node_data, node_iinfo,
+                                                 i_list, config_ndata)
+    assert len(data["nodes"]) == len(ninfo), \
+        "Incomplete node data computed"
 
     data["instances"] = self._ComputeInstanceData(cluster_info, i_list)
 
@@ -10681,14 +10686,16 @@ class IAllocator(object):
     return ng
 
   @staticmethod
-  def _ComputeNodeData(cfg, node_data, node_iinfo, i_list):
+  def _ComputeBasicNodeData(node_cfg):
     """Compute global node data.
+
+    @rtype: dict
+    @returns: a dict of name: (node dict, node config)
 
     """
     node_results = {}
-    for nname, nresult in node_data.items():
-      # first fill in static (config-based) values
-      ninfo = cfg.GetNodeInfo(nname)
+    for ninfo in node_cfg.values():
+      # fill in static (config-based) values
       pnr = {
         "tags": list(ninfo.GetTags()),
         "primary_ip": ninfo.primary_ip,
@@ -10700,6 +10707,24 @@ class IAllocator(object):
         "master_capable": ninfo.master_capable,
         "vm_capable": ninfo.vm_capable,
         }
+
+      node_results[ninfo.name] = pnr
+
+    return node_results
+
+  @staticmethod
+  def _ComputeDynamicNodeData(node_cfg, node_data, node_iinfo, i_list,
+                              node_results):
+    """Compute global node data.
+
+    @param node_results: the basic node structures as filled from the config
+
+    """
+    # make a copy of the current dict
+    node_results = dict(node_results)
+    for nname, nresult in node_data.items():
+      assert nname in node_results, "Missing basic data for node %s" % nname
+      ninfo = node_cfg[nname]
 
       if not (ninfo.offline or ninfo.drained):
         nresult.Raise("Can't get data for node %s" % nname)
@@ -10742,9 +10767,9 @@ class IAllocator(object):
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,
           }
-        pnr.update(pnr_dyn)
+        pnr_dyn.update(node_results[nname])
 
-      node_results[nname] = pnr
+      node_results[nname] = pnr_dyn
 
     return node_results
 

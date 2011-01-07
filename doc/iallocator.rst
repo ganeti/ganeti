@@ -246,10 +246,10 @@ nodes
   or ``offline`` flags set. More details about these of node status
   flags is available in the manpage :manpage:`ganeti(7)`.
 
-.. [*] Note that no run-time data is present for offline or drained
-   nodes; this means the tags total_memory, reserved_memory,
-   free_memory, total_disk, free_disk, total_cpus, i_pri_memory and
-   i_pri_up memory will be absent
+.. [*] Note that no run-time data is present for offline, drained or
+   non-vm_capable nodes; this means the tags total_memory,
+   reserved_memory, free_memory, total_disk, free_disk, total_cpus,
+   i_pri_memory and i_pri_up memory will be absent
 
 
 Response message
