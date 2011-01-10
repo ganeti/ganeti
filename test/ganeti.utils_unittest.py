@@ -366,12 +366,13 @@ class TestRunCmd(testutils.GanetiTestCase):
 
   def testNoFork(self):
     """Test that nofork raise an error"""
-    assert not utils.no_fork
-    utils.no_fork = True
+    self.assertFalse(utils._no_fork)
+    utils.DisableFork()
     try:
+      self.assertTrue(utils._no_fork)
       self.assertRaises(errors.ProgrammerError, RunCmd, ["true"])
     finally:
-      utils.no_fork = False
+      utils._no_fork = False
 
   def testWrongParams(self):
     """Test wrong parameters"""

@@ -620,7 +620,8 @@ def GenericMain(daemon_name, optionparser,
                             metavar="SSL_CERT_PATH")
 
   # Disable the use of fork(2) if the daemon uses threads
-  utils.no_fork = multithreaded
+  if multithreaded:
+    utils.DisableFork()
 
   options, args = optionparser.parse_args()
 

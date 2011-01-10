@@ -62,7 +62,7 @@ from ganeti.utils.hash import * # pylint: disable-msg=W0401
 
 
 #: when set to True, L{RunCmd} is disabled
-no_fork = False
+_no_fork = False
 
 _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 
@@ -91,6 +91,15 @@ _SHELLPARAM_REGEX = re.compile(r"^[-a-zA-Z0-9._+/:%@]+$")
 
 #: ASN1 time regexp
 _ASN1_TIME_REGEX = re.compile(r"^(\d+)([-+]\d\d)(\d\d)$")
+
+
+def DisableFork():
+  """Disables the use of fork(2).
+
+  """
+  global _no_fork # pylint: disable-msg=W0603
+
+  _no_fork = True
 
 
 class RunResult(object):
@@ -203,7 +212,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   @raise errors.ProgrammerError: if we call this when forks are disabled
 
   """
-  if no_fork:
+  if _no_fork:
     raise errors.ProgrammerError("utils.RunCmd() called with fork() disabled")
 
   if output and interactive:
@@ -318,7 +327,7 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
   @raise errors.ProgrammerError: if we call this when forks are disabled
 
   """
-  if no_fork:
+  if _no_fork:
     raise errors.ProgrammerError("utils.StartDaemon() called with fork()"
                                  " disabled")
 
