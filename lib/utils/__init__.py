@@ -46,7 +46,6 @@ import signal
 import OpenSSL
 import datetime
 import calendar
-import hmac
 
 from cStringIO import StringIO
 
@@ -59,6 +58,7 @@ from ganeti.utils.retry import * # pylint: disable-msg=W0401
 from ganeti.utils.text import * # pylint: disable-msg=W0401
 from ganeti.utils.mlock import * # pylint: disable-msg=W0401
 from ganeti.utils.log import * # pylint: disable-msg=W0401
+from ganeti.utils.hash import * # pylint: disable-msg=W0401
 
 _locksheld = []
 
@@ -848,55 +848,6 @@ def ResetTempfileModule():
   else:
     logging.critical("The tempfile module misses at least one of the"
                      " '_once_lock' and '_name_sequence' attributes")
-
-
-def _FingerprintFile(filename):
-  """Compute the fingerprint of a file.
-
-  If the file does not exist, a None will be returned
-  instead.
-
-  @type filename: str
-  @param filename: the filename to checksum
-  @rtype: str
-  @return: the hex digest of the sha checksum of the contents
-      of the file
-
-  """
-  if not (os.path.exists(filename) and os.path.isfile(filename)):
-    return None
-
-  f = open(filename)
-
-  fp = compat.sha1_hash()
-  while True:
-    data = f.read(4096)
-    if not data:
-      break
-
-    fp.update(data)
-
-  return fp.hexdigest()
-
-
-def FingerprintFiles(files):
-  """Compute fingerprints for a list of files.
-
-  @type files: list
-  @param files: the list of filename to fingerprint
-  @rtype: dict
-  @return: a dictionary filename: fingerprint, holding only
-      existing files
-
-  """
-  ret = {}
-
-  for filename in files:
-    cksum = _FingerprintFile(filename)
-    if cksum:
-      ret[filename] = cksum
-
-  return ret
 
 
 def ForceDictType(target, key_types, allowed_values=None):
@@ -2539,41 +2490,6 @@ def LoadSignedX509Certificate(cert_pem, key):
     raise errors.GenericError("X509 certificate signature is invalid")
 
   return (cert, salt)
-
-
-def Sha1Hmac(key, text, salt=None):
-  """Calculates the HMAC-SHA1 digest of a text.
-
-  HMAC is defined in RFC2104.
-
-  @type key: string
-  @param key: Secret key
-  @type text: string
-
-  """
-  if salt:
-    salted_text = salt + text
-  else:
-    salted_text = text
-
-  return hmac.new(key, salted_text, compat.sha1).hexdigest()
-
-
-def VerifySha1Hmac(key, text, digest, salt=None):
-  """Verifies the HMAC-SHA1 digest of a text.
-
-  HMAC is defined in RFC2104.
-
-  @type key: string
-  @param key: Secret key
-  @type text: string
-  @type digest: string
-  @param digest: Expected digest
-  @rtype: bool
-  @return: Whether HMAC-SHA1 digest matches
-
-  """
-  return digest.lower() == Sha1Hmac(key, text, salt=salt).lower()
 
 
 def FindMatch(data, name):

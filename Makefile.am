@@ -214,6 +214,7 @@ server_PYTHON = \
 utils_PYTHON = \
 	lib/utils/__init__.py \
 	lib/utils/algo.py \
+	lib/utils/hash.py \
 	lib/utils/log.py \
 	lib/utils/mlock.py \
 	lib/utils/retry.py \
@@ -484,6 +485,7 @@ python_tests = \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
+	test/ganeti.utils.hash_unittest.py \
 	test/ganeti.utils.mlock_unittest.py \
 	test/ganeti.utils.retry_unittest.py \
 	test/ganeti.utils.text_unittest.py \
