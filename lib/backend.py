@@ -2512,7 +2512,7 @@ def _EnsureJobQueueFile(file_name):
 def JobQueueUpdate(file_name, content):
   """Updates a file in the queue directory.
 
-  This is just a wrapper over L{utils.WriteFile}, with proper
+  This is just a wrapper over L{utils.io.WriteFile}, with proper
   checking.
 
   @type file_name: str
@@ -3399,7 +3399,7 @@ class DevCacheManager(object):
   def RemoveCache(cls, dev_path):
     """Remove data for a dev_path.
 
-    This is just a wrapper over L{utils.RemoveFile} with a converted
+    This is just a wrapper over L{utils.io.RemoveFile} with a converted
     path name and logging.
 
     @type dev_path: str
