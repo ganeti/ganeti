@@ -146,10 +146,12 @@ def AssertCommand(cmd, fail=False, node=None):
 def GetSSHCommand(node, cmd, strict=True):
   """Builds SSH command to be executed.
 
-  Args:
-  - node: Node the command should run on
-  - cmd: Command to be executed as a list with all parameters
-  - strict: Whether to enable strict host key checking
+  @type node: string
+  @param node: node the command should run on
+  @type cmd: string
+  @param cmd: command to be executed in the node
+  @type strict: boolean
+  @param strict: whether to enable strict host key checking
 
   """
   args = [ 'ssh', '-oEscapeChar=none', '-oBatchMode=yes', '-l', 'root', '-t' ]
