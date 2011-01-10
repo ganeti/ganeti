@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +39,10 @@ from ganeti import rpc
 from ganeti import cmdlib
 from ganeti import locking
 from ganeti import utils
+
+
+_OP_PREFIX = "Op"
+_LU_PREFIX = "LU"
 
 
 class LockAcquireTimeout(Exception):
@@ -140,79 +144,28 @@ class OpExecCbBase: # pylint: disable-msg=W0232
     """
 
 
+def _LUNameForOpName(opname):
+  """Computes the LU name for a given OpCode name.
+
+  """
+  assert opname.startswith(_OP_PREFIX), \
+      "Invalid OpCode name, doesn't start with %s: %s" % (_OP_PREFIX, opname)
+
+  return _LU_PREFIX + opname[len(_OP_PREFIX):]
+
+
+def _ComputeDispatchTable():
+  """Computes the opcode-to-lu dispatch table.
+
+  """
+  return dict((op, getattr(cmdlib, _LUNameForOpName(op.__name__)))
+              for op in opcodes.OP_MAPPING.values()
+              if op.WITH_LU)
+
+
 class Processor(object):
   """Object which runs OpCodes"""
-  DISPATCH_TABLE = {
-    # Cluster
-    opcodes.OpPostInitCluster: cmdlib.LUPostInitCluster,
-    opcodes.OpDestroyCluster: cmdlib.LUDestroyCluster,
-    opcodes.OpQueryClusterInfo: cmdlib.LUQueryClusterInfo,
-    opcodes.OpVerifyCluster: cmdlib.LUVerifyCluster,
-    opcodes.OpQueryConfigValues: cmdlib.LUQueryConfigValues,
-    opcodes.OpRenameCluster: cmdlib.LURenameCluster,
-    opcodes.OpVerifyDisks: cmdlib.LUVerifyDisks,
-    opcodes.OpSetClusterParams: cmdlib.LUSetClusterParams,
-    opcodes.OpRedistributeConfig: cmdlib.LURedistributeConfig,
-    opcodes.OpRepairDiskSizes: cmdlib.LURepairDiskSizes,
-    opcodes.OpQuery: cmdlib.LUQuery,
-    opcodes.OpQueryFields: cmdlib.LUQueryFields,
-    # node lu
-    opcodes.OpAddNode: cmdlib.LUAddNode,
-    opcodes.OpQueryNodes: cmdlib.LUQueryNodes,
-    opcodes.OpQueryNodeVolumes: cmdlib.LUQueryNodeVolumes,
-    opcodes.OpQueryNodeStorage: cmdlib.LUQueryNodeStorage,
-    opcodes.OpModifyNodeStorage: cmdlib.LUModifyNodeStorage,
-    opcodes.OpRepairNodeStorage: cmdlib.LURepairNodeStorage,
-    opcodes.OpRemoveNode: cmdlib.LURemoveNode,
-    opcodes.OpSetNodeParams: cmdlib.LUSetNodeParams,
-    opcodes.OpPowercycleNode: cmdlib.LUPowercycleNode,
-    opcodes.OpMigrateNode: cmdlib.LUMigrateNode,
-    opcodes.OpNodeEvacuationStrategy: cmdlib.LUNodeEvacuationStrategy,
-    # instance lu
-    opcodes.OpCreateInstance: cmdlib.LUCreateInstance,
-    opcodes.OpReinstallInstance: cmdlib.LUReinstallInstance,
-    opcodes.OpRemoveInstance: cmdlib.LURemoveInstance,
-    opcodes.OpRenameInstance: cmdlib.LURenameInstance,
-    opcodes.OpActivateInstanceDisks: cmdlib.LUActivateInstanceDisks,
-    opcodes.OpShutdownInstance: cmdlib.LUShutdownInstance,
-    opcodes.OpStartupInstance: cmdlib.LUStartupInstance,
-    opcodes.OpRebootInstance: cmdlib.LURebootInstance,
-    opcodes.OpDeactivateInstanceDisks: cmdlib.LUDeactivateInstanceDisks,
-    opcodes.OpReplaceDisks: cmdlib.LUReplaceDisks,
-    opcodes.OpRecreateInstanceDisks: cmdlib.LURecreateInstanceDisks,
-    opcodes.OpFailoverInstance: cmdlib.LUFailoverInstance,
-    opcodes.OpMigrateInstance: cmdlib.LUMigrateInstance,
-    opcodes.OpMoveInstance: cmdlib.LUMoveInstance,
-    opcodes.OpConnectConsole: cmdlib.LUConnectConsole,
-    opcodes.OpQueryInstances: cmdlib.LUQueryInstances,
-    opcodes.OpQueryInstanceData: cmdlib.LUQueryInstanceData,
-    opcodes.OpSetInstanceParams: cmdlib.LUSetInstanceParams,
-    opcodes.OpGrowDisk: cmdlib.LUGrowDisk,
-    # node group lu
-    opcodes.OpAddGroup: cmdlib.LUAddGroup,
-    opcodes.OpQueryGroups: cmdlib.LUQueryGroups,
-    opcodes.OpSetGroupParams: cmdlib.LUSetGroupParams,
-    opcodes.OpRemoveGroup: cmdlib.LURemoveGroup,
-    opcodes.OpRenameGroup: cmdlib.LURenameGroup,
-    # os lu
-    opcodes.OpDiagnoseOS: cmdlib.LUDiagnoseOS,
-    # exports lu
-    opcodes.OpQueryExports: cmdlib.LUQueryExports,
-    opcodes.OpPrepareExport: cmdlib.LUPrepareExport,
-    opcodes.OpExportInstance: cmdlib.LUExportInstance,
-    opcodes.OpRemoveExport: cmdlib.LURemoveExport,
-    # tags lu
-    opcodes.OpGetTags: cmdlib.LUGetTags,
-    opcodes.OpSearchTags: cmdlib.LUSearchTags,
-    opcodes.OpAddTags: cmdlib.LUAddTags,
-    opcodes.OpDelTags: cmdlib.LUDelTags,
-    # test lu
-    opcodes.OpTestDelay: cmdlib.LUTestDelay,
-    opcodes.OpTestAllocator: cmdlib.LUTestAllocator,
-    opcodes.OpTestJobqueue: cmdlib.LUTestJobqueue,
-    # OOB lu
-    opcodes.OpOobCommand: cmdlib.LUOobCommand,
-    }
+  DISPATCH_TABLE = _ComputeDispatchTable()
 
   def __init__(self, context, ec_id):
     """Constructor for Processor
