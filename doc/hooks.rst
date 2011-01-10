@@ -218,7 +218,7 @@ Instance operations
 ~~~~~~~~~~~~~~~~~~~
 
 All instance operations take at least the following variables:
-INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARIES,
+INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARY,
 INSTANCE_OS_TYPE, INSTANCE_DISK_TEMPLATE, INSTANCE_MEMORY,
 INSTANCE_DISK_SIZES, INSTANCE_VCPUS, INSTANCE_NIC_COUNT,
 INSTANCE_NICn_IP, INSTANCE_NICn_BRIDGE, INSTANCE_NICn_MAC,
@@ -258,7 +258,7 @@ Exports the instance.
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
-OP_INSTANCE_START
+OP_INSTANCE_STARTUP
 +++++++++++++++++
 
 Starts an instance.
@@ -288,7 +288,7 @@ Reboots an instance.
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
-OP_INSTANCE_MODIFY
+OP_INSTANCE_SET_PARAMS
 ++++++++++++++++++
 
 Modifies the instance parameters.
@@ -302,7 +302,7 @@ OP_INSTANCE_FAILOVER
 ++++++++++++++++++++
 
 Failovers an instance. In the post phase INSTANCE_PRIMARY and
-INSTANCE_SECONDARIES refer to the nodes that were repectively primary
+INSTANCE_SECONDARY refer to the nodes that were repectively primary
 and secondary before failover.
 
 :directory: instance-failover
@@ -314,7 +314,7 @@ OP_INSTANCE_MIGRATE
 ++++++++++++++++++++
 
 Migrates an instance. In the post phase INSTANCE_PRIMARY and
-INSTANCE_SECONDARIES refer to the nodes that were repectively primary
+INSTANCE_SECONDARY refer to the nodes that were repectively primary
 and secondary before migration.
 
 :directory: instance-migrate
@@ -558,7 +558,7 @@ INSTANCE_PRIMARY
   the nodes change during the exectution, but on the
   OLD_PRIMARY/NEW_PRIMARY values.
 
-INSTANCE_SECONDARIES
+INSTANCE_SECONDARY
   Space-separated list of secondary nodes for the instance. Note that
   for migrations/failovers, you shouldn't rely on this variable since
   the nodes change during the exectution, but on the
@@ -686,7 +686,7 @@ script::
   GANETI_INSTANCE_NIC_COUNT=1
   GANETI_INSTANCE_OS_TYPE=debootstrap
   GANETI_INSTANCE_PRIMARY=node3.example.com
-  GANETI_INSTANCE_SECONDARIES=node5.example.com
+  GANETI_INSTANCE_SECONDARY=node5.example.com
   GANETI_INSTANCE_STATUS=down
   GANETI_INSTANCE_VCPUS=1
   GANETI_MASTER=node1.example.com
