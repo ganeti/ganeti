@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,6 +31,10 @@ from ganeti import utils
 from ganeti import errors
 
 import testutils
+
+
+# WARNING: The following tests modify the memory behaviour at runtime. Don't
+# add unrelated tests here.
 
 
 class TestMlockallWithCtypes(unittest.TestCase):

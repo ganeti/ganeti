@@ -51,12 +51,6 @@ import hmac
 
 from cStringIO import StringIO
 
-try:
-  # pylint: disable-msg=F0401
-  import ctypes
-except ImportError:
-  ctypes = None
-
 from ganeti import errors
 from ganeti import constants
 from ganeti import compat
@@ -64,6 +58,7 @@ from ganeti import compat
 from ganeti.utils.algo import * # pylint: disable-msg=W0401
 from ganeti.utils.retry import * # pylint: disable-msg=W0401
 from ganeti.utils.text import * # pylint: disable-msg=W0401
+from ganeti.utils.mlock import * # pylint: disable-msg=W0401
 
 _locksheld = []
 
@@ -89,10 +84,6 @@ UUID_RE = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
 # Certificate verification results
 (CERT_WARNING,
  CERT_ERROR) = range(1, 3)
-
-# Flags for mlockall() (from bits/mman.h)
-_MCL_CURRENT = 1
-_MCL_FUTURE = 2
 
 (_TIMEOUT_NONE,
  _TIMEOUT_TERM,
@@ -1993,40 +1984,6 @@ def CloseFDs(noclose_fds=None):
     if noclose_fds and fd in noclose_fds:
       continue
     _CloseFDNoErr(fd)
-
-
-def Mlockall(_ctypes=ctypes):
-  """Lock current process' virtual address space into RAM.
-
-  This is equivalent to the C call mlockall(MCL_CURRENT|MCL_FUTURE),
-  see mlock(2) for more details. This function requires ctypes module.
-
-  @raises errors.NoCtypesError: if ctypes module is not found
-
-  """
-  if _ctypes is None:
-    raise errors.NoCtypesError()
-
-  libc = _ctypes.cdll.LoadLibrary("libc.so.6")
-  if libc is None:
-    logging.error("Cannot set memory lock, ctypes cannot load libc")
-    return
-
-  # Some older version of the ctypes module don't have built-in functionality
-  # to access the errno global variable, where function error codes are stored.
-  # By declaring this variable as a pointer to an integer we can then access
-  # its value correctly, should the mlockall call fail, in order to see what
-  # the actual error code was.
-  # pylint: disable-msg=W0212
-  libc.__errno_location.restype = _ctypes.POINTER(_ctypes.c_int)
-
-  if libc.mlockall(_MCL_CURRENT | _MCL_FUTURE):
-    # pylint: disable-msg=W0212
-    logging.error("Cannot set memory lock: %s",
-                  os.strerror(libc.__errno_location().contents.value))
-    return
-
-  logging.debug("Memory lock set")
 
 
 def Daemonize(logfile):
