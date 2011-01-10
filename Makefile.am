@@ -221,7 +221,8 @@ utils_PYTHON = \
 	lib/utils/mlock.py \
 	lib/utils/retry.py \
 	lib/utils/text.py \
-	lib/utils/wrapper.py
+	lib/utils/wrapper.py \
+	lib/utils/x509.py
 
 docrst = \
 	doc/admin.rst \
@@ -495,6 +496,7 @@ python_tests = \
 	test/ganeti.utils.retry_unittest.py \
 	test/ganeti.utils.text_unittest.py \
 	test/ganeti.utils.wrapper_unittest.py \
+	test/ganeti.utils.x509_unittest.py \
 	test/ganeti.utils_unittest.py \
 	test/ganeti.workerpool_unittest.py \
 	test/cfgupgrade_unittest.py \
