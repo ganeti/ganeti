@@ -362,20 +362,20 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
               # Well, maybe child process failed
               os._exit(1) # pylint: disable-msg=W0212
         finally:
-          _CloseFDNoErr(errpipe_write)
+          CloseFdNoError(errpipe_write)
 
         # Wait for daemon to be started (or an error message to
         # arrive) and read up to 100 KB as an error message
         errormsg = RetryOnSignal(os.read, errpipe_read, 100 * 1024)
       finally:
-        _CloseFDNoErr(errpipe_read)
+        CloseFdNoError(errpipe_read)
     finally:
-      _CloseFDNoErr(pidpipe_write)
+      CloseFdNoError(pidpipe_write)
 
     # Read up to 128 bytes for PID
     pidtext = RetryOnSignal(os.read, pidpipe_read, 128)
   finally:
-    _CloseFDNoErr(pidpipe_read)
+    CloseFdNoError(pidpipe_read)
 
   # Try to avoid zombies by waiting for child process
   try:
@@ -403,8 +403,8 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
   """
   try:
     # Close parent's side
-    _CloseFDNoErr(errpipe_read)
-    _CloseFDNoErr(pidpipe_read)
+    CloseFdNoError(errpipe_read)
+    CloseFdNoError(pidpipe_read)
 
     # First child process
     SetupDaemonEnv()
@@ -1934,7 +1934,7 @@ def TestDelay(duration):
   return True, None
 
 
-def _CloseFDNoErr(fd, retries=5):
+def CloseFdNoError(fd, retries=5):
   """Close a file descriptor ignoring errors.
 
   @type fd: int
@@ -1949,7 +1949,7 @@ def _CloseFDNoErr(fd, retries=5):
   except OSError, err:
     if err.errno != errno.EBADF:
       if retries > 0:
-        _CloseFDNoErr(fd, retries - 1)
+        CloseFdNoError(fd, retries - 1)
     # else either it's closed already or we're out of retries, so we
     # ignore this and go on
 
@@ -1983,7 +1983,7 @@ def CloseFDs(noclose_fds=None):
   for fd in range(3, maxfd):
     if noclose_fds and fd in noclose_fds:
       continue
-    _CloseFDNoErr(fd)
+    CloseFdNoError(fd)
 
 
 def Daemonize(logfile):
@@ -2015,12 +2015,12 @@ def Daemonize(logfile):
     # this might fail
     pid = os.fork() # Fork a second child.
     if (pid == 0):  # The second child.
-      _CloseFDNoErr(rpipe)
+      CloseFdNoError(rpipe)
     else:
       # exit() or _exit()?  See below.
       os._exit(0) # Exit parent (the first child) of the second child.
   else:
-    _CloseFDNoErr(wpipe)
+    CloseFdNoError(wpipe)
     # Wait for daemon to be started (or an error message to
     # arrive) and read up to 100 KB as an error message
     errormsg = RetryOnSignal(os.read, rpipe, 100 * 1024)
@@ -2820,7 +2820,7 @@ def GetClosedTempfile(*args, **kwargs):
 
   """
   (fd, path) = tempfile.mkstemp(*args, **kwargs)
-  _CloseFDNoErr(fd)
+  CloseFdNoError(fd)
   return path
 
 
