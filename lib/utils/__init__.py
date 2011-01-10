@@ -60,9 +60,6 @@ from ganeti.utils.mlock import * # pylint: disable-msg=W0401
 from ganeti.utils.log import * # pylint: disable-msg=W0401
 from ganeti.utils.hash import * # pylint: disable-msg=W0401
 
-_locksheld = []
-
-debug_locks = False
 
 #: when set to True, L{RunCmd} is disabled
 no_fork = False
