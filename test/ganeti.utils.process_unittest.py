@@ -225,7 +225,7 @@ class TestRunCmd(testutils.GanetiTestCase):
     timeout = 0.2
     (out, err, status, ta) = \
       utils.process._RunCmdPipe(cmd, {}, False, "/", False,
-                                timeout, _linger_timeout=0.2)
+                                timeout, None, _linger_timeout=0.2)
     self.assert_(status < 0)
     self.assertEqual(-status, signal.SIGKILL)
 
@@ -307,6 +307,22 @@ class TestRunCmd(testutils.GanetiTestCase):
     """Test wrong parameters"""
     self.assertRaises(errors.ProgrammerError, utils.RunCmd, ["true"],
                       output="/dev/null", interactive=True)
+
+  def testNocloseFds(self):
+    """Test selective fd retention (noclose_fds)"""
+    temp = open(self.fname, "r+")
+    try:
+      temp.write("test")
+      temp.seek(0)
+      cmd = "read -u %d; echo $REPLY" % temp.fileno()
+      result = utils.RunCmd(["/bin/bash", "-c", cmd])
+      self.assertEqual(result.stdout.strip(), "")
+      temp.seek(0)
+      result = utils.RunCmd(["/bin/bash", "-c", cmd],
+                            noclose_fds=[temp.fileno()])
+      self.assertEqual(result.stdout.strip(), "test")
+    finally:
+      temp.close()
 
 
 class TestRunParts(testutils.GanetiTestCase):

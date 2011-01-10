@@ -141,7 +141,7 @@ def _BuildCmdEnvironment(env, reset):
 
 
 def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
-           interactive=False, timeout=None):
+           interactive=False, timeout=None, noclose_fds=None):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -166,6 +166,9 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   @type timeout: int
   @param timeout: If not None, timeout in seconds until child process gets
                   killed
+  @type noclose_fds: list
+  @param noclose_fds: list of additional (fd >=3) file descriptors to leave
+                      open for the child process
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise errors.ProgrammerError: if we call this when forks are disabled
@@ -196,10 +199,11 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   try:
     if output is None:
       out, err, status, timeout_action = _RunCmdPipe(cmd, cmd_env, shell, cwd,
-                                                     interactive, timeout)
+                                                     interactive, timeout,
+                                                     noclose_fds)
     else:
       timeout_action = _TIMEOUT_NONE
-      status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
+      status = _RunCmdFile(cmd, cmd_env, shell, output, cwd, noclose_fds)
       out = err = ""
   except OSError, err:
     if err.errno == errno.ENOENT:
@@ -463,7 +467,7 @@ def _WaitForProcess(child, timeout):
     pass
 
 
-def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout,
+def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
                 _linger_timeout=constants.CHILD_LINGER_TIMEOUT):
   """Run a command and return its output.
 
@@ -479,6 +483,9 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout,
   @param interactive: Run command interactive (without piping)
   @type timeout: int
   @param timeout: Timeout after the programm gets terminated
+  @type noclose_fds: list
+  @param noclose_fds: list of additional (fd >=3) file descriptors to leave
+                      open for the child process
   @rtype: tuple
   @return: (out, err, status)
 
@@ -492,12 +499,20 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout,
   if interactive:
     stderr = stdout = stdin = None
 
+  if noclose_fds:
+    preexec_fn = lambda: CloseFDs(noclose_fds)
+    close_fds = False
+  else:
+    preexec_fn = None
+    close_fds = True
+
   child = subprocess.Popen(cmd, shell=via_shell,
                            stderr=stderr,
                            stdout=stdout,
                            stdin=stdin,
-                           close_fds=True, env=env,
-                           cwd=cwd)
+                           close_fds=close_fds, env=env,
+                           cwd=cwd,
+                           preexec_fn=preexec_fn)
 
   out = StringIO()
   err = StringIO()
@@ -592,7 +607,7 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout,
   return out, err, status, timeout_action
 
 
-def _RunCmdFile(cmd, env, via_shell, output, cwd):
+def _RunCmdFile(cmd, env, via_shell, output, cwd, noclose_fds):
   """Run a command and save its output to a file.
 
   @type  cmd: string or list
@@ -605,18 +620,30 @@ def _RunCmdFile(cmd, env, via_shell, output, cwd):
   @param output: the filename in which to save the output
   @type cwd: string
   @param cwd: the working directory for the program
+  @type noclose_fds: list
+  @param noclose_fds: list of additional (fd >=3) file descriptors to leave
+                      open for the child process
   @rtype: int
   @return: the exit status
 
   """
   fh = open(output, "a")
+
+  if noclose_fds:
+    preexec_fn = lambda: CloseFDs(noclose_fds + [fh.fileno()])
+    close_fds = False
+  else:
+    preexec_fn = None
+    close_fds = True
+
   try:
     child = subprocess.Popen(cmd, shell=via_shell,
                              stderr=subprocess.STDOUT,
                              stdout=fh,
                              stdin=subprocess.PIPE,
-                             close_fds=True, env=env,
-                             cwd=cwd)
+                             close_fds=close_fds, env=env,
+                             cwd=cwd,
+                             preexec_fn=preexec_fn)
 
     child.stdin.close()
     status = child.wait()
