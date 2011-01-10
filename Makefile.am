@@ -214,6 +214,7 @@ server_PYTHON = \
 utils_PYTHON = \
 	lib/utils/__init__.py \
 	lib/utils/algo.py \
+	lib/utils/log.py \
 	lib/utils/mlock.py \
 	lib/utils/retry.py \
 	lib/utils/text.py
