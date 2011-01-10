@@ -28,9 +28,13 @@ from ganeti import _autoconf
 from ganeti import utils
 from ganeti import cmdlib
 from ganeti import build
+from ganeti import compat
 from ganeti.rapi import connector
 
 import testutils
+
+
+VALID_URI_RE = re.compile(r"^[-/a-z0-9]*$")
 
 
 class TestDocs(unittest.TestCase):
@@ -68,6 +72,12 @@ class TestDocs(unittest.TestCase):
                  msg=("Missing documentation for hook %s/%s" %
                       (lucls.HTYPE, lucls.HPATH)))
 
+  def _CheckRapiResource(self, uri, fixup):
+    # Apply fixes before testing
+    for (rx, value) in fixup.items():
+      uri = rx.sub(value, uri)
+
+    self.assertTrue(VALID_URI_RE.match(uri), msg="Invalid URI %r" % uri)
 
   def testRapiDocs(self):
     """Check whether all RAPI resources are documented.
@@ -75,17 +85,26 @@ class TestDocs(unittest.TestCase):
     """
     rapidoc = self._ReadDocFile("rapi.rst")
 
-    node_name = "[node_name]"
-    instance_name = "[instance_name]"
-    group_name = "[group_name]"
-    job_id = "[job_id]"
-    disk_index = "[disk_index]"
+    node_name = re.escape("[node_name]")
+    instance_name = re.escape("[instance_name]")
+    group_name = re.escape("[group_name]")
+    job_id = re.escape("[job_id]")
+    disk_index = re.escape("[disk_index]")
 
-    resources = connector.GetHandlers(re.escape(node_name),
-                                      re.escape(instance_name),
-                                      re.escape(group_name),
-                                      re.escape(job_id),
-                                      re.escape(disk_index))
+    resources = connector.GetHandlers(node_name, instance_name, group_name,
+                                      job_id, disk_index)
+
+    uri_check_fixup = {
+      re.compile(node_name): "node1examplecom",
+      re.compile(instance_name): "inst1examplecom",
+      re.compile(group_name): "group4440",
+      re.compile(job_id): "9409",
+      re.compile(disk_index): "123",
+      }
+
+    assert compat.all(VALID_URI_RE.match(value)
+                      for value in uri_check_fixup.values()), \
+           "Fixup values must be valid URIs, too"
 
     titles = []
 
@@ -105,14 +124,16 @@ class TestDocs(unittest.TestCase):
       if hasattr(key, "match"):
         self.assert_(key.pattern.startswith("^/2/"),
                      msg="Pattern %r does not start with '^/2/'" % key.pattern)
+        self.assertEqual(key.pattern[-1], "$")
 
         found = False
         for title in titles:
-          if (title.startswith("``") and
-              title.endswith("``") and
-              key.match(title[2:-2])):
-            found = True
-            break
+          if title.startswith("``") and title.endswith("``"):
+            uri = title[2:-2]
+            if key.match(uri):
+              self._CheckRapiResource(uri, uri_check_fixup)
+              found = True
+              break
 
         if not found:
           # TODO: Find better way of identifying resource
@@ -122,7 +143,9 @@ class TestDocs(unittest.TestCase):
         self.assert_(key.startswith("/2/") or key in prefix_exception,
                      msg="Path %r does not start with '/2/'" % key)
 
-        if ("``%s``" % key) not in titles:
+        if ("``%s``" % key) in titles:
+          self._CheckRapiResource(key, {})
+        else:
           undocumented.append(key)
 
     self.failIf(undocumented,
