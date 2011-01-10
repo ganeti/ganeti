@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -289,12 +289,15 @@ class OpCode(BaseOpCode):
                       method for details).
   @cvar OP_PARAMS: List of opcode attributes, the default values they should
                    get if not already defined, and types they must match.
+  @cvar WITH_LU: Boolean that specifies whether this should be included in
+      mcpu's dispatch table
   @ivar dry_run: Whether the LU should be run in dry-run mode, i.e. just
                  the check steps
   @ivar priority: Opcode priority for queue
 
   """
   OP_ID = "OP_ABSTRACT"
+  WITH_LU = True
   OP_PARAMS = [
     ("dry_run", None, ht.TMaybeBool),
     ("debug_level", None, ht.TOr(ht.TNone, ht.TPositiveInt)),
@@ -1271,6 +1274,7 @@ class OpTestDummy(OpCode):
     ("messages", ht.NoDefault, ht.NoType),
     ("fail", ht.NoDefault, ht.NoType),
     ]
+  WITH_LU = False
 
 
 def _GetOpList():
@@ -1281,7 +1285,7 @@ def _GetOpList():
   """
   return [v for v in globals().values()
           if (isinstance(v, type) and issubclass(v, OpCode) and
-              hasattr(v, "OP_ID"))]
+              hasattr(v, "OP_ID") and v is not OpCode)]
 
 
 OP_MAPPING = dict((v.OP_ID, v) for v in _GetOpList())

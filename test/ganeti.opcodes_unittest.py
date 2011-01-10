@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -123,10 +123,10 @@ class TestOpcodes(unittest.TestCase):
   def testParams(self):
     supported_by_all = set(["debug_level", "dry_run", "priority"])
 
-    self.assert_(opcodes.BaseOpCode not in opcodes.OP_MAPPING.values())
-    self.assert_(opcodes.OpCode in opcodes.OP_MAPPING.values())
+    self.assertTrue(opcodes.BaseOpCode not in opcodes.OP_MAPPING.values())
+    self.assertTrue(opcodes.OpCode not in opcodes.OP_MAPPING.values())
 
-    for cls in opcodes.OP_MAPPING.values():
+    for cls in opcodes.OP_MAPPING.values() + [opcodes.OpCode]:
       all_slots = cls._all_slots()
 
       self.assertEqual(len(set(all_slots) & supported_by_all), 3,

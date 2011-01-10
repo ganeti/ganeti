@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,10 +58,10 @@ class TestLockAttemptTimeoutStrategy(unittest.TestCase):
 class TestDispatchTable(unittest.TestCase):
   def test(self):
     for opcls in opcodes.OP_MAPPING.values():
-      if opcls is opcodes.OpCode or opcls is opcodes.OpTestDummy:
+      if not opcls.WITH_LU:
         continue
-      self.assert_(opcls in mcpu.Processor.DISPATCH_TABLE,
-                   msg="%s missing handler class" % opcls)
+      self.assertTrue(opcls in mcpu.Processor.DISPATCH_TABLE,
+                      msg="%s missing handler class" % opcls)
 
 
 if __name__ == "__main__":
