@@ -2025,7 +2025,7 @@ def StopDaemon(name):
 def WritePidFile(pidfile):
   """Write the current process pidfile.
 
-  @type pidfile: sting
+  @type pidfile: string
   @param pidfile: the path to the file to be written
   @raise errors.LockError: if the pid file already exists and
       points to a live process
@@ -2049,20 +2049,19 @@ def WritePidFile(pidfile):
   return fd_pidfile
 
 
-def RemovePidFile(name):
+def RemovePidFile(pidfile):
   """Remove the current process pidfile.
 
   Any errors are ignored.
 
-  @type name: str
-  @param name: the daemon name used to derive the pidfile name
+  @type pidfile: string
+  @param pidfile: Path to the file to be removed
 
   """
-  pidfilename = DaemonPidFileName(name)
   # TODO: we could check here that the file contains our pid
   try:
-    RemoveFile(pidfilename)
-  except: # pylint: disable-msg=W0702
+    RemoveFile(pidfile)
+  except Exception: # pylint: disable-msg=W0703
     pass
 
 
