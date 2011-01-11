@@ -26,44 +26,33 @@ the command line scripts.
 
 """
 
+# Allow wildcard import in pylint: disable-msg=W0401
 
 import os
-import sys
-import time
-import subprocess
 import re
-import socket
-import tempfile
-import shutil
 import errno
 import pwd
 import itertools
 import select
-import fcntl
-import resource
 import logging
 import signal
-import datetime
-import calendar
-
-from cStringIO import StringIO
 
 from ganeti import errors
 from ganeti import constants
 from ganeti import compat
 
-from ganeti.utils.algo import * # pylint: disable-msg=W0401
-from ganeti.utils.retry import * # pylint: disable-msg=W0401
-from ganeti.utils.text import * # pylint: disable-msg=W0401
-from ganeti.utils.mlock import * # pylint: disable-msg=W0401
-from ganeti.utils.log import * # pylint: disable-msg=W0401
-from ganeti.utils.hash import * # pylint: disable-msg=W0401
-from ganeti.utils.wrapper import * # pylint: disable-msg=W0401
-from ganeti.utils.filelock import * # pylint: disable-msg=W0401
-from ganeti.utils.io import * # pylint: disable-msg=W0401
-from ganeti.utils.x509 import * # pylint: disable-msg=W0401
-from ganeti.utils.nodesetup import * # pylint: disable-msg=W0401
-from ganeti.utils.process import * # pylint: disable-msg=W0401
+from ganeti.utils.algo import *
+from ganeti.utils.filelock import *
+from ganeti.utils.hash import *
+from ganeti.utils.io import *
+from ganeti.utils.log import *
+from ganeti.utils.mlock import *
+from ganeti.utils.nodesetup import *
+from ganeti.utils.process import *
+from ganeti.utils.retry import *
+from ganeti.utils.text import *
+from ganeti.utils.wrapper import *
+from ganeti.utils.x509 import *
 
 
 _VALID_SERVICE_NAME_RE = re.compile("^[-_.a-zA-Z0-9]{1,128}$")
