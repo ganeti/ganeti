@@ -808,7 +808,7 @@ class Instance(TaggableObject):
                                  errors.ECODE_INVAL)
     except IndexError:
       raise errors.OpPrereqError("Invalid disk index: %d (instace has disks"
-                                 " 0 to %d" % (idx, len(self.disks)),
+                                 " 0 to %d" % (idx, len(self.disks) - 1),
                                  errors.ECODE_INVAL)
 
   def ToDict(self):
