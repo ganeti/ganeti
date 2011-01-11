@@ -689,29 +689,6 @@ def RunParts(dir_name, env=None, reset_env=False):
   return rr
 
 
-def ResetTempfileModule():
-  """Resets the random name generator of the tempfile module.
-
-  This function should be called after C{os.fork} in the child process to
-  ensure it creates a newly seeded random generator. Otherwise it would
-  generate the same random parts as the parent process. If several processes
-  race for the creation of a temporary file, this could lead to one not getting
-  a temporary name.
-
-  """
-  # pylint: disable-msg=W0212
-  if hasattr(tempfile, "_once_lock") and hasattr(tempfile, "_name_sequence"):
-    tempfile._once_lock.acquire()
-    try:
-      # Reset random name generator
-      tempfile._name_sequence = None
-    finally:
-      tempfile._once_lock.release()
-  else:
-    logging.critical("The tempfile module misses at least one of the"
-                     " '_once_lock' and '_name_sequence' attributes")
-
-
 def ForceDictType(target, key_types, allowed_values=None):
   """Force the values of a dict to have certain types.
 
