@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2010 Google Inc.
+# Copyright (C) 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -118,8 +118,8 @@ def TestClusterRename():
     AssertCommand(data)
 
 
-def TestClusterVerify():
-  """gnt-cluster verify"""
+def TestClusterOob():
+  """out-of-band framework"""
   oob_path_exists = "/tmp/ganeti-qa-oob-does-exist-%s" % utils.NewUUID()
 
   AssertCommand(["gnt-cluster", "verify"])
@@ -129,10 +129,9 @@ def TestClusterVerify():
 
   AssertCommand(["gnt-cluster", "verify"], fail=True)
 
-  for node in qa_config.get("nodes"):
-    node_name = node["primary"]
-    remote_file = qa_utils.UploadData(node_name, "", mode=0400)
-    AssertCommand(["mv", remote_file, oob_path_exists], node=node_name)
+  AssertCommand(["touch", oob_path_exists])
+  AssertCommand(["chmod", "0400", oob_path_exists])
+  AssertCommand(["gnt-cluster", "copyfile", oob_path_exists])
 
   try:
     AssertCommand(["gnt-cluster", "modify", "--node-parameters",
@@ -140,18 +139,19 @@ def TestClusterVerify():
 
     AssertCommand(["gnt-cluster", "verify"], fail=True)
 
-    for node in qa_config.get("nodes"):
-      node_name = node["primary"]
-      AssertCommand(["chmod", "0500", oob_path_exists], node=node_name)
+    AssertCommand(["chmod", "0500", oob_path_exists])
+    AssertCommand(["gnt-cluster", "copyfile", oob_path_exists])
 
     AssertCommand(["gnt-cluster", "verify"])
   finally:
-    for node in qa_config.get("nodes"):
-      node_name = node["primary"]
-      AssertCommand(["rm", oob_path_exists], node=node_name)
+    AssertCommand(["gnt-cluster", "command", "rm", oob_path_exists])
 
   AssertCommand(["gnt-cluster", "modify", "--node-parameters",
                  "oob_program="])
+
+
+def TestClusterVerify():
+  """gnt-cluster verify"""
   AssertCommand(["gnt-cluster", "verify"])
 
 
