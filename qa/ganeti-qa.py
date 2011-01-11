@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -354,30 +354,10 @@ def RunHardwareFailureTests(instance, pnode, snode):
             pnode, snode)
 
 
-@rapi.client.UsesRapiClient
-def main():
-  """Main program.
+def RunQa():
+  """Main QA body.
 
   """
-  parser = optparse.OptionParser(usage="%prog [options] <config-file>")
-  parser.add_option('--yes-do-it', dest='yes_do_it',
-      action="store_true",
-      help="Really execute the tests")
-  (qa_config.options, args) = parser.parse_args()
-
-  if len(args) == 1:
-    (config_file, ) = args
-  else:
-    parser.error("Wrong number of arguments.")
-
-  if not qa_config.options.yes_do_it:
-    print ("Executing this script irreversibly destroys any Ganeti\n"
-           "configuration on all nodes involved. If you really want\n"
-           "to start testing, supply the --yes-do-it option.")
-    sys.exit(1)
-
-  qa_config.Load(config_file)
-
   rapi_user = "ganeti-qa"
   rapi_secret = utils.GenerateSecret()
 
@@ -475,6 +455,36 @@ def main():
 
   RunTestIf("cluster-destroy", qa_cluster.TestClusterDestroy)
 
+
+@rapi.client.UsesRapiClient
+def main():
+  """Main program.
+
+  """
+  parser = optparse.OptionParser(usage="%prog [options] <config-file>")
+  parser.add_option('--yes-do-it', dest='yes_do_it',
+      action="store_true",
+      help="Really execute the tests")
+  (qa_config.options, args) = parser.parse_args()
+
+  if len(args) == 1:
+    (config_file, ) = args
+  else:
+    parser.error("Wrong number of arguments.")
+
+  if not qa_config.options.yes_do_it:
+    print ("Executing this script irreversibly destroys any Ganeti\n"
+           "configuration on all nodes involved. If you really want\n"
+           "to start testing, supply the --yes-do-it option.")
+    sys.exit(1)
+
+  qa_config.Load(config_file)
+
+  qa_utils.StartMultiplexer(qa_config.GetMasterNode()["primary"])
+  try:
+    RunQa()
+  finally:
+    qa_utils.CloseMultiplexers()
 
 if __name__ == '__main__':
   main()

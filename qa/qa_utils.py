@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import re
 import sys
 import subprocess
 import random
+import tempfile
 
 from ganeti import utils
 from ganeti import compat
@@ -41,6 +42,8 @@ _INFO_SEQ = None
 _WARNING_SEQ = None
 _ERROR_SEQ = None
 _RESET_SEQ = None
+
+_MULTIPLEXERS = {}
 
 
 def _SetupColours():
@@ -143,15 +146,18 @@ def AssertCommand(cmd, fail=False, node=None):
   return rcode
 
 
-def GetSSHCommand(node, cmd, strict=True):
+def GetSSHCommand(node, cmd, strict=True, opts=None):
   """Builds SSH command to be executed.
 
   @type node: string
   @param node: node the command should run on
   @type cmd: string
-  @param cmd: command to be executed in the node
+  @param cmd: command to be executed in the node; if None or empty
+      string, no command will be executed
   @type strict: boolean
   @param strict: whether to enable strict host key checking
+  @type opts: list
+  @param opts: list of additional options
 
   """
   args = [ 'ssh', '-oEscapeChar=none', '-oBatchMode=yes', '-l', 'root', '-t' ]
@@ -163,8 +169,15 @@ def GetSSHCommand(node, cmd, strict=True):
   args.append('-oStrictHostKeyChecking=%s' % tmp)
   args.append('-oClearAllForwardings=yes')
   args.append('-oForwardAgent=yes')
+  if opts:
+    args.extend(opts)
+  if node in _MULTIPLEXERS:
+    spath = _MULTIPLEXERS[node][0]
+    args.append('-oControlPath=%s' % spath)
+    args.append('-oControlMaster=no')
   args.append(node)
-  args.append(cmd)
+  if cmd:
+    args.append(cmd)
 
   return args
 
@@ -182,6 +195,34 @@ def StartSSH(node, cmd, strict=True):
 
   """
   return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict))
+
+
+def StartMultiplexer(node):
+  """Starts a multiplexer command.
+
+  @param node: the node for which to open the multiplexer
+
+  """
+  if node in _MULTIPLEXERS:
+    return
+
+  # Note: yes, we only need mktemp, since we'll remove the file anyway
+  sname = tempfile.mktemp(prefix="ganeti-qa-multiplexer.")
+  utils.RemoveFile(sname)
+  opts = ["-N", "-oControlPath=%s" % sname, "-oControlMaster=yes"]
+  print "Created socket at %s" % sname
+  child = StartLocalCommand(GetSSHCommand(node, None, opts=opts))
+  _MULTIPLEXERS[node] = (sname, child)
+
+
+def CloseMultiplexers():
+  """Closes all current multiplexers and cleans up.
+
+  """
+  for node in _MULTIPLEXERS.keys():
+    (sname, child) = _MULTIPLEXERS.pop(node)
+    utils.KillProcess(child.pid, timeout=10, waitpid=True)
+    utils.RemoveFile(sname)
 
 
 def GetCommandOutput(node, cmd):
