@@ -691,5 +691,12 @@ class TestSshKeys(testutils.GanetiTestCase):
       " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
 
 
+class TestNewUUID(unittest.TestCase):
+  """Test case for NewUUID"""
+
+  def runTest(self):
+    self.failUnless(utils.UUID_RE.match(utils.NewUUID()))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

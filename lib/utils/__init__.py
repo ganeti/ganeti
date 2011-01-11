@@ -66,8 +66,6 @@ from ganeti.utils.nodesetup import * # pylint: disable-msg=W0401
 from ganeti.utils.process import * # pylint: disable-msg=W0401
 
 
-_RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
-
 _VALID_SERVICE_NAME_RE = re.compile("^[-_.a-zA-Z0-9]{1,128}$")
 
 UUID_RE = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
@@ -287,17 +285,6 @@ def GetHomeDir(user, default=None):
   except KeyError:
     return default
   return result.pw_dir
-
-
-def NewUUID():
-  """Returns a random UUID.
-
-  @note: This is a Linux-specific method as it uses the /proc
-      filesystem.
-  @rtype: str
-
-  """
-  return ReadFile(_RANDOM_UUID_FILE, size=128).rstrip("\n")
 
 
 def FirstFree(seq, base=0):

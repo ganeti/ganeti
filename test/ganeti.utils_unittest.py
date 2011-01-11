@@ -81,12 +81,6 @@ class TestGetMounts(unittest.TestCase):
         ("none", "/proc", "proc", "rw,nosuid,nodev,noexec,relatime"),
       ])
 
-class TestNewUUID(unittest.TestCase):
-  """Test case for NewUUID"""
-
-  def runTest(self):
-    self.failUnless(utils.UUID_RE.match(utils.NewUUID()))
-
 
 class TestFirstFree(unittest.TestCase):
   """Test case for the FirstFree function"""

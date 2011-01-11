@@ -34,6 +34,10 @@ from ganeti import constants
 from ganeti.utils import filelock
 
 
+#: Path generating random UUID
+_RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
+
+
 def ReadFile(file_name, size=-1):
   """Reads a file.
 
@@ -760,3 +764,14 @@ def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
         value = None
 
   return value
+
+
+def NewUUID():
+  """Returns a random UUID.
+
+  @note: This is a Linux-specific method as it uses the /proc
+      filesystem.
+  @rtype: str
+
+  """
+  return ReadFile(_RANDOM_UUID_FILE, size=128).rstrip("\n")
