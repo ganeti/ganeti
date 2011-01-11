@@ -219,5 +219,41 @@ class TestNiceSort(unittest.TestCase):
                      msg="Key function was not called once per value")
 
 
+class TimeMock:
+  def __init__(self, values):
+    self.values = values
+
+  def __call__(self):
+    return self.values.pop(0)
+
+
+class TestRunningTimeout(unittest.TestCase):
+  def setUp(self):
+    self.time_fn = TimeMock([0.0, 0.3, 4.6, 6.5])
+
+  def testRemainingFloat(self):
+    timeout = algo.RunningTimeout(5.0, True, _time_fn=self.time_fn)
+    self.assertAlmostEqual(timeout.Remaining(), 4.7)
+    self.assertAlmostEqual(timeout.Remaining(), 0.4)
+    self.assertAlmostEqual(timeout.Remaining(), -1.5)
+
+  def testRemaining(self):
+    self.time_fn = TimeMock([0, 2, 4, 5, 6])
+    timeout = algo.RunningTimeout(5, True, _time_fn=self.time_fn)
+    self.assertEqual(timeout.Remaining(), 3)
+    self.assertEqual(timeout.Remaining(), 1)
+    self.assertEqual(timeout.Remaining(), 0)
+    self.assertEqual(timeout.Remaining(), -1)
+
+  def testRemainingNonNegative(self):
+    timeout = algo.RunningTimeout(5.0, False, _time_fn=self.time_fn)
+    self.assertAlmostEqual(timeout.Remaining(), 4.7)
+    self.assertAlmostEqual(timeout.Remaining(), 0.4)
+    self.assertEqual(timeout.Remaining(), 0.0)
+
+  def testNegativeTimeout(self):
+    self.assertRaises(ValueError, algo.RunningTimeout, -1.0, True)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

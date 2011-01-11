@@ -845,42 +845,6 @@ class TestFindMatch(unittest.TestCase):
     self.assert_(utils.FindMatch(data, "Hello World") is None)
 
 
-class TimeMock:
-  def __init__(self, values):
-    self.values = values
-
-  def __call__(self):
-    return self.values.pop(0)
-
-
-class TestRunningTimeout(unittest.TestCase):
-  def setUp(self):
-    self.time_fn = TimeMock([0.0, 0.3, 4.6, 6.5])
-
-  def testRemainingFloat(self):
-    timeout = utils.RunningTimeout(5.0, True, _time_fn=self.time_fn)
-    self.assertAlmostEqual(timeout.Remaining(), 4.7)
-    self.assertAlmostEqual(timeout.Remaining(), 0.4)
-    self.assertAlmostEqual(timeout.Remaining(), -1.5)
-
-  def testRemaining(self):
-    self.time_fn = TimeMock([0, 2, 4, 5, 6])
-    timeout = utils.RunningTimeout(5, True, _time_fn=self.time_fn)
-    self.assertEqual(timeout.Remaining(), 3)
-    self.assertEqual(timeout.Remaining(), 1)
-    self.assertEqual(timeout.Remaining(), 0)
-    self.assertEqual(timeout.Remaining(), -1)
-
-  def testRemainingNonNegative(self):
-    timeout = utils.RunningTimeout(5.0, False, _time_fn=self.time_fn)
-    self.assertAlmostEqual(timeout.Remaining(), 4.7)
-    self.assertAlmostEqual(timeout.Remaining(), 0.4)
-    self.assertEqual(timeout.Remaining(), 0.0)
-
-  def testNegativeTimeout(self):
-    self.assertRaises(ValueError, utils.RunningTimeout, -1.0, True)
-
-
 class TestTryConvert(unittest.TestCase):
   def test(self):
     for src, fn, result in [
