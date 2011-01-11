@@ -259,7 +259,7 @@ Exports the instance.
 :post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_STARTUP
-+++++++++++++++++
++++++++++++++++++++
 
 Starts an instance.
 
@@ -289,7 +289,7 @@ Reboots an instance.
 :post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_SET_PARAMS
-++++++++++++++++++
+++++++++++++++++++++++
 
 Modifies the instance parameters.
 

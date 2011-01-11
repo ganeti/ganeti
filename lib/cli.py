@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2416,7 +2416,7 @@ def FormatQueryResult(result, unit=None, format_override=None, separator=None,
   @param result: result of query operation
   @type unit: string
   @param unit: Unit used for formatting fields of type L{constants.QFT_UNIT},
-    see L{utils.FormatUnit}
+    see L{utils.text.FormatUnit}
   @type format_override: dict
   @param format_override: Dictionary for overriding field formatting functions,
     indexed by field name, contents like L{_DEFAULT_FORMAT_QUERY}
