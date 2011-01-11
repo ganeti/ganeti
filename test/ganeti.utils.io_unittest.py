@@ -27,6 +27,7 @@ import unittest
 import shutil
 import glob
 import time
+import signal
 
 from ganeti import constants
 from ganeti import utils
