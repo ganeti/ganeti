@@ -569,7 +569,7 @@ def ReadPidFile(pidfile):
 def ReadLockedPidFile(path):
   """Reads a locked PID file.
 
-  This can be used together with L{utils.StartDaemon}.
+  This can be used together with L{utils.process.StartDaemon}.
 
   @type path: string
   @param path: Path to PID file

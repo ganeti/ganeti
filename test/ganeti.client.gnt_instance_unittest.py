@@ -53,7 +53,7 @@ class TestConsole(unittest.TestCase):
     self.assertTrue(isinstance(cmd, list))
     self._cmds.append(cmd)
     return utils.RunResult(self._next_cmd_exitcode, None, "", "", "cmd",
-                           utils._TIMEOUT_NONE, 5)
+                           utils.process._TIMEOUT_NONE, 5)
 
   def testMessage(self):
     cons = objects.InstanceConsole(instance="inst98.example.com",

@@ -106,7 +106,7 @@ class SshRunner:
     @param quiet: whether to enable -q to ssh
 
     @rtype: list
-    @return: the list of options ready to use in L{utils.RunCmd}
+    @return: the list of options ready to use in L{utils.process.RunCmd}
 
     """
     options = [
@@ -194,8 +194,8 @@ class SshRunner:
 
     Args: see SshRunner.BuildCmd.
 
-    @rtype: L{utils.RunResult}
-    @return: the result as from L{utils.RunCmd()}
+    @rtype: L{utils.process.RunResult}
+    @return: the result as from L{utils.process.RunCmd()}
 
     """
     return utils.RunCmd(self.BuildCmd(*args, **kwargs))
