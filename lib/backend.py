@@ -1356,8 +1356,8 @@ def BlockdevWipe(disk, offset, size):
 def BlockdevPauseResumeSync(disks, pause):
   """Pause or resume the sync of the block device.
 
-  @type disk: list of L{objects.Disk}
-  @param disk: the disks object we want to pause/resume
+  @type disks: list of L{objects.Disk}
+  @param disks: the disks object we want to pause/resume
   @type pause: bool
   @param pause: Wheater to pause or resume
 
