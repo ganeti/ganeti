@@ -40,6 +40,9 @@ _SHELL_UNQUOTED_RE = re.compile('^[-.,=:/_+@A-Za-z0-9]+$')
 #: MAC checker regexp
 _MAC_CHECK_RE = re.compile("^([0-9a-f]{2}:){5}[0-9a-f]{2}$", re.I)
 
+#: Shell param checker regexp
+_SHELLPARAM_REGEX = re.compile(r"^[-a-zA-Z0-9._+/:%@]+$")
+
 
 def MatchNameComponent(key, name_list, case_sensitive=True):
   """Try to match a name against a list.
@@ -442,3 +445,44 @@ class LineSplitter:
     self.flush()
     if self._buffer:
       self._line_fn(self._buffer)
+
+
+def IsValidShellParam(word):
+  """Verifies is the given word is safe from the shell's p.o.v.
+
+  This means that we can pass this to a command via the shell and be
+  sure that it doesn't alter the command line and is passed as such to
+  the actual command.
+
+  Note that we are overly restrictive here, in order to be on the safe
+  side.
+
+  @type word: str
+  @param word: the word to check
+  @rtype: boolean
+  @return: True if the word is 'safe'
+
+  """
+  return bool(_SHELLPARAM_REGEX.match(word))
+
+
+def BuildShellCmd(template, *args):
+  """Build a safe shell command line from the given arguments.
+
+  This function will check all arguments in the args list so that they
+  are valid shell parameters (i.e. they don't contain shell
+  metacharacters). If everything is ok, it will return the result of
+  template % args.
+
+  @type template: str
+  @param template: the string holding the template for the
+      string formatting
+  @rtype: str
+  @return: the expanded command line
+
+  """
+  for word in args:
+    if not IsValidShellParam(word):
+      raise errors.ProgrammerError("Shell argument '%s' contains"
+                                   " invalid characters" % word)
+  return template % args

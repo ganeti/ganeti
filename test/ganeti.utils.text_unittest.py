@@ -422,5 +422,21 @@ class TestLineSplitter(unittest.TestCase):
                              "", "x"])
 
 
+class TestIsValidShellParam(unittest.TestCase):
+  def test(self):
+    for val, result in [
+      ("abc", True),
+      ("ab;cd", False),
+      ]:
+      self.assertEqual(utils.IsValidShellParam(val), result)
+
+
+class TestBuildShellCmd(unittest.TestCase):
+  def test(self):
+    self.assertRaises(errors.ProgrammerError, utils.BuildShellCmd,
+                      "ls %s", "ab;cd")
+    self.assertEqual(utils.BuildShellCmd("ls %s", "ab"), "ls ab")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
