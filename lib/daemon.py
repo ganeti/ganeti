@@ -682,4 +682,4 @@ def GenericMain(daemon_name, optionparser,
 
     exec_fn(options, args, prep_results)
   finally:
-    utils.RemovePidFile(utils.DaemonPidFileName(daemon_name))
+    utils.RemoveFile(utils.DaemonPidFileName(daemon_name))

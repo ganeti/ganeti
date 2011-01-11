@@ -707,22 +707,6 @@ def WritePidFile(pidfile):
   return fd_pidfile
 
 
-def RemovePidFile(pidfile):
-  """Remove the current process pidfile.
-
-  Any errors are ignored.
-
-  @type pidfile: string
-  @param pidfile: Path to the file to be removed
-
-  """
-  # TODO: we could check here that the file contains our pid
-  try:
-    RemoveFile(pidfile)
-  except Exception: # pylint: disable-msg=W0703
-    pass
-
-
 def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
   """Reads the watcher pause file.
 

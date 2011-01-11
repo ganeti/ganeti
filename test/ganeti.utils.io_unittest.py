@@ -568,7 +568,7 @@ class TestTailFile(testutils.GanetiTestCase):
 
 
 class TestPidFileFunctions(unittest.TestCase):
-  """Tests for WritePidFile, RemovePidFile and ReadPidFile"""
+  """Tests for WritePidFile and ReadPidFile"""
 
   def setUp(self):
     self.dir = tempfile.mkdtemp()
@@ -585,7 +585,7 @@ class TestPidFileFunctions(unittest.TestCase):
     self.failUnlessRaises(errors.LockError, utils.WritePidFile,
                           self.f_dpn('test'))
     os.close(fd)
-    utils.RemovePidFile(self.f_dpn("test"))
+    utils.RemoveFile(self.f_dpn("test"))
     self.failIf(os.path.exists(pid_file),
                 "PID file should not exist anymore")
     self.failUnlessEqual(utils.ReadPidFile(pid_file), 0,
@@ -598,7 +598,7 @@ class TestPidFileFunctions(unittest.TestCase):
     # but now, even with the file existing, we should be able to lock it
     fd = utils.WritePidFile(self.f_dpn('test'))
     os.close(fd)
-    utils.RemovePidFile(self.f_dpn("test"))
+    utils.RemoveFile(self.f_dpn("test"))
     self.failIf(os.path.exists(pid_file),
                 "PID file should not exist anymore")
 
@@ -620,7 +620,7 @@ class TestPidFileFunctions(unittest.TestCase):
     self.failUnless(utils.IsProcessAlive(new_pid))
     utils.KillProcess(new_pid, waitpid=True)
     self.failIf(utils.IsProcessAlive(new_pid))
-    utils.RemovePidFile(self.f_dpn('child'))
+    utils.RemoveFile(self.f_dpn('child'))
     self.failUnlessRaises(errors.ProgrammerError, utils.KillProcess, 0)
 
   def tearDown(self):
