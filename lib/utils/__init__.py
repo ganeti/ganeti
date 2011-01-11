@@ -62,6 +62,7 @@ from ganeti.utils.wrapper import * # pylint: disable-msg=W0401
 from ganeti.utils.filelock import * # pylint: disable-msg=W0401
 from ganeti.utils.io import * # pylint: disable-msg=W0401
 from ganeti.utils.x509 import * # pylint: disable-msg=W0401
+from ganeti.utils.nodesetup import * # pylint: disable-msg=W0401
 
 
 #: when set to True, L{RunCmd} is disabled
@@ -1074,106 +1075,6 @@ def ParseCpuMask(cpu_mask):
                               " (%d > %d): %s" % (lower, higher, range_def))
     cpu_list.extend(range(lower, higher + 1))
   return cpu_list
-
-
-def SetEtcHostsEntry(file_name, ip, hostname, aliases):
-  """Sets the name of an IP address and hostname in /etc/hosts.
-
-  @type file_name: str
-  @param file_name: path to the file to modify (usually C{/etc/hosts})
-  @type ip: str
-  @param ip: the IP address
-  @type hostname: str
-  @param hostname: the hostname to be added
-  @type aliases: list
-  @param aliases: the list of aliases to add for the hostname
-
-  """
-  # Ensure aliases are unique
-  aliases = UniqueSequence([hostname] + aliases)[1:]
-
-  def _WriteEtcHosts(fd):
-    # Duplicating file descriptor because os.fdopen's result will automatically
-    # close the descriptor, but we would still like to have its functionality.
-    out = os.fdopen(os.dup(fd), "w")
-    try:
-      for line in ReadFile(file_name).splitlines(True):
-        fields = line.split()
-        if fields and not fields[0].startswith("#") and ip == fields[0]:
-          continue
-        out.write(line)
-
-      out.write("%s\t%s" % (ip, hostname))
-      if aliases:
-        out.write(" %s" % " ".join(aliases))
-      out.write("\n")
-      out.flush()
-    finally:
-      out.close()
-
-  WriteFile(file_name, fn=_WriteEtcHosts, mode=0644)
-
-
-def AddHostToEtcHosts(hostname, ip):
-  """Wrapper around SetEtcHostsEntry.
-
-  @type hostname: str
-  @param hostname: a hostname that will be resolved and added to
-      L{constants.ETC_HOSTS}
-  @type ip: str
-  @param ip: The ip address of the host
-
-  """
-  SetEtcHostsEntry(constants.ETC_HOSTS, ip, hostname, [hostname.split(".")[0]])
-
-
-def RemoveEtcHostsEntry(file_name, hostname):
-  """Removes a hostname from /etc/hosts.
-
-  IP addresses without names are removed from the file.
-
-  @type file_name: str
-  @param file_name: path to the file to modify (usually C{/etc/hosts})
-  @type hostname: str
-  @param hostname: the hostname to be removed
-
-  """
-  def _WriteEtcHosts(fd):
-    # Duplicating file descriptor because os.fdopen's result will automatically
-    # close the descriptor, but we would still like to have its functionality.
-    out = os.fdopen(os.dup(fd), "w")
-    try:
-      for line in ReadFile(file_name).splitlines(True):
-        fields = line.split()
-        if len(fields) > 1 and not fields[0].startswith("#"):
-          names = fields[1:]
-          if hostname in names:
-            while hostname in names:
-              names.remove(hostname)
-            if names:
-              out.write("%s %s\n" % (fields[0], " ".join(names)))
-            continue
-
-        out.write(line)
-
-      out.flush()
-    finally:
-      out.close()
-
-  WriteFile(file_name, fn=_WriteEtcHosts, mode=0644)
-
-
-def RemoveHostFromEtcHosts(hostname):
-  """Wrapper around RemoveEtcHostsEntry.
-
-  @type hostname: str
-  @param hostname: hostname that will be resolved and its
-      full and shot name will be removed from
-      L{constants.ETC_HOSTS}
-
-  """
-  RemoveEtcHostsEntry(constants.ETC_HOSTS, hostname)
-  RemoveEtcHostsEntry(constants.ETC_HOSTS, hostname.split(".")[0])
 
 
 def GetHomeDir(user, default=None):

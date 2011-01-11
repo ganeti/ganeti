@@ -219,6 +219,7 @@ utils_PYTHON = \
 	lib/utils/io.py \
 	lib/utils/log.py \
 	lib/utils/mlock.py \
+	lib/utils/nodesetup.py \
 	lib/utils/retry.py \
 	lib/utils/text.py \
 	lib/utils/wrapper.py \
@@ -493,6 +494,7 @@ python_tests = \
 	test/ganeti.utils.hash_unittest.py \
 	test/ganeti.utils.io_unittest.py \
 	test/ganeti.utils.mlock_unittest.py \
+	test/ganeti.utils.nodesetup_unittest.py \
 	test/ganeti.utils.retry_unittest.py \
 	test/ganeti.utils.text_unittest.py \
 	test/ganeti.utils.wrapper_unittest.py \
