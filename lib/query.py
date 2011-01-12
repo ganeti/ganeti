@@ -358,7 +358,7 @@ class NodeQueryData:
 
   """
   def __init__(self, nodes, live_data, master_name, node_to_primary,
-               node_to_secondary, groups, oob_support):
+               node_to_secondary, groups, oob_support, cluster):
     """Initializes this class.
 
     """
@@ -369,6 +369,7 @@ class NodeQueryData:
     self.node_to_secondary = node_to_secondary
     self.groups = groups
     self.oob_support = oob_support
+    self.cluster = cluster
 
     # Used for individual rows
     self.curlive_data = None
@@ -415,19 +416,40 @@ _NODE_LIVE_FIELDS = {
   }
 
 
-def _GetNodeGroup(ctx, node):
+def _GetGroup(cb):
+  """Build function for calling another function with an node group.
+
+  @param cb: The callback to be called with the nodegroup
+
+  """
+  def fn(ctx, node):
+    """Get group data for a node.
+
+    @type ctx: L{NodeQueryData}
+    @type inst: L{objects.Node}
+    @param inst: Node object
+
+    """
+    ng = ctx.groups.get(node.group, None)
+    if ng is None:
+      # Nodes always have a group, or the configuration is corrupt
+      return (constants.QRFS_UNAVAIL, None)
+
+    return cb(ctx, node, ng)
+
+  return fn
+
+
+def _GetNodeGroup(ctx, node, ng): # pylint: disable-msg=W0613
   """Returns the name of a node's group.
 
   @type ctx: L{NodeQueryData}
   @type node: L{objects.Node}
   @param node: Node object
+  @type ng: L{objects.NodeGroup}
+  @param ng: The node group this node belongs to
 
   """
-  ng = ctx.groups.get(node.group, None)
-  if ng is None:
-    # Nodes always have a group, or the configuration is corrupt
-    return (constants.QRFS_UNAVAIL, None)
-
   return (constants.QRFS_NORMAL, ng.name)
 
 
@@ -443,6 +465,19 @@ def _GetNodePower(ctx, node):
     return (constants.QRFS_NORMAL, node.powered)
 
   return (constants.QRFS_UNAVAIL, None)
+
+
+def _GetNdParams(ctx, node, ng):
+  """Returns the ndparams for this node.
+
+  @type ctx: L{NodeQueryData}
+  @type node: L{objects.Node}
+  @param node: Node object
+  @type ng: L{objects.NodeGroup}
+  @param ng: The node group this node belongs to
+
+  """
+  return (constants.QRFS_NORMAL, ctx.cluster.SimpleFillND(ng.FillND(node)))
 
 
 def _GetLiveNodeField(field, kind, ctx, node):
@@ -496,11 +531,16 @@ def _BuildNodeFields():
     (_MakeField("role", "Role", constants.QFT_TEXT), NQ_CONFIG,
      lambda ctx, node: (constants.QRFS_NORMAL,
                         _GetNodeRole(node, ctx.master_name))),
-    (_MakeField("group", "Group", constants.QFT_TEXT), NQ_GROUP, _GetNodeGroup),
+    (_MakeField("group", "Group", constants.QFT_TEXT), NQ_GROUP,
+     _GetGroup(_GetNodeGroup)),
     (_MakeField("group.uuid", "GroupUUID", constants.QFT_TEXT),
      NQ_CONFIG, lambda ctx, node: (constants.QRFS_NORMAL, node.group)),
     (_MakeField("powered", "Powered", constants.QFT_BOOL), NQ_OOB,
       _GetNodePower),
+    (_MakeField("ndparams", "NodeParameters", constants.QFT_OTHER), NQ_GROUP,
+      _GetGroup(_GetNdParams)),
+    (_MakeField("custom_ndparams", "CustomNodeParameters", constants.QFT_OTHER),
+      NQ_GROUP, lambda ctx, node: (constants.QRFS_NORMAL, node.ndparams)),
     ]
 
   def _GetLength(getter):

@@ -289,7 +289,8 @@ class TestNodeQuery(unittest.TestCase):
       objects.Node(name="node3", drained=False),
       ]
     for live_data in [None, dict.fromkeys([node.name for node in nodes], {})]:
-      nqd = query.NodeQueryData(nodes, live_data, None, None, None, None, None)
+      nqd = query.NodeQueryData(nodes, live_data, None, None, None, None, None,
+                                None)
 
       q = self._Create(["name", "drained"])
       self.assertEqual(q.RequestedData(), set([query.NQ_CONFIG]))
@@ -315,6 +316,17 @@ class TestNodeQuery(unittest.TestCase):
                      set([query.NQ_CONFIG, query.NQ_LIVE, query.NQ_INST,
                           query.NQ_GROUP, query.NQ_OOB]))
 
+    cluster = objects.Cluster(cluster_name="testcluster",
+      hvparams=constants.HVC_DEFAULTS,
+      beparams={
+        constants.PP_DEFAULT: constants.BEC_DEFAULTS,
+        },
+      nicparams={
+        constants.PP_DEFAULT: constants.NICC_DEFAULTS,
+        },
+      ndparams=constants.NDC_DEFAULTS,
+        )
+
     node_names = ["node%s" % i for i in range(20)]
     master_name = node_names[3]
     nodes = [
@@ -327,6 +339,7 @@ class TestNodeQuery(unittest.TestCase):
                    drained=False,
                    vm_capable=False,
                    master_capable=False,
+                   ndparams={},
                    group="default",
                    ctime=1290006900,
                    mtime=1290006913,
@@ -373,7 +386,7 @@ class TestNodeQuery(unittest.TestCase):
 
     ng_uuid = "492b4b74-8670-478a-b98d-4c53a76238e6"
     groups = {
-      ng_uuid: objects.NodeGroup(name="ng1", uuid=ng_uuid),
+      ng_uuid: objects.NodeGroup(name="ng1", uuid=ng_uuid, ndparams={}),
       }
 
     oob_support = dict((name, False) for name in node_names)
@@ -382,7 +395,7 @@ class TestNodeQuery(unittest.TestCase):
 
     nqd = query.NodeQueryData(nodes, live_data, master_name,
                               node_to_primary, node_to_secondary, groups,
-                              oob_support)
+                              oob_support, cluster)
     result = q.Query(nqd)
     self.assert_(compat.all(len(row) == len(selected) for row in result))
     self.assertEqual([row[field_index["name"]] for row in result],
@@ -445,7 +458,7 @@ class TestNodeQuery(unittest.TestCase):
     live_data = dict.fromkeys([node.name for node in nodes], {})
 
     # No data
-    nqd = query.NodeQueryData(None, None, None, None, None, None, None)
+    nqd = query.NodeQueryData(None, None, None, None, None, None, None, None)
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
                                              nqd, nodes[0]),
                      (constants.QRFS_NODATA, None))

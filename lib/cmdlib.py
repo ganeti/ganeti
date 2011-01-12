@@ -3595,7 +3595,7 @@ class _NodeQuery(_QueryBase):
     return query.NodeQueryData([all_info[name] for name in nodenames],
                                live_data, lu.cfg.GetMasterNode(),
                                node_to_primary, node_to_secondary, groups,
-                               oob_support)
+                               oob_support, lu.cfg.GetClusterInfo())
 
 
 class LUQueryNodes(NoHooksLU):

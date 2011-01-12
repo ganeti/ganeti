@@ -34,6 +34,7 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
+from cStringIO import StringIO
 
 
 #: default list of field for L{ListNodes}
@@ -388,11 +389,13 @@ def ShowNodeConfig(opts, args):
   result = cl.QueryNodes(fields=["name", "pip", "sip",
                                  "pinst_list", "sinst_list",
                                  "master_candidate", "drained", "offline",
-                                 "master_capable", "vm_capable", "powered"],
+                                 "master_capable", "vm_capable", "powered",
+                                 "ndparams", "custom_ndparams"],
                          names=args, use_locking=False)
 
-  for (name, primary_ip, secondary_ip, pinst, sinst,
-       is_mc, drained, offline, master_capable, vm_capable, powered) in result:
+  for (name, primary_ip, secondary_ip, pinst, sinst, is_mc, drained, offline,
+       master_capable, vm_capable, powered, ndparams,
+       ndparams_custom) in result:
     ToStdout("Node name: %s", name)
     ToStdout("  primary ip: %s", primary_ip)
     ToStdout("  secondary ip: %s", secondary_ip)
@@ -416,6 +419,10 @@ def ShowNodeConfig(opts, args):
           ToStdout("    - %s", iname)
       else:
         ToStdout("  secondary for no instances")
+    ToStdout("  node parameters:")
+    buf = StringIO()
+    FormatParameterDict(buf, ndparams_custom, ndparams, level=2)
+    ToStdout(buf.getvalue().rstrip("\n"))
 
   return 0
 
