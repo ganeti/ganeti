@@ -343,6 +343,9 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - primary ip version: %d", result["primary_ip_version"])
   ToStdout("  - preallocation wipe disks: %s", result["prealloc_wipe_disks"])
 
+  ToStdout("Default node parameters:")
+  _PrintGroupedParams(result["ndparams"], roman=opts.roman_integers)
+
   ToStdout("Default instance parameters:")
   _PrintGroupedParams(result["beparams"], roman=opts.roman_integers)
 

@@ -4561,6 +4561,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "beparams": cluster.beparams,
       "osparams": cluster.osparams,
       "nicparams": cluster.nicparams,
+      "ndparams": cluster.ndparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "master_netdev": cluster.master_netdev,
       "volume_group_name": cluster.volume_group_name,
