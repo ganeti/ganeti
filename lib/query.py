@@ -19,7 +19,36 @@
 # 02110-1301, USA.
 
 
-"""Module for query operations"""
+"""Module for query operations
+
+How it works:
+
+  - Add field definitions
+    - See how L{NODE_FIELDS} is built
+    - Each field gets:
+      - Query field definition (L{objects.QueryFieldDefinition}, use
+        L{_MakeField} for creating), containing:
+          - Name, must be lowercase and match L{FIELD_NAME_RE}
+          - Title for tables, must not contain whitespace and match
+            L{TITLE_RE}
+          - Value data type, e.g. L{constants.QFT_NUMBER}
+      - Data request type, see e.g. C{NQ_*}
+      - A retrieval function, see L{Query.__init__} for description
+    - Pass list of fields through L{_PrepareFieldList} for preparation and
+      checks
+  - Instantiate L{Query} with prepared field list definition and selected fields
+  - Call L{Query.RequestedData} to determine what data to collect/compute
+  - Call L{Query.Query} or L{Query.OldStyleQuery} with collected data and use
+    result
+      - Data container must support iteration using C{__iter__}
+      - Items are passed to retrieval functions and can have any format
+  - Call L{Query.GetFields} to get list of definitions for selected fields
+
+@attention: Retrieval functions must be idempotent. They can be called multiple
+  times, in any order and any number of times. This is important to keep in
+  mind for implementing filters in the future.
+
+"""
 
 import logging
 import operator
@@ -32,6 +61,10 @@ from ganeti import compat
 from ganeti import objects
 from ganeti import ht
 
+
+# Constants for requesting data from the caller/data provider. Each property
+# collected/computed separately by the data provider should have its own to
+# only collect the requested data and not more.
 
 (NQ_CONFIG,
  NQ_INST,
@@ -213,7 +246,7 @@ def _PrepareFieldList(fields):
 
   @type fields: list of tuples; (L{objects.QueryFieldDefinition}, data kind,
     retrieval function)
-  @param fields: List of fields
+  @param fields: List of fields, see L{Query.__init__} for a better description
   @rtype: dict
   @return: Field dictionary for L{Query}
 
