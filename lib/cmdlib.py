@@ -10219,8 +10219,9 @@ class LUSetGroupParams(LogicalUnit):
                                (self.op.group_name, self.group_uuid))
 
     if self.op.ndparams:
+      new_ndparams = _GetUpdatedParams(self.group.ndparams, self.op.ndparams)
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
-      self.new_ndparams = self.group.SimpleFillND(self.op.ndparams)
+      self.new_ndparams = new_ndparams
 
   def BuildHooksEnv(self):
     """Build hooks env.
