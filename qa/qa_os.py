@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -76,14 +76,14 @@ def _TestOsStates():
       AssertCommand(new_cmd)
 
 
-def _SetupTempOs(node, dir, valid):
+def _SetupTempOs(node, dirname, valid):
   """Creates a temporary OS definition on the given node.
 
   """
   sq = utils.ShellQuoteArgs
-  parts = [sq(["rm", "-rf", dir]),
-           sq(["mkdir", "-p", dir]),
-           sq(["cd", dir]),
+  parts = [sq(["rm", "-rf", dirname]),
+           sq(["mkdir", "-p", dirname]),
+           sq(["cd", dirname]),
            sq(["ln", "-fs", "/bin/true", "export"]),
            sq(["ln", "-fs", "/bin/true", "import"]),
            sq(["ln", "-fs", "/bin/true", "rename"])]
@@ -103,18 +103,18 @@ def _SetupTempOs(node, dir, valid):
   AssertCommand(cmd, node=node)
 
 
-def _RemoveTempOs(node, dir):
+def _RemoveTempOs(node, dirname):
   """Removes a temporary OS definition.
 
   """
-  AssertCommand(["rm", "-rf", dir], node=node)
+  AssertCommand(["rm", "-rf", dirname], node=node)
 
 
 def _TestOs(mode):
   """Generic function for OS definition testing
 
   """
-  dir = _TEMP_OS_PATH
+  dirname = _TEMP_OS_PATH
 
   nodes = []
   try:
@@ -126,12 +126,12 @@ def _TestOs(mode):
         valid = True
       else:
         valid = bool(i % 2)
-      _SetupTempOs(node, dir, valid)
+      _SetupTempOs(node, dirname, valid)
 
     AssertCommand(["gnt-os", "diagnose"], fail=not mode==1)
   finally:
     for node in nodes:
-      _RemoveTempOs(node, dir)
+      _RemoveTempOs(node, dirname)
 
 
 def TestOsValid():

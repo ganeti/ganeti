@@ -50,6 +50,8 @@ def _SetupColours():
   """Initializes the colour constants.
 
   """
+  # pylint: disable-msg=W0603
+  # due to global usage
   global _INFO_SEQ, _WARNING_SEQ, _ERROR_SEQ, _RESET_SEQ
 
   # Don't use colours if stdout isn't a terminal
@@ -403,7 +405,7 @@ def GenericQueryTest(cmd, fields):
   """
   rnd = random.Random(hash(cmd))
 
-  randfields = list(fields)
+  fields = list(fields)
   rnd.shuffle(fields)
 
   # Test a number of field combinations

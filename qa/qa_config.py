@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ def Load(path):
   """Loads the passed configuration file.
 
   """
-  global cfg
+  global cfg # pylint: disable-msg=W0603
 
   cfg = serializer.LoadJson(utils.ReadFile(path))
 

@@ -802,6 +802,9 @@ check-local: check-dirs
 lint: $(BUILT_SOURCES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
+	cd $(top_srcdir)/qa && \
+	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \
+	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
 
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...

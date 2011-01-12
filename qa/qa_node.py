@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+
+"""Node-related QA tests.
+
+"""
 
 from ganeti import utils
 from ganeti import constants
@@ -232,12 +236,7 @@ def TestOutOfBand():
   """gnt-node power"""
   master = qa_config.GetMasterNode()
 
-  # Find first non master node for tests
-  for node in qa_config.get("nodes"):
-    if node != master:
-      break
-  else:
-    raise qa_error.Error("Can't find non-master node")
+  node = qa_config.AcquireNode(exclude=master)
 
   node_name = node["primary"]
   full_node_name = qa_utils.ResolveNodeName(node)

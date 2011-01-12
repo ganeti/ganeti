@@ -1,6 +1,6 @@
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,19 +27,17 @@ import tempfile
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
-from ganeti import serializer
 from ganeti import cli
 from ganeti import rapi
 
-import ganeti.rapi.client
+import ganeti.rapi.client        # pylint: disable-msg=W0611
 import ganeti.rapi.client_utils
 
 import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import (AssertEqual, AssertNotEqual, AssertIn, AssertMatch,
-                      StartLocalCommand)
+from qa_utils import (AssertEqual, AssertIn, AssertMatch, StartLocalCommand)
 
 
 _rapi_ca = None
@@ -52,6 +50,8 @@ def Setup(username, password):
   """Configures the RAPI client.
 
   """
+  # pylint: disable-msg=W0603
+  # due to global usage
   global _rapi_ca
   global _rapi_client
   global _rapi_username
@@ -117,6 +117,8 @@ def Enabled():
 
 
 def _DoTests(uris):
+  # pylint: disable-msg=W0212
+  # due to _SendRequest usage
   results = []
 
   for uri, verify, method, body in uris:
@@ -322,8 +324,6 @@ def _WaitForRapiJob(job_id):
   """Waits for a job to finish.
 
   """
-  master = qa_config.GetMasterNode()
-
   def _VerifyJob(data):
     AssertEqual(data["id"], job_id)
     for field in JOB_FIELDS:

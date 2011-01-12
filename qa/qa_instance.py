@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -225,6 +225,9 @@ def TestInstanceConsole(instance):
 
 def TestReplaceDisks(instance, pnode, snode, othernode):
   """gnt-instance replace-disks"""
+  # pylint: disable-msg=W0613
+  # due to unused pnode arg
+  # FIXME: should be removed from the function completely
   def buildcmd(args):
     cmd = ['gnt-instance', 'replace-disks']
     cmd.extend(args)
@@ -393,6 +396,8 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
 
 def TestInstanceMasterDiskFailure(instance, node, node2):
   """Testing disk failure on master node."""
+  # pylint: disable-msg=W0613
+  # due to unused args
   print qa_utils.FormatError("Disk failure on primary node cannot be"
                              " tested due to potential crashes.")
   # The following can cause crashes, thus it's disabled until fixed

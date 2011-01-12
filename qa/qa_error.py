@@ -19,6 +19,10 @@
 # 02110-1301, USA.
 
 
+"""Error definitions for QA.
+
+"""
+
 class Error(Exception):
   """An error occurred during Q&A testing.
 
