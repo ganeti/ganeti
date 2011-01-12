@@ -72,7 +72,12 @@ class TestDocs(unittest.TestCase):
                  msg=("Missing documentation for hook %s/%s" %
                       (lucls.HTYPE, lucls.HPATH)))
 
-  def _CheckRapiResource(self, uri, fixup):
+  def _CheckRapiResource(self, uri, fixup, handler):
+    docline = "%s resource." % uri
+    self.assertEqual(handler.__doc__.splitlines()[0].strip(), docline,
+                     msg=("First line of %r's docstring is not %r" %
+                          (handler, docline)))
+
     # Apply fixes before testing
     for (rx, value) in fixup.items():
       uri = rx.sub(value, uri)
@@ -131,7 +136,7 @@ class TestDocs(unittest.TestCase):
           if title.startswith("``") and title.endswith("``"):
             uri = title[2:-2]
             if key.match(uri):
-              self._CheckRapiResource(uri, uri_check_fixup)
+              self._CheckRapiResource(uri, uri_check_fixup, handler)
               found = True
               break
 
@@ -144,7 +149,7 @@ class TestDocs(unittest.TestCase):
                      msg="Path %r does not start with '/2/'" % key)
 
         if ("``%s``" % key) in titles:
-          self._CheckRapiResource(key, {})
+          self._CheckRapiResource(key, {}, handler)
         else:
           undocumented.append(key)
 

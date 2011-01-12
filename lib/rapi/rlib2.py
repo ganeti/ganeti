@@ -122,7 +122,7 @@ class R_version(baserlib.R_Generic):
 
 
 class R_2_info(baserlib.R_Generic):
-  """Cluster info.
+  """/2/info resource.
 
   """
   @staticmethod
@@ -329,7 +329,7 @@ class R_2_nodes(baserlib.R_Generic):
 
 
 class R_2_nodes_name(baserlib.R_Generic):
-  """/2/nodes/[node_name] resources.
+  """/2/nodes/[node_name] resource.
 
   """
   def GET(self):
@@ -470,7 +470,7 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
 
 
 class R_2_nodes_name_storage(baserlib.R_Generic):
-  """/2/nodes/[node_name]/storage ressource.
+  """/2/nodes/[node_name]/storage resource.
 
   """
   # LUQueryNodeStorage acquires locks, hence restricting access to GET
@@ -496,7 +496,7 @@ class R_2_nodes_name_storage(baserlib.R_Generic):
 
 
 class R_2_nodes_name_storage_modify(baserlib.R_Generic):
-  """/2/nodes/[node_name]/storage/modify ressource.
+  """/2/nodes/[node_name]/storage/modify resource.
 
   """
   def PUT(self):
@@ -526,7 +526,7 @@ class R_2_nodes_name_storage_modify(baserlib.R_Generic):
 
 
 class R_2_nodes_name_storage_repair(baserlib.R_Generic):
-  """/2/nodes/[node_name]/storage/repair ressource.
+  """/2/nodes/[node_name]/storage/repair resource.
 
   """
   def PUT(self):
@@ -594,7 +594,7 @@ class R_2_groups(baserlib.R_Generic):
 
 
 class R_2_groups_name(baserlib.R_Generic):
-  """/2/groups/[group_name] resources.
+  """/2/groups/[group_name] resource.
 
   """
   def GET(self):
@@ -670,7 +670,7 @@ def _ParseRenameGroupRequest(name, data, dry_run):
 
 
 class R_2_groups_name_rename(baserlib.R_Generic):
-  """/2/groups/[groupe_name]/rename resource.
+  """/2/groups/[group_name]/rename resource.
 
   """
   def PUT(self):
@@ -686,7 +686,7 @@ class R_2_groups_name_rename(baserlib.R_Generic):
 
 
 class R_2_groups_name_assign_nodes(baserlib.R_Generic):
-  """/2/groups/[groupe_name]/assign-nodes resource.
+  """/2/groups/[group_name]/assign-nodes resource.
 
   """
   def PUT(self):
@@ -912,7 +912,7 @@ class R_2_instances(baserlib.R_Generic):
 
 
 class R_2_instances_name(baserlib.R_Generic):
-  """/2/instances/[instance_name] resources.
+  """/2/instances/[instance_name] resource.
 
   """
   def GET(self):
@@ -1319,7 +1319,7 @@ class R_2_instances_name_modify(baserlib.R_Generic):
 
 
 class R_2_instances_name_disk_grow(baserlib.R_Generic):
-  """/2/instances/[instance_name]/disk/[index]/grow resource.
+  """/2/instances/[instance_name]/disk/[disk_index]/grow resource.
 
   """
   def POST(self):
@@ -1420,7 +1420,7 @@ class R_2_nodes_name_tags(_R_Tags):
 
 
 class R_2_tags(_R_Tags):
-  """ /2/instances/tags resource.
+  """ /2/tags resource.
 
   Manages cluster tags.
 

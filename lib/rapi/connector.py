@@ -134,7 +134,9 @@ def _getResources(id_):
 
 
 class R_2(baserlib.R_Generic):
-  """ /2 resource, the root of the version 2 API.
+  """/2 resource.
+
+  This is the root of the version 2 API.
 
   """
   @staticmethod
