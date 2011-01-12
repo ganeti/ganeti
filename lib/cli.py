@@ -947,10 +947,11 @@ MAC_PREFIX_OPT = cli_option("-m", "--mac-prefix", dest="mac_prefix",
 
 MASTER_NETDEV_OPT = cli_option("--master-netdev", dest="master_netdev",
                                help="Specify the node interface (cluster-wide)"
-                               " on which the master IP address will be added "
-                               " [%s]" % constants.DEFAULT_BRIDGE,
+                               " on which the master IP address will be added"
+                               " (cluster init default: %s)" %
+                               constants.DEFAULT_BRIDGE,
                                metavar="NETDEV",
-                               default=constants.DEFAULT_BRIDGE)
+                               default=None)
 
 GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 help="Specify the default directory (cluster-"

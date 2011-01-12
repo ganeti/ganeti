@@ -70,6 +70,10 @@ def InitCluster(opts, args):
   if opts.drbd_storage and not opts.drbd_helper:
     drbd_helper = constants.DEFAULT_DRBD_HELPER
 
+  master_netdev = opts.master_netdev
+  if master_netdev is None:
+    master_netdev = constants.DEFAULT_BRIDGE
+
   hvlist = opts.enabled_hypervisors
   if hvlist is None:
     hvlist = constants.DEFAULT_ENABLED_HYPERVISOR
@@ -124,7 +128,7 @@ def InitCluster(opts, args):
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
                         mac_prefix=opts.mac_prefix,
-                        master_netdev=opts.master_netdev,
+                        master_netdev=master_netdev,
                         file_storage_dir=opts.file_storage_dir,
                         enabled_hypervisors=hvlist,
                         hvparams=hvparams,
