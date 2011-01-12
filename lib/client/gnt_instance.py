@@ -1120,21 +1120,6 @@ def _FormatList(buf, data, indent_level):
       _FormatList(buf, elem, indent_level+1)
 
 
-def _FormatParameterDict(buf, per_inst, actual):
-  """Formats a parameter dictionary.
-
-  @type buf: L{StringIO}
-  @param buf: the buffer into which to write
-  @type per_inst: dict
-  @param per_inst: the instance's own parameters
-  @type actual: dict
-  @param actual: the current parameter set (including defaults)
-
-  """
-  for key in sorted(actual):
-    val = per_inst.get(key, "default (%s)" % actual[key])
-    buf.write("    - %s: %s\n" % (key, val))
-
 def ShowInstanceConfig(opts, args):
   """Compute instance run-time status.
 
@@ -1183,7 +1168,8 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - primary: %s\n" % instance["pnode"])
     buf.write("    - secondaries: %s\n" % utils.CommaJoin(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
-    _FormatParameterDict(buf, instance["os_instance"], instance["os_actual"])
+    FormatParameterDict(buf, instance["os_instance"], instance["os_actual"],
+                        level=2)
     if instance.has_key("network_port"):
       buf.write("  Allocated network port: %s\n" %
                 compat.TryToRoman(instance["network_port"],
@@ -1210,7 +1196,8 @@ def ShowInstanceConfig(opts, args):
                                       vnc_bind_address)
       buf.write("    - console connection: vnc to %s\n" % vnc_console_port)
 
-    _FormatParameterDict(buf, instance["hv_instance"], instance["hv_actual"])
+    FormatParameterDict(buf, instance["hv_instance"], instance["hv_actual"],
+                        level=2)
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %s\n" %
               compat.TryToRoman(instance["be_actual"][constants.BE_VCPUS],
