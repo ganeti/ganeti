@@ -1157,6 +1157,7 @@ _GROUP_SIMPLE_FIELDS = {
   "name": ("Group", constants.QFT_TEXT),
   "serial_no": ("SerialNo", constants.QFT_NUMBER),
   "uuid": ("UUID", constants.QFT_TEXT),
+  "ndparams": ("NDParams", constants.QFT_OTHER),
   }
 
 

@@ -31,7 +31,7 @@ from ganeti import utils
 
 
 #: default list of fields for L{ListGroups}
-_LIST_DEF_FIELDS = ["name", "node_cnt", "pinst_cnt", "alloc_policy"]
+_LIST_DEF_FIELDS = ["name", "node_cnt", "pinst_cnt", "alloc_policy", "ndparams"]
 
 
 def AddGroup(opts, args):
@@ -68,6 +68,20 @@ def AssignNodes(opts, args):
   SubmitOpCode(op, opts=opts)
 
 
+def _FmtDict(data):
+  """Format dict data into command-line format.
+
+  @param data: The input dict to be formatted
+  @return: The formatted dict
+
+  """
+  if not data:
+    return "(empty)"
+
+  return utils.CommaJoin(["%s=%s" % (key, value)
+                          for key, value in data.items()])
+
+
 def ListGroups(opts, args):
   """List node groups and their properties.
 
@@ -79,7 +93,11 @@ def ListGroups(opts, args):
 
   """
   desired_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
-  fmtoverride = dict.fromkeys(["node_list", "pinst_list"], (",".join, False))
+  fmtoverride = {
+    "node_list": (",".join, False),
+    "pinst_list": (",".join, False),
+    "ndparams": (_FmtDict, False),
+    }
 
   return GenericList(constants.QR_GROUP, desired_fields, args, None,
                      opts.separator, not opts.no_headers,
