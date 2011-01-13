@@ -4907,9 +4907,8 @@ def _CheckNodesFreeDiskPerVG(lu, nodenames, req_sizes):
       or we cannot check the node
 
   """
-  if req_sizes is not None:
-    for vg, req_size in req_sizes.iteritems():
-      _CheckNodesFreeDiskOnVG(lu, nodenames, vg, req_size)
+  for vg, req_size in req_sizes.items():
+    _CheckNodesFreeDiskOnVG(lu, nodenames, vg, req_size)
 
 
 def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
@@ -6686,11 +6685,11 @@ def _ComputeDiskSizePerVG(disk_template, disks):
 
   # Required free disk space as a function of disk and swap space
   req_size_dict = {
-    constants.DT_DISKLESS: None,
+    constants.DT_DISKLESS: {},
     constants.DT_PLAIN: _compute(disks, 0),
     # 128 MB are added for drbd metadata for each disk
     constants.DT_DRBD8: _compute(disks, 128),
-    constants.DT_FILE: None,
+    constants.DT_FILE: {},
   }
 
   if disk_template not in req_size_dict:
@@ -8646,7 +8645,7 @@ class LUGrowDisk(LogicalUnit):
       # TODO: check the free disk space for file, when that feature
       # will be supported
       _CheckNodesFreeDiskPerVG(self, nodenames,
-                               {self.disk.physical_id[0]: self.op.amount})
+                               self.disk.ComputeGrowth(self.op.amount))
 
   def Exec(self, feedback_fn):
     """Execute disk grow.

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -527,6 +527,28 @@ class Disk(ConfigObject):
             # entry (but probably the other results in the list will
             # be different)
     return result
+
+  def ComputeGrowth(self, amount):
+    """Compute the per-VG growth requirements.
+
+    This only works for VG-based disks.
+
+    @type amount: integer
+    @param amount: the desired increase in (user-visible) disk space
+    @rtype: dict
+    @return: a dictionary of volume-groups and the required size
+
+    """
+    if self.dev_type == constants.LD_LV:
+      return {self.logical_id[0]: amount}
+    elif self.dev_type == constants.LD_DRBD8:
+      if self.children:
+        return self.children[0].ComputeGrowth(amount)
+      else:
+        return {}
+    else:
+      # Other disk types do not require VG space
+      return {}
 
   def RecordGrow(self, amount):
     """Update the size of this disk after growth.
