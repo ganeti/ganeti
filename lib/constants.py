@@ -26,7 +26,6 @@ import re
 from ganeti import _autoconf
 
 # various versions
-PROTOCOL_VERSION = 40
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_V10 = 10
 OS_API_V15 = 15
@@ -83,6 +82,9 @@ CONFIG_MAJOR = int(_autoconf.VERSION_MAJOR)
 CONFIG_MINOR = int(_autoconf.VERSION_MINOR)
 CONFIG_REVISION = 0
 CONFIG_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, CONFIG_REVISION)
+
+#: RPC protocol version
+PROTOCOL_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, 0)
 
 # user separation
 DAEMONS_GROUP = _autoconf.DAEMONS_GROUP
