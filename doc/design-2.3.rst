@@ -77,7 +77,8 @@ The ``alloc_policy`` attribute can have the following values:
 
 - last_resort: the node group should not be used for instance
   allocations, unless this would be the only way to have the operation
-  succeed.
+  succeed. Prioritization among groups in this state will be deferred to
+  the iallocator plugin that's being used.
 
 - preferred: the node group can be used freely for allocation of
   instances (this is the default state for newly created node
