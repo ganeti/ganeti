@@ -1,21 +1,95 @@
 News
 ====
 
-Version 2.4.0 rc1
------------------
+Version 2.4.0 beta1
+-------------------
 
 *(unreleased)*
 
+User-visible
+~~~~~~~~~~~~
+
+- Fixed timezone issues when formatting timestamps
+- Added support for node groups, available via ``gnt-group`` and other
+  commands
+- Added out-of-band framework and management, see :doc:`design
+  document <design-oob>`
+- Removed support for roman numbers from ``gnt-node list`` and
+  ``gnt-instance list``.
+- Allowed modification of master network interface via ``gnt-cluster
+  modify --master-netdev``
+- Accept offline secondaries while shutting down instance disks
+- Added ``blockdev_prefix`` parameter to Xen PVM and HVM hypervisors
+- Added support for multiple LVM volume groups
+- Avoid sorting nodes for ``gnt-node list`` if specific nodes are
+  requested
+- Added commands to list available fields:
+
+  - ``gnt-node list-fields``
+  - ``gnt-group list-fields``
+  - ``gnt-instance list-fields``
+
+- Updated documentation and man pages
+
+Integration
+~~~~~~~~~~~
+
 - Moved ``rapi_users`` file into separate directory, now named
-  ``…/ganeti/rapi/users``.
+  ``…/ganeti/rapi/users``, ``cfgupgrade`` moves the file and creates a
+  symlink
+- Added new tool for running commands on many machines,
+  ``tools/ganeti-listrunner``
+- Implemented more verbose result in ``OpConnectConsole`` opcode, also
+  improving the ``gnt-instance console`` output
+- Allowed customisation of disk index separator at ``configure`` time
+- Export node group allocation policy to :doc:`iallocator <iallocator>`
+- Added support for non-partitioned md disks in ``lvmstrap``
+- Added script to gracefully power off KVM instances
+- Split ``utils`` module into smaller parts
 - Changed query operations to return more detailed information, e.g.
   whether an information is unavailable due to an offline node. To use
   this new functionality, the LUXI call ``Query`` must be used. Field
   information is now stored by the master daemon and can be retrieved
-  using ``QueryFields``. Instances and nodes can also be queried using
-  the new opcodes ``OpQuery`` and ``OpQueryFields``.
-- Removed support for roman numbers from ``gnt-node list`` and
-  ``gnt-instance list``.
+  using ``QueryFields``. Instances, nodes and groups can also be queried
+  using the new opcodes ``OpQuery`` and ``OpQueryFields`` (not yet
+  exposed via RAPI). The following commands make use of this
+  infrastructure change:
+
+  - ``gnt-group list``
+  - ``gnt-group list-fields``
+  - ``gnt-node list``
+  - ``gnt-node list-fields``
+  - ``gnt-instance list``
+  - ``gnt-instance list-fields``
+  - ``gnt-debug locks``
+
+Remote API
+~~~~~~~~~~
+
+- New RAPI resources (see :doc:`rapi`):
+
+  - ``/2/modify``
+  - ``/2/groups``
+  - ``/2/groups/[group_name]``
+  - ``/2/groups/[group_name]/assign-nodes``
+  - ``/2/groups/[group_name]/modify``
+  - ``/2/groups/[group_name]/rename``
+  - ``/2/instances/[instance_name]/disk/[disk_index]/grow``
+
+- RAPI changes:
+
+  - Implemented ``no_install`` for instance creation
+  - Implemented OS parameters for instance reinstallation, allowing
+    use of special settings on reinstallation (e.g. for preserving data)
+
+Misc
+~~~~
+
+- Added IPv6 support in import/export
+- Pause DRBD synchronization while wiping disks on instance creation
+- Updated unittests and QA scripts
+- Improved network parameters passed to KVM
+- Converted man pages from docbook to reStructuredText
 
 
 Version 2.3.1
