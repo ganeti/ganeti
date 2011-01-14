@@ -209,6 +209,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFrom_2_3(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
 
+  def testUpgradeFrom_2_4(self):
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 4, 0), False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -223,6 +226,9 @@ class TestCfgupgrade(unittest.TestCase):
 
   def testUpgradeDryRunFrom_2_3(self):
     self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), True)
+
+  def testUpgradeDryRunFrom_2_4(self):
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 4, 0), True)
 
   def testUpgradeCurrentDryRun(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, True)

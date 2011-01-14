@@ -171,14 +171,14 @@ def main():
     raise Error("Inconsistent configuration: found config_version in"
                 " configuration file")
 
-  # Upgrade from 2.0/2.1/2.2 to 2.3
-  if config_major == 2 and config_minor in (0, 1, 2):
+  # Upgrade from 2.0/2.1/2.2/2.3 to 2.4
+  if config_major == 2 and config_minor in (0, 1, 2, 3):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
 
-    config_data["version"] = constants.BuildVersion(2, 3, 0)
+    config_data["version"] = constants.BuildVersion(2, 4, 0)
 
-  elif config_major == 2 and config_minor == 3:
+  elif config_major == 2 and config_minor == 4:
     logging.info("No changes necessary")
 
   else:
