@@ -439,7 +439,7 @@ def RemoveTags(opts, args):
   _ExtendTags(opts, args)
   if not args:
     raise errors.OpPrereqError("No tags to be removed")
-  op = opcodes.OpDelTags(kind=kind, name=name, tags=args)
+  op = opcodes.OpTagsDel(kind=kind, name=name, tags=args)
   SubmitOpCode(op, opts=opts)
 
 

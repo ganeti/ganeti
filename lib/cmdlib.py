@@ -10500,7 +10500,7 @@ class LUAddTags(TagsLU):
     self.cfg.Update(self.target, feedback_fn)
 
 
-class LUDelTags(TagsLU):
+class LUTagsDel(TagsLU):
   """Delete a list of tags from a given object.
 
   """

@@ -1187,7 +1187,7 @@ class OpAddTags(OpCode):
     ]
 
 
-class OpDelTags(OpCode):
+class OpTagsDel(OpCode):
   """Remove a list of tags from a given object."""
   OP_ID = "OP_TAGS_DEL"
   OP_PARAMS = [

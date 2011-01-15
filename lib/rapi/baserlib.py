@@ -123,7 +123,7 @@ def _Tags_DELETE(kind, tags, name, dry_run):
   """Helper function to delete tags.
 
   """
-  return SubmitJob([opcodes.OpDelTags(kind=kind, name=name,
+  return SubmitJob([opcodes.OpTagsDel(kind=kind, name=name,
                                       tags=tags, dry_run=dry_run)])
 
 
