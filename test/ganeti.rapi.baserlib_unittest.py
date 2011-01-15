@@ -33,53 +33,52 @@ import testutils
 
 
 class TestFillOpcode(unittest.TestCase):
-  class _TestOp(opcodes.OpCode):
-    OP_ID = "RAPI_TEST_OP"
+  class OpTest(opcodes.OpCode):
     OP_PARAMS = [
       ("test", None, ht.TMaybeString),
       ]
 
   def test(self):
     for static in [None, {}]:
-      op = baserlib.FillOpcode(self._TestOp, {}, static)
-      self.assertTrue(isinstance(op, self._TestOp))
+      op = baserlib.FillOpcode(self.OpTest, {}, static)
+      self.assertTrue(isinstance(op, self.OpTest))
       self.assertFalse(hasattr(op, "test"))
 
   def testStatic(self):
-    op = baserlib.FillOpcode(self._TestOp, {}, {"test": "abc"})
-    self.assertTrue(isinstance(op, self._TestOp))
+    op = baserlib.FillOpcode(self.OpTest, {}, {"test": "abc"})
+    self.assertTrue(isinstance(op, self.OpTest))
     self.assertEqual(op.test, "abc")
 
     # Overwrite static parameter
     self.assertRaises(http.HttpBadRequest, baserlib.FillOpcode,
-                      self._TestOp, {"test": 123}, {"test": "abc"})
+                      self.OpTest, {"test": 123}, {"test": "abc"})
 
   def testType(self):
     self.assertRaises(http.HttpBadRequest, baserlib.FillOpcode,
-                      self._TestOp, {"test": [1, 2, 3]}, {})
+                      self.OpTest, {"test": [1, 2, 3]}, {})
 
   def testStaticType(self):
     self.assertRaises(http.HttpBadRequest, baserlib.FillOpcode,
-                      self._TestOp, {}, {"test": [1, 2, 3]})
+                      self.OpTest, {}, {"test": [1, 2, 3]})
 
   def testUnicode(self):
-    op = baserlib.FillOpcode(self._TestOp, {u"test": "abc"}, {})
-    self.assertTrue(isinstance(op, self._TestOp))
+    op = baserlib.FillOpcode(self.OpTest, {u"test": "abc"}, {})
+    self.assertTrue(isinstance(op, self.OpTest))
     self.assertEqual(op.test, "abc")
 
-    op = baserlib.FillOpcode(self._TestOp, {}, {u"test": "abc"})
-    self.assertTrue(isinstance(op, self._TestOp))
+    op = baserlib.FillOpcode(self.OpTest, {}, {u"test": "abc"})
+    self.assertTrue(isinstance(op, self.OpTest))
     self.assertEqual(op.test, "abc")
 
   def testUnknownParameter(self):
     self.assertRaises(http.HttpBadRequest, baserlib.FillOpcode,
-                      self._TestOp, {"othervalue": 123}, None)
+                      self.OpTest, {"othervalue": 123}, None)
 
   def testInvalidBody(self):
     self.assertRaises(http.HttpBadRequest, baserlib.FillOpcode,
-                      self._TestOp, "", None)
+                      self.OpTest, "", None)
     self.assertRaises(http.HttpBadRequest, baserlib.FillOpcode,
-                      self._TestOp, range(10), None)
+                      self.OpTest, range(10), None)
 
 
 if __name__ == "__main__":

@@ -34,6 +34,7 @@ opcodes.
 # pylint: disable-msg=R0903
 
 import logging
+import re
 
 from ganeti import constants
 from ganeti import errors
@@ -76,6 +77,30 @@ _PTagKind = ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES))
 
 #: List of tag strings
 _PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString))
+
+#: OP_ID conversion regular expression
+_OPID_RE = re.compile("([a-z])([A-Z])")
+
+
+def _NameToId(name):
+  """Convert an opcode class name to an OP_ID.
+
+  @type name: string
+  @param name: the class name, as OpXxxYyy
+  @rtype: string
+  @return: the name in the OP_XXXX_YYYY format
+
+  """
+  if not name.startswith("Op"):
+    return None
+  # Note: (?<=[a-z])(?=[A-Z]) would be ideal, since it wouldn't
+  # consume any input, and hence we would just have all the elements
+  # in the list, one by one; but it seems that split doesn't work on
+  # non-consuming input, hence we have to process the input string a
+  # bit
+  name = _OPID_RE.sub(r"\1,\2", name)
+  elems = name.split(",")
+  return "_".join(n.upper() for n in elems)
 
 
 def RequireFileStorage():
@@ -138,7 +163,14 @@ class _AutoOpParamSlots(type):
     """
     assert "__slots__" not in attrs, \
       "Class '%s' defines __slots__ when it should use OP_PARAMS" % name
-    assert "OP_ID" in attrs, "Class '%s' is missing OP_ID attribute" % name
+
+    op_id = _NameToId(name)
+    if "OP_ID" in attrs:
+      assert attrs["OP_ID"] == op_id, ("Class '%s' defining wrong OP_ID"
+                                       " attribute %s, should be %s" %
+                                       (name, attrs["OP_ID"], op_id))
+
+    attrs["OP_ID"] = op_id
 
     # Always set OP_PARAMS to avoid duplicates in BaseOpCode.GetAllParams
     params = attrs.setdefault("OP_PARAMS", [])
@@ -296,7 +328,7 @@ class OpCode(BaseOpCode):
   @ivar priority: Opcode priority for queue
 
   """
-  OP_ID = "OP_ABSTRACT"
+  OP_ID = "OP_CODE"
   WITH_LU = True
   OP_PARAMS = [
     ("dry_run", None, ht.TMaybeBool),
@@ -352,12 +384,14 @@ class OpCode(BaseOpCode):
   def Summary(self):
     """Generates a summary description of this opcode.
 
-    The summary is the value of the OP_ID attribute (without the "OP_" prefix),
-    plus the value of the OP_DSC_FIELD attribute, if one was defined; this field
-    should allow to easily identify the operation (for an instance creation job,
-    e.g., it would be the instance name).
+    The summary is the value of the OP_ID attribute (without the "OP_"
+    prefix), plus the value of the OP_DSC_FIELD attribute, if one was
+    defined; this field should allow to easily identify the operation
+    (for an instance creation job, e.g., it would be the instance
+    name).
 
     """
+    assert self.OP_ID is not None and len(self.OP_ID) > 3
     # all OP_ID start with OP_, we remove that
     txt = self.OP_ID[3:]
     field_name = getattr(self, "OP_DSC_FIELD", None)

@@ -45,6 +45,7 @@ class TestOpcodes(unittest.TestCase):
       self.assert_(cls.OP_ID.startswith("OP_"))
       self.assert_(len(cls.OP_ID) > 3)
       self.assertEqual(cls.OP_ID, cls.OP_ID.upper())
+      self.assertEqual(cls.OP_ID, opcodes._NameToId(cls.__name__))
 
       self.assertRaises(TypeError, cls, unsupported_parameter="some value")
 
@@ -88,32 +89,30 @@ class TestOpcodes(unittest.TestCase):
       self.assertEqual("OP_%s" % summary, op.OP_ID)
 
   def testSummary(self):
-    class _TestOp(opcodes.OpCode):
-      OP_ID = "OP_TEST"
+    class OpTest(opcodes.OpCode):
       OP_DSC_FIELD = "data"
       OP_PARAMS = [
         ("data", ht.NoDefault, ht.TString),
         ]
 
-    self.assertEqual(_TestOp(data="").Summary(), "TEST()")
-    self.assertEqual(_TestOp(data="Hello World").Summary(),
+    self.assertEqual(OpTest(data="").Summary(), "TEST()")
+    self.assertEqual(OpTest(data="Hello World").Summary(),
                      "TEST(Hello World)")
-    self.assertEqual(_TestOp(data="node1.example.com").Summary(),
+    self.assertEqual(OpTest(data="node1.example.com").Summary(),
                      "TEST(node1.example.com)")
 
   def testListSummary(self):
-    class _TestOp(opcodes.OpCode):
-      OP_ID = "OP_TEST"
+    class OpTest(opcodes.OpCode):
       OP_DSC_FIELD = "data"
       OP_PARAMS = [
         ("data", ht.NoDefault, ht.TList),
         ]
 
-    self.assertEqual(_TestOp(data=["a", "b", "c"]).Summary(),
+    self.assertEqual(OpTest(data=["a", "b", "c"]).Summary(),
                      "TEST(a,b,c)")
-    self.assertEqual(_TestOp(data=["a", None, "c"]).Summary(),
+    self.assertEqual(OpTest(data=["a", None, "c"]).Summary(),
                      "TEST(a,None,c)")
-    self.assertEqual(_TestOp(data=[1, 2, 3, 4]).Summary(), "TEST(1,2,3,4)")
+    self.assertEqual(OpTest(data=[1, 2, 3, 4]).Summary(), "TEST(1,2,3,4)")
 
   def testOpId(self):
     self.assertFalse(utils.FindDuplicates(cls.OP_ID
@@ -162,8 +161,7 @@ class TestOpcodes(unittest.TestCase):
                            msg="Default value returned by function is callable")
 
   def testValidateNoModification(self):
-    class _TestOp(opcodes.OpCode):
-      OP_ID = "OP_TEST"
+    class OpTest(opcodes.OpCode):
       OP_PARAMS = [
         ("nodef", ht.NoDefault, ht.TMaybeString),
         ("wdef", "default", ht.TMaybeString),
@@ -172,7 +170,7 @@ class TestOpcodes(unittest.TestCase):
         ]
 
     # Missing required parameter "nodef"
-    op = _TestOp()
+    op = OpTest()
     before = op.__getstate__()
     self.assertRaises(errors.OpPrereqError, op.Validate, False)
     self.assertFalse(hasattr(op, "nodef"))
@@ -182,7 +180,7 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
 
     # Required parameter "nodef" is provided
-    op = _TestOp(nodef="foo")
+    op = OpTest(nodef="foo")
     before = op.__getstate__()
     op.Validate(False)
     self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
@@ -192,7 +190,7 @@ class TestOpcodes(unittest.TestCase):
     self.assertFalse(hasattr(op, "notype"))
 
     # Missing required parameter "nodef"
-    op = _TestOp(wdef="hello", number=999)
+    op = OpTest(wdef="hello", number=999)
     before = op.__getstate__()
     self.assertRaises(errors.OpPrereqError, op.Validate, False)
     self.assertFalse(hasattr(op, "nodef"))
@@ -200,7 +198,7 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
 
     # Wrong type for "nodef"
-    op = _TestOp(nodef=987)
+    op = OpTest(nodef=987)
     before = op.__getstate__()
     self.assertRaises(errors.OpPrereqError, op.Validate, False)
     self.assertEqual(op.nodef, 987)
@@ -208,14 +206,14 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
 
     # Testing different types for "notype"
-    op = _TestOp(nodef="foo", notype=[1, 2, 3])
+    op = OpTest(nodef="foo", notype=[1, 2, 3])
     before = op.__getstate__()
     op.Validate(False)
     self.assertEqual(op.nodef, "foo")
     self.assertEqual(op.notype, [1, 2, 3])
     self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
 
-    op = _TestOp(nodef="foo", notype="Hello World")
+    op = OpTest(nodef="foo", notype="Hello World")
     before = op.__getstate__()
     op.Validate(False)
     self.assertEqual(op.nodef, "foo")
@@ -223,8 +221,7 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(op.__getstate__(), before, msg="Opcode was modified")
 
   def testValidateSetDefaults(self):
-    class _TestOp(opcodes.OpCode):
-      OP_ID = "OP_TEST"
+    class OpTest(opcodes.OpCode):
       OP_PARAMS = [
         # Static default value
         ("value1", "default", ht.TMaybeString),
@@ -233,7 +230,7 @@ class TestOpcodes(unittest.TestCase):
         ("value2", lambda: "result", ht.TMaybeString),
         ]
 
-    op = _TestOp()
+    op = OpTest()
     before = op.__getstate__()
     op.Validate(True)
     self.assertNotEqual(op.__getstate__(), before,
@@ -244,7 +241,7 @@ class TestOpcodes(unittest.TestCase):
     self.assert_(op.debug_level is None)
     self.assertEqual(op.priority, constants.OP_PRIO_DEFAULT)
 
-    op = _TestOp(value1="hello", value2="world", debug_level=123)
+    op = OpTest(value1="hello", value2="world", debug_level=123)
     before = op.__getstate__()
     op.Validate(True)
     self.assertNotEqual(op.__getstate__(), before,

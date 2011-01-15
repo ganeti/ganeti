@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2008 Google Inc.
+# Copyright (C) 2008, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -85,9 +85,8 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
         self.cfg = mocks.FakeConfig()
         self.op = opcode
 
-    class TestOpcode(opcodes.OpCode):
-      OP_ID = "OP_TEST"
-      OP_PARAMS = [
+    class OpTest(opcodes.OpCode):
+       OP_PARAMS = [
         ("iallocator", None, ht.NoType),
         ("node", None, ht.NoType),
         ]
@@ -95,7 +94,7 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
     default_iallocator = mocks.FakeConfig().GetDefaultIAllocator()
     other_iallocator = default_iallocator + "_not"
 
-    op = TestOpcode()
+    op = OpTest()
     lu = TestLU(op)
 
     c_i = lambda: cmdlib._CheckIAllocatorOrNode(lu, "iallocator", "node")
