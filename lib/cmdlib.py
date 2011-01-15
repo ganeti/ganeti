@@ -1089,7 +1089,7 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
                                  " iallocator.")
 
 
-class LUPostInitCluster(LogicalUnit):
+class LUClusterPostInit(LogicalUnit):
   """Logical unit for running hooks after cluster initialization.
 
   """

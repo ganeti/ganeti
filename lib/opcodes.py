@@ -371,7 +371,7 @@ class OpCode(BaseOpCode):
 
 # cluster opcodes
 
-class OpPostInitCluster(OpCode):
+class OpClusterPostInit(OpCode):
   """Post cluster initialization.
 
   This opcode does not touch the cluster at all. Its purpose is to run hooks

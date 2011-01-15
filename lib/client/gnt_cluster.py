@@ -145,7 +145,7 @@ def InitCluster(opts, args):
                         primary_ip_version=primary_ip_version,
                         prealloc_wipe_disks=opts.prealloc_wipe_disks,
                         )
-  op = opcodes.OpPostInitCluster()
+  op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
   return 0
 
