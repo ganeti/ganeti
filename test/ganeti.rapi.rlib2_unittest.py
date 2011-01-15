@@ -368,7 +368,7 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
     expcls = [
       opcodes.OpInstanceShutdown,
       opcodes.OpInstanceReinstall,
-      opcodes.OpStartupInstance,
+      opcodes.OpInstanceStartup,
       ]
 
     self.assert_(compat.all(isinstance(op, exp)

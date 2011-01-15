@@ -679,7 +679,7 @@ def _StartupInstance(name, opts):
   @return: the opcode needed for the operation
 
   """
-  op = opcodes.OpStartupInstance(instance_name=name,
+  op = opcodes.OpInstanceStartup(instance_name=name,
                                  force=opts.force,
                                  ignore_offline_nodes=opts.ignore_offline)
   # do not add these parameters to the opcode unless they're defined

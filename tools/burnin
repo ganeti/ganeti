@@ -757,7 +757,7 @@ class Burner(object):
   @staticmethod
   def StartInstanceOp(instance):
     """Start given instance."""
-    return opcodes.OpStartupInstance(instance_name=instance, force=False)
+    return opcodes.OpInstanceStartup(instance_name=instance, force=False)
 
   @staticmethod
   def RenameInstanceOp(instance, instance_new):

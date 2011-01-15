@@ -825,7 +825,7 @@ class OpInstanceRename(OpCode):
     ]
 
 
-class OpStartupInstance(OpCode):
+class OpInstanceStartup(OpCode):
   """Startup an instance."""
   OP_ID = "OP_INSTANCE_STARTUP"
   OP_DSC_FIELD = "instance_name"

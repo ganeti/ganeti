@@ -4948,7 +4948,7 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
                                  errors.ECODE_NORES)
 
 
-class LUStartupInstance(LogicalUnit):
+class LUInstanceStartup(LogicalUnit):
   """Starts an instance.
 
   """

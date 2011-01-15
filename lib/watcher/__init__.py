@@ -399,7 +399,7 @@ class Instance(object):
     """Encapsulates the start of an instance.
 
     """
-    op = opcodes.OpStartupInstance(instance_name=self.name, force=False)
+    op = opcodes.OpInstanceStartup(instance_name=self.name, force=False)
     cli.SubmitOpCode(op, cl=client)
 
   def ActivateDisks(self):

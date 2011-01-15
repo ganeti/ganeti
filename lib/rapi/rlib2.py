@@ -995,7 +995,7 @@ class R_2_instances_name_startup(baserlib.R_Generic):
     """
     instance_name = self.items[0]
     force_startup = bool(self._checkIntVariable('force'))
-    op = opcodes.OpStartupInstance(instance_name=instance_name,
+    op = opcodes.OpInstanceStartup(instance_name=instance_name,
                                    force=force_startup,
                                    dry_run=bool(self.dryRun()))
 
@@ -1038,7 +1038,7 @@ def _ParseInstanceReinstallRequest(name, data):
     ]
 
   if start:
-    ops.append(opcodes.OpStartupInstance(instance_name=name, force=False))
+    ops.append(opcodes.OpInstanceStartup(instance_name=name, force=False))
 
   return ops
 
