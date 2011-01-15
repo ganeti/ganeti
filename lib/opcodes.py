@@ -1059,7 +1059,7 @@ class OpSetGroupParams(OpCode):
     ]
 
 
-class OpRemoveGroup(OpCode):
+class OpGroupRemove(OpCode):
   """Remove a node group from the cluster."""
   OP_ID = "OP_GROUP_REMOVE"
   OP_DSC_FIELD = "group_name"

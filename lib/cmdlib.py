@@ -10252,7 +10252,7 @@ class LUSetGroupParams(LogicalUnit):
 
 
 
-class LURemoveGroup(LogicalUnit):
+class LUGroupRemove(LogicalUnit):
   HPATH = "group-remove"
   HTYPE = constants.HTYPE_GROUP
   REQ_BGL = False

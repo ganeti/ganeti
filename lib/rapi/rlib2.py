@@ -614,7 +614,7 @@ class R_2_groups_name(baserlib.R_Generic):
     """Delete a node group.
 
     """
-    op = opcodes.OpRemoveGroup(group_name=self.items[0],
+    op = opcodes.OpGroupRemove(group_name=self.items[0],
                                dry_run=bool(self.dryRun()))
 
     return baserlib.SubmitJob([op])

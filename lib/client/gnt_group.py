@@ -161,7 +161,7 @@ def RemoveGroup(opts, args):
 
   """
   (group_name,) = args
-  op = opcodes.OpRemoveGroup(group_name=group_name)
+  op = opcodes.OpGroupRemove(group_name=group_name)
   SubmitOpCode(op, opts=opts)
 
 
