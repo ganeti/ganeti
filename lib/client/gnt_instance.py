@@ -458,7 +458,7 @@ def ReinstallInstance(opts, args):
 
   # second, if requested, ask for an OS
   if opts.select_os is True:
-    op = opcodes.OpDiagnoseOS(output_fields=["name", "variants"], names=[])
+    op = opcodes.OpOsDiagnose(output_fields=["name", "variants"], names=[])
     result = SubmitOpCode(op, opts=opts)
 
     if not result:

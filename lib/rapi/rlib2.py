@@ -160,7 +160,7 @@ class R_2_os(baserlib.R_Generic):
 
     """
     cl = baserlib.GetClient()
-    op = opcodes.OpDiagnoseOS(output_fields=["name", "variants"], names=[])
+    op = opcodes.OpOsDiagnose(output_fields=["name", "variants"], names=[])
     job_id = baserlib.SubmitJob([op], cl)
     # we use custom feedback function, instead of print we log the status
     result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)

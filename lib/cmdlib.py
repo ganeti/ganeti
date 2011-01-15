@@ -3295,7 +3295,7 @@ class LUOobCommand(NoHooksLU):
 
 
 
-class LUDiagnoseOS(NoHooksLU):
+class LUOsDiagnose(NoHooksLU):
   """Logical unit for OS diagnose/query.
 
   """

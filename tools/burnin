@@ -510,7 +510,7 @@ class Burner(object):
       Err(msg, exit_code=err_code)
     self.nodes = [data[0] for data in result if not (data[1] or data[2])]
 
-    op_diagnose = opcodes.OpDiagnoseOS(output_fields=["name",
+    op_diagnose = opcodes.OpOsDiagnose(output_fields=["name",
                                                       "variants",
                                                       "hidden"],
                                        names=[])

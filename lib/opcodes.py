@@ -1079,7 +1079,7 @@ class OpGroupRename(OpCode):
 
 
 # OS opcodes
-class OpDiagnoseOS(OpCode):
+class OpOsDiagnose(OpCode):
   """Compute the list of guest operating systems."""
   OP_ID = "OP_OS_DIAGNOSE"
   OP_PARAMS = [

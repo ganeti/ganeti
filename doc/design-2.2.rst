@@ -720,7 +720,7 @@ These lists will be modifiable via ``gnt-os modify`` (implemented via
 preseeded into a given state.
 
 For the hidden OSes, they are fully functional except that they are not
-returned in the default OS list (as computed via ``OpDiagnoseOS``),
+returned in the default OS list (as computed via ``OpOsDiagnose``),
 unless the hidden state is requested.
 
 For the blacklisted OSes, they are also not shown (unless the
