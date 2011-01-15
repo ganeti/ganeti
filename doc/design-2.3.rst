@@ -292,7 +292,7 @@ instances they lock. If an LU uses the BGL, then it will invalidate the
 entire cache. In time, it is expected that LUs will be modified to not
 invalidate, if they are not expected to change the node's and/or
 instance's state (e.g. ``LUConnectConsole``, or
-``LUActivateInstanceDisks``).
+``LUInstanceActivateDisks``).
 
 Invalidation of a node's properties will also invalidate the capacity
 data associated with that node.

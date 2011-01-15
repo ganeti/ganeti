@@ -934,7 +934,7 @@ class OpConnectConsole(OpCode):
     ]
 
 
-class OpActivateInstanceDisks(OpCode):
+class OpInstanceActivateDisks(OpCode):
   """Activate an instance's disks."""
   OP_ID = "OP_INSTANCE_ACTIVATE_DISKS"
   OP_DSC_FIELD = "instance_name"

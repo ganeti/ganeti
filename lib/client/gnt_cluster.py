@@ -477,7 +477,7 @@ def VerifyDisks(opts, args):
     for iname in instances:
       if iname in missing:
         continue
-      op = opcodes.OpActivateInstanceDisks(instance_name=iname)
+      op = opcodes.OpInstanceActivateDisks(instance_name=iname)
       try:
         ToStdout("Activating disks for instance '%s'", iname)
         SubmitOpCode(op, opts=opts, cl=cl)

@@ -406,7 +406,7 @@ class Instance(object):
     """Encapsulates the activation of all disks of an instance.
 
     """
-    op = opcodes.OpActivateInstanceDisks(instance_name=self.name)
+    op = opcodes.OpInstanceActivateDisks(instance_name=self.name)
     cli.SubmitOpCode(op, cl=client)
 
 
@@ -595,7 +595,7 @@ class Watcher(object):
                   utils.CommaJoin(offline_disk_instances))
     # we submit only one job, and wait for it. not optimal, but spams
     # less the job queue
-    job = [opcodes.OpActivateInstanceDisks(instance_name=name)
+    job = [opcodes.OpInstanceActivateDisks(instance_name=name)
            for name in offline_disk_instances]
     job_id = cli.SendJob(job, cl=client)
 

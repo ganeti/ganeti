@@ -589,7 +589,7 @@ def ActivateDisks(opts, args):
 
   """
   instance_name = args[0]
-  op = opcodes.OpActivateInstanceDisks(instance_name=instance_name,
+  op = opcodes.OpInstanceActivateDisks(instance_name=instance_name,
                                        ignore_size=opts.ignore_size)
   disks_info = SubmitOrSend(op, opts)
   for host, iname, nname in disks_info:

@@ -1120,7 +1120,7 @@ class R_2_instances_name_activate_disks(baserlib.R_Generic):
     instance_name = self.items[0]
     ignore_size = bool(self._checkIntVariable('ignore_size'))
 
-    op = opcodes.OpActivateInstanceDisks(instance_name=instance_name,
+    op = opcodes.OpInstanceActivateDisks(instance_name=instance_name,
                                          ignore_size=ignore_size)
 
     return baserlib.SubmitJob([op])

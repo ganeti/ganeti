@@ -847,7 +847,7 @@ class Burner(object):
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
       op_start = self.StartInstanceOp(instance)
-      op_act = opcodes.OpActivateInstanceDisks(instance_name=instance)
+      op_act = opcodes.OpInstanceActivateDisks(instance_name=instance)
       op_deact = opcodes.OpDeactivateInstanceDisks(instance_name=instance)
       op_stop = self.StopInstanceOp(instance)
       Log("activate disks when online", indent=2)

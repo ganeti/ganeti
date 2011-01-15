@@ -4621,7 +4621,7 @@ class LUClusterConfigQuery(NoHooksLU):
     return values
 
 
-class LUActivateInstanceDisks(NoHooksLU):
+class LUInstanceActivateDisks(NoHooksLU):
   """Bring up an instance's disks.
 
   """
