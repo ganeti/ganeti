@@ -438,7 +438,7 @@ def RemoveNode(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpRemoveNode(node_name=args[0])
+  op = opcodes.OpNodeRemove(node_name=args[0])
   SubmitOpCode(op, opts=opts)
   return 0
 

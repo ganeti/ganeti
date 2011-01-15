@@ -3429,7 +3429,7 @@ class LUDiagnoseOS(NoHooksLU):
     return output
 
 
-class LURemoveNode(LogicalUnit):
+class LUNodeRemove(LogicalUnit):
   """Logical unit for removing a node.
 
   """

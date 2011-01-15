@@ -581,7 +581,7 @@ class OpOobCommand(OpCode):
 
 # node opcodes
 
-class OpRemoveNode(OpCode):
+class OpNodeRemove(OpCode):
   """Remove a node.
 
   @type node_name: C{str}
