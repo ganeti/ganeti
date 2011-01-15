@@ -10166,7 +10166,7 @@ class _GroupQuery(_QueryBase):
                                 group_to_nodes, group_to_instances)
 
 
-class LUQueryGroups(NoHooksLU):
+class LUGroupQuery(NoHooksLU):
   """Logical unit for querying node groups.
 
   """

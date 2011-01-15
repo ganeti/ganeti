@@ -1038,7 +1038,7 @@ class OpGroupAssignNodes(OpCode):
     ]
 
 
-class OpQueryGroups(OpCode):
+class OpGroupQuery(OpCode):
   """Compute the list of node groups."""
   OP_ID = "OP_GROUP_QUERY"
   OP_PARAMS = [
