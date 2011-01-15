@@ -273,7 +273,7 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
             }
 
           op = self.Parse(name, data)
-          self.assert_(isinstance(op, opcodes.OpRenameInstance))
+          self.assert_(isinstance(op, opcodes.OpInstanceRename))
           self.assertEqual(op.instance_name, name)
           self.assertEqual(op.new_name, new_name)
           self.assertEqual(op.ip_check, ip_check)
@@ -288,7 +288,7 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
         }
 
       op = self.Parse(name, data)
-      self.assert_(isinstance(op, opcodes.OpRenameInstance))
+      self.assert_(isinstance(op, opcodes.OpInstanceRename))
       self.assertEqual(op.instance_name, name)
       self.assertEqual(op.new_name, new_name)
       self.assert_(op.ip_check)

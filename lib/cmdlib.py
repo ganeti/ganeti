@@ -5332,7 +5332,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     _CreateDisks(self, self.instance, to_skip=to_skip)
 
 
-class LURenameInstance(LogicalUnit):
+class LUInstanceRename(LogicalUnit):
   """Rename an instance.
 
   """

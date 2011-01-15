@@ -561,7 +561,7 @@ def RenameInstance(opts, args):
                    " that '%s' is a FQDN. Continue?" % args[1]):
       return 1
 
-  op = opcodes.OpRenameInstance(instance_name=args[0],
+  op = opcodes.OpInstanceRename(instance_name=args[0],
                                 new_name=args[1],
                                 ip_check=opts.ip_check,
                                 name_check=opts.name_check)

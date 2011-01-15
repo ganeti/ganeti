@@ -814,7 +814,7 @@ class OpInstanceRemove(OpCode):
     ]
 
 
-class OpRenameInstance(OpCode):
+class OpInstanceRename(OpCode):
   """Rename an instance."""
   OP_ID = "OP_INSTANCE_RENAME"
   OP_PARAMS = [

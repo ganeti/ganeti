@@ -761,7 +761,7 @@ class Burner(object):
   @staticmethod
   def RenameInstanceOp(instance, instance_new):
     """Rename instance."""
-    return opcodes.OpRenameInstance(instance_name=instance,
+    return opcodes.OpInstanceRename(instance_name=instance,
                                     new_name=instance_new)
 
   @_DoCheckInstances
