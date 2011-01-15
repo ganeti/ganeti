@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1163,7 +1163,7 @@ class R_2_instances_name_prepare_export(baserlib.R_Generic):
 def _ParseExportInstanceRequest(name, data):
   """Parses a request for an instance export.
 
-  @rtype: L{opcodes.OpExportInstance}
+  @rtype: L{opcodes.OpBackupExport}
   @return: Instance export opcode
 
   """
@@ -1177,13 +1177,13 @@ def _ParseExportInstanceRequest(name, data):
   destination_x509_ca = baserlib.CheckParameter(data, "destination_x509_ca",
                                                 default=None)
 
-  return opcodes.OpExportInstance(instance_name=name,
-                                  mode=mode,
-                                  target_node=target_node,
-                                  shutdown=shutdown,
-                                  remove_instance=remove_instance,
-                                  x509_key_name=x509_key_name,
-                                  destination_x509_ca=destination_x509_ca)
+  return opcodes.OpBackupExport(instance_name=name,
+                                mode=mode,
+                                target_node=target_node,
+                                shutdown=shutdown,
+                                remove_instance=remove_instance,
+                                x509_key_name=x509_key_name,
+                                destination_x509_ca=destination_x509_ca)
 
 
 class R_2_instances_name_export(baserlib.R_Generic):

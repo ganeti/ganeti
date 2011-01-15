@@ -9581,7 +9581,7 @@ class LUPrepareExport(NoHooksLU):
     return None
 
 
-class LUExportInstance(LogicalUnit):
+class LUBackupExport(LogicalUnit):
   """Export an instance to an image in the cluster.
 
   """

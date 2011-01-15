@@ -329,7 +329,7 @@ Workflow
 
    - The destination cluster generates another key and certificate,
      signs and sends it to the third party, who will have to pass it to
-     the API for exporting an instance (``OpExportInstance``). This
+     the API for exporting an instance (``OpBackupExport``). This
      certificate is used to ensure we're sending the disk data to the
      correct destination cluster.
    - Once a disk can be imported, the API sends the destination
@@ -340,7 +340,7 @@ Workflow
    together with all necessary information to source cluster and tells
    it to start the move
 
-   - The existing API for exporting instances (``OpExportInstance``)
+   - The existing API for exporting instances (``OpBackupExport``)
      will be extended to export instances to remote clusters.
 
 #. Source cluster connects to destination cluster for each disk and

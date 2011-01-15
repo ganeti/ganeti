@@ -196,7 +196,7 @@ class TestParseExportInstanceRequest(testutils.GanetiTestCase):
       "destination_x509_ca": ("x", "y", "z"),
       }
     op = self.Parse(name, data)
-    self.assert_(isinstance(op, opcodes.OpExportInstance))
+    self.assert_(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, constants.EXPORT_MODE_REMOTE)
     self.assertEqual(op.shutdown, True)
@@ -211,7 +211,7 @@ class TestParseExportInstanceRequest(testutils.GanetiTestCase):
       "shutdown": False,
       }
     op = self.Parse(name, data)
-    self.assert_(isinstance(op, opcodes.OpExportInstance))
+    self.assert_(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, constants.EXPORT_MODE_LOCAL)
     self.assertEqual(op.remove_instance, False)

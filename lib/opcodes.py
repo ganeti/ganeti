@@ -1113,7 +1113,7 @@ class OpPrepareExport(OpCode):
     ]
 
 
-class OpExportInstance(OpCode):
+class OpBackupExport(OpCode):
   """Export an instance.
 
   For local exports, the export destination is the node name. For remote
