@@ -440,7 +440,7 @@ class OpVerifyDisks(OpCode):
   OP_ID = "OP_CLUSTER_VERIFY_DISKS"
 
 
-class OpRepairDiskSizes(OpCode):
+class OpClusterRepairDiskSizes(OpCode):
   """Verify the disk sizes of the instances and fixes configuration
   mimatches.
 

@@ -520,7 +520,7 @@ def RepairDiskSizes(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpRepairDiskSizes(instances=args)
+  op = opcodes.OpClusterRepairDiskSizes(instances=args)
   SubmitOpCode(op, opts=opts)
 
 

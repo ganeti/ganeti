@@ -2456,7 +2456,7 @@ class LUVerifyDisks(NoHooksLU):
     return result
 
 
-class LURepairDiskSizes(NoHooksLU):
+class LUClusterRepairDiskSizes(NoHooksLU):
   """Verifies the cluster disks sizes.
 
   """
