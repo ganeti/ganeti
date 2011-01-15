@@ -163,14 +163,9 @@ class _AutoOpParamSlots(type):
     """
     assert "__slots__" not in attrs, \
       "Class '%s' defines __slots__ when it should use OP_PARAMS" % name
+    assert "OP_ID" not in attrs, "Class '%s' defining OP_ID" % name
 
-    op_id = _NameToId(name)
-    if "OP_ID" in attrs:
-      assert attrs["OP_ID"] == op_id, ("Class '%s' defining wrong OP_ID"
-                                       " attribute %s, should be %s" %
-                                       (name, attrs["OP_ID"], op_id))
-
-    attrs["OP_ID"] = op_id
+    attrs["OP_ID"] = _NameToId(name)
 
     # Always set OP_PARAMS to avoid duplicates in BaseOpCode.GetAllParams
     params = attrs.setdefault("OP_PARAMS", [])
@@ -193,9 +188,9 @@ class BaseOpCode(object):
   field handling.
 
   """
+  # pylint: disable-msg=E1101
+  # as OP_ID is dynamically defined
   __metaclass__ = _AutoOpParamSlots
-
-  OP_ID = None
 
   def __init__(self, **kwargs):
     """Constructor for BaseOpCode.
@@ -328,7 +323,8 @@ class OpCode(BaseOpCode):
   @ivar priority: Opcode priority for queue
 
   """
-  OP_ID = "OP_CODE"
+  # pylint: disable-msg=E1101
+  # as OP_ID is dynamically defined
   WITH_LU = True
   OP_PARAMS = [
     ("dry_run", None, ht.TMaybeBool),
@@ -412,7 +408,6 @@ class OpClusterPostInit(OpCode):
   after the cluster has been initialized.
 
   """
-  OP_ID = "OP_CLUSTER_POST_INIT"
 
 
 class OpClusterDestroy(OpCode):
@@ -422,12 +417,10 @@ class OpClusterDestroy(OpCode):
   lost after the execution of this opcode.
 
   """
-  OP_ID = "OP_CLUSTER_DESTROY"
 
 
 class OpClusterQuery(OpCode):
   """Query cluster information."""
-  OP_ID = "OP_CLUSTER_QUERY"
 
 
 class OpClusterVerify(OpCode):
@@ -440,7 +433,6 @@ class OpClusterVerify(OpCode):
                      only L{constants.VERIFY_NPLUSONE_MEM} can be passed
 
   """
-  OP_ID = "OP_CLUSTER_VERIFY"
   OP_PARAMS = [
     ("skip_checks", ht.EmptyList,
      ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS))),
@@ -471,7 +463,6 @@ class OpClusterVerifyDisks(OpCode):
   consideration. This might need to be revisited in the future.
 
   """
-  OP_ID = "OP_CLUSTER_VERIFY_DISKS"
 
 
 class OpClusterRepairDiskSizes(OpCode):
@@ -490,7 +481,6 @@ class OpClusterRepairDiskSizes(OpCode):
   @ivar instances: the list of instances to check, or empty for all instances
 
   """
-  OP_ID = "OP_CLUSTER_REPAIR_DISK_SIZES"
   OP_PARAMS = [
     ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ]
@@ -498,7 +488,6 @@ class OpClusterRepairDiskSizes(OpCode):
 
 class OpClusterConfigQuery(OpCode):
   """Query cluster configuration values."""
-  OP_ID = "OP_CLUSTER_CONFIG_QUERY"
   OP_PARAMS = [
     _POutputFields
     ]
@@ -513,7 +502,6 @@ class OpClusterRename(OpCode):
               address.
 
   """
-  OP_ID = "OP_CLUSTER_RENAME"
   OP_DSC_FIELD = "name"
   OP_PARAMS = [
     ("name", ht.NoDefault, ht.TNonEmptyString),
@@ -527,7 +515,6 @@ class OpClusterSetParams(OpCode):
   @ivar vg_name: The new volume group name or None to disable LVM usage.
 
   """
-  OP_ID = "OP_CLUSTER_SET_PARAMS"
   OP_PARAMS = [
     ("vg_name", None, ht.TMaybeString),
     ("enabled_hypervisors", None,
@@ -569,7 +556,6 @@ class OpClusterRedistConf(OpCode):
   """Force a full push of the cluster configuration.
 
   """
-  OP_ID = "OP_CLUSTER_REDIST_CONF"
 
 
 class OpQuery(OpCode):
@@ -580,7 +566,6 @@ class OpQuery(OpCode):
   @ivar filter: Query filter
 
   """
-  OP_ID = "OP_QUERY"
   OP_PARAMS = [
     ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY)),
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
@@ -596,7 +581,6 @@ class OpQueryFields(OpCode):
   @ivar fields: List of fields to retrieve
 
   """
-  OP_ID = "OP_QUERY_FIELDS"
   OP_PARAMS = [
     ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY)),
     ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString))),
@@ -605,7 +589,6 @@ class OpQueryFields(OpCode):
 
 class OpOobCommand(OpCode):
   """Interact with OOB."""
-  OP_ID = "OP_OOB_COMMAND"
   OP_PARAMS = [
     _PNodeName,
     ("command", None, ht.TElemOf(constants.OOB_COMMANDS)),
@@ -623,7 +606,6 @@ class OpNodeRemove(OpCode):
                    instances on it, the operation will fail.
 
   """
-  OP_ID = "OP_NODE_REMOVE"
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
@@ -658,7 +640,6 @@ class OpNodeAdd(OpCode):
   @ivar master_capable: The master_capable node attribute
 
   """
-  OP_ID = "OP_NODE_ADD"
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
@@ -674,7 +655,6 @@ class OpNodeAdd(OpCode):
 
 class OpNodeQuery(OpCode):
   """Compute the list of nodes."""
-  OP_ID = "OP_NODE_QUERY"
   OP_PARAMS = [
     _POutputFields,
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
@@ -684,7 +664,6 @@ class OpNodeQuery(OpCode):
 
 class OpNodeQueryvols(OpCode):
   """Get list of volumes on node."""
-  OP_ID = "OP_NODE_QUERYVOLS"
   OP_PARAMS = [
     _POutputFields,
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
@@ -693,7 +672,6 @@ class OpNodeQueryvols(OpCode):
 
 class OpNodeQueryStorage(OpCode):
   """Get information on storage for node(s)."""
-  OP_ID = "OP_NODE_QUERY_STORAGE"
   OP_PARAMS = [
     _POutputFields,
     _PStorageType,
@@ -704,7 +682,6 @@ class OpNodeQueryStorage(OpCode):
 
 class OpNodeModifyStorage(OpCode):
   """Modifies the properies of a storage unit"""
-  OP_ID = "OP_NODE_MODIFY_STORAGE"
   OP_PARAMS = [
     _PNodeName,
     _PStorageType,
@@ -715,7 +692,6 @@ class OpNodeModifyStorage(OpCode):
 
 class OpRepairNodeStorage(OpCode):
   """Repairs the volume group on a node."""
-  OP_ID = "OP_REPAIR_NODE_STORAGE"
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
@@ -727,7 +703,6 @@ class OpRepairNodeStorage(OpCode):
 
 class OpNodeSetParams(OpCode):
   """Change the parameters of a node."""
-  OP_ID = "OP_NODE_SET_PARAMS"
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
@@ -746,7 +721,6 @@ class OpNodeSetParams(OpCode):
 
 class OpNodePowercycle(OpCode):
   """Tries to powercycle a node."""
-  OP_ID = "OP_NODE_POWERCYCLE"
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
@@ -756,7 +730,6 @@ class OpNodePowercycle(OpCode):
 
 class OpNodeMigrate(OpCode):
   """Migrate all instances from a node."""
-  OP_ID = "OP_NODE_MIGRATE"
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
@@ -767,7 +740,6 @@ class OpNodeMigrate(OpCode):
 
 class OpNodeEvacStrategy(OpCode):
   """Compute the evacuation strategy for a list of nodes."""
-  OP_ID = "OP_NODE_EVAC_STRATEGY"
   OP_DSC_FIELD = "nodes"
   OP_PARAMS = [
     ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
@@ -790,7 +762,6 @@ class OpInstanceCreate(OpCode):
     (remote import only)
 
   """
-  OP_ID = "OP_INSTANCE_CREATE"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -827,7 +798,6 @@ class OpInstanceCreate(OpCode):
 
 class OpInstanceReinstall(OpCode):
   """Reinstall an instance's OS."""
-  OP_ID = "OP_INSTANCE_REINSTALL"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -839,7 +809,6 @@ class OpInstanceReinstall(OpCode):
 
 class OpInstanceRemove(OpCode):
   """Remove an instance."""
-  OP_ID = "OP_INSTANCE_REMOVE"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -850,7 +819,6 @@ class OpInstanceRemove(OpCode):
 
 class OpInstanceRename(OpCode):
   """Rename an instance."""
-  OP_ID = "OP_INSTANCE_RENAME"
   OP_PARAMS = [
     _PInstanceName,
     ("new_name", ht.NoDefault, ht.TNonEmptyString),
@@ -861,7 +829,6 @@ class OpInstanceRename(OpCode):
 
 class OpInstanceStartup(OpCode):
   """Startup an instance."""
-  OP_ID = "OP_INSTANCE_STARTUP"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -874,7 +841,6 @@ class OpInstanceStartup(OpCode):
 
 class OpInstanceShutdown(OpCode):
   """Shutdown an instance."""
-  OP_ID = "OP_INSTANCE_SHUTDOWN"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -885,7 +851,6 @@ class OpInstanceShutdown(OpCode):
 
 class OpInstanceReboot(OpCode):
   """Reboot an instance."""
-  OP_ID = "OP_INSTANCE_REBOOT"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -897,7 +862,6 @@ class OpInstanceReboot(OpCode):
 
 class OpInstanceReplaceDisks(OpCode):
   """Replace the disks of an instance."""
-  OP_ID = "OP_INSTANCE_REPLACE_DISKS"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -911,7 +875,6 @@ class OpInstanceReplaceDisks(OpCode):
 
 class OpInstanceFailover(OpCode):
   """Failover an instance."""
-  OP_ID = "OP_INSTANCE_FAILOVER"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -930,7 +893,6 @@ class OpInstanceMigrate(OpCode):
   @ivar mode: the migration mode (live, non-live or None for auto)
 
   """
-  OP_ID = "OP_INSTANCE_MIGRATE"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -950,7 +912,6 @@ class OpInstanceMove(OpCode):
   @ivar target_node: the destination node
 
   """
-  OP_ID = "OP_INSTANCE_MOVE"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -961,7 +922,6 @@ class OpInstanceMove(OpCode):
 
 class OpInstanceConsole(OpCode):
   """Connect to an instance's console."""
-  OP_ID = "OP_INSTANCE_CONSOLE"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName
@@ -970,7 +930,6 @@ class OpInstanceConsole(OpCode):
 
 class OpInstanceActivateDisks(OpCode):
   """Activate an instance's disks."""
-  OP_ID = "OP_INSTANCE_ACTIVATE_DISKS"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -980,7 +939,6 @@ class OpInstanceActivateDisks(OpCode):
 
 class OpInstanceDeactivateDisks(OpCode):
   """Deactivate an instance's disks."""
-  OP_ID = "OP_INSTANCE_DEACTIVATE_DISKS"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName
@@ -989,7 +947,6 @@ class OpInstanceDeactivateDisks(OpCode):
 
 class OpInstanceRecreateDisks(OpCode):
   """Deactivate an instance's disks."""
-  OP_ID = "OP_INSTANCE_RECREATE_DISKS"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -999,7 +956,6 @@ class OpInstanceRecreateDisks(OpCode):
 
 class OpInstanceQuery(OpCode):
   """Compute the list of instances."""
-  OP_ID = "OP_INSTANCE_QUERY"
   OP_PARAMS = [
     _POutputFields,
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
@@ -1009,7 +965,6 @@ class OpInstanceQuery(OpCode):
 
 class OpInstanceQueryData(OpCode):
   """Compute the run-time status of instances."""
-  OP_ID = "OP_INSTANCE_QUERY_DATA"
   OP_PARAMS = [
     ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ("static", False, ht.TBool),
@@ -1018,7 +973,6 @@ class OpInstanceQueryData(OpCode):
 
 class OpInstanceSetParams(OpCode):
   """Change the parameters of an instance."""
-  OP_ID = "OP_INSTANCE_SET_PARAMS"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -1037,7 +991,6 @@ class OpInstanceSetParams(OpCode):
 
 class OpInstanceGrowDisk(OpCode):
   """Grow a disk of an instance."""
-  OP_ID = "OP_INSTANCE_GROW_DISK"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -1051,7 +1004,6 @@ class OpInstanceGrowDisk(OpCode):
 
 class OpGroupAdd(OpCode):
   """Add a node group to the cluster."""
-  OP_ID = "OP_GROUP_ADD"
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
@@ -1063,7 +1015,6 @@ class OpGroupAdd(OpCode):
 
 class OpGroupAssignNodes(OpCode):
   """Assign nodes to a node group."""
-  OP_ID = "OP_GROUP_ASSIGN_NODES"
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
@@ -1074,7 +1025,6 @@ class OpGroupAssignNodes(OpCode):
 
 class OpGroupQuery(OpCode):
   """Compute the list of node groups."""
-  OP_ID = "OP_GROUP_QUERY"
   OP_PARAMS = [
     _POutputFields,
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
@@ -1083,7 +1033,6 @@ class OpGroupQuery(OpCode):
 
 class OpGroupSetParams(OpCode):
   """Change the parameters of a node group."""
-  OP_ID = "OP_GROUP_SET_PARAMS"
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
@@ -1095,7 +1044,6 @@ class OpGroupSetParams(OpCode):
 
 class OpGroupRemove(OpCode):
   """Remove a node group from the cluster."""
-  OP_ID = "OP_GROUP_REMOVE"
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
@@ -1104,7 +1052,6 @@ class OpGroupRemove(OpCode):
 
 class OpGroupRename(OpCode):
   """Rename a node group in the cluster."""
-  OP_ID = "OP_GROUP_RENAME"
   OP_DSC_FIELD = "old_name"
   OP_PARAMS = [
     ("old_name", ht.NoDefault, ht.TNonEmptyString),
@@ -1115,7 +1062,6 @@ class OpGroupRename(OpCode):
 # OS opcodes
 class OpOsDiagnose(OpCode):
   """Compute the list of guest operating systems."""
-  OP_ID = "OP_OS_DIAGNOSE"
   OP_PARAMS = [
     _POutputFields,
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
@@ -1125,7 +1071,6 @@ class OpOsDiagnose(OpCode):
 # Exports opcodes
 class OpBackupQuery(OpCode):
   """Compute the list of exported images."""
-  OP_ID = "OP_BACKUP_QUERY"
   OP_PARAMS = [
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ("use_locking", False, ht.TBool),
@@ -1139,7 +1084,6 @@ class OpBackupPrepare(OpCode):
   @ivar mode: Export mode (one of L{constants.EXPORT_MODES})
 
   """
-  OP_ID = "OP_BACKUP_PREPARE"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -1163,7 +1107,6 @@ class OpBackupExport(OpCode):
                              only)
 
   """
-  OP_ID = "OP_BACKUP_EXPORT"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -1182,7 +1125,6 @@ class OpBackupExport(OpCode):
 
 class OpBackupRemove(OpCode):
   """Remove an instance's export."""
-  OP_ID = "OP_BACKUP_REMOVE"
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
@@ -1192,7 +1134,6 @@ class OpBackupRemove(OpCode):
 # Tags opcodes
 class OpTagsGet(OpCode):
   """Returns the tags of the given object."""
-  OP_ID = "OP_TAGS_GET"
   OP_DSC_FIELD = "name"
   OP_PARAMS = [
     _PTagKind,
@@ -1203,7 +1144,6 @@ class OpTagsGet(OpCode):
 
 class OpTagsSearch(OpCode):
   """Searches the tags in the cluster for a given pattern."""
-  OP_ID = "OP_TAGS_SEARCH"
   OP_DSC_FIELD = "pattern"
   OP_PARAMS = [
     ("pattern", ht.NoDefault, ht.TNonEmptyString),
@@ -1212,7 +1152,6 @@ class OpTagsSearch(OpCode):
 
 class OpTagsSet(OpCode):
   """Add a list of tags on a given object."""
-  OP_ID = "OP_TAGS_SET"
   OP_PARAMS = [
     _PTagKind,
     _PTags,
@@ -1223,7 +1162,6 @@ class OpTagsSet(OpCode):
 
 class OpTagsDel(OpCode):
   """Remove a list of tags from a given object."""
-  OP_ID = "OP_TAGS_DEL"
   OP_PARAMS = [
     _PTagKind,
     _PTags,
@@ -1253,7 +1191,6 @@ class OpTestDelay(OpCode):
   generator. The case of duration == 0 will not be treated specially.
 
   """
-  OP_ID = "OP_TEST_DELAY"
   OP_DSC_FIELD = "duration"
   OP_PARAMS = [
     ("duration", ht.NoDefault, ht.TFloat),
@@ -1274,7 +1211,6 @@ class OpTestAllocator(OpCode):
       return the allocator output (direction 'out')
 
   """
-  OP_ID = "OP_TEST_ALLOCATOR"
   OP_DSC_FIELD = "allocator"
   OP_PARAMS = [
     ("direction", ht.NoDefault,
@@ -1300,7 +1236,6 @@ class OpTestJqueue(OpCode):
   """Utility opcode to test some aspects of the job queue.
 
   """
-  OP_ID = "OP_TEST_JQUEUE"
   OP_PARAMS = [
     ("notify_waitlock", False, ht.TBool),
     ("notify_exec", False, ht.TBool),
@@ -1313,7 +1248,6 @@ class OpTestDummy(OpCode):
   """Utility opcode used by unittests.
 
   """
-  OP_ID = "OP_TEST_DUMMY"
   OP_PARAMS = [
     ("result", ht.NoDefault, ht.NoType),
     ("messages", ht.NoDefault, ht.NoType),
