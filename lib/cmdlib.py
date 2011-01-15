@@ -3616,7 +3616,7 @@ class LUNodeQuery(NoHooksLU):
     return self.nq.OldStyleQuery(self)
 
 
-class LUQueryNodeVolumes(NoHooksLU):
+class LUNodeQueryvols(NoHooksLU):
   """Logical unit for getting volumes on node(s).
 
   """

@@ -527,7 +527,7 @@ def ListVolumes(opts, args):
   """
   selected_fields = ParseFields(opts.output, _LIST_VOL_DEF_FIELDS)
 
-  op = opcodes.OpQueryNodeVolumes(nodes=args, output_fields=selected_fields)
+  op = opcodes.OpNodeQueryvols(nodes=args, output_fields=selected_fields)
   output = SubmitOpCode(op, opts=opts)
 
   if not opts.no_headers:

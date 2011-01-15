@@ -648,7 +648,7 @@ class OpNodeQuery(OpCode):
     ]
 
 
-class OpQueryNodeVolumes(OpCode):
+class OpNodeQueryvols(OpCode):
   """Get list of volumes on node."""
   OP_ID = "OP_NODE_QUERYVOLS"
   OP_PARAMS = [
