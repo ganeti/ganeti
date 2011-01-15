@@ -422,7 +422,7 @@ def AddTags(opts, args):
   _ExtendTags(opts, args)
   if not args:
     raise errors.OpPrereqError("No tags to be added")
-  op = opcodes.OpAddTags(kind=kind, name=name, tags=args)
+  op = opcodes.OpTagsSet(kind=kind, name=name, tags=args)
   SubmitOpCode(op, opts=opts)
 
 

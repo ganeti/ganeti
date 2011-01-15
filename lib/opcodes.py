@@ -1176,7 +1176,7 @@ class OpTagsSearch(OpCode):
     ]
 
 
-class OpAddTags(OpCode):
+class OpTagsSet(OpCode):
   """Add a list of tags on a given object."""
   OP_ID = "OP_TAGS_SET"
   OP_PARAMS = [

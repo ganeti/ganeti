@@ -10472,7 +10472,7 @@ class LUTagsSearch(NoHooksLU):
     return results
 
 
-class LUAddTags(TagsLU):
+class LUTagsSet(TagsLU):
   """Sets a tag on a given object.
 
   """

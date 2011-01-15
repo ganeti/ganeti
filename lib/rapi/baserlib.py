@@ -115,7 +115,7 @@ def _Tags_PUT(kind, tags, name, dry_run):
   """Helper function to set tags.
 
   """
-  return SubmitJob([opcodes.OpAddTags(kind=kind, name=name,
+  return SubmitJob([opcodes.OpTagsSet(kind=kind, name=name,
                                       tags=tags, dry_run=dry_run)])
 
 
