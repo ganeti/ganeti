@@ -157,7 +157,7 @@ class TestLUQuery(unittest.TestCase):
                       "xyz")
 
 
-class TestLUAssignGroupNodes(unittest.TestCase):
+class TestLUGroupAssignNodes(unittest.TestCase):
 
   def testCheckAssignmentForSplitInstances(self):
     node_data = dict((name, objects.Node(name=name, group=group))
@@ -190,7 +190,7 @@ class TestLUAssignGroupNodes(unittest.TestCase):
 
     # Test first with the existing state.
     (new, prev) = \
-      cmdlib.LUAssignGroupNodes.CheckAssignmentForSplitInstances([],
+      cmdlib.LUGroupAssignNodes.CheckAssignmentForSplitInstances([],
                                                                  node_data,
                                                                  instance_data)
 
@@ -199,7 +199,7 @@ class TestLUAssignGroupNodes(unittest.TestCase):
 
     # And now some changes.
     (new, prev) = \
-      cmdlib.LUAssignGroupNodes.CheckAssignmentForSplitInstances([("n1b",
+      cmdlib.LUGroupAssignNodes.CheckAssignmentForSplitInstances([("n1b",
                                                                    "g3")],
                                                                  node_data,
                                                                  instance_data)

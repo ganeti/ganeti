@@ -1027,7 +1027,7 @@ class OpGroupAdd(OpCode):
     ]
 
 
-class OpAssignGroupNodes(OpCode):
+class OpGroupAssignNodes(OpCode):
   """Assign nodes to a node group."""
   OP_ID = "OP_GROUP_ASSIGN_NODES"
   OP_DSC_FIELD = "group_name"

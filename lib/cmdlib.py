@@ -9975,7 +9975,7 @@ class LUGroupAdd(LogicalUnit):
     del self.remove_locks[locking.LEVEL_NODEGROUP]
 
 
-class LUAssignGroupNodes(NoHooksLU):
+class LUGroupAssignNodes(NoHooksLU):
   """Logical unit for assigning nodes to groups.
 
   """

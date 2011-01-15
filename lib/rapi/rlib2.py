@@ -695,7 +695,7 @@ class R_2_groups_name_assign_nodes(baserlib.R_Generic):
     @return: a job id
 
     """
-    op = baserlib.FillOpcode(opcodes.OpAssignGroupNodes, self.request_body, {
+    op = baserlib.FillOpcode(opcodes.OpGroupAssignNodes, self.request_body, {
       "group_name": self.items[0],
       "dry_run": self.dryRun(),
       "force": self.useForce(),
