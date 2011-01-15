@@ -1271,7 +1271,7 @@ class R_2_instances_name_rename(baserlib.R_Generic):
 def _ParseModifyInstanceRequest(name, data):
   """Parses a request for modifying an instance.
 
-  @rtype: L{opcodes.OpSetInstanceParams}
+  @rtype: L{opcodes.OpInstanceSetParams}
   @return: Instance modify opcode
 
   """
@@ -1293,7 +1293,7 @@ def _ParseModifyInstanceRequest(name, data):
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES,
                       allowed_values=[constants.VALUE_DEFAULT])
 
-  return opcodes.OpSetInstanceParams(instance_name=name, hvparams=hvparams,
+  return opcodes.OpInstanceSetParams(instance_name=name, hvparams=hvparams,
                                      beparams=beparams, osparams=osparams,
                                      force=force, nics=nics, disks=disks,
                                      disk_template=disk_template,

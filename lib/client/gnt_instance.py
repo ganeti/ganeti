@@ -1280,7 +1280,7 @@ def SetInstanceParams(opts, args):
              " specifying a secondary node")
     return 1
 
-  op = opcodes.OpSetInstanceParams(instance_name=args[0],
+  op = opcodes.OpInstanceSetParams(instance_name=args[0],
                                    nics=opts.nics,
                                    disks=opts.disks,
                                    disk_template=opts.disk_template,

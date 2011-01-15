@@ -327,7 +327,7 @@ class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
                     }
 
                   op = self.Parse(name, data)
-                  self.assert_(isinstance(op, opcodes.OpSetInstanceParams))
+                  self.assert_(isinstance(op, opcodes.OpInstanceSetParams))
                   self.assertEqual(op.instance_name, name)
                   self.assertEqual(op.hvparams, hvparams)
                   self.assertEqual(op.beparams, beparams)
@@ -344,7 +344,7 @@ class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
     name = "instir8aish31"
 
     op = self.Parse(name, {})
-    self.assert_(isinstance(op, opcodes.OpSetInstanceParams))
+    self.assert_(isinstance(op, opcodes.OpInstanceSetParams))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.hvparams, {})
     self.assertEqual(op.beparams, {})

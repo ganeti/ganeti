@@ -982,7 +982,7 @@ class OpInstanceQueryData(OpCode):
     ]
 
 
-class OpSetInstanceParams(OpCode):
+class OpInstanceSetParams(OpCode):
   """Change the parameters of an instance."""
   OP_ID = "OP_INSTANCE_SET_PARAMS"
   OP_DSC_FIELD = "instance_name"

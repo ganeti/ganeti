@@ -6608,7 +6608,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
                  " node %s" % (file_storage_dir, pnode))
 
   # Note: this needs to be kept in sync with adding of disks in
-  # LUSetInstanceParams
+  # LUInstanceSetParams
   for idx, device in enumerate(instance.disks):
     if to_skip and idx in to_skip:
       continue
@@ -8839,7 +8839,7 @@ class LUInstanceQueryData(NoHooksLU):
     return result
 
 
-class LUSetInstanceParams(LogicalUnit):
+class LUInstanceSetParams(LogicalUnit):
   """Modifies an instances's parameters.
 
   """
