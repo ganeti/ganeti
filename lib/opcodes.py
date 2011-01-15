@@ -657,7 +657,7 @@ class OpNodeQueryvols(OpCode):
     ]
 
 
-class OpQueryNodeStorage(OpCode):
+class OpNodeQueryStorage(OpCode):
   """Get information on storage for node(s)."""
   OP_ID = "OP_NODE_QUERY_STORAGE"
   OP_PARAMS = [

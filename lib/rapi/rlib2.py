@@ -473,7 +473,7 @@ class R_2_nodes_name_storage(baserlib.R_Generic):
   """/2/nodes/[node_name]/storage resource.
 
   """
-  # LUQueryNodeStorage acquires locks, hence restricting access to GET
+  # LUNodeQueryStorage acquires locks, hence restricting access to GET
   GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
 
   def GET(self):
@@ -489,7 +489,7 @@ class R_2_nodes_name_storage(baserlib.R_Generic):
       raise http.HttpBadRequest("Missing the required 'output_fields'"
                                 " parameter")
 
-    op = opcodes.OpQueryNodeStorage(nodes=[node_name],
+    op = opcodes.OpNodeQueryStorage(nodes=[node_name],
                                     storage_type=storage_type,
                                     output_fields=output_fields.split(","))
     return baserlib.SubmitJob([op])

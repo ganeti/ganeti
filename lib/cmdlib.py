@@ -3694,7 +3694,7 @@ class LUNodeQueryvols(NoHooksLU):
     return output
 
 
-class LUQueryNodeStorage(NoHooksLU):
+class LUNodeQueryStorage(NoHooksLU):
   """Logical unit for getting information on storage units on node(s).
 
   """

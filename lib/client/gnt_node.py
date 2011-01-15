@@ -571,7 +571,7 @@ def ListStorage(opts, args):
 
   selected_fields = ParseFields(opts.output, _LIST_STOR_DEF_FIELDS)
 
-  op = opcodes.OpQueryNodeStorage(nodes=args,
+  op = opcodes.OpNodeQueryStorage(nodes=args,
                                   storage_type=storage_type,
                                   output_fields=selected_fields)
   output = SubmitOpCode(op, opts=opts)
