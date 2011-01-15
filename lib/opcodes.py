@@ -1068,7 +1068,7 @@ class OpGroupRemove(OpCode):
     ]
 
 
-class OpRenameGroup(OpCode):
+class OpGroupRename(OpCode):
   """Rename a node group in the cluster."""
   OP_ID = "OP_GROUP_RENAME"
   OP_DSC_FIELD = "old_name"

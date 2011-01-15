@@ -176,7 +176,7 @@ def RenameGroup(opts, args):
 
   """
   old_name, new_name = args
-  op = opcodes.OpRenameGroup(old_name=old_name, new_name=new_name)
+  op = opcodes.OpGroupRename(old_name=old_name, new_name=new_name)
   SubmitOpCode(op, opts=opts)
 
 

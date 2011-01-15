@@ -10314,7 +10314,7 @@ class LUGroupRemove(LogicalUnit):
     self.remove_locks[locking.LEVEL_NODEGROUP] = self.group_uuid
 
 
-class LURenameGroup(LogicalUnit):
+class LUGroupRename(LogicalUnit):
   HPATH = "group-rename"
   HTYPE = constants.HTYPE_GROUP
   REQ_BGL = False
