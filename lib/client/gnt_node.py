@@ -459,7 +459,7 @@ def PowercycleNode(opts, args):
       not AskUser("Are you sure you want to hard powercycle node %s?" % node)):
     return 2
 
-  op = opcodes.OpPowercycleNode(node_name=node, force=opts.force)
+  op = opcodes.OpNodePowercycle(node_name=node, force=opts.force)
   result = SubmitOpCode(op, opts=opts)
   if result:
     ToStderr(result)

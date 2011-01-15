@@ -710,7 +710,7 @@ class OpSetNodeParams(OpCode):
     ]
 
 
-class OpPowercycleNode(OpCode):
+class OpNodePowercycle(OpCode):
   """Tries to powercycle a node."""
   OP_ID = "OP_NODE_POWERCYCLE"
   OP_DSC_FIELD = "node_name"

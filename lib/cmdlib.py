@@ -4484,7 +4484,7 @@ class LUSetNodeParams(LogicalUnit):
     return result
 
 
-class LUPowercycleNode(NoHooksLU):
+class LUNodePowercycle(NoHooksLU):
   """Powercycles a node.
 
   """
