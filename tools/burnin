@@ -752,7 +752,7 @@ class Burner(object):
   @staticmethod
   def StopInstanceOp(instance):
     """Stop given instance."""
-    return opcodes.OpShutdownInstance(instance_name=instance)
+    return opcodes.OpInstanceShutdown(instance_name=instance)
 
   @staticmethod
   def StartInstanceOp(instance):

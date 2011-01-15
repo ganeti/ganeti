@@ -718,7 +718,7 @@ def _ShutdownInstance(name, opts):
   @return: the opcode needed for the operation
 
   """
-  return opcodes.OpShutdownInstance(instance_name=name,
+  return opcodes.OpInstanceShutdown(instance_name=name,
                                     timeout=opts.timeout,
                                     ignore_offline_nodes=opts.ignore_offline)
 

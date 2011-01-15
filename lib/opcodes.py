@@ -838,7 +838,7 @@ class OpStartupInstance(OpCode):
     ]
 
 
-class OpShutdownInstance(OpCode):
+class OpInstanceShutdown(OpCode):
   """Shutdown an instance."""
   OP_ID = "OP_INSTANCE_SHUTDOWN"
   OP_DSC_FIELD = "instance_name"

@@ -366,7 +366,7 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
 
   def _Check(self, ops, name):
     expcls = [
-      opcodes.OpShutdownInstance,
+      opcodes.OpInstanceShutdown,
       opcodes.OpInstanceReinstall,
       opcodes.OpStartupInstance,
       ]

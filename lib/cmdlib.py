@@ -5124,7 +5124,7 @@ class LUInstanceReboot(LogicalUnit):
     self.cfg.MarkInstanceUp(instance.name)
 
 
-class LUShutdownInstance(LogicalUnit):
+class LUInstanceShutdown(LogicalUnit):
   """Shutdown an instance.
 
   """

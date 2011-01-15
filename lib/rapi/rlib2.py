@@ -1013,7 +1013,7 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    op = opcodes.OpShutdownInstance(instance_name=instance_name,
+    op = opcodes.OpInstanceShutdown(instance_name=instance_name,
                                     dry_run=bool(self.dryRun()))
 
     return baserlib.SubmitJob([op])
@@ -1032,7 +1032,7 @@ def _ParseInstanceReinstallRequest(name, data):
   osparams = baserlib.CheckParameter(data, "osparams", default=None)
 
   ops = [
-    opcodes.OpShutdownInstance(instance_name=name),
+    opcodes.OpInstanceShutdown(instance_name=name),
     opcodes.OpInstanceReinstall(instance_name=name, os_type=ostype,
                                 osparams=osparams),
     ]
