@@ -464,7 +464,7 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
     else:
       mode = self._checkStringVariable("mode", default=None)
 
-    op = opcodes.OpMigrateNode(node_name=node_name, mode=mode)
+    op = opcodes.OpNodeMigrate(node_name=node_name, mode=mode)
 
     return baserlib.SubmitJob([op])
 

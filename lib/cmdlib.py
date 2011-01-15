@@ -5912,7 +5912,7 @@ class LUInstanceMove(LogicalUnit):
                                  (instance.name, target_node, msg))
 
 
-class LUMigrateNode(LogicalUnit):
+class LUNodeMigrate(LogicalUnit):
   """Migrate all instances from a node.
 
   """

@@ -369,7 +369,7 @@ def MigrateNode(opts, args):
     mode = constants.HT_MIGRATION_NONLIVE
   else:
     mode = opts.migration_mode
-  op = opcodes.OpMigrateNode(node_name=args[0], mode=mode)
+  op = opcodes.OpNodeMigrate(node_name=args[0], mode=mode)
   SubmitOpCode(op, cl=cl, opts=opts)
 
 
