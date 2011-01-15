@@ -457,10 +457,10 @@ def VerifyDisks(opts, args):
   """
   cl = GetClient()
 
-  op = opcodes.OpVerifyDisks()
+  op = opcodes.OpClusterVerifyDisks()
   result = SubmitOpCode(op, opts=opts, cl=cl)
   if not isinstance(result, (list, tuple)) or len(result) != 3:
-    raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
+    raise errors.ProgrammerError("Unknown result type for OpClusterVerifyDisks")
 
   bad_nodes, instances, missing = result
 

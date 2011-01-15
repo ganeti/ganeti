@@ -416,7 +416,7 @@ class OpClusterVerify(OpCode):
     ]
 
 
-class OpVerifyDisks(OpCode):
+class OpClusterVerifyDisks(OpCode):
   """Verify the cluster disks.
 
   Parameters: none

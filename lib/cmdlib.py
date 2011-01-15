@@ -2381,7 +2381,7 @@ class LUClusterVerify(LogicalUnit):
       return lu_result
 
 
-class LUVerifyDisks(NoHooksLU):
+class LUClusterVerifyDisks(NoHooksLU):
   """Verifies the cluster disks status.
 
   """

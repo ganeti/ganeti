@@ -580,7 +580,7 @@ class Watcher(object):
     """Run gnt-cluster verify-disks.
 
     """
-    op = opcodes.OpVerifyDisks()
+    op = opcodes.OpClusterVerifyDisks()
     job_id = client.SubmitJob([op])
     result = cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)[0]
     client.ArchiveJob(job_id)
