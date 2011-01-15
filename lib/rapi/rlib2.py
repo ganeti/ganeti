@@ -551,14 +551,14 @@ class R_2_nodes_name_storage_repair(baserlib.R_Generic):
 def _ParseCreateGroupRequest(data, dry_run):
   """Parses a request for creating a node group.
 
-  @rtype: L{opcodes.OpAddGroup}
+  @rtype: L{opcodes.OpGroupAdd}
   @return: Group creation opcode
 
   """
   group_name = baserlib.CheckParameter(data, "name")
   alloc_policy = baserlib.CheckParameter(data, "alloc_policy", default=None)
 
-  return opcodes.OpAddGroup(group_name=group_name,
+  return opcodes.OpGroupAdd(group_name=group_name,
                             alloc_policy=alloc_policy,
                             dry_run=dry_run)
 

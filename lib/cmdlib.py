@@ -9916,7 +9916,7 @@ class LUBackupRemove(NoHooksLU):
                   " Domain Name.")
 
 
-class LUAddGroup(LogicalUnit):
+class LUGroupAdd(LogicalUnit):
   """Logical unit for creating node groups.
 
   """

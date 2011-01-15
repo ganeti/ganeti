@@ -45,7 +45,7 @@ def AddGroup(opts, args):
 
   """
   (group_name,) = args
-  op = opcodes.OpAddGroup(group_name=group_name, ndparams=opts.ndparams,
+  op = opcodes.OpGroupAdd(group_name=group_name, ndparams=opts.ndparams,
                           alloc_policy=opts.alloc_policy)
   SubmitOpCode(op, opts=opts)
 

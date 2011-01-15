@@ -1015,7 +1015,7 @@ class OpGrowDisk(OpCode):
 
 # Node group opcodes
 
-class OpAddGroup(OpCode):
+class OpGroupAdd(OpCode):
   """Add a node group to the cluster."""
   OP_ID = "OP_GROUP_ADD"
   OP_DSC_FIELD = "group_name"
