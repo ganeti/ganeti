@@ -1156,7 +1156,7 @@ class OpBackupRemove(OpCode):
 
 
 # Tags opcodes
-class OpGetTags(OpCode):
+class OpTagsGet(OpCode):
   """Returns the tags of the given object."""
   OP_ID = "OP_TAGS_GET"
   OP_DSC_FIELD = "name"

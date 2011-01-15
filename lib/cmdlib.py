@@ -10414,7 +10414,7 @@ class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
                                  str(self.op.kind), errors.ECODE_INVAL)
 
 
-class LUGetTags(TagsLU):
+class LUTagsGet(TagsLU):
   """Returns the tags of a given object.
 
   """

@@ -268,7 +268,7 @@ class TestQueuedOpCode(unittest.TestCase):
       self.assertEqual(op.priority, constants.OP_PRIO_HIGH)
       self.assertEqual(op.status, constants.OP_STATUS_QUEUED)
 
-    inpop = opcodes.OpGetTags(priority=constants.OP_PRIO_HIGH)
+    inpop = opcodes.OpTagsGet(priority=constants.OP_PRIO_HIGH)
     op1 = jqueue._QueuedOpCode(inpop)
     _Check(op1)
     op2 = jqueue._QueuedOpCode.Restore(op1.Serialize())
@@ -284,7 +284,7 @@ class TestQueuedJob(unittest.TestCase):
   def testDefaults(self):
     job_id = 4260
     ops = [
-      opcodes.OpGetTags(),
+      opcodes.OpTagsGet(),
       opcodes.OpTestDelay(),
       ]
 
@@ -314,7 +314,7 @@ class TestQueuedJob(unittest.TestCase):
   def testPriority(self):
     job_id = 4283
     ops = [
-      opcodes.OpGetTags(priority=constants.OP_PRIO_DEFAULT),
+      opcodes.OpTagsGet(priority=constants.OP_PRIO_DEFAULT),
       opcodes.OpTestDelay(),
       ]
 

@@ -324,7 +324,7 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_TAGS:
       kind, name = args
       logging.info("Received tags query request")
-      op = opcodes.OpGetTags(kind=kind, name=name)
+      op = opcodes.OpTagsGet(kind=kind, name=name)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_LOCKS:
