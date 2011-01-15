@@ -307,7 +307,7 @@ class ClientOps:
         raise errors.OpPrereqError("Sync queries are not allowed",
                                    errors.ECODE_INVAL)
       logging.info("Received exports query request")
-      op = opcodes.OpQueryExports(nodes=nodes, use_locking=use_locking)
+      op = opcodes.OpBackupQuery(nodes=nodes, use_locking=use_locking)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_CONFIG_VALUES:

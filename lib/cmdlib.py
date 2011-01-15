@@ -9494,7 +9494,7 @@ class LUSetInstanceParams(LogicalUnit):
     }
 
 
-class LUQueryExports(NoHooksLU):
+class LUBackupQuery(NoHooksLU):
   """Query the exports list
 
   """
@@ -9753,7 +9753,7 @@ class LUBackupExport(LogicalUnit):
     nodelist.remove(self.dst_node.name)
 
     # on one-node clusters nodelist will be empty after the removal
-    # if we proceed the backup would be removed because OpQueryExports
+    # if we proceed the backup would be removed because OpBackupQuery
     # substitutes an empty list with the full cluster node list.
     iname = self.instance.name
     if nodelist:

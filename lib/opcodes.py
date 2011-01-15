@@ -1089,7 +1089,7 @@ class OpDiagnoseOS(OpCode):
 
 
 # Exports opcodes
-class OpQueryExports(OpCode):
+class OpBackupQuery(OpCode):
   """Compute the list of exported images."""
   OP_ID = "OP_BACKUP_QUERY"
   OP_PARAMS = [
