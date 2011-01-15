@@ -254,9 +254,9 @@ def EvacuateNode(opts, args):
   dst_node = opts.dst_node
   iallocator = opts.iallocator
 
-  op = opcodes.OpNodeEvacuationStrategy(nodes=args,
-                                        iallocator=iallocator,
-                                        remote_node=dst_node)
+  op = opcodes.OpNodeEvacStrategy(nodes=args,
+                                  iallocator=iallocator,
+                                  remote_node=dst_node)
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
   if not result:

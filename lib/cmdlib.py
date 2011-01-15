@@ -8545,7 +8545,7 @@ class LURepairNodeStorage(NoHooksLU):
                  (self.op.name, self.op.node_name))
 
 
-class LUNodeEvacuationStrategy(NoHooksLU):
+class LUNodeEvacStrategy(NoHooksLU):
   """Computes the node evacuation strategy.
 
   """

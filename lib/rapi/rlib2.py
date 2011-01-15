@@ -420,9 +420,9 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
 
     cl = baserlib.GetClient()
 
-    op = opcodes.OpNodeEvacuationStrategy(nodes=[node_name],
-                                          iallocator=iallocator,
-                                          remote_node=remote_node)
+    op = opcodes.OpNodeEvacStrategy(nodes=[node_name],
+                                    iallocator=iallocator,
+                                    remote_node=remote_node)
 
     job_id = baserlib.SubmitJob([op], cl)
     # we use custom feedback function, instead of print we log the status

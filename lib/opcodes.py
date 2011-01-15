@@ -731,7 +731,7 @@ class OpMigrateNode(OpCode):
     ]
 
 
-class OpNodeEvacuationStrategy(OpCode):
+class OpNodeEvacStrategy(OpCode):
   """Compute the evacuation strategy for a list of nodes."""
   OP_ID = "OP_NODE_EVAC_STRATEGY"
   OP_DSC_FIELD = "nodes"
