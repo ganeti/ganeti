@@ -8589,7 +8589,7 @@ class LUNodeEvacuationStrategy(NoHooksLU):
     return result
 
 
-class LUGrowDisk(LogicalUnit):
+class LUInstanceGrowDisk(LogicalUnit):
   """Grow a disk of an instance.
 
   """

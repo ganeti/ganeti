@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -661,8 +661,9 @@ def GrowDisk(opts, args):
     raise errors.OpPrereqError("Invalid disk index: %s" % str(err),
                                errors.ECODE_INVAL)
   amount = utils.ParseUnit(args[2])
-  op = opcodes.OpGrowDisk(instance_name=instance, disk=disk, amount=amount,
-                          wait_for_sync=opts.wait_for_sync)
+  op = opcodes.OpInstanceGrowDisk(instance_name=instance,
+                                  disk=disk, amount=amount,
+                                  wait_for_sync=opts.wait_for_sync)
   SubmitOrSend(op, opts)
   return 0
 

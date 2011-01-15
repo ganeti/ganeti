@@ -1328,7 +1328,7 @@ class R_2_instances_name_disk_grow(baserlib.R_Generic):
     @return: a job id
 
     """
-    op = baserlib.FillOpcode(opcodes.OpGrowDisk, self.request_body, {
+    op = baserlib.FillOpcode(opcodes.OpInstanceGrowDisk, self.request_body, {
       "instance_name": self.items[0],
       "disk": int(self.items[1]),
       })

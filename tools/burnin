@@ -596,8 +596,8 @@ class Burner(object):
       Log("instance %s", instance, indent=1)
       for idx, growth in enumerate(self.disk_growth):
         if growth > 0:
-          op = opcodes.OpGrowDisk(instance_name=instance, disk=idx,
-                                  amount=growth, wait_for_sync=True)
+          op = opcodes.OpInstanceGrowDisk(instance_name=instance, disk=idx,
+                                          amount=growth, wait_for_sync=True)
           Log("increase disk/%s by %s MB", idx, growth, indent=2)
           self.ExecOrQueue(instance, [op])
 

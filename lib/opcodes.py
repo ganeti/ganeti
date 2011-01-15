@@ -1001,7 +1001,7 @@ class OpSetInstanceParams(OpCode):
     ]
 
 
-class OpGrowDisk(OpCode):
+class OpInstanceGrowDisk(OpCode):
   """Grow a disk of an instance."""
   OP_ID = "OP_INSTANCE_GROW_DISK"
   OP_DSC_FIELD = "instance_name"
