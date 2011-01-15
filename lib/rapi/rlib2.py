@@ -518,7 +518,7 @@ class R_2_nodes_name_storage_modify(baserlib.R_Generic):
       changes[constants.SF_ALLOCATABLE] = \
         bool(self._checkIntVariable("allocatable", default=1))
 
-    op = opcodes.OpModifyNodeStorage(node_name=node_name,
+    op = opcodes.OpNodeModifyStorage(node_name=node_name,
                                      storage_type=storage_type,
                                      name=name,
                                      changes=changes)

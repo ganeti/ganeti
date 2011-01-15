@@ -633,7 +633,7 @@ def ModifyStorage(opts, args):
     changes[constants.SF_ALLOCATABLE] = opts.allocatable
 
   if changes:
-    op = opcodes.OpModifyNodeStorage(node_name=node_name,
+    op = opcodes.OpNodeModifyStorage(node_name=node_name,
                                      storage_type=storage_type,
                                      name=volume_name,
                                      changes=changes)

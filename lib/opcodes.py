@@ -668,7 +668,7 @@ class OpQueryNodeStorage(OpCode):
     ]
 
 
-class OpModifyNodeStorage(OpCode):
+class OpNodeModifyStorage(OpCode):
   """Modifies the properies of a storage unit"""
   OP_ID = "OP_NODE_MODIFY_STORAGE"
   OP_PARAMS = [

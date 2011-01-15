@@ -3887,7 +3887,7 @@ class LUQueryFields(NoHooksLU):
     return self.qcls.FieldsQuery(self.op.fields)
 
 
-class LUModifyNodeStorage(NoHooksLU):
+class LUNodeModifyStorage(NoHooksLU):
   """Logical unit for modifying a storage volume on a node.
 
   """
