@@ -409,7 +409,7 @@ def BatchCreate(opts, args):
     elif not tmp_nics:
       tmp_nics = [{}]
 
-    op = opcodes.OpCreateInstance(instance_name=name,
+    op = opcodes.OpInstanceCreate(instance_name=name,
                                   disks=disks,
                                   disk_template=specs['template'],
                                   mode=constants.INSTANCE_CREATE,

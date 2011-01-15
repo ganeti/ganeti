@@ -317,7 +317,7 @@ Workflow
    instance move with the key received from the source cluster and
    receives the public part of the destination's encryption key
 
-   - The current API to create instances (``OpCreateInstance``) will be
+   - The current API to create instances (``OpInstanceCreate``) will be
      extended to support an import from a remote cluster.
    - A valid, unexpired X509 certificate signed with the destination
      cluster's secret will be required. By verifying the signature, we
@@ -725,7 +725,7 @@ unless the hidden state is requested.
 
 For the blacklisted OSes, they are also not shown (unless the
 blacklisted state is requested), and they are also prevented from
-installation via ``OpCreateInstance`` (in create mode).
+installation via ``OpInstanceCreate`` (in create mode).
 
 Both these attributes are per-OS, not per-variant. Thus they apply to
 all of an OS' variants, and it's impossible to blacklist or hide just

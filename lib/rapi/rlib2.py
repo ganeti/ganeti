@@ -707,7 +707,7 @@ class R_2_groups_name_assign_nodes(baserlib.R_Generic):
 def _ParseInstanceCreateRequestVersion1(data, dry_run):
   """Parses an instance creation request version 1.
 
-  @rtype: L{opcodes.OpCreateInstance}
+  @rtype: L{opcodes.OpInstanceCreate}
   @return: Instance creation opcode
 
   """
@@ -769,7 +769,7 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
   beparams = baserlib.CheckParameter(data, "beparams", default={})
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
 
-  return opcodes.OpCreateInstance(
+  return opcodes.OpInstanceCreate(
     mode=baserlib.CheckParameter(data, "mode"),
     instance_name=baserlib.CheckParameter(data, "name"),
     os_type=baserlib.CheckParameter(data, "os"),
@@ -831,7 +831,7 @@ class R_2_instances(baserlib.R_Generic):
 
     Request data version 0 is deprecated and should not be used anymore.
 
-    @rtype: L{opcodes.OpCreateInstance}
+    @rtype: L{opcodes.OpInstanceCreate}
     @return: Instance creation opcode
 
     """
@@ -865,7 +865,7 @@ class R_2_instances(baserlib.R_Generic):
       nics[0]["bridge"] = fn("bridge")
 
     # Do not modify anymore, request data version 0 is deprecated
-    return opcodes.OpCreateInstance(
+    return opcodes.OpInstanceCreate(
       mode=constants.INSTANCE_CREATE,
       instance_name=fn('name'),
       disks=disks,

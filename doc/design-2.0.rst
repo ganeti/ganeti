@@ -961,7 +961,7 @@ Opcode changes
 The parameter changes will have impact on the OpCodes, especially on
 the following ones:
 
-- ``OpCreateInstance``, where the new hv and be parameters will be sent
+- ``OpInstanceCreate``, where the new hv and be parameters will be sent
   as dictionaries; note that all hv and be parameters are now optional,
   as the values can be instead taken from the cluster
 - ``OpQueryInstances``, where we have to be able to query these new

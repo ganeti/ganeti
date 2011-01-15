@@ -118,7 +118,7 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
 
                 for dry_run in [False, True]:
                   op = self.Parse(data, dry_run)
-                  self.assert_(isinstance(op, opcodes.OpCreateInstance))
+                  self.assert_(isinstance(op, opcodes.OpInstanceCreate))
                   self.assertEqual(op.mode, mode)
                   self.assertEqual(op.disk_template, disk_template)
                   self.assertEqual(op.dry_run, dry_run)

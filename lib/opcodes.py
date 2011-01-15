@@ -744,7 +744,7 @@ class OpNodeEvacuationStrategy(OpCode):
 
 # instance opcodes
 
-class OpCreateInstance(OpCode):
+class OpInstanceCreate(OpCode):
   """Create an instance.
 
   @ivar instance_name: Instance name

@@ -6775,7 +6775,7 @@ def _CheckOSParams(lu, required, nodenames, osname, osparams):
                  osname, node)
 
 
-class LUCreateInstance(LogicalUnit):
+class LUInstanceCreate(LogicalUnit):
   """Create an instance.
 
   """

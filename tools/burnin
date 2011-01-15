@@ -564,7 +564,7 @@ class Burner(object):
 
       Log(msg, indent=2)
 
-      op = opcodes.OpCreateInstance(instance_name=instance,
+      op = opcodes.OpInstanceCreate(instance_name=instance,
                                     disks = [ {"size": size}
                                               for size in self.disk_size],
                                     disk_template=self.opts.disk_template,
@@ -718,7 +718,7 @@ class Burner(object):
       rem_op = opcodes.OpRemoveInstance(instance_name=instance,
                                         ignore_failures=True)
       imp_dir = utils.PathJoin(constants.EXPORT_DIR, full_name)
-      imp_op = opcodes.OpCreateInstance(instance_name=instance,
+      imp_op = opcodes.OpInstanceCreate(instance_name=instance,
                                         disks = [ {"size": size}
                                                   for size in self.disk_size],
                                         disk_template=self.opts.disk_template,

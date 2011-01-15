@@ -2054,7 +2054,7 @@ def GenericInstanceCreate(mode, opts, args):
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
-  op = opcodes.OpCreateInstance(instance_name=instance,
+  op = opcodes.OpInstanceCreate(instance_name=instance,
                                 disks=disks,
                                 disk_template=opts.disk_template,
                                 nics=nics,
