@@ -1047,7 +1047,7 @@ class OpGroupQuery(OpCode):
     ]
 
 
-class OpSetGroupParams(OpCode):
+class OpGroupSetParams(OpCode):
   """Change the parameters of a node group."""
   OP_ID = "OP_GROUP_SET_PARAMS"
   OP_DSC_FIELD = "group_name"

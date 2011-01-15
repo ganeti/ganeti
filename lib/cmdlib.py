@@ -10182,7 +10182,7 @@ class LUGroupQuery(NoHooksLU):
     return self.gq.OldStyleQuery(self)
 
 
-class LUSetGroupParams(LogicalUnit):
+class LUGroupSetParams(LogicalUnit):
   """Modifies the parameters of a node group.
 
   """

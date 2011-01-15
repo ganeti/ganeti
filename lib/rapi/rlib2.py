@@ -623,12 +623,12 @@ class R_2_groups_name(baserlib.R_Generic):
 def _ParseModifyGroupRequest(name, data):
   """Parses a request for modifying a node group.
 
-  @rtype: L{opcodes.OpSetGroupParams}
+  @rtype: L{opcodes.OpGroupSetParams}
   @return: Group modify opcode
 
   """
   alloc_policy = baserlib.CheckParameter(data, "alloc_policy", default=None)
-  return opcodes.OpSetGroupParams(group_name=name, alloc_policy=alloc_policy)
+  return opcodes.OpGroupSetParams(group_name=name, alloc_policy=alloc_policy)
 
 
 class R_2_groups_name_modify(baserlib.R_Generic):

@@ -138,7 +138,7 @@ def SetGroupParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  op = opcodes.OpSetGroupParams(group_name=args[0], # pylint: disable-msg=W0142
+  op = opcodes.OpGroupSetParams(group_name=args[0], # pylint: disable-msg=W0142
                                 **all_changes)
   result = SubmitOrSend(op, opts)
 
