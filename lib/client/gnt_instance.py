@@ -761,10 +761,10 @@ def ReplaceDisks(opts, args):
     # replace secondary
     mode = constants.REPLACE_DISK_CHG
 
-  op = opcodes.OpReplaceDisks(instance_name=args[0], disks=disks,
-                              remote_node=new_2ndary, mode=mode,
-                              iallocator=iallocator,
-                              early_release=opts.early_release)
+  op = opcodes.OpInstanceReplaceDisks(instance_name=args[0], disks=disks,
+                                      remote_node=new_2ndary, mode=mode,
+                                      iallocator=iallocator,
+                                      early_release=opts.early_release)
   SubmitOrSend(op, opts)
   return 0
 

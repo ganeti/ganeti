@@ -433,10 +433,10 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
       if dry_run:
         jid = None
       else:
-        op = opcodes.OpReplaceDisks(instance_name=iname,
-                                    remote_node=node, disks=[],
-                                    mode=constants.REPLACE_DISK_CHG,
-                                    early_release=early_r)
+        op = opcodes.OpInstanceReplaceDisks(instance_name=iname,
+                                            remote_node=node, disks=[],
+                                            mode=constants.REPLACE_DISK_CHG,
+                                            early_release=early_r)
         jid = baserlib.SubmitJob([op])
       jobs.append((jid, iname, node))
 
@@ -1098,11 +1098,11 @@ class R_2_instances_name_replace_disks(baserlib.R_Generic):
     else:
       disks = []
 
-    op = opcodes.OpReplaceDisks(instance_name=instance_name,
-                                remote_node=remote_node,
-                                mode=mode,
-                                disks=disks,
-                                iallocator=iallocator)
+    op = opcodes.OpInstanceReplaceDisks(instance_name=instance_name,
+                                        remote_node=remote_node,
+                                        mode=mode,
+                                        disks=disks,
+                                        iallocator=iallocator)
 
     return baserlib.SubmitJob([op])
 

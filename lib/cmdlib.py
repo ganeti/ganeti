@@ -7745,7 +7745,7 @@ class LUInstanceConsole(NoHooksLU):
     return console.ToDict()
 
 
-class LUReplaceDisks(LogicalUnit):
+class LUInstanceReplaceDisks(LogicalUnit):
   """Replace the disks of an instance.
 
   """

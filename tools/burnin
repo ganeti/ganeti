@@ -605,14 +605,15 @@ class Burner(object):
   def BurnReplaceDisks1D8(self):
     """Replace disks on primary and secondary for drbd8."""
     Log("Replacing disks on the same nodes")
+    early_release = self.opts.early_release
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
       ops = []
       for mode in constants.REPLACE_DISK_SEC, constants.REPLACE_DISK_PRI:
-        op = opcodes.OpReplaceDisks(instance_name=instance,
-                                    mode=mode,
-                                    disks=[i for i in range(self.disk_count)],
-                                    early_release=self.opts.early_release)
+        op = opcodes.OpInstanceReplaceDisks(instance_name=instance,
+                                            mode=mode,
+                                            disks=list(range(self.disk_count)),
+                                            early_release=early_release)
         Log("run %s", mode, indent=2)
         ops.append(op)
       self.ExecOrQueue(instance, ops)
@@ -632,12 +633,12 @@ class Burner(object):
         msg = "with iallocator %s" % self.opts.iallocator
       else:
         msg = tnode
-      op = opcodes.OpReplaceDisks(instance_name=instance,
-                                  mode=mode,
-                                  remote_node=tnode,
-                                  iallocator=self.opts.iallocator,
-                                  disks=[],
-                                  early_release=self.opts.early_release)
+      op = opcodes.OpInstanceReplaceDisks(instance_name=instance,
+                                          mode=mode,
+                                          remote_node=tnode,
+                                          iallocator=self.opts.iallocator,
+                                          disks=[],
+                                          early_release=self.opts.early_release)
       Log("run %s %s", mode, msg, indent=2)
       self.ExecOrQueue(instance, [op])
 

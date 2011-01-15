@@ -861,7 +861,7 @@ class OpInstanceReboot(OpCode):
     ]
 
 
-class OpReplaceDisks(OpCode):
+class OpInstanceReplaceDisks(OpCode):
   """Replace the disks of an instance."""
   OP_ID = "OP_INSTANCE_REPLACE_DISKS"
   OP_DSC_FIELD = "instance_name"

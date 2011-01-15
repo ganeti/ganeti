@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -275,10 +275,10 @@ def EvacuateNode(opts, args):
     iname = row[0]
     node = row[1]
     ToStdout("Will relocate instance %s to node %s", iname, node)
-    op = opcodes.OpReplaceDisks(instance_name=iname,
-                                remote_node=node, disks=[],
-                                mode=constants.REPLACE_DISK_CHG,
-                                early_release=opts.early_release)
+    op = opcodes.OpInstanceReplaceDisks(instance_name=iname,
+                                        remote_node=node, disks=[],
+                                        mode=constants.REPLACE_DISK_CHG,
+                                        early_release=opts.early_release)
     jex.QueueJob(iname, op)
   results = jex.GetResults()
   bad_cnt = len([row for row in results if not row[0]])
