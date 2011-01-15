@@ -217,7 +217,7 @@ def RedistributeConfig(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpRedistributeConfig()
+  op = opcodes.OpClusterRedistConf()
   SubmitOrSend(op, opts)
   return 0
 

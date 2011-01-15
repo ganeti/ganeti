@@ -531,7 +531,7 @@ class OpSetClusterParams(OpCode):
     ]
 
 
-class OpRedistributeConfig(OpCode):
+class OpClusterRedistConf(OpCode):
   """Force a full push of the cluster configuration.
 
   """

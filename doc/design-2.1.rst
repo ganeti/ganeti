@@ -580,7 +580,7 @@ Redistribute Config
 Current State and shortcomings
 ++++++++++++++++++++++++++++++
 
-Currently LURedistributeConfig triggers a copy of the updated
+Currently LUClusterRedistConf triggers a copy of the updated
 configuration file to all master candidates and of the ssconf files to
 all nodes. There are other files which are maintained manually but which
 are important to keep in sync. These are:

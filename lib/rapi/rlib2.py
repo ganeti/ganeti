@@ -185,7 +185,7 @@ class R_2_redist_config(baserlib.R_Generic):
     """Redistribute configuration to all nodes.
 
     """
-    return baserlib.SubmitJob([opcodes.OpRedistributeConfig()])
+    return baserlib.SubmitJob([opcodes.OpClusterRedistConf()])
 
 
 class R_2_cluster_modify(baserlib.R_Generic):

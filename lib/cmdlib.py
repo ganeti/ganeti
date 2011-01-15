@@ -3044,7 +3044,7 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
     _UploadHelper(lu, vm_nodes, fname)
 
 
-class LURedistributeConfig(NoHooksLU):
+class LUClusterRedistConf(NoHooksLU):
   """Force the redistribution of cluster configuration.
 
   This is a very simple LU.
