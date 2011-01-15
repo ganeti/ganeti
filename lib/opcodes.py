@@ -381,7 +381,7 @@ class OpPostInitCluster(OpCode):
   OP_ID = "OP_CLUSTER_POST_INIT"
 
 
-class OpDestroyCluster(OpCode):
+class OpClusterDestroy(OpCode):
   """Destroy the cluster.
 
   This opcode has no other parameters. All the state is irreversibly

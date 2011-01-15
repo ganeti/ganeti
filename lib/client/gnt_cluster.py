@@ -166,7 +166,7 @@ def DestroyCluster(opts, args):
              " destroy this cluster, supply the --yes-do-it option.")
     return 1
 
-  op = opcodes.OpDestroyCluster()
+  op = opcodes.OpClusterDestroy()
   master = SubmitOpCode(op, opts=opts)
   # if we reached this, the opcode didn't fail; we can proceed to
   # shutdown all the daemons

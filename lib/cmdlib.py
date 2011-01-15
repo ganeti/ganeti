@@ -1111,7 +1111,7 @@ class LUPostInitCluster(LogicalUnit):
     return True
 
 
-class LUDestroyCluster(LogicalUnit):
+class LUClusterDestroy(LogicalUnit):
   """Logical unit for destroying the cluster.
 
   """
