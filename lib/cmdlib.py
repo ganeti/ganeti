@@ -4582,7 +4582,7 @@ class LUQueryClusterInfo(NoHooksLU):
     return result
 
 
-class LUQueryConfigValues(NoHooksLU):
+class LUClusterConfigQuery(NoHooksLU):
   """Return configuration values.
 
   """

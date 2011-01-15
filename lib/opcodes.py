@@ -462,7 +462,7 @@ class OpRepairDiskSizes(OpCode):
     ]
 
 
-class OpQueryConfigValues(OpCode):
+class OpClusterConfigQuery(OpCode):
   """Query cluster configuration values."""
   OP_ID = "OP_CLUSTER_CONFIG_QUERY"
   OP_PARAMS = [

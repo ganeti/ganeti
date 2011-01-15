@@ -313,7 +313,7 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_CONFIG_VALUES:
       fields = args
       logging.info("Received config values query request for %s", fields)
-      op = opcodes.OpQueryConfigValues(output_fields=fields)
+      op = opcodes.OpClusterConfigQuery(output_fields=fields)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_CLUSTER_INFO:
