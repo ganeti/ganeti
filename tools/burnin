@@ -694,8 +694,8 @@ class Burner(object):
     for pnode, snode, enode, instance in mytor:
       Log("instance %s", instance, indent=1)
       # read the full name of the instance
-      nam_op = opcodes.OpQueryInstances(output_fields=["name"],
-                                        names=[instance], use_locking=True)
+      nam_op = opcodes.OpInstanceQuery(output_fields=["name"],
+                                       names=[instance], use_locking=True)
       full_name = self.ExecOp(False, nam_op)[0][0]
 
       if self.opts.iallocator:

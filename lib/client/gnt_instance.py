@@ -195,7 +195,7 @@ def _EnsureInstancesExist(client, names):
   @raise errors.OpPrereqError: in case any instance is missing
 
   """
-  # TODO: change LUQueryInstances to that it actually returns None
+  # TODO: change LUInstanceQuery to that it actually returns None
   # instead of raising an exception, or devise a better mechanism
   result = client.QueryInstances(names, ["name"], False)
   for orig_name, row in zip(names, result):

@@ -167,7 +167,7 @@ Version 2.3.0 rc0
 - Ignore failures while shutting down instances during failover from
   offline node
 - Exit daemon's bootstrap process only once daemon is ready
-- Export more information via ``LUQueryInstances``/remote API
+- Export more information via ``LUInstanceQuery``/remote API
 - Improved documentation, QA and unittests
 - RAPI daemon now watches ``rapi_users`` all the time and doesn't need a
   restart if the file was created or changed

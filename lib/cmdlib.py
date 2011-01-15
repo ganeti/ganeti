@@ -5520,7 +5520,7 @@ def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   lu.remove_locks[locking.LEVEL_INSTANCE] = instance.name
 
 
-class LUQueryInstances(NoHooksLU):
+class LUInstanceQuery(NoHooksLU):
   """Logical unit for querying instances.
 
   """

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -415,8 +415,8 @@ def GetClusterData():
 
   """
   op1_fields = ["name", "status", "admin_state", "snodes"]
-  op1 = opcodes.OpQueryInstances(output_fields=op1_fields, names=[],
-                                 use_locking=True)
+  op1 = opcodes.OpInstanceQuery(output_fields=op1_fields, names=[],
+                                use_locking=True)
   op2_fields = ["name", "bootid", "offline"]
   op2 = opcodes.OpQueryNodes(output_fields=op2_fields, names=[],
                              use_locking=True)

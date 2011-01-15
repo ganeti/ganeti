@@ -963,7 +963,7 @@ class OpRecreateInstanceDisks(OpCode):
     ]
 
 
-class OpQueryInstances(OpCode):
+class OpInstanceQuery(OpCode):
   """Compute the list of instances."""
   OP_ID = "OP_INSTANCE_QUERY"
   OP_PARAMS = [
