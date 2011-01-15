@@ -791,7 +791,7 @@ class OpInstanceCreate(OpCode):
     ]
 
 
-class OpReinstallInstance(OpCode):
+class OpInstanceReinstall(OpCode):
   """Reinstall an instance's OS."""
   OP_ID = "OP_INSTANCE_REINSTALL"
   OP_DSC_FIELD = "instance_name"

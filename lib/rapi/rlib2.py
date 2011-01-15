@@ -1033,7 +1033,7 @@ def _ParseInstanceReinstallRequest(name, data):
 
   ops = [
     opcodes.OpShutdownInstance(instance_name=name),
-    opcodes.OpReinstallInstance(instance_name=name, os_type=ostype,
+    opcodes.OpInstanceReinstall(instance_name=name, os_type=ostype,
                                 osparams=osparams),
     ]
 

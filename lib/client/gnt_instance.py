@@ -504,7 +504,7 @@ def ReinstallInstance(opts, args):
 
   jex = JobExecutor(verbose=multi_on, opts=opts)
   for instance_name in inames:
-    op = opcodes.OpReinstallInstance(instance_name=instance_name,
+    op = opcodes.OpInstanceReinstall(instance_name=instance_name,
                                      os_type=os_name,
                                      force_variant=opts.force_variant,
                                      osparams=opts.osparams)

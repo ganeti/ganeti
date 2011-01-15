@@ -5186,7 +5186,7 @@ class LUShutdownInstance(LogicalUnit):
       _ShutdownInstanceDisks(self, instance)
 
 
-class LUReinstallInstance(LogicalUnit):
+class LUInstanceReinstall(LogicalUnit):
   """Reinstall an instance.
 
   """

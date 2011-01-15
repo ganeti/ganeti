@@ -815,9 +815,9 @@ class Burner(object):
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
       op1 = self.StopInstanceOp(instance)
-      op2 = opcodes.OpReinstallInstance(instance_name=instance)
+      op2 = opcodes.OpInstanceReinstall(instance_name=instance)
       Log("reinstall without passing the OS", indent=2)
-      op3 = opcodes.OpReinstallInstance(instance_name=instance,
+      op3 = opcodes.OpInstanceReinstall(instance_name=instance,
                                         os_type=self.opts.os)
       Log("reinstall specifying the OS", indent=2)
       op4 = self.StartInstanceOp(instance)
