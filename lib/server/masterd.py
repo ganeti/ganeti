@@ -318,7 +318,7 @@ class ClientOps:
 
     elif method == luxi.REQ_QUERY_CLUSTER_INFO:
       logging.info("Received cluster info query request")
-      op = opcodes.OpQueryClusterInfo()
+      op = opcodes.OpClusterQuery()
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_TAGS:

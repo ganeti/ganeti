@@ -4516,7 +4516,7 @@ class LUPowercycleNode(NoHooksLU):
     return result.payload
 
 
-class LUQueryClusterInfo(NoHooksLU):
+class LUClusterQuery(NoHooksLU):
   """Query cluster configuration.
 
   """

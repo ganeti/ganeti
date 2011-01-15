@@ -391,7 +391,7 @@ class OpClusterDestroy(OpCode):
   OP_ID = "OP_CLUSTER_DESTROY"
 
 
-class OpQueryClusterInfo(OpCode):
+class OpClusterQuery(OpCode):
   """Query cluster information."""
   OP_ID = "OP_CLUSTER_QUERY"
 
