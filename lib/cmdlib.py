@@ -1838,7 +1838,7 @@ class LUVerifyCluster(LogicalUnit):
     node = ninfo.name
     # We just have to verify the paths on master and/or master candidates
     # as the oob helper is invoked on the master
-    if ((ninfo.master_candidate or ninfo.master) and
+    if ((ninfo.master_candidate or ninfo.master_capable) and
         constants.NV_OOB_PATHS in nresult):
       for path_result in nresult[constants.NV_OOB_PATHS]:
         self._ErrorIf(path_result, self.ENODEOOBPATH, node, path_result)
