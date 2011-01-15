@@ -198,7 +198,7 @@ class R_2_cluster_modify(baserlib.R_Generic):
     @return: a job id
 
     """
-    op = baserlib.FillOpcode(opcodes.OpSetClusterParams, self.request_body,
+    op = baserlib.FillOpcode(opcodes.OpClusterSetParams, self.request_body,
                              None)
 
     return baserlib.SubmitJob([op])

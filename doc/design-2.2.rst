@@ -716,7 +716,7 @@ hidden from the user and respectively the list of OSes which are
 blacklisted from new installations.
 
 These lists will be modifiable via ``gnt-os modify`` (implemented via
-``OpSetClusterParams``), such that even not-yet-existing OSes can be
+``OpClusterSetParams``), such that even not-yet-existing OSes can be
 preseeded into a given state.
 
 For the hidden OSes, they are fully functional except that they are not

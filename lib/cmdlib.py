@@ -2649,7 +2649,7 @@ class LUClusterRename(LogicalUnit):
     return clustername
 
 
-class LUSetClusterParams(LogicalUnit):
+class LUClusterSetParams(LogicalUnit):
   """Change the parameters of the cluster.
 
   """

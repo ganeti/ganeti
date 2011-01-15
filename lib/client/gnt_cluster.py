@@ -789,7 +789,7 @@ def SetClusterParams(opts, args):
     else:
       opts.reserved_lvs = utils.UnescapeAndSplit(opts.reserved_lvs, sep=",")
 
-  op = opcodes.OpSetClusterParams(vg_name=vg_name,
+  op = opcodes.OpClusterSetParams(vg_name=vg_name,
                                   drbd_helper=drbd_helper,
                                   enabled_hypervisors=hvlist,
                                   hvparams=hvparams,

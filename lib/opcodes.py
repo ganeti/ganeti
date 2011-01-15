@@ -486,7 +486,7 @@ class OpClusterRename(OpCode):
     ]
 
 
-class OpSetClusterParams(OpCode):
+class OpClusterSetParams(OpCode):
   """Change the parameters of the cluster.
 
   @type vg_name: C{str} or C{None}

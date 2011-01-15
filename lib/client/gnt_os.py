@@ -269,7 +269,7 @@ def ModifyOS(opts, args):
              " must be passed")
     return 1
 
-  op = opcodes.OpSetClusterParams(os_hvp=os_hvp,
+  op = opcodes.OpClusterSetParams(os_hvp=os_hvp,
                                   osparams=osp,
                                   hidden_os=ohid,
                                   blacklisted_os=oblk)
