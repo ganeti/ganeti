@@ -1167,7 +1167,7 @@ class OpTagsGet(OpCode):
     ]
 
 
-class OpSearchTags(OpCode):
+class OpTagsSearch(OpCode):
   """Searches the tags in the cluster for a given pattern."""
   OP_ID = "OP_TAGS_SEARCH"
   OP_DSC_FIELD = "pattern"

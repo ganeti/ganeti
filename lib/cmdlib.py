@@ -10433,7 +10433,7 @@ class LUTagsGet(TagsLU):
     return list(self.target.GetTags())
 
 
-class LUSearchTags(NoHooksLU):
+class LUTagsSearch(NoHooksLU):
   """Searches the tags for a given pattern.
 
   """

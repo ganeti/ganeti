@@ -578,7 +578,7 @@ def SearchTags(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpSearchTags(pattern=args[0])
+  op = opcodes.OpTagsSearch(pattern=args[0])
   result = SubmitOpCode(op, opts=opts)
   if not result:
     return 1
