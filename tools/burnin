@@ -648,7 +648,7 @@ class Burner(object):
     Log("Failing over instances")
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
-      op = opcodes.OpFailoverInstance(instance_name=instance,
+      op = opcodes.OpInstanceFailover(instance_name=instance,
                                       ignore_consistency=False)
       self.ExecOrQueue(instance, [op])
 

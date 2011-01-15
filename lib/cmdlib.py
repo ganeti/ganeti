@@ -5541,7 +5541,7 @@ class LUQueryInstances(NoHooksLU):
     return self.iq.OldStyleQuery(self)
 
 
-class LUFailoverInstance(LogicalUnit):
+class LUInstanceFailover(LogicalUnit):
   """Failover an instance.
 
   """

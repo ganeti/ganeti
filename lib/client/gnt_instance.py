@@ -794,7 +794,7 @@ def FailoverInstance(opts, args):
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpFailoverInstance(instance_name=instance_name,
+  op = opcodes.OpInstanceFailover(instance_name=instance_name,
                                   ignore_consistency=opts.ignore_consistency,
                                   shutdown_timeout=opts.shutdown_timeout)
   SubmitOrSend(op, opts, cl=cl)

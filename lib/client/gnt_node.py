@@ -326,7 +326,7 @@ def FailoverNode(opts, args):
 
   jex = JobExecutor(cl=cl, opts=opts)
   for iname in pinst:
-    op = opcodes.OpFailoverInstance(instance_name=iname,
+    op = opcodes.OpInstanceFailover(instance_name=iname,
                                     ignore_consistency=opts.ignore_consistency)
     jex.QueueJob(iname, op)
   results = jex.GetResults()

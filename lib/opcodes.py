@@ -875,7 +875,7 @@ class OpReplaceDisks(OpCode):
     ]
 
 
-class OpFailoverInstance(OpCode):
+class OpInstanceFailover(OpCode):
   """Failover an instance."""
   OP_ID = "OP_INSTANCE_FAILOVER"
   OP_DSC_FIELD = "instance_name"
