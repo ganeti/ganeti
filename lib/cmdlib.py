@@ -2571,7 +2571,7 @@ class LURepairDiskSizes(NoHooksLU):
     return changed
 
 
-class LURenameCluster(LogicalUnit):
+class LUClusterRename(LogicalUnit):
   """Rename the cluster.
 
   """

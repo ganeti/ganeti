@@ -198,7 +198,7 @@ def RenameCluster(opts, args):
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpRenameCluster(name=new_name)
+  op = opcodes.OpClusterRename(name=new_name)
   result = SubmitOpCode(op, opts=opts, cl=cl)
 
   if result:

@@ -470,7 +470,7 @@ class OpClusterConfigQuery(OpCode):
     ]
 
 
-class OpRenameCluster(OpCode):
+class OpClusterRename(OpCode):
   """Rename the cluster.
 
   @type name: C{str}
