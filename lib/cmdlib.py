@@ -5737,7 +5737,7 @@ class LUInstanceMigrate(LogicalUnit):
     return env, nl, nl_post
 
 
-class LUMoveInstance(LogicalUnit):
+class LUInstanceMove(LogicalUnit):
   """Move an instance by data-copying.
 
   """

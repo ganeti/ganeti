@@ -906,7 +906,7 @@ class OpInstanceMigrate(OpCode):
     ]
 
 
-class OpMoveInstance(OpCode):
+class OpInstanceMove(OpCode):
   """Move an instance.
 
   This move (with shutting down an instance and data copying) to an

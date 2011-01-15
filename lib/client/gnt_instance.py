@@ -870,7 +870,7 @@ def MoveInstance(opts, args):
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpMoveInstance(instance_name=instance_name,
+  op = opcodes.OpInstanceMove(instance_name=instance_name,
                               target_node=opts.node,
                               shutdown_timeout=opts.shutdown_timeout)
   SubmitOrSend(op, opts, cl=cl)
