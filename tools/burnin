@@ -502,8 +502,8 @@ class Burner(object):
     else:
       names = []
     try:
-      op = opcodes.OpQueryNodes(output_fields=["name", "offline", "drained"],
-                                names=names, use_locking=True)
+      op = opcodes.OpNodeQuery(output_fields=["name", "offline", "drained"],
+                               names=names, use_locking=True)
       result = self.ExecOp(True, op)
     except errors.GenericError, err:
       err_code, msg = cli.FormatError(err)

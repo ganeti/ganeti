@@ -288,8 +288,8 @@ class ClientOps:
       if use_locking:
         raise errors.OpPrereqError("Sync queries are not allowed",
                                    errors.ECODE_INVAL)
-      op = opcodes.OpQueryNodes(names=names, output_fields=fields,
-                                use_locking=use_locking)
+      op = opcodes.OpNodeQuery(names=names, output_fields=fields,
+                               use_locking=use_locking)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_GROUPS:

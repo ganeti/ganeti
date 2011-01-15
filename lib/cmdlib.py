@@ -3598,7 +3598,7 @@ class _NodeQuery(_QueryBase):
                                oob_support, lu.cfg.GetClusterInfo())
 
 
-class LUQueryNodes(NoHooksLU):
+class LUNodeQuery(NoHooksLU):
   """Logical unit for querying nodes.
 
   """

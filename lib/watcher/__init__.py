@@ -418,8 +418,8 @@ def GetClusterData():
   op1 = opcodes.OpInstanceQuery(output_fields=op1_fields, names=[],
                                 use_locking=True)
   op2_fields = ["name", "bootid", "offline"]
-  op2 = opcodes.OpQueryNodes(output_fields=op2_fields, names=[],
-                             use_locking=True)
+  op2 = opcodes.OpNodeQuery(output_fields=op2_fields, names=[],
+                            use_locking=True)
 
   job_id = client.SubmitJob([op1, op2])
 

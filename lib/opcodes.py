@@ -638,7 +638,7 @@ class OpNodeAdd(OpCode):
     ]
 
 
-class OpQueryNodes(OpCode):
+class OpNodeQuery(OpCode):
   """Compute the list of nodes."""
   OP_ID = "OP_NODE_QUERY"
   OP_PARAMS = [
