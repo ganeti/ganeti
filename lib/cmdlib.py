@@ -9530,7 +9530,7 @@ class LUQueryExports(NoHooksLU):
     return result
 
 
-class LUPrepareExport(NoHooksLU):
+class LUBackupPrepare(NoHooksLU):
   """Prepares an instance for an export and returns useful information.
 
   """

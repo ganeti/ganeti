@@ -246,7 +246,7 @@ def TestInstance(instance):
      _VerifyReturnsJob, 'PUT', None),
     ])
 
-  # Test OpPrepareExport
+  # Test OpBackupPrepare
   (job_id, ) = _DoTests([
     ("/2/instances/%s/prepare-export?mode=%s" %
      (instance["name"], constants.EXPORT_MODE_REMOTE),

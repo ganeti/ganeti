@@ -1098,7 +1098,7 @@ class OpQueryExports(OpCode):
     ]
 
 
-class OpPrepareExport(OpCode):
+class OpBackupPrepare(OpCode):
   """Prepares an instance export.
 
   @ivar instance_name: Instance name

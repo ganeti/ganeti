@@ -1154,7 +1154,7 @@ class R_2_instances_name_prepare_export(baserlib.R_Generic):
     instance_name = self.items[0]
     mode = self._checkStringVariable("mode")
 
-    op = opcodes.OpPrepareExport(instance_name=instance_name,
+    op = opcodes.OpBackupPrepare(instance_name=instance_name,
                                  mode=mode)
 
     return baserlib.SubmitJob([op])
