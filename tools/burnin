@@ -715,7 +715,7 @@ class Burner(object):
                                       target_node=enode,
                                       mode=constants.EXPORT_MODE_LOCAL,
                                       shutdown=True)
-      rem_op = opcodes.OpRemoveInstance(instance_name=instance,
+      rem_op = opcodes.OpInstanceRemove(instance_name=instance,
                                         ignore_failures=True)
       imp_dir = utils.PathJoin(constants.EXPORT_DIR, full_name)
       imp_op = opcodes.OpInstanceCreate(instance_name=instance,
@@ -781,7 +781,7 @@ class Burner(object):
     Log("Removing instances")
     for instance in self.to_rem:
       Log("instance %s", instance, indent=1)
-      op = opcodes.OpRemoveInstance(instance_name=instance,
+      op = opcodes.OpInstanceRemove(instance_name=instance,
                                     ignore_failures=True)
       self.ExecOrQueue(instance, [op])
 

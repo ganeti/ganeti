@@ -803,7 +803,7 @@ class OpInstanceReinstall(OpCode):
     ]
 
 
-class OpRemoveInstance(OpCode):
+class OpInstanceRemove(OpCode):
   """Remove an instance."""
   OP_ID = "OP_INSTANCE_REMOVE"
   OP_DSC_FIELD = "instance_name"

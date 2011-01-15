@@ -5437,7 +5437,7 @@ class LURenameInstance(LogicalUnit):
     return inst.name
 
 
-class LURemoveInstance(LogicalUnit):
+class LUInstanceRemove(LogicalUnit):
   """Remove an instance.
 
   """

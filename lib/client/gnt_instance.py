@@ -538,7 +538,7 @@ def RemoveInstance(opts, args):
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpRemoveInstance(instance_name=instance_name,
+  op = opcodes.OpInstanceRemove(instance_name=instance_name,
                                 ignore_failures=opts.ignore_failures,
                                 shutdown_timeout=opts.shutdown_timeout)
   SubmitOrSend(op, opts, cl=cl)

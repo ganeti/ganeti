@@ -933,7 +933,7 @@ class R_2_instances_name(baserlib.R_Generic):
     """Delete an instance.
 
     """
-    op = opcodes.OpRemoveInstance(instance_name=self.items[0],
+    op = opcodes.OpInstanceRemove(instance_name=self.items[0],
                                   ignore_failures=False,
                                   dry_run=bool(self.dryRun()))
     return baserlib.SubmitJob([op])
