@@ -5688,7 +5688,7 @@ class LUInstanceFailover(LogicalUnit):
                                  (instance.name, target_node, msg))
 
 
-class LUMigrateInstance(LogicalUnit):
+class LUInstanceMigrate(LogicalUnit):
   """Migrate an instance.
 
   This is migration without shutting down, compared to the failover,

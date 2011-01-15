@@ -671,10 +671,10 @@ class Burner(object):
     Log("Migrating instances")
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
-      op1 = opcodes.OpMigrateInstance(instance_name=instance, mode=None,
+      op1 = opcodes.OpInstanceMigrate(instance_name=instance, mode=None,
                                       cleanup=False)
 
-      op2 = opcodes.OpMigrateInstance(instance_name=instance, mode=None,
+      op2 = opcodes.OpInstanceMigrate(instance_name=instance, mode=None,
                                       cleanup=True)
       Log("migration and migration cleanup", indent=2)
       self.ExecOrQueue(instance, [op1, op2])

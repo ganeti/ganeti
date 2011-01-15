@@ -1207,7 +1207,7 @@ class R_2_instances_name_export(baserlib.R_Generic):
 def _ParseMigrateInstanceRequest(name, data):
   """Parses a request for an instance migration.
 
-  @rtype: L{opcodes.OpMigrateInstance}
+  @rtype: L{opcodes.OpInstanceMigrate}
   @return: Instance migration opcode
 
   """
@@ -1215,7 +1215,7 @@ def _ParseMigrateInstanceRequest(name, data):
   cleanup = baserlib.CheckParameter(data, "cleanup", exptype=bool,
                                     default=False)
 
-  return opcodes.OpMigrateInstance(instance_name=name, mode=mode,
+  return opcodes.OpInstanceMigrate(instance_name=name, mode=mode,
                                    cleanup=cleanup)
 
 

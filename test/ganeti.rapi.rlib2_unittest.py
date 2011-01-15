@@ -239,7 +239,7 @@ class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
           "mode": mode,
           }
         op = self.Parse(name, data)
-        self.assert_(isinstance(op, opcodes.OpMigrateInstance))
+        self.assert_(isinstance(op, opcodes.OpInstanceMigrate))
         self.assertEqual(op.instance_name, name)
         self.assertEqual(op.mode, mode)
         self.assertEqual(op.cleanup, cleanup)
@@ -248,7 +248,7 @@ class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
     name = "instnohZeex0"
 
     op = self.Parse(name, {})
-    self.assert_(isinstance(op, opcodes.OpMigrateInstance))
+    self.assert_(isinstance(op, opcodes.OpInstanceMigrate))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, None)
     self.assertFalse(op.cleanup)

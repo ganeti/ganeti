@@ -886,7 +886,7 @@ class OpInstanceFailover(OpCode):
     ]
 
 
-class OpMigrateInstance(OpCode):
+class OpInstanceMigrate(OpCode):
   """Migrate an instance.
 
   This migrates (without shutting down an instance) to its secondary

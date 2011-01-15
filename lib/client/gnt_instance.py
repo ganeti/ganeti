@@ -843,7 +843,7 @@ def MigrateInstance(opts, args):
   else:
     mode = opts.migration_mode
 
-  op = opcodes.OpMigrateInstance(instance_name=instance_name, mode=mode,
+  op = opcodes.OpInstanceMigrate(instance_name=instance_name, mode=mode,
                                  cleanup=opts.cleanup)
   SubmitOpCode(op, cl=cl, opts=opts)
   return 0
