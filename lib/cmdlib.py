@@ -3929,7 +3929,7 @@ class LUModifyNodeStorage(NoHooksLU):
                  (self.op.name, self.op.node_name))
 
 
-class LUAddNode(LogicalUnit):
+class LUNodeAdd(LogicalUnit):
   """Logical unit for adding node to the cluster.
 
   """

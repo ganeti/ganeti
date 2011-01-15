@@ -596,7 +596,7 @@ class OpRemoveNode(OpCode):
     ]
 
 
-class OpAddNode(OpCode):
+class OpNodeAdd(OpCode):
   """Add a node to the cluster.
 
   @type node_name: C{str}
