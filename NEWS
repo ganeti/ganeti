@@ -39,7 +39,7 @@ Integration
   symlink
 - Added new tool for running commands on many machines,
   ``tools/ganeti-listrunner``
-- Implemented more verbose result in ``OpConnectConsole`` opcode, also
+- Implemented more verbose result in ``OpInstanceConsole`` opcode, also
   improving the ``gnt-instance console`` output
 - Allowed customisation of disk index separator at ``configure`` time
 - Export node group allocation policy to :doc:`iallocator <iallocator>`

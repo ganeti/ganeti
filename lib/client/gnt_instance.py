@@ -888,7 +888,7 @@ def ConnectToInstanceConsole(opts, args):
   """
   instance_name = args[0]
 
-  op = opcodes.OpConnectConsole(instance_name=instance_name)
+  op = opcodes.OpInstanceConsole(instance_name=instance_name)
 
   cl = GetClient()
   try:
@@ -906,7 +906,7 @@ def ConnectToInstanceConsole(opts, args):
 
 def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
                _runcmd_fn=utils.RunCmd):
-  """Acts based on the result of L{opcodes.OpConnectConsole}.
+  """Acts based on the result of L{opcodes.OpInstanceConsole}.
 
   @type console: L{objects.InstanceConsole}
   @param console: Console object

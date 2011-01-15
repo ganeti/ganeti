@@ -7686,7 +7686,7 @@ class LUCreateInstance(LogicalUnit):
     return list(iobj.all_nodes)
 
 
-class LUConnectConsole(NoHooksLU):
+class LUInstanceConsole(NoHooksLU):
   """Connect to an instance's console.
 
   This is somewhat special in that it returns the command line that

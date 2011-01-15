@@ -925,7 +925,7 @@ class OpMoveInstance(OpCode):
     ]
 
 
-class OpConnectConsole(OpCode):
+class OpInstanceConsole(OpCode):
   """Connect to an instance's console."""
   OP_ID = "OP_INSTANCE_CONSOLE"
   OP_DSC_FIELD = "instance_name"
