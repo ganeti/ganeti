@@ -167,7 +167,7 @@ def _VerifyCertificateInner(expired, not_before, not_after, now,
 
 
 def VerifyX509Certificate(cert, warn_days, error_days):
-  """Verifies a certificate for LUVerifyCluster.
+  """Verifies a certificate for LUClusterVerify.
 
   @type cert: OpenSSL.crypto.X509
   @param cert: X509 certificate object

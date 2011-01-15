@@ -396,7 +396,7 @@ class OpClusterQuery(OpCode):
   OP_ID = "OP_CLUSTER_QUERY"
 
 
-class OpVerifyCluster(OpCode):
+class OpClusterVerify(OpCode):
   """Verify the cluster state.
 
   @type skip_checks: C{list}

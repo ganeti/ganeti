@@ -435,7 +435,7 @@ def VerifyCluster(opts, args):
   skip_checks = []
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
-  op = opcodes.OpVerifyCluster(skip_checks=skip_checks,
+  op = opcodes.OpClusterVerify(skip_checks=skip_checks,
                                verbose=opts.verbose,
                                error_codes=opts.error_codes,
                                debug_simulate_errors=opts.simulate_errors)

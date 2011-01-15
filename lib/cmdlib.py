@@ -1167,7 +1167,7 @@ class LUClusterDestroy(LogicalUnit):
 
 
 def _VerifyCertificate(filename):
-  """Verifies a certificate for LUVerifyCluster.
+  """Verifies a certificate for LUClusterVerify.
 
   @type filename: string
   @param filename: Path to PEM file
@@ -1177,7 +1177,7 @@ def _VerifyCertificate(filename):
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                            utils.ReadFile(filename))
   except Exception, err: # pylint: disable-msg=W0703
-    return (LUVerifyCluster.ETYPE_ERROR,
+    return (LUClusterVerify.ETYPE_ERROR,
             "Failed to load X509 certificate %s: %s" % (filename, err))
 
   (errcode, msg) = \
@@ -1192,14 +1192,14 @@ def _VerifyCertificate(filename):
   if errcode is None:
     return (None, fnamemsg)
   elif errcode == utils.CERT_WARNING:
-    return (LUVerifyCluster.ETYPE_WARNING, fnamemsg)
+    return (LUClusterVerify.ETYPE_WARNING, fnamemsg)
   elif errcode == utils.CERT_ERROR:
-    return (LUVerifyCluster.ETYPE_ERROR, fnamemsg)
+    return (LUClusterVerify.ETYPE_ERROR, fnamemsg)
 
   raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)
 
 
-class LUVerifyCluster(LogicalUnit):
+class LUClusterVerify(LogicalUnit):
   """Verifies the cluster status.
 
   """
