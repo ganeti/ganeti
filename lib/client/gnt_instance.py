@@ -636,7 +636,7 @@ def RecreateDisks(opts, args):
   else:
     opts.disks = []
 
-  op = opcodes.OpRecreateInstanceDisks(instance_name=instance_name,
+  op = opcodes.OpInstanceRecreateDisks(instance_name=instance_name,
                                        disks=opts.disks)
   SubmitOrSend(op, opts)
   return 0

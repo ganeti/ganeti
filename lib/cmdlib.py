@@ -5272,7 +5272,7 @@ class LUReinstallInstance(LogicalUnit):
       _ShutdownInstanceDisks(self, inst)
 
 
-class LURecreateInstanceDisks(LogicalUnit):
+class LUInstanceRecreateDisks(LogicalUnit):
   """Recreate an instance's missing disks.
 
   """

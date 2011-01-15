@@ -953,7 +953,7 @@ class OpInstanceDeactivateDisks(OpCode):
     ]
 
 
-class OpRecreateInstanceDisks(OpCode):
+class OpInstanceRecreateDisks(OpCode):
   """Deactivate an instance's disks."""
   OP_ID = "OP_INSTANCE_RECREATE_DISKS"
   OP_DSC_FIELD = "instance_name"
