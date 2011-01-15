@@ -4763,7 +4763,7 @@ def _StartInstanceDisks(lu, instance, force):
     raise errors.OpExecError("Disk consistency error")
 
 
-class LUDeactivateInstanceDisks(NoHooksLU):
+class LUInstanceDeactivateDisks(NoHooksLU):
   """Shutdown an instance's disks.
 
   """

@@ -1136,7 +1136,7 @@ class R_2_instances_name_deactivate_disks(baserlib.R_Generic):
     """
     instance_name = self.items[0]
 
-    op = opcodes.OpDeactivateInstanceDisks(instance_name=instance_name)
+    op = opcodes.OpInstanceDeactivateDisks(instance_name=instance_name)
 
     return baserlib.SubmitJob([op])
 

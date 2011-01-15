@@ -944,7 +944,7 @@ class OpInstanceActivateDisks(OpCode):
     ]
 
 
-class OpDeactivateInstanceDisks(OpCode):
+class OpInstanceDeactivateDisks(OpCode):
   """Deactivate an instance's disks."""
   OP_ID = "OP_INSTANCE_DEACTIVATE_DISKS"
   OP_DSC_FIELD = "instance_name"

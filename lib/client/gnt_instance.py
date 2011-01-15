@@ -611,7 +611,7 @@ def DeactivateDisks(opts, args):
 
   """
   instance_name = args[0]
-  op = opcodes.OpDeactivateInstanceDisks(instance_name=instance_name)
+  op = opcodes.OpInstanceDeactivateDisks(instance_name=instance_name)
   SubmitOrSend(op, opts)
   return 0
 
