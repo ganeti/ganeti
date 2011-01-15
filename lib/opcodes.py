@@ -1262,7 +1262,7 @@ class OpTestAllocator(OpCode):
     ]
 
 
-class OpTestJobqueue(OpCode):
+class OpTestJqueue(OpCode):
   """Utility opcode to test some aspects of the job queue.
 
   """

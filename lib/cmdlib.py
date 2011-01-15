@@ -10582,7 +10582,7 @@ class LUTestDelay(NoHooksLU):
         self._TestDelay()
 
 
-class LUTestJobqueue(NoHooksLU):
+class LUTestJqueue(NoHooksLU):
   """Utility LU to test some aspects of the job queue.
 
   """

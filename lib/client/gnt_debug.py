@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -350,14 +350,14 @@ def TestJobqueue(opts, _):
     if mode == TM_PARTFAIL:
       ToStdout("Testing partial job failure")
       ops = [
-        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
-                               log_messages=test_messages, fail=False),
-        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
-                               log_messages=test_messages, fail=False),
-        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
-                               log_messages=test_messages, fail=True),
-        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
-                               log_messages=test_messages, fail=False),
+        opcodes.OpTestJqueue(notify_waitlock=True, notify_exec=True,
+                             log_messages=test_messages, fail=False),
+        opcodes.OpTestJqueue(notify_waitlock=True, notify_exec=True,
+                             log_messages=test_messages, fail=False),
+        opcodes.OpTestJqueue(notify_waitlock=True, notify_exec=True,
+                             log_messages=test_messages, fail=True),
+        opcodes.OpTestJqueue(notify_waitlock=True, notify_exec=True,
+                             log_messages=test_messages, fail=False),
         ]
       expect_messages = 3 * [test_messages]
       expect_opstatus = [
@@ -370,10 +370,10 @@ def TestJobqueue(opts, _):
     elif mode == TM_MULTISUCCESS:
       ToStdout("Testing multiple successful opcodes")
       ops = [
-        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
-                               log_messages=test_messages, fail=False),
-        opcodes.OpTestJobqueue(notify_waitlock=True, notify_exec=True,
-                               log_messages=test_messages, fail=False),
+        opcodes.OpTestJqueue(notify_waitlock=True, notify_exec=True,
+                             log_messages=test_messages, fail=False),
+        opcodes.OpTestJqueue(notify_waitlock=True, notify_exec=True,
+                             log_messages=test_messages, fail=False),
         ]
       expect_messages = 2 * [test_messages]
       expect_opstatus = [
@@ -392,10 +392,10 @@ def TestJobqueue(opts, _):
         raise errors.ProgrammerError("Unknown test mode %s" % mode)
 
       ops = [
-        opcodes.OpTestJobqueue(notify_waitlock=True,
-                               notify_exec=True,
-                               log_messages=test_messages,
-                               fail=fail)
+        opcodes.OpTestJqueue(notify_waitlock=True,
+                             notify_exec=True,
+                             log_messages=test_messages,
+                             fail=fail)
         ]
       expect_messages = [test_messages]
       expect_resultlen = 1

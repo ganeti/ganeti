@@ -133,9 +133,9 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
     self.assertRaises(errors.OpPrereqError, c_i)
 
 
-class TestLUTestJobqueue(unittest.TestCase):
+class TestLUTestJqueue(unittest.TestCase):
   def test(self):
-    self.assert_(cmdlib.LUTestJobqueue._CLIENT_CONNECT_TIMEOUT <
+    self.assert_(cmdlib.LUTestJqueue._CLIENT_CONNECT_TIMEOUT <
                  (luxi.WFJC_TIMEOUT * 0.75),
                  msg=("Client timeout too high, might not notice bugs"
                       " in WaitForJobChange"))
