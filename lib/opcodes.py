@@ -973,7 +973,7 @@ class OpInstanceQuery(OpCode):
     ]
 
 
-class OpQueryInstanceData(OpCode):
+class OpInstanceQueryData(OpCode):
   """Compute the run-time status of instances."""
   OP_ID = "OP_INSTANCE_QUERY_DATA"
   OP_PARAMS = [

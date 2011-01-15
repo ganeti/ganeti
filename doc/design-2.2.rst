@@ -303,7 +303,7 @@ Workflow
    instance specification and for the public part of an encryption key
 
    - Instance information can already be retrieved using an existing API
-     (``OpQueryInstanceData``).
+     (``OpInstanceQueryData``).
    - An RSA encryption key and a corresponding self-signed X509
      certificate is generated using the "openssl" command. This key will
      be used to encrypt the data sent to the destination cluster.

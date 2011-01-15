@@ -950,7 +950,7 @@ class R_2_instances_name_info(baserlib.R_Generic):
     instance_name = self.items[0]
     static = bool(self._checkIntVariable("static", default=0))
 
-    op = opcodes.OpQueryInstanceData(instances=[instance_name],
+    op = opcodes.OpInstanceQueryData(instances=[instance_name],
                                      static=static)
     return baserlib.SubmitJob([op])
 

@@ -872,7 +872,7 @@ def _NICListToTuple(lu, nics):
   """Build a list of nic information tuples.
 
   This list is suitable to be passed to _BuildInstanceHookEnv or as a return
-  value in LUQueryInstanceData.
+  value in LUInstanceQueryData.
 
   @type lu:  L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
@@ -8685,7 +8685,7 @@ class LUInstanceGrowDisk(LogicalUnit):
                            " sync mode was requested.")
 
 
-class LUQueryInstanceData(NoHooksLU):
+class LUInstanceQueryData(NoHooksLU):
   """Query runtime instance data.
 
   """
