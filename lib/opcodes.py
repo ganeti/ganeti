@@ -1146,7 +1146,7 @@ class OpBackupExport(OpCode):
     ]
 
 
-class OpRemoveExport(OpCode):
+class OpBackupRemove(OpCode):
   """Remove an instance's export."""
   OP_ID = "OP_BACKUP_REMOVE"
   OP_DSC_FIELD = "instance_name"

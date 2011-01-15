@@ -107,7 +107,7 @@ def RemoveExport(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpRemoveExport(instance_name=args[0])
+  op = opcodes.OpBackupRemove(instance_name=args[0])
 
   SubmitOpCode(op, opts=opts)
   return 0

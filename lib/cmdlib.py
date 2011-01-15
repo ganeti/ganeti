@@ -9869,7 +9869,7 @@ class LUBackupExport(LogicalUnit):
     return fin_resu, dresults
 
 
-class LURemoveExport(NoHooksLU):
+class LUBackupRemove(NoHooksLU):
   """Remove exports related to the named instance.
 
   """

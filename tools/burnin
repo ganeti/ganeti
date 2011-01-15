@@ -740,7 +740,7 @@ class Burner(object):
                                         osparams=self.opts.osparams,
                                         )
 
-      erem_op = opcodes.OpRemoveExport(instance_name=instance)
+      erem_op = opcodes.OpBackupRemove(instance_name=instance)
 
       Log("export to node %s", enode, indent=2)
       Log("remove instance", indent=2)
