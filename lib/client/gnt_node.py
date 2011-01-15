@@ -488,7 +488,7 @@ def PowerNode(opts, args):
 
   opcodelist = []
   if oob_command == constants.OOB_POWER_OFF:
-    opcodelist.append(opcodes.OpSetNodeParams(node_name=node, offline=True,
+    opcodelist.append(opcodes.OpNodeSetParams(node_name=node, offline=True,
                                               auto_promote=opts.auto_promote))
 
   opcodelist.append(opcodes.OpOobCommand(node_name=node, command=oob_command))
@@ -680,7 +680,7 @@ def SetNodeParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  op = opcodes.OpSetNodeParams(node_name=args[0],
+  op = opcodes.OpNodeSetParams(node_name=args[0],
                                master_candidate=opts.master_candidate,
                                offline=opts.offline,
                                drained=opts.drained,

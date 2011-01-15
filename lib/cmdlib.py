@@ -4191,7 +4191,7 @@ class LUNodeAdd(LogicalUnit):
       self.context.AddNode(new_node, self.proc.GetECId())
 
 
-class LUSetNodeParams(LogicalUnit):
+class LUNodeSetParams(LogicalUnit):
   """Modifies the parameters of a node.
 
   @cvar _F2R: a dictionary from tuples of flags (mc, drained, offline)

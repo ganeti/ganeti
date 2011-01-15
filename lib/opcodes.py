@@ -691,7 +691,7 @@ class OpRepairNodeStorage(OpCode):
     ]
 
 
-class OpSetNodeParams(OpCode):
+class OpNodeSetParams(OpCode):
   """Change the parameters of a node."""
   OP_ID = "OP_NODE_SET_PARAMS"
   OP_DSC_FIELD = "node_name"

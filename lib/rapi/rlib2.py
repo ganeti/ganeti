@@ -395,7 +395,7 @@ class R_2_nodes_name_role(baserlib.R_Generic):
     else:
       raise http.HttpBadRequest("Can't set '%s' role" % role)
 
-    op = opcodes.OpSetNodeParams(node_name=node_name,
+    op = opcodes.OpNodeSetParams(node_name=node_name,
                                  master_candidate=candidate,
                                  offline=offline,
                                  drained=drained,
