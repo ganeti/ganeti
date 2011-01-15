@@ -832,7 +832,7 @@ class Burner(object):
       Log("instance %s", instance, indent=1)
       ops = []
       for reboot_type in self.opts.reboot_types:
-        op = opcodes.OpRebootInstance(instance_name=instance,
+        op = opcodes.OpInstanceReboot(instance_name=instance,
                                       reboot_type=reboot_type,
                                       ignore_secondaries=False)
         Log("reboot with type '%s'", reboot_type, indent=2)

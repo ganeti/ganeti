@@ -701,7 +701,7 @@ def _RebootInstance(name, opts):
   @return: the opcode needed for the operation
 
   """
-  return opcodes.OpRebootInstance(instance_name=name,
+  return opcodes.OpInstanceReboot(instance_name=name,
                                   reboot_type=opts.reboot_type,
                                   ignore_secondaries=opts.ignore_secondaries,
                                   shutdown_timeout=opts.shutdown_timeout)

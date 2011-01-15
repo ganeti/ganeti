@@ -5049,7 +5049,7 @@ class LUStartupInstance(LogicalUnit):
         raise errors.OpExecError("Could not start instance: %s" % msg)
 
 
-class LURebootInstance(LogicalUnit):
+class LUInstanceReboot(LogicalUnit):
   """Reboot an instance.
 
   """

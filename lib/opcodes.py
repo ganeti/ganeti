@@ -849,7 +849,7 @@ class OpShutdownInstance(OpCode):
     ]
 
 
-class OpRebootInstance(OpCode):
+class OpInstanceReboot(OpCode):
   """Reboot an instance."""
   OP_ID = "OP_INSTANCE_REBOOT"
   OP_DSC_FIELD = "instance_name"

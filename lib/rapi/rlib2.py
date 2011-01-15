@@ -972,7 +972,7 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
     reboot_type = self.queryargs.get('type',
                                      [constants.INSTANCE_REBOOT_HARD])[0]
     ignore_secondaries = bool(self._checkIntVariable('ignore_secondaries'))
-    op = opcodes.OpRebootInstance(instance_name=instance_name,
+    op = opcodes.OpInstanceReboot(instance_name=instance_name,
                                   reboot_type=reboot_type,
                                   ignore_secondaries=ignore_secondaries,
                                   dry_run=bool(self.dryRun()))
