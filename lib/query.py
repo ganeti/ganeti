@@ -998,8 +998,8 @@ def _GetInstanceParameterFields():
   # TODO: Consider moving titles closer to constants
   be_title = {
     constants.BE_AUTO_BALANCE: "Auto_balance",
-    constants.BE_MEMORY: "Configured_memory",
-    constants.BE_VCPUS: "VCPUs",
+    constants.BE_MEMORY: "ConfigMemory",
+    constants.BE_VCPUS: "ConfigVCPUs",
     }
 
   hv_title = {
@@ -1093,9 +1093,9 @@ def _BuildInstanceFields():
   fields.extend([
     (_MakeField("oper_state", "Running", QFT_BOOL), IQ_LIVE,
      _GetInstOperState),
-    (_MakeField("oper_ram", "RuntimeMemory", QFT_UNIT), IQ_LIVE,
+    (_MakeField("oper_ram", "Memory", QFT_UNIT), IQ_LIVE,
      _GetInstLiveData("memory")),
-    (_MakeField("oper_vcpus", "RuntimeVCPUs", QFT_NUMBER), IQ_LIVE,
+    (_MakeField("oper_vcpus", "VCPUs", QFT_NUMBER), IQ_LIVE,
      _GetInstLiveData("vcpus")),
     (_MakeField("status", "Status", QFT_TEXT), IQ_LIVE, _GetInstStatus),
     ])
