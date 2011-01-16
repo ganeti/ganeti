@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,9 +56,9 @@ class _QueryData:
 def _GetDiskSize(nr, ctx, item):
   disks = item["disks"]
   try:
-    return (constants.QRFS_NORMAL, disks[nr])
+    return disks[nr]
   except IndexError:
-    return (constants.QRFS_UNAVAIL, None)
+    return query._FS_UNAVAIL
 
 
 class TestQuery(unittest.TestCase):
@@ -67,10 +67,9 @@ class TestQuery(unittest.TestCase):
 
     fielddef = query._PrepareFieldList([
       (query._MakeField("name", "Name", constants.QFT_TEXT),
-       STATIC, lambda ctx, item: (constants.QRFS_NORMAL, item["name"])),
+       STATIC, lambda ctx, item: item["name"]),
       (query._MakeField("master", "Master", constants.QFT_BOOL),
-       STATIC, lambda ctx, item: (constants.QRFS_NORMAL,
-                                  ctx.mastername == item["name"])),
+       STATIC, lambda ctx, item: ctx.mastername == item["name"]),
       ] +
       [(query._MakeField("disk%s.size" % i, "DiskSize%s" % i,
                          constants.QFT_UNIT),
@@ -215,13 +214,13 @@ class TestQuery(unittest.TestCase):
   def testUnknown(self):
     fielddef = query._PrepareFieldList([
       (query._MakeField("name", "Name", constants.QFT_TEXT),
-       None, lambda _, item: (constants.QRFS_NORMAL, "name%s" % item)),
+       None, lambda _, item: "name%s" % item),
       (query._MakeField("other0", "Other0", constants.QFT_TIMESTAMP),
-       None, lambda *args: (constants.QRFS_NORMAL, 1234)),
+       None, lambda *args: 1234),
       (query._MakeField("nodata", "NoData", constants.QFT_NUMBER),
-       None, lambda *args: (constants.QRFS_NODATA, None)),
+       None, lambda *args: query._FS_NODATA ),
       (query._MakeField("unavail", "Unavail", constants.QFT_BOOL),
-       None, lambda *args: (constants.QRFS_UNAVAIL, None)),
+       None, lambda *args: query._FS_UNAVAIL),
       ])
 
     for selected in [["foo"], ["Hello", "World"],
@@ -461,7 +460,7 @@ class TestNodeQuery(unittest.TestCase):
     nqd = query.NodeQueryData(None, None, None, None, None, None, None, None)
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
                                              nqd, nodes[0]),
-                     (constants.QRFS_NODATA, None))
+                     query._FS_NODATA)
 
     # Missing field
     ctx = _QueryData(None, curlive_data={
@@ -470,7 +469,7 @@ class TestNodeQuery(unittest.TestCase):
       })
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
                                              ctx, nodes[0]),
-                     (constants.QRFS_UNAVAIL, None))
+                     query._FS_UNAVAIL)
 
     # Wrong format/datatype
     ctx = _QueryData(None, curlive_data={
@@ -479,14 +478,14 @@ class TestNodeQuery(unittest.TestCase):
       })
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
                                              ctx, nodes[0]),
-                     (constants.QRFS_UNAVAIL, None))
+                     query._FS_UNAVAIL)
 
     # Offline node
     assert nodes[3].offline
     ctx = _QueryData(None, curlive_data={})
     self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
                                              ctx, nodes[3]),
-                     (constants.QRFS_OFFLINE, None))
+                     query._FS_OFFLINE, None)
 
     # Wrong field type
     ctx = _QueryData(None, curlive_data={"hello": 123})
