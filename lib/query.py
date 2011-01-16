@@ -207,10 +207,8 @@ class Query:
 
     # Verify result
     if __debug__:
-      for (idx, row) in enumerate(result):
-        assert _VerifyResultRow(self._fields, row), \
-               ("Inconsistent result for fields %s in row %s: %r" %
-                (GetAllFields(self._fields), idx, row))
+      for row in result:
+        _VerifyResultRow(self._fields, row)
 
     return result
 
@@ -256,11 +254,17 @@ def _VerifyResultRow(fields, row):
   @param row: Row data
 
   """
-  return (len(row) == len(fields) and
-          compat.all((status == QRFS_NORMAL and _VERIFY_FN[fdef.kind](value)) or
-                     # Value for an abnormal status must be None
-                     (status != QRFS_NORMAL and value is None)
-                     for ((status, value), (fdef, _, _)) in zip(row, fields)))
+  assert len(row) == len(fields)
+  errs = []
+  for ((status, value), (fdef, _, _)) in zip(row, fields):
+    if status == QRFS_NORMAL:
+      if not _VERIFY_FN[fdef.kind](value):
+        errs.append("normal field %s fails validation (value is %s)" %
+                    (fdef.name, value))
+    elif value is not None:
+      errs.append("abnormal field %s has a non-None value" % fdef.name)
+  assert not errs, ("Failed validation: %s in row %s" %
+                    (utils.CommaJoin(errors), row))
 
 
 def _PrepareFieldList(fields):
