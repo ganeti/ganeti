@@ -1038,7 +1038,7 @@ def _GetInstanceParameterFields():
 
   # HV params
   def _GetInstHvParam(name):
-    return lambda ctx, _: ctx.inst_hvparams.get(name, None)
+    return lambda ctx, _: ctx.inst_hvparams.get(name, _FS_UNAVAIL)
 
   fields.extend([
     # For now all hypervisor parameters are exported as QFT_OTHER
