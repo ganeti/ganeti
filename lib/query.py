@@ -110,6 +110,16 @@ _FS_NODATA = object()
 _FS_UNAVAIL = object()
 _FS_OFFLINE = object()
 
+#: VType to QFT mapping
+_VTToQFT = {
+  # TODO: fix validation of empty strings
+  constants.VTYPE_STRING: QFT_OTHER, # since VTYPE_STRINGs can be empty
+  constants.VTYPE_MAYBE_STRING: QFT_OTHER,
+  constants.VTYPE_BOOL: QFT_BOOL,
+  constants.VTYPE_SIZE: QFT_UNIT,
+  constants.VTYPE_INT: QFT_NUMBER,
+  }
+
 
 def _GetUnknownField(ctx, item): # pylint: disable-msg=W0613
   """Gets the contents of an unknown field.
@@ -1041,10 +1051,10 @@ def _GetInstanceParameterFields():
     return lambda ctx, _: ctx.inst_hvparams.get(name, _FS_UNAVAIL)
 
   fields.extend([
-    # For now all hypervisor parameters are exported as QFT_OTHER
-    (_MakeField("hv/%s" % name, hv_title.get(name, "hv/%s" % name), QFT_OTHER),
+    (_MakeField("hv/%s" % name, hv_title.get(name, "hv/%s" % name),
+                _VTToQFT[kind]),
      IQ_CONFIG, _GetInstHvParam(name))
-    for name in constants.HVS_PARAMETERS
+    for name, kind in constants.HVS_PARAMETER_TYPES.items()
     if name not in constants.HVC_GLOBALS
     ])
 
@@ -1053,10 +1063,10 @@ def _GetInstanceParameterFields():
     return lambda ctx, _: ctx.inst_beparams.get(name, None)
 
   fields.extend([
-    # For now all backend parameters are exported as QFT_OTHER
-    (_MakeField("be/%s" % name, be_title.get(name, "be/%s" % name), QFT_OTHER),
-     IQ_CONFIG, _GetInstBeParam(name))
-    for name in constants.BES_PARAMETERS
+    (_MakeField("be/%s" % name, be_title.get(name, "be/%s" % name),
+                _VTToQFT[kind]), IQ_CONFIG,
+     _GetInstBeParam(name))
+    for name, kind in constants.BES_PARAMETER_TYPES.items()
     ])
 
   return fields
