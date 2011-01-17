@@ -33,53 +33,6 @@ from ganeti.hypervisor import hv_kvm
 import testutils
 
 
-class TestWriteNetScript(unittest.TestCase):
-  def testBridged(self):
-    inst = objects.Instance(name="inst1.example.com", tags=[])
-    nic = objects.NIC(mac="01:23:45:67:89:0A",
-                      nicparams={
-                        constants.NIC_MODE: constants.NIC_MODE_BRIDGED,
-                        constants.NIC_LINK: "",
-                        })
-
-    script = hv_kvm._WriteNetScript(inst, nic, 0)
-    self.assert_(isinstance(script, basestring))
-
-  def testBridgedWithTags(self):
-    inst = objects.Instance(name="inst1.example.com", tags=["Hello", "World"])
-    nic = objects.NIC(mac="01:23:45:67:89:0A",
-                      nicparams={
-                        constants.NIC_MODE: constants.NIC_MODE_BRIDGED,
-                        constants.NIC_LINK: "",
-                        })
-
-    script = hv_kvm._WriteNetScript(inst, nic, 0)
-    self.assert_(isinstance(script, basestring))
-
-  def testRouted(self):
-    inst = objects.Instance(name="inst2.example.com", tags=[])
-    nic = objects.NIC(mac="A0:98:76:54:32:10",
-                      ip="192.0.2.4",
-                      nicparams={
-                        constants.NIC_MODE: constants.NIC_MODE_ROUTED,
-                        constants.NIC_LINK: "eth0",
-                        })
-
-    script = hv_kvm._WriteNetScript(inst, nic, 4)
-    self.assert_(isinstance(script, basestring))
-
-  def testRoutedNoIpAddress(self):
-    inst = objects.Instance(name="eiphei1e.example.com", tags=[])
-    nic = objects.NIC(mac="93:28:76:54:32:10",
-                      nicparams={
-                        constants.NIC_MODE: constants.NIC_MODE_ROUTED,
-                        constants.NIC_LINK: "",
-                        })
-
-    self.assertRaises(errors.HypervisorError, hv_kvm._WriteNetScript,
-                      inst, nic, 2)
-
-
 class TestConsole(unittest.TestCase):
   def _Test(self, instance, hvparams):
     cons = hv_kvm.KVMHypervisor.GetInstanceConsole(instance, hvparams, {})
