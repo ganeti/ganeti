@@ -381,7 +381,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(uid_file)
     if uid is not None:
       uidpool.ReleaseUid(uid)
-    shutil.rmtree(cls._InstanceNICDir(instance_name))
+    try:
+      shutil.rmtree(cls._InstanceNICDir(instance_name))
+    except OSError, err:
+      if err.errno != errno.ENOENT:
+        raise
     try:
       chroot_dir = cls._InstanceChrootDir(instance_name)
       utils.RemoveDir(chroot_dir)
