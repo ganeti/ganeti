@@ -103,6 +103,7 @@ CLEANFILES = \
 	doc/examples/hooks/ipsec \
 	$(man_MANS) \
 	$(manhtml) \
+	tools/kvm-ifup \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON)
 
@@ -364,6 +365,7 @@ pkglib_python_scripts = \
 pkglib_SCRIPTS = \
 	daemons/daemon-util \
 	daemons/ensure-dirs \
+	tools/kvm-ifup \
 	$(pkglib_python_scripts)
 
 EXTRA_DIST = \
@@ -383,6 +385,7 @@ EXTRA_DIST = \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
 	devel/upload.in \
+	tools/kvm-ifup.in \
 	$(docdot) \
 	$(docpng) \
 	$(docrst) \
@@ -570,6 +573,10 @@ lint_python_code = \
 test/daemon-util_unittest.bash: daemons/daemon-util
 
 test/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
+
+tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@

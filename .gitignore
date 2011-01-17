@@ -74,6 +74,9 @@
 /man/*.in
 /man/footer.man
 
+# tools
+/tools/kvm-ifup
+
 # scripts
 /scripts/gnt-backup
 /scripts/gnt-cluster
