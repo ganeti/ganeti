@@ -31,6 +31,8 @@ import tempfile
 import time
 import logging
 import pwd
+import struct
+import fcntl
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -45,6 +47,83 @@ from ganeti import netutils
 
 
 _KVM_NETWORK_SCRIPT = constants.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
+
+# TUN/TAP driver constants, taken from <linux/if_tun.h>
+# They are architecture-independent and already hardcoded in qemu-kvm source,
+# so we can safely include them here.
+TUNSETIFF = 0x400454ca
+TUNGETIFF = 0x800454d2
+TUNGETFEATURES = 0x800454cf
+IFF_TAP = 0x0002
+IFF_NO_PI = 0x1000
+IFF_VNET_HDR = 0x4000
+
+
+def _ProbeTapVnetHdr(fd):
+  """Check whether to enable the IFF_VNET_HDR flag.
+
+  To do this, _all_ of the following conditions must be met:
+   1. TUNGETFEATURES ioctl() *must* be implemented
+   2. TUNGETFEATURES ioctl() result *must* contain the IFF_VNET_HDR flag
+   3. TUNGETIFF ioctl() *must* be implemented; reading the kernel code in
+      drivers/net/tun.c there is no way to test this until after the tap device
+      has been created using TUNSETIFF, and there is no way to change the
+      IFF_VNET_HDR flag after creating the interface, catch-22! However both
+      TUNGETIFF and TUNGETFEATURES were introduced in kernel version 2.6.27,
+      thus we can expect TUNGETIFF to be present if TUNGETFEATURES is.
+
+   @type fd: int
+   @param fd: the file descriptor of /dev/net/tun
+
+  """
+  req = struct.pack("I", 0)
+  try:
+    res = fcntl.ioctl(fd, TUNGETFEATURES, req)
+  except EnvironmentError:
+    logging.warning("TUNGETFEATURES ioctl() not implemented")
+    return False
+
+  tunflags = struct.unpack("I", res)[0]
+  if tunflags & IFF_VNET_HDR:
+    return True
+  else:
+    logging.warning("Host does not support IFF_VNET_HDR, not enabling")
+    return False
+
+
+def _OpenTap(vnet_hdr=True):
+  """Open a new tap device and return its file descriptor.
+
+  This is intended to be used by a qemu-type hypervisor together with the -net
+  tap,fd=<fd> command line parameter.
+
+  @type vnet_hdr: boolean
+  @param vnet_hdr: Enable the VNET Header
+  @return: (ifname, tapfd)
+  @rtype: tuple
+
+  """
+  try:
+    tapfd = os.open("/dev/net/tun", os.O_RDWR)
+  except EnvironmentError:
+    raise errors.HypervisorError("Failed to open /dev/net/tun")
+
+  flags = IFF_TAP | IFF_NO_PI
+
+  if vnet_hdr and _ProbeTapVnetHdr(tapfd):
+    flags |= IFF_VNET_HDR
+
+  # The struct ifreq ioctl request (see netdevice(7))
+  ifr = struct.pack("16sh", "", flags)
+
+  try:
+    res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
+  except EnvironmentError:
+    raise errors.HypervisorError("Failed to allocate a new TAP device")
+
+  # Get the interface name from the ioctl
+  ifname = struct.unpack("16sh", res)[0].strip("\x00")
+  return (ifname, tapfd)
 
 
 def _WriteNetScript(instance, nic, index):
