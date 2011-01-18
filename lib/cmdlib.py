@@ -9253,7 +9253,7 @@ class LUInstanceSetParams(LogicalUnit):
         _CheckInstanceDown(self, instance, "cannot remove disks")
 
       if (disk_op == constants.DDM_ADD and
-          len(instance.nics) >= constants.MAX_DISKS):
+          len(instance.disks) >= constants.MAX_DISKS):
         raise errors.OpPrereqError("Instance has too many disks (%d), cannot"
                                    " add more" % constants.MAX_DISKS,
                                    errors.ECODE_STATE)
