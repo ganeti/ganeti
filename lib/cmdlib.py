@@ -2425,7 +2425,8 @@ class LUClusterVerifyDisks(NoHooksLU):
       return result
 
     vg_names = self.rpc.call_vg_list(nodes)
-    vg_names.Raise("Cannot get list of VGs")
+    for node in nodes:
+      vg_names[node].Raise("Cannot get list of VGs")
 
     for node in nodes:
       # node_volume
@@ -7444,12 +7445,11 @@ class LUInstanceCreate(LogicalUnit):
           raise errors.OpPrereqError("LV named %s used by another instance" %
                                      lv_name, errors.ECODE_NOTUNIQUE)
 
-      vg_names = self.rpc.call_vg_list([pnode.name])
+      vg_names = self.rpc.call_vg_list([pnode.name])[pnode.name]
       vg_names.Raise("Cannot get VG information from node %s" % pnode.name)
 
       node_lvs = self.rpc.call_lv_list([pnode.name],
-                                       vg_names[pnode.name].payload.keys()
-                                      )[pnode.name]
+                                       vg_names.payload.keys())[pnode.name]
       node_lvs.Raise("Cannot get LV information from node %s" % pnode.name)
       node_lvs = node_lvs.payload
 
