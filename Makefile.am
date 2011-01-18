@@ -378,6 +378,7 @@ EXTRA_DIST = \
 	autotools/build-bash-completion \
 	autotools/check-python-code \
 	autotools/check-man \
+	autotools/check-news \
 	autotools/check-tar \
 	autotools/check-version \
 	autotools/gen-coverage \
