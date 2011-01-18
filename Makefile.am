@@ -90,6 +90,7 @@ CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
 	$(all_dirfiles) \
 	$(PYTHON_BOOTSTRAP) \
+	epydoc.conf \
 	autotools/replace_vars.sed \
 	daemons/daemon-util \
 	daemons/ensure-dirs \
@@ -371,6 +372,7 @@ pkglib_SCRIPTS = \
 EXTRA_DIST = \
 	NEWS \
 	UPGRADE \
+	epydoc.conf.in \
 	pylintrc \
 	autotools/build-bash-completion \
 	autotools/check-python-code \
@@ -623,7 +625,6 @@ man/%.html.in: man/%.rst man/footer.html
 	$(PANDOC) -s -f rst -t html -A man/footer.html $< | \
 	  sed -e 's/\\@/@/g' > $@
 
-
 man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
@@ -632,6 +633,9 @@ man/%.8: man/%.8.in $(REPLACE_VARS_SED)
 
 man/%.html: man/%.html.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
+
+epydoc.conf: epydoc.conf.in
+	sed -e 's#@MODULES@#$(lint_python_code)#g' < $< > $@
 
 vcs-version:
 	if test -d .git; then \

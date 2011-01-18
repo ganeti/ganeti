@@ -8,10 +8,9 @@ output: html
 # note: the wildcards means the directories should be cleaned up after each
 # run, otherwise there will be stale '*c' (compiled) files that will not be
 # parsable and will break the epydoc run
-modules: ganeti, scripts/gnt-*, daemons/ganeti-confd, daemons/ganeti-masterd, daemons/ganeti-noded, daemons/ganeti-rapi, daemons/ganeti-watcher, daemons/import-export, tools/burnin, tools/cfgshell, tools/cfgupgrade, tools/cfgupgrade12, tools/check-cert-expired, tools/cluster-merge, tools/ganeti-listrunner, tools/lvmstrap, tools/move-instance, tools/sanitize-config, tools/setup-ssh
+modules: @MODULES@
 
 graph: all
-
 
 simple-term: 1
 

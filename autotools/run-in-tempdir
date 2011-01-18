@@ -5,7 +5,7 @@ set -e
 tmpdir=$(mktemp -d -t gntbuild.XXXXXXXX)
 trap "rm -rf $tmpdir" EXIT
 
-cp -r daemons scripts lib tools test $tmpdir
+cp -r autotools daemons scripts lib tools test $tmpdir
 mv $tmpdir/lib $tmpdir/ganeti
 
 cd $tmpdir && GANETI_TEMP_DIR="$tmpdir" "$@"

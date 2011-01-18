@@ -24,6 +24,7 @@
 /config.log
 /config.status
 /configure
+/epydoc.conf
 /ganeti
 /stamp-srclinks
 /vcs-version
