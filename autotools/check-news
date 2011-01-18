@@ -1,0 +1,90 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2011 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Script to check NEWS file.
+
+"""
+
+import sys
+import time
+import datetime
+import locale
+import fileinput
+import re
+
+
+DASHES_RE = re.compile(r"^\s*-+\s*$")
+RELEASED_RE = re.compile(r"^\*\(Released (?P<day>[A-Z][a-z]{2}),"
+                         r" (?P<date>.+)\)\*$")
+UNRELEASED_RE = re.compile(r"^\*\(unreleased\)\*$")
+
+
+def main():
+  # Ensure "C" locale is used
+  curlocale = locale.getlocale()
+  if curlocale != (None, None):
+    raise Exception("Invalid locale %s" % curlocale)
+
+  prevline = None
+  expect_date = False
+
+  for line in fileinput.input():
+    line = line.rstrip("\n")
+
+    if DASHES_RE.match(line):
+      if not prevline.startswith("Version "):
+        raise Exception("Line %s: Invalid title" % (fileinput.lineno() - 1))
+      expect_date = True
+
+    elif expect_date:
+      if not line:
+        # Ignore empty lines
+        continue
+
+      if UNRELEASED_RE.match(line):
+        # Ignore unreleased versions
+        expect_date = False
+        continue
+
+      m = RELEASED_RE.match(line)
+      if not m:
+        raise Exception("Line %s: Invalid release line" % fileinput.lineno())
+
+      # Including the weekday in the date string does not work as time.strptime
+      # would return an inconsistent result if the weekday is incorrect.
+      parsed_ts = time.mktime(time.strptime(m.group("date"), "%d %b %Y"))
+      parsed = datetime.date.fromtimestamp(parsed_ts)
+      weekday = parsed.strftime("%a")
+
+      # Check weekday
+      if m.group("day") != weekday:
+        raise Exception("Line %s: %s was/is a %s, not %s" %
+                        (fileinput.lineno(), parsed, weekday, m.group("day")))
+
+      expect_date = False
+
+    prevline = line
+
+  sys.exit(0)
+
+
+if __name__ == "__main__":
+  main()

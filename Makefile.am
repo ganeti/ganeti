@@ -15,6 +15,7 @@ RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
 CHECK_MAN = $(top_srcdir)/autotools/check-man
 CHECK_VERSION = $(top_srcdir)/autotools/check-version
+CHECK_NEWS = $(top_srcdir)/autotools/check-news
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 clientdir = $(pkgpythondir)/client
@@ -809,6 +810,7 @@ check-dirs: $(BUILT_SOURCES)
 check-local: check-dirs
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
+	$(CHECK_NEWS) < $(top_srcdir)/NEWS
 
 .PHONY: lint
 lint: $(BUILT_SOURCES)
