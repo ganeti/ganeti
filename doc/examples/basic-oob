@@ -1,0 +1,112 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2011 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+SSH_USER='root'
+SSH_FLAGS='-q -oStrictHostKeyChecking=no'
+
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+EXIT_UNKNOWN=2
+
+_run_ssh() {
+  local host="$1"
+  local command="$2"
+
+  ssh $SSH_FLAGS "$SSH_USER@$host" "$command" 1>&2
+  return $?
+}
+
+_power_on() {
+  echo 'power-on not supported in this script' >&2
+  exit $EXIT_FAILURE
+}
+
+_power_off() {
+  local host="$1"
+
+  if ! _run_ssh "$host" 'shutdown -h now'; then
+    echo "Failure during ssh to $host" >&2
+    exit $EXIT_FAILURE
+  fi
+}
+
+_power_cycle() {
+  local host="$1"
+
+  if ! _run_ssh "$host" 'shutdown -r now'; then
+    echo "Failure during ssh to $host" >&2
+    exit $EXIT_FAILURE
+  fi
+}
+
+_power_status() {
+  local host="$1"
+
+  if fping -q "$host" > /dev/null 2>&1; then
+    echo '{ "powered": true }'
+  else
+    echo '{ "powered": false }'
+  fi
+}
+
+_health() {
+  echo 'health not supported in this script' >&2
+  exit $EXIT_FAILURE
+}
+
+_action() {
+  local command="$1"
+  local host="$2"
+
+  case "$command" in
+    power-on)
+      _power_on "$host"
+      ;;
+    power-off)
+      _power_off "$host"
+      ;;
+    power-cycle)
+      _power_cycle "$host"
+      ;;
+    power-status)
+      _power_status "$host"
+      ;;
+    health)
+      _health "$host"
+      ;;
+    *)
+      echo "Unsupported command '$command'" >&2
+      exit $EXIT_FAILURE
+      ;;
+  esac
+}
+
+main() {
+  if [[ $# != 2 ]]; then
+    echo "Wrong argument count, got $#, expected 2" >&2
+    exit $EXIT_FAILURE
+  fi
+
+  _action "$@"
+
+  exit $EXIT_SUCCESS
+}
+
+main "$@"
