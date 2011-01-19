@@ -840,8 +840,8 @@ def main():
     print >> sys.stderr, str(err)
     sys.exit(1)
   except ProgrammingError, err:
-    print >> sys.stderr, ("Internal application error. Please signal this"
-                          " to xencluster-team.")
+    print >> sys.stderr, ("Internal application error. Please report this"
+                          " to the Ganeti developer list.")
     print >> sys.stderr, "Error description: %s" % str(err)
     sys.exit(1)
   except Error, err:
