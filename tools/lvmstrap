@@ -489,6 +489,14 @@ def GetMountInfo():
   return mounts
 
 
+def GetSwapInfo():
+  """Reads /proc/swaps and returns the list of swap backing stores.
+
+  """
+  swaplines = ReadFile("/proc/swaps").splitlines()[1:]
+  return [line.split(None, 1)[0] for line in swaplines]
+
+
 def DevInfo(name, dev, mountinfo):
   """Computes miscellaneous information about a block device.
 
@@ -637,12 +645,20 @@ def CheckMounted(name):
   return dev not in minfo
 
 
+def CheckSwap(name):
+  """Check to see if a block device is being used as swap.
+
+  """
+  name = "/dev/%s" % name
+  return name not in GetSwapInfo()
+
+
 def InUse(name):
   """Returns if a disk is in use or not.
 
   """
   return not (CheckSysfsHolders(name) and CheckReread(name) and
-              CheckMounted(name))
+              CheckMounted(name) and CheckSwap(name))
 
 
 def WipeDisk(name):
