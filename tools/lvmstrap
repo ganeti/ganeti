@@ -78,6 +78,9 @@ EXCLUDED_FS = frozenset([
   "devpts",
   ])
 
+#: Minimum partition size to be considered (1 GB)
+PART_MINSIZE = 1024 * 1024 * 1024
+
 
 class Error(Exception):
   """Generic exception"""
@@ -446,8 +449,9 @@ def GetDiskList(opts):
         continue
       partdev = ReadDev("/sys/block/%s/%s" % (name, partname))
       partsize = ReadSize("/sys/block/%s/%s" % (name, partname))
-      CheckSysDev(partname, partdev)
-      partitions.append((partname, partsize, partdev))
+      if partsize >= PART_MINSIZE:
+        CheckSysDev(partname, partdev)
+        partitions.append((partname, partsize, partdev))
     partitions.sort()
     dlist.append((name, size, dev, partitions, inuse))
   dlist.sort()
