@@ -995,10 +995,6 @@ def _GetInstanceDiskFields():
   fields = [
     (_MakeField("disk_usage", "DiskUsage", QFT_UNIT), IQ_DISKUSAGE,
      _GetInstDiskUsage),
-    (_MakeField("sda_size", "LegacyDisk/0", QFT_UNIT), IQ_CONFIG,
-     _GetInstDiskSize(0)),
-    (_MakeField("sdb_size", "LegacyDisk/1", QFT_UNIT), IQ_CONFIG,
-     _GetInstDiskSize(1)),
     (_MakeField("disk.count", "Disks", QFT_NUMBER), IQ_CONFIG,
      lambda ctx, inst: len(inst.disks)),
     (_MakeField("disk.sizes", "Disk_sizes", QFT_OTHER), IQ_CONFIG,
@@ -1046,8 +1042,6 @@ def _GetInstanceParameterFields():
      IQ_CONFIG, lambda ctx, _: ctx.inst_hvparams),
     (_MakeField("beparams", "BackendParameters", QFT_OTHER),
      IQ_CONFIG, lambda ctx, _: ctx.inst_beparams),
-    (_MakeField("vcpus", "LegacyVCPUs", QFT_NUMBER), IQ_CONFIG,
-     lambda ctx, _: ctx.inst_beparams[constants.BE_VCPUS]),
 
     # Unfilled parameters
     (_MakeField("custom_hvparams", "CustomHypervisorParameters", QFT_OTHER),
@@ -1131,7 +1125,13 @@ def _BuildInstanceFields():
   fields.extend(_GetInstanceNetworkFields())
   fields.extend(_GetItemTimestampFields(IQ_CONFIG))
 
-  return _PrepareFieldList(fields, [])
+  aliases = [
+    ("vcpus", "be/vcpus"),
+    ("sda_size", "disk.size/0"),
+    ("sdb_size", "disk.size/1"),
+    ]
+
+  return _PrepareFieldList(fields, aliases)
 
 
 class LockQueryData:
