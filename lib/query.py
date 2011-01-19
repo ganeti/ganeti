@@ -277,14 +277,18 @@ def _VerifyResultRow(fields, row):
                     (utils.CommaJoin(errors), row))
 
 
-def _PrepareFieldList(fields):
+def _PrepareFieldList(fields, aliases):
   """Prepares field list for use by L{Query}.
 
   Converts the list to a dictionary and does some verification.
 
-  @type fields: list of tuples; (L{objects.QueryFieldDefinition}, data kind,
-    retrieval function)
-  @param fields: List of fields, see L{Query.__init__} for a better description
+  @type fields: list of tuples; (L{objects.QueryFieldDefinition}, data
+      kind, retrieval function)
+  @param fields: List of fields, see L{Query.__init__} for a better
+      description
+  @type aliases: list of tuples; (alias, target)
+  @param aliases: list of tuples containing aliases; for each
+      alias/target pair, a duplicate will be created in the field list
   @rtype: dict
   @return: Field dictionary for L{Query}
 
@@ -308,7 +312,15 @@ def _PrepareFieldList(fields):
 
     result[fdef.name] = field
 
-  assert len(result) == len(fields)
+  for alias, target in aliases:
+    assert alias not in result, "Alias %s overrides an existing field" % alias
+    assert target in result, "Missing target %s for alias %s" % (target, alias)
+    (fdef, k, fn) = result[target]
+    fdef = fdef.Copy()
+    fdef.name = alias
+    result[alias] = (fdef, k, fn)
+
+  assert len(result) == len(fields) + len(aliases)
   assert compat.all(name == fdef.name
                     for (name, (fdef, _, _)) in result.items())
 
@@ -644,7 +656,7 @@ def _BuildNodeFields():
   # Add timestamps
   fields.extend(_GetItemTimestampFields(NQ_CONFIG))
 
-  return _PrepareFieldList(fields)
+  return _PrepareFieldList(fields, [])
 
 
 class InstanceQueryData:
@@ -1119,7 +1131,7 @@ def _BuildInstanceFields():
   fields.extend(_GetInstanceNetworkFields())
   fields.extend(_GetItemTimestampFields(IQ_CONFIG))
 
-  return _PrepareFieldList(fields)
+  return _PrepareFieldList(fields, [])
 
 
 class LockQueryData:
@@ -1175,7 +1187,7 @@ def _BuildLockFields():
      lambda ctx, (name, mode, owners, pending): mode),
     (_MakeField("owner", "Owner", QFT_OTHER), LQ_OWNER, _GetLockOwners),
     (_MakeField("pending", "Pending", QFT_OTHER), LQ_PENDING, _GetLockPending),
-    ])
+    ], [])
 
 
 class GroupQueryData:
@@ -1247,7 +1259,7 @@ def _BuildGroupFields():
 
   fields.extend(_GetItemTimestampFields(GQ_CONFIG))
 
-  return _PrepareFieldList(fields)
+  return _PrepareFieldList(fields, [])
 
 
 #: Fields available for node queries
