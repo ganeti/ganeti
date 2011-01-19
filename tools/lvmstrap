@@ -66,6 +66,18 @@ SUPPORTED_TYPES = [
   "ubd",
   ]
 
+#: Excluded filesystem types
+EXCLUDED_FS = frozenset([
+  "nfs",
+  "nfs4",
+  "autofs",
+  "tmpfs",
+  "proc",
+  "sysfs",
+  "usbfs",
+  "devpts",
+  ])
+
 
 class Error(Exception):
   """Generic exception"""
@@ -460,7 +472,7 @@ def GetMountInfo():
   for line in mountlines:
     _, mountpoint, fstype, _ = line.split(None, 3)
     # fs type blacklist
-    if fstype in ["nfs", "nfs4", "autofs", "tmpfs", "proc", "sysfs"]:
+    if fstype in EXCLUDED_FS:
       continue
     try:
       dev = os.stat(mountpoint).st_dev
