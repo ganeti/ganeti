@@ -45,6 +45,7 @@ import sys
 import optparse
 import time
 import errno
+import re
 
 from ganeti.utils import RunCmd, ReadFile
 from ganeti import constants
@@ -77,6 +78,10 @@ EXCLUDED_FS = frozenset([
   "usbfs",
   "devpts",
   ])
+
+#: A regular expression that matches partitions (must be kept in sync
+# with L{SUPPORTED_TYPES}
+PART_RE = re.compile("^((?:h|s|m|ub)d[a-z]{1,2})[0-9]+$")
 
 #: Minimum partition size to be considered (1 GB)
 PART_MINSIZE = 1024 * 1024 * 1024
@@ -200,7 +205,7 @@ def IsPartitioned(disk):
   Currently only md devices are used as is.
 
   """
-  return not disk.startswith('md')
+  return not (disk.startswith('md') or PART_RE.match(disk))
 
 
 def DeviceName(disk):
@@ -215,6 +220,17 @@ def DeviceName(disk):
   else:
     device = '/dev/%s' % disk
   return device
+
+
+def SysfsName(disk):
+  """Returns the sysfs name for a disk or partition.
+
+  """
+  match = PART_RE.match(disk)
+  if match:
+    # this is a partition, which resides in /sys/block under a different name
+    disk = "%s/%s"  % (match.group(1), disk)
+  return "/sys/block/%s" % disk
 
 
 def ExecCommand(command):
@@ -453,7 +469,8 @@ def GetDiskList(opts):
       partsize = ReadSize(partsysfsname)
       if partsize >= PART_MINSIZE:
         CheckSysDev(partname, partdev)
-        partitions.append((partname, partsize, partdev))
+        partinuse = InUse(partname)
+        partitions.append((partname, partsize, partdev, partinuse))
     partitions.sort()
     dlist.append((name, size, dev, partitions, inuse))
   dlist.sort()
@@ -537,6 +554,12 @@ def ShowDiskInfo(opts):
   choice about which disks should be allocated to our volume group.
 
   """
+  def _inuse(inuse):
+    if inuse:
+      return "yes"
+    else:
+      return "no"
+
   mounts = GetMountInfo()
   dlist = GetDiskList(opts)
 
@@ -554,13 +577,9 @@ def ShowDiskInfo(opts):
   flatlist = []
   # Flatten the [(disk, [partition,...]), ...] list
   for name, size, dev, parts, inuse in dlist:
-    if inuse:
-      str_inuse = "yes"
-    else:
-      str_inuse = "no"
-    flatlist.append((name, size, dev, str_inuse))
-    for partname, partsize, partdev in parts:
-      flatlist.append((partname, partsize, partdev, ""))
+    flatlist.append((name, size, dev, _inuse(inuse)))
+    for partname, partsize, partdev, partinuse in parts:
+      flatlist.append((partname, partsize, partdev, _inuse(partinuse)))
 
   strlist = []
   for name, size, dev, in_use in flatlist:
@@ -598,7 +617,7 @@ def CheckSysfsHolders(name):
 
   """
   try:
-    contents = os.listdir("/sys/block/%s/holders/" % name)
+    contents = os.listdir("%s/holders/" % SysfsName(name))
   except OSError, err:
     if err.errno == errno.ENOENT:
       contents = []
@@ -647,7 +666,7 @@ def CheckMounted(name):
 
   """
   minfo = GetMountInfo()
-  dev = ReadDev("/sys/block/%s" % name)
+  dev = ReadDev(SysfsName(name))
   return dev not in minfo
 
 
@@ -786,9 +805,14 @@ def ValidateDiskList(options):
                       " non-removable block devices).")
   sysd_free = []
   sysd_used = []
-  for name, _, _, _, used in sysdisks:
+  for name, _, _, parts, used in sysdisks:
     if used:
       sysd_used.append(name)
+      for partname, _, _, partused in parts:
+        if partused:
+          sysd_used.append(partname)
+        else:
+          sysd_free.append(partname)
     else:
       sysd_free.append(name)
 
