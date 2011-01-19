@@ -430,7 +430,8 @@ def GetDiskList(opts):
     if not compat.any([name.startswith(pfx) for pfx in SUPPORTED_TYPES]):
       continue
 
-    size = ReadSize("/sys/block/%s" % name)
+    disksysfsname = "/sys/block/%s" % name
+    size = ReadSize(disksysfsname)
 
     f = open("/sys/block/%s/removable" % name)
     removable = int(f.read().strip())
@@ -439,16 +440,17 @@ def GetDiskList(opts):
     if removable and not opts.removable_ok:
       continue
 
-    dev = ReadDev("/sys/block/%s" % name)
+    dev = ReadDev(disksysfsname)
     CheckSysDev(name, dev)
     inuse = InUse(name)
     # Enumerate partitions of the block device
     partitions = []
-    for partname in os.listdir("/sys/block/%s" % name):
+    for partname in os.listdir(disksysfsname):
       if not partname.startswith(name):
         continue
-      partdev = ReadDev("/sys/block/%s/%s" % (name, partname))
-      partsize = ReadSize("/sys/block/%s/%s" % (name, partname))
+      partsysfsname = "%s/%s" % (disksysfsname, partname)
+      partdev = ReadDev(partsysfsname)
+      partsize = ReadSize(partsysfsname)
       if partsize >= PART_MINSIZE:
         CheckSysDev(partname, partdev)
         partitions.append((partname, partsize, partdev))
