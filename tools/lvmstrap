@@ -625,11 +625,24 @@ def CheckReread(name):
     return result.failed
 
 
+def CheckMounted(name):
+  """Check to see if a block device is a mountpoint.
+
+  In recent distros/kernels, this is reported directly via fuser, but
+  on older ones not, so we do an additional check here (manually).
+
+  """
+  minfo = GetMountInfo()
+  dev = ReadDev("/sys/block/%s" % name)
+  return dev not in minfo
+
+
 def InUse(name):
   """Returns if a disk is in use or not.
 
   """
-  return not (CheckSysfsHolders(name) and CheckReread(name))
+  return not (CheckSysfsHolders(name) and CheckReread(name) and
+              CheckMounted(name))
 
 
 def WipeDisk(name):
