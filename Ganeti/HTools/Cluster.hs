@@ -99,6 +99,10 @@ data AllocSolution = AllocSolution
   , asLog       :: [String]            -- ^ A list of informational messages
   }
 
+-- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
+type AllocResult = (FailStats, Node.List, Instance.List,
+                    [Instance.Instance], [CStats])
+
 -- | The empty solution we start with when computing allocations
 emptySolution :: AllocSolution
 emptySolution = AllocSolution { asFailures = [], asAllocs = 0
@@ -823,8 +827,7 @@ iterateAlloc :: Node.List
              -> Int
              -> [Instance.Instance]
              -> [CStats]
-             -> Result (FailStats, Node.List, Instance.List,
-                        [Instance.Instance], [CStats])
+             -> Result AllocResult
 iterateAlloc nl il newinst nreq ixes cstats =
       let depth = length ixes
           newname = printf "new-%d" depth::String
@@ -849,8 +852,7 @@ tieredAlloc :: Node.List
             -> Int
             -> [Instance.Instance]
             -> [CStats]
-            -> Result (FailStats, Node.List, Instance.List,
-                       [Instance.Instance], [CStats])
+            -> Result AllocResult
 tieredAlloc nl il newinst nreq ixes cstats =
     case iterateAlloc nl il newinst nreq ixes cstats of
       Bad s -> Bad s
