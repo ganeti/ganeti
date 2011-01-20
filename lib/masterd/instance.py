@@ -161,11 +161,15 @@ class _DiskImportExportBase(object):
 
     self._lu = lu
     self.node_name = node_name
-    self._opts = opts
+    self._opts = opts.Copy()
     self._instance = instance
     self._timeouts = timeouts
     self._cbs = cbs
     self._private = private
+
+    # Set master daemon's timeout in options for import/export daemon
+    assert self._opts.connect_timeout is None
+    self._opts.connect_timeout = timeouts.connect
 
     # Parent loop
     self._loop = None

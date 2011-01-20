@@ -1272,6 +1272,7 @@ class ImportExportOptions(ConfigObject):
   @ivar ca_pem: Remote peer CA in PEM format (None for cluster certificate)
   @ivar compress: Compression method (one of L{constants.IEC_ALL})
   @ivar magic: Used to ensure the connection goes to the right disk
+  @ivar connect_timeout: Number of seconds for establishing connection
 
   """
   __slots__ = [
@@ -1279,6 +1280,7 @@ class ImportExportOptions(ConfigObject):
     "ca_pem",
     "compress",
     "magic",
+    "connect_timeout",
     ]
 
 

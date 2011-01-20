@@ -2890,6 +2890,15 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
     if cmd_suffix:
       cmd.append("--cmd-suffix=%s" % cmd_suffix)
 
+    if mode == constants.IEM_EXPORT:
+      # Retry connection a few times when connecting to remote peer
+      cmd.append("--connect-retries=%s" % constants.RIE_CONNECT_RETRIES)
+      cmd.append("--connect-timeout=%s" % constants.RIE_CONNECT_ATTEMPT_TIMEOUT)
+    elif opts.connect_timeout is not None:
+      assert mode == constants.IEM_IMPORT
+      # Overall timeout for establishing connection while listening
+      cmd.append("--connect-timeout=%s" % opts.connect_timeout)
+
     logfile = _InstanceLogName(prefix, instance.os, instance.name)
 
     # TODO: Once _InstanceLogName uses tempfile.mkstemp, StartDaemon has
