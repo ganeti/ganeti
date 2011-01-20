@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1005,7 +1005,9 @@ QRFS_NORMAL = 0
 QRFS_UNKNOWN = 1
 #: No data (e.g. RPC error), can be used instead of L{QRFS_OFFLINE}
 QRFS_NODATA = 2
-#: Value unavailable for item
+#: Value unavailable/unsupported for item; if this field is supported
+#: but we cannot get the data for the moment, QRFS_NODATA or
+#: QRFS_OFFLINE should be used
 QRFS_UNAVAIL = 3
 #: Resource marked offline
 QRFS_OFFLINE = 4
