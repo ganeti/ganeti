@@ -2405,7 +2405,7 @@ class LUClusterVerifyDisks(NoHooksLU):
     """
     result = res_nodes, res_instances, res_missing = {}, [], {}
 
-    nodes = utils.NiceSort(self.cfg.GetNodeList())
+    nodes = utils.NiceSort(self.cfg.GetVmCapableNodeList())
     instances = [self.cfg.GetInstanceInfo(name)
                  for name in self.cfg.GetInstanceList()]
 
