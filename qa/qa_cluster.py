@@ -153,6 +153,7 @@ def TestClusterOob():
 def TestClusterVerify():
   """gnt-cluster verify"""
   AssertCommand(["gnt-cluster", "verify"])
+  AssertCommand(["gnt-cluster", "verify-disks"])
 
 
 def TestJobqueue():
