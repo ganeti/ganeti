@@ -422,7 +422,7 @@ RIE_HANDSHAKE = "Hi, I'm Ganeti"
 RIE_CERT_VALIDITY = 24 * 60 * 60
 
 # Remote import/export connect timeout for socat
-RIE_CONNECT_TIMEOUT = 60
+RIE_CONNECT_TIMEOUT = 180
 
 DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN,
                             DT_DRBD8, DT_FILE])
