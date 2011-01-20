@@ -491,7 +491,8 @@ def PowerNode(opts, args):
     opcodelist.append(opcodes.OpNodeSetParams(node_name=node, offline=True,
                                               auto_promote=opts.auto_promote))
 
-  opcodelist.append(opcodes.OpOobCommand(node_name=node, command=oob_command))
+  opcodelist.append(opcodes.OpOobCommand(node_names=[node],
+                                         command=oob_command))
 
   cli.SetGenericOpcodeOpts(opcodelist, opts)
 
@@ -502,13 +503,22 @@ def PowerNode(opts, args):
   result = cli.PollJob(job_id)[-1]
 
   if result:
-    if oob_command == constants.OOB_POWER_STATUS:
-      text = "The machine is %spowered"
-      if result[constants.OOB_POWER_STATUS_POWERED]:
-        result = text % ""
+    (_, data_tuple) = result[0]
+    if data_tuple[0] != constants.RS_NORMAL:
+      if data_tuple[0] == constants.RS_UNAVAIL:
+        result = "OOB is not supported"
       else:
-        result = text % "not "
-    ToStderr(result)
+        result = "RPC failed, look out for warning in the output"
+      ToStderr(result)
+      return constants.EXIT_FAILURE
+    else:
+      if oob_command == constants.OOB_POWER_STATUS:
+        text = "The machine is %spowered"
+        if data_tuple[1][constants.OOB_POWER_STATUS_POWERED]:
+          result = text % ""
+        else:
+          result = text % "not "
+        ToStdout(result)
 
   return constants.EXIT_SUCCESS
 

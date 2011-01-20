@@ -3192,31 +3192,33 @@ class LUOobCommand(NoHooksLU):
     Any errors are signaled by raising errors.OpPrereqError.
 
     """
-    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
-    node = self.cfg.GetNodeInfo(self.op.node_name)
+    self.nodes = []
+    for node_name in self.op.node_names:
+      node = self.cfg.GetNodeInfo(node_name)
 
-    if node is None:
-      raise errors.OpPrereqError("Node %s not found" % self.op.node_name)
+      if node is None:
+        raise errors.OpPrereqError("Node %s not found" % node_name,
+                                   errors.ECODE_NOENT)
+      else:
+        self.nodes.append(node)
 
-    self.oob_program = _SupportsOob(self.cfg, node)
-
-    if not self.oob_program:
-      raise errors.OpPrereqError("OOB is not supported for node %s" %
-                                 self.op.node_name)
-
-    if self.op.command == constants.OOB_POWER_OFF and not node.offline:
-      raise errors.OpPrereqError(("Cannot power off node %s because it is"
-                                  " not marked offline") % self.op.node_name)
-
-    self.node = node
+      if (self.op.command == constants.OOB_POWER_OFF and not node.offline):
+        raise errors.OpPrereqError(("Cannot power off node %s because it is"
+                                    " not marked offline") % node_name,
+                                   errors.ECODE_STATE)
 
   def ExpandNames(self):
     """Gather locks we need.
 
     """
-    node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    if self.op.node_names:
+      self.op.node_names = [_ExpandNodeName(self.cfg, name)
+                            for name in self.op.node_names]
+    else:
+      self.op.node_names = self.cfg.GetNodeList()
+
     self.needed_locks = {
-      locking.LEVEL_NODE: [node_name],
+      locking.LEVEL_NODE: self.op.node_names,
       }
 
   def Exec(self, feedback_fn):
@@ -3224,40 +3226,65 @@ class LUOobCommand(NoHooksLU):
 
     """
     master_node = self.cfg.GetMasterNode()
-    node = self.node
+    ret = []
 
-    logging.info("Executing out-of-band command '%s' using '%s' on %s",
-                 self.op.command, self.oob_program, self.op.node_name)
-    result = self.rpc.call_run_oob(master_node, self.oob_program,
-                                   self.op.command, self.op.node_name,
-                                   self.op.timeout)
+    for node in self.nodes:
+      node_entry = [(constants.RS_NORMAL, node.name)]
+      ret.append(node_entry)
 
-    result.Raise("An error occurred on execution of OOB helper")
+      oob_program = _SupportsOob(self.cfg, node)
 
-    self._CheckPayload(result)
+      if not oob_program:
+        node_entry.append((constants.RS_UNAVAIL, None))
+        continue
 
-    if self.op.command == constants.OOB_HEALTH:
-      # For health we should log important events
-      for item, status in result.payload:
-        if status in [constants.OOB_STATUS_WARNING,
-                      constants.OOB_STATUS_CRITICAL]:
-          logging.warning("On node '%s' item '%s' has status '%s'",
-                          self.op.node_name, item, status)
+      logging.info("Executing out-of-band command '%s' using '%s' on %s",
+                   self.op.command, oob_program, node.name)
+      result = self.rpc.call_run_oob(master_node, oob_program,
+                                     self.op.command, node.name,
+                                     self.op.timeout)
 
-    if self.op.command == constants.OOB_POWER_ON:
-      node.powered = True
-    elif self.op.command == constants.OOB_POWER_OFF:
-      node.powered = False
-    elif self.op.command == constants.OOB_POWER_STATUS:
-      powered = result.payload[constants.OOB_POWER_STATUS_POWERED]
-      if powered != self.node.powered:
-        logging.warning(("Recorded power state (%s) of node '%s' does not match"
-                         " actual power state (%s)"), node.powered,
-                        self.op.node_name, powered)
+      result.Raise("An error occurred on execution of OOB helper")
 
-    self.cfg.Update(node, feedback_fn)
+      if result.fail_msg:
+        self.LogWarning("On node '%s' out-of-band RPC failed with: %s",
+                        node.name, result.fail_msg)
+        node_entry.append((constants.RS_NODATA, None))
+      else:
+        try:
+          self._CheckPayload(result)
+        except errors.OpExecError, err:
+          self.LogWarning("The payload returned by '%s' is not valid: %s",
+                          node.name, err)
+          node_entry.append((constants.RS_NODATA, None))
+        else:
+          if self.op.command == constants.OOB_HEALTH:
+            # For health we should log important events
+            for item, status in result.payload:
+              if status in [constants.OOB_STATUS_WARNING,
+                            constants.OOB_STATUS_CRITICAL]:
+                self.LogWarning("On node '%s' item '%s' has status '%s'",
+                                node.name, item, status)
 
-    return result.payload
+          if self.op.command == constants.OOB_POWER_ON:
+            node.powered = True
+          elif self.op.command == constants.OOB_POWER_OFF:
+            node.powered = False
+          elif self.op.command == constants.OOB_POWER_STATUS:
+            powered = result.payload[constants.OOB_POWER_STATUS_POWERED]
+            if powered != node.powered:
+              logging.warning(("Recorded power state (%s) of node '%s' does not"
+                               " match actual power state (%s)"), node.powered,
+                              node.name, powered)
+
+          # For configuration changing commands we should update the node
+          if self.op.command in (constants.OOB_POWER_ON,
+                                 constants.OOB_POWER_OFF):
+            self.cfg.Update(node, feedback_fn)
+
+          node_entry.append((constants.RS_NORMAL, result.payload))
+
+    return ret
 
   def _CheckPayload(self, result):
     """Checks if the payload is valid.

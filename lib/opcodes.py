@@ -590,7 +590,7 @@ class OpQueryFields(OpCode):
 class OpOobCommand(OpCode):
   """Interact with OOB."""
   OP_PARAMS = [
-    _PNodeName,
+    ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ("command", None, ht.TElemOf(constants.OOB_COMMANDS)),
     ("timeout", constants.OOB_TIMEOUT, ht.TInt),
     ]
