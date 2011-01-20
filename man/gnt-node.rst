@@ -606,3 +606,15 @@ POWER
 This commands calls out to out-of-band management to change the power
 state of given node. With ``status`` you get the power status as reported
 by the out-of-band managment script.
+
+HEALTH
+~~~~~~
+
+**health** [*nodes*]
+
+This commands calls out to out-pf-band management to ask for the health status
+of all or given nodes. The health contains the node name and then the items
+element with their status in a ``item=status`` manner. Where ``item`` is script
+specific and ``status`` can be one of ``OK``, ``WARNING``, ``CRITICAL`` or
+``UNKNOWN``. Items with status ``WARNING`` or ``CRITICAL`` are logged and
+annotated in the command line output.

@@ -523,6 +523,51 @@ def PowerNode(opts, args):
   return constants.EXIT_SUCCESS
 
 
+def Health(opts, args):
+  """Show health of a node using OOB.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name of
+      the node to be removed
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  op = opcodes.OpOobCommand(node_names=args, command=constants.OOB_HEALTH)
+  result = SubmitOpCode(op, opts=opts)
+
+  if opts.no_headers:
+    headers = None
+  else:
+    headers = {"node": "Node", "status": "Status"}
+
+  errs = 0
+  data = []
+  for node_result in result:
+    (node_tuple, data_tuple) = node_result
+    (_, node_name) = node_tuple
+    (data_status, data_node) = data_tuple
+    if data_status == constants.RS_NORMAL:
+      data.append([node_name, "%s=%s" % tuple(data_node[0])])
+      for item, status in data_node[1:]:
+        data.append(["", "%s=%s" % (item, status)])
+    else:
+      errs += 1
+      data.append([node_name, cli.FormatResultError(data_status)])
+
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=["node", "status"], data=data)
+
+  for line in data:
+    ToStdout(line)
+
+  if errs:
+    return constants.EXIT_FAILURE
+  else:
+    return constants.EXIT_SUCCESS
+
+
 def ListVolumes(opts, args):
   """List logical volumes on node(s).
 
@@ -812,6 +857,10 @@ commands = {
     RemoveTags, [ArgNode(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT],
     "<node_name> tag...", "Remove tags from the given node"),
+  "health": (
+    Health, ARGS_MANY_NODES,
+    [NOHDR_OPT, SEP_OPT, SUBMIT_OPT, PRIORITY_OPT],
+    "[<node_name>...]", "List health of node(s) using out-of-band"),
   }
 
 

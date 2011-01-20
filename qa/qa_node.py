@@ -280,18 +280,34 @@ def TestOutOfBand():
     AssertCommand(["gnt-node", "power", "cycle", node_name])
     _AssertOobCall(verify_path, "power-cycle %s" % full_node_name)
 
-    # This command should fail as it expects output which isn't provided yet
-    # But it should have called the oob helper nevermind
+    # Those commands should fail as they expect output which isn't provided yet
+    # But they should have called the oob helper nevermind
     AssertCommand(["gnt-node", "power", "status", node_name],
                   fail=True)
     _AssertOobCall(verify_path, "power-status %s" % full_node_name)
 
-    # Data, exit 0
+    AssertCommand(["gnt-node", "health", node_name],
+                  fail=True)
+    _AssertOobCall(verify_path, "health %s" % full_node_name)
+
+    AssertCommand(["gnt-node", "health"], fail=True)
+
+    # Correct Data, exit 0
     _UpdateOobFile(data_path, serializer.DumpJson({ "powered": True }))
 
     AssertCommand(["gnt-node", "power", "status", node_name])
     _AssertOobCall(verify_path, "power-status %s" % full_node_name)
 
+    _UpdateOobFile(data_path, serializer.DumpJson([["temp", "OK"],
+                                                   ["disk0", "CRITICAL"]]))
+
+    AssertCommand(["gnt-node", "health", node_name])
+    _AssertOobCall(verify_path, "health %s" % full_node_name)
+
+    AssertCommand(["gnt-node", "health"])
+
+
+    # Those commands should fail as they expect no data regardless of exit 0
     AssertCommand(["gnt-node", "power", "on", node_name], fail=True)
     _AssertOobCall(verify_path, "power-on %s" % full_node_name)
 
@@ -323,6 +339,12 @@ def TestOutOfBand():
                   fail=True)
     _AssertOobCall(verify_path, "power-status %s" % full_node_name)
 
+    AssertCommand(["gnt-node", "health", node_name],
+                  fail=True)
+    _AssertOobCall(verify_path, "health %s" % full_node_name)
+
+    AssertCommand(["gnt-node", "health"], fail=True)
+
     # No data, exit 1 (all should fail)
     _UpdateOobFile(data_path, "")
     AssertCommand(["gnt-node", "power", "on", node_name], fail=True)
@@ -340,6 +362,12 @@ def TestOutOfBand():
     AssertCommand(["gnt-node", "power", "status", node_name],
                   fail=True)
     _AssertOobCall(verify_path, "power-status %s" % full_node_name)
+
+    AssertCommand(["gnt-node", "health", node_name],
+                  fail=True)
+    _AssertOobCall(verify_path, "health %s" % full_node_name)
+
+    AssertCommand(["gnt-node", "health"], fail=True)
 
     # Different OOB script for node
     verify_path2 = qa_utils.UploadData(master["primary"], "")
