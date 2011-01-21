@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1296,6 +1296,15 @@ class ConfigWriter:
 
     """
     return self._UnlockedGetOnlineNodeList()
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetVmCapableNodeList(self):
+    """Return the list of nodes which are not vm capable.
+
+    """
+    all_nodes = [self._UnlockedGetNodeInfo(node)
+                 for node in self._UnlockedGetNodeList()]
+    return [node.name for node in all_nodes if node.vm_capable]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNonVmCapableNodeList(self):

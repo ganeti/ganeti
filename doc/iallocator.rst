@@ -178,6 +178,8 @@ nodegroups
 
   name
     the node group name
+  alloc_policy
+    the allocation policy of the node group
 
 instances
   a dictionary with the data for the current existing instance on the

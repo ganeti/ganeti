@@ -45,6 +45,7 @@ import sys
 import optparse
 import time
 import errno
+import re
 
 from ganeti.utils import RunCmd, ReadFile
 from ganeti import constants
@@ -65,6 +66,25 @@ SUPPORTED_TYPES = [
   "md",
   "ubd",
   ]
+
+#: Excluded filesystem types
+EXCLUDED_FS = frozenset([
+  "nfs",
+  "nfs4",
+  "autofs",
+  "tmpfs",
+  "proc",
+  "sysfs",
+  "usbfs",
+  "devpts",
+  ])
+
+#: A regular expression that matches partitions (must be kept in sync
+# with L{SUPPORTED_TYPES}
+PART_RE = re.compile("^((?:h|s|m|ub)d[a-z]{1,2})[0-9]+$")
+
+#: Minimum partition size to be considered (1 GB)
+PART_MINSIZE = 1024 * 1024 * 1024
 
 
 class Error(Exception):
@@ -185,7 +205,7 @@ def IsPartitioned(disk):
   Currently only md devices are used as is.
 
   """
-  return not disk.startswith('md')
+  return not (disk.startswith('md') or PART_RE.match(disk))
 
 
 def DeviceName(disk):
@@ -200,6 +220,17 @@ def DeviceName(disk):
   else:
     device = '/dev/%s' % disk
   return device
+
+
+def SysfsName(disk):
+  """Returns the sysfs name for a disk or partition.
+
+  """
+  match = PART_RE.match(disk)
+  if match:
+    # this is a partition, which resides in /sys/block under a different name
+    disk = "%s/%s"  % (match.group(1), disk)
+  return "/sys/block/%s" % disk
 
 
 def ExecCommand(command):
@@ -415,7 +446,8 @@ def GetDiskList(opts):
     if not compat.any([name.startswith(pfx) for pfx in SUPPORTED_TYPES]):
       continue
 
-    size = ReadSize("/sys/block/%s" % name)
+    disksysfsname = "/sys/block/%s" % name
+    size = ReadSize(disksysfsname)
 
     f = open("/sys/block/%s/removable" % name)
     removable = int(f.read().strip())
@@ -424,18 +456,21 @@ def GetDiskList(opts):
     if removable and not opts.removable_ok:
       continue
 
-    dev = ReadDev("/sys/block/%s" % name)
+    dev = ReadDev(disksysfsname)
     CheckSysDev(name, dev)
     inuse = InUse(name)
     # Enumerate partitions of the block device
     partitions = []
-    for partname in os.listdir("/sys/block/%s" % name):
+    for partname in os.listdir(disksysfsname):
       if not partname.startswith(name):
         continue
-      partdev = ReadDev("/sys/block/%s/%s" % (name, partname))
-      partsize = ReadSize("/sys/block/%s/%s" % (name, partname))
-      CheckSysDev(partname, partdev)
-      partitions.append((partname, partsize, partdev))
+      partsysfsname = "%s/%s" % (disksysfsname, partname)
+      partdev = ReadDev(partsysfsname)
+      partsize = ReadSize(partsysfsname)
+      if partsize >= PART_MINSIZE:
+        CheckSysDev(partname, partdev)
+        partinuse = InUse(partname)
+        partitions.append((partname, partsize, partdev, partinuse))
     partitions.sort()
     dlist.append((name, size, dev, partitions, inuse))
   dlist.sort()
@@ -460,7 +495,7 @@ def GetMountInfo():
   for line in mountlines:
     _, mountpoint, fstype, _ = line.split(None, 3)
     # fs type blacklist
-    if fstype in ["nfs", "nfs4", "autofs", "tmpfs", "proc", "sysfs"]:
+    if fstype in EXCLUDED_FS:
       continue
     try:
       dev = os.stat(mountpoint).st_dev
@@ -475,6 +510,14 @@ def GetMountInfo():
       continue
     mounts[dev] = mountpoint
   return mounts
+
+
+def GetSwapInfo():
+  """Reads /proc/swaps and returns the list of swap backing stores.
+
+  """
+  swaplines = ReadFile("/proc/swaps").splitlines()[1:]
+  return [line.split(None, 1)[0] for line in swaplines]
 
 
 def DevInfo(name, dev, mountinfo):
@@ -511,6 +554,12 @@ def ShowDiskInfo(opts):
   choice about which disks should be allocated to our volume group.
 
   """
+  def _inuse(inuse):
+    if inuse:
+      return "yes"
+    else:
+      return "no"
+
   mounts = GetMountInfo()
   dlist = GetDiskList(opts)
 
@@ -528,13 +577,9 @@ def ShowDiskInfo(opts):
   flatlist = []
   # Flatten the [(disk, [partition,...]), ...] list
   for name, size, dev, parts, inuse in dlist:
-    if inuse:
-      str_inuse = "yes"
-    else:
-      str_inuse = "no"
-    flatlist.append((name, size, dev, str_inuse))
-    for partname, partsize, partdev in parts:
-      flatlist.append((partname, partsize, partdev, ""))
+    flatlist.append((name, size, dev, _inuse(inuse)))
+    for partname, partsize, partdev, partinuse in parts:
+      flatlist.append((partname, partsize, partdev, _inuse(partinuse)))
 
   strlist = []
   for name, size, dev, in_use in flatlist:
@@ -572,7 +617,7 @@ def CheckSysfsHolders(name):
 
   """
   try:
-    contents = os.listdir("/sys/block/%s/holders/" % name)
+    contents = os.listdir("%s/holders/" % SysfsName(name))
   except OSError, err:
     if err.errno == errno.ENOENT:
       contents = []
@@ -613,11 +658,32 @@ def CheckReread(name):
     return result.failed
 
 
+def CheckMounted(name):
+  """Check to see if a block device is a mountpoint.
+
+  In recent distros/kernels, this is reported directly via fuser, but
+  on older ones not, so we do an additional check here (manually).
+
+  """
+  minfo = GetMountInfo()
+  dev = ReadDev(SysfsName(name))
+  return dev not in minfo
+
+
+def CheckSwap(name):
+  """Check to see if a block device is being used as swap.
+
+  """
+  name = "/dev/%s" % name
+  return name not in GetSwapInfo()
+
+
 def InUse(name):
   """Returns if a disk is in use or not.
 
   """
-  return not (CheckSysfsHolders(name) and CheckReread(name))
+  return not (CheckSysfsHolders(name) and CheckReread(name) and
+              CheckMounted(name) and CheckSwap(name))
 
 
 def WipeDisk(name):
@@ -739,9 +805,14 @@ def ValidateDiskList(options):
                       " non-removable block devices).")
   sysd_free = []
   sysd_used = []
-  for name, _, _, _, used in sysdisks:
+  for name, _, _, parts, used in sysdisks:
     if used:
       sysd_used.append(name)
+      for partname, _, _, partused in parts:
+        if partused:
+          sysd_used.append(partname)
+        else:
+          sysd_free.append(partname)
     else:
       sysd_free.append(name)
 
@@ -840,8 +911,8 @@ def main():
     print >> sys.stderr, str(err)
     sys.exit(1)
   except ProgrammingError, err:
-    print >> sys.stderr, ("Internal application error. Please signal this"
-                          " to xencluster-team.")
+    print >> sys.stderr, ("Internal application error. Please report this"
+                          " to the Ganeti developer list.")
     print >> sys.stderr, "Error description: %s" % str(err)
     sys.exit(1)
   except Error, err:

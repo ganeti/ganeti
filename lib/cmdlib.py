@@ -2405,7 +2405,7 @@ class LUClusterVerifyDisks(NoHooksLU):
     """
     result = res_nodes, res_instances, res_missing = {}, [], {}
 
-    nodes = utils.NiceSort(self.cfg.GetNodeList())
+    nodes = utils.NiceSort(self.cfg.GetVmCapableNodeList())
     instances = [self.cfg.GetInstanceInfo(name)
                  for name in self.cfg.GetInstanceList()]
 
@@ -2425,7 +2425,8 @@ class LUClusterVerifyDisks(NoHooksLU):
       return result
 
     vg_names = self.rpc.call_vg_list(nodes)
-    vg_names.Raise("Cannot get list of VGs")
+    for node in nodes:
+      vg_names[node].Raise("Cannot get list of VGs")
 
     for node in nodes:
       # node_volume
@@ -7444,12 +7445,11 @@ class LUInstanceCreate(LogicalUnit):
           raise errors.OpPrereqError("LV named %s used by another instance" %
                                      lv_name, errors.ECODE_NOTUNIQUE)
 
-      vg_names = self.rpc.call_vg_list([pnode.name])
+      vg_names = self.rpc.call_vg_list([pnode.name])[pnode.name]
       vg_names.Raise("Cannot get VG information from node %s" % pnode.name)
 
       node_lvs = self.rpc.call_lv_list([pnode.name],
-                                       vg_names[pnode.name].payload.keys()
-                                      )[pnode.name]
+                                       vg_names.payload.keys())[pnode.name]
       node_lvs.Raise("Cannot get LV information from node %s" % pnode.name)
       node_lvs = node_lvs.payload
 
@@ -9253,7 +9253,7 @@ class LUInstanceSetParams(LogicalUnit):
         _CheckInstanceDown(self, instance, "cannot remove disks")
 
       if (disk_op == constants.DDM_ADD and
-          len(instance.nics) >= constants.MAX_DISKS):
+          len(instance.disks) >= constants.MAX_DISKS):
         raise errors.OpPrereqError("Instance has too many disks (%d), cannot"
                                    " add more" % constants.MAX_DISKS,
                                    errors.ECODE_STATE)

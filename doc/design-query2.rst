@@ -337,7 +337,7 @@ as filters. Two new calls are introduced:
   Execute a query on items, optionally filtered. Takes a single
   parameter, a :ref:`query object <data-query-request>` encoded as a
   dictionary and returns a :ref:`data query response
-  <data-query-response`.
+  <data-query-response>`.
 ``QueryFields``
   Return list of supported fields as :ref:`field definitions
   <field-def>`. Takes a single parameter, a :ref:`fields query object

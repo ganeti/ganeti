@@ -74,7 +74,7 @@ class TestQuery(unittest.TestCase):
       [(query._MakeField("disk%s.size" % i, "DiskSize%s" % i,
                          constants.QFT_UNIT),
         DISK, compat.partial(_GetDiskSize, i))
-       for i in range(4)])
+       for i in range(4)], [])
 
     q = query.Query(fielddef, ["name"])
     self.assertEqual(q.RequestedData(), set([STATIC]))
@@ -176,40 +176,40 @@ class TestQuery(unittest.TestCase):
          lambda *args: None),
         (query._MakeField("other", a, constants.QFT_TEXT), None,
          lambda *args: None),
-        ])
+        ], [])
 
     # Non-lowercase names
     self.assertRaises(AssertionError, query._PrepareFieldList, [
       (query._MakeField("NAME", "Name", constants.QFT_TEXT), None,
        lambda *args: None),
-      ])
+      ], [])
     self.assertRaises(AssertionError, query._PrepareFieldList, [
       (query._MakeField("Name", "Name", constants.QFT_TEXT), None,
        lambda *args: None),
-      ])
+      ], [])
 
     # Empty name
     self.assertRaises(AssertionError, query._PrepareFieldList, [
       (query._MakeField("", "Name", constants.QFT_TEXT), None,
        lambda *args: None),
-      ])
+      ], [])
 
     # Empty title
     self.assertRaises(AssertionError, query._PrepareFieldList, [
       (query._MakeField("name", "", constants.QFT_TEXT), None,
        lambda *args: None),
-      ])
+      ], [])
 
     # Whitespace in title
     self.assertRaises(AssertionError, query._PrepareFieldList, [
       (query._MakeField("name", "Co lu mn", constants.QFT_TEXT), None,
        lambda *args: None),
-      ])
+      ], [])
 
     # No callable function
     self.assertRaises(AssertionError, query._PrepareFieldList, [
       (query._MakeField("name", "Name", constants.QFT_TEXT), None, None),
-      ])
+      ], [])
 
   def testUnknown(self):
     fielddef = query._PrepareFieldList([
@@ -221,7 +221,7 @@ class TestQuery(unittest.TestCase):
        None, lambda *args: query._FS_NODATA ),
       (query._MakeField("unavail", "Unavail", constants.QFT_BOOL),
        None, lambda *args: query._FS_UNAVAIL),
-      ])
+      ], [])
 
     for selected in [["foo"], ["Hello", "World"],
                      ["name1", "other", "foo"]]:
@@ -253,6 +253,25 @@ class TestQuery(unittest.TestCase):
                        (constants.RS_UNAVAIL, None),
                        (constants.RS_UNKNOWN, None)]
                       for i in range(1, 10)])
+
+  def testAliases(self):
+    fields = [
+      (query._MakeField("a", "a-title", constants.QFT_TEXT), None,
+       lambda *args: None),
+      (query._MakeField("b", "b-title", constants.QFT_TEXT), None,
+       lambda *args: None),
+      ]
+    # duplicate field
+    self.assertRaises(AssertionError, query._PrepareFieldList, fields,
+                      [("b", "a")])
+    self.assertRaises(AssertionError, query._PrepareFieldList, fields,
+                      [("c", "b"), ("c", "a")])
+    # missing target
+    self.assertRaises(AssertionError, query._PrepareFieldList, fields,
+                      [("c", "d")])
+    fdefs = query._PrepareFieldList(fields, [("c", "b")])
+    self.assertEqual(len(fdefs), 3)
+    self.assertEqual(fdefs["b"][1:], fdefs["c"][1:])
 
 
 class TestGetNodeRole(unittest.TestCase):
