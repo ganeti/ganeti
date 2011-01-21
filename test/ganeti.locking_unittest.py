@@ -1701,10 +1701,10 @@ class TestLockMonitor(_ThreadedTestCase):
     self.assert_(isinstance(result, dict))
     response = objects.QueryResponse.FromDict(result)
     self.assertEqual(response.data,
-                     [[(constants.QRFS_NORMAL, name),
-                       (constants.QRFS_NORMAL, None),
-                       (constants.QRFS_NORMAL, None),
-                       (constants.QRFS_NORMAL, [])]
+                     [[(constants.RS_NORMAL, name),
+                       (constants.RS_NORMAL, None),
+                       (constants.RS_NORMAL, None),
+                       (constants.RS_NORMAL, [])]
                       for name in utils.NiceSort(expnames)])
     self.assertEqual(len(response.fields), 4)
     self.assertEqual(["name", "mode", "owner", "pending"],
@@ -1716,15 +1716,15 @@ class TestLockMonitor(_ThreadedTestCase):
       try:
         def _GetExpResult(name):
           if tlock.name == name:
-            return [(constants.QRFS_NORMAL, name),
-                    (constants.QRFS_NORMAL, "exclusive"),
-                    (constants.QRFS_NORMAL,
+            return [(constants.RS_NORMAL, name),
+                    (constants.RS_NORMAL, "exclusive"),
+                    (constants.RS_NORMAL,
                      [threading.currentThread().getName()]),
-                    (constants.QRFS_NORMAL, [])]
-          return [(constants.QRFS_NORMAL, name),
-                  (constants.QRFS_NORMAL, None),
-                  (constants.QRFS_NORMAL, None),
-                  (constants.QRFS_NORMAL, [])]
+                    (constants.RS_NORMAL, [])]
+          return [(constants.RS_NORMAL, name),
+                  (constants.RS_NORMAL, None),
+                  (constants.RS_NORMAL, None),
+                  (constants.RS_NORMAL, [])]
 
         result = self.lm.QueryLocks(["name", "mode", "owner", "pending"])
         self.assertEqual(objects.QueryResponse.FromDict(result).data,
@@ -1785,27 +1785,27 @@ class TestLockMonitor(_ThreadedTestCase):
             (name_status, name_value) = name
             (owner_status, owner_value) = owner
 
-            self.assertEqual(name_status, constants.QRFS_NORMAL)
-            self.assertEqual(owner_status, constants.QRFS_NORMAL)
+            self.assertEqual(name_status, constants.RS_NORMAL)
+            self.assertEqual(owner_status, constants.RS_NORMAL)
 
             if name_value == tlock1.name:
-              self.assertEqual(mode, (constants.QRFS_NORMAL, "shared"))
+              self.assertEqual(mode, (constants.RS_NORMAL, "shared"))
               self.assertEqual(set(owner_value),
                                set(i.getName() for i in tthreads1))
               continue
 
             if name_value == tlock2.name:
-              self.assertEqual(mode, (constants.QRFS_NORMAL, "shared"))
+              self.assertEqual(mode, (constants.RS_NORMAL, "shared"))
               self.assertEqual(owner_value, [tthread2.getName()])
               continue
 
             if name_value == tlock3.name:
-              self.assertEqual(mode, (constants.QRFS_NORMAL, "exclusive"))
+              self.assertEqual(mode, (constants.RS_NORMAL, "exclusive"))
               self.assertEqual(owner_value, [tthread3.getName()])
               continue
 
             self.assert_(name_value in expnames)
-            self.assertEqual(mode, (constants.QRFS_NORMAL, None))
+            self.assertEqual(mode, (constants.RS_NORMAL, None))
             self.assert_(owner_value is None)
 
           # Release locks again
@@ -1815,9 +1815,9 @@ class TestLockMonitor(_ThreadedTestCase):
 
           result = self.lm.QueryLocks(["name", "mode", "owner"])
           self.assertEqual(objects.QueryResponse.FromDict(result).data,
-                           [[(constants.QRFS_NORMAL, name),
-                             (constants.QRFS_NORMAL, None),
-                             (constants.QRFS_NORMAL, None)]
+                           [[(constants.RS_NORMAL, name),
+                             (constants.RS_NORMAL, None),
+                             (constants.RS_NORMAL, None)]
                             for name in utils.NiceSort(expnames)])
 
   def testDelete(self):
@@ -1826,17 +1826,17 @@ class TestLockMonitor(_ThreadedTestCase):
     self.assertEqual(len(self.lm._locks), 1)
     result = self.lm.QueryLocks(["name", "mode", "owner"])
     self.assertEqual(objects.QueryResponse.FromDict(result).data,
-                     [[(constants.QRFS_NORMAL, lock.name),
-                       (constants.QRFS_NORMAL, None),
-                       (constants.QRFS_NORMAL, None)]])
+                     [[(constants.RS_NORMAL, lock.name),
+                       (constants.RS_NORMAL, None),
+                       (constants.RS_NORMAL, None)]])
 
     lock.delete()
 
     result = self.lm.QueryLocks(["name", "mode", "owner"])
     self.assertEqual(objects.QueryResponse.FromDict(result).data,
-                     [[(constants.QRFS_NORMAL, lock.name),
-                       (constants.QRFS_NORMAL, "deleted"),
-                       (constants.QRFS_NORMAL, None)]])
+                     [[(constants.RS_NORMAL, lock.name),
+                       (constants.RS_NORMAL, "deleted"),
+                       (constants.RS_NORMAL, None)]])
     self.assertEqual(len(self.lm._locks), 1)
 
   def testPending(self):
@@ -1857,9 +1857,9 @@ class TestLockMonitor(_ThreadedTestCase):
         self.assertEqual(len(self.lm._locks), 1)
         result = self.lm.QueryLocks(["name", "mode", "owner"])
         self.assertEqual(objects.QueryResponse.FromDict(result).data,
-                         [[(constants.QRFS_NORMAL, lock.name),
-                           (constants.QRFS_NORMAL, "exclusive"),
-                           (constants.QRFS_NORMAL,
+                         [[(constants.RS_NORMAL, lock.name),
+                           (constants.RS_NORMAL, "exclusive"),
+                           (constants.RS_NORMAL,
                             [threading.currentThread().getName()])]])
 
         threads = []
@@ -1892,11 +1892,11 @@ class TestLockMonitor(_ThreadedTestCase):
 
         result = self.lm.QueryLocks(["name", "mode", "owner", "pending"])
         self.assertEqual(objects.QueryResponse.FromDict(result).data,
-                         [[(constants.QRFS_NORMAL, lock.name),
-                           (constants.QRFS_NORMAL, "exclusive"),
-                           (constants.QRFS_NORMAL,
+                         [[(constants.RS_NORMAL, lock.name),
+                           (constants.RS_NORMAL, "exclusive"),
+                           (constants.RS_NORMAL,
                             [threading.currentThread().getName()]),
-                           (constants.QRFS_NORMAL, pending)]])
+                           (constants.RS_NORMAL, pending)]])
 
         self.assertEqual(len(self.lm._locks), 1)
       finally:
@@ -1907,10 +1907,10 @@ class TestLockMonitor(_ThreadedTestCase):
       # No pending acquires
       result = self.lm.QueryLocks(["name", "mode", "owner", "pending"])
       self.assertEqual(objects.QueryResponse.FromDict(result).data,
-                       [[(constants.QRFS_NORMAL, lock.name),
-                         (constants.QRFS_NORMAL, None),
-                         (constants.QRFS_NORMAL, None),
-                         (constants.QRFS_NORMAL, [])]])
+                       [[(constants.RS_NORMAL, lock.name),
+                         (constants.RS_NORMAL, None),
+                         (constants.RS_NORMAL, None),
+                         (constants.RS_NORMAL, [])]])
 
       self.assertEqual(len(self.lm._locks), 1)
 

@@ -63,8 +63,8 @@ from ganeti import ht
 
 from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
                               QFT_UNIT, QFT_TIMESTAMP, QFT_OTHER,
-                              QRFS_NORMAL, QRFS_UNKNOWN, QRFS_NODATA,
-                              QRFS_UNAVAIL, QRFS_OFFLINE)
+                              RS_NORMAL, RS_UNKNOWN, RS_NODATA,
+                              RS_UNAVAIL, RS_OFFLINE)
 
 
 # Constants for requesting data from the caller/data provider. Each property
@@ -244,15 +244,15 @@ def _ProcessResult(value):
 
   """
   if value is _FS_UNKNOWN:
-    return (QRFS_UNKNOWN, None)
+    return (RS_UNKNOWN, None)
   elif value is _FS_NODATA:
-    return (QRFS_NODATA, None)
+    return (RS_NODATA, None)
   elif value is _FS_UNAVAIL:
-    return (QRFS_UNAVAIL, None)
+    return (RS_UNAVAIL, None)
   elif value is _FS_OFFLINE:
-    return (QRFS_OFFLINE, None)
+    return (RS_OFFLINE, None)
   else:
-    return (QRFS_NORMAL, value)
+    return (RS_NORMAL, value)
 
 
 def _VerifyResultRow(fields, row):
@@ -267,7 +267,7 @@ def _VerifyResultRow(fields, row):
   assert len(row) == len(fields)
   errs = []
   for ((status, value), (fdef, _, _)) in zip(row, fields):
-    if status == QRFS_NORMAL:
+    if status == RS_NORMAL:
       if not _VERIFY_FN[fdef.kind](value):
         errs.append("normal field %s fails validation (value is %s)" %
                     (fdef.name, value))
@@ -708,7 +708,7 @@ def _GetInstOperState(ctx, inst):
   @param inst: Instance object
 
   """
-  # Can't use QRFS_OFFLINE here as it would describe the instance to
+  # Can't use RS_OFFLINE here as it would describe the instance to
   # be offline when we actually don't know due to missing data
   if inst.primary_node in ctx.bad_nodes:
     return _FS_NODATA
@@ -733,7 +733,7 @@ def _GetInstLiveData(name):
     """
     if (inst.primary_node in ctx.bad_nodes or
         inst.primary_node in ctx.offline_nodes):
-      # Can't use QRFS_OFFLINE here as it would describe the instance to be
+      # Can't use RS_OFFLINE here as it would describe the instance to be
       # offline when we actually don't know due to missing data
       return _FS_NODATA
 

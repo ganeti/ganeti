@@ -93,9 +93,9 @@ class TestQuery(unittest.TestCase):
       ]
 
     self.assertEqual(q.Query(_QueryData(data, mastername="node3")),
-                     [[(constants.QRFS_NORMAL, "node1")],
-                      [(constants.QRFS_NORMAL, "node2")],
-                      [(constants.QRFS_NORMAL, "node3")]])
+                     [[(constants.RS_NORMAL, "node1")],
+                      [(constants.RS_NORMAL, "node2")],
+                      [(constants.RS_NORMAL, "node3")]])
     self.assertEqual(q.OldStyleQuery(_QueryData(data, mastername="node3")),
                      [["node1"], ["node2"], ["node3"]])
 
@@ -103,27 +103,27 @@ class TestQuery(unittest.TestCase):
     self.assertEqual(q.RequestedData(), set([STATIC]))
     self.assertEqual(len(q._fields), 2)
     self.assertEqual(q.Query(_QueryData(data, mastername="node3")),
-                     [[(constants.QRFS_NORMAL, "node1"),
-                       (constants.QRFS_NORMAL, False)],
-                      [(constants.QRFS_NORMAL, "node2"),
-                       (constants.QRFS_NORMAL, False)],
-                      [(constants.QRFS_NORMAL, "node3"),
-                       (constants.QRFS_NORMAL, True)],
+                     [[(constants.RS_NORMAL, "node1"),
+                       (constants.RS_NORMAL, False)],
+                      [(constants.RS_NORMAL, "node2"),
+                       (constants.RS_NORMAL, False)],
+                      [(constants.RS_NORMAL, "node3"),
+                       (constants.RS_NORMAL, True)],
                      ])
 
     q = query.Query(fielddef, ["name", "master", "disk0.size"])
     self.assertEqual(q.RequestedData(), set([STATIC, DISK]))
     self.assertEqual(len(q._fields), 3)
     self.assertEqual(q.Query(_QueryData(data, mastername="node2")),
-                     [[(constants.QRFS_NORMAL, "node1"),
-                       (constants.QRFS_NORMAL, False),
-                       (constants.QRFS_NORMAL, 0)],
-                      [(constants.QRFS_NORMAL, "node2"),
-                       (constants.QRFS_NORMAL, True),
-                       (constants.QRFS_NORMAL, 3)],
-                      [(constants.QRFS_NORMAL, "node3"),
-                       (constants.QRFS_NORMAL, False),
-                       (constants.QRFS_NORMAL, 5)],
+                     [[(constants.RS_NORMAL, "node1"),
+                       (constants.RS_NORMAL, False),
+                       (constants.RS_NORMAL, 0)],
+                      [(constants.RS_NORMAL, "node2"),
+                       (constants.RS_NORMAL, True),
+                       (constants.RS_NORMAL, 3)],
+                      [(constants.RS_NORMAL, "node3"),
+                       (constants.RS_NORMAL, False),
+                       (constants.RS_NORMAL, 5)],
                      ])
 
     # With unknown column
@@ -132,18 +132,18 @@ class TestQuery(unittest.TestCase):
     self.assertEqual(q.RequestedData(), set([DISK]))
     self.assertEqual(len(q._fields), 4)
     self.assertEqual(q.Query(_QueryData(data, mastername="node2")),
-                     [[(constants.QRFS_NORMAL, 2),
-                       (constants.QRFS_NORMAL, 1),
-                       (constants.QRFS_UNKNOWN, None),
-                       (constants.QRFS_NORMAL, 0)],
-                      [(constants.QRFS_UNAVAIL, None),
-                       (constants.QRFS_NORMAL, 4),
-                       (constants.QRFS_UNKNOWN, None),
-                       (constants.QRFS_NORMAL, 3)],
-                      [(constants.QRFS_NORMAL, 7),
-                       (constants.QRFS_NORMAL, 6),
-                       (constants.QRFS_UNKNOWN, None),
-                       (constants.QRFS_NORMAL, 5)],
+                     [[(constants.RS_NORMAL, 2),
+                       (constants.RS_NORMAL, 1),
+                       (constants.RS_UNKNOWN, None),
+                       (constants.RS_NORMAL, 0)],
+                      [(constants.RS_UNAVAIL, None),
+                       (constants.RS_NORMAL, 4),
+                       (constants.RS_UNKNOWN, None),
+                       (constants.RS_NORMAL, 3)],
+                      [(constants.RS_NORMAL, 7),
+                       (constants.RS_NORMAL, 6),
+                       (constants.RS_UNKNOWN, None),
+                       (constants.RS_NORMAL, 5)],
                      ])
     self.assertRaises(errors.OpPrereqError, q.OldStyleQuery,
                       _QueryData(data, mastername="node2"))
@@ -230,7 +230,7 @@ class TestQuery(unittest.TestCase):
       self.assert_(compat.all(len(row) == len(selected)
                               for row in q.Query(_QueryData(range(1, 10)))))
       self.assertEqual(q.Query(_QueryData(range(1, 10))),
-                       [[(constants.QRFS_UNKNOWN, None)] * len(selected)
+                       [[(constants.RS_UNKNOWN, None)] * len(selected)
                         for i in range(1, 10)])
       self.assertEqual([fdef.ToDict() for fdef in q.GetFields()],
                        [{ "name": name, "title": name,
@@ -247,11 +247,11 @@ class TestQuery(unittest.TestCase):
     q = query.Query(fielddef, ["name", "other0", "nodata", "unavail", "unk"])
     self.assertEqual(len(q._fields), 5)
     self.assertEqual(q.Query(_QueryData(range(1, 10))),
-                     [[(constants.QRFS_NORMAL, "name%s" % i),
-                       (constants.QRFS_NORMAL, 1234),
-                       (constants.QRFS_NODATA, None),
-                       (constants.QRFS_UNAVAIL, None),
-                       (constants.QRFS_UNKNOWN, None)]
+                     [[(constants.RS_NORMAL, "name%s" % i),
+                       (constants.RS_NORMAL, 1234),
+                       (constants.RS_NODATA, None),
+                       (constants.RS_UNAVAIL, None),
+                       (constants.RS_UNKNOWN, None)]
                       for i in range(1, 10)])
 
 
@@ -294,12 +294,12 @@ class TestNodeQuery(unittest.TestCase):
       q = self._Create(["name", "drained"])
       self.assertEqual(q.RequestedData(), set([query.NQ_CONFIG]))
       self.assertEqual(q.Query(nqd),
-                       [[(constants.QRFS_NORMAL, "node1"),
-                         (constants.QRFS_NORMAL, False)],
-                        [(constants.QRFS_NORMAL, "node2"),
-                         (constants.QRFS_NORMAL, True)],
-                        [(constants.QRFS_NORMAL, "node3"),
-                         (constants.QRFS_NORMAL, False)],
+                       [[(constants.RS_NORMAL, "node1"),
+                         (constants.RS_NORMAL, False)],
+                        [(constants.RS_NORMAL, "node2"),
+                         (constants.RS_NORMAL, True)],
+                        [(constants.RS_NORMAL, "node3"),
+                         (constants.RS_NORMAL, False)],
                        ])
       self.assertEqual(q.OldStyleQuery(nqd),
                        [["node1", False],
@@ -398,7 +398,7 @@ class TestNodeQuery(unittest.TestCase):
     result = q.Query(nqd)
     self.assert_(compat.all(len(row) == len(selected) for row in result))
     self.assertEqual([row[field_index["name"]] for row in result],
-                     [(constants.QRFS_NORMAL, name) for name in node_names])
+                     [(constants.RS_NORMAL, name) for name in node_names])
 
     node_to_row = dict((row[field_index["name"]][1], idx)
                        for idx, row in enumerate(result))
@@ -407,13 +407,13 @@ class TestNodeQuery(unittest.TestCase):
     self.assert_(master_row[field_index["master"]])
     self.assert_(master_row[field_index["role"]], "M")
     self.assertEqual(master_row[field_index["group"]],
-                     (constants.QRFS_NORMAL, "ng1"))
+                     (constants.RS_NORMAL, "ng1"))
     self.assertEqual(master_row[field_index["group.uuid"]],
-                     (constants.QRFS_NORMAL, ng_uuid))
+                     (constants.RS_NORMAL, ng_uuid))
     self.assertEqual(master_row[field_index["ctime"]],
-                     (constants.QRFS_UNAVAIL, None))
+                     (constants.RS_UNAVAIL, None))
     self.assertEqual(master_row[field_index["mtime"]],
-                     (constants.QRFS_UNAVAIL, None))
+                     (constants.RS_UNAVAIL, None))
 
     self.assert_(row[field_index["pip"]] == node.primary_ip and
                  row[field_index["sip"]] == node.secondary_ip and
@@ -424,9 +424,9 @@ class TestNodeQuery(unittest.TestCase):
                  (node.name == master_name or
                   (row[field_index["group"]] == "<unknown>" and
                    row[field_index["group.uuid"]] is None and
-                   row[field_index["ctime"]] == (constants.QRFS_NORMAL,
+                   row[field_index["ctime"]] == (constants.RS_NORMAL,
                                                  node.ctime) and
-                   row[field_index["mtime"]] == (constants.QRFS_NORMAL,
+                   row[field_index["mtime"]] == (constants.RS_NORMAL,
                                                  node.mtime)))
                  for row, node in zip(result, nodes))
 
@@ -434,17 +434,17 @@ class TestNodeQuery(unittest.TestCase):
 
     for (field, value) in fake_live_data.items():
       self.assertEqual(live_data_row[field_index[field]],
-                       (constants.QRFS_NORMAL, value))
+                       (constants.RS_NORMAL, value))
 
     self.assertEqual(master_row[field_index["pinst_cnt"]],
-                     (constants.QRFS_NORMAL, 2))
+                     (constants.RS_NORMAL, 2))
     self.assertEqual(live_data_row[field_index["sinst_cnt"]],
-                     (constants.QRFS_NORMAL, 3))
+                     (constants.RS_NORMAL, 3))
     self.assertEqual(master_row[field_index["pinst_list"]],
-                     (constants.QRFS_NORMAL,
+                     (constants.RS_NORMAL,
                       list(node_to_primary[master_name])))
     self.assertEqual(live_data_row[field_index["sinst_list"]],
-                     (constants.QRFS_NORMAL,
+                     (constants.RS_NORMAL,
                       list(node_to_secondary[live_data_name])))
 
   def testGetLiveNodeField(self):
@@ -522,17 +522,17 @@ class TestInstanceQuery(unittest.TestCase):
 
     iqd = query.InstanceQueryData(instances, cluster, None, [], [], {})
     self.assertEqual(q.Query(iqd),
-      [[(constants.QRFS_NORMAL, "inst1"),
-        (constants.QRFS_NORMAL, 128),
-        (constants.QRFS_UNAVAIL, None),
+      [[(constants.RS_NORMAL, "inst1"),
+        (constants.RS_NORMAL, 128),
+        (constants.RS_UNAVAIL, None),
        ],
-       [(constants.QRFS_NORMAL, "inst2"),
-        (constants.QRFS_NORMAL, 512),
-        (constants.QRFS_UNAVAIL, None),
+       [(constants.RS_NORMAL, "inst2"),
+        (constants.RS_NORMAL, 512),
+        (constants.RS_UNAVAIL, None),
        ],
-       [(constants.QRFS_NORMAL, "inst3"),
-        (constants.QRFS_NORMAL, 128),
-        (constants.QRFS_NORMAL, "192.0.2.99"),
+       [(constants.RS_NORMAL, "inst3"),
+        (constants.RS_NORMAL, 128),
+        (constants.RS_NORMAL, "192.0.2.99"),
        ]])
     self.assertEqual(q.OldStyleQuery(iqd),
       [["inst1", 128, None],
@@ -692,7 +692,7 @@ class TestInstanceQuery(unittest.TestCase):
       assert inst.primary_node in nodes
 
       self.assertEqual(row[fieldidx["name"]],
-                       (constants.QRFS_NORMAL, inst.name))
+                       (constants.RS_NORMAL, inst.name))
 
       if inst.primary_node in offline_nodes:
         exp_status = "ERROR_nodeoffline"
@@ -709,7 +709,7 @@ class TestInstanceQuery(unittest.TestCase):
         exp_status = "ADMIN_down"
 
       self.assertEqual(row[fieldidx["status"]],
-                       (constants.QRFS_NORMAL, exp_status))
+                       (constants.RS_NORMAL, exp_status))
 
       (_, status) = row[fieldidx["status"]]
       tested_status.add(status)
@@ -717,46 +717,46 @@ class TestInstanceQuery(unittest.TestCase):
       for (field, livefield) in [("oper_ram", "memory"),
                                  ("oper_vcpus", "vcpus")]:
         if inst.primary_node in bad_nodes:
-          exp = (constants.QRFS_NODATA, None)
+          exp = (constants.RS_NODATA, None)
         elif inst.name in live_data:
           value = live_data[inst.name].get(livefield, None)
           if value is None:
-            exp = (constants.QRFS_UNAVAIL, None)
+            exp = (constants.RS_UNAVAIL, None)
           else:
-            exp = (constants.QRFS_NORMAL, value)
+            exp = (constants.RS_NORMAL, value)
         else:
-          exp = (constants.QRFS_UNAVAIL, None)
+          exp = (constants.RS_UNAVAIL, None)
 
         self.assertEqual(row[fieldidx[field]], exp)
 
       bridges = inst_bridges.get(inst.name, [])
       self.assertEqual(row[fieldidx["nic.bridges"]],
-                       (constants.QRFS_NORMAL, bridges))
+                       (constants.RS_NORMAL, bridges))
       if bridges:
         self.assertEqual(row[fieldidx["bridge"]],
-                         (constants.QRFS_NORMAL, bridges[0]))
+                         (constants.RS_NORMAL, bridges[0]))
       else:
         self.assertEqual(row[fieldidx["bridge"]],
-                         (constants.QRFS_UNAVAIL, None))
+                         (constants.RS_UNAVAIL, None))
 
       for i in range(constants.MAX_NICS):
         if i < len(bridges) and bridges[i] is not None:
-          exp = (constants.QRFS_NORMAL, bridges[i])
+          exp = (constants.RS_NORMAL, bridges[i])
         else:
-          exp = (constants.QRFS_UNAVAIL, None)
+          exp = (constants.RS_UNAVAIL, None)
         self.assertEqual(row[fieldidx["nic.bridge/%s" % i]], exp)
 
       if inst.primary_node in bad_nodes:
-        exp = (constants.QRFS_NODATA, None)
+        exp = (constants.RS_NODATA, None)
       else:
-        exp = (constants.QRFS_NORMAL, inst.name in live_data)
+        exp = (constants.RS_NORMAL, inst.name in live_data)
       self.assertEqual(row[fieldidx["oper_state"]], exp)
 
       usage = disk_usage[inst.name]
       if usage is None:
         usage = 0
       self.assertEqual(row[fieldidx["disk_usage"]],
-                       (constants.QRFS_NORMAL, usage))
+                       (constants.RS_NORMAL, usage))
 
       self.assertEqual(row[fieldidx["sda_size"]], row[fieldidx["disk.size/0"]])
       self.assertEqual(row[fieldidx["sdb_size"]], row[fieldidx["disk.size/1"]])
@@ -764,9 +764,9 @@ class TestInstanceQuery(unittest.TestCase):
       for field in ["ctime", "mtime"]:
         if getattr(inst, field) is None:
           # No ctime/mtime
-          exp = (constants.QRFS_UNAVAIL, None)
+          exp = (constants.RS_UNAVAIL, None)
         else:
-          exp = (constants.QRFS_NORMAL, getattr(inst, field))
+          exp = (constants.RS_NORMAL, getattr(inst, field))
         self.assertEqual(row[fieldidx[field]], exp)
 
     # Ensure all possible status' have been tested
@@ -798,13 +798,13 @@ class TestGroupQuery(unittest.TestCase):
     self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG]))
 
     self.assertEqual(q.Query(gqd),
-      [[(constants.QRFS_NORMAL, "default"),
-        (constants.QRFS_NORMAL, "c0e89160-18e7-11e0-a46e-001d0904baeb"),
-        (constants.QRFS_NORMAL, constants.ALLOC_POLICY_PREFERRED)
+      [[(constants.RS_NORMAL, "default"),
+        (constants.RS_NORMAL, "c0e89160-18e7-11e0-a46e-001d0904baeb"),
+        (constants.RS_NORMAL, constants.ALLOC_POLICY_PREFERRED)
         ],
-       [(constants.QRFS_NORMAL, "restricted"),
-        (constants.QRFS_NORMAL, "d2a40a74-18e7-11e0-9143-001d0904baeb"),
-        (constants.QRFS_NORMAL, constants.ALLOC_POLICY_LAST_RESORT)
+       [(constants.RS_NORMAL, "restricted"),
+        (constants.RS_NORMAL, "d2a40a74-18e7-11e0-9143-001d0904baeb"),
+        (constants.RS_NORMAL, constants.ALLOC_POLICY_LAST_RESORT)
         ],
        ])
 
@@ -820,13 +820,13 @@ class TestGroupQuery(unittest.TestCase):
     self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG, query.GQ_NODE]))
 
     self.assertEqual(q.Query(gqd),
-                     [[(constants.QRFS_NORMAL, "default"),
-                       (constants.QRFS_NORMAL, 2),
-                       (constants.QRFS_NORMAL, ["node1", "node2"]),
+                     [[(constants.RS_NORMAL, "default"),
+                       (constants.RS_NORMAL, 2),
+                       (constants.RS_NORMAL, ["node1", "node2"]),
                        ],
-                      [(constants.QRFS_NORMAL, "restricted"),
-                       (constants.QRFS_NORMAL, 3),
-                       (constants.QRFS_NORMAL, ["node1", "node9", "node10"]),
+                      [(constants.RS_NORMAL, "restricted"),
+                       (constants.RS_NORMAL, 3),
+                       (constants.RS_NORMAL, ["node1", "node9", "node10"]),
                        ],
                       ])
 
@@ -842,11 +842,11 @@ class TestGroupQuery(unittest.TestCase):
     self.assertEqual(q.RequestedData(), set([query.GQ_INST]))
 
     self.assertEqual(q.Query(gqd),
-                     [[(constants.QRFS_NORMAL, 2),
-                       (constants.QRFS_NORMAL, ["inst1", "inst2"]),
+                     [[(constants.RS_NORMAL, 2),
+                       (constants.RS_NORMAL, ["inst1", "inst2"]),
                        ],
-                      [(constants.QRFS_NORMAL, 3),
-                       (constants.QRFS_NORMAL, ["inst1", "inst9", "inst10"]),
+                      [(constants.RS_NORMAL, 3),
+                       (constants.RS_NORMAL, ["inst1", "inst9", "inst10"]),
                        ],
                       ])
 

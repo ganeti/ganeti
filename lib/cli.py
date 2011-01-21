@@ -2389,22 +2389,22 @@ class _QueryColumnFormatter:
     # Report status
     self._status_fn(status)
 
-    if status == constants.QRFS_NORMAL:
+    if status == constants.RS_NORMAL:
       return self._fn(value)
 
     assert value is None, \
            "Found value %r for abnormal status %s" % (value, status)
 
-    if status == constants.QRFS_UNKNOWN:
+    if status == constants.RS_UNKNOWN:
       return "(unknown)"
 
-    if status == constants.QRFS_NODATA:
+    if status == constants.RS_NODATA:
       return "(nodata)"
 
-    if status == constants.QRFS_UNAVAIL:
+    if status == constants.RS_UNAVAIL:
       return "(unavail)"
 
-    if status == constants.QRFS_OFFLINE:
+    if status == constants.RS_OFFLINE:
       return "(offline)"
 
     raise NotImplementedError("Unknown status %s" % status)
@@ -2437,7 +2437,7 @@ def FormatQueryResult(result, unit=None, format_override=None, separator=None,
   if format_override is None:
     format_override = {}
 
-  stats = dict.fromkeys(constants.QRFS_ALL, 0)
+  stats = dict.fromkeys(constants.RS_ALL, 0)
 
   def _RecordStatus(status):
     if status in stats:
@@ -2454,16 +2454,16 @@ def FormatQueryResult(result, unit=None, format_override=None, separator=None,
   table = FormatTable(result.data, columns, header, separator)
 
   # Collect statistics
-  assert len(stats) == len(constants.QRFS_ALL)
+  assert len(stats) == len(constants.RS_ALL)
   assert compat.all(count >= 0 for count in stats.values())
 
   # Determine overall status. If there was no data, unknown fields must be
   # detected via the field definitions.
-  if (stats[constants.QRFS_UNKNOWN] or
+  if (stats[constants.RS_UNKNOWN] or
       (not result.data and _GetUnknownFields(result.fields))):
     status = QR_UNKNOWN
   elif compat.any(count > 0 for key, count in stats.items()
-                  if key != constants.QRFS_NORMAL):
+                  if key != constants.RS_NORMAL):
     status = QR_INCOMPLETE
   else:
     status = QR_NORMAL

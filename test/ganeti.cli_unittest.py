@@ -265,15 +265,15 @@ class TestFormatQueryResult(unittest.TestCase):
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
-      [(constants.QRFS_NORMAL, "nodeA"), (constants.QRFS_NORMAL, 128),
-       (constants.QRFS_NORMAL, False), (constants.QRFS_NORMAL, 1468006),
-       (constants.QRFS_NORMAL, [])],
-      [(constants.QRFS_NORMAL, "other"), (constants.QRFS_NORMAL, 512),
-       (constants.QRFS_NORMAL, True), (constants.QRFS_NORMAL, 16),
-       (constants.QRFS_NORMAL, [1, 2, 3])],
-      [(constants.QRFS_NORMAL, "xyz"), (constants.QRFS_NORMAL, 1024),
-       (constants.QRFS_NORMAL, True), (constants.QRFS_NORMAL, 4096),
-       (constants.QRFS_NORMAL, [{}, {}])],
+      [(constants.RS_NORMAL, "nodeA"), (constants.RS_NORMAL, 128),
+       (constants.RS_NORMAL, False), (constants.RS_NORMAL, 1468006),
+       (constants.RS_NORMAL, [])],
+      [(constants.RS_NORMAL, "other"), (constants.RS_NORMAL, 512),
+       (constants.RS_NORMAL, True), (constants.RS_NORMAL, 16),
+       (constants.RS_NORMAL, [1, 2, 3])],
+      [(constants.RS_NORMAL, "xyz"), (constants.RS_NORMAL, 1024),
+       (constants.RS_NORMAL, True), (constants.RS_NORMAL, 4096),
+       (constants.RS_NORMAL, [{}, {}])],
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, unit="h", header=True),
@@ -295,10 +295,10 @@ class TestFormatQueryResult(unittest.TestCase):
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
-      [(constants.QRFS_NORMAL, "a"), (constants.QRFS_NORMAL, 1024),
-       (constants.QRFS_NORMAL, 0)],
-      [(constants.QRFS_NORMAL, "b"), (constants.QRFS_NORMAL, 144996),
-       (constants.QRFS_NORMAL, 1291746295)],
+      [(constants.RS_NORMAL, "a"), (constants.RS_NORMAL, 1024),
+       (constants.RS_NORMAL, 0)],
+      [(constants.RS_NORMAL, "b"), (constants.RS_NORMAL, 144996),
+       (constants.RS_NORMAL, 1291746295)],
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, unit="m", header=True),
@@ -319,10 +319,10 @@ class TestFormatQueryResult(unittest.TestCase):
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
-      [(constants.QRFS_NORMAL, "x"), (constants.QRFS_NORMAL, ["a", "b", "c"]),
-       (constants.QRFS_NORMAL, 1234)],
-      [(constants.QRFS_NORMAL, "y"), (constants.QRFS_NORMAL, range(10)),
-       (constants.QRFS_NORMAL, 1291746295)],
+      [(constants.RS_NORMAL, "x"), (constants.RS_NORMAL, ["a", "b", "c"]),
+       (constants.RS_NORMAL, 1234)],
+      [(constants.RS_NORMAL, "y"), (constants.RS_NORMAL, range(10)),
+       (constants.RS_NORMAL, 1291746295)],
       ])
 
     override = {
@@ -349,10 +349,10 @@ class TestFormatQueryResult(unittest.TestCase):
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
-      [(constants.QRFS_NORMAL, "instance1.example.com"),
-       (constants.QRFS_NORMAL, 21125), (constants.QRFS_NORMAL, "Hello World!")],
-      [(constants.QRFS_NORMAL, "mail.other.net"),
-       (constants.QRFS_NORMAL, -9000), (constants.QRFS_NORMAL, "a,b,c")],
+      [(constants.RS_NORMAL, "instance1.example.com"),
+       (constants.RS_NORMAL, 21125), (constants.RS_NORMAL, "Hello World!")],
+      [(constants.RS_NORMAL, "mail.other.net"),
+       (constants.RS_NORMAL, -9000), (constants.RS_NORMAL, "a,b,c")],
       ])
 
     for sep in [":", "|", "#", "|||", "###", "@@@", "@#@"]:
@@ -384,15 +384,15 @@ class TestFormatQueryResult(unittest.TestCase):
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
-      [(constants.QRFS_NORMAL, 1), (constants.QRFS_UNKNOWN, None),
-       (constants.QRFS_NORMAL, False), (constants.QRFS_NORMAL, ""),
-       (constants.QRFS_OFFLINE, None)],
-      [(constants.QRFS_NORMAL, 2), (constants.QRFS_UNKNOWN, None),
-       (constants.QRFS_NODATA, None), (constants.QRFS_NORMAL, "x"),
-       (constants.QRFS_OFFLINE, None)],
-      [(constants.QRFS_NORMAL, 3), (constants.QRFS_UNKNOWN, None),
-       (constants.QRFS_NORMAL, False), (constants.QRFS_UNAVAIL, None),
-       (constants.QRFS_OFFLINE, None)],
+      [(constants.RS_NORMAL, 1), (constants.RS_UNKNOWN, None),
+       (constants.RS_NORMAL, False), (constants.RS_NORMAL, ""),
+       (constants.RS_OFFLINE, None)],
+      [(constants.RS_NORMAL, 2), (constants.RS_UNKNOWN, None),
+       (constants.RS_NODATA, None), (constants.RS_NORMAL, "x"),
+       (constants.RS_OFFLINE, None)],
+      [(constants.RS_NORMAL, 3), (constants.RS_UNKNOWN, None),
+       (constants.RS_NORMAL, False), (constants.RS_UNAVAIL, None),
+       (constants.RS_OFFLINE, None)],
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, header=True,
@@ -443,12 +443,12 @@ class TestFormatQueryResult(unittest.TestCase):
       ]
 
     response = objects.QueryResponse(fields=fields, data=[
-      [(constants.QRFS_NORMAL, 1), (constants.QRFS_NORMAL, False),
-       (constants.QRFS_NORMAL, ""), (constants.QRFS_OFFLINE, None)],
-      [(constants.QRFS_NORMAL, 2), (constants.QRFS_NODATA, None),
-       (constants.QRFS_NORMAL, "x"), (constants.QRFS_NORMAL, "abc")],
-      [(constants.QRFS_NORMAL, 3), (constants.QRFS_NORMAL, False),
-       (constants.QRFS_UNAVAIL, None), (constants.QRFS_OFFLINE, None)],
+      [(constants.RS_NORMAL, 1), (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, ""), (constants.RS_OFFLINE, None)],
+      [(constants.RS_NORMAL, 2), (constants.RS_NODATA, None),
+       (constants.RS_NORMAL, "x"), (constants.RS_NORMAL, "abc")],
+      [(constants.RS_NORMAL, 3), (constants.RS_NORMAL, False),
+       (constants.RS_UNAVAIL, None), (constants.RS_OFFLINE, None)],
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, header=False,
