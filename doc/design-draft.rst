@@ -6,6 +6,7 @@ Design document drafts
    :maxdepth: 2
 
    design-x509-ca.rst
+   design-http-server.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
