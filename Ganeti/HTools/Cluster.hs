@@ -624,7 +624,8 @@ tryAlloc :: (Monad m) =>
 tryAlloc nl _ inst 2 =
     let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
-        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
+        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y &&
+                                      Node.group x == Node.group y) all_pairs
         sols = foldl' (\cstate (p, s) ->
                            concatAllocs cstate $ allocateOnPair nl inst p s
                       ) emptySolution ok_pairs
