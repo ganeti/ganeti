@@ -273,6 +273,7 @@ docrst = \
 	doc/design-draft.rst \
 	doc/design-oob.rst \
 	doc/design-query2.rst \
+	doc/design-x509-ca.rst \
 	doc/cluster-merge.rst \
 	doc/design-shared-storage.rst \
 	doc/devnotes.rst \
