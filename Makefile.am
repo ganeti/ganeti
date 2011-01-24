@@ -236,6 +236,7 @@ docrst = \
 	doc/design-2.2.rst \
 	doc/design-2.3.rst \
 	doc/design-2.4.rst \
+	doc/design-draft.rst \
 	doc/design-oob.rst \
 	doc/design-query2.rst \
 	doc/cluster-merge.rst \
