@@ -163,14 +163,14 @@ def TMap(fn, test):
 #: a non-empty string
 TNonEmptyString = TAnd(TString, TTrue)
 
-
 #: a maybe non-empty string
 TMaybeString = TOr(TNonEmptyString, TNone)
-
 
 #: a maybe boolean (bool or none)
 TMaybeBool = TOr(TBool, TNone)
 
+#: Maybe a dictionary (dict or None)
+TMaybeDict = TOr(TDict, TNone)
 
 #: a positive integer
 TPositiveInt = TAnd(TInt, lambda v: v >= 0)
