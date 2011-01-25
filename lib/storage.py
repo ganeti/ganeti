@@ -332,18 +332,23 @@ class _LvmBase(_Base): # pylint: disable-msg=W0223
       yield fields
 
 
+def _LvmPvGetAllocatable(attr):
+  """Determines whether LVM PV is allocatable.
+
+  @rtype: bool
+
+  """
+  if attr:
+    return (attr[0] == "a")
+  else:
+    logging.warning("Invalid PV attribute: %r", attr)
+    return False
+
+
 class LvmPvStorage(_LvmBase): # pylint: disable-msg=W0223
   """LVM Physical Volume storage unit.
 
   """
-  @staticmethod
-  def _GetAllocatable(attr):
-    if attr:
-      return (attr[0] == "a")
-    else:
-      logging.warning("Invalid PV attribute: %r", attr)
-      return False
-
   LIST_COMMAND = "pvs"
 
   # Make sure to update constants.VALID_STORAGE_FIELDS when changing field
@@ -353,7 +358,7 @@ class LvmPvStorage(_LvmBase): # pylint: disable-msg=W0223
     (constants.SF_SIZE, ["pv_size"], _ParseSize),
     (constants.SF_USED, ["pv_used"], _ParseSize),
     (constants.SF_FREE, ["pv_free"], _ParseSize),
-    (constants.SF_ALLOCATABLE, ["pv_attr"], _GetAllocatable),
+    (constants.SF_ALLOCATABLE, ["pv_attr"], _LvmPvGetAllocatable),
     ]
 
   def _SetAllocatable(self, name, allocatable):

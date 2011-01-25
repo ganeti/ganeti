@@ -150,17 +150,32 @@ def TestNodeStorage():
       else:
         test_allocatable = ["yes", "no"]
 
-      if (constants.SF_ALLOCATABLE in
-          constants.MODIFIABLE_STORAGE_FIELDS.get(storage_type, [])):
-        assert_fn = AssertEqual
-      else:
+      fail = (constants.SF_ALLOCATABLE not in
+              constants.MODIFIABLE_STORAGE_FIELDS.get(storage_type, []))
+
+      if fail:
         assert_fn = AssertNotEqual
+      else:
+        assert_fn = AssertEqual
 
       for i in test_allocatable:
         cmd = ["gnt-node", "modify-storage", "--allocatable", i,
                node_name, storage_type, st_name]
         assert_fn(StartSSH(master["primary"],
                   utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+        # Verify list output
+        cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
+               "--output=name,allocatable", "--separator=|",
+               "--no-headers", node_name]
+        listout = qa_utils.GetCommandOutput(master["primary"],
+                                            utils.ShellQuoteArgs(cmd))
+        for line in listout.splitlines():
+          (vfy_name, vfy_allocatable) = line.split("|")
+          if vfy_name == st_name and not fail:
+            AssertEqual(vfy_allocatable, i[0].upper())
+          else:
+            AssertEqual(vfy_allocatable, st_allocatable)
 
       # Test repair functionality
       cmd = ["gnt-node", "repair-storage", node_name, storage_type, st_name]
