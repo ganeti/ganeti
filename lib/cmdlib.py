@@ -3296,10 +3296,11 @@ class LUOobCommand(NoHooksLU):
       if not isinstance(result.payload, list):
         errs.append("command 'health' is expected to return a list but got %s" %
                     type(result.payload))
-      for item, status in result.payload:
-        if status not in constants.OOB_STATUSES:
-          errs.append("health item '%s' has invalid status '%s'" %
-                      (item, status))
+      else:
+        for item, status in result.payload:
+          if status not in constants.OOB_STATUSES:
+            errs.append("health item '%s' has invalid status '%s'" %
+                        (item, status))
 
     if self.op.command == constants.OOB_POWER_STATUS:
       if not isinstance(result.payload, dict):
