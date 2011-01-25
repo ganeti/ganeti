@@ -3244,8 +3244,6 @@ class LUOobCommand(NoHooksLU):
                                      self.op.command, node.name,
                                      self.op.timeout)
 
-      result.Raise("An error occurred on execution of OOB helper")
-
       if result.fail_msg:
         self.LogWarning("On node '%s' out-of-band RPC failed with: %s",
                         node.name, result.fail_msg)
