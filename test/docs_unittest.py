@@ -99,6 +99,11 @@ class TestDocs(unittest.TestCase):
     resources = connector.GetHandlers(node_name, instance_name, group_name,
                                       job_id, disk_index)
 
+    handler_dups = utils.FindDuplicates(resources.values())
+    self.assertFalse(handler_dups,
+                     msg=("Resource handlers used more than once: %r" %
+                          handler_dups))
+
     uri_check_fixup = {
       re.compile(node_name): "node1examplecom",
       re.compile(instance_name): "inst1examplecom",
@@ -123,6 +128,7 @@ class TestDocs(unittest.TestCase):
     prefix_exception = frozenset(["/", "/version", "/2"])
 
     undocumented = []
+    used_uris = []
 
     for key, handler in resources.iteritems():
       # Regex objects
@@ -137,6 +143,7 @@ class TestDocs(unittest.TestCase):
             uri = title[2:-2]
             if key.match(uri):
               self._CheckRapiResource(uri, uri_check_fixup, handler)
+              used_uris.append(uri)
               found = True
               break
 
@@ -150,12 +157,18 @@ class TestDocs(unittest.TestCase):
 
         if ("``%s``" % key) in titles:
           self._CheckRapiResource(key, {}, handler)
+          used_uris.append(key)
         else:
           undocumented.append(key)
 
     self.failIf(undocumented,
                 msg=("Missing RAPI resource documentation for %s" %
                      utils.CommaJoin(undocumented)))
+
+    uri_dups = utils.FindDuplicates(used_uris)
+    self.failIf(uri_dups,
+                msg=("URIs matched by more than one resource: %s" %
+                     utils.CommaJoin(uri_dups)))
 
 
 class TestManpages(unittest.TestCase):
