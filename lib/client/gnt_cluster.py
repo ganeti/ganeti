@@ -490,8 +490,6 @@ def VerifyDisks(opts, args):
         ToStderr("Error activating disks for instance %s: %s", iname, msg)
 
   if missing:
-    (vg_name, ) = cl.QueryConfigValues(["volume_group_name"])
-
     for iname, ival in missing.iteritems():
       all_missing = compat.all(x[0] in bad_nodes for x in ival)
       if all_missing:
@@ -502,9 +500,9 @@ def VerifyDisks(opts, args):
         ival.sort()
         for node, vol in ival:
           if node in bad_nodes:
-            ToStdout("\tbroken node %s /dev/%s/%s", node, vg_name, vol)
+            ToStdout("\tbroken node %s /dev/%s", node, vol)
           else:
-            ToStdout("\t%s /dev/%s/%s", node, vg_name, vol)
+            ToStdout("\t%s /dev/%s", node, vol)
 
     ToStdout("You need to run replace_disks for all the above"
              " instances, if this message persist after fixing nodes.")
