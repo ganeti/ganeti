@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -258,6 +258,8 @@ class _LvmBase(_Base): # pylint: disable-msg=W0223
           # we got a function, call it with all the declared fields
           val = mapper(*values) # pylint: disable-msg=W0142
         elif len(values) == 1:
+          assert mapper is None, ("Invalid mapper value (neither callable"
+                                  " nor None) for one-element fields")
           # we don't have a function, but we had a single field
           # declared, pass it unchanged
           val = values[0]
