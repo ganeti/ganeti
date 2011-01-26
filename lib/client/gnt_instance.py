@@ -54,8 +54,6 @@ _SHUTDOWN_NODES_TAGS_MODES = (
     _SHUTDOWN_NODES_SEC_BY_TAGS)
 
 
-_VALUE_TRUE = "true"
-
 #: default list of options for L{ListInstances}
 _LIST_DEF_FIELDS = [
   "name", "hypervisor", "os", "pnode", "status", "oper_ram",
