@@ -9,6 +9,9 @@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 
+# Use bash in order to be able to use pipefail
+SHELL=/bin/bash
+
 ACLOCAL_AMFLAGS = -I autotools
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
@@ -617,6 +620,7 @@ man/footer.html: man/footer.rst
 man/%.7.in man/%.8.in: man/%.rst man/footer.man
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
+	set -o pipefail ; \
 	$(PANDOC) -s -f rst -t man -A man/footer.man $< | \
 	  sed -e 's/\\@/@/g' > $@
 	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN) $@; fi
@@ -624,6 +628,7 @@ man/%.7.in man/%.8.in: man/%.rst man/footer.man
 man/%.html.in: man/%.rst man/footer.html
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
+	set -o pipefail ; \
 	$(PANDOC) -s -f rst -t html -A man/footer.html $< | \
 	  sed -e 's/\\@/@/g' > $@
 
