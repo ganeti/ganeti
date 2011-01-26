@@ -1057,6 +1057,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertDryRun()
     self.assertUseForce()
 
+  def testModifyInstance(self):
+    self.rapi.AddResponse("23681")
+    job_id = self.client.ModifyInstance("inst7210", os_name="linux")
+    self.assertEqual(job_id, 23681)
+    self.assertItems(["inst7210"])
+    self.assertHandler(rlib2.R_2_instances_name_modify)
+    self.assertEqual(serializer.LoadJson(self.rapi.GetLastRequestData()),
+                     { "os_name": "linux", })
+
   def testModifyCluster(self):
     for mnh in [None, False, True]:
       self.rapi.AddResponse("14470")
