@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -320,6 +320,9 @@ def ShowClusterConfig(opts, args):
 
   ToStdout("OS parameters:")
   _PrintGroupedParams(result["osparams"])
+
+  ToStdout("Hidden OSes: %s", utils.CommaJoin(result["hidden_os"]))
+  ToStdout("Blacklisted OSes: %s", utils.CommaJoin(result["blacklisted_os"]))
 
   ToStdout("Cluster parameters:")
   ToStdout("  - candidate pool size: %s",

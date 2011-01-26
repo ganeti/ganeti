@@ -4604,6 +4604,8 @@ class LUClusterQuery(NoHooksLU):
       "reserved_lvs": cluster.reserved_lvs,
       "primary_ip_version": primary_ip_version,
       "prealloc_wipe_disks": cluster.prealloc_wipe_disks,
+      "hidden_os": cluster.hidden_os,
+      "blacklisted_os": cluster.blacklisted_os,
       }
 
     return result
