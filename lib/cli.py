@@ -860,18 +860,20 @@ NOSSH_KEYCHECK_OPT = cli_option("--no-ssh-key-check", dest="ssh_key_check",
                                 default=True, action="store_false",
                                 help="Disable SSH key fingerprint checking")
 
-
 MC_OPT = cli_option("-C", "--master-candidate", dest="master_candidate",
                     type="bool", default=None, metavar=_YORNO,
                     help="Set the master_candidate flag on the node")
 
 OFFLINE_OPT = cli_option("-O", "--offline", dest="offline", metavar=_YORNO,
                          type="bool", default=None,
-                         help="Set the offline flag on the node")
+                         help=("Set the offline flag on the node"
+                               " (cluster does not communicate with offline"
+                               " nodes)"))
 
 DRAINED_OPT = cli_option("-D", "--drained", dest="drained", metavar=_YORNO,
                          type="bool", default=None,
-                         help="Set the drained flag on the node")
+                         help=("Set the drained flag on the node"
+                               " (excluded from allocation operations)"))
 
 CAPAB_MASTER_OPT = cli_option("--master-capable", dest="master_capable",
                     type="bool", default=None, metavar=_YORNO,
@@ -904,8 +906,9 @@ CP_SIZE_OPT = cli_option("-C", "--candidate-pool-size", default=None,
                          help="Set the candidate pool size")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
-                         help="Enables LVM and specifies the volume group"
-                         " name (cluster-wide) for disk allocation [xenvg]",
+                         help=("Enables LVM and specifies the volume group"
+                               " name (cluster-wide) for disk allocation"
+                               " [%s]" % constants.DEFAULT_VG),
                          metavar="VG", default=None)
 
 YES_DOIT_OPT = cli_option("--yes-do-it", dest="yes_do_it",
