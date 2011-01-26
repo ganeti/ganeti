@@ -219,8 +219,7 @@ def _InitFileStorage(file_storage_dir):
   return file_storage_dir
 
 
-#pylint: disable-msg=R0913
-def InitCluster(cluster_name, mac_prefix,
+def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
@@ -412,10 +411,12 @@ def InitCluster(cluster_name, mac_prefix,
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(hostname.name)
 
-  # start the master ip
-  # TODO: Review rpc call from bootstrap
-  # TODO: Warn on failed start master
-  rpc.RpcRunner.call_node_start_master(hostname.name, True, False)
+  logging.debug("Starting daemons")
+  result = utils.RunCmd([constants.DAEMON_UTIL, "start-all"])
+  if result.failed:
+    raise errors.OpExecError("Could not start daemons, command %s"
+                             " had exitcode %s and error %s" %
+                             (result.cmd, result.exit_code, result.output))
 
 
 def InitConfig(version, cluster_config, master_node_config,
