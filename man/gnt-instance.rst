@@ -34,6 +34,7 @@ ADD
 | [--net=*N* [:options...] \| --no-nics]
 | [-B *BEPARAMS*]
 | [-H *HYPERVISOR* [: option=*value*... ]]
+| [-O, --os-parameters *param*=*value*... ]
 | [--file-storage-dir *dir\_path*] [--file-driver {loop \| blktap}]
 | {-n *node[:secondary-node]* \| --iallocator *name*}
 | {-o *os-type*}
@@ -127,8 +128,6 @@ The ``-B`` option specifies the backend parameters for the
 instance. If no such parameters are specified, the values are
 inherited from the cluster. Possible parameters are:
 
-
-
 memory
     the memory size of the instance; as usual, suffixes can be used to
     denote the unit, otherwise the value is taken in mebibites
@@ -150,8 +149,6 @@ instance will inherit the cluster options. The defaults below show
 the cluster defaults at cluster creation time.
 
 The possible hypervisor options are as follows:
-
-
 
 boot\_order
     Valid for the Xen HVM and KVM hypervisors.
@@ -409,6 +406,14 @@ usb\_mouse
     This option specifies the usb mouse type to be used. It can be
     "mouse" or "tablet". When using VNC it's recommended to set it to
     "tablet".
+
+
+The ``-O`` (``--os-parameters``) option allows customisation of the OS
+parameters. The actual parameter names and values depends on the OS
+being used, but the syntax is the same key=value. For example, setting
+a hypothetical ``dhcp`` parameter to yes can be achieved by::
+
+    gnt-instance add -O dhcp=yes ...
 
 
 The ``--iallocator`` option specifies the instance allocator plugin
@@ -853,6 +858,7 @@ MODIFY
 |  --disk *N*:mode=*MODE*]
 | [-t plain | -t drbd -n *new_secondary*]
 | [--os-type=*OS* [--force-variant]]
+| [-O, --os-parameters *param*=*value*... ]
 | [--submit]
 | {*instance*}
 
@@ -861,9 +867,9 @@ and/or nic parameters for an instance. It can also add and remove
 disks and NICs to/from the instance. Note that you need to give at
 least one of the arguments, otherwise the command complains.
 
-The ``-H`` option specifies hypervisor options in the form of
-name=value[,...]. For details which options can be specified, see
-the **add** command.
+The ``-H``, ``-B`` and ``-O`` options specifies hypervisor, backend
+and OS parameter options in the form of name=value[,...]. For details
+which options can be specified, see the **add** command.
 
 The ``-t`` option will change the disk template of the instance.
 Currently only conversions between the plain and drbd disk templates
@@ -911,8 +917,8 @@ instance(s) must be stopped when running this command. If the
 
 The ``--select-os`` option switches to an interactive OS reinstall.
 The user is prompted to select the OS template from the list of
-available OS templates. OS parameters can be overridden using
-``-O``.
+available OS templates. OS parameters can be overridden using ``-O``
+(more documentation for this option under the **add** command).
 
 Since this is a potentially dangerous command, the user will be
 required to confirm this action, unless the ``-f`` flag is passed.

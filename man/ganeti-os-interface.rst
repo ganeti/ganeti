@@ -272,7 +272,7 @@ example::
 The parameters can then be used in instance add or modification, as
 follows::
 
-    # gnt-instance add -O dhcp=no,root_size=8 …
+    # gnt-instance add -O dhcp=no,root_size=8 ...
 
 
 NOTES
