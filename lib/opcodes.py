@@ -941,7 +941,8 @@ class OpInstanceDeactivateDisks(OpCode):
   """Deactivate an instance's disks."""
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
-    _PInstanceName
+    _PInstanceName,
+    _PForce,
     ]
 
 

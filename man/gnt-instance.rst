@@ -1242,13 +1242,20 @@ already running.
 DEACTIVATE-DISKS
 ^^^^^^^^^^^^^^^^
 
-**deactivate-disks** [--submit] {*instance*}
+**deactivate-disks** [-f] [--submit] {*instance*}
 
 De-activates the block devices of the given instance. Note that if
 you run this command for an instance with a drbd disk template,
 while it is running, it will not be able to shutdown the block
 devices on the primary node, but it will shutdown the block devices
 on the secondary nodes, thus breaking the replication.
+
+The ``-f``/``--force`` option will skip checks that the instance is
+down; in case the hypervisor is confused and we can't talk to it,
+normally Ganeti will refuse to deactivate the disks, but with this
+option passed it will skip this check and directly try to deactivate
+the disks. This can still fail due to the instance actually running or
+other issues.
 
 The ``--submit`` option is used to send the job to the master
 daemon but not wait for its completion. The job ID will be shown so

@@ -611,7 +611,8 @@ def DeactivateDisks(opts, args):
 
   """
   instance_name = args[0]
-  op = opcodes.OpInstanceDeactivateDisks(instance_name=instance_name)
+  op = opcodes.OpInstanceDeactivateDisks(instance_name=instance_name,
+                                         force=opts.force)
   SubmitOrSend(op, opts)
   return 0
 
@@ -1465,8 +1466,8 @@ commands = {
     "<instance>", "Activate an instance's disks"),
   'deactivate-disks': (
     DeactivateDisks, ARGS_ONE_INSTANCE,
-    [SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
-    "<instance>", "Deactivate an instance's disks"),
+    [FORCE_OPT, SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    "[-f] <instance>", "Deactivate an instance's disks"),
   'recreate-disks': (
     RecreateDisks, ARGS_ONE_INSTANCE,
     [SUBMIT_OPT, DISKIDX_OPT, DRY_RUN_OPT, PRIORITY_OPT],
