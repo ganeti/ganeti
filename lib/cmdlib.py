@@ -3199,7 +3199,9 @@ class LUDiagnoseOS(NoHooksLU):
     """Compute the list of OSes.
 
     """
-    valid_nodes = [node for node in self.cfg.GetOnlineNodeList()]
+    valid_nodes = [node.name
+                   for node in self.cfg.GetAllNodesInfo().values()
+                   if not node.offline and node.vm_capable]
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     pol = self._DiagnoseByOS(node_data)
     output = []
