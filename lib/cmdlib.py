@@ -2406,14 +2406,12 @@ class LUClusterVerifyDisks(NoHooksLU):
     result = res_nodes, res_instances, res_missing = {}, [], {}
 
     nodes = utils.NiceSort(self.cfg.GetVmCapableNodeList())
-    instances = [self.cfg.GetInstanceInfo(name)
-                 for name in self.cfg.GetInstanceList()]
+    instances = self.cfg.GetAllInstancesInfo().values()
 
     nv_dict = {}
     for inst in instances:
       inst_lvs = {}
-      if (not inst.admin_up or
-          inst.disk_template not in constants.DTS_NET_MIRROR):
+      if not inst.admin_up:
         continue
       inst.MapLVsByNode(inst_lvs)
       # transform { iname: {node: [vol,],},} to {(node, vol): iname}
@@ -2424,14 +2422,8 @@ class LUClusterVerifyDisks(NoHooksLU):
     if not nv_dict:
       return result
 
-    vg_names = self.rpc.call_vg_list(nodes)
-    for node in nodes:
-      vg_names[node].Raise("Cannot get list of VGs")
-
-    for node in nodes:
-      # node_volume
-      node_res = self.rpc.call_lv_list([node],
-                                       vg_names[node].payload.keys())[node]
+    node_lvs = self.rpc.call_lv_list(nodes, [])
+    for node, node_res in node_lvs.items():
       if node_res.offline:
         continue
       msg = node_res.fail_msg

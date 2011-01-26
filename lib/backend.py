@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -642,7 +642,8 @@ def GetVolumeList(vg_names):
   """Compute list of logical volumes and their size.
 
   @type vg_names: list
-  @param vg_names: the volume groups whose LVs we should list
+  @param vg_names: the volume groups whose LVs we should list, or
+      empty for all volume groups
   @rtype: dict
   @return:
       dictionary of all partions (key) with value being a tuple of
@@ -656,6 +657,8 @@ def GetVolumeList(vg_names):
   """
   lvs = {}
   sep = '|'
+  if not vg_names:
+    vg_names = []
   result = utils.RunCmd(["lvs", "--noheadings", "--units=m", "--nosuffix",
                          "--separator=%s" % sep,
                          "-ovg_name,lv_name,lv_size,lv_attr"] + vg_names)

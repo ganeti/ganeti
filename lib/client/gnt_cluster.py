@@ -504,7 +504,7 @@ def VerifyDisks(opts, args):
           else:
             ToStdout("\t%s /dev/%s", node, vol)
 
-    ToStdout("You need to run replace_disks for all the above"
+    ToStdout("You need to run replace or recreate disks for all the above"
              " instances, if this message persist after fixing nodes.")
     retcode |= 1
 
