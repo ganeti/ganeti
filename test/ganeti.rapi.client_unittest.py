@@ -1085,6 +1085,30 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertItems([])
     self.assertHandler(rlib2.R_2_redist_config)
 
+  def testActivateInstanceDisks(self):
+    self.rapi.AddResponse("23547")
+    job_id = self.client.ActivateInstanceDisks("inst28204")
+    self.assertEqual(job_id, 23547)
+    self.assertItems(["inst28204"])
+    self.assertHandler(rlib2.R_2_instances_name_activate_disks)
+    self.assertFalse(self.rapi.GetLastHandler().queryargs)
+
+  def testActivateInstanceDisksIgnoreSize(self):
+    self.rapi.AddResponse("11044")
+    job_id = self.client.ActivateInstanceDisks("inst28204", ignore_size=True)
+    self.assertEqual(job_id, 11044)
+    self.assertItems(["inst28204"])
+    self.assertHandler(rlib2.R_2_instances_name_activate_disks)
+    self.assertQuery("ignore_size", ["1"])
+
+  def testDeactivateInstanceDisks(self):
+    self.rapi.AddResponse("14591")
+    job_id = self.client.DeactivateInstanceDisks("inst28234")
+    self.assertEqual(job_id, 14591)
+    self.assertItems(["inst28234"])
+    self.assertHandler(rlib2.R_2_instances_name_deactivate_disks)
+    self.assertFalse(self.rapi.GetLastHandler().queryargs)
+
   def testGrowInstanceDisk(self):
     for idx, wait_for_sync in enumerate([None, False, True]):
       amount = 128 + (512 * idx)
