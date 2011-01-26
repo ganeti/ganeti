@@ -236,7 +236,7 @@ def GenericCurlConfig(verbose=False, use_signal=False,
   return _ConfigCurl
 
 
-class GanetiRapiClient(object):
+class GanetiRapiClient(object): # pylint: disable-msg=R0904
   """Ganeti RAPI client.
 
   """
@@ -479,6 +479,16 @@ class GanetiRapiClient(object):
 
     """
     return self._SendRequest(HTTP_GET, "/%s/info" % GANETI_RAPI_VERSION,
+                             None, None)
+
+  def RedistributeConfig(self):
+    """Tells the cluster to redistribute its configuration files.
+
+    @return: job id
+
+    """
+    return self._SendRequest(HTTP_PUT,
+                             "/%s/redistribute-config" % GANETI_RAPI_VERSION,
                              None, None)
 
   def ModifyCluster(self, **kwargs):

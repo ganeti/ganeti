@@ -1078,6 +1078,13 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
       self.assertEqual(data["maintain_node_health"], mnh)
       self.assertEqual(self.rapi.CountPending(), 0)
 
+  def testRedistributeConfig(self):
+    self.rapi.AddResponse("3364")
+    job_id = self.client.RedistributeConfig()
+    self.assertEqual(job_id, 3364)
+    self.assertItems([])
+    self.assertHandler(rlib2.R_2_redist_config)
+
   def testGrowInstanceDisk(self):
     for idx, wait_for_sync in enumerate([None, False, True]):
       amount = 128 + (512 * idx)
