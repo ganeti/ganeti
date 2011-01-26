@@ -53,7 +53,7 @@ from ganeti import cli
 from ganeti import compat
 
 USAGE = ("\tlvmstrap diskinfo\n"
-         "\tlvmstrap [--vgname=NAME] [--allow-removable]"
+         "\tlvmstrap [--vg-name=NAME] [--allow-removable]"
          " { --alldisks | --disks DISKLIST }"
          " create")
 
@@ -648,7 +648,7 @@ def CheckReread(name):
     result = ExecCommand(cmd)
     if not use_blockdev and result.failed:
       break
-    elif not result.failed:
+    elif use_blockdev and not result.failed:
       break
     time.sleep(2)
 
