@@ -402,7 +402,6 @@ EXTRA_DIST = \
 	doc/examples/ganeti-kvm-poweroff.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/gnt-config-backup.in \
-	doc/examples/dumb-allocator \
 	doc/examples/ganeti.default \
 	doc/examples/ganeti.default-debug \
 	doc/examples/hooks/ethers \
