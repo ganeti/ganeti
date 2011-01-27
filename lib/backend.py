@@ -506,6 +506,15 @@ def VerifyNode(what, cluster_name):
         val = "Error while checking hypervisor: %s" % str(err)
       tmp[hv_name] = val
 
+  if constants.NV_HVPARAMS in what and vm_capable:
+    result[constants.NV_HVPARAMS] = tmp = []
+    for source, hv_name, hvparms in what[constants.NV_HVPARAMS]:
+      try:
+        logging.info("Validating hv %s, %s", hv_name, hvparms)
+        hypervisor.GetHypervisor(hv_name).ValidateParameters(hvparms)
+      except errors.HypervisorError, err:
+        tmp.append((source, hv_name, str(err)))
+
   if constants.NV_FILELIST in what:
     result[constants.NV_FILELIST] = utils.FingerprintFiles(
       what[constants.NV_FILELIST])
