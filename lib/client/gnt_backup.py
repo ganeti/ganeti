@@ -32,9 +32,6 @@ from ganeti import constants
 from ganeti import errors
 
 
-_VALUE_TRUE = "true"
-
-
 def PrintExportList(opts, args):
   """Prints a list of all the exported system images.
 

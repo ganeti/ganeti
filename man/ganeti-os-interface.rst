@@ -9,15 +9,18 @@ ganeti-os-interface - Specifications for guest OS types
 DESCRIPTION
 -----------
 
-The method of supporting guest operating systems in Ganeti is to
-have, for each guest OS type, a directory containing a number of
-required files.
+The method of supporting guest operating systems in Ganeti is to have,
+for each guest OS type, a directory containing a number of required
+files. This directory must be present across all nodes (Ganeti doesn't
+replicate it) in order for the OS to be usable by Ganeti.
+
 
 REFERENCE
 ---------
 
-There are six required files: *create*, *import*, *export*, *rename*
-(executables), *ganeti_api_version* and *variants.list* (text files).
+There are six required files: *create*, *import*, *export*, *rename*,
+*verify* (executables), *ganeti_api_version*, *variants.list* and
+*parameters.list* (text files).
 
 Common environment
 ~~~~~~~~~~~~~~~~~~
@@ -26,8 +29,6 @@ All commands will get their input via environment variables. A
 common set of variables will be exported for all commands, and some
 of them might have extra ones. Note that all counts are
 zero-based.
-
-
 
 OS_API_VERSION
     The OS API version that the rest of the environment conforms to.
@@ -111,10 +112,19 @@ NIC_%N_FRONTEND_TYPE
     instance, this can be one of: ``rtl8139``, ``ne2k_pci``,
     ``ne2k_isa``, ``paravirtual``.
 
+OSP_*name*
+    Each OS parameter (see below) will be exported in its own
+    variable, prefixed with ``OSP``, and upper-cased. For example, a
+    ``dhcp`` parameter will be exported as ``OSP_DHCP``.
+
 DEBUG_LEVEL
     If non-zero, this should cause the OS script to generate verbose
     logs of its execution, for troubleshooting purposes. Currently
     only ``0`` and ``1`` are valid values.
+
+
+EXECUTABLE SCRIPTS
+------------------
 
 
 create
@@ -194,6 +204,42 @@ A very simple rename script should at least change the hostname and
 IP address of the instance, leaving the administrator to update the
 other services.
 
+verify
+~~~~~~
+
+The *verify* script is used to verify consistency of the OS parameters
+(see below). The command should take one or more arguments denoting
+what checks should be performed, and return a proper exit code
+depending on whether the validation failed or succeeded.
+
+Currently (API version 20), only one parameter is supported:
+``parameters``. This should validate the ``OSP_`` variables from the
+environment, and output diagnostic message in case the validation
+fails.
+
+.. highlight:: sh
+
+For the ``dhcp`` parameter given as example above, a verification
+script could be::
+
+    #!/bin/sh
+
+    case $OSP_DHCP in
+        ""|yes|no)
+            ;;
+        *)
+            echo "Invalid value '$OSP_DHCP' for the dhcp parameter" 1>&2
+            exit 1;
+            ;;
+    esac
+
+    exit 0
+
+
+TEXT FILES
+----------
+
+
 ganeti_api_version
 ~~~~~~~~~~~~~~~~~~
 
@@ -213,15 +259,32 @@ variants.list is a plain text file containing all the declared
 supported variants for this OS, one per line. At least one variant
 must be supported.
 
+parameters.list
+~~~~~~~~~~~~~~~
+
+This file declares the parameters supported by the OS, one parameter
+per line, with name and description (space and/or tab separated). For
+example::
+
+    dhcp Whether to enable (yes) or disable (no) dhcp
+    root_size The size of the root partition, in GiB
+
+The parameters can then be used in instance add or modification, as
+follows::
+
+    # gnt-instance add -O dhcp=no,root_size=8 ...
+
+
 NOTES
 -----
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Ganeti 2.2 is compatible with both API version 10, and 15. In API
-version 10 the variants.list file is ignored and no OS_VARIANT
-environment variable is passed.
+Ganeti 2.3 and up is compatible with API version 10, 15 and 20. The OS
+parameters and related scripts (verify) are only supported in
+version 20. The variants functionality (variants.list, and OS_VARIANT
+env. var) are supported/present only in version 15 and up.
 
 Common behaviour
 ~~~~~~~~~~~~~~~~
@@ -232,6 +295,13 @@ wrong number of arguments or when the first argument is ``-h`` or
 
 Upgrading from old versions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Version 15 to 20
+^^^^^^^^^^^^^^^^
+
+The ``parameters.list`` file and ``verify`` script have been
+added. For no parameters, an empty parameters file and an empty verify
+script which returns success can be used.
 
 Version 10 to 15
 ^^^^^^^^^^^^^^^^

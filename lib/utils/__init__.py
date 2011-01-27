@@ -82,7 +82,7 @@ def ForceDictType(target, key_types, allowed_values=None):
 
   for key in target:
     if key not in key_types:
-      msg = "Unknown key '%s'" % key
+      msg = "Unknown parameter '%s'" % key
       raise errors.TypeEnforcementError(msg)
 
     if target[key] in allowed_values:

@@ -30,6 +30,7 @@ import pycurl
 from ganeti import constants
 from ganeti import http
 from ganeti import serializer
+from ganeti import utils
 
 from ganeti.rapi import connector
 from ganeti.rapi import rlib2
@@ -39,6 +40,15 @@ import testutils
 
 
 _URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
+
+# List of resource handlers which aren't used by the RAPI client
+_KNOWN_UNUSED = set([
+  connector.R_root,
+  connector.R_2,
+  ])
+
+# Global variable for collecting used handlers
+_used_handlers = None
 
 
 def _GetPathFromUri(uri):
@@ -107,8 +117,12 @@ class RapiMock(object):
     self._last_req_data = request_body
 
     try:
-      HandlerClass, items, args = self._mapper.getController(path)
-      self._last_handler = HandlerClass(items, args, None)
+      (handler_cls, items, args) = self._mapper.getController(path)
+
+      # Record handler as used
+      _used_handlers.add(handler_cls)
+
+      self._last_handler = handler_cls(items, args, None)
       if not hasattr(self._last_handler, method.upper()):
         raise http.HttpNotImplemented(message="Method not implemented")
 
@@ -1057,6 +1071,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertDryRun()
     self.assertUseForce()
 
+  def testModifyInstance(self):
+    self.rapi.AddResponse("23681")
+    job_id = self.client.ModifyInstance("inst7210", os_name="linux")
+    self.assertEqual(job_id, 23681)
+    self.assertItems(["inst7210"])
+    self.assertHandler(rlib2.R_2_instances_name_modify)
+    self.assertEqual(serializer.LoadJson(self.rapi.GetLastRequestData()),
+                     { "os_name": "linux", })
+
   def testModifyCluster(self):
     for mnh in [None, False, True]:
       self.rapi.AddResponse("14470")
@@ -1068,6 +1091,37 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
       self.assertEqual(len(data), 1)
       self.assertEqual(data["maintain_node_health"], mnh)
       self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testRedistributeConfig(self):
+    self.rapi.AddResponse("3364")
+    job_id = self.client.RedistributeConfig()
+    self.assertEqual(job_id, 3364)
+    self.assertItems([])
+    self.assertHandler(rlib2.R_2_redist_config)
+
+  def testActivateInstanceDisks(self):
+    self.rapi.AddResponse("23547")
+    job_id = self.client.ActivateInstanceDisks("inst28204")
+    self.assertEqual(job_id, 23547)
+    self.assertItems(["inst28204"])
+    self.assertHandler(rlib2.R_2_instances_name_activate_disks)
+    self.assertFalse(self.rapi.GetLastHandler().queryargs)
+
+  def testActivateInstanceDisksIgnoreSize(self):
+    self.rapi.AddResponse("11044")
+    job_id = self.client.ActivateInstanceDisks("inst28204", ignore_size=True)
+    self.assertEqual(job_id, 11044)
+    self.assertItems(["inst28204"])
+    self.assertHandler(rlib2.R_2_instances_name_activate_disks)
+    self.assertQuery("ignore_size", ["1"])
+
+  def testDeactivateInstanceDisks(self):
+    self.rapi.AddResponse("14591")
+    job_id = self.client.DeactivateInstanceDisks("inst28234")
+    self.assertEqual(job_id, 14591)
+    self.assertItems(["inst28234"])
+    self.assertHandler(rlib2.R_2_instances_name_deactivate_disks)
+    self.assertFalse(self.rapi.GetLastHandler().queryargs)
 
   def testGrowInstanceDisk(self):
     for idx, wait_for_sync in enumerate([None, False, True]):
@@ -1090,5 +1144,27 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
       self.assertEqual(self.rapi.CountPending(), 0)
 
 
+class RapiTestRunner(unittest.TextTestRunner):
+  def run(self, *args):
+    global _used_handlers
+    assert _used_handlers is None
+
+    _used_handlers = set()
+    try:
+      # Run actual tests
+      result = unittest.TextTestRunner.run(self, *args)
+
+      diff = (set(connector.CONNECTOR.values()) - _used_handlers -
+             _KNOWN_UNUSED)
+      if diff:
+        raise AssertionError("The following RAPI resources were not used by the"
+                             " RAPI client: %r" % utils.CommaJoin(diff))
+    finally:
+      # Reset global variable
+      _used_handlers = None
+
+    return result
+
+
 if __name__ == '__main__':
-  client.UsesRapiClient(testutils.GanetiTestProgram)()
+  client.UsesRapiClient(testutils.GanetiTestProgram)(testRunner=RapiTestRunner)

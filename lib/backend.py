@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -506,6 +506,15 @@ def VerifyNode(what, cluster_name):
         val = "Error while checking hypervisor: %s" % str(err)
       tmp[hv_name] = val
 
+  if constants.NV_HVPARAMS in what and vm_capable:
+    result[constants.NV_HVPARAMS] = tmp = []
+    for source, hv_name, hvparms in what[constants.NV_HVPARAMS]:
+      try:
+        logging.info("Validating hv %s, %s", hv_name, hvparms)
+        hypervisor.GetHypervisor(hv_name).ValidateParameters(hvparms)
+      except errors.HypervisorError, err:
+        tmp.append((source, hv_name, str(err)))
+
   if constants.NV_FILELIST in what:
     result[constants.NV_FILELIST] = utils.FingerprintFiles(
       what[constants.NV_FILELIST])
@@ -642,7 +651,8 @@ def GetVolumeList(vg_names):
   """Compute list of logical volumes and their size.
 
   @type vg_names: list
-  @param vg_names: the volume groups whose LVs we should list
+  @param vg_names: the volume groups whose LVs we should list, or
+      empty for all volume groups
   @rtype: dict
   @return:
       dictionary of all partions (key) with value being a tuple of
@@ -656,6 +666,8 @@ def GetVolumeList(vg_names):
   """
   lvs = {}
   sep = '|'
+  if not vg_names:
+    vg_names = []
   result = utils.RunCmd(["lvs", "--noheadings", "--units=m", "--nosuffix",
                          "--separator=%s" % sep,
                          "-ovg_name,lv_name,lv_size,lv_attr"] + vg_names)
@@ -2969,6 +2981,15 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
 
     if cmd_suffix:
       cmd.append("--cmd-suffix=%s" % cmd_suffix)
+
+    if mode == constants.IEM_EXPORT:
+      # Retry connection a few times when connecting to remote peer
+      cmd.append("--connect-retries=%s" % constants.RIE_CONNECT_RETRIES)
+      cmd.append("--connect-timeout=%s" % constants.RIE_CONNECT_ATTEMPT_TIMEOUT)
+    elif opts.connect_timeout is not None:
+      assert mode == constants.IEM_IMPORT
+      # Overall timeout for establishing connection while listening
+      cmd.append("--connect-timeout=%s" % opts.connect_timeout)
 
     logfile = _InstanceLogName(prefix, instance.os, instance.name)
 

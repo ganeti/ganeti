@@ -1397,6 +1397,13 @@ class LUClusterVerify(LogicalUnit):
         _ErrorIf(test, self.ENODEHV, node,
                  "hypervisor %s verify failure: '%s'", hv_name, hv_result)
 
+    hvp_result = nresult.get(constants.NV_HVPARAMS, None)
+    if ninfo.vm_capable and isinstance(hvp_result, list):
+      for item, hv_name, hv_result in hvp_result:
+        _ErrorIf(True, self.ENODEHV, node,
+                 "hypervisor %s parameter verify failure (source %s): %s",
+                 hv_name, item, hv_result)
+
     test = nresult.get(constants.NV_NODESETUP,
                            ["Missing NODESETUP results"])
     _ErrorIf(test, self.ENODESETUP, node, "node setup error: %s",
@@ -2029,6 +2036,21 @@ class LUClusterVerify(LogicalUnit):
 
     return instdisk
 
+  def _VerifyHVP(self, hvp_data):
+    """Verifies locally the syntax of the hypervisor parameters.
+
+    """
+    for item, hv_name, hv_params in hvp_data:
+      msg = ("hypervisor %s parameters syntax check (source %s): %%s" %
+             (item, hv_name))
+      try:
+        hv_class = hypervisor.GetHypervisor(hv_name)
+        utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
+        hv_class.CheckParameterSyntax(hv_params)
+      except errors.GenericError, err:
+        self._ErrorIf(True, self.ECLUSTERCFG, None, msg % str(err))
+
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -2094,12 +2116,32 @@ class LUClusterVerify(LogicalUnit):
 
     local_checksums = utils.FingerprintFiles(file_names)
 
+    # Compute the set of hypervisor parameters
+    hvp_data = []
+    for hv_name in hypervisors:
+      hvp_data.append(("cluster", hv_name, cluster.GetHVDefaults(hv_name)))
+    for os_name, os_hvp in cluster.os_hvp.items():
+      for hv_name, hv_params in os_hvp.items():
+        if not hv_params:
+          continue
+        full_params = cluster.GetHVDefaults(hv_name, os_name=os_name)
+        hvp_data.append(("os %s" % os_name, hv_name, full_params))
+    # TODO: collapse identical parameter values in a single one
+    for instance in instanceinfo.values():
+      if not instance.hvparams:
+        continue
+      hvp_data.append(("instance %s" % instance.name, instance.hypervisor,
+                       cluster.FillHV(instance)))
+    # and verify them locally
+    self._VerifyHVP(hvp_data)
+
     feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
     node_verify_param = {
       constants.NV_FILELIST: file_names,
       constants.NV_NODELIST: [node.name for node in nodeinfo
                               if not node.offline],
       constants.NV_HYPERVISOR: hypervisors,
+      constants.NV_HVPARAMS: hvp_data,
       constants.NV_NODENETTEST: [(node.name, node.primary_ip,
                                   node.secondary_ip) for node in nodeinfo
                                  if not node.offline],
@@ -2406,14 +2448,12 @@ class LUClusterVerifyDisks(NoHooksLU):
     result = res_nodes, res_instances, res_missing = {}, [], {}
 
     nodes = utils.NiceSort(self.cfg.GetVmCapableNodeList())
-    instances = [self.cfg.GetInstanceInfo(name)
-                 for name in self.cfg.GetInstanceList()]
+    instances = self.cfg.GetAllInstancesInfo().values()
 
     nv_dict = {}
     for inst in instances:
       inst_lvs = {}
-      if (not inst.admin_up or
-          inst.disk_template not in constants.DTS_NET_MIRROR):
+      if not inst.admin_up:
         continue
       inst.MapLVsByNode(inst_lvs)
       # transform { iname: {node: [vol,],},} to {(node, vol): iname}
@@ -2424,14 +2464,8 @@ class LUClusterVerifyDisks(NoHooksLU):
     if not nv_dict:
       return result
 
-    vg_names = self.rpc.call_vg_list(nodes)
-    for node in nodes:
-      vg_names[node].Raise("Cannot get list of VGs")
-
-    for node in nodes:
-      # node_volume
-      node_res = self.rpc.call_lv_list([node],
-                                       vg_names[node].payload.keys())[node]
+    node_lvs = self.rpc.call_lv_list(nodes, [])
+    for node, node_res in node_lvs.items():
       if node_res.offline:
         continue
       msg = node_res.fail_msg
@@ -3244,8 +3278,6 @@ class LUOobCommand(NoHooksLU):
                                      self.op.command, node.name,
                                      self.op.timeout)
 
-      result.Raise("An error occurred on execution of OOB helper")
-
       if result.fail_msg:
         self.LogWarning("On node '%s' out-of-band RPC failed with: %s",
                         node.name, result.fail_msg)
@@ -3298,10 +3330,11 @@ class LUOobCommand(NoHooksLU):
       if not isinstance(result.payload, list):
         errs.append("command 'health' is expected to return a list but got %s" %
                     type(result.payload))
-      for item, status in result.payload:
-        if status not in constants.OOB_STATUSES:
-          errs.append("health item '%s' has invalid status '%s'" %
-                      (item, status))
+      else:
+        for item, status in result.payload:
+          if status not in constants.OOB_STATUSES:
+            errs.append("health item '%s' has invalid status '%s'" %
+                        (item, status))
 
     if self.op.command == constants.OOB_POWER_STATUS:
       if not isinstance(result.payload, dict):
@@ -3396,7 +3429,9 @@ class LUOsDiagnose(NoHooksLU):
     """Compute the list of OSes.
 
     """
-    valid_nodes = [node for node in self.cfg.GetOnlineNodeList()]
+    valid_nodes = [node.name
+                   for node in self.cfg.GetAllNodesInfo().values()
+                   if not node.offline and node.vm_capable]
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     pol = self._DiagnoseByOS(node_data)
     output = []
@@ -4346,15 +4381,15 @@ class LUNodeSetParams(LogicalUnit):
                                    errors.ECODE_STATE)
 
     if node.master_candidate and self.might_demote and not self.lock_all:
-      assert not self.op.auto_promote, "auto-promote set but lock_all not"
+      assert not self.op.auto_promote, "auto_promote set but lock_all not"
       # check if after removing the current node, we're missing master
       # candidates
       (mc_remaining, mc_should, _) = \
           self.cfg.GetMasterCandidateStats(exceptions=[node.name])
       if mc_remaining < mc_should:
         raise errors.OpPrereqError("Not enough master candidates, please"
-                                   " pass auto_promote to allow promotion",
-                                   errors.ECODE_STATE)
+                                   " pass auto promote option to allow"
+                                   " promotion", errors.ECODE_STATE)
 
     self.old_flags = old_flags = (node.master_candidate,
                                   node.drained, node.offline)
@@ -4605,6 +4640,8 @@ class LUClusterQuery(NoHooksLU):
       "reserved_lvs": cluster.reserved_lvs,
       "primary_ip_version": primary_ip_version,
       "prealloc_wipe_disks": cluster.prealloc_wipe_disks,
+      "hidden_os": cluster.hidden_os,
+      "blacklisted_os": cluster.blacklisted_os,
       }
 
     return result
@@ -4821,7 +4858,10 @@ class LUInstanceDeactivateDisks(NoHooksLU):
 
     """
     instance = self.instance
-    _SafeShutdownInstanceDisks(self, instance)
+    if self.op.force:
+      _ShutdownInstanceDisks(self, instance)
+    else:
+      _SafeShutdownInstanceDisks(self, instance)
 
 
 def _SafeShutdownInstanceDisks(lu, instance, disks=None):

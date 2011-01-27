@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -321,6 +321,9 @@ def ShowClusterConfig(opts, args):
   ToStdout("OS parameters:")
   _PrintGroupedParams(result["osparams"])
 
+  ToStdout("Hidden OSes: %s", utils.CommaJoin(result["hidden_os"]))
+  ToStdout("Blacklisted OSes: %s", utils.CommaJoin(result["blacklisted_os"]))
+
   ToStdout("Cluster parameters:")
   ToStdout("  - candidate pool size: %s",
             compat.TryToRoman(result["candidate_pool_size"],
@@ -487,8 +490,6 @@ def VerifyDisks(opts, args):
         ToStderr("Error activating disks for instance %s: %s", iname, msg)
 
   if missing:
-    (vg_name, ) = cl.QueryConfigValues(["volume_group_name"])
-
     for iname, ival in missing.iteritems():
       all_missing = compat.all(x[0] in bad_nodes for x in ival)
       if all_missing:
@@ -499,11 +500,11 @@ def VerifyDisks(opts, args):
         ival.sort()
         for node, vol in ival:
           if node in bad_nodes:
-            ToStdout("\tbroken node %s /dev/%s/%s", node, vg_name, vol)
+            ToStdout("\tbroken node %s /dev/%s", node, vol)
           else:
-            ToStdout("\t%s /dev/%s/%s", node, vg_name, vol)
+            ToStdout("\t%s /dev/%s", node, vol)
 
-    ToStdout("You need to run replace_disks for all the above"
+    ToStdout("You need to run replace or recreate disks for all the above"
              " instances, if this message persist after fixing nodes.")
     retcode |= 1
 

@@ -533,8 +533,8 @@ class OpClusterSetParams(OpCode):
     ("remove_uids", None, ht.NoType),
     ("maintain_node_health", None, ht.TMaybeBool),
     ("prealloc_wipe_disks", None, ht.TMaybeBool),
-    ("nicparams", None, ht.TOr(ht.TDict, ht.TNone)),
-    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("nicparams", None, ht.TMaybeDict),
+    ("ndparams", None, ht.TMaybeDict),
     ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone)),
     ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone)),
     ("master_netdev", None, ht.TOr(ht.TString, ht.TNone)),
@@ -649,7 +649,7 @@ class OpNodeAdd(OpCode):
     ("group", None, ht.TMaybeString),
     ("master_capable", None, ht.TMaybeBool),
     ("vm_capable", None, ht.TMaybeBool),
-    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("ndparams", None, ht.TMaybeDict),
     ]
 
 
@@ -714,7 +714,7 @@ class OpNodeSetParams(OpCode):
     ("master_capable", None, ht.TMaybeBool),
     ("vm_capable", None, ht.TMaybeBool),
     ("secondary_ip", None, ht.TMaybeString),
-    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("ndparams", None, ht.TMaybeDict),
     ("powered", None, ht.TMaybeBool),
     ]
 
@@ -803,7 +803,7 @@ class OpInstanceReinstall(OpCode):
     _PInstanceName,
     ("os_type", None, ht.TMaybeString),
     ("force_variant", False, ht.TBool),
-    ("osparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("osparams", None, ht.TMaybeDict),
     ]
 
 
@@ -941,7 +941,8 @@ class OpInstanceDeactivateDisks(OpCode):
   """Deactivate an instance's disks."""
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
-    _PInstanceName
+    _PInstanceName,
+    _PForce,
     ]
 
 
@@ -985,7 +986,7 @@ class OpInstanceSetParams(OpCode):
     ("remote_node", None, ht.TMaybeString),
     ("os_name", None, ht.TMaybeString),
     ("force_variant", False, ht.TBool),
-    ("osparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("osparams", None, ht.TMaybeDict),
     ]
 
 
@@ -1007,7 +1008,7 @@ class OpGroupAdd(OpCode):
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
-    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("ndparams", None, ht.TMaybeDict),
     ("alloc_policy", None,
      ht.TOr(ht.TNone, ht.TElemOf(constants.VALID_ALLOC_POLICIES))),
     ]
@@ -1036,7 +1037,7 @@ class OpGroupSetParams(OpCode):
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
-    ("ndparams", None, ht.TOr(ht.TDict, ht.TNone)),
+    ("ndparams", None, ht.TMaybeDict),
     ("alloc_policy", None, ht.TOr(ht.TNone,
                                   ht.TElemOf(constants.VALID_ALLOC_POLICIES))),
     ]

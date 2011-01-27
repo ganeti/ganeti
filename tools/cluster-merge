@@ -263,7 +263,7 @@ class Merger(object):
     fake_ec_id = 0 # Needs to be uniq over the whole config merge
 
     for data in self.merger_data:
-      other_config = config.ConfigWriter(data.config_path)
+      other_config = config.ConfigWriter(data.config_path, accept_foreign=True)
 
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
@@ -386,7 +386,7 @@ class Merger(object):
       logging.info("Merging config")
       self._FetchRemoteConfig()
 
-      def _OfflineClusterMerge():
+      def _OfflineClusterMerge(_):
         """Closure run when master daemons stopped
 
         """

@@ -27,6 +27,7 @@ import stat
 import tempfile
 import unittest
 import logging
+import types
 
 from ganeti import utils
 
@@ -77,6 +78,18 @@ class GanetiTestProgram(unittest.TestProgram):
       pass
     else:
       raise Exception("Assertion not evaluated")
+
+    # The following piece of code is a backport from Python 2.6. Python 2.4/2.5
+    # only accept class instances as test runners. Being able to pass classes
+    # reduces the amount of code necessary for using a custom test runner.
+    # 2.6 and above should use their own code, however.
+    if (self.testRunner and sys.hexversion < 0x2060000 and
+        isinstance(self.testRunner, (type, types.ClassType))):
+      try:
+        self.testRunner = self.testRunner(verbosity=self.verbosity)
+      except TypeError:
+        # didn't accept the verbosity argument
+        self.testRunner = self.testRunner()
 
     return unittest.TestProgram.runTests(self)
 

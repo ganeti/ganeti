@@ -181,7 +181,13 @@ basic cluster operation (e.g. starting an instance) is represented
 internall by Ganeti as an *OpCode* (abbreviation from operation
 code). These OpCodes are executed as part of a *Job*. The OpCodes in a
 single Job are processed serially by Ganeti, but different Jobs will be
-processed (depending on resource availability) in parallel.
+processed (depending on resource availability) in parallel. They will
+not be executed in the submission order, but depending on resource
+availability, locks and (starting with Ganeti 2.3) priority. An earlier
+job may have to wait for a lock while a newer job doesn't need any locks
+and can be executed right away. Operations requiring a certain order
+need to be submitted as a single job, or the client must submit one job
+at a time and wait for it to finish before continuing.
 
 For example, shutting down the entire cluster can be done by running the
 command ``gnt-instance shutdown --all``, which will submit for each

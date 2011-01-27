@@ -236,7 +236,7 @@ def GenericCurlConfig(verbose=False, use_signal=False,
   return _ConfigCurl
 
 
-class GanetiRapiClient(object):
+class GanetiRapiClient(object): # pylint: disable-msg=R0904
   """Ganeti RAPI client.
 
   """
@@ -479,6 +479,16 @@ class GanetiRapiClient(object):
 
     """
     return self._SendRequest(HTTP_GET, "/%s/info" % GANETI_RAPI_VERSION,
+                             None, None)
+
+  def RedistributeConfig(self):
+    """Tells the cluster to redistribute its configuration files.
+
+    @return: job id
+
+    """
+    return self._SendRequest(HTTP_PUT,
+                             "/%s/redistribute-config" % GANETI_RAPI_VERSION,
                              None, None)
 
   def ModifyCluster(self, **kwargs):
@@ -756,6 +766,36 @@ class GanetiRapiClient(object):
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/modify" %
                               (GANETI_RAPI_VERSION, instance)), None, body)
+
+  def ActivateInstanceDisks(self, instance, ignore_size=None):
+    """Activates an instance's disks.
+
+    @type instance: string
+    @param instance: Instance name
+    @type ignore_size: bool
+    @param ignore_size: Whether to ignore recorded size
+    @return: job id
+
+    """
+    query = []
+    if ignore_size:
+      query.append(("ignore_size", 1))
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/activate-disks" %
+                              (GANETI_RAPI_VERSION, instance)), query, None)
+
+  def DeactivateInstanceDisks(self, instance):
+    """Deactivates an instance's disks.
+
+    @type instance: string
+    @param instance: Instance name
+    @return: job id
+
+    """
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/deactivate-disks" %
+                              (GANETI_RAPI_VERSION, instance)), None, None)
 
   def GrowInstanceDisk(self, instance, disk, amount, wait_for_sync=None):
     """Grows a disk of an instance.
