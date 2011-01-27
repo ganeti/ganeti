@@ -32,7 +32,7 @@ import qa_config
 import qa_error
 import qa_utils
 
-from qa_utils import AssertCommand
+from qa_utils import AssertCommand, AssertEqual
 
 
 def _NodeAdd(node, readd=False):
@@ -145,6 +145,19 @@ def TestNodeStorage():
         AssertCommand(["gnt-node", "modify-storage", "--allocatable", i,
                        node_name, storage_type, st_name], fail=fail)
 
+        # Verify list output
+        cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
+               "--output=name,allocatable", "--separator=|",
+               "--no-headers", node_name]
+        listout = qa_utils.GetCommandOutput(master["primary"],
+                                            utils.ShellQuoteArgs(cmd))
+        for line in listout.splitlines():
+          (vfy_name, vfy_allocatable) = line.split("|")
+          if vfy_name == st_name and not fail:
+            AssertEqual(vfy_allocatable, i[0].upper())
+          else:
+            AssertEqual(vfy_allocatable, st_allocatable)
+
       # Test repair functionality
       fail = (constants.SO_FIX_CONSISTENCY not in
               constants.VALID_STORAGE_OPERATIONS.get(storage_type, []))
@@ -229,7 +242,7 @@ def _AssertOobCall(verify_path, expected_args):
   verify_output_cmd = utils.ShellQuoteArgs(["cat", verify_path])
   output = qa_utils.GetCommandOutput(master["primary"], verify_output_cmd)
 
-  qa_utils.AssertEqual(expected_args, output.strip())
+  AssertEqual(expected_args, output.strip())
 
 
 def TestOutOfBand():

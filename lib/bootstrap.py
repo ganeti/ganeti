@@ -42,9 +42,14 @@ from ganeti import hypervisor
 from ganeti import bdev
 from ganeti import netutils
 from ganeti import backend
+from ganeti import luxi
+
 
 # ec_id for InitConfig's temporary reservation manager
 _INITCONF_ECID = "initconfig-ecid"
+
+#: After how many seconds daemon must be responsive
+_DAEMON_READY_TIMEOUT = 10.0
 
 
 def _InitSSHSetup():
@@ -181,10 +186,30 @@ def _WaitForNodeDaemon(node_name):
       raise utils.RetryAgain()
 
   try:
-    utils.Retry(_CheckNodeDaemon, 1.0, 10.0)
+    utils.Retry(_CheckNodeDaemon, 1.0, _DAEMON_READY_TIMEOUT)
   except utils.RetryTimeout:
     raise errors.OpExecError("Node daemon on %s didn't answer queries within"
-                             " 10 seconds" % node_name)
+                             " %s seconds" % (node_name, _DAEMON_READY_TIMEOUT))
+
+
+def _WaitForMasterDaemon():
+  """Wait for master daemon to become responsive.
+
+  """
+  def _CheckMasterDaemon():
+    try:
+      cl = luxi.Client()
+      (cluster_name, ) = cl.QueryConfigValues(["cluster_name"])
+    except Exception:
+      raise utils.RetryAgain()
+
+    logging.debug("Received cluster name %s from master", cluster_name)
+
+  try:
+    utils.Retry(_CheckMasterDaemon, 1.0, _DAEMON_READY_TIMEOUT)
+  except utils.RetryTimeout:
+    raise errors.OpExecError("Master daemon didn't answer queries within"
+                             " %s seconds" % _DAEMON_READY_TIMEOUT)
 
 
 def _InitFileStorage(file_storage_dir):
@@ -219,8 +244,7 @@ def _InitFileStorage(file_storage_dir):
   return file_storage_dir
 
 
-#pylint: disable-msg=R0913
-def InitCluster(cluster_name, mac_prefix,
+def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
                 nicparams=None, ndparams=None, hvparams=None,
@@ -419,10 +443,14 @@ def InitCluster(cluster_name, mac_prefix,
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(hostname.name)
 
-  # start the master ip
-  # TODO: Review rpc call from bootstrap
-  # TODO: Warn on failed start master
-  rpc.RpcRunner.call_node_start_master(hostname.name, True, False)
+  logging.debug("Starting daemons")
+  result = utils.RunCmd([constants.DAEMON_UTIL, "start-all"])
+  if result.failed:
+    raise errors.OpExecError("Could not start daemons, command %s"
+                             " had exitcode %s and error %s" %
+                             (result.cmd, result.exit_code, result.output))
+
+  _WaitForMasterDaemon()
 
 
 def InitConfig(version, cluster_config, master_node_config,

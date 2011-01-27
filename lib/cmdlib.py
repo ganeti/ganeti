@@ -3429,7 +3429,9 @@ class LUOsDiagnose(NoHooksLU):
     """Compute the list of OSes.
 
     """
-    valid_nodes = [node for node in self.cfg.GetOnlineNodeList()]
+    valid_nodes = [node.name
+                   for node in self.cfg.GetAllNodesInfo().values()
+                   if not node.offline and node.vm_capable]
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     pol = self._DiagnoseByOS(node_data)
     output = []
@@ -4379,15 +4381,15 @@ class LUNodeSetParams(LogicalUnit):
                                    errors.ECODE_STATE)
 
     if node.master_candidate and self.might_demote and not self.lock_all:
-      assert not self.op.auto_promote, "auto-promote set but lock_all not"
+      assert not self.op.auto_promote, "auto_promote set but lock_all not"
       # check if after removing the current node, we're missing master
       # candidates
       (mc_remaining, mc_should, _) = \
           self.cfg.GetMasterCandidateStats(exceptions=[node.name])
       if mc_remaining < mc_should:
         raise errors.OpPrereqError("Not enough master candidates, please"
-                                   " pass auto_promote to allow promotion",
-                                   errors.ECODE_STATE)
+                                   " pass auto promote option to allow"
+                                   " promotion", errors.ECODE_STATE)
 
     self.old_flags = old_flags = (node.master_candidate,
                                   node.drained, node.offline)

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -258,6 +258,8 @@ class _LvmBase(_Base): # pylint: disable-msg=W0223
           # we got a function, call it with all the declared fields
           val = mapper(*values) # pylint: disable-msg=W0142
         elif len(values) == 1:
+          assert mapper is None, ("Invalid mapper value (neither callable"
+                                  " nor None) for one-element fields")
           # we don't have a function, but we had a single field
           # declared, pass it unchanged
           val = values[0]
@@ -332,18 +334,23 @@ class _LvmBase(_Base): # pylint: disable-msg=W0223
       yield fields
 
 
+def _LvmPvGetAllocatable(attr):
+  """Determines whether LVM PV is allocatable.
+
+  @rtype: bool
+
+  """
+  if attr:
+    return (attr[0] == "a")
+  else:
+    logging.warning("Invalid PV attribute: %r", attr)
+    return False
+
+
 class LvmPvStorage(_LvmBase): # pylint: disable-msg=W0223
   """LVM Physical Volume storage unit.
 
   """
-  @staticmethod
-  def _GetAllocatable(attr):
-    if attr:
-      return (attr[0] == "a")
-    else:
-      logging.warning("Invalid PV attribute: %r", attr)
-      return False
-
   LIST_COMMAND = "pvs"
 
   # Make sure to update constants.VALID_STORAGE_FIELDS when changing field
@@ -353,7 +360,7 @@ class LvmPvStorage(_LvmBase): # pylint: disable-msg=W0223
     (constants.SF_SIZE, ["pv_size"], _ParseSize),
     (constants.SF_USED, ["pv_used"], _ParseSize),
     (constants.SF_FREE, ["pv_free"], _ParseSize),
-    (constants.SF_ALLOCATABLE, ["pv_attr"], _GetAllocatable),
+    (constants.SF_ALLOCATABLE, ["pv_attr"], _LvmPvGetAllocatable),
     ]
 
   def _SetAllocatable(self, name, allocatable):

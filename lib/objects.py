@@ -1362,6 +1362,7 @@ class ImportExportOptions(ConfigObject):
   @ivar compress: Compression method (one of L{constants.IEC_ALL})
   @ivar magic: Used to ensure the connection goes to the right disk
   @ivar ipv6: Whether to use IPv6
+  @ivar connect_timeout: Number of seconds for establishing connection
 
   """
   __slots__ = [
@@ -1370,6 +1371,7 @@ class ImportExportOptions(ConfigObject):
     "compress",
     "magic",
     "ipv6",
+    "connect_timeout",
     ]
 
 

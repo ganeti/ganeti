@@ -437,8 +437,15 @@ RIE_HANDSHAKE = "Hi, I'm Ganeti"
 # Remote import/export certificate validity in seconds
 RIE_CERT_VALIDITY = 24 * 60 * 60
 
-# Remote import/export connect timeout for socat
-RIE_CONNECT_TIMEOUT = 60
+# Overall timeout for establishing connection
+RIE_CONNECT_TIMEOUT = 180
+
+# Export only: how long to wait per connection attempt (seconds)
+RIE_CONNECT_ATTEMPT_TIMEOUT = 20
+
+# Export only: number of attempts to connect
+RIE_CONNECT_RETRIES = 10
+
 #: Give child process up to 5 seconds to exit after sending a signal
 CHILD_LINGER_TIMEOUT = 5.0
 
