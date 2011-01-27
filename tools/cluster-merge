@@ -386,7 +386,7 @@ class Merger(object):
       logging.info("Merging config")
       self._FetchRemoteConfig()
 
-      def _OfflineClusterMerge():
+      def _OfflineClusterMerge(_):
         """Closure run when master daemons stopped
 
         """
