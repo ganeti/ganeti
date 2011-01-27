@@ -61,6 +61,7 @@
     "cluster-rename": true,
     "cluster-reserved-lvs": true,
     "cluster-modify": true,
+    "cluster-oob": true,
 
     "group-list": true,
     "group-rwops": true,
