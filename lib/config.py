@@ -367,6 +367,7 @@ class ConfigWriter:
         configuration errors
 
     """
+    # pylint: disable-msg=R0914
     result = []
     seen_macs = []
     ports = {}
@@ -392,6 +393,27 @@ class ConfigWriter:
       result.append("cluster has invalid primary node '%s'" %
                     cluster.master_node)
 
+    def _helper(owner, attr, value, template):
+      try:
+        utils.ForceDictType(value, template)
+      except errors.GenericError, err:
+        result.append("%s has invalid %s: %s" % (owner, attr, err))
+
+    def _helper_nic(owner, params):
+      try:
+        objects.NIC.CheckParameterSyntax(params)
+      except errors.ConfigurationError, err:
+        result.append("%s has invalid nicparams: %s" % (owner, err))
+
+    # check cluster parameters
+    _helper("cluster", "beparams", cluster.SimpleFillBE({}),
+            constants.BES_PARAMETER_TYPES)
+    _helper("cluster", "nicparams", cluster.SimpleFillNIC({}),
+            constants.NICS_PARAMETER_TYPES)
+    _helper_nic("cluster", cluster.SimpleFillNIC({}))
+    _helper("cluster", "ndparams", cluster.SimpleFillND({}),
+            constants.NDS_PARAMETER_TYPES)
+
     # per-instance checks
     for instance_name in data.instances:
       instance = data.instances[instance_name]
@@ -411,6 +433,17 @@ class ConfigWriter:
                         (instance_name, idx, nic.mac))
         else:
           seen_macs.append(nic.mac)
+        if nic.nicparams:
+          filled = cluster.SimpleFillNIC(nic.nicparams)
+          owner = "instance %s nic %d" % (instance.name, idx)
+          _helper(owner, "nicparams",
+                  filled, constants.NICS_PARAMETER_TYPES)
+          _helper_nic(owner, filled)
+
+      # parameter checks
+      if instance.beparams:
+        _helper("instance %s" % instance.name, "beparams",
+                cluster.FillBE(instance), constants.BES_PARAMETER_TYPES)
 
       # gather the drbd ports for duplicate checks
       for dsk in instance.disks:
@@ -472,6 +505,13 @@ class ConfigWriter:
                       " drain=%s, offline=%s" %
                       (node.name, node.master_candidate, node.drained,
                        node.offline))
+      if node.group not in data.nodegroups:
+        result.append("Node '%s' has invalid group '%s'" %
+                      (node.name, node.group))
+      else:
+        _helper("node %s" % node.name, "ndparams",
+                cluster.FillND(node, data.nodegroups[node.group]),
+                constants.NDS_PARAMETER_TYPES)
 
     # nodegroups checks
     nodegroups_names = set()
@@ -487,6 +527,11 @@ class ConfigWriter:
         result.append("duplicate node group name '%s'" % nodegroup.name)
       else:
         nodegroups_names.add(nodegroup.name)
+      if nodegroup.ndparams:
+        _helper("group %s" % nodegroup.name, "ndparams",
+                cluster.SimpleFillND(nodegroup.ndparams),
+                constants.NDS_PARAMETER_TYPES)
+
 
     # drbd minors check
     _, duplicates = self._UnlockedComputeDRBDMap()
