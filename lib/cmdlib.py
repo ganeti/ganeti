@@ -10359,9 +10359,9 @@ class LUGroupRemove(LogicalUnit):
 
     # Verify the cluster would not be left group-less.
     if len(self.cfg.GetNodeGroupList()) == 1:
-      raise errors.OpPrereqError("Group '%s' is the last group in the cluster,"
-                                 " which cannot be left without at least one"
-                                 " group" % self.op.group_name,
+      raise errors.OpPrereqError("Group '%s' is the only group,"
+                                 " cannot be removed" %
+                                 self.op.group_name,
                                  errors.ECODE_STATE)
 
   def BuildHooksEnv(self):

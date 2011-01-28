@@ -916,6 +916,9 @@ class ConfigWriter:
     if group_uuid not in self._config_data.nodegroups:
       raise errors.ConfigurationError("Unknown node group '%s'" % group_uuid)
 
+    assert len(self._config_data.nodegroups) != 1, \
+            "Group '%s' is the only group, cannot be removed" % group_uuid
+
     del self._config_data.nodegroups[group_uuid]
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
