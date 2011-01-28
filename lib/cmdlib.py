@@ -3868,6 +3868,7 @@ class _InstanceQuery(_QueryBase):
     """Computes the list of instances and their attributes.
 
     """
+    cluster = lu.cfg.GetClusterInfo()
     all_info = lu.cfg.GetAllInstancesInfo()
 
     instance_names = self._GetNames(lu, all_info.keys(), locking.LEVEL_INSTANCE)
@@ -3881,7 +3882,7 @@ class _InstanceQuery(_QueryBase):
     wrongnode_inst = set()
 
     # Gather data as requested
-    if query.IQ_LIVE in self.requested_data:
+    if self.requested_data & set([query.IQ_LIVE, query.IQ_CONSOLE]):
       live_data = {}
       node_data = lu.rpc.call_all_instances_info(nodes, hv_list)
       for name in nodes:
@@ -3911,9 +3912,21 @@ class _InstanceQuery(_QueryBase):
     else:
       disk_usage = None
 
+    if query.IQ_CONSOLE in self.requested_data:
+      consinfo = {}
+      for inst in instance_list:
+        if inst.name in live_data:
+          # Instance is running
+          consinfo[inst.name] = _GetInstanceConsole(cluster, inst)
+        else:
+          consinfo[inst.name] = None
+      assert set(consinfo.keys()) == set(instance_names)
+    else:
+      consinfo = None
+
     return query.InstanceQueryData(instance_list, lu.cfg.GetClusterInfo(),
                                    disk_usage, offline_nodes, bad_nodes,
-                                   live_data, wrongnode_inst)
+                                   live_data, wrongnode_inst, consinfo)
 
 
 class LUQuery(NoHooksLU):
@@ -7804,18 +7817,28 @@ class LUInstanceConsole(NoHooksLU):
 
     logging.debug("Connecting to console of %s on %s", instance.name, node)
 
-    hyper = hypervisor.GetHypervisor(instance.hypervisor)
-    cluster = self.cfg.GetClusterInfo()
-    # beparams and hvparams are passed separately, to avoid editing the
-    # instance and then saving the defaults in the instance itself.
-    hvparams = cluster.FillHV(instance)
-    beparams = cluster.FillBE(instance)
-    console = hyper.GetInstanceConsole(instance, hvparams, beparams)
+    return _GetInstanceConsole(self.cfg.GetClusterInfo(), instance)
 
-    assert console.instance == instance.name
-    assert console.Validate()
 
-    return console.ToDict()
+def _GetInstanceConsole(cluster, instance):
+  """Returns console information for an instance.
+
+  @type cluster: L{objects.Cluster}
+  @type instance: L{objects.Instance}
+  @rtype: dict
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  # beparams and hvparams are passed separately, to avoid editing the
+  # instance and then saving the defaults in the instance itself.
+  hvparams = cluster.FillHV(instance)
+  beparams = cluster.FillBE(instance)
+  console = hyper.GetInstanceConsole(instance, hvparams, beparams)
+
+  assert console.instance == instance.name
+  assert console.Validate()
+
+  return console.ToDict()
 
 
 class LUInstanceReplaceDisks(LogicalUnit):

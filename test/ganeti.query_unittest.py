@@ -539,7 +539,8 @@ class TestInstanceQuery(unittest.TestCase):
         nics=[objects.NIC(ip="192.0.2.99", nicparams={})]),
       ]
 
-    iqd = query.InstanceQueryData(instances, cluster, None, [], [], {}, set())
+    iqd = query.InstanceQueryData(instances, cluster, None, [], [], {},
+                                  set(), {})
     self.assertEqual(q.Query(iqd),
       [[(constants.RS_NORMAL, "inst1"),
         (constants.RS_NORMAL, 128),
@@ -567,7 +568,8 @@ class TestInstanceQuery(unittest.TestCase):
 
     q = self._Create(selected)
     self.assertEqual(q.RequestedData(),
-                     set([query.IQ_CONFIG, query.IQ_LIVE, query.IQ_DISKUSAGE]))
+                     set([query.IQ_CONFIG, query.IQ_LIVE, query.IQ_DISKUSAGE,
+                          query.IQ_CONSOLE]))
 
     cluster = objects.Cluster(cluster_name="testcluster",
       hvparams=constants.HVC_DEFAULTS,
@@ -671,6 +673,8 @@ class TestInstanceQuery(unittest.TestCase):
 
     assert not utils.FindDuplicates(inst.name for inst in instances)
 
+    instbyname = dict((inst.name, inst) for inst in instances)
+
     disk_usage = dict((inst.name,
                        cmdlib._ComputeDiskSize(inst.disk_template,
                                                [{"size": disk.size}
@@ -696,9 +700,16 @@ class TestInstanceQuery(unittest.TestCase):
       }
     wrongnode_inst = set("inst2")
 
+    consinfo = dict((inst.name, None) for inst in instances)
+    consinfo["inst7"] = \
+      objects.InstanceConsole(instance="inst7", kind=constants.CONS_SSH,
+                              host=instbyname["inst7"].primary_node,
+                              user=constants.GANETI_RUNAS,
+                              command=["hostname"]).ToDict()
+
     iqd = query.InstanceQueryData(instances, cluster, disk_usage,
                                   offline_nodes, bad_nodes, live_data,
-                                  wrongnode_inst)
+                                  wrongnode_inst, consinfo)
     result = q.Query(iqd)
     self.assertEqual(len(result), len(instances))
     self.assert_(compat.all(len(row) == len(selected)
@@ -792,11 +803,22 @@ class TestInstanceQuery(unittest.TestCase):
           exp = (constants.RS_NORMAL, getattr(inst, field))
         self.assertEqual(row[fieldidx[field]], exp)
 
+      self._CheckInstanceConsole(inst, row[fieldidx["console"]])
+
     # Ensure all possible status' have been tested
     self.assertEqual(tested_status,
                      set(["ERROR_nodeoffline", "ERROR_nodedown",
                           "running", "ERROR_up", "ERROR_down",
                           "ADMIN_down"]))
+
+  def _CheckInstanceConsole(self, instance, (status, consdata)):
+    if instance.name == "inst7":
+      self.assertEqual(status, constants.RS_NORMAL)
+      console = objects.InstanceConsole.FromDict(consdata)
+      self.assertTrue(console.Validate())
+      self.assertEqual(console.host, instance.primary_node)
+    else:
+      self.assertEqual(status, constants.RS_UNAVAIL)
 
 
 class TestGroupQuery(unittest.TestCase):

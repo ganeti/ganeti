@@ -79,7 +79,8 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
 
 (IQ_CONFIG,
  IQ_LIVE,
- IQ_DISKUSAGE) = range(100, 103)
+ IQ_DISKUSAGE,
+ IQ_CONSOLE) = range(100, 104)
 
 (LQ_MODE,
  LQ_OWNER,
@@ -664,7 +665,7 @@ class InstanceQueryData:
 
   """
   def __init__(self, instances, cluster, disk_usage, offline_nodes, bad_nodes,
-               live_data, wrongnode_inst):
+               live_data, wrongnode_inst, console):
     """Initializes this class.
 
     @param instances: List of instance objects
@@ -679,6 +680,8 @@ class InstanceQueryData:
     @param live_data: Per-instance live data
     @type wrongnode_inst: set
     @param wrongnode_inst: Set of instances running on wrong node(s)
+    @type console: dict; instance name as key
+    @param console: Per-instance console information
 
     """
     assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
@@ -693,6 +696,7 @@ class InstanceQueryData:
     self.bad_nodes = bad_nodes
     self.live_data = live_data
     self.wrongnode_inst = wrongnode_inst
+    self.console = console
 
     # Used for individual rows
     self.inst_hvparams = None
@@ -991,6 +995,22 @@ def _GetInstDiskUsage(ctx, inst):
   return usage
 
 
+def _GetInstanceConsole(ctx, inst):
+  """Get console information for instance.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  consinfo = ctx.console[inst.name]
+
+  if consinfo is None:
+    return _FS_UNAVAIL
+
+  return consinfo
+
+
 def _GetInstanceDiskFields():
   """Get instance fields involving disks.
 
@@ -1108,6 +1128,8 @@ def _BuildInstanceFields():
      _GetItemAttr("admin_up")),
     (_MakeField("tags", "Tags", QFT_OTHER), IQ_CONFIG,
      lambda ctx, inst: list(inst.GetTags())),
+    (_MakeField("console", "Console", QFT_OTHER), IQ_CONSOLE,
+     _GetInstanceConsole),
     ]
 
   # Add simple fields
