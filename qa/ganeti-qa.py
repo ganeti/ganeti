@@ -196,6 +196,8 @@ def RunCommonInstanceTests(instance):
 
   """
   RunTestIf("instance-shutdown", qa_instance.TestInstanceShutdown, instance)
+  RunTestIf(["instance-shutdown", "instance-console", "rapi"],
+            qa_rapi.TestRapiStoppedInstanceConsole, instance)
   RunTestIf("instance-shutdown", qa_instance.TestInstanceStartup, instance)
 
   RunTestIf("instance-list", qa_instance.TestInstanceList)
@@ -207,6 +209,8 @@ def RunCommonInstanceTests(instance):
             qa_rapi.TestRapiInstanceModify, instance)
 
   RunTestIf("instance-console", qa_instance.TestInstanceConsole, instance)
+  RunTestIf(["instance-console", "rapi"],
+            qa_rapi.TestRapiInstanceConsole, instance)
 
   RunTestIf("instance-reinstall", qa_instance.TestInstanceShutdown, instance)
   RunTestIf("instance-reinstall", qa_instance.TestInstanceReinstall, instance)

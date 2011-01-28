@@ -1336,6 +1336,30 @@ class R_2_instances_name_disk_grow(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_instances_name_console(baserlib.R_Generic):
+  """/2/instances/[instance_name]/console resource.
+
+  """
+  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+
+  def GET(self):
+    """Request information for connecting to instance's console.
+
+    @return: Serialized instance console description, see
+             L{objects.InstanceConsole}
+
+    """
+    client = baserlib.GetClient()
+
+    ((console, ), ) = client.QueryInstances([self.items[0]], ["console"], False)
+
+    if console is None:
+      raise http.HttpServiceUnavailable("Instance console unavailable")
+
+    assert isinstance(console, dict)
+    return console
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 
