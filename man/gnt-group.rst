@@ -86,7 +86,8 @@ REMOVE
 
 | **remove** {*group*}
 
-Deletes the indicated node group, which must be empty.
+Deletes the indicated node group, which must be empty. There must always be at
+least one group, so the last group cannot be removed.
 
 LIST
 ~~~~
