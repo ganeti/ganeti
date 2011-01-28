@@ -776,7 +776,8 @@ HT_NIC_E1000 = "e1000"
 HT_NIC_PARAVIRTUAL = HT_DISK_PARAVIRTUAL = "paravirtual"
 
 HT_HVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
-                                    HT_NIC_NE2K_ISA, HT_NIC_PARAVIRTUAL])
+                                    HT_NIC_E1000, HT_NIC_NE2K_ISA,
+                                    HT_NIC_PARAVIRTUAL])
 HT_KVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
                                     HT_NIC_NE2K_ISA, HT_NIC_I82551,
                                     HT_NIC_I85557B, HT_NIC_I8259ER,
