@@ -1492,7 +1492,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
   return result
 
 
-def BlockdevAssemble(disk, owner, as_primary):
+def BlockdevAssemble(disk, owner, as_primary, idx):
   """Activate a block device for an instance.
 
   This is a wrapper over _RecursiveAssembleBD.
@@ -1507,8 +1507,12 @@ def BlockdevAssemble(disk, owner, as_primary):
     if isinstance(result, bdev.BlockDev):
       # pylint: disable-msg=E1103
       result = result.dev_path
+      if as_primary:
+        _SymlinkBlockDev(owner, result, idx)
   except errors.BlockDeviceError, err:
     _Fail("Error while assembling disk: %s", err, exc=True)
+  except OSError, err:
+    _Fail("Error while symlinking disk: %s", err, exc=True)
 
   return result
 
