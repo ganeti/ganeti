@@ -664,7 +664,7 @@ class InstanceQueryData:
 
   """
   def __init__(self, instances, cluster, disk_usage, offline_nodes, bad_nodes,
-               live_data):
+               live_data, wrongnode_inst):
     """Initializes this class.
 
     @param instances: List of instance objects
@@ -677,6 +677,8 @@ class InstanceQueryData:
     @param bad_nodes: List of faulty nodes
     @type live_data: dict; instance name as key
     @param live_data: Per-instance live data
+    @type wrongnode_inst: set
+    @param wrongnode_inst: Set of instances running on wrong node(s)
 
     """
     assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
@@ -690,6 +692,7 @@ class InstanceQueryData:
     self.offline_nodes = offline_nodes
     self.bad_nodes = bad_nodes
     self.live_data = live_data
+    self.wrongnode_inst = wrongnode_inst
 
     # Used for individual rows
     self.inst_hvparams = None
@@ -774,7 +777,9 @@ def _GetInstStatus(ctx, inst):
     return "ERROR_nodedown"
 
   if bool(ctx.live_data.get(inst.name)):
-    if inst.admin_up:
+    if inst.name in ctx.wrongnode_inst:
+      return "ERROR_wrongnode"
+    elif inst.admin_up:
       return "running"
     else:
       return "ERROR_up"

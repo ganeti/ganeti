@@ -539,7 +539,7 @@ class TestInstanceQuery(unittest.TestCase):
         nics=[objects.NIC(ip="192.0.2.99", nicparams={})]),
       ]
 
-    iqd = query.InstanceQueryData(instances, cluster, None, [], [], {})
+    iqd = query.InstanceQueryData(instances, cluster, None, [], [], {}, set())
     self.assertEqual(q.Query(iqd),
       [[(constants.RS_NORMAL, "inst1"),
         (constants.RS_NORMAL, 128),
@@ -694,9 +694,11 @@ class TestInstanceQuery(unittest.TestCase):
         "memory": 768,
         },
       }
+    wrongnode_inst = set("inst2")
 
     iqd = query.InstanceQueryData(instances, cluster, disk_usage,
-                                  offline_nodes, bad_nodes, live_data)
+                                  offline_nodes, bad_nodes, live_data,
+                                  wrongnode_inst)
     result = q.Query(iqd)
     self.assertEqual(len(result), len(instances))
     self.assert_(compat.all(len(row) == len(selected)
@@ -718,7 +720,9 @@ class TestInstanceQuery(unittest.TestCase):
       elif inst.primary_node in bad_nodes:
         exp_status = "ERROR_nodedown"
       elif inst.name in live_data:
-        if inst.admin_up:
+        if inst.name in wrongnode_inst:
+          exp_status = "ERROR_wrongnode"
+        elif inst.admin_up:
           exp_status = "running"
         else:
           exp_status = "ERROR_up"

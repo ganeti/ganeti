@@ -3873,10 +3873,12 @@ class _InstanceQuery(_QueryBase):
     instance_names = self._GetNames(lu, all_info.keys(), locking.LEVEL_INSTANCE)
 
     instance_list = [all_info[name] for name in instance_names]
-    nodes = frozenset([inst.primary_node for inst in instance_list])
+    nodes = frozenset(itertools.chain(*(inst.all_nodes
+                                        for inst in instance_list)))
     hv_list = list(set([inst.hypervisor for inst in instance_list]))
     bad_nodes = []
     offline_nodes = []
+    wrongnode_inst = set()
 
     # Gather data as requested
     if query.IQ_LIVE in self.requested_data:
@@ -3891,7 +3893,11 @@ class _InstanceQuery(_QueryBase):
         if result.fail_msg:
           bad_nodes.append(name)
         elif result.payload:
-          live_data.update(result.payload)
+          for inst in result.payload:
+            if all_info[inst].primary_node == name:
+              live_data.update(result.payload)
+            else:
+              wrongnode_inst.add(inst)
         # else no instance is alive
     else:
       live_data = {}
@@ -3907,7 +3913,7 @@ class _InstanceQuery(_QueryBase):
 
     return query.InstanceQueryData(instance_list, lu.cfg.GetClusterInfo(),
                                    disk_usage, offline_nodes, bad_nodes,
-                                   live_data)
+                                   live_data, wrongnode_inst)
 
 
 class LUQuery(NoHooksLU):

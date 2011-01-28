@@ -672,12 +672,13 @@ oper\_state
     "running", "stopped", "(node down)"
 
 status
-    combined form of admin\_state and oper\_stat; this can be one of:
-    ERROR\_nodedown if the node of the instance is down, ERROR\_down if
-    the instance should run but is down, ERROR\_up if the instance
-    should be stopped but is actually running, ADMIN\_down if the
-    instance has been stopped (and is stopped) and running if the
-    instance is set to be running (and is running)
+    combined form of ``admin_state`` and ``oper_stat``; this can be one of:
+    ``ERROR_nodedown`` if the node of the instance is down, ``ERROR_down`` if
+    the instance should run but is down, ``ERROR_up`` if the instance should be
+    stopped but is actually running, ``ERROR_wrongnode`` if the instance is
+    running but not on the primary, ``ADMIN_down`` if the instance has been
+    stopped (and is stopped) and ``running`` if the instance is set to be
+    running (and is running)
 
 oper\_ram
     the actual memory usage of the instance as seen by the hypervisor
