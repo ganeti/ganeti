@@ -371,25 +371,26 @@ class ConfigWriter:
     seen_macs = []
     ports = {}
     data = self._config_data
+    cluster = data.cluster
     seen_lids = []
     seen_pids = []
 
     # global cluster checks
-    if not data.cluster.enabled_hypervisors:
+    if not cluster.enabled_hypervisors:
       result.append("enabled hypervisors list doesn't have any entries")
-    invalid_hvs = set(data.cluster.enabled_hypervisors) - constants.HYPER_TYPES
+    invalid_hvs = set(cluster.enabled_hypervisors) - constants.HYPER_TYPES
     if invalid_hvs:
       result.append("enabled hypervisors contains invalid entries: %s" %
                     invalid_hvs)
-    missing_hvp = (set(data.cluster.enabled_hypervisors) -
-                   set(data.cluster.hvparams.keys()))
+    missing_hvp = (set(cluster.enabled_hypervisors) -
+                   set(cluster.hvparams.keys()))
     if missing_hvp:
       result.append("hypervisor parameters missing for the enabled"
                     " hypervisor(s) %s" % utils.CommaJoin(missing_hvp))
 
-    if data.cluster.master_node not in data.nodes:
+    if cluster.master_node not in data.nodes:
       result.append("cluster has invalid primary node '%s'" %
-                    data.cluster.master_node)
+                    cluster.master_node)
 
     # per-instance checks
     for instance_name in data.instances:
@@ -432,7 +433,7 @@ class ConfigWriter:
         result.extend(self._CheckDiskIDs(disk, seen_lids, seen_pids))
 
     # cluster-wide pool of free ports
-    for free_port in data.cluster.tcpudp_port_pool:
+    for free_port in cluster.tcpudp_port_pool:
       if free_port not in ports:
         ports[free_port] = []
       ports[free_port].append(("cluster", "port marked as free"))
@@ -448,11 +449,11 @@ class ConfigWriter:
 
     # highest used tcp port check
     if keys:
-      if keys[-1] > data.cluster.highest_used_port:
+      if keys[-1] > cluster.highest_used_port:
         result.append("Highest used port mismatch, saved %s, computed %s" %
-                      (data.cluster.highest_used_port, keys[-1]))
+                      (cluster.highest_used_port, keys[-1]))
 
-    if not data.nodes[data.cluster.master_node].master_candidate:
+    if not data.nodes[cluster.master_node].master_candidate:
       result.append("Master node is not a master candidate")
 
     # master candidate checks
@@ -494,13 +495,13 @@ class ConfigWriter:
                     " %s and %s" % (minor, node, instance_a, instance_b))
 
     # IP checks
-    default_nicparams = data.cluster.nicparams[constants.PP_DEFAULT]
+    default_nicparams = cluster.nicparams[constants.PP_DEFAULT]
     ips = {}
 
     def _AddIpAddress(ip, name):
       ips.setdefault(ip, []).append(name)
 
-    _AddIpAddress(data.cluster.master_ip, "cluster_ip")
+    _AddIpAddress(cluster.master_ip, "cluster_ip")
 
     for node in data.nodes.values():
       _AddIpAddress(node.primary_ip, "node:%s/primary" % node.name)
