@@ -49,21 +49,21 @@ PAUSE_PERIOD_OPT = cli.cli_option("-p", "--watcher-pause-period", default=1800,
                                         " should be suspended from running"))
 
 
-def Flatten(unflatten_list):
+def Flatten(unflattened_list):
   """Flattens a list.
 
-  @param unflatten_list: A list of unflatten list objects.
-  @return: A flatten list
+  @param unflattened_list: A list of unflattened list objects.
+  @return: A flattened list
 
   """
-  flatten_list = []
+  flattened_list = []
 
-  for item in unflatten_list:
+  for item in unflattened_list:
     if isinstance(item, list):
-      flatten_list.extend(Flatten(item))
+      flattened_list.extend(Flatten(item))
     else:
-      flatten_list.append(item)
-  return flatten_list
+      flattened_list.append(item)
+  return flattened_list
 
 
 class MergerData(object):
