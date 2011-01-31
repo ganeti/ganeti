@@ -942,6 +942,16 @@ class ConfigWriter:
     if check_uuid:
       self._EnsureUUID(group, ec_id)
 
+    try:
+      existing_uuid = self._UnlockedLookupNodeGroup(group.name)
+    except errors.OpPrereqError:
+      pass
+    else:
+      raise errors.OpPrereqError("Desired group name '%s' already exists as a"
+                                 " node group (UUID: %s)" %
+                                 (group.name, existing_uuid),
+                                 errors.ECODE_EXISTS)
+
     group.serial_no = 1
     group.ctime = group.mtime = time.time()
     group.UpgradeConfig()
