@@ -1170,6 +1170,14 @@ COMMON_CREATE_OPTS = [
   ]
 
 
+_RSTATUS_TO_TEXT = {
+  constants.RS_UNKNOWN: "(unknown)",
+  constants.RS_NODATA: "(nodata)",
+  constants.RS_UNAVAIL: "(unavail)",
+  constants.RS_OFFLINE: "(offline)",
+  }
+
+
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
 
@@ -2398,18 +2406,21 @@ class _QueryColumnFormatter:
     assert value is None, \
            "Found value %r for abnormal status %s" % (value, status)
 
-    if status == constants.RS_UNKNOWN:
-      return "(unknown)"
+    return FormatResultError(status)
 
-    if status == constants.RS_NODATA:
-      return "(nodata)"
 
-    if status == constants.RS_UNAVAIL:
-      return "(unavail)"
+def FormatResultError(status):
+  """Formats result status other than L{constants.RS_NORMAL}.
 
-    if status == constants.RS_OFFLINE:
-      return "(offline)"
+  @param status: The result status
+  @return: Text of result status
 
+  """
+  assert status != constants.RS_NORMAL, \
+         "FormatResultError called with status equals to constants.RS_NORMAL"
+  try:
+    return _RSTATUS_TO_TEXT[status]
+  except KeyError:
     raise NotImplementedError("Unknown status %s" % status)
 
 
