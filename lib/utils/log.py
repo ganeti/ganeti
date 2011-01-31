@@ -129,6 +129,39 @@ def _LogErrorsToConsole(base):
 _LogHandler = _LogErrorsToConsole(_ReopenableLogHandler)
 
 
+def _GetLogFormatter(program, multithreaded, debug, syslog):
+  """Build log formatter.
+
+  @param program: Program name
+  @param multithreaded: Whether to add thread name to log messages
+  @param debug: Whether to enable debug messages
+  @param syslog: Whether the formatter will be used for syslog
+
+  """
+  parts = []
+
+  if syslog:
+    parts.append(program + "[%(process)d]:")
+  else:
+    parts.append("%(asctime)s: " + program + " pid=%(process)d")
+
+  if multithreaded:
+    if syslog:
+      parts.append(" (%(threadName)s)")
+    else:
+      parts.append("/%(threadName)s")
+
+  # Add debug info for non-syslog loggers
+  if debug and not syslog:
+    parts.append(" %(module)s:%(lineno)s")
+
+  # Ses, we do want the textual level, as remote syslog will probably lose the
+  # error level, and it's easier to grep for it.
+  parts.append(" %(levelname)s %(message)s")
+
+  return logging.Formatter("".join(parts))
+
+
 def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
                  multithreaded=False, syslog=constants.SYSLOG_USAGE,
                  console_logging=False):
@@ -157,20 +190,8 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
       syslog/stderr logging is disabled
 
   """
-  fmt = "%(asctime)s: " + program + " pid=%(process)d"
-  sft = program + "[%(process)d]:"
-  if multithreaded:
-    fmt += "/%(threadName)s"
-    sft += " (%(threadName)s)"
-  if debug:
-    fmt += " %(module)s:%(lineno)s"
-    # no debug info for syslog loggers
-  fmt += " %(levelname)s %(message)s"
-  # yes, we do want the textual level, as remote syslog will probably
-  # lose the error level, and it's easier to grep for it
-  sft += " %(levelname)s %(message)s"
-  formatter = logging.Formatter(fmt)
-  sys_fmt = logging.Formatter(sft)
+  formatter = _GetLogFormatter(program, multithreaded, debug, False)
+  syslog_fmt = _GetLogFormatter(program, multithreaded, debug, True)
 
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
@@ -193,7 +214,7 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
     facility = logging.handlers.SysLogHandler.LOG_DAEMON
     syslog_handler = logging.handlers.SysLogHandler(constants.SYSLOG_SOCKET,
                                                     facility)
-    syslog_handler.setFormatter(sys_fmt)
+    syslog_handler.setFormatter(syslog_fmt)
     # Never enable debug over syslog
     syslog_handler.setLevel(logging.INFO)
     root_logger.addHandler(syslog_handler)
