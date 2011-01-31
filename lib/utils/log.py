@@ -229,16 +229,16 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
         logfile_handler = _LogHandler(open(constants.DEV_CONSOLE, "a"), logfile)
       else:
         logfile_handler = _ReopenableLogHandler(logfile)
-
-      logfile_handler.setFormatter(formatter)
-      if debug:
-        logfile_handler.setLevel(logging.DEBUG)
-      else:
-        logfile_handler.setLevel(logging.INFO)
-      root_logger.addHandler(logfile_handler)
     except EnvironmentError:
       if stderr_logging or syslog == constants.SYSLOG_YES:
         logging.exception("Failed to enable logging to file '%s'", logfile)
       else:
         # we need to re-raise the exception
         raise
+
+    logfile_handler.setFormatter(formatter)
+    if debug:
+      logfile_handler.setLevel(logging.DEBUG)
+    else:
+      logfile_handler.setLevel(logging.INFO)
+    root_logger.addHandler(logfile_handler)
