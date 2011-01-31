@@ -1254,8 +1254,8 @@ class LUClusterVerify(LogicalUnit):
     @ivar instances: a list of running instances (runtime)
     @ivar pinst: list of configured primary instances (config)
     @ivar sinst: list of configured secondary instances (config)
-    @ivar sbp: diction of {secondary-node: list of instances} of all peers
-        of this node (config)
+    @ivar sbp: dictionary of {primary-node: list of instances} for all
+        instances for which this node is secondary (config)
     @ivar mfree: free memory, as reported by hypervisor (runtime)
     @ivar dfree: free disk, as reported by the node (runtime)
     @ivar offline: the offline status (config)
