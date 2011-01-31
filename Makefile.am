@@ -504,6 +504,7 @@ python_tests = \
 	test/ganeti.utils.filelock_unittest.py \
 	test/ganeti.utils.hash_unittest.py \
 	test/ganeti.utils.io_unittest.py \
+	test/ganeti.utils.log_unittest.py \
 	test/ganeti.utils.mlock_unittest.py \
 	test/ganeti.utils.nodesetup_unittest.py \
 	test/ganeti.utils.process_unittest.py \

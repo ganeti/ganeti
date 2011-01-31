@@ -28,38 +28,105 @@ import logging.handlers
 from ganeti import constants
 
 
-class LogFileHandler(logging.FileHandler):
-  """Log handler that doesn't fallback to stderr.
+class _ReopenableLogHandler(logging.handlers.BaseRotatingHandler):
+  """Log handler with ability to reopen log file on request.
 
-  When an error occurs while writing on the logfile, logging.FileHandler tries
-  to log on stderr. This doesn't work in ganeti since stderr is redirected to
-  the logfile. This class avoids failures reporting errors to /dev/console.
+  In combination with a SIGHUP handler this class can reopen the log file on
+  user request.
 
   """
-  def __init__(self, filename, mode="a", encoding=None):
-    """Open the specified file and use it as the stream for logging.
+  def __init__(self, filename):
+    """Initializes this class.
 
-    Also open /dev/console to report errors while logging.
+    @type filename: string
+    @param filename: Path to logfile
 
     """
-    logging.FileHandler.__init__(self, filename, mode, encoding)
-    self.console = open(constants.DEV_CONSOLE, "a")
+    logging.handlers.BaseRotatingHandler.__init__(self, filename, "a")
 
-  def handleError(self, record): # pylint: disable-msg=C0103
-    """Handle errors which occur during an emit() call.
+    assert self.encoding is None, "Encoding not supported for logging"
+    assert not hasattr(self, "_reopen"), "Base class has '_reopen' attribute"
 
-    Try to handle errors with FileHandler method, if it fails write to
+    self._reopen = False
+
+  def shouldRollover(self, _): # pylint: disable-msg=C0103
+    """Determine whether log file should be reopened.
+
+    """
+    return self._reopen or not self.stream
+
+  def doRollover(self): # pylint: disable-msg=C0103
+    """Reopens the log file.
+
+    """
+    if self.stream:
+      self.stream.flush()
+      self.stream.close()
+      self.stream = None
+
+    # Reopen file
+    # TODO: Handle errors?
+    self.stream = open(self.baseFilename, "a")
+
+  def RequestReopen(self):
+    """Register a request to reopen the file.
+
+    The file will be reopened before writing the next log record.
+
+    """
+    self._reopen = True
+
+
+def _LogErrorsToConsole(base):
+  """Create wrapper class writing errors to console.
+
+  This needs to be in a function for unittesting.
+
+  """
+  class wrapped(base): # pylint: disable-msg=C0103
+    """Log handler that doesn't fallback to stderr.
+
+    When an error occurs while writing on the logfile, logging.FileHandler
+    tries to log on stderr. This doesn't work in Ganeti since stderr is
+    redirected to a logfile. This class avoids failures by reporting errors to
     /dev/console.
 
     """
-    try:
-      logging.FileHandler.handleError(self, record)
-    except Exception: # pylint: disable-msg=W0703
+    def __init__(self, console, *args, **kwargs):
+      """Initializes this class.
+
+      @type console: file-like object or None
+      @param console: Open file-like object for console
+
+      """
+      base.__init__(self, *args, **kwargs)
+      assert not hasattr(self, "_console")
+      self._console = console
+
+    def handleError(self, record): # pylint: disable-msg=C0103
+      """Handle errors which occur during an emit() call.
+
+      Try to handle errors with FileHandler method, if it fails write to
+      /dev/console.
+
+      """
       try:
-        self.console.write("Cannot log message:\n%s\n" % self.format(record))
+        base.handleError(record)
       except Exception: # pylint: disable-msg=W0703
-        # Log handler tried everything it could, now just give up
-        pass
+        if self._console:
+          try:
+            # Ignore warning about "self.format", pylint: disable-msg=E1101
+            self._console.write("Cannot log message:\n%s\n" %
+                                self.format(record))
+          except Exception: # pylint: disable-msg=W0703
+            # Log handler tried everything it could, now just give up
+            pass
+
+  return wrapped
+
+
+#: Custom log handler for writing to console with a reopenable handler
+_LogHandler = _LogErrorsToConsole(_ReopenableLogHandler)
 
 
 def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
@@ -138,9 +205,10 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
     # exception since otherwise we could run but without any logs at all
     try:
       if console_logging:
-        logfile_handler = LogFileHandler(logfile)
+        logfile_handler = _LogHandler(open(constants.DEV_CONSOLE, "a"), logfile)
       else:
-        logfile_handler = logging.FileHandler(logfile)
+        logfile_handler = _ReopenableLogHandler(logfile)
+
       logfile_handler.setFormatter(formatter)
       if debug:
         logfile_handler.setLevel(logging.DEBUG)
