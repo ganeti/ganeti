@@ -969,8 +969,7 @@ class ConfigWriter:
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
-  @locking.ssynchronized(_config_lock, shared=1)
-  def LookupNodeGroup(self, target):
+  def _UnlockedLookupNodeGroup(self, target):
     """Lookup a node group's UUID.
 
     @type target: string or None
@@ -993,6 +992,20 @@ class ConfigWriter:
         return nodegroup.uuid
     raise errors.OpPrereqError("Node group '%s' not found" % target,
                                errors.ECODE_NOENT)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def LookupNodeGroup(self, target):
+    """Lookup a node group's UUID.
+
+    This function is just a wrapper over L{_UnlockedLookupNodeGroup}.
+
+    @type target: string or None
+    @param target: group name or UUID or None to look for the default
+    @rtype: string
+    @return: nodegroup UUID
+
+    """
+    return self._UnlockedLookupNodeGroup(target)
 
   def _UnlockedGetNodeGroup(self, uuid):
     """Lookup a node group.
