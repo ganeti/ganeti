@@ -102,7 +102,7 @@ class Merger(object):
     self.clusters = clusters
     self.pause_period = pause_period
     self.work_dir = tempfile.mkdtemp(suffix="cluster-merger")
-    self.cluster_name = cli.GetClient().QueryConfigValues(["cluster_name"])
+    (self.cluster_name, ) = cli.GetClient().QueryConfigValues(["cluster_name"])
     self.ssh_runner = ssh.SshRunner(self.cluster_name)
 
   def Setup(self):
@@ -115,6 +115,10 @@ class Merger(object):
 
     """
     (remote_path, _, _) = ssh.GetUserFiles("root")
+
+    if self.cluster_name in self.clusters:
+      raise errors.CommandError("Cannot merge cluster %s with itself" %
+                                self.cluster_name)
 
     # Fetch remotes private key
     for cluster in self.clusters:
