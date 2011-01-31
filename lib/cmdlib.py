@@ -3227,6 +3227,7 @@ class LUOobCommand(NoHooksLU):
 
     """
     self.nodes = []
+    master_node = self.cfg.GetMasterNode()
     for node_name in self.op.node_names:
       node = self.cfg.GetNodeInfo(node_name)
 
@@ -3236,10 +3237,32 @@ class LUOobCommand(NoHooksLU):
       else:
         self.nodes.append(node)
 
-      if (self.op.command == constants.OOB_POWER_OFF and not node.offline):
+      if (not self.op.ignore_status and
+          (self.op.command == constants.OOB_POWER_OFF and not node.offline)):
         raise errors.OpPrereqError(("Cannot power off node %s because it is"
                                     " not marked offline") % node_name,
                                    errors.ECODE_STATE)
+
+    if self.op.command in (constants.OOB_POWER_OFF, constants.OOB_POWER_CYCLE):
+      # This does two things, it checks if master is in the list and if so and
+      # force_master is set it puts it to the end so the master is done last
+      try:
+        self.op.node_names.remove(master_node)
+      except ValueError:
+        pass
+      else:
+        if self.op.force_master:
+          self.op.node_names.append(master_node)
+        else:
+          self.LogWarning("Master %s was skipped, use the force master"
+                          " option to operate on the master too",
+                          master_node)
+          if not self.op.node_names:
+            raise errors.OpPrereqError("No nodes left to operate on, aborting",
+                                       errors.ECODE_INVAL)
+
+      assert (master_node not in self.op.node_names or
+              self.op.node_names[-1] == master_node)
 
   def ExpandNames(self):
     """Gather locks we need.

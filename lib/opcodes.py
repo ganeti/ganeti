@@ -593,6 +593,8 @@ class OpOobCommand(OpCode):
     ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ("command", None, ht.TElemOf(constants.OOB_COMMANDS)),
     ("timeout", constants.OOB_TIMEOUT, ht.TInt),
+    ("ignore_status", False, ht.TBool),
+    ("force_master", False, ht.TBool),
     ]
 
 
