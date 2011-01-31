@@ -105,6 +105,16 @@ NONODE_SETUP_OPT = cli_option("--no-node-setup", default=True,
                               help=("Do not make initial SSH setup on remote"
                                     " node (needs to be done manually)"))
 
+IGNORE_STATUS_OPT = cli_option("--ignore-status", default=False,
+                               action="store_true", dest="ignore_status",
+                               help=("Ignore the Node(s) offline status"
+                                     " (potentially DANGEROUS)"))
+
+FORCE_MASTER_OPT = cli_option("--force-master", default=False,
+                              action="store_true", dest="force_master",
+                              help=("Operate on the master node too"
+                                    " (potentially DANGEROUS)"))
+
 
 def ConvertStorageType(user_storage_type):
   """Converts a user storage type to its internal name.
@@ -487,12 +497,14 @@ def PowerNode(opts, args):
   oob_command = "power-%s" % command
 
   opcodelist = []
-  if oob_command == constants.OOB_POWER_OFF:
+  if not opts.ignore_status and oob_command == constants.OOB_POWER_OFF:
     opcodelist.append(opcodes.OpNodeSetParams(node_name=node, offline=True,
                                               auto_promote=opts.auto_promote))
 
   opcodelist.append(opcodes.OpOobCommand(node_names=[node],
-                                         command=oob_command))
+                                         command=oob_command,
+                                         ignore_status=opts.ignore_status,
+                                         force_master=opts.force_master))
 
   cli.SetGenericOpcodeOpts(opcodelist, opts)
 
@@ -815,7 +827,8 @@ commands = {
     PowerNode,
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
      ArgNode(min=1, max=1)],
-    [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT],
+    [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT, IGNORE_STATUS_OPT,
+     FORCE_MASTER_OPT],
     "on|off|cycle|status <node>",
     "Change power state of node by calling out-of-band helper."),
   'remove': (

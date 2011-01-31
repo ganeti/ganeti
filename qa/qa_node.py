@@ -251,6 +251,8 @@ def TestOutOfBand():
 
   node = qa_config.AcquireNode(exclude=master)
 
+  master_name = master["primary"]
+  full_master_name = qa_utils.ResolveNodeName(master)
   node_name = node["primary"]
   full_node_name = qa_utils.ResolveNodeName(node)
 
@@ -269,6 +271,18 @@ def TestOutOfBand():
 
     AssertCommand(["gnt-node", "power", "off", node_name])
     _AssertOobCall(verify_path, "power-off %s" % full_node_name)
+
+    # Power off on master without options should fail
+    AssertCommand(["gnt-node", "power", "off", master_name], fail=True)
+    # With force master it should still fail
+    AssertCommand(["gnt-node", "power", "--force-master", "off", master_name],
+                  fail=True)
+    AssertCommand(["gnt-node", "power", "--ignore-status", "off", master_name],
+                  fail=True)
+    # This should work again
+    AssertCommand(["gnt-node", "power", "--ignore-status", "--force-master",
+                   "off", master_name])
+    _AssertOobCall(verify_path, "power-off %s" % full_master_name)
 
     # Verify we can't transform back to online when not yet powered on
     AssertCommand(["gnt-node", "modify", "-O", "no", node_name],
