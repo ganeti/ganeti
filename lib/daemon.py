@@ -659,11 +659,10 @@ def GenericMain(daemon_name, optionparser,
   utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
   try:
     try:
-      utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
+      utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name], daemon_name,
                          debug=options.debug,
                          stderr_logging=not options.fork,
                          multithreaded=multithreaded,
-                         program=daemon_name,
                          syslog=options.syslog,
                          console_logging=console_logging)
       if callable(prepare_fn):

@@ -22,6 +22,7 @@
 
 """
 
+import os.path
 import logging
 import logging.handlers
 
@@ -162,20 +163,20 @@ def _GetLogFormatter(program, multithreaded, debug, syslog):
   return logging.Formatter("".join(parts))
 
 
-def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
+def SetupLogging(logfile, program, debug=0, stderr_logging=False,
                  multithreaded=False, syslog=constants.SYSLOG_USAGE,
                  console_logging=False):
   """Configures the logging module.
 
   @type logfile: str
   @param logfile: the filename to which we should log
+  @type program: str
+  @param program: the name under which we should log messages
   @type debug: integer
   @param debug: if greater than zero, enable debug messages, otherwise
       only those at C{INFO} and above level
   @type stderr_logging: boolean
   @param stderr_logging: whether we should also log to the standard error
-  @type program: str
-  @param program: the name under which we should log messages
   @type multithreaded: boolean
   @param multithreaded: if True, will add the thread name to the log file
   @type syslog: string
@@ -190,8 +191,10 @@ def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
       syslog/stderr logging is disabled
 
   """
-  formatter = _GetLogFormatter(program, multithreaded, debug, False)
-  syslog_fmt = _GetLogFormatter(program, multithreaded, debug, True)
+  progname = os.path.basename(program)
+
+  formatter = _GetLogFormatter(progname, multithreaded, debug, False)
+  syslog_fmt = _GetLogFormatter(progname, multithreaded, debug, True)
 
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)

@@ -1913,8 +1913,8 @@ def GenericMain(commands, override=None, aliases=None):
     for key, val in override.iteritems():
       setattr(options, key, val)
 
-  utils.SetupLogging(constants.LOG_COMMANDS, debug=options.debug,
-                     stderr_logging=True, program=binary)
+  utils.SetupLogging(constants.LOG_COMMANDS, binary, debug=options.debug,
+                     stderr_logging=True)
 
   if old_cmdline:
     logging.info("run with arguments '%s'", old_cmdline)

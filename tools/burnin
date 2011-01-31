@@ -1071,7 +1071,8 @@ def main():
   """Main function.
 
   """
-  utils.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
+  utils.SetupLogging(constants.LOG_BURNIN, sys.argv[0],
+                     debug=False, stderr_logging=True)
 
   return Burner().BurninCluster()
 

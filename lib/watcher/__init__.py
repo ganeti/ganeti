@@ -32,6 +32,7 @@ by a node reboot.  Run from cron or similar.
 # C0103: Invalid name ganeti-watcher
 
 import os
+import os.path
 import sys
 import time
 import logging
@@ -714,8 +715,8 @@ def Main():
     print >> sys.stderr, ("Usage: %s [-f] " % sys.argv[0])
     return constants.EXIT_FAILURE
 
-  utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
-                     stderr_logging=options.debug)
+  utils.SetupLogging(constants.LOG_WATCHER, sys.argv[0],
+                     debug=options.debug, stderr_logging=options.debug)
 
   if ShouldPause() and not options.ignore_pause:
     logging.debug("Pause has been set, exiting")
