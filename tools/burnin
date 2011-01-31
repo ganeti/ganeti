@@ -258,7 +258,6 @@ class Burner(object):
 
   def __init__(self):
     """Constructor."""
-    utils.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
     self.url_opener = SimpleOpener()
     self._feed_buf = StringIO()
     self.nodes = []
@@ -1065,14 +1064,16 @@ class Burner(object):
           else: # non-expected error
             raise
 
-    return 0
+    return constants.EXIT_SUCCESS
 
 
 def main():
-  """Main function"""
+  """Main function.
 
-  burner = Burner()
-  return burner.BurninCluster()
+  """
+  utils.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
+
+  return Burner().BurninCluster()
 
 
 if __name__ == "__main__":
