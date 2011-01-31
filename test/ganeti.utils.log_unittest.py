@@ -25,6 +25,7 @@ import os
 import unittest
 import logging
 import tempfile
+import shutil
 
 from ganeti import constants
 from ganeti import errors
@@ -131,6 +132,60 @@ class TestLogHandler(unittest.TestCase):
   class _FailingHandler(logging.StreamHandler):
     def handleError(self, _):
       raise Exception
+
+
+class TestSetupLogging(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testSimple(self):
+    logfile = utils.PathJoin(self.tmpdir, "basic.log")
+    logger = logging.Logger("TestLogger")
+    self.assertTrue(callable(utils.SetupLogging(logfile, "test",
+                                                console_logging=False,
+                                                syslog=constants.SYSLOG_NO,
+                                                stderr_logging=False,
+                                                multithreaded=False,
+                                                root_logger=logger)))
+    self.assertEqual(utils.ReadFile(logfile), "")
+    logger.error("This is a test")
+
+    # Ensure SetupLogging used custom logger
+    logging.error("This message should not show up in the test log file")
+
+    self.assertTrue(utils.ReadFile(logfile).endswith("This is a test\n"))
+
+  def testReopen(self):
+    logfile = utils.PathJoin(self.tmpdir, "reopen.log")
+    logfile2 = utils.PathJoin(self.tmpdir, "reopen.log.OLD")
+    logger = logging.Logger("TestLogger")
+    reopen_fn = utils.SetupLogging(logfile, "test",
+                                   console_logging=False,
+                                   syslog=constants.SYSLOG_NO,
+                                   stderr_logging=False,
+                                   multithreaded=False,
+                                   root_logger=logger)
+    self.assertTrue(callable(reopen_fn))
+
+    self.assertEqual(utils.ReadFile(logfile), "")
+    logger.error("This is a test")
+    self.assertTrue(utils.ReadFile(logfile).endswith("This is a test\n"))
+
+    os.rename(logfile, logfile2)
+    assert not os.path.exists(logfile)
+
+    # Notify logger to reopen on the next message
+    reopen_fn()
+    assert not os.path.exists(logfile)
+
+    # Provoke actual reopen
+    logger.error("First message")
+
+    self.assertTrue(utils.ReadFile(logfile).endswith("First message\n"))
+    self.assertTrue(utils.ReadFile(logfile2).endswith("This is a test\n"))
 
 
 if __name__ == "__main__":

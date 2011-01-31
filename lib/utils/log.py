@@ -27,6 +27,7 @@ import logging
 import logging.handlers
 
 from ganeti import constants
+from ganeti import compat
 
 
 class _ReopenableLogHandler(logging.handlers.BaseRotatingHandler):
@@ -163,9 +164,17 @@ def _GetLogFormatter(program, multithreaded, debug, syslog):
   return logging.Formatter("".join(parts))
 
 
+def _ReopenLogFiles(handlers):
+  """Wrapper for reopening all log handler's files in a sequence.
+
+  """
+  for handler in handlers:
+    handler.RequestReopen()
+
+
 def SetupLogging(logfile, program, debug=0, stderr_logging=False,
                  multithreaded=False, syslog=constants.SYSLOG_USAGE,
-                 console_logging=False):
+                 console_logging=False, root_logger=None):
   """Configures the logging module.
 
   @type logfile: str
@@ -187,6 +196,8 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
   @type console_logging: boolean
   @param console_logging: if True, will use a FileHandler which falls back to
       the system console if logging fails
+  @type root_logger: logging.Logger
+  @param root_logger: Root logger to use (for unittests)
   @raise EnvironmentError: if we can't open the log file and
       syslog/stderr logging is disabled
 
@@ -196,7 +207,10 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
   formatter = _GetLogFormatter(progname, multithreaded, debug, False)
   syslog_fmt = _GetLogFormatter(progname, multithreaded, debug, True)
 
-  root_logger = logging.getLogger("")
+  reopen_handlers = []
+
+  if root_logger is None:
+    root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
 
   # Remove all previously setup handlers
@@ -245,3 +259,7 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
     else:
       logfile_handler.setLevel(logging.INFO)
     root_logger.addHandler(logfile_handler)
+
+    reopen_handlers.append(logfile_handler)
+
+  return compat.partial(_ReopenLogFiles, reopen_handlers)
