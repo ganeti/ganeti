@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -290,6 +290,8 @@ main = do
 
   let reqinst = iofspec ispec
 
+  allocnodes <- exitifbad $ Cluster.genAllocNodes nl req_nodes
+
   -- Run the tiered allocation, if enabled
 
   (case optTieredSpec opts of
@@ -299,7 +301,7 @@ main = do
            if stop_allocation
            then return result_noalloc
            else exitifbad (Cluster.tieredAlloc nl il (iofspec tspec)
-                                  req_nodes [] [])
+                                  allocnodes [] [])
        let spec_map' = Cluster.tieredSpecMap trl_ixes
 
        printAllocationMap verbose "Tiered allocation map" trl_nl trl_ixes
@@ -319,7 +321,7 @@ main = do
   (ereason, fin_nl, fin_il, ixes, _) <-
       if stop_allocation
       then return result_noalloc
-      else exitifbad (Cluster.iterateAlloc nl il reqinst req_nodes [] [])
+      else exitifbad (Cluster.iterateAlloc nl il reqinst allocnodes [] [])
 
   let allocs = length ixes
       sreason = reverse $ sortBy (comparing snd) ereason

@@ -707,7 +707,9 @@ prop_ClusterCanTieredAlloc node inst =
             ==>
     let nl = makeSmallCluster node count
         il = Container.empty
-    in case Cluster.tieredAlloc nl il inst rqnodes [] []of
+        allocnodes = Cluster.genAllocNodes nl rqnodes
+    in case allocnodes >>= \allocnodes' ->
+        Cluster.tieredAlloc nl il inst allocnodes' [] [] of
          Types.Bad _ -> False
          Types.Ok (_, _, il', ixes, cstats) -> not (null ixes) &&
                                       IntMap.size il' == length ixes &&
@@ -749,9 +751,10 @@ prop_ClusterAllocBalance node =
     let nl = makeSmallCluster node count
         (hnode, nl') = IntMap.deleteFindMax nl
         il = Container.empty
-        rqnodes = 2
+        allocnodes = Cluster.genAllocNodes nl' 2
         i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
-    in case Cluster.iterateAlloc nl' il i_templ rqnodes [] [] of
+    in case allocnodes >>= \allocnodes' ->
+        Cluster.iterateAlloc nl' il i_templ allocnodes' [] [] of
          Types.Bad _ -> False
          Types.Ok (_, xnl, il', _, _) ->
                    let ynl = Container.add (Node.idx hnode) hnode xnl
