@@ -6,7 +6,7 @@ This module holds the code for parsing a cluster description.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ createGroup grpIndex spec = do
                   ) [1..ncount]
       grp = Group.create (printf "group-%02d" grpIndex)
             (printf "fake-uuid-%02d" grpIndex) apol
-  return (grp, nodes)
+  return (Group.setIdx grp grpIndex, nodes)
 
 -- | Builds the cluster data from node\/instance files.
 parseData :: [String] -- ^ Cluster description in text format
