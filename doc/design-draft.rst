@@ -7,6 +7,7 @@ Design document drafts
 
    design-x509-ca.rst
    design-http-server.rst
+   design-impexp2.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
