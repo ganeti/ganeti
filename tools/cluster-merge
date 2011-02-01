@@ -335,7 +335,7 @@ class Merger(object):
     for data in self.merger_data:
       for node in data.nodes:
         result = utils.RunCmd(["gnt-node", "add", "--readd",
-                               "--no-ssh-key-check", node])
+                               "--no-ssh-key-check", "--force-join", node])
         if result.failed:
           raise errors.CommandError("Couldn't readd node %s. Fail reason: %s;"
                                     " output: %s" % (node, result.fail_reason,
