@@ -47,6 +47,7 @@ PAUSE_PERIOD_OPT = cli.cli_option("-p", "--watcher-pause-period", default=1800,
                                   dest="pause_period",
                                   help=("Amount of time in seconds watcher"
                                         " should be suspended from running"))
+_CLUSTERMERGE_ECID = "clustermerge-ecid"
 
 
 def Flatten(unflattened_list):
@@ -268,6 +269,7 @@ class Merger(object):
 
     for data in self.merger_data:
       other_config = config.ConfigWriter(data.config_path, accept_foreign=True)
+      self._MergeNodeGroups(my_config, other_config)
 
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
@@ -294,6 +296,17 @@ class Merger(object):
 
         my_config.AddInstance(instance_info, str(fake_ec_id))
         fake_ec_id += 1
+
+  # R0201: Method could be a function
+  def _MergeNodeGroups(self, my_config, other_config):
+    """Adds foreign node groups
+
+    ConfigWriter.AddNodeGroup takes care of making sure there are no conflicts.
+    """
+    # pylint: disable-msg=R0201
+    for (_, grp) in other_config.GetAllNodeGroupsInfo():
+      #TODO: handle node group conflicts
+      my_config.AddNodeGroup(grp, _CLUSTERMERGE_ECID)
 
   # R0201: Method could be a function
   def _StartMasterDaemon(self, no_vote=False): # pylint: disable-msg=R0201
