@@ -1613,6 +1613,7 @@ class LUClusterVerify(LogicalUnit):
     instances it was primary for.
 
     """
+    cluster_info = self.cfg.GetClusterInfo()
     for node, n_img in node_image.items():
       # This code checks that every node which is now listed as
       # secondary has enough memory to host all instances it is
@@ -1625,7 +1626,7 @@ class LUClusterVerify(LogicalUnit):
       for prinode, instances in n_img.sbp.items():
         needed_mem = 0
         for instance in instances:
-          bep = self.cfg.GetClusterInfo().FillBE(instance_cfg[instance])
+          bep = cluster_info.FillBE(instance_cfg[instance])
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
         test = n_img.mfree < needed_mem
