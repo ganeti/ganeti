@@ -161,6 +161,7 @@ __all__ = [
   "VG_NAME_OPT",
   "YES_DOIT_OPT",
   # Generic functions for CLI programs
+  "ConfirmOperation",
   "GenericMain",
   "GenericInstanceCreate",
   "GenericList",
@@ -2974,3 +2975,42 @@ def FormatParameterDict(buf, param_dict, actual, level=1):
   for key in sorted(actual):
     val = param_dict.get(key, "default (%s)" % actual[key])
     buf.write("%s- %s: %s\n" % (indent, key, val))
+
+
+def ConfirmOperation(names, list_type, text, extra=""):
+  """Ask the user to confirm an operation on a list of list_type.
+
+  This function is used to request confirmation for doing an operation
+  on a given list of list_type.
+
+  @type names: list
+  @param names: the list of names that we display when
+      we ask for confirmation
+  @type list_type: str
+  @param list_type: Human readable name for elements in the list (e.g. nodes)
+  @type text: str
+  @param text: the operation that the user should confirm
+  @rtype: boolean
+  @return: True or False depending on user's confirmation.
+
+  """
+  count = len(names)
+  msg = ("The %s will operate on %d %s.\n%s"
+         "Do you want to continue?" % (text, count, list_type, extra))
+  affected = (("\nAffected %s:\n" % list_type) +
+              "\n".join(["  %s" % name for name in names]))
+
+  choices = [("y", True, "Yes, execute the %s" % text),
+             ("n", False, "No, abort the %s" % text)]
+
+  if count > 20:
+    choices.insert(1, ("v", "v", "View the list of affected %s" % list_type))
+    question = msg
+  else:
+    question = msg + affected
+
+  choice = AskUser(question, choices)
+  if choice == "v":
+    choices.pop(1)
+    choice = AskUser(msg + affected, choices)
+  return choice

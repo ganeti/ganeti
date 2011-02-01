@@ -142,44 +142,6 @@ def _ExpandMultiNames(mode, names, client=None):
   return inames
 
 
-def _ConfirmOperation(inames, text, extra=""):
-  """Ask the user to confirm an operation on a list of instances.
-
-  This function is used to request confirmation for doing an operation
-  on a given list of instances.
-
-  @type inames: list
-  @param inames: the list of names that we display when
-      we ask for confirmation
-  @type text: str
-  @param text: the operation that the user should confirm
-      (e.g. I{shutdown} or I{startup})
-  @rtype: boolean
-  @return: True or False depending on user's confirmation.
-
-  """
-  count = len(inames)
-  msg = ("The %s will operate on %d instances.\n%s"
-         "Do you want to continue?" % (text, count, extra))
-  affected = ("\nAffected instances:\n" +
-              "\n".join(["  %s" % name for name in inames]))
-
-  choices = [('y', True, 'Yes, execute the %s' % text),
-             ('n', False, 'No, abort the %s' % text)]
-
-  if count > 20:
-    choices.insert(1, ('v', 'v', 'View the list of affected instances'))
-    ask = msg
-  else:
-    ask = msg + affected
-
-  choice = AskUser(ask, choices)
-  if choice == 'v':
-    choices.pop(1)
-    choice = AskUser(msg + affected, choices)
-  return choice
-
-
 def _EnsureInstancesExist(client, names):
   """Check for and ensure the given instance names exist.
 
@@ -221,7 +183,7 @@ def GenericManyOps(operation, fn):
                                  " any instances", errors.ECODE_INVAL)
     multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
     if not (opts.force_multi or not multi_on
-            or _ConfirmOperation(inames, operation)):
+            or ConfirmOperation(inames, "instances", operation)):
       return 1
     jex = JobExecutor(verbose=multi_on, cl=cl, opts=opts)
     for name in inames:
@@ -491,7 +453,7 @@ def ReinstallInstance(opts, args):
   if multi_on:
     warn_msg = "Note: this will remove *all* data for the below instances!\n"
     if not (opts.force_multi or
-            _ConfirmOperation(inames, "reinstall", extra=warn_msg)):
+            ConfirmOperation(inames, "instances", "reinstall", extra=warn_msg)):
       return 1
   else:
     if not (opts.force or opts.force_multi):
