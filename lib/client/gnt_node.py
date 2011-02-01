@@ -100,6 +100,10 @@ _REPAIRABLE_STORAGE_TYPES = \
 _MODIFIABLE_STORAGE_TYPES = constants.MODIFIABLE_STORAGE_FIELDS.keys()
 
 
+_OOB_COMMAND_ASK = frozenset([constants.OOB_POWER_OFF,
+                              constants.OOB_POWER_CYCLE])
+
+
 NONODE_SETUP_OPT = cli_option("--no-node-setup", default=True,
                               action="store_false", dest="node_setup",
                               help=("Do not make initial SSH setup on remote"
@@ -487,21 +491,42 @@ def PowerNode(opts, args):
   @return: the desired exit code
 
   """
-  command = args[0]
-  node = args[1]
+  client = GetClient()
+  command = args.pop(0)
+
+  if opts.no_headers:
+    headers = None
+  else:
+    headers = {"node": "Node", "status": "Status"}
 
   if command not in _LIST_POWER_COMMANDS:
     ToStderr("power subcommand %s not supported." % command)
     return constants.EXIT_FAILURE
 
+  nodes = [node for (node, ) in client.QueryNodes(args, ["name"], False)]
   oob_command = "power-%s" % command
+
+  if oob_command in _OOB_COMMAND_ASK:
+    if not args and not opts.show_all:
+      ToStderr("Please provide at least one node or use --all for this command"
+               " as this is a potentially harmful command")
+      return constants.EXIT_FAILURE
+    elif args and opts.show_all:
+      ToStderr("Please provide either nodes or use --all, can not use both at"
+               " the same time")
+      return constants.EXIT_FAILURE
+    elif not opts.force and not ConfirmOperation(nodes, "nodes",
+                                                 "power %s" % command):
+      return constants.EXIT_FAILURE
 
   opcodelist = []
   if not opts.ignore_status and oob_command == constants.OOB_POWER_OFF:
-    opcodelist.append(opcodes.OpNodeSetParams(node_name=node, offline=True,
-                                              auto_promote=opts.auto_promote))
+    # TODO: This is a little ugly as we can't catch and revert
+    for node in nodes:
+      opcodelist.append(opcodes.OpNodeSetParams(node_name=node, offline=True,
+                                                auto_promote=opts.auto_promote))
 
-  opcodelist.append(opcodes.OpOobCommand(node_names=[node],
+  opcodelist.append(opcodes.OpOobCommand(node_names=nodes,
                                          command=oob_command,
                                          ignore_status=opts.ignore_status,
                                          force_master=opts.force_master))
@@ -514,25 +539,36 @@ def PowerNode(opts, args):
   # If it fails PollJob gives us the error message in it
   result = cli.PollJob(job_id)[-1]
 
-  if result:
-    (_, data_tuple) = result[0]
-    if data_tuple[0] != constants.RS_NORMAL:
-      if data_tuple[0] == constants.RS_UNAVAIL:
-        result = "OOB is not supported"
-      else:
-        result = "RPC failed, look out for warning in the output"
-      ToStderr(result)
-      return constants.EXIT_FAILURE
-    else:
+  errs = 0
+  data = []
+  for node_result in result:
+    (node_tuple, data_tuple) = node_result
+    (_, node_name) = node_tuple
+    (data_status, data_node) = data_tuple
+    if data_status == constants.RS_NORMAL:
       if oob_command == constants.OOB_POWER_STATUS:
-        text = "The machine is %spowered"
-        if data_tuple[1][constants.OOB_POWER_STATUS_POWERED]:
-          result = text % ""
+        if data_node[constants.OOB_POWER_STATUS_POWERED]:
+          text = "powered"
         else:
-          result = text % "not "
-        ToStdout(result)
+          text = "unpowered"
+        data.append([node_name, text])
+      else:
+        # We don't expect data here, so we just say, it was successfully invoked
+        data.append([node_name, "invoked"])
+    else:
+      errs += 1
+      data.append([node_name, cli.FormatResultError(data_status)])
 
-  return constants.EXIT_SUCCESS
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=["node", "status"], data=data)
+
+  for line in data:
+    ToStdout(line)
+
+  if errs:
+    return constants.EXIT_FAILURE
+  else:
+    return constants.EXIT_SUCCESS
 
 
 def Health(opts, args):
@@ -826,10 +862,10 @@ commands = {
   'power': (
     PowerNode,
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
-     ArgNode(min=1, max=1)],
+     ArgNode()],
     [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT, IGNORE_STATUS_OPT,
-     FORCE_MASTER_OPT],
-    "on|off|cycle|status <node>",
+     FORCE_MASTER_OPT, FORCE_OPT, NOHDR_OPT, SEP_OPT, ALL_OPT],
+    "on|off|cycle|status [nodes...]",
     "Change power state of node by calling out-of-band helper."),
   'remove': (
     RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT],
