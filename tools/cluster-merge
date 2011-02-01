@@ -304,7 +304,7 @@ class Merger(object):
     ConfigWriter.AddNodeGroup takes care of making sure there are no conflicts.
     """
     # pylint: disable-msg=R0201
-    for (_, grp) in other_config.GetAllNodeGroupsInfo():
+    for grp in other_config.GetAllNodeGroupsInfo().values():
       #TODO: handle node group conflicts
       my_config.AddNodeGroup(grp, _CLUSTERMERGE_ECID)
 
