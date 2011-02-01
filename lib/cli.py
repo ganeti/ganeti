@@ -104,6 +104,7 @@ __all__ = [
   "NEW_RAPI_CERT_OPT",
   "NEW_SECONDARY_OPT",
   "NIC_PARAMS_OPT",
+  "NODE_FORCE_JOIN_OPT",
   "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
   "NODEGROUP_OPT",
@@ -884,6 +885,11 @@ READD_OPT = cli_option("--readd", dest="readd",
 NOSSH_KEYCHECK_OPT = cli_option("--no-ssh-key-check", dest="ssh_key_check",
                                 default=True, action="store_false",
                                 help="Disable SSH key fingerprint checking")
+
+NODE_FORCE_JOIN_OPT = cli_option("--force-join", dest="force_join",
+                                 default=False, action="store_true",
+                                 help="Force the joining of a node,"
+                                      " needed when merging clusters")
 
 MC_OPT = cli_option("-C", "--master-candidate", dest="master_candidate",
                     type="bool", default=None, metavar=_YORNO,

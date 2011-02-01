@@ -134,6 +134,8 @@ def _RunSetupSSH(options, nodes):
     cmd.append("--verbose")
   if not options.ssh_key_check:
     cmd.append("--no-ssh-key-check")
+  if options.force_join:
+    cmd.append("--force-join")
 
   cmd.extend(nodes)
 
@@ -715,10 +717,11 @@ def SetNodeParams(opts, args):
 commands = {
   'add': (
     AddNode, [ArgHost(min=1, max=1)],
-    [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT, NONODE_SETUP_OPT,
-     VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT, CAPAB_MASTER_OPT,
-     CAPAB_VM_OPT, NODE_PARAMS_OPT],
-    "[-s ip] [--readd] [--no-ssh-key-check] [--no-node-setup]  [--verbose] "
+    [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT, NODE_FORCE_JOIN_OPT,
+     NONODE_SETUP_OPT, VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT,
+     CAPAB_MASTER_OPT, CAPAB_VM_OPT, NODE_PARAMS_OPT],
+    "[-s ip] [--readd] [--no-ssh-key-check] [--force-join]"
+    " [--no-node-setup] [--verbose]"
     " <node_name>",
     "Add a node to the cluster"),
   'evacuate': (
