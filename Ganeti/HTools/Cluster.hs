@@ -55,6 +55,7 @@ module Ganeti.HTools.Cluster
     , printStats
     , iMoveToJob
     -- * IAllocator functions
+    , genAllocNodes
     , tryAlloc
     , tryMGAlloc
     , tryReloc
@@ -102,6 +103,13 @@ data AllocSolution = AllocSolution
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
 type AllocResult = (FailStats, Node.List, Instance.List,
                     [Instance.Instance], [CStats])
+
+
+-- | A type denoting the valid allocation mode/pairs.
+-- For a one-node allocation, this will be a @Left ['Node.Node']@,
+-- whereas for a two-node allocation, this will be a @Right
+-- [('Node.Node', 'Node.Node')]@.
+type AllocNodes = Either [Node.Node] [(Node.Node, Node.Node)]
 
 -- | The empty solution we start with when computing allocations
 emptySolution :: AllocSolution
@@ -614,19 +622,29 @@ describeSolution as =
 annotateSolution :: AllocSolution -> AllocSolution
 annotateSolution as = as { asLog = describeSolution as : asLog as }
 
+-- | Generate the valid node allocation singles or pairs for a new instance.
+genAllocNodes :: Node.List         -- ^ The node map
+              -> Int               -- ^ The number of nodes required
+              -> Result AllocNodes -- ^ The (monadic) result
+genAllocNodes nl count =
+    let all_nodes = getOnline nl
+        all_pairs = liftM2 (,) all_nodes all_nodes
+        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y &&
+                                      Node.group x == Node.group y) all_pairs
+    in case count of
+         1 -> Ok (Left all_nodes)
+         2 -> Ok (Right ok_pairs)
+         _ -> Bad "Unsupported number of nodes, only one or two  supported"
+
 -- | Try to allocate an instance on the cluster.
 tryAlloc :: (Monad m) =>
             Node.List         -- ^ The node list
          -> Instance.List     -- ^ The instance list
          -> Instance.Instance -- ^ The instance to allocate
-         -> Int               -- ^ Required number of nodes
+         -> AllocNodes        -- ^ The allocation targets
          -> m AllocSolution   -- ^ Possible solution list
-tryAlloc nl _ inst 2 =
-    let all_nodes = getOnline nl
-        all_pairs = liftM2 (,) all_nodes all_nodes
-        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y &&
-                                      Node.group x == Node.group y) all_pairs
-        sols = foldl' (\cstate (p, s) ->
+tryAlloc nl _ inst (Right ok_pairs) =
+    let sols = foldl' (\cstate (p, s) ->
                            concatAllocs cstate $ allocateOnPair nl inst p s
                       ) emptySolution ok_pairs
 
@@ -634,18 +652,13 @@ tryAlloc nl _ inst 2 =
        then fail "Not enough online nodes"
        else return $ annotateSolution sols
 
-tryAlloc nl _ inst 1 =
-    let all_nodes = getOnline nl
-        sols = foldl' (\cstate ->
+tryAlloc nl _ inst (Left all_nodes) =
+    let sols = foldl' (\cstate ->
                            concatAllocs cstate . allocateOnSingle nl inst
                       ) emptySolution all_nodes
     in if null all_nodes
        then fail "No online nodes"
        else return $ annotateSolution sols
-
-tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
-                             \destinations required (" ++ show reqn ++
-                                               "), only two supported"
 
 -- | Given a group/result, describe it as a nice (list of) messages
 solutionDescription :: Group.List -> (Gdx, Result AllocSolution) -> [String]
@@ -690,8 +703,8 @@ tryMGAlloc mggl mgnl mgil inst cnt =
   let groups = splitCluster mgnl mgil
       -- TODO: currently we consider all groups preferred
       sols = map (\(gid, (nl, il)) ->
-                   (gid, tryAlloc nl il inst cnt)) groups::
-        [(Gdx, Result AllocSolution)]
+                   (gid, genAllocNodes nl cnt >>= tryAlloc nl il inst))
+             groups::[(Gdx, Result AllocSolution)]
       all_msgs = concatMap (solutionDescription mggl) sols
       goodSols = filterMGResults mggl sols
       sortedSols = sortMGResults mggl goodSols
@@ -834,7 +847,7 @@ iterateAlloc nl il newinst nreq ixes cstats =
           newname = printf "new-%d" depth::String
           newidx = length (Container.elems il) + depth
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
-      in case tryAlloc nl il newi2 nreq of
+      in case genAllocNodes nl nreq >>= tryAlloc nl il newi2 of
            Bad s -> Bad s
            Ok (AllocSolution { asFailures = errs, asSolutions = sols3 }) ->
                case sols3 of

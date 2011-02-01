@@ -683,9 +683,8 @@ prop_ClusterAlloc_sane node inst =
             ==>
     let nl = makeSmallCluster node count
         il = Container.empty
-        rqnodes = 2
         inst' = setInstanceSmallerThanNode node inst
-    in case Cluster.tryAlloc nl il inst' rqnodes of
+    in case Cluster.genAllocNodes nl 2 >>= Cluster.tryAlloc nl il inst' of
          Types.Bad _ -> False
          Types.Ok as ->
              case Cluster.asSolutions as of
@@ -724,9 +723,8 @@ prop_ClusterAllocEvac node inst =
             ==>
     let nl = makeSmallCluster node count
         il = Container.empty
-        rqnodes = 2
         inst' = setInstanceSmallerThanNode node inst
-    in case Cluster.tryAlloc nl il inst' rqnodes of
+    in case Cluster.genAllocNodes nl 2 >>= Cluster.tryAlloc nl il inst' of
          Types.Bad _ -> False
          Types.Ok as ->
              case Cluster.asSolutions as of
