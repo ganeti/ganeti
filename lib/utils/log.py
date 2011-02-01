@@ -200,6 +200,8 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
   @param root_logger: Root logger to use (for unittests)
   @raise EnvironmentError: if we can't open the log file and
       syslog/stderr logging is disabled
+  @rtype: callable
+  @return: Function reopening all open log files when called
 
   """
   progname = os.path.basename(program)

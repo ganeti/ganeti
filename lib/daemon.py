@@ -40,6 +40,7 @@ from ganeti import errors
 from ganeti import netutils
 from ganeti import ssconf
 from ganeti import runtime
+from ganeti import compat
 
 
 class SchedulerBreakout(Exception):
@@ -539,6 +540,17 @@ def _BeautifyError(err):
     return "%s" % str(err)
 
 
+def _HandleSigHup(reopen_cb, signum, frame): # pylint: disable-msg=W0613
+  """Handler for SIGHUP.
+
+  @param reopen_cb: Callback function for reopening log files
+
+  """
+  assert callable(reopen_cb)
+  logging.info("Reopening log files after receiving SIGHUP")
+  reopen_cb()
+
+
 def GenericMain(daemon_name, optionparser,
                 check_fn, prepare_fn, exec_fn,
                 multithreaded=False, console_logging=False,
@@ -656,15 +668,20 @@ def GenericMain(daemon_name, optionparser,
   else:
     wpipe = None
 
+  log_reopen_fn = \
+    utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name], daemon_name,
+                       debug=options.debug,
+                       stderr_logging=not options.fork,
+                       multithreaded=multithreaded,
+                       syslog=options.syslog,
+                       console_logging=console_logging)
+
+  # Reopen log file(s) on SIGHUP
+  signal.signal(signal.SIGHUP, compat.partial(_HandleSigHup, log_reopen_fn))
+
   utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
   try:
     try:
-      utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name], daemon_name,
-                         debug=options.debug,
-                         stderr_logging=not options.fork,
-                         multithreaded=multithreaded,
-                         syslog=options.syslog,
-                         console_logging=console_logging)
       if callable(prepare_fn):
         prep_results = prepare_fn(options, args)
       else:

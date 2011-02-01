@@ -172,3 +172,10 @@ would succeed.
 
 The option ``--priority`` sets the priority for opcodes submitted
 by the command.
+
+
+Common daemon functionality
+---------------------------
+
+All Ganeti daemons re-open the log file(s) when sent a SIGHUP signal.
+**logrotate**(8) can be used to rotate Ganeti's log files.
