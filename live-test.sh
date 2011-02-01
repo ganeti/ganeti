@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2009, 2010 Google Inc.
+# Copyright (C) 2009, 2010, 2011 Google Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ check_hspace_out() {
 }
 
 TIER="--tiered 102400,8192,2"
-SIMU="--simu=10,6835937,32768,4"
+SIMU="--simu=preferred,10,6835937,32768,4"
 echo Testing hspace/luxi
 ./hspace -L$LUXI $TIER -v > $HOUT
 ( check_hspace_out ) || exit 1
