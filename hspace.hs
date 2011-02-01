@@ -290,7 +290,7 @@ main = do
 
   let reqinst = iofspec ispec
 
-  allocnodes <- exitifbad $ Cluster.genAllocNodes nl req_nodes
+  allocnodes <- exitifbad $ Cluster.genAllocNodes gl nl req_nodes True
 
   -- Run the tiered allocation, if enabled
 

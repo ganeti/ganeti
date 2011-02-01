@@ -684,7 +684,8 @@ prop_ClusterAlloc_sane node inst =
     let nl = makeSmallCluster node count
         il = Container.empty
         inst' = setInstanceSmallerThanNode node inst
-    in case Cluster.genAllocNodes nl 2 >>= Cluster.tryAlloc nl il inst' of
+    in case Cluster.genAllocNodes defGroupList nl 2 True >>=
+       Cluster.tryAlloc nl il inst' of
          Types.Bad _ -> False
          Types.Ok as ->
              case Cluster.asSolutions as of
@@ -707,7 +708,7 @@ prop_ClusterCanTieredAlloc node inst =
             ==>
     let nl = makeSmallCluster node count
         il = Container.empty
-        allocnodes = Cluster.genAllocNodes nl rqnodes
+        allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
     in case allocnodes >>= \allocnodes' ->
         Cluster.tieredAlloc nl il inst allocnodes' [] [] of
          Types.Bad _ -> False
@@ -726,7 +727,8 @@ prop_ClusterAllocEvac node inst =
     let nl = makeSmallCluster node count
         il = Container.empty
         inst' = setInstanceSmallerThanNode node inst
-    in case Cluster.genAllocNodes nl 2 >>= Cluster.tryAlloc nl il inst' of
+    in case Cluster.genAllocNodes defGroupList nl 2 True >>=
+       Cluster.tryAlloc nl il inst' of
          Types.Bad _ -> False
          Types.Ok as ->
              case Cluster.asSolutions as of
@@ -751,7 +753,7 @@ prop_ClusterAllocBalance node =
     let nl = makeSmallCluster node count
         (hnode, nl') = IntMap.deleteFindMax nl
         il = Container.empty
-        allocnodes = Cluster.genAllocNodes nl' 2
+        allocnodes = Cluster.genAllocNodes defGroupList nl' 2 True
         i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
     in case allocnodes >>= \allocnodes' ->
         Cluster.iterateAlloc nl' il i_templ allocnodes' [] [] of

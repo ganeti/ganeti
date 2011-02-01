@@ -623,11 +623,18 @@ annotateSolution :: AllocSolution -> AllocSolution
 annotateSolution as = as { asLog = describeSolution as : asLog as }
 
 -- | Generate the valid node allocation singles or pairs for a new instance.
-genAllocNodes :: Node.List         -- ^ The node map
+genAllocNodes :: Group.List        -- ^ Group list
+              -> Node.List         -- ^ The node map
               -> Int               -- ^ The number of nodes required
+              -> Bool              -- ^ Whether to drop or not
+                                   -- unallocable nodes
               -> Result AllocNodes -- ^ The (monadic) result
-genAllocNodes nl count =
-    let all_nodes = getOnline nl
+genAllocNodes gl nl count drop_unalloc =
+    let filter_fn = if drop_unalloc
+                    then filter ((/=) AllocUnallocable . Group.allocPolicy .
+                                     flip Container.find gl . Node.group)
+                    else id
+        all_nodes = filter_fn $ getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y &&
                                       Node.group x == Node.group y) all_pairs
@@ -703,7 +710,8 @@ tryMGAlloc mggl mgnl mgil inst cnt =
   let groups = splitCluster mgnl mgil
       -- TODO: currently we consider all groups preferred
       sols = map (\(gid, (nl, il)) ->
-                   (gid, genAllocNodes nl cnt >>= tryAlloc nl il inst))
+                   (gid, genAllocNodes mggl nl cnt False >>=
+                       tryAlloc nl il inst))
              groups::[(Gdx, Result AllocSolution)]
       all_msgs = concatMap (solutionDescription mggl) sols
       goodSols = filterMGResults mggl sols
