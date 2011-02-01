@@ -109,7 +109,7 @@ type AllocResult = (FailStats, Node.List, Instance.List,
 -- For a one-node allocation, this will be a @Left ['Node.Node']@,
 -- whereas for a two-node allocation, this will be a @Right
 -- [('Node.Node', 'Node.Node')]@.
-type AllocNodes = Either [Node.Node] [(Node.Node, Node.Node)]
+type AllocNodes = Either [Ndx] [(Ndx, Ndx)]
 
 -- | The empty solution we start with when computing allocations
 emptySolution :: AllocSolution
@@ -415,10 +415,10 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
     in new_nl
 
 -- | Tries to allocate an instance on one given node.
-allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
+allocateOnSingle :: Node.List -> Instance.Instance -> Ndx
                  -> OpResult Node.AllocElement
-allocateOnSingle nl inst p =
-    let new_pdx = Node.idx p
+allocateOnSingle nl inst new_pdx =
+    let p = Container.find new_pdx nl
         new_inst = Instance.setBoth inst new_pdx Node.noSecondary
     in  Node.addPri p inst >>= \new_p -> do
       let new_nl = Container.add new_pdx new_p nl
@@ -426,11 +426,11 @@ allocateOnSingle nl inst p =
       return (new_nl, new_inst, [new_p], new_score)
 
 -- | Tries to allocate an instance on a given pair of nodes.
-allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
+allocateOnPair :: Node.List -> Instance.Instance -> Ndx -> Ndx
                -> OpResult Node.AllocElement
-allocateOnPair nl inst tgt_p tgt_s =
-    let new_pdx = Node.idx tgt_p
-        new_sdx = Node.idx tgt_s
+allocateOnPair nl inst new_pdx new_sdx =
+    let tgt_p = Container.find new_pdx nl
+        tgt_s = Container.find new_sdx nl
     in do
       new_p <- Node.addPri tgt_p inst
       new_s <- Node.addSec tgt_s inst new_pdx
@@ -632,8 +632,8 @@ genAllocNodes nl count =
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y &&
                                       Node.group x == Node.group y) all_pairs
     in case count of
-         1 -> Ok (Left all_nodes)
-         2 -> Ok (Right ok_pairs)
+         1 -> Ok (Left (map Node.idx all_nodes))
+         2 -> Ok (Right (map (\(p, s) -> (Node.idx p, Node.idx s)) ok_pairs))
          _ -> Bad "Unsupported number of nodes, only one or two  supported"
 
 -- | Try to allocate an instance on the cluster.
