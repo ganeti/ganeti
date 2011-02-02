@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,11 +21,79 @@
 
 """Module implementing the parameter types code."""
 
+import re
+
 from ganeti import compat
+from ganeti import utils
+
+
+_PAREN_RE = re.compile("^[a-zA-Z0-9_-]+$")
+
+
+def Parens(text):
+  """Enclose text in parens if necessary.
+
+  @param text: Text
+
+  """
+  text = str(text)
+
+  if _PAREN_RE.match(text):
+    return text
+  else:
+    return "(%s)" % text
+
+
+def WithDesc(text):
+  """Builds wrapper class with description text.
+
+  @type text: string
+  @param text: Description text
+  @return: Callable class
+
+  """
+  assert text[0] == text[0].upper()
+
+  class wrapper(object): # pylint: disable-msg=C0103
+    __slots__ = ["__call__"]
+
+    def __init__(self, fn):
+      """Initializes this class.
+
+      @param fn: Wrapped function
+
+      """
+      self.__call__ = fn
+
+    def __str__(self):
+      return text
+
+  return wrapper
+
+
+def CombinationDesc(op, args, fn):
+  """Build description for combinating operator.
+
+  @type op: string
+  @param op: Operator as text (e.g. "and")
+  @type args: list
+  @param args: Operator arguments
+  @type fn: callable
+  @param fn: Wrapped function
+
+  """
+  if len(args) == 1:
+    descr = str(args[0])
+  else:
+    descr = (" %s " % op).join(Parens(i) for i in args)
+
+  return WithDesc(descr)(fn)
+
 
 # Modifiable default values; need to define these here before the
 # actual LUs
 
+@WithDesc(str([]))
 def EmptyList():
   """Returns an empty list.
 
@@ -33,6 +101,7 @@ def EmptyList():
   return []
 
 
+@WithDesc(str({}))
 def EmptyDict():
   """Returns an empty dict.
 
@@ -44,11 +113,12 @@ def EmptyDict():
 NoDefault = object()
 
 
-#: The no-type (value to complex to check it in the type system)
+#: The no-type (value too complex to check it in the type system)
 NoType = object()
 
 
 # Some basic types
+@WithDesc("NotNone")
 def TNotNone(val):
   """Checks if the given value is not None.
 
@@ -56,6 +126,7 @@ def TNotNone(val):
   return val is not None
 
 
+@WithDesc("None")
 def TNone(val):
   """Checks if the given value is None.
 
@@ -63,6 +134,7 @@ def TNone(val):
   return val is None
 
 
+@WithDesc("Boolean")
 def TBool(val):
   """Checks if the given value is a boolean.
 
@@ -70,6 +142,7 @@ def TBool(val):
   return isinstance(val, bool)
 
 
+@WithDesc("Integer")
 def TInt(val):
   """Checks if the given value is an integer.
 
@@ -82,6 +155,7 @@ def TInt(val):
   return isinstance(val, int) and not isinstance(val, bool)
 
 
+@WithDesc("Float")
 def TFloat(val):
   """Checks if the given value is a float.
 
@@ -89,6 +163,7 @@ def TFloat(val):
   return isinstance(val, float)
 
 
+@WithDesc("String")
 def TString(val):
   """Checks if the given value is a string.
 
@@ -96,6 +171,7 @@ def TString(val):
   return isinstance(val, basestring)
 
 
+@WithDesc("EvalToTrue")
 def TTrue(val):
   """Checks if a given value evaluates to a boolean True value.
 
@@ -107,10 +183,14 @@ def TElemOf(target_list):
   """Builds a function that checks if a given value is a member of a list.
 
   """
-  return lambda val: val in target_list
+  def fn(val):
+    return val in target_list
+
+  return WithDesc("OneOf %s" % (utils.CommaJoin(target_list), ))(fn)
 
 
 # Container types
+@WithDesc("List")
 def TList(val):
   """Checks if the given value is a list.
 
@@ -118,6 +198,7 @@ def TList(val):
   return isinstance(val, list)
 
 
+@WithDesc("Dictionary")
 def TDict(val):
   """Checks if the given value is a dictionary.
 
@@ -129,7 +210,10 @@ def TIsLength(size):
   """Check is the given container is of the given size.
 
   """
-  return lambda container: len(container) == size
+  def fn(container):
+    return len(container) == size
+
+  return WithDesc("Length %s" % (size, ))(fn)
 
 
 # Combinator types
@@ -139,7 +223,8 @@ def TAnd(*args):
   """
   def fn(val):
     return compat.all(t(val) for t in args)
-  return fn
+
+  return CombinationDesc("and", args, fn)
 
 
 def TOr(*args):
@@ -148,20 +233,22 @@ def TOr(*args):
   """
   def fn(val):
     return compat.any(t(val) for t in args)
-  return fn
+
+  return CombinationDesc("or", args, fn)
 
 
 def TMap(fn, test):
   """Checks that a modified version of the argument passes the given test.
 
   """
-  return lambda val: test(fn(val))
+  return WithDesc("Result of %s must be %s" %
+                  (Parens(fn), Parens(test)))(lambda val: test(fn(val)))
 
 
 # Type aliases
 
 #: a non-empty string
-TNonEmptyString = TAnd(TString, TTrue)
+TNonEmptyString = WithDesc("NonEmptyString")(TAnd(TString, TTrue))
 
 #: a maybe non-empty string
 TMaybeString = TOr(TNonEmptyString, TNone)
@@ -173,25 +260,31 @@ TMaybeBool = TOr(TBool, TNone)
 TMaybeDict = TOr(TDict, TNone)
 
 #: a positive integer
-TPositiveInt = TAnd(TInt, lambda v: v >= 0)
+TPositiveInt = \
+  TAnd(TInt, WithDesc("EqualGreaterZero")(lambda v: v >= 0))
 
 #: a strictly positive integer
-TStrictPositiveInt = TAnd(TInt, lambda v: v > 0)
+TStrictPositiveInt = \
+  TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
 
 
 def TListOf(my_type):
   """Checks if a given value is a list with all elements of the same type.
 
   """
-  return TAnd(TList,
-               lambda lst: compat.all(my_type(v) for v in lst))
+  desc = WithDesc("List of %s" % (Parens(my_type), ))
+  return desc(TAnd(TList, lambda lst: compat.all(my_type(v) for v in lst)))
 
 
 def TDictOf(key_type, val_type):
   """Checks a dict type for the type of its key/values.
 
   """
-  return TAnd(TDict,
-              lambda my_dict: (compat.all(key_type(v) for v in my_dict.keys())
-                               and compat.all(val_type(v)
-                                              for v in my_dict.values())))
+  desc = WithDesc("Dictionary with keys of %s and values of %s" %
+                  (Parens(key_type), Parens(val_type)))
+
+  def fn(container):
+    return (compat.all(key_type(v) for v in container.keys()) and
+            compat.all(val_type(v) for v in container.values()))
+
+  return desc(TAnd(TDict, fn))

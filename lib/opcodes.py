@@ -35,6 +35,7 @@ opcodes.
 
 import logging
 import re
+import operator
 
 from ganeti import constants
 from ganeti import errors
@@ -81,6 +82,12 @@ _PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString))
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
+#: Utility function for L{OpClusterSetParams}
+_TestClusterOsList = ht.TOr(ht.TNone,
+  ht.TListOf(ht.TAnd(ht.TList, ht.TIsLength(2),
+    ht.TMap(ht.WithDesc("GetFirstItem")(operator.itemgetter(0)),
+            ht.TElemOf(constants.DDMS_VALUES)))))
+
 
 def _NameToId(name):
   """Convert an opcode class name to an OP_ID.
@@ -117,18 +124,18 @@ def RequireFileStorage():
                                errors.ECODE_INVAL)
 
 
-def _CheckDiskTemplate(template):
-  """Ensure a given disk template is valid.
+@ht.WithDesc("CheckFileStorage")
+def _CheckFileStorage(value):
+  """Ensures file storage is enabled if used.
 
   """
-  if template not in constants.DISK_TEMPLATES:
-    # Using str.join directly to avoid importing utils for CommaJoin
-    msg = ("Invalid disk template name '%s', valid templates are: %s" %
-           (template, ", ".join(constants.DISK_TEMPLATES)))
-    raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
-  if template == constants.DT_FILE:
+  if value == constants.DT_FILE:
     RequireFileStorage()
   return True
+
+
+_CheckDiskTemplate = ht.TAnd(ht.TElemOf(constants.DISK_TEMPLATES),
+                             _CheckFileStorage)
 
 
 def _CheckStorageType(storage_type):
@@ -539,16 +546,8 @@ class OpClusterSetParams(OpCode):
     ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone)),
     ("master_netdev", None, ht.TOr(ht.TString, ht.TNone)),
     ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone)),
-    ("hidden_os", None, ht.TOr(ht.TListOf(
-          ht.TAnd(ht.TList,
-                ht.TIsLength(2),
-                ht.TMap(lambda v: v[0], ht.TElemOf(constants.DDMS_VALUES)))),
-          ht.TNone)),
-    ("blacklisted_os", None, ht.TOr(ht.TListOf(
-          ht.TAnd(ht.TList,
-                ht.TIsLength(2),
-                ht.TMap(lambda v: v[0], ht.TElemOf(constants.DDMS_VALUES)))),
-          ht.TNone)),
+    ("hidden_os", None, _TestClusterOsList),
+    ("blacklisted_os", None, _TestClusterOsList),
     ]
 
 
