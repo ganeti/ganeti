@@ -1167,23 +1167,15 @@ def _ParseExportInstanceRequest(name, data):
   @return: Instance export opcode
 
   """
-  mode = baserlib.CheckParameter(data, "mode",
-                                 default=constants.EXPORT_MODE_LOCAL)
-  target_node = baserlib.CheckParameter(data, "destination")
-  shutdown = baserlib.CheckParameter(data, "shutdown", exptype=bool)
-  remove_instance = baserlib.CheckParameter(data, "remove_instance",
-                                            exptype=bool, default=False)
-  x509_key_name = baserlib.CheckParameter(data, "x509_key_name", default=None)
-  destination_x509_ca = baserlib.CheckParameter(data, "destination_x509_ca",
-                                                default=None)
+  # Rename "destination" to "target_node"
+  try:
+    data["target_node"] = data.pop("destination")
+  except KeyError:
+    pass
 
-  return opcodes.OpBackupExport(instance_name=name,
-                                mode=mode,
-                                target_node=target_node,
-                                shutdown=shutdown,
-                                remove_instance=remove_instance,
-                                x509_key_name=x509_key_name,
-                                destination_x509_ca=destination_x509_ca)
+  return baserlib.FillOpcode(opcodes.OpBackupExport, data, {
+    "instance_name": name,
+    })
 
 
 class R_2_instances_name_export(baserlib.R_Generic):

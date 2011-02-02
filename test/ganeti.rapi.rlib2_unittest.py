@@ -192,8 +192,8 @@ class TestParseExportInstanceRequest(testutils.GanetiTestCase):
       "destination": [(1, 2, 3), (99, 99, 99)],
       "shutdown": True,
       "remove_instance": True,
-      "x509_key_name": ("name", "hash"),
-      "destination_x509_ca": ("x", "y", "z"),
+      "x509_key_name": ["name", "hash"],
+      "destination_x509_ca": "---cert---"
       }
     op = self.Parse(name, data)
     self.assert_(isinstance(op, opcodes.OpBackupExport))
@@ -202,7 +202,7 @@ class TestParseExportInstanceRequest(testutils.GanetiTestCase):
     self.assertEqual(op.shutdown, True)
     self.assertEqual(op.remove_instance, True)
     self.assertEqualValues(op.x509_key_name, ("name", "hash"))
-    self.assertEqualValues(op.destination_x509_ca, ("x", "y", "z"))
+    self.assertEqual(op.destination_x509_ca, "---cert---")
 
   def testDefaults(self):
     name = "inst1"
@@ -213,8 +213,10 @@ class TestParseExportInstanceRequest(testutils.GanetiTestCase):
     op = self.Parse(name, data)
     self.assert_(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
-    self.assertEqual(op.mode, constants.EXPORT_MODE_LOCAL)
-    self.assertEqual(op.remove_instance, False)
+    self.assertEqual(op.target_node, "node2")
+    self.assertFalse(hasattr(op, "mode"))
+    self.assertFalse(hasattr(op, "remove_instance"))
+    self.assertFalse(hasattr(op, "destination"))
 
   def testErrors(self):
     self.assertRaises(http.HttpBadRequest, self.Parse, "err1",
