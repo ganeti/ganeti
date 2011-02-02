@@ -252,8 +252,8 @@ class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
     op = self.Parse(name, {})
     self.assert_(isinstance(op, opcodes.OpInstanceMigrate))
     self.assertEqual(op.instance_name, name)
-    self.assertEqual(op.mode, None)
-    self.assertFalse(op.cleanup)
+    self.assertFalse(hasattr(op, "mode"))
+    self.assertFalse(hasattr(op, "cleanup"))
 
 
 class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
