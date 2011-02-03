@@ -114,15 +114,9 @@ IGNORE_STATUS_OPT = cli_option("--ignore-status", default=False,
                                help=("Ignore the Node(s) offline status"
                                      " (potentially DANGEROUS)"))
 
-FORCE_MASTER_OPT = cli_option("--force-master", default=False,
-                              action="store_true", dest="force_master",
-                              help=("Operate on the master node too"
-                                    " (potentially DANGEROUS)"))
-
 OOB_TIMEOUT_OPT = cli_option("--oob-timeout", dest="oob_timeout", type="int",
                          default=constants.OOB_TIMEOUT,
                          help="Maximum time to wait for out-of-band helper")
-
 
 def ConvertStorageType(user_storage_type):
   """Converts a user storage type to its internal name.
@@ -495,7 +489,6 @@ def PowerNode(opts, args):
   @return: the desired exit code
 
   """
-  client = GetClient()
   command = args.pop(0)
 
   if opts.no_headers:
@@ -507,33 +500,27 @@ def PowerNode(opts, args):
     ToStderr("power subcommand %s not supported." % command)
     return constants.EXIT_FAILURE
 
-  nodes = [node for (node, ) in client.QueryNodes(args, ["name"], False)]
   oob_command = "power-%s" % command
 
   if oob_command in _OOB_COMMAND_ASK:
-    if not args and not opts.show_all:
-      ToStderr("Please provide at least one node or use --all for this command"
-               " as this is a potentially harmful command")
+    if not args:
+      ToStderr("Please provide at least one node for this command")
       return constants.EXIT_FAILURE
-    elif args and opts.show_all:
-      ToStderr("Please provide either nodes or use --all, can not use both at"
-               " the same time")
-      return constants.EXIT_FAILURE
-    elif not opts.force and not ConfirmOperation(nodes, "nodes",
+    elif not opts.force and not ConfirmOperation(args, "nodes",
                                                  "power %s" % command):
       return constants.EXIT_FAILURE
+    assert len(args) > 0
 
   opcodelist = []
   if not opts.ignore_status and oob_command == constants.OOB_POWER_OFF:
     # TODO: This is a little ugly as we can't catch and revert
-    for node in nodes:
+    for node in args:
       opcodelist.append(opcodes.OpNodeSetParams(node_name=node, offline=True,
                                                 auto_promote=opts.auto_promote))
 
-  opcodelist.append(opcodes.OpOobCommand(node_names=nodes,
+  opcodelist.append(opcodes.OpOobCommand(node_names=args,
                                          command=oob_command,
                                          ignore_status=opts.ignore_status,
-                                         force_master=opts.force_master,
                                          timeout=opts.oob_timeout))
 
   cli.SetGenericOpcodeOpts(opcodelist, opts)
@@ -870,8 +857,7 @@ commands = {
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
      ArgNode()],
     [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT, IGNORE_STATUS_OPT,
-     FORCE_MASTER_OPT, FORCE_OPT, NOHDR_OPT, SEP_OPT, ALL_OPT,
-     OOB_TIMEOUT_OPT],
+     FORCE_OPT, NOHDR_OPT, SEP_OPT, OOB_TIMEOUT_OPT],
     "on|off|cycle|status [nodes...]",
     "Change power state of node by calling out-of-band helper."),
   'remove': (

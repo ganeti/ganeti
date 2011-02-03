@@ -3216,6 +3216,7 @@ class LUOobCommand(NoHooksLU):
 
   """
   REG_BGL = False
+  _SKIP_MASTER = (constants.OOB_POWER_OFF, constants.OOB_POWER_CYCLE)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -3230,26 +3231,31 @@ class LUOobCommand(NoHooksLU):
     self.nodes = []
     self.master_node = self.cfg.GetMasterNode()
 
-    if self.op.command in (constants.OOB_POWER_OFF, constants.OOB_POWER_CYCLE):
-      # This does two things, it checks if master is in the list and if so and
-      # force_master is set it puts it to the end so the master is done last
-      try:
-        self.op.node_names.remove(self.master_node)
-      except ValueError:
-        pass
-      else:
-        if self.op.force_master:
-          self.op.node_names.append(self.master_node)
-        else:
-          self.LogWarning("Master %s was skipped, use the force master"
-                          " option to operate on the master too",
-                          self.master_node)
-          if not self.op.node_names:
-            raise errors.OpPrereqError("No nodes left to operate on, aborting",
-                                       errors.ECODE_INVAL)
+    if self.op.node_names:
+      if self.op.command in self._SKIP_MASTER:
+        if self.master_node in self.op.node_names:
+          master_node_obj = self.cfg.GetNodeInfo(self.master_node)
+          master_oob_handler = _SupportsOob(self.cfg, master_node_obj)
 
-      assert (self.master_node not in self.op.node_names or
-              self.op.node_names[-1] == self.master_node)
+          if master_oob_handler:
+            additional_text = ("Run '%s %s %s' if you want to operate on the"
+                               " master regardless") % (master_oob_handler,
+                                                        self.op.command,
+                                                        self.master_node)
+          else:
+            additional_text = "The master node does not support out-of-band"
+
+          raise errors.OpPrereqError(("Operating on the master node %s is not"
+                                      " allowed for %s\n%s") %
+                                     (self.master_node, self.op.command,
+                                      additional_text), errors.ECODE_INVAL)
+    else:
+      self.op.node_names = self.cfg.GetNodeList()
+      if self.op.command in self._SKIP_MASTER:
+        self.op.node_names.remove(self.master_node)
+
+    if self.op.command in self._SKIP_MASTER:
+      assert self.master_node not in self.op.node_names
 
     for node_name in self.op.node_names:
       node = self.cfg.GetNodeInfo(node_name)
@@ -3273,11 +3279,12 @@ class LUOobCommand(NoHooksLU):
     if self.op.node_names:
       self.op.node_names = [_ExpandNodeName(self.cfg, name)
                             for name in self.op.node_names]
+      lock_names = self.op.node_names
     else:
-      self.op.node_names = self.cfg.GetNodeList()
+      lock_names = locking.ALL_SET
 
     self.needed_locks = {
-      locking.LEVEL_NODE: self.op.node_names,
+      locking.LEVEL_NODE: lock_names,
       }
 
   def Exec(self, feedback_fn):

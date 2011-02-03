@@ -253,7 +253,6 @@ def TestOutOfBand():
   node = qa_config.AcquireNode(exclude=master)
 
   master_name = master["primary"]
-  full_master_name = qa_utils.ResolveNodeName(master)
   node_name = node["primary"]
   full_node_name = qa_utils.ResolveNodeName(node)
 
@@ -276,15 +275,9 @@ def TestOutOfBand():
     # Power off on master without options should fail
     AssertCommand(["gnt-node", "power", "-f", "off", master_name], fail=True)
     # With force master it should still fail
-    AssertCommand(["gnt-node", "power", "-f", "--force-master", "off",
-                   master_name], fail=True)
     AssertCommand(["gnt-node", "power", "-f",  "--ignore-status", "off",
                    master_name],
                   fail=True)
-    # This should work again
-    AssertCommand(["gnt-node", "power", "-f", "--ignore-status",
-                   "--force-master", "off", master_name])
-    _AssertOobCall(verify_path, "power-off %s" % full_master_name)
 
     # Verify we can't transform back to online when not yet powered on
     AssertCommand(["gnt-node", "modify", "-O", "no", node_name],
@@ -400,43 +393,6 @@ def TestOutOfBand():
       AssertCommand(["gnt-node", "modify", "--node-parameters",
                      "oob_program=default", node_name])
       AssertCommand(["rm", "-f", oob_path2, verify_path2])
-
-    verify_path3 = qa_utils.UploadData(master["primary"], "")
-    oob_script = ("#!/bin/bash\n"
-                  "echo \"$@\" >> %s\n") % verify_path3
-    oob_path3 = qa_utils.UploadData(master["primary"], oob_script, mode=0700)
-
-    AssertCommand(["gnt-cluster", "modify", "--node-parameters",
-                   "oob_program=%s" % oob_path3])
-
-    non_master_nodes = []
-    for node in qa_config.get('nodes'):
-      if node != master:
-        non_master_nodes.append(qa_utils.ResolveNodeName(node))
-
-    try:
-      # Without the --force-master it should not have the master in it
-      verify_content = ["power-cycle %s" % name for name in non_master_nodes]
-      AssertCommand(["gnt-node", "power", "-f", "--all", "cycle"])
-      _AssertOobCall(verify_path3, "\n".join(verify_content))
-
-      # Empty file
-      _UpdateOobFile(verify_path3, "")
-      # With the --force-master it should have the master at last position
-      verify_content.append("power-cycle %s" % full_master_name)
-      AssertCommand(["gnt-node", "power", "--force-master", "-f", "--all",
-                     "cycle"])
-      _AssertOobCall(verify_path3, "\n".join(verify_content))
-
-      # Empty file
-      _UpdateOobFile(verify_path3, "")
-      # With master as first argument it should still be called last
-      cmd = ["gnt-node", "power", "--force-master", "-f", "cycle", master_name]
-      cmd.extend(non_master_nodes)
-      AssertCommand(cmd)
-      _AssertOobCall(verify_path3, "\n".join(verify_content))
-    finally:
-      AssertCommand(["rm", "-f", oob_path3, verify_path3])
   finally:
     AssertCommand(["gnt-cluster", "modify", "--node-parameters",
                    "oob_program="])

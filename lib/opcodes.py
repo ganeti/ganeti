@@ -658,7 +658,6 @@ class OpOobCommand(OpCode):
     ("command", None, ht.TElemOf(constants.OOB_COMMANDS), None),
     ("timeout", constants.OOB_TIMEOUT, ht.TInt, None),
     ("ignore_status", False, ht.TBool, None),
-    ("force_master", False, ht.TBool, None),
     ]
 
 
