@@ -601,11 +601,25 @@ node.
 POWER
 ~~~~~
 
-**power** on|off|cycle|status {*node*}
+**power** [``--force``] [``--ignore-status``] [``--all``]
+on|off|cycle|status [*nodes*]
 
 This commands calls out to out-of-band management to change the power
 state of given node. With ``status`` you get the power status as reported
-by the out-of-band managment script.
+by the out-of-band management script.
+
+Using ``--force`` you skip the confirmation to do the operation. Currently this
+only has effect on ``off`` and ``cycle``. On those two you can *not* operate on
+the master. However, the command will provide you with the command to invoke to
+operate on the master nerver-mind. This is considered harmful and Ganeti does
+not support the use of it.
+
+Providing ``--ignore-status`` will ignore the offline=N state of a node and
+continue with power off.
+
+*nodes* are optional. If not provided it will call out for every node in the
+cluster. Except for the ``off`` and ``cycle`` command where you've to explicit
+use ``-all`` to select all.
 
 HEALTH
 ~~~~~~
