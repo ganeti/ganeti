@@ -346,53 +346,7 @@ Returns a job ID.
 
 Body parameters:
 
-``vg_name`` (string)
-  Volume group name.
-``enabled_hypervisors`` (list)
-  List of enabled hypervisors.
-``hvparams`` (dict)
-  Cluster-wide hypervisor parameter defaults, hypervisor-dependent.
-``beparams`` (dict)
-  Cluster-wide backend parameter defaults.
-``os_hvp`` (dict)
-  Cluster-wide per-OS hypervisor parameter defaults.
-``osparams`` (dict)
-  Dictionary with OS parameters.
-``candidate_pool_size`` (int)
-  Master candidate pool size.
-``uid_pool`` (list)
-  Set UID pool. Must be list of lists describing UID ranges (two items,
-  start and end inclusive).
-``add_uids``
-  Extend UID pool. Must be list of lists describing UID ranges (two
-  items, start and end inclusive) to be added.
-``remove_uids``
-  Shrink UID pool. Must be list of lists describing UID ranges (two
-  items, start and end inclusive) to be removed.
-``maintain_node_health`` (bool)
-  Whether to automatically maintain node health.
-``prealloc_wipe_disks`` (bool)
-  Whether to wipe disks before allocating them to instances.
-``nicparams`` (dict)
-  Cluster-wide NIC parameter defaults.
-``ndparams`` (dict)
-  Cluster-wide node parameter defaults.
-``drbd_helper`` (string)
-  DRBD helper program.
-``default_iallocator`` (string)
-  Default iallocator for cluster.
-``master_netdev`` (string)
-  Master network device.
-``reserved_lvs`` (list)
-  List of reserved LVs (strings).
-``hidden_os`` (list)
-  List of modifications as lists. Each modification must have two items,
-  the operation and the OS name. The operation can be ``add`` or
-  ``remove``.
-``blacklisted_os`` (list)
-  List of modifications as lists. Each modification must have two items,
-  the operation and the OS name. The operation can be ``add`` or
-  ``remove``.
+.. opcode_params:: OP_CLUSTER_SET_PARAMS
 
 
 ``/2/groups``
@@ -856,10 +810,8 @@ Returns a job ID.
 
 Body parameters:
 
-``amount`` (int, required)
-  Amount of disk space to add.
-``wait_for_sync`` (bool)
-  Whether to wait for the disk to synchronize.
+.. opcode_params:: OP_INSTANCE_GROW_DISK
+   :exclude: instance_name, disk
 
 
 ``/2/instances/[instance_name]/prepare-export``
@@ -889,18 +841,9 @@ Returns a job ID.
 
 Body parameters:
 
-``mode`` (string)
-  Export mode.
-``destination`` (required)
-  Destination information, depends on export mode.
-``shutdown`` (bool, required)
-  Whether to shutdown instance before export.
-``remove_instance`` (bool)
-  Whether to remove instance after export.
-``x509_key_name``
-  Name of X509 key (remote export only).
-``destination_x509_ca``
-  Destination X509 CA (remote export only).
+.. opcode_params:: OP_BACKUP_EXPORT
+   :exclude: instance_name
+   :alias: target_node=destination
 
 
 ``/2/instances/[instance_name]/migrate``
@@ -917,10 +860,8 @@ Returns a job ID.
 
 Body parameters:
 
-``mode`` (string)
-  Migration mode.
-``cleanup`` (bool)
-  Whether a previously failed migration should be cleaned up.
+.. opcode_params:: OP_INSTANCE_MIGRATE
+   :exclude: instance_name, live
 
 
 ``/2/instances/[instance_name]/rename``
@@ -959,29 +900,8 @@ Returns a job ID.
 
 Body parameters:
 
-``osparams`` (dict)
-  Dictionary with OS parameters.
-``hvparams`` (dict)
-  Hypervisor parameters, hypervisor-dependent.
-``beparams`` (dict)
-  Backend parameters.
-``force`` (bool)
-  Whether to force the operation.
-``nics`` (list)
-  List of NIC changes. Each item is of the form ``(op, settings)``.
-  ``op`` can be ``add`` to add a new NIC with the specified settings,
-  ``remove`` to remove the last NIC or a number to modify the settings
-  of the NIC with that index.
-``disks`` (list)
-  List of disk changes. See ``nics``.
-``disk_template`` (string)
-  Disk template for instance.
-``remote_node`` (string)
-  Secondary node (used when changing disk template).
-``os_name`` (string)
-  Change instance's OS name. Does not reinstall the instance.
-``force_variant`` (bool)
-  Whether to force an unknown variant.
+.. opcode_params:: OP_INSTANCE_SET_PARAMS
+   :exclude: instance_name
 
 
 ``/2/instances/[instance_name]/tags``
