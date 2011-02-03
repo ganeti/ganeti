@@ -2163,7 +2163,7 @@ def FinalizeExport(instance, snap_disks):
   config.set(constants.INISECT_EXP, 'timestamp', '%d' % int(time.time()))
   config.set(constants.INISECT_EXP, 'source', instance.primary_node)
   config.set(constants.INISECT_EXP, 'os', instance.os)
-  config.set(constants.INISECT_EXP, 'compression', 'gzip')
+  config.set(constants.INISECT_EXP, "compression", "none")
 
   config.add_section(constants.INISECT_INS)
   config.set(constants.INISECT_INS, 'name', instance.name)
