@@ -708,7 +708,6 @@ tryMGAlloc :: Group.List           -- ^ The group list
            -> Result AllocSolution -- ^ Possible solution list
 tryMGAlloc mggl mgnl mgil inst cnt =
   let groups = splitCluster mgnl mgil
-      -- TODO: currently we consider all groups preferred
       sols = map (\(gid, (nl, il)) ->
                    (gid, genAllocNodes mggl nl cnt False >>=
                        tryAlloc nl il inst))
