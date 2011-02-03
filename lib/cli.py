@@ -1928,6 +1928,11 @@ def GenericMain(commands, override=None, aliases=None):
     result, err_msg = FormatError(err)
     logging.exception("Error during command processing")
     ToStderr(err_msg)
+  except KeyboardInterrupt:
+    result = constants.EXIT_FAILURE
+    ToStderr("Aborted. Note that if the operation created any jobs, they"
+             " might have been submitted and"
+             " will continue to run in the background.")
 
   return result
 
