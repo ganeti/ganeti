@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -196,7 +196,7 @@ class _DiskImportExportBase(object):
 
     """
     if self._daemon:
-      return self._daemon.recent_output
+      return "\n".join(self._daemon.recent_output)
 
     return None
 
@@ -869,7 +869,7 @@ class _TransferInstSourceCb(_TransferInstCbBase):
     if ie.success:
       self.feedback_fn("%s finished sending data" % dtp.data.name)
     else:
-      self.feedback_fn("%s failed to send data: %s (recent output: %r)" %
+      self.feedback_fn("%s failed to send data: %s (recent output: %s)" %
                        (dtp.data.name, ie.final_message, ie.recent_output))
 
     dtp.RecordResult(ie.success)
@@ -919,7 +919,7 @@ class _TransferInstDestCb(_TransferInstCbBase):
     if ie.success:
       self.feedback_fn("%s finished receiving data" % dtp.data.name)
     else:
-      self.feedback_fn("%s failed to receive data: %s (recent output: %r)" %
+      self.feedback_fn("%s failed to receive data: %s (recent output: %s)" %
                        (dtp.data.name, ie.final_message, ie.recent_output))
 
     dtp.RecordResult(ie.success)
@@ -1120,7 +1120,7 @@ class _RemoteExportCb(ImportExportCbBase):
     if ie.success:
       self._feedback_fn("Disk %s finished sending data" % idx)
     else:
-      self._feedback_fn("Disk %s failed to send data: %s (recent output: %r)" %
+      self._feedback_fn("Disk %s failed to send data: %s (recent output: %s)" %
                         (idx, ie.final_message, ie.recent_output))
 
     self._dresults[idx] = bool(ie.success)
@@ -1407,7 +1407,7 @@ class _RemoteImportCb(ImportExportCbBase):
       self._feedback_fn("Disk %s finished receiving data" % idx)
     else:
       self._feedback_fn(("Disk %s failed to receive data: %s"
-                         " (recent output: %r)") %
+                         " (recent output: %s)") %
                         (idx, ie.final_message, ie.recent_output))
 
     self._dresults[idx] = bool(ie.success)
