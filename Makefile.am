@@ -125,7 +125,8 @@ nodist_pkgpython_PYTHON = \
 	lib/_autoconf.py
 
 noinst_PYTHON = \
-	lib/build/__init__.py
+	lib/build/__init__.py \
+	lib/build/sphinx_ext.py
 
 pkgpython_PYTHON = \
 	lib/__init__.py \
@@ -261,7 +262,7 @@ docrst = \
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 
 doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
-	$(RUN_IN_TEMPDIR)
+	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py lib/opcodes.py lib/opdoc.py
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
 	@mkdir_p@ $(dir $@)
