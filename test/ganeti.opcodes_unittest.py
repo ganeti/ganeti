@@ -30,6 +30,7 @@ from ganeti import opcodes
 from ganeti import ht
 from ganeti import constants
 from ganeti import errors
+from ganeti import compat
 
 import testutils
 
@@ -156,11 +157,16 @@ class TestOpcodes(unittest.TestCase):
         self.assert_(test is None or test is ht.NoType or callable(test),
                      msg=("Invalid type check for %s.%s" %
                           (cls.OP_ID, attr_name)))
-        self.assertTrue(doc is None)
+        self.assertTrue(doc is None or isinstance(doc, basestring))
 
         if callable(aval):
           self.assertFalse(callable(aval()),
                            msg="Default value returned by function is callable")
+
+      # If any parameter has documentation, all others need to have it as well
+      has_doc = [doc is not None for (_, _, _, doc) in cls.OP_PARAMS]
+      self.assertTrue(not compat.any(has_doc) or compat.all(has_doc),
+                      msg="%s does not document all parameters" % cls)
 
   def testValidateNoModification(self):
     class OpTest(opcodes.OpCode):
