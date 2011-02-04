@@ -35,7 +35,7 @@ import testutils
 class TestFillOpcode(unittest.TestCase):
   class OpTest(opcodes.OpCode):
     OP_PARAMS = [
-      ("test", None, ht.TMaybeString),
+      ("test", None, ht.TMaybeString, None),
       ]
 
   def test(self):

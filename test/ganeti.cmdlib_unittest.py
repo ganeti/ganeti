@@ -87,8 +87,8 @@ class TestIAllocatorChecks(testutils.GanetiTestCase):
 
     class OpTest(opcodes.OpCode):
        OP_PARAMS = [
-        ("iallocator", None, ht.NoType),
-        ("node", None, ht.NoType),
+        ("iallocator", None, ht.NoType, None),
+        ("node", None, ht.NoType, None),
         ]
 
     default_iallocator = mocks.FakeConfig().GetDefaultIAllocator()

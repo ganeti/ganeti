@@ -92,7 +92,7 @@ class TestOpcodes(unittest.TestCase):
     class OpTest(opcodes.OpCode):
       OP_DSC_FIELD = "data"
       OP_PARAMS = [
-        ("data", ht.NoDefault, ht.TString),
+        ("data", ht.NoDefault, ht.TString, None),
         ]
 
     self.assertEqual(OpTest(data="").Summary(), "TEST()")
@@ -105,7 +105,7 @@ class TestOpcodes(unittest.TestCase):
     class OpTest(opcodes.OpCode):
       OP_DSC_FIELD = "data"
       OP_PARAMS = [
-        ("data", ht.NoDefault, ht.TList),
+        ("data", ht.NoDefault, ht.TList, None),
         ]
 
     self.assertEqual(OpTest(data=["a", "b", "c"]).Summary(),
@@ -136,12 +136,13 @@ class TestOpcodes(unittest.TestCase):
       self.assert_(hasattr(cls, "OP_PARAMS"),
                    msg="%s doesn't have OP_PARAMS" % cls.OP_ID)
 
-      param_names = [name for (name, _, _) in cls.GetAllParams()]
+      param_names = [name for (name, _, _, _) in cls.GetAllParams()]
 
       self.assertEqual(all_slots, param_names)
 
       # Without inheritance
-      self.assertEqual(cls.__slots__, [name for (name, _, _) in cls.OP_PARAMS])
+      self.assertEqual(cls.__slots__,
+                       [name for (name, _, _, _) in cls.OP_PARAMS])
 
       # This won't work if parameters are converted to a dictionary
       duplicates = utils.FindDuplicates(param_names)
@@ -150,11 +151,12 @@ class TestOpcodes(unittest.TestCase):
                             (duplicates, cls.OP_ID)))
 
       # Check parameter definitions
-      for attr_name, aval, test in cls.GetAllParams():
+      for attr_name, aval, test, doc in cls.GetAllParams():
         self.assert_(attr_name)
         self.assert_(test is None or test is ht.NoType or callable(test),
                      msg=("Invalid type check for %s.%s" %
                           (cls.OP_ID, attr_name)))
+        self.assertTrue(doc is None)
 
         if callable(aval):
           self.assertFalse(callable(aval()),
@@ -163,10 +165,10 @@ class TestOpcodes(unittest.TestCase):
   def testValidateNoModification(self):
     class OpTest(opcodes.OpCode):
       OP_PARAMS = [
-        ("nodef", ht.NoDefault, ht.TMaybeString),
-        ("wdef", "default", ht.TMaybeString),
-        ("number", 0, ht.TInt),
-        ("notype", None, ht.NoType),
+        ("nodef", ht.NoDefault, ht.TMaybeString, None),
+        ("wdef", "default", ht.TMaybeString, None),
+        ("number", 0, ht.TInt, None),
+        ("notype", None, ht.NoType, None),
         ]
 
     # Missing required parameter "nodef"
@@ -224,10 +226,10 @@ class TestOpcodes(unittest.TestCase):
     class OpTest(opcodes.OpCode):
       OP_PARAMS = [
         # Static default value
-        ("value1", "default", ht.TMaybeString),
+        ("value1", "default", ht.TMaybeString, None),
 
         # Default value callback
-        ("value2", lambda: "result", ht.TMaybeString),
+        ("value2", lambda: "result", ht.TMaybeString, None),
         ]
 
     op = OpTest()

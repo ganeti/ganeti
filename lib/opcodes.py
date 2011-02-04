@@ -45,39 +45,41 @@ from ganeti import ht
 # Common opcode attributes
 
 #: output fields for a query operation
-_POutputFields = ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString))
+_POutputFields = ("output_fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
+                  None)
 
 #: the shutdown timeout
 _PShutdownTimeout = ("shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                     ht.TPositiveInt)
+                     ht.TPositiveInt, None)
 
 #: the force parameter
-_PForce = ("force", False, ht.TBool)
+_PForce = ("force", False, ht.TBool, None)
 
 #: a required instance name (for single-instance LUs)
-_PInstanceName = ("instance_name", ht.NoDefault, ht.TNonEmptyString)
+_PInstanceName = ("instance_name", ht.NoDefault, ht.TNonEmptyString, None)
 
 #: Whether to ignore offline nodes
-_PIgnoreOfflineNodes = ("ignore_offline_nodes", False, ht.TBool)
+_PIgnoreOfflineNodes = ("ignore_offline_nodes", False, ht.TBool, None)
 
 #: a required node name (for single-node LUs)
-_PNodeName = ("node_name", ht.NoDefault, ht.TNonEmptyString)
+_PNodeName = ("node_name", ht.NoDefault, ht.TNonEmptyString, None)
 
 #: a required node group name (for single-group LUs)
-_PGroupName = ("group_name", ht.NoDefault, ht.TNonEmptyString)
+_PGroupName = ("group_name", ht.NoDefault, ht.TNonEmptyString, None)
 
 #: Migration type (live/non-live)
 _PMigrationMode = ("mode", None,
-                   ht.TOr(ht.TNone, ht.TElemOf(constants.HT_MIGRATION_MODES)))
+                   ht.TOr(ht.TNone, ht.TElemOf(constants.HT_MIGRATION_MODES)),
+                   None)
 
 #: Obsolete 'live' migration mode (boolean)
-_PMigrationLive = ("live", None, ht.TMaybeBool)
+_PMigrationLive = ("live", None, ht.TMaybeBool, None)
 
 #: Tag type
-_PTagKind = ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES))
+_PTagKind = ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES), None)
 
 #: List of tag strings
-_PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString))
+_PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString), None)
 
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
@@ -151,7 +153,7 @@ def _CheckStorageType(storage_type):
 
 
 #: Storage type parameter
-_PStorageType = ("storage_type", ht.NoDefault, _CheckStorageType)
+_PStorageType = ("storage_type", ht.NoDefault, _CheckStorageType, None)
 
 
 class _AutoOpParamSlots(type):
@@ -178,7 +180,7 @@ class _AutoOpParamSlots(type):
     params = attrs.setdefault("OP_PARAMS", [])
 
     # Use parameter names as slots
-    slots = [pname for (pname, _, _) in params]
+    slots = [pname for (pname, _, _, _) in params]
 
     assert "OP_DSC_FIELD" not in attrs or attrs["OP_DSC_FIELD"] in slots, \
       "Class '%s' uses unknown field in OP_DSC_FIELD" % name
@@ -281,7 +283,7 @@ class BaseOpCode(object):
                                  requirements
 
     """
-    for (attr_name, default, test) in self.GetAllParams():
+    for (attr_name, default, test, _) in self.GetAllParams():
       assert test == ht.NoType or callable(test)
 
       if not hasattr(self, attr_name):
@@ -334,10 +336,10 @@ class OpCode(BaseOpCode):
   # as OP_ID is dynamically defined
   WITH_LU = True
   OP_PARAMS = [
-    ("dry_run", None, ht.TMaybeBool),
-    ("debug_level", None, ht.TOr(ht.TNone, ht.TPositiveInt)),
+    ("dry_run", None, ht.TMaybeBool, None),
+    ("debug_level", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
     ("priority", constants.OP_PRIO_DEFAULT,
-     ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID)),
+     ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID), None),
     ]
 
   def __getstate__(self):
@@ -442,10 +444,10 @@ class OpClusterVerify(OpCode):
   """
   OP_PARAMS = [
     ("skip_checks", ht.EmptyList,
-     ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS))),
-    ("verbose", False, ht.TBool),
-    ("error_codes", False, ht.TBool),
-    ("debug_simulate_errors", False, ht.TBool),
+     ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS)), None),
+    ("verbose", False, ht.TBool, None),
+    ("error_codes", False, ht.TBool, None),
+    ("debug_simulate_errors", False, ht.TBool, None),
     ]
 
 
@@ -489,7 +491,7 @@ class OpClusterRepairDiskSizes(OpCode):
 
   """
   OP_PARAMS = [
-    ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ]
 
 
@@ -511,7 +513,7 @@ class OpClusterRename(OpCode):
   """
   OP_DSC_FIELD = "name"
   OP_PARAMS = [
-    ("name", ht.NoDefault, ht.TNonEmptyString),
+    ("name", ht.NoDefault, ht.TNonEmptyString, None),
     ]
 
 
@@ -523,31 +525,32 @@ class OpClusterSetParams(OpCode):
 
   """
   OP_PARAMS = [
-    ("vg_name", None, ht.TMaybeString),
+    ("vg_name", None, ht.TMaybeString, None),
     ("enabled_hypervisors", None,
      ht.TOr(ht.TAnd(ht.TListOf(ht.TElemOf(constants.HYPER_TYPES)), ht.TTrue),
-            ht.TNone)),
+            ht.TNone), None),
     ("hvparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
-                              ht.TNone)),
-    ("beparams", None, ht.TOr(ht.TDict, ht.TNone)),
+                              ht.TNone), None),
+    ("beparams", None, ht.TOr(ht.TDict, ht.TNone), None),
     ("os_hvp", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
-                            ht.TNone)),
+                            ht.TNone), None),
     ("osparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
-                              ht.TNone)),
-    ("candidate_pool_size", None, ht.TOr(ht.TStrictPositiveInt, ht.TNone)),
-    ("uid_pool", None, ht.NoType),
-    ("add_uids", None, ht.NoType),
-    ("remove_uids", None, ht.NoType),
-    ("maintain_node_health", None, ht.TMaybeBool),
-    ("prealloc_wipe_disks", None, ht.TMaybeBool),
-    ("nicparams", None, ht.TMaybeDict),
-    ("ndparams", None, ht.TMaybeDict),
-    ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone)),
-    ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone)),
-    ("master_netdev", None, ht.TOr(ht.TString, ht.TNone)),
-    ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone)),
-    ("hidden_os", None, _TestClusterOsList),
-    ("blacklisted_os", None, _TestClusterOsList),
+                              ht.TNone), None),
+    ("candidate_pool_size", None, ht.TOr(ht.TStrictPositiveInt, ht.TNone),
+     None),
+    ("uid_pool", None, ht.NoType, None),
+    ("add_uids", None, ht.NoType, None),
+    ("remove_uids", None, ht.NoType, None),
+    ("maintain_node_health", None, ht.TMaybeBool, None),
+    ("prealloc_wipe_disks", None, ht.TMaybeBool, None),
+    ("nicparams", None, ht.TMaybeDict, None),
+    ("ndparams", None, ht.TMaybeDict, None),
+    ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone), None),
+    ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone), None),
+    ("master_netdev", None, ht.TOr(ht.TString, ht.TNone), None),
+    ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone), None),
+    ("hidden_os", None, _TestClusterOsList, None),
+    ("blacklisted_os", None, _TestClusterOsList, None),
     ]
 
 
@@ -566,10 +569,10 @@ class OpQuery(OpCode):
 
   """
   OP_PARAMS = [
-    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY)),
-    ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY), None),
+    ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString), None),
     ("filter", None, ht.TOr(ht.TNone,
-                            ht.TListOf(ht.TOr(ht.TNonEmptyString, ht.TList)))),
+                            ht.TListOf(ht.TOr(ht.TNonEmptyString, ht.TList))), None),
     ]
 
 
@@ -581,19 +584,19 @@ class OpQueryFields(OpCode):
 
   """
   OP_PARAMS = [
-    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY)),
-    ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString))),
+    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY), None),
+    ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)), None),
     ]
 
 
 class OpOobCommand(OpCode):
   """Interact with OOB."""
   OP_PARAMS = [
-    ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("command", None, ht.TElemOf(constants.OOB_COMMANDS)),
-    ("timeout", constants.OOB_TIMEOUT, ht.TInt),
-    ("ignore_status", False, ht.TBool),
-    ("force_master", False, ht.TBool),
+    ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("command", None, ht.TElemOf(constants.OOB_COMMANDS), None),
+    ("timeout", constants.OOB_TIMEOUT, ht.TInt, None),
+    ("ignore_status", False, ht.TBool, None),
+    ("force_master", False, ht.TBool, None),
     ]
 
 
@@ -644,13 +647,13 @@ class OpNodeAdd(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
-    ("primary_ip", None, ht.NoType),
-    ("secondary_ip", None, ht.TMaybeString),
-    ("readd", False, ht.TBool),
-    ("group", None, ht.TMaybeString),
-    ("master_capable", None, ht.TMaybeBool),
-    ("vm_capable", None, ht.TMaybeBool),
-    ("ndparams", None, ht.TMaybeDict),
+    ("primary_ip", None, ht.NoType, None),
+    ("secondary_ip", None, ht.TMaybeString, None),
+    ("readd", False, ht.TBool, None),
+    ("group", None, ht.TMaybeString, None),
+    ("master_capable", None, ht.TMaybeBool, None),
+    ("vm_capable", None, ht.TMaybeBool, None),
+    ("ndparams", None, ht.TMaybeDict, None),
     ]
 
 
@@ -658,8 +661,8 @@ class OpNodeQuery(OpCode):
   """Compute the list of nodes."""
   OP_PARAMS = [
     _POutputFields,
-    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("use_locking", False, ht.TBool),
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("use_locking", False, ht.TBool, None),
     ]
 
 
@@ -667,7 +670,7 @@ class OpNodeQueryvols(OpCode):
   """Get list of volumes on node."""
   OP_PARAMS = [
     _POutputFields,
-    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ]
 
 
@@ -676,8 +679,8 @@ class OpNodeQueryStorage(OpCode):
   OP_PARAMS = [
     _POutputFields,
     _PStorageType,
-    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("name", None, ht.TMaybeString),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("name", None, ht.TMaybeString, None),
     ]
 
 
@@ -686,8 +689,8 @@ class OpNodeModifyStorage(OpCode):
   OP_PARAMS = [
     _PNodeName,
     _PStorageType,
-    ("name", ht.NoDefault, ht.TNonEmptyString),
-    ("changes", ht.NoDefault, ht.TDict),
+    ("name", ht.NoDefault, ht.TNonEmptyString, None),
+    ("changes", ht.NoDefault, ht.TDict, None),
     ]
 
 
@@ -697,8 +700,8 @@ class OpRepairNodeStorage(OpCode):
   OP_PARAMS = [
     _PNodeName,
     _PStorageType,
-    ("name", ht.NoDefault, ht.TNonEmptyString),
-    ("ignore_consistency", False, ht.TBool),
+    ("name", ht.NoDefault, ht.TNonEmptyString, None),
+    ("ignore_consistency", False, ht.TBool, None),
     ]
 
 
@@ -708,15 +711,15 @@ class OpNodeSetParams(OpCode):
   OP_PARAMS = [
     _PNodeName,
     _PForce,
-    ("master_candidate", None, ht.TMaybeBool),
-    ("offline", None, ht.TMaybeBool),
-    ("drained", None, ht.TMaybeBool),
-    ("auto_promote", False, ht.TBool),
-    ("master_capable", None, ht.TMaybeBool),
-    ("vm_capable", None, ht.TMaybeBool),
-    ("secondary_ip", None, ht.TMaybeString),
-    ("ndparams", None, ht.TMaybeDict),
-    ("powered", None, ht.TMaybeBool),
+    ("master_candidate", None, ht.TMaybeBool, None),
+    ("offline", None, ht.TMaybeBool, None),
+    ("drained", None, ht.TMaybeBool, None),
+    ("auto_promote", False, ht.TBool, None),
+    ("master_capable", None, ht.TMaybeBool, None),
+    ("vm_capable", None, ht.TMaybeBool, None),
+    ("secondary_ip", None, ht.TMaybeString, None),
+    ("ndparams", None, ht.TMaybeDict, None),
+    ("powered", None, ht.TMaybeBool, None),
     ]
 
 
@@ -743,9 +746,9 @@ class OpNodeEvacStrategy(OpCode):
   """Compute the evacuation strategy for a list of nodes."""
   OP_DSC_FIELD = "nodes"
   OP_PARAMS = [
-    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
-    ("remote_node", None, ht.TMaybeString),
-    ("iallocator", None, ht.TMaybeString),
+    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString), None),
+    ("remote_node", None, ht.TMaybeString, None),
+    ("iallocator", None, ht.TMaybeString, None),
     ]
 
 
@@ -766,34 +769,34 @@ class OpInstanceCreate(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("beparams", ht.EmptyDict, ht.TDict),
-    ("disks", ht.NoDefault, ht.TListOf(ht.TDict)),
-    ("disk_template", ht.NoDefault, _CheckDiskTemplate),
-    ("file_driver", None, ht.TOr(ht.TNone, ht.TElemOf(constants.FILE_DRIVER))),
-    ("file_storage_dir", None, ht.TMaybeString),
-    ("force_variant", False, ht.TBool),
-    ("hvparams", ht.EmptyDict, ht.TDict),
-    ("hypervisor", None, ht.TMaybeString),
-    ("iallocator", None, ht.TMaybeString),
-    ("identify_defaults", False, ht.TBool),
-    ("ip_check", True, ht.TBool),
-    ("mode", ht.NoDefault, ht.TElemOf(constants.INSTANCE_CREATE_MODES)),
-    ("name_check", True, ht.TBool),
-    ("nics", ht.NoDefault, ht.TListOf(ht.TDict)),
-    ("no_install", None, ht.TMaybeBool),
-    ("osparams", ht.EmptyDict, ht.TDict),
-    ("os_type", None, ht.TMaybeString),
-    ("pnode", None, ht.TMaybeString),
-    ("snode", None, ht.TMaybeString),
-    ("source_handshake", None, ht.TOr(ht.TList, ht.TNone)),
-    ("source_instance_name", None, ht.TMaybeString),
+    ("beparams", ht.EmptyDict, ht.TDict, None),
+    ("disks", ht.NoDefault, ht.TListOf(ht.TDict), None),
+    ("disk_template", ht.NoDefault, _CheckDiskTemplate, None),
+    ("file_driver", None, ht.TOr(ht.TNone, ht.TElemOf(constants.FILE_DRIVER)), None),
+    ("file_storage_dir", None, ht.TMaybeString, None),
+    ("force_variant", False, ht.TBool, None),
+    ("hvparams", ht.EmptyDict, ht.TDict, None),
+    ("hypervisor", None, ht.TMaybeString, None),
+    ("iallocator", None, ht.TMaybeString, None),
+    ("identify_defaults", False, ht.TBool, None),
+    ("ip_check", True, ht.TBool, None),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.INSTANCE_CREATE_MODES), None),
+    ("name_check", True, ht.TBool, None),
+    ("nics", ht.NoDefault, ht.TListOf(ht.TDict), None),
+    ("no_install", None, ht.TMaybeBool, None),
+    ("osparams", ht.EmptyDict, ht.TDict, None),
+    ("os_type", None, ht.TMaybeString, None),
+    ("pnode", None, ht.TMaybeString, None),
+    ("snode", None, ht.TMaybeString, None),
+    ("source_handshake", None, ht.TOr(ht.TList, ht.TNone), None),
+    ("source_instance_name", None, ht.TMaybeString, None),
     ("source_shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT,
-     ht.TPositiveInt),
-    ("source_x509_ca", None, ht.TMaybeString),
-    ("src_node", None, ht.TMaybeString),
-    ("src_path", None, ht.TMaybeString),
-    ("start", True, ht.TBool),
-    ("wait_for_sync", True, ht.TBool),
+     ht.TPositiveInt, None),
+    ("source_x509_ca", None, ht.TMaybeString, None),
+    ("src_node", None, ht.TMaybeString, None),
+    ("src_path", None, ht.TMaybeString, None),
+    ("start", True, ht.TBool, None),
+    ("wait_for_sync", True, ht.TBool, None),
     ]
 
 
@@ -802,9 +805,9 @@ class OpInstanceReinstall(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("os_type", None, ht.TMaybeString),
-    ("force_variant", False, ht.TBool),
-    ("osparams", None, ht.TMaybeDict),
+    ("os_type", None, ht.TMaybeString, None),
+    ("force_variant", False, ht.TBool, None),
+    ("osparams", None, ht.TMaybeDict, None),
     ]
 
 
@@ -814,7 +817,7 @@ class OpInstanceRemove(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PShutdownTimeout,
-    ("ignore_failures", False, ht.TBool),
+    ("ignore_failures", False, ht.TBool, None),
     ]
 
 
@@ -822,9 +825,9 @@ class OpInstanceRename(OpCode):
   """Rename an instance."""
   OP_PARAMS = [
     _PInstanceName,
-    ("new_name", ht.NoDefault, ht.TNonEmptyString),
-    ("ip_check", False, ht.TBool),
-    ("name_check", True, ht.TBool),
+    ("new_name", ht.NoDefault, ht.TNonEmptyString, None),
+    ("ip_check", False, ht.TBool, None),
+    ("name_check", True, ht.TBool, None),
     ]
 
 
@@ -835,8 +838,8 @@ class OpInstanceStartup(OpCode):
     _PInstanceName,
     _PForce,
     _PIgnoreOfflineNodes,
-    ("hvparams", ht.EmptyDict, ht.TDict),
-    ("beparams", ht.EmptyDict, ht.TDict),
+    ("hvparams", ht.EmptyDict, ht.TDict, None),
+    ("beparams", ht.EmptyDict, ht.TDict, None),
     ]
 
 
@@ -846,7 +849,7 @@ class OpInstanceShutdown(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PIgnoreOfflineNodes,
-    ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt),
+    ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt, None),
     ]
 
 
@@ -856,8 +859,8 @@ class OpInstanceReboot(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PShutdownTimeout,
-    ("ignore_secondaries", False, ht.TBool),
-    ("reboot_type", ht.NoDefault, ht.TElemOf(constants.REBOOT_TYPES)),
+    ("ignore_secondaries", False, ht.TBool, None),
+    ("reboot_type", ht.NoDefault, ht.TElemOf(constants.REBOOT_TYPES), None),
     ]
 
 
@@ -866,11 +869,11 @@ class OpInstanceReplaceDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("mode", ht.NoDefault, ht.TElemOf(constants.REPLACE_MODES)),
-    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt)),
-    ("remote_node", None, ht.TMaybeString),
-    ("iallocator", None, ht.TMaybeString),
-    ("early_release", False, ht.TBool),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.REPLACE_MODES), None),
+    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt), None),
+    ("remote_node", None, ht.TMaybeString, None),
+    ("iallocator", None, ht.TMaybeString, None),
+    ("early_release", False, ht.TBool, None),
     ]
 
 
@@ -880,7 +883,7 @@ class OpInstanceFailover(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PShutdownTimeout,
-    ("ignore_consistency", False, ht.TBool),
+    ("ignore_consistency", False, ht.TBool, None),
     ]
 
 
@@ -899,7 +902,7 @@ class OpInstanceMigrate(OpCode):
     _PInstanceName,
     _PMigrationMode,
     _PMigrationLive,
-    ("cleanup", False, ht.TBool),
+    ("cleanup", False, ht.TBool, None),
     ]
 
 
@@ -917,7 +920,7 @@ class OpInstanceMove(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PShutdownTimeout,
-    ("target_node", ht.NoDefault, ht.TNonEmptyString),
+    ("target_node", ht.NoDefault, ht.TNonEmptyString, None),
     ]
 
 
@@ -934,7 +937,7 @@ class OpInstanceActivateDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("ignore_size", False, ht.TBool),
+    ("ignore_size", False, ht.TBool, None),
     ]
 
 
@@ -952,7 +955,7 @@ class OpInstanceRecreateDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt)),
+    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt), None),
     ]
 
 
@@ -960,16 +963,16 @@ class OpInstanceQuery(OpCode):
   """Compute the list of instances."""
   OP_PARAMS = [
     _POutputFields,
-    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("use_locking", False, ht.TBool),
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("use_locking", False, ht.TBool, None),
     ]
 
 
 class OpInstanceQueryData(OpCode):
   """Compute the run-time status of instances."""
   OP_PARAMS = [
-    ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("static", False, ht.TBool),
+    ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("static", False, ht.TBool, None),
     ]
 
 
@@ -979,15 +982,15 @@ class OpInstanceSetParams(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PForce,
-    ("nics", ht.EmptyList, ht.TList),
-    ("disks", ht.EmptyList, ht.TList),
-    ("beparams", ht.EmptyDict, ht.TDict),
-    ("hvparams", ht.EmptyDict, ht.TDict),
-    ("disk_template", None, ht.TOr(ht.TNone, _CheckDiskTemplate)),
-    ("remote_node", None, ht.TMaybeString),
-    ("os_name", None, ht.TMaybeString),
-    ("force_variant", False, ht.TBool),
-    ("osparams", None, ht.TMaybeDict),
+    ("nics", ht.EmptyList, ht.TList, None),
+    ("disks", ht.EmptyList, ht.TList, None),
+    ("beparams", ht.EmptyDict, ht.TDict, None),
+    ("hvparams", ht.EmptyDict, ht.TDict, None),
+    ("disk_template", None, ht.TOr(ht.TNone, _CheckDiskTemplate), None),
+    ("remote_node", None, ht.TMaybeString, None),
+    ("os_name", None, ht.TMaybeString, None),
+    ("force_variant", False, ht.TBool, None),
+    ("osparams", None, ht.TMaybeDict, None),
     ]
 
 
@@ -996,9 +999,9 @@ class OpInstanceGrowDisk(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("disk", ht.NoDefault, ht.TInt),
-    ("amount", ht.NoDefault, ht.TInt),
-    ("wait_for_sync", True, ht.TBool),
+    ("disk", ht.NoDefault, ht.TInt, None),
+    ("amount", ht.NoDefault, ht.TInt, None),
+    ("wait_for_sync", True, ht.TBool, None),
     ]
 
 
@@ -1009,9 +1012,9 @@ class OpGroupAdd(OpCode):
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
-    ("ndparams", None, ht.TMaybeDict),
+    ("ndparams", None, ht.TMaybeDict, None),
     ("alloc_policy", None,
-     ht.TOr(ht.TNone, ht.TElemOf(constants.VALID_ALLOC_POLICIES))),
+     ht.TOr(ht.TNone, ht.TElemOf(constants.VALID_ALLOC_POLICIES)), None),
     ]
 
 
@@ -1021,7 +1024,7 @@ class OpGroupAssignNodes(OpCode):
   OP_PARAMS = [
     _PGroupName,
     _PForce,
-    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString)),
+    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString), None),
     ]
 
 
@@ -1029,7 +1032,7 @@ class OpGroupQuery(OpCode):
   """Compute the list of node groups."""
   OP_PARAMS = [
     _POutputFields,
-    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ]
 
 
@@ -1038,9 +1041,9 @@ class OpGroupSetParams(OpCode):
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
     _PGroupName,
-    ("ndparams", None, ht.TMaybeDict),
+    ("ndparams", None, ht.TMaybeDict, None),
     ("alloc_policy", None, ht.TOr(ht.TNone,
-                                  ht.TElemOf(constants.VALID_ALLOC_POLICIES))),
+                                  ht.TElemOf(constants.VALID_ALLOC_POLICIES)), None),
     ]
 
 
@@ -1056,8 +1059,8 @@ class OpGroupRename(OpCode):
   """Rename a node group in the cluster."""
   OP_DSC_FIELD = "old_name"
   OP_PARAMS = [
-    ("old_name", ht.NoDefault, ht.TNonEmptyString),
-    ("new_name", ht.NoDefault, ht.TNonEmptyString),
+    ("old_name", ht.NoDefault, ht.TNonEmptyString, None),
+    ("new_name", ht.NoDefault, ht.TNonEmptyString, None),
     ]
 
 
@@ -1066,7 +1069,7 @@ class OpOsDiagnose(OpCode):
   """Compute the list of guest operating systems."""
   OP_PARAMS = [
     _POutputFields,
-    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
+    ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ]
 
 
@@ -1074,8 +1077,8 @@ class OpOsDiagnose(OpCode):
 class OpBackupQuery(OpCode):
   """Compute the list of exported images."""
   OP_PARAMS = [
-    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("use_locking", False, ht.TBool),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("use_locking", False, ht.TBool, None),
     ]
 
 
@@ -1089,7 +1092,7 @@ class OpBackupPrepare(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("mode", ht.NoDefault, ht.TElemOf(constants.EXPORT_MODES)),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.EXPORT_MODES), None),
     ]
 
 
@@ -1115,13 +1118,13 @@ class OpBackupExport(OpCode):
     _PShutdownTimeout,
     # TODO: Rename target_node as it changes meaning for different export modes
     # (e.g. "destination")
-    ("target_node", ht.NoDefault, ht.TOr(ht.TNonEmptyString, ht.TList)),
-    ("shutdown", True, ht.TBool),
-    ("remove_instance", False, ht.TBool),
-    ("ignore_remove_failures", False, ht.TBool),
-    ("mode", constants.EXPORT_MODE_LOCAL, ht.TElemOf(constants.EXPORT_MODES)),
-    ("x509_key_name", None, ht.TOr(ht.TList, ht.TNone)),
-    ("destination_x509_ca", None, ht.TMaybeString),
+    ("target_node", ht.NoDefault, ht.TOr(ht.TNonEmptyString, ht.TList), None),
+    ("shutdown", True, ht.TBool, None),
+    ("remove_instance", False, ht.TBool, None),
+    ("ignore_remove_failures", False, ht.TBool, None),
+    ("mode", constants.EXPORT_MODE_LOCAL, ht.TElemOf(constants.EXPORT_MODES), None),
+    ("x509_key_name", None, ht.TOr(ht.TList, ht.TNone), None),
+    ("destination_x509_ca", None, ht.TMaybeString, None),
     ]
 
 
@@ -1140,7 +1143,7 @@ class OpTagsGet(OpCode):
   OP_PARAMS = [
     _PTagKind,
     # Name is only meaningful for nodes and instances
-    ("name", ht.NoDefault, ht.TMaybeString),
+    ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
 
 
@@ -1148,7 +1151,7 @@ class OpTagsSearch(OpCode):
   """Searches the tags in the cluster for a given pattern."""
   OP_DSC_FIELD = "pattern"
   OP_PARAMS = [
-    ("pattern", ht.NoDefault, ht.TNonEmptyString),
+    ("pattern", ht.NoDefault, ht.TNonEmptyString, None),
     ]
 
 
@@ -1158,7 +1161,7 @@ class OpTagsSet(OpCode):
     _PTagKind,
     _PTags,
     # Name is only meaningful for nodes and instances
-    ("name", ht.NoDefault, ht.TMaybeString),
+    ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
 
 
@@ -1168,7 +1171,7 @@ class OpTagsDel(OpCode):
     _PTagKind,
     _PTags,
     # Name is only meaningful for nodes and instances
-    ("name", ht.NoDefault, ht.TMaybeString),
+    ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
 
 # Test opcodes
@@ -1195,10 +1198,10 @@ class OpTestDelay(OpCode):
   """
   OP_DSC_FIELD = "duration"
   OP_PARAMS = [
-    ("duration", ht.NoDefault, ht.TFloat),
-    ("on_master", True, ht.TBool),
-    ("on_nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("repeat", 0, ht.TPositiveInt)
+    ("duration", ht.NoDefault, ht.TFloat, None),
+    ("on_master", True, ht.TBool, None),
+    ("on_nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("repeat", 0, ht.TPositiveInt, None),
     ]
 
 
@@ -1216,21 +1219,21 @@ class OpTestAllocator(OpCode):
   OP_DSC_FIELD = "allocator"
   OP_PARAMS = [
     ("direction", ht.NoDefault,
-     ht.TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)),
-    ("mode", ht.NoDefault, ht.TElemOf(constants.VALID_IALLOCATOR_MODES)),
-    ("name", ht.NoDefault, ht.TNonEmptyString),
+     ht.TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS), None),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.VALID_IALLOCATOR_MODES), None),
+    ("name", ht.NoDefault, ht.TNonEmptyString, None),
     ("nics", ht.NoDefault, ht.TOr(ht.TNone, ht.TListOf(
       ht.TDictOf(ht.TElemOf(["mac", "ip", "bridge"]),
-               ht.TOr(ht.TNone, ht.TNonEmptyString))))),
-    ("disks", ht.NoDefault, ht.TOr(ht.TNone, ht.TList)),
-    ("hypervisor", None, ht.TMaybeString),
-    ("allocator", None, ht.TMaybeString),
-    ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
-    ("mem_size", None, ht.TOr(ht.TNone, ht.TPositiveInt)),
-    ("vcpus", None, ht.TOr(ht.TNone, ht.TPositiveInt)),
-    ("os", None, ht.TMaybeString),
-    ("disk_template", None, ht.TMaybeString),
-    ("evac_nodes", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString))),
+               ht.TOr(ht.TNone, ht.TNonEmptyString)))), None),
+    ("disks", ht.NoDefault, ht.TOr(ht.TNone, ht.TList), None),
+    ("hypervisor", None, ht.TMaybeString, None),
+    ("allocator", None, ht.TMaybeString, None),
+    ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
+    ("mem_size", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
+    ("vcpus", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
+    ("os", None, ht.TMaybeString, None),
+    ("disk_template", None, ht.TMaybeString, None),
+    ("evac_nodes", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)), None),
     ]
 
 
@@ -1239,10 +1242,10 @@ class OpTestJqueue(OpCode):
 
   """
   OP_PARAMS = [
-    ("notify_waitlock", False, ht.TBool),
-    ("notify_exec", False, ht.TBool),
-    ("log_messages", ht.EmptyList, ht.TListOf(ht.TString)),
-    ("fail", False, ht.TBool),
+    ("notify_waitlock", False, ht.TBool, None),
+    ("notify_exec", False, ht.TBool, None),
+    ("log_messages", ht.EmptyList, ht.TListOf(ht.TString), None),
+    ("fail", False, ht.TBool, None),
     ]
 
 
@@ -1251,9 +1254,9 @@ class OpTestDummy(OpCode):
 
   """
   OP_PARAMS = [
-    ("result", ht.NoDefault, ht.NoType),
-    ("messages", ht.NoDefault, ht.NoType),
-    ("fail", ht.NoDefault, ht.NoType),
+    ("result", ht.NoDefault, ht.NoType, None),
+    ("messages", ht.NoDefault, ht.NoType, None),
+    ("fail", ht.NoDefault, ht.NoType, None),
     ]
   WITH_LU = False
 
