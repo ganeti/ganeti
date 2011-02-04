@@ -2,6 +2,45 @@ Ganeti-htools release notes
 ===========================
 
 
+Version 0.3.0 (Fri, 04 Feb 2011)
+--------------------------------
+
+A significant release that breaks compatibility with Ganeti versions
+below 2.4 due to the node group changes. Only the RAPI backend can talk
+to older clusters, but it is recommended to use this version only with
+Ganeti 2.4.
+
+All commands are now multi-group aware (but to various degrees), so
+allocation, balancing and capacity calculation respects the group layout
+and will not create “broken” instances by using nodes from different
+groups.
+
+For a regular, single-group cluster, no changes should be directly
+visible to the users. A multi-group cluster however will change some
+things slightly:
+
+- hbal will require a target group to operate on (no cluster-wide
+  balancing yet)
+- evacuation of (DRBD) instances from a node will be restricted to nodes
+  in the same group, as inter-group moves are not implemented yet
+- capacity, while showing correct data, will not give per-group details
+  yet
+
+There are other changes in this release:
+
+- fixed a long-standing bug in hscan related to node memory data
+- changed the text backend format, which unfortunately invalidates old
+  files
+- error handling improvements, so that invalid input data reports better
+  where the error is
+- the simulation backend changes its syntax, now it takes the allocation
+  policy too, and can generate multiple groups
+- (internal) man page generation moved to pandoc from hand-written,
+  which is helpful as it can also generate HTML versions
+- the balancing algorithm has been changed to work in parallel, if the
+  code is linked against the multi-threaded runtime; this gives a very
+  good speedup (~80% on 4 cores, ~60-70% of 12 cores)
+
 Version 0.2.8 (Thu, 23 Dec 2010)
 --------------------------------
 
