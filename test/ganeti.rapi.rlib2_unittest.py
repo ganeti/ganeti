@@ -437,5 +437,44 @@ class TestParseRenameGroupRequest(testutils.GanetiTestCase):
     self.assert_(op.dry_run)
 
 
+class TestParseInstanceReplaceDisksRequest(unittest.TestCase):
+  def setUp(self):
+    self.Parse = rlib2._ParseInstanceReplaceDisksRequest
+
+  def test(self):
+    name = "inst22568"
+
+    for disks in [range(1, 4), "1,2,3", "1, 2, 3"]:
+      data = {
+        "mode": constants.REPLACE_DISK_SEC,
+        "disks": disks,
+        "iallocator": "myalloc",
+        }
+
+      op = self.Parse(name, data)
+      self.assert_(isinstance(op, opcodes.OpInstanceReplaceDisks))
+      self.assertEqual(op.mode, constants.REPLACE_DISK_SEC)
+      self.assertEqual(op.disks, [1, 2, 3])
+      self.assertEqual(op.iallocator, "myalloc")
+
+  def testDefaults(self):
+    name = "inst11413"
+    data = {
+      "mode": constants.REPLACE_DISK_AUTO,
+      }
+
+    op = self.Parse(name, data)
+    self.assert_(isinstance(op, opcodes.OpInstanceReplaceDisks))
+    self.assertEqual(op.mode, constants.REPLACE_DISK_AUTO)
+    self.assertFalse(hasattr(op, "iallocator"))
+    self.assertFalse(hasattr(op, "disks"))
+
+  def testWrong(self):
+    self.assertRaises(http.HttpBadRequest, self.Parse, "inst",
+                      { "mode": constants.REPLACE_DISK_AUTO,
+                        "disks": "hello world",
+                      })
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

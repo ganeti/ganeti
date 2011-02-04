@@ -47,6 +47,7 @@ from ganeti import constants
 from ganeti import cli
 from ganeti import utils
 from ganeti import rapi
+from ganeti import ht
 from ganeti.rapi import baserlib
 
 
@@ -1076,6 +1077,33 @@ class R_2_instances_name_reinstall(baserlib.R_Generic):
     return baserlib.SubmitJob(ops)
 
 
+def _ParseInstanceReplaceDisksRequest(name, data):
+  """Parses a request for an instance export.
+
+  @rtype: L{opcodes.OpInstanceReplaceDisks}
+  @return: Instance export opcode
+
+  """
+  override = {
+    "instance_name": name,
+    }
+
+  # Parse disks
+  try:
+    raw_disks = data["disks"]
+  except KeyError:
+    pass
+  else:
+    if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable-msg=E1102
+      # Backwards compatibility for strings of the format "1, 2, 3"
+      try:
+        data["disks"] = [int(part) for part in raw_disks.split(",")]
+      except (TypeError, ValueError), err:
+        raise http.HttpBadRequest("Invalid disk index passed: %s" % str(err))
+
+  return baserlib.FillOpcode(opcodes.OpInstanceReplaceDisks, data, override)
+
+
 class R_2_instances_name_replace_disks(baserlib.R_Generic):
   """/2/instances/[instance_name]/replace-disks resource.
 
@@ -1084,25 +1112,7 @@ class R_2_instances_name_replace_disks(baserlib.R_Generic):
     """Replaces disks on an instance.
 
     """
-    instance_name = self.items[0]
-    remote_node = self._checkStringVariable("remote_node", default=None)
-    mode = self._checkStringVariable("mode", default=None)
-    raw_disks = self._checkStringVariable("disks", default=None)
-    iallocator = self._checkStringVariable("iallocator", default=None)
-
-    if raw_disks:
-      try:
-        disks = [int(part) for part in raw_disks.split(",")]
-      except ValueError, err:
-        raise http.HttpBadRequest("Invalid disk index passed: %s" % str(err))
-    else:
-      disks = []
-
-    op = opcodes.OpInstanceReplaceDisks(instance_name=instance_name,
-                                        remote_node=remote_node,
-                                        mode=mode,
-                                        disks=disks,
-                                        iallocator=iallocator)
+    op = _ParseInstanceReplaceDisksRequest(self.items[0], self.request_body)
 
     return baserlib.SubmitJob([op])
 
