@@ -1264,30 +1264,9 @@ def _ParseModifyInstanceRequest(name, data):
   @return: Instance modify opcode
 
   """
-  osparams = baserlib.CheckParameter(data, "osparams", default={})
-  force = baserlib.CheckParameter(data, "force", default=False)
-  nics = baserlib.CheckParameter(data, "nics", default=[])
-  disks = baserlib.CheckParameter(data, "disks", default=[])
-  disk_template = baserlib.CheckParameter(data, "disk_template", default=None)
-  remote_node = baserlib.CheckParameter(data, "remote_node", default=None)
-  os_name = baserlib.CheckParameter(data, "os_name", default=None)
-  force_variant = baserlib.CheckParameter(data, "force_variant", default=False)
-
-  # HV/BE parameters
-  hvparams = baserlib.CheckParameter(data, "hvparams", default={})
-  utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES,
-                      allowed_values=[constants.VALUE_DEFAULT])
-
-  beparams = baserlib.CheckParameter(data, "beparams", default={})
-  utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES,
-                      allowed_values=[constants.VALUE_DEFAULT])
-
-  return opcodes.OpInstanceSetParams(instance_name=name, hvparams=hvparams,
-                                     beparams=beparams, osparams=osparams,
-                                     force=force, nics=nics, disks=disks,
-                                     disk_template=disk_template,
-                                     remote_node=remote_node, os_name=os_name,
-                                     force_variant=force_variant)
+  return baserlib.FillOpcode(opcodes.OpInstanceSetParams, data, {
+    "instance_name": name,
+    })
 
 
 class R_2_instances_name_modify(baserlib.R_Generic):

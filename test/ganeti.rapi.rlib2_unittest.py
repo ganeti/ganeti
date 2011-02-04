@@ -338,9 +338,9 @@ class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
                   self.assertEqual(op.nics, nics)
                   self.assertEqual(op.disks, disks)
                   self.assertEqual(op.disk_template, disk_template)
-                  self.assert_(op.remote_node is None)
-                  self.assert_(op.os_name is None)
-                  self.assertFalse(op.force_variant)
+                  self.assertFalse(hasattr(op, "remote_node"))
+                  self.assertFalse(hasattr(op, "os_name"))
+                  self.assertFalse(hasattr(op, "force_variant"))
 
   def testDefaults(self):
     name = "instir8aish31"
@@ -348,16 +348,9 @@ class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
     op = self.Parse(name, {})
     self.assert_(isinstance(op, opcodes.OpInstanceSetParams))
     self.assertEqual(op.instance_name, name)
-    self.assertEqual(op.hvparams, {})
-    self.assertEqual(op.beparams, {})
-    self.assertEqual(op.osparams, {})
-    self.assertFalse(op.force)
-    self.assertEqual(op.nics, [])
-    self.assertEqual(op.disks, [])
-    self.assert_(op.disk_template is None)
-    self.assert_(op.remote_node is None)
-    self.assert_(op.os_name is None)
-    self.assertFalse(op.force_variant)
+    for i in ["hvparams", "beparams", "osparams", "force", "nics", "disks",
+              "disk_template", "remote_node", "os_name", "force_variant"]:
+      self.assertFalse(hasattr(op, i))
 
 
 class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
