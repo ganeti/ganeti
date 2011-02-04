@@ -443,22 +443,28 @@ def ReinstallInstance(opts, args):
       return 1
 
     os_name = selected
+    os_msg = "change the OS to '%s'" % selected
   else:
     os_name = opts.os
+    if opts.os is not None:
+      os_msg = "change the OS to '%s'" % os_name
+    else:
+      os_msg = "keep the same OS"
 
   # third, get confirmation: multi-reinstall requires --force-multi,
   # single-reinstall either --force or --force-multi (--force-multi is
   # a stronger --force)
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if multi_on:
-    warn_msg = "Note: this will remove *all* data for the below instances!\n"
+    warn_msg = ("Note: this will remove *all* data for the"
+                " below instances! It will %s.\n" % os_msg)
     if not (opts.force_multi or
             ConfirmOperation(inames, "instances", "reinstall", extra=warn_msg)):
       return 1
   else:
     if not (opts.force or opts.force_multi):
-      usertext = ("This will reinstall the instance %s and remove"
-                  " all data. Continue?") % inames[0]
+      usertext = ("This will reinstall the instance '%s' (and %s) which"
+                  " removes all data. Continue?") % (inames[0], os_msg)
       if not AskUser(usertext):
         return 1
 
