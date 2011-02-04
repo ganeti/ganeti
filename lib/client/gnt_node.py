@@ -119,6 +119,10 @@ FORCE_MASTER_OPT = cli_option("--force-master", default=False,
                               help=("Operate on the master node too"
                                     " (potentially DANGEROUS)"))
 
+OOB_TIMEOUT_OPT = cli_option("--oob-timeout", dest="oob_timeout", type="int",
+                         default=constants.OOB_TIMEOUT,
+                         help="Maximum time to wait for out-of-band helper")
+
 
 def ConvertStorageType(user_storage_type):
   """Converts a user storage type to its internal name.
@@ -529,7 +533,8 @@ def PowerNode(opts, args):
   opcodelist.append(opcodes.OpOobCommand(node_names=nodes,
                                          command=oob_command,
                                          ignore_status=opts.ignore_status,
-                                         force_master=opts.force_master))
+                                         force_master=opts.force_master,
+                                         timeout=opts.oob_timeout))
 
   cli.SetGenericOpcodeOpts(opcodelist, opts)
 
@@ -582,7 +587,8 @@ def Health(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpOobCommand(node_names=args, command=constants.OOB_HEALTH)
+  op = opcodes.OpOobCommand(node_names=args, command=constants.OOB_HEALTH,
+                            timeout=opts.oob_timeout)
   result = SubmitOpCode(op, opts=opts)
 
   if opts.no_headers:
@@ -864,7 +870,8 @@ commands = {
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
      ArgNode()],
     [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT, IGNORE_STATUS_OPT,
-     FORCE_MASTER_OPT, FORCE_OPT, NOHDR_OPT, SEP_OPT, ALL_OPT],
+     FORCE_MASTER_OPT, FORCE_OPT, NOHDR_OPT, SEP_OPT, ALL_OPT,
+     OOB_TIMEOUT_OPT],
     "on|off|cycle|status [nodes...]",
     "Change power state of node by calling out-of-band helper."),
   'remove': (
@@ -908,7 +915,7 @@ commands = {
     "<node_name> tag...", "Remove tags from the given node"),
   "health": (
     Health, ARGS_MANY_NODES,
-    [NOHDR_OPT, SEP_OPT, SUBMIT_OPT, PRIORITY_OPT],
+    [NOHDR_OPT, SEP_OPT, SUBMIT_OPT, PRIORITY_OPT, OOB_TIMEOUT_OPT],
     "[<node_name>...]", "List health of node(s) using out-of-band"),
   }
 
