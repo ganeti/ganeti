@@ -217,6 +217,9 @@ def GenericManyOps(operation, fn):
     cl = GetClient()
     inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
     if not inames:
+      if opts.multi_mode == _SHUTDOWN_CLUSTER:
+        ToStdout("Cluster is empty, no instances to shutdown")
+        return 0
       raise errors.OpPrereqError("Selection filter does not match"
                                  " any instances", errors.ECODE_INVAL)
     multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
