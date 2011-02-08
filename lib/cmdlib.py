@@ -1554,7 +1554,7 @@ class LUClusterVerify(LogicalUnit):
                node_current)
 
     for node, n_img in node_image.items():
-      if (not node == node_current):
+      if node != node_current:
         test = instance in n_img.instances
         _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
                  "instance should not run on node %s", node)
@@ -1564,7 +1564,11 @@ class LUClusterVerify(LogicalUnit):
                 for idx, (success, status) in enumerate(disks)]
 
     for nname, success, bdev_status, idx in diskdata:
-      _ErrorIf(instanceconfig.admin_up and not success,
+      # the 'ghost node' construction in Exec() ensures that we have a
+      # node here
+      snode = node_image[nname]
+      bad_snode = snode.ghost or snode.offline
+      _ErrorIf(instanceconfig.admin_up and not success and not bad_snode,
                self.EINSTANCEFAULTYDISK, instance,
                "couldn't retrieve status for disk/%s on %s: %s",
                idx, nname, bdev_status)
