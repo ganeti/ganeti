@@ -261,8 +261,14 @@ docrst = \
 
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 
+# Note: we use here an order-only prerequisite, as the contents of
+# _autoconf.py are not actually influencing the html build output: it
+# has to exist in order for the sphinx module to be loaded
+# successfully, but we certainly don't want the docs to be rebuilt if
+# it changes
 doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
-	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py lib/opcodes.py lib/ht.py
+	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py lib/opcodes.py lib/ht.py \
+	| lib/_autoconf.py
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
 	@mkdir_p@ $(dir $@)
