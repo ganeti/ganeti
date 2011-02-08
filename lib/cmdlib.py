@@ -1622,6 +1622,12 @@ class LUClusterVerify(LogicalUnit):
       # WARNING: we currently take into account down instances as well
       # as up ones, considering that even if they're down someone
       # might want to start them even in the event of a node failure.
+      if n_img.offline:
+        # we're skipping offline nodes from the N+1 warning, since
+        # most likely we don't have good memory infromation from them;
+        # we already list instances living on such nodes, and that's
+        # enough warning
+        continue
       for prinode, instances in n_img.sbp.items():
         needed_mem = 0
         for instance in instances:
