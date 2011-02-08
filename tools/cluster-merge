@@ -76,16 +76,16 @@ class MergerData(object):
 
     @param cluster: The name of the cluster
     @param key_path: Path to the ssh private key used for authentication
-    @param config_path: Path to the merging cluster config
     @param nodes: List of nodes in the merging cluster
     @param instances: List of instances running on merging cluster
+    @param config_path: Path to the merging cluster config
 
     """
     self.cluster = cluster
     self.key_path = key_path
-    self.config_path = config_path
-    self.instances = instances
     self.nodes = nodes
+    self.instances = instances
+    self.config_path = config_path
 
 
 class Merger(object):
