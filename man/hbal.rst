@@ -460,8 +460,9 @@ The options that can be passed to the program are as follows:
 EXIT STATUS
 -----------
 
-The exist status of the command will be zero, unless for some reason
-the algorithm fatally failed (e.g. wrong node or instance data).
+The exit status of the command will be zero, unless for some reason
+the algorithm fatally failed (e.g. wrong node or instance data), or
+(in case of job execution) any job has failed.
 
 ENVIRONMENT
 -----------
