@@ -84,7 +84,7 @@ dist: regen-version Ganeti/HTools/Version.hs doc
 	rm -f $$ANAME $$ANAME.gz ; \
 	git archive --format=tar --prefix=$$PFX/ HEAD > $$ANAME ; \
 	tar -r -f $$ANAME --owner root --group root \
-	    --transform="s,^,$$PFX/," version apidoc $(DOCS) $(MANS); \
+	    --transform="s,^,$$PFX/,S" version apidoc $(DOCS) $(MANS); \
 	gzip -v9 $$ANAME ; \
 	TMPDIR=$$(mktemp -d) ; \
 	tar xzf $$ANAME.gz -C $$TMPDIR; \
