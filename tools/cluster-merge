@@ -403,25 +403,26 @@ class Merger(object):
       logging.info("Merging config")
       self._FetchRemoteConfig()
 
-      def _OfflineClusterMerge(_):
-        """Closure run when master daemons stopped
+      logging.info("Stopping master daemon")
+      self._KillMasterDaemon()
 
-        """
-        rbsteps.append("Restore %s from another master candidate" %
-                       constants.CLUSTER_CONF_FILE)
-        self._MergeConfig()
-        self._StartMasterDaemon(no_vote=True)
+      rbsteps.append("Restore %s from another master candidate"
+                     " and restart master daemon" %
+                     constants.CLUSTER_CONF_FILE)
+      self._MergeConfig()
+      self._StartMasterDaemon(no_vote=True)
 
-        # Point of no return, delete rbsteps
-        del rbsteps[:]
+      # Point of no return, delete rbsteps
+      del rbsteps[:]
 
-        logging.warning("We are at the point of no return. Merge can not easily"
-                        " be undone after this point.")
-        logging.info("Readd nodes and redistribute config")
-        self._ReaddMergedNodesAndRedist()
-        self._KillMasterDaemon()
+      logging.warning("We are at the point of no return. Merge can not easily"
+                      " be undone after this point.")
+      logging.info("Readd nodes")
+      self._ReaddMergedNodesAndRedist()
 
-      cli.RunWhileClusterStopped(logging.info, _OfflineClusterMerge)
+      logging.info("Merge done, restart master daemon normally")
+      self._KillMasterDaemon()
+      self._StartMasterDaemon()
 
       logging.info("Starting instances again")
       self._StartupAllInstances()
