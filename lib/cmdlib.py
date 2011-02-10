@@ -11025,8 +11025,7 @@ class IAllocator(object):
           "i_pri_up_memory": i_p_up_mem,
           }
         pnr_dyn.update(node_results[nname])
-
-      node_results[nname] = pnr_dyn
+        node_results[nname] = pnr_dyn
 
     return node_results
 
