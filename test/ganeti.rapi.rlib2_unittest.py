@@ -476,5 +476,39 @@ class TestParseInstanceReplaceDisksRequest(unittest.TestCase):
                       })
 
 
+class TestParseModifyGroupRequest(unittest.TestCase):
+  def setUp(self):
+    self.Parse = rlib2._ParseModifyGroupRequest
+
+  def test(self):
+    name = "group6002"
+
+    for policy in constants.VALID_ALLOC_POLICIES:
+      data = {
+        "alloc_policy": policy,
+        }
+
+      op = self.Parse(name, data)
+      self.assert_(isinstance(op, opcodes.OpGroupSetParams))
+      self.assertEqual(op.group_name, name)
+      self.assertEqual(op.alloc_policy, policy)
+
+  def testUnknownPolicy(self):
+    data = {
+      "alloc_policy": "_unknown_policy_",
+      }
+
+    self.assertRaises(http.HttpBadRequest, self.Parse, "name", data)
+
+  def testDefaults(self):
+    name = "group6679"
+    data = {}
+
+    op = self.Parse(name, data)
+    self.assert_(isinstance(op, opcodes.OpGroupSetParams))
+    self.assertEqual(op.group_name, name)
+    self.assertFalse(hasattr(op, "alloc_policy"))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

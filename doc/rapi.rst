@@ -451,8 +451,8 @@ Returns a job ID.
 
 Body parameters:
 
-``alloc_policy`` (string)
-  If present, the new allocation policy for the node group.
+.. opcode_params:: OP_GROUP_SET_PARAMS
+   :exclude: group_name
 
 
 ``/2/groups/[group_name]/rename``

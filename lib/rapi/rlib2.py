@@ -628,8 +628,10 @@ def _ParseModifyGroupRequest(name, data):
   @return: Group modify opcode
 
   """
-  alloc_policy = baserlib.CheckParameter(data, "alloc_policy", default=None)
-  return opcodes.OpGroupSetParams(group_name=name, alloc_policy=alloc_policy)
+  return baserlib.FillOpcode(opcodes.OpGroupSetParams, data, {
+    "group_name": name,
+    })
+
 
 
 class R_2_groups_name_modify(baserlib.R_Generic):
