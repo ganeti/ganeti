@@ -170,7 +170,7 @@ def MakeParamsDict(opts, params):
   return result
 
 
-def FillOpcode(opcls, body, static):
+def FillOpcode(opcls, body, static, rename=None):
   """Fills an opcode with body parameters.
 
   Parameter types are checked.
@@ -181,21 +181,32 @@ def FillOpcode(opcls, body, static):
   @param body: Body parameters as received from client
   @type static: dict
   @param static: Static parameters which can't be modified by client
+  @type rename: dict
+  @param rename: Renamed parameters, key as old name, value as new name
   @return: Opcode object
 
   """
   CheckType(body, dict, "Body contents")
 
+  # Make copy to be modified
+  params = body.copy()
+
+  if rename:
+    for old, new in rename.items():
+      if new in params and old in params:
+        raise http.HttpBadRequest("Parameter '%s' was renamed to '%s', but"
+                                  " both are specified" %
+                                  (old, new))
+      if old in params:
+        assert new not in params
+        params[new] = params.pop(old)
+
   if static:
-    overwritten = set(body.keys()) & set(static.keys())
+    overwritten = set(params.keys()) & set(static.keys())
     if overwritten:
       raise http.HttpBadRequest("Can't overwrite static parameters %r" %
                                 overwritten)
 
-  # Combine parameters
-  params = body.copy()
-
-  if static:
     params.update(static)
 
   # Convert keys to strings (simplejson decodes them as unicode)
