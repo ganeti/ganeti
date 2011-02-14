@@ -53,9 +53,6 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
 
       # Disk with mode
       [{"size": 123, "mode": constants.DISK_RDWR, }],
-
-      # With unknown setting
-      [{"size": 123, "unknown": 999 }],
       ]
 
     nic_variants = [
@@ -72,9 +69,6 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
         },
         { "mode": constants.NIC_MODE_BRIDGED, "link": "n0", "bridge": "br1", },
       ],
-
-      # Unknown settings
-      [{ "unknown": 999, }, { "foobar": "Hello World", }],
       ]
 
     beparam_variants = [
@@ -137,14 +131,68 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
                     self.assertFalse("foobar" in opnic)
 
                   if beparams is None:
-                    self.assertEqualValues(op.beparams, {})
+                    self.assertFalse(hasattr(op, "beparams"))
                   else:
                     self.assertEqualValues(op.beparams, beparams)
 
                   if hvparams is None:
-                    self.assertEqualValues(op.hvparams, {})
+                    self.assertFalse(hasattr(op, "hvparams"))
                   else:
                     self.assertEqualValues(op.hvparams, hvparams)
+
+  def testLegacyName(self):
+    name = "inst29128.example.com"
+    data = {
+      "name": name,
+      "disks": [],
+      "nics": [],
+      "mode": constants.INSTANCE_CREATE,
+      "disk_template": constants.DT_PLAIN,
+      }
+    op = self.Parse(data, False)
+    self.assert_(isinstance(op, opcodes.OpInstanceCreate))
+    self.assertEqual(op.instance_name, name)
+    self.assertFalse(hasattr(op, "name"))
+
+    # Define both
+    data = {
+      "name": name,
+      "instance_name": "other.example.com",
+      "disks": [],
+      "nics": [],
+      "mode": constants.INSTANCE_CREATE,
+      "disk_template": constants.DT_PLAIN,
+      }
+    self.assertRaises(http.HttpBadRequest, self.Parse, data, False)
+
+  def testLegacyOs(self):
+    name = "inst4673.example.com"
+    os = "linux29206"
+    data = {
+      "name": name,
+      "os_type": os,
+      "disks": [],
+      "nics": [],
+      "mode": constants.INSTANCE_CREATE,
+      "disk_template": constants.DT_PLAIN,
+      }
+    op = self.Parse(data, False)
+    self.assert_(isinstance(op, opcodes.OpInstanceCreate))
+    self.assertEqual(op.instance_name, name)
+    self.assertEqual(op.os_type, os)
+    self.assertFalse(hasattr(op, "os"))
+
+    # Define both
+    data = {
+      "instance_name": name,
+      "os": os,
+      "os_type": "linux9584",
+      "disks": [],
+      "nics": [],
+      "mode": constants.INSTANCE_CREATE,
+      "disk_template": constants.DT_PLAIN,
+      }
+    self.assertRaises(http.HttpBadRequest, self.Parse, data, False)
 
   def testErrors(self):
     # Test all required fields
@@ -154,7 +202,6 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
       "nics": [],
       "mode": constants.INSTANCE_CREATE,
       "disk_template": constants.DT_PLAIN,
-      "os": "debootstrap",
       }
 
     for name in reqfields.keys():
@@ -164,14 +211,8 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
 
     # Invalid disks and nics
     for field in ["disks", "nics"]:
-      invalid_values = [None, 1, "", {}, [1, 2, 3], ["hda1", "hda2"]]
-
-      if field == "disks":
-        invalid_values.append([
-          # Disks without size
-          {},
-          { "mode": constants.DISK_RDWR, },
-          ])
+      invalid_values = [None, 1, "", {}, [1, 2, 3], ["hda1", "hda2"],
+                        [{"_unknown_": 999, }]]
 
       for invvalue in invalid_values:
         data = reqfields.copy()

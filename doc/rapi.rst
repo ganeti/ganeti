@@ -567,63 +567,13 @@ Body parameters:
 ``__version__`` (int, required)
   Must be ``1`` (older Ganeti versions used a different format for
   instance creation requests, version ``0``, but that format is not
-  documented).
-``mode`` (string, required)
-  Instance creation mode.
-``name`` (string, required)
-  Instance name.
-``disk_template`` (string, required)
-  Disk template for instance.
-``disks`` (list, required)
-  List of disk definitions. Example: ``[{"size": 100}, {"size": 5}]``.
-  Each disk definition must contain a ``size`` value and can contain an
-  optional ``mode`` value denoting the disk access mode (``ro`` or
-  ``rw``).
-``nics`` (list, required)
-  List of NIC (network interface) definitions. Example: ``[{}, {},
-  {"ip": "198.51.100.4"}]``. Each NIC definition can contain the
-  optional values ``ip``, ``mode``, ``link`` and ``bridge``.
-``os`` (string, required)
-  Instance operating system.
-``osparams`` (dictionary)
-  Dictionary with OS parameters. If not valid for the given OS, the job
-  will fail.
-``force_variant`` (bool)
-  Whether to force an unknown variant.
-``no_install`` (bool)
-  Do not install the OS (will enable no-start)
-``pnode`` (string)
-  Primary node.
-``snode`` (string)
-  Secondary node.
-``src_node`` (string)
-  Source node for import.
-``src_path`` (string)
-  Source directory for import.
-``start`` (bool)
-  Whether to start instance after creation.
-``ip_check`` (bool)
-  Whether to ensure instance's IP address is inactive.
-``name_check`` (bool)
-  Whether to ensure instance's name is resolvable.
-``file_storage_dir`` (string)
-  File storage directory.
-``file_driver`` (string)
-  File storage driver.
-``iallocator`` (string)
-  Instance allocator name.
-``source_handshake`` (list)
-  Signed handshake from source (remote import only).
-``source_x509_ca`` (string)
-  Source X509 CA in PEM format (remote import only).
-``source_instance_name`` (string)
-  Source instance name (remote import only).
-``hypervisor`` (string)
-  Hypervisor name.
-``hvparams`` (dict)
-  Hypervisor parameters, hypervisor-dependent.
-``beparams`` (dict)
-  Backend parameters.
+  documented and should no longer be used).
+
+.. opcode_params:: OP_INSTANCE_CREATE
+
+Earlier versions used parameters named ``name`` and ``os``. These have
+been replaced by ``instance_name`` and ``os_type`` to match the
+underlying opcode. The old names can still be used.
 
 
 ``/2/instances/[instance_name]``

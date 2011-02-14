@@ -45,7 +45,6 @@ from ganeti import opcodes
 from ganeti import http
 from ganeti import constants
 from ganeti import cli
-from ganeti import utils
 from ganeti import rapi
 from ganeti import ht
 from ganeti.rapi import baserlib
@@ -714,99 +713,17 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
   @return: Instance creation opcode
 
   """
-  # Disks
-  disks_input = baserlib.CheckParameter(data, "disks", exptype=list)
+  override = {
+    "dry_run": dry_run,
+    }
 
-  disks = []
-  for idx, i in enumerate(disks_input):
-    baserlib.CheckType(i, dict, "Disk %d specification" % idx)
+  rename = {
+    "os": "os_type",
+    "name": "instance_name",
+    }
 
-    # Size is mandatory
-    try:
-      size = i[constants.IDISK_SIZE]
-    except KeyError:
-      raise http.HttpBadRequest("Disk %d specification wrong: missing disk"
-                                " size" % idx)
-
-    disk = {
-      constants.IDISK_SIZE: size,
-      }
-
-    # Optional disk access mode
-    try:
-      disk_access = i[constants.IDISK_MODE]
-    except KeyError:
-      pass
-    else:
-      disk[constants.IDISK_MODE] = disk_access
-
-    disks.append(disk)
-
-  assert len(disks_input) == len(disks)
-
-  # Network interfaces
-  nics_input = baserlib.CheckParameter(data, "nics", exptype=list)
-
-  nics = []
-  for idx, i in enumerate(nics_input):
-    baserlib.CheckType(i, dict, "NIC %d specification" % idx)
-
-    nic = {}
-
-    for field in constants.INIC_PARAMS:
-      try:
-        value = i[field]
-      except KeyError:
-        continue
-
-      nic[field] = value
-
-    nics.append(nic)
-
-  assert len(nics_input) == len(nics)
-
-  # HV/BE parameters
-  hvparams = baserlib.CheckParameter(data, "hvparams", default={})
-  utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
-
-  beparams = baserlib.CheckParameter(data, "beparams", default={})
-  utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
-
-  return opcodes.OpInstanceCreate(
-    mode=baserlib.CheckParameter(data, "mode"),
-    instance_name=baserlib.CheckParameter(data, "name"),
-    os_type=baserlib.CheckParameter(data, "os"),
-    osparams=baserlib.CheckParameter(data, "osparams", default={}),
-    force_variant=baserlib.CheckParameter(data, "force_variant",
-                                          default=False),
-    no_install=baserlib.CheckParameter(data, "no_install", default=False),
-    pnode=baserlib.CheckParameter(data, "pnode", default=None),
-    snode=baserlib.CheckParameter(data, "snode", default=None),
-    disk_template=baserlib.CheckParameter(data, "disk_template"),
-    disks=disks,
-    nics=nics,
-    src_node=baserlib.CheckParameter(data, "src_node", default=None),
-    src_path=baserlib.CheckParameter(data, "src_path", default=None),
-    start=baserlib.CheckParameter(data, "start", default=True),
-    wait_for_sync=True,
-    ip_check=baserlib.CheckParameter(data, "ip_check", default=True),
-    name_check=baserlib.CheckParameter(data, "name_check", default=True),
-    file_storage_dir=baserlib.CheckParameter(data, "file_storage_dir",
-                                             default=None),
-    file_driver=baserlib.CheckParameter(data, "file_driver",
-                                        default=constants.FD_LOOP),
-    source_handshake=baserlib.CheckParameter(data, "source_handshake",
-                                             default=None),
-    source_x509_ca=baserlib.CheckParameter(data, "source_x509_ca",
-                                           default=None),
-    source_instance_name=baserlib.CheckParameter(data, "source_instance_name",
-                                                 default=None),
-    iallocator=baserlib.CheckParameter(data, "iallocator", default=None),
-    hypervisor=baserlib.CheckParameter(data, "hypervisor", default=None),
-    hvparams=hvparams,
-    beparams=beparams,
-    dry_run=dry_run,
-    )
+  return baserlib.FillOpcode(opcodes.OpInstanceCreate, data, override,
+                             rename=rename)
 
 
 class R_2_instances(baserlib.R_Generic):

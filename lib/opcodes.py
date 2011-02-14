@@ -121,6 +121,12 @@ _TestClusterOsList = ht.TOr(ht.TNone,
             ht.TElemOf(constants.DDMS_VALUES)))))
 
 
+# TODO: Generate check from constants.INIC_PARAMS_TYPES
+#: Utility function for testing NIC definitions
+_TestNicDef = ht.TDictOf(ht.TElemOf(constants.INIC_PARAMS),
+                         ht.TOr(ht.TNone, ht.TNonEmptyString))
+
+
 def _NameToId(name):
   """Convert an opcode class name to an OP_ID.
 
@@ -841,7 +847,17 @@ class OpInstanceCreate(OpCode):
     _PWaitForSync,
     _PNameCheck,
     ("beparams", ht.EmptyDict, ht.TDict, "Backend parameters for instance"),
-    ("disks", ht.NoDefault, ht.TListOf(ht.TDict), "Disk descriptions"),
+    ("disks", ht.NoDefault,
+     # TODO: Generate check from constants.IDISK_PARAMS_TYPES
+     ht.TListOf(ht.TDictOf(ht.TElemOf(constants.IDISK_PARAMS),
+                           ht.TOr(ht.TNonEmptyString, ht.TInt))),
+     "Disk descriptions, for example ``[{\"%s\": 100}, {\"%s\": 5}]``;"
+     " each disk definition must contain a ``%s`` value and"
+     " can contain an optional ``%s`` value denoting the disk access mode"
+     " (%s)" %
+     (constants.IDISK_SIZE, constants.IDISK_SIZE, constants.IDISK_SIZE,
+      constants.IDISK_MODE,
+      " or ".join("``%s``" % i for i in sorted(constants.DISK_ACCESS_SET)))),
     ("disk_template", ht.NoDefault, _CheckDiskTemplate, "Disk template"),
     ("file_driver", None, ht.TOr(ht.TNone, ht.TElemOf(constants.FILE_DRIVER)),
      "Driver for file-backed disks"),
@@ -857,8 +873,12 @@ class OpInstanceCreate(OpCode):
     ("ip_check", True, ht.TBool, _PIpCheckDoc),
     ("mode", ht.NoDefault, ht.TElemOf(constants.INSTANCE_CREATE_MODES),
      "Instance creation mode"),
-    ("nics", ht.NoDefault, ht.TListOf(ht.TDict),
-     "List of NIC (network interface) definitions"),
+    ("nics", ht.NoDefault, ht.TListOf(_TestNicDef),
+     "List of NIC (network interface) definitions, for example"
+     " ``[{}, {}, {\"%s\": \"198.51.100.4\"}]``; each NIC definition can"
+     " contain the optional values %s" %
+     (constants.INIC_IP,
+      ", ".join("``%s``" % i for i in sorted(constants.INIC_PARAMS)))),
     ("no_install", None, ht.TMaybeBool,
      "Do not install the OS (will disable automatic start)"),
     ("osparams", ht.EmptyDict, ht.TDict, "OS parameters for instance"),
@@ -870,7 +890,8 @@ class OpInstanceCreate(OpCode):
     ("source_instance_name", None, ht.TMaybeString,
      "Source instance name (remote import only)"),
     ("source_shutdown_timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT,
-     ht.TPositiveInt, "How long source instance was given to shut down"),
+     ht.TPositiveInt,
+     "How long source instance was given to shut down (remote import only)"),
     ("source_x509_ca", None, ht.TMaybeString,
      "Source X509 CA in PEM format (remote import only)"),
     ("src_node", None, ht.TMaybeString, "Source node for import"),
@@ -1074,6 +1095,7 @@ class OpInstanceSetParams(OpCode):
     _PInstanceName,
     _PForce,
     _PForceVariant,
+    # TODO: Use _TestNicDef
     ("nics", ht.EmptyList, ht.TList,
      "List of NIC changes. Each item is of the form ``(op, settings)``."
      " ``op`` can be ``%s`` to add a new NIC with the specified settings,"
