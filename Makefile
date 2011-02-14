@@ -54,6 +54,7 @@ doc: $(DOCS) Ganeti/HTools/Version.hs
 maintainer-clean:
 	rm -rf $(HDDIR)
 	rm -f $(DOCS) TAGS version Ganeti/HTools/Version.hs
+	rm -f $(MANS) $(MANHTML)
 
 clean:
 	rm -f $(HALLPROGS)
@@ -76,7 +77,10 @@ version:
 Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
 	sed -e "s/%ver%/$$(cat version)/" < $< > $@
 
-dist: regen-version Ganeti/HTools/Version.hs doc
+dist:
+	$(MAKE) maintainer-clean
+	$(MAKE) regen-version Ganeti/HTools/Version.hs doc
+	$(MAKE) man
 	set -e ; \
 	VN=$$(sed 's/^v//' < version) ; \
 	PFX="ganeti-htools-$$VN" ; \
@@ -84,7 +88,8 @@ dist: regen-version Ganeti/HTools/Version.hs doc
 	rm -f $$ANAME $$ANAME.gz ; \
 	git archive --format=tar --prefix=$$PFX/ HEAD > $$ANAME ; \
 	tar -r -f $$ANAME --owner root --group root \
-	    --transform="s,^,$$PFX/,S" version apidoc $(DOCS) $(MANS); \
+	    --transform="s,^,$$PFX/,S" version apidoc \
+	    $(DOCS) $(MANS) $(MANHTML); \
 	gzip -v9 $$ANAME ; \
 	TMPDIR=$$(mktemp -d) ; \
 	tar xzf $$ANAME.gz -C $$TMPDIR; \
