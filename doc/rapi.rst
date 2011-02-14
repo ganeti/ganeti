@@ -487,8 +487,8 @@ Returns a job ID. It supports the ``dry-run`` and ``force`` arguments.
 
 Body parameters:
 
-``nodes`` (list, required)
-  One or more nodes to assign to the group.
+.. opcode_params:: OP_GROUP_ASSIGN_NODES
+   :exclude: group_name, force, dry_run
 
 
 ``/2/instances``
