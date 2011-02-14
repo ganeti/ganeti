@@ -551,5 +551,54 @@ class TestParseModifyGroupRequest(unittest.TestCase):
     self.assertFalse(hasattr(op, "alloc_policy"))
 
 
+class TestParseCreateGroupRequest(unittest.TestCase):
+  def setUp(self):
+    self.Parse = rlib2._ParseCreateGroupRequest
+
+  def test(self):
+    name = "group3618"
+
+    for policy in constants.VALID_ALLOC_POLICIES:
+      data = {
+        "group_name": name,
+        "alloc_policy": policy,
+        }
+
+      op = self.Parse(data, False)
+      self.assert_(isinstance(op, opcodes.OpGroupAdd))
+      self.assertEqual(op.group_name, name)
+      self.assertEqual(op.alloc_policy, policy)
+      self.assertFalse(op.dry_run)
+
+  def testUnknownPolicy(self):
+    data = {
+      "alloc_policy": "_unknown_policy_",
+      }
+
+    self.assertRaises(http.HttpBadRequest, self.Parse, "name", data)
+
+  def testDefaults(self):
+    name = "group15395"
+    data = {
+      "group_name": name,
+      }
+
+    op = self.Parse(data, True)
+    self.assert_(isinstance(op, opcodes.OpGroupAdd))
+    self.assertEqual(op.group_name, name)
+    self.assertFalse(hasattr(op, "alloc_policy"))
+    self.assertTrue(op.dry_run)
+
+  def testLegacyName(self):
+    name = "group29852"
+    data = {
+      "name": name,
+      }
+
+    op = self.Parse(data, True)
+    self.assert_(isinstance(op, opcodes.OpGroupAdd))
+    self.assertEqual(op.group_name, name)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

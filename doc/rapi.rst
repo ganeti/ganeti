@@ -412,8 +412,10 @@ Returns: a job ID that can be used later for polling.
 
 Body parameters:
 
-``name`` (string, required)
-  Node group name.
+.. opcode_params:: OP_GROUP_ADD
+
+Earlier versions used a parameter named ``name`` which, while still
+supported, has been renamed to ``group_name``.
 
 
 ``/2/groups/[group_name]``

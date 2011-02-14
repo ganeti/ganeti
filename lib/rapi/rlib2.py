@@ -555,12 +555,16 @@ def _ParseCreateGroupRequest(data, dry_run):
   @return: Group creation opcode
 
   """
-  group_name = baserlib.CheckParameter(data, "name")
-  alloc_policy = baserlib.CheckParameter(data, "alloc_policy", default=None)
+  override = {
+    "dry_run": dry_run,
+    }
 
-  return opcodes.OpGroupAdd(group_name=group_name,
-                            alloc_policy=alloc_policy,
-                            dry_run=dry_run)
+  rename = {
+    "name": "group_name",
+    }
+
+  return baserlib.FillOpcode(opcodes.OpGroupAdd, data, override,
+                             rename=rename)
 
 
 class R_2_groups(baserlib.R_Generic):
