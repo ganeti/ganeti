@@ -469,8 +469,8 @@ Returns a job ID.
 
 Body parameters:
 
-``new_name`` (string, required)
-  New node group name.
+.. opcode_params:: OP_GROUP_RENAME
+   :exclude: group_name
 
 
 ``/2/groups/[group_name]/assign-nodes``
