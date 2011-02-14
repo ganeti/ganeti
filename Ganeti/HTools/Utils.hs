@@ -168,7 +168,8 @@ tryFromObj t o = annotateResult t . fromObj o
 fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a
 fromJVal v =
     case J.readJSON v of
-      J.Error s -> fail ("Cannot convert value " ++ show v ++ ", error: " ++ s)
+      J.Error s -> fail ("Cannot convert value '" ++ show v ++
+                         "', error: " ++ s)
       J.Ok x -> return x
 
 -- | Converts a JSON value into a JSON object.

@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ module Ganeti.HTools.Luxi
 
 import qualified Control.Exception as E
 import Text.JSON.Types
+import qualified Text.JSON
 
 import qualified Ganeti.Luxi as L
 import Ganeti.HTools.Loader
@@ -48,6 +49,18 @@ toArray v =
     case v of
       JSArray arr -> return arr
       o -> fail ("Invalid input, expected array but got " ++ show o)
+
+-- | Annotate errors when converting values with owner/attribute for
+-- better debugging.
+genericConvert :: (Text.JSON.JSON a) =>
+                  String     -- ^ The object type
+               -> String     -- ^ The object name
+               -> String     -- ^ The attribute we're trying to convert
+               -> JSValue    -- ^ The value we try to convert
+               -> Result a   -- ^ The annotated result
+genericConvert otype oname oattr =
+    annotateResult (otype ++ " '" ++ oname ++ "', attribute '" ++
+                    oattr ++ "'") . fromJVal
 
 -- * Data querying functionality
 
@@ -101,18 +114,18 @@ parseInstance :: NameAssoc
 parseInstance ktn (JSArray [ name, disk, mem, vcpus
                            , status, pnode, snodes, tags, oram ]) = do
   xname <- annotateResult "Parsing new instance" (fromJVal name)
-  let convert v = annotateResult ("Instance '" ++ xname ++ "'") (fromJVal v)
-  xdisk <- convert disk
+  let convert a = genericConvert "Instance" xname a
+  xdisk <- convert "disk_usage" disk
   xmem <- (case oram of
-             JSRational _ _ -> convert oram
-             _ -> convert mem)
-  xvcpus <- convert vcpus
-  xpnode <- convert pnode >>= lookupNode ktn xname
-  xsnodes <- convert snodes::Result [JSString]
+             JSRational _ _ -> convert "oper_ram" oram
+             _ -> convert "be/memory" mem)
+  xvcpus <- convert "be/vcpus" vcpus
+  xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
+  xsnodes <- convert "snodes" snodes::Result [JSString]
   snode <- (if null xsnodes then return Node.noSecondary
             else lookupNode ktn xname (fromJSString $ head xsnodes))
-  xrunning <- convert status
-  xtags <- convert tags
+  xrunning <- convert "status" status
+  xtags <- convert "tags" tags
   let inst = Instance.create xname xmem xdisk xvcpus
              xrunning xtags xpnode snode
   return (xname, inst)
@@ -129,20 +142,20 @@ parseNode ktg (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
                        , ctotal, offline, drained, vm_capable, g_uuid ])
     = do
   xname <- annotateResult "Parsing new node" (fromJVal name)
-  let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
-  xoffline <- convert offline
-  xdrained <- convert drained
-  xvm_capable <- convert vm_capable
-  xgdx   <- convert g_uuid >>= lookupGroup ktg xname
+  let convert a = genericConvert "Node" xname a
+  xoffline <- convert "offline" offline
+  xdrained <- convert "drained" drained
+  xvm_capable <- convert "vm_capable" vm_capable
+  xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
   node <- (if xoffline || xdrained || not xvm_capable
            then return $ Node.create xname 0 0 0 0 0 0 True xgdx
            else do
-             xmtotal  <- convert mtotal
-             xmnode   <- convert mnode
-             xmfree   <- convert mfree
-             xdtotal  <- convert dtotal
-             xdfree   <- convert dfree
-             xctotal  <- convert ctotal
+             xmtotal  <- convert "mtotal" mtotal
+             xmnode   <- convert "mnode" mnode
+             xmfree   <- convert "mfree" mfree
+             xdtotal  <- convert "dtotal" dtotal
+             xdfree   <- convert "dfree" dfree
+             xctotal  <- convert "ctotal" ctotal
              return $ Node.create xname xmtotal xmnode xmfree
                     xdtotal xdfree xctotal False xgdx)
   return (xname, node)
@@ -161,9 +174,9 @@ getGroups arr = toArray arr >>= mapM parseGroup
 parseGroup :: JSValue -> Result (String, Group.Group)
 parseGroup (JSArray [ uuid, name, apol ]) = do
   xname <- annotateResult "Parsing new group" (fromJVal name)
-  let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
-  xuuid <- convert uuid
-  xapol <- convert apol
+  let convert a = genericConvert "Group" xname a
+  xuuid <- convert "uuid" uuid
+  xapol <- convert "alloc_policy" apol
   return $ (xuuid, Group.create xname xuuid xapol)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
