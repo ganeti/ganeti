@@ -1180,10 +1180,9 @@ class OpGroupRemove(OpCode):
 
 class OpGroupRename(OpCode):
   """Rename a node group in the cluster."""
-  OP_DSC_FIELD = "old_name"
   OP_PARAMS = [
-    ("old_name", ht.NoDefault, ht.TNonEmptyString, None),
-    ("new_name", ht.NoDefault, ht.TNonEmptyString, None),
+    _PGroupName,
+    ("new_name", ht.NoDefault, ht.TNonEmptyString, "New group name"),
     ]
 
 

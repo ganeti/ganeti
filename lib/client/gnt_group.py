@@ -175,8 +175,8 @@ def RenameGroup(opts, args):
   @return: the desired exit code
 
   """
-  old_name, new_name = args
-  op = opcodes.OpGroupRename(old_name=old_name, new_name=new_name)
+  group_name, new_name = args
+  op = opcodes.OpGroupRename(group_name=group_name, new_name=new_name)
   SubmitOpCode(op, opts=opts)
 
 
@@ -203,11 +203,11 @@ commands = {
     "<group_name>", "Alters the parameters of a node group"),
   "remove": (
     RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],
-    "[--dry-run] <group_name>",
+    "[--dry-run] <group-name>",
     "Remove an (empty) node group from the cluster"),
   "rename": (
     RenameGroup, [ArgGroup(min=2, max=2)], [DRY_RUN_OPT],
-    "[--dry-run] <old_name> <new_name>", "Rename a node group"),
+    "[--dry-run] <group-name> <new-name>", "Rename a node group"),
 }
 
 

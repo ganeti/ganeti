@@ -664,10 +664,9 @@ def _ParseRenameGroupRequest(name, data, dry_run):
   @return: Node group rename opcode
 
   """
-  old_name = name
   new_name = baserlib.CheckParameter(data, "new_name")
 
-  return opcodes.OpGroupRename(old_name=old_name, new_name=new_name,
+  return opcodes.OpGroupRename(group_name=name, new_name=new_name,
                                dry_run=dry_run)
 
 

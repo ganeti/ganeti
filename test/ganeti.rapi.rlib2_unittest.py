@@ -460,7 +460,7 @@ class TestParseRenameGroupRequest(testutils.GanetiTestCase):
     op = self.Parse(name, data, False)
 
     self.assert_(isinstance(op, opcodes.OpGroupRename))
-    self.assertEqual(op.old_name, name)
+    self.assertEqual(op.group_name, name)
     self.assertEqual(op.new_name, "ua0aiyoo")
     self.assertFalse(op.dry_run)
 
@@ -473,7 +473,7 @@ class TestParseRenameGroupRequest(testutils.GanetiTestCase):
     op = self.Parse(name, data, True)
 
     self.assert_(isinstance(op, opcodes.OpGroupRename))
-    self.assertEqual(op.old_name, name)
+    self.assertEqual(op.group_name, name)
     self.assertEqual(op.new_name, "ua0aiyoo")
     self.assert_(op.dry_run)
 

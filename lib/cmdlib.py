@@ -10413,7 +10413,7 @@ class LUGroupRename(LogicalUnit):
 
   def ExpandNames(self):
     # This raises errors.OpPrereqError on its own:
-    self.group_uuid = self.cfg.LookupNodeGroup(self.op.old_name)
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
     self.needed_locks = {
       locking.LEVEL_NODEGROUP: [self.group_uuid],
@@ -10422,8 +10422,7 @@ class LUGroupRename(LogicalUnit):
   def CheckPrereq(self):
     """Check prerequisites.
 
-    This checks that the given old_name exists as a node group, and that
-    new_name doesn't.
+    Ensures requested new name is not yet used.
 
     """
     try:
@@ -10441,7 +10440,7 @@ class LUGroupRename(LogicalUnit):
 
     """
     env = {
-      "OLD_NAME": self.op.old_name,
+      "OLD_NAME": self.op.group_name,
       "NEW_NAME": self.op.new_name,
       }
 
@@ -10464,7 +10463,7 @@ class LUGroupRename(LogicalUnit):
 
     if group is None:
       raise errors.OpExecError("Could not retrieve group '%s' (UUID: %s)" %
-                               (self.op.old_name, self.group_uuid))
+                               (self.op.group_name, self.group_uuid))
 
     group.name = self.op.new_name
     self.cfg.Update(group, feedback_fn)
