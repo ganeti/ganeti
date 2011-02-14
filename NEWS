@@ -1,6 +1,16 @@
 News
 ====
 
+Version 2.5.0 beta1
+-------------------
+
+*(unreleased)*
+
+- The default of the ``/2/instances/[instance_name]/rename`` RAPI
+  resource's ``ip_check`` parameter changed from ``True`` to ``False``
+  to match the underlying LUXI interface
+
+
 Version 2.4.0 beta1
 -------------------
 

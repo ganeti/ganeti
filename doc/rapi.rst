@@ -878,12 +878,8 @@ Returns a job ID.
 
 Body parameters:
 
-``new_name`` (string, required)
-  New instance name.
-``ip_check`` (bool)
-  Whether to ensure instance's IP address is inactive.
-``name_check`` (bool)
-  Whether to ensure instance's name is resolvable.
+.. opcode_params:: OP_INSTANCE_RENAME
+   :exclude: instance_name
 
 
 ``/2/instances/[instance_name]/modify``

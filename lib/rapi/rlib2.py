@@ -1242,12 +1242,9 @@ def _ParseRenameInstanceRequest(name, data):
   @return: Instance rename opcode
 
   """
-  new_name = baserlib.CheckParameter(data, "new_name")
-  ip_check = baserlib.CheckParameter(data, "ip_check", default=True)
-  name_check = baserlib.CheckParameter(data, "name_check", default=True)
-
-  return opcodes.OpInstanceRename(instance_name=name, new_name=new_name,
-                                  name_check=name_check, ip_check=ip_check)
+  return baserlib.FillOpcode(opcodes.OpInstanceRename, data, {
+    "instance_name": name,
+    })
 
 
 class R_2_instances_name_rename(baserlib.R_Generic):
