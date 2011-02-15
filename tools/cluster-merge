@@ -273,7 +273,6 @@ class Merger(object):
 
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
-        node_info.master_candidate = False
         my_config.AddNode(node_info, _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
