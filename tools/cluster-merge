@@ -274,7 +274,7 @@ class Merger(object):
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
         node_info.master_candidate = False
-        my_config.AddNode(node_info, str(fake_ec_id))
+        my_config.AddNode(node_info, _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
       for instance in other_config.GetInstanceList():
@@ -294,7 +294,8 @@ class Merger(object):
             physical_id[1] = physical_id[3] = port
             dsk.physical_id = tuple(physical_id)
 
-        my_config.AddInstance(instance_info, str(fake_ec_id))
+        my_config.AddInstance(instance_info,
+                              _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
   # R0201: Method could be a function
