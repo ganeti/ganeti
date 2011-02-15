@@ -947,42 +947,49 @@ executing, so it's possible to retry the OpCode without side
 effects. But whether it make sense to retry depends on the error
 classification:
 
-``resolver_error``
+.. pyassert::
+
+   errors.ECODE_ALL == set([errors.ECODE_RESOLVER, errors.ECODE_NORES,
+     errors.ECODE_INVAL, errors.ECODE_STATE, errors.ECODE_NOENT,
+     errors.ECODE_EXISTS, errors.ECODE_NOTUNIQUE, errors.ECODE_FAULT,
+     errors.ECODE_ENVIRON])
+
+:pyeval:`errors.ECODE_RESOLVER`
   Resolver errors. This usually means that a name doesn't exist in DNS,
   so if it's a case of slow DNS propagation the operation can be retried
   later.
 
-``insufficient_resources``
+:pyeval:`errors.ECODE_NORES`
   Not enough resources (iallocator failure, disk space, memory,
   etc.). If the resources on the cluster increase, the operation might
   succeed.
 
-``wrong_input``
+:pyeval:`errors.ECODE_INVAL`
   Wrong arguments (at syntax level). The operation will not ever be
   accepted unless the arguments change.
 
-``wrong_state``
+:pyeval:`errors.ECODE_STATE`
   Wrong entity state. For example, live migration has been requested for
   a down instance, or instance creation on an offline node. The
   operation can be retried once the resource has changed state.
 
-``unknown_entity``
+:pyeval:`errors.ECODE_NOENT`
   Entity not found. For example, information has been requested for an
   unknown instance.
 
-``already_exists``
+:pyeval:`errors.ECODE_EXISTS`
   Entity already exists. For example, instance creation has been
   requested for an already-existing instance.
 
-``resource_not_unique``
+:pyeval:`errors.ECODE_NOTUNIQUE`
   Resource not unique (e.g. MAC or IP duplication).
 
-``internal_error``
+:pyeval:`errors.ECODE_FAULT`
   Internal cluster error. For example, a node is unreachable but not set
   offline, or the ganeti node daemons are not working, etc. A
   ``gnt-cluster verify`` should be run.
 
-``environment_error``
+:pyeval:`errors.ECODE_ENVIRON`
   Environment error (e.g. node disk error). A ``gnt-cluster verify``
   should be run.
 
@@ -1166,8 +1173,15 @@ Manages storage units on the node.
 ``GET``
 ~~~~~~~
 
+.. pyassert::
+
+   constants.VALID_STORAGE_TYPES == set([constants.ST_FILE,
+                                         constants.ST_LVM_PV,
+                                         constants.ST_LVM_VG])
+
 Requests a list of storage units on a node. Requires the parameters
-``storage_type`` (one of ``file``, ``lvm-pv`` or ``lvm-vg``) and
+``storage_type`` (one of :pyeval:`constants.ST_FILE`,
+:pyeval:`constants.ST_LVM_PV` or :pyeval:`constants.ST_LVM_VG`) and
 ``output_fields``. The result will be a job id, using which the result
 can be retrieved.
 
@@ -1180,10 +1194,11 @@ Modifies storage units on the node.
 ~~~~~~~
 
 Modifies parameters of storage units on the node. Requires the
-parameters ``storage_type`` (one of ``file``, ``lvm-pv`` or ``lvm-vg``)
+parameters ``storage_type`` (one of :pyeval:`constants.ST_FILE`,
+:pyeval:`constants.ST_LVM_PV` or :pyeval:`constants.ST_LVM_VG`)
 and ``name`` (name of the storage unit).  Parameters can be passed
-additionally. Currently only ``allocatable`` (bool) is supported. The
-result will be a job id.
+additionally. Currently only :pyeval:`constants.SF_ALLOCATABLE` (bool)
+is supported. The result will be a job id.
 
 ``/2/nodes/[node_name]/storage/repair``
 +++++++++++++++++++++++++++++++++++++++
@@ -1193,9 +1208,16 @@ Repairs a storage unit on the node.
 ``PUT``
 ~~~~~~~
 
+.. pyassert::
+
+   constants.VALID_STORAGE_OPERATIONS == {
+    constants.ST_LVM_VG: set([constants.SO_FIX_CONSISTENCY]),
+    }
+
 Repairs a storage unit on the node. Requires the parameters
-``storage_type`` (currently only ``lvm-vg`` can be repaired) and
-``name`` (name of the storage unit). The result will be a job id.
+``storage_type`` (currently only :pyeval:`constants.ST_LVM_VG` can be
+repaired) and ``name`` (name of the storage unit). The result will be a
+job id.
 
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++
