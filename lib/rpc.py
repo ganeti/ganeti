@@ -1006,7 +1006,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_close", params)
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_blockdev_getsizes(self, node, disks):
+  def call_blockdev_getsize(self, node, disks):
     """Returns the size of the given disks.
 
     This is a single-node call.
