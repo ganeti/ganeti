@@ -43,6 +43,19 @@ ECODE_FAULT = "internal_error"
 # environment error (e.g. node disk error)
 ECODE_ENVIRON = "environment_error"
 
+#: List of all failure types
+ECODE_ALL = frozenset([
+  ECODE_RESOLVER,
+  ECODE_NORES,
+  ECODE_INVAL,
+  ECODE_STATE,
+  ECODE_NOENT,
+  ECODE_EXISTS,
+  ECODE_NOTUNIQUE,
+  ECODE_FAULT,
+  ECODE_ENVIRON,
+  ])
+
 
 class GenericError(Exception):
   """Base exception for Ganeti.
