@@ -2574,9 +2574,9 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       newl = [v[2].Copy() for v in dskl]
       for dsk in newl:
         self.cfg.SetDiskID(dsk, node)
-      result = self.rpc.call_blockdev_getsizes(node, newl)
+      result = self.rpc.call_blockdev_getsize(node, newl)
       if result.fail_msg:
-        self.LogWarning("Failure in blockdev_getsizes call to node"
+        self.LogWarning("Failure in blockdev_getsize call to node"
                         " %s, ignoring", node)
         continue
       if len(result.data) != len(dskl):
