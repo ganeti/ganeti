@@ -2579,11 +2579,13 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         self.LogWarning("Failure in blockdev_getsize call to node"
                         " %s, ignoring", node)
         continue
-      if len(result.data) != len(dskl):
+      if len(result.payload) != len(dskl):
+        logging.warning("Invalid result from node %s: len(dksl)=%d,"
+                        " result.payload=%s", node, len(dskl), result.payload)
         self.LogWarning("Invalid result from node %s, ignoring node results",
                         node)
         continue
-      for ((instance, idx, disk), size) in zip(dskl, result.data):
+      for ((instance, idx, disk), size) in zip(dskl, result.payload):
         if size is None:
           self.LogWarning("Disk %d of instance %s did not return size"
                           " information, ignoring", idx, instance.name)
