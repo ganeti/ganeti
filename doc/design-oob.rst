@@ -52,6 +52,32 @@ New ``gnt-cluster`` Parameter
 | Parameters: ``--oob-program``
 | Options: ``--oob-program``: executable OOB program (absolute path)
 
+New ``gnt-cluster epo`` Command
++++++++++++++++++++++++++++++++
+
+| Program: ``gnt-cluster``
+| Command: ``epo``
+| Parameter: ``--on`` ``--force`` ``--groups`` ``--all``
+| Options: ``--on``: By default epo turns off, with ``--on`` it tries to get the
+|                    cluster back online
+|          ``--force``: To force the operation without asking for confirmation
+|          ``--groups``: To operate on groups instead of nodes
+|          ``--all``: To operate on the whole cluster
+
+This is a convenience command to allow easy emergency power off of a whole
+cluster or part of it. It takes care of all steps needed to get the cluster into
+a sane state to turn off the nodes.
+
+With ``--on`` it does the reverse and tries to bring the rest of the cluster back
+to life.
+
+.. note::
+  The master node is not able to shut itself cleanly down. Therefore, this
+  command will not do all the work on single node clusters. On multi node
+  clusters the command tries to find another master or if that is not possible
+  prepares everything to the point where the user has to shutdown the master
+  node itself alone this applies also to the single node cluster configuration.
+
 New ``gnt-node`` Property
 +++++++++++++++++++++++++
 
