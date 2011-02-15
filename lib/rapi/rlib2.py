@@ -825,8 +825,10 @@ class R_2_instances(baserlib.R_Generic):
     if data_version == 0:
       op = self._ParseVersion0CreateRequest()
     elif data_version == 1:
-      op = _ParseInstanceCreateRequestVersion1(self.request_body,
-                                               self.dryRun())
+      data = self.request_body.copy()
+      # Remove "__version__"
+      data.pop(_REQ_DATA_VERSION, None)
+      op = _ParseInstanceCreateRequestVersion1(data, self.dryRun())
     else:
       raise http.HttpBadRequest("Unsupported request data version %s" %
                                 data_version)
