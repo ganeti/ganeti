@@ -27,16 +27,24 @@ import operator
 from cStringIO import StringIO
 
 import docutils.statemachine
+import docutils.nodes
+import docutils.utils
 
 import sphinx.errors
 import sphinx.util.compat
 
+from ganeti import constants
+from ganeti import compat
+from ganeti import errors
 from ganeti import utils
 from ganeti import opcodes
 from ganeti import ht
 
 
 COMMON_PARAM_NAMES = map(operator.itemgetter(0), opcodes.OpCode.OP_PARAMS)
+
+#: Namespace for evaluating expressions
+EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors)
 
 
 class OpcodeError(sphinx.errors.SphinxError):
@@ -150,8 +158,59 @@ class OpcodeParams(sphinx.util.compat.Directive):
     return []
 
 
+def PythonEvalRole(role, rawtext, text, lineno, inliner,
+                   options={}, content=[]):
+  """Custom role to evaluate Python expressions.
+
+  The expression's result is included as a literal.
+
+  """
+  code = docutils.utils.unescape(text, restore_backslashes=True)
+
+  try:
+    result = eval(code, EVAL_NS)
+  except Exception, err:
+    msg = inliner.reporter.error("Failed to evaluate %r: %s" % (code, err),
+                                 line=lineno)
+    return ([inliner.problematic(rawtext, rawtext, msg)], [msg])
+
+  node = docutils.nodes.literal("", unicode(result), **options)
+
+  return ([node], [])
+
+
+class PythonAssert(sphinx.util.compat.Directive):
+  """Custom directive for writing assertions.
+
+  The content must be a valid Python expression. If its result does not
+  evaluate to C{True}, the assertion fails.
+
+  """
+  has_content = True
+  required_arguments = 0
+  optional_arguments = 0
+  final_argument_whitespace = False
+
+  def run(self):
+    self.assert_has_content()
+
+    code = "\n".join(self.content)
+
+    try:
+      result = eval(code, EVAL_NS)
+    except Exception, err:
+      raise self.error("Failed to evaluate %r: %s" % (code, err))
+
+    if not result:
+      raise self.error("Assertion failed: %s" % (code, ))
+
+    return []
+
+
 def setup(app):
   """Sphinx extension callback.
 
   """
   app.add_directive("opcode_params", OpcodeParams)
+  app.add_directive("pyassert", PythonAssert)
+  app.add_role("pyeval", PythonEvalRole)
