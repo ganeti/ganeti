@@ -453,11 +453,11 @@ class _QueryBase:
   #: Attribute holding field definitions
   FIELDS = None
 
-  def __init__(self, names, fields, use_locking):
+  def __init__(self, filter_, fields, use_locking):
     """Initializes this class.
 
     """
-    self.names = names
+    self.names = ReadSimpleFilter("name", filter_)
     self.use_locking = use_locking
 
     self.query = query.Query(self.FIELDS, fields)
@@ -3716,8 +3716,8 @@ class LUNodeQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.nq = _NodeQuery(self.op.names, self.op.output_fields,
-                         self.op.use_locking)
+    self.nq = _NodeQuery(qlang.MakeSimpleFilter("name", self.op.names),
+                         self.op.output_fields, self.op.use_locking)
 
   def ExpandNames(self):
     self.nq.ExpandNames(self)
@@ -3985,9 +3985,8 @@ class LUQuery(NoHooksLU):
 
   def CheckArguments(self):
     qcls = _GetQueryImplementation(self.op.what)
-    names = qlang.ReadSimpleFilter("name", self.op.filter)
 
-    self.impl = qcls(names, self.op.fields, False)
+    self.impl = qcls(self.op.filter, self.op.fields, False)
 
   def ExpandNames(self):
     self.impl.ExpandNames(self)
@@ -5662,8 +5661,8 @@ class LUInstanceQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.iq = _InstanceQuery(self.op.names, self.op.output_fields,
-                             self.op.use_locking)
+    self.iq = _InstanceQuery(qlang.MakeSimpleFilter("name", self.op.names),
+                             self.op.output_fields, self.op.use_locking)
 
   def ExpandNames(self):
     self.iq.ExpandNames(self)
@@ -10250,7 +10249,6 @@ class LUGroupAssignNodes(NoHooksLU):
 
 
 class _GroupQuery(_QueryBase):
-
   FIELDS = query.GROUP_FIELDS
 
   def ExpandNames(self, lu):
@@ -10333,7 +10331,8 @@ class LUGroupQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.gq = _GroupQuery(self.op.names, self.op.output_fields, False)
+    self.gq = _GroupQuery(qlang.MakeSimpleFilter("name", self.op.names),
+                          self.op.output_fields, False)
 
   def ExpandNames(self):
     self.gq.ExpandNames(self)
