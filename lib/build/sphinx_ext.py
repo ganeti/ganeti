@@ -26,10 +26,10 @@
 import operator
 from cStringIO import StringIO
 
-from docutils import statemachine
+import docutils.statemachine
 
-from sphinx.errors import SphinxError
-from sphinx.util.compat import Directive
+import sphinx.errors
+import sphinx.util.compat
 
 from ganeti import utils
 from ganeti import opcodes
@@ -39,7 +39,7 @@ from ganeti import ht
 COMMON_PARAM_NAMES = map(operator.itemgetter(0), opcodes.OpCode.OP_PARAMS)
 
 
-class OpcodeError(SphinxError):
+class OpcodeError(sphinx.errors.SphinxError):
   category = "Opcode error"
 
 
@@ -119,7 +119,7 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
       yield "  %s" % line
 
 
-class OpcodeParams(Directive):
+class OpcodeParams(sphinx.util.compat.Directive):
   """Custom directive for opcode parameters.
 
   See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
@@ -143,8 +143,8 @@ class OpcodeParams(Directive):
     include_text = "\n".join(_BuildOpcodeParams(op_id, include, exclude, alias))
 
     # Inject into state machine
-    include_lines = statemachine.string2lines(include_text, tab_width,
-                                              convert_whitespace=1)
+    include_lines = docutils.statemachine.string2lines(include_text, tab_width,
+                                                       convert_whitespace=1)
     self.state_machine.insert_input(include_lines, path)
 
     return []
