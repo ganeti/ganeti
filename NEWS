@@ -11,6 +11,8 @@ Version 2.5.0 beta1
   to match the underlying LUXI interface
 - When creating file-based instances via RAPI, the ``file_driver``
   parameter no longer defaults to ``loop`` and must be specified
+- The deprecated "bridge" nic parameter is no longer supported. Use
+  "link" instead.
 
 
 Version 2.4.0 rc2

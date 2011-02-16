@@ -7473,18 +7473,8 @@ class LUInstanceCreate(LogicalUnit):
                                      " in cluster" % mac,
                                      errors.ECODE_NOTUNIQUE)
 
-      # bridge verification
-      bridge = nic.get("bridge", None)
-      link = nic.get("link", None)
-      if bridge and link:
-        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
-                                   " at the same time", errors.ECODE_INVAL)
-      elif bridge and nic_mode == constants.NIC_MODE_ROUTED:
-        raise errors.OpPrereqError("Cannot pass 'bridge' on a routed nic",
-                                   errors.ECODE_INVAL)
-      elif bridge:
-        link = bridge
-
+      #  Build nic parameters
+      link = nic.get(constants.INIC_LINK, None)
       nicparams = {}
       if nic_mode_req:
         nicparams[constants.NIC_MODE] = nic_mode_req
