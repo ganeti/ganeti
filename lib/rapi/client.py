@@ -72,7 +72,7 @@ NODE_ROLE_REGULAR = "regular"
 _REQ_DATA_VERSION_FIELD = "__version__"
 _INST_CREATE_REQV1 = "instance-create-reqv1"
 _INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
-_INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link", "bridge"])
+_INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link"])
 _INST_CREATE_V0_DISK_PARAMS = frozenset(["size"])
 _INST_CREATE_V0_PARAMS = frozenset([
   "os", "pnode", "snode", "iallocator", "start", "ip_check", "name_check",
