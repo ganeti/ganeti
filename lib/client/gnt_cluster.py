@@ -29,6 +29,7 @@
 import os.path
 import time
 import OpenSSL
+import itertools
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -40,6 +41,20 @@ from ganeti import ssh
 from ganeti import objects
 from ganeti import uidpool
 from ganeti import compat
+from ganeti import netutils
+
+
+ON_OPT = cli_option("--on", default=False,
+                    action="store_true", dest="on",
+                    help="Recover from an EPO")
+
+GROUPS_OPT = cli_option("--groups", default=False,
+                    action="store_true", dest="groups",
+                    help="Arguments are node groups instead of nodes")
+
+_EPO_PING_INTERVAL = 30 # 30 seconds between pings
+_EPO_PING_TIMEOUT = 1 # 1 second
+_EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
 
 
 @UsesRPC
@@ -882,6 +897,318 @@ def WatcherOps(opts, args):
   return 0
 
 
+def _OobPower(opts, node_list, power):
+  """Puts the node in the list to desired power state.
+
+  @param opts: The command line options selected by the user
+  @param node_list: The list of nodes to operate on
+  @param power: True if they should be powered on, False otherwise
+  @return: The success of the operation (none failed)
+
+  """
+  if power:
+    command = constants.OOB_POWER_ON
+  else:
+    command = constants.OOB_POWER_OFF
+
+  op = opcodes.OpOobCommand(node_names=node_list,
+                            command=command,
+                            ignore_status=True,
+                            timeout=opts.oob_timeout)
+  result = SubmitOpCode(op, opts=opts)
+  errs = 0
+  for node_result in result:
+    (node_tuple, data_tuple) = node_result
+    (_, node_name) = node_tuple
+    (data_status, _) = data_tuple
+    if data_status != constants.RS_NORMAL:
+      assert data_status != constants.RS_UNAVAIL
+      errs += 1
+      ToStderr("There was a problem changing power for %s, please investigate",
+               node_name)
+
+  if errs > 0:
+    return False
+
+  return True
+
+
+def _InstanceStart(opts, inst_list, start):
+  """Puts the instances in the list to desired state.
+
+  @param opts: The command line options selected by the user
+  @param inst_list: The list of instances to operate on
+  @param start: True if they should be started, False for shutdown
+  @return: The success of the operation (none failed)
+
+  """
+  if start:
+    opcls = opcodes.OpInstanceStartup
+    text_submit, text_success, text_failed = ("startup", "started", "starting")
+  else:
+    opcls = opcodes.OpInstanceShutdown
+    text_submit, text_success, text_failed = ("shutdown", "stopped", "stopping")
+
+  jex = JobExecutor(opts=opts)
+
+  for inst in inst_list:
+    ToStdout("Submit %s of instance %s", text_submit, inst)
+    op = opcls(instance_name=inst)
+    jex.QueueJob(inst, op)
+
+  results = jex.GetResults()
+  bad_cnt = len([1 for (success, _) in results if not success])
+
+  if bad_cnt == 0:
+    ToStdout("All instances have been %s successfully", text_success)
+  else:
+    ToStderr("There were errors while %s instances:\n"
+             "%d error(s) out of %d instance(s)", text_failed, bad_cnt,
+             len(results))
+    return False
+
+  return True
+
+
+class _RunWhenNodesReachableHelper:
+  """Helper class to make shared internal state sharing easier.
+
+  @ivar success: Indicates if all action_cb calls were successful
+
+  """
+  def __init__(self, node_list, action_cb, node2ip, port,
+               _ping_fn=netutils.TcpPing, _sleep_fn=time.sleep):
+    """Init the object.
+
+    @param node_list: The list of nodes to be reachable
+    @param action_cb: Callback called when a new host is reachable
+    @type node2ip: dict
+    @param node2ip: Node to ip mapping
+    @param port: The port to use for the TCP ping
+    @param _ping_fn: Function to check reachabilty (for unittest use only)
+    @param _sleep_fn: Function to sleep (for unittest use only)
+
+    """
+    self.down = set(node_list)
+    self.up = set()
+    self.node2ip = node2ip
+    self.success = True
+    self.action_cb = action_cb
+    self.port = port
+    self._ping_fn = _ping_fn
+    self._sleep_fn = _sleep_fn
+
+  def __call__(self):
+    """When called we run action_cb.
+
+    @raises utils.RetryAgain: When there are still down nodes
+
+    """
+    if not self.action_cb(self.up):
+      self.success = False
+
+    if self.down:
+      raise utils.RetryAgain()
+    else:
+      return self.success
+
+  def Wait(self, secs):
+    """Checks if a host is up or waits remaining seconds.
+
+    @param secs: The secs remaining
+
+    """
+    start = time.time()
+    for node in self.down:
+      if self._ping_fn(self.node2ip[node], self.port, timeout=_EPO_PING_TIMEOUT,
+                       live_port_needed=True):
+        ToStdout("Node %s became available", node)
+        self.up.add(node)
+        self.down -= self.up
+        # If we have a node available there is the possibility to run the
+        # action callback successfully, therefore we don't wait and return
+        return
+
+    self._sleep_fn(max(0.0, start + secs - time.time()))
+
+
+def _RunWhenNodesReachable(node_list, action_cb, interval):
+  """Run action_cb when nodes become reachable.
+
+  @param node_list: The list of nodes to be reachable
+  @param action_cb: Callback called when a new host is reachable
+  @param interval: The earliest time to retry
+
+  """
+  client = GetClient()
+  cluster_info = client.QueryClusterInfo()
+  if cluster_info["primary_ip_version"] == constants.IP4_VERSION:
+    family = netutils.IPAddress.family
+  else:
+    family = netutils.IP6Address.family
+
+  node2ip = dict((node, netutils.GetHostname(node, family=family).ip)
+                 for node in node_list)
+
+  port = netutils.GetDaemonPort(constants.NODED)
+  helper = _RunWhenNodesReachableHelper(node_list, action_cb, node2ip, port)
+
+  try:
+    return utils.Retry(helper, interval, _EPO_REACHABLE_TIMEOUT,
+                       wait_fn=helper.Wait)
+  except utils.RetryTimeout:
+    ToStderr("Time exceeded while waiting for nodes to become reachable"
+             " again:\n  - %s", "  - ".join(helper.down))
+    return False
+
+
+def _MaybeInstanceStartup(opts, inst_map, nodes_online,
+                          _instance_start_fn=_InstanceStart):
+  """Start the instances conditional based on node_states.
+
+  @param opts: The command line options selected by the user
+  @param inst_map: A dict of inst -> nodes mapping
+  @param nodes_online: A list of nodes online
+  @param _instance_start_fn: Callback to start instances (unittest use only)
+  @return: Success of the operation on all instances
+
+  """
+  start_inst_list = []
+  for (inst, nodes) in inst_map.items():
+    if not (nodes - nodes_online):
+      # All nodes the instance lives on are back online
+      start_inst_list.append(inst)
+
+  for inst in start_inst_list:
+    del inst_map[inst]
+
+  if start_inst_list:
+    return _instance_start_fn(opts, start_inst_list, True)
+
+  return True
+
+
+def _EpoOn(opts, full_node_list, node_list, inst_map):
+  """Does the actual power on.
+
+  @param opts: The command line options selected by the user
+  @param full_node_list: All nodes to operate on (includes nodes not supporting
+                         OOB)
+  @param node_list: The list of nodes to operate on (all need to support OOB)
+  @param inst_map: A dict of inst -> nodes mapping
+  @return: The desired exit status
+
+  """
+  if node_list and not _OobPower(opts, node_list, False):
+    ToStderr("Not all nodes seem to get back up, investigate and start"
+             " manually if needed")
+
+  # Wait for the nodes to be back up
+  action_cb = compat.partial(_MaybeInstanceStartup, opts, dict(inst_map))
+
+  ToStdout("Waiting until all nodes are available again")
+  if not _RunWhenNodesReachable(full_node_list, action_cb, _EPO_PING_INTERVAL):
+    ToStderr("Please investigate and start stopped instances manually")
+    return constants.EXIT_FAILURE
+
+  return constants.EXIT_SUCCESS
+
+
+def _EpoOff(opts, node_list, inst_map):
+  """Does the actual power off.
+
+  @param opts: The command line options selected by the user
+  @param node_list: The list of nodes to operate on (all need to support OOB)
+  @param inst_map: A dict of inst -> nodes mapping
+  @return: The desired exit status
+
+  """
+  if not _InstanceStart(opts, inst_map.keys(), False):
+    ToStderr("Please investigate and stop instances manually before continuing")
+    return constants.EXIT_FAILURE
+
+  if not node_list:
+    return constants.EXIT_SUCCESS
+
+  if _OobPower(opts, node_list, False):
+    return constants.EXIT_SUCCESS
+  else:
+    return constants.EXIT_FAILURE
+
+
+def Epo(opts, args):
+  """EPO operations.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the subcommand
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  if opts.groups and opts.show_all:
+    ToStderr("Only one of --groups or --all are allowed")
+    return constants.EXIT_FAILURE
+  elif args and opts.show_all:
+    ToStderr("Arguments in combination with --all are not allowed")
+    return constants.EXIT_FAILURE
+
+  client = GetClient()
+
+  if opts.groups:
+    node_query_list = itertools.chain(*client.QueryGroups(names=args,
+                                                          fields=["node_list"],
+                                                          use_locking=False))
+  else:
+    node_query_list = args
+
+  result = client.QueryNodes(names=node_query_list,
+                             fields=["name", "master", "pinst_list",
+                                     "sinst_list", "powered", "offline"],
+                             use_locking=False)
+  node_list = []
+  inst_map = {}
+  for (idx, (node, master, pinsts, sinsts, powered,
+             offline)) in enumerate(result):
+    # Normalize the node_query_list as well
+    if not opts.show_all:
+      node_query_list[idx] = node
+    if not offline:
+      for inst in (pinsts + sinsts):
+        if inst in inst_map:
+          if not master:
+            inst_map[inst].add(node)
+        elif master:
+          inst_map[inst] = set()
+        else:
+          inst_map[inst] = set([node])
+
+    if master and opts.on:
+      # We ignore the master for turning on the machines, in fact we are
+      # already operating on the master at this point :)
+      continue
+    elif master and not opts.show_all:
+      ToStderr("%s is the master node, please do a master-failover to another"
+               " node not affected by the EPO or use --all if you intend to"
+               " shutdown the whole cluster", node)
+      return constants.EXIT_FAILURE
+    elif powered is None:
+      ToStdout("Node %s does not support out-of-band handling, it can not be"
+               " handled in a fully automated manner", node)
+    elif powered == opts.on:
+      ToStdout("Node %s is already in desired power state, skipping", node)
+    elif not offline or (offline and powered):
+      node_list.append(node)
+
+  if not opts.force and not ConfirmOperation(node_query_list, "nodes", "epo"):
+    return constants.EXIT_FAILURE
+
+  if opts.on:
+    return _EpoOn(opts, node_query_list, node_list, inst_map)
+  else:
+    return _EpoOff(opts, node_list, inst_map)
+
+
 commands = {
   'init': (
     InitCluster, [ArgHost(min=1, max=1)],
@@ -977,6 +1304,11 @@ commands = {
      NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
+  "epo": (
+    Epo, [ArgUnknown()],
+    [FORCE_OPT, ON_OPT, GROUPS_OPT, ALL_OPT, OOB_TIMEOUT_OPT],
+    "[opts...] [args]",
+    "Performs an emergency power-off on given args"),
   }
 
 

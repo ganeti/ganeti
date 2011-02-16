@@ -27,13 +27,14 @@ import tempfile
 import os.path
 
 from ganeti import constants
+from ganeti import compat
 from ganeti import utils
 
 import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, AssertCommand
+from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
 
 
 def _RemoveFileFromAllNodes(filename):
@@ -148,6 +149,44 @@ def TestClusterOob():
 
   AssertCommand(["gnt-cluster", "modify", "--node-parameters",
                  "oob_program="])
+
+
+def TestClusterEpo():
+  """gnt-cluster epo"""
+  master = qa_config.GetMasterNode()
+
+  # Assert that OOB is unavailable for all nodes
+  result_output = GetCommandOutput(master["primary"],
+                                   "gnt-node list --verbose --no-header -o"
+                                   " powered")
+  AssertEqual(compat.all(powered == "(unavail)"
+                         for powered in result_output.splitlines()), True)
+
+  # Conflicting
+  AssertCommand(["gnt-cluster", "epo", "--groups", "--all"], fail=True)
+  # --all doesn't expect arguments
+  AssertCommand(["gnt-cluster", "epo", "--all", "some_arg"], fail=True)
+
+  # Unless --all is given master is not allowed to be in the list
+  AssertCommand(["gnt-cluster", "epo", "-f", master["primary"]], fail=True)
+
+  # This shouldn't fail
+  AssertCommand(["gnt-cluster", "epo", "-f", "--all"])
+
+  # All instances should have been stopped now
+  result_output = GetCommandOutput(master["primary"],
+                                   "gnt-instance list --no-header -o status")
+  AssertEqual(compat.all(status == "ADMIN_down"
+                         for status in result_output.splitlines()), True)
+
+  # Now start everything again
+  AssertCommand(["gnt-cluster", "epo", "--on", "-f", "--all"])
+
+  # All instances should have been started now
+  result_output = GetCommandOutput(master["primary"],
+                                   "gnt-instance list --no-header -o status")
+  AssertEqual(compat.all(status == "running"
+                         for status in result_output.splitlines()), True)
 
 
 def TestClusterVerify():

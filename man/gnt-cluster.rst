@@ -93,6 +93,23 @@ Remove all configuration files related to the cluster, so that a
 Since this is a dangerous command, you are required to pass the
 argument *--yes-do-it.*
 
+EPO
+~~~
+
+**epo** [--on] [--groups|--all] *arguments*
+
+Performs an emergency power-off on nodes given as arguments. If ``--groups``
+is given, arguments are node groups. If ``--all`` is provided, the whole
+cluster will be shut down.
+
+The ``--on`` flag recovers the cluster after an emergency power-off
+
+Please note that the master node will not be turned down or up automatically.
+It will just be left in a state, where you can manully perform the shutdown of
+that one node. If the master is in the list of affected nodes and this is not a
+complete cluster emergency power-off (e.g. using ``--all``), you're required to
+do a master failover to another node not affected.
+
 GETMASTER
 ~~~~~~~~~
 

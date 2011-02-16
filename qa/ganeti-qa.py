@@ -411,6 +411,7 @@ def RunQa():
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
       RunCommonInstanceTests(instance)
       RunGroupListTests()
+      RunTest(qa_cluster.TestClusterEpo)
       RunExportImportTests(instance, pnode, None)
       RunDaemonTests(instance, pnode)
       RunTest(qa_instance.TestInstanceRemove, instance)
