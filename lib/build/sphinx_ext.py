@@ -197,7 +197,11 @@ class PythonAssert(sphinx.util.compat.Directive):
   final_argument_whitespace = False
 
   def run(self):
-    self.assert_has_content()
+    # Handle combinations of Sphinx and docutils not providing the wanted method
+    if hasattr(self, "assert_has_content"):
+      self.assert_has_content()
+    else:
+      assert self.content
 
     code = "\n".join(self.content)
 
