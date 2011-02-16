@@ -786,8 +786,6 @@ class R_2_instances(baserlib.R_Generic):
       nics[0]["mode"] = fn("mode")
     if fn("link", None) is not None:
       nics[0]["link"] = fn("link")
-    if fn("bridge", None) is not None:
-      nics[0]["bridge"] = fn("bridge")
 
     # Do not modify anymore, request data version 0 is deprecated
     return opcodes.OpInstanceCreate(
