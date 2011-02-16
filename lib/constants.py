@@ -712,6 +712,7 @@ OOB_STATUSES = frozenset([
 # Instance Parameters Profile
 PP_DEFAULT = "default"
 
+# NIC_* constants are used inside the ganeti config
 NIC_MODE = "mode"
 NIC_LINK = "link"
 
@@ -727,6 +728,7 @@ NICS_PARAMETER_TYPES = {
 
 NICS_PARAMETERS = frozenset(NICS_PARAMETER_TYPES.keys())
 
+# IDISK_* constants are used in opcodes, to create/change disks
 IDISK_SIZE = "size"
 IDISK_MODE = "mode"
 IDISK_ADOPT = "adopt"
@@ -739,6 +741,7 @@ IDISK_PARAMS_TYPES = {
   }
 IDISK_PARAMS = frozenset(IDISK_PARAMS_TYPES.keys())
 
+# INIC_* constants are used in opcodes, to create/change nics
 INIC_MAC = "mac"
 INIC_IP = "ip"
 INIC_MODE = "mode"
