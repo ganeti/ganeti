@@ -53,7 +53,7 @@ Security considerations:
 # C0103: Invalid name ganeti-listrunner
 
 import errno
-import getopt
+import optparse
 import getpass
 import logging
 import os
@@ -68,6 +68,10 @@ import paramiko
 
 
 REMOTE_PATH_BASE = "/tmp/listrunner"
+
+USAGE = ("%prog -l logdir {-c command | -x /path/to/file} [-b batch_size]"
+         " {-f hostfile|-h hosts} [-u username]"
+         " [-p password_file | -A]")
 
 
 def LogDirUseable(logdir):
@@ -87,22 +91,6 @@ def LogDirUseable(logdir):
     return True
   except (OSError, IOError):
     return False
-
-
-def ShowHelp(executable):
-  """Print short usage information."""
-  print ("usage: %s -l logdir [-c|-x] value [-b batch_size]"
-         " [-f hostfile|-h hosts] [-u username]"
-         " [-p password_file]" % executable)
-  print """        -l logdir to write logfiles to
-        -x executable to run on remote host(s)
-        -c shell command to run on remote host(s)
-        -f hostlist file (one host per line)
-        -a optional auxiliary file to upload (can be given multiple times)
-        -b batch-size, how many hosts to process in parallel [15]
-        -h comma-separated list of hosts or single hostname
-        -u username used to connect [root]
-        -p password used to authenticate"""
 
 
 def GetTimeStamp(timestamp=None):
@@ -434,57 +422,71 @@ def LaunchWorker(child_pids, logdir, username, password, use_agent, hostname,
                executable, command, filelist)
 
 
+def ParseOptions():
+  """Parses the command line options.
+
+  In case of command line errors, it will show the usage and exit the
+  program.
+
+  @return: the options in a tuple
+
+  """
+  # resolve because original used -h for hostfile, which conflicts
+  # with -h for help
+  parser = optparse.OptionParser(usage="\n%s" % USAGE,
+                                 conflict_handler="resolve")
+
+  parser.add_option("-l", dest="logdir", default=None,
+                    help="directory to write logfiles to")
+  parser.add_option("-x", dest="executable", default=None,
+                    help="executable to run on remote host(s)",)
+  parser.add_option("-f", dest="hostfile", default=None,
+                    help="hostlist file (one host per line)")
+  parser.add_option("-h", dest="hostlist", default=None, metavar="HOSTS",
+                    help="comma-separated list of hosts or single hostname",)
+  parser.add_option("-a", dest="auxfiles", action="append", default=[],
+                    help="optional auxiliary file to upload"
+                    " (can be given multiple times",
+                    metavar="FILE")
+  parser.add_option("-c", dest="command", default=None,
+                    help="shell command to run on remote host(s)")
+  parser.add_option("-b", dest="batch_size", default=15, type="int",
+                    help="batch-size, how many hosts to process"
+                    " in parallel [15]")
+  parser.add_option("-u", dest="username", default="root",
+                    help="username used to connect [root]")
+  parser.add_option("-p", dest="password", default=None,
+                    help="password used to authenticate (when not"
+                    " using an agent)")
+  parser.add_option("-A", dest="use_agent", default=False, action="store_true",
+                    help="instead of password, use keys from an SSH agent")
+
+  opts, args = parser.parse_args()
+
+  if opts.executable and opts.command:
+    parser.error("Options -x and -c conflict with each other")
+  if not (opts.executable or opts.command):
+    parser.error("One of -x and -c must be given")
+  if not opts.logdir:
+    parser.error("Option -l is required")
+  if opts.hostfile and opts.hostlist:
+    parser.error("Options -f and -h conflict with each other")
+  if not (opts.hostfile or opts.hostlist):
+    parser.error("One of -f or -h must be given")
+  if args:
+    parser.error("This program doesn't take any arguments, passed in: %s" %
+                 ", ".join(args))
+
+  return (opts.logdir, opts.executable, opts.hostfile, opts.hostlist,
+          opts.command, opts.use_agent, opts.auxfiles, opts.username,
+          opts.password, opts.batch_size)
+
+
 def main():
   """main."""
-  try:
-    optlist, _ = getopt.getopt(sys.argv[1:], "l:x:h:f:a:c:b:u:p:A")
-  except getopt.GetoptError, err:
-    print str(err)
-    ShowHelp(sys.argv[0])
-    sys.exit(2)
-
-  logdir = executable = hostfile = hostlist = command = None
-  use_agent = False
-  auxfiles = []
-  username = "root"
-  password = None
-  batch_size = 15
-  for option in optlist:
-    if option[0] == "-l":
-      logdir = option[1]
-    if option[0] == "-x":
-      executable = option[1]
-    if option[0] == "-f":
-      hostfile = option[1]
-    if option[0] == "-h":
-      hostlist = option[1]
-    if option[0] == "-a":
-      auxfiles.append(option[1])
-    if option[0] == "-c":
-      command = option[1]
-    if option[0] == "-b":
-      batch_size = int(option[1])
-    if option[0] == "-u":
-      username = option[1]
-    if option[0] == "-p":
-      password = option[1]
-    if option[0] == "-A":
-      use_agent = True
-
-  if not (logdir and (executable or command) and (hostfile or hostlist)):
-    print "error: missing required commandline argument(s)"
-    ShowHelp(sys.argv[0])
-    sys.exit(3)
-
-  if executable and command:
-    print "error: can run either a command or an executable, not both"
-    ShowHelp(sys.argv[0])
-    sys.exit(3)
-
-  if hostlist and hostfile:
-    print "error: specify either -f or -h arguments, not both"
-    ShowHelp(sys.argv[0])
-    sys.exit(3)
+  (logdir, executable, hostfile, hostlist,
+   command, use_agent, auxfiles, username,
+   password, batch_size) = ParseOptions()
 
   ### Unbuffered sys.stdout
   sys.stdout = os.fdopen(1, "w", 0)
