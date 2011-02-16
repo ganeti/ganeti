@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -203,7 +203,7 @@ def GetAgentKeys():
     return []
 
 
-def SetupSshConnection(host, username, password, keys, logfile):
+def SetupSshConnection(host, username, password, use_agent, logfile):
   """Setup the ssh connection used for all later steps.
 
   This function sets up the ssh connection that will be used both
@@ -219,6 +219,10 @@ def SetupSshConnection(host, username, password, keys, logfile):
     print "  - ERROR: host not reachable on 22/tcp"
     return False
 
+  if use_agent:
+    keys = GetAgentKeys()
+  else:
+    keys = []
   all_kwargs = [{"pkey": k} for k in keys]
   all_desc = ["key %d" % d for d in range(len(keys))]
   if password is not None:
@@ -346,7 +350,7 @@ def RunRemoteCommand(connection, command, logfile):
   return True
 
 
-def HostWorker(logdir, username, password, keys, hostname,
+def HostWorker(logdir, username, password, use_agent, hostname,
                executable, command, filelist):
   """Per-host worker.
 
@@ -357,7 +361,7 @@ def HostWorker(logdir, username, password, keys, hostname,
   @param logdir: the directory where the logfiles must be created
   @param username: SSH username
   @param password: SSH password
-  @param keys: SSH keys
+  @param use_agent: whether we should instead use an agent
   @param hostname: the hostname to connect to
   @param executable: the executable to upload, if not None
   @param command: the command to run
@@ -370,7 +374,7 @@ def HostWorker(logdir, username, password, keys, hostname,
   result = 0  # optimism, I know
   try:
     connection = SetupSshConnection(hostname, username,
-                                    password, keys, logfile)
+                                    password, use_agent, logfile)
     if connection is not False:
       if executable is not None:
         print "  %s: uploading files" % hostname
@@ -412,7 +416,7 @@ def HostWorker(logdir, username, password, keys, hostname,
   sys.exit(result)
 
 
-def LaunchWorker(child_pids, logdir, username, password, keys, hostname,
+def LaunchWorker(child_pids, logdir, username, password, use_agent, hostname,
                  executable, command, filelist):
   """Launch the per-host worker.
 
@@ -426,7 +430,7 @@ def LaunchWorker(child_pids, logdir, username, password, keys, hostname,
     # controller just record the pids
     child_pids[pid] = hostname
   else:
-    HostWorker(logdir, username, password, keys, hostname,
+    HostWorker(logdir, username, password, use_agent, hostname,
                executable, command, filelist)
 
 
@@ -489,9 +493,8 @@ def main():
     print "ERROR: cannot create logfiles in dir %s, aborting" % logdir
     sys.exit(1)
 
-  keys = []
   if use_agent:
-    keys = GetAgentKeys()
+    pass
   elif password:
     try:
       fh = file(password)
@@ -523,7 +526,7 @@ def main():
   hosts = hosts[batch_size:]
   child_pids = {}
   for hostname in batch:
-    LaunchWorker(child_pids, logdir, username, password, keys, hostname,
+    LaunchWorker(child_pids, logdir, username, password, use_agent, hostname,
                  executable, command, filelist)
 
   while child_pids:
@@ -535,7 +538,7 @@ def main():
     else:
       failures += 1
     if hosts:
-      LaunchWorker(child_pids, logdir, username, password, keys,
+      LaunchWorker(child_pids, logdir, username, password, use_agent,
                    hosts.pop(0), executable, command, filelist)
 
   print
