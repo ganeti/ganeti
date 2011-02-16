@@ -114,9 +114,6 @@ IGNORE_STATUS_OPT = cli_option("--ignore-status", default=False,
                                help=("Ignore the Node(s) offline status"
                                      " (potentially DANGEROUS)"))
 
-OOB_TIMEOUT_OPT = cli_option("--oob-timeout", dest="oob_timeout", type="int",
-                         default=constants.OOB_TIMEOUT,
-                         help="Maximum time to wait for out-of-band helper")
 
 def ConvertStorageType(user_storage_type):
   """Converts a user storage type to its internal name.

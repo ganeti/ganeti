@@ -132,6 +132,7 @@ __all__ = [
   "OSPARAMS_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
+  "OOB_TIMEOUT_OPT",
   "PREALLOC_WIPE_DISKS_OPT",
   "PRIMARY_IP_VERSION_OPT",
   "PRIORITY_OPT",
@@ -1148,6 +1149,10 @@ NODE_POWERED_OPT = cli_option("--node-powered", default=None,
                               type="bool", metavar=_YORNO,
                               dest="node_powered",
                               help="Specify if the SoR for node is powered")
+
+OOB_TIMEOUT_OPT = cli_option("--oob-timeout", dest="oob_timeout", type="int",
+                         default=constants.OOB_TIMEOUT,
+                         help="Maximum time to wait for out-of-band helper")
 
 
 #: Options provided by all commands
