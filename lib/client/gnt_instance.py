@@ -357,7 +357,7 @@ def BatchCreate(opts, args):
     utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
 
     tmp_nics = []
-    for field in ('ip', 'mac', 'mode', 'link', 'bridge'):
+    for field in constants.INIC_PARAMS:
       if field in specs:
         if not tmp_nics:
           tmp_nics.append({})
