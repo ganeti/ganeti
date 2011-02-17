@@ -3630,7 +3630,10 @@ class _NodeQuery(_QueryBase):
 
     # Gather data as requested
     if query.NQ_LIVE in self.requested_data:
-      node_data = lu.rpc.call_node_info(nodenames, lu.cfg.GetVGName(),
+      # filter out non-vm_capable nodes
+      toquery_nodes = [name for name in nodenames if all_info[name].vm_capable]
+
+      node_data = lu.rpc.call_node_info(toquery_nodes, lu.cfg.GetVGName(),
                                         lu.cfg.GetHypervisorType())
       live_data = dict((name, nresult.payload)
                        for (name, nresult) in node_data.items()
