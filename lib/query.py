@@ -487,6 +487,7 @@ _NODE_SIMPLE_FIELDS = {
 
 
 #: Fields requiring talking to the node
+# Note that none of these are available for non-vm_capable nodes
 _NODE_LIVE_FIELDS = {
   "bootid": ("BootID", QFT_TEXT, "bootid"),
   "cnodes": ("CNodes", QFT_NUMBER, "cpu_nodes"),
@@ -576,6 +577,9 @@ def _GetLiveNodeField(field, kind, ctx, node):
   """
   if node.offline:
     return _FS_OFFLINE
+
+  if not node.vm_capable:
+    return _FS_UNAVAIL
 
   if not ctx.curlive_data:
     return _FS_NODATA
