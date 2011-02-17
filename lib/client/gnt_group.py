@@ -121,7 +121,7 @@ def ListGroupFields(opts, args):
 def SetGroupParams(opts, args):
   """Modifies a node group's parameters.
 
-  @param opts: the command line options seletect by the user
+  @param opts: the command line options selected by the user
   @type args: list
   @param args: should contain only one element, the node group name
 
