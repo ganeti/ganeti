@@ -187,7 +187,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   to it.
 
   @type target: str
-  @param target: the IP or hostname to ping
+  @param target: the IP to ping
   @type port: int
   @param port: the port to connect to
   @type timeout: int
