@@ -42,12 +42,20 @@ from ganeti import ssh
 from ganeti import utils
 
 
+_GROUPS_MERGE = "merge"
+_GROUPS_RENAME = "rename"
+_CLUSTERMERGE_ECID = "clustermerge-ecid"
+
 PAUSE_PERIOD_OPT = cli.cli_option("-p", "--watcher-pause-period", default=1800,
                                   action="store", type="int",
                                   dest="pause_period",
                                   help=("Amount of time in seconds watcher"
                                         " should be suspended from running"))
-_CLUSTERMERGE_ECID = "clustermerge-ecid"
+GROUPS_OPT = cli.cli_option("--groups", default=None, metavar="STRATEGY",
+                            choices=(_GROUPS_MERGE, _GROUPS_RENAME), dest="groups",
+                            help=("How to handle groups that have the"
+                                  " same name (One of: %s/%s)" %
+                                  (_GROUPS_MERGE, _GROUPS_RENAME)))
 
 
 def Flatten(unflattened_list):
@@ -92,11 +100,12 @@ class Merger(object):
   """Handling the merge.
 
   """
-  def __init__(self, clusters, pause_period):
+  def __init__(self, clusters, pause_period, groups):
     """Initialize object with sane defaults and infos required.
 
     @param clusters: The list of clusters to merge in
     @param pause_period: The time watcher shall be disabled for
+    @param groups: How to handle group conflicts
 
     """
     self.merger_data = []
@@ -105,6 +114,7 @@ class Merger(object):
     self.work_dir = tempfile.mkdtemp(suffix="cluster-merger")
     (self.cluster_name, ) = cli.GetClient().QueryConfigValues(["cluster_name"])
     self.ssh_runner = ssh.SshRunner(self.cluster_name)
+    self.groups = groups
 
   def Setup(self):
     """Sets up our end so we can do the merger.
@@ -304,7 +314,39 @@ class Merger(object):
     ConfigWriter.AddNodeGroup takes care of making sure there are no conflicts.
     """
     # pylint: disable-msg=R0201
-    for grp in other_config.GetAllNodeGroupsInfo().values():
+    logging.info("Node group conflict strategy: %s" % self.groups)
+
+    my_grps = my_config.GetAllNodeGroupsInfo().values()
+    other_grps = other_config.GetAllNodeGroupsInfo().values()
+
+    # Check for node group naming conflicts:
+    conflicts = []
+    for other_grp in other_grps:
+      for my_grp in my_grps:
+        if other_grp.name == my_grp.name:
+          conflicts.append(other_grp)
+
+    if conflicts:
+      conflict_names = utils.CommaJoin([g.name for g in conflicts])
+      logging.info("Node groups in both local and remote cluster: %s" %
+                   conflict_names)
+
+      # User hasn't specified how to handle conflicts
+      if not self.groups:
+        raise errors.CommandError("The following node group(s) are in both"
+                                  " clusters, and no merge strategy has been"
+                                  " supplied (see the --groups option): %s" %
+                                  conflict_names)
+
+      # User wants to rename conflicts
+      if self.groups == _GROUPS_RENAME:
+        for grp in conflicts:
+          new_name = "%s-%s" % (grp.name, other_config.GetClusterName())
+          logging.info("Renaming remote node group from %s to %s"
+                       " to resolve conflict" % (grp.name, new_name))
+          grp.name = new_name
+
+    for grp in other_grps:
       #TODO: handle node group conflicts
       my_config.AddNodeGroup(grp, _CLUSTERMERGE_ECID)
 
@@ -483,13 +525,16 @@ def main():
   """
   program = os.path.basename(sys.argv[0])
 
-  parser = optparse.OptionParser(usage=("%prog [--debug|--verbose]"
+  parser = optparse.OptionParser(usage=("%%prog [--debug|--verbose]"
                                         " [--watcher-pause-period SECONDS]"
-                                        " <cluster> <cluster...>"),
+                                        " [--groups [%s|%s]]"
+                                        " <cluster> [<cluster...>]" %
+                                        (_GROUPS_MERGE, _GROUPS_RENAME)),
                                         prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option(PAUSE_PERIOD_OPT)
+  parser.add_option(GROUPS_OPT)
 
   (options, args) = parser.parse_args()
 
@@ -498,7 +543,8 @@ def main():
   if not args:
     parser.error("No clusters specified")
 
-  cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period)
+  cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period,
+                          options.groups)
   try:
     try:
       cluster_merger.Setup()

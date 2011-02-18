@@ -23,8 +23,8 @@ clusters into.
 
 The usage of ``cluster-merge`` is as follows::
 
-  cluster-merge [--debug|--verbose] [--watcher-pause-period SECONDS] <cluster> \
-  <cluster...>
+  cluster-merge [--debug|--verbose] [--watcher-pause-period SECONDS] \
+  [--groups [merge|rename]] <cluster> [<cluster...>]
 
 You can provide multiple clusters. The tool will then go over every
 cluster in serial and perform the steps to merge it into the invoking
@@ -39,6 +39,15 @@ These options can be used to control the behaviour of the tool:
 ``--watcher-pause-period``
   Define the period of time in seconds the watcher shall be disabled,
   default is 1800 seconds (30 minutes).
+``--groups``
+  This option controls how ``cluster-merge`` handles duplicate node
+  group names on the merging clusters. If ``merge`` is specified then
+  all node groups with the same name will be merged into one. If
+  ``rename`` is specified, then conflicting node groups on the remove
+  clusters will have their cluster name appended to the group name. If
+  this option is not speicifed, then ``cluster-merge`` will refuse to
+  continue if it finds conflicting group names, otherwise it will
+  proceed as normal.
 
 
 Rollback
