@@ -473,7 +473,7 @@ def TestRapiInstanceRename(rename_source, rename_target):
 
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
-  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance))
+  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"]))
 
 
 def TestRapiInstanceModify(instance):
