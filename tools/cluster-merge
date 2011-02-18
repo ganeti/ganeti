@@ -52,7 +52,8 @@ PAUSE_PERIOD_OPT = cli.cli_option("-p", "--watcher-pause-period", default=1800,
                                   help=("Amount of time in seconds watcher"
                                         " should be suspended from running"))
 GROUPS_OPT = cli.cli_option("--groups", default=None, metavar="STRATEGY",
-                            choices=(_GROUPS_MERGE, _GROUPS_RENAME), dest="groups",
+                            choices=(_GROUPS_MERGE, _GROUPS_RENAME),
+                            dest="groups",
                             help=("How to handle groups that have the"
                                   " same name (One of: %s/%s)" %
                                   (_GROUPS_MERGE, _GROUPS_RENAME)))
@@ -314,7 +315,7 @@ class Merger(object):
     ConfigWriter.AddNodeGroup takes care of making sure there are no conflicts.
     """
     # pylint: disable-msg=R0201
-    logging.info("Node group conflict strategy: %s" % self.groups)
+    logging.info("Node group conflict strategy: %s", self.groups)
 
     my_grps = my_config.GetAllNodeGroupsInfo().values()
     other_grps = other_config.GetAllNodeGroupsInfo().values()
@@ -328,7 +329,7 @@ class Merger(object):
 
     if conflicts:
       conflict_names = utils.CommaJoin([g.name for g in conflicts])
-      logging.info("Node groups in both local and remote cluster: %s" %
+      logging.info("Node groups in both local and remote cluster: %s",
                    conflict_names)
 
       # User hasn't specified how to handle conflicts
@@ -343,18 +344,25 @@ class Merger(object):
         for grp in conflicts:
           new_name = "%s-%s" % (grp.name, other_config.GetClusterName())
           logging.info("Renaming remote node group from %s to %s"
-                       " to resolve conflict" % (grp.name, new_name))
+                       " to resolve conflict", grp.name, new_name)
           grp.name = new_name
 
       # User wants to merge conflicting groups
       elif self.groups == 'merge':
         for other_grp in conflicts:
-          logging.info("Merging local and remote '%s' groups" % other_grp.name)
+          logging.info("Merging local and remote '%s' groups", other_grp.name)
           for node_name in other_grp.members[:]:
             node = other_config.GetNodeInfo(node_name)
+            # Access to a protected member of a client class
+            # pylint: disable-msg=W0212
             other_config._UnlockedRemoveNodeFromGroup(node)
 
+            # Access to a protected member of a client class
+            # pylint: disable-msg=W0212
             my_grp_uuid = my_config._UnlockedLookupNodeGroup(other_grp.name)
+
+            # Access to a protected member of a client class
+            # pylint: disable-msg=W0212
             my_config._UnlockedAddNodeToGroup(node, my_grp_uuid)
             node.group = my_grp_uuid
           # Remove from list of groups to add
