@@ -1026,7 +1026,7 @@ def _ParseInstanceReinstallRequest(name, data):
   if not isinstance(data, dict):
     raise http.HttpBadRequest("Invalid body contents, not a dictionary")
 
-  ostype = baserlib.CheckParameter(data, "os")
+  ostype = baserlib.CheckParameter(data, "os", default=None)
   start = baserlib.CheckParameter(data, "start", exptype=bool,
                                   default=True)
   osparams = baserlib.CheckParameter(data, "osparams", default=None)
@@ -1062,14 +1062,14 @@ class R_2_instances_name_reinstall(baserlib.R_Generic):
         raise http.HttpBadRequest("Can't combine query and body parameters")
 
       body = self.request_body
-    else:
-      if not self.queryargs:
-        raise http.HttpBadRequest("Missing query parameters")
+    elif self.queryargs:
       # Legacy interface, do not modify/extend
       body = {
         "os": self._checkStringVariable("os"),
         "start": not self._checkIntVariable("nostartup"),
         }
+    else:
+      body = {}
 
     ops = _ParseInstanceReinstallRequest(self.items[0], body)
 
