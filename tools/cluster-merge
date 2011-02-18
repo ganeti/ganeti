@@ -339,12 +339,26 @@ class Merger(object):
                                   conflict_names)
 
       # User wants to rename conflicts
-      if self.groups == _GROUPS_RENAME:
+      elif self.groups == _GROUPS_RENAME:
         for grp in conflicts:
           new_name = "%s-%s" % (grp.name, other_config.GetClusterName())
           logging.info("Renaming remote node group from %s to %s"
                        " to resolve conflict" % (grp.name, new_name))
           grp.name = new_name
+
+      # User wants to merge conflicting groups
+      elif self.groups == 'merge':
+        for other_grp in conflicts:
+          logging.info("Merging local and remote '%s' groups" % other_grp.name)
+          for node_name in other_grp.members[:]:
+            node = other_config.GetNodeInfo(node_name)
+            other_config._UnlockedRemoveNodeFromGroup(node)
+
+            my_grp_uuid = my_config._UnlockedLookupNodeGroup(other_grp.name)
+            my_config._UnlockedAddNodeToGroup(node, my_grp_uuid)
+            node.group = my_grp_uuid
+          # Remove from list of groups to add
+          other_grps.remove(other_grp)
 
     for grp in other_grps:
       #TODO: handle node group conflicts
