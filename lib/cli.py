@@ -2382,17 +2382,23 @@ class _QueryColumnFormatter:
   """Callable class for formatting fields of a query.
 
   """
-  def __init__(self, fn, status_fn):
+  def __init__(self, fn, status_fn, verbose):
     """Initializes this class.
 
     @type fn: callable
     @param fn: Formatting function
     @type status_fn: callable
     @param status_fn: Function to report fields' status
+    @type verbose: boolean
+    @param verbose: whether to use verbose field descriptions or not
 
     """
     self._fn = fn
     self._status_fn = status_fn
+    if verbose:
+      self._desc_index = 0
+    else:
+      self._desc_index = 1
 
   def __call__(self, data):
     """Returns a field's string representation.
@@ -2409,23 +2415,14 @@ class _QueryColumnFormatter:
     assert value is None, \
            "Found value %r for abnormal status %s" % (value, status)
 
-    if status == constants.RS_UNKNOWN:
-      return "(unknown)"
-
-    if status == constants.RS_NODATA:
-      return "(nodata)"
-
-    if status == constants.RS_UNAVAIL:
-      return "(unavail)"
-
-    if status == constants.RS_OFFLINE:
-      return "(offline)"
+    if status in constants.RSS_DESCRIPTION:
+      return constants.RSS_DESCRIPTION[status][self._desc_index]
 
     raise NotImplementedError("Unknown status %s" % status)
 
 
 def FormatQueryResult(result, unit=None, format_override=None, separator=None,
-                      header=False):
+                      header=False, verbose=False):
   """Formats data in L{objects.QueryResponse}.
 
   @type result: L{objects.QueryResponse}
@@ -2440,6 +2437,8 @@ def FormatQueryResult(result, unit=None, format_override=None, separator=None,
   @param separator: String used to separate fields
   @type header: bool
   @param header: Whether to output header row
+  @type verbose: boolean
+  @param verbose: whether to use verbose field descriptions or not
 
   """
   if unit is None:
@@ -2462,7 +2461,8 @@ def FormatQueryResult(result, unit=None, format_override=None, separator=None,
     assert fdef.title and fdef.name
     (fn, align_right) = _GetColumnFormatter(fdef, format_override, unit)
     columns.append(TableColumn(fdef.title,
-                               _QueryColumnFormatter(fn, _RecordStatus),
+                               _QueryColumnFormatter(fn, _RecordStatus,
+                                                     verbose),
                                align_right))
 
   table = FormatTable(result.data, columns, header, separator)
@@ -2511,7 +2511,7 @@ def _WarnUnknownFields(fdefs):
 
 
 def GenericList(resource, fields, names, unit, separator, header, cl=None,
-                format_override=None):
+                format_override=None, verbose=False):
   """Generic implementation for listing all items of a resource.
 
   @param resource: One of L{constants.QR_OP_LUXI}
@@ -2530,6 +2530,8 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   @type format_override: dict
   @param format_override: Dictionary for overriding field formatting functions,
     indexed by field name, contents like L{_DEFAULT_FORMAT_QUERY}
+  @type verbose: boolean
+  @param verbose: whether to use verbose field descriptions or not
 
   """
   if cl is None:
@@ -2544,7 +2546,8 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
 
   (status, data) = FormatQueryResult(response, unit=unit, separator=separator,
                                      header=header,
-                                     format_override=format_override)
+                                     format_override=format_override,
+                                     verbose=verbose)
 
   for line in data:
     ToStdout(line)

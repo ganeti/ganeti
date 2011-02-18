@@ -149,7 +149,7 @@ LIST
 
 | **list**
 | [--no-headers] [--separator=*SEPARATOR*]
-| [--units=*UNITS*] [-o *[+]FIELD,...*]
+| [--units=*UNITS*] [-v] [-o *[+]FIELD,...*]
 | [node...]
 
 Lists the nodes in the cluster.
@@ -169,9 +169,11 @@ used to enforce a given output unit.
 Queries of nodes will be done in parallel with any running jobs. This might
 give inconsistent results for the free disk/memory.
 
+The ``-v`` option activates verbose mode, which changes the display of
+special field states (see **ganeti(7)**).
+
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:
-
 
 
 name

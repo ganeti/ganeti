@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ def ListGroups(opts, args):
 
   return GenericList(constants.QR_GROUP, desired_fields, args, None,
                      opts.separator, not opts.no_headers,
-                     format_override=fmtoverride)
+                     format_override=fmtoverride, verbose=opts.verbose)
 
 
 def ListGroupFields(opts, args):
@@ -189,7 +189,7 @@ commands = {
     "<group_name> <node>...", "Assign nodes to a group"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
-    [NOHDR_OPT, SEP_OPT, FIELDS_OPT],
+    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT],
     "[<group_name>...]",
     "Lists the node groups in the cluster. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."

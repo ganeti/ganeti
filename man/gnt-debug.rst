@@ -93,7 +93,7 @@ failed jobs deliberately.
 LOCKS
 ~~~~~
 
-| **locks** [--no-headers] [--separator=*SEPARATOR*]
+| **locks** [--no-headers] [--separator=*SEPARATOR*] [-v]
 | [-o *[+]FIELD,...*] [--interval=*SECONDS*]
 
 Shows a list of locks in the master daemon.
@@ -102,6 +102,9 @@ The ``--no-headers`` option will skip the initial header line. The
 ``--separator`` option takes an argument which denotes what will be
 used between the output fields. Both these options are to help
 scripting.
+
+The ``-v`` option activates verbose mode, which changes the display of
+special field states (see **ganeti(7)**).
 
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:

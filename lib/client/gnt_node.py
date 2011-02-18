@@ -223,7 +223,7 @@ def ListNodes(opts, args):
 
   return GenericList(constants.QR_NODE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
-                     format_override=fmtoverride)
+                     format_override=fmtoverride, verbose=opts.verbose)
 
 
 def ListNodeFields(opts, args):
@@ -747,7 +747,7 @@ commands = {
     "[<node_name>...]", "Show information about the node(s)"),
   'list': (
     ListNodes, ARGS_MANY_NODES,
-    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
+    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, VERBOSE_OPT],
     "[nodes...]",
     "Lists the nodes in the cluster. The available fields can be shown using"
     " the \"list-fields\" command (see the man page for details)."

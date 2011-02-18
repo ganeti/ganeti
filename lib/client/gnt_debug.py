@@ -503,7 +503,7 @@ def ListLocks(opts, args): # pylint: disable-msg=W0613
   while True:
     ret = GenericList(constants.QR_LOCK, selected_fields, None, None,
                       opts.separator, not opts.no_headers,
-                      format_override=fmtoverride)
+                      format_override=fmtoverride, verbose=opts.verbose)
 
     if ret != constants.EXIT_SUCCESS:
       return ret
@@ -575,7 +575,8 @@ commands = {
     TestJobqueue, ARGS_NONE, [PRIORITY_OPT],
     "", "Test a few aspects of the job queue"),
   "locks": (
-    ListLocks, ARGS_NONE, [NOHDR_OPT, SEP_OPT, FIELDS_OPT, INTERVAL_OPT],
+    ListLocks, ARGS_NONE,
+    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, INTERVAL_OPT, VERBOSE_OPT],
     "[--interval N]", "Show a list of locks in the master daemon"),
   }
 
