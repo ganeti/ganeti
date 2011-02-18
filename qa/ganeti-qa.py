@@ -214,6 +214,8 @@ def RunCommonInstanceTests(instance):
 
   RunTestIf("instance-reinstall", qa_instance.TestInstanceShutdown, instance)
   RunTestIf("instance-reinstall", qa_instance.TestInstanceReinstall, instance)
+  RunTestIf(["instance-reinstall", "rapi"],
+            qa_rapi.TestRapiInstanceReinstall, instance)
   RunTestIf("instance-reinstall", qa_instance.TestInstanceStartup, instance)
 
   RunTestIf("instance-reboot", qa_instance.TestInstanceReboot, instance)
