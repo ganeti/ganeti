@@ -1029,6 +1029,14 @@ RS_ALL = frozenset([
   RS_OFFLINE,
   ])
 
+#: Dictionary with special field cases and their verbose/terse formatting
+RSS_DESCRIPTION = {
+  RS_UNKNOWN: ("(unknown)", "??"),
+  RS_NODATA:  ("(nodata)",  "?"),
+  RS_OFFLINE: ("(offline)", "*"),
+  RS_UNAVAIL: ("(unavail)", "-"),
+  }
+
 # max dynamic devices
 MAX_NICS = 8
 MAX_DISKS = 16

@@ -355,7 +355,7 @@ class TestNodeQuery(unittest.TestCase):
                    master_candidate=(name != master_name and idx % 3 == 0),
                    offline=False,
                    drained=False,
-                   vm_capable=False,
+                   vm_capable=True,
                    master_capable=False,
                    ndparams={},
                    group="default",
@@ -468,10 +468,16 @@ class TestNodeQuery(unittest.TestCase):
 
   def testGetLiveNodeField(self):
     nodes = [
-      objects.Node(name="node1", drained=False, offline=False),
-      objects.Node(name="node2", drained=True, offline=False),
-      objects.Node(name="node3", drained=False, offline=False),
-      objects.Node(name="node4", drained=False, offline=True),
+      objects.Node(name="node1", drained=False, offline=False,
+                   vm_capable=True),
+      objects.Node(name="node2", drained=True, offline=False,
+                   vm_capable=True),
+      objects.Node(name="node3", drained=False, offline=False,
+                   vm_capable=True),
+      objects.Node(name="node4", drained=False, offline=True,
+                   vm_capable=True),
+      objects.Node(name="node5", drained=False, offline=False,
+                   vm_capable=False),
       ]
     live_data = dict.fromkeys([node.name for node in nodes], {})
 
@@ -510,6 +516,13 @@ class TestNodeQuery(unittest.TestCase):
     ctx = _QueryData(None, curlive_data={"hello": 123})
     self.assertRaises(AssertionError, query._GetLiveNodeField,
                       "hello", constants.QFT_BOOL, ctx, nodes[0])
+
+    # Non-vm_capable node
+    assert not nodes[4].vm_capable
+    ctx = _QueryData(None, curlive_data={})
+    self.assertEqual(query._GetLiveNodeField("hello", constants.QFT_NUMBER,
+                                             ctx, nodes[4]),
+                     query._FS_UNAVAIL, None)
 
 
 class TestInstanceQuery(unittest.TestCase):

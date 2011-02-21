@@ -624,7 +624,7 @@ LIST
 ^^^^
 
 | **list**
-| [--no-headers] [--separator=*SEPARATOR*] [--units=*UNITS*]
+| [--no-headers] [--separator=*SEPARATOR*] [--units=*UNITS*] [-v]
 | [-o *[+]FIELD,...*] [instance...]
 
 Shows the currently configured instances with memory usage, disk
@@ -642,9 +642,11 @@ option is given, then the values are shown in mebibytes to allow
 parsing by scripts. In both cases, the ``--units`` option can be
 used to enforce a given output unit.
 
+The ``-v`` option activates verbose mode, which changes the display of
+special field states (see **ganeti(7)**).
+
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:
-
 
 
 name

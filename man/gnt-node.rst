@@ -49,6 +49,10 @@ secondary IP again, it will reused from the cluster. Also, the
 drained and offline flags of the node will be cleared before
 re-adding it.
 
+The ``--force-join`` option is to proceed with adding a node even if it already
+appears to belong to another cluster. This is used during cluster merging, for
+example.
+
 The ``-g`` is used to add the new node into a specific node group,
 specified by UUID or name. If only one node group exists you can
 skip this option, otherwise it's mandatory.
@@ -145,7 +149,7 @@ LIST
 
 | **list**
 | [--no-headers] [--separator=*SEPARATOR*]
-| [--units=*UNITS*] [-o *[+]FIELD,...*]
+| [--units=*UNITS*] [-v] [-o *[+]FIELD,...*]
 | [node...]
 
 Lists the nodes in the cluster.
@@ -165,9 +169,11 @@ used to enforce a given output unit.
 Queries of nodes will be done in parallel with any running jobs. This might
 give inconsistent results for the free disk/memory.
 
+The ``-v`` option activates verbose mode, which changes the display of
+special field states (see **ganeti(7)**).
+
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:
-
 
 
 name

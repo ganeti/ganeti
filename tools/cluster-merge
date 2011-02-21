@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,12 +42,21 @@ from ganeti import ssh
 from ganeti import utils
 
 
+_GROUPS_MERGE = "merge"
+_GROUPS_RENAME = "rename"
+_CLUSTERMERGE_ECID = "clustermerge-ecid"
+
 PAUSE_PERIOD_OPT = cli.cli_option("-p", "--watcher-pause-period", default=1800,
                                   action="store", type="int",
                                   dest="pause_period",
                                   help=("Amount of time in seconds watcher"
                                         " should be suspended from running"))
-_CLUSTERMERGE_ECID = "clustermerge-ecid"
+GROUPS_OPT = cli.cli_option("--groups", default=None, metavar="STRATEGY",
+                            choices=(_GROUPS_MERGE, _GROUPS_RENAME),
+                            dest="groups",
+                            help=("How to handle groups that have the"
+                                  " same name (One of: %s/%s)" %
+                                  (_GROUPS_MERGE, _GROUPS_RENAME)))
 
 
 def Flatten(unflattened_list):
@@ -76,27 +85,28 @@ class MergerData(object):
 
     @param cluster: The name of the cluster
     @param key_path: Path to the ssh private key used for authentication
-    @param config_path: Path to the merging cluster config
     @param nodes: List of nodes in the merging cluster
     @param instances: List of instances running on merging cluster
+    @param config_path: Path to the merging cluster config
 
     """
     self.cluster = cluster
     self.key_path = key_path
-    self.config_path = config_path
-    self.instances = instances
     self.nodes = nodes
+    self.instances = instances
+    self.config_path = config_path
 
 
 class Merger(object):
   """Handling the merge.
 
   """
-  def __init__(self, clusters, pause_period):
+  def __init__(self, clusters, pause_period, groups):
     """Initialize object with sane defaults and infos required.
 
     @param clusters: The list of clusters to merge in
     @param pause_period: The time watcher shall be disabled for
+    @param groups: How to handle group conflicts
 
     """
     self.merger_data = []
@@ -105,6 +115,7 @@ class Merger(object):
     self.work_dir = tempfile.mkdtemp(suffix="cluster-merger")
     (self.cluster_name, ) = cli.GetClient().QueryConfigValues(["cluster_name"])
     self.ssh_runner = ssh.SshRunner(self.cluster_name)
+    self.groups = groups
 
   def Setup(self):
     """Sets up our end so we can do the merger.
@@ -273,8 +284,7 @@ class Merger(object):
 
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
-        node_info.master_candidate = False
-        my_config.AddNode(node_info, str(fake_ec_id))
+        my_config.AddNode(node_info, _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
       for instance in other_config.GetInstanceList():
@@ -294,7 +304,8 @@ class Merger(object):
             physical_id[1] = physical_id[3] = port
             dsk.physical_id = tuple(physical_id)
 
-        my_config.AddInstance(instance_info, str(fake_ec_id))
+        my_config.AddInstance(instance_info,
+                              _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
   # R0201: Method could be a function
@@ -304,7 +315,60 @@ class Merger(object):
     ConfigWriter.AddNodeGroup takes care of making sure there are no conflicts.
     """
     # pylint: disable-msg=R0201
-    for (_, grp) in other_config.GetAllNodeGroupsInfo():
+    logging.info("Node group conflict strategy: %s", self.groups)
+
+    my_grps = my_config.GetAllNodeGroupsInfo().values()
+    other_grps = other_config.GetAllNodeGroupsInfo().values()
+
+    # Check for node group naming conflicts:
+    conflicts = []
+    for other_grp in other_grps:
+      for my_grp in my_grps:
+        if other_grp.name == my_grp.name:
+          conflicts.append(other_grp)
+
+    if conflicts:
+      conflict_names = utils.CommaJoin([g.name for g in conflicts])
+      logging.info("Node groups in both local and remote cluster: %s",
+                   conflict_names)
+
+      # User hasn't specified how to handle conflicts
+      if not self.groups:
+        raise errors.CommandError("The following node group(s) are in both"
+                                  " clusters, and no merge strategy has been"
+                                  " supplied (see the --groups option): %s" %
+                                  conflict_names)
+
+      # User wants to rename conflicts
+      elif self.groups == _GROUPS_RENAME:
+        for grp in conflicts:
+          new_name = "%s-%s" % (grp.name, other_config.GetClusterName())
+          logging.info("Renaming remote node group from %s to %s"
+                       " to resolve conflict", grp.name, new_name)
+          grp.name = new_name
+
+      # User wants to merge conflicting groups
+      elif self.groups == 'merge':
+        for other_grp in conflicts:
+          logging.info("Merging local and remote '%s' groups", other_grp.name)
+          for node_name in other_grp.members[:]:
+            node = other_config.GetNodeInfo(node_name)
+            # Access to a protected member of a client class
+            # pylint: disable-msg=W0212
+            other_config._UnlockedRemoveNodeFromGroup(node)
+
+            # Access to a protected member of a client class
+            # pylint: disable-msg=W0212
+            my_grp_uuid = my_config._UnlockedLookupNodeGroup(other_grp.name)
+
+            # Access to a protected member of a client class
+            # pylint: disable-msg=W0212
+            my_config._UnlockedAddNodeToGroup(node, my_grp_uuid)
+            node.group = my_grp_uuid
+          # Remove from list of groups to add
+          other_grps.remove(other_grp)
+
+    for grp in other_grps:
       #TODO: handle node group conflicts
       my_config.AddNodeGroup(grp, _CLUSTERMERGE_ECID)
 
@@ -335,7 +399,7 @@ class Merger(object):
     for data in self.merger_data:
       for node in data.nodes:
         result = utils.RunCmd(["gnt-node", "add", "--readd",
-                               "--no-ssh-key-check", node])
+                               "--no-ssh-key-check", "--force-join", node])
         if result.failed:
           raise errors.CommandError("Couldn't readd node %s. Fail reason: %s;"
                                     " output: %s" % (node, result.fail_reason,
@@ -403,25 +467,26 @@ class Merger(object):
       logging.info("Merging config")
       self._FetchRemoteConfig()
 
-      def _OfflineClusterMerge(_):
-        """Closure run when master daemons stopped
+      logging.info("Stopping master daemon")
+      self._KillMasterDaemon()
 
-        """
-        rbsteps.append("Restore %s from another master candidate" %
-                       constants.CLUSTER_CONF_FILE)
-        self._MergeConfig()
-        self._StartMasterDaemon(no_vote=True)
+      rbsteps.append("Restore %s from another master candidate"
+                     " and restart master daemon" %
+                     constants.CLUSTER_CONF_FILE)
+      self._MergeConfig()
+      self._StartMasterDaemon(no_vote=True)
 
-        # Point of no return, delete rbsteps
-        del rbsteps[:]
+      # Point of no return, delete rbsteps
+      del rbsteps[:]
 
-        logging.warning("We are at the point of no return. Merge can not easily"
-                        " be undone after this point.")
-        logging.info("Readd nodes and redistribute config")
-        self._ReaddMergedNodesAndRedist()
-        self._KillMasterDaemon()
+      logging.warning("We are at the point of no return. Merge can not easily"
+                      " be undone after this point.")
+      logging.info("Readd nodes")
+      self._ReaddMergedNodesAndRedist()
 
-      cli.RunWhileClusterStopped(logging.info, _OfflineClusterMerge)
+      logging.info("Merge done, restart master daemon normally")
+      self._KillMasterDaemon()
+      self._StartMasterDaemon()
 
       logging.info("Starting instances again")
       self._StartupAllInstances()
@@ -482,25 +547,26 @@ def main():
   """
   program = os.path.basename(sys.argv[0])
 
-  parser = optparse.OptionParser(usage=("%prog [--debug|--verbose]"
+  parser = optparse.OptionParser(usage=("%%prog [--debug|--verbose]"
                                         " [--watcher-pause-period SECONDS]"
-                                        " <cluster> <cluster...>"),
+                                        " [--groups [%s|%s]]"
+                                        " <cluster> [<cluster...>]" %
+                                        (_GROUPS_MERGE, _GROUPS_RENAME)),
                                         prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option(PAUSE_PERIOD_OPT)
+  parser.add_option(GROUPS_OPT)
 
   (options, args) = parser.parse_args()
-
-  parser.error("Unfortunately this tool is currently broken and cannot"
-               " be used. Sorry!")
 
   SetupLogging(options)
 
   if not args:
     parser.error("No clusters specified")
 
-  cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period)
+  cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period,
+                          options.groups)
   try:
     try:
       cluster_merger.Setup()
