@@ -1,6 +1,41 @@
 News
 ====
 
+Version 2.4.0 rc2
+-----------------
+
+*(Released Mon, 21 Feb 2011)*
+
+A number of bug fixes plus just a couple functionality changes.
+
+On the user-visible side, the ``gnt-* list`` command output has changed
+with respect to “special” field states. The current rc1 style of display
+can be re-enabled by passing a new ``-v, --verbose`` flag, but in the
+default output mode special fields are displayed as follows:
+
+- offline field: ``*``
+- unavailable/not applicable: ``-``
+- data missing (RPC failure): ``?``
+- unknown field: ``??``
+
+Another user-visible change is the addition of ``--force-join`` to
+``gnt-node add``.
+
+As for bug fixes:
+
+- ``tools/cluster-merge`` has seen many fixes and is now enabled again
+- fixed regression in RAPI/instance reinstall where all parameters were
+  required (instead of optional)
+- fixed ``gnt-cluster repair-disk-sizes``, was broken since Ganeti 2.2
+- fixed iallocator usage (offline nodes were not considered offline)
+- fixed ``gnt-node list`` with respect to non-vm_capable nodes
+- fixed hypervisor and OS parameter validation with respect to
+  non-vm_capable nodes
+- fixed ``gnt-cluster verify`` with respect to offline nodes (mostly
+  cosmetic)
+- fixed ``tools/listrunner`` with respect to agent-based usage
+
+
 Version 2.4.0 rc1
 -----------------
 
