@@ -322,7 +322,7 @@ methods.  Unavailable values are set to ``None``. If unknown fields were
 requested, the whole query fails as the client expects exactly the
 fields it requested.
 
-.. _luxi:
+.. _query2-luxi:
 
 LUXI
 ++++

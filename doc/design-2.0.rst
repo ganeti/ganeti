@@ -187,6 +187,8 @@ format and decode them on the receiver side.
 For more details about the RAPI daemon see `Remote API changes`_, and
 for the node daemon see `Node daemon changes`_.
 
+.. _luxi:
+
 The LUXI protocol
 +++++++++++++++++
 
