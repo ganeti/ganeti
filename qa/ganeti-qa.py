@@ -196,6 +196,8 @@ def RunCommonInstanceTests(instance):
 
   """
   RunTestIf("instance-shutdown", qa_instance.TestInstanceShutdown, instance)
+  RunTestIf(["instance-shutdown", "instance-console", "rapi"],
+            qa_rapi.TestRapiStoppedInstanceConsole, instance)
   RunTestIf("instance-shutdown", qa_instance.TestInstanceStartup, instance)
 
   RunTestIf("instance-list", qa_instance.TestInstanceList)
@@ -207,9 +209,13 @@ def RunCommonInstanceTests(instance):
             qa_rapi.TestRapiInstanceModify, instance)
 
   RunTestIf("instance-console", qa_instance.TestInstanceConsole, instance)
+  RunTestIf(["instance-console", "rapi"],
+            qa_rapi.TestRapiInstanceConsole, instance)
 
   RunTestIf("instance-reinstall", qa_instance.TestInstanceShutdown, instance)
   RunTestIf("instance-reinstall", qa_instance.TestInstanceReinstall, instance)
+  RunTestIf(["instance-reinstall", "rapi"],
+            qa_rapi.TestRapiInstanceReinstall, instance)
   RunTestIf("instance-reinstall", qa_instance.TestInstanceStartup, instance)
 
   RunTestIf("instance-reboot", qa_instance.TestInstanceReboot, instance)
@@ -266,7 +272,7 @@ def RunGroupRwTests():
   RunTestIf("group-rwops", qa_group.TestGroupAddRemoveRename)
   RunTestIf("group-rwops", qa_group.TestGroupAddWithOptions)
   RunTestIf("group-rwops", qa_group.TestGroupModify)
-  RunTestIf("rapi", qa_rapi.TestRapiNodeGroups)
+  RunTestIf(["group-rwops", "rapi"], qa_rapi.TestRapiNodeGroups)
 
 
 def RunExportImportTests(instance, pnode, snode):

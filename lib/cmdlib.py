@@ -1554,7 +1554,7 @@ class LUClusterVerify(LogicalUnit):
                node_current)
 
     for node, n_img in node_image.items():
-      if (not node == node_current):
+      if node != node_current:
         test = instance in n_img.instances
         _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
                  "instance should not run on node %s", node)
@@ -1564,7 +1564,11 @@ class LUClusterVerify(LogicalUnit):
                 for idx, (success, status) in enumerate(disks)]
 
     for nname, success, bdev_status, idx in diskdata:
-      _ErrorIf(instanceconfig.admin_up and not success,
+      # the 'ghost node' construction in Exec() ensures that we have a
+      # node here
+      snode = node_image[nname]
+      bad_snode = snode.ghost or snode.offline
+      _ErrorIf(instanceconfig.admin_up and not success and not bad_snode,
                self.EINSTANCEFAULTYDISK, instance,
                "couldn't retrieve status for disk/%s on %s: %s",
                idx, nname, bdev_status)
@@ -1623,6 +1627,12 @@ class LUClusterVerify(LogicalUnit):
       # WARNING: we currently take into account down instances as well
       # as up ones, considering that even if they're down someone
       # might want to start them even in the event of a node failure.
+      if n_img.offline:
+        # we're skipping offline nodes from the N+1 warning, since
+        # most likely we don't have good memory infromation from them;
+        # we already list instances living on such nodes, and that's
+        # enough warning
+        continue
       for prinode, instances in n_img.sbp.items():
         needed_mem = 0
         for instance in instances:
@@ -2291,8 +2301,8 @@ class LUClusterVerify(LogicalUnit):
                self.ENODERPC, pnode, "instance %s, connection to"
                " primary node failed", instance)
 
-      if pnode_img.offline:
-        inst_nodes_offline.append(pnode)
+      _ErrorIf(pnode_img.offline, self.EINSTANCEBADNODE, instance,
+               "instance lives on offline node %s", inst_config.primary_node)
 
       # If the instance is non-redundant we cannot survive losing its primary
       # node, so we are not N+1 compliant. On the other hand we have no disk
@@ -2341,7 +2351,7 @@ class LUClusterVerify(LogicalUnit):
 
       # warn that the instance lives on offline nodes
       _ErrorIf(inst_nodes_offline, self.EINSTANCEBADNODE, instance,
-               "instance lives on offline node(s) %s",
+               "instance has offline secondary node(s) %s",
                utils.CommaJoin(inst_nodes_offline))
       # ... or ghost/non-vm_capable nodes
       for node in inst_config.all_nodes:
@@ -2575,16 +2585,18 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       newl = [v[2].Copy() for v in dskl]
       for dsk in newl:
         self.cfg.SetDiskID(dsk, node)
-      result = self.rpc.call_blockdev_getsizes(node, newl)
+      result = self.rpc.call_blockdev_getsize(node, newl)
       if result.fail_msg:
-        self.LogWarning("Failure in blockdev_getsizes call to node"
+        self.LogWarning("Failure in blockdev_getsize call to node"
                         " %s, ignoring", node)
         continue
-      if len(result.data) != len(dskl):
+      if len(result.payload) != len(dskl):
+        logging.warning("Invalid result from node %s: len(dksl)=%d,"
+                        " result.payload=%s", node, len(dskl), result.payload)
         self.LogWarning("Invalid result from node %s, ignoring node results",
                         node)
         continue
-      for ((instance, idx, disk), size) in zip(dskl, result.data):
+      for ((instance, idx, disk), size) in zip(dskl, result.payload):
         if size is None:
           self.LogWarning("Disk %d of instance %s did not return size"
                           " information, ignoring", idx, instance.name)
@@ -3652,7 +3664,10 @@ class _NodeQuery(_QueryBase):
 
     # Gather data as requested
     if query.NQ_LIVE in self.requested_data:
-      node_data = lu.rpc.call_node_info(nodenames, lu.cfg.GetVGName(),
+      # filter out non-vm_capable nodes
+      toquery_nodes = [name for name in nodenames if all_info[name].vm_capable]
+
+      node_data = lu.rpc.call_node_info(toquery_nodes, lu.cfg.GetVGName(),
                                         lu.cfg.GetHypervisorType())
       live_data = dict((name, nresult.payload)
                        for (name, nresult) in node_data.items()
@@ -3900,18 +3915,21 @@ class _InstanceQuery(_QueryBase):
     """Computes the list of instances and their attributes.
 
     """
+    cluster = lu.cfg.GetClusterInfo()
     all_info = lu.cfg.GetAllInstancesInfo()
 
     instance_names = self._GetNames(lu, all_info.keys(), locking.LEVEL_INSTANCE)
 
     instance_list = [all_info[name] for name in instance_names]
-    nodes = frozenset([inst.primary_node for inst in instance_list])
+    nodes = frozenset(itertools.chain(*(inst.all_nodes
+                                        for inst in instance_list)))
     hv_list = list(set([inst.hypervisor for inst in instance_list]))
     bad_nodes = []
     offline_nodes = []
+    wrongnode_inst = set()
 
     # Gather data as requested
-    if query.IQ_LIVE in self.requested_data:
+    if self.requested_data & set([query.IQ_LIVE, query.IQ_CONSOLE]):
       live_data = {}
       node_data = lu.rpc.call_all_instances_info(nodes, hv_list)
       for name in nodes:
@@ -3923,7 +3941,11 @@ class _InstanceQuery(_QueryBase):
         if result.fail_msg:
           bad_nodes.append(name)
         elif result.payload:
-          live_data.update(result.payload)
+          for inst in result.payload:
+            if all_info[inst].primary_node == name:
+              live_data.update(result.payload)
+            else:
+              wrongnode_inst.add(inst)
         # else no instance is alive
     else:
       live_data = {}
@@ -3937,9 +3959,21 @@ class _InstanceQuery(_QueryBase):
     else:
       disk_usage = None
 
+    if query.IQ_CONSOLE in self.requested_data:
+      consinfo = {}
+      for inst in instance_list:
+        if inst.name in live_data:
+          # Instance is running
+          consinfo[inst.name] = _GetInstanceConsole(cluster, inst)
+        else:
+          consinfo[inst.name] = None
+      assert set(consinfo.keys()) == set(instance_names)
+    else:
+      consinfo = None
+
     return query.InstanceQueryData(instance_list, lu.cfg.GetClusterInfo(),
                                    disk_usage, offline_nodes, bad_nodes,
-                                   live_data)
+                                   live_data, wrongnode_inst, consinfo)
 
 
 class LUQuery(NoHooksLU):
@@ -4796,13 +4830,13 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
   # SyncSource, etc.)
 
   # 1st pass, assemble on all nodes in secondary mode
-  for inst_disk in disks:
+  for idx, inst_disk in enumerate(disks):
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
       if ignore_size:
         node_disk = node_disk.Copy()
         node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node)
-      result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, False)
+      result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, False, idx)
       msg = result.fail_msg
       if msg:
         lu.proc.LogWarning("Could not prepare block device %s on node %s"
@@ -4814,7 +4848,7 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
   # FIXME: race condition on drbd migration to primary
 
   # 2nd pass, do only the primary node
-  for inst_disk in disks:
+  for idx, inst_disk in enumerate(disks):
     dev_path = None
 
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
@@ -4824,7 +4858,7 @@ def _AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
         node_disk = node_disk.Copy()
         node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node)
-      result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, True)
+      result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, True, idx)
       msg = result.fail_msg
       if msg:
         lu.proc.LogWarning("Could not prepare block device %s on node %s"
@@ -5962,7 +5996,7 @@ class LUInstanceMove(LogicalUnit):
     for idx, disk in enumerate(instance.disks):
       self.LogInfo("Copying data for disk %d", idx)
       result = self.rpc.call_blockdev_assemble(target_node, disk,
-                                               instance.name, True)
+                                               instance.name, True, idx)
       if result.fail_msg:
         self.LogWarning("Can't assemble newly created disk %d: %s",
                         idx, result.fail_msg)
@@ -6819,6 +6853,21 @@ def _ComputeDiskSize(disk_template, disks):
   return req_size_dict[disk_template]
 
 
+def _FilterVmNodes(lu, nodenames):
+  """Filters out non-vm_capable nodes from a list.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit for which we check
+  @type nodenames: list
+  @param nodenames: the list of nodes on which we should check
+  @rtype: list
+  @return: the list of vm-capable nodes
+
+  """
+  vm_nodes = frozenset(lu.cfg.GetNonVmCapableNodeList())
+  return [name for name in nodenames if name not in vm_nodes]
+
+
 def _CheckHVParams(lu, nodenames, hvname, hvparams):
   """Hypervisor parameter validation.
 
@@ -6836,6 +6885,7 @@ def _CheckHVParams(lu, nodenames, hvname, hvparams):
   @raise errors.OpPrereqError: if the parameters are not valid
 
   """
+  nodenames = _FilterVmNodes(lu, nodenames)
   hvinfo = lu.rpc.call_hypervisor_validate_params(nodenames,
                                                   hvname,
                                                   hvparams)
@@ -6863,6 +6913,7 @@ def _CheckOSParams(lu, required, nodenames, osname, osparams):
   @raise errors.OpPrereqError: if the parameters are not valid
 
   """
+  nodenames = _FilterVmNodes(lu, nodenames)
   result = lu.rpc.call_os_validate(required, nodenames, osname,
                                    [constants.OS_VALIDATE_PARAMETERS],
                                    osparams)
@@ -7830,18 +7881,28 @@ class LUInstanceConsole(NoHooksLU):
 
     logging.debug("Connecting to console of %s on %s", instance.name, node)
 
-    hyper = hypervisor.GetHypervisor(instance.hypervisor)
-    cluster = self.cfg.GetClusterInfo()
-    # beparams and hvparams are passed separately, to avoid editing the
-    # instance and then saving the defaults in the instance itself.
-    hvparams = cluster.FillHV(instance)
-    beparams = cluster.FillBE(instance)
-    console = hyper.GetInstanceConsole(instance, hvparams, beparams)
+    return _GetInstanceConsole(self.cfg.GetClusterInfo(), instance)
 
-    assert console.instance == instance.name
-    assert console.Validate()
 
-    return console.ToDict()
+def _GetInstanceConsole(cluster, instance):
+  """Returns console information for an instance.
+
+  @type cluster: L{objects.Cluster}
+  @type instance: L{objects.Instance}
+  @rtype: dict
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  # beparams and hvparams are passed separately, to avoid editing the
+  # instance and then saving the defaults in the instance itself.
+  hvparams = cluster.FillHV(instance)
+  beparams = cluster.FillBE(instance)
+  console = hyper.GetInstanceConsole(instance, hvparams, beparams)
+
+  assert console.instance == instance.name
+  assert console.Validate()
+
+  return console.ToDict()
 
 
 class LUInstanceReplaceDisks(LogicalUnit):
@@ -10385,9 +10446,9 @@ class LUGroupRemove(LogicalUnit):
 
     # Verify the cluster would not be left group-less.
     if len(self.cfg.GetNodeGroupList()) == 1:
-      raise errors.OpPrereqError("Group '%s' is the last group in the cluster,"
-                                 " which cannot be left without at least one"
-                                 " group" % self.op.group_name,
+      raise errors.OpPrereqError("Group '%s' is the only group,"
+                                 " cannot be removed" %
+                                 self.op.group_name,
                                  errors.ECODE_STATE)
 
   def BuildHooksEnv(self):
@@ -11027,8 +11088,7 @@ class IAllocator(object):
           "i_pri_up_memory": i_p_up_mem,
           }
         pnr_dyn.update(node_results[nname])
-
-      node_results[nname] = pnr_dyn
+        node_results[nname] = pnr_dyn
 
     return node_results
 

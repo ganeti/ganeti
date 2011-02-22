@@ -31,10 +31,19 @@ from ganeti import constants
 from ganeti import opcodes
 from ganeti import compat
 from ganeti import http
+from ganeti import query
 
 from ganeti.rapi import rlib2
 
 import testutils
+
+
+class TestConstants(unittest.TestCase):
+  def testConsole(self):
+    # Exporting the console field without authentication might expose
+    # information
+    assert "console" in query.INSTANCE_FIELDS
+    self.assertTrue("console" not in rlib2.I_FIELDS)
 
 
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):

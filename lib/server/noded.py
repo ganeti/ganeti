@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -223,11 +223,11 @@ class NodeHttpServer(http.server.HttpServer):
     """Assemble a block device.
 
     """
-    bdev_s, owner, on_primary = params
+    bdev_s, owner, on_primary, idx = params
     bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.BlockdevAssemble(bdev, owner, on_primary)
+    return backend.BlockdevAssemble(bdev, owner, on_primary, idx)
 
   @staticmethod
   def perspective_blockdev_shutdown(params):

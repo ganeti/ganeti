@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2008 Google Inc.
+# Copyright (C) 2008, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -396,12 +396,20 @@ class TestFormatQueryResult(unittest.TestCase):
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, header=True,
-                                           separator="|"),
+                                           separator="|", verbose=True),
       (cli.QR_UNKNOWN, [
       "ID|unk|Unavail|NoData|OffLine",
       "1|(unknown)|N||(offline)",
       "2|(unknown)|(nodata)|x|(offline)",
       "3|(unknown)|N|(unavail)|(offline)",
+      ]))
+    self.assertEqual(cli.FormatQueryResult(response, header=True,
+                                           separator="|", verbose=False),
+      (cli.QR_UNKNOWN, [
+      "ID|unk|Unavail|NoData|OffLine",
+      "1|??|N||*",
+      "2|??|?|x|*",
+      "3|??|N|-|*",
       ]))
 
   def testNoData(self):
@@ -452,11 +460,18 @@ class TestFormatQueryResult(unittest.TestCase):
       ])
 
     self.assertEqual(cli.FormatQueryResult(response, header=False,
-                                           separator="|"),
+                                           separator="|", verbose=True),
       (cli.QR_INCOMPLETE, [
       "1|N||(offline)",
       "2|(nodata)|x|abc",
       "3|N|(unavail)|(offline)",
+      ]))
+    self.assertEqual(cli.FormatQueryResult(response, header=False,
+                                           separator="|", verbose=False),
+      (cli.QR_INCOMPLETE, [
+      "1|N||*",
+      "2|?|x|abc",
+      "3|N|-|*",
       ]))
 
   def testInvalidFieldType(self):

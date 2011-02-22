@@ -298,7 +298,7 @@ class InotifyError(GenericError):
 
 
 class QuitGanetiException(Exception):
-  """Signal that Ganeti that it must quit.
+  """Signal Ganeti that it must quit.
 
   This is not necessarily an error (and thus not a subclass of
   GenericError), but it's an exceptional circumstance and it is thus

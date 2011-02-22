@@ -509,7 +509,7 @@ LVM_STRIPECOUNT = _autoconf.LVM_STRIPECOUNT
 DEFAULT_SHUTDOWN_TIMEOUT = 120
 NODE_MAX_CLOCK_SKEW = 150
 # Time for an intra-cluster disk transfer to wait for a connection
-DISK_TRANSFER_CONNECT_TIMEOUT = 30
+DISK_TRANSFER_CONNECT_TIMEOUT = 60
 # Disk index separator
 DISK_SEPARATOR = _autoconf.DISK_SEPARATOR
 
@@ -776,7 +776,8 @@ HT_NIC_E1000 = "e1000"
 HT_NIC_PARAVIRTUAL = HT_DISK_PARAVIRTUAL = "paravirtual"
 
 HT_HVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
-                                    HT_NIC_NE2K_ISA, HT_NIC_PARAVIRTUAL])
+                                    HT_NIC_E1000, HT_NIC_NE2K_ISA,
+                                    HT_NIC_PARAVIRTUAL])
 HT_KVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
                                     HT_NIC_NE2K_ISA, HT_NIC_I82551,
                                     HT_NIC_I85557B, HT_NIC_I8259ER,
@@ -1027,6 +1028,14 @@ RS_ALL = frozenset([
   RS_UNAVAIL,
   RS_OFFLINE,
   ])
+
+#: Dictionary with special field cases and their verbose/terse formatting
+RSS_DESCRIPTION = {
+  RS_UNKNOWN: ("(unknown)", "??"),
+  RS_NODATA:  ("(nodata)",  "?"),
+  RS_OFFLINE: ("(offline)", "*"),
+  RS_UNAVAIL: ("(unavail)", "-"),
+  }
 
 # max dynamic devices
 MAX_NICS = 8

@@ -217,6 +217,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     re.compile(r"^/2/instances/(%s)/disk/(%s)/grow$" %
                (instance_name_pattern, disk_pattern)):
       rlib2.R_2_instances_name_disk_grow,
+    re.compile(r'^/2/instances/(%s)/console$' % instance_name_pattern):
+      rlib2.R_2_instances_name_console,
 
     "/2/groups": rlib2.R_2_groups,
     re.compile(r'^/2/groups/(%s)$' % group_name_pattern):

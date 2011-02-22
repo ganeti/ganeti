@@ -951,7 +951,7 @@ def _ParseInstanceReinstallRequest(name, data):
   if not isinstance(data, dict):
     raise http.HttpBadRequest("Invalid body contents, not a dictionary")
 
-  ostype = baserlib.CheckParameter(data, "os")
+  ostype = baserlib.CheckParameter(data, "os", default=None)
   start = baserlib.CheckParameter(data, "start", exptype=bool,
                                   default=True)
   osparams = baserlib.CheckParameter(data, "osparams", default=None)
@@ -987,14 +987,14 @@ class R_2_instances_name_reinstall(baserlib.R_Generic):
         raise http.HttpBadRequest("Can't combine query and body parameters")
 
       body = self.request_body
-    else:
-      if not self.queryargs:
-        raise http.HttpBadRequest("Missing query parameters")
+    elif self.queryargs:
       # Legacy interface, do not modify/extend
       body = {
         "os": self._checkStringVariable("os"),
         "start": not self._checkIntVariable("nostartup"),
         }
+    else:
+      body = {}
 
     ops = _ParseInstanceReinstallRequest(self.items[0], body)
 
@@ -1233,6 +1233,30 @@ class R_2_instances_name_disk_grow(baserlib.R_Generic):
       })
 
     return baserlib.SubmitJob([op])
+
+
+class R_2_instances_name_console(baserlib.R_Generic):
+  """/2/instances/[instance_name]/console resource.
+
+  """
+  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+
+  def GET(self):
+    """Request information for connecting to instance's console.
+
+    @return: Serialized instance console description, see
+             L{objects.InstanceConsole}
+
+    """
+    client = baserlib.GetClient()
+
+    ((console, ), ) = client.QueryInstances([self.items[0]], ["console"], False)
+
+    if console is None:
+      raise http.HttpServiceUnavailable("Instance console unavailable")
+
+    assert isinstance(console, dict)
+    return console
 
 
 class _R_Tags(baserlib.R_Generic):

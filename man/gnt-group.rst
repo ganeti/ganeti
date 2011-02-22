@@ -86,12 +86,13 @@ REMOVE
 
 | **remove** {*group*}
 
-Deletes the indicated node group, which must be empty.
+Deletes the indicated node group, which must be empty. There must always be at
+least one group, so the last group cannot be removed.
 
 LIST
 ~~~~
 
-| **list** [--no-headers] [--separator=*SEPARATOR*]
+| **list** [--no-headers] [--separator=*SEPARATOR*] [-v]
 | [-o *[+]FIELD,...*] [group...]
 
 Lists all existing node groups in the cluster.
@@ -100,6 +101,9 @@ The ``--no-headers`` option will skip the initial header line. The
 ``--separator`` option takes an argument which denotes what will be
 used between the output fields. Both these options are to help
 scripting.
+
+The ``-v`` option activates verbose mode, which changes the display of
+special field states (see **ganeti(7)**).
 
 The ``-o`` option takes a comma-separated list of output fields.
 If the value of the option starts with the character ``+``, the new

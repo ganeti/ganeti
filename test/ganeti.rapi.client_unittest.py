@@ -1123,6 +1123,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_instances_name_deactivate_disks)
     self.assertFalse(self.rapi.GetLastHandler().queryargs)
 
+  def testGetInstanceConsole(self):
+    self.rapi.AddResponse("26876")
+    job_id = self.client.GetInstanceConsole("inst21491")
+    self.assertEqual(job_id, 26876)
+    self.assertItems(["inst21491"])
+    self.assertHandler(rlib2.R_2_instances_name_console)
+    self.assertFalse(self.rapi.GetLastHandler().queryargs)
+    self.assertFalse(self.rapi.GetLastRequestData())
+
   def testGrowInstanceDisk(self):
     for idx, wait_for_sync in enumerate([None, False, True]):
       amount = 128 + (512 * idx)

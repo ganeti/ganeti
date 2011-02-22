@@ -79,7 +79,8 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
 
 (IQ_CONFIG,
  IQ_LIVE,
- IQ_DISKUSAGE) = range(100, 103)
+ IQ_DISKUSAGE,
+ IQ_CONSOLE) = range(100, 104)
 
 (LQ_MODE,
  LQ_OWNER,
@@ -486,6 +487,7 @@ _NODE_SIMPLE_FIELDS = {
 
 
 #: Fields requiring talking to the node
+# Note that none of these are available for non-vm_capable nodes
 _NODE_LIVE_FIELDS = {
   "bootid": ("BootID", QFT_TEXT, "bootid"),
   "cnodes": ("CNodes", QFT_NUMBER, "cpu_nodes"),
@@ -576,6 +578,9 @@ def _GetLiveNodeField(field, kind, ctx, node):
   if node.offline:
     return _FS_OFFLINE
 
+  if not node.vm_capable:
+    return _FS_UNAVAIL
+
   if not ctx.curlive_data:
     return _FS_NODATA
 
@@ -664,7 +669,7 @@ class InstanceQueryData:
 
   """
   def __init__(self, instances, cluster, disk_usage, offline_nodes, bad_nodes,
-               live_data):
+               live_data, wrongnode_inst, console):
     """Initializes this class.
 
     @param instances: List of instance objects
@@ -677,6 +682,10 @@ class InstanceQueryData:
     @param bad_nodes: List of faulty nodes
     @type live_data: dict; instance name as key
     @param live_data: Per-instance live data
+    @type wrongnode_inst: set
+    @param wrongnode_inst: Set of instances running on wrong node(s)
+    @type console: dict; instance name as key
+    @param console: Per-instance console information
 
     """
     assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
@@ -690,6 +699,8 @@ class InstanceQueryData:
     self.offline_nodes = offline_nodes
     self.bad_nodes = bad_nodes
     self.live_data = live_data
+    self.wrongnode_inst = wrongnode_inst
+    self.console = console
 
     # Used for individual rows
     self.inst_hvparams = None
@@ -774,7 +785,9 @@ def _GetInstStatus(ctx, inst):
     return "ERROR_nodedown"
 
   if bool(ctx.live_data.get(inst.name)):
-    if inst.admin_up:
+    if inst.name in ctx.wrongnode_inst:
+      return "ERROR_wrongnode"
+    elif inst.admin_up:
       return "running"
     else:
       return "ERROR_up"
@@ -986,6 +999,22 @@ def _GetInstDiskUsage(ctx, inst):
   return usage
 
 
+def _GetInstanceConsole(ctx, inst):
+  """Get console information for instance.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  consinfo = ctx.console[inst.name]
+
+  if consinfo is None:
+    return _FS_UNAVAIL
+
+  return consinfo
+
+
 def _GetInstanceDiskFields():
   """Get instance fields involving disks.
 
@@ -1103,6 +1132,8 @@ def _BuildInstanceFields():
      _GetItemAttr("admin_up")),
     (_MakeField("tags", "Tags", QFT_OTHER), IQ_CONFIG,
      lambda ctx, inst: list(inst.GetTags())),
+    (_MakeField("console", "Console", QFT_OTHER), IQ_CONSOLE,
+     _GetInstanceConsole),
     ]
 
   # Add simple fields

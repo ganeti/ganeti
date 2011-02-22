@@ -13,6 +13,122 @@ Version 2.5.0 beta1
   parameter no longer defaults to ``loop`` and must be specified
 
 
+Version 2.4.0 rc2
+-----------------
+
+*(Released Mon, 21 Feb 2011)*
+
+A number of bug fixes plus just a couple functionality changes.
+
+On the user-visible side, the ``gnt-* list`` command output has changed
+with respect to “special” field states. The current rc1 style of display
+can be re-enabled by passing a new ``-v, --verbose`` flag, but in the
+default output mode special fields are displayed as follows:
+
+- offline field: ``*``
+- unavailable/not applicable: ``-``
+- data missing (RPC failure): ``?``
+- unknown field: ``??``
+
+Another user-visible change is the addition of ``--force-join`` to
+``gnt-node add``.
+
+As for bug fixes:
+
+- ``tools/cluster-merge`` has seen many fixes and is now enabled again
+- fixed regression in RAPI/instance reinstall where all parameters were
+  required (instead of optional)
+- fixed ``gnt-cluster repair-disk-sizes``, was broken since Ganeti 2.2
+- fixed iallocator usage (offline nodes were not considered offline)
+- fixed ``gnt-node list`` with respect to non-vm_capable nodes
+- fixed hypervisor and OS parameter validation with respect to
+  non-vm_capable nodes
+- fixed ``gnt-cluster verify`` with respect to offline nodes (mostly
+  cosmetic)
+- fixed ``tools/listrunner`` with respect to agent-based usage
+
+
+Version 2.4.0 rc1
+-----------------
+
+*(Released Fri,  4 Feb 2011)*
+
+Many changes and fixes since the beta1 release. While there were some
+internal changes, the code has been mostly stabilised for the RC
+release.
+
+Note: the dumb allocator was removed in this release, as it was not kept
+up-to-date with the IAllocator protocol changes. It is recommended to
+use the ``hail`` command from the ganeti-htools package.
+
+Note: the 2.4 and up versions of Ganeti are not compatible with the
+0.2.x branch of ganeti-htools. You need to upgrade to
+ganeti-htools-0.3.0 (or later).
+
+Regressions fixed from 2.3
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Fixed the ``gnt-cluster verify-disks`` command
+- Made ``gnt-cluster verify-disks`` work in parallel (as opposed to
+  serially on nodes)
+- Fixed disk adoption breakage
+- Fixed wrong headers in instance listing for field aliases
+
+Other bugs fixed
+~~~~~~~~~~~~~~~~
+
+- Fixed corner case in KVM handling of NICs
+- Fixed many cases of wrong handling of non-vm_capable nodes
+- Fixed a bug where a missing instance symlink was not possible to
+  recreate with any ``gnt-*`` command (now ``gnt-instance
+  activate-disks`` does it)
+- Fixed the volume group name as reported by ``gnt-cluster
+  verify-disks``
+- Increased timeouts for the import-export code, hopefully leading to
+  fewer aborts due network or instance timeouts
+- Fixed bug in ``gnt-node list-storage``
+- Fixed bug where not all daemons were started on cluster
+  initialisation, but only at the first watcher run
+- Fixed many bugs in the OOB implementation
+- Fixed watcher behaviour in presence of instances with offline
+  secondaries
+- Fixed instance list output for instances running on the wrong node
+- a few fixes to the cluster-merge tool, but it still cannot merge
+  multi-node groups (currently it is not recommended to use this tool)
+
+
+Improvements
+~~~~~~~~~~~~
+
+- Improved network configuration for the KVM hypervisor
+- Added e1000 as a supported NIC for Xen-HVM
+- Improved the lvmstrap tool to also be able to use partitions, as
+  opposed to full disks
+- Improved speed of disk wiping (the cluster parameter
+  ``prealloc_wipe_disks``, so that it has a low impact on the total time
+  of instance creations
+- Added documentation for the OS parameters
+- Changed ``gnt-instance deactivate-disks`` so that it can work if the
+  hypervisor is not responding
+- Added display of blacklisted and hidden OS information in
+  ``gnt-cluster info``
+- Extended ``gnt-cluster verify`` to also validate hypervisor, backend,
+  NIC and node parameters, which might create problems with currently
+  invalid (but undetected) configuration files, but prevents validation
+  failures when unrelated parameters are modified
+- Changed cluster initialisation to wait for the master daemon to become
+  available
+- Expanded the RAPI interface:
+
+  - Added config redistribution resource
+  - Added activation/deactivation of instance disks
+  - Added export of console information
+
+- Implemented log file reopening on SIGHUP, which allows using
+  logrotate(8) for the Ganeti log files
+- Added a basic OOB helper script as an example
+
+
 Version 2.4.0 beta1
 -------------------
 

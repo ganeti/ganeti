@@ -1124,6 +1124,17 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
                              ("/%s/instances/%s/rename" %
                               (GANETI_RAPI_VERSION, instance)), None, body)
 
+  def GetInstanceConsole(self, instance):
+    """Request information for connecting to instance's console.
+
+    @type instance: string
+    @param instance: Instance name
+
+    """
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/instances/%s/console" %
+                              (GANETI_RAPI_VERSION, instance)), None, None)
+
   def GetJobs(self):
     """Gets all jobs for the cluster.
 

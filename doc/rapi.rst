@@ -852,6 +852,37 @@ Body parameters:
    :exclude: instance_name
 
 
+``/2/instances/[instance_name]/console``
+++++++++++++++++++++++++++++++++++++++++
+
+Request information for connecting to instance's console.
+
+Supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Returns a dictionary containing information about the instance's
+console. Contained keys:
+
+``instance``
+  Instance name.
+``kind``
+  Console type, one of ``ssh``, ``vnc`` or ``msg``.
+``message``
+  Message to display (``msg`` type only).
+``host``
+  Host to connect to (``ssh`` and ``vnc`` only).
+``port``
+  TCP port to connect to (``vnc`` only).
+``user``
+  Username to use (``ssh`` only).
+``command``
+  Command to execute on machine (``ssh`` only)
+``display``
+  VNC display number (``vnc`` only).
+
+
 ``/2/instances/[instance_name]/tags``
 +++++++++++++++++++++++++++++++++++++
 

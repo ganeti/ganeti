@@ -179,6 +179,9 @@ def GenericManyOps(operation, fn):
     cl = GetClient()
     inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
     if not inames:
+      if opts.multi_mode == _SHUTDOWN_CLUSTER:
+        ToStdout("Cluster is empty, no instances to shutdown")
+        return 0
       raise errors.OpPrereqError("Selection filter does not match"
                                  " any instances", errors.ECODE_INVAL)
     multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
@@ -216,7 +219,7 @@ def ListInstances(opts, args):
 
   return GenericList(constants.QR_INSTANCE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
-                     format_override=fmtoverride)
+                     format_override=fmtoverride, verbose=opts.verbose)
 
 
 def ListInstanceFields(opts, args):
@@ -1363,7 +1366,7 @@ commands = {
     "Show information on the specified instance(s)"),
   'list': (
     ListInstances, ARGS_MANY_INSTANCES,
-    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
+    [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, VERBOSE_OPT],
     "[<instance>...]",
     "Lists the instances and their status. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."

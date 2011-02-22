@@ -104,6 +104,7 @@ __all__ = [
   "NEW_RAPI_CERT_OPT",
   "NEW_SECONDARY_OPT",
   "NIC_PARAMS_OPT",
+  "NODE_FORCE_JOIN_OPT",
   "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
   "NODEGROUP_OPT",
@@ -886,6 +887,11 @@ NOSSH_KEYCHECK_OPT = cli_option("--no-ssh-key-check", dest="ssh_key_check",
                                 default=True, action="store_false",
                                 help="Disable SSH key fingerprint checking")
 
+NODE_FORCE_JOIN_OPT = cli_option("--force-join", dest="force_join",
+                                 default=False, action="store_true",
+                                 help="Force the joining of a node,"
+                                      " needed when merging clusters")
+
 MC_OPT = cli_option("-C", "--master-candidate", dest="master_candidate",
                     type="bool", default=None, metavar=_YORNO,
                     help="Set the master_candidate flag on the node")
@@ -1169,14 +1175,6 @@ COMMON_CREATE_OPTS = [
   DRY_RUN_OPT,
   PRIORITY_OPT,
   ]
-
-
-_RSTATUS_TO_TEXT = {
-  constants.RS_UNKNOWN: "(unknown)",
-  constants.RS_NODATA: "(nodata)",
-  constants.RS_UNAVAIL: "(unavail)",
-  constants.RS_OFFLINE: "(offline)",
-  }
 
 
 def _ParseArgs(argv, commands, aliases):
@@ -1922,8 +1920,8 @@ def GenericMain(commands, override=None, aliases=None):
     for key, val in override.iteritems():
       setattr(options, key, val)
 
-  utils.SetupLogging(constants.LOG_COMMANDS, debug=options.debug,
-                     stderr_logging=True, program=binary)
+  utils.SetupLogging(constants.LOG_COMMANDS, binary, debug=options.debug,
+                     stderr_logging=True)
 
   if old_cmdline:
     logging.info("run with arguments '%s'", old_cmdline)
@@ -1937,6 +1935,11 @@ def GenericMain(commands, override=None, aliases=None):
     result, err_msg = FormatError(err)
     logging.exception("Error during command processing")
     ToStderr(err_msg)
+  except KeyboardInterrupt:
+    result = constants.EXIT_FAILURE
+    ToStderr("Aborted. Note that if the operation created any jobs, they"
+             " might have been submitted and"
+             " will continue to run in the background.")
 
   return result
 
@@ -2380,17 +2383,20 @@ class _QueryColumnFormatter:
   """Callable class for formatting fields of a query.
 
   """
-  def __init__(self, fn, status_fn):
+  def __init__(self, fn, status_fn, verbose):
     """Initializes this class.
 
     @type fn: callable
     @param fn: Formatting function
     @type status_fn: callable
     @param status_fn: Function to report fields' status
+    @type verbose: boolean
+    @param verbose: whether to use verbose field descriptions or not
 
     """
     self._fn = fn
     self._status_fn = status_fn
+    self._verbose = verbose
 
   def __call__(self, data):
     """Returns a field's string representation.
@@ -2407,10 +2413,10 @@ class _QueryColumnFormatter:
     assert value is None, \
            "Found value %r for abnormal status %s" % (value, status)
 
-    return FormatResultError(status)
+    return FormatResultError(status, verbose=self._verbose)
 
 
-def FormatResultError(status):
+def FormatResultError(status, verbose=True):
   """Formats result status other than L{constants.RS_NORMAL}.
 
   @param status: The result status
@@ -2418,15 +2424,19 @@ def FormatResultError(status):
 
   """
   assert status != constants.RS_NORMAL, \
-         "FormatResultError called with status equals to constants.RS_NORMAL"
+         "FormatResultError called with status equal to constants.RS_NORMAL"
   try:
-    return _RSTATUS_TO_TEXT[status]
+    (verbose_text, normal_text) = constants.RSS_DESCRIPTION[status]
   except KeyError:
     raise NotImplementedError("Unknown status %s" % status)
+  else:
+    if verbose:
+      return verbose_text
+    return normal_text
 
 
 def FormatQueryResult(result, unit=None, format_override=None, separator=None,
-                      header=False):
+                      header=False, verbose=False):
   """Formats data in L{objects.QueryResponse}.
 
   @type result: L{objects.QueryResponse}
@@ -2441,6 +2451,8 @@ def FormatQueryResult(result, unit=None, format_override=None, separator=None,
   @param separator: String used to separate fields
   @type header: bool
   @param header: Whether to output header row
+  @type verbose: boolean
+  @param verbose: whether to use verbose field descriptions or not
 
   """
   if unit is None:
@@ -2463,7 +2475,8 @@ def FormatQueryResult(result, unit=None, format_override=None, separator=None,
     assert fdef.title and fdef.name
     (fn, align_right) = _GetColumnFormatter(fdef, format_override, unit)
     columns.append(TableColumn(fdef.title,
-                               _QueryColumnFormatter(fn, _RecordStatus),
+                               _QueryColumnFormatter(fn, _RecordStatus,
+                                                     verbose),
                                align_right))
 
   table = FormatTable(result.data, columns, header, separator)
@@ -2512,7 +2525,7 @@ def _WarnUnknownFields(fdefs):
 
 
 def GenericList(resource, fields, names, unit, separator, header, cl=None,
-                format_override=None):
+                format_override=None, verbose=False):
   """Generic implementation for listing all items of a resource.
 
   @param resource: One of L{constants.QR_OP_LUXI}
@@ -2531,6 +2544,8 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   @type format_override: dict
   @param format_override: Dictionary for overriding field formatting functions,
     indexed by field name, contents like L{_DEFAULT_FORMAT_QUERY}
+  @type verbose: boolean
+  @param verbose: whether to use verbose field descriptions or not
 
   """
   if cl is None:
@@ -2545,7 +2560,8 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
 
   (status, data) = FormatQueryResult(response, unit=unit, separator=separator,
                                      header=header,
-                                     format_override=format_override)
+                                     format_override=format_override,
+                                     verbose=verbose)
 
   for line in data:
     ToStdout(line)

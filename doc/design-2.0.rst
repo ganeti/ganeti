@@ -296,9 +296,6 @@ failover:
       determined by the serial number on the configuration and
       highest job ID on the job queue)
 
-    - there is not even a single node having a newer
-      configuration file
-
     - if we are not failing over (but just starting), the
       quorum agrees that we are the designated master
 

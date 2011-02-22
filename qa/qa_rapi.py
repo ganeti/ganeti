@@ -29,6 +29,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import cli
 from ganeti import rapi
+from ganeti import objects
 
 import ganeti.rapi.client        # pylint: disable-msg=W0611
 import ganeti.rapi.client_utils
@@ -470,6 +471,11 @@ def TestRapiInstanceRename(rename_source, rename_target):
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_source, rename_target))
 
 
+def TestRapiInstanceReinstall(instance):
+  """Test reinstalling an instance via RAPI"""
+  _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"]))
+
+
 def TestRapiInstanceModify(instance):
   """Test modifying instance via RAPI"""
   def _ModifyInstance(**kwargs):
@@ -490,6 +496,25 @@ def TestRapiInstanceModify(instance):
   _ModifyInstance(hvparams={
     constants.HV_KERNEL_ARGS: constants.VALUE_DEFAULT,
     })
+
+
+def TestRapiInstanceConsole(instance):
+  """Test getting instance console information via RAPI"""
+  result = _rapi_client.GetInstanceConsole(instance["name"])
+  console = objects.InstanceConsole.FromDict(result)
+  AssertEqual(console.Validate(), True)
+  AssertEqual(console.instance, qa_utils.ResolveInstanceName(instance["name"]))
+
+
+def TestRapiStoppedInstanceConsole(instance):
+  """Test getting stopped instance's console information via RAPI"""
+  try:
+    _rapi_client.GetInstanceConsole(instance["name"])
+  except rapi.client.GanetiApiError, err:
+    AssertEqual(err.code, 503)
+  else:
+    raise qa_error.Error("Getting console for stopped instance didn't"
+                         " return HTTP 503")
 
 
 def TestInterClusterInstanceMove(src_instance, dest_instance,

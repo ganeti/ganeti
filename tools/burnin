@@ -258,7 +258,6 @@ class Burner(object):
 
   def __init__(self):
     """Constructor."""
-    utils.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
     self.url_opener = SimpleOpener()
     self._feed_buf = StringIO()
     self.nodes = []
@@ -320,11 +319,6 @@ class Burner(object):
             msg, MAX_RETRIES - retry_count + 1, MAX_RETRIES, err)
         self.MaybeRetry(retry_count - 1, msg, fn, *args)
 
-  def _SetDebug(self, ops):
-    """Set the debug value on the given opcodes"""
-    for op in ops:
-      op.debug_level = self.opts.debug
-
   def _ExecOp(self, *ops):
     """Execute one or more opcodes and manage the exec buffer.
 
@@ -350,13 +344,13 @@ class Burner(object):
       rval = MAX_RETRIES
     else:
       rval = 0
-    self._SetDebug(ops)
+    cli.SetGenericOpcodeOpts(ops, self.opts)
     return self.MaybeRetry(rval, "opcode", self._ExecOp, *ops)
 
   def ExecOrQueue(self, name, ops, post_process=None):
     """Execute an opcode and manage the exec buffer."""
     if self.opts.parallel:
-      self._SetDebug(ops)
+      cli.SetGenericOpcodeOpts(ops, self.opts)
       self.queued_ops.append((ops, name, post_process))
     else:
       val = self.ExecOp(self.queue_retry, *ops) # pylint: disable-msg=W0142
@@ -1070,14 +1064,17 @@ class Burner(object):
           else: # non-expected error
             raise
 
-    return 0
+    return constants.EXIT_SUCCESS
 
 
 def main():
-  """Main function"""
+  """Main function.
 
-  burner = Burner()
-  return burner.BurninCluster()
+  """
+  utils.SetupLogging(constants.LOG_BURNIN, sys.argv[0],
+                     debug=False, stderr_logging=True)
+
+  return Burner().BurninCluster()
 
 
 if __name__ == "__main__":

@@ -999,14 +999,14 @@ class RpcRunner(object):
                                 [[bdev.ToDict() for bdev in disks], pause])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_blockdev_assemble(self, node, disk, owner, on_primary):
+  def call_blockdev_assemble(self, node, disk, owner, on_primary, idx):
     """Request assembling of a given block device.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "blockdev_assemble",
-                                [disk.ToDict(), owner, on_primary])
+                                [disk.ToDict(), owner, on_primary, idx])
 
   @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_shutdown(self, node, disk):
@@ -1096,7 +1096,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_close", params)
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_blockdev_getsizes(self, node, disks):
+  def call_blockdev_getsize(self, node, disks):
     """Returns the size of the given disks.
 
     This is a single-node call.

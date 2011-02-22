@@ -172,3 +172,45 @@ would succeed.
 
 The option ``--priority`` sets the priority for opcodes submitted
 by the command.
+
+
+Common daemon functionality
+---------------------------
+
+All Ganeti daemons re-open the log file(s) when sent a SIGHUP signal.
+**logrotate**(8) can be used to rotate Ganeti's log files.
+
+Common field formatting
+-----------------------
+
+Multiple ganeti commands use the same framework for tabular listing of
+resources (e.g. **gnt-instance list**, **gnt-node list**, **gnt-group
+list**, **gnt-debug locks**, etc.). For these commands, special states
+are denoted via a special symbol (in terse mode) or a string (in
+verbose mode):
+
+*, (offline)
+    The node in question is marked offline, and thus it cannot be
+    queried for data. This result is persistent until the node is
+    de-offlined.
+
+?, (nodata)
+    Ganeti expected to receive an answer from this entity, but the
+    cluster RPC call failed and/or we didn't receive a valid answer;
+    usually more information is available in the node daemon log (if
+    the node is alive) or the master daemon log. This result is
+    transient, and re-running command might return a different result.
+
+-, (unavail)
+    The respective field doesn't make sense for this entity;
+    e.g. querying a down instance for its current memory 'live' usage,
+    or querying a non-vm_capable node for disk/memory data. This
+    result is persistent, and until the entity state is changed via
+    ganeti commands, the result won't change.
+
+??, (unknown)
+    This field is not known (note that this is different from entity
+    being unknown). Either you have mis-typed the field name, or you
+    are using a field that the running Ganeti master daemon doesn't
+    know. This result is persistent, re-running the command won't
+    change it.
