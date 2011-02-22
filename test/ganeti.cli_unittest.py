@@ -729,5 +729,29 @@ class TestParseNicOption(unittest.TestCase):
                       [(3, { "mode": [], })])
 
 
+class TestFormatResultError(unittest.TestCase):
+  def testNormal(self):
+    for verbose in [False, True]:
+      self.assertRaises(AssertionError, cli.FormatResultError,
+                        constants.RS_NORMAL, verbose)
+
+  def testUnknown(self):
+    for verbose in [False, True]:
+      self.assertRaises(NotImplementedError, cli.FormatResultError,
+                        "#some!other!status#", verbose)
+
+  def test(self):
+    for status in constants.RS_ALL:
+      if status == constants.RS_NORMAL:
+        continue
+
+      self.assertNotEqual(cli.FormatResultError(status, False),
+                          cli.FormatResultError(status, True))
+
+      result = cli.FormatResultError(status, True)
+      self.assertTrue(result.startswith("("))
+      self.assertTrue(result.endswith(")"))
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

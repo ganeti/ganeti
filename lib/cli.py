@@ -2413,13 +2413,15 @@ class _QueryColumnFormatter:
     assert value is None, \
            "Found value %r for abnormal status %s" % (value, status)
 
-    return FormatResultError(status, verbose=self._verbose)
+    return FormatResultError(status, self._verbose)
 
 
-def FormatResultError(status, verbose=True):
+def FormatResultError(status, verbose):
   """Formats result status other than L{constants.RS_NORMAL}.
 
   @param status: The result status
+  @type verbose: boolean
+  @param verbose: Whether to return the verbose text
   @return: Text of result status
 
   """

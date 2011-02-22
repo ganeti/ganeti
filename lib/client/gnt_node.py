@@ -551,7 +551,7 @@ def PowerNode(opts, args):
         data.append([node_name, "invoked"])
     else:
       errs += 1
-      data.append([node_name, cli.FormatResultError(data_status)])
+      data.append([node_name, cli.FormatResultError(data_status, True)])
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=["node", "status"], data=data)
@@ -597,7 +597,7 @@ def Health(opts, args):
         data.append(["", "%s=%s" % (item, status)])
     else:
       errs += 1
-      data.append([node_name, cli.FormatResultError(data_status)])
+      data.append([node_name, cli.FormatResultError(data_status, True)])
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=["node", "status"], data=data)
