@@ -1110,7 +1110,7 @@ def _GetInstanceParameterFields():
 _INST_SIMPLE_FIELDS = {
   "disk_template": ("Disk_template", QFT_TEXT),
   "hypervisor": ("Hypervisor", QFT_TEXT),
-  "name": ("Node", QFT_TEXT),
+  "name": ("Instance", QFT_TEXT),
   # Depending on the hypervisor, the port can be None
   "network_port": ("Network_port", QFT_OTHER),
   "os": ("OS", QFT_TEXT),
