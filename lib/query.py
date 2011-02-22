@@ -928,7 +928,8 @@ def _GetInstNicParam(name):
 def _GetInstanceNetworkFields():
   """Get instance fields involving network interfaces.
 
-  @return: List of field definitions used as input for L{_PrepareFieldList}
+  @return: Tuple containing list of field definitions used as input for
+    L{_PrepareFieldList} and a list of aliases
 
   """
   nic_mac_fn = lambda ctx, _, nic: nic.mac
@@ -936,18 +937,6 @@ def _GetInstanceNetworkFields():
   nic_link_fn = _GetInstNicParam(constants.NIC_LINK)
 
   fields = [
-    # First NIC (legacy)
-    (_MakeField("ip", "IP_address", QFT_TEXT), IQ_CONFIG,
-     _GetInstNic(0, _GetInstNicIp)),
-    (_MakeField("mac", "MAC_address", QFT_TEXT), IQ_CONFIG,
-     _GetInstNic(0, nic_mac_fn)),
-    (_MakeField("bridge", "Bridge", QFT_TEXT), IQ_CONFIG,
-     _GetInstNic(0, _GetInstNicBridge)),
-    (_MakeField("nic_mode", "NIC_Mode", QFT_TEXT), IQ_CONFIG,
-     _GetInstNic(0, nic_mode_fn)),
-    (_MakeField("nic_link", "NIC_Link", QFT_TEXT), IQ_CONFIG,
-     _GetInstNic(0, nic_link_fn)),
-
     # All NICs
     (_MakeField("nic.count", "NICs", QFT_NUMBER), IQ_CONFIG,
      lambda ctx, inst: len(inst.nics)),
@@ -980,7 +969,16 @@ def _GetInstanceNetworkFields():
        IQ_CONFIG, _GetInstNic(i, _GetInstNicBridge)),
       ])
 
-  return fields
+  aliases = [
+    # Legacy fields for first NIC
+    ("ip", "nic.ip/0"),
+    ("mac", "nic.mac/0"),
+    ("bridge", "nic.bridge/0"),
+    ("nic_mode", "nic.mode/0"),
+    ("nic_link", "nic.link/0"),
+    ]
+
+  return (fields, aliases)
 
 
 def _GetInstDiskUsage(ctx, inst):
@@ -1151,16 +1149,18 @@ def _BuildInstanceFields():
     (_MakeField("status", "Status", QFT_TEXT), IQ_LIVE, _GetInstStatus),
     ])
 
+  (network_fields, network_aliases) = _GetInstanceNetworkFields()
+
+  fields.extend(network_fields)
   fields.extend(_GetInstanceParameterFields())
   fields.extend(_GetInstanceDiskFields())
-  fields.extend(_GetInstanceNetworkFields())
   fields.extend(_GetItemTimestampFields(IQ_CONFIG))
 
   aliases = [
     ("vcpus", "be/vcpus"),
     ("sda_size", "disk.size/0"),
     ("sdb_size", "disk.size/1"),
-    ]
+    ] + network_aliases
 
   return _PrepareFieldList(fields, aliases)
 

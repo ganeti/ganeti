@@ -805,8 +805,16 @@ class TestInstanceQuery(unittest.TestCase):
       self.assertEqual(row[fieldidx["disk_usage"]],
                        (constants.RS_NORMAL, usage))
 
-      self.assertEqual(row[fieldidx["sda_size"]], row[fieldidx["disk.size/0"]])
-      self.assertEqual(row[fieldidx["sdb_size"]], row[fieldidx["disk.size/1"]])
+      for alias, target in [("sda_size", "disk.size/0"),
+                            ("sdb_size", "disk.size/1"),
+                            ("vcpus", "be/vcpus"),
+                            ("ip", "nic.ip/0"),
+                            ("mac", "nic.mac/0"),
+                            ("bridge", "nic.bridge/0"),
+                            ("nic_mode", "nic.mode/0"),
+                            ("nic_link", "nic.link/0"),
+                            ]:
+        self.assertEqual(row[fieldidx[alias]], row[fieldidx[target]])
 
       for field in ["ctime", "mtime"]:
         if getattr(inst, field) is None:
