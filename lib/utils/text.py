@@ -486,3 +486,29 @@ def BuildShellCmd(template, *args):
       raise errors.ProgrammerError("Shell argument '%s' contains"
                                    " invalid characters" % word)
   return template % args
+
+
+def FormatOrdinal(value):
+  """Formats a number as an ordinal in the English language.
+
+  E.g. the number 1 becomes "1st", 22 becomes "22nd".
+
+  @type value: integer
+  @param value: Number
+  @rtype: string
+
+  """
+  tens = value % 10
+
+  if value > 10 and value < 20:
+    suffix = "th"
+  elif tens == 1:
+    suffix = "st"
+  elif tens == 2:
+    suffix = "nd"
+  elif tens == 3:
+    suffix = "rd"
+  else:
+    suffix = "th"
+
+  return "%s%s" % (value, suffix)

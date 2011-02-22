@@ -438,5 +438,21 @@ class TestBuildShellCmd(unittest.TestCase):
     self.assertEqual(utils.BuildShellCmd("ls %s", "ab"), "ls ab")
 
 
+class TestOrdinal(unittest.TestCase):
+  def test(self):
+    checks = {
+      0: "0th", 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th",
+      7: "7th", 8: "8th", 9: "9th", 10: "10th", 11: "11th", 12: "12th",
+      13: "13th", 14: "14th", 15: "15th", 16: "16th", 17: "17th",
+      18: "18th", 19: "19th", 20: "20th", 21: "21st", 25: "25th", 30: "30th",
+      32: "32nd", 40: "40th", 50: "50th", 55: "55th", 60: "60th", 62: "62nd",
+      70: "70th", 80: "80th", 83: "83rd", 90: "90th", 91: "91st",
+      582: "582nd", 999: "999th",
+      }
+
+    for value, ordinal in checks.items():
+      self.assertEqual(utils.FormatOrdinal(value), ordinal)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
