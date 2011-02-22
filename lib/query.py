@@ -93,6 +93,7 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
 
 FIELD_NAME_RE = re.compile(r"^[a-z0-9/._]+$")
 TITLE_RE = re.compile(r"^[^\s]+$")
+DOC_RE = re.compile(r"^[A-Z].*[^.,?!]$")
 
 #: Verification function for each field type
 _VERIFY_FN = {
@@ -307,6 +308,9 @@ def _PrepareFieldList(fields, aliases):
     assert fdef.name and fdef.title, "Name and title are required"
     assert FIELD_NAME_RE.match(fdef.name)
     assert TITLE_RE.match(fdef.title)
+    assert (fdef.doc is None or
+            (DOC_RE.match(fdef.doc) and len(fdef.doc.splitlines()) == 1 and
+             fdef.doc.strip() == fdef.doc))
     assert callable(fn)
     assert fdef.name not in result, \
            "Duplicate field name '%s' found" % fdef.name
@@ -360,15 +364,17 @@ def QueryFields(fielddefs, selected):
   return objects.QueryFieldsResponse(fields=fdefs).ToDict()
 
 
-def _MakeField(name, title, kind):
+def _MakeField(name, title, kind, doc=None):
   """Wrapper for creating L{objects.QueryFieldDefinition} instances.
 
   @param name: Field name as a regular expression
   @param title: Human-readable title
   @param kind: Field type
+  @param doc: Human-readable description
 
   """
-  return objects.QueryFieldDefinition(name=name, title=title, kind=kind)
+  return objects.QueryFieldDefinition(name=name, title=title, kind=kind,
+                                      doc=doc)
 
 
 def _GetNodeRole(node, master_name):

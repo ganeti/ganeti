@@ -284,6 +284,10 @@ A field definition is a dictionary with the following entries:
   formatting any unknown types the same way as "other", which should be
   a string representation in most cases.
 
+``doc`` (string)
+  Human-readable description. Must start with uppercase character and
+  must not end with punctuation or contain newlines.
+
 .. TODO: Investigate whether there are fields with floating point
 .. numbers
 

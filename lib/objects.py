@@ -1415,12 +1415,14 @@ class QueryFieldDefinition(ConfigObject):
   @ivar name: Field name
   @ivar title: Human-readable title
   @ivar kind: Field type
+  @ivar doc: Human-readable description
 
   """
   __slots__ = [
     "name",
     "title",
     "kind",
+    "doc",
     ]
 
 
