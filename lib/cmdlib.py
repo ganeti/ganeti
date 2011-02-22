@@ -457,7 +457,7 @@ class _QueryBase:
     """Initializes this class.
 
     """
-    self.names = ReadSimpleFilter("name", filter_)
+    self.names = qlang.ReadSimpleFilter("name", filter_)
     self.use_locking = use_locking
 
     self.query = query.Query(self.FIELDS, fields)
