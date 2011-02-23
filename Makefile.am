@@ -649,8 +649,8 @@ man/%.8: man/%.8.in $(REPLACE_VARS_SED)
 man/%.html: man/%.html.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-epydoc.conf: epydoc.conf.in
-	sed -e 's#@MODULES@#$(lint_python_code)#g' < $< > $@
+epydoc.conf: epydoc.conf.in Makefile
+	sed -e 's#@MODULES@#$(strip $(lint_python_code))#g' < $< > $@
 
 vcs-version:
 	if test -d .git; then \
