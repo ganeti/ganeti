@@ -62,8 +62,8 @@ MAXTRIES = 5
 # 5 minutes, so it takes around half an hour to exceed the retry
 # counter, so 8 hours (16*1/2h) seems like a reasonable reset time
 RETRY_EXPIRATION = 8 * 3600
-BAD_STATES = ['ERROR_down']
-HELPLESS_STATES = ['ERROR_nodedown', 'ERROR_nodeoffline']
+BAD_STATES = [constants.INSTST_ERRORDOWN]
+HELPLESS_STATES = [constants.INSTST_NODEDOWN, constants.INSTST_NODEOFFLINE]
 NOTICE = 'NOTICE'
 ERROR = 'ERROR'
 KEY_RESTART_COUNT = "restart_count"

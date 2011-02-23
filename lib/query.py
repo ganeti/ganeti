@@ -779,23 +779,23 @@ def _GetInstStatus(ctx, inst):
 
   """
   if inst.primary_node in ctx.offline_nodes:
-    return "ERROR_nodeoffline"
+    return constants.INSTST_NODEOFFLINE
 
   if inst.primary_node in ctx.bad_nodes:
-    return "ERROR_nodedown"
+    return constants.INSTST_NODEDOWN
 
   if bool(ctx.live_data.get(inst.name)):
     if inst.name in ctx.wrongnode_inst:
-      return "ERROR_wrongnode"
+      return constants.INSTST_WRONGNODE
     elif inst.admin_up:
-      return "running"
+      return constants.INSTST_RUNNING
     else:
-      return "ERROR_up"
+      return constants.INSTST_ERRORUP
 
   if inst.admin_up:
-    return "ERROR_down"
+    return constants.INSTST_ERRORDOWN
 
-  return "ADMIN_down"
+  return constants.INSTST_ADMINDOWN
 
 
 def _GetInstDiskSize(index):

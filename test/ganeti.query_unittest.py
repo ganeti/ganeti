@@ -743,20 +743,20 @@ class TestInstanceQuery(unittest.TestCase):
                        (constants.RS_NORMAL, inst.name))
 
       if inst.primary_node in offline_nodes:
-        exp_status = "ERROR_nodeoffline"
+        exp_status = constants.INSTST_NODEOFFLINE
       elif inst.primary_node in bad_nodes:
-        exp_status = "ERROR_nodedown"
+        exp_status = constants.INSTST_NODEDOWN
       elif inst.name in live_data:
         if inst.name in wrongnode_inst:
-          exp_status = "ERROR_wrongnode"
+          exp_status = constants.INSTST_WRONGNODE
         elif inst.admin_up:
-          exp_status = "running"
+          exp_status = constants.INSTST_RUNNING
         else:
-          exp_status = "ERROR_up"
+          exp_status = constants.INSTST_ERRORUP
       elif inst.admin_up:
-        exp_status = "ERROR_down"
+        exp_status = constants.INSTST_ERRORDOWN
       else:
-        exp_status = "ADMIN_down"
+        exp_status = constants.INSTST_ADMINDOWN
 
       self.assertEqual(row[fieldidx["status"]],
                        (constants.RS_NORMAL, exp_status))
@@ -830,10 +830,7 @@ class TestInstanceQuery(unittest.TestCase):
       self._CheckInstanceConsole(inst, row[fieldidx["console"]])
 
     # Ensure all possible status' have been tested
-    self.assertEqual(tested_status,
-                     set(["ERROR_nodeoffline", "ERROR_nodedown",
-                          "running", "ERROR_up", "ERROR_down",
-                          "ADMIN_down", "ERROR_wrongnode"]))
+    self.assertEqual(tested_status, constants.INSTST_ALL)
 
   def _CheckInstanceConsole(self, instance, (status, consdata)):
     if instance.name == "inst7":

@@ -7872,9 +7872,9 @@ class LUInstanceConsole(NoHooksLU):
 
     if instance.name not in node_insts.payload:
       if instance.admin_up:
-        state = "ERROR_down"
+        state = constants.INSTST_ERRORDOWN
       else:
-        state = "ADMIN_down"
+        state = constants.INSTST_ADMINDOWN
       raise errors.OpExecError("Instance %s is not running (state %s)" %
                                (instance.name, state))
 
