@@ -66,13 +66,13 @@ class TestQuery(unittest.TestCase):
     (STATIC, DISK) = range(10, 12)
 
     fielddef = query._PrepareFieldList([
-      (query._MakeField("name", "Name", constants.QFT_TEXT),
+      (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
        STATIC, lambda ctx, item: item["name"]),
-      (query._MakeField("master", "Master", constants.QFT_BOOL),
+      (query._MakeField("master", "Master", constants.QFT_BOOL, "Master"),
        STATIC, lambda ctx, item: ctx.mastername == item["name"]),
       ] +
       [(query._MakeField("disk%s.size" % i, "DiskSize%s" % i,
-                         constants.QFT_UNIT),
+                         constants.QFT_UNIT, "Disk size %s" % i),
         DISK, compat.partial(_GetDiskSize, i))
        for i in range(4)], [])
 
@@ -83,7 +83,8 @@ class TestQuery(unittest.TestCase):
     self.assertEqual(q.GetFields()[0].ToDict(),
       objects.QueryFieldDefinition(name="name",
                                    title="Name",
-                                   kind=constants.QFT_TEXT).ToDict())
+                                   kind=constants.QFT_TEXT,
+                                   doc="Name").ToDict())
 
     # Create data only once query has been prepared
     data = [
@@ -149,13 +150,14 @@ class TestQuery(unittest.TestCase):
                       _QueryData(data, mastername="node2"))
     self.assertEqual([fdef.ToDict() for fdef in q.GetFields()], [
                      { "name": "disk2.size", "title": "DiskSize2",
-                       "kind": constants.QFT_UNIT, },
+                       "kind": constants.QFT_UNIT, "doc": "Disk size 2", },
                      { "name": "disk1.size", "title": "DiskSize1",
-                       "kind": constants.QFT_UNIT, },
+                       "kind": constants.QFT_UNIT, "doc": "Disk size 1", },
                      { "name": "disk99.size", "title": "disk99.size",
-                       "kind": constants.QFT_UNKNOWN, },
+                       "kind": constants.QFT_UNKNOWN,
+                       "doc": "Unknown field 'disk99.size'", },
                      { "name": "disk0.size", "title": "DiskSize0",
-                       "kind": constants.QFT_UNIT, },
+                       "kind": constants.QFT_UNIT, "doc": "Disk size 0", },
                      ])
 
     # Empty query
@@ -172,54 +174,63 @@ class TestQuery(unittest.TestCase):
     # Duplicate titles
     for (a, b) in [("name", "name"), ("NAME", "name")]:
       self.assertRaises(AssertionError, query._PrepareFieldList, [
-        (query._MakeField("name", b, constants.QFT_TEXT), None,
+        (query._MakeField("name", b, constants.QFT_TEXT, "Name"), None,
          lambda *args: None),
-        (query._MakeField("other", a, constants.QFT_TEXT), None,
+        (query._MakeField("other", a, constants.QFT_TEXT, "Other"), None,
          lambda *args: None),
         ], [])
 
     # Non-lowercase names
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("NAME", "Name", constants.QFT_TEXT), None,
+      (query._MakeField("NAME", "Name", constants.QFT_TEXT, "Name"), None,
        lambda *args: None),
       ], [])
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("Name", "Name", constants.QFT_TEXT), None,
+      (query._MakeField("Name", "Name", constants.QFT_TEXT, "Name"), None,
        lambda *args: None),
       ], [])
 
     # Empty name
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("", "Name", constants.QFT_TEXT), None,
+      (query._MakeField("", "Name", constants.QFT_TEXT, "Name"), None,
        lambda *args: None),
       ], [])
 
     # Empty title
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("name", "", constants.QFT_TEXT), None,
+      (query._MakeField("name", "", constants.QFT_TEXT, "Name"), None,
        lambda *args: None),
       ], [])
 
     # Whitespace in title
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("name", "Co lu mn", constants.QFT_TEXT), None,
+      (query._MakeField("name", "Co lu mn", constants.QFT_TEXT, "Name"), None,
        lambda *args: None),
       ], [])
 
     # No callable function
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("name", "Name", constants.QFT_TEXT), None, None),
+      (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
+       None, None),
       ], [])
+
+    # Invalid documentation
+    for doc in ["", ".", "Hello world\n", "Hello\nWo\nrld", "Hello World!",
+                "HelloWorld.", "only lowercase", ",", " x y z .\t", "  "]:
+      self.assertRaises(AssertionError, query._PrepareFieldList, [
+        (query._MakeField("name", "Name", constants.QFT_TEXT, doc),
+        None, lambda *args: None),
+        ], [])
 
   def testUnknown(self):
     fielddef = query._PrepareFieldList([
-      (query._MakeField("name", "Name", constants.QFT_TEXT),
+      (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
        None, lambda _, item: "name%s" % item),
-      (query._MakeField("other0", "Other0", constants.QFT_TIMESTAMP),
+      (query._MakeField("other0", "Other0", constants.QFT_TIMESTAMP, "Other"),
        None, lambda *args: 1234),
-      (query._MakeField("nodata", "NoData", constants.QFT_NUMBER),
+      (query._MakeField("nodata", "NoData", constants.QFT_NUMBER, "No data"),
        None, lambda *args: query._FS_NODATA ),
-      (query._MakeField("unavail", "Unavail", constants.QFT_BOOL),
+      (query._MakeField("unavail", "Unavail", constants.QFT_BOOL, "Unavail"),
        None, lambda *args: query._FS_UNAVAIL),
       ], [])
 
@@ -234,7 +245,8 @@ class TestQuery(unittest.TestCase):
                         for i in range(1, 10)])
       self.assertEqual([fdef.ToDict() for fdef in q.GetFields()],
                        [{ "name": name, "title": name,
-                          "kind": constants.QFT_UNKNOWN, }
+                          "kind": constants.QFT_UNKNOWN,
+                          "doc": "Unknown field '%s'" % name}
                         for name in selected])
 
     q = query.Query(fielddef, ["name", "other0", "nodata", "unavail"])
@@ -256,9 +268,9 @@ class TestQuery(unittest.TestCase):
 
   def testAliases(self):
     fields = [
-      (query._MakeField("a", "a-title", constants.QFT_TEXT), None,
+      (query._MakeField("a", "a-title", constants.QFT_TEXT, "Field A"), None,
        lambda *args: None),
-      (query._MakeField("b", "b-title", constants.QFT_TEXT), None,
+      (query._MakeField("b", "b-title", constants.QFT_TEXT, "Field B"), None,
        lambda *args: None),
       ]
     # duplicate field

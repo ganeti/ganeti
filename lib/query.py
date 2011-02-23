@@ -32,6 +32,8 @@ How it works:
           - Title for tables, must not contain whitespace and match
             L{TITLE_RE}
           - Value data type, e.g. L{constants.QFT_NUMBER}
+          - Human-readable description, must not end with punctuation or
+            contain newlines
       - Data request type, see e.g. C{NQ_*}
       - A retrieval function, see L{Query.__init__} for description
     - Pass list of fields through L{_PrepareFieldList} for preparation and
@@ -122,6 +124,8 @@ _VTToQFT = {
   constants.VTYPE_INT: QFT_NUMBER,
   }
 
+_SERIAL_NO_DOC = "%s object serial number, incremented on each modification"
+
 
 def _GetUnknownField(ctx, item): # pylint: disable-msg=W0613
   """Gets the contents of an unknown field.
@@ -147,7 +151,8 @@ def _GetQueryFields(fielddefs, selected):
     try:
       fdef = fielddefs[name]
     except KeyError:
-      fdef = (_MakeField(name, name, QFT_UNKNOWN), None, _GetUnknownField)
+      fdef = (_MakeField(name, name, QFT_UNKNOWN, "Unknown field '%s'" % name),
+              None, _GetUnknownField)
 
     assert len(fdef) == 3
 
@@ -308,9 +313,9 @@ def _PrepareFieldList(fields, aliases):
     assert fdef.name and fdef.title, "Name and title are required"
     assert FIELD_NAME_RE.match(fdef.name)
     assert TITLE_RE.match(fdef.title)
-    assert (fdef.doc is None or
-            (DOC_RE.match(fdef.doc) and len(fdef.doc.splitlines()) == 1 and
-             fdef.doc.strip() == fdef.doc))
+    assert (DOC_RE.match(fdef.doc) and len(fdef.doc.splitlines()) == 1 and
+            fdef.doc.strip() == fdef.doc), \
+           "Invalid description for field '%s'" % fdef.name
     assert callable(fn)
     assert fdef.name not in result, \
            "Duplicate field name '%s' found" % fdef.name
@@ -364,7 +369,7 @@ def QueryFields(fielddefs, selected):
   return objects.QueryFieldsResponse(fields=fdefs).ToDict()
 
 
-def _MakeField(name, title, kind, doc=None):
+def _MakeField(name, title, kind, doc):
   """Wrapper for creating L{objects.QueryFieldDefinition} instances.
 
   @param name: Field name as a regular expression
@@ -436,10 +441,10 @@ def _GetItemTimestampFields(datatype):
 
   """
   return [
-    (_MakeField("ctime", "CTime", QFT_TIMESTAMP), datatype,
-     _GetItemTimestamp(operator.attrgetter("ctime"))),
-    (_MakeField("mtime", "MTime", QFT_TIMESTAMP), datatype,
-     _GetItemTimestamp(operator.attrgetter("mtime"))),
+    (_MakeField("ctime", "CTime", QFT_TIMESTAMP, "Creation timestamp"),
+     datatype, _GetItemTimestamp(operator.attrgetter("ctime"))),
+    (_MakeField("mtime", "MTime", QFT_TIMESTAMP, "Modification timestamp"),
+     datatype, _GetItemTimestamp(operator.attrgetter("mtime"))),
     ]
 
 
@@ -481,29 +486,41 @@ class NodeQueryData:
 
 #: Fields that are direct attributes of an L{objects.Node} object
 _NODE_SIMPLE_FIELDS = {
-  "drained": ("Drained", QFT_BOOL),
-  "master_candidate": ("MasterC", QFT_BOOL),
-  "master_capable": ("MasterCapable", QFT_BOOL),
-  "name": ("Node", QFT_TEXT),
-  "offline": ("Offline", QFT_BOOL),
-  "serial_no": ("SerialNo", QFT_NUMBER),
-  "uuid": ("UUID", QFT_TEXT),
-  "vm_capable": ("VMCapable", QFT_BOOL),
+  "drained": ("Drained", QFT_BOOL, "Whether node is drained"),
+  "master_candidate": ("MasterC", QFT_BOOL,
+                       "Whether node is a master candidate"),
+  "master_capable": ("MasterCapable", QFT_BOOL,
+                     "Whether node can become a master candidate"),
+  "name": ("Node", QFT_TEXT, "Node name"),
+  "offline": ("Offline", QFT_BOOL, "Whether node is marked offline"),
+  "serial_no": ("SerialNo", QFT_NUMBER, _SERIAL_NO_DOC % "Node"),
+  "uuid": ("UUID", QFT_TEXT, "Node UUID"),
+  "vm_capable": ("VMCapable", QFT_BOOL, "Whether node can host instances"),
   }
 
 
 #: Fields requiring talking to the node
 # Note that none of these are available for non-vm_capable nodes
 _NODE_LIVE_FIELDS = {
-  "bootid": ("BootID", QFT_TEXT, "bootid"),
-  "cnodes": ("CNodes", QFT_NUMBER, "cpu_nodes"),
-  "csockets": ("CSockets", QFT_NUMBER, "cpu_sockets"),
-  "ctotal": ("CTotal", QFT_NUMBER, "cpu_total"),
-  "dfree": ("DFree", QFT_UNIT, "vg_free"),
-  "dtotal": ("DTotal", QFT_UNIT, "vg_size"),
-  "mfree": ("MFree", QFT_UNIT, "memory_free"),
-  "mnode": ("MNode", QFT_UNIT, "memory_dom0"),
-  "mtotal": ("MTotal", QFT_UNIT, "memory_total"),
+  "bootid": ("BootID", QFT_TEXT, "bootid",
+             "Random UUID renewed for each system reboot, can be used"
+             " for detecting reboots by tracking changes"),
+  "cnodes": ("CNodes", QFT_NUMBER, "cpu_nodes",
+             "Number of NUMA domains on node (if exported by hypervisor)"),
+  "csockets": ("CSockets", QFT_NUMBER, "cpu_sockets",
+               "Number of physical CPU sockets (if exported by hypervisor)"),
+  "ctotal": ("CTotal", QFT_NUMBER, "cpu_total", "Number of logical processors"),
+  "dfree": ("DFree", QFT_UNIT, "vg_free",
+            "Available disk space in volume group"),
+  "dtotal": ("DTotal", QFT_UNIT, "vg_size",
+             "Total disk space in volume group used for instance disk"
+             " allocation"),
+  "mfree": ("MFree", QFT_UNIT, "memory_free",
+            "Memory available for instance allocations"),
+  "mnode": ("MNode", QFT_UNIT, "memory_dom0",
+            "Amount of memory used by node (dom0 for Xen)"),
+  "mtotal": ("MTotal", QFT_UNIT, "memory_total",
+             "Total amount of memory of physical machine"),
   }
 
 
@@ -614,26 +631,39 @@ def _BuildNodeFields():
 
   """
   fields = [
-    (_MakeField("pip", "PrimaryIP", QFT_TEXT), NQ_CONFIG,
-     _GetItemAttr("primary_ip")),
-    (_MakeField("sip", "SecondaryIP", QFT_TEXT), NQ_CONFIG,
-     _GetItemAttr("secondary_ip")),
-    (_MakeField("tags", "Tags", QFT_OTHER), NQ_CONFIG,
+    (_MakeField("pip", "PrimaryIP", QFT_TEXT, "Primary IP address"),
+     NQ_CONFIG, _GetItemAttr("primary_ip")),
+    (_MakeField("sip", "SecondaryIP", QFT_TEXT, "Secondary IP address"),
+     NQ_CONFIG, _GetItemAttr("secondary_ip")),
+    (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), NQ_CONFIG,
      lambda ctx, node: list(node.GetTags())),
-    (_MakeField("master", "IsMaster", QFT_BOOL), NQ_CONFIG,
-     lambda ctx, node: node.name == ctx.master_name),
-    (_MakeField("role", "Role", QFT_TEXT), NQ_CONFIG,
-     lambda ctx, node: _GetNodeRole(node, ctx.master_name)),
-    (_MakeField("group", "Group", QFT_TEXT), NQ_GROUP,
+    (_MakeField("master", "IsMaster", QFT_BOOL, "Whether node is master"),
+     NQ_CONFIG, lambda ctx, node: node.name == ctx.master_name),
+    (_MakeField("group", "Group", QFT_TEXT, "Node group"), NQ_GROUP,
      _GetGroup(_GetNodeGroup)),
-    (_MakeField("group.uuid", "GroupUUID", QFT_TEXT),
+    (_MakeField("group.uuid", "GroupUUID", QFT_TEXT, "UUID of node group"),
      NQ_CONFIG, _GetItemAttr("group")),
-    (_MakeField("powered", "Powered", QFT_BOOL), NQ_OOB, _GetNodePower),
-    (_MakeField("ndparams", "NodeParameters", QFT_OTHER), NQ_GROUP,
-      _GetGroup(_GetNdParams)),
-    (_MakeField("custom_ndparams", "CustomNodeParameters", QFT_OTHER),
+    (_MakeField("powered", "Powered", QFT_BOOL,
+                "Whether node is thought to be powered on"),
+     NQ_OOB, _GetNodePower),
+    (_MakeField("ndparams", "NodeParameters", QFT_OTHER,
+                "Merged node parameters"),
+     NQ_GROUP, _GetGroup(_GetNdParams)),
+    (_MakeField("custom_ndparams", "CustomNodeParameters", QFT_OTHER,
+                "Custom node parameters"),
       NQ_GROUP, _GetItemAttr("ndparams")),
     ]
+
+  # Node role
+  role_values = (constants.NR_MASTER, constants.NR_MCANDIDATE,
+                 constants.NR_REGULAR, constants.NR_DRAINED,
+                 constants.NR_OFFLINE)
+  role_doc = ("Node role; \"%s\" for master, \"%s\" for master candidate,"
+              " \"%s\" for regular, \"%s\" for a drained, \"%s\" for offline" %
+              role_values)
+  fields.append((_MakeField("role", "Role", QFT_TEXT, role_doc), NQ_CONFIG,
+                 lambda ctx, node: _GetNodeRole(node, ctx.master_name)))
+  assert set(role_values) == constants.NR_ALL
 
   def _GetLength(getter):
     return lambda ctx, node: len(getter(ctx)[node.name])
@@ -642,26 +672,29 @@ def _BuildNodeFields():
     return lambda ctx, node: list(getter(ctx)[node.name])
 
   # Add fields operating on instance lists
-  for prefix, titleprefix, getter in \
-      [("p", "Pri", operator.attrgetter("node_to_primary")),
-       ("s", "Sec", operator.attrgetter("node_to_secondary"))]:
+  for prefix, titleprefix, docword, getter in \
+      [("p", "Pri", "primary", operator.attrgetter("node_to_primary")),
+       ("s", "Sec", "secondary", operator.attrgetter("node_to_secondary"))]:
     fields.extend([
-      (_MakeField("%sinst_cnt" % prefix, "%sinst" % prefix.upper(), QFT_NUMBER),
+      (_MakeField("%sinst_cnt" % prefix, "%sinst" % prefix.upper(), QFT_NUMBER,
+                  "Number of instances with this node as %s" % docword),
        NQ_INST, _GetLength(getter)),
       (_MakeField("%sinst_list" % prefix, "%sInstances" % titleprefix,
-                  QFT_OTHER),
+                  QFT_OTHER,
+                  "List of instances with this node as %s" % docword),
        NQ_INST, _GetList(getter)),
       ])
 
   # Add simple fields
-  fields.extend([(_MakeField(name, title, kind), NQ_CONFIG, _GetItemAttr(name))
-                 for (name, (title, kind)) in _NODE_SIMPLE_FIELDS.items()])
+  fields.extend([(_MakeField(name, title, kind, doc), NQ_CONFIG,
+                  _GetItemAttr(name))
+                 for (name, (title, kind, doc)) in _NODE_SIMPLE_FIELDS.items()])
 
   # Add fields requiring live data
   fields.extend([
-    (_MakeField(name, title, kind), NQ_LIVE,
+    (_MakeField(name, title, kind, doc), NQ_LIVE,
      compat.partial(_GetLiveNodeField, nfield, kind))
-    for (name, (title, kind, nfield)) in _NODE_LIVE_FIELDS.items()
+    for (name, (title, kind, nfield, doc)) in _NODE_LIVE_FIELDS.items()
     ])
 
   # Add timestamps
@@ -944,34 +977,46 @@ def _GetInstanceNetworkFields():
 
   fields = [
     # All NICs
-    (_MakeField("nic.count", "NICs", QFT_NUMBER), IQ_CONFIG,
-     lambda ctx, inst: len(inst.nics)),
-    (_MakeField("nic.macs", "NIC_MACs", QFT_OTHER), IQ_CONFIG,
-     lambda ctx, inst: [nic.mac for nic in inst.nics]),
-    (_MakeField("nic.ips", "NIC_IPs", QFT_OTHER), IQ_CONFIG,
-     lambda ctx, inst: [nic.ip for nic in inst.nics]),
-    (_MakeField("nic.modes", "NIC_modes", QFT_OTHER), IQ_CONFIG,
+    (_MakeField("nic.count", "NICs", QFT_NUMBER,
+                "Number of network interfaces"),
+     IQ_CONFIG, lambda ctx, inst: len(inst.nics)),
+    (_MakeField("nic.macs", "NIC_MACs", QFT_OTHER,
+                "List containing each network interface's MAC address"),
+     IQ_CONFIG, lambda ctx, inst: [nic.mac for nic in inst.nics]),
+    (_MakeField("nic.ips", "NIC_IPs", QFT_OTHER,
+                "List containing each network interface's IP address"),
+     IQ_CONFIG, lambda ctx, inst: [nic.ip for nic in inst.nics]),
+    (_MakeField("nic.modes", "NIC_modes", QFT_OTHER,
+                "List containing each network interface's mode"), IQ_CONFIG,
      lambda ctx, inst: [nicp[constants.NIC_MODE]
                         for nicp in ctx.inst_nicparams]),
-    (_MakeField("nic.links", "NIC_links", QFT_OTHER), IQ_CONFIG,
+    (_MakeField("nic.links", "NIC_links", QFT_OTHER,
+                "List containing each network interface's link"), IQ_CONFIG,
      lambda ctx, inst: [nicp[constants.NIC_LINK]
                         for nicp in ctx.inst_nicparams]),
-    (_MakeField("nic.bridges", "NIC_bridges", QFT_OTHER), IQ_CONFIG,
+    (_MakeField("nic.bridges", "NIC_bridges", QFT_OTHER,
+                "List containing each network interface's bridge"), IQ_CONFIG,
      _GetInstAllNicBridges),
     ]
 
   # NICs by number
   for i in range(constants.MAX_NICS):
+    numtext = utils.FormatOrdinal(i + 1)
     fields.extend([
-      (_MakeField("nic.ip/%s" % i, "NicIP/%s" % i, QFT_TEXT),
+      (_MakeField("nic.ip/%s" % i, "NicIP/%s" % i, QFT_TEXT,
+                  "IP address of %s network interface" % numtext),
        IQ_CONFIG, _GetInstNic(i, _GetInstNicIp)),
-      (_MakeField("nic.mac/%s" % i, "NicMAC/%s" % i, QFT_TEXT),
+      (_MakeField("nic.mac/%s" % i, "NicMAC/%s" % i, QFT_TEXT,
+                  "MAC address of %s network interface" % numtext),
        IQ_CONFIG, _GetInstNic(i, nic_mac_fn)),
-      (_MakeField("nic.mode/%s" % i, "NicMode/%s" % i, QFT_TEXT),
+      (_MakeField("nic.mode/%s" % i, "NicMode/%s" % i, QFT_TEXT,
+                  "Mode of %s network interface" % numtext),
        IQ_CONFIG, _GetInstNic(i, nic_mode_fn)),
-      (_MakeField("nic.link/%s" % i, "NicLink/%s" % i, QFT_TEXT),
+      (_MakeField("nic.link/%s" % i, "NicLink/%s" % i, QFT_TEXT,
+                  "Link of %s network interface" % numtext),
        IQ_CONFIG, _GetInstNic(i, nic_link_fn)),
-      (_MakeField("nic.bridge/%s" % i, "NicBridge/%s" % i, QFT_TEXT),
+      (_MakeField("nic.bridge/%s" % i, "NicBridge/%s" % i, QFT_TEXT,
+                  "Bridge of %s network interface" % numtext),
        IQ_CONFIG, _GetInstNic(i, _GetInstNicBridge)),
       ])
 
@@ -1026,17 +1071,21 @@ def _GetInstanceDiskFields():
 
   """
   fields = [
-    (_MakeField("disk_usage", "DiskUsage", QFT_UNIT), IQ_DISKUSAGE,
-     _GetInstDiskUsage),
-    (_MakeField("disk.count", "Disks", QFT_NUMBER), IQ_CONFIG,
-     lambda ctx, inst: len(inst.disks)),
-    (_MakeField("disk.sizes", "Disk_sizes", QFT_OTHER), IQ_CONFIG,
-     lambda ctx, inst: [disk.size for disk in inst.disks]),
+    (_MakeField("disk_usage", "DiskUsage", QFT_UNIT,
+                "Total disk space used by instance on each of its nodes;"
+                " this is not the disk size visible to the instance, but"
+                " the usage on the node"),
+     IQ_DISKUSAGE, _GetInstDiskUsage),
+    (_MakeField("disk.count", "Disks", QFT_NUMBER, "Number of disks"),
+     IQ_CONFIG, lambda ctx, inst: len(inst.disks)),
+    (_MakeField("disk.sizes", "Disk_sizes", QFT_OTHER, "List of disk sizes"),
+     IQ_CONFIG, lambda ctx, inst: [disk.size for disk in inst.disks]),
     ]
 
   # Disks by number
   fields.extend([
-    (_MakeField("disk.size/%s" % i, "Disk/%s" % i, QFT_UNIT),
+    (_MakeField("disk.size/%s" % i, "Disk/%s" % i, QFT_UNIT,
+                "Disk size of %s disk" % utils.FormatOrdinal(i + 1)),
      IQ_CONFIG, _GetInstDiskSize(i))
     for i in range(constants.MAX_DISKS)
     ])
@@ -1071,17 +1120,22 @@ def _GetInstanceParameterFields():
 
   fields = [
     # Filled parameters
-    (_MakeField("hvparams", "HypervisorParameters", QFT_OTHER),
+    (_MakeField("hvparams", "HypervisorParameters", QFT_OTHER,
+                "Hypervisor parameters"),
      IQ_CONFIG, lambda ctx, _: ctx.inst_hvparams),
-    (_MakeField("beparams", "BackendParameters", QFT_OTHER),
+    (_MakeField("beparams", "BackendParameters", QFT_OTHER,
+                "Backend parameters"),
      IQ_CONFIG, lambda ctx, _: ctx.inst_beparams),
 
     # Unfilled parameters
-    (_MakeField("custom_hvparams", "CustomHypervisorParameters", QFT_OTHER),
+    (_MakeField("custom_hvparams", "CustomHypervisorParameters", QFT_OTHER,
+                "Custom hypervisor parameters"),
      IQ_CONFIG, _GetItemAttr("hvparams")),
-    (_MakeField("custom_beparams", "CustomBackendParameters", QFT_OTHER),
+    (_MakeField("custom_beparams", "CustomBackendParameters", QFT_OTHER,
+                "Custom backend parameters",),
      IQ_CONFIG, _GetItemAttr("beparams")),
-    (_MakeField("custom_nicparams", "CustomNicParameters", QFT_OTHER),
+    (_MakeField("custom_nicparams", "CustomNicParameters", QFT_OTHER,
+                "Custom network interface parameters"),
      IQ_CONFIG, lambda ctx, inst: [nic.nicparams for nic in inst.nics]),
     ]
 
@@ -1091,7 +1145,7 @@ def _GetInstanceParameterFields():
 
   fields.extend([
     (_MakeField("hv/%s" % name, hv_title.get(name, "hv/%s" % name),
-                _VTToQFT[kind]),
+                _VTToQFT[kind], "The \"%s\" hypervisor parameter" % name),
      IQ_CONFIG, _GetInstHvParam(name))
     for name, kind in constants.HVS_PARAMETER_TYPES.items()
     if name not in constants.HVC_GLOBALS
@@ -1103,8 +1157,8 @@ def _GetInstanceParameterFields():
 
   fields.extend([
     (_MakeField("be/%s" % name, be_title.get(name, "be/%s" % name),
-                _VTToQFT[kind]), IQ_CONFIG,
-     _GetInstBeParam(name))
+                _VTToQFT[kind], "The \"%s\" backend parameter" % name),
+     IQ_CONFIG, _GetInstBeParam(name))
     for name, kind in constants.BES_PARAMETER_TYPES.items()
     ])
 
@@ -1112,14 +1166,15 @@ def _GetInstanceParameterFields():
 
 
 _INST_SIMPLE_FIELDS = {
-  "disk_template": ("Disk_template", QFT_TEXT),
-  "hypervisor": ("Hypervisor", QFT_TEXT),
-  "name": ("Instance", QFT_TEXT),
+  "disk_template": ("Disk_template", QFT_TEXT, "Instance disk template"),
+  "hypervisor": ("Hypervisor", QFT_TEXT, "Hypervisor name"),
+  "name": ("Instance", QFT_TEXT, "Instance name"),
   # Depending on the hypervisor, the port can be None
-  "network_port": ("Network_port", QFT_OTHER),
-  "os": ("OS", QFT_TEXT),
-  "serial_no": ("SerialNo", QFT_NUMBER),
-  "uuid": ("UUID", QFT_TEXT),
+  "network_port": ("Network_port", QFT_OTHER,
+                   "Instance network port if available (e.g. for VNC console)"),
+  "os": ("OS", QFT_TEXT, "Operating system"),
+  "serial_no": ("SerialNo", QFT_NUMBER, _SERIAL_NO_DOC % "Instance"),
+  "uuid": ("UUID", QFT_TEXT, "Instance UUID"),
   }
 
 
@@ -1128,32 +1183,56 @@ def _BuildInstanceFields():
 
   """
   fields = [
-    (_MakeField("pnode", "Primary_node", QFT_TEXT), IQ_CONFIG,
+    (_MakeField("pnode", "Primary_node", QFT_TEXT, "Primary node"), IQ_CONFIG,
      _GetItemAttr("primary_node")),
-    (_MakeField("snodes", "Secondary_Nodes", QFT_OTHER), IQ_CONFIG,
-     lambda ctx, inst: list(inst.secondary_nodes)),
-    (_MakeField("admin_state", "Autostart", QFT_BOOL), IQ_CONFIG,
-     _GetItemAttr("admin_up")),
-    (_MakeField("tags", "Tags", QFT_OTHER), IQ_CONFIG,
+    (_MakeField("snodes", "Secondary_Nodes", QFT_OTHER,
+                "Secondary nodes; usually this will just be one node"),
+     IQ_CONFIG, lambda ctx, inst: list(inst.secondary_nodes)),
+    (_MakeField("admin_state", "Autostart", QFT_BOOL,
+                "Desired state of instance (if set, the instance should be"
+                " up)"),
+     IQ_CONFIG, _GetItemAttr("admin_up")),
+    (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), IQ_CONFIG,
      lambda ctx, inst: list(inst.GetTags())),
-    (_MakeField("console", "Console", QFT_OTHER), IQ_CONSOLE,
+    (_MakeField("console", "Console", QFT_OTHER,
+                "Instance console information"), IQ_CONSOLE,
      _GetInstanceConsole),
     ]
 
   # Add simple fields
-  fields.extend([(_MakeField(name, title, kind), IQ_CONFIG, _GetItemAttr(name))
-                 for (name, (title, kind)) in _INST_SIMPLE_FIELDS.items()])
+  fields.extend([(_MakeField(name, title, kind, doc),
+                  IQ_CONFIG, _GetItemAttr(name))
+                 for (name, (title, kind, doc)) in _INST_SIMPLE_FIELDS.items()])
 
   # Fields requiring talking to the node
   fields.extend([
-    (_MakeField("oper_state", "Running", QFT_BOOL), IQ_LIVE,
-     _GetInstOperState),
-    (_MakeField("oper_ram", "Memory", QFT_UNIT), IQ_LIVE,
-     _GetInstLiveData("memory")),
-    (_MakeField("oper_vcpus", "VCPUs", QFT_NUMBER), IQ_LIVE,
-     _GetInstLiveData("vcpus")),
-    (_MakeField("status", "Status", QFT_TEXT), IQ_LIVE, _GetInstStatus),
+    (_MakeField("oper_state", "Running", QFT_BOOL, "Actual state of instance"),
+     IQ_LIVE, _GetInstOperState),
+    (_MakeField("oper_ram", "Memory", QFT_UNIT,
+                "Actual memory usage as seen by hypervisor"),
+     IQ_LIVE, _GetInstLiveData("memory")),
+    (_MakeField("oper_vcpus", "VCPUs", QFT_NUMBER,
+                "Actual number of VCPUs as seen by hypervisor"),
+     IQ_LIVE, _GetInstLiveData("vcpus")),
     ])
+
+  # Status field
+  status_values = (constants.INSTST_RUNNING, constants.INSTST_ADMINDOWN,
+                   constants.INSTST_WRONGNODE, constants.INSTST_ERRORUP,
+                   constants.INSTST_ERRORDOWN, constants.INSTST_NODEDOWN,
+                   constants.INSTST_NODEOFFLINE)
+  status_doc = ("Instance status; \"%s\" if instance is set to be running"
+                " and actually is, \"%s\" if instance is stopped and"
+                " is not running, \"%s\" if instance running, but not on its"
+                " designated primary node, \"%s\" if instance should be"
+                " stopped, but is actually running, \"%s\" if instance should"
+                " run, but doesn't, \"%s\" if instance's primary node is down,"
+                " \"%s\" if instance's primary node is marked offline" %
+                status_values)
+  fields.append((_MakeField("status", "Status", QFT_TEXT, status_doc),
+                 IQ_LIVE, _GetInstStatus))
+  assert set(status_values) == constants.INSTST_ALL, \
+         "Status documentation mismatch"
 
   (network_fields, network_aliases) = _GetInstanceNetworkFields()
 
@@ -1218,12 +1297,17 @@ def _BuildLockFields():
 
   """
   return _PrepareFieldList([
-    (_MakeField("name", "Name", QFT_TEXT), None,
+    (_MakeField("name", "Name", QFT_TEXT, "Lock name"), None,
      lambda ctx, (name, mode, owners, pending): name),
-    (_MakeField("mode", "Mode", QFT_OTHER), LQ_MODE,
-     lambda ctx, (name, mode, owners, pending): mode),
-    (_MakeField("owner", "Owner", QFT_OTHER), LQ_OWNER, _GetLockOwners),
-    (_MakeField("pending", "Pending", QFT_OTHER), LQ_PENDING, _GetLockPending),
+    (_MakeField("mode", "Mode", QFT_OTHER,
+                "Mode in which the lock is currently acquired"
+                " (exclusive or shared)"),
+     LQ_MODE, lambda ctx, (name, mode, owners, pending): mode),
+    (_MakeField("owner", "Owner", QFT_OTHER, "Current lock owner(s)"),
+     LQ_OWNER, _GetLockOwners),
+    (_MakeField("pending", "Pending", QFT_OTHER,
+                "Threads waiting for the lock"),
+     LQ_PENDING, _GetLockPending),
     ], [])
 
 
@@ -1253,11 +1337,11 @@ class GroupQueryData:
 
 
 _GROUP_SIMPLE_FIELDS = {
-  "alloc_policy": ("AllocPolicy", QFT_TEXT),
-  "name": ("Group", QFT_TEXT),
-  "serial_no": ("SerialNo", QFT_NUMBER),
-  "uuid": ("UUID", QFT_TEXT),
-  "ndparams": ("NDParams", QFT_OTHER),
+  "alloc_policy": ("AllocPolicy", QFT_TEXT, "Allocation policy for group"),
+  "name": ("Group", QFT_TEXT, "Group name"),
+  "serial_no": ("SerialNo", QFT_NUMBER, _SERIAL_NO_DOC % "Group"),
+  "uuid": ("UUID", QFT_TEXT, "Group UUID"),
+  "ndparams": ("NDParams", QFT_OTHER, "Node parameters"),
   }
 
 
@@ -1266,8 +1350,8 @@ def _BuildGroupFields():
 
   """
   # Add simple fields
-  fields = [(_MakeField(name, title, kind), GQ_CONFIG, _GetItemAttr(name))
-            for (name, (title, kind)) in _GROUP_SIMPLE_FIELDS.items()]
+  fields = [(_MakeField(name, title, kind, doc), GQ_CONFIG, _GetItemAttr(name))
+            for (name, (title, kind, doc)) in _GROUP_SIMPLE_FIELDS.items()]
 
   def _GetLength(getter):
     return lambda ctx, group: len(getter(ctx)[group.uuid])
@@ -1280,17 +1364,19 @@ def _BuildGroupFields():
 
   # Add fields for nodes
   fields.extend([
-    (_MakeField("node_cnt", "Nodes", QFT_NUMBER),
+    (_MakeField("node_cnt", "Nodes", QFT_NUMBER, "Number of nodes"),
      GQ_NODE, _GetLength(group_to_nodes)),
-    (_MakeField("node_list", "NodeList", QFT_OTHER),
+    (_MakeField("node_list", "NodeList", QFT_OTHER, "List of nodes"),
      GQ_NODE, _GetSortedList(group_to_nodes)),
     ])
 
   # Add fields for instances
   fields.extend([
-    (_MakeField("pinst_cnt", "Instances", QFT_NUMBER),
+    (_MakeField("pinst_cnt", "Instances", QFT_NUMBER,
+                "Number of primary instances"),
      GQ_INST, _GetLength(group_to_instances)),
-    (_MakeField("pinst_list", "InstanceList", QFT_OTHER),
+    (_MakeField("pinst_list", "InstanceList", QFT_OTHER,
+                "List of primary instances"),
      GQ_INST, _GetSortedList(group_to_instances)),
     ])
 
