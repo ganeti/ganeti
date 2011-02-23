@@ -216,6 +216,22 @@ class PythonAssert(sphinx.util.compat.Directive):
     return []
 
 
+def BuildQueryFields(fields):
+  """Build query fields documentation.
+
+  @type fields: dict (field name as key, field details as value)
+
+  """
+  for (_, (fdef, _, _)) in utils.NiceSort(fields.items(),
+                                          key=operator.itemgetter(0)):
+    assert len(fdef.doc.splitlines()) == 1
+    yield "``%s``" % fdef.name
+    yield "  %s" % fdef.doc
+
+
+# TODO: Implement Sphinx directive for query fields
+
+
 def setup(app):
   """Sphinx extension callback.
 

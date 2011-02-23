@@ -1397,5 +1397,13 @@ LOCK_FIELDS = _BuildLockFields()
 #: Fields available for node group queries
 GROUP_FIELDS = _BuildGroupFields()
 
+#: All available resources
+ALL_FIELDS = {
+  constants.QR_INSTANCE: INSTANCE_FIELDS,
+  constants.QR_NODE: NODE_FIELDS,
+  constants.QR_LOCK: LOCK_FIELDS,
+  constants.QR_GROUP: GROUP_FIELDS,
+  }
+
 #: All available field lists
-ALL_FIELD_LISTS = [NODE_FIELDS, INSTANCE_FIELDS, LOCK_FIELDS, GROUP_FIELDS]
+ALL_FIELD_LISTS = ALL_FIELDS.values()

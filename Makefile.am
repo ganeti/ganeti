@@ -19,6 +19,7 @@ CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
 CHECK_MAN = $(top_srcdir)/autotools/check-man
 CHECK_VERSION = $(top_srcdir)/autotools/check-version
 CHECK_NEWS = $(top_srcdir)/autotools/check-news
+DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 clientdir = $(pkgpythondir)/client
@@ -392,6 +393,7 @@ EXTRA_DIST = \
 	autotools/check-news \
 	autotools/check-tar \
 	autotools/check-version \
+	autotools/docpp \
 	autotools/gen-coverage \
 	autotools/testrunner \
 	$(RUN_IN_TEMPDIR) \
@@ -575,6 +577,7 @@ srclink_files = \
 
 check_python_code = \
 	$(BUILD_BASH_COMPLETION) \
+	$(DOCPP) \
 	$(all_python_code)
 
 lint_python_code = \
@@ -584,6 +587,7 @@ lint_python_code = \
 	$(dist_tools_SCRIPTS) \
 	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION) \
+	$(DOCPP) \
 	$(PYTHON_BOOTSTRAP)
 
 test/daemon-util_unittest.bash: daemons/daemon-util
