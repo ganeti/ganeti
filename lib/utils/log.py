@@ -170,6 +170,7 @@ def _ReopenLogFiles(handlers):
   """
   for handler in handlers:
     handler.RequestReopen()
+  logging.info("Received request to reopen log files")
 
 
 def SetupLogging(logfile, program, debug=0, stderr_logging=False,
