@@ -275,25 +275,26 @@ class TestQuery(unittest.TestCase):
 
 
 class TestGetNodeRole(unittest.TestCase):
-  def testMaster(self):
-    node = objects.Node(name="node1")
-    self.assertEqual(query._GetNodeRole(node, "node1"), "M")
+  def test(self):
+    tested_role = set()
 
-  def testMasterCandidate(self):
-    node = objects.Node(name="node1", master_candidate=True)
-    self.assertEqual(query._GetNodeRole(node, "master"), "C")
+    checks = [
+      (constants.NR_MASTER, "node1", objects.Node(name="node1")),
+      (constants.NR_MCANDIDATE, "master",
+       objects.Node(name="node1", master_candidate=True)),
+      (constants.NR_REGULAR, "master", objects.Node(name="node1")),
+      (constants.NR_DRAINED, "master",
+       objects.Node(name="node1", drained=True)),
+      (constants.NR_OFFLINE,
+       "master", objects.Node(name="node1", offline=True)),
+      ]
 
-  def testRegular(self):
-    node = objects.Node(name="node1")
-    self.assertEqual(query._GetNodeRole(node, "master"), "R")
+    for (role, master_name, node) in checks:
+      result = query._GetNodeRole(node, master_name)
+      self.assertEqual(result, role)
+      tested_role.add(result)
 
-  def testDrained(self):
-    node = objects.Node(name="node1", drained=True)
-    self.assertEqual(query._GetNodeRole(node, "master"), "D")
-
-  def testOffline(self):
-    node = objects.Node(name="node1", offline=True)
-    self.assertEqual(query._GetNodeRole(node, "master"), "O")
+    self.assertEqual(tested_role, constants.NR_ALL)
 
 
 class TestNodeQuery(unittest.TestCase):

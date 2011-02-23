@@ -86,12 +86,14 @@ _NR_OFFLINE = "offline"
 _NR_REGULAR = "regular"
 
 _NR_MAP = {
-  "M": _NR_MASTER,
-  "C": _NR_MASTER_CANDIATE,
-  "D": _NR_DRAINED,
-  "O": _NR_OFFLINE,
-  "R": _NR_REGULAR,
+  constants.NR_MASTER: _NR_MASTER,
+  constants.NR_MCANDIDATE: _NR_MASTER_CANDIATE,
+  constants.NR_DRAINED: _NR_DRAINED,
+  constants.NR_OFFLINE: _NR_OFFLINE,
+  constants.NR_REGULAR: _NR_REGULAR,
   }
+
+assert frozenset(_NR_MAP.keys()) == constants.NR_ALL
 
 # Request data version field
 _REQ_DATA_VERSION = "__version__"

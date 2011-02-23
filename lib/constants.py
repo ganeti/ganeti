@@ -879,6 +879,20 @@ INSTST_ALL = frozenset([
   INSTST_ERRORDOWN,
   ])
 
+# Node roles
+NR_REGULAR = "R"
+NR_MASTER = "M"
+NR_MCANDIDATE = "C"
+NR_DRAINED = "D"
+NR_OFFLINE = "O"
+NR_ALL = frozenset([
+  NR_REGULAR,
+  NR_MASTER,
+  NR_MCANDIDATE,
+  NR_DRAINED,
+  NR_OFFLINE,
+  ])
+
 # SSL certificate check constants (in days)
 SSL_CERT_EXPIRATION_WARN = 30
 SSL_CERT_EXPIRATION_ERROR = 7

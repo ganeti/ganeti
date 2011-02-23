@@ -381,15 +381,15 @@ def _GetNodeRole(node, master_name):
 
   """
   if node.name == master_name:
-    return "M"
+    return constants.NR_MASTER
   elif node.master_candidate:
-    return "C"
+    return constants.NR_MCANDIDATE
   elif node.drained:
-    return "D"
+    return constants.NR_DRAINED
   elif node.offline:
-    return "O"
+    return constants.NR_OFFLINE
   else:
-    return "R"
+    return constants.NR_REGULAR
 
 
 def _GetItemAttr(attr):
