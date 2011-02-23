@@ -710,8 +710,11 @@ class TestInstanceQuery(unittest.TestCase):
       "inst6": {
         "memory": 768,
         },
+      "inst7": {
+        "vcpus": 3,
+        },
       }
-    wrongnode_inst = set("inst2")
+    wrongnode_inst = set(["inst7"])
 
     consinfo = dict((inst.name, None) for inst in instances)
     consinfo["inst7"] = \
@@ -830,7 +833,7 @@ class TestInstanceQuery(unittest.TestCase):
     self.assertEqual(tested_status,
                      set(["ERROR_nodeoffline", "ERROR_nodedown",
                           "running", "ERROR_up", "ERROR_down",
-                          "ADMIN_down"]))
+                          "ADMIN_down", "ERROR_wrongnode"]))
 
   def _CheckInstanceConsole(self, instance, (status, consdata)):
     if instance.name == "inst7":
