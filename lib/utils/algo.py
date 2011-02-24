@@ -26,7 +26,8 @@ import re
 import time
 
 
-_SORTER_RE = re.compile("^%s(.*)$" % (8 * "(\D+|\d+)?"))
+_SORTER_GROUPS = 8
+_SORTER_RE = re.compile("^%s(.*)$" % (_SORTER_GROUPS * "(\D+|\d+)?"))
 _SORTER_DIGIT = re.compile("^\d+$")
 
 
@@ -78,7 +79,7 @@ def _NiceSortTryInt(val):
     return val
 
 
-def _NiceSortKey(value):
+def NiceSortKey(value):
   """Extract key for sorting.
 
   """
@@ -107,9 +108,9 @@ def NiceSort(values, key=None):
 
   """
   if key is None:
-    keyfunc = _NiceSortKey
+    keyfunc = NiceSortKey
   else:
-    keyfunc = lambda value: _NiceSortKey(key(value))
+    keyfunc = lambda value: NiceSortKey(key(value))
 
   return sorted(values, key=keyfunc)
 
