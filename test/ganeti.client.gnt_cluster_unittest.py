@@ -48,6 +48,9 @@ class TestEpo(unittest.TestCase):
     self.assert_(secs >= 0 and secs <= 5)
     return
 
+  def _NoopFeedback(self, text):
+    return
+
   def testPingFnRemoveHostsUp(self):
     seen = set()
     def _FakeSeenPing(ip, *args, **kwargs):
@@ -58,7 +61,8 @@ class TestEpo(unittest.TestCase):
 
     helper = gnt_cluster._RunWhenNodesReachableHelper(self.nodes,
                                                       self._FakeAction,
-                                                      self.nodes2ip, port=0,
+                                                      self.nodes2ip, 0,
+                                                      self._NoopFeedback,
                                                       _ping_fn=_FakeSeenPing,
                                                       _sleep_fn=self._FakeSleep)
 
@@ -80,7 +84,8 @@ class TestEpo(unittest.TestCase):
       return called
 
     helper = gnt_cluster._RunWhenNodesReachableHelper(self.nodes, _FalseAction,
-                                                      self.nodes2ip, port=0,
+                                                      self.nodes2ip, 0,
+                                                      self._NoopFeedback,
                                                       _ping_fn=self._FakePing,
                                                       _sleep_fn=self._FakeSleep)
     for _ in self.nodes:

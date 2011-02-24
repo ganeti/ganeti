@@ -976,7 +976,7 @@ class _RunWhenNodesReachableHelper:
   @ivar success: Indicates if all action_cb calls were successful
 
   """
-  def __init__(self, node_list, action_cb, node2ip, port,
+  def __init__(self, node_list, action_cb, node2ip, port, feedback_fn,
                _ping_fn=netutils.TcpPing, _sleep_fn=time.sleep):
     """Init the object.
 
@@ -985,6 +985,7 @@ class _RunWhenNodesReachableHelper:
     @type node2ip: dict
     @param node2ip: Node to ip mapping
     @param port: The port to use for the TCP ping
+    @param feedback_fn: The function used for feedback
     @param _ping_fn: Function to check reachabilty (for unittest use only)
     @param _sleep_fn: Function to sleep (for unittest use only)
 
@@ -995,6 +996,7 @@ class _RunWhenNodesReachableHelper:
     self.success = True
     self.action_cb = action_cb
     self.port = port
+    self.feedback_fn = feedback_fn
     self._ping_fn = _ping_fn
     self._sleep_fn = _sleep_fn
 
@@ -1022,7 +1024,7 @@ class _RunWhenNodesReachableHelper:
     for node in self.down:
       if self._ping_fn(self.node2ip[node], self.port, timeout=_EPO_PING_TIMEOUT,
                        live_port_needed=True):
-        ToStdout("Node %s became available", node)
+        self.feedback_fn("Node %s became available" % node)
         self.up.add(node)
         self.down -= self.up
         # If we have a node available there is the possibility to run the
@@ -1051,7 +1053,8 @@ def _RunWhenNodesReachable(node_list, action_cb, interval):
                  for node in node_list)
 
   port = netutils.GetDaemonPort(constants.NODED)
-  helper = _RunWhenNodesReachableHelper(node_list, action_cb, node2ip, port)
+  helper = _RunWhenNodesReachableHelper(node_list, action_cb, node2ip, port,
+                                        ToStdout)
 
   try:
     return utils.Retry(helper, interval, _EPO_REACHABLE_TIMEOUT,
