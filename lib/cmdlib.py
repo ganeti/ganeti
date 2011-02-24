@@ -5231,10 +5231,16 @@ class LUInstanceReboot(LogicalUnit):
     ignore_secondaries = self.op.ignore_secondaries
     reboot_type = self.op.reboot_type
 
+    remote_info = self.rpc.call_instance_info(instance.primary_node,
+                                              instance.name,
+                                              instance.hypervisor)
+    remote_info.Raise("Error checking node %s" % instance.primary_node)
+    instance_running = bool(remote_info.payload)
+
     node_current = instance.primary_node
 
-    if reboot_type in [constants.INSTANCE_REBOOT_SOFT,
-                       constants.INSTANCE_REBOOT_HARD]:
+    if instance_running and reboot_type in [constants.INSTANCE_REBOOT_SOFT,
+                                            constants.INSTANCE_REBOOT_HARD]:
       for disk in instance.disks:
         self.cfg.SetDiskID(disk, node_current)
       result = self.rpc.call_instance_reboot(node_current, instance,
@@ -5242,10 +5248,14 @@ class LUInstanceReboot(LogicalUnit):
                                              self.op.shutdown_timeout)
       result.Raise("Could not reboot instance")
     else:
-      result = self.rpc.call_instance_shutdown(node_current, instance,
-                                               self.op.shutdown_timeout)
-      result.Raise("Could not shutdown instance for full reboot")
-      _ShutdownInstanceDisks(self, instance)
+      if instance_running:
+        result = self.rpc.call_instance_shutdown(node_current, instance,
+                                                 self.op.shutdown_timeout)
+        result.Raise("Could not shutdown instance for full reboot")
+        _ShutdownInstanceDisks(self, instance)
+      else:
+        self.LogInfo("Instance %s was already stopped, starting now",
+                     instance.name)
       _StartInstanceDisks(self, instance, ignore_secondaries)
       result = self.rpc.call_instance_start(node_current, instance, None, None)
       msg = result.fail_msg

@@ -34,7 +34,7 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertIn, AssertCommand
+from qa_utils import AssertIn, AssertCommand, AssertEqual
 
 
 def _GetDiskStatePath(disk):
@@ -103,6 +103,15 @@ def TestInstanceReboot(instance):
   name = instance["name"]
   for rtype in reboot_types:
     AssertCommand(["gnt-instance", "reboot", "--type=%s" % rtype, name])
+
+  AssertCommand(["gnt-instance", "shutdown", name])
+  AssertCommand(["gnt-instance", "reboot", name])
+
+  master = qa_config.GetMasterNode()
+  cmd = ["gnt-instance", "list", "--no-header", "-o", "status", name]
+  result_output = qa_utils.GetCommandOutput(master["primary"],
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTST_RUNNING)
 
 
 def TestInstanceReinstall(instance):
