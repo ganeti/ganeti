@@ -218,6 +218,16 @@ class TestNiceSort(unittest.TestCase):
     self.assertEqual(keyfn.count, len(data),
                      msg="Key function was not called once per value")
 
+  def testNiceSortKey(self):
+    self.assertEqual(algo.NiceSortKey(""),
+                     ([None] * algo._SORTER_GROUPS) + [""])
+    self.assertEqual(algo.NiceSortKey("Hello World"),
+                     ["Hello World"] +
+                     ([None] * int(algo._SORTER_GROUPS - 1)) + [""])
+    self.assertEqual(algo.NiceSortKey("node1.net75.bld3.example.com"),
+                     ["node", 1, ".net", 75, ".bld", 3, ".example.com",
+                      None, ""])
+
 
 class TimeMock:
   def __init__(self, values):
