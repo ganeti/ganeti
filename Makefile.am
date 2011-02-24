@@ -450,10 +450,11 @@ man_MANS = \
 
 manrst = $(patsubst %.7,%.rst,$(patsubst %.8,%.rst,$(man_MANS)))
 manhtml = $(patsubst %.rst,%.html,$(manrst))
+mangen = $(patsubst %.rst,%.gen,$(manrst))
 maninput = \
 	$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) \
 	$(patsubst %.html,%.html.in,$(manhtml)) \
-	man/footer.man man/footer.html
+	man/footer.man man/footer.html $(mangen)
 
 TEST_FILES = \
 	test/data/bdev-drbd-8.0.txt \
@@ -630,7 +631,10 @@ man/footer.html: man/footer.rst
 	  { echo 'pandoc' not found during configure; exit 1; }
 	$(PANDOC) -f rst -t html -o $@ $<
 
-man/%.7.in man/%.8.in: man/%.rst man/footer.man
+man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@
+
+man/%.7.in man/%.8.in: man/%.gen man/footer.man
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
@@ -638,7 +642,7 @@ man/%.7.in man/%.8.in: man/%.rst man/footer.man
 	  sed -e 's/\\@/@/g' > $@
 	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN) $@; fi
 
-man/%.html.in: man/%.rst man/footer.html
+man/%.html.in: man/%.gen man/footer.html
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \

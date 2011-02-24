@@ -109,18 +109,7 @@ special field states (see **ganeti(7)**).
 The ``-o`` option takes a comma-separated list of output fields.
 The available fields and their meaning are:
 
-name
-    Lock name
-
-mode
-    Mode in which the lock is currently acquired (exclusive or shared)
-
-owner
-    Current lock owner(s)
-
-pending
-    Threads waiting for the lock
-
+@QUERY_FIELDS_LOCK@
 
 If the value of the option starts with the character ``+``, the new
 fields will be added to the default list. This allows to quickly

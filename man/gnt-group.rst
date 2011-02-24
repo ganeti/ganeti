@@ -113,43 +113,7 @@ the entire list of fields.
 
 The available fields and their meaning are:
 
-name
-    the group name
-
-uuid
-    the group's UUID
-
-node_cnt
-    the number of nodes in the node group
-
-node_list
-    the list of nodes that belong to this group
-
-pinst_cnt
-    the number of primary instances in the group (i.e., the number of
-    primary instances nodes in this group have)
-
-pinst_list
-    the list of primary instances in the group
-
-alloc_policy
-    the current allocation policy for the group
-
-ctime
-    the creation time of the group; note that this field contains spaces
-    and as such it's harder to parse
-
-    if this attribute is not present (e.g. when upgrading from older
-    versions), then "N/A" will be shown instead
-
-mtime
-    the last modification time of the group; note that this field
-    contains spaces and as such it's harder to parse
-
-serial_no
-    the so called 'serial number' of the group; this is a numeric field
-    that is incremented each time the node is modified, and it can be
-    used to detect modifications
+@QUERY_FIELDS_GROUP@
 
 If no group names are given, then all groups are included. Otherwise,
 only the named groups will be listed.
