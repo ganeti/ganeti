@@ -280,6 +280,7 @@ class Merger(object):
 
     for data in self.merger_data:
       other_config = config.ConfigWriter(data.config_path, accept_foreign=True)
+      self._MergeClusterConfigs(my_config, other_config)
       self._MergeNodeGroups(my_config, other_config)
 
       for node in other_config.GetNodeList():
@@ -307,6 +308,145 @@ class Merger(object):
         my_config.AddInstance(instance_info,
                               _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
+
+  # R0201: Method could be a function
+  def _MergeClusterConfigs(self, my_config, other_config):
+    """Checks that all relevant cluster parameters are compatible
+
+    """
+    # pylint: disable-msg=R0201
+    my_cluster = my_config.GetClusterInfo()
+    other_cluster = other_config.GetClusterInfo()
+    err_count = 0
+
+    #
+    # Generic checks
+    #
+    check_params = (
+      "beparams",
+      "default_iallocator",
+      "drbd_usermode_helper",
+      "file_storage_dir",
+      "hidden_os",
+      "maintain_node_health",
+      "master_netdev",
+      "ndparams",
+      "nicparams",
+      "primary_ip_family",
+      "tags",
+      "uid_pool",
+      "volume_group_name",
+      )
+    for param_name in check_params:
+      my_param = getattr(my_cluster, param_name)
+      other_param = getattr(other_cluster, param_name)
+      if my_param != other_param:
+        logging.error("The value (%s) of the cluster parameter %s on %s"
+                      " differs to this cluster's value (%s)",
+                      other_param, param_name, other_cluster.cluster_name,
+                      my_param)
+        err_count += 1
+
+    #
+    # Custom checks
+    #
+
+    # Check default hypervisor
+    my_defhyp = my_cluster.enabled_hypervisors[0]
+    other_defhyp = other_cluster.enabled_hypervisors[0]
+    if my_defhyp != other_defhyp:
+      logging.warning("The default hypervisor (%s) differs on %s, new"
+                      " instances will be created with this cluster's"
+                      " default hypervisor (%s)", other_defhyp,
+                      other_cluster.cluster_name, my_defhyp)
+
+    if (set(my_cluster.enabled_hypervisors) !=
+        set(other_cluster.enabled_hypervisors)):
+      logging.error("The set of enabled hypervisors (%s) on %s differs to"
+                    " this cluster's set (%s)",
+                    other_cluster.enabled_hypervisors,
+                    other_cluster.cluster_name, my_cluster.enabled_hypervisors)
+      err_count += 1
+
+    # Check hypervisor params for hypervisors we care about
+    # TODO: we probably don't care about all params for a given hypervisor
+    for hyp in my_cluster.enabled_hypervisors:
+      for param in my_cluster.hvparams[hyp]:
+        my_value = my_cluster.hvparams[hyp][param]
+        other_value = other_cluster.hvparams[hyp][param]
+        if my_value != other_value:
+          logging.error("The value (%s) of the %s parameter of the %s"
+                        " hypervisor on %s differs to this cluster's parameter"
+                        " (%s)",
+                        other_value, param, hyp, other_cluster.cluster_name,
+                        my_value)
+          err_count += 1
+
+    # Check os hypervisor params for hypervisors we care about
+    for os_name in set(my_cluster.os_hvp.keys() + other_cluster.os_hvp.keys()):
+      for hyp in my_cluster.enabled_hypervisors:
+        my_os_hvp = self._GetOsHypervisor(my_cluster, os_name, hyp)
+        other_os_hvp = self._GetOsHypervisor(other_cluster, os_name, hyp)
+        if my_os_hvp != other_os_hvp:
+          logging.error("The OS parameters (%s) for the %s OS for the %s"
+                        " hypervisor on %s differs to this cluster's parameters"
+                        " (%s)",
+                        other_os_hvp, os_name, hyp, other_cluster.cluster_name,
+                        my_os_hvp)
+          err_count += 1
+
+    #
+    # Warnings
+    #
+    if my_cluster.modify_etc_hosts != other_cluster.modify_etc_hosts:
+      logging.warning("The modify_etc_hosts value (%s) differs on %s,"
+                      " this cluster's value (%s) will take precedence",
+                      other_cluster.modify_etc_hosts,
+                      other_cluster.cluster_name,
+                      my_cluster.modify_etc_hosts)
+
+    if my_cluster.modify_ssh_setup != other_cluster.modify_ssh_setup:
+      logging.warning("The modify_ssh_setup value (%s) differs on %s,"
+                      " this cluster's value (%s) will take precedence",
+                      other_cluster.modify_ssh_setup,
+                      other_cluster.cluster_name,
+                      my_cluster.modify_ssh_setup)
+
+    #
+    # Actual merging
+    #
+    my_cluster.reserved_lvs = list(set(my_cluster.reserved_lvs +
+                                       other_cluster.reserved_lvs))
+
+    if my_cluster.prealloc_wipe_disks != other_cluster.prealloc_wipe_disks:
+      logging.warning("The prealloc_wipe_disks value (%s) on %s differs to this"
+                      " cluster's value (%s). The least permissive value (%s)"
+                      " will be used", other_cluster.prealloc_wipe_disks,
+                      other_cluster.cluster_name,
+                      my_cluster.prealloc_wipe_disks, True)
+      my_cluster.prealloc_wipe_disks = True
+
+    for os_, osparams in other_cluster.osparams.items():
+      if os_ not in my_cluster.osparams:
+        my_cluster.osparams[os_] = osparams
+      elif my_cluster.osparams[os_] != osparams:
+        logging.error("The OS parameters (%s) for the %s OS on %s differs to"
+                      " this cluster's parameters (%s)",
+                      osparams, os_, other_cluster.cluster_name,
+                      my_cluster.osparams[os_])
+        err_count += 1
+
+    if err_count:
+      raise errors.ConfigurationError("Cluster config for %s has incompatible"
+                                      " values, please fix and re-run" %
+                                      other_cluster.cluster_name)
+
+  # R0201: Method could be a function
+  def _GetOsHypervisor(self, cluster, os_name, hyp): # pylint: disable-msg=R0201
+    if os_name in cluster.os_hvp:
+      return cluster.os_hvp[os_name].get(hyp, None)
+    else:
+      return None
 
   # R0201: Method could be a function
   def _MergeNodeGroups(self, my_config, other_config):
@@ -534,7 +674,7 @@ def SetupLogging(options):
   elif options.verbose:
     stderr_handler.setLevel(logging.INFO)
   else:
-    stderr_handler.setLevel(logging.ERROR)
+    stderr_handler.setLevel(logging.WARNING)
 
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
