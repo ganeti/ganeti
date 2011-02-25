@@ -2608,10 +2608,10 @@ def GenericListFields(resource, fields, separator, header, cl=None):
   columns = [
     TableColumn("Name", str, False),
     TableColumn("Title", str, False),
-    # TODO: Add field description to master daemon
+    TableColumn("Description", str, False),
     ]
 
-  rows = [[fdef.name, fdef.title] for fdef in response.fields]
+  rows = [[fdef.name, fdef.title, fdef.doc] for fdef in response.fields]
 
   for line in FormatTable(rows, columns, header, separator):
     ToStdout(line)
