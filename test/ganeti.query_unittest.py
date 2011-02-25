@@ -368,6 +368,7 @@ class TestNodeQuery(unittest.TestCase):
                    master_candidate=(name != master_name and idx % 3 == 0),
                    offline=False,
                    drained=False,
+                   powered=True,
                    vm_capable=True,
                    master_capable=False,
                    ndparams={},
@@ -420,7 +421,11 @@ class TestNodeQuery(unittest.TestCase):
       ng_uuid: objects.NodeGroup(name="ng1", uuid=ng_uuid, ndparams={}),
       }
 
+    oob_not_powered_node = node_names[0]
+    nodes[0].powered = False
     oob_support = dict((name, False) for name in node_names)
+    oob_support[master_name] = True
+    oob_support[oob_not_powered_node] = True
 
     master_node.group = ng_uuid
 
@@ -459,7 +464,13 @@ class TestNodeQuery(unittest.TestCase):
                    row[field_index["ctime"]] == (constants.RS_NORMAL,
                                                  node.ctime) and
                    row[field_index["mtime"]] == (constants.RS_NORMAL,
-                                                 node.mtime)))
+                                                 node.mtime) and
+                   row[field_index["powered"]] == (constants.RS_NORMAL,
+                                                   True))) or
+                 (node.name == oob_not_powered_node and
+                  row[field_index["powered"]] == (constants.RS_NORMAL,
+                                                  False)) or
+                 row[field_index["powered"]] == (constants.RS_UNAVAIL, None)
                  for row, node in zip(result, nodes))
 
     live_data_row = result[node_to_row[live_data_name]]
