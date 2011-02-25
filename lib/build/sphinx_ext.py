@@ -222,8 +222,8 @@ def BuildQueryFields(fields):
   @type fields: dict (field name as key, field details as value)
 
   """
-  for (_, (fdef, _, _)) in utils.NiceSort(fields.items(),
-                                          key=operator.itemgetter(0)):
+  for (_, (fdef, _, _, _)) in utils.NiceSort(fields.items(),
+                                             key=operator.itemgetter(0)):
     assert len(fdef.doc.splitlines()) == 1
     yield "``%s``" % fdef.name
     yield "  %s" % fdef.doc

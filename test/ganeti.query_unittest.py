@@ -67,13 +67,13 @@ class TestQuery(unittest.TestCase):
 
     fielddef = query._PrepareFieldList([
       (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
-       STATIC, lambda ctx, item: item["name"]),
+       STATIC, 0, lambda ctx, item: item["name"]),
       (query._MakeField("master", "Master", constants.QFT_BOOL, "Master"),
-       STATIC, lambda ctx, item: ctx.mastername == item["name"]),
+       STATIC, 0, lambda ctx, item: ctx.mastername == item["name"]),
       ] +
       [(query._MakeField("disk%s.size" % i, "DiskSize%s" % i,
                          constants.QFT_UNIT, "Disk size %s" % i),
-        DISK, compat.partial(_GetDiskSize, i))
+        DISK, 0, compat.partial(_GetDiskSize, i))
        for i in range(4)], [])
 
     q = query.Query(fielddef, ["name"])
@@ -174,44 +174,44 @@ class TestQuery(unittest.TestCase):
     # Duplicate titles
     for (a, b) in [("name", "name"), ("NAME", "name")]:
       self.assertRaises(AssertionError, query._PrepareFieldList, [
-        (query._MakeField("name", b, constants.QFT_TEXT, "Name"), None,
+        (query._MakeField("name", b, constants.QFT_TEXT, "Name"), None, 0,
          lambda *args: None),
-        (query._MakeField("other", a, constants.QFT_TEXT, "Other"), None,
+        (query._MakeField("other", a, constants.QFT_TEXT, "Other"), None, 0,
          lambda *args: None),
         ], [])
 
     # Non-lowercase names
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("NAME", "Name", constants.QFT_TEXT, "Name"), None,
+      (query._MakeField("NAME", "Name", constants.QFT_TEXT, "Name"), None, 0,
        lambda *args: None),
       ], [])
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("Name", "Name", constants.QFT_TEXT, "Name"), None,
+      (query._MakeField("Name", "Name", constants.QFT_TEXT, "Name"), None, 0,
        lambda *args: None),
       ], [])
 
     # Empty name
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("", "Name", constants.QFT_TEXT, "Name"), None,
+      (query._MakeField("", "Name", constants.QFT_TEXT, "Name"), None, 0,
        lambda *args: None),
       ], [])
 
     # Empty title
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("name", "", constants.QFT_TEXT, "Name"), None,
+      (query._MakeField("name", "", constants.QFT_TEXT, "Name"), None, 0,
        lambda *args: None),
       ], [])
 
     # Whitespace in title
     self.assertRaises(AssertionError, query._PrepareFieldList, [
-      (query._MakeField("name", "Co lu mn", constants.QFT_TEXT, "Name"), None,
-       lambda *args: None),
+      (query._MakeField("name", "Co lu mn", constants.QFT_TEXT, "Name"),
+       None, 0, lambda *args: None),
       ], [])
 
     # No callable function
     self.assertRaises(AssertionError, query._PrepareFieldList, [
       (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
-       None, None),
+       None, 0, None),
       ], [])
 
     # Invalid documentation
@@ -219,19 +219,19 @@ class TestQuery(unittest.TestCase):
                 "HelloWorld.", "only lowercase", ",", " x y z .\t", "  "]:
       self.assertRaises(AssertionError, query._PrepareFieldList, [
         (query._MakeField("name", "Name", constants.QFT_TEXT, doc),
-        None, lambda *args: None),
+        None, 0, lambda *args: None),
         ], [])
 
   def testUnknown(self):
     fielddef = query._PrepareFieldList([
       (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
-       None, lambda _, item: "name%s" % item),
+       None, 0, lambda _, item: "name%s" % item),
       (query._MakeField("other0", "Other0", constants.QFT_TIMESTAMP, "Other"),
-       None, lambda *args: 1234),
+       None, 0, lambda *args: 1234),
       (query._MakeField("nodata", "NoData", constants.QFT_NUMBER, "No data"),
-       None, lambda *args: query._FS_NODATA ),
+       None, 0, lambda *args: query._FS_NODATA ),
       (query._MakeField("unavail", "Unavail", constants.QFT_BOOL, "Unavail"),
-       None, lambda *args: query._FS_UNAVAIL),
+       None, 0, lambda *args: query._FS_UNAVAIL),
       ], [])
 
     for selected in [["foo"], ["Hello", "World"],
@@ -268,10 +268,10 @@ class TestQuery(unittest.TestCase):
 
   def testAliases(self):
     fields = [
-      (query._MakeField("a", "a-title", constants.QFT_TEXT, "Field A"), None,
-       lambda *args: None),
-      (query._MakeField("b", "b-title", constants.QFT_TEXT, "Field B"), None,
-       lambda *args: None),
+      (query._MakeField("a", "a-title", constants.QFT_TEXT, "Field A"),
+       None, 0, lambda *args: None),
+      (query._MakeField("b", "b-title", constants.QFT_TEXT, "Field B"),
+       None, 0, lambda *args: None),
       ]
     # duplicate field
     self.assertRaises(AssertionError, query._PrepareFieldList, fields,
@@ -949,8 +949,8 @@ class TestQueryFields(unittest.TestCase):
       response = objects.QueryFieldsResponse.FromDict(result)
       self.assertEqual([(fdef.name, fdef.title) for fdef in response.fields],
         [(fdef2.name, fdef2.title)
-         for (fdef2, _, _) in utils.NiceSort(fielddefs.values(),
-                                             key=lambda x: x[0].name)])
+         for (fdef2, _, _, _) in utils.NiceSort(fielddefs.values(),
+                                                key=lambda x: x[0].name)])
 
   def testSomeFields(self):
     rnd = random.Random(5357)
@@ -961,8 +961,8 @@ class TestQueryFields(unittest.TestCase):
           sample_size = rnd.randint(5, 20)
         else:
           sample_size = rnd.randint(1, max(1, len(fielddefs) - 1))
-        fields = [fdef for (fdef, _, _) in rnd.sample(fielddefs.values(),
-                                                      sample_size)]
+        fields = [fdef for (fdef, _, _, _) in rnd.sample(fielddefs.values(),
+                                                         sample_size)]
         result = query.QueryFields(fielddefs, [fdef.name for fdef in fields])
         self.assert_(isinstance(result, dict))
         response = objects.QueryFieldsResponse.FromDict(result)
