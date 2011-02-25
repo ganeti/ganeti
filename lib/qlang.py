@@ -24,8 +24,21 @@
 from ganeti import errors
 
 
+# Logic operators
 OP_OR = "|"
+OP_AND = "&"
+
+
+# Unary operators
+OP_NOT = "!"
+
+
+# Binary operators
 OP_EQUAL = "="
+OP_NOT_EQUAL = "!="
+OP_GLOB = "=*"
+OP_REGEXP = "=~"
+OP_CONTAINS = "=[]"
 
 
 def ReadSimpleFilter(namefield, filter_):
