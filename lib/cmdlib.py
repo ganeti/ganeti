@@ -6096,32 +6096,46 @@ class LUNodeMigrate(LogicalUnit):
   HTYPE = constants.HTYPE_NODE
   REQ_BGL = False
 
+  def CheckArguments(self):
+    _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
+
   def ExpandNames(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
-    self.needed_locks = {
-      locking.LEVEL_NODE: [self.op.node_name],
-      }
-
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+    self.needed_locks = {}
 
     # Create tasklets for migrating instances for all instances on this node
     names = []
     tasklets = []
 
+    self.lock_all_nodes = False
+
     for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name):
       logging.debug("Migrating instance %s", inst.name)
       names.append(inst.name)
 
-      tasklets.append(TLMigrateInstance(self, inst.name, False))
+      tasklets.append(TLMigrateInstance(self, inst.name, False,
+                                        self.op.iallocator, None))
+
+      if inst.disk_template in constants.DTS_EXT_MIRROR:
+        # We need to lock all nodes, as the iallocator will choose the
+        # destination nodes afterwards
+        self.lock_all_nodes = True
 
     self.tasklets = tasklets
+
+    # Declare node locks
+    if self.lock_all_nodes:
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+    else:
+      self.needed_locks[locking.LEVEL_NODE] = [self.op.node_name]
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
 
     # Declare instance locks
     self.needed_locks[locking.LEVEL_INSTANCE] = names
 
   def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
+    if level == locking.LEVEL_NODE and not self.lock_all_nodes:
       self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
