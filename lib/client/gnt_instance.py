@@ -303,7 +303,7 @@ def BatchCreate(opts, args):
                                    required_field, errors.ECODE_INVAL)
     # Validate special fields
     if spec['primary_node'] is not None:
-      if (spec['template'] in constants.DTS_NET_MIRROR and
+      if (spec['template'] in constants.DTS_INT_MIRROR and
           spec['secondary_node'] is None):
         raise errors.OpPrereqError('Template requires secondary node, but'
                                    ' there was no secondary provided.',
@@ -1259,7 +1259,7 @@ def SetInstanceParams(opts, args):
       disk_dict['size'] = utils.ParseUnit(disk_dict['size'])
 
   if (opts.disk_template and
-      opts.disk_template in constants.DTS_NET_MIRROR and
+      opts.disk_template in constants.DTS_INT_MIRROR and
       not opts.node):
     ToStderr("Changing the disk template to a mirrored one requires"
              " specifying a secondary node")

@@ -367,7 +367,7 @@ DT_SHARED_FILE = "sharedfile"
 DT_BLOCK = "blockdev"
 
 # the set of network-mirrored disk templates
-DTS_NET_MIRROR = frozenset([DT_DRBD8])
+DTS_INT_MIRROR = frozenset([DT_DRBD8])
 
 # the set of externally-mirrored disk templates (e.g. SAN, NAS)
 DTS_EXT_MIRROR = frozenset([DT_SHARED_FILE, DT_BLOCK])
@@ -385,7 +385,7 @@ DTS_MAY_ADOPT = frozenset([DT_PLAIN, DT_BLOCK])
 DTS_MUST_ADOPT = frozenset([DT_BLOCK])
 
 # the set of disk templates that allow migrations
-DTS_MIRRORED = frozenset.union(DTS_NET_MIRROR, DTS_EXT_MIRROR)
+DTS_MIRRORED = frozenset.union(DTS_INT_MIRROR, DTS_EXT_MIRROR)
 
 
 # logical disk types

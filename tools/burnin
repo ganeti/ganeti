@@ -552,7 +552,7 @@ class Burner(object):
       if self.opts.iallocator:
         pnode = snode = None
         msg = "with iallocator %s" % self.opts.iallocator
-      elif self.opts.disk_template not in constants.DTS_NET_MIRROR:
+      elif self.opts.disk_template not in constants.DTS_INT_MIRROR:
         snode = None
         msg = "on %s" % pnode
       else:
@@ -700,7 +700,7 @@ class Burner(object):
         import_log_msg = ("import from %s"
                           " with iallocator %s" %
                           (enode, self.opts.iallocator))
-      elif self.opts.disk_template not in constants.DTS_NET_MIRROR:
+      elif self.opts.disk_template not in constants.DTS_INT_MIRROR:
         snode = None
         import_log_msg = ("import from %s to %s" %
                           (enode, pnode))
@@ -990,10 +990,10 @@ class Burner(object):
     has_err = True
     try:
       self.BurnCreateInstances()
-      if opts.do_replace1 and opts.disk_template in constants.DTS_NET_MIRROR:
+      if opts.do_replace1 and opts.disk_template in constants.DTS_INT_MIRROR:
         self.BurnReplaceDisks1D8()
       if (opts.do_replace2 and len(self.nodes) > 2 and
-          opts.disk_template in constants.DTS_NET_MIRROR) :
+          opts.disk_template in constants.DTS_INT_MIRROR) :
         self.BurnReplaceDisks2()
 
       if (opts.disk_template in constants.DTS_GROWABLE and

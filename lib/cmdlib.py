@@ -2323,7 +2323,7 @@ class LUClusterVerify(LogicalUnit):
                utils.CommaJoin(inst_config.secondary_nodes),
                code=self.ETYPE_WARNING)
 
-      if inst_config.disk_template in constants.DTS_NET_MIRROR:
+      if inst_config.disk_template in constants.DTS_INT_MIRROR:
         pnode = inst_config.primary_node
         instance_nodes = utils.NiceSort(inst_config.all_nodes)
         instance_groups = {}
@@ -4394,7 +4394,7 @@ class LUNodeSetParams(LogicalUnit):
       if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
         for instance_name in self.acquired_locks[locking.LEVEL_INSTANCE]:
           instance = self.context.cfg.GetInstanceInfo(instance_name)
-          i_mirrored = instance.disk_template in constants.DTS_NET_MIRROR
+          i_mirrored = instance.disk_template in constants.DTS_INT_MIRROR
           if i_mirrored and self.op.node_name in instance.all_nodes:
             instances_keep.append(instance_name)
             self.affected_instances.append(instance)
@@ -5749,7 +5749,7 @@ class LUInstanceFailover(LogicalUnit):
       "NEW_PRIMARY": self.op.target_node,
       }
 
-    if instance.disk_template in constants.DTS_NET_MIRROR:
+    if instance.disk_template in constants.DTS_INT_MIRROR:
       env["OLD_SECONDARY"] = instance.secondary_nodes[0]
       env["NEW_SECONDARY"] = source_node
     else:
@@ -5975,7 +5975,7 @@ class LUInstanceMigrate(LogicalUnit):
         "NEW_PRIMARY": target_node,
         })
 
-    if instance.disk_template in constants.DTS_NET_MIRROR:
+    if instance.disk_template in constants.DTS_INT_MIRROR:
       env["OLD_SECONDARY"] = target_node
       env["NEW_SECONDARY"] = source_node
     else:
@@ -6474,7 +6474,7 @@ class TLMigrateInstance(Tasklet):
                        " primary node (%s)" % source_node)
       demoted_node = target_node
 
-    if instance.disk_template in constants.DTS_NET_MIRROR:
+    if instance.disk_template in constants.DTS_INT_MIRROR:
       self._EnsureSecondary(demoted_node)
       try:
         self._WaitUntilSync()
@@ -6634,7 +6634,7 @@ class TLMigrateInstance(Tasklet):
     self.source_node = self.instance.primary_node
 
     # FIXME: if we implement migrate-to-any in DRBD, this needs fixing
-    if self.instance.disk_template in constants.DTS_NET_MIRROR:
+    if self.instance.disk_template in constants.DTS_INT_MIRROR:
       self.target_node = self.instance.secondary_nodes[0]
       # Otherwise self.target_node has been populated either
       # directly, or through an iallocator.
@@ -7244,7 +7244,7 @@ class LUInstanceCreate(LogicalUnit):
     _CheckIAllocatorOrNode(self, "iallocator", "pnode")
 
     if self.op.pnode is not None:
-      if self.op.disk_template in constants.DTS_NET_MIRROR:
+      if self.op.disk_template in constants.DTS_INT_MIRROR:
         if self.op.snode is None:
           raise errors.OpPrereqError("The networked disk templates need"
                                      " a mirror node", errors.ECODE_INVAL)
@@ -7794,7 +7794,7 @@ class LUInstanceCreate(LogicalUnit):
     self.secondaries = []
 
     # mirror node verification
-    if self.op.disk_template in constants.DTS_NET_MIRROR:
+    if self.op.disk_template in constants.DTS_INT_MIRROR:
       if self.op.snode == pnode.name:
         raise errors.OpPrereqError("The secondary node cannot be the"
                                    " primary node.", errors.ECODE_INVAL)
@@ -8001,7 +8001,7 @@ class LUInstanceCreate(LogicalUnit):
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, iobj)
-    elif iobj.disk_template in constants.DTS_NET_MIRROR:
+    elif iobj.disk_template in constants.DTS_INT_MIRROR:
       # make sure the disks are not degraded (still sync-ing is ok)
       time.sleep(15)
       feedback_fn("* checking mirrors status")
@@ -9326,7 +9326,7 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     if (self.op.disk_template and
-        self.op.disk_template in constants.DTS_NET_MIRROR and
+        self.op.disk_template in constants.DTS_INT_MIRROR and
         self.op.remote_node is None):
       raise errors.OpPrereqError("Changing the disk template to a mirrored"
                                  " one requires specifying a secondary node",
@@ -9486,7 +9486,7 @@ class LUInstanceSetParams(LogicalUnit):
                                                   self.op.disk_template),
                                    errors.ECODE_INVAL)
       _CheckInstanceDown(self, instance, "cannot change disk template")
-      if self.op.disk_template in constants.DTS_NET_MIRROR:
+      if self.op.disk_template in constants.DTS_INT_MIRROR:
         if self.op.remote_node == pnode:
           raise errors.OpPrereqError("Given new secondary node %s is the same"
                                      " as the primary node of the instance" %
@@ -10475,7 +10475,7 @@ class LUGroupAssignNodes(NoHooksLU):
     In particular, it returns information about newly split instances, and
     instances that were already split, and remain so after the change.
 
-    Only instances whose disk template is listed in constants.DTS_NET_MIRROR are
+    Only instances whose disk template is listed in constants.DTS_INT_MIRROR are
     considered.
 
     @type changes: list of (node_name, new_group_uuid) pairs.
@@ -10498,7 +10498,7 @@ class LUGroupAssignNodes(NoHooksLU):
       return [instance.primary_node] + list(instance.secondary_nodes)
 
     for inst in instance_data.values():
-      if inst.disk_template not in constants.DTS_NET_MIRROR:
+      if inst.disk_template not in constants.DTS_INT_MIRROR:
         continue
 
       instance_nodes = InstanceNodes(inst)
@@ -11405,7 +11405,7 @@ class IAllocator(object):
     """
     disk_space = _ComputeDiskSize(self.disk_template, self.disks)
 
-    if self.disk_template in constants.DTS_NET_MIRROR:
+    if self.disk_template in constants.DTS_INT_MIRROR:
       self.required_nodes = 2
     else:
       self.required_nodes = 1
@@ -11442,7 +11442,7 @@ class IAllocator(object):
       raise errors.OpPrereqError("Can't relocate non-mirrored instances",
                                  errors.ECODE_INVAL)
 
-    if instance.disk_template in constants.DTS_NET_MIRROR and \
+    if instance.disk_template in constants.DTS_INT_MIRROR and \
         len(instance.secondary_nodes) != 1:
       raise errors.OpPrereqError("Instance has not exactly one secondary node",
                                  errors.ECODE_STATE)
