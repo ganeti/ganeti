@@ -5854,19 +5854,35 @@ class LUInstanceMigrate(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
+  def CheckArguments(self):
+    _CheckIAllocatorOrNode(self, "iallocator", "target_node")
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+
+    if self.op.target_node is not None:
+      self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
 
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
-                                       self.op.cleanup)
+                                       self.op.cleanup, self.op.iallocator,
+                                       self.op.target_node)
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
+      instance = self.context.cfg.GetInstanceInfo(self.op.instance_name)
+      if instance.disk_template in constants.DTS_EXT_MIRROR:
+        if self.op.target_node is None:
+          self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+        else:
+          self.needed_locks[locking.LEVEL_NODE] = [instance.primary_node,
+                                                   self.op.target_node]
+        del self.recalculate_locks[locking.LEVEL_NODE]
+      else:
+        self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -5876,16 +5892,21 @@ class LUInstanceMigrate(LogicalUnit):
     """
     instance = self._migrater.instance
     source_node = instance.primary_node
-    target_node = instance.secondary_nodes[0]
+    target_node = self._migrater.target_node
     env = _BuildInstanceHookEnvByObject(self, instance)
     env["MIGRATE_LIVE"] = self._migrater.live
     env["MIGRATE_CLEANUP"] = self.op.cleanup
     env.update({
         "OLD_PRIMARY": source_node,
-        "OLD_SECONDARY": target_node,
         "NEW_PRIMARY": target_node,
-        "NEW_SECONDARY": source_node,
         })
+
+    if instance.disk_template in constants.DTS_NET_MIRROR:
+      env["OLD_SECONDARY"] = target_node
+      env["NEW_SECONDARY"] = source_node
+    else:
+      env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = None
+
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
     nl_post = list(nl)
     nl_post.append(source_node)
@@ -6126,7 +6147,8 @@ class TLMigrateInstance(Tasklet):
       this variable is initalized only after CheckPrereq has run
 
   """
-  def __init__(self, lu, instance_name, cleanup):
+  def __init__(self, lu, instance_name, cleanup,
+               iallocator=None, target_node=None):
     """Initializes this class.
 
     """
@@ -6136,6 +6158,8 @@ class TLMigrateInstance(Tasklet):
     self.instance_name = instance_name
     self.cleanup = cleanup
     self.live = False # will be overridden later
+    self.iallocator = iallocator
+    self.target_node = target_node
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -6146,19 +6170,43 @@ class TLMigrateInstance(Tasklet):
     instance_name = _ExpandInstanceName(self.lu.cfg, self.instance_name)
     instance = self.cfg.GetInstanceInfo(instance_name)
     assert instance is not None
+    self.instance = instance
 
-    if instance.disk_template != constants.DT_DRBD8:
-      raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " drbd8, cannot migrate.", errors.ECODE_STATE)
+    if instance.disk_template not in constants.DTS_MIRRORED:
+      raise errors.OpPrereqError("Instance's disk layout '%s' does not allow"
+                                 " migrations" % instance.disk_template,
+                                 errors.ECODE_STATE)
 
-    secondary_nodes = instance.secondary_nodes
-    if not secondary_nodes:
-      raise errors.ConfigurationError("No secondary node but using"
-                                      " drbd8 disk template")
+    if instance.disk_template in constants.DTS_EXT_MIRROR:
+      if [self.iallocator, self.target_node].count(None) != 1:
+        raise errors.OpPrereqError("Do not specify both, iallocator and"
+                                   " target node", errors.ECODE_INVAL)
+
+      if self.iallocator:
+        self._RunAllocator()
+
+      # self.target_node is already populated, either directly or by the
+      # iallocator run
+      target_node = self.target_node
+
+      if len(self.lu.tasklets) == 1:
+        # It is safe to remove locks only when we're the only tasklet in the LU
+        nodes_keep = [instance.primary_node, self.target_node]
+        nodes_rel = [node for node in self.lu.acquired_locks[locking.LEVEL_NODE]
+                     if node not in nodes_keep]
+        self.lu.context.glm.release(locking.LEVEL_NODE, nodes_rel)
+        self.lu.acquired_locks[locking.LEVEL_NODE] = nodes_keep
+
+    else:
+      secondary_nodes = instance.secondary_nodes
+      if not secondary_nodes:
+        raise errors.ConfigurationError("No secondary node but using"
+                                        " %s disk template" %
+                                        instance.disk_template)
+      target_node = secondary_nodes[0]
 
     i_be = self.cfg.GetClusterInfo().FillBE(instance)
 
-    target_node = secondary_nodes[0]
     # check memory requirements on the secondary node
     _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
                          instance.name, i_be[constants.BE_MEMORY],
@@ -6174,7 +6222,35 @@ class TLMigrateInstance(Tasklet):
       result.Raise("Can't migrate, please use failover",
                    prereq=True, ecode=errors.ECODE_STATE)
 
-    self.instance = instance
+
+  def _RunAllocator(self):
+    """Run the allocator based on input opcode.
+
+    """
+    ial = IAllocator(self.cfg, self.rpc,
+                     mode=constants.IALLOCATOR_MODE_RELOC,
+                     name=self.instance_name,
+                     # TODO See why hail breaks with a single node below
+                     relocate_from=[self.instance.primary_node,
+                                    self.instance.primary_node],
+                     )
+
+    ial.Run(self.iallocator)
+
+    if not ial.success:
+      raise errors.OpPrereqError("Can't compute nodes using"
+                                 " iallocator '%s': %s" %
+                                 (self.iallocator, ial.info),
+                                 errors.ECODE_NORES)
+    if len(ial.result) != ial.required_nodes:
+      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
+                                 " of nodes (%s), required %s" %
+                                 (self.iallocator, len(ial.result),
+                                  ial.required_nodes), errors.ECODE_FAULT)
+    self.target_node = ial.result[0]
+    self.lu.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
+                 self.instance_name, self.iallocator,
+                 utils.CommaJoin(ial.result))
 
     if self.lu.op.live is not None and self.lu.op.mode is not None:
       raise errors.OpPrereqError("Only one of the 'live' and 'mode'"
@@ -6190,7 +6266,7 @@ class TLMigrateInstance(Tasklet):
       self.lu.op.live = None
     elif self.lu.op.mode is None:
       # read the default value from the hypervisor
-      i_hv = self.cfg.GetClusterInfo().FillHV(instance, skip_globals=False)
+      i_hv = self.cfg.GetClusterInfo().FillHV(self.instance, skip_globals=False)
       self.lu.op.mode = i_hv[constants.HV_MIGRATION_MODE]
 
     self.live = self.lu.op.mode == constants.HT_MIGRATION_LIVE
@@ -6310,16 +6386,17 @@ class TLMigrateInstance(Tasklet):
                        " primary node (%s)" % source_node)
       demoted_node = target_node
 
-    self._EnsureSecondary(demoted_node)
-    try:
+    if instance.disk_template in constants.DTS_NET_MIRROR:
+      self._EnsureSecondary(demoted_node)
+      try:
+        self._WaitUntilSync()
+      except errors.OpExecError:
+        # we ignore here errors, since if the device is standalone, it
+        # won't be able to sync
+        pass
+      self._GoStandalone()
+      self._GoReconnect(False)
       self._WaitUntilSync()
-    except errors.OpExecError:
-      # we ignore here errors, since if the device is standalone, it
-      # won't be able to sync
-      pass
-    self._GoStandalone()
-    self._GoReconnect(False)
-    self._WaitUntilSync()
 
     self.feedback_fn("* done")
 
@@ -6328,6 +6405,9 @@ class TLMigrateInstance(Tasklet):
 
     """
     target_node = self.target_node
+    if self.instance.disk_template in constants.DTS_EXT_MIRROR:
+      return
+
     try:
       self._EnsureSecondary(target_node)
       self._GoStandalone()
@@ -6392,11 +6472,12 @@ class TLMigrateInstance(Tasklet):
 
     self.migration_info = migration_info = result.payload
 
-    # Then switch the disks to master/master mode
-    self._EnsureSecondary(target_node)
-    self._GoStandalone()
-    self._GoReconnect(True)
-    self._WaitUntilSync()
+    if self.instance.disk_template not in constants.DTS_EXT_MIRROR:
+      # Then switch the disks to master/master mode
+      self._EnsureSecondary(target_node)
+      self._GoStandalone()
+      self._GoReconnect(True)
+      self._WaitUntilSync()
 
     self.feedback_fn("* preparing %s to accept the instance" % target_node)
     result = self.rpc.call_accept_instance(target_node,
@@ -6445,11 +6526,12 @@ class TLMigrateInstance(Tasklet):
       raise errors.OpExecError("Could not finalize instance migration: %s" %
                                msg)
 
-    self._EnsureSecondary(source_node)
-    self._WaitUntilSync()
-    self._GoStandalone()
-    self._GoReconnect(False)
-    self._WaitUntilSync()
+    if self.instance.disk_template not in constants.DTS_EXT_MIRROR:
+      self._EnsureSecondary(source_node)
+      self._WaitUntilSync()
+      self._GoStandalone()
+      self._GoReconnect(False)
+      self._WaitUntilSync()
 
     self.feedback_fn("* done")
 
@@ -6462,7 +6544,13 @@ class TLMigrateInstance(Tasklet):
     self.feedback_fn = feedback_fn
 
     self.source_node = self.instance.primary_node
-    self.target_node = self.instance.secondary_nodes[0]
+
+    # FIXME: if we implement migrate-to-any in DRBD, this needs fixing
+    if self.instance.disk_template in constants.DTS_NET_MIRROR:
+      self.target_node = self.instance.secondary_nodes[0]
+      # Otherwise self.target_node has been populated either
+      # directly, or through an iallocator.
+
     self.all_nodes = [self.source_node, self.target_node]
     self.nodes_ip = {
       self.source_node: self.cfg.GetNodeInfo(self.source_node).secondary_ip,
