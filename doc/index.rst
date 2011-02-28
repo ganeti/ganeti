@@ -22,6 +22,7 @@ Contents:
    design-2.4.rst
    design-draft.rst
    cluster-merge.rst
+   design-shared-storage.rst
    locking.rst
    hooks.rst
    iallocator.rst

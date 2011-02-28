@@ -245,6 +245,7 @@ docrst = \
 	doc/design-oob.rst \
 	doc/design-query2.rst \
 	doc/cluster-merge.rst \
+	doc/design-shared-storage.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
