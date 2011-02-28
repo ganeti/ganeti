@@ -182,7 +182,8 @@ OPTIONS = [
   cli.cli_option("-t", "--disk-template", dest="disk_template",
                  choices=list(constants.DISK_TEMPLATES),
                  default=constants.DT_DRBD8,
-                 help="Disk template (diskless, file, plain or drbd) [drbd]"),
+                 help="Disk template (diskless, file, plain, sharedfile"
+                 " or drbd) [drbd]"),
   cli.cli_option("-n", "--nodes", dest="nodes", default="",
                  help=("Comma separated list of nodes to perform"
                        " the burnin on (defaults to all nodes)"),
@@ -439,6 +440,7 @@ class Burner(object):
 
     supported_disk_templates = (constants.DT_DISKLESS,
                                 constants.DT_FILE,
+                                constants.DT_SHARED_FILE,
                                 constants.DT_PLAIN,
                                 constants.DT_DRBD8)
     if options.disk_template not in supported_disk_templates:
@@ -980,7 +982,8 @@ class Burner(object):
 
     if (len(self.nodes) == 1 and
         opts.disk_template not in (constants.DT_DISKLESS, constants.DT_PLAIN,
-                                   constants.DT_FILE)):
+                                   constants.DT_FILE,
+                                   constants.DT_SHARED_FILE)):
       Err("When one node is available/selected the disk template must"
           " be 'diskless', 'file' or 'plain'")
 
@@ -997,12 +1000,13 @@ class Burner(object):
           compat.any(n > 0 for n in self.disk_growth)):
         self.BurnGrowDisks()
 
-      if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
+      if opts.do_failover and opts.disk_template in constants.DTS_MIRRORED:
         self.BurnFailover()
 
       if opts.do_migrate:
-        if opts.disk_template != constants.DT_DRBD8:
-          Log("Skipping migration (disk template not DRBD8)")
+        if opts.disk_template not in constants.DTS_MIRRORED:
+          Log("Skipping migration (disk template %s does not support it)",
+              opts.disk_template)
         elif not self.hv_class.CAN_MIGRATE:
           Log("Skipping migration (hypervisor %s does not support it)",
               self.hypervisor)
@@ -1015,6 +1019,7 @@ class Burner(object):
 
       if (opts.do_importexport and
           opts.disk_template not in (constants.DT_DISKLESS,
+                                     constants.DT_SHARED_FILE,
                                      constants.DT_FILE)):
         self.BurnImportExport()
 
