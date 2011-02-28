@@ -144,7 +144,9 @@ SETUP_SSH = _autoconf.TOOLSDIR + "/setup-ssh"
 KVM_IFUP = _autoconf.PKGLIBDIR + "/kvm-ifup"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
+DEFAULT_SHARED_FILE_STORAGE_DIR = _autoconf.SHARED_FILE_STORAGE_DIR
 ENABLE_FILE_STORAGE = _autoconf.ENABLE_FILE_STORAGE
+ENABLE_SHARED_FILE_STORAGE = _autoconf.ENABLE_SHARED_FILE_STORAGE
 SYSCONFDIR = _autoconf.SYSCONFDIR
 TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
@@ -360,15 +362,19 @@ DT_DISKLESS = "diskless"
 DT_PLAIN = "plain"
 DT_DRBD8 = "drbd"
 DT_FILE = "file"
+DT_SHARED_FILE = "sharedfile"
 
 # the set of network-mirrored disk templates
 DTS_NET_MIRROR = frozenset([DT_DRBD8])
 
+# the set of externally mirrored disk templates
+DTS_EXT_MIRROR = frozenset([DT_SHARED_FILE])
+
 # the set of non-lvm-based disk templates
-DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE])
+DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE, DT_SHARED_FILE])
 
 # the set of disk templates which can be grown
-DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE])
+DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE, DT_SHARED_FILE])
 
 # the set of disk templates that allow adoption
 DTS_MAY_ADOPT = frozenset([DT_PLAIN])
@@ -449,8 +455,8 @@ RIE_CONNECT_RETRIES = 10
 #: Give child process up to 5 seconds to exit after sending a signal
 CHILD_LINGER_TIMEOUT = 5.0
 
-DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN,
-                            DT_DRBD8, DT_FILE])
+DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN, DT_DRBD8,
+                            DT_FILE, DT_SHARED_FILE])
 
 FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])
 
@@ -1077,6 +1083,7 @@ MAX_DISKS = 16
 SS_CLUSTER_NAME = "cluster_name"
 SS_CLUSTER_TAGS = "cluster_tags"
 SS_FILE_STORAGE_DIR = "file_storage_dir"
+SS_SHARED_FILE_STORAGE_DIR = "shared_file_storage_dir"
 SS_MASTER_CANDIDATES = "master_candidates"
 SS_MASTER_CANDIDATES_IPS = "master_candidates_ips"
 SS_MASTER_IP = "master_ip"

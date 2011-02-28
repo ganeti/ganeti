@@ -79,6 +79,7 @@ __all__ = [
   "FORCE_VARIANT_OPT",
   "GLOBAL_FILEDIR_OPT",
   "HID_OS_OPT",
+  "GLOBAL_SHARED_FILEDIR_OPT",
   "HVLIST_OPT",
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
@@ -971,6 +972,15 @@ GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 constants.DEFAULT_FILE_STORAGE_DIR,
                                 metavar="DIR",
                                 default=constants.DEFAULT_FILE_STORAGE_DIR)
+
+GLOBAL_SHARED_FILEDIR_OPT = cli_option("--shared-file-storage-dir",
+                            dest="shared_file_storage_dir",
+                            help="Specify the default directory (cluster-"
+                            "wide) for storing the shared file-based"
+                            " disks [%s]" %
+                            constants.DEFAULT_SHARED_FILE_STORAGE_DIR,
+                            metavar="SHAREDDIR",
+                            default=constants.DEFAULT_SHARED_FILE_STORAGE_DIR)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify /etc/hosts",

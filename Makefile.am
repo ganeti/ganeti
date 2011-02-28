@@ -712,6 +712,8 @@ lib/_autoconf.py: Makefile vcs-version | lib/.dir
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "FILE_STORAGE_DIR = '$(FILE_STORAGE_DIR)'"; \
 	  echo "ENABLE_FILE_STORAGE = $(ENABLE_FILE_STORAGE)"; \
+	  echo "SHARED_FILE_STORAGE_DIR = '$(SHARED_FILE_STORAGE_DIR)'"; \
+	  echo "ENABLE_SHARED_FILE_STORAGE = $(ENABLE_SHARED_FILE_STORAGE)"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
 	  echo "SOCAT_PATH = '$(SOCAT)'"; \

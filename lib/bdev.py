@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2074,7 +2074,7 @@ DEV_MAP = {
   constants.LD_DRBD8: DRBD8,
   }
 
-if constants.ENABLE_FILE_STORAGE:
+if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
   DEV_MAP[constants.LD_FILE] = FileStorage
 
 

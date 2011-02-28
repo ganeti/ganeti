@@ -558,7 +558,7 @@ class Disk(ConfigObject):
     actual algorithms from bdev.
 
     """
-    if self.dev_type == constants.LD_LV or self.dev_type == constants.LD_FILE:
+    if self.dev_type in (constants.LD_LV, constants.LD_FILE):
       self.size += amount
     elif self.dev_type == constants.LD_DRBD8:
       if self.children:
@@ -1066,6 +1066,7 @@ class Cluster(TaggableObject):
     "master_netdev",
     "cluster_name",
     "file_storage_dir",
+    "shared_file_storage_dir",
     "enabled_hypervisors",
     "hvparams",
     "os_hvp",

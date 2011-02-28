@@ -162,6 +162,20 @@ def RequireFileStorage():
                                errors.ECODE_INVAL)
 
 
+def RequireSharedFileStorage():
+  """Checks that shared file storage is enabled.
+
+  While it doesn't really fit into this module, L{utils} was deemed too large
+  of a dependency to be imported for just one or two functions.
+
+  @raise errors.OpPrereqError: when shared file storage is disabled
+
+  """
+  if not constants.ENABLE_SHARED_FILE_STORAGE:
+    raise errors.OpPrereqError("Shared file storage disabled at"
+                               " configure time", errors.ECODE_INVAL)
+
+
 @ht.WithDesc("CheckFileStorage")
 def _CheckFileStorage(value):
   """Ensures file storage is enabled if used.
@@ -169,6 +183,8 @@ def _CheckFileStorage(value):
   """
   if value == constants.DT_FILE:
     RequireFileStorage()
+  elif value == constants.DT_SHARED_FILE:
+    RequireSharedFileStorage()
   return True
 
 

@@ -1036,7 +1036,7 @@ def _GetStorageTypeArgs(cfg, storage_type):
   # Special case for file storage
   if storage_type == constants.ST_FILE:
     # storage.FileStorage wants a list of storage directories
-    return [[cfg.GetFileStorageDir()]]
+    return [[cfg.GetFileStorageDir(), cfg.GetSharedFileStorageDir()]]
 
   return []
 
@@ -4696,6 +4696,7 @@ class LUClusterQuery(NoHooksLU):
       "volume_group_name": cluster.volume_group_name,
       "drbd_usermode_helper": cluster.drbd_usermode_helper,
       "file_storage_dir": cluster.file_storage_dir,
+      "shared_file_storage_dir": cluster.shared_file_storage_dir,
       "maintain_node_health": cluster.maintain_node_health,
       "ctime": cluster.ctime,
       "mtime": cluster.mtime,
@@ -5542,7 +5543,7 @@ class LUInstanceRename(LogicalUnit):
     old_name = inst.name
 
     rename_file_storage = False
-    if (inst.disk_template == constants.DT_FILE and
+    if (inst.disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE) and
         self.op.new_name != inst.name):
       old_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
       rename_file_storage = True
@@ -6635,6 +6636,21 @@ def _GenerateDiskTemplate(lu, template_name,
                                                          disk_index)),
                               mode=disk["mode"])
       disks.append(disk_dev)
+  elif template_name == constants.DT_SHARED_FILE:
+    if len(secondary_nodes) != 0:
+      raise errors.ProgrammerError("Wrong template configuration")
+
+    opcodes.RequireSharedFileStorage()
+
+    for idx, disk in enumerate(disk_info):
+      disk_index = idx + base_index
+      disk_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk["size"],
+                              iv_name="disk/%d" % disk_index,
+                              logical_id=(file_driver,
+                                          "%s/disk%d" % (file_storage_dir,
+                                                         disk_index)),
+                              mode=disk["mode"])
+      disks.append(disk_dev)
   else:
     raise errors.ProgrammerError("Invalid disk template '%s'" % template_name)
   return disks
@@ -6744,7 +6760,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     pnode = target_node
     all_nodes = [pnode]
 
-  if instance.disk_template == constants.DT_FILE:
+  if instance.disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE):
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_create(pnode, file_storage_dir)
 
@@ -6834,6 +6850,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
     # 128 MB are added for drbd metadata for each disk
     constants.DT_DRBD8: _compute(disks, 128),
     constants.DT_FILE: {},
+    constants.DT_SHARED_FILE: {},
   }
 
   if disk_template not in req_size_dict:
@@ -6854,6 +6871,7 @@ def _ComputeDiskSize(disk_template, disks):
     # 128 MB are added for drbd metadata for each disk
     constants.DT_DRBD8: sum(d["size"] + 128 for d in disks),
     constants.DT_FILE: None,
+    constants.DT_SHARED_FILE: 0,
   }
 
   if disk_template not in req_size_dict:
@@ -7657,7 +7675,7 @@ class LUInstanceCreate(LogicalUnit):
     else:
       network_port = None
 
-    if constants.ENABLE_FILE_STORAGE:
+    if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
       # this is needed because os.path.join does not accept None arguments
       if self.op.file_storage_dir is None:
         string_file_storage_dir = ""
@@ -7665,7 +7683,12 @@ class LUInstanceCreate(LogicalUnit):
         string_file_storage_dir = self.op.file_storage_dir
 
       # build the full file storage dir path
-      file_storage_dir = utils.PathJoin(self.cfg.GetFileStorageDir(),
+      if self.op.disk_template == constants.DT_SHARED_FILE:
+        get_fsd_fn = self.cfg.GetSharedFileStorageDir
+      else:
+        get_fsd_fn = self.cfg.GetFileStorageDir
+
+      file_storage_dir = utils.PathJoin(get_fsd_fn(),
                                         string_file_storage_dir, instance)
     else:
       file_storage_dir = ""
@@ -8811,9 +8834,10 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     self.disk = instance.FindDisk(self.op.disk)
 
-    if instance.disk_template != constants.DT_FILE:
-      # TODO: check the free disk space for file, when that feature
-      # will be supported
+    if instance.disk_template not in (constants.DT_FILE,
+                                      constants.DT_SHARED_FILE):
+      # TODO: check the free disk space for file, when that feature will be
+      # supported
       _CheckNodesFreeDiskPerVG(self, nodenames,
                                self.disk.ComputeGrowth(self.op.amount))
 
@@ -9554,7 +9578,8 @@ class LUInstanceSetParams(LogicalUnit):
         result.append(("disk/%d" % device_idx, "remove"))
       elif disk_op == constants.DDM_ADD:
         # add a new disk
-        if instance.disk_template == constants.DT_FILE:
+        if instance.disk_template in (constants.DT_FILE,
+                                        constants.DT_SHARED_FILE):
           file_driver, file_path = instance.disks[0].logical_id
           file_path = os.path.dirname(file_path)
         else:

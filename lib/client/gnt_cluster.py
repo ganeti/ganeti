@@ -352,6 +352,8 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - lvm reserved volumes: %s", reserved_lvs)
   ToStdout("  - drbd usermode helper: %s", result["drbd_usermode_helper"])
   ToStdout("  - file storage path: %s", result["file_storage_dir"])
+  ToStdout("  - shared file storage path: %s",
+           result["shared_file_storage_dir"])
   ToStdout("  - maintenance of node health: %s",
            result["maintain_node_health"])
   ToStdout("  - uid pool: %s",

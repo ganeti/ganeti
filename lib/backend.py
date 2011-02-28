@@ -2404,15 +2404,15 @@ def BlockdevRename(devlist):
     _Fail("; ".join(msgs))
 
 
-def _TransformFileStorageDir(file_storage_dir):
+def _TransformFileStorageDir(fs_dir):
   """Checks whether given file_storage_dir is valid.
 
-  Checks wheter the given file_storage_dir is within the cluster-wide
-  default file_storage_dir stored in SimpleStore. Only paths under that
-  directory are allowed.
+  Checks wheter the given fs_dir is within the cluster-wide default
+  file_storage_dir or the shared_file_storage_dir, which are stored in
+  SimpleStore. Only paths under those directories are allowed.
 
-  @type file_storage_dir: str
-  @param file_storage_dir: the path to check
+  @type fs_dir: str
+  @param fs_dir: the path to check
 
   @return: the normalized path if valid, None otherwise
 
@@ -2420,13 +2420,15 @@ def _TransformFileStorageDir(file_storage_dir):
   if not constants.ENABLE_FILE_STORAGE:
     _Fail("File storage disabled at configure time")
   cfg = _GetConfig()
-  file_storage_dir = os.path.normpath(file_storage_dir)
-  base_file_storage_dir = cfg.GetFileStorageDir()
-  if (os.path.commonprefix([file_storage_dir, base_file_storage_dir]) !=
-      base_file_storage_dir):
+  fs_dir = os.path.normpath(fs_dir)
+  base_fstore = cfg.GetFileStorageDir()
+  base_shared = cfg.GetSharedFileStorageDir()
+  if ((os.path.commonprefix([fs_dir, base_fstore]) != base_fstore) and
+      (os.path.commonprefix([fs_dir, base_shared]) != base_shared)):
     _Fail("File storage directory '%s' is not under base file"
-          " storage directory '%s'", file_storage_dir, base_file_storage_dir)
-  return file_storage_dir
+          " storage directory '%s' or shared storage directory '%s'",
+          fs_dir, base_fstore, base_shared)
+  return fs_dir
 
 
 def CreateFileStorageDir(file_storage_dir):

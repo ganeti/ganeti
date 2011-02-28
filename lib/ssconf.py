@@ -155,6 +155,9 @@ class SimpleConfigReader(object):
   def GetFileStorageDir(self):
     return self._config_data["cluster"]["file_storage_dir"]
 
+  def GetSharedFileStorageDir(self):
+    return self._config_data["cluster"]["shared_file_storage_dir"]
+
   def GetNodeList(self):
     return self._config_data["nodes"].keys()
 
@@ -272,6 +275,7 @@ class SimpleStore(object):
     constants.SS_CLUSTER_NAME,
     constants.SS_CLUSTER_TAGS,
     constants.SS_FILE_STORAGE_DIR,
+    constants.SS_SHARED_FILE_STORAGE_DIR,
     constants.SS_MASTER_CANDIDATES,
     constants.SS_MASTER_CANDIDATES_IPS,
     constants.SS_MASTER_IP,
@@ -368,6 +372,12 @@ class SimpleStore(object):
 
     """
     return self._ReadFile(constants.SS_FILE_STORAGE_DIR)
+
+  def GetSharedFileStorageDir(self):
+    """Get the shared file storage dir.
+
+    """
+    return self._ReadFile(constants.SS_SHARED_FILE_STORAGE_DIR)
 
   def GetMasterCandidates(self):
     """Return the list of master candidates.

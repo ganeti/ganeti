@@ -410,6 +410,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
     master_netdev=master_netdev,
     cluster_name=clustername.name,
     file_storage_dir=file_storage_dir,
+    shared_file_storage_dir=shared_file_storage_dir,
     enabled_hypervisors=enabled_hypervisors,
     beparams={constants.PP_DEFAULT: beparams},
     nicparams={constants.PP_DEFAULT: nicparams},
