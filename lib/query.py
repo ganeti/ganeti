@@ -48,8 +48,7 @@ How it works:
   - Call L{Query.GetFields} to get list of definitions for selected fields
 
 @attention: Retrieval functions must be idempotent. They can be called multiple
-  times, in any order and any number of times. This is important to keep in
-  mind for implementing filters in the future.
+  times, in any order and any number of times.
 
 """
 
@@ -63,6 +62,7 @@ from ganeti import utils
 from ganeti import compat
 from ganeti import objects
 from ganeti import ht
+from ganeti import qlang
 
 from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
                               QFT_UNIT, QFT_TIMESTAMP, QFT_OTHER,
@@ -176,8 +176,386 @@ def GetAllFields(fielddefs):
   return [fdef for (fdef, _, _, _) in fielddefs]
 
 
+class _FilterHints:
+  """Class for filter analytics.
+
+  When filters are used, the user of the L{Query} class usually doesn't know
+  exactly which items will be necessary for building the result. It therefore
+  has to prepare and compute the input data for potentially returning
+  everything.
+
+  There are two ways to optimize this. The first, and simpler, is to assign
+  each field a group of data, so that the caller can determine which
+  computations are necessary depending on the data groups requested. The list
+  of referenced groups must also be computed for fields referenced in the
+  filter.
+
+  The second is restricting the items based on a primary key. The primary key
+  is usually a unique name (e.g. a node name). This class extracts all
+  referenced names from a filter. If it encounters any filter condition which
+  disallows such a list to be determined (e.g. a non-equality filter), all
+  names will be requested.
+
+  The end-effect is that any operation other than L{qlang.OP_OR} and
+  L{qlang.OP_EQUAL} will make the query more expensive.
+
+  """
+  def __init__(self, namefield):
+    """Initializes this class.
+
+    @type namefield: string
+    @param namefield: Field caller is interested in
+
+    """
+    self._namefield = namefield
+
+    #: Whether all names need to be requested (e.g. if a non-equality operator
+    #: has been used)
+    self._allnames = False
+
+    #: Which names to request
+    self._names = None
+
+    #: Data kinds referenced by the filter (used by L{Query.RequestedData})
+    self._datakinds = set()
+
+  def RequestedNames(self):
+    """Returns all requested values.
+
+    Returns C{None} if list of values can't be determined (e.g. encountered
+    non-equality operators).
+
+    @rtype: list
+
+    """
+    if self._allnames or self._names is None:
+      return None
+
+    return utils.UniqueSequence(self._names)
+
+  def ReferencedData(self):
+    """Returns all kinds of data referenced by the filter.
+
+    """
+    return frozenset(self._datakinds)
+
+  def _NeedAllNames(self):
+    """Changes internal state to request all names.
+
+    """
+    self._allnames = True
+    self._names = None
+
+  def NoteLogicOp(self, op):
+    """Called when handling a logic operation.
+
+    @type op: string
+    @param op: Operator
+
+    """
+    if op != qlang.OP_OR:
+      self._NeedAllNames()
+
+  def NoteUnaryOp(self, op): # pylint: disable-msg=W0613
+    """Called when handling an unary operation.
+
+    @type op: string
+    @param op: Operator
+
+    """
+    self._NeedAllNames()
+
+  def NoteBinaryOp(self, op, datakind, name, value):
+    """Called when handling a binary operation.
+
+    @type op: string
+    @param op: Operator
+    @type name: string
+    @param name: Left-hand side of operator (field name)
+    @param value: Right-hand side of operator
+
+    """
+    if datakind is not None:
+      self._datakinds.add(datakind)
+
+    if self._allnames:
+      return
+
+    # If any operator other than equality was used, all names need to be
+    # retrieved
+    if op == qlang.OP_EQUAL and name == self._namefield:
+      if self._names is None:
+        self._names = []
+      self._names.append(value)
+    else:
+      self._NeedAllNames()
+
+
+def _WrapLogicOp(op_fn, sentences, ctx, item):
+  """Wrapper for logic operator functions.
+
+  """
+  return op_fn(fn(ctx, item) for fn in sentences)
+
+
+def _WrapUnaryOp(op_fn, inner, ctx, item):
+  """Wrapper for unary operator functions.
+
+  """
+  return op_fn(inner(ctx, item))
+
+
+def _WrapBinaryOp(op_fn, retrieval_fn, value, ctx, item):
+  """Wrapper for binary operator functions.
+
+  """
+  return op_fn(retrieval_fn(ctx, item), value)
+
+
+def _WrapNot(fn, lhs, rhs):
+  """Negates the result of a wrapped function.
+
+  """
+  return not fn(lhs, rhs)
+
+
+class _FilterCompilerHelper:
+  """Converts a query filter to a callable usable for filtering.
+
+  """
+  # String statement has no effect, pylint: disable-msg=W0105
+
+  #: How deep filters can be nested
+  _LEVELS_MAX = 10
+
+  # Unique identifiers for operator groups
+  (_OPTYPE_LOGIC,
+   _OPTYPE_UNARY,
+   _OPTYPE_BINARY) = range(1, 4)
+
+  """Functions for equality checks depending on field flags.
+
+  List of tuples containing flags and a callable receiving the left- and
+  right-hand side of the operator. The flags are an OR-ed value of C{QFF_*}
+  (e.g. L{QFF_HOSTNAME}).
+
+  Order matters. The first item with flags will be used. Flags are checked
+  using binary AND.
+
+  """
+  _EQUALITY_CHECKS = [
+    (QFF_HOSTNAME,
+     lambda lhs, rhs: utils.MatchNameComponent(rhs, [lhs],
+                                               case_sensitive=False)),
+    (None, operator.eq),
+    ]
+
+  """Known operators
+
+  Operator as key (C{qlang.OP_*}), value a tuple of operator group
+  (C{_OPTYPE_*}) and a group-specific value:
+
+    - C{_OPTYPE_LOGIC}: Callable taking any number of arguments; used by
+      L{_HandleLogicOp}
+    - C{_OPTYPE_UNARY}: Callable taking exactly one parameter; used by
+      L{_HandleUnaryOp}
+    - C{_OPTYPE_BINARY}: Callable taking exactly two parameters, the left- and
+      right-hand side of the operator, used by L{_HandleBinaryOp}
+
+  """
+  _OPS = {
+    # Logic operators
+    qlang.OP_OR: (_OPTYPE_LOGIC, compat.any),
+    qlang.OP_AND: (_OPTYPE_LOGIC, compat.all),
+
+    # Unary operators
+    qlang.OP_NOT: (_OPTYPE_UNARY, operator.not_),
+
+    # Binary operators
+    qlang.OP_EQUAL: (_OPTYPE_BINARY, _EQUALITY_CHECKS),
+    qlang.OP_NOT_EQUAL:
+      (_OPTYPE_BINARY, [(flags, compat.partial(_WrapNot, fn))
+                        for (flags, fn) in _EQUALITY_CHECKS]),
+    qlang.OP_GLOB: (_OPTYPE_BINARY, NotImplemented),
+    qlang.OP_REGEXP: (_OPTYPE_BINARY, NotImplemented),
+    qlang.OP_CONTAINS: (_OPTYPE_BINARY, [
+      (None, operator.contains),
+      ]),
+    }
+
+  def __init__(self, fields):
+    """Initializes this class.
+
+    @param fields: Field definitions (return value of L{_PrepareFieldList})
+
+    """
+    self._fields = fields
+    self._hints = None
+    self._op_handler = None
+
+  def __call__(self, hints, filter_):
+    """Converts a query filter into a callable function.
+
+    @type hints: L{_FilterHints} or None
+    @param hints: Callbacks doing analysis on filter
+    @type filter_: list
+    @param filter_: Filter structure
+    @rtype: callable
+    @return: Function receiving context and item as parameters, returning
+             boolean as to whether item matches filter
+
+    """
+    self._op_handler = {
+      self._OPTYPE_LOGIC:
+        (self._HandleLogicOp, getattr(hints, "NoteLogicOp", None)),
+      self._OPTYPE_UNARY:
+        (self._HandleUnaryOp, getattr(hints, "NoteUnaryOp", None)),
+      self._OPTYPE_BINARY:
+        (self._HandleBinaryOp, getattr(hints, "NoteBinaryOp", None)),
+      }
+
+    try:
+      filter_fn = self._Compile(filter_, 0)
+    finally:
+      self._op_handler = None
+
+    return filter_fn
+
+  def _Compile(self, filter_, level):
+    """Inner function for converting filters.
+
+    Calls the correct handler functions for the top-level operator. This
+    function is called recursively (e.g. for logic operators).
+
+    """
+    if not (isinstance(filter_, (list, tuple)) and filter_):
+      raise errors.ParameterError("Invalid filter on level %s" % level)
+
+    # Limit recursion
+    if level >= self._LEVELS_MAX:
+      raise errors.ParameterError("Only up to %s levels are allowed (filter"
+                                  " nested too deep)" % self._LEVELS_MAX)
+
+    # Create copy to be modified
+    operands = filter_[:]
+    op = operands.pop(0)
+
+    try:
+      (kind, op_data) = self._OPS[op]
+    except KeyError:
+      raise errors.ParameterError("Unknown operator '%s'" % op)
+
+    (handler, hints_cb) = self._op_handler[kind]
+
+    return handler(hints_cb, level, op, op_data, operands)
+
+  def _HandleLogicOp(self, hints_fn, level, op, op_fn, operands):
+    """Handles logic operators.
+
+    @type hints_fn: callable
+    @param hints_fn: Callback doing some analysis on the filter
+    @type level: integer
+    @param level: Current depth
+    @type op: string
+    @param op: Operator
+    @type op_fn: callable
+    @param op_fn: Function implementing operator
+    @type operands: list
+    @param operands: List of operands
+
+    """
+    if hints_fn:
+      hints_fn(op)
+
+    return compat.partial(_WrapLogicOp, op_fn,
+                          [self._Compile(op, level + 1) for op in operands])
+
+  def _HandleUnaryOp(self, hints_fn, level, op, op_fn, operands):
+    """Handles unary operators.
+
+    @type hints_fn: callable
+    @param hints_fn: Callback doing some analysis on the filter
+    @type level: integer
+    @param level: Current depth
+    @type op: string
+    @param op: Operator
+    @type op_fn: callable
+    @param op_fn: Function implementing operator
+    @type operands: list
+    @param operands: List of operands
+
+    """
+    if hints_fn:
+      hints_fn(op)
+
+    if len(operands) != 1:
+      raise errors.ParameterError("Unary operator '%s' expects exactly one"
+                                  " operand" % op)
+
+    return compat.partial(_WrapUnaryOp, op_fn,
+                          self._Compile(operands[0], level + 1))
+
+  def _HandleBinaryOp(self, hints_fn, level, op, op_data, operands):
+    """Handles binary operators.
+
+    @type hints_fn: callable
+    @param hints_fn: Callback doing some analysis on the filter
+    @type level: integer
+    @param level: Current depth
+    @type op: string
+    @param op: Operator
+    @param op_data: Functions implementing operators
+    @type operands: list
+    @param operands: List of operands
+
+    """
+    # Unused arguments, pylint: disable-msg=W0613
+    try:
+      (name, value) = operands
+    except (ValueError, TypeError):
+      raise errors.ParameterError("Invalid binary operator, expected exactly"
+                                  " two operands")
+
+    try:
+      (fdef, datakind, field_flags, retrieval_fn) = self._fields[name]
+    except KeyError:
+      raise errors.ParameterError("Unknown field '%s'" % name)
+
+    assert fdef.kind != QFT_UNKNOWN
+
+    # TODO: Type conversions?
+
+    verify_fn = _VERIFY_FN[fdef.kind]
+    if not verify_fn(value):
+      raise errors.ParameterError("Unable to compare field '%s' (type '%s')"
+                                  " with '%s', expected %s" %
+                                  (name, fdef.kind, value.__class__.__name__,
+                                   verify_fn))
+
+    if hints_fn:
+      hints_fn(op, datakind, name, value)
+
+    for (fn_flags, fn) in op_data:
+      if fn_flags is None or fn_flags & field_flags:
+        return compat.partial(_WrapBinaryOp, fn, retrieval_fn, value)
+
+    raise errors.ProgrammerError("Unable to find operator implementation"
+                                 " (op '%s', flags %s)" % (op, field_flags))
+
+
+def _CompileFilter(fields, hints, filter_):
+  """Converts a query filter into a callable function.
+
+  See L{_FilterCompilerHelper} for details.
+
+  @rtype: callable
+
+  """
+  return _FilterCompilerHelper(fields)(hints, filter_)
+
+
 class Query:
-  def __init__(self, fieldlist, selected):
+  def __init__(self, fieldlist, selected, filter_=None, namefield=None):
     """Initializes this class.
 
     The field definition is a dictionary with the field's name as a key and a
@@ -196,7 +574,40 @@ class Query:
     @param selected: List of selected fields
 
     """
+    assert namefield is None or namefield in fieldlist
+
     self._fields = _GetQueryFields(fieldlist, selected)
+
+    self._filter_fn = None
+    self._requested_names = None
+    self._filter_datakinds = frozenset()
+
+    if filter_ is not None:
+      # Collect requested names if wanted
+      if namefield:
+        hints = _FilterHints(namefield)
+      else:
+        hints = None
+
+      # Build filter function
+      self._filter_fn = _CompileFilter(fieldlist, hints, filter_)
+      if hints:
+        self._requested_names = hints.RequestedNames()
+        self._filter_datakinds = hints.ReferencedData()
+
+    if namefield is None:
+      self._name_fn = None
+    else:
+      (_, _, _, self._name_fn) = fieldlist[namefield]
+
+  def RequestedNames(self):
+    """Returns all names referenced in the filter.
+
+    If there is no filter or operators are preventing determining the exact
+    names, C{None} is returned.
+
+    """
+    return self._requested_names
 
   def RequestedData(self):
     """Gets requested kinds of data.
@@ -204,9 +615,9 @@ class Query:
     @rtype: frozenset
 
     """
-    return frozenset(datakind
-                     for (_, datakind, _, _) in self._fields
-                     if datakind is not None)
+    return (self._filter_datakinds |
+            frozenset(datakind for (_, datakind, _, _) in self._fields
+                      if datakind is not None))
 
   def GetFields(self):
     """Returns the list of fields for this query.
@@ -225,15 +636,36 @@ class Query:
       support iteration using C{__iter__}
 
     """
-    result = [[_ProcessResult(fn(ctx, item)) for (_, _, _, fn) in self._fields]
-              for item in ctx]
+    result = []
 
-    # Verify result
-    if __debug__:
-      for row in result:
+    for idx, item in enumerate(ctx):
+      if not (self._filter_fn is None or self._filter_fn(ctx, item)):
+        continue
+
+      row = [_ProcessResult(fn(ctx, item)) for (_, _, _, fn) in self._fields]
+
+      # Verify result
+      if __debug__:
         _VerifyResultRow(self._fields, row)
 
-    return result
+      if self._name_fn:
+        (status, name) = _ProcessResult(self._name_fn(ctx, item))
+        assert status == constants.RS_NORMAL
+        # TODO: Are there cases where we wouldn't want to use NiceSort?
+        sortname = utils.NiceSortKey(name)
+      else:
+        sortname = None
+
+      result.append((sortname, idx, row))
+
+    # TODO: Would "heapq" be more efficient than sorting?
+
+    # Sorting in-place instead of using "sorted()"
+    result.sort()
+
+    assert not result or (len(result[0]) == 3 and len(result[-1]) == 3)
+
+    return map(operator.itemgetter(2), result)
 
   def OldStyleQuery(self, ctx):
     """Query with "old" query result format.
