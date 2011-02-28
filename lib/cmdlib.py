@@ -6629,6 +6629,10 @@ def _WipeDisks(lu, instance):
 
   """
   node = instance.primary_node
+
+  for device in instance.disks:
+    lu.cfg.SetDiskID(device, node)
+
   logging.info("Pause sync of instance %s disks", instance.name)
   result = lu.rpc.call_blockdev_pause_resume_sync(node, instance.disks, True)
 
@@ -6640,7 +6644,8 @@ def _WipeDisks(lu, instance):
   try:
     for idx, device in enumerate(instance.disks):
       lu.LogInfo("* Wiping disk %d", idx)
-      logging.info("Wiping disk %d for instance %s", idx, instance.name)
+      logging.info("Wiping disk %d for instance %s, node %s",
+                   idx, instance.name, node)
 
       # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
       # MAX_WIPE_CHUNK at max
