@@ -457,11 +457,12 @@ class _QueryBase:
     """Initializes this class.
 
     """
-    self.names = qlang.ReadSimpleFilter("name", filter_)
     self.use_locking = use_locking
 
-    self.query = query.Query(self.FIELDS, fields)
+    self.query = query.Query(self.FIELDS, fields, filter_=filter_,
+                             namefield="name")
     self.requested_data = self.query.RequestedData()
+    self.names = self.query.RequestedNames()
 
     self.do_locking = None
     self.wanted = None
