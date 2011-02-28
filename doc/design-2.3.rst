@@ -568,6 +568,8 @@ removed. Ganeti itself will allow clearing of both flags, even though
 this doesn't make much sense currently.
 
 
+.. _jqueue-job-priority-design:
+
 Job priorities
 --------------
 

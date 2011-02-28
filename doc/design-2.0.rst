@@ -608,6 +608,8 @@ be leaf locks or carefully structured non-leaf ones, to avoid deadlock
 race conditions.
 
 
+.. _jqueue-original-design:
+
 Job Queue
 ~~~~~~~~~
 
