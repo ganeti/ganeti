@@ -167,6 +167,8 @@ def RunClusterTests():
     ("cluster-command", qa_cluster.TestClusterCommand),
     ("cluster-burnin", qa_cluster.TestClusterBurnin),
     ("cluster-master-failover", qa_cluster.TestClusterMasterFailover),
+    ("cluster-master-failover",
+     qa_cluster.TestClusterMasterFailoverWithDrainedQueue),
     ("cluster-oob", qa_cluster.TestClusterOob),
     ("rapi", qa_rapi.TestVersion),
     ("rapi", qa_rapi.TestEmptyCluster),

@@ -43,6 +43,7 @@ from ganeti import bdev
 from ganeti import netutils
 from ganeti import backend
 from ganeti import luxi
+from ganeti import jstore
 
 
 # ec_id for InitConfig's temporary reservation manager
@@ -659,6 +660,10 @@ def MasterFailover(no_voting=False):
     logging.warning("The master IP is still reachable after %s seconds,"
                     " continuing but activating the master on the current"
                     " node will probably fail", total_timeout)
+
+  if jstore.CheckDrainFlag():
+    logging.info("Undraining job queue")
+    jstore.SetDrainFlag(False)
 
   logging.info("Starting the master daemons on the new master")
 

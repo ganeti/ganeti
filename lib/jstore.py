@@ -22,6 +22,7 @@
 """Module implementing the job queue handling."""
 
 import errno
+import os
 
 from ganeti import constants
 from ganeti import errors
@@ -134,3 +135,36 @@ def InitAndVerifyQueue(must_lock):
     raise
 
   return queue_lock
+
+
+def CheckDrainFlag():
+  """Check if the queue is marked to be drained.
+
+  This currently uses the queue drain file, which makes it a per-node flag.
+  In the future this can be moved to the config file.
+
+  @rtype: boolean
+  @return: True if the job queue is marked drained
+
+  """
+  return os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
+
+
+def SetDrainFlag(drain_flag):
+  """Sets the drain flag for the queue.
+
+  @type drain_flag: boolean
+  @param drain_flag: Whether to set or unset the drain flag
+  @attention: This function should only called the current holder of the queue
+    lock
+
+  """
+  getents = runtime.GetEnts()
+
+  if drain_flag:
+    utils.WriteFile(constants.JOB_QUEUE_DRAIN_FILE, data="",
+                    uid=getents.masterd_uid, gid=getents.masterd_gid)
+  else:
+    utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
+
+  assert (not drain_flag) ^ CheckDrainFlag()

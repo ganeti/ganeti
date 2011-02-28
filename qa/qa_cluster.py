@@ -385,9 +385,40 @@ def TestClusterMasterFailover():
   cmd = ["gnt-cluster", "master-failover"]
   try:
     AssertCommand(cmd, node=failovermaster)
+    # Back to original master node
     AssertCommand(cmd, node=master)
   finally:
     qa_config.ReleaseNode(failovermaster)
+
+
+def TestClusterMasterFailoverWithDrainedQueue():
+  """gnt-cluster master-failover with drained queue"""
+  drain_check = ["test", "-f", constants.JOB_QUEUE_DRAIN_FILE]
+
+  master = qa_config.GetMasterNode()
+  failovermaster = qa_config.AcquireNode(exclude=master)
+
+  # Ensure queue is not drained
+  for node in [master, failovermaster]:
+    AssertCommand(drain_check, node=node, fail=True)
+
+  # Drain queue on failover master
+  AssertCommand(["touch", constants.JOB_QUEUE_DRAIN_FILE], node=failovermaster)
+
+  cmd = ["gnt-cluster", "master-failover"]
+  try:
+    AssertCommand(drain_check, node=failovermaster)
+    AssertCommand(cmd, node=failovermaster)
+    AssertCommand(drain_check, fail=True)
+    AssertCommand(drain_check, node=failovermaster, fail=True)
+
+    # Back to original master node
+    AssertCommand(cmd, node=master)
+  finally:
+    qa_config.ReleaseNode(failovermaster)
+
+  AssertCommand(drain_check, fail=True)
+  AssertCommand(drain_check, node=failovermaster, fail=True)
 
 
 def TestClusterCopyfile():
