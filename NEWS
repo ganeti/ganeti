@@ -1,6 +1,22 @@
 News
 ====
 
+Version 2.4.0 rc3
+-----------------
+
+*(Released Mon, 28 Feb 2011)*
+
+A critical fix for the ``prealloc_wipe_disks`` feature: it is possible
+that this feature wiped the disks of the wrong instance, leading to loss
+of data.
+
+Other changes:
+
+- fixed title of query field containing instance name
+- expanded the glossary in the documentation
+- fixed one unittest (internal issue)
+
+
 Version 2.4.0 rc2
 -----------------
 
