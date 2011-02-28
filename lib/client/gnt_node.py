@@ -338,7 +338,8 @@ def FailoverNode(opts, args):
   jex = JobExecutor(cl=cl, opts=opts)
   for iname in pinst:
     op = opcodes.OpInstanceFailover(instance_name=iname,
-                                    ignore_consistency=opts.ignore_consistency)
+                                    ignore_consistency=opts.ignore_consistency,
+                                    iallocator=opts.iallocator)
     jex.QueueJob(iname, op)
   results = jex.GetResults()
   bad_cnt = len([row for row in results if not row[0]])
@@ -380,7 +381,8 @@ def MigrateNode(opts, args):
     mode = constants.HT_MIGRATION_NONLIVE
   else:
     mode = opts.migration_mode
-  op = opcodes.OpNodeMigrate(node_name=args[0], mode=mode)
+  op = opcodes.OpNodeMigrate(node_name=args[0], mode=mode,
+                             iallocator=opts.iallocator)
   SubmitOpCode(op, cl=cl, opts=opts)
 
 
@@ -815,13 +817,15 @@ commands = {
     "Relocate the secondary instances from a node"
     " to other nodes (only for instances with drbd disk template)"),
   'failover': (
-    FailoverNode, ARGS_ONE_NODE, [FORCE_OPT, IGNORE_CONSIST_OPT, PRIORITY_OPT],
+    FailoverNode, ARGS_ONE_NODE, [FORCE_OPT, IGNORE_CONSIST_OPT,
+                                  IALLOCATOR_OPT, PRIORITY_OPT],
     "[-f] <node>",
     "Stops the primary instances on a node and start them on their"
     " secondary node (only for instances with drbd disk template)"),
   'migrate': (
     MigrateNode, ARGS_ONE_NODE,
-    [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, PRIORITY_OPT],
+    [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT,
+     IALLOCATOR_OPT, PRIORITY_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),

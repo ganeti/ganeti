@@ -69,6 +69,7 @@ __all__ = [
   "DRAINED_OPT",
   "DRY_RUN_OPT",
   "DRBD_HELPER_OPT",
+  "DST_NODE_OPT",
   "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
   "ERROR_CODES_OPT",
@@ -838,6 +839,11 @@ IGNORE_REMOVE_FAILURES_OPT = cli_option("--ignore-remove-failures",
 REMOVE_INSTANCE_OPT = cli_option("--remove-instance", dest="remove_instance",
                                  action="store_true", default=False,
                                  help="Remove the instance from the cluster")
+
+DST_NODE_OPT = cli_option("-n", "--target-node", dest="dst_node",
+                               help="Specifies the new node for the instance",
+                               metavar="NODE", default=None,
+                               completion_suggest=OPT_COMPL_ONE_NODE)
 
 NEW_SECONDARY_OPT = cli_option("-n", "--new-secondary", dest="dst_node",
                                help="Specifies the new secondary node",
