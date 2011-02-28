@@ -828,6 +828,8 @@ class OpNodeMigrate(OpCode):
     _PNodeName,
     _PMigrationMode,
     _PMigrationLive,
+    ("iallocator", None, ht.TMaybeString,
+     "Iallocator for deciding the target node for shared-storage instances"),
     ]
 
 
@@ -1008,6 +1010,10 @@ class OpInstanceFailover(OpCode):
     _PInstanceName,
     _PShutdownTimeout,
     _PIgnoreConsistency,
+    ("iallocator", None, ht.TMaybeString,
+     "Iallocator for deciding the target node for shared-storage instances"),
+    ("target_node", None, ht.TMaybeString,
+     "Target node for shared-storage instances"),
     ]
 
 
@@ -1028,6 +1034,10 @@ class OpInstanceMigrate(OpCode):
     _PMigrationLive,
     ("cleanup", False, ht.TBool,
      "Whether a previously failed migration should be cleaned up"),
+    ("iallocator", None, ht.TMaybeString,
+     "Iallocator for deciding the target node for shared-storage instances"),
+    ("target_node", None, ht.TMaybeString,
+     "Target node for shared-storage instances"),
     ]
 
 
