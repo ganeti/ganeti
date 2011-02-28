@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -534,7 +534,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if_val = ',if=%s' % disk_type
     # Cache mode
     disk_cache = hvp[constants.HV_DISK_CACHE]
-    if disk_cache != constants.HT_CACHE_DEFAULT:
+    if instance.disk_template in constants.DTS_EXT_MIRROR:
+      if disk_cache != "none":
+        # TODO: make this a hard error, instead of a silent overwrite
+        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
+                        " to prevent shared storage corruption on migration",
+                        disk_cache)
+      cache_val = ",cache=none"
+    elif disk_cache != constants.HT_CACHE_DEFAULT:
       cache_val = ",cache=%s" % disk_cache
     else:
       cache_val = ""
