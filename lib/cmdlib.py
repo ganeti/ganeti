@@ -11262,11 +11262,12 @@ class IAllocator(object):
       raise errors.ProgrammerError("Unknown instance '%s' passed to"
                                    " IAllocator" % self.name)
 
-    if instance.disk_template not in constants.DTS_NET_MIRROR:
+    if instance.disk_template not in constants.DTS_MIRRORED:
       raise errors.OpPrereqError("Can't relocate non-mirrored instances",
                                  errors.ECODE_INVAL)
 
-    if len(instance.secondary_nodes) != 1:
+    if instance.disk_template in constants.DTS_NET_MIRROR and \
+        len(instance.secondary_nodes) != 1:
       raise errors.OpPrereqError("Instance has not exactly one secondary node",
                                  errors.ECODE_STATE)
 
