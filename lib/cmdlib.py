@@ -5704,14 +5704,35 @@ class LUInstanceFailover(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    self.iallocator = getattr(self.op, "iallocator", None)
+    self.target_node = getattr(self.op, "target_node", None)
+    _CheckIAllocatorOrNode(self, "iallocator", "target_node")
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+
+    if self.op.target_node is not None:
+      self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
+
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
+      instance = self.context.cfg.GetInstanceInfo(self.op.instance_name)
+      if instance.disk_template in constants.DTS_EXT_MIRROR:
+        if self.op.target_node is None:
+          self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+        else:
+          self.needed_locks[locking.LEVEL_NODE] = [instance.primary_node,
+                                                   self.op.target_node]
+        del self.recalculate_locks[locking.LEVEL_NODE]
+      else:
+        self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -5721,15 +5742,19 @@ class LUInstanceFailover(LogicalUnit):
     """
     instance = self.instance
     source_node = instance.primary_node
-    target_node = instance.secondary_nodes[0]
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       "OLD_PRIMARY": source_node,
-      "OLD_SECONDARY": target_node,
-      "NEW_PRIMARY": target_node,
-      "NEW_SECONDARY": source_node,
+      "NEW_PRIMARY": self.op.target_node,
       }
+
+    if instance.disk_template in constants.DTS_NET_MIRROR:
+      env["OLD_SECONDARY"] = instance.secondary_nodes[0]
+      env["NEW_SECONDARY"] = source_node
+    else:
+      env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = ""
+
     env.update(_BuildInstanceHookEnvByObject(self, instance))
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
     nl_post = list(nl)
@@ -5747,19 +5772,39 @@ class LUInstanceFailover(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
     bep = self.cfg.GetClusterInfo().FillBE(instance)
-    if instance.disk_template not in constants.DTS_NET_MIRROR:
+    if instance.disk_template not in constants.DTS_MIRRORED:
       raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " network mirrored, cannot failover.",
+                                 " mirrored, cannot failover.",
                                  errors.ECODE_STATE)
 
-    secondary_nodes = instance.secondary_nodes
-    if not secondary_nodes:
-      raise errors.ProgrammerError("no secondary node but using "
-                                   "a mirrored disk template")
+    if instance.disk_template in constants.DTS_EXT_MIRROR:
+      if self.op.iallocator:
+        self._RunAllocator()
+        # Release all unnecessary node locks
+        nodes_keep = [instance.primary_node, self.op.target_node]
+        nodes_rel = [node for node in self.acquired_locks[locking.LEVEL_NODE]
+                     if node not in nodes_keep]
+        self.context.glm.release(locking.LEVEL_NODE, nodes_rel)
+        self.acquired_locks[locking.LEVEL_NODE] = nodes_keep
 
-    target_node = secondary_nodes[0]
+      # self.op.target_node is already populated, either directly or by the
+      # iallocator run
+      target_node = self.op.target_node
+
+    else:
+      secondary_nodes = instance.secondary_nodes
+      if not secondary_nodes:
+        raise errors.ConfigurationError("No secondary node but using"
+                                        " %s disk template" %
+                                        instance.disk_template)
+      target_node = secondary_nodes[0]
+
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
+
+    # Save target_node so that we can use it in BuildHooksEnv
+    self.op.target_node = target_node
+
     if instance.admin_up:
       # check memory requirements on the secondary node
       _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
@@ -5783,7 +5828,7 @@ class LUInstanceFailover(LogicalUnit):
     primary_node = self.cfg.GetNodeInfo(instance.primary_node)
 
     source_node = instance.primary_node
-    target_node = instance.secondary_nodes[0]
+    target_node = self.op.target_node
 
     if instance.admin_up:
       feedback_fn("* checking disk consistency between source and target")
@@ -5841,6 +5886,35 @@ class LUInstanceFailover(LogicalUnit):
         _ShutdownInstanceDisks(self, instance)
         raise errors.OpExecError("Could not start instance %s on node %s: %s" %
                                  (instance.name, target_node, msg))
+
+  def _RunAllocator(self):
+    """Run the allocator based on input opcode.
+
+    """
+    ial = IAllocator(self.cfg, self.rpc,
+                     mode=constants.IALLOCATOR_MODE_RELOC,
+                     name=self.instance.name,
+                     # TODO See why hail breaks with a single node below
+                     relocate_from=[self.instance.primary_node,
+                                    self.instance.primary_node],
+                     )
+
+    ial.Run(self.op.iallocator)
+
+    if not ial.success:
+      raise errors.OpPrereqError("Can't compute nodes using"
+                                 " iallocator '%s': %s" %
+                                 (self.op.iallocator, ial.info),
+                                 errors.ECODE_NORES)
+    if len(ial.result) != ial.required_nodes:
+      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
+                                 " of nodes (%s), required %s" %
+                                 (self.op.iallocator, len(ial.result),
+                                  ial.required_nodes), errors.ECODE_FAULT)
+    self.op.target_node = ial.result[0]
+    self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
+                 self.instance.name, self.op.iallocator,
+                 utils.CommaJoin(ial.result))
 
 
 class LUInstanceMigrate(LogicalUnit):
