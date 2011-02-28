@@ -145,6 +145,7 @@ def InitCluster(opts, args):
                         mac_prefix=opts.mac_prefix,
                         master_netdev=master_netdev,
                         file_storage_dir=opts.file_storage_dir,
+                        shared_file_storage_dir=opts.shared_file_storage_dir,
                         enabled_hypervisors=hvlist,
                         hvparams=hvparams,
                         beparams=beparams,
@@ -1223,7 +1224,7 @@ commands = {
      SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT],
+     NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   'destroy': (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
