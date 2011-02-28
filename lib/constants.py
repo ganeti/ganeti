@@ -379,6 +379,10 @@ DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE, DT_SHARED_FILE])
 # the set of disk templates that allow adoption
 DTS_MAY_ADOPT = frozenset([DT_PLAIN])
 
+# the set of disk templates that allow migrations
+DTS_MIRRORED = frozenset.union(DTS_NET_MIRROR, DTS_EXT_MIRROR)
+
+
 # logical disk types
 LD_LV = "lvm"
 LD_DRBD8 = "drbd8"
