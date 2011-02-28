@@ -6,6 +6,11 @@ Glossary
 
 .. glossary::
 
+  BE Parameter
+    BE stands for Backend. BE parameters are hypervisor-independent
+    instance parameters such as the amount of RAM/virtual CPUs it has
+    been allocated.
+
   HVM
     Hardware virtualization mode, where the virtual machine is
     oblivious to the fact that's being virtualized and all the
@@ -14,6 +19,10 @@ Glossary
   LogicalUnit
     The code associated with an OpCode, e.g. the code that implements
     the startup of an instance.
+
+  LUXI
+     Local UniX Interface. The IPC method over unix sockets used between
+     the cli tools and the master daemon.
 
   OpCode
     A data structure encapsulating a basic cluster operation; for
