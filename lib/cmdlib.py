@@ -464,6 +464,9 @@ class _QueryBase:
     self.requested_data = self.query.RequestedData()
     self.names = self.query.RequestedNames()
 
+    # Sort only if no names were requested
+    self.sort_by_name = not self.names
+
     self.do_locking = None
     self.wanted = None
 
@@ -530,13 +533,15 @@ class _QueryBase:
     """Collect data and execute query.
 
     """
-    return query.GetQueryResponse(self.query, self._GetQueryData(lu))
+    return query.GetQueryResponse(self.query, self._GetQueryData(lu),
+                                  sort_by_name=self.sort_by_name)
 
   def OldStyleQuery(self, lu):
     """Collect data and execute query.
 
     """
-    return self.query.OldStyleQuery(self._GetQueryData(lu))
+    return self.query.OldStyleQuery(self._GetQueryData(lu),
+                                    sort_by_name=self.sort_by_name)
 
 
 def _GetWantedNodes(lu, nodes):

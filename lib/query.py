@@ -629,13 +629,18 @@ class Query:
     """
     return GetAllFields(self._fields)
 
-  def Query(self, ctx):
+  def Query(self, ctx, sort_by_name=True):
     """Execute a query.
 
     @param ctx: Data container passed to field retrieval functions, must
       support iteration using C{__iter__}
+    @type sort_by_name: boolean
+    @param sort_by_name: Whether to sort by name or keep the input data's
+      ordering
 
     """
+    sort = (self._name_fn and sort_by_name)
+
     result = []
 
     for idx, item in enumerate(ctx):
@@ -648,15 +653,16 @@ class Query:
       if __debug__:
         _VerifyResultRow(self._fields, row)
 
-      if self._name_fn:
+      if sort:
         (status, name) = _ProcessResult(self._name_fn(ctx, item))
         assert status == constants.RS_NORMAL
         # TODO: Are there cases where we wouldn't want to use NiceSort?
-        sortname = utils.NiceSortKey(name)
+        result.append((utils.NiceSortKey(name), idx, row))
       else:
-        sortname = None
+        result.append(row)
 
-      result.append((sortname, idx, row))
+    if not sort:
+      return result
 
     # TODO: Would "heapq" be more efficient than sorting?
 
@@ -667,7 +673,7 @@ class Query:
 
     return map(operator.itemgetter(2), result)
 
-  def OldStyleQuery(self, ctx):
+  def OldStyleQuery(self, ctx, sort_by_name=True):
     """Query with "old" query result format.
 
     See L{Query.Query} for arguments.
@@ -681,7 +687,7 @@ class Query:
                                  errors.ECODE_INVAL)
 
     return [[value for (_, value) in row]
-            for row in self.Query(ctx)]
+            for row in self.Query(ctx, sort_by_name=sort_by_name)]
 
 
 def _ProcessResult(value):
@@ -776,14 +782,17 @@ def _PrepareFieldList(fields, aliases):
   return result
 
 
-def GetQueryResponse(query, ctx):
+def GetQueryResponse(query, ctx, sort_by_name=True):
   """Prepares the response for a query.
 
   @type query: L{Query}
   @param ctx: Data container, see L{Query.Query}
+  @type sort_by_name: boolean
+  @param sort_by_name: Whether to sort by name or keep the input data's
+    ordering
 
   """
-  return objects.QueryResponse(data=query.Query(ctx),
+  return objects.QueryResponse(data=query.Query(ctx, sort_by_name=sort_by_name),
                                fields=query.GetFields()).ToDict()
 
 

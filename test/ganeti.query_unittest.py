@@ -1118,6 +1118,99 @@ class TestQueryFilter(unittest.TestCase):
       ["node1", "node44"],
       ])
 
+    # Name field, but no sorting, result must be in incoming order
+    q = query.Query(fielddefs, ["pnode", "snode"], namefield="pnode")
+    self.assertFalse(q.RequestedData())
+    self.assertEqual(q.Query(data, sort_by_name=False),
+      [[(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, "node44")],
+       [(constants.RS_NORMAL, "node30"), (constants.RS_NORMAL, "node90")],
+       [(constants.RS_NORMAL, "node25"), (constants.RS_NORMAL, "node1")],
+       [(constants.RS_NORMAL, "node20"), (constants.RS_NORMAL, "node1")]])
+    self.assertEqual(q.OldStyleQuery(data, sort_by_name=False), [
+      ["node1", "node44"],
+      ["node30", "node90"],
+      ["node25", "node1"],
+      ["node20", "node1"],
+      ])
+    self.assertEqual(q.Query(reversed(data), sort_by_name=False),
+      [[(constants.RS_NORMAL, "node20"), (constants.RS_NORMAL, "node1")],
+       [(constants.RS_NORMAL, "node25"), (constants.RS_NORMAL, "node1")],
+       [(constants.RS_NORMAL, "node30"), (constants.RS_NORMAL, "node90")],
+       [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, "node44")]])
+    self.assertEqual(q.OldStyleQuery(reversed(data), sort_by_name=False), [
+      ["node20", "node1"],
+      ["node25", "node1"],
+      ["node30", "node90"],
+      ["node1", "node44"],
+      ])
+
+  def testEqualNamesOrder(self):
+    fielddefs = query._PrepareFieldList([
+      (query._MakeField("pnode", "PNode", constants.QFT_TEXT, "Primary"),
+       None, 0, lambda ctx, item: item["pnode"]),
+      (query._MakeField("num", "Num", constants.QFT_NUMBER, "Num"),
+       None, 0, lambda ctx, item: item["num"]),
+      ], [])
+
+    data = [
+      { "pnode": "node1", "num": 100, },
+      { "pnode": "node1", "num": 25, },
+      { "pnode": "node2", "num": 90, },
+      { "pnode": "node2", "num": 30, },
+      ]
+
+    q = query.Query(fielddefs, ["pnode", "num"], namefield="pnode",
+                    filter_=["|", ["=", "pnode", "node1"],
+                                  ["=", "pnode", "node2"],
+                                  ["=", "pnode", "node1"]])
+    self.assertEqual(q.RequestedNames(), ["node1", "node2"],
+                     msg="Did not return unique names")
+    self.assertFalse(q.RequestedData())
+    self.assertEqual(q.Query(data),
+      [[(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, 100)],
+       [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, 25)],
+       [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, 90)],
+       [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, 30)]])
+    self.assertEqual(q.Query(data, sort_by_name=False),
+      [[(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, 100)],
+       [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, 25)],
+       [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, 90)],
+       [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, 30)]])
+
+    data = [
+      { "pnode": "nodeX", "num": 50, },
+      { "pnode": "nodeY", "num": 40, },
+      { "pnode": "nodeX", "num": 30, },
+      { "pnode": "nodeX", "num": 20, },
+      { "pnode": "nodeM", "num": 10, },
+      ]
+
+    q = query.Query(fielddefs, ["pnode", "num"], namefield="pnode",
+                    filter_=["|", ["=", "pnode", "nodeX"],
+                                  ["=", "pnode", "nodeY"],
+                                  ["=", "pnode", "nodeY"],
+                                  ["=", "pnode", "nodeY"],
+                                  ["=", "pnode", "nodeM"]])
+    self.assertEqual(q.RequestedNames(), ["nodeX", "nodeY", "nodeM"],
+                     msg="Did not return unique names")
+    self.assertFalse(q.RequestedData())
+
+    # First sorted by name, then input order
+    self.assertEqual(q.Query(data, sort_by_name=True),
+      [[(constants.RS_NORMAL, "nodeM"), (constants.RS_NORMAL, 10)],
+       [(constants.RS_NORMAL, "nodeX"), (constants.RS_NORMAL, 50)],
+       [(constants.RS_NORMAL, "nodeX"), (constants.RS_NORMAL, 30)],
+       [(constants.RS_NORMAL, "nodeX"), (constants.RS_NORMAL, 20)],
+       [(constants.RS_NORMAL, "nodeY"), (constants.RS_NORMAL, 40)]])
+
+    # Input order
+    self.assertEqual(q.Query(data, sort_by_name=False),
+      [[(constants.RS_NORMAL, "nodeX"), (constants.RS_NORMAL, 50)],
+       [(constants.RS_NORMAL, "nodeY"), (constants.RS_NORMAL, 40)],
+       [(constants.RS_NORMAL, "nodeX"), (constants.RS_NORMAL, 30)],
+       [(constants.RS_NORMAL, "nodeX"), (constants.RS_NORMAL, 20)],
+       [(constants.RS_NORMAL, "nodeM"), (constants.RS_NORMAL, 10)]])
+
   def testFilter(self):
     (DK_A, DK_B) = range(1000, 1002)
 
