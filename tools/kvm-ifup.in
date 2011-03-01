@@ -34,7 +34,7 @@ fi
 
 ip link set $INTERFACE up
 
-if [ "$MODE" == "bridged" ]; then
+if [ "$MODE" = "bridged" ]; then
 	# Connect the interface to the bridge
 	brctl addif $BRIDGE $INTERFACE
 else
