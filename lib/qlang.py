@@ -31,6 +31,7 @@ OP_AND = "&"
 
 # Unary operators
 OP_NOT = "!"
+OP_TRUE = "?"
 
 
 # Binary operators

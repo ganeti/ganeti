@@ -357,8 +357,7 @@ class _FilterCompilerHelper:
 
     - C{_OPTYPE_LOGIC}: Callable taking any number of arguments; used by
       L{_HandleLogicOp}
-    - C{_OPTYPE_UNARY}: Callable taking exactly one parameter; used by
-      L{_HandleUnaryOp}
+    - C{_OPTYPE_UNARY}: Always C{None}; details handled by L{_HandleUnaryOp}
     - C{_OPTYPE_BINARY}: Callable taking exactly two parameters, the left- and
       right-hand side of the operator, used by L{_HandleBinaryOp}
 
@@ -369,7 +368,8 @@ class _FilterCompilerHelper:
     qlang.OP_AND: (_OPTYPE_LOGIC, compat.all),
 
     # Unary operators
-    qlang.OP_NOT: (_OPTYPE_UNARY, operator.not_),
+    qlang.OP_NOT: (_OPTYPE_UNARY, None),
+    qlang.OP_TRUE: (_OPTYPE_UNARY, None),
 
     # Binary operators
     qlang.OP_EQUAL: (_OPTYPE_BINARY, _EQUALITY_CHECKS),
@@ -449,6 +449,15 @@ class _FilterCompilerHelper:
 
     return handler(hints_cb, level, op, op_data, operands)
 
+  def _LookupField(self, name):
+    """Returns a field definition by name.
+
+    """
+    try:
+      return self._fields[name]
+    except KeyError:
+      raise errors.ParameterError("Unknown field '%s'" % name)
+
   def _HandleLogicOp(self, hints_fn, level, op, op_fn, operands):
     """Handles logic operators.
 
@@ -485,6 +494,8 @@ class _FilterCompilerHelper:
     @param operands: List of operands
 
     """
+    assert op_fn is None
+
     if hints_fn:
       hints_fn(op)
 
@@ -492,8 +503,18 @@ class _FilterCompilerHelper:
       raise errors.ParameterError("Unary operator '%s' expects exactly one"
                                   " operand" % op)
 
-    return compat.partial(_WrapUnaryOp, op_fn,
-                          self._Compile(operands[0], level + 1))
+    if op == qlang.OP_TRUE:
+      (_, _, _, retrieval_fn) = self._LookupField(operands[0])
+
+      op_fn = operator.truth
+      arg = retrieval_fn
+    elif op == qlang.OP_NOT:
+      op_fn = operator.not_
+      arg = self._Compile(operands[0], level + 1)
+    else:
+      raise errors.ProgrammerError("Can't handle operator '%s'" % op)
+
+    return compat.partial(_WrapUnaryOp, op_fn, arg)
 
   def _HandleBinaryOp(self, hints_fn, level, op, op_data, operands):
     """Handles binary operators.
@@ -516,10 +537,7 @@ class _FilterCompilerHelper:
       raise errors.ParameterError("Invalid binary operator, expected exactly"
                                   " two operands")
 
-    try:
-      (fdef, datakind, field_flags, retrieval_fn) = self._fields[name]
-    except KeyError:
-      raise errors.ParameterError("Unknown field '%s'" % name)
+    (fdef, datakind, field_flags, retrieval_fn) = self._LookupField(name)
 
     assert fdef.kind != QFT_UNKNOWN
 

@@ -1317,6 +1317,7 @@ class TestQueryFilter(unittest.TestCase):
       { "name": "node2", "other": ["x", "y", "bar"], },
       { "name": "node3", "other": "Hello", },
       { "name": "node1", "other": ["a", "b", "foo"], },
+      { "name": "empty", "other": []},
       ]
 
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
@@ -1341,6 +1342,21 @@ class TestQueryFilter(unittest.TestCase):
     self.assertEqual(q.OldStyleQuery(data), [
       ["node1", ["a", "b", "foo"]],
       ["node2", ["x", "y", "bar"]],
+      ])
+
+    # Boolean test
+    q = query.Query(fielddefs, ["name", "other"], namefield="name",
+                    filter_=["?", "other"])
+    self.assertEqual(q.OldStyleQuery(data), [
+      ["node1", ["a", "b", "foo"]],
+      ["node2", ["x", "y", "bar"]],
+      ["node3", "Hello"],
+      ])
+
+    q = query.Query(fielddefs, ["name", "other"], namefield="name",
+                    filter_=["!", ["?", "other"]])
+    self.assertEqual(q.OldStyleQuery(data), [
+      ["empty", []],
       ])
 
   def testFilterHostname(self):
@@ -1400,6 +1416,73 @@ class TestQueryFilter(unittest.TestCase):
     self.assertEqual(q.OldStyleQuery(data), [
       ["node2.example.com"],
       ["node2.example.net"],
+      ])
+
+  def testFilterBoolean(self):
+    fielddefs = query._PrepareFieldList([
+      (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
+       None, query.QFF_HOSTNAME, lambda ctx, item: item["name"]),
+      (query._MakeField("value", "Value", constants.QFT_BOOL, "Value"),
+       None, 0, lambda ctx, item: item["value"]),
+      ], [])
+
+    data = [
+      { "name": "node1", "value": False, },
+      { "name": "node2", "value": True, },
+      { "name": "node3", "value": True, },
+      ]
+
+    q = query.Query(fielddefs, ["name", "value"],
+                    filter_=["|", ["=", "value", False],
+                                  ["=", "value", True]])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, False)],
+      [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, True)],
+      [(constants.RS_NORMAL, "node3"), (constants.RS_NORMAL, True)],
+      ])
+
+    q = query.Query(fielddefs, ["name", "value"],
+                    filter_=["|", ["=", "value", False],
+                                  ["!", ["=", "value", False]]])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, False)],
+      [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, True)],
+      [(constants.RS_NORMAL, "node3"), (constants.RS_NORMAL, True)],
+      ])
+
+    # Comparing bool with string
+    for i in ["False", "True", "0", "1", "no", "yes", "N", "Y"]:
+      self.assertRaises(errors.ParameterError, query.Query,
+                        fielddefs, ["name", "value"],
+                        filter_=["=", "value", i])
+
+    # Truth filter
+    q = query.Query(fielddefs, ["name", "value"], filter_=["?", "value"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, True)],
+      [(constants.RS_NORMAL, "node3"), (constants.RS_NORMAL, True)],
+      ])
+
+    # Negative bool filter
+    q = query.Query(fielddefs, ["name", "value"], filter_=["!", ["?", "value"]])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, False)],
+      ])
+
+    # Complex truth filter
+    q = query.Query(fielddefs, ["name", "value"],
+                    filter_=["|", ["&", ["=", "name", "node1"],
+                                        ["!", ["?", "value"]]],
+                                  ["?", "value"]])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, False)],
+      [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, True)],
+      [(constants.RS_NORMAL, "node3"), (constants.RS_NORMAL, True)],
       ])
 
 
