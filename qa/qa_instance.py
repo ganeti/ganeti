@@ -148,6 +148,17 @@ def TestInstanceRename(rename_source, rename_target):
   _CheckSsconfInstanceList(rename_source)
   AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
   _CheckSsconfInstanceList(rename_target)
+  AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
+  _CheckSsconfInstanceList(rename_source)
+  qa_utils.AddToEtcHosts(["meeeeh-not-exists", rename_target])
+  try:
+    AssertCommand(["gnt-instance", "rename", rename_source, rename_target],
+                  fail=True)
+    _CheckSsconfInstanceList(rename_source)
+  finally:
+    qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
+  AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
+  _CheckSsconfInstanceList(rename_target)
 
 
 def TestInstanceFailover(instance):

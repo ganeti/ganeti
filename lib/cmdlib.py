@@ -5528,6 +5528,11 @@ class LUInstanceRename(LogicalUnit):
       hostname = netutils.GetHostname(name=new_name)
       self.LogInfo("Resolved given name '%s' to '%s'", new_name,
                    hostname.name)
+      if not utils.MatchNameComponent(self.op.new_name, [hostname.name]):
+        raise errors.OpPrereqError(("Resolved hostname '%s' does not look the"
+                                    " same as given hostname '%s'") %
+                                    (hostname.name, self.op.new_name),
+                                    errors.ECODE_INVAL)
       new_name = self.op.new_name = hostname.name
       if (self.op.ip_check and
           netutils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT)):

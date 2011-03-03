@@ -470,3 +470,44 @@ def _FormatWithColor(text, seq):
 FormatWarning = lambda text: _FormatWithColor(text, _WARNING_SEQ)
 FormatError = lambda text: _FormatWithColor(text, _ERROR_SEQ)
 FormatInfo = lambda text: _FormatWithColor(text, _INFO_SEQ)
+
+
+def AddToEtcHosts(hostnames):
+  """Adds hostnames to /etc/hosts.
+
+  @param hostnames: List of hostnames first used A records, all other CNAMEs
+
+  """
+  master = qa_config.GetMasterNode()
+  tmp_hosts = UploadData(master["primary"], "", mode=0644)
+
+  quoted_tmp_hosts = utils.ShellQuote(tmp_hosts)
+  data = []
+  for localhost in ("::1", "127.0.0.1"):
+    data.append("%s %s" % (localhost, " ".join(hostnames)))
+
+  try:
+    AssertCommand(("cat /etc/hosts > %s && echo -e '%s' >> %s && mv %s"
+                   " /etc/hosts") % (quoted_tmp_hosts, "\\n".join(data),
+                                     quoted_tmp_hosts, quoted_tmp_hosts))
+  except qa_error.Error:
+    AssertCommand(["rm", tmp_hosts])
+
+
+def RemoveFromEtcHosts(hostnames):
+  """Remove hostnames from /etc/hosts.
+
+  @param hostnames: List of hostnames first used A records, all other CNAMEs
+
+  """
+  master = qa_config.GetMasterNode()
+  tmp_hosts = UploadData(master["primary"], "", mode=0644)
+  quoted_tmp_hosts = utils.ShellQuote(tmp_hosts)
+
+  sed_data = " ".join(hostnames)
+  try:
+    AssertCommand(("sed -e '/^\(::1\|127\.0\.0\.1\)\s\+%s/d' /etc/hosts > %s"
+                   " && mv %s /etc/hosts") % (sed_data, quoted_tmp_hosts,
+                                              quoted_tmp_hosts))
+  except qa_error.Error:
+    AssertCommand(["rm", tmp_hosts])
