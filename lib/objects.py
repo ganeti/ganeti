@@ -441,6 +441,8 @@ class Disk(ConfigObject):
     """
     if self.dev_type == constants.LD_LV:
       return "/dev/%s/%s" % (self.logical_id[0], self.logical_id[1])
+    elif self.dev_type == constants.LD_BLOCKDEV:
+      return self.logical_id[1]
     return None
 
   def ChildrenNeeded(self):
@@ -483,7 +485,8 @@ class Disk(ConfigObject):
     devices needs to (or can) be assembled.
 
     """
-    if self.dev_type in [constants.LD_LV, constants.LD_FILE]:
+    if self.dev_type in [constants.LD_LV, constants.LD_FILE,
+                         constants.LD_BLOCKDEV]:
       result = [node]
     elif self.dev_type in constants.LDS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]

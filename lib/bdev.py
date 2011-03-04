@@ -24,6 +24,7 @@
 import re
 import time
 import errno
+import stat
 import pyparsing as pyp
 import os
 import logging
@@ -2069,9 +2070,120 @@ class FileStorage(BlockDev):
     return FileStorage(unique_id, children, size)
 
 
+class PersistentBlockDevice(BlockDev):
+  """A block device with persistent node
+
+  May be either directly attached, or exposed through DM (e.g. dm-multipath).
+  udev helpers are probably required to give persistent, human-friendly
+  names.
+
+  For the time being, pathnames are required to lie under /dev.
+
+  """
+  def __init__(self, unique_id, children, size):
+    """Attaches to a static block device.
+
+    The unique_id is a path under /dev.
+
+    """
+    super(PersistentBlockDevice, self).__init__(unique_id, children, size)
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    self.dev_path = unique_id[1]
+    if not os.path.realpath(self.dev_path).startswith('/dev/'):
+      raise ValueError("Full path '%s' lies outside /dev" %
+                              os.path.realpath(self.dev_path))
+    # TODO: this is just a safety guard checking that we only deal with devices
+    # we know how to handle. In the future this will be integrated with
+    # external storage backends and possible values will probably be collected
+    # from the cluster configuration.
+    if unique_id[0] != constants.BLOCKDEV_DRIVER_MANUAL:
+      raise ValueError("Got persistent block device of invalid type: %s" %
+                       unique_id[0])
+
+    self.major = self.minor = None
+    self.Attach()
+
+  @classmethod
+  def Create(cls, unique_id, children, size):
+    """Create a new device
+
+    This is a noop, we only return a PersistentBlockDevice instance
+
+    """
+    return PersistentBlockDevice(unique_id, children, 0)
+
+  def Remove(self):
+    """Remove a device
+
+    This is a noop
+
+    """
+    pass
+
+  def Rename(self, new_id):
+    """Rename this device.
+
+    """
+    _ThrowError("Rename is not supported for PersistentBlockDev storage")
+
+  def Attach(self):
+    """Attach to an existing block device.
+
+
+    """
+    self.attached = False
+    try:
+      st = os.stat(self.dev_path)
+    except OSError, err:
+      logging.error("Error stat()'ing %s: %s", self.dev_path, str(err))
+      return False
+
+    if not stat.S_ISBLK(st.st_mode):
+      logging.error("%s is not a block device", self.dev_path)
+      return False
+
+    self.major = os.major(st.st_rdev)
+    self.minor = os.minor(st.st_rdev)
+    self.attached = True
+
+    return True
+
+  def Assemble(self):
+    """Assemble the device.
+
+    """
+    pass
+
+  def Shutdown(self):
+    """Shutdown the device.
+
+    """
+    pass
+
+  def Open(self, force=False):
+    """Make the device ready for I/O.
+
+    """
+    pass
+
+  def Close(self):
+    """Notifies that the device will no longer be used for I/O.
+
+    """
+    pass
+
+  def Grow(self, amount):
+    """Grow the logical volume.
+
+    """
+    _ThrowError("Grow is not supported for PersistentBlockDev storage")
+
+
 DEV_MAP = {
   constants.LD_LV: LogicalVolume,
   constants.LD_DRBD8: DRBD8,
+  constants.LD_BLOCKDEV: PersistentBlockDevice,
   }
 
 if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:

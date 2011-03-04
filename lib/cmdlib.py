@@ -6661,6 +6661,19 @@ def _GenerateDiskTemplate(lu, template_name,
                                                          disk_index)),
                               mode=disk["mode"])
       disks.append(disk_dev)
+  elif template_name == constants.DT_BLOCK:
+    if len(secondary_nodes) != 0:
+      raise errors.ProgrammerError("Wrong template configuration")
+
+    for idx, disk in enumerate(disk_info):
+      disk_index = idx + base_index
+      disk_dev = objects.Disk(dev_type=constants.LD_BLOCKDEV, size=disk["size"],
+                              logical_id=(constants.BLOCKDEV_DRIVER_MANUAL,
+                                          disk["adopt"]),
+                              iv_name="disk/%d" % disk_index,
+                              mode=disk["mode"])
+      disks.append(disk_dev)
+
   else:
     raise errors.ProgrammerError("Invalid disk template '%s'" % template_name)
   return disks
@@ -6887,6 +6900,7 @@ def _ComputeDiskSize(disk_template, disks):
     constants.DT_DRBD8: sum(d["size"] + 128 for d in disks),
     constants.DT_FILE: None,
     constants.DT_SHARED_FILE: 0,
+    constants.DT_BLOCK: 0,
   }
 
   if disk_template not in req_size_dict:
@@ -7022,6 +7036,12 @@ class LUInstanceCreate(LogicalUnit):
       if self.op.mode == constants.INSTANCE_IMPORT:
         raise errors.OpPrereqError("Disk adoption not allowed for"
                                    " instance import", errors.ECODE_INVAL)
+    else:
+      if self.op.disk_template in constants.DTS_MUST_ADOPT:
+        raise errors.OpPrereqError("Disk template %s requires disk adoption,"
+                                   " but no 'adopt' parameter given" %
+                                   self.op.disk_template,
+                                   errors.ECODE_INVAL)
 
     self.adopt_disks = has_adopt
 
@@ -7614,7 +7634,7 @@ class LUInstanceCreate(LogicalUnit):
       req_sizes = _ComputeDiskSizePerVG(self.op.disk_template, self.disks)
       _CheckNodesFreeDiskPerVG(self, nodenames, req_sizes)
 
-    else: # instead, we must check the adoption data
+    elif self.op.disk_template == constants.DT_PLAIN: # Check the adoption data
       all_lvs = set([i["vg"] + "/" + i["adopt"] for i in self.disks])
       if len(all_lvs) != len(self.disks):
         raise errors.OpPrereqError("Duplicate volume names given for adoption",
@@ -7649,6 +7669,34 @@ class LUInstanceCreate(LogicalUnit):
       # update the size of disk based on what is found
       for dsk in self.disks:
         dsk["size"] = int(float(node_lvs[dsk["vg"] + "/" + dsk["adopt"]][0]))
+
+    elif self.op.disk_template == constants.DT_BLOCK:
+      # Normalize and de-duplicate device paths
+      all_disks = set([os.path.abspath(i["adopt"]) for i in self.disks])
+      if len(all_disks) != len(self.disks):
+        raise errors.OpPrereqError("Duplicate disk names given for adoption",
+                                   errors.ECODE_INVAL)
+      baddisks = [d for d in all_disks
+                  if not d.startswith(constants.ADOPTABLE_BLOCKDEV_ROOT)]
+      if baddisks:
+        raise errors.OpPrereqError("Device node(s) %s lie outside %s and"
+                                   " cannot be adopted" %
+                                   (", ".join(baddisks),
+                                    constants.ADOPTABLE_BLOCKDEV_ROOT),
+                                   errors.ECODE_INVAL)
+
+      node_disks = self.rpc.call_bdev_sizes([pnode.name],
+                                            list(all_disks))[pnode.name]
+      node_disks.Raise("Cannot get block device information from node %s" %
+                       pnode.name)
+      node_disks = node_disks.payload
+      delta = all_disks.difference(node_disks.keys())
+      if delta:
+        raise errors.OpPrereqError("Missing block device(s): %s" %
+                                   utils.CommaJoin(delta),
+                                   errors.ECODE_INVAL)
+      for dsk in self.disks:
+        dsk["size"] = int(float(node_disks[dsk["adopt"]]))
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
@@ -7721,17 +7769,18 @@ class LUInstanceCreate(LogicalUnit):
                             )
 
     if self.adopt_disks:
-      # rename LVs to the newly-generated names; we need to construct
-      # 'fake' LV disks with the old data, plus the new unique_id
-      tmp_disks = [objects.Disk.FromDict(v.ToDict()) for v in disks]
-      rename_to = []
-      for t_dsk, a_dsk in zip (tmp_disks, self.disks):
-        rename_to.append(t_dsk.logical_id)
-        t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk["adopt"])
-        self.cfg.SetDiskID(t_dsk, pnode_name)
-      result = self.rpc.call_blockdev_rename(pnode_name,
-                                             zip(tmp_disks, rename_to))
-      result.Raise("Failed to rename adoped LVs")
+      if self.op.disk_template == constants.DT_PLAIN:
+        # rename LVs to the newly-generated names; we need to construct
+        # 'fake' LV disks with the old data, plus the new unique_id
+        tmp_disks = [objects.Disk.FromDict(v.ToDict()) for v in disks]
+        rename_to = []
+        for t_dsk, a_dsk in zip (tmp_disks, self.disks):
+          rename_to.append(t_dsk.logical_id)
+          t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk["adopt"])
+          self.cfg.SetDiskID(t_dsk, pnode_name)
+        result = self.rpc.call_blockdev_rename(pnode_name,
+                                               zip(tmp_disks, rename_to))
+        result.Raise("Failed to rename adoped LVs")
     else:
       feedback_fn("* creating instance disks...")
       try:

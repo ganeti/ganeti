@@ -120,6 +120,7 @@ CRYPTO_KEYS_DIR = RUN_GANETI_DIR + "/crypto"
 CRYPTO_KEYS_DIR_MODE = SECURE_DIR_MODE
 IMPORT_EXPORT_DIR = RUN_GANETI_DIR + "/import-export"
 IMPORT_EXPORT_DIR_MODE = 0755
+ADOPTABLE_BLOCKDEV_ROOT = "/dev/disk/"
 # keep RUN_GANETI_DIR first here, to make sure all get created when the node
 # daemon is started (this takes care of RUN_DIR being tmpfs)
 SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
@@ -363,21 +364,25 @@ DT_PLAIN = "plain"
 DT_DRBD8 = "drbd"
 DT_FILE = "file"
 DT_SHARED_FILE = "sharedfile"
+DT_BLOCK = "blockdev"
 
 # the set of network-mirrored disk templates
 DTS_NET_MIRROR = frozenset([DT_DRBD8])
 
-# the set of externally mirrored disk templates
-DTS_EXT_MIRROR = frozenset([DT_SHARED_FILE])
+# the set of externally-mirrored disk templates (e.g. SAN, NAS)
+DTS_EXT_MIRROR = frozenset([DT_SHARED_FILE, DT_BLOCK])
 
 # the set of non-lvm-based disk templates
-DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE, DT_SHARED_FILE])
+DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE, DT_SHARED_FILE, DT_BLOCK])
 
 # the set of disk templates which can be grown
 DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE, DT_SHARED_FILE])
 
 # the set of disk templates that allow adoption
-DTS_MAY_ADOPT = frozenset([DT_PLAIN])
+DTS_MAY_ADOPT = frozenset([DT_PLAIN, DT_BLOCK])
+
+# the set of disk templates that *must* use adoption
+DTS_MUST_ADOPT = frozenset([DT_BLOCK])
 
 # the set of disk templates that allow migrations
 DTS_MIRRORED = frozenset.union(DTS_NET_MIRROR, DTS_EXT_MIRROR)
@@ -387,7 +392,8 @@ DTS_MIRRORED = frozenset.union(DTS_NET_MIRROR, DTS_EXT_MIRROR)
 LD_LV = "lvm"
 LD_DRBD8 = "drbd8"
 LD_FILE = "file"
-LDS_BLOCK = frozenset([LD_LV, LD_DRBD8])
+LD_BLOCKDEV = "blockdev"
+LDS_BLOCK = frozenset([LD_LV, LD_DRBD8, LD_BLOCKDEV])
 
 # drbd constants
 DRBD_HMAC_ALG = "md5"
@@ -460,7 +466,7 @@ RIE_CONNECT_RETRIES = 10
 CHILD_LINGER_TIMEOUT = 5.0
 
 DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN, DT_DRBD8,
-                            DT_FILE, DT_SHARED_FILE])
+                            DT_FILE, DT_SHARED_FILE, DT_BLOCK])
 
 FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])
 
@@ -1312,3 +1318,6 @@ VALID_ALLOC_POLICIES = [
   ALLOC_POLICY_LAST_RESORT,
   ALLOC_POLICY_UNALLOCABLE,
   ]
+
+# Temporary external/shared storage parameters
+BLOCKDEV_DRIVER_MANUAL = "manual"
