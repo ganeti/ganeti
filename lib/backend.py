@@ -647,6 +647,44 @@ def VerifyNode(what, cluster_name):
   return result
 
 
+def GetBlockDevSizes(devices):
+  """Return the size of the given block devices
+
+  @type devices: list
+  @param devices: list of block device nodes to query
+  @rtype: dict
+  @return:
+    dictionary of all block devices under /dev (key). The value is their
+    size in MiB.
+
+    {'/dev/disk/by-uuid/123456-12321231-312312-312': 124}
+
+  """
+  DEV_PREFIX = "/dev/"
+  blockdevs = {}
+
+  for devpath in devices:
+    if os.path.commonprefix([DEV_PREFIX, devpath]) != DEV_PREFIX:
+      continue
+
+    try:
+      st = os.stat(devpath)
+    except EnvironmentError, err:
+      logging.warning("Error stat()'ing device %s: %s", devpath, str(err))
+      continue
+
+    if stat.S_ISBLK(st.st_mode):
+      result = utils.RunCmd(["blockdev", "--getsize64", devpath])
+      if result.failed:
+        # We don't want to fail, just do not list this device as available
+        logging.warning("Cannot get size for block device %s", devpath)
+        continue
+
+      size = int(result.stdout) / (1024 * 1024)
+      blockdevs[devpath] = size
+  return blockdevs
+
+
 def GetVolumeList(vg_names):
   """Compute list of logical volumes and their size.
 

@@ -590,6 +590,15 @@ class RpcRunner(object):
   #
 
   @_RpcTimeout(_TMO_URGENT)
+  def call_bdev_sizes(self, node_list, devices):
+    """Gets the sizes of requested block devices present on a node
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(node_list, "bdev_sizes", [devices])
+
+  @_RpcTimeout(_TMO_URGENT)
   def call_lv_list(self, node_list, vg_name):
     """Gets the logical volumes present in a given volume group.
 

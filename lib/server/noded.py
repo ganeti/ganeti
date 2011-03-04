@@ -457,6 +457,15 @@ class NodeHttpServer(http.server.HttpServer):
     export = params[0]
     return backend.RemoveExport(export)
 
+  # block device ---------------------
+  @staticmethod
+  def perspective_bdev_sizes(params):
+    """Query the list of block devices
+
+    """
+    devices = params[0]
+    return backend.GetBlockDevSizes(devices)
+
   # volume  --------------------------
 
   @staticmethod
