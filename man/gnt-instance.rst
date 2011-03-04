@@ -793,11 +793,11 @@ the IP it resolves to must not be reachable (in order to prevent
 duplicate IPs the next time the instance is started). The IP test
 can be skipped if the ``--no-ip-check`` option is passed.
 
-The ``--no-name-check`` skips the check for the new instance name
-via the resolver (e.g. in DNS or /etc/hosts, depending on your
-setup). Since the name check is used to compute the IP address, if
-you pass this option you must also pass the ``--no-ip-check``
-option.
+The ``--no-name-check`` skips the check for the new instance name via
+the resolver (e.g. in DNS or /etc/hosts, depending on your setup) and
+that the resolved name matches the provided name. Since the name check
+is used to compute the IP address, if you pass this option you must also
+pass the ``--no-ip-check`` option.
 
 The ``--submit`` option is used to send the job to the master
 daemon but not wait for its completion. The job ID will be shown so
@@ -1337,3 +1337,5 @@ be extended with the contents of that file (each line becomes a tag).
 In this case, there is not need to pass tags on the command line (if
 you do, tags from both sources will be removed). A file name of - will
 be interpreted as stdin.
+
+.. vim: set textwidth=72 :
