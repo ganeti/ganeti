@@ -195,6 +195,7 @@ def DiagnoseOS(opts, args):
       else:
         nodes_bad[node_name] = "OS not found"
 
+    # TODO: Shouldn't the global status be calculated by the LU?
     if nodes_valid and not nodes_bad:
       status = "valid"
     elif not nodes_valid and nodes_bad:

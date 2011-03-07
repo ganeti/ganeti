@@ -517,6 +517,13 @@ def TestRapiStoppedInstanceConsole(instance):
                          " return HTTP 503")
 
 
+def GetOperatingSystems():
+  """Retrieves a list of all available operating systems.
+
+  """
+  return _rapi_client.GetOperatingSystems()
+
+
 def TestInterClusterInstanceMove(src_instance, dest_instance,
                                  pnode, snode, tnode):
   """Test tools/move-instance"""
