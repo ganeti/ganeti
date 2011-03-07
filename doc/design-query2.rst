@@ -100,6 +100,8 @@ items:
   Jobs
 ``lock``
   Locks
+``os``
+  Operating systems
 
 .. _data-query:
 

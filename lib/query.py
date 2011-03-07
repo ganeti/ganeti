@@ -1888,6 +1888,52 @@ def _BuildGroupFields():
   return _PrepareFieldList(fields, [])
 
 
+class OsInfo(objects.ConfigObject):
+  __slots__ = [
+    "name",
+    "valid",
+    "hidden",
+    "blacklisted",
+    "variants",
+    "api_versions",
+    "parameters",
+    "node_status",
+    ]
+
+
+def _BuildOsFields():
+  """Builds list of fields for operating system queries.
+
+  """
+  fields = [
+    (_MakeField("name", "Name", QFT_TEXT, "Operating system name"),
+     None, 0, _GetItemAttr("name")),
+    (_MakeField("valid", "Valid", QFT_BOOL,
+                "Whether operating system definition is valid"),
+     None, 0, _GetItemAttr("valid")),
+    (_MakeField("hidden", "Hidden", QFT_BOOL,
+                "Whether operating system is hidden"),
+     None, 0, _GetItemAttr("hidden")),
+    (_MakeField("blacklisted", "Blacklisted", QFT_BOOL,
+                "Whether operating system is blacklisted"),
+     None, 0, _GetItemAttr("blacklisted")),
+    (_MakeField("variants", "Variants", QFT_OTHER,
+                "Operating system variants"),
+     None, 0, _ConvWrap(utils.NiceSort, _GetItemAttr("variants"))),
+    (_MakeField("api_versions", "ApiVersions", QFT_OTHER,
+                "Operating system API versions"),
+     None, 0, _ConvWrap(sorted, _GetItemAttr("api_versions"))),
+    (_MakeField("parameters", "Parameters", QFT_OTHER,
+                "Operating system parameters"),
+     None, 0, _ConvWrap(utils.NiceSort, _GetItemAttr("parameters"))),
+    (_MakeField("node_status", "NodeStatus", QFT_OTHER,
+                "Status from node"),
+     None, 0, _GetItemAttr("node_status")),
+    ]
+
+  return _PrepareFieldList(fields, [])
+
+
 #: Fields available for node queries
 NODE_FIELDS = _BuildNodeFields()
 
@@ -1900,12 +1946,16 @@ LOCK_FIELDS = _BuildLockFields()
 #: Fields available for node group queries
 GROUP_FIELDS = _BuildGroupFields()
 
+#: Fields available for operating system queries
+OS_FIELDS = _BuildOsFields()
+
 #: All available resources
 ALL_FIELDS = {
   constants.QR_INSTANCE: INSTANCE_FIELDS,
   constants.QR_NODE: NODE_FIELDS,
   constants.QR_LOCK: LOCK_FIELDS,
   constants.QR_GROUP: GROUP_FIELDS,
+  constants.QR_OS: OS_FIELDS,
   }
 
 #: All available field lists

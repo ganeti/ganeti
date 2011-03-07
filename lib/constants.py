@@ -1027,9 +1027,10 @@ QR_INSTANCE = "instance"
 QR_NODE = "node"
 QR_LOCK = "lock"
 QR_GROUP = "group"
+QR_OS = "os"
 
 #: List of resources which can be queried using L{opcodes.OpQuery}
-QR_OP_QUERY = frozenset([QR_INSTANCE, QR_NODE, QR_GROUP])
+QR_OP_QUERY = frozenset([QR_INSTANCE, QR_NODE, QR_GROUP, QR_OS])
 
 #: List of resources which can be queried using Local UniX Interface
 QR_OP_LUXI = QR_OP_QUERY.union([

@@ -3410,36 +3410,27 @@ class LUOobCommand(NoHooksLU):
       raise errors.OpExecError("Check of out-of-band payload failed due to %s" %
                                utils.CommaJoin(errs))
 
+class _OsQuery(_QueryBase):
+  FIELDS = query.OS_FIELDS
 
-
-class LUOsDiagnose(NoHooksLU):
-  """Logical unit for OS diagnose/query.
-
-  """
-  REQ_BGL = False
-  _HID = "hidden"
-  _BLK = "blacklisted"
-  _VLD = "valid"
-  _FIELDS_STATIC = utils.FieldSet()
-  _FIELDS_DYNAMIC = utils.FieldSet("name", _VLD, "node_status", "variants",
-                                   "parameters", "api_versions", _HID, _BLK)
-
-  def CheckArguments(self):
-    if self.op.names:
-      raise errors.OpPrereqError("Selective OS query not supported",
-                                 errors.ECODE_INVAL)
-
-    _CheckOutputFields(static=self._FIELDS_STATIC,
-                       dynamic=self._FIELDS_DYNAMIC,
-                       selected=self.op.output_fields)
-
-  def ExpandNames(self):
-    # Lock all nodes, in shared mode
+  def ExpandNames(self, lu):
+    # Lock all nodes in shared mode
     # Temporary removal of locks, should be reverted later
     # TODO: reintroduce locks when they are lighter-weight
-    self.needed_locks = {}
+    lu.needed_locks = {}
     #self.share_locks[locking.LEVEL_NODE] = 1
     #self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+
+    # The following variables interact with _QueryBase._GetNames
+    if self.names:
+      self.wanted = self.names
+    else:
+      self.wanted = locking.ALL_SET
+
+    self.do_locking = self.use_locking
+
+  def DeclareLocks(self, lu, level):
+    pass
 
   @staticmethod
   def _DiagnoseByOS(rlist):
@@ -3481,71 +3472,87 @@ class LUOsDiagnose(NoHooksLU):
                                         variants, params, api_versions))
     return all_os
 
-  def Exec(self, feedback_fn):
-    """Compute the list of OSes.
+  def _GetQueryData(self, lu):
+    """Computes the list of nodes and their attributes.
 
     """
-    valid_nodes = [node.name
-                   for node in self.cfg.GetAllNodesInfo().values()
-                   if not node.offline and node.vm_capable]
-    node_data = self.rpc.call_os_diagnose(valid_nodes)
-    pol = self._DiagnoseByOS(node_data)
-    output = []
-    cluster = self.cfg.GetClusterInfo()
+    # Locking is not used
+    assert not (lu.acquired_locks or self.do_locking or self.use_locking)
 
-    for os_name in utils.NiceSort(pol.keys()):
-      os_data = pol[os_name]
-      row = []
-      valid = True
-      (variants, params, api_versions) = null_state = (set(), set(), set())
+    # Used further down
+    assert "valid" in self.FIELDS
+    assert "hidden" in self.FIELDS
+    assert "blacklisted" in self.FIELDS
+
+    valid_nodes = [node.name
+                   for node in lu.cfg.GetAllNodesInfo().values()
+                   if not node.offline and node.vm_capable]
+    pol = self._DiagnoseByOS(lu.rpc.call_os_diagnose(valid_nodes))
+    cluster = lu.cfg.GetClusterInfo()
+
+    # Build list of used field names
+    fields = [fdef.name for fdef in self.query.GetFields()]
+
+    data = {}
+
+    for (os_name, os_data) in pol.items():
+      info = query.OsInfo(name=os_name, valid=True, node_status=os_data,
+                          hidden=(os_name in cluster.hidden_os),
+                          blacklisted=(os_name in cluster.blacklisted_os))
+
+      variants = set()
+      parameters = set()
+      api_versions = set()
+
       for idx, osl in enumerate(os_data.values()):
-        valid = bool(valid and osl and osl[0][1])
-        if not valid:
-          (variants, params, api_versions) = null_state
+        info.valid = bool(info.valid and osl and osl[0][1])
+        if not info.valid:
           break
-        node_variants, node_params, node_api = osl[0][3:6]
-        if idx == 0: # first entry
-          variants = set(node_variants)
-          params = set(node_params)
-          api_versions = set(node_api)
-        else: # keep consistency
+
+        (node_variants, node_params, node_api) = osl[0][3:6]
+        if idx == 0:
+          # First entry
+          variants.update(node_variants)
+          parameters.update(node_params)
+          api_versions.update(node_api)
+        else:
+          # Filter out inconsistent values
           variants.intersection_update(node_variants)
-          params.intersection_update(node_params)
+          parameters.intersection_update(node_params)
           api_versions.intersection_update(node_api)
 
-      is_hid = os_name in cluster.hidden_os
-      is_blk = os_name in cluster.blacklisted_os
-      if ((self._HID not in self.op.output_fields and is_hid) or
-          (self._BLK not in self.op.output_fields and is_blk) or
-          (self._VLD not in self.op.output_fields and not valid)):
+      info.variants = list(variants)
+      info.parameters = list(parameters)
+      info.api_versions = list(api_versions)
+
+      # TODO: Move this to filters provided by the client
+      if (("hidden" not in fields and info.hidden) or
+          ("blacklisted" not in fields and info.blacklisted) or
+          ("valid" not in fields and not info.valid)):
         continue
 
-      for field in self.op.output_fields:
-        if field == "name":
-          val = os_name
-        elif field == self._VLD:
-          val = valid
-        elif field == "node_status":
-          # this is just a copy of the dict
-          val = {}
-          for node_name, nos_list in os_data.items():
-            val[node_name] = nos_list
-        elif field == "variants":
-          val = utils.NiceSort(list(variants))
-        elif field == "parameters":
-          val = list(params)
-        elif field == "api_versions":
-          val = list(api_versions)
-        elif field == self._HID:
-          val = is_hid
-        elif field == self._BLK:
-          val = is_blk
-        else:
-          raise errors.ParameterError(field)
-        row.append(val)
-      output.append(row)
+      data[os_name] = info
 
-    return output
+    # Prepare data in requested order
+    return [data[name] for name in self._GetNames(lu, pol.keys(), None)
+            if name in data]
+
+
+class LUOsDiagnose(NoHooksLU):
+  """Logical unit for OS diagnose/query.
+
+  """
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    self.oq = _OsQuery(qlang.MakeSimpleFilter("name", self.op.names),
+                       self.op.output_fields, False)
+
+  def ExpandNames(self):
+    self.oq.ExpandNames(self)
+
+  def Exec(self, feedback_fn):
+    return self.oq.OldStyleQuery(self)
 
 
 class LUNodeRemove(LogicalUnit):
@@ -11643,7 +11650,10 @@ _QUERY_IMPL = {
   constants.QR_INSTANCE: _InstanceQuery,
   constants.QR_NODE: _NodeQuery,
   constants.QR_GROUP: _GroupQuery,
+  constants.QR_OS: _OsQuery,
   }
+
+assert set(_QUERY_IMPL.keys()) == constants.QR_OP_QUERY
 
 
 def _GetQueryImplementation(name):

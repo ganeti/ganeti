@@ -941,6 +941,58 @@ class TestGroupQuery(unittest.TestCase):
                       ])
 
 
+class TestOsQuery(unittest.TestCase):
+  def _Create(self, selected):
+    return query.Query(query.OS_FIELDS, selected)
+
+  def test(self):
+    variants = ["v00", "plain", "v3", "var0", "v33", "v20"]
+    api_versions = [10, 0, 15, 5]
+    parameters = ["zpar3", "apar9"]
+
+    assert variants != sorted(variants) and variants != utils.NiceSort(variants)
+    assert (api_versions != sorted(api_versions) and
+            api_versions != utils.NiceSort(variants))
+    assert (parameters != sorted(parameters) and
+            parameters != utils.NiceSort(parameters))
+
+    data = [
+      query.OsInfo(name="debian", valid=False, hidden=False, blacklisted=False,
+                   variants=set(), api_versions=set(), parameters=set(),
+                   node_status={ "some": "status", }),
+      query.OsInfo(name="dos", valid=True, hidden=False, blacklisted=True,
+                   variants=set(variants),
+                   api_versions=set(api_versions),
+                   parameters=set(parameters),
+                   node_status={ "some": "other", "status": None, }),
+      ]
+
+
+    q = self._Create(["name", "valid", "hidden", "blacklisted", "variants",
+                      "api_versions", "parameters", "node_status"])
+    self.assertEqual(q.RequestedData(), set([]))
+    self.assertEqual(q.Query(data),
+                     [[(constants.RS_NORMAL, "debian"),
+                       (constants.RS_NORMAL, False),
+                       (constants.RS_NORMAL, False),
+                       (constants.RS_NORMAL, False),
+                       (constants.RS_NORMAL, []),
+                       (constants.RS_NORMAL, []),
+                       (constants.RS_NORMAL, []),
+                       (constants.RS_NORMAL, {"some": "status"})],
+                      [(constants.RS_NORMAL, "dos"),
+                       (constants.RS_NORMAL, True),
+                       (constants.RS_NORMAL, False),
+                       (constants.RS_NORMAL, True),
+                       (constants.RS_NORMAL,
+                        ["plain", "v00", "v3", "v20", "v33", "var0"]),
+                       (constants.RS_NORMAL, [0, 5, 10, 15]),
+                       (constants.RS_NORMAL, ["apar9", "zpar3"]),
+                       (constants.RS_NORMAL,
+                        { "some": "other", "status": None, })
+                       ]])
+
+
 class TestQueryFields(unittest.TestCase):
   def testAllFields(self):
     for fielddefs in query.ALL_FIELD_LISTS:
