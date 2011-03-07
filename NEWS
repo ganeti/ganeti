@@ -15,6 +15,35 @@ Version 2.5.0 beta1
   "link" instead.
 
 
+Version 2.4.0
+-------------
+
+*(Released Mon, 07 Mar 2011)*
+
+Final 2.4.0 release. Just a few small fixes:
+
+- Fixed RAPI node evacuate
+- Fixed the kvm-ifup script
+- Fixed internal error handling for special job cases
+- Updated man page to specify the escaping feature for options
+
+
+Version 2.4.0 rc3
+-----------------
+
+*(Released Mon, 28 Feb 2011)*
+
+A critical fix for the ``prealloc_wipe_disks`` feature: it is possible
+that this feature wiped the disks of the wrong instance, leading to loss
+of data.
+
+Other changes:
+
+- Fixed title of query field containing instance name
+- Expanded the glossary in the documentation
+- Fixed one unittest (internal issue)
+
+
 Version 2.4.0 rc2
 -----------------
 
@@ -23,14 +52,14 @@ Version 2.4.0 rc2
 A number of bug fixes plus just a couple functionality changes.
 
 On the user-visible side, the ``gnt-* list`` command output has changed
-with respect to “special” field states. The current rc1 style of display
-can be re-enabled by passing a new ``-v, --verbose`` flag, but in the
-default output mode special fields are displayed as follows:
+with respect to "special" field states. The current rc1 style of display
+can be re-enabled by passing a new ``--verbose`` (``-v``) flag, but in
+the default output mode special fields states are displayed as follows:
 
-- offline field: ``*``
-- unavailable/not applicable: ``-``
-- data missing (RPC failure): ``?``
-- unknown field: ``??``
+- Offline resource: ``*``
+- Unavailable/not applicable: ``-``
+- Data missing (RPC failure): ``?``
+- Unknown field: ``??``
 
 Another user-visible change is the addition of ``--force-join`` to
 ``gnt-node add``.
@@ -38,16 +67,16 @@ Another user-visible change is the addition of ``--force-join`` to
 As for bug fixes:
 
 - ``tools/cluster-merge`` has seen many fixes and is now enabled again
-- fixed regression in RAPI/instance reinstall where all parameters were
+- Fixed regression in RAPI/instance reinstall where all parameters were
   required (instead of optional)
-- fixed ``gnt-cluster repair-disk-sizes``, was broken since Ganeti 2.2
-- fixed iallocator usage (offline nodes were not considered offline)
-- fixed ``gnt-node list`` with respect to non-vm_capable nodes
-- fixed hypervisor and OS parameter validation with respect to
+- Fixed ``gnt-cluster repair-disk-sizes``, was broken since Ganeti 2.2
+- Fixed iallocator usage (offline nodes were not considered offline)
+- Fixed ``gnt-node list`` with respect to non-vm_capable nodes
+- Fixed hypervisor and OS parameter validation with respect to
   non-vm_capable nodes
-- fixed ``gnt-cluster verify`` with respect to offline nodes (mostly
+- Fixed ``gnt-cluster verify`` with respect to offline nodes (mostly
   cosmetic)
-- fixed ``tools/listrunner`` with respect to agent-based usage
+- Fixed ``tools/listrunner`` with respect to agent-based usage
 
 
 Version 2.4.0 rc1
@@ -165,7 +194,7 @@ Integration
 ~~~~~~~~~~~
 
 - Moved ``rapi_users`` file into separate directory, now named
-  ``…/ganeti/rapi/users``, ``cfgupgrade`` moves the file and creates a
+  ``.../ganeti/rapi/users``, ``cfgupgrade`` moves the file and creates a
   symlink
 - Added new tool for running commands on many machines,
   ``tools/ganeti-listrunner``
@@ -350,7 +379,7 @@ Version 2.2.1 rc0
 
 *(Released Thu, 7 Oct 2010)*
 
-- Fixed issue 125, replace hardcoded “xenvg” in ``gnt-cluster`` with
+- Fixed issue 125, replace hardcoded "xenvg" in ``gnt-cluster`` with
   value retrieved from master
 - Added support for blacklisted or hidden OS definitions
 - Added simple lock monitor (accessible via (``gnt-debug locks``)
@@ -524,7 +553,7 @@ Some more bugfixes. Unless critical bugs occur, this will be the last
 
 - Fix case of MAC special-values
 - Fix mac checker regex
-- backend: Fix typo causing “out of range” error
+- backend: Fix typo causing "out of range" error
 - Add missing --units in gnt-instance list man page
 
 
@@ -821,7 +850,7 @@ Bug fixes
   directory (e.g. read-only file-system where we can't open the files
   read-write, etc.)
 - Fixed the behaviour of gnt-node modify for master candidate demotion;
-  now it either aborts cleanly or, if given the new “auto_promote”
+  now it either aborts cleanly or, if given the new "auto_promote"
   parameter, will automatically promote other nodes as needed
 - Fixed compatibility with (unreleased yet) Python 2.6.5 that would
   completely prevent Ganeti from working
@@ -850,7 +879,7 @@ Bug fixes
 New features
 ~~~~~~~~~~~~
 
-- Added an “early_release” more for instance replace disks and node
+- Added an "early_release" more for instance replace disks and node
   evacuate, where we release locks earlier and thus allow higher
   parallelism within the cluster
 - Added watcher hooks, intended to allow the watcher to restart other

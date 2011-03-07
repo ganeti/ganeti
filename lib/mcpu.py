@@ -401,8 +401,12 @@ class Processor(object):
     self.Log(" - INFO: %s" % message)
 
   def GetECId(self):
+    """Returns the current execution context ID.
+
+    """
     if not self._ec_id:
-      errors.ProgrammerError("Tried to use execution context id when not set")
+      raise errors.ProgrammerError("Tried to use execution context id when"
+                                   " not set")
     return self._ec_id
 
 

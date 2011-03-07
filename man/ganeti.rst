@@ -158,8 +158,11 @@ error
     stopped during the job execution.
 
 
-Common options
---------------
+Common command line features
+----------------------------
+
+Options
+~~~~~~~
 
 Many Ganeti commands provide the following options. The
 availability for a certain command can be checked by calling the
@@ -173,15 +176,8 @@ would succeed.
 The option ``--priority`` sets the priority for opcodes submitted
 by the command.
 
-
-Common daemon functionality
----------------------------
-
-All Ganeti daemons re-open the log file(s) when sent a SIGHUP signal.
-**logrotate**(8) can be used to rotate Ganeti's log files.
-
-Common field formatting
------------------------
+Field formatting
+----------------
 
 Multiple ganeti commands use the same framework for tabular listing of
 resources (e.g. **gnt-instance list**, **gnt-node list**, **gnt-group
@@ -214,3 +210,22 @@ verbose mode):
     are using a field that the running Ganeti master daemon doesn't
     know. This result is persistent, re-running the command won't
     change it.
+
+Key-value parameters
+~~~~~~~~~~~~~~~~~~~~
+
+Multiple options take parameters that are of the form
+``key=value,key=value,...`` or ``category:key=value,...``. Examples
+are the hypervisor parameters, backend parameters, etc. For these,
+it's possible to use values that contain commas by escaping with via a
+backslash (which needs two if not single-quoted, due to shell
+behaviour)::
+
+  # gnt-instance modify -H kernel_path=an\\,example instance1
+  # gnt-instance modify -H kernel_path='an\,example' instance1
+
+Common daemon functionality
+---------------------------
+
+All Ganeti daemons re-open the log file(s) when sent a SIGHUP signal.
+**logrotate**(8) can be used to rotate Ganeti's log files.

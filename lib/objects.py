@@ -1124,7 +1124,7 @@ class Cluster(TaggableObject):
     if self.modify_ssh_setup is None:
       self.modify_ssh_setup = True
 
-    # default_bridge is no longer used it 2.1. The slot is left there to
+    # default_bridge is no longer used in 2.1. The slot is left there to
     # support auto-upgrading. It can be removed once we decide to deprecate
     # upgrading straight from 2.0.
     if self.default_bridge is not None:

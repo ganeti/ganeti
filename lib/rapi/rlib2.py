@@ -431,7 +431,7 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
     result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)
 
     jobs = []
-    for iname, node in result:
+    for iname, node in result[0]:
       if dry_run:
         jid = None
       else:

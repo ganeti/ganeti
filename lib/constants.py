@@ -202,7 +202,7 @@ DEV_CONSOLE = "/dev/console"
 
 PROC_MOUNTS = "/proc/mounts"
 
-# luxi related constants
+# Local UniX Interface related constants
 LUXI_EOM = "\3"
 LUXI_VERSION = CONFIG_VERSION
 
@@ -661,7 +661,7 @@ HVS_PARAMETER_TYPES = {
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
 
-# BE parameter names
+# Backend parameter names
 BE_MEMORY = "memory"
 BE_VCPUS = "vcpus"
 BE_AUTO_BALANCE = "auto_balance"
@@ -1024,7 +1024,7 @@ QR_GROUP = "group"
 #: List of resources which can be queried using L{opcodes.OpQuery}
 QR_OP_QUERY = frozenset([QR_INSTANCE, QR_NODE, QR_GROUP])
 
-#: List of resources which can be queried using LUXI
+#: List of resources which can be queried using Local UniX Interface
 QR_OP_LUXI = QR_OP_QUERY.union([
   QR_LOCK,
   ])
