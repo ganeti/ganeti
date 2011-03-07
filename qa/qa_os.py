@@ -68,13 +68,13 @@ def _TestOsModify(hvp_dict, fail=False):
   AssertCommand(cmd, fail=fail)
 
 
-def _TestOsStates():
+def _TestOsStates(os_name):
   """gnt-os modify, more stuff"""
   cmd = ["gnt-os", "modify"]
 
   for param in ["hidden", "blacklisted"]:
     for val in ["yes", "no"]:
-      new_cmd = cmd + ["--%s" % param, val, _TEMP_OS_NAME]
+      new_cmd = cmd + ["--%s" % param, val, os_name]
       AssertCommand(new_cmd)
       # check that double-running the command is OK
       AssertCommand(new_cmd)
@@ -179,7 +179,7 @@ def TestOsModifyInvalid():
   return _TestOsModify(hv_dict, fail=True)
 
 
-def TestOsStates():
-  """Testing OS states"""
-
-  return _TestOsStates()
+def TestOsStatesNonExisting():
+  """Testing OS states with non-existing OS"""
+  AssertCommand(["test", "-e", _TEMP_OS_PATH], fail=True)
+  return _TestOsStates(_TEMP_OS_NAME)

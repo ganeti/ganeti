@@ -188,7 +188,7 @@ def RunOsTests():
     qa_os.TestOsPartiallyValid,
     qa_os.TestOsModifyValid,
     qa_os.TestOsModifyInvalid,
-    qa_os.TestOsStates,
+    qa_os.TestOsStatesNonExisting,
     ]:
     RunTestIf("os", fn)
 
