@@ -1,6 +1,19 @@
 News
 ====
 
+Version 2.4.0
+-------------
+
+*(Released Mon, 07 Mar 2011)*
+
+Final 2.4.0 release. Just a few small fixes:
+
+- Fixed RAPI node evacuate
+- Fixed the kvm-ifup script
+- Fixed internal error handling for special job cases
+- Updated man page to specify the escaping feature for options
+
+
 Version 2.4.0 rc3
 -----------------
 
