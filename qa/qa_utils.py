@@ -85,6 +85,14 @@ def AssertIn(item, sequence):
     raise qa_error.Error('%r not in %r' % (item, sequence))
 
 
+def AssertNotIn(item, sequence):
+  """Raises an error when item is in sequence.
+
+  """
+  if item in sequence:
+    raise qa_error.Error('%r in %r' % (item, sequence))
+
+
 def AssertEqual(first, second):
   """Raises an error when values aren't equal.
 
