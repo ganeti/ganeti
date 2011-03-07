@@ -38,6 +38,10 @@ from qa_utils import AssertCommand
 _TEMP_OS_NAME = "TEMP-Ganeti-QA-OS"
 _TEMP_OS_PATH = os.path.join(constants.OS_SEARCH_PATH[0], _TEMP_OS_NAME)
 
+(_ALL_VALID,
+ _ALL_INVALID,
+ _PARTIALLY_VALID) = range(1, 4)
+
 
 def TestOsList():
   """gnt-os list"""
@@ -120,15 +124,17 @@ def _TestOs(mode):
   try:
     for i, node in enumerate(qa_config.get("nodes")):
       nodes.append(node)
-      if mode == 0:
+      if mode == _ALL_INVALID:
         valid = False
-      elif mode == 1:
+      elif mode == _ALL_VALID:
         valid = True
-      else:
+      elif mode == _PARTIALLY_VALID:
         valid = bool(i % 2)
+      else:
+        raise AssertionError("Unknown mode %s" % mode)
       _SetupTempOs(node, dirname, valid)
 
-    AssertCommand(["gnt-os", "diagnose"], fail=not mode==1)
+    AssertCommand(["gnt-os", "diagnose"], fail=(mode != _ALL_VALID))
   finally:
     for node in nodes:
       _RemoveTempOs(node, dirname)
@@ -136,17 +142,17 @@ def _TestOs(mode):
 
 def TestOsValid():
   """Testing valid OS definition"""
-  return _TestOs(1)
+  return _TestOs(_ALL_VALID)
 
 
 def TestOsInvalid():
   """Testing invalid OS definition"""
-  return _TestOs(0)
+  return _TestOs(_ALL_INVALID)
 
 
 def TestOsPartiallyValid():
   """Testing partially valid OS definition"""
-  return _TestOs(2)
+  return _TestOs(_PARTIALLY_VALID)
 
 
 def TestOsModifyValid():
