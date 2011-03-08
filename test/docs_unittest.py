@@ -95,9 +95,10 @@ class TestDocs(unittest.TestCase):
     group_name = re.escape("[group_name]")
     job_id = re.escape("[job_id]")
     disk_index = re.escape("[disk_index]")
+    query_res = re.escape("[resource]")
 
     resources = connector.GetHandlers(node_name, instance_name, group_name,
-                                      job_id, disk_index)
+                                      job_id, disk_index, query_res)
 
     handler_dups = utils.FindDuplicates(resources.values())
     self.assertFalse(handler_dups,
@@ -110,6 +111,7 @@ class TestDocs(unittest.TestCase):
       re.compile(group_name): "group4440",
       re.compile(job_id): "9409",
       re.compile(disk_index): "123",
+      re.compile(query_res): "lock",
       }
 
     assert compat.all(VALID_URI_RE.match(value)

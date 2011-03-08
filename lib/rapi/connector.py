@@ -150,7 +150,8 @@ class R_2(baserlib.R_Generic):
 
 
 def GetHandlers(node_name_pattern, instance_name_pattern,
-                group_name_pattern, job_id_pattern, disk_pattern):
+                group_name_pattern, job_id_pattern, disk_pattern,
+                query_res_pattern):
   """Returns all supported resources and their handlers.
 
   """
@@ -246,4 +247,5 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
 
 
 CONNECTOR.update(GetHandlers(_NAME_PATTERN, _NAME_PATTERN, _NAME_PATTERN,
-                             constants.JOB_ID_TEMPLATE, _DISK_PATTERN))
+                             constants.JOB_ID_TEMPLATE, _DISK_PATTERN,
+                             _NAME_PATTERN))
