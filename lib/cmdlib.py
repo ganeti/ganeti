@@ -3479,19 +3479,11 @@ class _OsQuery(_QueryBase):
     # Locking is not used
     assert not (lu.acquired_locks or self.do_locking or self.use_locking)
 
-    # Used further down
-    assert "valid" in self.FIELDS
-    assert "hidden" in self.FIELDS
-    assert "blacklisted" in self.FIELDS
-
     valid_nodes = [node.name
                    for node in lu.cfg.GetAllNodesInfo().values()
                    if not node.offline and node.vm_capable]
     pol = self._DiagnoseByOS(lu.rpc.call_os_diagnose(valid_nodes))
     cluster = lu.cfg.GetClusterInfo()
-
-    # Build list of used field names
-    fields = [fdef.name for fdef in self.query.GetFields()]
 
     data = {}
 
@@ -3525,12 +3517,6 @@ class _OsQuery(_QueryBase):
       info.parameters = list(parameters)
       info.api_versions = list(api_versions)
 
-      # TODO: Move this to filters provided by the client
-      if (("hidden" not in fields and info.hidden) or
-          ("blacklisted" not in fields and info.blacklisted) or
-          ("valid" not in fields and not info.valid)):
-        continue
-
       data[os_name] = info
 
     # Prepare data in requested order
@@ -3544,8 +3530,35 @@ class LUOsDiagnose(NoHooksLU):
   """
   REQ_BGL = False
 
+  @staticmethod
+  def _BuildFilter(fields, names):
+    """Builds a filter for querying OSes.
+
+    """
+    name_filter = qlang.MakeSimpleFilter("name", names)
+
+    # Legacy behaviour: Hide hidden, blacklisted or invalid OSes if the
+    # respective field is not requested
+    status_filter = [[qlang.OP_NOT, [qlang.OP_TRUE, fname]]
+                     for fname in ["hidden", "blacklisted"]
+                     if fname not in fields]
+    if "valid" not in fields:
+      status_filter.append([qlang.OP_TRUE, "valid"])
+
+    if status_filter:
+      status_filter.insert(0, qlang.OP_AND)
+    else:
+      status_filter = None
+
+    if name_filter and status_filter:
+      return [qlang.OP_AND, name_filter, status_filter]
+    elif name_filter:
+      return name_filter
+    else:
+      return status_filter
+
   def CheckArguments(self):
-    self.oq = _OsQuery(qlang.MakeSimpleFilter("name", self.op.names),
+    self.oq = _OsQuery(self._BuildFilter(self.op.output_fields, self.op.names),
                        self.op.output_fields, False)
 
   def ExpandNames(self):
