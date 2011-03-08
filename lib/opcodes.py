@@ -670,10 +670,14 @@ class OpQueryFields(OpCode):
 class OpOobCommand(OpCode):
   """Interact with OOB."""
   OP_PARAMS = [
-    ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
-    ("command", None, ht.TElemOf(constants.OOB_COMMANDS), None),
-    ("timeout", constants.OOB_TIMEOUT, ht.TInt, None),
-    ("ignore_status", False, ht.TBool, None),
+    ("node_names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
+     "List of nodes to run the OOB command against"),
+    ("command", None, ht.TElemOf(constants.OOB_COMMANDS),
+     "OOB command to be run"),
+    ("timeout", constants.OOB_TIMEOUT, ht.TInt,
+     "Timeout before the OOB helper will be terminated"),
+    ("ignore_status", False, ht.TBool,
+     "Ignores the node offline status for power off"),
     ]
 
 
