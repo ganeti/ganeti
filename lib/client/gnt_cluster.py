@@ -949,7 +949,8 @@ def _InstanceStart(opts, inst_list, start):
     opcls = opcodes.OpInstanceStartup
     text_submit, text_success, text_failed = ("startup", "started", "starting")
   else:
-    opcls = opcodes.OpInstanceShutdown
+    opcls = compat.partial(opcodes.OpInstanceShutdown,
+                           timeout=opts.shutdown_timeout)
     text_submit, text_success, text_failed = ("shutdown", "stopped", "stopping")
 
   jex = JobExecutor(opts=opts)
@@ -1312,7 +1313,8 @@ commands = {
     "Renews cluster certificates, keys and secrets"),
   "epo": (
     Epo, [ArgUnknown()],
-    [FORCE_OPT, ON_OPT, GROUPS_OPT, ALL_OPT, OOB_TIMEOUT_OPT],
+    [FORCE_OPT, ON_OPT, GROUPS_OPT, ALL_OPT, OOB_TIMEOUT_OPT,
+     SHUTDOWN_TIMEOUT_OPT],
     "[opts...] [args]",
     "Performs an emergency power-off on given args"),
   }
