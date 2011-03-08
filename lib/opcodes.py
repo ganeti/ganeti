@@ -109,6 +109,9 @@ _PNodeGroupAllocPolicy = \
 _PGroupNodeParams = ("ndparams", None, ht.TMaybeDict,
                      "Default node parameters for group")
 
+_PQueryWhat = ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY),
+               "Resource(s) to query for")
+
 _PIpCheckDoc = "Whether to ensure instance's IP address is inactive"
 
 #: OP_ID conversion regular expression
@@ -644,8 +647,7 @@ class OpQuery(OpCode):
 
   """
   OP_PARAMS = [
-    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY),
-     "Resource(s) to query for"),
+    _PQueryWhat,
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "Requested fields"),
     ("filter", None, ht.TOr(ht.TNone,
@@ -662,8 +664,9 @@ class OpQueryFields(OpCode):
 
   """
   OP_PARAMS = [
-    ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY), None),
-    ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)), None),
+    _PQueryWhat,
+    ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+     "Requested fields; if not given, all are returned"),
     ]
 
 
