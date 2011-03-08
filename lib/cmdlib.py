@@ -3249,6 +3249,8 @@ class LUOobCommand(NoHooksLU):
     self.nodes = []
     self.master_node = self.cfg.GetMasterNode()
 
+    assert self.op.power_delay >= 0.0
+
     if self.op.node_names:
       if self.op.command in self._SKIP_MASTER:
         if self.master_node in self.op.node_names:
@@ -3312,7 +3314,7 @@ class LUOobCommand(NoHooksLU):
     master_node = self.master_node
     ret = []
 
-    for node in self.nodes:
+    for idx, node in enumerate(self.nodes):
       node_entry = [(constants.RS_NORMAL, node.name)]
       ret.append(node_entry)
 
@@ -3365,6 +3367,10 @@ class LUOobCommand(NoHooksLU):
             self.cfg.Update(node, feedback_fn)
 
           node_entry.append((constants.RS_NORMAL, result.payload))
+
+          if (self.op.command == constants.OOB_POWER_ON and
+              idx < len(self.nodes) - 1):
+            time.sleep(self.op.power_delay)
 
     return ret
 

@@ -267,6 +267,10 @@ TPositiveInt = \
 TStrictPositiveInt = \
   TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
 
+#: a positive float
+TPositiveFloat = \
+  TAnd(TFloat, WithDesc("EqualGreaterZero")(lambda v: v >= 0.0))
+
 
 def TListOf(my_type):
   """Checks if a given value is a list with all elements of the same type.

@@ -678,6 +678,8 @@ class OpOobCommand(OpCode):
      "Timeout before the OOB helper will be terminated"),
     ("ignore_status", False, ht.TBool,
      "Ignores the node offline status for power off"),
+    ("power_delay", constants.OOB_POWER_DELAY, ht.TPositiveFloat,
+     "Time in seconds to wait between powering on nodes"),
     ]
 
 
