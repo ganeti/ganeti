@@ -5716,7 +5716,6 @@ class LUInstanceFailover(LogicalUnit):
     """
     self.iallocator = getattr(self.op, "iallocator", None)
     self.target_node = getattr(self.op, "target_node", None)
-    _CheckIAllocatorOrNode(self, "iallocator", "target_node")
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -5784,6 +5783,7 @@ class LUInstanceFailover(LogicalUnit):
                                  errors.ECODE_STATE)
 
     if instance.disk_template in constants.DTS_EXT_MIRROR:
+      _CheckIAllocatorOrNode(self, "iallocator", "target_node")
       if self.op.iallocator:
         self._RunAllocator()
         # Release all unnecessary node locks
@@ -5805,6 +5805,13 @@ class LUInstanceFailover(LogicalUnit):
                                         instance.disk_template)
       target_node = secondary_nodes[0]
 
+      if self.op.iallocator or (self.op.target_node and
+                                self.op.target_node != target_node):
+        raise errors.OpPrereqError("Instances with disk template %s cannot"
+                                   " be failed over to arbitrary nodes"
+                                   " (neither an iallocator nor a target"
+                                   " node can be passed)" %
+                                   instance.disk_template, errors.ECODE_INVAL)
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
 
@@ -5933,9 +5940,6 @@ class LUInstanceMigrate(LogicalUnit):
   HPATH = "instance-migrate"
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
-
-  def CheckArguments(self):
-    _CheckIAllocatorOrNode(self, "iallocator", "target_node")
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -6272,9 +6276,7 @@ class TLMigrateInstance(Tasklet):
                                  errors.ECODE_STATE)
 
     if instance.disk_template in constants.DTS_EXT_MIRROR:
-      if [self.iallocator, self.target_node].count(None) != 1:
-        raise errors.OpPrereqError("Do not specify both, iallocator and"
-                                   " target node", errors.ECODE_INVAL)
+      _CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
       if self.iallocator:
         self._RunAllocator()
@@ -6298,6 +6300,13 @@ class TLMigrateInstance(Tasklet):
                                         " %s disk template" %
                                         instance.disk_template)
       target_node = secondary_nodes[0]
+      if self.lu.op.iallocator or (self.lu.op.target_node and
+                                   self.lu.op.target_node != target_node):
+        raise errors.OpPrereqError("Instances with disk template %s cannot"
+                                   " be migrated over to arbitrary nodes"
+                                   " (neither an iallocator nor a target"
+                                   " node can be passed)" %
+                                   instance.disk_template, errors.ECODE_INVAL)
 
     i_be = self.cfg.GetClusterInfo().FillBE(instance)
 
