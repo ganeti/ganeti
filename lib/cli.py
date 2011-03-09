@@ -135,6 +135,7 @@ __all__ = [
   "OS_OPT",
   "OS_SIZE_OPT",
   "OOB_TIMEOUT_OPT",
+  "POWER_DELAY_OPT",
   "PREALLOC_WIPE_DISKS_OPT",
   "PRIMARY_IP_VERSION_OPT",
   "PRIORITY_OPT",
@@ -1169,6 +1170,10 @@ NODE_POWERED_OPT = cli_option("--node-powered", default=None,
 OOB_TIMEOUT_OPT = cli_option("--oob-timeout", dest="oob_timeout", type="int",
                          default=constants.OOB_TIMEOUT,
                          help="Maximum time to wait for out-of-band helper")
+
+POWER_DELAY_OPT = cli_option("--power-delay", dest="power_delay", type="float",
+                             default=constants.OOB_POWER_DELAY,
+                             help="Time in seconds to wait between power-ons")
 
 
 #: Options provided by all commands
