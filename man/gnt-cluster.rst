@@ -96,19 +96,23 @@ argument *--yes-do-it.*
 EPO
 ~~~
 
-**epo** [--on] [--groups|--all] *arguments*
+**epo** [--on] [--groups|--all] [--power-delay] *arguments*
 
-Performs an emergency power-off on nodes given as arguments. If ``--groups``
-is given, arguments are node groups. If ``--all`` is provided, the whole
-cluster will be shut down.
+Performs an emergency power-off on nodes given as arguments. If
+``--groups`` is given, arguments are node groups. If ``--all`` is
+provided, the whole cluster will be shut down.
 
-The ``--on`` flag recovers the cluster after an emergency power-off
+The ``--on`` flag recovers the cluster after an emergency power-off.
+When powering on the cluster you can use ``--power-delay`` to define the
+time in seconds (fractions allowed) waited between powering on
+individual nodes.
 
-Please note that the master node will not be turned down or up automatically.
-It will just be left in a state, where you can manully perform the shutdown of
-that one node. If the master is in the list of affected nodes and this is not a
-complete cluster emergency power-off (e.g. using ``--all``), you're required to
-do a master failover to another node not affected.
+Please note that the master node will not be turned down or up
+automatically.  It will just be left in a state, where you can manully
+perform the shutdown of that one node. If the master is in the list of
+affected nodes and this is not a complete cluster emergency power-off
+(e.g. using ``--all``), you're required to do a master failover to
+another node not affected.
 
 GETMASTER
 ~~~~~~~~~

@@ -917,7 +917,8 @@ def _OobPower(opts, node_list, power):
   op = opcodes.OpOobCommand(node_names=node_list,
                             command=command,
                             ignore_status=True,
-                            timeout=opts.oob_timeout)
+                            timeout=opts.oob_timeout,
+                            power_delay=opts.power_delay)
   result = SubmitOpCode(op, opts=opts)
   errs = 0
   for node_result in result:
@@ -1314,7 +1315,7 @@ commands = {
   "epo": (
     Epo, [ArgUnknown()],
     [FORCE_OPT, ON_OPT, GROUPS_OPT, ALL_OPT, OOB_TIMEOUT_OPT,
-     SHUTDOWN_TIMEOUT_OPT],
+     SHUTDOWN_TIMEOUT_OPT, POWER_DELAY_OPT],
     "[opts...] [args]",
     "Performs an emergency power-off on given args"),
   }
