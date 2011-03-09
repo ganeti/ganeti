@@ -522,7 +522,8 @@ def PowerNode(opts, args):
   opcodelist.append(opcodes.OpOobCommand(node_names=args,
                                          command=oob_command,
                                          ignore_status=opts.ignore_status,
-                                         timeout=opts.oob_timeout))
+                                         timeout=opts.oob_timeout,
+                                         power_delay=opts.power_delay))
 
   cli.SetGenericOpcodeOpts(opcodelist, opts)
 
@@ -861,7 +862,7 @@ commands = {
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
      ArgNode()],
     [SUBMIT_OPT, AUTO_PROMOTE_OPT, PRIORITY_OPT, IGNORE_STATUS_OPT,
-     FORCE_OPT, NOHDR_OPT, SEP_OPT, OOB_TIMEOUT_OPT],
+     FORCE_OPT, NOHDR_OPT, SEP_OPT, OOB_TIMEOUT_OPT, POWER_DELAY_OPT],
     "on|off|cycle|status [nodes...]",
     "Change power state of node by calling out-of-band helper."),
   'remove': (
