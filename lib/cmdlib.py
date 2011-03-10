@@ -3910,10 +3910,16 @@ class _InstanceQuery(_QueryBase):
           bad_nodes.append(name)
         elif result.payload:
           for inst in result.payload:
-            if all_info[inst].primary_node == name:
-              live_data.update(result.payload)
+            if inst in all_info:
+              if all_info[inst].primary_node == name:
+                live_data.update(result.payload)
+              else:
+                wrongnode_inst.add(inst)
             else:
-              wrongnode_inst.add(inst)
+              # orphan instance; we don't list it here as we don't
+              # handle this case yet in the output of instance listing
+              logging.warning("Orphan instance '%s' found on node %s",
+                              inst, name)
         # else no instance is alive
     else:
       live_data = {}
