@@ -2801,6 +2801,12 @@ class LUClusterSetParams(LogicalUnit):
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
       self.new_ndparams = cluster.SimpleFillND(self.op.ndparams)
 
+      # TODO: we need a more general way to handle resetting
+      # cluster-level parameters to default values
+      if self.new_ndparams["oob_program"] == "":
+        self.new_ndparams["oob_program"] = \
+            constants.NDC_DEFAULTS[constants.ND_OOB_PROGRAM]
+
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
       self.new_nicparams = cluster.SimpleFillNIC(self.op.nicparams)
