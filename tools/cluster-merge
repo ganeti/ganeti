@@ -162,8 +162,8 @@ class Merger(object):
 
       self.merger_data.append(MergerData(cluster, key_path, nodes, instances))
 
-  def _PrepareAuthorizedKeys(self):
-    """Prepare the authorized_keys on every merging node.
+  def _PrepareAuthorizedKeys(self, merge_data, node):
+    """Prepare the authorized_keys on merging nodes.
 
     This method add our public key to remotes authorized_key for further
     communication.
@@ -172,17 +172,15 @@ class Merger(object):
     (_, pub_key_file, auth_keys) = ssh.GetUserFiles("root")
     pub_key = utils.ReadFile(pub_key_file)
 
-    for data in self.merger_data:
-      for node in data.nodes:
-        result = self._RunCmd(node, ("cat >> %s << '!EOF.'\n%s!EOF.\n" %
-                                     (auth_keys, pub_key)),
-                              private_key=data.key_path)
+    result = self._RunCmd(node, ("cat >> %s << '!EOF.'\n%s!EOF.\n" %
+                                 (auth_keys, pub_key)),
+                          private_key=merge_data.key_path)
 
-        if result.failed:
-          raise errors.RemoteError("Unable to add our public key to %s in %s."
-                                   " Fail reason: %s; output: %s" %
-                                   (node, data.cluster, result.fail_reason,
-                                    result.output))
+    if result.failed:
+      raise errors.RemoteError("Unable to add our public key to %s in %s."
+                               " Fail reason: %s; output: %s" %
+                               (node, data.cluster, result.fail_reason,
+                                result.output))
 
   def _RunCmd(self, hostname, command, user="root", use_cluster_key=False,
               strict_host_check=False, private_key=None, batch=True,
@@ -284,7 +282,9 @@ class Merger(object):
 
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
-        my_config.AddNode(node_info, _CLUSTERMERGE_ECID + str(fake_ec_id))
+        if not node_info.offline:
+          self._PrepareAuthorizedKeys(data, node_info.name)
+          my_config.AddNode(node_info, _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
       for instance in other_config.GetInstanceList():
@@ -449,11 +449,6 @@ class Merger(object):
     try:
       logging.info("Pre cluster verification")
       self._VerifyCluster()
-
-      logging.info("Prepare authorized_keys")
-      rbsteps.append("Remove our key from authorized_keys on nodes:"
-                     " %(nodes)s")
-      self._PrepareAuthorizedKeys()
 
       rbsteps.append("Start all instances again on the merging"
                      " clusters: %(clusters)s")
