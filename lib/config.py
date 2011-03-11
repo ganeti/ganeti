@@ -126,7 +126,7 @@ class TemporaryReservationManager:
 
 
 def _MatchNameComponentIgnoreCase(short_name, names):
-  """Wrapper around L{utils.MatchNameComponent}.
+  """Wrapper around L{utils.text.MatchNameComponent}.
 
   """
   return utils.MatchNameComponent(short_name, names, case_sensitive=False)
