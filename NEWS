@@ -2,6 +2,19 @@ Ganeti-htools release notes
 ===========================
 
 
+Version 0.3.1 (Fri, 11 Mar 2011)
+--------------------------------
+
+Minor bugfix release:
+
+- Fixed source archive generation: the hscolour.css file was an invalid
+  symlink, and the man pages were not correctly timestamped (leading to
+  unneeded build-time rebuilds)
+- Improved the Luxi backend to show which attribute fails parsing
+- Small improvements to the man pages, and also ship the HTML version of
+  man pages in the source archive
+
+
 Version 0.3.0 (Fri, 04 Feb 2011)
 --------------------------------
 
