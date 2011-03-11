@@ -464,14 +464,6 @@ The exit status of the command will be zero, unless for some reason
 the algorithm fatally failed (e.g. wrong node or instance data), or
 (in case of job execution) any job has failed.
 
-ENVIRONMENT
------------
-
-If the variables **HTOOLS_NODES** and **HTOOLS_INSTANCES** are present
-in the environment, they will override the default names for the nodes
-and instances files. These will have of course no effect when the RAPI
-or Luxi backends are used.
-
 BUGS
 ----
 

@@ -402,14 +402,6 @@ The algorithm doesn't rebalance the cluster or try to get the optimal
 fit; it just allocates in the best place for the current step, without
 taking into consideration the impact on future placements.
 
-ENVIRONMENT
------------
-
-If the variables **HTOOLS_NODES** and **HTOOLS_INSTANCES** are present
-in the environment, they will override the default names for the nodes
-and instances files. These will have of course no effect when the RAPI
-or Luxi backends are used.
-
 SEE ALSO
 --------
 
