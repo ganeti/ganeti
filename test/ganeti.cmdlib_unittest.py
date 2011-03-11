@@ -143,12 +143,12 @@ class TestLUTestJqueue(unittest.TestCase):
 class TestLUQuery(unittest.TestCase):
   def test(self):
     self.assertEqual(sorted(cmdlib._QUERY_IMPL.keys()),
-                     sorted(constants.QR_OP_QUERY))
+                     sorted(constants.QR_VIA_OP))
 
-    assert constants.QR_NODE in constants.QR_OP_QUERY
-    assert constants.QR_INSTANCE in constants.QR_OP_QUERY
+    assert constants.QR_NODE in constants.QR_VIA_OP
+    assert constants.QR_INSTANCE in constants.QR_VIA_OP
 
-    for i in constants.QR_OP_QUERY:
+    for i in constants.QR_VIA_OP:
       self.assert_(cmdlib._GetQueryImplementation(i))
 
     self.assertRaises(errors.OpPrereqError, cmdlib._GetQueryImplementation, "")

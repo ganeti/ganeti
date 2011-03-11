@@ -232,14 +232,14 @@ class ClientOps:
     elif method == luxi.REQ_QUERY:
       req = objects.QueryRequest.FromDict(args)
 
-      if req.what in constants.QR_OP_QUERY:
+      if req.what in constants.QR_VIA_OP:
         result = self._Query(opcodes.OpQuery(what=req.what, fields=req.fields,
                                              filter=req.filter))
       elif req.what == constants.QR_LOCK:
         if req.filter is not None:
           raise errors.OpPrereqError("Lock queries can't be filtered")
         return self.server.context.glm.QueryLocks(req.fields)
-      elif req.what in constants.QR_OP_LUXI:
+      elif req.what in constants.QR_VIA_LUXI:
         raise NotImplementedError
       else:
         raise errors.OpPrereqError("Resource type '%s' unknown" % req.what,
@@ -250,12 +250,12 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_FIELDS:
       req = objects.QueryFieldsRequest.FromDict(args)
 
-      if req.what in constants.QR_OP_QUERY:
+      if req.what in constants.QR_VIA_OP:
         result = self._Query(opcodes.OpQueryFields(what=req.what,
                                                    fields=req.fields))
       elif req.what == constants.QR_LOCK:
         return query.QueryFields(query.LOCK_FIELDS, req.fields)
-      elif req.what in constants.QR_OP_LUXI:
+      elif req.what in constants.QR_VIA_LUXI:
         raise NotImplementedError
       else:
         raise errors.OpPrereqError("Resource type '%s' unknown" % req.what,

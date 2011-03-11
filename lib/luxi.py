@@ -500,7 +500,7 @@ class Client(object):
   def Query(self, what, fields, filter_):
     """Query for resources/items.
 
-    @param what: One of L{constants.QR_OP_LUXI}
+    @param what: One of L{constants.QR_VIA_LUXI}
     @type fields: List of strings
     @param fields: List of requested fields
     @type filter_: None or list
@@ -515,7 +515,7 @@ class Client(object):
   def QueryFields(self, what, fields):
     """Query for available fields.
 
-    @param what: One of L{constants.QR_OP_LUXI}
+    @param what: One of L{constants.QR_VIA_LUXI}
     @type fields: None or list of strings
     @param fields: List of requested fields
     @rtype: L{objects.QueryFieldsResponse}

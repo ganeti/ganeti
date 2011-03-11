@@ -2556,7 +2556,7 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
                 format_override=None, verbose=False):
   """Generic implementation for listing all items of a resource.
 
-  @param resource: One of L{constants.QR_OP_LUXI}
+  @param resource: One of L{constants.QR_VIA_LUXI}
   @type fields: list of strings
   @param fields: List of fields to query for
   @type names: list of strings
@@ -2607,7 +2607,7 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
 def GenericListFields(resource, fields, separator, header, cl=None):
   """Generic implementation for listing fields for a resource.
 
-  @param resource: One of L{constants.QR_OP_LUXI}
+  @param resource: One of L{constants.QR_VIA_LUXI}
   @type fields: list of strings
   @param fields: List of fields to query for
   @type separator: string or None

@@ -11694,13 +11694,13 @@ _QUERY_IMPL = {
   constants.QR_OS: _OsQuery,
   }
 
-assert set(_QUERY_IMPL.keys()) == constants.QR_OP_QUERY
+assert set(_QUERY_IMPL.keys()) == constants.QR_VIA_OP
 
 
 def _GetQueryImplementation(name):
   """Returns the implemtnation for a query type.
 
-  @param name: Query type, must be one of L{constants.QR_OP_QUERY}
+  @param name: Query type, must be one of L{constants.QR_VIA_OP}
 
   """
   try:

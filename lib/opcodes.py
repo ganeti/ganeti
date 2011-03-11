@@ -109,7 +109,7 @@ _PNodeGroupAllocPolicy = \
 _PGroupNodeParams = ("ndparams", None, ht.TMaybeDict,
                      "Default node parameters for group")
 
-_PQueryWhat = ("what", ht.NoDefault, ht.TElemOf(constants.QR_OP_QUERY),
+_PQueryWhat = ("what", ht.NoDefault, ht.TElemOf(constants.QR_VIA_OP),
                "Resource(s) to query for")
 
 _PIpCheckDoc = "Whether to ensure instance's IP address is inactive"
@@ -641,7 +641,7 @@ class OpClusterRedistConf(OpCode):
 class OpQuery(OpCode):
   """Query for resources/items.
 
-  @ivar what: Resources to query for, must be one of L{constants.QR_OP_QUERY}
+  @ivar what: Resources to query for, must be one of L{constants.QR_VIA_OP}
   @ivar fields: List of fields to retrieve
   @ivar filter: Query filter
 
@@ -659,7 +659,7 @@ class OpQuery(OpCode):
 class OpQueryFields(OpCode):
   """Query for available resource/item fields.
 
-  @ivar what: Resources to query for, must be one of L{constants.QR_OP_QUERY}
+  @ivar what: Resources to query for, must be one of L{constants.QR_VIA_OP}
   @ivar fields: List of fields to retrieve
 
   """

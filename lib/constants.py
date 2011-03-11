@@ -1030,12 +1030,15 @@ QR_GROUP = "group"
 QR_OS = "os"
 
 #: List of resources which can be queried using L{opcodes.OpQuery}
-QR_OP_QUERY = frozenset([QR_INSTANCE, QR_NODE, QR_GROUP, QR_OS])
+QR_VIA_OP = frozenset([QR_INSTANCE, QR_NODE, QR_GROUP, QR_OS])
 
 #: List of resources which can be queried using Local UniX Interface
-QR_OP_LUXI = QR_OP_QUERY.union([
+QR_VIA_LUXI = QR_VIA_OP.union([
   QR_LOCK,
   ])
+
+#: List of resources which can be queried using RAPI
+QR_VIA_RAPI = QR_VIA_LUXI
 
 # Query field types
 QFT_UNKNOWN = "unknown"
