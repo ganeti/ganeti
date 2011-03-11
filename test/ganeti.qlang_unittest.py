@@ -30,32 +30,6 @@ from ganeti import qlang
 import testutils
 
 
-class TestReadSimpleFilter(unittest.TestCase):
-  def _Test(self, filter_, expected):
-    self.assertEqual(qlang.ReadSimpleFilter("name", filter_), expected)
-
-  def test(self):
-    self._Test(None, [])
-    self._Test(["|", ["=", "name", "xyz"]], ["xyz"])
-
-    for i in [1, 3, 10, 25, 140]:
-      self._Test(["|"] + [["=", "name", "node%s" % j] for j in range(i)],
-                 ["node%s" % j for j in range(i)])
-
-  def testErrors(self):
-    for i in [123, True, False, "", "Hello World", "a==b",
-              [], ["x"], ["x", "y", "z"], ["|"],
-              ["|", ["="]], ["|", "x"], ["|", 123],
-              ["|", ["=", "otherfield", "xyz"]],
-              ["|", ["=", "name", "xyz"], "abc"],
-              ["|", ["=", "name", "xyz", "too", "long"]],
-              ["|", ["=", "name", []]],
-              ["|", ["=", "name", 999]],
-              ["|", ["=", "name", "abc"], ["=", "otherfield", "xyz"]]]:
-      self.assertRaises(errors.ParameterError, qlang.ReadSimpleFilter,
-                        "name", i)
-
-
 class TestMakeSimpleFilter(unittest.TestCase):
   def _Test(self, field, names, expected, parse_exp=None):
     if parse_exp is None:
@@ -63,7 +37,6 @@ class TestMakeSimpleFilter(unittest.TestCase):
 
     filter_ = qlang.MakeSimpleFilter(field, names)
     self.assertEqual(filter_, expected)
-    self.assertEqual(qlang.ReadSimpleFilter(field, filter_), parse_exp)
 
   def test(self):
     self._Test("name", None, None, parse_exp=[])
