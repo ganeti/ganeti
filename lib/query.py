@@ -120,6 +120,9 @@ _FS_NODATA = object()
 _FS_UNAVAIL = object()
 _FS_OFFLINE = object()
 
+#: List of all special status
+_FS_ALL = frozenset([_FS_UNKNOWN, _FS_NODATA, _FS_UNAVAIL, _FS_OFFLINE])
+
 #: VType to QFT mapping
 _VTToQFT = {
   # TODO: fix validation of empty strings
@@ -877,6 +880,34 @@ def _GetItemAttr(attr):
   """
   getter = operator.attrgetter(attr)
   return lambda _, item: getter(item)
+
+
+def _ConvWrapInner(convert, fn, ctx, item):
+  """Wrapper for converting values.
+
+  @param convert: Conversion function receiving value as single parameter
+  @param fn: Retrieval function
+
+  """
+  value = fn(ctx, item)
+
+  # Is the value an abnormal status?
+  if compat.any(value is fs for fs in _FS_ALL):
+    # Return right away
+    return value
+
+  # TODO: Should conversion function also receive context, item or both?
+  return convert(value)
+
+
+def _ConvWrap(convert, fn):
+  """Convenience wrapper for L{_ConvWrapInner}.
+
+  @param convert: Conversion function receiving value as single parameter
+  @param fn: Retrieval function
+
+  """
+  return compat.partial(_ConvWrapInner, convert, fn)
 
 
 def _GetItemTimestamp(getter):
