@@ -243,6 +243,9 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     "/2/redistribute-config": rlib2.R_2_redist_config,
     "/2/features": rlib2.R_2_features,
     "/2/modify": rlib2.R_2_cluster_modify,
+    re.compile(r"^/2/query/(%s)$" % query_res_pattern): rlib2.R_2_query,
+    re.compile(r"^/2/query/(%s)/fields$" % query_res_pattern):
+      rlib2.R_2_query_fields,
     }
 
 

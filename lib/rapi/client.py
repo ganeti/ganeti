@@ -1583,7 +1583,6 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
                              ("/%s/groups/%s/rename" %
                               (GANETI_RAPI_VERSION, group)), None, body)
 
-
   def AssignGroupNodes(self, group, nodes, force=False, dry_run=False):
     """Assigns nodes to a group.
 
@@ -1611,3 +1610,49 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     return self._SendRequest(HTTP_PUT,
                              ("/%s/groups/%s/assign-nodes" %
                              (GANETI_RAPI_VERSION, group)), query, body)
+
+  def Query(self, what, fields, filter_=None):
+    """Retrieves information about resources.
+
+    @type what: string
+    @param what: Resource name, one of L{constants.QR_VIA_RAPI}
+    @type fields: list of string
+    @param fields: Requested fields
+    @type filter_: None or list
+    @param filter_ Query filter
+
+    @rtype: string
+    @return: job id
+
+    """
+    body = {
+      "fields": fields,
+      }
+
+    if filter_ is not None:
+      body["filter"] = filter_
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/query/%s" %
+                              (GANETI_RAPI_VERSION, what)), None, body)
+
+  def QueryFields(self, what, fields=None):
+    """Retrieves available fields for a resource.
+
+    @type what: string
+    @param what: Resource name, one of L{constants.QR_VIA_RAPI}
+    @type fields: list of string
+    @param fields: Requested fields
+
+    @rtype: string
+    @return: job id
+
+    """
+    query = []
+
+    if fields is not None:
+      query.append(("fields", ",".join(fields)))
+
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/query/%s/fields" %
+                              (GANETI_RAPI_VERSION, what)), query, None)

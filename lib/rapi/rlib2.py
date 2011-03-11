@@ -1259,6 +1259,81 @@ class R_2_instances_name_console(baserlib.R_Generic):
     return console
 
 
+def _GetQueryFields(args):
+  """
+
+  """
+  try:
+    fields = args["fields"]
+  except KeyError:
+    raise http.HttpBadRequest("Missing 'fields' query argument")
+
+  return _SplitQueryFields(fields[0])
+
+
+def _SplitQueryFields(fields):
+  """
+
+  """
+  return [i.strip() for i in fields.split(",")]
+
+
+class R_2_query(baserlib.R_Generic):
+  """/2/query/[resource] resource.
+
+  """
+  # Results might contain sensitive information
+  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+
+  def _Query(self, fields, filter_):
+    return baserlib.GetClient().Query(self.items[0], fields, filter_).ToDict()
+
+  def GET(self):
+    """Returns resource information.
+
+    @return: Query result, see L{objects.QueryResponse}
+
+    """
+    return self._Query(_GetQueryFields(self.queryargs), None)
+
+  def PUT(self):
+    """Submits job querying for resources.
+
+    @return: Query result, see L{objects.QueryResponse}
+
+    """
+    body = self.request_body
+
+    baserlib.CheckType(body, dict, "Body contents")
+
+    try:
+      fields = body["fields"]
+    except KeyError:
+      fields = _GetQueryFields(self.queryargs)
+
+    return self._Query(fields, self.request_body.get("filter", None))
+
+
+class R_2_query_fields(baserlib.R_Generic):
+  """/2/query/[resource]/fields resource.
+
+  """
+  def GET(self):
+    """Retrieves list of available fields for a resource.
+
+    @return: List of serialized L{objects.QueryFieldDefinition}
+
+    """
+    try:
+      raw_fields = self.queryargs["fields"]
+    except KeyError:
+      fields = None
+    else:
+      fields = _SplitQueryFields(raw_fields[0])
+
+    return baserlib.GetClient().QueryFields(self.items[0], fields).ToDict()
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 

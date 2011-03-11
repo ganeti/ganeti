@@ -1289,6 +1289,50 @@ to URI like::
 It supports the ``dry-run`` argument.
 
 
+``/2/query/[resource]``
++++++++++++++++++++++++
+
+Requests resource information. Available fields can be found in man
+pages and using ``/2/query/[resource]/fields``. The resource is one of
+:pyeval:`utils.CommaJoin(constants.QR_VIA_RAPI)`. See the :doc:`query2
+design document <design-query2>` for more details.
+
+Supports the following commands: ``GET``, ``PUT``.
+
+``GET``
+~~~~~~~
+
+Returns list of included fields and actual data. Takes a query parameter
+named "fields", containing a comma-separated list of field names. Does
+not support filtering.
+
+``PUT``
+~~~~~~~
+
+Returns list of included fields and actual data. The list of requested
+fields can either be given as the query parameter "fields" or as a body
+parameter with the same name. The optional body parameter "filter" can
+be given and must be either ``null`` or a list containing filter
+operators.
+
+
+``/2/query/[resource]/fields``
+++++++++++++++++++++++++++++++
+
+Request list of available fields for a resource. The resource is one of
+:pyeval:`utils.CommaJoin(constants.QR_VIA_RAPI)`. See the
+:doc:`query2 design document <design-query2>` for more details.
+
+Supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Returns a list of field descriptions for available fields. Takes an
+optional query parameter named "fields", containing a comma-separated
+list of field names.
+
+
 ``/2/os``
 +++++++++
 

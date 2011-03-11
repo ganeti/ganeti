@@ -31,6 +31,8 @@ from ganeti import constants
 from ganeti import http
 from ganeti import serializer
 from ganeti import utils
+from ganeti import query
+from ganeti import objects
 
 from ganeti.rapi import connector
 from ganeti.rapi import rlib2
@@ -1151,6 +1153,55 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
         self.assertEqual(data["wait_for_sync"], wait_for_sync)
       self.assertEqual(data["amount"], amount)
       self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testQuery(self):
+    for idx, what in enumerate(constants.QR_VIA_RAPI):
+      for idx2, filter_ in enumerate([None, ["?", "name"]]):
+        job_id = 11010 + (idx << 4) + (idx2 << 16)
+        fields = sorted(query.ALL_FIELDS[what].keys())[:10]
+
+        self.rapi.AddResponse(str(job_id))
+        self.assertEqual(self.client.Query(what, fields, filter_=filter_),
+                         job_id)
+        self.assertItems([what])
+        self.assertHandler(rlib2.R_2_query)
+        self.assertFalse(self.rapi.GetLastHandler().queryargs)
+        data = serializer.LoadJson(self.rapi.GetLastRequestData())
+        self.assertEqual(data["fields"], fields)
+        if filter_ is None:
+          self.assertTrue("filter" not in data)
+        else:
+          self.assertEqual(data["filter"], filter_)
+        self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testQueryFields(self):
+    exp_result = objects.QueryFieldsResponse(fields=[
+      objects.QueryFieldDefinition(name="pnode", title="PNode",
+                                   kind=constants.QFT_NUMBER),
+      objects.QueryFieldDefinition(name="other", title="Other",
+                                   kind=constants.QFT_BOOL),
+      ])
+
+    for what in constants.QR_VIA_RAPI:
+      for fields in [None, ["name", "_unknown_"], ["&", "?|"]]:
+        self.rapi.AddResponse(serializer.DumpJson(exp_result.ToDict()))
+        result = self.client.QueryFields(what, fields=fields)
+        self.assertItems([what])
+        self.assertHandler(rlib2.R_2_query_fields)
+        self.assertFalse(self.rapi.GetLastRequestData())
+
+        queryargs = self.rapi.GetLastHandler().queryargs
+        if fields is None:
+          self.assertFalse(queryargs)
+        else:
+          self.assertEqual(queryargs, {
+            "fields": [",".join(fields)],
+            })
+
+        self.assertEqual(objects.QueryFieldsResponse.FromDict(result).ToDict(),
+                         exp_result.ToDict())
+
+        self.assertEqual(self.rapi.CountPending(), 0)
 
 
 class RapiTestRunner(unittest.TextTestRunner):
