@@ -173,6 +173,7 @@ def RunClusterTests():
     ("cluster-oob", qa_cluster.TestClusterOob),
     ("rapi", qa_rapi.TestVersion),
     ("rapi", qa_rapi.TestEmptyCluster),
+    ("rapi", qa_rapi.TestRapiQuery),
     ]:
     RunTestIf(test, fn)
 

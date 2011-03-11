@@ -23,6 +23,7 @@
 """
 
 import tempfile
+import random
 
 from ganeti import utils
 from ganeti import constants
@@ -30,6 +31,9 @@ from ganeti import errors
 from ganeti import cli
 from ganeti import rapi
 from ganeti import objects
+from ganeti import query
+from ganeti import compat
+from ganeti import qlang
 
 import ganeti.rapi.client        # pylint: disable-msg=W0611
 import ganeti.rapi.client_utils
@@ -220,6 +224,122 @@ def TestEmptyCluster():
       raise qa_error.Error("Non-implemented method didn't fail")
 
 
+def TestRapiQuery():
+  """Testing resource queries via remote API.
+
+  """
+  master_name = qa_utils.ResolveNodeName(qa_config.GetMasterNode())
+  rnd = random.Random(7818)
+
+  for what in constants.QR_VIA_RAPI:
+    all_fields = query.ALL_FIELDS[what].keys()
+    rnd.shuffle(all_fields)
+
+    # No fields, should return everything
+    result = _rapi_client.QueryFields(what)
+    qresult = objects.QueryFieldsResponse.FromDict(result)
+    AssertEqual(len(qresult.fields), len(all_fields))
+
+    # One field
+    result = _rapi_client.QueryFields(what, fields=["name"])
+    qresult = objects.QueryFieldsResponse.FromDict(result)
+    AssertEqual(len(qresult.fields), 1)
+
+    # Specify all fields, order must be correct
+    result = _rapi_client.QueryFields(what, fields=all_fields)
+    qresult = objects.QueryFieldsResponse.FromDict(result)
+    AssertEqual(len(qresult.fields), len(all_fields))
+    AssertEqual([fdef.name for fdef in qresult.fields], all_fields)
+
+    # Unknown field
+    result = _rapi_client.QueryFields(what, fields=["_unknown!"])
+    qresult = objects.QueryFieldsResponse.FromDict(result)
+    AssertEqual(len(qresult.fields), 1)
+    AssertEqual(qresult.fields[0].name, "_unknown!")
+    AssertEqual(qresult.fields[0].kind, constants.QFT_UNKNOWN)
+
+    # Try once more, this time without the client
+    _DoTests([
+      ("/2/query/%s/fields" % what, None, "GET", None),
+      ("/2/query/%s/fields?fields=name,name,%s" % (what, all_fields[0]),
+       None, "GET", None),
+      ])
+
+    # Try missing query argument
+    try:
+      _DoTests([
+        ("/2/query/%s" % what, None, "GET", None),
+        ])
+    except rapi.client.GanetiApiError, err:
+      AssertEqual(err.code, 400)
+    else:
+      raise qa_error.Error("Request missing 'fields' parameter didn't fail")
+
+    def _Check(exp_fields, data):
+      qresult = objects.QueryResponse.FromDict(data)
+      AssertEqual([fdef.name for fdef in qresult.fields], exp_fields)
+      if not isinstance(qresult.data, list):
+        raise qa_error.Error("Query did not return a list")
+
+    _DoTests([
+      # Specify fields in query
+      ("/2/query/%s?fields=%s" % (what, ",".join(all_fields)),
+       compat.partial(_Check, all_fields), "GET", None),
+
+      ("/2/query/%s?fields=name" % what,
+       compat.partial(_Check, ["name"]), "GET", None),
+
+      # Note the spaces
+      ("/2/query/%s?fields=name,%%20name%%09,name%%20" % what,
+       compat.partial(_Check, ["name"] * 3), "GET", None),
+
+      # PUT with fields in query
+      ("/2/query/%s?fields=name" % what,
+       compat.partial(_Check, ["name"]), "PUT", {}),
+
+      # Fields in body
+      ("/2/query/%s" % what, compat.partial(_Check, all_fields), "PUT", {
+         "fields": all_fields,
+         }),
+
+      ("/2/query/%s" % what, compat.partial(_Check, ["name"] * 4), "PUT", {
+         "fields": ["name"] * 4,
+         }),
+      ])
+
+    def _CheckFilter():
+      _DoTests([
+        # With filter
+        ("/2/query/%s" % what, compat.partial(_Check, all_fields), "PUT", {
+           "fields": all_fields,
+           "filter": [qlang.OP_TRUE, "name"],
+           }),
+        ])
+
+    if what == constants.QR_LOCK:
+      # Locks can't be filtered
+      try:
+        _CheckFilter()
+      except rapi.client.GanetiApiError, err:
+        AssertEqual(err.code, 500)
+      else:
+        raise qa_error.Error("Filtering locks didn't fail")
+    else:
+      _CheckFilter()
+
+    if what == constants.QR_NODE:
+      # Test with filter
+      (nodes, ) = _DoTests([("/2/query/%s" % what,
+        compat.partial(_Check, ["name", "master"]), "PUT", {
+        "fields": ["name", "master"],
+        "filter": [qlang.OP_TRUE, "master"],
+        })])
+      qresult = objects.QueryResponse.FromDict(nodes)
+      AssertEqual(qresult.data, [
+        [[constants.RS_NORMAL, master_name], [constants.RS_NORMAL, True]],
+        ])
+
+
 def TestInstance(instance):
   """Testing getting instance(s) info via remote API.
 
@@ -301,11 +421,11 @@ def TestTags(kind, name, tags):
   def _VerifyTags(data):
     AssertEqual(sorted(tags), sorted(data))
 
-  query = "&".join("tag=%s" % i for i in tags)
+  queryargs = "&".join("tag=%s" % i for i in tags)
 
   # Add tags
   (job_id, ) = _DoTests([
-    ("%s?%s" % (uri, query), _VerifyReturnsJob, "PUT", None),
+    ("%s?%s" % (uri, queryargs), _VerifyReturnsJob, "PUT", None),
     ])
   _WaitForRapiJob(job_id)
 
@@ -316,7 +436,7 @@ def TestTags(kind, name, tags):
 
   # Remove tags
   (job_id, ) = _DoTests([
-    ("%s?%s" % (uri, query), _VerifyReturnsJob, "DELETE", None),
+    ("%s?%s" % (uri, queryargs), _VerifyReturnsJob, "DELETE", None),
     ])
   _WaitForRapiJob(job_id)
 
