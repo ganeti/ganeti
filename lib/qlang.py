@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,22 +19,34 @@
 # 02110-1301, USA.
 
 
-"""Module for a simple query language"""
+"""Module for a simple query language
+
+A query filter is always a list. The first item in the list is the operator
+(e.g. C{[OP_AND, ...]}), while the other items depend on the operator. For
+logic operators (e.g. L{OP_AND}, L{OP_OR}), they are subfilters whose results
+are combined. Unary operators take exactly one other item (e.g. a subfilter for
+L{OP_NOT} and a field name for L{OP_TRUE}). Binary operators take exactly two
+operands, usually a field name and a value to compare against. Filters are
+converted to callable functions by L{query._CompileFilter}.
+
+"""
 
 from ganeti import errors
 
 
-# Logic operators
+# Logic operators with one or more operands, each of which is a filter on its
+# own
 OP_OR = "|"
 OP_AND = "&"
 
 
-# Unary operators
+# Unary operators with exactly one operand
 OP_NOT = "!"
 OP_TRUE = "?"
 
 
-# Binary operators
+# Binary operators with exactly two operands, the field name and an
+# operator-specific value
 OP_EQUAL = "="
 OP_NOT_EQUAL = "!="
 OP_GLOB = "=*"
