@@ -85,7 +85,7 @@ class MergerData(object):
 
     @param cluster: The name of the cluster
     @param key_path: Path to the ssh private key used for authentication
-    @param nodes: List of nodes in the merging cluster
+    @param nodes: List of online nodes in the merging cluster
     @param instances: List of instances running on merging cluster
     @param config_path: Path to the merging cluster config
 
@@ -144,13 +144,15 @@ class Merger(object):
       key_path = utils.PathJoin(self.work_dir, cluster)
       utils.WriteFile(key_path, mode=0600, data=result.stdout)
 
-      result = self._RunCmd(cluster, "gnt-node list -o name --no-header",
-                            private_key=key_path)
+      result = self._RunCmd(cluster, "gnt-node list -o name,offline"
+                            " --no-header --separator=,", private_key=key_path)
       if result.failed:
         raise errors.RemoteError("Unable to retrieve list of nodes from %s."
                                  " Fail reason: %s; output: %s" %
                                  (cluster, result.fail_reason, result.output))
-      nodes = result.stdout.splitlines()
+      nodes_statuses = [line.split(',') for line in result.stdout.splitlines()]
+      nodes = [node_status[0] for node_status in nodes_statuses
+               if node_status[1] == "N"]
 
       result = self._RunCmd(cluster, "gnt-instance list -o name --no-header",
                             private_key=key_path)
