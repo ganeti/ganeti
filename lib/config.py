@@ -125,6 +125,13 @@ class TemporaryReservationManager:
     return new_resource
 
 
+def _MatchNameComponentIgnoreCase(short_name, names):
+  """Wrapper around L{utils.MatchNameComponent}.
+
+  """
+  return utils.MatchNameComponent(short_name, names, case_sensitive=False)
+
+
 class ConfigWriter:
   """The interface to the cluster configuration.
 
@@ -1201,14 +1208,12 @@ class ConfigWriter:
     """
     return self._UnlockedGetInstanceList()
 
-  @locking.ssynchronized(_config_lock, shared=1)
   def ExpandInstanceName(self, short_name):
     """Attempt to expand an incomplete instance name.
 
     """
-    return utils.MatchNameComponent(short_name,
-                                    self._config_data.instances.keys(),
-                                    case_sensitive=False)
+    # Locking is done in L{ConfigWriter.GetInstanceList}
+    return _MatchNameComponentIgnoreCase(short_name, self.GetInstanceList())
 
   def _UnlockedGetInstanceInfo(self, instance_name):
     """Returns information about an instance.
@@ -1284,14 +1289,12 @@ class ConfigWriter:
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
-  @locking.ssynchronized(_config_lock, shared=1)
   def ExpandNodeName(self, short_name):
-    """Attempt to expand an incomplete instance name.
+    """Attempt to expand an incomplete node name.
 
     """
-    return utils.MatchNameComponent(short_name,
-                                    self._config_data.nodes.keys(),
-                                    case_sensitive=False)
+    # Locking is done in L{ConfigWriter.GetNodeList}
+    return _MatchNameComponentIgnoreCase(short_name, self.GetNodeList())
 
   def _UnlockedGetNodeInfo(self, node_name):
     """Get the configuration of a node, as stored in the config.
