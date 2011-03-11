@@ -250,18 +250,13 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_FIELDS:
       req = objects.QueryFieldsRequest.FromDict(args)
 
-      if req.what in constants.QR_VIA_OP:
-        result = self._Query(opcodes.OpQueryFields(what=req.what,
-                                                   fields=req.fields))
-      elif req.what == constants.QR_LOCK:
-        return query.QueryFields(query.LOCK_FIELDS, req.fields)
-      elif req.what in constants.QR_VIA_LUXI:
-        raise NotImplementedError
-      else:
+      try:
+        fielddefs = query.ALL_FIELDS[req.what]
+      except KeyError:
         raise errors.OpPrereqError("Resource type '%s' unknown" % req.what,
                                    errors.ECODE_INVAL)
 
-      return result
+      return query.QueryFields(fielddefs, req.fields)
 
     elif method == luxi.REQ_QUERY_JOBS:
       (job_ids, fields) = args

@@ -496,15 +496,6 @@ class _QueryBase:
     # Return expanded names
     return self.wanted
 
-  @classmethod
-  def FieldsQuery(cls, fields):
-    """Returns list of available fields.
-
-    @return: List of L{objects.QueryFieldDefinition}
-
-    """
-    return query.QueryFields(cls.FIELDS, fields)
-
   def ExpandNames(self, lu):
     """Expand names for this query.
 
@@ -4044,7 +4035,7 @@ class LUQueryFields(NoHooksLU):
     self.needed_locks = {}
 
   def Exec(self, feedback_fn):
-    return self.qcls.FieldsQuery(self.op.fields)
+    return query.QueryFields(self.qcls.FIELDS, self.op.fields)
 
 
 class LUNodeModifyStorage(NoHooksLU):
