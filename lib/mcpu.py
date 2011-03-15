@@ -427,8 +427,10 @@ class HooksMaster(object):
     self.lu = lu
     self.op = lu.op
     self.env, node_list_pre, node_list_post = self._BuildEnv()
-    self.node_list = {constants.HOOKS_PHASE_PRE: node_list_pre,
-                      constants.HOOKS_PHASE_POST: node_list_post}
+    self.node_list = {
+      constants.HOOKS_PHASE_PRE: node_list_pre,
+      constants.HOOKS_PHASE_POST: node_list_post,
+      }
 
   def _BuildEnv(self):
     """Compute the environment and the target nodes.
@@ -485,17 +487,16 @@ class HooksMaster(object):
     @raise errors.HooksAbort: on failure of one of the hooks
 
     """
-    if not self.node_list[phase] and not nodes:
+    if nodes is None:
+      nodes = self.node_list[phase]
+
+    if not nodes:
       # empty node list, we should not attempt to run this as either
       # we're in the cluster init phase and the rpc client part can't
       # even attempt to run, or this LU doesn't do hooks at all
       return
-    hpath = self.lu.HPATH
-    if nodes is not None:
-      results = self._RunWrapper(nodes, hpath, phase)
-    else:
-      results = self._RunWrapper(self.node_list[phase], hpath, phase)
-    errs = []
+
+    results = self._RunWrapper(nodes, self.lu.HPATH, phase)
     if not results:
       msg = "Communication Failure"
       if phase == constants.HOOKS_PHASE_PRE:
@@ -503,15 +504,19 @@ class HooksMaster(object):
       else:
         self.lu.LogWarning(msg)
         return results
+
+    errs = []
     for node_name in results:
       res = results[node_name]
       if res.offline:
         continue
+
       msg = res.fail_msg
       if msg:
         self.lu.LogWarning("Communication failure to node %s: %s",
                            node_name, msg)
         continue
+
       for script, hkr, output in res.payload:
         if hkr == constants.HKR_FAIL:
           if phase == constants.HOOKS_PHASE_PRE:
@@ -521,8 +526,10 @@ class HooksMaster(object):
               output = "(no output)"
             self.lu.LogWarning("On %s script %s failed, output: %s" %
                                (node_name, script, output))
+
     if errs and phase == constants.HOOKS_PHASE_PRE:
       raise errors.HooksAbort(errs)
+
     return results
 
   def RunConfigUpdate(self):
