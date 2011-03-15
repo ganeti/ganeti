@@ -263,6 +263,13 @@ def TestReplaceDisks(instance, pnode, snode, othernode):
     ]:
     AssertCommand(buildcmd(data))
 
+  AssertCommand(buildcmd(["-a"]))
+  AssertCommand(["gnt-instance", "stop", instance["name"]])
+  AssertCommand(buildcmd(["-a"]), fail=True)
+  AssertCommand(["gnt-instance", "activate-disks", instance["name"]])
+  AssertCommand(buildcmd(["-a"]))
+  AssertCommand(["gnt-instance", "start", instance["name"]])
+
 
 def TestInstanceExport(instance, node):
   """gnt-backup export -n ..."""

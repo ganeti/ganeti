@@ -8358,6 +8358,30 @@ class TLReplaceDisks(Tasklet):
     return _FindFaultyInstanceDisks(self.cfg, self.rpc, self.instance,
                                     node_name, True)
 
+  def _CheckDisksActivated(self, instance):
+    """Checks if the instance disks are activated.
+
+    @param instance: The instance to check disks
+    @return: True if they are activated, False otherwise
+
+    """
+    nodes = instance.all_nodes
+
+    for idx, dev in enumerate(instance.disks):
+      for node in nodes:
+        self.lu.LogInfo("Checking disk/%d on %s", idx, node)
+        self.cfg.SetDiskID(dev, node)
+
+        result = self.rpc.call_blockdev_find(node, dev)
+
+        if result.offline:
+          continue
+        elif result.fail_msg or not result.payload:
+          return False
+
+    return True
+
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -8421,6 +8445,10 @@ class TLReplaceDisks(Tasklet):
                                  errors.ECODE_INVAL)
 
     if self.mode == constants.REPLACE_DISK_AUTO:
+      if not self._CheckDisksActivated(instance):
+        raise errors.OpPrereqError("Please run activate-disks on instance %s"
+                                   " first" % self.instance_name,
+                                   errors.ECODE_STATE)
       faulty_primary = self._FindFaultyDisks(instance.primary_node)
       faulty_secondary = self._FindFaultyDisks(secondary_node)
 
