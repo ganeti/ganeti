@@ -31,9 +31,6 @@ converted to callable functions by L{query._CompileFilter}.
 
 """
 
-from ganeti import errors
-
-
 # Logic operators with one or more operands, each of which is a filter on its
 # own
 OP_OR = "|"
