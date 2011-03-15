@@ -606,6 +606,18 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
+def _RunPostHook(lu, node_name):
+  """Runs the post-hook for an opcode on a single node.
+
+  """
+  hm = lu.proc.hmclass(lu.rpc.call_hooks_runner, lu)
+  try:
+    hm.RunPhase(constants.HOOKS_PHASE_POST, nodes=[node_name])
+  except:
+    # pylint: disable-msg=W0702
+    lu.LogWarning("Errors occurred running hooks on %s" % node_name)
+
+
 def _CheckOutputFields(static, dynamic, selected):
   """Checks whether all selected fields are valid.
 
@@ -1150,12 +1162,7 @@ class LUClusterDestroy(LogicalUnit):
     master = self.cfg.GetMasterNode()
 
     # Run post hooks on master node before it's removed
-    hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
-    try:
-      hm.RunPhase(constants.HOOKS_PHASE_POST, [master])
-    except:
-      # pylint: disable-msg=W0702
-      self.LogWarning("Errors occurred running hooks on %s" % master)
+    _RunPostHook(self, master)
 
     result = self.rpc.call_node_stop_master(master, False)
     result.Raise("Could not disable the master role")
@@ -3632,12 +3639,7 @@ class LUNodeRemove(LogicalUnit):
     self.context.RemoveNode(node.name)
 
     # Run post hooks on the node before it's removed
-    hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
-    try:
-      hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
-    except:
-      # pylint: disable-msg=W0702
-      self.LogWarning("Errors occurred running hooks on %s" % node.name)
+    _RunPostHook(self, node.name)
 
     result = self.rpc.call_node_leave_cluster(node.name, modify_ssh_setup)
     msg = result.fail_msg
