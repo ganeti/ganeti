@@ -39,6 +39,7 @@ from ganeti import rpc
 from ganeti import cmdlib
 from ganeti import locking
 from ganeti import utils
+from ganeti import compat
 
 
 _OP_PREFIX = "Op"
@@ -448,10 +449,11 @@ class HooksMaster(object):
       }
 
     if self.lu.HPATH is not None:
-      lu_env, lu_nodes_pre, lu_nodes_post = self.lu.BuildHooksEnv()
+      (lu_env, lu_nodes_pre, lu_nodes_post) = self.lu.BuildHooksEnv()
       if lu_env:
-        for key in lu_env:
-          env["GANETI_" + key] = lu_env[key]
+        assert not compat.any(key.upper().startswith("GANETI")
+                              for key in lu_env)
+        env.update(("GANETI_%s" % key, value) for (key, value) in lu_env)
     else:
       lu_nodes_pre = lu_nodes_post = []
 
@@ -471,6 +473,10 @@ class HooksMaster(object):
       env["GANETI_MASTER"] = self.lu.cfg.GetMasterNode()
 
     env = dict([(str(key), str(val)) for key, val in env.iteritems()])
+
+    assert compat.all(key == key.upper() and
+                      (key == "PATH" or key.startswith("GANETI_"))
+                      for key in env)
 
     return self.callfn(node_list, hpath, phase, env)
 
