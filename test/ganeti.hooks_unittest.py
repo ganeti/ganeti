@@ -35,6 +35,7 @@ from ganeti import backend
 from ganeti import constants
 from ganeti import cmdlib
 from ganeti import rpc
+from ganeti import compat
 from ganeti.constants import HKR_SUCCESS, HKR_FAIL, HKR_SKIP
 
 from mocks import FakeConfig, FakeProc, FakeContext
@@ -191,6 +192,19 @@ class TestHooksRunner(unittest.TestCase):
                            [(self._rname(fname), HKR_SUCCESS, env_exp)])
 
 
+def FakeHooksRpcSuccess(node_list, hpath, phase, env):
+  """Fake call_hooks_runner function.
+
+  @rtype: dict of node -> L{rpc.RpcResult} with a successful script result
+  @return: script execution from all nodes
+
+  """
+  rr = rpc.RpcResult
+  return dict([(node, rr(True, [("utest", constants.HKR_SUCCESS, "ok")],
+                         node=node, call='FakeScriptOk'))
+               for node in node_list])
+
+
 class TestHooksMaster(unittest.TestCase):
   """Testing case for HooksMaster"""
 
@@ -221,19 +235,6 @@ class TestHooksMaster(unittest.TestCase):
     return dict([(node, rr((True, [("utest", constants.HKR_FAIL, "err")]),
                            node=node, call='FakeScriptFail'))
                   for node in node_list])
-
-  @staticmethod
-  def _call_script_succeed(node_list, hpath, phase, env):
-    """Fake call_hooks_runner function.
-
-    @rtype: dict of node -> L{rpc.RpcResult} with a successful script result
-    @return: script execution from all nodes
-
-    """
-    rr = rpc.RpcResult
-    return dict([(node, rr(True, [("utest", constants.HKR_SUCCESS, "ok")],
-                           node=node, call='FakeScriptOk'))
-                 for node in node_list])
 
   def setUp(self):
     self.op = opcodes.OpCode()
@@ -266,9 +267,153 @@ class TestHooksMaster(unittest.TestCase):
 
   def testScriptSucceed(self):
     """Test individual rpc failure"""
-    hm = mcpu.HooksMaster(self._call_script_succeed, self.lu)
+    hm = mcpu.HooksMaster(FakeHooksRpcSuccess, self.lu)
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
       hm.RunPhase(phase)
+
+
+class FakeEnvLU(cmdlib.LogicalUnit):
+  HPATH = "env_test_lu"
+  HTYPE = constants.HTYPE_GROUP
+
+  def __init__(self, *args):
+    cmdlib.LogicalUnit.__init__(self, *args)
+    self.hook_env = None
+
+  def BuildHooksEnv(self):
+    assert self.hook_env is not None
+
+    return self.hook_env, ["localhost"], ["localhost"]
+
+
+class TestHooksRunnerEnv(unittest.TestCase):
+  def setUp(self):
+    self._rpcs = []
+
+    self.op = opcodes.OpTestDummy(result=False, messages=[], fail=False)
+    self.lu = FakeEnvLU(FakeProc(), self.op, FakeContext(), None)
+    self.hm = mcpu.HooksMaster(self._HooksRpc, self.lu)
+
+  def _HooksRpc(self, *args):
+    self._rpcs.append(args)
+    return FakeHooksRpcSuccess(*args)
+
+  def _CheckEnv(self, env, phase, hpath):
+    self.assertTrue(env["PATH"].startswith("/sbin"))
+    self.assertEqual(env["GANETI_HOOKS_PHASE"], phase)
+    self.assertEqual(env["GANETI_HOOKS_PATH"], hpath)
+    self.assertEqual(env["GANETI_OP_CODE"], self.op.OP_ID)
+    self.assertEqual(env["GANETI_OBJECT_TYPE"], constants.HTYPE_GROUP)
+    self.assertEqual(env["GANETI_HOOKS_VERSION"], str(constants.HOOKS_VERSION))
+    self.assertEqual(env["GANETI_DATA_DIR"], constants.DATA_DIR)
+
+  def testEmptyEnv(self):
+    # Check pre-phase hook
+    self.lu.hook_env = {}
+    self.hm.RunPhase(constants.HOOKS_PHASE_PRE)
+
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(hpath, self.lu.HPATH)
+    self.assertEqual(phase, constants.HOOKS_PHASE_PRE)
+    self._CheckEnv(env, constants.HOOKS_PHASE_PRE, self.lu.HPATH)
+
+    # Check post-phase hook
+    self.lu.hook_env = {}
+    self.hm.RunPhase(constants.HOOKS_PHASE_POST)
+
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(hpath, self.lu.HPATH)
+    self.assertEqual(phase, constants.HOOKS_PHASE_POST)
+    self._CheckEnv(env, constants.HOOKS_PHASE_POST, self.lu.HPATH)
+
+    self.assertRaises(IndexError, self._rpcs.pop)
+
+  def testEnv(self):
+    # Check pre-phase hook
+    self.lu.hook_env = {
+      "FOO": "pre-foo-value",
+      }
+    self.hm.RunPhase(constants.HOOKS_PHASE_PRE)
+
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(hpath, self.lu.HPATH)
+    self.assertEqual(phase, constants.HOOKS_PHASE_PRE)
+    self.assertEqual(env["GANETI_FOO"], "pre-foo-value")
+    self.assertFalse(compat.any(key.startswith("GANETI_POST") for key in env))
+    self._CheckEnv(env, constants.HOOKS_PHASE_PRE, self.lu.HPATH)
+
+    # Check post-phase hook
+    self.lu.hook_env = {
+      "FOO": "post-value",
+      "BAR": 123,
+      }
+    self.hm.RunPhase(constants.HOOKS_PHASE_POST)
+
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set(["localhost"]))
+    self.assertEqual(hpath, self.lu.HPATH)
+    self.assertEqual(phase, constants.HOOKS_PHASE_POST)
+    self.assertEqual(env["GANETI_FOO"], "pre-foo-value")
+    self.assertEqual(env["GANETI_POST_FOO"], "post-value")
+    self.assertEqual(env["GANETI_POST_BAR"], "123")
+    self.assertFalse("GANETI_BAR" in env)
+    self._CheckEnv(env, constants.HOOKS_PHASE_POST, self.lu.HPATH)
+
+    self.assertRaises(IndexError, self._rpcs.pop)
+
+    # Check configuration update hook
+    self.hm.RunConfigUpdate()
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(set(node_list), set([self.lu.cfg.GetMasterNode()]))
+    self.assertEqual(hpath, constants.HOOKS_NAME_CFGUPDATE)
+    self.assertEqual(phase, constants.HOOKS_PHASE_POST)
+    self._CheckEnv(env, constants.HOOKS_PHASE_POST,
+                   constants.HOOKS_NAME_CFGUPDATE)
+    self.assertFalse(compat.any(key.startswith("GANETI_POST") for key in env))
+    self.assertEqual(env["GANETI_FOO"], "pre-foo-value")
+    self.assertRaises(IndexError, self._rpcs.pop)
+
+  def testConflict(self):
+    for name in ["DATA_DIR", "OP_CODE"]:
+      self.lu.hook_env = { name: "value" }
+      for phase in [constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST]:
+        # Test using a clean HooksMaster instance
+        self.assertRaises(AssertionError,
+                          mcpu.HooksMaster(self._HooksRpc, self.lu).RunPhase,
+                          phase)
+        self.assertRaises(IndexError, self._rpcs.pop)
+
+  def testNoNodes(self):
+    self.lu.hook_env = {}
+    self.hm.RunPhase(constants.HOOKS_PHASE_PRE, nodes=[])
+    self.assertRaises(IndexError, self._rpcs.pop)
+
+  def testSpecificNodes(self):
+    self.lu.hook_env = {}
+
+    nodes = [
+      "node1.example.com",
+      "node93782.example.net",
+      ]
+
+    for phase in [constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST]:
+      self.hm.RunPhase(phase, nodes=nodes)
+
+      (node_list, hpath, rpc_phase, env) = self._rpcs.pop(0)
+      self.assertEqual(set(node_list), set(nodes))
+      self.assertEqual(hpath, self.lu.HPATH)
+      self.assertEqual(rpc_phase, phase)
+      self._CheckEnv(env, phase, self.lu.HPATH)
+
+      self.assertRaises(IndexError, self._rpcs.pop)
+
+  def testRunConfigUpdateNoPre(self):
+    self.lu.hook_env = {}
+    self.assertRaises(AssertionError, self.hm.RunConfigUpdate)
+    self.assertRaises(IndexError, self._rpcs.pop)
 
 
 if __name__ == '__main__':

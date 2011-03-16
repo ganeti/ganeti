@@ -427,55 +427,85 @@ class HooksMaster(object):
     self.callfn = callfn
     self.lu = lu
     self.op = lu.op
-    self.env, node_list_pre, node_list_post = self._BuildEnv()
-    self.node_list = {
-      constants.HOOKS_PHASE_PRE: node_list_pre,
-      constants.HOOKS_PHASE_POST: node_list_post,
-      }
+    self.pre_env = None
+    self.pre_nodes = None
 
-  def _BuildEnv(self):
+  def _BuildEnv(self, phase):
     """Compute the environment and the target nodes.
 
     Based on the opcode and the current node list, this builds the
     environment for the hooks and the target node list for the run.
 
     """
+    if phase == constants.HOOKS_PHASE_PRE:
+      prefix = "GANETI_"
+    elif phase == constants.HOOKS_PHASE_POST:
+      prefix = "GANETI_POST_"
+    else:
+      raise AssertionError("Unknown phase '%s'" % phase)
+
+    env = {}
+
+    if self.lu.HPATH is not None:
+      (lu_env, lu_nodes_pre, lu_nodes_post) = self.lu.BuildHooksEnv()
+      if lu_env:
+        assert not compat.any(key.upper().startswith(prefix)
+                              for key in lu_env)
+        env.update(("%s%s" % (prefix, key), value)
+                   for (key, value) in lu_env.items())
+    else:
+      lu_nodes_pre = lu_nodes_post = []
+
+    if phase == constants.HOOKS_PHASE_PRE:
+      assert compat.all((key.startswith("GANETI_") and
+                         not key.startswith("GANETI_POST_"))
+                        for key in env)
+
+      # Record environment for any post-phase hooks
+      self.pre_env = env
+
+    elif phase == constants.HOOKS_PHASE_POST:
+      assert compat.all(key.startswith("GANETI_POST_") for key in env)
+
+      if self.pre_env:
+        assert not compat.any(key.startswith("GANETI_POST_")
+                              for key in self.pre_env)
+        env.update(self.pre_env)
+    else:
+      raise AssertionError("Unknown phase '%s'" % phase)
+
+    return env, frozenset(lu_nodes_pre), frozenset(lu_nodes_post)
+
+  def _RunWrapper(self, node_list, hpath, phase, phase_env):
+    """Simple wrapper over self.callfn.
+
+    This method fixes the environment before doing the rpc call.
+
+    """
+    cfg = self.lu.cfg
+
     env = {
       "PATH": "/sbin:/bin:/usr/sbin:/usr/bin",
       "GANETI_HOOKS_VERSION": constants.HOOKS_VERSION,
       "GANETI_OP_CODE": self.op.OP_ID,
       "GANETI_OBJECT_TYPE": self.lu.HTYPE,
       "GANETI_DATA_DIR": constants.DATA_DIR,
+      "GANETI_HOOKS_PHASE": phase,
+      "GANETI_HOOKS_PATH": hpath,
       }
 
-    if self.lu.HPATH is not None:
-      (lu_env, lu_nodes_pre, lu_nodes_post) = self.lu.BuildHooksEnv()
-      if lu_env:
-        assert not compat.any(key.upper().startswith("GANETI")
-                              for key in lu_env)
-        env.update(("GANETI_%s" % key, value) for (key, value) in lu_env)
-    else:
-      lu_nodes_pre = lu_nodes_post = []
+    if cfg is not None:
+      env["GANETI_CLUSTER"] = cfg.GetClusterName()
+      env["GANETI_MASTER"] = cfg.GetMasterNode()
 
-    return env, frozenset(lu_nodes_pre), frozenset(lu_nodes_post)
+    if phase_env:
+      assert not (set(env) & set(phase_env)), "Environment variables conflict"
+      env.update(phase_env)
 
-  def _RunWrapper(self, node_list, hpath, phase):
-    """Simple wrapper over self.callfn.
-
-    This method fixes the environment before doing the rpc call.
-
-    """
-    env = self.env.copy()
-    env["GANETI_HOOKS_PHASE"] = phase
-    env["GANETI_HOOKS_PATH"] = hpath
-    if self.lu.cfg is not None:
-      env["GANETI_CLUSTER"] = self.lu.cfg.GetClusterName()
-      env["GANETI_MASTER"] = self.lu.cfg.GetMasterNode()
-
+    # Convert everything to strings
     env = dict([(str(key), str(val)) for key, val in env.iteritems()])
 
-    assert compat.all(key == key.upper() and
-                      (key == "PATH" or key.startswith("GANETI_"))
+    assert compat.all(key == "PATH" or key.startswith("GANETI_")
                       for key in env)
 
     return self.callfn(node_list, hpath, phase, env)
@@ -493,8 +523,19 @@ class HooksMaster(object):
     @raise errors.HooksAbort: on failure of one of the hooks
 
     """
+    (env, node_list_pre, node_list_post) = self._BuildEnv(phase)
     if nodes is None:
-      nodes = self.node_list[phase]
+      if phase == constants.HOOKS_PHASE_PRE:
+        self.pre_nodes = (node_list_pre, node_list_post)
+        nodes = node_list_pre
+      elif phase == constants.HOOKS_PHASE_POST:
+        post_nodes = (node_list_pre, node_list_post)
+        assert self.pre_nodes == post_nodes, \
+               ("Node lists returned for post-phase hook don't match pre-phase"
+                " lists (pre %s, post %s)" % (self.pre_nodes, post_nodes))
+        nodes = node_list_post
+      else:
+        raise AssertionError("Unknown phase '%s'" % phase)
 
     if not nodes:
       # empty node list, we should not attempt to run this as either
@@ -502,7 +543,7 @@ class HooksMaster(object):
       # even attempt to run, or this LU doesn't do hooks at all
       return
 
-    results = self._RunWrapper(nodes, self.lu.HPATH, phase)
+    results = self._RunWrapper(nodes, self.lu.HPATH, phase, env)
     if not results:
       msg = "Communication Failure"
       if phase == constants.HOOKS_PHASE_PRE:
@@ -545,7 +586,10 @@ class HooksMaster(object):
     top-level LI if the configuration has been updated.
 
     """
+    if self.pre_env is None:
+      raise AssertionError("Pre-phase must be run before configuration update")
+
     phase = constants.HOOKS_PHASE_POST
     hpath = constants.HOOKS_NAME_CFGUPDATE
     nodes = [self.lu.cfg.GetMasterNode()]
-    self._RunWrapper(nodes, hpath, phase)
+    self._RunWrapper(nodes, hpath, phase, self.pre_env)

@@ -64,7 +64,7 @@ have been run.
 Naming
 ~~~~~~
 
-The allowed names for the scripts consist of (similar to *run-parts* )
+The allowed names for the scripts consist of (similar to *run-parts*)
 upper and lower case, digits, underscores and hyphens. In other words,
 the regexp ``^[a-zA-Z0-9_-]+$``. Also, non-executable scripts will be
 ignored.
@@ -468,8 +468,10 @@ anymore in Ganeti 2.0:
 Environment variables
 ---------------------
 
-Note that all variables listed here are actually prefixed with
-*GANETI_* in order to provide a clear namespace.
+Note that all variables listed here are actually prefixed with *GANETI_*
+in order to provide a clear namespace. In addition, post-execution
+scripts receive another set of variables, prefixed with *GANETI_POST_*,
+representing the status after the opcode executed.
 
 Common variables
 ~~~~~~~~~~~~~~~~
