@@ -213,23 +213,23 @@ Algorithm:
    (i.e. no other group sharing at least one storage method)
 #. determine list of healthy versus unhealthy groups:
 
-  #. a group which contains offline nodes still hosting instances is
-     definitely not healthy
-  #. a group which has nodes failing N+1 is ‘weakly’ unhealthy
+    #. a group which contains offline nodes still hosting instances is
+       definitely not healthy
+    #. a group which has nodes failing N+1 is ‘weakly’ unhealthy
 
 #. if either list is empty, exit (no work to do, or no way to fix problems)
 #. for each unhealthy group:
 
-  #. compute the instances that are causing the problems: all
-     instances living on offline nodes, all instances living as
-     secondary on N+1 failing nodes, all instances living as primaries
-     on N+1 failing nodes (in this order)
-  #. remove instances, one by one, until the source group is healthy
-    again
-  #. try to run a standard allocation procedure for each instance on
-     all potential groups in its partition
-  #. if all instances were relocated successfully, it means we have a
-     solution for repairing the original group
+    #. compute the instances that are causing the problems: all
+       instances living on offline nodes, all instances living as
+       secondary on N+1 failing nodes, all instances living as primaries
+       on N+1 failing nodes (in this order)
+    #. remove instances, one by one, until the source group is healthy
+       again
+    #. try to run a standard allocation procedure for each instance on
+       all potential groups in its partition
+    #. if all instances were relocated successfully, it means we have a
+       solution for repairing the original group
 
 Compression
 ^^^^^^^^^^^
@@ -246,10 +246,11 @@ The algorithm for “compressing” the super cluster is as follows:
 #. computer per-group used and free *(memory, disk, cpu)*
 #. select candidate groups for evacuation:
 
-  #. they must be connected to other groups via a common storage type
-     and pool
-  #. they must have fewer used resources than the global free
-     resources (minus their own free resources)
+    #. they must be connected to other groups via a common storage type
+       and pool
+    #. they must have fewer used resources than the global free
+       resources (minus their own free resources)
+
 #. for each of these groups, try to relocate all its instances to
    connected peer groups
 #. report the list of groups that could be evacuated, or if instructed

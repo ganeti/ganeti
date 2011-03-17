@@ -19,6 +19,7 @@ Contents:
    design-2.1.rst
    design-2.2.rst
    design-2.3.rst
+   design-htools-2.3.rst
    design-2.4.rst
    design-draft.rst
    cluster-merge.rst
