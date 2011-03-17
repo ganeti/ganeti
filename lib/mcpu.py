@@ -428,7 +428,7 @@ class HooksMaster(object):
     self.lu = lu
     self.op = lu.op
     self.pre_env = None
-    self.pre_nodes = None
+    self.post_nodes = None
 
   def _BuildEnv(self, phase):
     """Compute the environment and the target nodes.
@@ -526,14 +526,12 @@ class HooksMaster(object):
     (env, node_list_pre, node_list_post) = self._BuildEnv(phase)
     if nodes is None:
       if phase == constants.HOOKS_PHASE_PRE:
-        self.pre_nodes = (node_list_pre, node_list_post)
         nodes = node_list_pre
+        self.post_nodes = node_list_post
+      elif self.post_nodes is None:
+        raise AssertionError("Pre-phase must be run before post-phase")
       elif phase == constants.HOOKS_PHASE_POST:
-        post_nodes = (node_list_pre, node_list_post)
-        assert self.pre_nodes == post_nodes, \
-               ("Node lists returned for post-phase hook don't match pre-phase"
-                " lists (pre %s, post %s)" % (self.pre_nodes, post_nodes))
-        nodes = node_list_post
+        nodes = self.post_nodes
       else:
         raise AssertionError("Unknown phase '%s'" % phase)
 

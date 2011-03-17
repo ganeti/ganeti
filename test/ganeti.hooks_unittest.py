@@ -379,11 +379,12 @@ class TestHooksRunnerEnv(unittest.TestCase):
   def testConflict(self):
     for name in ["DATA_DIR", "OP_CODE"]:
       self.lu.hook_env = { name: "value" }
+
+      # Test using a clean HooksMaster instance
+      hm = mcpu.HooksMaster(self._HooksRpc, self.lu)
+
       for phase in [constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST]:
-        # Test using a clean HooksMaster instance
-        self.assertRaises(AssertionError,
-                          mcpu.HooksMaster(self._HooksRpc, self.lu).RunPhase,
-                          phase)
+        self.assertRaises(AssertionError, hm.RunPhase, phase)
         self.assertRaises(IndexError, self._rpcs.pop)
 
   def testNoNodes(self):
@@ -414,6 +415,11 @@ class TestHooksRunnerEnv(unittest.TestCase):
     self.lu.hook_env = {}
     self.assertRaises(AssertionError, self.hm.RunConfigUpdate)
     self.assertRaises(IndexError, self._rpcs.pop)
+
+  def testNoPreBeforePost(self):
+    self.lu.hook_env = {}
+    self.assertRaises(AssertionError, self.hm.RunPhase,
+                      constants.HOOKS_PHASE_POST)
 
 
 if __name__ == '__main__':
