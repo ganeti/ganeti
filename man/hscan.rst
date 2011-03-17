@@ -1,5 +1,5 @@
-HSCAN(1) htools | Ganeti H-tools
-================================
+HSCAN(1) Ganeti | Version @GANETI_VERSION@
+==========================================
 
 NAME
 ----
@@ -107,20 +107,3 @@ EXAMPLE
     cluster1     2     2     0     0   1008    652    255    253 0.24404762
     $ ls -l cluster1.data
     -rw-r--r-- 1 root root 364 2009-03-23 07:26 cluster1.data
-
-SEE ALSO
---------
-
-**hbal**(1), **hspace**(1), **hail**(1), **ganeti**(7),
-**gnt-instance**(8), **gnt-node**(8)
-
-COPYRIGHT
----------
-
-Copyright (C) 2009, 2010, 2011 Google Inc. Permission is granted to
-copy, distribute and/or modify under the terms of the GNU General
-Public License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-On Debian systems, the complete text of the GNU General Public License
-can be found in /usr/share/common-licenses/GPL.

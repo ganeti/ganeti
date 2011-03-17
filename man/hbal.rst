@@ -1,5 +1,5 @@
-HBAL(1) htools | Ganeti H-tools
-===============================
+HBAL(1) Ganeti | Version @GANETI_VERSION@
+=========================================
 
 NAME
 ----
@@ -647,20 +647,3 @@ e.g. in step 8, both the migrate and the replace-disks are
 done. Otherwise, if only the migrate is done, the input data is
 changed in a way that the program will output a different solution
 list (but hopefully will end in the same state).
-
-SEE ALSO
---------
-
-**hspace**(1), **hscan**(1), **hail**(1), **ganeti**(7),
-**gnt-instance**(8), **gnt-node**(8)
-
-COPYRIGHT
----------
-
-Copyright (C) 2009, 2010, 2011 Google Inc. Permission is granted to
-copy, distribute and/or modify under the terms of the GNU General
-Public License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-On Debian systems, the complete text of the GNU General Public License
-can be found in /usr/share/common-licenses/GPL.

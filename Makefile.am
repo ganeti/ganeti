@@ -447,13 +447,17 @@ man_MANS = \
 	man/gnt-instance.8 \
 	man/gnt-job.8 \
 	man/gnt-node.8 \
-	man/gnt-os.8
+	man/gnt-os.8 \
+	man/hail.1 \
+	man/hbal.1 \
+	man/hscan.1 \
+	man/hspace.1
 
-manrst = $(patsubst %.7,%.rst,$(patsubst %.8,%.rst,$(man_MANS)))
+manrst = $(patsubst %.1,%.rst,$(patsubst %.7,%.rst,$(patsubst %.8,%.rst,$(man_MANS))))
 manhtml = $(patsubst %.rst,%.html,$(manrst))
 mangen = $(patsubst %.rst,%.gen,$(manrst))
 maninput = \
-	$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) \
+	$(patsubst %.1,%.1.in,$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS)))) \
 	$(patsubst %.html,%.html.in,$(manhtml)) \
 	man/footer.man man/footer.html $(mangen)
 
@@ -635,7 +639,7 @@ man/footer.html: man/footer.rst
 man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(DOCPP) < $< > $@
 
-man/%.7.in man/%.8.in: man/%.gen man/footer.man
+man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
@@ -649,6 +653,9 @@ man/%.html.in: man/%.gen man/footer.html
 	set -o pipefail ; \
 	$(PANDOC) -s -f rst -t html -A man/footer.html $< | \
 	  sed -e 's/\\@/@/g' > $@
+
+man/%.1: man/%.1.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@

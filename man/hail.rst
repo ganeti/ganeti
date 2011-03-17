@@ -1,5 +1,5 @@
-HAIL(1) htools | Ganeti H-tools
-===============================
+HAIL(1) Ganeti | Version @GANETI_VERSION@
+=========================================
 
 NAME
 ----
@@ -93,20 +93,3 @@ EXIT STATUS
 
 The exist status of the command will be zero, unless for some reason
 the algorithm fatally failed (e.g. wrong node or instance data).
-
-SEE ALSO
---------
-
-**hbal**(1), **hspace**(1), **hscan**(1), **ganeti**(7),
-**gnt-instance**(8), **gnt-node**(8)
-
-COPYRIGHT
----------
-
-Copyright (C) 2009, 2010, 2011 Google Inc. Permission is granted to
-copy, distribute and/or modify under the terms of the GNU General
-Public License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-On Debian systems, the complete text of the GNU General Public License
-can be found in /usr/share/common-licenses/GPL.

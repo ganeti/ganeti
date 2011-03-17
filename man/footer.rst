@@ -23,14 +23,18 @@ Ganeti daemons: **ganeti-watcher**(8) (automatic instance restarter),
 daemon), **ganeti-masterd**(8) (master daemon), **ganeti-rapi**(8)
 (remote API daemon).
 
+Ganeti htools: **hbal**(1) (cluster balancer), **hspace**(1) (capacity
+calculation), **hail**(1) (IAllocator plugin), **hscan**(1) (data
+gatherer from remote clusters).
+
 COPYRIGHT
 ---------
 
-Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc. Permission
-is granted to copy, distribute and/or modify under the terms of the
-GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option)
-any later version.
+Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google
+Inc. Permission is granted to copy, distribute and/or modify under the
+terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your
+option) any later version.
 
 On Debian systems, the complete text of the GNU General Public
 License can be found in /usr/share/common-licenses/GPL.
