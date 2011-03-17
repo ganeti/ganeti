@@ -4114,9 +4114,12 @@ class LUNodeAdd(LogicalUnit):
       "MASTER_CAPABLE": str(self.op.master_capable),
       "VM_CAPABLE": str(self.op.vm_capable),
       }
-    nodes_0 = self.cfg.GetNodeList()
-    nodes_1 = nodes_0 + [self.op.node_name, ]
-    return env, nodes_0, nodes_1
+
+    # Exclude added node
+    pre_nodes = list(set(self.cfg.GetNodeList()) - set([self.op.node_name]))
+    post_nodes = pre_nodes + [self.op.node_name, ]
+
+    return (env, pre_nodes, post_nodes)
 
   def CheckPrereq(self):
     """Check prerequisites.
