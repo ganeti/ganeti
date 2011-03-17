@@ -1,0 +1,7 @@
+This is the internal documentation for ganeti-htools, a couple of
+small tools for Ganeti cluster analysis.
+
+The "Ganeti.HTools.Cluster" module is the one holding most high-level
+logic, the "Ganeti.HTools.Node" and "Ganeti.HTools.Instance" modules
+hold the model for nodes and instances respectively, while the
+"Ganeti.HTools.Rapi" contains the RAPI collector.

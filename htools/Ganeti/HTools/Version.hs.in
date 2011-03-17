@@ -1,0 +1,10 @@
+-- Hey Emacs, this is a -*- haskell -*- file
+
+module Ganeti.HTools.Version
+    (
+      version
+    ) where
+
+-- | The version of the sources.
+version :: String
+version = "(ganeti-htools) version %ver%"

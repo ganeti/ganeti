@@ -1,0 +1,113 @@
+Ganeti Cluster tools (ganeti-htools)
+====================================
+
+These are some simple cluster tools for fixing common allocation
+problems on Ganeti 2.0 clusters.
+
+Note that these tools are most useful for bigger cluster sizes
+(e.g. more than five or ten machines); at lower sizes, the computations
+they do can also be done manually.
+
+Most of the tools revolve around the concept of keeping the cluster N+1
+compliant: this means that in case of failure of any node, the instances
+affected can be failed over (via ``gnt-node failover`` or ``gnt-instance
+failover``) to their secondary node, and there is enough memory reserved
+for this operation without needing to shutdown other instances or
+rebalance the cluster.
+
+**Quick start** (see the installation section for more details):
+
+- (have the ghc compiler and the prerequisite libraries installed)
+- ``make``
+- ``./hbal -m $cluster -C -p``
+- look at the original and final cluster layout, and if acceptable,
+  execute the given commands
+
+
+Available tools
+---------------
+
+Cluster rebalancer
+~~~~~~~~~~~~~~~~~~
+
+The rebalancer uses a simple algorithm to try to get the nodes of the
+cluster as equal as possible in their resource usage. It tries to
+repeatedly move each instance one step, so that the cluster score
+becomes better. We stop when no further move can improve the score.
+
+For algorithm details and usage, see the man page ``hbal(1)``.
+
+IAllocator plugin
+~~~~~~~~~~~~~~~~~
+
+The ``hail`` iallocator plugin can be used for allocations of mirrored
+and non-mirrored instances and for relocations of mirrored instances. It
+needs to be installed in Ganeti's iallocator search path—usually
+``/usr/lib/ganeti/iallocators`` or
+``/usr/local/lib/ganeti/iallocators``, and after that it can be used via
+ganeti's ``--iallocator`` option (in various gnt-node/gnt-instance
+commands). See the man page ``hail(1)`` for more details.
+
+Cluster capacity estimator
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``hspace`` program will, given an input instance specification,
+estimate how many instances of those type can be place on the cluster
+before it will become full (as in any new allocation would fail N+1
+checks). For more details, see the man page hspace(1).
+
+
+Integration with Ganeti
+-----------------------
+
+The ``hbal`` and ``hspace`` programs can either get their input from
+text files, locally from the master daemon (when run on the master node
+of a cluster), or remote from a cluster via RAPI. The "-L" argument
+enables local collection (with an optional path to the unix socket). For
+online collection via RAPI, the "-m" argument should specify the cluster
+or master node name. Only ``hbal`` and ``hspace`` use these arguments,
+``hail`` uses the standard iallocator API and thus doesn't need any
+special setup (just needs to be installed in the right directory).
+
+For generating the text files, a separate tool (``hscan``) is provided
+to automate their gathering if RAPI is available, which is better since
+it can extract more precise information. In case RAPI is not usable for
+whatever reason, ``gnt-node list`` and ``gnt-instance list`` could be
+used, and their output concatenated in a single file, separated by one
+blank line. If you need to do this manually, you'll need to check the
+sources to see which fields are needed exactly.
+
+
+The ``hail`` program gets its data automatically from Ganeti when used
+as described in its section.
+
+Installation
+------------
+
+If installing from source, you need a working ghc compiler (6.8 at
+least) and some extra Haskell libraries which usually need to be
+installed manually:
+
+- `json <http://hackage.haskell.org/package/json>`_
+- `curl <http://hackage.haskell.org/package/curl>`_
+- `network <http://hackage.haskell.org/package/network>`_
+- `parallel <http://hackage.haskell.org/package/parallel>`_, version 1.x
+
+Once these are installed, just typing *make* in the top-level directory
+should be enough. If you edit the documentation sources, you will need
+the ``pandoc`` program to rebuilt it.
+
+Only the ``hail`` program needs to be installed in a specific place, the
+other tools are not location-dependent.
+
+For running the (admittedly small) unittest suite (via *make check*),
+the QuickCheck version 1 library is needed.
+
+Internal (implementation) documentation is available in the ``apidoc``
+directory.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

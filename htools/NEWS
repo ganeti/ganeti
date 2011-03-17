@@ -1,0 +1,475 @@
+Ganeti-htools release notes
+===========================
+
+
+Version 0.3.1 (Fri, 11 Mar 2011)
+--------------------------------
+
+Minor bugfix release:
+
+- Fixed source archive generation: the hscolour.css file was an invalid
+  symlink, and the man pages were not correctly timestamped (leading to
+  unneeded build-time rebuilds)
+- Improved the Luxi backend to show which attribute fails parsing
+- Small improvements to the man pages, and also ship the HTML version of
+  man pages in the source archive
+
+
+Version 0.3.0 (Fri, 04 Feb 2011)
+--------------------------------
+
+A significant release that breaks compatibility with Ganeti versions
+below 2.4 due to the node group changes. Only the RAPI backend can talk
+to older clusters, but it is recommended to use this version only with
+Ganeti 2.4.
+
+All commands are now multi-group aware (but to various degrees), so
+allocation, balancing and capacity calculation respects the group layout
+and will not create “broken” instances by using nodes from different
+groups.
+
+For a regular, single-group cluster, no changes should be directly
+visible to the users. A multi-group cluster however will change some
+things slightly:
+
+- hbal will require a target group to operate on (no cluster-wide
+  balancing yet)
+- evacuation of (DRBD) instances from a node will be restricted to nodes
+  in the same group, as inter-group moves are not implemented yet
+- capacity, while showing correct data, will not give per-group details
+  yet
+
+There are other changes in this release:
+
+- fixed a long-standing bug in hscan related to node memory data
+- changed the text backend format, which unfortunately invalidates old
+  files
+- error handling improvements, so that invalid input data reports better
+  where the error is
+- the simulation backend changes its syntax, now it takes the allocation
+  policy too, and can generate multiple groups
+- (internal) man page generation moved to pandoc from hand-written,
+  which is helpful as it can also generate HTML versions
+- the balancing algorithm has been changed to work in parallel, if the
+  code is linked against the multi-threaded runtime; this gives a very
+  good speedup (~80% on 4 cores, ~60-70% of 12 cores)
+
+Version 0.2.8 (Thu, 23 Dec 2010)
+--------------------------------
+
+A bug fix release:
+
+- fixed balancing function for big clusters, which will improve corner
+  cases where hbal didn't see any solution even though the cluster was
+  obviously not well balanced
+- fixed exit code of hbal in case of (Luxi) job errors
+- changed the signal handling in hbal in order to make hbal control
+  easier: instead of synchronising on the count of signals, make SIGINT
+  cause graceful termination, and SIGTERM an immediate one
+- increased the tag exclusion weight so that it has greater importance
+  during the balancing
+- slight improvement to the speed of balancing via algorithm tweaks
+
+
+Version 0.2.7 (Thu, 07 Oct 2010)
+--------------------------------
+
+Bug fixes:
+
+- fixed the error message for hail multi-evacuation mode
+- improve evacuation mode for offline secondary nodes (ignore available
+  memory)
+
+New features:
+
+- add a new option ``-S`` to hbal and hspace that saves the cluster
+  state at the end of the processing in the text format used by the
+  ``-t`` option, for later re-processing
+- a two new options to hbal, -g and --min-gain-limit, that should help
+  in limiting the number of balances steps with a low gain in the final
+  stages
+- hbal, when executing jobs, will now wait for the current jobs to
+  finish at the first stop (e.g. ^C); if the user wants immediate exit,
+  another signal should be sent
+- added “normalized” physical CPU units in hspace output (NPU), which
+  represents units of physical CPUs free/used, based on the max-cpu
+  ratio
+
+
+Version 0.2.6 (Mon, 26 Jul 2010)
+--------------------------------
+
+Exactly three months since the last release. Many internal changes, plus
+a couple of important changes in the balancing algorithm.
+
+First, the balancing may now introduce N+1 errors, if this solves other,
+more critical problems. For the moment, this means that moving instances
+away from offline nodes is allowed even if it creates N+1 errors, and
+that means evacuation can be done in more cases.
+
+Second, the scoring for N+1 has changed. In previous versions, it simply
+counted the number of failing N+1 nodes, which means moving an instance
+away from a N+1 failed node (but without the node 'clearing' the N+1
+status) was not reflected in the cluster score. As such, the balancing
+algorithm managed to clear N+1 errors only sometimes, since usually it
+takes more than one move for this, and the first prerequisite move was
+not 'rewarded' appropriately and thus it was not selected. Now, it is
+possible to fix many more error cases than before: on a simulated 40
+node cluster full with instances (symmetrically allocated on all nodes),
+around five nodes can be evacuated before N+1 errors can be solved,
+whereas 0.2.5 could evacuate at best one node.
+
+There were some other internal changes to the scoring algorithm, such
+that now the metrics have associated weights, and they are not all of
+the same importance anymore. As of now, the only change is that offline
+instances have a higher weight, which should favour proper node
+evacuations.
+
+Among the other changes:
+
+- fixed the hspace KM_POOL_* metrics, which were returned as the final
+  state and not as the delta between the initial and final states
+- fixed hspace handling of N+1 failing clusters: before, it used to
+  generate a 'fake' response, and the structure of this response was not
+  always in sync with the real responses, leading to missing items;
+  currently it proceeds correctly through the code (skipping the
+  computation), and uses the same display mechanisms as the normal case
+- fixed hscan exit code for RAPI failures: previously it finished with
+  success even if all the clusters failed, which was creating issues
+  with the live-test script; now it exits with exit code 2 for RAPI
+  failures (unfortunately this is still not optimal as LUXI failures
+  will use exit code 1, the same as the command line)
+- changed the limit values for CPU/disk, which previously were used
+  optionally, whereas now they are always used; the default cpu ratio
+  limit is now 64 VCPUs per PCPU
+- changed the internal handling of the short name vs. original
+  (Ganeti-provided) name; now internally we always use the full name,
+  and only in display routines we show the shortened (called 'alias')
+  name; as a result, the -O and --excluded-instances options now accept
+  both the full name and the shortened name
+- changed internal handling of JSON conversions and errors, such that
+  now we show a better context for failure messages, which should help
+  with diagnosing the malformed message
+- changed the names for a few node fields, and added some more nodes;
+  this is most likely to help with debugging, and not with regular
+  operation though
+- changed the node fields option to allow the '+' prefix to mean 'extend
+  the default fields list' rather than start from fresh (similar to
+  Ganeti's implementation)
+- a few internal changes related to the LUXI protocol implementation,
+  which should make it more safe against potential bugs, one
+  optiomization that should help with large messages, and some patches
+  in preparation for potential expansion of the LUXI backend functionality
+
+And finally, many improvements on unittests and the live-test
+script. Test coverage is much enhanced, and the test infrastructure has
+better error reporting; this should lead down-the-road to better code
+and fewer bugs…
+
+
+Version 0.2.5 (Mon, 26 Apr 2010)
+--------------------------------
+
+Some internal cleanup plus a few user-visible changes:
+
+- new option for marking instances as 'do-not-move' during rebalancing
+- allow ``hscan`` to scan the local cluster via Luxi
+- add more metrics to ``hspace`` which show the delta between original
+  state and final state better (only valid for tiered allocation)
+
+
+Version 0.2.4 (Mon, 22 Feb 2010)
+--------------------------------
+
+Two improvements for node evacuation:
+
+- hbal takes a new parameter ``--evac-mode`` that restricts the
+  instances to be moved to the ones on offline/drained nodes, which
+  should reduce the work done
+- hail supports the new ``multi-evacuate`` mode of the IAllocator
+  protocol, that will be released in a minor release on the Ganeti 2.1
+  branch
+
+
+Version 0.2.3 (Thu,  4 Feb 2010)
+--------------------------------
+
+A small release:
+
+- Fixes selection of secondary node: previously, if the cluster had
+  many N+1 failures, a N+1 failed node could be selected as secondary
+  even if it did not have enough memory to allow the instance to be
+  migrated/failed over to it; this is bad for automated tools, since
+  we can get the cluster in an unhealthy state
+- Switch the text backend to a single input file, that is generated
+  now by hscan and shouldn't be generated manually via
+  gnt-node/instance list anymore; this allows richer information to be
+  kept in the file, and simplifies a little the internals of the text
+  backend
+
+
+Version 0.2.2 (Tue, 29 Dec 2009)
+--------------------------------
+
+Small release, 0.2.1 was broken and thus this was released earlier:
+
+- Release 0.2.1 broke the LUXI backend due to a typo, fixed
+- Added a live-test script that should catch errors like the above one
+  in the future (needs a working, non-empty cluster)
+- Changed RAPI and LUXI backends to treat drained nodes as offline,
+  similar to the IAllocator backend change in 0.2.0 (which was wrongly
+  marked as affecting all backends)
+- Changed the metrics for offline instances and N1 score from percent to
+  count, in order to increase the priority of evacuations
+- Added a new metric (offline primary instances) which should fix the
+  evacuation of a offline node in a 2-node cluster
+
+
+Version 0.2.1 (Wed,  2 Dec 2009)
+--------------------------------
+
+- Added instance exclusion defined via instance tags
+- Fixed the output of hspace to be again parseable from the shell
+
+
+Version 0.2.0 (Tue, 10 Nov 2009)
+--------------------------------
+
+A significant release, with a few new major features:
+
+- Added direct execution of the hbal solution when using the Luxi
+  backend; the steps for each instance moves are submitted as a single
+  jobs, and the different jobs are submitted as groups in order to
+  parallelise the execution of moves
+- Added support for balancing based on dynamic utilisation data for
+  instances, fed in via a text file; by default, all instances are
+  considered equal and this change also improves the equalisation of
+  secondary instances per node
+- Added support for tiered capacity calculation in hspace, where we
+  start from a maximum instance spec and decrease the spec when we run
+  out of resources; this should give a better measure of available
+  capacity on 'fragmented' clusters; this is done separately from the
+  current fixed-mode computation
+
+Also there have been many minor improvements:
+
+- Added option for showing instances (“--print-instances”), similar to
+  the print nodes option
+- Added support for customising the node list via an argument to the
+  print nodes option in the form of a comma-separated list of field
+  names; currently the field names are not documented, expecting further
+  changes in a next release
+- Enhanced the error reporting in the Luxi and Rapi backends
+- Changed the handling of drained nodes, now being treated the same as
+  offline nodes, for Ganeti 2.0.4+ compatibility
+- A number of internal changes, simplifying code and merging some
+  disparate functions
+- Simplify the build system in relation to creation of archives
+
+
+Version 0.1.8 (Tue, 29 Sep 2009)
+--------------------------------
+
+- Brown-paper-bag release fixing haddock issues
+
+
+Version 0.1.7 (Mon, 28 Sep 2009)
+--------------------------------
+
+- Fixed a bug in the Luxi backend for big responses
+- Fixed test suite exit code in presence of test failures
+- Changed the migrate operation to run instead failover for instances
+  which were marked as not running in the input data (this could have
+  been changed since then, but it's better than today's always migrate)
+- Added support for 'cheap' moves only (only migrate/failover) in
+  balancing
+- Added support for building without curl (thus no RAPI backend)
+
+
+Version 0.1.6 (Wed, 19 Aug 2009)
+--------------------------------
+
+- Added support for Luxi (the native Ganeti protocol)
+- Added support for simulated clusters (for hspace only)
+- Added timeouts for the RAPI backend
+- Fixed a few inconsistencies in the command line handling
+- Fixed handling of errors while loading data
+- The 'network' is a new dependency due to the Luxi addition
+
+
+Version 0.1.5 (Thu, 09 Jul 2009)
+--------------------------------
+
+- Removed obsolete hn1 program; this allowed removal of a lot of
+  supporting code
+- Lots of changes in hspace: the output now is a shell fragment in order
+  for script to source it or parse it easier; added failure reasons;
+  optimised to use less memory for large clusters
+- Optimized the scoring algorithm (used by all tools) so that now
+  computations should be faster
+
+
+Version 0.1.4 (Tue, 16 Jun 2009)
+--------------------------------
+
+- Added CPU count/ratio of virtual-to-physical CPUs to the cluster
+  scoring methods; this means that now the balancer, the iallocator
+  plugin and so on will try to keep the VCPU-to-PCPU ratio equal across
+  the cluster
+- Fixed some hscan bugs
+- Fixed the way iallocator reads the total disk size (was broken and it
+  was always falling back to summing the disk sizes)
+- Internals: fixed most compile-time warnings
+
+
+Version 0.1.3 (Fri, 05 Jun 2009)
+--------------------------------
+
+- Fix a bug in the ReplacePrimary instance moves, affecting most of the
+  tools
+
+
+Version 0.1.2 (Tue, 02 Jun 2009)
+--------------------------------
+
+- Add a new program, “hspace”, which computes the free space on a
+  cluster (based on a given instance spec)
+- Improvements in API docs and partially in the user docs
+- Started adding unittests
+
+
+Version 0.1.1 (Tue, 26 May 2009)
+--------------------------------
+
+- Add a new program, “hail”, which is an iallocator plugin and can
+  allocate/relocate instances
+- Experimental support for non-mirrored instances (hail supports them,
+  hbal should no longer abort when it finds such instances and simply
+  ignore them)
+- The RAPI port and/or scheme can be overriden now, and even “file://”
+  schemes can be used if the message body has been saved under the
+  appropriate name
+- Lots of code reorganization, esp. rewritten loading pipeline
+- Better data checking and better error messages in case validation
+  fails; tools now consider nodes with error in input data (‘?’ returned
+  by ganeti) as offline
+- Small enhancement to the makefile for simpler packaging
+
+
+Version 0.1.0 (Tue, 19 May 2009)
+--------------------------------
+
+- Drop compatibility with Ganeti 1.2
+- Add a new minimum score option (with a very low default), should help
+  with very good clusters (but is still not optimal)
+- Add a --quiet option to hbal
+- Add support for reading offline nodes directly from the cluster
+
+
+Version 0.0.8 (Tue, 21 Apr 2009)
+--------------------------------
+
+- hbal: prevent mismatches in wrong node names being passed to -O, by
+  aborting in this case
+- add the ability to write the commands (-C) to a script via (-C<file>),
+  so that it can be later executed directly; this has also changed the
+  commands to include the ncessary -f flags to skip confirmations
+- add checks for extra argument in hbal and hn1, so that unintended
+  errors are catched
+- raise the accepted “missing” memory limit to 512MB, to cover usual Xen
+  reservations
+
+
+Version 0.0.7 (Mon, 23 Mar 2009)
+--------------------------------
+
+- added support for offline nodes, which are not used as targets for
+  instance relocation and if they hold instances the hbal algorithm will
+  attempt to relocate these away
+- added support for offline instances, which now will no longer skew the
+  free memory estimation of nodes; the algorithm will no longer create
+  conditions for N+1 failures when such instances are later started
+- implemented a complete model of node resources, in order to prevent an
+  unintended re-occurrence of cases like the offline instance were we
+  miscalculate some node resource; this gives warning now in case the
+  node reported free disk or free memory deviates by more than a set
+  amount from the expected value
+- a new tool *hscan* that can generate the input text-file for the other
+  tools by collection via RAPI
+- some small changes to the build system to make it more friendly; also
+  included the generated documentation in the source archive
+
+
+Version 0.0.6 (Mon, 16 Mar 2009)
+--------------------------------
+
+- re-factored the hbal algorithm to make it stable in the sense that it
+  gives the same solution when restarted from the middle; barring
+  rounding of disk/memory and incomplete reporting from Ganeti (for
+  1.2), it should be now feasible to rely on its output without
+  generating moves ad infinitum
+- the hbal algorithm now uses two more variables: the node N+1 failures
+  and the amount of reserved memory; the first of which tries to ‘fix’
+  the N+1 status, the latter tries to distribute secondaries more
+  equally
+- the hbal algorithm now uses two more moves at each step:
+  replace+failover and failover+replace (besides the original failover,
+  replace, and failover+replace+failover)
+- slightly changed the build system to embed GIT version/tags into the
+  binaries so that we know for a binary from which tree it was done,
+  either via ‘--version’ or via “strings hbal|grep version”
+- changed the solution list and in general the hbal output to be more
+  clear by default, and changed “gnt-instance failover” to “gnt-instance
+  migrate”
+- added man pages for the two binaries
+
+
+Version 0.0.5 (Mon, 09 Mar 2009)
+--------------------------------
+
+- a few small improvements for hbal (possibly undone by later changes),
+  hbal is now quite faster
+- fix documentation building
+- allow hbal to work on non N+1 compliant clusters, but without
+  guarantees that the end cluster will be compliant; in any case, this
+  should give a smaller number of nodes that are not compliant if the
+  cluster state permits it
+- strip common domain suffix from nodes and instances, so that output is
+  shorter and hopefully clearer
+
+
+Version 0.0.4 (Sun, 15 Feb 2009)
+--------------------------------
+
+- better balancing algorithm in hbal
+- implemented an RAPI collector, now the cluster data can be gathered
+  automatically via RAPI and doesn't need manual export of node and
+  instance list
+
+
+Version 0.0.3 (Wed, 28 Jan 2009)
+--------------------------------
+
+- initial release of the hbal, a cluster rebalancing tool
+- input data format changed due to hbal requirements
+
+
+Version 0.0.2 (Tue, 06 Jan 2009)
+--------------------------------
+
+- fix handling of some common cases (cluster N+1 compliant from the
+  start, too big depth given, failure to compute solution)
+- add option to print the needed command list for reaching the proposed
+  solution
+
+
+Version 0.0.1 (Tue, 06 Jan 2009)
+--------------------------------
+
+- initial release of hn1 tool
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:
