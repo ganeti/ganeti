@@ -149,6 +149,16 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client._INST_CREATE_REQV1, rlib2._INST_CREATE_REQV1)
     self.assertEqual(client._INST_REINSTALL_REQV1, rlib2._INST_REINSTALL_REQV1)
     self.assertEqual(client._INST_NIC_PARAMS, constants.INIC_PARAMS)
+    self.assertEqual(client.JOB_STATUS_QUEUED, constants.JOB_STATUS_QUEUED)
+    self.assertEqual(client.JOB_STATUS_WAITLOCK, constants.JOB_STATUS_WAITLOCK)
+    self.assertEqual(client.JOB_STATUS_CANCELING,
+                     constants.JOB_STATUS_CANCELING)
+    self.assertEqual(client.JOB_STATUS_RUNNING, constants.JOB_STATUS_RUNNING)
+    self.assertEqual(client.JOB_STATUS_CANCELED, constants.JOB_STATUS_CANCELED)
+    self.assertEqual(client.JOB_STATUS_SUCCESS, constants.JOB_STATUS_SUCCESS)
+    self.assertEqual(client.JOB_STATUS_ERROR, constants.JOB_STATUS_ERROR)
+    self.assertEqual(client.JOB_STATUS_FINALIZED, constants.JOBS_FINALIZED)
+    self.assertEqual(client.JOB_STATUS_ALL, constants.JOB_STATUS_ALL)
 
 
 class RapiMockTest(unittest.TestCase):
