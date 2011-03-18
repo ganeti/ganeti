@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ import socket
 import urllib
 import threading
 import pycurl
+import time
 
 try:
   from cStringIO import StringIO
@@ -1160,6 +1161,36 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     return self._SendRequest(HTTP_GET,
                              "/%s/jobs/%s" % (GANETI_RAPI_VERSION, job_id),
                              None, None)
+
+  def WaitForJobCompletion(self, job_id, period=5, retries=-1):
+    """Polls cluster for job status until completion.
+
+    Completion is defined as any of the following states:
+      "error", "canceled", or "success"
+
+    @type job_id: int
+    @param job_id: job id to watch
+
+    @type period: int
+    @param period: how often to poll for status (optional, default 5s)
+
+    @type retries: int
+    @param retries: how many time to poll before giving up
+                    (optional, default -1 means unlimited)
+
+    @rtype: bool
+    @return: True if job succeeded or False if failed/status timeout
+    """
+    while retries != 0:
+      job_result = self.GetJobStatus(job_id)
+      if not job_result or job_result["status"] in ("error", "canceled"):
+        return False
+      if job_result["status"] == "success":
+        return True
+      time.sleep(period)
+      if retries > 0:
+        retries -= 1
+    return False
 
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
     """Waits for job changes.
