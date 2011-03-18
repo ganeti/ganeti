@@ -83,6 +83,7 @@ class LogicalUnit(object):
     - implement CheckPrereq (except when tasklets are used)
     - implement Exec (except when tasklets are used)
     - implement BuildHooksEnv
+    - implement BuildHooksNodes
     - redefine HPATH and HTYPE
     - optionally redefine their run requirements:
         REQ_BGL: the LU needs to hold the Big Ganeti Lock exclusively
@@ -273,21 +274,28 @@ class LogicalUnit(object):
   def BuildHooksEnv(self):
     """Build hooks environment for this LU.
 
-    This method should return a three-node tuple consisting of: a dict
-    containing the environment that will be used for running the
-    specific hook for this LU, a list of node names on which the hook
-    should run before the execution, and a list of node names on which
-    the hook should run after the execution.
+    @rtype: dict
+    @return: Dictionary containing the environment that will be used for
+      running the hooks for this LU. The keys of the dict must not be prefixed
+      with "GANETI_"--that'll be added by the hooks runner. The hooks runner
+      will extend the environment with additional variables. If no environment
+      should be defined, an empty dictionary should be returned (not C{None}).
+    @note: If the C{HPATH} attribute of the LU class is C{None}, this function
+      will not be called.
 
-    The keys of the dict must not have 'GANETI_' prefixed as this will
-    be handled in the hooks runner. Also note additional keys will be
-    added by the hooks runner. If the LU doesn't define any
-    environment, an empty dict (and not None) should be returned.
+    """
+    raise NotImplementedError
 
-    No nodes should be returned as an empty list (and not None).
+  def BuildHooksNodes(self):
+    """Build list of nodes to run LU's hooks.
 
-    Note that if the HPATH for a LU class is None, this function will
-    not be called.
+    @rtype: tuple; (list, list)
+    @return: Tuple containing a list of node names on which the hook
+      should run before the execution and a list of node names on which the
+      hook should run after the execution. No nodes should be returned as an
+      empty list (and not None).
+    @note: If the C{HPATH} attribute of the LU class is C{None}, this function
+      will not be called.
 
     """
     raise NotImplementedError
@@ -397,7 +405,13 @@ class NoHooksLU(LogicalUnit): # pylint: disable-msg=W0223
     This just raises an error.
 
     """
-    assert False, "BuildHooksEnv called for NoHooksLUs"
+    raise AssertionError("BuildHooksEnv called for NoHooksLUs")
+
+  def BuildHooksNodes(self):
+    """Empty BuildHooksNodes for NoHooksLU.
+
+    """
+    raise AssertionError("BuildHooksNodes called for NoHooksLU")
 
 
 class Tasklet:
@@ -1109,9 +1123,15 @@ class LUClusterPostInit(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {"OP_TARGET": self.cfg.GetClusterName()}
-    mn = self.cfg.GetMasterNode()
-    return env, [], [mn]
+    return {
+      "OP_TARGET": self.cfg.GetClusterName(),
+      }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    return ([], [self.cfg.GetMasterNode()])
 
   def Exec(self, feedback_fn):
     """Nothing to do.
@@ -1131,8 +1151,15 @@ class LUClusterDestroy(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {"OP_TARGET": self.cfg.GetClusterName()}
-    return env, [], []
+    return {
+      "OP_TARGET": self.cfg.GetClusterName(),
+      }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    return ([], [])
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -2065,7 +2092,6 @@ class LUClusterVerify(LogicalUnit):
       except errors.GenericError, err:
         self._ErrorIf(True, self.ECLUSTERCFG, None, msg % str(err))
 
-
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -2073,14 +2099,22 @@ class LUClusterVerify(LogicalUnit):
     the output be logged in the verify output and the verification to fail.
 
     """
-    all_nodes = self.cfg.GetNodeList()
-    env = {
-      "CLUSTER_TAGS": " ".join(self.cfg.GetClusterInfo().GetTags())
-      }
-    for node in self.cfg.GetAllNodesInfo().values():
-      env["NODE_TAGS_%s" % node.name] = " ".join(node.GetTags())
+    cfg = self.cfg
 
-    return env, [], all_nodes
+    env = {
+      "CLUSTER_TAGS": " ".join(cfg.GetClusterInfo().GetTags())
+      }
+
+    env.update(("NODE_TAGS_%s" % node.name, " ".join(node.GetTags()))
+               for node in cfg.GetAllNodesInfo().values())
+
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    return ([], self.cfg.GetNodeList())
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster, performing various test on nodes.
@@ -2634,13 +2668,16 @@ class LUClusterRename(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
+    return {
       "OP_TARGET": self.cfg.GetClusterName(),
       "NEW_NAME": self.op.name,
       }
-    mn = self.cfg.GetMasterNode()
-    all_nodes = self.cfg.GetNodeList()
-    return env, [mn], all_nodes
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    return ([self.cfg.GetMasterNode()], self.cfg.GetNodeList())
 
   def CheckPrereq(self):
     """Verify that the passed name is a valid one.
@@ -2734,12 +2771,17 @@ class LUClusterSetParams(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
+    return {
       "OP_TARGET": self.cfg.GetClusterName(),
       "NEW_VG_NAME": self.op.vg_name,
       }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     mn = self.cfg.GetMasterNode()
-    return env, [mn], [mn]
+    return ([mn], [mn])
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -3580,17 +3622,22 @@ class LUNodeRemove(LogicalUnit):
     node would then be impossible to remove.
 
     """
-    env = {
+    return {
       "OP_TARGET": self.op.node_name,
       "NODE_NAME": self.op.node_name,
       }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     all_nodes = self.cfg.GetNodeList()
     try:
       all_nodes.remove(self.op.node_name)
     except ValueError:
-      logging.warning("Node %s which is about to be removed not found"
-                      " in the all nodes list", self.op.node_name)
-    return env, all_nodes, all_nodes
+      logging.warning("Node '%s', which is about to be removed, was not found"
+                      " in the list of all nodes", self.op.node_name)
+    return (all_nodes, all_nodes)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4106,7 +4153,7 @@ class LUNodeAdd(LogicalUnit):
     This will run on all nodes before, and on all nodes + the new node after.
 
     """
-    env = {
+    return {
       "OP_TARGET": self.op.node_name,
       "NODE_NAME": self.op.node_name,
       "NODE_PIP": self.op.primary_ip,
@@ -4115,11 +4162,15 @@ class LUNodeAdd(LogicalUnit):
       "VM_CAPABLE": str(self.op.vm_capable),
       }
 
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     # Exclude added node
     pre_nodes = list(set(self.cfg.GetNodeList()) - set([self.op.node_name]))
     post_nodes = pre_nodes + [self.op.node_name, ]
 
-    return (env, pre_nodes, post_nodes)
+    return (pre_nodes, post_nodes)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4432,7 +4483,7 @@ class LUNodeSetParams(LogicalUnit):
     This runs on the master node.
 
     """
-    env = {
+    return {
       "OP_TARGET": self.op.node_name,
       "MASTER_CANDIDATE": str(self.op.master_candidate),
       "OFFLINE": str(self.op.offline),
@@ -4440,9 +4491,13 @@ class LUNodeSetParams(LogicalUnit):
       "MASTER_CAPABLE": str(self.op.master_capable),
       "VM_CAPABLE": str(self.op.vm_capable),
       }
-    nl = [self.cfg.GetMasterNode(),
-          self.op.node_name]
-    return env, nl, nl
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    nl = [self.cfg.GetMasterNode(), self.op.node_name]
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5136,9 +5191,17 @@ class LUInstanceStartup(LogicalUnit):
     env = {
       "FORCE": self.op.force,
       }
+
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5233,9 +5296,17 @@ class LUInstanceReboot(LogicalUnit):
       "REBOOT_TYPE": self.op.reboot_type,
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       }
+
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5315,8 +5386,14 @@ class LUInstanceShutdown(LogicalUnit):
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
     env["TIMEOUT"] = self.op.timeout
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5375,9 +5452,14 @@ class LUInstanceReinstall(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self, self.instance)
+    return _BuildInstanceHookEnvByObject(self, self.instance)
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5461,9 +5543,14 @@ class LUInstanceRecreateDisks(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self, self.instance)
+    return _BuildInstanceHookEnvByObject(self, self.instance)
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5528,8 +5615,14 @@ class LUInstanceRename(LogicalUnit):
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
     env["INSTANCE_NEW_NAME"] = self.op.new_name
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5639,9 +5732,15 @@ class LUInstanceRemove(LogicalUnit):
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
     env["SHUTDOWN_TIMEOUT"] = self.op.shutdown_timeout
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()]
     nl_post = list(self.instance.all_nodes) + nl
-    return env, nl, nl_post
+    return (nl, nl_post)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5777,10 +5876,15 @@ class LUInstanceFailover(LogicalUnit):
       env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = ""
 
     env.update(_BuildInstanceHookEnvByObject(self, instance))
-    nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
-    nl_post = list(nl)
-    nl_post.append(source_node)
-    return env, nl, nl_post
+
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
+    return (nl, nl + [self.instance.primary_node])
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5994,12 +6098,12 @@ class LUInstanceMigrate(LogicalUnit):
     source_node = instance.primary_node
     target_node = self._migrater.target_node
     env = _BuildInstanceHookEnvByObject(self, instance)
-    env["MIGRATE_LIVE"] = self._migrater.live
-    env["MIGRATE_CLEANUP"] = self.op.cleanup
     env.update({
-        "OLD_PRIMARY": source_node,
-        "NEW_PRIMARY": target_node,
-        })
+      "MIGRATE_LIVE": self._migrater.live,
+      "MIGRATE_CLEANUP": self.op.cleanup,
+      "OLD_PRIMARY": source_node,
+      "NEW_PRIMARY": target_node,
+      })
 
     if instance.disk_template in constants.DTS_INT_MIRROR:
       env["OLD_SECONDARY"] = target_node
@@ -6007,10 +6111,15 @@ class LUInstanceMigrate(LogicalUnit):
     else:
       env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = None
 
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    instance = self._migrater.instance
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
-    nl_post = list(nl)
-    nl_post.append(source_node)
-    return env, nl, nl_post
+    return (nl, nl + [instance.primary_node])
 
 
 class LUInstanceMove(LogicalUnit):
@@ -6043,9 +6152,18 @@ class LUInstanceMove(LogicalUnit):
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = [self.cfg.GetMasterNode()] + [self.instance.primary_node,
-                                       self.op.target_node]
-    return env, nl, nl
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    nl = [
+      self.cfg.GetMasterNode(),
+      self.instance.primary_node,
+      self.op.target_node,
+      ]
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -6244,13 +6362,16 @@ class LUNodeMigrate(LogicalUnit):
     This runs on the master, the primary and all the secondaries.
 
     """
-    env = {
+    return {
       "NODE_NAME": self.op.node_name,
       }
 
-    nl = [self.cfg.GetMasterNode()]
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
 
-    return (env, nl, nl)
+    """
+    nl = [self.cfg.GetMasterNode()]
+    return (nl, nl)
 
 
 class TLMigrateInstance(Tasklet):
@@ -7469,9 +7590,14 @@ class LUInstanceCreate(LogicalUnit):
       hypervisor_name=self.op.hypervisor,
     ))
 
-    nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
-          self.secondaries)
-    return env, nl, nl
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    nl = [self.cfg.GetMasterNode(), self.op.pnode] + self.secondaries
+    return nl, nl
 
   def _ReadExportInfo(self):
     """Reads the export information from disk.
@@ -8258,13 +8384,20 @@ class LUInstanceReplaceDisks(LogicalUnit):
       "OLD_SECONDARY": instance.secondary_nodes[0],
       }
     env.update(_BuildInstanceHookEnvByObject(self, instance))
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    instance = self.replacer.instance
     nl = [
       self.cfg.GetMasterNode(),
       instance.primary_node,
       ]
     if self.op.remote_node is not None:
       nl.append(self.op.remote_node)
-    return env, nl, nl
+    return nl, nl
 
 
 class TLReplaceDisks(Tasklet):
@@ -9099,8 +9232,14 @@ class LUInstanceGrowDisk(LogicalUnit):
       "AMOUNT": self.op.amount,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -9507,8 +9646,15 @@ class LUInstanceSetParams(LogicalUnit):
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
     if self.op.disk_template:
       env["NEW_DISK_TEMPLATE"] = self.op.disk_template
+
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -10125,12 +10271,18 @@ class LUBackupExport(LogicalUnit):
 
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
 
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     nl = [self.cfg.GetMasterNode(), self.instance.primary_node]
 
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
       nl.append(self.op.target_node)
 
-    return env, nl, nl
+    return (nl, nl)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -10440,11 +10592,16 @@ class LUGroupAdd(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
+    return {
       "GROUP_NAME": self.op.group_name,
       }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     mn = self.cfg.GetMasterNode()
-    return env, [mn], [mn]
+    return ([mn], [mn])
 
   def Exec(self, feedback_fn):
     """Add the node group to the cluster.
@@ -10711,12 +10868,17 @@ class LUGroupSetParams(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
+    return {
       "GROUP_NAME": self.op.group_name,
       "NEW_ALLOC_POLICY": self.op.alloc_policy,
       }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     mn = self.cfg.GetMasterNode()
-    return env, [mn], [mn]
+    return ([mn], [mn])
 
   def Exec(self, feedback_fn):
     """Modifies the node group.
@@ -10779,11 +10941,16 @@ class LUGroupRemove(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
+    return {
       "GROUP_NAME": self.op.group_name,
       }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     mn = self.cfg.GetMasterNode()
-    return env, [mn], [mn]
+    return ([mn], [mn])
 
   def Exec(self, feedback_fn):
     """Remove the node group.
@@ -10831,21 +10998,25 @@ class LUGroupRename(LogicalUnit):
     """Build hooks env.
 
     """
-    env = {
+    return {
       "OLD_NAME": self.op.group_name,
       "NEW_NAME": self.op.new_name,
       }
 
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
     mn = self.cfg.GetMasterNode()
+
     all_nodes = self.cfg.GetAllNodesInfo()
-    run_nodes = [mn]
     all_nodes.pop(mn, None)
 
-    for node in all_nodes.values():
-      if node.group == self.group_uuid:
-        run_nodes.append(node.name)
+    run_nodes = [mn]
+    run_nodes.extend(node.name for node in all_nodes.values()
+                     if node.group == self.group_uuid)
 
-    return env, run_nodes, run_nodes
+    return (run_nodes, run_nodes)
 
   def Exec(self, feedback_fn):
     """Rename the node group.
