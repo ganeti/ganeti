@@ -1165,10 +1165,10 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
   def WaitForJobCompletion(self, job_id, period=5, retries=-1):
     """Polls cluster for job status until completion.
 
-    Completion is defined as any of the following states:
-      "error", "canceled", or "success"
+    Completion is defined as any of the following states: "error",
+    "canceled", or "success".
 
-    @type job_id: int
+    @type job_id: string
     @param job_id: job id to watch
 
     @type period: int
@@ -1180,6 +1180,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
 
     @rtype: bool
     @return: True if job succeeded or False if failed/status timeout
+
     """
     while retries != 0:
       job_result = self.GetJobStatus(job_id)
