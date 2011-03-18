@@ -1184,32 +1184,38 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
   def WaitForJobCompletion(self, job_id, period=5, retries=-1):
     """Polls cluster for job status until completion.
 
-    Completion is defined as any of the following states: "error",
-    "canceled", or "success".
+    Completion is defined as any of the following states listed in
+    L{JOB_STATUS_FINALIZED}.
 
     @type job_id: string
     @param job_id: job id to watch
-
     @type period: int
     @param period: how often to poll for status (optional, default 5s)
-
     @type retries: int
     @param retries: how many time to poll before giving up
                     (optional, default -1 means unlimited)
 
     @rtype: bool
-    @return: True if job succeeded or False if failed/status timeout
+    @return: C{True} if job succeeded or C{False} if failed/status timeout
+    @deprecated: It is recommended to use L{WaitForJobChange} wherever
+      possible; L{WaitForJobChange} returns immediately after a job changed and
+      does not use polling
 
     """
     while retries != 0:
       job_result = self.GetJobStatus(job_id)
-      if not job_result or job_result["status"] in ("error", "canceled"):
-        return False
-      if job_result["status"] == "success":
+
+      if job_result and job_result["status"] == JOB_STATUS_SUCCESS:
         return True
-      time.sleep(period)
+      elif not job_result or job_result["status"] in JOB_STATUS_FINALIZED:
+        return False
+
+      if period:
+        time.sleep(period)
+
       if retries > 0:
         retries -= 1
+
     return False
 
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):

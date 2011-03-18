@@ -103,6 +103,9 @@ class RapiMock(object):
     self._last_handler = None
     self._last_req_data = None
 
+  def ResetResponses(self):
+    del self._responses[:]
+
   def AddResponse(self, response, code=200):
     self._responses.insert(0, (code, response))
 
@@ -1210,6 +1213,79 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
 
         self.assertEqual(objects.QueryFieldsResponse.FromDict(result).ToDict(),
                          exp_result.ToDict())
+
+        self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testWaitForJobCompletionNoChange(self):
+    resp = serializer.DumpJson({
+      "status": constants.JOB_STATUS_WAITLOCK,
+      })
+
+    for retries in [1, 5, 25]:
+      for _ in range(retries):
+        self.rapi.AddResponse(resp)
+
+      self.assertFalse(self.client.WaitForJobCompletion(22789, period=None,
+                                                        retries=retries))
+      self.assertHandler(rlib2.R_2_jobs_id)
+      self.assertItems(["22789"])
+
+      self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testWaitForJobCompletionAlreadyFinished(self):
+    self.rapi.AddResponse(serializer.DumpJson({
+      "status": constants.JOB_STATUS_SUCCESS,
+      }))
+
+    self.assertTrue(self.client.WaitForJobCompletion(22793, period=None,
+                                                     retries=1))
+    self.assertHandler(rlib2.R_2_jobs_id)
+    self.assertItems(["22793"])
+
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testWaitForJobCompletionEmptyResponse(self):
+    self.rapi.AddResponse("{}")
+    self.assertFalse(self.client.WaitForJobCompletion(22793, period=None,
+                                                     retries=10))
+    self.assertHandler(rlib2.R_2_jobs_id)
+    self.assertItems(["22793"])
+
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testWaitForJobCompletionOutOfRetries(self):
+    for retries in [3, 10, 21]:
+      for _ in range(retries):
+        self.rapi.AddResponse(serializer.DumpJson({
+          "status": constants.JOB_STATUS_RUNNING,
+          }))
+
+      self.assertFalse(self.client.WaitForJobCompletion(30948, period=None,
+                                                        retries=retries - 1))
+      self.assertHandler(rlib2.R_2_jobs_id)
+      self.assertItems(["30948"])
+
+      self.assertEqual(self.rapi.CountPending(), 1)
+      self.rapi.ResetResponses()
+
+  def testWaitForJobCompletionSuccessAndFailure(self):
+    for retries in [1, 4, 13]:
+      for (success, end_status) in [(False, constants.JOB_STATUS_ERROR),
+                                    (True, constants.JOB_STATUS_SUCCESS)]:
+        for _ in range(retries):
+          self.rapi.AddResponse(serializer.DumpJson({
+            "status": constants.JOB_STATUS_RUNNING,
+            }))
+
+        self.rapi.AddResponse(serializer.DumpJson({
+          "status": end_status,
+          }))
+
+        result = self.client.WaitForJobCompletion(3187, period=None,
+                                                  retries=retries + 1)
+        self.assertEqual(result, success)
+        self.assertHandler(rlib2.R_2_jobs_id)
+        self.assertItems(["3187"])
 
         self.assertEqual(self.rapi.CountPending(), 0)
 
