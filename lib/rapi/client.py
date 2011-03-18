@@ -497,7 +497,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
 
     More details for parameters can be found in the RAPI documentation.
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -524,7 +524,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -625,7 +625,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @keyword dry_run: whether to perform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -739,7 +739,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type instance: str
     @param instance: the instance to delete
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -758,7 +758,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
 
     @type instance: string
     @param instance: Instance name
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -811,7 +811,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param amount: Grow disk by this amount (MiB)
     @type wait_for_sync: bool
     @param wait_for_sync: Wait for disk to synchronize
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -851,7 +851,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1001,7 +1001,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1151,7 +1151,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
   def GetJobStatus(self, job_id):
     """Gets the status of a job.
 
-    @type job_id: int
+    @type job_id: string
     @param job_id: job id whose status to query
 
     @rtype: dict
@@ -1196,7 +1196,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
     """Waits for job changes.
 
-    @type job_id: int
+    @type job_id: string
     @param job_id: Job ID for which to wait
 
     """
@@ -1213,7 +1213,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
   def CancelJob(self, job_id, dry_run=False):
     """Cancels a job.
 
-    @type job_id: int
+    @type job_id: string
     @param job_id: id of the job to delete
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
@@ -1315,7 +1315,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1353,7 +1353,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type force: bool
     @param force: whether to force the role change
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1375,7 +1375,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type output_fields: str
     @param output_fields: storage type fields to return
 
-    @rtype: int
+    @rtype: string
     @return: job id where results can be retrieved
 
     """
@@ -1401,7 +1401,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param allocatable: Whether to set the "allocatable" flag on the storage
                         unit (None=no modification, True=set, False=unset)
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1427,7 +1427,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type name: str
     @param name: name of the storage unit to repair
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1464,7 +1464,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1486,7 +1486,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1544,7 +1544,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to peform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1567,7 +1567,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
 
     @type group: string
     @param group: Node group name
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1583,7 +1583,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type dry_run: bool
     @param dry_run: whether to peform a dry run
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1603,7 +1603,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type new_name: string
     @param new_name: New node group name
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
@@ -1623,7 +1623,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type nodes: list of strings
     @param nodes: List of nodes to assign to the group
 
-    @rtype: int
+    @rtype: string
     @return: job id
 
     """
