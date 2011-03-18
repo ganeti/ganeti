@@ -82,6 +82,7 @@
 
 # tools
 /tools/kvm-ifup
+/tools/ensure-dirs
 
 # scripts
 /scripts/gnt-backup

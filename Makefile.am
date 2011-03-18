@@ -36,6 +36,7 @@ impexpddir = $(pkgpythondir)/impexpd
 utilsdir = $(pkgpythondir)/utils
 toolsdir = $(pkglibdir)/tools
 iallocatorsdir = $(pkglibdir)/iallocators
+pytoolsdir = $(pkgpythondir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
 
 # Delete output file if an error occurred while building it
@@ -65,6 +66,7 @@ DIRS = \
 	lib/masterd \
 	lib/rapi \
 	lib/server \
+	lib/tools \
 	lib/utils \
 	lib/watcher \
 	man \
@@ -247,6 +249,10 @@ server_PYTHON = \
 	lib/server/noded.py \
 	lib/server/rapi.py
 
+pytools_PYTHON = \
+	lib/tools/__init__.py \
+	lib/tools/ensure_dirs.py
+
 utils_PYTHON = \
 	lib/utils/__init__.py \
 	lib/utils/algo.py \
@@ -399,7 +405,7 @@ gnt_scripts = \
 	scripts/gnt-node \
 	scripts/gnt-os
 
-PYTHON_BOOTSTRAP = \
+PYTHON_BOOTSTRAP_SBIN = \
 	daemons/ganeti-confd \
 	daemons/ganeti-masterd \
 	daemons/ganeti-noded \
@@ -413,6 +419,10 @@ PYTHON_BOOTSTRAP = \
 	scripts/gnt-job \
 	scripts/gnt-node \
 	scripts/gnt-os
+
+PYTHON_BOOTSTRAP = \
+	$(PYTHON_BOOTSTRAP_SBIN) \
+	tools/ensure-dirs
 
 qa_scripts = \
 	qa/ganeti-qa.py \
@@ -451,7 +461,7 @@ dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
 nodist_sbin_SCRIPTS = \
-	$(PYTHON_BOOTSTRAP) \
+	$(PYTHON_BOOTSTRAP_SBIN) \
 	daemons/ganeti-cleaner
 
 dist_tools_SCRIPTS = \
@@ -469,11 +479,17 @@ pkglib_python_scripts = \
 	daemons/import-export \
 	tools/check-cert-expired
 
+nodist_pkglib_python_scripts = \
+	tools/ensure-dirs
+
 pkglib_SCRIPTS = \
 	daemons/daemon-util \
 	daemons/ensure-dirs \
 	tools/kvm-ifup \
 	$(pkglib_python_scripts)
+
+nodist_pkglib_SCRIPTS = \
+	$(nodist_pkglib_python_scripts)
 
 EXTRA_DIST = \
 	NEWS \
@@ -610,6 +626,7 @@ python_tests = \
 	test/ganeti.runtime_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
+	test/ganeti.tools.ensure_dirs_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
 	test/ganeti.utils.filelock_unittest.py \
@@ -657,12 +674,14 @@ all_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
 	$(pkglib_python_scripts) \
+	$(nodist_pkglib_python_scripts) \
 	$(python_tests) \
 	$(pkgpython_PYTHON) \
 	$(client_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(rapi_PYTHON) \
 	$(server_PYTHON) \
+	$(pytools_PYTHON) \
 	$(http_PYTHON) \
 	$(confd_PYTHON) \
 	$(masterd_PYTHON) \
@@ -881,6 +900,7 @@ $(REPLACE_VARS_SED): Makefile
 daemons/ganeti-%: MODULE = ganeti.server.$(patsubst ganeti-%,%,$(notdir $@))
 daemons/ganeti-watcher: MODULE = ganeti.watcher
 scripts/%: MODULE = ganeti.client.$(subst -,_,$(notdir $@))
+tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
 
 $(PYTHON_BOOTSTRAP): Makefile | $(all_dirfiles)
 	test -n "$(MODULE)" || { echo Missing module; exit 1; }
