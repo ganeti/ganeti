@@ -221,6 +221,7 @@ def main():
   if not (options.dry_run or options.no_verify):
     logging.info("Testing the new config file...")
     cfg = config.ConfigWriter(cfg_file=options.CONFIG_DATA_PATH,
+                              accept_foreign=options.ignore_hostname,
                               offline=True)
     # if we reached this, it's all fine
     vrfy = cfg.VerifyConfig()
