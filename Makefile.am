@@ -125,7 +125,6 @@ CLEANFILES = \
 	epydoc.conf \
 	autotools/replace_vars.sed \
 	daemons/daemon-util \
-	daemons/ensure-dirs \
 	daemons/ganeti-cleaner \
 	devel/upload \
 	doc/examples/bash_completion \
@@ -484,7 +483,6 @@ nodist_pkglib_python_scripts = \
 
 pkglib_SCRIPTS = \
 	daemons/daemon-util \
-	daemons/ensure-dirs \
 	tools/kvm-ifup \
 	$(pkglib_python_scripts)
 
@@ -507,7 +505,6 @@ EXTRA_DIST = \
 	autotools/testrunner \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
-	daemons/ensure-dirs.in \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
 	devel/upload.in \
