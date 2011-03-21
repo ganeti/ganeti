@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Helper for running things in a temporary directory; used for docs
+# building, unittests, etc.
+
 set -e
 
 tmpdir=$(mktemp -d -t gntbuild.XXXXXXXX)
@@ -7,5 +10,9 @@ trap "rm -rf $tmpdir" EXIT
 
 cp -r autotools daemons scripts lib tools test $tmpdir
 mv $tmpdir/lib $tmpdir/ganeti
+mkdir -p $tmpdir/htools
+if [ -e htools/test ]; then
+  cp -p htools/test $tmpdir/htools/
+fi
 
 cd $tmpdir && GANETI_TEMP_DIR="$tmpdir" "$@"

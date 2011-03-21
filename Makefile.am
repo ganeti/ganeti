@@ -75,7 +75,9 @@ DIRS = \
 BUILDTIME_DIR_AUTOCREATE = \
 	scripts \
 	doc/api \
-	doc/coverage
+	doc/py-coverage \
+	doc/hs-coverage \
+	.hpc
 
 BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
@@ -122,7 +124,8 @@ CLEANFILES = \
 	tools/kvm-ifup \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
-	$(HALLPROGS) $(HSRCS2)
+	$(HALLPROGS) $(HSRCS2) \
+	.hpc/*.mix htools/*.tix
 
 # BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
 # it'll cause the target to rebuild every time.
@@ -283,7 +286,10 @@ HALLPROGS = $(HPROGS) htools/test
 HSRCPROGS = $(patsubst %,%.hs,$(HALLPROGS))
 # we don't add -Werror by default
 HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
+# extra flags that can be overriden on the command line
 HEXTRA =
+# exclude options for coverage reports
+HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
 
 HSRCS = \
 	htools/Ganeti/HTools/CLI.hs \
@@ -417,6 +423,11 @@ $(HALLPROGS): %: %.hs $(HSRCS) $(HSRCS2) Makefile
 	  $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
 	  $@
+
+# for the htools/test binary, we need to enable profiling/coverage
+htools/test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
+	-fno-warn-monomorphism-restriction -fno-warn-orphans \
+	-fno-warn-missing-methods -fno-warn-unused-imports
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
@@ -600,6 +611,8 @@ python_tests = \
 	test/docs_unittest.py \
 	test/tempfile_fork_unittest.py
 
+haskell_tests = htools/test
+
 dist_TESTS = \
 	test/check-cert-expired_unittest.bash \
 	test/daemon-util_unittest.bash \
@@ -608,6 +621,9 @@ dist_TESTS = \
 	$(python_tests)
 
 nodist_TESTS =
+if WANT_HTOOLS
+nodist_TESTS += $(haskell_tests)
+endif
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
@@ -997,13 +1013,28 @@ TAGS: $(BUILT_SOURCES)
 	  etags -l python -
 
 .PHONY: coverage
-coverage: $(BUILT_SOURCES) $(python_tests)
+if WANT_HTOOLS
+coverage: py-coverage hs-coverage
+else
+coverage: py-coverage
+endif
+
+.PHONY: py-coverage
+py-coverage: $(BUILT_SOURCES) $(python_tests)
 	set -e; \
-	COVERAGE_FILE=$(CURDIR)/doc/coverage/data \
-	TEXT_COVERAGE=$(CURDIR)/doc/coverage/report.txt \
-	HTML_COVERAGE=$(CURDIR)/doc/coverage \
+	COVERAGE_FILE=$(CURDIR)/doc/py-coverage/data \
+	TEXT_COVERAGE=$(CURDIR)/doc/py-coverage/report.txt \
+	HTML_COVERAGE=$(CURDIR)/doc/py-coverage \
 	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage \
 	$(python_tests)
+
+.PHONY: hs-coverage
+hs-coverage: $(haskell_tests)
+	cd htools && rm -f *.tix *.mix && ./test
+	mkdir -p doc/hs-coverage
+	hpc markup --destdir=doc/hs-coverage htools/test $(HPCEXCL)
+	hpc report htools/test $(HPCEXCL)
+
 
 commit-check: distcheck lint apidoc
 

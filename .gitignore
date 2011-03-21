@@ -53,7 +53,8 @@
 # doc
 /doc/api
 /doc/build
-/doc/coverage
+/doc/py-coverage/
+/doc/hs-coverage/
 /doc/html
 /doc/install-quick.rst
 /doc/news.rst
@@ -105,5 +106,6 @@
 /htools/*.prof*
 /htools/*.stat
 /htools/*.tix
+/.hpc/
 
 /htools/Ganeti/HTools/Version.hs
