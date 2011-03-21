@@ -248,6 +248,14 @@ AC_ARG_ENABLE([htools],
         [],
         [enable_htools=check])
 
+# --enable-htools-rapi
+HTOOLS_RAPI=
+AC_ARG_ENABLE([htools-rapi],
+        [AS_HELP_STRING([--enable-htools-rapi],
+        [enable use of RAPI in htools (needs curl, default: no)])],
+        [],
+        [enable_htools_rapi=no])
+
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
   [AS_HELP_STRING([--with-disk-separator=STRING],
@@ -323,15 +331,25 @@ if test -z "$GHC_PKG"; then
 else
   # check for modules
   AC_MSG_NOTICE([checking for required haskell modules])
-  AC_MSG_CHECKING([curl])
-  GHC_PKG_CURL=$($GHC_PKG latest curl)
-  if test -z "$GHC_PKG_CURL"; then
-    AC_MSG_WARN([The curl library not found, htools will be compiled
-                 without RAPI support])
-    AC_SUBST(HTOOLS_NOCURL, [-DNO_CURL])
+  HTOOLS_NOCURL=-DNO_CURL
+  if test "$enable_htools_rapi" != "no"; then
+    AC_MSG_CHECKING([curl])
+    GHC_PKG_CURL=$($GHC_PKG latest curl)
+    if test -z "$GHC_PKG_CURL"; then
+      if test "$enable_htools_rapi" = "check"; then
+        AC_MSG_WARN([The curl library not found, htools will be compiled
+                     without RAPI support])
+      else
+        AC_MSG_FAILURE([The curl library was not found, but it has
+                        been requested])
+      fi
+    else
+      HTOOLS_NOCURL=
+    fi
+    AC_MSG_RESULT($GHC_PKG_CURL)
   fi
-  AC_MSG_RESULT($GHC_PKG_CURL)
   AC_SUBST(GHC_PKG_CURL)
+  AC_SUBST(HTOOLS_NOCURL)
   AC_MSG_CHECKING([parallel])
   GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-2.*')
   if test -z "$GHC_PKG_PARALLEL"

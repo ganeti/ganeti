@@ -409,7 +409,7 @@ bin_SCRIPTS += $(filter-out htools/hail,$(HPROGS))
 iallocators_SCRIPTS += $(filter htools/hail,$(HPROGS))
 endif
 
-$(HALLPROGS): %: %.hs $(HSRCS) $(HSRCS2)
+$(HALLPROGS): %: %.hs $(HSRCS) $(HSRCS2) Makefile
 	cd htools && $(GHC) --make $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
 	  $(patsubst htools/%,%,$@)
 
