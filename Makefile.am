@@ -22,6 +22,7 @@ CHECK_NEWS = $(top_srcdir)/autotools/check-news
 DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
+# Note: the variable must be named after the directory + 'dir' suffix
 clientdir = $(pkgpythondir)/client
 hypervisordir = $(pkgpythondir)/hypervisor
 httpdir = $(pkgpythondir)/http
@@ -33,6 +34,7 @@ watcherdir = $(pkgpythondir)/watcher
 impexpddir = $(pkgpythondir)/impexpd
 utilsdir = $(pkgpythondir)/utils
 toolsdir = $(pkglibdir)/tools
+iallocatorsdir = $(pkglibdir)/iallocators
 docdir = $(datadir)/doc/$(PACKAGE)
 
 # Delete output file if an error occurred while building it
@@ -401,8 +403,10 @@ qa_scripts = \
 	qa/qa_utils.py
 
 bin_SCRIPTS =
+iallocators_SCRIPTS =
 if WANT_HTOOLS
-bin_SCRIPTS += $(HPROGS)
+bin_SCRIPTS += $(filter-out htools/hail,$(HPROGS))
+iallocators_SCRIPTS += $(filter htools/hail,$(HPROGS))
 endif
 
 $(HALLPROGS): %: %.hs $(HSRCS) $(HSRCS2)
