@@ -8,6 +8,9 @@
 *.py[co]
 *.swp
 *~
+*.o
+*.hi
+*.hp
 .dir
 
 # /
@@ -88,3 +91,19 @@
 /scripts/gnt-job
 /scripts/gnt-node
 /scripts/gnt-os
+
+# htools-specific rules
+/htools/apidoc
+/htools/.hpc
+/htools/coverage
+
+/htools/hbal
+/htools/hscan
+/htools/hail
+/htools/hspace
+/htools/test
+/htools/*.prof*
+/htools/*.stat
+/htools/*.tix
+
+/htools/Ganeti/HTools/Version.hs
