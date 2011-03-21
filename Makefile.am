@@ -40,6 +40,11 @@ docdir = $(datadir)/doc/$(PACKAGE)
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
 
+HTOOLS_DIRS = \
+	htools \
+	htools/Ganeti \
+	htools/Ganeti/HTools
+
 DIRS = \
 	autotools \
 	daemons \
@@ -48,9 +53,7 @@ DIRS = \
 	doc/examples \
 	doc/examples/hooks \
 	doc/examples/gnt-debug \
-	htools \
-	htools/Ganeti \
-	htools/Ganeti/HTools \
+	$(HTOOLS_DIRS) \
 	lib \
 	lib/client \
 	lib/build \
@@ -98,6 +101,8 @@ maintainer-clean-local:
 
 CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
+	$(addsuffix /*.hi,$(HTOOLS_DIRS)) \
+	$(addsuffix /*.o,$(HTOOLS_DIRS)) \
 	$(all_dirfiles) \
 	$(PYTHON_BOOTSTRAP) \
 	epydoc.conf \
@@ -117,9 +122,7 @@ CLEANFILES = \
 	tools/kvm-ifup \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
-	$(HALLPROGS) $(HSRCS2) \
-	$(patsubst %.hs,%.hi,$(HSRCS) $(HSRCPROGS) $(HSRCS2)) \
-	$(patsubst %.hs,%.o,$(HSRCS) $(HSRCPROGS) $(HSRCS2))
+	$(HALLPROGS) $(HSRCS2)
 
 # BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
 # it'll cause the target to rebuild every time.
@@ -279,7 +282,7 @@ HPROGS = \
 HALLPROGS = $(HPROGS) htools/test
 HSRCPROGS = $(patsubst %,%.hs,$(HALLPROGS))
 # we don't add -Werror by default
-HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs
+HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 HEXTRA =
 
 HSRCS = \
@@ -306,7 +309,6 @@ HSRCS = \
 
 HSRCS2 = htools/Ganeti/HTools/Version.hs
 HSRCS2IN = $(patsubst %,%.in,$(HSRCS2))
-
 
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 
@@ -410,8 +412,11 @@ iallocators_SCRIPTS += $(filter htools/hail,$(HPROGS))
 endif
 
 $(HALLPROGS): %: %.hs $(HSRCS) $(HSRCS2) Makefile
-	cd htools && $(GHC) --make $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
-	  $(patsubst htools/%,%,$@)
+	BINARY=$(@:htools/%=%); \
+	$(GHC) --make \
+	  $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
+	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
+	  $@
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
