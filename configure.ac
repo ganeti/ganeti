@@ -240,6 +240,14 @@ then
 fi
 AC_SUBST(SYSLOG_USAGE, $SYSLOG)
 
+# --enable-htools
+HTOOLS=
+AC_ARG_ENABLE([htools],
+        [AS_HELP_STRING([--enable-htools],
+        [enable use of htools (needs GHC and libraries, default: check)])],
+        [],
+        [enable_htools=check])
+
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
   [AS_HELP_STRING([--with-disk-separator=STRING],
@@ -292,6 +300,102 @@ if test -z "$SOCAT"
 then
   AC_MSG_ERROR([socat not found])
 fi
+
+if test "$enable_htools" != "no"; then
+
+# Check for ghc
+AC_ARG_VAR(GHC, [ghc path])
+AC_PATH_PROG(GHC, [ghc], [])
+if test -z "$GHC"; then
+  if test "$enable_htools" != "check"; then
+    AC_MSG_FAILURE([ghc not found, htools compilation will not possible])
+  fi
+fi
+
+# Check for ghc-pkg
+HTOOLS_MODULES=
+AC_ARG_VAR(GHC_PKG, [ghc-pkg path])
+AC_PATH_PROG(GHC_PKG, [ghc-pkg], [])
+if test -z "$GHC_PKG"; then
+  if test "$enable_htools" != "check"; then
+    AC_MSG_FAILURE([ghc-pkg not found, htools compilation will not be possible])
+  fi
+else
+  # check for modules
+  AC_MSG_NOTICE([checking for required haskell modules])
+  AC_MSG_CHECKING([curl])
+  GHC_PKG_CURL=$($GHC_PKG latest curl)
+  if test -z "$GHC_PKG_CURL"; then
+    AC_MSG_WARN([The curl library not found, htools will be compiled
+                 without RAPI support])
+    AC_SUBST(HTOOLS_NOCURL, [-DNO_CURL])
+  fi
+  AC_MSG_RESULT($GHC_PKG_CURL)
+  AC_SUBST(GHC_PKG_CURL)
+  AC_MSG_CHECKING([parallel])
+  GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-2.*')
+  if test -z "$GHC_PKG_PARALLEL"
+  then
+    GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-1.*')
+  fi
+  AC_SUBST(GHC_PKG_PARALLEL)
+  AC_MSG_RESULT($GHC_PKG_PARALLEL)
+  AC_MSG_CHECKING([json])
+  GHC_PKG_JSON=$($GHC_PKG latest json)
+  AC_MSG_RESULT($GHC_PKG_JSON)
+  AC_MSG_CHECKING([network])
+  GHC_PKG_NETWORK=$($GHC_PKG latest network)
+  AC_MSG_RESULT($GHC_PKG_NETWORK)
+  if test -z "$GHC_PKG_PARALLEL" || test -z "$GHC_PKG_JSON" || \
+     test -z "$GHC_PKG_NETWORK"; then
+    if test "$enable_htools" != "check"; then
+      AC_MSG_FAILURE([Required Haskell modules not found, htools compilation
+                      disabled])
+
+    fi
+  else
+    # we leave the other modules to be auto-selected
+    HTOOLS_MODULES="-package $GHC_PKG_PARALLEL"
+  fi
+fi
+AC_SUBST(HTOOLS_MODULES)
+
+if test "$enable_htools" != "no"; then
+  if test -z "$GHC" || test -z "$HTOOLS_MODULES"; then
+    AC_MSG_WARN([Haskell compiler/required libraries not found, htools
+                 compilation disabled])
+  else
+    HTOOLS=yes
+  fi
+fi
+AC_SUBST(HTOOLS)
+
+# Check for HsColour
+HTOOLS_APIDOC=no
+AC_ARG_VAR(HSCOLOUR, [HsColour path])
+AC_PATH_PROG(HSCOLOUR, [HsColour], [])
+if test -z "$HSCOLOUR"; then
+  AC_MSG_WARN([HsColour not found, htools API documentation will not be
+               generated])
+fi
+
+# Check for haddock
+AC_ARG_VAR(HADDOCK, [haddock path])
+AC_PATH_PROG(HADDOCK, [haddock], [])
+if test -z "$HADDOCK"; then
+  AC_MSG_WARN([haddock not found, htools API documentation will not be
+               generated])
+fi
+if test "$HADDOCK" && test "$HSCOLOUR"; then
+  HTOOLS_APIDOC=yes
+fi
+AC_SUBST(HTOOLS_APIDOC)
+
+fi # end if enable_htools, define automake conditions
+
+AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
+AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test x$HTOOLS_APIDOC = xyes])
+
 
 SOCAT_USE_ESCAPE=
 AC_ARG_ENABLE([socat-escape],
