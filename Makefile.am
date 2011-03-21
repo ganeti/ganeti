@@ -46,6 +46,9 @@ DIRS = \
 	doc/examples \
 	doc/examples/hooks \
 	doc/examples/gnt-debug \
+	htools \
+	htools/Ganeti \
+	htools/Ganeti/HTools \
 	lib \
 	lib/client \
 	lib/build \
@@ -111,7 +114,10 @@ CLEANFILES = \
 	$(manhtml) \
 	tools/kvm-ifup \
 	stamp-srclinks \
-	$(nodist_pkgpython_PYTHON)
+	$(nodist_pkgpython_PYTHON) \
+	$(HALLPROGS) $(HSRCS2) \
+	$(patsubst %.hs,%.hi,$(HSRCS) $(HSRCPROGS) $(HSRCS2)) \
+	$(patsubst %.hs,%.o,$(HSRCS) $(HSRCPROGS) $(HSRCS2))
 
 # BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
 # it'll cause the target to rebuild every time.
@@ -262,6 +268,44 @@ docrst = \
 	doc/upgrade.rst \
 	doc/walkthrough.rst
 
+HPROGS = \
+	htools/hbal \
+	htools/hscan \
+	htools/hail \
+	htools/hspace
+
+HALLPROGS = $(HPROGS) htools/test
+HSRCPROGS = $(patsubst %,%.hs,$(HALLPROGS))
+# we don't add -Werror by default
+HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs
+HEXTRA =
+
+HSRCS = \
+	htools/Ganeti/HTools/CLI.hs \
+	htools/Ganeti/HTools/Cluster.hs \
+	htools/Ganeti/HTools/Container.hs \
+	htools/Ganeti/HTools/ExtLoader.hs \
+	htools/Ganeti/HTools/Group.hs \
+	htools/Ganeti/HTools/IAlloc.hs \
+	htools/Ganeti/HTools/Instance.hs \
+	htools/Ganeti/HTools/Loader.hs \
+	htools/Ganeti/HTools/Luxi.hs \
+	htools/Ganeti/HTools/Node.hs \
+	htools/Ganeti/HTools/PeerMap.hs \
+	htools/Ganeti/HTools/QC.hs \
+	htools/Ganeti/HTools/Rapi.hs \
+	htools/Ganeti/HTools/Simu.hs \
+	htools/Ganeti/HTools/Text.hs \
+	htools/Ganeti/HTools/Types.hs \
+	htools/Ganeti/HTools/Utils.hs \
+	htools/Ganeti/Jobs.hs \
+	htools/Ganeti/Luxi.hs \
+	htools/Ganeti/OpCodes.hs
+
+HSRCS2 = htools/Ganeti/HTools/Version.hs
+HSRCS2IN = $(patsubst %,%.in,$(HSRCS2))
+
+
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 
 # Note: we use here an order-only prerequisite, as the contents of
@@ -356,6 +400,15 @@ qa_scripts = \
 	qa/qa_tags.py \
 	qa/qa_utils.py
 
+bin_SCRIPTS =
+if WANT_HTOOLS
+bin_SCRIPTS += $(HPROGS)
+endif
+
+$(HALLPROGS): %: %.hs $(HSRCS) $(HSRCS2)
+	cd htools && $(GHC) --make $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
+	  $(patsubst htools/%,%,$@)
+
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
@@ -429,7 +482,9 @@ EXTRA_DIST = \
 	$(manrst) \
 	$(maninput) \
 	qa/qa-sample.json \
-	$(qa_scripts)
+	$(qa_scripts) \
+	$(HSRCS) $(HSRCS2IN) \
+	$(HSRCPROGS)
 
 man_MANS = \
 	man/ganeti.7 \
@@ -580,7 +635,8 @@ srclink_files = \
 	test/daemon-util_unittest.bash \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
-	$(all_python_code)
+	$(all_python_code) \
+	$(HSRCS) $(HSRCPROGS)
 
 check_python_code = \
 	$(BUILD_BASH_COMPLETION) \
@@ -685,6 +741,11 @@ regen-vcs-version:
 	  rm -f vcs-version; \
 	  $(MAKE) vcs-version; \
 	fi
+
+htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in vcs-version
+	set -e; \
+	VCSVER=`cat $(abs_top_srcdir)/vcs-version`; \
+	sed -e "s/%ver%/$$VCSVER/" < $< > $@
 
 lib/_autoconf.py: Makefile vcs-version | lib/.dir
 	set -e; \
