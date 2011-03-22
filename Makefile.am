@@ -126,7 +126,8 @@ CLEANFILES = \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
 	$(HALLPROGS) $(HSRCS2) \
-	.hpc/*.mix htools/*.tix
+	.hpc/*.mix htools/*.tix \
+	doc/hs-lint.html
 
 # BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
 # it'll cause the target to rebuild every time.
@@ -942,6 +943,11 @@ lint: $(BUILT_SOURCES)
 	cd $(top_srcdir)/qa && \
 	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \
 	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
+
+.PHONY: hlint
+hlint: $(HSRCS2)
+	if tty -s; then C="-c"; else C=""; fi; \
+	hlint --report=doc/hs-lint.html $$C htools
 
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...

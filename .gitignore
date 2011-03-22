@@ -60,6 +60,7 @@
 /doc/install-quick.rst
 /doc/news.rst
 /doc/upgrade.rst
+/doc/hs-lint.html
 /doc/*.in
 /doc/*.png
 
