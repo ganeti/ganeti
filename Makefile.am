@@ -1068,6 +1068,21 @@ hs-coverage: $(haskell_tests)
 	hpc markup --destdir=doc/hs-coverage htools/test $(HPCEXCL)
 	hpc report htools/test $(HPCEXCL)
 
+# Special "kind-of-QA" target for htools, needs special setup (all
+# tools compiled with -fhpc)
+.PHONY: live-test
+live-test: all
+	set -e ; \
+	cd htools; \
+	rm -f .hpc; ln -s ../.hpc .hpc; \
+	rm -f *.tix *.mix; \
+	./live-test.sh; \
+	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HPROGS:htools/%=%)) \
+	  --output=live-test.tix ; \
+	@mkdir_p@ ../doc/hs-coverage ; \
+	hpc markup --destdir=../doc/hs-coverage live-test \
+		--srcdir=.. $(HPCEXCL) ; \
+	hpc report --srcdir=.. live-test $(HPCEXCL)
 
 commit-check: distcheck lint apidoc
 
