@@ -6090,8 +6090,6 @@ class LUInstanceMigrate(LogicalUnit):
 
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
                                        cleanup=self.op.cleanup,
-                                       iallocator=self.op.iallocator,
-                                       target_node=self.op.target_node,
                                        failover=False,
                                        fallback=self.op.allow_failover)
     self.tasklets = [self._migrater]
@@ -6353,9 +6351,7 @@ class LUNodeMigrate(LogicalUnit):
       logging.debug("Migrating instance %s", inst.name)
       names.append(inst.name)
 
-      tasklets.append(TLMigrateInstance(self, inst.name, cleanup=False,
-                                        iallocator=self.op.iallocator,
-                                        taget_node=None))
+      tasklets.append(TLMigrateInstance(self, inst.name, cleanup=False))
 
       if inst.disk_template in constants.DTS_EXT_MIRROR:
         # We need to lock all nodes, as the iallocator will choose the
@@ -6420,8 +6416,8 @@ class TLMigrateInstance(Tasklet):
   @ivar shutdown_timeout: In case of failover timeout of the shutdown
 
   """
-  def __init__(self, lu, instance_name, cleanup=False, iallocator=None,
-               target_node=None, failover=False, fallback=False,
+  def __init__(self, lu, instance_name, cleanup=False,
+               failover=False, fallback=False,
                ignore_consistency=False,
                shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT):
     """Initializes this class.
@@ -6433,8 +6429,6 @@ class TLMigrateInstance(Tasklet):
     self.instance_name = instance_name
     self.cleanup = cleanup
     self.live = False # will be overridden later
-    self.iallocator = iallocator
-    self.target_node = target_node
     self.failover = failover
     self.fallback = fallback
     self.ignore_consistency = ignore_consistency
@@ -6469,8 +6463,12 @@ class TLMigrateInstance(Tasklet):
     if instance.disk_template in constants.DTS_EXT_MIRROR:
       _CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
-      if self.iallocator:
+      if self.lu.op.iallocator:
         self._RunAllocator()
+      else:
+        # We set set self.target_node as it is required by
+        # BuildHooksEnv
+        self.target_node = self.lu.op.target_node
 
       # self.target_node is already populated, either directly or by the
       # iallocator run
@@ -6488,8 +6486,8 @@ class TLMigrateInstance(Tasklet):
                                         " %s disk template" %
                                         instance.disk_template)
       target_node = secondary_nodes[0]
-      if self.iallocator or (self.target_node and
-                             self.target_node != target_node):
+      if self.lu.op.iallocator or (self.target_node and
+                                   self.target_node != target_node):
         if self.failover:
           text = "failed over"
         else:
@@ -6566,21 +6564,21 @@ class TLMigrateInstance(Tasklet):
                                     self.instance.primary_node],
                      )
 
-    ial.Run(self.iallocator)
+    ial.Run(self.lu.op.iallocator)
 
     if not ial.success:
       raise errors.OpPrereqError("Can't compute nodes using"
                                  " iallocator '%s': %s" %
-                                 (self.iallocator, ial.info),
+                                 (self.lu.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
     if len(ial.result) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (self.iallocator, len(ial.result),
+                                 (self.lu.op.iallocator, len(ial.result),
                                   ial.required_nodes), errors.ECODE_FAULT)
     self.target_node = ial.result[0]
     self.lu.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
-                 self.instance_name, self.iallocator,
+                 self.instance_name, self.lu.op.iallocator,
                  utils.CommaJoin(ial.result))
 
   def _WaitUntilSync(self):
