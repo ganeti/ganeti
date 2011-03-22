@@ -4,7 +4,7 @@ Developer notes
 Build dependencies
 ------------------
 
-Most dependencies from :doc:`install-quick`, plus:
+Most dependencies from :doc:`install-quick`, plus (for Python):
 
 - `GNU make <http://www.gnu.org/software/make/>`_
 - `GNU tar <http://www.gnu.org/software/tar/>`_
@@ -14,9 +14,31 @@ Most dependencies from :doc:`install-quick`, plus:
   (tested with version 0.6.1)
 - `graphviz <http://www.graphviz.org/>`_
 - the `en_US.UTF-8` locale must be enabled on the system
+- `pylint <http://www.logilab.org/857>`_ and its associated
+  dependencies
+
+Note that for pylint, at the current moment the following versions
+need to be used::
+
+    $ pylint --version
+    pylint 0.21.1,
+    astng 0.20.1, common 0.50.3
 
 To generate unittest coverage reports (``make coverage``), `coverage
 <http://pypi.python.org/pypi/coverage>`_ needs to be installed.
+
+For Haskell development, again all things from the quick install
+document, plus:
+
+- `haddock <http://www.haskell.org/haddock/>`_, documentation
+  generator (equivalent to epydoc for Python)
+- `HsColour <http://hackage.haskell.org/package/hscolour>`_, again
+  used for documentation (it's source-code pretty-printing)
+- `hlint <http://community.haskell.org/~ndm/hlint/>`_, a source code
+  linter (equivalent to pylint for Python)
+- the `QuickCheck <http://hackage.haskell.org/package/QuickCheck>`_
+  library, version 1.x
+- ``hpc``, which comes with the compiler, so you should already have it
 
 
 Configuring for development
@@ -47,7 +69,7 @@ before use.
 
 This script, in the source code as ``daemons/daemon-util.in``, is used
 to start/stop Ganeti and do a few other things related to system
-daemons. Is is recommended to use ``daemon-util`` also from the system's
+daemons. It is recommended to use ``daemon-util`` also from the system's
 init scripts. That way the code starting and stopping daemons is shared
 and future changes have to be made in only one place.
 

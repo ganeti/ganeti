@@ -50,6 +50,30 @@ packages, except for DRBD and Xen::
                     python-pyparsing python-simplejson \
                     python-pyinotify python-pycurl socat
 
+If you want to also enable the `htools` components, which is recommended
+on bigger deployments (they give you automatic instance placement,
+cluster balancing, etc.), then you need to have a Haskell compiler
+installed. More specifically:
+
+- `GHC <http://www.haskell.org/ghc/>`_ version 6.10 or higher
+- or even better, `The Haskell Platform
+  <http://hackage.haskell.org/platform/>`_ which gives you a simple way
+  to bootstrap Haskell
+- `json <http://hackage.haskell.org/package/json>`_, a JSON library
+- `network <http://hackage.haskell.org/package/network>`_, a basic
+  network library
+- `parallel <http://hackage.haskell.org/package/parallel>`_, version 1.x
+  or 2.x, a parallel programming library (note: version 3.x is not yet
+  supported)
+- `curl <http://hackage.haskell.org/package/curl>`_, bindings for the
+  curl library, only needed if you want these tools to connect to remote
+  clusters (as opposed to the local one)
+
+All of these are also available as package in Debian/Ubuntu::
+
+  $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
+                    libghc6-parallel-dev libghc6-curl-dev
+
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.
 
