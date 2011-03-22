@@ -125,7 +125,7 @@ CLEANFILES = \
 	tools/kvm-ifup \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
-	$(HALLPROGS) $(HSRCS2) \
+	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	.hpc/*.mix htools/*.tix \
 	doc/hs-lint.html
 
@@ -278,14 +278,14 @@ docrst = \
 	doc/upgrade.rst \
 	doc/walkthrough.rst
 
-HPROGS = \
+HS_PROGS = \
 	htools/hbal \
 	htools/hscan \
 	htools/hail \
 	htools/hspace
 
-HALLPROGS = $(HPROGS) htools/test
-HSRCPROGS = $(patsubst %,%.hs,$(HALLPROGS))
+HS_ALL_PROGS = $(HS_PROGS) htools/test
+HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 # we don't add -Werror by default
 HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 # extra flags that can be overriden on the command line
@@ -295,7 +295,7 @@ HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
 # directory for apidoc
 HS_APIDOC = doc/hs-apidoc
 
-HSRCS = \
+HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
 	htools/Ganeti/HTools/Cluster.hs \
 	htools/Ganeti/HTools/Container.hs \
@@ -317,8 +317,8 @@ HSRCS = \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/OpCodes.hs
 
-HSRCS2 = htools/Ganeti/HTools/Version.hs
-HSRCS2IN = $(patsubst %,%.in,$(HSRCS2))
+HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs
+HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
 
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 
@@ -417,11 +417,11 @@ qa_scripts = \
 bin_SCRIPTS =
 iallocators_SCRIPTS =
 if WANT_HTOOLS
-bin_SCRIPTS += $(filter-out htools/hail,$(HPROGS))
-iallocators_SCRIPTS += $(filter htools/hail,$(HPROGS))
+bin_SCRIPTS += $(filter-out htools/hail,$(HS_PROGS))
+iallocators_SCRIPTS += $(filter htools/hail,$(HS_PROGS))
 endif
 
-$(HALLPROGS): %: %.hs $(HSRCS) $(HSRCS2) Makefile
+$(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	BINARY=$(@:htools/%=%); \
 	$(GHC) --make \
 	  $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
@@ -507,8 +507,8 @@ EXTRA_DIST = \
 	$(maninput) \
 	qa/qa-sample.json \
 	$(qa_scripts) \
-	$(HSRCS) $(HSRCS2IN) \
-	$(HSRCPROGS)
+	$(HS_LIB_SRCS) $(HS_BUILT_SRCS_IN) \
+	$(HS_PROG_SRCS)
 
 man_MANS = \
 	man/ganeti.7 \
@@ -665,7 +665,7 @@ srclink_files = \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
 	$(all_python_code) \
-	$(HSRCS) $(HSRCPROGS)
+	$(HS_LIB_SRCS) $(HS_PROG_SRCS)
 
 check_python_code = \
 	$(BUILD_BASH_COMPLETION) \
@@ -945,7 +945,7 @@ lint: $(BUILT_SOURCES)
 	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
 
 .PHONY: hlint
-hlint: $(HSRCS2)
+hlint: $(HS_BUILT_SRCS)
 	if tty -s; then C="-c"; else C=""; fi; \
 	hlint --report=doc/hs-lint.html $$C htools
 
@@ -1021,7 +1021,7 @@ py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(BUILT_SOURCES)
 		--output $(CURDIR)/doc/py-apidoc
 
 .PHONY: hs-apidoc
-hs-apidoc: $(HSRCS2)
+hs-apidoc: $(HS_BUILT_SRCS)
 	@test -n "$(HSCOLOUR)" || \
 	    { echo 'HsColour' not found during configure; exit 1; }
 	@test -n "$(HADDOCK)" || \
@@ -1032,7 +1032,7 @@ hs-apidoc: $(HSRCS2)
 	ln -s ../hscolour.css $(HS_APIDOC)/Ganeti/HTools/hscolour.css
 	set -e ; \
 	cd htools; \
-	RELSRCS="$(HSRCS:htools/%=%)"; \
+	RELSRCS="$(HS_LIB_SRCS:htools/%=%)"; \
 	for file in $$RELSRCS; do \
 		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
 		$(HSCOLOUR) -css -anchor $$file > ../$(HS_APIDOC)/$$hfile ; \
@@ -1041,7 +1041,7 @@ hs-apidoc: $(HSRCS2)
 		-t ganeti-htools -p haddock-prologue \
 		--source-module="%{MODULE/.//}.html" \
 		--source-entity="%{MODULE/.//}.html#%{NAME}" \
-		$(filter-out Ganeti/HTools/ExtLoader.hs,$(HSRCS:htools/%=%))
+		$(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:htools/%=%))
 
 .PHONY: TAGS
 TAGS: $(BUILT_SOURCES)
@@ -1083,7 +1083,7 @@ live-test: all
 	rm -f .hpc; ln -s ../.hpc .hpc; \
 	rm -f *.tix *.mix; \
 	./live-test.sh; \
-	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HPROGS:htools/%=%)) \
+	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:htools/%=%)) \
 	  --output=live-test.tix ; \
 	@mkdir_p@ ../doc/hs-coverage ; \
 	hpc markup --destdir=../doc/hs-coverage live-test \
