@@ -51,7 +51,8 @@
 /devel/upload
 
 # doc
-/doc/api
+/doc/py-apidoc/
+/doc/hs-apidoc/
 /doc/build
 /doc/py-coverage/
 /doc/hs-coverage/

@@ -74,7 +74,8 @@ DIRS = \
 
 BUILDTIME_DIR_AUTOCREATE = \
 	scripts \
-	doc/api \
+	doc/py-apidoc \
+	$(HS_APIDOC) $(HS_APIDOC)/Ganeti $(HS_APIDOC)/Ganeti/HTools \
 	doc/py-coverage \
 	doc/hs-coverage \
 	.hpc
@@ -290,6 +291,8 @@ HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 HEXTRA =
 # exclude options for coverage reports
 HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
+# directory for apidoc
+HS_APIDOC = doc/hs-apidoc
 
 HSRCS = \
 	htools/Ganeti/HTools/CLI.hs \
@@ -999,10 +1002,40 @@ install-exec-local:
 	@mkdir_p@ $* && touch $@
 
 .PHONY: apidoc
-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(BUILT_SOURCES)
+if WANT_HTOOLSAPIDOC
+apidoc: py-apidoc hs-apidoc
+else
+apidoc: py-apidoc
+endif
+
+.PHONY: py-apidoc
+py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(BUILT_SOURCES)
 	$(RUN_IN_TEMPDIR) epydoc -v \
 		--conf $(CURDIR)/epydoc.conf \
-		--output $(CURDIR)/doc/api
+		--output $(CURDIR)/doc/py-apidoc
+
+.PHONY: hs-apidoc
+hs-apidoc: $(HSRCS2)
+	@test -n "$(HSCOLOUR)" || \
+	    { echo 'HsColour' not found during configure; exit 1; }
+	@test -n "$(HADDOCK)" || \
+	    { echo 'haddock' not found during configure; exit 1; }
+	rm -rf $(HS_APIDOC)/*
+	@mkdir_p@ $(HS_APIDOC)/Ganeti/HTools
+	$(HSCOLOUR) -print-css > $(HS_APIDOC)/Ganeti/hscolour.css
+	ln -s ../hscolour.css $(HS_APIDOC)/Ganeti/HTools/hscolour.css
+	set -e ; \
+	cd htools; \
+	RELSRCS="$(HSRCS:htools/%=%)"; \
+	for file in $$RELSRCS; do \
+		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
+		$(HSCOLOUR) -css -anchor $$file > ../$(HS_APIDOC)/$$hfile ; \
+	done ; \
+	$(HADDOCK) --odir ../$(HS_APIDOC) --html --ignore-all-exports -w \
+		-t ganeti-htools -p haddock-prologue \
+		--source-module="%{MODULE/.//}.html" \
+		--source-entity="%{MODULE/.//}.html#%{NAME}" \
+		$(filter-out Ganeti/HTools/ExtLoader.hs,$(HSRCS:htools/%=%))
 
 .PHONY: TAGS
 TAGS: $(BUILT_SOURCES)
