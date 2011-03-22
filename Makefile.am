@@ -22,7 +22,8 @@ CHECK_NEWS = $(top_srcdir)/autotools/check-news
 DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
-# Note: the variable must be named after the directory + 'dir' suffix
+# Note: these are automake-specific variables, and must be named after
+# the directory + 'dir' suffix
 clientdir = $(pkgpythondir)/client
 hypervisordir = $(pkgpythondir)/hypervisor
 httpdir = $(pkgpythondir)/http
@@ -74,10 +75,13 @@ DIRS = \
 
 BUILDTIME_DIR_AUTOCREATE = \
 	scripts \
-	doc/py-apidoc \
-	$(HS_APIDOC) $(HS_APIDOC)/Ganeti $(HS_APIDOC)/Ganeti/HTools \
-	doc/py-coverage \
-	doc/hs-coverage \
+	$(APIDOC_DIR) \
+	$(APIDOC_PY_DIR) \
+	$(APIDOC_HS_DIR) \
+	$(APIDOC_HS_DIR)/Ganeti $(APIDOC_HS_DIR)/Ganeti/HTools \
+	$(COVERAGE_DIR) \
+	$(COVERAGE_PY_DIR) \
+	$(COVERAGE_HS_DIR) \
 	.hpc
 
 BUILDTIME_DIRS = \
@@ -90,6 +94,14 @@ DIRCHECK_EXCLUDE = \
 	doc/html/_*
 
 all_dirfiles = $(addsuffix /.dir,$(DIRS) $(BUILDTIME_DIR_AUTOCREATE))
+
+# some helper vars
+COVERAGE_DIR = doc/coverage
+COVERAGE_PY_DIR = $(COVERAGE_DIR)/py
+COVERAGE_HS_DIR = $(COVERAGE_DIR)/hs
+APIDOC_DIR = doc/api
+APIDOC_PY_DIR = $(APIDOC_DIR)/py
+APIDOC_HS_DIR = $(APIDOC_DIR)/hs
 
 MAINTAINERCLEANFILES = \
 	$(docpng) \
@@ -292,8 +304,6 @@ HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 HEXTRA =
 # exclude options for coverage reports
 HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
-# directory for apidoc
-HS_APIDOC = doc/hs-apidoc
 
 HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
@@ -1018,7 +1028,7 @@ endif
 py-apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(BUILT_SOURCES)
 	$(RUN_IN_TEMPDIR) epydoc -v \
 		--conf $(CURDIR)/epydoc.conf \
-		--output $(CURDIR)/doc/py-apidoc
+		--output $(CURDIR)/$(APIDOC_PY_DIR)
 
 .PHONY: hs-apidoc
 hs-apidoc: $(HS_BUILT_SRCS)
@@ -1026,18 +1036,18 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	    { echo 'HsColour' not found during configure; exit 1; }
 	@test -n "$(HADDOCK)" || \
 	    { echo 'haddock' not found during configure; exit 1; }
-	rm -rf $(HS_APIDOC)/*
-	@mkdir_p@ $(HS_APIDOC)/Ganeti/HTools
-	$(HSCOLOUR) -print-css > $(HS_APIDOC)/Ganeti/hscolour.css
-	ln -s ../hscolour.css $(HS_APIDOC)/Ganeti/HTools/hscolour.css
+	rm -rf $(APIDOC_HS_DIR)/*
+	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools
+	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
+	ln -s ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	set -e ; \
 	cd htools; \
 	RELSRCS="$(HS_LIB_SRCS:htools/%=%)"; \
 	for file in $$RELSRCS; do \
 		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
-		$(HSCOLOUR) -css -anchor $$file > ../$(HS_APIDOC)/$$hfile ; \
+		$(HSCOLOUR) -css -anchor $$file > ../$(APIDOC_HS_DIR)/$$hfile ; \
 	done ; \
-	$(HADDOCK) --odir ../$(HS_APIDOC) --html --ignore-all-exports -w \
+	$(HADDOCK) --odir ../$(APIDOC_HS_DIR) --html --ignore-all-exports -w \
 		-t ganeti-htools -p haddock-prologue \
 		--source-module="%{MODULE/.//}.html" \
 		--source-entity="%{MODULE/.//}.html#%{NAME}" \
@@ -1061,17 +1071,17 @@ endif
 .PHONY: py-coverage
 py-coverage: $(BUILT_SOURCES) $(python_tests)
 	set -e; \
-	COVERAGE_FILE=$(CURDIR)/doc/py-coverage/data \
-	TEXT_COVERAGE=$(CURDIR)/doc/py-coverage/report.txt \
-	HTML_COVERAGE=$(CURDIR)/doc/py-coverage \
+	COVERAGE_FILE=$(CURDIR)/$(COVERAGE_PY_DIR)/data \
+	TEXT_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR)/report.txt \
+	HTML_COVERAGE=$(CURDIR)/$(COVERAGE_PY_DIR) \
 	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage \
 	$(python_tests)
 
 .PHONY: hs-coverage
 hs-coverage: $(haskell_tests)
 	cd htools && rm -f *.tix *.mix && ./test
-	mkdir -p doc/hs-coverage
-	hpc markup --destdir=doc/hs-coverage htools/test $(HPCEXCL)
+	mkdir -p $(COVERAGE_HS_DIR)
+	hpc markup --destdir=$(COVERAGE_HS_DIR) htools/test $(HPCEXCL)
 	hpc report htools/test $(HPCEXCL)
 
 # Special "kind-of-QA" target for htools, needs special setup (all
@@ -1085,8 +1095,8 @@ live-test: all
 	./live-test.sh; \
 	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:htools/%=%)) \
 	  --output=live-test.tix ; \
-	@mkdir_p@ ../doc/hs-coverage ; \
-	hpc markup --destdir=../doc/hs-coverage live-test \
+	@mkdir_p@ ../$(COVERAGE_HS_DIR) ; \
+	hpc markup --destdir=../$(COVERAGE_HS_DIR) live-test \
 		--srcdir=.. $(HPCEXCL) ; \
 	hpc report --srcdir=.. live-test $(HPCEXCL)
 

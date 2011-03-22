@@ -51,11 +51,9 @@
 /devel/upload
 
 # doc
-/doc/py-apidoc/
-/doc/hs-apidoc/
+/doc/api/
 /doc/build
-/doc/py-coverage/
-/doc/hs-coverage/
+/doc/coverage/
 /doc/html
 /doc/install-quick.rst
 /doc/news.rst
