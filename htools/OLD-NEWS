@@ -2,6 +2,10 @@ Ganeti-htools release notes
 ===========================
 
 
+**Note**: After version 0.3.1, the htools sources have been integrated
+into the ganeti core repository, and released together with the ganeti
+releases. Thus this NEWS file is obsolete.
+
 Version 0.3.1 (Fri, 11 Mar 2011)
 --------------------------------
 
