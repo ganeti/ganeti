@@ -7,7 +7,7 @@ files, as produced by gnt-node and gnt-instance list.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -109,7 +109,7 @@ serializeCluster (ClusterData gl nl il ctags) =
 loadGroup :: (Monad m) => [String] -> m (String, Group.Group)
 loadGroup [name, gid, apol] = do
   xapol <- apolFromString apol
-  return $ (gid, Group.create name gid xapol)
+  return (gid, Group.create name gid xapol)
 
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 

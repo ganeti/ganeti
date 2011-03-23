@@ -88,13 +88,12 @@ readRequest opts args = do
             hPutStrLn stderr $ "Error: " ++ err
             exitWith $ ExitFailure 1
           Ok rq -> return rq
-  r2 <- if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
-        then  do
-          cdata <- loadExternalData opts
-          let Request rqt _ = r1
-          return $ Request rqt cdata
-        else return r1
-  return r2
+  (if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
+   then do
+     cdata <- loadExternalData opts
+     let Request rqt _ = r1
+     return $ Request rqt cdata
+   else return r1)
 
 -- | Main function.
 main :: IO ()

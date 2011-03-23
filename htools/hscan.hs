@@ -153,15 +153,12 @@ main = do
          let name = local
          input_data <- Luxi.loadData lsock
          result <- writeData nlen name opts input_data
-         when (not result) $ exitWith $ ExitFailure 2
+         unless result $ exitWith $ ExitFailure 2
 
 #ifndef NO_CURL
-  results <- mapM (\ name ->
-                    do
-                      input_data <- Rapi.loadData name
-                      writeData nlen name opts input_data
-                  ) clusters
-  when (not $ all id results) $ exitWith (ExitFailure 2)
+  results <- mapM (\name -> Rapi.loadData name >>= writeData nlen name opts)
+             clusters
+  unless (all id results) $ exitWith (ExitFailure 2)
 #else
   when (not $ null clusters) $ do
     putStrLn "RAPI/curl backend disabled at compile time, cannot scan clusters"

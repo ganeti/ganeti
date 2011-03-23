@@ -830,8 +830,8 @@ tryMGEvac _ nl il ex_ndx =
     in do
       -- that done, we now add the per-group nl/il to the tuple
       all_insts4 <-
-          mapM (\(gdx, idxs) -> do
-                  case lookup gdx gni of
+          mapM (\(gdx, idxs) ->
+                case lookup gdx gni of
                     Nothing -> fail $ "Can't find group index " ++ show gdx
                     Just (gnl, gil) -> return (gdx, gnl, gil, idxs))
           all_insts3

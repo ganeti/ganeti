@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -280,7 +280,7 @@ main = do
   when (length ngroups > 1 && isNothing (optGroup opts)) $ do
     hPutStrLn stderr "Found multiple node groups:"
     mapM_ (hPutStrLn stderr . ("  " ++) . Group.name .
-           (flip Container.find gl) . fst) ngroups
+           flip Container.find gl . fst) ngroups
     hPutStrLn stderr "Aborting."
     exitWith $ ExitFailure 1
 
@@ -307,7 +307,7 @@ main = do
             Nothing -> do
               -- TODO: while this is unlikely to happen, log here the
               -- actual group data to help debugging
-              hPutStrLn stderr $ "Internal failure, missing group idx"
+              hPutStrLn stderr "Internal failure, missing group idx"
               exitWith $ ExitFailure 1
             Just cdata -> return (Group.name grp, cdata)
 
@@ -417,4 +417,4 @@ main = do
                 return False
               Just master -> runJobSet master fin_nl il cmd_jobs)
       else return True
-  when (not eval) (exitWith (ExitFailure 1))
+  unless eval (exitWith (ExitFailure 1))

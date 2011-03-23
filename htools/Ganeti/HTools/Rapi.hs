@@ -89,8 +89,8 @@ getGroups body = loadJSArray "Parsing group data" body >>=
 
 getFakeGroups :: Result [(String, Group.Group)]
 getFakeGroups =
-  return $ [(defaultGroupID,
-             Group.create "default" defaultGroupID AllocPreferred)]
+  return [(defaultGroupID,
+           Group.create "default" defaultGroupID AllocPreferred)]
 
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc

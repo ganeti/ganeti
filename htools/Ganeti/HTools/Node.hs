@@ -494,7 +494,7 @@ showField t field =
       "mload" -> printf "%5.3f" uM
       "dload" -> printf "%5.3f" uD
       "nload" -> printf "%5.3f" uN
-      "ptags" -> intercalate "," . map (\(k, v) -> printf "%s=%d" k v) .
+      "ptags" -> intercalate "," . map (uncurry (printf "%s=%d")) .
                  Map.toList $ pTags t
       "peermap" -> show $ peers t
       _ -> T.unknownField

@@ -177,7 +177,7 @@ parseGroup (JSArray [ uuid, name, apol ]) = do
   let convert a = genericConvert "Group" xname a
   xuuid <- convert "uuid" uuid
   xapol <- convert "alloc_policy" apol
-  return $ (xuuid, Group.create xname xuuid xapol)
+  return (xuuid, Group.create xname xuuid xapol)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
 
