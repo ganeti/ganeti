@@ -111,7 +111,8 @@ AC_ARG_WITH([file-storage-dir],
       enable_file_storage=False
     fi
   ]],
-  [[file_storage_dir="/srv/ganeti/file-storage"; enable_file_storage="True"]])
+  [[file_storage_dir="/srv/ganeti/file-storage";
+    enable_file_storage="True"]])
 AC_SUBST(FILE_STORAGE_DIR, $file_storage_dir)
 AC_SUBST(ENABLE_FILE_STORAGE, $enable_file_storage)
 
@@ -128,7 +129,8 @@ AC_ARG_WITH([shared-file-storage-dir],
       enable_shared_file_storage=False
     fi
   ]],
-  [[shared_file_storage_dir="/srv/ganeti/shared-file-storage"; enable_shared_file_storage="True"]])
+  [[shared_file_storage_dir="/srv/ganeti/shared-file-storage";
+    enable_shared_file_storage="True"]])
 AC_SUBST(SHARED_FILE_STORAGE_DIR, $shared_file_storage_dir)
 AC_SUBST(ENABLE_SHARED_FILE_STORAGE, $enable_shared_file_storage)
 
@@ -259,7 +261,8 @@ AC_ARG_ENABLE([htools-rapi],
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
   [AS_HELP_STRING([--with-disk-separator=STRING],
-    [Disk index separator, useful if the default of ':' is handled specially by the hypervisor]
+    [Disk index separator, useful if the default of ':' is handled]
+    [ specially by the hypervisor]
   )],
   [disk_separator="$withval"],
   [disk_separator=":"])
@@ -282,7 +285,8 @@ AC_ARG_VAR(SPHINX, [sphinx-build path])
 AC_PATH_PROG(SPHINX, [sphinx-build], [])
 if test -z "$SPHINX"
 then
-  AC_MSG_WARN([sphinx-build not found, documentation rebuild will not be possible])
+  AC_MSG_WARN(m4_normalize([sphinx-build not found, documentation rebuild will
+                            not be possible]))
 fi
 
 # Check for graphviz (dot)
@@ -290,7 +294,8 @@ AC_ARG_VAR(DOT, [dot path])
 AC_PATH_PROG(DOT, [dot], [])
 if test -z "$DOT"
 then
-  AC_MSG_WARN([dot (from the graphviz suite) not found, documentation rebuild not possible])
+  AC_MSG_WARN(m4_normalize([dot (from the graphviz suite) not found,
+                            documentation rebuild not possible]))
 fi
 
 # Check for pylint
@@ -337,11 +342,11 @@ else
     GHC_PKG_CURL=$($GHC_PKG latest curl)
     if test -z "$GHC_PKG_CURL"; then
       if test "$enable_htools_rapi" = "check"; then
-        AC_MSG_WARN([The curl library not found, htools will be compiled
-                     without RAPI support])
+        AC_MSG_WARN(m4_normalize([The curl library not found, htools will be
+                                  compiled without RAPI support]))
       else
-        AC_MSG_FAILURE([The curl library was not found, but it has
-                        been requested])
+        AC_MSG_FAILURE(m4_normalize([The curl library was not found, but it has
+                                     been requested]))
       fi
     else
       HTOOLS_NOCURL=
@@ -367,9 +372,8 @@ else
   if test -z "$GHC_PKG_PARALLEL" || test -z "$GHC_PKG_JSON" || \
      test -z "$GHC_PKG_NETWORK"; then
     if test "$enable_htools" != "check"; then
-      AC_MSG_FAILURE([Required Haskell modules not found, htools compilation
-                      disabled])
-
+      AC_MSG_FAILURE(m4_normalize([Required Haskell modules not found, htools
+                                   compilation disabled]))
     fi
   else
     # we leave the other modules to be auto-selected
@@ -380,8 +384,8 @@ AC_SUBST(HTOOLS_MODULES)
 
 if test "$enable_htools" != "no"; then
   if test -z "$GHC" || test -z "$HTOOLS_MODULES"; then
-    AC_MSG_WARN([Haskell compiler/required libraries not found, htools
-                 compilation disabled])
+    AC_MSG_WARN(m4_normalize([Haskell compiler/required libraries not found,
+                              htools compilation disabled]))
   else
     HTOOLS=yes
   fi
@@ -393,16 +397,16 @@ HTOOLS_APIDOC=no
 AC_ARG_VAR(HSCOLOUR, [HsColour path])
 AC_PATH_PROG(HSCOLOUR, [HsColour], [])
 if test -z "$HSCOLOUR"; then
-  AC_MSG_WARN([HsColour not found, htools API documentation will not be
-               generated])
+  AC_MSG_WARN(m4_normalize([HsColour not found, htools API documentation will
+                            not be generated]))
 fi
 
 # Check for haddock
 AC_ARG_VAR(HADDOCK, [haddock path])
 AC_PATH_PROG(HADDOCK, [haddock], [])
 if test -z "$HADDOCK"; then
-  AC_MSG_WARN([haddock not found, htools API documentation will not be
-               generated])
+  AC_MSG_WARN(m4_normalize([haddock not found, htools API documentation will
+                            not be generated]))
 fi
 if test "$HADDOCK" && test "$HSCOLOUR"; then
   HTOOLS_APIDOC=yes
@@ -413,7 +417,6 @@ fi # end if enable_htools, define automake conditions
 
 AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
 AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test x$HTOOLS_APIDOC = xyes])
-
 
 SOCAT_USE_ESCAPE=
 AC_ARG_ENABLE([socat-escape],
@@ -466,8 +469,8 @@ then
   MAN_HAS_WARNINGS=1
 else
   MAN_HAS_WARNINGS=
-  AC_MSG_WARN([man doesn't support --warnings, man pages checks
-               will not be possible])
+  AC_MSG_WARN(m4_normalize([man does not support --warnings, man page checks
+                            will not be possible]))
 fi
 
 AC_SUBST(MAN_HAS_WARNINGS)
@@ -484,8 +487,9 @@ AC_PYTHON_MODULE(pycurl, t)
 # This is optional but then we've limited functionality
 AC_PYTHON_MODULE(paramiko)
 if test "$HAVE_PYMOD_PARAMIKO" = "no"; then
-  AC_MSG_WARN([You do not have paramiko installed. While this is optional you
-               have to setup SSH and noded on the joining nodes yourself.])
+  AC_MSG_WARN(m4_normalize([You do not have Paramiko installed. While this is
+                            optional you have to configure SSH and the node
+                            daemon on the joining nodes yourself.]))
 fi
 
 AC_CONFIG_FILES([ Makefile ])
