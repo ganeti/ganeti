@@ -58,6 +58,7 @@ import qualified Ganeti.HTools.Luxi
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.PeerMap as PeerMap
+import qualified Ganeti.HTools.Rapi
 import qualified Ganeti.HTools.Simu
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types

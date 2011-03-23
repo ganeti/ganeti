@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 {-| External data loader
 
 This module holds the external data loading, and thus is the only one
@@ -10,7 +8,7 @@ libraries implementing the low-level protocols.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -43,9 +41,7 @@ import System
 import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Luxi as Luxi
-#ifndef NO_CURL
 import qualified Ganeti.HTools.Rapi as Rapi
-#endif
 import qualified Ganeti.HTools.Simu as Simu
 import qualified Ganeti.HTools.Text as Text
 import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
@@ -109,12 +105,7 @@ loadExternalData opts = do
                      exitWith $ ExitFailure 1)
   input_data <-
       case () of
-        _ | setRapi ->
-#ifdef NO_CURL
-              return $ Bad "RAPI/curl backend disabled at compile time"
-#else
-              wrapIO $ Rapi.loadData mhost
-#endif
+        _ | setRapi -> wrapIO $ Rapi.loadData mhost
           | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
           | setSim -> Simu.loadData simdata
           | setFile -> wrapIO $ Text.loadData $ fromJust tfile

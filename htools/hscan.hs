@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 {-| Scan clusters via RAPI or LUXI and write state data files.
 
 -}
@@ -40,9 +38,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-#ifndef NO_CURL
 import qualified Ganeti.HTools.Rapi as Rapi
-#endif
 import qualified Ganeti.HTools.Luxi as Luxi
 import Ganeti.HTools.Loader (checkData, mergeData, ClusterData(..))
 import Ganeti.HTools.Text (serializeCluster)
@@ -155,12 +151,6 @@ main = do
          result <- writeData nlen name opts input_data
          unless result $ exitWith $ ExitFailure 2
 
-#ifndef NO_CURL
   results <- mapM (\name -> Rapi.loadData name >>= writeData nlen name opts)
              clusters
   unless (all id results) $ exitWith (ExitFailure 2)
-#else
-  when (not $ null clusters) $ do
-    putStrLn "RAPI/curl backend disabled at compile time, cannot scan clusters"
-    exitWith $ ExitFailure 1
-#endif

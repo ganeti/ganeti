@@ -1046,6 +1046,10 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	ln -s ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	set -e ; \
 	cd htools; \
+	if [ "$(HTOOLS_NOCURL)" ]; \
+	then OPTGHC="--optghc=$(HTOOLS_NOCURL)"; \
+	else OPTGHC=""; \
+	fi; \
 	RELSRCS="$(HS_LIB_SRCS:htools/%=%)"; \
 	for file in $$RELSRCS; do \
 		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
@@ -1055,6 +1059,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 		-t ganeti-htools -p haddock-prologue \
 		--source-module="%{MODULE/.//}.html" \
 		--source-entity="%{MODULE/.//}.html#%{NAME}" \
+		$$OPTGHC \
 		$(filter-out Ganeti/HTools/ExtLoader.hs,$(HS_LIB_SRCS:htools/%=%))
 
 .PHONY: TAGS

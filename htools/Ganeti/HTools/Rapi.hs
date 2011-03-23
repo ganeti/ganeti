@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 
 module Ganeti.HTools.Rapi
     (
@@ -32,8 +32,10 @@ module Ganeti.HTools.Rapi
     ) where
 
 import Data.Maybe (fromMaybe)
+#ifndef NO_CURL
 import Network.Curl
 import Network.Curl.Types ()
+#endif
 import Control.Monad
 import Text.JSON (JSObject, JSValue, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))
@@ -46,6 +48,14 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+-- | Read an URL via curl and return the body if successful.
+getUrl :: (Monad m) => String -> IO (m String)
+
+#ifdef NO_CURL
+getUrl _ = return $ fail "RAPI/curl backend disabled at compile time"
+
+#else
+
 -- | The curl options we use
 curlOpts :: [CurlOption]
 curlOpts = [ CurlSSLVerifyPeer False
@@ -54,14 +64,13 @@ curlOpts = [ CurlSSLVerifyPeer False
            , CurlConnectTimeout (fromIntegral connTimeout)
            ]
 
--- | Read an URL via curl and return the body if successful.
-getUrl :: (Monad m) => String -> IO (m String)
 getUrl url = do
   (code, !body) <- curlGetString url curlOpts
   return (case code of
             CurlOK -> return body
             _ -> fail $ printf "Curl error for '%s', error %s"
                  url (show code))
+#endif
 
 -- | Append the default port if not passed in.
 formatHost :: String -> String
