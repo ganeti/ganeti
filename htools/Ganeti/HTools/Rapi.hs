@@ -182,4 +182,4 @@ parseData (group_body, node_body, inst_body, tags_body) = do
 -- | Top level function for data loading
 loadData :: String -- ^ Cluster or URL to use as source
          -> IO (Result ClusterData)
-loadData master = readData master >>= return . parseData
+loadData = fmap parseData . readData

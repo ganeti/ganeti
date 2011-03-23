@@ -188,4 +188,4 @@ parseData fdata = do
 -- | Top level function for data loading
 loadData :: String -- ^ Path to the text file
          -> IO (Result ClusterData)
-loadData afile = readData afile >>= return . parseData
+loadData = fmap parseData . readData

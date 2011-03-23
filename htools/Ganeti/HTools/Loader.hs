@@ -7,7 +7,7 @@ has been loaded from external sources.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -198,7 +198,7 @@ mergeData um extags exinsts cdata@(ClusterData _ nl il2 tags) =
       il4 = Container.map (filterExTags allextags .
                            updateMovable exinsts) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
-      nl3 = Container.map (\node -> Node.buildPeers node il4) nl2
+      nl3 = Container.map (flip Node.buildPeers il4) nl2
       node_names = map Node.name (Container.elems nl)
       inst_names = map Instance.name il
       common_suffix = longestDomain (node_names ++ inst_names)

@@ -213,4 +213,4 @@ parseData (groups, nodes, instances, cinfo) = do
 -- | Top level function for data loading
 loadData :: String -- ^ Unix socket to use as source
          -> IO (Result ClusterData)
-loadData master = readData master >>= return . parseData
+loadData = fmap parseData . readData

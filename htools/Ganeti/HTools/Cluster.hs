@@ -515,10 +515,7 @@ checkMove nodes_idx disk_moves ini_tbl victims =
         tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves ini_tbl)
                  victims
         -- iterate over all instances, computing the best move
-        best_tbl =
-            foldl'
-            (\ step_tbl new_tbl -> compareTables step_tbl new_tbl)
-            ini_tbl tables
+        best_tbl = foldl' compareTables ini_tbl tables
         Table _ _ _ best_plc = best_tbl
     in if length best_plc == length ini_plc
        then ini_tbl -- no advancement
@@ -694,7 +691,7 @@ sortMGResults :: Group.List
              -> [(Gdx, AllocSolution)]
              -> [(Gdx, AllocSolution)]
 sortMGResults gl sols =
-    let extractScore = \(_, _, _, x) -> x
+    let extractScore (_, _, _, x) = x
         solScore (gdx, sol) = (Group.allocPolicy (Container.find gdx gl),
                                (extractScore . head . asSolutions) sol)
     in sortBy (comparing solScore) sols
@@ -837,8 +834,7 @@ tryMGEvac _ nl il ex_ndx =
           all_insts3
       results <- mapM (\(_, gnl, gil, idxs) -> tryEvac gnl gil idxs ex_ndx)
                  all_insts4
-      let sol = foldl' (\orig_sol group_sol ->
-                        sumAllocs orig_sol group_sol) emptySolution results
+      let sol = foldl' sumAllocs emptySolution results
       return $ annotateSolution sol
 
 -- | Recursively place instances on the cluster until we're out of space
@@ -1084,8 +1080,8 @@ instancePriGroup nl i =
 -- | Compute the list of badly allocated instances (split across node
 -- groups)
 findSplitInstances :: Node.List -> Instance.List -> [Instance.Instance]
-findSplitInstances nl il =
-  filter (not . isOk . instanceGroup nl) (Container.elems il)
+findSplitInstances nl =
+  filter (not . isOk . instanceGroup nl) . Container.elems
 
 -- | Splits a cluster into the component node groups
 splitCluster :: Node.List -> Instance.List ->
