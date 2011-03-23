@@ -168,7 +168,7 @@ request
 
   The multi-evacuate mode has instead a single request argument:
 
-  nodes
+  evac_nodes
     the names of the nodes to be evacuated
 
 nodegroups
