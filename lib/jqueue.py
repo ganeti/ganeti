@@ -1723,7 +1723,8 @@ class JobQueue(object):
         status = True
         data = job_id
       except errors.GenericError, err:
-        data = str(err)
+        data = ("%s; opcodes %s" %
+                (err, utils.CommaJoin(op.Summary() for op in ops)))
         status = False
       results.append((status, data))
 
