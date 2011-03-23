@@ -1092,6 +1092,7 @@ hs-coverage: $(haskell_tests)
 	mkdir -p $(COVERAGE_HS_DIR)
 	hpc markup --destdir=$(COVERAGE_HS_DIR) htools/test $(HPCEXCL)
 	hpc report htools/test $(HPCEXCL)
+	ln -s hpc_index.html $(COVERAGE_HS_DIR)/index.html
 
 # Special "kind-of-QA" target for htools, needs special setup (all
 # tools compiled with -fhpc)
