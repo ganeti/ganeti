@@ -179,7 +179,8 @@ nodegroups
   name
     the node group name
   alloc_policy
-    the allocation policy of the node group
+    the allocation policy of the node group (consult the semantics of
+    this attribute in the :manpage:`gnt-group(8)` manpage)
 
 instances
   a dictionary with the data for the current existing instance on the
