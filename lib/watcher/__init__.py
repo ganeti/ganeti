@@ -527,6 +527,8 @@ class Watcher(object):
           if instance.name in self.started_instances:
             # we already tried to start the instance, which should have
             # activated its drives (if they can be at all)
+            logging.debug("Skipping disk activation for instance %s, as"
+                          " it was already started", instance.name)
             continue
           try:
             logging.info("Activating disks for instance %s", instance.name)
@@ -561,8 +563,7 @@ class Watcher(object):
                         instance.name, MAXTRIES)
           continue
         try:
-          logging.info("Restarting %s%s",
-                        instance.name, last)
+          logging.info("Restarting %s%s", instance.name, last)
           instance.Restart()
           self.started_instances.add(instance.name)
         except Exception: # pylint: disable-msg=W0703
@@ -605,8 +606,9 @@ class Watcher(object):
     offline_disk_instances = result[1]
     if not offline_disk_instances:
       # nothing to do
+      logging.debug("verify-disks reported no offline disks, nothing to do")
       return
-    logging.debug("Will activate disks for instances %s",
+    logging.debug("Will activate disks for instance(s) %s",
                   utils.CommaJoin(offline_disk_instances))
     # we submit only one job, and wait for it. not optimal, but spams
     # less the job queue
