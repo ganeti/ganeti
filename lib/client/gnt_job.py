@@ -317,6 +317,7 @@ def ShowJobs(opts, args):
         if not result:
           format_msg(3, "Result: empty dictionary")
         else:
+          format_msg(3, "Result:")
           for key, val in result.iteritems():
             format_msg(4, "%s: %s" % (key, result_helper(val)))
       else:
