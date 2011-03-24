@@ -68,7 +68,14 @@ Input message
 ~~~~~~~~~~~~~
 
 The input message will be the JSON encoding of a dictionary containing
-the following:
+all the required information to perform the operation. We explain the
+contents of this dictionary in two parts: common information that every
+type of operation requires, and operation-specific information.
+
+Common information
+++++++++++++++++++
+
+All input dictionaries to the IAllocator must carry the following keys:
 
 version
   the version of the protocol; this document
@@ -84,92 +91,9 @@ enabled_hypervisors
   the list of enabled hypervisors
 
 request
-  a dictionary containing the request data:
-
-  type
-    the request type; this can be either ``allocate``, ``relocate`` or
-    ``multi-evacuate``; the ``allocate`` request is used when a new
-    instance needs to be placed on the cluster, while the ``relocate``
-    request is used when an existing instance needs to be moved within
-    the cluster; the ``multi-evacuate`` protocol requests that the
-    script computes the optimal relocate solution for all secondary
-    instances of the given nodes
-
-  The following keys are needed in allocate/relocate mode:
-
-  name
-    the name of the instance; if the request is a realocation, then this
-    name will be found in the list of instances (see below), otherwise
-    is the FQDN of the new instance
-
-  required_nodes
-    how many nodes should the algorithm return; while this information
-    can be deduced from the instace's disk template, it's better if
-    this computation is left to Ganeti as then allocator scripts are
-    less sensitive to changes to the disk templates
-
-  disk_space_total
-    the total disk space that will be used by this instance on the
-    (new) nodes; again, this information can be computed from the list
-    of instance disks and its template type, but Ganeti is better
-    suited to compute it
-
-  If the request is an allocation, then there are extra fields in the
-  request dictionary:
-
-  disks
-    list of dictionaries holding the disk definitions for this
-    instance (in the order they are exported to the hypervisor):
-
-    mode
-      either ``r`` or ``w`` denoting if the disk is read-only or
-      writable
-
-    size
-      the size of this disk in mebibytes
-
-  nics
-    a list of dictionaries holding the network interfaces for this
-    instance, containing:
-
-    ip
-      the IP address that Ganeti know for this instance, or null
-
-    mac
-      the MAC address for this interface
-
-    bridge
-      the bridge to which this interface will be connected
-
-  vcpus
-    the number of VCPUs for the instance
-
-  disk_template
-    the disk template for the instance
-
-  memory
-   the memory size for the instance
-
-  os
-   the OS type for the instance
-
-  tags
-    the list of the instance's tags
-
-  hypervisor
-    the hypervisor of this instance
-
-
-  If the request is of type relocate, then there is one more entry in
-  the request dictionary, named ``relocate_from``, and it contains a
-  list of nodes to move the instance away from; note that with Ganeti
-  2.0, this list will always contain a single node, the current
-  secondary of the instance.
-
-  The multi-evacuate mode has instead a single request argument:
-
-  evac_nodes
-    the names of the nodes to be evacuated
+  a dictionary containing the details of the request; the keys vary
+  depending on the type of operation that's being requested, as
+  explained in `Operation-specific input`_ below.
 
 nodegroups
   a dictionary with the data for the cluster's node groups; it is keyed
@@ -254,6 +178,101 @@ nodes
    reserved_memory, free_memory, total_disk, free_disk, total_cpus,
    i_pri_memory and i_pri_up memory will be absent
 
+Operation-specific input
+++++++++++++++++++++++++
+
+All input dictionaries to the IAllocator carry, in the ``request``
+dictionary, detailed information about the operation that's being
+requested. The required keys vary depending on the type of operation, as
+follows.
+
+In all cases, it includes:
+
+  type
+    the request type; this can be either ``allocate``, ``relocate`` or
+    ``multi-evacuate``; the ``allocate`` request is used when a new
+    instance needs to be placed on the cluster, while the ``relocate``
+    request is used when an existing instance needs to be moved within
+    the cluster; the ``multi-evacuate`` protocol requests that the
+    script computes the optimal relocate solution for all secondary
+    instances of the given nodes
+
+For both allocate and relocate mode, the following extra keys are needed
+in the ``request`` dictionary:
+
+  name
+    the name of the instance; if the request is a realocation, then this
+    name will be found in the list of instances (see below), otherwise
+    is the FQDN of the new instance
+
+  required_nodes
+    how many nodes should the algorithm return; while this information
+    can be deduced from the instace's disk template, it's better if
+    this computation is left to Ganeti as then allocator scripts are
+    less sensitive to changes to the disk templates
+
+  disk_space_total
+    the total disk space that will be used by this instance on the
+    (new) nodes; again, this information can be computed from the list
+    of instance disks and its template type, but Ganeti is better
+    suited to compute it
+
+Allocation needs, in addition:
+
+  disks
+    list of dictionaries holding the disk definitions for this
+    instance (in the order they are exported to the hypervisor):
+
+    mode
+      either ``r`` or ``w`` denoting if the disk is read-only or
+      writable
+
+    size
+      the size of this disk in mebibytes
+
+  nics
+    a list of dictionaries holding the network interfaces for this
+    instance, containing:
+
+    ip
+      the IP address that Ganeti know for this instance, or null
+
+    mac
+      the MAC address for this interface
+
+    bridge
+      the bridge to which this interface will be connected
+
+  vcpus
+    the number of VCPUs for the instance
+
+  disk_template
+    the disk template for the instance
+
+  memory
+   the memory size for the instance
+
+  os
+   the OS type for the instance
+
+  tags
+    the list of the instance's tags
+
+  hypervisor
+    the hypervisor of this instance
+
+Relocation:
+
+  relocate_from
+     a list of nodes to move the instance away from (note that with
+     Ganeti 2.0, this list will always contain a single node, the
+     current secondary of the instance)
+
+In the case of multi-evacuate, there's one single request argument (in
+addition to ``type``):
+
+  evac_nodes
+    the names of the nodes to be evacuated
 
 Response message
 ~~~~~~~~~~~~~~~~
@@ -290,42 +309,22 @@ Examples
 Input messages to scripts
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Input message, new instance allocation::
+Input message, new instance allocation (common elements are listed this
+time, but not included in further examples below)::
 
   {
-    "cluster_tags": [],
-    "request": {
-      "required_nodes": 2,
-      "name": "instance3.example.com",
-      "tags": [
-        "type:test",
-        "owner:foo"
-      ],
-      "type": "allocate",
-      "disks": [
-        {
-          "mode": "w",
-          "size": 1024
-        },
-        {
-          "mode": "w",
-          "size": 2048
-        }
-      ],
-      "nics": [
-        {
-          "ip": null,
-          "mac": "00:11:22:33:44:55",
-          "bridge": null
-        }
-      ],
-      "vcpus": 1,
-      "disk_template": "drbd",
-      "memory": 2048,
-      "disk_space_total": 3328,
-      "os": "debootstrap+default"
-    },
+    "version": 2,
     "cluster_name": "cluster1.example.com",
+    "cluster_tags": [],
+    "enabled_hypervisors": [
+      "xen-pvm"
+    ],
+    "nodegroups": {
+      "f4e06e0d-528a-4963-a5ad-10f3e114232d": {
+        "name": "default",
+        "alloc_policy": "preferred"
+      }
+    },
     "instances": {
       "instance1.example.com": {
         "tags": [],
@@ -385,13 +384,13 @@ Input message, new instance allocation::
         "os": "debootstrap+default"
       }
     },
-    "version": 1,
     "nodes": {
       "node1.example.com": {
         "total_disk": 858276,
         "primary_ip": "198.51.100.1",
         "secondary_ip": "192.0.2.1",
         "tags": [],
+        "group": "f4e06e0d-528a-4963-a5ad-10f3e114232d",
         "free_memory": 3505,
         "free_disk": 856740,
         "total_memory": 4095
@@ -401,6 +400,7 @@ Input message, new instance allocation::
         "primary_ip": "198.51.100.2",
         "secondary_ip": "192.0.2.2",
         "tags": ["test"],
+        "group": "f4e06e0d-528a-4963-a5ad-10f3e114232d",
         "free_memory": 3505,
         "free_disk": 848320,
         "total_memory": 4095
@@ -410,35 +410,74 @@ Input message, new instance allocation::
         "primary_ip": "198.51.100.3",
         "secondary_ip": "192.0.2.3",
         "tags": [],
+        "group": "f4e06e0d-528a-4963-a5ad-10f3e114232d",
         "free_memory": 3505,
         "free_disk": 570648,
         "total_memory": 4095
       }
+    },
+    "request": {
+      "type": "allocate",
+      "name": "instance3.example.com",
+      "required_nodes": 2,
+      "disk_space_total": 3328,
+      "disks": [
+        {
+          "mode": "w",
+          "size": 1024
+        },
+        {
+          "mode": "w",
+          "size": 2048
+        }
+      ],
+      "nics": [
+        {
+          "ip": null,
+          "mac": "00:11:22:33:44:55",
+          "bridge": null
+        }
+      ],
+      "vcpus": 1,
+      "disk_template": "drbd",
+      "memory": 2048,
+      "os": "debootstrap+default",
+      "tags": [
+        "type:test",
+        "owner:foo"
+      ],
+      hypervisor: "xen-pvm"
     }
   }
 
-Input message, reallocation. Since only the request entry in the input
-message is changed, we show only this changed entry::
+Input message, reallocation::
 
-  "request": {
-    "relocate_from": [
-      "node3.example.com"
-    ],
-    "required_nodes": 1,
-    "type": "relocate",
-    "name": "instance2.example.com",
-    "disk_space_total": 832
-  },
-
+  {
+    "version": 2,
+    ...
+    "request": {
+      "type": "relocate",
+      "name": "instance2.example.com",
+      "required_nodes": 1,
+      "disk_space_total": 832,
+      "relocate_from": [
+        "node3.example.com"
+      ]
+    }
+  }
 
 Input message, node evacuation::
 
-  "request": {
-    "evac_nodes": [
-      "node2"
-    ],
-    "type": "multi-evacuate"
-  },
+  {
+    "version": 2,
+    ...
+    "request": {
+      "type": "multi-evacuate",
+      "evac_nodes": [
+        "node2"
+      ],
+    }
+  }
 
 
 Response messages
@@ -446,25 +485,26 @@ Response messages
 Successful response message::
 
   {
+    "success": true,
     "info": "Allocation successful",
     "result": [
       "node2.example.com",
       "node1.example.com"
-    ],
-    "success": true
+    ]
   }
 
 Failed response message::
 
   {
+    "success": false,
     "info": "Can't find a suitable node for position 2 (already selected: node2.example.com)",
-    "result": [],
-    "success": false
+    "result": []
   }
 
 Successful node evacuation message::
 
   {
+    "success": true,
     "info": "Request successful",
     "result": [
       [
@@ -475,8 +515,7 @@ Successful node evacuation message::
         "instance2",
         "node1"
       ]
-    ],
-    "success": true
+    ]
   }
 
 
