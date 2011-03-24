@@ -70,6 +70,10 @@ HTTP Basic authentication as per :rfc:`2617` is supported.
 .. _JSON: http://www.json.org/
 .. _REST: http://en.wikipedia.org/wiki/Representational_State_Transfer
 
+HTTP requests with a body (e.g. ``PUT`` or ``POST``) require the request
+header ``Content-type`` be set to ``application/json`` (see :rfc:`2616`
+(HTTP/1.1), section 7.2.1).
+
 
 A note on JSON as used by RAPI
 ++++++++++++++++++++++++++++++
