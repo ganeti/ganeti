@@ -282,6 +282,7 @@ docrst = \
 	doc/design-http-server.rst \
 	doc/design-impexp2.rst \
 	doc/design-lu-generated-jobs.rst \
+	doc/design-multi-reloc.rst \
 	doc/cluster-merge.rst \
 	doc/design-shared-storage.rst \
 	doc/devnotes.rst \
