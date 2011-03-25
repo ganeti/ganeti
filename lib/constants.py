@@ -529,6 +529,9 @@ DISK_TRANSFER_CONNECT_TIMEOUT = 60
 # Disk index separator
 DISK_SEPARATOR = _autoconf.DISK_SEPARATOR
 
+#: Key for job IDs in opcode result
+JOB_IDS_KEY = "jobs"
+
 # runparts results
 (RUNPARTS_SKIP,
  RUNPARTS_RUN,

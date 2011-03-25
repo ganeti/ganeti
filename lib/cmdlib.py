@@ -74,7 +74,28 @@ def _SupportsOob(cfg, node):
   return cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
 
 
-# End types
+class ResultWithJobs:
+  """Data container for LU results with jobs.
+
+  Instances of this class returned from L{LogicalUnit.Exec} will be recognized
+  by L{mcpu.Processor._ProcessResult}. The latter will then submit the jobs
+  contained in the C{jobs} attribute and include the job IDs in the opcode
+  result.
+
+  """
+  def __init__(self, jobs, **kwargs):
+    """Initializes this class.
+
+    Additional return values can be specified as keyword arguments.
+
+    @type jobs: list of lists of L{opcode.OpCode}
+    @param jobs: A list of lists of opcode objects
+
+    """
+    self.jobs = jobs
+    self.other = kwargs
+
+
 class LogicalUnit(object):
   """Logical Unit base class.
 

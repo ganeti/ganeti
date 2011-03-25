@@ -144,6 +144,14 @@ class OpExecCbBase: # pylint: disable-msg=W0232
 
     """
 
+  def SubmitManyJobs(self, jobs):
+    """Submits jobs for processing.
+
+    See L{jqueue.JobQueue.SubmitManyJobs}.
+
+    """
+    raise NotImplementedError
+
 
 def _LUNameForOpName(opname):
   """Computes the LU name for a given OpCode name.
@@ -209,6 +217,24 @@ class Processor(object):
 
     return acquired
 
+  def _ProcessResult(self, result):
+    """
+
+    """
+    if isinstance(result, cmdlib.ResultWithJobs):
+      # Submit jobs
+      job_submission = self._cbs.SubmitManyJobs(result.jobs)
+
+      # Build dictionary
+      result = result.other
+
+      assert constants.JOB_IDS_KEY not in result, \
+        "Key '%s' found in additional return values" % constants.JOB_IDS_KEY
+
+      result[constants.JOB_IDS_KEY] = job_submission
+
+    return result
+
   def _ExecLU(self, lu):
     """Logical Unit execution sequence.
 
@@ -229,7 +255,7 @@ class Processor(object):
       return lu.dry_run_result
 
     try:
-      result = lu.Exec(self.Log)
+      result = self._ProcessResult(lu.Exec(self.Log))
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
       result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
                                 self.Log, result)

@@ -1423,6 +1423,7 @@ class OpTestDummy(OpCode):
     ("result", ht.NoDefault, ht.NoType, None),
     ("messages", ht.NoDefault, ht.NoType, None),
     ("fail", ht.NoDefault, ht.NoType, None),
+    ("submit_jobs", None, ht.NoType, None),
     ]
   WITH_LU = False
 
