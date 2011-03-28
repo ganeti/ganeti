@@ -504,6 +504,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
   def RedistributeConfig(self):
     """Tells the cluster to redistribute its configuration files.
 
+    @rtype: string
     @return: job id
 
     """
@@ -561,6 +562,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param tags: tags to delete
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @rtype: string
+    @return: job id
 
     """
     query = [("tag", t) for t in tags]
@@ -794,6 +797,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param instance: Instance name
     @type ignore_size: bool
     @param ignore_size: Whether to ignore recorded size
+    @rtype: string
     @return: job id
 
     """
@@ -810,6 +814,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
 
     @type instance: string
     @param instance: Instance name
+    @rtype: string
     @return: job id
 
     """
@@ -891,6 +896,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param tags: tags to delete
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @rtype: string
+    @return: job id
 
     """
     query = [("tag", t) for t in tags]
@@ -914,6 +921,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
         while re-assembling disks (in hard-reboot mode only)
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @rtype: string
+    @return: job id
 
     """
     query = []
@@ -935,6 +944,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param instance: the instance to shut down
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @rtype: string
+    @return: job id
 
     """
     query = []
@@ -952,6 +963,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param instance: the instance to start up
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @rtype: string
+    @return: job id
 
     """
     query = []
@@ -973,6 +986,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
         current operating system will be installed again
     @type no_startup: bool
     @param no_startup: Whether to start the instance automatically
+    @rtype: string
+    @return: job id
 
     """
     if _INST_REINSTALL_REQV1 in self.GetFeatures():
@@ -1103,6 +1118,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param mode: Migration mode
     @type cleanup: bool
     @param cleanup: Whether to clean up a previously failed migration
+    @rtype: string
+    @return: job id
 
     """
     body = {}
@@ -1128,6 +1145,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param ip_check: Whether to ensure instance's IP address is inactive
     @type name_check: bool
     @param name_check: Whether to ensure instance's name is resolvable
+    @rtype: string
+    @return: job id
 
     """
     body = {
@@ -1149,6 +1168,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
 
     @type instance: string
     @param instance: Instance name
+    @rtype: dict
+    @return: dictionary containing information about instance's console
 
     """
     return self._SendRequest(HTTP_GET,
@@ -1223,6 +1244,9 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
 
     @type job_id: string
     @param job_id: Job ID for which to wait
+    @return: C{None} if no changes have been detected and a dict with two keys,
+      C{job_info} and C{log_entries} otherwise.
+    @rtype: dict
 
     """
     body = {
@@ -1242,6 +1266,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param job_id: id of the job to delete
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @rtype: tuple
+    @return: tuple containing the result, and a message (bool, string)
 
     """
     query = []
@@ -1676,7 +1702,7 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @type fields: list of string
     @param fields: Requested fields
     @type filter_: None or list
-    @param filter_ Query filter
+    @param filter_: Query filter
 
     @rtype: string
     @return: job id
