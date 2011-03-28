@@ -5951,6 +5951,17 @@ class LUInstanceFailover(LogicalUnit):
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
+    ignore_consistency = self.op.ignore_consistency
+    shutdown_timeout = self.op.shutdown_timeout
+    self._migrater = TLMigrateInstance(self, self.op.instance_name,
+                                       cleanup=False,
+                                       iallocator=self.op.iallocator,
+                                       target_node=self.op.target_node,
+                                       failover=True,
+                                       ignore_consistency=ignore_consistency,
+                                       shutdown_timeout=shutdown_timeout)
+    self.tasklets = [self._migrater]
+
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
       instance = self.context.cfg.GetInstanceInfo(self.op.instance_name)
@@ -5970,13 +5981,14 @@ class LUInstanceFailover(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    instance = self.instance
+    instance = self._migrater.instance
     source_node = instance.primary_node
+    target_node = self._migrater.target_node
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       "OLD_PRIMARY": source_node,
-      "NEW_PRIMARY": self.op.target_node,
+      "NEW_PRIMARY": target_node,
       }
 
     if instance.disk_template in constants.DTS_INT_MIRROR:
@@ -5993,171 +6005,9 @@ class LUInstanceFailover(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
-    return (nl, nl + [self.instance.primary_node])
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This checks that the instance is in the cluster.
-
-    """
-    self.instance = instance = self.cfg.GetInstanceInfo(self.op.instance_name)
-    assert self.instance is not None, \
-      "Cannot retrieve locked instance %s" % self.op.instance_name
-
-    bep = self.cfg.GetClusterInfo().FillBE(instance)
-    if instance.disk_template not in constants.DTS_MIRRORED:
-      raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " mirrored, cannot failover.",
-                                 errors.ECODE_STATE)
-
-    if instance.disk_template in constants.DTS_EXT_MIRROR:
-      _CheckIAllocatorOrNode(self, "iallocator", "target_node")
-      if self.op.iallocator:
-        self._RunAllocator()
-        # Release all unnecessary node locks
-        nodes_keep = [instance.primary_node, self.op.target_node]
-        nodes_rel = [node for node in self.acquired_locks[locking.LEVEL_NODE]
-                     if node not in nodes_keep]
-        self.context.glm.release(locking.LEVEL_NODE, nodes_rel)
-        self.acquired_locks[locking.LEVEL_NODE] = nodes_keep
-
-      # self.op.target_node is already populated, either directly or by the
-      # iallocator run
-      target_node = self.op.target_node
-
-    else:
-      secondary_nodes = instance.secondary_nodes
-      if not secondary_nodes:
-        raise errors.ConfigurationError("No secondary node but using"
-                                        " %s disk template" %
-                                        instance.disk_template)
-      target_node = secondary_nodes[0]
-
-      if self.op.iallocator or (self.op.target_node and
-                                self.op.target_node != target_node):
-        raise errors.OpPrereqError("Instances with disk template %s cannot"
-                                   " be failed over to arbitrary nodes"
-                                   " (neither an iallocator nor a target"
-                                   " node can be passed)" %
-                                   instance.disk_template, errors.ECODE_INVAL)
-    _CheckNodeOnline(self, target_node)
-    _CheckNodeNotDrained(self, target_node)
-
-    # Save target_node so that we can use it in BuildHooksEnv
-    self.op.target_node = target_node
-
-    if instance.admin_up:
-      # check memory requirements on the secondary node
-      _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
-                           instance.name, bep[constants.BE_MEMORY],
-                           instance.hypervisor)
-    else:
-      self.LogInfo("Not checking memory on the secondary node as"
-                   " instance will not be started")
-
-    # check bridge existance
-    _CheckInstanceBridgesExist(self, instance, node=target_node)
-
-  def Exec(self, feedback_fn):
-    """Failover an instance.
-
-    The failover is done by shutting it down on its present node and
-    starting it on the secondary.
-
-    """
-    instance = self.instance
-    primary_node = self.cfg.GetNodeInfo(instance.primary_node)
-
-    source_node = instance.primary_node
-    target_node = self.op.target_node
-
-    if instance.admin_up:
-      feedback_fn("* checking disk consistency between source and target")
-      for dev in instance.disks:
-        # for drbd, these are drbd over lvm
-        if not _CheckDiskConsistency(self, dev, target_node, False):
-          if not self.op.ignore_consistency:
-            raise errors.OpExecError("Disk %s is degraded on target node,"
-                                     " aborting failover." % dev.iv_name)
-    else:
-      feedback_fn("* not checking disk consistency as instance is not running")
-
-    feedback_fn("* shutting down instance on source node")
-    logging.info("Shutting down instance %s on node %s",
-                 instance.name, source_node)
-
-    result = self.rpc.call_instance_shutdown(source_node, instance,
-                                             self.op.shutdown_timeout)
-    msg = result.fail_msg
-    if msg:
-      if self.op.ignore_consistency or primary_node.offline:
-        self.proc.LogWarning("Could not shutdown instance %s on node %s."
-                             " Proceeding anyway. Please make sure node"
-                             " %s is down. Error details: %s",
-                             instance.name, source_node, source_node, msg)
-      else:
-        raise errors.OpExecError("Could not shutdown instance %s on"
-                                 " node %s: %s" %
-                                 (instance.name, source_node, msg))
-
-    feedback_fn("* deactivating the instance's disks on source node")
-    if not _ShutdownInstanceDisks(self, instance, ignore_primary=True):
-      raise errors.OpExecError("Can't shut down the instance's disks.")
-
-    instance.primary_node = target_node
-    # distribute new instance config to the other nodes
-    self.cfg.Update(instance, feedback_fn)
-
-    # Only start the instance if it's marked as up
-    if instance.admin_up:
-      feedback_fn("* activating the instance's disks on target node")
-      logging.info("Starting instance %s on node %s",
-                   instance.name, target_node)
-
-      disks_ok, _ = _AssembleInstanceDisks(self, instance,
-                                           ignore_secondaries=True)
-      if not disks_ok:
-        _ShutdownInstanceDisks(self, instance)
-        raise errors.OpExecError("Can't activate the instance's disks")
-
-      feedback_fn("* starting the instance on the target node")
-      result = self.rpc.call_instance_start(target_node, instance, None, None)
-      msg = result.fail_msg
-      if msg:
-        _ShutdownInstanceDisks(self, instance)
-        raise errors.OpExecError("Could not start instance %s on node %s: %s" %
-                                 (instance.name, target_node, msg))
-
-  def _RunAllocator(self):
-    """Run the allocator based on input opcode.
-
-    """
-    ial = IAllocator(self.cfg, self.rpc,
-                     mode=constants.IALLOCATOR_MODE_RELOC,
-                     name=self.instance.name,
-                     # TODO See why hail breaks with a single node below
-                     relocate_from=[self.instance.primary_node,
-                                    self.instance.primary_node],
-                     )
-
-    ial.Run(self.op.iallocator)
-
-    if not ial.success:
-      raise errors.OpPrereqError("Can't compute nodes using"
-                                 " iallocator '%s': %s" %
-                                 (self.op.iallocator, ial.info),
-                                 errors.ECODE_NORES)
-    if len(ial.result) != ial.required_nodes:
-      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
-                                 " of nodes (%s), required %s" %
-                                 (self.op.iallocator, len(ial.result),
-                                  ial.required_nodes), errors.ECODE_FAULT)
-    self.op.target_node = ial.result[0]
-    self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
-                 self.instance.name, self.op.iallocator,
-                 utils.CommaJoin(ial.result))
+    instance = self._migrater.instance
+    nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
+    return (nl, nl + [instance.primary_node])
 
 
 class LUInstanceMigrate(LogicalUnit):
@@ -6181,8 +6031,11 @@ class LUInstanceMigrate(LogicalUnit):
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
-                                       self.op.cleanup, self.op.iallocator,
-                                       self.op.target_node)
+                                       cleanup=self.op.cleanup,
+                                       iallocator=self.op.iallocator,
+                                       target_node=self.op.target_node,
+                                       failover=False,
+                                       fallback=self.op.allow_failover)
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
@@ -6442,8 +6295,9 @@ class LUNodeMigrate(LogicalUnit):
       logging.debug("Migrating instance %s", inst.name)
       names.append(inst.name)
 
-      tasklets.append(TLMigrateInstance(self, inst.name, False,
-                                        self.op.iallocator, None))
+      tasklets.append(TLMigrateInstance(self, inst.name, cleanup=False,
+                                        iallocator=self.op.iallocator,
+                                        taget_node=None))
 
       if inst.disk_template in constants.DTS_EXT_MIRROR:
         # We need to lock all nodes, as the iallocator will choose the
@@ -6490,10 +6344,28 @@ class TLMigrateInstance(Tasklet):
   @type live: boolean
   @ivar live: whether the migration will be done live or non-live;
       this variable is initalized only after CheckPrereq has run
+  @type cleanup: boolean
+  @ivar cleanup: Wheater we cleanup from a failed migration
+  @type iallocator: string
+  @ivar iallocator: The iallocator used to determine target_node
+  @type target_node: string
+  @ivar target_node: If given, the target_node to reallocate the instance to
+  @type failover: boolean
+  @ivar failover: Whether operation results in failover or migration
+  @type fallback: boolean
+  @ivar fallback: Whether fallback to failover is allowed if migration not
+                  possible
+  @type ignore_consistency: boolean
+  @ivar ignore_consistency: Wheter we should ignore consistency between source
+                            and target node
+  @type shutdown_timeout: int
+  @ivar shutdown_timeout: In case of failover timeout of the shutdown
 
   """
-  def __init__(self, lu, instance_name, cleanup,
-               iallocator=None, target_node=None):
+  def __init__(self, lu, instance_name, cleanup=False, iallocator=None,
+               target_node=None, failover=False, fallback=False,
+               ignore_consistency=False,
+               shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT):
     """Initializes this class.
 
     """
@@ -6505,6 +6377,10 @@ class TLMigrateInstance(Tasklet):
     self.live = False # will be overridden later
     self.iallocator = iallocator
     self.target_node = target_node
+    self.failover = failover
+    self.fallback = fallback
+    self.ignore_consistency = ignore_consistency
+    self.shutdown_timeout = shutdown_timeout
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -6517,9 +6393,19 @@ class TLMigrateInstance(Tasklet):
     assert instance is not None
     self.instance = instance
 
+    if (not self.cleanup and not instance.admin_up and not self.failover and
+        self.fallback):
+      self.lu.LogInfo("Instance is marked down, fallback allowed, switching"
+                      " to failover")
+      self.failover = True
+
     if instance.disk_template not in constants.DTS_MIRRORED:
+      if self.failover:
+        text = "failovers"
+      else:
+        text = "migrations"
       raise errors.OpPrereqError("Instance's disk layout '%s' does not allow"
-                                 " migrations" % instance.disk_template,
+                                 " %s" % (instance.disk_template, text),
                                  errors.ECODE_STATE)
 
     if instance.disk_template in constants.DTS_EXT_MIRROR:
@@ -6547,31 +6433,47 @@ class TLMigrateInstance(Tasklet):
                                         " %s disk template" %
                                         instance.disk_template)
       target_node = secondary_nodes[0]
-      if self.lu.op.iallocator or (self.lu.op.target_node and
-                                   self.lu.op.target_node != target_node):
+      if self.iallocator or (self.target_node and
+                             self.target_node != target_node):
+        if self.failover:
+          text = "failed over"
+        else:
+          text = "migrated"
         raise errors.OpPrereqError("Instances with disk template %s cannot"
-                                   " be migrated over to arbitrary nodes"
+                                   " be %s over to arbitrary nodes"
                                    " (neither an iallocator nor a target"
                                    " node can be passed)" %
-                                   instance.disk_template, errors.ECODE_INVAL)
+                                   (text, instance.disk_template),
+                                   errors.ECODE_INVAL)
 
     i_be = self.cfg.GetClusterInfo().FillBE(instance)
 
     # check memory requirements on the secondary node
-    _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
-                         instance.name, i_be[constants.BE_MEMORY],
-                         instance.hypervisor)
+    if not self.failover or instance.admin_up:
+      _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
+                           instance.name, i_be[constants.BE_MEMORY],
+                           instance.hypervisor)
+    else:
+      self.lu.LogInfo("Not checking memory on the secondary node as"
+                      " instance will not be started")
 
     # check bridge existance
     _CheckInstanceBridgesExist(self.lu, instance, node=target_node)
 
     if not self.cleanup:
       _CheckNodeNotDrained(self.lu, target_node)
-      result = self.rpc.call_instance_migratable(instance.primary_node,
-                                                 instance)
-      result.Raise("Can't migrate, please use failover",
-                   prereq=True, ecode=errors.ECODE_STATE)
+      if not self.failover:
+        result = self.rpc.call_instance_migratable(instance.primary_node,
+                                                   instance)
+        if result.fail_msg and self.fallback:
+          self.lu.LogInfo("Can't migrate, instance offline, fallback to"
+                          " failover")
+          self.failover = True
+        else:
+          result.Raise("Can't migrate, please use failover",
+                       prereq=True, ecode=errors.ECODE_STATE)
 
+    assert not (self.failover and self.cleanup)
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -6602,24 +6504,29 @@ class TLMigrateInstance(Tasklet):
                  self.instance_name, self.iallocator,
                  utils.CommaJoin(ial.result))
 
-    if self.lu.op.live is not None and self.lu.op.mode is not None:
-      raise errors.OpPrereqError("Only one of the 'live' and 'mode'"
-                                 " parameters are accepted",
-                                 errors.ECODE_INVAL)
-    if self.lu.op.live is not None:
-      if self.lu.op.live:
-        self.lu.op.mode = constants.HT_MIGRATION_LIVE
-      else:
-        self.lu.op.mode = constants.HT_MIGRATION_NONLIVE
-      # reset the 'live' parameter to None so that repeated
-      # invocations of CheckPrereq do not raise an exception
-      self.lu.op.live = None
-    elif self.lu.op.mode is None:
-      # read the default value from the hypervisor
-      i_hv = self.cfg.GetClusterInfo().FillHV(self.instance, skip_globals=False)
-      self.lu.op.mode = i_hv[constants.HV_MIGRATION_MODE]
+    if not self.failover:
+      if self.lu.op.live is not None and self.lu.op.mode is not None:
+        raise errors.OpPrereqError("Only one of the 'live' and 'mode'"
+                                   " parameters are accepted",
+                                   errors.ECODE_INVAL)
+      if self.lu.op.live is not None:
+        if self.lu.op.live:
+          self.lu.op.mode = constants.HT_MIGRATION_LIVE
+        else:
+          self.lu.op.mode = constants.HT_MIGRATION_NONLIVE
+        # reset the 'live' parameter to None so that repeated
+        # invocations of CheckPrereq do not raise an exception
+        self.lu.op.live = None
+      elif self.lu.op.mode is None:
+        # read the default value from the hypervisor
+        i_hv = self.cfg.GetClusterInfo().FillHV(self.instance,
+                                                skip_globals=False)
+        self.lu.op.mode = i_hv[constants.HV_MIGRATION_MODE]
 
-    self.live = self.lu.op.mode == constants.HT_MIGRATION_LIVE
+      self.live = self.lu.op.mode == constants.HT_MIGRATION_LIVE
+    else:
+      # Failover is never live
+      self.live = False
 
   def _WaitUntilSync(self):
     """Poll with custom rpc for disk sync.
@@ -6885,14 +6792,82 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* done")
 
+  def _ExecFailover(self):
+    """Failover an instance.
+
+    The failover is done by shutting it down on its present node and
+    starting it on the secondary.
+
+    """
+    instance = self.instance
+    primary_node = self.cfg.GetNodeInfo(instance.primary_node)
+
+    source_node = instance.primary_node
+    target_node = self.target_node
+
+    if instance.admin_up:
+      self.feedback_fn("* checking disk consistency between source and target")
+      for dev in instance.disks:
+        # for drbd, these are drbd over lvm
+        if not _CheckDiskConsistency(self, dev, target_node, False):
+          if not self.ignore_consistency:
+            raise errors.OpExecError("Disk %s is degraded on target node,"
+                                     " aborting failover." % dev.iv_name)
+    else:
+      self.feedback_fn("* not checking disk consistency as instance is not"
+                       " running")
+
+    self.feedback_fn("* shutting down instance on source node")
+    logging.info("Shutting down instance %s on node %s",
+                 instance.name, source_node)
+
+    result = self.rpc.call_instance_shutdown(source_node, instance,
+                                             self.shutdown_timeout)
+    msg = result.fail_msg
+    if msg:
+      if self.ignore_consistency or primary_node.offline:
+        self.lu.LogWarning("Could not shutdown instance %s on node %s."
+                           " Proceeding anyway. Please make sure node"
+                           " %s is down. Error details: %s",
+                           instance.name, source_node, source_node, msg)
+      else:
+        raise errors.OpExecError("Could not shutdown instance %s on"
+                                 " node %s: %s" %
+                                 (instance.name, source_node, msg))
+
+    self.feedback_fn("* deactivating the instance's disks on source node")
+    if not _ShutdownInstanceDisks(self, instance, ignore_primary=True):
+      raise errors.OpExecError("Can't shut down the instance's disks.")
+
+    instance.primary_node = target_node
+    # distribute new instance config to the other nodes
+    self.cfg.Update(instance, self.feedback_fn)
+
+    # Only start the instance if it's marked as up
+    if instance.admin_up:
+      self.feedback_fn("* activating the instance's disks on target node")
+      logging.info("Starting instance %s on node %s",
+                   instance.name, target_node)
+
+      disks_ok, _ = _AssembleInstanceDisks(self, instance,
+                                           ignore_secondaries=True)
+      if not disks_ok:
+        _ShutdownInstanceDisks(self, instance)
+        raise errors.OpExecError("Can't activate the instance's disks")
+
+      self.feedback_fn("* starting the instance on the target node")
+      result = self.rpc.call_instance_start(target_node, instance, None, None)
+      msg = result.fail_msg
+      if msg:
+        _ShutdownInstanceDisks(self, instance)
+        raise errors.OpExecError("Could not start instance %s on node %s: %s" %
+                                 (instance.name, target_node, msg))
+
   def Exec(self, feedback_fn):
     """Perform the migration.
 
     """
-    feedback_fn("Migrating instance %s" % self.instance.name)
-
     self.feedback_fn = feedback_fn
-
     self.source_node = self.instance.primary_node
 
     # FIXME: if we implement migrate-to-any in DRBD, this needs fixing
@@ -6907,10 +6882,16 @@ class TLMigrateInstance(Tasklet):
       self.target_node: self.cfg.GetNodeInfo(self.target_node).secondary_ip,
       }
 
-    if self.cleanup:
-      return self._ExecCleanup()
+    if self.failover:
+      feedback_fn("Failover instance %s" % self.instance.name)
+      self._ExecFailover()
     else:
-      return self._ExecMigration()
+      feedback_fn("Migrating instance %s" % self.instance.name)
+
+      if self.cleanup:
+        return self._ExecCleanup()
+      else:
+        return self._ExecMigration()
 
 
 def _CreateBlockDev(lu, node, instance, device, force_create,

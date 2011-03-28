@@ -1047,6 +1047,8 @@ class OpInstanceMigrate(OpCode):
      "Iallocator for deciding the target node for shared-storage instances"),
     ("target_node", None, ht.TMaybeString,
      "Target node for shared-storage instances"),
+    ("allow_failover", False, ht.TBool,
+     "Whether we can fallback to failover if migration is not possible"),
     ]
 
 
