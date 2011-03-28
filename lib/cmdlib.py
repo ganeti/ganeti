@@ -2360,8 +2360,10 @@ class LUClusterVerify(LogicalUnit):
                self.ENODERPC, pnode, "instance %s, connection to"
                " primary node failed", instance)
 
-      _ErrorIf(pnode_img.offline, self.EINSTANCEBADNODE, instance,
-               "instance lives on offline node %s", inst_config.primary_node)
+      _ErrorIf(inst_config.admin_up and pnode_img.offline,
+               self.EINSTANCEBADNODE, instance,
+               "instance is marked as running and lives on offline node %s",
+               inst_config.primary_node)
 
       # If the instance is non-redundant we cannot survive losing its primary
       # node, so we are not N+1 compliant. On the other hand we have no disk
