@@ -1219,8 +1219,8 @@ MIGRATE
 
 **migrate** [-f] {--cleanup} {*instance*}
 
-**migrate** [-f] [--non-live] [--migration-mode=live\|non-live]
-{*instance*}
+**migrate** [-f] [--allow-failover] [--non-live]
+[--migration-mode=live\|non-live] {*instance*}
 
 Migrate will move the instance to its secondary node without
 shutdown. It only works for instances having the drbd8 disk
@@ -1251,6 +1251,11 @@ instances's disks are configured correctly. In this mode, the
 ``--non-live`` option is ignored.
 
 The option ``-f`` will skip the prompting for confirmation.
+
+If ``--allow-failover`` is specified it tries to fallback to failover if
+it already can determine that a migration wont work (i.e. if the
+instance is shutdown). Please note that the fallback will not happen
+during execution. If a migration fails during execution it still fails.
 
 Example (and expected output)::
 

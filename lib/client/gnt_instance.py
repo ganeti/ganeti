@@ -829,7 +829,8 @@ def MigrateInstance(opts, args):
 
   op = opcodes.OpInstanceMigrate(instance_name=instance_name, mode=mode,
                                  cleanup=opts.cleanup, iallocator=iallocator,
-                                 target_node=target_node)
+                                 target_node=target_node,
+                                 allow_failover=opts.allow_failover)
   SubmitOpCode(op, cl=cl, opts=opts)
   return 0
 
@@ -1365,7 +1366,7 @@ commands = {
   'migrate': (
     MigrateInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, CLEANUP_OPT, DRY_RUN_OPT,
-     PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT],
+     PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT, ALLOW_FAILOVER_OPT],
     "[-f] <instance>", "Migrate instance to its secondary node"
     " (only for mirrored instances)"),
   'move': (

@@ -177,6 +177,12 @@ def TestInstanceMigrate(instance):
   AssertCommand(cmd)
   # ... and back
   AssertCommand(cmd)
+  AssertCommand(["gnt-instance", "shutdown", instance["name"]])
+  AssertCommand(cmd, fail=True)
+  AssertCommand(["gnt-instance", "migrate", "--force", "--allow-failover",
+                 instance["name"]])
+  AssertCommand(["gnt-instance", "start", instance["name"]])
+  AssertCommand(cmd)
 
 
 def TestInstanceInfo(instance):

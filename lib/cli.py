@@ -51,6 +51,7 @@ __all__ = [
   "ALLOCATABLE_OPT",
   "ALLOC_POLICY_OPT",
   "ALL_OPT",
+  "ALLOW_FAILOVER_OPT",
   "AUTO_PROMOTE_OPT",
   "AUTO_REPLACE_OPT",
   "BACKEND_OPT",
@@ -757,6 +758,12 @@ IGNORE_CONSIST_OPT = cli_option("--ignore-consistency",
                                 action="store_true", default=False,
                                 help="Ignore the consistency of the disks on"
                                 " the secondary")
+
+ALLOW_FAILOVER_OPT = cli_option("--allow-failover",
+                                dest="allow_failover",
+                                action="store_true", default=False,
+                                help="If migration is not possible fallback to"
+                                     " failover")
 
 NONLIVE_OPT = cli_option("--non-live", dest="live",
                          default=True, action="store_false",
