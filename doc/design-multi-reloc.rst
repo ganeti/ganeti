@@ -28,6 +28,8 @@ that will be able to compute inter-group instance moves, taking into
 account mobility domains as appropriate. The interface proposed below
 should be enough to cover the use cases mentioned above.
 
+.. _multi-reloc-detailed-design:
+
 Detailed design
 ===============
 
