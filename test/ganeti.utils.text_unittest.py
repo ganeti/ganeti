@@ -106,6 +106,58 @@ class TestMatchNameComponent(unittest.TestCase):
                      None)
 
 
+class TestDnsNameGlobPattern(unittest.TestCase):
+  def setUp(self):
+    self.names = [
+      "node1.example.com",
+      "node2-0.example.com",
+      "node2-1.example.com",
+      "node1.example.net",
+      "web1.example.com",
+      "web2.example.com",
+      "sub.site.example.com",
+      ]
+
+  def _Test(self, pattern):
+    re_pat = utils.DnsNameGlobPattern(pattern)
+
+    return filter(re.compile(re_pat).match, self.names)
+
+  def test(self):
+    for pattern in ["xyz", "node", " ", "example.net", "x*.example.*",
+                    "x*.example.com"]:
+      self.assertEqual(self._Test(pattern), [])
+
+    for pattern in ["*", "???*"]:
+      self.assertEqual(self._Test(pattern), self.names)
+
+    self.assertEqual(self._Test("node1.*.net"), ["node1.example.net"])
+    self.assertEqual(self._Test("*.example.net"), ["node1.example.net"])
+    self.assertEqual(self._Test("web1.example.com"), ["web1.example.com"])
+
+    for pattern in ["*.*.*.*", "???", "*.site"]:
+      self.assertEqual(self._Test(pattern), ["sub.site.example.com"])
+
+    self.assertEqual(self._Test("node1"), [
+      "node1.example.com",
+      "node1.example.net",
+      ])
+    self.assertEqual(self._Test("node?*.example.*"), [
+      "node1.example.com",
+      "node2-0.example.com",
+      "node2-1.example.com",
+      "node1.example.net",
+      ])
+    self.assertEqual(self._Test("*-?"), [
+      "node2-0.example.com",
+      "node2-1.example.com",
+      ])
+    self.assertEqual(self._Test("node2-?.example.com"), [
+      "node2-0.example.com",
+      "node2-1.example.com",
+      ])
+
+
 class TestFormatUnit(unittest.TestCase):
   """Test case for the FormatUnit function"""
 

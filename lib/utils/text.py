@@ -74,11 +74,13 @@ def MatchNameComponent(key, name_list, case_sensitive=True):
   if not case_sensitive:
     re_flags |= re.IGNORECASE
     key = key.upper()
-  mo = re.compile("^%s(\..*)?$" % re.escape(key), re_flags)
+
+  name_re = re.compile(r"^%s(\..*)?$" % re.escape(key), re_flags)
+
   names_filtered = []
   string_matches = []
   for name in name_list:
-    if mo.match(name) is not None:
+    if name_re.match(name) is not None:
       names_filtered.append(name)
       if not case_sensitive and key == name.upper():
         string_matches.append(name)
@@ -87,7 +89,43 @@ def MatchNameComponent(key, name_list, case_sensitive=True):
     return string_matches[0]
   if len(names_filtered) == 1:
     return names_filtered[0]
+
   return None
+
+
+def _DnsNameGlobHelper(match):
+  """Helper function for L{DnsNameGlobPattern}.
+
+  Returns regular expression pattern for parts of the pattern.
+
+  """
+  text = match.group(0)
+
+  if text == "*":
+    return "[^.]*"
+  elif text == "?":
+    return "[^.]"
+  else:
+    return re.escape(text)
+
+
+def DnsNameGlobPattern(pattern):
+  """Generates regular expression from DNS name globbing pattern.
+
+  A DNS name globbing pattern (e.g. C{*.site}) is converted to a regular
+  expression. Escape sequences or ranges (e.g. [a-z]) are not supported.
+
+  Matching always starts at the leftmost part. An asterisk (*) matches all
+  characters except the dot (.) separating DNS name parts. A question mark (?)
+  matches a single character except the dot (.).
+
+  @type pattern: string
+  @param pattern: DNS name globbing pattern
+  @rtype: string
+  @return: Regular expression
+
+  """
+  return r"^%s(\..*)?$" % re.sub(r"\*|\?|[^*?]*", _DnsNameGlobHelper, pattern)
 
 
 def FormatUnit(value, units):
