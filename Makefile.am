@@ -447,6 +447,10 @@ endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	BINARY=$(@:htools/%=%); \
+	if [ "$$BINARY" = "test" ] && [ -z "$(GHC_PKG_QUICKCHECK)" ]; then \
+	  echo "Error: cannot run unittests without the QuickCheck library (see devnotes.rst)" 1>&2; \
+	  exit 1; \
+	fi; \
 	$(GHC) --make \
 	  $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi \

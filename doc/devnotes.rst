@@ -38,7 +38,13 @@ document, plus:
   linter (equivalent to pylint for Python)
 - the `QuickCheck <http://hackage.haskell.org/package/QuickCheck>`_
   library, version 1.x
-- ``hpc``, which comes with the compiler, so you should already have it
+- ``hpc``, which comes with the compiler, so you should already have
+  it
+
+Under Debian, these can be installed (on top of the required ones from
+the quick install document) via::
+
+  apt-get install libghc6-quickcheck1-dev hscolour hlint
 
 
 Configuring for development

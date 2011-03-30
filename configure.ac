@@ -369,6 +369,9 @@ else
   AC_MSG_CHECKING([network])
   GHC_PKG_NETWORK=$($GHC_PKG latest network)
   AC_MSG_RESULT($GHC_PKG_NETWORK)
+  AC_MSG_CHECKING([QuickCheck 1.x])
+  GHC_PKG_QUICKCHECK=$($GHC_PKG --simple-output list 'QuickCheck-1.*')
+  AC_MSG_RESULT($GHC_PKG_QUICKCHECK)
   if test -z "$GHC_PKG_PARALLEL" || test -z "$GHC_PKG_JSON" || \
      test -z "$GHC_PKG_NETWORK"; then
     if test "$enable_htools" != "check"; then
@@ -379,8 +382,13 @@ else
     # we leave the other modules to be auto-selected
     HTOOLS_MODULES="-package $GHC_PKG_PARALLEL"
   fi
+  if test -z "$GHC_PKG_QUICKCHECK"; then
+     AC_MSG_WARN(m4_normalize([The QuickCheck 1.x module was not found,
+                               you won't be able to run Haskell unittests]))
+  fi
 fi
 AC_SUBST(HTOOLS_MODULES)
+AC_SUBST(GHC_PKG_QUICKCHECK)
 
 if test "$enable_htools" != "no"; then
   if test -z "$GHC" || test -z "$HTOOLS_MODULES"; then
