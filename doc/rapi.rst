@@ -568,8 +568,8 @@ Body parameters:
 
 ``__version__`` (int, required)
   Must be ``1`` (older Ganeti versions used a different format for
-  instance creation requests, version ``0``, but that format is not
-  documented and should no longer be used).
+  instance creation requests, version ``0``, but that format is no
+  longer supported)
 
 .. opcode_params:: OP_INSTANCE_CREATE
 

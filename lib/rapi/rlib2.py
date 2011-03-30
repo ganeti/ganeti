@@ -751,65 +751,6 @@ class R_2_instances(baserlib.R_Generic):
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
                                    uri_fields=("id", "uri"))
 
-  def _ParseVersion0CreateRequest(self):
-    """Parses an instance creation request version 0.
-
-    Request data version 0 is deprecated and should not be used anymore.
-
-    @rtype: L{opcodes.OpInstanceCreate}
-    @return: Instance creation opcode
-
-    """
-    # Do not modify anymore, request data version 0 is deprecated
-    beparams = baserlib.MakeParamsDict(self.request_body,
-                                       constants.BES_PARAMETERS)
-    hvparams = baserlib.MakeParamsDict(self.request_body,
-                                       constants.HVS_PARAMETERS)
-    fn = self.getBodyParameter
-
-    # disk processing
-    disk_data = fn('disks')
-    if not isinstance(disk_data, list):
-      raise http.HttpBadRequest("The 'disks' parameter should be a list")
-    disks = []
-    for idx, d in enumerate(disk_data):
-      if not isinstance(d, int):
-        raise http.HttpBadRequest("Disk %d specification wrong: should"
-                                  " be an integer" % idx)
-      disks.append({"size": d})
-
-    # nic processing (one nic only)
-    nics = [{"mac": fn("mac", constants.VALUE_AUTO)}]
-    if fn("ip", None) is not None:
-      nics[0]["ip"] = fn("ip")
-    if fn("mode", None) is not None:
-      nics[0]["mode"] = fn("mode")
-    if fn("link", None) is not None:
-      nics[0]["link"] = fn("link")
-
-    # Do not modify anymore, request data version 0 is deprecated
-    return opcodes.OpInstanceCreate(
-      mode=constants.INSTANCE_CREATE,
-      instance_name=fn('name'),
-      disks=disks,
-      disk_template=fn('disk_template'),
-      os_type=fn('os'),
-      pnode=fn('pnode', None),
-      snode=fn('snode', None),
-      iallocator=fn('iallocator', None),
-      nics=nics,
-      start=fn('start', True),
-      ip_check=fn('ip_check', True),
-      name_check=fn('name_check', True),
-      wait_for_sync=True,
-      hypervisor=fn('hypervisor', None),
-      hvparams=hvparams,
-      beparams=beparams,
-      file_storage_dir=fn('file_storage_dir', None),
-      file_driver=fn('file_driver', constants.FD_LOOP),
-      dry_run=bool(self.dryRun()),
-      )
-
   def POST(self):
     """Create an instance.
 
@@ -823,7 +764,8 @@ class R_2_instances(baserlib.R_Generic):
     data_version = self.getBodyParameter(_REQ_DATA_VERSION, 0)
 
     if data_version == 0:
-      op = self._ParseVersion0CreateRequest()
+      raise http.HttpBadRequest("Instance creation request version 0 is no"
+                                " longer supported")
     elif data_version == 1:
       data = self.request_body.copy()
       # Remove "__version__"

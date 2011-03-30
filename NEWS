@@ -13,6 +13,9 @@ Version 2.5.0 beta1
   parameter no longer defaults to ``loop`` and must be specified
 - The deprecated "bridge" nic parameter is no longer supported. Use
   "link" instead.
+- Support for the undocumented and deprecated RAPI instance creation
+  request format version 0 has been dropped. Use version 1, supported
+  since Ganeti 2.1.3 and :doc:`documented <rapi>`, instead.
 
 
 Version 2.4.0
