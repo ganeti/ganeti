@@ -322,6 +322,16 @@ def _WrapNot(fn, lhs, rhs):
   return not fn(lhs, rhs)
 
 
+def _PrepareRegex(pattern):
+  """Compiles a regular expression.
+
+  """
+  try:
+    return re.compile(pattern)
+  except re.error, err:
+    raise errors.ParameterError("Invalid regex pattern (%s)" % err)
+
+
 class _FilterCompilerHelper:
   """Converts a query filter to a callable usable for filtering.
 
@@ -349,8 +359,9 @@ class _FilterCompilerHelper:
   _EQUALITY_CHECKS = [
     (QFF_HOSTNAME,
      lambda lhs, rhs: utils.MatchNameComponent(rhs, [lhs],
-                                               case_sensitive=False)),
-    (None, operator.eq),
+                                               case_sensitive=False),
+     None),
+    (None, operator.eq, None),
     ]
 
   """Known operators
@@ -377,12 +388,14 @@ class _FilterCompilerHelper:
     # Binary operators
     qlang.OP_EQUAL: (_OPTYPE_BINARY, _EQUALITY_CHECKS),
     qlang.OP_NOT_EQUAL:
-      (_OPTYPE_BINARY, [(flags, compat.partial(_WrapNot, fn))
-                        for (flags, fn) in _EQUALITY_CHECKS]),
+      (_OPTYPE_BINARY, [(flags, compat.partial(_WrapNot, fn), valprepfn)
+                        for (flags, fn, valprepfn) in _EQUALITY_CHECKS]),
     qlang.OP_GLOB: (_OPTYPE_BINARY, NotImplemented),
-    qlang.OP_REGEXP: (_OPTYPE_BINARY, NotImplemented),
+    qlang.OP_REGEXP: (_OPTYPE_BINARY, [
+      (None, lambda lhs, rhs: rhs.search(lhs), _PrepareRegex),
+      ]),
     qlang.OP_CONTAINS: (_OPTYPE_BINARY, [
-      (None, operator.contains),
+      (None, operator.contains, None),
       ]),
     }
 
@@ -556,8 +569,12 @@ class _FilterCompilerHelper:
     if hints_fn:
       hints_fn(op, datakind, name, value)
 
-    for (fn_flags, fn) in op_data:
+    for (fn_flags, fn, valprepfn) in op_data:
       if fn_flags is None or fn_flags & field_flags:
+        # Prepare value if necessary (e.g. compile regular expression)
+        if valprepfn:
+          value = valprepfn(value)
+
         return compat.partial(_WrapBinaryOp, fn, retrieval_fn, value)
 
     raise errors.ProgrammerError("Unable to find operator implementation"

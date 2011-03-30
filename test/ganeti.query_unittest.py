@@ -1537,6 +1537,64 @@ class TestQueryFilter(unittest.TestCase):
       [(constants.RS_NORMAL, "node3"), (constants.RS_NORMAL, True)],
       ])
 
+  def testFilterRegex(self):
+    fielddefs = query._PrepareFieldList([
+      (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
+       None, 0, lambda ctx, item: item["name"]),
+      ], [])
+
+    data = [
+      { "name": "node1.example.com", },
+      { "name": "node2.site.example.com", },
+      { "name": "node2.example.net", },
+
+      # Empty name
+      { "name": "", },
+      ]
+
+    q = query.Query(fielddefs, ["name"], namefield="name",
+                    filter_=["=~", "name", "site"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node2.site.example.com")],
+      ])
+
+    q = query.Query(fielddefs, ["name"], namefield="name",
+                    filter_=["=~", "name", "^node2"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node2.example.net")],
+      [(constants.RS_NORMAL, "node2.site.example.com")],
+      ])
+
+    q = query.Query(fielddefs, ["name"], namefield="name",
+                    filter_=["=~", "name", r"(?i)\.COM$"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node1.example.com")],
+      [(constants.RS_NORMAL, "node2.site.example.com")],
+      ])
+
+    q = query.Query(fielddefs, ["name"], namefield="name",
+                    filter_=["=~", "name", r"."])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "node1.example.com")],
+      [(constants.RS_NORMAL, "node2.example.net")],
+      [(constants.RS_NORMAL, "node2.site.example.com")],
+      ])
+
+    q = query.Query(fielddefs, ["name"], namefield="name",
+                    filter_=["=~", "name", r"^$"])
+    self.assertTrue(q.RequestedNames() is None)
+    self.assertEqual(q.Query(data), [
+      [(constants.RS_NORMAL, "")],
+      ])
+
+    # Invalid regular expression
+    self.assertRaises(errors.ParameterError, query.Query, fielddefs, ["name"],
+                      filter_=["=~", "name", r"["])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
