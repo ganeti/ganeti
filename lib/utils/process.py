@@ -141,7 +141,8 @@ def _BuildCmdEnvironment(env, reset):
 
 
 def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
-           interactive=False, timeout=None, noclose_fds=None):
+           interactive=False, timeout=None, noclose_fds=None,
+           _postfork_fn=None):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -169,6 +170,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   @type noclose_fds: list
   @param noclose_fds: list of additional (fd >=3) file descriptors to leave
                       open for the child process
+  @param _postfork_fn: Callback run after fork but before timeout (unittest)
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise errors.ProgrammerError: if we call this when forks are disabled
@@ -200,8 +202,11 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
     if output is None:
       out, err, status, timeout_action = _RunCmdPipe(cmd, cmd_env, shell, cwd,
                                                      interactive, timeout,
-                                                     noclose_fds)
+                                                     noclose_fds,
+                                                     _postfork_fn=_postfork_fn)
     else:
+      assert _postfork_fn is None, \
+          "_postfork_fn not supported if output provided"
       timeout_action = _TIMEOUT_NONE
       status = _RunCmdFile(cmd, cmd_env, shell, output, cwd, noclose_fds)
       out = err = ""
@@ -468,7 +473,8 @@ def _WaitForProcess(child, timeout):
 
 
 def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
-                _linger_timeout=constants.CHILD_LINGER_TIMEOUT):
+                _linger_timeout=constants.CHILD_LINGER_TIMEOUT,
+                _postfork_fn=None):
   """Run a command and return its output.
 
   @type  cmd: string or list
@@ -486,6 +492,7 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
   @type noclose_fds: list
   @param noclose_fds: list of additional (fd >=3) file descriptors to leave
                       open for the child process
+  @param _postfork_fn: Function run after fork but before timeout (unittest)
   @rtype: tuple
   @return: (out, err, status)
 
@@ -513,6 +520,9 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
                            close_fds=close_fds, env=env,
                            cwd=cwd,
                            preexec_fn=preexec_fn)
+
+  if _postfork_fn:
+    _postfork_fn(child.pid)
 
   out = StringIO()
   err = StringIO()

@@ -27,6 +27,7 @@ import shutil
 import os
 import stat
 import time
+import select
 import signal
 
 from ganeti import constants
@@ -153,6 +154,45 @@ class TestIsProcessHandlingSignal(unittest.TestCase):
     self.assert_(utils.RunInSeparateProcess(self._TestRealProcess))
 
 
+class _PostforkProcessReadyHelper:
+  """A helper to use with _postfork_fn in RunCmd.
+
+  It makes sure a process has reached a certain state by reading from a fifo.
+
+  @ivar write_fd: The fd number to write to
+
+  """
+  def __init__(self, timeout):
+    """Initialize the helper.
+
+    @param fifo_dir: The dir where we can create the fifo
+    @param timeout: The time in seconds to wait before giving up
+
+    """
+    self.timeout = timeout
+    (self.read_fd, self.write_fd) = os.pipe()
+
+  def Ready(self, pid):
+    """Waits until the process is ready.
+
+    @param pid: The pid of the process
+
+    """
+    (read_ready, _, _) = select.select([self.read_fd], [], [], self.timeout)
+
+    if not read_ready:
+      # We hit the timeout
+      raise AssertionError("Timeout %d reached while waiting for process %d"
+                           " to become ready" % (self.timeout, pid))
+
+  def Cleanup(self):
+    """Cleans up the helper.
+
+    """
+    os.close(self.read_fd)
+    os.close(self.write_fd)
+
+
 class TestRunCmd(testutils.GanetiTestCase):
   """Testing case for the RunCmd function"""
 
@@ -164,7 +204,11 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.fifo_file = os.path.join(self.fifo_tmpdir, "ganeti_test_fifo")
     os.mkfifo(self.fifo_file)
 
+    # If the process is not ready after 20 seconds we have bigger issues
+    self.proc_ready_helper = _PostforkProcessReadyHelper(20)
+
   def tearDown(self):
+    self.proc_ready_helper.Cleanup()
     shutil.rmtree(self.fifo_tmpdir)
     testutils.GanetiTestCase.tearDown(self)
 
@@ -216,22 +260,31 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.assertEqual(result.output, "")
 
   def testTimeoutClean(self):
-    cmd = "trap 'exit 0' TERM; read < %s" % self.fifo_file
-    result = utils.RunCmd(["/bin/sh", "-c", cmd], timeout=0.2)
+    cmd = ("trap 'exit 0' TERM; echo >&%d; read < %s" %
+           (self.proc_ready_helper.write_fd, self.fifo_file))
+    result = utils.RunCmd(["/bin/sh", "-c", cmd], timeout=0.2,
+                          noclose_fds=[self.proc_ready_helper.write_fd],
+                          _postfork_fn=self.proc_ready_helper.Ready)
     self.assertEqual(result.exit_code, 0)
 
   def testTimeoutKill(self):
-    cmd = ["/bin/sh", "-c", "trap '' TERM; read < %s" % self.fifo_file]
+    cmd = ["/bin/sh", "-c", "trap '' TERM; echo >&%d; read < %s" %
+           (self.proc_ready_helper.write_fd, self.fifo_file)]
     timeout = 0.2
     (out, err, status, ta) = \
       utils.process._RunCmdPipe(cmd, {}, False, "/", False,
-                                timeout, None, _linger_timeout=0.2)
+                                timeout, [self.proc_ready_helper.write_fd],
+                                _linger_timeout=0.2,
+                                _postfork_fn=self.proc_ready_helper.Ready)
     self.assert_(status < 0)
     self.assertEqual(-status, signal.SIGKILL)
 
   def testTimeoutOutputAfterTerm(self):
-    cmd = "trap 'echo sigtermed; exit 1' TERM; read < %s" % self.fifo_file
-    result = utils.RunCmd(["/bin/sh", "-c", cmd], timeout=0.2)
+    cmd = ("trap 'echo sigtermed; exit 1' TERM; echo >&%d; read < %s" %
+           (self.proc_ready_helper.write_fd, self.fifo_file))
+    result = utils.RunCmd(["/bin/sh", "-c", cmd], timeout=0.2,
+                          noclose_fds=[self.proc_ready_helper.write_fd],
+                          _postfork_fn=self.proc_ready_helper.Ready)
     self.assert_(result.failed)
     self.assertEqual(result.stdout, "sigtermed\n")
 
