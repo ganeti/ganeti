@@ -3112,6 +3112,50 @@ def _UploadHelper(lu, nodes, fname):
         lu.proc.LogWarning(msg)
 
 
+def _ComputeAncillaryFiles(cluster, redist):
+  """Compute files external to Ganeti which need to be consistent.
+
+  @type redist: boolean
+  @param redist: Whether to include files which need to be redistributed
+
+  """
+  # Compute files for all nodes
+  files_all = set([
+    constants.SSH_KNOWN_HOSTS_FILE,
+    constants.CONFD_HMAC_KEY,
+    constants.CLUSTER_DOMAIN_SECRET_FILE,
+    ])
+
+  if not redist:
+    files_all.update(constants.ALL_CERT_FILES)
+    files_all.update(ssconf.SimpleStore().GetFileList())
+
+  if cluster.modify_etc_hosts:
+    files_all.add(constants.ETC_HOSTS)
+
+  # Files which must either exist on all nodes or on none
+  files_all_opt = set([
+    constants.RAPI_USERS_FILE,
+    ])
+
+  # Files which should only be on master candidates
+  files_mc = set()
+  if not redist:
+    files_mc.add(constants.CLUSTER_CONF_FILE)
+
+  # Files which should only be on VM-capable nodes
+  files_vm = set(filename
+    for hv_name in cluster.enabled_hypervisors
+    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles())
+
+  # Filenames must be unique
+  assert (len(files_all | files_all_opt | files_mc | files_vm) ==
+          sum(map(len, [files_all, files_all_opt, files_mc, files_vm]))), \
+         "Found file listed in more than one file list"
+
+  return (files_all, files_all_opt, files_mc, files_vm)
+
+
 def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
   """Distribute additional files which are part of the cluster configuration.
 
@@ -3125,40 +3169,42 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
   @param additional_vm: whether the additional nodes are vm-capable or not
 
   """
-  # 1. Gather target nodes
-  myself = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
-  dist_nodes = lu.cfg.GetOnlineNodeList()
-  nvm_nodes = lu.cfg.GetNonVmCapableNodeList()
-  vm_nodes = [name for name in dist_nodes if name not in nvm_nodes]
+  # Gather target nodes
+  cluster = lu.cfg.GetClusterInfo()
+  master_info = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
+
+  online_nodes = lu.cfg.GetOnlineNodeList()
+  vm_nodes = lu.cfg.GetVmCapableNodeList()
+
   if additional_nodes is not None:
-    dist_nodes.extend(additional_nodes)
+    online_nodes.extend(additional_nodes)
     if additional_vm:
       vm_nodes.extend(additional_nodes)
-  if myself.name in dist_nodes:
-    dist_nodes.remove(myself.name)
-  if myself.name in vm_nodes:
-    vm_nodes.remove(myself.name)
 
-  # 2. Gather files to distribute
-  dist_files = set([constants.ETC_HOSTS,
-                    constants.SSH_KNOWN_HOSTS_FILE,
-                    constants.RAPI_CERT_FILE,
-                    constants.RAPI_USERS_FILE,
-                    constants.CONFD_HMAC_KEY,
-                    constants.CLUSTER_DOMAIN_SECRET_FILE,
-                   ])
+  # Never distribute to master node
+  for nodelist in [online_nodes, vm_nodes]:
+    if master_info.name in nodelist:
+      nodelist.remove(master_info.name)
 
-  vm_files = set()
-  enabled_hypervisors = lu.cfg.GetClusterInfo().enabled_hypervisors
-  for hv_name in enabled_hypervisors:
-    hv_class = hypervisor.GetHypervisor(hv_name)
-    vm_files.update(hv_class.GetAncillaryFiles())
+  # Gather file lists
+  (files_all, files_all_opt, files_mc, files_vm) = \
+    _ComputeAncillaryFiles(cluster, True)
 
-  # 3. Perform the files upload
-  for fname in dist_files:
-    _UploadHelper(lu, dist_nodes, fname)
-  for fname in vm_files:
-    _UploadHelper(lu, vm_nodes, fname)
+  # Never re-distribute configuration file from here
+  assert not (constants.CLUSTER_CONF_FILE in files_all or
+              constants.CLUSTER_CONF_FILE in files_vm)
+  assert not files_mc, "Master candidates not handled in this function"
+
+  filemap = [
+    (online_nodes, files_all),
+    (online_nodes, files_all_opt),
+    (vm_nodes, files_vm),
+    ]
+
+  # Upload the files
+  for (node_list, files) in filemap:
+    for fname in files:
+      _UploadHelper(lu, node_list, fname)
 
 
 class LUClusterRedistConf(NoHooksLU):
