@@ -1265,6 +1265,7 @@ class LUClusterVerify(LogicalUnit):
 
   ECLUSTERCFG = (TCLUSTER, "ECLUSTERCFG")
   ECLUSTERCERT = (TCLUSTER, "ECLUSTERCERT")
+  ECLUSTERFILECHECK = (TCLUSTER, "ECLUSTERFILECHECK")
   EINSTANCEBADNODE = (TINSTANCE, "EINSTANCEBADNODE")
   EINSTANCEDOWN = (TINSTANCE, "EINSTANCEDOWN")
   EINSTANCELAYOUT = (TINSTANCE, "EINSTANCELAYOUT")
@@ -1696,49 +1697,91 @@ class LUClusterVerify(LogicalUnit):
                       "not enough memory to accomodate instance failovers"
                       " should node %s fail", prinode)
 
-  def _VerifyNodeFiles(self, ninfo, nresult, file_list, local_cksum,
-                       master_files):
-    """Verifies and computes the node required file checksums.
+  @classmethod
+  def _VerifyFiles(cls, errorif, nodeinfo, master_node, all_nvinfo,
+                   (files_all, files_all_opt, files_mc, files_vm)):
+    """Verifies file checksums collected from all nodes.
 
-    @type ninfo: L{objects.Node}
-    @param ninfo: the node to check
-    @param nresult: the remote results for the node
-    @param file_list: required list of files
-    @param local_cksum: dictionary of local files and their checksums
-    @param master_files: list of files that only masters should have
+    @param errorif: Callback for reporting errors
+    @param nodeinfo: List of L{objects.Node} objects
+    @param master_node: Name of master node
+    @param all_nvinfo: RPC results
 
     """
-    node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    node_names = frozenset(node.name for node in nodeinfo)
 
-    remote_cksum = nresult.get(constants.NV_FILELIST, None)
-    test = not isinstance(remote_cksum, dict)
-    _ErrorIf(test, self.ENODEFILECHECK, node,
-             "node hasn't returned file checksum data")
-    if test:
-      return
+    assert master_node in node_names
+    assert (len(files_all | files_all_opt | files_mc | files_vm) ==
+            sum(map(len, [files_all, files_all_opt, files_mc, files_vm]))), \
+           "Found file listed in more than one file list"
 
-    for file_name in file_list:
-      node_is_mc = ninfo.master_candidate
-      must_have = (file_name not in master_files) or node_is_mc
-      # missing
-      test1 = file_name not in remote_cksum
-      # invalid checksum
-      test2 = not test1 and remote_cksum[file_name] != local_cksum[file_name]
-      # existing and good
-      test3 = not test1 and remote_cksum[file_name] == local_cksum[file_name]
-      _ErrorIf(test1 and must_have, self.ENODEFILECHECK, node,
-               "file '%s' missing", file_name)
-      _ErrorIf(test2 and must_have, self.ENODEFILECHECK, node,
-               "file '%s' has wrong checksum", file_name)
-      # not candidate and this is not a must-have file
-      _ErrorIf(test2 and not must_have, self.ENODEFILECHECK, node,
-               "file '%s' should not exist on non master"
-               " candidates (and the file is outdated)", file_name)
-      # all good, except non-master/non-must have combination
-      _ErrorIf(test3 and not must_have, self.ENODEFILECHECK, node,
-               "file '%s' should not exist"
-               " on non master candidates", file_name)
+    # Define functions determining which nodes to consider for a file
+    file2nodefn = dict([(filename, fn)
+      for (files, fn) in [(files_all, None),
+                          (files_all_opt, None),
+                          (files_mc, lambda node: (node.master_candidate or
+                                                   node.name == master_node)),
+                          (files_vm, lambda node: node.vm_capable)]
+      for filename in files])
+
+    fileinfo = dict((filename, {}) for filename in file2nodefn.keys())
+
+    for node in nodeinfo:
+      nresult = all_nvinfo[node.name]
+
+      if nresult.fail_msg or not nresult.payload:
+        node_files = None
+      else:
+        node_files = nresult.payload.get(constants.NV_FILELIST, None)
+
+      test = not (node_files and isinstance(node_files, dict))
+      errorif(test, cls.ENODEFILECHECK, node.name,
+              "Node did not return file checksum data")
+      if test:
+        continue
+
+      for (filename, checksum) in node_files.items():
+        # Check if the file should be considered for a node
+        fn = file2nodefn[filename]
+        if fn is None or fn(node):
+          fileinfo[filename].setdefault(checksum, set()).add(node.name)
+
+    for (filename, checksums) in fileinfo.items():
+      assert compat.all(len(i) > 10 for i in checksums), "Invalid checksum"
+
+      # Nodes having the file
+      with_file = frozenset(node_name
+                            for nodes in fileinfo[filename].values()
+                            for node_name in nodes)
+
+      # Nodes missing file
+      missing_file = node_names - with_file
+
+      if filename in files_all_opt:
+        # All or no nodes
+        errorif(missing_file and missing_file != node_names,
+                cls.ECLUSTERFILECHECK, None,
+                "File %s is optional, but it must exist on all or no nodes (not"
+                " found on %s)",
+                filename, utils.CommaJoin(utils.NiceSort(missing_file)))
+      else:
+        errorif(missing_file, cls.ECLUSTERFILECHECK, None,
+                "File %s is missing from node(s) %s", filename,
+                utils.CommaJoin(utils.NiceSort(missing_file)))
+
+      # See if there are multiple versions of the file
+      test = len(checksums) > 1
+      if test:
+        variants = ["variant %s on %s" %
+                    (idx + 1, utils.CommaJoin(utils.NiceSort(nodes)))
+                    for (idx, (checksum, nodes)) in
+                      enumerate(sorted(checksums.items()))]
+      else:
+        variants = []
+
+      errorif(test, cls.ECLUSTERFILECHECK, None,
+              "File %s found with %s different checksums (%s)",
+              filename, len(checksums), "; ".join(variants))
 
   def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_helper,
                       drbd_map):
@@ -2173,18 +2216,13 @@ class LUClusterVerify(LogicalUnit):
     node_vol_should = {}
 
     # FIXME: verify OS list
+
+    # File verification
+    filemap = _ComputeAncillaryFiles(cluster, False)
+
     # do local checksums
-    master_files = [constants.CLUSTER_CONF_FILE]
     master_node = self.master_node = self.cfg.GetMasterNode()
     master_ip = self.cfg.GetMasterIP()
-
-    file_names = ssconf.SimpleStore().GetFileList()
-    file_names.extend(constants.ALL_CERT_FILES)
-    file_names.extend(master_files)
-    if cluster.modify_etc_hosts:
-      file_names.append(constants.ETC_HOSTS)
-
-    local_checksums = utils.FingerprintFiles(file_names)
 
     # Compute the set of hypervisor parameters
     hvp_data = []
@@ -2207,7 +2245,10 @@ class LUClusterVerify(LogicalUnit):
 
     feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
     node_verify_param = {
-      constants.NV_FILELIST: file_names,
+      constants.NV_FILELIST:
+        utils.UniqueSequence(filename
+                             for files in filemap
+                             for filename in files),
       constants.NV_NODELIST: [node.name for node in nodeinfo
                               if not node.offline],
       constants.NV_HYPERVISOR: hypervisors,
@@ -2289,6 +2330,9 @@ class LUClusterVerify(LogicalUnit):
     feedback_fn("* Gathering disk information (%s nodes)" % len(nodelist))
     instdisk = self._CollectDiskInfo(nodelist, node_image, instanceinfo)
 
+    feedback_fn("* Verifying configuration file consistency")
+    self._VerifyFiles(_ErrorIf, nodeinfo, master_node, all_nvinfo, filemap)
+
     feedback_fn("* Verifying node status")
 
     refos_img = None
@@ -2326,9 +2370,6 @@ class LUClusterVerify(LogicalUnit):
       nimg.call_ok = self._VerifyNode(node_i, nresult)
       self._VerifyNodeTime(node_i, nresult, nvinfo_starttime, nvinfo_endtime)
       self._VerifyNodeNetwork(node_i, nresult)
-      self._VerifyNodeFiles(node_i, nresult, file_names, local_checksums,
-                            master_files)
-
       self._VerifyOob(node_i, nresult)
 
       if nimg.vm_capable:
