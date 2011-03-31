@@ -228,10 +228,6 @@ value for wiping disks prior to allocation. This increases security
 on instance level as the instance can't access untouched data from
 it's underlying storage.
 
-
-
-
-
 xen-pvm
     Xen PVM hypervisor
 
@@ -331,14 +327,16 @@ user-id pool is initialized to an empty list. An empty list means
 that the user-id pool feature is disabled.
 
 The ``-I (--default-iallocator)`` option specifies the default
-instance allocator. The instance allocator will be used for
-operations like instance creation, instance and node migration,
-etc. when no manual override is specified. If this option is not
-specified, the default instance allocator will be blank, which
-means that relevant operations will require the administrator to
-manually specify either an instance allocator, or a set of nodes.
-The default iallocator can be changed later using the **modify**
-command.
+instance allocator. The instance allocator will be used for operations
+like instance creation, instance and node migration, etc. when no
+manual override is specified. If this option is not specified and
+htools was not enabled at build time, the default instance allocator
+will be blank, which means that relevant operations will require the
+administrator to manually specify either an instance allocator, or a
+set of nodes. If the option is not specified but htools was enabled,
+the default iallocator will be **hail**(1) (assuming it can be found
+on disk). The default iallocator can be changed later using the
+**modify** command.
 
 The ``--primary-ip-version`` option specifies the IP version used
 for the primary address. Possible values are 4 and 6 for IPv4 and

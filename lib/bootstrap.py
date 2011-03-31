@@ -428,6 +428,12 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
       raise errors.OpPrereqError("Invalid default iallocator script '%s'"
                                  " specified" % default_iallocator,
                                  errors.ECODE_INVAL)
+  elif constants.HTOOLS:
+    # htools was enabled at build-time, we default to it
+    if utils.FindFile(constants.IALLOC_HAIL,
+                      constants.IALLOCATOR_SEARCH_PATH,
+                      os.path.isfile):
+      default_iallocator = constants.IALLOC_HAIL
 
   now = time.time()
 
