@@ -182,3 +182,41 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
       current_delay = calc_delay()
       if current_delay > 0.0:
         wait_fn(current_delay)
+
+
+def SimpleRetry(expected, fn, delay, timeout, args=None, wait_fn=time.sleep,
+                _time_fn=time.time):
+  """A wrapper over L{Retry} implementing a simpler interface.
+
+  All the parameters are the same as for L{Retry}, except it has one
+  extra argument: expected, which can be either a value (will be
+  compared with the result of the function, or a callable (which will
+  get the result passed and has to return a boolean). If the test is
+  false, we will retry until either the timeout has passed or the
+  tests succeeds. In both cases, the last result from calling the
+  function will be returned.
+
+  Note that this function is not expected to raise any retry-related
+  exceptions, always simply returning values. As such, the function is
+  designed to allow easy wrapping of code that doesn't use retry at
+  all (e.g. "if fn(args)" replaced with "if SimpleRetry(True, fn,
+  ...)".
+
+  @see: L{Retry}
+
+  """
+  rdict = {}
+  def helper(*innerargs):
+    # pylint: disable-msg=W0142
+    result = rdict["result"] = fn(*innerargs)
+    if not ((callable(expected) and expected(result)) or result == expected):
+      raise RetryAgain()
+    return result
+
+  try:
+    result = Retry(helper, delay, timeout, args=args,
+                   wait_fn=wait_fn, _time_fn=_time_fn)
+  except RetryTimeout:
+    assert "result" in rdict
+    result = rdict["result"]
+  return result

@@ -34,6 +34,7 @@ class TestRetry(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
     self.retries = 0
+    self.called = 0
 
   @staticmethod
   def _RaiseRetryAgain():
@@ -50,6 +51,14 @@ class TestRetry(testutils.GanetiTestCase):
     if self.retries < retries:
       self.retries += 1
       raise utils.RetryAgain()
+    else:
+      return True
+
+  def _SimpleRetryAndSucceed(self, retries):
+    self.called += 1
+    if self.retries < retries:
+      self.retries += 1
+      return False
     else:
       return True
 
@@ -111,6 +120,20 @@ class TestRetry(testutils.GanetiTestCase):
       self.failUnlessEqual(err.args, (retry_arg, retry_arg))
     else:
       self.fail("Expected RetryTimeout didn't happen")
+
+  def testSimpleRetry(self):
+    self.assertFalse(utils.SimpleRetry(True, lambda: False, 0.01, 0.02))
+    self.assertFalse(utils.SimpleRetry(lambda x: x, lambda: False, 0.01, 0.02))
+    self.assertTrue(utils.SimpleRetry(True, lambda: True, 0, 1))
+    self.assertTrue(utils.SimpleRetry(lambda x: x, lambda: True, 0, 1))
+    self.assertTrue(utils.SimpleRetry(True, self._SimpleRetryAndSucceed,
+                                      0, 1, args=[1]))
+    self.assertEqual(self.retries, 1)
+    self.assertEqual(self.called, 2)
+    self.called = self.retries = 0
+    self.assertTrue(utils.SimpleRetry(True, self._SimpleRetryAndSucceed,
+                                      0, 1, args=[2]))
+    self.assertEqual(self.called, 3)
 
 
 if __name__ == "__main__":
