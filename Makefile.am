@@ -869,6 +869,11 @@ lib/_autoconf.py: Makefile vcs-version | lib/.dir
 	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	  echo "DISK_SEPARATOR = '$(DISK_SEPARATOR)'"; \
+	  if [ "$(HTOOLS)" ]; then \
+	    echo "HTOOLS = True"; \
+	  else \
+	    echo "HTOOLS = False"; \
+	  fi; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile
