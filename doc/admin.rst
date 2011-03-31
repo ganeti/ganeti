@@ -1482,10 +1482,10 @@ See :doc:`separate documentation for move-instance <move-instance>`.
 Other Ganeti projects
 ---------------------
 
-There are two other Ganeti-related projects that can be useful in a
-Ganeti deployment. These can be downloaded from the project site
-(http://code.google.com/p/ganeti/) and the repositories are also on the
-project git site (http://git.ganeti.org).
+Below is a list (which might not be up-to-date) of additional projects
+that can be useful in a Ganeti deployment. They can be downloaded from
+the project site (http://code.google.com/p/ganeti/) and the repositories
+are also on the project git site (http://git.ganeti.org).
 
 NBMA tools
 ++++++++++
@@ -1499,14 +1499,11 @@ archive.
 ganeti-htools
 +++++++++++++
 
-The ``ganeti-htools`` software consists of a set of tools:
-
-- ``hail``: an advanced iallocator script compared to Ganeti's builtin
-  one
-- ``hbal``: a tool for rebalancing the cluster, i.e. moving instances
-  around in order to better use the resources on the nodes
-- ``hspace``: a tool for estimating the available capacity of a cluster,
-  so that capacity planning can be done efficiently
+Before Ganeti version 2.5, this was a standalone project; since that
+version it is integrated into the Ganeti codebase (see
+:doc:`install-quick` for instructions on how to enable it). If you run
+an older Ganeti version, you will have to download and build it
+separately.
 
 For more information and installation instructions, see the README file
 in the source archive.

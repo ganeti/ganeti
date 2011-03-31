@@ -592,8 +592,9 @@ And is now working again::
   node2   1.3T  1.3T  32.0G  1.0G 30.4G     1     3
   node3   1.3T  1.3T  32.0G  1.0G 30.4G     0     0
 
-.. note:: If you have the ganeti-htools package installed, you can
-   shuffle the instances around to have a better use of the nodes.
+.. note:: If you have the Ganeti has been built with the htools
+   component enabled, you can shuffle the instances around to have a
+   better use of the nodes.
 
 Disk failures
 +++++++++++++
@@ -916,9 +917,9 @@ solve this, you have a number of options:
   for any non-trivial cluster)
 - try to reduce memory of some instances to accommodate the available
   node memory
-- if you have the ganeti-htools package installed, you can run the
-  ``hbal`` tool which will try to compute an automated cluster solution
-  that complies with the N+1 rule
+- if Ganeti has been built with the htools package enabled, you can run
+  the ``hbal`` tool which will try to compute an automated cluster
+  solution that complies with the N+1 rule
 
 Network issues
 ++++++++++++++

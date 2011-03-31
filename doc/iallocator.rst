@@ -539,10 +539,9 @@ Command line messages
 Reference implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Ganeti's default iallocator is "hail" which is part of the separate
-ganeti-htools project. In order to see its source code please clone
-``git://git.ganeti.org/htools.git``. Note that htools is implemented
-using the Haskell programming language.
+Ganeti's default iallocator is "hail" which is available when "htools"
+components have been enabled at build time (see :doc:`install-quick` for
+more details).
 
 .. vim: set textwidth=72 :
 .. Local Variables:

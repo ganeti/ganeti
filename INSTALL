@@ -74,6 +74,11 @@ All of these are also available as package in Debian/Ubuntu::
   $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
                     libghc6-parallel-dev libghc6-curl-dev
 
+The compilation of the htools components is automatically enabled when
+the compiler and the requisite libraries are found. You can use the
+``--enable-htools`` configure flag to force the selection (at which
+point ``./configure`` will fail if it doesn't find the prerequisites).
+
 If you want to build from source, please see doc/devnotes.rst for more
 dependencies.
 
