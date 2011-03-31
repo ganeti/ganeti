@@ -526,15 +526,14 @@ def TestRapiInstanceAdd(node, use_client):
   try:
     memory = utils.ParseUnit(qa_config.get("mem"))
     disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
+    disks = [{"size": size} for size in disk_sizes]
+    nics = [{}]
+
+    beparams = {
+      constants.BE_MEMORY: memory,
+      }
 
     if use_client:
-      disks = [{"size": size} for size in disk_sizes]
-      nics = [{}]
-
-      beparams = {
-        constants.BE_MEMORY: memory,
-        }
-
       job_id = _rapi_client.CreateInstance(constants.INSTANCE_CREATE,
                                            instance["name"],
                                            constants.DT_PLAIN,
@@ -544,12 +543,15 @@ def TestRapiInstanceAdd(node, use_client):
                                            beparams=beparams)
     else:
       body = {
+        "__version__": 1,
+        "mode": constants.INSTANCE_CREATE,
         "name": instance["name"],
-        "os": qa_config.get("os"),
+        "os_type": qa_config.get("os"),
         "disk_template": constants.DT_PLAIN,
         "pnode": node["primary"],
-        "memory": memory,
-        "disks": disk_sizes,
+        "beparams": beparams,
+        "disks": disks,
+        "nics": nics,
         }
 
       (job_id, ) = _DoTests([
