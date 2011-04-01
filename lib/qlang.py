@@ -46,7 +46,6 @@ OP_TRUE = "?"
 # operator-specific value
 OP_EQUAL = "="
 OP_NOT_EQUAL = "!="
-OP_GLOB = "=*"
 OP_REGEXP = "=~"
 OP_CONTAINS = "=[]"
 

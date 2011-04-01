@@ -390,7 +390,6 @@ class _FilterCompilerHelper:
     qlang.OP_NOT_EQUAL:
       (_OPTYPE_BINARY, [(flags, compat.partial(_WrapNot, fn), valprepfn)
                         for (flags, fn, valprepfn) in _EQUALITY_CHECKS]),
-    qlang.OP_GLOB: (_OPTYPE_BINARY, NotImplemented),
     qlang.OP_REGEXP: (_OPTYPE_BINARY, [
       (None, lambda lhs, rhs: rhs.search(lhs), _PrepareRegex),
       ]),
