@@ -185,7 +185,7 @@ list**, **gnt-debug locks**, etc.). For these commands, special states
 are denoted via a special symbol (in terse mode) or a string (in
 verbose mode):
 
-*, (offline)
+\*, (offline)
     The node in question is marked offline, and thus it cannot be
     queried for data. This result is persistent until the node is
     de-offlined.
@@ -223,6 +223,69 @@ behaviour)::
 
   # gnt-instance modify -H kernel_path=an\\,example instance1
   # gnt-instance modify -H kernel_path='an\,example' instance1
+
+Query filters
+~~~~~~~~~~~~~
+
+Most commands listing resources (e.g. instances or nodes) support filtering.
+The filter language is similar to Python expressions with some elements from
+Perl. The language is not generic. Each condition must consist of a field name
+and a value (except for boolean checks), a field can not be compared to another
+field. Keywords are case-sensitive.
+
+Syntax in pseudo-BNF::
+
+  <quoted-string> ::= /* String quoted with single or double quotes,
+                         backslash for escaping */
+
+  <integer> ::= /* Number in base-10 positional notation */
+
+  <re> ::= /* Regular expression */
+
+  /*
+    Modifier "i": Case-insensitive matching, see
+    http://docs.python.org/library/re#re.IGNORECASE
+
+    Modifier "s": Make the "." special character match any character,
+    including newline, see http://docs.python.org/library/re#re.DOTALL
+  */
+  <re-modifiers> ::= /* empty */ | i | s
+
+  <value> ::= <quoted-string> | <integer>
+
+  <condition> ::=
+    { /* Value comparison */
+      <field> { == | != } <value>
+
+      /* Collection membership */
+      | <value> [ not ] in <field>
+
+      /* Regular expressions (recognized delimiters
+         are "/", "#", "^", and "|"; backslash for escaping)
+      */
+      | <field> { =~ | !~ } m/<re>/<re-modifiers>
+
+      /* Boolean */
+      | <field>
+    }
+
+  <filter> ::=
+    { [ not ] <condition> | ( <filter> ) }
+    [ { and | or } <filter> ]
+
+Operators:
+
+*==*
+  Equality
+*!=*
+  Inequality
+*=~*
+  Pattern match using regular expression
+*!~*
+  Logically negated from *=~*
+*in*, *not in*
+  Collection membership and negation
+
 
 Common daemon functionality
 ---------------------------
