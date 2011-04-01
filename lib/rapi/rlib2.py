@@ -869,6 +869,19 @@ class R_2_instances_name_startup(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+def _ParseShutdownInstanceRequest(name, data, dry_run):
+  """Parses a request for an instance shutdown.
+
+  @rtype: L{opcodes.OpInstanceShutdown}
+  @return: Instance shutdown opcode
+
+  """
+  return baserlib.FillOpcode(opcodes.OpInstanceShutdown, data, {
+    "instance_name": name,
+    "dry_run": dry_run,
+    })
+
+
 class R_2_instances_name_shutdown(baserlib.R_Generic):
   """/2/instances/[instance_name]/shutdown resource.
 
@@ -878,10 +891,13 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
   def PUT(self):
     """Shutdown an instance.
 
+    @return: a job id
+
     """
-    instance_name = self.items[0]
-    op = opcodes.OpInstanceShutdown(instance_name=instance_name,
-                                    dry_run=bool(self.dryRun()))
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+
+    op = _ParseShutdownInstanceRequest(self.items[0], self.request_body,
+                                       bool(self.dryRun()))
 
     return baserlib.SubmitJob([op])
 

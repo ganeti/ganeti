@@ -655,6 +655,9 @@ Shutdowns an instance.
 
 It supports the ``dry-run`` argument.
 
+.. opcode_params:: OP_INSTANCE_SHUTDOWN
+   :exclude: instance_name, dry_run
+
 
 ``/2/instances/[instance_name]/startup``
 ++++++++++++++++++++++++++++++++++++++++
