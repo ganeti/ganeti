@@ -1641,7 +1641,8 @@ class LUClusterVerify(LogicalUnit):
         test = n_img.mfree < needed_mem
         self._ErrorIf(test, self.ENODEN1, node,
                       "not enough memory to accomodate instance failovers"
-                      " should node %s fail", prinode)
+                      " should node %s fail (%dMiB needed, %dMiB available)",
+                      prinode, needed_mem, n_img.mfree)
 
   def _VerifyNodeFiles(self, ninfo, nresult, file_list, local_cksum,
                        master_files):
