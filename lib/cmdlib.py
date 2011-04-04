@@ -4048,7 +4048,7 @@ class _InstanceQuery(_QueryBase):
     if query.IQ_DISKUSAGE in self.requested_data:
       disk_usage = dict((inst.name,
                          _ComputeDiskSize(inst.disk_template,
-                                          [{"size": disk.size}
+                                          [{constants.IDISK_SIZE: disk.size}
                                            for disk in inst.disks]))
                         for inst in instance_list)
     else:
@@ -6954,12 +6954,13 @@ def _GenerateDiskTemplate(lu, template_name,
                                       for i in range(disk_count)])
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
-      vg = disk.get("vg", vgname)
+      vg = disk.get(constants.IDISK_VG, vgname)
       feedback_fn("* disk %i, vg %s, name %s" % (idx, vg, names[idx]))
-      disk_dev = objects.Disk(dev_type=constants.LD_LV, size=disk["size"],
+      disk_dev = objects.Disk(dev_type=constants.LD_LV,
+                              size=disk[constants.IDISK_SIZE],
                               logical_id=(vg, names[idx]),
                               iv_name="disk/%d" % disk_index,
-                              mode=disk["mode"])
+                              mode=disk[constants.IDISK_MODE])
       disks.append(disk_dev)
   elif template_name == constants.DT_DRBD8:
     if len(secondary_nodes) != 1:
@@ -6975,12 +6976,13 @@ def _GenerateDiskTemplate(lu, template_name,
       names.append(lv_prefix + "_meta")
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
-      vg = disk.get("vg", vgname)
+      vg = disk.get(constants.IDISK_VG, vgname)
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
-                                      disk["size"], vg, names[idx*2:idx*2+2],
+                                      disk[constants.IDISK_SIZE], vg,
+                                      names[idx * 2:idx * 2 + 2],
                                       "disk/%d" % disk_index,
-                                      minors[idx*2], minors[idx*2+1])
-      disk_dev.mode = disk["mode"]
+                                      minors[idx * 2], minors[idx * 2 + 1])
+      disk_dev.mode = disk[constants.IDISK_MODE]
       disks.append(disk_dev)
   elif template_name == constants.DT_FILE:
     if len(secondary_nodes) != 0:
@@ -6990,12 +6992,13 @@ def _GenerateDiskTemplate(lu, template_name,
 
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
-      disk_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk["size"],
+      disk_dev = objects.Disk(dev_type=constants.LD_FILE,
+                              size=disk[constants.IDISK_SIZE],
                               iv_name="disk/%d" % disk_index,
                               logical_id=(file_driver,
                                           "%s/disk%d" % (file_storage_dir,
                                                          disk_index)),
-                              mode=disk["mode"])
+                              mode=disk[constants.IDISK_MODE])
       disks.append(disk_dev)
   elif template_name == constants.DT_SHARED_FILE:
     if len(secondary_nodes) != 0:
@@ -7005,12 +7008,13 @@ def _GenerateDiskTemplate(lu, template_name,
 
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
-      disk_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk["size"],
+      disk_dev = objects.Disk(dev_type=constants.LD_FILE,
+                              size=disk[constants.IDISK_SIZE],
                               iv_name="disk/%d" % disk_index,
                               logical_id=(file_driver,
                                           "%s/disk%d" % (file_storage_dir,
                                                          disk_index)),
-                              mode=disk["mode"])
+                              mode=disk[constants.IDISK_MODE])
       disks.append(disk_dev)
   elif template_name == constants.DT_BLOCK:
     if len(secondary_nodes) != 0:
@@ -7018,11 +7022,12 @@ def _GenerateDiskTemplate(lu, template_name,
 
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
-      disk_dev = objects.Disk(dev_type=constants.LD_BLOCKDEV, size=disk["size"],
+      disk_dev = objects.Disk(dev_type=constants.LD_BLOCKDEV,
+                              size=disk[constants.IDISK_SIZE],
                               logical_id=(constants.BLOCKDEV_DRIVER_MANUAL,
-                                          disk["adopt"]),
+                                          disk[constants.IDISK_ADOPT]),
                               iv_name="disk/%d" % disk_index,
-                              mode=disk["mode"])
+                              mode=disk[constants.IDISK_MODE])
       disks.append(disk_dev)
 
   else:
@@ -7213,12 +7218,13 @@ def _ComputeDiskSizePerVG(disk_template, disks):
 
   """
   def _compute(disks, payload):
-    """Universal algorithm
+    """Universal algorithm.
 
     """
     vgs = {}
     for disk in disks:
-      vgs[disk["vg"]] = vgs.get("vg", 0) + disk["size"] + payload
+      vgs[disk[constants.IDISK_VG]] = \
+        vgs.get(constants.IDISK_VG, 0) + disk[constants.IDISK_MODE] + payload
 
     return vgs
 
@@ -7246,9 +7252,9 @@ def _ComputeDiskSize(disk_template, disks):
   # Required free disk space as a function of disk and swap space
   req_size_dict = {
     constants.DT_DISKLESS: None,
-    constants.DT_PLAIN: sum(d["size"] for d in disks),
+    constants.DT_PLAIN: sum(d[constants.IDISK_SIZE] for d in disks),
     # 128 MB are added for drbd metadata for each disk
-    constants.DT_DRBD8: sum(d["size"] + 128 for d in disks),
+    constants.DT_DRBD8: sum(d[constants.IDISK_SIZE] + 128 for d in disks),
     constants.DT_FILE: None,
     constants.DT_SHARED_FILE: 0,
     constants.DT_BLOCK: 0,
@@ -7368,7 +7374,7 @@ class LUInstanceCreate(LogicalUnit):
     has_adopt = has_no_adopt = False
     for disk in self.op.disks:
       utils.ForceDictType(disk, constants.IDISK_PARAMS_TYPES)
-      if "adopt" in disk:
+      if constants.IDISK_ADOPT in disk:
         has_adopt = True
       else:
         has_no_adopt = True
@@ -7607,7 +7613,8 @@ class LUInstanceCreate(LogicalUnit):
       vcpus=self.be_full[constants.BE_VCPUS],
       nics=_NICListToTuple(self, self.nics),
       disk_template=self.op.disk_template,
-      disks=[(d["size"], d["mode"]) for d in self.disks],
+      disks=[(d[constants.IDISK_SIZE], d[constants.IDISK_MODE])
+             for d in self.disks],
       bep=self.be_full,
       hvp=self.hv_full,
       hypervisor_name=self.op.hypervisor,
@@ -7694,7 +7701,7 @@ class LUInstanceCreate(LogicalUnit):
         # TODO: import the disk iv_name too
         for idx in range(einfo.getint(constants.INISECT_INS, "disk_count")):
           disk_sz = einfo.getint(constants.INISECT_INS, "disk%d_size" % idx)
-          disks.append({"size": disk_sz})
+          disks.append({constants.IDISK_SIZE: disk_sz})
         self.op.disks = disks
       else:
         raise errors.OpPrereqError("No disk info specified and the export"
@@ -7815,7 +7822,7 @@ class LUInstanceCreate(LogicalUnit):
     # NIC buildup
     self.nics = []
     for idx, nic in enumerate(self.op.nics):
-      nic_mode_req = nic.get("mode", None)
+      nic_mode_req = nic.get(constants.INIC_MODE, None)
       nic_mode = nic_mode_req
       if nic_mode is None:
         nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
@@ -7827,7 +7834,7 @@ class LUInstanceCreate(LogicalUnit):
         default_ip_mode = constants.VALUE_NONE
 
       # ip validity checks
-      ip = nic.get("ip", default_ip_mode)
+      ip = nic.get(constants.INIC_IP, default_ip_mode)
       if ip is None or ip.lower() == constants.VALUE_NONE:
         nic_ip = None
       elif ip.lower() == constants.VALUE_AUTO:
@@ -7848,7 +7855,7 @@ class LUInstanceCreate(LogicalUnit):
                                    errors.ECODE_INVAL)
 
       # MAC address verification
-      mac = nic.get("mac", constants.VALUE_AUTO)
+      mac = nic.get(constants.INIC_MAC, constants.VALUE_AUTO)
       if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
         mac = utils.NormalizeAndValidateMac(mac)
 
@@ -7872,13 +7879,14 @@ class LUInstanceCreate(LogicalUnit):
       self.nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
 
     # disk checks/pre-build
+    default_vg = self.cfg.GetVGName()
     self.disks = []
     for disk in self.op.disks:
-      mode = disk.get("mode", constants.DISK_RDWR)
+      mode = disk.get(constants.IDISK_MODE, constants.DISK_RDWR)
       if mode not in constants.DISK_ACCESS_SET:
         raise errors.OpPrereqError("Invalid disk access mode '%s'" %
                                    mode, errors.ECODE_INVAL)
-      size = disk.get("size", None)
+      size = disk.get(constants.IDISK_SIZE, None)
       if size is None:
         raise errors.OpPrereqError("Missing disk size", errors.ECODE_INVAL)
       try:
@@ -7886,10 +7894,13 @@ class LUInstanceCreate(LogicalUnit):
       except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
-      vg = disk.get("vg", self.cfg.GetVGName())
-      new_disk = {"size": size, "mode": mode, "vg": vg}
-      if "adopt" in disk:
-        new_disk["adopt"] = disk["adopt"]
+      new_disk = {
+        constants.IDISK_SIZE: size,
+        constants.IDISK_MODE: mode,
+        constants.IDISK_VG: disk.get(constants.IDISK_VG, default_vg),
+        }
+      if constants.IDISK_ADOPT in disk:
+        new_disk[constants.IDISK_ADOPT] = disk[constants.IDISK_ADOPT]
       self.disks.append(new_disk)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
@@ -7991,7 +8002,9 @@ class LUInstanceCreate(LogicalUnit):
       _CheckNodesFreeDiskPerVG(self, nodenames, req_sizes)
 
     elif self.op.disk_template == constants.DT_PLAIN: # Check the adoption data
-      all_lvs = set([i["vg"] + "/" + i["adopt"] for i in self.disks])
+      all_lvs = set(["%s/%s" % (disk[constants.IDISK_VG],
+                                disk[constants.IDISK_ADOPT])
+                     for disk in self.disks])
       if len(all_lvs) != len(self.disks):
         raise errors.OpPrereqError("Duplicate volume names given for adoption",
                                    errors.ECODE_INVAL)
@@ -8024,11 +8037,14 @@ class LUInstanceCreate(LogicalUnit):
                                    errors.ECODE_STATE)
       # update the size of disk based on what is found
       for dsk in self.disks:
-        dsk["size"] = int(float(node_lvs[dsk["vg"] + "/" + dsk["adopt"]][0]))
+        dsk[constants.IDISK_SIZE] = \
+          int(float(node_lvs["%s/%s" % (dsk[constants.IDISK_VG],
+                                        dsk[constants.IDISK_ADOPT])][0]))
 
     elif self.op.disk_template == constants.DT_BLOCK:
       # Normalize and de-duplicate device paths
-      all_disks = set([os.path.abspath(i["adopt"]) for i in self.disks])
+      all_disks = set([os.path.abspath(disk[constants.IDISK_ADOPT])
+                       for disk in self.disks])
       if len(all_disks) != len(self.disks):
         raise errors.OpPrereqError("Duplicate disk names given for adoption",
                                    errors.ECODE_INVAL)
@@ -8052,7 +8068,8 @@ class LUInstanceCreate(LogicalUnit):
                                    utils.CommaJoin(delta),
                                    errors.ECODE_INVAL)
       for dsk in self.disks:
-        dsk["size"] = int(float(node_disks[dsk["adopt"]]))
+        dsk[constants.IDISK_SIZE] = \
+          int(float(node_disks[dsk[constants.IDISK_ADOPT]]))
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
@@ -8132,7 +8149,7 @@ class LUInstanceCreate(LogicalUnit):
         rename_to = []
         for t_dsk, a_dsk in zip (tmp_disks, self.disks):
           rename_to.append(t_dsk.logical_id)
-          t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk["adopt"])
+          t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk[constants.IDISK_ADOPT])
           self.cfg.SetDiskID(t_dsk, pnode_name)
         result = self.rpc.call_blockdev_rename(pnode_name,
                                                zip(tmp_disks, rename_to))
@@ -9517,11 +9534,11 @@ class LUInstanceSetParams(LogicalUnit):
           raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
       if disk_op == constants.DDM_ADD:
-        mode = disk_dict.setdefault('mode', constants.DISK_RDWR)
+        mode = disk_dict.setdefault(constants.IDISK_MODE, constants.DISK_RDWR)
         if mode not in constants.DISK_ACCESS_SET:
           raise errors.OpPrereqError("Invalid disk access mode '%s'" % mode,
                                      errors.ECODE_INVAL)
-        size = disk_dict.get('size', None)
+        size = disk_dict.get(constants.IDISK_SIZE, None)
         if size is None:
           raise errors.OpPrereqError("Required disk parameter size missing",
                                      errors.ECODE_INVAL)
@@ -9530,10 +9547,10 @@ class LUInstanceSetParams(LogicalUnit):
         except (TypeError, ValueError), err:
           raise errors.OpPrereqError("Invalid disk size parameter: %s" %
                                      str(err), errors.ECODE_INVAL)
-        disk_dict['size'] = size
+        disk_dict[constants.IDISK_SIZE] = size
       else:
         # modification of disk
-        if 'size' in disk_dict:
+        if constants.IDISK_SIZE in disk_dict:
           raise errors.OpPrereqError("Disk size change not possible, use"
                                      " grow-disk", errors.ECODE_INVAL)
 
@@ -9570,32 +9587,32 @@ class LUInstanceSetParams(LogicalUnit):
           raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
       # nic_dict should be a dict
-      nic_ip = nic_dict.get('ip', None)
+      nic_ip = nic_dict.get(constants.INIC_IP, None)
       if nic_ip is not None:
         if nic_ip.lower() == constants.VALUE_NONE:
-          nic_dict['ip'] = None
+          nic_dict[constants.INIC_IP] = None
         else:
           if not netutils.IPAddress.IsValid(nic_ip):
             raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip,
                                        errors.ECODE_INVAL)
 
       nic_bridge = nic_dict.get('bridge', None)
-      nic_link = nic_dict.get('link', None)
+      nic_link = nic_dict.get(constants.INIC_LINK, None)
       if nic_bridge and nic_link:
         raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
                                    " at the same time", errors.ECODE_INVAL)
       elif nic_bridge and nic_bridge.lower() == constants.VALUE_NONE:
         nic_dict['bridge'] = None
       elif nic_link and nic_link.lower() == constants.VALUE_NONE:
-        nic_dict['link'] = None
+        nic_dict[constants.INIC_LINK] = None
 
       if nic_op == constants.DDM_ADD:
-        nic_mac = nic_dict.get('mac', None)
+        nic_mac = nic_dict.get(constants.INIC_MAC, None)
         if nic_mac is None:
-          nic_dict['mac'] = constants.VALUE_AUTO
+          nic_dict[constants.INIC_MAC] = constants.VALUE_AUTO
 
-      if 'mac' in nic_dict:
-        nic_mac = nic_dict['mac']
+      if constants.INIC_MAC in nic_dict:
+        nic_mac = nic_dict[constants.INIC_MAC]
         if nic_mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
           nic_mac = utils.NormalizeAndValidateMac(nic_mac)
 
@@ -9641,12 +9658,12 @@ class LUInstanceSetParams(LogicalUnit):
           this_nic_override = nic_override[idx]
         else:
           this_nic_override = {}
-        if 'ip' in this_nic_override:
-          ip = this_nic_override['ip']
+        if constants.INIC_IP in this_nic_override:
+          ip = this_nic_override[constants.INIC_IP]
         else:
           ip = nic.ip
-        if 'mac' in this_nic_override:
-          mac = this_nic_override['mac']
+        if constants.INIC_MAC in this_nic_override:
+          mac = this_nic_override[constants.INIC_MAC]
         else:
           mac = nic.mac
         if idx in self.nic_pnew:
@@ -9657,8 +9674,8 @@ class LUInstanceSetParams(LogicalUnit):
         link = nicparams[constants.NIC_LINK]
         args['nics'].append((ip, mac, mode, link))
       if constants.DDM_ADD in nic_override:
-        ip = nic_override[constants.DDM_ADD].get('ip', None)
-        mac = nic_override[constants.DDM_ADD]['mac']
+        ip = nic_override[constants.DDM_ADD].get(constants.INIC_IP, None)
+        mac = nic_override[constants.DDM_ADD][constants.INIC_MAC]
         nicparams = self.nic_pnew[constants.DDM_ADD]
         mode = nicparams[constants.NIC_MODE]
         link = nicparams[constants.NIC_LINK]
@@ -9723,7 +9740,8 @@ class LUInstanceSetParams(LogicalUnit):
         _CheckNodeNotDrained(self, self.op.remote_node)
         # FIXME: here we assume that the old instance type is DT_PLAIN
         assert instance.disk_template == constants.DT_PLAIN
-        disks = [{"size": d.size, "vg": d.logical_id[0]}
+        disks = [{constants.IDISK_SIZE: d.size,
+                  constants.IDISK_VG: d.logical_id[0]}
                  for d in instance.disks]
         required = _ComputeDiskSizePerVG(self.op.disk_template, disks)
         _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
@@ -9868,21 +9886,22 @@ class LUInstanceSetParams(LogicalUnit):
           else:
             raise errors.OpPrereqError(msg, errors.ECODE_ENVIRON)
       if new_nic_mode == constants.NIC_MODE_ROUTED:
-        if 'ip' in nic_dict:
-          nic_ip = nic_dict['ip']
+        if constants.INIC_IP in nic_dict:
+          nic_ip = nic_dict[constants.INIC_IP]
         else:
           nic_ip = old_nic_ip
         if nic_ip is None:
           raise errors.OpPrereqError('Cannot set the nic ip to None'
                                      ' on a routed nic', errors.ECODE_INVAL)
-      if 'mac' in nic_dict:
-        nic_mac = nic_dict['mac']
+      if constants.INIC_MAC in nic_dict:
+        nic_mac = nic_dict[constants.INIC_MAC]
         if nic_mac is None:
           raise errors.OpPrereqError('Cannot set the nic mac to None',
                                      errors.ECODE_INVAL)
         elif nic_mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
           # otherwise generate the mac
-          nic_dict['mac'] = self.cfg.GenerateMAC(self.proc.GetECId())
+          nic_dict[constants.INIC_MAC] = \
+            self.cfg.GenerateMAC(self.proc.GetECId())
         else:
           # or validate/reserve the current one
           try:
@@ -9929,7 +9948,8 @@ class LUInstanceSetParams(LogicalUnit):
     snode = self.op.remote_node
 
     # create a fake disk info for _GenerateDiskTemplate
-    disk_info = [{"size": d.size, "mode": d.mode} for d in instance.disks]
+    disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode}
+                 for d in instance.disks]
     new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
                                       instance.name, pnode, [snode],
                                       disk_info, None, None, 0, feedback_fn)
@@ -10071,8 +10091,9 @@ class LUInstanceSetParams(LogicalUnit):
                        (new_disk.size, new_disk.mode)))
       else:
         # change a given disk
-        instance.disks[disk_op].mode = disk_dict['mode']
-        result.append(("disk.mode/%d" % disk_op, disk_dict['mode']))
+        instance.disks[disk_op].mode = disk_dict[constants.IDISK_MODE]
+        result.append(("disk.mode/%d" % disk_op,
+                       disk_dict[constants.IDISK_MODE]))
 
     if self.op.disk_template:
       r_shut = _ShutdownInstanceDisks(self, instance)
@@ -10095,8 +10116,8 @@ class LUInstanceSetParams(LogicalUnit):
         result.append(("nic.%d" % len(instance.nics), "remove"))
       elif nic_op == constants.DDM_ADD:
         # mac and bridge should be set, by now
-        mac = nic_dict['mac']
-        ip = nic_dict.get('ip', None)
+        mac = nic_dict[constants.INIC_MAC]
+        ip = nic_dict.get(constants.INIC_IP, None)
         nicparams = self.nic_pinst[constants.DDM_ADD]
         new_nic = objects.NIC(mac=mac, ip=ip, nicparams=nicparams)
         instance.nics.append(new_nic)
@@ -10107,7 +10128,7 @@ class LUInstanceSetParams(LogicalUnit):
                         self.nic_pnew[constants.DDM_ADD][constants.NIC_LINK]
                        )))
       else:
-        for key in 'mac', 'ip':
+        for key in (constants.INIC_MAC, constants.INIC_IP):
           if key in nic_dict:
             setattr(instance.nics[nic_op], key, nic_dict[key])
         if nic_op in self.nic_pinst:
@@ -11636,7 +11657,9 @@ class IAllocator(object):
         "os": iinfo.os,
         "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
         "nics": nic_data,
-        "disks": [{"size": dsk.size, "mode": dsk.mode} for dsk in iinfo.disks],
+        "disks": [{constants.IDISK_SIZE: dsk.size,
+                   constants.IDISK_MODE: dsk.mode}
+                  for dsk in iinfo.disks],
         "disk_template": iinfo.disk_template,
         "hypervisor": iinfo.hypervisor,
         }
@@ -11701,7 +11724,7 @@ class IAllocator(object):
                                  errors.ECODE_STATE)
 
     self.required_nodes = 1
-    disk_sizes = [{'size': disk.size} for disk in instance.disks]
+    disk_sizes = [{constants.IDISK_SIZE: disk.size} for disk in instance.disks]
     disk_space = _ComputeDiskSize(instance.disk_template, disk_sizes)
 
     request = {
