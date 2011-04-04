@@ -7224,7 +7224,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
     vgs = {}
     for disk in disks:
       vgs[disk[constants.IDISK_VG]] = \
-        vgs.get(constants.IDISK_VG, 0) + disk[constants.IDISK_MODE] + payload
+        vgs.get(constants.IDISK_VG, 0) + disk[constants.IDISK_SIZE] + payload
 
     return vgs
 
