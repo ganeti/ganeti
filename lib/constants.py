@@ -416,9 +416,17 @@ EXPORT_MODES = frozenset([
   EXPORT_MODE_REMOTE,
   ])
 
-# lock recalculate mode
+# Lock recalculate mode
 LOCKS_REPLACE = 'replace'
 LOCKS_APPEND = 'append'
+
+# Lock timeout (sum) before we should go into blocking acquire (still
+# can be reset by priority change); computed as max time (10 hours)
+# before we should actually go into blocking acquire given that we
+# start from default priority level; in seconds
+LOCK_ATTEMPTS_TIMEOUT = 10 * 3600 / 20.0
+LOCK_ATTEMPTS_MAXWAIT = 15.0
+LOCK_ATTEMPTS_MINWAIT = 1.0
 
 # instance creation modes
 INSTANCE_CREATE = "create"

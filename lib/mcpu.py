@@ -55,23 +55,23 @@ def _CalculateLockAttemptTimeouts():
   """Calculate timeouts for lock attempts.
 
   """
-  result = [1.0]
+  result = [constants.LOCK_ATTEMPTS_MINWAIT]
+  running_sum = result[0]
 
-  # Wait for a total of at least 150s before doing a blocking acquire
-  while sum(result) < 150.0:
+  # Wait for a total of at least LOCK_ATTEMPTS_TIMEOUT before doing a
+  # blocking acquire
+  while running_sum < constants.LOCK_ATTEMPTS_TIMEOUT:
     timeout = (result[-1] * 1.05) ** 1.25
 
-    # Cap timeout at 10 seconds. This gives other jobs a chance to run
-    # even if we're still trying to get our locks, before finally moving
-    # to a blocking acquire.
-    if timeout > 10.0:
-      timeout = 10.0
-
-    elif timeout < 0.1:
-      # Lower boundary for safety
-      timeout = 0.1
+    # Cap max timeout. This gives other jobs a chance to run even if
+    # we're still trying to get our locks, before finally moving to a
+    # blocking acquire.
+    timeout = min(timeout, constants.LOCK_ATTEMPTS_MAXWAIT)
+    # And also cap the lower boundary for safety
+    timeout = max(timeout, constants.LOCK_ATTEMPTS_MINWAIT)
 
     result.append(timeout)
+    running_sum += timeout
 
   return result
 
