@@ -969,6 +969,7 @@ class OpInstanceQueryData(OpCode):
   OP_PARAMS = [
     ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ("static", False, ht.TBool),
+    ("use_locking", False, ht.TBool),
     ]
 
 

@@ -8827,23 +8827,33 @@ class LUInstanceQueryData(NoHooksLU):
 
   def ExpandNames(self):
     self.needed_locks = {}
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
-    if self.op.instances:
-      self.wanted_names = []
-      for name in self.op.instances:
-        full_name = _ExpandInstanceName(self.cfg, name)
-        self.wanted_names.append(full_name)
-      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
+    # Use locking if requested or when non-static information is wanted
+    if not (self.op.static or self.op.use_locking):
+      self.LogWarning("Non-static data requested, locks need to be acquired")
+      self.op.use_locking = True
+
+    if self.op.instances or not self.op.use_locking:
+      # Expand instance names right here
+      self.wanted_names = _GetWantedInstances(self, self.op.instances)
     else:
+      # Will use acquired locks
       self.wanted_names = None
-      self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
 
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    if self.op.use_locking:
+      self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+
+      if self.wanted_names is None:
+        self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
+      else:
+        self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
+
+      self.needed_locks[locking.LEVEL_NODE] = []
+      self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
+    if self.op.use_locking and level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
 
   def CheckPrereq(self):
@@ -8853,10 +8863,11 @@ class LUInstanceQueryData(NoHooksLU):
 
     """
     if self.wanted_names is None:
+      assert self.op.use_locking, "Locking was not used"
       self.wanted_names = self.acquired_locks[locking.LEVEL_INSTANCE]
 
-    self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
-                             in self.wanted_names]
+    self.wanted_instances = [self.cfg.GetInstanceInfo(name)
+                             for name in self.wanted_names]
 
   def _ComputeBlockdevStatus(self, node, instance_name, dev):
     """Returns the status of a block device
@@ -8902,7 +8913,7 @@ class LUInstanceQueryData(NoHooksLU):
     else:
       dev_children = []
 
-    data = {
+    return {
       "iv_name": dev.iv_name,
       "dev_type": dev.dev_type,
       "logical_id": dev.logical_id,
@@ -8913,8 +8924,6 @@ class LUInstanceQueryData(NoHooksLU):
       "mode": dev.mode,
       "size": dev.size,
       }
-
-    return data
 
   def Exec(self, feedback_fn):
     """Gather and return data"""
@@ -8943,7 +8952,7 @@ class LUInstanceQueryData(NoHooksLU):
       disks = [self._ComputeDiskStatus(instance, None, device)
                for device in instance.disks]
 
-      idict = {
+      result[instance.name] = {
         "name": instance.name,
         "config_state": config_state,
         "run_state": remote_state,
@@ -8967,8 +8976,6 @@ class LUInstanceQueryData(NoHooksLU):
         "ctime": instance.ctime,
         "uuid": instance.uuid,
         }
-
-      result[instance.name] = idict
 
     return result
 
