@@ -227,7 +227,8 @@ instance Arbitrary OpCodes.OpCode where
         "OP_INSTANCE_FAILOVER" ->
           liftM2 OpCodes.OpFailoverInstance arbitrary arbitrary
         "OP_INSTANCE_MIGRATE" ->
-          liftM3 OpCodes.OpMigrateInstance arbitrary arbitrary arbitrary
+          liftM4 OpCodes.OpMigrateInstance arbitrary arbitrary arbitrary
+          arbitrary
         _ -> fail "Wrong opcode")
 
 instance Arbitrary Jobs.OpStatus where

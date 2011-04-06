@@ -59,7 +59,7 @@ data OpCode = OpTestDelay Double Bool [String]
             | OpReplaceDisks String (Maybe String) ReplaceDisksMode
               [Int] (Maybe String)
             | OpFailoverInstance String Bool
-            | OpMigrateInstance String Bool Bool
+            | OpMigrateInstance String Bool Bool Bool
             deriving (Show, Read, Eq)
 
 
@@ -67,7 +67,7 @@ opID :: OpCode -> String
 opID (OpTestDelay _ _ _) = "OP_TEST_DELAY"
 opID (OpReplaceDisks _ _ _ _ _) = "OP_INSTANCE_REPLACE_DISKS"
 opID (OpFailoverInstance _ _) = "OP_INSTANCE_FAILOVER"
-opID (OpMigrateInstance _ _ _) = "OP_INSTANCE_MIGRATE"
+opID (OpMigrateInstance _ _ _ _) = "OP_INSTANCE_MIGRATE"
 
 loadOpCode :: JSValue -> J.Result OpCode
 loadOpCode v = do
@@ -95,7 +95,8 @@ loadOpCode v = do
                  inst    <- extract "instance_name"
                  live    <- extract "live"
                  cleanup <- extract "cleanup"
-                 return $ OpMigrateInstance inst live cleanup
+                 allow_failover <- extract "allow_failover"
+                 return $ OpMigrateInstance inst live cleanup allow_failover
     _ -> J.Error $ "Unknown opcode " ++ op_id
 
 saveOpCode :: OpCode -> JSValue
@@ -125,11 +126,12 @@ saveOpCode op@(OpFailoverInstance inst consist) =
              , ("ignore_consistency", showJSON consist) ]
     in makeObj ol
 
-saveOpCode op@(OpMigrateInstance inst live cleanup) =
+saveOpCode op@(OpMigrateInstance inst live cleanup allow_failover) =
     let ol = [ ("OP_ID", showJSON $ opID op)
              , ("instance_name", showJSON inst)
              , ("live", showJSON live)
-             , ("cleanup", showJSON cleanup) ]
+             , ("cleanup", showJSON cleanup)
+             , ("allow_failover", showJSON allow_failover) ]
     in makeObj ol
 
 instance JSON OpCode where
