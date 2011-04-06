@@ -247,9 +247,20 @@ prop_Utils_commaJoinSplit lst = lst /= [""] &&
 -- Split and join should always be idempotent
 prop_Utils_commaSplitJoin s = Utils.commaJoin (Utils.sepSplit ',' s) == s
 
+-- | fromObjWithDefault, we test using the Maybe monad and an integer
+-- value
+prop_Utils_fromObjWithDefault def_value random_key =
+    -- a missing key will be returned with the default
+    Utils.fromObjWithDefault [] random_key def_value == Just def_value &&
+    -- a found key will be returned as is, not with default
+    Utils.fromObjWithDefault [(random_key, J.showJSON def_value)]
+         random_key (def_value+1) == Just def_value
+        where _types = (def_value :: Integer)
+
 testUtils =
   [ run prop_Utils_commaJoinSplit
   , run prop_Utils_commaSplitJoin
+  , run prop_Utils_fromObjWithDefault
   ]
 
 -- | Make sure add is idempotent

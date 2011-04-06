@@ -32,6 +32,7 @@ module Ganeti.HTools.Utils
     , readEitherString
     , loadJSArray
     , fromObj
+    , fromObjWithDefault
     , maybeFromObj
     , tryFromObj
     , fromJVal
@@ -46,6 +47,7 @@ module Ganeti.HTools.Utils
 
 import Control.Monad (liftM)
 import Data.List
+import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.Printf (printf)
 
@@ -141,6 +143,11 @@ maybeFromObj o k =
     case lookup k o of
       Nothing -> return Nothing
       Just val -> liftM Just (fromKeyValue k val)
+
+-- | Reads the value of a key in a JSON object with a default if missing.
+fromObjWithDefault :: (J.JSON a, Monad m) =>
+                      [(String, J.JSValue)] -> String -> a -> m a
+fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
 
 -- | Reads a JValue, that originated from an object key
 fromKeyValue :: (J.JSON a, Monad m)
