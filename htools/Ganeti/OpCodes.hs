@@ -95,7 +95,7 @@ loadOpCode v = do
                  inst    <- extract "instance_name"
                  live    <- extract "live"
                  cleanup <- extract "cleanup"
-                 allow_failover <- extract "allow_failover"
+                 allow_failover <- fromObjWithDefault o "allow_failover" False
                  return $ OpMigrateInstance inst live cleanup allow_failover
     _ -> J.Error $ "Unknown opcode " ++ op_id
 
