@@ -127,7 +127,7 @@ parseInstance ktn (JSArray [ name, disk, mem, vcpus
   xrunning <- convert "status" status
   xtags <- convert "tags" tags
   let inst = Instance.create xname xmem xdisk xvcpus
-             xrunning xtags xpnode snode
+             xrunning xtags True xpnode snode
   return (xname, inst)
 
 parseInstance _ v = fail ("Invalid instance query result: " ++ show v)

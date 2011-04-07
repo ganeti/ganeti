@@ -7,7 +7,7 @@ intelligence is in the "Node" and "Cluster" modules.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,20 +49,22 @@ import qualified Ganeti.HTools.Container as Container
 -- * Type declarations
 
 -- | The instance type
-data Instance = Instance { name :: String    -- ^ The instance name
-                         , alias :: String   -- ^ The shortened name
-                         , mem :: Int        -- ^ Memory of the instance
-                         , dsk :: Int        -- ^ Disk size of instance
-                         , vcpus :: Int      -- ^ Number of VCPUs
-                         , running :: Bool   -- ^ Is the instance running?
-                         , runSt :: String   -- ^ Original (text) run status
-                         , pNode :: T.Ndx    -- ^ Original primary node
-                         , sNode :: T.Ndx    -- ^ Original secondary node
-                         , idx :: T.Idx      -- ^ Internal index
-                         , util :: T.DynUtil -- ^ Dynamic resource usage
-                         , movable :: Bool   -- ^ Can the instance be moved?
-                         , tags :: [String]  -- ^ List of instance tags
-                         } deriving (Show, Read)
+data Instance = Instance
+    { name         :: String    -- ^ The instance name
+    , alias        :: String    -- ^ The shortened name
+    , mem          :: Int       -- ^ Memory of the instance
+    , dsk          :: Int       -- ^ Disk size of instance
+    , vcpus        :: Int       -- ^ Number of VCPUs
+    , running      :: Bool      -- ^ Is the instance running?
+    , runSt        :: String    -- ^ Original (text) run status
+    , pNode        :: T.Ndx     -- ^ Original primary node
+    , sNode        :: T.Ndx     -- ^ Original secondary node
+    , idx          :: T.Idx     -- ^ Internal index
+    , util         :: T.DynUtil -- ^ Dynamic resource usage
+    , movable      :: Bool      -- ^ Can the instance be moved?
+    , auto_balance :: Bool      -- ^ Is the instance auto-balanced?
+    , tags         :: [String]  -- ^ List of instance tags
+    } deriving (Show, Read)
 
 instance T.Element Instance where
     nameOf   = name
@@ -88,8 +90,9 @@ type List = Container.Container Instance
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
 create :: String -> Int -> Int -> Int -> String
-       -> [String] -> T.Ndx -> T.Ndx -> Instance
-create name_init mem_init dsk_init vcpus_init run_init tags_init pn sn =
+       -> [String] -> Bool -> T.Ndx -> T.Ndx -> Instance
+create name_init mem_init dsk_init vcpus_init run_init tags_init
+       auto_balance_init pn sn =
     Instance { name = name_init
              , alias = name_init
              , mem = mem_init
@@ -103,6 +106,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init pn sn =
              , util = T.baseUtil
              , tags = tags_init
              , movable = True
+             , auto_balance = auto_balance_init
              }
 
 -- | Changes the index.

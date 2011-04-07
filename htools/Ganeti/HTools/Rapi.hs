@@ -122,7 +122,7 @@ parseInstance ktn a = do
             else readEitherString (head snodes) >>= lookupNode ktn name)
   running <- extract "status" a
   tags <- extract "tags" a
-  let inst = Instance.create name mem disk vcpus running tags pnode snode
+  let inst = Instance.create name mem disk vcpus running tags True pnode snode
   return (name, inst)
 
 -- | Construct a node from a JSON object.

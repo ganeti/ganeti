@@ -144,7 +144,8 @@ loadInst ktn [name, mem, dsk, vcpus, status, pnode, snode, tags] = do
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = sepSplit ',' tags
-      newinst = Instance.create name vmem vdsk vvcpus status vtags pidx sidx
+      newinst = Instance.create name vmem vdsk vvcpus status vtags
+                True pidx sidx
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
