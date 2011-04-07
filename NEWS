@@ -1,6 +1,17 @@
 News
 ====
 
+Version 2.4.1
+-------------
+
+*(Released Wed, 09 Mar 2011)*
+
+Emergency bug-fix release. ``tools/cfgupgrade`` was broken and overwrote
+the RAPI users file if run twice (even with ``-dry-run``).
+
+The release fixes that bug (nothing else changed).
+
+
 Version 2.4.0
 -------------
 
