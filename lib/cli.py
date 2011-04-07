@@ -1901,6 +1901,9 @@ def FormatError(err):
                "%s" % msg)
   elif isinstance(err, errors.JobLost):
     obuf.write("Error checking job status: %s" % msg)
+  elif isinstance(err, errors.QueryFilterParseError):
+    obuf.write("Error while parsing query filter: %s\n" % err.args[0])
+    obuf.write("\n".join(err.GetDetails()))
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, JobSubmittedException):
