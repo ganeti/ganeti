@@ -56,18 +56,18 @@ instance JSON ReplaceDisksMode where
                    _ -> J.Error "Can't parse a valid ReplaceDisksMode"
 
 data OpCode = OpTestDelay Double Bool [String]
-            | OpReplaceDisks String (Maybe String) ReplaceDisksMode
+            | OpInstanceReplaceDisks String (Maybe String) ReplaceDisksMode
               [Int] (Maybe String)
-            | OpFailoverInstance String Bool
-            | OpMigrateInstance String Bool Bool Bool
+            | OpInstanceFailover String Bool
+            | OpInstanceMigrate String Bool Bool Bool
             deriving (Show, Read, Eq)
 
 
 opID :: OpCode -> String
 opID (OpTestDelay _ _ _) = "OP_TEST_DELAY"
-opID (OpReplaceDisks _ _ _ _ _) = "OP_INSTANCE_REPLACE_DISKS"
-opID (OpFailoverInstance _ _) = "OP_INSTANCE_FAILOVER"
-opID (OpMigrateInstance _ _ _ _) = "OP_INSTANCE_MIGRATE"
+opID (OpInstanceReplaceDisks _ _ _ _ _) = "OP_INSTANCE_REPLACE_DISKS"
+opID (OpInstanceFailover _ _) = "OP_INSTANCE_FAILOVER"
+opID (OpInstanceMigrate _ _ _ _) = "OP_INSTANCE_MIGRATE"
 
 loadOpCode :: JSValue -> J.Result OpCode
 loadOpCode v = do
@@ -86,17 +86,17 @@ loadOpCode v = do
                  mode   <- extract "mode"
                  disks  <- extract "disks"
                  ialloc <- maybeFromObj o "iallocator"
-                 return $ OpReplaceDisks inst node mode disks ialloc
+                 return $ OpInstanceReplaceDisks inst node mode disks ialloc
     "OP_INSTANCE_FAILOVER" -> do
                  inst    <- extract "instance_name"
                  consist <- extract "ignore_consistency"
-                 return $ OpFailoverInstance inst consist
+                 return $ OpInstanceFailover inst consist
     "OP_INSTANCE_MIGRATE" -> do
                  inst    <- extract "instance_name"
                  live    <- extract "live"
                  cleanup <- extract "cleanup"
                  allow_failover <- fromObjWithDefault o "allow_failover" False
-                 return $ OpMigrateInstance inst live cleanup allow_failover
+                 return $ OpInstanceMigrate inst live cleanup allow_failover
     _ -> J.Error $ "Unknown opcode " ++ op_id
 
 saveOpCode :: OpCode -> JSValue
@@ -107,7 +107,7 @@ saveOpCode op@(OpTestDelay duration on_master on_nodes) =
              , ("on_nodes", showJSON on_nodes) ]
     in makeObj ol
 
-saveOpCode op@(OpReplaceDisks inst node mode disks iallocator) =
+saveOpCode op@(OpInstanceReplaceDisks inst node mode disks iallocator) =
     let ol = [ ("OP_ID", showJSON $ opID op)
              , ("instance_name", showJSON inst)
              , ("mode", showJSON mode)
@@ -120,13 +120,13 @@ saveOpCode op@(OpReplaceDisks inst node mode disks iallocator) =
                 Nothing -> ol2
     in makeObj ol3
 
-saveOpCode op@(OpFailoverInstance inst consist) =
+saveOpCode op@(OpInstanceFailover inst consist) =
     let ol = [ ("OP_ID", showJSON $ opID op)
              , ("instance_name", showJSON inst)
              , ("ignore_consistency", showJSON consist) ]
     in makeObj ol
 
-saveOpCode op@(OpMigrateInstance inst live cleanup allow_failover) =
+saveOpCode op@(OpInstanceMigrate inst live cleanup allow_failover) =
     let ol = [ ("OP_ID", showJSON $ opID op)
              , ("instance_name", showJSON inst)
              , ("live", showJSON live)

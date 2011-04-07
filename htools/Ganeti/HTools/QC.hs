@@ -222,12 +222,12 @@ instance Arbitrary OpCodes.OpCode where
         "OP_TEST_DELAY" ->
           liftM3 OpCodes.OpTestDelay arbitrary arbitrary arbitrary
         "OP_INSTANCE_REPLACE_DISKS" ->
-          liftM5 OpCodes.OpReplaceDisks arbitrary arbitrary
+          liftM5 OpCodes.OpInstanceReplaceDisks arbitrary arbitrary
           arbitrary arbitrary arbitrary
         "OP_INSTANCE_FAILOVER" ->
-          liftM2 OpCodes.OpFailoverInstance arbitrary arbitrary
+          liftM2 OpCodes.OpInstanceFailover arbitrary arbitrary
         "OP_INSTANCE_MIGRATE" ->
-          liftM4 OpCodes.OpMigrateInstance arbitrary arbitrary arbitrary
+          liftM4 OpCodes.OpInstanceMigrate arbitrary arbitrary arbitrary
           arbitrary
         _ -> fail "Wrong opcode")
 

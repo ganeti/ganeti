@@ -1042,8 +1042,8 @@ iMoveToJob nl il idx move =
     let inst = Container.find idx il
         iname = Instance.name inst
         lookNode  = Just . Container.nameOf nl
-        opF = OpCodes.OpMigrateInstance iname True False True
-        opR n = OpCodes.OpReplaceDisks iname (lookNode n)
+        opF = OpCodes.OpInstanceMigrate iname True False True
+        opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
                 OpCodes.ReplaceNewSecondary [] Nothing
     in case move of
          Failover -> [ opF ]
