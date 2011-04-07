@@ -77,6 +77,7 @@ __all__ = [
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
+  "FORCE_FILTER_OPT",
   "FORCE_OPT",
   "FORCE_VARIANT_OPT",
   "GLOBAL_FILEDIR_OPT",
@@ -1180,6 +1181,11 @@ OOB_TIMEOUT_OPT = cli_option("--oob-timeout", dest="oob_timeout", type="int",
 POWER_DELAY_OPT = cli_option("--power-delay", dest="power_delay", type="float",
                              default=constants.OOB_POWER_DELAY,
                              help="Time in seconds to wait between power-ons")
+
+FORCE_FILTER_OPT = cli_option("-F", "--filter", dest="force_filter",
+                              action="store_true", default=False,
+                              help=("Whether command argument should be treated"
+                                    " as filter"))
 
 
 #: Options provided by all commands
