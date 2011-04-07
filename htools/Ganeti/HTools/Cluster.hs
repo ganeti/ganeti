@@ -1010,6 +1010,7 @@ printInsts nl il =
                         in if sdx == Node.noSecondary
                            then  ""
                            else Container.nameOf nl sdx
+                      , if Instance.auto_balance inst then "Y" else "N"
                       , printf "%3d" $ Instance.vcpus inst
                       , printf "%5d" $ Instance.mem inst
                       , printf "%5d" $ Instance.dsk inst `div` 1024
@@ -1019,9 +1020,9 @@ printInsts nl il =
                       , printf "%5.3f" lN
                       ]
             where DynUtil lC lM lD lN = Instance.util inst
-        header = [ "F", "Name", "Pri_node", "Sec_node", "vcpu", "mem"
-                 , "dsk", "lCpu", "lMem", "lDsk", "lNet" ]
-        isnum = False:False:False:False:repeat True
+        header = [ "F", "Name", "Pri_node", "Sec_node", "Auto_bal"
+                 , "vcpu", "mem" , "dsk", "lCpu", "lMem", "lDsk", "lNet" ]
+        isnum = False:False:False:False:False:repeat True
     in unlines . map ((:) ' ' . intercalate " ") $
        formatTable (header:map helper sil) isnum
 
