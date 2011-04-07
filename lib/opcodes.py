@@ -650,8 +650,7 @@ class OpQuery(OpCode):
     _PQueryWhat,
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "Requested fields"),
-    ("filter", None, ht.TOr(ht.TNone,
-                            ht.TListOf(ht.TOr(ht.TNonEmptyString, ht.TList))),
+    ("filter", None, ht.TOr(ht.TNone, ht.TListOf),
      "Query filter"),
     ]
 
