@@ -1119,8 +1119,12 @@ class OpInstanceQuery(OpCode):
 class OpInstanceQueryData(OpCode):
   """Compute the run-time status of instances."""
   OP_PARAMS = [
-    ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
-    ("static", False, ht.TBool, None),
+    _PUseLocking,
+    ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
+     "Instance names"),
+    ("static", False, ht.TBool,
+     "Whether to only return configuration data without querying"
+     " nodes"),
     ]
 
 

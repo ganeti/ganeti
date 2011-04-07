@@ -161,12 +161,16 @@ class TestCfgupgrade(unittest.TestCase):
   def testRapiUsers(self):
     self.assertFalse(os.path.exists(self.rapi_users_path))
     self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+    self.assertFalse(os.path.exists(os.path.dirname(self.rapi_users_path)))
 
     utils.WriteFile(self.rapi_users_path_pre24, data="some user\n")
     self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), False)
 
+    self.assertTrue(os.path.isdir(os.path.dirname(self.rapi_users_path)))
     self.assert_(os.path.islink(self.rapi_users_path_pre24))
     self.assert_(os.path.isfile(self.rapi_users_path))
+    self.assertEqual(os.readlink(self.rapi_users_path_pre24),
+                     self.rapi_users_path)
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
       self.assertEqual(utils.ReadFile(path), "some user\n")
 
@@ -180,6 +184,8 @@ class TestCfgupgrade(unittest.TestCase):
 
     self.assert_(os.path.islink(self.rapi_users_path_pre24))
     self.assert_(os.path.isfile(self.rapi_users_path))
+    self.assertEqual(os.readlink(self.rapi_users_path_pre24),
+                     self.rapi_users_path)
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
       self.assertEqual(utils.ReadFile(path), "other user\n")
 
@@ -187,13 +193,77 @@ class TestCfgupgrade(unittest.TestCase):
     self.assertFalse(os.path.exists(self.rapi_users_path))
     self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
 
+    os.mkdir(os.path.dirname(self.rapi_users_path))
     os.symlink(self.rapi_users_path, self.rapi_users_path_pre24)
-    utils.WriteFile(self.rapi_users_path_pre24, data="hello world\n")
+    utils.WriteFile(self.rapi_users_path, data="hello world\n")
 
     self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), False)
 
-    self.assert_(os.path.isfile(self.rapi_users_path))
+    self.assert_(os.path.isfile(self.rapi_users_path) and
+                 not os.path.islink(self.rapi_users_path))
     self.assert_(os.path.islink(self.rapi_users_path_pre24))
+    self.assertEqual(os.readlink(self.rapi_users_path_pre24),
+                     self.rapi_users_path)
+    for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
+      self.assertEqual(utils.ReadFile(path), "hello world\n")
+
+  def testRapiUsersExistingTarget(self):
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+
+    os.mkdir(os.path.dirname(self.rapi_users_path))
+    utils.WriteFile(self.rapi_users_path, data="other user\n")
+    utils.WriteFile(self.rapi_users_path_pre24, data="hello world\n")
+
+    self.assertRaises(Exception, self._TestSimpleUpgrade,
+                      constants.BuildVersion(2, 2, 0), False)
+
+    for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
+      self.assert_(os.path.isfile(path) and not os.path.islink(path))
+    self.assertEqual(utils.ReadFile(self.rapi_users_path), "other user\n")
+    self.assertEqual(utils.ReadFile(self.rapi_users_path_pre24),
+                     "hello world\n")
+
+  def testRapiUsersDryRun(self):
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+
+    utils.WriteFile(self.rapi_users_path_pre24, data="some user\n")
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), True)
+
+    self.assertFalse(os.path.isdir(os.path.dirname(self.rapi_users_path)))
+    self.assertTrue(os.path.isfile(self.rapi_users_path_pre24) and
+                    not os.path.islink(self.rapi_users_path_pre24))
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+
+  def testRapiUsers24AndAboveDryRun(self):
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+
+    os.mkdir(os.path.dirname(self.rapi_users_path))
+    utils.WriteFile(self.rapi_users_path, data="other user\n")
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 3, 0), True)
+
+    self.assertTrue(os.path.isfile(self.rapi_users_path) and
+                    not os.path.islink(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+    self.assertEqual(utils.ReadFile(self.rapi_users_path), "other user\n")
+
+  def testRapiUsersExistingSymlinkDryRun(self):
+    self.assertFalse(os.path.exists(self.rapi_users_path))
+    self.assertFalse(os.path.exists(self.rapi_users_path_pre24))
+
+    os.mkdir(os.path.dirname(self.rapi_users_path))
+    os.symlink(self.rapi_users_path, self.rapi_users_path_pre24)
+    utils.WriteFile(self.rapi_users_path, data="hello world\n")
+
+    self._TestSimpleUpgrade(constants.BuildVersion(2, 2, 0), True)
+
+    self.assertTrue(os.path.islink(self.rapi_users_path_pre24))
+    self.assertTrue(os.path.isfile(self.rapi_users_path) and
+                    not os.path.islink(self.rapi_users_path))
+    self.assertEqual(os.readlink(self.rapi_users_path_pre24),
+                     self.rapi_users_path)
     for path in [self.rapi_users_path, self.rapi_users_path_pre24]:
       self.assertEqual(utils.ReadFile(path), "hello world\n")
 

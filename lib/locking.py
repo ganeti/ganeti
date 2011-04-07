@@ -33,6 +33,7 @@ import weakref
 import logging
 import heapq
 import operator
+import itertools
 
 from ganeti import errors
 from ganeti import utils
@@ -1514,6 +1515,17 @@ class GanetiLockManager:
     return self.__keyring[level].remove(names)
 
 
+def _MonitorSortKey((num, item)):
+  """Sorting key function.
+
+  Sort by name, then by incoming order.
+
+  """
+  (name, _, _, _) = item
+
+  return (utils.NiceSortKey(name), num)
+
+
 class LockMonitor(object):
   _LOCK_ATTR = "_lock"
 
@@ -1522,6 +1534,9 @@ class LockMonitor(object):
 
     """
     self._lock = SharedLock("LockMonitor")
+
+    # Counter for stable sorting
+    self._counter = itertools.count(0)
 
     # Tracked locks. Weak references are used to avoid issues with circular
     # references and deletion.
@@ -1534,16 +1549,21 @@ class LockMonitor(object):
     """
     logging.debug("Registering lock %s", lock.name)
     assert lock not in self._locks, "Duplicate lock registration"
-    assert not compat.any(lock.name == i.name for i in self._locks.keys()), \
-           "Found duplicate lock name"
-    self._locks[lock] = None
+
+    # There used to be a check for duplicate names here. As it turned out, when
+    # a lock is re-created with the same name in a very short timeframe, the
+    # previous instance might not yet be removed from the weakref dictionary.
+    # By keeping track of the order of incoming registrations, a stable sort
+    # ordering can still be guaranteed.
+
+    self._locks[lock] = self._counter.next()
 
   @ssynchronized(_LOCK_ATTR)
   def _GetLockInfo(self, requested):
     """Get information from all locks while the monitor lock is held.
 
     """
-    return [lock.GetInfo(requested) for lock in self._locks.keys()]
+    return [(num, lock.GetInfo(requested)) for lock, num in self._locks.items()]
 
   def _Query(self, fields):
     """Queries information from all locks.
@@ -1554,11 +1574,13 @@ class LockMonitor(object):
     """
     qobj = query.Query(query.LOCK_FIELDS, fields)
 
-    # Get all data and sort by name
-    lockinfo = utils.NiceSort(self._GetLockInfo(qobj.RequestedData()),
-                              key=operator.itemgetter(0))
+    # Get all data with internal lock held and then sort by name and incoming
+    # order
+    lockinfo = sorted(self._GetLockInfo(qobj.RequestedData()),
+                      key=_MonitorSortKey)
 
-    return (qobj, query.LockQueryData(lockinfo))
+    # Extract lock information and build query data
+    return (qobj, query.LockQueryData(map(operator.itemgetter(1), lockinfo)))
 
   def QueryLocks(self, fields):
     """Queries information from all locks.

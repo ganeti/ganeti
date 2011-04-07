@@ -185,17 +185,26 @@ def main():
     raise Error("Configuration version %d.%d.%d not supported by this tool" %
                 (config_major, config_minor, config_revision))
 
-  if os.path.isfile(options.RAPI_USERS_FILE_PRE24):
+  if (os.path.isfile(options.RAPI_USERS_FILE_PRE24) and
+      not os.path.islink(options.RAPI_USERS_FILE_PRE24)):
+    if os.path.exists(options.RAPI_USERS_FILE):
+      raise Error("Found pre-2.4 RAPI users file at %s, but another file"
+                  " already exists at %s" %
+                  (options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE))
     logging.info("Found pre-2.4 RAPI users file at %s, renaming to %s",
                  options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
-    utils.RenameFile(options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE,
-                     mkdir=True, mkdir_mode=0750)
+    if not options.dry_run:
+      utils.RenameFile(options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE,
+                       mkdir=True, mkdir_mode=0750)
 
   # Create a symlink for RAPI users file
-  if not os.path.islink(options.RAPI_USERS_FILE_PRE24):
+  if (not (os.path.islink(options.RAPI_USERS_FILE_PRE24) or
+           os.path.isfile(options.RAPI_USERS_FILE_PRE24)) and
+      os.path.isfile(options.RAPI_USERS_FILE)):
     logging.info("Creating symlink from %s to %s",
                  options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
-    os.symlink(options.RAPI_USERS_FILE, options.RAPI_USERS_FILE_PRE24)
+    if not options.dry_run:
+      os.symlink(options.RAPI_USERS_FILE, options.RAPI_USERS_FILE_PRE24)
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)

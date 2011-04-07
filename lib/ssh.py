@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -254,7 +254,7 @@ class SshRunner:
         - detail: string with details
 
     """
-    retval = self.Run(node, 'root', 'hostname --fqdn')
+    retval = self.Run(node, "root", "hostname --fqdn", quiet=False)
 
     if retval.failed:
       msg = "ssh problem"

@@ -694,14 +694,18 @@ def ParseOptions():
                         constants.RELEASE_VERSION)
 
   parser.add_option(cli.DEBUG_OPT)
-  parser.add_option("-A", "--job-age", dest="job_age",
+  parser.add_option("-A", "--job-age", dest="job_age", default=6 * 3600,
                     help="Autoarchive jobs older than this age (default"
-                    " 6 hours)", default=6*3600)
+                          " 6 hours)")
   parser.add_option("--ignore-pause", dest="ignore_pause", default=False,
                     action="store_true", help="Ignore cluster pause setting")
   options, args = parser.parse_args()
   options.job_age = cli.ParseTimespec(options.job_age)
-  return options, args
+
+  if args:
+    parser.error("No arguments expected")
+
+  return (options, args)
 
 
 @rapi.client.UsesRapiClient
@@ -711,11 +715,7 @@ def Main():
   """
   global client # pylint: disable-msg=W0603
 
-  options, args = ParseOptions()
-
-  if args: # watcher doesn't take any arguments
-    print >> sys.stderr, ("Usage: %s [-f] " % sys.argv[0])
-    return constants.EXIT_FAILURE
+  (options, _) = ParseOptions()
 
   utils.SetupLogging(constants.LOG_WATCHER, sys.argv[0],
                      debug=options.debug, stderr_logging=options.debug)

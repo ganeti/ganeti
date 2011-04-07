@@ -905,8 +905,7 @@ NOSSH_KEYCHECK_OPT = cli_option("--no-ssh-key-check", dest="ssh_key_check",
 
 NODE_FORCE_JOIN_OPT = cli_option("--force-join", dest="force_join",
                                  default=False, action="store_true",
-                                 help="Force the joining of a node,"
-                                      " needed when merging clusters")
+                                 help="Force the joining of a node")
 
 MC_OPT = cli_option("-C", "--master-candidate", dest="master_candidate",
                     type="bool", default=None, metavar=_YORNO,

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -682,11 +682,11 @@ def GenericMain(daemon_name, optionparser,
   utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
   try:
     try:
+      logging.info("%s daemon startup", daemon_name)
       if callable(prepare_fn):
         prep_results = prepare_fn(options, args)
       else:
         prep_results = None
-      logging.info("%s daemon startup", daemon_name)
     except Exception, err:
       utils.WriteErrorToFD(wpipe, _BeautifyError(err))
       raise

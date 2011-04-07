@@ -28,6 +28,7 @@ import time
 import Queue
 import threading
 import random
+import gc
 import itertools
 
 from ganeti import constants
@@ -1913,6 +1914,80 @@ class TestLockMonitor(_ThreadedTestCase):
                          (constants.RS_NORMAL, [])]])
 
       self.assertEqual(len(self.lm._locks), 1)
+
+  def testDeleteAndRecreate(self):
+    lname = "TestLock101923193"
+
+    # Create some locks with the same name and keep all references
+    locks = [locking.SharedLock(lname, monitor=self.lm)
+             for _ in range(5)]
+
+    self.assertEqual(len(self.lm._locks), len(locks))
+
+    result = self.lm.QueryLocks(["name", "mode", "owner"])
+    self.assertEqual(objects.QueryResponse.FromDict(result).data,
+                     [[(constants.RS_NORMAL, lname),
+                       (constants.RS_NORMAL, None),
+                       (constants.RS_NORMAL, None)]] * 5)
+
+    locks[2].delete()
+
+    # Check information order
+    result = self.lm.QueryLocks(["name", "mode", "owner"])
+    self.assertEqual(objects.QueryResponse.FromDict(result).data,
+                     [[(constants.RS_NORMAL, lname),
+                       (constants.RS_NORMAL, None),
+                       (constants.RS_NORMAL, None)]] * 2 +
+                     [[(constants.RS_NORMAL, lname),
+                       (constants.RS_NORMAL, "deleted"),
+                       (constants.RS_NORMAL, None)]] +
+                     [[(constants.RS_NORMAL, lname),
+                       (constants.RS_NORMAL, None),
+                       (constants.RS_NORMAL, None)]] * 2)
+
+    locks[1].acquire(shared=0)
+
+    last_status = [
+      [(constants.RS_NORMAL, lname),
+       (constants.RS_NORMAL, None),
+       (constants.RS_NORMAL, None)],
+      [(constants.RS_NORMAL, lname),
+       (constants.RS_NORMAL, "exclusive"),
+       (constants.RS_NORMAL, [threading.currentThread().getName()])],
+      [(constants.RS_NORMAL, lname),
+       (constants.RS_NORMAL, "deleted"),
+       (constants.RS_NORMAL, None)],
+      [(constants.RS_NORMAL, lname),
+       (constants.RS_NORMAL, None),
+       (constants.RS_NORMAL, None)],
+      [(constants.RS_NORMAL, lname),
+       (constants.RS_NORMAL, None),
+       (constants.RS_NORMAL, None)],
+      ]
+
+    # Check information order
+    result = self.lm.QueryLocks(["name", "mode", "owner"])
+    self.assertEqual(objects.QueryResponse.FromDict(result).data, last_status)
+
+    self.assertEqual(len(set(self.lm._locks.values())), len(locks))
+    self.assertEqual(len(self.lm._locks), len(locks))
+
+    # Check lock deletion
+    for idx in range(len(locks)):
+      del locks[0]
+      assert gc.isenabled()
+      gc.collect()
+      self.assertEqual(len(self.lm._locks), len(locks))
+      result = self.lm.QueryLocks(["name", "mode", "owner"])
+      self.assertEqual(objects.QueryResponse.FromDict(result).data,
+                       last_status[idx + 1:])
+
+    # All locks should have been deleted
+    assert not locks
+    self.assertFalse(self.lm._locks)
+
+    result = self.lm.QueryLocks(["name", "mode", "owner"])
+    self.assertEqual(objects.QueryResponse.FromDict(result).data, [])
 
 
 if __name__ == '__main__':
