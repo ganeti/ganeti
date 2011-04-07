@@ -446,6 +446,10 @@ iallocators_SCRIPTS += $(filter htools/hail,$(HS_PROGS))
 endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
+	@if [ -z "$(HTOOLS)" ]; then \
+	  echo "Error: htools compilation disabled at configure time" 1>&2 ;\
+	  exit 1; \
+	fi
 	BINARY=$(@:htools/%=%); \
 	if [ "$$BINARY" = "test" ] && [ -z "$(GHC_PKG_QUICKCHECK)" ]; then \
 	  echo "Error: cannot run unittests without the QuickCheck library (see devnotes.rst)" 1>&2; \
@@ -1119,7 +1123,7 @@ hs-coverage: $(haskell_tests)
 	mkdir -p $(COVERAGE_HS_DIR)
 	hpc markup --destdir=$(COVERAGE_HS_DIR) htools/test $(HPCEXCL)
 	hpc report htools/test $(HPCEXCL)
-	ln -s hpc_index.html $(COVERAGE_HS_DIR)/index.html
+	ln -sf hpc_index.html $(COVERAGE_HS_DIR)/index.html
 
 # Special "kind-of-QA" target for htools, needs special setup (all
 # tools compiled with -fhpc)
