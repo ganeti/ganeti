@@ -32,10 +32,12 @@ converted to callable functions by L{query._CompileFilter}.
 """
 
 import re
+import string # pylint: disable-msg=W0402
 
 import pyparsing as pyp
 
 from ganeti import errors
+from ganeti import netutils
 
 
 # Logic operators with one or more operands, each of which is a filter on its
@@ -55,6 +57,10 @@ OP_EQUAL = "="
 OP_NOT_EQUAL = "!="
 OP_REGEXP = "=~"
 OP_CONTAINS = "=[]"
+
+
+#: Characters used for detecting user-written filters (see L{MaybeFilter})
+FILTER_DETECTION_CHARS = frozenset("()=/!~" + string.whitespace)
 
 
 def MakeSimpleFilter(namefield, values):
@@ -220,3 +226,27 @@ def ParseFilter(text, parser=None):
   except pyp.ParseBaseException, err:
     raise errors.QueryFilterParseError("Failed to parse query filter"
                                        " '%s': %s" % (text, err), err)
+
+
+def MaybeFilter(text):
+  """Try to determine if a string is a filter or a name.
+
+  If in doubt, this function treats a text as a name.
+
+  @type text: string
+  @param text: String to be examined
+  @rtype: bool
+
+  """
+  # Quick check for punctuation and whitespace
+  if frozenset(text) & FILTER_DETECTION_CHARS:
+    return True
+
+  try:
+    netutils.Hostname.GetNormalizedName(text)
+  except errors.OpPrereqError:
+    # Not a valid hostname, treat as filter
+    return True
+
+  # Most probably a name
+  return False

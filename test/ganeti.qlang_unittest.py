@@ -22,6 +22,7 @@
 """Script for testing ganeti.qlang"""
 
 import unittest
+import string
 
 from ganeti import utils
 from ganeti import errors
@@ -52,7 +53,14 @@ class TestParseFilter(unittest.TestCase):
   def setUp(self):
     self.parser = qlang.BuildFilterParser()
 
-  def _Test(self, filter_, expected):
+  def _Test(self, filter_, expected, expect_filter=True):
+    if expect_filter:
+      self.assertTrue(qlang.MaybeFilter(filter_),
+                      msg="'%s' was not recognized as a filter" % filter_)
+    else:
+      self.assertFalse(qlang.MaybeFilter(filter_),
+                       msg=("'%s' should not be recognized as a filter" %
+                            filter_))
     self.assertEqual(qlang.ParseFilter(filter_, parser=self.parser), expected)
 
   def test(self):
@@ -90,10 +98,12 @@ class TestParseFilter(unittest.TestCase):
                              [qlang.OP_TRUE, "field"]])
     self._Test("mem == 128", [qlang.OP_EQUAL, "mem", 128])
     self._Test("negfield != -1", [qlang.OP_NOT_EQUAL, "negfield", -1])
-    self._Test("master", [qlang.OP_TRUE, "master"])
+    self._Test("master", [qlang.OP_TRUE, "master"],
+               expect_filter=False)
     self._Test("not master", [qlang.OP_NOT, [qlang.OP_TRUE, "master"]])
     for op in ["not", "and", "or"]:
-      self._Test("%sxyz" % op, [qlang.OP_TRUE, "%sxyz" % op])
+      self._Test("%sxyz" % op, [qlang.OP_TRUE, "%sxyz" % op],
+                 expect_filter=False)
       self._Test("not %sxyz" % op,
                  [qlang.OP_NOT, [qlang.OP_TRUE, "%sxyz" % op]])
       self._Test("  not \t%sfoo" % op,
@@ -164,6 +174,23 @@ class TestParseFilter(unittest.TestCase):
         self.assertEqual(len(err.GetDetails()), 3)
       else:
         self.fail("Invalid filter '%s' did not raise exception" % filter_)
+
+
+class TestMaybeFilter(unittest.TestCase):
+  def test(self):
+    self.assertTrue(qlang.MaybeFilter(""))
+    self.assertTrue(qlang.MaybeFilter("foo/bar"))
+    self.assertTrue(qlang.MaybeFilter("foo==bar"))
+
+    for i in set("()!~" + string.whitespace) | qlang.FILTER_DETECTION_CHARS:
+      self.assertTrue(qlang.MaybeFilter(i),
+                      msg="%r not recognized as filter" % i)
+
+    self.assertFalse(qlang.MaybeFilter("node1"))
+    self.assertFalse(qlang.MaybeFilter("n-o-d-e"))
+    self.assertFalse(qlang.MaybeFilter("n_o_d_e"))
+    self.assertFalse(qlang.MaybeFilter("node1.example.com"))
+    self.assertFalse(qlang.MaybeFilter("node1.example.com."))
 
 
 if __name__ == "__main__":
