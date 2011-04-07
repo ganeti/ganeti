@@ -86,9 +86,10 @@ serializeInstance nl inst =
                     then ""
                     else Container.nameOf nl sidx)
     in
-      printf "%s|%d|%d|%d|%s|%s|%s|%s"
+      printf "%s|%d|%d|%d|%s|%s|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
              (Instance.vcpus inst) (Instance.runSt inst)
+             (if Instance.auto_balance inst then "Y" else "N")
              pnode snode (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects
@@ -134,18 +135,23 @@ loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
             NameAssoc -> [String] -> m (String, Instance.Instance)
-loadInst ktn [name, mem, dsk, vcpus, status, pnode, snode, tags] = do
+loadInst ktn [name, mem, dsk, vcpus, status, auto_bal, pnode, snode, tags] = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary
            else lookupNode ktn name snode)
   vmem <- tryRead name mem
   vdsk <- tryRead name dsk
   vvcpus <- tryRead name vcpus
+  auto_balance <- case auto_bal of
+                    "Y" -> return True
+                    "N" -> return False
+                    _ -> fail $ "Invalid auto_balance value '" ++ auto_bal ++
+                         "' for instance " ++ name
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = sepSplit ',' tags
       newinst = Instance.create name vmem vdsk vvcpus status vtags
-                True pidx sidx
+                auto_balance pidx sidx
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 

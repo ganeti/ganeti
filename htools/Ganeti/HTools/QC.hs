@@ -38,7 +38,7 @@ module Ganeti.HTools.QC
 
 import Test.QuickCheck
 import Test.QuickCheck.Batch
-import Data.List (findIndex, intercalate, nub)
+import Data.List (findIndex, intercalate, nub, isPrefixOf)
 import Data.Maybe
 import Control.Monad
 import qualified Text.JSON as J
@@ -453,7 +453,7 @@ testInstance =
 
 -- Instance text loader tests
 
-prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
+prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx autobal =
     not (null pnode) && pdx >= 0 && sdx >= 0 ==>
     let vcpus_s = show vcpus
         dsk_s = show dsk
@@ -466,16 +466,18 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
               else [(pnode, pdx), (snode, rsdx)]
         nl = Data.Map.fromList ndx
         tags = ""
+        sbal = if autobal then "Y" else "N"
         inst = Text.loadInst nl
-               [name, mem_s, dsk_s, vcpus_s, status, pnode, snode, tags]::
-               Maybe (String, Instance.Instance)
+               [name, mem_s, dsk_s, vcpus_s, status,
+                sbal, pnode, snode, tags]:: Maybe (String, Instance.Instance)
         fail1 = Text.loadInst nl
-               [name, mem_s, dsk_s, vcpus_s, status, pnode, pnode, tags]::
-               Maybe (String, Instance.Instance)
+               [name, mem_s, dsk_s, vcpus_s, status,
+                sbal, pnode, pnode, tags]:: Maybe (String, Instance.Instance)
         _types = ( name::String, mem::Int, dsk::Int
                  , vcpus::Int, status::String
                  , pnode::String, snode::String
-                 , pdx::Types.Ndx, sdx::Types.Ndx)
+                 , pdx::Types.Ndx, sdx::Types.Ndx
+                 , autobal::Bool)
     in
       case inst of
         Nothing -> False
@@ -487,10 +489,14 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
              Instance.sNode i == (if null snode
                                   then Node.noSecondary
                                   else rsdx) &&
+             Instance.auto_balance i == autobal &&
              isNothing fail1)
 
 prop_Text_Load_InstanceFail ktn fields =
-    length fields /= 8 ==> isNothing $ Text.loadInst nl fields
+    length fields /= 9 ==>
+    case Text.loadInst nl fields of
+      Right _ -> False
+      Left msg -> isPrefixOf "Invalid/incomplete instance data: '" msg
     where nl = Data.Map.fromList ktn
 
 prop_Text_Load_Node name tm nm fm td fd tc fo =
