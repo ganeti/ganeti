@@ -75,7 +75,8 @@ queryNodesMsg =
 queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
   L.QueryInstances [] ["name", "disk_usage", "be/memory", "be/vcpus",
-                       "status", "pnode", "snodes", "tags", "oper_ram"] False
+                       "status", "pnode", "snodes", "tags", "oper_ram",
+                       "be/auto_balance"] False
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -112,7 +113,8 @@ parseInstance :: NameAssoc
               -> JSValue
               -> Result (String, Instance.Instance)
 parseInstance ktn (JSArray [ name, disk, mem, vcpus
-                           , status, pnode, snodes, tags, oram ]) = do
+                           , status, pnode, snodes, tags, oram
+                           , auto_balance ]) = do
   xname <- annotateResult "Parsing new instance" (fromJVal name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
@@ -126,8 +128,9 @@ parseInstance ktn (JSArray [ name, disk, mem, vcpus
             else lookupNode ktn xname (fromJSString $ head xsnodes))
   xrunning <- convert "status" status
   xtags <- convert "tags" tags
+  xauto_balance <- convert "auto_balance" auto_balance
   let inst = Instance.create xname xmem xdisk xvcpus
-             xrunning xtags True xpnode snode
+             xrunning xtags xauto_balance xpnode snode
   return (xname, inst)
 
 parseInstance _ v = fail ("Invalid instance query result: " ++ show v)
