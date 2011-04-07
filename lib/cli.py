@@ -2569,7 +2569,7 @@ def _WarnUnknownFields(fdefs):
 
 
 def GenericList(resource, fields, names, unit, separator, header, cl=None,
-                format_override=None, verbose=False):
+                format_override=None, verbose=False, force_filter=False):
   """Generic implementation for listing all items of a resource.
 
   @param resource: One of L{constants.QR_VIA_LUXI}
@@ -2585,6 +2585,8 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   @param separator: String used to separate fields
   @type header: bool
   @param header: Whether to show header row
+  @type force_filter: bool
+  @param force_filter: Whether to always treat names as filter
   @type format_override: dict
   @param format_override: Dictionary for overriding field formatting functions,
     indexed by field name, contents like L{_DEFAULT_FORMAT_QUERY}
@@ -2598,7 +2600,20 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   if not names:
     names = None
 
-  response = cl.Query(resource, fields, qlang.MakeSimpleFilter("name", names))
+  if (force_filter or
+      (names and len(names) == 1 and qlang.MaybeFilter(names[0]))):
+    try:
+      (filter_text, ) = names
+    except ValueError:
+      raise errors.OpPrereqError("Exactly one argument must be given as a"
+                                 " filter")
+
+    logging.debug("Parsing '%s' as filter", filter_text)
+    filter_ = qlang.ParseFilter(filter_text)
+  else:
+    filter_ = qlang.MakeSimpleFilter("name", names)
+
+  response = cl.Query(resource, fields, filter_)
 
   found_unknown = _WarnUnknownFields(response.fields)
 
