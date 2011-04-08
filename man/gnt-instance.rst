@@ -625,7 +625,7 @@ LIST
 
 | **list**
 | [--no-headers] [--separator=*SEPARATOR*] [--units=*UNITS*] [-v]
-| [-o *[+]FIELD,...*] [instance...]
+| [-o *[+]FIELD,...*] [--filter] [instance...]
 
 Shows the currently configured instances with memory usage, disk
 usage, the node they are running on, and their run status.
@@ -664,8 +664,14 @@ to ask the remote nodes for the data. This can be helpful for big
 clusters when you only want some data and it makes sense to specify
 a reduced set of output fields.
 
-The default output field list is: name, os, pnode, admin\_state,
-oper\_state, oper\_ram.
+If exactly one argument is given and it appears to be a query filter
+(see **ganeti(7)**), the query result is filtered accordingly. For
+ambiguous cases (e.g. a single field name as a filter) the ``--filter``
+(``-F``) option forces the argument to be treated as a filter (e.g.
+``gnt-instance list -F admin_state``).
+
+The default output field list is: ``name``, ``os``, ``pnode``,
+``admin_state``, ``oper_state``, ``oper_ram``.
 
 
 LIST-FIELDS
