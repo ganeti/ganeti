@@ -823,7 +823,7 @@ oper\_state, oper\_ram.
 
 
 LIST-FIELDS
-~~~~~~~~~~
+~~~~~~~~~~~
 
 **list-fields** [field...]
 
