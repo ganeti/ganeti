@@ -817,6 +817,11 @@ check-local: check-dirs
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
+	expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
+	if test "`head -n 1 README`" != "Ganeti $$expver"; then \
+		echo "Incorrect version in README, expected $$expver"; \
+		exit 1; \
+	fi
 
 .PHONY: lint
 lint: $(BUILT_SOURCES)
