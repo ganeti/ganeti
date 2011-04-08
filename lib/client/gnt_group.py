@@ -101,7 +101,8 @@ def ListGroups(opts, args):
 
   return GenericList(constants.QR_GROUP, desired_fields, args, None,
                      opts.separator, not opts.no_headers,
-                     format_override=fmtoverride, verbose=opts.verbose)
+                     format_override=fmtoverride, verbose=opts.verbose,
+                     force_filter=opts.force_filter)
 
 
 def ListGroupFields(opts, args):
@@ -189,7 +190,7 @@ commands = {
     "<group_name> <node>...", "Assign nodes to a group"),
   "list": (
     ListGroups, ARGS_MANY_GROUPS,
-    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT],
+    [NOHDR_OPT, SEP_OPT, FIELDS_OPT, VERBOSE_OPT, FORCE_FILTER_OPT],
     "[<group_name>...]",
     "Lists the node groups in the cluster. The available fields can be shown"
     " using the \"list-fields\" command (see the man page for details)."

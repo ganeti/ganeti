@@ -93,7 +93,7 @@ LIST
 ~~~~
 
 | **list** [--no-headers] [--separator=*SEPARATOR*] [-v]
-| [-o *[+]FIELD,...*] [group...]
+| [-o *[+]FIELD,...*] [--filter] [group...]
 
 Lists all existing node groups in the cluster.
 
@@ -114,6 +114,11 @@ the entire list of fields.
 The available fields and their meaning are:
 
 @QUERY_FIELDS_GROUP@
+
+If exactly one argument is given and it appears to be a query filter
+(see **ganeti(7)**), the query result is filtered accordingly. For
+ambiguous cases (e.g. a single field name as a filter) the ``--filter``
+(``-F``) option forces the argument to be treated as a filter.
 
 If no group names are given, then all groups are included. Otherwise,
 only the named groups will be listed.
