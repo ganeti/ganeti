@@ -266,7 +266,10 @@ buildPeers :: Node -> Instance.List -> Node
 buildPeers t il =
     let mdata = map
                 (\i_idx -> let inst = Container.find i_idx il
-                           in (Instance.pNode inst, Instance.mem inst))
+                               mem = if Instance.auto_balance inst
+                                     then Instance.mem inst
+                                     else 0
+                           in (Instance.pNode inst, mem))
                 (sList t)
         pmap = P.accumArray (+) mdata
         new_rmem = computeMaxRes pmap
@@ -329,7 +332,9 @@ removeSec t inst =
         new_dsk = fDsk t + Instance.dsk inst
         old_peers = peers t
         old_peem = P.find pnode old_peers
-        new_peem =  old_peem - Instance.mem inst
+        new_peem =  if Instance.auto_balance inst
+                    then old_peem - Instance.mem inst
+                    else old_peem
         new_peers = if new_peem > 0
                     then P.add pnode new_peem old_peers
                     else P.remove pnode old_peers
@@ -402,7 +407,10 @@ addSecEx force t inst pdx =
         old_peers = peers t
         old_mem = fMem t
         new_dsk = fDsk t - Instance.dsk inst
-        new_peem = P.find pdx old_peers + Instance.mem inst
+        secondary_needed_mem = if Instance.auto_balance inst
+                               then Instance.mem inst
+                               else 0
+        new_peem = P.find pdx old_peers + secondary_needed_mem
         new_peers = P.add pdx new_peem old_peers
         new_rmem = max (rMem t) new_peem
         new_prem = fromIntegral new_rmem / tMem t
@@ -415,7 +423,7 @@ addSecEx force t inst pdx =
     in case () of
          _ | new_dsk <= 0 -> T.OpFail T.FailDisk
            | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
-           | Instance.mem inst >= old_mem && strict -> T.OpFail T.FailMem
+           | secondary_needed_mem >= old_mem && strict -> T.OpFail T.FailMem
            | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
            | otherwise ->
                let new_slist = iname:sList t
