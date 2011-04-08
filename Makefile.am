@@ -818,7 +818,7 @@ check-local: check-dirs
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
 	expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
-	if test "`head -n 1 README`" != "Ganeti $$expver"; then \
+	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
 		echo "Incorrect version in README, expected $$expver"; \
 		exit 1; \
 	fi
