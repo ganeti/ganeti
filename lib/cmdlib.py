@@ -10270,7 +10270,8 @@ class _GroupQuery(_QueryBase):
           missing.append(name)
 
       if missing:
-        raise errors.OpPrereqError("Some groups do not exist: %s" % missing,
+        raise errors.OpPrereqError("Some groups do not exist: %s" %
+                                   utils.CommaJoin(missing),
                                    errors.ECODE_NOENT)
 
   def DeclareLocks(self, lu, level):
