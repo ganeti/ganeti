@@ -606,6 +606,35 @@ prop_Node_addSec node inst pdx =
     ==> isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
+-- | Checks for memory reservation changes
+prop_Node_rMem node inst =
+    -- ab = auto_balance, nb = non-auto_balance
+    -- we use -1 as the primary node of the instance
+    let inst' = inst { Instance.pNode = (-1), Instance.auto_balance = True}
+        inst_ab = setInstanceSmallerThanNode node inst'
+        inst_nb = inst_ab { Instance.auto_balance = False }
+        -- now we have the two instances, identical except the
+        -- auto_balance attribute
+        orig_rmem = Node.rMem node
+        inst_idx = Instance.idx inst_ab
+        node_add_ab = Node.addSec node inst_ab (-1)
+        node_add_nb = Node.addSec node inst_nb (-1)
+        node_del_ab = liftM (flip Node.removeSec inst_ab) node_add_ab
+        node_del_nb = liftM (flip Node.removeSec inst_nb) node_add_nb
+    in case (node_add_ab, node_add_nb, node_del_ab, node_del_nb) of
+         (Types.OpGood a_ab, Types.OpGood a_nb,
+          Types.OpGood d_ab, Types.OpGood d_nb) ->
+             Node.rMem a_ab >  orig_rmem &&
+             Node.rMem a_ab - orig_rmem == Instance.mem inst_ab &&
+             Node.rMem a_nb == orig_rmem &&
+             Node.rMem d_ab == orig_rmem &&
+             Node.rMem d_nb == orig_rmem &&
+             -- this is not related to rMem, but as good a place to
+             -- test as any
+             inst_idx `elem` Node.sList a_ab &&
+             not (inst_idx `elem` Node.sList d_ab)
+         _ -> False
+
 newtype SmallRatio = SmallRatio Double deriving Show
 instance Arbitrary SmallRatio where
     arbitrary = do
@@ -657,6 +686,7 @@ testNode =
     , run prop_Node_addPriFD
     , run prop_Node_addPriFC
     , run prop_Node_addSec
+    , run prop_Node_rMem
     , run prop_Node_setMdsk
     , run prop_Node_tagMaps_idempotent
     , run prop_Node_tagMaps_reject
