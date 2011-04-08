@@ -450,15 +450,14 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  echo "Error: htools compilation disabled at configure time" 1>&2 ;\
 	  exit 1; \
 	fi
-	BINARY=$(@:htools/%=%); \
-	if [ "$$BINARY" = "test" ] && [ -z "$(GHC_PKG_QUICKCHECK)" ]; then \
+	@BINARY=$(@:htools/%=%); \
+	if [ "$BINARY" = "test" ] && [ -z "$(GHC_PKG_QUICKCHECK)" ]; then \
 	  echo "Error: cannot run unittests without the QuickCheck library (see devnotes.rst)" 1>&2; \
 	  exit 1; \
-	fi; \
-	$(GHC) --make \
+	fi
+	BINARY=$(@:htools/%=%); $(GHC) --make \
 	  $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
-	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
-	  $@
+	  -osuf $$BINARY.o -hisuf $$BINARY.hi $@
 
 # for the htools/test binary, we need to enable profiling/coverage
 htools/test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
@@ -980,6 +979,11 @@ check-local: check-dirs
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
+
+.PHONY: hs-check
+hs-check: htools/test
+	@rm -f test.tix
+	./htools/test
 
 .PHONY: lint
 lint: $(BUILT_SOURCES)
