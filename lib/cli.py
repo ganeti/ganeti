@@ -2045,7 +2045,7 @@ def GenericInstanceCreate(mode, opts, args):
       raise errors.OpPrereqError("Please use either the '--disk' or"
                                  " '-s' option")
     if opts.sd_size is not None:
-      opts.disks = [(0, {"size": opts.sd_size})]
+      opts.disks = [(0, {constants.IDISK_SIZE: opts.sd_size})]
 
     if opts.disks:
       try:
@@ -2060,20 +2060,21 @@ def GenericInstanceCreate(mode, opts, args):
       if not isinstance(ddict, dict):
         msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
         raise errors.OpPrereqError(msg)
-      elif "size" in ddict:
-        if "adopt" in ddict:
+      elif constants.IDISK_SIZE in ddict:
+        if constants.IDISK_ADOPT in ddict:
           raise errors.OpPrereqError("Only one of 'size' and 'adopt' allowed"
                                      " (disk %d)" % didx)
         try:
-          ddict["size"] = utils.ParseUnit(ddict["size"])
+          ddict[constants.IDISK_SIZE] = \
+            utils.ParseUnit(ddict[constants.IDISK_SIZE])
         except ValueError, err:
           raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
                                      (didx, err))
-      elif "adopt" in ddict:
+      elif constants.IDISK_ADOPT in ddict:
         if mode == constants.INSTANCE_IMPORT:
           raise errors.OpPrereqError("Disk adoption not allowed for instance"
                                      " import")
-        ddict["size"] = 0
+        ddict[constants.IDISK_SIZE] = 0
       else:
         raise errors.OpPrereqError("Missing size or adoption source for"
                                    " disk %d" % didx)
