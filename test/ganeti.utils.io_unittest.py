@@ -234,10 +234,15 @@ class TestListVisibleFiles(unittest.TestCase):
 
 class TestWriteFile(unittest.TestCase):
   def setUp(self):
+    self.tmpdir = None
     self.tfile = tempfile.NamedTemporaryFile()
     self.did_pre = False
     self.did_post = False
     self.did_write = False
+
+  def tearDown(self):
+    if self.tmpdir:
+      shutil.rmtree(self.tmpdir)
 
   def markPre(self, fd):
     self.did_pre = True
@@ -260,11 +265,22 @@ class TestWriteFile(unittest.TestCase):
     self.assertRaises(errors.ProgrammerError, utils.WriteFile,
                       self.tfile.name, data="test", atime=0)
 
-  def testCalls(self):
-    utils.WriteFile(self.tfile.name, fn=self.markWrite,
-                    prewrite=self.markPre, postwrite=self.markPost)
+  def testPreWrite(self):
+    utils.WriteFile(self.tfile.name, data="", prewrite=self.markPre)
     self.assertTrue(self.did_pre)
+    self.assertFalse(self.did_post)
+    self.assertFalse(self.did_write)
+
+  def testPostWrite(self):
+    utils.WriteFile(self.tfile.name, data="", postwrite=self.markPost)
+    self.assertFalse(self.did_pre)
     self.assertTrue(self.did_post)
+    self.assertFalse(self.did_write)
+
+  def testWriteFunction(self):
+    utils.WriteFile(self.tfile.name, fn=self.markWrite)
+    self.assertFalse(self.did_pre)
+    self.assertFalse(self.did_post)
     self.assertTrue(self.did_write)
 
   def testDryRun(self):
@@ -292,6 +308,57 @@ class TestWriteFile(unittest.TestCase):
       self.assertEqual(os.read(fd, 4096), data)
     finally:
       os.close(fd)
+
+  def testNoLeftovers(self):
+    self.tmpdir = tempfile.mkdtemp()
+    self.assertEqual(utils.WriteFile(utils.PathJoin(self.tmpdir, "test"),
+                                     data="abc"),
+                     None)
+    self.assertEqual(os.listdir(self.tmpdir), ["test"])
+
+  def testFailRename(self):
+    self.tmpdir = tempfile.mkdtemp()
+    target = utils.PathJoin(self.tmpdir, "target")
+    os.mkdir(target)
+    self.assertRaises(OSError, utils.WriteFile, target, data="abc")
+    self.assertTrue(os.path.isdir(target))
+    self.assertEqual(os.listdir(self.tmpdir), ["target"])
+    self.assertFalse(os.listdir(target))
+
+  def testFailRenameDryRun(self):
+    self.tmpdir = tempfile.mkdtemp()
+    target = utils.PathJoin(self.tmpdir, "target")
+    os.mkdir(target)
+    self.assertEqual(utils.WriteFile(target, data="abc", dry_run=True), None)
+    self.assertTrue(os.path.isdir(target))
+    self.assertEqual(os.listdir(self.tmpdir), ["target"])
+    self.assertFalse(os.listdir(target))
+
+  def testBackup(self):
+    self.tmpdir = tempfile.mkdtemp()
+    testfile = utils.PathJoin(self.tmpdir, "test")
+
+    self.assertEqual(utils.WriteFile(testfile, data="foo", backup=True), None)
+    self.assertEqual(utils.ReadFile(testfile), "foo")
+    self.assertEqual(os.listdir(self.tmpdir), ["test"])
+
+    # Write again
+    assert os.path.isfile(testfile)
+    self.assertEqual(utils.WriteFile(testfile, data="bar", backup=True), None)
+    self.assertEqual(utils.ReadFile(testfile), "bar")
+    self.assertEqual(len(glob.glob("%s.backup*" % testfile)), 1)
+    self.assertTrue("test" in os.listdir(self.tmpdir))
+    self.assertEqual(len(os.listdir(self.tmpdir)), 2)
+
+    # Write again as dry-run
+    assert os.path.isfile(testfile)
+    self.assertEqual(utils.WriteFile(testfile, data="000", backup=True,
+                                     dry_run=True),
+                     None)
+    self.assertEqual(utils.ReadFile(testfile), "bar")
+    self.assertEqual(len(glob.glob("%s.backup*" % testfile)), 1)
+    self.assertTrue("test" in os.listdir(self.tmpdir))
+    self.assertEqual(len(os.listdir(self.tmpdir)), 2)
 
 
 class TestFileID(testutils.GanetiTestCase):

@@ -117,36 +117,45 @@ def WriteFile(file_name, fn=None, data=None,
   if backup and not dry_run and os.path.isfile(file_name):
     CreateBackup(file_name)
 
-  dir_name, base_name = os.path.split(file_name)
-  fd, new_name = tempfile.mkstemp('.new', base_name, dir_name)
+  # Whether temporary file needs to be removed (e.g. if any error occurs)
   do_remove = True
-  # here we need to make sure we remove the temp file, if any error
-  # leaves it in place
+
+  # Function result
+  result = None
+
+  (dir_name, base_name) = os.path.split(file_name)
+  (fd, new_name) = tempfile.mkstemp(suffix=".new", prefix=base_name,
+                                    dir=dir_name)
   try:
-    if uid != -1 or gid != -1:
-      os.chown(new_name, uid, gid)
-    if mode:
-      os.chmod(new_name, mode)
-    if callable(prewrite):
-      prewrite(fd)
-    if data is not None:
-      os.write(fd, data)
-    else:
-      fn(fd)
-    if callable(postwrite):
-      postwrite(fd)
-    os.fsync(fd)
-    if atime is not None and mtime is not None:
-      os.utime(new_name, (atime, mtime))
+    try:
+      if uid != -1 or gid != -1:
+        os.chown(new_name, uid, gid)
+      if mode:
+        os.chmod(new_name, mode)
+      if callable(prewrite):
+        prewrite(fd)
+      if data is not None:
+        os.write(fd, data)
+      else:
+        fn(fd)
+      if callable(postwrite):
+        postwrite(fd)
+      os.fsync(fd)
+      if atime is not None and mtime is not None:
+        os.utime(new_name, (atime, mtime))
+    finally:
+      # Close file unless the file descriptor should be returned
+      if close:
+        os.close(fd)
+      else:
+        result = fd
+
+    # Rename file to destination name
     if not dry_run:
       os.rename(new_name, file_name)
+      # Successful, no need to remove anymore
       do_remove = False
   finally:
-    if close:
-      os.close(fd)
-      result = None
-    else:
-      result = fd
     if do_remove:
       RemoveFile(new_name)
 
