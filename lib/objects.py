@@ -1169,6 +1169,10 @@ class Cluster(TaggableObject):
     if self.prealloc_wipe_disks is None:
       self.prealloc_wipe_disks = False
 
+    # shared_file_storage_dir added before 2.5
+    if self.shared_file_storage_dir is None:
+      self.shared_file_storage_dir = ""
+
   def ToDict(self):
     """Custom function for cluster.
 
