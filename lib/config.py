@@ -1744,7 +1744,7 @@ class ConfigWriter:
                   self._config_data.nodegroups.values()]
     nodegroups_data = fn(utils.NiceSort(nodegroups))
 
-    return {
+    ssconf_values = {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_CLUSTER_TAGS: cluster_tags,
       constants.SS_FILE_STORAGE_DIR: cluster.file_storage_dir,
@@ -1767,6 +1767,13 @@ class ConfigWriter:
       constants.SS_UID_POOL: uid_pool,
       constants.SS_NODEGROUPS: nodegroups_data,
       }
+    bad_values = [(k, v) for k, v in ssconf_values.items()
+                  if not isinstance(v, (str, basestring))]
+    if bad_values:
+      err = utils.CommaJoin("%s=%s" % (k, v) for k, v in bad_values)
+      raise errors.ConfigurationError("Some ssconf key(s) have non-string"
+                                      " values: %s" % err)
+    return ssconf_values
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetSsconfValues(self):
