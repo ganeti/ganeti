@@ -164,6 +164,7 @@ def RunClusterTests():
     ("cluster-info", qa_cluster.TestClusterVersion),
     ("cluster-info", qa_cluster.TestClusterInfo),
     ("cluster-info", qa_cluster.TestClusterGetmaster),
+    ("cluster-redist-conf", qa_cluster.TestClusterRedistConf),
     ("cluster-copyfile", qa_cluster.TestClusterCopyfile),
     ("cluster-command", qa_cluster.TestClusterCommand),
     ("cluster-burnin", qa_cluster.TestClusterBurnin),

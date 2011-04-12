@@ -251,6 +251,11 @@ def TestClusterInfo():
   AssertCommand(["gnt-cluster", "info"])
 
 
+def TestClusterRedistConf():
+  """gnt-cluster redist-conf"""
+  AssertCommand(["gnt-cluster", "redist-conf"])
+
+
 def TestClusterGetmaster():
   """gnt-cluster getmaster"""
   AssertCommand(["gnt-cluster", "getmaster"])
