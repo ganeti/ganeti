@@ -7692,18 +7692,6 @@ class LUInstanceCreate(LogicalUnit):
           self.cfg.ReleaseDRBDMinors(instance)
           raise
 
-      if self.cfg.GetClusterInfo().prealloc_wipe_disks:
-        feedback_fn("* wiping instance disks...")
-        try:
-          _WipeDisks(self, iobj)
-        except errors.OpExecError:
-          self.LogWarning("Device wiping failed, reverting...")
-          try:
-            _RemoveDisks(self, iobj)
-          finally:
-            self.cfg.ReleaseDRBDMinors(instance)
-            raise
-
     feedback_fn("adding instance %s to cluster config" % instance)
 
     self.cfg.AddInstance(iobj, self.proc.GetECId())
@@ -7722,7 +7710,20 @@ class LUInstanceCreate(LogicalUnit):
       self.context.glm.release(locking.LEVEL_NODE)
       del self.acquired_locks[locking.LEVEL_NODE]
 
-    if self.op.wait_for_sync:
+    disk_abort = False
+    if not self.adopt_disks and self.cfg.GetClusterInfo().prealloc_wipe_disks:
+      feedback_fn("* wiping instance disks...")
+      try:
+        _WipeDisks(self, iobj)
+      except errors.OpExecError, err:
+        logging.exception("Wiping disks failed")
+        self.LogWarning("Wiping instance disks failed (%s)", err)
+        disk_abort = True
+
+    if disk_abort:
+      # Something is already wrong with the disks, don't do anything else
+      pass
+    elif self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, iobj)
     elif iobj.disk_template in constants.DTS_NET_MIRROR:
       # make sure the disks are not degraded (still sync-ing is ok)
