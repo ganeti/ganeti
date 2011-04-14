@@ -466,3 +466,8 @@ def TestClusterCommand():
 def TestClusterDestroy():
   """gnt-cluster destroy"""
   AssertCommand(["gnt-cluster", "destroy", "--yes-do-it"])
+
+
+def TestClusterRepairDiskSizes():
+  """gnt-cluster repair-disk-sizes"""
+  AssertCommand(["gnt-cluster", "repair-disk-sizes"])

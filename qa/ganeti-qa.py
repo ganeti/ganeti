@@ -179,6 +179,13 @@ def RunClusterTests():
     RunTestIf(test, fn)
 
 
+def RunRepairDiskSizes():
+  """Run the repair disk-sizes test.
+
+  """
+  RunTestIf("cluster-repair-disk-sizes", qa_cluster.TestClusterRepairDiskSizes)
+
+
 def RunOsTests():
   """Runs all tests related to gnt-os.
 
@@ -425,13 +432,14 @@ def RunQa():
           RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance, use_client)
           del rapi_instance
 
-    if qa_config.TestEnabled('instance-add-plain-disk'):
+    if qa_config.TestEnabled("instance-add-plain-disk"):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
       RunCommonInstanceTests(instance)
       RunGroupListTests()
       RunTest(qa_cluster.TestClusterEpo)
       RunExportImportTests(instance, pnode, None)
       RunDaemonTests(instance, pnode)
+      RunRepairDiskSizes()
       RunTest(qa_instance.TestInstanceRemove, instance)
       del instance
 
@@ -456,6 +464,7 @@ def RunQa():
             RunTest(qa_instance.TestInstanceStartup, instance)
           RunExportImportTests(instance, pnode, snode)
           RunHardwareFailureTests(instance, pnode, snode)
+          RunRepairDiskSizes()
           RunTest(qa_instance.TestInstanceRemove, instance)
           del instance
         finally:
