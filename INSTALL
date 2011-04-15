@@ -28,7 +28,8 @@ Before installing, please verify that you have the following programs:
 - `Python <http://www.python.org/>`_, version 2.4 or above, not 3.0
 - `Python OpenSSL bindings <http://pyopenssl.sourceforge.net/>`_
 - `simplejson Python module <http://code.google.com/p/simplejson/>`_
-- `pyparsing Python module <http://pyparsing.wikispaces.com/>`_
+- `pyparsing Python module <http://pyparsing.wikispaces.com/>`_, version
+  1.4.6 or above
 - `pyinotify Python module <http://trac.dbzteam.org/pyinotify/>`_
 - `PycURL Python module <http://pycurl.sourceforge.net/>`_
 - `ctypes Python module

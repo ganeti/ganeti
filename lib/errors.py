@@ -391,6 +391,24 @@ class LuxiError(GenericError):
   """
 
 
+class QueryFilterParseError(ParseError):
+  """Error while parsing query filter.
+
+  """
+  def GetDetails(self):
+    """Returns a list of strings with details about the error.
+
+    """
+    try:
+      (_, inner) = self.args
+    except IndexError:
+      return None
+
+    return [str(inner.line),
+            (" " * (inner.column - 1)) + "^",
+            str(inner)]
+
+
 # errors should be added above
 
 

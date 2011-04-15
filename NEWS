@@ -16,6 +16,8 @@ Version 2.5.0 beta1
 - Support for the undocumented and deprecated RAPI instance creation
   request format version 0 has been dropped. Use version 1, supported
   since Ganeti 2.1.3 and :doc:`documented <rapi>`, instead.
+- Pyparsing 1.4.6 or above is required, see :doc:`installation
+  documentation <install>`
 
 
 Version 2.4.1
