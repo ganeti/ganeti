@@ -1259,6 +1259,7 @@ class InstanceQueryData:
     # Used for individual rows
     self.inst_hvparams = None
     self.inst_beparams = None
+    self.inst_osparams = None
     self.inst_nicparams = None
 
   def __iter__(self):
@@ -1271,6 +1272,7 @@ class InstanceQueryData:
     for inst in self.instances:
       self.inst_hvparams = self.cluster.FillHV(inst, skip_globals=True)
       self.inst_beparams = self.cluster.FillBE(inst)
+      self.inst_osparams = self.cluster.SimpleFillOS(inst.os, inst.osparams)
       self.inst_nicparams = [self.cluster.SimpleFillNIC(nic.nicparams)
                              for nic in inst.nics]
 
@@ -1636,11 +1638,14 @@ def _GetInstanceParameterFields():
   fields = [
     # Filled parameters
     (_MakeField("hvparams", "HypervisorParameters", QFT_OTHER,
-                "Hypervisor parameters"),
+                "Hypervisor parameters (merged)"),
      IQ_CONFIG, 0, lambda ctx, _: ctx.inst_hvparams),
     (_MakeField("beparams", "BackendParameters", QFT_OTHER,
-                "Backend parameters"),
+                "Backend parameters (merged)"),
      IQ_CONFIG, 0, lambda ctx, _: ctx.inst_beparams),
+    (_MakeField("osparams", "OpSysParameters", QFT_OTHER,
+                "Operating system parameters (merged)"),
+     IQ_CONFIG, 0, lambda ctx, _: ctx.inst_osparams),
 
     # Unfilled parameters
     (_MakeField("custom_hvparams", "CustomHypervisorParameters", QFT_OTHER,
@@ -1649,6 +1654,9 @@ def _GetInstanceParameterFields():
     (_MakeField("custom_beparams", "CustomBackendParameters", QFT_OTHER,
                 "Custom backend parameters",),
      IQ_CONFIG, 0, _GetItemAttr("beparams")),
+    (_MakeField("custom_osparams", "CustomOpSysParameters", QFT_OTHER,
+                "Custom operating system parameters",),
+     IQ_CONFIG, 0, _GetItemAttr("osparams")),
     (_MakeField("custom_nicparams", "CustomNicParameters", QFT_OTHER,
                 "Custom network interface parameters"),
      IQ_CONFIG, 0, lambda ctx, inst: [nic.nicparams for nic in inst.nics]),

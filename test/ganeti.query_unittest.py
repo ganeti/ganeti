@@ -564,16 +564,20 @@ class TestInstanceQuery(unittest.TestCase):
         },
       nicparams={
         constants.PP_DEFAULT: constants.NICC_DEFAULTS,
-        })
+        },
+      os_hvp={},
+      osparams={})
 
     instances = [
-      objects.Instance(name="inst1", hvparams={}, beparams={}, nics=[]),
-      objects.Instance(name="inst2", hvparams={}, nics=[],
+      objects.Instance(name="inst1", hvparams={}, beparams={}, osparams={},
+                       nics=[], os="deb1"),
+      objects.Instance(name="inst2", hvparams={}, nics=[], osparams={},
+        os="foomoo",
         beparams={
           constants.BE_MEMORY: 512,
         }),
-      objects.Instance(name="inst3", hvparams={}, beparams={},
-        nics=[objects.NIC(ip="192.0.2.99", nicparams={})]),
+      objects.Instance(name="inst3", hvparams={}, beparams={}, osparams={},
+        os="dos", nics=[objects.NIC(ip="192.0.2.99", nicparams={})]),
       ]
 
     iqd = query.InstanceQueryData(instances, cluster, None, [], [], {},
@@ -617,7 +621,12 @@ class TestInstanceQuery(unittest.TestCase):
         constants.PP_DEFAULT: constants.NICC_DEFAULTS,
         },
       os_hvp={},
-      tcpudp_port_pool=set())
+      tcpudp_port_pool=set(),
+      osparams={
+        "deb99": {
+          "clean_install": "yes",
+          },
+        })
 
     offline_nodes = ["nodeoff1", "nodeoff2"]
     bad_nodes = ["nodebad1", "nodebad2", "nodebad3"] + offline_nodes
@@ -630,7 +639,8 @@ class TestInstanceQuery(unittest.TestCase):
         admin_up=True, hypervisor=constants.HT_XEN_PVM, os="linux1",
         primary_node="node1",
         disk_template=constants.DT_PLAIN,
-        disks=[]),
+        disks=[],
+        osparams={}),
       objects.Instance(name="inst2", hvparams={}, nics=[],
         uuid="73a0f8a7-068c-4630-ada2-c3440015ab1a",
         ctime=1291211000, mtime=1291211077, serial_no=1,
@@ -640,7 +650,8 @@ class TestInstanceQuery(unittest.TestCase):
         disks=[],
         beparams={
           constants.BE_MEMORY: 512,
-        }),
+        },
+        osparams={}),
       objects.Instance(name="inst3", hvparams={}, beparams={},
         uuid="11ec8dff-fb61-4850-bfe0-baa1803ff280",
         ctime=1291011000, mtime=1291013000, serial_no=1923,
@@ -654,7 +665,8 @@ class TestInstanceQuery(unittest.TestCase):
                         constants.NIC_LINK: constants.DEFAULT_BRIDGE,
                         }),
           objects.NIC(ip=None, mac=macs.pop(), nicparams={}),
-          ]),
+          ],
+        osparams={}),
       objects.Instance(name="inst4", hvparams={}, beparams={},
         uuid="68dab168-3ef5-4c9d-b4d3-801e0672068c",
         ctime=1291244390, mtime=1291244395, serial_no=25,
@@ -677,7 +689,8 @@ class TestInstanceQuery(unittest.TestCase):
                         constants.NIC_MODE: constants.NIC_MODE_BRIDGED,
                         constants.NIC_LINK: "eth123",
                         }),
-          ]),
+          ],
+        osparams={}),
       objects.Instance(name="inst5", hvparams={}, nics=[],
         uuid="0e3dca12-5b42-4e24-98a2-415267545bd0",
         ctime=1231211000, mtime=1261200000, serial_no=3,
@@ -687,7 +700,8 @@ class TestInstanceQuery(unittest.TestCase):
         disks=[],
         beparams={
           constants.BE_MEMORY: 512,
-        }),
+        },
+        osparams={}),
       objects.Instance(name="inst6", hvparams={}, nics=[],
         uuid="72de6580-c8d5-4661-b902-38b5785bb8b3",
         ctime=7513, mtime=11501, serial_no=13390,
@@ -697,7 +711,10 @@ class TestInstanceQuery(unittest.TestCase):
         disks=[],
         beparams={
           constants.BE_MEMORY: 768,
-        }),
+        },
+        osparams={
+          "clean_install": "no",
+          }),
       objects.Instance(name="inst7", hvparams={}, nics=[],
         uuid="ceec5dc4-b729-4f42-ae28-69b3cd24920e",
         ctime=None, mtime=None, serial_no=1947,
@@ -705,7 +722,8 @@ class TestInstanceQuery(unittest.TestCase):
         primary_node="node6",
         disk_template=constants.DT_DISKLESS,
         disks=[],
-        beparams={}),
+        beparams={},
+        osparams={}),
       ]
 
     assert not utils.FindDuplicates(inst.name for inst in instances)
@@ -825,6 +843,18 @@ class TestInstanceQuery(unittest.TestCase):
       else:
         exp = (constants.RS_NORMAL, inst.name in live_data)
       self.assertEqual(row[fieldidx["oper_state"]], exp)
+
+      cust_exp = (constants.RS_NORMAL, {})
+      if inst.os == "deb99":
+        if inst.name == "inst6":
+          exp = (constants.RS_NORMAL, {"clean_install": "no"})
+          cust_exp = exp
+        else:
+          exp = (constants.RS_NORMAL, {"clean_install": "yes"})
+      else:
+        exp = (constants.RS_NORMAL, {})
+      self.assertEqual(row[fieldidx["osparams"]], exp)
+      self.assertEqual(row[fieldidx["custom_osparams"]], cust_exp)
 
       usage = disk_usage[inst.name]
       if usage is None:
