@@ -59,7 +59,8 @@ genericConvert :: (Text.JSON.JSON a) =>
                -> JSValue    -- ^ The value we try to convert
                -> Result a   -- ^ The annotated result
 genericConvert otype oname oattr =
-    annotateResult (otype ++ " '" ++ oname ++ "', attribute '" ++
+    annotateResult (otype ++ " '" ++ oname ++
+                    "', error while reading attribute '" ++
                     oattr ++ "'") . fromJVal
 
 -- * Data querying functionality

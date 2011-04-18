@@ -107,7 +107,7 @@ parseInstance :: NameAssoc
               -> Result (String, Instance.Instance)
 parseInstance ktn a = do
   name <- tryFromObj "Parsing new instance" a "name"
-  let owner_name = "Instance '" ++ name ++ "'"
+  let owner_name = "Instance '" ++ name ++ "', error while parsing data"
   let extract s x = tryFromObj owner_name x s
   disk <- extract "disk_usage" a
   beparams <- liftM fromJSObject (extract "beparams" a)
@@ -131,7 +131,7 @@ parseInstance ktn a = do
 parseNode :: NameAssoc -> [(String, JSValue)] -> Result (String, Node.Node)
 parseNode ktg a = do
   name <- tryFromObj "Parsing new node" a "name"
-  let desc = "Node '" ++ name ++ "'"
+  let desc = "Node '" ++ name ++ "', error while parsing data"
       extract s = tryFromObj desc a s
   offline <- extract "offline"
   drained <- extract "drained"

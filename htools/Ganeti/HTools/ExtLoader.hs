@@ -116,8 +116,8 @@ loadExternalData opts = do
       (case ldresult of
          Ok x -> return x
          Bad s -> do
-           hPrintf stderr "Error: failed to load data. Details:\n%s\n" s
-               :: IO ()
+           hPrintf stderr
+             "Error: failed to load data, aborting. Details:\n%s\n" s:: IO ()
            exitWith $ ExitFailure 1
       )
   let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
