@@ -150,6 +150,7 @@ LIST
 | **list**
 | [--no-headers] [--separator=*SEPARATOR*]
 | [--units=*UNITS*] [-v] [-o *[+]FIELD,...*]
+| [--filter]
 | [node...]
 
 Lists the nodes in the cluster.
@@ -182,18 +183,23 @@ fields will be added to the default list. This allows to quickly
 see the default list plus a few other fields, instead of retyping
 the entire list of fields.
 
-Note that some of this fields are known from the configuration of
-the cluster (e.g. name, pinst, sinst, pip, sip and thus the master
-does not need to contact the node for this data (making the listing
-fast if only fields from this set are selected), whereas the other
-fields are "live" fields and we need to make a query to the cluster
-nodes.
+Note that some of these fields are known from the configuration of the
+cluster (e.g. ``name``, ``pinst``, ``sinst``, ``pip``, ``sip``) and thus
+the master does not need to contact the node for this data (making the
+listing fast if only fields from this set are selected), whereas the
+other fields are "live" fields and require a query to the cluster nodes.
 
-Depending on the virtualization type and implementation details,
-the mtotal, mnode and mfree may have slighly varying meanings. For
-example, some solutions share the node memory with the pool of
-memory used for instances (KVM), whereas others have separate
+Depending on the virtualization type and implementation details, the
+``mtotal``, ``mnode`` and ``mfree`` fields may have slighly varying
+meanings. For example, some solutions share the node memory with the
+pool of memory used for instances (KVM), whereas others have separate
 memory for the node and for the instances (Xen).
+
+If exactly one argument is given and it appears to be a query filter
+(see **ganeti(7)**), the query result is filtered accordingly. For
+ambiguous cases (e.g. a single field name as a filter) the ``--filter``
+(``-F``) option forces the argument to be treated as a filter (e.g.
+``gnt-node list -F master_candidate``).
 
 If no node names are given, then all nodes are queried. Otherwise,
 only the given nodes will be listed.
