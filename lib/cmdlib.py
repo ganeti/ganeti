@@ -6766,7 +6766,6 @@ class TLMigrateInstance(Tasklet):
                                (instance.name, msg))
 
     self.feedback_fn("* migrating instance to %s" % target_node)
-    time.sleep(10)
     result = self.rpc.call_instance_migrate(source_node, instance,
                                             self.nodes_ip[target_node],
                                             self.live)
@@ -6779,7 +6778,6 @@ class TLMigrateInstance(Tasklet):
       self._RevertDiskStatus()
       raise errors.OpExecError("Could not migrate instance %s: %s" %
                                (instance.name, msg))
-    time.sleep(10)
 
     instance.primary_node = target_node
     # distribute new instance config to the other nodes
