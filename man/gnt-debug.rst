@@ -118,3 +118,9 @@ the entire list of fields.
 
 Use ``--interval`` to repeat the listing. A delay specified by the
 option value in seconds is inserted.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

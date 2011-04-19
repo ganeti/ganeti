@@ -401,3 +401,9 @@ really big clusters.
 The algorithm doesn't rebalance the cluster or try to get the optimal
 fit; it just allocates in the best place for the current step, without
 taking into consideration the impact on future placements.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

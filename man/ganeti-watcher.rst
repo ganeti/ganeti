@@ -74,3 +74,9 @@ and a log file at ``@LOCALSTATEDIR@/log/ganeti/watcher.log``. Removal
 of either file will not affect correct operation; the removal of the
 state file will just cause the restart counters for the instances to
 reset to zero.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

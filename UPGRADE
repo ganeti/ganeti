@@ -257,3 +257,9 @@ Beta 2 switched the config file format to JSON. Steps to upgrade:
 
 The OS definition also need to be upgraded. There is a new version of the
 debian-etch-instance OS (0.2) that goes along with beta 2.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

@@ -292,3 +292,9 @@ Common daemon functionality
 
 All Ganeti daemons re-open the log file(s) when sent a SIGHUP signal.
 **logrotate**(8) can be used to rotate Ganeti's log files.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

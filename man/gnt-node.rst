@@ -530,3 +530,9 @@ element with their status in a ``item=status`` manner. Where ``item`` is script
 specific and ``status`` can be one of ``OK``, ``WARNING``, ``CRITICAL`` or
 ``UNKNOWN``. Items with status ``WARNING`` or ``CRITICAL`` are logged and
 annotated in the command line output.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

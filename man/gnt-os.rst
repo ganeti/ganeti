@@ -65,3 +65,9 @@ creations (but can be used for reinstalling old instances).
 Note: The given operating system doesn't have to exists. This allows
 preseeding the settings for operating systems not yet known to
 **gnt-os**.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

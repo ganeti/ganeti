@@ -647,3 +647,9 @@ e.g. in step 8, both the migrate and the replace-disks are
 done. Otherwise, if only the migrate is done, the input data is
 changed in a way that the program will output a different solution
 list (but hopefully will end in the same state).
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

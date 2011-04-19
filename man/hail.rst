@@ -93,3 +93,9 @@ EXIT STATUS
 
 The exist status of the command will be zero, unless for some reason
 the algorithm fatally failed (e.g. wrong node or instance data).
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

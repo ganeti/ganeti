@@ -386,3 +386,9 @@ The ``gnt-node power-[on|off]`` (power state changes) commands will create log
 entries following current Ganeti logging practices. In addition, health items
 with status WARNING or CRITICAL will be logged for each run of ``gnt-node
 health``.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

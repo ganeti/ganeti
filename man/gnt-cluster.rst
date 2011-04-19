@@ -611,3 +611,9 @@ VERSION
 **version**
 
 Show the cluster version.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

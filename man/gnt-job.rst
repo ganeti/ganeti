@@ -135,3 +135,9 @@ WATCH
 
 This command follows the output of the job by the given *id* and
 prints it.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

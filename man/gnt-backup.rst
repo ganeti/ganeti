@@ -224,3 +224,9 @@ REMOVE
 Removes the backup for the given instance name, if any. If the backup
 was for a deleted instance, it is needed to pass the FQDN of the
 instance, and not only the short hostname.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

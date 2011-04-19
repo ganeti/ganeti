@@ -56,3 +56,9 @@ different than not using authentication at all.
 
 More details (including on how to use hashed passwords) can be found
 in the Ganeti documentation.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

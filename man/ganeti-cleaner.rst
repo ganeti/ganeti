@@ -21,3 +21,9 @@ certificates and keys.
 **ganeti-cleaner** automatically removes all files older than 21 days
 from ``@LOCALSTATEDIR@/lib/ganeti/queue/archive`` and all expired
 certificates and keys from ``@LOCALSTATEDIR@/run/ganeti/crypto``.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

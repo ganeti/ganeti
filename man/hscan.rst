@@ -107,3 +107,9 @@ EXAMPLE
     cluster1     2     2     0     0   1008    652    255    253 0.24404762
     $ ls -l cluster1.data
     -rw-r--r-- 1 root root 364 2009-03-23 07:26 cluster1.data
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

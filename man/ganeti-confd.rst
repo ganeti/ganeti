@@ -47,3 +47,9 @@ format, over UDP. A client library is provided to make it easy to
 write software to query confd. More information can be found in the
 Ganeti 2.1 design doc, and an example usage can be seen in the
 (external) NBMA daemon for Ganeti.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

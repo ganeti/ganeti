@@ -1350,3 +1350,7 @@ you do, tags from both sources will be removed). A file name of - will
 be interpreted as stdin.
 
 .. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

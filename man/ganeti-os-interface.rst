@@ -338,3 +338,9 @@ definition to version 5 by creating the rename script simply as::
     exit 0
 
 Note that the script must be executable.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

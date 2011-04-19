@@ -76,3 +76,9 @@ COMMUNICATION PROTOCOL
 The master accepts commands over a Unix socket, using JSON
 serialized messages separated by a specific byte sequence. For more
 details, see the design documentation supplied with Ganeti.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

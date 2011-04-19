@@ -61,3 +61,9 @@ COMMUNICATION PROTOCOL
 
 Currently the master-node RPC is done using a simple RPC protocol
 built using JSON over HTTP(S).
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

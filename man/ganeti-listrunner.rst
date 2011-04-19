@@ -96,3 +96,9 @@ SEE ALSO
 --------
 
 dsh(1), cssh(1)
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

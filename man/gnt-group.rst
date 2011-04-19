@@ -136,3 +136,9 @@ RENAME
 | **rename** {*oldname*} {*newname*}
 
 Renames a given group from *oldname* to *newname*.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

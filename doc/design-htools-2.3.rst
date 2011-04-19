@@ -319,3 +319,9 @@ evacuation or not.
 
 In case that Ganeti doesn't provide complete cluster data, just the
 local group, the inter-group relocation won't be attempted.
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:
