@@ -1144,7 +1144,8 @@ def ShowInstanceConfig(opts, args):
     return 1
 
   retcode = 0
-  op = opcodes.OpInstanceQueryData(instances=args, static=opts.static)
+  op = opcodes.OpInstanceQueryData(instances=args, static=opts.static,
+                                   use_locking=not opts.static)
   result = SubmitOpCode(op, opts=opts)
   if not result:
     ToStdout("No instances.")
