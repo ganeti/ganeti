@@ -1468,7 +1468,7 @@ characters, the entire operation will abort.
 If the ``--from`` option is given, the list of tags will be
 extended with the contents of that file (each line becomes a tag).
 In this case, there is not need to pass tags on the command line
-(if you do, both sources will be used). A file name of - will be
+(if you do, both sources will be used). A file name of ``-`` will be
 interpreted as stdin.
 
 LIST-TAGS
@@ -1489,5 +1489,5 @@ existing on the node, the entire operation will abort.
 If the ``--from`` option is given, the list of tags to be removed will
 be extended with the contents of that file (each line becomes a tag).
 In this case, there is not need to pass tags on the command line (if
-you do, tags from both sources will be removed). A file name of - will
-be interpreted as stdin.
+you do, tags from both sources will be removed). A file name of ``-``
+will be interpreted as stdin.
