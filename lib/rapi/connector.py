@@ -230,6 +230,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
       rlib2.R_2_groups_name_rename,
     re.compile(r'^/2/groups/(%s)/assign-nodes$' % group_name_pattern):
       rlib2.R_2_groups_name_assign_nodes,
+    re.compile(r'^/2/groups/(%s)/tags$' % group_name_pattern):
+      rlib2.R_2_groups_name_tags,
 
     "/2/jobs": rlib2.R_2_jobs,
     re.compile(r"^/2/jobs/(%s)$" % job_id_pattern):

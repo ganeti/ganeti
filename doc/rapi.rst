@@ -497,6 +497,46 @@ Body parameters:
    :exclude: group_name, force, dry_run
 
 
+``/2/groups/[group_name]/tags``
++++++++++++++++++++++++++++++++
+
+Manages per-nodegroup tags.
+
+Supports the following commands: ``GET``, ``PUT``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns a list of tags.
+
+Example::
+
+    ["tag1", "tag2", "tag3"]
+
+``PUT``
+~~~~~~~
+
+Add a set of tags.
+
+The request as a list of strings should be ``PUT`` to this URI. The
+result will be a job id.
+
+It supports the ``dry-run`` argument.
+
+
+``DELETE``
+~~~~~~~~~~
+
+Delete a tag.
+
+In order to delete a set of tags, the DELETE request should be addressed
+to URI like::
+
+    /tags?tag=[tag]&tag=[tag]
+
+It supports the ``dry-run`` argument.
+
+
 ``/2/instances``
 ++++++++++++++++
 

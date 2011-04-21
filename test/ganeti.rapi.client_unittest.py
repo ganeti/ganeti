@@ -1087,6 +1087,30 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
       self.assertEqual(data["amount"], amount)
       self.assertEqual(self.rapi.CountPending(), 0)
 
+  def testGetGroupTags(self):
+    self.rapi.AddResponse("[]")
+    self.assertEqual([], self.client.GetGroupTags("fooGroup"))
+    self.assertHandler(rlib2.R_2_groups_name_tags)
+    self.assertItems(["fooGroup"])
+
+  def testAddGroupTags(self):
+    self.rapi.AddResponse("1234")
+    self.assertEqual(1234,
+        self.client.AddGroupTags("fooGroup", ["awesome"], dry_run=True))
+    self.assertHandler(rlib2.R_2_groups_name_tags)
+    self.assertItems(["fooGroup"])
+    self.assertDryRun()
+    self.assertQuery("tag", ["awesome"])
+
+  def testDeleteGroupTags(self):
+    self.rapi.AddResponse("25826")
+    self.assertEqual(25826, self.client.DeleteGroupTags("foo", ["awesome"],
+                                                        dry_run=True))
+    self.assertHandler(rlib2.R_2_groups_name_tags)
+    self.assertItems(["foo"])
+    self.assertDryRun()
+    self.assertQuery("tag", ["awesome"])
+
   def testQuery(self):
     for idx, what in enumerate(constants.QR_VIA_RAPI):
       for idx2, filter_ in enumerate([None, ["?", "name"]]):

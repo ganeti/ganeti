@@ -92,12 +92,16 @@ def _Tags_GET(kind, name):
   """Helper function to retrieve tags.
 
   """
-  if kind == constants.TAG_INSTANCE or kind == constants.TAG_NODE:
+  if kind in (constants.TAG_INSTANCE,
+              constants.TAG_NODEGROUP,
+              constants.TAG_NODE):
     if not name:
       raise http.HttpBadRequest("Missing name on tag request")
     cl = GetClient()
     if kind == constants.TAG_INSTANCE:
       fn = cl.QueryInstances
+    elif kind == constants.TAG_NODEGROUP:
+      fn = cl.QueryGroups
     else:
       fn = cl.QueryNodes
     result = fn(names=[name], fields=["tags"], use_locking=False)

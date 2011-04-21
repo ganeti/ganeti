@@ -1620,6 +1620,63 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
                              ("/%s/groups/%s/assign-nodes" %
                              (GANETI_RAPI_VERSION, group)), query, body)
 
+  def GetGroupTags(self, group):
+    """Gets tags for a node group.
+
+    @type group: string
+    @param group: Node group whose tags to return
+
+    @rtype: list of strings
+    @return: tags for the group
+
+    """
+    return self._SendRequest(HTTP_GET,
+                             ("/%s/groups/%s/tags" %
+                              (GANETI_RAPI_VERSION, group)), None, None)
+
+  def AddGroupTags(self, group, tags, dry_run=False):
+    """Adds tags to a node group.
+
+    @type group: str
+    @param group: group to add tags to
+    @type tags: list of string
+    @param tags: tags to add to the group
+    @type dry_run: bool
+    @param dry_run: whether to perform a dry run
+
+    @rtype: string
+    @return: job id
+
+    """
+    query = [("tag", t) for t in tags]
+    if dry_run:
+      query.append(("dry-run", 1))
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/groups/%s/tags" %
+                              (GANETI_RAPI_VERSION, group)), query, None)
+
+  def DeleteGroupTags(self, group, tags, dry_run=False):
+    """Deletes tags from a node group.
+
+    @type group: str
+    @param group: group to delete tags from
+    @type tags: list of string
+    @param tags: tags to delete
+    @type dry_run: bool
+    @param dry_run: whether to perform a dry run
+    @rtype: string
+    @return: job id
+
+    """
+    query = [("tag", t) for t in tags]
+    if dry_run:
+      query.append(("dry-run", 1))
+
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/groups/%s/tags" %
+                              (GANETI_RAPI_VERSION, group)), query, None)
+
   def Query(self, what, fields, filter_=None):
     """Retrieves information about resources.
 

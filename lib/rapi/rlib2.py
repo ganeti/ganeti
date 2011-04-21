@@ -1375,6 +1375,15 @@ class R_2_nodes_name_tags(_R_Tags):
   TAG_LEVEL = constants.TAG_NODE
 
 
+class R_2_groups_name_tags(_R_Tags):
+  """ /2/groups/[group_name]/tags resource.
+
+  Manages per-nodegroup tags.
+
+  """
+  TAG_LEVEL = constants.TAG_NODEGROUP
+
+
 class R_2_tags(_R_Tags):
   """ /2/tags resource.
 
