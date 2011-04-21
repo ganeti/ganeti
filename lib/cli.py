@@ -360,7 +360,9 @@ def _ExtractTagsObject(opts, args):
   kind = opts.tag_type
   if kind == constants.TAG_CLUSTER:
     retval = kind, kind
-  elif kind == constants.TAG_NODE or kind == constants.TAG_INSTANCE:
+  elif kind in (constants.TAG_NODEGROUP,
+                constants.TAG_NODE,
+                constants.TAG_INSTANCE):
     if not args:
       raise errors.OpPrereqError("no arguments passed to the command")
     name = args.pop(0)

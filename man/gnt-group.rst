@@ -137,6 +137,45 @@ RENAME
 
 Renames a given group from *oldname* to *newname*.
 
+
+TAGS
+~~~~
+
+ADD-TAGS
+^^^^^^^^
+
+**add-tags** [--from *file*] {*groupname*} {*tag*...}
+
+Add tags to the given node group. If any of the tags contains invalid
+characters, the entire operation will abort.
+
+If the ``--from`` option is given, the list of tags will be extended
+with the contents of that file (each line becomes a tag). In this case,
+there is not need to pass tags on the command line (if you do, both
+sources will be used). A file name of ``-`` will be interpreted as
+stdin.
+
+LIST-TAGS
+^^^^^^^^^
+
+**list-tags** {*groupname*}
+
+List the tags of the given node group.
+
+REMOVE-TAGS
+^^^^^^^^^^^
+
+**remove-tags** [--from *file*] {*groupname*} {*tag*...}
+
+Remove tags from the given node group. If any of the tags are not
+existing on the node, the entire operation will abort.
+
+If the ``--from`` option is given, the list of tags to be removed will
+be extended with the contents of that file (each line becomes a tag). In
+this case, there is not need to pass tags on the command line (if you
+do, tags from both sources will be removed). A file name of ``-`` will
+be interpreted as stdin.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst

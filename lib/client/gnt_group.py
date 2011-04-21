@@ -209,8 +209,20 @@ commands = {
   "rename": (
     RenameGroup, [ArgGroup(min=2, max=2)], [DRY_RUN_OPT],
     "[--dry-run] <group-name> <new-name>", "Rename a node group"),
-}
+  "list-tags": (
+    ListTags, ARGS_ONE_GROUP, [PRIORITY_OPT],
+    "<instance_name>", "List the tags of the given instance"),
+  "add-tags": (
+    AddTags, [ArgGroup(min=1, max=1), ArgUnknown()],
+    [TAG_SRC_OPT, PRIORITY_OPT],
+    "<instance_name> tag...", "Add tags to the given instance"),
+  "remove-tags": (
+    RemoveTags, [ArgGroup(min=1, max=1), ArgUnknown()],
+    [TAG_SRC_OPT, PRIORITY_OPT],
+    "<instance_name> tag...", "Remove tags from given instance"),
+  }
 
 
 def Main():
-  return GenericMain(commands)
+  return GenericMain(commands,
+                     override={"tag_type": constants.TAG_NODEGROUP})
