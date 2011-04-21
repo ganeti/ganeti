@@ -298,6 +298,8 @@ def RunGroupRwTests():
   RunTestIf("group-rwops", qa_group.TestGroupAddWithOptions)
   RunTestIf("group-rwops", qa_group.TestGroupModify)
   RunTestIf(["group-rwops", "rapi"], qa_rapi.TestRapiNodeGroups)
+  RunTestIf(["group-rwops", "tags"], qa_tags.TestGroupTags,
+            qa_group.GetDefaultGroup())
 
 
 def RunExportImportTests(instance, pnode, snode):

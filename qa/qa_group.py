@@ -33,12 +33,20 @@ import qa_utils
 from qa_utils import AssertCommand, AssertEqual, GetCommandOutput
 
 
+def GetDefaultGroup():
+  """Returns the default node group.
+
+  """
+  groups = qa_config.get("groups", {})
+  return groups.get("group-with-nodes", constants.INITIAL_NODE_GROUP_NAME)
+
+
 def TestGroupAddRemoveRename():
   """gnt-group add/remove/rename"""
   groups = qa_config.get("groups", {})
 
-  existing_group_with_nodes = groups.get("group-with-nodes",
-                                         constants.INITIAL_NODE_GROUP_NAME)
+  existing_group_with_nodes = GetDefaultGroup()
+
   group1, group2, group3 = groups.get("inexistent-groups",
                                       ["group1", "group2", "group3"])[:3]
 
