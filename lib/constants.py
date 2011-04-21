@@ -503,10 +503,12 @@ EXIT_UNKNOWN_FIELD = 14
 
 # tags
 TAG_CLUSTER = "cluster"
+TAG_NODEGROUP = "nodegroup"
 TAG_NODE = "node"
 TAG_INSTANCE = "instance"
 VALID_TAG_TYPES = frozenset([
   TAG_CLUSTER,
+  TAG_NODEGROUP,
   TAG_NODE,
   TAG_INSTANCE,
   ])

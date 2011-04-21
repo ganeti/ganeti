@@ -11170,8 +11170,8 @@ class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   This is an abstract class which is the parent of all the other tags LUs.
 
   """
-
   def ExpandNames(self):
+    self.group_uuid = None
     self.needed_locks = {}
     if self.op.kind == constants.TAG_NODE:
       self.op.name = _ExpandNodeName(self.cfg, self.op.name)
@@ -11179,6 +11179,8 @@ class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
     elif self.op.kind == constants.TAG_INSTANCE:
       self.op.name = _ExpandInstanceName(self.cfg, self.op.name)
       self.needed_locks[locking.LEVEL_INSTANCE] = self.op.name
+    elif self.op.kind == constants.TAG_NODEGROUP:
+      self.group_uuid = self.cfg.LookupNodeGroup(self.op.name)
 
     # FIXME: Acquire BGL for cluster tag operations (as of this writing it's
     # not possible to acquire the BGL based on opcode parameters)
@@ -11193,6 +11195,8 @@ class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
       self.target = self.cfg.GetNodeInfo(self.op.name)
     elif self.op.kind == constants.TAG_INSTANCE:
       self.target = self.cfg.GetInstanceInfo(self.op.name)
+    elif self.op.kind == constants.TAG_NODEGROUP:
+      self.target = self.cfg.GetNodeGroup(self.group_uuid)
     else:
       raise errors.OpPrereqError("Wrong tag type requested (%s)" %
                                  str(self.op.kind), errors.ECODE_INVAL)
@@ -11248,6 +11252,8 @@ class LUTagsSearch(NoHooksLU):
     tgts.extend([("/instances/%s" % i.name, i) for i in ilist])
     nlist = cfg.GetAllNodesInfo().values()
     tgts.extend([("/nodes/%s" % n.name, n) for n in nlist])
+    tgts.extend(("/nodegroup/%s" % n.name, n)
+                for n in cfg.GetAllNodeGroupsInfo().values())
     results = []
     for path, target in tgts:
       for tag in target.GetTags():

@@ -1907,6 +1907,12 @@ def _BuildGroupFields():
      GQ_INST, 0, _GetSortedList(group_to_instances)),
     ])
 
+  # Other fields
+  fields.extend([
+    (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), GQ_CONFIG, 0,
+     lambda ctx, group: list(group.GetTags())),
+    ])
+
   fields.extend(_GetItemTimestampFields(GQ_CONFIG))
 
   return _PrepareFieldList(fields, [])

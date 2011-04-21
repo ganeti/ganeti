@@ -978,7 +978,7 @@ class Node(TaggableObject):
       self.powered = True
 
 
-class NodeGroup(ConfigObject):
+class NodeGroup(TaggableObject):
   """Config object representing a node group."""
   __slots__ = [
     "name",
