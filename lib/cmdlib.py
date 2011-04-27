@@ -8286,7 +8286,6 @@ class TLReplaceDisks(Tasklet):
                                  (node_name, self.instance.name))
 
   def _CreateNewStorage(self, node_name):
-    vgname = self.cfg.GetVGName()
     iv_names = {}
 
     for idx, dev in enumerate(self.instance.disks):
@@ -8300,6 +8299,7 @@ class TLReplaceDisks(Tasklet):
       lv_names = [".disk%d_%s" % (idx, suffix) for suffix in ["data", "meta"]]
       names = _GenerateUniqueNames(self.lu, lv_names)
 
+      vgname = dev.children[0].logical_id[0]
       lv_data = objects.Disk(dev_type=constants.LD_LV, size=dev.size,
                              logical_id=(vgname, names[0]))
       lv_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
@@ -9443,7 +9443,8 @@ class LUInstanceSetParams(LogicalUnit):
     snode = self.op.remote_node
 
     # create a fake disk info for _GenerateDiskTemplate
-    disk_info = [{"size": d.size, "mode": d.mode} for d in instance.disks]
+    disk_info = [{"size": d.size, "mode": d.mode,
+                  "vg": d.logical_id[0]} for d in instance.disks]
     new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
                                       instance.name, pnode, [snode],
                                       disk_info, None, None, 0, feedback_fn)
