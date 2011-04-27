@@ -4281,7 +4281,7 @@ class LUNodeAdd(LogicalUnit):
           feedback_fn("ssh/hostname verification failed"
                       " (checking from %s): %s" %
                       (verifier, nl_payload[failed]))
-        raise errors.OpExecError("ssh/hostname verification failed.")
+        raise errors.OpExecError("ssh/hostname verification failed")
 
     if self.op.readd:
       _RedistributeAncillaryFiles(self)
