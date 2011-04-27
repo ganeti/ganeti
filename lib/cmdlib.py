@@ -6455,10 +6455,10 @@ class TLMigrateInstance(Tasklet):
         else:
           text = "migrated"
         raise errors.OpPrereqError("Instances with disk template %s cannot"
-                                   " be %s over to arbitrary nodes"
+                                   " be %s to arbitrary nodes"
                                    " (neither an iallocator nor a target"
                                    " node can be passed)" %
-                                   (text, instance.disk_template),
+                                   (instance.disk_template, text),
                                    errors.ECODE_INVAL)
 
     i_be = self.cfg.GetClusterInfo().FillBE(instance)
