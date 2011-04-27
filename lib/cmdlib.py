@@ -139,7 +139,6 @@ class LogicalUnit(object):
     self.remove_locks = {}
     # Used to force good behavior when calling helper functions
     self.recalculate_locks = {}
-    self.__ssh = None
     # logging
     self.Log = processor.Log # pylint: disable-msg=C0103
     self.LogWarning = processor.LogWarning # pylint: disable-msg=C0103
@@ -159,16 +158,6 @@ class LogicalUnit(object):
     self.op.Validate(True)
 
     self.CheckArguments()
-
-  def __GetSSH(self):
-    """Returns the SshRunner object
-
-    """
-    if not self.__ssh:
-      self.__ssh = ssh.SshRunner(self.cfg.GetClusterName())
-    return self.__ssh
-
-  ssh = property(fget=__GetSSH)
 
   def CheckArguments(self):
     """Check syntactic validity for the opcode arguments.
