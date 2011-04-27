@@ -163,9 +163,9 @@ def AddNode(opts, args):
   readd = opts.readd
 
   try:
-    output = cl.QueryNodes(names=[node], fields=['name', 'sip'],
+    output = cl.QueryNodes(names=[node], fields=['name', 'sip', 'master'],
                            use_locking=False)
-    node_exists, sip = output[0]
+    node_exists, sip, is_master = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
     node_exists = ""
     sip = None
@@ -174,6 +174,9 @@ def AddNode(opts, args):
     if not node_exists:
       ToStderr("Node %s not in the cluster"
                " - please retry without '--readd'", node)
+      return 1
+    if is_master:
+      ToStderr("Node %s is the master, cannot readd", node)
       return 1
   else:
     if node_exists:

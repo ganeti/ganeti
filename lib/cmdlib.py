@@ -4053,6 +4053,11 @@ class LUNodeAdd(LogicalUnit):
     self.hostname = netutils.GetHostname(name=self.op.node_name,
                                          family=self.primary_ip_family)
     self.op.node_name = self.hostname.name
+
+    if self.op.readd and self.op.node_name == self.cfg.GetMasterNode():
+      raise errors.OpPrereqError("Cannot readd the master node",
+                                 errors.ECODE_STATE)
+
     if self.op.readd and self.op.group:
       raise errors.OpPrereqError("Cannot pass a node group when a node is"
                                  " being readded", errors.ECODE_INVAL)
