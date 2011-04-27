@@ -5797,7 +5797,9 @@ class LUInstanceRename(LogicalUnit):
       rename_file_storage = True
 
     self.cfg.RenameInstance(inst.name, self.op.new_name)
-    # Change the instance lock. This is definitely safe while we hold the BGL
+    # Change the instance lock. This is definitely safe while we hold the BGL.
+    # Otherwise the new lock would have to be added in acquired mode.
+    assert self.REQ_BGL
     self.context.glm.remove(locking.LEVEL_INSTANCE, old_name)
     self.context.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
 
