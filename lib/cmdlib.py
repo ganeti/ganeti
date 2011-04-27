@@ -11891,7 +11891,60 @@ class IAllocator(object):
     if not isinstance(rdict["result"], list):
       raise errors.OpExecError("Can't parse iallocator results: 'result' key"
                                " is not a list")
+
+    if self.mode == constants.IALLOCATOR_MODE_RELOC:
+      assert self.relocate_from is not None
+      assert self.required_nodes == 1
+
+      node2group = dict((name, ndata["group"])
+                        for (name, ndata) in self.in_data["nodes"].items())
+
+      fn = compat.partial(self._NodesToGroups, node2group,
+                          self.in_data["nodegroups"])
+
+      request_groups = fn(self.relocate_from)
+      result_groups = fn(rdict["result"])
+
+      if result_groups != request_groups:
+        raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
+                                 " differ from original groups (%s)" %
+                                 (utils.CommaJoin(result_groups),
+                                  utils.CommaJoin(request_groups)))
+
     self.out_data = rdict
+
+  @staticmethod
+  def _NodesToGroups(node2group, groups, nodes):
+    """Returns a list of unique group names for a list of nodes.
+
+    @type node2group: dict
+    @param node2group: Map from node name to group UUID
+    @type groups: dict
+    @param groups: Group information
+    @type nodes: list
+    @param nodes: Node names
+
+    """
+    result = set()
+
+    for node in nodes:
+      try:
+        group_uuid = node2group[node]
+      except KeyError:
+        # Ignore unknown node
+        pass
+      else:
+        try:
+          group = groups[group_uuid]
+        except KeyError:
+          # Can't find group, let's use UUID
+          group_name = group_uuid
+        else:
+          group_name = group["name"]
+
+        result.add(group_name)
+
+    return sorted(result)
 
 
 class LUTestAllocator(NoHooksLU):
