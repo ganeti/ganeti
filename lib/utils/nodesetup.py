@@ -23,6 +23,7 @@
 """
 
 import os
+from cStringIO import StringIO
 
 from ganeti import constants
 
@@ -46,26 +47,19 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
   # Ensure aliases are unique
   aliases = algo.UniqueSequence([hostname] + aliases)[1:]
 
-  def _WriteEtcHosts(fd):
-    # Duplicating file descriptor because os.fdopen's result will automatically
-    # close the descriptor, but we would still like to have its functionality.
-    out = os.fdopen(os.dup(fd), "w")
-    try:
-      for line in io.ReadFile(file_name).splitlines(True):
-        fields = line.split()
-        if fields and not fields[0].startswith("#") and ip == fields[0]:
-          continue
-        out.write(line)
+  out = StringIO()
+  for line in io.ReadFile(file_name).splitlines(True):
+    fields = line.split()
+    if fields and not fields[0].startswith("#") and ip == fields[0]:
+      continue
+    out.write(line)
 
-      out.write("%s\t%s" % (ip, hostname))
-      if aliases:
-        out.write(" %s" % " ".join(aliases))
-      out.write("\n")
-      out.flush()
-    finally:
-      out.close()
+  out.write("%s\t%s" % (ip, hostname))
+  if aliases:
+    out.write(" %s" % " ".join(aliases))
+  out.write("\n")
 
-  io.WriteFile(file_name, fn=_WriteEtcHosts, mode=0644)
+  io.WriteFile(file_name, data=out.getvalue(), mode=0644)
 
 
 def AddHostToEtcHosts(hostname, ip):
@@ -92,29 +86,22 @@ def RemoveEtcHostsEntry(file_name, hostname):
   @param hostname: the hostname to be removed
 
   """
-  def _WriteEtcHosts(fd):
-    # Duplicating file descriptor because os.fdopen's result will automatically
-    # close the descriptor, but we would still like to have its functionality.
-    out = os.fdopen(os.dup(fd), "w")
-    try:
-      for line in io.ReadFile(file_name).splitlines(True):
-        fields = line.split()
-        if len(fields) > 1 and not fields[0].startswith("#"):
-          names = fields[1:]
-          if hostname in names:
-            while hostname in names:
-              names.remove(hostname)
-            if names:
-              out.write("%s %s\n" % (fields[0], " ".join(names)))
-            continue
+  out = StringIO()
 
-        out.write(line)
+  for line in io.ReadFile(file_name).splitlines(True):
+    fields = line.split()
+    if len(fields) > 1 and not fields[0].startswith("#"):
+      names = fields[1:]
+      if hostname in names:
+        while hostname in names:
+          names.remove(hostname)
+        if names:
+          out.write("%s %s\n" % (fields[0], " ".join(names)))
+        continue
 
-      out.flush()
-    finally:
-      out.close()
+    out.write(line)
 
-  io.WriteFile(file_name, fn=_WriteEtcHosts, mode=0644)
+  io.WriteFile(file_name, data=out.getvalue(), mode=0644)
 
 
 def RemoveHostFromEtcHosts(hostname):
