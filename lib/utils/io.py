@@ -135,7 +135,13 @@ def WriteFile(file_name, fn=None, data=None,
       if callable(prewrite):
         prewrite(fd)
       if data is not None:
-        os.write(fd, data)
+        to_write = len(data)
+        offset = 0
+        while offset < to_write:
+          written = os.write(fd, buffer(data, offset))
+          assert written >= 0
+          offset += written
+        assert offset == to_write
       else:
         fn(fd)
       if callable(postwrite):
