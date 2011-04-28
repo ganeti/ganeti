@@ -22,7 +22,6 @@
 
 """
 
-import os
 from cStringIO import StringIO
 
 from ganeti import constants
