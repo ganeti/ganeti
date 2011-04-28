@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -74,6 +74,16 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "127.0.0.1\tlocalhost\n"
       "192.0.2.1 router gw\n"
       "198.51.100.4\tmyhost\n")
+    self.assertFileMode(self.tmpname, 0644)
+
+  def testSettingOrdering(self):
+    utils.SetEtcHostsEntry(self.tmpname, "127.0.0.1", "localhost.localdomain",
+                           ["localhost"])
+
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "127.0.0.1\tlocalhost.localdomain localhost\n"
+      "192.0.2.1 router gw\n")
     self.assertFileMode(self.tmpname, 0644)
 
   def testRemovingExistingHost(self):

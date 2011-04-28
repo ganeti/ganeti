@@ -45,19 +45,23 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
 
   """
   # Ensure aliases are unique
-  aliases = algo.UniqueSequence([hostname] + aliases)[1:]
+  names = algo.UniqueSequence([hostname] + aliases)
 
   out = StringIO()
+
+  def _write_entry(written):
+    if not written:
+      out.write("%s\t%s\n" % (ip, " ".join(names)))
+    return True
+
+  written = False
   for line in io.ReadFile(file_name).splitlines(True):
     fields = line.split()
     if fields and not fields[0].startswith("#") and ip == fields[0]:
-      continue
-    out.write(line)
-
-  out.write("%s\t%s" % (ip, hostname))
-  if aliases:
-    out.write(" %s" % " ".join(aliases))
-  out.write("\n")
+      written = _write_entry(written)
+    else:
+      out.write(line)
+  _write_entry(written)
 
   io.WriteFile(file_name, data=out.getvalue(), mode=0644)
 
