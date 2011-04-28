@@ -6592,9 +6592,10 @@ def _GenerateDiskTemplate(lu, template_name,
       names.append(lv_prefix + "_meta")
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
-      vg = disk.get("vg", vgname)
+      data_vg = disk.get("vg", vgname)
+      meta_vg = disk.get("metavg", data_vg)
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
-                                      disk["size"], [vg, vg],
+                                      disk["size"], [data_vg, meta_vg],
                                       names[idx*2:idx*2+2],
                                       "disk/%d" % disk_index,
                                       minors[idx*2], minors[idx*2+1])
@@ -7477,8 +7478,9 @@ class LUInstanceCreate(LogicalUnit):
       except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
-      vg = disk.get("vg", self.cfg.GetVGName())
-      new_disk = {"size": size, "mode": mode, "vg": vg}
+      data_vg = disk.get("vg", self.cfg.GetVGName())
+      meta_vg = disk.get("metavg", data_vg)
+      new_disk = {"size": size, "mode": mode, "vg": data_vg, "metavg": meta_vg}
       if "adopt" in disk:
         new_disk["adopt"] = disk["adopt"]
       self.disks.append(new_disk)
