@@ -1458,7 +1458,7 @@ class LUClusterVerify(LogicalUnit):
                  hv_name, item, hv_result)
 
     test = nresult.get(constants.NV_NODESETUP,
-                           ["Missing NODESETUP results"])
+                       ["Missing NODESETUP results"])
     _ErrorIf(test, self.ENODESETUP, node, "node setup error: %s",
              "; ".join(test))
 
