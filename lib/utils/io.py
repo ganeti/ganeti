@@ -135,11 +135,15 @@ def WriteFile(file_name, fn=None, data=None,
       if callable(prewrite):
         prewrite(fd)
       if data is not None:
+        if isinstance(data, unicode):
+          data = data.encode()
+        assert isinstance(data, str)
         to_write = len(data)
         offset = 0
         while offset < to_write:
           written = os.write(fd, buffer(data, offset))
           assert written >= 0
+          assert written <= to_write - offset
           offset += written
         assert offset == to_write
       else:

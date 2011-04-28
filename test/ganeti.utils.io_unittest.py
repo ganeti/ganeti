@@ -258,6 +258,11 @@ class TestWriteFile(unittest.TestCase):
     utils.WriteFile(self.tfile.name, data=data)
     self.assertEqual(utils.ReadFile(self.tfile.name), data)
 
+  def testWriteSimpleUnicode(self):
+    data = u"abc"
+    utils.WriteFile(self.tfile.name, data=data)
+    self.assertEqual(utils.ReadFile(self.tfile.name), data)
+
   def testErrors(self):
     self.assertRaises(errors.ProgrammerError, utils.WriteFile,
                       self.tfile.name, data="test", fn=lambda fd: None)
