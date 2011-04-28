@@ -630,6 +630,53 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
+def _ReleaseLocks(lu, level, names=None, keep=None):
+  """Releases locks owned by an LU.
+
+  @type lu: L{LogicalUnit}
+  @param level: Lock level
+  @type names: list or None
+  @param names: Names of locks to release
+  @type keep: list or None
+  @param keep: Names of locks to retain
+
+  """
+  assert not (keep is not None and names is not None), \
+         "Only one of the 'names' and the 'keep' parameters can be given"
+
+  if names is not None:
+    should_release = names.__contains__
+  elif keep:
+    should_release = lambda name: name not in keep
+  else:
+    should_release = None
+
+  if should_release:
+    retain = []
+    release = []
+
+    # Determine which locks to release
+    for name in lu.acquired_locks[level]:
+      if should_release(name):
+        release.append(name)
+      else:
+        retain.append(name)
+
+    assert len(lu.acquired_locks[level]) == (len(retain) + len(release))
+
+    # Release just some locks
+    lu.context.glm.release(level, names=release)
+    lu.acquired_locks[level] = retain
+
+    assert frozenset(lu.context.glm.list_owned(level)) == frozenset(retain)
+  else:
+    # Release everything
+    lu.context.glm.release(level)
+    del lu.acquired_locks[level]
+
+    assert not lu.context.glm.list_owned(level), "No locks should be owned"
+
+
 def _RunPostHook(lu, node_name):
   """Runs the post-hook for an opcode on a single node.
 
@@ -4580,21 +4627,22 @@ class LUNodeSetParams(LogicalUnit):
     # If we have locked all instances, before waiting to lock nodes, release
     # all the ones living on nodes unrelated to the current operation.
     if level == locking.LEVEL_NODE and self.lock_instances:
-      instances_release = []
-      instances_keep = []
       self.affected_instances = []
       if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
+        instances_keep = []
+
+        # Build list of instances to release
         for instance_name in self.acquired_locks[locking.LEVEL_INSTANCE]:
           instance = self.context.cfg.GetInstanceInfo(instance_name)
-          i_mirrored = instance.disk_template in constants.DTS_INT_MIRROR
-          if i_mirrored and self.op.node_name in instance.all_nodes:
+          if (instance.disk_template in constants.DTS_INT_MIRROR and
+              self.op.node_name in instance.all_nodes):
             instances_keep.append(instance_name)
             self.affected_instances.append(instance)
-          else:
-            instances_release.append(instance_name)
-        if instances_release:
-          self.context.glm.release(locking.LEVEL_INSTANCE, instances_release)
-          self.acquired_locks[locking.LEVEL_INSTANCE] = instances_keep
+
+        _ReleaseLocks(self, locking.LEVEL_INSTANCE, keep=instances_keep)
+
+        assert (set(self.acquired_locks.get(locking.LEVEL_INSTANCE, [])) ==
+                set(instances_keep))
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -6430,12 +6478,9 @@ class TLMigrateInstance(Tasklet):
       target_node = self.target_node
 
       if len(self.lu.tasklets) == 1:
-        # It is safe to remove locks only when we're the only tasklet in the LU
-        nodes_keep = [instance.primary_node, self.target_node]
-        nodes_rel = [node for node in self.lu.acquired_locks[locking.LEVEL_NODE]
-                     if node not in nodes_keep]
-        self.lu.context.glm.release(locking.LEVEL_NODE, nodes_rel)
-        self.lu.acquired_locks[locking.LEVEL_NODE] = nodes_keep
+        # It is safe to release locks only when we're the only tasklet in the LU
+        _ReleaseLocks(self, locking.LEVEL_NODE,
+                      keep=[instance.primary_node, self.target_node])
 
     else:
       secondary_nodes = instance.secondary_nodes
@@ -8261,16 +8306,13 @@ class LUInstanceCreate(LogicalUnit):
     # Declare that we don't want to remove the instance lock anymore, as we've
     # added the instance to the config
     del self.remove_locks[locking.LEVEL_INSTANCE]
-    # Unlock all the nodes
+
     if self.op.mode == constants.INSTANCE_IMPORT:
-      nodes_keep = [self.op.src_node]
-      nodes_release = [node for node in self.acquired_locks[locking.LEVEL_NODE]
-                       if node != self.op.src_node]
-      self.context.glm.release(locking.LEVEL_NODE, nodes_release)
-      self.acquired_locks[locking.LEVEL_NODE] = nodes_keep
+      # Release unused nodes
+      _ReleaseLocks(self, locking.LEVEL_NODE, keep=[self.op.src_node])
     else:
-      self.context.glm.release(locking.LEVEL_NODE)
-      del self.acquired_locks[locking.LEVEL_NODE]
+      # Release all nodes
+      _ReleaseLocks(self, locking.LEVEL_NODE)
 
     disk_abort = False
     if not self.adopt_disks and self.cfg.GetClusterInfo().prealloc_wipe_disks:
@@ -8639,7 +8681,6 @@ class TLReplaceDisks(Tasklet):
 
     return True
 
-
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -8775,9 +8816,7 @@ class TLReplaceDisks(Tasklet):
 
     if self.lu.needed_locks[locking.LEVEL_NODE] == locking.ALL_SET:
       # Release unneeded node locks
-      for name in self.lu.acquired_locks[locking.LEVEL_NODE]:
-        if name not in touched_nodes:
-          self._ReleaseNodeLock(name)
+      _ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
 
     # Check whether disks are valid
     for disk_idx in self.disks:
@@ -8825,22 +8864,23 @@ class TLReplaceDisks(Tasklet):
       else:
         fn = self._ExecDrbd8DiskOnly
 
-      return fn(feedback_fn)
-
+      result = fn(feedback_fn)
     finally:
       # Deactivate the instance disks if we're replacing them on a
       # down instance
       if activate_disks:
         _SafeShutdownInstanceDisks(self.lu, self.instance)
 
-      if __debug__:
-        # Verify owned locks
-        owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
-        assert ((self.early_release and not owned_locks) or
-                (not self.early_release and
-                 set(owned_locks) == set(self.node_secondary_ip))), \
-          ("Not owning the correct locks, early_release=%s, owned=%r" %
-           (self.early_release, owned_locks))
+    if __debug__:
+      # Verify owned locks
+      owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
+      nodes = frozenset(self.node_secondary_ip)
+      assert ((self.early_release and not owned_locks) or
+              (not self.early_release and not (set(owned_locks) - nodes))), \
+        ("Not owning the correct locks, early_release=%s, owned=%r,"
+         " nodes=%r" % (self.early_release, owned_locks, nodes))
+
+    return result
 
   def _CheckVolumeGroup(self, nodes):
     self.lu.LogInfo("Checking volume groups")
@@ -8951,10 +8991,6 @@ class TLReplaceDisks(Tasklet):
         if msg:
           self.lu.LogWarning("Can't remove old LV: %s" % msg,
                              hint="remove unused LVs manually")
-
-  def _ReleaseNodeLock(self, node_name):
-    """Releases the lock for a given node."""
-    self.lu.context.glm.release(locking.LEVEL_NODE, node_name)
 
   def _ExecDrbd8DiskOnly(self, feedback_fn):
     """Replace a disk on the primary or secondary for DRBD 8.
@@ -9073,7 +9109,8 @@ class TLReplaceDisks(Tasklet):
       self._RemoveOldStorage(self.target_node, iv_names)
       # WARNING: we release both node locks here, do not do other RPCs
       # than WaitForSync to the primary node
-      self._ReleaseNodeLock([self.target_node, self.other_node])
+      _ReleaseLocks(self.lu, locking.LEVEL_NODE,
+                    names=[self.target_node, self.other_node])
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
@@ -9230,9 +9267,10 @@ class TLReplaceDisks(Tasklet):
       self._RemoveOldStorage(self.target_node, iv_names)
       # WARNING: we release all node locks here, do not do other RPCs
       # than WaitForSync to the primary node
-      self._ReleaseNodeLock([self.instance.primary_node,
-                             self.target_node,
-                             self.new_node])
+      _ReleaseLocks(self.lu, locking.LEVEL_NODE,
+                    names=[self.instance.primary_node,
+                           self.target_node,
+                           self.new_node])
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
