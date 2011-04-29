@@ -8770,18 +8770,24 @@ class TLReplaceDisks(Tasklet):
     for node in check_nodes:
       _CheckNodeOnline(self.lu, node)
 
+    touched_nodes = frozenset([self.new_node, self.other_node,
+                               self.target_node])
+
+    if self.lu.needed_locks[locking.LEVEL_NODE] == locking.ALL_SET:
+      # Release unneeded node locks
+      for name in self.lu.acquired_locks[locking.LEVEL_NODE]:
+        if name not in touched_nodes:
+          self._ReleaseNodeLock(name)
+
     # Check whether disks are valid
     for disk_idx in self.disks:
       instance.FindDisk(disk_idx)
 
     # Get secondary node IP addresses
-    node_2nd_ip = {}
-
-    for node_name in [self.target_node, self.other_node, self.new_node]:
-      if node_name is not None:
-        node_2nd_ip[node_name] = self.cfg.GetNodeInfo(node_name).secondary_ip
-
-    self.node_secondary_ip = node_2nd_ip
+    self.node_secondary_ip = \
+      dict((node_name, self.cfg.GetNodeInfo(node_name).secondary_ip)
+           for node_name in touched_nodes
+           if node_name is not None)
 
   def Exec(self, feedback_fn):
     """Execute disk replacement.
@@ -8791,6 +8797,13 @@ class TLReplaceDisks(Tasklet):
     """
     if self.delay_iallocator:
       self._CheckPrereq2()
+
+    if (self.lu.needed_locks[locking.LEVEL_NODE] == locking.ALL_SET and
+        __debug__):
+      # Verify owned locks before starting operation
+      owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
+      assert set(owned_locks) == set(self.node_secondary_ip), \
+          "Not owning the correct locks: %s" % (owned_locks, )
 
     if not self.disks:
       feedback_fn("No disks need replacement")
@@ -8819,6 +8832,15 @@ class TLReplaceDisks(Tasklet):
       # down instance
       if activate_disks:
         _SafeShutdownInstanceDisks(self.lu, self.instance)
+
+      if __debug__:
+        # Verify owned locks
+        owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
+        assert ((self.early_release and not owned_locks) or
+                (not self.early_release and
+                 set(owned_locks) == set(self.node_secondary_ip))), \
+          ("Not owning the correct locks, early_release=%s, owned=%r" %
+           (self.early_release, owned_locks))
 
   def _CheckVolumeGroup(self, nodes):
     self.lu.LogInfo("Checking volume groups")
