@@ -748,7 +748,7 @@ def ReplaceDisks(opts, args):
   cnt = [opts.on_primary, opts.on_secondary, opts.auto,
          new_2ndary is not None, iallocator is not None].count(True)
   if cnt != 1:
-    raise errors.OpPrereqError("One and only one of the -p, -s, -a, -n and -i"
+    raise errors.OpPrereqError("One and only one of the -p, -s, -a, -n and -I"
                                " options must be passed", errors.ECODE_INVAL)
   elif opts.on_primary:
     mode = constants.REPLACE_DISK_PRI
