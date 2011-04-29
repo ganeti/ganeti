@@ -1384,6 +1384,8 @@ class GanetiLockManager:
     """
     return self.__keyring[level]._list_owned()
 
+  list_owned = _list_owned
+
   def _upper_owned(self, level):
     """Check that we don't own any lock at a level greater than the given one.
 
