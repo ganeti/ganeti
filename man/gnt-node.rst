@@ -498,8 +498,12 @@ POWER
 [``--power-delay``] on|off|cycle|status [*nodes*]
 
 This commands calls out to out-of-band management to change the power
-state of given node. With ``status`` you get the power status as
-reported by the out-of-band management script.
+state of given node. With ``status`` you get the power status as reported
+by the out-of-band managment script.
+
+Note that this command will only work if the out-of-band functionality
+is configured and enabled on the cluster. If this is not the case,
+please use the **powercycle** command above.
 
 Using ``--force`` you skip the confirmation to do the operation.
 Currently this only has effect on ``off`` and ``cycle``. On those two

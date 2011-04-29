@@ -71,7 +71,7 @@ KEY_RESTART_WHEN = "restart_when"
 KEY_BOOT_ID = "bootid"
 
 
-# Global client object
+# Global LUXI client object
 client = None
 
 
@@ -107,8 +107,9 @@ def RunWatcherHooks():
 
   try:
     results = utils.RunParts(hooks_dir)
-  except Exception, msg: # pylint: disable-msg=W0703
-    logging.critical("RunParts %s failed: %s", hooks_dir, msg)
+  except Exception: # pylint: disable-msg=W0703
+    logging.exception("RunParts %s failed: %s", hooks_dir)
+    return
 
   for (relname, status, runresult) in results:
     if status == constants.RUNPARTS_SKIP:

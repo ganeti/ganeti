@@ -1891,6 +1891,7 @@ class LUClusterVerify(LogicalUnit):
 
     assert not nimg.os_fail, "Entered _VerifyNodeOS with failed OS rpc?"
 
+    beautify_params = lambda l: ["%s: %s" % (k, v) for (k, v) in l]
     for os_name, os_data in nimg.oslist.items():
       assert os_data, "Empty OS status for OS %s?!" % os_name
       f_path, f_status, f_diag, f_var, f_param, f_api = os_data[0]
@@ -1918,11 +1919,12 @@ class LUClusterVerify(LogicalUnit):
         continue
       for kind, a, b in [("API version", f_api, b_api),
                          ("variants list", f_var, b_var),
-                         ("parameters", f_param, b_param)]:
+                         ("parameters", beautify_params(f_param),
+                          beautify_params(b_param))]:
         _ErrorIf(a != b, self.ENODEOS, node,
-                 "OS %s %s differs from reference node %s: %s vs. %s",
+                 "OS %s for %s differs from reference node %s: [%s] vs. [%s]",
                  kind, os_name, base.name,
-                 utils.CommaJoin(a), utils.CommaJoin(b))
+                 utils.CommaJoin(sorted(a)), utils.CommaJoin(sorted(b)))
 
     # check any missing OSes
     missing = set(base.oslist.keys()).difference(nimg.oslist.keys())
@@ -4255,6 +4257,11 @@ class LUNodeAdd(LogicalUnit):
     self.hostname = netutils.GetHostname(name=self.op.node_name,
                                          family=self.primary_ip_family)
     self.op.node_name = self.hostname.name
+
+    if self.op.readd and self.op.node_name == self.cfg.GetMasterNode():
+      raise errors.OpPrereqError("Cannot readd the master node",
+                                 errors.ECODE_STATE)
+
     if self.op.readd and self.op.group:
       raise errors.OpPrereqError("Cannot pass a node group when a node is"
                                  " being readded", errors.ECODE_INVAL)
@@ -4490,7 +4497,7 @@ class LUNodeAdd(LogicalUnit):
           feedback_fn("ssh/hostname verification failed"
                       " (checking from %s): %s" %
                       (verifier, nl_payload[failed]))
-        raise errors.OpExecError("ssh/hostname verification failed.")
+        raise errors.OpExecError("ssh/hostname verification failed")
 
     if self.op.readd:
       _RedistributeAncillaryFiles(self)
@@ -6981,17 +6988,18 @@ def _GenerateUniqueNames(lu, exts):
   return results
 
 
-def _GenerateDRBD8Branch(lu, primary, secondary, size, vgname, names, iv_name,
-                         p_minor, s_minor):
+def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
+                         iv_name, p_minor, s_minor):
   """Generate a drbd8 device complete with its children.
 
   """
+  assert len(vgnames) == len(names) == 2
   port = lu.cfg.AllocatePort()
   shared_secret = lu.cfg.GenerateDRBDSecret(lu.proc.GetECId())
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
-                          logical_id=(vgname, names[0]))
+                          logical_id=(vgnames[0], names[0]))
   dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
-                          logical_id=(vgname, names[1]))
+                          logical_id=(vgnames[1], names[1]))
   drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
                           logical_id=(primary, secondary, port,
                                       p_minor, s_minor,
@@ -7046,9 +7054,11 @@ def _GenerateDiskTemplate(lu, template_name,
       names.append(lv_prefix + "_meta")
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
-      vg = disk.get(constants.IDISK_VG, vgname)
+      data_vg = disk.get(constants.IDISK_VG, vgname)
+      meta_vg = disk.get(constants.IDISK_METAVG, data_vg)
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
-                                      disk[constants.IDISK_SIZE], vg,
+                                      disk[constants.IDISK_SIZE],
+                                      [data_vg, meta_vg],
                                       names[idx * 2:idx * 2 + 2],
                                       "disk/%d" % disk_index,
                                       minors[idx * 2], minors[idx * 2 + 1])
@@ -7150,14 +7160,17 @@ def _WipeDisks(lu, instance):
 
   try:
     for idx, device in enumerate(instance.disks):
-      lu.LogInfo("* Wiping disk %d", idx)
-      logging.info("Wiping disk %d for instance %s, node %s",
-                   idx, instance.name, node)
-
       # The wipe size is MIN_WIPE_CHUNK_PERCENT % of the instance disk but
       # MAX_WIPE_CHUNK at max
       wipe_chunk_size = min(constants.MAX_WIPE_CHUNK, device.size / 100.0 *
                             constants.MIN_WIPE_CHUNK_PERCENT)
+      # we _must_ make this an int, otherwise rounding errors will
+      # occur
+      wipe_chunk_size = int(wipe_chunk_size)
+
+      lu.LogInfo("* Wiping disk %d", idx)
+      logging.info("Wiping disk %d for instance %s, node %s using"
+                   " chunk size %s", idx, instance.name, node, wipe_chunk_size)
 
       offset = 0
       size = device.size
@@ -7166,6 +7179,8 @@ def _WipeDisks(lu, instance):
 
       while offset < size:
         wipe_size = min(wipe_chunk_size, size - offset)
+        logging.debug("Wiping disk %d, offset %s, chunk %s",
+                      idx, offset, wipe_size)
         result = lu.rpc.call_blockdev_wipe(node, device, offset, wipe_size)
         result.Raise("Could not wipe disk %d at offset %d for size %d" %
                      (idx, offset, wipe_size))
@@ -7964,10 +7979,13 @@ class LUInstanceCreate(LogicalUnit):
       except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
+
+      data_vg = disk.get(constants.IDISK_VG, default_vg)
       new_disk = {
         constants.IDISK_SIZE: size,
         constants.IDISK_MODE: mode,
-        constants.IDISK_VG: disk.get(constants.IDISK_VG, default_vg),
+        constants.IDISK_VG: data_vg,
+        constants.IDISK_METAVG: disk.get(constants.IDISK_METAVG, data_vg),
         }
       if constants.IDISK_ADOPT in disk:
         new_disk[constants.IDISK_ADOPT] = disk[constants.IDISK_ADOPT]
@@ -8236,18 +8254,6 @@ class LUInstanceCreate(LogicalUnit):
           self.cfg.ReleaseDRBDMinors(instance)
           raise
 
-      if self.cfg.GetClusterInfo().prealloc_wipe_disks:
-        feedback_fn("* wiping instance disks...")
-        try:
-          _WipeDisks(self, iobj)
-        except errors.OpExecError:
-          self.LogWarning("Device wiping failed, reverting...")
-          try:
-            _RemoveDisks(self, iobj)
-          finally:
-            self.cfg.ReleaseDRBDMinors(instance)
-            raise
-
     feedback_fn("adding instance %s to cluster config" % instance)
 
     self.cfg.AddInstance(iobj, self.proc.GetECId())
@@ -8266,7 +8272,20 @@ class LUInstanceCreate(LogicalUnit):
       self.context.glm.release(locking.LEVEL_NODE)
       del self.acquired_locks[locking.LEVEL_NODE]
 
-    if self.op.wait_for_sync:
+    disk_abort = False
+    if not self.adopt_disks and self.cfg.GetClusterInfo().prealloc_wipe_disks:
+      feedback_fn("* wiping instance disks...")
+      try:
+        _WipeDisks(self, iobj)
+      except errors.OpExecError, err:
+        logging.exception("Wiping disks failed")
+        self.LogWarning("Wiping instance disks failed (%s)", err)
+        disk_abort = True
+
+    if disk_abort:
+      # Something is already wrong with the disks, don't do anything else
+      pass
+    elif self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, iobj)
     elif iobj.disk_template in constants.DTS_INT_MIRROR:
       # make sure the disks are not degraded (still sync-ing is ok)
@@ -8852,7 +8871,6 @@ class TLReplaceDisks(Tasklet):
                                  (node_name, self.instance.name))
 
   def _CreateNewStorage(self, node_name):
-    vgname = self.cfg.GetVGName()
     iv_names = {}
 
     for idx, dev in enumerate(self.instance.disks):
@@ -8866,10 +8884,12 @@ class TLReplaceDisks(Tasklet):
       lv_names = [".disk%d_%s" % (idx, suffix) for suffix in ["data", "meta"]]
       names = _GenerateUniqueNames(self.lu, lv_names)
 
+      vg_data = dev.children[0].logical_id[0]
       lv_data = objects.Disk(dev_type=constants.LD_LV, size=dev.size,
-                             logical_id=(vgname, names[0]))
+                             logical_id=(vg_data, names[0]))
+      vg_meta = dev.children[1].logical_id[0]
       lv_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
-                             logical_id=(vgname, names[1]))
+                             logical_id=(vg_meta, names[1]))
 
       new_lvs = [lv_data, lv_meta]
       old_lvs = dev.children
@@ -10025,7 +10045,8 @@ class LUInstanceSetParams(LogicalUnit):
     snode = self.op.remote_node
 
     # create a fake disk info for _GenerateDiskTemplate
-    disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode}
+    disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode,
+                  constants.IDISK_VG: d.logical_id[0]}
                  for d in instance.disks]
     new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
                                       instance.name, pnode, [snode],
@@ -10789,7 +10810,7 @@ class LUGroupAssignNodes(NoHooksLU):
 
         if previous_splits:
           self.LogWarning("In addition, these already-split instances continue"
-                          " to be spit across groups: %s",
+                          " to be split across groups: %s",
                           utils.CommaJoin(utils.NiceSort(previous_splits)))
 
   def Exec(self, feedback_fn):
@@ -10878,7 +10899,8 @@ class _GroupQuery(_QueryBase):
           missing.append(name)
 
       if missing:
-        raise errors.OpPrereqError("Some groups do not exist: %s" % missing,
+        raise errors.OpPrereqError("Some groups do not exist: %s" %
+                                   utils.CommaJoin(missing),
                                    errors.ECODE_NOENT)
 
   def DeclareLocks(self, lu, level):

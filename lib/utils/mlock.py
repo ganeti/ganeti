@@ -51,7 +51,11 @@ def Mlockall(_ctypes=ctypes):
   if _ctypes is None:
     raise errors.NoCtypesError()
 
-  libc = _ctypes.cdll.LoadLibrary("libc.so.6")
+  try:
+    libc = _ctypes.cdll.LoadLibrary("libc.so.6")
+  except EnvironmentError, err:
+    logging.error("Failure trying to load libc: %s", err)
+    libc = None
   if libc is None:
     logging.error("Cannot set memory lock, ctypes cannot load libc")
     return

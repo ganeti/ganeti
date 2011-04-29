@@ -573,25 +573,23 @@ def CheckMasterd(options, args):
   # If CheckMaster didn't fail we believe we are the master, but we have to
   # confirm with the other nodes.
   if options.no_voting:
-    if options.yes_do_it:
-      return
+    if not options.yes_do_it:
+      sys.stdout.write("The 'no voting' option has been selected.\n")
+      sys.stdout.write("This is dangerous, please confirm by"
+                       " typing uppercase 'yes': ")
+      sys.stdout.flush()
 
-    sys.stdout.write("The 'no voting' option has been selected.\n")
-    sys.stdout.write("This is dangerous, please confirm by"
-                     " typing uppercase 'yes': ")
-    sys.stdout.flush()
+      confirmation = sys.stdin.readline().strip()
+      if confirmation != "YES":
+        print >> sys.stderr, "Aborting."
+        sys.exit(constants.EXIT_FAILURE)
 
-    confirmation = sys.stdin.readline().strip()
-    if confirmation != "YES":
-      print >> sys.stderr, "Aborting."
+  else:
+    # CheckAgreement uses RPC and threads, hence it needs to be run in
+    # a separate process before we call utils.Daemonize in the current
+    # process.
+    if not utils.RunInSeparateProcess(CheckAgreement):
       sys.exit(constants.EXIT_FAILURE)
-
-    return
-
-  # CheckAgreement uses RPC and threads, hence it needs to be run in a separate
-  # process before we call utils.Daemonize in the current process.
-  if not utils.RunInSeparateProcess(CheckAgreement):
-    sys.exit(constants.EXIT_FAILURE)
 
   # ActivateMasterIP also uses RPC/threads, so we run it again via a
   # separate process.
