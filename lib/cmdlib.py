@@ -8509,23 +8509,28 @@ class LUInstanceReplaceDisks(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
 
-    if self.op.iallocator is not None:
-      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+    assert locking.LEVEL_NODE not in self.needed_locks
+    assert locking.LEVEL_NODEGROUP not in self.needed_locks
 
-    elif self.op.remote_node is not None:
-      remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
-      self.op.remote_node = remote_node
+    assert self.op.iallocator is None or self.op.remote_node is None, \
+      "Conflicting options"
+
+    if self.op.remote_node is not None:
+      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
 
       # Warning: do not remove the locking of the new secondary here
       # unless DRBD8.AddChildren is changed to work in parallel;
       # currently it doesn't since parallel invocations of
       # FindUnusedMinor will conflict
-      self.needed_locks[locking.LEVEL_NODE] = [remote_node]
+      self.needed_locks[locking.LEVEL_NODE] = [self.op.remote_node]
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
-
     else:
       self.needed_locks[locking.LEVEL_NODE] = []
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+      if self.op.iallocator is not None:
+        # iallocator will select a new node in the same group
+        self.needed_locks[locking.LEVEL_NODEGROUP] = []
 
     self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node,
@@ -8534,11 +8539,26 @@ class LUInstanceReplaceDisks(LogicalUnit):
     self.tasklets = [self.replacer]
 
   def DeclareLocks(self, level):
-    # If we're not already locking all nodes in the set we have to declare the
-    # instance's primary/secondary nodes.
-    if (level == locking.LEVEL_NODE and
-        self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET):
-      self._LockInstancesNodes()
+    if level == locking.LEVEL_NODEGROUP:
+      assert self.op.remote_node is None
+      assert self.op.iallocator is not None
+      assert not self.needed_locks[locking.LEVEL_NODEGROUP]
+
+      self.share_locks[locking.LEVEL_NODEGROUP] = 1
+      self.needed_locks[locking.LEVEL_NODEGROUP] = \
+        self.cfg.GetInstanceNodeGroups(self.op.instance_name)
+
+    elif level == locking.LEVEL_NODE:
+      if self.op.iallocator is not None:
+        assert self.op.remote_node is None
+        assert not self.needed_locks[locking.LEVEL_NODE]
+
+        # Lock member nodes of all locked groups
+        self.needed_locks[locking.LEVEL_NODE] = [node_name
+          for group_uuid in self.acquired_locks[locking.LEVEL_NODEGROUP]
+          for node_name in self.cfg.GetNodeGroup(group_uuid).members]
+      else:
+        self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -8567,6 +8587,26 @@ class LUInstanceReplaceDisks(LogicalUnit):
     if self.op.remote_node is not None:
       nl.append(self.op.remote_node)
     return nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    assert (locking.LEVEL_NODEGROUP in self.acquired_locks or
+            self.op.iallocator is None)
+
+    if locking.LEVEL_NODEGROUP in self.acquired_locks:
+      groups = self.cfg.GetInstanceNodeGroups(self.op.instance_name)
+      prevgroups = self.acquired_locks[locking.LEVEL_NODEGROUP]
+      if prevgroups != groups:
+        raise errors.OpExecError("Node groups used by instance '%s' changed"
+                                 " since lock was acquired, current list is %r,"
+                                 " used to be '%s'" %
+                                 (self.op.instance_name,
+                                  utils.CommaJoin(groups),
+                                  utils.CommaJoin(prevgroups)))
+
+    return LogicalUnit.CheckPrereq(self)
 
 
 class TLReplaceDisks(Tasklet):
@@ -8720,12 +8760,15 @@ class TLReplaceDisks(Tasklet):
       remote_node = self._RunAllocator(self.lu, self.iallocator_name,
                                        instance.name, instance.secondary_nodes)
 
-    if remote_node is not None:
+    if remote_node is None:
+      self.remote_node_info = None
+    else:
+      assert remote_node in self.lu.acquired_locks[locking.LEVEL_NODE], \
+             "Remote node '%s' is not locked" % remote_node
+
       self.remote_node_info = self.cfg.GetNodeInfo(remote_node)
       assert self.remote_node_info is not None, \
         "Cannot retrieve locked node %s" % remote_node
-    else:
-      self.remote_node_info = None
 
     if remote_node == self.instance.primary_node:
       raise errors.OpPrereqError("The specified node is the primary node of"
@@ -8809,12 +8852,17 @@ class TLReplaceDisks(Tasklet):
     for node in check_nodes:
       _CheckNodeOnline(self.lu, node)
 
-    touched_nodes = frozenset([self.new_node, self.other_node,
-                               self.target_node])
+    touched_nodes = frozenset(node_name for node_name in [self.new_node,
+                                                          self.other_node,
+                                                          self.target_node]
+                              if node_name is not None)
 
-    if self.lu.needed_locks[locking.LEVEL_NODE] == locking.ALL_SET:
-      # Release unneeded node locks
-      _ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
+    # Release unneeded node locks
+    _ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
+
+    # Release any owned node group
+    if self.lu.context.glm.is_owned(locking.LEVEL_NODEGROUP):
+      _ReleaseLocks(self.lu, locking.LEVEL_NODEGROUP)
 
     # Check whether disks are valid
     for disk_idx in self.disks:
@@ -8823,8 +8871,7 @@ class TLReplaceDisks(Tasklet):
     # Get secondary node IP addresses
     self.node_secondary_ip = \
       dict((node_name, self.cfg.GetNodeInfo(node_name).secondary_ip)
-           for node_name in touched_nodes
-           if node_name is not None)
+           for node_name in touched_nodes)
 
   def Exec(self, feedback_fn):
     """Execute disk replacement.
@@ -8835,12 +8882,19 @@ class TLReplaceDisks(Tasklet):
     if self.delay_iallocator:
       self._CheckPrereq2()
 
-    if (self.lu.needed_locks[locking.LEVEL_NODE] == locking.ALL_SET and
-        __debug__):
+    if __debug__:
       # Verify owned locks before starting operation
       owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
       assert set(owned_locks) == set(self.node_secondary_ip), \
-          "Not owning the correct locks: %s" % (owned_locks, )
+          ("Incorrect node locks, owning %s, expected %s" %
+           (owned_locks, self.node_secondary_ip.keys()))
+
+      owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_INSTANCE)
+      assert list(owned_locks) == [self.instance_name], \
+          "Instance '%s' not locked" % self.instance_name
+
+      assert not self.lu.context.glm.is_owned(locking.LEVEL_NODEGROUP), \
+          "Should not own any node group lock at this point"
 
     if not self.disks:
       feedback_fn("No disks need replacement")
