@@ -164,13 +164,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VNC_X509: hv_base.OPT_DIR_CHECK,
     constants.HV_VNC_X509_VERIFY: hv_base.NO_CHECK,
     constants.HV_VNC_PASSWORD_FILE: hv_base.OPT_FILE_CHECK,
+    constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_BOOT_ORDER:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
     constants.HV_NIC_TYPE:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_NIC_TYPES),
     constants.HV_DISK_TYPE:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
+    constants.HV_KVM_CDROM_DISK_TYPE:
+      hv_base.ParamInSet(False, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_USB_MOUSE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
@@ -517,6 +521,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     hvp = instance.hvparams
     boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
     boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
+    boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
     boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
@@ -565,20 +570,49 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                                 cache_val)
       kvm_cmd.extend(['-drive', drive_val])
 
+    #Now we can specify a different device type for CDROM devices.
+    cdrom_disk_type = hvp[constants.HV_KVM_CDROM_DISK_TYPE]
+    if not cdrom_disk_type:
+      cdrom_disk_type = disk_type
+
     iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_image:
       options = ',format=raw,media=cdrom'
       if boot_cdrom:
         kvm_cmd.extend(['-boot', 'd'])
-        if disk_type != constants.HT_DISK_IDE:
+        if cdrom_disk_type != constants.HT_DISK_IDE:
+          options = '%s,boot=on,if=%s' % (options, constants.HT_DISK_IDE)
+        else:
           options = '%s,boot=on' % options
       else:
-        if disk_type == constants.HT_DISK_PARAVIRTUAL:
+        if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
           if_val = ',if=virtio'
         else:
-          if_val = ',if=%s' % disk_type
+          if_val = ',if=%s' % cdrom_disk_type
         options = '%s%s' % (options, if_val)
       drive_val = 'file=%s%s' % (iso_image, options)
+      kvm_cmd.extend(['-drive', drive_val])
+
+    iso_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
+    if iso_image2:
+      options = ',format=raw,media=cdrom'
+      if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
+        if_val = ',if=virtio'
+      else:
+        if_val = ',if=%s' % cdrom_disk_type
+      options = '%s%s' % (options, if_val)
+      drive_val = 'file=%s%s' % (iso_image2, options)
+      kvm_cmd.extend(['-drive', drive_val])
+
+    floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
+    if floppy_image:
+      options = ',format=raw,media=disk'
+      if boot_floppy:
+        kvm_cmd.extend(['-boot', 'a'])
+        options = '%s,boot=on' % options
+      if_val = ',if=floppy'
+      options = '%s%s' % (options, if_val)
+      drive_val = 'file=%s%s' % (floppy_image, options)
       kvm_cmd.extend(['-drive', drive_val])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
