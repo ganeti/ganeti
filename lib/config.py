@@ -1243,6 +1243,25 @@ class ConfigWriter:
     return self._UnlockedGetInstanceInfo(instance_name)
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstanceNodeGroups(self, instance_name, primary_only=False):
+    """Returns set of node group UUIDs for instance's nodes.
+
+    @rtype: frozenset
+
+    """
+    instance = self._UnlockedGetInstanceInfo(instance_name)
+    if not instance:
+      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
+
+    if primary_only:
+      nodes = [instance.primary_node]
+    else:
+      nodes = instance.all_nodes
+
+    return frozenset(self._UnlockedGetNodeInfo(node_name).group
+                     for node_name in nodes)
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetAllInstancesInfo(self):
     """Get the configuration of all instances.
 
