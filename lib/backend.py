@@ -644,6 +644,10 @@ def VerifyNode(what, cluster_name):
   if constants.NV_OSLIST in what and vm_capable:
     result[constants.NV_OSLIST] = DiagnoseOS()
 
+  if constants.NV_BRIDGES in what and vm_capable:
+    result[constants.NV_BRIDGES] = [bridge
+                                    for bridge in what[constants.NV_BRIDGES]
+                                    if not utils.BridgeExists(bridge)]
   return result
 
 

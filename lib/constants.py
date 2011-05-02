@@ -870,6 +870,7 @@ NV_VERSION = "version"
 NV_VGLIST = "vglist"
 NV_VMNODES = "vmnodes"
 NV_OOB_PATHS = "oob-paths"
+NV_BRIDGES = "bridges"
 
 # SSL certificate check constants (in days)
 SSL_CERT_EXPIRATION_WARN = 30
