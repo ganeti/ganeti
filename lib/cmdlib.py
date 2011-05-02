@@ -1444,7 +1444,7 @@ class LUClusterVerify(LogicalUnit):
              ntime_diff)
 
   def _VerifyNodeLVM(self, ninfo, nresult, vg_name):
-    """Check the node time.
+    """Check the node LVM results.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
@@ -1486,7 +1486,7 @@ class LUClusterVerify(LogicalUnit):
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
     @param nresult: the remote results for the node
-    @param vg_name: the expected list of bridges
+    @param bridges: the expected list of bridges
 
     """
     if not bridges:
@@ -1504,7 +1504,7 @@ class LUClusterVerify(LogicalUnit):
                utils.CommaJoin(sorted(missing)))
 
   def _VerifyNodeNetwork(self, ninfo, nresult):
-    """Check the node time.
+    """Check the node network connectivity results.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
