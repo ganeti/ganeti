@@ -2125,12 +2125,11 @@ class LUClusterVerify(LogicalUnit):
     drbd_helper = self.cfg.GetDRBDHelper()
     hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
     cluster = self.cfg.GetClusterInfo()
-    nodelist = utils.NiceSort(self.cfg.GetNodeList())
-    nodeinfo = [self.cfg.GetNodeInfo(nname) for nname in nodelist]
-    nodeinfo_byname = dict(zip(nodelist, nodeinfo))
-    instancelist = utils.NiceSort(self.cfg.GetInstanceList())
-    instanceinfo = dict((iname, self.cfg.GetInstanceInfo(iname))
-                        for iname in instancelist)
+    nodeinfo_byname = self.cfg.GetAllNodesInfo()
+    nodelist = utils.NiceSort(nodeinfo_byname.keys())
+    nodeinfo = [nodeinfo_byname[nname] for nname in nodelist]
+    instanceinfo = self.cfg.GetAllInstancesInfo()
+    instancelist = utils.NiceSort(instanceinfo.keys())
     groupinfo = self.cfg.GetAllNodeGroupsInfo()
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
