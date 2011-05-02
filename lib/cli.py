@@ -27,6 +27,7 @@ import textwrap
 import os.path
 import time
 import logging
+import errno
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -1939,6 +1940,12 @@ def GenericMain(commands, override=None, aliases=None):
     ToStderr("Aborted. Note that if the operation created any jobs, they"
              " might have been submitted and"
              " will continue to run in the background.")
+  except IOError, err:
+    if err.errno == errno.EPIPE:
+      # our terminal went away, we'll exit
+      sys.exit(constants.EXIT_FAILURE)
+    else:
+      raise
 
   return result
 
@@ -2795,13 +2802,20 @@ def _ToStream(stream, txt, *args):
   @param txt: the message
 
   """
-  if args:
-    args = tuple(args)
-    stream.write(txt % args)
-  else:
-    stream.write(txt)
-  stream.write('\n')
-  stream.flush()
+  try:
+    if args:
+      args = tuple(args)
+      stream.write(txt % args)
+    else:
+      stream.write(txt)
+    stream.write('\n')
+    stream.flush()
+  except IOError, err:
+    if err.errno == errno.EPIPE:
+      # our terminal went away, we'll exit
+      sys.exit(constants.EXIT_FAILURE)
+    else:
+      raise
 
 
 def ToStdout(txt, *args):
