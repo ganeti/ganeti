@@ -1389,6 +1389,14 @@ class LUClusterVerify(LogicalUnit):
     }
     self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
+  def CheckPrereq(self):
+    self.all_node_info = self.cfg.GetAllNodesInfo()
+    self.all_inst_info = self.cfg.GetAllInstancesInfo()
+    self.my_node_names = utils.NiceSort(list(self.all_node_info))
+    self.my_node_info = self.all_node_info
+    self.my_inst_names = utils.NiceSort(list(self.all_inst_info))
+    self.my_inst_info = self.all_inst_info
+
   def _Error(self, ecode, item, msg, *args, **kwargs):
     """Format an error message.
 
@@ -2224,14 +2232,12 @@ class LUClusterVerify(LogicalUnit):
     the output be logged in the verify output and the verification to fail.
 
     """
-    cfg = self.cfg
-
     env = {
-      "CLUSTER_TAGS": " ".join(cfg.GetClusterInfo().GetTags())
+      "CLUSTER_TAGS": " ".join(self.cfg.GetClusterInfo().GetTags())
       }
 
     env.update(("NODE_TAGS_%s" % node.name, " ".join(node.GetTags()))
-               for node in cfg.GetAllNodesInfo().values())
+               for node in self.my_node_info.values())
 
     return env
 
@@ -2239,7 +2245,9 @@ class LUClusterVerify(LogicalUnit):
     """Build hooks nodes.
 
     """
-    return ([], self.cfg.GetNodeList())
+    assert self.my_node_names, ("Node list not gathered,"
+      " has CheckPrereq been executed?")
+    return ([], self.my_node_names)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster, performing various test on nodes.
@@ -2263,12 +2271,9 @@ class LUClusterVerify(LogicalUnit):
     drbd_helper = self.cfg.GetDRBDHelper()
     hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
     cluster = self.cfg.GetClusterInfo()
-    nodeinfo_byname = self.cfg.GetAllNodesInfo()
-    nodelist = utils.NiceSort(nodeinfo_byname.keys())
-    nodeinfo = [nodeinfo_byname[nname] for nname in nodelist]
-    instanceinfo = self.cfg.GetAllInstancesInfo()
-    instancelist = utils.NiceSort(instanceinfo.keys())
     groupinfo = self.cfg.GetAllNodeGroupsInfo()
+    node_data_list = [self.my_node_info[name] for name in self.my_node_names]
+
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
     n_offline = 0 # Count of offline nodes
@@ -2295,7 +2300,7 @@ class LUClusterVerify(LogicalUnit):
         full_params = cluster.GetHVDefaults(hv_name, os_name=os_name)
         hvp_data.append(("os %s" % os_name, hv_name, full_params))
     # TODO: collapse identical parameter values in a single one
-    for instance in instanceinfo.values():
+    for instance in self.my_inst_info.values():
       if not instance.hvparams:
         continue
       hvp_data.append(("instance %s" % instance.name, instance.hypervisor,
@@ -2303,18 +2308,18 @@ class LUClusterVerify(LogicalUnit):
     # and verify them locally
     self._VerifyHVP(hvp_data)
 
-    feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
+    feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_names))
     node_verify_param = {
       constants.NV_FILELIST:
         utils.UniqueSequence(filename
                              for files in filemap
                              for filename in files),
-      constants.NV_NODELIST: [node.name for node in nodeinfo
+      constants.NV_NODELIST: [node.name for node in node_data_list
                               if not node.offline],
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_HVPARAMS: hvp_data,
-      constants.NV_NODENETTEST: [(node.name, node.primary_ip,
-                                  node.secondary_ip) for node in nodeinfo
+      constants.NV_NODENETTEST: [(node.name, node.primary_ip, node.secondary_ip)
+                                 for node in node_data_list
                                  if not node.offline],
       constants.NV_INSTANCELIST: hypervisors,
       constants.NV_VERSION: None,
@@ -2354,11 +2359,11 @@ class LUClusterVerify(LogicalUnit):
     node_image = dict((node.name, self.NodeImage(offline=node.offline,
                                                  name=node.name,
                                                  vm_capable=node.vm_capable))
-                      for node in nodeinfo)
+                      for node in node_data_list)
 
     # Gather OOB paths
     oob_paths = []
-    for node in nodeinfo:
+    for node in node_data_list:
       path = _SupportsOob(self.cfg, node)
       if path and path not in oob_paths:
         oob_paths.append(path)
@@ -2366,8 +2371,8 @@ class LUClusterVerify(LogicalUnit):
     if oob_paths:
       node_verify_param[constants.NV_OOB_PATHS] = oob_paths
 
-    for instance in instancelist:
-      inst_config = instanceinfo[instance]
+    for instance in self.my_inst_names:
+      inst_config = self.my_inst_info[instance]
 
       for nname in inst_config.all_nodes:
         if nname not in node_image:
@@ -2396,23 +2401,27 @@ class LUClusterVerify(LogicalUnit):
     # time before and after executing the request, we can at least have a time
     # window.
     nvinfo_starttime = time.time()
-    all_nvinfo = self.rpc.call_node_verify(nodelist, node_verify_param,
+    all_nvinfo = self.rpc.call_node_verify(self.my_node_names,
+                                           node_verify_param,
                                            self.cfg.GetClusterName())
     nvinfo_endtime = time.time()
 
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
-    feedback_fn("* Gathering disk information (%s nodes)" % len(nodelist))
-    instdisk = self._CollectDiskInfo(nodelist, node_image, instanceinfo)
+    feedback_fn("* Gathering disk information (%s nodes)" %
+                len(self.my_node_names))
+    instdisk = self._CollectDiskInfo(self.my_node_names, node_image,
+                                     self.my_inst_info)
 
     feedback_fn("* Verifying configuration file consistency")
-    self._VerifyFiles(_ErrorIf, nodeinfo, master_node, all_nvinfo, filemap)
+    self._VerifyFiles(_ErrorIf, self.my_node_info.values(), master_node,
+                      all_nvinfo, filemap)
 
     feedback_fn("* Verifying node status")
 
     refos_img = None
 
-    for node_i in nodeinfo:
+    for node_i in node_data_list:
       node = node_i.name
       nimg = node_image[node]
 
@@ -2449,7 +2458,7 @@ class LUClusterVerify(LogicalUnit):
 
       if nimg.vm_capable:
         self._VerifyNodeLVM(node_i, nresult, vg_name)
-        self._VerifyNodeDrbd(node_i, nresult, instanceinfo, drbd_helper,
+        self._VerifyNodeDrbd(node_i, nresult, self.my_inst_info, drbd_helper,
                              all_drbd_map)
 
         self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
@@ -2463,10 +2472,10 @@ class LUClusterVerify(LogicalUnit):
         self._VerifyNodeBridges(node_i, nresult, bridges)
 
     feedback_fn("* Verifying instance status")
-    for instance in instancelist:
+    for instance in self.my_inst_names:
       if verbose:
         feedback_fn("* Verifying instance %s" % instance)
-      inst_config = instanceinfo[instance]
+      inst_config = self.my_inst_info[instance]
       self._VerifyInstance(instance, inst_config, node_image,
                            instdisk[instance])
       inst_nodes_offline = []
@@ -2501,7 +2510,7 @@ class LUClusterVerify(LogicalUnit):
         instance_groups = {}
 
         for node in instance_nodes:
-          instance_groups.setdefault(nodeinfo_byname[node].group,
+          instance_groups.setdefault(self.my_node_info[node].group,
                                      []).append(node)
 
         pretty_list = [
@@ -2543,11 +2552,11 @@ class LUClusterVerify(LogicalUnit):
     self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)
 
     feedback_fn("* Verifying orphan instances")
-    self._VerifyOrphanInstances(instancelist, node_image)
+    self._VerifyOrphanInstances(self.my_inst_names, node_image)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
-      self._VerifyNPlusOneMemory(node_image, instanceinfo)
+      self._VerifyNPlusOneMemory(node_image, self.my_inst_info)
 
     feedback_fn("* Other Notes")
     if i_non_redundant:
