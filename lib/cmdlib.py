@@ -1286,14 +1286,13 @@ def _VerifyCertificate(filename):
   raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)
 
 
-class LUClusterVerify(LogicalUnit):
-  """Verifies the cluster status.
+class _VerifyErrors(object):
+  """Mix-in for cluster/group verify LUs.
+
+  It provides _Error and _ErrorIf, and updates the self.bad boolean. (Expects
+  self.op and self._feedback_fn to be available.)
 
   """
-  HPATH = "cluster-verify"
-  HTYPE = constants.HTYPE_CLUSTER
-  REQ_BGL = False
-
   TCLUSTER = "cluster"
   TNODE = "node"
   TINSTANCE = "instance"
@@ -1329,6 +1328,53 @@ class LUClusterVerify(LogicalUnit):
   ETYPE_FIELD = "code"
   ETYPE_ERROR = "ERROR"
   ETYPE_WARNING = "WARNING"
+
+  def _Error(self, ecode, item, msg, *args, **kwargs):
+    """Format an error message.
+
+    Based on the opcode's error_codes parameter, either format a
+    parseable error code, or a simpler error string.
+
+    This must be called only from Exec and functions called from Exec.
+
+    """
+    ltype = kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR)
+    itype, etxt = ecode
+    # first complete the msg
+    if args:
+      msg = msg % args
+    # then format the whole message
+    if self.op.error_codes: # This is a mix-in. pylint: disable-msg=E1101
+      msg = "%s:%s:%s:%s:%s" % (ltype, etxt, itype, item, msg)
+    else:
+      if item:
+        item = " " + item
+      else:
+        item = ""
+      msg = "%s: %s%s: %s" % (ltype, itype, item, msg)
+    # and finally report it via the feedback_fn
+    self._feedback_fn("  - %s" % msg) # Mix-in. pylint: disable-msg=E1101
+
+  def _ErrorIf(self, cond, *args, **kwargs):
+    """Log an error message if the passed condition is True.
+
+    """
+    cond = (bool(cond)
+            or self.op.debug_simulate_errors) # pylint: disable-msg=E1101
+    if cond:
+      self._Error(*args, **kwargs)
+    # do not mark the operation as failed for WARN cases only
+    if kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR) == self.ETYPE_ERROR:
+      self.bad = self.bad or cond
+
+
+class LUClusterVerify(LogicalUnit, _VerifyErrors):
+  """Verifies the cluster status.
+
+  """
+  HPATH = "cluster-verify"
+  HTYPE = constants.HTYPE_CLUSTER
+  REQ_BGL = False
 
   _HOOKS_INDENT_RE = re.compile("^", re.M)
 
@@ -1396,43 +1442,6 @@ class LUClusterVerify(LogicalUnit):
     self.my_node_info = self.all_node_info
     self.my_inst_names = utils.NiceSort(list(self.all_inst_info))
     self.my_inst_info = self.all_inst_info
-
-  def _Error(self, ecode, item, msg, *args, **kwargs):
-    """Format an error message.
-
-    Based on the opcode's error_codes parameter, either format a
-    parseable error code, or a simpler error string.
-
-    This must be called only from Exec and functions called from Exec.
-
-    """
-    ltype = kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR)
-    itype, etxt = ecode
-    # first complete the msg
-    if args:
-      msg = msg % args
-    # then format the whole message
-    if self.op.error_codes:
-      msg = "%s:%s:%s:%s:%s" % (ltype, etxt, itype, item, msg)
-    else:
-      if item:
-        item = " " + item
-      else:
-        item = ""
-      msg = "%s: %s%s: %s" % (ltype, itype, item, msg)
-    # and finally report it via the feedback_fn
-    self._feedback_fn("  - %s" % msg)
-
-  def _ErrorIf(self, cond, *args, **kwargs):
-    """Log an error message if the passed condition is True.
-
-    """
-    cond = bool(cond) or self.op.debug_simulate_errors
-    if cond:
-      self._Error(*args, **kwargs)
-    # do not mark the operation as failed for WARN cases only
-    if kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR) == self.ETYPE_ERROR:
-      self.bad = self.bad or cond
 
   def _VerifyNode(self, ninfo, nresult):
     """Perform some basic validation on data returned from a node.
