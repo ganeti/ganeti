@@ -456,12 +456,16 @@ def VerifyCluster(opts, args):
   simulate = opts.simulate_errors
   skip_checks = []
 
-  # Verify cluster config.
-  op = opcodes.OpClusterVerifyConfig(verbose=opts.verbose,
-                                     error_codes=opts.error_codes,
-                                     debug_simulate_errors=simulate)
+  if opts.nodegroup is None:
+    # Verify cluster config.
+    op = opcodes.OpClusterVerifyConfig(verbose=opts.verbose,
+                                       error_codes=opts.error_codes,
+                                       debug_simulate_errors=simulate)
 
-  success, all_groups = SubmitOpCode(op, opts=opts)
+    success, all_groups = SubmitOpCode(op, opts=opts)
+  else:
+    success = True
+    all_groups = [opts.nodegroup]
 
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
@@ -1259,7 +1263,7 @@ commands = {
   'verify': (
     VerifyCluster, ARGS_NONE,
     [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT],
     "", "Does a check on the cluster configuration"),
   'verify-disks': (
     VerifyDisks, ARGS_NONE, [PRIORITY_OPT],

@@ -579,7 +579,7 @@ node will be listed as /nodes/*name*, and an instance as
 VERIFY
 ~~~~~~
 
-**verify** [--no-nplus1-mem]
+**verify** [--no-nplus1-mem] [--node-group *nodegroup*]
 
 Verify correctness of cluster configuration. This is safe with
 respect to running instances, and incurs no downtime of the
@@ -588,6 +588,11 @@ instances.
 If the ``--no-nplus1-mem`` option is given, Ganeti won't check
 whether if it loses a node it can restart all the instances on
 their secondaries (and report an error otherwise).
+
+With ``--node-group``, restrict the verification to those nodes and
+instances that live in the named group. This will not verify global
+settings, but will allow to perform verification of a group while other
+operations are ongoing in other groups.
 
 VERIFY-DISKS
 ~~~~~~~~~~~~
