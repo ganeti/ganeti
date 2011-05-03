@@ -2387,13 +2387,26 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     master_ip = self.cfg.GetMasterIP()
 
     feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_names))
+
+    # We will make nodes contact all nodes in their group, and one node from
+    # every other group.
+    # TODO: should it be a *random* node, different every time?
+    online_nodes = [node.name for node in node_data_list if not node.offline]
+    other_group_nodes = {}
+
+    for name in sorted(self.all_node_info):
+      node = self.all_node_info[name]
+      if (node.group not in other_group_nodes
+          and node.group != self.group_uuid
+          and not node.offline):
+        other_group_nodes[node.group] = node.name
+
     node_verify_param = {
       constants.NV_FILELIST:
         utils.UniqueSequence(filename
                              for files in filemap
                              for filename in files),
-      constants.NV_NODELIST: [node.name for node in self.all_node_info.values()
-                              if not node.offline],
+      constants.NV_NODELIST: online_nodes + other_group_nodes.values(),
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_HVPARAMS:
         _GetAllHypervisorParameters(cluster, self.all_inst_info.values()),
