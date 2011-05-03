@@ -179,7 +179,7 @@ boot\_order
     The default is not to set an HVM boot order which is interpreted as
     'dc'.
 
-    For KVM the boot order is either "cdrom", "disk" or "network".
+    For KVM the boot order is either "floppy", "cdrom", "disk" or "network".
     Please note that older versions of KVM couldn't netboot from virtio
     interfaces. This has been fixed in more recent versions and is
     confirmed to work at least with qemu-kvm 0.11.1.
@@ -191,10 +191,24 @@ blockdev\_prefix
     given by the host.  Allows to specify 'xvd', which helps run Red Hat based
     installers, driven by anaconda.
 
+floppy\_image\_path
+    Valid for the KVM hypervisor.
+
+    The path to a floppy disk image to attach to the instance.
+    This is useful to install Windows operating systems on Virt/IO disks because
+    you can specify here the floppy for the drivers at installation time.
+
 cdrom\_image\_path
     Valid for the Xen HVM and KVM hypervisors.
 
     The path to a CDROM image to attach to the instance.
+
+cdrom2\_image\_path
+    Valid for the KVM hypervisor.
+
+    The path to a second CDROM image to attach to the instance.
+    **NOTE**: This image can't be used to boot the system. To do that
+    you have to use the 'cdrom\_image\_path' option.
 
 nic\_type
     Valid for the Xen HVM and KVM hypervisors.
@@ -229,6 +243,23 @@ disk\_type
     sd (KVM)
     mtd (KVM)
     pflash (KVM)
+
+
+cdrom\_disk\_type
+    Valid for the KVM hypervisor.
+
+    This parameter determines the way the cdroms disks are presented to the
+    instance. The default behavior is to get the same value of the eariler
+    parameter (disk_type). The possible options are:
+
+
+
+    paravirtual
+    ide
+    scsi
+    sd
+    mtd
+    pflash
 
 
 vnc\_bind\_address
