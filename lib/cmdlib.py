@@ -1286,6 +1286,38 @@ def _VerifyCertificate(filename):
   raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)
 
 
+def _GetAllHypervisorParameters(cluster, instances):
+  """Compute the set of all hypervisor parameters.
+
+  @type cluster: L{objects.Cluster}
+  @param cluster: the cluster object
+  @param instances: list of L{objects.Instance}
+  @param instances: additional instances from which to obtain parameters
+  @rtype: list of (origin, hypervisor, parameters)
+  @return: a list with all parameters found, indicating the hypervisor they
+       apply to, and the origin (can be "cluster", "os X", or "instance Y")
+
+  """
+  hvp_data = []
+
+  for hv_name in cluster.enabled_hypervisors:
+    hvp_data.append(("cluster", hv_name, cluster.GetHVDefaults(hv_name)))
+
+  for os_name, os_hvp in cluster.os_hvp.items():
+    for hv_name, hv_params in os_hvp.items():
+      if hv_params:
+        full_params = cluster.GetHVDefaults(hv_name, os_name=os_name)
+        hvp_data.append(("os %s" % os_name, hv_name, full_params))
+
+  # TODO: collapse identical parameter values in a single one
+  for instance in instances:
+    if instance.hvparams:
+      hvp_data.append(("instance %s" % instance.name, instance.hypervisor,
+                       cluster.FillHV(instance)))
+
+  return hvp_data
+
+
 class _VerifyErrors(object):
   """Mix-in for cluster/group verify LUs.
 
@@ -1375,8 +1407,23 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
   REQ_BGL = False
 
+  def _VerifyHVP(self, hvp_data):
+    """Verifies locally the syntax of the hypervisor parameters.
+
+    """
+    for item, hv_name, hv_params in hvp_data:
+      msg = ("hypervisor %s parameters syntax check (source %s): %%s" %
+             (item, hv_name))
+      try:
+        hv_class = hypervisor.GetHypervisor(hv_name)
+        utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
+        hv_class.CheckParameterSyntax(hv_params)
+      except errors.GenericError, err:
+        self._ErrorIf(True, self.ECLUSTERCFG, None, msg % str(err))
+
   def ExpandNames(self):
     self.all_group_info = self.cfg.GetAllNodeGroupsInfo()
+    self.all_inst_info = self.cfg.GetAllInstancesInfo()
     self.needed_locks = {}
 
   def Exec(self, feedback_fn):
@@ -1396,6 +1443,11 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     for cert_filename in constants.ALL_CERT_FILES:
       (errcode, msg) = _VerifyCertificate(cert_filename)
       self._ErrorIf(errcode, self.ECLUSTERCERT, None, msg, code=errcode)
+
+    feedback_fn("* Verifying hypervisor parameters")
+
+    self._VerifyHVP(_GetAllHypervisorParameters(self.cfg.GetClusterInfo(),
+                                                self.all_inst_info.values()))
 
     return (not self.bad, [g.name for g in self.all_group_info.values()])
 
@@ -2278,20 +2330,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     return instdisk
 
-  def _VerifyHVP(self, hvp_data):
-    """Verifies locally the syntax of the hypervisor parameters.
-
-    """
-    for item, hv_name, hv_params in hvp_data:
-      msg = ("hypervisor %s parameters syntax check (source %s): %%s" %
-             (item, hv_name))
-      try:
-        hv_class = hypervisor.GetHypervisor(hv_name)
-        utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
-        hv_class.CheckParameterSyntax(hv_params)
-      except errors.GenericError, err:
-        self._ErrorIf(True, self.ECLUSTERCFG, None, msg % str(err))
-
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -2328,9 +2366,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     vg_name = self.cfg.GetVGName()
     drbd_helper = self.cfg.GetDRBDHelper()
-    hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
     cluster = self.cfg.GetClusterInfo()
     groupinfo = self.cfg.GetAllNodeGroupsInfo()
+    hypervisors = cluster.enabled_hypervisors
     node_data_list = [self.my_node_info[name] for name in self.my_node_names]
 
     i_non_redundant = [] # Non redundant instances
@@ -2348,25 +2386,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     master_node = self.master_node = self.cfg.GetMasterNode()
     master_ip = self.cfg.GetMasterIP()
 
-    # Compute the set of hypervisor parameters
-    hvp_data = []
-    for hv_name in hypervisors:
-      hvp_data.append(("cluster", hv_name, cluster.GetHVDefaults(hv_name)))
-    for os_name, os_hvp in cluster.os_hvp.items():
-      for hv_name, hv_params in os_hvp.items():
-        if not hv_params:
-          continue
-        full_params = cluster.GetHVDefaults(hv_name, os_name=os_name)
-        hvp_data.append(("os %s" % os_name, hv_name, full_params))
-    # TODO: collapse identical parameter values in a single one
-    for instance in self.all_inst_info.values():
-      if not instance.hvparams:
-        continue
-      hvp_data.append(("instance %s" % instance.name, instance.hypervisor,
-                       cluster.FillHV(instance)))
-    # and verify them locally
-    self._VerifyHVP(hvp_data)
-
     feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_names))
     node_verify_param = {
       constants.NV_FILELIST:
@@ -2376,7 +2395,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_NODELIST: [node.name for node in self.all_node_info.values()
                               if not node.offline],
       constants.NV_HYPERVISOR: hypervisors,
-      constants.NV_HVPARAMS: hvp_data,
+      constants.NV_HVPARAMS:
+        _GetAllHypervisorParameters(cluster, self.all_inst_info.values()),
       constants.NV_NODENETTEST: [(node.name, node.primary_ip, node.secondary_ip)
                                  for node in node_data_list
                                  if not node.offline],
