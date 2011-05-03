@@ -2300,7 +2300,7 @@ class LUClusterVerify(LogicalUnit):
         full_params = cluster.GetHVDefaults(hv_name, os_name=os_name)
         hvp_data.append(("os %s" % os_name, hv_name, full_params))
     # TODO: collapse identical parameter values in a single one
-    for instance in self.my_inst_info.values():
+    for instance in self.all_inst_info.values():
       if not instance.hvparams:
         continue
       hvp_data.append(("instance %s" % instance.name, instance.hypervisor,
@@ -2314,7 +2314,7 @@ class LUClusterVerify(LogicalUnit):
         utils.UniqueSequence(filename
                              for files in filemap
                              for filename in files),
-      constants.NV_NODELIST: [node.name for node in node_data_list
+      constants.NV_NODELIST: [node.name for node in self.all_node_info.values()
                               if not node.offline],
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_HVPARAMS: hvp_data,
@@ -2363,7 +2363,7 @@ class LUClusterVerify(LogicalUnit):
 
     # Gather OOB paths
     oob_paths = []
-    for node in node_data_list:
+    for node in self.all_node_info.values():
       path = _SupportsOob(self.cfg, node)
       if path and path not in oob_paths:
         oob_paths.append(path)
@@ -2458,7 +2458,7 @@ class LUClusterVerify(LogicalUnit):
 
       if nimg.vm_capable:
         self._VerifyNodeLVM(node_i, nresult, vg_name)
-        self._VerifyNodeDrbd(node_i, nresult, self.my_inst_info, drbd_helper,
+        self._VerifyNodeDrbd(node_i, nresult, self.all_inst_info, drbd_helper,
                              all_drbd_map)
 
         self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
@@ -2510,7 +2510,7 @@ class LUClusterVerify(LogicalUnit):
         instance_groups = {}
 
         for node in instance_nodes:
-          instance_groups.setdefault(self.my_node_info[node].group,
+          instance_groups.setdefault(self.all_node_info[node].group,
                                      []).append(node)
 
         pretty_list = [
@@ -2552,7 +2552,7 @@ class LUClusterVerify(LogicalUnit):
     self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)
 
     feedback_fn("* Verifying orphan instances")
-    self._VerifyOrphanInstances(self.my_inst_names, node_image)
+    self._VerifyOrphanInstances(set(self.all_inst_info.keys()), node_image)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
