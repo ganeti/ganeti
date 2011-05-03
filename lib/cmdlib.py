@@ -1332,6 +1332,8 @@ class _VerifyErrors(object):
   ECLUSTERCFG = (TCLUSTER, "ECLUSTERCFG")
   ECLUSTERCERT = (TCLUSTER, "ECLUSTERCERT")
   ECLUSTERFILECHECK = (TCLUSTER, "ECLUSTERFILECHECK")
+  ECLUSTERDANGLINGNODES = (TNODE, "ECLUSTERDANGLINGNODES")
+  ECLUSTERDANGLINGINST = (TNODE, "ECLUSTERDANGLINGINST")
   EINSTANCEBADNODE = (TINSTANCE, "EINSTANCEBADNODE")
   EINSTANCEDOWN = (TINSTANCE, "EINSTANCEDOWN")
   EINSTANCELAYOUT = (TINSTANCE, "EINSTANCELAYOUT")
@@ -1423,6 +1425,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
   def ExpandNames(self):
     self.all_group_info = self.cfg.GetAllNodeGroupsInfo()
+    self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
     self.needed_locks = {}
 
@@ -1448,6 +1451,39 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
     self._VerifyHVP(_GetAllHypervisorParameters(self.cfg.GetClusterInfo(),
                                                 self.all_inst_info.values()))
+
+    feedback_fn("* Verifying all nodes belong to an existing group")
+
+    # We do this verification here because, should this bogus circumstance
+    # occur, it would never be catched by VerifyGroup, which only acts on
+    # nodes/instances reachable from existing node groups.
+
+    dangling_nodes = set(node.name for node in self.all_node_info.values()
+                         if node.group not in self.all_group_info)
+
+    dangling_instances = {}
+    no_node_instances = []
+
+    for inst in self.all_inst_info.values():
+      if inst.primary_node in dangling_nodes:
+        dangling_instances.setdefault(inst.primary_node, []).append(inst.name)
+      elif inst.primary_node not in self.all_node_info:
+        no_node_instances.append(inst.name)
+
+    pretty_dangling = [
+        "%s (%s)" %
+        (node.name,
+         utils.CommaJoin(dangling_instances.get(node.name,
+                                                ["no instances"])))
+        for node in dangling_nodes]
+
+    self._ErrorIf(bool(dangling_nodes), self.ECLUSTERDANGLINGNODES, None,
+                  "the following nodes (and their instances) belong to a non"
+                  " existing group: %s", utils.CommaJoin(pretty_dangling))
+
+    self._ErrorIf(bool(no_node_instances), self.ECLUSTERDANGLINGINST, None,
+                  "the following instances have a non-existing primary-node:"
+                  " %s", utils.CommaJoin(no_node_instances))
 
     return (not self.bad, [g.name for g in self.all_group_info.values()])
 
