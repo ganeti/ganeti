@@ -1528,6 +1528,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                   for inst in all_inst_info.values()
                   if inst.primary_node in node_names]
 
+    # In Exec(), we warn about mirrored instances that have primary and
+    # secondary living in separate node groups. To fully verify that
+    # volumes for these instances are healthy, we will need to do an
+    # extra call to their secondaries. We ensure here those nodes will
+    # be locked.
+    for inst in inst_names:
+      if all_inst_info[inst].disk_template in constants.DTS_INT_MIRROR:
+        node_names.update(all_inst_info[inst].secondary_nodes)
+
     self.needed_locks = {
       locking.LEVEL_NODEGROUP: [self.group_uuid],
       locking.LEVEL_NODE: list(node_names),
@@ -1570,6 +1579,25 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     self.my_inst_info = dict((name, self.all_inst_info[name])
                              for name in self.my_inst_names)
+
+    # We detect here the nodes that will need the extra RPC calls for verifying
+    # split LV volumes; they should be locked.
+    extra_lv_nodes = set()
+
+    for inst in self.my_inst_info.values():
+      if inst.disk_template in constants.DTS_INT_MIRROR:
+        group = self.my_node_info[inst.primary_node].group
+        for nname in inst.secondary_nodes:
+          if self.all_node_info[nname].group != group:
+            extra_lv_nodes.add(nname)
+
+    unlocked_lv_nodes = \
+        extra_lv_nodes.difference(self.glm.list_owned(locking.LEVEL_NODE))
+
+    if unlocked_lv_nodes:
+      raise errors.OpPrereqError("these nodes could be locked: %s" %
+                                 utils.CommaJoin(unlocked_lv_nodes))
+    self.extra_lv_nodes = list(extra_lv_nodes)
 
   def _VerifyNode(self, ninfo, nresult):
     """Perform some basic validation on data returned from a node.
@@ -2468,9 +2496,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
       for nname in inst_config.all_nodes:
         if nname not in node_image:
-          # ghost node
           gnode = self.NodeImage(name=nname)
-          gnode.ghost = True
+          gnode.ghost = (nname not in self.all_node_info)
           node_image[nname] = gnode
 
       inst_config.MapLVsByNode(node_vol_should)
@@ -2496,6 +2523,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     all_nvinfo = self.rpc.call_node_verify(self.my_node_names,
                                            node_verify_param,
                                            self.cfg.GetClusterName())
+    if self.extra_lv_nodes and vg_name is not None:
+      extra_lv_nvinfo = \
+          self.rpc.call_node_verify(self.extra_lv_nodes,
+                                    {constants.NV_LVLIST: vg_name},
+                                    self.cfg.GetClusterName())
+    else:
+      extra_lv_nvinfo = {}
     nvinfo_endtime = time.time()
 
     all_drbd_map = self.cfg.ComputeDRBDMap()
@@ -2601,6 +2635,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           _ErrorIf(not test, self.ENODEORPHANINSTANCE, node_i.name,
                    "node is running unknown instance %s", inst)
 
+    for node, result in extra_lv_nvinfo.items():
+      self._UpdateNodeVolumes(self.all_node_info[node], result.payload,
+                              node_image[node], vg_name)
+
     feedback_fn("* Verifying instance status")
     for instance in self.my_inst_names:
       if verbose:
@@ -2679,6 +2717,17 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     feedback_fn("* Verifying orphan volumes")
     reserved = utils.FieldSet(*cluster.reserved_lvs)
+
+    # We will get spurious "unknown volume" warnings if any node of this group
+    # is secondary for an instance whose primary is in another group. To avoid
+    # them, we find these instances and add their volumes to node_vol_should.
+    for inst in self.all_inst_info.values():
+      for secondary in inst.secondary_nodes:
+        if (secondary in self.my_node_info
+            and inst.name not in self.my_inst_info):
+          inst.MapLVsByNode(node_vol_should)
+          break
+
     self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
