@@ -2414,8 +2414,24 @@ class LUClusterVerify(LogicalUnit):
                                      self.my_inst_info)
 
     feedback_fn("* Verifying configuration file consistency")
-    self._VerifyFiles(_ErrorIf, self.my_node_info.values(), master_node,
-                      all_nvinfo, filemap)
+
+    if master_node not in self.my_node_info:
+      # _VerifyFiles requires that master_node is present in the passed node
+      # info, to use it as a point of reference even if we're verifying only a
+      # subset of nodes. Make it so.
+      vf_nvinfo = all_nvinfo.copy()
+      vf_node_info = (self.my_node_info.values() +
+                      [self.all_node_info[master_node]])
+
+      key = constants.NV_FILELIST
+      vf_nvinfo.update(self.rpc.call_node_verify([master_node],
+                                                 {key: node_verify_param[key]},
+                                                 self.cfg.GetClusterName()))
+    else:
+      vf_nvinfo = all_nvinfo
+      vf_node_info = self.my_node_info.values()
+
+    self._VerifyFiles(_ErrorIf, vf_node_info, master_node, vf_nvinfo, filemap)
 
     feedback_fn("* Verifying node status")
 
