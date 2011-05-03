@@ -1672,12 +1672,6 @@ class LUClusterVerify(LogicalUnit):
                "instance not running on its primary node %s",
                node_current)
 
-    for node, n_img in node_image.items():
-      if node != node_current:
-        test = instance in n_img.instances
-        _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
-                 "instance should not run on node %s", node)
-
     diskdata = [(nname, success, status, idx)
                 for (nname, disks) in diskstatus.items()
                 for idx, (success, status) in enumerate(disks)]
@@ -1716,18 +1710,6 @@ class LUClusterVerify(LogicalUnit):
                 not reserved.Matches(volume))
         self._ErrorIf(test, self.ENODEORPHANLV, node,
                       "volume %s is unknown", volume)
-
-  def _VerifyOrphanInstances(self, instancelist, node_image):
-    """Verify the list of running instances.
-
-    This checks what instances are running but unknown to the cluster.
-
-    """
-    for node, n_img in node_image.items():
-      for o_inst in n_img.instances:
-        test = o_inst not in instancelist
-        self._ErrorIf(test, self.ENODEORPHANINSTANCE, node,
-                      "instance %s on node %s should not exist", o_inst, node)
 
   def _VerifyNPlusOneMemory(self, node_image, instance_cfg):
     """Verify N+1 Memory Resilience.
@@ -2490,11 +2472,24 @@ class LUClusterVerify(LogicalUnit):
         self._UpdateNodeInstances(node_i, nresult, nimg)
         self._UpdateNodeInfo(node_i, nresult, nimg, vg_name)
         self._UpdateNodeOS(node_i, nresult, nimg)
+
         if not nimg.os_fail:
           if refos_img is None:
             refos_img = nimg
           self._VerifyNodeOS(node_i, nimg, refos_img)
         self._VerifyNodeBridges(node_i, nresult, bridges)
+
+        # Check whether all running instancies are primary for the node. (This
+        # can no longer be done from _VerifyInstance below, since some of the
+        # wrong instances could be from other node groups.)
+        non_primary_inst = set(nimg.instances).difference(nimg.pinst)
+
+        for inst in non_primary_inst:
+          test = inst in self.all_inst_info
+          _ErrorIf(test, self.EINSTANCEWRONGNODE, inst,
+                   "instance should not run on node %s", node_i.name)
+          _ErrorIf(not test, self.ENODEORPHANINSTANCE, node_i.name,
+                   "node is running unknown instance %s", inst)
 
     feedback_fn("* Verifying instance status")
     for instance in self.my_inst_names:
@@ -2575,9 +2570,6 @@ class LUClusterVerify(LogicalUnit):
     feedback_fn("* Verifying orphan volumes")
     reserved = utils.FieldSet(*cluster.reserved_lvs)
     self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)
-
-    feedback_fn("* Verifying orphan instances")
-    self._VerifyOrphanInstances(set(self.all_inst_info.keys()), node_image)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
