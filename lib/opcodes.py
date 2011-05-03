@@ -513,8 +513,19 @@ class OpClusterQuery(OpCode):
   """Query cluster information."""
 
 
-class OpClusterVerify(OpCode):
-  """Verify the cluster state.
+class OpClusterVerifyConfig(OpCode):
+  """Verify the cluster config.
+
+  """
+  OP_PARAMS = [
+    ("verbose", False, ht.TBool, None),
+    ("error_codes", False, ht.TBool, None),
+    ("debug_simulate_errors", False, ht.TBool, None),
+    ]
+
+
+class OpClusterVerifyGroup(OpCode):
+  """Run verify on a node group from the cluster.
 
   @type skip_checks: C{list}
   @ivar skip_checks: steps to be skipped from the verify process; this
@@ -523,7 +534,9 @@ class OpClusterVerify(OpCode):
                      only L{constants.VERIFY_NPLUSONE_MEM} can be passed
 
   """
+  OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
+    ("group_name", ht.NoDefault, ht.TNonEmptyString, None),
     ("skip_checks", ht.EmptyList,
      ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS)), None),
     ("verbose", False, ht.TBool, None),

@@ -453,17 +453,33 @@ def VerifyCluster(opts, args):
   @return: the desired exit code
 
   """
+  simulate = opts.simulate_errors
   skip_checks = []
+
+  # Verify cluster config.
+  op = opcodes.OpClusterVerifyConfig(verbose=opts.verbose,
+                                     error_codes=opts.error_codes,
+                                     debug_simulate_errors=simulate)
+
+  success, all_groups = SubmitOpCode(op, opts=opts)
+
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
-  op = opcodes.OpClusterVerify(skip_checks=skip_checks,
-                               verbose=opts.verbose,
-                               error_codes=opts.error_codes,
-                               debug_simulate_errors=opts.simulate_errors)
-  if SubmitOpCode(op, opts=opts):
-    return 0
-  else:
-    return 1
+
+  jex = JobExecutor(opts=opts, verbose=False)
+
+  for group in all_groups:
+    op = opcodes.OpClusterVerifyGroup(group_name=group,
+                                      skip_checks=skip_checks,
+                                      verbose=opts.verbose,
+                                      error_codes=opts.error_codes,
+                                      debug_simulate_errors=simulate)
+    jex.QueueJob('group ' + group, op)
+
+  results = jex.GetResults()
+  success &= compat.all(r[1][0] for r in results)
+
+  return (not success and 1 or 0)
 
 
 def VerifyDisks(opts, args):

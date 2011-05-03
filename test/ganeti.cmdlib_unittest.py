@@ -57,12 +57,12 @@ class TestCertVerification(testutils.GanetiTestCase):
     nonexist_filename = os.path.join(self.tmpdir, "does-not-exist")
 
     (errcode, msg) = cmdlib._VerifyCertificate(nonexist_filename)
-    self.assertEqual(errcode, cmdlib.LUClusterVerify.ETYPE_ERROR)
+    self.assertEqual(errcode, cmdlib.LUClusterVerifyConfig.ETYPE_ERROR)
 
     # Try to load non-certificate file
     invalid_cert = self._TestDataFilename("bdev-net.txt")
     (errcode, msg) = cmdlib._VerifyCertificate(invalid_cert)
-    self.assertEqual(errcode, cmdlib.LUClusterVerify.ETYPE_ERROR)
+    self.assertEqual(errcode, cmdlib.LUClusterVerifyConfig.ETYPE_ERROR)
 
 
 class TestOpcodeParams(testutils.GanetiTestCase):

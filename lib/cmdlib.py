@@ -1254,7 +1254,7 @@ class LUClusterDestroy(LogicalUnit):
 
 
 def _VerifyCertificate(filename):
-  """Verifies a certificate for LUClusterVerify.
+  """Verifies a certificate for LUClusterVerifyConfig.
 
   @type filename: string
   @param filename: Path to PEM file
@@ -1264,7 +1264,7 @@ def _VerifyCertificate(filename):
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                            utils.ReadFile(filename))
   except Exception, err: # pylint: disable-msg=W0703
-    return (LUClusterVerify.ETYPE_ERROR,
+    return (LUClusterVerifyConfig.ETYPE_ERROR,
             "Failed to load X509 certificate %s: %s" % (filename, err))
 
   (errcode, msg) = \
@@ -1279,9 +1279,9 @@ def _VerifyCertificate(filename):
   if errcode is None:
     return (None, fnamemsg)
   elif errcode == utils.CERT_WARNING:
-    return (LUClusterVerify.ETYPE_WARNING, fnamemsg)
+    return (LUClusterVerifyConfig.ETYPE_WARNING, fnamemsg)
   elif errcode == utils.CERT_ERROR:
-    return (LUClusterVerify.ETYPE_ERROR, fnamemsg)
+    return (LUClusterVerifyConfig.ETYPE_ERROR, fnamemsg)
 
   raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)
 
@@ -1368,10 +1368,43 @@ class _VerifyErrors(object):
       self.bad = self.bad or cond
 
 
-class LUClusterVerify(LogicalUnit, _VerifyErrors):
-  """Verifies the cluster status.
+class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
+  """Verifies the cluster config.
 
   """
+
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.all_group_info = self.cfg.GetAllNodeGroupsInfo()
+    self.needed_locks = {}
+
+  def Exec(self, feedback_fn):
+    """Verify integrity of cluster, performing various test on nodes.
+
+    """
+    self.bad = False
+    self._feedback_fn = feedback_fn
+
+    feedback_fn("* Verifying cluster config")
+
+    for msg in self.cfg.VerifyConfig():
+      self._ErrorIf(True, self.ECLUSTERCFG, None, msg)
+
+    feedback_fn("* Verifying cluster certificate files")
+
+    for cert_filename in constants.ALL_CERT_FILES:
+      (errcode, msg) = _VerifyCertificate(cert_filename)
+      self._ErrorIf(errcode, self.ECLUSTERCERT, None, msg, code=errcode)
+
+    return (not self.bad, [g.name for g in self.all_group_info.values()])
+
+
+class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
+  """Verifies the status of a node group.
+
+  """
+
   HPATH = "cluster-verify"
   HTYPE = constants.HTYPE_CLUSTER
   REQ_BGL = False
@@ -1429,19 +1462,62 @@ class LUClusterVerify(LogicalUnit, _VerifyErrors):
       self.oslist = {}
 
   def ExpandNames(self):
+    # This raises errors.OpPrereqError on its own:
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
+
+    all_node_info = self.cfg.GetAllNodesInfo()
+    all_inst_info = self.cfg.GetAllInstancesInfo()
+
+    node_names = set(node.name
+                     for node in all_node_info.values()
+                     if node.group == self.group_uuid)
+
+    inst_names = [inst.name
+                  for inst in all_inst_info.values()
+                  if inst.primary_node in node_names]
+
     self.needed_locks = {
-      locking.LEVEL_NODE: locking.ALL_SET,
-      locking.LEVEL_INSTANCE: locking.ALL_SET,
+      locking.LEVEL_NODEGROUP: [self.group_uuid],
+      locking.LEVEL_NODE: list(node_names),
+      locking.LEVEL_INSTANCE: inst_names,
     }
+
     self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
   def CheckPrereq(self):
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
-    self.my_node_names = utils.NiceSort(list(self.all_node_info))
-    self.my_node_info = self.all_node_info
-    self.my_inst_names = utils.NiceSort(list(self.all_inst_info))
-    self.my_inst_info = self.all_inst_info
+
+    group_nodes = set(node.name
+                      for node in self.all_node_info.values()
+                      if node.group == self.group_uuid)
+
+    group_instances = set(inst.name
+                          for inst in self.all_inst_info.values()
+                          if inst.primary_node in group_nodes)
+
+    unlocked_nodes = \
+        group_nodes.difference(self.glm.list_owned(locking.LEVEL_NODE))
+
+    unlocked_instances = \
+        group_instances.difference(self.glm.list_owned(locking.LEVEL_INSTANCE))
+
+    if unlocked_nodes:
+      raise errors.OpPrereqError("missing lock for nodes: %s" %
+                                 utils.CommaJoin(unlocked_nodes))
+
+    if unlocked_instances:
+      raise errors.OpPrereqError("missing lock for instances: %s" %
+                                 utils.CommaJoin(unlocked_instances))
+
+    self.my_node_names = utils.NiceSort(group_nodes)
+    self.my_inst_names = utils.NiceSort(group_instances)
+
+    self.my_node_info = dict((name, self.all_node_info[name])
+                             for name in self.my_node_names)
+
+    self.my_inst_info = dict((name, self.all_inst_info[name])
+                             for name in self.my_inst_names)
 
   def _VerifyNode(self, ninfo, nresult):
     """Perform some basic validation on data returned from a node.
@@ -2241,7 +2317,7 @@ class LUClusterVerify(LogicalUnit, _VerifyErrors):
     return ([], self.my_node_names)
 
   def Exec(self, feedback_fn):
-    """Verify integrity of cluster, performing various test on nodes.
+    """Verify integrity of the node group, performing various test on nodes.
 
     """
     # This method has too many local variables. pylint: disable-msg=R0914
@@ -2249,14 +2325,6 @@ class LUClusterVerify(LogicalUnit, _VerifyErrors):
     _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
     verbose = self.op.verbose
     self._feedback_fn = feedback_fn
-    feedback_fn("* Verifying global settings")
-    for msg in self.cfg.VerifyConfig():
-      _ErrorIf(True, self.ECLUSTERCFG, None, msg)
-
-    # Check the cluster certificates
-    for cert_filename in constants.ALL_CERT_FILES:
-      (errcode, msg) = _VerifyCertificate(cert_filename)
-      _ErrorIf(errcode, self.ECLUSTERCERT, None, msg, code=errcode)
 
     vg_name = self.cfg.GetVGName()
     drbd_helper = self.cfg.GetDRBDHelper()
