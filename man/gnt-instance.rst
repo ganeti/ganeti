@@ -109,22 +109,21 @@ mode
 link
     in bridged mode specifies the bridge to attach this NIC to, in
     routed mode it's intended to differentiate between different
-    routing tables/instance groups (but the meaning is dependent on the
-    network script, see gnt-cluster(8) for more details)
+    routing tables/instance groups (but the meaning is dependent on
+    the network script, see gnt-cluster(8) for more details)
 
 
 Of these "mode" and "link" are nic parameters, and inherit their
-default at cluster level.
-Alternatively, if no network is desired for the instance, you can
-prevent the default of one NIC with the ``--no-nics`` option.
+default at cluster level.  Alternatively, if no network is desired for
+the instance, you can prevent the default of one NIC with the
+``--no-nics`` option.
 
 The ``-o`` options specifies the operating system to be installed.
 The available operating systems can be listed with **gnt-os list**.
 Passing ``--no-install`` will however skip the OS installation,
-allowing a manual import if so desired. Note that the
-no-installation mode will automatically disable the start-up of the
-instance (without an OS, it most likely won't be able to start-up
-successfully).
+allowing a manual import if so desired. Note that the no-installation
+mode will automatically disable the start-up of the instance (without
+an OS, it most likely won't be able to start-up successfully).
 
 The ``-B`` option specifies the backend parameters for the
 instance. If no such parameters are specified, the values are
@@ -144,11 +143,11 @@ auto\_balance
 
 
 The ``-H`` option specified the hypervisor to use for the instance
-(must be one of the enabled hypervisors on the cluster) and
-optionally custom parameters for this instance. If not other
-options are used (i.e. the invocation is just -H *NAME*) the
-instance will inherit the cluster options. The defaults below show
-the cluster defaults at cluster creation time.
+(must be one of the enabled hypervisors on the cluster) and optionally
+custom parameters for this instance. If not other options are used
+(i.e. the invocation is just -H *NAME*) the instance will inherit the
+cluster options. The defaults below show the cluster defaults at
+cluster creation time.
 
 The possible hypervisor options are as follows:
 
@@ -160,8 +159,6 @@ boot\_order
 
     For Xen HVM, The boot order is a string of letters listing the boot
     devices, with valid device letters being:
-
-
 
     a
         floppy drive
@@ -175,28 +172,28 @@ boot\_order
     n
         network boot (PXE)
 
+    The default is not to set an HVM boot order which is interpreted
+    as 'dc'.
 
-    The default is not to set an HVM boot order which is interpreted as
-    'dc'.
-
-    For KVM the boot order is either "floppy", "cdrom", "disk" or "network".
-    Please note that older versions of KVM couldn't netboot from virtio
-    interfaces. This has been fixed in more recent versions and is
-    confirmed to work at least with qemu-kvm 0.11.1.
+    For KVM the boot order is either "floppy", "cdrom", "disk" or
+    "network".  Please note that older versions of KVM couldn't
+    netboot from virtio interfaces. This has been fixed in more recent
+    versions and is confirmed to work at least with qemu-kvm 0.11.1.
 
 blockdev\_prefix
     Valid for the Xen HVM and PVM hypervisors.
 
-    Relevant to nonpvops guest kernels, in which the disk device names are
-    given by the host.  Allows to specify 'xvd', which helps run Red Hat based
-    installers, driven by anaconda.
+    Relevant to nonpvops guest kernels, in which the disk device names
+    are given by the host.  Allows to specify 'xvd', which helps run
+    Red Hat based installers, driven by anaconda.
 
 floppy\_image\_path
     Valid for the KVM hypervisor.
 
-    The path to a floppy disk image to attach to the instance.
-    This is useful to install Windows operating systems on Virt/IO disks because
-    you can specify here the floppy for the drivers at installation time.
+    The path to a floppy disk image to attach to the instance.  This
+    is useful to install Windows operating systems on Virt/IO disks
+    because you can specify here the floppy for the drivers at
+    installation time.
 
 cdrom\_image\_path
     Valid for the Xen HVM and KVM hypervisors.
@@ -216,8 +213,6 @@ nic\_type
     This parameter determines the way the network cards are presented
     to the instance. The possible options are:
 
-
-
     rtl8139 (default for Xen HVM) (HVM & KVM)
     ne2k\_isa (HVM & KVM)
     ne2k\_pci (HVM & KVM)
@@ -228,38 +223,33 @@ nic\_type
     e1000 (KVM)
     paravirtual (default for KVM) (HVM & KVM)
 
-
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
 
     This parameter determines the way the disks are presented to the
     instance. The possible options are:
 
-
-
-    ioemu (default for HVM & KVM) (HVM & KVM)
-    ide (HVM & KVM)
-    scsi (KVM)
-    sd (KVM)
-    mtd (KVM)
-    pflash (KVM)
+    - ioemu [default] (HVM & KVM)
+    - ide (HVM & KVM)
+    - scsi (KVM)
+    - sd (KVM)
+    - mtd (KVM)
+    - pflash (KVM)
 
 
 cdrom\_disk\_type
     Valid for the KVM hypervisor.
 
-    This parameter determines the way the cdroms disks are presented to the
-    instance. The default behavior is to get the same value of the eariler
-    parameter (disk_type). The possible options are:
+    This parameter determines the way the cdroms disks are presented
+    to the instance. The default behavior is to get the same value of
+    the eariler parameter (disk_type). The possible options are:
 
-
-
-    paravirtual
-    ide
-    scsi
-    sd
-    mtd
-    pflash
+    - paravirtual
+    - ide
+    - scsi
+    - sd
+    - mtd
+    - pflash
 
 
 vnc\_bind\_address
@@ -312,9 +302,9 @@ kernel\_path
     Valid for the Xen PVM and KVM hypervisors.
 
     This option specifies the path (on the node) to the kernel to boot
-    the instance with. Xen PVM instances always require this, while for
-    KVM if this option is empty, it will cause the machine to load the
-    kernel from its disks.
+    the instance with. Xen PVM instances always require this, while
+    for KVM if this option is empty, it will cause the machine to load
+    the kernel from its disks.
 
 kernel\_args
     Valid for the Xen PVM and KVM hypervisors.
@@ -323,20 +313,20 @@ kernel\_args
     loaded. device. This is always used for Xen PVM, while for KVM it
     is only used if the ``kernel_path`` option is also specified.
 
-    The default setting for this value is simply ``"ro"``, which mounts
-    the root disk (initially) in read-only one. For example, setting
-    this to single will cause the instance to start in single-user
-    mode.
+    The default setting for this value is simply ``"ro"``, which
+    mounts the root disk (initially) in read-only one. For example,
+    setting this to single will cause the instance to start in
+    single-user mode.
 
 initrd\_path
     Valid for the Xen PVM and KVM hypervisors.
 
     This option specifies the path (on the node) to the initrd to boot
-    the instance with. Xen PVM instances can use this always, while for
-    KVM if this option is only used if the ``kernel_path`` option is
-    also specified. You can pass here either an absolute filename (the
-    path to the initrd) if you want to use an initrd, or use the format
-    no\_initrd\_path for no initrd.
+    the instance with. Xen PVM instances can use this always, while
+    for KVM if this option is only used if the ``kernel_path`` option
+    is also specified. You can pass here either an absolute filename
+    (the path to the initrd) if you want to use an initrd, or use the
+    format no\_initrd\_path for no initrd.
 
 root\_path
     Valid for the Xen PVM and KVM hypervisors.
@@ -354,44 +344,44 @@ serial\_console
 disk\_cache
     Valid for the KVM hypervisor.
 
-    The disk cache mode. It can be either default to not pass any cache
-    option to KVM, or one of the KVM cache modes: none (for direct
-    I/O), writethrough (to use the host cache but report completion to
-    the guest only when the host has committed the changes to disk) or
-    writeback (to use the host cache and report completion as soon as
-    the data is in the host cache). Note that there are special
-    considerations for the cache mode depending on version of KVM used
-    and disk type (always raw file under Ganeti), please refer to the
-    KVM documentation for more details.
+    The disk cache mode. It can be either default to not pass any
+    cache option to KVM, or one of the KVM cache modes: none (for
+    direct I/O), writethrough (to use the host cache but report
+    completion to the guest only when the host has committed the
+    changes to disk) or writeback (to use the host cache and report
+    completion as soon as the data is in the host cache). Note that
+    there are special considerations for the cache mode depending on
+    version of KVM used and disk type (always raw file under Ganeti),
+    please refer to the KVM documentation for more details.
 
 security\_model
     Valid for the KVM hypervisor.
 
-    The security model for kvm. Currently one of "none", "user" or
-    "pool". Under "none", the default, nothing is done and instances
+    The security model for kvm. Currently one of *none*, *user* or
+    *pool*. Under *none*, the default, nothing is done and instances
     are run as the Ganeti daemon user (normally root).
 
-    Under "user" kvm will drop privileges and become the user specified
-    by the security\_domain parameter.
+    Under *user* kvm will drop privileges and become the user
+    specified by the security\_domain parameter.
 
-    Under "pool" a global cluster pool of users will be used, making
+    Under *pool* a global cluster pool of users will be used, making
     sure no two instances share the same user on the same node. (this
     mode is not implemented yet)
 
 security\_domain
     Valid for the KVM hypervisor.
 
-    Under security model "user" the username to run the instance under.
-    It must be a valid username existing on the host.
+    Under security model *user* the username to run the instance
+    under.  It must be a valid username existing on the host.
 
-    Cannot be set under security model "none" or "pool".
+    Cannot be set under security model *none* or *pool*.
 
 kvm\_flag
     Valid for the KVM hypervisor.
 
-    If "enabled" the -enable-kvm flag is passed to kvm. If "disabled"
-    -disable-kvm is passed. If unset no flag is passed, and the default
-    running mode for your kvm binary will be used.
+    If *enabled* the -enable-kvm flag is passed to kvm. If *disabled*
+    -disable-kvm is passed. If unset no flag is passed, and the
+    default running mode for your kvm binary will be used.
 
 mem\_path
     Valid for the KVM hypervisor.
@@ -426,11 +416,11 @@ migration\_downtime
 cpu\_mask
     Valid for the LXC hypervisor.
 
-    The processes belonging to the given instance are only scheduled on
-    the specified CPUs.
+    The processes belonging to the given instance are only scheduled
+    on the specified CPUs.
 
-    The parameter format is a comma-separated list of CPU IDs or CPU ID
-    ranges. The ranges are defined by a lower and higher boundary,
+    The parameter format is a comma-separated list of CPU IDs or CPU
+    ID ranges. The ranges are defined by a lower and higher boundary,
     separated by a dash. The boundaries are inclusive.
 
 usb\_mouse
@@ -449,16 +439,14 @@ a hypothetical ``dhcp`` parameter to yes can be achieved by::
     gnt-instance add -O dhcp=yes ...
 
 
-The ``--iallocator`` option specifies the instance allocator plugin
-to use. If you pass in this option the allocator will select nodes
-for this instance automatically, so you don't need to pass them
-with the ``-n`` option. For more information please refer to the
-instance allocator documentation.
+The ``--iallocator`` option specifies the instance allocator plugin to
+use. If you pass in this option the allocator will select nodes for
+this instance automatically, so you don't need to pass them with the
+``-n`` option. For more information please refer to the instance
+allocator documentation.
 
 The ``-t`` options specifies the disk layout type for the instance.
 The available choices are:
-
-
 
 diskless
     This creates an instance with no disks. Its useful for testing only
@@ -490,32 +478,30 @@ subdirectory + instance name. Example:
 option is only relevant for instances using the file storage backend.
 
 The ``--file-driver`` specifies the driver to use for file-based
-disks. Note that currently these drivers work with the xen
-hypervisor only. This option is only relevant for instances using
-the file storage backend. The available choices are:
-
-
+disks. Note that currently these drivers work with the xen hypervisor
+only. This option is only relevant for instances using the file
+storage backend. The available choices are:
 
 loop
-    Kernel loopback driver. This driver uses loopback devices to access
-    the filesystem within the file. However, running I/O intensive
-    applications in your instance using the loop driver might result in
-    slowdowns. Furthermore, if you use the loopback driver consider
-    increasing the maximum amount of loopback devices (on most systems
-    it's 8) using the max\_loop param.
+    Kernel loopback driver. This driver uses loopback devices to
+    access the filesystem within the file. However, running I/O
+    intensive applications in your instance using the loop driver
+    might result in slowdowns. Furthermore, if you use the loopback
+    driver consider increasing the maximum amount of loopback devices
+    (on most systems it's 8) using the max\_loop param.
 
 blktap
-    The blktap driver (for Xen hypervisors). In order to be able to use
-    the blktap driver you should check if the 'blktapctrl' user space
-    disk agent is running (usually automatically started via xend).
-    This user-level disk I/O interface has the advantage of better
-    performance. Especially if you use a network file system (e.g. NFS)
-    to store your instances this is the recommended choice.
+    The blktap driver (for Xen hypervisors). In order to be able to
+    use the blktap driver you should check if the 'blktapctrl' user
+    space disk agent is running (usually automatically started via
+    xend).  This user-level disk I/O interface has the advantage of
+    better performance. Especially if you use a network file system
+    (e.g. NFS) to store your instances this is the recommended choice.
 
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 Example::
 
@@ -536,14 +522,12 @@ BATCH-CREATE
 
 This command (similar to the Ganeti 1.2 **batcher** tool) submits
 multiple instance creation jobs based on a definition file. The
-instance configurations do not encompass all the possible options
-for the **add** command, but only a subset.
+instance configurations do not encompass all the possible options for
+the **add** command, but only a subset.
 
 The instance file should be a valid-formed JSON file, containing a
 dictionary with instance name and instance parameters. The accepted
 parameters are:
-
-
 
 disk\_size
     The size of the disks of the instance.
@@ -631,22 +615,22 @@ REMOVE
 
 Remove an instance. This will remove all data from the instance and
 there is *no way back*. If you are not sure if you use an instance
-again, use **shutdown** first and leave it in the shutdown state
-for a while.
+again, use **shutdown** first and leave it in the shutdown state for a
+while.
 
 The ``--ignore-failures`` option will cause the removal to proceed
 even in the presence of errors during the removal of the instance
-(e.g. during the shutdown or the disk removal). If this option is
-not given, the command will stop at the first error.
+(e.g. during the shutdown or the disk removal). If this option is not
+given, the command will stop at the first error.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (e.g. ``xm destroy`` in Xen, killing the
 kvm process for KVM, etc.). By default two minutes are given to each
 instance to stop.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 Example::
 
@@ -670,16 +654,16 @@ scripting.
 
 The units used to display the numeric values in the output varies,
 depending on the options given. By default, the values will be
-formatted in the most appropriate unit. If the ``--separator``
-option is given, then the values are shown in mebibytes to allow
-parsing by scripts. In both cases, the ``--units`` option can be
-used to enforce a given output unit.
+formatted in the most appropriate unit. If the ``--separator`` option
+is given, then the values are shown in mebibytes to allow parsing by
+scripts. In both cases, the ``--units`` option can be used to enforce
+a given output unit.
 
 The ``-v`` option activates verbose mode, which changes the display of
 special field states (see **ganeti(7)**).
 
-The ``-o`` option takes a comma-separated list of output fields.
-The available fields and their meaning are:
+The ``-o`` option takes a comma-separated list of output fields. The
+available fields and their meaning are:
 
 
 name
@@ -838,18 +822,18 @@ be/auto\_balance
 
 
 If the value of the option starts with the character ``+``, the new
-field(s) will be added to the default list. This allows to quickly
-see the default list plus a few other fields, instead of retyping
-the entire list of fields.
+field(s) will be added to the default list. This allows to quickly see
+the default list plus a few other fields, instead of retyping the
+entire list of fields.
 
 There is a subtle grouping about the available output fields: all
 fields except for ``oper_state``, ``oper_ram``, ``oper_vcpus`` and
-``status`` are configuration value and not run-time values. So if
-you don't select any of the these fields, the query will be
-satisfied instantly from the cluster configuration, without having
-to ask the remote nodes for the data. This can be helpful for big
-clusters when you only want some data and it makes sense to specify
-a reduced set of output fields.
+``status`` are configuration value and not run-time values. So if you
+don't select any of the these fields, the query will be satisfied
+instantly from the cluster configuration, without having to ask the
+remote nodes for the data. This can be helpful for big clusters when
+you only want some data and it makes sense to specify a reduced set of
+output fields.
 
 The default output field list is: name, os, pnode, admin\_state,
 oper\_state, oper\_ram.
@@ -869,8 +853,8 @@ INFO
 **info** [-s \| --static] [--roman] {--all \| *instance*}
 
 Show detailed information about the given instance(s). This is
-different from **list** as it shows detailed data about the
-instance's disks (especially useful for the drbd disk template).
+different from **list** as it shows detailed data about the instance's
+disks (especially useful for the drbd disk template).
 
 If the option ``-s`` is used, only information available in the
 configuration file is returned, without querying nodes, making the
@@ -879,9 +863,9 @@ operation faster.
 Use the ``--all`` to get info about all instances, rather than
 explicitly passing the ones you're interested in.
 
-The ``--roman`` option can be used to cause envy among people who
-like ancient cultures, but are stuck with non-latin-friendly
-cluster virtualization technologies.
+The ``--roman`` option can be used to cause envy among people who like
+ancient cultures, but are stuck with non-latin-friendly cluster
+virtualization technologies.
 
 MODIFY
 ^^^^^^
@@ -925,18 +909,18 @@ read-write (``rw``).
 The ``--net add:``*options* option will add a new NIC to the
 instance. The available options are the same as in the **add** command
 (mac, ip, link, mode). The ``--net remove`` will remove the last NIC
-of the instance, while the ``--net`` *N*:*options* option will
-change the parameters of the Nth instance NIC.
+of the instance, while the ``--net`` *N*:*options* option will change
+the parameters of the Nth instance NIC.
 
 The option ``--os-type`` will change the OS name for the instance
-(without reinstallation). In case an OS variant is specified that
-is not found, then by default the modification is refused, unless
+(without reinstallation). In case an OS variant is specified that is
+not found, then by default the modification is refused, unless
 ``--force-variant`` is passed. An invalid OS will also be refused,
 unless the ``--force`` option is given.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 All the changes take effect at the next restart. If the instance is
 running, there is no effect on the instance.
@@ -961,13 +945,13 @@ available OS templates. OS parameters can be overridden using ``-O``
 Since this is a potentially dangerous command, the user will be
 required to confirm this action, unless the ``-f`` flag is passed.
 When multiple instances are selected (either by passing multiple
-arguments or by using the ``--node``, ``--primary``,
-``--secondary`` or ``--all`` options), the user must pass the
-``--force-multiple`` options to skip the interactive confirmation.
+arguments or by using the ``--node``, ``--primary``, ``--secondary``
+or ``--all`` options), the user must pass the ``--force-multiple``
+options to skip the interactive confirmation.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 RENAME
 ^^^^^^
@@ -975,22 +959,21 @@ RENAME
 | **rename** [--no-ip-check] [--no-name-check] [--submit]
 | {*instance*} {*new\_name*}
 
-Renames the given instance. The instance must be stopped when
-running this command. The requirements for the new name are the
-same as for adding an instance: the new name must be resolvable and
-the IP it resolves to must not be reachable (in order to prevent
-duplicate IPs the next time the instance is started). The IP test
-can be skipped if the ``--no-ip-check`` option is passed.
+Renames the given instance. The instance must be stopped when running
+this command. The requirements for the new name are the same as for
+adding an instance: the new name must be resolvable and the IP it
+resolves to must not be reachable (in order to prevent duplicate IPs
+the next time the instance is started). The IP test can be skipped if
+the ``--no-ip-check`` option is passed.
 
-The ``--no-name-check`` skips the check for the new instance name
-via the resolver (e.g. in DNS or /etc/hosts, depending on your
-setup). Since the name check is used to compute the IP address, if
-you pass this option you must also pass the ``--no-ip-check``
-option.
+The ``--no-name-check`` skips the check for the new instance name via
+the resolver (e.g. in DNS or /etc/hosts, depending on your
+setup). Since the name check is used to compute the IP address, if you
+pass this option you must also pass the ``--no-ip-check`` option.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 Starting/stopping/connecting to console
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1007,9 +990,8 @@ STARTUP
 | [--submit]
 | {*name*...}
 
-Starts one or more instances, depending on the following options.
-The four available modes are:
-
+Starts one or more instances, depending on the following options.  The
+four available modes are:
 
 --instance
     will start the instances given as arguments (at least one argument
@@ -1048,35 +1030,34 @@ The four available modes are:
 
 
 Note that although you can pass more than one selection option, the
-last one wins, so in order to guarantee the desired result, don't
-pass more than one such option.
+last one wins, so in order to guarantee the desired result, don't pass
+more than one such option.
 
 Use ``--force`` to start even if secondary disks are failing.
-``--ignore-offline`` can be used to ignore offline primary nodes
-and mark the instance as started even if the primary is not
-available.
+``--ignore-offline`` can be used to ignore offline primary nodes and
+mark the instance as started even if the primary is not available.
 
-The ``--force-multiple`` will skip the interactive confirmation in
-the case the more than one instance will be affected.
+The ``--force-multiple`` will skip the interactive confirmation in the
+case the more than one instance will be affected.
 
-The ``-H`` and ``-B`` options specify temporary hypervisor and
-backend parameters that can be used to start an instance with
-modified parameters. They can be useful for quick testing without
-having to modify an instance back and forth, e.g.::
+The ``-H`` and ``-B`` options specify temporary hypervisor and backend
+parameters that can be used to start an instance with modified
+parameters. They can be useful for quick testing without having to
+modify an instance back and forth, e.g.::
 
     # gnt-instance start -H root_args="single" instance1
     # gnt-instance start -B memory=2048 instance2
 
 
-The first form will start the instance instance1 in single-user
-mode, and the instance instance2 with 2GB of RAM (this time only,
-unless that is the actual instance memory size already). Note that
-the values override the instance parameters (and not extend them):
-an instance with "root\_args=ro" when started with -H
-root\_args=single will result in "single", not "ro single".
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The first form will start the instance instance1 in single-user mode,
+and the instance instance2 with 2GB of RAM (this time only, unless
+that is the actual instance memory size already). Note that the values
+override the instance parameters (and not extend them): an instance
+with "root\_args=ro" when started with -H root\_args=single will
+result in "single", not "ro single".  The ``--submit`` option is used
+to send the job to the master daemon but not wait for its
+completion. The job ID will be shown so that it can be examined via
+**gnt-job info**.
 
 Example::
 
@@ -1096,10 +1077,10 @@ SHUTDOWN
 | [--submit]
 | {*name*...}
 
-Stops one or more instances. If the instance cannot be cleanly
-stopped during a hardcoded interval (currently 2 minutes), it will
-forcibly stop the instance (equivalent to switching off the power
-on a physical machine).
+Stops one or more instances. If the instance cannot be cleanly stopped
+during a hardcoded interval (currently 2 minutes), it will forcibly
+stop the instance (equivalent to switching off the power on a physical
+machine).
 
 The ``--timeout`` is used to specify how much time to wait before
 forcing the shutdown (e.g. ``xm destroy`` in Xen, killing the kvm
@@ -1108,16 +1089,16 @@ instance to stop.
 
 The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 ``--all``, ``--tags``, ``--node-tags``, ``--pri-node-tags`` and
-``--sec-node-tags`` options are similar as for the **startup**
-command and they influence the actual instances being shutdown.
+``--sec-node-tags`` options are similar as for the **startup** command
+and they influence the actual instances being shutdown.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
-``--ignore-offline`` can be used to ignore offline primary nodes
-and force the instance to be marked as stopped. This option should
-be used with care as it can lead to an inconsistent cluster state.
+``--ignore-offline`` can be used to ignore offline primary nodes and
+force the instance to be marked as stopped. This option should be used
+with care as it can lead to an inconsistent cluster state.
 
 Example::
 
@@ -1138,29 +1119,28 @@ REBOOT
 | [--submit]
 | [*name*...]
 
-Reboots one or more instances. The type of reboot depends on the
-value of ``--type``. A soft reboot does a hypervisor reboot, a hard
-reboot does a instance stop, recreates the hypervisor config for
-the instance and starts the instance. A full reboot does the
-equivalent of **gnt-instance shutdown && gnt-instance startup**.
-The default is hard reboot.
+Reboots one or more instances. The type of reboot depends on the value
+of ``--type``. A soft reboot does a hypervisor reboot, a hard reboot
+does a instance stop, recreates the hypervisor config for the instance
+and starts the instance. A full reboot does the equivalent of
+**gnt-instance shutdown && gnt-instance startup**.  The default is
+hard reboot.
 
-For the hard reboot the option ``--ignore-secondaries`` ignores
-errors for the secondary node while re-assembling the instance
-disks.
+For the hard reboot the option ``--ignore-secondaries`` ignores errors
+for the secondary node while re-assembling the instance disks.
 
 The ``--instance``, ``--node``, ``--primary``, ``--secondary``,
 ``--all``, ``--tags``, ``--node-tags``, ``--pri-node-tags`` and
-``--sec-node-tags`` options are similar as for the **startup**
-command and they influence the actual instances being rebooted.
+``--sec-node-tags`` options are similar as for the **startup** command
+and they influence the actual instances being rebooted.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm
-process, for kvm). By default two minutes are given to each
-instance to stop.
+process, for kvm). By default two minutes are given to each instance
+to stop.
 
-The ``--force-multiple`` will skip the interactive confirmation in
-the case the more than one instance will be affected.
+The ``--force-multiple`` will skip the interactive confirmation in the
+case the more than one instance will be affected.
 
 Example::
 
@@ -1173,14 +1153,14 @@ CONSOLE
 
 **console** [--show-cmd] {*instance*}
 
-Connects to the console of the given instance. If the instance is
-not up, an error is returned. Use the ``--show-cmd`` option to
-display the command instead of executing it.
+Connects to the console of the given instance. If the instance is not
+up, an error is returned. Use the ``--show-cmd`` option to display the
+command instead of executing it.
 
-For HVM instances, this will attempt to connect to the serial
-console of the instance. To connect to the virtualized "physical"
-console of a HVM instance, use a VNC client with the connection
-info from the **info** command.
+For HVM instances, this will attempt to connect to the serial console
+of the instance. To connect to the virtualized "physical" console of a
+HVM instance, use a VNC client with the connection info from the
+**info** command.
 
 Example::
 
@@ -1208,85 +1188,84 @@ REPLACE-DISKS
 This command is a generalized form for replacing disks. It is
 currently only valid for the mirrored (DRBD) disk template.
 
-The first form (when passing the ``-p`` option) will replace the
-disks on the primary, while the second form (when passing the
-``-s`` option will replace the disks on the secondary node. For
-these two cases (as the node doesn't change), it is possible to
-only run the replace for a subset of the disks, using the option
-``--disks`` which takes a list of comma-delimited disk indices
-(zero-based), e.g. 0,2 to replace only the first and third disks.
+The first form (when passing the ``-p`` option) will replace the disks
+on the primary, while the second form (when passing the ``-s`` option
+will replace the disks on the secondary node. For these two cases (as
+the node doesn't change), it is possible to only run the replace for a
+subset of the disks, using the option ``--disks`` which takes a list
+of comma-delimited disk indices (zero-based), e.g. 0,2 to replace only
+the first and third disks.
 
 The third form (when passing either the ``--iallocator`` or the
 ``--new-secondary`` option) is designed to change secondary node of
-the instance. Specifying ``--iallocator`` makes the new secondary
-be selected automatically by the specified allocator plugin,
-otherwise the new secondary node will be the one chosen manually
-via the ``--new-secondary`` option.
+the instance. Specifying ``--iallocator`` makes the new secondary be
+selected automatically by the specified allocator plugin, otherwise
+the new secondary node will be the one chosen manually via the
+``--new-secondary`` option.
 
-The fourth form (when using ``--auto``) will automatically
-determine which disks of an instance are faulty and replace them
-within the same node. The ``--auto`` option works only when an
-instance has only faulty disks on either the primary or secondary
-node; it doesn't work when both sides have faulty disks.
+The fourth form (when using ``--auto``) will automatically determine
+which disks of an instance are faulty and replace them within the same
+node. The ``--auto`` option works only when an instance has only
+faulty disks on either the primary or secondary node; it doesn't work
+when both sides have faulty disks.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 The ``--early-release`` changes the code so that the old storage on
 secondary node(s) is removed early (before the resync is completed)
 and the internal Ganeti locks for the current (and new, if any)
 secondary node are also released, thus allowing more parallelism in
-the cluster operation. This should be used only when recovering
-from a disk failure on the current secondary (thus the old storage
-is already broken) or when the storage on the primary node is known
-to be fine (thus we won't need the old storage for potential
-recovery).
+the cluster operation. This should be used only when recovering from a
+disk failure on the current secondary (thus the old storage is already
+broken) or when the storage on the primary node is known to be fine
+(thus we won't need the old storage for potential recovery).
 
-Note that it is not possible to select an offline or drained node
-as a new secondary.
+Note that it is not possible to select an offline or drained node as a
+new secondary.
 
 ACTIVATE-DISKS
 ^^^^^^^^^^^^^^
 
 **activate-disks** [--submit] [--ignore-size] {*instance*}
 
-Activates the block devices of the given instance. If successful,
-the command will show the location and name of the block devices::
+Activates the block devices of the given instance. If successful, the
+command will show the location and name of the block devices::
 
     node1.example.com:disk/0:/dev/drbd0
     node1.example.com:disk/1:/dev/drbd1
 
 
-In this example, *node1.example.com* is the name of the node on
-which the devices have been activated. The *disk/0* and *disk/1*
-are the Ganeti-names of the instance disks; how they are visible
-inside the instance is hypervisor-specific. */dev/drbd0* and
-*/dev/drbd1* are the actual block devices as visible on the node.
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+In this example, *node1.example.com* is the name of the node on which
+the devices have been activated. The *disk/0* and *disk/1* are the
+Ganeti-names of the instance disks; how they are visible inside the
+instance is hypervisor-specific. */dev/drbd0* and */dev/drbd1* are the
+actual block devices as visible on the node.  The ``--submit`` option
+is used to send the job to the master daemon but not wait for its
+completion. The job ID will be shown so that it can be examined via
+**gnt-job info**.
 
 The ``--ignore-size`` option can be used to activate disks ignoring
 the currently configured size in Ganeti. This can be used in cases
 where the configuration has gotten out of sync with the real-world
-(e.g. after a partially-failed grow-disk operation or due to
-rounding in LVM devices). This should not be used in normal cases,
-but only when activate-disks fails without it.
+(e.g. after a partially-failed grow-disk operation or due to rounding
+in LVM devices). This should not be used in normal cases, but only
+when activate-disks fails without it.
 
-Note that it is safe to run this command while the instance is
-already running.
+Note that it is safe to run this command while the instance is already
+running.
 
 DEACTIVATE-DISKS
 ^^^^^^^^^^^^^^^^
 
 **deactivate-disks** [-f] [--submit] {*instance*}
 
-De-activates the block devices of the given instance. Note that if
-you run this command for an instance with a drbd disk template,
-while it is running, it will not be able to shutdown the block
-devices on the primary node, but it will shutdown the block devices
-on the secondary nodes, thus breaking the replication.
+De-activates the block devices of the given instance. Note that if you
+run this command for an instance with a drbd disk template, while it
+is running, it will not be able to shutdown the block devices on the
+primary node, but it will shutdown the block devices on the secondary
+nodes, thus breaking the replication.
 
 The ``-f``/``--force`` option will skip checks that the instance is
 down; in case the hypervisor is confused and we can't talk to it,
@@ -1295,9 +1274,9 @@ option passed it will skip this check and directly try to deactivate
 the disks. This can still fail due to the instance actually running or
 other issues.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 GROW-DISK
 ^^^^^^^^^
@@ -1305,15 +1284,12 @@ GROW-DISK
 **grow-disk** [--no-wait-for-sync] [--submit] {*instance*} {*disk*}
 {*amount*}
 
-Grows an instance's disk. This is only possible for instances
-having a plain or drbd disk template.
+Grows an instance's disk. This is only possible for instances having a
+plain or drbd disk template.
 
-Note that this command only change the block device size; it will
-not grow the actual filesystems, partitions, etc. that live on that
+Note that this command only change the block device size; it will not
+grow the actual filesystems, partitions, etc. that live on that
 disk. Usually, you will need to:
-
-
-
 
 #. use **gnt-instance grow-disk**
 
@@ -1323,33 +1299,32 @@ disk. Usually, you will need to:
    xfs\_growfs(8) to resize the filesystem, or use fdisk(8) to change
    the partition table on the disk
 
-
 The *disk* argument is the index of the instance disk to grow. The
-*amount* argument is given either as a number (and it represents
-the amount to increase the disk with in mebibytes) or can be given
-similar to the arguments in the create instance operation, with a
-suffix denoting the unit.
+*amount* argument is given either as a number (and it represents the
+amount to increase the disk with in mebibytes) or can be given similar
+to the arguments in the create instance operation, with a suffix
+denoting the unit.
 
-Note that the disk grow operation might complete on one node but
-fail on the other; this will leave the instance with
-different-sized LVs on the two nodes, but this will not create
-problems (except for unused space).
+Note that the disk grow operation might complete on one node but fail
+on the other; this will leave the instance with different-sized LVs on
+the two nodes, but this will not create problems (except for unused
+space).
 
-If you do not want gnt-instance to wait for the new disk region to
-be synced, use the ``--no-wait-for-sync`` option.
+If you do not want gnt-instance to wait for the new disk region to be
+synced, use the ``--no-wait-for-sync`` option.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 Example (increase the first disk for instance1 by 16GiB)::
 
     # gnt-instance grow-disk instance1.example.com 0 16g
 
 
-Also note that disk shrinking is not supported; use
-**gnt-backup export** and then **gnt-backup import** to reduce the
-disk size of an instance.
+Also note that disk shrinking is not supported; use **gnt-backup
+export** and then **gnt-backup import** to reduce the disk size of an
+instance.
 
 RECREATE-DISKS
 ^^^^^^^^^^^^^^
@@ -1360,14 +1335,14 @@ Recreates the disks of the given instance, or only a subset of the
 disks (if the option ``disks`` is passed, which must be a
 comma-separated list of disk indices, starting from zero).
 
-Note that this functionality should only be used for missing disks;
-if any of the given disks already exists, the operation will fail.
-While this is suboptimal, recreate-disks should hopefully not be
-needed in normal operation and as such the impact of this is low.
+Note that this functionality should only be used for missing disks; if
+any of the given disks already exists, the operation will fail.  While
+this is suboptimal, recreate-disks should hopefully not be needed in
+normal operation and as such the impact of this is low.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 Recovery
 ~~~~~~~~
@@ -1381,22 +1356,22 @@ FAILOVER
 Failover will fail the instance over its secondary node. This works
 only for instances having a drbd disk template.
 
-Normally the failover will check the consistency of the disks
-before failing over the instance. If you are trying to migrate
-instances off a dead node, this will fail. Use the
-``--ignore-consistency`` option for this purpose. Note that this
-option can be dangerous as errors in shutting down the instance
-will be ignored, resulting in possibly having the instance running
-on two machines in parallel (on disconnected DRBD drives).
+Normally the failover will check the consistency of the disks before
+failing over the instance. If you are trying to migrate instances off
+a dead node, this will fail. Use the ``--ignore-consistency`` option
+for this purpose. Note that this option can be dangerous as errors in
+shutting down the instance will be ignored, resulting in possibly
+having the instance running on two machines in parallel (on
+disconnected DRBD drives).
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm
-process, for kvm). By default two minutes are given to each
-instance to stop.
+process, for kvm). By default two minutes are given to each instance
+to stop.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 Example::
 
@@ -1412,32 +1387,31 @@ MIGRATE
 {*instance*}
 
 Migrate will move the instance to its secondary node without
-shutdown. It only works for instances having the drbd8 disk
-template type.
+shutdown. It only works for instances having the drbd8 disk template
+type.
 
-The migration command needs a perfectly healthy instance, as we
-rely on the dual-master capability of drbd8 and the disks of the
-instance are not allowed to be degraded.
+The migration command needs a perfectly healthy instance, as we rely
+on the dual-master capability of drbd8 and the disks of the instance
+are not allowed to be degraded.
 
 The ``--non-live`` and ``--migration-mode=non-live`` options will
 switch (for the hypervisors that support it) between a "fully live"
-(i.e. the interruption is as minimal as possible) migration and one
-in which the instance is frozen, its state saved and transported to
-the remote node, and then resumed there. This all depends on the
-hypervisor support for two different methods. In any case, it is
-not an error to pass this parameter (it will just be ignored if the
-hypervisor doesn't support it). The option
-``--migration-mode=live`` option will request a fully-live
-migration. The default, when neither option is passed, depends on
-the hypervisor parameters (and can be viewed with the
-**gnt-cluster info** command).
+(i.e. the interruption is as minimal as possible) migration and one in
+which the instance is frozen, its state saved and transported to the
+remote node, and then resumed there. This all depends on the
+hypervisor support for two different methods. In any case, it is not
+an error to pass this parameter (it will just be ignored if the
+hypervisor doesn't support it). The option ``--migration-mode=live``
+option will request a fully-live migration. The default, when neither
+option is passed, depends on the hypervisor parameters (and can be
+viewed with the **gnt-cluster info** command).
 
 If the ``--cleanup`` option is passed, the operation changes from
-migration to attempting recovery from a failed previous migration.
-In this mode, Ganeti checks if the instance runs on the correct
-node (and updates its configuration if not) and ensures the
-instances's disks are configured correctly. In this mode, the
-``--non-live`` option is ignored.
+migration to attempting recovery from a failed previous migration.  In
+this mode, Ganeti checks if the instance runs on the correct node (and
+updates its configuration if not) and ensures the instances's disks
+are configured correctly. In this mode, the ``--non-live`` option is
+ignored.
 
 The option ``-f`` will skip the prompting for confirmation.
 
@@ -1467,12 +1441,11 @@ MOVE
 **move** [-f] [-n *node*] [--shutdown-timeout=*N*] [--submit]
 {*instance*}
 
-Move will move the instance to an arbitrary node in the cluster.
-This works only for instances having a plain or file disk
-template.
+Move will move the instance to an arbitrary node in the cluster.  This
+works only for instances having a plain or file disk template.
 
-Note that since this operation is done via data copy, it will take
-a long time for big disks (similar to replace-disks for a drbd
+Note that since this operation is done via data copy, it will take a
+long time for big disks (similar to replace-disks for a drbd
 instance).
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
@@ -1480,9 +1453,9 @@ before forcing the shutdown (e.g. ``xm destroy`` in XEN, killing the
 kvm process for KVM, etc.). By default two minutes are given to each
 instance to stop.
 
-The ``--submit`` option is used to send the job to the master
-daemon but not wait for its completion. The job ID will be shown so
-that it can be examined via **gnt-job info**.
+The ``--submit`` option is used to send the job to the master daemon
+but not wait for its completion. The job ID will be shown so that it
+can be examined via **gnt-job info**.
 
 Example::
 
@@ -1500,11 +1473,11 @@ ADD-TAGS
 Add tags to the given instance. If any of the tags contains invalid
 characters, the entire operation will abort.
 
-If the ``--from`` option is given, the list of tags will be
-extended with the contents of that file (each line becomes a tag).
-In this case, there is not need to pass tags on the command line
-(if you do, both sources will be used). A file name of ``-`` will be
-interpreted as stdin.
+If the ``--from`` option is given, the list of tags will be extended
+with the contents of that file (each line becomes a tag).  In this
+case, there is not need to pass tags on the command line (if you do,
+both sources will be used). A file name of ``-`` will be interpreted
+as stdin.
 
 LIST-TAGS
 ^^^^^^^^^
