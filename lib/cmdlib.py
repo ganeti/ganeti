@@ -3447,23 +3447,23 @@ class LUOobCommand(NoHooksLU):
     assert self.op.power_delay >= 0.0
 
     if self.op.node_names:
-      if self.op.command in self._SKIP_MASTER:
-        if self.master_node in self.op.node_names:
-          master_node_obj = self.cfg.GetNodeInfo(self.master_node)
-          master_oob_handler = _SupportsOob(self.cfg, master_node_obj)
+      if (self.op.command in self._SKIP_MASTER and
+          self.master_node in self.op.node_names):
+        master_node_obj = self.cfg.GetNodeInfo(self.master_node)
+        master_oob_handler = _SupportsOob(self.cfg, master_node_obj)
 
-          if master_oob_handler:
-            additional_text = ("Run '%s %s %s' if you want to operate on the"
-                               " master regardless") % (master_oob_handler,
-                                                        self.op.command,
-                                                        self.master_node)
-          else:
-            additional_text = "The master node does not support out-of-band"
+        if master_oob_handler:
+          additional_text = ("run '%s %s %s' if you want to operate on the"
+                             " master regardless") % (master_oob_handler,
+                                                      self.op.command,
+                                                      self.master_node)
+        else:
+          additional_text = "it does not support out-of-band operations"
 
-          raise errors.OpPrereqError(("Operating on the master node %s is not"
-                                      " allowed for %s\n%s") %
-                                     (self.master_node, self.op.command,
-                                      additional_text), errors.ECODE_INVAL)
+        raise errors.OpPrereqError(("Operating on the master node %s is not"
+                                    " allowed for %s; %s") %
+                                   (self.master_node, self.op.command,
+                                    additional_text), errors.ECODE_INVAL)
     else:
       self.op.node_names = self.cfg.GetNodeList()
       if self.op.command in self._SKIP_MASTER:
@@ -3526,14 +3526,14 @@ class LUOobCommand(NoHooksLU):
                                      self.op.timeout)
 
       if result.fail_msg:
-        self.LogWarning("On node '%s' out-of-band RPC failed with: %s",
+        self.LogWarning("Out-of-band RPC failed on node '%s': %s",
                         node.name, result.fail_msg)
         node_entry.append((constants.RS_NODATA, None))
       else:
         try:
           self._CheckPayload(result)
         except errors.OpExecError, err:
-          self.LogWarning("The payload returned by '%s' is not valid: %s",
+          self.LogWarning("Payload returned by node '%s' is not valid: %s",
                           node.name, err)
           node_entry.append((constants.RS_NODATA, None))
         else:
@@ -3542,8 +3542,8 @@ class LUOobCommand(NoHooksLU):
             for item, status in result.payload:
               if status in [constants.OOB_STATUS_WARNING,
                             constants.OOB_STATUS_CRITICAL]:
-                self.LogWarning("On node '%s' item '%s' has status '%s'",
-                                node.name, item, status)
+                self.LogWarning("Item '%s' on node '%s' has status '%s'",
+                                item, node.name, status)
 
           if self.op.command == constants.OOB_POWER_ON:
             node.powered = True
@@ -3813,15 +3813,14 @@ class LUNodeRemove(LogicalUnit):
 
     masternode = self.cfg.GetMasterNode()
     if node.name == masternode:
-      raise errors.OpPrereqError("Node is the master node,"
-                                 " you need to failover first.",
-                                 errors.ECODE_INVAL)
+      raise errors.OpPrereqError("Node is the master node, failover to another"
+                                 " node is required", errors.ECODE_INVAL)
 
     for instance_name in instance_list:
       instance = self.cfg.GetInstanceInfo(instance_name)
       if node.name in instance.all_nodes:
         raise errors.OpPrereqError("Instance %s is still running on the node,"
-                                   " please remove first." % instance_name,
+                                   " please remove first" % instance_name,
                                    errors.ECODE_INVAL)
     self.op.node_name = node.name
     self.node = node
@@ -4708,7 +4707,7 @@ class LUNodeSetParams(LogicalUnit):
 
     self.old_flags = old_flags = (node.master_candidate,
                                   node.drained, node.offline)
-    assert old_flags in self._F2R, "Un-handled old flags  %s" % str(old_flags)
+    assert old_flags in self._F2R, "Un-handled old flags %s" % str(old_flags)
     self.old_role = old_role = self._F2R[old_flags]
 
     # Check for ineffective changes
@@ -4724,12 +4723,12 @@ class LUNodeSetParams(LogicalUnit):
     if _SupportsOob(self.cfg, node):
       if self.op.offline is False and not (node.powered or
                                            self.op.powered == True):
-        raise errors.OpPrereqError(("Please power on node %s first before you"
-                                    " can reset offline state") %
+        raise errors.OpPrereqError(("Node %s needs to be turned on before its"
+                                    " offline status can be reset") %
                                    self.op.node_name)
     elif self.op.powered is not None:
       raise errors.OpPrereqError(("Unable to change powered state for node %s"
-                                  " which does not support out-of-band"
+                                  " as it does not support out-of-band"
                                   " handling") % self.op.node_name)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
@@ -5740,7 +5739,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     else:
       for idx in self.op.disks:
         if idx >= len(instance.disks):
-          raise errors.OpPrereqError("Invalid disk index passed '%s'" % idx,
+          raise errors.OpPrereqError("Invalid disk index '%s'" % idx,
                                      errors.ECODE_INVAL)
 
     self.instance = instance
@@ -5771,7 +5770,7 @@ class LUInstanceRename(LogicalUnit):
     """
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
-      raise errors.OpPrereqError("Cannot do ip check without a name check",
+      raise errors.OpPrereqError("IP address check requires a name check",
                                  errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
@@ -6677,15 +6676,15 @@ class TLMigrateInstance(Tasklet):
 
     if runningon_source and runningon_target:
       raise errors.OpExecError("Instance seems to be running on two nodes,"
-                               " or the hypervisor is confused. You will have"
+                               " or the hypervisor is confused; you will have"
                                " to ensure manually that it runs only on one"
-                               " and restart this operation.")
+                               " and restart this operation")
 
     if not (runningon_source or runningon_target):
-      raise errors.OpExecError("Instance does not seem to be running at all."
-                               " In this case, it's safer to repair by"
+      raise errors.OpExecError("Instance does not seem to be running at all;"
+                               " in this case it's safer to repair by"
                                " running 'gnt-instance stop' to ensure disk"
-                               " shutdown, and then restarting it.")
+                               " shutdown, and then restarting it")
 
     if runningon_target:
       # the migration has actually succeeded, we need to update the config
@@ -6727,10 +6726,9 @@ class TLMigrateInstance(Tasklet):
       self._GoReconnect(False)
       self._WaitUntilSync()
     except errors.OpExecError, err:
-      self.lu.LogWarning("Migration failed and I can't reconnect the"
-                         " drives: error '%s'\n"
-                         "Please look and recover the instance status" %
-                         str(err))
+      self.lu.LogWarning("Migration failed and I can't reconnect the drives,"
+                         " please try to recover the instance manually;"
+                         " error '%s'" % str(err))
 
   def _AbortMigration(self):
     """Call the hypervisor code to abort a started migration.
@@ -6772,7 +6770,7 @@ class TLMigrateInstance(Tasklet):
       if not _CheckDiskConsistency(self.lu, dev, target_node, False):
         raise errors.OpExecError("Disk %s is degraded or not fully"
                                  " synchronized on target node,"
-                                 " aborting migrate." % dev.iv_name)
+                                 " aborting migration" % dev.iv_name)
 
     # First get the migration information from the remote node
     result = self.rpc.call_migration_info(source_node, instance)
@@ -6866,7 +6864,7 @@ class TLMigrateInstance(Tasklet):
         if not _CheckDiskConsistency(self, dev, target_node, False):
           if not self.ignore_consistency:
             raise errors.OpExecError("Disk %s is degraded on target node,"
-                                     " aborting failover." % dev.iv_name)
+                                     " aborting failover" % dev.iv_name)
     else:
       self.feedback_fn("* not checking disk consistency as instance is not"
                        " running")
@@ -6880,9 +6878,9 @@ class TLMigrateInstance(Tasklet):
     msg = result.fail_msg
     if msg:
       if self.ignore_consistency or primary_node.offline:
-        self.lu.LogWarning("Could not shutdown instance %s on node %s."
-                           " Proceeding anyway. Please make sure node"
-                           " %s is down. Error details: %s",
+        self.lu.LogWarning("Could not shutdown instance %s on node %s,"
+                           " proceeding anyway; please make sure node"
+                           " %s is down; error details: %s",
                            instance.name, source_node, source_node, msg)
       else:
         raise errors.OpExecError("Could not shutdown instance %s on"
@@ -7243,8 +7241,8 @@ def _WipeDisks(lu, instance):
 
     for idx, success in enumerate(result.payload):
       if not success:
-        lu.LogWarning("Warning: Resume sync of disk %d failed. Please have a"
-                      " look at the status and troubleshoot the issue.", idx)
+        lu.LogWarning("Resume sync of disk %d failed, please have a"
+                      " look at the status and troubleshoot the issue", idx)
         logging.warn("resume-sync of instance %s for disks %d failed",
                      instance.name, idx)
 
@@ -7493,8 +7491,8 @@ class LUInstanceCreate(LogicalUnit):
 
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
-      raise errors.OpPrereqError("Cannot do ip check without a name check",
-                                 errors.ECODE_INVAL)
+      raise errors.OpPrereqError("Cannot do IP address check without a name"
+                                 " check", errors.ECODE_INVAL)
 
     # check nics' parameter names
     for nic in self.op.nics:
@@ -7672,7 +7670,7 @@ class LUInstanceCreate(LogicalUnit):
         self.op.src_node = None
         if os.path.isabs(src_path):
           raise errors.OpPrereqError("Importing an instance from an absolute"
-                                     " path requires a source node option.",
+                                     " path requires a source node option",
                                      errors.ECODE_INVAL)
       else:
         self.op.src_node = src_node = _ExpandNodeName(self.cfg, src_node)
@@ -8121,7 +8119,7 @@ class LUInstanceCreate(LogicalUnit):
     if self.op.disk_template in constants.DTS_INT_MIRROR:
       if self.op.snode == pnode.name:
         raise errors.OpPrereqError("The secondary node cannot be the"
-                                   " primary node.", errors.ECODE_INVAL)
+                                   " primary node", errors.ECODE_INVAL)
       _CheckNodeOnline(self, self.op.snode)
       _CheckNodeNotDrained(self, self.op.snode)
       _CheckNodeVmCapable(self, self.op.snode)
@@ -8731,11 +8729,11 @@ class TLReplaceDisks(Tasklet):
 
     if remote_node == self.instance.primary_node:
       raise errors.OpPrereqError("The specified node is the primary node of"
-                                 " the instance.", errors.ECODE_INVAL)
+                                 " the instance", errors.ECODE_INVAL)
 
     if remote_node == secondary_node:
       raise errors.OpPrereqError("The specified node is already the"
-                                 " secondary node of the instance.",
+                                 " secondary node of the instance",
                                  errors.ECODE_INVAL)
 
     if self.disks and self.mode in (constants.REPLACE_DISK_AUTO,
@@ -9448,7 +9446,7 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     if instance.disk_template not in constants.DTS_GROWABLE:
       raise errors.OpPrereqError("Instance's disk layout does not support"
-                                 " growing.", errors.ECODE_INVAL)
+                                 " growing", errors.ECODE_INVAL)
 
     self.disk = instance.FindDisk(self.op.disk)
 
@@ -9487,14 +9485,14 @@ class LUInstanceGrowDisk(LogicalUnit):
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, instance, disks=[disk])
       if disk_abort:
-        self.proc.LogWarning("Warning: disk sync-ing has not returned a good"
-                             " status.\nPlease check the instance.")
+        self.proc.LogWarning("Disk sync-ing has not returned a good"
+                             " status; please check the instance")
       if not instance.admin_up:
         _SafeShutdownInstanceDisks(self, instance, disks=[disk])
     elif not instance.admin_up:
       self.proc.LogWarning("Not shutting down the disk even if the instance is"
                            " not supposed to be running because no wait for"
-                           " sync mode was requested.")
+                           " sync mode was requested")
 
 
 class LUInstanceQueryData(NoHooksLU):
