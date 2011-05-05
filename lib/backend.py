@@ -2138,12 +2138,14 @@ def OSEnvironment(instance, inst_os, debug=0):
   """
   result = OSCoreEnv(instance.os, inst_os, instance.osparams, debug=debug)
 
-  for attr in ["name", "os", "uuid", "ctime", "mtime"]:
+  for attr in ["name", "os", "uuid", "ctime", "mtime", "primary_node"]:
     result["INSTANCE_%s" % attr.upper()] = str(getattr(instance, attr))
 
   result['HYPERVISOR'] = instance.hypervisor
   result['DISK_COUNT'] = '%d' % len(instance.disks)
   result['NIC_COUNT'] = '%d' % len(instance.nics)
+  result['INSTANCE_SECONDARY_NODES'] = \
+      ('%s' % " ".join(instance.secondary_nodes))
 
   # Disks
   for idx, disk in enumerate(instance.disks):
