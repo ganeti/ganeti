@@ -1400,6 +1400,17 @@ class ConfigWriter:
                     for node in self._UnlockedGetNodeList()])
     return my_dict
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeGroupsFromNodes(self, nodes):
+    """Returns groups for a list of nodes.
+
+    @type nodes: list of string
+    @param nodes: List of node names
+    @rtype: frozenset
+
+    """
+    return frozenset(self._UnlockedGetNodeInfo(name).group for name in nodes)
+
   def _UnlockedGetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum desired and possible candidates.
 
