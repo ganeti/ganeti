@@ -99,7 +99,7 @@ class _ConditionTestCase(_ThreadedTestCase):
 
   def _testAcquireRelease(self):
     self.assertFalse(self.cond._is_owned())
-    self.assertRaises(RuntimeError, self.cond.wait)
+    self.assertRaises(RuntimeError, self.cond.wait, None)
     self.assertRaises(RuntimeError, self.cond.notifyAll)
 
     self.cond.acquire()
@@ -109,7 +109,7 @@ class _ConditionTestCase(_ThreadedTestCase):
     self.cond.release()
 
     self.assertFalse(self.cond._is_owned())
-    self.assertRaises(RuntimeError, self.cond.wait)
+    self.assertRaises(RuntimeError, self.cond.wait, None)
     self.assertRaises(RuntimeError, self.cond.notifyAll)
 
   def _testNotification(self):
@@ -125,7 +125,7 @@ class _ConditionTestCase(_ThreadedTestCase):
     self._addThread(target=_NotifyAll)
     self.assertEqual(self.done.get(True, 1), "NE")
     self.assertRaises(Queue.Empty, self.done.get_nowait)
-    self.cond.wait()
+    self.cond.wait(None)
     self.assertEqual(self.done.get(True, 1), "NA")
     self.assertEqual(self.done.get(True, 1), "NN")
     self.assert_(self.cond._is_owned())
@@ -154,7 +154,7 @@ class TestSingleNotifyPipeCondition(_ConditionTestCase):
   def testNoNotifyReuse(self):
     self.cond.acquire()
     self.cond.notifyAll()
-    self.assertRaises(RuntimeError, self.cond.wait)
+    self.assertRaises(RuntimeError, self.cond.wait, None)
     self.assertRaises(RuntimeError, self.cond.notifyAll)
     self.cond.release()
 
@@ -220,7 +220,7 @@ class TestPipeCondition(_ConditionTestCase):
     def _BlockingWait():
       self.cond.acquire()
       self.done.put("A")
-      self.cond.wait()
+      self.cond.wait(None)
       self.cond.release()
       self.done.put("W")
 

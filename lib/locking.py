@@ -247,7 +247,7 @@ class SingleNotifyPipeCondition(_BaseCondition):
       self._write_fd = None
     self._poller = None
 
-  def wait(self, timeout=None):
+  def wait(self, timeout):
     """Wait for a notification.
 
     @type timeout: float or None
@@ -314,7 +314,7 @@ class PipeCondition(_BaseCondition):
     self._waiters = set()
     self._single_condition = self._single_condition_class(self._lock)
 
-  def wait(self, timeout=None):
+  def wait(self, timeout):
     """Wait for a notification.
 
     @type timeout: float or None
