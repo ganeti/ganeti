@@ -612,6 +612,116 @@ class TestSharedLock(_ThreadedTestCase):
 
     self.assertRaises(Queue.Empty, self.done.get_nowait)
 
+  def testIllegalDowngrade(self):
+    # Not yet acquired
+    self.assertRaises(AssertionError, self.sl.downgrade)
+
+    # Acquire in shared mode, downgrade should be no-op
+    self.assertTrue(self.sl.acquire(shared=1))
+    self.assertTrue(self.sl._is_owned(shared=1))
+    self.assertTrue(self.sl.downgrade())
+    self.assertTrue(self.sl._is_owned(shared=1))
+    self.sl.release()
+
+  def testDowngrade(self):
+    self.assertTrue(self.sl.acquire())
+    self.assertTrue(self.sl._is_owned(shared=0))
+    self.assertTrue(self.sl.downgrade())
+    self.assertTrue(self.sl._is_owned(shared=1))
+    self.sl.release()
+
+  @_Repeat
+  def testDowngradeJumpsAheadOfExclusive(self):
+    def _KeepExclusive(ev_got, ev_downgrade, ev_release):
+      self.assertTrue(self.sl.acquire())
+      self.assertTrue(self.sl._is_owned(shared=0))
+      ev_got.set()
+      ev_downgrade.wait()
+      self.assertTrue(self.sl._is_owned(shared=0))
+      self.assertTrue(self.sl.downgrade())
+      self.assertTrue(self.sl._is_owned(shared=1))
+      ev_release.wait()
+      self.assertTrue(self.sl._is_owned(shared=1))
+      self.sl.release()
+
+    def _KeepExclusive2(ev_started, ev_release):
+      self.assertTrue(self.sl.acquire(test_notify=ev_started.set))
+      self.assertTrue(self.sl._is_owned(shared=0))
+      ev_release.wait()
+      self.assertTrue(self.sl._is_owned(shared=0))
+      self.sl.release()
+
+    def _KeepShared(ev_started, ev_got, ev_release):
+      self.assertTrue(self.sl.acquire(shared=1, test_notify=ev_started.set))
+      self.assertTrue(self.sl._is_owned(shared=1))
+      ev_got.set()
+      ev_release.wait()
+      self.assertTrue(self.sl._is_owned(shared=1))
+      self.sl.release()
+
+    # Acquire lock in exclusive mode
+    ev_got_excl1 = threading.Event()
+    ev_downgrade_excl1 = threading.Event()
+    ev_release_excl1 = threading.Event()
+    th_excl1 = self._addThread(target=_KeepExclusive,
+                               args=(ev_got_excl1, ev_downgrade_excl1,
+                                     ev_release_excl1))
+    ev_got_excl1.wait()
+
+    # Start a second exclusive acquire
+    ev_started_excl2 = threading.Event()
+    ev_release_excl2 = threading.Event()
+    th_excl2 = self._addThread(target=_KeepExclusive2,
+                               args=(ev_started_excl2, ev_release_excl2))
+    ev_started_excl2.wait()
+
+    # Start shared acquires, will jump ahead of second exclusive acquire when
+    # first exclusive acquire downgrades
+    ev_shared = [(threading.Event(), threading.Event()) for _ in range(5)]
+    ev_release_shared = threading.Event()
+
+    th_shared = [self._addThread(target=_KeepShared,
+                                 args=(ev_started, ev_got, ev_release_shared))
+                 for (ev_started, ev_got) in ev_shared]
+
+    # Wait for all shared acquires to start
+    for (ev, _) in ev_shared:
+      ev.wait()
+
+    # Check lock information
+    self.assertEqual(self.sl.GetInfo(set([query.LQ_MODE, query.LQ_OWNER])),
+                     (self.sl.name, "exclusive", [th_excl1.getName()], None))
+    (_, _, _, pending) = self.sl.GetInfo(set([query.LQ_PENDING]))
+    self.assertEqual([(pendmode, sorted(waiting))
+                      for (pendmode, waiting) in pending],
+                     [("exclusive", [th_excl2.getName()]),
+                      ("shared", sorted(th.getName() for th in th_shared))])
+
+    # Shared acquires won't start until the exclusive lock is downgraded
+    ev_downgrade_excl1.set()
+
+    # Wait for all shared acquires to be successful
+    for (_, ev) in ev_shared:
+      ev.wait()
+
+    # Check lock information again
+    self.assertEqual(self.sl.GetInfo(set([query.LQ_MODE, query.LQ_PENDING])),
+                     (self.sl.name, "shared", None,
+                      [("exclusive", [th_excl2.getName()])]))
+    (_, _, owner, _) = self.sl.GetInfo(set([query.LQ_OWNER]))
+    self.assertEqual(set(owner), set([th_excl1.getName()] +
+                                     [th.getName() for th in th_shared]))
+
+    ev_release_excl1.set()
+    ev_release_excl2.set()
+    ev_release_shared.set()
+
+    self._waitThreads()
+
+    self.assertEqual(self.sl.GetInfo(set([query.LQ_MODE, query.LQ_OWNER,
+                                          query.LQ_PENDING])),
+                     (self.sl.name, None, None, []))
+
   @_Repeat
   def testMixedAcquireTimeout(self):
     sync = threading.Event()
@@ -1373,6 +1483,61 @@ class TestLockSet(_ThreadedTestCase):
     self._waitThreads()
     self.assertEqual(self.done.get_nowait(), 'DONE')
     self._setUpLS()
+
+  def testAcquireWithNamesDowngrade(self):
+    self.assertEquals(self.ls.acquire("two", shared=0), set(["two"]))
+    self.assertTrue(self.ls._is_owned())
+    self.assertFalse(self.ls._get_lock()._is_owned())
+    self.ls.release()
+    self.assertFalse(self.ls._is_owned())
+    self.assertFalse(self.ls._get_lock()._is_owned())
+    # Can't downgrade after releasing
+    self.assertRaises(AssertionError, self.ls.downgrade, "two")
+
+  def testDowngrade(self):
+    # Not owning anything, must raise an exception
+    self.assertFalse(self.ls._is_owned())
+    self.assertRaises(AssertionError, self.ls.downgrade)
+
+    self.assertFalse(compat.any(i._is_owned()
+                                for i in self.ls._get_lockdict().values()))
+
+    self.assertEquals(self.ls.acquire(None, shared=0),
+                      set(["one", "two", "three"]))
+    self.assertRaises(AssertionError, self.ls.downgrade, "unknown lock")
+
+    self.assertTrue(self.ls._get_lock()._is_owned(shared=0))
+    self.assertTrue(compat.all(i._is_owned(shared=0)
+                               for i in self.ls._get_lockdict().values()))
+
+    # Start downgrading locks
+    self.assertTrue(self.ls.downgrade(names=["one"]))
+    self.assertTrue(self.ls._get_lock()._is_owned(shared=0))
+    self.assertTrue(compat.all(lock._is_owned(shared=[0, 1][int(name == "one")])
+                               for name, lock in
+                                 self.ls._get_lockdict().items()))
+
+    self.assertTrue(self.ls.downgrade(names="two"))
+    self.assertTrue(self.ls._get_lock()._is_owned(shared=0))
+    should_share = lambda name: [0, 1][int(name in ("one", "two"))]
+    self.assertTrue(compat.all(lock._is_owned(shared=should_share(name))
+                               for name, lock in
+                                 self.ls._get_lockdict().items()))
+
+    # Downgrading the last exclusive lock to shared must downgrade the
+    # lockset-internal lock too
+    self.assertTrue(self.ls.downgrade(names="three"))
+    self.assertTrue(self.ls._get_lock()._is_owned(shared=1))
+    self.assertTrue(compat.all(i._is_owned(shared=1)
+                               for i in self.ls._get_lockdict().values()))
+
+    # Downgrading a shared lock must be a no-op
+    self.assertTrue(self.ls.downgrade(names=["one", "three"]))
+    self.assertTrue(self.ls._get_lock()._is_owned(shared=1))
+    self.assertTrue(compat.all(i._is_owned(shared=1)
+                               for i in self.ls._get_lockdict().values()))
+
+    self.ls.release()
 
   def testPriority(self):
     def _Acquire(prev, next, name, priority, success_fn):
