@@ -855,8 +855,8 @@ class LockSet:
     # Lock monitor
     self.__monitor = monitor
 
-    # Used internally to guarantee coherency.
-    self.__lock = SharedLock(name)
+    # Used internally to guarantee coherency
+    self.__lock = SharedLock(self._GetLockName("[lockset]"), monitor=monitor)
 
     # The lockdict indexes the relationship name -> lock
     # The order-of-locking is implied by the alphabetical order of names
