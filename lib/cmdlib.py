@@ -6013,8 +6013,6 @@ class LUInstanceFailover(LogicalUnit):
     shutdown_timeout = self.op.shutdown_timeout
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
                                        cleanup=False,
-                                       iallocator=self.op.iallocator,
-                                       target_node=self.op.target_node,
                                        failover=True,
                                        ignore_consistency=ignore_consistency,
                                        shutdown_timeout=shutdown_timeout)
@@ -6041,7 +6039,7 @@ class LUInstanceFailover(LogicalUnit):
     """
     instance = self._migrater.instance
     source_node = instance.primary_node
-    target_node = self._migrater.target_node
+    target_node = self.op.target_node
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
@@ -6115,7 +6113,7 @@ class LUInstanceMigrate(LogicalUnit):
     """
     instance = self._migrater.instance
     source_node = instance.primary_node
-    target_node = self._migrater.target_node
+    target_node = self.op.target_node
     env = _BuildInstanceHookEnvByObject(self, instance)
     env.update({
       "MIGRATE_LIVE": self._migrater.live,
@@ -6475,7 +6473,8 @@ class TLMigrateInstance(Tasklet):
       target_node = self.target_node
 
       if len(self.lu.tasklets) == 1:
-        # It is safe to release locks only when we're the only tasklet in the LU
+        # It is safe to release locks only when we're the only tasklet
+        # in the LU
         _ReleaseLocks(self, locking.LEVEL_NODE,
                       keep=[instance.primary_node, self.target_node])
 
@@ -6486,8 +6485,8 @@ class TLMigrateInstance(Tasklet):
                                         " %s disk template" %
                                         instance.disk_template)
       target_node = secondary_nodes[0]
-      if self.lu.op.iallocator or (self.target_node and
-                                   self.target_node != target_node):
+      if self.lu.op.iallocator or (self.lu.op.target_node and
+                                   self.lu.op.target_node != target_node):
         if self.failover:
           text = "failed over"
         else:
