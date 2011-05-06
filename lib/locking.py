@@ -562,7 +562,9 @@ class SharedLock(object):
     self.__lock.acquire()
     try:
       # Order is important: __find_first_pending_queue modifies __pending
-      return not (self.__find_first_pending_queue() or
+      (_, prioqueue) = self.__find_first_pending_queue()
+
+      return not (prioqueue or
                   self.__pending or
                   self.__pending_by_prio or
                   self.__pending_shared)
@@ -596,16 +598,15 @@ class SharedLock(object):
     while self.__pending:
       (priority, prioqueue) = self.__pending[0]
 
-      if not prioqueue:
-        heapq.heappop(self.__pending)
-        del self.__pending_by_prio[priority]
-        assert priority not in self.__pending_shared
-        continue
-
       if prioqueue:
-        return prioqueue
+        return (priority, prioqueue)
 
-    return None
+      # Remove empty queue
+      heapq.heappop(self.__pending)
+      del self.__pending_by_prio[priority]
+      assert priority not in self.__pending_shared
+
+    return (None, None)
 
   def __is_on_top(self, cond):
     """Checks whether the passed condition is on top of the queue.
@@ -613,7 +614,9 @@ class SharedLock(object):
     The caller must make sure the queue isn't empty.
 
     """
-    return cond == self.__find_first_pending_queue()[0]
+    (_, prioqueue) = self.__find_first_pending_queue()
+
+    return cond == prioqueue[0]
 
   def __acquire_unlocked(self, shared, timeout, priority):
     """Acquire a shared lock.
@@ -690,7 +693,9 @@ class SharedLock(object):
       if not wait_condition.has_waiting():
         prioqueue.remove(wait_condition)
         if wait_condition.shared:
-          del self.__pending_shared[priority]
+          # Remove from list of shared acquires if it wasn't while releasing
+          # (e.g. on lock deletion)
+          self.__pending_shared.pop(priority, None)
 
     return False
 
@@ -741,9 +746,14 @@ class SharedLock(object):
         self.__shr.remove(threading.currentThread())
 
       # Notify topmost condition in queue
-      prioqueue = self.__find_first_pending_queue()
+      (priority, prioqueue) = self.__find_first_pending_queue()
       if prioqueue:
-        prioqueue[0].notifyAll()
+        cond = prioqueue[0]
+        cond.notifyAll()
+        if cond.shared:
+          # Prevent further shared acquires from sneaking in while waiters are
+          # notified
+          self.__pending_shared.pop(priority, None)
 
     finally:
       self.__lock.release()
