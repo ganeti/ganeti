@@ -952,6 +952,7 @@ class OpInstanceRecreateDisks(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt)),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString)),
     ]
 
 

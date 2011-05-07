@@ -5440,8 +5440,25 @@ class LUInstanceRecreateDisks(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
+  def CheckArguments(self):
+    # normalise the disk list
+    self.op.disks = sorted(frozenset(self.op.disks))
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+    if self.op.nodes:
+      self.op.nodes = [_ExpandNodeName(self.cfg, n) for n in self.op.nodes]
+      self.needed_locks[locking.LEVEL_NODE] = list(self.op.nodes)
+    else:
+      self.needed_locks[locking.LEVEL_NODE] = []
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      # if we replace the nodes, we only need to lock the old primary,
+      # otherwise we need to lock all nodes for disk re-creation
+      primary_only = bool(self.op.nodes)
+      self._LockInstancesNodes(primary_only=primary_only)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -5462,12 +5479,31 @@ class LUInstanceRecreateDisks(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, instance.primary_node)
+    if self.op.nodes:
+      if len(self.op.nodes) != len(instance.all_nodes):
+        raise errors.OpPrereqError("Instance %s currently has %d nodes, but"
+                                   " %d replacement nodes were specified" %
+                                   (instance.name, len(instance.all_nodes),
+                                    len(self.op.nodes)),
+                                   errors.ECODE_INVAL)
+      assert instance.disk_template != constants.DT_DRBD8 or \
+          len(self.op.nodes) == 2
+      assert instance.disk_template != constants.DT_PLAIN or \
+          len(self.op.nodes) == 1
+      primary_node = self.op.nodes[0]
+    else:
+      primary_node = instance.primary_node
+    _CheckNodeOnline(self, primary_node)
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name, errors.ECODE_INVAL)
-    _CheckInstanceDown(self, instance, "cannot recreate disks")
+    # if we replace nodes *and* the old primary is offline, we don't
+    # check
+    assert instance.primary_node in self.needed_locks[locking.LEVEL_NODE]
+    old_pnode = self.cfg.GetNodeInfo(instance.primary_node)
+    if not (self.op.nodes and old_pnode.offline):
+      _CheckInstanceDown(self, instance, "cannot recreate disks")
 
     if not self.op.disks:
       self.op.disks = range(len(instance.disks))
@@ -5476,18 +5512,39 @@ class LUInstanceRecreateDisks(LogicalUnit):
         if idx >= len(instance.disks):
           raise errors.OpPrereqError("Invalid disk index passed '%s'" % idx,
                                      errors.ECODE_INVAL)
-
+    if self.op.disks != range(len(instance.disks)) and self.op.nodes:
+      raise errors.OpPrereqError("Can't recreate disks partially and"
+                                 " change the nodes at the same time",
+                                 errors.ECODE_INVAL)
     self.instance = instance
 
   def Exec(self, feedback_fn):
     """Recreate the disks.
 
     """
+    # change primary node, if needed
+    if self.op.nodes:
+      self.instance.primary_node = self.op.nodes[0]
+      self.LogWarning("Changing the instance's nodes, you will have to"
+                      " remove any disks left on the older nodes manually")
+
     to_skip = []
-    for idx, _ in enumerate(self.instance.disks):
+    for idx, disk in enumerate(self.instance.disks):
       if idx not in self.op.disks: # disk idx has not been passed in
         to_skip.append(idx)
         continue
+      # update secondaries for disks, if needed
+      if self.op.nodes:
+        if disk.dev_type == constants.LD_DRBD8:
+          # need to update the nodes
+          assert len(self.op.nodes) == 2
+          logical_id = list(disk.logical_id)
+          logical_id[0] = self.op.nodes[0]
+          logical_id[1] = self.op.nodes[1]
+          disk.logical_id = tuple(logical_id)
+
+    if self.op.nodes:
+      self.cfg.Update(self.instance, feedback_fn)
 
     _CreateDisks(self, self.instance, to_skip=to_skip)
 

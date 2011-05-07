@@ -1329,7 +1329,8 @@ instance.
 RECREATE-DISKS
 ^^^^^^^^^^^^^^
 
-**recreate-disks** [--submit] [--disks=``indices``] {*instance*}
+**recreate-disks** [--submit] [--disks=``indices``] [-n node1:[node2]]
+  {*instance*}
 
 Recreates the disks of the given instance, or only a subset of the
 disks (if the option ``disks`` is passed, which must be a
@@ -1339,6 +1340,15 @@ Note that this functionality should only be used for missing disks; if
 any of the given disks already exists, the operation will fail.  While
 this is suboptimal, recreate-disks should hopefully not be needed in
 normal operation and as such the impact of this is low.
+
+Optionally the instance's disks can be recreated on different
+nodes. This can be useful if, for example, the original nodes of the
+instance have gone down (and are marked offline), so we can't recreate
+on the same nodes. To do this, pass the new node(s) via ``-n`` option,
+with a syntax similar to the **add** command. The number of nodes
+passed must equal the number of nodes that the instance currently
+has. Note that changing nodes is only allowed for 'all disk'
+replacement (when ``--disks`` is not passed).
 
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it

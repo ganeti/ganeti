@@ -638,8 +638,17 @@ def RecreateDisks(opts, args):
   else:
     opts.disks = []
 
+  if opts.node:
+    pnode, snode = SplitNodeOption(opts.node)
+    nodes = [pnode]
+    if snode is not None:
+      nodes.append(snode)
+  else:
+    nodes = []
+
   op = opcodes.OpInstanceRecreateDisks(instance_name=instance_name,
-                                       disks=opts.disks)
+                                       disks=opts.disks,
+                                       nodes=nodes)
   SubmitOrSend(op, opts)
   return 0
 
@@ -1472,7 +1481,7 @@ commands = {
     "[-f] <instance>", "Deactivate an instance's disks"),
   'recreate-disks': (
     RecreateDisks, ARGS_ONE_INSTANCE,
-    [SUBMIT_OPT, DISKIDX_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [SUBMIT_OPT, DISKIDX_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance>", "Recreate an instance's disks"),
   'grow-disk': (
     GrowDisk,
