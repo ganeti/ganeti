@@ -876,7 +876,7 @@ MODIFY
 | [--net add*[:options]* \| --net remove \| --net *N:options*]
 | [--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| --disk remove \|
 |  --disk *N*:mode=*MODE*]
-| [-t plain | -t drbd -n *new_secondary*]
+| [-t plain | -t drbd -n *new_secondary*] [--no-wait-for-sync]
 | [--os-type=*OS* [--force-variant]]
 | [-O, --os-parameters *param*=*value*... ]
 | [--submit]
@@ -895,7 +895,10 @@ The ``-t`` option will change the disk template of the instance.
 Currently only conversions between the plain and drbd disk templates
 are supported, and the instance must be stopped before attempting the
 conversion. When changing from the plain to the drbd disk template, a
-new secondary node must be specified via the ``-n`` option.
+new secondary node must be specified via the ``-n`` option. The option
+``--no-wait-for-sync`` can be used when converting to the ``drbd``
+template in order to make the instance available for startup before
+DRBD has finished resyncing.
 
 The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
 optional ``vg=``*VG* option specifies LVM volume group other than

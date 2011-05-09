@@ -989,6 +989,7 @@ class OpInstanceSetParams(OpCode):
     ("os_name", None, ht.TMaybeString),
     ("force_variant", False, ht.TBool),
     ("osparams", None, ht.TMaybeDict),
+    ("wait_for_sync", True, ht.TBool),
     ]
 
 
