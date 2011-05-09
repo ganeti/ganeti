@@ -331,10 +331,14 @@ class BlockDev(object):
     for child in self._children:
       child.SetInfo(text)
 
-  def Grow(self, amount):
+  def Grow(self, amount, dryrun):
     """Grow the block device.
 
+    @type amount: integer
     @param amount: the amount (in mebibytes) to grow with
+    @type dryrun: boolean
+    @param dryrun: whether to execute the operation in simulation mode
+        only, without actually increasing the size
 
     """
     raise NotImplementedError
@@ -753,7 +757,7 @@ class LogicalVolume(BlockDev):
       _ThrowError("Command: %s error: %s - %s", result.cmd, result.fail_reason,
                   result.output)
 
-  def Grow(self, amount):
+  def Grow(self, amount, dryrun):
     """Grow the logical volume.
 
     """
@@ -764,13 +768,15 @@ class LogicalVolume(BlockDev):
     rest = amount % full_stripe_size
     if rest != 0:
       amount += full_stripe_size - rest
+    cmd = ["lvextend", "-L", "+%dm" % amount]
+    if dryrun:
+      cmd.append("--test")
     # we try multiple algorithms since the 'best' ones might not have
     # space available in the right place, but later ones might (since
     # they have less constraints); also note that only recent LVM
     # supports 'cling'
     for alloc_policy in "contiguous", "cling", "normal":
-      result = utils.RunCmd(["lvextend", "--alloc", alloc_policy,
-                             "-L", "+%dm" % amount, self.dev_path])
+      result = utils.RunCmd(cmd + ["--alloc", alloc_policy, self.dev_path])
       if not result.failed:
         return
     _ThrowError("Can't grow LV %s: %s", self.dev_path, result.output)
@@ -1911,7 +1917,7 @@ class DRBD8(BaseDRBD):
     cls._InitMeta(aminor, meta.dev_path)
     return cls(unique_id, children, size)
 
-  def Grow(self, amount):
+  def Grow(self, amount, dryrun):
     """Resize the DRBD device and its backing storage.
 
     """
@@ -1919,7 +1925,10 @@ class DRBD8(BaseDRBD):
       _ThrowError("drbd%d: Grow called while not attached", self._aminor)
     if len(self._children) != 2 or None in self._children:
       _ThrowError("drbd%d: cannot grow diskless device", self.minor)
-    self._children[0].Grow(amount)
+    self._children[0].Grow(amount, dryrun)
+    if dryrun:
+      # DRBD does not support dry-run mode, so we'll return here
+      return
     result = utils.RunCmd(["drbdsetup", self.dev_path, "resize", "-s",
                            "%dm" % (self.size + amount)])
     if result.failed:
@@ -2001,7 +2010,7 @@ class FileStorage(BlockDev):
     # TODO: implement rename for file-based storage
     _ThrowError("Rename is not supported for file-based storage")
 
-  def Grow(self, amount):
+  def Grow(self, amount, dryrun):
     """Grow the file
 
     @param amount: the amount (in mebibytes) to grow with
@@ -2012,6 +2021,9 @@ class FileStorage(BlockDev):
     current_size = self.GetActualSize()
     new_size = current_size + amount * 1024 * 1024
     assert new_size > current_size, "Cannot Grow with a negative amount"
+    # We can't really simulate the growth
+    if dryrun:
+      return
     try:
       f = open(self.dev_path, "a+")
       f.truncate(new_size)
@@ -2173,7 +2185,7 @@ class PersistentBlockDevice(BlockDev):
     """
     pass
 
-  def Grow(self, amount):
+  def Grow(self, amount, dryrun):
     """Grow the logical volume.
 
     """

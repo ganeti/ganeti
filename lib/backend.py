@@ -2245,7 +2245,7 @@ def BlockdevGrow(disk, amount):
     _Fail("Cannot find block device %s", disk)
 
   try:
-    r_dev.Grow(amount)
+    r_dev.Grow(amount, False)
   except errors.BlockDeviceError, err:
     _Fail("Failed to grow block device: %s", err, exc=True)
 
