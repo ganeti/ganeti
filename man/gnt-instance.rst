@@ -334,6 +334,10 @@ root\_path
     needed for Xen PVM, while for KVM it is only used if the
     ``kernel_path`` option is also specified.
 
+    Please note, that if this setting is an empty string and the
+    hypervisor is Xen it will not be written to the Xen configuration
+    file
+
 serial\_console
     Valid for the KVM hypervisor.
 

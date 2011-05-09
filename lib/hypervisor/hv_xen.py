@@ -459,7 +459,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_BOOTLOADER_ARGS: hv_base.NO_CHECK,
     constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_INITRD_PATH: hv_base.OPT_FILE_CHECK,
-    constants.HV_ROOT_PATH: hv_base.REQUIRED_CHECK,
+    constants.HV_ROOT_PATH: hv_base.NO_CHECK,
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
@@ -521,7 +521,8 @@ class XenPvmHypervisor(XenHypervisor):
     config.write("vif = [%s]\n" % ",".join(vif_data))
     config.write("disk = [%s]\n" % ",".join(disk_data))
 
-    config.write("root = '%s'\n" % hvp[constants.HV_ROOT_PATH])
+    if hvp[constants.HV_ROOT_PATH]:
+      config.write("root = '%s'\n" % hvp[constants.HV_ROOT_PATH])
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
     config.write("on_crash = 'restart'\n")
