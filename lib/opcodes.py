@@ -129,6 +129,13 @@ _TestClusterOsList = ht.TOr(ht.TNone,
 _TestNicDef = ht.TDictOf(ht.TElemOf(constants.INIC_PARAMS),
                          ht.TOr(ht.TNone, ht.TNonEmptyString))
 
+_SUMMARY_PREFIX = {
+  "CLUSTER_": "C_",
+  "GROUP_": "G_",
+  "NODE_": "N_",
+  "INSTANCE_": "I_",
+  }
+
 
 def _NameToId(name):
   """Convert an opcode class name to an OP_ID.
@@ -462,6 +469,20 @@ class OpCode(BaseOpCode):
         field_value = ",".join(str(i) for i in field_value)
       txt = "%s(%s)" % (txt, field_value)
     return txt
+
+  def TinySummary(self):
+    """Generates a compact summary description of the opcode.
+
+    """
+    assert self.OP_ID.startswith("OP_")
+
+    text = self.OP_ID[3:]
+
+    for (prefix, supplement) in _SUMMARY_PREFIX.items():
+      if text.startswith(prefix):
+        return supplement + text[len(prefix):]
+
+    return text
 
 
 # cluster opcodes

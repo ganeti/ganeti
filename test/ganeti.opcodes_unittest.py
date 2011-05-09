@@ -47,6 +47,8 @@ class TestOpcodes(unittest.TestCase):
       self.assert_(len(cls.OP_ID) > 3)
       self.assertEqual(cls.OP_ID, cls.OP_ID.upper())
       self.assertEqual(cls.OP_ID, opcodes._NameToId(cls.__name__))
+      self.assertFalse(compat.any(cls.OP_ID.startswith(prefix)
+                                  for prefix in opcodes._SUMMARY_PREFIX.keys()))
 
       self.assertRaises(TypeError, cls, unsupported_parameter="some value")
 
@@ -101,6 +103,18 @@ class TestOpcodes(unittest.TestCase):
                      "TEST(Hello World)")
     self.assertEqual(OpTest(data="node1.example.com").Summary(),
                      "TEST(node1.example.com)")
+
+  def testTinySummary(self):
+    self.assertFalse(utils.FindDuplicates(opcodes._SUMMARY_PREFIX.values()))
+    self.assertTrue(compat.all(prefix.endswith("_") and supplement.endswith("_")
+                               for (prefix, supplement) in
+                                 opcodes._SUMMARY_PREFIX.items()))
+
+    self.assertEqual(opcodes.OpClusterPostInit().TinySummary(), "C_POST_INIT")
+    self.assertEqual(opcodes.OpNodeRemove().TinySummary(), "N_REMOVE")
+    self.assertEqual(opcodes.OpInstanceMigrate().TinySummary(), "I_MIGRATE")
+    self.assertEqual(opcodes.OpGroupQuery().TinySummary(), "G_QUERY")
+    self.assertEqual(opcodes.OpTestJqueue().TinySummary(), "TEST_JQUEUE")
 
   def testListSummary(self):
     class OpTest(opcodes.OpCode):
