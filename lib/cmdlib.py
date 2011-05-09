@@ -129,6 +129,7 @@ class LogicalUnit(object):
     self.proc = processor
     self.op = op
     self.cfg = context.cfg
+    self.glm = context.glm
     self.context = context
     self.rpc = rpc
     # Dicts used to declare locking needs to mcpu
@@ -665,16 +666,16 @@ def _ReleaseLocks(lu, level, names=None, keep=None):
     assert len(lu.acquired_locks[level]) == (len(retain) + len(release))
 
     # Release just some locks
-    lu.context.glm.release(level, names=release)
+    lu.glm.release(level, names=release)
     lu.acquired_locks[level] = retain
 
-    assert frozenset(lu.context.glm.list_owned(level)) == frozenset(retain)
+    assert frozenset(lu.glm.list_owned(level)) == frozenset(retain)
   else:
     # Release everything
-    lu.context.glm.release(level)
+    lu.glm.release(level)
     del lu.acquired_locks[level]
 
-    assert not lu.context.glm.list_owned(level), "No locks should be owned"
+    assert not lu.glm.list_owned(level), "No locks should be owned"
 
 
 def _RunPostHook(lu, node_name):
@@ -5843,8 +5844,8 @@ class LUInstanceRename(LogicalUnit):
     # Change the instance lock. This is definitely safe while we hold the BGL.
     # Otherwise the new lock would have to be added in acquired mode.
     assert self.REQ_BGL
-    self.context.glm.remove(locking.LEVEL_INSTANCE, old_name)
-    self.context.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
+    self.glm.remove(locking.LEVEL_INSTANCE, old_name)
+    self.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
 
     # re-read the instance from the configuration after rename
     inst = self.cfg.GetInstanceInfo(self.op.new_name)
@@ -8858,7 +8859,7 @@ class TLReplaceDisks(Tasklet):
     _ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
 
     # Release any owned node group
-    if self.lu.context.glm.is_owned(locking.LEVEL_NODEGROUP):
+    if self.lu.glm.is_owned(locking.LEVEL_NODEGROUP):
       _ReleaseLocks(self.lu, locking.LEVEL_NODEGROUP)
 
     # Check whether disks are valid
@@ -8881,16 +8882,16 @@ class TLReplaceDisks(Tasklet):
 
     if __debug__:
       # Verify owned locks before starting operation
-      owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
+      owned_locks = self.lu.glm.list_owned(locking.LEVEL_NODE)
       assert set(owned_locks) == set(self.node_secondary_ip), \
           ("Incorrect node locks, owning %s, expected %s" %
            (owned_locks, self.node_secondary_ip.keys()))
 
-      owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_INSTANCE)
+      owned_locks = self.lu.glm.list_owned(locking.LEVEL_INSTANCE)
       assert list(owned_locks) == [self.instance_name], \
           "Instance '%s' not locked" % self.instance_name
 
-      assert not self.lu.context.glm.is_owned(locking.LEVEL_NODEGROUP), \
+      assert not self.lu.glm.is_owned(locking.LEVEL_NODEGROUP), \
           "Should not own any node group lock at this point"
 
     if not self.disks:
@@ -8922,7 +8923,7 @@ class TLReplaceDisks(Tasklet):
 
     if __debug__:
       # Verify owned locks
-      owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
+      owned_locks = self.lu.glm.list_owned(locking.LEVEL_NODE)
       nodes = frozenset(self.node_secondary_ip)
       assert ((self.early_release and not owned_locks) or
               (not self.early_release and not (set(owned_locks) - nodes))), \
