@@ -336,7 +336,8 @@ class NodeHttpServer(http.server.HttpServer):
     """
     cfbd = objects.Disk.FromDict(params[0])
     amount = params[1]
-    return backend.BlockdevGrow(cfbd, amount)
+    dryrun = params[2]
+    return backend.BlockdevGrow(cfbd, amount, dryrun)
 
   @staticmethod
   def perspective_blockdev_close(params):

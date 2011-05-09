@@ -1261,14 +1261,14 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "iallocator_runner", [name, idata])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_blockdev_grow(self, node, cf_bdev, amount):
+  def call_blockdev_grow(self, node, cf_bdev, amount, dryrun):
     """Request a snapshot of the given block device.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "blockdev_grow",
-                                [cf_bdev.ToDict(), amount])
+                                [cf_bdev.ToDict(), amount, dryrun])
 
   @_RpcTimeout(_TMO_1DAY)
   def call_blockdev_export(self, node, cf_bdev,
