@@ -116,25 +116,26 @@ INIT
 ~~~~
 
 | **init**
-| [-s *secondary\_ip*]
+| [{-s|--secondary-ip} *secondary\_ip*]
 | [--vg-name *vg-name*]
 | [--master-netdev *interface-name*]
-| [-m *mac-prefix*]
+| [{-m|--mac-prefix} *mac-prefix*]
 | [--no-lvm-storage]
 | [--no-etc-hosts]
 | [--no-ssh-init]
 | [--file-storage-dir *dir*]
 | [--enabled-hypervisors *hypervisors*]
 | [-t *hypervisor name*]
-| [--hypervisor-parameters *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
-| [--backend-parameters *be-param*=*value* [,*be-param*=*value*...]]
-| [--nic-parameters *nic-param*=*value* [,*nic-param*=*value*...]]
+| [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
+| [{-B|--backend-parameters} *be-param*=*value* [,*be-param*=*value*...]]
+| [{-N|--nic-parameters} *nic-param*=*value* [,*nic-param*=*value*...]]
 | [--maintain-node-health {yes \| no}]
 | [--uid-pool *user-id pool definition*]
-| [-I *default instance allocator*]
+| [{-I|--default-iallocator} *default instance allocator*]
 | [--primary-ip-version *version*]
 | [--prealloc-wipe-disks {yes \| no}]
 | [--node-parameters *ndparams*]
+| [{-C|--candidate-pool-size} *candidate\_pool\_size*]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -149,13 +150,13 @@ address reserved exclusively for this purpose, i.e. not already in
 use.
 
 The cluster can run in two modes: single-home or dual-homed. In the
-first case, all traffic (both public traffic, inter-node traffic
-and data replication traffic) goes over the same interface. In the
+first case, all traffic (both public traffic, inter-node traffic and
+data replication traffic) goes over the same interface. In the
 dual-homed case, the data replication traffic goes over the second
-network. The ``-s`` option here marks the cluster as dual-homed and
-its parameter represents this node's address on the second network.
-If you initialise the cluster with ``-s``, all nodes added must
-have a secondary IP as well.
+network. The ``-s (--secondary-ip)`` option here marks the cluster as
+dual-homed and its parameter represents this node's address on the
+second network.  If you initialise the cluster with ``-s``, all nodes
+added must have a secondary IP as well.
 
 Note that for Ganeti it doesn't matter if the secondary network is
 actually a separate physical network, or is done using tunneling,
@@ -175,10 +176,10 @@ interface on which the master will activate its IP address. It's
 important that all nodes have this interface because you'll need it
 for a master failover.
 
-The ``-m`` option will let you specify a three byte prefix under
-which the virtual MAC addresses of your instances will be
-generated. The prefix must be specified in the format XX:XX:XX and
-the default is aa:00:00.
+The ``-m (--mac-prefix)`` option will let you specify a three byte
+prefix under which the virtual MAC addresses of your instances will be
+generated. The prefix must be specified in the format ``XX:XX:XX`` and
+the default is ``aa:00:00``.
 
 The ``--no-lvm-storage`` option allows you to initialize the
 cluster without lvm support. This means that only instances using
@@ -196,20 +197,16 @@ The ``--file-storage-dir`` option allows you set the directory to
 use for storing the instance disk files when using file storage as
 backend for instance disks.
 
-The ``--enabled-hypervisors`` option allows you to set the list of
-hypervisors that will be enabled for this cluster. Instance
-hypervisors can only be chosen from the list of enabled
-hypervisors, and the first entry of this list will be used by
-default. Currently, the following hypervisors are available:
-
 The ``--prealloc-wipe-disks`` sets a cluster wide configuration
 value for wiping disks prior to allocation. This increases security
 on instance level as the instance can't access untouched data from
 it's underlying storage.
 
-
-
-
+The ``--enabled-hypervisors`` option allows you to set the list of
+hypervisors that will be enabled for this cluster. Instance
+hypervisors can only be chosen from the list of enabled
+hypervisors, and the first entry of this list will be used by
+default. Currently, the following hypervisors are available:
 
 xen-pvm
     Xen PVM hypervisor
@@ -227,17 +224,16 @@ chroot
 fake
     fake hypervisor for development/testing
 
-
 Either a single hypervisor name or a comma-separated list of
 hypervisor names can be specified. If this option is not specified,
 only the xen-pvm hypervisor is enabled by default.
 
-The ``--hypervisor-parameters`` option allows you to set default
+The ``-H (--hypervisor-parameters)`` option allows you to set default
 hypervisor specific parameters for the cluster. The format of this
 option is the name of the hypervisor, followed by a colon and a
-comma-separated list of key=value pairs. The keys available for
-each hypervisors are detailed in the gnt-instance(8) man page, in
-the **add** command plus the following parameters which are only
+comma-separated list of key=value pairs. The keys available for each
+hypervisors are detailed in the gnt-instance(8) man page, in the
+**add** command plus the following parameters which are only
 configurable globally (at cluster level):
 
 migration\_port
@@ -257,11 +253,10 @@ migration\_bandwidth
     This option is only effective with kvm versions >= 78 and qemu-kvm
     versions >= 0.10.0.
 
-
-The ``--backend-parameters`` option allows you to set the default
+The ``-B (--backend-parameters)`` option allows you to set the default
 backend parameters for the cluster. The parameter format is a
-comma-separated list of key=value pairs with the following
-supported keys:
+comma-separated list of key=value pairs with the following supported
+keys:
 
 vcpus
     Number of VCPUs to set for an instance by default, must be an
@@ -278,10 +273,9 @@ auto\_balance
     will be set to true if not specified.
 
 
-The ``--nic-parameters`` option allows you to set the default nic
-parameters for the cluster. The parameter format is a
-comma-separated list of key=value pairs with the following
-supported keys:
+The ``-N (--nic-parameters)`` option allows you to set the default nic
+parameters for the cluster. The parameter format is a comma-separated
+list of key=value pairs with the following supported keys:
 
 mode
     The default nic mode, 'routed' or 'bridged'.
@@ -292,7 +286,6 @@ link
     different instance groups. For example under the KVM default
     network script it is interpreted as a routing table number or
     name.
-
 
 The option ``--maintain-node-health`` allows to enable/disable
 automatic maintenance actions on nodes. Currently these include
@@ -327,6 +320,11 @@ and the cluster name.
 The ``--node-parameters`` option allows you to set default node
 parameters for the cluster. Please see **ganeti**(7) for more
 information about supported key=value pairs.
+
+The ``-C (--candidate-pool-size)`` option specifies the
+``candidate_pool_size`` cluster parameter. This is the number of nodes
+that the master will try to keep as master\_candidates. For more
+details about this role and other node roles, see the ganeti(7).
 
 LIST-TAGS
 ~~~~~~~~~
@@ -372,16 +370,16 @@ MODIFY
 | [--vg-name *vg-name*]
 | [--no-lvm-storage]
 | [--enabled-hypervisors *hypervisors*]
-| [--hypervisor-parameters *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
-| [--backend-parameters *be-param*=*value* [,*be-param*=*value*...]]
-| [--nic-parameters *nic-param*=*value* [,*nic-param*=*value*...]]
+| [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
+| [{-B|--backend-parameters} *be-param*=*value* [,*be-param*=*value*...]]
+| [{-N|--nic-parameters} *nic-param*=*value* [,*nic-param*=*value*...]]
 | [--uid-pool *user-id pool definition*]
 | [--add-uids *user-id pool definition*]
 | [--remove-uids *user-id pool definition*]
-| [-C *candidate\_pool\_size*]
+| [{-C|--candidate-pool-size} *candidate\_pool\_size*]
 | [--maintain-node-health {yes \| no}]
 | [--prealloc-wipe-disks {yes \| no}]
-| [-I *default instance allocator*]
+| [{-I|--default-iallocator} *default instance allocator*]
 | [--reserved-lvs=*NAMES*]
 | [--node-parameters *ndparams*]
 | [--master-netdev *interface-name*]
@@ -389,17 +387,11 @@ MODIFY
 Modify the options for the cluster.
 
 The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
-``--hypervisor-parameters``, ``--backend-parameters``,
-``--nic-parameters``, ``--maintain-node-health``,
-``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
-``--master-netdev`` options are described in the **init** command.
-
-The ``-C`` option specifies the ``candidate_pool_size`` cluster
-parameter. This is the number of nodes that the master will try to
-keep as master\_candidates. For more details about this role and
-other node roles, see the ganeti(7). If you increase the size, the
-master will automatically promote as many nodes as required and
-possible to reach the intended number.
+``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``,
+``--nic-parameters``, ``-C (--candidate-pool-size)``,
+``--maintain-node-health``, ``--prealloc-wipe-disks``, ``--uid-pool``,
+``--node-parameters``, ``--master-netdev`` options are described in
+the **init** command.
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or
@@ -417,8 +409,9 @@ verification, but not the actual use of the names given.
 To remove all reserved logical volumes, pass in an empty argument
 to the option, as in ``--reserved-lvs=`` or ``--reserved-lvs ''``.
 
-The ``-I`` is described in the **init** command. To clear the
-default iallocator, just pass an empty string ('').
+The ``-I (--default-iallocator)`` is described in the **init**
+command. To clear the default iallocator, just pass an empty string
+('').
 
 QUEUE
 ~~~~~

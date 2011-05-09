@@ -27,17 +27,17 @@ ADD
 ^^^
 
 | **add**
-| {-t {diskless | file \| plain \| drbd}}
+| {-t|--disk-template {diskless | file \| plain \| drbd}}
 | {--disk=*N*: {size=*VAL* \| adopt=*LV*}[,vg=*VG*][,metavg=*VG*][,mode=*ro\|rw*]
-|  \| -s *SIZE*}
+|  \| {-s|--os-size} *SIZE*}
 | [--no-ip-check] [--no-name-check] [--no-start] [--no-install]
 | [--net=*N* [:options...] \| --no-nics]
-| [-B *BEPARAMS*]
-| [-H *HYPERVISOR* [: option=*value*... ]]
-| [-O, --os-parameters *param*=*value*... ]
+| [{-B|--backend-parameters} *BEPARAMS*]
+| [{-H|--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
+| [{-O|--os-parameters} *param*=*value*... ]
 | [--file-storage-dir *dir\_path*] [--file-driver {loop \| blktap}]
-| {-n *node[:secondary-node]* \| --iallocator *name*}
-| {-o *os-type*}
+| {{-n|--node} *node[:secondary-node]* \| {-I|--iallocator} *name*}
+| {{-o|--os-type} *os-type*}
 | [--submit]
 | {*instance*}
 
@@ -93,8 +93,6 @@ option. By default, one NIC is created for the instance, with a
 random MAC, and set up according the the cluster level nic
 parameters. Each NIC can take these parameters (all optional):
 
-
-
 mac
     either a value or 'generate' to generate a new unique MAC
 
@@ -118,16 +116,17 @@ default at cluster level.  Alternatively, if no network is desired for
 the instance, you can prevent the default of one NIC with the
 ``--no-nics`` option.
 
-The ``-o`` options specifies the operating system to be installed.
-The available operating systems can be listed with **gnt-os list**.
-Passing ``--no-install`` will however skip the OS installation,
-allowing a manual import if so desired. Note that the no-installation
-mode will automatically disable the start-up of the instance (without
-an OS, it most likely won't be able to start-up successfully).
+The ``-o (--os-type)`` option specifies the operating system to be
+installed.  The available operating systems can be listed with
+**gnt-os list**.  Passing ``--no-install`` will however skip the OS
+installation, allowing a manual import if so desired. Note that the
+no-installation mode will automatically disable the start-up of the
+instance (without an OS, it most likely won't be able to start-up
+successfully).
 
-The ``-B`` option specifies the backend parameters for the
-instance. If no such parameters are specified, the values are
-inherited from the cluster. Possible parameters are:
+The ``-B (--backend-parameters)`` option specifies the backend
+parameters for the instance. If no such parameters are specified, the
+values are inherited from the cluster. Possible parameters are:
 
 memory
     the memory size of the instance; as usual, suffixes can be used to
@@ -142,12 +141,12 @@ auto\_balance
     (enough redundancy in the cluster to survive a node failure)
 
 
-The ``-H`` option specified the hypervisor to use for the instance
-(must be one of the enabled hypervisors on the cluster) and optionally
-custom parameters for this instance. If not other options are used
-(i.e. the invocation is just -H *NAME*) the instance will inherit the
-cluster options. The defaults below show the cluster defaults at
-cluster creation time.
+The ``-H (--hypervisor-parameters)`` option specified the hypervisor
+to use for the instance (must be one of the enabled hypervisors on the
+cluster) and optionally custom parameters for this instance. If not
+other options are used (i.e. the invocation is just -H *NAME*) the
+instance will inherit the cluster options. The defaults below show the
+cluster defaults at cluster creation time.
 
 The possible hypervisor options are as follows:
 
@@ -213,15 +212,15 @@ nic\_type
     This parameter determines the way the network cards are presented
     to the instance. The possible options are:
 
-    rtl8139 (default for Xen HVM) (HVM & KVM)
-    ne2k\_isa (HVM & KVM)
-    ne2k\_pci (HVM & KVM)
-    i82551 (KVM)
-    i82557b (KVM)
-    i82559er (KVM)
-    pcnet (KVM)
-    e1000 (KVM)
-    paravirtual (default for KVM) (HVM & KVM)
+    - rtl8139 (default for Xen HVM) (HVM & KVM)
+    - ne2k\_isa (HVM & KVM)
+    - ne2k\_pci (HVM & KVM)
+    - i82551 (KVM)
+    - i82557b (KVM)
+    - i82559er (KVM)
+    - pcnet (KVM)
+    - e1000 (KVM)
+    - paravirtual (default for KVM) (HVM & KVM)
 
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
@@ -431,22 +430,21 @@ usb\_mouse
     "tablet".
 
 
-The ``-O`` (``--os-parameters``) option allows customisation of the OS
+The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
 being used, but the syntax is the same key=value. For example, setting
 a hypothetical ``dhcp`` parameter to yes can be achieved by::
 
     gnt-instance add -O dhcp=yes ...
 
+The ``-I (--iallocator)`` option specifies the instance allocator
+plugin to use. If you pass in this option the allocator will select
+nodes for this instance automatically, so you don't need to pass them
+with the ``-n`` option. For more information please refer to the
+instance allocator documentation.
 
-The ``--iallocator`` option specifies the instance allocator plugin to
-use. If you pass in this option the allocator will select nodes for
-this instance automatically, so you don't need to pass them with the
-``-n`` option. For more information please refer to the instance
-allocator documentation.
-
-The ``-t`` options specifies the disk layout type for the instance.
-The available choices are:
+The ``-t (--disk-template)`` options specifies the disk layout type
+for the instance.  The available choices are:
 
 diskless
     This creates an instance with no disks. Its useful for testing only
@@ -462,7 +460,7 @@ drbd
     Disk devices will be drbd (version 8.x) on top of lvm volumes.
 
 
-The optional second value of the ``--node`` is used for the drbd
+The optional second value of the ``-n (--node)`` is used for the drbd
 template type and specifies the remote node.
 
 If you do not want gnt-instance to wait for the disk mirror to be
@@ -642,7 +640,7 @@ LIST
 
 | **list**
 | [--no-headers] [--separator=*SEPARATOR*] [--units=*UNITS*] [-v]
-| [-o *[+]FIELD,...*] [instance...]
+| [{-o|--output} *[+]FIELD,...*] [instance...]
 
 Shows the currently configured instances with memory usage, disk
 usage, the node they are running on, and their run status.
@@ -662,9 +660,8 @@ a given output unit.
 The ``-v`` option activates verbose mode, which changes the display of
 special field states (see **ganeti(7)**).
 
-The ``-o`` option takes a comma-separated list of output fields. The
-available fields and their meaning are:
-
+The ``-o (--output)`` option takes a comma-separated list of output
+fields. The available fields and their meaning are:
 
 name
     the instance name
@@ -871,14 +868,14 @@ MODIFY
 ^^^^^^
 
 | **modify**
-| [-H *HYPERVISOR\_PARAMETERS*]
-| [-B *BACKEND\_PARAMETERS*]
+| [{-H|--hypervisor-parameters} *HYPERVISOR\_PARAMETERS*]
+| [{-B|--backend-parameters} *BACKEND\_PARAMETERS*]
 | [--net add*[:options]* \| --net remove \| --net *N:options*]
 | [--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| --disk remove \|
 |  --disk *N*:mode=*MODE*]
-| [-t plain | -t drbd -n *new_secondary*] [--no-wait-for-sync]
+| [{-t|--disk-template} plain | {-t|--disk-template} drbd -n *new_secondary*] [--no-wait-for-sync]
 | [--os-type=*OS* [--force-variant]]
-| [-O, --os-parameters *param*=*value*... ]
+| [{-O|--os-parameters} *param*=*value*... ]
 | [--submit]
 | {*instance*}
 
@@ -887,18 +884,19 @@ and/or nic parameters for an instance. It can also add and remove
 disks and NICs to/from the instance. Note that you need to give at
 least one of the arguments, otherwise the command complains.
 
-The ``-H``, ``-B`` and ``-O`` options specifies hypervisor, backend
-and OS parameter options in the form of name=value[,...]. For details
+The ``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``
+and ``-O (--os-parameters)`` options specifies hypervisor, backend and
+OS parameter options in the form of name=value[,...]. For details
 which options can be specified, see the **add** command.
 
-The ``-t`` option will change the disk template of the instance.
-Currently only conversions between the plain and drbd disk templates
-are supported, and the instance must be stopped before attempting the
-conversion. When changing from the plain to the drbd disk template, a
-new secondary node must be specified via the ``-n`` option. The option
-``--no-wait-for-sync`` can be used when converting to the ``drbd``
-template in order to make the instance available for startup before
-DRBD has finished resyncing.
+The ``-t (--disk-template)`` option will change the disk template of
+the instance.  Currently only conversions between the plain and drbd
+disk templates are supported, and the instance must be stopped before
+attempting the conversion. When changing from the plain to the drbd
+disk template, a new secondary node must be specified via the ``-n``
+option. The option ``--no-wait-for-sync`` can be used when converting
+to the ``drbd`` template in order to make the instance available for
+startup before DRBD has finished resyncing.
 
 The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
 optional ``vg=``*VG* option specifies LVM volume group other than
@@ -915,7 +913,7 @@ instance. The available options are the same as in the **add** command
 of the instance, while the ``--net`` *N*:*options* option will change
 the parameters of the Nth instance NIC.
 
-The option ``--os-type`` will change the OS name for the instance
+The option ``-o (--os-type)`` will change the OS name for the instance
 (without reinstallation). In case an OS variant is specified that is
 not found, then by default the modification is refused, unless
 ``--force-variant`` is passed. An invalid OS will also be refused,
@@ -931,19 +929,20 @@ running, there is no effect on the instance.
 REINSTALL
 ^^^^^^^^^
 
-| **reinstall** [-o *os-type*] [--select-os] [-f *force*]
+| **reinstall** [{-o|--os-type} *os-type*] [--select-os] [-f *force*]
 | [--force-multiple]
 | [--instance \| --node \| --primary \| --secondary \| --all]
-| [-O *OS\_PARAMETERS*] [--submit] {*instance*...}
+| [{-O|--os-parameters} *OS\_PARAMETERS*] [--submit] {*instance*...}
 
 Reinstalls the operating system on the given instance(s). The
-instance(s) must be stopped when running this command. If the
-``--os-type`` is specified, the operating system is changed.
+instance(s) must be stopped when running this command. If the ``-o
+(--os-type)`` is specified, the operating system is changed.
 
 The ``--select-os`` option switches to an interactive OS reinstall.
 The user is prompted to select the OS template from the list of
-available OS templates. OS parameters can be overridden using ``-O``
-(more documentation for this option under the **add** command).
+available OS templates. OS parameters can be overridden using ``-O
+(--os-parameters)`` (more documentation for this option under the
+**add** command).
 
 Since this is a potentially dangerous command, the user will be
 required to confirm this action, unless the ``-f`` flag is passed.
@@ -989,7 +988,8 @@ STARTUP
 | [--force-multiple]
 | [--instance \| --node \| --primary \| --secondary \| --all \|
 | --tags \| --node-tags \| --pri-node-tags \| --sec-node-tags]
-| [-H ``key=value...``] [-B ``key=value...``]
+| [{-H|--hypervisor-parameters} ``key=value...``]
+| [{-B|--backend-parameters} ``key=value...``]
 | [--submit]
 | {*name*...}
 
@@ -1043,10 +1043,11 @@ mark the instance as started even if the primary is not available.
 The ``--force-multiple`` will skip the interactive confirmation in the
 case the more than one instance will be affected.
 
-The ``-H`` and ``-B`` options specify temporary hypervisor and backend
-parameters that can be used to start an instance with modified
-parameters. They can be useful for quick testing without having to
-modify an instance back and forth, e.g.::
+The ``-H (--hypervisor-parameters)`` and ``-B (--backend-parameters)``
+options specify temporary hypervisor and backend parameters that can
+be used to start an instance with modified parameters. They can be
+useful for quick testing without having to modify an instance back and
+forth, e.g.::
 
     # gnt-instance start -H root_args="single" instance1
     # gnt-instance start -B memory=2048 instance2
@@ -1113,7 +1114,7 @@ REBOOT
 ^^^^^^
 
 | **reboot**
-| [--type=*REBOOT-TYPE*]
+| [{-t|--type} *REBOOT-TYPE*]
 | [--ignore-secondaries]
 | [--shutdown-timeout=*N*]
 | [--force-multiple]
@@ -1123,7 +1124,7 @@ REBOOT
 | [*name*...]
 
 Reboots one or more instances. The type of reboot depends on the value
-of ``--type``. A soft reboot does a hypervisor reboot, a hard reboot
+of ``-t (--type)``. A soft reboot does a hypervisor reboot, a hard reboot
 does a instance stop, recreates the hypervisor config for the instance
 and starts the instance. A full reboot does the equivalent of
 **gnt-instance shutdown && gnt-instance startup**.  The default is

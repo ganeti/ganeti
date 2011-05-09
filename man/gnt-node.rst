@@ -23,7 +23,8 @@ COMMANDS
 ADD
 ~~~
 
-| **add** [--readd] [-s *secondary\_ip*] [-g *nodegroup*]
+| **add** [--readd] [{-s|--secondary-ip} *secondary\_ip*]
+| [{-g|--node-group} *nodegroup*]
 | [--master-capable=``yes|no``] [--vm-capable=``yes|no``]
 | [--node-parameters *ndparams*]
 | {*nodename*}
@@ -39,9 +40,9 @@ Note that the command is potentially destructive, as it will
 forcibly join the specified host the cluster, not paying attention
 to its current status (it could be already in a cluster, etc.)
 
-The ``-s`` is used in dual-home clusters and specifies the new node's
-IP in the secondary network. See the discussion in **gnt-cluster**(8)
-for more information.
+The ``-s (--secondary-ip)`` is used in dual-home clusters and
+specifies the new node's IP in the secondary network. See the
+discussion in **gnt-cluster**(8) for more information.
 
 In case you're readding a node after hardware failure, you can use
 the ``--readd`` parameter. In this case, you don't need to pass the
@@ -53,9 +54,9 @@ The ``--force-join`` option is to proceed with adding a node even if it already
 appears to belong to another cluster. This is used during cluster merging, for
 example.
 
-The ``-g`` is used to add the new node into a specific node group,
-specified by UUID or name. If only one node group exists you can
-skip this option, otherwise it's mandatory.
+The ``-g (--node-group)`` option is used to add the new node into a
+specific node group, specified by UUID or name. If only one node group
+exists you can skip this option, otherwise it's mandatory.
 
 The ``vm_capable``, ``master_capable`` and ``ndparams`` options are
 described in **ganeti**(7), and are used to set the properties of the
@@ -93,10 +94,10 @@ node(s). It works only for instances having a drbd disk template.
 
 The new location for the instances can be specified in two ways:
 
-- as a single node for all instances, via the ``--new-secondary``
+- as a single node for all instances, via the ``-n (--new-secondary)``
   option
 
-- or via the ``--iallocator`` option, giving a script name as
+- or via the ``-I (--iallocator)`` option, giving a script name as
   parameter, so each instance will be in turn placed on the (per the
   script) optimal node
 
@@ -113,7 +114,7 @@ potential recovery).
 
 Example::
 
-    # gnt-node evacuate -I dumb node3.example.com
+    # gnt-node evacuate -I hail node3.example.com
 
 
 FAILOVER
@@ -149,7 +150,7 @@ LIST
 
 | **list**
 | [--no-headers] [--separator=*SEPARATOR*]
-| [--units=*UNITS*] [-v] [-o *[+]FIELD,...*]
+| [--units=*UNITS*] [-v] [{-o|--output} *[+]FIELD,...*]
 | [node...]
 
 Lists the nodes in the cluster.
@@ -172,8 +173,8 @@ give inconsistent results for the free disk/memory.
 The ``-v`` option activates verbose mode, which changes the display of
 special field states (see **ganeti(7)**).
 
-The ``-o`` option takes a comma-separated list of output fields.
-The available fields and their meaning are:
+The ``-o (--output)`` option takes a comma-separated list of output
+fields. The available fields and their meaning are:
 
 
 name
@@ -356,9 +357,10 @@ MODIFY
 ~~~~~~
 
 | **modify** [-f] [--submit]
-| [--master-candidate=``yes|no``] [--drained=``yes|no``] [--offline=``yes|no``]
+| [{-C|--master-candidate} ``yes|no``]
+| [{-D|--drained} ``yes|no``] [{-O|--offline} ``yes|no``]
 | [--master-capable=``yes|no``] [--vm-capable=``yes|no``] [--auto-promote]
-| [-s *secondary_ip*]
+| [{-s|--secondary-ip} *secondary_ip*]
 | [--node-parameters *ndparams*]
 | [--node-powered=``yes|no``]
 | {*node*}
@@ -368,8 +370,8 @@ either a literal yes or no, and only one option should be given as
 yes. The meaning of the roles and flags are described in the
 manpage **ganeti**(7).
 
-``--node-powered`` can be used to modify state-of-record if it doesn't reflect
-the reality anymore.
+The option ``--node-powered`` can be used to modify state-of-record if
+it doesn't reflect the reality anymore.
 
 In case a node is demoted from the master candidate role, the
 operation will be refused unless you pass the ``--auto-promote``
@@ -385,9 +387,9 @@ candidate role if is in that role)::
 
     # gnt-node modify --offline=yes node1.example.com
 
-The ``-s`` can be used to change the node's secondary ip. No drbd
-instances can be running on the node, while this operation is
-taking place.
+The ``-s (--secondary-ip)`` option can be used to change the node's
+secondary ip. No drbd instances can be running on the node, while this
+operation is taking place.
 
 Example (setting the node back to online and master candidate)::
 
@@ -425,7 +427,7 @@ VOLUMES
 ~~~~~~~
 
 | **volumes** [--no-headers] [--human-readable]
-| [--separator=*SEPARATOR*] [--output=*FIELDS*]
+| [--separator=*SEPARATOR*] [{-o|--output} *FIELDS*]
 | [*node*...]
 
 Lists all logical volumes and their physical disks from the node(s)
@@ -443,8 +445,8 @@ option is given, then the values are shown in mebibytes to allow
 parsing by scripts. In both cases, the ``--units`` option can be
 used to enforce a given output unit.
 
-The ``-o`` option takes a comma-separated list of output fields.
-The available fields and their meaning are:
+The ``-o (--output)`` option takes a comma-separated list of output
+fields. The available fields and their meaning are:
 
 node
     the node name on which the volume exists
@@ -479,7 +481,7 @@ LIST-STORAGE
 
 | **list-storage** [--no-headers] [--human-readable]
 | [--separator=*SEPARATOR*] [--storage-type=*STORAGE\_TYPE*]
-| [--output=*FIELDS*]
+| [{-o|--output} *FIELDS*]
 | [*node*...]
 
 Lists the available storage units and their details for the given
@@ -500,8 +502,8 @@ used to enforce a given output unit.
 The ``--storage-type`` option can be used to choose a storage unit
 type. Possible choices are lvm-pv, lvm-vg or file.
 
-The ``-o`` option takes a comma-separated list of output fields.
-The available fields and their meaning are:
+The ``-o (--output)`` option takes a comma-separated list of output
+fields. The available fields and their meaning are:
 
 node
     the node name on which the volume exists
