@@ -38,67 +38,67 @@ FAKE_CLUSTER_KEY = ("AAAAB3NzaC1yc2EAAAABIwAAAQEAsuGLw70et3eApJ/ZEJkAVZogIrm"
 
 
 class FakeConfig:
-    """Fake configuration object"""
+  """Fake configuration object"""
 
-    def IsCluster(self):
-        return True
+  def IsCluster(self):
+    return True
 
-    def GetNodeList(self):
-        return ["a", "b", "c"]
+  def GetNodeList(self):
+    return ["a", "b", "c"]
 
-    def GetHostKey(self):
-        return FAKE_CLUSTER_KEY
+  def GetHostKey(self):
+    return FAKE_CLUSTER_KEY
 
-    def GetClusterName(self):
-        return "test.cluster"
+  def GetClusterName(self):
+    return "test.cluster"
 
-    def GetMasterNode(self):
-        return netutils.Hostname.GetSysName()
+  def GetMasterNode(self):
+    return netutils.Hostname.GetSysName()
 
-    def GetDefaultIAllocator(Self):
-        return "testallocator"
+  def GetDefaultIAllocator(Self):
+    return "testallocator"
 
 
 class FakeProc:
-    """Fake processor object"""
+  """Fake processor object"""
 
-    def Log(self, msg, *args, **kwargs):
-        pass
+  def Log(self, msg, *args, **kwargs):
+    pass
 
-    def LogWarning(self, msg, *args, **kwargs):
-        pass
+  def LogWarning(self, msg, *args, **kwargs):
+    pass
 
-    def LogInfo(self, msg, *args, **kwargs):
-        pass
+  def LogInfo(self, msg, *args, **kwargs):
+    pass
 
-    def LogStep(self, current, total, message):
-        pass
+  def LogStep(self, current, total, message):
+    pass
 
 
 class FakeContext:
-    """Fake context object"""
+  """Fake context object"""
 
-    def __init__(self):
-        self.cfg = FakeConfig()
-        self.glm = None
+  def __init__(self):
+    self.cfg = FakeConfig()
+    self.glm = None
 
 
 class FakeGetentResolver:
-    """Fake runtime.GetentResolver"""
+  """Fake runtime.GetentResolver"""
 
-    def __init__(self):
-        # As we nomally don't run under root we use our own uid/gid for all
-        # fields. This way we don't run into permission denied problems.
-        uid = os.getuid()
-        gid = os.getgid()
+  def __init__(self):
+    # As we nomally don't run under root we use our own uid/gid for all
+    # fields. This way we don't run into permission denied problems.
+    uid = os.getuid()
+    gid = os.getgid()
 
-        self.masterd_uid = uid
-        self.masterd_gid = gid
-        self.confd_uid = uid
-        self.confd_gid = gid
-        self.rapi_uid = uid
-        self.rapi_gid = gid
-        self.noded_uid = uid
+    self.masterd_uid = uid
+    self.masterd_gid = gid
+    self.confd_uid = uid
+    self.confd_gid = gid
+    self.rapi_uid = uid
+    self.rapi_gid = gid
+    self.noded_uid = uid
 
-        self.daemons_gid = gid
-        self.admin_gid = gid
+    self.daemons_gid = gid
+    self.admin_gid = gid
