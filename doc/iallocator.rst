@@ -280,7 +280,7 @@ arguments:
     a string indicating the relocation mode; there are three possible
     values for this string: *keep_group*, *change_group*, and
     *any_group*, the semantics or which are explained in :ref:`the
-    design doc <multi-reloc-detailed-design>`
+    design document <multi-reloc-detailed-design>`
 
   target_groups
     this argument is only accepted when ``reloc_mode``, as explained
@@ -316,9 +316,9 @@ result
   entry in the input message, otherwise Ganeti will consider the result
   as failed
 
-  for multi-relocate mode, this is a list of 2-tuples in which the first
-  element of the tuple will be an instance name, and the second element
-  a list of operations to perform in order to relocate the instance
+  for multi-relocate mode, this is a list of lists of serialized
+  opcodes. See the :ref:`design document <multi-reloc-result>` for a
+  detailed dscription.
 
   for multi-evacuation mode, this is a list of lists; each element of
   the list is a list of instance name and the new secondary node

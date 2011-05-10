@@ -56,19 +56,53 @@ The mode of operation will be one of:
 
 In all modes, the groups' ``alloc_policy`` attribute will be honored.
 
+.. _multi-reloc-result:
+
 Result
 ------
 
 In all storage models, an inter-group move can be modeled as a sequence
-of **replace secondary** and **failover** operations (when shared
-storage is used, they will all be failover operations within the
-corresponding mobility domain). This will be represented as a list of
-``(instance, [operations])`` pairs.
+of **replace secondary**, **migration** and **failover** operations
+(when shared storage is used, they will all be failover or migration
+operations within the corresponding mobility domain).
 
-For replace secondary operations, a new secondary node must be
-specified. For failover operations, a node *may* be specified when
-necessary, e.g. when shared storage is in use and there's no designated
-secondary for the instance.
+The result is expected to be a list of jobsets. Each jobset contains
+lists of serialized opcodes. Example::
+
+  [
+    [
+      { "OP_ID": "OP_INSTANCE_MIGRATE",
+        "instance_name": "inst1.example.com",
+      },
+      { "OP_ID": "OP_INSTANCE_MIGRATE",
+        "instance_name": "inst2.example.com",
+      },
+    ],
+    [
+      { "OP_ID": "OP_INSTANCE_REPLACE_DISKS",
+        "instance_name": "inst2.example.com",
+        "mode": "replace_new_secondary",
+        "remote_node": "node4.example.com"
+      },
+    ],
+    [
+      { "OP_ID": "OP_INSTANCE_FAILOVER",
+        "instance_name": "inst8.example.com",
+      },
+    ]
+  ]
+
+Accepted opcodes:
+
+- ``OP_INSTANCE_FAILOVER``
+- ``OP_INSTANCE_MIGRATE``
+- ``OP_INSTANCE_REPLACE_DISKS``
+
+Starting with the first set, Ganeti will submit all jobs of a set at the
+same time, enabling execution in parallel. Upon completion of all jobs
+in a set, the process is repeated for the next one. Ganeti is at liberty
+to abort the execution of the relocation after any jobset. In such a
+case the user is notified and can restart the relocation.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
