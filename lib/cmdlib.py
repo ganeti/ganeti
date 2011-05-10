@@ -3671,7 +3671,8 @@ class _OsQuery(_QueryBase):
     """
     # Locking is not used
     assert not (compat.any(lu.glm.is_owned(level)
-                           for level in locking.LEVELS) or
+                           for level in locking.LEVELS
+                           if level != locking.LEVEL_CLUSTER) or
                 self.do_locking or self.use_locking)
 
     valid_nodes = [node.name
