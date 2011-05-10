@@ -3487,8 +3487,7 @@ class LUOobCommand(NoHooksLU):
 
     """
     if self.op.node_names:
-      self.op.node_names = [_ExpandNodeName(self.cfg, name)
-                            for name in self.op.node_names]
+      self.op.node_names = _GetWantedNodes(self, self.op.node_names)
       lock_names = self.op.node_names
     else:
       lock_names = locking.ALL_SET
