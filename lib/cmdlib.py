@@ -6475,7 +6475,7 @@ class TLMigrateInstance(Tasklet):
       if len(self.lu.tasklets) == 1:
         # It is safe to release locks only when we're the only tasklet
         # in the LU
-        _ReleaseLocks(self, locking.LEVEL_NODE,
+        _ReleaseLocks(self.lu, locking.LEVEL_NODE,
                       keep=[instance.primary_node, self.target_node])
 
     else:
