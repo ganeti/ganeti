@@ -134,7 +134,6 @@ class LogicalUnit(object):
     self.rpc = rpc
     # Dicts used to declare locking needs to mcpu
     self.needed_locks = None
-    self.acquired_locks = {}
     self.share_locks = dict.fromkeys(locking.LEVELS, 0)
     self.add_locks = {}
     self.remove_locks = {}
@@ -386,7 +385,7 @@ class LogicalUnit(object):
     # future we might want to have different behaviors depending on the value
     # of self.recalculate_locks[locking.LEVEL_NODE]
     wanted_nodes = []
-    for instance_name in self.acquired_locks[locking.LEVEL_INSTANCE]:
+    for instance_name in self.glm.list_owned(locking.LEVEL_INSTANCE):
       instance = self.context.cfg.GetInstanceInfo(instance_name)
       wanted_nodes.append(instance.primary_node)
       if not primary_only:
@@ -500,7 +499,7 @@ class _QueryBase:
 
     """
     if self.do_locking:
-      names = lu.acquired_locks[lock_level]
+      names = lu.glm.list_owned(lock_level)
     else:
       names = all_names
 
@@ -511,7 +510,7 @@ class _QueryBase:
 
     # caller specified names and we must keep the same order
     assert self.names
-    assert not self.do_locking or lu.acquired_locks[lock_level]
+    assert not self.do_locking or lu.glm.is_owned(lock_level)
 
     missing = set(self.wanted).difference(names)
     if missing:
@@ -657,25 +656,23 @@ def _ReleaseLocks(lu, level, names=None, keep=None):
     release = []
 
     # Determine which locks to release
-    for name in lu.acquired_locks[level]:
+    for name in lu.glm.list_owned(level):
       if should_release(name):
         release.append(name)
       else:
         retain.append(name)
 
-    assert len(lu.acquired_locks[level]) == (len(retain) + len(release))
+    assert len(lu.glm.list_owned(level)) == (len(retain) + len(release))
 
     # Release just some locks
     lu.glm.release(level, names=release)
-    lu.acquired_locks[level] = retain
 
     assert frozenset(lu.glm.list_owned(level)) == frozenset(retain)
   else:
     # Release everything
     lu.glm.release(level)
-    del lu.acquired_locks[level]
 
-    assert not lu.glm.list_owned(level), "No locks should be owned"
+    assert not lu.glm.is_owned(level), "No locks should be owned"
 
 
 def _RunPostHook(lu, node_name):
@@ -2680,7 +2677,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
 
     """
     if self.wanted_names is None:
-      self.wanted_names = self.acquired_locks[locking.LEVEL_INSTANCE]
+      self.wanted_names = self.glm.list_owned(locking.LEVEL_INSTANCE)
 
     self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
                              in self.wanted_names]
@@ -2905,7 +2902,7 @@ class LUClusterSetParams(LogicalUnit):
                                    " drbd-based instances exist",
                                    errors.ECODE_INVAL)
 
-    node_list = self.acquired_locks[locking.LEVEL_NODE]
+    node_list = self.glm.list_owned(locking.LEVEL_NODE)
 
     # if vg_name not None, checks given volume group on all nodes
     if self.op.vg_name:
@@ -3673,7 +3670,9 @@ class _OsQuery(_QueryBase):
 
     """
     # Locking is not used
-    assert not (lu.acquired_locks or self.do_locking or self.use_locking)
+    assert not (compat.any(lu.glm.is_owned(level)
+                           for level in locking.LEVELS) or
+                self.do_locking or self.use_locking)
 
     valid_nodes = [node.name
                    for node in lu.cfg.GetAllNodesInfo().values()
@@ -3979,7 +3978,7 @@ class LUNodeQueryvols(NoHooksLU):
     """Computes the list of nodes and their attributes.
 
     """
-    nodenames = self.acquired_locks[locking.LEVEL_NODE]
+    nodenames = self.glm.list_owned(locking.LEVEL_NODE)
     volumes = self.rpc.call_node_volumes(nodenames)
 
     ilist = [self.cfg.GetInstanceInfo(iname) for iname
@@ -4057,7 +4056,7 @@ class LUNodeQueryStorage(NoHooksLU):
     """Computes the list of nodes and their attributes.
 
     """
-    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
+    self.nodes = self.glm.list_owned(locking.LEVEL_NODE)
 
     # Always get name to sort by
     if constants.SF_NAME in self.op.output_fields:
@@ -4632,7 +4631,7 @@ class LUNodeSetParams(LogicalUnit):
         instances_keep = []
 
         # Build list of instances to release
-        for instance_name in self.acquired_locks[locking.LEVEL_INSTANCE]:
+        for instance_name in self.glm.list_owned(locking.LEVEL_INSTANCE):
           instance = self.context.cfg.GetInstanceInfo(instance_name)
           if (instance.disk_template in constants.DTS_INT_MIRROR and
               self.op.node_name in instance.all_nodes):
@@ -4641,7 +4640,7 @@ class LUNodeSetParams(LogicalUnit):
 
         _ReleaseLocks(self, locking.LEVEL_INSTANCE, keep=instances_keep)
 
-        assert (set(self.acquired_locks.get(locking.LEVEL_INSTANCE, [])) ==
+        assert (set(self.glm.list_owned(locking.LEVEL_INSTANCE)) ==
                 set(instances_keep))
 
   def BuildHooksEnv(self):
@@ -7770,7 +7769,7 @@ class LUInstanceCreate(LogicalUnit):
     src_path = self.op.src_path
 
     if src_node is None:
-      locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
+      locked_nodes = self.glm.list_owned(locking.LEVEL_NODE)
       exp_list = self.rpc.call_export_list(locked_nodes)
       found = False
       for node in exp_list:
@@ -8553,7 +8552,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
 
         # Lock member nodes of all locked groups
         self.needed_locks[locking.LEVEL_NODE] = [node_name
-          for group_uuid in self.acquired_locks[locking.LEVEL_NODEGROUP]
+          for group_uuid in self.glm.list_owned(locking.LEVEL_NODEGROUP)
           for node_name in self.cfg.GetNodeGroup(group_uuid).members]
       else:
         self._LockInstancesNodes()
@@ -8590,19 +8589,19 @@ class LUInstanceReplaceDisks(LogicalUnit):
     """Check prerequisites.
 
     """
-    assert (locking.LEVEL_NODEGROUP in self.acquired_locks or
+    assert (self.glm.is_owned(locking.LEVEL_NODEGROUP) or
             self.op.iallocator is None)
 
-    if locking.LEVEL_NODEGROUP in self.acquired_locks:
+    owned_groups = self.glm.list_owned(locking.LEVEL_NODEGROUP)
+    if owned_groups:
       groups = self.cfg.GetInstanceNodeGroups(self.op.instance_name)
-      prevgroups = self.acquired_locks[locking.LEVEL_NODEGROUP]
-      if prevgroups != groups:
+      if owned_groups != groups:
         raise errors.OpExecError("Node groups used by instance '%s' changed"
                                  " since lock was acquired, current list is %r,"
                                  " used to be '%s'" %
                                  (self.op.instance_name,
                                   utils.CommaJoin(groups),
-                                  utils.CommaJoin(prevgroups)))
+                                  utils.CommaJoin(owned_groups)))
 
     return LogicalUnit.CheckPrereq(self)
 
@@ -8761,7 +8760,7 @@ class TLReplaceDisks(Tasklet):
     if remote_node is None:
       self.remote_node_info = None
     else:
-      assert remote_node in self.lu.acquired_locks[locking.LEVEL_NODE], \
+      assert remote_node in self.lu.glm.list_owned(locking.LEVEL_NODE), \
              "Remote node '%s' is not locked" % remote_node
 
       self.remote_node_info = self.cfg.GetNodeInfo(remote_node)
@@ -9592,7 +9591,7 @@ class LUInstanceQueryData(NoHooksLU):
     """
     if self.wanted_names is None:
       assert self.op.use_locking, "Locking was not used"
-      self.wanted_names = self.acquired_locks[locking.LEVEL_INSTANCE]
+      self.wanted_names = self.glm.list_owned(locking.LEVEL_INSTANCE)
 
     self.wanted_instances = [self.cfg.GetInstanceInfo(name)
                              for name in self.wanted_names]
@@ -10400,7 +10399,7 @@ class LUBackupQuery(NoHooksLU):
         that node.
 
     """
-    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
+    self.nodes = self.glm.list_owned(locking.LEVEL_NODE)
     rpcresult = self.rpc.call_export_list(self.nodes)
     result = {}
     for node in rpcresult:
@@ -10782,7 +10781,7 @@ class LUBackupRemove(NoHooksLU):
       fqdn_warn = True
       instance_name = self.op.instance_name
 
-    locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
+    locked_nodes = self.glm.list_owned(locking.LEVEL_NODE)
     exportlist = self.rpc.call_export_list(locked_nodes)
     found = False
     for node in exportlist:

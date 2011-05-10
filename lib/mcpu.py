@@ -300,8 +300,8 @@ class Processor(object):
           # Acquiring locks
           needed_locks = lu.needed_locks[level]
 
-          acquired = self._AcquireLocks(level, needed_locks, share,
-                                        calc_timeout(), priority)
+          self._AcquireLocks(level, needed_locks, share,
+                             calc_timeout(), priority)
         else:
           # Adding locks
           add_locks = lu.add_locks[level]
@@ -315,11 +315,7 @@ class Processor(object):
               " with another job, who added them first" % add_locks,
               errors.ECODE_FAULT)
 
-          acquired = add_locks
-
         try:
-          lu.acquired_locks[level] = acquired
-
           result = self._LockAndExecLU(lu, level + 1, calc_timeout, priority)
         finally:
           if level in lu.remove_locks:

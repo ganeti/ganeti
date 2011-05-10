@@ -80,8 +80,7 @@ class FakeContext:
 
     def __init__(self):
         self.cfg = FakeConfig()
-        # TODO: decide what features a mock Ganeti Lock Manager must have
-        self.GLM = None
+        self.glm = None
 
 
 class FakeGetentResolver:
