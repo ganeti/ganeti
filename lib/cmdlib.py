@@ -9390,6 +9390,7 @@ class LUInstanceSetParams(LogicalUnit):
       self.be_inst = i_bedict # the new dict (without defaults)
     else:
       self.be_new = self.be_inst = {}
+    be_old = cluster.FillBE(instance)
 
     # osparams processing
     if self.op.osparams:
@@ -9401,7 +9402,8 @@ class LUInstanceSetParams(LogicalUnit):
 
     self.warn = []
 
-    if constants.BE_MEMORY in self.op.beparams and not self.op.force:
+    if (constants.BE_MEMORY in self.op.beparams and not self.op.force and
+        be_new[constants.BE_MEMORY] > be_old[constants.BE_MEMORY]):
       mem_check_list = [pnode]
       if be_new[constants.BE_AUTO_BALANCE]:
         # either we changed auto_balance to yes or it was from before
@@ -9442,16 +9444,17 @@ class LUInstanceSetParams(LogicalUnit):
         for node, nres in nodeinfo.items():
           if node not in instance.secondary_nodes:
             continue
-          msg = nres.fail_msg
-          if msg:
-            self.warn.append("Can't get info from secondary node %s: %s" %
-                             (node, msg))
-          elif not isinstance(nres.payload.get('memory_free', None), int):
-            self.warn.append("Secondary node %s didn't return free"
-                             " memory information" % node)
+          nres.Raise("Can't get info from secondary node %s" % node,
+                     prereq=True, ecode=errors.ECODE_STATE)
+          if not isinstance(nres.payload.get('memory_free', None), int):
+            raise errors.OpPrereqError("Secondary node %s didn't return free"
+                                       " memory information" % node,
+                                       errors.ECODE_STATE)
           elif be_new[constants.BE_MEMORY] > nres.payload['memory_free']:
-            self.warn.append("Not enough memory to failover instance to"
-                             " secondary node %s" % node)
+            raise errors.OpPrereqError("This change will prevent the instance"
+                                       " from failover to its secondary node"
+                                       " %s, due to not enough memory" % node,
+                                       errors.ECODE_STATE)
 
     # NIC processing
     self.nic_pnew = {}

@@ -66,6 +66,9 @@ Many bug-fixes and a few new small features:
   instance's nodes)
 - Made the root_path and optional parameter for the xen-pvm hypervisor,
   to allow use of ``pvgrub`` as bootloader
+- Changed the instance memory modifications to only check out-of-memory
+  conditions on memory increases, and turned the secondary node warnings
+  into errors (they can still be overridden via ``--force``)
 
 And as usual, various improvements to the error messages, documentation
 and man pages.
