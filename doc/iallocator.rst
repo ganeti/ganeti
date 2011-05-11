@@ -122,7 +122,7 @@ request
     instance (in the order they are exported to the hypervisor):
 
     mode
-      either ``r`` or ``w`` denoting if the disk is read-only or
+      either ``ro`` or ``rw`` denoting if the disk is read-only or
       writable
 
     size
