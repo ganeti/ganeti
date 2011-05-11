@@ -1531,7 +1531,7 @@ class LUClusterVerify(LogicalUnit):
              ntime_diff)
 
   def _VerifyNodeLVM(self, ninfo, nresult, vg_name):
-    """Check the node time.
+    """Check the node LVM results.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
@@ -1567,8 +1567,31 @@ class LUClusterVerify(LogicalUnit):
         _ErrorIf(test, self.ENODELVM, node, "Invalid character ':' in PV"
                  " '%s' of VG '%s'", pvname, owner_vg)
 
+  def _VerifyNodeBridges(self, ninfo, nresult, bridges):
+    """Check the node bridges.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+    @param bridges: the expected list of bridges
+
+    """
+    if not bridges:
+      return
+
+    node = ninfo.name
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+
+    missing = nresult.get(constants.NV_BRIDGES, None)
+    test = not isinstance(missing, list)
+    _ErrorIf(test, self.ENODENET, node,
+             "did not return valid bridge information")
+    if not test:
+      _ErrorIf(bool(missing), self.ENODENET, node, "missing bridges: %s" %
+               utils.CommaJoin(sorted(missing)))
+
   def _VerifyNodeNetwork(self, ninfo, nresult):
-    """Check the node time.
+    """Check the node network connectivity results.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
@@ -2239,12 +2262,11 @@ class LUClusterVerify(LogicalUnit):
     drbd_helper = self.cfg.GetDRBDHelper()
     hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
     cluster = self.cfg.GetClusterInfo()
-    nodelist = utils.NiceSort(self.cfg.GetNodeList())
-    nodeinfo = [self.cfg.GetNodeInfo(nname) for nname in nodelist]
-    nodeinfo_byname = dict(zip(nodelist, nodeinfo))
-    instancelist = utils.NiceSort(self.cfg.GetInstanceList())
-    instanceinfo = dict((iname, self.cfg.GetInstanceInfo(iname))
-                        for iname in instancelist)
+    nodeinfo_byname = self.cfg.GetAllNodesInfo()
+    nodelist = utils.NiceSort(nodeinfo_byname.keys())
+    nodeinfo = [nodeinfo_byname[nname] for nname in nodelist]
+    instanceinfo = self.cfg.GetAllInstancesInfo()
+    instancelist = utils.NiceSort(instanceinfo.keys())
     groupinfo = self.cfg.GetAllNodeGroupsInfo()
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
@@ -2311,6 +2333,21 @@ class LUClusterVerify(LogicalUnit):
 
     if drbd_helper:
       node_verify_param[constants.NV_DRBDHELPER] = drbd_helper
+
+    # bridge checks
+    # FIXME: this needs to be changed per node-group, not cluster-wide
+    bridges = set()
+    default_nicpp = cluster.nicparams[constants.PP_DEFAULT]
+    if default_nicpp[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+      bridges.add(default_nicpp[constants.NIC_LINK])
+    for instance in instanceinfo.values():
+      for nic in instance.nics:
+        full_nic = cluster.SimpleFillNIC(nic.nicparams)
+        if full_nic[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+          bridges.add(full_nic[constants.NIC_LINK])
+
+    if bridges:
+      node_verify_param[constants.NV_BRIDGES] = list(bridges)
 
     # Build our expected cluster state
     node_image = dict((node.name, self.NodeImage(offline=node.offline,
@@ -2422,6 +2459,7 @@ class LUClusterVerify(LogicalUnit):
           if refos_img is None:
             refos_img = nimg
           self._VerifyNodeOS(node_i, nimg, refos_img)
+        self._VerifyNodeBridges(node_i, nresult, bridges)
 
     feedback_fn("* Verifying instance status")
     for instance in instancelist:
@@ -2974,8 +3012,8 @@ class LUClusterSetParams(LogicalUnit):
           # if we're moving instances to routed, check that they have an ip
           target_mode = params_filled[constants.NIC_MODE]
           if target_mode == constants.NIC_MODE_ROUTED and not nic.ip:
-            nic_errors.append("Instance %s, nic/%d: routed nick with no ip" %
-                              (instance.name, nic_idx))
+            nic_errors.append("Instance %s, nic/%d: routed NIC with no ip"
+                              " address" % (instance.name, nic_idx))
       if nic_errors:
         raise errors.OpPrereqError("Cannot apply the change, errors:\n%s" %
                                    "\n".join(nic_errors))
@@ -5698,8 +5736,25 @@ class LUInstanceRecreateDisks(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
+  def CheckArguments(self):
+    # normalise the disk list
+    self.op.disks = sorted(frozenset(self.op.disks))
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+    if self.op.nodes:
+      self.op.nodes = [_ExpandNodeName(self.cfg, n) for n in self.op.nodes]
+      self.needed_locks[locking.LEVEL_NODE] = list(self.op.nodes)
+    else:
+      self.needed_locks[locking.LEVEL_NODE] = []
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      # if we replace the nodes, we only need to lock the old primary,
+      # otherwise we need to lock all nodes for disk re-creation
+      primary_only = bool(self.op.nodes)
+      self._LockInstancesNodes(primary_only=primary_only)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -5725,12 +5780,31 @@ class LUInstanceRecreateDisks(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, instance.primary_node)
+    if self.op.nodes:
+      if len(self.op.nodes) != len(instance.all_nodes):
+        raise errors.OpPrereqError("Instance %s currently has %d nodes, but"
+                                   " %d replacement nodes were specified" %
+                                   (instance.name, len(instance.all_nodes),
+                                    len(self.op.nodes)),
+                                   errors.ECODE_INVAL)
+      assert instance.disk_template != constants.DT_DRBD8 or \
+          len(self.op.nodes) == 2
+      assert instance.disk_template != constants.DT_PLAIN or \
+          len(self.op.nodes) == 1
+      primary_node = self.op.nodes[0]
+    else:
+      primary_node = instance.primary_node
+    _CheckNodeOnline(self, primary_node)
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name, errors.ECODE_INVAL)
-    _CheckInstanceDown(self, instance, "cannot recreate disks")
+    # if we replace nodes *and* the old primary is offline, we don't
+    # check
+    assert instance.primary_node in self.needed_locks[locking.LEVEL_NODE]
+    old_pnode = self.cfg.GetNodeInfo(instance.primary_node)
+    if not (self.op.nodes and old_pnode.offline):
+      _CheckInstanceDown(self, instance, "cannot recreate disks")
 
     if not self.op.disks:
       self.op.disks = range(len(instance.disks))
@@ -5739,18 +5813,39 @@ class LUInstanceRecreateDisks(LogicalUnit):
         if idx >= len(instance.disks):
           raise errors.OpPrereqError("Invalid disk index '%s'" % idx,
                                      errors.ECODE_INVAL)
-
+    if self.op.disks != range(len(instance.disks)) and self.op.nodes:
+      raise errors.OpPrereqError("Can't recreate disks partially and"
+                                 " change the nodes at the same time",
+                                 errors.ECODE_INVAL)
     self.instance = instance
 
   def Exec(self, feedback_fn):
     """Recreate the disks.
 
     """
+    # change primary node, if needed
+    if self.op.nodes:
+      self.instance.primary_node = self.op.nodes[0]
+      self.LogWarning("Changing the instance's nodes, you will have to"
+                      " remove any disks left on the older nodes manually")
+
     to_skip = []
-    for idx, _ in enumerate(self.instance.disks):
+    for idx, disk in enumerate(self.instance.disks):
       if idx not in self.op.disks: # disk idx has not been passed in
         to_skip.append(idx)
         continue
+      # update secondaries for disks, if needed
+      if self.op.nodes:
+        if disk.dev_type == constants.LD_DRBD8:
+          # need to update the nodes
+          assert len(self.op.nodes) == 2
+          logical_id = list(disk.logical_id)
+          logical_id[0] = self.op.nodes[0]
+          logical_id[1] = self.op.nodes[1]
+          disk.logical_id = tuple(logical_id)
+
+    if self.op.nodes:
+      self.cfg.Update(self.instance, feedback_fn)
 
     _CreateDisks(self, self.instance, to_skip=to_skip)
 
@@ -5805,8 +5900,9 @@ class LUInstanceRename(LogicalUnit):
     new_name = self.op.new_name
     if self.op.name_check:
       hostname = netutils.GetHostname(name=new_name)
-      self.LogInfo("Resolved given name '%s' to '%s'", new_name,
-                   hostname.name)
+      if hostname != new_name:
+        self.LogInfo("Resolved given name '%s' to '%s'", new_name,
+                     hostname.name)
       if not utils.MatchNameComponent(self.op.new_name, [hostname.name]):
         raise errors.OpPrereqError(("Resolved hostname '%s' does not look the"
                                     " same as given hostname '%s'") %
@@ -10196,7 +10292,8 @@ class LUInstanceSetParams(LogicalUnit):
     self.cfg.Update(instance, feedback_fn)
 
     # disks are created, waiting for sync
-    disk_abort = not _WaitForSync(self, instance)
+    disk_abort = not _WaitForSync(self, instance,
+                                  oneshot=not self.op.wait_for_sync)
     if disk_abort:
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance, please cleanup manually")
@@ -10886,20 +10983,40 @@ class LUGroupAssignNodes(NoHooksLU):
 
     # We want to lock all the affected nodes and groups. We have readily
     # available the list of nodes, and the *destination* group. To gather the
-    # list of "source" groups, we need to fetch node information.
-    self.node_data = self.cfg.GetAllNodesInfo()
-    affected_groups = set(self.node_data[node].group for node in self.op.nodes)
-    affected_groups.add(self.group_uuid)
-
+    # list of "source" groups, we need to fetch node information later on.
     self.needed_locks = {
-      locking.LEVEL_NODEGROUP: list(affected_groups),
+      locking.LEVEL_NODEGROUP: set([self.group_uuid]),
       locking.LEVEL_NODE: self.op.nodes,
       }
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODEGROUP:
+      assert len(self.needed_locks[locking.LEVEL_NODEGROUP]) == 1
+
+      # Try to get all affected nodes' groups without having the group or node
+      # lock yet. Needs verification later in the code flow.
+      groups = self.cfg.GetNodeGroupsFromNodes(self.op.nodes)
+
+      self.needed_locks[locking.LEVEL_NODEGROUP].update(groups)
 
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
+    assert self.needed_locks[locking.LEVEL_NODEGROUP]
+    assert (frozenset(self.acquired_locks[locking.LEVEL_NODE]) ==
+            frozenset(self.op.nodes))
+
+    expected_locks = (set([self.group_uuid]) |
+                      self.cfg.GetNodeGroupsFromNodes(self.op.nodes))
+    actual_locks = self.acquired_locks[locking.LEVEL_NODEGROUP]
+    if actual_locks != expected_locks:
+      raise errors.OpExecError("Nodes changed groups since locks were acquired,"
+                               " current groups are '%s', used to be '%s'" %
+                               (utils.CommaJoin(expected_locks),
+                                utils.CommaJoin(actual_locks)))
+
+    self.node_data = self.cfg.GetAllNodesInfo()
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
     instance_data = self.cfg.GetAllInstancesInfo()
 
@@ -10934,6 +11051,9 @@ class LUGroupAssignNodes(NoHooksLU):
     """
     for node in self.op.nodes:
       self.node_data[node].group = self.group_uuid
+
+    # FIXME: Depends on side-effects of modifying the result of
+    # C{cfg.GetAllNodesInfo}
 
     self.cfg.Update(self.group, feedback_fn) # Saves all modified nodes.
 

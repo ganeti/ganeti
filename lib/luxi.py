@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -297,6 +297,8 @@ def ParseResponse(msg):
   # Parse the result
   try:
     data = serializer.LoadJson(msg)
+  except KeyboardInterrupt:
+    raise
   except Exception, err:
     raise ProtocolError("Error while deserializing response: %s" % str(err))
 

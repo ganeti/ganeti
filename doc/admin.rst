@@ -371,6 +371,64 @@ non-managed configuration that the instance had, the transition should
 be seamless for the instance. For more than one disk, just pass another
 disk parameter (e.g. ``--disk 1:adopt=...``).
 
+Instance kernel selection
++++++++++++++++++++++++++
+
+The kernel that instances uses to bootup can come either from the node,
+or from instances themselves, depending on the setup.
+
+Xen-PVM
+~~~~~~~
+
+With Xen PVM, there are three options.
+
+First, you can use a kernel from the node, by setting the hypervisor
+parameters as such:
+
+- ``kernel_path`` to a valid file on the node (and appropriately
+  ``initrd_path``)
+- ``kernel_args`` optionally set to a valid Linux setting (e.g. ``ro``)
+- ``root_path`` to a valid setting (e.g. ``/dev/xvda1``)
+- ``bootloader_path`` and ``bootloader_args`` to empty
+
+Alternatively, you can delete the kernel management to instances, and
+use either ``pvgrub`` or the deprecated ``pygrub``. For this, you must
+install the kernels and initrds in the instance, and create a valid grub
+v1 configuration file.
+
+For ``pvgrub`` (new in version 2.4.2), you need to set:
+
+- ``kernel_path`` to point to the ``pvgrub`` loader present on the node
+  (e.g. ``/usr/lib/xen/boot/pv-grub-x86_32.gz``)
+- ``kernel_args`` to the path to the grub config file, relative to the
+  instance (e.g. ``(hd0,0)/grub/menu.lst``)
+- ``root_path`` **must** be empty
+- ``bootloader_path`` and ``bootloader_args`` to empty
+
+While ``pygrub`` is deprecated, here is how you can configure it:
+
+- ``bootloader_path`` to the pygrub binary (e.g. ``/usr/bin/pygrub``)
+- the other settings are not important
+
+More information can be found in the Xen wiki pages for `pvgrub
+<http://wiki.xensource.com/xenwiki/PvGrub>`_ and `pygrub
+<http://wiki.xensource.com/xenwiki/PyGrub>`_.
+
+KVM
+~~~
+
+For KVM also the kernel can be loaded either way.
+
+For loading the kernels from the node, you need to set:
+
+- ``kernel_path`` to a valid value
+- ``initrd_path`` optionally set if you use an initrd
+- ``kernel_args`` optionally set to a valid value (e.g. ``ro``)
+
+If you want instead to have the instance boot from its disk (and execute
+its bootloader), simply set the ``kernel_path`` parameter to an empty
+string, and all the others will be ignored.
+
 Instance HA features
 --------------------
 

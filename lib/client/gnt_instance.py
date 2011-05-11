@@ -607,8 +607,17 @@ def RecreateDisks(opts, args):
   else:
     opts.disks = []
 
+  if opts.node:
+    pnode, snode = SplitNodeOption(opts.node)
+    nodes = [pnode]
+    if snode is not None:
+      nodes.append(snode)
+  else:
+    nodes = []
+
   op = opcodes.OpInstanceRecreateDisks(instance_name=instance_name,
-                                       disks=opts.disks)
+                                       disks=opts.disks,
+                                       nodes=nodes)
   SubmitOrSend(op, opts)
   return 0
 
@@ -1278,7 +1287,8 @@ def SetInstanceParams(opts, args):
                                    os_name=opts.os,
                                    osparams=opts.osparams,
                                    force_variant=opts.force_variant,
-                                   force=opts.force)
+                                   force=opts.force,
+                                   wait_for_sync=opts.wait_for_sync)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1425,7 +1435,7 @@ commands = {
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,
      DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
-     OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+     OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT],
     "<instance>", "Alters the parameters of an instance"),
   'shutdown': (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
@@ -1458,7 +1468,7 @@ commands = {
     "[-f] <instance>", "Deactivate an instance's disks"),
   'recreate-disks': (
     RecreateDisks, ARGS_ONE_INSTANCE,
-    [SUBMIT_OPT, DISKIDX_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [SUBMIT_OPT, DISKIDX_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance>", "Recreate an instance's disks"),
   'grow-disk': (
     GrowDisk,

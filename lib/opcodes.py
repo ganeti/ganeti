@@ -1123,6 +1123,8 @@ class OpInstanceRecreateDisks(OpCode):
     _PInstanceName,
     ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt),
      "List of disk indexes"),
+    ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
+     "New instance nodes, if relocation is desired"),
     ]
 
 
@@ -1173,6 +1175,8 @@ class OpInstanceSetParams(OpCode):
     ("os_name", None, ht.TMaybeString,
      "Change instance's OS name. Does not reinstall the instance."),
     ("osparams", None, ht.TMaybeDict, "Per-instance OS parameters"),
+    ("wait_for_sync", True, ht.TBool,
+     "Whether to wait for the disk to synchronize, when changing template"),
     ]
 
 
