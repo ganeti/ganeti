@@ -11004,12 +11004,12 @@ class LUGroupAssignNodes(NoHooksLU):
 
     """
     assert self.needed_locks[locking.LEVEL_NODEGROUP]
-    assert (frozenset(self.acquired_locks[locking.LEVEL_NODE]) ==
+    assert (frozenset(self.glm.list_owned(locking.LEVEL_NODE)) ==
             frozenset(self.op.nodes))
 
     expected_locks = (set([self.group_uuid]) |
                       self.cfg.GetNodeGroupsFromNodes(self.op.nodes))
-    actual_locks = self.acquired_locks[locking.LEVEL_NODEGROUP]
+    actual_locks = self.glm.list_owned(locking.LEVEL_NODEGROUP)
     if actual_locks != expected_locks:
       raise errors.OpExecError("Nodes changed groups since locks were acquired,"
                                " current groups are '%s', used to be '%s'" %
