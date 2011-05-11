@@ -11771,16 +11771,6 @@ class IAllocator(object):
   """
   # pylint: disable-msg=R0902
   # lots of instance attributes
-  _ALLO_KEYS = [
-    "name", "mem_size", "disks", "disk_template",
-    "os", "tags", "nics", "vcpus", "hypervisor",
-    ]
-  _RELO_KEYS = [
-    "name", "relocate_from",
-    ]
-  _EVAC_KEYS = [
-    "evac_nodes",
-    ]
 
   def __init__(self, cfg, rpc, mode, **kwargs):
     self.cfg = cfg
@@ -11799,18 +11789,13 @@ class IAllocator(object):
     self.required_nodes = None
     # init result fields
     self.success = self.info = self.result = None
-    if self.mode == constants.IALLOCATOR_MODE_ALLOC:
-      keyset = self._ALLO_KEYS
-      fn = self._AddNewInstance
-    elif self.mode == constants.IALLOCATOR_MODE_RELOC:
-      keyset = self._RELO_KEYS
-      fn = self._AddRelocateInstance
-    elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
-      keyset = self._EVAC_KEYS
-      fn = self._AddEvacuateNodes
-    else:
+
+    try:
+      (fn, keyset) = self._MODE_DATA[self.mode]
+    except KeyError:
       raise errors.ProgrammerError("Unknown mode '%s' passed to the"
                                    " IAllocator" % self.mode)
+
     for key in kwargs:
       if key not in keyset:
         raise errors.ProgrammerError("Invalid input parameter '%s' to"
@@ -11821,7 +11806,7 @@ class IAllocator(object):
       if key not in kwargs:
         raise errors.ProgrammerError("Missing input parameter '%s' to"
                                      " IAllocator" % key)
-    self._BuildInputData(fn)
+    self._BuildInputData(compat.partial(fn, self))
 
   def _ComputeClusterData(self):
     """Compute the generic allocator input data.
@@ -12095,6 +12080,17 @@ class IAllocator(object):
     self.in_data["request"] = request
 
     self.in_text = serializer.Dump(self.in_data)
+
+  _MODE_DATA = {
+    constants.IALLOCATOR_MODE_ALLOC:
+      (_AddNewInstance,
+       ["name", "mem_size", "disks", "disk_template", "os", "tags", "nics",
+        "vcpus", "hypervisor"]),
+    constants.IALLOCATOR_MODE_RELOC:
+      (_AddRelocateInstance, ["name", "relocate_from"]),
+    constants.IALLOCATOR_MODE_MEVAC:
+      (_AddEvacuateNodes, ["evac_nodes"]),
+    }
 
   def Run(self, name, validate=True, call_fn=None):
     """Run an instance allocator and return the results.
