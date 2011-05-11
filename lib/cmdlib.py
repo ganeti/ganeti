@@ -11865,12 +11865,12 @@ class IAllocator(object):
     """Compute node groups data.
 
     """
-    ng = {}
-    for guuid, gdata in cfg.GetAllNodeGroupsInfo().items():
-      ng[guuid] = {
-        "name": gdata.name,
-        "alloc_policy": gdata.alloc_policy,
-        }
+    ng = dict((guuid, {
+      "name": gdata.name,
+      "alloc_policy": gdata.alloc_policy,
+      })
+      for guuid, gdata in cfg.GetAllNodeGroupsInfo().items())
+
     return ng
 
   @staticmethod
@@ -11881,22 +11881,19 @@ class IAllocator(object):
     @returns: a dict of name: (node dict, node config)
 
     """
-    node_results = {}
-    for ninfo in node_cfg.values():
-      # fill in static (config-based) values
-      pnr = {
-        "tags": list(ninfo.GetTags()),
-        "primary_ip": ninfo.primary_ip,
-        "secondary_ip": ninfo.secondary_ip,
-        "offline": ninfo.offline,
-        "drained": ninfo.drained,
-        "master_candidate": ninfo.master_candidate,
-        "group": ninfo.group,
-        "master_capable": ninfo.master_capable,
-        "vm_capable": ninfo.vm_capable,
-        }
-
-      node_results[ninfo.name] = pnr
+    # fill in static (config-based) values
+    node_results = dict((ninfo.name, {
+      "tags": list(ninfo.GetTags()),
+      "primary_ip": ninfo.primary_ip,
+      "secondary_ip": ninfo.secondary_ip,
+      "offline": ninfo.offline,
+      "drained": ninfo.drained,
+      "master_candidate": ninfo.master_candidate,
+      "group": ninfo.group,
+      "master_capable": ninfo.master_capable,
+      "vm_capable": ninfo.vm_capable,
+      })
+      for ninfo in node_cfg.values())
 
     return node_results
 
@@ -11970,11 +11967,12 @@ class IAllocator(object):
       nic_data = []
       for nic in iinfo.nics:
         filled_params = cluster_info.SimpleFillNIC(nic.nicparams)
-        nic_dict = {"mac": nic.mac,
-                    "ip": nic.ip,
-                    "mode": filled_params[constants.NIC_MODE],
-                    "link": filled_params[constants.NIC_LINK],
-                   }
+        nic_dict = {
+          "mac": nic.mac,
+          "ip": nic.ip,
+          "mode": filled_params[constants.NIC_MODE],
+          "link": filled_params[constants.NIC_LINK],
+          }
         if filled_params[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
           nic_dict["bridge"] = filled_params[constants.NIC_LINK]
         nic_data.append(nic_dict)
@@ -12014,6 +12012,7 @@ class IAllocator(object):
       self.required_nodes = 2
     else:
       self.required_nodes = 1
+
     request = {
       "name": self.name,
       "disk_template": self.disk_template,
@@ -12026,6 +12025,7 @@ class IAllocator(object):
       "nics": self.nics,
       "required_nodes": self.required_nodes,
       }
+
     return request
 
   def _AddRelocateInstance(self):
