@@ -11789,6 +11789,9 @@ class IAllocator(object):
     self.relocate_from = None
     self.name = None
     self.evac_nodes = None
+    self.instances = None
+    self.reloc_mode = None
+    self.target_groups = None
     # computed fields
     self.required_nodes = None
     # init result fields
@@ -11839,7 +11842,8 @@ class IAllocator(object):
       hypervisor_name = self.hypervisor
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       hypervisor_name = cfg.GetInstanceInfo(self.name).hypervisor
-    elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
+    elif self.mode in (constants.IALLOCATOR_MODE_MEVAC,
+                       constants.IALLOCATOR_MODE_MRELOC):
       hypervisor_name = cluster_info.enabled_hypervisors[0]
 
     node_data = self.rpc.call_node_info(node_list, cfg.GetVGName(),
@@ -12073,6 +12077,16 @@ class IAllocator(object):
       }
     return request
 
+  def _AddMultiRelocate(self):
+    """Get data for multi-relocate requests.
+
+    """
+    return {
+      "instances": self.instances,
+      "reloc_mode": self.reloc_mode,
+      "target_groups": self.target_groups,
+      }
+
   def _BuildInputData(self, fn):
     """Build input data structures.
 
@@ -12094,6 +12108,8 @@ class IAllocator(object):
       (_AddRelocateInstance, ["name", "relocate_from"]),
     constants.IALLOCATOR_MODE_MEVAC:
       (_AddEvacuateNodes, ["evac_nodes"]),
+    constants.IALLOCATOR_MODE_MRELOC:
+      (_AddMultiRelocate, ["instances", "reloc_mode", "target_groups"]),
     }
 
   def Run(self, name, validate=True, call_fn=None):
