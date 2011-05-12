@@ -72,6 +72,9 @@ Many bug-fixes and a few new small features:
 - Fixed the handling of a corner case when the Python installation gets
   corrupted (e.g. a bad disk) while ganeti-noded is running and we try
   to execute a command that doesn't exist
+- Fixed a bug in ``gnt-instance move`` (LUInstanceMove) when the primary
+  node of the instance returned failures during instance shutdown; this
+  adds the option ``--ignore-consistency`` to gnt-instance move
 
 And as usual, various improvements to the error messages, documentation
 and man pages.

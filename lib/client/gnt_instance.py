@@ -883,7 +883,8 @@ def MoveInstance(opts, args):
 
   op = opcodes.OpInstanceMove(instance_name=instance_name,
                               target_node=opts.node,
-                              shutdown_timeout=opts.shutdown_timeout)
+                              shutdown_timeout=opts.shutdown_timeout,
+                              ignore_consistency=opts.ignore_consistency)
   SubmitOrSend(op, opts, cl=cl)
   return 0
 
@@ -1399,7 +1400,7 @@ commands = {
   'move': (
     MoveInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SUBMIT_OPT, SINGLE_NODE_OPT, SHUTDOWN_TIMEOUT_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, IGNORE_CONSIST_OPT],
     "[-f] <instance>", "Move instance to an arbitrary node"
     " (only for instances of type file and lv)"),
   'info': (

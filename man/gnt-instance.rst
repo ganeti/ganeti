@@ -1456,7 +1456,8 @@ Example (and expected output)::
 MOVE
 ^^^^
 
-**move** [-f] [-n *node*] [--shutdown-timeout=*N*] [--submit]
+**move** [-f] [--ignore-consistency]
+[-n *node*] [--shutdown-timeout=*N*] [--submit]
 {*instance*}
 
 Move will move the instance to an arbitrary node in the cluster.  This
@@ -1470,6 +1471,10 @@ The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (e.g. ``xm destroy`` in XEN, killing the
 kvm process for KVM, etc.). By default two minutes are given to each
 instance to stop.
+
+The ``--ignore-consistency`` option will make Ganeti ignore any errors
+in trying to shutdown the instance on its node; useful if the
+hypervisor is broken and you want to recuperate the data.
 
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it

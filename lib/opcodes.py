@@ -919,6 +919,7 @@ class OpInstanceMove(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PShutdownTimeout,
+    _PIgnoreConsistency,
     ("target_node", ht.NoDefault, ht.TNonEmptyString),
     ]
 
