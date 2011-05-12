@@ -553,8 +553,8 @@ commands = {
     " containing a list of serialized opcodes"),
   'allocator': (
     TestAllocator, [ArgUnknown(min=1)],
-    [cli_option("--dir", dest="direction",
-                default="in", choices=["in", "out"],
+    [cli_option("--dir", dest="direction", default=constants.IALLOCATOR_DIR_IN,
+                choices=list(constants.VALID_IALLOCATOR_DIRECTIONS),
                 help="Show allocator input (in) or allocator"
                 " results (out)"),
      IALLOCATOR_OPT,
