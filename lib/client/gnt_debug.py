@@ -159,6 +159,7 @@ def TestAllocator(opts, args):
   op = opcodes.OpTestAllocator(mode=opts.mode,
                                name=args[0],
                                evac_nodes=args,
+                               instances=args,
                                mem_size=opts.mem,
                                disks=disks,
                                disk_template=opts.disk_template,
@@ -168,7 +169,8 @@ def TestAllocator(opts, args):
                                tags=opts.tags,
                                direction=opts.direction,
                                allocator=opts.iallocator,
-                               )
+                               reloc_mode=opts.reloc_mode,
+                               target_groups=opts.target_groups)
   result = SubmitOpCode(op, opts=opts)
   ToStdout("%s" % result)
   return 0
@@ -559,8 +561,9 @@ commands = {
                 " results (out)"),
      IALLOCATOR_OPT,
      cli_option("-m", "--mode", default="relocate",
-                choices=["relocate", "allocate", "multi-evacuate"],
-                help="Request mode, either allocate or relocate"),
+                choices=list(constants.VALID_IALLOCATOR_MODES),
+                help=("Request mode (one of %s)" %
+                      utils.CommaJoin(constants.VALID_IALLOCATOR_MODES))),
      cli_option("--mem", default=128, type="unit",
                 help="Memory size for the instance (MiB)"),
      cli_option("--disks", default="4096,4096",
@@ -575,6 +578,11 @@ commands = {
                 help="Select number of VCPUs for the instance"),
      cli_option("--tags", default=None,
                 help="Comma separated list of tags"),
+     cli_option("--reloc-mode", default=constants.IALLOCATOR_MRELOC_ANY,
+                choices=list(constants.IALLOCATOR_MRELOC_MODES),
+                help=("Instance relocation mode (one of %s)" %
+                      utils.CommaJoin(constants.IALLOCATOR_MRELOC_MODES))),
+     cli_option("--target-groups", help="Target groups for relocation"),
      DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "{opts...} <instance>", "Executes a TestAllocator OpCode"),
