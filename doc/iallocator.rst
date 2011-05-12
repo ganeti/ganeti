@@ -219,6 +219,11 @@ in the ``request`` dictionary:
     of instance disks and its template type, but Ganeti is better
     suited to compute it
 
+.. pyassert::
+
+   constants.DISK_ACCESS_SET == set([constants.DISK_RDONLY,
+     constants.DISK_RDWR])
+
 Allocation needs, in addition:
 
   disks
@@ -226,7 +231,8 @@ Allocation needs, in addition:
     instance (in the order they are exported to the hypervisor):
 
     mode
-      either ``r`` or ``w`` denoting if the disk is read-only or
+      either :pyeval:`constants.DISK_RDONLY` or
+      :pyeval:`constants.DISK_RDWR` denoting if the disk is read-only or
       writable
 
     size
