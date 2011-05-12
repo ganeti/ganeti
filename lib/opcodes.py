@@ -1430,6 +1430,12 @@ class OpTestAllocator(OpCode):
     ("disk_template", None, ht.TMaybeString, None),
     ("evac_nodes", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
      None),
+    ("instances", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+     None),
+    ("reloc_mode", None,
+     ht.TOr(ht.TNone, ht.TElemOf(constants.IALLOCATOR_MRELOC_MODES)), None),
+    ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+     None),
     ]
 
 

@@ -12257,6 +12257,12 @@ class LUTestAllocator(NoHooksLU):
       if not hasattr(self.op, "evac_nodes"):
         raise errors.OpPrereqError("Missing attribute 'evac_nodes' on"
                                    " opcode input", errors.ECODE_INVAL)
+    elif self.op.mode == constants.IALLOCATOR_MODE_MRELOC:
+      if self.op.instances:
+        self.op.instances = _GetWantedInstances(self, self.op.instances)
+      else:
+        raise errors.OpPrereqError("Missing instances to relocate",
+                                   errors.ECODE_INVAL)
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
@@ -12296,6 +12302,12 @@ class LUTestAllocator(NoHooksLU):
       ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        evac_nodes=self.op.evac_nodes)
+    elif self.op.mode == constants.IALLOCATOR_MODE_MRELOC:
+      ial = IAllocator(self.cfg, self.rpc,
+                       mode=self.op.mode,
+                       instances=self.op.instances,
+                       reloc_mode=self.op.reloc_mode,
+                       target_groups=self.op.target_groups)
     else:
       raise errors.ProgrammerError("Uncatched mode %s in"
                                    " LUTestAllocator.Exec", self.op.mode)
