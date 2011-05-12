@@ -78,6 +78,9 @@ _PTagKind = ("kind", ht.NoDefault, ht.TElemOf(constants.VALID_TAG_TYPES))
 #: List of tag strings
 _PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString))
 
+#: Ignore consistency
+_PIgnoreConsistency = ("ignore_consistency", False, ht.TBool)
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -696,8 +699,8 @@ class OpRepairNodeStorage(OpCode):
   OP_PARAMS = [
     _PNodeName,
     _PStorageType,
+    _PIgnoreConsistency,
     ("name", ht.NoDefault, ht.TNonEmptyString),
-    ("ignore_consistency", False, ht.TBool),
     ]
 
 
@@ -879,7 +882,7 @@ class OpInstanceFailover(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PShutdownTimeout,
-    ("ignore_consistency", False, ht.TBool),
+    _PIgnoreConsistency,
     ]
 
 
