@@ -1418,7 +1418,7 @@ class OpTestAllocator(OpCode):
     ("mode", ht.NoDefault, ht.TElemOf(constants.VALID_IALLOCATOR_MODES), None),
     ("name", ht.NoDefault, ht.TNonEmptyString, None),
     ("nics", ht.NoDefault, ht.TOr(ht.TNone, ht.TListOf(
-     ht.TDictOf(ht.TElemOf(["mac", "ip", "bridge"]),
+     ht.TDictOf(ht.TElemOf([constants.INIC_MAC, constants.INIC_IP, "bridge"]),
                 ht.TOr(ht.TNone, ht.TNonEmptyString)))), None),
     ("disks", ht.NoDefault, ht.TOr(ht.TNone, ht.TList), None),
     ("hypervisor", None, ht.TMaybeString, None),

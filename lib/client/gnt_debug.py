@@ -129,8 +129,10 @@ def TestAllocator(opts, args):
 
   """
   try:
-    disks = [{"size": utils.ParseUnit(val), "mode": 'w'}
-             for val in opts.disks.split(",")]
+    disks = [{
+      constants.IDISK_SIZE: utils.ParseUnit(val),
+      constants.IDISK_MODE: constants.DISK_RDWR,
+      } for val in opts.disks.split(",")]
   except errors.UnitParseError, err:
     ToStderr("Invalid disks parameter '%s': %s", opts.disks, err)
     return 1
@@ -142,7 +144,12 @@ def TestAllocator(opts, args):
     for i in range(3):
       if row[i] == '':
         row[i] = None
-  nic_dict = [{"mac": v[0], "ip": v[1], "bridge": v[2]} for v in nics]
+  nic_dict = [{
+    constants.INIC_MAC: v[0],
+    constants.INIC_IP: v[1],
+    # The iallocator interface defines a "bridge" item
+    "bridge": v[2],
+    } for v in nics]
 
   if opts.tags is None:
     opts.tags = []
