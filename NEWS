@@ -1,6 +1,15 @@
 News
 ====
 
+Version 2.4.3
+-------------
+
+*(unreleased)*
+
+- Added a new parameter to instance stop/start called ``--no-remember``
+  that will make the state change to not be remembered
+
+
 Version 2.4.2
 -------------
 
