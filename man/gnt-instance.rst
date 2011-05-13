@@ -989,7 +989,7 @@ STARTUP
 
 | **startup**
 | [--force] [--ignore-offline]
-| [--force-multiple]
+| [--force-multiple] [--no-remember]
 | [--instance \| --node \| --primary \| --secondary \| --all \|
 | --tags \| --node-tags \| --pri-node-tags \| --sec-node-tags]
 | [{-H|--hypervisor-parameters} ``key=value...``]
@@ -1047,6 +1047,12 @@ mark the instance as started even if the primary is not available.
 The ``--force-multiple`` will skip the interactive confirmation in the
 case the more than one instance will be affected.
 
+The ``--no-remember`` option will perform the startup but not change
+the state of the instance in the configuration file (if it was stopped
+before, Ganeti will still thinks it needs to be stopped). This can be
+used for testing, or for a one shot-start where you don't want the
+watcher to restart the instance if it crashes.
+
 The ``-H (--hypervisor-parameters)`` and ``-B (--backend-parameters)``
 options specify temporary hypervisor and backend parameters that can
 be used to start an instance with modified parameters. They can be
@@ -1079,7 +1085,7 @@ SHUTDOWN
 
 | **shutdown**
 | [--timeout=*N*]
-| [--force-multiple] [--ignore-offline]
+| [--force-multiple] [--ignore-offline] [--no-remember]
 | [--instance \| --node \| --primary \| --secondary \| --all \|
 | --tags \| --node-tags \| --pri-node-tags \| --sec-node-tags]
 | [--submit]
@@ -1107,6 +1113,15 @@ can be examined via **gnt-job info**.
 ``--ignore-offline`` can be used to ignore offline primary nodes and
 force the instance to be marked as stopped. This option should be used
 with care as it can lead to an inconsistent cluster state.
+
+The ``--no-remember`` option will perform the shutdown but not change
+the state of the instance in the configuration file (if it was running
+before, Ganeti will still thinks it needs to be running). This can be
+useful for a cluster-wide shutdown, where some instances are marked as
+up and some as down, and you don't want to change the running state:
+you just need to disable the watcher, shutdown all instances with
+``--no-remember``, and when the watcher is activated again it will
+restore the correct runtime state for all instances.
 
 Example::
 
