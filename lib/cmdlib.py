@@ -6565,6 +6565,10 @@ class TLMigrateInstance(Tasklet):
       # self.target_node is already populated, either directly or by the
       # iallocator run
       target_node = self.target_node
+      if self.target_node == instance.primary_node:
+        raise errors.OpPrereqError("Cannot migrate instance %s"
+                                   " to its primary (%s)" %
+                                   (instance.name, instance.primary_node))
 
       if len(self.lu.tasklets) == 1:
         # It is safe to release locks only when we're the only tasklet
