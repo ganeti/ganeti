@@ -81,6 +81,9 @@ _PTags = ("tags", ht.NoDefault, ht.TListOf(ht.TNonEmptyString))
 #: Ignore consistency
 _PIgnoreConsistency = ("ignore_consistency", False, ht.TBool)
 
+#: Do not remember instance state changes
+_PNoRemember = ("no_remember", False, ht.TBool)
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -837,6 +840,7 @@ class OpInstanceStartup(OpCode):
     _PInstanceName,
     _PForce,
     _PIgnoreOfflineNodes,
+    _PNoRemember,
     ("hvparams", ht.EmptyDict, ht.TDict),
     ("beparams", ht.EmptyDict, ht.TDict),
     ]
@@ -848,6 +852,7 @@ class OpInstanceShutdown(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PIgnoreOfflineNodes,
+    _PNoRemember,
     ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt),
     ]
 

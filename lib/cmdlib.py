@@ -5191,7 +5191,8 @@ class LUInstanceStartup(LogicalUnit):
     instance = self.instance
     force = self.op.force
 
-    self.cfg.MarkInstanceUp(instance.name)
+    if not self.op.no_remember:
+      self.cfg.MarkInstanceUp(instance.name)
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
@@ -5332,7 +5333,8 @@ class LUInstanceShutdown(LogicalUnit):
     node_current = instance.primary_node
     timeout = self.op.timeout
 
-    self.cfg.MarkInstanceDown(instance.name)
+    if not self.op.no_remember:
+      self.cfg.MarkInstanceDown(instance.name)
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
