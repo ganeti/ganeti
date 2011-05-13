@@ -995,9 +995,11 @@ class R_2_instances_name_startup(baserlib.R_Generic):
     """
     instance_name = self.items[0]
     force_startup = bool(self._checkIntVariable('force'))
+    no_remember = bool(self._checkIntVariable('no_remember'))
     op = opcodes.OpInstanceStartup(instance_name=instance_name,
                                    force=force_startup,
-                                   dry_run=bool(self.dryRun()))
+                                   dry_run=bool(self.dryRun()),
+                                   no_remember=no_remember)
 
     return baserlib.SubmitJob([op])
 
@@ -1013,8 +1015,10 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
+    no_remember = bool(self._checkIntVariable('no_remember'))
     op = opcodes.OpInstanceShutdown(instance_name=instance_name,
-                                    dry_run=bool(self.dryRun()))
+                                    dry_run=bool(self.dryRun()),
+                                    no_remember=no_remember)
 
     return baserlib.SubmitJob([op])
 
