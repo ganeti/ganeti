@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,35 +35,30 @@ import qa_error
 from qa_utils import AssertMatch, AssertCommand, StartSSH, GetCommandOutput
 
 
-def _InstanceRunning(node, name):
+def _InstanceRunning(name):
   """Checks whether an instance is running.
 
-  @param node: node the instance runs on
-  @param name: full name of the Xen instance
+  @param name: full name of the instance
 
   """
-  cmd = utils.ShellQuoteArgs(['xm', 'list', name]) + ' >/dev/null'
-  ret = StartSSH(node['primary'], cmd).wait()
+  master = qa_config.GetMasterNode()
+
+  cmd = (utils.ShellQuoteArgs(["gnt-instance", "list", "-o", "status", name]) +
+         ' | grep running')
+  ret = StartSSH(master["primary"], cmd).wait()
   return ret == 0
 
 
-def _XmShutdownInstance(node, name):
-  """Shuts down instance using "xm" and waits for completion.
+def _ShutdownInstance(name):
+  """Shuts down instance without recording state and waits for completion.
 
-  @param node: node the instance runs on
-  @param name: full name of Xen instance
+  @param name: full name of the instance
 
   """
-  AssertCommand(["xm", "shutdown", name], node=node)
+  AssertCommand(["gnt-instance", "shutdown", "--no-remember", name])
 
-  # Wait up to a minute
-  end = time.time() + 60
-  while time.time() <= end:
-    if not _InstanceRunning(node, name):
-      break
-    time.sleep(5)
-  else:
-    raise qa_error.Error("xm shutdown failed")
+  if _InstanceRunning(name):
+    raise qa_error.Error("instance shutdown failed")
 
 
 def _ResetWatcherDaemon():
@@ -108,25 +103,25 @@ def TestResumeWatcher():
   AssertMatch(output, r"^.*\bis not paused\b.*")
 
 
-def TestInstanceAutomaticRestart(node, instance):
+def TestInstanceAutomaticRestart(instance):
   """Test automatic restart of instance by ganeti-watcher.
 
   """
   inst_name = qa_utils.ResolveInstanceName(instance["name"])
 
   _ResetWatcherDaemon()
-  _XmShutdownInstance(node, inst_name)
+  _ShutdownInstance(inst_name)
 
   _RunWatcherDaemon()
   time.sleep(5)
 
-  if not _InstanceRunning(node, inst_name):
+  if not _InstanceRunning(inst_name):
     raise qa_error.Error("Daemon didn't restart instance")
 
   AssertCommand(["gnt-instance", "info", inst_name])
 
 
-def TestInstanceConsecutiveFailures(node, instance):
+def TestInstanceConsecutiveFailures(instance):
   """Test five consecutive instance failures.
 
   """
@@ -135,11 +130,11 @@ def TestInstanceConsecutiveFailures(node, instance):
   _ResetWatcherDaemon()
 
   for should_start in ([True] * 5) + [False]:
-    _XmShutdownInstance(node, inst_name)
+    _ShutdownInstance(inst_name)
     _RunWatcherDaemon()
     time.sleep(5)
 
-    if bool(_InstanceRunning(node, inst_name)) != should_start:
+    if bool(_InstanceRunning(inst_name)) != should_start:
       if should_start:
         msg = "Instance not started when it should"
       else:

@@ -320,16 +320,16 @@ def RunExportImportTests(instance, pnode, snode):
       qa_config.ReleaseInstance(newinst)
 
 
-def RunDaemonTests(instance, pnode):
+def RunDaemonTests(instance):
   """Test the ganeti-watcher script.
 
   """
   RunTest(qa_daemon.TestPauseWatcher)
 
   RunTestIf("instance-automatic-restart",
-            qa_daemon.TestInstanceAutomaticRestart, pnode, instance)
+            qa_daemon.TestInstanceAutomaticRestart, instance)
   RunTestIf("instance-consecutive-failures",
-            qa_daemon.TestInstanceConsecutiveFailures, pnode, instance)
+            qa_daemon.TestInstanceConsecutiveFailures, instance)
 
   RunTest(qa_daemon.TestResumeWatcher)
 
@@ -412,7 +412,7 @@ def RunQa():
       RunCommonInstanceTests(instance)
       RunGroupListTests()
       RunExportImportTests(instance, pnode, None)
-      RunDaemonTests(instance, pnode)
+      RunDaemonTests(instance)
       RunTest(qa_instance.TestInstanceRemove, instance)
       del instance
 
