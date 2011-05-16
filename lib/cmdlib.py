@@ -1153,7 +1153,7 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
   iallocator = getattr(lu.op, iallocator_slot, None)
 
   if node is not None and iallocator is not None:
-    raise errors.OpPrereqError("Do not specify both, iallocator and node.",
+    raise errors.OpPrereqError("Do not specify both, iallocator and node",
                                errors.ECODE_INVAL)
   elif node is None and iallocator is None:
     default_iallocator = lu.cfg.GetDefaultIAllocator()
@@ -1161,10 +1161,10 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
       setattr(lu.op, iallocator_slot, default_iallocator)
     else:
       raise errors.OpPrereqError("No iallocator or node given and no"
-                                 " cluster-wide default iallocator found."
-                                 " Please specify either an iallocator or a"
+                                 " cluster-wide default iallocator found;"
+                                 " please specify either an iallocator or a"
                                  " node, or set a cluster-wide default"
-                                 " iallocator.")
+                                 " iallocator")
 
 
 class LUClusterPostInit(LogicalUnit):
