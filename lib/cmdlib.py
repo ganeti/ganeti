@@ -2346,7 +2346,7 @@ class LUClusterVerify(LogicalUnit):
     default_nicpp = cluster.nicparams[constants.PP_DEFAULT]
     if default_nicpp[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
       bridges.add(default_nicpp[constants.NIC_LINK])
-    for instance in instanceinfo.values():
+    for instance in self.my_inst_info.values():
       for nic in instance.nics:
         full_nic = cluster.SimpleFillNIC(nic.nicparams)
         if full_nic[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
@@ -2415,16 +2415,25 @@ class LUClusterVerify(LogicalUnit):
 
     feedback_fn("* Verifying configuration file consistency")
 
-    if master_node not in self.my_node_info:
-      # _VerifyFiles requires that master_node is present in the passed node
-      # info, to use it as a point of reference even if we're verifying only a
-      # subset of nodes. Make it so.
+    # If not all nodes are being checked, we need to make sure the master node
+    # and a non-checked vm_capable node are in the list.
+    absent_nodes = set(self.all_node_info).difference(self.my_node_info)
+    if absent_nodes:
       vf_nvinfo = all_nvinfo.copy()
-      vf_node_info = (self.my_node_info.values() +
-                      [self.all_node_info[master_node]])
-
+      vf_node_info = list(self.my_node_info.values())
+      additional_nodes = []
+      if master_node not in self.my_node_info:
+        additional_nodes.append(master_node)
+        vf_node_info.append(self.all_node_info[master_node])
+      # Add the first vm_capable node we find which is not included
+      for node in absent_nodes:
+        nodeinfo = self.all_node_info[node]
+        if nodeinfo.vm_capable and not nodeinfo.offline:
+          additional_nodes.append(node)
+          vf_node_info.append(self.all_node_info[node])
+          break
       key = constants.NV_FILELIST
-      vf_nvinfo.update(self.rpc.call_node_verify([master_node],
+      vf_nvinfo.update(self.rpc.call_node_verify(additional_nodes,
                                                  {key: node_verify_param[key]},
                                                  self.cfg.GetClusterName()))
     else:
