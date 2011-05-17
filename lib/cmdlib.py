@@ -57,6 +57,7 @@ from ganeti import netutils
 from ganeti import query
 from ganeti import qlang
 from ganeti import opcodes
+from ganeti import ht
 
 import ganeti.masterd.instance # pylint: disable-msg=W0611
 
@@ -11798,7 +11799,7 @@ class IAllocator(object):
     self.success = self.info = self.result = None
 
     try:
-      (fn, keyset) = self._MODE_DATA[self.mode]
+      (fn, keyset, self._result_check) = self._MODE_DATA[self.mode]
     except KeyError:
       raise errors.ProgrammerError("Unknown mode '%s' passed to the"
                                    " IAllocator" % self.mode)
@@ -12103,13 +12104,20 @@ class IAllocator(object):
     constants.IALLOCATOR_MODE_ALLOC:
       (_AddNewInstance,
        ["name", "mem_size", "disks", "disk_template", "os", "tags", "nics",
-        "vcpus", "hypervisor"]),
+        "vcpus", "hypervisor"], ht.TList),
     constants.IALLOCATOR_MODE_RELOC:
-      (_AddRelocateInstance, ["name", "relocate_from"]),
+      (_AddRelocateInstance, ["name", "relocate_from"], ht.TList),
     constants.IALLOCATOR_MODE_MEVAC:
-      (_AddEvacuateNodes, ["evac_nodes"]),
+      (_AddEvacuateNodes, ["evac_nodes"], ht.TList),
     constants.IALLOCATOR_MODE_MRELOC:
-      (_AddMultiRelocate, ["instances", "reloc_mode", "target_groups"]),
+      (_AddMultiRelocate, ["instances", "reloc_mode", "target_groups"],
+       ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
+         # pylint: disable-msg=E1101
+         # Class '...' has no 'OP_ID' member
+         "OP_ID": ht.TElemOf([opcodes.OpInstanceFailover.OP_ID,
+                              opcodes.OpInstanceMigrate.OP_ID,
+                              opcodes.OpInstanceReplaceDisks.OP_ID])
+         })))),
     }
 
   def Run(self, name, validate=True, call_fn=None):
@@ -12152,9 +12160,11 @@ class IAllocator(object):
                                  " missing key '%s'" % key)
       setattr(self, key, rdict[key])
 
-    if not isinstance(rdict["result"], list):
-      raise errors.OpExecError("Can't parse iallocator results: 'result' key"
-                               " is not a list")
+    if not self._result_check(self.result):
+      raise errors.OpExecError("Iallocator returned invalid result,"
+                               " expected %s, got %s" %
+                               (self._result_check, self.result),
+                               errors.ECODE_INVAL)
 
     if self.mode == constants.IALLOCATOR_MODE_RELOC:
       assert self.relocate_from is not None
