@@ -218,7 +218,9 @@ class Processor(object):
     return acquired
 
   def _ProcessResult(self, result):
-    """
+    """Examines opcode result.
+
+    If necessary, additional processing on the result is done.
 
     """
     if isinstance(result, cmdlib.ResultWithJobs):
