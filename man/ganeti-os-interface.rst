@@ -18,7 +18,7 @@ replicate it) in order for the OS to be usable by Ganeti.
 REFERENCE
 ---------
 
-There are six required files: *create*, *import*, *export*, *rename*,
+There are eight required files: *create*, *import*, *export*, *rename*,
 *verify* (executables), *ganeti_api_version*, *variants.list* and
 *parameters.list* (text files).
 
@@ -114,7 +114,7 @@ NIC_%N_FRONTEND_TYPE
 
 OSP_*name*
     Each OS parameter (see below) will be exported in its own
-    variable, prefixed with ``OSP``, and upper-cased. For example, a
+    variable, prefixed with ``OSP_``, and upper-cased. For example, a
     ``dhcp`` parameter will be exported as ``OSP_DHCP``.
 
 DEBUG_LEVEL
@@ -141,7 +141,7 @@ configure the IP statically or not, depending on the deployment
 environment.
 
 The ``INSTANCE_REINSTALL`` variable is set to ``1`` when this create
-request is reinstalling and existing instance, rather than creating
+request is reinstalling an existing instance, rather than creating
 one anew. This can be used, for example, to preserve some data in the
 old instance in an OS-specific way.
 
@@ -156,8 +156,8 @@ during restore to the **import** command.
 The specific disk to backup is denoted by two additional environment
 variables: ``EXPORT_INDEX`` which denotes the index in the instance
 disks structure (and could be used for example to skip the second disk
-if not needed for backup) and ``EXPORT_PATH`` which has the same value
-as ``DISK_N_PATH`` but is duplicate here for easier usage by shell
+if not needed for backup) and ``EXPORT_DEVICE`` which has the same value
+as ``DISK_N_PATH`` but is duplicated here for easier usage by shell
 scripts (rather than parse the ``DISK_...`` variables).
 
 To provide the user with an estimate on how long the export will take,
@@ -179,7 +179,7 @@ backup as done by **export**. The arguments are the similar to
 those passed to **export**, whose output will be provided on
 stdin.
 
-The difference in variables is that the current disk is called by
+The difference in variables is that the current disk is denoted by
 ``IMPORT_DEVICE`` and ``IMPORT_INDEX`` (instead of ``EXPORT_...``).
 
 rename
@@ -214,7 +214,7 @@ depending on whether the validation failed or succeeded.
 
 Currently (API version 20), only one parameter is supported:
 ``parameters``. This should validate the ``OSP_`` variables from the
-environment, and output diagnostic message in case the validation
+environment, and output diagnostic messages in case the validation
 fails.
 
 .. highlight:: sh
@@ -245,12 +245,12 @@ ganeti_api_version
 
 The ganeti_api_version file is a plain text file containing the
 version(s) of the guest OS API that this OS definition complies
-with, one per line. The version documented by this man page is 15,
-so this file must contain the number 15 followed by a newline if
+with, one per line. The version documented by this man page is 20,
+so this file must contain the number 20 followed by a newline if
 only this version is supported. A script compatible with more than
 one Ganeti version should contain the most recent version first
-(i.e. 15), followed by the old version(s) (in this case 10 and/or
-5).
+(i.e. 20), followed by the old version(s) (in this case 15 and/or
+10).
 
 variants.list
 ~~~~~~~~~~~~~
@@ -281,7 +281,7 @@ NOTES
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Ganeti 2.3 and up is compatible with API version 10, 15 and 20. The OS
+Ganeti 2.3 and up is compatible with API versions 10, 15 and 20. The OS
 parameters and related scripts (verify) are only supported in
 version 20. The variants functionality (variants.list, and OS_VARIANT
 env. var) are supported/present only in version 15 and up.
