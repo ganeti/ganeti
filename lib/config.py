@@ -1365,6 +1365,26 @@ class ConfigWriter:
         sec.append(inst.name)
     return (pri, sec)
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeGroupInstances(self, uuid, primary_only=False):
+    """Get the instances of a node group.
+
+    @param uuid: Node group UUID
+    @param primary_only: Whether to only consider primary nodes
+    @rtype: frozenset
+    @return: List of instance names in node group
+
+    """
+    if primary_only:
+      nodes_fn = lambda inst: [inst.primary_node]
+    else:
+      nodes_fn = lambda inst: inst.all_nodes
+
+    return frozenset(inst.name
+                     for inst in self._config_data.instances.values()
+                     for node_name in nodes_fn(inst)
+                     if self._UnlockedGetNodeInfo(node_name).group == uuid)
+
   def _UnlockedGetNodeList(self):
     """Return the list of nodes which are in the configuration.
 
