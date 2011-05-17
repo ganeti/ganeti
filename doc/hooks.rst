@@ -114,7 +114,7 @@ Operation list
 Node operations
 ~~~~~~~~~~~~~~~
 
-OP_ADD_NODE
+OP_NODE_ADD
 +++++++++++
 
 Adds a node to the cluster.
@@ -125,7 +125,7 @@ Adds a node to the cluster.
 :post-execution: all nodes plus the new node
 
 
-OP_REMOVE_NODE
+OP_NODE_REMOVE
 ++++++++++++++
 
 Removes a node from the cluster. On the removed node the hooks are
@@ -171,7 +171,7 @@ Relocate secondary instances from a node.
 Node group operations
 ~~~~~~~~~~~~~~~~~~~~~
 
-OP_ADD_GROUP
+OP_GROUP_ADD
 ++++++++++++
 
 Adds a node group to the cluster.
@@ -191,7 +191,7 @@ Changes a node group's parameters.
 :pre-execution: master node
 :post-execution: master node
 
-OP_REMOVE_GROUP
+OP_GROUP_REMOVE
 +++++++++++++++
 
 Removes a node group from the cluster. Since the node group must be
@@ -203,7 +203,7 @@ not exist, and the hook is only executed in the master node.
 :pre-execution: master node
 :post-execution: master node
 
-OP_RENAME_GROUP
+OP_GROUP_RENAME
 +++++++++++++++
 
 Renames a node group.
@@ -228,8 +228,8 @@ The INSTANCE_NICn_* and INSTANCE_DISKn_* variables represent the
 properties of the *n* -th NIC and disk, and are zero-indexed.
 
 
-OP_INSTANCE_ADD
-+++++++++++++++
+OP_INSTANCE_CREATE
+++++++++++++++++++
 
 Creates a new instance.
 
@@ -397,7 +397,7 @@ Replace the disks of an instance.
 Cluster operations
 ~~~~~~~~~~~~~~~~~~
 
-OP_POST_INIT_CLUSTER
+OP_CLUSTER_POST_INIT
 ++++++++++++++++++++
 
 This hook is called via a special "empty" LU right after cluster
@@ -408,7 +408,7 @@ initialization.
 :pre-execution: none
 :post-execution: master node
 
-OP_DESTROY_CLUSTER
+OP_CLUSTER_DESTROY
 ++++++++++++++++++
 
 The post phase of this hook is called during the execution of destroy
