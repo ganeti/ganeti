@@ -292,3 +292,51 @@ def TDictOf(key_type, val_type):
             compat.all(val_type(v) for v in container.values()))
 
   return desc(TAnd(TDict, fn))
+
+
+def _TStrictDictCheck(require_all, exclusive, items, val):
+  """Helper function for L{TStrictDict}.
+
+  """
+  notfound_fn = lambda _: not exclusive
+
+  if require_all and not frozenset(val.keys()).issuperset(items.keys()):
+    # Requires items not found in value
+    return False
+
+  return compat.all(items.get(key, notfound_fn)(value)
+                    for (key, value) in val.items())
+
+
+def TStrictDict(require_all, exclusive, items):
+  """Strict dictionary check with specific keys.
+
+  @type require_all: boolean
+  @param require_all: Whether all keys in L{items} are required
+  @type exclusive: boolean
+  @param exclusive: Whether only keys listed in L{items} should be accepted
+  @type items: dictionary
+  @param items: Mapping from key (string) to verification function
+
+  """
+  descparts = ["Dictionary containing"]
+
+  if exclusive:
+    descparts.append(" none but the")
+
+  if require_all:
+    descparts.append(" required")
+
+  if len(items) == 1:
+    descparts.append(" key ")
+  else:
+    descparts.append(" keys ")
+
+  descparts.append(utils.CommaJoin("\"%s\" (value %s)" % (key, value)
+                                   for (key, value) in items.items()))
+
+  desc = WithDesc("".join(descparts))
+
+  return desc(TAnd(TDict,
+                   compat.partial(_TStrictDictCheck, require_all, exclusive,
+                                  items)))

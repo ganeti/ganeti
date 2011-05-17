@@ -187,6 +187,49 @@ class TestTypeChecks(unittest.TestCase):
     self.assertFalse(fn({"x": None}))
     self.assertFalse(fn({"": 8234}))
 
+  def testStrictDictRequireAllExclusive(self):
+    fn = ht.TStrictDict(True, True, { "a": ht.TInt, })
+    self.assertFalse(fn(1))
+    self.assertFalse(fn(None))
+    self.assertFalse(fn({}))
+    self.assertFalse(fn({"a": "Hello", }))
+    self.assertFalse(fn({"unknown": 999,}))
+    self.assertFalse(fn({"unknown": None,}))
+
+    self.assertTrue(fn({"a": 123, }))
+    self.assertTrue(fn({"a": -5, }))
+
+    fn = ht.TStrictDict(True, True, { "a": ht.TInt, "x": ht.TString, })
+    self.assertFalse(fn({}))
+    self.assertFalse(fn({"a": -5, }))
+    self.assertTrue(fn({"a": 123, "x": "", }))
+    self.assertFalse(fn({"a": 123, "x": None, }))
+
+  def testStrictDictExclusive(self):
+    fn = ht.TStrictDict(False, True, { "a": ht.TInt, "b": ht.TList, })
+    self.assertTrue(fn({}))
+    self.assertTrue(fn({"a": 123, }))
+    self.assertTrue(fn({"b": range(4), }))
+    self.assertFalse(fn({"b": 123, }))
+
+    self.assertFalse(fn({"foo": {}, }))
+    self.assertFalse(fn({"bar": object(), }))
+
+  def testStrictDictRequireAll(self):
+    fn = ht.TStrictDict(True, False, { "a": ht.TInt, "m": ht.TInt, })
+    self.assertTrue(fn({"a": 1, "m": 2, "bar": object(), }))
+    self.assertFalse(fn({}))
+    self.assertFalse(fn({"a": 1, "bar": object(), }))
+    self.assertFalse(fn({"a": 1, "m": [], "bar": object(), }))
+
+  def testStrictDict(self):
+    fn = ht.TStrictDict(False, False, { "a": ht.TInt, })
+    self.assertTrue(fn({}))
+    self.assertFalse(fn({"a": ""}))
+    self.assertTrue(fn({"a": 11}))
+    self.assertTrue(fn({"other": 11}))
+    self.assertTrue(fn({"other": object()}))
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
