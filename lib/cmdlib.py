@@ -11875,6 +11875,177 @@ class LUGroupRename(LogicalUnit):
     return self.op.new_name
 
 
+class LUGroupEvacuate(LogicalUnit):
+  HPATH = "group-evacuate"
+  HTYPE = constants.HTYPE_GROUP
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    # This raises errors.OpPrereqError on its own:
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
+
+    if self.op.target_groups:
+      self.req_target_uuids = map(self.cfg.LookupNodeGroup,
+                                  self.op.target_groups)
+    else:
+      self.req_target_uuids = []
+
+    if self.group_uuid in self.req_target_uuids:
+      raise errors.OpPrereqError("Group to be evacuated (%s) can not be used"
+                                 " as a target group (targets are %s)" %
+                                 (self.group_uuid,
+                                  utils.CommaJoin(self.req_target_uuids)),
+                                 errors.ECODE_INVAL)
+
+    if not self.op.iallocator:
+      # Use default iallocator
+      self.op.iallocator = self.cfg.GetDefaultIAllocator()
+
+    if not self.op.iallocator:
+      raise errors.OpPrereqError("No iallocator was specified, neither in the"
+                                 " opcode nor as a cluster-wide default",
+                                 errors.ECODE_INVAL)
+
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.needed_locks = {
+      locking.LEVEL_INSTANCE: [],
+      locking.LEVEL_NODEGROUP: [],
+      locking.LEVEL_NODE: [],
+      }
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_INSTANCE:
+      assert not self.needed_locks[locking.LEVEL_INSTANCE]
+
+      # Lock instances optimistically, needs verification once node and group
+      # locks have been acquired
+      self.needed_locks[locking.LEVEL_INSTANCE] = \
+        self.cfg.GetNodeGroupInstances(self.group_uuid)
+
+    elif level == locking.LEVEL_NODEGROUP:
+      assert not self.needed_locks[locking.LEVEL_NODEGROUP]
+
+      if self.req_target_uuids:
+        lock_groups = set([self.group_uuid] + self.req_target_uuids)
+
+        # Lock all groups used by instances optimistically; this requires going
+        # via the node before it's locked, requiring verification later on
+        lock_groups.update(group_uuid
+                           for instance_name in
+                             self.glm.list_owned(locking.LEVEL_INSTANCE)
+                           for group_uuid in
+                             self.cfg.GetInstanceNodeGroups(instance_name))
+      else:
+        # No target groups, need to lock all of them
+        lock_groups = locking.ALL_SET
+
+      self.needed_locks[locking.LEVEL_NODEGROUP] = lock_groups
+
+    elif level == locking.LEVEL_NODE:
+      # This will only lock the nodes in the group to be evacuated which
+      # contain actual instances
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+      self._LockInstancesNodes()
+
+      # Lock all nodes in group to be evacuated
+      assert self.group_uuid in self.glm.list_owned(locking.LEVEL_NODEGROUP)
+      member_nodes = self.cfg.GetNodeGroup(self.group_uuid).members
+      self.needed_locks[locking.LEVEL_NODE].extend(member_nodes)
+
+  def CheckPrereq(self):
+    owned_instances = frozenset(self.glm.list_owned(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(self.glm.list_owned(locking.LEVEL_NODEGROUP))
+    owned_nodes = frozenset(self.glm.list_owned(locking.LEVEL_NODE))
+
+    assert owned_groups.issuperset(self.req_target_uuids)
+    assert self.group_uuid in owned_groups
+
+    # Check if locked instances are still correct
+    wanted_instances = self.cfg.GetNodeGroupInstances(self.group_uuid)
+    if owned_instances != wanted_instances:
+      raise errors.OpPrereqError("Instances in node group to be evacuated (%s)"
+                                 " changed since locks were acquired, wanted"
+                                 " %s, have %s; retry the operation" %
+                                 (self.group_uuid,
+                                  utils.CommaJoin(wanted_instances),
+                                  utils.CommaJoin(owned_instances)))
+
+    # Get instance information
+    self.instances = dict((name, self.cfg.GetInstanceInfo(name))
+                          for name in owned_instances)
+
+    # Check if node groups for locked instances are still correct
+    for instance_name in owned_instances:
+      inst = self.instances[instance_name]
+      assert self.group_uuid in self.cfg.GetInstanceNodeGroups(instance_name), \
+        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
+      assert owned_nodes.issuperset(inst.all_nodes), \
+        "Instance %s's nodes changed while we kept the lock" % instance_name
+
+      inst_groups = self.cfg.GetInstanceNodeGroups(instance_name)
+      if not owned_groups.issuperset(inst_groups):
+        raise errors.OpPrereqError("Instance's node groups changed since locks"
+                                   " were acquired, current groups are '%s',"
+                                   " owning groups '%s'; retry the operation" %
+                                   (utils.CommaJoin(inst_groups),
+                                    utils.CommaJoin(owned_groups)))
+
+    if self.req_target_uuids:
+      # User requested specific target groups
+      self.target_uuids = self.req_target_uuids
+    else:
+      # All groups except the one to be evacuated are potential targets
+      self.target_uuids = [group_uuid for group_uuid in owned_groups
+                           if group_uuid != self.group_uuid]
+
+      if not self.target_uuids:
+        raise errors.OpExecError("There are no possible target groups")
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    return {
+      "GROUP_NAME": self.op.group_name,
+      "TARGET_GROUPS": " ".join(self.target_uuids),
+      }
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    mn = self.cfg.GetMasterNode()
+
+    assert self.group_uuid in self.glm.list_owned(locking.LEVEL_NODEGROUP)
+
+    run_nodes = [mn] + self.cfg.GetNodeGroup(self.group_uuid).members
+
+    return (run_nodes, run_nodes)
+
+  def Exec(self, feedback_fn):
+    instances = list(self.glm.list_owned(locking.LEVEL_INSTANCE))
+
+    assert self.group_uuid not in self.target_uuids
+
+    ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_CHG_GROUP,
+                     instances=instances, target_groups=self.target_uuids)
+
+    ial.Run(self.op.iallocator)
+
+    if not ial.success:
+      raise errors.OpPrereqError("Can't compute group evacuation using"
+                                 " iallocator '%s': %s" %
+                                 (self.op.iallocator, ial.info),
+                                 errors.ECODE_NORES)
+
+    jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, False)
+
+    self.LogInfo("Iallocator returned %s job(s) for evacuating node group %s",
+                 len(jobs), self.op.group_name)
+
+    return ResultWithJobs(jobs)
+
+
 class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   """Generic tags LU.
 

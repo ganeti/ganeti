@@ -1314,6 +1314,18 @@ class OpGroupRename(OpCode):
     ]
 
 
+class OpGroupEvacuate(OpCode):
+  """Evacuate a node group in the cluster."""
+  OP_DSC_FIELD = "group_name"
+  OP_PARAMS = [
+    _PGroupName,
+    _PEarlyRelease,
+    ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
+    ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+     "Destination group names or UUIDs"),
+    ]
+
+
 # OS opcodes
 class OpOsDiagnose(OpCode):
   """Compute the list of guest operating systems."""

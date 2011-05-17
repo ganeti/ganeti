@@ -213,6 +213,16 @@ Renames a node group.
 :pre-execution: master node and all nodes in the group
 :post-execution: master node and all nodes in the group
 
+OP_GROUP_EVACUATE
++++++++++++++++++
+
+Evacuates a node group.
+
+:directory: group-evacuate
+:env. vars: GROUP_NAME, TARGET_GROUPS
+:pre-execution: master node and all nodes in the group
+:post-execution: master node and all nodes in the group
+
 
 Instance operations
 ~~~~~~~~~~~~~~~~~~~
