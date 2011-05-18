@@ -25,6 +25,7 @@ from ganeti import errors
 from ganeti import runtime
 
 import testutils
+import unittest
 
 
 class _EntStub:
@@ -50,6 +51,7 @@ def _StubGetgrnam(group):
     constants.RAPI_GROUP: _EntStub(gid=2),
     constants.DAEMONS_GROUP: _EntStub(gid=3),
     constants.ADMIN_GROUP: _EntStub(gid=4),
+    constants.NODED_GROUP: _EntStub(gid=5),
     }
   return groups[group]
 
@@ -67,29 +69,30 @@ class ResolverStubRaising(object):
     raise errors.ConfigurationError("No entries")
 
 
-class TestErrors(testutils.GanetiTestCase):
-  def testEverythingSuccessful(self):
-    resolver = runtime.GetentResolver(_getpwnam=_StubGetpwnam,
-                                      _getgrnam=_StubGetgrnam)
+class TestErrors(unittest.TestCase):
+  def setUp(self):
+    self.resolver = runtime.GetentResolver(_getpwnam=_StubGetpwnam,
+                                           _getgrnam=_StubGetgrnam)
 
-    self.assertEqual(resolver.masterd_uid,
+  def testEverythingSuccessful(self):
+    self.assertEqual(self.resolver.masterd_uid,
                      _StubGetpwnam(constants.MASTERD_USER).pw_uid)
-    self.assertEqual(resolver.masterd_gid,
+    self.assertEqual(self.resolver.masterd_gid,
                      _StubGetgrnam(constants.MASTERD_GROUP).gr_gid)
-    self.assertEqual(resolver.confd_uid,
+    self.assertEqual(self.resolver.confd_uid,
                      _StubGetpwnam(constants.CONFD_USER).pw_uid)
-    self.assertEqual(resolver.confd_gid,
+    self.assertEqual(self.resolver.confd_gid,
                      _StubGetgrnam(constants.CONFD_GROUP).gr_gid)
-    self.assertEqual(resolver.rapi_uid,
+    self.assertEqual(self.resolver.rapi_uid,
                      _StubGetpwnam(constants.RAPI_USER).pw_uid)
-    self.assertEqual(resolver.rapi_gid,
+    self.assertEqual(self.resolver.rapi_gid,
                      _StubGetgrnam(constants.RAPI_GROUP).gr_gid)
-    self.assertEqual(resolver.noded_uid,
+    self.assertEqual(self.resolver.noded_uid,
                      _StubGetpwnam(constants.NODED_USER).pw_uid)
 
-    self.assertEqual(resolver.daemons_gid,
+    self.assertEqual(self.resolver.daemons_gid,
                      _StubGetgrnam(constants.DAEMONS_GROUP).gr_gid)
-    self.assertEqual(resolver.admin_gid,
+    self.assertEqual(self.resolver.admin_gid,
                      _StubGetgrnam(constants.ADMIN_GROUP).gr_gid)
 
   def testUserNotFound(self):
@@ -103,6 +106,36 @@ class TestErrors(testutils.GanetiTestCase):
   def testUserNotFoundGetEnts(self):
     self.assertRaises(errors.ConfigurationError, runtime.GetEnts,
                       resolver=ResolverStubRaising)
+
+  def testLookupForUser(self):
+    master_stub = _StubGetpwnam(constants.MASTERD_USER)
+    rapi_stub = _StubGetpwnam(constants.RAPI_USER)
+    self.assertEqual(self.resolver.LookupUid(master_stub.pw_uid),
+                     constants.MASTERD_USER)
+    self.assertEqual(self.resolver.LookupUid(rapi_stub.pw_uid),
+                     constants.RAPI_USER)
+    self.assertEqual(self.resolver.LookupUser(constants.MASTERD_USER),
+                     master_stub.pw_uid)
+    self.assertEqual(self.resolver.LookupUser(constants.RAPI_USER),
+                     rapi_stub.pw_uid)
+
+  def testLookupForGroup(self):
+    master_stub = _StubGetgrnam(constants.MASTERD_GROUP)
+    rapi_stub = _StubGetgrnam(constants.RAPI_GROUP)
+    self.assertEqual(self.resolver.LookupGid(master_stub.gr_gid),
+                     constants.MASTERD_GROUP)
+    self.assertEqual(self.resolver.LookupGid(rapi_stub.gr_gid),
+                     constants.RAPI_GROUP)
+
+  def testLookupForUserNotFound(self):
+    self.assertRaises(errors.ConfigurationError, self.resolver.LookupUid, 9999)
+    self.assertRaises(errors.ConfigurationError,
+                      self.resolver.LookupUser, "does-not-exist-foo")
+
+  def testLookupForGroupNotFound(self):
+    self.assertRaises(errors.ConfigurationError, self.resolver.LookupGid, 9999)
+    self.assertRaises(errors.ConfigurationError,
+                      self.resolver.LookupGroup, "does-not-exist-foo")
 
 
 if __name__ == "__main__":

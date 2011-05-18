@@ -28,6 +28,7 @@ import threading
 
 from ganeti import constants
 from ganeti import errors
+from ganeti import utils
 
 
 _priv = None
@@ -91,10 +92,78 @@ class GetentResolver:
     self.rapi_gid = GetGid(constants.RAPI_GROUP, _getgrnam)
 
     self.noded_uid = GetUid(constants.NODED_USER, _getpwnam)
+    self.noded_gid = GetGid(constants.NODED_GROUP, _getgrnam)
 
     # Misc Ganeti groups
     self.daemons_gid = GetGid(constants.DAEMONS_GROUP, _getgrnam)
     self.admin_gid = GetGid(constants.ADMIN_GROUP, _getgrnam)
+
+    self._uid2user = {
+      self.masterd_uid: constants.MASTERD_USER,
+      self.confd_uid: constants.CONFD_USER,
+      self.rapi_uid: constants.RAPI_USER,
+      self.noded_uid: constants.NODED_USER,
+      }
+
+    self._gid2group = {
+      self.masterd_gid: constants.MASTERD_GROUP,
+      self.confd_gid: constants.CONFD_GROUP,
+      self.rapi_gid: constants.RAPI_GROUP,
+      self.noded_gid: constants.NODED_GROUP,
+      self.daemons_gid: constants.DAEMONS_GROUP,
+      self.admin_gid: constants.ADMIN_GROUP,
+      }
+
+    self._user2uid = utils.InvertDict(self._uid2user)
+    self._group2gid = utils.InvertDict(self._gid2group)
+
+  def LookupUid(self, uid):
+    """Looks which Ganeti user belongs to this uid.
+
+    @param uid: The uid to lookup
+    @returns The user name associated with that uid
+
+    """
+    try:
+      return self._uid2user[uid]
+    except KeyError:
+      raise errors.ConfigurationError("Unknown Ganeti uid '%d'" % uid)
+
+  def LookupGid(self, gid):
+    """Looks which Ganeti group belongs to this gid.
+
+    @param gid: The gid to lookup
+    @returns The group name associated with that gid
+
+    """
+    try:
+      return self._gid2group[gid]
+    except KeyError:
+      raise errors.ConfigurationError("Unknown Ganeti gid '%d'" % gid)
+
+  def LookupUser(self, name):
+    """Looks which uid belongs to this name.
+
+    @param name: The name to lookup
+    @returns The uid associated with that user name
+
+    """
+    try:
+      return self._user2uid[name]
+    except KeyError:
+      raise errors.ConfigurationError("Unknown Ganeti user '%s'" % name)
+
+  def LookupGroup(self, name):
+    """Looks which gid belongs to this name.
+
+    @param name: The name to lookup
+    @returns The gid associated with that group name
+
+    """
+    try:
+      return self._group2gid[name]
+    except KeyError:
+      raise errors.ConfigurationError("Unknown Ganeti group '%s'" % name)
 
 
 def GetEnts(resolver=GetentResolver):
