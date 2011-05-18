@@ -278,6 +278,7 @@ docrst = \
 	doc/design-2.4.rst \
 	doc/design-draft.rst \
 	doc/design-oob.rst \
+	doc/design-cpu-pinning.rst \
 	doc/design-query2.rst \
 	doc/design-x509-ca.rst \
 	doc/design-http-server.rst \

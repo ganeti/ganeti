@@ -10,6 +10,7 @@ Design document drafts
    design-impexp2.rst
    design-lu-generated-jobs.rst
    design-multi-reloc.rst
+   design-cpu-pinning.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
