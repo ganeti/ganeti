@@ -286,6 +286,7 @@ docrst = \
 	doc/design-lu-generated-jobs.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-network.rst \
+	doc/design-chained-jobs.rst \
 	doc/cluster-merge.rst \
 	doc/design-shared-storage.rst \
 	doc/devnotes.rst \
