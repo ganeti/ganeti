@@ -64,6 +64,7 @@ import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
 import qualified Ganeti.HTools.Version
+import qualified Ganeti.Constants as C
 
 -- * Constants
 
@@ -177,10 +178,14 @@ instance Arbitrary Instance.Instance where
       name <- getFQDN
       mem <- choose (0, maxMem)
       dsk <- choose (0, maxDsk)
-      run_st <- elements ["ERROR_up", "ERROR_down", "ADMIN_down"
-                         , "ERROR_nodedown", "ERROR_nodeoffline"
-                         , "running"
-                         , "no_such_status1", "no_such_status2"]
+      run_st <- elements [ C.inststErrorup
+                         , C.inststErrordown
+                         , C.inststAdmindown
+                         , C.inststNodedown
+                         , C.inststNodeoffline
+                         , C.inststRunning
+                         , "no_such_status1"
+                         , "no_such_status2"]
       pn <- arbitrary
       sn <- arbitrary
       vcpus <- choose (0, maxCpu)

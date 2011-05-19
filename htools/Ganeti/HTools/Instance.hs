@@ -45,6 +45,7 @@ module Ganeti.HTools.Instance
 
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.Constants as C
 
 -- * Type declarations
 
@@ -75,7 +76,7 @@ instance T.Element Instance where
 
 -- | Running instance states.
 runningStates :: [String]
-runningStates = ["running", "ERROR_up"]
+runningStates = [C.inststRunning, C.inststErrorup]
 
 -- | A simple name for the int, instance association list.
 type AssocList = [(T.Idx, Instance)]
