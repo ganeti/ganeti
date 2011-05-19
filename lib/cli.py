@@ -665,8 +665,8 @@ NWSYNC_OPT = cli_option("--no-wait-for-sync", dest="wait_for_sync",
                         help="Don't wait for sync (DANGEROUS!)")
 
 DISK_TEMPLATE_OPT = cli_option("-t", "--disk-template", dest="disk_template",
-                               help="Custom disk setup (diskless, file,"
-                               " plain or drbd)",
+                               help=("Custom disk setup (%s)" %
+                                     utils.CommaJoin(constants.DISK_TEMPLATES)),
                                default=None, metavar="TEMPL",
                                choices=list(constants.DISK_TEMPLATES))
 
@@ -866,12 +866,16 @@ NEW_SECONDARY_OPT = cli_option("-n", "--new-secondary", dest="dst_node",
 ON_PRIMARY_OPT = cli_option("-p", "--on-primary", dest="on_primary",
                             default=False, action="store_true",
                             help="Replace the disk(s) on the primary"
-                            " node (only for the drbd template)")
+                                 " node (applies only to internally mirrored"
+                                 " disk templates, e.g. %s)" %
+                                 utils.CommaJoin(constants.DTS_INT_MIRROR))
 
 ON_SECONDARY_OPT = cli_option("-s", "--on-secondary", dest="on_secondary",
                               default=False, action="store_true",
                               help="Replace the disk(s) on the secondary"
-                              " node (only for the drbd template)")
+                                   " node (applies only to internally mirrored"
+                                   " disk templates, e.g. %s)" %
+                                   utils.CommaJoin(constants.DTS_INT_MIRROR))
 
 AUTO_PROMOTE_OPT = cli_option("--auto-promote", dest="auto_promote",
                               default=False, action="store_true",
@@ -881,7 +885,9 @@ AUTO_PROMOTE_OPT = cli_option("--auto-promote", dest="auto_promote",
 AUTO_REPLACE_OPT = cli_option("-a", "--auto", dest="auto",
                               default=False, action="store_true",
                               help="Automatically replace faulty disks"
-                              " (only for the drbd template)")
+                                   " (applies only to internally mirrored"
+                                   " disk templates, e.g. %s)" %
+                                   utils.CommaJoin(constants.DTS_INT_MIRROR))
 
 IGNORE_SIZE_OPT = cli_option("--ignore-size", dest="ignore_size",
                              default=False, action="store_true",
