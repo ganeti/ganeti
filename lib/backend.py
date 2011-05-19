@@ -1801,10 +1801,10 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   @param data: the new contents of the file
   @type mode: int
   @param mode: the mode to give the file (can be None)
-  @type uid: int
-  @param uid: the owner of the file (can be -1 for default)
-  @type gid: int
-  @param gid: the group of the file (can be -1 for default)
+  @type uid: string
+  @param uid: the owner of the file
+  @type gid: string
+  @param gid: the group of the file
   @type atime: float
   @param atime: the atime to set on the file (can be None)
   @type mtime: float
@@ -1820,6 +1820,13 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
           file_name)
 
   raw_data = _Decompress(data)
+
+  if not (isinstance(uid, basestring) and isinstance(gid, basestring)):
+    _Fail("Invalid username/groupname type")
+
+  getents = runtime.GetEnts()
+  uid = getents.LookupUser(uid)
+  gid = getents.LookupGroup(gid)
 
   utils.SafeWriteFile(file_name, None,
                       data=raw_data, mode=mode, uid=uid, gid=gid,
