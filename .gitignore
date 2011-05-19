@@ -109,3 +109,4 @@
 /.hpc/
 
 /htools/Ganeti/HTools/Version.hs
+/htools/Ganeti/Constants.hs

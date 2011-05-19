@@ -1,0 +1,86 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2011 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+"""Script for converting Python constants to Haskell code fragments.
+
+"""
+
+import re
+
+from ganeti import constants
+
+CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_]+$")
+
+
+def NameRules(name):
+  """Converts the upper-cased Python name to Haskell camelCase.
+
+  """
+  elems = name.split("_")
+  return elems[0].lower() + "".join(e.capitalize() for e in elems[1:])
+
+
+def StringValueRules(value):
+  """Converts a string value from Python to Haskell.
+
+  """
+  value = value.encode("string_escape") # escapes backslashes
+  value = value.replace("\"", "\\\"")
+  return value
+
+
+def Convert():
+  """Converts the constants to Haskell.
+
+  """
+  lines = [""]
+
+  all_names = dir(constants)
+
+  for name in all_names:
+    value = getattr(constants, name)
+    hs_name = NameRules(name)
+    if not CONSTANT_RE.match(name):
+      lines.append("-- Skipped %s, not constant" % name)
+    elif isinstance(value, basestring):
+      lines.append("%s :: String" % hs_name)
+      lines.append("%s = \"%s\"" % (hs_name, StringValueRules(value)))
+    elif isinstance(value, int):
+      lines.append("%s :: Int" % hs_name)
+      lines.append("%s = %d" % (hs_name, value))
+    elif isinstance(value, long):
+      lines.append("%s :: Integer" % hs_name)
+      lines.append("%s = %d" % (hs_name, value))
+    elif isinstance(value, float):
+      lines.append("%s :: Double" % hs_name)
+      lines.append("%s = %f" % (hs_name, value))
+    else:
+      lines.append("-- Skipped %s, %s not handled" % (name, type(value)))
+    lines.append("")
+
+  return "\n".join(lines)
+
+
+def main():
+  print Convert()
+
+
+if __name__ == "__main__":
+  main()

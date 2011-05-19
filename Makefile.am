@@ -21,6 +21,7 @@ CHECK_VERSION = $(top_srcdir)/autotools/check-version
 CHECK_NEWS = $(top_srcdir)/autotools/check-news
 DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
+CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
 
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
@@ -337,7 +338,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/OpCodes.hs
 
-HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs
+HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs
 HS_BUILT_SRCS_IN = $(patsubst %,%.in,$(HS_BUILT_SRCS))
 
 $(RUN_IN_TEMPDIR): | $(all_dirfiles)
@@ -508,6 +509,7 @@ EXTRA_DIST = \
 	autotools/check-news \
 	autotools/check-tar \
 	autotools/check-version \
+	autotools/convert-constants \
 	autotools/docpp \
 	autotools/gen-coverage \
 	autotools/testrunner \
@@ -813,6 +815,10 @@ htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in vcs-version
 	set -e; \
 	VCSVER=`cat $(abs_top_srcdir)/vcs-version`; \
 	sed -e "s/%ver%/$$VCSVER/" < $< > $@
+
+htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
+	lib/constants.py lib/_autoconf.py $(CONVERT_CONSTANTS)
+	set -e; { cat $< ; $(CONVERT_CONSTANTS); } > $@
 
 lib/_autoconf.py: Makefile vcs-version | lib/.dir
 	set -e; \
