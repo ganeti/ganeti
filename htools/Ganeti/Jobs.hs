@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@ module Ganeti.Jobs
 import Text.JSON (readJSON, showJSON, JSON)
 import qualified Text.JSON as J
 
+import qualified Ganeti.Constants as C
+
 data OpStatus = OP_STATUS_QUEUED
               | OP_STATUS_WAITLOCK
               | OP_STATUS_CANCELING
@@ -43,22 +45,23 @@ data OpStatus = OP_STATUS_QUEUED
 instance JSON OpStatus where
     showJSON os = showJSON w
       where w = case os of
-              OP_STATUS_QUEUED -> "queued"
-              OP_STATUS_WAITLOCK -> "waiting"
-              OP_STATUS_CANCELING -> "canceling"
-              OP_STATUS_RUNNING -> "running"
-              OP_STATUS_CANCELED -> "canceled"
-              OP_STATUS_SUCCESS -> "success"
-              OP_STATUS_ERROR -> "error"
+              OP_STATUS_QUEUED -> C.jobStatusQueued
+              OP_STATUS_WAITLOCK -> C.jobStatusWaitlock
+              OP_STATUS_CANCELING -> C.jobStatusCanceling
+              OP_STATUS_RUNNING -> C.jobStatusRunning
+              OP_STATUS_CANCELED -> C.jobStatusCanceled
+              OP_STATUS_SUCCESS -> C.jobStatusSuccess
+              OP_STATUS_ERROR -> C.jobStatusError
     readJSON s = case readJSON s of
-      J.Ok "queued" -> J.Ok OP_STATUS_QUEUED
-      J.Ok "waiting" -> J.Ok OP_STATUS_WAITLOCK
-      J.Ok "canceling" -> J.Ok OP_STATUS_CANCELING
-      J.Ok "running" -> J.Ok OP_STATUS_RUNNING
-      J.Ok "canceled" -> J.Ok OP_STATUS_CANCELED
-      J.Ok "success" -> J.Ok OP_STATUS_SUCCESS
-      J.Ok "error" -> J.Ok OP_STATUS_ERROR
-      _ -> J.Error ("Unknown opcode status " ++ show s)
+      J.Ok v | v == C.jobStatusQueued -> J.Ok OP_STATUS_QUEUED
+             | v == C.jobStatusWaitlock -> J.Ok OP_STATUS_WAITLOCK
+             | v == C.jobStatusCanceling -> J.Ok OP_STATUS_CANCELING
+             | v == C.jobStatusRunning -> J.Ok OP_STATUS_RUNNING
+             | v == C.jobStatusCanceled -> J.Ok OP_STATUS_CANCELED
+             | v == C.jobStatusSuccess -> J.Ok OP_STATUS_SUCCESS
+             | v == C.jobStatusError -> J.Ok OP_STATUS_ERROR
+             | otherwise -> J.Error ("Unknown opcode status " ++ v)
+      _ -> J.Error ("Cannot parse opcode status " ++ show s)
 
 -- | The JobStatus data type. Note that this is ordered especially
 -- such that greater\/lesser comparison on values of this type makes
