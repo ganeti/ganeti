@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -64,6 +64,8 @@ module Ganeti.HTools.Types
 import qualified Data.Map as M
 import qualified Text.JSON as JSON
 
+import qualified Ganeti.Constants as C
+
 -- | The instance index type.
 type Idx = Int
 
@@ -103,17 +105,17 @@ data AllocPolicy
 -- | Convert a string to an alloc policy
 apolFromString :: (Monad m) => String -> m AllocPolicy
 apolFromString s =
-    case s of
-      "preferred"   -> return AllocPreferred
-      "last_resort" -> return AllocLastResort
-      "unallocable" -> return AllocUnallocable
-      o -> fail $ "Invalid alloc policy mode: " ++ o
+    case () of
+      _ | s == C.allocPolicyPreferred -> return AllocPreferred
+        | s == C.allocPolicyLastResort -> return AllocLastResort
+        | s == C.allocPolicyUnallocable -> return AllocUnallocable
+        | otherwise -> fail $ "Invalid alloc policy mode: " ++ s
 
 -- | Convert an alloc policy to the Ganeti string equivalent
 apolToString :: AllocPolicy -> String
-apolToString AllocPreferred   = "preferred"
-apolToString AllocLastResort  = "last_resort"
-apolToString AllocUnallocable = "unallocable"
+apolToString AllocPreferred   = C.allocPolicyPreferred
+apolToString AllocLastResort  = C.allocPolicyLastResort
+apolToString AllocUnallocable = C.allocPolicyUnallocable
 
 instance JSON.JSON AllocPolicy where
     showJSON = JSON.showJSON . apolToString
