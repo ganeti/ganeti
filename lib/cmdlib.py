@@ -12108,7 +12108,9 @@ class IAllocator(object):
     constants.IALLOCATOR_MODE_RELOC:
       (_AddRelocateInstance, ["name", "relocate_from"], ht.TList),
     constants.IALLOCATOR_MODE_MEVAC:
-      (_AddEvacuateNodes, ["evac_nodes"], ht.TList),
+      (_AddEvacuateNodes, ["evac_nodes"],
+       ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                          ht.TListOf(ht.TString)))),
     constants.IALLOCATOR_MODE_MRELOC:
       (_AddMultiRelocate, ["instances", "reloc_mode", "target_groups"],
        ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
@@ -12166,24 +12168,39 @@ class IAllocator(object):
                                (self._result_check, self.result),
                                errors.ECODE_INVAL)
 
-    if self.mode == constants.IALLOCATOR_MODE_RELOC:
-      assert self.relocate_from is not None
-      assert self.required_nodes == 1
-
+    if self.mode in (constants.IALLOCATOR_MODE_RELOC,
+                     constants.IALLOCATOR_MODE_MEVAC):
       node2group = dict((name, ndata["group"])
                         for (name, ndata) in self.in_data["nodes"].items())
 
       fn = compat.partial(self._NodesToGroups, node2group,
                           self.in_data["nodegroups"])
 
-      request_groups = fn(self.relocate_from)
-      result_groups = fn(rdict["result"])
+      if self.mode == constants.IALLOCATOR_MODE_RELOC:
+        assert self.relocate_from is not None
+        assert self.required_nodes == 1
 
-      if result_groups != request_groups:
-        raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
-                                 " differ from original groups (%s)" %
-                                 (utils.CommaJoin(result_groups),
-                                  utils.CommaJoin(request_groups)))
+        request_groups = fn(self.relocate_from)
+        result_groups = fn(rdict["result"])
+
+        if result_groups != request_groups:
+          raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
+                                   " differ from original groups (%s)" %
+                                   (utils.CommaJoin(result_groups),
+                                    utils.CommaJoin(request_groups)))
+      elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
+        request_groups = fn(self.evac_nodes)
+        for (instance_name, secnode) in self.result:
+          result_groups = fn([secnode])
+          if result_groups != request_groups:
+            raise errors.OpExecError("Iallocator returned new secondary node"
+                                     " '%s' (group '%s') for instance '%s'"
+                                     " which is not in original group '%s'" %
+                                     (secnode, utils.CommaJoin(result_groups),
+                                      instance_name,
+                                      utils.CommaJoin(request_groups)))
+      else:
+        raise errors.ProgrammerError("Unhandled mode '%s'" % self.mode)
 
     self.out_data = rdict
 
