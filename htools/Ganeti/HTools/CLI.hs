@@ -8,7 +8,7 @@ and this is more IO oriented.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -82,12 +82,13 @@ import System
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Version as Version(version)
+import qualified Ganeti.Constants as C
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 
 -- | The default value for the luxi socket
 defaultLuxiSocket :: FilePath
-defaultLuxiSocket = "/var/run/ganeti/socket/ganeti-master"
+defaultLuxiSocket = C.masterSocket
 
 -- | Command line options structure.
 data Options = Options

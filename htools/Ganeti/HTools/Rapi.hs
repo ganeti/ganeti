@@ -47,6 +47,7 @@ import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.Constants as C
 
 -- | Read an URL via curl and return the body if successful.
 getUrl :: (Monad m) => String -> IO (m String)
@@ -76,7 +77,7 @@ getUrl url = do
 formatHost :: String -> String
 formatHost master =
     if ':' `elem` master then  master
-    else "https://" ++ master ++ ":5080"
+    else "https://" ++ master ++ ":" ++ show C.defaultRapiPort
 
 -- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
