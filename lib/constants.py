@@ -96,6 +96,7 @@ RAPI_GROUP = _autoconf.RAPI_GROUP
 CONFD_USER = _autoconf.CONFD_USER
 CONFD_GROUP = _autoconf.CONFD_GROUP
 NODED_USER = _autoconf.NODED_USER
+NODED_GROUP = _autoconf.NODED_GROUP
 
 
 # Wipe
