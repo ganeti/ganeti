@@ -38,6 +38,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.Constants as C
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
@@ -144,29 +145,29 @@ parseData body = do
   let map_n = cdNodes cdata
   optype <- extrReq "type"
   rqtype <-
-      case optype of
-        "allocate" ->
-            do
-              rname     <- extrReq "name"
-              req_nodes <- extrReq "required_nodes"
-              inew      <- parseBaseInstance rname request
-              let io = snd inew
-              return $ Allocate io req_nodes
-        "relocate" ->
-            do
-              rname     <- extrReq "name"
-              ridx      <- lookupInstance kti rname
-              req_nodes <- extrReq "required_nodes"
-              ex_nodes  <- extrReq "relocate_from"
-              ex_idex   <- mapM (Container.findByName map_n) ex_nodes
-              return $ Relocate ridx req_nodes (map Node.idx ex_idex)
-        "multi-evacuate" ->
-            do
-              ex_names <- extrReq "evac_nodes"
-              ex_nodes <- mapM (Container.findByName map_n) ex_names
-              let ex_ndx = map Node.idx ex_nodes
-              return $ Evacuate ex_ndx
-        other -> fail ("Invalid request type '" ++ other ++ "'")
+      case () of
+        _ | optype == C.iallocatorModeAlloc ->
+              do
+                rname     <- extrReq "name"
+                req_nodes <- extrReq "required_nodes"
+                inew      <- parseBaseInstance rname request
+                let io = snd inew
+                return $ Allocate io req_nodes
+          | optype == C.iallocatorModeReloc ->
+              do
+                rname     <- extrReq "name"
+                ridx      <- lookupInstance kti rname
+                req_nodes <- extrReq "required_nodes"
+                ex_nodes  <- extrReq "relocate_from"
+                ex_idex   <- mapM (Container.findByName map_n) ex_nodes
+                return $ Relocate ridx req_nodes (map Node.idx ex_idex)
+          | optype == C.iallocatorModeMevac ->
+              do
+                ex_names <- extrReq "evac_nodes"
+                ex_nodes <- mapM (Container.findByName map_n) ex_names
+                let ex_ndx = map Node.idx ex_nodes
+                return $ Evacuate ex_ndx
+          | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return $ Request rqtype cdata
 
 -- | Format the result
