@@ -9801,6 +9801,178 @@ class LUNodeEvacStrategy(NoHooksLU):
     return result
 
 
+class LUNodeEvacuate(NoHooksLU):
+  """Evacuates instances off a list of nodes.
+
+  """
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
+
+  def ExpandNames(self):
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+
+    if self.op.remote_node is not None:
+      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
+      assert self.op.remote_node
+
+      if self.op.remote_node == self.op.node_name:
+        raise errors.OpPrereqError("Can not use evacuated node as a new"
+                                   " secondary node", errors.ECODE_INVAL)
+
+      if self.op.mode != constants.IALLOCATOR_NEVAC_SEC:
+        raise errors.OpPrereqError("Without the use of an iallocator only"
+                                   " secondary instances can be evacuated",
+                                   errors.ECODE_INVAL)
+
+    # Declare locks
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.needed_locks = {
+      locking.LEVEL_INSTANCE: [],
+      locking.LEVEL_NODEGROUP: [],
+      locking.LEVEL_NODE: [],
+      }
+
+    if self.op.remote_node is None:
+      # Iallocator will choose any node(s) in the same group
+      group_nodes = self.cfg.GetNodeGroupMembersByNodes([self.op.node_name])
+    else:
+      group_nodes = frozenset([self.op.remote_node])
+
+    # Determine nodes to be locked
+    self.lock_nodes = set([self.op.node_name]) | group_nodes
+
+  def _DetermineInstances(self):
+    """Builds list of instances to operate on.
+
+    """
+    assert self.op.mode in constants.IALLOCATOR_NEVAC_MODES
+
+    if self.op.mode == constants.IALLOCATOR_NEVAC_PRI:
+      # Primary instances only
+      inst_fn = _GetNodePrimaryInstances
+      assert self.op.remote_node is None, \
+        "Evacuating primary instances requires iallocator"
+    elif self.op.mode == constants.IALLOCATOR_NEVAC_SEC:
+      # Secondary instances only
+      inst_fn = _GetNodeSecondaryInstances
+    else:
+      # All instances
+      assert self.op.mode == constants.IALLOCATOR_NEVAC_ALL
+      inst_fn = _GetNodeInstances
+
+    return inst_fn(self.cfg, self.op.node_name)
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_INSTANCE:
+      # Lock instances optimistically, needs verification once node and group
+      # locks have been acquired
+      self.needed_locks[locking.LEVEL_INSTANCE] = \
+        set(i.name for i in self._DetermineInstances())
+
+    elif level == locking.LEVEL_NODEGROUP:
+      # Lock node groups optimistically, needs verification once nodes have
+      # been acquired
+      self.needed_locks[locking.LEVEL_NODEGROUP] = \
+        self.cfg.GetNodeGroupsFromNodes(self.lock_nodes)
+
+    elif level == locking.LEVEL_NODE:
+      self.needed_locks[locking.LEVEL_NODE] = self.lock_nodes
+
+  def CheckPrereq(self):
+    # Verify locks
+    owned_instances = self.glm.list_owned(locking.LEVEL_INSTANCE)
+    owned_nodes = self.glm.list_owned(locking.LEVEL_NODE)
+    owned_groups = self.glm.list_owned(locking.LEVEL_NODEGROUP)
+
+    assert owned_nodes == self.lock_nodes
+
+    wanted_groups = self.cfg.GetNodeGroupsFromNodes(owned_nodes)
+    if owned_groups != wanted_groups:
+      raise errors.OpExecError("Node groups changed since locks were acquired,"
+                               " current groups are '%s', used to be '%s'" %
+                               (utils.CommaJoin(wanted_groups),
+                                utils.CommaJoin(owned_groups)))
+
+    # Determine affected instances
+    self.instances = self._DetermineInstances()
+    self.instance_names = [i.name for i in self.instances]
+
+    if set(self.instance_names) != owned_instances:
+      raise errors.OpExecError("Instances on node '%s' changed since locks"
+                               " were acquired, current instances are '%s',"
+                               " used to be '%s'" %
+                               (self.op.node_name,
+                                utils.CommaJoin(self.instance_names),
+                                utils.CommaJoin(owned_instances)))
+
+    if self.instance_names:
+      self.LogInfo("Evacuating instances from node '%s': %s",
+                   self.op.node_name,
+                   utils.CommaJoin(utils.NiceSort(self.instance_names)))
+    else:
+      self.LogInfo("No instances to evacuate from node '%s'",
+                   self.op.node_name)
+
+    if self.op.remote_node is not None:
+      for i in self.instances:
+        if i.primary_node == self.op.remote_node:
+          raise errors.OpPrereqError("Node %s is the primary node of"
+                                     " instance %s, cannot use it as"
+                                     " secondary" %
+                                     (self.op.remote_node, i.name),
+                                     errors.ECODE_INVAL)
+
+  def Exec(self, feedback_fn):
+    assert (self.op.iallocator is not None) ^ (self.op.remote_node is not None)
+
+    if not self.instance_names:
+      # No instances to evacuate
+      jobs = []
+
+    elif self.op.iallocator is not None:
+      # TODO: Implement relocation to other group
+      ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_NODE_EVAC,
+                       evac_mode=self.op.mode,
+                       instances=list(self.instance_names))
+
+      ial.Run(self.op.iallocator)
+
+      if not ial.success:
+        raise errors.OpPrereqError("Can't compute node evacuation using"
+                                   " iallocator '%s': %s" %
+                                   (self.op.iallocator, ial.info),
+                                   errors.ECODE_NORES)
+
+      jobs = [[opcodes.OpCode.LoadOpCode(state) for state in jobset]
+              for jobset in ial.result]
+
+      # Set "early_release" flag on opcodes where available
+      early_release = self.op.early_release
+      for op in itertools.chain(*jobs): # pylint: disable-msg=W0142
+        try:
+          op.early_release = early_release
+        except AttributeError:
+          assert not isinstance(op, opcodes.OpInstanceReplaceDisks)
+
+    elif self.op.remote_node is not None:
+      assert self.op.mode == constants.IALLOCATOR_NEVAC_SEC
+      jobs = [
+        [opcodes.OpInstanceReplaceDisks(instance_name=instance_name,
+                                        remote_node=self.op.remote_node,
+                                        disks=[],
+                                        mode=constants.REPLACE_DISK_CHG,
+                                        early_release=self.op.early_release)]
+        for instance_name in self.instance_names
+        ]
+
+    else:
+      raise errors.ProgrammerError("No iallocator or remote node")
+
+    return ResultWithJobs(jobs)
+
+
 class LUInstanceGrowDisk(LogicalUnit):
   """Grow a disk of an instance.
 
@@ -12501,6 +12673,9 @@ class IAllocator(object):
                                       utils.CommaJoin(request_groups)))
       else:
         raise errors.ProgrammerError("Unhandled mode '%s'" % self.mode)
+
+    elif self.mode == constants.IALLOCATOR_MODE_NODE_EVAC:
+      assert self.evac_mode in constants.IALLOCATOR_NEVAC_MODES
 
     self.out_data = rdict
 

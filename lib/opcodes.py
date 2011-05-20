@@ -112,6 +112,9 @@ _PGroupNodeParams = ("ndparams", None, ht.TMaybeDict,
 _PQueryWhat = ("what", ht.NoDefault, ht.TElemOf(constants.QR_VIA_OP),
                "Resource(s) to query for")
 
+_PEarlyRelease = ("early_release", False, ht.TBool,
+                  "Whether to release locks as soon as possible")
+
 _PIpCheckDoc = "Whether to ensure instance's IP address is inactive"
 
 #: Do not remember instance state changes
@@ -894,6 +897,19 @@ class OpNodeEvacStrategy(OpCode):
     ]
 
 
+class OpNodeEvacuate(OpCode):
+  """Evacuate instances off a number of nodes."""
+  OP_DSC_FIELD = "node_name"
+  OP_PARAMS = [
+    _PEarlyRelease,
+    _PNodeName,
+    ("remote_node", None, ht.TMaybeString, "New secondary node"),
+    ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES),
+     "Node evacuation mode"),
+    ]
+
+
 # instance opcodes
 
 class OpInstanceCreate(OpCode):
@@ -1045,6 +1061,7 @@ class OpInstanceReplaceDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
+    _PEarlyRelease,
     ("mode", ht.NoDefault, ht.TElemOf(constants.REPLACE_MODES),
      "Replacement mode"),
     ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt),
@@ -1052,8 +1069,6 @@ class OpInstanceReplaceDisks(OpCode):
     ("remote_node", None, ht.TMaybeString, "New secondary node"),
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding new secondary node"),
-    ("early_release", False, ht.TBool,
-     "Whether to release locks as soon as possible"),
     ]
 
 
