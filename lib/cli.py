@@ -2950,14 +2950,31 @@ class JobExecutor(object):
     self.feedback_fn = feedback_fn
     self._counter = itertools.count()
 
+  @staticmethod
+  def _IfName(name, fmt):
+    """Helper function for formatting name.
+
+    """
+    if name:
+      return fmt % name
+
+    return ""
+
   def QueueJob(self, name, *ops):
     """Record a job for later submit.
 
     @type name: string
     @param name: a description of the job, will be used in WaitJobSet
+
     """
     SetGenericOpcodeOpts(ops, self.opts)
     self.queue.append((self._counter.next(), name, ops))
+
+  def AddJobId(self, name, status, job_id):
+    """Adds a job ID to the internal queue.
+
+    """
+    self.jobs.append((self._counter.next(), status, job_id, name))
 
   def SubmitPending(self, each=False):
     """Submit all pending jobs.
@@ -3017,25 +3034,26 @@ class JobExecutor(object):
     # first, remove any non-submitted jobs
     self.jobs, failures = compat.partition(self.jobs, lambda x: x[1])
     for idx, _, jid, name in failures:
-      ToStderr("Failed to submit job for %s: %s", name, jid)
+      ToStderr("Failed to submit job%s: %s", self._IfName(name, " for %s"), jid)
       results.append((idx, False, jid))
 
     while self.jobs:
       (idx, _, jid, name) = self._ChooseJob()
-      ToStdout("Waiting for job %s for %s...", jid, name)
+      ToStdout("Waiting for job %s%s ...", jid, self._IfName(name, " for %s"))
       try:
         job_result = PollJob(jid, cl=self.cl, feedback_fn=self.feedback_fn)
         success = True
       except errors.JobLost, err:
         _, job_result = FormatError(err)
-        ToStderr("Job %s for %s has been archived, cannot check its result",
-                 jid, name)
+        ToStderr("Job %s%s has been archived, cannot check its result",
+                 jid, self._IfName(name, " for %s"))
         success = False
       except (errors.GenericError, luxi.ProtocolError), err:
         _, job_result = FormatError(err)
         success = False
         # the error message will always be shown, verbose or not
-        ToStderr("Job %s for %s has failed: %s", jid, name, job_result)
+        ToStderr("Job %s%s has failed: %s",
+                 jid, self._IfName(name, " for %s"), job_result)
 
       results.append((idx, success, job_result))
 
