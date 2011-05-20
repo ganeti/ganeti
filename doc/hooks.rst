@@ -419,10 +419,10 @@ operation and not after its completion.
 :pre-execution: none
 :post-execution: master node
 
-OP_CLUSTER_VERIFY
-+++++++++++++++++
+OP_CLUSTER_VERIFY_GROUP
++++++++++++++++++++++++
 
-Verifies the cluster status. This is a special LU with regard to
+Verifies all nodes in a group. This is a special LU with regard to
 hooks, as the result of the opcode will be combined with the result of
 post-execution hooks, in order to allow administrators to enhance the
 cluster verification procedure.
@@ -430,7 +430,7 @@ cluster verification procedure.
 :directory: cluster-verify
 :env. vars: CLUSTER, MASTER, CLUSTER_TAGS, NODE_TAGS_<name>
 :pre-execution: none
-:post-execution: all nodes
+:post-execution: all nodes in a group
 
 OP_CLUSTER_RENAME
 +++++++++++++++++
