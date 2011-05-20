@@ -33,6 +33,7 @@ import os
 import sys
 import logging
 import signal
+import codecs
 
 from optparse import OptionParser
 
@@ -973,6 +974,13 @@ def CheckNoded(_, args):
   if args: # noded doesn't take any arguments
     print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
                           sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+  try:
+    codecs.lookup("string-escape")
+  except LookupError:
+    print >> sys.stderr, ("Can't load the string-escape code which is part"
+                          " of the Python installation. Is your installation"
+                          " complete/correct? Aborting.")
     sys.exit(constants.EXIT_FAILURE)
 
 

@@ -114,6 +114,10 @@ _PQueryWhat = ("what", ht.NoDefault, ht.TElemOf(constants.QR_VIA_OP),
 
 _PIpCheckDoc = "Whether to ensure instance's IP address is inactive"
 
+#: Do not remember instance state changes
+_PNoRemember = ("no_remember", False, ht.TBool,
+                "Do not remember the state change")
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -988,6 +992,7 @@ class OpInstanceStartup(OpCode):
     ("hvparams", ht.EmptyDict, ht.TDict,
      "Temporary hypervisor parameters, hypervisor-dependent"),
     ("beparams", ht.EmptyDict, ht.TDict, "Temporary backend parameters"),
+    _PNoRemember,
     ]
 
 
@@ -999,6 +1004,7 @@ class OpInstanceShutdown(OpCode):
     _PIgnoreOfflineNodes,
     ("timeout", constants.DEFAULT_SHUTDOWN_TIMEOUT, ht.TPositiveInt,
      "How long to wait for instance to shut down"),
+    _PNoRemember,
     ]
 
 
@@ -1087,6 +1093,7 @@ class OpInstanceMove(OpCode):
     _PInstanceName,
     _PShutdownTimeout,
     ("target_node", ht.NoDefault, ht.TNonEmptyString, "Target node"),
+    _PIgnoreConsistency,
     ]
 
 

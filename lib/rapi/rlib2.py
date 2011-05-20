@@ -862,14 +862,16 @@ class R_2_instances_name_startup(baserlib.R_Generic):
     """
     instance_name = self.items[0]
     force_startup = bool(self._checkIntVariable('force'))
+    no_remember = bool(self._checkIntVariable('no_remember'))
     op = opcodes.OpInstanceStartup(instance_name=instance_name,
                                    force=force_startup,
-                                   dry_run=bool(self.dryRun()))
+                                   dry_run=bool(self.dryRun()),
+                                   no_remember=no_remember)
 
     return baserlib.SubmitJob([op])
 
 
-def _ParseShutdownInstanceRequest(name, data, dry_run):
+def _ParseShutdownInstanceRequest(name, data, dry_run, no_remember):
   """Parses a request for an instance shutdown.
 
   @rtype: L{opcodes.OpInstanceShutdown}
@@ -879,6 +881,7 @@ def _ParseShutdownInstanceRequest(name, data, dry_run):
   return baserlib.FillOpcode(opcodes.OpInstanceShutdown, data, {
     "instance_name": name,
     "dry_run": dry_run,
+    "no_remember": no_remember,
     })
 
 
@@ -896,8 +899,9 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
     """
     baserlib.CheckType(self.request_body, dict, "Body contents")
 
+    no_remember = bool(self._checkIntVariable('no_remember'))
     op = _ParseShutdownInstanceRequest(self.items[0], self.request_body,
-                                       bool(self.dryRun()))
+                                       bool(self.dryRun()), no_remember)
 
     return baserlib.SubmitJob([op])
 

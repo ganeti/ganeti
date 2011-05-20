@@ -20,6 +20,93 @@ Version 2.5.0 beta1
   documentation <install>`
 
 
+Version 2.4.3
+-------------
+
+*(unreleased)*
+
+- Added a new parameter to instance stop/start called ``--no-remember``
+  that will make the state change to not be remembered
+
+
+Version 2.4.2
+-------------
+
+*(Released Thu, 12 May 2011)*
+
+Many bug-fixes and a few new small features:
+
+- Fixed a bug related to log opening failures
+- Fixed a bug in instance listing with orphan instances
+- Fixed a bug which prevented resetting the cluster-level node parameter
+  ``oob_program`` to the default
+- Many fixes related to the ``cluster-merge`` tool
+- Fixed a race condition in the lock monitor, which caused failures
+  during (at least) creation of many instances in parallel
+- Improved output for gnt-job info
+- Removed the quiet flag on some ssh calls which prevented debugging
+  failures
+- Improved the N+1 failure messages in cluster verify by actually
+  showing the memory values (needed and available)
+- Increased lock attempt timeouts so that when executing long operations
+  (e.g. DRBD replace-disks) other jobs do not enter 'blocking acquire'
+  too early and thus prevent the use of the 'fair' mechanism
+- Changed instance query data (``gnt-instance info``) to not acquire
+  locks unless needed, thus allowing its use on locked instance if only
+  static information is asked for
+- Improved behaviour with filesystems that do not support rename on an
+  opened file
+- Fixed the behaviour of ``prealloc_wipe_disks`` cluster parameter which
+  kept locks on all nodes during the wipe, which is unneeded
+- Fixed ``gnt-watcher`` handling of errors during hooks execution
+- Fixed bug in ``prealloc_wipe_disks`` with small disk sizes (less than
+  10GiB) which caused the wipe to fail right at the end in some cases
+- Fixed master IP activation when doing master failover with no-voting
+- Fixed bug in ``gnt-node add --readd`` which allowed the re-adding of
+  the master node itself
+- Fixed potential data-loss in under disk full conditions, where Ganeti
+  wouldn't check correctly the return code and would consider
+  partially-written files 'correct'
+- Fixed bug related to multiple VGs and DRBD disk replacing
+- Added new disk parameter ``metavg`` that allows placement of the meta
+  device for DRBD in a different volume group
+- Fixed error handling in the node daemon when the system libc doesn't
+  have major number 6 (i.e. if ``libc.so.6`` is not the actual libc)
+- Fixed lock release during replace-disks, which kept cluster-wide locks
+  when doing disk replaces with an iallocator script
+- Added check for missing bridges in cluster verify
+- Handle EPIPE errors while writing to the terminal better, so that
+  piping the output to e.g. ``less`` doesn't cause a backtrace
+- Fixed rare case where a ^C during Luxi calls could have been
+  interpreted as server errors, instead of simply terminating
+- Fixed a race condition in LUGroupAssignNodes (``gnt-group
+  assign-nodes``)
+- Added a few more parameters to the KVM hypervisor, allowing a second
+  CDROM, custom disk type for CDROMs and a floppy image
+- Removed redundant message in instance rename when the name is given
+  already as a FQDN
+- Added option to ``gnt-instance recreate-disks`` to allow creating the
+  disks on new nodes, allowing recreation when the original instance
+  nodes are completely gone
+- Added option when converting disk templates to DRBD to skip waiting
+  for the resync, in order to make the instance available sooner
+- Added two new variables to the OS scripts environment (containing the
+  instance's nodes)
+- Made the root_path and optional parameter for the xen-pvm hypervisor,
+  to allow use of ``pvgrub`` as bootloader
+- Changed the instance memory modifications to only check out-of-memory
+  conditions on memory increases, and turned the secondary node warnings
+  into errors (they can still be overridden via ``--force``)
+- Fixed the handling of a corner case when the Python installation gets
+  corrupted (e.g. a bad disk) while ganeti-noded is running and we try
+  to execute a command that doesn't exist
+- Fixed a bug in ``gnt-instance move`` (LUInstanceMove) when the primary
+  node of the instance returned failures during instance shutdown; this
+  adds the option ``--ignore-consistency`` to gnt-instance move
+
+And as usual, various improvements to the error messages, documentation
+and man pages.
+
 Version 2.4.1
 -------------
 

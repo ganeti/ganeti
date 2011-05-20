@@ -863,13 +863,15 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
                              ("/%s/instances/%s/reboot" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def ShutdownInstance(self, instance, dry_run=False):
+  def ShutdownInstance(self, instance, dry_run=False, no_remember=False):
     """Shuts down an instance.
 
     @type instance: str
     @param instance: the instance to shut down
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @type no_remember: bool
+    @param no_remember: if true, will not record the state change
     @rtype: string
     @return: job id
 
@@ -877,18 +879,22 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     query = []
     if dry_run:
       query.append(("dry-run", 1))
+    if no_remember:
+      query.append(("no-remember", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/shutdown" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def StartupInstance(self, instance, dry_run=False):
+  def StartupInstance(self, instance, dry_run=False, no_remember=False):
     """Starts up an instance.
 
     @type instance: str
     @param instance: the instance to start up
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @type no_remember: bool
+    @param no_remember: if true, will not record the state change
     @rtype: string
     @return: job id
 
@@ -896,6 +902,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     query = []
     if dry_run:
       query.append(("dry-run", 1))
+    if no_remember:
+      query.append(("no-remember", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/startup" %

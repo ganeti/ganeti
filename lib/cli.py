@@ -130,6 +130,7 @@ __all__ = [
   "NOSTART_OPT",
   "NOSSH_KEYCHECK_OPT",
   "NOVOTING_OPT",
+  "NO_REMEMBER_OPT",
   "NWSYNC_OPT",
   "ON_PRIMARY_OPT",
   "ON_SECONDARY_OPT",
@@ -1196,6 +1197,12 @@ FORCE_FILTER_OPT = cli_option("-F", "--filter", dest="force_filter",
                               action="store_true", default=False,
                               help=("Whether command argument should be treated"
                                     " as filter"))
+
+NO_REMEMBER_OPT = cli_option("--no-remember",
+                             dest="no_remember",
+                             action="store_true", default=False,
+                             help="Perform but do not record the change"
+                             " in the configuration")
 
 
 #: Options provided by all commands
