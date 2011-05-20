@@ -1406,7 +1406,6 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
   """Verifies the cluster config.
 
   """
-
   REQ_BGL = False
 
   def _VerifyHVP(self, hvp_data):
@@ -1492,7 +1491,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
   """Verifies the status of a node group.
 
   """
-
   HPATH = "cluster-verify"
   HTYPE = constants.HTYPE_CLUSTER
   REQ_BGL = False

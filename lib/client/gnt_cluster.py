@@ -478,12 +478,15 @@ def VerifyCluster(opts, args):
                                       verbose=opts.verbose,
                                       error_codes=opts.error_codes,
                                       debug_simulate_errors=simulate)
-    jex.QueueJob('group ' + group, op)
+    jex.QueueJob("group " + group, op)
 
   results = jex.GetResults()
   success &= compat.all(r[1][0] for r in results)
 
-  return (not success and 1 or 0)
+  if success:
+    return constants.EXIT_SUCCESS
+  else:
+    return constants.EXIT_FAILURE
 
 
 def VerifyDisks(opts, args):
