@@ -1071,6 +1071,17 @@ class ConfigWriter:
     """
     return self._config_data.nodegroups.keys()
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeGroupMembersByNodes(self, nodes):
+    """Get nodes which are member in the same nodegroups as the given nodes.
+
+    """
+    ngfn = lambda node_name: self._UnlockedGetNodeInfo(node_name).group
+    return frozenset(member_name
+                     for node_name in nodes
+                     for member_name in
+                       self._UnlockedGetNodeGroup(ngfn(node_name)).members)
+
   @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance, ec_id):
     """Add an instance to the config.
