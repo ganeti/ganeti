@@ -143,6 +143,7 @@ __all__ = [
   "POWER_DELAY_OPT",
   "PREALLOC_WIPE_DISKS_OPT",
   "PRIMARY_IP_VERSION_OPT",
+  "PRIMARY_ONLY_OPT",
   "PRIORITY_OPT",
   "RAPI_CERT_OPT",
   "READD_OPT",
@@ -152,6 +153,7 @@ __all__ = [
   "RESERVED_LVS_OPT",
   "ROMAN_OPT",
   "SECONDARY_IP_OPT",
+  "SECONDARY_ONLY_OPT",
   "SELECT_OS_OPT",
   "SEP_OPT",
   "SHOWCMD_OPT",
@@ -1209,6 +1211,17 @@ NO_REMEMBER_OPT = cli_option("--no-remember",
                              action="store_true", default=False,
                              help="Perform but do not record the change"
                              " in the configuration")
+
+PRIMARY_ONLY_OPT = cli_option("-p", "--primary-only",
+                              default=False, action="store_true",
+                              help="Evacuate primary instances only")
+
+SECONDARY_ONLY_OPT = cli_option("-s", "--secondary-only",
+                                default=False, action="store_true",
+                                help="Evacuate secondary instances only"
+                                     " (applies only to internally mirrored"
+                                     " disk templates, e.g. %s)" %
+                                     utils.CommaJoin(constants.DTS_INT_MIRROR))
 
 
 #: Options provided by all commands

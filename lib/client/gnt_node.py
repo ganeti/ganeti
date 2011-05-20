@@ -26,6 +26,8 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-node
 
+import itertools
+
 from ganeti.cli import *
 from ganeti import cli
 from ganeti import bootstrap
@@ -263,47 +265,70 @@ def EvacuateNode(opts, args):
   @return: the desired exit code
 
   """
+  if opts.dst_node is not None:
+    ToStderr("New secondary node given (disabling iallocator), hence evacuating"
+             " secondary instances only.")
+    opts.secondary_only = True
+    opts.primary_only = False
+
+  if opts.secondary_only and opts.primary_only:
+    raise errors.OpPrereqError("Only one of the --primary-only and"
+                               " --secondary-only options can be passed",
+                               errors.ECODE_INVAL)
+  elif opts.primary_only:
+    mode = constants.IALLOCATOR_NEVAC_PRI
+  elif opts.secondary_only:
+    mode = constants.IALLOCATOR_NEVAC_SEC
+  else:
+    mode = constants.IALLOCATOR_NEVAC_ALL
+
+  # Determine affected instances
+  fields = []
+
+  if not opts.secondary_only:
+    fields.append("pinst_list")
+  if not opts.primary_only:
+    fields.append("sinst_list")
+
   cl = GetClient()
-  force = opts.force
 
-  dst_node = opts.dst_node
-  iallocator = opts.iallocator
+  result = cl.QueryNodes(names=args, fields=fields, use_locking=False)
+  instances = set(itertools.chain(*itertools.chain(*itertools.chain(result))))
 
-  op = opcodes.OpNodeEvacStrategy(nodes=args,
-                                  iallocator=iallocator,
-                                  remote_node=dst_node)
-
-  result = SubmitOpCode(op, cl=cl, opts=opts)
-  if not result:
-    # no instances to migrate
-    ToStderr("No secondary instances on node(s) %s, exiting.",
+  if not instances:
+    # No instances to evacuate
+    ToStderr("No instances to evacuate on node(s) %s, exiting.",
              utils.CommaJoin(args))
     return constants.EXIT_SUCCESS
 
-  if not force and not AskUser("Relocate instance(s) %s from node(s) %s?" %
-                               (",".join("'%s'" % name[0] for name in result),
-                               utils.CommaJoin(args))):
+  if not (opts.force or
+          AskUser("Relocate instance(s) %s from node(s) %s?" %
+                  (utils.CommaJoin(utils.NiceSort(instances)),
+                   utils.CommaJoin(args)))):
     return constants.EXIT_CONFIRMATION
 
+  # Evacuate node
+  op = opcodes.OpNodeEvacuate(node_name=args[0], mode=mode,
+                              remote_node=opts.dst_node,
+                              iallocator=opts.iallocator,
+                              early_release=opts.early_release)
+  result = SubmitOpCode(op, cl=cl, opts=opts)
+
+  # Keep track of submitted jobs
   jex = JobExecutor(cl=cl, opts=opts)
-  for row in result:
-    iname = row[0]
-    node = row[1]
-    ToStdout("Will relocate instance %s to node %s", iname, node)
-    op = opcodes.OpInstanceReplaceDisks(instance_name=iname,
-                                        remote_node=node, disks=[],
-                                        mode=constants.REPLACE_DISK_CHG,
-                                        early_release=opts.early_release)
-    jex.QueueJob(iname, op)
+
+  for (status, job_id) in result[constants.JOB_IDS_KEY]:
+    jex.AddJobId(None, status, job_id)
+
   results = jex.GetResults()
   bad_cnt = len([row for row in results if not row[0]])
   if bad_cnt == 0:
-    ToStdout("All %d instance(s) failed over successfully.", len(results))
+    ToStdout("All instances evacuated successfully.")
     rcode = constants.EXIT_SUCCESS
   else:
-    ToStdout("There were errors during the failover:\n"
-             "%d error(s) out of %d instance(s).", bad_cnt, len(results))
+    ToStdout("There were %s errors during the evacuation.", bad_cnt)
     rcode = constants.EXIT_FAILURE
+
   return rcode
 
 
@@ -835,13 +860,13 @@ commands = {
     " [--no-node-setup] [--verbose]"
     " <node_name>",
     "Add a node to the cluster"),
-  'evacuate': (
-    EvacuateNode, [ArgNode(min=1)],
+  "evacuate": (
+    EvacuateNode, ARGS_ONE_NODE,
     [FORCE_OPT, IALLOCATOR_OPT, NEW_SECONDARY_OPT, EARLY_RELEASE_OPT,
-     PRIORITY_OPT],
+     PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT],
     "[-f] {-I <iallocator> | -n <dst>} <node>",
     "Relocate the secondary instances from a node"
-    " to other nodes (only for instances with drbd disk template)"),
+    " to other nodes"),
   'failover': (
     FailoverNode, ARGS_ONE_NODE, [FORCE_OPT, IGNORE_CONSIST_OPT,
                                   IALLOCATOR_OPT, PRIORITY_OPT],

@@ -87,10 +87,14 @@ EVACUATE
 ~~~~~~~~
 
 **evacuate** [-f] [--early-release] [--iallocator *NAME* \|
---new-secondary *destination\_node*] {*node*...}
+--new-secondary *destination\_node*]
+[--primary-only \| --secondary-only] [--early-release] {*node*}
 
-This command will move all secondary instances away from the given
-node(s). It works only for instances having a drbd disk template.
+This command will move instances away from the given node. If
+``--primary-only`` is given, only primary instances are evacuated, with
+``--secondary-only`` only secondaries. If neither is given, all
+instances are evacuated. It works only for instances having a drbd disk
+template.
 
 The new location for the instances can be specified in two ways:
 
@@ -100,7 +104,6 @@ The new location for the instances can be specified in two ways:
 - or via the ``-I (--iallocator)`` option, giving a script name as
   parameter, so each instance will be in turn placed on the (per the
   script) optimal node
-
 
 The ``--early-release`` changes the code so that the old storage on
 node being evacuated is removed early (before the resync is
