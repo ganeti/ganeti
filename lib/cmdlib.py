@@ -9754,53 +9754,6 @@ class LURepairNodeStorage(NoHooksLU):
                  (self.op.name, self.op.node_name))
 
 
-class LUNodeEvacStrategy(NoHooksLU):
-  """Computes the node evacuation strategy.
-
-  """
-  REQ_BGL = False
-
-  def CheckArguments(self):
-    _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
-
-  def ExpandNames(self):
-    self.op.nodes = _GetWantedNodes(self, self.op.nodes)
-    self.needed_locks = locks = {}
-    if self.op.remote_node is None:
-      locks[locking.LEVEL_NODE] = locking.ALL_SET
-    else:
-      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
-      locks[locking.LEVEL_NODE] = self.op.nodes + [self.op.remote_node]
-
-  def Exec(self, feedback_fn):
-    instances = []
-    for node in self.op.nodes:
-      instances.extend(_GetNodeSecondaryInstances(self.cfg, node))
-    if not instances:
-      return []
-
-    if self.op.remote_node is not None:
-      result = []
-      for i in instances:
-        if i.primary_node == self.op.remote_node:
-          raise errors.OpPrereqError("Node %s is the primary node of"
-                                     " instance %s, cannot use it as"
-                                     " secondary" %
-                                     (self.op.remote_node, i.name),
-                                     errors.ECODE_INVAL)
-        result.append([i.name, self.op.remote_node])
-    else:
-      ial = IAllocator(self.cfg, self.rpc,
-                       mode=constants.IALLOCATOR_MODE_MEVAC,
-                       evac_nodes=self.op.nodes)
-      ial.Run(self.op.iallocator, validate=True)
-      if not ial.success:
-        raise errors.OpExecError("No valid evacuation solution: %s" % ial.info,
-                                 errors.ECODE_NORES)
-      result = ial.result
-    return result
-
-
 class LUNodeEvacuate(NoHooksLU):
   """Evacuates instances off a list of nodes.
 

@@ -887,16 +887,6 @@ class OpNodeMigrate(OpCode):
     ]
 
 
-class OpNodeEvacStrategy(OpCode):
-  """Compute the evacuation strategy for a list of nodes."""
-  OP_DSC_FIELD = "nodes"
-  OP_PARAMS = [
-    ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString), None),
-    ("remote_node", None, ht.TMaybeString, None),
-    ("iallocator", None, ht.TMaybeString, None),
-    ]
-
-
 class OpNodeEvacuate(OpCode):
   """Evacuate instances off a number of nodes."""
   OP_DSC_FIELD = "node_name"
