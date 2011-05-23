@@ -93,6 +93,7 @@ _REQ_DATA_VERSION_FIELD = "__version__"
 _INST_CREATE_REQV1 = "instance-create-reqv1"
 _INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
 _NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
+_NODE_EVAC_RES1 = "node-evac-res1"
 _INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link"])
 _INST_CREATE_V0_DISK_PARAMS = frozenset(["size"])
 _INST_CREATE_V0_PARAMS = frozenset([
@@ -1250,7 +1251,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
                              None, None)
 
   def EvacuateNode(self, node, iallocator=None, remote_node=None,
-                   dry_run=False, early_release=False):
+                   dry_run=False, early_release=None,
+                   primary=None, secondary=None, accept_old=False):
     """Evacuates instances from a Ganeti node.
 
     @type node: str
@@ -1263,11 +1265,19 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
     @param dry_run: whether to perform a dry run
     @type early_release: bool
     @param early_release: whether to enable parallelization
+    @type primary: bool
+    @param primary: Whether to evacuate primary instances
+    @type secondary: bool
+    @param secondary: Whether to evacuate secondary instances
+    @type accept_old: bool
+    @param accept_old: Whether caller is ready to accept old-style (pre-2.5)
+        results
 
-    @rtype: list
-    @return: list of (job ID, instance name, new secondary node); if
-        dry_run was specified, then the actual move jobs were not
-        submitted and the job IDs will be C{None}
+    @rtype: string, or a list for pre-2.5 results
+    @return: Job ID or, if C{accept_old} is set and server is pre-2.5,
+      list of (job ID, instance name, new secondary node); if dry_run was
+      specified, then the actual move jobs were not submitted and the job IDs
+      will be C{None}
 
     @raises GanetiApiError: if an iallocator and remote_node are both
         specified
@@ -1277,18 +1287,44 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
       raise GanetiApiError("Only one of iallocator or remote_node can be used")
 
     query = []
-    if iallocator:
-      query.append(("iallocator", iallocator))
-    if remote_node:
-      query.append(("remote_node", remote_node))
     if dry_run:
       query.append(("dry-run", 1))
-    if early_release:
-      query.append(("early_release", 1))
+
+    if _NODE_EVAC_RES1 in self.GetFeatures():
+      body = {}
+
+      if iallocator is not None:
+        body["iallocator"] = iallocator
+      if remote_node is not None:
+        body["remote_node"] = remote_node
+      if early_release is not None:
+        body["early_release"] = early_release
+      if primary is not None:
+        body["primary"] = primary
+      if secondary is not None:
+        body["secondary"] = secondary
+    else:
+      # Pre-2.5 request format
+      body = None
+
+      if not accept_old:
+        raise GanetiApiError("Server is version 2.4 or earlier and caller does"
+                             " not accept old-style results (parameter"
+                             " accept_old)")
+
+      if primary or primary is None or not (secondary is None or secondary):
+        raise GanetiApiError("Server can only evacuate secondary instances")
+
+      if iallocator:
+        query.append(("iallocator", iallocator))
+      if remote_node:
+        query.append(("remote_node", remote_node))
+      if early_release:
+        query.append(("early_release", 1))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/nodes/%s/evacuate" %
-                              (GANETI_RAPI_VERSION, node)), query, None)
+                              (GANETI_RAPI_VERSION, node)), query, body)
 
   def MigrateNode(self, node, mode=None, dry_run=False, iallocator=None,
                   target_node=None):

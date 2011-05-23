@@ -152,6 +152,7 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client._INST_CREATE_REQV1, rlib2._INST_CREATE_REQV1)
     self.assertEqual(client._INST_REINSTALL_REQV1, rlib2._INST_REINSTALL_REQV1)
     self.assertEqual(client._NODE_MIGRATE_REQV1, rlib2._NODE_MIGRATE_REQV1)
+    self.assertEqual(client._NODE_EVAC_RES1, rlib2._NODE_EVAC_RES1)
     self.assertEqual(client._INST_NIC_PARAMS, constants.INIC_PARAMS)
     self.assertEqual(client.JOB_STATUS_QUEUED, constants.JOB_STATUS_QUEUED)
     self.assertEqual(client.JOB_STATUS_WAITLOCK, constants.JOB_STATUS_WAITLOCK)
@@ -817,23 +818,63 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertItems(["node-foo"])
 
   def testEvacuateNode(self):
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._NODE_EVAC_RES1]))
     self.rapi.AddResponse("9876")
     job_id = self.client.EvacuateNode("node-1", remote_node="node-2")
     self.assertEqual(9876, job_id)
     self.assertHandler(rlib2.R_2_nodes_name_evacuate)
     self.assertItems(["node-1"])
-    self.assertQuery("remote_node", ["node-2"])
+    self.assertEqual(serializer.LoadJson(self.rapi.GetLastRequestData()),
+                     { "remote_node": "node-2", })
+    self.assertEqual(self.rapi.CountPending(), 0)
 
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._NODE_EVAC_RES1]))
     self.rapi.AddResponse("8888")
     job_id = self.client.EvacuateNode("node-3", iallocator="hail", dry_run=True)
     self.assertEqual(8888, job_id)
     self.assertItems(["node-3"])
-    self.assertQuery("iallocator", ["hail"])
+    self.assertEqual(serializer.LoadJson(self.rapi.GetLastRequestData()),
+                     { "iallocator": "hail", })
     self.assertDryRun()
 
     self.assertRaises(client.GanetiApiError,
                       self.client.EvacuateNode,
                       "node-4", iallocator="hail", remote_node="node-5")
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testEvacuateNodeOldResponse(self):
+    self.rapi.AddResponse(serializer.DumpJson([]))
+    self.assertRaises(client.GanetiApiError, self.client.EvacuateNode,
+                      "node-4", accept_old=False)
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    self.rapi.AddResponse(serializer.DumpJson([]))
+    self.assertRaises(client.GanetiApiError, self.client.EvacuateNode,
+                      "node-4", accept_old=True)
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    self.rapi.AddResponse(serializer.DumpJson([]))
+    self.assertRaises(client.GanetiApiError, self.client.EvacuateNode,
+                      "node-4", accept_old=True, primary=True)
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    self.rapi.AddResponse(serializer.DumpJson([]))
+    self.assertRaises(client.GanetiApiError, self.client.EvacuateNode,
+                      "node-4", accept_old=True, secondary=False)
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+    for sec in [True, None]:
+      self.rapi.AddResponse(serializer.DumpJson([]))
+      self.rapi.AddResponse(serializer.DumpJson([["res", "foo"]]))
+      result = self.client.EvacuateNode("node-3", iallocator="hail",
+                                        dry_run=True, accept_old=True,
+                                        primary=False, secondary=sec)
+      self.assertEqual(result, [["res", "foo"]])
+      self.assertItems(["node-3"])
+      self.assertQuery("iallocator", ["hail"])
+      self.assertFalse(self.rapi.GetLastRequestData())
+      self.assertDryRun()
+      self.assertEqual(self.rapi.CountPending(), 0)
 
   def testMigrateNode(self):
     self.rapi.AddResponse(serializer.DumpJson([]))

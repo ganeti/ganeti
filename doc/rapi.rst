@@ -1161,32 +1161,24 @@ It supports the following commands: ``GET``.
 ``/2/nodes/[node_name]/evacuate``
 +++++++++++++++++++++++++++++++++
 
-Evacuates all secondary instances off a node.
+Evacuates instances off a node.
 
 It supports the following commands: ``POST``.
 
 ``POST``
 ~~~~~~~~
 
-To evacuate a node, either one of the ``iallocator`` or ``remote_node``
-parameters must be passed::
+Returns a job ID. The result of the job will contain the IDs of the
+individual jobs submitted to evacuate the node.
 
-    evacuate?iallocator=[iallocator]
-    evacuate?remote_node=[nodeX.example.com]
+Body parameters:
 
-The result value will be a list, each element being a triple of the job
-id (for this specific evacuation), the instance which is being evacuated
-by this job, and the node to which it is being relocated. In case the
-node is already empty, the result will be an empty list (without any
-jobs being submitted).
+.. opcode_params:: OP_NODE_EVACUATE
+   :exclude: nodes
 
-And additional parameter ``early_release`` signifies whether to try to
-parallelize the evacuations, at the risk of increasing I/O contention
-and increasing the chances of data loss, if the primary node of any of
-the instances being evacuated is not fully healthy.
-
-If the dry-run parameter was specified, then the evacuation jobs were
-not actually submitted, and the job IDs will be null.
+Up to and including Ganeti 2.4 query arguments were used. Those are no
+longer supported. The new request can be detected by the presence of the
+:pyeval:`rlib2._NODE_EVAC_RES1` feature string.
 
 
 ``/2/nodes/[node_name]/migrate``

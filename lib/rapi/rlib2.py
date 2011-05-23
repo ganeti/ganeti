@@ -107,6 +107,9 @@ _INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
 # Feature string for node migration version 1
 _NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
 
+# Feature string for node evacuation with LU-generated jobs
+_NODE_EVAC_RES1 = "node-evac-res1"
+
 # Timeout for /2/jobs/[job_id]/wait. Gives job up to 10 seconds to change.
 _WFJC_TIMEOUT = 10
 
@@ -148,7 +151,8 @@ class R_2_features(baserlib.R_Generic):
     """Returns list of optional RAPI features implemented.
 
     """
-    return [_INST_CREATE_REQV1, _INST_REINSTALL_REQV1, _NODE_MIGRATE_REQV1]
+    return [_INST_CREATE_REQV1, _INST_REINSTALL_REQV1, _NODE_MIGRATE_REQV1,
+            _NODE_EVAC_RES1]
 
 
 class R_2_os(baserlib.R_Generic):
@@ -414,38 +418,15 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
 
   """
   def POST(self):
-    """Evacuate all secondary instances off a node.
+    """Evacuate all instances off a node.
 
     """
-    node_name = self.items[0]
-    remote_node = self._checkStringVariable("remote_node", default=None)
-    iallocator = self._checkStringVariable("iallocator", default=None)
-    early_r = bool(self._checkIntVariable("early_release", default=0))
-    dry_run = bool(self.dryRun())
+    op = baserlib.FillOpcode(opcodes.OpNodeEvacuate, self.request_body, {
+      "node_name": self.items[0],
+      "dry_run": self.dryRun(),
+      })
 
-    cl = baserlib.GetClient()
-
-    op = opcodes.OpNodeEvacStrategy(nodes=[node_name],
-                                    iallocator=iallocator,
-                                    remote_node=remote_node)
-
-    job_id = baserlib.SubmitJob([op], cl)
-    # we use custom feedback function, instead of print we log the status
-    result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)
-
-    jobs = []
-    for iname, node in result[0]:
-      if dry_run:
-        jid = None
-      else:
-        op = opcodes.OpInstanceReplaceDisks(instance_name=iname,
-                                            remote_node=node, disks=[],
-                                            mode=constants.REPLACE_DISK_CHG,
-                                            early_release=early_r)
-        jid = baserlib.SubmitJob([op])
-      jobs.append((jid, iname, node))
-
-    return jobs
+    return baserlib.SubmitJob([op])
 
 
 class R_2_nodes_name_migrate(baserlib.R_Generic):
