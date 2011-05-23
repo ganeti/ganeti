@@ -6653,40 +6653,10 @@ class LUNodeMigrate(LogicalUnit):
   def ExpandNames(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
-    self.needed_locks = {}
-
-    # Create tasklets for migrating instances for all instances on this node
-    names = []
-    tasklets = []
-
-    self.lock_all_nodes = False
-
-    for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name):
-      logging.debug("Migrating instance %s", inst.name)
-      names.append(inst.name)
-
-      tasklets.append(TLMigrateInstance(self, inst.name, cleanup=False))
-
-      if inst.disk_template in constants.DTS_EXT_MIRROR:
-        # We need to lock all nodes, as the iallocator will choose the
-        # destination nodes afterwards
-        self.lock_all_nodes = True
-
-    self.tasklets = tasklets
-
-    # Declare node locks
-    if self.lock_all_nodes:
-      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-    else:
-      self.needed_locks[locking.LEVEL_NODE] = [self.op.node_name]
-      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
-
-    # Declare instance locks
-    self.needed_locks[locking.LEVEL_INSTANCE] = names
-
-  def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE and not self.lock_all_nodes:
-      self._LockInstancesNodes()
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.needed_locks = {
+      locking.LEVEL_NODE: [self.op.node_name],
+      }
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -6704,6 +6674,30 @@ class LUNodeMigrate(LogicalUnit):
     """
     nl = [self.cfg.GetMasterNode()]
     return (nl, nl)
+
+  def CheckPrereq(self):
+    pass
+
+  def Exec(self, feedback_fn):
+    # Prepare jobs for migration instances
+    jobs = [
+      [opcodes.OpInstanceMigrate(instance_name=inst.name,
+                                 mode=self.op.mode,
+                                 live=self.op.live,
+                                 iallocator=self.op.iallocator,
+                                 target_node=self.op.target_node)]
+      for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name)
+      ]
+
+    # TODO: Run iallocator in this opcode and pass correct placement options to
+    # OpInstanceMigrate. Since other jobs can modify the cluster between
+    # running the iallocator and the actual migration, a good consistency model
+    # will have to be found.
+
+    assert (frozenset(self.glm.list_owned(locking.LEVEL_NODE)) ==
+            frozenset([self.op.node_name]))
+
+    return ResultWithJobs(jobs)
 
 
 class TLMigrateInstance(Tasklet):

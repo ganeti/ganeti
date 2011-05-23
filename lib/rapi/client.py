@@ -92,6 +92,7 @@ JOB_STATUS_ALL = frozenset([
 _REQ_DATA_VERSION_FIELD = "__version__"
 _INST_CREATE_REQV1 = "instance-create-reqv1"
 _INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
+_NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
 _INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link"])
 _INST_CREATE_V0_DISK_PARAMS = frozenset(["size"])
 _INST_CREATE_V0_PARAMS = frozenset([
@@ -1289,7 +1290,8 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
                              ("/%s/nodes/%s/evacuate" %
                               (GANETI_RAPI_VERSION, node)), query, None)
 
-  def MigrateNode(self, node, mode=None, dry_run=False):
+  def MigrateNode(self, node, mode=None, dry_run=False, iallocator=None,
+                  target_node=None):
     """Migrates all primary instances from a node.
 
     @type node: str
@@ -1299,20 +1301,46 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
         otherwise the hypervisor default will be used
     @type dry_run: bool
     @param dry_run: whether to perform a dry run
+    @type iallocator: string
+    @param iallocator: instance allocator to use
+    @type target_node: string
+    @param target_node: Target node for shared-storage instances
 
     @rtype: string
     @return: job id
 
     """
     query = []
-    if mode is not None:
-      query.append(("mode", mode))
     if dry_run:
       query.append(("dry-run", 1))
 
-    return self._SendRequest(HTTP_POST,
-                             ("/%s/nodes/%s/migrate" %
-                              (GANETI_RAPI_VERSION, node)), query, None)
+    if _NODE_MIGRATE_REQV1 in self.GetFeatures():
+      body = {}
+
+      if mode is not None:
+        body["mode"] = mode
+      if iallocator is not None:
+        body["iallocator"] = iallocator
+      if target_node is not None:
+        body["target_node"] = target_node
+
+      assert len(query) <= 1
+
+      return self._SendRequest(HTTP_POST,
+                               ("/%s/nodes/%s/migrate" %
+                                (GANETI_RAPI_VERSION, node)), query, body)
+    else:
+      # Use old request format
+      if target_node is not None:
+        raise GanetiApiError("Server does not support specifying target node"
+                             " for node migration")
+
+      if mode is not None:
+        query.append(("mode", mode))
+
+      return self._SendRequest(HTTP_POST,
+                               ("/%s/nodes/%s/migrate" %
+                                (GANETI_RAPI_VERSION, node)), query, None)
 
   def GetNodeRole(self, node):
     """Gets the current role for a node.

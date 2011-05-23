@@ -151,6 +151,7 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client._REQ_DATA_VERSION_FIELD, rlib2._REQ_DATA_VERSION)
     self.assertEqual(client._INST_CREATE_REQV1, rlib2._INST_CREATE_REQV1)
     self.assertEqual(client._INST_REINSTALL_REQV1, rlib2._INST_REINSTALL_REQV1)
+    self.assertEqual(client._NODE_MIGRATE_REQV1, rlib2._NODE_MIGRATE_REQV1)
     self.assertEqual(client._INST_NIC_PARAMS, constants.INIC_PARAMS)
     self.assertEqual(client.JOB_STATUS_QUEUED, constants.JOB_STATUS_QUEUED)
     self.assertEqual(client.JOB_STATUS_WAITLOCK, constants.JOB_STATUS_WAITLOCK)
@@ -835,13 +836,16 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
                       "node-4", iallocator="hail", remote_node="node-5")
 
   def testMigrateNode(self):
+    self.rapi.AddResponse(serializer.DumpJson([]))
     self.rapi.AddResponse("1111")
     self.assertEqual(1111, self.client.MigrateNode("node-a", dry_run=True))
     self.assertHandler(rlib2.R_2_nodes_name_migrate)
     self.assertItems(["node-a"])
     self.assert_("mode" not in self.rapi.GetLastHandler().queryargs)
     self.assertDryRun()
+    self.assertFalse(self.rapi.GetLastRequestData())
 
+    self.rapi.AddResponse(serializer.DumpJson([]))
     self.rapi.AddResponse("1112")
     self.assertEqual(1112, self.client.MigrateNode("node-a", dry_run=True,
                                                    mode="live"))
@@ -849,6 +853,36 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertItems(["node-a"])
     self.assertQuery("mode", ["live"])
     self.assertDryRun()
+    self.assertFalse(self.rapi.GetLastRequestData())
+
+    self.rapi.AddResponse(serializer.DumpJson([]))
+    self.assertRaises(client.GanetiApiError, self.client.MigrateNode,
+                      "node-c", target_node="foonode")
+    self.assertEqual(self.rapi.CountPending(), 0)
+
+  def testMigrateNodeBodyData(self):
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._NODE_MIGRATE_REQV1]))
+    self.rapi.AddResponse("27539")
+    self.assertEqual(27539, self.client.MigrateNode("node-a", dry_run=False,
+                                                    mode="live"))
+    self.assertHandler(rlib2.R_2_nodes_name_migrate)
+    self.assertItems(["node-a"])
+    self.assertFalse(self.rapi.GetLastHandler().queryargs)
+    self.assertEqual(serializer.LoadJson(self.rapi.GetLastRequestData()),
+                     { "mode": "live", })
+
+    self.rapi.AddResponse(serializer.DumpJson([rlib2._NODE_MIGRATE_REQV1]))
+    self.rapi.AddResponse("14219")
+    self.assertEqual(14219, self.client.MigrateNode("node-x", dry_run=True,
+                                                    target_node="node9",
+                                                    iallocator="ial"))
+    self.assertHandler(rlib2.R_2_nodes_name_migrate)
+    self.assertItems(["node-x"])
+    self.assertDryRun()
+    self.assertEqual(serializer.LoadJson(self.rapi.GetLastRequestData()),
+                     { "target_node": "node9", "iallocator": "ial", })
+
+    self.assertEqual(self.rapi.CountPending(), 0)
 
   def testGetNodeRole(self):
     self.rapi.AddResponse("\"master\"")

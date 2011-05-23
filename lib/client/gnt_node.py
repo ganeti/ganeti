@@ -364,7 +364,7 @@ def MigrateNode(opts, args):
   selected_fields = ["name", "pinst_list"]
 
   result = cl.QueryNodes(names=args, fields=selected_fields, use_locking=False)
-  node, pinst = result[0]
+  ((node, pinst), ) = result
 
   if not pinst:
     ToStdout("No primary instances on node %s, exiting." % node)
@@ -372,9 +372,10 @@ def MigrateNode(opts, args):
 
   pinst = utils.NiceSort(pinst)
 
-  if not force and not AskUser("Migrate instance(s) %s?" %
-                               (",".join("'%s'" % name for name in pinst))):
-    return 2
+  if not (force or
+          AskUser("Migrate instance(s) %s?" %
+                  utils.CommaJoin(utils.NiceSort(pinst)))):
+    return constants.EXIT_CONFIRMATION
 
   # this should be removed once --non-live is deprecated
   if not opts.live and opts.migration_mode is not None:
@@ -385,10 +386,29 @@ def MigrateNode(opts, args):
     mode = constants.HT_MIGRATION_NONLIVE
   else:
     mode = opts.migration_mode
+
   op = opcodes.OpNodeMigrate(node_name=args[0], mode=mode,
                              iallocator=opts.iallocator,
                              target_node=opts.dst_node)
-  SubmitOpCode(op, cl=cl, opts=opts)
+
+  result = SubmitOpCode(op, cl=cl, opts=opts)
+
+  # Keep track of submitted jobs
+  jex = JobExecutor(cl=cl, opts=opts)
+
+  for (status, job_id) in result[constants.JOB_IDS_KEY]:
+    jex.AddJobId(None, status, job_id)
+
+  results = jex.GetResults()
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    ToStdout("All instances migrated successfully.")
+    rcode = constants.EXIT_SUCCESS
+  else:
+    ToStdout("There were %s errors during the node migration.", bad_cnt)
+    rcode = constants.EXIT_FAILURE
+
+  return rcode
 
 
 def ShowNodeConfig(opts, args):

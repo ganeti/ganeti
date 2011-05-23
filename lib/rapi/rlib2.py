@@ -104,6 +104,9 @@ _INST_CREATE_REQV1 = "instance-create-reqv1"
 # Feature string for instance reinstall request version 1
 _INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
 
+# Feature string for node migration version 1
+_NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
+
 # Timeout for /2/jobs/[job_id]/wait. Gives job up to 10 seconds to change.
 _WFJC_TIMEOUT = 10
 
@@ -145,7 +148,7 @@ class R_2_features(baserlib.R_Generic):
     """Returns list of optional RAPI features implemented.
 
     """
-    return [_INST_CREATE_REQV1, _INST_REINSTALL_REQV1]
+    return [_INST_CREATE_REQV1, _INST_REINSTALL_REQV1, _NODE_MIGRATE_REQV1]
 
 
 class R_2_os(baserlib.R_Generic):
@@ -455,18 +458,29 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
     """
     node_name = self.items[0]
 
-    if "live" in self.queryargs and "mode" in self.queryargs:
-      raise http.HttpBadRequest("Only one of 'live' and 'mode' should"
-                                " be passed")
-    elif "live" in self.queryargs:
-      if self._checkIntVariable("live", default=1):
-        mode = constants.HT_MIGRATION_LIVE
-      else:
-        mode = constants.HT_MIGRATION_NONLIVE
-    else:
-      mode = self._checkStringVariable("mode", default=None)
+    if self.queryargs:
+      # Support old-style requests
+      if "live" in self.queryargs and "mode" in self.queryargs:
+        raise http.HttpBadRequest("Only one of 'live' and 'mode' should"
+                                  " be passed")
 
-    op = opcodes.OpNodeMigrate(node_name=node_name, mode=mode)
+      if "live" in self.queryargs:
+        if self._checkIntVariable("live", default=1):
+          mode = constants.HT_MIGRATION_LIVE
+        else:
+          mode = constants.HT_MIGRATION_NONLIVE
+      else:
+        mode = self._checkStringVariable("mode", default=None)
+
+      data = {
+        "mode": mode,
+        }
+    else:
+      data = self.request_body
+
+    op = baserlib.FillOpcode(opcodes.OpNodeMigrate, data, {
+      "node_name": node_name,
+      })
 
     return baserlib.SubmitJob([op])
 
