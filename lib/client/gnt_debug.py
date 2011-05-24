@@ -553,7 +553,7 @@ commands = {
      ],
     "<op_list_file...>", "Submits jobs built from json files"
     " containing a list of serialized opcodes"),
-  'allocator': (
+  'iallocator': (
     TestAllocator, [ArgUnknown(min=1)],
     [cli_option("--dir", dest="direction", default=constants.IALLOCATOR_DIR_IN,
                 choices=list(constants.VALID_IALLOCATOR_DIRECTIONS),
@@ -595,6 +595,10 @@ commands = {
     "[--interval N]", "Show a list of locks in the master daemon"),
   }
 
+#: dictionary with aliases for commands
+aliases = {
+  "allocator": "iallocator",
+  }
 
 def Main():
-  return GenericMain(commands)
+  return GenericMain(commands, aliases=aliases)

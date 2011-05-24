@@ -19,10 +19,10 @@ The **gnt-debug** is used for debugging the Ganeti system.
 COMMANDS
 --------
 
-ALLOCATOR
-~~~~~~~~~
+IALLOCATOR
+~~~~~~~~~~
 
-**allocator** [--debug] [--dir *DIRECTION*] {--algorithm
+**iallocator** [--debug] [--dir *DIRECTION*] {--algorithm
 *ALLOCATOR* } [--mode *MODE*] [--mem *MEMORY*] [--disks *DISKS*]
 [--disk-template *TEMPLATE*] [--nics *NICS*] [--os-type *OS*]
 [--vcpus *VCPUS*] [--tags *TAGS*] {*instance*}
