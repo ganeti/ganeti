@@ -818,7 +818,8 @@ htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in vcs-version
 
 htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
 	lib/constants.py lib/_autoconf.py $(CONVERT_CONSTANTS)
-	set -e; { cat $< ; $(CONVERT_CONSTANTS); } > $@
+	set -e; \
+	{ cat $< ; PYTHONPATH=$(abs_top_srcdir) $(CONVERT_CONSTANTS); } > $@
 
 lib/_autoconf.py: Makefile vcs-version | lib/.dir
 	set -e; \
