@@ -9738,10 +9738,13 @@ class LUNodeEvacStrategy(NoHooksLU):
       locks[locking.LEVEL_NODE] = self.op.nodes + [self.op.remote_node]
 
   def Exec(self, feedback_fn):
+    instances = []
+    for node in self.op.nodes:
+      instances.extend(_GetNodeSecondaryInstances(self.cfg, node))
+    if not instances:
+      return []
+
     if self.op.remote_node is not None:
-      instances = []
-      for node in self.op.nodes:
-        instances.extend(_GetNodeSecondaryInstances(self.cfg, node))
       result = []
       for i in instances:
         if i.primary_node == self.op.remote_node:
