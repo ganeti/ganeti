@@ -229,6 +229,13 @@ class TestNiceSort(unittest.TestCase):
                       None, ""])
 
 
+class TestInvertDict(unittest.TestCase):
+  def testInvertDict(self):
+    test_dict = { "foo": 1, "bar": 2, "baz": 5 }
+    self.assertEqual(algo.InvertDict(test_dict),
+                     { 1: "foo", 2: "bar", 5: "baz"})
+
+
 class TimeMock:
   def __init__(self, values):
     self.values = values

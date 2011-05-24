@@ -435,6 +435,9 @@ class Mainloop(object):
     self._signal_wait = []
     self.scheduler = AsyncoreScheduler(time.time)
 
+    # Resolve uid/gids used
+    runtime.GetEnts()
+
   @utils.SignalHandled([signal.SIGCHLD])
   @utils.SignalHandled([signal.SIGTERM])
   @utils.SignalHandled([signal.SIGINT])
@@ -449,6 +452,7 @@ class Mainloop(object):
            len(signal_handlers) > 0, \
            "Broken SignalHandled decorator"
     running = True
+
     # Start actual main loop
     while running:
       if not self.scheduler.empty():

@@ -45,6 +45,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
 from ganeti import ssconf
+from ganeti import runtime
 
 # pylint has a bug here, doesn't see this import
 import ganeti.http.client  # pylint: disable-msg=W0611
@@ -1177,8 +1178,9 @@ class RpcRunner(object):
     file_contents = utils.ReadFile(file_name)
     data = cls._Compress(file_contents)
     st = os.stat(file_name)
-    params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
-              st.st_atime, st.st_mtime]
+    getents = runtime.GetEnts()
+    params = [file_name, data, st.st_mode, getents.LookupUid(st.st_uid),
+              getents.LookupGid(st.st_gid), st.st_atime, st.st_mtime]
     return cls._StaticMultiNodeCall(node_list, "upload_file", params,
                                     address_list=address_list)
 
