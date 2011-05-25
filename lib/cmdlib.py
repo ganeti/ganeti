@@ -6648,7 +6648,7 @@ class LUNodeMigrate(LogicalUnit):
   REQ_BGL = False
 
   def CheckArguments(self):
-    _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
+    pass
 
   def ExpandNames(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)

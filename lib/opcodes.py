@@ -118,6 +118,10 @@ _PIpCheckDoc = "Whether to ensure instance's IP address is inactive"
 _PNoRemember = ("no_remember", False, ht.TBool,
                 "Do not remember the state change")
 
+#: Target node for instance migration/failover
+_PMigrationTargetNode = ("target_node", None, ht.TMaybeString,
+                         "Target node for shared-storage instances")
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -874,6 +878,7 @@ class OpNodeMigrate(OpCode):
     _PNodeName,
     _PMigrationMode,
     _PMigrationLive,
+    _PMigrationTargetNode,
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding the target node for shared-storage instances"),
     ]
@@ -1058,10 +1063,9 @@ class OpInstanceFailover(OpCode):
     _PInstanceName,
     _PShutdownTimeout,
     _PIgnoreConsistency,
+    _PMigrationTargetNode,
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding the target node for shared-storage instances"),
-    ("target_node", None, ht.TMaybeString,
-     "Target node for shared-storage instances"),
     ]
 
 
@@ -1080,12 +1084,11 @@ class OpInstanceMigrate(OpCode):
     _PInstanceName,
     _PMigrationMode,
     _PMigrationLive,
+    _PMigrationTargetNode,
     ("cleanup", False, ht.TBool,
      "Whether a previously failed migration should be cleaned up"),
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding the target node for shared-storage instances"),
-    ("target_node", None, ht.TMaybeString,
-     "Target node for shared-storage instances"),
     ("allow_failover", False, ht.TBool,
      "Whether we can fallback to failover if migration is not possible"),
     ]

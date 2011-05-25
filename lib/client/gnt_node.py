@@ -386,7 +386,8 @@ def MigrateNode(opts, args):
   else:
     mode = opts.migration_mode
   op = opcodes.OpNodeMigrate(node_name=args[0], mode=mode,
-                             iallocator=opts.iallocator)
+                             iallocator=opts.iallocator,
+                             target_node=opts.dst_node)
   SubmitOpCode(op, cl=cl, opts=opts)
 
 
@@ -829,7 +830,7 @@ commands = {
     " secondary node (only for instances with drbd disk template)"),
   'migrate': (
     MigrateNode, ARGS_ONE_NODE,
-    [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT,
+    [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, DST_NODE_OPT,
      IALLOCATOR_OPT, PRIORITY_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
