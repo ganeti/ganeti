@@ -28,6 +28,7 @@ import os.path
 import time
 import logging
 import errno
+import itertools
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -2947,6 +2948,7 @@ class JobExecutor(object):
     self.jobs = []
     self.opts = opts
     self.feedback_fn = feedback_fn
+    self._counter = itertools.count()
 
   def QueueJob(self, name, *ops):
     """Record a job for later submit.
@@ -2955,7 +2957,7 @@ class JobExecutor(object):
     @param name: a description of the job, will be used in WaitJobSet
     """
     SetGenericOpcodeOpts(ops, self.opts)
-    self.queue.append((name, ops))
+    self.queue.append((self._counter.next(), name, ops))
 
   def SubmitPending(self, each=False):
     """Submit all pending jobs.
@@ -2963,14 +2965,13 @@ class JobExecutor(object):
     """
     if each:
       results = []
-      for row in self.queue:
+      for (_, _, ops) in self.queue:
         # SubmitJob will remove the success status, but raise an exception if
         # the submission fails, so we'll notice that anyway.
-        results.append([True, self.cl.SubmitJob(row[1])])
+        results.append([True, self.cl.SubmitJob(ops)])
     else:
-      results = self.cl.SubmitManyJobs([row[1] for row in self.queue])
-    for (idx, ((status, data), (name, _))) in enumerate(zip(results,
-                                                            self.queue)):
+      results = self.cl.SubmitManyJobs([ops for (_, _, ops) in self.queue])
+    for ((status, data), (idx, name, _)) in zip(results, self.queue):
       self.jobs.append((idx, status, data, name))
 
   def _ChooseJob(self):
