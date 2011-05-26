@@ -188,6 +188,8 @@ class _HttpClient(object):
     """
     assert not self._req, "Another request is already started"
 
+    logging.debug("Starting request %r", req)
+
     self._req = req
     self._resp_buffer = StringIO()
 
@@ -297,6 +299,11 @@ class HttpClientPool:
     self._generation = 0
     self._pool = {}
 
+    # Create custom logger for HTTP client pool. Change logging level to
+    # C{logging.NOTSET} to get more details.
+    self._logger = logging.getLogger(self.__class__.__name__)
+    self._logger.setLevel(logging.INFO)
+
   @staticmethod
   def _GetHttpClientCreator():
     """Returns callable to create HTTP client.
@@ -317,9 +324,9 @@ class HttpClientPool:
       # Need to create new client
       client = self._GetHttpClientCreator()(self._curl_config_fn)
       pclient = _PooledHttpClient(identity, client)
-      logging.debug("Created new client %s", pclient)
+      self._logger.debug("Created new client %s", pclient)
     else:
-      logging.debug("Reusing client %s", pclient)
+      self._logger.debug("Reusing client %s", pclient)
 
     assert pclient.identity == identity
 
@@ -332,7 +339,6 @@ class HttpClientPool:
     @param req: HTTP request
 
     """
-    logging.debug("Starting request %r", req)
     pclient = self._Get(req.identity)
 
     assert req.identity not in self._pool
@@ -347,7 +353,7 @@ class HttpClientPool:
 
     """
     for pc in pclients:
-      logging.debug("Returning client %s to pool", pc)
+      self._logger.debug("Returning client %s to pool", pc)
       assert pc.identity not in self._pool
       assert pc not in self._pool.values()
       self._pool[pc.identity] = pc
@@ -355,9 +361,9 @@ class HttpClientPool:
     # Check for unused clients
     for pc in self._pool.values():
       if (pc.lastused + self._MAX_GENERATIONS_DROP) < self._generation:
-        logging.debug("Removing client %s which hasn't been used"
-                      " for %s generations",
-                      pc, self._MAX_GENERATIONS_DROP)
+        self._logger.debug("Removing client %s which hasn't been used"
+                           " for %s generations",
+                           pc, self._MAX_GENERATIONS_DROP)
         self._pool.pop(pc.identity, None)
 
     assert compat.all(pc.lastused >= (self._generation -
