@@ -8342,22 +8342,23 @@ class TLReplaceDisks(Tasklet):
       else:
         fn = self._ExecDrbd8DiskOnly
 
-      return fn(feedback_fn)
-
+      result = fn(feedback_fn)
     finally:
       # Deactivate the instance disks if we're replacing them on a
       # down instance
       if activate_disks:
         _SafeShutdownInstanceDisks(self.lu, self.instance)
 
-      if __debug__:
-        # Verify owned locks
-        owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
-        assert ((self.early_release and not owned_locks) or
-                (not self.early_release and
-                 set(owned_locks) == set(self.node_secondary_ip))), \
-          ("Not owning the correct locks, early_release=%s, owned=%r" %
-           (self.early_release, owned_locks))
+    if __debug__:
+      # Verify owned locks
+      owned_locks = self.lu.context.glm.list_owned(locking.LEVEL_NODE)
+      assert ((self.early_release and not owned_locks) or
+              (not self.early_release and
+               set(owned_locks) == set(self.node_secondary_ip))), \
+        ("Not owning the correct locks, early_release=%s, owned=%r" %
+         (self.early_release, owned_locks))
+
+    return result
 
   def _CheckVolumeGroup(self, nodes):
     self.lu.LogInfo("Checking volume groups")
