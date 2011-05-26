@@ -74,6 +74,7 @@ processRequest request =
        Relocate idx reqn exnodes -> Cluster.tryMGReloc gl nl il
                                     idx reqn exnodes
        Evacuate exnodes -> Cluster.tryMGEvac gl nl il exnodes
+       MultiReloc _ _ -> fail "multi-reloc not handled"
 
 -- | Reads the request from the data file(s)
 readRequest :: Options -> [String] -> IO Request
