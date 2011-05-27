@@ -413,11 +413,17 @@ class OpCode(BaseOpCode):
   # pylint: disable-msg=E1101
   # as OP_ID is dynamically defined
   WITH_LU = True
+  _T_JOB_DEP = \
+    ht.TAnd(ht.TIsLength(2),
+            ht.TItems([ht.TJobId,
+                       ht.TListOf(ht.TElemOf(constants.JOBS_FINALIZED))]))
   OP_PARAMS = [
     ("dry_run", None, ht.TMaybeBool, "Run checks only, don't execute"),
     ("debug_level", None, ht.TOr(ht.TNone, ht.TPositiveInt), "Debug level"),
     ("priority", constants.OP_PRIO_DEFAULT,
      ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID), "Opcode priority"),
+    ("depends", None, ht.TOr(ht.TNone, ht.TListOf(_T_JOB_DEP)),
+     "Job dependencies"),
     ]
 
   def __getstate__(self):
