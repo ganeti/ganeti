@@ -230,6 +230,32 @@ class TestTypeChecks(unittest.TestCase):
     self.assertTrue(fn({"other": 11}))
     self.assertTrue(fn({"other": object()}))
 
+  def testJobId(self):
+    for i in [0, 1, 4395, 2347625220]:
+      self.assertTrue(ht.TJobId(i))
+      self.assertTrue(ht.TJobId(str(i)))
+      self.assertFalse(ht.TJobId(-(i + 1)))
+
+    for i in ["", "-", ".", ",", "a", "99j", "job-123", "\t", " 83 ",
+              None, [], {}, object()]:
+      self.assertFalse(ht.TJobId(i))
+
+  def testItems(self):
+    self.assertRaises(AssertionError, ht.TItems, [])
+
+    fn = ht.TItems([ht.TString])
+    self.assertFalse(fn([0]))
+    self.assertFalse(fn([None]))
+    self.assertTrue(fn(["Hello"]))
+    self.assertTrue(fn(["Hello", "World"]))
+    self.assertTrue(fn(["Hello", 0, 1, 2, "anything"]))
+
+    fn = ht.TItems([ht.TAny, ht.TInt, ht.TAny])
+    self.assertTrue(fn(["Hello", 0, []]))
+    self.assertTrue(fn(["Hello", 893782]))
+    self.assertTrue(fn([{}, -938210858947, None]))
+    self.assertFalse(fn(["Hello", []]))
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

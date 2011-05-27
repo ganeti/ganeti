@@ -25,6 +25,7 @@ import re
 
 from ganeti import compat
 from ganeti import utils
+from ganeti import constants
 
 
 _PAREN_RE = re.compile("^[a-zA-Z0-9_-]+$")
@@ -118,6 +119,14 @@ NoType = object()
 
 
 # Some basic types
+@WithDesc("Anything")
+def TAny(_):
+  """Accepts any value.
+
+  """
+  return True
+
+
 @WithDesc("NotNone")
 def TNotNone(val):
   """Checks if the given value is not None.
@@ -245,6 +254,18 @@ def TMap(fn, test):
                   (Parens(fn), Parens(test)))(lambda val: test(fn(val)))
 
 
+def TRegex(pobj):
+  """Checks whether a string matches a specific regular expression.
+
+  @param pobj: Compiled regular expression as returned by C{re.compile}
+
+  """
+  desc = WithDesc("String matching regex \"%s\"" %
+                  pobj.pattern.encode("string_escape"))
+
+  return desc(TAnd(TString, pobj.match))
+
+
 # Type aliases
 
 #: a non-empty string
@@ -270,6 +291,10 @@ TStrictPositiveInt = \
 #: a positive float
 TPositiveFloat = \
   TAnd(TFloat, WithDesc("EqualGreaterZero")(lambda v: v >= 0.0))
+
+#: Job ID
+TJobId = TOr(TPositiveInt,
+             TRegex(re.compile("^%s$" % constants.JOB_ID_TEMPLATE)))
 
 
 def TListOf(my_type):
@@ -340,3 +365,25 @@ def TStrictDict(require_all, exclusive, items):
   return desc(TAnd(TDict,
                    compat.partial(_TStrictDictCheck, require_all, exclusive,
                                   items)))
+
+
+def TItems(items):
+  """Checks individual items of a container.
+
+  If the verified value and the list of expected items differ in length, this
+  check considers only as many items as are contained in the shorter list. Use
+  L{TIsLength} to enforce a certain length.
+
+  @type items: list
+  @param items: List of checks
+
+  """
+  assert items, "Need items"
+
+  text = ["Item", "item"]
+  desc = WithDesc(utils.CommaJoin("%s %s is %s" %
+                                  (text[int(idx > 0)], idx, Parens(check))
+                                  for (idx, check) in enumerate(items)))
+
+  return desc(lambda value: compat.all(check(i)
+                                       for (check, i) in zip(items, value)))
