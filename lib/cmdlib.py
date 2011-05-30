@@ -8003,7 +8003,7 @@ class LUInstanceCreate(LogicalUnit):
                      tags=[],
                      os=self.op.os_type,
                      vcpus=self.be_full[constants.BE_VCPUS],
-                     mem_size=self.be_full[constants.BE_MEMORY],
+                     memory=self.be_full[constants.BE_MEMORY],
                      disks=self.disks,
                      nics=nics,
                      hypervisor=self.op.hypervisor,
@@ -12005,7 +12005,7 @@ class IAllocator(object):
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
     self.mode = mode
-    self.mem_size = self.disks = self.disk_template = None
+    self.memory = self.disks = self.disk_template = None
     self.os = self.tags = self.nics = self.vcpus = None
     self.hypervisor = None
     self.relocate_from = None
@@ -12245,7 +12245,7 @@ class IAllocator(object):
       "tags": self.tags,
       "os": self.os,
       "vcpus": self.vcpus,
-      "memory": self.mem_size,
+      "memory": self.memory,
       "disks": self.disks,
       "disk_space_total": disk_space,
       "nics": self.nics,
@@ -12325,7 +12325,7 @@ class IAllocator(object):
   _MODE_DATA = {
     constants.IALLOCATOR_MODE_ALLOC:
       (_AddNewInstance,
-       ["name", "mem_size", "disks", "disk_template", "os", "tags", "nics",
+       ["name", "memory", "disks", "disk_template", "os", "tags", "nics",
         "vcpus", "hypervisor"], ht.TList),
     constants.IALLOCATOR_MODE_RELOC:
       (_AddRelocateInstance, ["name", "relocate_from"], ht.TList),
@@ -12473,7 +12473,7 @@ class LUTestAllocator(NoHooksLU):
 
     """
     if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
-      for attr in ["mem_size", "disks", "disk_template",
+      for attr in ["memory", "disks", "disk_template",
                    "os", "tags", "nics", "vcpus"]:
         if not hasattr(self.op, attr):
           raise errors.OpPrereqError("Missing attribute '%s' on opcode input" %
@@ -12532,7 +12532,7 @@ class LUTestAllocator(NoHooksLU):
       ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        name=self.op.name,
-                       mem_size=self.op.mem_size,
+                       memory=self.op.memory,
                        disks=self.op.disks,
                        disk_template=self.op.disk_template,
                        os=self.op.os,

@@ -1447,7 +1447,7 @@ class OpTestAllocator(OpCode):
     ("hypervisor", None, ht.TMaybeString, None),
     ("allocator", None, ht.TMaybeString, None),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
-    ("mem_size", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
+    ("memory", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
     ("vcpus", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
     ("os", None, ht.TMaybeString, None),
     ("disk_template", None, ht.TMaybeString, None),

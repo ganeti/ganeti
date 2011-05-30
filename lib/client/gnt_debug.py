@@ -164,7 +164,7 @@ def TestAllocator(opts, args):
                                name=args[0],
                                evac_nodes=args,
                                instances=args,
-                               mem_size=opts.mem,
+                               memory=opts.memory,
                                disks=disks,
                                disk_template=opts.disk_template,
                                nics=nic_dict,
@@ -568,7 +568,7 @@ commands = {
                 choices=list(constants.VALID_IALLOCATOR_MODES),
                 help=("Request mode (one of %s)" %
                       utils.CommaJoin(constants.VALID_IALLOCATOR_MODES))),
-     cli_option("--mem", default=128, type="unit",
+     cli_option("--memory", default=128, type="unit",
                 help="Memory size for the instance (MiB)"),
      cli_option("--disks", default="4096,4096",
                 help="Comma separated list of disk sizes (MiB)"),
