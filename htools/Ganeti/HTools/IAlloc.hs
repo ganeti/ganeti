@@ -114,6 +114,13 @@ parseGroup u a = do
   apol <- extract "alloc_policy"
   return (u, Group.create name u apol)
 
+parseTargetGroups :: [(String, JSValue)] -- ^ The JSON object (request dict)
+                  -> Group.List          -- ^ The existing groups
+                  -> Result [Gdx]
+parseTargetGroups req map_g = do
+  group_uuids <- fromObjWithDefault req "target_groups" []
+  mapM (liftM Group.idx . Container.findByName map_g) group_uuids
+
 -- | Top-level parser.
 parseData :: String         -- ^ The JSON message as received from Ganeti
           -> Result Request -- ^ A (possible valid) request
@@ -143,6 +150,8 @@ parseData body = do
   ctags <- extrObj "cluster_tags"
   cdata <- mergeData [] [] [] (ClusterData gl nl il ctags)
   let map_n = cdNodes cdata
+      map_i = cdInstances cdata
+      map_g = cdGroups cdata
   optype <- extrReq "type"
   rqtype <-
       case () of
@@ -167,6 +176,23 @@ parseData body = do
                 ex_nodes <- mapM (Container.findByName map_n) ex_names
                 let ex_ndx = map Node.idx ex_nodes
                 return $ Evacuate ex_ndx
+          | optype == C.iallocatorModeMreloc ->
+              do
+                rl_names <- extrReq "instances"
+                rl_insts <- mapM (Container.findByName map_i) rl_names
+                let rl_idx = map Instance.idx rl_insts
+                rl_mode <- do
+                   case extrReq "reloc_mode" of
+                     Ok s | s == C.iallocatorMrelocKeep -> return KeepGroup
+                          | s == C.iallocatorMrelocChange ->
+                              do
+                                tg_groups <- parseTargetGroups request map_g
+                                return $ ChangeGroup tg_groups
+                          | s == C.iallocatorMrelocAny -> return AnyGroup
+                          | otherwise -> Bad $ "Invalid relocate mode " ++ s
+                     Bad x -> Bad x
+                return $ MultiReloc rl_idx rl_mode
+
           | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return $ Request rqtype cdata
 
