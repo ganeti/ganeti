@@ -12489,10 +12489,10 @@ class LUTestAllocator(NoHooksLU):
                                    errors.ECODE_INVAL)
       for row in self.op.disks:
         if (not isinstance(row, dict) or
-            "size" not in row or
-            not isinstance(row["size"], int) or
-            "mode" not in row or
-            row["mode"] not in ['r', 'w']):
+            constants.IDISK_SIZE not in row or
+            not isinstance(row[constants.IDISK_SIZE], int) or
+            constants.IDISK_MODE not in row or
+            row[constants.IDISK_MODE] not in constants.DISK_ACCESS_SET):
           raise errors.OpPrereqError("Invalid contents of the 'disks'"
                                      " parameter", errors.ECODE_INVAL)
       if self.op.hypervisor is None:
