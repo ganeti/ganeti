@@ -212,7 +212,7 @@ class ConfigWriter:
     if mac in all_macs:
       raise errors.ReservationError("mac already in use")
     else:
-      self._temporary_macs.Reserve(mac, ec_id)
+      self._temporary_macs.Reserve(ec_id, mac)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def ReserveLV(self, lv_name, ec_id):
@@ -226,7 +226,7 @@ class ConfigWriter:
     if lv_name in all_lvs:
       raise errors.ReservationError("LV already in use")
     else:
-      self._temporary_lvs.Reserve(lv_name, ec_id)
+      self._temporary_lvs.Reserve(ec_id, lv_name)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GenerateDRBDSecret(self, ec_id):
