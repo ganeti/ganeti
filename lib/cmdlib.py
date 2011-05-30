@@ -12250,6 +12250,7 @@ class IAllocator(object):
       "disk_space_total": disk_space,
       "nics": self.nics,
       "required_nodes": self.required_nodes,
+      "hypervisor": self.hypervisor,
       }
 
     return request
