@@ -9,7 +9,7 @@ hail - Ganeti IAllocator plugin
 SYNOPSIS
 --------
 
-**hail** [ **-t** *datafile* | **--simulate** *spec* ] *input-file*
+**hail** [ **-t** *file* | **--simulate** *spec* ] [options...] *input-file*
 
 **hail** --version
 
@@ -67,6 +67,12 @@ The options that can be passed to the program are as follows:
   Similar to the **-t** option, this allows overriding the cluster
   data with a simulated cluster. For details about the description,
   see the man page **hspace**(1).
+
+-v
+  This option increases verbosity and can be used for debugging in order
+  to understand how the IAllocator request is parsed; it can be passed
+  multiple times for successively more information.
+
 
 CONFIGURATION
 -------------

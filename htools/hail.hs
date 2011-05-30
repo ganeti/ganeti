@@ -46,6 +46,7 @@ options =
     [ oPrintNodes
     , oDataFile
     , oNodeSim
+    , oVerbose
     , oShowVer
     , oShowHelp
     ]
@@ -103,10 +104,17 @@ main = do
   (opts, args) <- parseOpts cmd_args "hail" options
 
   let shownodes = optShowNodes opts
+      verbose = optVerbose opts
 
   request <- readRequest opts args
 
   let Request rq cdata = request
+
+  when (verbose > 1) $
+       hPutStrLn stderr $ "Received request: " ++ show rq
+
+  when (verbose > 2) $
+       hPutStrLn stderr $ "Received cluster data: " ++ show cdata
 
   when (isJust shownodes) $ do
          hPutStrLn stderr "Initial cluster status:"
