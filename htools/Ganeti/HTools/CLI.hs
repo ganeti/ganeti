@@ -38,6 +38,7 @@ module Ganeti.HTools.CLI
     -- * The options
     , oDataFile
     , oDiskMoves
+    , oInstMoves
     , oDynuFile
     , oEvacMode
     , oExInst
@@ -94,6 +95,7 @@ defaultLuxiSocket = C.masterSocket
 data Options = Options
     { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
     , optDiskMoves   :: Bool           -- ^ Allow disk moves
+    , optInstMoves   :: Bool           -- ^ Allow instance moves
     , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
     , optEvacMode    :: Bool           -- ^ Enable evacuation mode
     , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -130,6 +132,7 @@ defaultOptions :: Options
 defaultOptions  = Options
  { optDataFile    = Nothing
  , optDiskMoves   = True
+ , optInstMoves   = True
  , optDynuFile    = Nothing
  , optEvacMode    = False
  , optExInst      = []
@@ -174,6 +177,13 @@ oDiskMoves = Option "" ["no-disk-moves"]
              (NoArg (\ opts -> Ok opts { optDiskMoves = False}))
              "disallow disk moves from the list of allowed instance changes,\
              \ thus allowing only the 'cheap' failover/migrate operations"
+
+oInstMoves :: OptType
+oInstMoves = Option "" ["no-instance-moves"]
+             (NoArg (\ opts -> Ok opts { optInstMoves = False}))
+             "disallow instance (primary node) moves from the list of allowed,\
+             \ instance changes, thus allowing only slower, but sometimes\
+             \ safer, drbd secondary changes"
 
 oDynuFile :: OptType
 oDynuFile = Option "U" ["dynu-file"]
