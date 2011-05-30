@@ -155,6 +155,10 @@ def TestAllocator(opts, args):
     opts.tags = []
   else:
     opts.tags = opts.tags.split(",")
+  if opts.target_groups is None:
+    target_groups = []
+  else:
+    target_groups = opts.target_groups
 
   op = opcodes.OpTestAllocator(mode=opts.mode,
                                name=args[0],
@@ -170,7 +174,7 @@ def TestAllocator(opts, args):
                                direction=opts.direction,
                                allocator=opts.iallocator,
                                reloc_mode=opts.reloc_mode,
-                               target_groups=opts.target_groups)
+                               target_groups=target_groups)
   result = SubmitOpCode(op, opts=opts)
   ToStdout("%s" % result)
   return 0

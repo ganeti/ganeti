@@ -12013,7 +12013,7 @@ class IAllocator(object):
     self.evac_nodes = None
     self.instances = None
     self.reloc_mode = None
-    self.target_groups = None
+    self.target_groups = []
     # computed fields
     self.required_nodes = None
     # init result fields
