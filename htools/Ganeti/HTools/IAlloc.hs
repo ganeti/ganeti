@@ -221,5 +221,5 @@ formatResponse success info rq elems =
     let
         e_success = ("success", JSBool success)
         e_info = ("info", JSString . toJSString $ info)
-        e_nodes = ("nodes", formatRVal rq elems)
-    in encodeStrict $ makeObj [e_success, e_info, e_nodes]
+        e_result = ("result", formatRVal rq elems)
+    in encodeStrict $ makeObj [e_success, e_info, e_result]
