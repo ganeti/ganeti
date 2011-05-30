@@ -205,19 +205,19 @@ in the ``request`` dictionary:
   name
     the name of the instance; if the request is a realocation, then this
     name will be found in the list of instances (see below), otherwise
-    is the FQDN of the new instance
+    is the FQDN of the new instance; type *string*
 
   required_nodes
     how many nodes should the algorithm return; while this information
     can be deduced from the instace's disk template, it's better if
     this computation is left to Ganeti as then allocator scripts are
-    less sensitive to changes to the disk templates
+    less sensitive to changes to the disk templates; type *integer*
 
   disk_space_total
     the total disk space that will be used by this instance on the
     (new) nodes; again, this information can be computed from the list
     of instance disks and its template type, but Ganeti is better
-    suited to compute it
+    suited to compute it; type *integer*
 
 .. pyassert::
 
@@ -274,13 +274,13 @@ Relocation:
   relocate_from
      a list of nodes to move the instance away from (note that with
      Ganeti 2.0, this list will always contain a single node, the
-     current secondary of the instance)
+     current secondary of the instance); type *list of strings*
 
 As for ``multi-relocate``, it needs the three following request
 arguments:
 
   instances
-    a list of instance names to relocate
+    a list of instance names to relocate; type *list of strings*
 
   reloc_mode
     a string indicating the relocation mode; there are three possible
@@ -292,13 +292,13 @@ arguments:
     this argument is only accepted when ``reloc_mode``, as explained
     above, is *change_group*; if present, it must either be the empty
     list, or contain a list of group UUIDs that should be considered for
-    relocating instances to
+    relocating instances to; type *list of strings*
 
 Finally, in the case of multi-evacuate, there's one single request
 argument (in addition to ``type``):
 
   evac_nodes
-    the names of the nodes to be evacuated
+    the names of the nodes to be evacuated; type *list of strings*
 
 Response message
 ~~~~~~~~~~~~~~~~

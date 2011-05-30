@@ -12020,10 +12020,12 @@ class IAllocator(object):
     self.success = self.info = self.result = None
 
     try:
-      (fn, keyset, self._result_check) = self._MODE_DATA[self.mode]
+      (fn, keydata, self._result_check) = self._MODE_DATA[self.mode]
     except KeyError:
       raise errors.ProgrammerError("Unknown mode '%s' passed to the"
                                    " IAllocator" % self.mode)
+
+    keyset = [n for (n, _) in keydata]
 
     for key in kwargs:
       if key not in keyset:
@@ -12035,7 +12037,7 @@ class IAllocator(object):
       if key not in kwargs:
         raise errors.ProgrammerError("Missing input parameter '%s' to"
                                      " IAllocator" % key)
-    self._BuildInputData(compat.partial(fn, self))
+    self._BuildInputData(compat.partial(fn, self), keydata)
 
   def _ComputeClusterData(self):
     """Compute the generic allocator input data.
@@ -12310,7 +12312,7 @@ class IAllocator(object):
       "target_groups": self.target_groups,
       }
 
-  def _BuildInputData(self, fn):
+  def _BuildInputData(self, fn, keydata):
     """Build input data structures.
 
     """
@@ -12318,23 +12320,47 @@ class IAllocator(object):
 
     request = fn()
     request["type"] = self.mode
+    for keyname, keytype in keydata:
+      if keyname not in request:
+        raise errors.ProgrammerError("Request parameter %s is missing" %
+                                     keyname)
+      val = request[keyname]
+      if not keytype(val):
+        raise errors.ProgrammerError("Request parameter %s doesn't pass"
+                                     " validation, value %s, expected"
+                                     " type %s" % (keyname, val, keytype))
     self.in_data["request"] = request
 
     self.in_text = serializer.Dump(self.in_data)
 
+  _STRING_LIST = ht.TListOf(ht.TString)
   _MODE_DATA = {
     constants.IALLOCATOR_MODE_ALLOC:
       (_AddNewInstance,
-       ["name", "memory", "disks", "disk_template", "os", "tags", "nics",
-        "vcpus", "hypervisor"], ht.TList),
+       [
+        ("name", ht.TString),
+        ("memory", ht.TInt),
+        ("disks", ht.TListOf(ht.TDict)),
+        ("disk_template", ht.TString),
+        ("os", ht.TString),
+        ("tags", _STRING_LIST),
+        ("nics", ht.TListOf(ht.TDict)),
+        ("vcpus", ht.TInt),
+        ("hypervisor", ht.TString),
+        ], ht.TList),
     constants.IALLOCATOR_MODE_RELOC:
-      (_AddRelocateInstance, ["name", "relocate_from"], ht.TList),
+      (_AddRelocateInstance,
+       [("name", ht.TString), ("relocate_from", _STRING_LIST)],
+       ht.TList),
     constants.IALLOCATOR_MODE_MEVAC:
-      (_AddEvacuateNodes, ["evac_nodes"],
-       ht.TListOf(ht.TAnd(ht.TIsLength(2),
-                          ht.TListOf(ht.TString)))),
+      (_AddEvacuateNodes, [("evac_nodes", _STRING_LIST)],
+       ht.TListOf(ht.TAnd(ht.TIsLength(2), _STRING_LIST))),
     constants.IALLOCATOR_MODE_MRELOC:
-      (_AddMultiRelocate, ["instances", "reloc_mode", "target_groups"],
+      (_AddMultiRelocate, [
+        ("instances", _STRING_LIST),
+        ("reloc_mode", ht.TElemOf(constants.IALLOCATOR_MRELOC_MODES)),
+        ("target_groups", _STRING_LIST),
+        ],
        ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
          # pylint: disable-msg=E1101
          # Class '...' has no 'OP_ID' member
