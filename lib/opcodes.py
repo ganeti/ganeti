@@ -965,6 +965,7 @@ class OpInstanceCreate(OpCode):
     ("src_node", None, ht.TMaybeString, "Source node for import"),
     ("src_path", None, ht.TMaybeString, "Source directory for import"),
     ("start", True, ht.TBool, "Whether to start instance after creation"),
+    ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Instance tags"),
     ]
 
 

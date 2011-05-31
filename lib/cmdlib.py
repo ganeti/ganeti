@@ -8000,7 +8000,7 @@ class LUInstanceCreate(LogicalUnit):
                      mode=constants.IALLOCATOR_MODE_ALLOC,
                      name=self.op.instance_name,
                      disk_template=self.op.disk_template,
-                     tags=[],
+                     tags=self.op.tags,
                      os=self.op.os_type,
                      vcpus=self.be_full[constants.BE_VCPUS],
                      memory=self.be_full[constants.BE_MEMORY],
@@ -8235,6 +8235,10 @@ class LUInstanceCreate(LogicalUnit):
                                  " cluster (%s)" % (self.op.hypervisor,
                                   ",".join(enabled_hvs)),
                                  errors.ECODE_STATE)
+
+    # Check tag validity
+    for tag in self.op.tags:
+      objects.TaggableObject.ValidateTag(tag)
 
     # check hypervisor parameter syntax (locally)
     utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
@@ -8581,6 +8585,7 @@ class LUInstanceCreate(LogicalUnit):
                             hvparams=self.op.hvparams,
                             hypervisor=self.op.hypervisor,
                             osparams=self.op.osparams,
+                            tags=self.op.tags,
                             )
 
     if self.adopt_disks:
