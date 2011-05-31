@@ -75,6 +75,8 @@ echo Testing hbal/text with evacuation mode
 ./hbal -t$T/$RAPI.data $GROUP -E
 echo Testing hbal/text with no disk moves
 ./hbal -t$T/$RAPI.data $GROUP --no-disk-moves
+echo Testing hbal/text with no instance moves
+./hbal -t$T/$RAPI.data $GROUP --no-instance-moves
 echo Testing hbal/text with offline node mode
 ./hbal -t$T/$RAPI.data $GROUP -O$FN
 echo Testing hbal/text with utilization data
