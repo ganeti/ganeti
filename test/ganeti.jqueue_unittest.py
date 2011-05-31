@@ -565,9 +565,9 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
       self._GenericCheckJob(job)
 
-      # Finished jobs can't be processed any further
-      self.assertRaises(errors.ProgrammerError,
-                        jqueue._JobProcessor(queue, opexec, job))
+      # Calling the processor on a finished job should be a no-op
+      self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
+      self.assertRaises(IndexError, queue.GetNextUpdate)
 
   def testOpcodeError(self):
     queue = _FakeQueueForProc()
@@ -643,9 +643,9 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
       self._GenericCheckJob(job)
 
-      # Finished jobs can't be processed any further
-      self.assertRaises(errors.ProgrammerError,
-                        jqueue._JobProcessor(queue, opexec, job))
+      # Calling the processor on a finished job should be a no-op
+      self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
+      self.assertRaises(IndexError, queue.GetNextUpdate)
 
   def testCancelWhileInQueue(self):
     queue = _FakeQueueForProc()
@@ -665,9 +665,15 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     self.assertRaises(IndexError, queue.GetNextUpdate)
 
+    self.assertFalse(job.start_timestamp)
+    self.assertTrue(job.end_timestamp)
     self.assert_(compat.all(op.status == constants.OP_STATUS_CANCELED
                             for op in job.ops))
 
+    # Serialize to check for differences
+    before_proc = job.Serialize()
+
+    # Simulate processor called in workerpool
     opexec = _FakeExecOpCodeForProc(queue, None, None)
     self.assert_(jqueue._JobProcessor(queue, opexec, job)())
 
@@ -675,12 +681,16 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_CANCELED)
     self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_CANCELED])
     self.assertFalse(job.start_timestamp)
-    self.assert_(job.end_timestamp)
+    self.assertTrue(job.end_timestamp)
     self.assertFalse(compat.any(op.start_timestamp or op.end_timestamp
                                 for op in job.ops))
     self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
                      [[constants.OP_STATUS_CANCELED for _ in job.ops],
                       ["Job canceled by request" for _ in job.ops]])
+
+    # Must not have changed or written
+    self.assertEqual(before_proc, job.Serialize())
+    self.assertRaises(IndexError, queue.GetNextUpdate)
 
   def testCancelWhileWaitlockInQueue(self):
     queue = _FakeQueueForProc()
@@ -903,6 +913,10 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     for remaining in reversed(range(len(job.ops) - successcount)):
       result = jqueue._JobProcessor(queue, opexec, job)()
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
 
       if remaining == 0:
         # Last opcode
@@ -913,6 +927,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
 
+    self.assertRaises(IndexError, queue.GetNextUpdate)
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_SUCCESS)
     self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_SUCCESS])
     self.assertEqual(job.GetInfo(["opresult"]),
@@ -924,14 +939,14 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     self._GenericCheckJob(job)
 
-    # Finished jobs can't be processed any further
-    self.assertRaises(errors.ProgrammerError,
-                      jqueue._JobProcessor(queue, opexec, job))
+    # Calling the processor on a finished job should be a no-op
+    self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
+    self.assertRaises(IndexError, queue.GetNextUpdate)
 
     # ... also after being restored
     job2 = jqueue._QueuedJob.Restore(queue, job.Serialize())
-    self.assertRaises(errors.ProgrammerError,
-                      jqueue._JobProcessor(queue, opexec, job2))
+    self.assertTrue(jqueue._JobProcessor(queue, opexec, job2)())
+    self.assertRaises(IndexError, queue.GetNextUpdate)
 
   def testProcessorOnRunningJob(self):
     ops = [opcodes.OpTestDummy(result="result", fail=False)]
@@ -1293,9 +1308,9 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     self.assert_(compat.all(op.start_timestamp and op.end_timestamp
                             for op in job.ops))
 
-    # Finished jobs can't be processed any further
-    self.assertRaises(errors.ProgrammerError,
-                      jqueue._JobProcessor(self.queue, opexec, job))
+    # Calling the processor on a finished job should be a no-op
+    self.assertTrue(jqueue._JobProcessor(self.queue, opexec, job)())
+    self.assertRaises(IndexError, self.queue.GetNextUpdate)
 
 
 if __name__ == "__main__":
