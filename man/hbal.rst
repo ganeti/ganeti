@@ -27,6 +27,7 @@ Algorithm options:
 **[ -g *delta* ]** **[ --min-gain-limit *threshold* ]**
 **[ -O *name...* ]**
 **[ --no-disk-moves ]**
+**[ --no-instance-moves ]**
 **[ -U *util-file* ]**
 **[ --evac-mode ]**
 **[ --exclude-instances *inst...* ]**
@@ -354,6 +355,13 @@ The options that can be passed to the program are as follows:
   (i.e. "gnt-instance replace-disks") operations. This will result in
   a much quicker balancing, but of course the improvements are
   limited. It is up to the user to decide when to use one or another.
+
+--no-instance-moves
+  This parameter prevents hbal from using instance moves
+  (i.e. "gnt-instance migrate/failover") operations. This will only use
+  the slow disk-replacement operations, and will also provide a worse
+  balance, but can be useful if moving instances around is deemed unsafe
+  or not preferred.
 
 --evac-mode
   This parameter restricts the list of instances considered for moving
