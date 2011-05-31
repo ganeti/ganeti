@@ -77,6 +77,7 @@ options =
     , oMinGain
     , oMinGainLim
     , oDiskMoves
+    , oInstMoves
     , oDynuFile
     , oExTags
     , oExInst
@@ -92,6 +93,7 @@ we find a valid solution or we exceed the maximum depth.
 iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
              -> Bool             -- ^ Allow disk moves
+             -> Bool             -- ^ Allow instance moves
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [MoveJob]        -- ^ Current command list
@@ -102,7 +104,7 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Bool             -- ^ Enable evacuation mode
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
-iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
+iterateDepth ini_tbl max_rounds disk_moves inst_moves nmlen imlen
              cmd_strs oneline min_score mg_limit min_gain evac_mode =
     let Cluster.Table ini_nl ini_il _ _ = ini_tbl
         allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
@@ -125,7 +127,7 @@ iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
               unless oneline $ do
                        putStrLn sol_line
                        hFlush stdout
-              iterateDepth fin_tbl max_rounds disk_moves
+              iterateDepth fin_tbl max_rounds disk_moves inst_moves
                            nmlen imlen upd_cmd_strs oneline min_score
                            mg_limit min_gain evac_mode
         Nothing -> return (ini_tbl, cmd_strs)
@@ -357,6 +359,7 @@ main = do
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
+                         (optInstMoves opts)
                          nmlen imlen [] oneline min_cv
                          (optMinGainLim opts) (optMinGain opts)
                          (optEvacMode opts)
