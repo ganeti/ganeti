@@ -581,6 +581,9 @@ MASTER_CAPABLE
 VM_CAPABLE
   Whether the node can host instances.
 
+INSTANCE_TAGS
+  A space-delimited list of the instance's tags.
+
 NODE_NAME
   The target node of this operation (not the node on which the hook
   runs).
