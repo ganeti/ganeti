@@ -123,8 +123,8 @@ isNodeBig node size = Node.availDisk node > size * Types.unitDsk
                       && Node.availMem node > size * Types.unitMem
                       && Node.availCpu node > size * Types.unitCpu
 
-canBalance :: Cluster.Table -> Bool -> Bool -> Bool
-canBalance tbl dm evac = isJust $ Cluster.tryBalance tbl dm evac 0 0
+canBalance :: Cluster.Table -> Bool -> Bool -> Bool -> Bool
+canBalance tbl dm im evac = isJust $ Cluster.tryBalance tbl dm im evac 0 0
 
 -- | Assigns a new fresh instance to a cluster; this is not
 -- allocation, so no resource checks are done
@@ -746,7 +746,7 @@ prop_ClusterAlloc_sane node inst =
                (xnl, xi, _, cv):[] ->
                    let il' = Container.add (Instance.idx xi) xi il
                        tbl = Cluster.Table xnl il' cv []
-                   in not (canBalance tbl True False)
+                   in not (canBalance tbl True True False)
                _ -> False
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
@@ -815,7 +815,7 @@ prop_ClusterAllocBalance node =
                    let ynl = Container.add (Node.idx hnode) hnode xnl
                        cv = Cluster.compCV ynl
                        tbl = Cluster.Table ynl il' cv []
-                   in canBalance tbl True False
+                   in canBalance tbl True True False
 
 -- | Checks consistency
 prop_ClusterCheckConsistency node inst =

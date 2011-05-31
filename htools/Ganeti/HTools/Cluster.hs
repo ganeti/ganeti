@@ -465,35 +465,42 @@ checkSingleStep ini_tbl target cur_tbl move =
 -- the current candidate target node, generate the possible moves for
 -- a instance.
 possibleMoves :: Bool      -- ^ Whether the secondary node is a valid new node
+              -> Bool      -- ^ Whether we can change the primary node
               -> Ndx       -- ^ Target node candidate
               -> [IMove]   -- ^ List of valid result moves
-possibleMoves True tdx =
+
+possibleMoves _ False tdx =
+    [ReplaceSecondary tdx]
+
+possibleMoves True True tdx =
     [ReplaceSecondary tdx,
      ReplaceAndFailover tdx,
      ReplacePrimary tdx,
      FailoverAndReplace tdx]
 
-possibleMoves False tdx =
+possibleMoves False True tdx =
     [ReplaceSecondary tdx,
      ReplaceAndFailover tdx]
 
 -- | Compute the best move for a given instance.
 checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
                   -> Bool              -- ^ Whether disk moves are allowed
+                  -> Bool              -- ^ Whether instance moves are allowed
                   -> Table             -- ^ Original table
                   -> Instance.Instance -- ^ Instance to move
                   -> Table             -- ^ Best new table for this instance
-checkInstanceMove nodes_idx disk_moves ini_tbl target =
+checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
     let
         opdx = Instance.pNode target
         osdx = Instance.sNode target
         nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
-        use_secondary = elem osdx nodes_idx
+        use_secondary = elem osdx nodes_idx && inst_moves
         aft_failover = if use_secondary -- if allowed to failover
                        then checkSingleStep ini_tbl target ini_tbl Failover
                        else ini_tbl
         all_moves = if disk_moves
-                    then concatMap (possibleMoves use_secondary) nodes
+                    then concatMap
+                         (possibleMoves use_secondary inst_moves) nodes
                     else []
     in
       -- iterate over the possible nodes for this instance
@@ -502,17 +509,19 @@ checkInstanceMove nodes_idx disk_moves ini_tbl target =
 -- | Compute the best next move.
 checkMove :: [Ndx]               -- ^ Allowed target node indices
           -> Bool                -- ^ Whether disk moves are allowed
+          -> Bool                -- ^ Whether instance moves are allowed
           -> Table               -- ^ The current solution
           -> [Instance.Instance] -- ^ List of instances still to move
           -> Table               -- ^ The new solution
-checkMove nodes_idx disk_moves ini_tbl victims =
+checkMove nodes_idx disk_moves inst_moves ini_tbl victims =
     let Table _ _ _ ini_plc = ini_tbl
         -- we're using rwhnf from the Control.Parallel.Strategies
         -- package; we don't need to use rnf as that would force too
         -- much evaluation in single-threaded cases, and in
         -- multi-threaded case the weak head normal form is enough to
         -- spark the evaluation
-        tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves ini_tbl)
+        tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves
+                               inst_moves ini_tbl)
                  victims
         -- iterate over all instances, computing the best move
         best_tbl = foldl' compareTables ini_tbl tables
@@ -534,11 +543,12 @@ doNextBalance ini_tbl max_rounds min_score =
 -- | Run a balance move
 tryBalance :: Table       -- ^ The starting table
            -> Bool        -- ^ Allow disk moves
+           -> Bool        -- ^ Allow instance moves
            -> Bool        -- ^ Only evacuate moves
            -> Score       -- ^ Min gain threshold
            -> Score       -- ^ Min gain
            -> Maybe Table -- ^ The resulting table and commands
-tryBalance ini_tbl disk_moves evac_mode mg_limit min_gain =
+tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
         all_inst' = if evac_mode
@@ -551,7 +561,7 @@ tryBalance ini_tbl disk_moves evac_mode mg_limit min_gain =
         reloc_inst = filter Instance.movable all_inst'
         node_idx = map Node.idx . filter (not . Node.offline) $
                    Container.elems ini_nl
-        fin_tbl = checkMove node_idx disk_moves ini_tbl reloc_inst
+        fin_tbl = checkMove node_idx disk_moves inst_moves ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
       if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
