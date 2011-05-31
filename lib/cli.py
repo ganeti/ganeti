@@ -162,6 +162,7 @@ __all__ = [
   "SUBMIT_OPT",
   "STATIC_OPT",
   "SYNC_OPT",
+  "TAG_ADD_OPT",
   "TAG_SRC_OPT",
   "TIMEOUT_OPT",
   "UIDPOOL_OPT",
@@ -633,6 +634,10 @@ IGNORE_OFFLINE_OPT = cli_option("--ignore-offline", dest="ignore_offline",
                                   action="store_true", default=False,
                                   help=("Ignore offline nodes and do as much"
                                         " as possible"))
+
+TAG_ADD_OPT = cli_option("--tags", dest="tags",
+                         default=None, help="Comma-separated list of instance"
+                                            " tags")
 
 TAG_SRC_OPT = cli_option("--from", dest="tags_source",
                          default=None, help="File with tag names")
@@ -2113,6 +2118,11 @@ def GenericInstanceCreate(mode, opts, args):
                                    " disk %d" % didx)
       disks[didx] = ddict
 
+  if opts.tags is not None:
+    tags = opts.tags.split(',')
+  else:
+    tags = []
+
   utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES)
   utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
 
@@ -2156,6 +2166,7 @@ def GenericInstanceCreate(mode, opts, args):
                                 force_variant=force_variant,
                                 src_node=src_node,
                                 src_path=src_path,
+                                tags=tags,
                                 no_install=no_install,
                                 identify_defaults=identify_defaults)
 
