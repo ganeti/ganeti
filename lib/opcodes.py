@@ -151,6 +151,9 @@ _SUMMARY_PREFIX = {
   "INSTANCE_": "I_",
   }
 
+#: Attribute name for dependencies
+DEPEND_ATTR = "depends"
+
 
 def _NameToId(name):
   """Convert an opcode class name to an OP_ID.
@@ -422,7 +425,7 @@ class OpCode(BaseOpCode):
     ("debug_level", None, ht.TOr(ht.TNone, ht.TPositiveInt), "Debug level"),
     ("priority", constants.OP_PRIO_DEFAULT,
      ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID), "Opcode priority"),
-    ("depends", None, ht.TOr(ht.TNone, ht.TListOf(_T_JOB_DEP)),
+    (DEPEND_ATTR, None, ht.TOr(ht.TNone, ht.TListOf(_T_JOB_DEP)),
      "Job dependencies"),
     ]
 

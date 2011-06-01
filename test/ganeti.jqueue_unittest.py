@@ -424,13 +424,70 @@ class TestQueuedJob(unittest.TestCase):
         self.assertEqual(job.CalcStatus(), status)
 
 
-class _FakeQueueForProc:
+class _FakeDependencyManager:
   def __init__(self):
+    self._checks = []
+    self._notifications = []
+    self._waiting = set()
+
+  def AddCheckResult(self, job, dep_job_id, dep_status, result):
+    self._checks.append((job, dep_job_id, dep_status, result))
+
+  def CountPendingResults(self):
+    return len(self._checks)
+
+  def CountWaitingJobs(self):
+    return len(self._waiting)
+
+  def GetNextNotification(self):
+    return self._notifications.pop(0)
+
+  def JobWaiting(self, job):
+    return job in self._waiting
+
+  def CheckAndRegister(self, job, dep_job_id, dep_status):
+    (exp_job, exp_dep_job_id, exp_dep_status, result) = self._checks.pop(0)
+
+    assert exp_job == job
+    assert exp_dep_job_id == dep_job_id
+    assert exp_dep_status == dep_status
+
+    (result_status, _) = result
+
+    if result_status == jqueue._JobDependencyManager.WAIT:
+      self._waiting.add(job)
+    elif result_status == jqueue._JobDependencyManager.CONTINUE:
+      self._waiting.remove(job)
+
+    return result
+
+  def NotifyWaiters(self, job_id):
+    self._notifications.append(job_id)
+
+
+class _DisabledFakeDependencyManager:
+  def JobWaiting(self, _):
+    return False
+
+  def CheckAndRegister(self, *args):
+    assert False, "Should not be called"
+
+  def NotifyWaiters(self, _):
+    pass
+
+
+class _FakeQueueForProc:
+  def __init__(self, depmgr=None):
     self._acquired = False
     self._updates = []
     self._submitted = []
 
     self._submit_count = itertools.count(1000)
+
+    if depmgr:
+      self.depmgr = depmgr
+    else:
+      self.depmgr = _DisabledFakeDependencyManager()
 
   def IsAcquired(self):
     return self._acquired
@@ -960,6 +1017,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     # ... also after being restored
     job2 = jqueue._QueuedJob.Restore(queue, job.Serialize())
+    # Calling the processor on a finished job should be a no-op
     self.assertTrue(jqueue._JobProcessor(queue, opexec, job2)())
     self.assertRaises(IndexError, queue.GetNextUpdate)
 
@@ -1174,6 +1232,369 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
                      [len(job.ops) * [constants.OP_STATUS_SUCCESS]])
 
     self._GenericCheckJob(job)
+
+    # Calling the processor on a finished job should be a no-op
+    self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+  def testJobDependency(self):
+    depmgr = _FakeDependencyManager()
+    queue = _FakeQueueForProc(depmgr=depmgr)
+
+    self.assertEqual(queue.depmgr, depmgr)
+
+    prev_job_id = 22113
+    prev_job_id2 = 28102
+    job_id = 29929
+    ops = [
+      opcodes.OpTestDummy(result="Res0", fail=False,
+                          depends=[
+                            [prev_job_id2, None],
+                            [prev_job_id, None],
+                            ]),
+      opcodes.OpTestDummy(result="Res1", fail=False),
+      ]
+
+    # Create job
+    job = self._CreateJob(queue, job_id, ops)
+
+    def _BeforeStart(timeout, priority):
+      if attempt == 0 or attempt > 5:
+        # Job should only be updated when it wasn't waiting for another job
+        self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertFalse(job.cur_opctx)
+
+    def _AfterStart(op, cbs):
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+      self.assertFalse(job.cur_opctx)
+
+      # Job is running, cancelling shouldn't be possible
+      (success, _) = job.Cancel()
+      self.assertFalse(success)
+
+    opexec = _FakeExecOpCodeForProc(queue, _BeforeStart, _AfterStart)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    counter = itertools.count()
+    while True:
+      attempt = counter.next()
+
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+      if attempt < 2:
+        depmgr.AddCheckResult(job, prev_job_id2, None,
+                              (jqueue._JobDependencyManager.WAIT, "wait2"))
+      elif attempt == 2:
+        depmgr.AddCheckResult(job, prev_job_id2, None,
+                              (jqueue._JobDependencyManager.CONTINUE, "cont"))
+        # The processor will ask for the next dependency immediately
+        depmgr.AddCheckResult(job, prev_job_id, None,
+                              (jqueue._JobDependencyManager.WAIT, "wait"))
+      elif attempt < 5:
+        depmgr.AddCheckResult(job, prev_job_id, None,
+                              (jqueue._JobDependencyManager.WAIT, "wait"))
+      elif attempt == 5:
+        depmgr.AddCheckResult(job, prev_job_id, None,
+                              (jqueue._JobDependencyManager.CONTINUE, "cont"))
+      if attempt == 2:
+        self.assertEqual(depmgr.CountPendingResults(), 2)
+      elif attempt > 5:
+        self.assertEqual(depmgr.CountPendingResults(), 0)
+      else:
+        self.assertEqual(depmgr.CountPendingResults(), 1)
+
+      result = jqueue._JobProcessor(queue, opexec, job)()
+      if attempt == 0 or attempt >= 5:
+        # Job should only be updated if there was an actual change
+        self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertFalse(depmgr.CountPendingResults())
+
+      if attempt < 5:
+        # Simulate waiting for other job
+        self.assertTrue(result)
+        self.assertTrue(job.cur_opctx)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertRaises(IndexError, depmgr.GetNextNotification)
+        self.assert_(job.start_timestamp)
+        self.assertFalse(job.end_timestamp)
+        continue
+
+      if result:
+        # Last opcode
+        self.assertFalse(job.cur_opctx)
+        self.assertEqual(queue.depmgr.GetNextNotification(), job_id)
+        break
+
+      self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+      self.assertFalse(result)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assert_(job.start_timestamp)
+      self.assertFalse(job.end_timestamp)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_SUCCESS)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(job.GetInfo(["opresult"]),
+                     [[op.input.result for op in job.ops]])
+    self.assertEqual(job.GetInfo(["opstatus"]),
+                     [len(job.ops) * [constants.OP_STATUS_SUCCESS]])
+    self.assertTrue(compat.all(op.start_timestamp and op.end_timestamp
+                               for op in job.ops))
+
+    self._GenericCheckJob(job)
+
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+    self.assertRaises(IndexError, depmgr.GetNextNotification)
+    self.assertFalse(depmgr.CountPendingResults())
+    self.assertFalse(depmgr.CountWaitingJobs())
+
+    # Calling the processor on a finished job should be a no-op
+    self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+  def testJobDependencyCancel(self):
+    depmgr = _FakeDependencyManager()
+    queue = _FakeQueueForProc(depmgr=depmgr)
+
+    self.assertEqual(queue.depmgr, depmgr)
+
+    prev_job_id = 13623
+    job_id = 30876
+    ops = [
+      opcodes.OpTestDummy(result="Res0", fail=False),
+      opcodes.OpTestDummy(result="Res1", fail=False,
+                          depends=[
+                            [prev_job_id, None],
+                            ]),
+      opcodes.OpTestDummy(result="Res2", fail=False),
+      ]
+
+    # Create job
+    job = self._CreateJob(queue, job_id, ops)
+
+    def _BeforeStart(timeout, priority):
+      if attempt == 0 or attempt > 5:
+        # Job should only be updated when it wasn't waiting for another job
+        self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertFalse(job.cur_opctx)
+
+    def _AfterStart(op, cbs):
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+      self.assertFalse(job.cur_opctx)
+
+      # Job is running, cancelling shouldn't be possible
+      (success, _) = job.Cancel()
+      self.assertFalse(success)
+
+    opexec = _FakeExecOpCodeForProc(queue, _BeforeStart, _AfterStart)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    counter = itertools.count()
+    while True:
+      attempt = counter.next()
+
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+      if attempt == 0:
+        # This will handle the first opcode
+        pass
+      elif attempt < 4:
+        depmgr.AddCheckResult(job, prev_job_id, None,
+                              (jqueue._JobDependencyManager.WAIT, "wait"))
+      elif attempt == 4:
+        # Other job was cancelled
+        depmgr.AddCheckResult(job, prev_job_id, None,
+                              (jqueue._JobDependencyManager.CANCEL, "cancel"))
+
+      if attempt == 0:
+        self.assertEqual(depmgr.CountPendingResults(), 0)
+      else:
+        self.assertEqual(depmgr.CountPendingResults(), 1)
+
+      result = jqueue._JobProcessor(queue, opexec, job)()
+      if attempt <= 1 or attempt >= 4:
+        # Job should only be updated if there was an actual change
+        self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertFalse(depmgr.CountPendingResults())
+
+      if attempt > 0 and attempt < 4:
+        # Simulate waiting for other job
+        self.assertTrue(result)
+        self.assertTrue(job.cur_opctx)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertRaises(IndexError, depmgr.GetNextNotification)
+        self.assert_(job.start_timestamp)
+        self.assertFalse(job.end_timestamp)
+        continue
+
+      if result:
+        # Last opcode
+        self.assertFalse(job.cur_opctx)
+        self.assertEqual(queue.depmgr.GetNextNotification(), job_id)
+        break
+
+      self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+      self.assertFalse(result)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assert_(job.start_timestamp)
+      self.assertFalse(job.end_timestamp)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_CANCELED)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_CANCELED])
+    self.assertEqual(job.GetInfo(["opstatus", "opresult"]),
+                     [[constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_CANCELED,
+                       constants.OP_STATUS_CANCELED],
+                      ["Res0", "Job canceled by request",
+                       "Job canceled by request"]])
+
+    self._GenericCheckJob(job)
+
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+    self.assertRaises(IndexError, depmgr.GetNextNotification)
+    self.assertFalse(depmgr.CountPendingResults())
+
+    # Calling the processor on a finished job should be a no-op
+    self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+
+  def testJobDependencyWrongstatus(self):
+    depmgr = _FakeDependencyManager()
+    queue = _FakeQueueForProc(depmgr=depmgr)
+
+    self.assertEqual(queue.depmgr, depmgr)
+
+    prev_job_id = 9741
+    job_id = 11763
+    ops = [
+      opcodes.OpTestDummy(result="Res0", fail=False),
+      opcodes.OpTestDummy(result="Res1", fail=False,
+                          depends=[
+                            [prev_job_id, None],
+                            ]),
+      opcodes.OpTestDummy(result="Res2", fail=False),
+      ]
+
+    # Create job
+    job = self._CreateJob(queue, job_id, ops)
+
+    def _BeforeStart(timeout, priority):
+      if attempt == 0 or attempt > 5:
+        # Job should only be updated when it wasn't waiting for another job
+        self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertFalse(job.cur_opctx)
+
+    def _AfterStart(op, cbs):
+      self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+
+      self.assertFalse(queue.IsAcquired())
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
+      self.assertFalse(job.cur_opctx)
+
+      # Job is running, cancelling shouldn't be possible
+      (success, _) = job.Cancel()
+      self.assertFalse(success)
+
+    opexec = _FakeExecOpCodeForProc(queue, _BeforeStart, _AfterStart)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+
+    counter = itertools.count()
+    while True:
+      attempt = counter.next()
+
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+      if attempt == 0:
+        # This will handle the first opcode
+        pass
+      elif attempt < 4:
+        depmgr.AddCheckResult(job, prev_job_id, None,
+                              (jqueue._JobDependencyManager.WAIT, "wait"))
+      elif attempt == 4:
+        # Other job failed
+        depmgr.AddCheckResult(job, prev_job_id, None,
+                              (jqueue._JobDependencyManager.WRONGSTATUS, "w"))
+
+      if attempt == 0:
+        self.assertEqual(depmgr.CountPendingResults(), 0)
+      else:
+        self.assertEqual(depmgr.CountPendingResults(), 1)
+
+      result = jqueue._JobProcessor(queue, opexec, job)()
+      if attempt <= 1 or attempt >= 4:
+        # Job should only be updated if there was an actual change
+        self.assertEqual(queue.GetNextUpdate(), (job, True))
+      self.assertRaises(IndexError, queue.GetNextUpdate)
+      self.assertFalse(depmgr.CountPendingResults())
+
+      if attempt > 0 and attempt < 4:
+        # Simulate waiting for other job
+        self.assertTrue(result)
+        self.assertTrue(job.cur_opctx)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertRaises(IndexError, depmgr.GetNextNotification)
+        self.assert_(job.start_timestamp)
+        self.assertFalse(job.end_timestamp)
+        continue
+
+      if result:
+        # Last opcode
+        self.assertFalse(job.cur_opctx)
+        self.assertEqual(queue.depmgr.GetNextNotification(), job_id)
+        break
+
+      self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+      self.assertFalse(result)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
+      self.assert_(job.start_timestamp)
+      self.assertFalse(job.end_timestamp)
+
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_ERROR)
+    self.assertEqual(job.GetInfo(["status"]), [constants.JOB_STATUS_ERROR])
+    self.assertEqual(job.GetInfo(["opstatus"]),
+                     [[constants.OP_STATUS_SUCCESS,
+                       constants.OP_STATUS_ERROR,
+                       constants.OP_STATUS_ERROR]]),
+
+    (opresult, ) = job.GetInfo(["opresult"])
+    self.assertEqual(len(opresult), len(ops))
+    self.assertEqual(opresult[0], "Res0")
+    self.assertTrue(errors.GetEncodedError(opresult[1]))
+    self.assertTrue(errors.GetEncodedError(opresult[2]))
+
+    self._GenericCheckJob(job)
+
+    self.assertRaises(IndexError, queue.GetNextUpdate)
+    self.assertRaises(IndexError, depmgr.GetNextNotification)
+    self.assertFalse(depmgr.CountPendingResults())
 
     # Calling the processor on a finished job should be a no-op
     self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
@@ -1410,6 +1831,220 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     # Calling the processor on a finished job should be a no-op
     self.assertTrue(jqueue._JobProcessor(self.queue, opexec, job)())
     self.assertRaises(IndexError, self.queue.GetNextUpdate)
+
+
+class TestJobDependencyManager(unittest.TestCase):
+  class _FakeJob:
+    def __init__(self, job_id):
+      self.id = str(job_id)
+
+  def setUp(self):
+    self._status = []
+    self._queue = []
+    self.jdm = jqueue._JobDependencyManager(self._GetStatus, self._Enqueue)
+
+  def _GetStatus(self, job_id):
+    (exp_job_id, result) = self._status.pop(0)
+    self.assertEqual(exp_job_id, job_id)
+    return result
+
+  def _Enqueue(self, jobs):
+    self._queue.append(jobs)
+
+  def testNotFinalizedThenCancel(self):
+    job = self._FakeJob(17697)
+    job_id = str(28625)
+
+    self._status.append((job_id, constants.JOB_STATUS_RUNNING))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id, [])
+    self.assertEqual(result, self.jdm.WAIT)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertTrue(self.jdm.JobWaiting(job))
+    self.assertEqual(self.jdm._waiters, {
+      job_id: set([job]),
+      })
+
+    self._status.append((job_id, constants.JOB_STATUS_CANCELED))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id, [])
+    self.assertEqual(result, self.jdm.CANCEL)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertFalse(self.jdm.JobWaiting(job))
+
+  def testRequireCancel(self):
+    job = self._FakeJob(5278)
+    job_id = str(9610)
+    dep_status = [constants.JOB_STATUS_CANCELED]
+
+    self._status.append((job_id, constants.JOB_STATUS_WAITLOCK))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
+    self.assertEqual(result, self.jdm.WAIT)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertTrue(self.jdm.JobWaiting(job))
+    self.assertEqual(self.jdm._waiters, {
+      job_id: set([job]),
+      })
+
+    self._status.append((job_id, constants.JOB_STATUS_CANCELED))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
+    self.assertEqual(result, self.jdm.CONTINUE)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertFalse(self.jdm.JobWaiting(job))
+
+  def testRequireError(self):
+    job = self._FakeJob(21459)
+    job_id = str(25519)
+    dep_status = [constants.JOB_STATUS_ERROR]
+
+    self._status.append((job_id, constants.JOB_STATUS_WAITLOCK))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
+    self.assertEqual(result, self.jdm.WAIT)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertTrue(self.jdm.JobWaiting(job))
+    self.assertEqual(self.jdm._waiters, {
+      job_id: set([job]),
+      })
+
+    self._status.append((job_id, constants.JOB_STATUS_ERROR))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
+    self.assertEqual(result, self.jdm.CONTINUE)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertFalse(self.jdm.JobWaiting(job))
+
+  def testRequireMultiple(self):
+    dep_status = list(constants.JOBS_FINALIZED)
+
+    for end_status in dep_status:
+      job = self._FakeJob(21343)
+      job_id = str(14609)
+
+      self._status.append((job_id, constants.JOB_STATUS_WAITLOCK))
+      (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
+      self.assertEqual(result, self.jdm.WAIT)
+      self.assertFalse(self._status)
+      self.assertFalse(self._queue)
+      self.assertTrue(self.jdm.JobWaiting(job))
+      self.assertEqual(self.jdm._waiters, {
+        job_id: set([job]),
+        })
+
+      self._status.append((job_id, end_status))
+      (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
+      self.assertEqual(result, self.jdm.CONTINUE)
+      self.assertFalse(self._status)
+      self.assertFalse(self._queue)
+      self.assertFalse(self.jdm.JobWaiting(job))
+
+  def testNotify(self):
+    job = self._FakeJob(8227)
+    job_id = str(4113)
+
+    self._status.append((job_id, constants.JOB_STATUS_RUNNING))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id, [])
+    self.assertEqual(result, self.jdm.WAIT)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertTrue(self.jdm.JobWaiting(job))
+    self.assertEqual(self.jdm._waiters, {
+      job_id: set([job]),
+      })
+
+    self.jdm.NotifyWaiters(job_id)
+    self.assertFalse(self._status)
+    self.assertFalse(self.jdm._waiters)
+    self.assertFalse(self.jdm.JobWaiting(job))
+    self.assertEqual(self._queue, [set([job])])
+
+  def testWrongStatus(self):
+    job = self._FakeJob(10102)
+    job_id = str(1271)
+
+    self._status.append((job_id, constants.JOB_STATUS_QUEUED))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id,
+                                            [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(result, self.jdm.WAIT)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertTrue(self.jdm.JobWaiting(job))
+    self.assertEqual(self.jdm._waiters, {
+      job_id: set([job]),
+      })
+
+    self._status.append((job_id, constants.JOB_STATUS_ERROR))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id,
+                                            [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(result, self.jdm.WRONGSTATUS)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertFalse(self.jdm.JobWaiting(job))
+
+  def testCorrectStatus(self):
+    job = self._FakeJob(24273)
+    job_id = str(23885)
+
+    self._status.append((job_id, constants.JOB_STATUS_QUEUED))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id,
+                                            [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(result, self.jdm.WAIT)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertTrue(self.jdm.JobWaiting(job))
+    self.assertEqual(self.jdm._waiters, {
+      job_id: set([job]),
+      })
+
+    self._status.append((job_id, constants.JOB_STATUS_SUCCESS))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id,
+                                            [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(result, self.jdm.CONTINUE)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertFalse(self.jdm.JobWaiting(job))
+
+  def testFinalizedRightAway(self):
+    job = self._FakeJob(224)
+    job_id = str(3081)
+
+    self._status.append((job_id, constants.JOB_STATUS_SUCCESS))
+    (result, _) = self.jdm.CheckAndRegister(job, job_id,
+                                            [constants.JOB_STATUS_SUCCESS])
+    self.assertEqual(result, self.jdm.CONTINUE)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+    self.assertFalse(self.jdm.JobWaiting(job))
+    self.assertEqual(self.jdm._waiters, {
+      job_id: set(),
+      })
+
+    # Force cleanup
+    self.jdm.NotifyWaiters("0")
+    self.assertFalse(self.jdm._waiters)
+    self.assertFalse(self._status)
+    self.assertFalse(self._queue)
+
+  def testSelfDependency(self):
+    job = self._FakeJob(18937)
+
+    self._status.append((job.id, constants.JOB_STATUS_SUCCESS))
+    (result, _) = self.jdm.CheckAndRegister(job, job.id, [])
+    self.assertEqual(result, self.jdm.ERROR)
+
+  def testJobDisappears(self):
+    job = self._FakeJob(30540)
+    job_id = str(23769)
+
+    def _FakeStatus(_):
+      raise errors.JobLost("#msg#")
+
+    jdm = jqueue._JobDependencyManager(_FakeStatus, None)
+    (result, _) = jdm.CheckAndRegister(job, job_id, [])
+    self.assertEqual(result, self.jdm.ERROR)
+    self.assertFalse(jdm.JobWaiting(job))
 
 
 if __name__ == "__main__":
