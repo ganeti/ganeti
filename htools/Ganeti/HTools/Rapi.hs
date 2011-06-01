@@ -37,7 +37,7 @@ import Network.Curl
 import Network.Curl.Types ()
 #endif
 import Control.Monad
-import Text.JSON (JSObject, JSValue, fromJSObject, decodeStrict)
+import Text.JSON (JSObject, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))
 import Text.Printf (printf)
 
@@ -104,7 +104,7 @@ getFakeGroups =
 
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc
-              -> [(String, JSValue)]
+              -> JSRecord
               -> Result (String, Instance.Instance)
 parseInstance ktn a = do
   name <- tryFromObj "Parsing new instance" a "name"
@@ -129,7 +129,7 @@ parseInstance ktn a = do
   return (name, inst)
 
 -- | Construct a node from a JSON object.
-parseNode :: NameAssoc -> [(String, JSValue)] -> Result (String, Node.Node)
+parseNode :: NameAssoc -> JSRecord -> Result (String, Node.Node)
 parseNode ktg a = do
   name <- tryFromObj "Parsing new node" a "name"
   let desc = "Node '" ++ name ++ "', error while parsing data"
@@ -154,7 +154,7 @@ parseNode ktg a = do
   return (name, node)
 
 -- | Construct a group from a JSON object.
-parseGroup :: [(String, JSValue)] -> Result (String, Group.Group)
+parseGroup :: JSRecord -> Result (String, Group.Group)
 parseGroup a = do
   name <- tryFromObj "Parsing new group" a "name"
   let extract s = tryFromObj ("Group '" ++ name ++ "'") a s

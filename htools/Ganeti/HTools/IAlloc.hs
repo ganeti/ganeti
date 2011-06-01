@@ -49,7 +49,7 @@ import Ganeti.HTools.Types
 -- 'Allocate' request share some common properties, which are read by
 -- this function.
 parseBaseInstance :: String
-                  -> [(String, JSValue)]
+                  -> JSRecord
                   -> Result (String, Instance.Instance)
 parseBaseInstance n a = do
   let extract x = tryFromObj ("invalid data for instance '" ++ n ++ "'") a x
@@ -61,9 +61,9 @@ parseBaseInstance n a = do
   return (n, Instance.create n mem disk vcpus running tags True 0 0)
 
 -- | Parses an instance as found in the cluster instance listg.
-parseInstance :: NameAssoc        -- ^ The node name-to-index association list
-              -> String           -- ^ The name of the instance
-              -> [(String, JSValue)] -- ^ The JSON object
+parseInstance :: NameAssoc -- ^ The node name-to-index association list
+              -> String    -- ^ The name of the instance
+              -> JSRecord  -- ^ The JSON object
               -> Result (String, Instance.Instance)
 parseInstance ktn n a = do
   base <- parseBaseInstance n a
@@ -78,9 +78,9 @@ parseInstance ktn n a = do
   return (n, Instance.setBoth (snd base) pidx sidx)
 
 -- | Parses a node as found in the cluster node list.
-parseNode :: NameAssoc           -- ^ The group association
-          -> String              -- ^ The node's name
-          -> [(String, JSValue)] -- ^ The JSON object
+parseNode :: NameAssoc   -- ^ The group association
+          -> String      -- ^ The node's name
+          -> JSRecord    -- ^ The JSON object
           -> Result (String, Node.Node)
 parseNode ktg n a = do
   let desc = "invalid data for node '" ++ n ++ "'"
@@ -105,8 +105,8 @@ parseNode ktg n a = do
   return (n, node)
 
 -- | Parses a group as found in the cluster group list.
-parseGroup :: String              -- ^ The group UUID
-           -> [(String, JSValue)] -- ^ The JSON object
+parseGroup :: String     -- ^ The group UUID
+           -> JSRecord   -- ^ The JSON object
            -> Result (String, Group.Group)
 parseGroup u a = do
   let extract x = tryFromObj ("invalid data for group '" ++ u ++ "'") a x
@@ -114,8 +114,8 @@ parseGroup u a = do
   apol <- extract "alloc_policy"
   return (u, Group.create name u apol)
 
-parseTargetGroups :: [(String, JSValue)] -- ^ The JSON object (request dict)
-                  -> Group.List          -- ^ The existing groups
+parseTargetGroups :: JSRecord      -- ^ The JSON object (request dict)
+                  -> Group.List    -- ^ The existing groups
                   -> Result [Gdx]
 parseTargetGroups req map_g = do
   group_uuids <- fromObjWithDefault req "target_groups" []

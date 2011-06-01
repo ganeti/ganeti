@@ -30,6 +30,7 @@ module Ganeti.HTools.Utils
     , stdDev
     , commaJoin
     , readEitherString
+    , JSRecord
     , loadJSArray
     , fromObj
     , fromObjWithDefault
@@ -106,6 +107,9 @@ stdDev lst =
 
 -- * JSON-related functions
 
+-- | A type alias for the list-based representation of J.JSObject
+type JSRecord = [(String, J.JSValue)]
+
 -- | Converts a JSON Result into a monadic value.
 fromJResult :: Monad m => String -> J.Result a -> m a
 fromJResult s (J.Error x) = fail (s ++ ": " ++ x)
@@ -129,7 +133,7 @@ loadJSArray :: (Monad m)
 loadJSArray s = fromJResult s . J.decodeStrict
 
 -- | Reads the value of a key in a JSON object.
-fromObj :: (J.JSON a, Monad m) => [(String, J.JSValue)] -> String -> m a
+fromObj :: (J.JSON a, Monad m) => JSRecord -> String -> m a
 fromObj o k =
     case lookup k o of
       Nothing -> fail $ printf "key '%s' not found, object contains only %s"
@@ -138,7 +142,7 @@ fromObj o k =
 
 -- | Reads the value of an optional key in a JSON object.
 maybeFromObj :: (J.JSON a, Monad m) =>
-             [(String, J.JSValue)] -> String -> m (Maybe a)
+                JSRecord -> String -> m (Maybe a)
 maybeFromObj o k =
     case lookup k o of
       Nothing -> return Nothing
@@ -146,7 +150,7 @@ maybeFromObj o k =
 
 -- | Reads the value of a key in a JSON object with a default if missing.
 fromObjWithDefault :: (J.JSON a, Monad m) =>
-                      [(String, J.JSValue)] -> String -> a -> m a
+                      JSRecord -> String -> a -> m a
 fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
 
 -- | Reads a JValue, that originated from an object key
@@ -165,9 +169,9 @@ annotateResult _ v = v
 -- | Try to extract a key from a object with better error reporting
 -- than fromObj
 tryFromObj :: (J.JSON a) =>
-              String                -- ^ Textual "owner" in error messages
-           -> [(String, J.JSValue)] -- ^ The object array
-           -> String                -- ^ The desired key from the object
+              String     -- ^ Textual "owner" in error messages
+           -> JSRecord   -- ^ The object array
+           -> String     -- ^ The desired key from the object
            -> Result a
 tryFromObj t o = annotateResult t . fromObj o
 
