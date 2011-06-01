@@ -425,6 +425,12 @@ class _QueuedJob(object):
       op.result = result
       not_marked = False
 
+  def Finalize(self):
+    """Marks the job as finalized.
+
+    """
+    self.end_timestamp = TimeStampNow()
+
   def Cancel(self):
     """Marks job as canceled/-ing if possible.
 
@@ -438,6 +444,7 @@ class _QueuedJob(object):
     if status == constants.JOB_STATUS_QUEUED:
       self.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
                              "Job canceled by request")
+      self.Finalize()
       return (True, "Job %s canceled" % self.id)
 
     elif status == constants.JOB_STATUS_WAITLOCK:
@@ -874,21 +881,15 @@ class _JobProcessor(object):
       opctx = _OpExecContext(op, idx, "Op %s/%s" % (idx + 1, len(job.ops)),
                              timeout_strategy_factory)
 
-      if op.status == constants.OP_STATUS_CANCELED:
-        # Cancelled jobs are handled by the caller
-        assert not compat.any(i.status != constants.OP_STATUS_CANCELED
-                              for i in job.ops[idx:])
+      if op.status not in constants.OPS_FINALIZED:
+        return opctx
 
-      elif op.status in constants.OPS_FINALIZED:
-        # This is a job that was partially completed before master daemon
-        # shutdown, so it can be expected that some opcodes are already
-        # completed successfully (if any did error out, then the whole job
-        # should have been aborted and not resubmitted for processing).
-        logging.info("%s: opcode %s already processed, skipping",
-                     opctx.log_prefix, opctx.summary)
-        continue
-
-      return opctx
+      # This is a job that was partially completed before master daemon
+      # shutdown, so it can be expected that some opcodes are already
+      # completed successfully (if any did error out, then the whole job
+      # should have been aborted and not resubmitted for processing).
+      logging.info("%s: opcode %s already processed, skipping",
+                   opctx.log_prefix, opctx.summary)
 
   @staticmethod
   def _MarkWaitlock(job, op):
@@ -985,6 +986,10 @@ class _JobProcessor(object):
     try:
       opcount = len(job.ops)
 
+      # Don't do anything for finalized jobs
+      if job.CalcStatus() in constants.JOBS_FINALIZED:
+        return True
+
       # Is a previous opcode still pending?
       if job.cur_opctx:
         opctx = job.cur_opctx
@@ -998,20 +1003,17 @@ class _JobProcessor(object):
 
       # Consistency check
       assert compat.all(i.status in (constants.OP_STATUS_QUEUED,
-                                     constants.OP_STATUS_CANCELING,
-                                     constants.OP_STATUS_CANCELED)
+                                     constants.OP_STATUS_CANCELING)
                         for i in job.ops[opctx.index + 1:])
 
       assert op.status in (constants.OP_STATUS_QUEUED,
                            constants.OP_STATUS_WAITLOCK,
-                           constants.OP_STATUS_CANCELING,
-                           constants.OP_STATUS_CANCELED)
+                           constants.OP_STATUS_CANCELING)
 
       assert (op.priority <= constants.OP_PRIO_LOWEST and
               op.priority >= constants.OP_PRIO_HIGHEST)
 
-      if op.status not in (constants.OP_STATUS_CANCELING,
-                           constants.OP_STATUS_CANCELED):
+      if op.status != constants.OP_STATUS_CANCELING:
         assert op.status in (constants.OP_STATUS_QUEUED,
                              constants.OP_STATUS_WAITLOCK)
 
@@ -1096,22 +1098,22 @@ class _JobProcessor(object):
                                 "Job canceled by request")
           finalize = True
 
-        elif op.status == constants.OP_STATUS_CANCELED:
-          finalize = True
-
         else:
           raise errors.ProgrammerError("Unknown status '%s'" % op.status)
 
-        # Finalizing or last opcode?
-        if finalize or opctx.index == (opcount - 1):
+        if opctx.index == (opcount - 1):
+          # Finalize on last opcode
+          finalize = True
+
+        if finalize:
           # All opcodes have been run, finalize job
-          job.end_timestamp = TimeStampNow()
+          job.Finalize()
 
         # Write to disk. If the job status is final, this is the final write
         # allowed. Once the file has been written, it can be archived anytime.
         queue.UpdateJobUnlocked(job)
 
-        if finalize or opctx.index == (opcount - 1):
+        if finalize:
           logging.info("Finished job %s, status = %s", job.id, job.CalcStatus())
           return True
 
@@ -1800,6 +1802,10 @@ class JobQueue(object):
     @param replicate: whether to replicate the change to remote nodes
 
     """
+    if __debug__:
+      finalized = job.CalcStatus() in constants.JOBS_FINALIZED
+      assert (finalized ^ (job.end_timestamp is None))
+
     filename = self._GetJobPath(job.id)
     data = serializer.DumpJson(job.Serialize(), indent=False)
     logging.debug("Writing job %s to %s", job.id, filename)
@@ -1857,6 +1863,8 @@ class JobQueue(object):
     (success, msg) = job.Cancel()
 
     if success:
+      # If the job was finalized (e.g. cancelled), this is the final write
+      # allowed. The job can be archived anytime.
       self.UpdateJobUnlocked(job)
 
     return (success, msg)
