@@ -1608,7 +1608,7 @@ class JobQueue(object):
       return job
 
     try:
-      job = self._LoadJobFromDisk(job_id)
+      job = self._LoadJobFromDisk(job_id, False)
       if job is None:
         return job
     except errors.JobFileCorrupted:
@@ -1627,25 +1627,39 @@ class JobQueue(object):
     logging.debug("Added job %s to the cache", job_id)
     return job
 
-  def _LoadJobFromDisk(self, job_id):
+  def _LoadJobFromDisk(self, job_id, try_archived):
     """Load the given job file from disk.
 
     Given a job file, read, load and restore it in a _QueuedJob format.
 
     @type job_id: string
     @param job_id: job identifier
+    @type try_archived: bool
+    @param try_archived: Whether to try loading an archived job
     @rtype: L{_QueuedJob} or None
     @return: either None or the job object
 
     """
-    filepath = self._GetJobPath(job_id)
-    logging.debug("Loading job from %s", filepath)
-    try:
-      raw_data = utils.ReadFile(filepath)
-    except EnvironmentError, err:
-      if err.errno in (errno.ENOENT, ):
-        return None
-      raise
+    path_functions = [self._GetJobPath]
+
+    if try_archived:
+      path_functions.append(self._GetArchivedJobPath)
+
+    raw_data = None
+
+    for fn in path_functions:
+      filepath = fn(job_id)
+      logging.debug("Loading job from %s", filepath)
+      try:
+        raw_data = utils.ReadFile(filepath)
+      except EnvironmentError, err:
+        if err.errno != errno.ENOENT:
+          raise
+      else:
+        break
+
+    if not raw_data:
+      return None
 
     try:
       data = serializer.LoadJson(raw_data)
@@ -1655,7 +1669,7 @@ class JobQueue(object):
 
     return job
 
-  def SafeLoadJobFromDisk(self, job_id):
+  def SafeLoadJobFromDisk(self, job_id, try_archived):
     """Load the given job file from disk.
 
     Given a job file, read, load and restore it in a _QueuedJob format.
@@ -1664,12 +1678,14 @@ class JobQueue(object):
 
     @type job_id: string
     @param job_id: job identifier
+    @type try_archived: bool
+    @param try_archived: Whether to try loading an archived job
     @rtype: L{_QueuedJob} or None
     @return: either None or the job object
 
     """
     try:
-      return self._LoadJobFromDisk(job_id)
+      return self._LoadJobFromDisk(job_id, try_archived)
     except (errors.JobFileCorrupted, EnvironmentError):
       logging.exception("Can't load/parse job %s", job_id)
       return None
@@ -1835,7 +1851,7 @@ class JobQueue(object):
         as such by the clients
 
     """
-    load_fn = compat.partial(self.SafeLoadJobFromDisk, job_id)
+    load_fn = compat.partial(self.SafeLoadJobFromDisk, job_id, False)
 
     helper = _WaitForJobChangesHelper()
 
@@ -2004,7 +2020,7 @@ class JobQueue(object):
       list_all = True
 
     for job_id in job_ids:
-      job = self.SafeLoadJobFromDisk(job_id)
+      job = self.SafeLoadJobFromDisk(job_id, True)
       if job is not None:
         jobs.append(job.GetInfo(fields))
       elif not list_all:
