@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1175,9 +1175,9 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     self._GenericCheckJob(job)
 
-    # Finished jobs can't be processed any further
-    self.assertRaises(errors.ProgrammerError,
-                      jqueue._JobProcessor(queue, opexec, job))
+    # Calling the processor on a finished job should be a no-op
+    self.assertTrue(jqueue._JobProcessor(queue, opexec, job)())
+    self.assertRaises(IndexError, queue.GetNextUpdate)
 
 
 class _FakeTimeoutStrategy:
