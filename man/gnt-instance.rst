@@ -913,7 +913,7 @@ be used to start an instance with modified parameters. They can be
 useful for quick testing without having to modify an instance back and
 forth, e.g.::
 
-    # gnt-instance start -H root_args="single" instance1
+    # gnt-instance start -H kernel_args="single" instance1
     # gnt-instance start -B memory=2048 instance2
 
 
@@ -921,7 +921,7 @@ The first form will start the instance instance1 in single-user mode,
 and the instance instance2 with 2GB of RAM (this time only, unless
 that is the actual instance memory size already). Note that the values
 override the instance parameters (and not extend them): an instance
-with "root\_args=ro" when started with -H root\_args=single will
+with "kernel\_args=ro" when started with -H kernel\_args=single will
 result in "single", not "ro single".  The ``--submit`` option is used
 to send the job to the master daemon but not wait for its
 completion. The job ID will be shown so that it can be examined via
