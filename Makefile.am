@@ -992,6 +992,11 @@ check-local: check-dirs
 	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
 		echo "Incorrect version in README, expected $$expver"; \
 		exit 1; \
+	fi; \
+	if test "`sed -ne '4 p' $(top_srcdir)/doc/iallocator.rst`" != \
+					"Documents Ganeti version $$expver"; then \
+		echo "Incorrect version in iallocator.rst, expected $$expver"; \
+		exit 1; \
 	fi
 
 .PHONY: hs-check
