@@ -1,7 +1,7 @@
 Ganeti automatic instance allocation
 ====================================
 
-Documents Ganeti version 2.1
+Documents Ganeti version 2.4
 
 .. contents::
 
@@ -193,11 +193,17 @@ In all cases, it includes:
     ``multi-relocate`` or ``multi-evacuate``. The ``allocate`` request
     is used when a new instance needs to be placed on the cluster. The
     ``relocate`` request is used when an existing instance needs to be
-    moved within its node group, while the ``multi-relocate`` one is
-    able to relocate multiple instances across multiple node groups. The
-    ``multi-evacuate`` protocol requests that the script computes the
-    optimal relocate solution for all secondary instances of the given
-    nodes.
+    moved within its node group.
+
+    The ``multi-evacuate`` protocol used to request that the script
+    computes the optimal relocate solution for all secondary instances
+    of the given nodes. It is now deprecated and should no longer be
+    used.
+
+    The ``change-group`` request is used to relocate multiple instances
+    across multiple node groups. ``node-evacuate`` evacuates instances
+    off their node(s). These are described in a separate :ref:`design
+    document <multi-reloc-detailed-design>`.
 
 For both allocate and relocate mode, the following extra keys are needed
 in the ``request`` dictionary:
@@ -276,23 +282,26 @@ Relocation:
      Ganeti 2.0, this list will always contain a single node, the
      current secondary of the instance); type *list of strings*
 
-As for ``multi-relocate``, it needs the three following request
-arguments:
+As for ``node-evacuate``, it needs the following request arguments:
 
   instances
-    a list of instance names to relocate; type *list of strings*
+    a list of instance names to evacuate; type *list of strings*
 
-  reloc_mode
-    a string indicating the relocation mode; there are three possible
-    values for this string: *keep_group*, *change_group*, and
-    *any_group*, the semantics or which are explained in :ref:`the
-    design document <multi-reloc-detailed-design>`
+  evac_mode
+    specify which instances to evacuate; one of ``primary-only``,
+    ``secondary-only``, ``all``, type *string*
+
+
+``change-group`` needs the following request arguments:
+
+  instances
+    a list of instance names whose group to change; type
+    *list of strings*
 
   target_groups
-    this argument is only accepted when ``reloc_mode``, as explained
-    above, is *change_group*; if present, it must either be the empty
-    list, or contain a list of group UUIDs that should be considered for
-    relocating instances to; type *list of strings*
+    must either be the empty list, or contain a list of group UUIDs that
+    should be considered for relocating instances to; type
+    *list of strings*
 
 Finally, in the case of multi-evacuate, there's one single request
 argument (in addition to ``type``):

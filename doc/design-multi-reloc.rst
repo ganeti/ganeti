@@ -23,38 +23,39 @@ groups so that, for example, it is possible to move a set of instances
 to another group for policy reasons, or completely empty a given group
 to perform maintenance operations.
 
-To implement this, we propose a new ``multi-relocate`` IAllocator call
-that will be able to compute inter-group instance moves, taking into
-account mobility domains as appropriate. The interface proposed below
-should be enough to cover the use cases mentioned above.
+To implement this, we propose the addition of new IAllocator calls to
+compute inter-group instance moves and group-aware node evacuation,
+taking into account mobility domains as appropriate. The interface
+proposed below should be enough to cover the use cases mentioned above.
+
+With the implementation of this design proposal, the previous
+``multi-evacuate`` mode will be deprecated.
 
 .. _multi-reloc-detailed-design:
 
 Detailed design
 ===============
 
-We introduce a new ``multi-relocate`` IAllocator call whose input will
-be a list of instances to move, and a "mode of operation" that will
-determine what groups will be candidates to receive the new instances.
+All requests honor the groups' ``alloc_policy`` attribute.
 
-The mode of operation will be one of:
+Changing instance's groups
+--------------------------
 
-- *Stay in group*: the instances will be moved off their current nodes,
-  but will stay in the same group; this is what the ``relocate`` call
-  does, but here it can act on multiple instances. (Typically, the
-  source nodes will be marked as drained, to avoid just exchanging
-  instances among them.)
+Takes a list of instances and a list of node group UUIDs; the instances
+will be moved away from their current group, to any of the groups in the
+target list. All instances need to have their primary node in the same
+group, which may not be a target group. If the target group list is
+empty, the request is simply "change group" and the instances are placed
+in any group but their original one.
 
-- *Change group*: this mode accepts one extra parameter, a list of node
-  group UUIDs; the instances will be moved away from their current
-  group, to any of the groups in this list. If the list is empty, the
-  request is, simply, "change group": the instances are placed in any
-  group but their original one.
+Node evacuation
+---------------
 
-- *Any*: for each instance, any group is valid, including its current
-  one.
-
-In all modes, the groups' ``alloc_policy`` attribute will be honored.
+Evacuates instances off their primary nodes. The evacuation mode
+can be given as ``primary-only``, ``secondary-only`` or
+``all``. The call is given a list of instances whose primary nodes need
+to be in the same node group. The returned nodes need to be in the same
+group as the original primary node.
 
 .. _multi-reloc-result:
 
@@ -66,8 +67,17 @@ of **replace secondary**, **migration** and **failover** operations
 (when shared storage is used, they will all be failover or migration
 operations within the corresponding mobility domain).
 
-The result is expected to be a list of jobsets. Each jobset contains
-lists of serialized opcodes. Example::
+The result of the operations described above must contain two lists of
+instances and a list of jobsets.
+
+The two lists of instances describe which instances could be
+moved/migrated and which couldn't for some reason ("unsuccessful"). The
+union of the two lists must be equal to the set of instances given in
+the original request.
+
+The list of jobsets contained in the result describe how to actually
+execute the operation. Each jobset contains lists of serialized opcodes.
+Example::
 
   [
     [
@@ -101,8 +111,8 @@ Accepted opcodes:
 Starting with the first set, Ganeti will submit all jobs of a set at the
 same time, enabling execution in parallel. Upon completion of all jobs
 in a set, the process is repeated for the next one. Ganeti is at liberty
-to abort the execution of the relocation after any jobset. In such a
-case the user is notified and can restart the relocation.
+to abort the execution after any jobset. In such a case the user is
+notified and can restart the operation.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
