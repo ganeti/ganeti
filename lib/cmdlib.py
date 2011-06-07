@@ -1262,7 +1262,7 @@ class LUClusterDestroy(LogicalUnit):
 
 
 def _VerifyCertificate(filename):
-  """Verifies a certificate for LUClusterVerifyConfig.
+  """Verifies a certificate for L{LUClusterVerifyConfig}.
 
   @type filename: string
   @param filename: Path to PEM file
@@ -1414,7 +1414,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
   """Verifies the cluster config.
 
   """
-  REQ_BGL = False
+  REQ_BGL = True
 
   def _VerifyHVP(self, hvp_data):
     """Verifies locally the syntax of the hypervisor parameters.
@@ -1431,6 +1431,8 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
         self._ErrorIf(True, self.ECLUSTERCFG, None, msg % str(err))
 
   def ExpandNames(self):
+    # Information can be safely retrieved as the BGL is acquired in exclusive
+    # mode
     self.all_group_info = self.cfg.GetAllNodeGroupsInfo()
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
@@ -1462,7 +1464,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     feedback_fn("* Verifying all nodes belong to an existing group")
 
     # We do this verification here because, should this bogus circumstance
-    # occur, it would never be catched by VerifyGroup, which only acts on
+    # occur, it would never be caught by VerifyGroup, which only acts on
     # nodes/instances reachable from existing node groups.
 
     dangling_nodes = set(node.name for node in self.all_node_info.values()
