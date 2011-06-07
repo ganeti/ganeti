@@ -8594,8 +8594,11 @@ class LUInstanceCreate(LogicalUnit):
                             hvparams=self.op.hvparams,
                             hypervisor=self.op.hypervisor,
                             osparams=self.op.osparams,
-                            tags=self.op.tags,
                             )
+
+    if self.op.tags:
+      for tag in self.op.tags:
+        iobj.AddTag(tag)
 
     if self.adopt_disks:
       if self.op.disk_template == constants.DT_PLAIN:

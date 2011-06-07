@@ -1233,6 +1233,7 @@ COMMON_CREATE_OPTS = [
   OSPARAMS_OPT,
   OS_SIZE_OPT,
   SUBMIT_OPT,
+  TAG_ADD_OPT,
   DRY_RUN_OPT,
   PRIORITY_OPT,
   ]
@@ -2119,7 +2120,7 @@ def GenericInstanceCreate(mode, opts, args):
       disks[didx] = ddict
 
   if opts.tags is not None:
-    tags = opts.tags.split(',')
+    tags = opts.tags.split(",")
   else:
     tags = []
 
