@@ -1561,45 +1561,39 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # This raises errors.OpPrereqError on its own:
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
-    all_node_info = self.cfg.GetAllNodesInfo()
-    all_inst_info = self.cfg.GetAllInstancesInfo()
-
-    node_names = set(node.name
-                     for node in all_node_info.values()
-                     if node.group == self.group_uuid)
-
-    inst_names = [inst.name
-                  for inst in all_inst_info.values()
-                  if inst.primary_node in node_names]
-
-    # In Exec(), we warn about mirrored instances that have primary and
-    # secondary living in separate node groups. To fully verify that
-    # volumes for these instances are healthy, we will need to do an
-    # extra call to their secondaries. We ensure here those nodes will
-    # be locked.
-    for inst in inst_names:
-      if all_inst_info[inst].disk_template in constants.DTS_INT_MIRROR:
-        node_names.update(all_inst_info[inst].secondary_nodes)
+    # Get instances in node group; this is unsafe and needs verification later
+    inst_names = self.cfg.GetNodeGroupInstances(self.group_uuid)
 
     self.needed_locks = {
-      locking.LEVEL_NODEGROUP: [self.group_uuid],
-      locking.LEVEL_NODE: list(node_names),
       locking.LEVEL_INSTANCE: inst_names,
-    }
+      locking.LEVEL_NODEGROUP: [self.group_uuid],
+      locking.LEVEL_NODE: [],
+      }
 
     self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      # Get members of node group; this is unsafe and needs verification later
+      nodes = set(self.cfg.GetNodeGroup(self.group_uuid).members)
+
+      all_inst_info = self.cfg.GetAllInstancesInfo()
+
+      # In Exec(), we warn about mirrored instances that have primary and
+      # secondary living in separate node groups. To fully verify that
+      # volumes for these instances are healthy, we will need to do an
+      # extra call to their secondaries. We ensure here those nodes will
+      # be locked.
+      for inst in self.glm.list_owned(locking.LEVEL_INSTANCE):
+        # Important: access only the instances whose lock is owned
+        if all_inst_info[inst].disk_template in constants.DTS_INT_MIRROR:
+          nodes.update(all_inst_info[inst].secondary_nodes)
+
+      self.needed_locks[locking.LEVEL_NODE] = nodes
+
   def CheckPrereq(self):
-    self.all_node_info = self.cfg.GetAllNodesInfo()
-    self.all_inst_info = self.cfg.GetAllInstancesInfo()
-
-    group_nodes = set(node.name
-                      for node in self.all_node_info.values()
-                      if node.group == self.group_uuid)
-
-    group_instances = set(inst.name
-                          for inst in self.all_inst_info.values()
-                          if inst.primary_node in group_nodes)
+    group_nodes = set(self.cfg.GetNodeGroup(self.group_uuid).members)
+    group_instances = self.cfg.GetNodeGroupInstances(self.group_uuid)
 
     unlocked_nodes = \
         group_nodes.difference(self.glm.list_owned(locking.LEVEL_NODE))
@@ -1608,12 +1602,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         group_instances.difference(self.glm.list_owned(locking.LEVEL_INSTANCE))
 
     if unlocked_nodes:
-      raise errors.OpPrereqError("missing lock for nodes: %s" %
+      raise errors.OpPrereqError("Missing lock for nodes: %s" %
                                  utils.CommaJoin(unlocked_nodes))
 
     if unlocked_instances:
-      raise errors.OpPrereqError("missing lock for instances: %s" %
+      raise errors.OpPrereqError("Missing lock for instances: %s" %
                                  utils.CommaJoin(unlocked_instances))
+
+    self.all_node_info = self.cfg.GetAllNodesInfo()
+    self.all_inst_info = self.cfg.GetAllInstancesInfo()
 
     self.my_node_names = utils.NiceSort(group_nodes)
     self.my_inst_names = utils.NiceSort(group_instances)
@@ -2567,6 +2564,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     all_nvinfo = self.rpc.call_node_verify(self.my_node_names,
                                            node_verify_param,
                                            self.cfg.GetClusterName())
+    nvinfo_endtime = time.time()
+
     if self.extra_lv_nodes and vg_name is not None:
       extra_lv_nvinfo = \
           self.rpc.call_node_verify(self.extra_lv_nodes,
@@ -2574,7 +2573,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                     self.cfg.GetClusterName())
     else:
       extra_lv_nvinfo = {}
-    nvinfo_endtime = time.time()
 
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
