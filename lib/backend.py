@@ -2330,6 +2330,7 @@ def FinalizeExport(instance, snap_disks):
              instance.beparams[constants.BE_VCPUS])
   config.set(constants.INISECT_INS, 'disk_template', instance.disk_template)
   config.set(constants.INISECT_INS, 'hypervisor', instance.hypervisor)
+  config.set(constants.INISECT_INS, "tags", " ".join(instance.GetTags()))
 
   nic_total = 0
   for nic_count, nic in enumerate(instance.nics):

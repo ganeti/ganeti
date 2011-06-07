@@ -8167,9 +8167,13 @@ class LUInstanceCreate(LogicalUnit):
         nics.append(ndict)
       self.op.nics = nics
 
+    if not self.op.tags and einfo.has_option(constants.INISECT_INS, "tags"):
+      self.op.tags = einfo.get(constants.INISECT_INS, "tags").split()
+
     if (self.op.hypervisor is None and
         einfo.has_option(constants.INISECT_INS, "hypervisor")):
       self.op.hypervisor = einfo.get(constants.INISECT_INS, "hypervisor")
+
     if einfo.has_section(constants.INISECT_HYP):
       # use the export parameters but do not override the ones
       # specified by the user
