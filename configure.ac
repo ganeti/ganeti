@@ -359,7 +359,11 @@ else
   AC_SUBST(GHC_PKG_CURL)
   AC_SUBST(HTOOLS_NOCURL)
   AC_MSG_CHECKING([parallel])
-  GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-2.*')
+  GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-3.*')
+  if test -z "$GHC_PKG_PARALLEL"
+  then
+    GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-2.*')
+  fi
   if test -z "$GHC_PKG_PARALLEL"
   then
     GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-1.*')
