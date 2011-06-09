@@ -210,8 +210,10 @@ class TestGenerateSelfSignedX509Cert(unittest.TestCase):
 
   def _checkRsaPrivateKey(self, key):
     lines = key.splitlines()
-    return ("-----BEGIN RSA PRIVATE KEY-----" in lines and
-            "-----END RSA PRIVATE KEY-----" in lines)
+    return (("-----BEGIN RSA PRIVATE KEY-----" in lines and
+             "-----END RSA PRIVATE KEY-----" in lines) or
+            ("-----BEGIN PRIVATE KEY-----" in lines and
+             "-----END PRIVATE KEY-----" in lines))
 
   def _checkCertificate(self, cert):
     lines = cert.splitlines()
