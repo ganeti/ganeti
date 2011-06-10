@@ -199,7 +199,7 @@ oEvacMode = Option "E" ["evac-mode"]
 oExInst :: OptType
 oExInst = Option "" ["exclude-instances"]
           (ReqArg (\ f opts -> Ok opts { optExInst = sepSplit ',' f }) "INSTS")
-          "exclude given instances  from any moves"
+          "exclude given instances from any moves"
 
 oExTags :: OptType
 oExTags = Option "" ["exclusion-tags"]
