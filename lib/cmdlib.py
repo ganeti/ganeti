@@ -8422,6 +8422,12 @@ class TLReplaceDisks(Tasklet):
                                  (node_name, self.instance.name))
 
   def _CreateNewStorage(self, node_name):
+    """Create new storage on the primary or secondary node.
+
+    This is only used for same-node replaces, not for changing the
+    secondary node, hence we don't want to modify the existing disk.
+
+    """
     iv_names = {}
 
     for idx, dev in enumerate(self.instance.disks):
@@ -8443,7 +8449,7 @@ class TLReplaceDisks(Tasklet):
                              logical_id=(vg_meta, names[1]))
 
       new_lvs = [lv_data, lv_meta]
-      old_lvs = dev.children
+      old_lvs = [child.Copy() for child in dev.children]
       iv_names[dev.iv_name] = (dev, old_lvs, new_lvs)
 
       # we pass force_create=True to force the LVM creation
@@ -8568,10 +8574,14 @@ class TLReplaceDisks(Tasklet):
                                              rename_new_to_old)
       result.Raise("Can't rename new LVs on node %s" % self.target_node)
 
+      # Intermediate steps of in memory modifications
       for old, new in zip(old_lvs, new_lvs):
         new.logical_id = old.logical_id
         self.cfg.SetDiskID(new, self.target_node)
 
+      # We need to modify old_lvs so that removal later removes the
+      # right LVs, not the newly added ones; note that old_lvs is a
+      # copy here
       for disk in old_lvs:
         disk.logical_id = ren_fn(disk, temp_suffix)
         self.cfg.SetDiskID(disk, self.target_node)
@@ -8590,10 +8600,6 @@ class TLReplaceDisks(Tasklet):
                                hint=("cleanup manually the unused logical"
                                      "volumes"))
         raise errors.OpExecError("Can't add local storage to drbd: %s" % msg)
-
-      dev.children = new_lvs
-
-      self.cfg.Update(self.instance, feedback_fn)
 
     cstep = 5
     if self.early_release:
