@@ -30,6 +30,7 @@ Algorithm options:
 **[ --no-instance-moves ]**
 **[ -U *util-file* ]**
 **[ --evac-mode ]**
+**[ --select-instances *inst...* ]**
 **[ --exclude-instances *inst...* ]**
 
 Reporting options:
@@ -368,6 +369,10 @@ The options that can be passed to the program are as follows:
   to the ones living on offline/drained nodes. It can be used as a
   (bulk) replacement for Ganeti's own *gnt-node evacuate*, with the
   note that it doesn't guarantee full evacuation.
+
+--select-instances=*instances*
+  This parameter marks the given instances (as a comma-separated list)
+  as the only ones being moved during the rebalance.
 
 --exclude-instances=*instances*
   This parameter marks the given instances (as a comma-separated list)
