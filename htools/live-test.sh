@@ -85,9 +85,11 @@ echo "$FI 2 2 2 2" > $T/util.data
 echo Testing hbal/text with bad utilization data
 echo "$FI 2 a 3b" > $T/util.data
 ! ./hbal -t$T/$RAPI.data $GROUP -U $T/util.data
-echo Testing hbal/text with instance exclusion
+echo Testing hbal/text with instance exclusion/selection
 ./hbal -t$T/$RAPI.data $GROUP --exclude-instances=$FI
+./hbal -t$T/$RAPI.data $GROUP --select-instances=$FI
 ! ./hbal -t$T/$RAPI.data --exclude-instances=no_such_instance
+! ./hbal -t$T/$RAPI.data --select-instances=no_such_instance
 echo Testing hbal/text with tag exclusion
 ./hbal -t $T/$RAPI.data $GROUP --exclusion-tags=no_such_tag
 echo Testing hbal multiple backend failure
