@@ -38,6 +38,7 @@ module Ganeti.HTools.CLI
     -- * The options
     , oDataFile
     , oDiskMoves
+    , oSelInst
     , oInstMoves
     , oDynuFile
     , oEvacMode
@@ -102,6 +103,7 @@ data Options = Options
     , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
     , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
     , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
+    , optSelInst     :: [String]       -- ^ Instances to be excluded
     , optINodes      :: Int            -- ^ Nodes required for an instance
     , optISpec       :: RSpec          -- ^ Requested instance specs
     , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
@@ -139,6 +141,7 @@ defaultOptions  = Options
  , optExTags      = Nothing
  , optExecJobs    = False
  , optGroup       = Nothing
+ , optSelInst     = []
  , optINodes      = 2
  , optISpec       = RSpec 1 4096 102400
  , optLuxi        = Nothing
@@ -177,6 +180,11 @@ oDiskMoves = Option "" ["no-disk-moves"]
              (NoArg (\ opts -> Ok opts { optDiskMoves = False}))
              "disallow disk moves from the list of allowed instance changes,\
              \ thus allowing only the 'cheap' failover/migrate operations"
+
+oSelInst :: OptType
+oSelInst = Option "" ["select-instances"]
+          (ReqArg (\ f opts -> Ok opts { optSelInst = sepSplit ',' f }) "INSTS")
+          "only select given instances for any moves"
 
 oInstMoves :: OptType
 oInstMoves = Option "" ["no-instance-moves"]

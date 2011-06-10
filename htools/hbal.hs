@@ -77,6 +77,7 @@ options =
     , oMinGain
     , oMinGainLim
     , oDiskMoves
+    , oSelInst
     , oInstMoves
     , oDynuFile
     , oExTags
