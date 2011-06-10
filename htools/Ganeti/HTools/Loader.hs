@@ -190,10 +190,11 @@ commonSuffix nl il =
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
-          -> [String]             -- ^ Untouchable instances
+          -> [String]             -- ^ Selected instances (if not empty)
+          -> [String]             -- ^ Excluded instances
           -> ClusterData          -- ^ Data from backends
           -> Result ClusterData   -- ^ Fixed cluster data
-mergeData um extags exinsts cdata@(ClusterData _ nl il2 tags) =
+mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags) =
   let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of

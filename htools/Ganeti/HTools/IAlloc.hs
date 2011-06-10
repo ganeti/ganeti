@@ -148,7 +148,7 @@ parseData body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
-  cdata <- mergeData [] [] [] (ClusterData gl nl il ctags)
+  cdata <- mergeData [] [] [] [] (ClusterData gl nl il ctags)
   let map_n = cdNodes cdata
       map_i = cdInstances cdata
       map_g = cdGroups cdata

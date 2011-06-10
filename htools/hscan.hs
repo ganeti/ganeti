@@ -87,7 +87,7 @@ fixSlash = map (\x -> if x == '/' then '_' else x)
 -- | Generates serialized data from loader input.
 processData :: ClusterData -> Result ClusterData
 processData input_data = do
-  cdata@(ClusterData _ nl il _) <- mergeData [] [] [] input_data
+  cdata@(ClusterData _ nl il _) <- mergeData [] [] [] [] input_data
   let (_, fix_nl) = checkData nl il
   return cdata { cdNodes = fix_nl }
 

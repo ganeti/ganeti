@@ -85,6 +85,7 @@ loadExternalData opts = do
       exTags = case optExTags opts of
                  Nothing -> []
                  Just etl -> map (++ ":") etl
+      selInsts = optSelInst opts
       exInsts = optExInst opts
 
   when (length allSet > 1) $
@@ -111,7 +112,7 @@ loadExternalData opts = do
           | setFile -> wrapIO $ Text.loadData $ fromJust tfile
           | otherwise -> return $ Bad "No backend selected! Exiting."
 
-  let ldresult = input_data >>= mergeData util_data' exTags exInsts
+  let ldresult = input_data >>= mergeData util_data' exTags selInsts exInsts
   cdata <-
       (case ldresult of
          Ok x -> return x
