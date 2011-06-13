@@ -221,7 +221,10 @@ mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags) =
   in if not $ all (`elem` all_inst_names) exinsts
      then Bad $ "Some of the excluded instances are unknown: " ++
           show (exinsts \\ all_inst_names)
-     else Ok cdata { cdNodes = snl, cdInstances = sil }
+     else if not $ all (`elem` all_inst_names) selinsts
+          then Bad $ "Some of the selected instances are unknown: " ++
+               show (selinsts \\ all_inst_names)
+          else Ok cdata { cdNodes = snl, cdInstances = sil }
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List
