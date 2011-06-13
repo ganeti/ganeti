@@ -156,10 +156,14 @@ filterExTags tl inst =
     in inst { Instance.tags = new_tags }
 
 -- | Update the movable attribute
-updateMovable :: [String] -> Instance.Instance -> Instance.Instance
-updateMovable exinst inst =
+updateMovable :: [String]           -- ^ Selected instances (if not empty)
+              -> [String]           -- ^ Excluded instances
+              -> Instance.Instance  -- ^ Target Instance
+              -> Instance.Instance  -- ^ Target Instance with updated attribute
+updateMovable selinsts exinsts inst =
     if Instance.sNode inst == Node.noSecondary ||
-       Instance.name inst `elem` exinst
+       Instance.name inst `elem` exinsts ||
+       not (null selinsts || Instance.name inst `elem` selinsts)
     then Instance.setMovable inst False
     else inst
 
@@ -205,7 +209,7 @@ mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags) =
                    ) il2 um
       allextags = extags ++ extractExTags tags
       il4 = Container.map (filterExTags allextags .
-                           updateMovable exinsts) il3
+                           updateMovable selinsts exinsts) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
       nl3 = Container.map (flip Node.buildPeers il4) nl2
       node_names = map Node.name (Container.elems nl)
