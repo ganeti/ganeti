@@ -173,7 +173,7 @@ def TestAllocator(opts, args):
                                tags=opts.tags,
                                direction=opts.direction,
                                allocator=opts.iallocator,
-                               reloc_mode=opts.reloc_mode,
+                               evac_mode=opts.evac_mode,
                                target_groups=target_groups)
   result = SubmitOpCode(op, opts=opts)
   ToStdout("%s" % result)
@@ -582,11 +582,12 @@ commands = {
                 help="Select number of VCPUs for the instance"),
      cli_option("--tags", default=None,
                 help="Comma separated list of tags"),
-     cli_option("--reloc-mode", default=constants.IALLOCATOR_MRELOC_ANY,
-                choices=list(constants.IALLOCATOR_MRELOC_MODES),
-                help=("Instance relocation mode (one of %s)" %
-                      utils.CommaJoin(constants.IALLOCATOR_MRELOC_MODES))),
-     cli_option("--target-groups", help="Target groups for relocation"),
+     cli_option("--evac-mode", default=constants.IALLOCATOR_NEVAC_ALL,
+                choices=list(constants.IALLOCATOR_NEVAC_MODES),
+                help=("Node evacuation mode (one of %s)" %
+                      utils.CommaJoin(constants.IALLOCATOR_NEVAC_MODES))),
+     cli_option("--target-groups", help="Target groups for relocation",
+                default=[], action="append"),
      DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "{opts...} <instance>", "Executes a TestAllocator OpCode"),

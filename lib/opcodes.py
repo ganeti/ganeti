@@ -1456,8 +1456,8 @@ class OpTestAllocator(OpCode):
      None),
     ("instances", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
      None),
-    ("reloc_mode", None,
-     ht.TOr(ht.TNone, ht.TElemOf(constants.IALLOCATOR_MRELOC_MODES)), None),
+    ("evac_mode", None,
+     ht.TOr(ht.TNone, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)), None),
     ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
      None),
     ]

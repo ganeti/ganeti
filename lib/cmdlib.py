@@ -12033,7 +12033,7 @@ class IAllocator(object):
     self.name = None
     self.evac_nodes = None
     self.instances = None
-    self.reloc_mode = None
+    self.evac_mode = None
     self.target_groups = []
     # computed fields
     self.required_nodes = None
@@ -12087,8 +12087,7 @@ class IAllocator(object):
       hypervisor_name = self.hypervisor
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       hypervisor_name = cfg.GetInstanceInfo(self.name).hypervisor
-    elif self.mode in (constants.IALLOCATOR_MODE_MEVAC,
-                       constants.IALLOCATOR_MODE_MRELOC):
+    else:
       hypervisor_name = cluster_info.enabled_hypervisors[0]
 
     node_data = self.rpc.call_node_info(node_list, cfg.GetVGName(),
@@ -12323,13 +12322,21 @@ class IAllocator(object):
       }
     return request
 
-  def _AddMultiRelocate(self):
-    """Get data for multi-relocate requests.
+  def _AddNodeEvacuate(self):
+    """Get data for node-evacuate requests.
 
     """
     return {
       "instances": self.instances,
-      "reloc_mode": self.reloc_mode,
+      "evac_mode": self.evac_mode,
+      }
+
+  def _AddChangeGroup(self):
+    """Get data for node-evacuate requests.
+
+    """
+    return {
+      "instances": self.instances,
       "target_groups": self.target_groups,
       }
 
@@ -12355,6 +12362,13 @@ class IAllocator(object):
     self.in_text = serializer.Dump(self.in_data)
 
   _STRING_LIST = ht.TListOf(ht.TString)
+  _JOBSET_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
+     # pylint: disable-msg=E1101
+     # Class '...' has no 'OP_ID' member
+     "OP_ID": ht.TElemOf([opcodes.OpInstanceFailover.OP_ID,
+                          opcodes.OpInstanceMigrate.OP_ID,
+                          opcodes.OpInstanceReplaceDisks.OP_ID])
+     })))
   _MODE_DATA = {
     constants.IALLOCATOR_MODE_ALLOC:
       (_AddNewInstance,
@@ -12376,19 +12390,16 @@ class IAllocator(object):
     constants.IALLOCATOR_MODE_MEVAC:
       (_AddEvacuateNodes, [("evac_nodes", _STRING_LIST)],
        ht.TListOf(ht.TAnd(ht.TIsLength(2), _STRING_LIST))),
-    constants.IALLOCATOR_MODE_MRELOC:
-      (_AddMultiRelocate, [
+     constants.IALLOCATOR_MODE_NODE_EVAC:
+      (_AddNodeEvacuate, [
         ("instances", _STRING_LIST),
-        ("reloc_mode", ht.TElemOf(constants.IALLOCATOR_MRELOC_MODES)),
+        ("evac_mode", ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)),
+        ], _JOBSET_LIST),
+     constants.IALLOCATOR_MODE_CHG_GROUP:
+      (_AddChangeGroup, [
+        ("instances", _STRING_LIST),
         ("target_groups", _STRING_LIST),
-        ],
-       ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
-         # pylint: disable-msg=E1101
-         # Class '...' has no 'OP_ID' member
-         "OP_ID": ht.TElemOf([opcodes.OpInstanceFailover.OP_ID,
-                              opcodes.OpInstanceMigrate.OP_ID,
-                              opcodes.OpInstanceReplaceDisks.OP_ID])
-         })))),
+        ], _JOBSET_LIST),
     }
 
   def Run(self, name, validate=True, call_fn=None):
@@ -12553,12 +12564,11 @@ class LUTestAllocator(NoHooksLU):
       if not hasattr(self.op, "evac_nodes"):
         raise errors.OpPrereqError("Missing attribute 'evac_nodes' on"
                                    " opcode input", errors.ECODE_INVAL)
-    elif self.op.mode == constants.IALLOCATOR_MODE_MRELOC:
-      if self.op.instances:
-        self.op.instances = _GetWantedInstances(self, self.op.instances)
-      else:
-        raise errors.OpPrereqError("Missing instances to relocate",
-                                   errors.ECODE_INVAL)
+    elif self.op.mode in (constants.IALLOCATOR_MODE_CHG_GROUP,
+                          constants.IALLOCATOR_MODE_NODE_EVAC):
+      if not self.op.instances:
+        raise errors.OpPrereqError("Missing instances", errors.ECODE_INVAL)
+      self.op.instances = _GetWantedInstances(self, self.op.instances)
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
@@ -12598,12 +12608,16 @@ class LUTestAllocator(NoHooksLU):
       ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        evac_nodes=self.op.evac_nodes)
-    elif self.op.mode == constants.IALLOCATOR_MODE_MRELOC:
+    elif self.op.mode == constants.IALLOCATOR_MODE_CHG_GROUP:
       ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        instances=self.op.instances,
-                       reloc_mode=self.op.reloc_mode,
                        target_groups=self.op.target_groups)
+    elif self.op.mode == constants.IALLOCATOR_MODE_NODE_EVAC:
+      ial = IAllocator(self.cfg, self.rpc,
+                       mode=self.op.mode,
+                       instances=self.op.instances,
+                       evac_mode=self.op.evac_mode)
     else:
       raise errors.ProgrammerError("Uncatched mode %s in"
                                    " LUTestAllocator.Exec", self.op.mode)

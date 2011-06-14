@@ -291,7 +291,6 @@ As for ``node-evacuate``, it needs the following request arguments:
     specify which instances to evacuate; one of ``primary-only``,
     ``secondary-only``, ``all``, type *string*
 
-
 ``change-group`` needs the following request arguments:
 
   instances
