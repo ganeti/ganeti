@@ -22,6 +22,7 @@ Contents:
    design-htools-2.3.rst
    design-2.4.rst
    design-draft.rst
+   design-network.rst
    cluster-merge.rst
    design-shared-storage.rst
    locking.rst
