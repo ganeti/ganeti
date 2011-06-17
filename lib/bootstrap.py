@@ -221,14 +221,11 @@ def _InitFileStorage(file_storage_dir):
       time) or the normalized path to the storage directory
 
   """
-  if not constants.ENABLE_FILE_STORAGE:
-    return ""
-
   file_storage_dir = os.path.normpath(file_storage_dir)
 
   if not os.path.isabs(file_storage_dir):
-    raise errors.OpPrereqError("The file storage directory you passed is"
-                               " not an absolute path.", errors.ECODE_INVAL)
+    raise errors.OpPrereqError("File storage directory '%s' is not an absolute"
+                               " path" % file_storage_dir, errors.ECODE_INVAL)
 
   if not os.path.exists(file_storage_dir):
     try:
@@ -243,39 +240,6 @@ def _InitFileStorage(file_storage_dir):
                                " a directory." % file_storage_dir,
                                errors.ECODE_ENVIRON)
   return file_storage_dir
-
-
-def _InitSharedFileStorage(shared_file_storage_dir):
-  """Initialize if needed the shared file storage.
-
-  @param shared_file_storage_dir: the user-supplied value
-  @return: either empty string (if file storage was disabled at build
-      time) or the normalized path to the storage directory
-
-  """
-  if not constants.ENABLE_SHARED_FILE_STORAGE:
-    return ""
-
-  shared_file_storage_dir = os.path.normpath(shared_file_storage_dir)
-
-  if not os.path.isabs(shared_file_storage_dir):
-    raise errors.OpPrereqError("The shared file storage directory you"
-                               " passed is not an absolute path.",
-                               errors.ECODE_INVAL)
-
-  if not os.path.exists(shared_file_storage_dir):
-    try:
-      os.makedirs(shared_file_storage_dir, 0750)
-    except OSError, err:
-      raise errors.OpPrereqError("Cannot create file storage directory"
-                                 " '%s': %s" % (shared_file_storage_dir, err),
-                                 errors.ECODE_ENVIRON)
-
-  if not os.path.isdir(shared_file_storage_dir):
-    raise errors.OpPrereqError("The file storage directory '%s' is not"
-                               " a directory." % shared_file_storage_dir,
-                               errors.ECODE_ENVIRON)
-  return shared_file_storage_dir
 
 
 def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
@@ -379,8 +343,15 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
                                                              curr_helper),
                                  errors.ECODE_INVAL)
 
-  file_storage_dir = _InitFileStorage(file_storage_dir)
-  shared_file_storage_dir = _InitSharedFileStorage(shared_file_storage_dir)
+  if constants.ENABLE_FILE_STORAGE:
+    file_storage_dir = _InitFileStorage(file_storage_dir)
+  else:
+    file_storage_dir = ""
+
+  if constants.ENABLE_SHARED_FILE_STORAGE:
+    shared_file_storage_dir = _InitFileStorage(shared_file_storage_dir)
+  else:
+    shared_file_storage_dir = ""
 
   if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$", mac_prefix):
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,
