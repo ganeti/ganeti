@@ -7096,6 +7096,10 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpPrereqError("Invalid file driver name '%s'" %
                                  self.op.file_driver, errors.ECODE_INVAL)
 
+    if (self.op.disk_template == constants.DT_FILE and
+        not constants.ENABLE_FILE_STORAGE):
+      raise errors.OpPrereqError("File storage disabled")
+
     ### Node/iallocator related checks
     _CheckIAllocatorOrNode(self, "iallocator", "pnode")
 
