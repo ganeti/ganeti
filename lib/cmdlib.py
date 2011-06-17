@@ -8251,6 +8251,8 @@ class LUInstanceCreate(LogicalUnit):
       if self.op.file_storage_dir is not None:
         joinargs.append(self.op.file_storage_dir)
 
+      joinargs.append(self.op.instance_name)
+
       # pylint: disable-msg=W0142
       self.instance_file_storage_dir = utils.PathJoin(*joinargs)
 
