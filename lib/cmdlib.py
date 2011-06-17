@@ -7096,10 +7096,6 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpPrereqError("Invalid file driver name '%s'" %
                                  self.op.file_driver, errors.ECODE_INVAL)
 
-    if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
-      raise errors.OpPrereqError("File storage directory path not absolute",
-                                 errors.ECODE_INVAL)
-
     ### Node/iallocator related checks
     _CheckIAllocatorOrNode(self, "iallocator", "pnode")
 
