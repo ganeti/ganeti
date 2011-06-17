@@ -7446,10 +7446,33 @@ class LUInstanceCreate(LogicalUnit):
       if name in os_defs and os_defs[name] == self.op.osparams[name]:
         del self.op.osparams[name]
 
+  def _CalculateFileStorageDir(self):
+    """Calculate final instance file storage dir.
+
+    """
+    # file storage dir calculation/check
+    self.instance_file_storage_dir = None
+    if self.op.disk_template == constants.DT_FILE:
+      # build the full file storage dir path
+      joinargs = []
+
+      cfg_storagedir = self.cfg.GetFileStorageDir()
+      if not cfg_storagedir:
+        raise errors.OpPrereqError("Cluster file storage dir not defined")
+      joinargs.append(cfg_storagedir)
+
+      if self.op.file_storage_dir is not None:
+        joinargs.append(self.op.file_storage_dir)
+
+      # pylint: disable-msg=W0142
+      self.instance_file_storage_dir = utils.PathJoin(*joinargs)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
+    self._CalculateFileStorageDir()
+
     if self.op.mode == constants.INSTANCE_IMPORT:
       export_info = self._ReadExportInfo()
       self._ReadExportParams(export_info)
@@ -7747,25 +7770,12 @@ class LUInstanceCreate(LogicalUnit):
     else:
       network_port = None
 
-    if constants.ENABLE_FILE_STORAGE:
-      # this is needed because os.path.join does not accept None arguments
-      if self.op.file_storage_dir is None:
-        string_file_storage_dir = ""
-      else:
-        string_file_storage_dir = self.op.file_storage_dir
-
-      # build the full file storage dir path
-      file_storage_dir = utils.PathJoin(self.cfg.GetFileStorageDir(),
-                                        string_file_storage_dir, instance)
-    else:
-      file_storage_dir = ""
-
     disks = _GenerateDiskTemplate(self,
                                   self.op.disk_template,
                                   instance, pnode_name,
                                   self.secondaries,
                                   self.disks,
-                                  file_storage_dir,
+                                  self.instance_file_storage_dir,
                                   self.op.file_driver,
                                   0,
                                   feedback_fn)
