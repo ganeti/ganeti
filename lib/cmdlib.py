@@ -6158,7 +6158,7 @@ class LUInstanceRename(LogicalUnit):
     old_name = inst.name
 
     rename_file_storage = False
-    if (inst.disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE) and
+    if (inst.disk_template in constants.DTS_FILEBASED and
         self.op.new_name != inst.name):
       old_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
       rename_file_storage = True
@@ -7591,7 +7591,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     pnode = target_node
     all_nodes = [pnode]
 
-  if instance.disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE):
+  if instance.disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_create(pnode, file_storage_dir)
 

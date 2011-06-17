@@ -388,6 +388,8 @@ DTS_MUST_ADOPT = frozenset([DT_BLOCK])
 # the set of disk templates that allow migrations
 DTS_MIRRORED = frozenset.union(DTS_INT_MIRROR, DTS_EXT_MIRROR)
 
+# the set of file based disk templates
+DTS_FILEBASED = frozenset([DT_FILE, DT_SHARED_FILE])
 
 # logical disk types
 LD_LV = "lvm"
