@@ -7864,9 +7864,12 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpPrereqError("Invalid file driver name '%s'" %
                                  self.op.file_driver, errors.ECODE_INVAL)
 
-    if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
-      raise errors.OpPrereqError("File storage directory path not absolute",
-                                 errors.ECODE_INVAL)
+    if (self.op.disk_template == constants.DT_FILE and
+        not constants.ENABLE_FILE_STORAGE):
+      raise errors.OpPrereqError("File storage disabled")
+    elif (self.op.disk_template == constants.DT_SHARED_FILE and
+          not constants.ENABLE_SHARED_FILE_STORAGE):
+      raise errors.OpPrereqError("Shared file storage disabled")
 
     ### Node/iallocator related checks
     _CheckIAllocatorOrNode(self, "iallocator", "pnode")
@@ -8225,10 +8228,38 @@ class LUInstanceCreate(LogicalUnit):
       if name in os_defs and os_defs[name] == self.op.osparams[name]:
         del self.op.osparams[name]
 
+  def _CalculateFileStorageDir(self):
+    """Calculate final instance file storage dir.
+
+    """
+    # file storage dir calculation/check
+    self.instance_file_storage_dir = None
+    if self.op.disk_template in constants.DTS_FILEBASED:
+      # build the full file storage dir path
+      joinargs = []
+
+      if self.op.disk_template == constants.DT_SHARED_FILE:
+        get_fsd_fn = self.cfg.GetSharedFileStorageDir
+      else:
+        get_fsd_fn = self.cfg.GetFileStorageDir
+
+      cfg_storagedir = get_fsd_fn()
+      if not cfg_storagedir:
+        raise errors.OpPrereqError("Cluster file storage dir not defined")
+      joinargs.append(cfg_storagedir)
+
+      if self.op.file_storage_dir is not None:
+        joinargs.append(self.op.file_storage_dir)
+
+      # pylint: disable-msg=W0142
+      self.instance_file_storage_dir = utils.PathJoin(*joinargs)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
+    self._CalculateFileStorageDir()
+
     if self.op.mode == constants.INSTANCE_IMPORT:
       export_info = self._ReadExportInfo()
       self._ReadExportParams(export_info)
@@ -8560,30 +8591,12 @@ class LUInstanceCreate(LogicalUnit):
     else:
       network_port = None
 
-    if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
-      # this is needed because os.path.join does not accept None arguments
-      if self.op.file_storage_dir is None:
-        string_file_storage_dir = ""
-      else:
-        string_file_storage_dir = self.op.file_storage_dir
-
-      # build the full file storage dir path
-      if self.op.disk_template == constants.DT_SHARED_FILE:
-        get_fsd_fn = self.cfg.GetSharedFileStorageDir
-      else:
-        get_fsd_fn = self.cfg.GetFileStorageDir
-
-      file_storage_dir = utils.PathJoin(get_fsd_fn(),
-                                        string_file_storage_dir, instance)
-    else:
-      file_storage_dir = ""
-
     disks = _GenerateDiskTemplate(self,
                                   self.op.disk_template,
                                   instance, pnode_name,
                                   self.secondaries,
                                   self.disks,
-                                  file_storage_dir,
+                                  self.instance_file_storage_dir,
                                   self.op.file_driver,
                                   0,
                                   feedback_fn)
