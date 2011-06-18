@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2010 Google Inc.
+Copyright (C) 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ module Ganeti.HTools.Group
     -- * Constructor
     , create
     , setIdx
+    , isAllocable
     ) where
 
 import qualified Ganeti.HTools.Container as Container
@@ -81,3 +82,7 @@ setIdx t i = t {idx = i}
 -- This is used only during the building of the data structures.
 setName :: Group -> String -> Group
 setName t s = t { name = s }
+
+-- | Checks if a group is allocable.
+isAllocable :: Group -> Bool
+isAllocable = (/= T.AllocUnallocable) . allocPolicy
