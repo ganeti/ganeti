@@ -37,7 +37,7 @@ document, plus:
 - `hlint <http://community.haskell.org/~ndm/hlint/>`_, a source code
   linter (equivalent to pylint for Python)
 - the `QuickCheck <http://hackage.haskell.org/package/QuickCheck>`_
-  library, version 1.x
+  library, version 2.x
 - ``hpc``, which comes with the compiler, so you should already have
   it
 

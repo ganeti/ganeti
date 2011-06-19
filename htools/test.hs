@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,43 +26,68 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Main(main) where
 
 import Data.IORef
-import Test.QuickCheck.Batch
+import Test.QuickCheck
 import System.IO
 import System.Exit
 import System (getArgs)
+import Text.Printf
 
 import Ganeti.HTools.QC
 
-fast :: TestOptions
-fast = TestOptions
-              { no_of_tests         = 500
-              , length_of_tests     = 10
-              , debug_tests         = False }
+fast :: Args
+fast = stdArgs
+       { maxSuccess = 500
+       , chatty     = False
+       }
 
-slow :: TestOptions
-slow = TestOptions
-              { no_of_tests         = 50
-              , length_of_tests     = 100
-              , debug_tests         = False }
+slow :: Args
+slow = stdArgs
+       { maxSuccess = 50
+       , chatty     = False
+       }
 
 incIORef :: IORef Int -> IO ()
 incIORef ir = atomicModifyIORef ir (\x -> (x + 1, ()))
 
 -- | Wrapper over a test runner with error counting
 wrapTest :: IORef Int
-         -> (TestOptions -> IO TestResult)
-         -> TestOptions -> IO TestResult
-wrapTest ir t to = do
-    tr <- t to
-    case tr of
-      TestFailed _ _ -> incIORef ir
-      TestAborted e -> do
-        incIORef ir
-        putStrLn ("Failure during test: <" ++ show e ++ ">")
-      _ -> return ()
-    return tr
+         -> (Args -> IO Result)
+         -> Args
+         -> IO (Result, Char)
+wrapTest ir test opts = do
+  r <- test opts
+  c <- case r of
+         Success {} -> return '.'
+         GaveUp  {} -> return '?'
+         Failure {} -> incIORef ir >> return '#'
+         NoExpectedFailure {} -> incIORef ir >> return '*'
+  return (r, c)
 
-allTests :: [(String, TestOptions, [TestOptions -> IO TestResult])]
+runTests name opts tests max_count = do
+  _ <- printf "%25s : " name
+  hFlush stdout
+  results <- mapM (\t -> do
+                     (r, c) <- t opts
+                     putChar c
+                     hFlush stdout
+                     return r
+                  ) tests
+  let alldone = sum . map numTests $ results
+  _ <- printf "%*s(%d)\n" (max_count - length tests + 1) " " alldone
+  mapM_ (\(idx, r) ->
+             case r of
+               Failure { output = o, usedSeed = u, usedSize = size } ->
+                   printf "Test %d failed (seed was %s, test size %d): %s\n"
+                          idx (show u) size o
+               GaveUp { numTests = passed } ->
+                   printf "Test %d incomplete: gave up with only %d\
+                          \ passes after discarding %d tests\n"
+                          idx passed (maxDiscard opts)
+               _ -> return ()
+        ) $ zip ([1..]::[Int]) results
+  return results
+
+allTests :: [(String, Args, [Args -> IO Result])]
 allTests =
   [ ("Utils", fast, testUtils)
   , ("PeerMap", fast, testPeerMap)
@@ -84,7 +109,8 @@ main = do
   let tests = if null args
               then allTests
               else filter (\(name, _, _) -> name `elem` args) allTests
-  mapM_ (\(name, opts, tl) -> runTests name opts (wrap tl)) tests
+      max_count = maximum $ map (\(_, _, t) -> length t) tests
+  mapM_ (\(name, opts, tl) -> runTests name opts (wrap tl) max_count) tests
   terr <- readIORef errs
   (if terr > 0
    then do

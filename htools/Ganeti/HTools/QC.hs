@@ -37,7 +37,6 @@ module Ganeti.HTools.QC
     ) where
 
 import Test.QuickCheck
-import Test.QuickCheck.Batch
 import Data.List (findIndex, intercalate, nub, isPrefixOf)
 import Data.Maybe
 import Control.Monad
@@ -65,6 +64,9 @@ import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
 import qualified Ganeti.HTools.Version
 import qualified Ganeti.Constants as C
+
+run :: Testable prop => prop -> Args -> IO Result
+run = flip quickCheckWithResult
 
 -- * Constants
 
@@ -146,10 +148,6 @@ assignInstance nl il inst pdx sdx =
   in (nl', il')
 
 -- * Arbitrary instances
-
--- copied from the introduction to quickcheck
-instance Arbitrary Char where
-    arbitrary = choose ('\32', '\128')
 
 newtype DNSChar = DNSChar { dnsGetChar::Char }
 instance Arbitrary DNSChar where
@@ -500,8 +498,8 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx autobal =
 prop_Text_Load_InstanceFail ktn fields =
     length fields /= 9 ==>
     case Text.loadInst nl fields of
-      Right _ -> False
-      Left msg -> isPrefixOf "Invalid/incomplete instance data: '" msg
+      Types.Ok _ -> False
+      Types.Bad msg -> "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Data.Map.fromList ktn
 
 prop_Text_Load_Node name tm nm fm td fd tc fo =
@@ -703,7 +701,8 @@ testNode =
 -- Cluster tests
 
 -- | Check that the cluster score is close to zero for a homogeneous cluster
-prop_Score_Zero node count =
+prop_Score_Zero node =
+    forAll (choose (1, 1024)) $ \count ->
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
      (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
@@ -712,11 +711,12 @@ prop_Score_Zero node count =
         score = Cluster.compCV nl
     -- we can't say == 0 here as the floating point errors accumulate;
     -- this should be much lower than the default score in CLI.hs
-    in score <= 1e-15
+    in score <= 1e-12
 
 -- | Check that cluster stats are sane
-prop_CStats_sane node count =
-    (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
+prop_CStats_sane node =
+    forAll (choose (1, 1024)) $ \count ->
+    (not (Node.offline node) && not (Node.failN1 node) &&
      (Node.availDisk node > 0) && (Node.availMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
         nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]

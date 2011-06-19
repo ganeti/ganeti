@@ -376,8 +376,8 @@ else
   AC_MSG_CHECKING([network])
   GHC_PKG_NETWORK=$($GHC_PKG latest network)
   AC_MSG_RESULT($GHC_PKG_NETWORK)
-  AC_MSG_CHECKING([QuickCheck 1.x])
-  GHC_PKG_QUICKCHECK=$($GHC_PKG --simple-output list 'QuickCheck-1.*')
+  AC_MSG_CHECKING([QuickCheck 2.x])
+  GHC_PKG_QUICKCHECK=$($GHC_PKG --simple-output list 'QuickCheck-2.*')
   AC_MSG_RESULT($GHC_PKG_QUICKCHECK)
   if test -z "$GHC_PKG_PARALLEL" || test -z "$GHC_PKG_JSON" || \
      test -z "$GHC_PKG_NETWORK"; then
@@ -390,7 +390,7 @@ else
     HTOOLS_MODULES="-package $GHC_PKG_PARALLEL"
   fi
   if test -z "$GHC_PKG_QUICKCHECK"; then
-     AC_MSG_WARN(m4_normalize([The QuickCheck 1.x module was not found,
+     AC_MSG_WARN(m4_normalize([The QuickCheck 2.x module was not found,
                                you won't be able to run Haskell unittests]))
   fi
 fi
