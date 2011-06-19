@@ -406,8 +406,9 @@ prop_Instance_shrinkMG inst =
           _ -> False
 
 prop_Instance_shrinkMF inst =
-    Instance.mem inst < 2 * Types.unitMem ==>
-        Types.isBad $ Instance.shrinkByType inst Types.FailMem
+    forAll (choose (0, 2 * Types.unitMem - 1)) $ \mem ->
+    let inst' = inst { Instance.mem = mem}
+    in Types.isBad $ Instance.shrinkByType inst' Types.FailMem
 
 prop_Instance_shrinkCG inst =
     Instance.vcpus inst >= 2 * Types.unitCpu ==>
@@ -417,8 +418,9 @@ prop_Instance_shrinkCG inst =
           _ -> False
 
 prop_Instance_shrinkCF inst =
-    Instance.vcpus inst < 2 * Types.unitCpu ==>
-        Types.isBad $ Instance.shrinkByType inst Types.FailCPU
+    forAll (choose (0, 2 * Types.unitCpu - 1)) $ \vcpus ->
+    let inst' = inst { Instance.vcpus = vcpus }
+    in Types.isBad $ Instance.shrinkByType inst' Types.FailCPU
 
 prop_Instance_shrinkDG inst =
     Instance.dsk inst >= 2 * Types.unitDsk ==>
@@ -428,8 +430,9 @@ prop_Instance_shrinkDG inst =
           _ -> False
 
 prop_Instance_shrinkDF inst =
-    Instance.dsk inst < 2 * Types.unitDsk ==>
-        Types.isBad $ Instance.shrinkByType inst Types.FailDisk
+    forAll (choose (0, 2 * Types.unitDsk - 1)) $ \dsk ->
+    let inst' = inst { Instance.dsk = dsk }
+    in Types.isBad $ Instance.shrinkByType inst' Types.FailDisk
 
 prop_Instance_setMovable inst m =
     Instance.movable inst' == m
@@ -591,15 +594,14 @@ prop_Node_addPriFD node inst = Instance.dsk inst >= Node.fDsk node &&
           inst' = setInstanceSmallerThanNode node inst
           inst'' = inst' { Instance.dsk = Instance.dsk inst }
 
-prop_Node_addPriFC node inst = Instance.vcpus inst > Node.availCpu node &&
-                               not (Node.failN1 node)
-                               ==>
-                               case Node.addPri node inst'' of
-                                 Types.OpFail Types.FailCPU -> True
-                                 _ -> False
+prop_Node_addPriFC node inst (Positive extra) =
+    not (Node.failN1 node) ==>
+        case Node.addPri node inst'' of
+          Types.OpFail Types.FailCPU -> True
+          _ -> False
     where _types = (node::Node.Node, inst::Instance.Instance)
           inst' = setInstanceSmallerThanNode node inst
-          inst'' = inst' { Instance.vcpus = Instance.vcpus inst }
+          inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
 
 -- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addSec node inst pdx =
