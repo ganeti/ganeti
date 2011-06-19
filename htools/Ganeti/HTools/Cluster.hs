@@ -638,8 +638,8 @@ genAllocNodes :: Group.List        -- ^ Group list
               -> Result AllocNodes -- ^ The (monadic) result
 genAllocNodes gl nl count drop_unalloc =
     let filter_fn = if drop_unalloc
-                    then filter ((/=) AllocUnallocable . Group.allocPolicy .
-                                     flip Container.find gl . Node.group)
+                    then filter (Group.isAllocable .
+                                 flip Container.find gl . Node.group)
                     else id
         all_nodes = filter_fn $ getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
