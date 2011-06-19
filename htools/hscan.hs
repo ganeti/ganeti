@@ -25,8 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
+import Control.Monad
 import Data.Maybe (isJust, fromJust, fromMaybe)
-import Monad
 import System (exitWith, ExitCode(..))
 import System.IO
 import System.FilePath

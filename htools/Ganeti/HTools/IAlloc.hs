@@ -181,7 +181,7 @@ parseData body = do
                 rl_names <- extrReq "instances"
                 rl_insts <- mapM (Container.findByName map_i) rl_names
                 let rl_idx = map Instance.idx rl_insts
-                rl_mode <- do
+                rl_mode <-
                    case extrReq "reloc_mode" of
                      Ok s | s == C.iallocatorMrelocKeep -> return KeepGroup
                           | s == C.iallocatorMrelocChange ->

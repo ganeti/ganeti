@@ -25,9 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
+import Control.Monad
 import Data.List
 import Data.Maybe (isJust, fromJust)
-import Monad
 import System (exitWith, ExitCode(..))
 import System.IO
 import qualified System
@@ -85,7 +85,7 @@ readRequest opts args = do
          exitWith $ ExitFailure 1
 
   input_data <- readFile (head args)
-  r1 <- case (parseData input_data) of
+  r1 <- case parseData input_data of
           Bad err -> do
             hPutStrLn stderr $ "Error: " ++ err
             exitWith $ ExitFailure 1

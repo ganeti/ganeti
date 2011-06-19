@@ -25,11 +25,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
+import Control.Monad
 import Data.Char (toUpper, isAlphaNum)
 import Data.List
 import Data.Maybe (isJust, fromJust)
 import Data.Ord (comparing)
-import Monad
 import System (exitWith, ExitCode(..))
 import System.IO
 import qualified System
@@ -171,7 +171,7 @@ printAllocationStats m_cpu ini_nl fin_nl = do
 
 -- | Ensure a value is quoted if needed
 ensureQuoted :: String -> String
-ensureQuoted v = if not (all (\c -> (isAlphaNum c || c == '.')) v)
+ensureQuoted v = if not (all (\c -> isAlphaNum c || c == '.') v)
                  then '\'':v ++ "'"
                  else v
 

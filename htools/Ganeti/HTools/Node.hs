@@ -478,8 +478,10 @@ showField t field =
       "idx"  -> printf "%4d" $ idx t
       "name" -> alias t
       "fqdn" -> name t
-      "status" -> if offline t then "-"
-                  else if failN1 t then "*" else " "
+      "status" -> case () of
+                    _ | offline t -> "-"
+                      | failN1 t -> "*"
+                      | otherwise -> " "
       "tmem" -> printf "%5.0f" $ tMem t
       "nmem" -> printf "%5d" $ nMem t
       "xmem" -> printf "%5d" $ xMem t

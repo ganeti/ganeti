@@ -33,8 +33,8 @@ module Ganeti.HTools.ExtLoader
     , maybeSaveData
     ) where
 
+import Control.Monad
 import Data.Maybe (isJust, fromJust)
-import Monad
 import System.FilePath
 import System.IO
 import System

@@ -74,9 +74,9 @@ module Ganeti.HTools.CLI
     , oVerbose
     ) where
 
+import Control.Monad
 import Data.Maybe (fromMaybe)
 import qualified Data.Version
-import Monad
 import System.Console.GetOpt
 import System.IO
 import System.Info

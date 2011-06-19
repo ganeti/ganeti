@@ -260,7 +260,7 @@ prop_Utils_fromObjWithDefault def_value random_key =
     -- a found key will be returned as is, not with default
     Utils.fromObjWithDefault [(random_key, J.showJSON def_value)]
          random_key (def_value+1) == Just def_value
-        where _types = (def_value :: Integer)
+        where _types = def_value :: Integer
 
 testUtils =
   [ run prop_Utils_commaJoinSplit
@@ -487,15 +487,15 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx autobal =
       case inst of
         Nothing -> False
         Just (_, i) ->
-            (Instance.name i == name &&
-             Instance.vcpus i == vcpus &&
-             Instance.mem i == mem &&
-             Instance.pNode i == pdx &&
-             Instance.sNode i == (if null snode
-                                  then Node.noSecondary
-                                  else rsdx) &&
-             Instance.auto_balance i == autobal &&
-             isNothing fail1)
+            Instance.name i == name &&
+            Instance.vcpus i == vcpus &&
+            Instance.mem i == mem &&
+            Instance.pNode i == pdx &&
+            Instance.sNode i == (if null snode
+                                 then Node.noSecondary
+                                 else rsdx) &&
+            Instance.auto_balance i == autobal &&
+            isNothing fail1
 
 prop_Text_Load_InstanceFail ktn fields =
     length fields /= 9 ==>
@@ -615,7 +615,7 @@ prop_Node_addSec node inst pdx =
 prop_Node_rMem node inst =
     -- ab = auto_balance, nb = non-auto_balance
     -- we use -1 as the primary node of the instance
-    let inst' = inst { Instance.pNode = (-1), Instance.auto_balance = True}
+    let inst' = inst { Instance.pNode = -1, Instance.auto_balance = True }
         inst_ab = setInstanceSmallerThanNode node inst'
         inst_nb = inst_ab { Instance.auto_balance = False }
         -- now we have the two instances, identical except the
@@ -680,7 +680,7 @@ prop_Node_computeGroups nodes =
   in length nodes == sum (map (length . snd) ng) &&
      all (\(guuid, ns) -> all ((== guuid) . Node.group) ns) ng &&
      length (nub onlyuuid) == length onlyuuid &&
-     if null nodes then True else not (null ng)
+     (null nodes || not (null ng))
 
 testNode =
     [ run prop_Node_setAlias

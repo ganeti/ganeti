@@ -27,10 +27,10 @@ module Main (main) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
+import Control.Monad
 import Data.List
 import Data.Maybe (isJust, isNothing, fromJust)
 import Data.IORef
-import Monad
 import System (exitWith, ExitCode(..))
 import System.IO
 import System.Posix.Process
@@ -366,14 +366,14 @@ main = do
                          (optEvacMode opts)
   let (Cluster.Table fin_nl fin_il fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
-      sol_msg = if null fin_plc
-                then printf "No solution found\n"
-                else if verbose > 2
-                     then printf "Final coefficients:   overall %.8f, %s\n"
-                          fin_cv (Cluster.printStats fin_nl)
-                     else printf "Cluster score improved from %.8f to %.8f\n"
-                          ini_cv fin_cv
-                              ::String
+      sol_msg = case () of
+                  _ | null fin_plc -> printf "No solution found\n"
+                    | verbose > 2 ->
+                        printf "Final coefficients:   overall %.8f, %s\n"
+                        fin_cv (Cluster.printStats fin_nl)
+                    | otherwise ->
+                        printf "Cluster score improved from %.8f to %.8f\n"
+                        ini_cv fin_cv ::String
 
   unless oneline $ putStr sol_msg
 
