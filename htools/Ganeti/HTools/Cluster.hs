@@ -685,16 +685,19 @@ solutionDescription gl (groupId, result) =
         pol = apolToString (Group.allocPolicy grp)
 
 -- | From a list of possibly bad and possibly empty solutions, filter
--- only the groups with a valid result
+-- only the groups with a valid result. Note that the result will be
+-- reversed compared to the original list
 filterMGResults :: Group.List
                 -> [(Gdx, Result AllocSolution)]
                 -> [(Gdx, AllocSolution)]
-filterMGResults gl=
-  filter ((/= AllocUnallocable) . Group.allocPolicy .
-             flip Container.find gl . fst) .
-  filter (not . null . asSolutions . snd) .
-  map (\(y, Ok x) -> (y, x)) .
-  filter (isOk . snd)
+filterMGResults gl = foldl' fn []
+    where unallocable = not . Group.isAllocable . flip Container.find gl
+          fn accu (gdx, rasol) =
+              case rasol of
+                Bad _ -> accu
+                Ok sol | null (asSolutions sol) -> accu
+                       | unallocable gdx -> accu
+                       | otherwise -> (gdx, sol):accu
 
 -- | Sort multigroup results based on policy and score
 sortMGResults :: Group.List
