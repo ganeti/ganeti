@@ -257,9 +257,11 @@ instance Arbitrary Jobs.JobStatus where
 
 -- If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idepotent
-prop_Utils_commaJoinSplit lst = lst /= [""] &&
-                                all (not . elem ',') lst ==>
-                                Utils.sepSplit ',' (Utils.commaJoin lst) == lst
+prop_Utils_commaJoinSplit =
+    forAll (arbitrary `suchThat`
+            (\l -> l /= [""] && all (not . elem ',') l )) $ \lst ->
+    Utils.sepSplit ',' (Utils.commaJoin lst) == lst
+
 -- Split and join should always be idempotent
 prop_Utils_commaSplitJoin s = Utils.commaJoin (Utils.sepSplit ',' s) == s
 
@@ -399,11 +401,10 @@ prop_Instance_setBoth inst pdx sdx =
     where _types = (inst::Instance.Instance, pdx::Types.Ndx, sdx::Types.Ndx)
           si = Instance.setBoth inst pdx sdx
 
-prop_Instance_runStatus_True inst =
-    let run_st = Instance.running inst
-        run_tx = Instance.runSt inst
-    in
-      run_tx `elem` Instance.runningStates ==> run_st
+prop_Instance_runStatus_True =
+    forAll (arbitrary `suchThat`
+            ((`elem` Instance.runningStates) . Instance.runSt))
+    Instance.running
 
 prop_Instance_runStatus_False inst =
     let run_st = Instance.running inst
@@ -472,8 +473,9 @@ testInstance =
 
 -- Instance text loader tests
 
-prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx autobal =
-    not (null pnode) && pdx >= 0 && sdx >= 0 ==>
+prop_Text_Load_Instance name mem dsk vcpus status
+                        (NonEmpty pnode) snode
+                        (NonNegative pdx) (NonNegative sdx) autobal =
     let vcpus_s = show vcpus
         dsk_s = show dsk
         mem_s = show mem
@@ -494,8 +496,7 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx autobal =
                 sbal, pnode, pnode, tags]:: Maybe (String, Instance.Instance)
         _types = ( name::String, mem::Int, dsk::Int
                  , vcpus::Int, status::String
-                 , pnode::String, snode::String
-                 , pdx::Types.Ndx, sdx::Types.Ndx
+                 , snode::String
                  , autobal::Bool)
     in
       case inst of
