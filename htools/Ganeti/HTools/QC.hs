@@ -189,22 +189,35 @@ instance Arbitrary Instance.Instance where
       vcpus <- choose (0, maxCpu)
       return $ Instance.create name mem dsk vcpus run_st [] True pn sn
 
+genNode :: Maybe Int -> Maybe Int -> Gen Node.Node
+genNode min_multiplier max_multiplier = do
+  let (base_mem, base_dsk, base_cpu) =
+          case min_multiplier of
+            Just mm -> (mm * Types.unitMem,
+                        mm * Types.unitDsk,
+                        mm * Types.unitCpu)
+            Nothing -> (0, 0, 0)
+      (top_mem, top_dsk, top_cpu)  =
+          case max_multiplier of
+            Just mm -> (mm * Types.unitMem,
+                        mm * Types.unitDsk,
+                        mm * Types.unitCpu)
+            Nothing -> (maxMem, maxDsk, maxCpu)
+  name  <- getFQDN
+  mem_t <- choose (base_mem, top_mem)
+  mem_f <- choose (base_mem, mem_t)
+  mem_n <- choose (0, mem_t - mem_f)
+  dsk_t <- choose (base_dsk, top_dsk)
+  dsk_f <- choose (base_dsk, dsk_t)
+  cpu_t <- choose (base_cpu, top_cpu)
+  offl  <- arbitrary
+  let n = Node.create name (fromIntegral mem_t) mem_n mem_f
+          (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 0
+  return $ Node.buildPeers n Container.empty
+
 -- and a random node
 instance Arbitrary Node.Node where
-    arbitrary = do
-      name <- getFQDN
-      mem_t <- choose (0, maxMem)
-      mem_f <- choose (0, mem_t)
-      mem_n <- choose (0, mem_t - mem_f)
-      dsk_t <- choose (0, maxDsk)
-      dsk_f <- choose (0, dsk_t)
-      cpu_t <- choose (0, maxCpu)
-      offl <- arbitrary
-      let n = Node.create name (fromIntegral mem_t) mem_n mem_f
-              (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl
-              0
-          n' = Node.buildPeers n Container.empty
-      return n'
+    arbitrary = genNode Nothing Nothing
 
 -- replace disks
 instance Arbitrary OpCodes.ReplaceDisksMode where
@@ -798,13 +811,10 @@ prop_ClusterAllocEvac node inst =
 
 -- | Check that allocating multiple instances on a cluster, then
 -- adding an empty node, results in a valid rebalance
-prop_ClusterAllocBalance node =
+prop_ClusterAllocBalance =
+    forAll (genNode (Just 5) (Just 128)) $ \node ->
     forAll (choose (3, 5)) $ \count ->
-    not (Node.offline node)
-            && not (Node.failN1 node)
-            && isNodeBig node 4
-            && not (isNodeBig node 8)
-            ==>
+    not (Node.offline node) && not (Node.failN1 node) ==>
     let nl = makeSmallCluster node count
         (hnode, nl') = IntMap.deleteFindMax nl
         il = Container.empty
