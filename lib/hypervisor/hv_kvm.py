@@ -194,6 +194,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VHOST_NET: hv_base.NO_CHECK,
     constants.HV_KVM_USE_CHROOT: hv_base.NO_CHECK,
     constants.HV_MEM_PATH: hv_base.OPT_DIR_CHECK,
+    constants.HV_REBOOT_BEHAVIOR:
+      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS)
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
@@ -535,6 +537,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-no-acpi"])
     if startup_paused:
       kvm_cmd.extend(["-S"])
+    if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
+        constants.INSTANCE_REBOOT_EXIT:
+      kvm_cmd.extend(["-no-reboot"])
 
     hvp = instance.hvparams
     boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK

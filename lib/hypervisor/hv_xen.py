@@ -470,6 +470,8 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,
     # TODO: Add a check for the blockdev prefix (matching [a-z:] or similar).
     constants.HV_BLOCKDEV_PREFIX: hv_base.NO_CHECK,
+    constants.HV_REBOOT_BEHAVIOR:
+      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS)
     }
 
   @classmethod
@@ -529,7 +531,10 @@ class XenPvmHypervisor(XenHypervisor):
     if hvp[constants.HV_ROOT_PATH]:
       config.write("root = '%s'\n" % hvp[constants.HV_ROOT_PATH])
     config.write("on_poweroff = 'destroy'\n")
-    config.write("on_reboot = 'restart'\n")
+    if hvp[constants.HV_REBOOT_BEHAVIOR] == constants.INSTANCE_REBOOT_ALLOWED:
+      config.write("on_reboot = 'restart'\n")
+    else:
+      config.write("on_reboot = 'destroy'\n")
     config.write("on_crash = 'restart'\n")
     config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
     # just in case it exists
@@ -574,6 +579,8 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     # TODO: Add a check for the blockdev prefix (matching [a-z:] or similar).
     constants.HV_BLOCKDEV_PREFIX: hv_base.NO_CHECK,
+    constants.HV_REBOOT_BEHAVIOR:
+      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS)
     }
 
   @classmethod
@@ -666,7 +673,10 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("disk = [%s]\n" % (",".join(disk_data)))
 
     config.write("on_poweroff = 'destroy'\n")
-    config.write("on_reboot = 'restart'\n")
+    if hvp[constants.HV_REBOOT_BEHAVIOR] == constants.INSTANCE_REBOOT_ALLOWED:
+      config.write("on_reboot = 'restart'\n")
+    else:
+      config.write("on_reboot = 'destroy'\n")
     config.write("on_crash = 'restart'\n")
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)

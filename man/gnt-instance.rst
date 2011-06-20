@@ -439,6 +439,15 @@ keymap
     This option specifies the keyboard mapping to be used. It is only
     needed when using the VNC console. For example: "fr" or "en-gb".
 
+reboot\_behavior
+    Valid for Xen PVM, Xen HVM and KVM hypervisors.
+
+    Normally if an instance reboots, the hypervisor will restart it. If
+    this option is set to ``exit``, the hypervisor will treat a reboot
+    as a shutdown instead.
+
+    It is set to ``reboot`` by default.
+
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
