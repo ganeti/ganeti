@@ -476,15 +476,13 @@ testInstance =
 prop_Text_Load_Instance name mem dsk vcpus status
                         (NonEmpty pnode) snode
                         (NonNegative pdx) (NonNegative sdx) autobal =
+    pnode /= snode && pdx /= sdx ==>
     let vcpus_s = show vcpus
         dsk_s = show dsk
         mem_s = show mem
-        rsdx = if pdx == sdx
-               then sdx + 1
-               else sdx
         ndx = if null snode
               then [(pnode, pdx)]
-              else [(pnode, pdx), (snode, rsdx)]
+              else [(pnode, pdx), (snode, sdx)]
         nl = Data.Map.fromList ndx
         tags = ""
         sbal = if autobal then "Y" else "N"
@@ -508,7 +506,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
             Instance.pNode i == pdx &&
             Instance.sNode i == (if null snode
                                  then Node.noSecondary
-                                 else rsdx) &&
+                                 else sdx) &&
             Instance.auto_balance i == autobal &&
             isNothing fail1
 
