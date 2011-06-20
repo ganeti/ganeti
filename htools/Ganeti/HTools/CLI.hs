@@ -67,6 +67,7 @@ module Ganeti.HTools.CLI
     , oPrintNodes
     , oQuiet
     , oRapiMaster
+    , oReplay
     , oSaveCluster
     , oShowHelp
     , oShowVer
@@ -126,6 +127,7 @@ data Options = Options
     , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
     , optShowVer     :: Bool           -- ^ Just show the program version
     , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
+    , optReplay      :: Maybe String   -- ^ Unittests: RNG state
     , optVerbose     :: Int            -- ^ Verbosity level
     } deriving Show
 
@@ -164,6 +166,7 @@ defaultOptions  = Options
  , optShowNodes   = Nothing
  , optShowVer     = False
  , optTieredSpec  = Nothing
+ , optReplay      = Nothing
  , optVerbose     = 1
  }
 
@@ -380,6 +383,11 @@ oTieredSpec = Option "" ["tiered-alloc"]
                           return $ opts { optTieredSpec = Just tspec } )
               "TSPEC")
              "enable tiered specs allocation, given as 'disk,ram,cpu'"
+
+oReplay :: OptType
+oReplay = Option "" ["replay"]
+          (ReqArg (\ stat opts -> Ok opts { optReplay = Just stat } ) "STATE")
+          "Pre-seed the random number generator with STATE"
 
 oVerbose :: OptType
 oVerbose = Option "v" ["verbose"]

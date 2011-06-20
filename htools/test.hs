@@ -27,12 +27,24 @@ module Main(main) where
 
 import Data.IORef
 import Test.QuickCheck
+import System.Console.GetOpt
 import System.IO
 import System.Exit
 import System (getArgs)
 import Text.Printf
 
 import Ganeti.HTools.QC
+import Ganeti.HTools.CLI
+import Ganeti.HTools.Utils (sepSplit)
+
+-- | Options list and functions
+options :: [OptType]
+options =
+    [ oReplay
+    , oVerbose
+    , oShowVer
+    , oShowHelp
+    ]
 
 fast :: Args
 fast = stdArgs
@@ -101,16 +113,32 @@ allTests =
   , ("Cluster", slow, testCluster)
   ]
 
+transformTestOpts :: Args -> Options -> IO Args
+transformTestOpts args opts = do
+  r <- case optReplay opts of
+         Nothing -> return Nothing
+         Just str -> do
+           let vs = sepSplit ',' str
+           (case vs of
+              [rng, size] -> return $ Just (read rng, read size)
+              _ -> fail "Invalid state given")
+  return args { chatty = optVerbose opts > 1,
+                replay = r
+              }
+
 main :: IO ()
 main = do
   errs <- newIORef 0
   let wrap = map (wrapTest errs)
-  args <- getArgs
+  cmd_args <- System.getArgs
+  (opts, args) <- parseOpts cmd_args "test" options
   let tests = if null args
               then allTests
               else filter (\(name, _, _) -> name `elem` args) allTests
       max_count = maximum $ map (\(_, _, t) -> length t) tests
-  mapM_ (\(name, opts, tl) -> runTests name opts (wrap tl) max_count) tests
+  mapM_ (\(name, targs, tl) ->
+             transformTestOpts targs opts >>= \newargs ->
+             runTests name newargs (wrap tl) max_count) tests
   terr <- readIORef errs
   (if terr > 0
    then do
