@@ -624,7 +624,8 @@ prop_Node_addSec node inst pdx =
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
 -- | Checks for memory reservation changes
-prop_Node_rMem node inst =
+prop_Node_rMem inst =
+    forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
     -- ab = auto_balance, nb = non-auto_balance
     -- we use -1 as the primary node of the instance
     let inst' = inst { Instance.pNode = -1, Instance.auto_balance = True }
@@ -641,6 +642,7 @@ prop_Node_rMem node inst =
     in case (node_add_ab, node_add_nb, node_del_ab, node_del_nb) of
          (Types.OpGood a_ab, Types.OpGood a_nb,
           Types.OpGood d_ab, Types.OpGood d_nb) ->
+             printTestCase "Consistency checks failed" $
              Node.rMem a_ab >  orig_rmem &&
              Node.rMem a_ab - orig_rmem == Instance.mem inst_ab &&
              Node.rMem a_nb == orig_rmem &&
@@ -650,7 +652,8 @@ prop_Node_rMem node inst =
              -- test as any
              inst_idx `elem` Node.sList a_ab &&
              not (inst_idx `elem` Node.sList d_ab)
-         _ -> False
+         x -> printTestCase ("Failed to add/remove instances: " ++ show x)
+              False
 
 newtype SmallRatio = SmallRatio Double deriving Show
 instance Arbitrary SmallRatio where
