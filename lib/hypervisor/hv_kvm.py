@@ -875,7 +875,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise
       else:
         uid.Unlock()
-        utils.WriteFile(self._InstanceUidFile(name), data=str(uid))
+        utils.WriteFile(self._InstanceUidFile(name), data=uid.AsStr())
     else:
       self._RunKVMCmd(name, kvm_cmd, tapfds)
 
