@@ -495,6 +495,7 @@ nodist_pkglib_python_scripts = \
 pkglib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
+	tools/xm-console-wrapper \
 	$(pkglib_python_scripts)
 
 nodist_pkglib_SCRIPTS = \
