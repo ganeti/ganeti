@@ -477,7 +477,7 @@ nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
 	daemons/ganeti-cleaner
 
-dist_tools_SCRIPTS = \
+dist_tools_PYTHON = \
 	tools/burnin \
 	tools/cfgshell \
 	tools/cfgupgrade \
@@ -487,6 +487,10 @@ dist_tools_SCRIPTS = \
 	tools/move-instance \
 	tools/setup-ssh \
 	tools/sanitize-config
+
+dist_tools_SCRIPTS = \
+	$(dist_tools_PYTHON) \
+	tools/xm-console-wrapper
 
 pkglib_python_scripts = \
 	daemons/import-export \
@@ -684,7 +688,7 @@ TESTS_ENVIRONMENT = \
 
 all_python_code = \
 	$(dist_sbin_SCRIPTS) \
-	$(dist_tools_SCRIPTS) \
+	$(dist_tools_PYTHON) \
 	$(pkglib_python_scripts) \
 	$(nodist_pkglib_python_scripts) \
 	$(python_tests) \
@@ -721,7 +725,7 @@ lint_python_code = \
 	ganeti \
 	ganeti/http/server.py \
 	$(dist_sbin_SCRIPTS) \
-	$(dist_tools_SCRIPTS) \
+	$(dist_tools_PYTHON) \
 	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION) \
 	$(DOCPP) \

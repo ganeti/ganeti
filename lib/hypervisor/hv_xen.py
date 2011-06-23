@@ -307,7 +307,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    kind=constants.CONS_SSH,
                                    host=instance.primary_node,
                                    user=constants.GANETI_RUNAS,
-                                   command=["xm", "console", instance.name])
+                                   command=[constants.XM_CONSOLE_WRAPPER,
+                                            instance.name])
 
   def Verify(self):
     """Verify the hypervisor.
