@@ -506,6 +506,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
+    kvm_version = self._GetKVMVersion()
+    if kvm_version:
+      _, v_major, v_min, _ = kvm_version
+    else:
+      raise errors.HypervisorError("Unable to get KVM version")
+
     pidfile  = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
@@ -555,16 +561,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
+      boot_val = ""
       if boot_disk:
         kvm_cmd.extend(['-boot', 'c'])
-        if disk_type != constants.HT_DISK_IDE:
-          boot_val = ',boot=on'
-        else:
-          boot_val = ''
-        # We only boot from the first disk
         boot_disk = False
-      else:
-        boot_val = ''
+        if (v_major, v_min) < (0, 14) and disk_type != constants.HT_DISK_IDE:
+          boot_val = ",boot=on"
 
       drive_val = 'file=%s,format=raw%s%s%s' % (dev_path, if_val, boot_val,
                                                 cache_val)
@@ -882,7 +884,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise
       else:
         uid.Unlock()
-        utils.WriteFile(self._InstanceUidFile(name), data=str(uid))
+        utils.WriteFile(self._InstanceUidFile(name), data=uid.AsStr())
     else:
       self._RunKVMCmd(name, kvm_cmd, tapfds)
 
