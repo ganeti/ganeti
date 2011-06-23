@@ -147,7 +147,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     file_name = self._InstanceFile(instance_name)
     utils.RemoveFile(file_name)
 
-  def StartInstance(self, instance, block_devices):
+  def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
     For the fake hypervisor, it just creates a file in the base dir,

@@ -180,12 +180,16 @@ class XenHypervisor(hv_base.BaseHypervisor):
     xm_list = self._GetXMList(False)
     return xm_list
 
-  def StartInstance(self, instance, block_devices):
+  def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
     """
     self._WriteConfigFile(instance, block_devices)
-    result = utils.RunCmd(["xm", "create", instance.name])
+    cmd = ["xm", "create"]
+    if startup_paused:
+      cmd.extend(["--paused"])
+    cmd.extend([instance.name])
+    result = utils.RunCmd(cmd)
 
     if result.failed:
       raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %

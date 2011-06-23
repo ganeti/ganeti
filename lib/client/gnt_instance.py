@@ -662,7 +662,8 @@ def _StartupInstance(name, opts):
   op = opcodes.OpInstanceStartup(instance_name=name,
                                  force=opts.force,
                                  ignore_offline_nodes=opts.ignore_offline,
-                                 no_remember=opts.no_remember)
+                                 no_remember=opts.no_remember,
+                                 startup_paused=opts.startup_paused)
   # do not add these parameters to the opcode unless they're defined
   if opts.hvparams:
     op.hvparams = opts.hvparams
@@ -1453,7 +1454,7 @@ commands = {
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
      m_inst_tags_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT, HVOPTS_OPT,
      BACKEND_OPT, DRY_RUN_OPT, PRIORITY_OPT, IGNORE_OFFLINE_OPT,
-     NO_REMEMBER_OPT],
+     NO_REMEMBER_OPT, STARTUP_PAUSED_OPT],
     "<instance>", "Starts an instance"),
   'reboot': (
     GenericManyOps("reboot", _RebootInstance), [ArgInstance()],

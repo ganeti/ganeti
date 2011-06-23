@@ -125,6 +125,10 @@ _PNoRemember = ("no_remember", False, ht.TBool,
 _PMigrationTargetNode = ("target_node", None, ht.TMaybeString,
                          "Target node for shared-storage instances")
 
+_PStartupPaused = ("startup_paused", False, ht.TBool,
+                   "Pause instance at startup")
+
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -1018,6 +1022,7 @@ class OpInstanceStartup(OpCode):
      "Temporary hypervisor parameters, hypervisor-dependent"),
     ("beparams", ht.EmptyDict, ht.TDict, "Temporary backend parameters"),
     _PNoRemember,
+    _PStartupPaused,
     ]
 
 

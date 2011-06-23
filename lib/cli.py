@@ -162,6 +162,7 @@ __all__ = [
   "SRC_DIR_OPT",
   "SRC_NODE_OPT",
   "SUBMIT_OPT",
+  "STARTUP_PAUSED_OPT",
   "STATIC_OPT",
   "SYNC_OPT",
   "TAG_ADD_OPT",
@@ -1222,6 +1223,10 @@ SECONDARY_ONLY_OPT = cli_option("-s", "--secondary-only",
                                      " (applies only to internally mirrored"
                                      " disk templates, e.g. %s)" %
                                      utils.CommaJoin(constants.DTS_INT_MIRROR))
+
+STARTUP_PAUSED_OPT = cli_option("--paused", dest="startup_paused",
+                                action="store_true", default=False,
+                                help="Pause instance at startup")
 
 
 #: Options provided by all commands

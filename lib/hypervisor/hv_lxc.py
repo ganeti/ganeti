@@ -266,7 +266,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     return "\n".join(out) + "\n"
 
-  def StartInstance(self, instance, block_devices):
+  def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
     For LCX, we try to mount the block device and execute 'lxc-start'.

@@ -1086,11 +1086,13 @@ def _GatherAndLinkBlockDevs(instance):
   return block_devices
 
 
-def StartInstance(instance):
+def StartInstance(instance, startup_paused):
   """Start an instance.
 
   @type instance: L{objects.Instance}
   @param instance: the instance object
+  @type startup_paused: bool
+  @param instance: pause instance at startup?
   @rtype: None
 
   """
@@ -1103,7 +1105,7 @@ def StartInstance(instance):
   try:
     block_devices = _GatherAndLinkBlockDevs(instance)
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
-    hyper.StartInstance(instance, block_devices)
+    hyper.StartInstance(instance, block_devices, startup_paused)
   except errors.BlockDeviceError, err:
     _Fail("Block device error: %s", err, exc=True)
   except errors.HypervisorError, err:

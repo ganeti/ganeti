@@ -502,7 +502,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
-  def _GenerateKVMRuntime(self, instance, block_devices):
+  def _GenerateKVMRuntime(self, instance, block_devices, startup_paused):
     """Generate KVM information to start an instance.
 
     """
@@ -523,6 +523,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd.extend(['-daemonize'])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(['-no-acpi'])
+    if startup_paused:
+      kvm_cmd.extend(['-S'])
 
     hvp = instance.hvparams
     boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
@@ -901,12 +903,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     for filename in temp_files:
       utils.RemoveFile(filename)
 
-  def StartInstance(self, instance, block_devices):
+  def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
     """
     self._CheckDown(instance.name)
-    kvm_runtime = self._GenerateKVMRuntime(instance, block_devices)
+    kvm_runtime = self._GenerateKVMRuntime(instance, block_devices, startup_paused)
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
 

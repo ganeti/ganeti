@@ -848,7 +848,7 @@ STARTUP
 | --tags \| --node-tags \| --pri-node-tags \| --sec-node-tags]
 | [{-H|--hypervisor-parameters} ``key=value...``]
 | [{-B|--backend-parameters} ``key=value...``]
-| [--submit]
+| [--submit] [--paused]
 | {*name*...}
 
 Starts one or more instances, depending on the following options.  The
@@ -889,7 +889,6 @@ four available modes are:
     will start all instances in the cluster on secondary nodes with the
     tags given as arguments
 
-
 Note that although you can pass more than one selection option, the
 last one wins, so in order to guarantee the desired result, don't pass
 more than one such option.
@@ -926,6 +925,11 @@ result in "single", not "ro single".  The ``--submit`` option is used
 to send the job to the master daemon but not wait for its
 completion. The job ID will be shown so that it can be examined via
 **gnt-job info**.
+
+The ``--paused`` option is only valid for Xen and kvm hypervisors.  This
+pauses the instance at the start of bootup, awaiting ``gnt-instance
+console`` to unpause it, allowing the entire boot process to be
+monitored for debugging.
 
 Example::
 
@@ -1038,6 +1042,10 @@ For HVM instances, this will attempt to connect to the serial console
 of the instance. To connect to the virtualized "physical" console of a
 HVM instance, use a VNC client with the connection info from the
 **info** command.
+
+For Xen/kvm instances, if the instance is paused, this attempts to
+unpause the instance after waiting a few seconds for the connection to
+the console to be made.
 
 Example::
 

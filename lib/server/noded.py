@@ -557,8 +557,9 @@ class NodeHttpServer(http.server.HttpServer):
     """Start an instance.
 
     """
-    instance = objects.Instance.FromDict(params[0])
-    return backend.StartInstance(instance)
+    (instance_name, startup_paused) = params
+    instance = objects.Instance.FromDict(instance_name)
+    return backend.StartInstance(instance, startup_paused)
 
   @staticmethod
   def perspective_migration_info(params):

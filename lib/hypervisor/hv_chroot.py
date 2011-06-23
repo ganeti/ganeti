@@ -135,7 +135,7 @@ class ChrootManager(hv_base.BaseHypervisor):
         data.append((file_name, 0, 0, 0, 0, 0))
     return data
 
-  def StartInstance(self, instance, block_devices):
+  def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
     For the chroot manager, we try to mount the block device and

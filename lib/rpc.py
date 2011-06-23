@@ -661,14 +661,14 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "bridges_exist", [bridges_list])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_instance_start(self, node, instance, hvp, bep):
+  def call_instance_start(self, node, instance, hvp, bep, startup_paused):
     """Starts an instance.
 
     This is a single-node call.
 
     """
     idict = self._InstDict(instance, hvp=hvp, bep=bep)
-    return self._SingleNodeCall(node, "instance_start", [idict])
+    return self._SingleNodeCall(node, "instance_start", [idict, startup_paused])
 
   @_RpcTimeout(_TMO_NORMAL)
   def call_instance_shutdown(self, node, instance, timeout):
