@@ -1146,7 +1146,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if hvparams[constants.HV_SERIAL_CONSOLE]:
-      cmd = [constants.SOCAT_PATH,
+      cmd = [constants.KVM_CONSOLE_WRAPPER,
+             constants.SOCAT_PATH, utils.ShellQuote(instance.name),
+             utils.ShellQuote(cls._InstanceMonitor(instance.name)),
              "STDIO,%s" % cls._SocatUnixConsoleParams(),
              "UNIX-CONNECT:%s" % cls._InstanceSerial(instance.name)]
       return objects.InstanceConsole(instance=instance.name,

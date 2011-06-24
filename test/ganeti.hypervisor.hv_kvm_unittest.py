@@ -49,7 +49,8 @@ class TestConsole(unittest.TestCase):
     cons = self._Test(instance, hvparams)
     self.assertEqual(cons.kind, constants.CONS_SSH)
     self.assertEqual(cons.host, instance.primary_node)
-    self.assertEqual(cons.command[0], constants.SOCAT_PATH)
+    self.assertEqual(cons.command[0], constants.KVM_CONSOLE_WRAPPER)
+    self.assertEqual(cons.command[1], constants.SOCAT_PATH)
 
   def testVnc(self):
     instance = objects.Instance(name="kvm.example.com",

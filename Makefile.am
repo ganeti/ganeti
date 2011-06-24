@@ -490,6 +490,7 @@ dist_tools_PYTHON = \
 
 dist_tools_SCRIPTS = \
 	$(dist_tools_PYTHON) \
+	tools/kvm-console-wrapper \
 	tools/xm-console-wrapper
 
 pkglib_python_scripts = \

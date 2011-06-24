@@ -144,6 +144,7 @@ QUEUE_DIR = DATA_DIR + "/queue"
 DAEMON_UTIL = _autoconf.PKGLIBDIR + "/daemon-util"
 SETUP_SSH = _autoconf.TOOLSDIR + "/setup-ssh"
 KVM_IFUP = _autoconf.PKGLIBDIR + "/kvm-ifup"
+KVM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/kvm-console-wrapper"
 XM_CONSOLE_WRAPPER = _autoconf.PKGLIBDIR + "/tools/xm-console-wrapper"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
