@@ -110,6 +110,13 @@ _NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
 # Feature string for node evacuation with LU-generated jobs
 _NODE_EVAC_RES1 = "node-evac-res1"
 
+ALL_FEATURES = frozenset([
+  _INST_CREATE_REQV1,
+  _INST_REINSTALL_REQV1,
+  _NODE_MIGRATE_REQV1,
+  _NODE_EVAC_RES1,
+  ])
+
 # Timeout for /2/jobs/[job_id]/wait. Gives job up to 10 seconds to change.
 _WFJC_TIMEOUT = 10
 
@@ -151,8 +158,7 @@ class R_2_features(baserlib.R_Generic):
     """Returns list of optional RAPI features implemented.
 
     """
-    return [_INST_CREATE_REQV1, _INST_REINSTALL_REQV1, _NODE_MIGRATE_REQV1,
-            _NODE_EVAC_RES1]
+    return list(ALL_FEATURES)
 
 
 class R_2_os(baserlib.R_Generic):

@@ -330,10 +330,23 @@ Redistribute configuration to all nodes. The result will be a job id.
 Returns a list of features supported by the RAPI server. Available
 features:
 
-``instance-create-reqv1``
+.. pyassert::
+
+  rlib2.ALL_FEATURES == set([rlib2._INST_CREATE_REQV1,
+                             rlib2._INST_REINSTALL_REQV1,
+                             rlib2._NODE_MIGRATE_REQV1,
+                             rlib2._NODE_EVAC_RES1])
+
+:pyeval:`rlib2._INST_CREATE_REQV1`
   Instance creation request data version 1 supported.
-``instance-reinstall-reqv1``
+:pyeval:`rlib2._INST_REINSTALL_REQV1`
   Instance reinstall supports body parameters.
+:pyeval:`rlib2._NODE_MIGRATE_REQV1`
+  Whether migrating a node (``/2/nodes/[node_name]/migrate``) supports
+  request body parameters.
+:pyeval:`rlib2._NODE_EVAC_RES1`
+  Whether evacuating a node (``/2/nodes/[node_name]/evacuate``) returns
+  a new-style result (see resource description)
 
 
 ``/2/modify``
@@ -1192,13 +1205,14 @@ It supports the following commands: ``POST``.
 ~~~~~~~~
 
 If no mode is explicitly specified, each instances' hypervisor default
-migration mode will be used. Query parameters:
+migration mode will be used. Body parameters:
 
-``live`` (bool)
-  If set, use live migration if available.
-``mode`` (string)
-  Sets migration mode, ``live`` for live migration and ``non-live`` for
-  non-live migration. Supported by Ganeti 2.2 and above.
+.. opcode_params:: OP_NODE_MIGRATE
+   :exclude: node_name
+
+The query arguments used up to and including Ganeti 2.4 are deprecated
+and should no longer be used. The new request format can be detected by
+the presence of the :pyeval:`rlib2._NODE_MIGRATE_REQV1` feature string.
 
 
 ``/2/nodes/[node_name]/role``

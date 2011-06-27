@@ -39,12 +39,16 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import opcodes
 from ganeti import ht
+from ganeti import rapi
+
+import ganeti.rapi.rlib2
 
 
 COMMON_PARAM_NAMES = map(operator.itemgetter(0), opcodes.OpCode.OP_PARAMS)
 
 #: Namespace for evaluating expressions
-EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors)
+EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors,
+               rlib2=rapi.rlib2)
 
 
 class OpcodeError(sphinx.errors.SphinxError):
