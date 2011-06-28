@@ -5524,31 +5524,44 @@ class LUInstanceRecreateDisks(LogicalUnit):
     """Recreate the disks.
 
     """
-    # change primary node, if needed
-    if self.op.nodes:
-      self.instance.primary_node = self.op.nodes[0]
-      self.LogWarning("Changing the instance's nodes, you will have to"
-                      " remove any disks left on the older nodes manually")
+    instance = self.instance
 
     to_skip = []
-    for idx, disk in enumerate(self.instance.disks):
+    mods = [] # keeps track of needed logical_id changes
+
+    for idx, disk in enumerate(instance.disks):
       if idx not in self.op.disks: # disk idx has not been passed in
         to_skip.append(idx)
         continue
       # update secondaries for disks, if needed
       if self.op.nodes:
         if disk.dev_type == constants.LD_DRBD8:
-          # need to update the nodes
+          # need to update the nodes and minors
           assert len(self.op.nodes) == 2
-          logical_id = list(disk.logical_id)
-          logical_id[0] = self.op.nodes[0]
-          logical_id[1] = self.op.nodes[1]
-          disk.logical_id = tuple(logical_id)
+          assert len(disk.logical_id) == 6 # otherwise disk internals
+                                           # have changed
+          (_, _, old_port, _, _, old_secret) = disk.logical_id
+          new_minors = self.cfg.AllocateDRBDMinor(self.op.nodes, instance.name)
+          new_id = (self.op.nodes[0], self.op.nodes[1], old_port,
+                    new_minors[0], new_minors[1], old_secret)
+          assert len(disk.logical_id) == len(new_id)
+          mods.append((idx, new_id))
+
+    # now that we have passed all asserts above, we can apply the mods
+    # in a single run (to avoid partial changes)
+    for idx, new_id in mods:
+      instance.disks[idx].logical_id = new_id
+
+    # change primary node, if needed
+    if self.op.nodes:
+      instance.primary_node = self.op.nodes[0]
+      self.LogWarning("Changing the instance's nodes, you will have to"
+                      " remove any disks left on the older nodes manually")
 
     if self.op.nodes:
-      self.cfg.Update(self.instance, feedback_fn)
+      self.cfg.Update(instance, feedback_fn)
 
-    _CreateDisks(self, self.instance, to_skip=to_skip)
+    _CreateDisks(self, instance, to_skip=to_skip)
 
 
 class LUInstanceRename(LogicalUnit):
