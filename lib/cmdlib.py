@@ -8491,7 +8491,7 @@ class TLReplaceDisks(Tasklet):
     """Releases the lock for a given node."""
     self.lu.context.glm.release(locking.LEVEL_NODE, node_name)
 
-  def _ExecDrbd8DiskOnly(self, feedback_fn):
+  def _ExecDrbd8DiskOnly(self, feedback_fn): # pylint: disable-msg=W0613
     """Replace a disk on the primary or secondary for DRBD 8.
 
     The algorithm for replace is quite complicated:
