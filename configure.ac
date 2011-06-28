@@ -431,6 +431,7 @@ AC_SUBST(HTOOLS_APIDOC)
 fi # end if enable_htools, define automake conditions
 
 AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
+AM_CONDITIONAL([WANT_HTOOLSTESTS], [test x$GHC_PKG_QUICKCHECK != x])
 AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test x$HTOOLS_APIDOC = xyes])
 
 SOCAT_USE_ESCAPE=

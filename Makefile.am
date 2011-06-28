@@ -665,7 +665,7 @@ dist_TESTS = \
 	$(python_tests)
 
 nodist_TESTS =
-if WANT_HTOOLS
+if WANT_HTOOLSTESTS
 nodist_TESTS += $(haskell_tests)
 endif
 
