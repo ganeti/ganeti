@@ -35,6 +35,7 @@ module Ganeti.HTools.Loader
     , lookupGroup
     , commonSuffix
     , RelocMode(..)
+    , EvacMode(..)
     , RqType(..)
     , Request(..)
     , ClusterData(..)
@@ -78,6 +79,7 @@ data RqType
                                      -- secondary node
     | Evacuate [Ndx]                 -- ^ Evacuate nodes
     | MultiReloc [Idx] RelocMode     -- ^ Multi-relocate mode
+    | NodeEvacuate [Idx] EvacMode    -- ^ node-evacuate mode
     deriving (Show, Read)
 
 -- | A complete request, as received from Ganeti.

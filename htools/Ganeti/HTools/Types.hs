@@ -59,6 +59,7 @@ module Ganeti.HTools.Types
     , OpResult(..)
     , connTimeout
     , queryTimeout
+    , EvacMode(..)
     ) where
 
 import qualified Data.Map as M
@@ -279,3 +280,9 @@ class Element a where
               name = nameOf e
     -- | Updates the index of the element
     setIdx  :: a -> Int -> a
+
+-- | The iallocator node-evacuate evac_mode type.
+data EvacMode = ChangePrimary
+              | ChangeSecondary
+              | ChangeAll
+                deriving (Show, Read)
