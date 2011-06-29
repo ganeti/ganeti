@@ -120,27 +120,27 @@ emptySolution = AllocSolution { asFailures = [], asAllocs = 0
 data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show, Read)
 
-data CStats = CStats { csFmem :: Int    -- ^ Cluster free mem
-                     , csFdsk :: Int    -- ^ Cluster free disk
-                     , csAmem :: Int    -- ^ Cluster allocatable mem
-                     , csAdsk :: Int    -- ^ Cluster allocatable disk
-                     , csAcpu :: Int    -- ^ Cluster allocatable cpus
-                     , csMmem :: Int    -- ^ Max node allocatable mem
-                     , csMdsk :: Int    -- ^ Max node allocatable disk
-                     , csMcpu :: Int    -- ^ Max node allocatable cpu
-                     , csImem :: Int    -- ^ Instance used mem
-                     , csIdsk :: Int    -- ^ Instance used disk
-                     , csIcpu :: Int    -- ^ Instance used cpu
-                     , csTmem :: Double -- ^ Cluster total mem
-                     , csTdsk :: Double -- ^ Cluster total disk
-                     , csTcpu :: Double -- ^ Cluster total cpus
-                     , csVcpu :: Int    -- ^ Cluster virtual cpus (if
-                                        -- node pCpu has been set,
-                                        -- otherwise -1)
-                     , csXmem :: Int    -- ^ Unnacounted for mem
-                     , csNmem :: Int    -- ^ Node own memory
-                     , csScore :: Score -- ^ The cluster score
-                     , csNinst :: Int   -- ^ The total number of instances
+data CStats = CStats { csFmem :: Integer -- ^ Cluster free mem
+                     , csFdsk :: Integer -- ^ Cluster free disk
+                     , csAmem :: Integer -- ^ Cluster allocatable mem
+                     , csAdsk :: Integer -- ^ Cluster allocatable disk
+                     , csAcpu :: Integer -- ^ Cluster allocatable cpus
+                     , csMmem :: Integer -- ^ Max node allocatable mem
+                     , csMdsk :: Integer -- ^ Max node allocatable disk
+                     , csMcpu :: Integer -- ^ Max node allocatable cpu
+                     , csImem :: Integer -- ^ Instance used mem
+                     , csIdsk :: Integer -- ^ Instance used disk
+                     , csIcpu :: Integer -- ^ Instance used cpu
+                     , csTmem :: Double  -- ^ Cluster total mem
+                     , csTdsk :: Double  -- ^ Cluster total disk
+                     , csTcpu :: Double  -- ^ Cluster total cpus
+                     , csVcpu :: Integer -- ^ Cluster virtual cpus (if
+                                         -- node pCpu has been set,
+                                         -- otherwise -1)
+                     , csXmem :: Integer -- ^ Unnacounted for mem
+                     , csNmem :: Integer -- ^ Node own memory
+                     , csScore :: Score  -- ^ The cluster score
+                     , csNinst :: Int    -- ^ The total number of instances
                      }
             deriving (Show, Read)
 
@@ -196,23 +196,23 @@ updateCStats cs node =
         inc_vcpu = Node.hiCpu node
         inc_acpu = Node.availCpu node
 
-    in cs { csFmem = x_fmem + Node.fMem node
-          , csFdsk = x_fdsk + Node.fDsk node
-          , csAmem = x_amem + inc_amem'
-          , csAdsk = x_adsk + inc_adsk
-          , csAcpu = x_acpu + inc_acpu
-          , csMmem = max x_mmem inc_amem'
-          , csMdsk = max x_mdsk inc_adsk
-          , csMcpu = max x_mcpu inc_acpu
-          , csImem = x_imem + inc_imem
-          , csIdsk = x_idsk + inc_idsk
-          , csIcpu = x_icpu + inc_icpu
+    in cs { csFmem = x_fmem + fromIntegral (Node.fMem node)
+          , csFdsk = x_fdsk + fromIntegral (Node.fDsk node)
+          , csAmem = x_amem + fromIntegral inc_amem'
+          , csAdsk = x_adsk + fromIntegral inc_adsk
+          , csAcpu = x_acpu + fromIntegral inc_acpu
+          , csMmem = max x_mmem (fromIntegral inc_amem')
+          , csMdsk = max x_mdsk (fromIntegral inc_adsk)
+          , csMcpu = max x_mcpu (fromIntegral inc_acpu)
+          , csImem = x_imem + fromIntegral inc_imem
+          , csIdsk = x_idsk + fromIntegral inc_idsk
+          , csIcpu = x_icpu + fromIntegral inc_icpu
           , csTmem = x_tmem + Node.tMem node
           , csTdsk = x_tdsk + Node.tDsk node
           , csTcpu = x_tcpu + Node.tCpu node
-          , csVcpu = x_vcpu + inc_vcpu
-          , csXmem = x_xmem + Node.xMem node
-          , csNmem = x_nmem + Node.nMem node
+          , csVcpu = x_vcpu + fromIntegral inc_vcpu
+          , csXmem = x_xmem + fromIntegral (Node.xMem node)
+          , csNmem = x_nmem + fromIntegral (Node.nMem node)
           , csNinst = x_ninst + length (Node.pList node)
           }
 
@@ -233,10 +233,14 @@ computeAllocationDelta cini cfin =
     let CStats {csImem = i_imem, csIdsk = i_idsk, csIcpu = i_icpu} = cini
         CStats {csImem = f_imem, csIdsk = f_idsk, csIcpu = f_icpu,
                 csTmem = t_mem, csTdsk = t_dsk, csVcpu = v_cpu } = cfin
-        rini = RSpec i_icpu i_imem i_idsk
-        rfin = RSpec (f_icpu - i_icpu) (f_imem - i_imem) (f_idsk - i_idsk)
-        un_cpu = v_cpu - f_icpu
-        runa = RSpec un_cpu (truncate t_mem - f_imem) (truncate t_dsk - f_idsk)
+        rini = RSpec (fromIntegral i_icpu) (fromIntegral i_imem)
+               (fromIntegral i_idsk)
+        rfin = RSpec (fromIntegral (f_icpu - i_icpu))
+               (fromIntegral (f_imem - i_imem))
+               (fromIntegral (f_idsk - i_idsk))
+        un_cpu = fromIntegral (v_cpu - f_icpu)::Int
+        runa = RSpec un_cpu (truncate t_mem - fromIntegral f_imem)
+               (truncate t_dsk - fromIntegral f_idsk)
     in (rini, rfin, runa)
 
 -- | The names and weights of the individual elements in the CV list
