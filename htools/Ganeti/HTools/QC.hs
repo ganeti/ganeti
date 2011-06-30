@@ -298,11 +298,39 @@ prop_Utils_fromObjWithDefault def_value random_key =
          random_key (def_value+1) == Just def_value
         where _types = def_value :: Integer
 
+-- | Test that functional if' behaves like the syntactic sugar if.
+prop_Utils_if'if :: Bool -> Int -> Int -> Bool
+prop_Utils_if'if cnd a b = Utils.if' cnd a b == if cnd then a else b
+
+-- | Test select
+prop_Utils_select :: Int   -- ^ Default result
+                  -> [Int] -- ^ List of False values
+                  -> [Int] -- ^ List of True values
+                  -> Bool  -- ^ Try undef result (if a true value exists)
+                  -> Bool  -- ^ Try undef true value (if a true value exists)
+                  -> Bool  -- ^ Try undef false value (if a true value exists)
+                  -> Bool  -- ^ Test result
+prop_Utils_select di lst1 lst2 rundefd rundeft rundeff =
+  Utils.select def cndlist == expectedresult
+  where has_nondef_result = not (null lst2)
+        try_undefd = has_nondef_result && rundefd
+        try_undeft = has_nondef_result && rundeft
+        try_undeff = has_nondef_result && rundeff
+        def = Utils.if' try_undefd undefined di
+        utl = Utils.if' try_undeft [(True, undefined)] []
+        ufl = Utils.if' try_undeff [(False, undefined)] []
+        expectedresult = Utils.if' has_nondef_result (head lst2) def
+        flist = map (\e -> (False, e)) lst1
+        tlist = map (\e -> (True, e)) lst2
+        cndlist = flist ++ tlist ++ utl ++ ufl
+
 -- | Test list for the Utils module.
 testUtils =
   [ run prop_Utils_commaJoinSplit
   , run prop_Utils_commaSplitJoin
   , run prop_Utils_fromObjWithDefault
+  , run prop_Utils_if'if
+  , run prop_Utils_select
   ]
 
 -- ** PeerMap tests

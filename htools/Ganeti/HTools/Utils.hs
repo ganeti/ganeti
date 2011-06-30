@@ -28,6 +28,8 @@ module Ganeti.HTools.Utils
     , debugXy
     , sepSplit
     , stdDev
+    , if'
+    , select
     , commaJoin
     , readEitherString
     , JSRecord
@@ -105,6 +107,27 @@ stdDev lst =
       mv = sx / ll
       av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
   in sqrt (av / ll) -- stddev
+
+-- *  Logical functions
+
+-- Avoid syntactic sugar and enhance readability. These functions are proposed
+-- by some for inclusion in the Prelude, and at the moment they are present
+-- (with various definitions) in the utility-ht package. Some rationale and
+-- discussion is available at <http://www.haskell.org/haskellwiki/If-then-else>
+
+-- | \"if\" as a function, rather than as syntactic sugar.
+if' :: Bool -- ^ condition
+    -> a    -- ^ \"then\" result
+    -> a    -- ^ \"else\" result
+    -> a    -- ^ \"then\" or "else" result depending on the condition
+if' True x _ = x
+if' _    _ y = y
+
+-- | Return the first result with a True condition, or the default otherwise.
+select :: a            -- ^ default result
+       -> [(Bool, a)]  -- ^ list of \"condition, result\"
+       -> a            -- ^ first result which has a True condition, or default
+select def = maybe def snd . find fst
 
 -- * JSON-related functions
 
