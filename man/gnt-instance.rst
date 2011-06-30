@@ -182,8 +182,8 @@ boot\_order
 blockdev\_prefix
     Valid for the Xen HVM and PVM hypervisors.
 
-    Relevant to nonpvops guest kernels, in which the disk device names
-    are given by the host.  Allows to specify 'xvd', which helps run
+    Relevant to non-pvops guest kernels, in which the disk device names
+    are given by the host.  Allows one to specify 'xvd', which helps run
     Red Hat based installers, driven by anaconda.
 
 floppy\_image\_path
@@ -823,8 +823,8 @@ be/auto\_balance
 
 
 If the value of the option starts with the character ``+``, the new
-field(s) will be added to the default list. This allows to quickly see
-the default list plus a few other fields, instead of retyping the
+field(s) will be added to the default list. This allows one to quickly
+see the default list plus a few other fields, instead of retyping the
 entire list of fields.
 
 There is a subtle grouping about the available output fields: all

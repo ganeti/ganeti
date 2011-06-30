@@ -23,7 +23,7 @@ that runs on every node.
 
 If the watcher is disabled at cluster level (via the
 **gnt-cluster watcher pause** command), it will exit without doing
-anything. The cluster-level pause can be overriden via the
+anything. The cluster-level pause can be overridden via the
 ``--ignore-pause`` option, for example if during a maintenance the
 watcher needs to be disabled in general, but the administrator
 wants to run it just once.

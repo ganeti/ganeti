@@ -287,7 +287,7 @@ link
     network script it is interpreted as a routing table number or
     name.
 
-The option ``--maintain-node-health`` allows to enable/disable
+The option ``--maintain-node-health`` allows one to enable/disable
 automatic maintenance actions on nodes. Currently these include
 automatic shutdown of instances and deactivation of DRBD devices on
 offline nodes; in the future it might be extended to automatic
