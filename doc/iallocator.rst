@@ -331,8 +331,8 @@ result
   as failed
 
   for multi-relocate mode, this is a list of lists of serialized
-  opcodes. See the :ref:`design document <multi-reloc-result>` for a
-  detailed dscription.
+  opcodes; see the :ref:`design document <multi-reloc-result>` for a
+  detailed description
 
   for multi-evacuation mode, this is a list of lists; each element of
   the list is a list of instance name and the new secondary node
