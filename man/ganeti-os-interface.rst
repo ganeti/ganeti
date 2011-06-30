@@ -225,12 +225,12 @@ script could be::
     #!/bin/sh
 
     case $OSP_DHCP in
-        ""|yes|no)
-            ;;
-        *)
-            echo "Invalid value '$OSP_DHCP' for the dhcp parameter" 1>&2
-            exit 1;
-            ;;
+      ""|yes|no)
+          ;;
+      *)
+        echo "Invalid value '$OSP_DHCP' for the dhcp parameter" 1>&2
+        exit 1;
+        ;;
     esac
 
     exit 0

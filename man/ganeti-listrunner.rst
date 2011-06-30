@@ -89,7 +89,9 @@ Run a command on a list of hosts::
 
 Upload a script, some auxiliary files and run the script::
 
-  listrunner -l logdir -x runme.sh -a seed.dat -a golden.dat -h host1,host2,host3
+  listrunner -l logdir -x runme.sh \
+    -a seed.dat -a golden.dat \
+    -h host1,host2,host3
 
 
 SEE ALSO
