@@ -2016,8 +2016,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # All or no nodes
         errorif(missing_file and missing_file != node_names,
                 cls.ECLUSTERFILECHECK, None,
-                "File %s is optional, but it must exist on all or no nodes (not"
-                " found on %s)",
+                "File %s is optional, but it must exist on all or no"
+                " nodes (not found on %s)",
                 filename, utils.CommaJoin(utils.NiceSort(missing_file)))
       else:
         errorif(missing_file, cls.ECLUSTERFILECHECK, None,
@@ -2419,8 +2419,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """Build hooks nodes.
 
     """
-    assert self.my_node_names, ("Node list not gathered,"
-      " has CheckPrereq been executed?")
     return ([], self.my_node_names)
 
   def Exec(self, feedback_fn):
@@ -2428,6 +2426,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     # This method has too many local variables. pylint: disable-msg=R0914
+
+    if not self.my_node_names:
+      # empty node group
+      feedback_fn("* Empty node group, skipping verification")
+      return True
+
     self.bad = False
     _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
     verbose = self.op.verbose
@@ -2808,9 +2812,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         and hook results
 
     """
-    # We only really run POST phase hooks, and are only interested in
-    # their results
-    if phase == constants.HOOKS_PHASE_POST:
+    # We only really run POST phase hooks, only for non-empty groups,
+    # and are only interested in their results
+    if not self.my_node_names:
+      # empty node group
+      pass
+    elif phase == constants.HOOKS_PHASE_POST:
       # Used to change hooks' output to proper indentation
       feedback_fn("* Hooks Results")
       assert hooks_results, "invalid result from hooks"
@@ -2836,7 +2843,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
             feedback_fn("%s" % output)
             lu_result = 0
 
-      return lu_result
+    return lu_result
 
 
 class LUClusterVerifyDisks(NoHooksLU):
