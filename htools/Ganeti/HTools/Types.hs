@@ -48,6 +48,9 @@ module Ganeti.HTools.Types
     , unknownField
     , Placement
     , IMove(..)
+    , DiskTemplate(..)
+    , dtToString
+    , dtFromString
     , MoveJob
     , JobSet
     , Result(..)
@@ -174,6 +177,43 @@ data IMove = Failover                -- ^ Failover the instance (f)
            | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)
            | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
              deriving (Show, Read)
+
+-- | Instance disk template type
+data DiskTemplate = DTDiskless
+                  | DTFile
+                  | DTSharedFile
+                  | DTPlain
+                  | DTBlock
+                  | DTDrbd8
+                    deriving (Show, Read, Eq)
+
+-- | Converts a DiskTemplate to String
+dtToString :: DiskTemplate -> String
+dtToString DTDiskless   = C.dtDiskless
+dtToString DTFile       = C.dtFile
+dtToString DTSharedFile = C.dtSharedFile
+dtToString DTPlain      = C.dtPlain
+dtToString DTBlock      = C.dtBlock
+dtToString DTDrbd8      = C.dtDrbd8
+
+-- | Converts a DiskTemplate from String
+dtFromString :: (Monad m) => String -> m DiskTemplate
+dtFromString s =
+    case () of
+      _ | s == C.dtDiskless   -> return DTDiskless
+        | s == C.dtFile       -> return DTFile
+        | s == C.dtSharedFile -> return DTSharedFile
+        | s == C.dtPlain      -> return DTPlain
+        | s == C.dtBlock      -> return DTBlock
+        | s == C.dtDrbd8      -> return DTDrbd8
+        | otherwise           -> fail $ "Invalid disk template: " ++ s
+
+instance JSON.JSON DiskTemplate where
+    showJSON = JSON.showJSON . dtToString
+    readJSON s = case JSON.readJSON s of
+                   JSON.Ok s' -> dtFromString s'
+                   JSON.Error e -> JSON.Error $
+                                   "Can't parse disk_template as string: " ++ e
 
 -- | Formatted solution output for one move (involved nodes and
 -- commands.
