@@ -266,7 +266,7 @@ buildPeers :: Node -> Instance.List -> Node
 buildPeers t il =
     let mdata = map
                 (\i_idx -> let inst = Container.find i_idx il
-                               mem = if Instance.auto_balance inst
+                               mem = if Instance.autoBalance inst
                                      then Instance.mem inst
                                      else 0
                            in (Instance.pNode inst, mem))
@@ -332,7 +332,7 @@ removeSec t inst =
         new_dsk = fDsk t + Instance.dsk inst
         old_peers = peers t
         old_peem = P.find pnode old_peers
-        new_peem =  if Instance.auto_balance inst
+        new_peem =  if Instance.autoBalance inst
                     then old_peem - Instance.mem inst
                     else old_peem
         new_peers = if new_peem > 0
@@ -407,7 +407,7 @@ addSecEx force t inst pdx =
         old_peers = peers t
         old_mem = fMem t
         new_dsk = fDsk t - Instance.dsk inst
-        secondary_needed_mem = if Instance.auto_balance inst
+        secondary_needed_mem = if Instance.autoBalance inst
                                then Instance.mem inst
                                else 0
         new_peem = P.find pdx old_peers + secondary_needed_mem

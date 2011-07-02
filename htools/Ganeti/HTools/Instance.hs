@@ -63,7 +63,7 @@ data Instance = Instance
     , idx          :: T.Idx     -- ^ Internal index
     , util         :: T.DynUtil -- ^ Dynamic resource usage
     , movable      :: Bool      -- ^ Can the instance be moved?
-    , auto_balance :: Bool      -- ^ Is the instance auto-balanced?
+    , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
     , tags         :: [String]  -- ^ List of instance tags
     } deriving (Show, Read)
 
@@ -107,7 +107,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init
              , util = T.baseUtil
              , tags = tags_init
              , movable = True
-             , auto_balance = auto_balance_init
+             , autoBalance = auto_balance_init
              }
 
 -- | Changes the index.

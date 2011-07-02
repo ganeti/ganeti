@@ -1028,7 +1028,7 @@ printInsts nl il =
                         in if sdx == Node.noSecondary
                            then  ""
                            else Container.nameOf nl sdx
-                      , if Instance.auto_balance inst then "Y" else "N"
+                      , if Instance.autoBalance inst then "Y" else "N"
                       , printf "%3d" $ Instance.vcpus inst
                       , printf "%5d" $ Instance.mem inst
                       , printf "%5d" $ Instance.dsk inst `div` 1024

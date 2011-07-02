@@ -529,7 +529,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
             Instance.sNode i == (if null snode
                                  then Node.noSecondary
                                  else sdx) &&
-            Instance.auto_balance i == autobal &&
+            Instance.autoBalance i == autobal &&
             isNothing fail1
 
 prop_Text_Load_InstanceFail ktn fields =
@@ -652,11 +652,11 @@ prop_Node_rMem inst =
     forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
     -- ab = auto_balance, nb = non-auto_balance
     -- we use -1 as the primary node of the instance
-    let inst' = inst { Instance.pNode = -1, Instance.auto_balance = True }
+    let inst' = inst { Instance.pNode = -1, Instance.autoBalance = True }
         inst_ab = setInstanceSmallerThanNode node inst'
-        inst_nb = inst_ab { Instance.auto_balance = False }
+        inst_nb = inst_ab { Instance.autoBalance = False }
         -- now we have the two instances, identical except the
-        -- auto_balance attribute
+        -- autoBalance attribute
         orig_rmem = Node.rMem node
         inst_idx = Instance.idx inst_ab
         node_add_ab = Node.addSec node inst_ab (-1)

@@ -96,7 +96,7 @@ serializeInstance nl inst =
       printf "%s|%d|%d|%d|%s|%s|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
              (Instance.vcpus inst) (Instance.runSt inst)
-             (if Instance.auto_balance inst then "Y" else "N")
+             (if Instance.autoBalance inst then "Y" else "N")
              pnode snode (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects.
