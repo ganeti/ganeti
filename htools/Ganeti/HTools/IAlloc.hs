@@ -50,6 +50,9 @@ import Ganeti.HTools.ExtLoader (loadExternalData)
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
+-- | Type alias for the result of an IAllocator call.
+type IAllocResult = (String, JSValue)
+
 -- | Parse the basic specifications of an instance.
 --
 -- Instances in the cluster instance list and the instance in an
@@ -216,21 +219,6 @@ parseData body = do
           | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return $ Request rqtype cdata
 
--- | Format the result
-formatRVal :: RqType -> [Node.AllocElement] -> JSValue
-formatRVal _ [] = JSArray []
-
-formatRVal (Evacuate _) elems =
-    let sols = map (\(_, inst, nl, _) -> Instance.name inst : map Node.name nl)
-               elems
-        jsols = map (JSArray . map (JSString . toJSString)) sols
-    in JSArray jsols
-
-formatRVal _ elems =
-    let (_, _, nodes, _) = head elems
-        nodes' = map Node.name nodes
-    in JSArray $ map (JSString . toJSString) nodes'
-
 -- | Formats the result into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
                -> String   -- ^ Information text
@@ -243,30 +231,43 @@ formatResponse success info result =
         e_result = ("result", result)
     in encodeStrict $ makeObj [e_success, e_info, e_result]
 
-processResults :: (Monad m) =>
-                  RqType -> Cluster.AllocSolution
-               -> m Cluster.AllocSolution
-processResults _ (Cluster.AllocSolution { Cluster.asSolutions = [],
-                                          Cluster.asLog = msgs }) =
-  fail $ intercalate ", " msgs
+-- | Flatten the log of a solution into a string.
+describeSolution :: Cluster.AllocSolution -> String
+describeSolution = intercalate ", " . Cluster.asLog
 
-processResults (Evacuate _) as = return as
+-- | Convert evacuation results into the result format.
+formatEvacuate :: Cluster.AllocSolution -> Result IAllocResult
+formatEvacuate as = do
+  let info = describeSolution as
+      elems = Cluster.asSolutions as
+  when (null elems) $ fail info
+  let sols = map (\(_, inst, nl, _) -> Instance.name inst : map Node.name nl)
+             elems
+      jsols = map (JSArray . map (JSString . toJSString)) sols
+  return (info, JSArray jsols)
 
-processResults _ as =
-    case Cluster.asSolutions as of
-      _:[] -> return as
-      _ -> fail "Internal error: multiple allocation solutions"
+-- | Convert allocation/relocation results into the result format.
+formatAllocate :: Cluster.AllocSolution -> Result IAllocResult
+formatAllocate as = do
+  let info = describeSolution as
+  case Cluster.asSolutions as of
+    [] -> fail info
+    (_, _, nodes, _):[] -> do
+        let nodes' = map Node.name nodes
+        return (info, JSArray $ map (JSString . toJSString) nodes')
+    _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Process a request and return new node lists
-processRequest :: Request
-               -> Result Cluster.AllocSolution
+processRequest :: Request -> Result IAllocResult
 processRequest request =
   let Request rqtype (ClusterData gl nl il _) = request
   in case rqtype of
-       Allocate xi reqn -> Cluster.tryMGAlloc gl nl il xi reqn
-       Relocate idx reqn exnodes -> Cluster.tryMGReloc gl nl il
-                                    idx reqn exnodes
-       Evacuate exnodes -> Cluster.tryMGEvac gl nl il exnodes
+       Allocate xi reqn ->
+           Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate
+       Relocate idx reqn exnodes ->
+           Cluster.tryMGReloc gl nl il idx reqn exnodes >>= formatAllocate
+       Evacuate exnodes ->
+           Cluster.tryMGEvac gl nl il exnodes >>= formatEvacuate
        MultiReloc _ _ -> fail "multi-reloc not handled"
        NodeEvacuate _ _ -> fail "node-evacuate not handled"
 
@@ -293,14 +294,8 @@ readRequest opts args = do
 -- | Main iallocator pipeline.
 runIAllocator :: Request -> String
 runIAllocator request =
-  let Request rq _ = request
-      sols = processRequest request >>= processResults rq
-      (ok, info, rn) =
-          case sols of
-            Ok as -> (True, "Request successful: " ++
-                            intercalate ", " (Cluster.asLog as),
-                      Cluster.asSolutions as)
-            Bad s -> (False, "Request failed: " ++ s, [])
-      result = formatRVal rq rn
-      resp = formatResponse ok info result
-  in resp
+  let (ok, info, result) =
+          case processRequest request of
+            Ok (msg, r) -> (True, "Request successful: " ++ msg, r)
+            Bad msg -> (False, "Request failed: " ++ msg, JSArray [])
+  in  formatResponse ok info result
