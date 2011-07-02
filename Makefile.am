@@ -316,7 +316,9 @@ HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 # extra flags that can be overriden on the command line
 HEXTRA =
 # exclude options for coverage reports
-HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
+HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC \
+	--exclude Ganeti.Constants \
+	--exclude Ganeti.HTools.Version
 
 HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
