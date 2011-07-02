@@ -41,6 +41,7 @@ module Ganeti.HTools.Instance
     , specOf
     , shrinkByType
     , runningStates
+    , requiredNodes
     ) where
 
 import qualified Ganeti.HTools.Types as T
@@ -183,3 +184,8 @@ shrinkByType _ f = T.Bad $ "Unhandled failure mode " ++ show f
 specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c } =
     T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
+
+-- | Computed the number of nodes for a given disk template
+requiredNodes :: T.DiskTemplate -> Int
+requiredNodes T.DTDrbd8 = 2
+requiredNodes _         = 1
