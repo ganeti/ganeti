@@ -47,7 +47,6 @@ module Ganeti.HTools.CLI
     , oGroup
     , oIDisk
     , oIMem
-    , oINodes
     , oIVcpus
     , oInstMoves
     , oLuxiSocket
@@ -113,7 +112,6 @@ data Options = Options
     , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
     , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
     , optSelInst     :: [String]       -- ^ Instances to be excluded
-    , optINodes      :: Int            -- ^ Nodes required for an instance
     , optISpec       :: RSpec          -- ^ Requested instance specs
     , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
     , optMaster      :: String         -- ^ Collect data from RAPI
@@ -153,7 +151,6 @@ defaultOptions  = Options
  , optExecJobs    = False
  , optGroup       = Nothing
  , optSelInst     = []
- , optINodes      = 2
  , optISpec       = RSpec 1 4096 102400
  , optLuxi        = Nothing
  , optMaster      = ""
@@ -261,11 +258,6 @@ oIMem = Option "" ["memory"]
                          nspec = ospec { rspecMem = read m }
                      in Ok opts { optISpec = nspec }) "MEMORY")
         "memory size for instances"
-
-oINodes :: OptType
-oINodes = Option "" ["req-nodes"]
-          (ReqArg (\ n opts -> Ok opts { optINodes = read n }) "NODES")
-          "number of nodes for the new instances (1=plain, 2=mirrored)"
 
 oIVcpus :: OptType
 oIVcpus = Option "" ["vcpus"]
