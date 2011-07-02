@@ -506,7 +506,7 @@ testInstance =
 
 prop_Text_Load_Instance name mem dsk vcpus status
                         (NonEmpty pnode) snode
-                        (NonNegative pdx) (NonNegative sdx) autobal =
+                        (NonNegative pdx) (NonNegative sdx) autobal dt =
     pnode /= snode && pdx /= sdx ==>
     let vcpus_s = show vcpus
         dsk_s = show dsk
@@ -517,20 +517,23 @@ prop_Text_Load_Instance name mem dsk vcpus status
         nl = Data.Map.fromList ndx
         tags = ""
         sbal = if autobal then "Y" else "N"
+        sdt = Types.dtToString dt
         inst = Text.loadInst nl
                [name, mem_s, dsk_s, vcpus_s, status,
-                sbal, pnode, snode, tags]:: Maybe (String, Instance.Instance)
+                sbal, pnode, snode, sdt, tags]
         fail1 = Text.loadInst nl
                [name, mem_s, dsk_s, vcpus_s, status,
-                sbal, pnode, pnode, tags]:: Maybe (String, Instance.Instance)
+                sbal, pnode, pnode, tags]
         _types = ( name::String, mem::Int, dsk::Int
                  , vcpus::Int, status::String
                  , snode::String
                  , autobal::Bool)
     in
       case inst of
-        Nothing -> False
-        Just (_, i) ->
+        Types.Bad msg -> printTestCase ("Failed to load instance: " ++ msg)
+                         False
+        Types.Ok (_, i) -> printTestCase ("Mismatch in some field while\
+                                          \ loading the instance") $
             Instance.name i == name &&
             Instance.vcpus i == vcpus &&
             Instance.mem i == mem &&
@@ -539,13 +542,15 @@ prop_Text_Load_Instance name mem dsk vcpus status
                                  then Node.noSecondary
                                  else sdx) &&
             Instance.autoBalance i == autobal &&
-            isNothing fail1
+            Types.isBad fail1
 
 prop_Text_Load_InstanceFail ktn fields =
-    length fields /= 9 ==>
+    length fields /= 10 ==>
     case Text.loadInst nl fields of
-      Types.Ok _ -> False
-      Types.Bad msg -> "Invalid/incomplete instance data: '" `isPrefixOf` msg
+      Types.Ok _ -> printTestCase "Managed to load instance from invalid\
+                                  \ data" False
+      Types.Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
+                       "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Data.Map.fromList ktn
 
 prop_Text_Load_Node name tm nm fm td fd tc fo =

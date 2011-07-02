@@ -93,11 +93,12 @@ serializeInstance nl inst =
                     then ""
                     else Container.nameOf nl sidx)
     in
-      printf "%s|%d|%d|%d|%s|%s|%s|%s|%s"
+      printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
              (Instance.vcpus inst) (Instance.runSt inst)
              (if Instance.autoBalance inst then "Y" else "N")
-             pnode snode (intercalate "," (Instance.tags inst))
+             pnode snode (dtToString (Instance.diskTemplate inst))
+             (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
@@ -148,15 +149,13 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] = do
 loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
 -- | Load an instance from a field list.
-loadInst :: (Monad m) =>
-            NameAssoc                     -- ^ Association list with
-                                          -- the current nodes
-         -> [String]                      -- ^ Input data as a list of
-                                          -- fields
-         -> m (String, Instance.Instance) -- ^ The result, a tuple of
-                                          -- instance name and the
-                                          -- instance object
-loadInst ktn [name, mem, dsk, vcpus, status, auto_bal, pnode, snode, tags] = do
+loadInst :: NameAssoc -- ^ Association list with the current nodes
+         -> [String]  -- ^ Input data as a list of fields
+         -> Result (String, Instance.Instance) -- ^ A tuple of
+                                               -- instance name and
+                                               -- the instance object
+loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
+             , dt, tags ] = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary
            else lookupNode ktn name snode)
@@ -168,11 +167,12 @@ loadInst ktn [name, mem, dsk, vcpus, status, auto_bal, pnode, snode, tags] = do
                     "N" -> return False
                     _ -> fail $ "Invalid auto_balance value '" ++ auto_bal ++
                          "' for instance " ++ name
+  disk_template <- annotateResult ("Instance " ++ name) (dtFromString dt)
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = sepSplit ',' tags
       newinst = Instance.create name vmem vdsk vvcpus status vtags
-                auto_balance pidx sidx DTDrbd8
+                auto_balance pidx sidx disk_template
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
