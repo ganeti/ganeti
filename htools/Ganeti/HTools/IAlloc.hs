@@ -32,9 +32,8 @@ import Data.Either ()
 import Data.Maybe (fromMaybe, isJust)
 import Data.List
 import Control.Monad
-import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
-                  makeObj, encodeStrict, decodeStrict,
-                  fromJSObject, toJSString)
+import Text.JSON (JSObject, JSValue(JSArray),
+                  makeObj, encodeStrict, decodeStrict, fromJSObject, showJSON)
 import System (exitWith, ExitCode(..))
 import System.IO
 
@@ -226,8 +225,8 @@ formatResponse :: Bool     -- ^ Whether the request was successful
                -> String   -- ^ The full JSON-formatted message
 formatResponse success info result =
     let
-        e_success = ("success", JSBool success)
-        e_info = ("info", JSString . toJSString $ info)
+        e_success = ("success", showJSON success)
+        e_info = ("info", showJSON info)
         e_result = ("result", result)
     in encodeStrict $ makeObj [e_success, e_info, e_result]
 
@@ -243,8 +242,7 @@ formatEvacuate as = do
   when (null elems) $ fail info
   let sols = map (\(_, inst, nl, _) -> Instance.name inst : map Node.name nl)
              elems
-      jsols = map (JSArray . map (JSString . toJSString)) sols
-  return (info, JSArray jsols)
+  return (info, showJSON sols)
 
 -- | Convert allocation/relocation results into the result format.
 formatAllocate :: Cluster.AllocSolution -> Result IAllocResult
@@ -252,9 +250,7 @@ formatAllocate as = do
   let info = describeSolution as
   case Cluster.asSolutions as of
     [] -> fail info
-    (_, _, nodes, _):[] -> do
-        let nodes' = map Node.name nodes
-        return (info, JSArray $ map (JSString . toJSString) nodes')
+    (_, _, nodes, _):[] -> return (info, showJSON $ map (Node.name) nodes)
     _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Process a request and return new node lists
