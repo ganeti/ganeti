@@ -31,7 +31,7 @@ Request options:
 
 **[--memory** *mem* **]**
 **[--disk** *disk* **]**
-**[--req-nodes** *req-nodes* **]**
+**[--disk-template** *template* **]**
 **[--vcpus** *vcpus* **]**
 **[--tiered-alloc** *spec* **]**
 
@@ -46,7 +46,7 @@ while maintaining N+1 status.
 The program will try to place instances, all of the same size, on the
 cluster, until the point where we don't have any N+1 possible
 allocation. It uses the exact same allocation algorithm as the hail
-iallocator plugin.
+iallocator plugin in *allocate* mode.
 
 The output of the program is designed to interpreted as a shell
 fragment (or parsed as a *key=value* file). Options which extend the
@@ -191,9 +191,9 @@ The options that can be passed to the program are as follows:
 --disk *disk*
   The disk size of the instances to be placed (defaults to 100GiB).
 
---req-nodes *num-nodes*
-  The number of nodes for the instances; the default of two means
-  mirrored instances, while passing one means plain type instances.
+--disk-template *template*
+  The disk template for the instance; one of the Ganeti disk templates
+  (e.g. plain, drbd, so on) should be passed in.
 
 --vcpus *vcpus*
   The number of VCPUs of the instances to be placed (defaults to 1).

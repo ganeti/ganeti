@@ -52,6 +52,7 @@ options :: [OptType]
 options =
     [ oPrintNodes
     , oDataFile
+    , oDiskTemplate
     , oNodeSim
     , oRapiMaster
     , oLuxiSocket
@@ -61,7 +62,6 @@ options =
     , oIMem
     , oIDisk
     , oIVcpus
-    , oINodes
     , oMaxCpu
     , oMinDisk
     , oTieredSpec
@@ -217,11 +217,13 @@ main = do
   let verbose = optVerbose opts
       ispec = optISpec opts
       shownodes = optShowNodes opts
+      disk_template = optDiskTemplate opts
+      req_nodes = Instance.requiredNodes disk_template
 
   (ClusterData gl fixed_nl il ctags) <- loadExternalData opts
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
-  printKeys [ ("SPEC_RQN", printf "%d" (optINodes opts)) ]
+  printKeys [ ("SPEC_RQN", printf "%d" req_nodes) ]
 
   let num_instances = length $ Container.elems il
 
@@ -234,7 +236,6 @@ main = do
                                  Node.name n `elem` offline_names ||
                                  Node.alias n `elem` offline_names)
                                all_nodes
-      req_nodes = optINodes opts
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
 
@@ -280,7 +281,7 @@ main = do
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
-                    (rspecCpu spx) "running" [] True (-1) (-1) DTDrbd8
+                    (rspecCpu spx) "running" [] True (-1) (-1) disk_template
       exitifbad val = (case val of
                          Bad s -> do
                            hPrintf stderr "Failure: %s\n" s :: IO ()
