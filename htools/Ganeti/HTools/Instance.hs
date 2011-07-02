@@ -65,6 +65,7 @@ data Instance = Instance
     , movable      :: Bool      -- ^ Can the instance be moved?
     , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
     , tags         :: [String]  -- ^ List of instance tags
+    , diskTemplate :: T.DiskTemplate -- ^ The disk template of the instance
     } deriving (Show, Read)
 
 instance T.Element Instance where
@@ -91,9 +92,9 @@ type List = Container.Container Instance
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
 create :: String -> Int -> Int -> Int -> String
-       -> [String] -> Bool -> T.Ndx -> T.Ndx -> Instance
+       -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Instance
 create name_init mem_init dsk_init vcpus_init run_init tags_init
-       auto_balance_init pn sn =
+       auto_balance_init pn sn dt =
     Instance { name = name_init
              , alias = name_init
              , mem = mem_init
@@ -108,6 +109,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init
              , tags = tags_init
              , movable = True
              , autoBalance = auto_balance_init
+             , diskTemplate = dt
              }
 
 -- | Changes the index.

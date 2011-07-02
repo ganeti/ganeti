@@ -172,7 +172,7 @@ loadInst ktn [name, mem, dsk, vcpus, status, auto_bal, pnode, snode, tags] = do
            " has same primary and secondary node - " ++ pnode
   let vtags = sepSplit ',' tags
       newinst = Instance.create name vmem vdsk vvcpus status vtags
-                auto_balance pidx sidx
+                auto_balance pidx sidx DTDrbd8
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 

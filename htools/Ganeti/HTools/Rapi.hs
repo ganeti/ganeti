@@ -120,7 +120,7 @@ parseInstance ktn a = do
   tags <- extract "tags" a
   auto_balance <- extract "auto_balance" beparams
   let inst = Instance.create name mem disk vcpus running tags
-             auto_balance pnode snode
+             auto_balance pnode snode DTDrbd8
   return (name, inst)
 
 -- | Construct a node from a JSON object.

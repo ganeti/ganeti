@@ -111,6 +111,7 @@ setInstanceSmallerThanNode node inst =
 -- | Create an instance given its spec.
 createInstance mem dsk vcpus =
     Instance.create "inst-unnamed" mem dsk vcpus "running" [] True (-1) (-1)
+                    Types.DTDrbd8
 
 -- | Create a small cluster by repeating a node spec.
 makeSmallCluster :: Node.Node -> Int -> Node.List
@@ -191,6 +192,7 @@ instance Arbitrary Instance.Instance where
       sn <- arbitrary
       vcpus <- choose (0, maxCpu)
       return $ Instance.create name mem dsk vcpus run_st [] True pn sn
+                               Types.DTDrbd8
 
 -- | Generas an arbitrary node based on sizing information.
 genNode :: Maybe Int -- ^ Minimum node size in terms of units
