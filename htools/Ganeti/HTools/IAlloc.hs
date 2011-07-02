@@ -66,8 +66,9 @@ parseBaseInstance n a = do
   mem   <- extract "memory"
   vcpus <- extract "vcpus"
   tags  <- extract "tags"
+  dt    <- extract "disk_template"
   let running = "running"
-  return (n, Instance.create n mem disk vcpus running tags True 0 0 DTDrbd8)
+  return (n, Instance.create n mem disk vcpus running tags True 0 0 dt)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list
