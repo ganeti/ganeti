@@ -38,8 +38,7 @@ module Ganeti.HTools.CLI
     -- * The options
     , oDataFile
     , oDiskMoves
-    , oSelInst
-    , oInstMoves
+    , oDiskTemplate
     , oDynuFile
     , oEvacMode
     , oExInst
@@ -50,6 +49,7 @@ module Ganeti.HTools.CLI
     , oIMem
     , oINodes
     , oIVcpus
+    , oInstMoves
     , oLuxiSocket
     , oMaxCpu
     , oMaxSolLength
@@ -69,6 +69,7 @@ module Ganeti.HTools.CLI
     , oRapiMaster
     , oReplay
     , oSaveCluster
+    , oSelInst
     , oShowHelp
     , oShowVer
     , oTieredSpec
@@ -104,6 +105,7 @@ data Options = Options
     { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
     , optDiskMoves   :: Bool           -- ^ Allow disk moves
     , optInstMoves   :: Bool           -- ^ Allow instance moves
+    , optDiskTemplate :: DiskTemplate  -- ^ The requested disk template
     , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
     , optEvacMode    :: Bool           -- ^ Enable evacuation mode
     , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -143,6 +145,7 @@ defaultOptions  = Options
  { optDataFile    = Nothing
  , optDiskMoves   = True
  , optInstMoves   = True
+ , optDiskTemplate = DTDrbd8
  , optDynuFile    = Nothing
  , optEvacMode    = False
  , optExInst      = []
@@ -191,6 +194,13 @@ oDiskMoves = Option "" ["no-disk-moves"]
              (NoArg (\ opts -> Ok opts { optDiskMoves = False}))
              "disallow disk moves from the list of allowed instance changes,\
              \ thus allowing only the 'cheap' failover/migrate operations"
+
+oDiskTemplate :: OptType
+oDiskTemplate = Option "" ["disk-template"]
+                (ReqArg (\ t opts -> do
+                           dt <- dtFromString t
+                           return $ opts { optDiskTemplate = dt }) "TEMPLATE")
+                "select the desired disk template"
 
 oSelInst :: OptType
 oSelInst = Option "" ["select-instances"]
