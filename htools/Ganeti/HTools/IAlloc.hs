@@ -24,15 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.IAlloc
-    ( parseData
-    , formatResponse
-    , readRequest
-    , processRequest
-    , processResults
+    ( readRequest
+    , runIAllocator
     ) where
 
 import Data.Either ()
-import Data.Maybe (fromMaybe, isJust, fromJust)
+import Data.Maybe (fromMaybe, isJust)
 import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
@@ -293,3 +290,17 @@ readRequest opts args = do
      let Request rqt _ = r1
      return $ Request rqt cdata
    else return r1)
+
+-- | Main iallocator pipeline.
+runIAllocator :: Request -> String
+runIAllocator request =
+  let Request rq _ = request
+      sols = processRequest request >>= processResults rq
+      (ok, info, rn) =
+          case sols of
+            Ok as -> (True, "Request successful: " ++
+                            intercalate ", " (Cluster.asLog as),
+                      Cluster.asSolutions as)
+            Bad s -> (False, "Request failed: " ++ s, [])
+      resp = formatResponse ok info rq rn
+  in resp

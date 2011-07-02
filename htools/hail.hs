@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Main (main) where
 
 import Control.Monad
-import Data.List
 import Data.Maybe (isJust, fromJust)
 import System.IO
 import qualified System
@@ -35,7 +34,6 @@ import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
-import Ganeti.HTools.Types
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
 
 -- | Options list and functions
@@ -73,12 +71,5 @@ main = do
          hPutStrLn stderr $ Cluster.printNodes (cdNodes cdata)
                        (fromJust shownodes)
 
-  let sols = processRequest request >>= processResults rq
-  let (ok, info, rn) =
-          case sols of
-            Ok as -> (True, "Request successful: " ++
-                            intercalate ", " (Cluster.asLog as),
-                      Cluster.asSolutions as)
-            Bad s -> (False, "Request failed: " ++ s, [])
-      resp = formatResponse ok info rq rn
+  let resp = runIAllocator request
   putStrLn resp
