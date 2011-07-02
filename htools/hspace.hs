@@ -224,6 +224,7 @@ main = do
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
   printKeys [ ("SPEC_RQN", printf "%d" req_nodes) ]
+  printKeys [ ("SPEC_DISK_TEMPLATE", dtToString disk_template) ]
 
   let num_instances = length $ Container.elems il
 

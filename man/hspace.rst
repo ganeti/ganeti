@@ -56,9 +56,9 @@ output (e.g. -p, -v) will output the additional information on stderr
 The following keys are available in the output of the script (all
 prefixed with *HTS_*):
 
-SPEC_MEM, SPEC_DSK, SPEC_CPU, SPEC_RQN
+SPEC_MEM, SPEC_DSK, SPEC_CPU, SPEC_RQN, SPEC_DISK_TEMPLATE
   These represent the specifications of the instance model used for
-  allocation (the memory, disk, cpu, requested nodes).
+  allocation (the memory, disk, cpu, requested nodes, disk template).
 
 CLUSTER_MEM, CLUSTER_DSK, CLUSTER_CPU, CLUSTER_NODES
   These represent the total memory, disk, CPU count and total nodes in
