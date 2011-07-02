@@ -231,17 +231,16 @@ formatRVal _ elems =
         nodes' = map Node.name nodes
     in JSArray $ map (JSString . toJSString) nodes'
 
--- | Formats the response into a valid IAllocator response message.
+-- | Formats the result into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
                -> String   -- ^ Information text
-               -> RqType   -- ^ Request type
-               -> [Node.AllocElement] -- ^ The resulting allocations
-               -> String   -- ^ The JSON-formatted message
-formatResponse success info rq elems =
+               -> JSValue  -- ^ The JSON encoded result
+               -> String   -- ^ The full JSON-formatted message
+formatResponse success info result =
     let
         e_success = ("success", JSBool success)
         e_info = ("info", JSString . toJSString $ info)
-        e_result = ("result", formatRVal rq elems)
+        e_result = ("result", result)
     in encodeStrict $ makeObj [e_success, e_info, e_result]
 
 processResults :: (Monad m) =>
@@ -302,5 +301,6 @@ runIAllocator request =
                             intercalate ", " (Cluster.asLog as),
                       Cluster.asSolutions as)
             Bad s -> (False, "Request failed: " ++ s, [])
-      resp = formatResponse ok info rq rn
+      result = formatRVal rq rn
+      resp = formatResponse ok info result
   in resp
