@@ -26,20 +26,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.IAlloc
     ( parseData
     , formatResponse
+    , readRequest
+    , processRequest
+    , processResults
     ) where
 
 import Data.Either ()
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust, fromJust)
+import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
                   makeObj, encodeStrict, decodeStrict,
                   fromJSObject, toJSString)
+import System (exitWith, ExitCode(..))
+import System.IO
+
+import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.Constants as C
+import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
+import Ganeti.HTools.ExtLoader (loadExternalData)
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
@@ -236,3 +246,50 @@ formatResponse success info rq elems =
         e_info = ("info", JSString . toJSString $ info)
         e_result = ("result", formatRVal rq elems)
     in encodeStrict $ makeObj [e_success, e_info, e_result]
+
+processResults :: (Monad m) =>
+                  RqType -> Cluster.AllocSolution
+               -> m Cluster.AllocSolution
+processResults _ (Cluster.AllocSolution { Cluster.asSolutions = [],
+                                          Cluster.asLog = msgs }) =
+  fail $ intercalate ", " msgs
+
+processResults (Evacuate _) as = return as
+
+processResults _ as =
+    case Cluster.asSolutions as of
+      _:[] -> return as
+      _ -> fail "Internal error: multiple allocation solutions"
+
+-- | Process a request and return new node lists
+processRequest :: Request
+               -> Result Cluster.AllocSolution
+processRequest request =
+  let Request rqtype (ClusterData gl nl il _) = request
+  in case rqtype of
+       Allocate xi reqn -> Cluster.tryMGAlloc gl nl il xi reqn
+       Relocate idx reqn exnodes -> Cluster.tryMGReloc gl nl il
+                                    idx reqn exnodes
+       Evacuate exnodes -> Cluster.tryMGEvac gl nl il exnodes
+       MultiReloc _ _ -> fail "multi-reloc not handled"
+       NodeEvacuate _ _ -> fail "node-evacuate not handled"
+
+-- | Reads the request from the data file(s)
+readRequest :: Options -> [String] -> IO Request
+readRequest opts args = do
+  when (null args) $ do
+         hPutStrLn stderr "Error: this program needs an input file."
+         exitWith $ ExitFailure 1
+
+  input_data <- readFile (head args)
+  r1 <- case parseData input_data of
+          Bad err -> do
+            hPutStrLn stderr $ "Error: " ++ err
+            exitWith $ ExitFailure 1
+          Ok rq -> return rq
+  (if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
+   then do
+     cdata <- loadExternalData opts
+     let Request rqt _ = r1
+     return $ Request rqt cdata
+   else return r1)
