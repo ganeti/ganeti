@@ -57,17 +57,17 @@ wrapIO = flip catch (return . Bad . show)
 
 parseUtilisation :: String -> Result (String, DynUtil)
 parseUtilisation line =
-    let columns = sepSplit ' ' line
-    in case columns of
-         [name, cpu, mem, dsk, net] -> do
-                      rcpu <- tryRead name cpu
-                      rmem <- tryRead name mem
-                      rdsk <- tryRead name dsk
-                      rnet <- tryRead name net
-                      let du = DynUtil { cpuWeight = rcpu, memWeight = rmem
-                                       , dskWeight = rdsk, netWeight = rnet }
-                      return (name, du)
-         _ -> Bad $ "Cannot parse line " ++ line
+    case sepSplit ' ' line of
+      [name, cpu, mem, dsk, net] ->
+          do
+            rcpu <- tryRead name cpu
+            rmem <- tryRead name mem
+            rdsk <- tryRead name dsk
+            rnet <- tryRead name net
+            let du = DynUtil { cpuWeight = rcpu, memWeight = rmem
+                             , dskWeight = rdsk, netWeight = rnet }
+            return (name, du)
+      _ -> Bad $ "Cannot parse line " ++ line
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
