@@ -104,7 +104,7 @@ data AllocPolicy
                        -- last-resort, after the preferred groups
     | AllocUnallocable -- ^ This group must not be used for new
                        -- allocations
-      deriving (Show, Read, Eq, Ord)
+      deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 -- | Convert a string to an alloc policy.
 apolFromString :: (Monad m) => String -> m AllocPolicy
@@ -185,7 +185,7 @@ data DiskTemplate = DTDiskless
                   | DTPlain
                   | DTBlock
                   | DTDrbd8
-                    deriving (Show, Read, Eq)
+                    deriving (Show, Read, Eq, Enum, Bounded)
 
 -- | Converts a DiskTemplate to String
 dtToString :: DiskTemplate -> String

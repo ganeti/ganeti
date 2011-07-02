@@ -110,6 +110,7 @@ allTests =
   , ("OpCodes", fast, testOpCodes)
   , ("Jobs", fast, testJobs)
   , ("Loader", fast, testLoader)
+  , ("Types", fast, testTypes)
   , ("Cluster", slow, testCluster)
   ]
 

@@ -34,6 +34,7 @@ module Ganeti.HTools.QC
     , testJobs
     , testCluster
     , testLoader
+    , testTypes
     ) where
 
 import Test.QuickCheck
@@ -264,6 +265,12 @@ instance Arbitrary SmallRatio where
     arbitrary = do
       v <- choose (0, 1)
       return $ SmallRatio v
+
+instance Arbitrary Types.AllocPolicy where
+  arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary Types.DiskTemplate where
+  arbitrary = elements [minBound..maxBound]
 
 -- * Actual tests
 
@@ -956,3 +963,22 @@ testLoader =
   , run prop_Loader_assignIndices
   , run prop_Loader_mergeData
   ]
+
+-- ** Types tests
+
+prop_AllocPolicy_serialisation apol =
+    case Types.apolFromString (Types.apolToString apol) of
+      Types.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
+                    p == apol
+      Types.Bad s -> printTestCase ("failed to deserialise: " ++ s) False
+
+prop_DiskTemplate_serialisation dt =
+    case Types.dtFromString (Types.dtToString dt) of
+      Types.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
+                    p == dt
+      Types.Bad s -> printTestCase ("failed to deserialise: " ++ s) False
+
+testTypes =
+    [ run prop_AllocPolicy_serialisation
+    , run prop_DiskTemplate_serialisation
+    ]
