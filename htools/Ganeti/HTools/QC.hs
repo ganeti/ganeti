@@ -334,6 +334,19 @@ prop_Utils_select_undefv lst1 (NonEmpty lst2) =
         tlist = map (\e -> (True, e)) lst2
         cndlist = flist ++ tlist ++ [undefined]
 
+prop_Utils_parseUnit (NonNegative n) =
+    Utils.parseUnit (show n) == Types.Ok n &&
+    Utils.parseUnit (show n ++ "m") == Types.Ok n &&
+    (case Utils.parseUnit (show n ++ "M") of
+      Types.Ok m -> if n > 0
+                    then m < n  -- for positive values, X MB is less than X MiB
+                    else m == 0 -- but for 0, 0 MB == 0 MiB
+      Types.Bad _ -> False) &&
+    Utils.parseUnit (show n ++ "g") == Types.Ok (n*1024) &&
+    Utils.parseUnit (show n ++ "t") == Types.Ok (n*1048576) &&
+    Types.isBad (Utils.parseUnit (show n ++ "x")::Types.Result Int)
+    where _types = (n::Int)
+
 -- | Test list for the Utils module.
 testUtils =
   [ run prop_Utils_commaJoinSplit
@@ -343,6 +356,7 @@ testUtils =
   , run prop_Utils_select
   , run prop_Utils_select_undefd
   , run prop_Utils_select_undefv
+  , run prop_Utils_parseUnit
   ]
 
 -- ** PeerMap tests

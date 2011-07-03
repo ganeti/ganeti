@@ -46,9 +46,11 @@ module Ganeti.HTools.Utils
     , formatTable
     , annotateResult
     , defaultGroupID
+    , parseUnit
     ) where
 
 import Control.Monad (liftM)
+import Data.Char (toUpper)
 import Data.List
 import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
@@ -252,3 +254,30 @@ formatTable vals numpos =
 -- | Default group UUID (just a string, not a real UUID).
 defaultGroupID :: GroupID
 defaultGroupID = "00000000-0000-0000-0000-000000000000"
+
+-- | Tries to extract number and scale from the given string.
+--
+-- Input must be in the format NUMBER+ SPACE* [UNIT]. If no unit is
+-- specified, it defaults to MiB. Return value is always an integral
+-- value in MiB.
+parseUnit :: (Monad m, Integral a, Read a) => String -> m a
+parseUnit str =
+    -- TODO: enhance this by splitting the unit parsing code out and
+    -- accepting floating-point numbers
+    case reads str of
+      [(v, suffix)] ->
+          let unit = dropWhile (== ' ') suffix
+              upper = map toUpper unit
+              siConvert x = x * 1000000 `div` 1048576
+          in case () of
+               _ | null unit -> return v
+                 | unit == "m" || upper == "MIB" -> return v
+                 | unit == "M" || upper == "MB"  -> return $ siConvert v
+                 | unit == "g" || upper == "GIB" -> return $ v * 1024
+                 | unit == "G" || upper == "GB"  -> return $ siConvert
+                                                    (v * 1000)
+                 | unit == "t" || upper == "TIB" -> return $ v * 1048576
+                 | unit == "T" || upper == "TB"  -> return $
+                                                    siConvert (v * 1000000)
+                 | otherwise -> fail $ "Unknown unit '" ++ unit ++ "'"
+      _ -> fail $ "Can't parse string '" ++ str ++ "'"

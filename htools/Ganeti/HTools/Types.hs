@@ -264,7 +264,7 @@ mini-library here
 data Result a
     = Bad String
     | Ok a
-    deriving (Show, Read)
+    deriving (Show, Read, Eq)
 
 instance Monad Result where
     (>>=) (Bad x) _ = Bad x
