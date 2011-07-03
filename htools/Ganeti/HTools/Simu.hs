@@ -47,8 +47,8 @@ parseDesc desc =
       [a, n, d, m, c] -> do
         apol <- apolFromString a
         ncount <- tryRead "node count" n
-        disk <- tryRead "disk size" d
-        mem <- tryRead "memory size" m
+        disk <- annotateResult "disk size" (parseUnit d)
+        mem <- annotateResult "memory size" (parseUnit m)
         cpu <- tryRead "cpu count" c
         return (apol, ncount, disk, mem, cpu)
       es -> fail $ printf

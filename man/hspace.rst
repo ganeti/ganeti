@@ -186,10 +186,12 @@ OPTIONS
 The options that can be passed to the program are as follows:
 
 --memory *mem*
-  The memory size of the instances to be placed (defaults to 4GiB).
+  The memory size of the instances to be placed (defaults to
+  4GiB). Units can be used (see below for more details).
 
 --disk *disk*
-  The disk size of the instances to be placed (defaults to 100GiB).
+  The disk size of the instances to be placed (defaults to
+  100GiB). Units can be used.
 
 --disk-template *template*
   The disk template for the instance; one of the Ganeti disk templates
@@ -199,12 +201,14 @@ The options that can be passed to the program are as follows:
   The number of VCPUs of the instances to be placed (defaults to 1).
 
 --max-cpu=*cpu-ratio*
-  The maximum virtual to physical cpu ratio, as a floating point
-  number between zero and one. For example, specifying *cpu-ratio* as
-  **2.5** means that, for a 4-cpu machine, a maximum of 10 virtual
-  cpus should be allowed to be in use for primary instances. A value
-  of one doesn't make sense though, as that means no disk space can be
-  used on it.
+  The maximum virtual to physical cpu ratio, as a floating point number
+  greater than or equal to one. For example, specifying *cpu-ratio* as
+  **2.5** means that, for a 4-cpu machine, a maximum of 10 virtual cpus
+  should be allowed to be in use for primary instances. A value of
+  exactly one means there will be no over-subscription of CPU (except
+  for the CPU time used by the node itself), and values below one do not
+  make sense, as that means other resources (e.g. disk) won't be fully
+  utilised due to CPU restrictions.
 
 --min-disk=*disk-ratio*
   The minimum amount of free disk space remaining, as a floating point
@@ -337,12 +341,12 @@ The options that can be passed to the program are as follows:
 
   - the allocation policy for this node group
   - the number of nodes in the cluster
-  - the disk size of the nodes, in mebibytes
-  - the memory size of the nodes, in mebibytes
+  - the disk size of the nodes (default in mebibytes, units can be used)
+  - the memory size of the nodes (default in mebibytes, units can be used)
   - the cpu core count for the nodes
 
-  An example description would be **preferred,B20,102400,16384,4**
-  describing a 20-node cluster where each node has 100GiB of disk
+  An example description would be **preferred,B20,100G,16g,4**
+  describing a 20-node cluster where each node has 100GB of disk
   space, 16GiB of memory and 4 CPU cores. Note that all nodes must
   have the same specs currently.
 
@@ -359,12 +363,12 @@ The options that can be passed to the program are as follows:
   allocation. The specification given is similar to the *--simulate*
   option and it holds:
 
-  - the disk size of the instance
-  - the memory size of the instance
+  - the disk size of the instance (units can be used)
+  - the memory size of the instance (units can be used)
   - the vcpu count for the insance
 
-  An example description would be *10240,8192,2* describing an initial
-  starting specification of 10GiB of disk space, 4GiB of memory and 2
+  An example description would be *100G,4g,2* describing an initial
+  starting specification of 100GB of disk space, 4GiB of memory and 2
   VCPUs.
 
   Also note that the normal allocation and the tiered allocation are
@@ -384,6 +388,19 @@ The options that can be passed to the program are as follows:
 
 -V, --version
   Just show the program version and exit.
+
+UNITS
+~~~~~
+
+By default, all unit-accepting options use mebibytes. Using the
+lower-case letters of *m*, *g* and *t* (or their longer equivalents of
+*mib*, *gib*, *tib*, for which case doesn't matter) explicit binary
+units can be selected. Units in the SI system can be selected using the
+upper-case letters of *M*, *G* and *T* (or their longer equivalents of
+*MB*, *GB*, *TB*, for which case doesn't matter).
+
+More details about the difference between the SI and binary systems can
+be read in the *units(7)* man page.
 
 EXIT STATUS
 -----------

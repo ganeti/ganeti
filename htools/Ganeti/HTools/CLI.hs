@@ -245,26 +245,29 @@ oGroup = Option "G" ["group"]
 
 oIDisk :: OptType
 oIDisk = Option "" ["disk"]
-         (ReqArg (\ d opts ->
-                     let ospec = optISpec opts
-                         nspec = ospec { rspecDsk = read d }
-                     in Ok opts { optISpec = nspec }) "DISK")
+         (ReqArg (\ d opts -> do
+                    dsk <- annotateResult ("--disk option") (parseUnit d)
+                    let ospec = optISpec opts
+                        nspec = ospec { rspecDsk = dsk }
+                    return $ opts { optISpec = nspec }) "DISK")
          "disk size for instances"
 
 oIMem :: OptType
 oIMem = Option "" ["memory"]
-        (ReqArg (\ m opts ->
-                     let ospec = optISpec opts
-                         nspec = ospec { rspecMem = read m }
-                     in Ok opts { optISpec = nspec }) "MEMORY")
+        (ReqArg (\ m opts -> do
+                   mem <- annotateResult ("--memory option") (parseUnit m)
+                   let ospec = optISpec opts
+                       nspec = ospec { rspecMem = mem }
+                   return $ opts { optISpec = nspec }) "MEMORY")
         "memory size for instances"
 
 oIVcpus :: OptType
 oIVcpus = Option "" ["vcpus"]
-          (ReqArg (\ p opts ->
-                       let ospec = optISpec opts
-                           nspec = ospec { rspecCpu = read p }
-                       in Ok opts { optISpec = nspec }) "NUM")
+          (ReqArg (\ p opts -> do
+                     vcpus <- tryRead "--vcpus option" p
+                     let ospec = optISpec opts
+                         nspec = ospec { rspecCpu = vcpus }
+                     return $ opts { optISpec = nspec }) "NUM")
           "number of virtual cpus for instances"
 
 oLuxiSocket :: OptType
@@ -384,7 +387,13 @@ oTieredSpec :: OptType
 oTieredSpec = Option "" ["tiered-alloc"]
              (ReqArg (\ inp opts -> do
                           let sp = sepSplit ',' inp
-                          prs <- mapM (tryRead "tiered specs") sp
+                          prs <- mapM (\(fn, val) -> fn val) $
+                                 zip [ annotateResult "tiered specs memory" .
+                                       parseUnit
+                                     , annotateResult "tiered specs disk" .
+                                       parseUnit
+                                     , tryRead "tiered specs cpus"
+                                     ] sp
                           tspec <-
                               case prs of
                                 [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
