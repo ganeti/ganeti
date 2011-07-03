@@ -314,6 +314,7 @@ main = do
        maybeSaveData (optSaveCluster opts) "tiered" "after tiered allocation"
                      (ClusterData gl trl_nl trl_il ctags)
 
+       printKeys $ map (\(a, fn) -> ("TSPEC_INI_" ++ a, fn tspec)) specData
        printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
        printKeys [("TSPEC", intercalate " " spec_map')]
        printAllocationStats m_cpu nl trl_nl)

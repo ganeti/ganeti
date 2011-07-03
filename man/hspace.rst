@@ -60,6 +60,11 @@ SPEC_MEM, SPEC_DSK, SPEC_CPU, SPEC_RQN, SPEC_DISK_TEMPLATE
   These represent the specifications of the instance model used for
   allocation (the memory, disk, cpu, requested nodes, disk template).
 
+TSPEC_INI_MEM, TSPEC_INI_DSK, TSPEC_INI_CPU
+  Only defined when the tiered mode allocation is enabled, these are
+  similar to the above specifications but show the initial starting spec
+  for tiered allocation.
+
 CLUSTER_MEM, CLUSTER_DSK, CLUSTER_CPU, CLUSTER_NODES
   These represent the total memory, disk, CPU count and total nodes in
   the cluster.
