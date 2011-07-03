@@ -832,26 +832,10 @@ tryMGEvac :: (Monad m) =>
 tryMGEvac _ nl il ex_ndx =
     let ex_nodes = map (`Container.find` nl) ex_ndx
         all_insts = nub . concatMap Node.sList $ ex_nodes
-        gni = splitCluster nl il
-        -- we run the instance index list through a couple of maps to
-        -- get finally to a structure of the type [(group index,
-        -- [instance indices])]
-        all_insts' = map (\idx ->
-                              (instancePriGroup nl (Container.find idx il),
-                               idx)) all_insts
-        all_insts'' = groupBy ((==) `on` fst) all_insts'
-        all_insts3 = map (\xs -> let (gdxs, idxs) = unzip xs
-                                 in (head gdxs, idxs)) all_insts''
+        all_insts' = associateIdxs all_insts $ splitCluster nl il
     in do
-      -- that done, we now add the per-group nl/il to the tuple
-      all_insts4 <-
-          mapM (\(gdx, idxs) ->
-                case lookup gdx gni of
-                    Nothing -> fail $ "Can't find group index " ++ show gdx
-                    Just (gnl, gil) -> return (gdx, gnl, gil, idxs))
-          all_insts3
-      results <- mapM (\(_, gnl, gil, idxs) -> tryEvac gnl gil idxs ex_ndx)
-                 all_insts4
+      results <- mapM (\(_, (gnl, gil, idxs)) -> tryEvac gnl gil idxs ex_ndx)
+                 all_insts'
       let sol = foldl' sumAllocs emptySolution results
       return $ annotateSolution sol
 
@@ -1110,3 +1094,12 @@ splitCluster nl il =
                nodes' = zip nidxs nodes
                instances = Container.filter ((`elem` nidxs) . Instance.pNode) il
            in (guuid, (Container.fromList nodes', instances))) ngroups
+
+-- | Split a global instance index map into per-group, and associate
+-- it with the group/node/instance lists.
+associateIdxs :: [Idx] -- ^ Instance indices to be split/associated
+              -> [(Gdx, (Node.List, Instance.List))]        -- ^ Input groups
+              -> [(Gdx, (Node.List, Instance.List, [Idx]))] -- ^ Result
+associateIdxs idxs =
+    map (\(gdx, (nl, il)) ->
+             (gdx, (nl, il, filter (`Container.member` il) idxs)))

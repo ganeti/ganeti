@@ -7,7 +7,7 @@ give the best performance for our workload.
 
 {-
 
-Copyright (C) 2009, 2010 Google Inc.
+Copyright (C) 2009, 2010, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ module Ganeti.HTools.Container
     , IntMap.null
     , find
     , IntMap.findMax
+    , IntMap.member
      -- * Update
     , add
     , addTwo
