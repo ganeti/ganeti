@@ -30,6 +30,7 @@ module Ganeti.HTools.Cluster
     (
      -- * Types
       AllocSolution(..)
+    , EvacSolution(..)
     , Table(..)
     , CStats(..)
     , AllocStats
@@ -62,6 +63,7 @@ module Ganeti.HTools.Cluster
     , tryMGReloc
     , tryEvac
     , tryMGEvac
+    , tryNodeEvac
     , collapseFailures
     -- * Allocation functions
     , iterateAlloc
@@ -101,10 +103,19 @@ data AllocSolution = AllocSolution
   , asLog       :: [String]            -- ^ A list of informational messages
   }
 
+-- | Node evacuation/group change iallocator result type. This result
+-- type consists of actual opcodes (a restricted subset) that are
+-- transmitted back to Ganeti.
+data EvacSolution = EvacSolution
+    { esMoved   :: [String]             -- ^ Instance moved successfully
+    , esFailed  :: [String]             -- ^ Instance which were not
+                                        -- relocated
+    , esOpCodes :: [[[OpCodes.OpCode]]] -- ^ List of lists of jobs
+    }
+
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
 type AllocResult = (FailStats, Node.List, Instance.List,
                     [Instance.Instance], [CStats])
-
 
 -- | A type denoting the valid allocation mode/pairs.
 --
@@ -117,6 +128,13 @@ type AllocNodes = Either [Ndx] [(Ndx, Ndx)]
 emptyAllocSolution :: AllocSolution
 emptyAllocSolution = AllocSolution { asFailures = [], asAllocs = 0
                                    , asSolutions = [], asLog = [] }
+
+-- | The empty evac solution.
+emptyEvacSolution :: EvacSolution
+emptyEvacSolution = EvacSolution { esMoved = []
+                                 , esFailed = []
+                                 , esOpCodes = []
+                                 }
 
 -- | The complete state for the balancing solution.
 data Table = Table Node.List Instance.List Score [Placement]
@@ -635,6 +653,14 @@ describeSolution as =
 annotateSolution :: AllocSolution -> AllocSolution
 annotateSolution as = as { asLog = describeSolution as : asLog as }
 
+-- | Reverses an evacuation solution.
+--
+-- Rationale: we always concat the results to the top of the lists, so
+-- for proper jobset execution, we should reverse all lists.
+reverseEvacSolution :: EvacSolution -> EvacSolution
+reverseEvacSolution (EvacSolution f m o) =
+    EvacSolution (reverse f) (reverse m) (reverse o)
+
 -- | Generate the valid node allocation singles or pairs for a new instance.
 genAllocNodes :: Group.List        -- ^ Group list
               -> Node.List         -- ^ The node map
@@ -839,6 +865,103 @@ tryMGEvac _ nl il ex_ndx =
                  all_insts'
       let sol = foldl' sumAllocs emptyAllocSolution results
       return $ annotateSolution sol
+
+-- | Function which fails if the requested mode is change secondary.
+--
+-- This is useful since except DRBD, no other disk template can
+-- execute change secondary; thus, we can just call this function
+-- instead of always checking for secondary mode. After the call to
+-- this function, whatever mode we have is just a primary change.
+failOnSecondaryChange :: (Monad m) => EvacMode -> DiskTemplate -> m ()
+failOnSecondaryChange ChangeSecondary dt =
+    fail $ "Instances with disk template '" ++ dtToString dt ++
+         "' can't execute change secondary"
+failOnSecondaryChange _ _ = return ()
+
+-- | Run evacuation for a single instance.
+nodeEvacInstance :: Node.List         -- ^ The node list (cluster-wide)
+                 -> Instance.List     -- ^ Instance list (cluster-wide)
+                 -> EvacMode          -- ^ The evacuation mode
+                 -> Instance.Instance -- ^ The instance to be evacuated
+                 -> [Ndx]             -- ^ The list of available nodes
+                                      -- for allocation
+                 -> Result (Node.List, Instance.List, [OpCodes.OpCode])
+nodeEvacInstance _ _ mode (Instance.Instance
+                           {Instance.diskTemplate = dt@DTDiskless}) _ =
+                  failOnSecondaryChange mode dt >>
+                  fail "Diskless relocations not implemented yet"
+
+nodeEvacInstance _ _ _ (Instance.Instance
+                        {Instance.diskTemplate = DTPlain}) _ =
+                  fail "Instances of type plain cannot be relocated"
+
+nodeEvacInstance _ _ _ (Instance.Instance
+                        {Instance.diskTemplate = DTFile}) _ =
+                  fail "Instances of type file cannot be relocated"
+
+nodeEvacInstance _ _ mode  (Instance.Instance
+                            {Instance.diskTemplate = dt@DTSharedFile}) _ =
+                  failOnSecondaryChange mode dt >>
+                  fail "Shared file relocations not implemented yet"
+
+nodeEvacInstance _ _ mode (Instance.Instance
+                           {Instance.diskTemplate = dt@DTBlock}) _ =
+                  failOnSecondaryChange mode dt >>
+                  fail "Block device relocations not implemented yet"
+
+nodeEvacInstance _ _ _ (Instance.Instance
+                        {Instance.diskTemplate = DTDrbd8}) _ =
+                  fail "DRBD relocations not implemented yet"
+
+-- | Computes the local nodes of a given instance which are available
+-- for allocation.
+availableLocalNodes :: Node.List
+                    -> [(Gdx, [Ndx])]
+                    -> IntSet.IntSet
+                    -> Instance.Instance
+                    -> Result [Ndx]
+availableLocalNodes nl group_nodes excl_ndx inst = do
+  let gdx = instancePriGroup nl inst
+  local_nodes <- maybe (Bad $ "Can't find group with index " ++ show gdx)
+                 Ok (lookup gdx group_nodes)
+  let avail_nodes = filter (not . flip IntSet.member excl_ndx) local_nodes
+  return avail_nodes
+
+-- | Updates the evac solution with the results of an instance
+-- evacuation.
+updateEvacSolution :: (Node.List, Instance.List, EvacSolution)
+                   -> Instance.Instance
+                   -> Result (Node.List, Instance.List, [OpCodes.OpCode])
+                   -> (Node.List, Instance.List, EvacSolution)
+updateEvacSolution (nl, il, es) inst (Bad msg) =
+    (nl, il, es { esFailed = (Instance.name inst ++ ": " ++ msg):esFailed es})
+updateEvacSolution (_, _, es) inst (Ok (nl, il, opcodes)) =
+    (nl, il, es { esMoved = Instance.name inst:esMoved es
+                , esOpCodes = [opcodes]:esOpCodes es })
+
+-- | Node-evacuation IAllocator mode main function.
+tryNodeEvac :: Group.List    -- ^ The cluster groups
+            -> Node.List     -- ^ The node list (cluster-wide, not per group)
+            -> Instance.List -- ^ Instance list (cluster-wide)
+            -> EvacMode      -- ^ The evacuation mode
+            -> [Idx]         -- ^ List of instance (indices) to be evacuated
+            -> Result EvacSolution
+tryNodeEvac _ ini_nl ini_il mode idxs =
+    let evac_ndx = nodesToEvacuate ini_il mode idxs
+        offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
+        excl_ndx = foldl' (flip IntSet.insert) evac_ndx offline
+        group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
+                                             (Container.elems nl))) $
+                      splitCluster ini_nl ini_il
+        (_, _, esol) =
+            foldl' (\state@(nl, il, _) inst ->
+                        updateEvacSolution state inst $
+                        availableLocalNodes nl group_ndx excl_ndx inst >>=
+                        nodeEvacInstance nl il mode inst
+                   )
+            (ini_nl, ini_il, emptyEvacSolution)
+            (map (`Container.find` ini_il) idxs)
+    in return $ reverseEvacSolution esol
 
 -- | Recursively place instances on the cluster until we're out of space.
 iterateAlloc :: Node.List

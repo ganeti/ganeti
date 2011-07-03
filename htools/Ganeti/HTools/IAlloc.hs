@@ -254,6 +254,17 @@ formatAllocate as = do
     (_, _, nodes, _):[] -> return (info, showJSON $ map (Node.name) nodes)
     _ -> fail "Internal error: multiple allocation solutions"
 
+-- | Convert a node-evacuation/change group result.
+formatNodeEvac :: Cluster.EvacSolution -> Result IAllocResult
+formatNodeEvac es =
+    let fes = Cluster.esFailed es
+        mes = Cluster.esMoved es
+        failed = length fes
+        moved  = length mes
+        info = show failed ++ " instances failed to move and " ++ show moved ++
+               " were moved successfully"
+    in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es))
+
 -- | Process a request and return new node lists
 processRequest :: Request -> Result IAllocResult
 processRequest request =
@@ -266,7 +277,8 @@ processRequest request =
        Evacuate exnodes ->
            Cluster.tryMGEvac gl nl il exnodes >>= formatEvacuate
        MultiReloc _ _ -> fail "multi-reloc not handled"
-       NodeEvacuate _ _ -> fail "node-evacuate not handled"
+       NodeEvacuate xi mode ->
+           Cluster.tryNodeEvac gl nl il mode xi >>= formatNodeEvac
 
 -- | Reads the request from the data file(s)
 readRequest :: Options -> [String] -> IO Request
