@@ -1107,7 +1107,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	then OPTGHC="--optghc=$(HTOOLS_NOCURL)"; \
 	else OPTGHC=""; \
 	fi; \
-	RELSRCS="$(HS_LIB_SRCS:htools/%=%)"; \
+	RELSRCS="$(HS_LIB_SRCS:htools/%=%)  $(HS_BUILT_SRCS:htools/%=%)"; \
 	for file in $$RELSRCS; do \
 		hfile=`echo $$file|sed 's/\\.hs$$//'`.html; \
 		$(HSCOLOUR) -css -anchor $$file > ../$(APIDOC_HS_DIR)/$$hfile ; \

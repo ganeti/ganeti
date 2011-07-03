@@ -60,15 +60,19 @@ def Convert():
     if not CONSTANT_RE.match(name):
       lines.append("-- Skipped %s, not constant" % name)
     elif isinstance(value, basestring):
+      lines.append("-- | Converted from Python constant %s" % name)
       lines.append("%s :: String" % hs_name)
       lines.append("%s = \"%s\"" % (hs_name, StringValueRules(value)))
     elif isinstance(value, int):
+      lines.append("-- | Converted from Python constant %s" % name)
       lines.append("%s :: Int" % hs_name)
       lines.append("%s = %d" % (hs_name, value))
     elif isinstance(value, long):
+      lines.append("-- | Converted from Python constant %s" % name)
       lines.append("%s :: Integer" % hs_name)
       lines.append("%s = %d" % (hs_name, value))
     elif isinstance(value, float):
+      lines.append("-- | Converted from Python constant %s" % name)
       lines.append("%s :: Double" % hs_name)
       lines.append("%s = %f" % (hs_name, value))
     else:
