@@ -74,6 +74,7 @@ module Ganeti.HTools.Cluster
     ) where
 
 import Data.Function (on)
+import qualified Data.IntSet as IntSet
 import Data.List
 import Data.Ord (comparing)
 import Text.Printf (printf)
@@ -1103,3 +1104,25 @@ associateIdxs :: [Idx] -- ^ Instance indices to be split/associated
 associateIdxs idxs =
     map (\(gdx, (nl, il)) ->
              (gdx, (nl, il, filter (`Container.member` il) idxs)))
+
+-- | Compute the list of nodes that are to be evacuated, given a list
+-- of instances and an evacuation mode.
+nodesToEvacuate :: Instance.List -- ^ The cluster-wide instance list
+                -> EvacMode      -- ^ The evacuation mode we're using
+                -> [Idx]         -- ^ List of instance indices being evacuated
+                -> IntSet.IntSet -- ^ Set of node indices
+nodesToEvacuate il mode =
+    IntSet.delete Node.noSecondary .
+    foldl' (\ns idx ->
+                let i = Container.find idx il
+                    pdx = Instance.pNode i
+                    sdx = Instance.sNode i
+                    dt = Instance.diskTemplate i
+                    withSecondary = case dt of
+                                      DTDrbd8 -> IntSet.insert sdx ns
+                                      _ -> ns
+                in case mode of
+                     ChangePrimary   -> IntSet.insert pdx ns
+                     ChangeSecondary -> withSecondary
+                     ChangeAll       -> IntSet.insert pdx withSecondary
+           ) IntSet.empty
