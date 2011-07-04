@@ -1,7 +1,7 @@
-{-| Parsing data from text-files
+{-| Parsing data from text-files.
 
 This module holds the code for loading the cluster state from text
-files, as produced by gnt-node and gnt-instance list.
+files, as produced by @gnt-node@ and @gnt-instance@ @list@ command.
 
 -}
 
@@ -51,18 +51,22 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
--- | Serialize a single group
+-- * Serialisation functions
+
+-- | Serialize a single group.
 serializeGroup :: Group.Group -> String
 serializeGroup grp =
     printf "%s|%s|%s" (Group.name grp) (Group.uuid grp)
                (apolToString (Group.allocPolicy grp))
 
--- | Generate group file data from a group list
+-- | Generate group file data from a group list.
 serializeGroups :: Group.List -> String
 serializeGroups = unlines . map serializeGroup . Container.elems
 
--- | Serialize a single node
-serializeNode :: Group.List -> Node.Node -> String
+-- | Serialize a single node.
+serializeNode :: Group.List -- ^ The list of groups (needed for group uuid)
+              -> Node.Node  -- ^ The node to be serialised
+              -> String
 serializeNode gl node =
     printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s" (Node.name node)
                (Node.tMem node) (Node.nMem node) (Node.fMem node)
@@ -71,12 +75,15 @@ serializeNode gl node =
                (Group.uuid grp)
     where grp = Container.find (Node.group node) gl
 
--- | Generate node file data from node objects
+-- | Generate node file data from node objects.
 serializeNodes :: Group.List -> Node.List -> String
 serializeNodes gl = unlines . map (serializeNode gl) . Container.elems
 
--- | Serialize a single instance
-serializeInstance :: Node.List -> Instance.Instance -> String
+-- | Serialize a single instance.
+serializeInstance :: Node.List         -- ^ The node list (needed for
+                                       -- node names)
+                  -> Instance.Instance -- ^ The instance to be serialised
+                  -> String
 serializeInstance nl inst =
     let
         iname = Instance.name inst
@@ -92,12 +99,12 @@ serializeInstance nl inst =
              (if Instance.auto_balance inst then "Y" else "N")
              pnode snode (intercalate "," (Instance.tags inst))
 
--- | Generate instance file data from instance objects
+-- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
 serializeInstances nl =
     unlines . map (serializeInstance nl) . Container.elems
 
--- | Generate complete cluster data from node and instance lists
+-- | Generate complete cluster data from node and instance lists.
 serializeCluster :: ClusterData -> String
 serializeCluster (ClusterData gl nl il ctags) =
   let gdata = serializeGroups gl
@@ -106,8 +113,12 @@ serializeCluster (ClusterData gl nl il ctags) =
   -- note: not using 'unlines' as that adds too many newlines
   in intercalate "\n" [gdata, ndata, idata, unlines ctags]
 
+-- * Parsing functions
+
 -- | Load a group from a field list.
-loadGroup :: (Monad m) => [String] -> m (String, Group.Group)
+loadGroup :: (Monad m) => [String]
+          -> m (String, Group.Group) -- ^ The result, a tuple of group
+                                     -- UUID and group object
 loadGroup [name, gid, apol] = do
   xapol <- apolFromString apol
   return (gid, Group.create name gid xapol)
@@ -115,7 +126,11 @@ loadGroup [name, gid, apol] = do
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 
 -- | Load a node from a field list.
-loadNode :: (Monad m) => NameAssoc -> [String] -> m (String, Node.Node)
+loadNode :: (Monad m) =>
+            NameAssoc             -- ^ Association list with current groups
+         -> [String]              -- ^ Input data as a list of fields
+         -> m (String, Node.Node) -- ^ The result, a tuple o node name
+                                  -- and node object
 loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] = do
   gdx <- lookupGroup ktg name gu
   new_node <-
@@ -134,7 +149,13 @@ loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
-            NameAssoc -> [String] -> m (String, Instance.Instance)
+            NameAssoc                     -- ^ Association list with
+                                          -- the current nodes
+         -> [String]                      -- ^ Input data as a list of
+                                          -- fields
+         -> m (String, Instance.Instance) -- ^ The result, a tuple of
+                                          -- instance name and the
+                                          -- instance object
 loadInst ktn [name, mem, dsk, vcpus, status, auto_bal, pnode, snode, tags] = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary
@@ -161,16 +182,26 @@ loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 -- @gnt-instance list@ and @gnt-node list@ to a list of objects using
 -- a supplied conversion function.
 loadTabular :: (Monad m, Element a) =>
-               [String] -> ([String] -> m (String, a))
-            -> m (NameAssoc, Container.Container a)
+               [String] -- ^ Input data, as a list of lines
+            -> ([String] -> m (String, a)) -- ^ Conversion function
+            -> m ( NameAssoc
+                 , Container.Container a ) -- ^ A tuple of an
+                                           -- association list (name
+                                           -- to object) and a set as
+                                           -- used in
+                                           -- "Ganeti.HTools.Container"
+
 loadTabular lines_data convert_fn = do
   let rows = map (sepSplit '|') lines_data
   kerows <- mapM convert_fn rows
   return $ assignIndices kerows
 
 -- | Load the cluser data from disk.
-readData :: String -- ^ Path to the text file
-         -> IO String
+--
+-- This is an alias to 'readFile' just for consistency with the other
+-- modules.
+readData :: String    -- ^ Path to the text file
+         -> IO String -- ^ Contents of the file
 readData = readFile
 
 -- | Builds the cluster data from text input.
@@ -192,7 +223,7 @@ parseData fdata = do
   {- the tags are simply line-based, no processing needed -}
   return (ClusterData gl nl il ctags)
 
--- | Top level function for data loading
+-- | Top level function for data loading.
 loadData :: String -- ^ Path to the text file
          -> IO (Result ClusterData)
 loadData = fmap parseData . readData

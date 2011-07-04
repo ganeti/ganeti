@@ -57,7 +57,7 @@ getUrl _ = return $ fail "RAPI/curl backend disabled at compile time"
 
 #else
 
--- | The curl options we use
+-- | The curl options we use.
 curlOpts :: [CurlOption]
 curlOpts = [ CurlSSLVerifyPeer False
            , CurlSSLVerifyHost 0
@@ -97,6 +97,7 @@ getGroups :: String -> Result [(String, Group.Group)]
 getGroups body = loadJSArray "Parsing group data" body >>=
                 mapM (parseGroup . fromJSObject)
 
+-- | Generates a fake group list.
 getFakeGroups :: Result [(String, Group.Group)]
 getFakeGroups =
   return [(defaultGroupID,
@@ -173,7 +174,7 @@ readData master = do
   tags_body <- getUrl $ printf "%s/2/tags" url
   return (group_body, node_body, inst_body, tags_body)
 
--- | Builds the cluster data from the raw Rapi content
+-- | Builds the cluster data from the raw Rapi content.
 parseData :: (Result String, Result String, Result String, Result String)
           -> Result ClusterData
 parseData (group_body, node_body, inst_body, tags_body) = do
@@ -191,7 +192,7 @@ parseData (group_body, node_body, inst_body, tags_body) = do
   tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
   return (ClusterData group_idx node_idx inst_idx tags_data)
 
--- | Top level function for data loading
+-- | Top level function for data loading.
 loadData :: String -- ^ Cluster or URL to use as source
          -> IO (Result ClusterData)
 loadData = fmap parseData . readData

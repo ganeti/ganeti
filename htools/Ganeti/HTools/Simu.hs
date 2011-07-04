@@ -1,4 +1,4 @@
-{-| Parsing data from a simulated description of the cluster
+{-| Parsing data from a simulated description of the cluster.
 
 This module holds the code for parsing a cluster description.
 

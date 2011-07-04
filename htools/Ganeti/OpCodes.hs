@@ -36,6 +36,7 @@ import Text.JSON.Types
 
 import Ganeti.HTools.Utils
 
+-- | Replace disks type.
 data ReplaceDisksMode = ReplaceOnPrimary
                   | ReplaceOnSecondary
                   | ReplaceNewSecondary
@@ -55,6 +56,10 @@ instance JSON ReplaceDisksMode where
                    J.Ok "replace_auto" -> J.Ok ReplaceAuto
                    _ -> J.Error "Can't parse a valid ReplaceDisksMode"
 
+-- | OpCode representation.
+--
+-- We only implement a subset of Ganeti opcodes, but only what we
+-- actually use in the htools codebase.
 data OpCode = OpTestDelay Double Bool [String]
             | OpInstanceReplaceDisks String (Maybe String) ReplaceDisksMode
               [Int] (Maybe String)
@@ -63,12 +68,14 @@ data OpCode = OpTestDelay Double Bool [String]
             deriving (Show, Read, Eq)
 
 
+-- | Computes the OP_ID for an OpCode.
 opID :: OpCode -> String
 opID (OpTestDelay _ _ _) = "OP_TEST_DELAY"
 opID (OpInstanceReplaceDisks _ _ _ _ _) = "OP_INSTANCE_REPLACE_DISKS"
 opID (OpInstanceFailover _ _) = "OP_INSTANCE_FAILOVER"
 opID (OpInstanceMigrate _ _ _ _) = "OP_INSTANCE_MIGRATE"
 
+-- | Loads an OpCode from the JSON serialised form.
 loadOpCode :: JSValue -> J.Result OpCode
 loadOpCode v = do
   o <- liftM J.fromJSObject (readJSON v)
@@ -99,6 +106,7 @@ loadOpCode v = do
                  return $ OpInstanceMigrate inst live cleanup allow_failover
     _ -> J.Error $ "Unknown opcode " ++ op_id
 
+-- | Serialises an opcode to JSON.
 saveOpCode :: OpCode -> JSValue
 saveOpCode op@(OpTestDelay duration on_master on_nodes) =
     let ol = [ ("OP_ID", showJSON $ opID op)

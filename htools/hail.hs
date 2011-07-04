@@ -1,4 +1,4 @@
-{-| Solver for N+1 cluster errors
+{-| IAllocator plugin for Ganeti.
 
 -}
 

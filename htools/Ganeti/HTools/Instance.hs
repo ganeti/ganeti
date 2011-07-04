@@ -49,7 +49,7 @@ import qualified Ganeti.Constants as C
 
 -- * Type declarations
 
--- | The instance type
+-- | The instance type.
 data Instance = Instance
     { name         :: String    -- ^ The instance name
     , alias        :: String    -- ^ The shortened name
@@ -74,7 +74,7 @@ instance T.Element Instance where
     setIdx   = setIdx
     allNames n = [name n, alias n]
 
--- | Running instance states.
+-- | Constant holding the running instance states.
 runningStates :: [String]
 runningStates = [C.inststRunning, C.inststErrorup]
 

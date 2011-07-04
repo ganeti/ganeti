@@ -60,7 +60,7 @@ parseBaseInstance n a = do
   let running = "running"
   return (n, Instance.create n mem disk vcpus running tags True 0 0)
 
--- | Parses an instance as found in the cluster instance listg.
+-- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list
               -> String    -- ^ The name of the instance
               -> JSRecord  -- ^ The JSON object

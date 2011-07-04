@@ -1,4 +1,4 @@
-{-| External data loader
+{-| External data loader.
 
 This module holds the external data loading, and thus is the only one
 depending (via the specialized Text\/Rapi\/Luxi modules) on the actual
@@ -51,7 +51,7 @@ import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Utils (sepSplit, tryRead)
 
--- | Error beautifier
+-- | Error beautifier.
 wrapIO :: IO (Result a) -> IO (Result a)
 wrapIO = flip catch (return . Bad . show)
 

@@ -161,7 +161,7 @@ recvMsg s = do
   writeIORef (rbuf s) nbuf
   return msg
 
--- | Compute the serialized form of a Luxi operation
+-- | Compute the serialized form of a Luxi operation.
 opToArgs :: LuxiOp -> JSValue
 opToArgs (QueryNodes names fields lock) = J.showJSON (names, fields, lock)
 opToArgs (QueryGroups names fields lock) = J.showJSON (names, fields, lock)

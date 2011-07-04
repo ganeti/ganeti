@@ -1,4 +1,4 @@
-{-| Utility functions -}
+{-| Utility functions. -}
 
 {-
 
@@ -62,15 +62,16 @@ import Ganeti.HTools.Types
 debug :: Show a => a -> a
 debug x = trace (show x) x
 
--- | Displays a modified form of the second parameter before returning it
+-- | Displays a modified form of the second parameter before returning
+-- it.
 debugFn :: Show b => (a -> b) -> a -> a
 debugFn fn x = debug (fn x) `seq` x
 
--- | Show the first parameter before returning the second one
+-- | Show the first parameter before returning the second one.
 debugXy :: Show a => a -> b -> b
 debugXy a b = debug a `seq` b
 
--- * Miscelaneous
+-- * Miscellaneous
 
 -- | Comma-join a string list.
 commaJoin :: [String] -> String
@@ -91,7 +92,7 @@ sepSplit sep s
 -- Simple and slow statistical functions, please replace with better
 -- versions
 
--- | Standard deviation function
+-- | Standard deviation function.
 stdDev :: [Double] -> Double
 stdDev lst =
   -- first, calculate the list length and sum lst in a single step,
@@ -107,7 +108,7 @@ stdDev lst =
 
 -- * JSON-related functions
 
--- | A type alias for the list-based representation of J.JSObject
+-- | A type alias for the list-based representation of J.JSObject.
 type JSRecord = [(String, J.JSValue)]
 
 -- | Converts a JSON Result into a monadic value.
@@ -153,7 +154,7 @@ fromObjWithDefault :: (J.JSON a, Monad m) =>
                       JSRecord -> String -> a -> m a
 fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
 
--- | Reads a JValue, that originated from an object key
+-- | Reads a JValue, that originated from an object key.
 fromKeyValue :: (J.JSON a, Monad m)
               => String     -- ^ The key name
               -> J.JSValue  -- ^ The value to read
@@ -161,13 +162,13 @@ fromKeyValue :: (J.JSON a, Monad m)
 fromKeyValue k val =
   fromJResult (printf "key '%s', value '%s'" k (show val)) (J.readJSON val)
 
--- | Annotate a Result with an ownership information
+-- | Annotate a Result with an ownership information.
 annotateResult :: String -> Result a -> Result a
 annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
 annotateResult _ v = v
 
 -- | Try to extract a key from a object with better error reporting
--- than fromObj
+-- than fromObj.
 tryFromObj :: (J.JSON a) =>
               String     -- ^ Textual "owner" in error messages
            -> JSRecord   -- ^ The object array
@@ -194,7 +195,7 @@ asObjectList = mapM asJSObject
 
 -- * Parsing utility functions
 
--- | Parse results from readsPrec
+-- | Parse results from readsPrec.
 parseChoices :: (Monad m, Read a) => String -> String -> [(a, String)] -> m a
 parseChoices _ _ ((v, ""):[]) = return v
 parseChoices name s ((_, e):[]) =
@@ -206,7 +207,7 @@ parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
 tryRead :: (Monad m, Read a) => String -> String -> m a
 tryRead name s = parseChoices name s $ reads s
 
--- | Format a table of strings to maintain consistent length
+-- | Format a table of strings to maintain consistent length.
 formatTable :: [[String]] -> [Bool] -> [[String]]
 formatTable vals numpos =
     let vtrans = transpose vals  -- transpose, so that we work on rows
@@ -225,6 +226,6 @@ formatTable vals numpos =
                     ) (zip3 vtrans numpos mlens)
    in transpose expnd
 
--- | Default group UUID (just a string, not a real UUID)
+-- | Default group UUID (just a string, not a real UUID).
 defaultGroupID :: GroupID
 defaultGroupID = "00000000-0000-0000-0000-000000000000"

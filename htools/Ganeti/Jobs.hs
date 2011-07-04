@@ -33,6 +33,7 @@ import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 
+-- | Our ADT for the OpCode status at runtime (while in a job).
 data OpStatus = OP_STATUS_QUEUED
               | OP_STATUS_WAITLOCK
               | OP_STATUS_CANCELING

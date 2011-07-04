@@ -85,7 +85,7 @@ import qualified Ganeti.HTools.Types as T
 
 -- * Type declarations
 
--- | The tag map type
+-- | The tag map type.
 type TagMap = Map.Map String Int
 
 -- | The node type.
@@ -140,7 +140,7 @@ type AssocList = [(T.Ndx, Node)]
 type List = Container.Container Node
 
 -- | A simple name for an allocation element (here just for logistic
--- reasons)
+-- reasons).
 type AllocElement = (List, Instance.Instance, [Node], T.Score)
 
 -- | Constant node index for a non-moveable instance.
@@ -149,26 +149,26 @@ noSecondary = -1
 
 -- * Helper functions
 
--- | Add a tag to a tagmap
+-- | Add a tag to a tagmap.
 addTag :: TagMap -> String -> TagMap
 addTag t s = Map.insertWith (+) s 1 t
 
--- | Add multiple tags
+-- | Add multiple tags.
 addTags :: TagMap -> [String] -> TagMap
 addTags = foldl' addTag
 
--- | Adjust or delete a tag from a tagmap
+-- | Adjust or delete a tag from a tagmap.
 delTag :: TagMap -> String -> TagMap
 delTag t s = Map.update (\v -> if v > 1
                                then Just (v-1)
                                else Nothing)
              s t
 
--- | Remove multiple tags
+-- | Remove multiple tags.
 delTags :: TagMap -> [String] -> TagMap
 delTags = foldl' delTag
 
--- | Check if we can add a list of tags to a tagmap
+-- | Check if we can add a list of tags to a tagmap.
 rejectAddTags :: TagMap -> [String] -> Bool
 rejectAddTags t = any (`Map.member` t)
 
@@ -221,11 +221,11 @@ create name_init mem_t_init mem_n_init mem_f_init
          , group = group_init
          }
 
--- | Conversion formula from mDsk\/tDsk to loDsk
+-- | Conversion formula from mDsk\/tDsk to loDsk.
 mDskToloDsk :: Double -> Double -> Int
 mDskToloDsk mval tdsk = floor (mval * tdsk)
 
--- | Conversion formula from mCpu\/tCpu to hiCpu
+-- | Conversion formula from mCpu\/tCpu to hiCpu.
 mCpuTohiCpu :: Double -> Double -> Int
 mCpuTohiCpu mval tcpu = floor (mval * tcpu)
 
@@ -249,11 +249,11 @@ setOffline t val = t { offline = val }
 setXmem :: Node -> Int -> Node
 setXmem t val = t { xMem = val }
 
--- | Sets the max disk usage ratio
+-- | Sets the max disk usage ratio.
 setMdsk :: Node -> Double -> Node
 setMdsk t val = t { mDsk = val, loDsk = mDskToloDsk val (tDsk t) }
 
--- | Sets the max cpu usage ratio
+-- | Sets the max cpu usage ratio.
 setMcpu :: Node -> Double -> Node
 setMcpu t val = t { mCpu = val, hiCpu = mCpuTohiCpu val (tCpu t) }
 
@@ -435,7 +435,7 @@ addSecEx force t inst pdx =
 
 -- * Stats functions
 
--- | Computes the amount of available disk on a given node
+-- | Computes the amount of available disk on a given node.
 availDisk :: Node -> Int
 availDisk t =
     let _f = fDsk t
@@ -444,11 +444,11 @@ availDisk t =
        then 0
        else _f - _l
 
--- | Computes the amount of used disk on a given node
+-- | Computes the amount of used disk on a given node.
 iDsk :: Node -> Int
 iDsk t = truncate (tDsk t) - fDsk t
 
--- | Computes the amount of available memory on a given node
+-- | Computes the amount of available memory on a given node.
 availMem :: Node -> Int
 availMem t =
     let _f = fMem t
@@ -457,7 +457,7 @@ availMem t =
        then 0
        else _f - _l
 
--- | Computes the amount of available memory on a given node
+-- | Computes the amount of available memory on a given node.
 availCpu :: Node -> Int
 availCpu t =
     let _u = uCpu t
@@ -472,7 +472,10 @@ iMem t = truncate (tMem t) - nMem t - xMem t - fMem t
 
 -- * Display functions
 
-showField :: Node -> String -> String
+-- | Return a field for a given node.
+showField :: Node   -- ^ Node which we're querying
+          -> String -- ^ Field name
+          -> String -- ^ Field value as string
 showField t field =
     case field of
       "idx"  -> printf "%4d" $ idx t
@@ -512,7 +515,7 @@ showField t field =
       T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
                   T.dskWeight = uD, T.netWeight = uN } = utilLoad t
 
--- | Returns the header and numeric propery of a field
+-- | Returns the header and numeric propery of a field.
 showHeader :: String -> (String, Bool)
 showHeader field =
     case field of
@@ -552,6 +555,7 @@ list :: [String] -> Node -> [String]
 list fields t = map (showField t) fields
 
 
+-- | Constant holding the fields we're displaying by default.
 defaultFields :: [String]
 defaultFields =
     [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
@@ -560,7 +564,7 @@ defaultFields =
     , "cload", "mload", "dload", "nload" ]
 
 -- | Split a list of nodes into a list of (node group UUID, list of
--- associated nodes)
+-- associated nodes).
 computeGroups :: [Node] -> [(T.Gdx, [Node])]
 computeGroups nodes =
   let nodes' = sortBy (comparing group) nodes

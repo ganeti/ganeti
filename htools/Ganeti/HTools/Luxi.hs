@@ -187,7 +187,7 @@ parseGroup v = fail ("Invalid group query result: " ++ show v)
 
 -- * Main loader functionality
 
--- | Builds the cluster data from an URL.
+-- | Builds the cluster data by querying a given socket name.
 readData :: String -- ^ Unix socket to use as source
          -> IO (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
 readData master =
@@ -202,6 +202,8 @@ readData master =
           return (groups, nodes, instances, cinfo)
        )
 
+-- | Converts the output of 'readData' into the internal cluster
+-- representation.
 parseData :: (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
           -> Result ClusterData
 parseData (groups, nodes, instances, cinfo) = do
@@ -214,7 +216,7 @@ parseData (groups, nodes, instances, cinfo) = do
   ctags <- cinfo >>= getClusterTags
   return (ClusterData group_idx node_idx inst_idx ctags)
 
--- | Top level function for data loading
+-- | Top level function for data loading.
 loadData :: String -- ^ Unix socket to use as source
          -> IO (Result ClusterData)
 loadData = fmap parseData . readData

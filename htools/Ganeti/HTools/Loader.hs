@@ -1,4 +1,4 @@
-{-| Generic data loader
+{-| Generic data loader.
 
 This module holds the common code for parsing the input data after it
 has been loaded from external sources.
@@ -54,7 +54,7 @@ import Ganeti.HTools.Types
 
 -- * Constants
 
--- | The exclusion tag prefix
+-- | The exclusion tag prefix.
 exTagsPrefix :: String
 exTagsPrefix = "htools:iextags:"
 
@@ -147,7 +147,7 @@ fixNodes accu inst =
            in Container.add sdx snew ac2
       else ac2
 
--- | Remove non-selected tags from the exclusion list
+-- | Remove non-selected tags from the exclusion list.
 filterExTags :: [String] -> Instance.Instance -> Instance.Instance
 filterExTags tl inst =
     let old_tags = Instance.tags inst
@@ -155,7 +155,7 @@ filterExTags tl inst =
                    old_tags
     in inst { Instance.tags = new_tags }
 
--- | Update the movable attribute
+-- | Update the movable attribute.
 updateMovable :: [String]           -- ^ Selected instances (if not empty)
               -> [String]           -- ^ Excluded instances
               -> Instance.Instance  -- ^ Target Instance
@@ -168,7 +168,7 @@ updateMovable selinsts exinsts inst =
     else inst
 
 -- | Compute the longest common suffix of a list of strings that
--- | starts with a dot.
+-- starts with a dot.
 longestDomain :: [String] -> String
 longestDomain [] = ""
 longestDomain (x:xs) =
@@ -177,13 +177,13 @@ longestDomain (x:xs) =
                               else accu)
       "" $ filter (isPrefixOf ".") (tails x)
 
--- | Extracts the exclusion tags from the cluster configuration
+-- | Extracts the exclusion tags from the cluster configuration.
 extractExTags :: [String] -> [String]
 extractExTags =
     map (drop (length exTagsPrefix)) .
     filter (isPrefixOf exTagsPrefix)
 
--- | Extracts the common suffix from node\/instance names
+-- | Extracts the common suffix from node\/instance names.
 commonSuffix :: Node.List -> Instance.List -> String
 commonSuffix nl il =
     let node_names = map Node.name $ Container.elems nl

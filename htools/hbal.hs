@@ -1,4 +1,4 @@
-{-| Cluster rebalancer
+{-| Cluster rebalancer.
 
 -}
 

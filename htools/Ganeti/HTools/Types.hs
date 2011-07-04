@@ -102,7 +102,7 @@ data AllocPolicy
                        -- allocations
       deriving (Show, Read, Eq, Ord)
 
--- | Convert a string to an alloc policy
+-- | Convert a string to an alloc policy.
 apolFromString :: (Monad m) => String -> m AllocPolicy
 apolFromString s =
     case () of
@@ -111,7 +111,7 @@ apolFromString s =
         | s == C.allocPolicyUnallocable -> return AllocUnallocable
         | otherwise -> fail $ "Invalid alloc policy mode: " ++ s
 
--- | Convert an alloc policy to the Ganeti string equivalent
+-- | Convert an alloc policy to the Ganeti string equivalent.
 apolToString :: AllocPolicy -> String
 apolToString AllocPreferred   = C.allocPolicyPreferred
 apolToString AllocLastResort  = C.allocPolicyLastResort
@@ -140,19 +140,23 @@ data DynUtil = DynUtil
     , netWeight :: Weight -- ^ Standardised network usage
     } deriving (Show, Read, Eq)
 
--- | Initial empty utilisation
+-- | Initial empty utilisation.
 zeroUtil :: DynUtil
 zeroUtil = DynUtil { cpuWeight = 0, memWeight = 0
                    , dskWeight = 0, netWeight = 0 }
 
+-- | Base utilisation (used when no actual utilisation data is
+-- supplied).
 baseUtil :: DynUtil
 baseUtil = DynUtil { cpuWeight = 1, memWeight = 1
                    , dskWeight = 1, netWeight = 1 }
 
+-- | Sum two utilisation records.
 addUtil :: DynUtil -> DynUtil -> DynUtil
 addUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
     DynUtil (a1+b1) (a2+b2) (a3+b3) (a4+b4)
 
+-- | Substracts one utilisation record from another.
 subUtil :: DynUtil -> DynUtil -> DynUtil
 subUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
     DynUtil (a1-b1) (a2-b2) (a3-b3) (a4-b4)
@@ -162,7 +166,7 @@ subUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
 -- performed and the score of the cluster after the move.
 type Placement = (Idx, Ndx, Ndx, IMove, Score)
 
--- | An instance move definition
+-- | An instance move definition.
 data IMove = Failover                -- ^ Failover the instance (f)
            | ReplacePrimary Ndx      -- ^ Replace primary (f, r:np, f)
            | ReplaceSecondary Ndx    -- ^ Replace secondary (r:ns)
@@ -171,14 +175,14 @@ data IMove = Failover                -- ^ Failover the instance (f)
              deriving (Show, Read)
 
 -- | Formatted solution output for one move (involved nodes and
--- commands
+-- commands.
 type MoveJob = ([Ndx], Idx, IMove, [String])
 
--- | Unknown field in table output
+-- | Unknown field in table output.
 unknownField :: String
 unknownField = "<unknown field>"
 
--- | A list of command elements
+-- | A list of command elements.
 type JobSet = [MoveJob]
 
 -- | Connection timeout (when using non-file methods).
@@ -211,7 +215,7 @@ unitCpu = 1
 
 {-|
 
-This is similar to the JSON library Result type - *very* similar, but
+This is similar to the JSON library Result type - /very/ similar, but
 we want to use it in multiple places, so we abstract it into a
 mini-library here
 
@@ -227,16 +231,16 @@ instance Monad Result where
     return = Ok
     fail = Bad
 
--- | Simple checker for whether Result is OK
+-- | Simple checker for whether a 'Result' is OK.
 isOk :: Result a -> Bool
 isOk (Ok _) = True
 isOk _ = False
 
--- | Simple checker for whether Result is a failure
+-- | Simple checker for whether a 'Result' is a failure.
 isBad :: Result a  -> Bool
 isBad = not . isOk
 
--- | Reason for an operation's falure
+-- | Reason for an operation's falure.
 data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailDisk -- ^ Failed due to not enough disk
               | FailCPU  -- ^ Failed due to not enough CPU capacity
@@ -244,10 +248,10 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailTags -- ^ Failed due to tag exclusion
                 deriving (Eq, Enum, Bounded, Show, Read)
 
--- | List with failure statistics
+-- | List with failure statistics.
 type FailStats = [(FailMode, Int)]
 
--- | Either-like data-type customized for our failure modes
+-- | Either-like data-type customized for our failure modes.
 data OpResult a = OpFail FailMode -- ^ Failed operation
                 | OpGood a        -- ^ Success operation
                   deriving (Show, Read)
@@ -268,7 +272,7 @@ class Element a where
     -- | Updates the alias of the element
     setAlias :: a -> String -> a
     -- | Compute the alias by stripping a given suffix (domain) from
-    -- | the name
+    -- the name
     computeAlias :: String -> a -> a
     computeAlias dom e = setAlias e alias
         where alias = take (length name - length dom) name

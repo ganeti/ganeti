@@ -1,5 +1,4 @@
-{-|
-  Module abstracting the peer map implementation.
+{-| Module abstracting the peer map implementation.
 
 This is abstracted separately since the speed of peermap updates can
 be a significant part of the total runtime, and as such changing the
@@ -46,8 +45,16 @@ import Data.Ord (comparing)
 
 import Ganeti.HTools.Types
 
+-- * Type definitions
+
+-- | Our key type.
 type Key = Ndx
+
+-- | Our element type.
+
 type Elem = Int
+
+-- | The definition of a peer map.
 type PeerMap = [(Key, Elem)]
 
 -- * Initialization functions
@@ -67,7 +74,7 @@ addWith fn k v lst =
       Nothing -> insertBy pmCompare (k, v) lst
       Just o -> insertBy pmCompare (k, fn o v) (remove k lst)
 
--- | Create a PeerMap from an association list, with possible duplicates
+-- | Create a PeerMap from an association list, with possible duplicates.
 accumArray :: (Elem -> Elem -> Elem) -- ^ function used to merge the elements
               -> [(Key, Elem)]       -- ^ source data
               -> PeerMap             -- ^ results
@@ -76,15 +83,15 @@ accumArray fn ((k, v):xs) = addWith fn k v $ accumArray fn xs
 
 -- * Basic operations
 
--- | Returns either the value for a key or zero if not found
+-- | Returns either the value for a key or zero if not found.
 find :: Key -> PeerMap -> Elem
 find k = fromMaybe 0 . lookup k
 
--- | Add an element to a peermap, overwriting the previous value
+-- | Add an element to a peermap, overwriting the previous value.
 add :: Key -> Elem -> PeerMap -> PeerMap
 add = addWith (flip const)
 
--- | Remove an element from a peermap
+-- | Remove an element from a peermap.
 remove :: Key -> PeerMap -> PeerMap
 remove _ [] = []
 remove k ((x@(x', _)):xs) = if k == x'

@@ -1,8 +1,8 @@
 {-| Implementation of command-line functions.
 
-This module holds the common cli-related functions for the binaries,
-separated into this module since Utils.hs is used in many other places
-and this is more IO oriented.
+This module holds the common command-line related functions for the
+binaries, separated into this module since "Ganeti.HTools.Utils" is
+used in many other places and this is more IO oriented.
 
 -}
 
@@ -89,9 +89,15 @@ import qualified Ganeti.Constants as C
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 
--- | The default value for the luxi socket
+-- * Constants
+
+-- | The default value for the luxi socket.
+--
+-- This is re-exported from the "Ganeti.Constants" module.
 defaultLuxiSocket :: FilePath
 defaultLuxiSocket = C.masterSocket
+
+-- * Data types
 
 -- | Command line options structure.
 data Options = Options
@@ -170,8 +176,10 @@ defaultOptions  = Options
  , optVerbose     = 1
  }
 
--- | Abrreviation for the option type
+-- | Abrreviation for the option type.
 type OptType = OptDescr (Options -> Result Options)
+
+-- * Command line options
 
 oDataFile :: OptType
 oDataFile = Option "t" ["text-data"]
@@ -394,13 +402,15 @@ oVerbose = Option "v" ["verbose"]
            (NoArg (\ opts -> Ok opts { optVerbose = optVerbose opts + 1 }))
            "increase the verbosity level"
 
--- | Usage info
+-- * Functions
+
+-- | Usage info.
 usageHelp :: String -> [OptType] -> String
 usageHelp progname =
     usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
                progname Version.version progname)
 
--- | Command line parser, using the 'options' structure.
+-- | Command line parser, using the 'Options' structure.
 parseOpts :: [String]               -- ^ The command line arguments
           -> String                 -- ^ The program name
           -> [OptType]              -- ^ The supported command line options

@@ -1,7 +1,7 @@
 {-| Implementation of cluster-wide logic.
 
 This module holds all pure cluster-logic; I\/O related functionality
-goes into the "Main" module for the individual binaries.
+goes into the /Main/ module for the individual binaries.
 
 -}
 
@@ -106,17 +106,18 @@ type AllocResult = (FailStats, Node.List, Instance.List,
 
 
 -- | A type denoting the valid allocation mode/pairs.
+--
 -- For a one-node allocation, this will be a @Left ['Node.Node']@,
 -- whereas for a two-node allocation, this will be a @Right
 -- [('Node.Node', 'Node.Node')]@.
 type AllocNodes = Either [Ndx] [(Ndx, Ndx)]
 
--- | The empty solution we start with when computing allocations
+-- | The empty solution we start with when computing allocations.
 emptySolution :: AllocSolution
 emptySolution = AllocSolution { asFailures = [], asAllocs = 0
                               , asSolutions = [], asLog = [] }
 
--- | The complete state for the balancing solution
+-- | The complete state for the balancing solution.
 data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show, Read)
 
@@ -144,7 +145,7 @@ data CStats = CStats { csFmem :: Integer -- ^ Cluster free mem
                      }
             deriving (Show, Read)
 
--- | Currently used, possibly to allocate, unallocable
+-- | Currently used, possibly to allocate, unallocable.
 type AllocStats = (RSpec, RSpec, RSpec)
 
 -- * Utility functions
@@ -170,11 +171,11 @@ computeBadItems nl il =
   in
     (bad_nodes, bad_instances)
 
--- | Zero-initializer for the CStats type
+-- | Zero-initializer for the CStats type.
 emptyCStats :: CStats
 emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
--- | Update stats with data from a new node
+-- | Update stats with data from a new node.
 updateCStats :: CStats -> Node.Node -> CStats
 updateCStats cs node =
     let CStats { csFmem = x_fmem, csFdsk = x_fdsk,
@@ -243,7 +244,7 @@ computeAllocationDelta cini cfin =
                (truncate t_dsk - fromIntegral f_idsk)
     in (rini, rfin, runa)
 
--- | The names and weights of the individual elements in the CV list
+-- | The names and weights of the individual elements in the CV list.
 detailedCVInfo :: [(Double, String)]
 detailedCVInfo = [ (1,  "free_mem_cv")
                  , (1,  "free_disk_cv")
@@ -311,11 +312,11 @@ compDetailedCV nl =
 compCV :: Node.List -> Double
 compCV = sum . zipWith (*) detailedCVWeights . compDetailedCV
 
--- | Compute online nodes from a Node.List
+-- | Compute online nodes from a 'Node.List'.
 getOnline :: Node.List -> [Node.Node]
 getOnline = filter (not . Node.offline) . Container.elems
 
--- * hbal functions
+-- * Balancing functions
 
 -- | Compute best table. Note that the ordering of the arguments is important.
 compareTables :: Table -> Table -> Table
@@ -534,7 +535,7 @@ checkMove nodes_idx disk_moves inst_moves ini_tbl victims =
        then ini_tbl -- no advancement
        else best_tbl
 
--- | Check if we are allowed to go deeper in the balancing
+-- | Check if we are allowed to go deeper in the balancing.
 doNextBalance :: Table     -- ^ The starting table
               -> Int       -- ^ Remaining length
               -> Score     -- ^ Score at which to stop
@@ -544,7 +545,7 @@ doNextBalance ini_tbl max_rounds min_score =
         ini_plc_len = length ini_plc
     in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
 
--- | Run a balance move
+-- | Run a balance move.
 tryBalance :: Table       -- ^ The starting table
            -> Bool        -- ^ Allow disk moves
            -> Bool        -- ^ Allow instance moves
@@ -574,13 +575,13 @@ tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
 
 -- * Allocation functions
 
--- | Build failure stats out of a list of failures
+-- | Build failure stats out of a list of failures.
 collapseFailures :: [FailMode] -> FailStats
 collapseFailures flst =
     map (\k -> (k, length $ filter (k ==) flst)) [minBound..maxBound]
 
 -- | Update current Allocation solution and failure stats with new
--- elements
+-- elements.
 concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
 concatAllocs as (OpFail reason) = as { asFailures = reason : asFailures as }
 
@@ -611,7 +612,7 @@ sumAllocs :: AllocSolution -> AllocSolution -> AllocSolution
 sumAllocs (AllocSolution af aa as al) (AllocSolution bf ba bs bl) =
     AllocSolution (af ++ bf) (aa + ba) (as ++ bs) (al ++ bl)
 
--- | Given a solution, generates a reasonable description for it
+-- | Given a solution, generates a reasonable description for it.
 describeSolution :: AllocSolution -> String
 describeSolution as =
   let fcnt = asFailures as
@@ -629,7 +630,7 @@ describeSolution as =
                      " for node(s) %s") cv (asAllocs as) (length fcnt) freasons
              (intercalate "/" . map Node.name $ nodes)
 
--- | Annotates a solution with the appropriate string
+-- | Annotates a solution with the appropriate string.
 annotateSolution :: AllocSolution -> AllocSolution
 annotateSolution as = as { asLog = describeSolution as : asLog as }
 
@@ -678,7 +679,7 @@ tryAlloc nl _ inst (Left all_nodes) =
        then fail "No online nodes"
        else return $ annotateSolution sols
 
--- | Given a group/result, describe it as a nice (list of) messages
+-- | Given a group/result, describe it as a nice (list of) messages.
 solutionDescription :: Group.List -> (Gdx, Result AllocSolution) -> [String]
 solutionDescription gl (groupId, result) =
   case result of
@@ -690,7 +691,7 @@ solutionDescription gl (groupId, result) =
 
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result. Note that the result will be
--- reversed compared to the original list
+-- reversed compared to the original list.
 filterMGResults :: Group.List
                 -> [(Gdx, Result AllocSolution)]
                 -> [(Gdx, AllocSolution)]
@@ -703,7 +704,7 @@ filterMGResults gl = foldl' fn []
                        | unallocable gdx -> accu
                        | otherwise -> (gdx, sol):accu
 
--- | Sort multigroup results based on policy and score
+-- | Sort multigroup results based on policy and score.
 sortMGResults :: Group.List
              -> [(Gdx, AllocSolution)]
              -> [(Gdx, AllocSolution)]
@@ -782,7 +783,7 @@ tryMGReloc _ mgnl mgil xid ncount ex_ndx = do
                 Just v -> return v
   tryReloc nl il xid ncount ex_ndx
 
--- | Change an instance's secondary node
+-- | Change an instance's secondary node.
 evacInstance :: (Monad m) =>
                 [Ndx]                      -- ^ Excluded nodes
              -> Instance.List              -- ^ The current instance list
@@ -854,7 +855,7 @@ tryMGEvac _ nl il ex_ndx =
       let sol = foldl' sumAllocs emptySolution results
       return $ annotateSolution sol
 
--- | Recursively place instances on the cluster until we're out of space
+-- | Recursively place instances on the cluster until we're out of space.
 iterateAlloc :: Node.List
              -> Instance.List
              -> Instance.Instance
@@ -879,7 +880,7 @@ iterateAlloc nl il newinst allocnodes ixes cstats =
                  _ -> Bad "Internal error: multiple solutions for single\
                           \ allocation"
 
--- | The core of the tiered allocation mode
+-- | The core of the tiered allocation mode.
 tieredAlloc :: Node.List
             -> Instance.List
             -> Instance.Instance
@@ -1072,7 +1073,7 @@ iMoveToJob nl il idx move =
 
 -- * Node group functions
 
--- | Computes the group of an instance
+-- | Computes the group of an instance.
 instanceGroup :: Node.List -> Instance.Instance -> Result Gdx
 instanceGroup nl i =
   let sidx = Instance.sNode i
@@ -1087,19 +1088,19 @@ instanceGroup nl i =
                 show pgroup ++ ", secondary " ++ show sgroup)
      else return pgroup
 
--- | Computes the group of an instance per the primary node
+-- | Computes the group of an instance per the primary node.
 instancePriGroup :: Node.List -> Instance.Instance -> Gdx
 instancePriGroup nl i =
   let pnode = Container.find (Instance.pNode i) nl
   in  Node.group pnode
 
 -- | Compute the list of badly allocated instances (split across node
--- groups)
+-- groups).
 findSplitInstances :: Node.List -> Instance.List -> [Instance.Instance]
 findSplitInstances nl =
   filter (not . isOk . instanceGroup nl) . Container.elems
 
--- | Splits a cluster into the component node groups
+-- | Splits a cluster into the component node groups.
 splitCluster :: Node.List -> Instance.List ->
                 [(Gdx, (Node.List, Instance.List))]
 splitCluster nl il =

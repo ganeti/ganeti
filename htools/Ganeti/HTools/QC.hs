@@ -1,4 +1,4 @@
-{-| Unittests for ganeti-htools
+{-| Unittests for ganeti-htools.
 
 -}
 
@@ -70,15 +70,15 @@ run = flip quickCheckWithResult
 
 -- * Constants
 
--- | Maximum memory (1TiB, somewhat random value)
+-- | Maximum memory (1TiB, somewhat random value).
 maxMem :: Int
 maxMem = 1024 * 1024
 
--- | Maximum disk (8TiB, somewhat random value)
+-- | Maximum disk (8TiB, somewhat random value).
 maxDsk :: Int
 maxDsk = 1024 * 1024 * 8
 
--- | Max CPUs (1024, somewhat random value)
+-- | Max CPUs (1024, somewhat random value).
 maxCpu :: Int
 maxCpu = 1024
 
@@ -95,23 +95,23 @@ defGroupAssoc = Data.Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 
 -- * Helper functions
 
--- | Simple checker for whether OpResult is fail or pass
+-- | Simple checker for whether OpResult is fail or pass.
 isFailure :: Types.OpResult a -> Bool
 isFailure (Types.OpFail _) = True
 isFailure _ = False
 
--- | Update an instance to be smaller than a node
+-- | Update an instance to be smaller than a node.
 setInstanceSmallerThanNode node inst =
     inst { Instance.mem = Node.availMem node `div` 2
          , Instance.dsk = Node.availDisk node `div` 2
          , Instance.vcpus = Node.availCpu node `div` 2
          }
 
--- | Create an instance given its spec
+-- | Create an instance given its spec.
 createInstance mem dsk vcpus =
     Instance.create "inst-unnamed" mem dsk vcpus "running" [] True (-1) (-1)
 
--- | Create a small cluster by repeating a node spec
+-- | Create a small cluster by repeating a node spec.
 makeSmallCluster :: Node.Node -> Int -> Node.List
 makeSmallCluster node count =
     let fn = Node.buildPeers node Container.empty
@@ -119,7 +119,7 @@ makeSmallCluster node count =
         (_, nlst) = Loader.assignIndices namelst
     in nlst
 
--- | Checks if a node is "big" enough
+-- | Checks if a node is "big" enough.
 isNodeBig :: Node.Node -> Int -> Bool
 isNodeBig node size = Node.availDisk node > size * Types.unitDsk
                       && Node.availMem node > size * Types.unitMem
@@ -129,7 +129,7 @@ canBalance :: Cluster.Table -> Bool -> Bool -> Bool -> Bool
 canBalance tbl dm im evac = isJust $ Cluster.tryBalance tbl dm im evac 0 0
 
 -- | Assigns a new fresh instance to a cluster; this is not
--- allocation, so no resource checks are done
+-- allocation, so no resource checks are done.
 assignInstance :: Node.List -> Instance.List -> Instance.Instance ->
                   Types.Idx -> Types.Idx ->
                   (Node.List, Instance.List)
@@ -149,7 +149,9 @@ assignInstance nl il inst pdx sdx =
 
 -- * Arbitrary instances
 
+-- | Defines a DNS name.
 newtype DNSChar = DNSChar { dnsGetChar::Char }
+
 instance Arbitrary DNSChar where
     arbitrary = do
       x <- elements (['a'..'z'] ++ ['0'..'9'] ++ "_-")
@@ -189,7 +191,11 @@ instance Arbitrary Instance.Instance where
       vcpus <- choose (0, maxCpu)
       return $ Instance.create name mem dsk vcpus run_st [] True pn sn
 
-genNode :: Maybe Int -> Maybe Int -> Gen Node.Node
+-- | Generas an arbitrary node based on sizing information.
+genNode :: Maybe Int -- ^ Minimum node size in terms of units
+        -> Maybe Int -- ^ Maximum node size (when Nothing, bounded
+                     -- just by the max... constants)
+        -> Gen Node.Node
 genNode min_multiplier max_multiplier = do
   let (base_mem, base_dsk, base_cpu) =
           case min_multiplier of
@@ -253,20 +259,28 @@ instance Arbitrary Jobs.OpStatus where
 instance Arbitrary Jobs.JobStatus where
   arbitrary = elements [minBound..maxBound]
 
+newtype SmallRatio = SmallRatio Double deriving Show
+instance Arbitrary SmallRatio where
+    arbitrary = do
+      v <- choose (0, 1)
+      return $ SmallRatio v
+
 -- * Actual tests
 
--- If the list is not just an empty element, and if the elements do
--- not contain commas, then join+split should be idepotent
+-- ** Utils tests
+
+-- | If the list is not just an empty element, and if the elements do
+-- not contain commas, then join+split should be idempotent.
 prop_Utils_commaJoinSplit =
     forAll (arbitrary `suchThat`
             (\l -> l /= [""] && all (not . elem ',') l )) $ \lst ->
     Utils.sepSplit ',' (Utils.commaJoin lst) == lst
 
--- Split and join should always be idempotent
+-- | Split and join should always be idempotent.
 prop_Utils_commaSplitJoin s = Utils.commaJoin (Utils.sepSplit ',' s) == s
 
 -- | fromObjWithDefault, we test using the Maybe monad and an integer
--- value
+-- value.
 prop_Utils_fromObjWithDefault def_value random_key =
     -- a missing key will be returned with the default
     Utils.fromObjWithDefault [] random_key def_value == Just def_value &&
@@ -275,13 +289,16 @@ prop_Utils_fromObjWithDefault def_value random_key =
          random_key (def_value+1) == Just def_value
         where _types = def_value :: Integer
 
+-- | Test list for the Utils module.
 testUtils =
   [ run prop_Utils_commaJoinSplit
   , run prop_Utils_commaSplitJoin
   , run prop_Utils_fromObjWithDefault
   ]
 
--- | Make sure add is idempotent
+-- ** PeerMap tests
+
+-- | Make sure add is idempotent.
 prop_PeerMap_addIdempotent pmap key em =
     fn puniq == fn (fn puniq)
     where _types = (pmap::PeerMap.PeerMap,
@@ -289,33 +306,34 @@ prop_PeerMap_addIdempotent pmap key em =
           fn = PeerMap.add key em
           puniq = PeerMap.accumArray const pmap
 
--- | Make sure remove is idempotent
+-- | Make sure remove is idempotent.
 prop_PeerMap_removeIdempotent pmap key =
     fn puniq == fn (fn puniq)
     where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
           fn = PeerMap.remove key
           puniq = PeerMap.accumArray const pmap
 
--- | Make sure a missing item returns 0
+-- | Make sure a missing item returns 0.
 prop_PeerMap_findMissing pmap key =
     PeerMap.find key (PeerMap.remove key puniq) == 0
     where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
           puniq = PeerMap.accumArray const pmap
 
--- | Make sure an added item is found
+-- | Make sure an added item is found.
 prop_PeerMap_addFind pmap key em =
     PeerMap.find key (PeerMap.add key em puniq) == em
     where _types = (pmap::PeerMap.PeerMap,
                     key::PeerMap.Key, em::PeerMap.Elem)
           puniq = PeerMap.accumArray const pmap
 
--- | Manual check that maxElem returns the maximum indeed, or 0 for null
+-- | Manual check that maxElem returns the maximum indeed, or 0 for null.
 prop_PeerMap_maxElem pmap =
     PeerMap.maxElem puniq == if null puniq then 0
                              else (maximum . snd . unzip) puniq
     where _types = pmap::PeerMap.PeerMap
           puniq = PeerMap.accumArray const pmap
 
+-- | List of tests for the PeerMap module.
 testPeerMap =
     [ run prop_PeerMap_addIdempotent
     , run prop_PeerMap_removeIdempotent
@@ -324,7 +342,7 @@ testPeerMap =
     , run prop_PeerMap_findMissing
     ]
 
--- Container tests
+-- ** Container tests
 
 prop_Container_addTwo cdata i1 i2 =
     fn i1 i2 cont == fn i2 i1 cont &&
@@ -339,9 +357,9 @@ prop_Container_nameOf node =
       fnode = head (Container.elems nl)
   in Container.nameOf nl (Node.idx fnode) == Node.name fnode
 
--- We test that in a cluster, given a random node, we can find it by
+-- | We test that in a cluster, given a random node, we can find it by
 -- its name and alias, as long as all names and aliases are unique,
--- and that we fail to find a non-existing name
+-- and that we fail to find a non-existing name.
 prop_Container_findByName node othername =
   forAll (choose (1, 20)) $ \ cnt ->
   forAll (choose (0, cnt - 1)) $ \ fidx ->
@@ -366,6 +384,8 @@ testContainer =
     , run prop_Container_nameOf
     , run prop_Container_findByName
     ]
+
+-- ** Instance tests
 
 -- Simple instance tests, we only have setter/getters
 
@@ -471,6 +491,8 @@ testInstance =
     , run prop_Instance_setMovable
     ]
 
+-- ** Text backend tests
+
 -- Instance text loader tests
 
 prop_Text_Load_Instance name mem dsk vcpus status
@@ -565,7 +587,7 @@ testText =
     , run prop_Text_NodeLSIdempotent
     ]
 
--- Node tests
+-- ** Node tests
 
 prop_Node_setAlias node name =
     Node.name newnode == Node.name node &&
@@ -585,7 +607,8 @@ prop_Node_setMcpu node mc =
     Node.mCpu newnode == mc
     where newnode = Node.setMcpu node mc
 
--- | Check that an instance add with too high memory or disk will be rejected
+-- | Check that an instance add with too high memory or disk will be
+-- rejected.
 prop_Node_addPriFM node inst = Instance.mem inst >= Node.fMem node &&
                                not (Node.failN1 node)
                                ==>
@@ -615,7 +638,8 @@ prop_Node_addPriFC node inst (Positive extra) =
           inst' = setInstanceSmallerThanNode node inst
           inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
 
--- | Check that an instance add with too high memory or disk will be rejected
+-- | Check that an instance add with too high memory or disk will be
+-- rejected.
 prop_Node_addSec node inst pdx =
     (Instance.mem inst >= (Node.fMem node - Node.rMem node) ||
      Instance.dsk inst >= Node.fDsk node) &&
@@ -623,7 +647,7 @@ prop_Node_addSec node inst pdx =
     ==> isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
--- | Checks for memory reservation changes
+-- | Checks for memory reservation changes.
 prop_Node_rMem inst =
     forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
     -- ab = auto_balance, nb = non-auto_balance
@@ -655,13 +679,7 @@ prop_Node_rMem inst =
          x -> printTestCase ("Failed to add/remove instances: " ++ show x)
               False
 
-newtype SmallRatio = SmallRatio Double deriving Show
-instance Arbitrary SmallRatio where
-    arbitrary = do
-      v <- choose (0, 1)
-      return $ SmallRatio v
-
--- | Check mdsk setting
+-- | Check mdsk setting.
 prop_Node_setMdsk node mx =
     Node.loDsk node' >= 0 &&
     fromIntegral (Node.loDsk node') <= Node.tDsk node &&
@@ -715,9 +733,10 @@ testNode =
     ]
 
 
--- Cluster tests
+-- ** Cluster tests
 
--- | Check that the cluster score is close to zero for a homogeneous cluster
+-- | Check that the cluster score is close to zero for a homogeneous
+-- cluster.
 prop_Score_Zero node =
     forAll (choose (1, 1024)) $ \count ->
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
@@ -730,7 +749,7 @@ prop_Score_Zero node =
     -- this should be much lower than the default score in CLI.hs
     in score <= 1e-12
 
--- | Check that cluster stats are sane
+-- | Check that cluster stats are sane.
 prop_CStats_sane node =
     forAll (choose (1, 1024)) $ \count ->
     (not (Node.offline node) && not (Node.failN1 node) &&
@@ -743,7 +762,7 @@ prop_CStats_sane node =
        Cluster.csAdsk cstats <= Cluster.csFdsk cstats
 
 -- | Check that one instance is allocated correctly, without
--- rebalances needed
+-- rebalances needed.
 prop_ClusterAlloc_sane node inst =
     forAll (choose (5, 20)) $ \count ->
     not (Node.offline node)
@@ -768,7 +787,7 @@ prop_ClusterAlloc_sane node inst =
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
--- spec), on either one or two nodes
+-- spec), on either one or two nodes.
 prop_ClusterCanTieredAlloc node inst =
     forAll (choose (2, 5)) $ \count ->
     forAll (choose (1, 2)) $ \rqnodes ->
@@ -787,7 +806,7 @@ prop_ClusterCanTieredAlloc node inst =
                                       length ixes == length cstats
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
--- we can also evacuate it
+-- we can also evacuate it.
 prop_ClusterAllocEvac node inst =
     forAll (choose (4, 8)) $ \count ->
     not (Node.offline node)
@@ -812,7 +831,7 @@ prop_ClusterAllocEvac node inst =
                _ -> False
 
 -- | Check that allocating multiple instances on a cluster, then
--- adding an empty node, results in a valid rebalance
+-- adding an empty node, results in a valid rebalance.
 prop_ClusterAllocBalance =
     forAll (genNode (Just 5) (Just 128)) $ \node ->
     forAll (choose (3, 5)) $ \count ->
@@ -831,7 +850,7 @@ prop_ClusterAllocBalance =
                        tbl = Cluster.Table ynl il' cv []
                    in canBalance tbl True True False
 
--- | Checks consistency
+-- | Checks consistency.
 prop_ClusterCheckConsistency node inst =
   let nl = makeSmallCluster node 3
       [node1, node2, node3] = Container.elems nl
@@ -845,7 +864,7 @@ prop_ClusterCheckConsistency node inst =
      null (ccheck [(0, inst2)]) &&
      (not . null $ ccheck [(0, inst3)])
 
--- For now, we only test that we don't lose instances during the split
+-- | For now, we only test that we don't lose instances during the split.
 prop_ClusterSplitCluster node inst =
   forAll (choose (0, 100)) $ \icnt ->
   let nl = makeSmallCluster node 2
@@ -867,8 +886,9 @@ testCluster =
     , run prop_ClusterSplitCluster
     ]
 
--- | Check that opcode serialization is idempotent
+-- ** OpCodes tests
 
+-- | Check that opcode serialization is idempotent.
 prop_OpCodes_serialization op =
   case J.readJSON (J.showJSON op) of
     J.Error _ -> False
@@ -879,7 +899,9 @@ testOpCodes =
   [ run prop_OpCodes_serialization
   ]
 
--- | Check that (queued) job\/opcode status serialization is idempotent
+-- ** Jobs tests
+
+-- | Check that (queued) job\/opcode status serialization is idempotent.
 prop_OpStatus_serialization os =
   case J.readJSON (J.showJSON os) of
     J.Error _ -> False
@@ -897,7 +919,7 @@ testJobs =
   , run prop_JobStatus_serialization
   ]
 
--- | Loader tests
+-- ** Loader tests
 
 prop_Loader_lookupNode ktn inst node =
   Loader.lookupNode nl inst node == Data.Map.lookup node nl
@@ -915,9 +937,8 @@ prop_Loader_assignIndices nodes =
    else True)
   where (nassoc, kt) = Loader.assignIndices (map (\n -> (Node.name n, n)) nodes)
 
-
 -- | Checks that the number of primary instances recorded on the nodes
--- is zero
+-- is zero.
 prop_Loader_mergeData ns =
   let na = Container.fromList $ map (\n -> (Node.idx n, n)) ns
   in case Loader.mergeData [] [] [] []
