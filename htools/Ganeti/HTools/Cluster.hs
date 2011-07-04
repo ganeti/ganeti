@@ -113,9 +113,9 @@ type AllocResult = (FailStats, Node.List, Instance.List,
 type AllocNodes = Either [Ndx] [(Ndx, Ndx)]
 
 -- | The empty solution we start with when computing allocations.
-emptySolution :: AllocSolution
-emptySolution = AllocSolution { asFailures = [], asAllocs = 0
-                              , asSolutions = [], asLog = [] }
+emptyAllocSolution :: AllocSolution
+emptyAllocSolution = AllocSolution { asFailures = [], asAllocs = 0
+                                   , asSolutions = [], asLog = [] }
 
 -- | The complete state for the balancing solution.
 data Table = Table Node.List Instance.List Score [Placement]
@@ -665,7 +665,7 @@ tryAlloc :: (Monad m) =>
 tryAlloc nl _ inst (Right ok_pairs) =
     let sols = foldl' (\cstate (p, s) ->
                            concatAllocs cstate $ allocateOnPair nl inst p s
-                      ) emptySolution ok_pairs
+                      ) emptyAllocSolution ok_pairs
 
     in if null ok_pairs -- means we have just one node
        then fail "Not enough online nodes"
@@ -674,7 +674,7 @@ tryAlloc nl _ inst (Right ok_pairs) =
 tryAlloc nl _ inst (Left all_nodes) =
     let sols = foldl' (\cstate ->
                            concatAllocs cstate . allocateOnSingle nl inst
-                      ) emptySolution all_nodes
+                      ) emptyAllocSolution all_nodes
     in if null all_nodes
        then fail "No online nodes"
        else return $ annotateSolution sols
@@ -758,7 +758,7 @@ tryReloc nl il xid 1 ex_idx =
                                   return (mnl, i, [Container.find x mnl],
                                           compCV mnl)
                             in concatAllocs cstate em
-                       ) emptySolution valid_idxes
+                       ) emptyAllocSolution valid_idxes
     in return sols1
 
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
@@ -819,7 +819,7 @@ tryEvac :: (Monad m) =>
          -> [Ndx]           -- ^ Restricted nodes (the ones being evacuated)
          -> m AllocSolution -- ^ Solution list
 tryEvac nl il idxs ex_ndx = do
-  (_, sol) <- foldM (evacInstance ex_ndx il) (nl, emptySolution) idxs
+  (_, sol) <- foldM (evacInstance ex_ndx il) (nl, emptyAllocSolution) idxs
   return sol
 
 -- | Multi-group evacuation of a list of nodes.
@@ -836,7 +836,7 @@ tryMGEvac _ nl il ex_ndx =
     in do
       results <- mapM (\(_, (gnl, gil, idxs)) -> tryEvac gnl gil idxs ex_ndx)
                  all_insts'
-      let sol = foldl' sumAllocs emptySolution results
+      let sol = foldl' sumAllocs emptyAllocSolution results
       return $ annotateSolution sol
 
 -- | Recursively place instances on the cluster until we're out of space.
