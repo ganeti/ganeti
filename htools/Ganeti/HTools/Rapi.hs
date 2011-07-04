@@ -97,12 +97,6 @@ getGroups :: String -> Result [(String, Group.Group)]
 getGroups body = loadJSArray "Parsing group data" body >>=
                 mapM (parseGroup . fromJSObject)
 
--- | Generates a fake group list.
-getFakeGroups :: Result [(String, Group.Group)]
-getFakeGroups =
-  return [(defaultGroupID,
-           Group.create "default" defaultGroupID AllocPreferred)]
-
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc
               -> JSRecord
@@ -178,12 +172,7 @@ readData master = do
 parseData :: (Result String, Result String, Result String, Result String)
           -> Result ClusterData
 parseData (group_body, node_body, inst_body, tags_body) = do
-  group_data <-
-      -- TODO: handle different ganeti versions properly, not via "all
-      -- errors mean Ganeti 2.3"
-      case group_body of
-        Bad _ -> getFakeGroups
-        Ok v -> getGroups v
+  group_data <- group_body >>= getGroups
   let (group_names, group_idx) = assignIndices group_data
   node_data <- node_body >>= getNodes group_names
   let (node_names, node_idx) = assignIndices node_data
