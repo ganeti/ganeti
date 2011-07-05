@@ -41,7 +41,7 @@ from ganeti import opcodes
 from ganeti import ht
 from ganeti import rapi
 
-import ganeti.rapi.rlib2
+import ganeti.rapi.rlib2 # pylint: disable-msg=W0611
 
 
 COMMON_PARAM_NAMES = map(operator.itemgetter(0), opcodes.OpCode.OP_PARAMS)
