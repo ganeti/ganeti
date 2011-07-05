@@ -387,5 +387,11 @@ commands = {
   }
 
 
+#: dictionary with aliases for commands
+aliases = {
+  "show": "info",
+  }
+
+
 def Main():
-  return GenericMain(commands)
+  return GenericMain(commands, aliases=aliases)
