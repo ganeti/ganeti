@@ -909,6 +909,15 @@ nodeEvacInstance _ _ mode (Instance.Instance
                   failOnSecondaryChange mode dt >>
                   fail "Block device relocations not implemented yet"
 
+nodeEvacInstance nl il ChangePrimary
+                 inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8}) _ =
+  do
+    (nl', inst', _, _) <- opToResult $ applyMove nl inst Failover
+    let idx = Instance.idx inst
+        il' = Container.add idx inst' il
+        ops = iMoveToJob nl' il' idx Failover
+    return (nl', il', ops)
+
 nodeEvacInstance _ _ _ (Instance.Instance
                         {Instance.diskTemplate = DTDrbd8}) _ =
                   fail "DRBD relocations not implemented yet"
