@@ -939,9 +939,46 @@ nodeEvacInstance nl il ChangeSecondary
         ops = iMoveToJob nl' il' idx (ReplaceSecondary ndx)
     return (nl', il', ops)
 
-nodeEvacInstance _ _ _ (Instance.Instance
-                        {Instance.diskTemplate = DTDrbd8}) _ =
-                  fail "DRBD relocations not implemented yet"
+nodeEvacInstance nl il ChangeAll
+                 inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
+                 avail_nodes =
+  do
+    let primary = Container.find (Instance.pNode inst) nl
+        idx = Instance.idx inst
+        gdx = instancePriGroup nl inst
+        no_nodes = Left "no nodes available"
+    -- if the primary is offline, then we first failover
+    (nl1, inst1, ops1) <-
+        if Node.offline primary
+        then do
+          (nl', inst', _, _) <-
+              annotateResult "Failing over to the secondary" $
+              opToResult $ applyMove nl inst Failover
+          return (nl', inst', [Failover])
+        else return (nl, inst, [])
+    -- we now need to execute a replace secondary to the future
+    -- primary node
+    (nl2, inst2, _, new_pdx) <- annotateResult "Searching for a new primary" $
+                                eitherToResult $
+                                foldl' (evacDrbdSecondaryInner nl1 inst1 gdx)
+                                no_nodes avail_nodes
+    let ops2 = ReplaceSecondary new_pdx:ops1
+    -- since we chose the new primary, we remove it from the list of
+    -- available nodes
+    let avail_nodes_sec = new_pdx `delete` avail_nodes
+    -- we now execute another failover, the primary stays fixed now
+    (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" $
+                          opToResult $ applyMove nl2 inst2 Failover
+    let ops3 = Failover:ops2
+    -- and finally another replace secondary, to the final secondary
+    (nl4, inst4, _, new_sdx) <-
+        annotateResult "Searching for a new secondary" $
+        eitherToResult $
+        foldl' (evacDrbdSecondaryInner nl3 inst3 gdx) no_nodes avail_nodes_sec
+    let ops4 = ReplaceSecondary new_sdx:ops3
+        il' = Container.add idx inst4 il
+        ops = concatMap (iMoveToJob nl4 il' idx) $ reverse ops4
+    return (nl4, il', ops)
 
 -- | Inner fold function for changing secondary of a DRBD instance.
 --
