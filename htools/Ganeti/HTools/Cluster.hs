@@ -748,14 +748,14 @@ sortMGResults gl sols =
                                (extractScore . head . asSolutions) sol)
     in sortBy (comparing solScore) sols
 
--- | Try to allocate an instance on a multi-group cluster.
-tryMGAlloc :: Group.List           -- ^ The group list
-           -> Node.List            -- ^ The node list
-           -> Instance.List        -- ^ The instance list
-           -> Instance.Instance    -- ^ The instance to allocate
-           -> Int                  -- ^ Required number of nodes
-           -> Result AllocSolution -- ^ Possible solution list
-tryMGAlloc mggl mgnl mgil inst cnt =
+-- | Finds the best group for an instance on a multi-group cluster.
+findBestAllocGroup :: Group.List           -- ^ The group list
+                   -> Node.List            -- ^ The node list
+                   -> Instance.List        -- ^ The instance list
+                   -> Instance.Instance    -- ^ The instance to allocate
+                   -> Int                  -- ^ Required number of nodes
+                   -> Result (Gdx, AllocSolution, [String])
+findBestAllocGroup mggl mgnl mgil inst cnt =
   let groups = splitCluster mgnl mgil
       sols = map (\(gid, (nl, il)) ->
                    (gid, genAllocNodes mggl nl cnt False >>=
@@ -767,9 +767,21 @@ tryMGAlloc mggl mgnl mgil inst cnt =
   in if null sortedSols
      then Bad $ intercalate ", " all_msgs
      else let (final_group, final_sol) = head sortedSols
-              final_name = Group.name $ Container.find final_group mggl
-              selmsg = "Selected group: " ++  final_name
-          in Ok $ final_sol { asLog = selmsg:all_msgs }
+          in return (final_group, final_sol, all_msgs)
+
+-- | Try to allocate an instance on a multi-group cluster.
+tryMGAlloc :: Group.List           -- ^ The group list
+           -> Node.List            -- ^ The node list
+           -> Instance.List        -- ^ The instance list
+           -> Instance.Instance    -- ^ The instance to allocate
+           -> Int                  -- ^ Required number of nodes
+           -> Result AllocSolution -- ^ Possible solution list
+tryMGAlloc mggl mgnl mgil inst cnt = do
+  (best_group, solution, all_msgs) <-
+      findBestAllocGroup mggl mgnl mgil inst cnt
+  let group_name = Group.name $ Container.find best_group mggl
+      selmsg = "Selected group: " ++ group_name
+  return $ solution { asLog = selmsg:all_msgs }
 
 -- | Try to relocate an instance on the cluster.
 tryReloc :: (Monad m) =>
