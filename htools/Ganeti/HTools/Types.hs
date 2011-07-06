@@ -56,10 +56,12 @@ module Ganeti.HTools.Types
     , Result(..)
     , isOk
     , isBad
+    , eitherToResult
     , Element(..)
     , FailMode(..)
     , FailStats
     , OpResult(..)
+    , opToResult
     , connTimeout
     , queryTimeout
     , EvacMode(..)
@@ -254,13 +256,11 @@ unitDsk = 256
 unitCpu :: Int
 unitCpu = 1
 
-{-|
-
-This is similar to the JSON library Result type - /very/ similar, but
-we want to use it in multiple places, so we abstract it into a
-mini-library here
-
--}
+-- | This is similar to the JSON library Result type - /very/ similar,
+-- but we want to use it in multiple places, so we abstract it into a
+-- mini-library here.
+--
+-- The failure value for this monad is simply a string.
 data Result a
     = Bad String
     | Ok a
@@ -281,6 +281,11 @@ isOk _ = False
 isBad :: Result a  -> Bool
 isBad = not . isOk
 
+-- | Converter from Either String to 'Result'
+eitherToResult :: Either String a -> Result a
+eitherToResult (Left s) = Bad s
+eitherToResult (Right v) = Ok v
+
 -- | Reason for an operation's falure.
 data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailDisk -- ^ Failed due to not enough disk
@@ -293,6 +298,12 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
 type FailStats = [(FailMode, Int)]
 
 -- | Either-like data-type customized for our failure modes.
+--
+-- The failure values for this monad track the specific allocation
+-- failures, so this is not a general error-monad (compare with the
+-- 'Result' data type). One downside is that this type cannot encode a
+-- generic failure mode, hence 'fail' for this monad is not defined
+-- and will cause an exception.
 data OpResult a = OpFail FailMode -- ^ Failed operation
                 | OpGood a        -- ^ Success operation
                   deriving (Show, Read)
@@ -301,6 +312,11 @@ instance Monad OpResult where
     (OpGood x) >>= fn = fn x
     (OpFail y) >>= _ = OpFail y
     return = OpGood
+
+-- | Conversion from 'OpResult' to 'Result'.
+opToResult :: OpResult a -> Result a
+opToResult (OpFail f) = Bad $ show f
+opToResult (OpGood v) = Ok v
 
 -- | A generic class for items that have updateable names and indices.
 class Element a where
