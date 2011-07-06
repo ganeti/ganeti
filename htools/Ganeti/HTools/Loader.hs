@@ -34,8 +34,6 @@ module Ganeti.HTools.Loader
     , lookupInstance
     , lookupGroup
     , commonSuffix
-    , RelocMode(..)
-    , EvacMode(..)
     , RqType(..)
     , Request(..)
     , ClusterData(..)
@@ -67,12 +65,6 @@ exTagsPrefix = "htools:iextags:"
 
 -- * Types
 
--- | The iallocator multi-evac group mode type.
-data RelocMode = KeepGroup
-               | ChangeGroup [Gdx]
-               | AnyGroup
-                 deriving (Show, Read)
-
 {-| The iallocator request type.
 
 This type denotes what request we got from Ganeti and also holds
@@ -84,7 +76,7 @@ data RqType
     | Relocate Idx Int [Ndx]         -- ^ Move an instance to a new
                                      -- secondary node
     | Evacuate [Ndx]                 -- ^ Evacuate nodes
-    | MultiReloc [Idx] RelocMode     -- ^ Multi-relocate mode
+    | ChangeGroup [Gdx] [Idx]        -- ^ Multi-relocate mode
     | NodeEvacuate [Idx] EvacMode    -- ^ node-evacuate mode
     deriving (Show, Read)
 
