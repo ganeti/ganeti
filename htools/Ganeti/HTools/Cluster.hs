@@ -52,6 +52,7 @@ module Ganeti.HTools.Cluster
     , doNextBalance
     , tryBalance
     , compCV
+    , compCVNodes
     , compDetailedCV
     , printStats
     , iMoveToJob
@@ -283,10 +284,9 @@ detailedCVWeights :: [Double]
 detailedCVWeights = map fst detailedCVInfo
 
 -- | Compute the mem and disk covariance.
-compDetailedCV :: Node.List -> [Double]
-compDetailedCV nl =
+compDetailedCV :: [Node.Node] -> [Double]
+compDetailedCV all_nodes =
     let
-        all_nodes = Container.elems nl
         (offline, nodes) = partition Node.offline all_nodes
         mem_l = map Node.pMem nodes
         dsk_l = map Node.pDsk nodes
@@ -328,8 +328,13 @@ compDetailedCV nl =
        , pri_tags_score ]
 
 -- | Compute the /total/ variance.
+compCVNodes :: [Node.Node] -> Double
+compCVNodes = sum . zipWith (*) detailedCVWeights . compDetailedCV
+
+-- | Wrapper over 'compCVNodes' for callers that have a 'Node.List'.
 compCV :: Node.List -> Double
-compCV = sum . zipWith (*) detailedCVWeights . compDetailedCV
+compCV = compCVNodes . Container.elems
+
 
 -- | Compute online nodes from a 'Node.List'.
 getOnline :: Node.List -> [Node.Node]
@@ -1164,7 +1169,7 @@ printInsts nl il =
 -- | Shows statistics for a given node list.
 printStats :: Node.List -> String
 printStats nl =
-    let dcvs = compDetailedCV nl
+    let dcvs = compDetailedCV $ Container.elems nl
         (weights, names) = unzip detailedCVInfo
         hd = zip3 (weights ++ repeat 1) (names ++ repeat "unknown") dcvs
         formatted = map (\(w, header, val) ->

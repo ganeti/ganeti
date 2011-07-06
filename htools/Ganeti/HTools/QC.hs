@@ -810,9 +810,8 @@ prop_Score_Zero node =
     (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
      (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
-        nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]
-        nl = Container.fromList nlst
-        score = Cluster.compCV nl
+        nlst = replicate count fn
+        score = Cluster.compCVNodes nlst
     -- we can't say == 0 here as the floating point errors accumulate;
     -- this should be much lower than the default score in CLI.hs
     in score <= 1e-12
