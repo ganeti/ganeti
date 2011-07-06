@@ -79,6 +79,7 @@ module Ganeti.HTools.Cluster
 import Data.Function (on)
 import qualified Data.IntSet as IntSet
 import Data.List
+import Data.Maybe (fromJust)
 import Data.Ord (comparing)
 import Text.Printf (printf)
 import Control.Monad
@@ -923,9 +924,64 @@ nodeEvacInstance nl il ChangePrimary
         ops = iMoveToJob nl' il' idx Failover
     return (nl', il', ops)
 
+nodeEvacInstance nl il ChangeSecondary
+                 inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
+                 avail_nodes =
+  do
+    let gdx = instancePriGroup nl inst
+    (nl', inst', _, ndx) <- annotateResult "Can't find any good node" $
+                            eitherToResult $
+                            foldl' (evacDrbdSecondaryInner nl inst gdx)
+                            (Left "no nodes available") avail_nodes
+    let idx = Instance.idx inst
+        il' = Container.add idx inst' il
+        ops = iMoveToJob nl' il' idx (ReplaceSecondary ndx)
+    return (nl', il', ops)
+
 nodeEvacInstance _ _ _ (Instance.Instance
                         {Instance.diskTemplate = DTDrbd8}) _ =
                   fail "DRBD relocations not implemented yet"
+
+-- | Inner fold function for changing secondary of a DRBD instance.
+--
+-- The "running" solution is either a @Left String@, which means we
+-- don't have yet a working solution, or a @Right (...)@, which
+-- represents a valid solution; it holds the modified node list, the
+-- modified instance (after evacuation), the score of that solution,
+-- and the new secondary node index.
+evacDrbdSecondaryInner :: Node.List -- ^ Cluster node list
+                       -> Instance.Instance -- ^ Instance being evacuated
+                       -> Gdx -- ^ The group index of the instance
+                       -> Either String ( Node.List
+                                        , Instance.Instance
+                                        , Score
+                                        , Ndx)  -- ^ Current best solution
+                       -> Ndx  -- ^ Node we're evaluating as new secondary
+                       -> Either String ( Node.List
+                                        , Instance.Instance
+                                        , Score
+                                        , Ndx) -- ^ New best solution
+evacDrbdSecondaryInner nl inst gdx accu ndx =
+    case applyMove nl inst (ReplaceSecondary ndx) of
+      OpFail fm ->
+          case accu of
+            Right _ -> accu
+            Left _ -> Left $ "Node " ++ Container.nameOf nl ndx ++
+                      " failed: " ++ show fm
+      OpGood (nl', inst', _, _) ->
+          let nodes = Container.elems nl'
+              -- The fromJust below is ugly (it can fail nastily), but
+              -- at this point we should have any internal mismatches,
+              -- and adding a monad here would be quite involved
+              grpnodes = fromJust (gdx `lookup` (Node.computeGroups nodes))
+              new_cv = compCVNodes grpnodes
+              new_accu = Right (nl', inst', new_cv, ndx)
+          in case accu of
+               Left _ -> new_accu
+               Right (_, _, old_cv, _) ->
+                   if old_cv < new_cv
+                   then accu
+                   else new_accu
 
 -- | Computes the local nodes of a given instance which are available
 -- for allocation.
