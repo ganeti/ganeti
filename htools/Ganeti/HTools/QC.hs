@@ -866,7 +866,7 @@ prop_ClusterCanTieredAlloc node inst =
         il = Container.empty
         allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
     in case allocnodes >>= \allocnodes' ->
-        Cluster.tieredAlloc nl il inst allocnodes' [] [] of
+        Cluster.tieredAlloc nl il (Just 1) inst allocnodes' [] [] of
          Types.Bad _ -> False
          Types.Ok (_, _, il', ixes, cstats) -> not (null ixes) &&
                                       IntMap.size il' == length ixes &&
@@ -909,7 +909,7 @@ prop_ClusterAllocBalance =
         allocnodes = Cluster.genAllocNodes defGroupList nl' 2 True
         i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
     in case allocnodes >>= \allocnodes' ->
-        Cluster.iterateAlloc nl' il i_templ allocnodes' [] [] of
+        Cluster.iterateAlloc nl' il (Just 5) i_templ allocnodes' [] [] of
          Types.Bad _ -> False
          Types.Ok (_, xnl, il', _, _) ->
                    let ynl = Container.add (Node.idx hnode) hnode xnl

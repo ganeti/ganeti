@@ -302,7 +302,7 @@ main = do
        (_, trl_nl, trl_il, trl_ixes, _) <-
            if stop_allocation
            then return result_noalloc
-           else exitifbad (Cluster.tieredAlloc nl il (iofspec tspec)
+           else exitifbad (Cluster.tieredAlloc nl il Nothing (iofspec tspec)
                                   allocnodes [] [])
        let spec_map' = Cluster.tieredSpecMap trl_ixes
 
@@ -324,7 +324,8 @@ main = do
   (ereason, fin_nl, fin_il, ixes, _) <-
       if stop_allocation
       then return result_noalloc
-      else exitifbad (Cluster.iterateAlloc nl il reqinst allocnodes [] [])
+      else exitifbad (Cluster.iterateAlloc nl il Nothing
+                      reqinst allocnodes [] [])
 
   let allocs = length ixes
       sreason = reverse $ sortBy (comparing snd) ereason

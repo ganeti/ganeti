@@ -1036,45 +1036,58 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
 -- | Recursively place instances on the cluster until we're out of space.
 iterateAlloc :: Node.List
              -> Instance.List
+             -> Maybe Int
              -> Instance.Instance
              -> AllocNodes
              -> [Instance.Instance]
              -> [CStats]
              -> Result AllocResult
-iterateAlloc nl il newinst allocnodes ixes cstats =
+iterateAlloc nl il limit newinst allocnodes ixes cstats =
       let depth = length ixes
           newname = printf "new-%d" depth::String
           newidx = length (Container.elems il) + depth
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
+          newlimit = fmap (flip (-) 1) limit
       in case tryAlloc nl il newi2 allocnodes of
            Bad s -> Bad s
            Ok (AllocSolution { asFailures = errs, asSolutions = sols3 }) ->
+               let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
                case sols3 of
-                 [] -> Ok (collapseFailures errs, nl, il, ixes, cstats)
+                 [] -> newsol
                  (xnl, xi, _, _):[] ->
-                     iterateAlloc xnl (Container.add newidx xi il)
-                                  newinst allocnodes (xi:ixes)
-                                  (totalResources xnl:cstats)
+                     if limit == Just 0
+                     then newsol
+                     else iterateAlloc xnl (Container.add newidx xi il)
+                          newlimit newinst allocnodes (xi:ixes)
+                          (totalResources xnl:cstats)
                  _ -> Bad "Internal error: multiple solutions for single\
                           \ allocation"
 
 -- | The core of the tiered allocation mode.
 tieredAlloc :: Node.List
             -> Instance.List
+            -> Maybe Int
             -> Instance.Instance
             -> AllocNodes
             -> [Instance.Instance]
             -> [CStats]
             -> Result AllocResult
-tieredAlloc nl il newinst allocnodes ixes cstats =
-    case iterateAlloc nl il newinst allocnodes ixes cstats of
+tieredAlloc nl il limit newinst allocnodes ixes cstats =
+    case iterateAlloc nl il limit newinst allocnodes ixes cstats of
       Bad s -> Bad s
       Ok (errs, nl', il', ixes', cstats') ->
+          let newsol = Ok (errs, nl', il', ixes', cstats')
+              ixes_cnt = length ixes'
+              (stop, newlimit) = case limit of
+                                   Nothing -> (False, Nothing)
+                                   Just n -> (n <= ixes_cnt,
+                                              Just (n - ixes_cnt)) in
+          if stop then newsol else
           case Instance.shrinkByType newinst . fst . last $
                sortBy (comparing snd) errs of
-            Bad _ -> Ok (errs, nl', il', ixes', cstats')
-            Ok newinst' ->
-                tieredAlloc nl' il' newinst' allocnodes ixes' cstats'
+            Bad _ -> newsol
+            Ok newinst' -> tieredAlloc nl' il' newlimit
+                           newinst' allocnodes ixes' cstats'
 
 -- | Compute the tiered spec string description from a list of
 -- allocated instances.
