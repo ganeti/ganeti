@@ -603,7 +603,8 @@ tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
 -- | Build failure stats out of a list of failures.
 collapseFailures :: [FailMode] -> FailStats
 collapseFailures flst =
-    map (\k -> (k, length $ filter (k ==) flst)) [minBound..maxBound]
+    map (\k -> (k, foldl' (\a e -> if e == k then a + 1 else a) 0 flst))
+            [minBound..maxBound]
 
 -- | Update current Allocation solution and failure stats with new
 -- elements.
