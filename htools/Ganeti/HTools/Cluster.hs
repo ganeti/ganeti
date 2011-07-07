@@ -82,7 +82,6 @@ import Data.Maybe (fromJust)
 import Data.Ord (comparing)
 import Text.Printf (printf)
 import Control.Monad
-import Control.Parallel.Strategies
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -90,6 +89,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
+import Ganeti.HTools.Compat
 import qualified Ganeti.OpCodes as OpCodes
 
 -- * Types

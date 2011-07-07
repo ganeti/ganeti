@@ -324,6 +324,7 @@ HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC \
 HS_LIB_SRCS = \
 	htools/Ganeti/HTools/CLI.hs \
 	htools/Ganeti/HTools/Cluster.hs \
+	htools/Ganeti/HTools/Compat.hs \
 	htools/Ganeti/HTools/Container.hs \
 	htools/Ganeti/HTools/ExtLoader.hs \
 	htools/Ganeti/HTools/Group.hs \
@@ -462,7 +463,8 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  exit 1; \
 	fi
 	BINARY=$(@:htools/%=%); $(GHC) --make \
-	  $(HFLAGS) $(HEXTRA) $(HTOOLS_NOCURL) \
+	  $(HFLAGS) $(HEXTRA) \
+	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi $@
 
 # for the htools/test binary, we need to enable profiling/coverage
@@ -1112,6 +1114,9 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	if [ "$(HTOOLS_NOCURL)" ]; \
 	then OPTGHC="--optghc=$(HTOOLS_NOCURL)"; \
 	else OPTGHC=""; \
+	fi; \
+	if [ "$(HTOOLS_PARALLEL3)" ]; \
+	then OPTGHC="$$OPTGHC --optghc=$(HTOOLS_PARALLEL3)"; \
 	fi; \
 	RELSRCS="$(HS_LIB_SRCS:htools/%=%)  $(HS_BUILT_SRCS:htools/%=%)"; \
 	for file in $$RELSRCS; do \

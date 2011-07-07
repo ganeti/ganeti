@@ -360,8 +360,10 @@ else
   AC_SUBST(HTOOLS_NOCURL)
   AC_MSG_CHECKING([parallel])
   GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-3.*')
-  if test -z "$GHC_PKG_PARALLEL"
+  if test -n "$GHC_PKG_PARALLEL"
   then
+    HTOOLS_PARALLEL3=-DPARALLEL3
+  else
     GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-2.*')
   fi
   if test -z "$GHC_PKG_PARALLEL"
@@ -369,6 +371,7 @@ else
     GHC_PKG_PARALLEL=$($GHC_PKG --simple-output list 'parallel-1.*')
   fi
   AC_SUBST(GHC_PKG_PARALLEL)
+  AC_SUBST(HTOOLS_PARALLEL3)
   AC_MSG_RESULT($GHC_PKG_PARALLEL)
   AC_MSG_CHECKING([json])
   GHC_PKG_JSON=$($GHC_PKG latest json)
