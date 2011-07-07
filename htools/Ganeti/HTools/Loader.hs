@@ -288,23 +288,23 @@ mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags) =
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
       allextags = extags ++ extractExTags tags
+      inst_names = map Instance.name il
+      selinst_lkp = map (lookupName inst_names) selinsts
+      exinst_lkp = map (lookupName inst_names) exinsts
+      lkp_unknown = filter (not . goodLookupResult) (selinst_lkp ++ exinst_lkp)
+      selinst_names = map lrContent selinst_lkp
+      exinst_names = map lrContent exinst_lkp
       il4 = Container.map (filterExTags allextags .
-                           updateMovable selinsts exinsts) il3
+                           updateMovable selinst_names exinst_names) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
       nl3 = Container.map (flip Node.buildPeers il4) nl2
       node_names = map Node.name (Container.elems nl)
-      inst_names = map Instance.name il
       common_suffix = longestDomain (node_names ++ inst_names)
       snl = Container.map (computeAlias common_suffix) nl3
       sil = Container.map (computeAlias common_suffix) il4
-      all_inst_names = concatMap allNames $ Container.elems sil
-  in if not $ all (`elem` all_inst_names) exinsts
-     then Bad $ "Some of the excluded instances are unknown: " ++
-          show (exinsts \\ all_inst_names)
-     else if not $ all (`elem` all_inst_names) selinsts
-          then Bad $ "Some of the selected instances are unknown: " ++
-               show (selinsts \\ all_inst_names)
-          else Ok cdata { cdNodes = snl, cdInstances = sil }
+  in if' (null lkp_unknown)
+         (Ok cdata { cdNodes = snl, cdInstances = sil })
+         (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List
