@@ -110,8 +110,8 @@ data AllocSolution = AllocSolution
 -- type consists of actual opcodes (a restricted subset) that are
 -- transmitted back to Ganeti.
 data EvacSolution = EvacSolution
-    { esMoved   :: [String]             -- ^ Instance moved successfully
-    , esFailed  :: [String]             -- ^ Instance which were not
+    { esMoved   :: [(Idx, Gdx, [Ndx])]  -- ^ Instances moved successfully
+    , esFailed  :: [(Idx, String)]      -- ^ Instances which were not
                                         -- relocated
     , esOpCodes :: [[[OpCodes.OpCode]]] -- ^ List of lists of jobs
     }
@@ -1063,14 +1063,18 @@ availableGroupNodes group_nodes excl_ndx gdx = do
 -- | Updates the evac solution with the results of an instance
 -- evacuation.
 updateEvacSolution :: (Node.List, Instance.List, EvacSolution)
-                   -> Instance.Instance
+                   -> Idx
                    -> Result (Node.List, Instance.List, [OpCodes.OpCode])
                    -> (Node.List, Instance.List, EvacSolution)
-updateEvacSolution (nl, il, es) inst (Bad msg) =
-    (nl, il, es { esFailed = (Instance.name inst ++ ": " ++ msg):esFailed es})
-updateEvacSolution (_, _, es) inst (Ok (nl, il, opcodes)) =
-    (nl, il, es { esMoved = Instance.name inst:esMoved es
+updateEvacSolution (nl, il, es) idx (Bad msg) =
+    (nl, il, es { esFailed = (idx, msg):esFailed es})
+updateEvacSolution (_, _, es) idx (Ok (nl, il, opcodes)) =
+    (nl, il, es { esMoved = new_elem:esMoved es
                 , esOpCodes = [opcodes]:esOpCodes es })
+     where inst = Container.find idx il
+           new_elem = (idx,
+                       instancePriGroup nl inst,
+                       Instance.allNodes inst)
 
 -- | Node-evacuation IAllocator mode main function.
 tryNodeEvac :: Group.List    -- ^ The cluster groups
@@ -1088,7 +1092,7 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
                       splitCluster ini_nl ini_il
         (_, _, esol) =
             foldl' (\state@(nl, il, _) inst ->
-                        updateEvacSolution state inst $
+                        updateEvacSolution state (Instance.idx inst) $
                         availableGroupNodes group_ndx
                           excl_ndx (instancePriGroup nl inst) >>=
                         nodeEvacInstance nl il mode inst
@@ -1144,12 +1148,12 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
                               av_nodes <- availableGroupNodes group_ndx
                                           excl_ndx gdx
                               nodeEvacInstance nl il ChangeAll inst av_nodes
-                        in updateEvacSolution state inst solution
+                        in updateEvacSolution state
+                               (Instance.idx inst) solution
                    )
             (ini_nl, ini_il, emptyEvacSolution)
             (map (`Container.find` ini_il) idxs)
     in return $ reverseEvacSolution esol
-
 
 -- | Recursively place instances on the cluster until we're out of space.
 iterateAlloc :: Node.List

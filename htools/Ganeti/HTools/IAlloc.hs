@@ -241,10 +241,18 @@ formatAllocate as = do
     _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Convert a node-evacuation/change group result.
-formatNodeEvac :: Cluster.EvacSolution -> Result IAllocResult
-formatNodeEvac es =
-    let fes = Cluster.esFailed es
-        mes = Cluster.esMoved es
+formatNodeEvac :: Group.List
+               -> Node.List
+               -> Instance.List
+               -> Cluster.EvacSolution
+               -> Result IAllocResult
+formatNodeEvac gl nl il es =
+    let iname = Instance.name . flip Container.find il
+        nname = Node.name . flip Container.find nl
+        gname = Group.name . flip Container.find gl
+        fes = map (\(idx, msg) -> (iname idx, msg)) $ Cluster.esFailed es
+        mes = map (\(idx, gdx, ndxs) -> (iname idx, gname gdx, map nname ndxs))
+              $ Cluster.esMoved es
         failed = length fes
         moved  = length mes
         info = show failed ++ " instances failed to move and " ++ show moved ++
@@ -263,9 +271,11 @@ processRequest request =
        Evacuate exnodes ->
            Cluster.tryMGEvac gl nl il exnodes >>= formatEvacuate
        ChangeGroup gdxs idxs ->
-           Cluster.tryChangeGroup gl nl il idxs gdxs >>= formatNodeEvac
+           Cluster.tryChangeGroup gl nl il idxs gdxs >>=
+                  formatNodeEvac gl nl il
        NodeEvacuate xi mode ->
-           Cluster.tryNodeEvac gl nl il mode xi >>= formatNodeEvac
+           Cluster.tryNodeEvac gl nl il mode xi >>=
+                  formatNodeEvac gl nl il
 
 -- | Reads the request from the data file(s)
 readRequest :: Options -> [String] -> IO Request
