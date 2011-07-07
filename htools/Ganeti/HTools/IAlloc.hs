@@ -125,8 +125,12 @@ parseGroup u a = do
   return (u, Group.create name u apol)
 
 -- | Top-level parser.
-parseData :: String         -- ^ The JSON message as received from Ganeti
-          -> Result Request -- ^ A (possible valid) request
+--
+-- The result is a tuple of eventual warning messages and the parsed
+-- request; if parsing the input data fails, we'll return a 'Bad'
+-- value.
+parseData :: String -- ^ The JSON message as received from Ganeti
+          -> Result ([String], Request) -- ^ Result tuple
 parseData body = do
   decoded <- fromJResult "Parsing input IAllocator message" (decodeStrict body)
   let obj = fromJSObject decoded
@@ -151,8 +155,10 @@ parseData body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
-  cdata <- mergeData [] [] [] [] (ClusterData gl nl il ctags)
-  let map_n = cdNodes cdata
+  cdata1 <- mergeData [] [] [] [] (ClusterData gl nl il ctags)
+  let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
+      cdata = cdata1 { cdNodes = fix_nl }
+      map_n = cdNodes cdata
       map_i = cdInstances cdata
       map_g = cdGroups cdata
   optype <- extrReq "type"
@@ -203,7 +209,7 @@ parseData body = do
                 return $ NodeEvacuate rl_idx rl_mode
 
           | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
-  return $ Request rqtype cdata
+  return $ (msgs, Request rqtype cdata)
 
 -- | Formats the result into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
@@ -300,7 +306,7 @@ readRequest opts args = do
           Bad err -> do
             hPutStrLn stderr $ "Error: " ++ err
             exitWith $ ExitFailure 1
-          Ok rq -> return rq
+          Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
   (if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
    then do
      cdata <- loadExternalData opts
