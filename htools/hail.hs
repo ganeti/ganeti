@@ -35,11 +35,13 @@ import qualified Ganeti.HTools.Cluster as Cluster
 import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
+import Ganeti.HTools.ExtLoader (maybeSaveData)
 
 -- | Options list and functions
 options :: [OptType]
 options =
     [ oPrintNodes
+    , oSaveCluster
     , oDataFile
     , oNodeSim
     , oVerbose
@@ -55,6 +57,7 @@ main = do
 
   let shownodes = optShowNodes opts
       verbose = optVerbose opts
+      savecluster = optSaveCluster opts
 
   request <- readRequest opts args
 
@@ -71,9 +74,14 @@ main = do
          hPutStrLn stderr $ Cluster.printNodes (cdNodes cdata)
                        (fromJust shownodes)
 
+  maybeSaveData savecluster "pre-ialloc" "before iallocator run" cdata
+
   let (maybe_ni, resp) = runIAllocator request
       (fin_nl, fin_il) = maybe (cdNodes cdata, cdInstances cdata) id maybe_ni
   putStrLn resp
   when (isJust shownodes) $ do
          hPutStrLn stderr "Final cluster status:"
          hPutStrLn stderr $ Cluster.printNodes fin_nl (fromJust shownodes)
+
+  maybeSaveData savecluster "post-ialloc" "after iallocator run"
+       (cdata { cdNodes = fin_nl, cdInstances = fin_il})

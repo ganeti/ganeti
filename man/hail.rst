@@ -68,6 +68,12 @@ The options that can be passed to the program are as follows:
   data with a simulated cluster. For details about the description,
   see the man page **hspace**(1).
 
+-S *filename*, --save-cluster=*filename*
+  If given, the state of the cluster before and the iallocator run is
+  saved to a file named *filename.pre-ialloc*, respectively
+  *filename.post-ialloc*. This allows re-feeding the cluster state to
+  any of the htools utilities.
+
 -v
   This option increases verbosity and can be used for debugging in order
   to understand how the IAllocator request is parsed; it can be passed
