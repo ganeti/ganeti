@@ -73,11 +73,8 @@ request-specific fields.
 -}
 data RqType
     = Allocate Instance.Instance Int -- ^ A new instance allocation
-    | Relocate Idx Int [Ndx]         -- ^ Move an instance to a new
-                                     -- secondary node
-    | Evacuate [Ndx]                 -- ^ Evacuate nodes
-    | ChangeGroup [Gdx] [Idx]        -- ^ Multi-relocate mode
     | NodeEvacuate [Idx] EvacMode    -- ^ node-evacuate mode
+    | ChangeGroup [Gdx] [Idx]        -- ^ Multi-relocate mode
     deriving (Show, Read)
 
 -- | A complete request, as received from Ganeti.

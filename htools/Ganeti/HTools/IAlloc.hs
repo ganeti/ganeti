@@ -152,13 +152,12 @@ parseData body = do
   let idata = fromJSObject ilist
   iobj <- mapM (\(x,y) ->
                     asJSObject y >>= parseInstance ktn x . fromJSObject) idata
-  let (kti, il) = assignIndices iobj
+  let (_, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
   cdata1 <- mergeData [] [] [] [] (ClusterData gl nl il ctags)
   let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
       cdata = cdata1 { cdNodes = fix_nl }
-      map_n = cdNodes cdata
       map_i = cdInstances cdata
       map_g = cdGroups cdata
   optype <- extrReq "type"
@@ -171,20 +170,6 @@ parseData body = do
                 inew      <- parseBaseInstance rname request
                 let io = snd inew
                 return $ Allocate io req_nodes
-          | optype == C.iallocatorModeReloc ->
-              do
-                rname     <- extrReq "name"
-                ridx      <- lookupInstance kti rname
-                req_nodes <- extrReq "required_nodes"
-                ex_nodes  <- extrReq "relocate_from"
-                ex_idex   <- mapM (Container.findByName map_n) ex_nodes
-                return $ Relocate ridx req_nodes (map Node.idx ex_idex)
-          | optype == C.iallocatorModeMevac ->
-              do
-                ex_names <- extrReq "evac_nodes"
-                ex_nodes <- mapM (Container.findByName map_n) ex_names
-                let ex_ndx = map Node.idx ex_nodes
-                return $ Evacuate ex_ndx
           | optype == C.iallocatorModeChgGroup ->
               do
                 rl_names <- extrReq "instances"
@@ -227,24 +212,6 @@ formatResponse success info result =
 describeSolution :: Cluster.AllocSolution -> String
 describeSolution = intercalate ", " . Cluster.asLog
 
--- | Convert evacuation results into the result format.
-formatEvacuate :: Instance.List -> Cluster.AllocSolution -> Result IAllocResult
-formatEvacuate il as = do
-  let info = describeSolution as
-      elems = Cluster.asSolutions as
-  when (null elems) $ fail info
-  let sols = map (\(_, inst, nl, _) -> Instance.name inst : map Node.name nl)
-             elems
-      -- FIXME: head elems is certainly not correct here, since we
-      -- don't always concat the elems and lists in the same order;
-      -- however, as the old evacuate mode is deprecated, we can leave
-      -- it like this for the moment
-      (head_nl, _, _, _) = head elems
-      il' = foldl' (\ilist (_, inst, _, _) ->
-                        Container.add (Instance.idx inst) inst ilist)
-            il elems
-  return (info, showJSON sols, head_nl, il')
-
 -- | Convert allocation/relocation results into the result format.
 formatAllocate :: Instance.List -> Cluster.AllocSolution -> Result IAllocResult
 formatAllocate il as = do
@@ -283,10 +250,6 @@ processRequest request =
   in case rqtype of
        Allocate xi reqn ->
            Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
-       Relocate idx reqn exnodes ->
-           Cluster.tryMGReloc gl nl il idx reqn exnodes >>= formatAllocate il
-       Evacuate exnodes ->
-           Cluster.tryMGEvac gl nl il exnodes >>= formatEvacuate il
        ChangeGroup gdxs idxs ->
            Cluster.tryChangeGroup gl nl il idxs gdxs >>=
                   formatNodeEvac gl nl il
