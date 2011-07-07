@@ -50,7 +50,7 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
 -- | Type alias for the result of an IAllocator call.
-type IAllocResult = (String, JSValue)
+type IAllocResult = (String, JSValue, Node.List)
 
 -- | Parse the basic specifications of an instance.
 --
@@ -229,7 +229,12 @@ formatEvacuate as = do
   when (null elems) $ fail info
   let sols = map (\(_, inst, nl, _) -> Instance.name inst : map Node.name nl)
              elems
-  return (info, showJSON sols)
+      -- FIXME: head elems is certainly not correct here, since we
+      -- don't always concat the elems and lists in the same order;
+      -- however, as the old evacuate mode is deprecated, we can leave
+      -- it like this for the moment
+      (head_nl, _, _, _) = head elems
+  return (info, showJSON sols, head_nl)
 
 -- | Convert allocation/relocation results into the result format.
 formatAllocate :: Cluster.AllocSolution -> Result IAllocResult
@@ -237,7 +242,7 @@ formatAllocate as = do
   let info = describeSolution as
   case Cluster.asSolutions as of
     [] -> fail info
-    (_, _, nodes, _):[] -> return (info, showJSON $ map (Node.name) nodes)
+    (nl, _, nodes, _):[] -> return (info, showJSON $ map (Node.name) nodes, nl)
     _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Convert a node-evacuation/change group result.
@@ -246,7 +251,7 @@ formatNodeEvac :: Group.List
                -> Instance.List
                -> (Node.List, Instance.List, Cluster.EvacSolution)
                -> Result IAllocResult
-formatNodeEvac gl nl il (_, _, es) =
+formatNodeEvac gl nl il (fin_nl, _, es) =
     let iname = Instance.name . flip Container.find il
         nname = Node.name . flip Container.find nl
         gname = Group.name . flip Container.find gl
@@ -257,7 +262,7 @@ formatNodeEvac gl nl il (_, _, es) =
         moved  = length mes
         info = show failed ++ " instances failed to move and " ++ show moved ++
                " were moved successfully"
-    in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es))
+    in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl)
 
 -- | Process a request and return new node lists
 processRequest :: Request -> Result IAllocResult
@@ -298,10 +303,12 @@ readRequest opts args = do
    else return r1)
 
 -- | Main iallocator pipeline.
-runIAllocator :: Request -> String
+runIAllocator :: Request -> (Maybe Node.List, String)
 runIAllocator request =
-  let (ok, info, result) =
+  let (ok, info, result, nl) =
           case processRequest request of
-            Ok (msg, r) -> (True, "Request successful: " ++ msg, r)
-            Bad msg -> (False, "Request failed: " ++ msg, JSArray [])
-  in  formatResponse ok info result
+            Ok (msg, r, nl) -> (True, "Request successful: " ++ msg, r,
+                                Just nl)
+            Bad msg -> (False, "Request failed: " ++ msg, JSArray [], Nothing)
+      rstring = formatResponse ok info result
+  in (nl, rstring)

@@ -71,5 +71,9 @@ main = do
          hPutStrLn stderr $ Cluster.printNodes (cdNodes cdata)
                        (fromJust shownodes)
 
-  let resp = runIAllocator request
+  let (maybe_nl, resp) = runIAllocator request
+      fin_nl = maybe (cdNodes cdata) id maybe_nl
   putStrLn resp
+  when (isJust shownodes) $ do
+         hPutStrLn stderr "Final cluster status:"
+         hPutStrLn stderr $ Cluster.printNodes fin_nl (fromJust shownodes)
