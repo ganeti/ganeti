@@ -23,9 +23,9 @@ Ganeti daemons: **ganeti-watcher**(8) (automatic instance restarter),
 daemon), **ganeti-masterd**(8) (master daemon), **ganeti-rapi**(8)
 (remote API daemon).
 
-Ganeti htools: **hbal**(1) (cluster balancer), **hspace**(1) (capacity
-calculation), **hail**(1) (IAllocator plugin), **hscan**(1) (data
-gatherer from remote clusters).
+Ganeti htools: **htools**(1) (generic binary), **hbal**(1) (cluster
+balancer), **hspace**(1) (capacity calculation), **hail**(1) (IAllocator
+plugin), **hscan**(1) (data gatherer from remote clusters).
 
 COPYRIGHT
 ---------

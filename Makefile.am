@@ -308,7 +308,8 @@ HS_PROGS = \
 	htools/hbal \
 	htools/hscan \
 	htools/hail \
-	htools/hspace
+	htools/hspace \
+	htools/htools
 
 HS_ALL_PROGS = $(HS_PROGS) htools/test
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
@@ -580,7 +581,8 @@ man_MANS = \
 	man/hail.1 \
 	man/hbal.1 \
 	man/hscan.1 \
-	man/hspace.1
+	man/hspace.1 \
+	man/htools.1
 
 manrst = $(patsubst %.1,%.rst,$(patsubst %.7,%.rst,$(patsubst %.8,%.rst,$(man_MANS))))
 manhtml = $(patsubst %.rst,%.html,$(manrst))

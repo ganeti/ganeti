@@ -102,6 +102,7 @@
 /htools/hscan
 /htools/hail
 /htools/hspace
+/htools/htools
 /htools/test
 /htools/*.prof*
 /htools/*.stat
