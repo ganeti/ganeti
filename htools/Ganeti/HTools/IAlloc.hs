@@ -244,9 +244,9 @@ formatAllocate as = do
 formatNodeEvac :: Group.List
                -> Node.List
                -> Instance.List
-               -> Cluster.EvacSolution
+               -> (Node.List, Instance.List, Cluster.EvacSolution)
                -> Result IAllocResult
-formatNodeEvac gl nl il es =
+formatNodeEvac gl nl il (_, _, es) =
     let iname = Instance.name . flip Container.find il
         nname = Node.name . flip Container.find nl
         gname = Group.name . flip Container.find gl

@@ -1082,7 +1082,7 @@ tryNodeEvac :: Group.List    -- ^ The cluster groups
             -> Instance.List -- ^ Instance list (cluster-wide)
             -> EvacMode      -- ^ The evacuation mode
             -> [Idx]         -- ^ List of instance (indices) to be evacuated
-            -> Result EvacSolution
+            -> Result (Node.List, Instance.List, EvacSolution)
 tryNodeEvac _ ini_nl ini_il mode idxs =
     let evac_ndx = nodesToEvacuate ini_il mode idxs
         offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
@@ -1090,7 +1090,7 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
         group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
                                              (Container.elems nl))) $
                       splitCluster ini_nl ini_il
-        (_, _, esol) =
+        (fin_nl, fin_il, esol) =
             foldl' (\state@(nl, il, _) inst ->
                         updateEvacSolution state (Instance.idx inst) $
                         availableGroupNodes group_ndx
@@ -1099,7 +1099,7 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
                    )
             (ini_nl, ini_il, emptyEvacSolution)
             (map (`Container.find` ini_il) idxs)
-    in return $ reverseEvacSolution esol
+    in return (fin_nl, fin_il, reverseEvacSolution esol)
 
 -- | Change-group IAllocator mode main function.
 --
@@ -1126,7 +1126,7 @@ tryChangeGroup :: Group.List    -- ^ The cluster groups
                -> [Gdx]         -- ^ Target groups; if empty, any
                                 -- groups not being evacuated
                -> [Idx]         -- ^ List of instance (indices) to be evacuated
-               -> Result EvacSolution
+               -> Result (Node.List, Instance.List, EvacSolution)
 tryChangeGroup gl ini_nl ini_il gdxs idxs =
     let evac_gdxs = nub $ map (instancePriGroup ini_nl .
                                flip Container.find ini_il) idxs
@@ -1138,7 +1138,7 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
         group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
                                              (Container.elems nl))) $
                       splitCluster ini_nl ini_il
-        (_, _, esol) =
+        (fin_nl, fin_il, esol) =
             foldl' (\state@(nl, il, _) inst ->
                         let solution = do
                               let ncnt = Instance.requiredNodes $
@@ -1153,7 +1153,7 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
                    )
             (ini_nl, ini_il, emptyEvacSolution)
             (map (`Container.find` ini_il) idxs)
-    in return $ reverseEvacSolution esol
+    in return (fin_nl, fin_il, reverseEvacSolution esol)
 
 -- | Recursively place instances on the cluster until we're out of space.
 iterateAlloc :: Node.List
