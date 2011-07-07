@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Main (main) where
 
 import Control.Monad
-import Data.Maybe (isJust, fromJust)
 import System.IO
 import qualified System
 
@@ -69,19 +68,16 @@ main = do
   when (verbose > 2) $
        hPutStrLn stderr $ "Received cluster data: " ++ show cdata
 
-  when (isJust shownodes) $ do
-         hPutStrLn stderr "Initial cluster status:"
-         hPutStrLn stderr $ Cluster.printNodes (cdNodes cdata)
-                       (fromJust shownodes)
+  maybePrintNodes shownodes "Initial cluster"
+       (Cluster.printNodes (cdNodes cdata))
 
   maybeSaveData savecluster "pre-ialloc" "before iallocator run" cdata
 
   let (maybe_ni, resp) = runIAllocator request
       (fin_nl, fin_il) = maybe (cdNodes cdata, cdInstances cdata) id maybe_ni
   putStrLn resp
-  when (isJust shownodes) $ do
-         hPutStrLn stderr "Final cluster status:"
-         hPutStrLn stderr $ Cluster.printNodes fin_nl (fromJust shownodes)
+
+  maybePrintNodes shownodes "Final cluster" (Cluster.printNodes fin_nl)
 
   maybeSaveData savecluster "post-ialloc" "after iallocator run"
        (cdata { cdNodes = fin_nl, cdInstances = fin_il})
