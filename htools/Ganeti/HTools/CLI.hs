@@ -35,6 +35,7 @@ module Ganeti.HTools.CLI
     , defaultLuxiSocket
     , maybePrintNodes
     , maybePrintInsts
+    , maybeShowWarnings
     -- * The options
     , oDataFile
     , oDiskMoves
@@ -490,3 +491,12 @@ maybePrintInsts do_print msg instdata =
     hPutStrLn stderr ""
     hPutStrLn stderr $ msg ++ " instance map:"
     hPutStr stderr instdata
+
+-- | Function to display warning messages from parsing the cluster
+-- state.
+maybeShowWarnings :: [String] -- ^ The warning messages
+                  -> IO ()
+maybeShowWarnings fix_msgs =
+  unless (null fix_msgs) $ do
+    hPutStrLn stderr "Warning: cluster has inconsistent data:"
+    hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs

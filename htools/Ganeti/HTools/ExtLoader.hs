@@ -38,7 +38,7 @@ import Data.Maybe (isJust, fromJust)
 import System.FilePath
 import System.IO
 import System
-import Text.Printf (printf, hPrintf)
+import Text.Printf (hPrintf)
 
 import qualified Ganeti.HTools.Luxi as Luxi
 import qualified Ganeti.HTools.Rapi as Rapi
@@ -123,9 +123,7 @@ loadExternalData opts = do
       )
   let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
 
-  unless (null fix_msgs || optVerbose opts == 0) $ do
-         hPutStrLn stderr "Warning: cluster has inconsistent data:"
-         hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
+  unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs
 
   return cdata {cdNodes = nl}
 
