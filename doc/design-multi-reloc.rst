@@ -72,8 +72,26 @@ instances and a list of jobsets.
 
 The two lists of instances describe which instances could be
 moved/migrated and which couldn't for some reason ("unsuccessful"). The
-union of the two lists must be equal to the set of instances given in
-the original request.
+union of the instances in the two lists must be equal to the set of
+instances given in the original request. The successful list of
+instances contains elements as follows::
+
+  (instance name, target group name, [chosen node names])
+
+The choice of names is simply for readability reasons (for example,
+Ganeti could log the computed solution in the job information) and for
+being able to check (manually) for consistency that the generated
+opcodes match the intended target groups/nodes. Note that for the
+node-evacuate operation, the group is not changed, but it should still
+be returned as such (as it's easier to have the same return type for
+both operations).
+
+The unsuccessful list of instances contains elements as follows::
+
+  (instance name, explanation)
+
+where ``explanation`` is a string describing why the plugin was not able
+to relocate the instance.
 
 The list of jobsets contained in the result describe how to actually
 execute the operation. Each jobset contains lists of serialized opcodes.
