@@ -42,6 +42,7 @@ module Ganeti.HTools.Instance
     , shrinkByType
     , runningStates
     , requiredNodes
+    , allNodes
     ) where
 
 import qualified Ganeti.HTools.Types as T
@@ -189,3 +190,9 @@ specOf Instance { mem = m, dsk = d, vcpus = c } =
 requiredNodes :: T.DiskTemplate -> Int
 requiredNodes T.DTDrbd8 = 2
 requiredNodes _         = 1
+
+-- | Computes all nodes of an instance.
+allNodes :: Instance -> [T.Ndx]
+allNodes inst = case diskTemplate inst of
+                  T.DTDrbd8 -> [pNode inst, sNode inst]
+                  _ -> [pNode inst]
