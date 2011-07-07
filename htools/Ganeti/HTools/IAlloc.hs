@@ -50,7 +50,7 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
 -- | Type alias for the result of an IAllocator call.
-type IAllocResult = (String, JSValue, Node.List)
+type IAllocResult = (String, JSValue, Node.List, Instance.List)
 
 -- | Parse the basic specifications of an instance.
 --
@@ -222,8 +222,8 @@ describeSolution :: Cluster.AllocSolution -> String
 describeSolution = intercalate ", " . Cluster.asLog
 
 -- | Convert evacuation results into the result format.
-formatEvacuate :: Cluster.AllocSolution -> Result IAllocResult
-formatEvacuate as = do
+formatEvacuate :: Instance.List -> Cluster.AllocSolution -> Result IAllocResult
+formatEvacuate il as = do
   let info = describeSolution as
       elems = Cluster.asSolutions as
   when (null elems) $ fail info
@@ -234,15 +234,21 @@ formatEvacuate as = do
       -- however, as the old evacuate mode is deprecated, we can leave
       -- it like this for the moment
       (head_nl, _, _, _) = head elems
-  return (info, showJSON sols, head_nl)
+      il' = foldl' (\ilist (_, inst, _, _) ->
+                        Container.add (Instance.idx inst) inst ilist)
+            il elems
+  return (info, showJSON sols, head_nl, il')
 
 -- | Convert allocation/relocation results into the result format.
-formatAllocate :: Cluster.AllocSolution -> Result IAllocResult
-formatAllocate as = do
+formatAllocate :: Instance.List -> Cluster.AllocSolution -> Result IAllocResult
+formatAllocate il as = do
   let info = describeSolution as
   case Cluster.asSolutions as of
     [] -> fail info
-    (nl, _, nodes, _):[] -> return (info, showJSON $ map (Node.name) nodes, nl)
+    (nl, inst, nodes, _):[] ->
+        do
+          let il' = Container.add (Instance.idx inst) inst il
+          return (info, showJSON $ map (Node.name) nodes, nl, il')
     _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Convert a node-evacuation/change group result.
@@ -251,7 +257,7 @@ formatNodeEvac :: Group.List
                -> Instance.List
                -> (Node.List, Instance.List, Cluster.EvacSolution)
                -> Result IAllocResult
-formatNodeEvac gl nl il (fin_nl, _, es) =
+formatNodeEvac gl nl il (fin_nl, fin_il, es) =
     let iname = Instance.name . flip Container.find il
         nname = Node.name . flip Container.find nl
         gname = Group.name . flip Container.find gl
@@ -262,7 +268,7 @@ formatNodeEvac gl nl il (fin_nl, _, es) =
         moved  = length mes
         info = show failed ++ " instances failed to move and " ++ show moved ++
                " were moved successfully"
-    in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl)
+    in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl, fin_il)
 
 -- | Process a request and return new node lists
 processRequest :: Request -> Result IAllocResult
@@ -270,11 +276,11 @@ processRequest request =
   let Request rqtype (ClusterData gl nl il _) = request
   in case rqtype of
        Allocate xi reqn ->
-           Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate
+           Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
        Relocate idx reqn exnodes ->
-           Cluster.tryMGReloc gl nl il idx reqn exnodes >>= formatAllocate
+           Cluster.tryMGReloc gl nl il idx reqn exnodes >>= formatAllocate il
        Evacuate exnodes ->
-           Cluster.tryMGEvac gl nl il exnodes >>= formatEvacuate
+           Cluster.tryMGEvac gl nl il exnodes >>= formatEvacuate il
        ChangeGroup gdxs idxs ->
            Cluster.tryChangeGroup gl nl il idxs gdxs >>=
                   formatNodeEvac gl nl il
@@ -303,12 +309,12 @@ readRequest opts args = do
    else return r1)
 
 -- | Main iallocator pipeline.
-runIAllocator :: Request -> (Maybe Node.List, String)
+runIAllocator :: Request -> (Maybe (Node.List, Instance.List), String)
 runIAllocator request =
-  let (ok, info, result, nl) =
+  let (ok, info, result, cdata) =
           case processRequest request of
-            Ok (msg, r, nl) -> (True, "Request successful: " ++ msg, r,
-                                Just nl)
+            Ok (msg, r, nl, il) -> (True, "Request successful: " ++ msg, r,
+                                    Just (nl, il))
             Bad msg -> (False, "Request failed: " ++ msg, JSArray [], Nothing)
       rstring = formatResponse ok info result
-  in (nl, rstring)
+  in (cdata, rstring)
