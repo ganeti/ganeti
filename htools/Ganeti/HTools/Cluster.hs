@@ -749,18 +749,26 @@ sortMGResults gl sols =
     in sortBy (comparing solScore) sols
 
 -- | Finds the best group for an instance on a multi-group cluster.
+--
+-- Only solutions in @preferred@ and @last_resort@ groups will be
+-- accepted as valid, and additionally if the allowed groups parameter
+-- is not null then allocation will only be run for those group
+-- indices.
 findBestAllocGroup :: Group.List           -- ^ The group list
                    -> Node.List            -- ^ The node list
                    -> Instance.List        -- ^ The instance list
+                   -> Maybe [Gdx]          -- ^ The allowed groups
                    -> Instance.Instance    -- ^ The instance to allocate
                    -> Int                  -- ^ Required number of nodes
                    -> Result (Gdx, AllocSolution, [String])
-findBestAllocGroup mggl mgnl mgil inst cnt =
+findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
   let groups = splitCluster mgnl mgil
+      groups' = maybe groups (\gs -> filter ((`elem` gs) . fst) groups)
+                allowed_gdxs
       sols = map (\(gid, (nl, il)) ->
                    (gid, genAllocNodes mggl nl cnt False >>=
                        tryAlloc nl il inst))
-             groups::[(Gdx, Result AllocSolution)]
+             groups'::[(Gdx, Result AllocSolution)]
       all_msgs = concatMap (solutionDescription mggl) sols
       goodSols = filterMGResults mggl sols
       sortedSols = sortMGResults mggl goodSols
@@ -778,7 +786,7 @@ tryMGAlloc :: Group.List           -- ^ The group list
            -> Result AllocSolution -- ^ Possible solution list
 tryMGAlloc mggl mgnl mgil inst cnt = do
   (best_group, solution, all_msgs) <-
-      findBestAllocGroup mggl mgnl mgil inst cnt
+      findBestAllocGroup mggl mgnl mgil Nothing inst cnt
   let group_name = Group.name $ Container.find best_group mggl
       selmsg = "Selected group: " ++ group_name
   return $ solution { asLog = selmsg:all_msgs }
