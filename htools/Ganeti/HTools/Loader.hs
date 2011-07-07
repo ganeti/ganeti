@@ -40,9 +40,14 @@ module Ganeti.HTools.Loader
     , Request(..)
     , ClusterData(..)
     , emptyCluster
+    , compareNameComponent
+    , prefixMatch
+    , LookupResult(..)
+    , MatchPriority(..)
     ) where
 
 import Data.List
+import Data.Function
 import qualified Data.Map as M
 import Text.Printf (printf)
 
@@ -52,6 +57,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 
 import Ganeti.HTools.Types
+import Ganeti.HTools.Utils
 
 -- * Constants
 
@@ -94,6 +100,27 @@ data ClusterData = ClusterData
     , cdTags      :: [String]      -- ^ The cluster tags
     } deriving (Show, Read)
 
+-- | The priority of a match in a lookup result.
+data MatchPriority = ExactMatch
+                   | MultipleMatch
+                   | PartialMatch
+                   | FailMatch
+                   deriving (Show, Read, Enum, Eq, Ord)
+
+-- | The result of a name lookup in a list.
+data LookupResult = LookupResult
+    { lrMatchPriority :: MatchPriority -- ^ The result type
+    -- | Matching value (for ExactMatch, PartialMatch), Lookup string otherwise
+    , lrContent :: String
+    } deriving (Show, Read)
+
+-- | Lookup results have an absolute preference ordering.
+instance Eq LookupResult where
+  (==) = (==) `on` lrMatchPriority
+
+instance Ord LookupResult where
+  compare = compare `on` lrMatchPriority
+
 -- | An empty cluster.
 emptyCluster :: ClusterData
 emptyCluster = ClusterData Container.empty Container.empty Container.empty []
@@ -120,6 +147,57 @@ lookupGroup ktg nname gname =
     case M.lookup gname ktg of
       Nothing -> fail $ "Unknown group '" ++ gname ++ "' for node " ++ nname
       Just idx -> return idx
+
+-- | Check for prefix matches in names.
+-- Implemented in Ganeti core utils.text.MatchNameComponent
+-- as the regexp r"^%s(\..*)?$" % re.escape(key)
+prefixMatch :: String  -- ^ Lookup
+            -> String  -- ^ Full name
+            -> Bool    -- ^ Whether there is a prefix match
+prefixMatch lkp = isPrefixOf (lkp ++ ".")
+
+-- | Is the lookup priority a "good" one?
+goodMatchPriority :: MatchPriority -> Bool
+goodMatchPriority ExactMatch = True
+goodMatchPriority PartialMatch = True
+goodMatchPriority _ = False
+
+-- | Is the lookup result an actual match?
+goodLookupResult :: LookupResult -> Bool
+goodLookupResult = goodMatchPriority . lrMatchPriority
+
+-- | Compares a canonical name and a lookup string.
+compareNameComponent :: String        -- ^ Canonical (target) name
+                     -> String        -- ^ Partial (lookup) name
+                     -> LookupResult  -- ^ Result of the lookup
+compareNameComponent cnl lkp =
+  select (LookupResult FailMatch lkp)
+  [ (cnl == lkp          , LookupResult ExactMatch cnl)
+  , (prefixMatch lkp cnl , LookupResult PartialMatch cnl)
+  ]
+
+-- | Lookup a string and choose the best result.
+chooseLookupResult :: String       -- ^ Lookup key
+                   -> String       -- ^ String to compare to the lookup key
+                   -> LookupResult -- ^ Previous result
+                   -> LookupResult -- ^ New result
+chooseLookupResult lkp cstr old =
+  -- default: use class order to pick the minimum result
+  select (min new old)
+  -- special cases:
+  -- short circuit if the new result is an exact match
+  [ ((lrMatchPriority new) == ExactMatch, new)
+  -- if both are partial matches generate a multiple match
+  , (partial2, LookupResult MultipleMatch lkp)
+  ] where new = compareNameComponent cstr lkp
+          partial2 = all ((PartialMatch==) . lrMatchPriority) [old, new]
+
+-- | Find the canonical name for a lookup string in a list of names.
+lookupName :: [String]      -- ^ List of keys
+           -> String        -- ^ Lookup string
+           -> LookupResult  -- ^ Result of the lookup
+lookupName l s = foldr (chooseLookupResult s)
+                       (LookupResult FailMatch s) l
 
 -- | Given a list of elements (and their names), assign indices to them.
 assignIndices :: (Element a) =>

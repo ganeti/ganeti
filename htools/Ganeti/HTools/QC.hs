@@ -992,11 +992,25 @@ prop_Loader_mergeData ns =
       in (sum . map (length . Node.pList)) nodes == 0 &&
          null instances
 
+-- | Check that compareNameComponent on equal strings works.
+prop_Loader_compareNameComponent_equal :: String -> Bool
+prop_Loader_compareNameComponent_equal s =
+  Loader.compareNameComponent s s ==
+    Loader.LookupResult Loader.ExactMatch s
+
+-- | Check that compareNameComponent on prefix strings works.
+prop_Loader_compareNameComponent_prefix :: NonEmptyList Char -> String -> Bool
+prop_Loader_compareNameComponent_prefix (NonEmpty s1) s2 =
+  Loader.compareNameComponent (s1 ++ "." ++ s2) s1 ==
+    Loader.LookupResult Loader.PartialMatch s1
+
 testLoader =
   [ run prop_Loader_lookupNode
   , run prop_Loader_lookupInstance
   , run prop_Loader_assignIndices
   , run prop_Loader_mergeData
+  , run prop_Loader_compareNameComponent_equal
+  , run prop_Loader_compareNameComponent_prefix
   ]
 
 -- ** Types tests
