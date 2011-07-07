@@ -1033,15 +1033,14 @@ evacDrbdSecondaryInner nl inst gdx accu ndx =
                    then accu
                    else new_accu
 
--- | Computes the local nodes of a given instance which are available
--- for allocation.
-availableLocalNodes :: Node.List
-                    -> [(Gdx, [Ndx])]
-                    -> IntSet.IntSet
-                    -> Instance.Instance
-                    -> Result [Ndx]
-availableLocalNodes nl group_nodes excl_ndx inst = do
-  let gdx = instancePriGroup nl inst
+-- | Computes the nodes in a given group which are available for
+-- allocation.
+availableGroupNodes :: [(Gdx, [Ndx])] -- ^ Group index/node index assoc list
+                    -> IntSet.IntSet  -- ^ Nodes that are excluded
+                    -> Gdx            -- ^ The group for which we
+                                      -- query the nodes
+                    -> Result [Ndx]   -- ^ List of available node indices
+availableGroupNodes group_nodes excl_ndx gdx = do
   local_nodes <- maybe (Bad $ "Can't find group with index " ++ show gdx)
                  Ok (lookup gdx group_nodes)
   let avail_nodes = filter (not . flip IntSet.member excl_ndx) local_nodes
@@ -1076,7 +1075,8 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
         (_, _, esol) =
             foldl' (\state@(nl, il, _) inst ->
                         updateEvacSolution state inst $
-                        availableLocalNodes nl group_ndx excl_ndx inst >>=
+                        availableGroupNodes group_ndx
+                          excl_ndx (instancePriGroup nl inst) >>=
                         nodeEvacInstance nl il mode inst
                    )
             (ini_nl, ini_il, emptyEvacSolution)
