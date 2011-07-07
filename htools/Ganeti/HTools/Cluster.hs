@@ -916,34 +916,36 @@ nodeEvacInstance :: Node.List         -- ^ The node list (cluster-wide)
                  -> Instance.List     -- ^ Instance list (cluster-wide)
                  -> EvacMode          -- ^ The evacuation mode
                  -> Instance.Instance -- ^ The instance to be evacuated
+                 -> Gdx               -- ^ The group we're targetting
                  -> [Ndx]             -- ^ The list of available nodes
                                       -- for allocation
                  -> Result (Node.List, Instance.List, [OpCodes.OpCode])
 nodeEvacInstance _ _ mode (Instance.Instance
-                           {Instance.diskTemplate = dt@DTDiskless}) _ =
+                           {Instance.diskTemplate = dt@DTDiskless}) _ _ =
                   failOnSecondaryChange mode dt >>
                   fail "Diskless relocations not implemented yet"
 
 nodeEvacInstance _ _ _ (Instance.Instance
-                        {Instance.diskTemplate = DTPlain}) _ =
+                        {Instance.diskTemplate = DTPlain}) _ _ =
                   fail "Instances of type plain cannot be relocated"
 
 nodeEvacInstance _ _ _ (Instance.Instance
-                        {Instance.diskTemplate = DTFile}) _ =
+                        {Instance.diskTemplate = DTFile}) _ _ =
                   fail "Instances of type file cannot be relocated"
 
 nodeEvacInstance _ _ mode  (Instance.Instance
-                            {Instance.diskTemplate = dt@DTSharedFile}) _ =
+                            {Instance.diskTemplate = dt@DTSharedFile}) _ _ =
                   failOnSecondaryChange mode dt >>
                   fail "Shared file relocations not implemented yet"
 
 nodeEvacInstance _ _ mode (Instance.Instance
-                           {Instance.diskTemplate = dt@DTBlock}) _ =
+                           {Instance.diskTemplate = dt@DTBlock}) _ _ =
                   failOnSecondaryChange mode dt >>
                   fail "Block device relocations not implemented yet"
 
 nodeEvacInstance nl il ChangePrimary
-                 inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8}) _ =
+                 inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
+                 _ _ =
   do
     (nl', inst', _, _) <- opToResult $ applyMove nl inst Failover
     let idx = Instance.idx inst
@@ -953,9 +955,8 @@ nodeEvacInstance nl il ChangePrimary
 
 nodeEvacInstance nl il ChangeSecondary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
-                 avail_nodes =
+                 gdx avail_nodes =
   do
-    let gdx = instancePriGroup nl inst
     (nl', inst', _, ndx) <- annotateResult "Can't find any good node" $
                             eitherToResult $
                             foldl' (evacDrbdSecondaryInner nl inst gdx)
@@ -967,11 +968,10 @@ nodeEvacInstance nl il ChangeSecondary
 
 nodeEvacInstance nl il ChangeAll
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
-                 avail_nodes =
+                 gdx avail_nodes =
   do
     let primary = Container.find (Instance.pNode inst) nl
         idx = Instance.idx inst
-        gdx = instancePriGroup nl inst
         no_nodes = Left "no nodes available"
     -- if the primary is offline, then we first failover
     (nl1, inst1, ops1) <-
@@ -1092,10 +1092,11 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
                       splitCluster ini_nl ini_il
         (fin_nl, fin_il, esol) =
             foldl' (\state@(nl, il, _) inst ->
+                        let gdx = instancePriGroup nl inst in
                         updateEvacSolution state (Instance.idx inst) $
                         availableGroupNodes group_ndx
-                          excl_ndx (instancePriGroup nl inst) >>=
-                        nodeEvacInstance nl il mode inst
+                          excl_ndx gdx >>=
+                        nodeEvacInstance nl il mode inst gdx
                    )
             (ini_nl, ini_il, emptyEvacSolution)
             (map (`Container.find` ini_il) idxs)
@@ -1147,7 +1148,8 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
                                              (Just target_gdxs) inst ncnt
                               av_nodes <- availableGroupNodes group_ndx
                                           excl_ndx gdx
-                              nodeEvacInstance nl il ChangeAll inst av_nodes
+                              nodeEvacInstance nl il ChangeAll inst
+                                       gdx av_nodes
                         in updateEvacSolution state
                                (Instance.idx inst) solution
                    )
