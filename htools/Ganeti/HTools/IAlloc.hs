@@ -262,7 +262,8 @@ processRequest request =
            Cluster.tryMGReloc gl nl il idx reqn exnodes >>= formatAllocate
        Evacuate exnodes ->
            Cluster.tryMGEvac gl nl il exnodes >>= formatEvacuate
-       ChangeGroup _ _ -> fail "Request 'change-group' not implemented"
+       ChangeGroup gdxs idxs ->
+           Cluster.tryChangeGroup gl nl il idxs gdxs >>= formatNodeEvac
        NodeEvacuate xi mode ->
            Cluster.tryNodeEvac gl nl il mode xi >>= formatNodeEvac
 

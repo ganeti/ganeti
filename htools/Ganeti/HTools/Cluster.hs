@@ -65,6 +65,7 @@ module Ganeti.HTools.Cluster
     , tryEvac
     , tryMGEvac
     , tryNodeEvac
+    , tryChangeGroup
     , collapseFailures
     -- * Allocation functions
     , iterateAlloc
@@ -906,6 +907,11 @@ failOnSecondaryChange ChangeSecondary dt =
 failOnSecondaryChange _ _ = return ()
 
 -- | Run evacuation for a single instance.
+--
+-- /Note:/ this function should correctly execute both intra-group
+-- evacuations (in all modes) and inter-group evacuations (in the
+-- 'ChangeAll' mode). Of course, this requires that the correct list
+-- of target nodes is passed.
 nodeEvacInstance :: Node.List         -- ^ The node list (cluster-wide)
                  -> Instance.List     -- ^ Instance list (cluster-wide)
                  -> EvacMode          -- ^ The evacuation mode
@@ -1090,6 +1096,60 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
             (ini_nl, ini_il, emptyEvacSolution)
             (map (`Container.find` ini_il) idxs)
     in return $ reverseEvacSolution esol
+
+-- | Change-group IAllocator mode main function.
+--
+-- This is very similar to 'tryNodeEvac', the only difference is that
+-- we don't choose as target group the current instance group, but
+-- instead:
+--
+--   1. at the start of the function, we compute which are the target
+--   groups; either no groups were passed in, in which case we choose
+--   all groups out of which we don't evacuate instance, or there were
+--   some groups passed, in which case we use those
+--
+--   2. for each instance, we use 'findBestAllocGroup' to choose the
+--   best group to hold the instance, and then we do what
+--   'tryNodeEvac' does, except for this group instead of the current
+--   instance group.
+--
+-- Note that the correct behaviour of this function relies on the
+-- function 'nodeEvacInstance' to be able to do correctly both
+-- intra-group and inter-group moves when passed the 'ChangeAll' mode.
+tryChangeGroup :: Group.List    -- ^ The cluster groups
+               -> Node.List     -- ^ The node list (cluster-wide)
+               -> Instance.List -- ^ Instance list (cluster-wide)
+               -> [Gdx]         -- ^ Target groups; if empty, any
+                                -- groups not being evacuated
+               -> [Idx]         -- ^ List of instance (indices) to be evacuated
+               -> Result EvacSolution
+tryChangeGroup gl ini_nl ini_il gdxs idxs =
+    let evac_gdxs = nub $ map (instancePriGroup ini_nl .
+                               flip Container.find ini_il) idxs
+        target_gdxs = (if null gdxs
+                       then Container.keys gl
+                       else gdxs) \\ evac_gdxs
+        offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
+        excl_ndx = foldl' (flip IntSet.insert) IntSet.empty offline
+        group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
+                                             (Container.elems nl))) $
+                      splitCluster ini_nl ini_il
+        (_, _, esol) =
+            foldl' (\state@(nl, il, _) inst ->
+                        let solution = do
+                              let ncnt = Instance.requiredNodes $
+                                         Instance.diskTemplate inst
+                              (gdx, _, _) <- findBestAllocGroup gl nl il
+                                             (Just target_gdxs) inst ncnt
+                              av_nodes <- availableGroupNodes group_ndx
+                                          excl_ndx gdx
+                              nodeEvacInstance nl il ChangeAll inst av_nodes
+                        in updateEvacSolution state inst solution
+                   )
+            (ini_nl, ini_il, emptyEvacSolution)
+            (map (`Container.find` ini_il) idxs)
+    in return $ reverseEvacSolution esol
+
 
 -- | Recursively place instances on the cluster until we're out of space.
 iterateAlloc :: Node.List
