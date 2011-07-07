@@ -61,9 +61,7 @@ module Ganeti.HTools.Cluster
     , tryAlloc
     , tryMGAlloc
     , tryReloc
-    , tryMGReloc
     , tryEvac
-    , tryMGEvac
     , tryNodeEvac
     , tryChangeGroup
     , collapseFailures
@@ -634,11 +632,6 @@ concatAllocs as (OpGood ns@(_, _, _, nscore)) =
     -- elements of the tuple
     in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolutions = nsols }
 
--- | Sums two allocation solutions (e.g. for two separate node groups).
-sumAllocs :: AllocSolution -> AllocSolution -> AllocSolution
-sumAllocs (AllocSolution af aa as al) (AllocSolution bf ba bs bl) =
-    AllocSolution (af ++ bf) (aa + ba) (as ++ bs) (al ++ bl)
-
 -- | Given a solution, generates a reasonable description for it.
 describeSolution :: AllocSolution -> String
 describeSolution as =
@@ -820,24 +813,6 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
                                 \destinations required (" ++ show reqn ++
                                                   "), only one supported"
 
-tryMGReloc :: (Monad m) =>
-              Group.List      -- ^ The group list
-           -> Node.List       -- ^ The node list
-           -> Instance.List   -- ^ The instance list
-           -> Idx             -- ^ The index of the instance to move
-           -> Int             -- ^ The number of nodes required
-           -> [Ndx]           -- ^ Nodes which should not be used
-           -> m AllocSolution -- ^ Solution list
-tryMGReloc _ mgnl mgil xid ncount ex_ndx = do
-  let groups = splitCluster mgnl mgil
-      -- TODO: we only relocate inside the group for now
-      inst = Container.find xid mgil
-  (nl, il) <- case lookup (instancePriGroup mgnl inst) groups of
-                Nothing -> fail $ "Cannot find group for instance " ++
-                           Instance.name inst
-                Just v -> return v
-  tryReloc nl il xid ncount ex_ndx
-
 -- | Change an instance's secondary node.
 evacInstance :: (Monad m) =>
                 [Ndx]                      -- ^ Excluded nodes
@@ -876,23 +851,6 @@ tryEvac :: (Monad m) =>
 tryEvac nl il idxs ex_ndx = do
   (_, sol) <- foldM (evacInstance ex_ndx il) (nl, emptyAllocSolution) idxs
   return sol
-
--- | Multi-group evacuation of a list of nodes.
-tryMGEvac :: (Monad m) =>
-             Group.List -- ^ The group list
-          -> Node.List       -- ^ The node list
-          -> Instance.List   -- ^ The instance list
-          -> [Ndx]           -- ^ Nodes to be evacuated
-          -> m AllocSolution -- ^ Solution list
-tryMGEvac _ nl il ex_ndx =
-    let ex_nodes = map (`Container.find` nl) ex_ndx
-        all_insts = nub . concatMap Node.sList $ ex_nodes
-        all_insts' = associateIdxs all_insts $ splitCluster nl il
-    in do
-      results <- mapM (\(_, (gnl, gil, idxs)) -> tryEvac gnl gil idxs ex_ndx)
-                 all_insts'
-      let sol = foldl' sumAllocs emptyAllocSolution results
-      return $ annotateSolution sol
 
 -- | Function which fails if the requested mode is change secondary.
 --
@@ -1425,15 +1383,6 @@ splitCluster nl il =
                nodes' = zip nidxs nodes
                instances = Container.filter ((`elem` nidxs) . Instance.pNode) il
            in (guuid, (Container.fromList nodes', instances))) ngroups
-
--- | Split a global instance index map into per-group, and associate
--- it with the group/node/instance lists.
-associateIdxs :: [Idx] -- ^ Instance indices to be split/associated
-              -> [(Gdx, (Node.List, Instance.List))]        -- ^ Input groups
-              -> [(Gdx, (Node.List, Instance.List, [Idx]))] -- ^ Result
-associateIdxs idxs =
-    map (\(gdx, (nl, il)) ->
-             (gdx, (nl, il, filter (`Container.member` il) idxs)))
 
 -- | Compute the list of nodes that are to be evacuated, given a list
 -- of instances and an evacuation mode.
