@@ -178,6 +178,9 @@ TPositiveInt = TAnd(TInt, lambda v: v >= 0)
 #: a strictly positive integer
 TStrictPositiveInt = TAnd(TInt, lambda v: v > 0)
 
+#: Number
+TNumber = TOr(TInt, TFloat)
+
 
 def TListOf(my_type):
   """Checks if a given value is a list with all elements of the same type.

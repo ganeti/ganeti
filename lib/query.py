@@ -101,7 +101,7 @@ _VERIFY_FN = {
   QFT_BOOL: ht.TBool,
   QFT_NUMBER: ht.TInt,
   QFT_UNIT: ht.TInt,
-  QFT_TIMESTAMP: ht.TOr(ht.TInt, ht.TFloat),
+  QFT_TIMESTAMP: ht.TNumber,
   QFT_OTHER: lambda _: True,
   }
 
