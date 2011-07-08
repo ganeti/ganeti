@@ -10,7 +10,7 @@ SYNOPSIS
 --------
 
 **hspace** {backend options...} [algorithm options...] [request options...]
-[ -p [*fields*] ] [-v... | -q]
+[output options...] [-v... | -q]
 
 **hspace** --version
 
@@ -35,6 +35,11 @@ Request options:
 **[--vcpus** *vcpus* **]**
 **[--tiered-alloc** *spec* **]**
 
+Output options:
+
+**[--machine-readable**[=*CHOICE*] **]**
+**[-p**[*fields*]**]**
+
 
 DESCRIPTION
 -----------
@@ -48,19 +53,22 @@ cluster, until the point where we don't have any N+1 possible
 allocation. It uses the exact same allocation algorithm as the hail
 iallocator plugin in *allocate* mode.
 
-The output of the program is designed to interpreted as a shell
-fragment (or parsed as a *key=value* file). Options which extend the
-output (e.g. -p, -v) will output the additional information on stderr
-(such that the stdout is still parseable).
+The output of the program is designed either for human consumption (the
+default) or, when enabled with the ``--machine-readable`` option
+(described further below), for machine consumption. In the latter case,
+it is intended to interpreted as a shell fragment (or parsed as a
+*key=value* file). Options which extend the output (e.g. -p, -v) will
+output the additional information on stderr (such that the stdout is
+still parseable).
 
-The following keys are available in the output of the script (all
-prefixed with *HTS_*):
+The following keys are available in the machine-readable output of the
+script (all prefixed with *HTS_*):
 
 SPEC_MEM, SPEC_DSK, SPEC_CPU, SPEC_RQN, SPEC_DISK_TEMPLATE
   These represent the specifications of the instance model used for
   allocation (the memory, disk, cpu, requested nodes, disk template).
 
-TSPEC_INI_MEM, TSPEC_INI_DSK, TSPEC_INI_CPU
+TSPEC_INI_MEM, TSPEC_INI_DSK, TSPEC_INI_CPU, ...
   Only defined when the tiered mode allocation is enabled, these are
   similar to the above specifications but show the initial starting spec
   for tiered allocation.
@@ -185,6 +193,9 @@ If the tiered allocation mode is enabled, then many of the INI_/FIN_
 metrics will be also displayed with a TRL_ prefix, and denote the
 cluster status at the end of the tiered allocation run.
 
+The human output format should be self-explanatory, so it is not
+described further.
+
 OPTIONS
 -------
 
@@ -307,6 +318,13 @@ The options that can be passed to the program are as follows:
   independent, and both start from the initial cluster state; as such,
   the instance count for these two modes are not related one to
   another.
+
+--machines-readable[=*choice*]
+  By default, the output of the program is in "human-readable" format,
+  i.e. text descriptions. By passing this flag you can either enable
+  (``--machine-readable`` or ``--machine-readable=yes``) or explicitly
+  disable (``--machine-readable=no``) the machine readable format
+  described above.
 
 -v, --verbose
   Increase the output verbosity. Each usage of this option will

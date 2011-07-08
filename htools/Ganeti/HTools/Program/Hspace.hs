@@ -63,6 +63,7 @@ options =
     , oIMem
     , oIDisk
     , oIVcpus
+    , oMachineReadable
     , oMaxCpu
     , oMinDisk
     , oTieredSpec
@@ -77,6 +78,38 @@ data Phase = PInitial
            | PFinal
            | PTiered
 
+-- | The kind of instance spec we print.
+data SpecType = SpecNormal
+              | SpecTiered
+
+-- | What we prefix a spec with.
+specPrefix :: SpecType -> String
+specPrefix SpecNormal = "SPEC"
+specPrefix SpecTiered = "TSPEC_INI"
+
+-- | The description of a spec.
+specDescription :: SpecType -> String
+specDescription SpecNormal = "Normal (fixed-size)"
+specDescription SpecTiered = "Tiered (initial size)"
+
+-- | Efficiency generic function.
+effFn :: (Cluster.CStats -> Integer)
+      -> (Cluster.CStats -> Double)
+      -> (Cluster.CStats -> Double)
+effFn fi ft cs = fromIntegral (fi cs) / ft cs
+
+-- | Memory efficiency.
+memEff :: Cluster.CStats -> Double
+memEff = effFn Cluster.csImem Cluster.csTmem
+
+-- | Disk efficiency.
+dskEff :: Cluster.CStats -> Double
+dskEff = effFn Cluster.csIdsk Cluster.csTdsk
+
+-- | Cpu efficiency.
+cpuEff :: Cluster.CStats -> Double
+cpuEff = effFn Cluster.csIcpu (fromIntegral . Cluster.csVcpu)
+
 statsData :: [(String, Cluster.CStats -> String)]
 statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
             , ("INST_CNT", printf "%d" . Cluster.csNinst)
@@ -87,21 +120,15 @@ statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
             , ("MEM_INST", printf "%d" . Cluster.csImem)
             , ("MEM_OVERHEAD",
                \cs -> printf "%d" (Cluster.csXmem cs + Cluster.csNmem cs))
-            , ("MEM_EFF",
-               \cs -> printf "%.8f" (fromIntegral (Cluster.csImem cs) /
-                                     Cluster.csTmem cs))
+            , ("MEM_EFF", printf "%.8f" . memEff)
             , ("DSK_FREE", printf "%d" . Cluster.csFdsk)
             , ("DSK_AVAIL", printf "%d". Cluster.csAdsk)
             , ("DSK_RESVD",
                \cs -> printf "%d" (Cluster.csFdsk cs - Cluster.csAdsk cs))
             , ("DSK_INST", printf "%d" . Cluster.csIdsk)
-            , ("DSK_EFF",
-               \cs -> printf "%.8f" (fromIntegral (Cluster.csIdsk cs) /
-                                    Cluster.csTdsk cs))
+            , ("DSK_EFF", printf "%.8f" . dskEff)
             , ("CPU_INST", printf "%d" . Cluster.csIcpu)
-            , ("CPU_EFF",
-               \cs -> printf "%.8f" (fromIntegral (Cluster.csIcpu cs) /
-                                     Cluster.csTcpu cs))
+            , ("CPU_EFF", printf "%.8f" . cpuEff)
             , ("MNODE_MEM_AVAIL", printf "%d" . Cluster.csMmem)
             , ("MNODE_DSK_AVAIL", printf "%d" . Cluster.csMdsk)
             ]
@@ -128,9 +155,10 @@ printStats ph cs =
                  PFinal -> "FIN"
                  PTiered -> "TRL"
 
--- | Print final stats and related metrics
-printResults :: Node.List -> Int -> Int -> [(FailMode, Int)] -> IO ()
-printResults fin_nl num_instances allocs sreason = do
+-- | Print final stats and related metrics.
+printResults :: Bool -> Node.List -> Node.List -> Int -> Int
+             -> [(FailMode, Int)] -> IO ()
+printResults True _ fin_nl num_instances allocs sreason = do
   let fin_stats = Cluster.totalResources fin_nl
       fin_instances = num_instances + allocs
 
@@ -150,8 +178,21 @@ printResults fin_nl num_instances allocs sreason = do
             ]
   printKeys $ map (\(x, y) -> (printf "ALLOC_%s_CNT" (show x),
                                printf "%d" y)) sreason
+
+printResults False ini_nl fin_nl _ allocs sreason = do
+  putStrLn "Normal (fixed-size) allocation results:"
+  printf "  - %3d instances allocated\n" allocs :: IO ()
+  printf "  - most likely failure reason: %s\n" $ failureReason sreason::IO ()
+  printClusterScores ini_nl fin_nl
+  printClusterEff (Cluster.totalResources fin_nl)
+
+-- | Prints the final @OK@ marker in machine readable output.
+printFinal :: Bool -> IO ()
+printFinal True =
   -- this should be the final entry
   printKeys [("OK", "1")]
+
+printFinal False = return ()
 
 -- | Compute the tiered spec counts from a list of allocated
 -- instances.
@@ -222,6 +263,78 @@ printAllocationMap verbose msg nl ixes =
                         -- strings, whereas the rest are numeric
                        [False, False, False, True, True, True]
 
+-- | Formats nicely a list of resources.
+formatResources :: a -> [(String, (a->String))] -> String
+formatResources res =
+    intercalate ", " . map (\(a, fn) -> a ++ " " ++ fn res)
+
+-- | Print the cluster resources.
+printCluster :: Bool -> Cluster.CStats -> Int -> IO ()
+printCluster True ini_stats node_count = do
+  printKeys $ map (\(a, fn) -> ("CLUSTER_" ++ a, fn ini_stats)) clusterData
+  printKeys [("CLUSTER_NODES", printf "%d" node_count)]
+  printKeys $ printStats PInitial ini_stats
+
+printCluster False ini_stats node_count = do
+  printf "The cluster has %d nodes and the following resources:\n  %s.\n"
+         node_count (formatResources ini_stats clusterData)::IO ()
+  printf "There are %s initial instances on the cluster.\n"
+             (if inst_count > 0 then show inst_count else "no" )
+      where inst_count = Cluster.csNinst ini_stats
+
+-- | Prints the normal instance spec.
+printISpec :: Bool -> RSpec -> SpecType -> DiskTemplate -> IO ()
+printISpec True ispec spec disk_template = do
+  printKeys $ map (\(a, fn) -> (prefix ++ "_" ++ a, fn ispec)) specData
+  printKeys [ (prefix ++ "_RQN", printf "%d" req_nodes) ]
+  printKeys [ (prefix ++ "_DISK_TEMPLATE", dtToString disk_template) ]
+      where req_nodes = Instance.requiredNodes disk_template
+            prefix = specPrefix spec
+
+printISpec False ispec spec disk_template = do
+  printf "%s instance spec is:\n  %s, using disk\
+         \ template '%s'.\n"
+         (specDescription spec)
+         (formatResources ispec specData) (dtToString disk_template)
+
+-- | Prints the tiered results.
+printTiered :: Bool -> [(RSpec, Int)] -> Double
+            -> Node.List -> Node.List -> [(FailMode, Int)] -> IO ()
+printTiered True spec_map m_cpu nl trl_nl _ = do
+  printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
+  printKeys [("TSPEC", intercalate " " (formatSpecMap spec_map))]
+  printAllocationStats m_cpu nl trl_nl
+
+printTiered False spec_map _ ini_nl fin_nl sreason = do
+  _ <- printf "Tiered allocation results:\n"
+  mapM_ (\(ispec, cnt) ->
+             printf "  - %3d instances of spec %s\n" cnt
+                        (formatResources ispec specData)) spec_map
+  printf "  - most likely failure reason: %s\n" $ failureReason sreason::IO ()
+  printClusterScores ini_nl fin_nl
+  printClusterEff (Cluster.totalResources fin_nl)
+
+printClusterScores :: Node.List -> Node.List -> IO ()
+printClusterScores ini_nl fin_nl = do
+  printf "  - initial cluster score: %.8f\n" $ Cluster.compCV ini_nl::IO ()
+  printf "  -   final cluster score: %.8f\n" $ Cluster.compCV fin_nl
+
+printClusterEff :: Cluster.CStats -> IO ()
+printClusterEff cs =
+    mapM_ (\(s, fn) ->
+               printf "  - %s usage efficiency: %5.2f%%\n" s (fn cs * 100))
+          [("memory", memEff),
+           ("  disk", dskEff),
+           ("  vcpu", cpuEff)]
+
+-- | Computes the most likely failure reason.
+failureReason :: [(FailMode, Int)] -> String
+failureReason = show . fst . head
+
+-- | Sorts the failure reasons.
+sortReasons :: [(FailMode, Int)] -> [(FailMode, Int)]
+sortReasons = reverse . sortBy (comparing snd)
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -237,12 +350,9 @@ main = do
       shownodes = optShowNodes opts
       disk_template = optDiskTemplate opts
       req_nodes = Instance.requiredNodes disk_template
+      machine_r = optMachineReadable opts
 
   (ClusterData gl fixed_nl il ctags) <- loadExternalData opts
-
-  printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
-  printKeys [ ("SPEC_RQN", printf "%d" req_nodes) ]
-  printKeys [ ("SPEC_DISK_TEMPLATE", dtToString disk_template) ]
 
   let num_instances = length $ Container.elems il
 
@@ -289,9 +399,9 @@ main = do
          hPrintf stderr "Initial coefficients: overall %.8f, %s\n"
                  ini_cv (Cluster.printStats nl)
 
-  printKeys $ map (\(a, fn) -> ("CLUSTER_" ++ a, fn ini_stats)) clusterData
-  printKeys [("CLUSTER_NODES", printf "%d" (length all_nodes))]
-  printKeys $ printStats PInitial ini_stats
+  printCluster machine_r ini_stats (length all_nodes)
+
+  printISpec machine_r ispec SpecNormal disk_template
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
       stop_allocation = length bad_nodes > 0
@@ -316,12 +426,13 @@ main = do
   (case optTieredSpec opts of
      Nothing -> return ()
      Just tspec -> do
-       (_, trl_nl, trl_il, trl_ixes, _) <-
+       (treason, trl_nl, trl_il, trl_ixes, _) <-
            if stop_allocation
            then return result_noalloc
            else exitifbad (Cluster.tieredAlloc nl il Nothing (iofspec tspec)
                                   allocnodes [] [])
        let spec_map' = tieredSpecMap trl_ixes
+           treason' = sortReasons treason
 
        printAllocationMap verbose "Tiered allocation map" trl_nl trl_ixes
 
@@ -331,10 +442,10 @@ main = do
        maybeSaveData (optSaveCluster opts) "tiered" "after tiered allocation"
                      (ClusterData gl trl_nl trl_il ctags)
 
-       printKeys $ map (\(a, fn) -> ("TSPEC_INI_" ++ a, fn tspec)) specData
-       printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
-       printKeys [("TSPEC", intercalate " " (formatSpecMap spec_map'))]
-       printAllocationStats m_cpu nl trl_nl)
+       printISpec machine_r tspec SpecTiered disk_template
+
+       printTiered machine_r spec_map' m_cpu nl trl_nl treason'
+       )
 
   -- Run the standard (avg-mode) allocation
 
@@ -345,7 +456,7 @@ main = do
                       reqinst allocnodes [] [])
 
   let allocs = length ixes
-      sreason = reverse $ sortBy (comparing snd) ereason
+      sreason = sortReasons ereason
 
   printAllocationMap verbose "Standard allocation map" fin_nl ixes
 
@@ -354,4 +465,6 @@ main = do
   maybeSaveData (optSaveCluster opts) "alloc" "after standard allocation"
        (ClusterData gl fin_nl fin_il ctags)
 
-  printResults fin_nl num_instances allocs sreason
+  printResults machine_r nl fin_nl num_instances allocs sreason
+
+  printFinal machine_r
