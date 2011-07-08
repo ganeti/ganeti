@@ -16,9 +16,8 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-hail is a Ganeti IAllocator plugin that allows automatic instance
-placement and automatic instance secondary node replacement using the
-same algorithm as **hbal**(1).
+hail is a Ganeti IAllocator plugin that implements the instance
+placement and movement using the same algorithm as **hbal**(1).
 
 The program takes input via a JSON-file containing current cluster
 state and the request details, and output (on stdout) a JSON-formatted
@@ -30,10 +29,6 @@ ALGORITHM
 
 The program uses a simplified version of the hbal algorithm.
 
-For relocations, we try to change the secondary node of the instance
-to all the valid other nodes; the node which results in the best
-cluster score is chosen.
-
 For single-node allocations (non-mirrored instances), again we
 select the node which, when chosen as the primary node, gives the best
 score.
@@ -42,11 +37,22 @@ For dual-node allocations (mirrored instances), we chose the best
 pair; this is the only choice where the algorithm is non-trivial
 with regard to cluster size.
 
-For node evacuations (*multi-evacuate* mode), we iterate over all
-instances which live as secondaries on those nodes and try to relocate
-them using the single-instance relocation algorithm.
+For node changes (*change-node* mode), we currently support DRBD
+instances only, and all three modes (primary changes, secondary changes
+and all node changes).
 
-In all cases, the cluster scoring is identical to the hbal algorithm.
+For group moves (*change-group* mode), again only DRBD is supported, and
+we compute the correct sequence that will result in a group change; job
+failure mid-way will result in a split instance. The choice of node(s)
+on the target group is based on the group score, and the choice of group
+is based on the same algorithm as allocations (group with lowest score
+after placement).
+
+The deprecated *relocate* and *multi-evacuate* modes are no longer
+supported.
+
+In all cases, the cluster (or group) scoring is identical to the hbal
+algorithm.
 
 OPTIONS
 -------
