@@ -342,3 +342,17 @@ data EvacMode = ChangePrimary
               | ChangeSecondary
               | ChangeAll
                 deriving (Show, Read)
+
+instance JSON.JSON EvacMode where
+    showJSON mode = case mode of
+                      ChangeAll       -> JSON.showJSON C.iallocatorNevacAll
+                      ChangePrimary   -> JSON.showJSON C.iallocatorNevacPri
+                      ChangeSecondary -> JSON.showJSON C.iallocatorNevacSec
+    readJSON v =
+        case JSON.readJSON v of
+          JSON.Ok s | s == C.iallocatorNevacAll -> return ChangeAll
+                    | s == C.iallocatorNevacPri -> return ChangePrimary
+                    | s == C.iallocatorNevacSec -> return ChangeSecondary
+                    | otherwise -> fail $ "Invalid evacuate mode " ++ s
+          JSON.Error e -> JSON.Error $
+                          "Can't parse evacuate mode as string: " ++ e

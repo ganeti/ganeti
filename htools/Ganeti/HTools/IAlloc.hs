@@ -184,13 +184,7 @@ parseData body = do
                 rl_names <- extrReq "instances"
                 rl_insts <- mapM (Container.findByName map_i) rl_names
                 let rl_idx = map Instance.idx rl_insts
-                rl_mode <-
-                   case extrReq "evac_mode" of
-                     Ok s | s == C.iallocatorNevacAll -> return ChangeAll
-                          | s == C.iallocatorNevacPri -> return ChangePrimary
-                          | s == C.iallocatorNevacSec -> return ChangeSecondary
-                          | otherwise -> Bad $ "Invalid evacuate mode " ++ s
-                     Bad x -> Bad x
+                rl_mode <- extrReq "evac_mode"
                 return $ NodeEvacuate rl_idx rl_mode
 
           | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
