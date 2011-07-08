@@ -51,6 +51,7 @@ module Ganeti.HTools.CLI
     , oIVcpus
     , oInstMoves
     , oLuxiSocket
+    , oMachineReadable
     , oMaxCpu
     , oMaxSolLength
     , oMinDisk
@@ -115,6 +116,7 @@ data Options = Options
     , optSelInst     :: [String]       -- ^ Instances to be excluded
     , optISpec       :: RSpec          -- ^ Requested instance specs
     , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
+    , optMachineReadable :: Bool       -- ^ Output machine-readable format
     , optMaster      :: String         -- ^ Collect data from RAPI
     , optMaxLength   :: Int            -- ^ Stop after this many steps
     , optMcpu        :: Double         -- ^ Max cpu ratio for nodes
@@ -154,6 +156,7 @@ defaultOptions  = Options
  , optSelInst     = []
  , optISpec       = RSpec 1 4096 102400
  , optLuxi        = Nothing
+ , optMachineReadable = False
  , optMaster      = ""
  , optMaxLength   = -1
  , optMcpu        = defVcpuRatio
@@ -276,6 +279,15 @@ oLuxiSocket = Option "L" ["luxi"]
               (OptArg ((\ f opts -> Ok opts { optLuxi = Just f }) .
                        fromMaybe defaultLuxiSocket) "SOCKET")
               "collect data via Luxi, optionally using the given SOCKET path"
+
+oMachineReadable :: OptType
+oMachineReadable = Option "" ["machine-readable"]
+          (OptArg (\ f opts -> do
+                     flag <- parseYesNo True f
+                     return $ opts { optMachineReadable = flag }) "CHOICE")
+          "enable machine readable output (pass either 'yes' or 'no' to\
+          \ explicitely control the flag, or without an argument defaults to\
+          \ yes"
 
 oMaxCpu :: OptType
 oMaxCpu = Option "" ["max-cpu"]
@@ -415,6 +427,16 @@ oVerbose = Option "v" ["verbose"]
            "increase the verbosity level"
 
 -- * Functions
+
+-- | Helper for parsing a yes\/no command line flag.
+parseYesNo :: Bool         -- ^ Default whalue (when we get a @Nothing@)
+           -> Maybe String -- ^ Parameter value
+           -> Result Bool  -- ^ Resulting boolean value
+parseYesNo v Nothing      = return v
+parseYesNo _ (Just "yes") = return True
+parseYesNo _ (Just "no")  = return False
+parseYesNo _ (Just s)     = fail $ "Invalid choice '" ++ s ++
+                            "', pass one of 'yes' or 'no'"
 
 -- | Usage info.
 usageHelp :: String -> [OptType] -> String
