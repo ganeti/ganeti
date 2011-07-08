@@ -68,14 +68,12 @@ module Ganeti.HTools.Cluster
     -- * Allocation functions
     , iterateAlloc
     , tieredAlloc
-    , tieredSpecMap
      -- * Node group functions
     , instanceGroup
     , findSplitInstances
     , splitCluster
     ) where
 
-import Data.Function (on)
 import qualified Data.IntSet as IntSet
 import Data.List
 import Data.Maybe (fromJust)
@@ -1170,18 +1168,6 @@ tieredAlloc nl il limit newinst allocnodes ixes cstats =
             Bad _ -> newsol
             Ok newinst' -> tieredAlloc nl' il' newlimit
                            newinst' allocnodes ixes' cstats'
-
--- | Compute the tiered spec string description from a list of
--- allocated instances.
-tieredSpecMap :: [Instance.Instance]
-              -> [String]
-tieredSpecMap trl_ixes =
-    let fin_trl_ixes = reverse trl_ixes
-        ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
-        spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
-                   ix_byspec
-    in  map (\(spec, cnt) -> printf "%d,%d,%d=%d" (rspecMem spec)
-                             (rspecDsk spec) (rspecCpu spec) cnt) spec_map
 
 -- * Formatting functions
 

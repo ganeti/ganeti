@@ -27,6 +27,7 @@ module Ganeti.HTools.Program.Hspace (main) where
 
 import Control.Monad
 import Data.Char (toUpper, isAlphaNum)
+import Data.Function (on)
 import Data.List
 import Data.Maybe (isJust, fromJust)
 import Data.Ord (comparing)
@@ -151,6 +152,23 @@ printResults fin_nl num_instances allocs sreason = do
                                printf "%d" y)) sreason
   -- this should be the final entry
   printKeys [("OK", "1")]
+
+-- | Compute the tiered spec counts from a list of allocated
+-- instances.
+tieredSpecMap :: [Instance.Instance]
+              -> [(RSpec, Int)]
+tieredSpecMap trl_ixes =
+    let fin_trl_ixes = reverse trl_ixes
+        ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
+        spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
+                   ix_byspec
+    in spec_map
+
+-- | Formats a spec map to strings.
+formatSpecMap :: [(RSpec, Int)] -> [String]
+formatSpecMap =
+    map (\(spec, cnt) -> printf "%d,%d,%d=%d" (rspecMem spec)
+                         (rspecDsk spec) (rspecCpu spec) cnt)
 
 formatRSpec :: Double -> String -> RSpec -> [(String, String)]
 formatRSpec m_cpu s r =
@@ -304,7 +322,7 @@ main = do
            then return result_noalloc
            else exitifbad (Cluster.tieredAlloc nl il Nothing (iofspec tspec)
                                   allocnodes [] [])
-       let spec_map' = Cluster.tieredSpecMap trl_ixes
+       let spec_map' = tieredSpecMap trl_ixes
 
        printAllocationMap verbose "Tiered allocation map" trl_nl trl_ixes
 
@@ -316,7 +334,7 @@ main = do
 
        printKeys $ map (\(a, fn) -> ("TSPEC_INI_" ++ a, fn tspec)) specData
        printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
-       printKeys [("TSPEC", intercalate " " spec_map')]
+       printKeys [("TSPEC", intercalate " " (formatSpecMap spec_map'))]
        printAllocationStats m_cpu nl trl_nl)
 
   -- Run the standard (avg-mode) allocation
