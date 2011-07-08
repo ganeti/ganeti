@@ -1,6 +1,11 @@
 Ganeti Cluster tools (ganeti-htools)
 ====================================
 
+**Note:** This document is obsolete and mostly documents the situation
+before the htools sources were integrated into the ganeti-core
+codebase. Information about the current situation is available in the
+``INSTALL`` file in the top-level directory.
+
 These are some simple cluster tools for fixing common allocation
 problems on Ganeti 2.0 clusters.
 
@@ -101,7 +106,7 @@ Only the ``hail`` program needs to be installed in a specific place, the
 other tools are not location-dependent.
 
 For running the (admittedly small) unittest suite (via *make check*),
-the QuickCheck version 1 library is needed.
+the QuickCheck version 2 library is needed.
 
 Internal (implementation) documentation is available in the ``apidoc``
 directory.
