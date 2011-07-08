@@ -30,10 +30,12 @@ import System
 import System.IO
 
 import Ganeti.HTools.Utils
+import qualified Ganeti.HTools.Program.Hail as Hail
 
 -- | Supported binaries.
 personalities :: [(String, IO ())]
-personalities = []
+personalities = [ ("hail", Hail.main)
+                ]
 
 -- | Display usage and exit.
 usage :: String -> IO ()

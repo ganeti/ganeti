@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Main (main) where
+module Ganeti.HTools.Program.Hail (main) where
 
 import Control.Monad
 import System.IO

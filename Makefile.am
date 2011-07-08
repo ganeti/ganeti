@@ -46,7 +46,8 @@ docdir = $(datadir)/doc/$(PACKAGE)
 HTOOLS_DIRS = \
 	htools \
 	htools/Ganeti \
-	htools/Ganeti/HTools
+	htools/Ganeti/HTools \
+	htools/Ganeti/HTools/Program
 
 DIRS = \
 	autotools \
@@ -82,6 +83,7 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(APIDOC_PY_DIR) \
 	$(APIDOC_HS_DIR) \
 	$(APIDOC_HS_DIR)/Ganeti $(APIDOC_HS_DIR)/Ganeti/HTools \
+	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
 	$(COVERAGE_DIR) \
 	$(COVERAGE_PY_DIR) \
 	$(COVERAGE_HS_DIR) \
@@ -307,7 +309,6 @@ docrst = \
 HS_PROGS = \
 	htools/hbal \
 	htools/hscan \
-	htools/hail \
 	htools/hspace \
 	htools/htools
 
@@ -341,6 +342,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Text.hs \
 	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/HTools/Utils.hs \
+	htools/Ganeti/HTools/Program/Hail.hs \
 	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/OpCodes.hs
@@ -447,10 +449,12 @@ qa_scripts = \
 	qa/qa_utils.py
 
 bin_SCRIPTS =
-iallocators_SCRIPTS =
 if WANT_HTOOLS
 bin_SCRIPTS += $(filter-out htools/hail,$(HS_PROGS))
-iallocators_SCRIPTS += $(filter htools/hail,$(HS_PROGS))
+install-exec-hook:
+	@mkdir_p@ $(DESTDIR)$(iallocatorsdir)
+	$(LN_S) -f $(DESTDIR)$(bindir)/htools \
+		   $(DESTDIR)$(iallocatorsdir)/hail
 endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
@@ -1108,7 +1112,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	@test -n "$(HADDOCK)" || \
 	    { echo 'haddock' not found during configure; exit 1; }
 	rm -rf $(APIDOC_HS_DIR)/*
-	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools
+	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Program
 	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
 	ln -s ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	set -e ; \
