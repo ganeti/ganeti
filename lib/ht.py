@@ -45,6 +45,29 @@ def Parens(text):
     return "(%s)" % text
 
 
+class _DescWrapper(object):
+  __slots__ = [
+    "_fn",
+    "_text",
+    ]
+
+  def __init__(self, text, fn):
+    """Initializes this class.
+
+    @param text: Description
+    @param fn: Wrapped function
+
+    """
+    self._text = text
+    self._fn = fn
+
+  def __call__(self, *args):
+    return self._fn(*args)
+
+  def __str__(self):
+    return self._text
+
+
 def WithDesc(text):
   """Builds wrapper class with description text.
 
@@ -55,21 +78,7 @@ def WithDesc(text):
   """
   assert text[0] == text[0].upper()
 
-  class wrapper(object): # pylint: disable-msg=C0103
-    __slots__ = ["__call__"]
-
-    def __init__(self, fn):
-      """Initializes this class.
-
-      @param fn: Wrapped function
-
-      """
-      self.__call__ = fn
-
-    def __str__(self):
-      return text
-
-  return wrapper
+  return compat.partial(_DescWrapper, text)
 
 
 def CombinationDesc(op, args, fn):
