@@ -440,12 +440,14 @@ The options that can be passed to the program are as follows:
   to automate the execution of the balancing.
 
 --max-cpu=*cpu-ratio*
-  The maximum virtual to physical cpu ratio, as a floating point
-  number between zero and one. For example, specifying *cpu-ratio* as
-  **2.5** means that, for a 4-cpu machine, a maximum of 10 virtual
-  cpus should be allowed to be in use for primary instances. A value
-  of one doesn't make sense though, as that means no disk space can be
-  used on it.
+  The maximum virtual to physical cpu ratio, as a floating point number
+  greater than or equal to one. For example, specifying *cpu-ratio* as
+  **2.5** means that, for a 4-cpu machine, a maximum of 10 virtual cpus
+  should be allowed to be in use for primary instances. A value of
+  exactly one means there will be no over-subscription of CPU (except
+  for the CPU time used by the node itself), and values below one do not
+  make sense, as that means other resources (e.g. disk) won't be fully
+  utilised due to CPU restrictions.
 
 --min-disk=*disk-ratio*
   The minimum amount of free disk space remaining, as a floating point
