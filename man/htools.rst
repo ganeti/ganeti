@@ -51,6 +51,86 @@ COMMON OPTIONS
 Options behave the same in all program modes, but not all program modes
 support all options. Some common options are:
 
+-p, --print-nodes
+  Prints the node status, in a format designed to allow the user to
+  understand the node's most important parameters. If the command in
+  question makes a cluster transition (e.g. balancing or allocation),
+  then usually both the initial and final node status is printed.
+
+  It is possible to customise the listed information by passing a
+  comma-separated list of field names to this option (the field list
+  is currently undocumented), or to extend the default field list by
+  prefixing the additional field list with a plus sign. By default,
+  the node list will contain the following information:
+
+  F
+    a character denoting the status of the node, with '-' meaning an
+    offline node, '*' meaning N+1 failure and blank meaning a good
+    node
+
+  Name
+    the node name
+
+  t_mem
+    the total node memory
+
+  n_mem
+    the memory used by the node itself
+
+  i_mem
+    the memory used by instances
+
+  x_mem
+    amount memory which seems to be in use but cannot be determined
+    why or by which instance; usually this means that the hypervisor
+    has some overhead or that there are other reporting errors
+
+  f_mem
+    the free node memory
+
+  r_mem
+    the reserved node memory, which is the amount of free memory
+    needed for N+1 compliance
+
+  t_dsk
+    total disk
+
+  f_dsk
+    free disk
+
+  pcpu
+    the number of physical cpus on the node
+
+  vcpu
+    the number of virtual cpus allocated to primary instances
+
+  pcnt
+    number of primary instances
+
+  scnt
+    number of secondary instances
+
+  p_fmem
+    percent of free memory
+
+  p_fdsk
+    percent of free disk
+
+  r_cpu
+    ratio of virtual to physical cpus
+
+  lCpu
+    the dynamic CPU load (if the information is available)
+
+  lMem
+    the dynamic memory load (if the information is available)
+
+  lDsk
+    the dynamic disk load (if the information is available)
+
+  lNet
+    the dynamic net load (if the information is available)
+
 -v, --verbose
   Increase the output verbosity. Each usage of this option will
   increase the verbosity (currently more than 2 doesn't make sense)

@@ -54,10 +54,9 @@ OPTIONS
 The options that can be passed to the program are as follows:
 
 -p, --print-nodes
-  Prints the before and after node status, in a format designed to
-  allow the user to understand the node's most important
-  parameters. See the man page **hbal**(1) for more details about this
-  field.
+  Prints the before and after node status, in a format designed to allow
+  the user to understand the node's most important parameters. See the
+  man page **htools**(1) for more details about this option.
 
 -t *datafile*, --text-data=*datafile*
   The name of the file holding cluster information, to override the

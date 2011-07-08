@@ -75,7 +75,7 @@ The options that can be passed to the program are as follows:
   Prints the node status for each cluster after the cluster's one-line
   status display, in a format designed to allow the user to understand
   the node's most important parameters. For details, see the man page
-  for **hbal**(1).
+  for **htools**(1).
 
 -d *path*
   Save the node and instance data for each cluster under *path*,
