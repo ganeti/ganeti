@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Main (main) where
+module Ganeti.HTools.Program.Hscan (main) where
 
 import Control.Monad
 import Data.Maybe (isJust, fromJust, fromMaybe)

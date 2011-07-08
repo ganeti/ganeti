@@ -307,10 +307,9 @@ docrst = \
 	doc/walkthrough.rst
 
 HS_PROGS = \
-	htools/hscan \
 	htools/hspace \
 	htools/htools
-HS_BIN_ROLES = hbal
+HS_BIN_ROLES = hbal hscan
 
 HS_ALL_PROGS = $(HS_PROGS) htools/test
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
@@ -344,6 +343,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Utils.hs \
 	htools/Ganeti/HTools/Program/Hail.hs \
 	htools/Ganeti/HTools/Program/Hbal.hs \
+	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/OpCodes.hs
