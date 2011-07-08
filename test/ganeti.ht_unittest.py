@@ -250,6 +250,15 @@ class TestTypeChecks(unittest.TestCase):
               None, [], {}, object()]:
       self.assertFalse(ht.TJobId(i))
 
+  def testRelativeJobId(self):
+    for i in [-1, -93, -4395]:
+      self.assertTrue(ht.TRelativeJobId(i))
+      self.assertFalse(ht.TRelativeJobId(str(i)))
+
+    for i in [0, 1, 2, 10, 9289, "", "0", "-1", "-999"]:
+      self.assertFalse(ht.TRelativeJobId(i))
+      self.assertFalse(ht.TRelativeJobId(str(i)))
+
   def testItems(self):
     self.assertRaises(AssertionError, ht.TItems, [])
 

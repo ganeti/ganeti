@@ -273,5 +273,37 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(op.debug_level, 123)
 
 
+class TestOpcodeDepends(unittest.TestCase):
+  def test(self):
+    check_relative = opcodes._BuildJobDepCheck(True)
+    check_norelative = opcodes.TNoRelativeJobDependencies
+
+    for fn in [check_relative, check_norelative]:
+      self.assertTrue(fn(None))
+      self.assertTrue(fn([]))
+      self.assertTrue(fn([(1, [])]))
+      self.assertTrue(fn([(719833, [])]))
+      self.assertTrue(fn([("24879", [])]))
+      self.assertTrue(fn([(2028, [constants.JOB_STATUS_ERROR])]))
+      self.assertTrue(fn([
+        (2028, [constants.JOB_STATUS_ERROR]),
+        (18750, []),
+        (5063, [constants.JOB_STATUS_SUCCESS, constants.JOB_STATUS_ERROR]),
+        ]))
+
+      self.assertFalse(fn(1))
+      self.assertFalse(fn([(9, )]))
+      self.assertFalse(fn([(15194, constants.JOB_STATUS_ERROR)]))
+
+    for i in [
+      [(-1, [])],
+      [(-27740, [constants.JOB_STATUS_CANCELED, constants.JOB_STATUS_ERROR]),
+       (-1, [constants.JOB_STATUS_ERROR]),
+       (9921, [])],
+      ]:
+      self.assertTrue(check_relative(i))
+      self.assertFalse(check_norelative(i))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

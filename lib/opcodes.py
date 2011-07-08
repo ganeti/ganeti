@@ -393,6 +393,30 @@ class BaseOpCode(object):
                                      errors.ECODE_INVAL)
 
 
+def _BuildJobDepCheck(relative):
+  """Builds check for job dependencies (L{DEPEND_ATTR}).
+
+  @type relative: bool
+  @param relative: Whether to accept relative job IDs (negative)
+  @rtype: callable
+
+  """
+  if relative:
+    job_id = ht.TOr(ht.TJobId, ht.TRelativeJobId)
+  else:
+    job_id = ht.TJobId
+
+  job_dep = \
+    ht.TAnd(ht.TIsLength(2),
+            ht.TItems([job_id,
+                       ht.TListOf(ht.TElemOf(constants.JOBS_FINALIZED))]))
+
+  return ht.TOr(ht.TNone, ht.TListOf(job_dep))
+
+
+TNoRelativeJobDependencies = _BuildJobDepCheck(False)
+
+
 class OpCode(BaseOpCode):
   """Abstract OpCode.
 
@@ -416,17 +440,14 @@ class OpCode(BaseOpCode):
   # pylint: disable-msg=E1101
   # as OP_ID is dynamically defined
   WITH_LU = True
-  _T_JOB_DEP = \
-    ht.TAnd(ht.TIsLength(2),
-            ht.TItems([ht.TJobId,
-                       ht.TListOf(ht.TElemOf(constants.JOBS_FINALIZED))]))
   OP_PARAMS = [
     ("dry_run", None, ht.TMaybeBool, "Run checks only, don't execute"),
     ("debug_level", None, ht.TOr(ht.TNone, ht.TPositiveInt), "Debug level"),
     ("priority", constants.OP_PRIO_DEFAULT,
      ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID), "Opcode priority"),
-    (DEPEND_ATTR, None, ht.TOr(ht.TNone, ht.TListOf(_T_JOB_DEP)),
-     "Job dependencies"),
+    (DEPEND_ATTR, None, _BuildJobDepCheck(True),
+     "Job dependencies; if used through ``SubmitManyJobs`` relative (negative)"
+     " job IDs can be used"),
     ]
 
   def __getstate__(self):

@@ -22,6 +22,7 @@
 """Module implementing the parameter types code."""
 
 import re
+import operator
 
 from ganeti import compat
 from ganeti import utils
@@ -297,6 +298,10 @@ TPositiveInt = \
 TStrictPositiveInt = \
   TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
 
+#: a strictly negative integer (0 > value)
+TStrictNegativeInt = \
+  TAnd(TInt, WithDesc("LessThanZero")(compat.partial(operator.gt, 0)))
+
 #: a positive float
 TPositiveFloat = \
   TAnd(TFloat, WithDesc("EqualGreaterZero")(lambda v: v >= 0.0))
@@ -307,6 +312,9 @@ TJobId = TOr(TPositiveInt,
 
 #: Number
 TNumber = TOr(TInt, TFloat)
+
+#: Relative job ID
+TRelativeJobId = WithDesc("RelativeJobId")(TStrictNegativeInt)
 
 
 def TListOf(my_type):
