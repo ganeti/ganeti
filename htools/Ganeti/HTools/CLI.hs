@@ -250,7 +250,7 @@ oGroup = Option "G" ["group"]
 oIDisk :: OptType
 oIDisk = Option "" ["disk"]
          (ReqArg (\ d opts -> do
-                    dsk <- annotateResult ("--disk option") (parseUnit d)
+                    dsk <- annotateResult "--disk option" (parseUnit d)
                     let ospec = optISpec opts
                         nspec = ospec { rspecDsk = dsk }
                     return $ opts { optISpec = nspec }) "DISK")
@@ -259,7 +259,7 @@ oIDisk = Option "" ["disk"]
 oIMem :: OptType
 oIMem = Option "" ["memory"]
         (ReqArg (\ m opts -> do
-                   mem <- annotateResult ("--memory option") (parseUnit m)
+                   mem <- annotateResult "--memory option" (parseUnit m)
                    let ospec = optISpec opts
                        nspec = ospec { rspecMem = mem }
                    return $ opts { optISpec = nspec }) "MEMORY")

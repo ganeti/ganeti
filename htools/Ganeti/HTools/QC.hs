@@ -350,7 +350,7 @@ prop_Utils_parseUnit (NonNegative n) =
     Utils.parseUnit (show n ++ "g") == Types.Ok (n*1024) &&
     Utils.parseUnit (show n ++ "t") == Types.Ok (n*1048576) &&
     Types.isBad (Utils.parseUnit (show n ++ "x")::Types.Result Int)
-    where _types = (n::Int)
+    where _types = n::Int
 
 -- | Test list for the Utils module.
 testUtils =
@@ -591,8 +591,8 @@ prop_Text_Load_Instance name mem dsk vcpus status
       case inst of
         Types.Bad msg -> printTestCase ("Failed to load instance: " ++ msg)
                          False
-        Types.Ok (_, i) -> printTestCase ("Mismatch in some field while\
-                                          \ loading the instance") $
+        Types.Ok (_, i) -> printTestCase "Mismatch in some field while\
+                                         \ loading the instance" $
             Instance.name i == name &&
             Instance.vcpus i == vcpus &&
             Instance.mem i == mem &&
@@ -734,8 +734,8 @@ prop_Node_rMem inst =
         inst_idx = Instance.idx inst_ab
         node_add_ab = Node.addSec node inst_ab (-1)
         node_add_nb = Node.addSec node inst_nb (-1)
-        node_del_ab = liftM (flip Node.removeSec inst_ab) node_add_ab
-        node_del_nb = liftM (flip Node.removeSec inst_nb) node_add_nb
+        node_del_ab = liftM (`Node.removeSec` inst_ab) node_add_ab
+        node_del_nb = liftM (`Node.removeSec` inst_nb) node_add_nb
     in case (node_add_ab, node_add_nb, node_del_ab, node_del_nb) of
          (Types.OpGood a_ab, Types.OpGood a_nb,
           Types.OpGood d_ab, Types.OpGood d_nb) ->

@@ -95,7 +95,7 @@ specDescription SpecTiered = "Tiered (initial size)"
 -- | Efficiency generic function.
 effFn :: (Cluster.CStats -> Integer)
       -> (Cluster.CStats -> Double)
-      -> (Cluster.CStats -> Double)
+      -> Cluster.CStats -> Double
 effFn fi ft cs = fromIntegral (fi cs) / ft cs
 
 -- | Memory efficiency.
@@ -271,7 +271,7 @@ printAllocationMap verbose msg nl ixes =
                        [False, False, False, True, True, True]
 
 -- | Formats nicely a list of resources.
-formatResources :: a -> [(String, (a->String))] -> String
+formatResources :: a -> [(String, a->String)] -> String
 formatResources res =
     intercalate ", " . map (\(a, fn) -> a ++ " " ++ fn res)
 
@@ -298,7 +298,7 @@ printISpec True ispec spec disk_template = do
       where req_nodes = Instance.requiredNodes disk_template
             prefix = specPrefix spec
 
-printISpec False ispec spec disk_template = do
+printISpec False ispec spec disk_template =
   printf "%s instance spec is:\n  %s, using disk\
          \ template '%s'.\n"
          (specDescription spec)

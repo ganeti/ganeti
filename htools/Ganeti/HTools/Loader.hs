@@ -288,7 +288,7 @@ mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags) =
       il4 = Container.map (filterExTags allextags .
                            updateMovable selinst_names exinst_names) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
-      nl3 = Container.map (flip Node.buildPeers il4) nl2
+      nl3 = Container.map (`Node.buildPeers` il4) nl2
       node_names = map Node.name (Container.elems nl)
       common_suffix = longestDomain (node_names ++ inst_names)
       snl = Container.map (computeAlias common_suffix) nl3

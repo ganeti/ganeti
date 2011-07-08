@@ -188,7 +188,7 @@ parseData body = do
                 return $ NodeEvacuate rl_idx rl_mode
 
           | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
-  return $ (msgs, Request rqtype cdata)
+  return (msgs, Request rqtype cdata)
 
 -- | Formats the result into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
@@ -215,7 +215,7 @@ formatAllocate il as = do
     (nl, inst, nodes, _):[] ->
         do
           let il' = Container.add (Instance.idx inst) inst il
-          return (info, showJSON $ map (Node.name) nodes, nl, il')
+          return (info, showJSON $ map Node.name nodes, nl, il')
     _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Convert a node-evacuation/change group result.

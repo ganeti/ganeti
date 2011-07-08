@@ -273,7 +273,7 @@ main = do
          exitWith ExitSuccess
 
   let split_insts = Cluster.findSplitInstances nlf ilf
-  when (not . null $ split_insts) $ do
+  unless (null split_insts) $ do
     hPutStrLn stderr "Found instances belonging to multiple node groups:"
     mapM_ (\i -> hPutStrLn stderr $ "  " ++ Instance.name i) split_insts
     hPutStrLn stderr "Aborting."

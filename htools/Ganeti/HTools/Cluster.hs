@@ -994,7 +994,7 @@ evacDrbdSecondaryInner nl inst gdx accu ndx =
               -- The fromJust below is ugly (it can fail nastily), but
               -- at this point we should have any internal mismatches,
               -- and adding a monad here would be quite involved
-              grpnodes = fromJust (gdx `lookup` (Node.computeGroups nodes))
+              grpnodes = fromJust (gdx `lookup` Node.computeGroups nodes)
               new_cv = compCVNodes grpnodes
               new_accu = Right (nl', inst', new_cv, ndx)
           in case accu of
