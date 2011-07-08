@@ -279,6 +279,15 @@ instance Arbitrary Types.AllocPolicy where
 instance Arbitrary Types.DiskTemplate where
   arbitrary = elements [minBound..maxBound]
 
+instance Arbitrary Types.FailMode where
+    arbitrary = elements [minBound..maxBound]
+
+instance Arbitrary a => Arbitrary (Types.OpResult a) where
+    arbitrary = arbitrary >>= \c ->
+                case c of
+                  False -> liftM Types.OpFail arbitrary
+                  True -> liftM Types.OpGood arbitrary
+
 -- * Actual tests
 
 -- ** Utils tests
@@ -1045,19 +1054,42 @@ testLoader =
 
 -- ** Types tests
 
-prop_AllocPolicy_serialisation apol =
-    case Types.apolFromString (Types.apolToString apol) of
-      Types.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
-                    p == apol
-      Types.Bad s -> printTestCase ("failed to deserialise: " ++ s) False
+prop_Types_AllocPolicy_serialisation apol =
+    case J.readJSON (J.showJSON apol) of
+      J.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
+                p == apol
+      J.Error s -> printTestCase ("failed to deserialise: " ++ s) False
+    where _types = apol::Types.AllocPolicy
 
-prop_DiskTemplate_serialisation dt =
-    case Types.dtFromString (Types.dtToString dt) of
-      Types.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
-                    p == dt
-      Types.Bad s -> printTestCase ("failed to deserialise: " ++ s) False
+prop_Types_DiskTemplate_serialisation dt =
+    case J.readJSON (J.showJSON dt) of
+      J.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
+                p == dt
+      J.Error s -> printTestCase ("failed to deserialise: " ++ s)
+                   False
+    where _types = dt::Types.DiskTemplate
+
+prop_Types_opToResult op =
+    case op of
+      Types.OpFail _ -> Types.isBad r
+      Types.OpGood v -> case r of
+                          Types.Bad _ -> False
+                          Types.Ok v' -> v == v'
+    where r = Types.opToResult op
+          _types = op::Types.OpResult Int
+
+prop_Types_eitherToResult ei =
+    case ei of
+      Left _ -> Types.isBad r
+      Right v -> case r of
+                   Types.Bad _ -> False
+                   Types.Ok v' -> v == v'
+    where r = Types.eitherToResult ei
+          _types = ei::Either String Int
 
 testTypes =
-    [ run prop_AllocPolicy_serialisation
-    , run prop_DiskTemplate_serialisation
+    [ run prop_Types_AllocPolicy_serialisation
+    , run prop_Types_DiskTemplate_serialisation
+    , run prop_Types_opToResult
+    , run prop_Types_eitherToResult
     ]
