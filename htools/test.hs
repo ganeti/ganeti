@@ -37,7 +37,7 @@ import Ganeti.HTools.QC
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Utils (sepSplit)
 
--- | Options list and functions
+-- | Options list and functions.
 options :: [OptType]
 options =
     [ oReplay
@@ -61,7 +61,7 @@ slow = stdArgs
 incIORef :: IORef Int -> IO ()
 incIORef ir = atomicModifyIORef ir (\x -> (x + 1, ()))
 
--- | Wrapper over a test runner with error counting
+-- | Wrapper over a test runner with error counting.
 wrapTest :: IORef Int
          -> (Args -> IO Result)
          -> Args

@@ -36,7 +36,7 @@ import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
 import Ganeti.HTools.ExtLoader (maybeSaveData)
 
--- | Options list and functions
+-- | Options list and functions.
 options :: [OptType]
 options =
     [ oPrintNodes

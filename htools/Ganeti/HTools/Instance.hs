@@ -159,6 +159,7 @@ setBoth :: Instance  -- ^ the original instance
          -> Instance -- ^ the modified instance
 setBoth t p s = t { pNode = p, sNode = s }
 
+-- | Sets the movable flag on an instance.
 setMovable :: Instance -- ^ The original instance
            -> Bool     -- ^ New movable flag
            -> Instance -- ^ The modified instance
@@ -186,7 +187,7 @@ specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c } =
     T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
 
--- | Computed the number of nodes for a given disk template
+-- | Computed the number of nodes for a given disk template.
 requiredNodes :: T.DiskTemplate -> Int
 requiredNodes T.DTDrbd8 = 2
 requiredNodes _         = 1

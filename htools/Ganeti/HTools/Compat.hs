@@ -34,6 +34,11 @@ module Ganeti.HTools.Compat
 
 import qualified Control.Parallel.Strategies
 
+-- | Wrapper over the function exported from
+-- "Control.Parallel.Strategies".
+--
+-- This wraps either the old or the new name of the function,
+-- depending on the detected library version.
 rwhnf :: Control.Parallel.Strategies.Strategy a
 #ifdef PARALLEL3
 rwhnf = Control.Parallel.Strategies.rseq

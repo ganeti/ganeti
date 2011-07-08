@@ -46,7 +46,7 @@ import Ganeti.HTools.Text (serializeCluster)
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Types
 
--- | Options list and functions
+-- | Options list and functions.
 options :: [OptType]
 options =
     [ oPrintNodes
@@ -58,7 +58,7 @@ options =
     , oShowHelp
     ]
 
--- | Return a one-line summary of cluster state
+-- | Return a one-line summary of cluster state.
 printCluster :: Node.List -> Instance.List
              -> String
 printCluster nl il =
@@ -79,7 +79,7 @@ printCluster nl il =
                  ccv
 
 
--- | Replace slashes with underscore for saving to filesystem
+-- | Replace slashes with underscore for saving to filesystem.
 fixSlash :: String -> String
 fixSlash = map (\x -> if x == '/' then '_' else x)
 
@@ -91,7 +91,7 @@ processData input_data = do
   let (_, fix_nl) = checkData nl il
   return cdata { cdNodes = fix_nl }
 
--- | Writes cluster data out
+-- | Writes cluster data out.
 writeData :: Int
           -> String
           -> Options
@@ -108,6 +108,7 @@ writeData nlen name opts (Ok cdata) = do
                name err >> return False
     Ok processed -> writeDataInner nlen name opts cdata processed
 
+-- | Inner function for writing cluster data to disk.
 writeDataInner :: Int
                -> String
                -> Options

@@ -237,7 +237,7 @@ formatNodeEvac gl nl il (fin_nl, fin_il, es) =
                " were moved successfully"
     in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl, fin_il)
 
--- | Process a request and return new node lists
+-- | Process a request and return new node lists.
 processRequest :: Request -> Result IAllocResult
 processRequest request =
   let Request rqtype (ClusterData gl nl il _) = request
@@ -251,7 +251,7 @@ processRequest request =
            Cluster.tryNodeEvac gl nl il mode xi >>=
                   formatNodeEvac gl nl il
 
--- | Reads the request from the data file(s)
+-- | Reads the request from the data file(s).
 readRequest :: Options -> [String] -> IO Request
 readRequest opts args = do
   when (null args) $ do

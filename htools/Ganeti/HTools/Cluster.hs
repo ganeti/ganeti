@@ -139,6 +139,7 @@ emptyEvacSolution = EvacSolution { esMoved = []
 data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show, Read)
 
+-- | Cluster statistics data type.
 data CStats = CStats { csFmem :: Integer -- ^ Cluster free mem
                      , csFdsk :: Integer -- ^ Cluster free disk
                      , csAmem :: Integer -- ^ Cluster allocatable mem
@@ -278,6 +279,7 @@ detailedCVInfo = [ (1,  "free_mem_cv")
                  , (2,  "pri_tags_score")
                  ]
 
+-- | Holds the weights used by 'compCVNodes' for each metric.
 detailedCVWeights :: [Double]
 detailedCVWeights = map fst detailedCVInfo
 
@@ -332,7 +334,6 @@ compCVNodes = sum . zipWith (*) detailedCVWeights . compDetailedCV
 -- | Wrapper over 'compCVNodes' for callers that have a 'Node.List'.
 compCV :: Node.List -> Double
 compCV = compCVNodes . Container.elems
-
 
 -- | Compute online nodes from a 'Node.List'.
 getOnline :: Node.List -> [Node.Node]
@@ -1314,8 +1315,16 @@ printStats nl =
     in intercalate ", " formatted
 
 -- | Convert a placement into a list of OpCodes (basically a job).
-iMoveToJob :: Node.List -> Instance.List
-          -> Idx -> IMove -> [OpCodes.OpCode]
+iMoveToJob :: Node.List        -- ^ The node list; only used for node
+                               -- names, so any version is good
+                               -- (before or after the operation)
+           -> Instance.List    -- ^ The instance list; also used for
+                               -- names only
+           -> Idx              -- ^ The index of the instance being
+                               -- moved
+           -> IMove            -- ^ The actual move to be described
+           -> [OpCodes.OpCode] -- ^ The list of opcodes equivalent to
+                               -- the given move
 iMoveToJob nl il idx move =
     let inst = Container.find idx il
         iname = Instance.name inst

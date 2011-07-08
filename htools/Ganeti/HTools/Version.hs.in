@@ -1,4 +1,6 @@
 -- Hey Emacs, this is a -*- haskell -*- file
+{- | Auto-generated module holding version information.
+-}
 
 module Ganeti.HTools.Version
     (

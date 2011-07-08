@@ -59,7 +59,11 @@ import qualified Data.IntMap as IntMap
 
 import qualified Ganeti.HTools.Types as T
 
+-- | Our key type.
+
 type Key = IntMap.Key
+
+-- | Our container type.
 type Container = IntMap.IntMap
 
 -- | Locate a key in the map (must exist).

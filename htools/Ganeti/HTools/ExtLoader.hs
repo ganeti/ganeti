@@ -55,6 +55,7 @@ import Ganeti.HTools.Utils (sepSplit, tryRead)
 wrapIO :: IO (Result a) -> IO (Result a)
 wrapIO = flip catch (return . Bad . show)
 
+-- | Parses a user-supplied utilisation string.
 parseUtilisation :: String -> Result (String, DynUtil)
 parseUtilisation line =
     case sepSplit ' ' line of

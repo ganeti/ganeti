@@ -88,14 +88,15 @@ queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
   L.QueryGroups [] ["uuid", "name", "alloc_policy"] False
 
--- | Wraper over callMethod doing node query.
+-- | Wraper over 'callMethod' doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
 queryNodes = L.callMethod queryNodesMsg
 
--- | Wraper over callMethod doing instance query.
+-- | Wraper over 'callMethod' doing instance query.
 queryInstances :: L.Client -> IO (Result JSValue)
 queryInstances = L.callMethod queryInstancesMsg
 
+-- | Wrapper over 'callMethod' doing cluster information query.
 queryClusterInfo :: L.Client -> IO (Result JSValue)
 queryClusterInfo = L.callMethod queryClusterInfoMsg
 
@@ -167,15 +168,18 @@ parseNode ktg (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
 
+-- | Parses the cluster tags.
 getClusterTags :: JSValue -> Result [String]
 getClusterTags v = do
   let errmsg = "Parsing cluster info"
   obj <- annotateResult errmsg $ asJSObject v
   tryFromObj errmsg (fromJSObject obj) "tags"
 
+-- | Parses the cluster groups.
 getGroups :: JSValue -> Result [(String, Group.Group)]
 getGroups arr = toArray arr >>= mapM parseGroup
 
+-- | Parses a given group information.
 parseGroup :: JSValue -> Result (String, Group.Group)
 parseGroup (JSArray [ uuid, name, apol ]) = do
   xname <- annotateResult "Parsing new group" (fromJVal name)

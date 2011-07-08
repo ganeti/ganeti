@@ -48,7 +48,7 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Loader
 
--- | Options list and functions
+-- | Options list and functions.
 options :: [OptType]
 options =
     [ oPrintNodes
@@ -110,6 +110,8 @@ dskEff = effFn Cluster.csIdsk Cluster.csTdsk
 cpuEff :: Cluster.CStats -> Double
 cpuEff = effFn Cluster.csIcpu (fromIntegral . Cluster.csVcpu)
 
+-- | Holds data for converting a 'Cluster.CStats' structure into
+-- detailed statictics.
 statsData :: [(String, Cluster.CStats -> String)]
 statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
             , ("INST_CNT", printf "%d" . Cluster.csNinst)
@@ -133,12 +135,14 @@ statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
             , ("MNODE_DSK_AVAIL", printf "%d" . Cluster.csMdsk)
             ]
 
+-- | List holding 'RSpec' formatting information.
 specData :: [(String, RSpec -> String)]
 specData = [ ("MEM", printf "%d" . rspecMem)
            , ("DSK", printf "%d" . rspecDsk)
            , ("CPU", printf "%d" . rspecCpu)
            ]
 
+-- | List holding 'Cluster.CStats' formatting information.
 clusterData :: [(String, Cluster.CStats -> String)]
 clusterData = [ ("MEM", printf "%.0f" . Cluster.csTmem)
               , ("DSK", printf "%.0f" . Cluster.csTdsk)
@@ -146,7 +150,7 @@ clusterData = [ ("MEM", printf "%.0f" . Cluster.csTmem)
               , ("VCPU", printf "%d" . Cluster.csVcpu)
               ]
 
--- | Function to print stats for a given phase
+-- | Function to print stats for a given phase.
 printStats :: Phase -> Cluster.CStats -> [(String, String)]
 printStats ph cs =
   map (\(s, fn) -> (printf "%s_%s" kind s, fn cs)) statsData
@@ -211,6 +215,7 @@ formatSpecMap =
     map (\(spec, cnt) -> printf "%d,%d,%d=%d" (rspecMem spec)
                          (rspecDsk spec) (rspecCpu spec) cnt)
 
+-- | Formats \"key-metrics\" values.
 formatRSpec :: Double -> String -> RSpec -> [(String, String)]
 formatRSpec m_cpu s r =
     [ ("KM_" ++ s ++ "_CPU", show $ rspecCpu r)
@@ -219,6 +224,7 @@ formatRSpec m_cpu s r =
     , ("KM_" ++ s ++ "_DSK", show $ rspecDsk r)
     ]
 
+-- | Shows allocations stats.
 printAllocationStats :: Double -> Node.List -> Node.List -> IO ()
 printAllocationStats m_cpu ini_nl fin_nl = do
   let ini_stats = Cluster.totalResources ini_nl
@@ -228,17 +234,18 @@ printAllocationStats m_cpu ini_nl fin_nl = do
   printKeys $ formatRSpec m_cpu "POOL"ralo
   printKeys $ formatRSpec m_cpu "UNAV" runa
 
--- | Ensure a value is quoted if needed
+-- | Ensure a value is quoted if needed.
 ensureQuoted :: String -> String
 ensureQuoted v = if not (all (\c -> isAlphaNum c || c == '.') v)
                  then '\'':v ++ "'"
                  else v
 
--- | Format a list of key\/values as a shell fragment
+-- | Format a list of key\/values as a shell fragment.
 printKeys :: [(String, String)] -> IO ()
 printKeys = mapM_ (\(k, v) ->
                    printf "HTS_%s=%s\n" (map toUpper k) (ensureQuoted v))
 
+-- | Converts instance data to a list of strings.
 printInstance :: Node.List -> Instance.Instance -> [String]
 printInstance nl i = [ Instance.name i
                      , Container.nameOf nl $ Instance.pNode i
@@ -250,7 +257,7 @@ printInstance nl i = [ Instance.name i
                      , show (Instance.vcpus i)
                      ]
 
--- | Optionally print the allocation map
+-- | Optionally print the allocation map.
 printAllocationMap :: Int -> String
                    -> Node.List -> [Instance.Instance] -> IO ()
 printAllocationMap verbose msg nl ixes =
@@ -314,11 +321,13 @@ printTiered False spec_map _ ini_nl fin_nl sreason = do
   printClusterScores ini_nl fin_nl
   printClusterEff (Cluster.totalResources fin_nl)
 
+-- | Displays the initial/final cluster scores.
 printClusterScores :: Node.List -> Node.List -> IO ()
 printClusterScores ini_nl fin_nl = do
   printf "  - initial cluster score: %.8f\n" $ Cluster.compCV ini_nl::IO ()
   printf "  -   final cluster score: %.8f\n" $ Cluster.compCV fin_nl
 
+-- | Displays the cluster efficiency.
 printClusterEff :: Cluster.CStats -> IO ()
 printClusterEff cs =
     mapM_ (\(s, fn) ->

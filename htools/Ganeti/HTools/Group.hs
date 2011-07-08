@@ -73,6 +73,8 @@ create name_init id_init apol_init =
           , idx         = -1
           }
 
+-- | Sets the group index.
+--
 -- This is used only during the building of the data structures.
 setIdx :: Group -> T.Gdx -> Group
 setIdx t i = t {idx = i}

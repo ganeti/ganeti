@@ -54,7 +54,7 @@ import Ganeti.HTools.Loader
 import qualified Ganeti.Luxi as L
 import Ganeti.Jobs
 
--- | Options list and functions
+-- | Options list and functions.
 options :: [OptType]
 options =
     [ oPrintNodes
@@ -133,14 +133,14 @@ iterateDepth ini_tbl max_rounds disk_moves inst_moves nmlen imlen
                            mg_limit min_gain evac_mode
         Nothing -> return (ini_tbl, cmd_strs)
 
--- | Formats the solution for the oneline display
+-- | Formats the solution for the oneline display.
 formatOneline :: Double -> Int -> Double -> String
 formatOneline ini_cv plc_len fin_cv =
     printf "%.8f %d %.8f %8.3f" ini_cv plc_len fin_cv
                (if fin_cv == 0 then 1 else ini_cv / fin_cv)
 
 -- | Polls a set of jobs at a fixed interval until all are finished
--- one way or another
+-- one way or another.
 waitForJobs :: L.Client -> [String] -> IO (Result [JobStatus])
 waitForJobs client jids = do
   sts <- L.queryJobsStatus client jids
@@ -153,11 +153,11 @@ waitForJobs client jids = do
               waitForJobs client jids
             else return $ Ok s
 
--- | Check that a set of job statuses is all success
+-- | Check that a set of job statuses is all success.
 checkJobsStatus :: [JobStatus] -> Bool
 checkJobsStatus = all (== JOB_STATUS_SUCCESS)
 
--- | Wrapper over execJobSet checking for early termination
+-- | Wrapper over execJobSet checking for early termination.
 execWrapper :: String -> Node.List
            -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
 execWrapper _      _  _  _    [] = return True
@@ -170,7 +170,7 @@ execWrapper master nl il cref alljss = do
      return False
    else execJobSet master nl il cref alljss)
 
--- | Execute an entire jobset
+-- | Execute an entire jobset.
 execJobSet :: String -> Node.List
            -> Instance.List -> IORef Int -> [JobSet] -> IO Bool
 execJobSet _      _  _  _    [] = return True
@@ -201,14 +201,14 @@ execJobSet master nl il cref (js:jss) = do
                hPutStrLn stderr "Aborting."
                return False)
 
--- | Signal handler for graceful termination
+-- | Signal handler for graceful termination.
 hangleSigInt :: IORef Int -> IO ()
 hangleSigInt cref = do
   writeIORef cref 1
   putStrLn ("Cancel request registered, will exit at" ++
             " the end of the current job set...")
 
--- | Signal handler for immediate termination
+-- | Signal handler for immediate termination.
 hangleSigTerm :: IORef Int -> IO ()
 hangleSigTerm cref = do
   -- update the cref to 2, just for consistency
@@ -216,6 +216,7 @@ hangleSigTerm cref = do
   putStrLn "Double cancel request, exiting now..."
   exitImmediately $ ExitFailure 2
 
+-- | Runs a job set with handling of signals.
 runJobSet :: String -> Node.List -> Instance.List -> [JobSet] -> IO Bool
 runJobSet master fin_nl il cmd_jobs = do
   cref <- newIORef 0

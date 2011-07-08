@@ -180,7 +180,7 @@ data IMove = Failover                -- ^ Failover the instance (f)
            | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
              deriving (Show, Read)
 
--- | Instance disk template type
+-- | Instance disk template type.
 data DiskTemplate = DTDiskless
                   | DTFile
                   | DTSharedFile
@@ -189,7 +189,7 @@ data DiskTemplate = DTDiskless
                   | DTDrbd8
                     deriving (Show, Read, Eq, Enum, Bounded)
 
--- | Converts a DiskTemplate to String
+-- | Converts a DiskTemplate to String.
 dtToString :: DiskTemplate -> String
 dtToString DTDiskless   = C.dtDiskless
 dtToString DTFile       = C.dtFile
@@ -198,7 +198,7 @@ dtToString DTPlain      = C.dtPlain
 dtToString DTBlock      = C.dtBlock
 dtToString DTDrbd8      = C.dtDrbd8
 
--- | Converts a DiskTemplate from String
+-- | Converts a DiskTemplate from String.
 dtFromString :: (Monad m) => String -> m DiskTemplate
 dtFromString s =
     case () of
@@ -281,7 +281,7 @@ isOk _ = False
 isBad :: Result a  -> Bool
 isBad = not . isOk
 
--- | Converter from Either String to 'Result'
+-- | Converter from Either String to 'Result'.
 eitherToResult :: Either String a -> Result a
 eitherToResult (Left s) = Bad s
 eitherToResult (Right v) = Ok v
