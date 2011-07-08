@@ -1146,7 +1146,7 @@ py-coverage: $(BUILT_SOURCES) $(python_tests)
 .PHONY: hs-coverage
 hs-coverage: $(haskell_tests)
 	cd htools && rm -f *.tix *.mix && ./test
-	mkdir -p $(COVERAGE_HS_DIR)
+	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc markup --destdir=$(COVERAGE_HS_DIR) htools/test $(HPCEXCL)
 	hpc report htools/test $(HPCEXCL)
 	ln -sf hpc_index.html $(COVERAGE_HS_DIR)/index.html
