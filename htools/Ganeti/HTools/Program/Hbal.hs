@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Main (main) where
+module Ganeti.HTools.Program.Hbal (main) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)

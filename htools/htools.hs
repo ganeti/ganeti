@@ -31,10 +31,12 @@ import System.IO
 
 import Ganeti.HTools.Utils
 import qualified Ganeti.HTools.Program.Hail as Hail
+import qualified Ganeti.HTools.Program.Hbal as Hbal
 
 -- | Supported binaries.
 personalities :: [(String, IO ())]
 personalities = [ ("hail", Hail.main)
+                , ("hbal", Hbal.main)
                 ]
 
 -- | Display usage and exit.

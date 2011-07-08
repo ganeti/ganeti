@@ -307,10 +307,10 @@ docrst = \
 	doc/walkthrough.rst
 
 HS_PROGS = \
-	htools/hbal \
 	htools/hscan \
 	htools/hspace \
 	htools/htools
+HS_BIN_ROLES = hbal
 
 HS_ALL_PROGS = $(HS_PROGS) htools/test
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
@@ -343,6 +343,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/HTools/Utils.hs \
 	htools/Ganeti/HTools/Program/Hail.hs \
+	htools/Ganeti/HTools/Program/Hbal.hs \
 	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/OpCodes.hs
@@ -455,6 +456,10 @@ install-exec-hook:
 	@mkdir_p@ $(DESTDIR)$(iallocatorsdir)
 	$(LN_S) -f $(DESTDIR)$(bindir)/htools \
 		   $(DESTDIR)$(iallocatorsdir)/hail
+	for role in $(HS_BIN_ROLES); do \
+		$(LN_S) -f $(DESTDIR)$(bindir)/htools \
+			   $(DESTDIR)$(bindir)/$$role ; \
+	done
 endif
 
 $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
