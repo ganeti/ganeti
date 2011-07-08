@@ -37,6 +37,7 @@ from ganeti import opcodes
 from ganeti import utils
 from ganeti import errors
 from ganeti import compat
+from ganeti import ht
 
 
 #: Default fields for L{ListLocks}
@@ -178,6 +179,89 @@ def TestAllocator(opts, args):
   result = SubmitOpCode(op, opts=opts)
   ToStdout("%s" % result)
   return 0
+
+
+def _TestJobDependency(opts):
+  """Tests job dependencies.
+
+  """
+  ToStdout("Testing job dependencies")
+
+  cl = cli.GetClient()
+
+  try:
+    SubmitOpCode(opcodes.OpTestDelay(duration=0, depends=[(-1, None)]), cl=cl)
+  except errors.GenericError, err:
+    if opts.debug:
+      ToStdout("Ignoring error: %s", err)
+  else:
+    raise errors.OpExecError("Submitting plain opcode with relative job ID"
+                             " did not fail as expected")
+
+  # TODO: Test dependencies on errors
+  jobs = [
+    [opcodes.OpTestDelay(duration=1)],
+    [opcodes.OpTestDelay(duration=1,
+                         depends=[(-1, [])])],
+    [opcodes.OpTestDelay(duration=1,
+                         depends=[(-2, [constants.JOB_STATUS_SUCCESS])])],
+    [opcodes.OpTestDelay(duration=1,
+                         depends=[])],
+    [opcodes.OpTestDelay(duration=1,
+                         depends=[(-2, [constants.JOB_STATUS_SUCCESS])])],
+    ]
+
+  # Function for checking result
+  check_fn = ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                                ht.TItems([ht.TBool,
+                                           ht.TOr(ht.TNonEmptyString,
+                                                  ht.TJobId)])))
+
+  result = cl.SubmitManyJobs(jobs)
+  if not check_fn(result):
+    raise errors.OpExecError("Job submission doesn't match %s: %s" %
+                             (check_fn, result))
+
+  # Wait for jobs to finish
+  jex = JobExecutor(cl=cl, opts=opts)
+
+  for (status, job_id) in result:
+    jex.AddJobId(None, status, job_id)
+
+  job_results = jex.GetResults()
+  if not compat.all(row[0] for row in job_results):
+    raise errors.OpExecError("At least one of the submitted jobs failed: %s" %
+                             job_results)
+
+  # Get details about jobs
+  data = cl.QueryJobs([job_id for (_, job_id) in result],
+                      ["id", "opexec", "ops"])
+  data_job_id = [job_id for (job_id, _, _) in data]
+  data_opexec = [opexec for (_, opexec, _) in data]
+  data_op = [[opcodes.OpCode.LoadOpCode(op) for op in ops]
+             for (_, _, ops) in data]
+
+  assert compat.all(not op.depends or len(op.depends) == 1
+                    for ops in data_op
+                    for op in ops)
+
+  # Check resolved job IDs in dependencies
+  for (job_idx, res_jobdep) in [(1, data_job_id[0]),
+                                (2, data_job_id[0]),
+                                (4, data_job_id[2])]:
+    if data_op[job_idx][0].depends[0][0] != res_jobdep:
+      raise errors.OpExecError("Job %s's opcode doesn't depend on correct job"
+                               " ID (%s)" % (job_idx, res_jobdep))
+
+  # Check execution order
+  if not (data_opexec[0] <= data_opexec[1] and
+          data_opexec[0] <= data_opexec[2] and
+          data_opexec[2] <= data_opexec[4]):
+    raise errors.OpExecError("Jobs did not run in correct order: %s" % data)
+
+  assert len(jobs) == 5 and compat.all(len(ops) == 1 for ops in jobs)
+
+  ToStdout("Job dependency tests were successful")
 
 
 def _TestJobSubmission(opts):
@@ -340,6 +424,7 @@ def TestJobqueue(opts, _):
 
   """
   _TestJobSubmission(opts)
+  _TestJobDependency(opts)
 
   (TM_SUCCESS,
    TM_MULTISUCCESS,
