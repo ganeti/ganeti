@@ -63,9 +63,8 @@ installed. More specifically:
 - `json <http://hackage.haskell.org/package/json>`_, a JSON library
 - `network <http://hackage.haskell.org/package/network>`_, a basic
   network library
-- `parallel <http://hackage.haskell.org/package/parallel>`_, version 1.x
-  or 2.x, a parallel programming library (note: version 3.x is not yet
-  supported)
+- `parallel <http://hackage.haskell.org/package/parallel>`_, a parallel
+  programming library (note: tested with up to version 3.x)
 - `curl <http://hackage.haskell.org/package/curl>`_, bindings for the
   curl library, only needed if you want these tools to connect to remote
   clusters (as opposed to the local one)
@@ -74,6 +73,12 @@ All of these are also available as package in Debian/Ubuntu::
 
   $ apt-get install ghc6 libghc6-json-dev libghc6-network-dev \
                     libghc6-parallel-dev libghc6-curl-dev
+
+Note that more recent version have switched to GHC 7.x and the packages
+were renamed::
+
+  $ apt-get install ghc libghc-json-dev libghc-network-dev \
+                    libghc-parallel-dev libghc-curl-dev
 
 The compilation of the htools components is automatically enabled when
 the compiler and the requisite libraries are found. You can use the

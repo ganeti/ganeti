@@ -44,7 +44,7 @@ document, plus:
 Under Debian, these can be installed (on top of the required ones from
 the quick install document) via::
 
-  apt-get install libghc6-quickcheck1-dev hscolour hlint
+  apt-get install libghc-quickcheck2-dev hscolour hlint
 
 
 Configuring for development
