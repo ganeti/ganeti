@@ -33,12 +33,14 @@ import Ganeti.HTools.Utils
 import qualified Ganeti.HTools.Program.Hail as Hail
 import qualified Ganeti.HTools.Program.Hbal as Hbal
 import qualified Ganeti.HTools.Program.Hscan as Hscan
+import qualified Ganeti.HTools.Program.Hspace as Hspace
 
 -- | Supported binaries.
 personalities :: [(String, IO ())]
 personalities = [ ("hail", Hail.main)
                 , ("hbal", Hbal.main)
                 , ("hscan", Hscan.main)
+                , ("hspace", Hspace.main)
                 ]
 
 -- | Display usage and exit.
