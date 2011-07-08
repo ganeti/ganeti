@@ -66,6 +66,11 @@ import qualified Ganeti.HTools.Utils as Utils
 import qualified Ganeti.HTools.Version
 import qualified Ganeti.Constants as C
 
+import qualified Ganeti.HTools.Program.Hail
+import qualified Ganeti.HTools.Program.Hbal
+import qualified Ganeti.HTools.Program.Hscan
+import qualified Ganeti.HTools.Program.Hspace
+
 run :: Testable prop => prop -> Args -> IO Result
 run = flip quickCheckWithResult
 
