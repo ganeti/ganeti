@@ -41,8 +41,11 @@ module Ganeti.HTools.Instance
     , specOf
     , shrinkByType
     , runningStates
+    , localStorageTemplates
+    , hasSecondary
     , requiredNodes
     , allNodes
+    , usesLocalStorage
     ) where
 
 import qualified Ganeti.HTools.Types as T
@@ -64,7 +67,7 @@ data Instance = Instance
     , sNode        :: T.Ndx     -- ^ Original secondary node
     , idx          :: T.Idx     -- ^ Internal index
     , util         :: T.DynUtil -- ^ Dynamic resource usage
-    , movable      :: Bool      -- ^ Can the instance be moved?
+    , movable      :: Bool      -- ^ Can and should the instance be moved?
     , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
     , tags         :: [String]  -- ^ List of instance tags
     , diskTemplate :: T.DiskTemplate -- ^ The disk template of the instance
@@ -80,6 +83,25 @@ instance T.Element Instance where
 -- | Constant holding the running instance states.
 runningStates :: [String]
 runningStates = [C.inststRunning, C.inststErrorup]
+
+-- | Constant holding the local storage templates.
+--
+-- /Note:/ Currently Ganeti only exports node total/free disk space
+-- for LVM-based storage; file-based storage is ignored in this model,
+-- so even though file-based storage uses in reality disk space on the
+-- node, in our model it won't affect it and we can't compute whether
+-- there is enough disk space for a file-based instance. Therefore we
+-- will treat this template as \'foreign\' storage.
+localStorageTemplates :: [T.DiskTemplate]
+localStorageTemplates = [ T.DTDrbd8, T.DTPlain ]
+
+-- | Constant holding the movable disk templates.
+--
+-- This only determines the initial 'movable' state of the
+-- instance. Further the movable state can be restricted more due to
+-- user choices, etc.
+movableDiskTemplates :: [T.DiskTemplate]
+movableDiskTemplates = [ T.DTDrbd8, T.DTBlock, T.DTSharedFile ]
 
 -- | A simple name for the int, instance association list.
 type AssocList = [(T.Idx, Instance)]
@@ -109,7 +131,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init
              , idx = -1
              , util = T.baseUtil
              , tags = tags_init
-             , movable = True
+             , movable = supportsMoves dt
              , autoBalance = auto_balance_init
              , diskTemplate = dt
              }
@@ -187,6 +209,13 @@ specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c } =
     T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
 
+-- | Checks whether the instance uses a secondary node.
+--
+-- /Note:/ This should be reconciled with @'sNode' ==
+-- 'Node.noSecondary'@.
+hasSecondary :: Instance -> Bool
+hasSecondary = (== T.DTDrbd8) . diskTemplate
+
 -- | Computed the number of nodes for a given disk template.
 requiredNodes :: T.DiskTemplate -> Int
 requiredNodes T.DTDrbd8 = 2
@@ -197,3 +226,11 @@ allNodes :: Instance -> [T.Ndx]
 allNodes inst = case diskTemplate inst of
                   T.DTDrbd8 -> [pNode inst, sNode inst]
                   _ -> [pNode inst]
+
+-- | Checks whether a given disk template uses local storage.
+usesLocalStorage :: Instance -> Bool
+usesLocalStorage = (`elem` localStorageTemplates) . diskTemplate
+
+-- | Checks whether a given disk template supported moves.
+supportsMoves :: T.DiskTemplate -> Bool
+supportsMoves = (`elem` movableDiskTemplates)
