@@ -1329,7 +1329,7 @@ iMoveToJob nl il idx move =
     let inst = Container.find idx il
         iname = Instance.name inst
         lookNode  = Just . Container.nameOf nl
-        opF = OpCodes.OpInstanceMigrate iname True False True
+        opF = OpCodes.OpInstanceMigrate iname True False True Nothing
         opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
                 OpCodes.ReplaceNewSecondary [] Nothing
     in case move of

@@ -255,9 +255,11 @@ instance Arbitrary OpCodes.OpCode where
           liftM5 OpCodes.OpInstanceReplaceDisks arbitrary arbitrary
           arbitrary arbitrary arbitrary
         "OP_INSTANCE_FAILOVER" ->
-          liftM2 OpCodes.OpInstanceFailover arbitrary arbitrary
+          liftM3 OpCodes.OpInstanceFailover arbitrary arbitrary
+                 arbitrary
         "OP_INSTANCE_MIGRATE" ->
-          liftM4 OpCodes.OpInstanceMigrate arbitrary arbitrary arbitrary
+          liftM5 OpCodes.OpInstanceMigrate arbitrary arbitrary
+                 arbitrary arbitrary
           arbitrary
         _ -> fail "Wrong opcode")
 

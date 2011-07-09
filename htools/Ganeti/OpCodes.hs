@@ -63,8 +63,8 @@ instance JSON ReplaceDisksMode where
 data OpCode = OpTestDelay Double Bool [String]
             | OpInstanceReplaceDisks String (Maybe String) ReplaceDisksMode
               [Int] (Maybe String)
-            | OpInstanceFailover String Bool
-            | OpInstanceMigrate String Bool Bool Bool
+            | OpInstanceFailover String Bool (Maybe String)
+            | OpInstanceMigrate String Bool Bool Bool (Maybe String)
             deriving (Show, Read, Eq)
 
 
@@ -72,8 +72,8 @@ data OpCode = OpTestDelay Double Bool [String]
 opID :: OpCode -> String
 opID (OpTestDelay _ _ _) = "OP_TEST_DELAY"
 opID (OpInstanceReplaceDisks _ _ _ _ _) = "OP_INSTANCE_REPLACE_DISKS"
-opID (OpInstanceFailover _ _) = "OP_INSTANCE_FAILOVER"
-opID (OpInstanceMigrate _ _ _ _) = "OP_INSTANCE_MIGRATE"
+opID (OpInstanceFailover {}) = "OP_INSTANCE_FAILOVER"
+opID (OpInstanceMigrate  {}) = "OP_INSTANCE_MIGRATE"
 
 -- | Loads an OpCode from the JSON serialised form.
 loadOpCode :: JSValue -> J.Result OpCode
@@ -97,13 +97,16 @@ loadOpCode v = do
     "OP_INSTANCE_FAILOVER" -> do
                  inst    <- extract "instance_name"
                  consist <- extract "ignore_consistency"
-                 return $ OpInstanceFailover inst consist
+                 tnode   <- maybeFromObj o "target_node"
+                 return $ OpInstanceFailover inst consist tnode
     "OP_INSTANCE_MIGRATE" -> do
                  inst    <- extract "instance_name"
                  live    <- extract "live"
                  cleanup <- extract "cleanup"
                  allow_failover <- fromObjWithDefault o "allow_failover" False
-                 return $ OpInstanceMigrate inst live cleanup allow_failover
+                 tnode   <- maybeFromObj o "target_node"
+                 return $ OpInstanceMigrate inst live cleanup
+                        allow_failover tnode
     _ -> J.Error $ "Unknown opcode " ++ op_id
 
 -- | Serialises an opcode to JSON.
@@ -128,19 +131,25 @@ saveOpCode op@(OpInstanceReplaceDisks inst node mode disks iallocator) =
                 Nothing -> ol2
     in makeObj ol3
 
-saveOpCode op@(OpInstanceFailover inst consist) =
+saveOpCode op@(OpInstanceFailover inst consist tnode) =
     let ol = [ ("OP_ID", showJSON $ opID op)
              , ("instance_name", showJSON inst)
              , ("ignore_consistency", showJSON consist) ]
-    in makeObj ol
+        ol' = case tnode of
+                Nothing -> ol
+                Just node -> ("target_node", showJSON node):ol
+    in makeObj ol'
 
-saveOpCode op@(OpInstanceMigrate inst live cleanup allow_failover) =
+saveOpCode op@(OpInstanceMigrate inst live cleanup allow_failover tnode) =
     let ol = [ ("OP_ID", showJSON $ opID op)
              , ("instance_name", showJSON inst)
              , ("live", showJSON live)
              , ("cleanup", showJSON cleanup)
              , ("allow_failover", showJSON allow_failover) ]
-    in makeObj ol
+        ol' = case tnode of
+                Nothing -> ol
+                Just node -> ("target_node", showJSON node):ol
+    in makeObj ol'
 
 instance JSON OpCode where
     readJSON = loadOpCode
