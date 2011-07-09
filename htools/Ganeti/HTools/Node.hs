@@ -327,9 +327,13 @@ removePri t inst =
 removeSec :: Node -> Instance.Instance -> Node
 removeSec t inst =
     let iname = Instance.idx inst
+        uses_disk = Instance.usesLocalStorage inst
+        cur_dsk = fDsk t
         pnode = Instance.pNode inst
         new_slist = delete iname (sList t)
-        new_dsk = fDsk t + Instance.dsk inst
+        new_dsk = if uses_disk
+                  then cur_dsk + Instance.dsk inst
+                  else cur_dsk
         old_peers = peers t
         old_peem = P.find pnode old_peers
         new_peem =  if Instance.autoBalance inst
@@ -368,8 +372,12 @@ addPriEx :: Bool               -- ^ Whether to override the N+1 and
                                -- or a failure mode
 addPriEx force t inst =
     let iname = Instance.idx inst
+        uses_disk = Instance.usesLocalStorage inst
+        cur_dsk = fDsk t
         new_mem = fMem t - Instance.mem inst
-        new_dsk = fDsk t - Instance.dsk inst
+        new_dsk = if uses_disk
+                  then cur_dsk - Instance.dsk inst
+                  else cur_dsk
         new_failn1 = new_mem <= rMem t
         new_ucpu = uCpu t + Instance.vcpus inst
         new_pcpu = fromIntegral new_ucpu / tCpu t
@@ -381,8 +389,8 @@ addPriEx force t inst =
         strict = not force
     in case () of
          _ | new_mem <= 0 -> T.OpFail T.FailMem
-           | new_dsk <= 0 -> T.OpFail T.FailDisk
-           | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
+           | uses_disk && new_dsk <= 0 -> T.OpFail T.FailDisk
+           | uses_disk && mDsk t > new_dp && strict -> T.OpFail T.FailDisk
            | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
            | l_cpu >= 0 && l_cpu < new_pcpu && strict -> T.OpFail T.FailCPU
            | rejectAddTags old_tags inst_tags -> T.OpFail T.FailTags
@@ -421,7 +429,8 @@ addSecEx force t inst pdx =
                                             T.dskWeight (Instance.util inst) }
         strict = not force
     in case () of
-         _ | new_dsk <= 0 -> T.OpFail T.FailDisk
+         _ | not (Instance.hasSecondary inst) -> T.OpFail T.FailDisk
+           | new_dsk <= 0 -> T.OpFail T.FailDisk
            | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
            | secondary_needed_mem >= old_mem && strict -> T.OpFail T.FailMem
            | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
