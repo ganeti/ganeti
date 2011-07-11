@@ -908,7 +908,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     self._CheckDown(instance.name)
-    kvm_runtime = self._GenerateKVMRuntime(instance, block_devices, startup_paused)
+    kvm_runtime = self._GenerateKVMRuntime(instance, block_devices,
+                                           startup_paused)
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
 
@@ -1140,9 +1141,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if hvparams[constants.HV_SERIAL_CONSOLE]:
-      cmd = [constants.KVM_CONSOLE_WRAPPER,
-             utils.ShellQuote(instance.name), constants.SOCAT_PATH,
-             utils.ShellQuote(cls._InstanceMonitor(instance.name)),
+      cmd = [constants.SOCAT_PATH,
              "STDIO,%s" % cls._SocatUnixConsoleParams(),
              "UNIX-CONNECT:%s" % cls._InstanceSerial(instance.name)]
       return objects.InstanceConsole(instance=instance.name,
