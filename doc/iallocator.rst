@@ -190,10 +190,10 @@ In all cases, it includes:
 
   type
     the request type; this can be either ``allocate``, ``relocate``,
-    ``multi-relocate`` or ``multi-evacuate``. The ``allocate`` request
-    is used when a new instance needs to be placed on the cluster. The
-    ``relocate`` request is used when an existing instance needs to be
-    moved within its node group.
+    ``change-group``, ``node-evacuate`` or ``multi-evacuate``. The
+    ``allocate`` request is used when a new instance needs to be placed
+    on the cluster. The ``relocate`` request is used when an existing
+    instance needs to be moved within its node group.
 
     The ``multi-evacuate`` protocol used to request that the script
     computes the optimal relocate solution for all secondary instances
@@ -330,9 +330,10 @@ result
   entry in the input message, otherwise Ganeti will consider the result
   as failed
 
-  for multi-relocate mode, this is a list of lists of serialized
-  opcodes; see the :ref:`design document <multi-reloc-result>` for a
-  detailed description
+  for the ``node-evacuate`` and ``change-group`` modes, this is a
+  dictionary containing, among other information, a list of lists of
+  serialized opcodes; see the :ref:`design document
+  <multi-reloc-result>` for a detailed description
 
   for multi-evacuation mode, this is a list of lists; each element of
   the list is a list of instance name and the new secondary node
