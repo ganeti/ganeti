@@ -866,11 +866,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       utils.EnsureDirs([(self._InstanceChrootDir(name),
                          constants.SECURE_DIR_MODE)])
 
-    if not incoming:
-      # Configure the network now for starting instances, during
-      # FinalizeMigration for incoming instances
-      for nic_seq, nic in enumerate(kvm_nics):
-        self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
+    # Configure the network now for starting instances and bridged interfaces,
+    # during FinalizeMigration for incoming instances' routed interfaces
+    for nic_seq, nic in enumerate(kvm_nics):
+      if (incoming and
+          nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_BRIDGED):
+        continue
+      self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
     if security_model == constants.HT_SM_POOL:
       ss = ssconf.SimpleStore()
@@ -1036,6 +1038,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_nics = kvm_runtime[1]
 
       for nic_seq, nic in enumerate(kvm_nics):
+        if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+          # Bridged interfaces have already been configured
+          continue
         try:
           tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
         except EnvironmentError, err:

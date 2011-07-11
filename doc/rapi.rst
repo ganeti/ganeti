@@ -1225,10 +1225,13 @@ It supports the following commands: ``GET``, ``PUT``.
 The role is always one of the following:
 
   - drained
-  - master
   - master-candidate
   - offline
   - regular
+
+Note that the 'master' role is a special, and currently it can't be
+modified via RAPI, only via the command line (``gnt-cluster
+master-failover``).
 
 ``GET``
 ~~~~~~~

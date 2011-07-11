@@ -112,7 +112,7 @@ The available fields and their meaning are:
 @QUERY_FIELDS_LOCK@
 
 If the value of the option starts with the character ``+``, the new
-fields will be added to the default list. This allows to quickly
+fields will be added to the default list. This allows one to quickly
 see the default list plus a few other fields, instead of retyping
 the entire list of fields.
 

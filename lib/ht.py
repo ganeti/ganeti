@@ -296,6 +296,9 @@ TPositiveFloat = \
 TJobId = TOr(TPositiveInt,
              TRegex(re.compile("^%s$" % constants.JOB_ID_TEMPLATE)))
 
+#: Number
+TNumber = TOr(TInt, TFloat)
+
 
 def TListOf(my_type):
   """Checks if a given value is a list with all elements of the same type.

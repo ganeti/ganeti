@@ -286,8 +286,8 @@ level only, allowing us to easily support non-DRBD instance moves.
 
 Intra-cluster instance moves will re-use the existing export and import
 scripts supplied by instance OS definitions. Unlike simply copying the
-raw data, this allows to use filesystem-specific utilities to dump only
-used parts of the disk and to exclude certain disks from the move.
+raw data, this allows one to use filesystem-specific utilities to dump
+only used parts of the disk and to exclude certain disks from the move.
 Compression should be used to further reduce the amount of data
 transferred.
 

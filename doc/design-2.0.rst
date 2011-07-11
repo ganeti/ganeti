@@ -1685,7 +1685,7 @@ response body. Typical examples of queries would be: list of nodes,
 instances, cluster info, etc.
 
 In the case of job submission, the client receive a job ID, the
-identifier which allows to query the job progress in the job queue
+identifier which allows one to query the job progress in the job queue
 (see `Job Queue`_).
 
 Internally, each exported object has an version identifier, which is

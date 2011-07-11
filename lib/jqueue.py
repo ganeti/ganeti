@@ -1537,9 +1537,12 @@ class JobQueue(object):
                              "%s\n" % serial, True)
 
     result = [self._FormatJobID(v)
-              for v in range(self._last_serial, serial + 1)]
+              for v in range(self._last_serial + 1, serial + 1)]
+
     # Keep it only if we were able to write the file
     self._last_serial = serial
+
+    assert len(result) == count
 
     return result
 

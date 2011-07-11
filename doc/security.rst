@@ -122,11 +122,11 @@ only one available before Ganeti 2.1.2.
 
 Under security model 'user' an instance is run as the user specified by
 the hypervisor parameter 'security_domain'. This makes it easy to run
-all instances as non privileged users, and allows to manually allocate
-specific users to specific instances or sets of instances. If the
-specified user doesn't have permissions a jail broken instance will need
-some local privilege escalation before being able to take over the node
-and the cluster. It's possible though for a jail broken instance to
+all instances as non privileged users, and allows one to manually
+allocate specific users to specific instances or sets of instances. If
+the specified user doesn't have permissions a jail broken instance will
+need some local privilege escalation before being able to take over the
+node and the cluster. It's possible though for a jail broken instance to
 affect other ones running under the same user.
 
 Under security model 'pool' a global cluster-level uid pool is used to

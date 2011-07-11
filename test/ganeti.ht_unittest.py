@@ -53,6 +53,7 @@ class TestTypeChecks(unittest.TestCase):
   def testInt(self):
     for val in [-100, -3, 0, 16, 128, 923874]:
       self.assertTrue(ht.TInt(val))
+      self.assertTrue(ht.TNumber(val))
 
     for val in [False, True, None, "", [], "Hello", 0.0, 0.23, -3818.163]:
       self.assertFalse(ht.TInt(val))
@@ -76,9 +77,18 @@ class TestTypeChecks(unittest.TestCase):
   def testFloat(self):
     for val in [-100.21, -3.0, 0.0, 16.12, 128.3433, 923874.928]:
       self.assertTrue(ht.TFloat(val))
+      self.assertTrue(ht.TNumber(val))
 
     for val in [False, True, None, "", [], "Hello", 0, 28, -1, -3281]:
       self.assertFalse(ht.TFloat(val))
+
+  def testNumber(self):
+    for val in [-100, -3, 0, 16, 128, 923874,
+                -100.21, -3.0, 0.0, 16.12, 128.3433, 923874.928]:
+      self.assertTrue(ht.TNumber(val))
+
+    for val in [False, True, None, "", [], "Hello", "1"]:
+      self.assertFalse(ht.TNumber(val))
 
   def testString(self):
     for val in ["", "abc", "Hello World", "123",

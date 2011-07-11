@@ -1427,7 +1427,7 @@ class OpTestDelay(OpCode):
   """
   OP_DSC_FIELD = "duration"
   OP_PARAMS = [
-    ("duration", ht.NoDefault, ht.TFloat, None),
+    ("duration", ht.NoDefault, ht.TNumber, None),
     ("on_master", True, ht.TBool, None),
     ("on_nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ("repeat", 0, ht.TPositiveInt, None),
