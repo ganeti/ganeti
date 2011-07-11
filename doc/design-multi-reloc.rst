@@ -68,7 +68,10 @@ of **replace secondary**, **migration** and **failover** operations
 operations within the corresponding mobility domain).
 
 The result of the operations described above must contain two lists of
-instances and a list of jobsets.
+instances and a list of jobs (each of which is a list of serialized
+opcodes) to actually execute the operation. :doc:`Job dependencies
+<design-chained-jobs>` can be used to force jobs to run in a certain
+order while still making use of parallelism.
 
 The two lists of instances describe which instances could be
 moved/migrated and which couldn't for some reason ("unsuccessful"). The
@@ -93,11 +96,16 @@ The unsuccessful list of instances contains elements as follows::
 where ``explanation`` is a string describing why the plugin was not able
 to relocate the instance.
 
-The list of jobsets contained in the result describe how to actually
-execute the operation. Each jobset contains lists of serialized opcodes.
-Example::
+The client is given a list of job IDs (see the :doc:`design for
+LU-generated jobs <design-lu-generated-jobs>`) which it can watch.
+Failures should be reported to the user.
+
+.. highlight:: python
+
+Example job list::
 
   [
+    # First job
     [
       { "OP_ID": "OP_INSTANCE_MIGRATE",
         "instance_name": "inst1.example.com",
@@ -106,18 +114,26 @@ Example::
         "instance_name": "inst2.example.com",
       },
     ],
+    # Second job
     [
       { "OP_ID": "OP_INSTANCE_REPLACE_DISKS",
+        "depends": [
+          [-1, ["success"]],
+          ],
         "instance_name": "inst2.example.com",
         "mode": "replace_new_secondary",
-        "remote_node": "node4.example.com"
+        "remote_node": "node4.example.com",
       },
     ],
+    # Third job
     [
       { "OP_ID": "OP_INSTANCE_FAILOVER",
+        "depends": [
+          [-2, []],
+          ],
         "instance_name": "inst8.example.com",
       },
-    ]
+    ],
   ]
 
 Accepted opcodes:
@@ -125,12 +141,6 @@ Accepted opcodes:
 - ``OP_INSTANCE_FAILOVER``
 - ``OP_INSTANCE_MIGRATE``
 - ``OP_INSTANCE_REPLACE_DISKS``
-
-Starting with the first set, Ganeti will submit all jobs of a set at the
-same time, enabling execution in parallel. Upon completion of all jobs
-in a set, the process is repeated for the next one. Ganeti is at liberty
-to abort the execution after any jobset. In such a case the user is
-notified and can restart the operation.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
