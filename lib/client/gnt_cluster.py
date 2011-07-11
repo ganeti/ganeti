@@ -397,7 +397,8 @@ def ClusterCopyFile(opts, args):
   cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
 
   results = GetOnlineNodes(nodes=opts.nodes, cl=cl, filter_master=True,
-                           secondary_ips=opts.use_replication_network)
+                           secondary_ips=opts.use_replication_network,
+                           nodegroup=opts.nodegroup)
 
   srun = ssh.SshRunner(cluster_name=cluster_name)
   for node in results:
@@ -421,7 +422,7 @@ def RunClusterCommand(opts, args):
 
   command = " ".join(args)
 
-  nodes = GetOnlineNodes(nodes=opts.nodes, cl=cl)
+  nodes = GetOnlineNodes(nodes=opts.nodes, cl=cl, nodegroup=opts.nodegroup)
 
   cluster_name, master_node = cl.QueryConfigValues(["cluster_name",
                                                     "master_node"])
@@ -1288,11 +1289,11 @@ commands = {
     "", "Shows the cluster master"),
   'copyfile': (
     ClusterCopyFile, [ArgFile(min=1, max=1)],
-    [NODE_LIST_OPT, USE_REPL_NET_OPT],
+    [NODE_LIST_OPT, USE_REPL_NET_OPT, NODEGROUP_OPT],
     "[-n node...] <filename>", "Copies a file to all (or only some) nodes"),
   'command': (
     RunClusterCommand, [ArgCommand(min=1)],
-    [NODE_LIST_OPT],
+    [NODE_LIST_OPT, NODEGROUP_OPT],
     "[-n node...] <command>", "Runs a command on all (or only some) nodes"),
   'info': (
     ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],

@@ -37,7 +37,7 @@ interpreted as stdin.
 COMMAND
 ~~~~~~~
 
-**command** [-n *node*] {*command*}
+**command** [-n *node*] [-g *group*] {*command*}
 
 Executes a command on all nodes. If the option ``-n`` is not given,
 the command will be executed on all nodes, otherwise it will be
@@ -45,6 +45,11 @@ executed only on the node(s) specified. Use the option multiple
 times for running it on multiple nodes, like::
 
     # gnt-cluster command -n node1.example.com -n node2.example.com date
+
+The ``-g`` option can be used to run a command only on a specific node
+group, e.g.::
+
+    # gnt-cluster command -g default date
 
 The command is executed serially on the selected nodes. If the
 master node is present in the list, the command will be executed
@@ -67,12 +72,14 @@ and the command which will be executed will be ``ls -l /etc``.
 COPYFILE
 ~~~~~~~~
 
-**copyfile** [--use-replication-network] [-n *node*] {*file*}
+| **copyfile** [--use-replication-network] [-n *node*] [-g *group*]
+| {*file*}
 
 Copies a file to all or to some nodes. The argument specifies the
 source file (on the current system), the ``-n`` argument specifies
 the target node, or nodes if the option is given multiple times. If
-``-n`` is not given at all, the file will be copied to all nodes.
+``-n`` is not given at all, the file will be copied to all nodes. The
+``-g`` option can be used to only select nodes in a specific node group.
 Passing the ``--use-replication-network`` option will cause the
 copy to be done over the replication network (only matters if the
 primary/secondary IPs are different). Example::
