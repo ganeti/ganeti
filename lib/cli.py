@@ -2868,7 +2868,7 @@ def ParseTimespec(value):
 
 
 def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
-                   filter_master=False):
+                   filter_master=False, nodegroup=None):
   """Returns the names of online nodes.
 
   This function will also log a warning on stderr with the names of
@@ -2889,28 +2889,60 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
   @param filter_master: if True, do not return the master node in the list
       (useful in coordination with secondary_ips where we cannot check our
       node name against the list)
+  @type nodegroup: string
+  @param nodegroup: If set, only return nodes in this node group
 
   """
   if cl is None:
     cl = GetClient()
 
-  if secondary_ips:
-    name_idx = 2
-  else:
-    name_idx = 0
+  filter_ = []
+
+  if nodes:
+    filter_.append(qlang.MakeSimpleFilter("name", nodes))
+
+  if nodegroup is not None:
+    filter_.append([qlang.OP_OR, [qlang.OP_EQUAL, "group", nodegroup],
+                                 [qlang.OP_EQUAL, "group.uuid", nodegroup]])
 
   if filter_master:
-    master_node = cl.QueryConfigValues(["master_node"])[0]
-    filter_fn = lambda x: x != master_node
-  else:
-    filter_fn = lambda _: True
+    filter_.append([qlang.OP_NOT, [qlang.OP_TRUE, "master"]])
 
-  result = cl.QueryNodes(names=nodes, fields=["name", "offline", "sip"],
-                         use_locking=False)
-  offline = [row[0] for row in result if row[1]]
+  if filter_:
+    if len(filter_) > 1:
+      final_filter = [qlang.OP_AND] + filter_
+    else:
+      assert len(filter_) == 1
+      final_filter = filter_[0]
+  else:
+    final_filter = None
+
+  result = cl.Query(constants.QR_NODE, ["name", "offline", "sip"], final_filter)
+
+  def _IsOffline(row):
+    (_, (_, offline), _) = row
+    return offline
+
+  def _GetName(row):
+    ((_, name), _, _) = row
+    return name
+
+  def _GetSip(row):
+    (_, _, (_, sip)) = row
+    return sip
+
+  (offline, online) = compat.partition(result.data, _IsOffline)
+
   if offline and not nowarn:
-    ToStderr("Note: skipping offline node(s): %s" % utils.CommaJoin(offline))
-  return [row[name_idx] for row in result if not row[1] and filter_fn(row[0])]
+    ToStderr("Note: skipping offline node(s): %s" %
+             utils.CommaJoin(map(_GetName, offline)))
+
+  if secondary_ips:
+    fn = _GetSip
+  else:
+    fn = _GetName
+
+  return map(fn, online)
 
 
 def _ToStream(stream, txt, *args):

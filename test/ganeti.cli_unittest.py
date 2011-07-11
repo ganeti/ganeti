@@ -32,6 +32,7 @@ from ganeti import cli
 from ganeti import errors
 from ganeti import utils
 from ganeti import objects
+from ganeti import qlang
 from ganeti.errors import OpPrereqError, ParameterError
 
 
@@ -751,6 +752,148 @@ class TestFormatResultError(unittest.TestCase):
       result = cli.FormatResultError(status, True)
       self.assertTrue(result.startswith("("))
       self.assertTrue(result.endswith(")"))
+
+
+class TestGetOnlineNodes(unittest.TestCase):
+  class _FakeClient:
+    def __init__(self):
+      self._query = []
+
+    def AddQueryResult(self, *args):
+      self._query.append(args)
+
+    def CountPending(self):
+      return len(self._query)
+
+    def Query(self, res, fields, filter_):
+      if res != constants.QR_NODE:
+        raise Exception("Querying wrong resource")
+
+      (exp_fields, check_filter, result) = self._query.pop(0)
+
+      if exp_fields != fields:
+        raise Exception("Expected fields %s, got %s" % (exp_fields, fields))
+
+      if not (filter_ is None or check_filter(filter_)):
+        raise Exception("Filter doesn't match expectations")
+
+      return objects.QueryResponse(fields=None, data=result)
+
+  def testEmpty(self):
+    cl = self._FakeClient()
+
+    cl.AddQueryResult(["name", "offline", "sip"], None, [])
+    self.assertEqual(cli.GetOnlineNodes(None, cl=cl), [])
+    self.assertEqual(cl.CountPending(), 0)
+
+  def testNoSpecialFilter(self):
+    cl = self._FakeClient()
+
+    cl.AddQueryResult(["name", "offline", "sip"], None, [
+      [(constants.RS_NORMAL, "master.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.1")],
+      [(constants.RS_NORMAL, "node2.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.2")],
+      ])
+    self.assertEqual(cli.GetOnlineNodes(None, cl=cl),
+                     ["master.example.com", "node2.example.com"])
+    self.assertEqual(cl.CountPending(), 0)
+
+  def testNoMaster(self):
+    cl = self._FakeClient()
+
+    def _CheckFilter(filter_):
+      self.assertEqual(filter_, [qlang.OP_NOT, [qlang.OP_TRUE, "master"]])
+      return True
+
+    cl.AddQueryResult(["name", "offline", "sip"], _CheckFilter, [
+      [(constants.RS_NORMAL, "node2.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.2")],
+      ])
+    self.assertEqual(cli.GetOnlineNodes(None, cl=cl, filter_master=True),
+                     ["node2.example.com"])
+    self.assertEqual(cl.CountPending(), 0)
+
+  def testSecondaryIpAddress(self):
+    cl = self._FakeClient()
+
+    cl.AddQueryResult(["name", "offline", "sip"], None, [
+      [(constants.RS_NORMAL, "master.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.1")],
+      [(constants.RS_NORMAL, "node2.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.2")],
+      ])
+    self.assertEqual(cli.GetOnlineNodes(None, cl=cl, secondary_ips=True),
+                     ["192.0.2.1", "192.0.2.2"])
+    self.assertEqual(cl.CountPending(), 0)
+
+  def testNoMasterFilterNodeName(self):
+    cl = self._FakeClient()
+
+    def _CheckFilter(filter_):
+      self.assertEqual(filter_,
+        [qlang.OP_AND,
+         [qlang.OP_OR] + [[qlang.OP_EQUAL, "name", name]
+                          for name in ["node2", "node3"]],
+         [qlang.OP_NOT, [qlang.OP_TRUE, "master"]]])
+      return True
+
+    cl.AddQueryResult(["name", "offline", "sip"], _CheckFilter, [
+      [(constants.RS_NORMAL, "node2.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.12")],
+      [(constants.RS_NORMAL, "node3.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.13")],
+      ])
+    self.assertEqual(cli.GetOnlineNodes(["node2", "node3"], cl=cl,
+                                        secondary_ips=True, filter_master=True),
+                     ["192.0.2.12", "192.0.2.13"])
+    self.assertEqual(cl.CountPending(), 0)
+
+  def testOfflineNodes(self):
+    cl = self._FakeClient()
+
+    cl.AddQueryResult(["name", "offline", "sip"], None, [
+      [(constants.RS_NORMAL, "master.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.1")],
+      [(constants.RS_NORMAL, "node2.example.com"),
+       (constants.RS_NORMAL, True),
+       (constants.RS_NORMAL, "192.0.2.2")],
+      [(constants.RS_NORMAL, "node3.example.com"),
+       (constants.RS_NORMAL, True),
+       (constants.RS_NORMAL, "192.0.2.3")],
+      ])
+    self.assertEqual(cli.GetOnlineNodes(None, cl=cl, nowarn=True),
+                     ["master.example.com"])
+    self.assertEqual(cl.CountPending(), 0)
+
+  def testNodeGroup(self):
+    cl = self._FakeClient()
+
+    def _CheckFilter(filter_):
+      self.assertEqual(filter_,
+        [qlang.OP_OR, [qlang.OP_EQUAL, "group", "foobar"],
+                      [qlang.OP_EQUAL, "group.uuid", "foobar"]])
+      return True
+
+    cl.AddQueryResult(["name", "offline", "sip"], _CheckFilter, [
+      [(constants.RS_NORMAL, "master.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.1")],
+      [(constants.RS_NORMAL, "node3.example.com"),
+       (constants.RS_NORMAL, False),
+       (constants.RS_NORMAL, "192.0.2.3")],
+      ])
+    self.assertEqual(cli.GetOnlineNodes(None, cl=cl, nodegroup="foobar"),
+                     ["master.example.com", "node3.example.com"])
+    self.assertEqual(cl.CountPending(), 0)
 
 
 if __name__ == '__main__':
