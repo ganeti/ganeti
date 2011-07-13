@@ -541,6 +541,8 @@ class SharedLock(object):
     finally:
       self.__lock.release()
 
+  is_owned = _is_owned
+
   def _count_pending(self):
     """Returns the number of pending acquires.
 
