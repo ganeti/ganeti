@@ -689,9 +689,9 @@ class TestSharedLock(_ThreadedTestCase):
       ev.wait()
 
     # Check lock information
-    self.assertEqual(self.sl.GetInfo(set([query.LQ_MODE, query.LQ_OWNER])),
-                     (self.sl.name, "exclusive", [th_excl1.getName()], None))
-    (_, _, _, pending) = self.sl.GetInfo(set([query.LQ_PENDING]))
+    self.assertEqual(self.sl.GetLockInfo(set([query.LQ_MODE, query.LQ_OWNER])),
+                     [(self.sl.name, "exclusive", [th_excl1.getName()], None)])
+    [(_, _, _, pending), ] = self.sl.GetLockInfo(set([query.LQ_PENDING]))
     self.assertEqual([(pendmode, sorted(waiting))
                       for (pendmode, waiting) in pending],
                      [("exclusive", [th_excl2.getName()]),
@@ -705,10 +705,11 @@ class TestSharedLock(_ThreadedTestCase):
       ev.wait()
 
     # Check lock information again
-    self.assertEqual(self.sl.GetInfo(set([query.LQ_MODE, query.LQ_PENDING])),
-                     (self.sl.name, "shared", None,
-                      [("exclusive", [th_excl2.getName()])]))
-    (_, _, owner, _) = self.sl.GetInfo(set([query.LQ_OWNER]))
+    self.assertEqual(self.sl.GetLockInfo(set([query.LQ_MODE,
+                                              query.LQ_PENDING])),
+                     [(self.sl.name, "shared", None,
+                       [("exclusive", [th_excl2.getName()])])])
+    [(_, _, owner, _), ] = self.sl.GetLockInfo(set([query.LQ_OWNER]))
     self.assertEqual(set(owner), set([th_excl1.getName()] +
                                      [th.getName() for th in th_shared]))
 
@@ -718,9 +719,9 @@ class TestSharedLock(_ThreadedTestCase):
 
     self._waitThreads()
 
-    self.assertEqual(self.sl.GetInfo(set([query.LQ_MODE, query.LQ_OWNER,
-                                          query.LQ_PENDING])),
-                     (self.sl.name, None, None, []))
+    self.assertEqual(self.sl.GetLockInfo(set([query.LQ_MODE, query.LQ_OWNER,
+                                              query.LQ_PENDING])),
+                     [(self.sl.name, None, None, [])])
 
   @_Repeat
   def testMixedAcquireTimeout(self):
@@ -887,12 +888,14 @@ class TestSharedLock(_ThreadedTestCase):
     prev.wait()
 
     # Check lock information
-    self.assertEqual(self.sl.GetInfo(set()), (self.sl.name, None, None, None))
-    self.assertEqual(self.sl.GetInfo(set([query.LQ_MODE, query.LQ_OWNER])),
-                     (self.sl.name, "exclusive",
-                      [threading.currentThread().getName()], None))
+    self.assertEqual(self.sl.GetLockInfo(set()),
+                     [(self.sl.name, None, None, None)])
+    self.assertEqual(self.sl.GetLockInfo(set([query.LQ_MODE, query.LQ_OWNER])),
+                     [(self.sl.name, "exclusive",
+                       [threading.currentThread().getName()], None)])
 
-    self._VerifyPrioPending(self.sl.GetInfo(set([query.LQ_PENDING])), perprio)
+    self._VerifyPrioPending(self.sl.GetLockInfo(set([query.LQ_PENDING])),
+                            perprio)
 
     # Let threads acquire the lock
     self.sl.release()
@@ -913,7 +916,7 @@ class TestSharedLock(_ThreadedTestCase):
 
     self.assertRaises(Queue.Empty, self.done.get_nowait)
 
-  def _VerifyPrioPending(self, (name, mode, owner, pending), perprio):
+  def _VerifyPrioPending(self, ((name, mode, owner, pending), ), perprio):
     self.assertEqual(name, self.sl.name)
     self.assert_(mode is None)
     self.assert_(owner is None)
@@ -2153,6 +2156,88 @@ class TestLockMonitor(_ThreadedTestCase):
 
     result = self.lm.QueryLocks(["name", "mode", "owner"])
     self.assertEqual(objects.QueryResponse.FromDict(result).data, [])
+
+  class _FakeLock:
+    def __init__(self):
+      self._info = []
+
+    def AddResult(self, *args):
+      self._info.append(args)
+
+    def CountPending(self):
+      return len(self._info)
+
+    def GetLockInfo(self, requested):
+      (exp_requested, result) = self._info.pop(0)
+
+      if exp_requested != requested:
+        raise Exception("Requested information (%s) does not match"
+                        " expectations (%s)" % (requested, exp_requested))
+
+      return result
+
+  def testMultipleResults(self):
+    fl1 = self._FakeLock()
+    fl2 = self._FakeLock()
+
+    self.lm.RegisterLock(fl1)
+    self.lm.RegisterLock(fl2)
+
+    # Empty information
+    for i in [fl1, fl2]:
+      i.AddResult(set([query.LQ_MODE, query.LQ_OWNER]), [])
+    result = self.lm.QueryLocks(["name", "mode", "owner"])
+    self.assertEqual(objects.QueryResponse.FromDict(result).data, [])
+    for i in [fl1, fl2]:
+      self.assertEqual(i.CountPending(), 0)
+
+    # Check ordering
+    for fn in [lambda x: x, reversed, sorted]:
+      fl1.AddResult(set(), list(fn([
+        ("aaa", None, None, None),
+        ("bbb", None, None, None),
+        ])))
+      fl2.AddResult(set(), [])
+      result = self.lm.QueryLocks(["name"])
+      self.assertEqual(objects.QueryResponse.FromDict(result).data, [
+        [(constants.RS_NORMAL, "aaa")],
+        [(constants.RS_NORMAL, "bbb")],
+        ])
+      for i in [fl1, fl2]:
+        self.assertEqual(i.CountPending(), 0)
+
+      for fn2 in [lambda x: x, reversed, sorted]:
+        fl1.AddResult(set([query.LQ_MODE]), list(fn([
+          # Same name, but different information
+          ("aaa", "mode0", None, None),
+          ("aaa", "mode1", None, None),
+          ("aaa", "mode2", None, None),
+          ("aaa", "mode3", None, None),
+          ])))
+        fl2.AddResult(set([query.LQ_MODE]), [
+          ("zzz", "end", None, None),
+          ("000", "start", None, None),
+          ] + list(fn2([
+          ("aaa", "b200", None, None),
+          ("aaa", "b300", None, None),
+          ])))
+        result = self.lm.QueryLocks(["name", "mode"])
+        self.assertEqual(objects.QueryResponse.FromDict(result).data, [
+          [(constants.RS_NORMAL, "000"), (constants.RS_NORMAL, "start")],
+          ] + list(fn([
+          # Name is the same, so order must be equal to incoming order
+          [(constants.RS_NORMAL, "aaa"), (constants.RS_NORMAL, "mode0")],
+          [(constants.RS_NORMAL, "aaa"), (constants.RS_NORMAL, "mode1")],
+          [(constants.RS_NORMAL, "aaa"), (constants.RS_NORMAL, "mode2")],
+          [(constants.RS_NORMAL, "aaa"), (constants.RS_NORMAL, "mode3")],
+          ])) + list(fn2([
+          [(constants.RS_NORMAL, "aaa"), (constants.RS_NORMAL, "b200")],
+          [(constants.RS_NORMAL, "aaa"), (constants.RS_NORMAL, "b300")],
+          ])) + [
+          [(constants.RS_NORMAL, "zzz"), (constants.RS_NORMAL, "end")],
+          ])
+        for i in [fl1, fl2]:
+          self.assertEqual(i.CountPending(), 0)
 
 
 if __name__ == '__main__':

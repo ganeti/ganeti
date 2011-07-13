@@ -434,9 +434,10 @@ class SharedLock(object):
 
     # Register with lock monitor
     if monitor:
+      logging.debug("Adding lock %s to monitor", name)
       monitor.RegisterLock(self)
 
-  def GetInfo(self, requested):
+  def GetLockInfo(self, requested):
     """Retrieves information for querying locks.
 
     @type requested: set
@@ -489,7 +490,7 @@ class SharedLock(object):
       else:
         pending = None
 
-      return (self.name, mode, owner_names, pending)
+      return [(self.name, mode, owner_names, pending)]
     finally:
       self.__lock.release()
 
@@ -1638,15 +1639,17 @@ class GanetiLockManager:
     return self.__keyring[level].remove(names)
 
 
-def _MonitorSortKey((num, item)):
+def _MonitorSortKey((item, idx, num)):
   """Sorting key function.
 
-  Sort by name, then by incoming order.
+  Sort by name, registration order and then order of information. This provides
+  a stable sort order over different providers, even if they return the same
+  name.
 
   """
   (name, _, _, _) = item
 
-  return (utils.NiceSortKey(name), num)
+  return (utils.NiceSortKey(name), num, idx)
 
 
 class LockMonitor(object):
@@ -1666,12 +1669,19 @@ class LockMonitor(object):
     self._locks = weakref.WeakKeyDictionary()
 
   @ssynchronized(_LOCK_ATTR)
-  def RegisterLock(self, lock):
+  def RegisterLock(self, provider):
     """Registers a new lock.
 
+    @param provider: Object with a callable method named C{GetLockInfo}, taking
+      a single C{set} containing the requested information items
+    @note: It would be nicer to only receive the function generating the
+      requested information but, as it turns out, weak references to bound
+      methods (e.g. C{self.GetLockInfo}) are tricky; there are several
+      workarounds, but none of the ones I found works properly in combination
+      with a standard C{WeakKeyDictionary}
+
     """
-    logging.debug("Registering lock %s", lock.name)
-    assert lock not in self._locks, "Duplicate lock registration"
+    assert provider not in self._locks, "Duplicate registration"
 
     # There used to be a check for duplicate names here. As it turned out, when
     # a lock is re-created with the same name in a very short timeframe, the
@@ -1679,14 +1689,22 @@ class LockMonitor(object):
     # By keeping track of the order of incoming registrations, a stable sort
     # ordering can still be guaranteed.
 
-    self._locks[lock] = self._counter.next()
+    self._locks[provider] = self._counter.next()
 
-  @ssynchronized(_LOCK_ATTR)
   def _GetLockInfo(self, requested):
-    """Get information from all locks while the monitor lock is held.
+    """Get information from all locks.
 
     """
-    return [(num, lock.GetInfo(requested)) for lock, num in self._locks.items()]
+    # Must hold lock while getting consistent list of tracked items
+    self._lock.acquire(shared=1)
+    try:
+      items = self._locks.items()
+    finally:
+      self._lock.release()
+
+    return [(info, idx, num)
+            for (provider, num) in items
+            for (idx, info) in enumerate(provider.GetLockInfo(requested))]
 
   def _Query(self, fields):
     """Queries information from all locks.
@@ -1703,7 +1721,7 @@ class LockMonitor(object):
                       key=_MonitorSortKey)
 
     # Extract lock information and build query data
-    return (qobj, query.LockQueryData(map(operator.itemgetter(1), lockinfo)))
+    return (qobj, query.LockQueryData(map(operator.itemgetter(0), lockinfo)))
 
   def QueryLocks(self, fields):
     """Queries information from all locks.
