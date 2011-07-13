@@ -302,27 +302,37 @@ prop_Utils_fromObjWithDefault def_value random_key =
 prop_Utils_if'if :: Bool -> Int -> Int -> Bool
 prop_Utils_if'if cnd a b = Utils.if' cnd a b == if cnd then a else b
 
--- | Test select
+-- | Test basic select functionality
 prop_Utils_select :: Int   -- ^ Default result
                   -> [Int] -- ^ List of False values
                   -> [Int] -- ^ List of True values
-                  -> Bool  -- ^ Try undef result (if a true value exists)
-                  -> Bool  -- ^ Try undef true value (if a true value exists)
-                  -> Bool  -- ^ Try undef false value (if a true value exists)
                   -> Bool  -- ^ Test result
-prop_Utils_select di lst1 lst2 rundefd rundeft rundeff =
+prop_Utils_select def lst1 lst2 =
   Utils.select def cndlist == expectedresult
-  where has_nondef_result = not (null lst2)
-        try_undefd = has_nondef_result && rundefd
-        try_undeft = has_nondef_result && rundeft
-        try_undeff = has_nondef_result && rundeff
-        def = Utils.if' try_undefd undefined di
-        utl = Utils.if' try_undeft [(True, undefined)] []
-        ufl = Utils.if' try_undeff [(False, undefined)] []
-        expectedresult = Utils.if' has_nondef_result (head lst2) def
+  where expectedresult = Utils.if' (null lst2) def (head lst2)
         flist = map (\e -> (False, e)) lst1
         tlist = map (\e -> (True, e)) lst2
-        cndlist = flist ++ tlist ++ utl ++ ufl
+        cndlist = flist ++ tlist
+
+-- | Test basic select functionality with undefined default
+prop_Utils_select_undefd :: [Int] -- ^ List of False values
+                         -> NonEmptyList Int -- ^ List of True values
+                         -> Bool  -- ^ Test result
+prop_Utils_select_undefd lst1 (NonEmpty lst2) =
+  Utils.select undefined cndlist == head lst2
+  where flist = map (\e -> (False, e)) lst1
+        tlist = map (\e -> (True, e)) lst2
+        cndlist = flist ++ tlist
+
+-- | Test basic select functionality with undefined list values
+prop_Utils_select_undefv :: [Int] -- ^ List of False values
+                         -> NonEmptyList Int -- ^ List of True values
+                         -> Bool  -- ^ Test result
+prop_Utils_select_undefv lst1 (NonEmpty lst2) =
+  Utils.select undefined cndlist == head lst2
+  where flist = map (\e -> (False, e)) lst1
+        tlist = map (\e -> (True, e)) lst2
+        cndlist = flist ++ tlist ++ [undefined]
 
 -- | Test list for the Utils module.
 testUtils =
@@ -331,6 +341,8 @@ testUtils =
   , run prop_Utils_fromObjWithDefault
   , run prop_Utils_if'if
   , run prop_Utils_select
+  , run prop_Utils_select_undefd
+  , run prop_Utils_select_undefv
   ]
 
 -- ** PeerMap tests
