@@ -43,6 +43,7 @@ import testutils
 class _FakeJob:
   def __init__(self, job_id, status):
     self.id = job_id
+    self.writable = False
     self._status = status
     self._log = []
 
@@ -279,7 +280,7 @@ class TestQueuedOpCode(unittest.TestCase):
 class TestQueuedJob(unittest.TestCase):
   def test(self):
     self.assertRaises(errors.GenericError, jqueue._QueuedJob,
-                      None, 1, [])
+                      None, 1, [], False)
 
   def testDefaults(self):
     job_id = 4260
@@ -289,6 +290,7 @@ class TestQueuedJob(unittest.TestCase):
       ]
 
     def _Check(job):
+      self.assertTrue(job.writable)
       self.assertEqual(job.id, job_id)
       self.assertEqual(job.log_serial, 0)
       self.assert_(job.received_timestamp)
@@ -305,11 +307,18 @@ class TestQueuedJob(unittest.TestCase):
       self.assertEqual(job.GetInfo(["summary"]),
                        [[op.input.Summary() for op in job.ops]])
 
-    job1 = jqueue._QueuedJob(None, job_id, ops)
+    job1 = jqueue._QueuedJob(None, job_id, ops, True)
     _Check(job1)
-    job2 = jqueue._QueuedJob.Restore(None, job1.Serialize())
+    job2 = jqueue._QueuedJob.Restore(None, job1.Serialize(), True)
     _Check(job2)
     self.assertEqual(job1.Serialize(), job2.Serialize())
+
+  def testWritable(self):
+    job = jqueue._QueuedJob(None, 1, [opcodes.OpTestDelay()], False)
+    self.assertFalse(job.writable)
+
+    job = jqueue._QueuedJob(None, 1, [opcodes.OpTestDelay()], True)
+    self.assertTrue(job.writable)
 
   def testPriority(self):
     job_id = 4283
@@ -323,7 +332,7 @@ class TestQueuedJob(unittest.TestCase):
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
       self.assert_(repr(job).startswith("<"))
 
-    job = jqueue._QueuedJob(None, job_id, ops)
+    job = jqueue._QueuedJob(None, job_id, ops, True)
     _Check(job)
     self.assert_(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                             for op in job.ops))
@@ -409,7 +418,8 @@ class TestQueuedJob(unittest.TestCase):
 
     def _NewJob():
       job = jqueue._QueuedJob(None, 1,
-                              [opcodes.OpTestDelay() for _ in range(10)])
+                              [opcodes.OpTestDelay() for _ in range(10)],
+                              True)
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
       self.assert_(compat.all(op.status == constants.OP_STATUS_QUEUED
                               for op in job.ops))
@@ -550,7 +560,7 @@ class _FakeExecOpCodeForProc:
 
 class _JobProcessorTestUtils:
   def _CreateJob(self, queue, job_id, ops):
-    job = jqueue._QueuedJob(queue, job_id, ops)
+    job = jqueue._QueuedJob(queue, job_id, ops, True)
     self.assertFalse(job.start_timestamp)
     self.assertFalse(job.end_timestamp)
     self.assertEqual(len(ops), len(job.ops))
@@ -972,7 +982,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assert_(job.ops_iter)
 
       # Serialize and restore (simulates program restart)
-      newjob = jqueue._QueuedJob.Restore(queue, job.Serialize())
+      newjob = jqueue._QueuedJob.Restore(queue, job.Serialize(), True)
       self.assertFalse(newjob.ops_iter)
       self._TestPartial(newjob, successcount)
 
@@ -1016,7 +1026,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self.assertRaises(IndexError, queue.GetNextUpdate)
 
     # ... also after being restored
-    job2 = jqueue._QueuedJob.Restore(queue, job.Serialize())
+    job2 = jqueue._QueuedJob.Restore(queue, job.Serialize(), True)
     # Calling the processor on a finished job should be a no-op
     self.assertTrue(jqueue._JobProcessor(queue, opexec, job2)())
     self.assertRaises(IndexError, queue.GetNextUpdate)
@@ -1117,7 +1127,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self._CheckLogMessages(job, logmsgcount)
 
     # Serialize and restore (simulates program restart)
-    newjob = jqueue._QueuedJob.Restore(queue, job.Serialize())
+    newjob = jqueue._QueuedJob.Restore(queue, job.Serialize(), True)
     self._CheckLogMessages(newjob, logmsgcount)
 
     # Check each message
