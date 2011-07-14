@@ -717,7 +717,7 @@ prop_Node_addSec node inst pdx =
 
 -- | Checks for memory reservation changes.
 prop_Node_rMem inst =
-    forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
+    forAll (arbitrary `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
     -- ab = auto_balance, nb = non-auto_balance
     -- we use -1 as the primary node of the instance
     let inst' = inst { Instance.pNode = -1, Instance.autoBalance = True }
