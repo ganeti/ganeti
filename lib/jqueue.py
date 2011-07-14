@@ -217,7 +217,12 @@ class _QueuedJob(object):
     obj.writable = writable
     obj.ops_iter = None
     obj.cur_opctx = None
-    obj.processor_lock = threading.Lock()
+
+    # Read-only jobs are not processed and therefore don't need a lock
+    if writable:
+      obj.processor_lock = threading.Lock()
+    else:
+      obj.processor_lock = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
@@ -1231,6 +1236,8 @@ class _JobQueueWorker(workerpool.BaseWorker):
     @param job: the job to be processed
 
     """
+    assert job.writable, "Expected writable job"
+
     # Ensure only one worker is active on a single job. If a job registers for
     # a dependency job, and the other job notifies before the first worker is
     # done, the job can end up in the tasklist more than once.
