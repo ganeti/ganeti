@@ -863,6 +863,10 @@ class _OpExecContext:
 
 
 class _JobProcessor(object):
+  (DEFER,
+   WAITDEP,
+   FINISHED) = range(1, 4)
+
   def __init__(self, queue, opexec_fn, job,
                _timeout_strategy_factory=mcpu.LockAttemptTimeoutStrategy):
     """Initializes this class.
@@ -1050,9 +1054,9 @@ class _JobProcessor(object):
     """Continues execution of a job.
 
     @param _nextop_fn: Callback function for tests
-    @rtype: bool
-    @return: True if job is finished, False if processor needs to be called
-             again
+    @return: C{FINISHED} if job is fully processed, C{DEFER} if the job should
+      be deferred and C{WAITDEP} if the dependency manager
+      (L{_JobDependencyManager}) will re-schedule the job when appropriate
 
     """
     queue = self.queue
@@ -1068,7 +1072,7 @@ class _JobProcessor(object):
 
       # Don't do anything for finalized jobs
       if job.CalcStatus() in constants.JOBS_FINALIZED:
-        return True
+        return self.FINISHED
 
       # Is a previous opcode still pending?
       if job.cur_opctx:
@@ -1213,13 +1217,14 @@ class _JobProcessor(object):
 
         if finalize:
           logging.info("Finished job %s, status = %s", job.id, job.CalcStatus())
-          # TODO: Check locking
-          queue.depmgr.NotifyWaiters(job.id)
-          return True
+          return self.FINISHED
 
       assert not waitjob or queue.depmgr.JobWaiting(job)
 
-      return bool(waitjob)
+      if waitjob:
+        return self.WAITDEP
+      else:
+        return self.DEFER
     finally:
       assert job.writable, "Job became read-only while being processed"
       queue.release()
@@ -1265,9 +1270,23 @@ class _JobQueueWorker(workerpool.BaseWorker):
     wrap_execop_fn = compat.partial(self._WrapExecOpCode, setname_fn,
                                     proc.ExecOpCode)
 
-    if not _JobProcessor(queue, wrap_execop_fn, job)():
+    result = _JobProcessor(queue, wrap_execop_fn, job)()
+
+    if result == _JobProcessor.FINISHED:
+      # Notify waiting jobs
+      queue.depmgr.NotifyWaiters(job.id)
+
+    elif result == _JobProcessor.DEFER:
       # Schedule again
       raise workerpool.DeferTask(priority=job.CalcPriority())
+
+    elif result == _JobProcessor.WAITDEP:
+      # No-op, dependency manager will re-schedule
+      pass
+
+    else:
+      raise errors.ProgrammerError("Job processor returned unknown status %s" %
+                                   (result, ))
 
   @staticmethod
   def _WrapExecOpCode(setname_fn, execop_fn, op, *args, **kwargs):
@@ -1570,7 +1589,7 @@ class JobQueue(object):
 
     if restartjobs:
       logging.info("Restarting %s jobs", len(restartjobs))
-      self._EnqueueJobs(restartjobs)
+      self._EnqueueJobsUnlocked(restartjobs)
 
     logging.info("Job queue inspection finished")
 
@@ -2015,7 +2034,7 @@ class JobQueue(object):
 
     """
     (job_id, ) = self._NewSerialsUnlocked(1)
-    self._EnqueueJobs([self._SubmitJobUnlocked(job_id, ops)])
+    self._EnqueueJobsUnlocked([self._SubmitJobUnlocked(job_id, ops)])
     return job_id
 
   @locking.ssynchronized(_LOCK)
@@ -2031,7 +2050,7 @@ class JobQueue(object):
     (results, added_jobs) = \
       self._SubmitManyJobsUnlocked(jobs, all_job_ids, [])
 
-    self._EnqueueJobs(added_jobs)
+    self._EnqueueJobsUnlocked(added_jobs)
 
     return results
 
@@ -2112,6 +2131,7 @@ class JobQueue(object):
 
     return (results, added_jobs)
 
+  @locking.ssynchronized(_LOCK)
   def _EnqueueJobs(self, jobs):
     """Helper function to add jobs to worker pool's queue.
 
@@ -2119,6 +2139,16 @@ class JobQueue(object):
     @param jobs: List of all jobs
 
     """
+    return self._EnqueueJobsUnlocked(jobs)
+
+  def _EnqueueJobsUnlocked(self, jobs):
+    """Helper function to add jobs to worker pool's queue.
+
+    @type jobs: list
+    @param jobs: List of all jobs
+
+    """
+    assert self._lock.is_owned(shared=0), "Must own lock in exclusive mode"
     self._wpool.AddManyTasks([(job, ) for job in jobs],
                              priority=[job.CalcPriority() for job in jobs])
 
