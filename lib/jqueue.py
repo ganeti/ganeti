@@ -1332,6 +1332,7 @@ class JobQueue(object):
         else:
           job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
                                 "Unclean master daemon shutdown")
+          job.Finalize()
 
         self.UpdateJobUnlocked(job)
 
