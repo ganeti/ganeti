@@ -115,6 +115,86 @@ Example data structures::
   }
 
 
+Implementation details
+----------------------
+
+Status while waiting for dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Jobs waiting for dependencies are certainly not in the queue anymore and
+therefore need to change their status from "queued". While waiting for
+opcode locks the job is in the "waiting" status (the constant is named
+``JOB_STATUS_WAITLOCK``, but the actual value is ``waiting``). There the
+following possibilities:
+
+#. Introduce a new status, e.g. "waitdeps".
+
+   Pro:
+
+   - Clients know for sure a job is waiting for dependencies, not locks
+
+   Con:
+
+   - Code and tests would have to be updated/extended for the new status
+   - List of possible state transitions certainly wouldn't get simpler
+   - Breaks backwards compatibility, older clients might get confused
+
+#. Use existing "waiting" status.
+
+   Pro:
+
+   - No client changes necessary, less code churn (note that there are
+     clients which don't live in Ganeti core)
+   - Clients don't need to know the difference between waiting for a job
+     and waiting for a lock; it doesn't make a difference
+   - Fewer state transitions (see commit ``5fd6b69479c0``, which removed
+     many state transitions and disk writes)
+
+   Con:
+
+   - Not immediately visible what a job is waiting for, but it's the
+     same issue with locks; this is the reason why the lock monitor
+     (``gnt-debug locks``) was introduced; job dependencies can be shown
+     as "locks" in the monitor
+
+Based on these arguments, the proposal is to do the following:
+
+- Rename ``JOB_STATUS_WAITLOCK`` constant to ``JOB_STATUS_WAITING`` to
+  reflect its actual meanting: the job is waiting for something
+- While waiting for dependencies and locks, jobs are in the "waiting"
+  status
+- Export dependency information in lock monitor; example output::
+
+    Name      Mode Owner Pending
+    job/27491 -    -     success:job/34709,job/21459
+    job/21459 -    -     success,error:job/14513
+
+
+Cost of deserialization
+~~~~~~~~~~~~~~~~~~~~~~~
+
+To determine the status of a dependency job the job queue must have
+access to its data structure. Other queue operations already do this,
+e.g. archiving, watching a job's progress and querying jobs.
+
+Initially (Ganeti 2.0/2.1) the job queue shared the job objects
+in memory and protected them using locks. Ganeti 2.2 (see :doc:`design
+document <design-2.2>`) changed the queue to read and deserialize jobs
+from disk. This significantly reduced locking and code complexity.
+Nowadays inotify is used to wait for changes on job files when watching
+a job's progress.
+
+Reading from disk and deserializing certainly has some cost associated
+with it, but it's a significantly simpler architecture than
+synchronizing in memory with locks. At the stage where dependencies are
+evaluated the queue lock is held in shared mode, so different workers
+can read at the same time (deliberately ignoring CPython's interpreter
+lock).
+
+It is expected that the majority of executed jobs won't use
+dependencies and therefore won't be affected.
+
+
 Other discussed solutions
 =========================
 
