@@ -582,8 +582,7 @@ tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
         all_inst' = if evac_mode
                     then let bad_nodes = map Node.idx . filter Node.offline $
                                          Container.elems ini_nl
-                         in filter (\e -> Instance.sNode e `elem` bad_nodes ||
-                                          Instance.pNode e `elem` bad_nodes)
+                         in filter (any (`elem` bad_nodes) . Instance.allNodes)
                             all_inst
                     else all_inst
         reloc_inst = filter Instance.movable all_inst'
@@ -1223,13 +1222,22 @@ printSolutionLine nl il nmlen imlen plc pos =
        cmds)
 
 -- | Return the instance and involved nodes in an instance move.
-involvedNodes :: Instance.List -> Placement -> [Ndx]
+--
+-- Note that the output list length can vary, and is not required nor
+-- guaranteed to be of any specific length.
+involvedNodes :: Instance.List -- ^ Instance list, used for retrieving
+                               -- the instance from its index; note
+                               -- that this /must/ be the original
+                               -- instance list, so that we can
+                               -- retrieve the old nodes
+              -> Placement     -- ^ The placement we're investigating,
+                               -- containing the new nodes and
+                               -- instance index
+              -> [Ndx]         -- ^ Resulting list of node indices
 involvedNodes il plc =
     let (i, np, ns, _, _) = plc
         inst = Container.find i il
-        op = Instance.pNode inst
-        os = Instance.sNode inst
-    in nub [np, ns, op, os]
+    in nub $ [np, ns] ++ Instance.allNodes inst
 
 -- | Inner function for splitJobs, that either appends the next job to
 -- the current jobset, or starts a new jobset.
