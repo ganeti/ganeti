@@ -30,6 +30,8 @@ module Ganeti.HTools.Loader
     ( mergeData
     , checkData
     , assignIndices
+    , lookupName
+    , goodLookupResult
     , lookupNode
     , lookupInstance
     , lookupGroup

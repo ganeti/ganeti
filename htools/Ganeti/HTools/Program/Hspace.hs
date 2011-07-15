@@ -46,7 +46,7 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
-import Ganeti.HTools.Loader (ClusterData(..))
+import Ganeti.HTools.Loader
 
 -- | Options list and functions
 options :: [OptType]
@@ -246,21 +246,20 @@ main = do
 
   let num_instances = length $ Container.elems il
 
-  let offline_names = optOffline opts
+  let offline_passed = optOffline opts
       all_nodes = Container.elems fixed_nl
-      all_names = map Node.name all_nodes
-      offline_wrong = filter (`notElem` all_names) offline_names
+      offline_lkp = map (lookupName (map Node.name all_nodes)) offline_passed
+      offline_wrong = filter (not . goodLookupResult) offline_lkp
+      offline_names = map lrContent offline_lkp
       offline_indices = map Node.idx $
-                        filter (\n ->
-                                 Node.name n `elem` offline_names ||
-                                 Node.alias n `elem` offline_names)
+                        filter (\n -> Node.name n `elem` offline_names)
                                all_nodes
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
 
-  when (length offline_wrong > 0) $ do
+  when (not (null offline_wrong)) $ do
          hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
-                     (commaJoin offline_wrong) :: IO ()
+                     (commaJoin (map lrContent offline_wrong)) :: IO ()
          exitWith $ ExitFailure 1
 
   when (req_nodes /= 1 && req_nodes /= 2) $ do
