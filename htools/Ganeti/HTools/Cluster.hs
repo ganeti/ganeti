@@ -922,49 +922,48 @@ nodeEvacInstance nl il ChangeSecondary
         ops = iMoveToJob nl' il' idx (ReplaceSecondary ndx)
     return (nl', il', ops)
 
+-- The algorithm for ChangeAll is as follows:
+--
+-- * generate all (primary, secondary) node pairs for the target groups
+-- * for each pair, execute the needed moves (r:s, f, r:s) and compute
+--   the final node list state and group score
+-- * select the best choice via a foldl that uses the same Either
+--   String solution as the ChangeSecondary mode
 nodeEvacInstance nl il ChangeAll
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  gdx avail_nodes =
   do
-    let primary = Container.find (Instance.pNode inst) nl
-        idx = Instance.idx inst
-        no_nodes = Left "no nodes available"
-    -- if the primary is offline, then we first failover
-    (nl1, inst1, ops1) <-
-        if Node.offline primary
-        then do
-          (nl', inst', _, _) <-
-              annotateResult "Failing over to the secondary" $
-              opToResult $ applyMove nl inst Failover
-          return (nl', inst', [Failover])
-        else return (nl, inst, [])
-    -- we now need to execute a replace secondary to the future
-    -- primary node
-    (nl2, inst2, _, new_pdx) <- annotateResult "Searching for a new primary" $
-                                eitherToResult $
-                                foldl' (evacDrbdSecondaryInner nl1 inst1 gdx)
-                                no_nodes avail_nodes
-    let ops2 = ReplaceSecondary new_pdx:ops1
-    -- since we chose the new primary, we remove it from the list of
-    -- available nodes
-    let avail_nodes_sec = new_pdx `delete` avail_nodes
-    -- we now execute another failover, the primary stays fixed now
-    (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" $
-                          opToResult $ applyMove nl2 inst2 Failover
-    let ops3 = Failover:ops2
-    -- and finally another replace secondary, to the final secondary
-    (nl4, inst4, _, new_sdx) <-
-        annotateResult "Searching for a new secondary" $
+    let no_nodes = Left "no nodes available"
+        node_pairs = [(p,s) | p <- avail_nodes, s <- avail_nodes, p /= s]
+    (nl', il', ops, _) <-
+        annotateResult "Can't find any good nodes for relocation" $
         eitherToResult $
-        foldl' (evacDrbdSecondaryInner nl3 inst3 gdx) no_nodes avail_nodes_sec
-    let ops4 = ReplaceSecondary new_sdx:ops3
-        il' = Container.add idx inst4 il
-        ops = concatMap (iMoveToJob nl4 il' idx) $ reverse ops4
-    return (nl4, il', ops)
+        foldl'
+        (\accu nodes -> case evacDrbdAllInner nl il inst gdx nodes of
+                          Bad msg ->
+                              case accu of
+                                Right _ -> accu
+                                -- we don't need more details (which
+                                -- nodes, etc.) as we only selected
+                                -- this group if we can allocate on
+                                -- it, hence failures will not
+                                -- propagate out of this fold loop
+                                Left _ -> Left $ "Allocation failed: " ++ msg
+                          Ok result@(_, _, _, new_cv) ->
+                              let new_accu = Right result in
+                              case accu of
+                                Left _ -> new_accu
+                                Right (_, _, _, old_cv) ->
+                                    if old_cv < new_cv
+                                    then accu
+                                    else new_accu
+        ) no_nodes node_pairs
+
+    return (nl', il', ops)
 
 -- | Inner fold function for changing secondary of a DRBD instance.
 --
--- The "running" solution is either a @Left String@, which means we
+-- The running solution is either a @Left String@, which means we
 -- don't have yet a working solution, or a @Right (...)@, which
 -- represents a valid solution; it holds the modified node list, the
 -- modified instance (after evacuation), the score of that solution,
@@ -1002,6 +1001,66 @@ evacDrbdSecondaryInner nl inst gdx accu ndx =
                    if old_cv < new_cv
                    then accu
                    else new_accu
+
+-- | Compute result of changing all nodes of a DRBD instance.
+--
+-- Given the target primary and secondary node (which might be in a
+-- different group or not), this function will 'execute' all the
+-- required steps and assuming all operations succceed, will return
+-- the modified node and instance lists, the opcodes needed for this
+-- and the new group score.
+evacDrbdAllInner :: Node.List         -- ^ Cluster node list
+                 -> Instance.List     -- ^ Cluster instance list
+                 -> Instance.Instance -- ^ The instance to be moved
+                 -> Gdx               -- ^ The target group index
+                                      -- (which can differ from the
+                                      -- current group of the
+                                      -- instance)
+                 -> (Ndx, Ndx)        -- ^ Tuple of new
+                                      -- primary\/secondary nodes
+                 -> Result (Node.List, Instance.List, [OpCodes.OpCode], Score)
+evacDrbdAllInner nl il inst gdx (t_pdx, t_sdx) =
+  do
+    let primary = Container.find (Instance.pNode inst) nl
+        idx = Instance.idx inst
+    -- if the primary is offline, then we first failover
+    (nl1, inst1, ops1) <-
+        if Node.offline primary
+        then do
+          (nl', inst', _, _) <-
+              annotateResult "Failing over to the secondary" $
+              opToResult $ applyMove nl inst Failover
+          return (nl', inst', [Failover])
+        else return (nl, inst, [])
+    let (o1, o2, o3) = (ReplaceSecondary t_pdx,
+                        Failover,
+                        ReplaceSecondary t_sdx)
+    -- we now need to execute a replace secondary to the future
+    -- primary node
+    (nl2, inst2, _, _) <-
+        annotateResult "Changing secondary to new primary" $
+        opToResult $
+        applyMove nl1 inst1 o1
+    let ops2 = o1:ops1
+    -- we now execute another failover, the primary stays fixed now
+    (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" $
+                          opToResult $ applyMove nl2 inst2 o2
+    let ops3 = o2:ops2
+    -- and finally another replace secondary, to the final secondary
+    (nl4, inst4, _, _) <-
+        annotateResult "Changing secondary to final secondary" $
+        opToResult $
+        applyMove nl3 inst3 o3
+    let ops4 = o3:ops3
+        il' = Container.add idx inst4 il
+        ops = concatMap (iMoveToJob nl4 il' idx) $ reverse ops4
+    let nodes = Container.elems nl4
+        -- The fromJust below is ugly (it can fail nastily), but
+        -- at this point we should have any internal mismatches,
+        -- and adding a monad here would be quite involved
+        grpnodes = fromJust (gdx `lookup` Node.computeGroups nodes)
+        new_cv = compCVNodes grpnodes
+    return (nl4, il', ops, new_cv)
 
 -- | Computes the nodes in a given group which are available for
 -- allocation.
