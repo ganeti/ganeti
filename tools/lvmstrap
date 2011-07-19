@@ -54,7 +54,7 @@ from ganeti import compat
 
 USAGE = ("\tlvmstrap diskinfo\n"
          "\tlvmstrap [--vg-name=NAME] [--allow-removable]"
-         " { --alldisks | --disks DISKLIST }"
+         " { --alldisks | --disks DISKLIST } [--use-sfdisk]"
          " create")
 
 verbose_flag = False
@@ -85,7 +85,7 @@ PART_RE = re.compile("^((?:h|s|m|ub)d[a-z]{1,2})[0-9]+$")
 
 #: Minimum partition size to be considered (1 GB)
 PART_MINSIZE = 1024 * 1024 * 1024
-
+MBR_MAX_SIZE = 2 * 10**12
 
 class Error(Exception):
   """Generic exception"""
@@ -188,6 +188,9 @@ def ParseOptions():
   parser.add_option("-g", "--vg-name", type="string",
                     dest="vgname", default="xenvg", metavar="NAME",
                     help="the volume group to be created [default: xenvg]")
+  parser.add_option("--use-sfdisk", dest="use_sfdisk",
+                    action="store_true", default=False,
+                    help="use sfdisk instead of parted")
 
 
   options, args = parser.parse_args()
@@ -730,7 +733,7 @@ def WipeDisk(name):
                            name)
 
 
-def PartitionDisk(name):
+def PartitionDisk(name, use_sfdisk):
   """Partitions a disk.
 
   This function creates a single partition spanning the entire disk,
@@ -739,15 +742,49 @@ def PartitionDisk(name):
   @param name: the device name, e.g. sda
 
   """
-  result = ExecCommand(
-    'echo ,,8e, | sfdisk /dev/%s' % name)
+
+  # Check that parted exists
+  result = ExecCommand("parted --help")
   if result.failed:
-    raise OperationalError("CRITICAL: disk %s which I have just partitioned"
-                           " cannot reread its partition table, or there"
-                           " is some other sfdisk error. Likely, it is in"
-                           " use. You have to clean this yourself. Error"
-                           " message from sfdisk: %s" %
-                           (name, result.output))
+    use_sfdisk = True
+    print >> sys.stderr, ("Unable to execute \"parted --help\","
+                          " falling back to sfdisk.")
+
+  # Check disk size - over 2TB means we need to use GPT
+  size = ReadSize("/sys/block/%s" % name)
+  if size > MBR_MAX_SIZE:
+    label_type = "gpt"
+    if use_sfdisk:
+      raise OperationalError("Critical: Disk larger than 2TB detected, but"
+                             " parted is either not installed or --use-sfdisk"
+                             " has been specified")
+  else:
+    label_type = "msdos"
+
+  if use_sfdisk:
+    result = ExecCommand(
+        "echo ,,8e, | sfdisk /dev/%s" % name)
+    if result.failed:
+      raise OperationalError("CRITICAL: disk %s which I have just partitioned"
+                             " cannot reread its partition table, or there"
+                             " is some other sfdisk error. Likely, it is in"
+                             " use. You have to clean this yourself. Error"
+                             " message from sfdisk: %s" %
+                             (name, result.output))
+
+  else:
+    result = ExecCommand("parted -s /dev/%s mklabel %s" % (name, label_type))
+    if result.failed:
+      raise OperationalError("Critical: failed to create %s label on %s" %
+                             (label_type,name))
+    result = ExecCommand("parted -s /dev/%s mkpart pri ext2 1 100%%" % name)
+    if result.failed:
+      raise OperationalError("Critical: failed to create partition on %s" %
+                             name)
+    result = ExecCommand("parted -s /dev/%s set 1 lvm on" % name)
+    if result.failed:
+      raise OperationalError("Critical: failed to set partition on %s to LVM" %
+                             name)
 
 
 def CreatePVOnDisk(name):
@@ -861,7 +898,7 @@ def BootStrap():
   for disk in disklist:
     WipeDisk(disk)
     if IsPartitioned(disk):
-      PartitionDisk(disk)
+      PartitionDisk(disk, options.use_sfdisk)
   for disk in disklist:
     CreatePVOnDisk(disk)
   CreateVG(vgname, disklist)
