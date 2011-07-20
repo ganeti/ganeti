@@ -181,6 +181,37 @@ def RenameGroup(opts, args):
   SubmitOpCode(op, opts=opts)
 
 
+def EvacuateGroup(opts, args):
+  """Evacuate a node group.
+
+  """
+  (group_name, ) = args
+
+  cl = GetClient()
+
+  op = opcodes.OpGroupEvacuate(group_name=group_name,
+                               iallocator=opts.iallocator,
+                               target_groups=opts.to,
+                               early_release=opts.early_release)
+  result = SubmitOpCode(op, cl=cl, opts=opts)
+
+  # Keep track of submitted jobs
+  jex = JobExecutor(cl=cl, opts=opts)
+
+  for (status, job_id) in result[constants.JOB_IDS_KEY]:
+    jex.AddJobId(None, status, job_id)
+
+  results = jex.GetResults()
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    ToStdout("All instances evacuated successfully.")
+    rcode = constants.EXIT_SUCCESS
+  else:
+    ToStdout("There were %s errors during the evacuation.", bad_cnt)
+    rcode = constants.EXIT_FAILURE
+
+  return rcode
+
 commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT],
@@ -209,6 +240,10 @@ commands = {
   "rename": (
     RenameGroup, [ArgGroup(min=2, max=2)], [DRY_RUN_OPT],
     "[--dry-run] <group-name> <new-name>", "Rename a node group"),
+  "evacuate": (
+    EvacuateGroup, [ArgGroup(min=1, max=1)],
+    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT],
+    "-I <iallocator> [--to <group>]", "Evacuate all instances within a group"),
   "list-tags": (
     ListTags, ARGS_ONE_GROUP, [PRIORITY_OPT],
     "<instance_name>", "List the tags of the given instance"),

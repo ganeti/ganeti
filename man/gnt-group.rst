@@ -138,6 +138,23 @@ RENAME
 Renames a given group from *oldname* to *newname*.
 
 
+EVACUATE
+~~~~~~~~
+
+**evacuate** [--iallocator *NAME*] [--to *GROUP*...] {*group*}
+
+This command will move all instances out of the given node group.
+Instances are placed in a new group by an iallocator, either given on
+the command line or as a cluster default.
+
+If no specific destination groups are specified using ``--to``, all
+groups except the evacuated group are considered.
+
+Example::
+
+    # gnt-group evacuate -I hail --to rack4 rack1
+
+
 TAGS
 ~~~~
 

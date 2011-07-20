@@ -168,6 +168,7 @@ __all__ = [
   "TAG_ADD_OPT",
   "TAG_SRC_OPT",
   "TIMEOUT_OPT",
+  "TO_GROUP_OPT",
   "UIDPOOL_OPT",
   "USEUNITS_OPT",
   "USE_REPL_NET_OPT",
@@ -1227,6 +1228,11 @@ SECONDARY_ONLY_OPT = cli_option("-s", "--secondary-only",
 STARTUP_PAUSED_OPT = cli_option("--paused", dest="startup_paused",
                                 action="store_true", default=False,
                                 help="Pause instance at startup")
+
+TO_GROUP_OPT = cli_option("--to", dest="to", metavar="<group>",
+                          help="Destination node group (name or uuid)",
+                          default=None, action="append",
+                          completion_suggest=OPT_COMPL_ONE_NODEGROUP)
 
 
 #: Options provided by all commands
