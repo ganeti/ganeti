@@ -9921,16 +9921,7 @@ class LUNodeEvacuate(NoHooksLU):
                                    (self.op.iallocator, ial.info),
                                    errors.ECODE_NORES)
 
-      jobs = [[opcodes.OpCode.LoadOpCode(state) for state in jobset]
-              for jobset in ial.result]
-
-      # Set "early_release" flag on opcodes where available
-      early_release = self.op.early_release
-      for op in itertools.chain(*jobs): # pylint: disable-msg=W0142
-        try:
-          op.early_release = early_release
-        except AttributeError:
-          assert not isinstance(op, opcodes.OpInstanceReplaceDisks)
+      jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, True)
 
     elif self.op.remote_node is not None:
       assert self.op.mode == constants.IALLOCATOR_NEVAC_SEC
@@ -9947,6 +9938,62 @@ class LUNodeEvacuate(NoHooksLU):
       raise errors.ProgrammerError("No iallocator or remote node")
 
     return ResultWithJobs(jobs)
+
+
+def _SetOpEarlyRelease(early_release, op):
+  """Sets C{early_release} flag on opcodes if available.
+
+  """
+  try:
+    op.early_release = early_release
+  except AttributeError:
+    assert not isinstance(op, opcodes.OpInstanceReplaceDisks)
+
+  return op
+
+
+def _NodeEvacDest(use_nodes, group, nodes):
+  """Returns group or nodes depending on caller's choice.
+
+  """
+  if use_nodes:
+    return utils.CommaJoin(nodes)
+  else:
+    return group
+
+
+def _LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
+  """Unpacks the result of change-group and node-evacuate iallocator requests.
+
+  Iallocator modes L{constants.IALLOCATOR_MODE_NODE_EVAC} and
+  L{constants.IALLOCATOR_MODE_CHG_GROUP}.
+
+  @type lu: L{LogicalUnit}
+  @param lu: Logical unit instance
+  @type alloc_result: tuple/list
+  @param alloc_result: Result from iallocator
+  @type early_release: bool
+  @param early_release: Whether to release locks early if possible
+  @type use_nodes: bool
+  @param use_nodes: Whether to display node names instead of groups
+
+  """
+  (moved, failed, jobs) = alloc_result
+
+  if failed:
+    lu.LogWarning("Unable to evacuate instances %s",
+                  utils.CommaJoin("%s (%s)" % (name, reason)
+                                  for (name, reason) in failed))
+
+  if moved:
+    lu.LogInfo("Instances to be moved: %s",
+               utils.CommaJoin("%s (to %s)" %
+                               (name, _NodeEvacDest(use_nodes, group, nodes))
+                               for (name, group, nodes) in moved))
+
+  return [map(compat.partial(_SetOpEarlyRelease, early_release),
+              map(opcodes.OpCode.LoadOpCode, ops))
+          for ops in jobs]
 
 
 class LUInstanceGrowDisk(LogicalUnit):
@@ -12531,13 +12578,28 @@ class IAllocator(object):
     self.in_text = serializer.Dump(self.in_data)
 
   _STRING_LIST = ht.TListOf(ht.TString)
-  _JOBSET_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
+  _JOB_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
      # pylint: disable-msg=E1101
      # Class '...' has no 'OP_ID' member
      "OP_ID": ht.TElemOf([opcodes.OpInstanceFailover.OP_ID,
                           opcodes.OpInstanceMigrate.OP_ID,
                           opcodes.OpInstanceReplaceDisks.OP_ID])
      })))
+
+  _NEVAC_MOVED = \
+    ht.TListOf(ht.TAnd(ht.TIsLength(3),
+                       ht.TItems([ht.TNonEmptyString,
+                                  ht.TNonEmptyString,
+                                  ht.TListOf(ht.TNonEmptyString),
+                                 ])))
+  _NEVAC_FAILED = \
+    ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                       ht.TItems([ht.TNonEmptyString,
+                                  ht.TMaybeString,
+                                 ])))
+  _NEVAC_RESULT = ht.TAnd(ht.TIsLength(3),
+                          ht.TItems([_NEVAC_MOVED, _NEVAC_FAILED, _JOB_LIST]))
+
   _MODE_DATA = {
     constants.IALLOCATOR_MODE_ALLOC:
       (_AddNewInstance,
@@ -12563,12 +12625,12 @@ class IAllocator(object):
       (_AddNodeEvacuate, [
         ("instances", _STRING_LIST),
         ("evac_mode", ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)),
-        ], _JOBSET_LIST),
+        ], _NEVAC_RESULT),
      constants.IALLOCATOR_MODE_CHG_GROUP:
       (_AddChangeGroup, [
         ("instances", _STRING_LIST),
         ("target_groups", _STRING_LIST),
-        ], _JOBSET_LIST),
+        ], _NEVAC_RESULT),
     }
 
   def Run(self, name, validate=True, call_fn=None):
