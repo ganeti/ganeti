@@ -137,6 +137,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _CTRL_DIR = _ROOT_DIR + "/ctrl" # contains instances control sockets
   _CONF_DIR = _ROOT_DIR + "/conf" # contains instances startup data
   _NICS_DIR = _ROOT_DIR + "/nic" # contains instances nic <-> tap associations
+  _KEYMAP_DIR = _ROOT_DIR + "/keymap" # contains instances keymaps
   # KVM instances with chroot enabled are started in empty chroot directories.
   _CHROOT_DIR = _ROOT_DIR + "/chroot" # for empty chroot directories
   # After an instance is stopped, its chroot directory is removed.
@@ -177,6 +178,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_USB_MOUSE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
+    constants.HV_KEYMAP: hv_base.NO_CHECK,
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     constants.HV_MIGRATION_BANDWIDTH: hv_base.NO_CHECK,
     constants.HV_MIGRATION_DOWNTIME: hv_base.NO_CHECK,
@@ -357,6 +359,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._InstanceNICDir(instance_name), str(seq))
 
   @classmethod
+  def _InstanceKeymapFile(cls, instance_name):
+    """Returns the name of the file containing the keymap for a given instance
+
+    """
+    return utils.PathJoin(cls._KEYMAP_DIR, instance_name)
+
+  @classmethod
   def _TryReadUidFile(cls, uid_file):
     """Try to read a uid file
 
@@ -380,6 +389,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(cls._InstanceMonitor(instance_name))
     utils.RemoveFile(cls._InstanceSerial(instance_name))
     utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
+    utils.RemoveFile(cls._InstanceKeymapFile(instance_name))
     uid_file = cls._InstanceUidFile(instance_name)
     uid = cls._TryReadUidFile(uid_file)
     utils.RemoveFile(uid_file)
@@ -643,6 +653,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-usbdevice', mouse_type])
     elif vnc_bind_address:
       kvm_cmd.extend(['-usbdevice', constants.HT_MOUSE_TABLET])
+
+    keymap = hvp[constants.HV_KEYMAP]
+    if keymap:
+      keymap_path = self._InstanceKeymapFile(instance.name)
+      # If a keymap file is specified, KVM won't use its internal defaults. By
+      # first including the "en-us" layout, an error on loading the actual
+      # layout (e.g. because it can't be found) won't lead to a non-functional
+      # keyboard. A keyboard with incorrect keys is still better than none.
+      utils.WriteFile(keymap_path, data="include en-us\ninclude %s\n" % keymap)
+      kvm_cmd.extend(["-k", keymap_path])
 
     if vnc_bind_address:
       if netutils.IP4Address.IsValid(vnc_bind_address):

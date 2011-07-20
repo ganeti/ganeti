@@ -433,6 +433,12 @@ usb\_mouse
     "mouse" or "tablet". When using VNC it's recommended to set it to
     "tablet".
 
+keymap
+    Valid for the KVM hypervisor.
+
+    This option specifies the keyboard mapping to be used. It is only
+    needed when using the VNC console. For example: "fr" or "en-gb".
+
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
