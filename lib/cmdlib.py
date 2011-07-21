@@ -7250,7 +7250,8 @@ class TLMigrateInstance(Tasklet):
         raise errors.OpExecError("Can't activate the instance's disks")
 
       self.feedback_fn("* starting the instance on the target node")
-      result = self.rpc.call_instance_start(target_node, instance, None, None)
+      result = self.rpc.call_instance_start(target_node, instance, None, None,
+                                            False)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
