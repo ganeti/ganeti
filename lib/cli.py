@@ -1755,7 +1755,7 @@ class StdioJobPollReportCb(JobPollReportCbBase):
       ToStderr("Job %s is waiting in queue", job_id)
       self.notified_queued = True
 
-    elif status == constants.JOB_STATUS_WAITLOCK and not self.notified_waitlock:
+    elif status == constants.JOB_STATUS_WAITING and not self.notified_waitlock:
       ToStderr("Job %s is trying to acquire all necessary locks", job_id)
       self.notified_waitlock = True
 
@@ -3071,7 +3071,7 @@ class JobExecutor(object):
     for job_data, status in zip(self.jobs, result):
       if (isinstance(status, list) and status and
           status[0] in (constants.JOB_STATUS_QUEUED,
-                        constants.JOB_STATUS_WAITLOCK,
+                        constants.JOB_STATUS_WAITING,
                         constants.JOB_STATUS_CANCELING)):
         # job is still present and waiting
         continue

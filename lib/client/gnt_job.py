@@ -40,7 +40,7 @@ _LIST_DEF_FIELDS = ["id", "status", "summary"]
 #: names
 _USER_JOB_STATUS = {
   constants.JOB_STATUS_QUEUED: "queued",
-  constants.JOB_STATUS_WAITLOCK: "waiting",
+  constants.JOB_STATUS_WAITING: "waiting",
   constants.JOB_STATUS_CANCELING: "canceling",
   constants.JOB_STATUS_RUNNING: "running",
   constants.JOB_STATUS_CANCELED: "canceled",

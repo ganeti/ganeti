@@ -312,8 +312,8 @@ class _QueuedJob(object):
 
       if op.status == constants.OP_STATUS_QUEUED:
         pass
-      elif op.status == constants.OP_STATUS_WAITLOCK:
-        status = constants.JOB_STATUS_WAITLOCK
+      elif op.status == constants.OP_STATUS_WAITING:
+        status = constants.JOB_STATUS_WAITING
       elif op.status == constants.OP_STATUS_RUNNING:
         status = constants.JOB_STATUS_RUNNING
       elif op.status == constants.OP_STATUS_CANCELING:
@@ -461,7 +461,7 @@ class _QueuedJob(object):
       self.Finalize()
       return (True, "Job %s canceled" % self.id)
 
-    elif status == constants.JOB_STATUS_WAITLOCK:
+    elif status == constants.JOB_STATUS_WAITING:
       # The worker will notice the new status and cancel the job
       self.MarkUnfinishedOps(constants.OP_STATUS_CANCELING, None)
       return (True, "Job %s will be canceled" % self.id)
@@ -507,11 +507,11 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     This is called from the mcpu code as a notifier function, when the LU is
     finally about to start the Exec() method. Of course, to have end-user
     visible results, the opcode must be initially (before calling into
-    Processor.ExecOpCode) set to OP_STATUS_WAITLOCK.
+    Processor.ExecOpCode) set to OP_STATUS_WAITING.
 
     """
     assert self._op in self._job.ops
-    assert self._op.status in (constants.OP_STATUS_WAITLOCK,
+    assert self._op.status in (constants.OP_STATUS_WAITING,
                                constants.OP_STATUS_CANCELING)
 
     # Cancel here if we were asked to
@@ -555,7 +555,7 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     """Check whether job has been cancelled.
 
     """
-    assert self._op.status in (constants.OP_STATUS_WAITLOCK,
+    assert self._op.status in (constants.OP_STATUS_WAITING,
                                constants.OP_STATUS_CANCELING)
 
     # Cancel here if we were asked to
@@ -616,7 +616,7 @@ class _JobChangesChecker(object):
     # no changes.
     if (status not in (constants.JOB_STATUS_QUEUED,
                        constants.JOB_STATUS_RUNNING,
-                       constants.JOB_STATUS_WAITLOCK) or
+                       constants.JOB_STATUS_WAITING) or
         job_info != self._prev_job_info or
         (log_entries and self._prev_log_serial != log_entries[0][0])):
       logging.debug("Job %s changed", job.id)
@@ -931,14 +931,14 @@ class _JobProcessor(object):
     """
     assert op in job.ops
     assert op.status in (constants.OP_STATUS_QUEUED,
-                         constants.OP_STATUS_WAITLOCK)
+                         constants.OP_STATUS_WAITING)
 
     update = False
 
     op.result = None
 
     if op.status == constants.OP_STATUS_QUEUED:
-      op.status = constants.OP_STATUS_WAITLOCK
+      op.status = constants.OP_STATUS_WAITING
       update = True
 
     if op.start_timestamp is None:
@@ -949,7 +949,7 @@ class _JobProcessor(object):
       job.start_timestamp = op.start_timestamp
       update = True
 
-    assert op.status == constants.OP_STATUS_WAITLOCK
+    assert op.status == constants.OP_STATUS_WAITING
 
     return update
 
@@ -1015,7 +1015,7 @@ class _JobProcessor(object):
     """
     op = opctx.op
 
-    assert op.status == constants.OP_STATUS_WAITLOCK
+    assert op.status == constants.OP_STATUS_WAITING
 
     timeout = opctx.GetNextLockTimeout()
 
@@ -1028,7 +1028,7 @@ class _JobProcessor(object):
       assert timeout is not None, "Received timeout for blocking acquire"
       logging.debug("Couldn't acquire locks in %0.6fs", timeout)
 
-      assert op.status in (constants.OP_STATUS_WAITLOCK,
+      assert op.status in (constants.OP_STATUS_WAITING,
                            constants.OP_STATUS_CANCELING)
 
       # Was job cancelled while we were waiting for the lock?
@@ -1036,7 +1036,7 @@ class _JobProcessor(object):
         return (constants.OP_STATUS_CANCELING, None)
 
       # Stay in waitlock while trying to re-acquire lock
-      return (constants.OP_STATUS_WAITLOCK, None)
+      return (constants.OP_STATUS_WAITING, None)
     except CancelJob:
       logging.exception("%s: Canceling job", opctx.log_prefix)
       assert op.status == constants.OP_STATUS_CANCELING
@@ -1091,7 +1091,7 @@ class _JobProcessor(object):
                         for i in job.ops[opctx.index + 1:])
 
       assert op.status in (constants.OP_STATUS_QUEUED,
-                           constants.OP_STATUS_WAITLOCK,
+                           constants.OP_STATUS_WAITING,
                            constants.OP_STATUS_CANCELING)
 
       assert (op.priority <= constants.OP_PRIO_LOWEST and
@@ -1101,22 +1101,22 @@ class _JobProcessor(object):
 
       if op.status != constants.OP_STATUS_CANCELING:
         assert op.status in (constants.OP_STATUS_QUEUED,
-                             constants.OP_STATUS_WAITLOCK)
+                             constants.OP_STATUS_WAITING)
 
         # Prepare to start opcode
         if self._MarkWaitlock(job, op):
           # Write to disk
           queue.UpdateJobUnlocked(job)
 
-        assert op.status == constants.OP_STATUS_WAITLOCK
-        assert job.CalcStatus() == constants.JOB_STATUS_WAITLOCK
+        assert op.status == constants.OP_STATUS_WAITING
+        assert job.CalcStatus() == constants.JOB_STATUS_WAITING
         assert job.start_timestamp and op.start_timestamp
         assert waitjob is None
 
         # Check if waiting for a job is necessary
         waitjob = self._CheckDependencies(queue, job, opctx)
 
-        assert op.status in (constants.OP_STATUS_WAITLOCK,
+        assert op.status in (constants.OP_STATUS_WAITING,
                              constants.OP_STATUS_CANCELING,
                              constants.OP_STATUS_ERROR)
 
@@ -1138,7 +1138,7 @@ class _JobProcessor(object):
 
           assert not waitjob
 
-        if op.status == constants.OP_STATUS_WAITLOCK:
+        if op.status == constants.OP_STATUS_WAITING:
           # Couldn't get locks in time
           assert not op.end_timestamp
         else:
@@ -1151,7 +1151,7 @@ class _JobProcessor(object):
           else:
             assert op.status in constants.OPS_FINALIZED
 
-      if op.status == constants.OP_STATUS_WAITLOCK or waitjob:
+      if op.status == constants.OP_STATUS_WAITING or waitjob:
         finalize = False
 
         if not waitjob and opctx.CheckPriorityIncrease():
@@ -1165,7 +1165,7 @@ class _JobProcessor(object):
                 op.priority >= constants.OP_PRIO_HIGHEST)
 
         # In no case must the status be finalized here
-        assert job.CalcStatus() == constants.JOB_STATUS_WAITLOCK
+        assert job.CalcStatus() == constants.JOB_STATUS_WAITING
 
       else:
         # Ensure all opcodes so far have been successful
@@ -1572,11 +1572,11 @@ class JobQueue(object):
         restartjobs.append(job)
 
       elif status in (constants.JOB_STATUS_RUNNING,
-                      constants.JOB_STATUS_WAITLOCK,
+                      constants.JOB_STATUS_WAITING,
                       constants.JOB_STATUS_CANCELING):
         logging.warning("Unfinished job %s found: %s", job.id, job)
 
-        if status == constants.JOB_STATUS_WAITLOCK:
+        if status == constants.JOB_STATUS_WAITING:
           # Restart job
           job.MarkUnfinishedOps(constants.OP_STATUS_QUEUED, None)
           restartjobs.append(job)

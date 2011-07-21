@@ -35,7 +35,7 @@ import qualified Ganeti.Constants as C
 
 -- | Our ADT for the OpCode status at runtime (while in a job).
 data OpStatus = OP_STATUS_QUEUED
-              | OP_STATUS_WAITLOCK
+              | OP_STATUS_WAITING
               | OP_STATUS_CANCELING
               | OP_STATUS_RUNNING
               | OP_STATUS_CANCELED
@@ -47,7 +47,7 @@ instance JSON OpStatus where
     showJSON os = showJSON w
       where w = case os of
               OP_STATUS_QUEUED -> C.jobStatusQueued
-              OP_STATUS_WAITLOCK -> C.jobStatusWaitlock
+              OP_STATUS_WAITING -> C.jobStatusWaiting
               OP_STATUS_CANCELING -> C.jobStatusCanceling
               OP_STATUS_RUNNING -> C.jobStatusRunning
               OP_STATUS_CANCELED -> C.jobStatusCanceled
@@ -55,7 +55,7 @@ instance JSON OpStatus where
               OP_STATUS_ERROR -> C.jobStatusError
     readJSON s = case readJSON s of
       J.Ok v | v == C.jobStatusQueued -> J.Ok OP_STATUS_QUEUED
-             | v == C.jobStatusWaitlock -> J.Ok OP_STATUS_WAITLOCK
+             | v == C.jobStatusWaiting -> J.Ok OP_STATUS_WAITING
              | v == C.jobStatusCanceling -> J.Ok OP_STATUS_CANCELING
              | v == C.jobStatusRunning -> J.Ok OP_STATUS_RUNNING
              | v == C.jobStatusCanceled -> J.Ok OP_STATUS_CANCELED
@@ -68,7 +68,7 @@ instance JSON OpStatus where
 -- such that greater\/lesser comparison on values of this type makes
 -- sense.
 data JobStatus = JOB_STATUS_QUEUED
-               | JOB_STATUS_WAITLOCK
+               | JOB_STATUS_WAITING
                | JOB_STATUS_RUNNING
                | JOB_STATUS_SUCCESS
                | JOB_STATUS_CANCELING
@@ -80,7 +80,7 @@ instance JSON JobStatus where
     showJSON js = showJSON w
         where w = case js of
                 JOB_STATUS_QUEUED -> "queued"
-                JOB_STATUS_WAITLOCK -> "waiting"
+                JOB_STATUS_WAITING -> "waiting"
                 JOB_STATUS_CANCELING -> "canceling"
                 JOB_STATUS_RUNNING -> "running"
                 JOB_STATUS_CANCELED -> "canceled"
@@ -88,7 +88,7 @@ instance JSON JobStatus where
                 JOB_STATUS_ERROR -> "error"
     readJSON s = case readJSON s of
       J.Ok "queued" -> J.Ok JOB_STATUS_QUEUED
-      J.Ok "waiting" -> J.Ok JOB_STATUS_WAITLOCK
+      J.Ok "waiting" -> J.Ok JOB_STATUS_WAITING
       J.Ok "canceling" -> J.Ok JOB_STATUS_CANCELING
       J.Ok "running" -> J.Ok JOB_STATUS_RUNNING
       J.Ok "success" -> J.Ok JOB_STATUS_SUCCESS

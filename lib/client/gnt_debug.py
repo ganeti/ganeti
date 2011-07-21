@@ -397,10 +397,10 @@ class _JobQueueTestReporter(cli.StdioJobPollReportCb):
       logging.debug("Status of job %s is %s", job_id, status)
 
       if test == constants.JQT_EXPANDNAMES:
-        if status != constants.JOB_STATUS_WAITLOCK:
+        if status != constants.JOB_STATUS_WAITING:
           raise errors.OpExecError("Job status while expanding names is '%s',"
                                    " not '%s' as expected" %
-                                   (status, constants.JOB_STATUS_WAITLOCK))
+                                   (status, constants.JOB_STATUS_WAITING))
       elif test in (constants.JQT_EXEC, constants.JQT_LOGMSG):
         if status != constants.JOB_STATUS_RUNNING:
           raise errors.OpExecError("Job status while executing opcode is '%s',"

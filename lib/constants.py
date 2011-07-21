@@ -995,7 +995,7 @@ JOB_NOTCHANGED = "nochange"
 
 # Job status
 JOB_STATUS_QUEUED = "queued"
-JOB_STATUS_WAITLOCK = "waiting"
+JOB_STATUS_WAITING = "waiting"
 JOB_STATUS_CANCELING = "canceling"
 JOB_STATUS_RUNNING = "running"
 JOB_STATUS_CANCELED = "canceled"
@@ -1008,7 +1008,7 @@ JOBS_FINALIZED = frozenset([
   ])
 JOB_STATUS_ALL = frozenset([
   JOB_STATUS_QUEUED,
-  JOB_STATUS_WAITLOCK,
+  JOB_STATUS_WAITING,
   JOB_STATUS_CANCELING,
   JOB_STATUS_RUNNING,
   ]) | JOBS_FINALIZED
@@ -1016,7 +1016,7 @@ JOB_STATUS_ALL = frozenset([
 # OpCode status
 # not yet finalized
 OP_STATUS_QUEUED = "queued"
-OP_STATUS_WAITLOCK = "waiting"
+OP_STATUS_WAITING = "waiting"
 OP_STATUS_CANCELING = "canceling"
 OP_STATUS_RUNNING = "running"
 # finalized

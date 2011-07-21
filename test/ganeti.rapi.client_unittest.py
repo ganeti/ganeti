@@ -155,7 +155,7 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client._NODE_EVAC_RES1, rlib2._NODE_EVAC_RES1)
     self.assertEqual(client._INST_NIC_PARAMS, constants.INIC_PARAMS)
     self.assertEqual(client.JOB_STATUS_QUEUED, constants.JOB_STATUS_QUEUED)
-    self.assertEqual(client.JOB_STATUS_WAITLOCK, constants.JOB_STATUS_WAITLOCK)
+    self.assertEqual(client.JOB_STATUS_WAITING, constants.JOB_STATUS_WAITING)
     self.assertEqual(client.JOB_STATUS_CANCELING,
                      constants.JOB_STATUS_CANCELING)
     self.assertEqual(client.JOB_STATUS_RUNNING, constants.JOB_STATUS_RUNNING)
@@ -164,6 +164,9 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.JOB_STATUS_ERROR, constants.JOB_STATUS_ERROR)
     self.assertEqual(client.JOB_STATUS_FINALIZED, constants.JOBS_FINALIZED)
     self.assertEqual(client.JOB_STATUS_ALL, constants.JOB_STATUS_ALL)
+
+    # Legacy name
+    self.assertEqual(client.JOB_STATUS_WAITLOCK, constants.JOB_STATUS_WAITING)
 
 
 class RapiMockTest(unittest.TestCase):
@@ -1237,7 +1240,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
 
   def testWaitForJobCompletionNoChange(self):
     resp = serializer.DumpJson({
-      "status": constants.JOB_STATUS_WAITLOCK,
+      "status": constants.JOB_STATUS_WAITING,
       })
 
     for retries in [1, 5, 25]:

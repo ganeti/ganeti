@@ -201,7 +201,7 @@ class TestWaitForJobChangesHelper(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def _LoadWaitingJob(self):
-    return _FakeJob(2614226563, constants.JOB_STATUS_WAITLOCK)
+    return _FakeJob(2614226563, constants.JOB_STATUS_WAITING)
 
   def _LoadLostJob(self):
     return None
@@ -211,13 +211,13 @@ class TestWaitForJobChangesHelper(unittest.TestCase):
 
     # No change
     self.assertEqual(wfjc(self.filename, self._LoadWaitingJob, ["status"],
-                          [constants.JOB_STATUS_WAITLOCK], None, 0.1),
+                          [constants.JOB_STATUS_WAITING], None, 0.1),
                      constants.JOB_NOTCHANGED)
 
     # No previous information
     self.assertEqual(wfjc(self.filename, self._LoadWaitingJob,
                           ["status"], None, None, 1.0),
-                     ([constants.JOB_STATUS_WAITLOCK], []))
+                     ([constants.JOB_STATUS_WAITING], []))
 
   def testLostJob(self):
     wfjc = jqueue._WaitForJobChangesHelper()
@@ -364,12 +364,12 @@ class TestQueuedJob(unittest.TestCase):
                               for op in ops))
 
     def _Waitlock1(ops):
-      ops[0].status = constants.OP_STATUS_WAITLOCK
+      ops[0].status = constants.OP_STATUS_WAITING
 
     def _Waitlock2(ops):
       ops[0].status = constants.OP_STATUS_SUCCESS
       ops[1].status = constants.OP_STATUS_SUCCESS
-      ops[2].status = constants.OP_STATUS_WAITLOCK
+      ops[2].status = constants.OP_STATUS_WAITING
 
     def _Running(ops):
       ops[0].status = constants.OP_STATUS_SUCCESS
@@ -408,7 +408,7 @@ class TestQueuedJob(unittest.TestCase):
 
     tests = {
       constants.JOB_STATUS_QUEUED: [_Queued],
-      constants.JOB_STATUS_WAITLOCK: [_Waitlock1, _Waitlock2],
+      constants.JOB_STATUS_WAITING: [_Waitlock1, _Waitlock2],
       constants.JOB_STATUS_RUNNING: [_Running],
       constants.JOB_STATUS_CANCELING: [_Canceling1, _Canceling2],
       constants.JOB_STATUS_CANCELED: [_Canceled],
@@ -602,7 +602,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         self.assertEqual(queue.GetNextUpdate(), (job, True))
         self.assertRaises(IndexError, queue.GetNextUpdate)
         self.assertFalse(queue.IsAcquired())
-        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
         self.assertFalse(job.cur_opctx)
 
       def _AfterStart(op, cbs):
@@ -789,11 +789,11 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
 
-    job.ops[0].status = constants.OP_STATUS_WAITLOCK
+    job.ops[0].status = constants.OP_STATUS_WAITING
 
     assert len(job.ops) == 5
 
-    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
     # Mark as cancelling
     (success, _) = job.Cancel()
@@ -835,7 +835,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertFalse(queue.IsAcquired())
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
       # Mark as cancelled
       (success, _) = job.Cancel()
@@ -884,7 +884,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
 
     def _BeforeStart(timeout, priority):
       self.assertFalse(queue.IsAcquired())
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
       # Mark as cancelled
       (success, _) = job.Cancel()
@@ -1089,7 +1089,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertFalse(queue.IsAcquired())
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
     def _AfterStart(op, cbs):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
@@ -1204,7 +1204,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertFalse(queue.IsAcquired())
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
     def _AfterStart(op, cbs):
@@ -1286,7 +1286,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertFalse(queue.IsAcquired())
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
     def _AfterStart(op, cbs):
@@ -1345,7 +1345,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         # Simulate waiting for other job
         self.assertEqual(result, jqueue._JobProcessor.WAITDEP)
         self.assertTrue(job.cur_opctx)
-        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
         self.assertRaises(IndexError, depmgr.GetNextNotification)
         self.assert_(job.start_timestamp)
         self.assertFalse(job.end_timestamp)
@@ -1410,7 +1410,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertFalse(queue.IsAcquired())
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
     def _AfterStart(op, cbs):
@@ -1463,7 +1463,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         # Simulate waiting for other job
         self.assertEqual(result, jqueue._JobProcessor.WAITDEP)
         self.assertTrue(job.cur_opctx)
-        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
         self.assertRaises(IndexError, depmgr.GetNextNotification)
         self.assert_(job.start_timestamp)
         self.assertFalse(job.end_timestamp)
@@ -1527,7 +1527,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
       self.assertFalse(queue.IsAcquired())
-      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+      self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
     def _AfterStart(op, cbs):
@@ -1580,7 +1580,7 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         # Simulate waiting for other job
         self.assertEqual(result, jqueue._JobProcessor.WAITDEP)
         self.assertTrue(job.cur_opctx)
-        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
         self.assertRaises(IndexError, depmgr.GetNextNotification)
         self.assert_(job.start_timestamp)
         self.assertFalse(job.end_timestamp)
@@ -1663,7 +1663,7 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     self.assertRaises(IndexError, self.queue.GetNextUpdate)
 
     self.assertFalse(self.queue.IsAcquired())
-    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+    self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
     ts = self.timeout_strategy
 
@@ -1823,7 +1823,7 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
         self.assertEqual(job.cur_opctx._timeout_strategy._fn,
                          self.timeout_strategy.NextAttempt)
         self.assertFalse(job.ops[self.curop].exec_timestamp)
-        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITLOCK)
+        self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
         # If priority has changed since acquiring locks, the job must've been
         # updated
@@ -1900,7 +1900,7 @@ class TestJobDependencyManager(unittest.TestCase):
     job_id = str(9610)
     dep_status = [constants.JOB_STATUS_CANCELED]
 
-    self._status.append((job_id, constants.JOB_STATUS_WAITLOCK))
+    self._status.append((job_id, constants.JOB_STATUS_WAITING))
     (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
     self.assertEqual(result, self.jdm.WAIT)
     self.assertFalse(self._status)
@@ -1922,7 +1922,7 @@ class TestJobDependencyManager(unittest.TestCase):
     job_id = str(25519)
     dep_status = [constants.JOB_STATUS_ERROR]
 
-    self._status.append((job_id, constants.JOB_STATUS_WAITLOCK))
+    self._status.append((job_id, constants.JOB_STATUS_WAITING))
     (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
     self.assertEqual(result, self.jdm.WAIT)
     self.assertFalse(self._status)
@@ -1946,7 +1946,7 @@ class TestJobDependencyManager(unittest.TestCase):
       job = self._FakeJob(21343)
       job_id = str(14609)
 
-      self._status.append((job_id, constants.JOB_STATUS_WAITLOCK))
+      self._status.append((job_id, constants.JOB_STATUS_WAITING))
       (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
       self.assertEqual(result, self.jdm.WAIT)
       self.assertFalse(self._status)
