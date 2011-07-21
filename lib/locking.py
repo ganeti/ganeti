@@ -1449,6 +1449,14 @@ class GanetiLockManager:
                               monitor=self._monitor),
       }
 
+  def AddToLockMonitor(self, provider):
+    """Registers a new lock with the monitor.
+
+    See L{LockMonitor.RegisterLock}.
+
+    """
+    return self._monitor.RegisterLock(provider)
+
   def QueryLocks(self, fields):
     """Queries information from all locks.
 
