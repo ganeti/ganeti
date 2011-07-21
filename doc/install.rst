@@ -552,8 +552,8 @@ node, by using the ``--master-netdev <device>`` option.
 
 You can use a different name than ``xenvg`` for the volume group (but
 note that the name must be identical on all nodes). In this case you
-need to specify it by passing the *-g <VGNAME>* option to ``gnt-cluster
-init``.
+need to specify it by passing the *--vg-name <VGNAME>* option to
+``gnt-cluster init``.
 
 To set up the cluster as an Xen HVM cluster, use the
 ``--enabled-hypervisors=xen-hvm`` option to enable the HVM hypervisor

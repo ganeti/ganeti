@@ -789,7 +789,7 @@ Instance status
 
 As you can see, *instance4* has a copy running on node3, because we
 forced the failover when node3 failed. This case is dangerous as the
-instance will have the same IP and MAC address, wreaking havok on the
+instance will have the same IP and MAC address, wreaking havoc on the
 network environment and anyone who tries to use it.
 
 Ganeti doesn't directly handle this case. It is recommended to logon to
