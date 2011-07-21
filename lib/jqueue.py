@@ -1340,8 +1340,6 @@ class _JobDependencyManager:
    CONTINUE,
    WRONGSTATUS) = range(1, 6)
 
-  # TODO: Export waiter information to lock monitor
-
   def __init__(self, getstatus_fn, enqueue_fn):
     """Initializes this class.
 
@@ -1351,6 +1349,22 @@ class _JobDependencyManager:
 
     self._waiters = {}
     self._lock = locking.SharedLock("JobDepMgr")
+
+  @locking.ssynchronized(_LOCK, shared=1)
+  def GetLockInfo(self, requested): # pylint: disable-msg=W0613
+    """Retrieves information about waiting jobs.
+
+    @type requested: set
+    @param requested: Requested information, see C{query.LQ_*}
+
+    """
+    # No need to sort here, that's being done by the lock manager and query
+    # library. There are no priorities for notifying jobs, hence all show up as
+    # one item under "pending".
+    return [("job/%s" % job_id, None, None,
+             [("job", [job.id for job in waiters])])
+            for job_id, waiters in self._waiters.items()
+            if waiters]
 
   @locking.ssynchronized(_LOCK, shared=1)
   def JobWaiting(self, job):
@@ -1527,6 +1541,7 @@ class JobQueue(object):
     # Job dependencies
     self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies,
                                         self._EnqueueJobs)
+    self.context.glm.AddToLockMonitor(self.depmgr)
 
     # Setup worker pool
     self._wpool = _JobQueueWorkerPool(self)
