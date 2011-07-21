@@ -11968,7 +11968,8 @@ class LUGroupEvacuate(LogicalUnit):
                                  " %s, have %s; retry the operation" %
                                  (self.group_uuid,
                                   utils.CommaJoin(wanted_instances),
-                                  utils.CommaJoin(owned_instances)))
+                                  utils.CommaJoin(owned_instances)),
+                                 errors.ECODE_STATE)
 
     # Get instance information
     self.instances = dict((name, self.cfg.GetInstanceInfo(name))
@@ -11988,7 +11989,8 @@ class LUGroupEvacuate(LogicalUnit):
                                    " were acquired, current groups are '%s',"
                                    " owning groups '%s'; retry the operation" %
                                    (utils.CommaJoin(inst_groups),
-                                    utils.CommaJoin(owned_groups)))
+                                    utils.CommaJoin(owned_groups)),
+                                   errors.ECODE_STATE)
 
     if self.req_target_uuids:
       # User requested specific target groups
