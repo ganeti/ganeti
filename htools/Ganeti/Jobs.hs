@@ -46,21 +46,21 @@ data OpStatus = OP_STATUS_QUEUED
 instance JSON OpStatus where
     showJSON os = showJSON w
       where w = case os of
-              OP_STATUS_QUEUED -> C.jobStatusQueued
-              OP_STATUS_WAITING -> C.jobStatusWaiting
-              OP_STATUS_CANCELING -> C.jobStatusCanceling
-              OP_STATUS_RUNNING -> C.jobStatusRunning
-              OP_STATUS_CANCELED -> C.jobStatusCanceled
-              OP_STATUS_SUCCESS -> C.jobStatusSuccess
-              OP_STATUS_ERROR -> C.jobStatusError
+              OP_STATUS_QUEUED    -> C.opStatusQueued
+              OP_STATUS_WAITING   -> C.opStatusWaiting
+              OP_STATUS_CANCELING -> C.opStatusCanceling
+              OP_STATUS_RUNNING   -> C.opStatusRunning
+              OP_STATUS_CANCELED  -> C.opStatusCanceled
+              OP_STATUS_SUCCESS   -> C.opStatusSuccess
+              OP_STATUS_ERROR     -> C.opStatusError
     readJSON s = case readJSON s of
-      J.Ok v | v == C.jobStatusQueued -> J.Ok OP_STATUS_QUEUED
-             | v == C.jobStatusWaiting -> J.Ok OP_STATUS_WAITING
-             | v == C.jobStatusCanceling -> J.Ok OP_STATUS_CANCELING
-             | v == C.jobStatusRunning -> J.Ok OP_STATUS_RUNNING
-             | v == C.jobStatusCanceled -> J.Ok OP_STATUS_CANCELED
-             | v == C.jobStatusSuccess -> J.Ok OP_STATUS_SUCCESS
-             | v == C.jobStatusError -> J.Ok OP_STATUS_ERROR
+      J.Ok v | v == C.opStatusQueued    -> J.Ok OP_STATUS_QUEUED
+             | v == C.opStatusWaiting   -> J.Ok OP_STATUS_WAITING
+             | v == C.opStatusCanceling -> J.Ok OP_STATUS_CANCELING
+             | v == C.opStatusRunning   -> J.Ok OP_STATUS_RUNNING
+             | v == C.opStatusCanceled  -> J.Ok OP_STATUS_CANCELED
+             | v == C.opStatusSuccess   -> J.Ok OP_STATUS_SUCCESS
+             | v == C.opStatusError     -> J.Ok OP_STATUS_ERROR
              | otherwise -> J.Error ("Unknown opcode status " ++ v)
       _ -> J.Error ("Cannot parse opcode status " ++ show s)
 
@@ -79,19 +79,20 @@ data JobStatus = JOB_STATUS_QUEUED
 instance JSON JobStatus where
     showJSON js = showJSON w
         where w = case js of
-                JOB_STATUS_QUEUED -> "queued"
-                JOB_STATUS_WAITING -> "waiting"
-                JOB_STATUS_CANCELING -> "canceling"
-                JOB_STATUS_RUNNING -> "running"
-                JOB_STATUS_CANCELED -> "canceled"
-                JOB_STATUS_SUCCESS -> "success"
-                JOB_STATUS_ERROR -> "error"
+                JOB_STATUS_QUEUED    -> C.jobStatusQueued
+                JOB_STATUS_WAITING   -> C.jobStatusWaiting
+                JOB_STATUS_CANCELING -> C.jobStatusCanceling
+                JOB_STATUS_RUNNING   -> C.jobStatusRunning
+                JOB_STATUS_CANCELED  -> C.jobStatusCanceled
+                JOB_STATUS_SUCCESS   -> C.jobStatusSuccess
+                JOB_STATUS_ERROR     -> C.jobStatusError
     readJSON s = case readJSON s of
-      J.Ok "queued" -> J.Ok JOB_STATUS_QUEUED
-      J.Ok "waiting" -> J.Ok JOB_STATUS_WAITING
-      J.Ok "canceling" -> J.Ok JOB_STATUS_CANCELING
-      J.Ok "running" -> J.Ok JOB_STATUS_RUNNING
-      J.Ok "success" -> J.Ok JOB_STATUS_SUCCESS
-      J.Ok "canceled" -> J.Ok JOB_STATUS_CANCELED
-      J.Ok "error" -> J.Ok JOB_STATUS_ERROR
+      J.Ok v | v == C.jobStatusQueued    -> J.Ok JOB_STATUS_QUEUED
+             | v == C.jobStatusWaiting   -> J.Ok JOB_STATUS_WAITING
+             | v == C.jobStatusCanceling -> J.Ok JOB_STATUS_CANCELING
+             | v == C.jobStatusRunning   -> J.Ok JOB_STATUS_RUNNING
+             | v == C.jobStatusSuccess   -> J.Ok JOB_STATUS_SUCCESS
+             | v == C.jobStatusCanceled  -> J.Ok JOB_STATUS_CANCELED
+             | v == C.jobStatusError     -> J.Ok JOB_STATUS_ERROR
+             | otherwise -> J.Error ("Unknown job status " ++ v)
       _ -> J.Error ("Unknown job status " ++ show s)
