@@ -366,6 +366,8 @@ def RunHardwareFailureTests(instance, pnode, snode):
 
   """
   RunTestIf("instance-failover", qa_instance.TestInstanceFailover, instance)
+  RunTestIf(["instance-failover", "rapi"],
+            qa_rapi.TestRapiInstanceFailover, instance)
 
   RunTestIf("instance-migrate", qa_instance.TestInstanceMigrate, instance)
   RunTestIf(["instance-migrate", "rapi"],

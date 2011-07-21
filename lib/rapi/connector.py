@@ -211,6 +211,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
       rlib2.R_2_instances_name_export,
     re.compile(r'^/2/instances/(%s)/migrate$' % instance_name_pattern):
       rlib2.R_2_instances_name_migrate,
+    re.compile(r'^/2/instances/(%s)/failover$' % instance_name_pattern):
+      rlib2.R_2_instances_name_failover,
     re.compile(r'^/2/instances/(%s)/rename$' % instance_name_pattern):
       rlib2.R_2_instances_name_rename,
     re.compile(r'^/2/instances/(%s)/modify$' % instance_name_pattern):

@@ -590,6 +590,14 @@ def TestRapiInstanceMigrate(instance):
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance["name"]))
 
 
+def TestRapiInstanceFailover(instance):
+  """Test failing over instance via RAPI"""
+  # Move to secondary node
+  _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
+  # And back to previous primary
+  _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
+
+
 def TestRapiInstanceRename(rename_source, rename_target):
   """Test renaming instance via RAPI"""
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_source, rename_target))

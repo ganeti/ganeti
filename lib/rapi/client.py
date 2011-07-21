@@ -1073,6 +1073,38 @@ class GanetiRapiClient(object): # pylint: disable-msg=R0904
                              ("/%s/instances/%s/migrate" %
                               (GANETI_RAPI_VERSION, instance)), None, body)
 
+  def FailoverInstance(self, instance, iallocator=None,
+                       ignore_consistency=None, target_node=None):
+    """Does a failover of an instance.
+
+    @type instance: string
+    @param instance: Instance name
+    @type iallocator: string
+    @param iallocator: Iallocator for deciding the target node for
+      shared-storage instances
+    @type ignore_consistency: bool
+    @param ignore_consistency: Whether to ignore disk consistency
+    @type target_node: string
+    @param target_node: Target node for shared-storage instances
+    @rtype: string
+    @return: job id
+
+    """
+    body = {}
+
+    if iallocator is not None:
+      body["iallocator"] = iallocator
+
+    if ignore_consistency is not None:
+      body["ignore_consistency"] = ignore_consistency
+
+    if target_node is not None:
+      body["target_node"] = target_node
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/instances/%s/failover" %
+                              (GANETI_RAPI_VERSION, instance)), None, body)
+
   def RenameInstance(self, instance, new_name, ip_check=None, name_check=None):
     """Changes the name of an instance.
 

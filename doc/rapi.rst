@@ -876,6 +876,24 @@ Body parameters:
    :exclude: instance_name, live
 
 
+``/2/instances/[instance_name]/failover``
++++++++++++++++++++++++++++++++++++++++++
+
+Does a failover of an instance.
+
+Supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+.. opcode_params:: OP_INSTANCE_FAILOVER
+   :exclude: instance_name
+
+
 ``/2/instances/[instance_name]/rename``
 ++++++++++++++++++++++++++++++++++++++++
 

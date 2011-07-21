@@ -1122,6 +1122,25 @@ class R_2_instances_name_migrate(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_instances_name_failover(baserlib.R_Generic):
+  """/2/instances/[instance_name]/failover resource.
+
+  """
+  def PUT(self):
+    """Does a failover of an instance.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+
+    op = baserlib.FillOpcode(opcodes.OpInstanceFailover, self.request_body, {
+      "instance_name": self.items[0],
+      })
+
+    return baserlib.SubmitJob([op])
+
+
 def _ParseRenameInstanceRequest(name, data):
   """Parses a request for renaming an instance.
 

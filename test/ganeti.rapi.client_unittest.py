@@ -738,6 +738,36 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
         self.assertEqual(data["mode"], mode)
         self.assertEqual(data["cleanup"], cleanup)
 
+  def testFailoverInstanceDefaults(self):
+    self.rapi.AddResponse("7639")
+    job_id = self.client.FailoverInstance("inst13579")
+    self.assertEqual(job_id, 7639)
+    self.assertHandler(rlib2.R_2_instances_name_failover)
+    self.assertItems(["inst13579"])
+
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
+    self.assertFalse(data)
+
+  def testFailoverInstance(self):
+    for iallocator in ["dumb", "hail"]:
+      for ignore_consistency in [False, True]:
+        for target_node in ["node-a", "node2"]:
+          self.rapi.AddResponse("19161")
+          job_id = \
+            self.client.FailoverInstance("inst251", iallocator=iallocator,
+                                         ignore_consistency=ignore_consistency,
+                                         target_node=target_node)
+          self.assertEqual(job_id, 19161)
+          self.assertHandler(rlib2.R_2_instances_name_failover)
+          self.assertItems(["inst251"])
+
+          data = serializer.LoadJson(self.rapi.GetLastRequestData())
+          self.assertEqual(len(data), 3)
+          self.assertEqual(data["iallocator"], iallocator)
+          self.assertEqual(data["ignore_consistency"], ignore_consistency)
+          self.assertEqual(data["target_node"], target_node)
+          self.assertEqual(self.rapi.CountPending(), 0)
+
   def testRenameInstanceDefaults(self):
     new_name = "newnametha7euqu"
     self.rapi.AddResponse("8791")
