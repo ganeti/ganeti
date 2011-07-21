@@ -12,6 +12,7 @@ Design document drafts
    design-multi-reloc.rst
    design-cpu-pinning.rst
    design-chained-jobs.rst
+   design-ovf-support.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
