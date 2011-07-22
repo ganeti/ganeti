@@ -40,6 +40,7 @@ import socket
 import tempfile
 import shutil
 import itertools
+import operator
 
 from ganeti import ssh
 from ganeti import utils
@@ -4252,10 +4253,12 @@ class LUNodeQueryvols(NoHooksLU):
     nodenames = self.glm.list_owned(locking.LEVEL_NODE)
     volumes = self.rpc.call_node_volumes(nodenames)
 
-    ilist = [self.cfg.GetInstanceInfo(iname) for iname
-             in self.cfg.GetInstanceList()]
+    ilist = self.cfg.GetAllInstancesInfo()
 
-    lv_by_node = dict([(inst, inst.MapLVsByNode()) for inst in ilist])
+    vol2inst = dict(((node, vol), inst.name)
+                    for inst in ilist.values()
+                    for (node, vols) in inst.MapLVsByNode().items()
+                    for vol in vols)
 
     output = []
     for node in nodenames:
@@ -4267,8 +4270,8 @@ class LUNodeQueryvols(NoHooksLU):
         self.LogWarning("Can't compute volume data on node %s: %s", node, msg)
         continue
 
-      node_vols = nresult.payload[:]
-      node_vols.sort(key=lambda vol: vol['dev'])
+      node_vols = sorted(nresult.payload,
+                         key=operator.itemgetter("dev"))
 
       for vol in node_vols:
         node_output = []
@@ -4284,14 +4287,7 @@ class LUNodeQueryvols(NoHooksLU):
           elif field == "size":
             val = int(float(vol['size']))
           elif field == "instance":
-            for inst in ilist:
-              if node not in lv_by_node[inst]:
-                continue
-              if vol['name'] in lv_by_node[inst][node]:
-                val = inst.name
-                break
-            else:
-              val = '-'
+            val = vol2inst.get((node, vol["vg"] + "/" + vol["name"]), "-")
           else:
             raise errors.ParameterError(field)
           node_output.append(str(val))
