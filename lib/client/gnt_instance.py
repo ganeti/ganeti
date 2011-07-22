@@ -889,17 +889,25 @@ def ConnectToInstanceConsole(opts, args):
   """
   instance_name = args[0]
 
-  op = opcodes.OpInstanceConsole(instance_name=instance_name)
-
   cl = GetClient()
   try:
     cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
-    console_data = SubmitOpCode(op, opts=opts, cl=cl)
+    ((console_data, oper_state), ) = \
+      cl.QueryInstances([instance_name], ["console", "oper_state"], False)
   finally:
     # Ensure client connection is closed while external commands are run
     cl.Close()
 
   del cl
+
+  if not console_data:
+    if oper_state:
+      # Instance is running
+      raise errors.OpExecError("Console information for instance %s is"
+                               " unavailable" % instance_name)
+    else:
+      raise errors.OpExecError("Instance %s is not running, can't get console" %
+                               instance_name)
 
   return _DoConsole(objects.InstanceConsole.FromDict(console_data),
                     opts.show_command, cluster_name)
