@@ -7199,8 +7199,12 @@ class TLMigrateInstance(Tasklet):
       self.feedback_fn("* checking disk consistency between source and target")
       for dev in instance.disks:
         # for drbd, these are drbd over lvm
-        if not _CheckDiskConsistency(self, dev, target_node, False):
-          if not self.ignore_consistency:
+        if not _CheckDiskConsistency(self.lu, dev, target_node, False):
+          if primary_node.offline:
+            self.feedback_fn("Node %s is offline, ignoring degraded disk %s on"
+                             " target node %s" %
+                             (primary_node.name, dev.iv_name, target_node))
+          elif not self.ignore_consistency:
             raise errors.OpExecError("Disk %s is degraded on target node,"
                                      " aborting failover" % dev.iv_name)
     else:
@@ -7226,8 +7230,8 @@ class TLMigrateInstance(Tasklet):
                                  (instance.name, source_node, msg))
 
     self.feedback_fn("* deactivating the instance's disks on source node")
-    if not _ShutdownInstanceDisks(self, instance, ignore_primary=True):
-      raise errors.OpExecError("Can't shut down the instance's disks.")
+    if not _ShutdownInstanceDisks(self.lu, instance, ignore_primary=True):
+      raise errors.OpExecError("Can't shut down the instance's disks")
 
     instance.primary_node = target_node
     # distribute new instance config to the other nodes
@@ -7235,22 +7239,24 @@ class TLMigrateInstance(Tasklet):
 
     # Only start the instance if it's marked as up
     if instance.admin_up:
-      self.feedback_fn("* activating the instance's disks on target node")
+      self.feedback_fn("* activating the instance's disks on target node %s" %
+                       target_node)
       logging.info("Starting instance %s on node %s",
                    instance.name, target_node)
 
-      disks_ok, _ = _AssembleInstanceDisks(self, instance,
+      disks_ok, _ = _AssembleInstanceDisks(self.lu, instance,
                                            ignore_secondaries=True)
       if not disks_ok:
-        _ShutdownInstanceDisks(self, instance)
+        _ShutdownInstanceDisks(self.lu, instance)
         raise errors.OpExecError("Can't activate the instance's disks")
 
-      self.feedback_fn("* starting the instance on the target node")
+      self.feedback_fn("* starting the instance on the target node %s" %
+                       target_node)
       result = self.rpc.call_instance_start(target_node, instance, None, None,
                                             False)
       msg = result.fail_msg
       if msg:
-        _ShutdownInstanceDisks(self, instance)
+        _ShutdownInstanceDisks(self.lu, instance)
         raise errors.OpExecError("Could not start instance %s on node %s: %s" %
                                  (instance.name, target_node, msg))
 
