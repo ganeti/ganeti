@@ -985,7 +985,7 @@ def _FormatLogicalID(dev_type, logical_id, roman):
   return data
 
 
-def _FormatBlockDevInfo(idx, top_level, dev, static, roman):
+def _FormatBlockDevInfo(idx, top_level, dev, roman):
   """Show block device information.
 
   This is only used by L{ShowInstanceConfig}, but it's too big to be
@@ -997,9 +997,6 @@ def _FormatBlockDevInfo(idx, top_level, dev, static, roman):
   @param top_level: if this a top-level disk?
   @type dev: dict
   @param dev: dictionary with disk information
-  @type static: boolean
-  @param static: wheter the device information doesn't contain
-      runtime information but only static data
   @type roman: boolean
   @param roman: whether to try to use roman integers
   @return: a list of either strings, tuples or lists
@@ -1087,15 +1084,17 @@ def _FormatBlockDevInfo(idx, top_level, dev, static, roman):
   elif dev["physical_id"] is not None:
     data.append("physical_id:")
     data.append([dev["physical_id"]])
-  if not static:
+
+  if dev["pstatus"]:
     data.append(("on primary", helper(dev["dev_type"], dev["pstatus"])))
-  if dev["sstatus"] and not static:
+
+  if dev["sstatus"]:
     data.append(("on secondary", helper(dev["dev_type"], dev["sstatus"])))
 
   if dev["children"]:
     data.append("child devices:")
     for c_idx, child in enumerate(dev["children"]):
-      data.append(_FormatBlockDevInfo(c_idx, False, child, static, roman))
+      data.append(_FormatBlockDevInfo(c_idx, False, child, roman))
   d1.append(data)
   return d1
 
@@ -1169,7 +1168,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("Creation time: %s\n" % utils.FormatTime(instance["ctime"]))
     buf.write("Modification time: %s\n" % utils.FormatTime(instance["mtime"]))
     buf.write("State: configured to be %s" % instance["config_state"])
-    if not opts.static:
+    if instance["run_state"]:
       buf.write(", actual state is %s" % instance["run_state"])
     buf.write("\n")
     ##buf.write("Considered for memory checks in cluster verify: %s\n" %
@@ -1223,7 +1222,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("  Disks:\n")
 
     for idx, device in enumerate(instance["disks"]):
-      _FormatList(buf, _FormatBlockDevInfo(idx, True, device, opts.static,
+      _FormatList(buf, _FormatBlockDevInfo(idx, True, device,
                   opts.roman_integers), 2)
 
   ToStdout(buf.getvalue().rstrip('\n'))

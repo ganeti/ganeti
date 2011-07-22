@@ -10199,8 +10199,9 @@ class LUInstanceQueryData(NoHooksLU):
     dev_sstatus = self._ComputeBlockdevStatus(snode, instance.name, dev)
 
     if dev.children:
-      dev_children = [self._ComputeDiskStatus(instance, snode, child)
-                      for child in dev.children]
+      dev_children = map(compat.partial(self._ComputeDiskStatus,
+                                        instance, snode),
+                         dev.children)
     else:
       dev_children = []
 
@@ -10223,7 +10224,15 @@ class LUInstanceQueryData(NoHooksLU):
     cluster = self.cfg.GetClusterInfo()
 
     for instance in self.wanted_instances:
-      if not self.op.static:
+      pnode = self.cfg.GetNodeInfo(instance.primary_node)
+
+      if self.op.static or pnode.offline:
+        remote_state = None
+        if pnode.offline:
+          self.LogWarning("Primary node %s is marked offline, returning static"
+                          " information only for instance %s" %
+                          (pnode.name, instance.name))
+      else:
         remote_info = self.rpc.call_instance_info(instance.primary_node,
                                                   instance.name,
                                                   instance.hypervisor)
@@ -10233,15 +10242,14 @@ class LUInstanceQueryData(NoHooksLU):
           remote_state = "up"
         else:
           remote_state = "down"
-      else:
-        remote_state = None
+
       if instance.admin_up:
         config_state = "up"
       else:
         config_state = "down"
 
-      disks = [self._ComputeDiskStatus(instance, None, device)
-               for device in instance.disks]
+      disks = map(compat.partial(self._ComputeDiskStatus, instance, None),
+                  instance.disks)
 
       result[instance.name] = {
         "name": instance.name,
