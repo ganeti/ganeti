@@ -154,6 +154,9 @@ _SUMMARY_PREFIX = {
 #: Attribute name for dependencies
 DEPEND_ATTR = "depends"
 
+#: Attribute name for comment
+COMMENT_ATTR = "comment"
+
 
 def _NameToId(name):
   """Convert an opcode class name to an OP_ID.
@@ -448,6 +451,8 @@ class OpCode(BaseOpCode):
     (DEPEND_ATTR, None, _BuildJobDepCheck(True),
      "Job dependencies; if used through ``SubmitManyJobs`` relative (negative)"
      " job IDs can be used"),
+    (COMMENT_ATTR, None, ht.TMaybeString,
+     "Comment describing the purpose of the opcode"),
     ]
 
   def __getstate__(self):
