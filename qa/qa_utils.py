@@ -82,7 +82,7 @@ def AssertIn(item, sequence):
 
   """
   if item not in sequence:
-    raise qa_error.Error('%r not in %r' % (item, sequence))
+    raise qa_error.Error("%r not in %r" % (item, sequence))
 
 
 def AssertNotIn(item, sequence):
@@ -90,7 +90,7 @@ def AssertNotIn(item, sequence):
 
   """
   if item in sequence:
-    raise qa_error.Error('%r in %r' % (item, sequence))
+    raise qa_error.Error("%r in %r" % (item, sequence))
 
 
 def AssertEqual(first, second):
@@ -98,7 +98,7 @@ def AssertEqual(first, second):
 
   """
   if not first == second:
-    raise qa_error.Error('%r == %r' % (first, second))
+    raise qa_error.Error("%r == %r" % (first, second))
 
 
 def AssertNotEqual(first, second):
@@ -106,7 +106,7 @@ def AssertNotEqual(first, second):
 
   """
   if not first != second:
-    raise qa_error.Error('%r != %r' % (first, second))
+    raise qa_error.Error("%r != %r" % (first, second))
 
 
 def AssertMatch(string, pattern):
@@ -178,18 +178,18 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=True):
     args.append("-t")
 
   if strict:
-    tmp = 'yes'
+    tmp = "yes"
   else:
-    tmp = 'no'
-  args.append('-oStrictHostKeyChecking=%s' % tmp)
-  args.append('-oClearAllForwardings=yes')
-  args.append('-oForwardAgent=yes')
+    tmp = "no"
+  args.append("-oStrictHostKeyChecking=%s" % tmp)
+  args.append("-oClearAllForwardings=yes")
+  args.append("-oForwardAgent=yes")
   if opts:
     args.extend(opts)
   if node in _MULTIPLEXERS:
     spath = _MULTIPLEXERS[node][0]
-    args.append('-oControlPath=%s' % spath)
-    args.append('-oControlMaster=no')
+    args.append("-oControlPath=%s" % spath)
+    args.append("-oControlMaster=no")
   args.append(node)
   if cmd:
     args.append(cmd)
@@ -265,7 +265,7 @@ def UploadFile(node, src):
          'cat > "${tmp}" && '
          'echo "${tmp}"') % mode
 
-  f = open(src, 'r')
+  f = open(src, "r")
   try:
     p = subprocess.Popen(GetSSHCommand(node, cmd), shell=False, stdin=f,
                          stdout=subprocess.PIPE)
@@ -325,9 +325,9 @@ def _ResolveName(cmd, key):
   """
   master = qa_config.GetMasterNode()
 
-  output = GetCommandOutput(master['primary'], utils.ShellQuoteArgs(cmd))
+  output = GetCommandOutput(master["primary"], utils.ShellQuoteArgs(cmd))
   for line in output.splitlines():
-    (lkey, lvalue) = line.split(':', 1)
+    (lkey, lvalue) = line.split(":", 1)
     if lkey == key:
       return lvalue.lstrip()
   raise KeyError("Key not found")
@@ -340,16 +340,16 @@ def ResolveInstanceName(instance):
   @param instance: Instance name
 
   """
-  return _ResolveName(['gnt-instance', 'info', instance],
-                      'Instance name')
+  return _ResolveName(["gnt-instance", "info", instance],
+                      "Instance name")
 
 
 def ResolveNodeName(node):
   """Gets the full name of a node.
 
   """
-  return _ResolveName(['gnt-node', 'info', node['primary']],
-                      'Node name')
+  return _ResolveName(["gnt-node", "info", node["primary"]],
+                      "Node name")
 
 
 def GetNodeInstances(node, secondaries=False):
@@ -360,15 +360,15 @@ def GetNodeInstances(node, secondaries=False):
   node_name = ResolveNodeName(node)
 
   # Get list of all instances
-  cmd = ['gnt-instance', 'list', '--separator=:', '--no-headers',
-         '--output=name,pnode,snodes']
-  output = GetCommandOutput(master['primary'], utils.ShellQuoteArgs(cmd))
+  cmd = ["gnt-instance", "list", "--separator=:", "--no-headers",
+         "--output=name,pnode,snodes"]
+  output = GetCommandOutput(master["primary"], utils.ShellQuoteArgs(cmd))
 
   instances = []
   for line in output.splitlines():
-    (name, pnode, snodes) = line.split(':', 2)
+    (name, pnode, snodes) = line.split(":", 2)
     if ((not secondaries and pnode == node_name) or
-        (secondaries and node_name in snodes.split(','))):
+        (secondaries and node_name in snodes.split(","))):
       instances.append(name)
 
   return instances

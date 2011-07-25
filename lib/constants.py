@@ -210,7 +210,7 @@ PROC_MOUNTS = "/proc/mounts"
 LUXI_EOM = "\3"
 LUXI_VERSION = CONFIG_VERSION
 
-# one of 'no', 'yes', 'only'
+# one of "no", "yes", "only"
 SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
 SYSLOG_NO = "no"
 SYSLOG_YES = "yes"
@@ -438,8 +438,8 @@ EXPORT_MODES = frozenset([
   ])
 
 # Lock recalculate mode
-LOCKS_REPLACE = 'replace'
-LOCKS_APPEND = 'append'
+LOCKS_REPLACE = "replace"
+LOCKS_APPEND = "append"
 
 # Lock timeout (sum) before we should go into blocking acquire (still
 # can be reset by priority change); computed as max time (10 hours)
@@ -559,20 +559,20 @@ RUNPARTS_STATUS = frozenset([RUNPARTS_SKIP, RUNPARTS_RUN, RUNPARTS_ERR])
  RPC_ENCODING_ZLIB_BASE64) = range(2)
 
 # os related constants
-OS_SCRIPT_CREATE = 'create'
-OS_SCRIPT_IMPORT = 'import'
-OS_SCRIPT_EXPORT = 'export'
-OS_SCRIPT_RENAME = 'rename'
-OS_SCRIPT_VERIFY = 'verify'
+OS_SCRIPT_CREATE = "create"
+OS_SCRIPT_IMPORT = "import"
+OS_SCRIPT_EXPORT = "export"
+OS_SCRIPT_RENAME = "rename"
+OS_SCRIPT_VERIFY = "verify"
 OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT,
                         OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME,
                         OS_SCRIPT_VERIFY])
 
-OS_API_FILE = 'ganeti_api_version'
-OS_VARIANTS_FILE = 'variants.list'
-OS_PARAMETERS_FILE = 'parameters.list'
+OS_API_FILE = "ganeti_api_version"
+OS_VARIANTS_FILE = "variants.list"
+OS_PARAMETERS_FILE = "parameters.list"
 
-OS_VALIDATE_PARAMETERS = 'parameters'
+OS_VALIDATE_PARAMETERS = "parameters"
 OS_VALIDATE_CALLS = frozenset([OS_VALIDATE_PARAMETERS])
 
 # ssh constants
@@ -593,11 +593,11 @@ REBOOT_TYPES = frozenset([INSTANCE_REBOOT_SOFT,
                           INSTANCE_REBOOT_HARD,
                           INSTANCE_REBOOT_FULL])
 
-VTYPE_STRING = 'string'
+VTYPE_STRING = "string"
 VTYPE_MAYBE_STRING = "maybe-string"
-VTYPE_BOOL = 'bool'
-VTYPE_SIZE = 'size' # size, in MiBs
-VTYPE_INT = 'int'
+VTYPE_BOOL = "bool"
+VTYPE_SIZE = "size" # size, in MiBs
+VTYPE_INT = "int"
 ENFORCEABLE_TYPES = frozenset([
                       VTYPE_STRING,
                       VTYPE_MAYBE_STRING,
@@ -885,7 +885,7 @@ HT_MIGRATION_NONLIVE = "non-live"
 HT_MIGRATION_MODES = frozenset([HT_MIGRATION_LIVE, HT_MIGRATION_NONLIVE])
 
 # Cluster Verify steps
-VERIFY_NPLUSONE_MEM = 'nplusone_mem'
+VERIFY_NPLUSONE_MEM = "nplusone_mem"
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
 
 # Node verify constants
@@ -1169,18 +1169,18 @@ HVC_DEFAULTS = {
   HT_XEN_PVM: {
     HV_USE_BOOTLOADER: False,
     HV_BOOTLOADER_PATH: XEN_BOOTLOADER,
-    HV_BOOTLOADER_ARGS: '',
+    HV_BOOTLOADER_ARGS: "",
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
-    HV_INITRD_PATH: '',
-    HV_ROOT_PATH: '/dev/sda1',
-    HV_KERNEL_ARGS: 'ro',
+    HV_INITRD_PATH: "",
+    HV_ROOT_PATH: "/dev/sda1",
+    HV_KERNEL_ARGS: "ro",
     HV_MIGRATION_PORT: 8002,
     HV_MIGRATION_MODE: HT_MIGRATION_LIVE,
     HV_BLOCKDEV_PREFIX: "sd",
     },
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
-    HV_CDROM_IMAGE_PATH: '',
+    HV_CDROM_IMAGE_PATH: "",
     HV_NIC_TYPE: HT_NIC_RTL8139,
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
     HV_VNC_BIND_ADDRESS: IP4_ADDRESS_ANY,
@@ -1196,24 +1196,24 @@ HVC_DEFAULTS = {
     },
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
-    HV_INITRD_PATH: '',
-    HV_KERNEL_ARGS: 'ro',
-    HV_ROOT_PATH: '/dev/vda1',
+    HV_INITRD_PATH: "",
+    HV_KERNEL_ARGS: "ro",
+    HV_ROOT_PATH: "/dev/vda1",
     HV_ACPI: True,
     HV_SERIAL_CONSOLE: True,
-    HV_VNC_BIND_ADDRESS: '',
+    HV_VNC_BIND_ADDRESS: "",
     HV_VNC_TLS: False,
-    HV_VNC_X509: '',
+    HV_VNC_X509: "",
     HV_VNC_X509_VERIFY: False,
-    HV_VNC_PASSWORD_FILE: '',
-    HV_KVM_FLOPPY_IMAGE_PATH: '',
-    HV_CDROM_IMAGE_PATH: '',
-    HV_KVM_CDROM2_IMAGE_PATH: '',
+    HV_VNC_PASSWORD_FILE: "",
+    HV_KVM_FLOPPY_IMAGE_PATH: "",
+    HV_CDROM_IMAGE_PATH: "",
+    HV_KVM_CDROM2_IMAGE_PATH: "",
     HV_BOOT_ORDER: HT_BO_DISK,
     HV_NIC_TYPE: HT_NIC_PARAVIRTUAL,
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
-    HV_KVM_CDROM_DISK_TYPE: '',
-    HV_USB_MOUSE: '',
+    HV_KVM_CDROM_DISK_TYPE: "",
+    HV_USB_MOUSE: "",
     HV_KEYMAP: "",
     HV_MIGRATION_PORT: 8102,
     HV_MIGRATION_BANDWIDTH: 32, # MiB/s
@@ -1222,7 +1222,7 @@ HVC_DEFAULTS = {
     HV_USE_LOCALTIME: False,
     HV_DISK_CACHE: HT_CACHE_DEFAULT,
     HV_SECURITY_MODEL: HT_SM_NONE,
-    HV_SECURITY_DOMAIN: '',
+    HV_SECURITY_DOMAIN: "",
     HV_KVM_FLAG: "",
     HV_VHOST_NET: False,
     HV_KVM_USE_CHROOT: False,
@@ -1333,7 +1333,7 @@ CONFD_CONFIG_RELOAD_RATELIMIT = 2
 # This allows us to distinguish different types of confd protocols and handle
 # them. For example by changing this we can move the whole payload to be
 # compressed, or move away from json.
-CONFD_MAGIC_FOURCC = 'plj0'
+CONFD_MAGIC_FOURCC = "plj0"
 
 # By default a confd request is sent to the minimum between this number and all
 # MCs. 6 was chosen because even in the case of a disastrous 50% response rate,

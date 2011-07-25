@@ -118,7 +118,7 @@ def Enabled():
   """Return whether remote API tests should be run.
 
   """
-  return qa_config.TestEnabled('rapi')
+  return qa_config.TestEnabled("rapi")
 
 
 def _DoTests(uris):
@@ -144,7 +144,7 @@ def _DoTests(uris):
 
 
 def _VerifyReturnsJob(data):
-  AssertMatch(data, r'^\d+$')
+  AssertMatch(data, r"^\d+$")
 
 
 def TestVersion():
@@ -152,7 +152,7 @@ def TestVersion():
 
   """
   _DoTests([
-    ("/version", constants.RAPI_VERSION, 'GET', None),
+    ("/version", constants.RAPI_VERSION, "GET", None),
     ])
 
 
@@ -193,16 +193,16 @@ def TestEmptyCluster():
         AssertIn(field, group)
 
   _DoTests([
-    ("/", None, 'GET', None),
-    ("/2/info", _VerifyInfo, 'GET', None),
-    ("/2/tags", None, 'GET', None),
-    ("/2/nodes", _VerifyNodes, 'GET', None),
-    ("/2/nodes?bulk=1", _VerifyNodesBulk, 'GET', None),
-    ("/2/groups", _VerifyGroups, 'GET', None),
-    ("/2/groups?bulk=1", _VerifyGroupsBulk, 'GET', None),
-    ("/2/instances", [], 'GET', None),
-    ("/2/instances?bulk=1", [], 'GET', None),
-    ("/2/os", None, 'GET', None),
+    ("/", None, "GET", None),
+    ("/2/info", _VerifyInfo, "GET", None),
+    ("/2/tags", None, "GET", None),
+    ("/2/nodes", _VerifyNodes, "GET", None),
+    ("/2/nodes?bulk=1", _VerifyNodesBulk, "GET", None),
+    ("/2/groups", _VerifyGroups, "GET", None),
+    ("/2/groups?bulk=1", _VerifyGroupsBulk, "GET", None),
+    ("/2/instances", [], "GET", None),
+    ("/2/instances?bulk=1", [], "GET", None),
+    ("/2/os", None, "GET", None),
     ])
 
   # Test HTTP Not Found
@@ -358,13 +358,13 @@ def TestInstance(instance):
       _VerifyInstance(instance_data)
 
   _DoTests([
-    ("/2/instances/%s" % instance["name"], _VerifyInstance, 'GET', None),
-    ("/2/instances", _VerifyInstancesList, 'GET', None),
-    ("/2/instances?bulk=1", _VerifyInstancesBulk, 'GET', None),
+    ("/2/instances/%s" % instance["name"], _VerifyInstance, "GET", None),
+    ("/2/instances", _VerifyInstancesList, "GET", None),
+    ("/2/instances?bulk=1", _VerifyInstancesBulk, "GET", None),
     ("/2/instances/%s/activate-disks" % instance["name"],
-     _VerifyReturnsJob, 'PUT', None),
+     _VerifyReturnsJob, "PUT", None),
     ("/2/instances/%s/deactivate-disks" % instance["name"],
-     _VerifyReturnsJob, 'PUT', None),
+     _VerifyReturnsJob, "PUT", None),
     ])
 
   # Test OpBackupPrepare
@@ -399,9 +399,9 @@ def TestNode(node):
       _VerifyNode(node_data)
 
   _DoTests([
-    ("/2/nodes/%s" % node["primary"], _VerifyNode, 'GET', None),
-    ("/2/nodes", _VerifyNodesList, 'GET', None),
-    ("/2/nodes?bulk=1", _VerifyNodesBulk, 'GET', None),
+    ("/2/nodes/%s" % node["primary"], _VerifyNode, "GET", None),
+    ("/2/nodes", _VerifyNodesList, "GET", None),
+    ("/2/nodes?bulk=1", _VerifyNodesBulk, "GET", None),
     ])
 
 
@@ -433,7 +433,7 @@ def TestTags(kind, name, tags):
 
   # Retrieve tags
   _DoTests([
-    (uri, _VerifyTags, 'GET', None),
+    (uri, _VerifyTags, "GET", None),
     ])
 
   # Remove tags

@@ -35,7 +35,7 @@ from ganeti import errors
 _PARSEUNIT_REGEX = re.compile(r"^([.\d]+)\s*([a-zA-Z]+)?$")
 
 #: Characters which don't need to be quoted for shell commands
-_SHELL_UNQUOTED_RE = re.compile('^[-.,=:/_+@A-Za-z0-9]+$')
+_SHELL_UNQUOTED_RE = re.compile("^[-.,=:/_+@A-Za-z0-9]+$")
 
 #: MAC checker regexp
 _MAC_CHECK_RE = re.compile("^([0-9a-f]{2}:){5}[0-9a-f]{2}$", re.I)
@@ -143,24 +143,24 @@ def FormatUnit(value, units):
   @return: the formatted value (with suffix)
 
   """
-  if units not in ('m', 'g', 't', 'h'):
+  if units not in ("m", "g", "t", "h"):
     raise errors.ProgrammerError("Invalid unit specified '%s'" % str(units))
 
-  suffix = ''
+  suffix = ""
 
-  if units == 'm' or (units == 'h' and value < 1024):
-    if units == 'h':
-      suffix = 'M'
+  if units == "m" or (units == "h" and value < 1024):
+    if units == "h":
+      suffix = "M"
     return "%d%s" % (round(value, 0), suffix)
 
-  elif units == 'g' or (units == 'h' and value < (1024 * 1024)):
-    if units == 'h':
-      suffix = 'G'
+  elif units == "g" or (units == "h" and value < (1024 * 1024)):
+    if units == "h":
+      suffix = "G"
     return "%0.1f%s" % (round(float(value) / 1024, 1), suffix)
 
   else:
-    if units == 'h':
-      suffix = 'T'
+    if units == "h":
+      suffix = "T"
     return "%0.1f%s" % (round(float(value) / 1024 / 1024, 1), suffix)
 
 
@@ -182,16 +182,16 @@ def ParseUnit(input_string):
   if unit:
     lcunit = unit.lower()
   else:
-    lcunit = 'm'
+    lcunit = "m"
 
-  if lcunit in ('m', 'mb', 'mib'):
+  if lcunit in ("m", "mb", "mib"):
     # Value already in MiB
     pass
 
-  elif lcunit in ('g', 'gb', 'gib'):
+  elif lcunit in ("g", "gb", "gib"):
     value *= 1024
 
-  elif lcunit in ('t', 'tb', 'tib'):
+  elif lcunit in ("t", "tb", "tib"):
     value *= 1024 * 1024
 
   else:
@@ -334,15 +334,15 @@ def SafeEncode(text):
   """
   if isinstance(text, unicode):
     # only if unicode; if str already, we handle it below
-    text = text.encode('ascii', 'backslashreplace')
+    text = text.encode("ascii", "backslashreplace")
   resu = ""
   for char in text:
     c = ord(char)
-    if char  == '\t':
-      resu += r'\t'
-    elif char == '\n':
-      resu += r'\n'
-    elif char == '\r':
+    if char  == "\t":
+      resu += r"\t"
+    elif char == "\n":
+      resu += r"\n"
+    elif char == "\r":
       resu += r'\'r'
     elif c < 32 or c >= 127: # non-printable
       resu += "\\x%02x" % (c & 0xff)

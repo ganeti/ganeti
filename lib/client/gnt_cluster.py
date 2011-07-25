@@ -1242,7 +1242,7 @@ def Epo(opts, args):
 
 
 commands = {
-  'init': (
+  "init": (
     InitCluster, [ArgHost(min=1, max=1)],
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, GLOBAL_FILEDIR_OPT,
      HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, NIC_PARAMS_OPT,
@@ -1252,75 +1252,75 @@ commands = {
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
-  'destroy': (
+  "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
     "", "Destroy cluster"),
-  'rename': (
+  "rename": (
     RenameCluster, [ArgHost(min=1, max=1)],
     [FORCE_OPT, DRY_RUN_OPT],
     "<new_name>",
     "Renames the cluster"),
-  'redist-conf': (
+  "redist-conf": (
     RedistributeConfig, ARGS_NONE, [SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "", "Forces a push of the configuration file and ssconf files"
     " to the nodes in the cluster"),
-  'verify': (
+  "verify": (
     VerifyCluster, ARGS_NONE,
     [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT],
     "", "Does a check on the cluster configuration"),
-  'verify-disks': (
+  "verify-disks": (
     VerifyDisks, ARGS_NONE, [PRIORITY_OPT],
     "", "Does a check on the cluster disk status"),
-  'repair-disk-sizes': (
+  "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
     "", "Updates mismatches in recorded disk sizes"),
-  'master-failover': (
+  "master-failover": (
     MasterFailover, ARGS_NONE, [NOVOTING_OPT],
     "", "Makes the current node the master"),
-  'master-ping': (
+  "master-ping": (
     MasterPing, ARGS_NONE, [],
     "", "Checks if the master is alive"),
-  'version': (
+  "version": (
     ShowClusterVersion, ARGS_NONE, [],
     "", "Shows the cluster version"),
-  'getmaster': (
+  "getmaster": (
     ShowClusterMaster, ARGS_NONE, [],
     "", "Shows the cluster master"),
-  'copyfile': (
+  "copyfile": (
     ClusterCopyFile, [ArgFile(min=1, max=1)],
     [NODE_LIST_OPT, USE_REPL_NET_OPT, NODEGROUP_OPT],
     "[-n node...] <filename>", "Copies a file to all (or only some) nodes"),
-  'command': (
+  "command": (
     RunClusterCommand, [ArgCommand(min=1)],
     [NODE_LIST_OPT, NODEGROUP_OPT],
     "[-n node...] <command>", "Runs a command on all (or only some) nodes"),
-  'info': (
+  "info": (
     ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],
     "[--roman]", "Show cluster configuration"),
-  'list-tags': (
+  "list-tags": (
     ListTags, ARGS_NONE, [], "", "List the tags of the cluster"),
-  'add-tags': (
+  "add-tags": (
     AddTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT],
     "tag...", "Add tags to the cluster"),
-  'remove-tags': (
+  "remove-tags": (
     RemoveTags, [ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT],
     "tag...", "Remove tags from the cluster"),
-  'search-tags': (
+  "search-tags": (
     SearchTags, [ArgUnknown(min=1, max=1)], [PRIORITY_OPT], "",
     "Searches the tags on all objects on"
     " the cluster for a given pattern (regex)"),
-  'queue': (
+  "queue": (
     QueueOps,
     [ArgChoice(min=1, max=1, choices=["drain", "undrain", "info"])],
     [], "drain|undrain|info", "Change queue properties"),
-  'watcher': (
+  "watcher": (
     WatcherOps,
     [ArgChoice(min=1, max=1, choices=["pause", "continue", "info"]),
      ArgSuggest(min=0, max=1, choices=["30m", "1h", "4h"])],
     [],
     "{pause <timespec>|continue|info}", "Change watcher properties"),
-  'modify': (
+  "modify": (
     SetClusterParams, ARGS_NONE,
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
@@ -1347,7 +1347,7 @@ commands = {
 
 #: dictionary with aliases for commands
 aliases = {
-  'masterfailover': 'master-failover',
+  "masterfailover": "master-failover",
 }
 
 

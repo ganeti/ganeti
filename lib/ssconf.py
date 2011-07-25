@@ -41,7 +41,7 @@ from ganeti import netutils
 
 SSCONF_LOCK_TIMEOUT = 10
 
-RE_VALID_SSCONF_NAME = re.compile(r'^[-_a-z0-9]+$')
+RE_VALID_SSCONF_NAME = re.compile(r"^[-_a-z0-9]+$")
 
 
 class SimpleConfigReader(object):
@@ -111,17 +111,17 @@ class SimpleConfigReader(object):
     self._ip_to_inst_by_link = {}
     self._instances_ips = []
     self._inst_ips_by_link = {}
-    c_nparams = self._config_data['cluster']['nicparams'][constants.PP_DEFAULT]
-    for iname in self._config_data['instances']:
-      instance = self._config_data['instances'][iname]
-      for nic in instance['nics']:
-        if 'ip' in nic and nic['ip']:
-          params = objects.FillDict(c_nparams, nic['nicparams'])
-          if not params['link'] in self._inst_ips_by_link:
-            self._inst_ips_by_link[params['link']] = []
-            self._ip_to_inst_by_link[params['link']] = {}
-          self._ip_to_inst_by_link[params['link']][nic['ip']] = iname
-          self._inst_ips_by_link[params['link']].append(nic['ip'])
+    c_nparams = self._config_data["cluster"]["nicparams"][constants.PP_DEFAULT]
+    for iname in self._config_data["instances"]:
+      instance = self._config_data["instances"][iname]
+      for nic in instance["nics"]:
+        if "ip" in nic and nic["ip"]:
+          params = objects.FillDict(c_nparams, nic["nicparams"])
+          if not params["link"] in self._inst_ips_by_link:
+            self._inst_ips_by_link[params["link"]] = []
+            self._ip_to_inst_by_link[params["link"]] = {}
+          self._ip_to_inst_by_link[params["link"]][nic["ip"]] = iname
+          self._inst_ips_by_link[params["link"]].append(nic["ip"])
 
     self._nodes_primary_ips = []
     self._mc_primary_ips = []
@@ -310,7 +310,7 @@ class SimpleStore(object):
       raise errors.ProgrammerError("Invalid key requested from SSConf: '%s'"
                                    % str(key))
 
-    filename = self._cfg_dir + '/' + self._SS_FILEPREFIX + key
+    filename = self._cfg_dir + "/" + self._SS_FILEPREFIX + key
     return filename
 
   def _ReadFile(self, key, default=None):
@@ -328,7 +328,7 @@ class SimpleStore(object):
         return default
       raise errors.ConfigurationError("Can't read from the ssconf file:"
                                       " '%s'" % str(err))
-    data = data.rstrip('\n')
+    data = data.rstrip("\n")
     return data
 
   def WriteFiles(self, values):

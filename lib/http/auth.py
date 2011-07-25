@@ -198,7 +198,7 @@ class HttpServerRequestAuthentication(object):
 
     """
     try:
-      creds = base64.b64decode(in_data.encode('ascii')).decode('ascii')
+      creds = base64.b64decode(in_data.encode("ascii")).decode("ascii")
     except (TypeError, binascii.Error, UnicodeError):
       logging.exception("Error when decoding Basic authentication credentials")
       return False

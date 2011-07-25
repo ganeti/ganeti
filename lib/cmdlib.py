@@ -998,20 +998,20 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   bep = cluster.FillBE(instance)
   hvp = cluster.FillHV(instance)
   args = {
-    'name': instance.name,
-    'primary_node': instance.primary_node,
-    'secondary_nodes': instance.secondary_nodes,
-    'os_type': instance.os,
-    'status': instance.admin_up,
-    'memory': bep[constants.BE_MEMORY],
-    'vcpus': bep[constants.BE_VCPUS],
-    'nics': _NICListToTuple(lu, instance.nics),
-    'disk_template': instance.disk_template,
-    'disks': [(disk.size, disk.mode) for disk in instance.disks],
-    'bep': bep,
-    'hvp': hvp,
-    'hypervisor_name': instance.hypervisor,
-    'tags': instance.tags,
+    "name": instance.name,
+    "primary_node": instance.primary_node,
+    "secondary_nodes": instance.secondary_nodes,
+    "os_type": instance.os,
+    "status": instance.admin_up,
+    "memory": bep[constants.BE_MEMORY],
+    "vcpus": bep[constants.BE_VCPUS],
+    "nics": _NICListToTuple(lu, instance.nics),
+    "disk_template": instance.disk_template,
+    "disks": [(disk.size, disk.mode) for disk in instance.disks],
+    "bep": bep,
+    "hvp": hvp,
+    "hypervisor_name": instance.hypervisor,
+    "tags": instance.tags,
   }
   if override:
     args.update(override)
@@ -2840,7 +2840,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           self._ErrorIf(test, self.ENODEHOOKS, node_name,
                         "Script %s failed, output:", script)
           if test:
-            output = self._HOOKS_INDENT_RE.sub('      ', output)
+            output = self._HOOKS_INDENT_RE.sub("      ", output)
             feedback_fn("%s" % output)
             lu_result = 0
 
@@ -4279,13 +4279,13 @@ class LUNodeQueryvols(NoHooksLU):
           if field == "node":
             val = node
           elif field == "phys":
-            val = vol['dev']
+            val = vol["dev"]
           elif field == "vg":
-            val = vol['vg']
+            val = vol["vg"]
           elif field == "name":
-            val = vol['name']
+            val = vol["name"]
           elif field == "size":
-            val = int(float(vol['size']))
+            val = int(float(vol["size"]))
           elif field == "instance":
             val = vol2inst.get((node, vol["vg"] + "/" + vol["name"]), "-")
           else:
@@ -5526,7 +5526,7 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   nodeinfo = lu.rpc.call_node_info([node], None, hypervisor_name)
   nodeinfo[node].Raise("Can't get data from node %s" % node,
                        prereq=True, ecode=errors.ECODE_ENVIRON)
-  free_mem = nodeinfo[node].payload.get('memory_free', None)
+  free_mem = nodeinfo[node].payload.get("memory_free", None)
   if not isinstance(free_mem, int):
     raise errors.OpPrereqError("Can't compute free memory on node %s, result"
                                " was '%s'" % (node, free_mem),
@@ -8432,7 +8432,7 @@ class LUInstanceCreate(LogicalUnit):
 
       disk_images = []
       for idx in range(export_disks):
-        option = 'disk%d_dump' % idx
+        option = "disk%d_dump" % idx
         if export_info.has_option(constants.INISECT_INS, option):
           # FIXME: are the old os-es, disk sizes, etc. useful?
           export_name = export_info.get(constants.INISECT_INS, option)
@@ -8443,9 +8443,9 @@ class LUInstanceCreate(LogicalUnit):
 
       self.src_images = disk_images
 
-      old_name = export_info.get(constants.INISECT_INS, 'name')
+      old_name = export_info.get(constants.INISECT_INS, "name")
       try:
-        exp_nic_count = export_info.getint(constants.INISECT_INS, 'nic_count')
+        exp_nic_count = export_info.getint(constants.INISECT_INS, "nic_count")
       except (TypeError, ValueError), err:
         raise errors.OpPrereqError("Invalid export file, nic_count is not"
                                    " an integer: %s" % str(err),
@@ -8453,7 +8453,7 @@ class LUInstanceCreate(LogicalUnit):
       if self.op.instance_name == old_name:
         for idx, nic in enumerate(self.nics):
           if nic.mac == constants.VALUE_AUTO and exp_nic_count >= idx:
-            nic_mac_ini = 'nic%d_mac' % idx
+            nic_mac_ini = "nic%d_mac" % idx
             nic.mac = export_info.get(constants.INISECT_INS, nic_mac_ini)
 
     # ENDIF: self.op.mode == constants.INSTANCE_IMPORT
@@ -10374,13 +10374,13 @@ class LUInstanceSetParams(LogicalUnit):
             raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip,
                                        errors.ECODE_INVAL)
 
-      nic_bridge = nic_dict.get('bridge', None)
+      nic_bridge = nic_dict.get("bridge", None)
       nic_link = nic_dict.get(constants.INIC_LINK, None)
       if nic_bridge and nic_link:
         raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
                                    " at the same time", errors.ECODE_INVAL)
       elif nic_bridge and nic_bridge.lower() == constants.VALUE_NONE:
-        nic_dict['bridge'] = None
+        nic_dict["bridge"] = None
       elif nic_link and nic_link.lower() == constants.VALUE_NONE:
         nic_dict[constants.INIC_LINK] = None
 
@@ -10423,13 +10423,13 @@ class LUInstanceSetParams(LogicalUnit):
     """
     args = dict()
     if constants.BE_MEMORY in self.be_new:
-      args['memory'] = self.be_new[constants.BE_MEMORY]
+      args["memory"] = self.be_new[constants.BE_MEMORY]
     if constants.BE_VCPUS in self.be_new:
-      args['vcpus'] = self.be_new[constants.BE_VCPUS]
+      args["vcpus"] = self.be_new[constants.BE_VCPUS]
     # TODO: export disk changes. Note: _BuildInstanceHookEnv* don't export disk
     # information at all.
     if self.op.nics:
-      args['nics'] = []
+      args["nics"] = []
       nic_override = dict(self.op.nics)
       for idx, nic in enumerate(self.instance.nics):
         if idx in nic_override:
@@ -10450,16 +10450,16 @@ class LUInstanceSetParams(LogicalUnit):
           nicparams = self.cluster.SimpleFillNIC(nic.nicparams)
         mode = nicparams[constants.NIC_MODE]
         link = nicparams[constants.NIC_LINK]
-        args['nics'].append((ip, mac, mode, link))
+        args["nics"].append((ip, mac, mode, link))
       if constants.DDM_ADD in nic_override:
         ip = nic_override[constants.DDM_ADD].get(constants.INIC_IP, None)
         mac = nic_override[constants.DDM_ADD][constants.INIC_MAC]
         nicparams = self.nic_pnew[constants.DDM_ADD]
         mode = nicparams[constants.NIC_MODE]
         link = nicparams[constants.NIC_LINK]
-        args['nics'].append((ip, mac, mode, link))
+        args["nics"].append((ip, mac, mode, link))
       elif constants.DDM_REMOVE in nic_override:
-        del args['nics'][-1]
+        del args["nics"][-1]
 
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
     if self.op.disk_template:
@@ -10577,7 +10577,7 @@ class LUInstanceSetParams(LogicalUnit):
         # Assume the primary node is unreachable and go ahead
         self.warn.append("Can't get info from primary node %s: %s" %
                          (pnode,  msg))
-      elif not isinstance(pninfo.payload.get('memory_free', None), int):
+      elif not isinstance(pninfo.payload.get("memory_free", None), int):
         self.warn.append("Node data from primary node %s doesn't contain"
                          " free memory information" % pnode)
       elif instance_info.fail_msg:
@@ -10585,14 +10585,14 @@ class LUInstanceSetParams(LogicalUnit):
                         instance_info.fail_msg)
       else:
         if instance_info.payload:
-          current_mem = int(instance_info.payload['memory'])
+          current_mem = int(instance_info.payload["memory"])
         else:
           # Assume instance not running
           # (there is a slight race condition here, but it's not very probable,
           # and we have no other way to check)
           current_mem = 0
         miss_mem = (be_new[constants.BE_MEMORY] - current_mem -
-                    pninfo.payload['memory_free'])
+                    pninfo.payload["memory_free"])
         if miss_mem > 0:
           raise errors.OpPrereqError("This change will prevent the instance"
                                      " from starting, due to %d MB of memory"
@@ -10605,11 +10605,11 @@ class LUInstanceSetParams(LogicalUnit):
             continue
           nres.Raise("Can't get info from secondary node %s" % node,
                      prereq=True, ecode=errors.ECODE_STATE)
-          if not isinstance(nres.payload.get('memory_free', None), int):
+          if not isinstance(nres.payload.get("memory_free", None), int):
             raise errors.OpPrereqError("Secondary node %s didn't return free"
                                        " memory information" % node,
                                        errors.ECODE_STATE)
-          elif be_new[constants.BE_MEMORY] > nres.payload['memory_free']:
+          elif be_new[constants.BE_MEMORY] > nres.payload["memory_free"]:
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from failover to its secondary node"
                                        " %s, due to not enough memory" % node,
@@ -10645,8 +10645,8 @@ class LUInstanceSetParams(LogicalUnit):
                                  for key in constants.NICS_PARAMETERS
                                  if key in nic_dict])
 
-      if 'bridge' in nic_dict:
-        update_params_dict[constants.NIC_LINK] = nic_dict['bridge']
+      if "bridge" in nic_dict:
+        update_params_dict[constants.NIC_LINK] = nic_dict["bridge"]
 
       new_nic_params = _GetUpdatedParams(old_nic_params,
                                          update_params_dict)
@@ -10672,12 +10672,12 @@ class LUInstanceSetParams(LogicalUnit):
         else:
           nic_ip = old_nic_ip
         if nic_ip is None:
-          raise errors.OpPrereqError('Cannot set the nic ip to None'
-                                     ' on a routed nic', errors.ECODE_INVAL)
+          raise errors.OpPrereqError("Cannot set the nic ip to None"
+                                     " on a routed nic", errors.ECODE_INVAL)
       if constants.INIC_MAC in nic_dict:
         nic_mac = nic_dict[constants.INIC_MAC]
         if nic_mac is None:
-          raise errors.OpPrereqError('Cannot set the nic mac to None',
+          raise errors.OpPrereqError("Cannot set the nic mac to None",
                                      errors.ECODE_INVAL)
         elif nic_mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
           # otherwise generate the mac
@@ -12565,8 +12565,8 @@ class IAllocator(object):
                                 nname)
         remote_info = nresult.payload
 
-        for attr in ['memory_total', 'memory_free', 'memory_dom0',
-                     'vg_size', 'vg_free', 'cpu_total']:
+        for attr in ["memory_total", "memory_free", "memory_dom0",
+                     "vg_size", "vg_free", "cpu_total"]:
           if attr not in remote_info:
             raise errors.OpExecError("Node '%s' didn't return attribute"
                                      " '%s'" % (nname, attr))
@@ -12582,21 +12582,21 @@ class IAllocator(object):
             if iinfo.name not in node_iinfo[nname].payload:
               i_used_mem = 0
             else:
-              i_used_mem = int(node_iinfo[nname].payload[iinfo.name]['memory'])
+              i_used_mem = int(node_iinfo[nname].payload[iinfo.name]["memory"])
             i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
-            remote_info['memory_free'] -= max(0, i_mem_diff)
+            remote_info["memory_free"] -= max(0, i_mem_diff)
 
             if iinfo.admin_up:
               i_p_up_mem += beinfo[constants.BE_MEMORY]
 
         # compute memory used by instances
         pnr_dyn = {
-          "total_memory": remote_info['memory_total'],
-          "reserved_memory": remote_info['memory_dom0'],
-          "free_memory": remote_info['memory_free'],
-          "total_disk": remote_info['vg_size'],
-          "free_disk": remote_info['vg_free'],
-          "total_cpus": remote_info['cpu_total'],
+          "total_memory": remote_info["memory_total"],
+          "reserved_memory": remote_info["memory_dom0"],
+          "free_memory": remote_info["memory_free"],
+          "total_disk": remote_info["vg_size"],
+          "free_disk": remote_info["vg_free"],
+          "total_cpus": remote_info["cpu_total"],
           "i_pri_memory": i_p_mem,
           "i_pri_up_memory": i_p_up_mem,
           }

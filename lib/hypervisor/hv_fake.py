@@ -200,7 +200,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     result = self.GetLinuxNodeInfo()
     # substract running instances
     all_instances = self.GetAllInstancesInfo()
-    result['memory_free'] -= min(result['memory_free'],
+    result["memory_free"] -= min(result["memory_free"],
                                  sum([row[2] for row in all_instances]))
     return result
 

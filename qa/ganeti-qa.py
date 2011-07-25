@@ -245,7 +245,7 @@ def RunCommonInstanceTests(instance):
 
   RunTestIf("instance-reboot", qa_instance.TestInstanceReboot, instance)
 
-  if qa_config.TestEnabled('instance-rename'):
+  if qa_config.TestEnabled("instance-rename"):
     rename_source = instance["name"]
     rename_target = qa_config.get("rename", None)
     RunTest(qa_instance.TestInstanceShutdown, instance)
@@ -310,7 +310,7 @@ def RunExportImportTests(instance, pnode, snode):
       otherwise None
 
   """
-  if qa_config.TestEnabled('instance-export'):
+  if qa_config.TestEnabled("instance-export"):
     RunTest(qa_instance.TestInstanceExportNoTarget, instance)
 
     expnode = qa_config.AcquireNode(exclude=pnode)
@@ -319,7 +319,7 @@ def RunExportImportTests(instance, pnode, snode):
 
       RunTest(qa_instance.TestBackupList, expnode)
 
-      if qa_config.TestEnabled('instance-import'):
+      if qa_config.TestEnabled("instance-import"):
         newinst = qa_config.AcquireInstance()
         try:
           RunTest(qa_instance.TestInstanceImport, pnode, newinst,
@@ -373,7 +373,7 @@ def RunHardwareFailureTests(instance, pnode, snode):
   RunTestIf(["instance-migrate", "rapi"],
             qa_rapi.TestRapiInstanceMigrate, instance)
 
-  if qa_config.TestEnabled('instance-replace-disks'):
+  if qa_config.TestEnabled("instance-replace-disks"):
     othernode = qa_config.AcquireNode(exclude=[pnode, snode])
     try:
       RunTest(qa_instance.TestReplaceDisks,
@@ -448,7 +448,7 @@ def RunQa():
       del instance
 
     multinode_tests = [
-      ('instance-add-drbd-disk',
+      ("instance-add-drbd-disk",
        qa_instance.TestInstanceAddWithDrbdDisk),
     ]
 
@@ -462,7 +462,7 @@ def RunQa():
           RunTest(qa_group.TestAssignNodesIncludingSplit,
                   constants.INITIAL_NODE_GROUP_NAME,
                   pnode["primary"], snode["primary"])
-          if qa_config.TestEnabled('instance-convert-disk'):
+          if qa_config.TestEnabled("instance-convert-disk"):
             RunTest(qa_instance.TestInstanceShutdown, instance)
             RunTest(qa_instance.TestInstanceConvertDisk, instance, snode)
             RunTest(qa_instance.TestInstanceStartup, instance)
@@ -503,7 +503,7 @@ def main():
 
   """
   parser = optparse.OptionParser(usage="%prog [options] <config-file>")
-  parser.add_option('--yes-do-it', dest='yes_do_it',
+  parser.add_option("--yes-do-it", dest="yes_do_it",
       action="store_true",
       help="Really execute the tests")
   (qa_config.options, args) = parser.parse_args()
@@ -527,5 +527,5 @@ def main():
   finally:
     qa_utils.CloseMultiplexers()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   main()

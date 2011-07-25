@@ -242,7 +242,7 @@ class BaseHypervisor(object):
     @return: instance migration information - serialized form
 
     """
-    return ''
+    return ""
 
   def AcceptInstance(self, instance, info, target):
     """Prepare to accept an instance.
@@ -381,16 +381,16 @@ class BaseHypervisor(object):
         if len(splitfields) > 1:
           key = splitfields[0].strip()
           val = splitfields[1].strip()
-          if key == 'MemTotal':
-            result['memory_total'] = int(val.split()[0])/1024
-          elif key in ('MemFree', 'Buffers', 'Cached'):
+          if key == "MemTotal":
+            result["memory_total"] = int(val.split()[0])/1024
+          elif key in ("MemFree", "Buffers", "Cached"):
             sum_free += int(val.split()[0])/1024
-          elif key == 'Active':
-            result['memory_dom0'] = int(val.split()[0])/1024
+          elif key == "Active":
+            result["memory_dom0"] = int(val.split()[0])/1024
     except (ValueError, TypeError), err:
       raise errors.HypervisorError("Failed to compute memory usage: %s" %
                                    (err,))
-    result['memory_free'] = sum_free
+    result["memory_free"] = sum_free
 
     cpu_total = 0
     try:
@@ -402,10 +402,10 @@ class BaseHypervisor(object):
         fh.close()
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list node info: %s" % (err,))
-    result['cpu_total'] = cpu_total
+    result["cpu_total"] = cpu_total
     # FIXME: export correct data here
-    result['cpu_nodes'] = 1
-    result['cpu_sockets'] = 1
+    result["cpu_nodes"] = 1
+    result["cpu_sockets"] = 1
 
     return result
 

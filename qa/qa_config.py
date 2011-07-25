@@ -47,9 +47,9 @@ def Load(path):
 
 
 def Validate():
-  if len(cfg['nodes']) < 1:
+  if len(cfg["nodes"]) < 1:
     raise qa_error.Error("Need at least one node")
-  if len(cfg['instances']) < 1:
+  if len(cfg["instances"]) < 1:
     raise qa_error.Error("Need at least one instance")
   if len(cfg["disk"]) != len(cfg["disk-growth"]):
     raise qa_error.Error("Config options 'disk' and 'disk-growth' must have"
@@ -72,7 +72,7 @@ def TestEnabled(tests):
 
 
 def GetMasterNode():
-  return cfg['nodes'][0]
+  return cfg["nodes"][0]
 
 
 def AcquireInstance():
@@ -80,20 +80,20 @@ def AcquireInstance():
 
   """
   # Filter out unwanted instances
-  tmp_flt = lambda inst: not inst.get('_used', False)
-  instances = filter(tmp_flt, cfg['instances'])
+  tmp_flt = lambda inst: not inst.get("_used", False)
+  instances = filter(tmp_flt, cfg["instances"])
   del tmp_flt
 
   if len(instances) == 0:
     raise qa_error.OutOfInstancesError("No instances left")
 
   inst = instances[0]
-  inst['_used'] = True
+  inst["_used"] = True
   return inst
 
 
 def ReleaseInstance(inst):
-  inst['_used'] = False
+  inst["_used"] = False
 
 
 def AcquireNode(exclude=None):
@@ -105,13 +105,13 @@ def AcquireNode(exclude=None):
   # Filter out unwanted nodes
   # TODO: Maybe combine filters
   if exclude is None:
-    nodes = cfg['nodes'][:]
+    nodes = cfg["nodes"][:]
   elif isinstance(exclude, (list, tuple)):
-    nodes = filter(lambda node: node not in exclude, cfg['nodes'])
+    nodes = filter(lambda node: node not in exclude, cfg["nodes"])
   else:
-    nodes = filter(lambda node: node != exclude, cfg['nodes'])
+    nodes = filter(lambda node: node != exclude, cfg["nodes"])
 
-  tmp_flt = lambda node: node.get('_added', False) or node == master
+  tmp_flt = lambda node: node.get("_added", False) or node == master
   nodes = filter(tmp_flt, nodes)
   del tmp_flt
 
@@ -120,17 +120,17 @@ def AcquireNode(exclude=None):
 
   # Get node with least number of uses
   def compare(a, b):
-    result = cmp(a.get('_count', 0), b.get('_count', 0))
+    result = cmp(a.get("_count", 0), b.get("_count", 0))
     if result == 0:
-      result = cmp(a['primary'], b['primary'])
+      result = cmp(a["primary"], b["primary"])
     return result
 
   nodes.sort(cmp=compare)
 
   node = nodes[0]
-  node['_count'] = node.get('_count', 0) + 1
+  node["_count"] = node.get("_count", 0) + 1
   return node
 
 
 def ReleaseNode(node):
-  node['_count'] = node.get('_count', 0) - 1
+  node["_count"] = node.get("_count", 0) - 1

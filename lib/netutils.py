@@ -476,16 +476,16 @@ class IP6Address(IPAddress):
       # We have a shorthand address, expand it
       parts = []
       twoparts = address.split("::")
-      sep = len(twoparts[0].split(':')) + len(twoparts[1].split(':'))
-      parts = twoparts[0].split(':')
+      sep = len(twoparts[0].split(":")) + len(twoparts[1].split(":"))
+      parts = twoparts[0].split(":")
       [parts.append("0") for _ in range(8 - sep)]
-      parts += twoparts[1].split(':')
+      parts += twoparts[1].split(":")
     else:
       parts = address.split(":")
 
     address_int = 0
     for part in parts:
-      address_int = (address_int << 16) + int(part or '0', 16)
+      address_int = (address_int << 16) + int(part or "0", 16)
 
     return address_int
 

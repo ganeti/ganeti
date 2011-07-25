@@ -57,8 +57,8 @@ from ganeti.utils.x509 import *
 
 _VALID_SERVICE_NAME_RE = re.compile("^[-_.a-zA-Z0-9]{1,128}$")
 
-UUID_RE = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
-                     '[a-f0-9]{4}-[a-f0-9]{12}$')
+UUID_RE = re.compile("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-"
+                     "[a-f0-9]{4}-[a-f0-9]{12}$")
 
 
 def ForceDictType(target, key_types, allowed_values=None):
@@ -98,7 +98,7 @@ def ForceDictType(target, key_types, allowed_values=None):
         pass
       elif not isinstance(target[key], basestring):
         if isinstance(target[key], bool) and not target[key]:
-          target[key] = ''
+          target[key] = ""
         else:
           msg = "'%s' (value %s) is not a valid string" % (key, target[key])
           raise errors.TypeEnforcementError(msg)
@@ -546,15 +546,15 @@ def SignalHandled(signums):
   """
   def wrap(fn):
     def sig_function(*args, **kwargs):
-      assert 'signal_handlers' not in kwargs or \
-             kwargs['signal_handlers'] is None or \
-             isinstance(kwargs['signal_handlers'], dict), \
+      assert "signal_handlers" not in kwargs or \
+             kwargs["signal_handlers"] is None or \
+             isinstance(kwargs["signal_handlers"], dict), \
              "Wrong signal_handlers parameter in original function call"
-      if 'signal_handlers' in kwargs and kwargs['signal_handlers'] is not None:
-        signal_handlers = kwargs['signal_handlers']
+      if "signal_handlers" in kwargs and kwargs["signal_handlers"] is not None:
+        signal_handlers = kwargs["signal_handlers"]
       else:
         signal_handlers = {}
-        kwargs['signal_handlers'] = signal_handlers
+        kwargs["signal_handlers"] = signal_handlers
       sighandler = SignalHandler(signums)
       try:
         for sig in signums:

@@ -76,39 +76,39 @@ def TestClusterInit(rapi_user, rapi_secret):
     fh.close()
 
   # Initialize cluster
-  cmd = ['gnt-cluster', 'init']
+  cmd = ["gnt-cluster", "init"]
 
   cmd.append("--primary-ip-version=%d" %
              qa_config.get("primary_ip_version", 4))
 
-  if master.get('secondary', None):
-    cmd.append('--secondary-ip=%s' % master['secondary'])
+  if master.get("secondary", None):
+    cmd.append("--secondary-ip=%s" % master["secondary"])
 
-  bridge = qa_config.get('bridge', None)
+  bridge = qa_config.get("bridge", None)
   if bridge:
-    cmd.append('--bridge=%s' % bridge)
-    cmd.append('--master-netdev=%s' % bridge)
+    cmd.append("--bridge=%s" % bridge)
+    cmd.append("--master-netdev=%s" % bridge)
 
-  htype = qa_config.get('enabled-hypervisors', None)
+  htype = qa_config.get("enabled-hypervisors", None)
   if htype:
-    cmd.append('--enabled-hypervisors=%s' % htype)
+    cmd.append("--enabled-hypervisors=%s" % htype)
 
-  cmd.append(qa_config.get('name'))
+  cmd.append(qa_config.get("name"))
 
   AssertCommand(cmd)
 
 
 def TestClusterRename():
   """gnt-cluster rename"""
-  cmd = ['gnt-cluster', 'rename', '-f']
+  cmd = ["gnt-cluster", "rename", "-f"]
 
-  original_name = qa_config.get('name')
-  rename_target = qa_config.get('rename', None)
+  original_name = qa_config.get("name")
+  rename_target = qa_config.get("rename", None)
   if rename_target is None:
     print qa_utils.FormatError('"rename" entry is missing')
     return
 
-  cmd_verify = ['gnt-cluster', 'verify']
+  cmd_verify = ["gnt-cluster", "verify"]
 
   for data in [
     cmd + [rename_target],
@@ -332,19 +332,19 @@ def TestClusterBurnin():
   """Burnin"""
   master = qa_config.GetMasterNode()
 
-  options = qa_config.get('options', {})
-  disk_template = options.get('burnin-disk-template', 'drbd')
-  parallel = options.get('burnin-in-parallel', False)
-  check_inst = options.get('burnin-check-instances', False)
-  do_rename = options.get('burnin-rename', '')
-  do_reboot = options.get('burnin-reboot', True)
+  options = qa_config.get("options", {})
+  disk_template = options.get("burnin-disk-template", "drbd")
+  parallel = options.get("burnin-in-parallel", False)
+  check_inst = options.get("burnin-check-instances", False)
+  do_rename = options.get("burnin-rename", "")
+  do_reboot = options.get("burnin-reboot", True)
   reboot_types = options.get("reboot-types", constants.REBOOT_TYPES)
 
   # Get as many instances as we need
   instances = []
   try:
     try:
-      num = qa_config.get('options', {}).get('burnin-instances', 1)
+      num = qa_config.get("options", {}).get("burnin-instances", 1)
       for _ in range(0, num):
         instances.append(qa_config.AcquireInstance())
     except qa_error.OutOfInstancesError:
@@ -353,26 +353,26 @@ def TestClusterBurnin():
     if len(instances) < 1:
       raise qa_error.Error("Burnin needs at least one instance")
 
-    script = qa_utils.UploadFile(master['primary'], '../tools/burnin')
+    script = qa_utils.UploadFile(master["primary"], "../tools/burnin")
     try:
       # Run burnin
       cmd = [script,
-             '--os=%s' % qa_config.get('os'),
-             '--disk-size=%s' % ",".join(qa_config.get('disk')),
-             '--disk-growth=%s' % ",".join(qa_config.get('disk-growth')),
-             '--disk-template=%s' % disk_template]
+             "--os=%s" % qa_config.get("os"),
+             "--disk-size=%s" % ",".join(qa_config.get("disk")),
+             "--disk-growth=%s" % ",".join(qa_config.get("disk-growth")),
+             "--disk-template=%s" % disk_template]
       if parallel:
-        cmd.append('--parallel')
-        cmd.append('--early-release')
+        cmd.append("--parallel")
+        cmd.append("--early-release")
       if check_inst:
-        cmd.append('--http-check')
+        cmd.append("--http-check")
       if do_rename:
-        cmd.append('--rename=%s' % do_rename)
+        cmd.append("--rename=%s" % do_rename)
       if not do_reboot:
-        cmd.append('--no-reboot')
+        cmd.append("--no-reboot")
       else:
-        cmd.append('--reboot-types=%s' % ",".join(reboot_types))
-      cmd += [inst['name'] for inst in instances]
+        cmd.append("--reboot-types=%s" % ",".join(reboot_types))
+      cmd += [inst["name"] for inst in instances]
       AssertCommand(cmd)
     finally:
       AssertCommand(["rm", "-f", script])
@@ -439,7 +439,7 @@ def TestClusterCopyfile():
   f.seek(0)
 
   # Upload file to master node
-  testname = qa_utils.UploadFile(master['primary'], f.name)
+  testname = qa_utils.UploadFile(master["primary"], f.name)
   try:
     # Copy file to all nodes
     AssertCommand(["gnt-cluster", "copyfile", testname])
@@ -452,8 +452,8 @@ def TestClusterCommand():
   """gnt-cluster command"""
   uniqueid = utils.NewUUID()
   rfile = "/tmp/gnt%s" % utils.NewUUID()
-  rcmd = utils.ShellQuoteArgs(['echo', '-n', uniqueid])
-  cmd = utils.ShellQuoteArgs(['gnt-cluster', 'command',
+  rcmd = utils.ShellQuoteArgs(["echo", "-n", uniqueid])
+  cmd = utils.ShellQuoteArgs(["gnt-cluster", "command",
                               "%s >%s" % (rcmd, rfile)])
 
   try:

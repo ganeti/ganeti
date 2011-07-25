@@ -600,7 +600,7 @@ class LogicalVolume(BlockDev):
                 # one line for any non-empty string
       logging.error("Can't parse LVS output, no lines? Got '%s'", str(out))
       return False
-    out = out[-1].strip().rstrip(',')
+    out = out[-1].strip().rstrip(",")
     out = out.split(",")
     if len(out) != 5:
       logging.error("Can't parse LVS output, len(%s) != 5", str(out))
@@ -633,7 +633,7 @@ class LogicalVolume(BlockDev):
     self.minor = minor
     self.pe_size = pe_size
     self.stripe_count = stripes
-    self._degraded = status[0] == 'v' # virtual volume, i.e. doesn't backing
+    self._degraded = status[0] == "v" # virtual volume, i.e. doesn't backing
                                       # storage
     self.attached = True
     return True
@@ -745,8 +745,8 @@ class LogicalVolume(BlockDev):
     BlockDev.SetInfo(self, text)
 
     # Replace invalid characters
-    text = re.sub('^[^A-Za-z0-9_+.]', '_', text)
-    text = re.sub('[^-A-Za-z0-9_+.]', '_', text)
+    text = re.sub("^[^A-Za-z0-9_+.]", "_", text)
+    text = re.sub("[^-A-Za-z0-9_+.]", "_", text)
 
     # Only up to 128 characters are allowed
     text = text[:128]
@@ -971,14 +971,14 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
                                     first_line)
 
     values = version.groups()
-    retval = {'k_major': int(values[0]),
-              'k_minor': int(values[1]),
-              'k_point': int(values[2]),
-              'api': int(values[3]),
-              'proto': int(values[4]),
+    retval = {"k_major": int(values[0]),
+              "k_minor": int(values[1]),
+              "k_point": int(values[2]),
+              "api": int(values[3]),
+              "proto": int(values[4]),
              }
     if values[5] is not None:
-      retval['proto2'] = values[5]
+      retval["proto2"] = values[5]
 
     return retval
 
@@ -1113,10 +1113,10 @@ class DRBD8(BaseDRBD):
     super(DRBD8, self).__init__(unique_id, children, size)
     self.major = self._DRBD_MAJOR
     version = self._GetVersion(self._GetProcData())
-    if version['k_major'] != 8 :
+    if version["k_major"] != 8 :
       _ThrowError("Mismatch in DRBD kernel version and requested ganeti"
                   " usage: kernel is %s.%s, ganeti wants 8.x",
-                  version['k_major'], version['k_minor'])
+                  version["k_major"], version["k_minor"])
 
     if (self._lhost is not None and self._lhost == self._rhost and
         self._lport == self._rport):
@@ -1210,7 +1210,7 @@ class DRBD8(BaseDRBD):
             pyp.Optional(pyp.restOfLine).suppress())
 
     # an entire section
-    section_name = pyp.Word(pyp.alphas + '_')
+    section_name = pyp.Word(pyp.alphas + "_")
     section = section_name + lbrace + pyp.ZeroOrMore(pyp.Group(stmt)) + rbrace
 
     bnf = pyp.ZeroOrMore(pyp.Group(section ^ stmt))
@@ -1343,18 +1343,18 @@ class DRBD8(BaseDRBD):
       # what we aim here is to revert back to the 'drain' method of
       # disk flushes and to disable metadata barriers, in effect going
       # back to pre-8.0.7 behaviour
-      vmaj = version['k_major']
-      vmin = version['k_minor']
-      vrel = version['k_point']
+      vmaj = version["k_major"]
+      vmin = version["k_minor"]
+      vrel = version["k_point"]
       assert vmaj == 8
       if vmin == 0: # 8.0.x
         if vrel >= 12:
-          args.extend(['-i', '-m'])
+          args.extend(["-i", "-m"])
       elif vmin == 2: # 8.2.x
         if vrel >= 7:
-          args.extend(['-i', '-m'])
+          args.extend(["-i", "-m"])
       elif vmaj >= 3: # 8.3.x or newer
-        args.extend(['-i', '-a', 'm'])
+        args.extend(["-i", "-a", "m"])
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
@@ -2102,7 +2102,7 @@ class PersistentBlockDevice(BlockDev):
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.dev_path = unique_id[1]
-    if not os.path.realpath(self.dev_path).startswith('/dev/'):
+    if not os.path.realpath(self.dev_path).startswith("/dev/"):
       raise ValueError("Full path '%s' lies outside /dev" %
                               os.path.realpath(self.dev_path))
     # TODO: this is just a safety guard checking that we only deal with devices

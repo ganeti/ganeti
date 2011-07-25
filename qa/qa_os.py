@@ -56,14 +56,14 @@ def TestOsDiagnose():
 
 def _TestOsModify(hvp_dict, fail=False):
   """gnt-os modify"""
-  cmd = ['gnt-os', 'modify']
+  cmd = ["gnt-os", "modify"]
 
   for hv_name, hv_params in hvp_dict.items():
-    cmd.append('-H')
+    cmd.append("-H")
     options = []
     for key, value in hv_params.items():
       options.append("%s=%s" % (key, value))
-    cmd.append('%s:%s' % (hv_name, ','.join(options)))
+    cmd.append("%s:%s" % (hv_name, ",".join(options)))
 
   cmd.append(_TEMP_OS_NAME)
   AssertCommand(cmd, fail=fail)
@@ -99,7 +99,7 @@ def _SetupTempOs(node, dirname, valid):
   parts.append(sq(["echo", str(constants.OS_API_V10)]) +
                " >ganeti_api_version")
 
-  cmd = ' && '.join(parts)
+  cmd = " && ".join(parts)
 
   print qa_utils.FormatInfo("Setting up %s with %s OS definition" %
                             (node["primary"],

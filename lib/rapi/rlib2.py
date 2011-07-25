@@ -837,9 +837,9 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    reboot_type = self.queryargs.get('type',
+    reboot_type = self.queryargs.get("type",
                                      [constants.INSTANCE_REBOOT_HARD])[0]
-    ignore_secondaries = bool(self._checkIntVariable('ignore_secondaries'))
+    ignore_secondaries = bool(self._checkIntVariable("ignore_secondaries"))
     op = opcodes.OpInstanceReboot(instance_name=instance_name,
                                   reboot_type=reboot_type,
                                   ignore_secondaries=ignore_secondaries,
@@ -862,8 +862,8 @@ class R_2_instances_name_startup(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    force_startup = bool(self._checkIntVariable('force'))
-    no_remember = bool(self._checkIntVariable('no_remember'))
+    force_startup = bool(self._checkIntVariable("force"))
+    no_remember = bool(self._checkIntVariable("no_remember"))
     op = opcodes.OpInstanceStartup(instance_name=instance_name,
                                    force=force_startup,
                                    dry_run=bool(self.dryRun()),
@@ -900,7 +900,7 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
     """
     baserlib.CheckType(self.request_body, dict, "Body contents")
 
-    no_remember = bool(self._checkIntVariable('no_remember'))
+    no_remember = bool(self._checkIntVariable("no_remember"))
     op = _ParseShutdownInstanceRequest(self.items[0], self.request_body,
                                        bool(self.dryRun()), no_remember)
 
@@ -1015,7 +1015,7 @@ class R_2_instances_name_activate_disks(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    ignore_size = bool(self._checkIntVariable('ignore_size'))
+    ignore_size = bool(self._checkIntVariable("ignore_size"))
 
     op = opcodes.OpInstanceActivateDisks(instance_name=instance_name,
                                          ignore_size=ignore_size)
@@ -1355,11 +1355,11 @@ class _R_Tags(baserlib.R_Generic):
 
     """
     # pylint: disable-msg=W0212
-    if 'tag' not in self.queryargs:
+    if "tag" not in self.queryargs:
       raise http.HttpBadRequest("Please specify tag(s) to add using the"
                                 " the 'tag' parameter")
     return baserlib._Tags_PUT(self.TAG_LEVEL,
-                              self.queryargs['tag'], name=self.name,
+                              self.queryargs["tag"], name=self.name,
                               dry_run=bool(self.dryRun()))
 
   def DELETE(self):
@@ -1371,12 +1371,12 @@ class _R_Tags(baserlib.R_Generic):
 
     """
     # pylint: disable-msg=W0212
-    if 'tag' not in self.queryargs:
+    if "tag" not in self.queryargs:
       # no we not gonna delete all tags
       raise http.HttpBadRequest("Cannot delete all tags - please specify"
                                 " tag(s) using the 'tag' parameter")
     return baserlib._Tags_DELETE(self.TAG_LEVEL,
-                                 self.queryargs['tag'],
+                                 self.queryargs["tag"],
                                  name=self.name,
                                  dry_run=bool(self.dryRun()))
 

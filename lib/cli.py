@@ -517,7 +517,7 @@ def check_ident_key_val(option, opt, value):  # pylint: disable-msg=W0613
 
   """
   if ":" not in value:
-    ident, rest = value, ''
+    ident, rest = value, ""
   else:
     ident, rest = value.split(":", 1)
 
@@ -621,7 +621,7 @@ SEP_OPT = cli_option("--separator", default=None,
                            " (defaults to one space)"))
 
 USEUNITS_OPT = cli_option("--units", default=None,
-                          dest="units", choices=('h', 'm', 'g', 't'),
+                          dest="units", choices=("h", "m", "g", "t"),
                           help="Specify units for output (one of h/m/g/t)")
 
 FIELDS_OPT = cli_option("-o", "--output", dest="output", action="store",
@@ -1417,8 +1417,8 @@ def SplitNodeOption(value):
   """Splits the value of a --node option.
 
   """
-  if value and ':' in value:
-    return value.split(':', 1)
+  if value and ":" in value:
+    return value.split(":", 1)
   else:
     return (value, None)
 
@@ -1435,7 +1435,7 @@ def CalculateOSNames(os_name, os_variants):
 
   """
   if os_variants:
-    return ['%s+%s' % (os_name, v) for v in os_variants]
+    return ["%s+%s" % (os_name, v) for v in os_variants]
   else:
     return [os_name]
 
@@ -1477,12 +1477,12 @@ def AskUser(text, choices=None):
 
   """
   if choices is None:
-    choices = [('y', True, 'Perform the operation'),
-               ('n', False, 'Do not perform the operation')]
+    choices = [("y", True, "Perform the operation"),
+               ("n", False, "Do not perform the operation")]
   if not choices or not isinstance(choices, list):
     raise errors.ProgrammerError("Invalid choices argument to AskUser")
   for entry in choices:
-    if not isinstance(entry, tuple) or len(entry) < 3 or entry[0] == '?':
+    if not isinstance(entry, tuple) or len(entry) < 3 or entry[0] == "?":
       raise errors.ProgrammerError("Invalid choices element to AskUser")
 
   answer = choices[-1][1]
@@ -1497,18 +1497,18 @@ def AskUser(text, choices=None):
   try:
     chars = [entry[0] for entry in choices]
     chars[-1] = "[%s]" % chars[-1]
-    chars.append('?')
+    chars.append("?")
     maps = dict([(entry[0], entry[1]) for entry in choices])
     while True:
       f.write(text)
-      f.write('\n')
+      f.write("\n")
       f.write("/".join(chars))
       f.write(": ")
       line = f.readline(2).strip().lower()
       if line in maps:
         answer = maps[line]
         break
-      elif line == '?':
+      elif line == "?":
         for entry in choices:
           f.write(" %s - %s\n" % (entry[0], entry[2]))
         f.write("\n")
@@ -1965,7 +1965,7 @@ def FormatError(err):
     retcode = 0
   else:
     obuf.write("Unhandled exception: %s" % msg)
-  return retcode, obuf.getvalue().rstrip('\n')
+  return retcode, obuf.getvalue().rstrip("\n")
 
 
 def GenericMain(commands, override=None, aliases=None):
@@ -2381,7 +2381,7 @@ def GenerateTable(headers, fields, separator, data,
 
   if separator is None:
     mlens = [0 for name in fields]
-    format_str = ' '.join(format_fields)
+    format_str = " ".join(format_fields)
   else:
     format_str = separator.replace("%", "%%").join(format_fields)
 
@@ -2420,7 +2420,7 @@ def GenerateTable(headers, fields, separator, data,
   for line in data:
     args = []
     if line is None:
-      line = ['-' for _ in fields]
+      line = ["-" for _ in fields]
     for idx in range(len(fields)):
       if separator is None:
         args.append(mlens[idx])
@@ -2826,7 +2826,7 @@ def FormatTimestamp(ts):
 
   """
   if not isinstance (ts, (tuple, list)) or len(ts) != 2:
-    return '?'
+    return "?"
   sec, usec = ts
   return time.strftime("%F %T", time.localtime(sec)) + ".%06d" % usec
 
@@ -2849,11 +2849,11 @@ def ParseTimespec(value):
   if not value:
     raise errors.OpPrereqError("Empty time specification passed")
   suffix_map = {
-    's': 1,
-    'm': 60,
-    'h': 3600,
-    'd': 86400,
-    'w': 604800,
+    "s": 1,
+    "m": 60,
+    "h": 3600,
+    "d": 86400,
+    "w": 604800,
     }
   if value[-1] not in suffix_map:
     try:
@@ -2966,7 +2966,7 @@ def _ToStream(stream, txt, *args):
       stream.write(txt % args)
     else:
       stream.write(txt)
-    stream.write('\n')
+    stream.write("\n")
     stream.flush()
   except IOError, err:
     if err.errno == errno.EPIPE:

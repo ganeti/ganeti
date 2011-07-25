@@ -143,7 +143,7 @@ def TestAllocator(opts, args):
     while len(row) < 3:
       row.append(None)
     for i in range(3):
-      if row[i] == '':
+      if row[i] == "":
         row[i] = None
   nic_dict = [{
     constants.INIC_MAC: v[0],
@@ -616,7 +616,7 @@ def ListLocks(opts, args): # pylint: disable-msg=W0613
 
 
 commands = {
-  'delay': (
+  "delay": (
     Delay, [ArgUnknown(min=1, max=1)],
     [cli_option("--no-master", dest="on_master", default=True,
                 action="store_false", help="Do not sleep in the master code"),
@@ -627,7 +627,7 @@ commands = {
      DRY_RUN_OPT, PRIORITY_OPT,
      ],
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
-  'submit-job': (
+  "submit-job": (
     GenericOpCodes, [ArgFile(min=1)],
     [VERBOSE_OPT,
      cli_option("--op-repeat", type="int", default="1", dest="rep_op",
@@ -642,7 +642,7 @@ commands = {
      ],
     "<op_list_file...>", "Submits jobs built from json files"
     " containing a list of serialized opcodes"),
-  'iallocator': (
+  "iallocator": (
     TestAllocator, [ArgUnknown(min=1)],
     [cli_option("--dir", dest="direction", default=constants.IALLOCATOR_DIR_IN,
                 choices=list(constants.VALID_IALLOCATOR_DIRECTIONS),

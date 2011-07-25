@@ -362,10 +362,10 @@ def CreateBackup(file_name):
             (os.path.basename(file_name), TimestampForFilename()))
   dir_name = os.path.dirname(file_name)
 
-  fsrc = open(file_name, 'rb')
+  fsrc = open(file_name, "rb")
   try:
     (fd, backup_name) = tempfile.mkstemp(prefix=prefix, dir=dir_name)
-    fdst = os.fdopen(fd, 'wb')
+    fdst = os.fdopen(fd, "wb")
     try:
       logging.debug("Backing up %s at %s", file_name, backup_name)
       shutil.copyfileobj(fsrc, fdst)
@@ -632,7 +632,7 @@ def AddAuthorizedKey(file_obj, key):
   key_fields = key.split()
 
   if isinstance(file_obj, basestring):
-    f = open(file_obj, 'a+')
+    f = open(file_obj, "a+")
   else:
     f = file_obj
 
@@ -642,11 +642,11 @@ def AddAuthorizedKey(file_obj, key):
       # Ignore whitespace changes
       if line.split() == key_fields:
         break
-      nl = line.endswith('\n')
+      nl = line.endswith("\n")
     else:
       if not nl:
         f.write("\n")
-      f.write(key.rstrip('\r\n'))
+      f.write(key.rstrip("\r\n"))
       f.write("\n")
       f.flush()
   finally:
@@ -666,9 +666,9 @@ def RemoveAuthorizedKey(file_name, key):
 
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
-    out = os.fdopen(fd, 'w')
+    out = os.fdopen(fd, "w")
     try:
-      f = open(file_name, 'r')
+      f = open(file_name, "r")
       try:
         for line in f:
           # Ignore whitespace changes while comparing lines

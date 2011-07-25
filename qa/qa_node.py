@@ -36,32 +36,32 @@ from qa_utils import AssertCommand, AssertEqual
 
 
 def _NodeAdd(node, readd=False):
-  if not readd and node.get('_added', False):
-    raise qa_error.Error("Node %s already in cluster" % node['primary'])
-  elif readd and not node.get('_added', False):
-    raise qa_error.Error("Node %s not yet in cluster" % node['primary'])
+  if not readd and node.get("_added", False):
+    raise qa_error.Error("Node %s already in cluster" % node["primary"])
+  elif readd and not node.get("_added", False):
+    raise qa_error.Error("Node %s not yet in cluster" % node["primary"])
 
-  cmd = ['gnt-node', 'add', "--no-ssh-key-check"]
-  if node.get('secondary', None):
-    cmd.append('--secondary-ip=%s' % node['secondary'])
+  cmd = ["gnt-node", "add", "--no-ssh-key-check"]
+  if node.get("secondary", None):
+    cmd.append("--secondary-ip=%s" % node["secondary"])
   if readd:
-    cmd.append('--readd')
-  cmd.append(node['primary'])
+    cmd.append("--readd")
+  cmd.append(node["primary"])
 
   AssertCommand(cmd)
 
-  node['_added'] = True
+  node["_added"] = True
 
 
 def _NodeRemove(node):
   AssertCommand(["gnt-node", "remove", node["primary"]])
-  node['_added'] = False
+  node["_added"] = False
 
 
 def TestNodeAddAll():
   """Adding all nodes to cluster."""
   master = qa_config.GetMasterNode()
-  for node in qa_config.get('nodes'):
+  for node in qa_config.get("nodes"):
     if node != master:
       _NodeAdd(node, readd=False)
 
@@ -73,15 +73,15 @@ def MarkNodeAddedAll():
 
   """
   master = qa_config.GetMasterNode()
-  for node in qa_config.get('nodes'):
+  for node in qa_config.get("nodes"):
     if node != master:
-      node['_added'] = True
+      node["_added"] = True
 
 
 def TestNodeRemoveAll():
   """Removing all nodes from cluster."""
   master = qa_config.GetMasterNode()
-  for node in qa_config.get('nodes'):
+  for node in qa_config.get("nodes"):
     if node != master:
       _NodeRemove(node)
 

@@ -157,7 +157,7 @@ def AutoArchiveJobs(opts, args):
 
   age = args[0]
 
-  if age == 'all':
+  if age == "all":
     age = -1
   else:
     age = ParseTimespec(age)
@@ -357,7 +357,7 @@ def WatchJob(opts, args):
 
 
 commands = {
-  'list': (
+  "list": (
     ListJobs, [ArgJobId()],
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT],
     "[job_id ...]",
@@ -366,22 +366,22 @@ commands = {
     " op_status, op_result."
     " The default field"
     " list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS)),
-  'archive': (
+  "archive": (
     ArchiveJobs, [ArgJobId(min=1)], [],
     "<job-id> [<job-id> ...]", "Archive specified jobs"),
-  'autoarchive': (
+  "autoarchive": (
     AutoArchiveJobs,
     [ArgSuggest(min=1, max=1, choices=["1d", "1w", "4w", "all"])],
     [],
     "<age>", "Auto archive jobs older than the given age"),
-  'cancel': (
+  "cancel": (
     CancelJobs, [ArgJobId(min=1)], [],
     "<job-id> [<job-id> ...]", "Cancel specified jobs"),
-  'info': (
+  "info": (
     ShowJobs, [ArgJobId(min=1)], [],
     "<job-id> [<job-id> ...]",
     "Show detailed information about the specified jobs"),
-  'watch': (
+  "watch": (
     WatchJob, [ArgJobId(min=1, max=1)], [],
     "<job-id>", "Follows a job and prints its output as it arrives"),
   }

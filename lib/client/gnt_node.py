@@ -174,7 +174,7 @@ def AddNode(opts, args):
   readd = opts.readd
 
   try:
-    output = cl.QueryNodes(names=[node], fields=['name', 'sip', 'master'],
+    output = cl.QueryNodes(names=[node], fields=["name", "sip", "master"],
                            use_locking=False)
     node_exists, sip, is_master = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
@@ -197,7 +197,7 @@ def AddNode(opts, args):
     sip = opts.secondary_ip
 
   # read the cluster name from the master
-  output = cl.QueryConfigValues(['cluster_name'])
+  output = cl.QueryConfigValues(["cluster_name"])
   cluster_name = output[0]
 
   if not readd and opts.node_setup:
@@ -851,7 +851,7 @@ def SetNodeParams(opts, args):
 
 
 commands = {
-  'add': (
+  "add": (
     AddNode, [ArgHost(min=1, max=1)],
     [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT, NODE_FORCE_JOIN_OPT,
      NONODE_SETUP_OPT, VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT,
@@ -867,23 +867,23 @@ commands = {
     "[-f] {-I <iallocator> | -n <dst>} <node>",
     "Relocate the secondary instances from a node"
     " to other nodes"),
-  'failover': (
+  "failover": (
     FailoverNode, ARGS_ONE_NODE, [FORCE_OPT, IGNORE_CONSIST_OPT,
                                   IALLOCATOR_OPT, PRIORITY_OPT],
     "[-f] <node>",
     "Stops the primary instances on a node and start them on their"
     " secondary node (only for instances with drbd disk template)"),
-  'migrate': (
+  "migrate": (
     MigrateNode, ARGS_ONE_NODE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, DST_NODE_OPT,
      IALLOCATOR_OPT, PRIORITY_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),
-  'info': (
+  "info": (
     ShowNodeConfig, ARGS_MANY_NODES, [],
     "[<node_name>...]", "Show information about the node(s)"),
-  'list': (
+  "list": (
     ListNodes, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, VERBOSE_OPT,
      FORCE_FILTER_OPT],
@@ -897,18 +897,18 @@ commands = {
     [NOHDR_OPT, SEP_OPT],
     "[fields...]",
     "Lists all available fields for nodes"),
-  'modify': (
+  "modify": (
     SetNodeParams, ARGS_ONE_NODE,
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT,
      NODE_POWERED_OPT],
     "<node_name>", "Alters the parameters of a node"),
-  'powercycle': (
+  "powercycle": (
     PowercycleNode, ARGS_ONE_NODE,
     [FORCE_OPT, CONFIRM_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name>", "Tries to forcefully powercycle a node"),
-  'power': (
+  "power": (
     PowerNode,
     [ArgChoice(min=1, max=1, choices=_LIST_POWER_COMMANDS),
      ArgNode()],
@@ -916,28 +916,28 @@ commands = {
      FORCE_OPT, NOHDR_OPT, SEP_OPT, OOB_TIMEOUT_OPT, POWER_DELAY_OPT],
     "on|off|cycle|status [nodes...]",
     "Change power state of node by calling out-of-band helper."),
-  'remove': (
+  "remove": (
     RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name>", "Removes a node from the cluster"),
-  'volumes': (
+  "volumes": (
     ListVolumes, [ArgNode()],
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, PRIORITY_OPT],
     "[<node_name>...]", "List logical volumes on node(s)"),
-  'list-storage': (
+  "list-storage": (
     ListStorage, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, _STORAGE_TYPE_OPT,
      PRIORITY_OPT],
     "[<node_name>...]", "List physical volumes on node(s). The available"
     " fields are (see the man page for details): %s." %
     (utils.CommaJoin(_LIST_STOR_HEADERS))),
-  'modify-storage': (
+  "modify-storage": (
     ModifyStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_MODIFIABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
     [ALLOCATABLE_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name> <storage_type> <name>", "Modify storage volume on a node"),
-  'repair-storage': (
+  "repair-storage": (
     RepairStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_REPAIRABLE_STORAGE_TYPES),
@@ -945,13 +945,13 @@ commands = {
     [IGNORE_CONSIST_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<node_name> <storage_type> <name>",
     "Repairs a storage volume on a node"),
-  'list-tags': (
+  "list-tags": (
     ListTags, ARGS_ONE_NODE, [],
     "<node_name>", "List the tags of the given node"),
-  'add-tags': (
+  "add-tags": (
     AddTags, [ArgNode(min=1, max=1), ArgUnknown()], [TAG_SRC_OPT, PRIORITY_OPT],
     "<node_name> tag...", "Add tags to the given node"),
-  'remove-tags': (
+  "remove-tags": (
     RemoveTags, [ArgNode(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT],
     "<node_name> tag...", "Remove tags from the given node"),

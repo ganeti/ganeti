@@ -280,17 +280,17 @@ def ModifyOS(opts, args):
 
 
 commands = {
-  'list': (
+  "list": (
     ListOS, ARGS_NONE, [NOHDR_OPT, PRIORITY_OPT],
     "", "Lists all valid operating systems on the cluster"),
-  'diagnose': (
+  "diagnose": (
     DiagnoseOS, ARGS_NONE, [PRIORITY_OPT],
     "", "Diagnose all operating systems"),
-  'info': (
+  "info": (
     ShowOSInfo, [ArgOs()], [PRIORITY_OPT],
     "", "Show detailed information about "
     "operating systems"),
-  'modify': (
+  "modify": (
     ModifyOS, ARGS_ONE_OS,
     [HVLIST_OPT, OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT,
      HID_OS_OPT, BLK_OS_OPT],

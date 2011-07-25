@@ -196,7 +196,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_MEM_PATH: hv_base.OPT_DIR_CHECK,
     }
 
-  _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
+  _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -257,7 +257,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     memory = 0
     vcpus = 0
 
-    arg_list = cmdline.split('\x00')
+    arg_list = cmdline.split("\x00")
     while arg_list:
       arg =  arg_list.pop(0)
       if arg == "-name":
@@ -526,15 +526,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
     # used just by the vnc server, if enabled
-    kvm_cmd.extend(['-name', instance.name])
-    kvm_cmd.extend(['-m', instance.beparams[constants.BE_MEMORY]])
-    kvm_cmd.extend(['-smp', instance.beparams[constants.BE_VCPUS]])
-    kvm_cmd.extend(['-pidfile', pidfile])
-    kvm_cmd.extend(['-daemonize'])
+    kvm_cmd.extend(["-name", instance.name])
+    kvm_cmd.extend(["-m", instance.beparams[constants.BE_MEMORY]])
+    kvm_cmd.extend(["-smp", instance.beparams[constants.BE_VCPUS]])
+    kvm_cmd.extend(["-pidfile", pidfile])
+    kvm_cmd.extend(["-daemonize"])
     if not instance.hvparams[constants.HV_ACPI]:
-      kvm_cmd.extend(['-no-acpi'])
+      kvm_cmd.extend(["-no-acpi"])
     if startup_paused:
-      kvm_cmd.extend(['-S'])
+      kvm_cmd.extend(["-S"])
 
     hvp = instance.hvparams
     boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
@@ -548,13 +548,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-disable-kvm"])
 
     if boot_network:
-      kvm_cmd.extend(['-boot', 'n'])
+      kvm_cmd.extend(["-boot", "n"])
 
     disk_type = hvp[constants.HV_DISK_TYPE]
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
-      if_val = ',if=virtio'
+      if_val = ",if=virtio"
     else:
-      if_val = ',if=%s' % disk_type
+      if_val = ",if=%s" % disk_type
     # Cache mode
     disk_cache = hvp[constants.HV_DISK_CACHE]
     if instance.disk_template in constants.DTS_EXT_MIRROR:
@@ -575,14 +575,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       boot_val = ""
       if boot_disk:
-        kvm_cmd.extend(['-boot', 'c'])
+        kvm_cmd.extend(["-boot", "c"])
         boot_disk = False
         if (v_major, v_min) < (0, 14) and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
 
-      drive_val = 'file=%s,format=raw%s%s%s' % (dev_path, if_val, boot_val,
+      drive_val = "file=%s,format=raw%s%s%s" % (dev_path, if_val, boot_val,
                                                 cache_val)
-      kvm_cmd.extend(['-drive', drive_val])
+      kvm_cmd.extend(["-drive", drive_val])
 
     #Now we can specify a different device type for CDROM devices.
     cdrom_disk_type = hvp[constants.HV_KVM_CDROM_DISK_TYPE]
@@ -591,55 +591,55 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_image:
-      options = ',format=raw,media=cdrom'
+      options = ",format=raw,media=cdrom"
       if boot_cdrom:
-        kvm_cmd.extend(['-boot', 'd'])
+        kvm_cmd.extend(["-boot", "d"])
         if cdrom_disk_type != constants.HT_DISK_IDE:
-          options = '%s,boot=on,if=%s' % (options, constants.HT_DISK_IDE)
+          options = "%s,boot=on,if=%s" % (options, constants.HT_DISK_IDE)
         else:
-          options = '%s,boot=on' % options
+          options = "%s,boot=on" % options
       else:
         if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-          if_val = ',if=virtio'
+          if_val = ",if=virtio"
         else:
-          if_val = ',if=%s' % cdrom_disk_type
-        options = '%s%s' % (options, if_val)
-      drive_val = 'file=%s%s' % (iso_image, options)
-      kvm_cmd.extend(['-drive', drive_val])
+          if_val = ",if=%s" % cdrom_disk_type
+        options = "%s%s" % (options, if_val)
+      drive_val = "file=%s%s" % (iso_image, options)
+      kvm_cmd.extend(["-drive", drive_val])
 
     iso_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
     if iso_image2:
-      options = ',format=raw,media=cdrom'
+      options = ",format=raw,media=cdrom"
       if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-        if_val = ',if=virtio'
+        if_val = ",if=virtio"
       else:
-        if_val = ',if=%s' % cdrom_disk_type
-      options = '%s%s' % (options, if_val)
-      drive_val = 'file=%s%s' % (iso_image2, options)
-      kvm_cmd.extend(['-drive', drive_val])
+        if_val = ",if=%s" % cdrom_disk_type
+      options = "%s%s" % (options, if_val)
+      drive_val = "file=%s%s" % (iso_image2, options)
+      kvm_cmd.extend(["-drive", drive_val])
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
     if floppy_image:
-      options = ',format=raw,media=disk'
+      options = ",format=raw,media=disk"
       if boot_floppy:
-        kvm_cmd.extend(['-boot', 'a'])
-        options = '%s,boot=on' % options
-      if_val = ',if=floppy'
-      options = '%s%s' % (options, if_val)
-      drive_val = 'file=%s%s' % (floppy_image, options)
-      kvm_cmd.extend(['-drive', drive_val])
+        kvm_cmd.extend(["-boot", "a"])
+        options = "%s,boot=on" % options
+      if_val = ",if=floppy"
+      options = "%s%s" % (options, if_val)
+      drive_val = "file=%s%s" % (floppy_image, options)
+      kvm_cmd.extend(["-drive", drive_val])
 
     kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
-      kvm_cmd.extend(['-kernel', kernel_path])
+      kvm_cmd.extend(["-kernel", kernel_path])
       initrd_path = hvp[constants.HV_INITRD_PATH]
       if initrd_path:
-        kvm_cmd.extend(['-initrd', initrd_path])
-      root_append = ['root=%s' % hvp[constants.HV_ROOT_PATH],
+        kvm_cmd.extend(["-initrd", initrd_path])
+      root_append = ["root=%s" % hvp[constants.HV_ROOT_PATH],
                      hvp[constants.HV_KERNEL_ARGS]]
       if hvp[constants.HV_SERIAL_CONSOLE]:
-        root_append.append('console=ttyS0,38400')
-      kvm_cmd.extend(['-append', ' '.join(root_append)])
+        root_append.append("console=ttyS0,38400")
+      kvm_cmd.extend(["-append", " ".join(root_append)])
 
     mem_path = hvp[constants.HV_MEM_PATH]
     if mem_path:
@@ -649,10 +649,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
 
     if mouse_type:
-      kvm_cmd.extend(['-usb'])
-      kvm_cmd.extend(['-usbdevice', mouse_type])
+      kvm_cmd.extend(["-usb"])
+      kvm_cmd.extend(["-usbdevice", mouse_type])
     elif vnc_bind_address:
-      kvm_cmd.extend(['-usbdevice', constants.HT_MOUSE_TABLET])
+      kvm_cmd.extend(["-usbdevice", constants.HT_MOUSE_TABLET])
 
     keymap = hvp[constants.HV_KEYMAP]
     if keymap:
@@ -669,53 +669,53 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == constants.IP4_ADDRESS_ANY:
-            vnc_arg = ':%d' % (display)
+            vnc_arg = ":%d" % (display)
           else:
-            vnc_arg = '%s:%d' % (vnc_bind_address, display)
+            vnc_arg = "%s:%d" % (vnc_bind_address, display)
         else:
           logging.error("Network port is not a valid VNC display (%d < %d)."
                         " Not starting VNC", instance.network_port,
                         constants.VNC_BASE_PORT)
-          vnc_arg = 'none'
+          vnc_arg = "none"
 
         # Only allow tls and other option when not binding to a file, for now.
         # kvm/qemu gets confused otherwise about the filename to use.
-        vnc_append = ''
+        vnc_append = ""
         if hvp[constants.HV_VNC_TLS]:
-          vnc_append = '%s,tls' % vnc_append
+          vnc_append = "%s,tls" % vnc_append
           if hvp[constants.HV_VNC_X509_VERIFY]:
-            vnc_append = '%s,x509verify=%s' % (vnc_append,
+            vnc_append = "%s,x509verify=%s" % (vnc_append,
                                                hvp[constants.HV_VNC_X509])
           elif hvp[constants.HV_VNC_X509]:
-            vnc_append = '%s,x509=%s' % (vnc_append,
+            vnc_append = "%s,x509=%s" % (vnc_append,
                                          hvp[constants.HV_VNC_X509])
         if hvp[constants.HV_VNC_PASSWORD_FILE]:
-          vnc_append = '%s,password' % vnc_append
+          vnc_append = "%s,password" % vnc_append
 
-        vnc_arg = '%s%s' % (vnc_arg, vnc_append)
+        vnc_arg = "%s%s" % (vnc_arg, vnc_append)
 
       else:
-        vnc_arg = 'unix:%s/%s.vnc' % (vnc_bind_address, instance.name)
+        vnc_arg = "unix:%s/%s.vnc" % (vnc_bind_address, instance.name)
 
-      kvm_cmd.extend(['-vnc', vnc_arg])
+      kvm_cmd.extend(["-vnc", vnc_arg])
     else:
-      kvm_cmd.extend(['-nographic'])
+      kvm_cmd.extend(["-nographic"])
 
     monitor_dev = ("unix:%s,server,nowait" %
                    self._InstanceMonitor(instance.name))
-    kvm_cmd.extend(['-monitor', monitor_dev])
+    kvm_cmd.extend(["-monitor", monitor_dev])
     if hvp[constants.HV_SERIAL_CONSOLE]:
-      serial_dev = ('unix:%s,server,nowait' %
+      serial_dev = ("unix:%s,server,nowait" %
                     self._InstanceSerial(instance.name))
-      kvm_cmd.extend(['-serial', serial_dev])
+      kvm_cmd.extend(["-serial", serial_dev])
     else:
-      kvm_cmd.extend(['-serial', 'none'])
+      kvm_cmd.extend(["-serial", "none"])
 
     if hvp[constants.HV_USE_LOCALTIME]:
-      kvm_cmd.extend(['-localtime'])
+      kvm_cmd.extend(["-localtime"])
 
     if hvp[constants.HV_KVM_USE_CHROOT]:
-      kvm_cmd.extend(['-chroot', self._InstanceChrootDir(instance.name)])
+      kvm_cmd.extend(["-chroot", self._InstanceChrootDir(instance.name)])
 
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.
@@ -868,7 +868,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if incoming:
       target, port = incoming
-      kvm_cmd.extend(['-incoming', 'tcp:%s:%s' % (target, port)])
+      kvm_cmd.extend(["-incoming", "tcp:%s:%s" % (target, port)])
 
     # Changing the vnc password doesn't bother the guest that much. At most it
     # will surprise people who connect to it. Whether positively or negatively
@@ -919,7 +919,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                       data=tap)
 
     if vnc_pwd:
-      change_cmd = 'change vnc password %s' % vnc_pwd
+      change_cmd = "change vnc password %s" % vnc_pwd
       self._CallMonitorCommand(instance.name, change_cmd)
 
     for filename in temp_files:
@@ -986,7 +986,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if force or not acpi:
         utils.KillProcess(pid)
       else:
-        self._CallMonitorCommand(name, 'system_powerdown')
+        self._CallMonitorCommand(name, "system_powerdown")
 
   def CleanupInstance(self, instance_name):
     """Cleanup after a stopped instance
@@ -1097,20 +1097,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
     if not live:
-      self._CallMonitorCommand(instance_name, 'stop')
+      self._CallMonitorCommand(instance_name, "stop")
 
-    migrate_command = ('migrate_set_speed %dm' %
+    migrate_command = ("migrate_set_speed %dm" %
         instance.hvparams[constants.HV_MIGRATION_BANDWIDTH])
     self._CallMonitorCommand(instance_name, migrate_command)
 
-    migrate_command = ('migrate_set_downtime %dms' %
+    migrate_command = ("migrate_set_downtime %dms" %
         instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
     self._CallMonitorCommand(instance_name, migrate_command)
 
-    migrate_command = 'migrate -d tcp:%s:%s' % (target, port)
+    migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
-    info_command = 'info migrate'
+    info_command = "info migrate"
     done = False
     broken_answers = 0
     while not done:
@@ -1126,13 +1126,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
       else:
         status = match.group(1)
-        if status == 'completed':
+        if status == "completed":
           done = True
-        elif status == 'active':
+        elif status == "active":
           # reset the broken answers count
           broken_answers = 0
           time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
-        elif status == 'failed' or status == 'cancelled':
+        elif status == "failed" or status == "cancelled":
           if not live:
             self._CallMonitorCommand(instance_name, 'cont')
           raise errors.HypervisorError("Migration %s at the kvm level" %

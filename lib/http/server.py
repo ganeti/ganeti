@@ -36,10 +36,10 @@ from ganeti import utils
 from ganeti import netutils
 
 
-WEEKDAYNAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+WEEKDAYNAME = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 MONTHNAME = [None,
-             'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-             'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+             "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 # Default error message
 DEFAULT_ERROR_CONTENT_TYPE = "text/html"
@@ -178,7 +178,7 @@ class _HttpClientToServerMessageReader(http.HttpMessageReader):
 
     if len(words) == 3:
       [method, path, version] = words
-      if version[:5] != 'HTTP/':
+      if version[:5] != "HTTP/":
         raise http.HttpBadRequest("Bad request version (%r)" % version)
 
       try:

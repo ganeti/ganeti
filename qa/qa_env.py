@@ -42,23 +42,23 @@ def TestGanetiCommands():
   """Test availibility of Ganeti commands.
 
   """
-  cmds = ( ['gnt-backup', '--version'],
-           ['gnt-cluster', '--version'],
-           ['gnt-debug', '--version'],
-           ['gnt-instance', '--version'],
-           ['gnt-job', '--version'],
-           ['gnt-node', '--version'],
-           ['gnt-os', '--version'],
-           ['ganeti-masterd', '--version'],
-           ['ganeti-noded', '--version'],
-           ['ganeti-rapi', '--version'],
-           ['ganeti-watcher', '--version'],
-           ['ganeti-confd', '--version'],
+  cmds = ( ["gnt-backup", "--version"],
+           ["gnt-cluster", "--version"],
+           ["gnt-debug", "--version"],
+           ["gnt-instance", "--version"],
+           ["gnt-job", "--version"],
+           ["gnt-node", "--version"],
+           ["gnt-os", "--version"],
+           ["ganeti-masterd", "--version"],
+           ["ganeti-noded", "--version"],
+           ["ganeti-rapi", "--version"],
+           ["ganeti-watcher", "--version"],
+           ["ganeti-confd", "--version"],
            )
 
-  cmd = ' && '.join([utils.ShellQuoteArgs(i) for i in cmds])
+  cmd = " && ".join([utils.ShellQuoteArgs(i) for i in cmds])
 
-  for node in qa_config.get('nodes'):
+  for node in qa_config.get("nodes"):
     AssertCommand(cmd, node=node)
 
 
@@ -66,7 +66,7 @@ def TestIcmpPing():
   """ICMP ping each node.
 
   """
-  nodes = qa_config.get('nodes')
+  nodes = qa_config.get("nodes")
 
   pingprimary = pingsecondary = "fping"
   if qa_config.get("primary_ip_version") == 6:

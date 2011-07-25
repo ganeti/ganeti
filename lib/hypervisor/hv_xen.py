@@ -46,8 +46,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
   REBOOT_RETRY_INTERVAL = 10
 
   ANCILLARY_FILES = [
-    '/etc/xen/xend-config.sxp',
-    '/etc/xen/scripts/vif-bridge',
+    "/etc/xen/xend-config.sxp",
+    "/etc/xen/scripts/vif-bridge",
     ]
 
   @classmethod
@@ -142,7 +142,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                      " line: %s, error: %s" % (line, err))
 
       # skip the Domain-0 (optional)
-      if include_node or data[0] != 'Domain-0':
+      if include_node or data[0] != "Domain-0":
         result.append(data)
 
     return result
@@ -275,26 +275,26 @@ class XenHypervisor(hv_base.BaseHypervisor):
       if len(splitfields) > 1:
         key = splitfields[0].strip()
         val = splitfields[1].strip()
-        if key == 'memory' or key == 'total_memory':
-          result['memory_total'] = int(val)
-        elif key == 'free_memory':
-          result['memory_free'] = int(val)
-        elif key == 'nr_cpus':
-          nr_cpus = result['cpu_total'] = int(val)
-        elif key == 'nr_nodes':
-          result['cpu_nodes'] = int(val)
-        elif key == 'cores_per_socket':
+        if key == "memory" or key == "total_memory":
+          result["memory_total"] = int(val)
+        elif key == "free_memory":
+          result["memory_free"] = int(val)
+        elif key == "nr_cpus":
+          nr_cpus = result["cpu_total"] = int(val)
+        elif key == "nr_nodes":
+          result["cpu_nodes"] = int(val)
+        elif key == "cores_per_socket":
           cores_per_socket = int(val)
-        elif key == 'threads_per_core':
+        elif key == "threads_per_core":
           threads_per_core = int(val)
 
     if (cores_per_socket is not None and
         threads_per_core is not None and nr_cpus is not None):
-      result['cpu_sockets'] = nr_cpus / (cores_per_socket * threads_per_core)
+      result["cpu_sockets"] = nr_cpus / (cores_per_socket * threads_per_core)
 
     dom0_info = self.GetInstanceInfo("Domain-0")
     if dom0_info is not None:
-      result['memory_dom0'] = dom0_info[2]
+      result["memory_dom0"] = dom0_info[2]
 
     return result
 
@@ -344,7 +344,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if len(block_devices) > 24:
       # 'z' - 'a' = 24
       raise errors.HypervisorError("Too many disks")
-    namespace = [blockdev_prefix + chr(i + ord('a')) for i in range(24)]
+    namespace = [blockdev_prefix + chr(i + ord("a")) for i in range(24)]
     for sd_name, (cfdev, dev_path) in zip(namespace, block_devices):
       if cfdev.mode == constants.DISK_RDWR:
         mode = "w"

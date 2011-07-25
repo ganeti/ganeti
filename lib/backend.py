@@ -421,7 +421,7 @@ def LeaveCluster(modify_ssh_setup):
                   result.cmd, result.exit_code, result.output)
 
   # Raise a custom exception (handled in ganeti-noded)
-  raise errors.QuitGanetiException(True, 'Shutdown scheduled')
+  raise errors.QuitGanetiException(True, "Shutdown scheduled")
 
 
 def GetNodeInfo(vgname, hypervisor_type):
@@ -449,8 +449,8 @@ def GetNodeInfo(vgname, hypervisor_type):
     if vginfo:
       vg_free = int(round(vginfo[0][0], 0))
       vg_size = int(round(vginfo[0][1], 0))
-    outputarray['vg_size'] = vg_size
-    outputarray['vg_free'] = vg_free
+    outputarray["vg_size"] = vg_size
+    outputarray["vg_free"] = vg_free
 
   if hypervisor_type is not None:
     hyper = hypervisor.GetHypervisor(hypervisor_type)
@@ -707,7 +707,7 @@ def GetVolumeList(vg_names):
 
   """
   lvs = {}
-  sep = '|'
+  sep = "|"
   if not vg_names:
     vg_names = []
   result = utils.RunCmd(["lvs", "--noheadings", "--units=m", "--nosuffix",
@@ -723,9 +723,9 @@ def GetVolumeList(vg_names):
       logging.error("Invalid line returned from lvs output: '%s'", line)
       continue
     vg_name, name, size, attr = match.groups()
-    inactive = attr[4] == '-'
-    online = attr[5] == 'o'
-    virtual = attr[0] == 'v'
+    inactive = attr[4] == "-"
+    online = attr[5] == "o"
+    virtual = attr[0] == "v"
     if virtual:
       # we don't want to report such volumes as existing, since they
       # don't really hold data
@@ -773,20 +773,20 @@ def NodeVolumes():
           result.output)
 
   def parse_dev(dev):
-    return dev.split('(')[0]
+    return dev.split("(")[0]
 
   def handle_dev(dev):
     return [parse_dev(x) for x in dev.split(",")]
 
   def map_line(line):
     line = [v.strip() for v in line]
-    return [{'name': line[0], 'size': line[1],
-             'dev': dev, 'vg': line[3]} for dev in handle_dev(line[2])]
+    return [{"name": line[0], "size": line[1],
+             "dev": dev, "vg": line[3]} for dev in handle_dev(line[2])]
 
   all_devs = []
   for line in result.stdout.splitlines():
-    if line.count('|') >= 3:
-      all_devs.extend(map_line(line.split('|')))
+    if line.count("|") >= 3:
+      all_devs.extend(map_line(line.split("|")))
     else:
       logging.warning("Strange line in the output from lvs: '%s'", line)
   return all_devs
@@ -851,9 +851,9 @@ def GetInstanceInfo(instance, hname):
 
   iinfo = hypervisor.GetHypervisor(hname).GetInstanceInfo(instance)
   if iinfo is not None:
-    output['memory'] = iinfo[2]
-    output['state'] = iinfo[4]
-    output['time'] = iinfo[5]
+    output["memory"] = iinfo[2]
+    output["state"] = iinfo[4]
+    output["time"] = iinfo[5]
 
   return output
 
@@ -907,16 +907,16 @@ def GetAllInstancesInfo(hypervisor_list):
     if iinfo:
       for name, _, memory, vcpus, state, times in iinfo:
         value = {
-          'memory': memory,
-          'vcpus': vcpus,
-          'state': state,
-          'time': times,
+          "memory": memory,
+          "vcpus": vcpus,
+          "state": state,
+          "time": times,
           }
         if name in output:
           # we only check static parameters, like memory and vcpus,
           # and not state and time which can change between the
           # invocations of the different hypervisors
-          for key in 'memory', 'vcpus':
+          for key in "memory", "vcpus":
             if value[key] != output[name][key]:
               _Fail("Instance %s is running twice"
                     " with different parameters", name)
@@ -961,7 +961,7 @@ def InstanceOsAdd(instance, reinstall, debug):
 
   create_env = OSEnvironment(instance, inst_os, debug)
   if reinstall:
-    create_env['INSTANCE_REINSTALL'] = "1"
+    create_env["INSTANCE_REINSTALL"] = "1"
 
   logfile = _InstanceLogName("add", instance.os, instance.name)
 
@@ -993,7 +993,7 @@ def RunRenameInstance(instance, old_name, debug):
   inst_os = OSFromDisk(instance.os)
 
   rename_env = OSEnvironment(instance, inst_os, debug)
-  rename_env['OLD_INSTANCE_NAME'] = old_name
+  rename_env["OLD_INSTANCE_NAME"] = old_name
 
   logfile = _InstanceLogName("rename", instance.os,
                              "%s-%s" % (old_name, instance.name))
@@ -1331,7 +1331,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       it's not required to return anything.
 
   """
-  # TODO: remove the obsolete 'size' argument
+  # TODO: remove the obsolete "size" argument
   # pylint: disable-msg=W0613
   clist = []
   if disk.children:
@@ -1831,7 +1831,7 @@ def BlockdevExport(disk, dest_node, dest_path, cluster_name):
                                                    destcmd)
 
   # all commands have been checked, so we're safe to combine them
-  command = '|'.join([expcmd, utils.ShellQuoteArgs(remotecmd)])
+  command = "|".join([expcmd, utils.ShellQuoteArgs(remotecmd)])
 
   result = utils.RunCmd(["bash", "-c", command])
 
@@ -1925,7 +1925,7 @@ def _ErrnoOrStr(err):
   @param err: the exception to format
 
   """
-  if hasattr(err, 'errno'):
+  if hasattr(err, "errno"):
     detail = errno.errorcode[err.errno]
   else:
     detail = str(err)
@@ -2055,10 +2055,10 @@ def _TryOSFromDisk(name, base_dir=None):
   os_files = dict.fromkeys(constants.OS_SCRIPTS)
 
   if max(api_versions) >= constants.OS_API_V15:
-    os_files[constants.OS_VARIANTS_FILE] = ''
+    os_files[constants.OS_VARIANTS_FILE] = ""
 
   if max(api_versions) >= constants.OS_API_V20:
-    os_files[constants.OS_PARAMETERS_FILE] = ''
+    os_files[constants.OS_PARAMETERS_FILE] = ""
   else:
     del os_files[constants.OS_SCRIPT_VERIFY]
 
@@ -2161,20 +2161,20 @@ def OSCoreEnv(os_name, inst_os, os_params, debug=0):
   result = {}
   api_version = \
     max(constants.OS_API_VERSIONS.intersection(inst_os.api_versions))
-  result['OS_API_VERSION'] = '%d' % api_version
-  result['OS_NAME'] = inst_os.name
-  result['DEBUG_LEVEL'] = '%d' % debug
+  result["OS_API_VERSION"] = "%d" % api_version
+  result["OS_NAME"] = inst_os.name
+  result["DEBUG_LEVEL"] = "%d" % debug
 
   # OS variants
   if api_version >= constants.OS_API_V15:
     variant = objects.OS.GetVariant(os_name)
     if not variant:
       variant = inst_os.supported_variants[0]
-    result['OS_VARIANT'] = variant
+    result["OS_VARIANT"] = variant
 
   # OS params
   for pname, pvalue in os_params.items():
-    result['OSP_%s' % pname.upper()] = pvalue
+    result["OSP_%s" % pname.upper()] = pvalue
 
   return result
 
@@ -2199,38 +2199,38 @@ def OSEnvironment(instance, inst_os, debug=0):
   for attr in ["name", "os", "uuid", "ctime", "mtime", "primary_node"]:
     result["INSTANCE_%s" % attr.upper()] = str(getattr(instance, attr))
 
-  result['HYPERVISOR'] = instance.hypervisor
-  result['DISK_COUNT'] = '%d' % len(instance.disks)
-  result['NIC_COUNT'] = '%d' % len(instance.nics)
-  result['INSTANCE_SECONDARY_NODES'] = \
-      ('%s' % " ".join(instance.secondary_nodes))
+  result["HYPERVISOR"] = instance.hypervisor
+  result["DISK_COUNT"] = "%d" % len(instance.disks)
+  result["NIC_COUNT"] = "%d" % len(instance.nics)
+  result["INSTANCE_SECONDARY_NODES"] = \
+      ("%s" % " ".join(instance.secondary_nodes))
 
   # Disks
   for idx, disk in enumerate(instance.disks):
     real_disk = _OpenRealBD(disk)
-    result['DISK_%d_PATH' % idx] = real_disk.dev_path
-    result['DISK_%d_ACCESS' % idx] = disk.mode
+    result["DISK_%d_PATH" % idx] = real_disk.dev_path
+    result["DISK_%d_ACCESS" % idx] = disk.mode
     if constants.HV_DISK_TYPE in instance.hvparams:
-      result['DISK_%d_FRONTEND_TYPE' % idx] = \
+      result["DISK_%d_FRONTEND_TYPE" % idx] = \
         instance.hvparams[constants.HV_DISK_TYPE]
     if disk.dev_type in constants.LDS_BLOCK:
-      result['DISK_%d_BACKEND_TYPE' % idx] = 'block'
+      result["DISK_%d_BACKEND_TYPE" % idx] = "block"
     elif disk.dev_type == constants.LD_FILE:
-      result['DISK_%d_BACKEND_TYPE' % idx] = \
-        'file:%s' % disk.physical_id[0]
+      result["DISK_%d_BACKEND_TYPE" % idx] = \
+        "file:%s" % disk.physical_id[0]
 
   # NICs
   for idx, nic in enumerate(instance.nics):
-    result['NIC_%d_MAC' % idx] = nic.mac
+    result["NIC_%d_MAC" % idx] = nic.mac
     if nic.ip:
-      result['NIC_%d_IP' % idx] = nic.ip
-    result['NIC_%d_MODE' % idx] = nic.nicparams[constants.NIC_MODE]
+      result["NIC_%d_IP" % idx] = nic.ip
+    result["NIC_%d_MODE" % idx] = nic.nicparams[constants.NIC_MODE]
     if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
-      result['NIC_%d_BRIDGE' % idx] = nic.nicparams[constants.NIC_LINK]
+      result["NIC_%d_BRIDGE" % idx] = nic.nicparams[constants.NIC_LINK]
     if nic.nicparams[constants.NIC_LINK]:
-      result['NIC_%d_LINK' % idx] = nic.nicparams[constants.NIC_LINK]
+      result["NIC_%d_LINK" % idx] = nic.nicparams[constants.NIC_LINK]
     if constants.HV_NIC_TYPE in instance.hvparams:
-      result['NIC_%d_FRONTEND_TYPE' % idx] = \
+      result["NIC_%d_FRONTEND_TYPE" % idx] = \
         instance.hvparams[constants.HV_NIC_TYPE]
 
   # HV/BE params
@@ -2318,46 +2318,46 @@ def FinalizeExport(instance, snap_disks):
   config = objects.SerializableConfigParser()
 
   config.add_section(constants.INISECT_EXP)
-  config.set(constants.INISECT_EXP, 'version', '0')
-  config.set(constants.INISECT_EXP, 'timestamp', '%d' % int(time.time()))
-  config.set(constants.INISECT_EXP, 'source', instance.primary_node)
-  config.set(constants.INISECT_EXP, 'os', instance.os)
+  config.set(constants.INISECT_EXP, "version", "0")
+  config.set(constants.INISECT_EXP, "timestamp", "%d" % int(time.time()))
+  config.set(constants.INISECT_EXP, "source", instance.primary_node)
+  config.set(constants.INISECT_EXP, "os", instance.os)
   config.set(constants.INISECT_EXP, "compression", "none")
 
   config.add_section(constants.INISECT_INS)
-  config.set(constants.INISECT_INS, 'name', instance.name)
-  config.set(constants.INISECT_INS, 'memory', '%d' %
+  config.set(constants.INISECT_INS, "name", instance.name)
+  config.set(constants.INISECT_INS, "memory", "%d" %
              instance.beparams[constants.BE_MEMORY])
-  config.set(constants.INISECT_INS, 'vcpus', '%d' %
+  config.set(constants.INISECT_INS, "vcpus", "%d" %
              instance.beparams[constants.BE_VCPUS])
-  config.set(constants.INISECT_INS, 'disk_template', instance.disk_template)
-  config.set(constants.INISECT_INS, 'hypervisor', instance.hypervisor)
+  config.set(constants.INISECT_INS, "disk_template", instance.disk_template)
+  config.set(constants.INISECT_INS, "hypervisor", instance.hypervisor)
   config.set(constants.INISECT_INS, "tags", " ".join(instance.GetTags()))
 
   nic_total = 0
   for nic_count, nic in enumerate(instance.nics):
     nic_total += 1
-    config.set(constants.INISECT_INS, 'nic%d_mac' %
-               nic_count, '%s' % nic.mac)
-    config.set(constants.INISECT_INS, 'nic%d_ip' % nic_count, '%s' % nic.ip)
+    config.set(constants.INISECT_INS, "nic%d_mac" %
+               nic_count, "%s" % nic.mac)
+    config.set(constants.INISECT_INS, "nic%d_ip" % nic_count, "%s" % nic.ip)
     for param in constants.NICS_PARAMETER_TYPES:
-      config.set(constants.INISECT_INS, 'nic%d_%s' % (nic_count, param),
-                 '%s' % nic.nicparams.get(param, None))
+      config.set(constants.INISECT_INS, "nic%d_%s" % (nic_count, param),
+                 "%s" % nic.nicparams.get(param, None))
   # TODO: redundant: on load can read nics until it doesn't exist
-  config.set(constants.INISECT_INS, 'nic_count' , '%d' % nic_total)
+  config.set(constants.INISECT_INS, "nic_count" , "%d" % nic_total)
 
   disk_total = 0
   for disk_count, disk in enumerate(snap_disks):
     if disk:
       disk_total += 1
-      config.set(constants.INISECT_INS, 'disk%d_ivname' % disk_count,
-                 ('%s' % disk.iv_name))
-      config.set(constants.INISECT_INS, 'disk%d_dump' % disk_count,
-                 ('%s' % disk.physical_id[1]))
-      config.set(constants.INISECT_INS, 'disk%d_size' % disk_count,
-                 ('%d' % disk.size))
+      config.set(constants.INISECT_INS, "disk%d_ivname" % disk_count,
+                 ("%s" % disk.iv_name))
+      config.set(constants.INISECT_INS, "disk%d_dump" % disk_count,
+                 ("%s" % disk.physical_id[1]))
+      config.set(constants.INISECT_INS, "disk%d_size" % disk_count,
+                 ("%d" % disk.size))
 
-  config.set(constants.INISECT_INS, 'disk_count' , '%d' % disk_total)
+  config.set(constants.INISECT_INS, "disk_count" , "%d" % disk_total)
 
   # New-style hypervisor/backend parameters
 

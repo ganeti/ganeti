@@ -287,7 +287,7 @@ def BatchCreate(opts, args):
                     "hvparams": {},
                     "file_storage_dir": None,
                     "force_variant": False,
-                    "file_driver": 'loop'}
+                    "file_driver": "loop"}
 
   def _PopulateWithDefaults(spec):
     """Returns a new hash combined with default values."""
@@ -298,25 +298,25 @@ def BatchCreate(opts, args):
   def _Validate(spec):
     """Validate the instance specs."""
     # Validate fields required under any circumstances
-    for required_field in ('os', 'template'):
+    for required_field in ("os", "template"):
       if required_field not in spec:
         raise errors.OpPrereqError('Required field "%s" is missing.' %
                                    required_field, errors.ECODE_INVAL)
     # Validate special fields
-    if spec['primary_node'] is not None:
-      if (spec['template'] in constants.DTS_INT_MIRROR and
-          spec['secondary_node'] is None):
-        raise errors.OpPrereqError('Template requires secondary node, but'
-                                   ' there was no secondary provided.',
+    if spec["primary_node"] is not None:
+      if (spec["template"] in constants.DTS_INT_MIRROR and
+          spec["secondary_node"] is None):
+        raise errors.OpPrereqError("Template requires secondary node, but"
+                                   " there was no secondary provided.",
                                    errors.ECODE_INVAL)
-    elif spec['iallocator'] is None:
-      raise errors.OpPrereqError('You have to provide at least a primary_node'
-                                 ' or an iallocator.',
+    elif spec["iallocator"] is None:
+      raise errors.OpPrereqError("You have to provide at least a primary_node"
+                                 " or an iallocator.",
                                  errors.ECODE_INVAL)
 
-    if (spec['hvparams'] and
-        not isinstance(spec['hvparams'], dict)):
-      raise errors.OpPrereqError('Hypervisor parameters must be a dict.',
+    if (spec["hvparams"] and
+        not isinstance(spec["hvparams"], dict)):
+      raise errors.OpPrereqError("Hypervisor parameters must be a dict.",
                                  errors.ECODE_INVAL)
 
   json_filename = args[0]
@@ -341,11 +341,11 @@ def BatchCreate(opts, args):
     specs = _PopulateWithDefaults(specs)
     _Validate(specs)
 
-    hypervisor = specs['hypervisor']
-    hvparams = specs['hvparams']
+    hypervisor = specs["hypervisor"]
+    hvparams = specs["hvparams"]
 
     disks = []
-    for elem in specs['disk_size']:
+    for elem in specs["disk_size"]:
       try:
         size = utils.ParseUnit(elem)
       except (TypeError, ValueError), err:
@@ -354,7 +354,7 @@ def BatchCreate(opts, args):
                                    (elem, name, err), errors.ECODE_INVAL)
       disks.append({"size": size})
 
-    utils.ForceDictType(specs['backend'], constants.BES_PARAMETER_TYPES)
+    utils.ForceDictType(specs["backend"], constants.BES_PARAMETER_TYPES)
     utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
 
     tmp_nics = []
@@ -364,34 +364,34 @@ def BatchCreate(opts, args):
           tmp_nics.append({})
         tmp_nics[0][field] = specs[field]
 
-    if specs['nics'] is not None and tmp_nics:
+    if specs["nics"] is not None and tmp_nics:
       raise errors.OpPrereqError("'nics' list incompatible with using"
                                  " individual nic fields as well",
                                  errors.ECODE_INVAL)
-    elif specs['nics'] is not None:
-      tmp_nics = specs['nics']
+    elif specs["nics"] is not None:
+      tmp_nics = specs["nics"]
     elif not tmp_nics:
       tmp_nics = [{}]
 
     op = opcodes.OpInstanceCreate(instance_name=name,
                                   disks=disks,
-                                  disk_template=specs['template'],
+                                  disk_template=specs["template"],
                                   mode=constants.INSTANCE_CREATE,
-                                  os_type=specs['os'],
+                                  os_type=specs["os"],
                                   force_variant=specs["force_variant"],
-                                  pnode=specs['primary_node'],
-                                  snode=specs['secondary_node'],
+                                  pnode=specs["primary_node"],
+                                  snode=specs["secondary_node"],
                                   nics=tmp_nics,
-                                  start=specs['start'],
-                                  ip_check=specs['ip_check'],
-                                  name_check=specs['name_check'],
+                                  start=specs["start"],
+                                  ip_check=specs["ip_check"],
+                                  name_check=specs["name_check"],
                                   wait_for_sync=True,
-                                  iallocator=specs['iallocator'],
+                                  iallocator=specs["iallocator"],
                                   hypervisor=hypervisor,
                                   hvparams=hvparams,
-                                  beparams=specs['backend'],
-                                  file_storage_dir=specs['file_storage_dir'],
-                                  file_driver=specs['file_driver'])
+                                  beparams=specs["backend"],
+                                  file_storage_dir=specs["file_storage_dir"],
+                                  file_driver=specs["file_driver"])
 
     jex.QueueJob(name, op)
   # we never want to wait, just show the submitted job IDs
@@ -438,11 +438,11 @@ def ReinstallInstance(opts, args):
         choices.append(("%s" % number, entry, entry))
         number += 1
 
-    choices.append(('x', 'exit', 'Exit gnt-instance reinstall'))
+    choices.append(("x", "exit", "Exit gnt-instance reinstall"))
     selected = AskUser("Enter OS template number (or x to abort):",
                        choices)
 
-    if selected == 'exit':
+    if selected == "exit":
       ToStderr("User aborted reinstall, exiting")
       return 1
 
@@ -1225,7 +1225,7 @@ def ShowInstanceConfig(opts, args):
       _FormatList(buf, _FormatBlockDevInfo(idx, True, device,
                   opts.roman_integers), 2)
 
-  ToStdout(buf.getvalue().rstrip('\n'))
+  ToStdout(buf.getvalue().rstrip("\n"))
   return retcode
 
 
@@ -1276,10 +1276,10 @@ def SetInstanceParams(opts, args):
     except (TypeError, ValueError):
       pass
     if disk_op == constants.DDM_ADD:
-      if 'size' not in disk_dict:
+      if "size" not in disk_dict:
         raise errors.OpPrereqError("Missing required parameter 'size'",
                                    errors.ECODE_INVAL)
-      disk_dict['size'] = utils.ParseUnit(disk_dict['size'])
+      disk_dict["size"] = utils.ParseUnit(disk_dict["size"])
 
   if (opts.disk_template and
       opts.disk_template in constants.DTS_INT_MIRROR and
@@ -1368,42 +1368,42 @@ add_opts = [
   ]
 
 commands = {
-  'add': (
+  "add": (
     AddInstance, [ArgHost(min=1, max=1)], COMMON_CREATE_OPTS + add_opts,
     "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
     "Creates and adds a new instance to the cluster"),
-  'batch-create': (
+  "batch-create": (
     BatchCreate, [ArgFile(min=1, max=1)], [DRY_RUN_OPT, PRIORITY_OPT],
     "<instances.json>",
     "Create a bunch of instances based on specs in the file."),
-  'console': (
+  "console": (
     ConnectToInstanceConsole, ARGS_ONE_INSTANCE,
     [SHOWCMD_OPT, PRIORITY_OPT],
     "[--show-cmd] <instance>", "Opens a console on the specified instance"),
-  'failover': (
+  "failover": (
     FailoverInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, IGNORE_CONSIST_OPT, SUBMIT_OPT, SHUTDOWN_TIMEOUT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT],
     "[-f] <instance>", "Stops the instance and starts it on the backup node,"
     " using the remote mirror (only for mirrored instances)"),
-  'migrate': (
+  "migrate": (
     MigrateInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, CLEANUP_OPT, DRY_RUN_OPT,
      PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT, ALLOW_FAILOVER_OPT],
     "[-f] <instance>", "Migrate instance to its secondary node"
     " (only for mirrored instances)"),
-  'move': (
+  "move": (
     MoveInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SUBMIT_OPT, SINGLE_NODE_OPT, SHUTDOWN_TIMEOUT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, IGNORE_CONSIST_OPT],
     "[-f] <instance>", "Move instance to an arbitrary node"
     " (only for instances of type file and lv)"),
-  'info': (
+  "info": (
     ShowInstanceConfig, ARGS_MANY_INSTANCES,
     [STATIC_OPT, ALL_OPT, ROMAN_OPT, PRIORITY_OPT],
     "[-s] {--all | <instance>...}",
     "Show information on the specified instance(s)"),
-  'list': (
+  "list": (
     ListInstances, ARGS_MANY_INSTANCES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, VERBOSE_OPT,
      FORCE_FILTER_OPT],
@@ -1418,44 +1418,44 @@ commands = {
     [NOHDR_OPT, SEP_OPT],
     "[fields...]",
     "Lists all available fields for instances"),
-  'reinstall': (
+  "reinstall": (
     ReinstallInstance, [ArgInstance()],
     [FORCE_OPT, OS_OPT, FORCE_VARIANT_OPT, m_force_multi, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT,
      SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT, OSPARAMS_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
-  'remove': (
+  "remove": (
     RemoveInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SHUTDOWN_TIMEOUT_OPT, IGNORE_FAILURES_OPT, SUBMIT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT],
     "[-f] <instance>", "Shuts down the instance and removes it"),
-  'rename': (
+  "rename": (
     RenameInstance,
     [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],
     [NOIPCHECK_OPT, NONAMECHECK_OPT, SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance> <new_name>", "Rename the instance"),
-  'replace-disks': (
+  "replace-disks": (
     ReplaceDisks, ARGS_ONE_INSTANCE,
     [AUTO_REPLACE_OPT, DISKIDX_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT,
      NEW_SECONDARY_OPT, ON_PRIMARY_OPT, ON_SECONDARY_OPT, SUBMIT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT],
     "[-s|-p|-n NODE|-I NAME] <instance>",
     "Replaces all disks for the instance"),
-  'modify': (
+  "modify": (
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,
      DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT],
     "<instance>", "Alters the parameters of an instance"),
-  'shutdown': (
+  "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
     [m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
      m_inst_tags_opt, m_inst_opt, m_force_multi, TIMEOUT_OPT, SUBMIT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, IGNORE_OFFLINE_OPT, NO_REMEMBER_OPT],
     "<instance>", "Stops an instance"),
-  'startup': (
+  "startup": (
     GenericManyOps("startup", _StartupInstance), [ArgInstance()],
     [FORCE_OPT, m_force_multi, m_node_opt, m_pri_node_opt, m_sec_node_opt,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
@@ -1463,39 +1463,39 @@ commands = {
      BACKEND_OPT, DRY_RUN_OPT, PRIORITY_OPT, IGNORE_OFFLINE_OPT,
      NO_REMEMBER_OPT, STARTUP_PAUSED_OPT],
     "<instance>", "Starts an instance"),
-  'reboot': (
+  "reboot": (
     GenericManyOps("reboot", _RebootInstance), [ArgInstance()],
     [m_force_multi, REBOOT_TYPE_OPT, IGNORE_SECONDARIES_OPT, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT,
      m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
      m_inst_tags_opt, SHUTDOWN_TIMEOUT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance>", "Reboots an instance"),
-  'activate-disks': (
+  "activate-disks": (
     ActivateDisks, ARGS_ONE_INSTANCE,
     [SUBMIT_OPT, IGNORE_SIZE_OPT, PRIORITY_OPT],
     "<instance>", "Activate an instance's disks"),
-  'deactivate-disks': (
+  "deactivate-disks": (
     DeactivateDisks, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SUBMIT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "[-f] <instance>", "Deactivate an instance's disks"),
-  'recreate-disks': (
+  "recreate-disks": (
     RecreateDisks, ARGS_ONE_INSTANCE,
     [SUBMIT_OPT, DISKIDX_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance>", "Recreate an instance's disks"),
-  'grow-disk': (
+  "grow-disk": (
     GrowDisk,
     [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1),
      ArgUnknown(min=1, max=1)],
     [SUBMIT_OPT, NWSYNC_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance> <disk> <size>", "Grow an instance's disk"),
-  'list-tags': (
+  "list-tags": (
     ListTags, ARGS_ONE_INSTANCE, [PRIORITY_OPT],
     "<instance_name>", "List the tags of the given instance"),
-  'add-tags': (
+  "add-tags": (
     AddTags, [ArgInstance(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT],
     "<instance_name> tag...", "Add tags to the given instance"),
-  'remove-tags': (
+  "remove-tags": (
     RemoveTags, [ArgInstance(min=1, max=1), ArgUnknown()],
     [TAG_SRC_OPT, PRIORITY_OPT],
     "<instance_name> tag...", "Remove tags from given instance"),
@@ -1503,8 +1503,8 @@ commands = {
 
 #: dictionary with aliases for commands
 aliases = {
-  'start': 'startup',
-  'stop': 'shutdown',
+  "start": "startup",
+  "stop": "shutdown",
   }
 
 
