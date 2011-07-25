@@ -544,15 +544,17 @@ def _BeautifyError(err):
     return "%s" % str(err)
 
 
-def _HandleSigHup(reopen_cb, signum, frame): # pylint: disable-msg=W0613
+def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable-msg=W0613
   """Handler for SIGHUP.
 
-  @param reopen_cb: Callback function for reopening log files
+  @param reopen_fn: List of callback functions for reopening log files
 
   """
-  assert callable(reopen_cb)
   logging.info("Reopening log files after receiving SIGHUP")
-  reopen_cb()
+
+  for fn in reopen_fn:
+    if fn:
+      fn()
 
 
 def GenericMain(daemon_name, optionparser,
@@ -668,9 +670,10 @@ def GenericMain(daemon_name, optionparser,
 
   if options.fork:
     utils.CloseFDs()
-    wpipe = utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
+    (wpipe, stdio_reopen_fn) = \
+      utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
   else:
-    wpipe = None
+    (wpipe, stdio_reopen_fn) = (None, None)
 
   log_reopen_fn = \
     utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name], daemon_name,
@@ -681,7 +684,8 @@ def GenericMain(daemon_name, optionparser,
                        console_logging=console_logging)
 
   # Reopen log file(s) on SIGHUP
-  signal.signal(signal.SIGHUP, compat.partial(_HandleSigHup, log_reopen_fn))
+  signal.signal(signal.SIGHUP,
+                compat.partial(_HandleSigHup, [log_reopen_fn, stdio_reopen_fn]))
 
   utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
   try:

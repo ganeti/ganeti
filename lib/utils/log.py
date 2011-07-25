@@ -70,6 +70,9 @@ class _ReopenableLogHandler(logging.handlers.BaseRotatingHandler):
     # TODO: Handle errors?
     self.stream = open(self.baseFilename, "a")
 
+    # Don't reopen on the next message
+    self._reopen = False
+
   def RequestReopen(self):
     """Register a request to reopen the file.
 

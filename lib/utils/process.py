@@ -36,6 +36,7 @@ from cStringIO import StringIO
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import compat
 
 from ganeti.utils import retry as utils_retry
 from ganeti.utils import wrapper as utils_wrapper
@@ -256,8 +257,10 @@ def SetupDaemonFDs(output_file, output_fd):
   # Open /dev/null (read-only, only for stdin)
   devnull_fd = os.open(os.devnull, os.O_RDONLY)
 
+  output_close = True
+
   if output_fd is not None:
-    pass
+    output_close = False
   elif output_file is not None:
     # Open output file
     try:
@@ -272,6 +275,12 @@ def SetupDaemonFDs(output_file, output_fd):
   os.dup2(devnull_fd, 0)
   os.dup2(output_fd, 1)
   os.dup2(output_fd, 2)
+
+  if devnull_fd > 2:
+    utils_wrapper.CloseFdNoError(devnull_fd)
+
+  if output_close and output_fd > 2:
+    utils_wrapper.CloseFdNoError(output_fd)
 
 
 def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
@@ -837,8 +846,9 @@ def Daemonize(logfile):
 
   @type logfile: str
   @param logfile: the logfile to which we should redirect stdout/stderr
-  @rtype: int
-  @return: the value zero
+  @rtype: tuple; (int, callable)
+  @return: File descriptor of pipe(2) which must be closed to notify parent
+    process and a callable to reopen log files
 
   """
   # pylint: disable-msg=W0212
@@ -874,8 +884,12 @@ def Daemonize(logfile):
       rcode = 0
     os._exit(rcode) # Exit parent of the first child.
 
-  SetupDaemonFDs(logfile, None)
-  return wpipe
+  reopen_fn = compat.partial(SetupDaemonFDs, logfile, None)
+
+  # Open logs for the first time
+  reopen_fn()
+
+  return (wpipe, reopen_fn)
 
 
 def KillProcess(pid, signal_=signal.SIGTERM, timeout=30,

@@ -35,7 +35,7 @@ import testutils
 
 
 class TestLogHandler(unittest.TestCase):
-  def test(self):
+  def testNormal(self):
     tmpfile = tempfile.NamedTemporaryFile()
 
     handler = utils.log._ReopenableLogHandler(tmpfile.name)
@@ -84,6 +84,10 @@ class TestLogHandler(unittest.TestCase):
     # Write another message, should reopen
     for _ in range(4):
       logger.info("Test message INFO")
+
+      # Flag must be reset
+      self.assertFalse(handler._reopen)
+
       self.assertFalse(utils.VerifyFileID(utils.GetFileID(tmpfile.name),
                                           before_id))
 
