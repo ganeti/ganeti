@@ -36,6 +36,7 @@ from cStringIO import StringIO
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import compat
 
 from ganeti.utils import retry as utils_retry
 from ganeti.utils import wrapper as utils_wrapper
@@ -835,8 +836,9 @@ def Daemonize(logfile):
 
   @type logfile: str
   @param logfile: the logfile to which we should redirect stdout/stderr
-  @rtype: int
-  @return: the value zero
+  @rtype: tuple; (int, callable)
+  @return: File descriptor of pipe(2) which must be closed to notify parent
+    process and a callable to reopen log files
 
   """
   # pylint: disable-msg=W0212
@@ -872,8 +874,12 @@ def Daemonize(logfile):
       rcode = 0
     os._exit(rcode) # Exit parent of the first child.
 
-  SetupDaemonFDs(logfile, None)
-  return wpipe
+  reopen_fn = compat.partial(SetupDaemonFDs, logfile, None)
+
+  # Open logs for the first time
+  reopen_fn()
+
+  return (wpipe, reopen_fn)
 
 
 def KillProcess(pid, signal_=signal.SIGTERM, timeout=30,
