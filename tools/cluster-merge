@@ -45,6 +45,11 @@ from ganeti import utils
 _GROUPS_MERGE = "merge"
 _GROUPS_RENAME = "rename"
 _CLUSTERMERGE_ECID = "clustermerge-ecid"
+_RESTART_ALL = "all"
+_RESTART_UP = "up"
+_RESTART_NONE = "none"
+_RESTART_CHOICES = (_RESTART_ALL, _RESTART_UP, _RESTART_NONE)
+
 
 PAUSE_PERIOD_OPT = cli.cli_option("-p", "--watcher-pause-period", default=1800,
                                   action="store", type="int",
@@ -57,6 +62,13 @@ GROUPS_OPT = cli.cli_option("--groups", default=None, metavar="STRATEGY",
                             help=("How to handle groups that have the"
                                   " same name (One of: %s/%s)" %
                                   (_GROUPS_MERGE, _GROUPS_RENAME)))
+RESTART_OPT = cli.cli_option("--restart", default=_RESTART_ALL,
+                             metavar="STRATEGY",
+                             choices=_RESTART_CHOICES,
+                             dest="restart",
+                             help=("How to handle restarting instances"
+                                   " same name (One of: %s/%s/%s)" %
+                                   _RESTART_CHOICES))
 
 
 def Flatten(unflattened_list):
@@ -101,12 +113,13 @@ class Merger(object):
   """Handling the merge.
 
   """
-  def __init__(self, clusters, pause_period, groups):
+  def __init__(self, clusters, pause_period, groups, restart):
     """Initialize object with sane defaults and infos required.
 
     @param clusters: The list of clusters to merge in
     @param pause_period: The time watcher shall be disabled for
     @param groups: How to handle group conflicts
+    @param restart: How to handle instance restart
 
     """
     self.merger_data = []
@@ -116,6 +129,10 @@ class Merger(object):
     (self.cluster_name, ) = cli.GetClient().QueryConfigValues(["cluster_name"])
     self.ssh_runner = ssh.SshRunner(self.cluster_name)
     self.groups = groups
+    self.restart = restart
+    if self.restart == _RESTART_UP:
+      raise NotImplementedError
+
 
   def Setup(self):
     """Sets up our end so we can do the merger.
@@ -630,8 +647,11 @@ class Merger(object):
       self._KillMasterDaemon()
       self._StartMasterDaemon()
 
-      logging.info("Starting instances again")
-      self._StartupAllInstances()
+      if self.restart == _RESTART_ALL:
+        logging.info("Starting instances again")
+        self._StartupAllInstances()
+      else:
+        logging.info("Not starting instances again")
       logging.info("Post cluster verification")
       self._VerifyCluster()
     except errors.GenericError, e:
@@ -692,13 +712,17 @@ def main():
   parser = optparse.OptionParser(usage=("%%prog [--debug|--verbose]"
                                         " [--watcher-pause-period SECONDS]"
                                         " [--groups [%s|%s]]"
+                                        " [--restart [%s|%s|%s]]"
                                         " <cluster> [<cluster...>]" %
-                                        (_GROUPS_MERGE, _GROUPS_RENAME)),
+                                        (_GROUPS_MERGE, _GROUPS_RENAME,
+                                         _RESTART_ALL, _RESTART_UP,
+                                         _RESTART_NONE)),
                                         prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option(PAUSE_PERIOD_OPT)
   parser.add_option(GROUPS_OPT)
+  parser.add_option(RESTART_OPT)
 
   (options, args) = parser.parse_args()
 
@@ -708,7 +732,7 @@ def main():
     parser.error("No clusters specified")
 
   cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period,
-                          options.groups)
+                          options.groups, options.restart)
   try:
     try:
       cluster_merger.Setup()
