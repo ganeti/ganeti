@@ -345,6 +345,7 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - default instance allocator: %s", result["default_iallocator"])
   ToStdout("  - primary ip version: %d", result["primary_ip_version"])
   ToStdout("  - preallocation wipe disks: %s", result["prealloc_wipe_disks"])
+  ToStdout("  - OS search path: %s", utils.CommaJoin(constants.OS_SEARCH_PATH))
 
   ToStdout("Default node parameters:")
   _PrintGroupedParams(result["ndparams"], roman=opts.roman_integers)
