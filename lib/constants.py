@@ -24,6 +24,7 @@
 import re
 
 from ganeti import _autoconf
+from ganeti import _vcsversion
 
 # various versions
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
@@ -31,7 +32,7 @@ OS_API_V10 = 10
 OS_API_V15 = 15
 OS_API_V20 = 20
 OS_API_VERSIONS = frozenset([OS_API_V10, OS_API_V15, OS_API_V20])
-VCS_VERSION = _autoconf.VCS_VERSION
+VCS_VERSION = _vcsversion.VCS_VERSION
 EXPORT_VERSION = 0
 RAPI_VERSION = 2
 

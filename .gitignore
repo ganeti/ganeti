@@ -71,6 +71,7 @@
 
 # lib
 /lib/_autoconf.py
+/lib/_vcsversion.py
 
 # man
 /man/*.[0-9]
