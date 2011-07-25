@@ -980,7 +980,7 @@ VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                                " [%s]" % constants.DEFAULT_VG),
                          metavar="VG", default=None)
 
-YES_DOIT_OPT = cli_option("--yes-do-it", dest="yes_do_it",
+YES_DOIT_OPT = cli_option("--yes-do-it", "--ya-rly", dest="yes_do_it",
                           help="Destroy cluster", action="store_true")
 
 NOVOTING_OPT = cli_option("--no-voting", dest="no_voting",
