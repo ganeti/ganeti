@@ -251,8 +251,10 @@ def SetupDaemonFDs(output_file, output_fd):
   # Open /dev/null (read-only, only for stdin)
   devnull_fd = os.open(os.devnull, os.O_RDONLY)
 
+  output_close = True
+
   if output_fd is not None:
-    pass
+    output_close = False
   elif output_file is not None:
     # Open output file
     try:
@@ -267,6 +269,12 @@ def SetupDaemonFDs(output_file, output_fd):
   os.dup2(devnull_fd, 0)
   os.dup2(output_fd, 1)
   os.dup2(output_fd, 2)
+
+  if devnull_fd > 2:
+    utils_wrapper.CloseFdNoError(devnull_fd)
+
+  if output_close and output_fd > 2:
+    utils_wrapper.CloseFdNoError(output_fd)
 
 
 def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
