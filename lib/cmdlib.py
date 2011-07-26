@@ -2867,11 +2867,109 @@ class LUClusterVerifyDisks(NoHooksLU):
   REQ_BGL = False
 
   def ExpandNames(self):
-    self.needed_locks = {
-      locking.LEVEL_NODE: locking.ALL_SET,
-      locking.LEVEL_INSTANCE: locking.ALL_SET,
-    }
     self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.needed_locks = {
+      locking.LEVEL_NODEGROUP: locking.ALL_SET,
+      }
+
+  def Exec(self, feedback_fn):
+    group_names = self.glm.list_owned(locking.LEVEL_NODEGROUP)
+
+    # Submit one instance of L{opcodes.OpGroupVerifyDisks} per node group
+    return ResultWithJobs([[opcodes.OpGroupVerifyDisks(group_name=group)]
+                           for group in group_names])
+
+
+class LUGroupVerifyDisks(NoHooksLU):
+  """Verifies the status of all disks in a node group.
+
+  """
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    # Raises errors.OpPrereqError on its own if group can't be found
+    self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
+
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.needed_locks = {
+      locking.LEVEL_INSTANCE: [],
+      locking.LEVEL_NODEGROUP: [],
+      locking.LEVEL_NODE: [],
+      }
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_INSTANCE:
+      assert not self.needed_locks[locking.LEVEL_INSTANCE]
+
+      # Lock instances optimistically, needs verification once node and group
+      # locks have been acquired
+      self.needed_locks[locking.LEVEL_INSTANCE] = \
+        self.cfg.GetNodeGroupInstances(self.group_uuid)
+
+    elif level == locking.LEVEL_NODEGROUP:
+      assert not self.needed_locks[locking.LEVEL_NODEGROUP]
+
+      self.needed_locks[locking.LEVEL_NODEGROUP] = \
+        set([self.group_uuid] +
+            # Lock all groups used by instances optimistically; this requires
+            # going via the node before it's locked, requiring verification
+            # later on
+            [group_uuid
+             for instance_name in
+               self.glm.list_owned(locking.LEVEL_INSTANCE)
+             for group_uuid in
+               self.cfg.GetInstanceNodeGroups(instance_name)])
+
+    elif level == locking.LEVEL_NODE:
+      # This will only lock the nodes in the group to be verified which contain
+      # actual instances
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+      self._LockInstancesNodes()
+
+      # Lock all nodes in group to be verified
+      assert self.group_uuid in self.glm.list_owned(locking.LEVEL_NODEGROUP)
+      member_nodes = self.cfg.GetNodeGroup(self.group_uuid).members
+      self.needed_locks[locking.LEVEL_NODE].extend(member_nodes)
+
+  def CheckPrereq(self):
+    owned_instances = frozenset(self.glm.list_owned(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(self.glm.list_owned(locking.LEVEL_NODEGROUP))
+    owned_nodes = frozenset(self.glm.list_owned(locking.LEVEL_NODE))
+
+    assert self.group_uuid in owned_groups
+
+    # Check if locked instances are still correct
+    wanted_instances = self.cfg.GetNodeGroupInstances(self.group_uuid)
+    if owned_instances != wanted_instances:
+      raise errors.OpPrereqError("Instances in node group %s changed since"
+                                 " locks were acquired, wanted %s, have %s;"
+                                 " retry the operation" %
+                                 (self.op.group_name,
+                                  utils.CommaJoin(wanted_instances),
+                                  utils.CommaJoin(owned_instances)),
+                                 errors.ECODE_STATE)
+
+    # Get instance information
+    self.instances = dict((name, self.cfg.GetInstanceInfo(name))
+                          for name in owned_instances)
+
+    # Check if node groups for locked instances are still correct
+    for (instance_name, inst) in self.instances.items():
+      assert self.group_uuid in self.cfg.GetInstanceNodeGroups(instance_name), \
+        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
+      assert owned_nodes.issuperset(inst.all_nodes), \
+        "Instance %s's nodes changed while we kept the lock" % instance_name
+
+      inst_groups = self.cfg.GetInstanceNodeGroups(instance_name)
+      if not owned_groups.issuperset(inst_groups):
+        raise errors.OpPrereqError("Instance %s's node groups changed since"
+                                   " locks were acquired, current groups are"
+                                   " are '%s', owning groups '%s'; retry the"
+                                   " operation" %
+                                   (instance_name,
+                                    utils.CommaJoin(inst_groups),
+                                    utils.CommaJoin(owned_groups)),
+                                   errors.ECODE_STATE)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
@@ -2882,50 +2980,41 @@ class LUClusterVerifyDisks(NoHooksLU):
         missing volumes
 
     """
-    result = res_nodes, res_instances, res_missing = {}, [], {}
+    res_nodes = {}
+    res_instances = set()
+    res_missing = {}
 
-    nodes = utils.NiceSort(self.cfg.GetVmCapableNodeList())
-    instances = self.cfg.GetAllInstancesInfo().values()
+    nv_dict = _MapInstanceDisksToNodes([inst
+                                        for inst in self.instances.values()
+                                        if inst.admin_up])
 
-    nv_dict = {}
-    for inst in instances:
-      inst_lvs = {}
-      if not inst.admin_up:
-        continue
-      inst.MapLVsByNode(inst_lvs)
-      # transform { iname: {node: [vol,],},} to {(node, vol): iname}
-      for node, vol_list in inst_lvs.iteritems():
-        for vol in vol_list:
-          nv_dict[(node, vol)] = inst
+    if nv_dict:
+      nodes = utils.NiceSort(set(self.glm.list_owned(locking.LEVEL_NODE)) &
+                             set(self.cfg.GetVmCapableNodeList()))
 
-    if not nv_dict:
-      return result
+      node_lvs = self.rpc.call_lv_list(nodes, [])
 
-    node_lvs = self.rpc.call_lv_list(nodes, [])
-    for node, node_res in node_lvs.items():
-      if node_res.offline:
-        continue
-      msg = node_res.fail_msg
-      if msg:
-        logging.warning("Error enumerating LVs on node %s: %s", node, msg)
-        res_nodes[node] = msg
-        continue
+      for (node, node_res) in node_lvs.items():
+        if node_res.offline:
+          continue
 
-      lvs = node_res.payload
-      for lv_name, (_, _, lv_online) in lvs.items():
-        inst = nv_dict.pop((node, lv_name), None)
-        if (not lv_online and inst is not None
-            and inst.name not in res_instances):
-          res_instances.append(inst.name)
+        msg = node_res.fail_msg
+        if msg:
+          logging.warning("Error enumerating LVs on node %s: %s", node, msg)
+          res_nodes[node] = msg
+          continue
 
-    # any leftover items in nv_dict are missing LVs, let's arrange the
-    # data better
-    for key, inst in nv_dict.iteritems():
-      if inst.name not in res_missing:
-        res_missing[inst.name] = []
-      res_missing[inst.name].append(key)
+        for lv_name, (_, _, lv_online) in node_res.payload.items():
+          inst = nv_dict.pop((node, lv_name), None)
+          if not (lv_online or inst is None):
+            res_instances.add(inst)
 
-    return result
+      # any leftover items in nv_dict are missing LVs, let's arrange the data
+      # better
+      for key, inst in nv_dict.iteritems():
+        res_missing.setdefault(inst, []).append(key)
+
+    return (res_nodes, list(res_instances), res_missing)
 
 
 class LUClusterRepairDiskSizes(NoHooksLU):

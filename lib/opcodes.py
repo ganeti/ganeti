@@ -594,11 +594,14 @@ class OpClusterVerifyGroup(OpCode):
 class OpClusterVerifyDisks(OpCode):
   """Verify the cluster disks.
 
-  Parameters: none
+  """
 
-  Result: a tuple of four elements:
-    - list of node names with bad data returned (unreachable, etc.)
-    - dict of node names with broken volume groups (values: error msg)
+
+class OpGroupVerifyDisks(OpCode):
+  """Verifies the status of all disks in a node group.
+
+  Result: a tuple of three elements:
+    - dict of node names with issues (values: error msg)
     - list of instances with degraded disks (that should be activated)
     - dict of instances with missing logical volumes (values: (node, vol)
       pairs with details about the missing volumes)
@@ -612,6 +615,10 @@ class OpClusterVerifyDisks(OpCode):
   consideration. This might need to be revisited in the future.
 
   """
+  OP_DSC_FIELD = "group_name"
+  OP_PARAMS = [
+    _PGroupName,
+    ]
 
 
 class OpClusterRepairDiskSizes(OpCode):

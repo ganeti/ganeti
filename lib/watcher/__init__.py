@@ -597,20 +597,41 @@ class Watcher(object):
     """Run gnt-cluster verify-disks.
 
     """
-    op = opcodes.OpClusterVerifyDisks()
-    job_id = client.SubmitJob([op])
+    job_id = client.SubmitJob([opcodes.OpClusterVerifyDisks()])
     result = cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)[0]
     client.ArchiveJob(job_id)
-    if not isinstance(result, (tuple, list)):
-      logging.error("Can't get a valid result from verify-disks")
-      return
-    offline_disk_instances = result[1]
+
+    # Keep track of submitted jobs
+    jex = cli.JobExecutor(cl=client, feedback_fn=logging.debug)
+
+    archive_jobs = set()
+    for (status, job_id) in result[constants.JOB_IDS_KEY]:
+      jex.AddJobId(None, status, job_id)
+      if status:
+        archive_jobs.add(job_id)
+
+    offline_disk_instances = set()
+
+    for (status, result) in jex.GetResults():
+      if not status:
+        logging.error("Verify-disks job failed: %s", result)
+        continue
+
+      ((_, instances, _), ) = result
+
+      offline_disk_instances.update(instances)
+
+    for job_id in archive_jobs:
+      client.ArchiveJob(job_id)
+
     if not offline_disk_instances:
       # nothing to do
       logging.debug("verify-disks reported no offline disks, nothing to do")
       return
+
     logging.debug("Will activate disks for instance(s) %s",
                   utils.CommaJoin(offline_disk_instances))
+
     # we submit only one job, and wait for it. not optimal, but spams
     # less the job queue
     job = []

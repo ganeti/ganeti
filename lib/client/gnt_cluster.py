@@ -503,22 +503,30 @@ def VerifyDisks(opts, args):
   cl = GetClient()
 
   op = opcodes.OpClusterVerifyDisks()
-  result = SubmitOpCode(op, opts=opts, cl=cl)
-  if not isinstance(result, (list, tuple)) or len(result) != 3:
-    raise errors.ProgrammerError("Unknown result type for OpClusterVerifyDisks")
 
-  bad_nodes, instances, missing = result
+  result = SubmitOpCode(op, cl=cl, opts=opts)
+
+  # Keep track of submitted jobs
+  jex = JobExecutor(cl=cl, opts=opts)
+
+  for (status, job_id) in result[constants.JOB_IDS_KEY]:
+    jex.AddJobId(None, status, job_id)
 
   retcode = constants.EXIT_SUCCESS
 
-  if bad_nodes:
+  for (status, result) in jex.GetResults():
+    if not status:
+      ToStdout("Job failed: %s", result)
+      continue
+
+    ((bad_nodes, instances, missing), ) = result
+
     for node, text in bad_nodes.items():
       ToStdout("Error gathering data on node %s: %s",
                node, utils.SafeEncode(text[-400:]))
-      retcode |= 1
+      retcode = constants.EXIT_FAILURE
       ToStdout("You need to fix these nodes first before fixing instances")
 
-  if instances:
     for iname in instances:
       if iname in missing:
         continue
@@ -531,24 +539,24 @@ def VerifyDisks(opts, args):
         retcode |= nret
         ToStderr("Error activating disks for instance %s: %s", iname, msg)
 
-  if missing:
-    for iname, ival in missing.iteritems():
-      all_missing = compat.all(x[0] in bad_nodes for x in ival)
-      if all_missing:
-        ToStdout("Instance %s cannot be verified as it lives on"
-                 " broken nodes", iname)
-      else:
-        ToStdout("Instance %s has missing logical volumes:", iname)
-        ival.sort()
-        for node, vol in ival:
-          if node in bad_nodes:
-            ToStdout("\tbroken node %s /dev/%s", node, vol)
-          else:
-            ToStdout("\t%s /dev/%s", node, vol)
+    if missing:
+      for iname, ival in missing.iteritems():
+        all_missing = compat.all(x[0] in bad_nodes for x in ival)
+        if all_missing:
+          ToStdout("Instance %s cannot be verified as it lives on"
+                   " broken nodes", iname)
+        else:
+          ToStdout("Instance %s has missing logical volumes:", iname)
+          ival.sort()
+          for node, vol in ival:
+            if node in bad_nodes:
+              ToStdout("\tbroken node %s /dev/%s", node, vol)
+            else:
+              ToStdout("\t%s /dev/%s", node, vol)
 
-    ToStdout("You need to run replace or recreate disks for all the above"
-             " instances, if this message persist after fixing nodes.")
-    retcode |= 1
+      ToStdout("You need to replace or recreate disks for all the above"
+               " instances if this message persists after fixing broken nodes.")
+      retcode = constants.EXIT_FAILURE
 
   return retcode
 
