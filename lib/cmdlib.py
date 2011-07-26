@@ -677,6 +677,19 @@ def _ReleaseLocks(lu, level, names=None, keep=None):
     assert not lu.glm.is_owned(level), "No locks should be owned"
 
 
+def _MapInstanceDisksToNodes(instances):
+  """Creates a map from (node, volume) to instance name.
+
+  @type instances: list of L{objects.Instance}
+  @rtype: dict; tuple of (node name, volume name) as key, instance name as value
+
+  """
+  return dict(((node, vol), inst.name)
+              for inst in instances
+              for (node, vols) in inst.MapLVsByNode().items()
+              for vol in vols)
+
+
 def _RunPostHook(lu, node_name):
   """Runs the post-hook for an opcode on a single node.
 
@@ -4254,11 +4267,7 @@ class LUNodeQueryvols(NoHooksLU):
     volumes = self.rpc.call_node_volumes(nodenames)
 
     ilist = self.cfg.GetAllInstancesInfo()
-
-    vol2inst = dict(((node, vol), inst.name)
-                    for inst in ilist.values()
-                    for (node, vols) in inst.MapLVsByNode().items()
-                    for vol in vols)
+    vol2inst = _MapInstanceDisksToNodes(ilist.values())
 
     output = []
     for node in nodenames:
