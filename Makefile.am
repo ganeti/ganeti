@@ -244,7 +244,8 @@ impexpd_PYTHON = \
 	lib/impexpd/__init__.py
 
 watcher_PYTHON = \
-	lib/watcher/__init__.py
+	lib/watcher/__init__.py \
+	lib/watcher/nodemaint.py
 
 server_PYTHON = \
 	lib/server/__init__.py \
