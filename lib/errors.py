@@ -189,6 +189,12 @@ class OpExecError(GenericError):
   """
 
 
+class OpResultError(GenericError):
+  """Issue with OpCode result.
+
+  """
+
+
 class OpCodeUnknown(GenericError):
   """Unknown opcode submitted.
 

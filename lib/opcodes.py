@@ -419,6 +419,9 @@ def _BuildJobDepCheck(relative):
 
 TNoRelativeJobDependencies = _BuildJobDepCheck(False)
 
+#: List of submission status and job ID as returned by C{SubmitManyJobs}
+TJobIdList = ht.TListOf(ht.TItems([ht.TBool, ht.TOr(ht.TString, ht.TJobId)]))
+
 
 class OpCode(BaseOpCode):
   """Abstract OpCode.
@@ -433,6 +436,7 @@ class OpCode(BaseOpCode):
                       method for details).
   @cvar OP_PARAMS: List of opcode attributes, the default values they should
                    get if not already defined, and types they must match.
+  @cvar OP_RESULT: Callable to verify opcode result
   @cvar WITH_LU: Boolean that specifies whether this should be included in
       mcpu's dispatch table
   @ivar dry_run: Whether the LU should be run in dry-run mode, i.e. just
@@ -454,6 +458,7 @@ class OpCode(BaseOpCode):
     (COMMENT_ATTR, None, ht.TMaybeString,
      "Comment describing the purpose of the opcode"),
     ]
+  OP_RESULT = None
 
   def __getstate__(self):
     """Specialized getstate for opcodes.
@@ -595,6 +600,9 @@ class OpClusterVerifyDisks(OpCode):
   """Verify the cluster disks.
 
   """
+  OP_RESULT = ht.TStrictDict(True, True, {
+    constants.JOB_IDS_KEY: TJobIdList,
+    })
 
 
 class OpGroupVerifyDisks(OpCode):
@@ -619,6 +627,11 @@ class OpGroupVerifyDisks(OpCode):
   OP_PARAMS = [
     _PGroupName,
     ]
+  OP_RESULT = \
+    ht.TAnd(ht.TIsLength(3),
+            ht.TItems([ht.TDictOf(ht.TString, ht.TString),
+                       ht.TListOf(ht.TString),
+                       ht.TDictOf(ht.TString, ht.TListOf(ht.TString))]))
 
 
 class OpClusterRepairDiskSizes(OpCode):

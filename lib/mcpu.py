@@ -373,8 +373,8 @@ class Processor(object):
         assert lu.needed_locks is not None, "needed_locks not set by LU"
 
         try:
-          return self._LockAndExecLU(lu, locking.LEVEL_INSTANCE, calc_timeout,
-                                     priority)
+          result = self._LockAndExecLU(lu, locking.LEVEL_INSTANCE, calc_timeout,
+                                       priority)
         finally:
           if self._ec_id:
             self.context.cfg.DropECReservations(self._ec_id)
@@ -382,6 +382,15 @@ class Processor(object):
         self.context.glm.release(locking.LEVEL_CLUSTER)
     finally:
       self._cbs = None
+
+    resultcheck_fn = op.OP_RESULT
+    if not (resultcheck_fn is None or resultcheck_fn(result)):
+      logging.error("Expected opcode result matching %s, got %s",
+                    resultcheck_fn, result)
+      raise errors.OpResultError("Opcode result does not match %s" %
+                                 resultcheck_fn)
+
+    return result
 
   def Log(self, *args):
     """Forward call to feedback callback function.

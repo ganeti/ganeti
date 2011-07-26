@@ -49,6 +49,7 @@ class TestOpcodes(unittest.TestCase):
       self.assertEqual(cls.OP_ID, opcodes._NameToId(cls.__name__))
       self.assertFalse(compat.any(cls.OP_ID.startswith(prefix)
                                   for prefix in opcodes._SUMMARY_PREFIX.keys()))
+      self.assertTrue(cls.OP_RESULT is None or callable(cls.OP_RESULT))
 
       self.assertRaises(TypeError, cls, unsupported_parameter="some value")
 
