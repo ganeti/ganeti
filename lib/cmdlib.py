@@ -63,19 +63,6 @@ from ganeti import ht
 import ganeti.masterd.instance # pylint: disable-msg=W0611
 
 
-def _SupportsOob(cfg, node):
-  """Tells if node supports OOB.
-
-  @type cfg: L{config.ConfigWriter}
-  @param cfg: The cluster configuration
-  @type node: L{objects.Node}
-  @param node: The node
-  @return: The OOB script if supported or an empty string otherwise
-
-  """
-  return cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
-
-
 class ResultWithJobs:
   """Data container for LU results with jobs.
 
@@ -559,6 +546,26 @@ class _QueryBase:
     """
     return self.query.OldStyleQuery(self._GetQueryData(lu),
                                     sort_by_name=self.sort_by_name)
+
+
+def _ShareAll():
+  """Returns a dict declaring all lock levels shared.
+
+  """
+  return dict.fromkeys(locking.LEVELS, 1)
+
+
+def _SupportsOob(cfg, node):
+  """Tells if node supports OOB.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type node: L{objects.Node}
+  @param node: The node
+  @return: The OOB script if supported or an empty string otherwise
+
+  """
+  return cfg.GetNdParams(node)[constants.ND_OOB_PROGRAM]
 
 
 def _GetWantedNodes(lu, nodes):
@@ -1584,7 +1591,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       locking.LEVEL_NODE: [],
       }
 
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -2867,7 +2874,7 @@ class LUClusterVerifyDisks(NoHooksLU):
   REQ_BGL = False
 
   def ExpandNames(self):
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
     self.needed_locks = {
       locking.LEVEL_NODEGROUP: locking.ALL_SET,
       }
@@ -2890,7 +2897,7 @@ class LUGroupVerifyDisks(NoHooksLU):
     # Raises errors.OpPrereqError on its own if group can't be found
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [],
@@ -3037,7 +3044,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         locking.LEVEL_NODE: locking.ALL_SET,
         locking.LEVEL_INSTANCE: locking.ALL_SET,
         }
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE and self.wanted_names is not None:
@@ -6778,7 +6785,7 @@ class LUNodeMigrate(LogicalUnit):
   def ExpandNames(self):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
     self.needed_locks = {
       locking.LEVEL_NODE: [self.op.node_name],
       }
@@ -9904,7 +9911,7 @@ class LUNodeEvacuate(NoHooksLU):
                                    errors.ECODE_INVAL)
 
     # Declare locks
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [],
@@ -10230,7 +10237,7 @@ class LUInstanceQueryData(NoHooksLU):
       self.wanted_names = None
 
     if self.op.use_locking:
-      self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+      self.share_locks = _ShareAll()
 
       if self.wanted_names is None:
         self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
@@ -10238,7 +10245,6 @@ class LUInstanceQueryData(NoHooksLU):
         self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
 
       self.needed_locks[locking.LEVEL_NODE] = []
-      self.share_locks = dict.fromkeys(locking.LEVELS, 1)
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
@@ -12015,7 +12021,7 @@ class LUGroupEvacuate(LogicalUnit):
                                  " opcode nor as a cluster-wide default",
                                  errors.ECODE_INVAL)
 
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
     self.needed_locks = {
       locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [],
@@ -12207,7 +12213,7 @@ class LUTagsGet(TagsLU):
     TagsLU.ExpandNames(self)
 
     # Share locks as this is only a read operation
-    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
+    self.share_locks = _ShareAll()
 
   def Exec(self, feedback_fn):
     """Returns the tag list.
