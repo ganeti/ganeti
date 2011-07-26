@@ -507,7 +507,7 @@ class Merger(object):
           grp.name = new_name
 
       # User wants to merge conflicting groups
-      elif self.groups == 'merge':
+      elif self.groups == _GROUPS_MERGE:
         for other_grp in conflicts:
           logging.info("Merging local and remote '%s' groups", other_grp.name)
           for node_name in other_grp.members[:]:
