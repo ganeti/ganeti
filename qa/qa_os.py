@@ -86,18 +86,24 @@ def _SetupTempOs(node, dirname, valid):
 
   """
   sq = utils.ShellQuoteArgs
-  parts = [sq(["rm", "-rf", dirname]),
-           sq(["mkdir", "-p", dirname]),
-           sq(["cd", dirname]),
-           sq(["ln", "-fs", "/bin/true", "export"]),
-           sq(["ln", "-fs", "/bin/true", "import"]),
-           sq(["ln", "-fs", "/bin/true", "rename"])]
+  parts = [
+    sq(["rm", "-rf", dirname]),
+    sq(["mkdir", "-p", dirname]),
+    sq(["cd", dirname]),
+    sq(["ln", "-fs", "/bin/true", "export"]),
+    sq(["ln", "-fs", "/bin/true", "import"]),
+    sq(["ln", "-fs", "/bin/true", "rename"]),
+    sq(["ln", "-fs", "/bin/true", "verify"]),
+    ]
 
   if valid:
     parts.append(sq(["ln", "-fs", "/bin/true", "create"]))
 
-  parts.append(sq(["echo", str(constants.OS_API_V10)]) +
+  parts.append(sq(["echo", str(constants.OS_API_V20)]) +
                " >ganeti_api_version")
+
+  parts.append(sq(["echo", "default"]) + " >variants.list")
+  parts.append(sq(["echo", "funny this is funny"]) + " >parameters.list")
 
   cmd = " && ".join(parts)
 
