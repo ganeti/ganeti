@@ -709,15 +709,8 @@ def main():
   """
   program = os.path.basename(sys.argv[0])
 
-  parser = optparse.OptionParser(usage=("%%prog [--debug|--verbose]"
-                                        " [--watcher-pause-period SECONDS]"
-                                        " [--groups [%s|%s]]"
-                                        " [--restart [%s|%s|%s]]"
-                                        " <cluster> [<cluster...>]" %
-                                        (_GROUPS_MERGE, _GROUPS_RENAME,
-                                         _RESTART_ALL, _RESTART_UP,
-                                         _RESTART_NONE)),
-                                        prog=program)
+  parser = optparse.OptionParser(usage="%%prog [options...] <cluster...>",
+                                 prog=program)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option(PAUSE_PERIOD_OPT)
