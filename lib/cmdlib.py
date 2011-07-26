@@ -12005,10 +12005,12 @@ class LUGroupEvacuate(LogicalUnit):
 
       inst_groups = self.cfg.GetInstanceNodeGroups(instance_name)
       if not owned_groups.issuperset(inst_groups):
-        raise errors.OpPrereqError("Instance's node groups changed since locks"
-                                   " were acquired, current groups are '%s',"
-                                   " owning groups '%s'; retry the operation" %
-                                   (utils.CommaJoin(inst_groups),
+        raise errors.OpPrereqError("Instance %s's node groups changed since"
+                                   " locks were acquired, current groups"
+                                   " are '%s', owning groups '%s'; retry the"
+                                   " operation" %
+                                   (instance_name,
+                                    utils.CommaJoin(inst_groups),
                                     utils.CommaJoin(owned_groups)),
                                    errors.ECODE_STATE)
 
