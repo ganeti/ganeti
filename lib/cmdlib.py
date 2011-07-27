@@ -1097,9 +1097,13 @@ def _CheckOSVariant(os_obj, name):
   @param name: OS name passed by the user, to check for validity
 
   """
-  if not os_obj.supported_variants:
-    return
   variant = objects.OS.GetVariant(name)
+  if not os_obj.supported_variants:
+    if variant:
+      raise errors.OpPrereqError("OS '%s' doesn't support variants ('%s'"
+                                 " passed)" % (os_obj.name, variant),
+                                 errors.ECODE_INVAL)
+    return
   if not variant:
     raise errors.OpPrereqError("OS name must include a variant",
                                errors.ECODE_INVAL)
