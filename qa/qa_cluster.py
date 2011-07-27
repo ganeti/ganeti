@@ -37,6 +37,9 @@ import qa_error
 from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
 
 
+#: cluster verify command
+_CLUSTER_VERIFY = ["gnt-cluster", "verify"]
+
 def _RemoveFileFromAllNodes(filename):
   """Removes a file from all nodes.
 
@@ -108,13 +111,11 @@ def TestClusterRename():
     print qa_utils.FormatError('"rename" entry is missing')
     return
 
-  cmd_verify = ["gnt-cluster", "verify"]
-
   for data in [
     cmd + [rename_target],
-    cmd_verify,
+    _CLUSTER_VERIFY,
     cmd + [original_name],
-    cmd_verify,
+    _CLUSTER_VERIFY,
     ]:
     AssertCommand(data)
 
@@ -123,12 +124,12 @@ def TestClusterOob():
   """out-of-band framework"""
   oob_path_exists = "/tmp/ganeti-qa-oob-does-exist-%s" % utils.NewUUID()
 
-  AssertCommand(["gnt-cluster", "verify"])
+  AssertCommand(_CLUSTER_VERIFY)
   AssertCommand(["gnt-cluster", "modify", "--node-parameters",
                  "oob_program=/tmp/ganeti-qa-oob-does-not-exist-%s" %
                  utils.NewUUID()])
 
-  AssertCommand(["gnt-cluster", "verify"], fail=True)
+  AssertCommand(_CLUSTER_VERIFY, fail=True)
 
   AssertCommand(["touch", oob_path_exists])
   AssertCommand(["chmod", "0400", oob_path_exists])
@@ -138,12 +139,12 @@ def TestClusterOob():
     AssertCommand(["gnt-cluster", "modify", "--node-parameters",
                    "oob_program=%s" % oob_path_exists])
 
-    AssertCommand(["gnt-cluster", "verify"], fail=True)
+    AssertCommand(_CLUSTER_VERIFY, fail=True)
 
     AssertCommand(["chmod", "0500", oob_path_exists])
     AssertCommand(["gnt-cluster", "copyfile", oob_path_exists])
 
-    AssertCommand(["gnt-cluster", "verify"])
+    AssertCommand(_CLUSTER_VERIFY)
   finally:
     AssertCommand(["gnt-cluster", "command", "rm", oob_path_exists])
 
@@ -191,7 +192,7 @@ def TestClusterEpo():
 
 def TestClusterVerify():
   """gnt-cluster verify"""
-  AssertCommand(["gnt-cluster", "verify"])
+  AssertCommand(_CLUSTER_VERIFY)
   AssertCommand(["gnt-cluster", "verify-disks"])
 
 
@@ -202,21 +203,20 @@ def TestJobqueue():
 
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
-  CVERIFY = ["gnt-cluster", "verify"]
   for fail, cmd in [
-    (False, CVERIFY),
+    (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
     (False, ["lvcreate", "-L1G", "-nqa-test", "xenvg"]),
-    (True,  CVERIFY),
+    (True,  _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs",
              "xenvg/qa-test,.*/other-test"]),
-    (False, CVERIFY),
+    (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ".*/qa-.*"]),
-    (False, CVERIFY),
+    (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
-    (True,  CVERIFY),
+    (True,  _CLUSTER_VERIFY),
     (False, ["lvremove", "-f", "xenvg/qa-test"]),
-    (False, CVERIFY),
+    (False, _CLUSTER_VERIFY),
     ]:
     AssertCommand(cmd, fail=fail)
 
