@@ -81,7 +81,7 @@ def _TestOsStates(os_name):
       AssertCommand(new_cmd)
 
 
-def _SetupTempOs(node, dirname, valid):
+def _SetupTempOs(node, dirname, variant, valid):
   """Creates a temporary OS definition on the given node.
 
   """
@@ -102,7 +102,7 @@ def _SetupTempOs(node, dirname, valid):
   parts.append(sq(["echo", str(constants.OS_API_V20)]) +
                " >ganeti_api_version")
 
-  parts.append(sq(["echo", "default"]) + " >variants.list")
+  parts.append(sq(["echo", variant]) + " >variants.list")
   parts.append(sq(["echo", "funny this is funny"]) + " >parameters.list")
 
   cmd = " && ".join(parts)
@@ -128,6 +128,8 @@ def _TestOs(mode, rapi_cb):
   master = qa_config.GetMasterNode()
 
   name = _TEMP_OS_NAME
+  variant = "default"
+  fullname = "%s+%s" % (name, variant)
   dirname = _TEMP_OS_PATH
 
   # Ensure OS is usable
@@ -146,7 +148,7 @@ def _TestOs(mode, rapi_cb):
         valid = bool(i % 2)
       else:
         raise AssertionError("Unknown mode %s" % mode)
-      _SetupTempOs(node, dirname, valid)
+      _SetupTempOs(node, dirname, variant, valid)
 
     # TODO: Use Python 2.6's itertools.permutations
     for (hidden, blacklisted) in [(False, False), (True, False),
@@ -192,11 +194,11 @@ def _TestOs(mode, rapi_cb):
         assert_fn = AssertIn
       else:
         assert_fn = AssertNotIn
-      assert_fn(name, output.splitlines())
+      assert_fn(fullname, output.splitlines())
 
       # Check via RAPI
       if rapi_cb:
-        assert_fn(name, rapi_cb())
+        assert_fn(fullname, rapi_cb())
   finally:
     for node in nodes:
       _RemoveTempOs(node, dirname)
