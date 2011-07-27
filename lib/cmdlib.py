@@ -1988,7 +1988,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param all_nvinfo: RPC results
 
     """
-    node_names = frozenset(node.name for node in nodeinfo)
+    node_names = frozenset(node.name for node in nodeinfo if not node.offline)
 
     assert master_node in node_names
     assert (len(files_all | files_all_opt | files_mc | files_vm) ==
@@ -2007,6 +2007,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     fileinfo = dict((filename, {}) for filename in file2nodefn.keys())
 
     for node in nodeinfo:
+      if node.offline:
+        continue
+
       nresult = all_nvinfo[node.name]
 
       if nresult.fail_msg or not nresult.payload:
