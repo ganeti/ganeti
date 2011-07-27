@@ -318,9 +318,9 @@ def GetClusterData():
 
   instances = {}
 
-  # write the upfile
+  # write the instance status file
   up_data = "".join(["%s %s\n" % (fields[0], fields[1]) for fields in result])
-  utils.WriteFile(file_name=constants.INSTANCE_UPFILE, data=up_data)
+  utils.WriteFile(file_name=constants.INSTANCE_STATUS_FILE, data=up_data)
 
   for fields in result:
     (name, status, autostart, snodes) = fields
