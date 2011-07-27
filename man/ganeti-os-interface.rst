@@ -255,9 +255,9 @@ one Ganeti version should contain the most recent version first
 variants.list
 ~~~~~~~~~~~~~
 
-variants.list is a plain text file containing all the declared
-supported variants for this OS, one per line. At least one variant
-must be supported.
+variants.list is a plain text file containing all the declared supported
+variants for this OS, one per line. If this file is missing or empty,
+then the OS won't be considered to support variants.
 
 parameters.list
 ~~~~~~~~~~~~~~~
@@ -308,8 +308,9 @@ Version 10 to 15
 
 The ``variants.list`` file has been added, so OSes should support at
 least one variant, declaring it in that file and must be prepared to
-parse the OS_VARIANT environment variable. OSes are free to support
-more variants than just the declared ones.
+parse the OS_VARIANT environment variable. OSes are free to support more
+variants than just the declared ones. Note that this file is optional;
+without it, the variants functionality is disabled.
 
 Version 5 to 10
 ^^^^^^^^^^^^^^^

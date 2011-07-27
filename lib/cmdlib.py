@@ -2193,11 +2193,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       _ErrorIf(len(os_data) > 1, self.ENODEOS, node,
                "OS '%s' has multiple entries (first one shadows the rest): %s",
                os_name, utils.CommaJoin([v[0] for v in os_data]))
-      # this will catched in backend too
-      _ErrorIf(compat.any(v >= constants.OS_API_V15 for v in f_api)
-               and not f_var, self.ENODEOS, node,
-               "OS %s with API at least %d does not declare any variant",
-               os_name, constants.OS_API_V15)
       # comparisons with the 'base' image
       test = os_name not in base.oslist
       _ErrorIf(test, self.ENODEOS, node,

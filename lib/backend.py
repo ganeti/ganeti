@@ -2051,23 +2051,28 @@ def _TryOSFromDisk(name, base_dir=None):
     return False, ("API version mismatch for path '%s': found %s, want %s." %
                    (os_dir, api_versions, constants.OS_API_VERSIONS))
 
-  # OS Files dictionary, we will populate it with the absolute path names
-  os_files = dict.fromkeys(constants.OS_SCRIPTS)
+  # OS Files dictionary, we will populate it with the absolute path
+  # names; if the value is True, then it is a required file, otherwise
+  # an optional one
+  os_files = dict.fromkeys(constants.OS_SCRIPTS, True)
 
   if max(api_versions) >= constants.OS_API_V15:
-    os_files[constants.OS_VARIANTS_FILE] = ""
+    os_files[constants.OS_VARIANTS_FILE] = False
 
   if max(api_versions) >= constants.OS_API_V20:
-    os_files[constants.OS_PARAMETERS_FILE] = ""
+    os_files[constants.OS_PARAMETERS_FILE] = True
   else:
     del os_files[constants.OS_SCRIPT_VERIFY]
 
-  for filename in os_files:
+  for (filename, required) in os_files.items():
     os_files[filename] = utils.PathJoin(os_dir, filename)
 
     try:
       st = os.stat(os_files[filename])
     except EnvironmentError, err:
+      if err.errno == errno.ENOENT and not required:
+        del os_files[filename]
+        continue
       return False, ("File '%s' under path '%s' is missing (%s)" %
                      (filename, os_dir, _ErrnoOrStr(err)))
 
@@ -2086,10 +2091,10 @@ def _TryOSFromDisk(name, base_dir=None):
     try:
       variants = utils.ReadFile(variants_file).splitlines()
     except EnvironmentError, err:
-      return False, ("Error while reading the OS variants file at %s: %s" %
-                     (variants_file, _ErrnoOrStr(err)))
-    if not variants:
-      return False, ("No supported os variant found")
+      # we accept missing files, but not other errors
+      if err.errno != errno.ENOENT:
+        return False, ("Error while reading the OS variants file at %s: %s" %
+                       (variants_file, _ErrnoOrStr(err)))
 
   parameters = []
   if constants.OS_PARAMETERS_FILE in os_files:
@@ -2166,11 +2171,13 @@ def OSCoreEnv(os_name, inst_os, os_params, debug=0):
   result["DEBUG_LEVEL"] = "%d" % debug
 
   # OS variants
-  if api_version >= constants.OS_API_V15:
+  if api_version >= constants.OS_API_V15 and inst_os.supported_variants:
     variant = objects.OS.GetVariant(os_name)
     if not variant:
       variant = inst_os.supported_variants[0]
-    result["OS_VARIANT"] = variant
+  else:
+    variant = ""
+  result["OS_VARIANT"] = variant
 
   # OS params
   for pname, pvalue in os_params.items():
