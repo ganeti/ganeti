@@ -3016,10 +3016,6 @@ class JobExecutor(object):
     self.jobs = []
     self.opts = opts
     self.feedback_fn = feedback_fn
-    if feedback_fn:
-      self._info_fn = feedback_fn
-    else:
-      self._info_fn = ToStdout
     self._counter = itertools.count()
 
   @staticmethod
@@ -3101,33 +3097,31 @@ class JobExecutor(object):
     if self.verbose:
       ok_jobs = [row[2] for row in self.jobs if row[1]]
       if ok_jobs:
-        self._info_fn("Submitted jobs %s", utils.CommaJoin(ok_jobs))
+        ToStdout("Submitted jobs %s", utils.CommaJoin(ok_jobs))
 
     # first, remove any non-submitted jobs
     self.jobs, failures = compat.partition(self.jobs, lambda x: x[1])
     for idx, _, jid, name in failures:
-      self._info_fn("Failed to submit job%s: %s",
-                    self._IfName(name, " for %s"), jid)
+      ToStderr("Failed to submit job%s: %s", self._IfName(name, " for %s"), jid)
       results.append((idx, False, jid))
 
     while self.jobs:
       (idx, _, jid, name) = self._ChooseJob()
-      self._info_fn("Waiting for job %s%s ...",
-                    jid, self._IfName(name, " for %s"))
+      ToStdout("Waiting for job %s%s ...", jid, self._IfName(name, " for %s"))
       try:
         job_result = PollJob(jid, cl=self.cl, feedback_fn=self.feedback_fn)
         success = True
       except errors.JobLost, err:
         _, job_result = FormatError(err)
-        self._info_fn("Job %s%s has been archived, cannot check its result",
-                      jid, self._IfName(name, " for %s"))
+        ToStderr("Job %s%s has been archived, cannot check its result",
+                 jid, self._IfName(name, " for %s"))
         success = False
       except (errors.GenericError, luxi.ProtocolError), err:
         _, job_result = FormatError(err)
         success = False
         # the error message will always be shown, verbose or not
-        self._info_fn("Job %s%s has failed: %s",
-                      jid, self._IfName(name, " for %s"), job_result)
+        ToStderr("Job %s%s has failed: %s",
+                 jid, self._IfName(name, " for %s"), job_result)
 
       results.append((idx, success, job_result))
 
@@ -3151,9 +3145,9 @@ class JobExecutor(object):
         self.SubmitPending()
       for _, status, result, name in self.jobs:
         if status:
-          self._info_fn("%s: %s", result, name)
+          ToStdout("%s: %s", result, name)
         else:
-          self._info_fn("Failure for %s: %s", name, result)
+          ToStderr("Failure for %s: %s", name, result)
       return [row[1:3] for row in self.jobs]
 
 
