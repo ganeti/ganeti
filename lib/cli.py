@@ -804,7 +804,8 @@ NODE_LIST_OPT = cli_option("-n", "--node", dest="nodes", default=[],
                            " times, if not given defaults to all nodes)",
                            completion_suggest=OPT_COMPL_ONE_NODE)
 
-NODEGROUP_OPT = cli_option("-g", "--node-group",
+NODEGROUP_OPT_NAME = "--node-group"
+NODEGROUP_OPT = cli_option("-g", NODEGROUP_OPT_NAME,
                            dest="nodegroup",
                            help="Node group (name or uuid)",
                            metavar="<nodegroup>",
