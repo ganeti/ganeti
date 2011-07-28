@@ -96,6 +96,30 @@ def TestClusterInit(rapi_user, rapi_secret):
 
   AssertCommand(cmd)
 
+  cmd = ["gnt-cluster", "modify"]
+  # hypervisor parameter modifications
+  hvp = qa_config.get("hypervisor-parameters", {})
+  for k, v in hvp.items():
+    cmd.extend(["-H", "%s:%s" % (k, v)])
+  # backend parameter modifications
+  bep = qa_config.get("backend-parameters", "")
+  if bep:
+    cmd.extend(["-B", bep])
+
+  if len(cmd) > 2:
+    AssertCommand(cmd)
+
+  # OS parameters
+  osp = qa_config.get("os-parameters", {})
+  for k, v in osp.items():
+    AssertCommand(["gnt-os", "modify", "-O", v, k])
+
+  # OS hypervisor parameters
+  os_hvp = qa_config.get("os-hvp", {})
+  for os_name in os_hvp:
+    for hv, hvp in os_hvp[os_name].items():
+      AssertCommand(["gnt-os", "modify", "-H", "%s:%s" % (hv, hvp), os_name])
+
 
 def TestClusterRename():
   """gnt-cluster rename"""
@@ -206,6 +230,10 @@ def TestClusterModifyBe():
     ]:
     AssertCommand(cmd, fail=fail)
 
+  # redo the original-requested BE parameters, if any
+  bep = qa_config.get("backend-parameters", "")
+  if bep:
+    AssertCommand(["gnt-cluster", "modify", "-B", bep])
 
 def TestClusterInfo():
   """gnt-cluster info"""
