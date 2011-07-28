@@ -83,7 +83,8 @@ from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
 (IQ_CONFIG,
  IQ_LIVE,
  IQ_DISKUSAGE,
- IQ_CONSOLE) = range(100, 104)
+ IQ_CONSOLE,
+ IQ_NODES) = range(100, 105)
 
 (LQ_MODE,
  LQ_OWNER,
@@ -1223,7 +1224,7 @@ class InstanceQueryData:
 
   """
   def __init__(self, instances, cluster, disk_usage, offline_nodes, bad_nodes,
-               live_data, wrongnode_inst, console):
+               live_data, wrongnode_inst, console, nodes, groups):
     """Initializes this class.
 
     @param instances: List of instance objects
@@ -1240,6 +1241,8 @@ class InstanceQueryData:
     @param wrongnode_inst: Set of instances running on wrong node(s)
     @type console: dict; instance name as key
     @param console: Per-instance console information
+    @type nodes: dict; node name as key
+    @param nodes: Node objects
 
     """
     assert len(set(bad_nodes) & set(offline_nodes)) == len(offline_nodes), \
@@ -1255,6 +1258,8 @@ class InstanceQueryData:
     self.live_data = live_data
     self.wrongnode_inst = wrongnode_inst
     self.console = console
+    self.nodes = nodes
+    self.groups = groups
 
     # Used for individual rows
     self.inst_hvparams = None
@@ -1701,6 +1706,45 @@ _INST_SIMPLE_FIELDS = {
   }
 
 
+def _GetInstNodeGroup(ctx, default, node_name):
+  """Gets group UUID of an instance node.
+
+  @type ctx: L{InstanceQueryData}
+  @param default: Default value
+  @type node_name: string
+  @param node_name: Node name
+
+  """
+  try:
+    node = ctx.nodes[node_name]
+  except KeyError:
+    return default
+  else:
+    return node.group
+
+
+def _GetInstNodeGroupName(ctx, default, node_name):
+  """Gets group name of an instance node.
+
+  @type ctx: L{InstanceQueryData}
+  @param default: Default value
+  @type node_name: string
+  @param node_name: Node name
+
+  """
+  try:
+    node = ctx.nodes[node_name]
+  except KeyError:
+    return default
+
+  try:
+    group = ctx.groups[node.group]
+  except KeyError:
+    return default
+
+  return group.name
+
+
 def _BuildInstanceFields():
   """Builds list of fields for instance queries.
 
@@ -1708,10 +1752,29 @@ def _BuildInstanceFields():
   fields = [
     (_MakeField("pnode", "Primary_node", QFT_TEXT, "Primary node"),
      IQ_CONFIG, QFF_HOSTNAME, _GetItemAttr("primary_node")),
+    (_MakeField("pnode.group", "PrimaryNodeGroup", QFT_TEXT,
+                "Primary node's group"),
+     IQ_NODES, 0,
+     lambda ctx, inst: _GetInstNodeGroupName(ctx, _FS_UNAVAIL,
+                                             inst.primary_node)),
+    (_MakeField("pnode.group.uuid", "PrimaryNodeGroupUUID", QFT_TEXT,
+                "Primary node's group UUID"),
+     IQ_NODES, 0,
+     lambda ctx, inst: _GetInstNodeGroup(ctx, _FS_UNAVAIL, inst.primary_node)),
     # TODO: Allow filtering by secondary node as hostname
     (_MakeField("snodes", "Secondary_Nodes", QFT_OTHER,
                 "Secondary nodes; usually this will just be one node"),
      IQ_CONFIG, 0, lambda ctx, inst: list(inst.secondary_nodes)),
+    (_MakeField("snodes.group", "SecondaryNodesGroups", QFT_OTHER,
+                "Node groups of secondary nodes"),
+     IQ_NODES, 0,
+     lambda ctx, inst: map(compat.partial(_GetInstNodeGroupName, ctx, None),
+                           inst.secondary_nodes)),
+    (_MakeField("snodes.group.uuid", "SecondaryNodesGroupsUUID", QFT_OTHER,
+                "Node group UUIDs of secondary nodes"),
+     IQ_NODES, 0,
+     lambda ctx, inst: map(compat.partial(_GetInstNodeGroup, ctx, None),
+                           inst.secondary_nodes)),
     (_MakeField("admin_state", "Autostart", QFT_BOOL,
                 "Desired state of instance (if set, the instance should be"
                 " up)"),

@@ -4492,8 +4492,7 @@ class _InstanceQuery(_QueryBase):
 
   def ExpandNames(self, lu):
     lu.needed_locks = {}
-    lu.share_locks[locking.LEVEL_INSTANCE] = 1
-    lu.share_locks[locking.LEVEL_NODE] = 1
+    lu.share_locks = _ShareAll()
 
     if self.names:
       self.wanted = _GetWantedInstances(lu, self.names)
@@ -4504,17 +4503,54 @@ class _InstanceQuery(_QueryBase):
                        query.IQ_LIVE in self.requested_data)
     if self.do_locking:
       lu.needed_locks[locking.LEVEL_INSTANCE] = self.wanted
+      lu.needed_locks[locking.LEVEL_NODEGROUP] = []
       lu.needed_locks[locking.LEVEL_NODE] = []
       lu.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
+    self.do_grouplocks = (self.do_locking and
+                          query.IQ_NODES in self.requested_data)
+
   def DeclareLocks(self, lu, level):
-    if level == locking.LEVEL_NODE and self.do_locking:
-      lu._LockInstancesNodes() # pylint: disable-msg=W0212
+    if self.do_locking:
+      if level == locking.LEVEL_NODEGROUP and self.do_grouplocks:
+        assert not lu.needed_locks[locking.LEVEL_NODEGROUP]
+
+        # Lock all groups used by instances optimistically; this requires going
+        # via the node before it's locked, requiring verification later on
+        lu.needed_locks[locking.LEVEL_NODEGROUP] = \
+          set(group_uuid
+              for instance_name in
+                lu.glm.list_owned(locking.LEVEL_INSTANCE)
+              for group_uuid in
+                lu.cfg.GetInstanceNodeGroups(instance_name))
+      elif level == locking.LEVEL_NODE:
+        lu._LockInstancesNodes() # pylint: disable-msg=W0212
+
+  @staticmethod
+  def _CheckGroupLocks(lu):
+    owned_instances = frozenset(lu.glm.list_owned(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(lu.glm.list_owned(locking.LEVEL_NODEGROUP))
+
+    # Check if node groups for locked instances are still correct
+    for instance_name in owned_instances:
+      inst_groups = lu.cfg.GetInstanceNodeGroups(instance_name)
+      if not owned_groups.issuperset(inst_groups):
+        raise errors.OpPrereqError("Instance %s's node groups changed since"
+                                   " locks were acquired, current groups are"
+                                   " are '%s', owning groups '%s'; retry the"
+                                   " operation" %
+                                   (instance_name,
+                                    utils.CommaJoin(inst_groups),
+                                    utils.CommaJoin(owned_groups)),
+                                   errors.ECODE_STATE)
 
   def _GetQueryData(self, lu):
     """Computes the list of instances and their attributes.
 
     """
+    if self.do_grouplocks:
+      self._CheckGroupLocks(lu)
+
     cluster = lu.cfg.GetClusterInfo()
     all_info = lu.cfg.GetAllInstancesInfo()
 
@@ -4577,9 +4613,21 @@ class _InstanceQuery(_QueryBase):
     else:
       consinfo = None
 
+    if query.IQ_NODES in self.requested_data:
+      node_names = set(itertools.chain(*map(operator.attrgetter("all_nodes"),
+                                            instance_list)))
+      nodes = dict((name, lu.cfg.GetNodeInfo(name)) for name in node_names)
+      groups = dict((uuid, lu.cfg.GetNodeGroup(uuid))
+                    for uuid in set(map(operator.attrgetter("group"),
+                                        nodes.values())))
+    else:
+      nodes = None
+      groups = None
+
     return query.InstanceQueryData(instance_list, lu.cfg.GetClusterInfo(),
                                    disk_usage, offline_nodes, bad_nodes,
-                                   live_data, wrongnode_inst, consinfo)
+                                   live_data, wrongnode_inst, consinfo,
+                                   nodes, groups)
 
 
 class LUQuery(NoHooksLU):

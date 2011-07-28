@@ -212,7 +212,7 @@ def ListInstances(opts, args):
 
   fmtoverride = dict.fromkeys(["tags", "disk.sizes", "nic.macs", "nic.ips",
                                "nic.modes", "nic.links", "nic.bridges",
-                               "snodes"],
+                               "snodes", "snodes.group", "snodes.group.uuid"],
                               (lambda value: ",".join(str(item)
                                                       for item in value),
                                False))
