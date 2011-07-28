@@ -6,6 +6,9 @@ Version 2.5.0 beta1
 
 *(unreleased)*
 
+
+Incompatible/important changes:
+
 - The default of the ``/2/instances/[instance_name]/rename`` RAPI
   resource's ``ip_check`` parameter changed from ``True`` to ``False``
   to match the underlying LUXI interface
@@ -26,6 +29,9 @@ Version 2.5.0 beta1
 - The "cluster-verify" hooks are now executed per group by the
   OP_CLUSTER_VERIFY_GROUP opcode. This maintains the same behavior if
   you just run "gnt-cluster verify", which generates one op per group.
+- The environment as passed to the OS scripts is cleared, and thus no
+  environment variables defined in the node daemon's environment will be
+  inherited by the scripts
 
 
 Version 2.4.3

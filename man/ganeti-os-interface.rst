@@ -30,6 +30,12 @@ common set of variables will be exported for all commands, and some
 of them might have extra ones. Note that all counts are
 zero-based.
 
+Since Ganeti version 2.5, the environment will be cleaned up before
+being passed to scripts, therefore they will not inherit the environment
+in with which the ganeti node daemon was started. If you depend on any
+environment variables (non-Ganeti), then you will need to define or
+source them appropriately.
+
 OS_API_VERSION
     The OS API version that the rest of the environment conforms to.
 

@@ -966,7 +966,7 @@ def InstanceOsAdd(instance, reinstall, debug):
   logfile = _InstanceLogName("add", instance.os, instance.name)
 
   result = utils.RunCmd([inst_os.create_script], env=create_env,
-                        cwd=inst_os.path, output=logfile,)
+                        cwd=inst_os.path, output=logfile, reset_env=True)
   if result.failed:
     logging.error("os create command '%s' returned error: %s, logfile: %s,"
                   " output: %s", result.cmd, result.fail_reason, logfile,
@@ -999,7 +999,7 @@ def RunRenameInstance(instance, old_name, debug):
                              "%s-%s" % (old_name, instance.name))
 
   result = utils.RunCmd([inst_os.rename_script], env=rename_env,
-                        cwd=inst_os.path, output=logfile)
+                        cwd=inst_os.path, output=logfile, reset_env=True)
 
   if result.failed:
     logging.error("os create command '%s' returned error: %s output: %s",
@@ -2752,7 +2752,7 @@ def ValidateOS(required, osname, checks, osparams):
 
   validate_env = OSCoreEnv(osname, tbv, osparams)
   result = utils.RunCmd([tbv.verify_script] + checks, env=validate_env,
-                        cwd=tbv.path)
+                        cwd=tbv.path, reset_env=True)
   if result.failed:
     logging.error("os validate command '%s' returned error: %s output: %s",
                   result.cmd, result.fail_reason, result.output)
