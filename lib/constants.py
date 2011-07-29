@@ -343,8 +343,14 @@ SF_ALLOCATABLE = "allocatable"
 SO_FIX_CONSISTENCY = "fix-consistency"
 
 # Available fields per storage type
-VALID_STORAGE_FIELDS = frozenset([SF_NAME, SF_TYPE, SF_SIZE,
-                                  SF_USED, SF_FREE, SF_ALLOCATABLE])
+VALID_STORAGE_FIELDS = frozenset([
+  SF_NAME,
+  SF_TYPE,
+  SF_SIZE,
+  SF_USED,
+  SF_FREE,
+  SF_ALLOCATABLE
+  ])
 
 VALID_STORAGE_TYPES = frozenset([ST_FILE, ST_LVM_PV, ST_LVM_VG])
 
@@ -479,8 +485,14 @@ RIE_CONNECT_RETRIES = 10
 #: Give child process up to 5 seconds to exit after sending a signal
 CHILD_LINGER_TIMEOUT = 5.0
 
-DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN, DT_DRBD8,
-                            DT_FILE, DT_SHARED_FILE, DT_BLOCK])
+DISK_TEMPLATES = frozenset([
+  DT_DISKLESS,
+  DT_PLAIN,
+  DT_DRBD8,
+  DT_FILE,
+  DT_SHARED_FILE,
+  DT_BLOCK
+  ])
 
 FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])
 
@@ -565,9 +577,13 @@ OS_SCRIPT_IMPORT = "import"
 OS_SCRIPT_EXPORT = "export"
 OS_SCRIPT_RENAME = "rename"
 OS_SCRIPT_VERIFY = "verify"
-OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT,
-                        OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME,
-                        OS_SCRIPT_VERIFY])
+OS_SCRIPTS = frozenset([
+  OS_SCRIPT_CREATE,
+  OS_SCRIPT_IMPORT,
+  OS_SCRIPT_EXPORT,
+  OS_SCRIPT_RENAME,
+  OS_SCRIPT_VERIFY
+  ])
 
 OS_API_FILE = "ganeti_api_version"
 OS_VARIANTS_FILE = "variants.list"
@@ -611,12 +627,12 @@ VTYPE_BOOL = "bool"
 VTYPE_SIZE = "size" # size, in MiBs
 VTYPE_INT = "int"
 ENFORCEABLE_TYPES = frozenset([
-                      VTYPE_STRING,
-                      VTYPE_MAYBE_STRING,
-                      VTYPE_BOOL,
-                      VTYPE_SIZE,
-                      VTYPE_INT,
-                      ])
+  VTYPE_STRING,
+  VTYPE_MAYBE_STRING,
+  VTYPE_BOOL,
+  VTYPE_SIZE,
+  VTYPE_INT,
+  ])
 
 # HV parameter names (global namespace)
 HV_BOOT_ORDER = "boot_order"
@@ -736,8 +752,13 @@ OOB_POWER_CYCLE = "power-cycle"
 OOB_POWER_STATUS = "power-status"
 OOB_HEALTH = "health"
 
-OOB_COMMANDS = frozenset([OOB_POWER_ON, OOB_POWER_OFF, OOB_POWER_CYCLE,
-                          OOB_POWER_STATUS, OOB_HEALTH])
+OOB_COMMANDS = frozenset([
+  OOB_POWER_ON,
+  OOB_POWER_OFF,
+  OOB_POWER_CYCLE,
+  OOB_POWER_STATUS,
+  OOB_HEALTH
+  ])
 
 OOB_POWER_STATUS_POWERED = "powered"
 
@@ -835,14 +856,25 @@ HT_NIC_PCNET = "pcnet"
 HT_NIC_E1000 = "e1000"
 HT_NIC_PARAVIRTUAL = HT_DISK_PARAVIRTUAL = "paravirtual"
 
-HT_HVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
-                                    HT_NIC_E1000, HT_NIC_NE2K_ISA,
-                                    HT_NIC_PARAVIRTUAL])
-HT_KVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
-                                    HT_NIC_NE2K_ISA, HT_NIC_I82551,
-                                    HT_NIC_I85557B, HT_NIC_I8259ER,
-                                    HT_NIC_PCNET, HT_NIC_E1000,
-                                    HT_NIC_PARAVIRTUAL])
+HT_HVM_VALID_NIC_TYPES = frozenset([
+  HT_NIC_RTL8139,
+  HT_NIC_NE2K_PCI,
+  HT_NIC_E1000,
+  HT_NIC_NE2K_ISA,
+  HT_NIC_PARAVIRTUAL
+  ])
+HT_KVM_VALID_NIC_TYPES = frozenset([
+  HT_NIC_RTL8139,
+  HT_NIC_NE2K_PCI,
+  HT_NIC_NE2K_ISA,
+  HT_NIC_I82551,
+  HT_NIC_I85557B,
+  HT_NIC_I8259ER,
+  HT_NIC_PCNET,
+  HT_NIC_E1000,
+  HT_NIC_PARAVIRTUAL
+  ])
+
 # Disk types
 HT_DISK_IOEMU = "ioemu"
 HT_DISK_IDE = "ide"
@@ -855,15 +887,22 @@ HT_CACHE_DEFAULT = "default"
 HT_CACHE_NONE = "none"
 HT_CACHE_WTHROUGH = "writethrough"
 HT_CACHE_WBACK = "writeback"
-HT_VALID_CACHE_TYPES = frozenset([HT_CACHE_DEFAULT,
-                                  HT_CACHE_NONE,
-                                  HT_CACHE_WTHROUGH,
-                                  HT_CACHE_WBACK])
+HT_VALID_CACHE_TYPES = frozenset([
+  HT_CACHE_DEFAULT,
+  HT_CACHE_NONE,
+  HT_CACHE_WTHROUGH,
+  HT_CACHE_WBACK
+  ])
 
 HT_HVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IOEMU])
-HT_KVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IDE,
-                                     HT_DISK_SCSI, HT_DISK_SD, HT_DISK_MTD,
-                                     HT_DISK_PFLASH])
+HT_KVM_VALID_DISK_TYPES = frozenset([
+  HT_DISK_PARAVIRTUAL,
+  HT_DISK_IDE,
+  HT_DISK_SCSI,
+  HT_DISK_SD,
+  HT_DISK_MTD,
+  HT_DISK_PFLASH
+  ])
 
 # Mouse types:
 HT_MOUSE_MOUSE = "mouse"
@@ -877,8 +916,12 @@ HT_BO_CDROM = "cdrom"
 HT_BO_DISK = "disk"
 HT_BO_NETWORK = "network"
 
-HT_KVM_VALID_BO_TYPES = frozenset([HT_BO_FLOPPY, HT_BO_CDROM,
-                                   HT_BO_DISK, HT_BO_NETWORK])
+HT_KVM_VALID_BO_TYPES = frozenset([
+  HT_BO_FLOPPY,
+  HT_BO_CDROM,
+  HT_BO_DISK,
+  HT_BO_NETWORK
+  ])
 
 # Security models
 HT_SM_NONE = "none"
@@ -1037,9 +1080,11 @@ OP_STATUS_RUNNING = "running"
 OP_STATUS_CANCELED = "canceled"
 OP_STATUS_SUCCESS = "success"
 OP_STATUS_ERROR = "error"
-OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
-                           OP_STATUS_SUCCESS,
-                           OP_STATUS_ERROR])
+OPS_FINALIZED = frozenset([
+  OP_STATUS_CANCELED,
+  OP_STATUS_SUCCESS,
+  OP_STATUS_ERROR
+  ])
 
 # OpCode priority
 OP_PRIO_LOWEST = +19
