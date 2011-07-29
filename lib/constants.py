@@ -137,7 +137,6 @@ RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
 CONFD_HMAC_KEY = DATA_DIR + "/hmac.key"
 CLUSTER_DOMAIN_SECRET_FILE = DATA_DIR + "/cluster-domain-secret"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
-WATCHER_PAUSEFILE = DATA_DIR + "/watcher.pause"
 INSTANCE_STATUS_FILE = RUN_GANETI_DIR + "/instance-status"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 RAPI_USERS_FILE = DATA_DIR + "/rapi/users"
@@ -155,6 +154,16 @@ ENABLE_SHARED_FILE_STORAGE = _autoconf.ENABLE_SHARED_FILE_STORAGE
 SYSCONFDIR = _autoconf.SYSCONFDIR
 TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
+
+#: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
+# mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}
+WATCHER_LOCK_FILE = LOCK_DIR + "/ganeti-watcher.lock"
+
+#: Status file for per-group watcher, locked in exclusive mode by watcher
+WATCHER_GROUP_STATE_FILE = DATA_DIR + "/watcher.%s.data"
+
+#: File containing Unix timestamp until which watcher should be paused
+WATCHER_PAUSEFILE = DATA_DIR + "/watcher.pause"
 
 ALL_CERT_FILES = frozenset([NODED_CERT_FILE, RAPI_CERT_FILE])
 

@@ -66,6 +66,10 @@ def _ResetWatcherDaemon():
 
   """
   AssertCommand(["rm", "-f", constants.WATCHER_STATEFILE])
+  AssertCommand([
+    "bash", "-c",
+    "rm -vf %s" % (constants.WATCHER_GROUP_STATE_FILE % "*-*-*-*")
+    ])
 
 
 def _RunWatcherDaemon():
