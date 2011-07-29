@@ -51,14 +51,19 @@ from ganeti.watcher import state
 
 
 MAXTRIES = 5
-BAD_STATES = [constants.INSTST_ERRORDOWN]
-HELPLESS_STATES = [constants.INSTST_NODEDOWN, constants.INSTST_NODEOFFLINE]
-NOTICE = 'NOTICE'
-ERROR = 'ERROR'
 
 
 # Global LUXI client object
 client = None
+BAD_STATES = frozenset([
+  constants.INSTST_ERRORDOWN,
+  ])
+HELPLESS_STATES = frozenset([
+  constants.INSTST_NODEDOWN,
+  constants.INSTST_NODEOFFLINE,
+  ])
+NOTICE = "NOTICE"
+ERROR = "ERROR"
 
 
 class NotMasterError(errors.GenericError):
