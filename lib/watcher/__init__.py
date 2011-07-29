@@ -401,13 +401,14 @@ def IsRapiResponding(hostname):
   try:
     master_version = rapi_client.GetVersion()
   except rapi.client.CertificateError, err:
-    logging.warning("RAPI Error: CertificateError (%s)", err)
+    logging.warning("RAPI certificate error: %s", err)
     return False
   except rapi.client.GanetiApiError, err:
-    logging.warning("RAPI Error: GanetiApiError (%s)", err)
+    logging.warning("RAPI error: %s", err)
     return False
-  logging.debug("RAPI Result: master_version is %s", master_version)
-  return master_version == constants.RAPI_VERSION
+  else:
+    logging.debug("Reported RAPI version %s", master_version)
+    return master_version == constants.RAPI_VERSION
 
 
 def ParseOptions():
