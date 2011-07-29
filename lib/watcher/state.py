@@ -28,7 +28,6 @@ import time
 import logging
 
 from ganeti import utils
-from ganeti import constants
 from ganeti import serializer
 from ganeti import errors
 
@@ -100,7 +99,7 @@ class WatcherState(object):
 
     self._orig_data = serializer.Dump(self._data)
 
-  def Save(self):
+  def Save(self, filename):
     """Save state to file, then unlock and close it.
 
     """
@@ -109,12 +108,12 @@ class WatcherState(object):
     serialized_form = serializer.Dump(self._data)
     if self._orig_data == serialized_form:
       logging.debug("Data didn't change, just touching status file")
-      os.utime(constants.WATCHER_STATEFILE, None)
+      os.utime(filename, None)
       return
 
     # We need to make sure the file is locked before renaming it, otherwise
     # starting ganeti-watcher again at the same time will create a conflict.
-    fd = utils.WriteFile(constants.WATCHER_STATEFILE,
+    fd = utils.WriteFile(filename,
                          data=serialized_form,
                          prewrite=utils.LockFile, close=False)
     self.statefile = os.fdopen(fd, 'w+')
@@ -147,12 +146,9 @@ class WatcherState(object):
 
     ndata = self._data["node"]
 
-    if name not in ndata:
-      ndata[name] = {}
+    ndata.setdefault(name, {})[KEY_BOOT_ID] = bootid
 
-    ndata[name][KEY_BOOT_ID] = bootid
-
-  def NumberOfRestartAttempts(self, instance):
+  def NumberOfRestartAttempts(self, instance_name):
     """Returns number of previous restart attempts.
 
     @type instance: L{Instance}
@@ -161,8 +157,8 @@ class WatcherState(object):
     """
     idata = self._data["instance"]
 
-    if instance.name in idata:
-      return idata[instance.name][KEY_RESTART_COUNT]
+    if instance_name in idata:
+      return idata[instance_name][KEY_RESTART_COUNT]
 
     return 0
 
@@ -174,11 +170,12 @@ class WatcherState(object):
 
     """
     idict = self._data["instance"]
+
     # First, delete obsolete instances
     obsolete_instances = set(idict).difference(instances)
     for inst in obsolete_instances:
       logging.debug("Forgetting obsolete instance %s", inst)
-      del idict[inst]
+      idict.pop(inst, None)
 
     # Second, delete expired records
     earliest = time.time() - RETRY_EXPIRATION
@@ -186,9 +183,9 @@ class WatcherState(object):
                          if idict[i][KEY_RESTART_WHEN] < earliest]
     for inst in expired_instances:
       logging.debug("Expiring record for instance %s", inst)
-      del idict[inst]
+      idict.pop(inst, None)
 
-  def RecordRestartAttempt(self, instance):
+  def RecordRestartAttempt(self, instance_name):
     """Record a restart attempt.
 
     @type instance: L{Instance}
@@ -197,15 +194,11 @@ class WatcherState(object):
     """
     idata = self._data["instance"]
 
-    if instance.name not in idata:
-      inst = idata[instance.name] = {}
-    else:
-      inst = idata[instance.name]
-
+    inst = idata.setdefault(instance_name, {})
     inst[KEY_RESTART_WHEN] = time.time()
     inst[KEY_RESTART_COUNT] = inst.get(KEY_RESTART_COUNT, 0) + 1
 
-  def RemoveInstance(self, instance):
+  def RemoveInstance(self, instance_name):
     """Update state to reflect that a machine is running.
 
     This method removes the record for a named instance (as we only
@@ -217,5 +210,4 @@ class WatcherState(object):
     """
     idata = self._data["instance"]
 
-    if instance.name in idata:
-      del idata[instance.name]
+    idata.pop(instance_name, None)

@@ -280,7 +280,7 @@ class Watcher(object):
 
     for instance in self.instances.values():
       if instance.status in BAD_STATES:
-        n = notepad.NumberOfRestartAttempts(instance)
+        n = notepad.NumberOfRestartAttempts(instance.name)
 
         if n > MAXTRIES:
           logging.warning("Not restarting instance %s, retries exhausted",
@@ -289,7 +289,7 @@ class Watcher(object):
         elif n < MAXTRIES:
           last = " (Attempt #%d)" % (n + 1)
         else:
-          notepad.RecordRestartAttempt(instance)
+          notepad.RecordRestartAttempt(instance.name)
           logging.error("Could not restart %s after %d attempts, giving up",
                         instance.name, MAXTRIES)
           continue
@@ -301,13 +301,13 @@ class Watcher(object):
           logging.exception("Error while restarting instance %s",
                             instance.name)
 
-        notepad.RecordRestartAttempt(instance)
+        notepad.RecordRestartAttempt(instance.name)
       elif instance.status in HELPLESS_STATES:
-        if notepad.NumberOfRestartAttempts(instance):
-          notepad.RemoveInstance(instance)
+        if notepad.NumberOfRestartAttempts(instance.name):
+          notepad.RemoveInstance(instance.name)
       else:
-        if notepad.NumberOfRestartAttempts(instance):
-          notepad.RemoveInstance(instance)
+        if notepad.NumberOfRestartAttempts(instance.name):
+          notepad.RemoveInstance(instance.name)
           logging.info("Restart of %s succeeded", instance.name)
 
   def _CheckForOfflineNodes(self, instance):
@@ -511,7 +511,7 @@ def Main():
 
     finally:
       if update_file:
-        notepad.Save()
+        notepad.Save(constants.WATCHER_STATEFILE)
       else:
         logging.debug("Not updating status file due to failure")
   except SystemExit:
