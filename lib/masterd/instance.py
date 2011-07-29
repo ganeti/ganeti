@@ -273,7 +273,7 @@ class _DiskImportExportBase(object):
 
       daemon_name = result.payload
 
-      logging.info("Started %s %r on %s", self.MODE_TEXT, daemon_name,
+      logging.info("Started %s '%s' on %s", self.MODE_TEXT, daemon_name,
                    self.node_name)
 
       self._ts_begin = time.time()
@@ -294,11 +294,11 @@ class _DiskImportExportBase(object):
 
     """
     if self._daemon_name:
-      self._lu.LogWarning("Aborting %s %r on %s",
+      self._lu.LogWarning("Aborting %s '%s' on %s",
                           self.MODE_TEXT, self._daemon_name, self.node_name)
       result = self._lu.rpc.call_impexp_abort(self.node_name, self._daemon_name)
       if result.fail_msg:
-        self._lu.LogWarning("Failed to abort %s %r on %s: %s",
+        self._lu.LogWarning("Failed to abort %s '%s' on %s: %s",
                             self.MODE_TEXT, self._daemon_name,
                             self.node_name, result.fail_msg)
         return False
@@ -375,7 +375,7 @@ class _DiskImportExportBase(object):
       self._ts_connected = time.time()
 
       # TODO: Log remote peer
-      logging.debug("%s %r on %s is now connected",
+      logging.debug("%s '%s' on %s is now connected",
                     self.MODE_TEXT, self._daemon_name, self.node_name)
 
       self._cbs.ReportConnected(self, self._private)
@@ -439,10 +439,10 @@ class _DiskImportExportBase(object):
     self.final_message = message
 
     if success:
-      logging.info("%s %r on %s succeeded", self.MODE_TEXT, self._daemon_name,
-                   self.node_name)
+      logging.info("%s '%s' on %s succeeded", self.MODE_TEXT,
+                   self._daemon_name, self.node_name)
     elif self._daemon_name:
-      self._lu.LogWarning("%s %r on %s failed: %s",
+      self._lu.LogWarning("%s '%s' on %s failed: %s",
                           self.MODE_TEXT, self._daemon_name, self.node_name,
                           message)
     else:
@@ -462,12 +462,12 @@ class _DiskImportExportBase(object):
 
     """
     if self._daemon_name:
-      logging.info("Finalizing %s %r on %s",
+      logging.info("Finalizing %s '%s' on %s",
                    self.MODE_TEXT, self._daemon_name, self.node_name)
 
       result = self._Finalize()
       if result.fail_msg:
-        self._lu.LogWarning("Failed to finalize %s %r on %s: %s",
+        self._lu.LogWarning("Failed to finalize %s '%s' on %s: %s",
                             self.MODE_TEXT, self._daemon_name,
                             self.node_name, result.fail_msg)
         return False
@@ -547,7 +547,7 @@ class DiskImport(_DiskImportExportBase):
     if port is not None:
       self._ts_listening = time.time()
 
-      logging.debug("Import %r on %s is now listening on port %s",
+      logging.debug("Import '%s' on %s is now listening on port %s",
                     self._daemon_name, self.node_name, port)
 
       self._cbs.ReportListening(self, self._private)
