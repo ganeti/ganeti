@@ -1041,11 +1041,13 @@ check-local: check-dirs
 		echo "Incorrect version in README, expected $$expver"; \
 		exit 1; \
 	fi; \
-	if test "`sed -ne '4 p' $(top_srcdir)/doc/iallocator.rst`" != \
-					"Documents Ganeti version $$expver"; then \
-		echo "Incorrect version in iallocator.rst, expected $$expver"; \
-		exit 1; \
-	fi
+	for file in doc/iallocator.rst doc/hooks.rst; do \
+		if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
+		        "Documents Ganeti version $$expver"; then \
+			echo "Incorrect version in $$file, expected $$expver"; \
+			exit 1; \
+		fi; \
+	done
 
 .PHONY: hs-check
 hs-check: htools/test
