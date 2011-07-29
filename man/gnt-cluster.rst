@@ -153,7 +153,6 @@ INIT
 | [--no-ssh-init]
 | [--file-storage-dir *dir*]
 | [--enabled-hypervisors *hypervisors*]
-| [-t *hypervisor name*]
 | [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
 | [{-B|--backend-parameters} *be-param*=*value* [,*be-param*=*value*...]]
 | [{-N|--nic-parameters} *nic-param*=*value* [,*nic-param*=*value*...]]
