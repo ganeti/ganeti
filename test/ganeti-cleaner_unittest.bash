@@ -55,6 +55,13 @@ count_jobs() {
   [[ "$count" -eq "$n" ]] || err "Found $count jobs instead of $n"
 }
 
+count_watcher() {
+  local n=$1
+  local count=$(find $watcherdir -maxdepth 1 -type f \
+                  -name 'watcher.*.data' | wc -l)
+  [[ "$count" -eq "$n" ]] || err "Found $count watcher files instead of $n"
+}
+
 count_and_check_certs() {
   local n=$1
   local count=$(find $cryptodir -mindepth 1 -type f -name cert | wc -l)
@@ -97,6 +104,28 @@ create_archived_jobs() {
   done
 }
 
+create_watcher_state() {
+  local uuids=(
+    6792a0d5-f8b6-4531-8d8c-3680c86b8a53
+    ab74da37-f5f7-44c4-83ad-074159772593
+    fced2e48-ffff-43ae-919e-2b77d37ecafa
+    6e89ac57-2eb1-4a16-85a1-94daa815d643
+    8714e8f5-59c4-47db-b2cb-196ec37978e5
+    91763d73-e1f3-47c7-a735-57025d4e2a7d
+    e27d3ff8-9546-4e86-86a4-04151223e140
+    aa3f63dd-be17-4ac8-bd01-d71790e124cb
+    05b6d7e2-003b-40d9-a6d6-ab61bf123a15
+    54c93e4c-61fe-40de-b47e-2a8e6c805d02
+    )
+
+  i=0
+  for uuid in ${uuids[@]}; do
+    touch -d "$(( 5 * i )) days ago" $watcherdir/watcher.$uuid.data
+
+    let ++i
+  done
+}
+
 create_certdirs() {
   local cert=$1; shift
   local certdir
@@ -117,6 +146,7 @@ trap "rm -rf $tmpdir" EXIT
 tmpls=$tmpdir/var
 queuedir=$tmpls/lib/ganeti/queue
 cryptodir=$tmpls/run/ganeti/crypto
+watcherdir=$tmpls/lib/ganeti
 
 mkdir -p $tmpls/{lib,log,run}/ganeti $queuedir/archive $cryptodir
 
@@ -164,5 +194,11 @@ count_and_check_certs 5
 
 check_logfiles $maxlog
 count_jobs 31
+
+upto 'Watcher status files'
+create_watcher_state
+count_watcher 10
+run_cleaner
+count_watcher 5
 
 exit 0
