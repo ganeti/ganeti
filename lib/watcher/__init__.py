@@ -114,6 +114,9 @@ def RunWatcherHooks():
       else:
         logging.debug("Watcher hook %s: success (output: %s)", relname,
                       runresult.output)
+    else:
+      raise errors.ProgrammerError("Unknown status %s returned by RunParts",
+                                   status)
 
 
 class Instance(object):
@@ -517,7 +520,7 @@ def Main():
     logging.debug("Not master, exiting")
     return constants.EXIT_NOTMASTER
   except errors.ResolverError, err:
-    logging.error("Cannot resolve hostname '%s', exiting.", err.args[0])
+    logging.error("Cannot resolve hostname '%s', exiting", err.args[0])
     return constants.EXIT_NODESETUP_ERROR
   except errors.JobQueueFull:
     logging.error("Job queue is full, can't query cluster state")
