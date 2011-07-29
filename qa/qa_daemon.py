@@ -76,7 +76,7 @@ def _RunWatcherDaemon():
   """Runs the ganeti-watcher daemon on the master node.
 
   """
-  AssertCommand(["ganeti-watcher", "-d", "--ignore-pause"])
+  AssertCommand(["ganeti-watcher", "-d", "--ignore-pause", "--wait-children"])
 
 
 def TestPauseWatcher():

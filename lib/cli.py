@@ -2261,7 +2261,7 @@ class _RunWhileClusterStoppedHelper:
     """
     # Pause watcher by acquiring an exclusive lock on watcher state file
     self.feedback_fn("Blocking watcher")
-    watcher_block = utils.FileLock.Open(constants.WATCHER_STATEFILE)
+    watcher_block = utils.FileLock.Open(constants.WATCHER_LOCK_FILE)
     try:
       # TODO: Currently, this just blocks. There's no timeout.
       # TODO: Should it be a shared lock?
