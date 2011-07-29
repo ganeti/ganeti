@@ -65,7 +65,6 @@ def _ResetWatcherDaemon():
   """Removes the watcher daemon's state file.
 
   """
-  AssertCommand(["rm", "-f", constants.WATCHER_STATEFILE])
   AssertCommand([
     "bash", "-c",
     "rm -vf %s" % (constants.WATCHER_GROUP_STATE_FILE % "*-*-*-*")
