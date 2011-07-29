@@ -127,6 +127,7 @@ def main():
   options.CONFD_HMAC_KEY = options.data_dir + "/hmac.key"
   options.CDS_FILE = options.data_dir + "/cluster-domain-secret"
   options.SSCONF_MASTER_NODE = options.data_dir + "/ssconf_master_node"
+  options.WATCHER_STATEFILE = options.data_dir + "/watcher.data"
 
   SetupLogging()
 
@@ -205,6 +206,12 @@ def main():
                  options.RAPI_USERS_FILE_PRE24, options.RAPI_USERS_FILE)
     if not options.dry_run:
       os.symlink(options.RAPI_USERS_FILE, options.RAPI_USERS_FILE_PRE24)
+
+  # Remove old watcher state file if it exists
+  if os.path.exists(options.WATCHER_STATEFILE):
+    logging.info("Removing watcher state file %s", options.WATCHER_STATEFILE)
+    if not options.dry_run:
+      utils.RemoveFile(options.WATCHER_STATEFILE)
 
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
