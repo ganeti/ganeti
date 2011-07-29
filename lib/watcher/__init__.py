@@ -166,9 +166,7 @@ def GetClusterData():
 
   instances = {}
 
-  # write the instance status file
-  up_data = "".join(["%s %s\n" % (fields[0], fields[1]) for fields in result])
-  utils.WriteFile(file_name=constants.INSTANCE_STATUS_FILE, data=up_data)
+  _UpdateInstanceStatus(client, constants.INSTANCE_STATUS_FILE)
 
   for fields in result:
     (name, status, autostart, snodes) = fields
@@ -435,6 +433,25 @@ def ParseOptions():
     parser.error("No arguments expected")
 
   return (options, args)
+
+
+def _UpdateInstanceStatus(cl, filename):
+  """Get a list of instances on this cluster.
+
+  @todo: Think about doing this per nodegroup, too
+
+  """
+  op = opcodes.OpInstanceQuery(output_fields=["name", "status"], names=[],
+                               use_locking=True)
+  job_id = cl.SubmitJob([op])
+  (result, ) = cli.PollJob(job_id, cl=cl, feedback_fn=logging.debug)
+
+  cl.ArchiveJob(job_id)
+
+  logging.debug("Got instance data, writing status file %s", filename)
+
+  utils.WriteFile(filename, data="".join("%s %s\n" % (name, status)
+                                         for (name, status) in result))
 
 
 @rapi.client.UsesRapiClient
