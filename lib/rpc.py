@@ -1498,7 +1498,8 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "x509_cert_remove", [name])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_import_start(self, node, opts, instance, dest, dest_args):
+  def call_import_start(self, node, opts, instance, component,
+                        dest, dest_args):
     """Starts a listener for an import.
 
     This is a single-node call.
@@ -1507,16 +1508,18 @@ class RpcRunner(object):
     @param node: Node name
     @type instance: C{objects.Instance}
     @param instance: Instance object
+    @type component: string
+    @param component: which part of the instance is being imported
 
     """
     return self._SingleNodeCall(node, "import_start",
                                 [opts.ToDict(),
-                                 self._InstDict(instance), dest,
+                                 self._InstDict(instance), component, dest,
                                  _EncodeImportExportIO(dest, dest_args)])
 
   @_RpcTimeout(_TMO_NORMAL)
   def call_export_start(self, node, opts, host, port,
-                        instance, source, source_args):
+                        instance, component, source, source_args):
     """Starts an export daemon.
 
     This is a single-node call.
@@ -1525,11 +1528,14 @@ class RpcRunner(object):
     @param node: Node name
     @type instance: C{objects.Instance}
     @param instance: Instance object
+    @type component: string
+    @param component: which part of the instance is being imported
 
     """
     return self._SingleNodeCall(node, "export_start",
                                 [opts.ToDict(), host, port,
-                                 self._InstDict(instance), source,
+                                 self._InstDict(instance),
+                                 component, source,
                                  _EncodeImportExportIO(source, source_args)])
 
   @_RpcTimeout(_TMO_FAST)

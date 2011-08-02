@@ -919,14 +919,14 @@ class NodeHttpServer(http.server.HttpServer):
     """Starts an import daemon.
 
     """
-    (opts_s, instance, dest, dest_args) = params
+    (opts_s, instance, component, dest, dest_args) = params
 
     opts = objects.ImportExportOptions.FromDict(opts_s)
 
     return backend.StartImportExportDaemon(constants.IEM_IMPORT, opts,
                                            None, None,
                                            objects.Instance.FromDict(instance),
-                                           dest,
+                                           component, dest,
                                            _DecodeImportExportIO(dest,
                                                                  dest_args))
 
@@ -935,14 +935,14 @@ class NodeHttpServer(http.server.HttpServer):
     """Starts an export daemon.
 
     """
-    (opts_s, host, port, instance, source, source_args) = params
+    (opts_s, host, port, instance, component, source, source_args) = params
 
     opts = objects.ImportExportOptions.FromDict(opts_s)
 
     return backend.StartImportExportDaemon(constants.IEM_EXPORT, opts,
                                            host, port,
                                            objects.Instance.FromDict(instance),
-                                           source,
+                                           component, source,
                                            _DecodeImportExportIO(source,
                                                                  source_args))
 

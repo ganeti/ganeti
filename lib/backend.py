@@ -2964,7 +2964,8 @@ def _CreateImportExportStatusDir(prefix):
                                   (prefix, utils.TimestampForFilename())))
 
 
-def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
+def StartImportExportDaemon(mode, opts, host, port, instance, component,
+                            ieio, ieioargs):
   """Starts an import or export daemon.
 
   @param mode: Import/output mode
@@ -2976,6 +2977,9 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
   @param port: Remote port for export (None for import)
   @type instance: L{objects.Instance}
   @param instance: Instance object
+  @type component: string
+  @param component: which part of the instance is transferred now,
+      e.g. 'disk/0'
   @param ieio: Input/output type
   @param ieioargs: Input/output arguments
 
@@ -3015,7 +3019,7 @@ def StartImportExportDaemon(mode, opts, host, port, instance, ieio, ieioargs):
     if not os.path.exists(i):
       _Fail("File '%s' does not exist" % i)
 
-  status_dir = _CreateImportExportStatusDir(prefix)
+  status_dir = _CreateImportExportStatusDir("%s-%s" % (prefix, component))
   try:
     status_file = utils.PathJoin(status_dir, _IES_STATUS_FILE)
     pid_file = utils.PathJoin(status_dir, _IES_PID_FILE)
