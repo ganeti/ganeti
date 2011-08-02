@@ -9196,7 +9196,7 @@ class TLReplaceDisks(Tasklet):
     ial = IAllocator(lu.cfg, lu.rpc,
                      mode=constants.IALLOCATOR_MODE_RELOC,
                      name=instance_name,
-                     relocate_from=relocate_from)
+                     relocate_from=list(relocate_from))
 
     ial.Run(iallocator_name)
 
@@ -13133,7 +13133,8 @@ class LUTestAllocator(NoHooksLU):
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       fname = _ExpandInstanceName(self.cfg, self.op.name)
       self.op.name = fname
-      self.relocate_from = self.cfg.GetInstanceInfo(fname).secondary_nodes
+      self.relocate_from = \
+          list(self.cfg.GetInstanceInfo(fname).secondary_nodes)
     elif self.op.mode == constants.IALLOCATOR_MODE_MEVAC:
       if not hasattr(self.op, "evac_nodes"):
         raise errors.OpPrereqError("Missing attribute 'evac_nodes' on"
