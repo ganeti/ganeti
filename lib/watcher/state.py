@@ -151,8 +151,8 @@ class WatcherState(object):
   def NumberOfRestartAttempts(self, instance_name):
     """Returns number of previous restart attempts.
 
-    @type instance: L{Instance}
-    @param instance: the instance to look up
+    @type instance_name: string
+    @param instance_name: the name of the instance to look up
 
     """
     idata = self._data["instance"]
@@ -188,8 +188,8 @@ class WatcherState(object):
   def RecordRestartAttempt(self, instance_name):
     """Record a restart attempt.
 
-    @type instance: L{Instance}
-    @param instance: the instance being restarted
+    @type instance_name: string
+    @param instance_name: the name of the instance being restarted
 
     """
     idata = self._data["instance"]
@@ -204,8 +204,8 @@ class WatcherState(object):
     This method removes the record for a named instance (as we only
     track down instances).
 
-    @type instance: L{Instance}
-    @param instance: the instance to remove from books
+    @type instance_name: string
+    @param instance_name: the name of the instance to remove from books
 
     """
     idata = self._data["instance"]
