@@ -457,10 +457,11 @@ if WANT_HTOOLS
 bin_SCRIPTS += $(filter-out htools/hail,$(HS_PROGS))
 install-exec-hook:
 	@mkdir_p@ $(DESTDIR)$(iallocatorsdir)
-	$(LN_S) -f $(DESTDIR)$(bindir)/htools \
+# FIXME: this is a hardcoded logic, instead of auto-resolving
+	$(LN_S) -f ../../../bin/htools \
 		   $(DESTDIR)$(iallocatorsdir)/hail
 	for role in $(HS_BIN_ROLES); do \
-		$(LN_S) -f $(DESTDIR)$(bindir)/htools \
+		$(LN_S) -f htools \
 			   $(DESTDIR)$(bindir)/$$role ; \
 	done
 endif
