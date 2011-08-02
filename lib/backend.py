@@ -925,7 +925,7 @@ def GetAllInstancesInfo(hypervisor_list):
   return output
 
 
-def _InstanceLogName(kind, os_name, instance):
+def _InstanceLogName(kind, os_name, instance, component):
   """Compute the OS log filename for a given instance and operation.
 
   The instance name and os name are passed in as strings since not all
@@ -937,11 +937,19 @@ def _InstanceLogName(kind, os_name, instance):
   @param os_name: the os name
   @type instance: string
   @param instance: the name of the instance being imported/added/etc.
+  @type component: string or None
+  @param component: the name of the component of the instance being
+      transferred
 
   """
   # TODO: Use tempfile.mkstemp to create unique filename
-  base = ("%s-%s-%s-%s.log" %
-          (kind, os_name, instance, utils.TimestampForFilename()))
+  if component:
+    assert "/" not in component
+    c_msg = "-%s" % component
+  else:
+    c_msg = ""
+  base = ("%s-%s-%s%s-%s.log" %
+          (kind, os_name, instance, c_msg, utils.TimestampForFilename()))
   return utils.PathJoin(constants.LOG_OS_DIR, base)
 
 
@@ -963,7 +971,7 @@ def InstanceOsAdd(instance, reinstall, debug):
   if reinstall:
     create_env["INSTANCE_REINSTALL"] = "1"
 
-  logfile = _InstanceLogName("add", instance.os, instance.name)
+  logfile = _InstanceLogName("add", instance.os, instance.name, None)
 
   result = utils.RunCmd([inst_os.create_script], env=create_env,
                         cwd=inst_os.path, output=logfile, reset_env=True)
@@ -996,7 +1004,7 @@ def RunRenameInstance(instance, old_name, debug):
   rename_env["OLD_INSTANCE_NAME"] = old_name
 
   logfile = _InstanceLogName("rename", instance.os,
-                             "%s-%s" % (old_name, instance.name))
+                             "%s-%s" % (old_name, instance.name), None)
 
   result = utils.RunCmd([inst_os.rename_script], env=rename_env,
                         cwd=inst_os.path, output=logfile, reset_env=True)
@@ -3077,7 +3085,7 @@ def StartImportExportDaemon(mode, opts, host, port, instance, component,
       # Overall timeout for establishing connection while listening
       cmd.append("--connect-timeout=%s" % opts.connect_timeout)
 
-    logfile = _InstanceLogName(prefix, instance.os, instance.name)
+    logfile = _InstanceLogName(prefix, instance.os, instance.name, component)
 
     # TODO: Once _InstanceLogName uses tempfile.mkstemp, StartDaemon has
     # support for receiving a file descriptor for output
