@@ -92,12 +92,13 @@ class ImportExportCbBase(object):
   """Callbacks for disk import/export.
 
   """
-  def ReportListening(self, ie, private):
+  def ReportListening(self, ie, private, component):
     """Called when daemon started listening.
 
     @type ie: Subclass of L{_DiskImportExportBase}
     @param ie: Import/export object
     @param private: Private data passed to import/export object
+    @param component: transfer component name
 
     """
 
@@ -140,7 +141,7 @@ class _DiskImportExportBase(object):
   MODE_TEXT = None
 
   def __init__(self, lu, node_name, opts,
-               instance, timeouts, cbs, private=None):
+               instance, component, timeouts, cbs, private=None):
     """Initializes this class.
 
     @param lu: Logical unit instance
@@ -150,6 +151,8 @@ class _DiskImportExportBase(object):
     @param opts: Import/export daemon options
     @type instance: L{objects.Instance}
     @param instance: Instance object
+    @type component: string
+    @param component: which part of the instance is being imported
     @type timeouts: L{ImportExportTimeouts}
     @param timeouts: Timeouts for this import
     @type cbs: L{ImportExportCbBase}
@@ -163,6 +166,7 @@ class _DiskImportExportBase(object):
     self.node_name = node_name
     self._opts = opts.Copy()
     self._instance = instance
+    self._component = component
     self._timeouts = timeouts
     self._cbs = cbs
     self._private = private
@@ -485,7 +489,7 @@ class _DiskImportExportBase(object):
 class DiskImport(_DiskImportExportBase):
   MODE_TEXT = "import"
 
-  def __init__(self, lu, node_name, opts, instance,
+  def __init__(self, lu, node_name, opts, instance, component,
                dest, dest_args, timeouts, cbs, private=None):
     """Initializes this class.
 
@@ -496,6 +500,8 @@ class DiskImport(_DiskImportExportBase):
     @param opts: Import/export daemon options
     @type instance: L{objects.Instance}
     @param instance: Instance object
+    @type component: string
+    @param component: which part of the instance is being imported
     @param dest: I/O destination
     @param dest_args: I/O arguments
     @type timeouts: L{ImportExportTimeouts}
@@ -505,8 +511,8 @@ class DiskImport(_DiskImportExportBase):
     @param private: Private data for callback functions
 
     """
-    _DiskImportExportBase.__init__(self, lu, node_name, opts,
-                                   instance, timeouts, cbs, private)
+    _DiskImportExportBase.__init__(self, lu, node_name, opts, instance,
+                                   component, timeouts, cbs, private)
     self._dest = dest
     self._dest_args = dest_args
 
@@ -550,7 +556,7 @@ class DiskImport(_DiskImportExportBase):
       logging.debug("Import '%s' on %s is now listening on port %s",
                     self._daemon_name, self.node_name, port)
 
-      self._cbs.ReportListening(self, self._private)
+      self._cbs.ReportListening(self, self._private, self._component)
 
       return True
 
@@ -574,8 +580,8 @@ class DiskImport(_DiskImportExportBase):
 class DiskExport(_DiskImportExportBase):
   MODE_TEXT = "export"
 
-  def __init__(self, lu, node_name, opts,
-               dest_host, dest_port, instance, source, source_args,
+  def __init__(self, lu, node_name, opts, dest_host, dest_port,
+               instance, component, source, source_args,
                timeouts, cbs, private=None):
     """Initializes this class.
 
@@ -590,6 +596,8 @@ class DiskExport(_DiskImportExportBase):
     @param dest_port: Destination port number
     @type instance: L{objects.Instance}
     @param instance: Instance object
+    @type component: string
+    @param component: which part of the instance is being imported
     @param source: I/O source
     @param source_args: I/O source
     @type timeouts: L{ImportExportTimeouts}
@@ -599,8 +607,8 @@ class DiskExport(_DiskImportExportBase):
     @param private: Private data for callback functions
 
     """
-    _DiskImportExportBase.__init__(self, lu, node_name, opts,
-                                   instance, timeouts, cbs, private)
+    _DiskImportExportBase.__init__(self, lu, node_name, opts, instance,
+                                   component, timeouts, cbs, private)
     self._dest_host = dest_host
     self._dest_port = dest_port
     self._source = source
@@ -885,7 +893,7 @@ class _TransferInstSourceCb(_TransferInstCbBase):
 
 
 class _TransferInstDestCb(_TransferInstCbBase):
-  def ReportListening(self, ie, dtp):
+  def ReportListening(self, ie, dtp, component):
     """Called when daemon started listening.
 
     """
@@ -898,8 +906,8 @@ class _TransferInstDestCb(_TransferInstCbBase):
 
     # Start export on source node
     de = DiskExport(self.lu, self.src_node, dtp.export_opts,
-                    self.dest_ip, ie.listen_port,
-                    self.instance, dtp.data.src_io, dtp.data.src_ioargs,
+                    self.dest_ip, ie.listen_port, self.instance,
+                    component, dtp.data.src_io, dtp.data.src_ioargs,
                     self.timeouts, self.src_cbs, private=dtp)
     ie.loop.Add(de)
 
@@ -1049,7 +1057,7 @@ def TransferInstanceData(lu, feedback_fn, src_node, dest_node, dest_ip,
 
         dtp = _DiskTransferPrivate(transfer, True, opts)
 
-        di = DiskImport(lu, dest_node, opts, instance,
+        di = DiskImport(lu, dest_node, opts, instance, "disk%d" % idx,
                         transfer.dest_io, transfer.dest_ioargs,
                         timeouts, dest_cbs, private=dtp)
         ieloop.Add(di)
@@ -1286,7 +1294,7 @@ class ExportInstanceHelper:
         self._feedback_fn("Sending disk %s to %s:%s" % (idx, host, port))
         finished_fn = compat.partial(self._TransferFinished, idx)
         ieloop.Add(DiskExport(self._lu, instance.primary_node,
-                              opts, host, port, instance,
+                              opts, host, port, instance, "disk%d" % idx,
                               constants.IEIO_SCRIPT, (dev, idx),
                               timeouts, cbs, private=(idx, finished_fn)))
 
@@ -1372,7 +1380,7 @@ class _RemoteImportCb(ImportExportCbBase):
       "x509_ca": self._x509_cert_pem,
       })
 
-  def ReportListening(self, ie, private):
+  def ReportListening(self, ie, private, _):
     """Called when daemon started listening.
 
     """
@@ -1468,6 +1476,7 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
                                            magic=magic, ipv6=ipv6)
 
         ieloop.Add(DiskImport(lu, instance.primary_node, opts, instance,
+                              "disk%d" % idx,
                               constants.IEIO_SCRIPT, (dev, idx),
                               timeouts, cbs, private=(idx, )))
 
