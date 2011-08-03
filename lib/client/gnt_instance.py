@@ -1313,6 +1313,39 @@ def SetInstanceParams(opts, args):
   return 0
 
 
+def ChangeGroup(opts, args):
+  """Moves an instance to another group.
+
+  """
+  (instance_name, ) = args
+
+  cl = GetClient()
+
+  op = opcodes.OpInstanceChangeGroup(instance_name=instance_name,
+                                     iallocator=opts.iallocator,
+                                     target_groups=opts.to,
+                                     early_release=opts.early_release)
+  result = SubmitOpCode(op, cl=cl, opts=opts)
+
+  # Keep track of submitted jobs
+  jex = JobExecutor(cl=cl, opts=opts)
+
+  for (status, job_id) in result[constants.JOB_IDS_KEY]:
+    jex.AddJobId(None, status, job_id)
+
+  results = jex.GetResults()
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    ToStdout("Instance '%s' changed group successfully.", instance_name)
+    rcode = constants.EXIT_SUCCESS
+  else:
+    ToStdout("There were %s errors while changing group of instance '%s'.",
+             bad_cnt, instance_name)
+    rcode = constants.EXIT_FAILURE
+
+  return rcode
+
+
 # multi-instance selection options
 m_force_multi = cli_option("--force-multiple", dest="force_multi",
                            help="Do not ask for confirmation when more than"
@@ -1490,6 +1523,10 @@ commands = {
      ArgUnknown(min=1, max=1)],
     [SUBMIT_OPT, NWSYNC_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance> <disk> <size>", "Grow an instance's disk"),
+  "change-group": (
+    ChangeGroup, ARGS_ONE_INSTANCE,
+    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT],
+    "[-I <iallocator>] [--to <group>]", "Change group of instance"),
   "list-tags": (
     ListTags, ARGS_ONE_INSTANCE, [PRIORITY_OPT],
     "<instance_name>", "List the tags of the given instance"),

@@ -1386,6 +1386,23 @@ Example::
     # gnt-instance move -n node3.example.com instance1.example.com
 
 
+CHANGE-GROUP
+~~~~~~~~~~~~
+
+**change-group** [--iallocator *NAME*] [--to *GROUP*...] {*instance*}
+
+This command moves an instance to another node group. The move is
+calculated by an iallocator, either given on the command line or as a
+cluster default.
+
+If no specific destination groups are specified using ``--to``, all
+groups except the one containing the instance are considered.
+
+Example::
+
+    # gnt-instance change-group -I hail --to rack2 inst1.example.com
+
+
 TAGS
 ~~~~
 
