@@ -1281,6 +1281,18 @@ class OpInstanceGrowDisk(OpCode):
     ]
 
 
+class OpInstanceChangeGroup(OpCode):
+  """Moves an instance to another node group."""
+  OP_DSC_FIELD = "instance_name"
+  OP_PARAMS = [
+    _PInstanceName,
+    _PEarlyRelease,
+    ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
+    ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+     "Destination group names or UUIDs (defaults to \"all but current group\""),
+    ]
+
+
 # Node group opcodes
 
 class OpGroupAdd(OpCode):

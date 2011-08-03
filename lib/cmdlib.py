@@ -11137,6 +11137,147 @@ class LUInstanceSetParams(LogicalUnit):
     }
 
 
+class LUInstanceChangeGroup(LogicalUnit):
+  HPATH = "instance-change-group"
+  HTYPE = constants.HTYPE_INSTANCE
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.share_locks = _ShareAll()
+    self.needed_locks = {
+      locking.LEVEL_NODEGROUP: [],
+      locking.LEVEL_NODE: [],
+      }
+
+    self._ExpandAndLockInstance()
+
+    if self.op.target_groups:
+      self.req_target_uuids = map(self.cfg.LookupNodeGroup,
+                                  self.op.target_groups)
+    else:
+      self.req_target_uuids = None
+
+    self.op.iallocator = _GetDefaultIAllocator(self.cfg, self.op.iallocator)
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODEGROUP:
+      assert not self.needed_locks[locking.LEVEL_NODEGROUP]
+
+      if self.req_target_uuids:
+        lock_groups = set(self.req_target_uuids)
+
+        # Lock all groups used by instance optimistically; this requires going
+        # via the node before it's locked, requiring verification later on
+        instance_groups = self.cfg.GetInstanceNodeGroups(self.op.instance_name)
+        lock_groups.update(instance_groups)
+      else:
+        # No target groups, need to lock all of them
+        lock_groups = locking.ALL_SET
+
+      self.needed_locks[locking.LEVEL_NODEGROUP] = lock_groups
+
+    elif level == locking.LEVEL_NODE:
+      if self.req_target_uuids:
+        # Lock all nodes used by instances
+        self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+        self._LockInstancesNodes()
+
+        # Lock all nodes in all potential target groups
+        lock_groups = (frozenset(self.glm.list_owned(locking.LEVEL_NODEGROUP)) -
+                       self.cfg.GetInstanceNodeGroups(self.op.instance_name))
+        member_nodes = [node_name
+                        for group in lock_groups
+                        for node_name in self.cfg.GetNodeGroup(group).members]
+        self.needed_locks[locking.LEVEL_NODE].extend(member_nodes)
+      else:
+        # Lock all nodes as all groups are potential targets
+        self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+
+  def CheckPrereq(self):
+    owned_instances = frozenset(self.glm.list_owned(locking.LEVEL_INSTANCE))
+    owned_groups = frozenset(self.glm.list_owned(locking.LEVEL_NODEGROUP))
+    owned_nodes = frozenset(self.glm.list_owned(locking.LEVEL_NODE))
+
+    assert (self.req_target_uuids is None or
+            owned_groups.issuperset(self.req_target_uuids))
+    assert owned_instances == set([self.op.instance_name])
+
+    # Get instance information
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+
+    # Check if node groups for locked instance are still correct
+    assert owned_nodes.issuperset(self.instance.all_nodes), \
+      ("Instance %s's nodes changed while we kept the lock" %
+       self.op.instance_name)
+
+    inst_groups = _CheckInstanceNodeGroups(self.cfg, self.op.instance_name,
+                                           owned_groups)
+
+    if self.req_target_uuids:
+      # User requested specific target groups
+      self.target_uuids = self.req_target_uuids
+    else:
+      # All groups except those used by the instance are potential targets
+      self.target_uuids = owned_groups - inst_groups
+
+    conflicting_groups = self.target_uuids & inst_groups
+    if conflicting_groups:
+      raise errors.OpPrereqError("Can't use group(s) '%s' as targets, they are"
+                                 " used by the instance '%s'" %
+                                 (utils.CommaJoin(conflicting_groups),
+                                  self.op.instance_name),
+                                 errors.ECODE_INVAL)
+
+    if not self.target_uuids:
+      raise errors.OpPrereqError("There are no possible target groups",
+                                 errors.ECODE_INVAL)
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    assert self.target_uuids
+
+    env = {
+      "TARGET_GROUPS": " ".join(self.target_uuids),
+      }
+
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+
+    return env
+
+  def BuildHooksNodes(self):
+    """Build hooks nodes.
+
+    """
+    mn = self.cfg.GetMasterNode()
+    return ([mn], [mn])
+
+  def Exec(self, feedback_fn):
+    instances = list(self.glm.list_owned(locking.LEVEL_INSTANCE))
+
+    assert instances == [self.op.instance_name], "Instance not locked"
+
+    ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_CHG_GROUP,
+                     instances=instances, target_groups=list(self.target_uuids))
+
+    ial.Run(self.op.iallocator)
+
+    if not ial.success:
+      raise errors.OpPrereqError("Can't compute solution for changing group of"
+                                 " instance '%s' using iallocator '%s': %s" %
+                                 (self.op.instance_name, self.op.iallocator,
+                                  ial.info),
+                                 errors.ECODE_NORES)
+
+    jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, False)
+
+    self.LogInfo("Iallocator returned %s job(s) for changing group of"
+                 " instance '%s'", len(jobs), self.op.instance_name)
+
+    return ResultWithJobs(jobs)
+
+
 class LUBackupQuery(NoHooksLU):
   """Query the exports list
 

@@ -403,6 +403,16 @@ Replace the disks of an instance.
 :pre-execution: master node, primary and new secondary nodes
 :post-execution: master node, primary and new secondary nodes
 
+OP_INSTANCE_CHANGE_GROUP
+++++++++++++++++++++++++
+
+Moves an instance to another group.
+
+:directory: instance-change-group
+:env. vars: TARGET_GROUPS
+:pre-execution: master node
+:post-execution: master node
+
 
 Cluster operations
 ~~~~~~~~~~~~~~~~~~
