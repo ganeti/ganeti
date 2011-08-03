@@ -1448,6 +1448,19 @@ class ConfigWriter:
     return [node.name for node in all_nodes if not node.vm_capable]
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetMultiNodeInfo(self, nodes):
+    """Get the configuration of multiple nodes.
+
+    @param nodes: list of node names
+    @rtype: list
+    @return: list of tuples of (node, node_info), where node_info is
+        what would GetNodeInfo return for the node, in the original
+        order
+
+    """
+    return [(name, self._UnlockedGetNodeInfo(name)) for name in nodes]
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodesInfo(self):
     """Get the configuration of all nodes.
 

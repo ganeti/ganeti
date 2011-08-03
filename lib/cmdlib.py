@@ -3306,8 +3306,7 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.drbd_helper:
       # checks given drbd helper on all nodes
       helpers = self.rpc.call_drbd_helper(node_list)
-      for node in node_list:
-        ninfo = self.cfg.GetNodeInfo(node)
+      for (node, ninfo) in self.cfg.GetMultiNodeInfo(node_list):
         if ninfo.offline:
           self.LogInfo("Not checking drbd helper on offline node %s", node)
           continue
@@ -3866,9 +3865,7 @@ class LUOobCommand(NoHooksLU):
     if self.op.command in self._SKIP_MASTER:
       assert self.master_node not in self.op.node_names
 
-    for node_name in self.op.node_names:
-      node = self.cfg.GetNodeInfo(node_name)
-
+    for (node_name, node) in self.cfg.GetMultiNodeInfo(self.op.node_names):
       if node is None:
         raise errors.OpPrereqError("Node %s not found" % node_name,
                                    errors.ECODE_NOENT)
@@ -4616,7 +4613,7 @@ class _InstanceQuery(_QueryBase):
     if query.IQ_NODES in self.requested_data:
       node_names = set(itertools.chain(*map(operator.attrgetter("all_nodes"),
                                             instance_list)))
-      nodes = dict((name, lu.cfg.GetNodeInfo(name)) for name in node_names)
+      nodes = dict(lu.cfg.GetMultiNodeInfo(node_names))
       groups = dict((uuid, lu.cfg.GetNodeGroup(uuid))
                     for uuid in set(map(operator.attrgetter("group"),
                                         nodes.values())))
@@ -4796,9 +4793,7 @@ class LUNodeAdd(LogicalUnit):
 
     self.changed_primary_ip = False
 
-    for existing_node_name in node_list:
-      existing_node = cfg.GetNodeInfo(existing_node_name)
-
+    for existing_node_name, existing_node in cfg.GetMultiNodeInfo(node_list):
       if self.op.readd and node == existing_node_name:
         if existing_node.secondary_ip != secondary_ip:
           raise errors.OpPrereqError("Readded node doesn't have the same IP"
@@ -7429,10 +7424,8 @@ class TLMigrateInstance(Tasklet):
       # directly, or through an iallocator.
 
     self.all_nodes = [self.source_node, self.target_node]
-    self.nodes_ip = {
-      self.source_node: self.cfg.GetNodeInfo(self.source_node).secondary_ip,
-      self.target_node: self.cfg.GetNodeInfo(self.target_node).secondary_ip,
-      }
+    self.nodes_ip = dict((name, node.secondary_ip) for (name, node)
+                         in self.cfg.GetMultiNodeInfo(self.all_nodes))
 
     if self.failover:
       feedback_fn("Failover instance %s" % self.instance.name)
@@ -9396,9 +9389,8 @@ class TLReplaceDisks(Tasklet):
       instance.FindDisk(disk_idx)
 
     # Get secondary node IP addresses
-    self.node_secondary_ip = \
-      dict((node_name, self.cfg.GetNodeInfo(node_name).secondary_ip)
-           for node_name in touched_nodes)
+    self.node_secondary_ip = dict((name, node.secondary_ip) for (name, node)
+                                  in self.cfg.GetMultiNodeInfo(touched_nodes))
 
   def Exec(self, feedback_fn):
     """Execute disk replacement.
@@ -10377,9 +10369,9 @@ class LUInstanceQueryData(NoHooksLU):
 
     cluster = self.cfg.GetClusterInfo()
 
-    for instance in self.wanted_instances:
-      pnode = self.cfg.GetNodeInfo(instance.primary_node)
-
+    pri_nodes = self.cfg.GetMultiNodeInfo(i.primary_node
+                                          for i in self.wanted_instances)
+    for instance, (_, pnode) in zip(self.wanted_instances, pri_nodes):
       if self.op.static or pnode.offline:
         remote_state = None
         if pnode.offline:
