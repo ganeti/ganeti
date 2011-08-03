@@ -12136,9 +12136,12 @@ class LUGroupEvacuate(LogicalUnit):
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
       self._LockInstancesNodes()
 
-      # Lock all nodes in group to be evacuated
-      assert self.group_uuid in self.glm.list_owned(locking.LEVEL_NODEGROUP)
-      member_nodes = self.cfg.GetNodeGroup(self.group_uuid).members
+      # Lock all nodes in group to be evacuated and target groups
+      owned_groups = frozenset(self.glm.list_owned(locking.LEVEL_NODEGROUP))
+      assert self.group_uuid in owned_groups
+      member_nodes = [node_name
+                      for group in owned_groups
+                      for node_name in self.cfg.GetNodeGroup(group).members]
       self.needed_locks[locking.LEVEL_NODE].extend(member_nodes)
 
   def CheckPrereq(self):
