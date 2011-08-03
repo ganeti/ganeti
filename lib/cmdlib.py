@@ -12191,7 +12191,8 @@ class LUGroupEvacuate(LogicalUnit):
                            if group_uuid != self.group_uuid]
 
       if not self.target_uuids:
-        raise errors.OpExecError("There are no possible target groups")
+        raise errors.OpPrereqError("There are no possible target groups",
+                                   errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
