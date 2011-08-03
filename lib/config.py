@@ -1273,6 +1273,19 @@ class ConfigWriter:
                      for node_name in nodes)
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetMultiInstanceInfo(self, instances):
+    """Get the configuration of multiple instances.
+
+    @param instances: list of instance names
+    @rtype: list
+    @return: list of tuples (instance, instance_info), where
+        instance_info is what would GetInstanceInfo return for the
+        node, while keeping the original order
+
+    """
+    return [(name, self._UnlockedGetInstanceInfo(name)) for name in instances]
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetAllInstancesInfo(self):
     """Get the configuration of all instances.
 

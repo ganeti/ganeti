@@ -374,8 +374,8 @@ class LogicalUnit(object):
     # future we might want to have different behaviors depending on the value
     # of self.recalculate_locks[locking.LEVEL_NODE]
     wanted_nodes = []
-    for instance_name in self.glm.list_owned(locking.LEVEL_INSTANCE):
-      instance = self.context.cfg.GetInstanceInfo(instance_name)
+    locked_i = self.glm.list_owned(locking.LEVEL_INSTANCE)
+    for _, instance in self.cfg.GetMultiInstanceInfo(locked_i):
       wanted_nodes.append(instance.primary_node)
       if not primary_only:
         wanted_nodes.extend(instance.secondary_nodes)
@@ -2959,8 +2959,7 @@ class LUGroupVerifyDisks(NoHooksLU):
                                  errors.ECODE_STATE)
 
     # Get instance information
-    self.instances = dict((name, self.cfg.GetInstanceInfo(name))
-                          for name in owned_instances)
+    self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
     for (instance_name, inst) in self.instances.items():
@@ -3061,8 +3060,8 @@ class LUClusterRepairDiskSizes(NoHooksLU):
     if self.wanted_names is None:
       self.wanted_names = self.glm.list_owned(locking.LEVEL_INSTANCE)
 
-    self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
-                             in self.wanted_names]
+    self.wanted_instances = \
+        map(compat.snd, self.cfg.GetMultiInstanceInfo(self.wanted_names))
 
   def _EnsureChildSizes(self, disk):
     """Ensure children of the disk have the needed disk size.
@@ -4189,15 +4188,12 @@ class LUNodeRemove(LogicalUnit):
     node = self.cfg.GetNodeInfo(self.op.node_name)
     assert node is not None
 
-    instance_list = self.cfg.GetInstanceList()
-
     masternode = self.cfg.GetMasterNode()
     if node.name == masternode:
       raise errors.OpPrereqError("Node is the master node, failover to another"
                                  " node is required", errors.ECODE_INVAL)
 
-    for instance_name in instance_list:
-      instance = self.cfg.GetInstanceInfo(instance_name)
+    for instance_name, instance in self.cfg.GetAllInstancesInfo():
       if node.name in instance.all_nodes:
         raise errors.OpPrereqError("Instance %s is still running on the node,"
                                    " please remove first" % instance_name,
@@ -5048,8 +5044,8 @@ class LUNodeSetParams(LogicalUnit):
         instances_keep = []
 
         # Build list of instances to release
-        for instance_name in self.glm.list_owned(locking.LEVEL_INSTANCE):
-          instance = self.context.cfg.GetInstanceInfo(instance_name)
+        locked_i = self.glm.list_owned(locking.LEVEL_INSTANCE)
+        for instance_name, instance in self.cfg.GetMultiInstanceInfo(locked_i):
           if (instance.disk_template in constants.DTS_INT_MIRROR and
               self.op.node_name in instance.all_nodes):
             instances_keep.append(instance_name)
@@ -10303,8 +10299,8 @@ class LUInstanceQueryData(NoHooksLU):
       assert self.op.use_locking, "Locking was not used"
       self.wanted_names = self.glm.list_owned(locking.LEVEL_INSTANCE)
 
-    self.wanted_instances = [self.cfg.GetInstanceInfo(name)
-                             for name in self.wanted_names]
+    self.wanted_instances = \
+        map(compat.snd, self.cfg.GetMultiInstanceInfo(self.wanted_names))
 
   def _ComputeBlockdevStatus(self, node, instance_name, dev):
     """Returns the status of a block device
@@ -12129,8 +12125,7 @@ class LUGroupEvacuate(LogicalUnit):
                                  errors.ECODE_STATE)
 
     # Get instance information
-    self.instances = dict((name, self.cfg.GetInstanceInfo(name))
-                          for name in owned_instances)
+    self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
 
     # Check if node groups for locked instances are still correct
     for instance_name in owned_instances:
