@@ -8873,7 +8873,6 @@ class LUInstanceCreate(LogicalUnit):
       disk_abort = not _WaitForSync(self, iobj)
     elif iobj.disk_template in constants.DTS_INT_MIRROR:
       # make sure the disks are not degraded (still sync-ing is ok)
-      time.sleep(15)
       feedback_fn("* checking mirrors status")
       disk_abort = not _WaitForSync(self, iobj, oneshot=True)
     else:
