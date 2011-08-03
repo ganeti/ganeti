@@ -1263,8 +1263,12 @@ FAILOVER
 **failover** [-f] [--ignore-consistency] [--shutdown-timeout=*N*]
 [--submit] {*instance*}
 
-Failover will fail the instance over its secondary node. This works
-only for instances having a drbd disk template.
+Failover will stop the instance (if running), change its primary node,
+and if it was originally running it will start it again (on the new
+primary). This only works for instances with drbd template (in which
+case you can only fail to the secondary node) and for externally
+mirrored templates (shared storage) (which can change to any other
+node).
 
 Normally the failover will check the consistency of the disks before
 failing over the instance. If you are trying to migrate instances off

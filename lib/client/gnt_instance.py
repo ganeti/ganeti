@@ -1384,8 +1384,10 @@ commands = {
     FailoverInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, IGNORE_CONSIST_OPT, SUBMIT_OPT, SHUTDOWN_TIMEOUT_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT],
-    "[-f] <instance>", "Stops the instance and starts it on the backup node,"
-    " using the remote mirror (only for mirrored instances)"),
+    "[-f] <instance>", "Stops the instance, changes its primary node and"
+    " (if it was originally running) starts it on the new node"
+    " (the secondary for mirrored instances or any node"
+    " for shared storage)."),
   "migrate": (
     MigrateInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, CLEANUP_OPT, DRY_RUN_OPT,
