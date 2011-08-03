@@ -37,6 +37,7 @@ import logging
 import re
 import operator
 
+from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import ht
@@ -135,7 +136,7 @@ _OPID_RE = re.compile("([a-z])([A-Z])")
 #: Utility function for L{OpClusterSetParams}
 _TestClusterOsList = ht.TOr(ht.TNone,
   ht.TListOf(ht.TAnd(ht.TList, ht.TIsLength(2),
-    ht.TMap(ht.WithDesc("GetFirstItem")(operator.itemgetter(0)),
+    ht.TMap(ht.WithDesc("GetFirstItem")(compat.fst),
             ht.TElemOf(constants.DDMS_VALUES)))))
 
 

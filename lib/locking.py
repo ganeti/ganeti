@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1729,7 +1729,7 @@ class LockMonitor(object):
                       key=_MonitorSortKey)
 
     # Extract lock information and build query data
-    return (qobj, query.LockQueryData(map(operator.itemgetter(0), lockinfo)))
+    return (qobj, query.LockQueryData(map(compat.fst, lockinfo)))
 
   def QueryLocks(self, fields):
     """Queries information from all locks.

@@ -44,7 +44,7 @@ from ganeti import rapi
 import ganeti.rapi.rlib2 # pylint: disable-msg=W0611
 
 
-COMMON_PARAM_NAMES = map(operator.itemgetter(0), opcodes.OpCode.OP_PARAMS)
+COMMON_PARAM_NAMES = map(compat.fst, opcodes.OpCode.OP_PARAMS)
 
 #: Namespace for evaluating expressions
 EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors,
@@ -98,7 +98,7 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
   params_with_alias = \
     utils.NiceSort([(alias.get(name, name), name, default, test, doc)
                     for (name, default, test, doc) in op_cls.GetAllParams()],
-                   key=operator.itemgetter(0))
+                   key=compat.fst)
 
   for (rapi_name, name, default, test, doc) in params_with_alias:
     # Hide common parameters if not explicitely included
@@ -227,7 +227,7 @@ def BuildQueryFields(fields):
 
   """
   for (_, (fdef, _, _, _)) in utils.NiceSort(fields.items(),
-                                             key=operator.itemgetter(0)):
+                                             key=compat.fst):
     assert len(fdef.doc.splitlines()) == 1
     yield "``%s``" % fdef.name
     yield "  %s" % fdef.doc

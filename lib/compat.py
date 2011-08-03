@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 """
 
 import itertools
+import operator
 
 try:
   # pylint: disable-msg=F0401
@@ -143,3 +144,8 @@ def TryToRoman(val, convert=True):
   else:
     return val
 
+#: returns the first element of a list-like value
+fst = operator.itemgetter(0)
+
+#: returns the second element of a list-like value
+snd = operator.itemgetter(1)
