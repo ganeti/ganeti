@@ -115,6 +115,14 @@ old storage is already broken) or when the storage on the primary
 node is known to be fine (thus we won't need the old storage for
 potential recovery).
 
+Note that this command is equivalent to using per-instance commands for
+each affected instance individually:
+
+- ``--primary-only`` is equivalent to ``gnt-instance failover/migration``
+- ``--secondary-only`` is equivalent to ``gnt-instance replace-disks``
+  in the secondary node change mode (only valid for DRBD instances)
+- when neither of the above is done a combination of the two cases is run
+
 Example::
 
     # gnt-node evacuate -I hail node3.example.com
