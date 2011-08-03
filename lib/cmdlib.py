@@ -1201,6 +1201,29 @@ def _CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
                                  " iallocator")
 
 
+def _GetDefaultIAllocator(cfg, iallocator):
+  """Decides on which iallocator to use.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: Cluster configuration object
+  @type iallocator: string or None
+  @param iallocator: Iallocator specified in opcode
+  @rtype: string
+  @return: Iallocator name
+
+  """
+  if not iallocator:
+    # Use default iallocator
+    iallocator = cfg.GetDefaultIAllocator()
+
+  if not iallocator:
+    raise errors.OpPrereqError("No iallocator was specified, neither in the"
+                               " opcode nor as a cluster-wide default",
+                               errors.ECODE_INVAL)
+
+  return iallocator
+
+
 class LUClusterPostInit(LogicalUnit):
   """Logical unit for running hooks after cluster initialization.
 
@@ -12070,14 +12093,7 @@ class LUGroupEvacuate(LogicalUnit):
                                   utils.CommaJoin(self.req_target_uuids)),
                                  errors.ECODE_INVAL)
 
-    if not self.op.iallocator:
-      # Use default iallocator
-      self.op.iallocator = self.cfg.GetDefaultIAllocator()
-
-    if not self.op.iallocator:
-      raise errors.OpPrereqError("No iallocator was specified, neither in the"
-                                 " opcode nor as a cluster-wide default",
-                                 errors.ECODE_INVAL)
+    self.op.iallocator = _GetDefaultIAllocator(self.cfg, self.op.iallocator)
 
     self.share_locks = _ShareAll()
     self.needed_locks = {
