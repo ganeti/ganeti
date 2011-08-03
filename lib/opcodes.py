@@ -35,7 +35,6 @@ opcodes.
 
 import logging
 import re
-import operator
 
 from ganeti import compat
 from ganeti import constants

@@ -32,7 +32,6 @@ import errno
 import weakref
 import logging
 import heapq
-import operator
 import itertools
 
 from ganeti import errors

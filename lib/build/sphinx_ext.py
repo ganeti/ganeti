@@ -23,7 +23,6 @@
 
 """
 
-import operator
 from cStringIO import StringIO
 
 import docutils.statemachine
