@@ -8,11 +8,9 @@ Design document drafts
    design-x509-ca.rst
    design-http-server.rst
    design-impexp2.rst
-   design-lu-generated-jobs.rst
-   design-multi-reloc.rst
    design-cpu-pinning.rst
-   design-chained-jobs.rst
    design-ovf-support.rst
+   design-network.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:

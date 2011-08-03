@@ -282,6 +282,7 @@ docrst = \
 	doc/design-2.3.rst \
 	doc/design-htools-2.3.rst \
 	doc/design-2.4.rst \
+	doc/design-2.5.rst \
 	doc/design-draft.rst \
 	doc/design-oob.rst \
 	doc/design-cpu-pinning.rst \
