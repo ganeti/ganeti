@@ -482,7 +482,7 @@ POWERCYCLE
 
 **powercycle** [``--yes``] [``--force``] {*node*}
 
-This commands (tries to) forcefully reboot a node. It is a command
+This command (tries to) forcefully reboot a node. It is a command
 that can be used if the node environemnt is broken, such that the
 admin can no longer login over ssh, but the Ganeti node daemon is
 still working.
@@ -502,7 +502,7 @@ POWER
 **power** [``--force``] [``--ignore-status``] [``--all``]
 [``--power-delay``] on|off|cycle|status [*nodes*]
 
-This commands calls out to out-of-band management to change the power
+This command calls out to out-of-band management to change the power
 state of given node. With ``status`` you get the power status as reported
 by the out-of-band managment script.
 
@@ -533,7 +533,7 @@ HEALTH
 
 **health** [*nodes*]
 
-This commands calls out to out-pf-band management to ask for the health status
+This command calls out to out-of-band management to ask for the health status
 of all or given nodes. The health contains the node name and then the items
 element with their status in a ``item=status`` manner. Where ``item`` is script
 specific and ``status`` can be one of ``OK``, ``WARNING``, ``CRITICAL`` or
