@@ -189,7 +189,7 @@ class ConfigWriter:
   def GetNdParams(self, node):
     """Get the node params populated with cluster defaults.
 
-    @type node: L{object.Node}
+    @type node: L{objects.Node}
     @param node: The node we want to know the params for
     @return: A dict with the filled in node params
 

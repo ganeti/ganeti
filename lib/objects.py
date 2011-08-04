@@ -1029,7 +1029,7 @@ class NodeGroup(TaggableObject):
       self.mtime = time.time()
 
   def FillND(self, node):
-    """Return filled out ndparams for L{object.Node}
+    """Return filled out ndparams for L{objects.Node}
 
     @type node: L{objects.Node}
     @param node: A Node object to fill
@@ -1310,7 +1310,7 @@ class Cluster(TaggableObject):
     return FillDict(result, os_params)
 
   def FillND(self, node, nodegroup):
-    """Return filled out ndparams for L{objects.NodeGroup} and L{object.Node}
+    """Return filled out ndparams for L{objects.NodeGroup} and L{objects.Node}
 
     @type node: L{objects.Node}
     @param node: A Node object to fill
