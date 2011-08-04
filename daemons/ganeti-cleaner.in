@@ -55,7 +55,8 @@ cleanup_watcher() {
 
   # Remove old watcher files
   find $DATA_DIR -maxdepth 1 -type f -mtime +$REMOVE_AFTER \
-    -name 'watcher.*-*-*-*.data' -print0 | \
+    \( -name 'watcher.*-*-*-*.data' -or \
+       -name 'watcher.*-*-*-*.instance-status' \) -print0 | \
   xargs -r0 rm -vf
 }
 

@@ -56,10 +56,11 @@ count_jobs() {
 }
 
 count_watcher() {
-  local n=$1
+  local suffix="$1" n=$2
   local count=$(find $watcherdir -maxdepth 1 -type f \
-                  -name 'watcher.*.data' | wc -l)
-  [[ "$count" -eq "$n" ]] || err "Found $count watcher files instead of $n"
+                  -name "watcher.*-*-*-*.$suffix" | wc -l)
+  [[ "$count" -eq "$n" ]] || \
+    err "Found $count watcher files with suffix '$suffix' instead of $n"
 }
 
 count_and_check_certs() {
@@ -120,7 +121,8 @@ create_watcher_state() {
 
   i=0
   for uuid in ${uuids[@]}; do
-    touch -d "$(( 5 * i )) days ago" $watcherdir/watcher.$uuid.data
+    touch -d "$(( 5 * i )) days ago" \
+      $watcherdir/watcher.$uuid.{data,instance-status}
 
     let ++i
   done
@@ -197,8 +199,10 @@ count_jobs 31
 
 upto 'Watcher status files'
 create_watcher_state
-count_watcher 10
+count_watcher data 10
+count_watcher instance-status 10
 run_cleaner
-count_watcher 5
+count_watcher data 5
+count_watcher instance-status 5
 
 exit 0
