@@ -38,17 +38,22 @@ from ganeti.utils import filelock
 _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 
 
-def ReadFile(file_name, size=-1):
+def ReadFile(file_name, size=-1, preread=None):
   """Reads a file.
 
   @type size: int
   @param size: Read at most size bytes (if negative, entire file)
+  @type preread: callable receiving file handle as single parameter
+  @param preread: Function called before file is read
   @rtype: str
   @return: the (possibly partial) content of the file
 
   """
   f = open(file_name, "r")
   try:
+    if preread:
+      preread(f)
+
     return f.read(size)
   finally:
     f.close()

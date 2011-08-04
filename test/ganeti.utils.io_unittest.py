@@ -55,6 +55,12 @@ class TestReadFile(testutils.GanetiTestCase):
     h.update(data)
     self.assertEqual(h.hexdigest(), "893772354e4e690b9efd073eed433ce7")
 
+  def testCallback(self):
+    def _Cb(fh):
+      self.assertEqual(fh.tell(), 0)
+    data = utils.ReadFile(self._TestDataFilename("cert1.pem"), preread=_Cb)
+    self.assertEqual(len(data), 814)
+
   def testError(self):
     self.assertRaises(EnvironmentError, utils.ReadFile,
                       "/dev/null/does-not-exist")
