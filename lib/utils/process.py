@@ -163,7 +163,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False,
   @type reset_env: boolean
   @param reset_env: whether to reset or keep the default os environment
   @type interactive: boolean
-  @param interactive: weather we pipe stdin, stdout and stderr
+  @param interactive: whether we pipe stdin, stdout and stderr
                       (default behaviour) or run the command interactive
   @type timeout: int
   @param timeout: If not None, timeout in seconds until child process gets
