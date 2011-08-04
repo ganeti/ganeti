@@ -341,11 +341,10 @@ class Merger(object):
     #
     # Generic checks
     #
-    check_params = (
+    check_params = [
       "beparams",
       "default_iallocator",
       "drbd_usermode_helper",
-      "file_storage_dir",
       "hidden_os",
       "maintain_node_health",
       "master_netdev",
@@ -355,7 +354,10 @@ class Merger(object):
       "tags",
       "uid_pool",
       "volume_group_name",
-      )
+      ]
+    if constants.ENABLE_FILE_STORAGE:
+      check_params.append("file_storage_dir")
+
     for param_name in check_params:
       my_param = getattr(my_cluster, param_name)
       other_param = getattr(other_cluster, param_name)
