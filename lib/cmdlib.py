@@ -555,6 +555,32 @@ def _ShareAll():
   return dict.fromkeys(locking.LEVELS, 1)
 
 
+def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups):
+  """Checks if the owned node groups are still correct for an instance.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type instance_name: string
+  @param instance_name: Instance name
+  @type owned_groups: set or frozenset
+  @param owned_groups: List of currently owned node groups
+
+  """
+  inst_groups = cfg.GetInstanceNodeGroups(instance_name)
+
+  if not owned_groups.issuperset(inst_groups):
+    raise errors.OpPrereqError("Instance %s's node groups changed since"
+                               " locks were acquired, current groups are"
+                               " are '%s', owning groups '%s'; retry the"
+                               " operation" %
+                               (instance_name,
+                                utils.CommaJoin(inst_groups),
+                                utils.CommaJoin(owned_groups)),
+                               errors.ECODE_STATE)
+
+  return inst_groups
+
+
 def _SupportsOob(cfg, node):
   """Tells if node supports OOB.
 
@@ -2991,16 +3017,7 @@ class LUGroupVerifyDisks(NoHooksLU):
       assert owned_nodes.issuperset(inst.all_nodes), \
         "Instance %s's nodes changed while we kept the lock" % instance_name
 
-      inst_groups = self.cfg.GetInstanceNodeGroups(instance_name)
-      if not owned_groups.issuperset(inst_groups):
-        raise errors.OpPrereqError("Instance %s's node groups changed since"
-                                   " locks were acquired, current groups are"
-                                   " are '%s', owning groups '%s'; retry the"
-                                   " operation" %
-                                   (instance_name,
-                                    utils.CommaJoin(inst_groups),
-                                    utils.CommaJoin(owned_groups)),
-                                   errors.ECODE_STATE)
+      _CheckInstanceNodeGroups(self.cfg, instance_name, owned_groups)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
@@ -4549,16 +4566,7 @@ class _InstanceQuery(_QueryBase):
 
     # Check if node groups for locked instances are still correct
     for instance_name in owned_instances:
-      inst_groups = lu.cfg.GetInstanceNodeGroups(instance_name)
-      if not owned_groups.issuperset(inst_groups):
-        raise errors.OpPrereqError("Instance %s's node groups changed since"
-                                   " locks were acquired, current groups are"
-                                   " are '%s', owning groups '%s'; retry the"
-                                   " operation" %
-                                   (instance_name,
-                                    utils.CommaJoin(inst_groups),
-                                    utils.CommaJoin(owned_groups)),
-                                   errors.ECODE_STATE)
+      _CheckInstanceNodeGroups(lu.cfg, instance_name, owned_groups)
 
   def _GetQueryData(self, lu):
     """Computes the list of instances and their attributes.
@@ -9156,14 +9164,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
 
     owned_groups = self.glm.list_owned(locking.LEVEL_NODEGROUP)
     if owned_groups:
-      groups = self.cfg.GetInstanceNodeGroups(self.op.instance_name)
-      if owned_groups != groups:
-        raise errors.OpExecError("Node groups used by instance '%s' changed"
-                                 " since lock was acquired, current list is %r,"
-                                 " used to be '%s'" %
-                                 (self.op.instance_name,
-                                  utils.CommaJoin(groups),
-                                  utils.CommaJoin(owned_groups)))
+      _CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
 
     return LogicalUnit.CheckPrereq(self)
 
@@ -12169,21 +12170,14 @@ class LUGroupEvacuate(LogicalUnit):
     # Check if node groups for locked instances are still correct
     for instance_name in owned_instances:
       inst = self.instances[instance_name]
-      assert self.group_uuid in self.cfg.GetInstanceNodeGroups(instance_name), \
-        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
       assert owned_nodes.issuperset(inst.all_nodes), \
         "Instance %s's nodes changed while we kept the lock" % instance_name
 
-      inst_groups = self.cfg.GetInstanceNodeGroups(instance_name)
-      if not owned_groups.issuperset(inst_groups):
-        raise errors.OpPrereqError("Instance %s's node groups changed since"
-                                   " locks were acquired, current groups"
-                                   " are '%s', owning groups '%s'; retry the"
-                                   " operation" %
-                                   (instance_name,
-                                    utils.CommaJoin(inst_groups),
-                                    utils.CommaJoin(owned_groups)),
-                                   errors.ECODE_STATE)
+      inst_groups = _CheckInstanceNodeGroups(self.cfg, instance_name,
+                                             owned_groups)
+
+      assert self.group_uuid in inst_groups, \
+        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
 
     if self.req_target_uuids:
       # User requested specific target groups
