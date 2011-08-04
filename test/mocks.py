@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -75,12 +75,19 @@ class FakeProc:
     pass
 
 
+class FakeGLM:
+  """Fake global lock manager object"""
+
+  def list_owned(self, level):
+    return set()
+
+
 class FakeContext:
   """Fake context object"""
 
   def __init__(self):
     self.cfg = FakeConfig()
-    self.glm = None
+    self.glm = FakeGLM()
 
 
 class FakeGetentResolver:
