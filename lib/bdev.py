@@ -1131,6 +1131,17 @@ class DRBD8(BaseDRBD):
     This will not work if the given minor is in use.
 
     """
+    # Zero the metadata first, in order to make sure drbdmeta doesn't
+    # try to auto-detect existing filesystems or similar (see
+    # http://code.google.com/p/ganeti/issues/detail?id=182); we only
+    # care about the first 128MB of data in the device, even though it
+    # can be bigger
+    result = utils.RunCmd([constants.DD_CMD,
+                           "if=/dev/zero", "of=%s" % dev_path,
+                           "bs=1048576", "count=128", "oflag=direct"])
+    if result.failed:
+      _ThrowError("Can't wipe the meta device: %s", result.output)
+
     result = utils.RunCmd(["drbdmeta", "--force", cls._DevPath(minor),
                            "v08", dev_path, "0", "create-md"])
     if result.failed:
