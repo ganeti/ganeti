@@ -152,12 +152,13 @@ parseData body = do
   let idata = fromJSObject ilist
   iobj <- mapM (\(x,y) ->
                     asJSObject y >>= parseInstance ktn x . fromJSObject) idata
-  let (_, il) = assignIndices iobj
+  let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
   cdata1 <- mergeData [] [] [] [] (ClusterData gl nl il ctags)
   let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
       cdata = cdata1 { cdNodes = fix_nl }
+      map_n = cdNodes cdata
       map_i = cdInstances cdata
       map_g = cdGroups cdata
   optype <- extrReq "type"
@@ -170,6 +171,14 @@ parseData body = do
                 inew      <- parseBaseInstance rname request
                 let io = snd inew
                 return $ Allocate io req_nodes
+          | optype == C.iallocatorModeReloc ->
+              do
+                rname     <- extrReq "name"
+                ridx      <- lookupInstance kti rname
+                req_nodes <- extrReq "required_nodes"
+                ex_nodes  <- extrReq "relocate_from"
+                ex_idex   <- mapM (Container.findByName map_n) ex_nodes
+                return $ Relocate ridx req_nodes (map Node.idx ex_idex)
           | optype == C.iallocatorModeChgGroup ->
               do
                 rl_names <- extrReq "instances"
@@ -237,6 +246,61 @@ formatNodeEvac gl nl il (fin_nl, fin_il, es) =
                " were moved successfully"
     in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl, fin_il)
 
+-- | Runs relocate for a single instance.
+--
+-- This is wrapper over the 'Cluster.tryNodeEvac' function that is run
+-- with a single instance (ours), and further it checks that the
+-- result it got (in the nodes field) is actually consistent, as
+-- tryNodeEvac is designed to output primarily an opcode list, not a
+-- node list.
+processRelocate :: Group.List      -- ^ The group list
+                -> Node.List       -- ^ The node list
+                -> Instance.List   -- ^ The instance list
+                -> Idx             -- ^ The index of the instance to move
+                -> Int             -- ^ The number of nodes required
+                -> [Ndx]           -- ^ Nodes which should not be used
+                -> Result (Node.List, Instance.List, [Ndx]) -- ^ Solution list
+processRelocate gl nl il idx 1 exndx = do
+  let orig = Container.find idx il
+      sorig = Instance.sNode orig
+  when (exndx /= [sorig]) $
+       -- FIXME: we can't use the excluded nodes here; the logic is
+       -- already _but only partially_ implemented in tryNodeEvac...
+       fail $ "Unsupported request: excluded nodes not equal to\
+              \ instance's secondary node (" ++ show sorig ++ " versus " ++
+              show exndx ++ ")"
+  (nl', il', esol) <- Cluster.tryNodeEvac gl nl il ChangeSecondary [idx]
+  nodes <- case lookup idx (Cluster.esFailed esol) of
+             Just msg -> fail msg
+             Nothing ->
+                 case lookup idx (map (\(a, _, b) -> (a, b))
+                                  (Cluster.esMoved esol)) of
+                   Nothing ->
+                       fail "Internal error: lost instance idx during move"
+                   Just n -> return n
+  let inst = Container.find idx il'
+      pnode = Instance.pNode inst
+      snode = Instance.sNode inst
+  when (snode == sorig) $
+       fail "Internal error: instance didn't change secondary node?!"
+
+  nodes' <- if (nodes == [pnode, snode])
+            then return [snode] -- only the new secondary is needed
+            else fail $ "Internal error: inconsistent node list (" ++
+                 show nodes ++ ") versus instance nodes (" ++ show pnode ++
+                 "," ++ show snode ++ ")"
+  return (nl', il', nodes')
+
+processRelocate _ _ _ _ reqn _ =
+  fail $ "Exchange " ++ show reqn ++ " nodes mode is not implemented"
+
+formatRelocate :: (Node.List, Instance.List, [Ndx])
+               -> Result IAllocResult
+formatRelocate (nl, il, ndxs) =
+    let nodes = map (`Container.find` nl) ndxs
+        names = map Node.name nodes
+    in Ok ("success", showJSON names, nl, il)
+
 -- | Process a request and return new node lists.
 processRequest :: Request -> Result IAllocResult
 processRequest request =
@@ -244,6 +308,8 @@ processRequest request =
   in case rqtype of
        Allocate xi reqn ->
            Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
+       Relocate idx reqn exnodes ->
+           processRelocate gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->
            Cluster.tryChangeGroup gl nl il idxs gdxs >>=
                   formatNodeEvac gl nl il

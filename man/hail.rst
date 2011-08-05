@@ -37,6 +37,10 @@ For dual-node allocations (mirrored instances), we chose the best
 pair; this is the only choice where the algorithm is non-trivial
 with regard to cluster size.
 
+For relocations, we try to change the secondary node of the instance to
+all the valid other nodes; the node which results in the best cluster
+score is chosen.
+
 For node changes (*change-node* mode), we currently support DRBD
 instances only, and all three modes (primary changes, secondary changes
 and all node changes).
@@ -48,8 +52,7 @@ on the target group is based on the group score, and the choice of group
 is based on the same algorithm as allocations (group with lowest score
 after placement).
 
-The deprecated *relocate* and *multi-evacuate* modes are no longer
-supported.
+The deprecated *multi-evacuate* modes is no longer supported.
 
 In all cases, the cluster (or group) scoring is identical to the hbal
 algorithm.

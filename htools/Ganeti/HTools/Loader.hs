@@ -75,6 +75,7 @@ request-specific fields.
 -}
 data RqType
     = Allocate Instance.Instance Int -- ^ A new instance allocation
+    | Relocate Idx Int [Ndx]         -- ^ Choose a new secondary node
     | NodeEvacuate [Idx] EvacMode    -- ^ node-evacuate mode
     | ChangeGroup [Gdx] [Idx]        -- ^ Multi-relocate mode
     deriving (Show, Read)
