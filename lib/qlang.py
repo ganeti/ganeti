@@ -38,6 +38,7 @@ import pyparsing as pyp
 
 from ganeti import errors
 from ganeti import netutils
+from ganeti import utils
 
 
 # Logic operators with one or more operands, each of which is a filter on its
@@ -146,8 +147,10 @@ def BuildFilterParser():
   number = pyp.Combine(pyp.Optional(num_sign) + pyp.Word(pyp.nums))
   number.setParseAction(lambda toks: int(toks[0]))
 
+  quoted_string = pyp.quotedString.copy().setParseAction(pyp.removeQuotes)
+
   # Right-hand-side value
-  rval = (number | pyp.quotedString.setParseAction(pyp.removeQuotes))
+  rval = (number | quoted_string)
 
   # Boolean condition
   bool_cond = field_name.copy()
@@ -184,10 +187,22 @@ def BuildFilterParser():
   not_regexp_cond.setParseAction(lambda (field, value):
                                  [[OP_NOT, [OP_REGEXP, field, value]]])
 
+  # Globbing, e.g. name =* "*.site"
+  glob_cond = (field_name + pyp.Suppress("=*") + quoted_string)
+  glob_cond.setParseAction(lambda (field, value):
+                           [[OP_REGEXP, field,
+                             utils.DnsNameGlobPattern(value)]])
+
+  not_glob_cond = (field_name + pyp.Suppress("!*") + quoted_string)
+  not_glob_cond.setParseAction(lambda (field, value):
+                               [[OP_NOT, [OP_REGEXP, field,
+                                          utils.DnsNameGlobPattern(value)]]])
+
   # All possible conditions
   condition = (binary_cond ^ bool_cond ^
                in_cond ^ not_in_cond ^
-               regexp_cond ^ not_regexp_cond)
+               regexp_cond ^ not_regexp_cond ^
+               glob_cond ^ not_glob_cond)
 
   # Associativity operators
   filter_expr = pyp.operatorPrecedence(condition, [

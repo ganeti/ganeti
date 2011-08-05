@@ -265,6 +265,9 @@ Syntax in pseudo-BNF::
       */
       | <field> { =~ | !~ } m/<re>/<re-modifiers>
 
+      /* Globbing */
+      | <field> { =* | !* } <quoted-string>
+
       /* Boolean */
       | <field>
     }
@@ -283,6 +286,10 @@ Operators:
   Pattern match using regular expression
 *!~*
   Logically negated from *=~*
+*=\**
+  Globbing, see **glob**(7), though only * and ? are supported
+*!\**
+  Logically negated from *=\**
 *in*, *not in*
   Collection membership and negation
 

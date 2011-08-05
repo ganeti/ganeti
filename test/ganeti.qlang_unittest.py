@@ -147,6 +147,12 @@ class TestParseFilter(unittest.TestCase):
       self._Test("notname =~ m%stest%s" % (i, i),
                  [qlang.OP_REGEXP, "notname", "test"])
 
+    self._Test("name =* '*.site'",
+               [qlang.OP_REGEXP, "name", utils.DnsNameGlobPattern("*.site")])
+    self._Test("field !* '*.example.*'",
+               [qlang.OP_NOT, [qlang.OP_REGEXP, "field",
+                               utils.DnsNameGlobPattern("*.example.*")]])
+
   def testAllFields(self):
     for name in frozenset(i for d in query.ALL_FIELD_LISTS for i in d.keys()):
       self._Test("%s == \"value\"" % name, [qlang.OP_EQUAL, name, "value"])
