@@ -194,11 +194,6 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
         network_link = query[constants.CONFD_REQQ_LINK]
       else:
         network_link = None # default will be used
-    elif isinstance(query, basestring):
-      # 2.1 beta1 and beta2 mode, to be deprecated for 2.2
-      instances_list = [query]
-      network_link = None
-      mode = constants.CONFD_REQQ_IP
     else:
       logging.debug("Invalid query argument type for: %s", query)
       return QUERY_ARGUMENT_ERROR
