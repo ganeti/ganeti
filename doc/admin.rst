@@ -391,16 +391,16 @@ parameters as such:
 - ``root_path`` to a valid setting (e.g. ``/dev/xvda1``)
 - ``bootloader_path`` and ``bootloader_args`` to empty
 
-Alternatively, you can delete the kernel management to instances, and
+Alternatively, you can delegate the kernel management to instances, and
 use either ``pvgrub`` or the deprecated ``pygrub``. For this, you must
-install the kernels and initrds in the instance, and create a valid grub
+install the kernels and initrds in the instance and create a valid GRUB
 v1 configuration file.
 
 For ``pvgrub`` (new in version 2.4.2), you need to set:
 
 - ``kernel_path`` to point to the ``pvgrub`` loader present on the node
   (e.g. ``/usr/lib/xen/boot/pv-grub-x86_32.gz``)
-- ``kernel_args`` to the path to the grub config file, relative to the
+- ``kernel_args`` to the path to the GRUB config file, relative to the
   instance (e.g. ``(hd0,0)/grub/menu.lst``)
 - ``root_path`` **must** be empty
 - ``bootloader_path`` and ``bootloader_args`` to empty
