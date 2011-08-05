@@ -37,10 +37,37 @@ Incompatible/important changes:
 Version 2.4.3
 -------------
 
-*(unreleased)*
+*(Released Fri, 5 Aug 2011)*
 
+Many bug-fixes and a few small features:
+
+- Fixed argument order in ``ReserveLV`` and ``ReserveMAC`` which caused
+  issues when you tried to add an instance with two MAC addresses in one
+  request
+- KVM: fixed per-instance stored UID value
+- KVM: configure bridged NICs at migration start
+- KVM: Fix a bug where instance will not start with never KVM versions
+  (>= 0.14)
+- Added OS search path to ``gnt-cluster info``
+- Fixed an issue with ``file_storage_dir`` where you were forced to
+  provide an absolute path, but the documentation states it is a
+  relative path, the documentation was right
 - Added a new parameter to instance stop/start called ``--no-remember``
   that will make the state change to not be remembered
+- Implemented ``no_remember`` at RAPI level
+- Improved the documentation
+- Node evacuation: don't call IAllocator if node is already empty
+- Fixed bug in DRBD8 replace disks on current nodes
+- Fixed bug in recreate-disks for DRBD instances
+- Moved assertion checking locks in ``gnt-instance replace-disks``
+  causing it to abort with not owning the right locks for some situation
+- Job queue: Fixed potential race condition when cancelling queued jobs
+- Fixed off-by-one bug in job serial generation
+- ``gnt-node volumes``: Fix instance names
+- Fixed aliases in bash completion
+- Fixed a bug in reopening log files after beeing sent a SIGHUP
+- Added a flag to burnin to allow specifying VCPU count
+- Bugfixes to non-root Ganeti configuration
 
 
 Version 2.4.2
@@ -127,7 +154,7 @@ Version 2.4.1
 *(Released Wed, 09 Mar 2011)*
 
 Emergency bug-fix release. ``tools/cfgupgrade`` was broken and overwrote
-the RAPI users file if run twice (even with ``-dry-run``).
+the RAPI users file if run twice (even with ``--dry-run``).
 
 The release fixes that bug (nothing else changed).
 

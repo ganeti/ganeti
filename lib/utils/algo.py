@@ -119,7 +119,7 @@ def InvertDict(dict_in):
   """Inverts the key/value mapping of a dict.
 
   @param dict_in: The dict to invert
-  @returns the inverted dict
+  @return: the inverted dict
 
   """
   return dict(zip(dict_in.values(), dict_in.keys()))

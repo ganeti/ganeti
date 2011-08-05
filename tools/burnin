@@ -126,6 +126,9 @@ OPTIONS = [
                  default=128, type="unit", metavar="<size>",
                  completion_suggest=("128M 256M 512M 1G 4G 8G"
                                      " 12G 16G").split()),
+  cli.cli_option("--vcpu-count", dest="vcpu_count", help="VCPU count",
+                 default=3, type="unit", metavar="<count>",
+                 completion_suggest=("1 2 3 4").split()),
   cli.DEBUG_OPT,
   cli.VERBOSE_OPT,
   cli.NOIPCHECK_OPT,
@@ -473,7 +476,7 @@ class Burner(object):
     self.instances = args
     self.bep = {
       constants.BE_MEMORY: options.mem_size,
-      constants.BE_VCPUS: 1,
+      constants.BE_VCPUS: options.vcpu_count,
       }
 
     self.hypervisor = None
