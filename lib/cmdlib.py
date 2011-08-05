@@ -13179,26 +13179,23 @@ class IAllocator(object):
                                errors.ECODE_INVAL)
 
     if self.mode == constants.IALLOCATOR_MODE_RELOC:
+      assert self.relocate_from is not None
+      assert self.required_nodes == 1
+
       node2group = dict((name, ndata["group"])
                         for (name, ndata) in self.in_data["nodes"].items())
 
       fn = compat.partial(self._NodesToGroups, node2group,
                           self.in_data["nodegroups"])
 
-      if self.mode == constants.IALLOCATOR_MODE_RELOC:
-        assert self.relocate_from is not None
-        assert self.required_nodes == 1
+      request_groups = fn(self.relocate_from)
+      result_groups = fn(rdict["result"])
 
-        request_groups = fn(self.relocate_from)
-        result_groups = fn(rdict["result"])
-
-        if self.success and result_groups != request_groups:
-          raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
-                                   " differ from original groups (%s)" %
-                                   (utils.CommaJoin(result_groups),
-                                    utils.CommaJoin(request_groups)))
-      else:
-        raise errors.ProgrammerError("Unhandled mode '%s'" % self.mode)
+      if self.success and result_groups != request_groups:
+        raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
+                                 " differ from original groups (%s)" %
+                                 (utils.CommaJoin(result_groups),
+                                  utils.CommaJoin(request_groups)))
 
     elif self.mode == constants.IALLOCATOR_MODE_NODE_EVAC:
       assert self.evac_mode in constants.IALLOCATOR_NEVAC_MODES
