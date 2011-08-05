@@ -583,6 +583,30 @@ def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups):
   return inst_groups
 
 
+def _CheckNodeGroupInstances(cfg, group_uuid, owned_instances):
+  """Checks if the instances in a node group are still correct.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type group_uuid: string
+  @param group_uuid: Node group UUID
+  @type owned_instances: set or frozenset
+  @param owned_instances: List of currently owned instances
+
+  """
+  wanted_instances = cfg.GetNodeGroupInstances(group_uuid)
+  if owned_instances != wanted_instances:
+    raise errors.OpPrereqError("Instances in node group '%s' changed since"
+                               " locks were acquired, wanted '%s', have '%s';"
+                               " retry the operation" %
+                               (group_uuid,
+                                utils.CommaJoin(wanted_instances),
+                                utils.CommaJoin(owned_instances)),
+                               errors.ECODE_STATE)
+
+  return wanted_instances
+
+
 def _SupportsOob(cfg, node):
   """Tells if node supports OOB.
 
@@ -2997,15 +3021,7 @@ class LUGroupVerifyDisks(NoHooksLU):
     assert self.group_uuid in owned_groups
 
     # Check if locked instances are still correct
-    wanted_instances = self.cfg.GetNodeGroupInstances(self.group_uuid)
-    if owned_instances != wanted_instances:
-      raise errors.OpPrereqError("Instances in node group %s changed since"
-                                 " locks were acquired, wanted %s, have %s;"
-                                 " retry the operation" %
-                                 (self.op.group_name,
-                                  utils.CommaJoin(wanted_instances),
-                                  utils.CommaJoin(owned_instances)),
-                                 errors.ECODE_STATE)
+    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     # Get instance information
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
@@ -12292,15 +12308,7 @@ class LUGroupEvacuate(LogicalUnit):
     assert self.group_uuid in owned_groups
 
     # Check if locked instances are still correct
-    wanted_instances = self.cfg.GetNodeGroupInstances(self.group_uuid)
-    if owned_instances != wanted_instances:
-      raise errors.OpPrereqError("Instances in node group to be evacuated (%s)"
-                                 " changed since locks were acquired, wanted"
-                                 " %s, have %s; retry the operation" %
-                                 (self.group_uuid,
-                                  utils.CommaJoin(wanted_instances),
-                                  utils.CommaJoin(owned_instances)),
-                                 errors.ECODE_STATE)
+    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
 
     # Get instance information
     self.instances = dict(self.cfg.GetMultiInstanceInfo(owned_instances))
