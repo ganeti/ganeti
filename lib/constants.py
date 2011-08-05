@@ -161,6 +161,10 @@ WATCHER_LOCK_FILE = LOCK_DIR + "/ganeti-watcher.lock"
 #: Status file for per-group watcher, locked in exclusive mode by watcher
 WATCHER_GROUP_STATE_FILE = DATA_DIR + "/watcher.%s.data"
 
+#: File for per-group instance status, merged into L{INSTANCE_STATUS_FILE} by
+#: per-group processes
+WATCHER_GROUP_INSTANCE_STATUS_FILE = DATA_DIR + "/watcher.%s.instance-status"
+
 #: File containing Unix timestamp until which watcher should be paused
 WATCHER_PAUSEFILE = DATA_DIR + "/watcher.pause"
 
