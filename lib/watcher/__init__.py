@@ -445,7 +445,7 @@ def _ReadInstanceStatus(filename):
       logging.exception("Unable to read '%s', ignoring", filename)
     return (None, None)
   else:
-    return (statcb.st.st_mtime, [line.split(1)
+    return (statcb.st.st_mtime, [line.split(None, 1)
                                  for line in content.splitlines()])
 
 
