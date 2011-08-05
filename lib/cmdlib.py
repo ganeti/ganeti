@@ -3028,12 +3028,14 @@ class LUGroupVerifyDisks(NoHooksLU):
 
     # Check if node groups for locked instances are still correct
     for (instance_name, inst) in self.instances.items():
-      assert self.group_uuid in self.cfg.GetInstanceNodeGroups(instance_name), \
-        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
       assert owned_nodes.issuperset(inst.all_nodes), \
         "Instance %s's nodes changed while we kept the lock" % instance_name
 
-      _CheckInstanceNodeGroups(self.cfg, instance_name, owned_groups)
+      inst_groups = _CheckInstanceNodeGroups(self.cfg, instance_name,
+                                             owned_groups)
+
+      assert self.group_uuid in inst_groups, \
+        "Instance %s has no node in group %s" % (instance_name, self.group_uuid)
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
