@@ -9268,6 +9268,9 @@ class TLReplaceDisks(Tasklet):
     return remote_node_name
 
   def _FindFaultyDisks(self, node_name):
+    """Wrapper for L{_FindFaultyInstanceDisks}.
+
+    """
     return _FindFaultyInstanceDisks(self.cfg, self.rpc, self.instance,
                                     node_name, True)
 
