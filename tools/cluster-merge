@@ -49,6 +49,9 @@ _RESTART_ALL = "all"
 _RESTART_UP = "up"
 _RESTART_NONE = "none"
 _RESTART_CHOICES = (_RESTART_ALL, _RESTART_UP, _RESTART_NONE)
+_PARAMS_STRICT = "strict"
+_PARAMS_WARN = "warn"
+_PARAMS_CHOICES = (_PARAMS_STRICT, _PARAMS_WARN)
 
 
 PAUSE_PERIOD_OPT = cli.cli_option("-p", "--watcher-pause-period", default=1800,
@@ -62,6 +65,14 @@ GROUPS_OPT = cli.cli_option("--groups", default=None, metavar="STRATEGY",
                             help=("How to handle groups that have the"
                                   " same name (One of: %s/%s)" %
                                   (_GROUPS_MERGE, _GROUPS_RENAME)))
+PARAMS_OPT = cli.cli_option("--parameter-conflicts", default=_PARAMS_STRICT,
+                            metavar="STRATEGY",
+                            choices=_PARAMS_CHOICES,
+                            dest="params",
+                            help=("How to handle params that have"
+                                  " different values (One of: %s/%s)" %
+                                  _PARAMS_CHOICES))
+
 RESTART_OPT = cli.cli_option("--restart", default=_RESTART_ALL,
                              metavar="STRATEGY",
                              choices=_RESTART_CHOICES,
@@ -113,7 +124,7 @@ class Merger(object):
   """Handling the merge.
 
   """
-  def __init__(self, clusters, pause_period, groups, restart):
+  def __init__(self, clusters, pause_period, groups, restart, params):
     """Initialize object with sane defaults and infos required.
 
     @param clusters: The list of clusters to merge in
@@ -130,6 +141,7 @@ class Merger(object):
     self.ssh_runner = ssh.SshRunner(self.cluster_name)
     self.groups = groups
     self.restart = restart
+    self.params = params
     if self.restart == _RESTART_UP:
       raise NotImplementedError
 
@@ -328,12 +340,10 @@ class Merger(object):
                               _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
-  # R0201: Method could be a function
   def _MergeClusterConfigs(self, my_config, other_config):
     """Checks that all relevant cluster parameters are compatible
 
     """
-    # pylint: disable-msg=R0201
     my_cluster = my_config.GetClusterInfo()
     other_cluster = other_config.GetClusterInfo()
     err_count = 0
@@ -353,10 +363,20 @@ class Merger(object):
       "primary_ip_family",
       "tags",
       "uid_pool",
-      "volume_group_name",
       ]
+    check_params_strict = [
+      "volume_group_name",
+    ]
     if constants.ENABLE_FILE_STORAGE:
-      check_params.append("file_storage_dir")
+      check_params_strict.append("file_storage_dir")
+    if constants.ENABLE_SHARED_FILE_STORAGE:
+      check_params_strict.append("shared_file_storage_dir")
+    check_params.extend(check_params_strict)
+
+    if self.params == _PARAMS_STRICT:
+      params_strict = True
+    else:
+      params_strict = False
 
     for param_name in check_params:
       my_param = getattr(my_cluster, param_name)
@@ -366,7 +386,8 @@ class Merger(object):
                       " differs to this cluster's value (%s)",
                       other_param, param_name, other_cluster.cluster_name,
                       my_param)
-        err_count += 1
+        if params_strict or param_name in check_params_strict:
+          err_count += 1
 
     #
     # Custom checks
@@ -390,7 +411,6 @@ class Merger(object):
       err_count += 1
 
     # Check hypervisor params for hypervisors we care about
-    # TODO: we probably don't care about all params for a given hypervisor
     for hyp in my_cluster.enabled_hypervisors:
       for param in my_cluster.hvparams[hyp]:
         my_value = my_cluster.hvparams[hyp][param]
@@ -401,7 +421,8 @@ class Merger(object):
                         " (%s)",
                         other_value, param, hyp, other_cluster.cluster_name,
                         my_value)
-          err_count += 1
+          if params_strict:
+            err_count += 1
 
     # Check os hypervisor params for hypervisors we care about
     for os_name in set(my_cluster.os_hvp.keys() + other_cluster.os_hvp.keys()):
@@ -414,7 +435,8 @@ class Merger(object):
                         " (%s)",
                         other_os_hvp, os_name, hyp, other_cluster.cluster_name,
                         my_os_hvp)
-          err_count += 1
+          if params_strict:
+            err_count += 1
 
     #
     # Warnings
@@ -455,7 +477,8 @@ class Merger(object):
                       " this cluster's parameters (%s)",
                       osparams, os_, other_cluster.cluster_name,
                       my_cluster.osparams[os_])
-        err_count += 1
+        if params_strict:
+          err_count += 1
 
     if err_count:
       raise errors.ConfigurationError("Cluster config for %s has incompatible"
@@ -718,6 +741,7 @@ def main():
   parser.add_option(PAUSE_PERIOD_OPT)
   parser.add_option(GROUPS_OPT)
   parser.add_option(RESTART_OPT)
+  parser.add_option(PARAMS_OPT)
 
   (options, args) = parser.parse_args()
 
@@ -727,7 +751,7 @@ def main():
     parser.error("No clusters specified")
 
   cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period,
-                          options.groups, options.restart)
+                          options.groups, options.restart, options.params)
   try:
     try:
       cluster_merger.Setup()
