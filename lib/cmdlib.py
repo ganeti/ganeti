@@ -12759,7 +12759,6 @@ class IAllocator(object):
     self.hypervisor = None
     self.relocate_from = None
     self.name = None
-    self.evac_nodes = None
     self.instances = None
     self.evac_mode = None
     self.target_groups = []
@@ -13041,15 +13040,6 @@ class IAllocator(object):
       }
     return request
 
-  def _AddEvacuateNodes(self):
-    """Add evacuate nodes data to allocator structure.
-
-    """
-    request = {
-      "evac_nodes": self.evac_nodes
-      }
-    return request
-
   def _AddNodeEvacuate(self):
     """Get data for node-evacuate requests.
 
@@ -13130,9 +13120,6 @@ class IAllocator(object):
       (_AddRelocateInstance,
        [("name", ht.TString), ("relocate_from", _STRING_LIST)],
        ht.TList),
-    constants.IALLOCATOR_MODE_MEVAC:
-      (_AddEvacuateNodes, [("evac_nodes", _STRING_LIST)],
-       ht.TListOf(ht.TAnd(ht.TIsLength(2), _STRING_LIST))),
      constants.IALLOCATOR_MODE_NODE_EVAC:
       (_AddNodeEvacuate, [
         ("instances", _STRING_LIST),
@@ -13191,8 +13178,7 @@ class IAllocator(object):
                                (self._result_check, self.result),
                                errors.ECODE_INVAL)
 
-    if self.mode in (constants.IALLOCATOR_MODE_RELOC,
-                     constants.IALLOCATOR_MODE_MEVAC):
+    if self.mode == constants.IALLOCATOR_MODE_RELOC:
       node2group = dict((name, ndata["group"])
                         for (name, ndata) in self.in_data["nodes"].items())
 
@@ -13211,17 +13197,6 @@ class IAllocator(object):
                                    " differ from original groups (%s)" %
                                    (utils.CommaJoin(result_groups),
                                     utils.CommaJoin(request_groups)))
-      elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
-        request_groups = fn(self.evac_nodes)
-        for (instance_name, secnode) in self.result:
-          result_groups = fn([secnode])
-          if result_groups != request_groups:
-            raise errors.OpExecError("Iallocator returned new secondary node"
-                                     " '%s' (group '%s') for instance '%s'"
-                                     " which is not in original group '%s'" %
-                                     (secnode, utils.CommaJoin(result_groups),
-                                      instance_name,
-                                      utils.CommaJoin(request_groups)))
       else:
         raise errors.ProgrammerError("Unhandled mode '%s'" % self.mode)
 
@@ -13307,10 +13282,6 @@ class LUTestAllocator(NoHooksLU):
       self.op.name = fname
       self.relocate_from = \
           list(self.cfg.GetInstanceInfo(fname).secondary_nodes)
-    elif self.op.mode == constants.IALLOCATOR_MODE_MEVAC:
-      if not hasattr(self.op, "evac_nodes"):
-        raise errors.OpPrereqError("Missing attribute 'evac_nodes' on"
-                                   " opcode input", errors.ECODE_INVAL)
     elif self.op.mode in (constants.IALLOCATOR_MODE_CHG_GROUP,
                           constants.IALLOCATOR_MODE_NODE_EVAC):
       if not self.op.instances:
@@ -13351,10 +13322,6 @@ class LUTestAllocator(NoHooksLU):
                        name=self.op.name,
                        relocate_from=list(self.relocate_from),
                        )
-    elif self.op.mode == constants.IALLOCATOR_MODE_MEVAC:
-      ial = IAllocator(self.cfg, self.rpc,
-                       mode=self.op.mode,
-                       evac_nodes=self.op.evac_nodes)
     elif self.op.mode == constants.IALLOCATOR_MODE_CHG_GROUP:
       ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,

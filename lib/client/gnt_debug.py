@@ -163,7 +163,6 @@ def TestAllocator(opts, args):
 
   op = opcodes.OpTestAllocator(mode=opts.mode,
                                name=args[0],
-                               evac_nodes=args,
                                instances=args,
                                memory=opts.memory,
                                disks=disks,

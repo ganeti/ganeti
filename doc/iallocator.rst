@@ -190,15 +190,16 @@ In all cases, it includes:
 
   type
     the request type; this can be either ``allocate``, ``relocate``,
-    ``change-group``, ``node-evacuate`` or ``multi-evacuate``. The
+    ``change-group`` or ``node-evacuate``. The
     ``allocate`` request is used when a new instance needs to be placed
     on the cluster. The ``relocate`` request is used when an existing
     instance needs to be moved within its node group.
 
     The ``multi-evacuate`` protocol used to request that the script
     computes the optimal relocate solution for all secondary instances
-    of the given nodes. It is now deprecated and should no longer be
-    used.
+    of the given nodes. It is now deprecated and needs only be
+    implemented if backwards compatibility with Ganeti 2.4 and lower is
+    needed.
 
     The ``change-group`` request is used to relocate multiple instances
     across multiple node groups. ``node-evacuate`` evacuates instances
@@ -302,12 +303,6 @@ As for ``node-evacuate``, it needs the following request arguments:
     should be considered for relocating instances to; type
     *list of strings*
 
-Finally, in the case of multi-evacuate, there's one single request
-argument (in addition to ``type``):
-
-  evac_nodes
-    the names of the nodes to be evacuated; type *list of strings*
-
 Response message
 ~~~~~~~~~~~~~~~~
 
@@ -334,9 +329,6 @@ result
   dictionary containing, among other information, a list of lists of
   serialized opcodes; see the :ref:`design document
   <multi-reloc-result>` for a detailed description
-
-  for multi-evacuation mode, this is a list of lists; each element of
-  the list is a list of instance name and the new secondary node
 
 .. note:: Current Ganeti version accepts either ``result`` or ``nodes``
    as a backwards-compatibility measure (older versions only supported
@@ -502,19 +494,6 @@ Input message, reallocation::
       "relocate_from": [
         "node3.example.com"
       ]
-    }
-  }
-
-Input message, node evacuation::
-
-  {
-    "version": 2,
-    ...
-    "request": {
-      "type": "multi-evacuate",
-      "evac_nodes": [
-        "node2"
-      ],
     }
   }
 

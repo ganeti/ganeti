@@ -1541,8 +1541,6 @@ class OpTestAllocator(OpCode):
     ("vcpus", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
     ("os", None, ht.TMaybeString, None),
     ("disk_template", None, ht.TMaybeString, None),
-    ("evac_nodes", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
-     None),
     ("instances", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
      None),
     ("evac_mode", None,
