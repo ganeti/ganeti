@@ -13192,7 +13192,7 @@ class IAllocator(object):
         request_groups = fn(self.relocate_from)
         result_groups = fn(rdict["result"])
 
-        if result_groups != request_groups:
+        if self.success and result_groups != request_groups:
           raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
                                    " differ from original groups (%s)" %
                                    (utils.CommaJoin(result_groups),
