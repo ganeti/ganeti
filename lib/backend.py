@@ -296,7 +296,7 @@ def StartMaster(start_daemons, no_voting):
       if family == netutils.IP6Address.family:
         ipcls = netutils.IP6Address
 
-      result = utils.RunCmd(["ip", "address", "add",
+      result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
                              "%s/%d" % (master_ip, ipcls.iplen),
                              "dev", master_netdev, "label",
                              "%s:0" % master_netdev])
@@ -343,7 +343,7 @@ def StopMaster(stop_daemons):
   if family == netutils.IP6Address.family:
     ipcls = netutils.IP6Address
 
-  result = utils.RunCmd(["ip", "address", "del",
+  result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
                          "%s/%d" % (master_ip, ipcls.iplen),
                          "dev", master_netdev])
   if result.failed:

@@ -886,6 +886,7 @@ lib/_autoconf.py: Makefile | lib/.dir
 	  echo "ENABLE_SHARED_FILE_STORAGE = $(ENABLE_SHARED_FILE_STORAGE)"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
+	  echo "IP_PATH = '$(IP_PATH)'"; \
 	  echo "SOCAT_PATH = '$(SOCAT)'"; \
 	  echo "SOCAT_USE_ESCAPE = $(SOCAT_USE_ESCAPE)"; \
 	  echo "SOCAT_USE_COMPRESS = $(SOCAT_USE_COMPRESS)"; \

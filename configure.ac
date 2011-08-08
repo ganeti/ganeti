@@ -275,6 +275,14 @@ AC_SUBST(DISK_SEPARATOR, $disk_separator)
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
+# Check for the ip command
+AC_ARG_VAR(IP_PATH, [ip path])
+AC_PATH_PROG(IP_PATH, [ip], [])
+if test -z "$IP_PATH"
+then
+  AC_MSG_ERROR([ip command not found])
+fi
+
 # Check for pandoc
 AC_ARG_VAR(PANDOC, [pandoc path])
 AC_PATH_PROG(PANDOC, [pandoc], [])

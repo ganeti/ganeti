@@ -568,6 +568,7 @@ NODE_MAX_CLOCK_SKEW = 150
 DISK_TRANSFER_CONNECT_TIMEOUT = 60
 # Disk index separator
 DISK_SEPARATOR = _autoconf.DISK_SEPARATOR
+IP_COMMAND_PATH = _autoconf.IP_PATH
 
 #: Key for job IDs in opcode result
 JOB_IDS_KEY = "jobs"
