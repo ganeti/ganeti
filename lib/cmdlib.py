@@ -13188,10 +13188,11 @@ class IAllocator(object):
       fn = compat.partial(self._NodesToGroups, node2group,
                           self.in_data["nodegroups"])
 
-      request_groups = fn(self.relocate_from)
-      result_groups = fn(rdict["result"])
+      instance = self.cfg.GetInstanceInfo(self.name)
+      request_groups = fn(self.relocate_from + [instance.primary_node])
+      result_groups = fn(rdict["result"] + [instance.primary_node])
 
-      if self.success and result_groups != request_groups:
+      if self.success and not set(result_groups).issubset(request_groups):
         raise errors.OpExecError("Groups of nodes returned by iallocator (%s)"
                                  " differ from original groups (%s)" %
                                  (utils.CommaJoin(result_groups),
