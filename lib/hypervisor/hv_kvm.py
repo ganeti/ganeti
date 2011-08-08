@@ -179,7 +179,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_USB_MOUSE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
     constants.HV_KEYMAP: hv_base.NO_CHECK,
-    constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
+    constants.HV_MIGRATION_PORT: hv_base.REQ_NET_PORT_CHECK,
     constants.HV_MIGRATION_BANDWIDTH: hv_base.NO_CHECK,
     constants.HV_MIGRATION_DOWNTIME: hv_base.NO_CHECK,
     constants.HV_MIGRATION_MODE: hv_base.MIGRATION_MODE_CHECK,

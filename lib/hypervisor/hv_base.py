@@ -72,15 +72,19 @@ _CPU_MASK_CHECK = (_IsCpuMaskWellFormed,
                    "CPU mask definition is not well-formed",
                    None, None)
 
+# Check for validity of port number
+_NET_PORT_CHECK = (lambda x: 0 < x < 65535, "invalid port number",
+                   None, None)
+
 # nice wrappers for users
 REQ_FILE_CHECK = (True, ) + _FILE_CHECK
 OPT_FILE_CHECK = (False, ) + _FILE_CHECK
 REQ_DIR_CHECK = (True, ) + _DIR_CHECK
 OPT_DIR_CHECK = (False, ) + _DIR_CHECK
-NET_PORT_CHECK = (True, lambda x: x > 0 and x < 65535, "invalid port number",
-                  None, None)
-OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
+REQ_NET_PORT_CHECK = (True, ) + _NET_PORT_CHECK
+OPT_NET_PORT_CHECK = (False, ) + _NET_PORT_CHECK
 REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
+OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
 
 # no checks at all
 NO_CHECK = (False, None, None, None, None)
