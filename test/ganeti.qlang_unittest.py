@@ -54,13 +54,7 @@ class TestParseFilter(unittest.TestCase):
     self.parser = qlang.BuildFilterParser()
 
   def _Test(self, filter_, expected, expect_filter=True):
-    if expect_filter:
-      self.assertTrue(qlang.MaybeFilter(filter_),
-                      msg="'%s' was not recognized as a filter" % filter_)
-    else:
-      self.assertFalse(qlang.MaybeFilter(filter_),
-                       msg=("'%s' should not be recognized as a filter" %
-                            filter_))
+    self.assertEqual(qlang.MakeFilter([filter_], not expect_filter), expected)
     self.assertEqual(qlang.ParseFilter(filter_, parser=self.parser), expected)
 
   def test(self):
@@ -182,21 +176,62 @@ class TestParseFilter(unittest.TestCase):
         self.fail("Invalid filter '%s' did not raise exception" % filter_)
 
 
-class TestMaybeFilter(unittest.TestCase):
-  def test(self):
-    self.assertTrue(qlang.MaybeFilter(""))
-    self.assertTrue(qlang.MaybeFilter("foo/bar"))
-    self.assertTrue(qlang.MaybeFilter("foo==bar"))
+class TestMakeFilter(unittest.TestCase):
+  def testNoNames(self):
+    self.assertEqual(qlang.MakeFilter([], False), None)
+    self.assertEqual(qlang.MakeFilter(None, False), None)
 
-    for i in set("()!~" + string.whitespace) | qlang.FILTER_DETECTION_CHARS:
-      self.assertTrue(qlang.MaybeFilter(i),
-                      msg="%r not recognized as filter" % i)
+  def testPlainNames(self):
+    self.assertEqual(qlang.MakeFilter(["web1", "web2"], False),
+                     [qlang.OP_OR, [qlang.OP_EQUAL, "name", "web1"],
+                                   [qlang.OP_EQUAL, "name", "web2"]])
 
-    self.assertFalse(qlang.MaybeFilter("node1"))
-    self.assertFalse(qlang.MaybeFilter("n-o-d-e"))
-    self.assertFalse(qlang.MaybeFilter("n_o_d_e"))
-    self.assertFalse(qlang.MaybeFilter("node1.example.com"))
-    self.assertFalse(qlang.MaybeFilter("node1.example.com."))
+  def testForcedFilter(self):
+    for i in [None, [], ["1", "2"], ["", "", ""], ["a", "b", "c", "d"]]:
+      self.assertRaises(errors.OpPrereqError, qlang.MakeFilter, i, True)
+
+    # Glob pattern shouldn't parse as filter
+    self.assertRaises(errors.QueryFilterParseError,
+                      qlang.MakeFilter, ["*.site"], True)
+
+    # Plain name parses as boolean filter
+    self.assertEqual(qlang.MakeFilter(["web1"], True), [qlang.OP_TRUE, "web1"])
+
+  def testFilter(self):
+    self.assertEqual(qlang.MakeFilter(["foo/bar"], False),
+                     [qlang.OP_TRUE, "foo/bar"])
+    self.assertEqual(qlang.MakeFilter(["foo=='bar'"], False),
+                     [qlang.OP_EQUAL, "foo", "bar"])
+    self.assertEqual(qlang.MakeFilter(["field=*'*.site'"], False),
+                     [qlang.OP_REGEXP, "field",
+                      utils.DnsNameGlobPattern("*.site")])
+
+    # Plain name parses as name filter, not boolean
+    for name in ["node1", "n-o-d-e", "n_o_d_e", "node1.example.com",
+                 "node1.example.com."]:
+      self.assertEqual(qlang.MakeFilter([name], False),
+                       [qlang.OP_OR, [qlang.OP_EQUAL, "name", name]])
+
+    # Invalid filters
+    for i in ["foo==bar", "foo+=1"]:
+      self.assertRaises(errors.QueryFilterParseError,
+                        qlang.MakeFilter, [i], False)
+
+  def testGlob(self):
+    self.assertEqual(qlang.MakeFilter(["*.site"], False),
+                     [qlang.OP_OR, [qlang.OP_REGEXP, "name",
+                                    utils.DnsNameGlobPattern("*.site")]])
+    self.assertEqual(qlang.MakeFilter(["web?.example"], False),
+                     [qlang.OP_OR, [qlang.OP_REGEXP, "name",
+                                    utils.DnsNameGlobPattern("web?.example")]])
+    self.assertEqual(qlang.MakeFilter(["*.a", "*.b", "?.c"], False),
+                     [qlang.OP_OR,
+                      [qlang.OP_REGEXP, "name",
+                       utils.DnsNameGlobPattern("*.a")],
+                      [qlang.OP_REGEXP, "name",
+                       utils.DnsNameGlobPattern("*.b")],
+                      [qlang.OP_REGEXP, "name",
+                       utils.DnsNameGlobPattern("?.c")]])
 
 
 if __name__ == "__main__":

@@ -33,12 +33,14 @@ converted to callable functions by L{query._CompileFilter}.
 
 import re
 import string # pylint: disable-msg=W0402
+import logging
 
 import pyparsing as pyp
 
 from ganeti import errors
 from ganeti import netutils
 from ganeti import utils
+from ganeti import compat
 
 
 # Logic operators with one or more operands, each of which is a filter on its
@@ -61,7 +63,10 @@ OP_CONTAINS = "=[]"
 
 
 #: Characters used for detecting user-written filters (see L{MaybeFilter})
-FILTER_DETECTION_CHARS = frozenset("()=/!~" + string.whitespace)
+FILTER_DETECTION_CHARS = frozenset("()=/!~'\"\\" + string.whitespace)
+
+#: Characters used to detect globbing filters (see L{MaybeGlobbing})
+GLOB_DETECTION_CHARS = frozenset("*?")
 
 
 def MakeSimpleFilter(namefield, values):
@@ -233,6 +238,8 @@ def ParseFilter(text, parser=None):
   @rtype: list
 
   """
+  logging.debug("Parsing as query filter: %s", text)
+
   if parser is None:
     parser = BuildFilterParser()
 
@@ -243,25 +250,75 @@ def ParseFilter(text, parser=None):
                                        " '%s': %s" % (text, err), err)
 
 
-def MaybeFilter(text):
-  """Try to determine if a string is a filter or a name.
+def _IsHostname(text):
+  """Checks if a string could be a hostname.
 
-  If in doubt, this function treats a text as a name.
-
-  @type text: string
-  @param text: String to be examined
   @rtype: bool
 
   """
-  # Quick check for punctuation and whitespace
-  if frozenset(text) & FILTER_DETECTION_CHARS:
-    return True
-
   try:
     netutils.Hostname.GetNormalizedName(text)
   except errors.OpPrereqError:
-    # Not a valid hostname, treat as filter
+    return False
+  else:
     return True
 
-  # Most probably a name
-  return False
+
+def _CheckFilter(text):
+  """CHecks if a string could be a filter.
+
+  @rtype: bool
+
+  """
+  return bool(frozenset(text) & FILTER_DETECTION_CHARS)
+
+
+def _CheckGlobbing(text):
+  """Checks if a string could be a globbing pattern.
+
+  @rtype: bool
+
+  """
+  return bool(frozenset(text) & GLOB_DETECTION_CHARS)
+
+
+def _MakeFilterPart(namefield, text):
+  """Generates filter for one argument.
+
+  """
+  if _CheckGlobbing(text):
+    return [OP_REGEXP, namefield, utils.DnsNameGlobPattern(text)]
+  else:
+    return [OP_EQUAL, namefield, text]
+
+
+def MakeFilter(args, force_filter):
+  """Try to make a filter from arguments to a command.
+
+  If the name could be a filter it is parsed as such. If it's just a globbing
+  pattern, e.g. "*.site", such a filter is constructed. As a last resort the
+  names are treated just as a plain name filter.
+
+  @type args: list of string
+  @param args: Arguments to command
+  @type force_filter: bool
+  @param force_filter: Whether to force treatment as a full-fledged filter
+  @rtype: list
+  @return: Query filter
+
+  """
+  if (force_filter or
+      (args and len(args) == 1 and _CheckFilter(args[0]))):
+    try:
+      (filter_text, ) = args
+    except (TypeError, ValueError):
+      raise errors.OpPrereqError("Exactly one argument must be given as a"
+                                 " filter")
+
+    result = ParseFilter(filter_text)
+  elif args:
+    result = [OP_OR] + map(compat.partial(_MakeFilterPart, "name"), args)
+  else:
+    result = None
+
+  return result

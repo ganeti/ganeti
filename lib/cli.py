@@ -2661,18 +2661,7 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   if not names:
     names = None
 
-  if (force_filter or
-      (names and len(names) == 1 and qlang.MaybeFilter(names[0]))):
-    try:
-      (filter_text, ) = names
-    except ValueError:
-      raise errors.OpPrereqError("Exactly one argument must be given as a"
-                                 " filter")
-
-    logging.debug("Parsing '%s' as filter", filter_text)
-    filter_ = qlang.ParseFilter(filter_text)
-  else:
-    filter_ = qlang.MakeSimpleFilter("name", names)
+  filter_ = qlang.MakeFilter(names, force_filter)
 
   response = cl.Query(resource, fields, filter_)
 
