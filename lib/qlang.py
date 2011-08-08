@@ -62,10 +62,10 @@ OP_REGEXP = "=~"
 OP_CONTAINS = "=[]"
 
 
-#: Characters used for detecting user-written filters (see L{MaybeFilter})
+#: Characters used for detecting user-written filters (see L{_CheckFilter})
 FILTER_DETECTION_CHARS = frozenset("()=/!~'\"\\" + string.whitespace)
 
-#: Characters used to detect globbing filters (see L{MaybeGlobbing})
+#: Characters used to detect globbing filters (see L{_CheckGlobbing})
 GLOB_DETECTION_CHARS = frozenset("*?")
 
 
