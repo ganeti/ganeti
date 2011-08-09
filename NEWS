@@ -6,32 +6,125 @@ Version 2.5.0 beta1
 
 *(unreleased)*
 
-
-Incompatible/important changes:
+Incompatible/important changes and bugfixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The default of the ``/2/instances/[instance_name]/rename`` RAPI
   resource's ``ip_check`` parameter changed from ``True`` to ``False``
-  to match the underlying LUXI interface
+  to match the underlying LUXI interface.
 - The ``/2/nodes/[node_name]/evacuate`` RAPI resource was changed to use
   body parameters, see :doc:`RAPI documentation <rapi>`. The server does
   not maintain backwards-compatibility as the underlying operation
   changed in an incompatible way. The RAPI client can talk to old
   servers, but it needs to be told so as the return value changed.
 - When creating file-based instances via RAPI, the ``file_driver``
-  parameter no longer defaults to ``loop`` and must be specified
-- The deprecated "bridge" nic parameter is no longer supported. Use
-  "link" instead.
+  parameter no longer defaults to ``loop`` and must be specified.
+- The deprecated ``bridge`` NIC parameter is no longer supported. Use
+  ``link`` instead.
 - Support for the undocumented and deprecated RAPI instance creation
   request format version 0 has been dropped. Use version 1, supported
   since Ganeti 2.1.3 and :doc:`documented <rapi>`, instead.
 - Pyparsing 1.4.6 or above is required, see :doc:`installation
-  documentation <install>`
+  documentation <install>`.
 - The "cluster-verify" hooks are now executed per group by the
-  OP_CLUSTER_VERIFY_GROUP opcode. This maintains the same behavior if
-  you just run "gnt-cluster verify", which generates one op per group.
+  ``OP_CLUSTER_VERIFY_GROUP`` opcode. This maintains the same behavior
+  if you just run ``gnt-cluster verify``, which generates one opcode per
+  group.
 - The environment as passed to the OS scripts is cleared, and thus no
   environment variables defined in the node daemon's environment will be
-  inherited by the scripts
+  inherited by the scripts.
+- The :doc:`iallocator <iallocator>` mode ``multi-evacuate`` has been
+  deprecated.
+- :doc:`New iallocator modes <design-multi-reloc>` have been added to
+  support operations involving multiple node groups.
+- Offline nodes are ignored when failing over an instance.
+
+New features
+~~~~~~~~~~~~
+
+- The ganeti-htools project has been merged into the ganeti-core source
+  tree and will be built as part of Ganeti (see :doc:`install-quick`).
+- Implemented support for :doc:`shared storage <design-shared-storage>`.
+- Add support for disks larger than 2 TB in ``lvmstrap`` by supporting
+  GPT-style partition tables (requires `parted
+  <http://www.gnu.org/s/parted/>`_).
+- Added support for floppy drive and 2nd CD-ROM drive in KVM hypervisor.
+- Allowed adding tags on instance creation.
+- Export instance tags to hooks (``INSTANCE_TAGS``, see :doc:`hooks`)
+- Allow instances to be started in a paused state, enabling the user to
+  see the complete console output on boot using the console.
+- Added new hypervisor flag to control default reboot behaviour
+  (``reboot_behavior``).
+- Added support for KVM keymaps (hypervisor parameter ``keymap``).
+- Improved out-of-band management support:
+
+  - Added ``gnt-node health`` command reporting the health status of
+    nodes.
+  - Added ``gnt-node power`` command to manage power status of nodes.
+  - Added command for emergency power-off (EPO), ``gnt-cluster epo``.
+
+- Instance migration can fall back to failover if instance is not
+  running.
+- Filters can be used when listing nodes, instances, groups and locks;
+  see *ganeti(7)* manpage.
+- Added post-execution status as variables to :doc:`hooks <hooks>`
+  environment.
+- Instance tags are exported/imported together with the instance.
+- When given an explicit job ID, ``gnt-job info`` will work for archived
+  jobs.
+- Jobs can define dependencies on other jobs (not yet supported via
+  RAPI or command line, but used by internal commands and usable via
+  LUXI).
+
+  - Lock monitor (``gnt-debug locks``) shows jobs waiting for
+    dependencies.
+
+- Instance failover is now available as a RAPI resource
+  (``/2/instances/[instance_name]/failover``).
+- ``gnt-instance info`` defaults to static information if primary node
+  is offline.
+- Opcodes have a new ``comment`` attribute.
+
+Node group improvements
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``gnt-cluster verify`` has been modified to check groups separately,
+  thereby improving performance.
+- Node group support has been added to ``gnt-cluster verify-disks``,
+  which now operates per node group.
+- Watcher has been changed to work better with node groups.
+
+  - One process and state file per node group.
+  - Slow watcher in one group doesn't block other group's watcher.
+
+- Added new command, ``gnt-group evacuate``, to move all instances in a
+  node group to other groups.
+- Added ``gnt-instance change-group`` to move an instance to another
+  node group.
+- ``gnt-cluster command`` and ``gnt-cluster copyfile`` now support
+  per-group operations.
+- Node groups can be tagged.
+- Some operations switch from an exclusive to a shared lock as soon as
+  possible.
+- Instance's primary and secondary nodes' groups are now available as
+  query fields (``pnode.group``, ``pnode.group.uuid``, ``snodes.group``
+  and ``snodes.group.uuid``).
+
+Misc
+~~~~
+
+- Numerous updates to documentation and manpages.
+
+  - :doc:`RAPI <rapi>` documentation now has detailed parameter
+    descriptions.
+
+- A lockset's internal lock is now also visible in lock monitor.
+- Log messages from job queue workers now contain information about the
+  opcode they're processing.
+- ``gnt-instance console`` no longer requires the instance lock.
+- A short delay when waiting for job changes reduces the number of LUXI
+  requests significantly.
+- DRBD metadata volumes are overwritten with zeros during disk creation.
 
 
 Version 2.4.3
