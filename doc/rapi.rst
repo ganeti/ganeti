@@ -395,6 +395,8 @@ If the optional bool *bulk* argument is provided and set to a true value
 (i.e ``?bulk=1``), the output contains detailed information about node
 groups as a list.
 
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.G_FIELDS))`
+
 Example::
 
     [
@@ -447,6 +449,8 @@ It supports the following commands: ``GET``, ``DELETE``.
 
 Returns information about a node group, similar to the bulk output from
 the node group list.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.G_FIELDS))`
 
 ``DELETE``
 ~~~~~~~~~~
@@ -579,6 +583,8 @@ If the optional bool *bulk* argument is provided and set to a true value
 (i.e ``?bulk=1``), the output contains detailed information about
 instances as a list.
 
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.I_FIELDS))`
+
 Example::
 
     [
@@ -647,6 +653,8 @@ It supports the following commands: ``GET``, ``DELETE``.
 
 Returns information about an instance, similar to the bulk output from
 the instance list.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.I_FIELDS))`
 
 ``DELETE``
 ~~~~~~~~~~
@@ -943,22 +951,32 @@ Supports the following commands: ``GET``.
 Returns a dictionary containing information about the instance's
 console. Contained keys:
 
+.. pyassert::
+
+   constants.CONS_ALL == frozenset([
+     constants.CONS_MESSAGE,
+     constants.CONS_SSH,
+     constants.CONS_VNC,
+     ])
+
 ``instance``
   Instance name.
 ``kind``
-  Console type, one of ``ssh``, ``vnc`` or ``msg``.
+  Console type, one of :pyeval:`constants.CONS_SSH`,
+  :pyeval:`constants.CONS_VNC` or :pyeval:`constants.CONS_MESSAGE`.
 ``message``
-  Message to display (``msg`` type only).
+  Message to display (:pyeval:`constants.CONS_MESSAGE` type only).
 ``host``
-  Host to connect to (``ssh`` and ``vnc`` only).
+  Host to connect to (:pyeval:`constants.CONS_SSH` and
+  :pyeval:`constants.CONS_VNC` only).
 ``port``
-  TCP port to connect to (``vnc`` only).
+  TCP port to connect to (:pyeval:`constants.CONS_VNC` only).
 ``user``
-  Username to use (``ssh`` only).
+  Username to use (:pyeval:`constants.CONS_SSH` only).
 ``command``
-  Command to execute on machine (``ssh`` only)
+  Command to execute on machine (:pyeval:`constants.CONS_SSH` only)
 ``display``
-  VNC display number (``vnc`` only).
+  VNC display number (:pyeval:`constants.CONS_VNC` only).
 
 
 ``/2/instances/[instance_name]/tags``
@@ -1019,6 +1037,10 @@ If the optional bool *bulk* argument is provided and set to a true value
 (i.e. ``?bulk=1``), the output contains detailed information about jobs
 as a list.
 
+Returned fields for bulk requests (unlike other bulk requests, these
+fields are not the same as for per-job requests):
+:pyeval:`utils.CommaJoin(sorted(rlib2.J_FIELDS_BULK))`
+
 ``/2/jobs/[job_id]``
 ++++++++++++++++++++
 
@@ -1030,9 +1052,8 @@ It supports the following commands: ``GET``, ``DELETE``.
 ``GET``
 ~~~~~~~
 
-Returns a job status.
-
-Returns: a dictionary with job parameters.
+Returns a dictionary with job parameters, containing the fields
+:pyeval:`utils.CommaJoin(sorted(rlib2.J_FIELDS))`.
 
 The result includes:
 
@@ -1164,9 +1185,11 @@ Example::
       }
     ]
 
-If the optional 'bulk' argument is provided and set to 'true' value (i.e
-'?bulk=1'), the output contains detailed information about nodes as a
-list.
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about nodes
+as a list.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.N_FIELDS))`
 
 Example::
 
@@ -1192,6 +1215,8 @@ Example::
 Returns information about a node.
 
 It supports the following commands: ``GET``.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.N_FIELDS))`
 
 ``/2/nodes/[node_name]/evacuate``
 +++++++++++++++++++++++++++++++++
