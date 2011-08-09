@@ -952,10 +952,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   @classmethod
   def _GetKVMVersion(cls):
-    """Return the installed KVM version
+    """Return the installed KVM version.
 
     @return: (version, v_maj, v_min, v_rev)
-    @raise: L{errors.HypervisorError}
+    @raise L{errors.HypervisorError}: when the KVM version cannot be retrieved
 
     """
     result = utils.RunCmd([constants.KVM_PATH, "--help"])
