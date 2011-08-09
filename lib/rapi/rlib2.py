@@ -74,11 +74,12 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "group.uuid",
             ] + _COMMON_FIELDS
 
-G_FIELDS = ["name", "uuid",
-            "alloc_policy",
-            "node_cnt", "node_list",
-            "ctime", "mtime", "serial_no",
-            ]  # "tags" is missing to be able to use _COMMON_FIELDS here.
+G_FIELDS = [
+  "alloc_policy",
+  "name",
+  "node_cnt",
+  "node_list",
+  ] + _COMMON_FIELDS
 
 J_FIELDS = [
   "id", "ops", "status", "summary",

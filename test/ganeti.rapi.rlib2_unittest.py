@@ -45,6 +45,16 @@ class TestConstants(unittest.TestCase):
     assert "console" in query.INSTANCE_FIELDS
     self.assertTrue("console" not in rlib2.I_FIELDS)
 
+  def testFields(self):
+    checks = {
+      constants.QR_INSTANCE: rlib2.I_FIELDS,
+      constants.QR_NODE: rlib2.N_FIELDS,
+      constants.QR_GROUP: rlib2.G_FIELDS,
+      }
+
+    for (qr, fields) in checks.items():
+      self.assertFalse(set(fields) - set(query.ALL_FIELDS[qr].keys()))
+
 
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
