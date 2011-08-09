@@ -1015,6 +1015,10 @@ Returns a dictionary of jobs.
 
 Returns: a dictionary with jobs id and uri.
 
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e. ``?bulk=1``), the output contains detailed information about jobs
+as a list.
+
 ``/2/jobs/[job_id]``
 ++++++++++++++++++++
 

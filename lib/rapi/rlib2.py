@@ -47,6 +47,7 @@ from ganeti import constants
 from ganeti import cli
 from ganeti import rapi
 from ganeti import ht
+from ganeti import compat
 from ganeti.rapi import baserlib
 
 
@@ -78,6 +79,12 @@ G_FIELDS = ["name", "uuid",
             "node_cnt", "node_list",
             "ctime", "mtime", "serial_no",
             ]  # "tags" is missing to be able to use _COMMON_FIELDS here.
+
+J_FIELDS = [
+  "id", "ops", "status", "summary",
+  "opstatus", "opresult", "oplog",
+  "received_ts", "start_ts", "end_ts",
+  ]
 
 _NR_DRAINED = "drained"
 _NR_MASTER_CANDIATE = "master-candidate"
@@ -223,19 +230,21 @@ class R_2_jobs(baserlib.R_Generic):
   """/2/jobs resource.
 
   """
-  @staticmethod
-  def GET():
+  def GET(self):
     """Returns a dictionary of jobs.
 
     @return: a dictionary with jobs id and uri.
 
     """
-    fields = ["id"]
-    cl = baserlib.GetClient()
-    # Convert the list of lists to the list of ids
-    result = [job_id for [job_id] in cl.QueryJobs(None, fields)]
-    return baserlib.BuildUriList(result, "/2/jobs/%s",
-                                 uri_fields=("id", "uri"))
+    client = baserlib.GetClient()
+
+    if self.useBulk():
+      bulkdata = client.QueryJobs(None, J_FIELDS)
+      return baserlib.MapBulkFields(bulkdata, J_FIELDS)
+    else:
+      jobdata = map(compat.fst, client.QueryJobs(None, ["id"]))
+      return baserlib.BuildUriList(jobdata, "/2/jobs/%s",
+                                   uri_fields=("id", "uri"))
 
 
 class R_2_jobs_id(baserlib.R_Generic):
@@ -255,15 +264,11 @@ class R_2_jobs_id(baserlib.R_Generic):
             - opresult: OpCodes results as a list of lists
 
     """
-    fields = ["id", "ops", "status", "summary",
-              "opstatus", "opresult", "oplog",
-              "received_ts", "start_ts", "end_ts",
-              ]
     job_id = self.items[0]
-    result = baserlib.GetClient().QueryJobs([job_id, ], fields)[0]
+    result = baserlib.GetClient().QueryJobs([job_id, ], J_FIELDS)[0]
     if result is None:
       raise http.HttpNotFound()
-    return baserlib.MapFields(fields, result)
+    return baserlib.MapFields(J_FIELDS, result)
 
   def DELETE(self):
     """Cancel not-yet-started job.
