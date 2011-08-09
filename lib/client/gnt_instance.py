@@ -41,20 +41,21 @@ from ganeti import ssh
 from ganeti import objects
 
 
-_SHUTDOWN_CLUSTER = "cluster"
-_SHUTDOWN_NODES_BOTH = "nodes"
-_SHUTDOWN_NODES_PRI = "nodes-pri"
-_SHUTDOWN_NODES_SEC = "nodes-sec"
-_SHUTDOWN_NODES_BOTH_BY_TAGS = "nodes-by-tags"
-_SHUTDOWN_NODES_PRI_BY_TAGS = "nodes-pri-by-tags"
-_SHUTDOWN_NODES_SEC_BY_TAGS = "nodes-sec-by-tags"
-_SHUTDOWN_INSTANCES = "instances"
-_SHUTDOWN_INSTANCES_BY_TAGS = "instances-by-tags"
+_EXPAND_CLUSTER = "cluster"
+_EXPAND_NODES_BOTH = "nodes"
+_EXPAND_NODES_PRI = "nodes-pri"
+_EXPAND_NODES_SEC = "nodes-sec"
+_EXPAND_NODES_BOTH_BY_TAGS = "nodes-by-tags"
+_EXPAND_NODES_PRI_BY_TAGS = "nodes-pri-by-tags"
+_EXPAND_NODES_SEC_BY_TAGS = "nodes-sec-by-tags"
+_EXPAND_INSTANCES = "instances"
+_EXPAND_INSTANCES_BY_TAGS = "instances-by-tags"
 
-_SHUTDOWN_NODES_TAGS_MODES = (
-    _SHUTDOWN_NODES_BOTH_BY_TAGS,
-    _SHUTDOWN_NODES_PRI_BY_TAGS,
-    _SHUTDOWN_NODES_SEC_BY_TAGS)
+_EXPAND_NODES_TAGS_MODES = frozenset([
+  _EXPAND_NODES_BOTH_BY_TAGS,
+  _EXPAND_NODES_PRI_BY_TAGS,
+  _EXPAND_NODES_SEC_BY_TAGS,
+  ])
 
 
 #: default list of options for L{ListInstances}
@@ -66,16 +67,16 @@ _LIST_DEF_FIELDS = [
 def _ExpandMultiNames(mode, names, client=None):
   """Expand the given names using the passed mode.
 
-  For _SHUTDOWN_CLUSTER, all instances will be returned. For
-  _SHUTDOWN_NODES_PRI/SEC, all instances having those nodes as
-  primary/secondary will be returned. For _SHUTDOWN_NODES_BOTH, all
+  For _EXPAND_CLUSTER, all instances will be returned. For
+  _EXPAND_NODES_PRI/SEC, all instances having those nodes as
+  primary/secondary will be returned. For _EXPAND_NODES_BOTH, all
   instances having those nodes as either primary or secondary will be
-  returned. For _SHUTDOWN_INSTANCES, the given instances will be
+  returned. For _EXPAND_INSTANCES, the given instances will be
   returned.
 
-  @param mode: one of L{_SHUTDOWN_CLUSTER}, L{_SHUTDOWN_NODES_BOTH},
-      L{_SHUTDOWN_NODES_PRI}, L{_SHUTDOWN_NODES_SEC} or
-      L{_SHUTDOWN_INSTANCES}
+  @param mode: one of L{_EXPAND_CLUSTER}, L{_EXPAND_NODES_BOTH},
+      L{_EXPAND_NODES_PRI}, L{_EXPAND_NODES_SEC} or
+      L{_EXPAND_INSTANCES}
   @param names: a list of names; for cluster, it must be empty,
       and for node and instance it must be a list of valid item
       names (short names are valid as usual, e.g. node1 instead of
@@ -90,17 +91,16 @@ def _ExpandMultiNames(mode, names, client=None):
 
   if client is None:
     client = GetClient()
-  if mode == _SHUTDOWN_CLUSTER:
+  if mode == _EXPAND_CLUSTER:
     if names:
       raise errors.OpPrereqError("Cluster filter mode takes no arguments",
                                  errors.ECODE_INVAL)
     idata = client.QueryInstances([], ["name"], False)
     inames = [row[0] for row in idata]
 
-  elif mode in (_SHUTDOWN_NODES_BOTH,
-                _SHUTDOWN_NODES_PRI,
-                _SHUTDOWN_NODES_SEC) + _SHUTDOWN_NODES_TAGS_MODES:
-    if mode in _SHUTDOWN_NODES_TAGS_MODES:
+  elif (mode in _EXPAND_NODES_TAGS_MODES or
+        mode in (_EXPAND_NODES_BOTH, _EXPAND_NODES_PRI, _EXPAND_NODES_SEC)):
+    if mode in _EXPAND_NODES_TAGS_MODES:
       if not names:
         raise errors.OpPrereqError("No node tags passed", errors.ECODE_INVAL)
       ndata = client.QueryNodes([], ["name", "pinst_list",
@@ -116,21 +116,21 @@ def _ExpandMultiNames(mode, names, client=None):
     pri_names = list(itertools.chain(*ipri))
     isec = [row[2] for row in ndata]
     sec_names = list(itertools.chain(*isec))
-    if mode in (_SHUTDOWN_NODES_BOTH, _SHUTDOWN_NODES_BOTH_BY_TAGS):
+    if mode in (_EXPAND_NODES_BOTH, _EXPAND_NODES_BOTH_BY_TAGS):
       inames = pri_names + sec_names
-    elif mode in (_SHUTDOWN_NODES_PRI, _SHUTDOWN_NODES_PRI_BY_TAGS):
+    elif mode in (_EXPAND_NODES_PRI, _EXPAND_NODES_PRI_BY_TAGS):
       inames = pri_names
-    elif mode in (_SHUTDOWN_NODES_SEC, _SHUTDOWN_NODES_SEC_BY_TAGS):
+    elif mode in (_EXPAND_NODES_SEC, _EXPAND_NODES_SEC_BY_TAGS):
       inames = sec_names
     else:
       raise errors.ProgrammerError("Unhandled shutdown type")
-  elif mode == _SHUTDOWN_INSTANCES:
+  elif mode == _EXPAND_INSTANCES:
     if not names:
       raise errors.OpPrereqError("No instance names passed",
                                  errors.ECODE_INVAL)
     idata = client.QueryInstances(names, ["name"], False)
     inames = [row[0] for row in idata]
-  elif mode == _SHUTDOWN_INSTANCES_BY_TAGS:
+  elif mode == _EXPAND_INSTANCES_BY_TAGS:
     if not names:
       raise errors.OpPrereqError("No instance tags passed",
                                  errors.ECODE_INVAL)
@@ -175,16 +175,16 @@ def GenericManyOps(operation, fn):
   """
   def realfn(opts, args):
     if opts.multi_mode is None:
-      opts.multi_mode = _SHUTDOWN_INSTANCES
+      opts.multi_mode = _EXPAND_INSTANCES
     cl = GetClient()
     inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
     if not inames:
-      if opts.multi_mode == _SHUTDOWN_CLUSTER:
+      if opts.multi_mode == _EXPAND_CLUSTER:
         ToStdout("Cluster is empty, no instances to shutdown")
         return 0
       raise errors.OpPrereqError("Selection filter does not match"
                                  " any instances", errors.ECODE_INVAL)
-    multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
+    multi_on = opts.multi_mode != _EXPAND_INSTANCES or len(inames) > 1
     if not (opts.force_multi or not multi_on
             or ConfirmOperation(inames, "instances", operation)):
       return 1
@@ -413,7 +413,7 @@ def ReinstallInstance(opts, args):
   """
   # first, compute the desired name list
   if opts.multi_mode is None:
-    opts.multi_mode = _SHUTDOWN_INSTANCES
+    opts.multi_mode = _EXPAND_INSTANCES
 
   inames = _ExpandMultiNames(opts.multi_mode, args)
   if not inames:
@@ -458,7 +458,7 @@ def ReinstallInstance(opts, args):
   # third, get confirmation: multi-reinstall requires --force-multi,
   # single-reinstall either --force or --force-multi (--force-multi is
   # a stronger --force)
-  multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
+  multi_on = opts.multi_mode != _EXPAND_INSTANCES or len(inames) > 1
   if multi_on:
     warn_msg = ("Note: this will remove *all* data for the"
                 " below instances! It will %s.\n" % os_msg)
@@ -1354,42 +1354,42 @@ m_force_multi = cli_option("--force-multiple", dest="force_multi",
 
 m_pri_node_opt = cli_option("--primary", dest="multi_mode",
                             help="Filter by nodes (primary only)",
-                            const=_SHUTDOWN_NODES_PRI, action="store_const")
+                            const=_EXPAND_NODES_PRI, action="store_const")
 
 m_sec_node_opt = cli_option("--secondary", dest="multi_mode",
                             help="Filter by nodes (secondary only)",
-                            const=_SHUTDOWN_NODES_SEC, action="store_const")
+                            const=_EXPAND_NODES_SEC, action="store_const")
 
 m_node_opt = cli_option("--node", dest="multi_mode",
                         help="Filter by nodes (primary and secondary)",
-                        const=_SHUTDOWN_NODES_BOTH, action="store_const")
+                        const=_EXPAND_NODES_BOTH, action="store_const")
 
 m_clust_opt = cli_option("--all", dest="multi_mode",
                          help="Select all instances in the cluster",
-                         const=_SHUTDOWN_CLUSTER, action="store_const")
+                         const=_EXPAND_CLUSTER, action="store_const")
 
 m_inst_opt = cli_option("--instance", dest="multi_mode",
                         help="Filter by instance name [default]",
-                        const=_SHUTDOWN_INSTANCES, action="store_const")
+                        const=_EXPAND_INSTANCES, action="store_const")
 
 m_node_tags_opt = cli_option("--node-tags", dest="multi_mode",
                              help="Filter by node tag",
-                             const=_SHUTDOWN_NODES_BOTH_BY_TAGS,
+                             const=_EXPAND_NODES_BOTH_BY_TAGS,
                              action="store_const")
 
 m_pri_node_tags_opt = cli_option("--pri-node-tags", dest="multi_mode",
                                  help="Filter by primary node tag",
-                                 const=_SHUTDOWN_NODES_PRI_BY_TAGS,
+                                 const=_EXPAND_NODES_PRI_BY_TAGS,
                                  action="store_const")
 
 m_sec_node_tags_opt = cli_option("--sec-node-tags", dest="multi_mode",
                                  help="Filter by secondary node tag",
-                                 const=_SHUTDOWN_NODES_SEC_BY_TAGS,
+                                 const=_EXPAND_NODES_SEC_BY_TAGS,
                                  action="store_const")
 
 m_inst_tags_opt = cli_option("--tags", dest="multi_mode",
                              help="Filter by instance tag",
-                             const=_SHUTDOWN_INSTANCES_BY_TAGS,
+                             const=_EXPAND_INSTANCES_BY_TAGS,
                              action="store_const")
 
 # this is defined separately due to readability only
