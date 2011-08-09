@@ -293,6 +293,9 @@ Operators:
 *in*, *not in*
   Collection membership and negation
 
+As a shortcut globbing patterns can be specified as names, e.g.
+``gnt-instance list '*.site1' '*.site2'``.
+
 
 Common daemon functionality
 ---------------------------
