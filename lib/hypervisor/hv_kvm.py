@@ -518,11 +518,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
-    kvm_version = self._GetKVMVersion()
-    if kvm_version:
-      _, v_major, v_min, _ = kvm_version
-    else:
-      raise errors.HypervisorError("Unable to get KVM version")
+    _, v_major, v_min, _ = self._GetKVMVersion()
 
     pidfile  = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
@@ -816,11 +812,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd, kvm_nics, up_hvp = kvm_runtime
     up_hvp = objects.FillDict(conf_hvp, up_hvp)
 
-    kvm_version = self._GetKVMVersion()
-    if kvm_version:
-      _, v_major, v_min, _ = kvm_version
-    else:
-      raise errors.HypervisorError("Unable to get KVM version")
+    _, v_major, v_min, _ = self._GetKVMVersion()
 
     # We know it's safe to run as a different user upon migration, so we'll use
     # the latest conf, from conf_hvp.
@@ -962,15 +954,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _GetKVMVersion(cls):
     """Return the installed KVM version
 
-    @return: (version, v_maj, v_min, v_rev), or None
+    @return: (version, v_maj, v_min, v_rev)
+    @raise: L{errors.HypervisorError}
 
     """
     result = utils.RunCmd([constants.KVM_PATH, "--help"])
     if result.failed:
-      return None
+      raise errors.HypervisorError("Unable to get KVM version")
     match = cls._VERSION_RE.search(result.output.splitlines()[0])
     if not match:
-      return None
+      raise errors.HypervisorError("Unable to get KVM version")
 
     return (match.group(0), int(match.group(1)), int(match.group(2)),
             int(match.group(3)))
