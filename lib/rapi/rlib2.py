@@ -81,10 +81,15 @@ G_FIELDS = [
   "node_list",
   ] + _COMMON_FIELDS
 
-J_FIELDS = [
+J_FIELDS_BULK = [
   "id", "ops", "status", "summary",
-  "opstatus", "opresult", "oplog",
+  "opstatus",
   "received_ts", "start_ts", "end_ts",
+  ]
+
+J_FIELDS = J_FIELDS_BULK + [
+  "oplog",
+  "opresult",
   ]
 
 _NR_DRAINED = "drained"
@@ -240,8 +245,8 @@ class R_2_jobs(baserlib.R_Generic):
     client = baserlib.GetClient()
 
     if self.useBulk():
-      bulkdata = client.QueryJobs(None, J_FIELDS)
-      return baserlib.MapBulkFields(bulkdata, J_FIELDS)
+      bulkdata = client.QueryJobs(None, J_FIELDS_BULK)
+      return baserlib.MapBulkFields(bulkdata, J_FIELDS_BULK)
     else:
       jobdata = map(compat.fst, client.QueryJobs(None, ["id"]))
       return baserlib.BuildUriList(jobdata, "/2/jobs/%s",
