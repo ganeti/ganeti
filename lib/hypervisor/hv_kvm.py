@@ -165,6 +165,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VNC_X509: hv_base.OPT_DIR_CHECK,
     constants.HV_VNC_X509_VERIFY: hv_base.NO_CHECK,
     constants.HV_VNC_PASSWORD_FILE: hv_base.OPT_FILE_CHECK,
+    constants.HV_KVM_SPICE_BIND: hv_base.NO_CHECK, # will be checked later
+    constants.HV_KVM_SPICE_IP_VERSION:
+      (False, lambda x: (x == constants.IFACE_NO_IP_VERSION_SPECIFIED or
+                         x in constants.VALID_IP_VERSIONS),
+       "the SPICE IP version should be 4 or 6",
+       None, None),
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
@@ -543,6 +549,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     boot_floppy = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_FLOPPY
     boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
+    self.ValidateParameters(hvp)
+
     if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
       kvm_cmd.extend(["-enable-kvm"])
     elif hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_DISABLED:
@@ -711,6 +719,51 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-serial", serial_dev])
     else:
       kvm_cmd.extend(["-serial", "none"])
+
+    spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
+    if spice_bind:
+      if netutils.IsValidInterface(spice_bind):
+        # The user specified a network interface, we have to figure out the IP
+        # address.
+        addresses = netutils.GetInterfaceIpAddresses(spice_bind)
+        spice_ip_version = hvp[constants.HV_KVM_SPICE_IP_VERSION]
+
+        # if the user specified an IP version and the interface does not
+        # have that kind of IP addresses, throw an exception
+        if spice_ip_version != constants.IFACE_NO_IP_VERSION_SPECIFIED:
+          if not addresses[spice_ip_version]:
+            raise errors.HypervisorError("spice: unable to get an IPv%s address"
+                                         " for %s" % (spice_ip_version,
+                                                      spice_bind))
+
+        # the user did not specify an IP version, we have to figure it out
+        elif (addresses[constants.IP4_VERSION] and
+              addresses[constants.IP6_VERSION]):
+          # we have both ipv4 and ipv6, let's use the cluster default IP
+          # version
+          cluster_family = ssconf.SimpleStore().GetPrimaryIPFamily()
+          spice_ip_version = netutils.IPAddress.GetVersionFromAddressFamily(
+              cluster_family)
+        elif addresses[constants.IP4_VERSION]:
+          spice_ip_version = constants.IP4_VERSION
+        else:
+          spice_ip_version = constants.IP6_VERSION
+
+        spice_address = addresses[spice_ip_version][0]
+
+      else:
+        # spice_bind is known to be a valid IP address, because
+        # ValidateParameters checked it.
+        spice_address = spice_bind
+
+      spice_arg = "addr=%s,ipv%s,port=%s" % (spice_address,
+                                             spice_ip_version,
+                                             instance.network_port)
+
+      spice_arg = "%s,disable-ticketing" % spice_arg
+
+      logging.info("KVM: SPICE will listen on port %s", instance.network_port)
+      kvm_cmd.extend(["-spice", spice_arg])
 
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-localtime"])
@@ -1240,6 +1293,24 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Cannot have a security domain when the"
                                      " security model is 'none' or 'pool'")
 
+    spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
+    if spice_bind:
+      spice_ip_version = hvparams[constants.HV_KVM_SPICE_IP_VERSION]
+      if spice_ip_version != constants.IFACE_NO_IP_VERSION_SPECIFIED:
+        # if an IP version is specified, the spice_bind parameter must be an
+        # IP of that family
+        if (netutils.IP4Address.IsValid(spice_bind) and
+            spice_ip_version != constants.IP4_VERSION):
+          raise errors.HypervisorError("spice: got an IPv4 address (%s), but"
+                                       " the specified IP version is %s" %
+                                       (spice_bind, spice_ip_version))
+
+        if (netutils.IP6Address.IsValid(spice_bind) and
+            spice_ip_version != constants.IP6_VERSION):
+          raise errors.HypervisorError("spice: got an IPv6 address (%s), but"
+                                       " the specified IP version is %s" %
+                                       (spice_bind, spice_ip_version))
+
   @classmethod
   def ValidateParameters(cls, hvparams):
     """Check the given parameters for validity.
@@ -1259,6 +1330,28 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       except KeyError:
         raise errors.HypervisorError("Unknown security domain user %s"
                                      % username)
+
+    spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
+    if spice_bind:
+      # only one of VNC and SPICE can be used currently.
+      if hvparams[constants.HV_VNC_BIND_ADDRESS]:
+        raise errors.HypervisorError("both SPICE and VNC are configured, but"
+                                     " only one of them can be used at a"
+                                     " given time.")
+
+      # KVM version should be >= 0.14.0
+      _, v_major, v_min, _ = cls._GetKVMVersion()
+      if (v_major, v_min) < (0, 14):
+        raise errors.HypervisorError("spice is configured, but it is not"
+                                     " available in versions of KVM < 0.14")
+
+      # if spice_bind is not an IP address, it must be a valid interface
+      bound_to_addr = (netutils.IP4Address.IsValid(spice_bind)
+                       or netutils.IP6Address.IsValid(spice_bind))
+      if not bound_to_addr and not netutils.IsValidInterface(spice_bind):
+        raise errors.HypervisorError("spice: the %s parameter must be either"
+                                     " a valid IP address or interface name" %
+                                     constants.HV_KVM_SPICE_BIND)
 
   @classmethod
   def PowercycleNode(cls):

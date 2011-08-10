@@ -554,6 +554,7 @@ IP6_ADDRESS_LOCALHOST = "::1"
 IP6_ADDRESS_ANY = "::"
 IP4_VERSION = 4
 IP6_VERSION = 6
+VALID_IP_VERSIONS = frozenset([IP4_VERSION, IP6_VERSION])
 TCP_PING_TIMEOUT = 10
 GANETI_RUNAS = "root"
 DEFAULT_VG = "xenvg"
@@ -647,6 +648,9 @@ ENFORCEABLE_TYPES = frozenset([
   VTYPE_INT,
   ])
 
+# Constant representing that the user does not specify any IP version
+IFACE_NO_IP_VERSION_SPECIFIED = 0
+
 # HV parameter names (global namespace)
 HV_BOOT_ORDER = "boot_order"
 HV_CDROM_IMAGE_PATH = "cdrom_image_path"
@@ -660,6 +664,8 @@ HV_VNC_PASSWORD_FILE = "vnc_password_file"
 HV_VNC_TLS = "vnc_tls"
 HV_VNC_X509 = "vnc_x509_path"
 HV_VNC_X509_VERIFY = "vnc_x509_verify"
+HV_KVM_SPICE_BIND = "spice_bind"
+HV_KVM_SPICE_IP_VERSION = "spice_ip_version"
 HV_ACPI = "acpi"
 HV_PAE = "pae"
 HV_USE_BOOTLOADER = "use_bootloader"
@@ -703,6 +709,8 @@ HVS_PARAMETER_TYPES = {
   HV_VNC_TLS: VTYPE_BOOL,
   HV_VNC_X509: VTYPE_STRING,
   HV_VNC_X509_VERIFY: VTYPE_BOOL,
+  HV_KVM_SPICE_BIND: VTYPE_STRING,
+  HV_KVM_SPICE_IP_VERSION: VTYPE_INT,
   HV_ACPI: VTYPE_BOOL,
   HV_PAE: VTYPE_BOOL,
   HV_USE_BOOTLOADER: VTYPE_BOOL,
@@ -1278,6 +1286,8 @@ HVC_DEFAULTS = {
     HV_VNC_X509: "",
     HV_VNC_X509_VERIFY: False,
     HV_VNC_PASSWORD_FILE: "",
+    HV_KVM_SPICE_BIND: "",
+    HV_KVM_SPICE_IP_VERSION: IFACE_NO_IP_VERSION_SPECIFIED,
     HV_KVM_FLOPPY_IMAGE_PATH: "",
     HV_CDROM_IMAGE_PATH: "",
     HV_KVM_CDROM2_IMAGE_PATH: "",
