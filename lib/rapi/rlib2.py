@@ -28,7 +28,7 @@ According to RFC2616 the main difference between PUT and POST is that
 POST can create new resources but PUT can only create the resource the
 URI was pointing to on the PUT request.
 
-In the context of this module POST on ``/2/instances`` to chance an existing
+In the context of this module POST on ``/2/instances`` to change an existing
 entity is legitimate, while PUT would not be. PUT creates a new entity (e.g. a
 new instance) with a name specified in the request.
 
