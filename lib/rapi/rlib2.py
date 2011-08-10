@@ -19,21 +19,35 @@
 # 02110-1301, USA.
 
 
-"""Remote API version 2 baserlib.library.
+"""Remote API resource implementations.
 
-  PUT or POST?
-  ============
+PUT or POST?
+============
 
-  According to RFC2616 the main difference between PUT and POST is that
-  POST can create new resources but PUT can only create the resource the
-  URI was pointing to on the PUT request.
+According to RFC2616 the main difference between PUT and POST is that
+POST can create new resources but PUT can only create the resource the
+URI was pointing to on the PUT request.
 
-  To be in context of this module for instance creation POST on
-  /2/instances is legitim while PUT would be not, due to it does create a
-  new entity and not just replace /2/instances with it.
+In the context of this module POST on ``/2/instances`` to chance an existing
+entity is legitimate, while PUT would not be. PUT creates a new entity (e.g. a
+new instance) with a name specified in the request.
 
-  So when adding new methods, if they are operating on the URI entity itself,
-  PUT should be prefered over POST.
+Quoting from RFC2616, section 9.6:
+
+  The fundamental difference between the POST and PUT requests is reflected in
+  the different meaning of the Request-URI. The URI in a POST request
+  identifies the resource that will handle the enclosed entity. That resource
+  might be a data-accepting process, a gateway to some other protocol, or a
+  separate entity that accepts annotations. In contrast, the URI in a PUT
+  request identifies the entity enclosed with the request -- the user agent
+  knows what URI is intended and the server MUST NOT attempt to apply the
+  request to some other resource. If the server desires that the request be
+  applied to a different URI, it MUST send a 301 (Moved Permanently) response;
+  the user agent MAY then make its own decision regarding whether or not to
+  redirect the request.
+
+So when adding new methods, if they are operating on the URI entity itself,
+PUT should be prefered over POST.
 
 """
 

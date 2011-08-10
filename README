@@ -1,7 +1,7 @@
 Ganeti 2.5
 ==========
 
-For installation instructions, read the INSTALL and the doc/install.html
+For installation instructions, read the INSTALL and the doc/install.rst
 files.
 
 For a brief introduction, read the ganeti(7) manpage and the other pages

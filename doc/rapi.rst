@@ -53,8 +53,8 @@ Example::
 
 
 .. [#pwhash] Using the MD5 hash of username, realm and password is
-   described in :rfc:`2617` ("HTTP Authentication"), sections 3.2.2.2 and
-   3.3. The reason for using it over another algorithm is forward
+   described in :rfc:`2617` ("HTTP Authentication"), sections 3.2.2.2
+   and 3.3. The reason for using it over another algorithm is forward
    compatibility. If ``ganeti-rapi`` were to implement HTTP Digest
    authentication in the future, the same hash could be used.
    In the current version ``ganeti-rapi``'s realm, ``Ganeti Remote
