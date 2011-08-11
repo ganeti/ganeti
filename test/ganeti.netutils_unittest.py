@@ -22,6 +22,7 @@
 """Script for unittesting the netutils module"""
 
 import os
+import re
 import shutil
 import socket
 import tempfile
@@ -170,6 +171,27 @@ class TestIPAddress(unittest.TestCase):
                      "Should not own IP address 2001:db8::1")
     self.assertFalse(netutils.IPAddress.Own("192.0.2.1"),
                      "Should not own IP address 192.0.2.1")
+
+  def testFamilyVersionConversions(self):
+    # IPAddress.GetAddressFamilyFromVersion
+    self.assertEqual(
+        netutils.IPAddress.GetAddressFamilyFromVersion(constants.IP4_VERSION),
+        socket.AF_INET)
+    self.assertEqual(
+        netutils.IPAddress.GetAddressFamilyFromVersion(constants.IP6_VERSION),
+        socket.AF_INET6)
+    self.assertRaises(errors.ProgrammerError,
+        netutils.IPAddress.GetAddressFamilyFromVersion, 3)
+
+    # IPAddress.GetVersionFromAddressFamily
+    self.assertEqual(
+        netutils.IPAddress.GetVersionFromAddressFamily(socket.AF_INET),
+        constants.IP4_VERSION)
+    self.assertEqual(
+        netutils.IPAddress.GetVersionFromAddressFamily(socket.AF_INET6),
+        constants.IP6_VERSION)
+    self.assertRaises(errors.ProgrammerError,
+        netutils.IPAddress.GetVersionFromAddressFamily, socket.AF_UNIX)
 
 
 class TestIP4Address(unittest.TestCase):
@@ -420,6 +442,66 @@ class TestFormatAddress(unittest.TestCase):
                       "127.0.0.1", family=socket.AF_INET)
     self.assertRaises(errors.ParameterError, netutils.FormatAddress,
                       ("::1"), family=socket.AF_INET )
+
+class TestIpParsing(testutils.GanetiTestCase):
+  """Test the code that parses the ip command output"""
+
+  def testIp4(self):
+    valid_addresses = [constants.IP4_ADDRESS_ANY,
+                       constants.IP4_ADDRESS_LOCALHOST,
+                       "192.0.2.1",     # RFC5737, IPv4 address blocks for docs
+                       "198.51.100.1",
+                       "203.0.113.1",
+                      ]
+    for addr in valid_addresses:
+      self.failUnless(re.search(netutils._IP_RE_TEXT, addr))
+
+  def testIp6(self):
+    valid_addresses = [constants.IP6_ADDRESS_ANY,
+                       constants.IP6_ADDRESS_LOCALHOST,
+                       "0:0:0:0:0:0:0:1", # other form for IP6_ADDRESS_LOCALHOST
+                       "0:0:0:0:0:0:0:0", # other form for IP6_ADDRESS_ANY
+                       "2001:db8:85a3::8a2e:370:7334", # RFC3849 IP6 docs block
+                       "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                       "0:0:0:0:0:FFFF:192.0.2.1",  # IPv4-compatible IPv6
+                       "::FFFF:192.0.2.1",
+                       "0:0:0:0:0:0:203.0.113.1",   # IPv4-mapped IPv6
+                       "::203.0.113.1",
+                      ]
+    for addr in valid_addresses:
+      self.failUnless(re.search(netutils._IP_RE_TEXT, addr))
+
+  def testParseIpCommandOutput(self):
+    # IPv4-only, fake loopback interface
+    tests = ["ip-addr-show-lo-ipv4.txt", "ip-addr-show-lo-oneline-ipv4.txt"]
+    for test_file in tests:
+      data = self._ReadTestData(test_file)
+      addr = netutils._GetIpAddressesFromIpOutput(data)
+      self.failUnless(len(addr[4]) == 1 and addr[4][0] == "127.0.0.1" and not
+                      addr[6])
+
+    # IPv6-only, fake loopback interface
+    tests = ["ip-addr-show-lo-ipv6.txt", "ip-addr-show-lo-ipv6.txt"]
+    for test_file in tests:
+      data = self._ReadTestData(test_file)
+      addr = netutils._GetIpAddressesFromIpOutput(data)
+      self.failUnless(len(addr[6]) == 1 and addr[6][0] == "::1" and not addr[4])
+
+    # IPv4 and IPv6, fake loopback interface
+    tests = ["ip-addr-show-lo.txt", "ip-addr-show-lo-oneline.txt"]
+    for test_file in tests:
+      data = self._ReadTestData(test_file)
+      addr = netutils._GetIpAddressesFromIpOutput(data)
+      self.failUnless(len(addr[6]) == 1 and addr[6][0] == "::1" and
+                      len(addr[4]) == 1 and addr[4][0] == "127.0.0.1")
+
+    # IPv4 and IPv6, dummy interface
+    data = self._ReadTestData("ip-addr-show-dummy0.txt")
+    addr = netutils._GetIpAddressesFromIpOutput(data)
+    self.failUnless(len(addr[6]) == 1 and
+                    addr[6][0] == "2001:db8:85a3::8a2e:370:7334" and
+                    len(addr[4]) == 1 and
+                    addr[4][0] == "192.0.2.1")
 
 
 if __name__ == "__main__":

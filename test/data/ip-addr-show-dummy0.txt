@@ -1,0 +1,5 @@
+7: dummy0: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN
+    link/ether 06:d2:06:24:99:dc brd ff:ff:ff:ff:ff:ff
+    inet 192.0.2.1/32 scope global dummy0
+    inet6 2001:db8:85a3::8a2e:370:7334/128 scope global
+       valid_lft forever preferred_lft forever

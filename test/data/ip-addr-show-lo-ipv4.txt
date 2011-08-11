@@ -1,0 +1,2 @@
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 16436 qdisc noqueue state UNKNOWN
+    inet 127.0.0.1/8 scope host lo
