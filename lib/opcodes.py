@@ -128,6 +128,15 @@ _PMigrationTargetNode = ("target_node", None, ht.TMaybeString,
 _PStartupPaused = ("startup_paused", False, ht.TBool,
                    "Pause instance at startup")
 
+_PVerbose = ("verbose", False, ht.TBool, "Verbose mode")
+
+# Parameters for cluster verification
+_PDebugSimulateErrors = ("debug_simulate_errors", False, ht.TBool,
+                         "Whether to simulate errors (useful for debugging)")
+_PErrorCodes = ("error_codes", False, ht.TBool, "Error codes")
+_PSkipChecks = ("skip_checks", ht.EmptyList,
+                ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS)),
+                "Which checks to skip")
 
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
@@ -569,9 +578,9 @@ class OpClusterVerifyConfig(OpCode):
 
   """
   OP_PARAMS = [
-    ("verbose", False, ht.TBool, None),
-    ("error_codes", False, ht.TBool, None),
-    ("debug_simulate_errors", False, ht.TBool, None),
+    _PDebugSimulateErrors,
+    _PErrorCodes,
+    _PVerbose,
     ]
 
 
@@ -587,12 +596,11 @@ class OpClusterVerifyGroup(OpCode):
   """
   OP_DSC_FIELD = "group_name"
   OP_PARAMS = [
-    ("group_name", ht.NoDefault, ht.TNonEmptyString, None),
-    ("skip_checks", ht.EmptyList,
-     ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS)), None),
-    ("verbose", False, ht.TBool, None),
-    ("error_codes", False, ht.TBool, None),
-    ("debug_simulate_errors", False, ht.TBool, None),
+    _PGroupName,
+    _PDebugSimulateErrors,
+    _PErrorCodes,
+    _PSkipChecks,
+    _PVerbose,
     ]
 
 
