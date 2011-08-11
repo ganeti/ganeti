@@ -750,6 +750,7 @@ class OpQuery(OpCode):
   @ivar filter: Query filter
 
   """
+  OP_DSC_FIELD = "what"
   OP_PARAMS = [
     _PQueryWhat,
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
@@ -766,6 +767,7 @@ class OpQueryFields(OpCode):
   @ivar fields: List of fields to retrieve
 
   """
+  OP_DSC_FIELD = "what"
   OP_PARAMS = [
     _PQueryWhat,
     ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
