@@ -573,6 +573,19 @@ class OpClusterQuery(OpCode):
   """Query cluster information."""
 
 
+class OpClusterVerify(OpCode):
+  """Submits all jobs necessary to verify the cluster.
+
+  """
+  OP_PARAMS = [
+    _PDebugSimulateErrors,
+    _PErrorCodes,
+    _PSkipChecks,
+    _PVerbose,
+    ("group_name", None, ht.TMaybeString, "Group to verify")
+    ]
+
+
 class OpClusterVerifyConfig(OpCode):
   """Verify the cluster config.
 

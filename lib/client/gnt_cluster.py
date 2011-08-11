@@ -455,40 +455,35 @@ def VerifyCluster(opts, args):
   @return: the desired exit code
 
   """
-  simulate = opts.simulate_errors
   skip_checks = []
-
-  if opts.nodegroup is None:
-    # Verify cluster config.
-    op = opcodes.OpClusterVerifyConfig(verbose=opts.verbose,
-                                       error_codes=opts.error_codes,
-                                       debug_simulate_errors=simulate)
-
-    success, all_groups = SubmitOpCode(op, opts=opts)
-  else:
-    success = True
-    all_groups = [opts.nodegroup]
 
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
 
-  jex = JobExecutor(opts=opts, verbose=False)
+  cl = GetClient()
 
-  for group in all_groups:
-    op = opcodes.OpClusterVerifyGroup(group_name=group,
-                                      skip_checks=skip_checks,
-                                      verbose=opts.verbose,
-                                      error_codes=opts.error_codes,
-                                      debug_simulate_errors=simulate)
-    jex.QueueJob("group " + group, op)
+  op = opcodes.OpClusterVerify(verbose=opts.verbose,
+                               error_codes=opts.error_codes,
+                               debug_simulate_errors=opts.simulate_errors,
+                               skip_checks=skip_checks,
+                               group_name=opts.nodegroup)
+  result = SubmitOpCode(op, cl=cl, opts=opts)
+
+  # Keep track of submitted jobs
+  jex = JobExecutor(cl=cl, opts=opts)
+
+  for (status, job_id) in result[constants.JOB_IDS_KEY]:
+    jex.AddJobId(None, status, job_id)
 
   results = jex.GetResults()
-  success &= compat.all(r[1][0] for r in results)
-
-  if success:
-    return constants.EXIT_SUCCESS
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    rcode = constants.EXIT_SUCCESS
   else:
-    return constants.EXIT_FAILURE
+    ToStdout("%s job(s) failed while verifying the cluster.", bad_cnt)
+    rcode = constants.EXIT_FAILURE
+
+  return rcode
 
 
 def VerifyDisks(opts, args):

@@ -1510,6 +1510,47 @@ class _VerifyErrors(object):
       self.bad = self.bad or cond
 
 
+class LUClusterVerify(NoHooksLU):
+  """Submits all jobs necessary to verify the cluster.
+
+  """
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+
+  def Exec(self, feedback_fn):
+    jobs = []
+
+    if self.op.group_name:
+      groups = [self.op.group_name]
+      depends_fn = lambda: None
+    else:
+      groups = self.cfg.GetNodeGroupList()
+
+      # Verify global configuration
+      jobs.append([opcodes.OpClusterVerifyConfig()])
+
+      # Always depend on global verification
+      depends_fn = lambda: [(-len(jobs), [])]
+
+    jobs.extend([opcodes.OpClusterVerifyGroup(group_name=group,
+                                              depends=depends_fn())]
+                for group in groups)
+
+    # Fix up all parameters
+    for op in itertools.chain(*jobs): # pylint: disable-msg=W0142
+      op.debug_simulate_errors = self.op.debug_simulate_errors
+      op.verbose = self.op.verbose
+      op.error_codes = self.op.error_codes
+      try:
+        op.skip_checks = self.op.skip_checks
+      except AttributeError:
+        assert not isinstance(op, opcodes.OpClusterVerifyGroup)
+
+    return ResultWithJobs(jobs)
+
+
 class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
   """Verifies the cluster config.
 
