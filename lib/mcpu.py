@@ -348,7 +348,7 @@ class Processor(object):
     """
     if not isinstance(op, opcodes.OpCode):
       raise errors.ProgrammerError("Non-opcode instance passed"
-                                   " to ExecOpcode")
+                                   " to ExecOpcode (%s)" % type(op))
 
     lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
     if lu_class is None:
