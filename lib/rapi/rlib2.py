@@ -32,7 +32,7 @@ In the context of this module POST on ``/2/instances`` to change an existing
 entity is legitimate, while PUT would not be. PUT creates a new entity (e.g. a
 new instance) with a name specified in the request.
 
-Quoting from RFC2616, section 9.6:
+Quoting from RFC2616, section 9.6::
 
   The fundamental difference between the POST and PUT requests is reflected in
   the different meaning of the Request-URI. The URI in a POST request
