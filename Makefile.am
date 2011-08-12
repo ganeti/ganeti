@@ -613,6 +613,13 @@ TEST_FILES = \
 	test/data/bdev-drbd-net-ip4.txt \
 	test/data/bdev-drbd-net-ip6.txt \
 	test/data/cert1.pem \
+  test/data/ip-addr-show-dummy0.txt \
+  test/data/ip-addr-show-lo-ipv4.txt \
+  test/data/ip-addr-show-lo-ipv6.txt \
+  test/data/ip-addr-show-lo-oneline-ipv4.txt \
+  test/data/ip-addr-show-lo-oneline-ipv6.txt \
+  test/data/ip-addr-show-lo-oneline.txt \
+  test/data/ip-addr-show-lo.txt \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd83.txt \
