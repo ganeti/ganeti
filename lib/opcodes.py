@@ -153,6 +153,15 @@ _TestClusterOsList = ht.TOr(ht.TNone,
 _TestNicDef = ht.TDictOf(ht.TElemOf(constants.INIC_PARAMS),
                          ht.TOr(ht.TNone, ht.TNonEmptyString))
 
+_TSetParamsResultItemItems = [
+  ht.Comment("name of changed parameter")(ht.TNonEmptyString),
+  ht.TAny,
+  ]
+
+_TSetParamsResult = \
+  ht.TListOf(ht.TAnd(ht.TIsLength(len(_TSetParamsResultItemItems)),
+                     ht.TItems(_TSetParamsResultItemItems)))
+
 _SUMMARY_PREFIX = {
   "CLUSTER_": "C_",
   "GROUP_": "G_",
@@ -429,13 +438,17 @@ def _BuildJobDepCheck(relative):
 TNoRelativeJobDependencies = _BuildJobDepCheck(False)
 
 #: List of submission status and job ID as returned by C{SubmitManyJobs}
-TJobIdList = \
-  ht.TListOf(ht.TAnd(ht.TIsLength(2),
-                     ht.TItems([ht.TBool, ht.TOr(ht.TString, ht.TJobId)])))
+_TJobIdListItem = \
+  ht.TAnd(ht.TIsLength(2),
+          ht.TItems([ht.Comment("success")(ht.TBool),
+                     ht.Comment("Job ID if successful, error message"
+                                " otherwise")(ht.TOr(ht.TString,
+                                                     ht.TJobId))]))
+TJobIdList = ht.TListOf(_TJobIdListItem)
 
 #: Result containing only list of submitted jobs
 TJobIdListOnly = ht.TStrictDict(True, True, {
-  constants.JOB_IDS_KEY: TJobIdList,
+  constants.JOB_IDS_KEY: ht.Comment("List of submitted jobs")(TJobIdList),
   })
 
 
@@ -953,6 +966,7 @@ class OpNodeSetParams(OpCode):
     ("powered", None, ht.TMaybeBool,
      "Whether the node should be marked as powered"),
     ]
+  OP_RESULT = _TSetParamsResult
 
 
 class OpNodePowercycle(OpCode):
@@ -988,6 +1002,7 @@ class OpNodeEvacuate(OpCode):
     ("mode", ht.NoDefault, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES),
      "Node evacuation mode"),
     ]
+  OP_RESULT = TJobIdListOnly
 
 
 # instance opcodes
@@ -1063,6 +1078,7 @@ class OpInstanceCreate(OpCode):
     ("start", True, ht.TBool, "Whether to start instance after creation"),
     ("tags", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "Instance tags"),
     ]
+  OP_RESULT = ht.Comment("instance nodes")(ht.TListOf(ht.TNonEmptyString))
 
 
 class OpInstanceReinstall(OpCode):
@@ -1095,6 +1111,7 @@ class OpInstanceRename(OpCode):
     ("new_name", ht.NoDefault, ht.TNonEmptyString, "New instance name"),
     ("ip_check", False, ht.TBool, _PIpCheckDoc),
     ]
+  OP_RESULT = ht.Comment("New instance name")(ht.TNonEmptyString)
 
 
 class OpInstanceStartup(OpCode):
@@ -1298,6 +1315,7 @@ class OpInstanceSetParams(OpCode):
     ("wait_for_sync", True, ht.TBool,
      "Whether to wait for the disk to synchronize, when changing template"),
     ]
+  OP_RESULT = _TSetParamsResult
 
 
 class OpInstanceGrowDisk(OpCode):
@@ -1322,6 +1340,7 @@ class OpInstanceChangeGroup(OpCode):
     ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
      "Destination group names or UUIDs (defaults to \"all but current group\""),
     ]
+  OP_RESULT = TJobIdListOnly
 
 
 # Node group opcodes
@@ -1364,6 +1383,7 @@ class OpGroupSetParams(OpCode):
     _PNodeGroupAllocPolicy,
     _PGroupNodeParams,
     ]
+  OP_RESULT = _TSetParamsResult
 
 
 class OpGroupRemove(OpCode):
@@ -1380,6 +1400,7 @@ class OpGroupRename(OpCode):
     _PGroupName,
     ("new_name", ht.NoDefault, ht.TNonEmptyString, "New group name"),
     ]
+  OP_RESULT = ht.Comment("New group name")(ht.TNonEmptyString)
 
 
 class OpGroupEvacuate(OpCode):
@@ -1392,6 +1413,7 @@ class OpGroupEvacuate(OpCode):
     ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
      "Destination group names or UUIDs"),
     ]
+  OP_RESULT = TJobIdListOnly
 
 
 # OS opcodes
