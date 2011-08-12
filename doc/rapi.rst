@@ -477,6 +477,10 @@ Body parameters:
 .. opcode_params:: OP_GROUP_SET_PARAMS
    :exclude: group_name
 
+Job result:
+
+.. opcode_result:: OP_GROUP_SET_PARAMS
+
 
 ``/2/groups/[group_name]/rename``
 +++++++++++++++++++++++++++++++++
@@ -494,6 +498,10 @@ Body parameters:
 
 .. opcode_params:: OP_GROUP_RENAME
    :exclude: group_name
+
+Job result:
+
+.. opcode_result:: OP_GROUP_RENAME
 
 
 ``/2/groups/[group_name]/assign-nodes``
@@ -639,6 +647,10 @@ Body parameters:
 Earlier versions used parameters named ``name`` and ``os``. These have
 been replaced by ``instance_name`` and ``os_type`` to match the
 underlying opcode. The old names can still be used.
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_CREATE
 
 
 ``/2/instances/[instance_name]``
@@ -919,6 +931,10 @@ Body parameters:
 .. opcode_params:: OP_INSTANCE_RENAME
    :exclude: instance_name
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_RENAME
+
 
 ``/2/instances/[instance_name]/modify``
 ++++++++++++++++++++++++++++++++++++++++
@@ -936,6 +952,10 @@ Body parameters:
 
 .. opcode_params:: OP_INSTANCE_SET_PARAMS
    :exclude: instance_name
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_SET_PARAMS
 
 
 ``/2/instances/[instance_name]/console``
@@ -1239,6 +1259,10 @@ Body parameters:
 Up to and including Ganeti 2.4 query arguments were used. Those are no
 longer supported. The new request can be detected by the presence of the
 :pyeval:`rlib2._NODE_EVAC_RES1` feature string.
+
+Job result:
+
+.. opcode_result:: OP_NODE_EVACUATE
 
 
 ``/2/nodes/[node_name]/migrate``
