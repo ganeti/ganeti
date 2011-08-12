@@ -306,5 +306,37 @@ class TestOpcodeDepends(unittest.TestCase):
       self.assertFalse(check_norelative(i))
 
 
+class TestResultChecks(unittest.TestCase):
+  def testJobIdList(self):
+    for i in [[], [(False, "error")], [(False, "")],
+              [(True, 123), (True, "999")]]:
+      self.assertTrue(opcodes.TJobIdList(i))
+
+    for i in ["", [("x", 1)], [[], []], [[False, "", None], [True, 123]]]:
+      self.assertFalse(opcodes.TJobIdList(i))
+
+  def testJobIdListOnly(self):
+    self.assertTrue(opcodes.TJobIdListOnly({
+      constants.JOB_IDS_KEY: [],
+      }))
+    self.assertTrue(opcodes.TJobIdListOnly({
+      constants.JOB_IDS_KEY: [(True, "9282")],
+      }))
+
+    self.assertFalse(opcodes.TJobIdListOnly({
+      "x": None,
+      }))
+    self.assertFalse(opcodes.TJobIdListOnly({
+      constants.JOB_IDS_KEY: [],
+      "x": None,
+      }))
+    self.assertFalse(opcodes.TJobIdListOnly({
+      constants.JOB_IDS_KEY: [("foo", "bar")],
+      }))
+    self.assertFalse(opcodes.TJobIdListOnly({
+      constants.JOB_IDS_KEY: [("one", "two", "three")],
+      }))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

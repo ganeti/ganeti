@@ -429,7 +429,9 @@ def _BuildJobDepCheck(relative):
 TNoRelativeJobDependencies = _BuildJobDepCheck(False)
 
 #: List of submission status and job ID as returned by C{SubmitManyJobs}
-TJobIdList = ht.TListOf(ht.TItems([ht.TBool, ht.TOr(ht.TString, ht.TJobId)]))
+TJobIdList = \
+  ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                     ht.TItems([ht.TBool, ht.TOr(ht.TString, ht.TJobId)])))
 
 #: Result containing only list of submitted jobs
 TJobIdListOnly = ht.TStrictDict(True, True, {

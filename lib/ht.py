@@ -307,8 +307,9 @@ TPositiveFloat = \
   TAnd(TFloat, WithDesc("EqualGreaterZero")(lambda v: v >= 0.0))
 
 #: Job ID
-TJobId = TOr(TPositiveInt,
-             TRegex(re.compile("^%s$" % constants.JOB_ID_TEMPLATE)))
+TJobId = WithDesc("JobId")(TOr(TPositiveInt,
+                               TRegex(re.compile("^%s$" %
+                                                 constants.JOB_ID_TEMPLATE))))
 
 #: Number
 TNumber = TOr(TInt, TFloat)
