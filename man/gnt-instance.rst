@@ -275,6 +275,31 @@ vnc\_x509\_path
 vnc\_x509\_verify
     Valid for the KVM hypervisor.
 
+spice\_bind
+    Valid for the KVM hypervisor.
+
+    Specifies the address or interface on which the SPICE server will
+    listen. Valid values are:
+
+    - IPv4 addresses, including 0.0.0.0 and 127.0.0.1
+    - IPv6 addresses, including :: and ::1
+    - names of network interfaces
+
+    If a network interface is specified, the SPICE server will be bound
+    to one of the addresses of that interface.
+
+spice\_ip\_version
+    Valid for the KVM hypervisor.
+
+    Specifies which version of the IP protocol should be used by the
+    SPICE server.
+
+    It is mainly intended to be used for specifying what kind of IP
+    addresses should be used if a network interface with both IPv4 and
+    IPv6 addresses is specified via the ``spice_bind`` parameter. In
+    this case, if the ``spice_ip_version`` parameter is not used, the
+    default IP version of the cluster will be used.
+
 acpi
     Valid for the Xen HVM and KVM hypervisors.
 
