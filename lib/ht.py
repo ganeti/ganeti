@@ -46,7 +46,7 @@ def Parens(text):
     return "(%s)" % text
 
 
-class _DescWrapper(object):
+class _WrapperBase(object):
   __slots__ = [
     "_fn",
     "_text",
@@ -59,14 +59,29 @@ class _DescWrapper(object):
     @param fn: Wrapped function
 
     """
+    assert text.strip()
+
     self._text = text
     self._fn = fn
 
   def __call__(self, *args):
     return self._fn(*args)
 
+
+class _DescWrapper(_WrapperBase):
+  """Wrapper class for description text.
+
+  """
   def __str__(self):
     return self._text
+
+
+class _CommentWrapper(_WrapperBase):
+  """Wrapper class for comment.
+
+  """
+  def __str__(self):
+    return "%s [%s]" % (self._fn, self._text)
 
 
 def WithDesc(text):
@@ -80,6 +95,19 @@ def WithDesc(text):
   assert text[0] == text[0].upper()
 
   return compat.partial(_DescWrapper, text)
+
+
+def Comment(text):
+  """Builds wrapper for adding comment to description text.
+
+  @type text: string
+  @param text: Comment text
+  @return: Callable class
+
+  """
+  assert not frozenset(text).intersection("[]")
+
+  return compat.partial(_CommentWrapper, text)
 
 
 def CombinationDesc(op, args, fn):
