@@ -629,18 +629,19 @@ def _GetGroupData(cl, uuid):
   """Retrieves instances and nodes per node group.
 
   """
-  # TODO: Implement locking
   job = [
     # Get all primary instances in group
     opcodes.OpQuery(what=constants.QR_INSTANCE,
                     fields=["name", "status", "admin_state", "snodes",
                             "pnode.group.uuid", "snodes.group.uuid"],
-                    filter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid]),
+                    filter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid],
+                    use_locking=True),
 
     # Get all nodes in group
     opcodes.OpQuery(what=constants.QR_NODE,
                     fields=["name", "bootid", "offline"],
-                    filter=[qlang.OP_EQUAL, "group.uuid", uuid]),
+                    filter=[qlang.OP_EQUAL, "group.uuid", uuid],
+                    use_locking=True),
     ]
 
   job_id = cl.SubmitJob(job)
