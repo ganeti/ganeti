@@ -653,7 +653,7 @@ REMOVE
 ^^^^^^
 
 **remove** [--ignore-failures] [--shutdown-timeout=*N*] [--submit]
-{*instance*}
+[--force] {*instance*}
 
 Remove an instance. This will remove all data from the instance and
 there is *no way back*. If you are not sure if you use an instance
@@ -673,6 +673,8 @@ instance to stop.
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it
 can be examined via **gnt-job info**.
+
+The ``--force`` option is used to skip the interactive confirmation.
 
 Example::
 
