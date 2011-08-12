@@ -476,12 +476,23 @@ def VerifyCluster(opts, args):
     jex.AddJobId(None, status, job_id)
 
   results = jex.GetResults()
-  bad_cnt = len([row for row in results if not row[0]])
-  if bad_cnt == 0:
+
+  (bad_jobs, bad_results) = \
+    map(len,
+        # Convert iterators to lists
+        map(list,
+            # Count errors
+            map(compat.partial(itertools.ifilterfalse, bool),
+                # Convert result to booleans in a tuple
+                zip(*((job_success, len(op_results) == 1 and op_results[0])
+                      for (job_success, op_results) in results)))))
+
+  if bad_jobs == 0 and bad_results == 0:
     rcode = constants.EXIT_SUCCESS
   else:
-    ToStdout("%s job(s) failed while verifying the cluster.", bad_cnt)
     rcode = constants.EXIT_FAILURE
+    if bad_jobs > 0:
+      ToStdout("%s job(s) failed while verifying the cluster.", bad_jobs)
 
   return rcode
 
