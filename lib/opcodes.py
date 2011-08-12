@@ -431,6 +431,11 @@ TNoRelativeJobDependencies = _BuildJobDepCheck(False)
 #: List of submission status and job ID as returned by C{SubmitManyJobs}
 TJobIdList = ht.TListOf(ht.TItems([ht.TBool, ht.TOr(ht.TString, ht.TJobId)]))
 
+#: Result containing only list of submitted jobs
+TJobIdListOnly = ht.TStrictDict(True, True, {
+  constants.JOB_IDS_KEY: TJobIdList,
+  })
+
 
 class OpCode(BaseOpCode):
   """Abstract OpCode.
@@ -584,6 +589,7 @@ class OpClusterVerify(OpCode):
     _PVerbose,
     ("group_name", None, ht.TMaybeString, "Group to verify")
     ]
+  OP_RESULT = TJobIdListOnly
 
 
 class OpClusterVerifyConfig(OpCode):
@@ -595,6 +601,7 @@ class OpClusterVerifyConfig(OpCode):
     _PErrorCodes,
     _PVerbose,
     ]
+  OP_RESULT = ht.TBool
 
 
 class OpClusterVerifyGroup(OpCode):
@@ -615,15 +622,14 @@ class OpClusterVerifyGroup(OpCode):
     _PSkipChecks,
     _PVerbose,
     ]
+  OP_RESULT = ht.TBool
 
 
 class OpClusterVerifyDisks(OpCode):
   """Verify the cluster disks.
 
   """
-  OP_RESULT = ht.TStrictDict(True, True, {
-    constants.JOB_IDS_KEY: TJobIdList,
-    })
+  OP_RESULT = TJobIdListOnly
 
 
 class OpGroupVerifyDisks(OpCode):

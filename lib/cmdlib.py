@@ -1635,7 +1635,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
                   "the following instances have a non-existing primary-node:"
                   " %s", utils.CommaJoin(no_node_instances))
 
-    return (not self.bad, [g.name for g in self.all_group_info.values()])
+    return not self.bad
 
 
 class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
