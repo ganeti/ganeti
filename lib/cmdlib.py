@@ -4338,7 +4338,7 @@ class _NodeQuery(_QueryBase):
 
   def ExpandNames(self, lu):
     lu.needed_locks = {}
-    lu.share_locks[locking.LEVEL_NODE] = 1
+    lu.share_locks = _ShareAll()
 
     if self.names:
       self.wanted = _GetWantedNodes(lu, self.names)
@@ -4349,7 +4349,7 @@ class _NodeQuery(_QueryBase):
                        query.NQ_LIVE in self.requested_data)
 
     if self.do_locking:
-      # if we don't request only static fields, we need to lock the nodes
+      # If any non-static field is requested we need to lock the nodes
       lu.needed_locks[locking.LEVEL_NODE] = self.wanted
 
   def DeclareLocks(self, lu, level):
@@ -4721,7 +4721,7 @@ class LUQuery(NoHooksLU):
   def CheckArguments(self):
     qcls = _GetQueryImplementation(self.op.what)
 
-    self.impl = qcls(self.op.filter, self.op.fields, False)
+    self.impl = qcls(self.op.filter, self.op.fields, self.op.use_locking)
 
   def ExpandNames(self):
     self.impl.ExpandNames(self)
@@ -12056,6 +12056,9 @@ class LUGroupQuery(NoHooksLU):
 
   def ExpandNames(self):
     self.gq.ExpandNames(self)
+
+  def DeclareLocks(self, level):
+    self.gq.DeclareLocks(self, level)
 
   def Exec(self, feedback_fn):
     return self.gq.OldStyleQuery(self)

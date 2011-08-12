@@ -795,6 +795,7 @@ class OpQuery(OpCode):
   OP_DSC_FIELD = "what"
   OP_PARAMS = [
     _PQueryWhat,
+    _PUseLocking,
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "Requested fields"),
     ("filter", None, ht.TOr(ht.TNone, ht.TListOf),
