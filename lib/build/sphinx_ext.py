@@ -130,6 +130,23 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
       yield "  %s" % line
 
 
+def _BuildOpcodeResult(op_id):
+  """Build opcode result documentation.
+
+  @type op_id: string
+  @param op_id: Opcode ID
+
+  """
+  op_cls = opcodes.OP_MAPPING[op_id]
+
+  result_fn = getattr(op_cls, "OP_RESULT", None)
+
+  if not result_fn:
+    raise OpcodeError("Opcode '%s' has no result description" % op_id)
+
+  return "``%s``" % result_fn
+
+
 class OpcodeParams(sphinx.util.compat.Directive):
   """Custom directive for opcode parameters.
 
@@ -152,6 +169,32 @@ class OpcodeParams(sphinx.util.compat.Directive):
     tab_width = 2
     path = op_id
     include_text = "\n".join(_BuildOpcodeParams(op_id, include, exclude, alias))
+
+    # Inject into state machine
+    include_lines = docutils.statemachine.string2lines(include_text, tab_width,
+                                                       convert_whitespace=1)
+    self.state_machine.insert_input(include_lines, path)
+
+    return []
+
+
+class OpcodeResult(sphinx.util.compat.Directive):
+  """Custom directive for opcode result.
+
+  See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
+
+  """
+  has_content = False
+  required_arguments = 1
+  optional_arguments = 0
+  final_argument_whitespace = False
+
+  def run(self):
+    op_id = self.arguments[0]
+
+    tab_width = 2
+    path = op_id
+    include_text = _BuildOpcodeResult(op_id)
 
     # Inject into state machine
     include_lines = docutils.statemachine.string2lines(include_text, tab_width,
@@ -240,5 +283,6 @@ def setup(app):
 
   """
   app.add_directive("opcode_params", OpcodeParams)
+  app.add_directive("opcode_result", OpcodeResult)
   app.add_directive("pyassert", PythonAssert)
   app.add_role("pyeval", PythonEvalRole)
