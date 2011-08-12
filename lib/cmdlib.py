@@ -1574,6 +1574,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
   def ExpandNames(self):
     # Information can be safely retrieved as the BGL is acquired in exclusive
     # mode
+    assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER)
     self.all_group_info = self.cfg.GetAllNodeGroupsInfo()
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
@@ -1733,7 +1734,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self.needed_locks[locking.LEVEL_NODE] = nodes
 
   def CheckPrereq(self):
-    group_nodes = set(self.cfg.GetNodeGroup(self.group_uuid).members)
+    assert self.group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP)
+    self.group_info = self.cfg.GetNodeGroup(self.group_uuid)
+
+    group_nodes = set(self.group_info.members)
     group_instances = self.cfg.GetNodeGroupInstances(self.group_uuid)
 
     unlocked_nodes = \
@@ -2565,6 +2569,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     # This method has too many local variables. pylint: disable-msg=R0914
+    feedback_fn("* Verifying group '%s'" % self.group_info.name)
 
     if not self.my_node_names:
       # empty node group
