@@ -747,8 +747,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
               cluster_family)
         elif addresses[constants.IP4_VERSION]:
           spice_ip_version = constants.IP4_VERSION
-        else:
+        elif addresses[constants.IP6_VERSION]:
           spice_ip_version = constants.IP6_VERSION
+        else:
+          raise errors.HypervisorError("spice: unable to get an IP address"
+                                       " for %s" % (spice_bind))
 
         spice_address = addresses[spice_ip_version][0]
 
