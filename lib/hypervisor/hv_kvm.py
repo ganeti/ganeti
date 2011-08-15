@@ -721,6 +721,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-serial", "none"])
 
     spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
+    spice_ip_version = None
     if spice_bind:
       if netutils.IsValidInterface(spice_bind):
         # The user specified a network interface, we have to figure out the IP
@@ -756,11 +757,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # ValidateParameters checked it.
         spice_address = spice_bind
 
-      spice_arg = "addr=%s,ipv%s,port=%s" % (spice_address,
-                                             spice_ip_version,
-                                             instance.network_port)
-
-      spice_arg = "%s,disable-ticketing" % spice_arg
+      spice_arg = "addr=%s,port=%s,disable-ticketing" % (spice_address,
+                                                         instance.network_port)
+      if spice_ip_version:
+        spice_arg = "%s,ipv%s" % (spice_arg, spice_ip_version)
 
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])
