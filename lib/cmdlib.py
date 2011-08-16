@@ -8408,27 +8408,29 @@ class LUInstanceCreate(LogicalUnit):
                                    errors.ECODE_INVAL)
 
     if not self.op.disks:
-      if einfo.has_option(constants.INISECT_INS, "disk_count"):
-        disks = []
-        # TODO: import the disk iv_name too
-        for idx in range(einfo.getint(constants.INISECT_INS, "disk_count")):
+      disks = []
+      # TODO: import the disk iv_name too
+      for idx in range(constants.MAX_DISKS):
+        if einfo.has_option(constants.INISECT_INS, "disk%d_size" % idx):
           disk_sz = einfo.getint(constants.INISECT_INS, "disk%d_size" % idx)
           disks.append({constants.IDISK_SIZE: disk_sz})
-        self.op.disks = disks
-      else:
+      self.op.disks = disks
+      if not disks and self.op.disk_template != constants.DT_DISKLESS:
         raise errors.OpPrereqError("No disk info specified and the export"
                                    " is missing the disk information",
                                    errors.ECODE_INVAL)
 
-    if (not self.op.nics and
-        einfo.has_option(constants.INISECT_INS, "nic_count")):
+    if not self.op.nics:
       nics = []
-      for idx in range(einfo.getint(constants.INISECT_INS, "nic_count")):
-        ndict = {}
-        for name in list(constants.NICS_PARAMETERS) + ["ip", "mac"]:
-          v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
-          ndict[name] = v
-        nics.append(ndict)
+      for idx in range(constants.MAX_NICS):
+        if einfo.has_option(constants.INISECT_INS, "nic%d_mac" % idx):
+          ndict = {}
+          for name in list(constants.NICS_PARAMETERS) + ["ip", "mac"]:
+            v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
+            ndict[name] = v
+          nics.append(ndict)
+        else:
+          break
       self.op.nics = nics
 
     if not self.op.tags and einfo.has_option(constants.INISECT_INS, "tags"):
@@ -8657,18 +8659,8 @@ class LUInstanceCreate(LogicalUnit):
       self.disks.append(new_disk)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
-
-      # Check that the new instance doesn't have less disks than the export
-      instance_disks = len(self.disks)
-      export_disks = export_info.getint(constants.INISECT_INS, 'disk_count')
-      if instance_disks < export_disks:
-        raise errors.OpPrereqError("Not enough disks to import."
-                                   " (instance: %d, export: %d)" %
-                                   (instance_disks, export_disks),
-                                   errors.ECODE_INVAL)
-
       disk_images = []
-      for idx in range(export_disks):
+      for idx in range(len(self.disks)):
         option = "disk%d_dump" % idx
         if export_info.has_option(constants.INISECT_INS, option):
           # FIXME: are the old os-es, disk sizes, etc. useful?
@@ -8681,15 +8673,9 @@ class LUInstanceCreate(LogicalUnit):
       self.src_images = disk_images
 
       old_name = export_info.get(constants.INISECT_INS, "name")
-      try:
-        exp_nic_count = export_info.getint(constants.INISECT_INS, "nic_count")
-      except (TypeError, ValueError), err:
-        raise errors.OpPrereqError("Invalid export file, nic_count is not"
-                                   " an integer: %s" % str(err),
-                                   errors.ECODE_STATE)
       if self.op.instance_name == old_name:
         for idx, nic in enumerate(self.nics):
-          if nic.mac == constants.VALUE_AUTO and exp_nic_count >= idx:
+          if nic.mac == constants.VALUE_AUTO:
             nic_mac_ini = "nic%d_mac" % idx
             nic.mac = export_info.get(constants.INISECT_INS, nic_mac_ini)
 
