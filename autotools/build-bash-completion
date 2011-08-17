@@ -28,6 +28,7 @@
 
 import os
 import re
+import itertools
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -38,6 +39,10 @@ from ganeti import build
 # _autoconf shouldn't be imported from anywhere except constants.py, but we're
 # making an exception here because this script is only used at build time.
 from ganeti import _autoconf
+
+#: Regular expression describing desired format of option names. Long names can
+#: contain lowercase characters, numbers and dashes only.
+_OPT_NAME_RE = re.compile(r"^-[a-zA-Z0-9]|--[a-z][-a-z0-9]+$")
 
 
 def WritePreamble(sw):
@@ -243,6 +248,11 @@ class CompletionWriter:
       # While documented, these variables aren't seen as public attributes by
       # pylint. pylint: disable-msg=W0212
       opt.all_names = sorted(opt._short_opts + opt._long_opts)
+
+      invalid = list(itertools.ifilterfalse(_OPT_NAME_RE.match, opt.all_names))
+      if invalid:
+        raise Exception("Option names don't match regular expression '%s': %s" %
+                        (_OPT_NAME_RE.pattern, utils.CommaJoin(invalid)))
 
   def _FindFirstArgument(self, sw):
     ignore = []
