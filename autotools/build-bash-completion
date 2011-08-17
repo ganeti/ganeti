@@ -553,20 +553,23 @@ def WriteCompletion(sw, scriptname, funcname,
         sw.DecIndent()
       sw.Write("fi")
 
-      # We're doing options and arguments to commands
-      sw.Write("""case "${COMP_WORDS[1]}" in""")
+      # Group commands by arguments and options
+      grouped_cmds = {}
       for cmd, (_, argdef, optdef, _, _) in commands.iteritems():
         if not (argdef or optdef):
           continue
+        grouped_cmds.setdefault((tuple(argdef), tuple(optdef)), set()).add(cmd)
 
-        # TODO: Group by arguments and options
-        sw.Write("%s)", utils.ShellQuote(cmd))
+      # We're doing options and arguments to commands
+      sw.Write("""case "${COMP_WORDS[1]}" in""")
+      for ((argdef, optdef), cmds) in grouped_cmds.items():
+        assert argdef or optdef
+        sw.Write("%s)", "|".join(map(utils.ShellQuote, sorted(cmds))))
         sw.IncIndent()
         try:
           CompletionWriter(1, optdef, argdef).WriteTo(sw)
         finally:
           sw.DecIndent()
-
         sw.Write(";;")
       sw.Write("esac")
   finally:
