@@ -248,6 +248,9 @@ def main():
     del cfg
     logging.info("File loaded successfully")
 
+  cli.ToStderr("Configuration successfully upgraded for version %s.",
+               constants.RELEASE_VERSION)
+
 
 if __name__ == "__main__":
   main()
