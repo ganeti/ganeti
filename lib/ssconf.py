@@ -349,7 +349,8 @@ class SimpleStore(object):
         if len(value) > self._MAX_SIZE:
           raise errors.ConfigurationError("ssconf file %s above maximum size" %
                                           name)
-        utils.WriteFile(self.KeyToFilename(name), data=value, mode=0444)
+        utils.WriteFile(self.KeyToFilename(name), data=value,
+                        mode=constants.SS_FILE_PERMS)
     finally:
       ssconf_lock.Unlock()
 

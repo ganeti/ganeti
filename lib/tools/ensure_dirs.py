@@ -172,7 +172,8 @@ def GetPaths():
 
   ss = ssconf.SimpleStore()
   for ss_path in ss.GetFileList():
-    paths.append((ss_path, FILE, 0400, getent.noded_uid, 0, False))
+    paths.append((ss_path, FILE, constants.SS_FILE_PERMS,
+                  getent.noded_uid, 0, False))
 
   paths.extend([
     (constants.QUEUE_DIR, DIR, 0700, getent.masterd_uid,

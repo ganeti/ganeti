@@ -1240,6 +1240,8 @@ SS_MAINTAIN_NODE_HEALTH = "maintain_node_health"
 SS_UID_POOL = "uid_pool"
 SS_NODEGROUPS = "nodegroups"
 
+SS_FILE_PERMS = 0444
+
 # cluster wide default parameters
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM
 
