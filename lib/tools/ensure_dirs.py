@@ -178,6 +178,8 @@ def GetPaths():
   paths.extend([
     (constants.QUEUE_DIR, DIR, 0700, getent.masterd_uid,
      getent.masterd_gid),
+    (constants.JOB_QUEUE_LOCK_FILE, FILE, 0600,
+     getent.masterd_uid, getent.masterd_gid, False),
     (constants.JOB_QUEUE_SERIAL_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
     (constants.JOB_QUEUE_ARCHIVE_DIR, DIR, 0700,
