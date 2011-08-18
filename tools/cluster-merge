@@ -217,17 +217,22 @@ class Merger(object):
 
   def _RunCmd(self, hostname, command, user="root", use_cluster_key=False,
               strict_host_check=False, private_key=None, batch=True,
-              ask_key=False):
+              ask_key=False, max_attempts=1):
     """Wrapping SshRunner.Run with default parameters.
 
     For explanation of parameters see L{ganeti.ssh.SshRunner.Run}.
 
     """
-    return self.ssh_runner.Run(hostname=hostname, command=command, user=user,
-                               use_cluster_key=use_cluster_key,
-                               strict_host_check=strict_host_check,
-                               private_key=private_key, batch=batch,
-                               ask_key=ask_key)
+    for _ in range(max_attempts):
+      result = self.ssh_runner.Run(hostname=hostname, command=command,
+                                 user=user, use_cluster_key=use_cluster_key,
+                                 strict_host_check=strict_host_check,
+                                 private_key=private_key, batch=batch,
+                                 ask_key=ask_key)
+      if not result.failed:
+        break
+
+    return result
 
   def _StopMergingInstances(self):
     """Stop instances on merging clusters.
