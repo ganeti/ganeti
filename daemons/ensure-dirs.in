@@ -101,6 +101,11 @@ _ensure_datadir() {
     local queue_owner="$(_fileset_owner masterd)"
     local ssconf_owner="$(_fileset_owner noded)"
 
+    find ${DATADIR}/queue/archive -type d | \
+    while read path; do
+      _ensure_dir ${path} 0700 "$queue_owner"
+    done
+
     _gather_files ${DATADIR}/queue 0600 @GNTMASTERUSER@ @GNTMASTERDGROUP@ | \
     while read path; do
       _ensure_file "$path" 0600 "$queue_owner"
