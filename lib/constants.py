@@ -1065,6 +1065,7 @@ JOB_QUEUE_DIRS = [QUEUE_DIR, JOB_QUEUE_ARCHIVE_DIR]
 JOB_QUEUE_DIRS_MODE = SECURE_DIR_MODE
 
 JOB_ID_TEMPLATE = r"\d+"
+JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
 
 # unchanged job return
 JOB_NOTCHANGED = "nochange"

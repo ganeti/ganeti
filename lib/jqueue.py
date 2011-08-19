@@ -31,7 +31,6 @@ used by all other classes in this module.
 
 import logging
 import errno
-import re
 import time
 import weakref
 import threading
@@ -1491,11 +1490,7 @@ def _RequireOpenQueue(fn):
 class JobQueue(object):
   """Queue used to manage the jobs.
 
-  @cvar _RE_JOB_FILE: regex matching the valid job file names
-
   """
-  _RE_JOB_FILE = re.compile(r"^job-(%s)$" % constants.JOB_ID_TEMPLATE)
-
   def __init__(self, context):
     """Constructor for JobQueue.
 
@@ -1846,7 +1841,8 @@ class JobQueue(object):
     return utils.PathJoin(constants.JOB_QUEUE_ARCHIVE_DIR,
                           cls._GetArchiveDirectory(job_id), "job-%s" % job_id)
 
-  def _GetJobIDsUnlocked(self, sort=True):
+  @staticmethod
+  def _GetJobIDsUnlocked(sort=True):
     """Return all known job IDs.
 
     The method only looks at disk because it's a requirement that all
@@ -1861,7 +1857,7 @@ class JobQueue(object):
     """
     jlist = []
     for filename in utils.ListVisibleFiles(constants.QUEUE_DIR):
-      m = self._RE_JOB_FILE.match(filename)
+      m = constants.JOB_FILE_RE.match(filename)
       if m:
         jlist.append(m.group(1))
     if sort:

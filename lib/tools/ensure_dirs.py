@@ -1,3 +1,6 @@
+#
+#
+
 # Copyright (C) 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -30,10 +33,18 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import runtime
 from ganeti import ssconf
+from ganeti import utils
 
 
-(DIR, FILE) = range(2)
-ALL_TYPES = frozenset([DIR, FILE])
+(DIR,
+ FILE,
+ QUEUE_DIR) = range(1, 4)
+
+ALL_TYPES = frozenset([
+  DIR,
+  FILE,
+  QUEUE_DIR,
+  ])
 
 
 class EnsureError(errors.GenericError):
@@ -122,6 +133,20 @@ def RecursiveEnsure(path, uid, gid, dir_perm, file_perm):
                        gid=gid)
 
 
+def EnsureQueueDir(path, mode, uid, gid):
+  """Sets the correct permissions on all job files in the queue.
+
+  @param path: Directory path
+  @param mode: Wanted file mode
+  @param uid: Wanted user ID
+  @param gid: Wanted group ID
+
+  """
+  for filename in utils.ListVisibleFiles(path):
+    if constants.JOB_FILE_RE.match(filename):
+      EnsurePermission(utils.PathJoin(path, filename), mode, uid=uid, gid=gid)
+
+
 def ProcessPath(path):
   """Processes a path component.
 
@@ -132,10 +157,13 @@ def ProcessPath(path):
 
   assert pathtype in ALL_TYPES
 
-  if pathtype == DIR:
+  if pathtype in (DIR, QUEUE_DIR):
     # No additional parameters
     assert len(path[5:]) == 0
-    EnsureDir(pathname, mode, uid, gid)
+    if pathtype == DIR:
+      EnsureDir(pathname, mode, uid, gid)
+    elif pathtype == QUEUE_DIR:
+      EnsureQueueDir(pathname, mode, uid, gid)
   elif pathtype == FILE:
     (must_exist, ) = path[5:]
     EnsurePermission(pathname, mode, uid=uid, gid=gid, must_exist=must_exist)
@@ -177,6 +205,8 @@ def GetPaths():
 
   paths.extend([
     (constants.QUEUE_DIR, DIR, 0700, getent.masterd_uid,
+     getent.masterd_gid),
+    (constants.QUEUE_DIR, QUEUE_DIR, 0600, getent.masterd_uid,
      getent.masterd_gid),
     (constants.JOB_QUEUE_LOCK_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
