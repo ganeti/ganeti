@@ -316,6 +316,10 @@ class Merger(object):
 
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
+        # Offline the node, it will be reonlined later at node readd
+        node_info.master_candidate = False
+        node_info.drained = False
+        node_info.offline = True
         my_config.AddNode(node_info, _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
