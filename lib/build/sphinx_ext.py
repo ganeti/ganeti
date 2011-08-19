@@ -32,6 +32,8 @@ import docutils.utils
 import sphinx.errors
 import sphinx.util.compat
 
+s_compat = sphinx.util.compat
+
 from ganeti import constants
 from ganeti import compat
 from ganeti import errors
@@ -147,7 +149,7 @@ def _BuildOpcodeResult(op_id):
   return "``%s``" % result_fn
 
 
-class OpcodeParams(sphinx.util.compat.Directive):
+class OpcodeParams(s_compat.Directive):
   """Custom directive for opcode parameters.
 
   See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
@@ -178,7 +180,7 @@ class OpcodeParams(sphinx.util.compat.Directive):
     return []
 
 
-class OpcodeResult(sphinx.util.compat.Directive):
+class OpcodeResult(s_compat.Directive):
   """Custom directive for opcode result.
 
   See also <http://docutils.sourceforge.net/docs/howto/rst-directives.html>.
@@ -230,7 +232,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
   return ([node], [])
 
 
-class PythonAssert(sphinx.util.compat.Directive):
+class PythonAssert(s_compat.Directive):
   """Custom directive for writing assertions.
 
   The content must be a valid Python expression. If its result does not
