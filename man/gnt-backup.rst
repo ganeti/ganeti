@@ -179,6 +179,9 @@ instance allocator documentation.
 The optional second value of the ``--node`` is used for the drbd
 template and specifies the remote node.
 
+The ``--src-dir`` option allows importing instances from a directory
+below ``@CUSTOM_EXPORT_DIR@``.
+
 Since many of the parameters are by default read from the exported
 instance information and used as such, the new instance will have
 all parameters explicitly specified, the opposite of a newly added

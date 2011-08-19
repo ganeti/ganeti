@@ -8252,8 +8252,8 @@ class LUInstanceCreate(LogicalUnit):
         self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
         self.op.src_node = None
         if os.path.isabs(src_path):
-          raise errors.OpPrereqError("Importing an instance from an absolute"
-                                     " path requires a source node option",
+          raise errors.OpPrereqError("Importing an instance from a path"
+                                     " requires a source node option",
                                      errors.ECODE_INVAL)
       else:
         self.op.src_node = src_node = _ExpandNodeName(self.cfg, src_node)
