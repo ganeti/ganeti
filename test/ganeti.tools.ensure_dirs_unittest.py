@@ -77,18 +77,18 @@ class TestEnsureDirsFunctions(unittest.TestCase):
 
     self.assertRaises(ensure_dirs.EnsureError, ensure_dirs.EnsureDir,
                       "/ganeti-qa-non-test", 0700, 0, 0,
-                      _stat_fn=not_dir_stat)
+                      _lstat_fn=not_dir_stat)
     self.assertRaises(ensure_dirs.EnsureError, ensure_dirs.EnsureDir,
                       "/ganeti-qa-non-test", 0700, 0, 0,
-                      _stat_fn=other_stat_raise)
+                      _lstat_fn=other_stat_raise)
     self.mkdir_called = False
     ensure_dirs.EnsureDir("/ganeti-qa-non-test", 0700, 0, 0,
-                          _stat_fn=non_exist_stat, _mkdir_fn=self._NoopMkdir,
+                          _lstat_fn=non_exist_stat, _mkdir_fn=self._NoopMkdir,
                           _ensure_fn=self._VerifyEnsure)
     self.assertTrue(self.mkdir_called)
     self.mkdir_called = False
     ensure_dirs.EnsureDir("/ganeti-qa-non-test", 0700, 0, 0,
-                          _stat_fn=is_dir_stat, _ensure_fn=self._VerifyEnsure)
+                          _lstat_fn=is_dir_stat, _ensure_fn=self._VerifyEnsure)
     self.assertFalse(self.mkdir_called)
 
   def testEnsurePermission(self):

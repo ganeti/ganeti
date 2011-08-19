@@ -83,7 +83,7 @@ def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
                         (path, err))
 
 
-def EnsureDir(path, mode, uid, gid, _stat_fn=os.lstat, _mkdir_fn=os.mkdir,
+def EnsureDir(path, mode, uid, gid, _lstat_fn=os.lstat, _mkdir_fn=os.mkdir,
               _ensure_fn=EnsurePermission):
   """Ensures that given path is a dir and has given mode, uid and gid set.
 
@@ -99,16 +99,15 @@ def EnsureDir(path, mode, uid, gid, _stat_fn=os.lstat, _mkdir_fn=os.mkdir,
   logging.debug("Checking directory %s", path)
   try:
     # We don't want to follow symlinks
-    st_mode = _stat_fn(path)[stat.ST_MODE]
-
-    if not stat.S_ISDIR(st_mode):
-      raise EnsureError("Path %s is expected to be a directory, but it's not" %
-                        path)
+    st = _lstat_fn(path)
   except EnvironmentError, err:
-    if err.errno == errno.ENOENT:
-      _mkdir_fn(path)
-    else:
-      raise EnsureError("Error while do a stat() on %s: %s" % (path, err))
+    if err.errno != errno.ENOENT:
+      raise EnsureError("stat(2) on %s failed: %s" % (path, err))
+    _mkdir_fn(path)
+  else:
+    if not stat.S_ISDIR(st[stat.ST_MODE]):
+      raise EnsureError("Path %s is expected to be a directory, but isn't" %
+                        path)
 
   _ensure_fn(path, mode, uid=uid, gid=gid)
 
