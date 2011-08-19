@@ -28,12 +28,14 @@ import os.path
 import optparse
 import sys
 import stat
+import logging
 
 from ganeti import constants
 from ganeti import errors
 from ganeti import runtime
 from ganeti import ssconf
 from ganeti import utils
+from ganeti import cli
 
 
 (DIR,
@@ -66,6 +68,7 @@ def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
   @param _chown_fn: chown function to use (unittest only)
 
   """
+  logging.debug("Checking %s", path)
   try:
     _chmod_fn(path, mode)
 
@@ -93,6 +96,7 @@ def EnsureDir(path, mode, uid, gid, _stat_fn=os.lstat, _mkdir_fn=os.mkdir,
   @param _ensure_fn: ensure function to use (unittest only)
 
   """
+  logging.debug("Checking directory %s", path)
   try:
     # We don't want to follow symlinks
     st_mode = _stat_fn(path)[stat.ST_MODE]
@@ -123,6 +127,8 @@ def RecursiveEnsure(path, uid, gid, dir_perm, file_perm):
   """
   assert os.path.isabs(path), "Path %s is not absolute" % path
   assert os.path.isdir(path), "Path %s is not a dir" % path
+
+  logging.debug("Recursively processing %s", path)
 
   for root, dirs, files in os.walk(path):
     for subdir in dirs:
@@ -247,6 +253,26 @@ def GetPaths():
   return tuple(paths)
 
 
+def SetupLogging(opts):
+  """Configures the logging module.
+
+  """
+  formatter = logging.Formatter("%(asctime)s: %(message)s")
+
+  stderr_handler = logging.StreamHandler()
+  stderr_handler.setFormatter(formatter)
+  if opts.debug:
+    stderr_handler.setLevel(logging.NOTSET)
+  elif opts.verbose:
+    stderr_handler.setLevel(logging.INFO)
+  else:
+    stderr_handler.setLevel(logging.WARNING)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(stderr_handler)
+
+
 def ParseOptions():
   """Parses the options passed to the program.
 
@@ -257,6 +283,8 @@ def ParseOptions():
 
   parser = optparse.OptionParser(usage="%%prog [--full-run]",
                                  prog=program)
+  parser.add_option(cli.DEBUG_OPT)
+  parser.add_option(cli.VERBOSE_OPT)
   parser.add_option("--full-run", "-f", dest="full_run", action="store_true",
                     default=False, help=("Make a full run and collect"
                                          " additional files (time consuming)"))
@@ -268,8 +296,14 @@ def Main():
   """Main routine.
 
   """
-  getent = runtime.GetEnts()
   (opts, _) = ParseOptions()
+
+  SetupLogging(opts)
+
+  if opts.full_run:
+    logging.info("Running in full mode")
+
+  getent = runtime.GetEnts()
 
   try:
     for path in GetPaths():
@@ -279,7 +313,7 @@ def Main():
       RecursiveEnsure(constants.JOB_QUEUE_ARCHIVE_DIR, getent.masterd_uid,
                       getent.masterd_gid, 0700, 0600)
   except EnsureError, err:
-    print >> sys.stderr, "An error occurred while ensure permissions:", err
+    logging.error("An error occurred while setting permissions: %s", err)
     return constants.EXIT_FAILURE
 
   return constants.EXIT_SUCCESS
