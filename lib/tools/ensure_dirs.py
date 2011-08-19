@@ -101,7 +101,7 @@ def EnsureDir(path, mode, uid, gid, _lstat_fn=os.lstat, _mkdir_fn=os.mkdir,
   @param mode: The mode of the file
   @param uid: The uid of the owner of this file
   @param gid: The gid of the owner of this file
-  @param _stat_fn: Stat function to use (unittest only)
+  @param _lstat_fn: Stat function to use (unittest only)
   @param _mkdir_fn: mkdir function to use (unittest only)
   @param _ensure_fn: ensure function to use (unittest only)
 
