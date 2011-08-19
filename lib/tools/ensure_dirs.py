@@ -56,7 +56,7 @@ class EnsureError(errors.GenericError):
 
 
 def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
-                     _chmod_fn=os.chmod, _chown_fn=os.chown):
+                     _chmod_fn=os.chmod, _chown_fn=os.chown, _stat_fn=os.stat):
   """Ensures that given path has given mode.
 
   @param path: The path to the file
@@ -70,10 +70,20 @@ def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
   """
   logging.debug("Checking %s", path)
   try:
-    _chmod_fn(path, mode)
+    st = _stat_fn(path)
+
+    fmode = stat.S_IMODE(st[stat.ST_MODE])
+    if fmode != mode:
+      logging.debug("Changing mode of %s from %#o to %#o", path, fmode, mode)
+      _chmod_fn(path, mode)
 
     if max(uid, gid) > -1:
-      _chown_fn(path, uid, gid)
+      fuid = st[stat.ST_UID]
+      fgid = st[stat.ST_GID]
+      if fuid != uid or fgid != gid:
+        logging.debug("Changing owner of %s from UID %s/GID %s to"
+                      " UID %s/GID %s", path, fuid, fgid, uid, gid)
+        _chown_fn(path, uid, gid)
   except EnvironmentError, err:
     if err.errno == errno.ENOENT:
       if must_exist:
