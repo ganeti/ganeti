@@ -77,9 +77,9 @@ def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
   except EnvironmentError, err:
     if err.errno == errno.ENOENT:
       if must_exist:
-        raise EnsureError("Path %s does not exists, but should" % path)
+        raise EnsureError("Path %s should exist, but does not" % path)
     else:
-      raise EnsureError("Error while changing permission on %s: %s" %
+      raise EnsureError("Error while changing permissions on %s: %s" %
                         (path, err))
 
 
@@ -286,8 +286,8 @@ def ParseOptions():
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
   parser.add_option("--full-run", "-f", dest="full_run", action="store_true",
-                    default=False, help=("Make a full run and collect"
-                                         " additional files (time consuming)"))
+                    default=False, help=("Make a full run and set permissions"
+                                         " on archived jobs (time consuming)"))
 
   return parser.parse_args()
 
