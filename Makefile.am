@@ -294,6 +294,7 @@ docrst = \
 	doc/design-multi-reloc.rst \
 	doc/design-network.rst \
 	doc/design-chained-jobs.rst \
+	doc/design-ovf-support.rst \
 	doc/cluster-merge.rst \
 	doc/design-shared-storage.rst \
 	doc/devnotes.rst \
