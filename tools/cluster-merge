@@ -613,6 +613,7 @@ class Merger(object):
                                 (result.fail_reason, result.output))
 
   # R0201: Method could be a function
+  # TODO: make this overridable, for some verify errors
   def _VerifyCluster(self): # pylint: disable-msg=R0201
     """Runs gnt-cluster verify to verify the health.
 
