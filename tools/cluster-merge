@@ -589,9 +589,8 @@ class Merger(object):
         result = utils.RunCmd(["gnt-node", "add", "--readd",
                                "--no-ssh-key-check", "--force-join", node])
         if result.failed:
-          raise errors.CommandError("Couldn't readd node %s. Fail reason: %s;"
-                                    " output: %s" % (node, result.fail_reason,
-                                                     result.output))
+          logging.error("%s failed to be readded. Reason: %s, output: %s",
+                         node, result.fail_reason, result.output)
 
     result = utils.RunCmd(["gnt-cluster", "redist-conf"])
     if result.failed:
