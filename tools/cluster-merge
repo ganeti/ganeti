@@ -85,8 +85,8 @@ SKIP_STOP_INSTANCES_OPT = cli.cli_option("--skip-stop-instances", default=True,
                                          action="store_false", type="boolean",
                                          dest="stop_instances",
                                          help=("Don't stop the instances on the"
-                                               " clusters, but just to check"
-                                               " that none is running"))
+                                               " clusters, just check that none"
+                                               " is running"))
 
 
 def Flatten(unflattened_list):
