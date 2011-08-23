@@ -259,7 +259,7 @@ class Merger(object):
     """
     for cluster in self.clusters:
       result = self._RunCmd(cluster, "gnt-instance list -o status")
-      if self.RUNNING_STATUSES.intersect(result.output.splitlines()):
+      if self.RUNNING_STATUSES.intersection(result.output.splitlines()):
         return True
 
     return False
