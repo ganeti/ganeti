@@ -81,6 +81,13 @@ RESTART_OPT = cli.cli_option("--restart", default=_RESTART_ALL,
                                    " same name (One of: %s/%s/%s)" %
                                    _RESTART_CHOICES))
 
+SKIP_STOP_INSTANCES_OPT = cli.cli_option("--skip-stop-instances", default=True,
+                                         action="store_false", type="boolean",
+                                         dest="stop_instances",
+                                         help=("Don't stop the instances on the"
+                                               " clusters, but just to check"
+                                               " that none is running"))
+
 
 def Flatten(unflattened_list):
   """Flattens a list.
@@ -124,13 +131,21 @@ class Merger(object):
   """Handling the merge.
 
   """
-  def __init__(self, clusters, pause_period, groups, restart, params):
+  RUNNING_STATUSES = frozenset([
+    constants.INSTST_RUNNING,
+    constants.INSTST_ERRORUP,
+    ])
+  def __init__(self, clusters, pause_period, groups, restart, params,
+               stop_instances):
     """Initialize object with sane defaults and infos required.
 
     @param clusters: The list of clusters to merge in
     @param pause_period: The time watcher shall be disabled for
     @param groups: How to handle group conflicts
     @param restart: How to handle instance restart
+    @param stop_instances: Indicates whether the instances must be stopped
+                           (True) or if the Merger must only check if no
+                           instances are running on the mergee clusters (False)
 
     """
     self.merger_data = []
@@ -142,6 +157,7 @@ class Merger(object):
     self.groups = groups
     self.restart = restart
     self.params = params
+    self.stop_instances = stop_instances
     if self.restart == _RESTART_UP:
       raise NotImplementedError
 
@@ -233,6 +249,20 @@ class Merger(object):
         break
 
     return result
+
+  def _CheckRunningInstances(self):
+    """Checks if on the clusters to be merged there are running instances
+
+    @rtype: boolean
+    @return: True if there are running instances, False otherwise
+
+    """
+    for cluster in self.clusters:
+      result = self._RunCmd(cluster, "gnt-instance list -o status")
+      if self.RUNNING_STATUSES.intersect(result.output.splitlines()):
+        return True
+
+    return False
 
   def _StopMergingInstances(self):
     """Stop instances on merging clusters.
@@ -650,9 +680,14 @@ class Merger(object):
 
       rbsteps.append("Start all instances again on the merging"
                      " clusters: %(clusters)s")
-      logging.info("Stopping merging instances (takes a while)")
-      self._StopMergingInstances()
-
+      if self.stop_instances:
+        logging.info("Stopping merging instances (takes a while)")
+        self._StopMergingInstances()
+      logging.info("Checking that no instances are running on the mergees")
+      instances_running = self._CheckRunningInstances()
+      if instances_running:
+        raise errors.CommandError("Some instances are still running on the"
+                                  " mergees")
       logging.info("Disable watcher")
       self._DisableWatcher()
       logging.info("Stop daemons on merging nodes")
@@ -751,6 +786,7 @@ def main():
   parser.add_option(GROUPS_OPT)
   parser.add_option(RESTART_OPT)
   parser.add_option(PARAMS_OPT)
+  parser.add_option(SKIP_STOP_INSTANCES_OPT)
 
   (options, args) = parser.parse_args()
 
@@ -760,7 +796,8 @@ def main():
     parser.error("No clusters specified")
 
   cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period,
-                          options.groups, options.restart, options.params)
+                          options.groups, options.restart, options.params,
+                          options.stop_instances)
   try:
     try:
       cluster_merger.Setup()
