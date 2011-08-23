@@ -1,6 +1,18 @@
 News
 ====
 
+Version 2.4.4
+-------------
+
+*(Released Tue, 23 Aug 2011)*
+
+Small bug-fixes:
+
+- Fixed documentation for importing with ``--src-dir`` option
+- Fixed a bug in ``ensure-dirs`` with queue/archive permissions
+- Fixed a parsing issue with DRBD 8.3.11 in the Linux kernel
+
+
 Version 2.4.3
 -------------
 
