@@ -82,8 +82,7 @@ RESTART_OPT = cli.cli_option("--restart", default=_RESTART_ALL,
                                    _RESTART_CHOICES))
 
 SKIP_STOP_INSTANCES_OPT = cli.cli_option("--skip-stop-instances", default=True,
-                                         action="store_false", type="boolean",
-                                         dest="stop_instances",
+                                         action="store_false", dest="stop_instances",
                                          help=("Don't stop the instances on the"
                                                " clusters, just check that none"
                                                " is running"))
