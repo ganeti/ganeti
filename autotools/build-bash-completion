@@ -54,7 +54,7 @@ def WritePreamble(sw):
   sw.Write("# This script is automatically generated at build time.")
   sw.Write("# Do not modify manually.")
 
-  sw.Write("_ganeti_dbglog() {")
+  sw.Write("_gnt_log() {")
   sw.IncIndent()
   try:
     sw.Write("if [[ -n \"$GANETI_COMPL_LOG\" ]]; then")
@@ -192,7 +192,7 @@ def WritePreamble(sw):
 
   # Params: <long options with equal sign> <all options>
   # Result variable: $optcur
-  sw.Write("_ganeti_checkopt() {")
+  sw.Write("_gnt_checkopt() {")
   sw.IncIndent()
   try:
     sw.Write("""if [[ -n "$1" && "$cur" == @($1) ]]; then""")
@@ -211,7 +211,7 @@ def WritePreamble(sw):
       sw.DecIndent()
     sw.Write("fi")
 
-    sw.Write("_ganeti_dbglog optcur=\"'$optcur'\"")
+    sw.Write("_gnt_log optcur=\"'$optcur'\"")
 
     sw.Write("return 1")
   finally:
@@ -220,18 +220,18 @@ def WritePreamble(sw):
 
   # Params: <compgen options>
   # Result variable: $COMPREPLY
-  sw.Write("_ganeti_compgen() {")
+  sw.Write("_gnt_compgen() {")
   sw.IncIndent()
   try:
     sw.Write("""COMPREPLY=( $(compgen "$@") )""")
-    sw.Write("_ganeti_dbglog COMPREPLY=\"${COMPREPLY[@]}\"")
+    sw.Write("_gnt_log COMPREPLY=\"${COMPREPLY[@]}\"")
   finally:
     sw.DecIndent()
   sw.Write("}")
 
 
 def WriteCompReply(sw, args, cur="\"$cur\""):
-  sw.Write("_ganeti_compgen %s -- %s", args, cur)
+  sw.Write("_gnt_compgen %s -- %s", args, cur)
   sw.Write("return")
 
 
@@ -327,7 +327,7 @@ class CompletionWriter:
       else:
         condcmd = "if"
 
-      sw.Write("%s _ganeti_checkopt %s %s; then", condcmd,
+      sw.Write("%s _gnt_checkopt %s %s; then", condcmd,
                utils.ShellQuote("|".join(["%s=*" % i for i in longnames])),
                utils.ShellQuote("|".join(allnames)))
       sw.IncIndent()
@@ -364,7 +364,7 @@ class CompletionWriter:
             sw.DecIndent()
           sw.Write("fi")
 
-          sw.Write("_ganeti_dbglog pfx=\"'$pfx'\" curvalue=\"'$curvalue'\""
+          sw.Write("_gnt_log pfx=\"'$pfx'\" curvalue=\"'$curvalue'\""
                    " node1=\"'$node1'\"")
 
           sw.Write("for i in $(_ganeti_nodes); do")
@@ -418,10 +418,6 @@ class CompletionWriter:
       last_arg_end = 0
       varlen_arg_idx = None
       wrote_arg = False
-
-      # Write some debug comments
-      for idx, arg in enumerate(self.args):
-        sw.Write("# %s: %r", idx, arg)
 
       sw.Write("compgenargs=")
 
@@ -531,9 +527,9 @@ def WriteCompletion(sw, scriptname, funcname,
              ' prev="${COMP_WORDS[COMP_CWORD-1]}"'
              ' i first_arg_idx choices compgenargs arg_idx optcur')
 
-    sw.Write("_ganeti_dbglog cur=\"$cur\" prev=\"$prev\"")
+    sw.Write("_gnt_log cur=\"$cur\" prev=\"$prev\"")
     sw.Write("[[ -n \"$GANETI_COMPL_LOG\" ]] &&"
-             " _ganeti_dbglog \"$(set | grep ^COMP_)\"")
+             " _gnt_log \"$(set | grep ^COMP_)\"")
 
     sw.Write("COMPREPLY=()")
 
