@@ -255,6 +255,32 @@ def ParseCpuMask(cpu_mask):
   return cpu_list
 
 
+def ParseMultiCpuMask(cpu_mask):
+  """Parse a multiple CPU mask definition and return the list of CPU IDs.
+
+  CPU mask format: colon-separated list of comma-separated list of CPU IDs
+  or dash-separated ID ranges, with optional "all" as CPU value
+  Example: "0-2,5:all:1,5,6:2" -> [ [ 0,1,2,5 ], [ -1 ], [ 1, 5, 6 ], [ 2 ] ]
+
+  @type cpu_mask: str
+  @param cpu_mask: multiple CPU mask definition
+  @rtype: list of lists of int
+  @return: list of lists of CPU IDs
+
+  """
+  if not cpu_mask:
+    return []
+  cpu_list = []
+  for range_def in cpu_mask.split(constants.CPU_PINNING_SEP):
+    if range_def == constants.CPU_PINNING_ALL:
+      cpu_list.append([constants.CPU_PINNING_ALL_VAL, ])
+    else:
+      # Uniquify and sort the list before adding
+      cpu_list.append(sorted(set(ParseCpuMask(range_def))))
+
+  return cpu_list
+
+
 def GetHomeDir(user, default=None):
   """Try to get the homedir of the given user.
 

@@ -61,6 +61,22 @@ class TestParseCpuMask(unittest.TestCase):
       self.assertRaises(errors.ParseError, utils.ParseCpuMask, data)
 
 
+class TestParseMultiCpuMask(unittest.TestCase):
+  """Test case for the ParseMultiCpuMask function."""
+
+  def testWellFormed(self):
+    self.assertEqual(utils.ParseMultiCpuMask(""), [])
+    self.assertEqual(utils.ParseMultiCpuMask("1"), [[1]])
+    self.assertEqual(utils.ParseMultiCpuMask("0-2,4,5-5"), [[0, 1, 2, 4, 5]])
+    self.assertEqual(utils.ParseMultiCpuMask("all"), [[-1]])
+    self.assertEqual(utils.ParseMultiCpuMask("0-2:all:4,6-8"),
+      [[0, 1, 2], [-1], [4, 6, 7, 8]])
+
+  def testInvalidInput(self):
+    for data in ["garbage", "0,", "0-1-2", "2-1", "1-a", "all-all"]:
+      self.assertRaises(errors.ParseError, utils.ParseCpuMask, data)
+
+
 class TestGetMounts(unittest.TestCase):
   """Test case for GetMounts()."""
 
