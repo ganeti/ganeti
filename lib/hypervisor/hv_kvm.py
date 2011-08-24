@@ -418,6 +418,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                          x in constants.VALID_IP_VERSIONS),
        "the SPICE IP version should be 4 or 6",
        None, None),
+    constants.HV_KVM_SPICE_PASSWORD_FILE: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
@@ -1015,8 +1016,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # ValidateParameters checked it.
         spice_address = spice_bind
 
-      spice_arg = "addr=%s,port=%s,disable-ticketing" % (spice_address,
-                                                         instance.network_port)
+      spice_arg = "addr=%s,port=%s" % (spice_address, instance.network_port)
+      if not hvp[constants.HV_KVM_SPICE_PASSWORD_FILE]:
+        spice_arg = "%s,disable-ticketing" % spice_arg
+
       if spice_ip_version:
         spice_arg = "%s,ipv%s" % (spice_arg, spice_ip_version)
 
@@ -1235,6 +1238,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if vnc_pwd:
       change_cmd = "change vnc password %s" % vnc_pwd
       self._CallMonitorCommand(instance.name, change_cmd)
+
+    # Setting SPICE password. We are not vulnerable to malicious passwordless
+    # connection attempts because SPICE by default does not allow connections
+    # if neither a password nor the "disable_ticketing" options are specified.
+    # As soon as we send the password via QMP, that password is a valid ticket
+    # for connection.
+    spice_password_file = conf_hvp[constants.HV_KVM_SPICE_PASSWORD_FILE]
+    if spice_password_file:
+      try:
+        spice_pwd = utils.ReadOneLineFile(spice_password_file, strict=True)
+        qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
+        qmp.connect()
+        arguments = {
+            "protocol": "spice",
+            "password": spice_pwd,
+        }
+        qmp.Execute("set_password", arguments)
+      except EnvironmentError, err:
+        raise errors.HypervisorError("Failed to open SPICE password file %s: %s"
+                                     % (spice_password_file, err))
 
     for filename in temp_files:
       utils.RemoveFile(filename)
@@ -1558,8 +1581,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " security model is 'none' or 'pool'")
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
+    spice_ip_version = hvparams[constants.HV_KVM_SPICE_IP_VERSION]
+    spice_password_file = hvparams[constants.HV_KVM_SPICE_PASSWORD_FILE]
     if spice_bind:
-      spice_ip_version = hvparams[constants.HV_KVM_SPICE_IP_VERSION]
       if spice_ip_version != constants.IFACE_NO_IP_VERSION_SPECIFIED:
         # if an IP version is specified, the spice_bind parameter must be an
         # IP of that family
@@ -1574,6 +1598,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           raise errors.HypervisorError("spice: got an IPv6 address (%s), but"
                                        " the specified IP version is %s" %
                                        (spice_bind, spice_ip_version))
+    else:
+      if spice_ip_version:
+        raise errors.HypervisorError("spice: the %s option is useless"
+                                     " without %s" %
+                                     (constants.HV_KVM_SPICE_IP_VERSION,
+                                      constants.HV_KVM_SPICE_BIND))
+      if spice_password_file:
+        raise errors.HypervisorError("spice: the %s option is useless"
+                                     " without %s" %
+                                     (constants.HV_KVM_SPICE_PASSWORD_FILE,
+                                      constants.HV_KVM_SPICE_BIND))
 
   @classmethod
   def ValidateParameters(cls, hvparams):

@@ -300,6 +300,13 @@ spice\_ip\_version
     this case, if the ``spice_ip_version`` parameter is not used, the
     default IP version of the cluster will be used.
 
+spice\_password\_file
+    Valid for the KVM hypervisor.
+
+    Specifies a file containing the password that must be used when
+    connecting via the SPICE protocol. If the option is not specified,
+    passwordless connections are allowed.
+
 acpi
     Valid for the Xen HVM and KVM hypervisors.
 
