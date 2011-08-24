@@ -8402,6 +8402,10 @@ class LUInstanceCreate(LogicalUnit):
       if einfo.has_option(constants.INISECT_INS, "disk_template"):
         self.op.disk_template = einfo.get(constants.INISECT_INS,
                                           "disk_template")
+        if self.op.disk_template not in constants.DISK_TEMPLATES:
+          raise errors.OpPrereqError("Disk template specified in configuration"
+                                     " file is not one of the allowed values:"
+                                     " %s" % " ".join(constants.DISK_TEMPLATES))
       else:
         raise errors.OpPrereqError("No disk template specified and the export"
                                    " is missing the disk_template information",

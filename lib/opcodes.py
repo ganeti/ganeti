@@ -237,8 +237,20 @@ def _CheckFileStorage(value):
   return True
 
 
-_CheckDiskTemplate = ht.TAnd(ht.TElemOf(constants.DISK_TEMPLATES),
-                             _CheckFileStorage)
+def _BuildDiskTemplateCheck(accept_none):
+  """Builds check for disk template.
+
+  @type accept_none: bool
+  @param accept_none: whether to accept None as a correct value
+  @rtype: callable
+
+  """
+  template_check = ht.TElemOf(constants.DISK_TEMPLATES)
+
+  if accept_none:
+    template_check = ht.TOr(template_check, ht.TNone)
+
+  return ht.TAnd(template_check, _CheckFileStorage)
 
 
 def _CheckStorageType(storage_type):
@@ -1038,7 +1050,8 @@ class OpInstanceCreate(OpCode):
      (constants.IDISK_SIZE, constants.IDISK_SIZE, constants.IDISK_SIZE,
       constants.IDISK_MODE,
       " or ".join("``%s``" % i for i in sorted(constants.DISK_ACCESS_SET)))),
-    ("disk_template", ht.NoDefault, _CheckDiskTemplate, "Disk template"),
+    ("disk_template", ht.NoDefault, _BuildDiskTemplateCheck(True),
+     "Disk template"),
     ("file_driver", None, ht.TOr(ht.TNone, ht.TElemOf(constants.FILE_DRIVER)),
      "Driver for file-backed disks"),
     ("file_storage_dir", None, ht.TMaybeString,
@@ -1306,7 +1319,7 @@ class OpInstanceSetParams(OpCode):
     ("beparams", ht.EmptyDict, ht.TDict, "Per-instance backend parameters"),
     ("hvparams", ht.EmptyDict, ht.TDict,
      "Per-instance hypervisor parameters, hypervisor-dependent"),
-    ("disk_template", None, ht.TOr(ht.TNone, _CheckDiskTemplate),
+    ("disk_template", None, ht.TOr(ht.TNone, _BuildDiskTemplateCheck(False)),
      "Disk template for instance"),
     ("remote_node", None, ht.TMaybeString,
      "Secondary node (used when changing disk template)"),
