@@ -84,6 +84,39 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     utils.RemoveFile("/etc/xen/%s" % instance_name)
 
+  @classmethod
+  def _CreateConfigCpus(cls, cpu_mask):
+    """Create a CPU config string that's compatible with Xen's
+    configuration file.
+
+    """
+    # Convert the string CPU mask to a list of list of int's
+    cpu_list = utils.ParseMultiCpuMask(cpu_mask)
+
+    if len(cpu_list) == 1:
+      all_cpu_mapping = cpu_list[0]
+      if (len(all_cpu_mapping) == 1 and
+          all_cpu_mapping[0] == constants.CPU_PINNING_ALL_VAL):
+        # If CPU pinning has 1 entry that's "all", then remove the
+        # parameter from the config file
+        return None
+      else:
+        # If CPU pinning has one non-all entry, mapping all vCPUS (the entire
+        # VM) to one physical CPU, using format 'cpu = "C"'
+        return "cpu = \"%s\"" % ",".join(map(str, all_cpu_mapping))
+    else:
+      def _GetCPUMap(vcpu):
+        if vcpu[0] == constants.CPU_PINNING_ALL_VAL:
+          cpu_map = constants.CPU_PINNING_ALL_XEN
+        else:
+          cpu_map = ",".join(map(str, vcpu))
+        return "\"%s\"" % cpu_map
+
+      # build the result string in format 'cpus = [ "c", "c", "c" ]',
+      # where each c is a physical CPU number, a range, a list, or any
+      # combination
+      return "cpus = [ %s ]" % ", ".join(map(_GetCPUMap, cpu_list))
+
   @staticmethod
   def _RunXmList(xmlist_errors):
     """Helper function for L{_GetXMList} to run "xm list".
@@ -471,7 +504,8 @@ class XenPvmHypervisor(XenHypervisor):
     # TODO: Add a check for the blockdev prefix (matching [a-z:] or similar).
     constants.HV_BLOCKDEV_PREFIX: hv_base.NO_CHECK,
     constants.HV_REBOOT_BEHAVIOR:
-      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS)
+      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
+    constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
     }
 
   @classmethod
@@ -510,6 +544,10 @@ class XenPvmHypervisor(XenHypervisor):
     # rest of the settings
     config.write("memory = %d\n" % instance.beparams[constants.BE_MEMORY])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
+    cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])
+    if cpu_pinning:
+      config.write("%s\n" % cpu_pinning)
+
     config.write("name = '%s'\n" % instance.name)
 
     vif_data = []
@@ -580,7 +618,8 @@ class XenHvmHypervisor(XenHypervisor):
     # TODO: Add a check for the blockdev prefix (matching [a-z:] or similar).
     constants.HV_BLOCKDEV_PREFIX: hv_base.NO_CHECK,
     constants.HV_REBOOT_BEHAVIOR:
-      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS)
+      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
+    constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
     }
 
   @classmethod
@@ -600,6 +639,10 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("builder = 'hvm'\n")
     config.write("memory = %d\n" % instance.beparams[constants.BE_MEMORY])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
+    cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])
+    if cpu_pinning:
+      config.write("%s\n" % cpu_pinning)
+
     config.write("name = '%s'\n" % instance.name)
     if hvp[constants.HV_PAE]:
       config.write("pae = 1\n")
