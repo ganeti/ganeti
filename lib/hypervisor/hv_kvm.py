@@ -201,7 +201,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_USE_CHROOT: hv_base.NO_CHECK,
     constants.HV_MEM_PATH: hv_base.OPT_DIR_CHECK,
     constants.HV_REBOOT_BEHAVIOR:
-      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS)
+      hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
+    constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
