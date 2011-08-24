@@ -193,6 +193,7 @@ pkgpython_PYTHON = \
 	lib/netutils.py \
 	lib/objects.py \
 	lib/opcodes.py \
+	lib/ovf.py \
 	lib/qlang.py \
 	lib/query.py \
 	lib/rpc.py \
@@ -513,6 +514,7 @@ dist_tools_PYTHON = \
 	tools/cluster-merge \
 	tools/lvmstrap \
 	tools/move-instance \
+	tools/ovfconverter \
 	tools/setup-ssh \
 	tools/sanitize-config
 

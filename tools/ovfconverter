@@ -1,0 +1,211 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2011 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Tool to translate between ovf and ganeti backup format.
+
+"""
+
+import logging
+import optparse
+import os
+
+from ganeti import cli
+from ganeti import constants
+from ganeti import errors
+from ganeti import ovf
+
+
+IMPORT_MODE = "import"
+EXPORT_MODE = "export"
+
+
+def CheckOptions(parser, options_dict, required, forbidden, excluding, mode):
+  """Performes check on the command line options.
+
+  Checks whether the required arguments are present and if none of the arguments
+  not supported for the current mode are given.
+
+  @type options_dict: list
+  @param options_dict: dictionary containing all the options from the command
+    line
+  @type required: list
+  @param required: list of pairs (option, argument) where 'option' is required
+    in mode 'mode'
+  @type forbidden: list
+  @param forbidden: list of pairs (option, argument) which are not allowed in
+    mode 'mode'
+  @type excluding: list
+  @param excluding: list of pairs (argument1, argument2); each pair contains
+    mutually exclusive arguments
+  @type mode: string
+  @param mode: current mode of the converter
+
+  """
+  for (option, argument) in required:
+    if not options_dict[option]:
+      parser.error("Argument %s is required for %s" % (argument, mode))
+  for (option, argument) in forbidden:
+    if options_dict[option]:
+      parser.error("Argument %s is not allowed in %s mode" % (argument, mode))
+  for (arg1, arg2) in excluding:
+    if options_dict[arg1] and options_dict[arg2]:
+      parser.error("Arguments %s and %s exclude each other" % (arg1, arg2))
+
+
+def ParseOptions():
+  """Parses the command line options and arguments.
+
+  In case of mismatching parameters, it will show the correct usage and exit.
+
+  @rtype: tuple
+  @return: (mode, sourcefile to read from, additional options)
+
+  """
+  usage = ("%%prog {%s|%s} <source-cfg-file> [options...]" %
+           (IMPORT_MODE, EXPORT_MODE))
+  parser = optparse.OptionParser(usage=usage)
+
+  #global options
+  parser.add_option(cli.DEBUG_OPT)
+  parser.add_option(cli.VERBOSE_OPT)
+  parser.add_option("-n", "--name", dest="name", action="store",
+                    help="Name of the instance")
+  parser.add_option("--output-dir", dest="output_dir",
+                    help="Path to the output directory")
+
+  #import options
+  import_group = optparse.OptionGroup(parser, "Import options")
+  import_group.add_option(cli.BACKEND_OPT)
+  import_group.add_option(cli.DISK_OPT)
+  import_group.add_option(cli.DISK_TEMPLATE_OPT)
+  import_group.add_option(cli.HYPERVISOR_OPT)
+  import_group.add_option(cli.NET_OPT)
+  import_group.add_option(cli.NONICS_OPT)
+  import_group.add_option(cli.OS_OPT)
+  import_group.add_option(cli.OSPARAMS_OPT)
+  import_group.add_option(cli.TAG_ADD_OPT)
+  parser.add_option_group(import_group)
+
+  #export options
+  export_group = optparse.OptionGroup(parser, "Export options")
+  export_group.add_option("--compress", dest="compression",
+                          action="store_true", default=False,
+                          help="The exported disk will be compressed to tar.gz")
+  export_group.add_option("--external", dest="ext_usage",
+                          action="store_true", default=False,
+                          help="The package will be used externally (ommits the"
+                               " Ganeti-specific parts of configuration)")
+  export_group.add_option("-f", "--format", dest="disk_format",
+                          action="store",
+                          choices=("raw", "cow", "vmdk"),
+                          help="Disk format for export (one of raw/cow/vmdk)")
+  export_group.add_option("--ova", dest="ova_package",
+                          action="store_true", default=False,
+                          help="Export everything into OVA package")
+  parser.add_option_group(export_group)
+
+  options, args = parser.parse_args()
+  if len(args) != 2:
+    parser.error("Wrong number of arguments")
+  mode = args.pop(0)
+  input_path = os.path.abspath(args.pop(0))
+
+  if mode == IMPORT_MODE:
+    required = []
+    forbidden = [
+      ("compression", "--compress"),
+      ("disk_format", "--format"),
+      ("ext_usage", "--external"),
+      ("ova_package", "--ova"),
+    ]
+    excluding = [("nics", "no_nics")]
+  elif mode == EXPORT_MODE:
+    required = [("disk_format", "--format")]
+    forbidden = [
+      ("beparams", "--backend-parameters"),
+      ("disk_template", "--disk-template"),
+      ("disks", "--disk"),
+      ("hypervisor", "--hypervisor-parameters"),
+      ("nics", "--net"),
+      ("no_nics", "--no-nics"),
+      ("os", "--os-type"),
+      ("osparams", "--os-parameters"),
+      ("tags", "--tags"),
+    ]
+    excluding = []
+  else:
+    parser.error("First argument should be either '%s' or '%s'" %
+                 (IMPORT_MODE, EXPORT_MODE))
+
+  options_dict = vars(options)
+  CheckOptions(parser, options_dict, required, forbidden, excluding, mode)
+
+  return (mode, input_path, options)
+
+
+def SetupLogging(options):
+  """Setting up logging infrastructure.
+
+  @type options: optparse.Values
+  @param options: parsed command line options
+
+  """
+  formatter = logging.Formatter("%(asctime)s: %(levelname)s %(message)s")
+
+  stderr_handler = logging.StreamHandler()
+  stderr_handler.setFormatter(formatter)
+  if options.debug:
+    stderr_handler.setLevel(logging.NOTSET)
+  elif options.verbose:
+    stderr_handler.setLevel(logging.INFO)
+  else:
+    stderr_handler.setLevel(logging.WARNING)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(stderr_handler)
+
+
+def main():
+  """Main routine.
+
+  """
+  (mode, input_path, options) = ParseOptions()
+  SetupLogging(options)
+  logging.info("Chosen %s mode, reading the %s file", mode, input_path)
+  assert mode in (IMPORT_MODE, EXPORT_MODE)
+  converter = None
+  try:
+    if mode == IMPORT_MODE:
+      converter = ovf.OVFImporter(input_path, options)
+    elif mode == EXPORT_MODE:
+      converter = ovf.OVFExporter(input_path, options)
+    converter.Parse()
+    converter.Save()
+  except errors.OpPrereqError, err:
+    if converter:
+      converter.Cleanup()
+    logging.exception(err)
+    return constants.EXIT_FAILURE
+
+
+if __name__ == "__main__":
+  main()
