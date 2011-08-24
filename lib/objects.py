@@ -401,7 +401,8 @@ class NIC(ConfigObject):
     @raise errors.ConfigurationError: when a parameter is not valid
 
     """
-    if nicparams[constants.NIC_MODE] not in constants.NIC_VALID_MODES:
+    if (nicparams[constants.NIC_MODE] not in constants.NIC_VALID_MODES and
+        nicparams[constants.NIC_MODE] != constants.VALUE_AUTO):
       err = "Invalid nic mode: %s" % nicparams[constants.NIC_MODE]
       raise errors.ConfigurationError(err)
 

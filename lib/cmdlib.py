@@ -8538,7 +8538,8 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
                                  " instances", errors.ECODE_STATE)
 
-    if self.op.hypervisor is None:
+    if (self.op.hypervisor is None or
+        self.op.hypervisor.lower() == constants.VALUE_AUTO):
       self.op.hypervisor = self.cfg.GetHypervisorType()
 
     cluster = self.cfg.GetClusterInfo()
@@ -8564,6 +8565,10 @@ class LUInstanceCreate(LogicalUnit):
     _CheckGlobalHvParams(self.op.hvparams)
 
     # fill and remember the beparams dict
+    default_beparams = cluster.beparams[constants.PP_DEFAULT]
+    for param, value in self.op.beparams.iteritems():
+      if value.lower() == constants.VALUE_AUTO:
+        self.op.beparams[param] = default_beparams[param]
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
     self.be_full = cluster.SimpleFillBE(self.op.beparams)
 
@@ -8580,7 +8585,7 @@ class LUInstanceCreate(LogicalUnit):
     for idx, nic in enumerate(self.op.nics):
       nic_mode_req = nic.get(constants.INIC_MODE, None)
       nic_mode = nic_mode_req
-      if nic_mode is None:
+      if nic_mode is None or nic_mode.lower() == constants.VALUE_AUTO:
         nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
 
       # in routed mode, for the first nic, the default ip is 'auto'
@@ -8624,9 +8629,11 @@ class LUInstanceCreate(LogicalUnit):
 
       #  Build nic parameters
       link = nic.get(constants.INIC_LINK, None)
+      if link.lower() == constants.VALUE_AUTO:
+        link = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_LINK]
       nicparams = {}
       if nic_mode_req:
-        nicparams[constants.NIC_MODE] = nic_mode_req
+        nicparams[constants.NIC_MODE] = nic_mode
       if link:
         nicparams[constants.NIC_LINK] = link
 
