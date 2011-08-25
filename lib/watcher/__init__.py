@@ -363,8 +363,12 @@ def ParseOptions():
                           " 6 hours)")
   parser.add_option("--ignore-pause", dest="ignore_pause", default=False,
                     action="store_true", help="Ignore cluster pause setting")
-  parser.add_option("--wait-children", dest="wait_children", default=False,
+  parser.add_option("--wait-children", dest="wait_children",
                     action="store_true", help="Wait for child processes")
+  parser.add_option("--no-wait-children", dest="wait_children",
+                    action="store_false", help="Don't wait for child processes")
+  # See optparse documentation for why default values are not set by options
+  parser.set_defaults(wait_children=True)
   options, args = parser.parse_args()
   options.job_age = cli.ParseTimespec(options.job_age)
 

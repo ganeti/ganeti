@@ -539,7 +539,6 @@ class ConfigWriter:
                 cluster.SimpleFillND(nodegroup.ndparams),
                 constants.NDS_PARAMETER_TYPES)
 
-
     # drbd minors check
     _, duplicates = self._UnlockedComputeDRBDMap()
     for node, minor, instance_a, instance_b in duplicates:

@@ -321,7 +321,6 @@ class BlockDev(object):
                                   is_degraded=is_degraded,
                                   ldisk_status=ldisk_status)
 
-
   def SetInfo(self, text):
     """Update metadata with info text.
 
@@ -408,12 +407,12 @@ class LogicalVolume(BlockDev):
     pvs_info.sort()
     pvs_info.reverse()
 
-    pvlist = [ pv[1] for pv in pvs_info ]
+    pvlist = [pv[1] for pv in pvs_info]
     if compat.any(":" in v for v in pvlist):
       _ThrowError("Some of your PVs have the invalid character ':' in their"
                   " name, this is not supported - please filter them out"
                   " in lvm.conf using either 'filter' or 'preferred_names'")
-    free_size = sum([ pv[0] for pv in pvs_info ])
+    free_size = sum([pv[0] for pv in pvs_info])
     current_pvs = len(pvlist)
     stripes = min(current_pvs, constants.LVM_STRIPECOUNT)
 
@@ -1113,7 +1112,7 @@ class DRBD8(BaseDRBD):
     super(DRBD8, self).__init__(unique_id, children, size)
     self.major = self._DRBD_MAJOR
     version = self._GetVersion(self._GetProcData())
-    if version["k_major"] != 8 :
+    if version["k_major"] != 8:
       _ThrowError("Mismatch in DRBD kernel version and requested ganeti"
                   " usage: kernel is %s.%s, ganeti wants 8.x",
                   version["k_major"], version["k_minor"])
@@ -1194,7 +1193,7 @@ class DRBD8(BaseDRBD):
     # this also converts the value to an int
     number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t: int(t[0]))
 
-    comment = pyp.Literal ("#") + pyp.Optional(pyp.restOfLine)
+    comment = pyp.Literal("#") + pyp.Optional(pyp.restOfLine)
     defa = pyp.Literal("_is_default").suppress()
     dbl_quote = pyp.Literal('"').suppress()
 

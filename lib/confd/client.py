@@ -333,7 +333,7 @@ class ConfdClient:
     elif peer_cnt < 5:
       return peer_cnt - 1
     else:
-      return int(peer_cnt/2) + 1
+      return int(peer_cnt / 2) + 1
 
   def WaitForReply(self, salt, timeout=constants.CONFD_CLIENT_EXPIRE_TIMEOUT):
     """Wait for replies to a given request.

@@ -51,6 +51,7 @@ LOG_HEADERS = {
   2: ""
   }
 
+
 class InstanceDown(Exception):
   """The checked instance was not up"""
 
@@ -73,8 +74,8 @@ def Log(msg, *args, **kwargs):
   """
   if args:
     msg = msg % args
-  indent = kwargs.get('indent', 0)
-  sys.stdout.write("%*s%s%s\n" % (2*indent, "",
+  indent = kwargs.get("indent", 0)
+  sys.stdout.write("%*s%s%s\n" % (2 * indent, "",
                                   LOG_HEADERS.get(indent, "  "), msg))
   sys.stdout.flush()
 
@@ -564,8 +565,8 @@ class Burner(object):
       Log(msg, indent=2)
 
       op = opcodes.OpInstanceCreate(instance_name=instance,
-                                    disks = [ {"size": size}
-                                              for size in self.disk_size],
+                                    disks=[{"size": size}
+                                           for size in self.disk_size],
                                     disk_template=self.opts.disk_template,
                                     nics=self.opts.nics,
                                     mode=constants.INSTANCE_CREATE,
@@ -719,8 +720,8 @@ class Burner(object):
                                         ignore_failures=True)
       imp_dir = utils.PathJoin(constants.EXPORT_DIR, full_name)
       imp_op = opcodes.OpInstanceCreate(instance_name=instance,
-                                        disks = [ {"size": size}
-                                                  for size in self.disk_size],
+                                        disks=[{"size": size}
+                                               for size in self.disk_size],
                                         disk_template=self.opts.disk_template,
                                         nics=self.opts.nics,
                                         mode=constants.INSTANCE_IMPORT,
@@ -996,7 +997,7 @@ class Burner(object):
       if opts.do_replace1 and opts.disk_template in constants.DTS_INT_MIRROR:
         self.BurnReplaceDisks1D8()
       if (opts.do_replace2 and len(self.nodes) > 2 and
-          opts.disk_template in constants.DTS_INT_MIRROR) :
+          opts.disk_template in constants.DTS_INT_MIRROR):
         self.BurnReplaceDisks2()
 
       if (opts.disk_template in constants.DTS_GROWABLE and

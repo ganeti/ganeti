@@ -85,7 +85,8 @@ PART_RE = re.compile("^((?:h|s|m|ub)d[a-z]{1,2})[0-9]+$")
 
 #: Minimum partition size to be considered (1 GB)
 PART_MINSIZE = 1024 * 1024 * 1024
-MBR_MAX_SIZE = 2 * 10**12
+MBR_MAX_SIZE = 2 * (10 ** 12)
+
 
 class Error(Exception):
   """Generic exception"""
@@ -192,7 +193,6 @@ def ParseOptions():
                     action="store_true", default=False,
                     help="use sfdisk instead of parted")
 
-
   options, args = parser.parse_args()
   if len(args) != 1:
     Usage()
@@ -232,7 +232,7 @@ def SysfsName(disk):
   match = PART_RE.match(disk)
   if match:
     # this is a partition, which resides in /sys/block under a different name
-    disk = "%s/%s"  % (match.group(1), disk)
+    disk = "%s/%s" % (match.group(1), disk)
   return "/sys/block/%s" % disk
 
 
@@ -776,7 +776,7 @@ def PartitionDisk(name, use_sfdisk):
     result = ExecCommand("parted -s /dev/%s mklabel %s" % (name, label_type))
     if result.failed:
       raise OperationalError("Critical: failed to create %s label on %s" %
-                             (label_type,name))
+                             (label_type, name))
     result = ExecCommand("parted -s /dev/%s mkpart pri ext2 1 100%%" % name)
     if result.failed:
       raise OperationalError("Critical: failed to create partition on %s" %
@@ -891,7 +891,6 @@ def BootStrap():
     raise PrereqError("It seems volume group '%s' already exists:\n"
                       "  LV count: %s, size: %s, free: %s." %
                       (vgname, lv_count, vg_size, vg_free))
-
 
   disklist = ValidateDiskList(options)
 

@@ -268,7 +268,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     arg_list = cmdline.split("\x00")
     while arg_list:
-      arg =  arg_list.pop(0)
+      arg = arg_list.pop(0)
       if arg == "-name":
         instance = arg_list.pop(0)
       elif arg == "-m":
@@ -527,7 +527,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     _, v_major, v_min, _ = self._GetKVMVersion()
 
-    pidfile  = self._InstancePidFile(instance.name)
+    pidfile = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
     # used just by the vnc server, if enabled
@@ -722,6 +722,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(["-serial", "none"])
 
     spice_bind = hvp[constants.HV_KVM_SPICE_BIND]
+    spice_ip_version = None
     if spice_bind:
       if netutils.IsValidInterface(spice_bind):
         # The user specified a network interface, we have to figure out the IP
@@ -747,8 +748,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
               cluster_family)
         elif addresses[constants.IP4_VERSION]:
           spice_ip_version = constants.IP4_VERSION
-        else:
+        elif addresses[constants.IP6_VERSION]:
           spice_ip_version = constants.IP6_VERSION
+        else:
+          raise errors.HypervisorError("spice: unable to get an IP address"
+                                       " for %s" % (spice_bind))
 
         spice_address = addresses[spice_ip_version][0]
 
@@ -757,11 +761,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # ValidateParameters checked it.
         spice_address = spice_bind
 
-      spice_arg = "addr=%s,ipv%s,port=%s" % (spice_address,
-                                             spice_ip_version,
-                                             instance.network_port)
-
-      spice_arg = "%s,disable-ticketing" % spice_arg
+      spice_arg = "addr=%s,port=%s,disable-ticketing" % (spice_address,
+                                                         instance.network_port)
+      if spice_ip_version:
+        spice_arg = "%s,ipv%s" % (spice_arg, spice_ip_version)
 
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])

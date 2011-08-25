@@ -511,7 +511,7 @@ def TailFile(fname, lines=20):
   try:
     fd.seek(0, 2)
     pos = fd.tell()
-    pos = max(0, pos-4096)
+    pos = max(0, pos - 4096)
     fd.seek(pos, 0)
     raw_data = fd.read()
   finally:

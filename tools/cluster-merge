@@ -81,6 +81,12 @@ RESTART_OPT = cli.cli_option("--restart", default=_RESTART_ALL,
                                    " same name (One of: %s/%s/%s)" %
                                    _RESTART_CHOICES))
 
+SKIP_STOP_INSTANCES_OPT = \
+  cli.cli_option("--skip-stop-instances", default=True, action="store_false",
+                 dest="stop_instances",
+                 help=("Don't stop the instances on the clusters, just check "
+                       "that none is running"))
+
 
 def Flatten(unflattened_list):
   """Flattens a list.
@@ -124,13 +130,22 @@ class Merger(object):
   """Handling the merge.
 
   """
-  def __init__(self, clusters, pause_period, groups, restart, params):
+  RUNNING_STATUSES = frozenset([
+    constants.INSTST_RUNNING,
+    constants.INSTST_ERRORUP,
+    ])
+
+  def __init__(self, clusters, pause_period, groups, restart, params,
+               stop_instances):
     """Initialize object with sane defaults and infos required.
 
     @param clusters: The list of clusters to merge in
     @param pause_period: The time watcher shall be disabled for
     @param groups: How to handle group conflicts
     @param restart: How to handle instance restart
+    @param stop_instances: Indicates whether the instances must be stopped
+                           (True) or if the Merger must only check if no
+                           instances are running on the mergee clusters (False)
 
     """
     self.merger_data = []
@@ -142,9 +157,9 @@ class Merger(object):
     self.groups = groups
     self.restart = restart
     self.params = params
+    self.stop_instances = stop_instances
     if self.restart == _RESTART_UP:
       raise NotImplementedError
-
 
   def Setup(self):
     """Sets up our end so we can do the merger.
@@ -207,7 +222,7 @@ class Merger(object):
       for node in data.nodes:
         result = self._RunCmd(node, ("cat >> %s << '!EOF.'\n%s!EOF.\n" %
                                      (auth_keys, pub_key)),
-                              private_key=data.key_path)
+                              private_key=data.key_path, max_attempts=3)
 
         if result.failed:
           raise errors.RemoteError("Unable to add our public key to %s in %s."
@@ -217,17 +232,36 @@ class Merger(object):
 
   def _RunCmd(self, hostname, command, user="root", use_cluster_key=False,
               strict_host_check=False, private_key=None, batch=True,
-              ask_key=False):
+              ask_key=False, max_attempts=1):
     """Wrapping SshRunner.Run with default parameters.
 
     For explanation of parameters see L{ganeti.ssh.SshRunner.Run}.
 
     """
-    return self.ssh_runner.Run(hostname=hostname, command=command, user=user,
-                               use_cluster_key=use_cluster_key,
-                               strict_host_check=strict_host_check,
-                               private_key=private_key, batch=batch,
-                               ask_key=ask_key)
+    for _ in range(max_attempts):
+      result = self.ssh_runner.Run(hostname=hostname, command=command,
+                                 user=user, use_cluster_key=use_cluster_key,
+                                 strict_host_check=strict_host_check,
+                                 private_key=private_key, batch=batch,
+                                 ask_key=ask_key)
+      if not result.failed:
+        break
+
+    return result
+
+  def _CheckRunningInstances(self):
+    """Checks if on the clusters to be merged there are running instances
+
+    @rtype: boolean
+    @return: True if there are running instances, False otherwise
+
+    """
+    for cluster in self.clusters:
+      result = self._RunCmd(cluster, "gnt-instance list -o status")
+      if self.RUNNING_STATUSES.intersection(result.output.splitlines()):
+        return True
+
+    return False
 
   def _StopMergingInstances(self):
     """Stop instances on merging clusters.
@@ -262,7 +296,7 @@ class Merger(object):
     cmd = "%s stop-all" % constants.DAEMON_UTIL
     for data in self.merger_data:
       for node in data.nodes:
-        result = self._RunCmd(node, cmd)
+        result = self._RunCmd(node, cmd, max_attempts=3)
 
         if result.failed:
           raise errors.RemoteError("Unable to stop daemons on %s."
@@ -316,6 +350,10 @@ class Merger(object):
 
       for node in other_config.GetNodeList():
         node_info = other_config.GetNodeInfo(node)
+        # Offline the node, it will be reonlined later at node readd
+        node_info.master_candidate = False
+        node_info.drained = False
+        node_info.offline = True
         my_config.AddNode(node_info, _CLUSTERMERGE_ECID + str(fake_ec_id))
         fake_ec_id += 1
 
@@ -585,9 +623,8 @@ class Merger(object):
         result = utils.RunCmd(["gnt-node", "add", "--readd",
                                "--no-ssh-key-check", "--force-join", node])
         if result.failed:
-          raise errors.CommandError("Couldn't readd node %s. Fail reason: %s;"
-                                    " output: %s" % (node, result.fail_reason,
-                                                     result.output))
+          logging.error("%s failed to be readded. Reason: %s, output: %s",
+                         node, result.fail_reason, result.output)
 
     result = utils.RunCmd(["gnt-cluster", "redist-conf"])
     if result.failed:
@@ -610,6 +647,7 @@ class Merger(object):
                                 (result.fail_reason, result.output))
 
   # R0201: Method could be a function
+  # TODO: make this overridable, for some verify errors
   def _VerifyCluster(self): # pylint: disable-msg=R0201
     """Runs gnt-cluster verify to verify the health.
 
@@ -641,9 +679,14 @@ class Merger(object):
 
       rbsteps.append("Start all instances again on the merging"
                      " clusters: %(clusters)s")
-      logging.info("Stopping merging instances (takes a while)")
-      self._StopMergingInstances()
-
+      if self.stop_instances:
+        logging.info("Stopping merging instances (takes a while)")
+        self._StopMergingInstances()
+      logging.info("Checking that no instances are running on the mergees")
+      instances_running = self._CheckRunningInstances()
+      if instances_running:
+        raise errors.CommandError("Some instances are still running on the"
+                                  " mergees")
       logging.info("Disable watcher")
       self._DisableWatcher()
       logging.info("Stop daemons on merging nodes")
@@ -742,6 +785,7 @@ def main():
   parser.add_option(GROUPS_OPT)
   parser.add_option(RESTART_OPT)
   parser.add_option(PARAMS_OPT)
+  parser.add_option(SKIP_STOP_INSTANCES_OPT)
 
   (options, args) = parser.parse_args()
 
@@ -751,7 +795,8 @@ def main():
     parser.error("No clusters specified")
 
   cluster_merger = Merger(utils.UniqueSequence(args), options.pause_period,
-                          options.groups, options.restart, options.params)
+                          options.groups, options.restart, options.params,
+                          options.stop_instances)
   try:
     try:
       cluster_merger.Setup()

@@ -1,10 +1,10 @@
 News
 ====
 
-Version 2.5.0 beta1
+Version 2.5.0 beta2
 -------------------
 
-*(Released Fri, 12 Aug 2011)*
+*(Released Mon, 22 Aug 2011)*
 
 Incompatible/important changes and bugfixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -84,6 +84,7 @@ New features
 - ``gnt-instance info`` defaults to static information if primary node
   is offline.
 - Opcodes have a new ``comment`` attribute.
+- Added basic SPICE support to KVM hypervisor.
 
 Node group improvements
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,6 +126,14 @@ Misc
 - A short delay when waiting for job changes reduces the number of LUXI
   requests significantly.
 - DRBD metadata volumes are overwritten with zeros during disk creation.
+
+
+Version 2.5.0 beta1
+-------------------
+
+*(Released Fri, 12 Aug 2011)*
+
+This was the first beta release of the 2.5 series.
 
 
 Version 2.4.3

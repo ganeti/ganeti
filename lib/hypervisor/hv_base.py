@@ -414,11 +414,11 @@ class BaseHypervisor(object):
           key = splitfields[0].strip()
           val = splitfields[1].strip()
           if key == "MemTotal":
-            result["memory_total"] = int(val.split()[0])/1024
+            result["memory_total"] = int(val.split()[0]) / 1024
           elif key in ("MemFree", "Buffers", "Cached"):
-            sum_free += int(val.split()[0])/1024
+            sum_free += int(val.split()[0]) / 1024
           elif key == "Active":
-            result["memory_dom0"] = int(val.split()[0])/1024
+            result["memory_dom0"] = int(val.split()[0]) / 1024
     except (ValueError, TypeError), err:
       raise errors.HypervisorError("Failed to compute memory usage: %s" %
                                    (err,))

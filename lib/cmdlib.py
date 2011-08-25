@@ -4085,6 +4085,7 @@ class LUOobCommand(NoHooksLU):
       raise errors.OpExecError("Check of out-of-band payload failed due to %s" %
                                utils.CommaJoin(errs))
 
+
 class _OsQuery(_QueryBase):
   FIELDS = query.OS_FIELDS
 
@@ -7950,7 +7951,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
 
   if disk_template not in req_size_dict:
     raise errors.ProgrammerError("Disk template '%s' size requirement"
-                                 " is unknown" %  disk_template)
+                                 " is unknown" % disk_template)
 
   return req_size_dict[disk_template]
 
@@ -7972,7 +7973,7 @@ def _ComputeDiskSize(disk_template, disks):
 
   if disk_template not in req_size_dict:
     raise errors.ProgrammerError("Disk template '%s' size requirement"
-                                 " is unknown" %  disk_template)
+                                 " is unknown" % disk_template)
 
   return req_size_dict[disk_template]
 
@@ -8252,8 +8253,8 @@ class LUInstanceCreate(LogicalUnit):
         self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
         self.op.src_node = None
         if os.path.isabs(src_path):
-          raise errors.OpPrereqError("Importing an instance from an absolute"
-                                     " path requires a source node option",
+          raise errors.OpPrereqError("Importing an instance from a path"
+                                     " requires a source node option",
                                      errors.ECODE_INVAL)
       else:
         self.op.src_node = src_node = _ExpandNodeName(self.cfg, src_node)
@@ -8883,7 +8884,7 @@ class LUInstanceCreate(LogicalUnit):
         # 'fake' LV disks with the old data, plus the new unique_id
         tmp_disks = [objects.Disk.FromDict(v.ToDict()) for v in disks]
         rename_to = []
-        for t_dsk, a_dsk in zip (tmp_disks, self.disks):
+        for t_dsk, a_dsk in zip(tmp_disks, self.disks):
           rename_to.append(t_dsk.logical_id)
           t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk[constants.IDISK_ADOPT])
           self.cfg.SetDiskID(t_dsk, pnode_name)
@@ -10823,7 +10824,7 @@ class LUInstanceSetParams(LogicalUnit):
       if msg:
         # Assume the primary node is unreachable and go ahead
         self.warn.append("Can't get info from primary node %s: %s" %
-                         (pnode,  msg))
+                         (pnode, msg))
       elif not isinstance(pninfo.payload.get("memory_free", None), int):
         self.warn.append("Node data from primary node %s doesn't contain"
                          " free memory information" % pnode)
@@ -12138,7 +12139,6 @@ class LUGroupSetParams(LogicalUnit):
 
     self.cfg.Update(self.group, feedback_fn)
     return result
-
 
 
 class LUGroupRemove(LogicalUnit):

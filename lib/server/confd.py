@@ -82,7 +82,7 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
       logging.debug(err)
       return
 
-    answer =  self.processor.ExecQuery(query, ip, port)
+    answer = self.processor.ExecQuery(query, ip, port)
     if answer is not None:
       try:
         self.enqueue_send(ip, port, confd.PackMagic(answer))

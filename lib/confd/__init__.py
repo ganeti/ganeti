@@ -50,4 +50,3 @@ def UnpackMagic(payload):
     raise errors.ConfdMagicError("UDP payload contains an unkown fourcc")
 
   return payload[_FOURCC_LEN:]
-

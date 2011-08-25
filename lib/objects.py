@@ -663,7 +663,7 @@ class Disk(ConfigObject):
 
     """
     if self.dev_type == constants.LD_LV:
-      val =  "<LogicalVolume(/dev/%s/%s" % self.logical_id
+      val = "<LogicalVolume(/dev/%s/%s" % self.logical_id
     elif self.dev_type in constants.LDS_DRBD:
       node_a, node_b, port, minor_a, minor_b = self.logical_id[:5]
       val = "<DRBD8("
@@ -790,7 +790,9 @@ class Instance(TaggableObject):
       node = self.primary_node
 
     if lvmap is None:
-      lvmap = { node : [] }
+      lvmap = {
+        node: [],
+        }
       ret = lvmap
     else:
       if not node in lvmap:
@@ -802,7 +804,7 @@ class Instance(TaggableObject):
 
     for dev in devs:
       if dev.dev_type == constants.LD_LV:
-        lvmap[node].append(dev.logical_id[0]+"/"+dev.logical_id[1])
+        lvmap[node].append(dev.logical_id[0] + "/" + dev.logical_id[1])
 
       elif dev.dev_type in constants.LDS_DRBD:
         if dev.children:

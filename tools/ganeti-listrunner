@@ -323,7 +323,14 @@ def RunRemoteCommand(connection, command, logfile):
    ### Read when data is available
   output = ""
   while select.select([session], [], []):
-    data = session.recv(1024)
+    try:
+      data = session.recv(1024)
+    except socket.timeout, err:
+      data = None
+      WriteLog("FAILED: socket.timeout %s" % err, logfile)
+    except socket.error, err:
+      data = None
+      WriteLog("FAILED: socket.error %s" % err, logfile)
     if not data:
       break
     output += data
@@ -331,7 +338,7 @@ def RunRemoteCommand(connection, command, logfile):
 
   WriteLog("SUCCESS: command output follows", logfile)
   for line in output.split("\n"):
-    WriteLog("output = %s" %line, logfile)
+    WriteLog("output = %s" % line, logfile)
   WriteLog("command execution completed", logfile)
   session.close()
 

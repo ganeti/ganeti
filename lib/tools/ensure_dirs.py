@@ -1,3 +1,6 @@
+#
+#
+
 # Copyright (C) 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -25,15 +28,25 @@ import os.path
 import optparse
 import sys
 import stat
+import logging
 
 from ganeti import constants
 from ganeti import errors
 from ganeti import runtime
 from ganeti import ssconf
+from ganeti import utils
+from ganeti import cli
 
 
-(DIR, FILE) = range(2)
-ALL_TYPES = frozenset([DIR, FILE])
+(DIR,
+ FILE,
+ QUEUE_DIR) = range(1, 4)
+
+ALL_TYPES = frozenset([
+  DIR,
+  FILE,
+  QUEUE_DIR,
+  ])
 
 
 class EnsureError(errors.GenericError):
@@ -43,7 +56,7 @@ class EnsureError(errors.GenericError):
 
 
 def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
-                     _chmod_fn=os.chmod, _chown_fn=os.chown):
+                     _chmod_fn=os.chmod, _chown_fn=os.chown, _stat_fn=os.stat):
   """Ensures that given path has given mode.
 
   @param path: The path to the file
@@ -55,21 +68,32 @@ def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
   @param _chown_fn: chown function to use (unittest only)
 
   """
+  logging.debug("Checking %s", path)
   try:
-    _chmod_fn(path, mode)
+    st = _stat_fn(path)
+
+    fmode = stat.S_IMODE(st[stat.ST_MODE])
+    if fmode != mode:
+      logging.debug("Changing mode of %s from %#o to %#o", path, fmode, mode)
+      _chmod_fn(path, mode)
 
     if max(uid, gid) > -1:
-      _chown_fn(path, uid, gid)
+      fuid = st[stat.ST_UID]
+      fgid = st[stat.ST_GID]
+      if fuid != uid or fgid != gid:
+        logging.debug("Changing owner of %s from UID %s/GID %s to"
+                      " UID %s/GID %s", path, fuid, fgid, uid, gid)
+        _chown_fn(path, uid, gid)
   except EnvironmentError, err:
     if err.errno == errno.ENOENT:
       if must_exist:
-        raise EnsureError("Path %s does not exists, but should" % path)
+        raise EnsureError("Path %s should exist, but does not" % path)
     else:
-      raise EnsureError("Error while changing permission on %s: %s" %
+      raise EnsureError("Error while changing permissions on %s: %s" %
                         (path, err))
 
 
-def EnsureDir(path, mode, uid, gid, _stat_fn=os.lstat, _mkdir_fn=os.mkdir,
+def EnsureDir(path, mode, uid, gid, _lstat_fn=os.lstat, _mkdir_fn=os.mkdir,
               _ensure_fn=EnsurePermission):
   """Ensures that given path is a dir and has given mode, uid and gid set.
 
@@ -77,23 +101,23 @@ def EnsureDir(path, mode, uid, gid, _stat_fn=os.lstat, _mkdir_fn=os.mkdir,
   @param mode: The mode of the file
   @param uid: The uid of the owner of this file
   @param gid: The gid of the owner of this file
-  @param _stat_fn: Stat function to use (unittest only)
+  @param _lstat_fn: Stat function to use (unittest only)
   @param _mkdir_fn: mkdir function to use (unittest only)
   @param _ensure_fn: ensure function to use (unittest only)
 
   """
+  logging.debug("Checking directory %s", path)
   try:
     # We don't want to follow symlinks
-    st_mode = _stat_fn(path)[stat.ST_MODE]
-
-    if not stat.S_ISDIR(st_mode):
-      raise EnsureError("Path %s is expected to be a directory, but it's not" %
-                        path)
+    st = _lstat_fn(path)
   except EnvironmentError, err:
-    if err.errno == errno.ENOENT:
-      _mkdir_fn(path)
-    else:
-      raise EnsureError("Error while do a stat() on %s: %s" % (path, err))
+    if err.errno != errno.ENOENT:
+      raise EnsureError("stat(2) on %s failed: %s" % (path, err))
+    _mkdir_fn(path)
+  else:
+    if not stat.S_ISDIR(st[stat.ST_MODE]):
+      raise EnsureError("Path %s is expected to be a directory, but isn't" %
+                        path)
 
   _ensure_fn(path, mode, uid=uid, gid=gid)
 
@@ -113,6 +137,8 @@ def RecursiveEnsure(path, uid, gid, dir_perm, file_perm):
   assert os.path.isabs(path), "Path %s is not absolute" % path
   assert os.path.isdir(path), "Path %s is not a dir" % path
 
+  logging.debug("Recursively processing %s", path)
+
   for root, dirs, files in os.walk(path):
     for subdir in dirs:
       EnsurePermission(os.path.join(root, subdir), dir_perm, uid=uid, gid=gid)
@@ -120,6 +146,20 @@ def RecursiveEnsure(path, uid, gid, dir_perm, file_perm):
     for filename in files:
       EnsurePermission(os.path.join(root, filename), file_perm, uid=uid,
                        gid=gid)
+
+
+def EnsureQueueDir(path, mode, uid, gid):
+  """Sets the correct permissions on all job files in the queue.
+
+  @param path: Directory path
+  @param mode: Wanted file mode
+  @param uid: Wanted user ID
+  @param gid: Wanted group ID
+
+  """
+  for filename in utils.ListVisibleFiles(path):
+    if constants.JOB_FILE_RE.match(filename):
+      EnsurePermission(utils.PathJoin(path, filename), mode, uid=uid, gid=gid)
 
 
 def ProcessPath(path):
@@ -132,10 +172,13 @@ def ProcessPath(path):
 
   assert pathtype in ALL_TYPES
 
-  if pathtype == DIR:
+  if pathtype in (DIR, QUEUE_DIR):
     # No additional parameters
     assert len(path[5:]) == 0
-    EnsureDir(pathname, mode, uid, gid)
+    if pathtype == DIR:
+      EnsureDir(pathname, mode, uid, gid)
+    elif pathtype == QUEUE_DIR:
+      EnsureQueueDir(pathname, mode, uid, gid)
   elif pathtype == FILE:
     (must_exist, ) = path[5:]
     EnsurePermission(pathname, mode, uid=uid, gid=gid, must_exist=must_exist)
@@ -172,11 +215,16 @@ def GetPaths():
 
   ss = ssconf.SimpleStore()
   for ss_path in ss.GetFileList():
-    paths.append((ss_path, FILE, 0400, getent.noded_uid, 0, False))
+    paths.append((ss_path, FILE, constants.SS_FILE_PERMS,
+                  getent.noded_uid, 0, False))
 
   paths.extend([
     (constants.QUEUE_DIR, DIR, 0700, getent.masterd_uid,
      getent.masterd_gid),
+    (constants.QUEUE_DIR, QUEUE_DIR, 0600, getent.masterd_uid,
+     getent.masterd_gid),
+    (constants.JOB_QUEUE_LOCK_FILE, FILE, 0600,
+     getent.masterd_uid, getent.masterd_gid, False),
     (constants.JOB_QUEUE_SERIAL_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
     (constants.JOB_QUEUE_ARCHIVE_DIR, DIR, 0700,
@@ -214,6 +262,26 @@ def GetPaths():
   return tuple(paths)
 
 
+def SetupLogging(opts):
+  """Configures the logging module.
+
+  """
+  formatter = logging.Formatter("%(asctime)s: %(message)s")
+
+  stderr_handler = logging.StreamHandler()
+  stderr_handler.setFormatter(formatter)
+  if opts.debug:
+    stderr_handler.setLevel(logging.NOTSET)
+  elif opts.verbose:
+    stderr_handler.setLevel(logging.INFO)
+  else:
+    stderr_handler.setLevel(logging.WARNING)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(stderr_handler)
+
+
 def ParseOptions():
   """Parses the options passed to the program.
 
@@ -224,9 +292,11 @@ def ParseOptions():
 
   parser = optparse.OptionParser(usage="%%prog [--full-run]",
                                  prog=program)
+  parser.add_option(cli.DEBUG_OPT)
+  parser.add_option(cli.VERBOSE_OPT)
   parser.add_option("--full-run", "-f", dest="full_run", action="store_true",
-                    default=False, help=("Make a full run and collect"
-                                         " additional files (time consuming)"))
+                    default=False, help=("Make a full run and set permissions"
+                                         " on archived jobs (time consuming)"))
 
   return parser.parse_args()
 
@@ -235,8 +305,14 @@ def Main():
   """Main routine.
 
   """
-  getent = runtime.GetEnts()
   (opts, _) = ParseOptions()
+
+  SetupLogging(opts)
+
+  if opts.full_run:
+    logging.info("Running in full mode")
+
+  getent = runtime.GetEnts()
 
   try:
     for path in GetPaths():
@@ -246,7 +322,7 @@ def Main():
       RecursiveEnsure(constants.JOB_QUEUE_ARCHIVE_DIR, getent.masterd_uid,
                       getent.masterd_gid, 0700, 0600)
   except EnsureError, err:
-    print >> sys.stderr, "An error occurred while ensure permissions:", err
+    logging.error("An error occurred while setting permissions: %s", err)
     return constants.EXIT_FAILURE
 
   return constants.EXIT_SUCCESS

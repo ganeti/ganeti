@@ -163,7 +163,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    xm_list = self._GetXMList(instance_name=="Domain-0")
+    xm_list = self._GetXMList(instance_name == "Domain-0")
     result = None
     for data in xm_list:
       if data[0] == instance_name:

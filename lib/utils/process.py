@@ -84,7 +84,6 @@ class RunResult(object):
   __slots__ = ["exit_code", "signal", "stdout", "stderr",
                "failed", "fail_reason", "cmd"]
 
-
   def __init__(self, exit_code, signal_, stdout, stderr, cmd, timeout_action,
                timeout):
     self.cmd = cmd

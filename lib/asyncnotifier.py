@@ -34,6 +34,7 @@ except ImportError:
 from ganeti import daemon
 from ganeti import errors
 
+
 # We contributed the AsyncNotifier class back to python-pyinotify, and it's
 # part of their codebase since version 0.8.7. This code can be removed once
 # we'll be ready to depend on python-pyinotify >= 0.8.7

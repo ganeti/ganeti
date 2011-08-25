@@ -711,7 +711,6 @@ class NodeHttpServer(http.server.HttpServer):
     """
     return backend.DemoteFromMC()
 
-
   @staticmethod
   def perspective_node_powercycle(params):
     """Tries to powercycle the nod.
@@ -719,7 +718,6 @@ class NodeHttpServer(http.server.HttpServer):
     """
     hypervisor_type = params[0]
     return backend.PowercycleNode(hypervisor_type)
-
 
   # cluster --------------------------
 

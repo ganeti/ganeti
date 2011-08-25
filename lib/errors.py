@@ -482,4 +482,4 @@ def MaybeRaise(result):
   error = GetEncodedError(result)
   if error:
     (errcls, args) = error
-    raise errcls, args
+    raise errcls(args)

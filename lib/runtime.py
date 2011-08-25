@@ -1,4 +1,5 @@
 #
+#
 
 # Copyright (C) 2010 Google Inc.
 #
@@ -186,4 +187,3 @@ def GetEnts(resolver=GetentResolver):
       _priv_lock.release()
 
   return _priv
-

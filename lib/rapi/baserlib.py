@@ -53,7 +53,10 @@ def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   (field_id, field_uri) = uri_fields
 
   def _MapId(m_id):
-    return { field_id: m_id, field_uri: uri_format % m_id, }
+    return {
+      field_id: m_id,
+      field_uri: uri_format % m_id,
+      }
 
   # Make sure the result is sorted, makes it nicer to look at and simplifies
   # unittests.
