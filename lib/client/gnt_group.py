@@ -130,17 +130,13 @@ def SetGroupParams(opts, args):
   @return: the desired exit code
 
   """
-  all_changes = {
-    "ndparams": opts.ndparams,
-    "alloc_policy": opts.alloc_policy,
-  }
-
-  if all_changes.values().count(None) == len(all_changes):
+  if opts.ndparams is None and opts.alloc_policy is None:
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  op = opcodes.OpGroupSetParams(group_name=args[0], # pylint: disable-msg=W0142
-                                **all_changes)
+  op = opcodes.OpGroupSetParams(group_name=args[0],
+                                ndparams=opts.ndparams,
+                                alloc_policy=opts.alloc_policy)
   result = SubmitOrSend(op, opts)
 
   if result:
