@@ -9,6 +9,11 @@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 
+# Helper values for calling builtin functions
+empty :=
+space := $(empty) $(empty)
+comma := ,
+
 # Use bash in order to be able to use pipefail
 SHELL=/bin/bash
 
@@ -150,14 +155,16 @@ CLEANFILES = \
 BUILT_SOURCES = \
 	ganeti \
 	stamp-srclinks \
-	lib/_autoconf.py \
-	lib/_vcsversion.py \
 	$(all_dirfiles) \
-	$(PYTHON_BOOTSTRAP)
+	$(PYTHON_BOOTSTRAP) \
+	$(BUILT_PYTHON_SOURCES)
 
-nodist_pkgpython_PYTHON = \
+BUILT_PYTHON_SOURCES = \
 	lib/_autoconf.py \
 	lib/_vcsversion.py
+
+nodist_pkgpython_PYTHON = \
+	$(BUILT_PYTHON_SOURCES)
 
 noinst_PYTHON = \
 	lib/build/__init__.py \
@@ -365,7 +372,7 @@ $(RUN_IN_TEMPDIR): | $(all_dirfiles)
 # it changes
 doc/html/index.html: $(docrst) $(docpng) doc/conf.py configure.ac \
 	$(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py lib/opcodes.py lib/ht.py \
-	| lib/_autoconf.py lib/_vcsversion.py
+	| $(BUILT_PYTHON_SOURCES)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
 	@mkdir_p@ $(dir $@)
@@ -1063,9 +1070,23 @@ hs-check: htools/test
 	@rm -f test.tix
 	./htools/test
 
+# E111: indentation is not a multiple of four
+# E261: at least two spaces before inline comment
+# E501: line too long (80 characters)
+PEP8_IGNORE = E111,E261,E501
+
+# For excluding pep8 expects filenames only, not whole paths
+PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(BUILT_PYTHON_SOURCES))))
+
 .PHONY: lint
 lint: $(BUILT_SOURCES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
+	if test -z "$(PEP8)"; then \
+		echo '"pep8" not found during configure' >&2; \
+	else \
+		$(PEP8) --repeat --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
+			$(lint_python_code); \
+	fi
 	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
 	cd $(top_srcdir)/qa && \
 	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \

@@ -317,6 +317,14 @@ then
   AC_MSG_WARN([pylint not found, checking code will not be possible])
 fi
 
+# Check for pep8
+AC_ARG_VAR(PEP8, [pep8 path])
+AC_PATH_PROG(PEP8, [pep8], [])
+if test -z "$PEP8"
+then
+  AC_MSG_WARN([pep8 not found, checking code will not be complete])
+fi
+
 # Check for socat
 AC_ARG_VAR(SOCAT, [socat path])
 AC_PATH_PROG(SOCAT, [socat], [])
