@@ -99,6 +99,20 @@ CONFD_GROUP = _autoconf.CONFD_GROUP
 NODED_USER = _autoconf.NODED_USER
 NODED_GROUP = _autoconf.NODED_GROUP
 
+# cpu pinning separators and constants
+CPU_PINNING_SEP = ":"
+CPU_PINNING_ALL = "all"
+# internal representation of "all"
+CPU_PINNING_ALL_VAL = -1
+
+# A Xen-specific implementation detail - there is no way to actually say
+# "use any cpu for pinning" in a Xen configuration file, as opposed to the
+# command line, where you can say "xm vcpu-pin <domain> <vcpu> all".
+# The workaround used in Xen is "0-63" (see source code function
+# xm_vcpu_pin in <xen-source>/tools/python/xen/xm/main.py).
+# To support future changes, the following constant is treated as a
+# blackbox string that simply means use-any-cpu-for-pinning-under-xen.
+CPU_PINNING_ALL_XEN = "0-63"
 
 # Wipe
 DD_CMD = "dd"
@@ -1256,6 +1270,7 @@ HVC_DEFAULTS = {
     HV_MIGRATION_MODE: HT_MIGRATION_LIVE,
     HV_BLOCKDEV_PREFIX: "sd",
     HV_REBOOT_BEHAVIOR: INSTANCE_REBOOT_ALLOWED,
+    HV_CPU_MASK: CPU_PINNING_ALL,
     },
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
@@ -1273,6 +1288,7 @@ HVC_DEFAULTS = {
     HV_USE_LOCALTIME: False,
     HV_BLOCKDEV_PREFIX: "hd",
     HV_REBOOT_BEHAVIOR: INSTANCE_REBOOT_ALLOWED,
+    HV_CPU_MASK: CPU_PINNING_ALL,
     },
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
@@ -1310,6 +1326,7 @@ HVC_DEFAULTS = {
     HV_KVM_USE_CHROOT: False,
     HV_MEM_PATH: "",
     HV_REBOOT_BEHAVIOR: INSTANCE_REBOOT_ALLOWED,
+    HV_CPU_MASK: CPU_PINNING_ALL,
     },
   HT_FAKE: {
     },
