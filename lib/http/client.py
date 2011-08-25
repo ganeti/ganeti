@@ -319,7 +319,7 @@ class HttpClientPool:
 
     """
     try:
-      pclient  = self._pool.pop(identity)
+      pclient = self._pool.pop(identity)
     except KeyError:
       # Need to create new client
       client = self._GetHttpClientCreator()(self._curl_config_fn)

@@ -113,6 +113,7 @@ class MasterClientHandler(daemon.AsyncTerminatedMessageStream):
 
   """
   _MAX_UNHANDLED = 1
+
   def __init__(self, server, connected_socket, client_address, family):
     daemon.AsyncTerminatedMessageStream.__init__(self, connected_socket,
                                                  client_address,

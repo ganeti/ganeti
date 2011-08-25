@@ -67,6 +67,7 @@ def _all(seq):
     return False
   return True
 
+
 def _any(seq):
   """Returns True if any element of the iterable are True.
 
@@ -74,6 +75,7 @@ def _any(seq):
   for _ in itertools.ifilter(bool, seq):
     return True
   return False
+
 
 try:
   # pylint: disable-msg=E0601
@@ -88,6 +90,7 @@ try:
   any = any
 except NameError:
   any = _any
+
 
 def partition(seq, pred=bool): # pylint: disable-msg=W0622
   """Partition a list in two, based on the given predicate.

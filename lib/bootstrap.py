@@ -270,7 +270,6 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-
   ipcls = None
   if primary_ip_version == constants.IP4_VERSION:
     ipcls = netutils.IP4Address
@@ -661,6 +660,7 @@ def MasterFailover(no_voting=False):
 
   master_ip = sstore.GetMasterIP()
   total_timeout = 30
+
   # Here we have a phase where no master should be running
   def _check_ip():
     if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):

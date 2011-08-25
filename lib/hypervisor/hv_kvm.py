@@ -267,7 +267,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     arg_list = cmdline.split("\x00")
     while arg_list:
-      arg =  arg_list.pop(0)
+      arg = arg_list.pop(0)
       if arg == "-name":
         instance = arg_list.pop(0)
       elif arg == "-m":
@@ -526,7 +526,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     _, v_major, v_min, _ = self._GetKVMVersion()
 
-    pidfile  = self._InstancePidFile(instance.name)
+    pidfile = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
     # used just by the vnc server, if enabled

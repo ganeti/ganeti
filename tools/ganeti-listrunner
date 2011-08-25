@@ -338,7 +338,7 @@ def RunRemoteCommand(connection, command, logfile):
 
   WriteLog("SUCCESS: command output follows", logfile)
   for line in output.split("\n"):
-    WriteLog("output = %s" %line, logfile)
+    WriteLog("output = %s" % line, logfile)
   WriteLog("command execution completed", logfile)
   session.close()
 

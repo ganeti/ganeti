@@ -131,9 +131,9 @@ class NodeMaintenance(object):
 
     """
     my_name = netutils.Hostname.GetSysName()
-    req = confd.client.ConfdClientRequest(type=
-                                          constants.CONFD_REQ_NODE_ROLE_BYNAME,
-                                          query=my_name)
+    req = \
+      confd.client.ConfdClientRequest(type=constants.CONFD_REQ_NODE_ROLE_BYNAME,
+                                      query=my_name)
     self.confd_client.SendRequest(req, async=False, coverage=-1)
     timed_out, _, _ = self.confd_client.WaitForReply(req.rsalt)
     if not timed_out:

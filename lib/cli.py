@@ -728,9 +728,9 @@ BACKEND_OPT = cli_option("-B", "--backend-parameters", dest="beparams",
                          type="keyval", default={},
                          help="Backend parameters")
 
-HVOPTS_OPT =  cli_option("-H", "--hypervisor-parameters", type="keyval",
-                         default={}, dest="hvparams",
-                         help="Hypervisor parameters")
+HVOPTS_OPT = cli_option("-H", "--hypervisor-parameters", type="keyval",
+                        default={}, dest="hvparams",
+                        help="Hypervisor parameters")
 
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
@@ -2815,7 +2815,7 @@ def FormatTimestamp(ts):
   @return: a string with the formatted timestamp
 
   """
-  if not isinstance (ts, (tuple, list)) or len(ts) != 2:
+  if not isinstance(ts, (tuple, list)) or len(ts) != 2:
     return "?"
   sec, usec = ts
   return time.strftime("%F %T", time.localtime(sec)) + ".%06d" % usec

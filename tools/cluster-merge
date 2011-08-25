@@ -134,6 +134,7 @@ class Merger(object):
     constants.INSTST_RUNNING,
     constants.INSTST_ERRORUP,
     ])
+
   def __init__(self, clusters, pause_period, groups, restart, params,
                stop_instances):
     """Initialize object with sane defaults and infos required.
@@ -159,7 +160,6 @@ class Merger(object):
     self.stop_instances = stop_instances
     if self.restart == _RESTART_UP:
       raise NotImplementedError
-
 
   def Setup(self):
     """Sets up our end so we can do the merger.

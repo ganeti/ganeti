@@ -1119,13 +1119,13 @@ def _FormatList(buf, data, indent_level):
                  if isinstance(elem, tuple)] or [0])
   for elem in data:
     if isinstance(elem, basestring):
-      buf.write("%*s%s\n" % (2*indent_level, "", elem))
+      buf.write("%*s%s\n" % (2 * indent_level, "", elem))
     elif isinstance(elem, tuple):
       key, value = elem
       spacer = "%*s" % (max_tlen - len(key), "")
-      buf.write("%*s%s:%s %s\n" % (2*indent_level, "", key, spacer, value))
+      buf.write("%*s%s:%s %s\n" % (2 * indent_level, "", key, spacer, value))
     elif isinstance(elem, list):
-      _FormatList(buf, elem, indent_level+1)
+      _FormatList(buf, elem, indent_level + 1)
 
 
 def ShowInstanceConfig(opts, args):
@@ -1179,7 +1179,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("  Operating system: %s\n" % instance["os"])
     FormatParameterDict(buf, instance["os_instance"], instance["os_actual"],
                         level=2)
-    if instance.has_key("network_port"):
+    if "network_port" in instance:
       buf.write("  Allocated network port: %s\n" %
                 compat.TryToRoman(instance["network_port"],
                                   convert=opts.roman_integers))

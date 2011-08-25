@@ -338,7 +338,7 @@ def SafeEncode(text):
   resu = ""
   for char in text:
     c = ord(char)
-    if char  == "\t":
+    if char == "\t":
       resu += r"\t"
     elif char == "\n":
       resu += r"\n"

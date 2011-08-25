@@ -730,7 +730,7 @@ def GetVolumeList(vg_names):
       # we don't want to report such volumes as existing, since they
       # don't really hold data
       continue
-    lvs[vg_name+"/"+name] = (size, inactive, online)
+    lvs[vg_name + "/" + name] = (size, inactive, online)
 
   return lvs
 
@@ -2359,7 +2359,7 @@ def FinalizeExport(instance, snap_disks):
       config.set(constants.INISECT_INS, "nic%d_%s" % (nic_count, param),
                  "%s" % nic.nicparams.get(param, None))
   # TODO: redundant: on load can read nics until it doesn't exist
-  config.set(constants.INISECT_INS, "nic_count" , "%d" % nic_total)
+  config.set(constants.INISECT_INS, "nic_count", "%d" % nic_total)
 
   disk_total = 0
   for disk_count, disk in enumerate(snap_disks):
@@ -2372,7 +2372,7 @@ def FinalizeExport(instance, snap_disks):
       config.set(constants.INISECT_INS, "disk%d_size" % disk_count,
                  ("%d" % disk.size))
 
-  config.set(constants.INISECT_INS, "disk_count" , "%d" % disk_total)
+  config.set(constants.INISECT_INS, "disk_count", "%d" % disk_total)
 
   # New-style hypervisor/backend parameters
 
@@ -3377,7 +3377,6 @@ class HooksRunner(object):
       suffix = "post"
     else:
       _Fail("Unknown hooks phase '%s'", phase)
-
 
     subdir = "%s-%s.d" % (hpath, suffix)
     dir_name = utils.PathJoin(self._BASE_DIR, subdir)

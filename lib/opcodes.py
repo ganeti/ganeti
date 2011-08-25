@@ -1536,6 +1536,7 @@ class OpTagsDel(OpCode):
     ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
 
+
 # Test opcodes
 class OpTestDelay(OpCode):
   """Sleeps for a configured amount of time.

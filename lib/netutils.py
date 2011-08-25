@@ -58,7 +58,7 @@ _IP_FAMILY_RE = re.compile(r"(?P<family>inet6?)\s+(?P<ip>%s)/" % _IP_RE_TEXT,
 
 # Dict used to convert from a string representing an IP family to an IP
 # version
-_NAME_TO_IP_VER =  {
+_NAME_TO_IP_VER = {
   "inet": constants.IP4_VERSION,
   "inet6": constants.IP6_VERSION,
   }
@@ -417,9 +417,9 @@ class IPAddress(object):
     assert 0 <= prefix <= cls.iplen
     target_int = cls._GetIPIntFromString(subnet[0])
     # Convert prefix netmask to integer value of netmask
-    netmask_int = (2**cls.iplen)-1 ^ ((2**cls.iplen)-1 >> prefix)
+    netmask_int = (2 ** cls.iplen) - 1 ^ ((2 ** cls.iplen) - 1 >> prefix)
     # Calculate hostmask
-    hostmask_int = netmask_int ^ (2**cls.iplen)-1
+    hostmask_int = netmask_int ^ (2 ** cls.iplen) - 1
     # Calculate network address by and'ing netmask
     network_int = target_int & netmask_int
     # Calculate broadcast address by or'ing hostmask

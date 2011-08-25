@@ -187,4 +187,3 @@ def GetEnts(resolver=GetentResolver):
       _priv_lock.release()
 
   return _priv
-

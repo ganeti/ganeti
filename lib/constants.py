@@ -102,7 +102,7 @@ NODED_GROUP = _autoconf.NODED_GROUP
 
 # Wipe
 DD_CMD = "dd"
-WIPE_BLOCK_SIZE = 1024**2
+WIPE_BLOCK_SIZE = 1024 ** 2
 MAX_WIPE_CHUNK = 1024 # 1GB
 MIN_WIPE_CHUNK_PERCENT = 10
 
@@ -125,7 +125,11 @@ IMPORT_EXPORT_DIR_MODE = 0755
 ADOPTABLE_BLOCKDEV_ROOT = "/dev/disk/"
 # keep RUN_GANETI_DIR first here, to make sure all get created when the node
 # daemon is started (this takes care of RUN_DIR being tmpfs)
-SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
+SUB_RUN_DIRS = [
+  RUN_GANETI_DIR,
+  BDEV_CACHE_DIR,
+  DISK_LINKS_DIR,
+  ]
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 # User-id pool lock directory
@@ -1209,7 +1213,7 @@ RS_ALL = frozenset([
 #: Dictionary with special field cases and their verbose/terse formatting
 RSS_DESCRIPTION = {
   RS_UNKNOWN: ("(unknown)", "??"),
-  RS_NODATA:  ("(nodata)",  "?"),
+  RS_NODATA: ("(nodata)", "?"),
   RS_OFFLINE: ("(offline)", "*"),
   RS_UNAVAIL: ("(unavail)", "-"),
   }
@@ -1440,7 +1444,7 @@ MAX_UDP_DATA_SIZE = 61440
 
 # User-id pool minimum/maximum acceptable user-ids.
 UIDPOOL_UID_MIN = 0
-UIDPOOL_UID_MAX = 2**32-1 # Assuming 32 bit user-ids
+UIDPOOL_UID_MAX = 2 ** 32 - 1 # Assuming 32 bit user-ids
 
 # Name or path of the pgrep command
 PGREP = "pgrep"

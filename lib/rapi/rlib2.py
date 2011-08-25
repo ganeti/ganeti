@@ -664,7 +664,6 @@ def _ParseModifyGroupRequest(name, data):
     })
 
 
-
 class R_2_groups_name_modify(baserlib.R_Generic):
   """/2/groups/[group_name]/modify resource.
 

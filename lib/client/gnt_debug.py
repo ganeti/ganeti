@@ -113,9 +113,9 @@ def GenericOpCodes(opts, args):
     t3 = time.time()
     ToStdout("C:op     %4d" % op_cnt)
     ToStdout("C:job    %4d" % job_cnt)
-    ToStdout("T:submit %4.4f" % (t2-t1))
-    ToStdout("T:exec   %4.4f" % (t3-t2))
-    ToStdout("T:total  %4.4f" % (t3-t1))
+    ToStdout("T:submit %4.4f" % (t2 - t1))
+    ToStdout("T:exec   %4.4f" % (t3 - t2))
+    ToStdout("T:total  %4.4f" % (t3 - t1))
   return 0
 
 
@@ -688,6 +688,7 @@ commands = {
 aliases = {
   "allocator": "iallocator",
   }
+
 
 def Main():
   return GenericMain(commands, aliases=aliases)

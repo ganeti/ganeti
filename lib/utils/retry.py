@@ -206,6 +206,7 @@ def SimpleRetry(expected, fn, delay, timeout, args=None, wait_fn=time.sleep,
 
   """
   rdict = {}
+
   def helper(*innerargs):
     # pylint: disable-msg=W0142
     result = rdict["result"] = fn(*innerargs)
