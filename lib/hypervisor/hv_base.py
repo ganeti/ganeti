@@ -48,11 +48,32 @@ from ganeti import constants
 
 
 def _IsCpuMaskWellFormed(cpu_mask):
+  """Verifies if the given single CPU mask is valid
+
+  The single CPU mask should be in the form "a,b,c,d", where each
+  letter is a positive number or range.
+
+  """
   try:
     cpu_list = utils.ParseCpuMask(cpu_mask)
   except errors.ParseError, _:
     return False
   return isinstance(cpu_list, list) and len(cpu_list) > 0
+
+
+def _IsMultiCpuMaskWellFormed(cpu_mask):
+  """Verifies if the given multiple CPU mask is valid
+
+  A valid multiple CPU mask is in the form "a:b:c:d", where each
+  letter is a single CPU mask.
+
+  """
+  try:
+    utils.ParseMultiCpuMask(cpu_mask)
+  except errors.ParseError, _:
+    return False
+
+  return True
 
 
 # Read the BaseHypervisor.PARAMETERS docstring for the syntax of the
@@ -72,6 +93,11 @@ _CPU_MASK_CHECK = (_IsCpuMaskWellFormed,
                    "CPU mask definition is not well-formed",
                    None, None)
 
+# Multiple CPU mask must be well-formed
+_MULTI_CPU_MASK_CHECK = (_IsMultiCpuMaskWellFormed,
+                         "Multiple CPU mask definition is not well-formed",
+                         None, None)
+
 # Check for validity of port number
 _NET_PORT_CHECK = (lambda x: 0 < x < 65535, "invalid port number",
                    None, None)
@@ -85,6 +111,8 @@ REQ_NET_PORT_CHECK = (True, ) + _NET_PORT_CHECK
 OPT_NET_PORT_CHECK = (False, ) + _NET_PORT_CHECK
 REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
 OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
+REQ_MULTI_CPU_MASK_CHECK = (True, ) + _MULTI_CPU_MASK_CHECK
+OPT_MULTI_CPU_MASK_CHECK = (False, ) + _MULTI_CPU_MASK_CHECK
 
 # no checks at all
 NO_CHECK = (False, None, None, None, None)
