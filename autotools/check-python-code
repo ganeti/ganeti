@@ -20,6 +20,13 @@
 
 set -e
 
+readonly maxlinelen=$(for ((i=0; i<81; ++i)); do echo -n .; done)
+
+if [[ "${#maxlinelen}" != 81 ]]; then
+  echo "Internal error: Check for line length is incorrect" >&2
+  exit 1
+fi
+
 # "[...] If the last ARG evaluates to 0, let returns 1; 0 is returned
 # otherwise.", hence ignoring the return value.
 let problems=0 || :
@@ -47,7 +54,7 @@ for script; do
     echo "Found editor-specific settings in $script" >&2
   fi
 
-  if [[ "$(wc --max-line-length < "$script")" -gt 80 ]]; then
+  if grep -n -H "^$maxlinelen" "$script"; then
     let ++problems
     echo "Longest line in $script is longer than 80 characters" >&2
   fi

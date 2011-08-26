@@ -16,6 +16,7 @@ Most dependencies from :doc:`install-quick`, plus (for Python):
 - the `en_US.UTF-8` locale must be enabled on the system
 - `pylint <http://www.logilab.org/857>`_ and its associated
   dependencies
+- `pep8 <https://github.com/jcrocholl/pep8/>`_
 
 Note that for pylint, at the current moment the following versions
 need to be used::

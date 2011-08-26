@@ -9828,6 +9828,8 @@ class TLReplaceDisks(Tasklet):
     """
     steps_total = 6
 
+    pnode = self.instance.primary_node
+
     # Step: check device activation
     self.lu.LogStep(1, steps_total, "Check device existence")
     self._CheckDisksExistence([self.instance.primary_node])
@@ -9902,10 +9904,8 @@ class TLReplaceDisks(Tasklet):
                                  " soon as possible"))
 
     self.lu.LogInfo("Detaching primary drbds from the network (=> standalone)")
-    result = self.rpc.call_drbd_disconnect_net([self.instance.primary_node],
-                                               self.node_secondary_ip,
-                                               self.instance.disks)\
-                                              [self.instance.primary_node]
+    result = self.rpc.call_drbd_disconnect_net([pnode], self.node_secondary_ip,
+                                               self.instance.disks)[pnode]
 
     msg = result.fail_msg
     if msg:

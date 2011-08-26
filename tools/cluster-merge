@@ -40,6 +40,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import ssh
 from ganeti import utils
+from ganeti import netutils
 
 
 _GROUPS_MERGE = "merge"
@@ -109,13 +110,16 @@ class MergerData(object):
   """Container class to hold data used for merger.
 
   """
-  def __init__(self, cluster, key_path, nodes, instances, config_path=None):
+  def __init__(self, cluster, key_path, nodes, instances, master_node,
+               master_ip, config_path=None):
     """Initialize the container.
 
     @param cluster: The name of the cluster
     @param key_path: Path to the ssh private key used for authentication
     @param nodes: List of online nodes in the merging cluster
     @param instances: List of instances running on merging cluster
+    @param master_node: Name of the master node
+    @param master_ip: Cluster IP
     @param config_path: Path to the merging cluster config
 
     """
@@ -123,6 +127,8 @@ class MergerData(object):
     self.key_path = key_path
     self.nodes = nodes
     self.instances = instances
+    self.master_node = master_node
+    self.master_ip = master_ip
     self.config_path = config_path
 
 
@@ -206,7 +212,26 @@ class Merger(object):
                                  (cluster, result.fail_reason, result.output))
       instances = result.stdout.splitlines()
 
-      self.merger_data.append(MergerData(cluster, key_path, nodes, instances))
+      path = utils.PathJoin(constants.DATA_DIR, "ssconf_%s" %
+                            constants.SS_MASTER_NODE)
+      result = self._RunCmd(cluster, "cat %s" % path, private_key=key_path)
+      if result.failed:
+        raise errors.RemoteError("Unable to retrieve the master node name from"
+                                 " %s. Fail reason: %s; output: %s" %
+                                 (cluster, result.fail_reason, result.output))
+      master_node = result.stdout.strip()
+
+      path = utils.PathJoin(constants.DATA_DIR, "ssconf_%s" %
+                            constants.SS_MASTER_IP)
+      result = self._RunCmd(cluster, "cat %s" % path, private_key=key_path)
+      if result.failed:
+        raise errors.RemoteError("Unable to retrieve the master IP from"
+                                 " %s. Fail reason: %s; output: %s" %
+                                 (cluster, result.fail_reason, result.output))
+      master_ip = result.stdout.strip()
+
+      self.merger_data.append(MergerData(cluster, key_path, nodes, instances,
+                                         master_node, master_ip))
 
   def _PrepareAuthorizedKeys(self):
     """Prepare the authorized_keys on every merging node.
@@ -288,6 +313,31 @@ class Merger(object):
         raise errors.RemoteError("Unable to pause watcher on %s."
                                  " Fail reason: %s; output: %s" %
                                  (cluster, result.fail_reason, result.output))
+
+  def _RemoveMasterIps(self):
+    """Removes the master IPs from the master nodes of each cluster.
+
+    """
+    for data in self.merger_data:
+      master_ip_family = netutils.IPAddress.GetAddressFamily(data.master_ip)
+      master_ip_len = netutils.IP4Address.iplen
+      if master_ip_family == netutils.IP6Address.family:
+        master_ip_len = netutils.IP6Address.iplen
+      # Not using constants.IP_COMMAND_PATH because the command might run on a
+      # machine in which the ip path is different, so it's better to rely on
+      # $PATH.
+      cmd = "ip address del %s/%s dev $(cat %s)" % (
+             data.master_ip,
+             master_ip_len,
+             utils.PathJoin(constants.DATA_DIR, "ssconf_%s" %
+                            constants.SS_MASTER_NETDEV))
+      result = self._RunCmd(data.master_node, cmd, max_attempts=3)
+      if result.failed:
+        raise errors.RemoteError("Unable to remove master IP on %s."
+                                 " Fail reason: %s; output: %s" %
+                                 (data.master_node,
+                                  result.fail_reason,
+                                  result.output))
 
   def _StopDaemons(self):
     """Stop all daemons on merging nodes.
@@ -693,6 +743,8 @@ class Merger(object):
       self._StopDaemons()
       logging.info("Merging config")
       self._FetchRemoteConfig()
+      logging.info("Removing master IPs on mergee master nodes")
+      self._RemoveMasterIps()
 
       logging.info("Stopping master daemon")
       self._KillMasterDaemon()
