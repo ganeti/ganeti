@@ -275,7 +275,7 @@ def TestOutOfBand():
     # Power off on master without options should fail
     AssertCommand(["gnt-node", "power", "-f", "off", master_name], fail=True)
     # With force master it should still fail
-    AssertCommand(["gnt-node", "power", "-f",  "--ignore-status", "off",
+    AssertCommand(["gnt-node", "power", "-f", "--ignore-status", "off",
                    master_name],
                   fail=True)
 
@@ -302,7 +302,7 @@ def TestOutOfBand():
     AssertCommand(["gnt-node", "health"], fail=True)
 
     # Correct Data, exit 0
-    _UpdateOobFile(data_path, serializer.DumpJson({ "powered": True }))
+    _UpdateOobFile(data_path, serializer.DumpJson({"powered": True}))
 
     AssertCommand(["gnt-node", "power", "status", node_name])
     _AssertOobCall(verify_path, "power-status %s" % full_node_name)
@@ -314,7 +314,6 @@ def TestOutOfBand():
     _AssertOobCall(verify_path, "health %s" % full_node_name)
 
     AssertCommand(["gnt-node", "health"])
-
 
     # Those commands should fail as they expect no data regardless of exit 0
     AssertCommand(["gnt-node", "power", "on", node_name], fail=True)

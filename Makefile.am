@@ -454,6 +454,7 @@ qa_scripts = \
 	qa/qa_daemon.py \
 	qa/qa_env.py \
 	qa/qa_error.py \
+	qa/qa_group.py \
 	qa/qa_instance.py \
 	qa/qa_node.py \
 	qa/qa_os.py \
@@ -766,6 +767,17 @@ lint_python_code = \
 	$(BUILD_BASH_COMPLETION) \
 	$(DOCPP) \
 	$(PYTHON_BOOTSTRAP)
+
+pep8_python_code = \
+	ganeti \
+	ganeti/http/server.py \
+	$(dist_sbin_SCRIPTS) \
+	$(dist_tools_PYTHON) \
+	$(pkglib_python_scripts) \
+	$(BUILD_BASH_COMPLETION) \
+	$(DOCPP) \
+	$(PYTHON_BOOTSTRAP) \
+	qa
 
 test/daemon-util_unittest.bash: daemons/daemon-util
 
@@ -1087,7 +1099,7 @@ lint: $(BUILT_SOURCES)
 		echo '"pep8" not found during configure' >&2; \
 	else \
 		$(PEP8) --repeat --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
-			$(lint_python_code); \
+			$(pep8_python_code); \
 	fi
 	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
 	cd $(top_srcdir)/qa && \

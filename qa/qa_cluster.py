@@ -40,6 +40,7 @@ from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
 #: cluster verify command
 _CLUSTER_VERIFY = ["gnt-cluster", "verify"]
 
+
 def _RemoveFileFromAllNodes(filename):
   """Removes a file from all nodes.
 
@@ -231,14 +232,14 @@ def TestClusterReservedLvs():
     (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
     (False, ["lvcreate", "-L1G", "-nqa-test", "xenvg"]),
-    (True,  _CLUSTER_VERIFY),
+    (True, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs",
              "xenvg/qa-test,.*/other-test"]),
     (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ".*/qa-.*"]),
     (False, _CLUSTER_VERIFY),
     (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
-    (True,  _CLUSTER_VERIFY),
+    (True, _CLUSTER_VERIFY),
     (False, ["lvremove", "-f", "xenvg/qa-test"]),
     (False, _CLUSTER_VERIFY),
     ]:
@@ -251,19 +252,19 @@ def TestClusterModifyBe():
     # mem
     (False, ["gnt-cluster", "modify", "-B", "memory=256"]),
     (False, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 256$'"]),
-    (True,  ["gnt-cluster", "modify", "-B", "memory=a"]),
+    (True, ["gnt-cluster", "modify", "-B", "memory=a"]),
     (False, ["gnt-cluster", "modify", "-B", "memory=128"]),
     (False, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 128$'"]),
     # vcpus
     (False, ["gnt-cluster", "modify", "-B", "vcpus=4"]),
     (False, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 4$'"]),
-    (True,  ["gnt-cluster", "modify", "-B", "vcpus=a"]),
+    (True, ["gnt-cluster", "modify", "-B", "vcpus=a"]),
     (False, ["gnt-cluster", "modify", "-B", "vcpus=1"]),
     (False, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 1$'"]),
     # auto_balance
     (False, ["gnt-cluster", "modify", "-B", "auto_balance=False"]),
     (False, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: False$'"]),
-    (True,  ["gnt-cluster", "modify", "-B", "auto_balance=1"]),
+    (True, ["gnt-cluster", "modify", "-B", "auto_balance=1"]),
     (False, ["gnt-cluster", "modify", "-B", "auto_balance=True"]),
     (False, ["sh", "-c", "gnt-cluster info|grep '^ *auto_balance: True$'"]),
     ]:
@@ -273,6 +274,7 @@ def TestClusterModifyBe():
   bep = qa_config.get("backend-parameters", "")
   if bep:
     AssertCommand(["gnt-cluster", "modify", "-B", bep])
+
 
 def TestClusterInfo():
   """gnt-cluster info"""
@@ -306,7 +308,7 @@ def TestClusterRenewCrypto():
     ["--new-cluster-domain-secret", "--cluster-domain-secret=/dev/null"],
     ]
   for i in conflicting:
-    AssertCommand(cmd+i, fail=True)
+    AssertCommand(cmd + i, fail=True)
 
   # Invalid RAPI certificate
   cmd = ["gnt-cluster", "renew-crypto", "--force",

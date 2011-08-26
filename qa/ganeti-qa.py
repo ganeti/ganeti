@@ -54,7 +54,7 @@ def _FormatHeader(line, end=72):
 
   """
   line = "---- " + line + " "
-  line += "-" * (end-len(line))
+  line += "-" * (end - len(line))
   line = line.rstrip()
   return line
 
