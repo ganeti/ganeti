@@ -631,6 +631,8 @@ TEST_FILES = \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd83.txt \
+	test/data/proc_drbd83_sync.txt \
+	test/data/proc_drbd83_sync_krnl2.6.39.txt \
 	test/data/sys_drbd_usermode_helper.txt \
 	test/import-export_unittest-helper
 
