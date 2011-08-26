@@ -298,7 +298,7 @@ class TestUnescapeAndSplit(unittest.TestCase):
 
   def setUp(self):
     # testing more that one separator for regexp safety
-    self._seps = [",", "+", "."]
+    self._seps = [",", "+", ".", ":"]
 
   def testSimple(self):
     a = ["a", "b", "c", "d"]
@@ -322,6 +322,18 @@ class TestUnescapeAndSplit(unittest.TestCase):
       a = ["a", "b\\\\\\" + sep + "c", "d"]
       b = ["a", "b\\" + sep + "c", "d"]
       self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
+
+  def testEscapeAtEnd(self):
+    for sep in self._seps:
+      self.assertEqual(utils.UnescapeAndSplit("\\", sep=sep), ["\\"])
+
+      a = ["a", "b\\", "c"]
+      b = ["a", "b" + sep + "c\\"]
+      self.assertEqual(utils.UnescapeAndSplit("%s\\" % sep.join(a), sep=sep), b)
+
+      a = ["\\" + sep, "\\" + sep, "c", "d\\.moo"]
+      b = [sep, sep, "c", "d.moo\\"]
+      self.assertEqual(utils.UnescapeAndSplit("%s\\" % sep.join(a), sep=sep), b)
 
 
 class TestCommaJoin(unittest.TestCase):

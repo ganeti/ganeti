@@ -343,7 +343,7 @@ def UnescapeAndSplit(text, sep=","):
     e1 = slist.pop(0)
     if e1.endswith("\\"):
       num_b = len(e1) - len(e1.rstrip("\\"))
-      if num_b % 2 == 1:
+      if num_b % 2 == 1 and slist:
         e2 = slist.pop(0)
         # here the backslashes remain (all), and will be reduced in
         # the next step
