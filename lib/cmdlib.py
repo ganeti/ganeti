@@ -8540,7 +8540,7 @@ class LUInstanceCreate(LogicalUnit):
                                  " instances", errors.ECODE_STATE)
 
     if (self.op.hypervisor is None or
-        self.op.hypervisor.lower() == constants.VALUE_AUTO):
+        self.op.hypervisor == constants.VALUE_AUTO):
       self.op.hypervisor = self.cfg.GetHypervisorType()
 
     cluster = self.cfg.GetClusterInfo()
@@ -8568,7 +8568,7 @@ class LUInstanceCreate(LogicalUnit):
     # fill and remember the beparams dict
     default_beparams = cluster.beparams[constants.PP_DEFAULT]
     for param, value in self.op.beparams.iteritems():
-      if value.lower() == constants.VALUE_AUTO:
+      if value == constants.VALUE_AUTO:
         self.op.beparams[param] = default_beparams[param]
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
     self.be_full = cluster.SimpleFillBE(self.op.beparams)
@@ -8586,7 +8586,7 @@ class LUInstanceCreate(LogicalUnit):
     for idx, nic in enumerate(self.op.nics):
       nic_mode_req = nic.get(constants.INIC_MODE, None)
       nic_mode = nic_mode_req
-      if nic_mode is None or nic_mode.lower() == constants.VALUE_AUTO:
+      if nic_mode is None or nic_mode == constants.VALUE_AUTO:
         nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
 
       # in routed mode, for the first nic, the default ip is 'auto'
@@ -8630,7 +8630,7 @@ class LUInstanceCreate(LogicalUnit):
 
       #  Build nic parameters
       link = nic.get(constants.INIC_LINK, None)
-      if link.lower() == constants.VALUE_AUTO:
+      if link == constants.VALUE_AUTO:
         link = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_LINK]
       nicparams = {}
       if nic_mode_req:
