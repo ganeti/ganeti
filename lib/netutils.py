@@ -583,7 +583,7 @@ class IP6Address(IPAddress):
       twoparts = address.split("::")
       sep = len(twoparts[0].split(":")) + len(twoparts[1].split(":"))
       parts = twoparts[0].split(":")
-      [parts.append("0") for _ in range(8 - sep)]
+      parts.extend(["0"] * (8 - sep))
       parts += twoparts[1].split(":")
     else:
       parts = address.split(":")

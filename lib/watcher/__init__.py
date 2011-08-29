@@ -106,8 +106,8 @@ def RunWatcherHooks():
 
   try:
     results = utils.RunParts(hooks_dir)
-  except Exception: # pylint: disable=W0703
-    logging.exception("RunParts %s failed: %s", hooks_dir)
+  except Exception, err: # pylint: disable=W0703
+    logging.exception("RunParts %s failed: %s", hooks_dir, err)
     return
 
   for (relname, status, runresult) in results:
