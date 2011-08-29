@@ -267,7 +267,7 @@ def UploadFiles(connection, executable, filelist, logfile):
     sftp = paramiko.SFTPClient.from_transport(connection)
     sftp.mkdir(remote_dir, mode=0700)
     for item in filelist:
-      remote_file = "%s/%s" % (remote_dir, item.split("/").pop())
+      remote_file = "%s/%s" % (remote_dir, os.path.basename(item))
       WriteLog("uploading %s to remote %s" % (item, remote_file), logfile)
       sftp.put(item, remote_file)
       if item == executable:
@@ -287,7 +287,7 @@ def CleanupRemoteDir(connection, upload_dir, filelist, logfile):
   try:
     sftp = paramiko.SFTPClient.from_transport(connection)
     for item in filelist:
-      fullpath = "%s/%s" % (upload_dir, item.split("/").pop())
+      fullpath = "%s/%s" % (upload_dir, os.path.basename(item))
       WriteLog("removing remote %s" % fullpath, logfile)
       sftp.remove(fullpath)
     sftp.rmdir(upload_dir)
@@ -337,7 +337,7 @@ def RunRemoteCommand(connection, command, logfile):
     select.select([], [], [], .1)
 
   WriteLog("SUCCESS: command output follows", logfile)
-  for line in output.split("\n"):
+  for line in output.splitlines():
     WriteLog("output = %s" % line, logfile)
   WriteLog("command execution completed", logfile)
   session.close()
@@ -375,8 +375,7 @@ def HostWorker(logdir, username, password, use_agent, hostname,
         print "  %s: uploading files" % hostname
         upload_dir = UploadFiles(connection, executable,
                                  filelist, logfile)
-        command = "cd %s && ./%s" % (upload_dir,
-                                     executable.split("/").pop())
+        command = "cd %s && ./%s" % (upload_dir, os.path.basename(executable))
       print "  %s: executing remote command" % hostname
       cmd_result = RunRemoteCommand(connection, command, logfile)
       if cmd_result is True:
