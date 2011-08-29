@@ -39,7 +39,7 @@ def Load(path):
   """Loads the passed configuration file.
 
   """
-  global cfg # pylint: disable-msg=W0603
+  global cfg # pylint: disable=W0603
 
   cfg = serializer.LoadJson(utils.ReadFile(path))
 

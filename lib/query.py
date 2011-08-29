@@ -137,7 +137,7 @@ _VTToQFT = {
 _SERIAL_NO_DOC = "%s object serial number, incremented on each modification"
 
 
-def _GetUnknownField(ctx, item): # pylint: disable-msg=W0613
+def _GetUnknownField(ctx, item): # pylint: disable=W0613
   """Gets the contents of an unknown field.
 
   """
@@ -260,7 +260,7 @@ class _FilterHints:
     if op != qlang.OP_OR:
       self._NeedAllNames()
 
-  def NoteUnaryOp(self, op): # pylint: disable-msg=W0613
+  def NoteUnaryOp(self, op): # pylint: disable=W0613
     """Called when handling an unary operation.
 
     @type op: string
@@ -337,7 +337,7 @@ class _FilterCompilerHelper:
   """Converts a query filter to a callable usable for filtering.
 
   """
-  # String statement has no effect, pylint: disable-msg=W0105
+  # String statement has no effect, pylint: disable=W0105
 
   #: How deep filters can be nested
   _LEVELS_MAX = 10
@@ -546,7 +546,7 @@ class _FilterCompilerHelper:
     @param operands: List of operands
 
     """
-    # Unused arguments, pylint: disable-msg=W0613
+    # Unused arguments, pylint: disable=W0613
     try:
       (name, value) = operands
     except (ValueError, TypeError):
@@ -1062,7 +1062,7 @@ def _GetGroup(cb):
   return fn
 
 
-def _GetNodeGroup(ctx, node, ng): # pylint: disable-msg=W0613
+def _GetNodeGroup(ctx, node, ng): # pylint: disable=W0613
   """Returns the name of a node's group.
 
   @type ctx: L{NodeQueryData}
@@ -1408,7 +1408,7 @@ def _GetInstNic(index, cb):
   return fn
 
 
-def _GetInstNicIp(ctx, _, nic): # pylint: disable-msg=W0613
+def _GetInstNicIp(ctx, _, nic): # pylint: disable=W0613
   """Get a NIC's IP address.
 
   @type ctx: L{InstanceQueryData}

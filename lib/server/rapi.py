@@ -22,7 +22,7 @@
 
 """
 
-# pylint: disable-msg=C0103,W0142
+# pylint: disable=C0103,W0142
 
 # C0103: Invalid name ganeti-watcher
 
@@ -34,7 +34,7 @@ import os.path
 import errno
 
 try:
-  from pyinotify import pyinotify # pylint: disable-msg=E0611
+  from pyinotify import pyinotify # pylint: disable=E0611
 except ImportError:
   import pyinotify
 
@@ -49,7 +49,7 @@ from ganeti import compat
 from ganeti import utils
 from ganeti.rapi import connector
 
-import ganeti.http.auth   # pylint: disable-msg=W0611
+import ganeti.http.auth   # pylint: disable=W0611
 import ganeti.http.server
 
 
@@ -90,7 +90,7 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
   AUTH_REALM = "Ganeti Remote API"
 
   def __init__(self, *args, **kwargs):
-    # pylint: disable-msg=W0233
+    # pylint: disable=W0233
     # it seems pylint doesn't see the second parent class there
     http.server.HttpServer.__init__(self, *args, **kwargs)
     http.auth.HttpServerRequestAuthentication.__init__(self)
@@ -118,7 +118,7 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
 
       users = http.auth.ParsePasswordFile(contents)
 
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       # We don't care about the type of exception
       logging.error("Error while parsing %s: %s", filename, err)
       return False
@@ -321,14 +321,14 @@ def PrepRapi(options, _):
 
   server.LoadUsers(constants.RAPI_USERS_FILE)
 
-  # pylint: disable-msg=E1101
+  # pylint: disable=E1101
   # it seems pylint doesn't see the second parent class there
   server.Start()
 
   return (mainloop, server)
 
 
-def ExecRapi(options, args, prep_data): # pylint: disable-msg=W0613
+def ExecRapi(options, args, prep_data): # pylint: disable=W0613
   """Main remote API function, executed with the PID file held.
 
   """

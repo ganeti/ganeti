@@ -49,7 +49,7 @@ Security considerations:
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # C0103: Invalid name ganeti-listrunner
 
 import errno
@@ -231,7 +231,7 @@ def SetupSshConnection(host, username, password, use_agent, logfile):
         log = logging.getLogger(transport.get_log_channel())
         log.addHandler(handler)
 
-      transport.connect(username=username, **kwargs) # pylint: disable-msg=W0142
+      transport.connect(username=username, **kwargs) # pylint: disable=W0142
       WriteLog("ssh connection established using %s" % desc, logfile)
       # strange ... when establishing the session and the immediately
       # setting up the channels for sftp & shell from that, it sometimes

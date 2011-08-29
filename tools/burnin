@@ -91,12 +91,12 @@ def Err(msg, exit_code=1):
 
 class SimpleOpener(urllib.FancyURLopener):
   """A simple url opener"""
-  # pylint: disable-msg=W0221
+  # pylint: disable=W0221
 
   def prompt_user_passwd(self, host, realm, clear_cache=0):
     """No-interaction version of prompt_user_passwd."""
     # we follow parent class' API
-    # pylint: disable-msg=W0613
+    # pylint: disable=W0613
     return None, None
 
   def http_error_default(self, url, fp, errcode, errmsg, headers):
@@ -232,7 +232,7 @@ def _DoCheckInstances(fn):
   def wrapper(self, *args, **kwargs):
     val = fn(self, *args, **kwargs)
     for instance in self.instances:
-      self._CheckInstanceAlive(instance) # pylint: disable-msg=W0212
+      self._CheckInstanceAlive(instance) # pylint: disable=W0212
     return val
 
   return wrapper
@@ -312,7 +312,7 @@ class Burner(object):
         Log("Idempotent %s succeeded after %d retries",
             msg, MAX_RETRIES - retry_count)
       return val
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       if retry_count == 0:
         Log("Non-idempotent %s failed, aborting", msg)
         raise
@@ -358,7 +358,7 @@ class Burner(object):
       cli.SetGenericOpcodeOpts(ops, self.opts)
       self.queued_ops.append((ops, name, post_process))
     else:
-      val = self.ExecOp(self.queue_retry, *ops) # pylint: disable-msg=W0142
+      val = self.ExecOp(self.queue_retry, *ops) # pylint: disable=W0142
       if post_process is not None:
         post_process()
       return val
@@ -400,10 +400,10 @@ class Burner(object):
     self.ClearFeedbackBuf()
     jex = cli.JobExecutor(cl=self.cl, feedback_fn=self.Feedback)
     for ops, name, _ in jobs:
-      jex.QueueJob(name, *ops) # pylint: disable-msg=W0142
+      jex.QueueJob(name, *ops) # pylint: disable=W0142
     try:
       results = jex.GetResults()
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       Log("Jobs failed: %s", err)
       raise BurninFailure()
 
@@ -414,7 +414,7 @@ class Burner(object):
         if post_process:
           try:
             post_process()
-          except Exception, err: # pylint: disable-msg=W0703
+          except Exception, err: # pylint: disable=W0703
             Log("Post process call for job %s failed: %s", name, err)
             fail = True
         val.append(result)
@@ -1066,7 +1066,7 @@ class Burner(object):
       if not self.opts.keep_instances:
         try:
           self.BurnRemove()
-        except Exception, err:  # pylint: disable-msg=W0703
+        except Exception, err:  # pylint: disable=W0703
           if has_err: # already detected errors, so errors in removal
                       # are quite expected
             Log("Note: error detected during instance remove: %s", err)

@@ -160,7 +160,7 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
   while True:
     retry_args = []
     try:
-      # pylint: disable-msg=W0142
+      # pylint: disable=W0142
       return fn(*args)
     except RetryAgain, err:
       retry_args = err.args
@@ -171,7 +171,7 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
     remaining_time = end_time - _time_fn()
 
     if remaining_time < 0.0:
-      # pylint: disable-msg=W0142
+      # pylint: disable=W0142
       raise RetryTimeout(*retry_args)
 
     assert remaining_time >= 0.0
@@ -208,7 +208,7 @@ def SimpleRetry(expected, fn, delay, timeout, args=None, wait_fn=time.sleep,
   rdict = {}
 
   def helper(*innerargs):
-    # pylint: disable-msg=W0142
+    # pylint: disable=W0142
     result = rdict["result"] = fn(*innerargs)
     if not ((callable(expected) and expected(result)) or result == expected):
       raise RetryAgain()

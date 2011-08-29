@@ -21,7 +21,7 @@
 
 """Ganeti node daemon"""
 
-# pylint: disable-msg=C0103,W0142
+# pylint: disable=C0103,W0142
 
 # C0103: Functions in this module need to have a given name structure,
 # and the name of the daemon doesn't match
@@ -49,7 +49,7 @@ from ganeti import storage
 from ganeti import serializer
 from ganeti import netutils
 
-import ganeti.http.server # pylint: disable-msg=W0611
+import ganeti.http.server # pylint: disable=W0611
 
 
 queue_lock = None
@@ -61,7 +61,7 @@ def _PrepareQueueLock():
   @return: None for success, otherwise an exception object
 
   """
-  global queue_lock # pylint: disable-msg=W0603
+  global queue_lock # pylint: disable=W0603
 
   if queue_lock is not None:
     return None
@@ -129,7 +129,7 @@ class NodeHttpServer(http.server.HttpServer):
   """
   # too many public methods, and unused args - all methods get params
   # due to the API
-  # pylint: disable-msg=R0904,W0613
+  # pylint: disable=R0904,W0613
   def __init__(self, *args, **kwargs):
     http.server.HttpServer.__init__(self, *args, **kwargs)
     self.noded_pid = os.getpid()
@@ -1019,7 +1019,7 @@ def PrepNoded(options, _):
   return (mainloop, server)
 
 
-def ExecNoded(options, args, prep_data): # pylint: disable-msg=W0613
+def ExecNoded(options, args, prep_data): # pylint: disable=W0613
   """Main node daemon function, executed with the PID file held.
 
   """

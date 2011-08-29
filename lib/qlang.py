@@ -32,7 +32,7 @@ converted to callable functions by L{query._CompileFilter}.
 """
 
 import re
-import string # pylint: disable-msg=W0402
+import string # pylint: disable=W0402
 import logging
 
 import pyparsing as pyp

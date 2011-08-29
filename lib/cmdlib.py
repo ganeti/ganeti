@@ -21,7 +21,7 @@
 
 """Module implementing the master-side code."""
 
-# pylint: disable-msg=W0201,C0302
+# pylint: disable=W0201,C0302
 
 # W0201 since most LU attributes are defined in CheckPrereq or similar
 # functions
@@ -60,7 +60,7 @@ from ganeti import qlang
 from ganeti import opcodes
 from ganeti import ht
 
-import ganeti.masterd.instance # pylint: disable-msg=W0611
+import ganeti.masterd.instance # pylint: disable=W0611
 
 
 class ResultWithJobs:
@@ -131,10 +131,10 @@ class LogicalUnit(object):
     # Used to force good behavior when calling helper functions
     self.recalculate_locks = {}
     # logging
-    self.Log = processor.Log # pylint: disable-msg=C0103
-    self.LogWarning = processor.LogWarning # pylint: disable-msg=C0103
-    self.LogInfo = processor.LogInfo # pylint: disable-msg=C0103
-    self.LogStep = processor.LogStep # pylint: disable-msg=C0103
+    self.Log = processor.Log # pylint: disable=C0103
+    self.LogWarning = processor.LogWarning # pylint: disable=C0103
+    self.LogInfo = processor.LogInfo # pylint: disable=C0103
+    self.LogStep = processor.LogStep # pylint: disable=C0103
     # support for dry-run
     self.dry_run_result = None
     # support for generic debug attribute
@@ -322,7 +322,7 @@ class LogicalUnit(object):
     """
     # API must be kept, thus we ignore the unused argument and could
     # be a function warnings
-    # pylint: disable-msg=W0613,R0201
+    # pylint: disable=W0613,R0201
     return lu_result
 
   def _ExpandAndLockInstance(self):
@@ -390,7 +390,7 @@ class LogicalUnit(object):
     del self.recalculate_locks[locking.LEVEL_NODE]
 
 
-class NoHooksLU(LogicalUnit): # pylint: disable-msg=W0223
+class NoHooksLU(LogicalUnit): # pylint: disable=W0223
   """Simple LU which runs no hooks.
 
   This LU is intended as a parent for other LogicalUnits which will
@@ -757,7 +757,7 @@ def _RunPostHook(lu, node_name):
   try:
     hm.RunPhase(constants.HOOKS_PHASE_POST, nodes=[node_name])
   except:
-    # pylint: disable-msg=W0702
+    # pylint: disable=W0702
     lu.LogWarning("Errors occurred running hooks on %s" % node_name)
 
 
@@ -1087,7 +1087,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   }
   if override:
     args.update(override)
-  return _BuildInstanceHookEnv(**args) # pylint: disable-msg=W0142
+  return _BuildInstanceHookEnv(**args) # pylint: disable=W0142
 
 
 def _AdjustCandidatePool(lu, exceptions):
@@ -1371,7 +1371,7 @@ def _VerifyCertificate(filename):
   try:
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                            utils.ReadFile(filename))
-  except Exception, err: # pylint: disable-msg=W0703
+  except Exception, err: # pylint: disable=W0703
     return (LUClusterVerifyConfig.ETYPE_ERROR,
             "Failed to load X509 certificate %s: %s" % (filename, err))
 
@@ -1486,7 +1486,7 @@ class _VerifyErrors(object):
     if args:
       msg = msg % args
     # then format the whole message
-    if self.op.error_codes: # This is a mix-in. pylint: disable-msg=E1101
+    if self.op.error_codes: # This is a mix-in. pylint: disable=E1101
       msg = "%s:%s:%s:%s:%s" % (ltype, etxt, itype, item, msg)
     else:
       if item:
@@ -1495,14 +1495,14 @@ class _VerifyErrors(object):
         item = ""
       msg = "%s: %s%s: %s" % (ltype, itype, item, msg)
     # and finally report it via the feedback_fn
-    self._feedback_fn("  - %s" % msg) # Mix-in. pylint: disable-msg=E1101
+    self._feedback_fn("  - %s" % msg) # Mix-in. pylint: disable=E1101
 
   def _ErrorIf(self, cond, *args, **kwargs):
     """Log an error message if the passed condition is True.
 
     """
     cond = (bool(cond)
-            or self.op.debug_simulate_errors) # pylint: disable-msg=E1101
+            or self.op.debug_simulate_errors) # pylint: disable=E1101
     if cond:
       self._Error(*args, **kwargs)
     # do not mark the operation as failed for WARN cases only
@@ -1539,7 +1539,7 @@ class LUClusterVerify(NoHooksLU):
                 for group in groups)
 
     # Fix up all parameters
-    for op in itertools.chain(*jobs): # pylint: disable-msg=W0142
+    for op in itertools.chain(*jobs): # pylint: disable=W0142
       op.debug_simulate_errors = self.op.debug_simulate_errors
       op.verbose = self.op.verbose
       op.error_codes = self.op.error_codes
@@ -1801,7 +1801,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     # main result, nresult should be a non-empty dict
     test = not nresult or not isinstance(nresult, dict)
@@ -1870,7 +1870,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     ntime = nresult.get(constants.NV_TIME, None)
     try:
@@ -1903,7 +1903,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       return
 
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     # checks vg existence and size > 20G
     vglist = nresult.get(constants.NV_VGLIST, None)
@@ -1940,7 +1940,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       return
 
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     missing = nresult.get(constants.NV_BRIDGES, None)
     test = not isinstance(missing, list)
@@ -1959,7 +1959,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     test = constants.NV_NODELIST not in nresult
     _ErrorIf(test, self.ENODESSH, node,
@@ -2000,7 +2000,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     available on the instance's node.
 
     """
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
     node_current = instanceconfig.primary_node
 
     node_vol_should = {}
@@ -2200,7 +2200,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     if drbd_helper:
       helper_result = nresult.get(constants.NV_DRBDHELPER, None)
@@ -2259,7 +2259,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     remote_os = nresult.get(constants.NV_OSLIST, None)
     test = (not isinstance(remote_os, list) or
@@ -2300,7 +2300,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     assert not nimg.os_fail, "Entered _VerifyNodeOS with failed OS rpc?"
 
@@ -2370,7 +2370,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     nimg.lvm_fail = True
     lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
@@ -2418,7 +2418,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     node = ninfo.name
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     # try to read free memory (from the hypervisor)
     hv_info = nresult.get(constants.NV_HVINFO, None)
@@ -2460,7 +2460,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         list of tuples (success, payload)
 
     """
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     node_disks = {}
     node_disks_devonly = {}
@@ -2568,7 +2568,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """Verify integrity of the node group, performing various test on nodes.
 
     """
-    # This method has too many local variables. pylint: disable-msg=R0914
+    # This method has too many local variables. pylint: disable=R0914
     feedback_fn("* Verifying group '%s'" % self.group_info.name)
 
     if not self.my_node_names:
@@ -2577,7 +2577,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       return True
 
     self.bad = False
-    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
+    _ErrorIf = self._ErrorIf # pylint: disable=C0103
     verbose = self.op.verbose
     self._feedback_fn = feedback_fn
 
@@ -4419,7 +4419,7 @@ class LUNodeQuery(NoHooksLU):
   """Logical unit for querying nodes.
 
   """
-  # pylint: disable-msg=W0142
+  # pylint: disable=W0142
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -4620,7 +4620,7 @@ class _InstanceQuery(_QueryBase):
               for instance_name in lu.owned_locks(locking.LEVEL_INSTANCE)
               for group_uuid in lu.cfg.GetInstanceNodeGroups(instance_name))
       elif level == locking.LEVEL_NODE:
-        lu._LockInstancesNodes() # pylint: disable-msg=W0212
+        lu._LockInstancesNodes() # pylint: disable=W0212
 
   @staticmethod
   def _CheckGroupLocks(lu):
@@ -4721,7 +4721,7 @@ class LUQuery(NoHooksLU):
   """Query for resources/items of a certain kind.
 
   """
-  # pylint: disable-msg=W0142
+  # pylint: disable=W0142
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -4743,7 +4743,7 @@ class LUQueryFields(NoHooksLU):
   """Query for resources/items of a certain kind.
 
   """
-  # pylint: disable-msg=W0142
+  # pylint: disable=W0142
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -4990,7 +4990,7 @@ class LUNodeAdd(LogicalUnit):
     # later in the procedure; this also means that if the re-add
     # fails, we are left with a non-offlined, broken node
     if self.op.readd:
-      new_node.drained = new_node.offline = False # pylint: disable-msg=W0201
+      new_node.drained = new_node.offline = False # pylint: disable=W0201
       self.LogInfo("Readding a node, the offline/drained flags were reset")
       # if we demote the node, we do cleanup later in the procedure
       new_node.master_candidate = self.master_candidate
@@ -6550,7 +6550,7 @@ class LUInstanceQuery(NoHooksLU):
   """Logical unit for querying instances.
 
   """
-  # pylint: disable-msg=W0142
+  # pylint: disable=W0142
   REQ_BGL = False
 
   def CheckArguments(self):
@@ -8515,7 +8515,7 @@ class LUInstanceCreate(LogicalUnit):
 
       joinargs.append(self.op.instance_name)
 
-      # pylint: disable-msg=W0142
+      # pylint: disable=W0142
       self.instance_file_storage_dir = utils.PathJoin(*joinargs)
 
   def CheckPrereq(self):
@@ -9674,7 +9674,7 @@ class TLReplaceDisks(Tasklet):
           self.lu.LogWarning("Can't remove old LV: %s" % msg,
                              hint="remove unused LVs manually")
 
-  def _ExecDrbd8DiskOnly(self, feedback_fn): # pylint: disable-msg=W0613
+  def _ExecDrbd8DiskOnly(self, feedback_fn): # pylint: disable=W0613
     """Replace a disk on the primary or secondary for DRBD 8.
 
     The algorithm for replace is quite complicated:
@@ -12436,7 +12436,7 @@ class LUGroupEvacuate(LogicalUnit):
     return ResultWithJobs(jobs)
 
 
-class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
+class TagsLU(NoHooksLU): # pylint: disable=W0223
   """Generic tags LU.
 
   This is an abstract class which is the parent of all the other tags LUs.
@@ -12696,7 +12696,7 @@ class LUTestJqueue(NoHooksLU):
     # Wait for client to close
     try:
       try:
-        # pylint: disable-msg=E1101
+        # pylint: disable=E1101
         # Instance of '_socketobject' has no ... member
         conn.settimeout(cls._CLIENT_CONFIRM_TIMEOUT)
         conn.recv(1)
@@ -12793,7 +12793,7 @@ class IAllocator(object):
       easy usage
 
   """
-  # pylint: disable-msg=R0902
+  # pylint: disable=R0902
   # lots of instance attributes
 
   def __init__(self, cfg, rpc, mode, **kwargs):
@@ -13130,7 +13130,7 @@ class IAllocator(object):
 
   _STRING_LIST = ht.TListOf(ht.TString)
   _JOB_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
-     # pylint: disable-msg=E1101
+     # pylint: disable=E1101
      # Class '...' has no 'OP_ID' member
      "OP_ID": ht.TElemOf([opcodes.OpInstanceFailover.OP_ID,
                           opcodes.OpInstanceMigrate.OP_ID,

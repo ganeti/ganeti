@@ -20,7 +20,7 @@
 
 """Job related commands"""
 
-# pylint: disable-msg=W0401,W0613,W0614,C0103
+# pylint: disable=W0401,W0613,W0614,C0103
 # W0401: Wildcard import ganeti.cli
 # W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)

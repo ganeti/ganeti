@@ -23,7 +23,7 @@
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # [C0103] Invalid name build-bash-completion
 
 import os
@@ -241,7 +241,7 @@ class CompletionWriter:
 
     for opt in opts:
       # While documented, these variables aren't seen as public attributes by
-      # pylint. pylint: disable-msg=W0212
+      # pylint. pylint: disable=W0212
       opt.all_names = sorted(opt._short_opts + opt._long_opts)
 
   def _FindFirstArgument(self, sw):

@@ -122,7 +122,7 @@ class LockAttemptTimeoutStrategy(object):
     return timeout
 
 
-class OpExecCbBase: # pylint: disable-msg=W0232
+class OpExecCbBase: # pylint: disable=W0232
   """Base class for OpCode execution callbacks.
 
   """

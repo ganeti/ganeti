@@ -57,7 +57,7 @@ def DisableFork():
   """Disables the use of fork(2).
 
   """
-  global _no_fork # pylint: disable-msg=W0603
+  global _no_fork # pylint: disable=W0603
 
   _no_fork = True
 
@@ -342,7 +342,7 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
                                 output, output_fd, pidfile)
             finally:
               # Well, maybe child process failed
-              os._exit(1) # pylint: disable-msg=W0212
+              os._exit(1) # pylint: disable=W0212
         finally:
           utils_wrapper.CloseFdNoError(errpipe_write)
 
@@ -396,7 +396,7 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
     pid = os.fork()
     if pid != 0:
       # Exit first child process
-      os._exit(0) # pylint: disable-msg=W0212
+      os._exit(0) # pylint: disable=W0212
 
     # Make sure pipe is closed on execv* (and thereby notifies
     # original process)
@@ -431,15 +431,15 @@ def _StartDaemonChild(errpipe_read, errpipe_write,
       os.execvp(args[0], args)
     else:
       os.execvpe(args[0], args, env)
-  except: # pylint: disable-msg=W0702
+  except: # pylint: disable=W0702
     try:
       # Report errors to original process
       WriteErrorToFD(errpipe_write, str(sys.exc_info()[1]))
-    except: # pylint: disable-msg=W0702
+    except: # pylint: disable=W0702
       # Ignore errors in error handling
       pass
 
-  os._exit(1) # pylint: disable-msg=W0212
+  os._exit(1) # pylint: disable=W0212
 
 
 def WriteErrorToFD(fd, err):
@@ -699,7 +699,7 @@ def RunParts(dir_name, env=None, reset_env=False):
     else:
       try:
         result = RunCmd([fname], env=env, reset_env=reset_env)
-      except Exception, err: # pylint: disable-msg=W0703
+      except Exception, err: # pylint: disable=W0703
         rr.append((relname, constants.RUNPARTS_ERR, str(err)))
       else:
         rr.append((relname, constants.RUNPARTS_RUN, result))
@@ -850,7 +850,7 @@ def Daemonize(logfile):
     process and a callable to reopen log files
 
   """
-  # pylint: disable-msg=W0212
+  # pylint: disable=W0212
   # yes, we really want os._exit
 
   # TODO: do another attempt to merge Daemonize and StartDaemon, or at
@@ -975,12 +975,12 @@ def RunInSeparateProcess(fn, *args):
       # Call function
       result = int(bool(fn(*args)))
       assert result in (0, 1)
-    except: # pylint: disable-msg=W0702
+    except: # pylint: disable=W0702
       logging.exception("Error while calling function in separate process")
       # 0 and 1 are reserved for the return value
       result = 33
 
-    os._exit(result) # pylint: disable-msg=W0212
+    os._exit(result) # pylint: disable=W0212
 
   # Parent process
 

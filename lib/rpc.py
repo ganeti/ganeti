@@ -23,7 +23,7 @@
 
 """
 
-# pylint: disable-msg=C0103,R0201,R0904
+# pylint: disable=C0103,R0201,R0904
 # C0103: Invalid name, since call_ are not valid
 # R0201: Method could be a function, we keep all rpcs instance methods
 # as not to change them back and forth between static/instance methods
@@ -48,7 +48,7 @@ from ganeti import ssconf
 from ganeti import runtime
 
 # pylint has a bug here, doesn't see this import
-import ganeti.http.client  # pylint: disable-msg=W0611
+import ganeti.http.client  # pylint: disable=W0611
 
 
 # Timeout for connecting to nodes (seconds)
@@ -262,7 +262,7 @@ class RpcResult(object):
       args = (msg, ecode)
     else:
       args = (msg, )
-    raise ec(*args) # pylint: disable-msg=W0142
+    raise ec(*args) # pylint: disable=W0142
 
 
 def _AddressLookup(node_list,

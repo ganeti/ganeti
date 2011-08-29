@@ -51,7 +51,7 @@ PUT should be prefered over POST.
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 
 # C0103: Invalid name, since the R_* names are not conforming
 
@@ -1005,7 +1005,7 @@ def _ParseInstanceReplaceDisksRequest(name, data):
   except KeyError:
     pass
   else:
-    if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable-msg=E1102
+    if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable=E1102
       # Backwards compatibility for strings of the format "1, 2, 3"
       try:
         data["disks"] = [int(part) for part in raw_disks.split(",")]
@@ -1368,7 +1368,7 @@ class _R_Tags(baserlib.R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
-    # pylint: disable-msg=W0212
+    # pylint: disable=W0212
     return baserlib._Tags_GET(self.TAG_LEVEL, name=self.name)
 
   def PUT(self):
@@ -1378,7 +1378,7 @@ class _R_Tags(baserlib.R_Generic):
     you'll have back a job id.
 
     """
-    # pylint: disable-msg=W0212
+    # pylint: disable=W0212
     if "tag" not in self.queryargs:
       raise http.HttpBadRequest("Please specify tag(s) to add using the"
                                 " the 'tag' parameter")
@@ -1394,7 +1394,7 @@ class _R_Tags(baserlib.R_Generic):
     /tags?tag=[tag]&tag=[tag]
 
     """
-    # pylint: disable-msg=W0212
+    # pylint: disable=W0212
     if "tag" not in self.queryargs:
       # no we not gonna delete all tags
       raise http.HttpBadRequest("Cannot delete all tags - please specify"

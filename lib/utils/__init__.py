@@ -26,7 +26,7 @@ the command line scripts.
 
 """
 
-# Allow wildcard import in pylint: disable-msg=W0401
+# Allow wildcard import in pylint: disable=W0401
 
 import os
 import re
@@ -573,7 +573,7 @@ class SignalWakeupFd(object):
     _set_wakeup_fd_fn = signal.set_wakeup_fd
   except AttributeError:
     # Not supported
-    def _SetWakeupFd(self, _): # pylint: disable-msg=R0201
+    def _SetWakeupFd(self, _): # pylint: disable=R0201
       return -1
   else:
     def _SetWakeupFd(self, fd):

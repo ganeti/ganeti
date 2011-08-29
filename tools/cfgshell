@@ -24,7 +24,7 @@
 """
 
 # functions in this module need to have a given name structure, so:
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 
 
 import optparse
@@ -54,7 +54,7 @@ class ConfigShell(cmd.Cmd):
 
   """
   # all do_/complete_* functions follow the same API
-  # pylint: disable-msg=W0613
+  # pylint: disable=W0613
   prompt = "(/) "
 
   def __init__(self, cfg_file=None):
@@ -93,7 +93,7 @@ class ConfigShell(cmd.Cmd):
     dirs = []
     entries = []
     if isinstance(obj, objects.ConfigObject):
-      # pylint: disable-msg=W0212
+      # pylint: disable=W0212
       # yes, we're using a protected member
       for name in obj._all_slots():
         child = getattr(obj, name, None)
@@ -156,7 +156,7 @@ class ConfigShell(cmd.Cmd):
       arg = None
     try:
       self.cfg = config.ConfigWriter(cfg_file=arg, offline=True)
-      self.parents = [self.cfg._config_data] # pylint: disable-msg=W0212
+      self.parents = [self.cfg._config_data] # pylint: disable=W0212
       self.path = []
     except errors.ConfigurationError, err:
       print "Error: %s" % str(err)
@@ -288,7 +288,7 @@ class ConfigShell(cmd.Cmd):
     if self.cfg.VerifyConfig():
       print "Config data does not validate, refusing to save."
       return False
-    self.cfg._WriteConfig() # pylint: disable-msg=W0212
+    self.cfg._WriteConfig() # pylint: disable=W0212
 
   def do_rm(self, line):
     """Removes an instance or a node.
@@ -298,7 +298,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    data = self.cfg._config_data  # pylint: disable-msg=W0212
+    data = self.cfg._config_data  # pylint: disable=W0212
     if pointer not in (data.instances, data.nodes):
       print "Can only delete instances and nodes"
       return False

@@ -22,7 +22,7 @@
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # C0103: Invalid name move-instance
 
 import os
@@ -40,7 +40,7 @@ from ganeti import objects
 from ganeti import compat
 from ganeti import rapi
 
-import ganeti.rapi.client # pylint: disable-msg=W0611
+import ganeti.rapi.client # pylint: disable=W0611
 import ganeti.rapi.client_utils
 
 
@@ -662,7 +662,7 @@ class MoveSourceExecutor(object):
 
 
 class MoveSourceWorker(workerpool.BaseWorker):
-  def RunTask(self, rapi_factory, move): # pylint: disable-msg=W0221
+  def RunTask(self, rapi_factory, move): # pylint: disable=W0221
     """Executes an instance move.
 
     @type rapi_factory: L{RapiClientFactory}
@@ -696,7 +696,7 @@ class MoveSourceWorker(workerpool.BaseWorker):
                               (mrt.src_error_message, mrt.dest_error_message))
       else:
         move.error_message = None
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       logging.exception("Caught unhandled exception")
       move.error_message = str(err)
 

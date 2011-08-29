@@ -23,7 +23,7 @@
 
 """
 
-# pylint: disable-msg=W0232,R0201
+# pylint: disable=W0232,R0201
 
 # W0232, since we use these as singletons rather than object holding
 # data
@@ -58,7 +58,7 @@ class _Base:
     """
     raise NotImplementedError()
 
-  def Modify(self, name, changes): # pylint: disable-msg=W0613
+  def Modify(self, name, changes): # pylint: disable=W0613
     """Modifies an entity within the storage unit.
 
     @type name: string
@@ -84,7 +84,7 @@ class _Base:
     raise NotImplementedError()
 
 
-class FileStorage(_Base): # pylint: disable-msg=W0223
+class FileStorage(_Base): # pylint: disable=W0223
   """File storage unit.
 
   """
@@ -161,7 +161,7 @@ class FileStorage(_Base): # pylint: disable-msg=W0223
     return values
 
 
-class _LvmBase(_Base): # pylint: disable-msg=W0223
+class _LvmBase(_Base): # pylint: disable=W0223
   """Base class for LVM storage containers.
 
   @cvar LIST_FIELDS: list of tuples consisting of three elements: SF_*
@@ -256,7 +256,7 @@ class _LvmBase(_Base): # pylint: disable-msg=W0223
 
         if callable(mapper):
           # we got a function, call it with all the declared fields
-          val = mapper(*values) # pylint: disable-msg=W0142
+          val = mapper(*values) # pylint: disable=W0142
         elif len(values) == 1:
           assert mapper is None, ("Invalid mapper value (neither callable"
                                   " nor None) for one-element fields")
@@ -347,7 +347,7 @@ def _LvmPvGetAllocatable(attr):
     return False
 
 
-class LvmPvStorage(_LvmBase): # pylint: disable-msg=W0223
+class LvmPvStorage(_LvmBase): # pylint: disable=W0223
   """LVM Physical Volume storage unit.
 
   """

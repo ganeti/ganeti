@@ -24,7 +24,7 @@ The clusters have to run the same version of Ganeti!
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # C0103: Invalid name cluster-merge
 
 import logging
@@ -374,7 +374,7 @@ class Merger(object):
       utils.WriteFile(data.config_path, data=result.stdout)
 
   # R0201: Method could be a function
-  def _KillMasterDaemon(self): # pylint: disable-msg=R0201
+  def _KillMasterDaemon(self): # pylint: disable=R0201
     """Kills the local master daemon.
 
     @raise errors.CommandError: If unable to kill
@@ -574,7 +574,7 @@ class Merger(object):
                                       other_cluster.cluster_name)
 
   # R0201: Method could be a function
-  def _GetOsHypervisor(self, cluster, os_name, hyp): # pylint: disable-msg=R0201
+  def _GetOsHypervisor(self, cluster, os_name, hyp): # pylint: disable=R0201
     if os_name in cluster.os_hvp:
       return cluster.os_hvp[os_name].get(hyp, None)
     else:
@@ -586,7 +586,7 @@ class Merger(object):
 
     ConfigWriter.AddNodeGroup takes care of making sure there are no conflicts.
     """
-    # pylint: disable-msg=R0201
+    # pylint: disable=R0201
     logging.info("Node group conflict strategy: %s", self.groups)
 
     my_grps = my_config.GetAllNodeGroupsInfo().values()
@@ -626,15 +626,15 @@ class Merger(object):
           for node_name in other_grp.members[:]:
             node = other_config.GetNodeInfo(node_name)
             # Access to a protected member of a client class
-            # pylint: disable-msg=W0212
+            # pylint: disable=W0212
             other_config._UnlockedRemoveNodeFromGroup(node)
 
             # Access to a protected member of a client class
-            # pylint: disable-msg=W0212
+            # pylint: disable=W0212
             my_grp_uuid = my_config._UnlockedLookupNodeGroup(other_grp.name)
 
             # Access to a protected member of a client class
-            # pylint: disable-msg=W0212
+            # pylint: disable=W0212
             my_config._UnlockedAddNodeToGroup(node, my_grp_uuid)
             node.group = my_grp_uuid
           # Remove from list of groups to add
@@ -645,7 +645,7 @@ class Merger(object):
       my_config.AddNodeGroup(grp, _CLUSTERMERGE_ECID)
 
   # R0201: Method could be a function
-  def _StartMasterDaemon(self, no_vote=False): # pylint: disable-msg=R0201
+  def _StartMasterDaemon(self, no_vote=False): # pylint: disable=R0201
     """Starts the local master daemon.
 
     @param no_vote: Should the masterd started without voting? default: False
@@ -683,7 +683,7 @@ class Merger(object):
                                                 result.output))
 
   # R0201: Method could be a function
-  def _StartupAllInstances(self): # pylint: disable-msg=R0201
+  def _StartupAllInstances(self): # pylint: disable=R0201
     """Starts up all instances (locally).
 
     @raise errors.CommandError: If unable to start clusters
@@ -698,7 +698,7 @@ class Merger(object):
 
   # R0201: Method could be a function
   # TODO: make this overridable, for some verify errors
-  def _VerifyCluster(self): # pylint: disable-msg=R0201
+  def _VerifyCluster(self): # pylint: disable=R0201
     """Runs gnt-cluster verify to verify the health.
 
     @raise errors.ProgrammError: If cluster fails on verification

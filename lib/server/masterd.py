@@ -26,7 +26,7 @@ inheritance from parent classes requires it.
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # C0103: Invalid name ganeti-masterd
 
 import grp
@@ -66,7 +66,7 @@ EXIT_NODESETUP_ERROR = constants.EXIT_NODESETUP_ERROR
 
 
 class ClientRequestWorker(workerpool.BaseWorker):
-  # pylint: disable-msg=W0221
+  # pylint: disable=W0221
   def RunTask(self, server, message, client):
     """Process the request.
 
@@ -103,7 +103,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
       client.send_message(reply)
       # awake the main thread so that it can write out the data.
       server.awaker.signal()
-    except: # pylint: disable-msg=W0702
+    except: # pylint: disable=W0702
       logging.exception("Send error")
       client.close_log()
 
@@ -189,7 +189,7 @@ class ClientOps:
   def __init__(self, server):
     self.server = server
 
-  def handle_request(self, method, args): # pylint: disable-msg=R0911
+  def handle_request(self, method, args): # pylint: disable=R0911
     queue = self.server.context.jobqueue
 
     # TODO: Parameter validation
@@ -374,7 +374,7 @@ class GanetiContext(object):
   This class creates and holds common objects shared by all threads.
 
   """
-  # pylint: disable-msg=W0212
+  # pylint: disable=W0212
   # we do want to ensure a singleton here
   _instance = None
 
@@ -613,7 +613,7 @@ def PrepMasterd(options, _):
   return (mainloop, master)
 
 
-def ExecMasterd(options, args, prep_data): # pylint: disable-msg=W0613
+def ExecMasterd(options, args, prep_data): # pylint: disable=W0613
   """Main master daemon function, executed with the PID file held.
 
   """

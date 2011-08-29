@@ -51,13 +51,13 @@ class _ReopenableLogHandler(logging.handlers.BaseRotatingHandler):
 
     self._reopen = False
 
-  def shouldRollover(self, _): # pylint: disable-msg=C0103
+  def shouldRollover(self, _): # pylint: disable=C0103
     """Determine whether log file should be reopened.
 
     """
     return self._reopen or not self.stream
 
-  def doRollover(self): # pylint: disable-msg=C0103
+  def doRollover(self): # pylint: disable=C0103
     """Reopens the log file.
 
     """
@@ -88,7 +88,7 @@ def _LogErrorsToConsole(base):
   This needs to be in a function for unittesting.
 
   """
-  class wrapped(base): # pylint: disable-msg=C0103
+  class wrapped(base): # pylint: disable=C0103
     """Log handler that doesn't fallback to stderr.
 
     When an error occurs while writing on the logfile, logging.FileHandler
@@ -108,7 +108,7 @@ def _LogErrorsToConsole(base):
       assert not hasattr(self, "_console")
       self._console = console
 
-    def handleError(self, record): # pylint: disable-msg=C0103
+    def handleError(self, record): # pylint: disable=C0103
       """Handle errors which occur during an emit() call.
 
       Try to handle errors with FileHandler method, if it fails write to
@@ -117,13 +117,13 @@ def _LogErrorsToConsole(base):
       """
       try:
         base.handleError(record)
-      except Exception: # pylint: disable-msg=W0703
+      except Exception: # pylint: disable=W0703
         if self._console:
           try:
-            # Ignore warning about "self.format", pylint: disable-msg=E1101
+            # Ignore warning about "self.format", pylint: disable=E1101
             self._console.write("Cannot log message:\n%s\n" %
                                 self.format(record))
-          except Exception: # pylint: disable-msg=W0703
+          except Exception: # pylint: disable=W0703
             # Log handler tried everything it could, now just give up
             pass
 

@@ -31,7 +31,7 @@ much memory.
 
 """
 
-# pylint: disable-msg=R0904
+# pylint: disable=R0904
 # R0904: Too many public methods
 
 import os
@@ -374,7 +374,7 @@ class ConfigWriter:
         configuration errors
 
     """
-    # pylint: disable-msg=R0914
+    # pylint: disable=R0914
     result = []
     seen_macs = []
     ports = {}

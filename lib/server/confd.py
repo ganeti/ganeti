@@ -26,7 +26,7 @@ It uses UDP+HMAC for authentication with a global cluster key.
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # C0103: Invalid name ganeti-confd
 
 import os
@@ -35,7 +35,7 @@ import logging
 import time
 
 try:
-  # pylint: disable-msg=E0611
+  # pylint: disable=E0611
   from pyinotify import pyinotify
 except ImportError:
   import pyinotify
@@ -265,7 +265,7 @@ def PrepConfd(options, _):
   # TODO: clarify how the server and reloader variables work (they are
   # not used)
 
-  # pylint: disable-msg=W0612
+  # pylint: disable=W0612
   mainloop = daemon.Mainloop()
 
   # Asyncronous confd UDP server
@@ -285,7 +285,7 @@ def PrepConfd(options, _):
   return mainloop
 
 
-def ExecConfd(options, args, prep_data): # pylint: disable-msg=W0613
+def ExecConfd(options, args, prep_data): # pylint: disable=W0613
   """Main confd function, executed with PID file held
 
   """

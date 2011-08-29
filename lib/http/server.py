@@ -537,7 +537,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     """Called for each incoming connection
 
     """
-    # pylint: disable-msg=W0212
+    # pylint: disable=W0212
     (connection, client_addr) = self.socket.accept()
 
     self._CollectChildren(False)
@@ -560,7 +560,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
         utils.ResetTempfileModule()
 
         self.request_executor(self, connection, client_addr)
-      except Exception: # pylint: disable-msg=W0703
+      except Exception: # pylint: disable=W0703
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])
         os._exit(1)

@@ -28,7 +28,7 @@
 
 """
 
-# pylint: disable-msg=E1103
+# pylint: disable=E1103
 
 # E1103: %s %r has no %r member (but some types could not be
 # inferred), because the _TryOSFromDisk returns either (True, os_obj)
@@ -412,7 +412,7 @@ def LeaveCluster(modify_ssh_setup):
     utils.RemoveFile(constants.CONFD_HMAC_KEY)
     utils.RemoveFile(constants.RAPI_CERT_FILE)
     utils.RemoveFile(constants.NODED_CERT_FILE)
-  except: # pylint: disable-msg=W0702
+  except: # pylint: disable=W0702
     logging.exception("Error while removing cluster secrets")
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "stop", constants.CONFD])
@@ -1340,7 +1340,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
 
   """
   # TODO: remove the obsolete "size" argument
-  # pylint: disable-msg=W0613
+  # pylint: disable=W0613
   clist = []
   if disk.children:
     for child in disk.children:
@@ -1352,7 +1352,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
         # we need the children open in case the device itself has to
         # be assembled
         try:
-          # pylint: disable-msg=E1103
+          # pylint: disable=E1103
           crdev.Open()
         except errors.BlockDeviceError, err:
           _Fail("Can't make child '%s' read-write: %s", child, err)
@@ -1568,7 +1568,7 @@ def BlockdevAssemble(disk, owner, as_primary, idx):
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, bdev.BlockDev):
-      # pylint: disable-msg=E1103
+      # pylint: disable=E1103
       result = result.dev_path
       if as_primary:
         _SymlinkBlockDev(owner, result, idx)
@@ -3322,7 +3322,7 @@ def PowercycleNode(hypervisor_type):
   # ensure the child is running on ram
   try:
     utils.Mlockall()
-  except Exception: # pylint: disable-msg=W0703
+  except Exception: # pylint: disable=W0703
     pass
   time.sleep(5)
   hyper.PowercycleNode()
@@ -3347,7 +3347,7 @@ class HooksRunner(object):
       hooks_base_dir = constants.HOOKS_BASE_DIR
     # yeah, _BASE_DIR is not valid for attributes, we use it like a
     # constant
-    self._BASE_DIR = hooks_base_dir # pylint: disable-msg=C0103
+    self._BASE_DIR = hooks_base_dir # pylint: disable=C0103
 
   def RunHooks(self, hpath, phase, env):
     """Run the scripts in the hooks directory.

@@ -889,7 +889,7 @@ class DRBD8Status(object):
       self.est_time = None
 
 
-class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
+class BaseDRBD(BlockDev): # pylint: disable=W0223
   """Base DRBD class.
 
   This class contains a few bits of common functionality between the
@@ -1765,7 +1765,7 @@ class DRBD8(BaseDRBD):
 
     """
     # TODO: Rewrite to not use a for loop just because there is 'break'
-    # pylint: disable-msg=W0631
+    # pylint: disable=W0631
     net_data = (self._lhost, self._lport, self._rhost, self._rport)
     for minor in (self._aminor,):
       info = self._GetDevInfo(self._GetShowData(minor))

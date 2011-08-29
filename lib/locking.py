@@ -20,7 +20,7 @@
 
 """Module implementing the Ganeti locking code."""
 
-# pylint: disable-msg=W0212
+# pylint: disable=W0212
 
 # W0212 since e.g. LockSet methods use (a lot) the internals of
 # SharedLock
@@ -276,7 +276,7 @@ class SingleNotifyPipeCondition(_BaseCondition):
       if self._nwaiters == 0:
         self._Cleanup()
 
-  def notifyAll(self): # pylint: disable-msg=C0103
+  def notifyAll(self): # pylint: disable=C0103
     """Close the writing side of the pipe to notify all waiters.
 
     """
@@ -333,7 +333,7 @@ class PipeCondition(_BaseCondition):
       self._check_owned()
       self._waiters.remove(threading.currentThread())
 
-  def notifyAll(self): # pylint: disable-msg=C0103
+  def notifyAll(self): # pylint: disable=C0103
     """Notify all currently waiting threads.
 
     """
@@ -1507,7 +1507,7 @@ class GanetiLockManager:
     # the test cases.
     return compat.any((self._is_owned(l) for l in LEVELS[level + 1:]))
 
-  def _BGL_owned(self): # pylint: disable-msg=C0103
+  def _BGL_owned(self): # pylint: disable=C0103
     """Check if the current thread owns the BGL.
 
     Both an exclusive or a shared acquisition work.
@@ -1516,7 +1516,7 @@ class GanetiLockManager:
     return BGL in self.__keyring[LEVEL_CLUSTER]._list_owned()
 
   @staticmethod
-  def _contains_BGL(level, names): # pylint: disable-msg=C0103
+  def _contains_BGL(level, names): # pylint: disable=C0103
     """Check if the level contains the BGL.
 
     Check if acting on the given level and set of names will change
