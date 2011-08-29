@@ -77,13 +77,13 @@ that currently use OVF.
   OpenStack
 
 In our implementation of the OVF we plan to allow a choice between
-raw, cow and vmdk disk formats for both import and export. The
-justification is the following:
+raw, cow and vmdk disk formats for export. We will not limit the import
+formats in any way, but the used format has to be supported by qemu-img.
+The justification is the following:
 
 - Raw format is supported as it is the main format of disk images used
   in Ganeti, thus it is effortless to provide support for this format
-- Cow is used in Qemu, [TODO: ..why do we support it, again? That is,
-  if we do?]
+- Cow is used in Qemu
 - Vmdk is most commonly supported in virtualization software, it also
   has the advantage of producing relatively small disk images, which
   is extremely important advantage when moving instances.
@@ -119,11 +119,23 @@ The basic structure of Ganeti ``.ovf`` file is the following::
             <gnt:VersionId/>
             <gnt:AutoBalance/>
             <gnt:Tags></gnt:Tags>
-            <gnt:OSParameters></gnt:OSParameters>
+            <gnt:DiskTemplate</gnt:DiskTemplate>
+            <gnt:OperatingSystem>
+                <gnt:Name/>
+                <gnt:Parameters>
+                </gnt:Parameters>
+            </gnt:OperatingSystem>
             <gnt:Hypervisor>
-                <gnt:HypervisorParameters>
-                </gnt:HypervisorParameters>
+                <gnt:Name/>
+                <gnt:Parameters>
+                </gnt:Parameters>
             </gnt:Hypervisor>
+            <gnt:Network>
+            <gnt:Mode/>
+            <gnt:MACAddress/>
+            <gnt:Link/>
+            <gnt:IPAddress/>
+            </gnt:Network>
         </gnt:GanetiSection>
     </Envelope>
 
@@ -137,18 +149,19 @@ Whereas Ganeti's export info is of the following form, ``=>`` showing
 where will the data be in OVF format::
 
   [instance]
-      disk0_dump = filename     => References
-      disk0_ivname = name       => ignored
-      disk0_size = size_in_mb   => DiskSection
-      disk_count = number       => ignored
-      disk_template = disk_type => References
-      hypervisor = hyp-name     => gnt:HypervisorSection
+      disk0_dump = filename     => File in References
+      disk0_ivname = name       => generated automatically
+      disk0_size = size_in_mb   => calculated after conversion to RAW
+      disk_count = number       => generated automatically
+      disk_template = disk_type => gnt:DiskTemplate
+      hypervisor = hyp-name     => gnt:Name in gnt:Hypervisor
       name = inst-name          => Name in VirtualSystem
-      nic0_ip = ip              => Item in VirtualHardwareSection
-      nic0_link = link          => Item in VirtualHardwareSection
-      nic0_mac = mac            => Item in VirtualHardwareSection
-      nic0_mode = mode          => Network in NetworkSection
-      nic_count = number        => ignored
+      nic0_ip = ip              => gnt:IPAddress in gnt:Network
+      nic0_link = link          => gnt:Link in gnt:Network
+      nic0_mac = mac            => gnt:MACAddress in gnt:Network or
+                                   Item in VirtualHardwareSection
+      nic0_mode = mode          => gnt:Mode in gnt:Network
+      nic_count = number        => generated automatically
       tags                      => gnt:Tags
 
   [backend]
@@ -157,15 +170,16 @@ where will the data be in OVF format::
       vcpus = number            => Item in VirtualHardwareSection
 
   [export]
-      compression               => DiskSection
-      os                        => OperatingSystemSection
+      compression		=> ignored
+      os                        => gnt:Name in gnt:OperatingSystem
       source                    => ignored
       timestamp                 => ignored
-      version                   => gnt:VersionId
+      version                   => gnt:VersionId or
+                                   constants.EXPORT_VERSION
 
-  [os]                          => gnt:OSParameters
+  [os]                          => gnt:Parameters in gnt:OperatingSystem
 
-  [hypervisor]                  => gnt:HypervisorParameters
+  [hypervisor]                  => gnt:Parameters in gnt:Hypervisor
 
 In case of multiple networks/disks used by an instance, they will
 all be saved in appropriate sections as specified above for the first
@@ -178,10 +192,11 @@ e.g. VirtualBox, some fields required for Ganeti to properly handle
 import may be missing. Most often it will happen that such OVF package
 will lack the ``gnt:GanetiSection``.
 
-If this happens, the tool will simply ask for all the necessary
-information or otherwise you can specify all the missing parameters in
-the command line. For the latter, please refer to [TODO: reference to
-command line options]
+If this happens you can specify all the missing parameters in
+the command line. Please refer to `Command Line`_ section.
+
+In the `user's manual <TODO: link to manual>`_ we provide examples of
+options when converting from VirtualBox, VMWare and OpenSuseStudio.
 
 Export to other virtualization software
 ---------------------------------------
@@ -194,8 +209,8 @@ instance. If that is the case please do one of the two:
 cause to skip the non-standard information.
 
 2. Manually remove the gnt:GanetiSection from the ``.ovf`` file. You
-will also have to recompute sha1 sum (``sha1sum`` command) and update
-your ``.mf`` file with new value.
+will also have to recompute sha1 sum (``sha1sum`` command) of the .ovf
+file and update your ``.mf`` file with new value.
 
 .. note::
     Manual change option is only recommended when you have exported your
@@ -209,9 +224,8 @@ Planned limitations
 The limitations regarding import of the OVF instances generated
 outside Ganeti will be (in general) the same, as limitations for
 Ganeti itself.  The desired behavior in case of encountering
-unsupported element will be to ignore this element's tag and inform
-the user on console output, if possible - without interruption of the
-import process.
+unsupported element will be to ignore this element's tag without
+interruption of the import process.
 
 Package
 -------
@@ -241,34 +255,213 @@ not plan for now to support ``vdi`` or ``vhd``.
 
 We plan to support compression both for import and export - in tar.gz
 format. There is also a possibility to provide virtual disk in chunks
-of equal size.
+of equal size. The latter will not be implemented in the first version,
+but we do plan to support it eventually.
 
-When no ``ovf:format`` tag is provided during import, we assume that
-the disk is to be created on import and proceed accordingly.
+The ``ovf:format`` tag is not used in our case. Instead we use
+``qemu-img info``, which provides enough information for our purposes
+and is better standardized.
+
+Please note, that due to security reasons we require the disk image to
+be in the same directory as the ``.ovf`` description file.
+
+In order to completely ignore disk-related information in resulting
+config file, please use ``--disk-template=diskless`` option.
 
 Network
 -------
 
-There are no known limitations regarding network support.
+Ganeti provides support for routed and bridged mode for the networks.
+Since the standard OVF format does not contain any information regarding
+used network type, we add our own source of such information in
+``gnt:GanetiSection``. In case this additional information is not
+present, we perform a simple check - if network name specified in
+``NetworkSection`` contains words ``bridged`` or ``routed``, we consider
+this to be the network type. Otherwise option ``auto`` is chosen, in
+which case the clusters' default value for that field will be used when
+importing. This provides a safe fallback in case of NAT networks usage,
+which are commonly used e.g. in VirtualBox.
 
 Hardware
 --------
 
-TODO
+The supported hardware is limited to virtual CPUs, RAM memory, disks and
+networks. In particular, no USB support is currently provided, as Ganeti
+does not support them.
 
 Operating Systems
 -----------------
 
-TODO
+Support for different operating systems depends solely on their
+accessibility for Ganeti instances. List of installed OSes can be
+checked using ``gnt-os list`` command.
 
 Other
 -----
 
+The instance name (``gnt:VirtualSystem\gnt:Name``) has to be resolvable
+in order for successful import using ``gnt-backup import``.
+
+_`Command Line`
+===============
+
+The basic usage of the ovf tool is one of the following::
+
+    ovfconverter import filename
+    ovfconverter export filename
+
+This will result in a conversion based solely on the content of provided
+file. In case some information required to make the conversion is
+missing, an error will occur.
+
+If output directory should be different than the standard Ganeti export
+directory (usually ``/srv/ganeti/export``), option ``--output-dir``
+can be used.
+
+If name of resulting entity should be different than the one read from
+the file, use ``--name`` option.
+
+Import options
+--------------
+
+Import options that ``ovfconverter`` supports include options for
+backend, disks, hypervisor, networks and operating system. If an option
+is given, it overrides the values provided in the OVF file.
+
+Backend
+^^^^^^^
+``--backend=option=value`` can be used to set auto balance, number of
+vcpus and amount of RAM memory.
+
+Please note that when you do not provide full set of options, the
+omitted ones will be set to cluster defaults (``auto``).
+
+Disks
+^^^^^
+``--disk-template=diskless`` causes the converter to ignore all other
+disk option - both from .ovf file and the command line.
+
+``--disk=number:size=value`` causes to create disks instead of
+converting them from OVF package; numbers should start with ``0`` and be
+consecutive.
+
+Hypervisor
+^^^^^^^^^^
+``-H hypervisor_name`` and ``-H hypervisor_name:option=value``
+provide options for hypervisor.
+
+Network
+^^^^^^^
+``--no-nics`` option causes converter to ignore any network information
+provided.
+
+``--network=number:option=value`` sets network information according to
+provided data, ignoring the OVF package configuration.
+
+Operating System
+^^^^^^^^^^^^^^^^
+``--os-type=type`` sets os type accordingly, this option is **required**
+when importing from OVF instance not created from Ganeti config file.
+
+``--os-parameters`` provides options for chosen operating system.
+
+Tags
+^^^^
+``--tags=tag1,tag2,tag3`` is a means of providing tags specific for the
+instance.
+
+After the conversion is completed, you may use ``gnt-backup import`` to
+import the instance into Ganeti.
+
+Example::
+
+	ovfconverter file.ovf --disk-template=diskless \
+                        --os-type=lenny-image \
+                        --backend=vcpus=1,memory=512,auto_balance \
+                        -H:xen-pvm \
+                        --net=0:mode=bridged,link=xen-br0 \
+                        --name=xen.i1 \
+                        -v
+	[output]
+	gnt-backup import xen.i1
+	[output]
+	gnt-instance list
+
+Export options
+--------------
+Export options include choice of disk formats to convert the disk image
+(``--format``; default=``raw`` with no conversion) and compression of
+the disk into tar.gz format (``--compress``).
+User has also the choice of allowing to skip the Ganeti-specific part of
+the OVF document (``--external``).
+
+By default, exported OVF package will not be contained in the OVA
+package, but this may be changed by adding ``--ova`` option.
+
+[TODO: examples of usage]
+
+Please note that in order to create an OVF package, it is first
+required that you export your VM using ``gnt-backup export``.
+
+[TODO: complete example of export]
 
 Implementation details
 ======================
 
-TODO
+Disk conversion
+---------------
+
+Disk conversion for both import and export is done using external tool
+called qemu-tools. The same tool is used to determine the type of disks.
+
+
+Import
+------
+
+Import functionality is implemented using two classes - OVFReader and
+OVFImporter.
+
+OVFReader class is used to read the contents of the ``.ovf`` file. Every
+action that requires ``.ovf`` file access is done through that class.
+It also performs validation of manifest, if one is present.
+
+The result of reading some part of file is typically a dictionary or a
+string, containing options which correspond to the ones in
+``config.ini`` file. Only in case of disks, the resulting value is
+different - it is then a list of disk names. The reason for that is the
+need for conversion.
+
+OVFImporter class performs all the command-line-like tasks, such as
+unpacking OVA package, removing temporary directory, converting disk
+file to raw format or saving the configuration file on disk.
+It also contains a set of functions that read the options provided in
+the command line.
+
+
+Typical workflow for the import is very simple:
+
+- read the ``.ovf`` file info memory
+- verify manifest
+- parse each element of the configuration file: name, disk template,
+  hypervisor, operating system, backend parameters, network and disks
+
+    - check if option for the element can be read from command line
+      options
+
+		- if yes: parse options from command line
+
+		- otherwise: read the appropriate portion of ``.ovf`` file
+
+- save gathered information in ``config.ini`` file
+
+ToDo
+====
+
+This lists functionalities for import that are not yet implemented, but
+should be before the initial release:
+
+- Support for compressed disks
+
 
 .. vim: set textwidth=72 :
 .. Local Variables:
