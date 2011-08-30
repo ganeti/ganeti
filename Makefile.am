@@ -1191,7 +1191,7 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	rm -rf $(APIDOC_HS_DIR)/*
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Program
 	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
-	ln -s ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
+	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
 	set -e ; \
 	cd htools; \
 	if [ "$(HTOOLS_NOCURL)" ]; \
@@ -1243,7 +1243,7 @@ hs-coverage: $(haskell_tests)
 	@mkdir_p@ $(COVERAGE_HS_DIR)
 	hpc markup --destdir=$(COVERAGE_HS_DIR) htools/test $(HPCEXCL)
 	hpc report htools/test $(HPCEXCL)
-	ln -sf hpc_index.html $(COVERAGE_HS_DIR)/index.html
+	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html
 
 # Special "kind-of-QA" target for htools, needs special setup (all
 # tools compiled with -fhpc)
@@ -1251,7 +1251,7 @@ hs-coverage: $(haskell_tests)
 live-test: all
 	set -e ; \
 	cd htools; \
-	rm -f .hpc; ln -s ../.hpc .hpc; \
+	rm -f .hpc; $(LN_S) ../.hpc .hpc; \
 	rm -f *.tix *.mix; \
 	./live-test.sh; \
 	hpc sum --union $(HPCEXCL) $(addsuffix .tix,$(HS_PROGS:htools/%=%)) \
