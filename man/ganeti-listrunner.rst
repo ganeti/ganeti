@@ -72,6 +72,9 @@ The options that can be passed to the program are as follows:
 ``-A``
   Use an existing ssh-agent instead of password authentication.
 
+``--args``
+  Arguments to pass to executable (``-x``).
+
 
 EXIT STATUS
 -----------

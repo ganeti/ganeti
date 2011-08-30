@@ -346,7 +346,7 @@ def RunRemoteCommand(connection, command, logfile):
 
 
 def HostWorker(logdir, username, password, use_agent, hostname,
-               executable, command, filelist):
+               executable, exec_args, command, filelist):
   """Per-host worker.
 
   This function does not return - it's the main code of the childs,
@@ -359,6 +359,7 @@ def HostWorker(logdir, username, password, use_agent, hostname,
   @param use_agent: whether we should instead use an agent
   @param hostname: the hostname to connect to
   @param executable: the executable to upload, if not None
+  @param exec_args: Additional arguments for executable
   @param command: the command to run
   @param filelist: auxiliary files to upload
 
@@ -375,7 +376,8 @@ def HostWorker(logdir, username, password, use_agent, hostname,
         print "  %s: uploading files" % hostname
         upload_dir = UploadFiles(connection, executable,
                                  filelist, logfile)
-        command = "cd %s && ./%s" % (upload_dir, os.path.basename(executable))
+        command = ("cd %s && ./%s %s" %
+                   (upload_dir, os.path.basename(executable), exec_args))
       print "  %s: executing remote command" % hostname
       cmd_result = RunRemoteCommand(connection, command, logfile)
       if cmd_result is True:
@@ -411,7 +413,7 @@ def HostWorker(logdir, username, password, use_agent, hostname,
 
 
 def LaunchWorker(child_pids, logdir, username, password, use_agent, hostname,
-                 executable, command, filelist):
+                 executable, exec_args, command, filelist):
   """Launch the per-host worker.
 
   Arguments are the same as for HostWorker, except for child_pids,
@@ -425,7 +427,7 @@ def LaunchWorker(child_pids, logdir, username, password, use_agent, hostname,
     child_pids[pid] = hostname
   else:
     HostWorker(logdir, username, password, use_agent, hostname,
-               executable, command, filelist)
+               executable, exec_args, command, filelist)
 
 
 def ParseOptions():
@@ -452,7 +454,7 @@ def ParseOptions():
                     help="comma-separated list of hosts or single hostname",)
   parser.add_option("-a", dest="auxfiles", action="append", default=[],
                     help="optional auxiliary file to upload"
-                    " (can be given multiple times",
+                    " (can be given multiple times)",
                     metavar="FILE")
   parser.add_option("-c", dest="command", default=None,
                     help="shell command to run on remote host(s)")
@@ -466,6 +468,8 @@ def ParseOptions():
                     " using an agent)")
   parser.add_option("-A", dest="use_agent", default=False, action="store_true",
                     help="instead of password, use keys from an SSH agent")
+  parser.add_option("--args", dest="exec_args", default=None,
+                    help="Arguments to be passed to executable (-x)")
 
   opts, args = parser.parse_args()
 
@@ -473,6 +477,8 @@ def ParseOptions():
     parser.error("Options -x and -c conflict with each other")
   if not (opts.executable or opts.command):
     parser.error("One of -x and -c must be given")
+  if opts.command and opts.exec_args:
+    parser.error("Can't specify arguments when using custom command")
   if not opts.logdir:
     parser.error("Option -l is required")
   if opts.hostfile and opts.hostlist:
@@ -483,14 +489,15 @@ def ParseOptions():
     parser.error("This program doesn't take any arguments, passed in: %s" %
                  ", ".join(args))
 
-  return (opts.logdir, opts.executable, opts.hostfile, opts.hostlist,
+  return (opts.logdir, opts.executable, opts.exec_args,
+          opts.hostfile, opts.hostlist,
           opts.command, opts.use_agent, opts.auxfiles, opts.username,
           opts.password, opts.batch_size)
 
 
 def main():
   """main."""
-  (logdir, executable, hostfile, hostlist,
+  (logdir, executable, exec_args, hostfile, hostlist,
    command, use_agent, auxfiles, username,
    password, batch_size) = ParseOptions()
 
@@ -535,7 +542,7 @@ def main():
   child_pids = {}
   for hostname in batch:
     LaunchWorker(child_pids, logdir, username, password, use_agent, hostname,
-                 executable, command, filelist)
+                 executable, exec_args, command, filelist)
 
   while child_pids:
     pid, status = os.wait()
@@ -547,7 +554,7 @@ def main():
       failures += 1
     if hosts:
       LaunchWorker(child_pids, logdir, username, password, use_agent,
-                   hosts.pop(0), executable, command, filelist)
+                   hosts.pop(0), executable, exec_args, command, filelist)
 
   print
   print "All done, %s successful and %s failed hosts" % (successes, failures)
