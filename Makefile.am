@@ -24,6 +24,7 @@ CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
 CHECK_MAN = $(top_srcdir)/autotools/check-man
 CHECK_VERSION = $(top_srcdir)/autotools/check-version
 CHECK_NEWS = $(top_srcdir)/autotools/check-news
+CHECK_IMPORTS = $(top_srcdir)/autotools/check-imports
 DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
 CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
@@ -540,6 +541,7 @@ EXTRA_DIST = \
 	pylintrc \
 	autotools/build-bash-completion \
 	autotools/check-python-code \
+	autotools/check-imports \
 	autotools/check-man \
 	autotools/check-news \
 	autotools/check-tar \
@@ -752,6 +754,7 @@ srclink_files = \
 
 check_python_code = \
 	$(BUILD_BASH_COMPLETION) \
+	$(CHECK_IMPORTS) \
 	$(DOCPP) \
 	$(all_python_code)
 
@@ -762,8 +765,13 @@ lint_python_code = \
 	$(dist_tools_PYTHON) \
 	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION) \
+	$(CHECK_IMPORTS) \
 	$(DOCPP) \
 	$(PYTHON_BOOTSTRAP)
+
+standalone_python_modules = \
+	lib/rapi/client.py \
+	tools/ganeti-listrunner
 
 test/daemon-util_unittest.bash: daemons/daemon-util
 
@@ -1048,10 +1056,12 @@ check-dirs: $(BUILT_SOURCES)
 		if test -n "$$error"; then exit 1; else exit 0; fi; \
 	}
 
-check-local: check-dirs
+.PHONY: check-local
+check-local: check-dirs $(BUILT_SOURCES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) $(CURDIR) $(standalone_python_modules)
 	expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
 		echo "Incorrect version in README, expected $$expver"; \

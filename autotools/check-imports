@@ -1,0 +1,92 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2011 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Script to check module imports.
+
+"""
+
+# pylint: disable=C0103
+# C0103: Invalid name
+
+import sys
+
+# All modules imported after this line are removed from the global list before
+# importing a module to be checked
+_STANDARD_MODULES = sys.modules.keys()
+
+import os.path
+
+from ganeti import build
+
+
+def main():
+  args = sys.argv[1:]
+
+  # Get references to functions used later on
+  load_module = build.LoadModule
+  abspath = os.path.abspath
+  commonprefix = os.path.commonprefix
+  normpath = os.path.normpath
+
+  script_path = abspath(__file__)
+  srcdir = normpath(abspath(args.pop(0)))
+
+  assert "ganeti" in sys.modules
+
+  for filename in args:
+    # Reset global state
+    for name in sys.modules.keys():
+      if name not in _STANDARD_MODULES:
+        sys.modules.pop(name, None)
+
+    assert "ganeti" not in sys.modules
+
+    # Load module (this might import other modules)
+    module = load_module(filename)
+
+    result = []
+
+    for (name, checkmod) in sorted(sys.modules.items()):
+      if checkmod is None or checkmod == module:
+        continue
+
+      try:
+        checkmodpath = getattr(checkmod, "__file__")
+      except AttributeError:
+        # Built-in module
+        pass
+      else:
+        abscheckmodpath = os.path.abspath(checkmodpath)
+
+        if abscheckmodpath == script_path:
+          # Ignore check script
+          continue
+
+        if commonprefix([abscheckmodpath, srcdir]) == srcdir:
+          result.append(name)
+
+    if result:
+      raise Exception("Module '%s' has illegal imports: %s" %
+                      (filename, ", ".join(result)))
+
+
+if __name__ == "__main__":
+  main()

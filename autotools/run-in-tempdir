@@ -10,6 +10,7 @@ trap "rm -rf $tmpdir" EXIT
 
 cp -r autotools daemons scripts lib tools test $tmpdir
 mv $tmpdir/lib $tmpdir/ganeti
+ln -T -s $tmpdir/ganeti $tmpdir/lib
 mkdir -p $tmpdir/htools
 if [ -e htools/test ]; then
   cp -p htools/test $tmpdir/htools/
