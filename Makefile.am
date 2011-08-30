@@ -1061,7 +1061,7 @@ check-local: check-dirs $(BUILT_SOURCES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
-	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) $(CURDIR) $(standalone_python_modules)
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	expver=$(VERSION_MAJOR).$(VERSION_MINOR); \
 	if test "`head -n 1 $(top_srcdir)/README`" != "Ganeti $$expver"; then \
 		echo "Incorrect version in README, expected $$expver"; \
