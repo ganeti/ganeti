@@ -2875,12 +2875,12 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     if not utils.IsNormAbsPath(filename):
       _Fail("Path '%s' is not normalized or absolute", filename)
 
-    directory = os.path.normpath(os.path.dirname(filename))
+    real_filename = os.path.realpath(filename)
+    directory = os.path.dirname(real_filename)
 
-    if (os.path.commonprefix([constants.EXPORT_DIR, directory]) !=
-        constants.EXPORT_DIR):
-      _Fail("File '%s' is not under exports directory '%s'",
-            filename, constants.EXPORT_DIR)
+    if utils.IsBelowDir(constants.EXPORT_DIR, real_filename):
+      _Fail("File '%s' is not under exports directory '%s': %s",
+            filename, constants.EXPORT_DIR, real_filename)
 
     # Create directory
     utils.Makedirs(directory, mode=0750)
