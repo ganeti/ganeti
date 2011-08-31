@@ -26,7 +26,7 @@
 # W0201 since most LU attributes are defined in CheckPrereq or similar
 # functions
 
-# C0302: since we have waaaay to many lines in this module
+# C0302: since we have waaaay too many lines in this module
 
 import os
 import os.path
@@ -5838,6 +5838,40 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
                                  errors.ECODE_NORES)
 
 
+def _CheckNodesPhysicalCPUs(lu, nodenames, requested, hypervisor_name):
+  """Checks if nodes have enough physical CPUs
+
+  This function checks if all given nodes have the needed number of
+  physical CPUs. In case any node has less CPUs or we cannot get the
+  information from the node, this function raises an OpPrereqError
+  exception.
+
+  @type lu: C{LogicalUnit}
+  @param lu: a logical unit from which we get configuration data
+  @type nodenames: C{list}
+  @param nodenames: the list of node names to check
+  @type requested: C{int}
+  @param requested: the minimum acceptable number of physical CPUs
+  @raise errors.OpPrereqError: if the node doesn't have enough CPUs,
+      or we cannot check the node
+
+  """
+  nodeinfo = lu.rpc.call_node_info(nodenames, None, hypervisor_name)
+  for node in nodenames:
+    info = nodeinfo[node]
+    info.Raise("Cannot get current information from node %s" % node,
+               prereq=True, ecode=errors.ECODE_ENVIRON)
+    num_cpus = info.payload.get("cpu_total", None)
+    if not isinstance(num_cpus, int):
+      raise errors.OpPrereqError("Can't compute the number of physical CPUs"
+                                 " on node %s, result was '%s'" %
+                                 (node, num_cpus), errors.ECODE_ENVIRON)
+    if requested > num_cpus:
+      raise errors.OpPrereqError("Node %s has %s physical CPUs, but %s are "
+                                 "required" % (node, num_cpus, requested),
+                                 errors.ECODE_NORES)
+
+
 class LUInstanceStartup(LogicalUnit):
   """Starts an instance.
 
@@ -10782,9 +10816,11 @@ class LUInstanceSetParams(LogicalUnit):
       # local check
       hypervisor.GetHypervisor(hv_type).CheckParameterSyntax(hv_new)
       _CheckHVParams(self, nodelist, instance.hypervisor, hv_new)
-      self.hv_new = hv_new # the new actual values
+      self.hv_proposed = self.hv_new = hv_new # the new actual values
       self.hv_inst = i_hvdict # the new dict (without defaults)
     else:
+      self.hv_proposed = cluster.SimpleFillHV(instance.hypervisor, instance.os,
+                                              instance.hvparams)
       self.hv_new = self.hv_inst = {}
 
     # beparams processing
@@ -10793,11 +10829,39 @@ class LUInstanceSetParams(LogicalUnit):
                                    use_none=True)
       utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
       be_new = cluster.SimpleFillBE(i_bedict)
-      self.be_new = be_new # the new actual values
+      self.be_proposed = self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)
     else:
       self.be_new = self.be_inst = {}
+      self.be_proposed = cluster.SimpleFillBE(instance.beparams)
     be_old = cluster.FillBE(instance)
+
+    # CPU param validation -- checking every time a paramtere is
+    # changed to cover all cases where either CPU mask or vcpus have
+    # changed
+    if (constants.BE_VCPUS in self.be_proposed and
+        constants.HV_CPU_MASK in self.hv_proposed):
+      cpu_list = \
+        utils.ParseMultiCpuMask(self.hv_proposed[constants.HV_CPU_MASK])
+      # Verify mask is consistent with number of vCPUs. Can skip this
+      # test if only 1 entry in the CPU mask, which means same mask
+      # is applied to all vCPUs.
+      if (len(cpu_list) > 1 and
+          len(cpu_list) != self.be_proposed[constants.BE_VCPUS]):
+        raise errors.OpPrereqError("Number of vCPUs [%d] does not match the"
+                                   " CPU mask [%s]" %
+                                   (self.be_proposed[constants.BE_VCPUS],
+                                    self.hv_proposed[constants.HV_CPU_MASK]),
+                                   errors.ECODE_INVAL)
+
+      # Only perform this test if a new CPU mask is given
+      if constants.HV_CPU_MASK in self.hv_new:
+        # Calculate the largest CPU number requested
+        max_requested_cpu = max(map(max, cpu_list))
+        # Check that all of the instance's nodes have enough physical CPUs to
+        # satisfy the requested CPU mask
+        _CheckNodesPhysicalCPUs(self, instance.all_nodes,
+                                max_requested_cpu + 1, instance.hypervisor)
 
     # osparams processing
     if self.op.osparams:
