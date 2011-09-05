@@ -502,10 +502,9 @@ def PathJoin(*args):
   if not IsNormAbsPath(result):
     raise ValueError("Invalid parameters to PathJoin: '%s'" % str(args))
   # check that we're still under the original prefix
-  prefix = os.path.commonprefix([root, result])
-  if prefix != root:
+  if not IsBelowDir(root, result):
     raise ValueError("Error: path joining resulted in different prefix"
-                     " (%s != %s)" % (prefix, root))
+                     " (%s != %s)" % (result, root))
   return result
 
 

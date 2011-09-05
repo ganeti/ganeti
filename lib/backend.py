@@ -668,7 +668,7 @@ def GetBlockDevSizes(devices):
   blockdevs = {}
 
   for devpath in devices:
-    if os.path.commonprefix([DEV_PREFIX, devpath]) != DEV_PREFIX:
+    if not utils.IsBelowDir(DEV_PREFIX, devpath):
       continue
 
     try:
@@ -2507,8 +2507,8 @@ def _TransformFileStorageDir(fs_dir):
   fs_dir = os.path.normpath(fs_dir)
   base_fstore = cfg.GetFileStorageDir()
   base_shared = cfg.GetSharedFileStorageDir()
-  if ((os.path.commonprefix([fs_dir, base_fstore]) != base_fstore) and
-      (os.path.commonprefix([fs_dir, base_shared]) != base_shared)):
+  if not (utils.IsBelowDir(base_fstore, fs_dir) or
+          utils.IsBelowDir(base_shared, fs_dir)):
     _Fail("File storage directory '%s' is not under base file"
           " storage directory '%s' or shared storage directory '%s'",
           fs_dir, base_fstore, base_shared)
