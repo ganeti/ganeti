@@ -668,7 +668,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
 
   """
   if new_rapi_cert and rapi_cert_filename:
-    ToStderr("Only one of the --new-rapi-certficate and --rapi-certificate"
+    ToStderr("Only one of the --new-rapi-certificate and --rapi-certificate"
              " options can be specified at the same time.")
     return 1
 
