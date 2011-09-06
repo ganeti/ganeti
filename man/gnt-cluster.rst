@@ -520,6 +520,8 @@ RENEW-CRYPTO
 | **renew-crypto** [-f]
 | [--new-cluster-certificate] [--new-confd-hmac-key]
 | [--new-rapi-certificate] [--rapi-certificate *rapi-cert*]
+| [--new-spice-certificate | --spice-certificate *spice-cert*
+| -- spice-ca-certificate *spice-ca-cert*]
 | [--new-cluster-domain-secret] [--cluster-domain-secret *filename*]
 
 This command will stop all Ganeti daemons in the cluster and start
@@ -532,6 +534,12 @@ To generate a new self-signed RAPI certificate (used by
 ganeti-rapi(8)) specify ``--new-rapi-certificate``. If you want to
 use your own certificate, e.g. one signed by a certificate
 authority (CA), pass its filename to ``--rapi-certificate``.
+
+To generate a new self-signed SPICE certificate, used by SPICE
+connections to the KVM hypervisor, specify the
+``--new-spice-certificate`` option. If you want to provide a
+certificate, pass its filename to ``--spice-certificate`` and pass the
+signing CA certificate to ``--spice-ca-certificate``.
 
 ``--new-cluster-domain-secret`` generates a new, random cluster
 domain secret. ``--cluster-domain-secret`` reads the secret from a
