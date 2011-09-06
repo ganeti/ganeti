@@ -1582,7 +1582,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
     spice_ip_version = hvparams[constants.HV_KVM_SPICE_IP_VERSION]
-    spice_password_file = hvparams[constants.HV_KVM_SPICE_PASSWORD_FILE]
     if spice_bind:
       if spice_ip_version != constants.IFACE_NO_IP_VERSION_SPECIFIED:
         # if an IP version is specified, the spice_bind parameter must be an
@@ -1599,16 +1598,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                        " the specified IP version is %s" %
                                        (spice_bind, spice_ip_version))
     else:
-      if spice_ip_version:
-        raise errors.HypervisorError("spice: the %s option is useless"
-                                     " without %s" %
-                                     (constants.HV_KVM_SPICE_IP_VERSION,
-                                      constants.HV_KVM_SPICE_BIND))
-      if spice_password_file:
-        raise errors.HypervisorError("spice: the %s option is useless"
-                                     " without %s" %
-                                     (constants.HV_KVM_SPICE_PASSWORD_FILE,
-                                      constants.HV_KVM_SPICE_BIND))
+      # All the other SPICE parameters depend on spice_bind being set. Raise an
+      # error if any of them is set without it.
+      spice_additional_params = frozenset([
+        constants.HV_KVM_SPICE_IP_VERSION,
+        constants.HV_KVM_SPICE_PASSWORD_FILE,
+        ])
+      for param in spice_additional_params:
+        if hvparams[param]:
+          raise errors.HypervisorError("spice: %s requires %s to be set" %
+                                       (param, constants.HV_KVM_SPICE_BIND))
 
   @classmethod
   def ValidateParameters(cls, hvparams):
