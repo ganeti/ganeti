@@ -196,6 +196,8 @@ def _BuildUploadFileList():
     constants.SSH_KNOWN_HOSTS_FILE,
     constants.VNC_PASSWORD_FILE,
     constants.RAPI_CERT_FILE,
+    constants.SPICE_CERT_FILE,
+    constants.SPICE_CACERT_FILE,
     constants.RAPI_USERS_FILE,
     constants.CONFD_HMAC_KEY,
     constants.CLUSTER_DOMAIN_SECRET_FILE,
@@ -411,6 +413,8 @@ def LeaveCluster(modify_ssh_setup):
   try:
     utils.RemoveFile(constants.CONFD_HMAC_KEY)
     utils.RemoveFile(constants.RAPI_CERT_FILE)
+    utils.RemoveFile(constants.SPICE_CERT_FILE)
+    utils.RemoveFile(constants.SPICE_CACERT_FILE)
     utils.RemoveFile(constants.NODED_CERT_FILE)
   except: # pylint: disable=W0702
     logging.exception("Error while removing cluster secrets")

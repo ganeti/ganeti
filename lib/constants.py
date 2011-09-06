@@ -139,6 +139,8 @@ CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 NODED_CERT_FILE = DATA_DIR + "/server.pem"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
 CONFD_HMAC_KEY = DATA_DIR + "/hmac.key"
+SPICE_CERT_FILE = DATA_DIR + "/spice.pem"
+SPICE_CACERT_FILE = DATA_DIR + "/spice-ca.pem"
 CLUSTER_DOMAIN_SECRET_FILE = DATA_DIR + "/cluster-domain-secret"
 INSTANCE_STATUS_FILE = RUN_GANETI_DIR + "/instance-status"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
@@ -172,7 +174,12 @@ WATCHER_GROUP_INSTANCE_STATUS_FILE = DATA_DIR + "/watcher.%s.instance-status"
 #: File containing Unix timestamp until which watcher should be paused
 WATCHER_PAUSEFILE = DATA_DIR + "/watcher.pause"
 
-ALL_CERT_FILES = frozenset([NODED_CERT_FILE, RAPI_CERT_FILE])
+ALL_CERT_FILES = frozenset([
+  NODED_CERT_FILE,
+  RAPI_CERT_FILE,
+  SPICE_CERT_FILE,
+  SPICE_CACERT_FILE,
+  ])
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
@@ -679,6 +686,7 @@ HV_KVM_SPICE_JPEG_IMG_COMPR = "spice_jpeg_wan_compression"
 HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR = "spice_zlib_glz_wan_compression"
 HV_KVM_SPICE_STREAMING_VIDEO_DETECTION = "spice_streaming_video"
 HV_KVM_SPICE_AUDIO_COMPR = "spice_playback_compression"
+HV_KVM_SPICE_USE_TLS = "spice_use_tls"
 HV_ACPI = "acpi"
 HV_PAE = "pae"
 HV_USE_BOOTLOADER = "use_bootloader"
@@ -730,6 +738,7 @@ HVS_PARAMETER_TYPES = {
   HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR: VTYPE_STRING,
   HV_KVM_SPICE_STREAMING_VIDEO_DETECTION: VTYPE_STRING,
   HV_KVM_SPICE_AUDIO_COMPR: VTYPE_BOOL,
+  HV_KVM_SPICE_USE_TLS: VTYPE_BOOL,
   HV_ACPI: VTYPE_BOOL,
   HV_PAE: VTYPE_BOOL,
   HV_USE_BOOTLOADER: VTYPE_BOOL,
@@ -1355,6 +1364,7 @@ HVC_DEFAULTS = {
     HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR: "",
     HV_KVM_SPICE_STREAMING_VIDEO_DETECTION: "",
     HV_KVM_SPICE_AUDIO_COMPR: True,
+    HV_KVM_SPICE_USE_TLS: False,
     HV_KVM_FLOPPY_IMAGE_PATH: "",
     HV_CDROM_IMAGE_PATH: "",
     HV_KVM_CDROM2_IMAGE_PATH: "",

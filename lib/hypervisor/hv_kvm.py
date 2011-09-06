@@ -432,6 +432,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(False,
         constants.HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS),
     constants.HV_KVM_SPICE_AUDIO_COMPR: hv_base.NO_CHECK,
+    constants.HV_KVM_SPICE_USE_TLS: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
@@ -1030,7 +1031,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # ValidateParameters checked it.
         spice_address = spice_bind
 
-      spice_arg = "addr=%s,port=%s" % (spice_address, instance.network_port)
+      spice_arg = "addr=%s" % spice_address
+      if hvp[constants.HV_KVM_SPICE_USE_TLS]:
+        spice_arg = "%s,tls-port=%s,x509-cacert-file=%s" % (spice_arg,
+            instance.network_port, constants.SPICE_CACERT_FILE)
+        spice_arg = "%s,x509-key-file=%s,x509-cert-file=%s" % (spice_arg,
+            constants.SPICE_CERT_FILE, constants.SPICE_CERT_FILE)
+      else:
+        spice_arg = "%s,port=%s" % (spice_arg, instance.network_port)
+
       if not hvp[constants.HV_KVM_SPICE_PASSWORD_FILE]:
         spice_arg = "%s,disable-ticketing" % spice_arg
 
@@ -1651,6 +1660,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         constants.HV_KVM_SPICE_JPEG_IMG_COMPR,
         constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR,
         constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION,
+        constants.HV_KVM_SPICE_USE_TLS,
         ])
       for param in spice_additional_params:
         if hvparams[param]:

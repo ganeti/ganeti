@@ -209,6 +209,10 @@ def GetPaths():
      getent.masterd_gid, False),
     (constants.RAPI_CERT_FILE, FILE, 0440, getent.rapi_uid,
      getent.masterd_gid, False),
+    (constants.SPICE_CERT_FILE, FILE, 0440, getent.noded_uid,
+     getent.masterd_gid, False),
+    (constants.SPICE_CACERT_FILE, FILE, 0440, getent.noded_uid,
+     getent.masterd_gid, False),
     (constants.NODED_CERT_FILE, FILE, 0440, getent.masterd_uid,
      getent.masterd_gid, False),
     ]
