@@ -2878,7 +2878,7 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     real_filename = os.path.realpath(filename)
     directory = os.path.dirname(real_filename)
 
-    if utils.IsBelowDir(constants.EXPORT_DIR, real_filename):
+    if not utils.IsBelowDir(constants.EXPORT_DIR, real_filename):
       _Fail("File '%s' is not under exports directory '%s': %s",
             filename, constants.EXPORT_DIR, real_filename)
 
