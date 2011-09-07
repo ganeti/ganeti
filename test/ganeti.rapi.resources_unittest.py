@@ -69,19 +69,5 @@ class MapperTests(unittest.TestCase):
     self._TestFailingUri("/instances/does/not/exist")
 
 
-class R_RootTests(unittest.TestCase):
-  """Testing for R_root class."""
-
-  def setUp(self):
-    self.root = connector.R_root(None, None, None)
-
-  def testGet(self):
-    expected = [
-      {'name': '2', 'uri': '/2'},
-      {'name': 'version', 'uri': '/version'},
-      ]
-    self.assertEquals(self.root.GET(), expected)
-
-
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

@@ -239,30 +239,8 @@ Resources
 ``/``
 +++++
 
-The root resource.
-
-It supports the following commands: ``GET``.
-
-``GET``
-~~~~~~~
-
-Shows the list of mapped resources.
-
-Returns: a dictionary with 'name' and 'uri' keys for each of them.
-
-``/2``
-++++++
-
-The ``/2`` resource, the root of the version 2 API.
-
-It supports the following commands: ``GET``.
-
-``GET``
-~~~~~~~
-
-Show the list of mapped resources.
-
-Returns: a dictionary with ``name`` and ``uri`` keys for each of them.
+The root resource. Has no function, but for legacy reasons the ``GET``
+method is supported.
 
 ``/2/info``
 +++++++++++

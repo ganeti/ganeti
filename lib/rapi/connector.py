@@ -33,7 +33,6 @@ from ganeti import constants
 from ganeti import http
 from ganeti import utils
 
-from ganeti.rapi import baserlib
 from ganeti.rapi import rlib2
 
 
@@ -89,66 +88,6 @@ class Mapper:
     return (handler, groups, args)
 
 
-class R_root(baserlib.R_Generic):
-  """/ resource.
-
-  """
-  _ROOT_PATTERN = re.compile("^R_([a-zA-Z0-9]+)$")
-
-  @classmethod
-  def GET(cls):
-    """Show the list of mapped resources.
-
-    @return: a dictionary with 'name' and 'uri' keys for each of them.
-
-    """
-    rootlist = []
-    for handler in CONNECTOR.values():
-      m = cls._ROOT_PATTERN.match(handler.__name__)
-      if m:
-        name = m.group(1)
-        if name != "root":
-          rootlist.append(name)
-
-    return baserlib.BuildUriList(rootlist, "/%s")
-
-
-def _getResources(id_):
-  """Return a list of resources underneath given id.
-
-  This is to generalize querying of version resources lists.
-
-  @return: a list of resources names.
-
-  """
-  r_pattern = re.compile("^R_%s_([a-zA-Z0-9]+)$" % id_)
-
-  rlist = []
-  for handler in CONNECTOR.values():
-    m = r_pattern.match(handler.__name__)
-    if m:
-      name = m.group(1)
-      rlist.append(name)
-
-  return rlist
-
-
-class R_2(baserlib.R_Generic):
-  """/2 resource.
-
-  This is the root of the version 2 API.
-
-  """
-  @staticmethod
-  def GET():
-    """Show the list of mapped resources.
-
-    @return: a dictionary with 'name' and 'uri' keys for each of them.
-
-    """
-    return baserlib.BuildUriList(_getResources("2"), "/2/%s")
-
-
 def GetHandlers(node_name_pattern, instance_name_pattern,
                 group_name_pattern, job_id_pattern, disk_pattern,
                 query_res_pattern):
@@ -160,11 +99,9 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
   # is more flexible and future-compatible than versioning the whole remote
   # API.
   return {
-    "/": R_root,
+    "/": rlib2.R_root,
 
     "/version": rlib2.R_version,
-
-    "/2": R_2,
 
     "/2/nodes": rlib2.R_2_nodes,
     re.compile(r"^/2/nodes/(%s)$" % node_name_pattern):

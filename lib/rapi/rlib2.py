@@ -148,6 +148,18 @@ ALL_FEATURES = frozenset([
 _WFJC_TIMEOUT = 10
 
 
+class R_root(baserlib.R_Generic):
+  """/ resource.
+
+  """
+  @staticmethod
+  def GET():
+    """Supported for legacy reasons.
+
+    """
+    return None
+
+
 class R_version(baserlib.R_Generic):
   """/version resource.
 
