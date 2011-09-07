@@ -1026,6 +1026,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])
 
+      # Tell kvm to use the paravirtualized graphic card, optimized for SPICE
+      kvm_cmd.extend(["-vga", "qxl"])
+
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-localtime"])
 
