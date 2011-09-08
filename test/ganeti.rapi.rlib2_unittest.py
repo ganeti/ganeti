@@ -272,6 +272,31 @@ class TestNodeEvacuate(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestGroupAssignNodes(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_groups_name_assign_nodes, ["grp-a"], {
+      "dry-run": ["1"],
+      "force": ["1"],
+      }, {
+      "nodes": ["n2", "n3"],
+      }, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpGroupAssignNodes))
+    self.assertEqual(op.group_name, "grp-a")
+    self.assertEqual(op.nodes, ["n2", "n3"])
+    self.assertTrue(op.dry_run)
+    self.assertTrue(op.force)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)

@@ -665,23 +665,22 @@ class R_2_groups_name_rename(baserlib.OpcodeResource):
       })
 
 
-class R_2_groups_name_assign_nodes(baserlib.ResourceBase):
+class R_2_groups_name_assign_nodes(baserlib.OpcodeResource):
   """/2/groups/[group_name]/assign-nodes resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpGroupAssignNodes
+
+  def GetPutOpInput(self):
     """Assigns nodes to a group.
 
-    @return: a job id
-
     """
-    op = baserlib.FillOpcode(opcodes.OpGroupAssignNodes, self.request_body, {
+    assert len(self.items) == 1
+    return (self.request_body, {
       "group_name": self.items[0],
       "dry_run": self.dryRun(),
       "force": self.useForce(),
       })
-
-    return self.SubmitJob([op])
 
 
 def _ParseInstanceCreateRequestVersion1(data, dry_run):
