@@ -846,39 +846,23 @@ class R_2_instances_name_startup(baserlib.OpcodeResource):
       })
 
 
-def _ParseShutdownInstanceRequest(name, data, dry_run, no_remember):
-  """Parses a request for an instance shutdown.
-
-  @rtype: L{opcodes.OpInstanceShutdown}
-  @return: Instance shutdown opcode
-
-  """
-  return baserlib.FillOpcode(opcodes.OpInstanceShutdown, data, {
-    "instance_name": name,
-    "dry_run": dry_run,
-    "no_remember": no_remember,
-    })
-
-
-class R_2_instances_name_shutdown(baserlib.ResourceBase):
+class R_2_instances_name_shutdown(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/shutdown resource.
 
   Implements an instance shutdown.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpInstanceShutdown
+
+  def GetPutOpInput(self):
     """Shutdown an instance.
 
-    @return: a job id
-
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-
-    no_remember = bool(self._checkIntVariable("no_remember"))
-    op = _ParseShutdownInstanceRequest(self.items[0], self.request_body,
-                                       bool(self.dryRun()), no_remember)
-
-    return self.SubmitJob([op])
+    return (self.request_body, {
+      "instance_name": self.items[0],
+      "no_remember": bool(self._checkIntVariable("no_remember")),
+      "dry_run": self.dryRun(),
+      })
 
 
 def _ParseInstanceReinstallRequest(name, data):
