@@ -1080,22 +1080,20 @@ class R_2_instances_name_modify(baserlib.OpcodeResource):
       })
 
 
-class R_2_instances_name_disk_grow(baserlib.ResourceBase):
+class R_2_instances_name_disk_grow(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/disk/[disk_index]/grow resource.
 
   """
-  def POST(self):
+  POST_OPCODE = opcodes.OpInstanceGrowDisk
+
+  def GetPostOpInput(self):
     """Increases the size of an instance disk.
 
-    @return: a job id
-
     """
-    op = baserlib.FillOpcode(opcodes.OpInstanceGrowDisk, self.request_body, {
+    return (self.request_body, {
       "instance_name": self.items[0],
       "disk": int(self.items[1]),
       })
-
-    return self.SubmitJob([op])
 
 
 class R_2_instances_name_console(baserlib.ResourceBase):

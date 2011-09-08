@@ -466,6 +466,31 @@ class TestInstanceFailover(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestInstanceDiskGrow(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    data = {
+      "amount": 1024,
+      }
+    handler = _CreateHandler(rlib2.R_2_instances_name_disk_grow,
+                             ["inst10742", "3"], {}, data, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceGrowDisk))
+    self.assertEqual(op.instance_name, "inst10742")
+    self.assertEqual(op.disk, 3)
+    self.assertEqual(op.amount, 1024)
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(hasattr(op, "force"))
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestBackupPrepare(unittest.TestCase):
   def test(self):
     clfactory = _FakeClientFactory(_FakeClient)
