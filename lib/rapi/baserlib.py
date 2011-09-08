@@ -156,10 +156,13 @@ def FillOpcode(opcls, body, static, rename=None):
   @return: Opcode object
 
   """
-  CheckType(body, dict, "Body contents")
+  if body is None:
+    params = {}
+  else:
+    CheckType(body, dict, "Body contents")
 
-  # Make copy to be modified
-  params = body.copy()
+    # Make copy to be modified
+    params = body.copy()
 
   if rename:
     for old, new in rename.items():
