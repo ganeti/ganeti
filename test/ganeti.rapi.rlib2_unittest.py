@@ -804,12 +804,9 @@ class TestInstanceMigrate(testutils.GanetiTestCase):
 
 
 class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    self.Parse = rlib2._ParseRenameInstanceRequest
-
   def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "instij0eeph7"
 
     for new_name in ["ua0aiyoo", "fai3ongi"]:
@@ -821,14 +818,28 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
             "name_check": name_check,
             }
 
-          op = self.Parse(name, data)
-          self.assert_(isinstance(op, opcodes.OpInstanceRename))
+          handler = _CreateHandler(rlib2.R_2_instances_name_rename, [name],
+                                   {}, data, clfactory)
+          job_id = handler.PUT()
+
+          cl = clfactory.GetNextClient()
+          self.assertRaises(IndexError, clfactory.GetNextClient)
+
+          (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+          self.assertEqual(job_id, exp_job_id)
+          self.assertTrue(isinstance(op, opcodes.OpInstanceRename))
           self.assertEqual(op.instance_name, name)
           self.assertEqual(op.new_name, new_name)
           self.assertEqual(op.ip_check, ip_check)
           self.assertEqual(op.name_check, name_check)
+          self.assertFalse(hasattr(op, "dry_run"))
+          self.assertFalse(hasattr(op, "force"))
+
+          self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDefaults(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "instahchie3t"
 
     for new_name in ["thag9mek", "quees7oh"]:
@@ -836,12 +847,24 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
         "new_name": new_name,
         }
 
-      op = self.Parse(name, data)
-      self.assert_(isinstance(op, opcodes.OpInstanceRename))
+      handler = _CreateHandler(rlib2.R_2_instances_name_rename, [name],
+                               {}, data, clfactory)
+      job_id = handler.PUT()
+
+      cl = clfactory.GetNextClient()
+      self.assertRaises(IndexError, clfactory.GetNextClient)
+
+      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+      self.assertEqual(job_id, exp_job_id)
+      self.assertTrue(isinstance(op, opcodes.OpInstanceRename))
       self.assertEqual(op.instance_name, name)
       self.assertEqual(op.new_name, new_name)
       self.assertFalse(hasattr(op, "ip_check"))
       self.assertFalse(hasattr(op, "name_check"))
+      self.assertFalse(hasattr(op, "dry_run"))
+      self.assertFalse(hasattr(op, "force"))
+
+      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
 class TestParseModifyInstanceRequest(testutils.GanetiTestCase):

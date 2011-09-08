@@ -1050,33 +1050,19 @@ class R_2_instances_name_failover(baserlib.OpcodeResource):
       })
 
 
-def _ParseRenameInstanceRequest(name, data):
-  """Parses a request for renaming an instance.
-
-  @rtype: L{opcodes.OpInstanceRename}
-  @return: Instance rename opcode
-
-  """
-  return baserlib.FillOpcode(opcodes.OpInstanceRename, data, {
-    "instance_name": name,
-    })
-
-
-class R_2_instances_name_rename(baserlib.ResourceBase):
+class R_2_instances_name_rename(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/rename resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpInstanceRename
+
+  def GetPutOpInput(self):
     """Changes the name of an instance.
 
-    @return: a job id
-
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-
-    op = _ParseRenameInstanceRequest(self.items[0], self.request_body)
-
-    return self.SubmitJob([op])
+    return (self.request_body, {
+      "instance_name": self.items[0],
+      })
 
 
 def _ParseModifyInstanceRequest(name, data):
