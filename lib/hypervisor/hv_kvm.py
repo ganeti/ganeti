@@ -419,6 +419,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
        "the SPICE IP version should be 4 or 6",
        None, None),
     constants.HV_KVM_SPICE_PASSWORD_FILE: hv_base.OPT_FILE_CHECK,
+    constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_LOSSLESS_IMG_COMPR_OPTIONS),
+    constants.HV_KVM_SPICE_JPEG_IMG_COMPR:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
+    constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
+    constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS),
+    constants.HV_KVM_SPICE_AUDIO_COMPR: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
@@ -780,6 +793,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
+    # pylint: disable=R0914
     _, v_major, v_min, _ = self._GetKVMVersion()
 
     pidfile = self._InstancePidFile(instance.name)
@@ -1022,6 +1036,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       if spice_ip_version:
         spice_arg = "%s,ipv%s" % (spice_arg, spice_ip_version)
+
+      # Image compression options
+      img_lossless = hvp[constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR]
+      img_jpeg = hvp[constants.HV_KVM_SPICE_JPEG_IMG_COMPR]
+      img_zlib_glz = hvp[constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR]
+      if img_lossless:
+        spice_arg = "%s,image-compression=%s" % (spice_arg, img_lossless)
+      if img_jpeg:
+        spice_arg = "%s,jpeg-wan-compression=%s" % (spice_arg, img_jpeg)
+      if img_zlib_glz:
+        spice_arg = "%s,zlib-glz-wan-compression=%s" % (spice_arg, img_zlib_glz)
+
+      # Video stream detection
+      video_streaming = hvp[constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION]
+      if video_streaming:
+        spice_arg = "%s,streaming-video=%s" % (spice_arg, video_streaming)
+
+      # Audio compression, by default in qemu-kvm it is on
+      if not hvp[constants.HV_KVM_SPICE_AUDIO_COMPR]:
+        spice_arg = "%s,playback-compression=off" % spice_arg
 
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])
@@ -1613,6 +1647,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       spice_additional_params = frozenset([
         constants.HV_KVM_SPICE_IP_VERSION,
         constants.HV_KVM_SPICE_PASSWORD_FILE,
+        constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR,
+        constants.HV_KVM_SPICE_JPEG_IMG_COMPR,
+        constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR,
+        constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION,
         ])
       for param in spice_additional_params:
         if hvparams[param]:
