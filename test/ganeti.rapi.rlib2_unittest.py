@@ -249,6 +249,29 @@ class TestNodeMigrate(unittest.TestCase):
       self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestNodeEvacuate(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_nodes_name_evacuate, ["node92"], {
+      "dry-run": ["1"],
+      }, {
+      "mode": constants.IALLOCATOR_NEVAC_SEC,
+      }, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpNodeEvacuate))
+    self.assertEqual(op.node_name, "node92")
+    self.assertEqual(op.mode, constants.IALLOCATOR_NEVAC_SEC)
+    self.assertTrue(op.dry_run)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)

@@ -441,20 +441,20 @@ class R_2_nodes_name_role(baserlib.ResourceBase):
     return self.SubmitJob([op])
 
 
-class R_2_nodes_name_evacuate(baserlib.ResourceBase):
+class R_2_nodes_name_evacuate(baserlib.OpcodeResource):
   """/2/nodes/[node_name]/evacuate resource.
 
   """
-  def POST(self):
+  POST_OPCODE = opcodes.OpNodeEvacuate
+
+  def GetPostOpInput(self):
     """Evacuate all instances off a node.
 
     """
-    op = baserlib.FillOpcode(opcodes.OpNodeEvacuate, self.request_body, {
+    return (self.request_body, {
       "node_name": self.items[0],
       "dry_run": self.dryRun(),
       })
-
-    return self.SubmitJob([op])
 
 
 class R_2_nodes_name_migrate(baserlib.OpcodeResource):
