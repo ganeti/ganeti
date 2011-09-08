@@ -297,6 +297,27 @@ class TestGroupAssignNodes(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestInstanceDelete(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_instances_name, ["inst30965"], {
+      "dry-run": ["1"],
+      }, {}, clfactory)
+    job_id = handler.DELETE()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceRemove))
+    self.assertEqual(op.instance_name, "inst30965")
+    self.assertTrue(op.dry_run)
+    self.assertFalse(op.ignore_failures)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)

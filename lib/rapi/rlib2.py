@@ -750,10 +750,12 @@ class R_2_instances(baserlib.ResourceBase):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name(baserlib.ResourceBase):
+class R_2_instances_name(baserlib.OpcodeResource):
   """/2/instances/[instance_name] resource.
 
   """
+  DELETE_OPCODE = opcodes.OpInstanceRemove
+
   def GET(self):
     """Send information about an instance.
 
@@ -768,14 +770,16 @@ class R_2_instances_name(baserlib.ResourceBase):
 
     return baserlib.MapFields(I_FIELDS, result[0])
 
-  def DELETE(self):
+  def GetDeleteOpInput(self):
     """Delete an instance.
 
     """
-    op = opcodes.OpInstanceRemove(instance_name=self.items[0],
-                                  ignore_failures=False,
-                                  dry_run=bool(self.dryRun()))
-    return self.SubmitJob([op])
+    assert len(self.items) == 1
+    return ({}, {
+      "instance_name": self.items[0],
+      "ignore_failures": False,
+      "dry_run": self.dryRun(),
+      })
 
 
 class R_2_instances_name_info(baserlib.ResourceBase):
