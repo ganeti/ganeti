@@ -752,11 +752,10 @@ class TestParseInstanceReplaceDisksRequest(unittest.TestCase):
                       })
 
 
-class TestParseModifyGroupRequest(unittest.TestCase):
-  def setUp(self):
-    self.Parse = rlib2._ParseModifyGroupRequest
-
+class TestGroupModify(unittest.TestCase):
   def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "group6002"
 
     for policy in constants.VALID_ALLOC_POLICIES:
@@ -764,26 +763,54 @@ class TestParseModifyGroupRequest(unittest.TestCase):
         "alloc_policy": policy,
         }
 
-      op = self.Parse(name, data)
-      self.assert_(isinstance(op, opcodes.OpGroupSetParams))
+      handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, data,
+                               clfactory)
+      job_id = handler.PUT()
+
+      cl = clfactory.GetNextClient()
+      self.assertRaises(IndexError, clfactory.GetNextClient)
+
+      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+      self.assertEqual(job_id, exp_job_id)
+
+      self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
       self.assertEqual(op.group_name, name)
       self.assertEqual(op.alloc_policy, policy)
+      self.assertFalse(hasattr(op, "dry_run"))
+      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testUnknownPolicy(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     data = {
       "alloc_policy": "_unknown_policy_",
       }
 
-    self.assertRaises(http.HttpBadRequest, self.Parse, "name", data)
+    handler = _CreateHandler(rlib2.R_2_groups_name_modify, ["xyz"], {}, data,
+                             clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+    self.assertRaises(IndexError, clfactory.GetNextClient)
 
   def testDefaults(self):
-    name = "group6679"
-    data = {}
+    clfactory = _FakeClientFactory(_FakeClient)
 
-    op = self.Parse(name, data)
-    self.assert_(isinstance(op, opcodes.OpGroupSetParams))
+    name = "group6679"
+
+    handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, {},
+                             clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
     self.assertEqual(op.group_name, name)
     self.assertFalse(hasattr(op, "alloc_policy"))
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
 class TestGroupAdd(unittest.TestCase):

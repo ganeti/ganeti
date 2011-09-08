@@ -632,33 +632,20 @@ class R_2_groups_name(baserlib.ResourceBase):
     return self.SubmitJob([op])
 
 
-def _ParseModifyGroupRequest(name, data):
-  """Parses a request for modifying a node group.
-
-  @rtype: L{opcodes.OpGroupSetParams}
-  @return: Group modify opcode
-
-  """
-  return baserlib.FillOpcode(opcodes.OpGroupSetParams, data, {
-    "group_name": name,
-    })
-
-
-class R_2_groups_name_modify(baserlib.ResourceBase):
+class R_2_groups_name_modify(baserlib.OpcodeResource):
   """/2/groups/[group_name]/modify resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpGroupSetParams
+
+  def GetPutOpInput(self):
     """Changes some parameters of node group.
 
-    @return: a job id
-
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-
-    op = _ParseModifyGroupRequest(self.items[0], self.request_body)
-
-    return self.SubmitJob([op])
+    assert self.items
+    return (self.request_body, {
+      "group_name": self.items[0],
+      })
 
 
 def _ParseRenameGroupRequest(name, data, dry_run):
