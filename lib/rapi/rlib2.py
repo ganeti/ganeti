@@ -953,23 +953,22 @@ class R_2_instances_name_replace_disks(baserlib.OpcodeResource):
     return (data, static)
 
 
-class R_2_instances_name_activate_disks(baserlib.ResourceBase):
+class R_2_instances_name_activate_disks(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/activate-disks resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpInstanceActivateDisks
+
+  def GetPutOpInput(self):
     """Activate disks for an instance.
 
     The URI might contain ignore_size to ignore current recorded size.
 
     """
-    instance_name = self.items[0]
-    ignore_size = bool(self._checkIntVariable("ignore_size"))
-
-    op = opcodes.OpInstanceActivateDisks(instance_name=instance_name,
-                                         ignore_size=ignore_size)
-
-    return self.SubmitJob([op])
+    return ({}, {
+      "instance_name": self.items[0],
+      "ignore_size": bool(self._checkIntVariable("ignore_size")),
+      })
 
 
 class R_2_instances_name_deactivate_disks(baserlib.ResourceBase):
