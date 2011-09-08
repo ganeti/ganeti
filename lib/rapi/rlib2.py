@@ -1380,8 +1380,33 @@ class _R_Tags(baserlib.R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
-    # pylint: disable-msg=W0212
-    return baserlib._Tags_GET(self.TAG_LEVEL, name=self.name)
+    kind = self.TAG_LEVEL
+
+    if kind in (constants.TAG_INSTANCE,
+                constants.TAG_NODEGROUP,
+                constants.TAG_NODE):
+      if not self.name:
+        raise http.HttpBadRequest("Missing name on tag request")
+
+      cl = baserlib.GetClient()
+      if kind == constants.TAG_INSTANCE:
+        fn = cl.QueryInstances
+      elif kind == constants.TAG_NODEGROUP:
+        fn = cl.QueryGroups
+      else:
+        fn = cl.QueryNodes
+      result = fn(names=[self.name], fields=["tags"], use_locking=False)
+      if not result or not result[0]:
+        raise http.HttpBadGateway("Invalid response from tag query")
+      tags = result[0][0]
+
+    elif kind == constants.TAG_CLUSTER:
+      assert not self.name
+      # TODO: Use query API?
+      ssc = ssconf.SimpleStore()
+      tags = ssc.GetClusterTags()
+
+    return list(tags)
 
   def PUT(self):
     """Add a set of tags.
@@ -1394,9 +1419,9 @@ class _R_Tags(baserlib.R_Generic):
     if "tag" not in self.queryargs:
       raise http.HttpBadRequest("Please specify tag(s) to add using the"
                                 " the 'tag' parameter")
-    return baserlib._Tags_PUT(self.TAG_LEVEL,
-                              self.queryargs["tag"], name=self.name,
-                              dry_run=bool(self.dryRun()))
+    op = opcodes.OpTagsSet(kind=self.TAG_LEVEL, name=self.name,
+                           tags=self.queryargs["tag"], dry_run=self.dryRun())
+    return baserlib.SubmitJob([op])
 
   def DELETE(self):
     """Delete a tag.
@@ -1411,10 +1436,9 @@ class _R_Tags(baserlib.R_Generic):
       # no we not gonna delete all tags
       raise http.HttpBadRequest("Cannot delete all tags - please specify"
                                 " tag(s) using the 'tag' parameter")
-    return baserlib._Tags_DELETE(self.TAG_LEVEL,
-                                 self.queryargs["tag"],
-                                 name=self.name,
-                                 dry_run=bool(self.dryRun()))
+    op = opcodes.OpTagsDel(kind=self.TAG_LEVEL, name=self.name,
+                           tags=self.queryargs["tag"], dry_run=self.dryRun())
+    return baserlib.SubmitJob([op])
 
 
 class R_2_instances_name_tags(_R_Tags):

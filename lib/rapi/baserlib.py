@@ -32,9 +32,6 @@ import logging
 from ganeti import luxi
 from ganeti import rapi
 from ganeti import http
-from ganeti import ssconf
-from ganeti import constants
-from ganeti import opcodes
 from ganeti import errors
 
 
@@ -89,49 +86,6 @@ def MapFields(names, data):
   if len(names) != len(data):
     raise AttributeError("Names and data must have the same length")
   return dict(zip(names, data))
-
-
-def _Tags_GET(kind, name):
-  """Helper function to retrieve tags.
-
-  """
-  if kind in (constants.TAG_INSTANCE,
-              constants.TAG_NODEGROUP,
-              constants.TAG_NODE):
-    if not name:
-      raise http.HttpBadRequest("Missing name on tag request")
-    cl = GetClient()
-    if kind == constants.TAG_INSTANCE:
-      fn = cl.QueryInstances
-    elif kind == constants.TAG_NODEGROUP:
-      fn = cl.QueryGroups
-    else:
-      fn = cl.QueryNodes
-    result = fn(names=[name], fields=["tags"], use_locking=False)
-    if not result or not result[0]:
-      raise http.HttpBadGateway("Invalid response from tag query")
-    tags = result[0][0]
-  elif kind == constants.TAG_CLUSTER:
-    ssc = ssconf.SimpleStore()
-    tags = ssc.GetClusterTags()
-
-  return list(tags)
-
-
-def _Tags_PUT(kind, tags, name, dry_run):
-  """Helper function to set tags.
-
-  """
-  return SubmitJob([opcodes.OpTagsSet(kind=kind, name=name,
-                                      tags=tags, dry_run=dry_run)])
-
-
-def _Tags_DELETE(kind, tags, name, dry_run):
-  """Helper function to delete tags.
-
-  """
-  return SubmitJob([opcodes.OpTagsDel(kind=kind, name=name,
-                                      tags=tags, dry_run=dry_run)])
 
 
 def MapBulkFields(itemslist, fields):
