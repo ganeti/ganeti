@@ -1035,23 +1035,19 @@ class R_2_instances_name_migrate(baserlib.OpcodeResource):
       })
 
 
-class R_2_instances_name_failover(baserlib.ResourceBase):
+class R_2_instances_name_failover(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/failover resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpInstanceFailover
+
+  def GetPutOpInput(self):
     """Does a failover of an instance.
 
-    @return: a job id
-
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-
-    op = baserlib.FillOpcode(opcodes.OpInstanceFailover, self.request_body, {
+    return (self.request_body, {
       "instance_name": self.items[0],
       })
-
-    return self.SubmitJob([op])
 
 
 def _ParseRenameInstanceRequest(name, data):
