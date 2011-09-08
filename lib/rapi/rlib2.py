@@ -229,15 +229,11 @@ class R_2_os(baserlib.ResourceBase):
     return os_names
 
 
-class R_2_redist_config(baserlib.ResourceBase):
+class R_2_redist_config(baserlib.OpcodeResource):
   """/2/redistribute-config resource.
 
   """
-  def PUT(self):
-    """Redistribute configuration to all nodes.
-
-    """
-    return self.SubmitJob([opcodes.OpClusterRedistConf()])
+  PUT_OPCODE = opcodes.OpClusterRedistConf
 
 
 class R_2_cluster_modify(baserlib.OpcodeResource):
