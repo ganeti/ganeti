@@ -971,19 +971,19 @@ class R_2_instances_name_activate_disks(baserlib.OpcodeResource):
       })
 
 
-class R_2_instances_name_deactivate_disks(baserlib.ResourceBase):
+class R_2_instances_name_deactivate_disks(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/deactivate-disks resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpInstanceDeactivateDisks
+
+  def GetPutOpInput(self):
     """Deactivate disks for an instance.
 
     """
-    instance_name = self.items[0]
-
-    op = opcodes.OpInstanceDeactivateDisks(instance_name=instance_name)
-
-    return self.SubmitJob([op])
+    return ({}, {
+      "instance_name": self.items[0],
+      })
 
 
 class R_2_instances_name_prepare_export(baserlib.ResourceBase):
