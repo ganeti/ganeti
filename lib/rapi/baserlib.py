@@ -33,10 +33,19 @@ from ganeti import luxi
 from ganeti import rapi
 from ganeti import http
 from ganeti import errors
+from ganeti import compat
 
 
 # Dummy value to detect unchanged parameters
 _DEFAULT = object()
+
+#: Supported HTTP methods
+_SUPPORTED_METHODS = frozenset([
+  http.HTTP_DELETE,
+  http.HTTP_GET,
+  http.HTTP_POST,
+  http.HTTP_PUT,
+  ])
 
 
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
@@ -391,3 +400,89 @@ class ResourceBase(object):
     except luxi.TimeoutError, err:
       raise http.HttpGatewayTimeout("Timeout while talking to the master"
                                     " daemon: %s" % err)
+
+
+class _MetaOpcodeResource(type):
+  """Meta class for RAPI resources.
+
+  """
+  _ATTRS = [(method, "%s_OPCODE" % method, "%s_RENAME" % method,
+             "Get%sOpInput" % method.capitalize())
+            for method in _SUPPORTED_METHODS]
+
+  def __call__(mcs, *args, **kwargs):
+    """Instantiates class and patches it for use by the RAPI daemon.
+
+    """
+    # Access to private attributes of a client class, pylint: disable=W0212
+    obj = type.__call__(mcs, *args, **kwargs)
+
+    for (method, op_attr, rename_attr, fn_attr) in mcs._ATTRS:
+      try:
+        opcode = getattr(obj, op_attr)
+      except AttributeError:
+        # If the "*_OPCODE" attribute isn't set, "*_RENAME" or "Get*OpInput"
+        # shouldn't either
+        assert not hasattr(obj, rename_attr)
+        assert not hasattr(obj, fn_attr)
+        continue
+
+      assert not hasattr(obj, method)
+
+      # Generate handler method on handler instance
+      setattr(obj, method,
+              compat.partial(obj._GenericHandler, opcode,
+                             getattr(obj, rename_attr, None),
+                             getattr(obj, fn_attr, obj._GetDefaultData)))
+
+    return obj
+
+
+class OpcodeResource(ResourceBase):
+  """Base class for opcode-based RAPI resources.
+
+  Instances of this class automatically gain handler functions through
+  L{_MetaOpcodeResource} for any method for which a C{$METHOD$_OPCODE} variable
+  is defined at class level. Subclasses can define a C{Get$Method$OpInput}
+  method to do their own opcode input processing (e.g. for static values). The
+  C{$METHOD$_RENAME} variable defines which values are renamed (see
+  L{FillOpcode}).
+
+  @cvar GET_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
+    automatically generate a GET handler submitting the opcode
+  @cvar GET_RENAME: Set this to rename parameters in the GET handler (see
+    L{FillOpcode})
+  @ivar GetGetOpInput: Define this to override the default method for
+    getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
+
+  @cvar PUT_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
+    automatically generate a PUT handler submitting the opcode
+  @cvar PUT_RENAME: Set this to rename parameters in the PUT handler (see
+    L{FillOpcode})
+  @ivar GetPutOpInput: Define this to override the default method for
+    getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
+
+  @cvar POST_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
+    automatically generate a POST handler submitting the opcode
+  @cvar POST_RENAME: Set this to rename parameters in the DELETE handler (see
+    L{FillOpcode})
+  @ivar GetPostOpInput: Define this to override the default method for
+    getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
+
+  @cvar DELETE_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
+    automatically generate a GET handler submitting the opcode
+  @cvar DELETE_RENAME: Set this to rename parameters in the DELETE handler (see
+    L{FillOpcode})
+  @ivar GetDeleteOpInput: Define this to override the default method for
+    getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
+
+  """
+  __metaclass__ = _MetaOpcodeResource
+
+  def _GetDefaultData(self):
+    return (self.request_body, None)
+
+  def _GenericHandler(self, opcode, rename, fn):
+    (body, static) = fn()
+    op = FillOpcode(opcode, body, static, rename=rename)
+    return self.SubmitJob([op])

@@ -97,5 +97,37 @@ class TestFillOpcode(unittest.TestCase):
                       rename={ "data": "test", })
 
 
+class TestOpcodeResource(unittest.TestCase):
+  def testDoubleDefinition(self):
+    class _TClass(baserlib.OpcodeResource):
+      GET_OPCODE = opcodes.OpTestDelay
+      def GET(self): pass
+
+    self.assertRaises(AssertionError, _TClass, None, None, None)
+
+  def testNoOpCode(self):
+    class _TClass(baserlib.OpcodeResource):
+      POST_OPCODE = None
+      def POST(self): pass
+
+    self.assertRaises(AssertionError, _TClass, None, None, None)
+
+  def testIllegalRename(self):
+    class _TClass(baserlib.OpcodeResource):
+      PUT_RENAME = None
+      def PUT(self): pass
+
+    self.assertRaises(AssertionError, _TClass, None, None, None)
+
+  def testEmpty(self):
+    class _Empty(baserlib.OpcodeResource):
+      pass
+
+    obj = _Empty(None, None, None)
+    for attr in ["GetPostOpInput", "GetPutOpInput", "GetGetOpInput",
+                 "GetDeleteOpInput"]:
+      self.assertFalse(hasattr(obj, attr))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
