@@ -986,23 +986,20 @@ class R_2_instances_name_deactivate_disks(baserlib.OpcodeResource):
       })
 
 
-class R_2_instances_name_prepare_export(baserlib.ResourceBase):
+class R_2_instances_name_prepare_export(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/prepare-export resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpBackupPrepare
+
+  def GetPutOpInput(self):
     """Prepares an export for an instance.
 
-    @return: a job id
-
     """
-    instance_name = self.items[0]
-    mode = self._checkStringVariable("mode")
-
-    op = opcodes.OpBackupPrepare(instance_name=instance_name,
-                                 mode=mode)
-
-    return self.SubmitJob([op])
+    return ({}, {
+      "instance_name": self.items[0],
+      "mode": self._checkStringVariable("mode"),
+      })
 
 
 def _ParseExportInstanceRequest(name, data):

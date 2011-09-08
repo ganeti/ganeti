@@ -446,6 +446,30 @@ class TestInstanceDeactivateDisks(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestBackupPrepare(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    queryargs = {
+      "mode": constants.EXPORT_MODE_REMOTE,
+      }
+    handler = _CreateHandler(rlib2.R_2_instances_name_prepare_export,
+                             ["inst17925"], queryargs, {}, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpBackupPrepare))
+    self.assertEqual(op.instance_name, "inst17925")
+    self.assertEqual(op.mode, constants.EXPORT_MODE_REMOTE)
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(hasattr(op, "force"))
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
