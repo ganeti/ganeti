@@ -571,29 +571,24 @@ class R_2_nodes_name_storage_repair(baserlib.ResourceBase):
     return self.SubmitJob([op])
 
 
-def _ParseCreateGroupRequest(data, dry_run):
-  """Parses a request for creating a node group.
-
-  @rtype: L{opcodes.OpGroupAdd}
-  @return: Group creation opcode
-
-  """
-  override = {
-    "dry_run": dry_run,
-    }
-
-  rename = {
-    "name": "group_name",
-    }
-
-  return baserlib.FillOpcode(opcodes.OpGroupAdd, data, override,
-                             rename=rename)
-
-
-class R_2_groups(baserlib.ResourceBase):
+class R_2_groups(baserlib.OpcodeResource):
   """/2/groups resource.
 
   """
+  POST_OPCODE = opcodes.OpGroupAdd
+  POST_RENAME = {
+    "name": "group_name",
+    }
+
+  def GetPostOpInput(self):
+    """Create a node group.
+
+    """
+    assert not self.items
+    return (self.request_body, {
+      "dry_run": self.dryRun(),
+      })
+
   def GET(self):
     """Returns a list of all node groups.
 
@@ -608,16 +603,6 @@ class R_2_groups(baserlib.ResourceBase):
       groupnames = [row[0] for row in data]
       return baserlib.BuildUriList(groupnames, "/2/groups/%s",
                                    uri_fields=("name", "uri"))
-
-  def POST(self):
-    """Create a node group.
-
-    @return: a job id
-
-    """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-    op = _ParseCreateGroupRequest(self.request_body, self.dryRun())
-    return self.SubmitJob([op])
 
 
 class R_2_groups_name(baserlib.ResourceBase):

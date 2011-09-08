@@ -786,12 +786,10 @@ class TestParseModifyGroupRequest(unittest.TestCase):
     self.assertFalse(hasattr(op, "alloc_policy"))
 
 
-class TestParseCreateGroupRequest(unittest.TestCase):
-  def setUp(self):
-    self.Parse = rlib2._ParseCreateGroupRequest
-
+class TestGroupAdd(unittest.TestCase):
   def test(self):
     name = "group3618"
+    clfactory = _FakeClientFactory(_FakeClient)
 
     for policy in constants.VALID_ALLOC_POLICIES:
       data = {
@@ -799,40 +797,78 @@ class TestParseCreateGroupRequest(unittest.TestCase):
         "alloc_policy": policy,
         }
 
-      op = self.Parse(data, False)
-      self.assert_(isinstance(op, opcodes.OpGroupAdd))
+      handler = _CreateHandler(rlib2.R_2_groups, [], {}, data,
+                               clfactory)
+      job_id = handler.POST()
+
+      cl = clfactory.GetNextClient()
+      self.assertRaises(IndexError, clfactory.GetNextClient)
+
+      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+      self.assertEqual(job_id, exp_job_id)
+
+      self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
       self.assertEqual(op.group_name, name)
       self.assertEqual(op.alloc_policy, policy)
       self.assertFalse(op.dry_run)
+      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testUnknownPolicy(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     data = {
       "alloc_policy": "_unknown_policy_",
       }
 
-    self.assertRaises(http.HttpBadRequest, self.Parse, "name", data)
+    handler = _CreateHandler(rlib2.R_2_groups, [], {}, data, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.POST)
+    self.assertRaises(IndexError, clfactory.GetNextClient)
 
   def testDefaults(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "group15395"
     data = {
       "group_name": name,
       }
 
-    op = self.Parse(data, True)
-    self.assert_(isinstance(op, opcodes.OpGroupAdd))
+    handler = _CreateHandler(rlib2.R_2_groups, [], {}, data, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
     self.assertEqual(op.group_name, name)
     self.assertFalse(hasattr(op, "alloc_policy"))
-    self.assertTrue(op.dry_run)
+    self.assertFalse(op.dry_run)
 
   def testLegacyName(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "group29852"
     data = {
       "name": name,
       }
 
-    op = self.Parse(data, True)
-    self.assert_(isinstance(op, opcodes.OpGroupAdd))
+    handler = _CreateHandler(rlib2.R_2_groups, [], {
+      "dry-run": ["1"],
+      }, data, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
     self.assertEqual(op.group_name, name)
+    self.assertFalse(hasattr(op, "alloc_policy"))
+    self.assertTrue(op.dry_run)
 
 
 if __name__ == '__main__':
