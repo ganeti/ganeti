@@ -728,13 +728,10 @@ class TestBackupExport(unittest.TestCase):
       self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
-class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    self.Parse = rlib2._ParseMigrateInstanceRequest
-
+class TestInstanceMigrate(testutils.GanetiTestCase):
   def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "instYooho6ek"
 
     for cleanup in [False, True]:
@@ -743,20 +740,47 @@ class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
           "cleanup": cleanup,
           "mode": mode,
           }
-        op = self.Parse(name, data)
-        self.assert_(isinstance(op, opcodes.OpInstanceMigrate))
+
+        handler = _CreateHandler(rlib2.R_2_instances_name_migrate, [name], {},
+                                 data, clfactory)
+        job_id = handler.PUT()
+
+        cl = clfactory.GetNextClient()
+        self.assertRaises(IndexError, clfactory.GetNextClient)
+
+        (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+        self.assertEqual(job_id, exp_job_id)
+        self.assertTrue(isinstance(op, opcodes.OpInstanceMigrate))
         self.assertEqual(op.instance_name, name)
         self.assertEqual(op.mode, mode)
         self.assertEqual(op.cleanup, cleanup)
+        self.assertFalse(hasattr(op, "dry_run"))
+        self.assertFalse(hasattr(op, "force"))
+
+        self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDefaults(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "instnohZeex0"
 
-    op = self.Parse(name, {})
-    self.assert_(isinstance(op, opcodes.OpInstanceMigrate))
+    handler = _CreateHandler(rlib2.R_2_instances_name_migrate, [name], {}, {},
+                             clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceMigrate))
     self.assertEqual(op.instance_name, name)
     self.assertFalse(hasattr(op, "mode"))
     self.assertFalse(hasattr(op, "cleanup"))
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(hasattr(op, "force"))
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
 class TestParseRenameInstanceRequest(testutils.GanetiTestCase):

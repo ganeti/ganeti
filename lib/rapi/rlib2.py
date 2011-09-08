@@ -1020,33 +1020,19 @@ class R_2_instances_name_export(baserlib.OpcodeResource):
       })
 
 
-def _ParseMigrateInstanceRequest(name, data):
-  """Parses a request for an instance migration.
-
-  @rtype: L{opcodes.OpInstanceMigrate}
-  @return: Instance migration opcode
-
-  """
-  return baserlib.FillOpcode(opcodes.OpInstanceMigrate, data, {
-    "instance_name": name,
-    })
-
-
-class R_2_instances_name_migrate(baserlib.ResourceBase):
+class R_2_instances_name_migrate(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/migrate resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpInstanceMigrate
+
+  def GetPutOpInput(self):
     """Migrates an instance.
 
-    @return: a job id
-
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-
-    op = _ParseMigrateInstanceRequest(self.items[0], self.request_body)
-
-    return self.SubmitJob([op])
+    return (self.request_body, {
+      "instance_name": self.items[0],
+      })
 
 
 class R_2_instances_name_failover(baserlib.ResourceBase):
