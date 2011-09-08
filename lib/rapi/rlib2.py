@@ -782,20 +782,21 @@ class R_2_instances_name(baserlib.OpcodeResource):
       })
 
 
-class R_2_instances_name_info(baserlib.ResourceBase):
+class R_2_instances_name_info(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/info resource.
 
   """
-  def GET(self):
+  GET_OPCODE = opcodes.OpInstanceQueryData
+
+  def GetGetOpInput(self):
     """Request detailed instance information.
 
     """
-    instance_name = self.items[0]
-    static = bool(self._checkIntVariable("static", default=0))
-
-    op = opcodes.OpInstanceQueryData(instances=[instance_name],
-                                     static=static)
-    return self.SubmitJob([op])
+    assert len(self.items) == 1
+    return ({}, {
+      "instances": [self.items[0]],
+      "static": bool(self._checkIntVariable("static", default=0)),
+      })
 
 
 class R_2_instances_name_reboot(baserlib.ResourceBase):

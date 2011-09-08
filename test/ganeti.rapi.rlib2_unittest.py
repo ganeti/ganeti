@@ -318,6 +318,26 @@ class TestInstanceDelete(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestInstanceInfo(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_instances_name_info, ["inst31217"], {
+      "static": ["1"],
+      }, {}, clfactory)
+    job_id = handler.GET()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceQueryData))
+    self.assertEqual(op.instances, ["inst31217"])
+    self.assertTrue(op.static)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
