@@ -32,10 +32,27 @@ from ganeti import opcodes
 from ganeti import compat
 from ganeti import http
 from ganeti import query
+from ganeti import luxi
+from ganeti import errors
 
 from ganeti.rapi import rlib2
 
 import testutils
+
+
+class _FakeRequestPrivateData:
+  def __init__(self, body_data):
+    self.body_data = body_data
+
+
+class _FakeRequest:
+  def __init__(self, body_data):
+    self.private = _FakeRequestPrivateData(body_data)
+
+
+def _CreateHandler(cls, items, queryargs, body_data, client_cls):
+  return cls(items, queryargs, _FakeRequest(body_data),
+             _client_cls=client_cls)
 
 
 class TestConstants(unittest.TestCase):
@@ -54,6 +71,34 @@ class TestConstants(unittest.TestCase):
 
     for (qr, fields) in checks.items():
       self.assertFalse(set(fields) - set(query.ALL_FIELDS[qr].keys()))
+
+
+class TestClientConnectError(unittest.TestCase):
+  @staticmethod
+  def _FailingClient():
+    raise luxi.NoMasterError("test")
+
+  def test(self):
+    resources = [
+      rlib2.R_2_groups,
+      rlib2.R_2_instances,
+      rlib2.R_2_nodes,
+      ]
+    for cls in resources:
+      handler = _CreateHandler(cls, ["name"], [], None, self._FailingClient)
+      self.assertRaises(http.HttpBadGateway, handler.GET)
+
+
+class TestJobSubmitError(unittest.TestCase):
+  class _SubmitErrorClient:
+    @staticmethod
+    def SubmitJob(ops):
+      raise errors.JobQueueFull("test")
+
+  def test(self):
+    handler = _CreateHandler(rlib2.R_2_redist_config, [], [], None,
+                             self._SubmitErrorClient)
+    self.assertRaises(http.HttpServiceUnavailable, handler.PUT)
 
 
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
