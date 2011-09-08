@@ -799,29 +799,28 @@ class R_2_instances_name_info(baserlib.OpcodeResource):
       })
 
 
-class R_2_instances_name_reboot(baserlib.ResourceBase):
+class R_2_instances_name_reboot(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/reboot resource.
 
   Implements an instance reboot.
 
   """
-  def POST(self):
+  POST_OPCODE = opcodes.OpInstanceReboot
+
+  def GetPostOpInput(self):
     """Reboot an instance.
 
     The URI takes type=[hard|soft|full] and
     ignore_secondaries=[False|True] parameters.
 
     """
-    instance_name = self.items[0]
-    reboot_type = self.queryargs.get("type",
-                                     [constants.INSTANCE_REBOOT_HARD])[0]
-    ignore_secondaries = bool(self._checkIntVariable("ignore_secondaries"))
-    op = opcodes.OpInstanceReboot(instance_name=instance_name,
-                                  reboot_type=reboot_type,
-                                  ignore_secondaries=ignore_secondaries,
-                                  dry_run=bool(self.dryRun()))
-
-    return self.SubmitJob([op])
+    return ({}, {
+      "instance_name": self.items[0],
+      "reboot_type":
+        self.queryargs.get("type", [constants.INSTANCE_REBOOT_HARD])[0],
+      "ignore_secondaries": bool(self._checkIntVariable("ignore_secondaries")),
+      "dry_run": self.dryRun(),
+      })
 
 
 class R_2_instances_name_startup(baserlib.ResourceBase):
