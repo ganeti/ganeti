@@ -274,16 +274,19 @@ class ResourceBase(object):
   POST_ACCESS = [rapi.RAPI_ACCESS_WRITE]
   DELETE_ACCESS = [rapi.RAPI_ACCESS_WRITE]
 
-  def __init__(self, items, queryargs, req):
+  def __init__(self, items, queryargs, req, _client_cls=luxi.Client):
     """Generic resource constructor.
 
     @param items: a list with variables encoded in the URL
     @param queryargs: a dictionary with additional options from URL
+    @param req: Request context
+    @param _client_cls: L{luxi} client class (unittests only)
 
     """
     self.items = items
     self.queryargs = queryargs
     self._req = req
+    self._client_cls = _client_cls
 
   def _GetRequestBody(self):
     """Returns the body data.
@@ -366,7 +369,7 @@ class ResourceBase(object):
     """
     # Could be a function, pylint: disable=R0201
     try:
-      return luxi.Client()
+      return self._client_cls()
     except luxi.NoMasterError, err:
       raise http.HttpBadGateway("Can't connect to master daemon: %s" % err)
     except luxi.PermissionError:
