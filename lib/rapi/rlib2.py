@@ -149,7 +149,7 @@ ALL_FEATURES = frozenset([
 _WFJC_TIMEOUT = 10
 
 
-class R_root(baserlib.R_Generic):
+class R_root(baserlib.ResourceBase):
   """/ resource.
 
   """
@@ -161,7 +161,7 @@ class R_root(baserlib.R_Generic):
     return None
 
 
-class R_version(baserlib.R_Generic):
+class R_version(baserlib.ResourceBase):
   """/version resource.
 
   This resource should be used to determine the remote API version and
@@ -176,7 +176,7 @@ class R_version(baserlib.R_Generic):
     return constants.RAPI_VERSION
 
 
-class R_2_info(baserlib.R_Generic):
+class R_2_info(baserlib.ResourceBase):
   """/2/info resource.
 
   """
@@ -188,7 +188,7 @@ class R_2_info(baserlib.R_Generic):
     return client.QueryClusterInfo()
 
 
-class R_2_features(baserlib.R_Generic):
+class R_2_features(baserlib.ResourceBase):
   """/2/features resource.
 
   """
@@ -200,7 +200,7 @@ class R_2_features(baserlib.R_Generic):
     return list(ALL_FEATURES)
 
 
-class R_2_os(baserlib.R_Generic):
+class R_2_os(baserlib.ResourceBase):
   """/2/os resource.
 
   """
@@ -229,7 +229,7 @@ class R_2_os(baserlib.R_Generic):
     return os_names
 
 
-class R_2_redist_config(baserlib.R_Generic):
+class R_2_redist_config(baserlib.ResourceBase):
   """/2/redistribute-config resource.
 
   """
@@ -240,7 +240,7 @@ class R_2_redist_config(baserlib.R_Generic):
     return self.SubmitJob([opcodes.OpClusterRedistConf()])
 
 
-class R_2_cluster_modify(baserlib.R_Generic):
+class R_2_cluster_modify(baserlib.ResourceBase):
   """/2/modify resource.
 
   """
@@ -256,7 +256,7 @@ class R_2_cluster_modify(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_jobs(baserlib.R_Generic):
+class R_2_jobs(baserlib.ResourceBase):
   """/2/jobs resource.
 
   """
@@ -277,7 +277,7 @@ class R_2_jobs(baserlib.R_Generic):
                                    uri_fields=("id", "uri"))
 
 
-class R_2_jobs_id(baserlib.R_Generic):
+class R_2_jobs_id(baserlib.ResourceBase):
   """/2/jobs/[job_id] resource.
 
   """
@@ -309,7 +309,7 @@ class R_2_jobs_id(baserlib.R_Generic):
     return result
 
 
-class R_2_jobs_id_wait(baserlib.R_Generic):
+class R_2_jobs_id_wait(baserlib.ResourceBase):
   """/2/jobs/[job_id]/wait resource.
 
   """
@@ -358,7 +358,7 @@ class R_2_jobs_id_wait(baserlib.R_Generic):
       }
 
 
-class R_2_nodes(baserlib.R_Generic):
+class R_2_nodes(baserlib.ResourceBase):
   """/2/nodes resource.
 
   """
@@ -378,7 +378,7 @@ class R_2_nodes(baserlib.R_Generic):
                                    uri_fields=("id", "uri"))
 
 
-class R_2_nodes_name(baserlib.R_Generic):
+class R_2_nodes_name(baserlib.ResourceBase):
   """/2/nodes/[node_name] resource.
 
   """
@@ -396,7 +396,7 @@ class R_2_nodes_name(baserlib.R_Generic):
     return baserlib.MapFields(N_FIELDS, result[0])
 
 
-class R_2_nodes_name_role(baserlib.R_Generic):
+class R_2_nodes_name_role(baserlib.ResourceBase):
   """ /2/nodes/[node_name]/role resource.
 
   """
@@ -454,7 +454,7 @@ class R_2_nodes_name_role(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_nodes_name_evacuate(baserlib.R_Generic):
+class R_2_nodes_name_evacuate(baserlib.ResourceBase):
   """/2/nodes/[node_name]/evacuate resource.
 
   """
@@ -470,7 +470,7 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_nodes_name_migrate(baserlib.R_Generic):
+class R_2_nodes_name_migrate(baserlib.ResourceBase):
   """/2/nodes/[node_name]/migrate resource.
 
   """
@@ -507,7 +507,7 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_nodes_name_storage(baserlib.R_Generic):
+class R_2_nodes_name_storage(baserlib.ResourceBase):
   """/2/nodes/[node_name]/storage resource.
 
   """
@@ -533,7 +533,7 @@ class R_2_nodes_name_storage(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_nodes_name_storage_modify(baserlib.R_Generic):
+class R_2_nodes_name_storage_modify(baserlib.ResourceBase):
   """/2/nodes/[node_name]/storage/modify resource.
 
   """
@@ -563,7 +563,7 @@ class R_2_nodes_name_storage_modify(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_nodes_name_storage_repair(baserlib.R_Generic):
+class R_2_nodes_name_storage_repair(baserlib.ResourceBase):
   """/2/nodes/[node_name]/storage/repair resource.
 
   """
@@ -605,7 +605,7 @@ def _ParseCreateGroupRequest(data, dry_run):
                              rename=rename)
 
 
-class R_2_groups(baserlib.R_Generic):
+class R_2_groups(baserlib.ResourceBase):
   """/2/groups resource.
 
   """
@@ -635,7 +635,7 @@ class R_2_groups(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_groups_name(baserlib.R_Generic):
+class R_2_groups_name(baserlib.ResourceBase):
   """/2/groups/[group_name] resource.
 
   """
@@ -674,7 +674,7 @@ def _ParseModifyGroupRequest(name, data):
     })
 
 
-class R_2_groups_name_modify(baserlib.R_Generic):
+class R_2_groups_name_modify(baserlib.ResourceBase):
   """/2/groups/[group_name]/modify resource.
 
   """
@@ -711,7 +711,7 @@ def _ParseRenameGroupRequest(name, data, dry_run):
     })
 
 
-class R_2_groups_name_rename(baserlib.R_Generic):
+class R_2_groups_name_rename(baserlib.ResourceBase):
   """/2/groups/[group_name]/rename resource.
 
   """
@@ -727,7 +727,7 @@ class R_2_groups_name_rename(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_groups_name_assign_nodes(baserlib.R_Generic):
+class R_2_groups_name_assign_nodes(baserlib.ResourceBase):
   """/2/groups/[group_name]/assign-nodes resource.
 
   """
@@ -766,7 +766,7 @@ def _ParseInstanceCreateRequestVersion1(data, dry_run):
                              rename=rename)
 
 
-class R_2_instances(baserlib.R_Generic):
+class R_2_instances(baserlib.ResourceBase):
   """/2/instances resource.
 
   """
@@ -813,7 +813,7 @@ class R_2_instances(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name(baserlib.R_Generic):
+class R_2_instances_name(baserlib.ResourceBase):
   """/2/instances/[instance_name] resource.
 
   """
@@ -841,7 +841,7 @@ class R_2_instances_name(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_info(baserlib.R_Generic):
+class R_2_instances_name_info(baserlib.ResourceBase):
   """/2/instances/[instance_name]/info resource.
 
   """
@@ -857,7 +857,7 @@ class R_2_instances_name_info(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_reboot(baserlib.R_Generic):
+class R_2_instances_name_reboot(baserlib.ResourceBase):
   """/2/instances/[instance_name]/reboot resource.
 
   Implements an instance reboot.
@@ -882,7 +882,7 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_startup(baserlib.R_Generic):
+class R_2_instances_name_startup(baserlib.ResourceBase):
   """/2/instances/[instance_name]/startup resource.
 
   Implements an instance startup.
@@ -920,7 +920,7 @@ def _ParseShutdownInstanceRequest(name, data, dry_run, no_remember):
     })
 
 
-class R_2_instances_name_shutdown(baserlib.R_Generic):
+class R_2_instances_name_shutdown(baserlib.ResourceBase):
   """/2/instances/[instance_name]/shutdown resource.
 
   Implements an instance shutdown.
@@ -965,7 +965,7 @@ def _ParseInstanceReinstallRequest(name, data):
   return ops
 
 
-class R_2_instances_name_reinstall(baserlib.R_Generic):
+class R_2_instances_name_reinstall(baserlib.ResourceBase):
   """/2/instances/[instance_name]/reinstall resource.
 
   Implements an instance reinstall.
@@ -1025,7 +1025,7 @@ def _ParseInstanceReplaceDisksRequest(name, data):
   return baserlib.FillOpcode(opcodes.OpInstanceReplaceDisks, data, override)
 
 
-class R_2_instances_name_replace_disks(baserlib.R_Generic):
+class R_2_instances_name_replace_disks(baserlib.ResourceBase):
   """/2/instances/[instance_name]/replace-disks resource.
 
   """
@@ -1038,7 +1038,7 @@ class R_2_instances_name_replace_disks(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_activate_disks(baserlib.R_Generic):
+class R_2_instances_name_activate_disks(baserlib.ResourceBase):
   """/2/instances/[instance_name]/activate-disks resource.
 
   """
@@ -1057,7 +1057,7 @@ class R_2_instances_name_activate_disks(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_deactivate_disks(baserlib.R_Generic):
+class R_2_instances_name_deactivate_disks(baserlib.ResourceBase):
   """/2/instances/[instance_name]/deactivate-disks resource.
 
   """
@@ -1072,7 +1072,7 @@ class R_2_instances_name_deactivate_disks(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_prepare_export(baserlib.R_Generic):
+class R_2_instances_name_prepare_export(baserlib.ResourceBase):
   """/2/instances/[instance_name]/prepare-export resource.
 
   """
@@ -1109,7 +1109,7 @@ def _ParseExportInstanceRequest(name, data):
     })
 
 
-class R_2_instances_name_export(baserlib.R_Generic):
+class R_2_instances_name_export(baserlib.ResourceBase):
   """/2/instances/[instance_name]/export resource.
 
   """
@@ -1139,7 +1139,7 @@ def _ParseMigrateInstanceRequest(name, data):
     })
 
 
-class R_2_instances_name_migrate(baserlib.R_Generic):
+class R_2_instances_name_migrate(baserlib.ResourceBase):
   """/2/instances/[instance_name]/migrate resource.
 
   """
@@ -1156,7 +1156,7 @@ class R_2_instances_name_migrate(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_failover(baserlib.R_Generic):
+class R_2_instances_name_failover(baserlib.ResourceBase):
   """/2/instances/[instance_name]/failover resource.
 
   """
@@ -1187,7 +1187,7 @@ def _ParseRenameInstanceRequest(name, data):
     })
 
 
-class R_2_instances_name_rename(baserlib.R_Generic):
+class R_2_instances_name_rename(baserlib.ResourceBase):
   """/2/instances/[instance_name]/rename resource.
 
   """
@@ -1216,7 +1216,7 @@ def _ParseModifyInstanceRequest(name, data):
     })
 
 
-class R_2_instances_name_modify(baserlib.R_Generic):
+class R_2_instances_name_modify(baserlib.ResourceBase):
   """/2/instances/[instance_name]/modify resource.
 
   """
@@ -1233,7 +1233,7 @@ class R_2_instances_name_modify(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_disk_grow(baserlib.R_Generic):
+class R_2_instances_name_disk_grow(baserlib.ResourceBase):
   """/2/instances/[instance_name]/disk/[disk_index]/grow resource.
 
   """
@@ -1251,7 +1251,7 @@ class R_2_instances_name_disk_grow(baserlib.R_Generic):
     return self.SubmitJob([op])
 
 
-class R_2_instances_name_console(baserlib.R_Generic):
+class R_2_instances_name_console(baserlib.ResourceBase):
   """/2/instances/[instance_name]/console resource.
 
   """
@@ -1294,7 +1294,7 @@ def _SplitQueryFields(fields):
   return [i.strip() for i in fields.split(",")]
 
 
-class R_2_query(baserlib.R_Generic):
+class R_2_query(baserlib.ResourceBase):
   """/2/query/[resource] resource.
 
   """
@@ -1330,7 +1330,7 @@ class R_2_query(baserlib.R_Generic):
     return self._Query(fields, self.request_body.get("filter", None))
 
 
-class R_2_query_fields(baserlib.R_Generic):
+class R_2_query_fields(baserlib.ResourceBase):
   """/2/query/[resource]/fields resource.
 
   """
@@ -1350,7 +1350,7 @@ class R_2_query_fields(baserlib.R_Generic):
     return self.GetClient().QueryFields(self.items[0], fields).ToDict()
 
 
-class _R_Tags(baserlib.R_Generic):
+class _R_Tags(baserlib.ResourceBase):
   """ Quasiclass for tagging resources
 
   Manages tags. When inheriting this class you must define the
@@ -1365,7 +1365,7 @@ class _R_Tags(baserlib.R_Generic):
     We have to override the default to sort out cluster naming case.
 
     """
-    baserlib.R_Generic.__init__(self, items, queryargs, req)
+    baserlib.ResourceBase.__init__(self, items, queryargs, req)
 
     if self.TAG_LEVEL == constants.TAG_CLUSTER:
       self.name = None

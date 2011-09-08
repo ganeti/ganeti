@@ -255,7 +255,7 @@ def CheckParameter(data, name, default=_DEFAULT, exptype=_DEFAULT):
   return CheckType(value, exptype, "'%s' parameter" % name)
 
 
-class R_Generic(object):
+class ResourceBase(object):
   """Generic class for resources.
 
   """
