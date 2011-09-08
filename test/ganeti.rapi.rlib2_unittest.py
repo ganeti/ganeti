@@ -867,13 +867,10 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
       self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
-class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    self.Parse = rlib2._ParseModifyInstanceRequest
-
+class TestParseModifyInstanceRequest(unittest.TestCase):
   def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "instush8gah"
 
     test_disks = [
@@ -898,8 +895,16 @@ class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
                     "disk_template": disk_template,
                     }
 
-                  op = self.Parse(name, data)
-                  self.assert_(isinstance(op, opcodes.OpInstanceSetParams))
+                  handler = _CreateHandler(rlib2.R_2_instances_name_modify,
+                                           [name], {}, data, clfactory)
+                  job_id = handler.PUT()
+
+                  cl = clfactory.GetNextClient()
+                  self.assertRaises(IndexError, clfactory.GetNextClient)
+
+                  (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+                  self.assertEqual(job_id, exp_job_id)
+                  self.assertTrue(isinstance(op, opcodes.OpInstanceSetParams))
                   self.assertEqual(op.instance_name, name)
                   self.assertEqual(op.hvparams, hvparams)
                   self.assertEqual(op.beparams, beparams)
@@ -911,13 +916,27 @@ class TestParseModifyInstanceRequest(testutils.GanetiTestCase):
                   self.assertFalse(hasattr(op, "remote_node"))
                   self.assertFalse(hasattr(op, "os_name"))
                   self.assertFalse(hasattr(op, "force_variant"))
+                  self.assertFalse(hasattr(op, "dry_run"))
+
+                  self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDefaults(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "instir8aish31"
 
-    op = self.Parse(name, {})
-    self.assert_(isinstance(op, opcodes.OpInstanceSetParams))
+    handler = _CreateHandler(rlib2.R_2_instances_name_modify,
+                             [name], {}, {}, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceSetParams))
     self.assertEqual(op.instance_name, name)
+
     for i in ["hvparams", "beparams", "osparams", "force", "nics", "disks",
               "disk_template", "remote_node", "os_name", "force_variant"]:
       self.assertFalse(hasattr(op, i))

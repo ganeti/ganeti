@@ -1065,33 +1065,19 @@ class R_2_instances_name_rename(baserlib.OpcodeResource):
       })
 
 
-def _ParseModifyInstanceRequest(name, data):
-  """Parses a request for modifying an instance.
-
-  @rtype: L{opcodes.OpInstanceSetParams}
-  @return: Instance modify opcode
-
-  """
-  return baserlib.FillOpcode(opcodes.OpInstanceSetParams, data, {
-    "instance_name": name,
-    })
-
-
-class R_2_instances_name_modify(baserlib.ResourceBase):
+class R_2_instances_name_modify(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/modify resource.
 
   """
-  def PUT(self):
-    """Changes some parameters of an instance.
+  PUT_OPCODE = opcodes.OpInstanceSetParams
 
-    @return: a job id
+  def GetPutOpInput(self):
+    """Changes parameters of an instance.
 
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-
-    op = _ParseModifyInstanceRequest(self.items[0], self.request_body)
-
-    return self.SubmitJob([op])
+    return (self.request_body, {
+      "instance_name": self.items[0],
+      })
 
 
 class R_2_instances_name_disk_grow(baserlib.ResourceBase):
