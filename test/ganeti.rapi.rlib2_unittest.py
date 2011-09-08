@@ -25,7 +25,8 @@
 
 
 import unittest
-import tempfile
+import itertools
+import random
 
 from ganeti import constants
 from ganeti import opcodes
@@ -53,6 +54,33 @@ class _FakeRequest:
 def _CreateHandler(cls, items, queryargs, body_data, client_cls):
   return cls(items, queryargs, _FakeRequest(body_data),
              _client_cls=client_cls)
+
+
+class _FakeClient:
+  def __init__(self):
+    self._jobs = []
+
+  def GetNextSubmittedJob(self):
+    return self._jobs.pop(0)
+
+  def SubmitJob(self, ops):
+    job_id = str(1 + int(random.random() * 1000000))
+    self._jobs.append((job_id, ops))
+    return job_id
+
+
+class _FakeClientFactory:
+  def __init__(self, cls):
+    self._client_cls = cls
+    self._clients = []
+
+  def GetNextClient(self):
+    return self._clients.pop(0)
+
+  def __call__(self):
+    cl = self._client_cls()
+    self._clients.append(cl)
+    return cl
 
 
 class TestConstants(unittest.TestCase):
@@ -99,6 +127,36 @@ class TestJobSubmitError(unittest.TestCase):
     handler = _CreateHandler(rlib2.R_2_redist_config, [], [], None,
                              self._SubmitErrorClient)
     self.assertRaises(http.HttpServiceUnavailable, handler.PUT)
+
+
+class TestClusterModify(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_cluster_modify, [], [], {
+      "vg_name": "testvg",
+      "candidate_pool_size": 100,
+      }, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpClusterSetParams))
+    self.assertEqual(op.vg_name, "testvg")
+    self.assertEqual(op.candidate_pool_size, 100)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+  def testInvalidValue(self):
+    for attr in ["vg_name", "candidate_pool_size", "beparams", "_-Unknown#"]:
+      clfactory = _FakeClientFactory(_FakeClient)
+      handler = _CreateHandler(rlib2.R_2_cluster_modify, [], [], {
+        attr: True,
+        }, clfactory)
+      self.assertRaises(http.HttpBadRequest, handler.PUT)
+      self.assertRaises(IndexError, clfactory.GetNextClient)
 
 
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):

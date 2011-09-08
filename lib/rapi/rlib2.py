@@ -240,20 +240,11 @@ class R_2_redist_config(baserlib.ResourceBase):
     return self.SubmitJob([opcodes.OpClusterRedistConf()])
 
 
-class R_2_cluster_modify(baserlib.ResourceBase):
+class R_2_cluster_modify(baserlib.OpcodeResource):
   """/2/modify resource.
 
   """
-  def PUT(self):
-    """Modifies cluster parameters.
-
-    @return: a job id
-
-    """
-    op = baserlib.FillOpcode(opcodes.OpClusterSetParams, self.request_body,
-                             None)
-
-    return self.SubmitJob([op])
+  PUT_OPCODE = opcodes.OpClusterSetParams
 
 
 class R_2_jobs(baserlib.ResourceBase):
