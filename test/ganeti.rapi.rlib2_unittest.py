@@ -864,11 +864,10 @@ class TestGroupRename(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
-class TestParseInstanceReplaceDisksRequest(unittest.TestCase):
-  def setUp(self):
-    self.Parse = rlib2._ParseInstanceReplaceDisksRequest
-
+class TestInstanceReplaceDisks(unittest.TestCase):
   def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "inst22568"
 
     for disks in [range(1, 4), "1,2,3", "1, 2, 3"]:
@@ -878,29 +877,59 @@ class TestParseInstanceReplaceDisksRequest(unittest.TestCase):
         "iallocator": "myalloc",
         }
 
-      op = self.Parse(name, data)
-      self.assert_(isinstance(op, opcodes.OpInstanceReplaceDisks))
+      handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
+                               [name], {}, data, clfactory)
+      job_id = handler.POST()
+
+      cl = clfactory.GetNextClient()
+      self.assertRaises(IndexError, clfactory.GetNextClient)
+
+      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+      self.assertEqual(job_id, exp_job_id)
+
+      self.assertTrue(isinstance(op, opcodes.OpInstanceReplaceDisks))
+      self.assertEqual(op.instance_name, name)
       self.assertEqual(op.mode, constants.REPLACE_DISK_SEC)
       self.assertEqual(op.disks, [1, 2, 3])
       self.assertEqual(op.iallocator, "myalloc")
+      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDefaults(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "inst11413"
     data = {
       "mode": constants.REPLACE_DISK_AUTO,
       }
 
-    op = self.Parse(name, data)
-    self.assert_(isinstance(op, opcodes.OpInstanceReplaceDisks))
+    handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
+                             [name], {}, data, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpInstanceReplaceDisks))
+    self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, constants.REPLACE_DISK_AUTO)
     self.assertFalse(hasattr(op, "iallocator"))
     self.assertFalse(hasattr(op, "disks"))
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testWrong(self):
-    self.assertRaises(http.HttpBadRequest, self.Parse, "inst",
-                      { "mode": constants.REPLACE_DISK_AUTO,
-                        "disks": "hello world",
-                      })
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    data = {
+      "mode": constants.REPLACE_DISK_AUTO,
+      "disks": "hello world",
+      }
+
+    handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
+                             ["foo"], {}, data, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.POST)
 
 
 class TestGroupModify(unittest.TestCase):

@@ -922,44 +922,35 @@ class R_2_instances_name_reinstall(baserlib.ResourceBase):
     return self.SubmitJob(ops)
 
 
-def _ParseInstanceReplaceDisksRequest(name, data):
-  """Parses a request for an instance export.
-
-  @rtype: L{opcodes.OpInstanceReplaceDisks}
-  @return: Instance export opcode
-
-  """
-  override = {
-    "instance_name": name,
-    }
-
-  # Parse disks
-  try:
-    raw_disks = data["disks"]
-  except KeyError:
-    pass
-  else:
-    if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable-msg=E1102
-      # Backwards compatibility for strings of the format "1, 2, 3"
-      try:
-        data["disks"] = [int(part) for part in raw_disks.split(",")]
-      except (TypeError, ValueError), err:
-        raise http.HttpBadRequest("Invalid disk index passed: %s" % str(err))
-
-  return baserlib.FillOpcode(opcodes.OpInstanceReplaceDisks, data, override)
-
-
-class R_2_instances_name_replace_disks(baserlib.ResourceBase):
+class R_2_instances_name_replace_disks(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/replace-disks resource.
 
   """
-  def POST(self):
+  POST_OPCODE = opcodes.OpInstanceReplaceDisks
+
+  def GetPostOpInput(self):
     """Replaces disks on an instance.
 
     """
-    op = _ParseInstanceReplaceDisksRequest(self.items[0], self.request_body)
+    data = self.request_body.copy()
+    static = {
+      "instance_name": self.items[0],
+      }
 
-    return self.SubmitJob([op])
+    # Parse disks
+    try:
+      raw_disks = data["disks"]
+    except KeyError:
+      pass
+    else:
+      if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable-msg=E1102
+        # Backwards compatibility for strings of the format "1, 2, 3"
+        try:
+          data["disks"] = [int(part) for part in raw_disks.split(",")]
+        except (TypeError, ValueError), err:
+          raise http.HttpBadRequest("Invalid disk index passed: %s" % err)
+
+    return (data, static)
 
 
 class R_2_instances_name_activate_disks(baserlib.ResourceBase):
