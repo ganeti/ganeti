@@ -1002,40 +1002,22 @@ class R_2_instances_name_prepare_export(baserlib.OpcodeResource):
       })
 
 
-def _ParseExportInstanceRequest(name, data):
-  """Parses a request for an instance export.
-
-  @rtype: L{opcodes.OpBackupExport}
-  @return: Instance export opcode
-
-  """
-  # Rename "destination" to "target_node"
-  try:
-    data["target_node"] = data.pop("destination")
-  except KeyError:
-    pass
-
-  return baserlib.FillOpcode(opcodes.OpBackupExport, data, {
-    "instance_name": name,
-    })
-
-
-class R_2_instances_name_export(baserlib.ResourceBase):
+class R_2_instances_name_export(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/export resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpBackupExport
+  PUT_RENAME = {
+    "destination": "target_node",
+    }
+
+  def GetPutOpInput(self):
     """Exports an instance.
 
-    @return: a job id
-
     """
-    if not isinstance(self.request_body, dict):
-      raise http.HttpBadRequest("Invalid body contents, not a dictionary")
-
-    op = _ParseExportInstanceRequest(self.items[0], self.request_body)
-
-    return self.SubmitJob([op])
+    return (self.request_body, {
+      "instance_name": self.items[0],
+      })
 
 
 def _ParseMigrateInstanceRequest(name, data):

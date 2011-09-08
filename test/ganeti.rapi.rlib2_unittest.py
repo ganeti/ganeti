@@ -653,13 +653,10 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
         self.assertRaises(http.HttpBadRequest, self.Parse, data, False)
 
 
-class TestParseExportInstanceRequest(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    self.Parse = rlib2._ParseExportInstanceRequest
-
+class TestBackupExport(unittest.TestCase):
   def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "instmoo"
     data = {
       "mode": constants.EXPORT_MODE_REMOTE,
@@ -669,34 +666,66 @@ class TestParseExportInstanceRequest(testutils.GanetiTestCase):
       "x509_key_name": ["name", "hash"],
       "destination_x509_ca": "---cert---"
       }
-    op = self.Parse(name, data)
-    self.assert_(isinstance(op, opcodes.OpBackupExport))
+
+    handler = _CreateHandler(rlib2.R_2_instances_name_export, [name], {},
+                             data, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, constants.EXPORT_MODE_REMOTE)
+    self.assertEqual(op.target_node, [(1, 2, 3), (99, 99, 99)])
     self.assertEqual(op.shutdown, True)
     self.assertEqual(op.remove_instance, True)
-    self.assertEqualValues(op.x509_key_name, ("name", "hash"))
+    self.assertEqual(op.x509_key_name, ["name", "hash"])
     self.assertEqual(op.destination_x509_ca, "---cert---")
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(hasattr(op, "force"))
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDefaults(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "inst1"
     data = {
       "destination": "node2",
       "shutdown": False,
       }
-    op = self.Parse(name, data)
-    self.assert_(isinstance(op, opcodes.OpBackupExport))
+
+    handler = _CreateHandler(rlib2.R_2_instances_name_export, [name], {},
+                             data, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.target_node, "node2")
     self.assertFalse(hasattr(op, "mode"))
     self.assertFalse(hasattr(op, "remove_instance"))
     self.assertFalse(hasattr(op, "destination"))
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(hasattr(op, "force"))
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testErrors(self):
-    self.assertRaises(http.HttpBadRequest, self.Parse, "err1",
-                      { "remove_instance": "True", })
-    self.assertRaises(http.HttpBadRequest, self.Parse, "err1",
-                      { "remove_instance": "False", })
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    for value in ["True", "False"]:
+      handler = _CreateHandler(rlib2.R_2_instances_name_export, ["err1"], {}, {
+        "remove_instance": value,
+        }, clfactory)
+      self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
 class TestParseMigrateInstanceRequest(testutils.GanetiTestCase):
