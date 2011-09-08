@@ -62,6 +62,7 @@ from ganeti import cli
 from ganeti import rapi
 from ganeti import ht
 from ganeti import compat
+from ganeti import ssconf
 from ganeti.rapi import baserlib
 
 
@@ -179,12 +180,11 @@ class R_2_info(baserlib.R_Generic):
   """/2/info resource.
 
   """
-  @staticmethod
-  def GET():
+  def GET(self):
     """Returns cluster information.
 
     """
-    client = baserlib.GetClient()
+    client = self.GetClient()
     return client.QueryClusterInfo()
 
 
@@ -204,8 +204,7 @@ class R_2_os(baserlib.R_Generic):
   """/2/os resource.
 
   """
-  @staticmethod
-  def GET():
+  def GET(self):
     """Return a list of all OSes.
 
     Can return error 500 in case of a problem.
@@ -213,9 +212,9 @@ class R_2_os(baserlib.R_Generic):
     Example: ["debian-etch"]
 
     """
-    cl = baserlib.GetClient()
+    cl = self.GetClient()
     op = opcodes.OpOsDiagnose(output_fields=["name", "variants"], names=[])
-    job_id = baserlib.SubmitJob([op], cl)
+    job_id = self.SubmitJob([op], cl=cl)
     # we use custom feedback function, instead of print we log the status
     result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)
     diagnose_data = result[0]
@@ -234,12 +233,11 @@ class R_2_redist_config(baserlib.R_Generic):
   """/2/redistribute-config resource.
 
   """
-  @staticmethod
-  def PUT():
+  def PUT(self):
     """Redistribute configuration to all nodes.
 
     """
-    return baserlib.SubmitJob([opcodes.OpClusterRedistConf()])
+    return self.SubmitJob([opcodes.OpClusterRedistConf()])
 
 
 class R_2_cluster_modify(baserlib.R_Generic):
@@ -255,7 +253,7 @@ class R_2_cluster_modify(baserlib.R_Generic):
     op = baserlib.FillOpcode(opcodes.OpClusterSetParams, self.request_body,
                              None)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_jobs(baserlib.R_Generic):
@@ -268,7 +266,7 @@ class R_2_jobs(baserlib.R_Generic):
     @return: a dictionary with jobs id and uri.
 
     """
-    client = baserlib.GetClient()
+    client = self.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryJobs(None, J_FIELDS_BULK)
@@ -297,7 +295,7 @@ class R_2_jobs_id(baserlib.R_Generic):
 
     """
     job_id = self.items[0]
-    result = baserlib.GetClient().QueryJobs([job_id, ], J_FIELDS)[0]
+    result = self.GetClient().QueryJobs([job_id, ], J_FIELDS)[0]
     if result is None:
       raise http.HttpNotFound()
     return baserlib.MapFields(J_FIELDS, result)
@@ -307,7 +305,7 @@ class R_2_jobs_id(baserlib.R_Generic):
 
     """
     job_id = self.items[0]
-    result = baserlib.GetClient().CancelJob(job_id)
+    result = self.GetClient().CancelJob(job_id)
     return result
 
 
@@ -341,7 +339,7 @@ class R_2_jobs_id_wait(baserlib.R_Generic):
       raise http.HttpBadRequest("The 'previous_log_serial' parameter should"
                                 " be a number")
 
-    client = baserlib.GetClient()
+    client = self.GetClient()
     result = client.WaitForJobChangeOnce(job_id, fields,
                                          prev_job_info, prev_log_serial,
                                          timeout=_WFJC_TIMEOUT)
@@ -368,7 +366,7 @@ class R_2_nodes(baserlib.R_Generic):
     """Returns a list of all nodes.
 
     """
-    client = baserlib.GetClient()
+    client = self.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryNodes([], N_FIELDS, False)
@@ -389,7 +387,7 @@ class R_2_nodes_name(baserlib.R_Generic):
 
     """
     node_name = self.items[0]
-    client = baserlib.GetClient()
+    client = self.GetClient()
 
     result = baserlib.HandleItemQueryErrors(client.QueryNodes,
                                             names=[node_name], fields=N_FIELDS,
@@ -409,7 +407,7 @@ class R_2_nodes_name_role(baserlib.R_Generic):
 
     """
     node_name = self.items[0]
-    client = baserlib.GetClient()
+    client = self.GetClient()
     result = client.QueryNodes(names=[node_name], fields=["role"],
                                use_locking=self.useLocking())
 
@@ -453,7 +451,7 @@ class R_2_nodes_name_role(baserlib.R_Generic):
                                  drained=drained,
                                  force=bool(self.useForce()))
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_nodes_name_evacuate(baserlib.R_Generic):
@@ -469,7 +467,7 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
       "dry_run": self.dryRun(),
       })
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_nodes_name_migrate(baserlib.R_Generic):
@@ -506,7 +504,7 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
       "node_name": node_name,
       })
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_nodes_name_storage(baserlib.R_Generic):
@@ -532,7 +530,7 @@ class R_2_nodes_name_storage(baserlib.R_Generic):
     op = opcodes.OpNodeQueryStorage(nodes=[node_name],
                                     storage_type=storage_type,
                                     output_fields=output_fields.split(","))
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_nodes_name_storage_modify(baserlib.R_Generic):
@@ -562,7 +560,7 @@ class R_2_nodes_name_storage_modify(baserlib.R_Generic):
                                      storage_type=storage_type,
                                      name=name,
                                      changes=changes)
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_nodes_name_storage_repair(baserlib.R_Generic):
@@ -585,7 +583,7 @@ class R_2_nodes_name_storage_repair(baserlib.R_Generic):
     op = opcodes.OpRepairNodeStorage(node_name=node_name,
                                      storage_type=storage_type,
                                      name=name)
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseCreateGroupRequest(data, dry_run):
@@ -615,7 +613,7 @@ class R_2_groups(baserlib.R_Generic):
     """Returns a list of all node groups.
 
     """
-    client = baserlib.GetClient()
+    client = self.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryGroups([], G_FIELDS, False)
@@ -634,7 +632,7 @@ class R_2_groups(baserlib.R_Generic):
     """
     baserlib.CheckType(self.request_body, dict, "Body contents")
     op = _ParseCreateGroupRequest(self.request_body, self.dryRun())
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_groups_name(baserlib.R_Generic):
@@ -646,7 +644,7 @@ class R_2_groups_name(baserlib.R_Generic):
 
     """
     group_name = self.items[0]
-    client = baserlib.GetClient()
+    client = self.GetClient()
 
     result = baserlib.HandleItemQueryErrors(client.QueryGroups,
                                             names=[group_name], fields=G_FIELDS,
@@ -661,7 +659,7 @@ class R_2_groups_name(baserlib.R_Generic):
     op = opcodes.OpGroupRemove(group_name=self.items[0],
                                dry_run=bool(self.dryRun()))
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseModifyGroupRequest(name, data):
@@ -690,7 +688,7 @@ class R_2_groups_name_modify(baserlib.R_Generic):
 
     op = _ParseModifyGroupRequest(self.items[0], self.request_body)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseRenameGroupRequest(name, data, dry_run):
@@ -726,7 +724,7 @@ class R_2_groups_name_rename(baserlib.R_Generic):
     baserlib.CheckType(self.request_body, dict, "Body contents")
     op = _ParseRenameGroupRequest(self.items[0], self.request_body,
                                   self.dryRun())
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_groups_name_assign_nodes(baserlib.R_Generic):
@@ -745,7 +743,7 @@ class R_2_groups_name_assign_nodes(baserlib.R_Generic):
       "force": self.useForce(),
       })
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseInstanceCreateRequestVersion1(data, dry_run):
@@ -776,7 +774,7 @@ class R_2_instances(baserlib.R_Generic):
     """Returns a list of all available instances.
 
     """
-    client = baserlib.GetClient()
+    client = self.GetClient()
 
     use_locking = self.useLocking()
     if self.useBulk():
@@ -812,7 +810,7 @@ class R_2_instances(baserlib.R_Generic):
       raise http.HttpBadRequest("Unsupported request data version %s" %
                                 data_version)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name(baserlib.R_Generic):
@@ -823,7 +821,7 @@ class R_2_instances_name(baserlib.R_Generic):
     """Send information about an instance.
 
     """
-    client = baserlib.GetClient()
+    client = self.GetClient()
     instance_name = self.items[0]
 
     result = baserlib.HandleItemQueryErrors(client.QueryInstances,
@@ -840,7 +838,7 @@ class R_2_instances_name(baserlib.R_Generic):
     op = opcodes.OpInstanceRemove(instance_name=self.items[0],
                                   ignore_failures=False,
                                   dry_run=bool(self.dryRun()))
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_info(baserlib.R_Generic):
@@ -856,7 +854,7 @@ class R_2_instances_name_info(baserlib.R_Generic):
 
     op = opcodes.OpInstanceQueryData(instances=[instance_name],
                                      static=static)
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_reboot(baserlib.R_Generic):
@@ -881,7 +879,7 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
                                   ignore_secondaries=ignore_secondaries,
                                   dry_run=bool(self.dryRun()))
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_startup(baserlib.R_Generic):
@@ -905,7 +903,7 @@ class R_2_instances_name_startup(baserlib.R_Generic):
                                    dry_run=bool(self.dryRun()),
                                    no_remember=no_remember)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseShutdownInstanceRequest(name, data, dry_run, no_remember):
@@ -940,7 +938,7 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
     op = _ParseShutdownInstanceRequest(self.items[0], self.request_body,
                                        bool(self.dryRun()), no_remember)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseInstanceReinstallRequest(name, data):
@@ -997,7 +995,7 @@ class R_2_instances_name_reinstall(baserlib.R_Generic):
 
     ops = _ParseInstanceReinstallRequest(self.items[0], body)
 
-    return baserlib.SubmitJob(ops)
+    return self.SubmitJob(ops)
 
 
 def _ParseInstanceReplaceDisksRequest(name, data):
@@ -1037,7 +1035,7 @@ class R_2_instances_name_replace_disks(baserlib.R_Generic):
     """
     op = _ParseInstanceReplaceDisksRequest(self.items[0], self.request_body)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_activate_disks(baserlib.R_Generic):
@@ -1056,7 +1054,7 @@ class R_2_instances_name_activate_disks(baserlib.R_Generic):
     op = opcodes.OpInstanceActivateDisks(instance_name=instance_name,
                                          ignore_size=ignore_size)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_deactivate_disks(baserlib.R_Generic):
@@ -1071,7 +1069,7 @@ class R_2_instances_name_deactivate_disks(baserlib.R_Generic):
 
     op = opcodes.OpInstanceDeactivateDisks(instance_name=instance_name)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_prepare_export(baserlib.R_Generic):
@@ -1090,7 +1088,7 @@ class R_2_instances_name_prepare_export(baserlib.R_Generic):
     op = opcodes.OpBackupPrepare(instance_name=instance_name,
                                  mode=mode)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseExportInstanceRequest(name, data):
@@ -1126,7 +1124,7 @@ class R_2_instances_name_export(baserlib.R_Generic):
 
     op = _ParseExportInstanceRequest(self.items[0], self.request_body)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseMigrateInstanceRequest(name, data):
@@ -1155,7 +1153,7 @@ class R_2_instances_name_migrate(baserlib.R_Generic):
 
     op = _ParseMigrateInstanceRequest(self.items[0], self.request_body)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_failover(baserlib.R_Generic):
@@ -1174,7 +1172,7 @@ class R_2_instances_name_failover(baserlib.R_Generic):
       "instance_name": self.items[0],
       })
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseRenameInstanceRequest(name, data):
@@ -1203,7 +1201,7 @@ class R_2_instances_name_rename(baserlib.R_Generic):
 
     op = _ParseRenameInstanceRequest(self.items[0], self.request_body)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 def _ParseModifyInstanceRequest(name, data):
@@ -1232,7 +1230,7 @@ class R_2_instances_name_modify(baserlib.R_Generic):
 
     op = _ParseModifyInstanceRequest(self.items[0], self.request_body)
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_disk_grow(baserlib.R_Generic):
@@ -1250,7 +1248,7 @@ class R_2_instances_name_disk_grow(baserlib.R_Generic):
       "disk": int(self.items[1]),
       })
 
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_console(baserlib.R_Generic):
@@ -1266,7 +1264,7 @@ class R_2_instances_name_console(baserlib.R_Generic):
              L{objects.InstanceConsole}
 
     """
-    client = baserlib.GetClient()
+    client = self.GetClient()
 
     ((console, ), ) = client.QueryInstances([self.items[0]], ["console"], False)
 
@@ -1304,7 +1302,7 @@ class R_2_query(baserlib.R_Generic):
   GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
 
   def _Query(self, fields, filter_):
-    return baserlib.GetClient().Query(self.items[0], fields, filter_).ToDict()
+    return self.GetClient().Query(self.items[0], fields, filter_).ToDict()
 
   def GET(self):
     """Returns resource information.
@@ -1349,7 +1347,7 @@ class R_2_query_fields(baserlib.R_Generic):
     else:
       fields = _SplitQueryFields(raw_fields[0])
 
-    return baserlib.GetClient().QueryFields(self.items[0], fields).ToDict()
+    return self.GetClient().QueryFields(self.items[0], fields).ToDict()
 
 
 class _R_Tags(baserlib.R_Generic):
@@ -1388,7 +1386,7 @@ class _R_Tags(baserlib.R_Generic):
       if not self.name:
         raise http.HttpBadRequest("Missing name on tag request")
 
-      cl = baserlib.GetClient()
+      cl = self.GetClient()
       if kind == constants.TAG_INSTANCE:
         fn = cl.QueryInstances
       elif kind == constants.TAG_NODEGROUP:
@@ -1421,7 +1419,7 @@ class _R_Tags(baserlib.R_Generic):
                                 " the 'tag' parameter")
     op = opcodes.OpTagsSet(kind=self.TAG_LEVEL, name=self.name,
                            tags=self.queryargs["tag"], dry_run=self.dryRun())
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
   def DELETE(self):
     """Delete a tag.
@@ -1438,7 +1436,7 @@ class _R_Tags(baserlib.R_Generic):
                                 " tag(s) using the 'tag' parameter")
     op = opcodes.OpTagsDel(kind=self.TAG_LEVEL, name=self.name,
                            tags=self.queryargs["tag"], dry_run=self.dryRun())
-    return baserlib.SubmitJob([op])
+    return self.SubmitJob([op])
 
 
 class R_2_instances_name_tags(_R_Tags):

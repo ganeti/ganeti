@@ -182,35 +182,6 @@ def FillOpcode(opcls, body, static, rename=None):
   return op
 
 
-def SubmitJob(op, cl=None):
-  """Generic wrapper for submit job, for better http compatibility.
-
-  @type op: list
-  @param op: the list of opcodes for the job
-  @type cl: None or luxi.Client
-  @param cl: optional luxi client to use
-  @rtype: string
-  @return: the job ID
-
-  """
-  try:
-    if cl is None:
-      cl = GetClient()
-    return cl.SubmitJob(op)
-  except errors.JobQueueFull:
-    raise http.HttpServiceUnavailable("Job queue is full, needs archiving")
-  except errors.JobQueueDrainError:
-    raise http.HttpServiceUnavailable("Job queue is drained, cannot submit")
-  except luxi.NoMasterError, err:
-    raise http.HttpBadGateway("Master seems to be unreachable: %s" % str(err))
-  except luxi.PermissionError:
-    raise http.HttpInternalServerError("Internal error: no permission to"
-                                       " connect to the master daemon")
-  except luxi.TimeoutError, err:
-    raise http.HttpGatewayTimeout("Timeout while talking to the master"
-                                  " daemon. Error: %s" % str(err))
-
-
 def HandleItemQueryErrors(fn, *args, **kwargs):
   """Converts errors when querying a single item.
 
@@ -222,19 +193,6 @@ def HandleItemQueryErrors(fn, *args, **kwargs):
       raise http.HttpNotFound()
 
     raise
-
-
-def GetClient():
-  """Geric wrapper for luxi.Client(), for better http compatiblity.
-
-  """
-  try:
-    return luxi.Client()
-  except luxi.NoMasterError, err:
-    raise http.HttpBadGateway("Master seems to unreachable: %s" % str(err))
-  except luxi.PermissionError:
-    raise http.HttpInternalServerError("Internal error: no permission to"
-                                       " connect to the master daemon")
 
 
 def FeedbackFn(msg):
@@ -392,3 +350,44 @@ class R_Generic(object):
 
     """
     return bool(self._checkIntVariable("dry-run"))
+
+  def GetClient(self):
+    """Wrapper for L{luxi.Client} with HTTP-specific error handling.
+
+    """
+    # Could be a function, pylint: disable=R0201
+    try:
+      return luxi.Client()
+    except luxi.NoMasterError, err:
+      raise http.HttpBadGateway("Can't connect to master daemon: %s" % err)
+    except luxi.PermissionError:
+      raise http.HttpInternalServerError("Internal error: no permission to"
+                                         " connect to the master daemon")
+
+  def SubmitJob(self, op, cl=None):
+    """Generic wrapper for submit job, for better http compatibility.
+
+    @type op: list
+    @param op: the list of opcodes for the job
+    @type cl: None or luxi.Client
+    @param cl: optional luxi client to use
+    @rtype: string
+    @return: the job ID
+
+    """
+    if cl is None:
+      cl = self.GetClient()
+    try:
+      return cl.SubmitJob(op)
+    except errors.JobQueueFull:
+      raise http.HttpServiceUnavailable("Job queue is full, needs archiving")
+    except errors.JobQueueDrainError:
+      raise http.HttpServiceUnavailable("Job queue is drained, cannot submit")
+    except luxi.NoMasterError, err:
+      raise http.HttpBadGateway("Master seems to be unreachable: %s" % err)
+    except luxi.PermissionError:
+      raise http.HttpInternalServerError("Internal error: no permission to"
+                                         " connect to the master daemon")
+    except luxi.TimeoutError, err:
+      raise http.HttpGatewayTimeout("Timeout while talking to the master"
+                                    " daemon: %s" % err)
