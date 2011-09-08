@@ -457,16 +457,16 @@ class R_2_nodes_name_evacuate(baserlib.ResourceBase):
     return self.SubmitJob([op])
 
 
-class R_2_nodes_name_migrate(baserlib.ResourceBase):
+class R_2_nodes_name_migrate(baserlib.OpcodeResource):
   """/2/nodes/[node_name]/migrate resource.
 
   """
-  def POST(self):
+  POST_OPCODE = opcodes.OpNodeMigrate
+
+  def GetPostOpInput(self):
     """Migrate all primary instances from a node.
 
     """
-    node_name = self.items[0]
-
     if self.queryargs:
       # Support old-style requests
       if "live" in self.queryargs and "mode" in self.queryargs:
@@ -487,11 +487,9 @@ class R_2_nodes_name_migrate(baserlib.ResourceBase):
     else:
       data = self.request_body
 
-    op = baserlib.FillOpcode(opcodes.OpNodeMigrate, data, {
-      "node_name": node_name,
+    return (data, {
+      "node_name": self.items[0],
       })
-
-    return self.SubmitJob([op])
 
 
 class R_2_nodes_name_storage(baserlib.ResourceBase):

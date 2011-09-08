@@ -175,6 +175,80 @@ class TestRedistConfig(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestNodeMigrate(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node1"], {}, {
+      "iallocator": "fooalloc",
+      }, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpNodeMigrate))
+    self.assertEqual(op.node_name, "node1")
+    self.assertEqual(op.iallocator, "fooalloc")
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+  def testQueryArgsConflict(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node2"], {
+      "live": True,
+      "mode": constants.HT_MIGRATION_NONLIVE,
+      }, None, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.POST)
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+  def testQueryArgsMode(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    queryargs = {
+      "mode": [constants.HT_MIGRATION_LIVE],
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node17292"],
+                             queryargs, None, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpNodeMigrate))
+    self.assertEqual(op.node_name, "node17292")
+    self.assertEqual(op.mode, constants.HT_MIGRATION_LIVE)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+  def testQueryArgsLive(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    for live in [False, True]:
+      queryargs = {
+        "live": [str(int(live))],
+        }
+      handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node6940"],
+                               queryargs, None, clfactory)
+      job_id = handler.POST()
+
+      cl = clfactory.GetNextClient()
+      self.assertRaises(IndexError, clfactory.GetNextClient)
+
+      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+      self.assertEqual(job_id, exp_job_id)
+      self.assertTrue(isinstance(op, opcodes.OpNodeMigrate))
+      self.assertEqual(op.node_name, "node6940")
+      if live:
+        self.assertEqual(op.mode, constants.HT_MIGRATION_LIVE)
+      else:
+        self.assertEqual(op.mode, constants.HT_MIGRATION_NONLIVE)
+
+      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
