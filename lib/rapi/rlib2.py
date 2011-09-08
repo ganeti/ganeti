@@ -823,28 +823,27 @@ class R_2_instances_name_reboot(baserlib.OpcodeResource):
       })
 
 
-class R_2_instances_name_startup(baserlib.ResourceBase):
+class R_2_instances_name_startup(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/startup resource.
 
   Implements an instance startup.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpInstanceStartup
+
+  def GetPutOpInput(self):
     """Startup an instance.
 
     The URI takes force=[False|True] parameter to start the instance
     if even if secondary disks are failing.
 
     """
-    instance_name = self.items[0]
-    force_startup = bool(self._checkIntVariable("force"))
-    no_remember = bool(self._checkIntVariable("no_remember"))
-    op = opcodes.OpInstanceStartup(instance_name=instance_name,
-                                   force=force_startup,
-                                   dry_run=bool(self.dryRun()),
-                                   no_remember=no_remember)
-
-    return self.SubmitJob([op])
+    return ({}, {
+      "instance_name": self.items[0],
+      "force": self.useForce(),
+      "dry_run": self.dryRun(),
+      "no_remember": bool(self._checkIntVariable("no_remember")),
+      })
 
 
 def _ParseShutdownInstanceRequest(name, data, dry_run, no_remember):

@@ -361,6 +361,29 @@ class TestInstanceReboot(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestInstanceStartup(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_instances_name_startup, ["inst31083"], {
+      "force": ["1"],
+      "no_remember": ["1"],
+      }, {}, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceStartup))
+    self.assertEqual(op.instance_name, "inst31083")
+    self.assertTrue(op.no_remember)
+    self.assertTrue(op.force)
+    self.assertFalse(op.dry_run)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
