@@ -648,40 +648,21 @@ class R_2_groups_name_modify(baserlib.OpcodeResource):
       })
 
 
-def _ParseRenameGroupRequest(name, data, dry_run):
-  """Parses a request for renaming a node group.
-
-  @type name: string
-  @param name: name of the node group to rename
-  @type data: dict
-  @param data: the body received by the rename request
-  @type dry_run: bool
-  @param dry_run: whether to perform a dry run
-
-  @rtype: L{opcodes.OpGroupRename}
-  @return: Node group rename opcode
-
-  """
-  return baserlib.FillOpcode(opcodes.OpGroupRename, data, {
-    "group_name": name,
-    "dry_run": dry_run,
-    })
-
-
-class R_2_groups_name_rename(baserlib.ResourceBase):
+class R_2_groups_name_rename(baserlib.OpcodeResource):
   """/2/groups/[group_name]/rename resource.
 
   """
-  def PUT(self):
+  PUT_OPCODE = opcodes.OpGroupRename
+
+  def GetPutOpInput(self):
     """Changes the name of a node group.
 
-    @return: a job id
-
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-    op = _ParseRenameGroupRequest(self.items[0], self.request_body,
-                                  self.dryRun())
-    return self.SubmitJob([op])
+    assert len(self.items) == 1
+    return (self.request_body, {
+      "group_name": self.items[0],
+      "dry_run": self.dryRun(),
+      })
 
 
 class R_2_groups_name_assign_nodes(baserlib.ResourceBase):

@@ -680,37 +680,55 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
     self.assertFalse(ops[1].osparams)
 
 
-class TestParseRenameGroupRequest(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    self.Parse = rlib2._ParseRenameGroupRequest
-
+class TestGroupRename(unittest.TestCase):
   def test(self):
-    name = "instij0eeph7"
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    name = "group608242564"
     data = {
-      "new_name": "ua0aiyoo",
+      "new_name": "ua0aiyoo15112",
       }
 
-    op = self.Parse(name, data, False)
+    handler = _CreateHandler(rlib2.R_2_groups_name_rename, [name], {}, data,
+                             clfactory)
+    job_id = handler.PUT()
 
-    self.assert_(isinstance(op, opcodes.OpGroupRename))
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpGroupRename))
     self.assertEqual(op.group_name, name)
-    self.assertEqual(op.new_name, "ua0aiyoo")
+    self.assertEqual(op.new_name, "ua0aiyoo15112")
     self.assertFalse(op.dry_run)
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDryRun(self):
-    name = "instij0eeph7"
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    name = "group28548"
     data = {
       "new_name": "ua0aiyoo",
       }
 
-    op = self.Parse(name, data, True)
+    handler = _CreateHandler(rlib2.R_2_groups_name_rename, [name], {
+      "dry-run": ["1"],
+      }, data, clfactory)
+    job_id = handler.PUT()
 
-    self.assert_(isinstance(op, opcodes.OpGroupRename))
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpGroupRename))
     self.assertEqual(op.group_name, name)
     self.assertEqual(op.new_name, "ua0aiyoo")
-    self.assert_(op.dry_run)
+    self.assertTrue(op.dry_run)
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
 class TestParseInstanceReplaceDisksRequest(unittest.TestCase):
