@@ -108,14 +108,14 @@ J_FIELDS = J_FIELDS_BULK + [
   ]
 
 _NR_DRAINED = "drained"
-_NR_MASTER_CANDIATE = "master-candidate"
+_NR_MASTER_CANDIDATE = "master-candidate"
 _NR_MASTER = "master"
 _NR_OFFLINE = "offline"
 _NR_REGULAR = "regular"
 
 _NR_MAP = {
   constants.NR_MASTER: _NR_MASTER,
-  constants.NR_MCANDIDATE: _NR_MASTER_CANDIATE,
+  constants.NR_MCANDIDATE: _NR_MASTER_CANDIDATE,
   constants.NR_DRAINED: _NR_DRAINED,
   constants.NR_OFFLINE: _NR_OFFLINE,
   constants.NR_REGULAR: _NR_REGULAR,
@@ -383,10 +383,12 @@ class R_2_nodes_name(baserlib.ResourceBase):
     return baserlib.MapFields(N_FIELDS, result[0])
 
 
-class R_2_nodes_name_role(baserlib.ResourceBase):
-  """ /2/nodes/[node_name]/role resource.
+class R_2_nodes_name_role(baserlib.OpcodeResource):
+  """/2/nodes/[node_name]/role resource.
 
   """
+  PUT_OPCODE = opcodes.OpNodeSetParams
+
   def GET(self):
     """Returns the current node role.
 
@@ -400,16 +402,12 @@ class R_2_nodes_name_role(baserlib.ResourceBase):
 
     return _NR_MAP[result[0][0]]
 
-  def PUT(self):
+  def GetPutOpInput(self):
     """Sets the node role.
 
-    @return: a job id
-
     """
-    if not isinstance(self.request_body, basestring):
-      raise http.HttpBadRequest("Invalid body contents, not a string")
+    baserlib.CheckType(self.request_body, basestring, "Body contents")
 
-    node_name = self.items[0]
     role = self.request_body
 
     if role == _NR_REGULAR:
@@ -417,7 +415,7 @@ class R_2_nodes_name_role(baserlib.ResourceBase):
       offline = False
       drained = False
 
-    elif role == _NR_MASTER_CANDIATE:
+    elif role == _NR_MASTER_CANDIDATE:
       candidate = True
       offline = drained = None
 
@@ -432,13 +430,15 @@ class R_2_nodes_name_role(baserlib.ResourceBase):
     else:
       raise http.HttpBadRequest("Can't set '%s' role" % role)
 
-    op = opcodes.OpNodeSetParams(node_name=node_name,
-                                 master_candidate=candidate,
-                                 offline=offline,
-                                 drained=drained,
-                                 force=bool(self.useForce()))
+    assert len(self.items) == 1
 
-    return self.SubmitJob([op])
+    return ({}, {
+      "node_name": self.items[0],
+      "master_candidate": candidate,
+      "offline": offline,
+      "drained": drained,
+      "force": self.useForce(),
+      })
 
 
 class R_2_nodes_name_evacuate(baserlib.OpcodeResource):

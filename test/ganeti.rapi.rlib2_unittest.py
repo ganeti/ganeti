@@ -1283,5 +1283,49 @@ class TestGroupAdd(unittest.TestCase):
     self.assertTrue(op.dry_run)
 
 
+class TestNodeRole(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    for role in rlib2._NR_MAP.values():
+      handler = _CreateHandler(rlib2.R_2_nodes_name_role,
+                               ["node-z"], {}, role, clfactory)
+      if role == rlib2._NR_MASTER:
+        self.assertRaises(http.HttpBadRequest, handler.PUT)
+      else:
+        job_id = handler.PUT()
+
+        cl = clfactory.GetNextClient()
+        self.assertRaises(IndexError, clfactory.GetNextClient)
+
+        (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+        self.assertEqual(job_id, exp_job_id)
+        self.assertTrue(isinstance(op, opcodes.OpNodeSetParams))
+        self.assertEqual(op.node_name, "node-z")
+        self.assertFalse(op.force)
+        self.assertFalse(hasattr(op, "dry_run"))
+
+        if role == rlib2._NR_REGULAR:
+          self.assertFalse(op.drained)
+          self.assertFalse(op.offline)
+          self.assertFalse(op.master_candidate)
+        elif role == rlib2._NR_MASTER_CANDIDATE:
+          self.assertFalse(op.drained)
+          self.assertFalse(op.offline)
+          self.assertTrue(op.master_candidate)
+        elif role == rlib2._NR_DRAINED:
+          self.assertTrue(op.drained)
+          self.assertFalse(op.offline)
+          self.assertFalse(op.master_candidate)
+        elif role == rlib2._NR_OFFLINE:
+          self.assertFalse(op.drained)
+          self.assertTrue(op.offline)
+          self.assertFalse(op.master_candidate)
+        else:
+          self.fail("Unknown role '%s'" % role)
+
+      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
