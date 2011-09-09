@@ -586,6 +586,74 @@ class TestStorageQuery(unittest.TestCase):
     self.assertRaises(http.HttpBadRequest, handler.GET)
 
 
+class TestStorageModify(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    for allocatable in [None, "1", "0"]:
+      queryargs = {
+        "storage_type": constants.ST_LVM_VG,
+        "name": "pv-a",
+        }
+
+      if allocatable is not None:
+        queryargs["allocatable"] = allocatable
+
+      handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
+                               ["node9292"], queryargs, {}, clfactory)
+      job_id = handler.PUT()
+
+      cl = clfactory.GetNextClient()
+      self.assertRaises(IndexError, clfactory.GetNextClient)
+
+      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+      self.assertEqual(job_id, exp_job_id)
+      self.assertTrue(isinstance(op, opcodes.OpNodeModifyStorage))
+      self.assertEqual(op.node_name, "node9292")
+      self.assertEqual(op.storage_type, constants.ST_LVM_VG)
+      self.assertEqual(op.name, "pv-a")
+      if allocatable is None:
+        self.assertFalse(op.changes)
+      else:
+        assert allocatable in ("0", "1")
+        self.assertEqual(op.changes, {
+          constants.SF_ALLOCATABLE: (allocatable == "1"),
+          })
+      self.assertFalse(hasattr(op, "dry_run"))
+      self.assertFalse(hasattr(op, "force"))
+
+      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+  def testErrors(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    # No storage type
+    queryargs = {
+      "name": "xyz",
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
+                             ["node26016"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+
+    # No name
+    queryargs = {
+      "storage_type": constants.ST_LVM_VG,
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
+                             ["node21218"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+
+    # Invalid value
+    queryargs = {
+      "storage_type": constants.ST_LVM_VG,
+      "name": "pv-b",
+      "allocatable": "noint",
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
+                             ["node30685"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)

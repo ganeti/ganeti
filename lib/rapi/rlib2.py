@@ -518,19 +518,19 @@ class R_2_nodes_name_storage(baserlib.OpcodeResource):
       })
 
 
-class R_2_nodes_name_storage_modify(baserlib.ResourceBase):
+class R_2_nodes_name_storage_modify(baserlib.OpcodeResource):
   """/2/nodes/[node_name]/storage/modify resource.
 
   """
-  def PUT(self):
-    node_name = self.items[0]
+  PUT_OPCODE = opcodes.OpNodeModifyStorage
 
+  def GetPutOpInput(self):
+    """Modifies a storage volume on a node.
+
+    """
     storage_type = self._checkStringVariable("storage_type", None)
-    if not storage_type:
-      raise http.HttpBadRequest("Missing the required 'storage_type'"
-                                " parameter")
-
     name = self._checkStringVariable("name", None)
+
     if not name:
       raise http.HttpBadRequest("Missing the required 'name'"
                                 " parameter")
@@ -541,11 +541,12 @@ class R_2_nodes_name_storage_modify(baserlib.ResourceBase):
       changes[constants.SF_ALLOCATABLE] = \
         bool(self._checkIntVariable("allocatable", default=1))
 
-    op = opcodes.OpNodeModifyStorage(node_name=node_name,
-                                     storage_type=storage_type,
-                                     name=name,
-                                     changes=changes)
-    return self.SubmitJob([op])
+    return ({}, {
+      "node_name": self.items[0],
+      "storage_type": storage_type,
+      "name": name,
+      "changes": changes,
+      })
 
 
 class R_2_nodes_name_storage_repair(baserlib.ResourceBase):
