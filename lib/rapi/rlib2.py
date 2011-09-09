@@ -1199,7 +1199,7 @@ class R_2_query_fields(baserlib.ResourceBase):
     return self.GetClient().QueryFields(self.items[0], fields).ToDict()
 
 
-class _R_Tags(baserlib.ResourceBase):
+class _R_Tags(baserlib.OpcodeResource):
   """ Quasiclass for tagging resources
 
   Manages tags. When inheriting this class you must define the
@@ -1207,14 +1207,16 @@ class _R_Tags(baserlib.ResourceBase):
 
   """
   TAG_LEVEL = None
+  PUT_OPCODE = opcodes.OpTagsSet
+  DELETE_OPCODE = opcodes.OpTagsDel
 
-  def __init__(self, items, queryargs, req):
+  def __init__(self, items, queryargs, req, **kwargs):
     """A tag resource constructor.
 
     We have to override the default to sort out cluster naming case.
 
     """
-    baserlib.ResourceBase.__init__(self, items, queryargs, req)
+    baserlib.OpcodeResource.__init__(self, items, queryargs, req, **kwargs)
 
     if self.TAG_LEVEL == constants.TAG_CLUSTER:
       self.name = None
@@ -1255,22 +1257,21 @@ class _R_Tags(baserlib.ResourceBase):
 
     return list(tags)
 
-  def PUT(self):
+  def GetPutOpInput(self):
     """Add a set of tags.
 
     The request as a list of strings should be PUT to this URI. And
     you'll have back a job id.
 
     """
-    # pylint: disable-msg=W0212
-    if "tag" not in self.queryargs:
-      raise http.HttpBadRequest("Please specify tag(s) to add using the"
-                                " the 'tag' parameter")
-    op = opcodes.OpTagsSet(kind=self.TAG_LEVEL, name=self.name,
-                           tags=self.queryargs["tag"], dry_run=self.dryRun())
-    return self.SubmitJob([op])
+    return ({}, {
+      "kind": self.TAG_LEVEL,
+      "name": self.name,
+      "tags": self.queryargs.get("tag", []),
+      "dry_run": self.dryRun(),
+      })
 
-  def DELETE(self):
+  def GetDeleteOpInput(self):
     """Delete a tag.
 
     In order to delete a set of tags, the DELETE
@@ -1278,14 +1279,8 @@ class _R_Tags(baserlib.ResourceBase):
     /tags?tag=[tag]&tag=[tag]
 
     """
-    # pylint: disable-msg=W0212
-    if "tag" not in self.queryargs:
-      # no we not gonna delete all tags
-      raise http.HttpBadRequest("Cannot delete all tags - please specify"
-                                " tag(s) using the 'tag' parameter")
-    op = opcodes.OpTagsDel(kind=self.TAG_LEVEL, name=self.name,
-                           tags=self.queryargs["tag"], dry_run=self.dryRun())
-    return self.SubmitJob([op])
+    # Re-use code
+    return self.GetPutOpInput()
 
 
 class R_2_instances_name_tags(_R_Tags):

@@ -699,6 +699,48 @@ class TestStorageRepair(unittest.TestCase):
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
+class TestTags(unittest.TestCase):
+  TAG_HANDLERS = [
+    rlib2.R_2_instances_name_tags,
+    rlib2.R_2_nodes_name_tags,
+    rlib2.R_2_groups_name_tags,
+    rlib2.R_2_tags,
+    ]
+
+  def testSetAndDelete(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    for method, opcls in [("PUT", opcodes.OpTagsSet),
+                          ("DELETE", opcodes.OpTagsDel)]:
+      for idx, handler in enumerate(self.TAG_HANDLERS):
+        dry_run = bool(idx % 2)
+        name = "test%s" % idx
+        queryargs = {
+          "tag": ["foo", "bar", "baz"],
+          "dry-run": str(int(dry_run)),
+          }
+
+        handler = _CreateHandler(handler, [name], queryargs, {}, clfactory)
+        job_id = getattr(handler, method)()
+
+        cl = clfactory.GetNextClient()
+        self.assertRaises(IndexError, clfactory.GetNextClient)
+
+        (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+        self.assertEqual(job_id, exp_job_id)
+        self.assertTrue(isinstance(op, opcls))
+        self.assertEqual(op.kind, handler.TAG_LEVEL)
+        if handler.TAG_LEVEL == constants.TAG_CLUSTER:
+          self.assertTrue(op.name is None)
+        else:
+          self.assertEqual(op.name, name)
+        self.assertEqual(op.tags, ["foo", "bar", "baz"])
+        self.assertEqual(op.dry_run, dry_run)
+        self.assertFalse(hasattr(op, "force"))
+
+        self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
