@@ -1650,5 +1650,24 @@ class TestSimpleResources(unittest.TestCase):
     self.assertEqual(handler.GET(), constants.RAPI_VERSION)
 
 
+class TestClusterInfo(unittest.TestCase):
+  class _ClusterInfoClient:
+    def __init__(self):
+      self.cluster_info = None
+
+    def QueryClusterInfo(self):
+      assert self.cluster_info is None
+      self.cluster_info = object()
+      return self.cluster_info
+
+  def test(self):
+    clfactory = _FakeClientFactory(self._ClusterInfoClient)
+    handler = _CreateHandler(rlib2.R_2_info, [], {}, None, clfactory)
+    result = handler.GET()
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+    self.assertEqual(result, cl.cluster_info)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
