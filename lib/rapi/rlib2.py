@@ -492,30 +492,30 @@ class R_2_nodes_name_migrate(baserlib.OpcodeResource):
       })
 
 
-class R_2_nodes_name_storage(baserlib.ResourceBase):
+class R_2_nodes_name_storage(baserlib.OpcodeResource):
   """/2/nodes/[node_name]/storage resource.
 
   """
   # LUNodeQueryStorage acquires locks, hence restricting access to GET
   GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  GET_OPCODE = opcodes.OpNodeQueryStorage
 
-  def GET(self):
-    node_name = self.items[0]
+  def GetGetOpInput(self):
+    """List storage available on a node.
 
+    """
     storage_type = self._checkStringVariable("storage_type", None)
-    if not storage_type:
-      raise http.HttpBadRequest("Missing the required 'storage_type'"
-                                " parameter")
-
     output_fields = self._checkStringVariable("output_fields", None)
+
     if not output_fields:
       raise http.HttpBadRequest("Missing the required 'output_fields'"
                                 " parameter")
 
-    op = opcodes.OpNodeQueryStorage(nodes=[node_name],
-                                    storage_type=storage_type,
-                                    output_fields=output_fields.split(","))
-    return self.SubmitJob([op])
+    return ({}, {
+      "nodes": [self.items[0]],
+      "storage_type": storage_type,
+      "output_fields": output_fields.split(","),
+      })
 
 
 class R_2_nodes_name_storage_modify(baserlib.ResourceBase):

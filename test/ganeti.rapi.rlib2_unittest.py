@@ -535,6 +535,57 @@ class TestGroupRemove(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestStorageQuery(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    queryargs = {
+      "storage_type": constants.ST_LVM_PV,
+      "output_fields": "name,other",
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
+                             ["node21075"], queryargs, {}, clfactory)
+    job_id = handler.GET()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpNodeQueryStorage))
+    self.assertEqual(op.nodes, ["node21075"])
+    self.assertEqual(op.storage_type, constants.ST_LVM_PV)
+    self.assertEqual(op.output_fields, ["name", "other"])
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(hasattr(op, "force"))
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+  def testErrors(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    queryargs = {
+      "output_fields": "name,other",
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
+                             ["node10538"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.GET)
+
+    queryargs = {
+      "storage_type": constants.ST_LVM_VG,
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
+                             ["node21273"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.GET)
+
+    queryargs = {
+      "storage_type": "##unknown_storage##",
+      "output_fields": "name,other",
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
+                             ["node10315"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.GET)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)
