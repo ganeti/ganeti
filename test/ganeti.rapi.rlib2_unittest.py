@@ -1320,6 +1320,9 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
     self.assertEqual(ops[1].os_type, "linux1")
     self.assertFalse(ops[1].osparams)
 
+  def testErrors(self):
+    self.assertRaises(http.HttpBadRequest, self.Parse, "foo", "not a dictionary")
+
 
 class TestGroupRename(unittest.TestCase):
   def test(self):
