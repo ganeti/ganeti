@@ -1630,5 +1630,25 @@ class TestNodeRole(unittest.TestCase):
       self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestSimpleResources(unittest.TestCase):
+  def setUp(self):
+    self.clfactory = _FakeClientFactory(_FakeClient)
+
+  def tearDown(self):
+    self.assertRaises(IndexError, self.clfactory.GetNextClient)
+
+  def testFeatures(self):
+    handler = _CreateHandler(rlib2.R_2_features, [], {}, None, self.clfactory)
+    self.assertEqual(set(handler.GET()), rlib2.ALL_FEATURES)
+
+  def testRoot(self):
+    handler = _CreateHandler(rlib2.R_root, [], {}, None, self.clfactory)
+    self.assertTrue(handler.GET() is None)
+
+  def testVersion(self):
+    handler = _CreateHandler(rlib2.R_version, [], {}, None, self.clfactory)
+    self.assertEqual(handler.GET(), constants.RAPI_VERSION)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
