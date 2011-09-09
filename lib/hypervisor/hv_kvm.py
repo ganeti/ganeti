@@ -1527,6 +1527,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      port=instance.network_port,
                                      display=display)
 
+    spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
+    if spice_bind:
+      return objects.InstanceConsole(instance=instance.name,
+                                     kind=constants.CONS_SPICE,
+                                     host=spice_bind,
+                                     port=instance.network_port)
+
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_MESSAGE,
                                    message=("No serial shell for instance %s" %

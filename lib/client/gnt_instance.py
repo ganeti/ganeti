@@ -934,6 +934,9 @@ def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
                 " URL <vnc://%s:%s/>",
                 console.instance, console.host, console.port,
                 console.display, console.host, console.port)
+  elif console.kind == constants.CONS_SPICE:
+    feedback_fn("Instance %s has SPICE listening on %s:%s", console.instance,
+                console.host, console.port)
   elif console.kind == constants.CONS_SSH:
     # Convert to string if not already one
     if isinstance(console.command, basestring):

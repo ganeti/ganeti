@@ -173,6 +173,7 @@ class TestConsole(unittest.TestCase):
     hvparams = {
       constants.HV_SERIAL_CONSOLE: True,
       constants.HV_VNC_BIND_ADDRESS: None,
+      constants.HV_KVM_SPICE_BIND: None,
       }
     cons = self._Test(instance, hvparams)
     self.assertEqual(cons.kind, constants.CONS_SSH)
@@ -187,12 +188,27 @@ class TestConsole(unittest.TestCase):
     hvparams = {
       constants.HV_SERIAL_CONSOLE: False,
       constants.HV_VNC_BIND_ADDRESS: "192.0.2.1",
+      constants.HV_KVM_SPICE_BIND: None,
       }
     cons = self._Test(instance, hvparams)
     self.assertEqual(cons.kind, constants.CONS_VNC)
     self.assertEqual(cons.host, "192.0.2.1")
     self.assertEqual(cons.port, constants.VNC_BASE_PORT + 10)
     self.assertEqual(cons.display, 10)
+
+  def testSpice(self):
+    instance = objects.Instance(name="kvm.example.com",
+                                primary_node="node7235",
+                                network_port=11000)
+    hvparams = {
+      constants.HV_SERIAL_CONSOLE: False,
+      constants.HV_VNC_BIND_ADDRESS: None,
+      constants.HV_KVM_SPICE_BIND: "192.0.2.1",
+      }
+    cons = self._Test(instance, hvparams)
+    self.assertEqual(cons.kind, constants.CONS_SPICE)
+    self.assertEqual(cons.host, "192.0.2.1")
+    self.assertEqual(cons.port, 11000)
 
   def testNoConsole(self):
     instance = objects.Instance(name="kvm.example.com",
@@ -201,6 +217,7 @@ class TestConsole(unittest.TestCase):
     hvparams = {
       constants.HV_SERIAL_CONSOLE: False,
       constants.HV_VNC_BIND_ADDRESS: None,
+      constants.HV_KVM_SPICE_BIND: None,
       }
     cons = self._Test(instance, hvparams)
     self.assertEqual(cons.kind, constants.CONS_MESSAGE)

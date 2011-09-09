@@ -1523,15 +1523,20 @@ class InstanceConsole(ConfigObject):
     """
     assert self.kind in constants.CONS_ALL, "Unknown console type"
     assert self.instance, "Missing instance name"
-    assert self.message or self.kind in [constants.CONS_SSH, constants.CONS_VNC]
+    assert self.message or self.kind in [constants.CONS_SSH,
+                                         constants.CONS_SPICE,
+                                         constants.CONS_VNC]
     assert self.host or self.kind == constants.CONS_MESSAGE
     assert self.port or self.kind in [constants.CONS_MESSAGE,
                                       constants.CONS_SSH]
     assert self.user or self.kind in [constants.CONS_MESSAGE,
+                                      constants.CONS_SPICE,
                                       constants.CONS_VNC]
     assert self.command or self.kind in [constants.CONS_MESSAGE,
+                                         constants.CONS_SPICE,
                                          constants.CONS_VNC]
     assert self.display or self.kind in [constants.CONS_MESSAGE,
+                                         constants.CONS_SPICE,
                                          constants.CONS_SSH]
     return True
 
