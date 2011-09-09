@@ -654,6 +654,51 @@ class TestStorageModify(unittest.TestCase):
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
+class TestStorageRepair(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    queryargs = {
+      "storage_type": constants.ST_LVM_PV,
+      "name": "pv16611",
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage_repair,
+                             ["node19265"], queryargs, {}, clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpRepairNodeStorage))
+    self.assertEqual(op.node_name, "node19265")
+    self.assertEqual(op.storage_type, constants.ST_LVM_PV)
+    self.assertEqual(op.name, "pv16611")
+    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(hasattr(op, "force"))
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+  def testErrors(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    # No storage type
+    queryargs = {
+      "name": "xyz",
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage_repair,
+                             ["node11275"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+
+    # No name
+    queryargs = {
+      "storage_type": constants.ST_LVM_VG,
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_storage_repair,
+                             ["node21218"], queryargs, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+
+
 class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
   def setUp(self):
     testutils.GanetiTestCase.setUp(self)

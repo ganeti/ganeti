@@ -549,27 +549,27 @@ class R_2_nodes_name_storage_modify(baserlib.OpcodeResource):
       })
 
 
-class R_2_nodes_name_storage_repair(baserlib.ResourceBase):
+class R_2_nodes_name_storage_repair(baserlib.OpcodeResource):
   """/2/nodes/[node_name]/storage/repair resource.
 
   """
-  def PUT(self):
-    node_name = self.items[0]
+  PUT_OPCODE = opcodes.OpRepairNodeStorage
 
+  def GetPutOpInput(self):
+    """Repairs a storage volume on a node.
+
+    """
     storage_type = self._checkStringVariable("storage_type", None)
-    if not storage_type:
-      raise http.HttpBadRequest("Missing the required 'storage_type'"
-                                " parameter")
-
     name = self._checkStringVariable("name", None)
     if not name:
       raise http.HttpBadRequest("Missing the required 'name'"
                                 " parameter")
 
-    op = opcodes.OpRepairNodeStorage(node_name=node_name,
-                                     storage_type=storage_type,
-                                     name=name)
-    return self.SubmitJob([op])
+    return ({}, {
+      "node_name": self.items[0],
+      "storage_type": storage_type,
+      "name": name,
+      })
 
 
 class R_2_groups(baserlib.OpcodeResource):
