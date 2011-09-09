@@ -741,13 +741,12 @@ class TestTags(unittest.TestCase):
         self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
-class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
-  def setUp(self):
-    testutils.GanetiTestCase.setUp(self)
-
-    self.Parse = rlib2._ParseInstanceCreateRequestVersion1
-
+class TestInstanceCreation(testutils.GanetiTestCase):
   def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    name = "inst863.example.com"
+
     disk_variants = [
       # No disks
       [],
@@ -798,25 +797,41 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
           for disks in disk_variants:
             for beparams in beparam_variants:
               for hvparams in hvparam_variants:
-                data = {
-                  "name": "inst1.example.com",
-                  "hypervisor": constants.HT_FAKE,
-                  "disks": disks,
-                  "nics": nics,
-                  "mode": mode,
-                  "disk_template": disk_template,
-                  "os": "debootstrap",
-                  }
-
-                if beparams is not None:
-                  data["beparams"] = beparams
-
-                if hvparams is not None:
-                  data["hvparams"] = hvparams
-
                 for dry_run in [False, True]:
-                  op = self.Parse(data, dry_run)
-                  self.assert_(isinstance(op, opcodes.OpInstanceCreate))
+                  queryargs = {
+                    "dry-run": str(int(dry_run)),
+                    }
+
+                  data = {
+                    rlib2._REQ_DATA_VERSION: 1,
+                    "name": name,
+                    "hypervisor": constants.HT_FAKE,
+                    "disks": disks,
+                    "nics": nics,
+                    "mode": mode,
+                    "disk_template": disk_template,
+                    "os": "debootstrap",
+                    }
+
+                  if beparams is not None:
+                    data["beparams"] = beparams
+
+                  if hvparams is not None:
+                    data["hvparams"] = hvparams
+
+                  handler = _CreateHandler(rlib2.R_2_instances, [],
+                                           queryargs, data, clfactory)
+                  job_id = handler.POST()
+
+                  cl = clfactory.GetNextClient()
+                  self.assertRaises(IndexError, clfactory.GetNextClient)
+
+                  (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+                  self.assertEqual(job_id, exp_job_id)
+                  self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+                  self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
+                  self.assertEqual(op.instance_name, name)
                   self.assertEqual(op.mode, mode)
                   self.assertEqual(op.disk_template, disk_template)
                   self.assertEqual(op.dry_run, dry_run)
@@ -845,34 +860,47 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
                     self.assertEqualValues(op.hvparams, hvparams)
 
   def testLegacyName(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "inst29128.example.com"
     data = {
+      rlib2._REQ_DATA_VERSION: 1,
       "name": name,
       "disks": [],
       "nics": [],
       "mode": constants.INSTANCE_CREATE,
       "disk_template": constants.DT_PLAIN,
       }
-    op = self.Parse(data, False)
-    self.assert_(isinstance(op, opcodes.OpInstanceCreate))
+
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
     self.assertEqual(op.instance_name, name)
     self.assertFalse(hasattr(op, "name"))
+    self.assertFalse(op.dry_run)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
     # Define both
-    data = {
-      "name": name,
-      "instance_name": "other.example.com",
-      "disks": [],
-      "nics": [],
-      "mode": constants.INSTANCE_CREATE,
-      "disk_template": constants.DT_PLAIN,
-      }
-    self.assertRaises(http.HttpBadRequest, self.Parse, data, False)
+    data["instance_name"] = "other.example.com"
+    assert "name" in data and "instance_name" in data
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.POST)
+    self.assertRaises(IndexError, clfactory.GetNextClient)
 
   def testLegacyOs(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     name = "inst4673.example.com"
     os = "linux29206"
     data = {
+      rlib2._REQ_DATA_VERSION: 1,
       "name": name,
       "os_type": os,
       "disks": [],
@@ -880,27 +908,35 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
       "mode": constants.INSTANCE_CREATE,
       "disk_template": constants.DT_PLAIN,
       }
-    op = self.Parse(data, False)
-    self.assert_(isinstance(op, opcodes.OpInstanceCreate))
+
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.os_type, os)
     self.assertFalse(hasattr(op, "os"))
+    self.assertFalse(op.dry_run)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
     # Define both
-    data = {
-      "instance_name": name,
-      "os": os,
-      "os_type": "linux9584",
-      "disks": [],
-      "nics": [],
-      "mode": constants.INSTANCE_CREATE,
-      "disk_template": constants.DT_PLAIN,
-      }
-    self.assertRaises(http.HttpBadRequest, self.Parse, data, False)
+    data["os"] = "linux9584"
+    assert "os" in data and "os_type" in data
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.POST)
 
   def testErrors(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
     # Test all required fields
     reqfields = {
+      rlib2._REQ_DATA_VERSION: 1,
       "name": "inst1.example.com",
       "disks": [],
       "nics": [],
@@ -909,9 +945,11 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
       }
 
     for name in reqfields.keys():
-      self.assertRaises(http.HttpBadRequest, self.Parse,
-                        dict(i for i in reqfields.iteritems() if i[0] != name),
-                        False)
+      data = dict(i for i in reqfields.iteritems() if i[0] != name)
+
+      handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+      self.assertRaises(http.HttpBadRequest, handler.POST)
+      self.assertRaises(IndexError, clfactory.GetNextClient)
 
     # Invalid disks and nics
     for field in ["disks", "nics"]:
@@ -921,7 +959,46 @@ class TestParseInstanceCreateRequestVersion1(testutils.GanetiTestCase):
       for invvalue in invalid_values:
         data = reqfields.copy()
         data[field] = invvalue
-        self.assertRaises(http.HttpBadRequest, self.Parse, data, False)
+        handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+        self.assertRaises(http.HttpBadRequest, handler.POST)
+        self.assertRaises(IndexError, clfactory.GetNextClient)
+
+  def testVersion(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    # No version field
+    data = {
+      "name": "inst1.example.com",
+      "disks": [],
+      "nics": [],
+      "mode": constants.INSTANCE_CREATE,
+      "disk_template": constants.DT_PLAIN,
+      }
+
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.POST)
+
+    # Old and incorrect versions
+    for version in [0, -1, 10483, "Hello World"]:
+      data[rlib2._REQ_DATA_VERSION] = version
+
+      handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+      self.assertRaises(http.HttpBadRequest, handler.POST)
+
+      self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    # Correct version
+    data[rlib2._REQ_DATA_VERSION] = 1
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
 class TestBackupExport(unittest.TestCase):

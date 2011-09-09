@@ -687,30 +687,16 @@ class R_2_groups_name_assign_nodes(baserlib.OpcodeResource):
       })
 
 
-def _ParseInstanceCreateRequestVersion1(data, dry_run):
-  """Parses an instance creation request version 1.
-
-  @rtype: L{opcodes.OpInstanceCreate}
-  @return: Instance creation opcode
+class R_2_instances(baserlib.OpcodeResource):
+  """/2/instances resource.
 
   """
-  override = {
-    "dry_run": dry_run,
-    }
-
-  rename = {
+  POST_OPCODE = opcodes.OpInstanceCreate
+  POST_RENAME = {
     "os": "os_type",
     "name": "instance_name",
     }
 
-  return baserlib.FillOpcode(opcodes.OpInstanceCreate, data, override,
-                             rename=rename)
-
-
-class R_2_instances(baserlib.ResourceBase):
-  """/2/instances resource.
-
-  """
   def GET(self):
     """Returns a list of all available instances.
 
@@ -727,14 +713,13 @@ class R_2_instances(baserlib.ResourceBase):
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
                                    uri_fields=("id", "uri"))
 
-  def POST(self):
+  def GetPostOpInput(self):
     """Create an instance.
 
     @return: a job id
 
     """
-    if not isinstance(self.request_body, dict):
-      raise http.HttpBadRequest("Invalid body contents, not a dictionary")
+    baserlib.CheckType(self.request_body, dict, "Body contents")
 
     # Default to request data version 0
     data_version = self.getBodyParameter(_REQ_DATA_VERSION, 0)
@@ -742,16 +727,17 @@ class R_2_instances(baserlib.ResourceBase):
     if data_version == 0:
       raise http.HttpBadRequest("Instance creation request version 0 is no"
                                 " longer supported")
-    elif data_version == 1:
-      data = self.request_body.copy()
-      # Remove "__version__"
-      data.pop(_REQ_DATA_VERSION, None)
-      op = _ParseInstanceCreateRequestVersion1(data, self.dryRun())
-    else:
+    elif data_version != 1:
       raise http.HttpBadRequest("Unsupported request data version %s" %
                                 data_version)
 
-    return self.SubmitJob([op])
+    data = self.request_body.copy()
+    # Remove "__version__"
+    data.pop(_REQ_DATA_VERSION, None)
+
+    return (data, {
+      "dry_run": self.dryRun(),
+      })
 
 
 class R_2_instances_name(baserlib.OpcodeResource):
