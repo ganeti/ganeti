@@ -605,10 +605,12 @@ class R_2_groups(baserlib.OpcodeResource):
                                    uri_fields=("name", "uri"))
 
 
-class R_2_groups_name(baserlib.ResourceBase):
+class R_2_groups_name(baserlib.OpcodeResource):
   """/2/groups/[group_name] resource.
 
   """
+  DELETE_OPCODE = opcodes.OpGroupRemove
+
   def GET(self):
     """Send information about a node group.
 
@@ -622,14 +624,15 @@ class R_2_groups_name(baserlib.ResourceBase):
 
     return baserlib.MapFields(G_FIELDS, result[0])
 
-  def DELETE(self):
+  def GetDeleteOpInput(self):
     """Delete a node group.
 
     """
-    op = opcodes.OpGroupRemove(group_name=self.items[0],
-                               dry_run=bool(self.dryRun()))
-
-    return self.SubmitJob([op])
+    assert len(self.items) == 1
+    return ({}, {
+      "group_name": self.items[0],
+      "dry_run": self.dryRun(),
+      })
 
 
 class R_2_groups_name_modify(baserlib.OpcodeResource):
