@@ -32,6 +32,11 @@ import sys
 import tempfile
 import unittest
 
+try:
+  import xml.etree.ElementTree as ET
+except ImportError:
+  import elementtree.ElementTree as ET
+
 from ganeti import constants
 from ganeti import errors
 from ganeti import ovf
@@ -143,6 +148,10 @@ ARGS_EMPTY = {
   "nics": [],
   "disks": [],
   "name": "test-instance",
+  "ova_package": False,
+  "ext_usage": False,
+  "disk_format": "cow",
+  "compression": False,
 }
 ARGS_EXPORT_DIR = dict(ARGS_EMPTY, **{
   "output_dir": OUTPUT_DIR,
@@ -177,6 +186,131 @@ ARGS_BROKEN = dict(ARGS_EXPORT_DIR , **{
   "osparams": {},
 })
 
+EXP_ARGS_COMPRESSED = dict(ARGS_EXPORT_DIR, **{
+  "compression": True,
+})
+
+EXP_DISKS_LIST = [
+  {
+    "format": "vmdk",
+    "compression": "gzip",
+    "virt-size": 90000,
+    "real-size": 203,
+    "path": "new_disk.cow.gz",
+  },
+  {
+    "format": "cow",
+    "virt-size": 15,
+    "real-size": 15,
+    "path": "new_disk.cow",
+  },
+]
+EXP_NETWORKS_LIST = [
+  {"mac": "aa:00:00:d8:2c:1e", "ip":"None", "link":"br0","mode":"routed"},
+]
+EXP_PARTIAL_GANETI_DICT = {
+  "hypervisor": {"name": "xen-kvm"},
+  "os": {"name": "lenny-image"},
+  "auto_balance": "True",
+  "version": "0",
+}
+EXP_GANETI_DICT = {
+  'tags': None,
+  'auto_balance': 'False',
+  'hypervisor': {
+     'root-path': '/dev/sda',
+     'name': 'xen-pvm',
+     'kernel_args': 'ro'
+   },
+  'version': '0',
+  'disk_template': None,
+  'os': {'name': 'lenny-image'}
+}
+EXP_NAME ="xen-dev-i1"
+EXP_VCPUS = 1
+EXP_MEMORY = 512
+
+EXPORT_EMPTY = ("<Envelope xml:lang=\"en-US\" xmlns=\"http://schemas.dmtf.org/"
+                "ovf/envelope/1\" xmlns:gnt=\"http://ganeti\" xmlns:ovf=\""
+                "http://schemas.dmtf.org/ovf/envelope/1\" xmlns:rasd=\""
+                "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_Resource"
+                "AllocationSettingData\" xmlns:vssd=\"http://schemas.dmtf.org"
+                "/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData\""
+                " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" />")
+EXPORT_DISKS_EMPTY = "<References /><DiskSection />"
+EXPORT_DISKS = ("<References><File ovf:compression=\"gzip\" ovf:href=\"new_disk"
+                ".cow.gz\" ovf:id=\"file0\" ovf:size=\"203\" /><File ovf:href="
+                "\"new_disk.cow\" ovf:id=\"file1\" ovf:size=\"15\" />"
+                "</References><DiskSection><Disk ovf:capacity=\"90000\""
+                " ovf:diskId=\"disk0\" ovf:fileRef=\"file0\" ovf:format=\"http"
+                "://www.vmware.com/interfaces/specifications/vmdk.html"
+                "#monolithicSparse\" /><Disk ovf:capacity=\"15\" ovf:diskId="
+                "\"disk1\" ovf:fileRef=\"file1\" ovf:format=\"http://www.gnome"
+                ".org/~markmc/qcow-image-format.html\" /></DiskSection>")
+EXPORT_NETWORKS_EMPTY = "<NetworkSection />"
+EXPORT_NETWORKS = ("<NetworkSection><Network ovf:name=\"routed0\" />"
+                   "</NetworkSection>")
+EXPORT_GANETI_INCOMPLETE = ("<gnt:GanetiSection><gnt:Version>0</gnt:Version>"
+                            "<gnt:AutoBalance>True</gnt:AutoBalance><gnt:"
+                            "OperatingSystem><gnt:Name>lenny-image</gnt:Name>"
+                            "<gnt:Parameters /></gnt:OperatingSystem><gnt:"
+                            "Hypervisor><gnt:Name>xen-kvm</gnt:Name><gnt:"
+                            "Parameters /></gnt:Hypervisor><gnt:Network><gnt:"
+                            "Nic ovf:name=\"routed0\"><gnt:Mode>routed</gnt:"
+                            "Mode><gnt:MACAddress>aa:00:00:d8:2c:1e</gnt:"
+                            "MACAddress><gnt:IPAddress>None</gnt:IPAddress>"
+                            "<gnt:Link>br0</gnt:Link></gnt:Nic></gnt:Network>"
+                            "</gnt:GanetiSection>")
+EXPORT_GANETI = ("<gnt:GanetiSection><gnt:Version>0</gnt:Version><gnt:"
+                 "AutoBalance>False</gnt:AutoBalance><gnt:OperatingSystem>"
+                 "<gnt:Name>lenny-image</gnt:Name><gnt:Parameters /></gnt:"
+                 "OperatingSystem><gnt:Hypervisor><gnt:Name>xen-pvm</gnt:Name>"
+                 "<gnt:Parameters><gnt:root-path>/dev/sda</gnt:root-path><gnt:"
+                 "kernel_args>ro</gnt:kernel_args></gnt:Parameters></gnt:"
+                 "Hypervisor><gnt:Network><gnt:Nic ovf:name=\"routed0\"><gnt:"
+                 "Mode>routed</gnt:Mode><gnt:MACAddress>aa:00:00:d8:2c:1e</gnt:"
+                 "MACAddress><gnt:IPAddress>None</gnt:IPAddress><gnt:Link>br0"
+                 "</gnt:Link></gnt:Nic></gnt:Network></gnt:GanetiSection>")
+EXPORT_SYSTEM = ("<References><File ovf:compression=\"gzip\" ovf:href=\"new_"
+                 "disk.cow.gz\" ovf:id=\"file0\" ovf:size=\"203\" /><File ovf:"
+                 "href=\"new_disk.cow\" ovf:id=\"file1\" ovf:size=\"15\" />"
+                 "</References><DiskSection><Disk ovf:capacity=\"90000\" ovf:"
+                 "diskId=\"disk0\" ovf:fileRef=\"file0\" ovf:format=\"http://"
+                 "www.vmware.com/interfaces/specifications/vmdk.html#monolithic"
+                 "Sparse\" /><Disk ovf:capacity=\"15\" ovf:diskId=\"disk1\""
+                 " ovf:fileRef=\"file1\" ovf:format=\"http://www.gnome.org/"
+                 "~markmc/qcow-image-format.html\" /></DiskSection><Network"
+                 "Section><Network ovf:name=\"routed0\" /></NetworkSection>"
+                 "<VirtualSystem ovf:id=\"xen-dev-i1\"><Name>xen-dev-i1</Name>"
+                 "<OperatingSystemSection ovf:id=\"0\" /><VirtualHardware"
+                 "Section><System><vssd:ElementName>Virtual Hardware Family"
+                 "</vssd:ElementName><vssd:InstanceId>0</vssd:InstanceId><vssd:"
+                 "VirtualSystemIdentifier>xen-dev-i1</vssd:VirtualSystem"
+                 "Identifier><vssd:VirtualSystemType>ganeti-ovf</vssd:Virtual"
+                 "SystemType></System><Item><rasd:ElementName>1 virtual CPU(s)"
+                 "</rasd:ElementName><rasd:InstanceID>1</rasd:InstanceID><rasd:"
+                 "ResourceType>3</rasd:ResourceType><rasd:VirtualQuantity>1"
+                 "</rasd:VirtualQuantity></Item><Item><rasd:AllocationUnits>"
+                 "byte * 2^20</rasd:AllocationUnits><rasd:ElementName>512MB of"
+                 " memory</rasd:ElementName><rasd:InstanceID>2</rasd:"
+                 "InstanceID><rasd:ResourceType>4</rasd:ResourceType><rasd:"
+                 "VirtualQuantity>512</rasd:VirtualQuantity></Item><Item>"
+                 "<rasd:Address>0</rasd:Address><rasd:ElementName>scsi"
+                 "_controller0</rasd:ElementName><rasd:ResourceType>6</rasd"
+                 ":ResourceType><rasd:InstanceId>3</rasd:InstanceId></Item>"
+                 "<Item><rasd:ElementName>disk0</rasd:ElementName><rasd:"
+                 "ResourceType>17</rasd:ResourceType><rasd:HostResource>ovf:/"
+                 "disk/disk0</rasd:HostResource><rasd:Parent>3</rasd:Parent>"
+                 "<rasd:InstanceID>4</rasd:InstanceID></Item><Item><rasd:"
+                 "ElementName>disk1</rasd:ElementName><rasd:ResourceType>17"
+                 "</rasd:ResourceType><rasd:HostResource>ovf:/disk/disk1</rasd:"
+                 "HostResource><rasd:Parent>3</rasd:Parent><rasd:InstanceID>5"
+                 "</rasd:InstanceID></Item><Item><rasd:ElementName>routed0"
+                 "</rasd:ElementName><rasd:ResourceType>10</rasd:ResourceType>"
+                 "<rasd:Connection>routed0</rasd:Connection><rasd:Address>aa:00"
+                 ":00:d8:2c:1e</rasd:Address><rasd:InstanceID>6</rasd:Instance"
+                 "ID></Item></VirtualHardwareSection></VirtualSystem>")
+
 
 def _GetArgs(args, with_name=False):
   options = optparse.Values()
@@ -190,6 +324,10 @@ def _GetArgs(args, with_name=False):
 OPTS_EMPTY = _GetArgs(ARGS_EMPTY)
 OPTS_EXPORT_NO_NAME = _GetArgs(ARGS_EXPORT_DIR)
 OPTS_EXPORT = _GetArgs(ARGS_EXPORT_DIR, with_name=True)
+
+EXP_OPTS = OPTS_EXPORT_NO_NAME
+EXP_OPTS_COMPRESSED = _GetArgs(EXP_ARGS_COMPRESSED)
+
 OPTS_VBOX = _GetArgs(ARGS_VBOX)
 OPTS_COMPLETE = _GetArgs(ARGS_COMPLETE)
 OPTS_NONIC_NODISK = _GetArgs(ARGS_BROKEN)
@@ -386,6 +524,92 @@ class TestOVFImporter(BetterUnitTest):
       " description", self.importer.Parse)
 
 
+class TestOVFExporter(BetterUnitTest):
+  def setUp(self):
+    self.exporter = None
+    self.wrong_config_file = _GetFullFilename("wrong_config.ini")
+    self.unsafe_path_to_disk = _GetFullFilename("unsafe_path.ini")
+    self.disk_image_not_exist = _GetFullFilename("no_disk.ini")
+    self.empty_config = _GetFullFilename("empty.ini")
+    self.standard_export = _GetFullFilename("config.ini")
+    self.wrong_network_mode = self.disk_image_not_exist
+    self.no_memory = self.disk_image_not_exist
+    self.no_vcpus = self.disk_image_not_exist
+    self.no_os = _GetFullFilename("no_os.ini")
+    self.no_hypervisor = self.disk_image_not_exist
+
+  def tearDown(self):
+    if self.exporter:
+      self.exporter.Cleanup()
+    del_dir = os.path.abspath(OUTPUT_DIR)
+    try:
+      shutil.rmtree(del_dir)
+    except OSError:
+      pass
+
+  def testErrorWrongConfigFile(self):
+    self.assertRaisesRegexp(errors.OpPrereqError,
+      "Error when trying to read", ovf.OVFExporter,
+      self.wrong_config_file, EXP_OPTS)
+
+  def testErrorPathToTheDiskIncorrect(self):
+    self.exporter = ovf.OVFExporter(self.unsafe_path_to_disk, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError, "contains a directory name",
+      self.exporter._ParseDisks)
+
+  def testErrorDiskImageNotExist(self):
+    self.exporter = ovf.OVFExporter(self.disk_image_not_exist, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError, "Disk image does not exist",
+      self.exporter._ParseDisks)
+
+  def testParseNetworks(self):
+    self.exporter = ovf.OVFExporter(self.standard_export, EXP_OPTS)
+    results = self.exporter._ParseNetworks()
+    self.assertEqual(results, EXP_NETWORKS_LIST)
+
+  def testErrorWrongNetworkMode(self):
+    self.exporter = ovf.OVFExporter(self.wrong_network_mode, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError,
+      "Network mode nic not recognized", self.exporter._ParseNetworks)
+
+  def testParseVCPusMem(self):
+    self.exporter = ovf.OVFExporter(self.standard_export, EXP_OPTS)
+    vcpus = self.exporter._ParseVCPUs()
+    memory = self.exporter._ParseMemory()
+    self.assertEqual(vcpus, EXP_VCPUS)
+    self.assertEqual(memory, EXP_MEMORY)
+
+  def testErrorNoVCPUs(self):
+    self.exporter = ovf.OVFExporter(self.no_vcpus, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError, "No CPU information found",
+      self.exporter._ParseVCPUs)
+
+  def testErrorNoMemory(self):
+    self.exporter = ovf.OVFExporter(self.no_memory, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError, "No memory information found",
+      self.exporter._ParseMemory)
+
+  def testParseGaneti(self):
+    self.exporter = ovf.OVFExporter(self.standard_export, EXP_OPTS)
+    results = self.exporter._ParseGaneti()
+    self.assertEqual(results, EXP_GANETI_DICT)
+
+  def testErrorNoHypervisor(self):
+    self.exporter = ovf.OVFExporter(self.no_hypervisor, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError,
+      "No hypervisor information found", self.exporter._ParseGaneti)
+
+  def testErrorNoOS(self):
+    self.exporter = ovf.OVFExporter(self.no_os, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError,
+      "No operating system information found", self.exporter._ParseGaneti)
+
+  def testErrorParseNoInstanceName(self):
+    self.exporter = ovf.OVFExporter(self.empty_config, EXP_OPTS)
+    self.assertRaisesRegexp(errors.OpPrereqError, "No instance name found",
+      self.exporter.Parse)
+
+
 class TestOVFReader(BetterUnitTest):
   def setUp(self):
     self.wrong_xml_file = _GetFullFilename("wrong_xml.ovf")
@@ -530,6 +754,55 @@ class TestOVFReader(BetterUnitTest):
     reader = ovf.OVFReader(self.empty_ovf)
     version = reader.GetVersionData()
     self.assertEqual(version, EMPTY_VERSION)
+
+
+class TestOVFWriter(BetterUnitTest):
+  def setUp(self):
+    self.writer = ovf.OVFWriter(True)
+
+  def tearDown(self):
+    pass
+
+  def testOVFWriterInit(self):
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_EMPTY in result)
+
+  def testSaveDisksDataEmpty(self):
+    self.writer.SaveDisksData([])
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_DISKS_EMPTY in result)
+
+  def testSaveDisksData(self):
+    self.writer.SaveDisksData(EXP_DISKS_LIST)
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_DISKS in result)
+
+  def testSaveNetworkDataEmpty(self):
+    self.writer.SaveNetworksData([])
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_NETWORKS_EMPTY in result)
+
+  def testSaveNetworksData(self):
+    self.writer.SaveNetworksData(EXP_NETWORKS_LIST)
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_NETWORKS in result)
+
+  def testSaveGanetiDataIncomplete(self):
+    self.writer.SaveGanetiData(EXP_PARTIAL_GANETI_DICT, EXP_NETWORKS_LIST)
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_GANETI_INCOMPLETE in result)
+
+  def testSaveGanetiDataComplete(self):
+    self.writer.SaveGanetiData(EXP_GANETI_DICT, EXP_NETWORKS_LIST)
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_GANETI in result)
+
+  def testSaveVirtualSystem(self):
+    self.writer.SaveDisksData(EXP_DISKS_LIST)
+    self.writer.SaveNetworksData(EXP_NETWORKS_LIST)
+    self.writer.SaveVirtualSystemData(EXP_NAME, EXP_VCPUS, EXP_MEMORY)
+    result = ET.tostring(self.writer.tree)
+    self.assertTrue(EXPORT_SYSTEM in result)
 
 
 if __name__ == "__main__":
