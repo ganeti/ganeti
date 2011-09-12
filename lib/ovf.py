@@ -80,6 +80,9 @@ ALLOWED_ACTIONS = [COMPRESS, DECOMPRESS]
 RASD_TYPE = {
   "vcpus": "3",
   "memory": "4",
+  "scsi-controller": "6",
+  "ethernet-adapter": "10",
+  "disk": "17",
 }
 
 # AllocationUnits values and conversion
@@ -106,6 +109,18 @@ AUTO_BALANCE = "auto_balance"
 DISK_TEMPLATE = "disk_template"
 TAGS = "tags"
 VERSION = "version"
+
+# Instance IDs of System and SCSI controller
+SYSTEM_ID = 0
+SCSI_ID = 3
+
+# Disk format descriptions
+DISK_FORMAT = {
+  "raw": "http://en.wikipedia.org/wiki/Byte",
+  "vmdk": "http://www.vmware.com/interfaces/specifications/vmdk.html"
+          "#monolithicSparse",
+  "cow": "http://www.gnome.org/~markmc/qcow-image-format.html",
+}
 
 
 def LinkFile(old_path, prefix=None, suffix=None, directory=None):
@@ -539,11 +554,25 @@ class OVFReader(object):
     return results
 
 
+def SubElementText(parent, tag, text, attrib={}, **extra):
+# pylint: disable=W0102
+  """This is just a wrapper on ET.SubElement that always has text content.
+
+  """
+  if text is None:
+    return None
+  elem = ET.SubElement(parent, tag, attrib=attrib, **extra)
+  elem.text = str(text)
+  return elem
+
+
 class OVFWriter(object):
   """Writer class for OVF files.
 
   @type tree: ET.ElementTree
   @ivar tree: XML tree that we are constructing
+  @type hardware_list: list
+  @ivar hardware_list: list of items prepared for VirtualHardwareSection
 
   """
   def __init__(self, has_gnt_section):
@@ -565,6 +594,174 @@ class OVFWriter(object):
     if has_gnt_section:
       env_attribs["xmlns:gnt"] = GANETI_SCHEMA
     self.tree = ET.Element("Envelope", attrib=env_attribs)
+    self.hardware_list = []
+
+  def SaveDisksData(self, disks):
+    """Convert disk information to certain OVF sections.
+
+    @type disks: list
+    @param disks: list of dictionaries of disk options from config.ini
+
+    """
+    references = ET.SubElement(self.tree, "References")
+    disk_section = ET.SubElement(self.tree, "DiskSection")
+    for counter, disk in enumerate(disks):
+      file_id = "file%s" % counter
+      disk_id = "disk%s" % counter
+      file_attribs = {
+        "ovf:href": disk["path"],
+        "ovf:size": str(disk["real-size"]),
+        "ovf:id": file_id,
+      }
+      disk_attribs = {
+        "ovf:capacity": str(disk["virt-size"]),
+        "ovf:diskId": disk_id,
+        "ovf:fileRef": file_id,
+        "ovf:format": DISK_FORMAT.get(disk["format"], disk["format"]),
+      }
+      if "compression" in disk:
+        file_attribs["ovf:compression"] = disk["compression"]
+      ET.SubElement(references, "File", attrib=file_attribs)
+      ET.SubElement(disk_section, "Disk", attrib=disk_attribs)
+
+      # Item in VirtualHardwareSection creation
+      disk_item = ET.Element("Item")
+      SubElementText(disk_item, "rasd:ElementName", disk_id)
+      SubElementText(disk_item, "rasd:ResourceType", RASD_TYPE["disk"])
+      SubElementText(disk_item, "rasd:HostResource", "ovf:/disk/%s" % disk_id)
+      SubElementText(disk_item, "rasd:Parent", SCSI_ID)
+      self.hardware_list.append(disk_item)
+
+  def SaveNetworksData(self, networks):
+    """Convert network information to NetworkSection.
+
+    @type networks: list
+    @param networks: list of dictionaries of network options form config.ini
+
+    """
+    network_section = ET.SubElement(self.tree, "NetworkSection")
+    for counter, network in enumerate(networks):
+      network_name = "%s%s" % (network["mode"], counter)
+      network_attrib = {"ovf:name": network_name}
+      ET.SubElement(network_section, "Network", attrib=network_attrib)
+
+      # Item in VirtualHardwareSection creation
+      network_item = ET.Element("Item")
+      SubElementText(network_item, "rasd:ElementName", network_name)
+      SubElementText(network_item, "rasd:ResourceType",
+        RASD_TYPE["ethernet-adapter"])
+      SubElementText(network_item, "rasd:Connection", network_name)
+      SubElementText(network_item, "rasd:Address", network["mac"])
+      self.hardware_list.append(network_item)
+
+  @staticmethod
+  def _SaveNameAndParams(root, data):
+    """Save name and parameters information under root using data.
+
+    @type root: ET.Element
+    @param root: root element for the Name and Parameters
+    @type data: dict
+    @param data: data from which we gather the values
+
+    """
+    assert(data.get("name"))
+    name = SubElementText(root, "gnt:Name", data["name"])
+    params = ET.SubElement(root, "gnt:Parameters")
+    for name, value in data.iteritems():
+      if name != "name":
+        SubElementText(params, "gnt:%s" % name, value)
+
+  def SaveGanetiData(self, ganeti, networks):
+    """Convert Ganeti-specific information to GanetiSection.
+
+    @type ganeti: dict
+    @param ganeti: dictionary of Ganeti-specific options from config.ini
+    @type networks: list
+    @param networks: list of dictionaries of network options form config.ini
+
+    """
+    ganeti_section = ET.SubElement(self.tree, "gnt:GanetiSection")
+
+    SubElementText(ganeti_section, "gnt:Version", ganeti.get("version"))
+    SubElementText(ganeti_section, "gnt:DiskTemplate",
+      ganeti.get("disk_template"))
+    SubElementText(ganeti_section, "gnt:AutoBalance",
+      ganeti.get("auto_balance"))
+    SubElementText(ganeti_section, "gnt:Tags", ganeti.get("tags"))
+
+    osys = ET.SubElement(ganeti_section, "gnt:OperatingSystem")
+    self._SaveNameAndParams(osys, ganeti["os"])
+
+    hypervisor = ET.SubElement(ganeti_section, "gnt:Hypervisor")
+    self._SaveNameAndParams(hypervisor, ganeti["hypervisor"])
+
+    network_section = ET.SubElement(ganeti_section, "gnt:Network")
+    for counter, network in enumerate(networks):
+      network_name = "%s%s" % (network["mode"], counter)
+      nic_attrib = {"ovf:name": network_name}
+      nic = ET.SubElement(network_section, "gnt:Nic", attrib=nic_attrib)
+      SubElementText(nic, "gnt:Mode", network["mode"])
+      SubElementText(nic, "gnt:MACAddress", network["mac"])
+      SubElementText(nic, "gnt:IPAddress", network["ip"])
+      SubElementText(nic, "gnt:Link", network["link"])
+
+  def SaveVirtualSystemData(self, name, vcpus, memory):
+    """Convert virtual system information to OVF sections.
+
+    @type name: string
+    @param name: name of the instance
+    @type vcpus: int
+    @param vcpus: number of VCPUs
+    @type memory: int
+    @param memory: RAM memory in MB
+
+    """
+    assert(vcpus > 0)
+    assert(memory > 0)
+    vs_attrib = {"ovf:id": name}
+    virtual_system = ET.SubElement(self.tree, "VirtualSystem", attrib=vs_attrib)
+
+    name_section = ET.SubElement(virtual_system, "Name")
+    name_section.text = name
+    os_attrib = {"ovf:id": "0"}
+    ET.SubElement(virtual_system, "OperatingSystemSection",
+      attrib=os_attrib)
+    hardware_section = ET.SubElement(virtual_system, "VirtualHardwareSection")
+
+    # System description
+    system = ET.SubElement(hardware_section, "System")
+    SubElementText(system, "vssd:ElementName", "Virtual Hardware Family")
+    SubElementText(system, "vssd:InstanceId", SYSTEM_ID)
+    SubElementText(system, "vssd:VirtualSystemIdentifier", name)
+    SubElementText(system, "vssd:VirtualSystemType", "ganeti-ovf")
+
+    # Item for vcpus
+    vcpus_item = ET.SubElement(hardware_section, "Item")
+    SubElementText(vcpus_item, "rasd:ElementName",
+      "%s virtual CPU(s)" % vcpus)
+    SubElementText(vcpus_item, "rasd:InstanceID", "1")
+    SubElementText(vcpus_item, "rasd:ResourceType", RASD_TYPE["vcpus"])
+    SubElementText(vcpus_item, "rasd:VirtualQuantity", vcpus)
+
+    # Item for memory
+    memory_item = ET.SubElement(hardware_section, "Item")
+    SubElementText(memory_item, "rasd:AllocationUnits", "byte * 2^20")
+    SubElementText(memory_item, "rasd:ElementName", "%sMB of memory" % memory)
+    SubElementText(memory_item, "rasd:InstanceID", "2")
+    SubElementText(memory_item, "rasd:ResourceType", RASD_TYPE["memory"])
+    SubElementText(memory_item, "rasd:VirtualQuantity", memory)
+
+    # Item for scsi controller
+    scsi_item = ET.SubElement(hardware_section, "Item")
+    SubElementText(scsi_item, "rasd:Address", SYSTEM_ID)
+    SubElementText(scsi_item, "rasd:ElementName", "scsi_controller0")
+    SubElementText(scsi_item, "rasd:ResourceType", RASD_TYPE["scsi-controller"])
+    SubElementText(scsi_item, "rasd:InstanceId", "3")
+
+    # Other items - from self.hardware_list
+    for counter, item in enumerate(self.hardware_list):
+      SubElementText(item, "rasd:InstanceID", counter + 4)
+      hardware_section.append(item)
 
   def PrettyXmlDump(self):
     """Formatter of the XML file.
@@ -1241,6 +1438,8 @@ class OVFExporter(Converter):
   @ivar output_path: complete path to .ovf file
   @type config_parser: L{ConfigParserWithDefaults}
   @ivar config_parser: parser for the config.ini file
+  @type reference_files: list
+  @ivar reference_files: files referenced in the ovf file
   @type results_disk: list
   @ivar results_disk: list of dictionaries of disk options from config.ini
   @type results_network: list
@@ -1527,6 +1726,14 @@ class OVFExporter(Converter):
 
     self.output_path = utils.PathJoin(self.output_dir, output_file)
     files_list = [self.output_path]
+
+    self.ovf_writer.SaveDisksData(self.results_disk)
+    self.ovf_writer.SaveNetworksData(self.results_network)
+    if not self.options.ext_usage:
+      self.ovf_writer.SaveGanetiData(self.results_ganeti, self.results_network)
+
+    self.ovf_writer.SaveVirtualSystemData(self.results_name, self.results_vcpus,
+      self.results_memory)
 
     data = self.ovf_writer.PrettyXmlDump()
     utils.WriteFile(self.output_path, data=data)
