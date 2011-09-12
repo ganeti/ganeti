@@ -98,6 +98,14 @@ CONVERT_UNITS_TO_MB = {
 
 # Names of the config fields
 NAME = "name"
+OS = "os"
+HYPERV = "hypervisor"
+VCPUS = "vcpus"
+MEMORY = "memory"
+AUTO_BALANCE = "auto_balance"
+DISK_TEMPLATE = "disk_template"
+TAGS = "tags"
+VERSION = "version"
 
 
 def LinkFile(old_path, prefix=None, suffix=None, directory=None):
@@ -1233,8 +1241,18 @@ class OVFExporter(Converter):
   @ivar output_path: complete path to .ovf file
   @type config_parser: L{ConfigParserWithDefaults}
   @ivar config_parser: parser for the config.ini file
+  @type results_disk: list
+  @ivar results_disk: list of dictionaries of disk options from config.ini
+  @type results_network: list
+  @ivar results_network: list of dictionaries of network options form config.ini
   @type results_name: string
   @ivar results_name: name of the instance
+  @type results_vcpus: string
+  @ivar results_vcpus: number of VCPUs
+  @type results_memory: string
+  @ivar results_memory: RAM memory in MB
+  @type results_ganeti: dict
+  @ivar results_ganeti: dictionary of Ganeti-specific options from config.ini
 
   """
   def _ReadInputData(self, input_path):
@@ -1284,6 +1302,157 @@ class OVFExporter(Converter):
       raise errors.OpPrereqError("No instance name found")
     return name
 
+  def _ParseVCPUs(self):
+    """Parses vcpus number from config file.
+
+    @rtype: int
+    @return: number of virtual CPUs
+
+    @raise errors.OpPrereqError: if number of VCPUs equals 0
+
+    """
+    vcpus = self.config_parser.getint(constants.INISECT_BEP, VCPUS)
+    if vcpus == 0:
+      raise errors.OpPrereqError("No CPU information found")
+    return vcpus
+
+  def _ParseMemory(self):
+    """Parses vcpus number from config file.
+
+    @rtype: int
+    @return: amount of memory in MB
+
+    @raise errors.OpPrereqError: if amount of memory equals 0
+
+    """
+    memory = self.config_parser.getint(constants.INISECT_BEP, MEMORY)
+    if memory == 0:
+      raise errors.OpPrereqError("No memory information found")
+    return memory
+
+  def _ParseGaneti(self):
+    """Parses Ganeti data from config file.
+
+    @rtype: dictionary
+    @return: dictionary of Ganeti-specific options
+
+    """
+    results = {}
+    # hypervisor
+    results["hypervisor"] = {}
+    hyp_name = self.config_parser.get(constants.INISECT_INS, HYPERV)
+    if hyp_name is None:
+      raise errors.OpPrereqError("No hypervisor information found")
+    results["hypervisor"]["name"] = hyp_name
+    pairs = self.config_parser.items(constants.INISECT_HYP)
+    for (name, value) in pairs:
+      results["hypervisor"][name] = value
+    # os
+    results["os"] = {}
+    os_name = self.config_parser.get(constants.INISECT_EXP, OS)
+    if os_name is None:
+      raise errors.OpPrereqError("No operating system information found")
+    results["os"]["name"] = os_name
+    pairs = self.config_parser.items(constants.INISECT_OSP)
+    for (name, value) in pairs:
+      results["os"][name] = value
+    # other
+    others = [
+      (constants.INISECT_INS, DISK_TEMPLATE, "disk_template"),
+      (constants.INISECT_BEP, AUTO_BALANCE, "auto_balance"),
+      (constants.INISECT_INS, TAGS, "tags"),
+      (constants.INISECT_EXP, VERSION, "version"),
+    ]
+    for (section, element, name) in others:
+      results[name] = self.config_parser.get(section, element)
+    return results
+
+  def _ParseNetworks(self):
+    """Parses network data from config file.
+
+    @rtype: list
+    @return: list of dictionaries of network options
+
+    @raise errors.OpPrereqError: then network mode is not recognized
+
+    """
+    results = []
+    counter = 0
+    while True:
+      data_link = \
+        self.config_parser.get(constants.INISECT_INS, "nic%s_link" % counter)
+      if data_link is None:
+        break
+      results.append({
+        "mode": self.config_parser.get(constants.INISECT_INS,
+           "nic%s_mode" % counter),
+        "mac": self.config_parser.get(constants.INISECT_INS,
+           "nic%s_mac" % counter),
+        "ip": self.config_parser.get(constants.INISECT_INS,
+           "nic%s_ip" % counter),
+        "link": data_link,
+      })
+      if results[counter]["mode"] not in constants.NIC_VALID_MODES:
+        raise errors.OpPrereqError("Network mode %s not recognized"
+                                   % results[counter]["mode"])
+      counter += 1
+    return results
+
+  def _GetDiskOptions(self, disk_file, compression):
+    """Convert the disk and gather disk info for .ovf file.
+
+    @type disk_file: string
+    @param disk_file: name of the disk (without the full path)
+    @type compression: bool
+    @param compression: whether the disk should be compressed or not
+
+    @raise errors.OpPrereqError: when disk image does not exist
+
+    """
+    disk_path = utils.PathJoin(self.input_dir, disk_file)
+    results = {}
+    if not os.path.isfile(disk_path):
+      raise errors.OpPrereqError("Disk image does not exist: %s" % disk_path)
+    if os.path.dirname(disk_file):
+      raise errors.OpPrereqError("Path for the disk: %s contains a directory"
+                                 " name" % disk_path)
+    disk_name, _ = os.path.splitext(disk_file)
+    ext, new_disk_path = self._ConvertDisk(self.options.disk_format, disk_path)
+    results["format"] = self.options.disk_format
+    results["virt-size"] = self._GetDiskQemuInfo(new_disk_path,
+      "virtual size: \S+ \((\d+) bytes\)")
+    if compression:
+      ext2, new_disk_path = self._CompressDisk(new_disk_path, "gzip",
+        COMPRESS)
+      disk_name, _ = os.path.splitext(disk_name)
+      results["compression"] = "gzip"
+      ext += ext2
+    final_disk_path = LinkFile(new_disk_path, prefix=disk_name, suffix=ext,
+      directory=self.output_dir)
+    final_disk_name = os.path.basename(final_disk_path)
+    results["real-size"] = os.path.getsize(final_disk_path)
+    results["path"] = final_disk_name
+    self.references_files.append(final_disk_path)
+    return results
+
+  def _ParseDisks(self):
+    """Parses disk data from config file.
+
+    @rtype: list
+    @return: list of dictionaries of disk options
+
+    """
+    results = []
+    counter = 0
+    while True:
+      disk_file = \
+        self.config_parser.get(constants.INISECT_INS, "disk%s_dump" % counter)
+      if disk_file is None:
+        break
+      results.append(self._GetDiskOptions(disk_file, self.options.compression))
+      counter += 1
+    return results
+
   def Parse(self):
     """Parses the data and creates a structure containing all required info.
 
@@ -1294,7 +1463,14 @@ class OVFExporter(Converter):
       raise errors.OpPrereqError("Failed to create directory %s: %s" %
                                  (self.output_dir, err))
 
+    self.references_files = []
     self.results_name = self._ParseName()
+    self.results_vcpus = self._ParseVCPUs()
+    self.results_memory = self._ParseMemory()
+    if not self.options.ext_usage:
+      self.results_ganeti = self._ParseGaneti()
+    self.results_network = self._ParseNetworks()
+    self.results_disk = self._ParseDisks()
 
   def _PrepareManifest(self, path):
     """Creates manifest for all the files in OVF package.
