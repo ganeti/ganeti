@@ -454,7 +454,7 @@ the command line.
 
 Typical workflow for the import is very simple:
 
-- read the ``.ovf`` file info memory
+- read the ``.ovf`` file into memory
 - verify manifest
 - parse each element of the configuration file: name, disk template,
   hypervisor, operating system, backend parameters, network and disks
@@ -467,6 +467,29 @@ Typical workflow for the import is very simple:
 		- otherwise: read the appropriate portion of ``.ovf`` file
 
 - save gathered information in ``config.ini`` file
+
+Export
+------
+
+Similar to import, export functionality also uses two classes -
+OVFWriter and OVFExporter.
+
+OVFWriter class produces XML output based on the information given. Its
+sole role is to separate the creation of ``.ovf`` file content.
+
+OVFExporter class gathers information from ``config.ini`` file or
+command line and performs necessary operations like disk conversion, disk
+compression, manifest creation and OVA package creation.
+
+Typical workflow for the export is even simpler, than for the import:
+
+- read the ``config.ini`` file into memory
+- gather information about certain parts of the instance, convert and
+  compress disks if desired
+- save each of these elements as a fragment of XML tree
+- save the XML tree as ``.ovf`` file
+- create manifest file and fill it with appropriate checksums
+- if ``--ova`` option was chosen, pack the results into ``.ova`` tarfile
 
 
 .. vim: set textwidth=72 :

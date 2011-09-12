@@ -92,6 +92,51 @@ instance may look like::
     gnt-instance import -n node1.xen xen.test.i1
 
 
+
+Export example
+==============
+
+Exporting instance into ``.ovf`` format is pretty streightforward and
+requires little - if any - explanation. The only compulsory detail is
+the required disk format, provided using the ``--format`` option.
+
+Export to another Ganeti instance
+---------------------------------
+If for some reason it is convenient for you to use ``ovfconverter`` to
+move instance between clusters (e.g. because of the disk compression),
+the complete example of export may look like this::
+
+    gnt-backup export -n node1.xen xen.test.i1
+    [...]
+    ovfconverter export --format=vmdk --ova \
+      /srv/ganeti/export/xen.i1.node1.xen/config.ini
+    [...]
+
+The result is then in
+``/srv/ganeti/export/xen.i1.node1.xen/xen.test.i1.ova``
+
+Export to Virtualbox/VMWare/other external tool
+-----------------------------------------------
+Typically, when exporting to external tool we do not want
+Ganeti-specific configuration to be saved. In that case, simply use the
+``--external`` option::
+
+    gnt-backup export -n node1.xen xen.test.i1
+    [...]
+    ovfconverter export --external --output-dir ~/ganeti-instance/ \
+      /srv/ganeti/export/xen.i1.node1.xen/config.ini
+
+
+Known issues
+============
+
+Export
+------
+When exporting to **VirtualBox**, you may encounter errors regarding
+network. If that is the case, simply change the network type in options
+to ``NAT``.
+
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst
