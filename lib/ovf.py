@@ -29,6 +29,7 @@
 # E1101 makes no sense - pylint assumes that ElementTree object is a tuple
 
 
+import ConfigParser
 import errno
 import logging
 import os
@@ -37,6 +38,7 @@ import re
 import shutil
 import tarfile
 import tempfile
+import xml.dom.minidom
 import xml.parsers.expat
 try:
   import xml.etree.ElementTree as ET
@@ -53,6 +55,9 @@ GANETI_SCHEMA = "http://ganeti"
 OVF_SCHEMA = "http://schemas.dmtf.org/ovf/envelope/1"
 RASD_SCHEMA = ("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/"
                "CIM_ResourceAllocationSettingData")
+VSSD_SCHEMA = ("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/"
+               "CIM_VirtualSystemSettingData")
+XML_SCHEMA = "http://www.w3.org/2001/XMLSchema-instance"
 
 # File extensions in OVF package
 OVA_EXT = ".ova"
@@ -90,6 +95,9 @@ CONVERT_UNITS_TO_MB = {
   'mb': lambda x: x,
   'gb': lambda x: x * 1024,
 }
+
+# Names of the config fields
+NAME = "name"
 
 
 def LinkFile(old_path, prefix=None, suffix=None, directory=None):
@@ -521,6 +529,47 @@ class OVFReader(object):
       disk_compression = disk_elem.get("{%s}compression" % OVF_SCHEMA)
       results.append((disk_name, disk_compression))
     return results
+
+
+class OVFWriter(object):
+  """Writer class for OVF files.
+
+  @type tree: ET.ElementTree
+  @ivar tree: XML tree that we are constructing
+
+  """
+  def __init__(self, has_gnt_section):
+    """Initialize the writer - set the top element.
+
+    @type has_gnt_section: bool
+    @param has_gnt_section: if the Ganeti schema should be added - i.e. this
+      means that Ganeti section will be present
+
+    """
+    env_attribs = {
+      "xmlns:xsi": XML_SCHEMA,
+      "xmlns:vssd": VSSD_SCHEMA,
+      "xmlns:rasd": RASD_SCHEMA,
+      "xmlns:ovf": OVF_SCHEMA,
+      "xmlns": OVF_SCHEMA,
+      "xml:lang": "en-US",
+    }
+    if has_gnt_section:
+      env_attribs["xmlns:gnt"] = GANETI_SCHEMA
+    self.tree = ET.Element("Envelope", attrib=env_attribs)
+
+  def PrettyXmlDump(self):
+    """Formatter of the XML file.
+
+    @rtype: string
+    @return: XML tree in the form of nicely-formatted string
+
+    """
+    raw_string = ET.tostring(self.tree)
+    parsed_xml = xml.dom.minidom.parseString(raw_string)
+    xml_string = parsed_xml.toprettyxml(indent="  ")
+    text_re = re.compile(">\n\s+([^<>\s].*?)\n\s+</", re.DOTALL)
+    return text_re.sub(">\g<1></", xml_string)
 
 
 class Converter(object):
@@ -1147,12 +1196,180 @@ class OVFImporter(Converter):
     self.Cleanup()
 
 
+class ConfigParserWithDefaults(ConfigParser.SafeConfigParser):
+  """This is just a wrapper on SafeConfigParser, that uses default values
+
+  """
+  def get(self, section, options, raw=None, vars=None): # pylint: disable=W0622
+    try:
+      result = ConfigParser.SafeConfigParser.get(self, section, options, \
+        raw=raw, vars=vars)
+    except ConfigParser.NoOptionError:
+      result = None
+    return result
+
+  def getint(self, section, options):
+    try:
+      result = ConfigParser.SafeConfigParser.get(self, section, options)
+    except ConfigParser.NoOptionError:
+      result = 0
+    return int(result)
+
+
 class OVFExporter(Converter):
+  """Converter from Ganeti config file to OVF
+
+  @type input_dir: string
+  @ivar input_dir: directory in which the config.ini file resides
+  @type output_dir: string
+  @ivar output_dir: directory to which the results of conversion shall be
+    written
+  @type packed_dir: string
+  @ivar packed_dir: if we want OVA package, this points to the real (i.e. not
+    temp) output directory
+  @type input_path: string
+  @ivar input_path: complete path to the config.ini file
+  @type output_path: string
+  @ivar output_path: complete path to .ovf file
+  @type config_parser: L{ConfigParserWithDefaults}
+  @ivar config_parser: parser for the config.ini file
+  @type results_name: string
+  @ivar results_name: name of the instance
+
+  """
   def _ReadInputData(self, input_path):
-    pass
+    """Reads the data on which the conversion will take place.
+
+    @type input_path: string
+    @param input_path: absolute path to the config.ini input file
+
+    @raise errors.OpPrereqError: error when reading the config file
+
+    """
+    input_dir = os.path.dirname(input_path)
+    self.input_path = input_path
+    self.input_dir = input_dir
+    if self.options.output_dir:
+      self.output_dir = os.path.abspath(self.options.output_dir)
+    else:
+      self.output_dir = input_dir
+    self.config_parser = ConfigParserWithDefaults()
+    logging.info("Reading configuration from %s file", input_path)
+    try:
+      self.config_parser.read(input_path)
+    except ConfigParser.MissingSectionHeaderError, err:
+      raise errors.OpPrereqError("Error when trying to read %s: %s" %
+                                 (input_path, err))
+    if self.options.ova_package:
+      self.temp_dir = tempfile.mkdtemp()
+      self.packed_dir = self.output_dir
+      self.output_dir = self.temp_dir
+
+    self.ovf_writer = OVFWriter(not self.options.ext_usage)
+
+  def _ParseName(self):
+    """Parses name from command line options or config file.
+
+    @rtype: string
+    @return: name of Ganeti instance
+
+    @raise errors.OpPrereqError: if name of the instance is not provided
+
+    """
+    if self.options.name:
+      name = self.options.name
+    else:
+      name = self.config_parser.get(constants.INISECT_INS, NAME)
+    if name is None:
+      raise errors.OpPrereqError("No instance name found")
+    return name
 
   def Parse(self):
-    pass
+    """Parses the data and creates a structure containing all required info.
+
+    """
+    try:
+      utils.Makedirs(self.output_dir)
+    except OSError, err:
+      raise errors.OpPrereqError("Failed to create directory %s: %s" %
+                                 (self.output_dir, err))
+
+    self.results_name = self._ParseName()
+
+  def _PrepareManifest(self, path):
+    """Creates manifest for all the files in OVF package.
+
+    @type path: string
+    @param path: path to manifesto file
+
+    @raise errors.OpPrereqError: if error occurs when writing file
+
+    """
+    logging.info("Preparing manifest for the OVF package")
+    lines = []
+    files_list = [self.output_path]
+    files_list.extend(self.references_files)
+    logging.warning("Calculating SHA1 checksums, this may take a while")
+    sha1_sums = utils.FingerprintFiles(files_list)
+    for file_path, value in sha1_sums.iteritems():
+      file_name = os.path.basename(file_path)
+      lines.append("SHA1(%s)= %s" % (file_name, value))
+    lines.append("")
+    data = "\n".join(lines)
+    try:
+      utils.WriteFile(path, data=data)
+    except errors.ProgrammerError, err:
+      raise errors.OpPrereqError("Saving the manifest file failed: %s" % err)
+
+  @staticmethod
+  def _PrepareTarFile(tar_path, files_list):
+    """Creates tarfile from the files in OVF package.
+
+    @type tar_path: string
+    @param tar_path: path to the resulting file
+    @type files_list: list
+    @param files_list: list of files in the OVF package
+
+    """
+    logging.info("Preparing tarball for the OVF package")
+    open(tar_path, mode="w").close()
+    ova_package = tarfile.open(name=tar_path, mode="w")
+    for file_name in files_list:
+      ova_package.add(file_name)
+    ova_package.close()
 
   def Save(self):
-    pass
+    """Saves the gathered configuration in an apropriate format.
+
+    @raise errors.OpPrereqError: if unable to create output directory
+
+    """
+    output_file = "%s%s" % (self.results_name, OVF_EXT)
+    output_path = utils.PathJoin(self.output_dir, output_file)
+    self.ovf_writer = OVFWriter(not self.options.ext_usage)
+    logging.info("Saving read data to %s", output_path)
+
+    self.output_path = utils.PathJoin(self.output_dir, output_file)
+    files_list = [self.output_path]
+
+    data = self.ovf_writer.PrettyXmlDump()
+    utils.WriteFile(self.output_path, data=data)
+
+    manifest_file = "%s%s" % (self.results_name, MF_EXT)
+    manifest_path = utils.PathJoin(self.output_dir, manifest_file)
+    self._PrepareManifest(manifest_path)
+    files_list.append(manifest_path)
+
+    files_list.extend(self.references_files)
+
+    if self.options.ova_package:
+      ova_file = "%s%s" % (self.results_name, OVA_EXT)
+      packed_path = utils.PathJoin(self.packed_dir, ova_file)
+      try:
+        utils.Makedirs(self.packed_dir)
+      except OSError, err:
+        raise errors.OpPrereqError("Failed to create directory %s: %s" %
+                                   (self.packed_dir, err))
+      self._PrepareTarFile(packed_path, files_list)
+    logging.info("Creation of the OVF package was successfull")
+    self.Cleanup()
