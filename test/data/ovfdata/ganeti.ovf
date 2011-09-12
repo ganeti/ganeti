@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<Envelope ovf:version="1.0" xml:lang="en-US" xmlns="http://schemas.dmtf.org/ovf/envelope/1" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData" xmlns:vssd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gnt="http://ganeti">
+  <References>
+    <File ovf:href="new_disk.vmdk" ovf:id="file1"/>
+  </References>
+  <DiskSection>
+    <Info>List of the virtual disks used in the package</Info>
+    <Disk ovf:diskId="vmdisk1" ovf:fileRef="file1" ovf:format="http://www.vmware.com/specifications/vmdk.html#sparse"/>
+  </DiskSection>
+  <gnt:GanetiSection>
+    <gnt:Version>0</gnt:Version>
+    <gnt:AutoBalance>False</gnt:AutoBalance>
+    <gnt:Tags></gnt:Tags>
+    <gnt:DiskTemplate>plain</gnt:DiskTemplate>
+    <gnt:OperatingSystem>
+      <gnt:Name>lenny-image</gnt:Name>
+    </gnt:OperatingSystem>
+    <gnt:Network>
+      <gnt:Nic ovf:name="routed">
+        <gnt:Mode>bridged</gnt:Mode>
+        <gnt:MACAddress>aa:00:00:d8:2c:1e</gnt:MACAddress>
+        <gnt:IPAddress>none</gnt:IPAddress>
+        <gnt:Link>xen-br0</gnt:Link>
+      </gnt:Nic>
+    </gnt:Network>
+    <gnt:Hypervisor>
+      <gnt:Name>xen-pvm</gnt:Name>
+      <gnt:Parameters>
+        <gnt:root-path>/dev/sda</gnt:root-path>
+        <gnt:kernel_args>ro</gnt:kernel_args>
+      </gnt:Parameters>
+    </gnt:Hypervisor>
+  </gnt:GanetiSection>
+  <NetworkSection>
+    <Info>Logical networks used in the package</Info>
+    <Network ovf:name="routed">
+      <Description>Logical network used by this appliance.</Description>
+    </Network>
+  </NetworkSection>
+  <VirtualSystem ovf:id="New-shiny-instance">
+    <Info>A virtual machine</Info>
+    <Name>ganeti-test-xen</Name>
+    <OperatingSystemSection ovf:id="93">
+      <Info>The kind of installed guest operating system</Info>
+      <Description>Ubuntu</Description>
+    </OperatingSystemSection>
+    <VirtualHardwareSection>
+      <Info>Virtual hardware requirements for a virtual machine</Info>
+      <System>
+        <vssd:ElementName>Virtual Hardware Family</vssd:ElementName>
+        <vssd:InstanceID>0</vssd:InstanceID>
+        <vssd:VirtualSystemIdentifier>Ubuntu-freshly-created</vssd:VirtualSystemIdentifier>
+        <vssd:VirtualSystemType>virtualbox-2.2</vssd:VirtualSystemType>
+      </System>
+      <Item>
+        <rasd:Caption>1 virtual CPU</rasd:Caption>
+        <rasd:ElementName>1 virtual CPU</rasd:ElementName>
+        <rasd:Description>Number of virtual CPUs</rasd:Description>
+        <rasd:InstanceID>1</rasd:InstanceID>
+        <rasd:ResourceType>3</rasd:ResourceType>
+        <rasd:VirtualQuantity>1</rasd:VirtualQuantity>
+      </Item>
+      <Item>
+        <rasd:Caption>2048 MB of memory</rasd:Caption>
+        <rasd:ElementName>2048 MB of memory</rasd:ElementName>
+        <rasd:Description>Memory Size</rasd:Description>
+        <rasd:InstanceID>2</rasd:InstanceID>
+        <rasd:ResourceType>4</rasd:ResourceType>
+        <rasd:AllocationUnits>MegaBytes</rasd:AllocationUnits>
+        <rasd:VirtualQuantity>2048</rasd:VirtualQuantity>
+      </Item>
+      <Item>
+        <rasd:Caption>Ethernet adapter on 'NAT'</rasd:Caption>
+        <rasd:ElementName>Ethernet adapter on 'NAT'</rasd:ElementName>
+        <rasd:InstanceID>5</rasd:InstanceID>
+        <rasd:ResourceType>10</rasd:ResourceType>
+        <rasd:ResourceSubType>PCNet32</rasd:ResourceSubType>
+        <rasd:AutomaticAllocation>true</rasd:AutomaticAllocation>
+        <rasd:Connection></rasd:Connection>
+      </Item>
+      <Item>
+        <rasd:Caption>disk1</rasd:Caption>
+        <rasd:ElementName>disk1</rasd:ElementName>
+        <rasd:Description>Disk Image</rasd:Description>
+        <rasd:InstanceID>7</rasd:InstanceID>
+        <rasd:ResourceType>17</rasd:ResourceType>
+        <rasd:HostResource>/disk/vmdisk1</rasd:HostResource>
+        <rasd:Parent>3</rasd:Parent>
+        <rasd:AddressOnParent>0</rasd:AddressOnParent>
+      </Item>
+    </VirtualHardwareSection>
+  </VirtualSystem>
+</Envelope>

@@ -1,0 +1,2 @@
+SHA1(new_disk.vmdk)= 0500304662fb8a6a7925b5a43bc0e05d6a03720d
+SHA1(wrong_manifest.ovf)= 0500304662fb8a6a7965b5a43bc0e05d6a03720d

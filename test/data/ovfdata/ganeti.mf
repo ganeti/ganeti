@@ -1,0 +1,2 @@
+SHA1(ganeti.ovf)= d298200d9044c54b0fde13efaa90e564badc5961
+SHA1(new_disk.vmdk)= 711c48f14c934228b8e117d036c913cdb9d63305

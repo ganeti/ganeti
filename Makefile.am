@@ -81,6 +81,7 @@ DIRS = \
 	qa \
 	test \
 	test/data \
+	test/data/ovfdata \
 	tools
 
 BUILDTIME_DIR_AUTOCREATE = \
@@ -640,6 +641,23 @@ TEST_FILES = \
 	test/data/proc_drbd83_sync.txt \
 	test/data/proc_drbd83_sync_krnl2.6.39.txt \
 	test/data/sys_drbd_usermode_helper.txt \
+	test/data/ovfdata/compr_disk.vmdk.gz \
+	test/data/ovfdata/corrupted_resources.ovf \
+	test/data/ovfdata/empty.ovf \
+	test/data/ovfdata/ganeti.mf \
+	test/data/ovfdata/ganeti.ovf \
+	test/data/ovfdata/gzip_disk.ovf \
+	test/data/ovfdata/new_disk.vmdk \
+	test/data/ovfdata/no_disk_in_ref.ovf \
+	test/data/ovfdata/no_ovf.ova \
+	test/data/ovfdata/ova.ova \
+	test/data/ovfdata/second_disk.vmdk \
+	test/data/ovfdata/virtualbox.ovf \
+	test/data/ovfdata/wrong_extension.ovd \
+	test/data/ovfdata/wrong_manifest.mf \
+	test/data/ovfdata/wrong_manifest.ovf \
+	test/data/ovfdata/wrong_ova.ova \
+	test/data/ovfdata/wrong_xml.ovf \
 	test/import-export_unittest-helper
 
 python_tests = \
@@ -674,6 +692,7 @@ python_tests = \
 	test/ganeti.netutils_unittest.py \
 	test/ganeti.objects_unittest.py \
 	test/ganeti.opcodes_unittest.py \
+	test/ganeti.ovf_unittest.py \
 	test/ganeti.qlang_unittest.py \
 	test/ganeti.query_unittest.py \
 	test/ganeti.rapi.baserlib_unittest.py \
