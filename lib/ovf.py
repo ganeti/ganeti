@@ -29,7 +29,9 @@
 # E1101 makes no sense - pylint assumes that ElementTree object is a tuple
 
 
+import errno
 import logging
+import os
 import os.path
 import re
 import shutil
@@ -57,11 +59,57 @@ OVA_EXT = ".ova"
 OVF_EXT = ".ovf"
 MF_EXT = ".mf"
 CERT_EXT = ".cert"
+COMPRESSION_EXT = ".gz"
 FILE_EXTENSIONS = [
   OVF_EXT,
   MF_EXT,
   CERT_EXT,
 ]
+
+COMPRESSION_TYPE = "gzip"
+COMPRESS = "compression"
+DECOMPRESS = "decompression"
+ALLOWED_ACTIONS = [COMPRESS, DECOMPRESS]
+
+
+def LinkFile(old_path, prefix=None, suffix=None, directory=None):
+  """Create link with a given prefix and suffix.
+
+  This is a wrapper over os.link. It tries to create a hard link for given file,
+  but instead of rising error when file exists, the function changes the name
+  a little bit.
+
+  @type old_path:string
+  @param old_path: path to the file that is to be linked
+  @type prefix: string
+  @param prefix: prefix of filename for the link
+  @type suffix: string
+  @param suffix: suffix of the filename for the link
+  @type directory: string
+  @param directory: directory of the link
+
+  @raise errors.OpPrereqError: when error on linking is different than
+    "File exists"
+
+  """
+  assert(prefix is not None or suffix is not None)
+  if directory is None:
+    directory = os.getcwd()
+  new_path = utils.PathJoin(directory, "%s%s" % (prefix, suffix))
+  counter = 1
+  while True:
+    try:
+      os.link(old_path, new_path)
+      break
+    except OSError, err:
+      if err.errno == errno.EEXIST:
+        new_path = utils.PathJoin(directory,
+          "%s_%s%s" % (prefix, counter, suffix))
+        counter += 1
+      else:
+        raise errors.OpPrereqError("Error moving the file %s to %s location:"
+                                   " %s" % (old_path, new_path, err))
+  return new_path
 
 
 class OVFReader(object):
@@ -139,6 +187,50 @@ class OVFReader(object):
     results = [x.get(attribute) for x in current_list]
     return filter(None, results)
 
+  def _GetElementMatchingAttr(self, path, match_attr):
+    """Searches for element on a path that matches certain attribute value.
+
+    Function follows the path from root node to the desired tags using path,
+    then searches for the first one matching the attribute value.
+
+    @type path: string
+    @param path: path of nodes to visit
+    @type match_attr: tuple
+    @param match_attr: pair (attribute, value) for which we search
+    @rtype: ET.ElementTree or None
+    @return: first element matching match_attr or None if nothing matches
+
+    """
+    potential_elements = self.tree.findall(path)
+    (attr, val) = match_attr
+    for elem in potential_elements:
+      if elem.get(attr) == val:
+        return elem
+    return None
+
+  @staticmethod
+  def _GetDictParameters(root, schema):
+    """Reads text in all children and creates the dictionary from the contents.
+
+    @type root: ET.ElementTree or None
+    @param root: father of the nodes we want to collect data about
+    @type schema: string
+    @param schema: schema name to be removed from the tag
+    @rtype: dict
+    @return: dictionary containing tags and their text contents, tags have their
+      schema fragment removed or empty dictionary, when root is None
+
+    """
+    if not root:
+      return {}
+    results = {}
+    for element in list(root):
+      pref_len = len("{%s}" % schema)
+      assert(schema in element.tag)
+      tag = element.tag[pref_len:]
+      results[tag] = element.text
+    return results
+
   def VerifyManifest(self):
     """Verifies manifest for the OVF package, if one is given.
 
@@ -166,6 +258,48 @@ class OVFReader(object):
           raise errors.OpPrereqError("SHA1 checksum of %s does not match the"
                                      " value in manifest file" % file_name)
       logging.info("SHA1 checksums verified")
+
+  def GetInstanceName(self):
+    """Provides information about instance name.
+
+    @rtype: string
+    @return: instance name string
+
+    """
+    find_name = "{%s}VirtualSystem/{%s}Name" % (OVF_SCHEMA, OVF_SCHEMA)
+    return self.tree.findtext(find_name)
+
+  def GetDiskTemplate(self):
+    """Returns disk template from .ovf file
+
+    @rtype: string or None
+    @return: name of the template
+    """
+    find_template = ("{%s}GanetiSection/{%s}DiskTemplate" %
+                     (GANETI_SCHEMA, GANETI_SCHEMA))
+    return self.tree.findtext(find_template)
+
+  def GetDisksNames(self):
+    """Provides list of file names for the disks used by the instance.
+
+    @rtype: list
+    @return: list of file names, as referenced in .ovf file
+
+    """
+    results = []
+    disks_search = "{%s}DiskSection/{%s}Disk" % (OVF_SCHEMA, OVF_SCHEMA)
+    disk_ids = self._GetAttributes(disks_search, "{%s}fileRef" % OVF_SCHEMA)
+    for disk in disk_ids:
+      disk_search = "{%s}References/{%s}File" % (OVF_SCHEMA, OVF_SCHEMA)
+      disk_match = ("{%s}id" % OVF_SCHEMA, disk)
+      disk_elem = self._GetElementMatchingAttr(disk_search, disk_match)
+      if disk_elem is None:
+        raise errors.OpPrereqError("%s file corrupted - disk %s not found in"
+                                   " references" % (OVF_EXT, disk))
+      disk_name = disk_elem.get("{%s}href" % OVF_SCHEMA)
+      disk_compression = disk_elem.get("{%s}compression" % OVF_SCHEMA)
+      results.append((disk_name, disk_compression))
+    return results
 
 
 class Converter(object):
@@ -215,6 +349,109 @@ class Converter(object):
     """
     raise NotImplementedError()
 
+  def _CompressDisk(self, disk_path, compression, action):
+    """Performs (de)compression on the disk and returns the new path
+
+    @type disk_path: string
+    @param disk_path: path to the disk
+    @type compression: string
+    @param compression: compression type
+    @type action: string
+    @param action: whether the action is compression or decompression
+    @rtype: string
+    @return: new disk path after (de)compression
+
+    @raise errors.OpPrereqError: disk (de)compression failed or "compression"
+      is not supported
+
+    """
+    assert(action in ALLOWED_ACTIONS)
+    # For now we only support gzip, as it is used in ovftool
+    if compression != COMPRESSION_TYPE:
+      raise errors.OpPrereqError("Unsupported compression type: %s"
+                                 % compression)
+    disk_file = os.path.basename(disk_path)
+    if action == DECOMPRESS:
+      (disk_name, _) = os.path.splitext(disk_file)
+      prefix = disk_name
+    elif action == COMPRESS:
+      prefix = disk_file
+    new_path = utils.GetClosedTempfile(suffix=COMPRESSION_EXT, prefix=prefix,
+      dir=self.output_dir)
+    self.temp_file_manager.Add(new_path)
+    args = ["gzip", "-c", disk_path]
+    run_result = utils.RunCmd(args, output=new_path)
+    if run_result.failed:
+      raise errors.OpPrereqError("Disk %s failed with output: %s"
+                                 % (action, run_result.stderr))
+    logging.info("The %s of the disk is completed", action)
+    return (COMPRESSION_EXT, new_path)
+
+  def _ConvertDisk(self, disk_format, disk_path):
+    """Performes conversion to specified format.
+
+    @type disk_format: string
+    @param disk_format: format to which the disk should be converted
+    @type disk_path: string
+    @param disk_path: path to the disk that should be converted
+    @rtype: string
+    @return path to the output disk
+
+    @raise errors.OpPrereqError: convertion of the disk failed
+
+    """
+    disk_file = os.path.basename(disk_path)
+    (disk_name, disk_extension) = os.path.splitext(disk_file)
+    if disk_extension != disk_format:
+      logging.warning("Conversion of disk image to %s format, this may take"
+                      " a while", disk_format)
+
+    new_disk_path = utils.GetClosedTempfile(suffix=".%s" % disk_format,
+      prefix=disk_name, dir=self.output_dir)
+    self.temp_file_manager.Add(new_disk_path)
+    args = [
+      "qemu-img",
+      "convert",
+      "-O",
+      disk_format,
+      disk_path,
+      new_disk_path,
+    ]
+    run_result = utils.RunCmd(args, cwd=os.getcwd())
+    if run_result.failed:
+      raise errors.OpPrereqError("Convertion to %s failed, qemu-img output was"
+                                 ": %s" % (disk_format, run_result.stderr))
+    return (".%s" % disk_format, new_disk_path)
+
+  @staticmethod
+  def _GetDiskQemuInfo(disk_path, regexp):
+    """Figures out some information of the disk using qemu-img.
+
+    @type disk_path: string
+    @param disk_path: path to the disk we want to know the format of
+    @type regexp: string
+    @param regexp: string that has to be matched, it has to contain one group
+    @rtype: string
+    @return: disk format
+
+    @raise errors.OpPrereqError: format information cannot be retrieved
+
+    """
+    args = ["qemu-img", "info", disk_path]
+    run_result = utils.RunCmd(args, cwd=os.getcwd())
+    if run_result.failed:
+      raise errors.OpPrereqError("Gathering info about the disk using qemu-img"
+                                 " failed, output was: %s" % run_result.stderr)
+    result = run_result.output
+    regexp = r"%s" % regexp
+    match = re.search(regexp, result)
+    if match:
+      disk_format = match.group(1)
+    else:
+      raise errors.OpPrereqError("No file information matching %s found in:"
+                                 " %s" % (regexp, result))
+    return disk_format
+
   def Parse(self):
     """Parses the data and creates a structure containing all required info.
 
@@ -249,6 +486,14 @@ class OVFImporter(Converter):
   @ivar input_path: complete path to the .ovf file
   @type ovf_reader: L{OVFReader}
   @ivar ovf_reader: OVF reader instance collects data from .ovf file
+  @type results_name: string
+  @ivar results_name: name of imported instance
+  @type results_template: string
+  @ivar results_template: disk template read from .ovf file or command line
+    arguments
+  @type results_disk: dict
+  @ivar results_disk: disk information gathered from .ovf file or command line
+    arguments
 
   """
   def _ReadInputData(self, input_path):
@@ -340,7 +585,159 @@ class OVFImporter(Converter):
     logging.info("OVA package extracted to %s directory", self.temp_dir)
 
   def Parse(self):
-    pass
+    """Parses the data and creates a structure containing all required info.
+
+    The method reads the information given either as a command line option or as
+    a part of the OVF description.
+
+    @raise errors.OpPrereqError: if some required part of the description of
+      virtual instance is missing or unable to create output directory
+
+    """
+    self.results_name = self._GetInfo("instance name", self.options.name,
+      self._ParseNameOptions, self.ovf_reader.GetInstanceName)
+    if not self.results_name:
+      raise errors.OpPrereqError("Name of instance not provided")
+
+    self.output_dir = utils.PathJoin(self.output_dir, self.results_name)
+    try:
+      utils.Makedirs(self.output_dir)
+    except OSError, err:
+      raise errors.OpPrereqError("Failed to create directory %s: %s" %
+                                 (self.output_dir, err))
+
+    self.results_template = self._GetInfo("disk template",
+      self.options.disk_template, self._ParseTemplateOptions,
+      self.ovf_reader.GetDiskTemplate)
+    if not self.results_template:
+      logging.info("Disk template not given")
+
+    self.results_disk = self._GetInfo("disk", self.options.disks,
+      self._ParseDiskOptions, self._GetDiskInfo,
+      ignore_test=self.results_template == constants.DT_DISKLESS)
+
+  @staticmethod
+  def _GetInfo(name, cmd_arg, cmd_function, nocmd_function,
+    ignore_test=False):
+    """Get information about some section - e.g. disk, network, hypervisor.
+
+    @type name: string
+    @param name: name of the section
+    @type cmd_arg: dict
+    @param cmd_arg: command line argument specific for section 'name'
+    @type cmd_function: callable
+    @param cmd_function: function to call if 'cmd_args' exists
+    @type nocmd_function: callable
+    @param nocmd_function: function to call if 'cmd_args' is not there
+
+    """
+    if ignore_test:
+      logging.info("Information for %s will be ignored", name)
+      return {}
+    if cmd_arg:
+      logging.info("Information for %s will be parsed from command line", name)
+      results = cmd_function()
+    else:
+      logging.info("Information for %s will be parsed from %s file",
+        name, OVF_EXT)
+      results = nocmd_function()
+    logging.info("Options for %s were succesfully read", name)
+    return results
+
+  def _ParseNameOptions(self):
+    """Returns name if one was given in command line.
+
+    @rtype: string
+    @return: name of an instance
+
+    """
+    return self.options.name
+
+  def _ParseTemplateOptions(self):
+    """Returns disk template if one was given in command line.
+
+    @rtype: string
+    @return: disk template name
+
+    """
+    return self.options.disk_template
+
+  def _ParseDiskOptions(self):
+    """Parses disk options given in a command line.
+
+    @rtype: dict
+    @return: dictionary of disk-related options
+
+    @raise errors.OpPrereqError: disk description does not contain size
+      information or size information is invalid or creation failed
+
+    """
+    assert self.options.disks
+    results = {}
+    for (disk_id, disk_desc) in self.options.disks:
+      results["disk%s_ivname" % disk_id] = "disk/%s" % disk_id
+      if disk_desc.get("size"):
+        try:
+          disk_size = utils.ParseUnit(disk_desc["size"])
+        except ValueError:
+          raise errors.OpPrereqError("Invalid disk size for disk %s: %s" %
+                                     (disk_id, disk_desc["size"]))
+        new_path = utils.PathJoin(self.output_dir, str(disk_id))
+        args = [
+          "qemu-img",
+          "create",
+          "-f",
+          "raw",
+          new_path,
+          disk_size,
+        ]
+        run_result = utils.RunCmd(args)
+        if run_result.failed:
+          raise errors.OpPrereqError("Creation of disk %s failed, output was:"
+                                     " %s" % (new_path, run_result.stderr))
+        results["disk%s_size" % disk_id] = str(disk_size)
+        results["disk%s_dump" % disk_id] = "disk%s.raw" % disk_id
+      else:
+        raise errors.OpPrereqError("Disks created for import must have their"
+                                   " size specified")
+    results["disk_count"] = str(len(self.options.disks))
+    return results
+
+  def _GetDiskInfo(self):
+    """Gathers information about disks used by instance, perfomes conversion.
+
+    @rtype: dict
+    @return: dictionary of disk-related options
+
+    @raise errors.OpPrereqError: disk is not in the same directory as .ovf file
+
+    """
+    results = {}
+    disks_list = self.ovf_reader.GetDisksNames()
+    for (counter, (disk_name, disk_compression)) in enumerate(disks_list):
+      if os.path.dirname(disk_name):
+        raise errors.OpPrereqError("Disks are not allowed to have absolute"
+                                   " paths or paths outside main OVF directory")
+      disk, _ = os.path.splitext(disk_name)
+      disk_path = utils.PathJoin(self.input_dir, disk_name)
+      if disk_compression:
+        _, disk_path = self._CompressDisk(disk_path, disk_compression,
+          DECOMPRESS)
+        disk, _ = os.path.splitext(disk)
+      if self._GetDiskQemuInfo(disk_path, "file format: (\S+)") != "raw":
+        logging.info("Conversion to raw format is required")
+      ext, new_disk_path = self._ConvertDisk("raw", disk_path)
+
+      final_disk_path = LinkFile(new_disk_path, prefix=disk, suffix=ext,
+        directory=self.output_dir)
+      final_name = os.path.basename(final_disk_path)
+      disk_size = os.path.getsize(final_disk_path) / (1024 * 1024)
+      results["disk%s_dump" % counter] = final_name
+      results["disk%s_size" % counter] = str(disk_size)
+      results["disk%s_ivname" % counter] = "disk/%s" % str(counter)
+    if disks_list:
+      results["disk_count"] = str(len(disks_list))
+    return results
 
   def Save(self):
     """Saves all the gathered information in a constant.EXPORT_CONF_FILE file.
@@ -370,6 +767,8 @@ class OVFImporter(Converter):
     for section, options in results.iteritems():
       output.append("[%s]" % section)
       for name, value in options.iteritems():
+        if value is None:
+          value = ""
         output.append("%s = %s" % (name, value))
       output.append("")
     output_contents = "\n".join(output)
