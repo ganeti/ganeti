@@ -71,6 +71,26 @@ COMPRESS = "compression"
 DECOMPRESS = "decompression"
 ALLOWED_ACTIONS = [COMPRESS, DECOMPRESS]
 
+# ResourceType values
+RASD_TYPE = {
+  "vcpus": "3",
+  "memory": "4",
+}
+
+# AllocationUnits values and conversion
+ALLOCATION_UNITS = {
+  'b': ["bytes", "b"],
+  'kb': ["kilobytes", "kb", "byte * 2^10", "kibibytes", "kib"],
+  'mb': ["megabytes", "mb", "byte * 2^20", "mebibytes", "mib"],
+  'gb': ["gigabytes", "gb", "byte * 2^30", "gibibytes", "gib"],
+}
+CONVERT_UNITS_TO_MB = {
+  'b': lambda x: x / (1024 * 1024),
+  'kb': lambda x: x / 1024,
+  'mb': lambda x: x,
+  'gb': lambda x: x * 1024,
+}
+
 
 def LinkFile(old_path, prefix=None, suffix=None, directory=None):
   """Create link with a given prefix and suffix.
@@ -299,6 +319,116 @@ class OVFReader(object):
     find_template = ("{%s}GanetiSection/{%s}DiskTemplate" %
                      (GANETI_SCHEMA, GANETI_SCHEMA))
     return self.tree.findtext(find_template)
+
+  def GetHypervisorData(self):
+    """Provides hypervisor information - hypervisor name and options.
+
+    @rtype: dict
+    @return: dictionary containing name of the used hypervisor and all the
+      specified options
+
+    """
+    hypervisor_search = ("{%s}GanetiSection/{%s}Hypervisor" %
+                         (GANETI_SCHEMA, GANETI_SCHEMA))
+    hypervisor_data = self.tree.find(hypervisor_search)
+    if not hypervisor_data:
+      return {"hypervisor_name": constants.VALUE_AUTO}
+    results = {
+      "hypervisor_name": hypervisor_data.findtext("{%s}Name" % GANETI_SCHEMA,
+                           default=constants.VALUE_AUTO),
+    }
+    parameters = hypervisor_data.find("{%s}Parameters" % GANETI_SCHEMA)
+    results.update(self._GetDictParameters(parameters, GANETI_SCHEMA))
+    return results
+
+  def GetOSData(self):
+    """ Provides operating system information - os name and options.
+
+    @rtype: dict
+    @return: dictionary containing name and options for the chosen OS
+
+    """
+    results = {}
+    os_search = ("{%s}GanetiSection/{%s}OperatingSystem" %
+                 (GANETI_SCHEMA, GANETI_SCHEMA))
+    os_data = self.tree.find(os_search)
+    if os_data:
+      results["os_name"] = os_data.findtext("{%s}Name" % GANETI_SCHEMA)
+      parameters = os_data.find("{%s}Parameters" % GANETI_SCHEMA)
+      results.update(self._GetDictParameters(parameters, GANETI_SCHEMA))
+    return results
+
+  def GetBackendData(self):
+    """ Provides backend information - vcpus, memory, auto balancing options.
+
+    @rtype: dict
+    @return: dictionary containing options for vcpus, memory and auto balance
+      settings
+
+    """
+    results = {}
+
+    find_vcpus = ("{%s}VirtualSystem/{%s}VirtualHardwareSection/{%s}Item" %
+                   (OVF_SCHEMA, OVF_SCHEMA, OVF_SCHEMA))
+    match_vcpus = ("{%s}ResourceType" % RASD_SCHEMA, RASD_TYPE["vcpus"])
+    vcpus = self._GetElementMatchingText(find_vcpus, match_vcpus)
+    if vcpus:
+      vcpus_count = vcpus.findtext("{%s}VirtualQuantity" % RASD_SCHEMA,
+        default=constants.VALUE_AUTO)
+    else:
+      vcpus_count = constants.VALUE_AUTO
+    results["vcpus"] = str(vcpus_count)
+
+    find_memory = find_vcpus
+    match_memory = ("{%s}ResourceType" % RASD_SCHEMA, RASD_TYPE["memory"])
+    memory = self._GetElementMatchingText(find_memory, match_memory)
+    memory_raw = None
+    if memory:
+      alloc_units = memory.findtext("{%s}AllocationUnits" % RASD_SCHEMA)
+      matching_units = [units for units, variants in
+        ALLOCATION_UNITS.iteritems() if alloc_units.lower() in variants]
+      if matching_units == []:
+        raise errors.OpPrereqError("Unit %s for RAM memory unknown",
+          alloc_units)
+      units = matching_units[0]
+      memory_raw = int(memory.findtext("{%s}VirtualQuantity" % RASD_SCHEMA,
+            default=constants.VALUE_AUTO))
+      memory_count = CONVERT_UNITS_TO_MB[units](memory_raw)
+    else:
+      memory_count = constants.VALUE_AUTO
+    results["memory"] = str(memory_count)
+
+    find_balance = ("{%s}GanetiSection/{%s}AutoBalance" %
+                   (GANETI_SCHEMA, GANETI_SCHEMA))
+    balance = self.tree.findtext(find_balance, default=constants.VALUE_AUTO)
+    results["auto_balance"] = balance
+
+    return results
+
+  def GetTagsData(self):
+    """Provides tags information for instance.
+
+    @rtype: string or None
+    @return: string of comma-separated tags for the instance
+
+    """
+    find_tags = "{%s}GanetiSection/{%s}Tags" % (GANETI_SCHEMA, GANETI_SCHEMA)
+    results = self.tree.findtext(find_tags)
+    if results:
+      return results
+    else:
+      return None
+
+  def GetVersionData(self):
+    """Provides version number read from .ovf file
+
+    @rtype: string
+    @return: string containing the version number
+
+    """
+    find_version = ("{%s}GanetiSection/{%s}Version" %
+                    (GANETI_SCHEMA, GANETI_SCHEMA))
+    return self.tree.findtext(find_version)
 
   def GetNetworkData(self):
     """Provides data about the network in the OVF instance.
@@ -582,6 +712,19 @@ class OVFImporter(Converter):
   @type results_template: string
   @ivar results_template: disk template read from .ovf file or command line
     arguments
+  @type results_hypervisor: dict
+  @ivar results_hypervisor: hypervisor information gathered from .ovf file or
+    command line arguments
+  @type results_os: dict
+  @ivar results_os: operating system information gathered from .ovf file or
+    command line arguments
+  @type results_backend: dict
+  @ivar results_backend: backend information gathered from .ovf file or
+    command line arguments
+  @type results_tags: string
+  @ivar results_tags: string containing instance-specific tags
+  @type results_version: string
+  @ivar results_version: version as required by Ganeti import
   @type results_network: dict
   @ivar results_network: network information gathered from .ovf file or command
     line arguments
@@ -706,6 +849,33 @@ class OVFImporter(Converter):
     if not self.results_template:
       logging.info("Disk template not given")
 
+    self.results_hypervisor = self._GetInfo("hypervisor",
+      self.options.hypervisor, self._ParseHypervisorOptions,
+      self.ovf_reader.GetHypervisorData)
+    assert self.results_hypervisor["hypervisor_name"]
+    if self.results_hypervisor["hypervisor_name"] == constants.VALUE_AUTO:
+      logging.debug("Default hypervisor settings from the cluster will be used")
+
+    self.results_os = self._GetInfo("OS", self.options.os,
+      self._ParseOSOptions, self.ovf_reader.GetOSData)
+    if not self.results_os.get("os_name"):
+      raise errors.OpPrereqError("OS name must be provided")
+
+    self.results_backend = self._GetInfo("backend", self.options.beparams,
+      self._ParseBackendOptions, self.ovf_reader.GetBackendData)
+    assert self.results_backend.get("vcpus")
+    assert self.results_backend.get("memory")
+    assert self.results_backend.get("auto_balance") is not None
+
+    self.results_tags = self._GetInfo("tags", self.options.tags,
+      self._ParseTags, self.ovf_reader.GetTagsData)
+
+    ovf_version = self.ovf_reader.GetVersionData()
+    if ovf_version:
+      self.results_version = ovf_version
+    else:
+      self.results_version = constants.EXPORT_VERSION
+
     self.results_network = self._GetInfo("network", self.options.nics,
       self._ParseNicOptions, self.ovf_reader.GetNetworkData,
       ignore_test=self.options.no_nics)
@@ -763,6 +933,62 @@ class OVFImporter(Converter):
 
     """
     return self.options.disk_template
+
+  def _ParseHypervisorOptions(self):
+    """Parses hypervisor options given in a command line.
+
+    @rtype: dict
+    @return: dictionary containing name of the chosen hypervisor and all the
+      options
+
+    """
+    assert type(self.options.hypervisor) is tuple
+    assert len(self.options.hypervisor) == 2
+    results = {}
+    if self.options.hypervisor[0]:
+      results["hypervisor_name"] = self.options.hypervisor[0]
+    else:
+      results["hypervisor_name"] = constants.VALUE_AUTO
+    results.update(self.options.hypervisor[1])
+    return results
+
+  def _ParseOSOptions(self):
+    """Parses OS options given in command line.
+
+    @rtype: dict
+    @return: dictionary containing name of chosen OS and all its options
+
+    """
+    assert self.options.os
+    results = {}
+    results["os_name"] = self.options.os
+    results.update(self.options.osparams)
+    return results
+
+  def _ParseBackendOptions(self):
+    """Parses backend options given in command line.
+
+    @rtype: dict
+    @return: dictionary containing vcpus, memory and auto-balance options
+
+    """
+    assert self.options.beparams
+    backend = {}
+    backend.update(self.options.beparams)
+    must_contain = ["vcpus", "memory", "auto_balance"]
+    for element in must_contain:
+      if backend.get(element) is None:
+        backend[element] = constants.VALUE_AUTO
+    return backend
+
+  def _ParseTags(self):
+    """Returns tags list given in command line.
+
+    @rtype: string
+    @return: string containing comma-separated tags
+
+    """
+    return self.options.tags
 
   def _ParseNicOptions(self):
     """Parses network options given in a command line or as a dictionary.
@@ -881,9 +1107,24 @@ class OVFImporter(Converter):
 
     results[constants.INISECT_INS].update(self.results_disk)
     results[constants.INISECT_INS].update(self.results_network)
+    results[constants.INISECT_INS]["hypervisor"] = \
+      self.results_hypervisor["hypervisor_name"]
     results[constants.INISECT_INS]["name"] = self.results_name
     if self.results_template:
       results[constants.INISECT_INS]["disk_template"] = self.results_template
+    if self.results_tags:
+      results[constants.INISECT_INS]["tags"] = self.results_tags
+
+    results[constants.INISECT_BEP].update(self.results_backend)
+
+    results[constants.INISECT_EXP]["os"] = self.results_os["os_name"]
+    results[constants.INISECT_EXP]["version"] = self.results_version
+
+    del self.results_os["os_name"]
+    results[constants.INISECT_OSP].update(self.results_os)
+
+    del self.results_hypervisor["hypervisor_name"]
+    results[constants.INISECT_HYP].update(self.results_hypervisor)
 
     output_file_name = utils.PathJoin(self.output_dir,
       constants.EXPORT_CONF_FILE)
