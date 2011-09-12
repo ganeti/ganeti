@@ -208,6 +208,27 @@ class OVFReader(object):
         return elem
     return None
 
+  def _GetElementMatchingText(self, path, match_text):
+    """Searches for element on a path that matches certain text value.
+
+    Function follows the path from root node to the desired tags using path,
+    then searches for the first one matching the text value.
+
+    @type path: string
+    @param path: path of nodes to visit
+    @type match_text: tuple
+    @param match_text: pair (node, text) for which we search
+    @rtype: ET.ElementTree or None
+    @return: first element matching match_text or None if nothing matches
+
+    """
+    potential_elements = self.tree.findall(path)
+    (node, text) = match_text
+    for elem in potential_elements:
+      if elem.findtext(node) == text:
+        return elem
+    return None
+
   @staticmethod
   def _GetDictParameters(root, schema):
     """Reads text in all children and creates the dictionary from the contents.
@@ -278,6 +299,76 @@ class OVFReader(object):
     find_template = ("{%s}GanetiSection/{%s}DiskTemplate" %
                      (GANETI_SCHEMA, GANETI_SCHEMA))
     return self.tree.findtext(find_template)
+
+  def GetNetworkData(self):
+    """Provides data about the network in the OVF instance.
+
+    The method gathers the data about networks used by OVF instance. It assumes
+    that 'name' tag means something - in essence, if it contains one of the
+    words 'bridged' or 'routed' then that will be the mode of this network in
+    Ganeti. The information about the network can be either in GanetiSection or
+    VirtualHardwareSection.
+
+    @rtype: dict
+    @return: dictionary containing all the network information
+
+    """
+    results = {}
+    networks_search = ("{%s}NetworkSection/{%s}Network" %
+                       (OVF_SCHEMA, OVF_SCHEMA))
+    network_names = self._GetAttributes(networks_search,
+      "{%s}name" % OVF_SCHEMA)
+    required = ["ip", "mac", "link", "mode"]
+    for (counter, network_name) in enumerate(network_names):
+      network_search = ("{%s}VirtualSystem/{%s}VirtualHardwareSection/{%s}Item"
+                        % (OVF_SCHEMA, OVF_SCHEMA, OVF_SCHEMA))
+      ganeti_search = ("{%s}GanetiSection/{%s}Network/{%s}Nic" %
+                       (GANETI_SCHEMA, GANETI_SCHEMA, GANETI_SCHEMA))
+      network_match = ("{%s}Connection" % RASD_SCHEMA, network_name)
+      ganeti_match = ("{%s}name" % OVF_SCHEMA, network_name)
+      network_data = self._GetElementMatchingText(network_search, network_match)
+      network_ganeti_data = self._GetElementMatchingAttr(ganeti_search,
+        ganeti_match)
+
+      ganeti_data = {}
+      if network_ganeti_data:
+        ganeti_data["mode"] = network_ganeti_data.findtext("{%s}Mode" %
+                                                           GANETI_SCHEMA)
+        ganeti_data["mac"] = network_ganeti_data.findtext("{%s}MACAddress" %
+                                                          GANETI_SCHEMA)
+        ganeti_data["ip"] = network_ganeti_data.findtext("{%s}IPAddress" %
+                                                         GANETI_SCHEMA)
+        ganeti_data["link"] = network_ganeti_data.findtext("{%s}Link" %
+                                                           GANETI_SCHEMA)
+      mac_data = None
+      if network_data:
+        mac_data = network_data.findtext("{%s}Address" % RASD_SCHEMA)
+
+      network_name = network_name.lower()
+
+      # First, some not Ganeti-specific information is collected
+      if constants.NIC_MODE_BRIDGED in network_name:
+        results["nic%s_mode" % counter] = "bridged"
+      elif constants.NIC_MODE_ROUTED in network_name:
+        results["nic%s_mode" % counter] = "routed"
+      results["nic%s_mac" % counter] = mac_data
+
+      # GanetiSection data overrides 'manually' collected data
+      for name, value in ganeti_data.iteritems():
+        results["nic%s_%s" % (counter, name)] = value
+
+      # Bridged network has no IP - unless specifically stated otherwise
+      if (results.get("nic%s_mode" % counter) == "bridged" and
+          not results.get("nic%s_ip" % counter)):
+        results["nic%s_ip" % counter] = constants.VALUE_NONE
+
+      for option in required:
+        if not results.get("nic%s_%s" % (counter, option)):
+          results["nic%s_%s" % (counter, option)] = constants.VALUE_AUTO
+
+    if network_names:
+      results["nic_count"] = str(len(network_names))
+    return results
 
   def GetDisksNames(self):
     """Provides list of file names for the disks used by the instance.
@@ -491,6 +582,9 @@ class OVFImporter(Converter):
   @type results_template: string
   @ivar results_template: disk template read from .ovf file or command line
     arguments
+  @type results_network: dict
+  @ivar results_network: network information gathered from .ovf file or command
+    line arguments
   @type results_disk: dict
   @ivar results_disk: disk information gathered from .ovf file or command line
     arguments
@@ -612,9 +706,17 @@ class OVFImporter(Converter):
     if not self.results_template:
       logging.info("Disk template not given")
 
+    self.results_network = self._GetInfo("network", self.options.nics,
+      self._ParseNicOptions, self.ovf_reader.GetNetworkData,
+      ignore_test=self.options.no_nics)
+
     self.results_disk = self._GetInfo("disk", self.options.disks,
       self._ParseDiskOptions, self._GetDiskInfo,
       ignore_test=self.results_template == constants.DT_DISKLESS)
+
+    if not self.results_disk and not self.results_network:
+      raise errors.OpPrereqError("Either disk specification or network"
+                                 " description must be present")
 
   @staticmethod
   def _GetInfo(name, cmd_arg, cmd_function, nocmd_function,
@@ -661,6 +763,28 @@ class OVFImporter(Converter):
 
     """
     return self.options.disk_template
+
+  def _ParseNicOptions(self):
+    """Parses network options given in a command line or as a dictionary.
+
+    @rtype: dict
+    @return: dictionary of network-related options
+
+    """
+    assert self.options.nics
+    results = {}
+    for (nic_id, nic_desc) in self.options.nics:
+      results["nic%s_mode" % nic_id] = \
+        nic_desc.get("mode", constants.VALUE_AUTO)
+      results["nic%s_mac" % nic_id] = nic_desc.get("mac", constants.VALUE_AUTO)
+      results["nic%s_link" % nic_id] = \
+        nic_desc.get("link", constants.VALUE_AUTO)
+      if nic_desc.get("mode") == "bridged":
+        results["nic%s_ip" % nic_id] = constants.VALUE_NONE
+      else:
+        results["nic%s_ip" % nic_id] = constants.VALUE_AUTO
+    results["nic_count"] = str(len(self.options.nics))
+    return results
 
   def _ParseDiskOptions(self):
     """Parses disk options given in a command line.
@@ -756,6 +880,7 @@ class OVFImporter(Converter):
     }
 
     results[constants.INISECT_INS].update(self.results_disk)
+    results[constants.INISECT_INS].update(self.results_network)
     results[constants.INISECT_INS]["name"] = self.results_name
     if self.results_template:
       results[constants.INISECT_INS]["disk_template"] = self.results_template
