@@ -100,6 +100,7 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
   # API.
   return {
     "/": rlib2.R_root,
+    "/2": rlib2.R_2,
 
     "/version": rlib2.R_version,
 

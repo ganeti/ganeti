@@ -1645,9 +1645,10 @@ class TestSimpleResources(unittest.TestCase):
     handler = _CreateHandler(rlib2.R_2_features, [], {}, None, self.clfactory)
     self.assertEqual(set(handler.GET()), rlib2.ALL_FEATURES)
 
-  def testRoot(self):
-    handler = _CreateHandler(rlib2.R_root, [], {}, None, self.clfactory)
-    self.assertTrue(handler.GET() is None)
+  def testEmpty(self):
+    for cls in [rlib2.R_root, rlib2.R_2]:
+      handler = _CreateHandler(cls, [], {}, None, self.clfactory)
+      self.assertTrue(handler.GET() is None)
 
   def testVersion(self):
     handler = _CreateHandler(rlib2.R_version, [], {}, None, self.clfactory)

@@ -142,7 +142,7 @@ class TestDocs(unittest.TestCase):
 
       prevline = line
 
-    prefix_exception = frozenset(["/", "/version"])
+    prefix_exception = frozenset(["/", "/version", "/2"])
 
     undocumented = []
     used_uris = []

@@ -161,6 +161,12 @@ class R_root(baserlib.ResourceBase):
     return None
 
 
+class R_2(R_root):
+  """/2 resource.
+
+  """
+
+
 class R_version(baserlib.ResourceBase):
   """/version resource.
 

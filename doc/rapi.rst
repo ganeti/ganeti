@@ -242,6 +242,11 @@ Resources
 The root resource. Has no function, but for legacy reasons the ``GET``
 method is supported.
 
+``/2``
+++++++
+
+Has no function, but for legacy reasons the ``GET`` method is supported.
+
 ``/2/info``
 +++++++++++
 
