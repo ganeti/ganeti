@@ -46,6 +46,7 @@ _URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
 # List of resource handlers which aren't used by the RAPI client
 _KNOWN_UNUSED = set([
   rlib2.R_root,
+  rlib2.R_2,
   ])
 
 # Global variable for collecting used handlers
