@@ -1321,7 +1321,8 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
     self.assertFalse(ops[1].osparams)
 
   def testErrors(self):
-    self.assertRaises(http.HttpBadRequest, self.Parse, "foo", "not a dictionary")
+    self.assertRaises(http.HttpBadRequest, self.Parse,
+                      "foo", "not a dictionary")
 
 
 class TestGroupRename(unittest.TestCase):
