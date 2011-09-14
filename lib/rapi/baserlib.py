@@ -440,22 +440,23 @@ class _MetaOpcodeResource(type):
     obj = type.__call__(mcs, *args, **kwargs)
 
     for (method, op_attr, rename_attr, fn_attr) in _OPCODE_ATTRS:
-      try:
-        opcode = getattr(obj, op_attr)
-      except AttributeError:
-        # If the "*_OPCODE" attribute isn't set, "*_RENAME" or "Get*OpInput"
-        # shouldn't either
+      if hasattr(obj, method):
+        # If the method handler is already defined, "*_RENAME" or "Get*OpInput"
+        # shouldn't be (they're only used by the automatically generated
+        # handler)
         assert not hasattr(obj, rename_attr)
         assert not hasattr(obj, fn_attr)
-        continue
-
-      assert not hasattr(obj, method)
-
-      # Generate handler method on handler instance
-      setattr(obj, method,
-              compat.partial(obj._GenericHandler, opcode,
-                             getattr(obj, rename_attr, None),
-                             getattr(obj, fn_attr, obj._GetDefaultData)))
+      else:
+        # Try to generate handler method on handler instance
+        try:
+          opcode = getattr(obj, op_attr)
+        except AttributeError:
+          pass
+        else:
+          setattr(obj, method,
+                  compat.partial(obj._GenericHandler, opcode,
+                                 getattr(obj, rename_attr, None),
+                                 getattr(obj, fn_attr, obj._GetDefaultData)))
 
     return obj
 

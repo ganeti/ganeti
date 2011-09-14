@@ -182,10 +182,12 @@ class R_version(baserlib.ResourceBase):
     return constants.RAPI_VERSION
 
 
-class R_2_info(baserlib.ResourceBase):
+class R_2_info(baserlib.OpcodeResource):
   """/2/info resource.
 
   """
+  GET_OPCODE = opcodes.OpClusterQuery
+
   def GET(self):
     """Returns cluster information.
 
@@ -206,10 +208,12 @@ class R_2_features(baserlib.ResourceBase):
     return list(ALL_FEATURES)
 
 
-class R_2_os(baserlib.ResourceBase):
+class R_2_os(baserlib.OpcodeResource):
   """/2/os resource.
 
   """
+  GET_OPCODE = opcodes.OpOsDiagnose
+
   def GET(self):
     """Return a list of all OSes.
 
@@ -351,10 +355,12 @@ class R_2_jobs_id_wait(baserlib.ResourceBase):
       }
 
 
-class R_2_nodes(baserlib.ResourceBase):
+class R_2_nodes(baserlib.OpcodeResource):
   """/2/nodes resource.
 
   """
+  GET_OPCODE = opcodes.OpNodeQuery
+
   def GET(self):
     """Returns a list of all nodes.
 
@@ -371,10 +377,12 @@ class R_2_nodes(baserlib.ResourceBase):
                                    uri_fields=("id", "uri"))
 
 
-class R_2_nodes_name(baserlib.ResourceBase):
+class R_2_nodes_name(baserlib.OpcodeResource):
   """/2/nodes/[node_name] resource.
 
   """
+  GET_OPCODE = opcodes.OpNodeQuery
+
   def GET(self):
     """Send information about a node.
 
@@ -582,6 +590,7 @@ class R_2_groups(baserlib.OpcodeResource):
   """/2/groups resource.
 
   """
+  GET_OPCODE = opcodes.OpGroupQuery
   POST_OPCODE = opcodes.OpGroupAdd
   POST_RENAME = {
     "name": "group_name",
@@ -697,6 +706,7 @@ class R_2_instances(baserlib.OpcodeResource):
   """/2/instances resource.
 
   """
+  GET_OPCODE = opcodes.OpInstanceQuery
   POST_OPCODE = opcodes.OpInstanceCreate
   POST_RENAME = {
     "os": "os_type",
@@ -750,6 +760,7 @@ class R_2_instances_name(baserlib.OpcodeResource):
   """/2/instances/[instance_name] resource.
 
   """
+  GET_OPCODE = opcodes.OpInstanceQuery
   DELETE_OPCODE = opcodes.OpInstanceRemove
 
   def GET(self):
@@ -885,12 +896,14 @@ def _ParseInstanceReinstallRequest(name, data):
   return ops
 
 
-class R_2_instances_name_reinstall(baserlib.ResourceBase):
+class R_2_instances_name_reinstall(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/reinstall resource.
 
   Implements an instance reinstall.
 
   """
+  POST_OPCODE = opcodes.OpInstanceReinstall
+
   def POST(self):
     """Reinstall an instance.
 
@@ -1097,6 +1110,7 @@ class R_2_instances_name_console(baserlib.ResourceBase):
 
   """
   GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  GET_OPCODE = opcodes.OpInstanceConsole
 
   def GET(self):
     """Request information for connecting to instance's console.
@@ -1141,6 +1155,8 @@ class R_2_query(baserlib.ResourceBase):
   """
   # Results might contain sensitive information
   GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  GET_OPCODE = opcodes.OpQuery
+  PUT_OPCODE = opcodes.OpQuery
 
   def _Query(self, fields, filter_):
     return self.GetClient().Query(self.items[0], fields, filter_).ToDict()
@@ -1175,6 +1191,8 @@ class R_2_query_fields(baserlib.ResourceBase):
   """/2/query/[resource]/fields resource.
 
   """
+  GET_OPCODE = opcodes.OpQueryFields
+
   def GET(self):
     """Retrieves list of available fields for a resource.
 
@@ -1199,6 +1217,7 @@ class _R_Tags(baserlib.OpcodeResource):
 
   """
   TAG_LEVEL = None
+  GET_OPCODE = opcodes.OpTagsGet
   PUT_OPCODE = opcodes.OpTagsSet
   DELETE_OPCODE = opcodes.OpTagsDel
 
