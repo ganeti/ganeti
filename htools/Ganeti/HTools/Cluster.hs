@@ -1107,10 +1107,11 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
                       splitCluster ini_nl ini_il
         (fin_nl, fin_il, esol) =
             foldl' (\state@(nl, il, _) inst ->
-                        let gdx = instancePriGroup nl inst in
+                        let gdx = instancePriGroup nl inst
+                            pdx = Instance.pNode inst in
                         updateEvacSolution state (Instance.idx inst) $
                         availableGroupNodes group_ndx
-                          excl_ndx gdx >>=
+                          (IntSet.insert pdx excl_ndx) gdx >>=
                         nodeEvacInstance nl il mode inst gdx
                    )
             (ini_nl, ini_il, emptyEvacSolution)
