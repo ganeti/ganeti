@@ -283,6 +283,8 @@ processRelocate gl nl il idx 1 exndx = do
       snode = Instance.sNode inst
   when (snode == sorig) $
        fail "Internal error: instance didn't change secondary node?!"
+  when (snode == pnode) $
+       fail "Internal error: selected primary as new secondary?!"
 
   nodes' <- if (nodes == [pnode, snode])
             then return [snode] -- only the new secondary is needed
