@@ -61,7 +61,6 @@ module Ganeti.HTools.Cluster
     , tryAlloc
     , tryMGAlloc
     , tryReloc
-    , tryEvac
     , tryNodeEvac
     , tryChangeGroup
     , collapseFailures
@@ -810,45 +809,6 @@ tryReloc nl il xid 1 ex_idx =
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
                                 \destinations required (" ++ show reqn ++
                                                   "), only one supported"
-
--- | Change an instance's secondary node.
-evacInstance :: (Monad m) =>
-                [Ndx]                      -- ^ Excluded nodes
-             -> Instance.List              -- ^ The current instance list
-             -> (Node.List, AllocSolution) -- ^ The current state
-             -> Idx                        -- ^ The instance to evacuate
-             -> m (Node.List, AllocSolution)
-evacInstance ex_ndx il (nl, old_as) idx = do
-  -- FIXME: hardcoded one node here
-
-  -- Longer explanation: evacuation is currently hardcoded to DRBD
-  -- instances (which have one secondary); hence, even if the
-  -- IAllocator protocol can request N nodes for an instance, and all
-  -- the message parsing/loading pass this, this implementation only
-  -- supports one; this situation needs to be revisited if we ever
-  -- support more than one secondary, or if we change the storage
-  -- model
-  new_as <- tryReloc nl il idx 1 ex_ndx
-  case asSolutions new_as of
-    -- an individual relocation succeeded, we kind of compose the data
-    -- from the two solutions
-    csol@(nl', _, _, _):_ ->
-        return (nl', new_as { asSolutions = csol:asSolutions old_as })
-    -- this relocation failed, so we fail the entire evac
-    _ -> fail $ "Can't evacuate instance " ++
-         Instance.name (Container.find idx il) ++
-             ": " ++ describeSolution new_as
-
--- | Try to evacuate a list of nodes.
-tryEvac :: (Monad m) =>
-            Node.List       -- ^ The node list
-         -> Instance.List   -- ^ The instance list
-         -> [Idx]           -- ^ Instances to be evacuated
-         -> [Ndx]           -- ^ Restricted nodes (the ones being evacuated)
-         -> m AllocSolution -- ^ Solution list
-tryEvac nl il idxs ex_ndx = do
-  (_, sol) <- foldM (evacInstance ex_ndx il) (nl, emptyAllocSolution) idxs
-  return sol
 
 -- | Function which fails if the requested mode is change secondary.
 --

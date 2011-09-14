@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.IAlloc
     ( readRequest
     , runIAllocator
+    , processRelocate
     ) where
 
 import Data.Either ()
