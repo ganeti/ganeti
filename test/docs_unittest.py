@@ -38,19 +38,20 @@ import testutils
 VALID_URI_RE = re.compile(r"^[-/a-z0-9]*$")
 
 
+def _ReadDocFile(filename):
+  return utils.ReadFile("%s/doc/%s" %
+                        (testutils.GetSourceDir(), filename))
+
+
 class TestDocs(unittest.TestCase):
-  """Documentation tests"""
+  """Documentation tests.
 
-  @staticmethod
-  def _ReadDocFile(filename):
-    return utils.ReadFile("%s/doc/%s" %
-                          (testutils.GetSourceDir(), filename))
-
+  """
   def testHookDocs(self):
     """Check whether all hooks are documented.
 
     """
-    hooksdoc = self._ReadDocFile("hooks.rst")
+    hooksdoc = _ReadDocFile("hooks.rst")
 
     # Reverse mapping from LU to opcode
     lu2opcode = dict((lu, op)
@@ -103,7 +104,7 @@ class TestDocs(unittest.TestCase):
     """Check whether all RAPI resources are documented.
 
     """
-    rapidoc = self._ReadDocFile("rapi.rst")
+    rapidoc = _ReadDocFile("rapi.rst")
 
     node_name = re.escape("[node_name]")
     instance_name = re.escape("[instance_name]")
