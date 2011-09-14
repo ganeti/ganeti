@@ -518,6 +518,7 @@ AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
 AC_PYTHON_MODULE(pyinotify, t)
 AC_PYTHON_MODULE(pycurl, t)
+AC_PYTHON_MODULE(affinity, t)
 
 # This is optional but then we've limited functionality
 AC_PYTHON_MODULE(paramiko)

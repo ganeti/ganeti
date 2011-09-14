@@ -39,6 +39,8 @@ Before installing, please verify that you have the following programs:
   <socat-note>` below
 - `Paramiko <http://www.lag.net/paramiko/>`_, if you want automated SSH
   setup; optional otherwise but manual setup of the nodes required
+- `affinity Python module <http://pypi.python.org/pypi/affinity/0.1.0>`_,
+  optional python package for supporting CPU pinning under KVM
 
 These programs are supplied as part of most Linux distributions, so
 usually they can be installed via the standard package manager. Also
