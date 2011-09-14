@@ -352,10 +352,11 @@ class HttpClientPool:
     """Returns HTTP clients to the pool.
 
     """
+    assert not frozenset(pclients) & frozenset(self._pool.values())
+
     for pc in pclients:
       self._logger.debug("Returning client %s to pool", pc)
       assert pc.identity not in self._pool
-      assert pc not in self._pool.values()
       self._pool[pc.identity] = pc
 
     # Check for unused clients
