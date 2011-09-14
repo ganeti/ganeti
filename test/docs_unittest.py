@@ -23,6 +23,8 @@
 
 import unittest
 import re
+import itertools
+import operator
 
 from ganeti import _autoconf
 from ganeti import utils
@@ -30,12 +32,52 @@ from ganeti import cmdlib
 from ganeti import build
 from ganeti import compat
 from ganeti import mcpu
+from ganeti import opcodes
+from ganeti import constants
+from ganeti.rapi import baserlib
+from ganeti.rapi import rlib2
 from ganeti.rapi import connector
 
 import testutils
 
 
 VALID_URI_RE = re.compile(r"^[-/a-z0-9]*$")
+
+RAPI_OPCODE_EXCLUDE = frozenset([
+  # Not yet implemented
+  opcodes.OpBackupQuery,
+  opcodes.OpBackupRemove,
+  opcodes.OpClusterConfigQuery,
+  opcodes.OpClusterRepairDiskSizes,
+  opcodes.OpClusterVerify,
+  opcodes.OpClusterVerifyDisks,
+  opcodes.OpInstanceChangeGroup,
+  opcodes.OpInstanceMove,
+  opcodes.OpInstanceRecreateDisks,
+  opcodes.OpNodePowercycle,
+  opcodes.OpNodeQueryvols,
+  opcodes.OpOobCommand,
+  opcodes.OpTagsSearch,
+
+  # Difficult if not impossible
+  opcodes.OpClusterDestroy,
+  opcodes.OpClusterPostInit,
+  opcodes.OpClusterRename,
+  opcodes.OpNodeAdd,
+  opcodes.OpNodeRemove,
+
+  # Helper opcodes (e.g. submitted by LUs)
+  opcodes.OpClusterVerifyConfig,
+  opcodes.OpClusterVerifyGroup,
+  opcodes.OpGroupEvacuate,
+  opcodes.OpGroupVerifyDisks,
+
+  # Test opcodes
+  opcodes.OpTestAllocator,
+  opcodes.OpTestDelay,
+  opcodes.OpTestDummy,
+  opcodes.OpTestJqueue,
+  ])
 
 
 def _ReadDocFile(filename):
@@ -186,6 +228,37 @@ class TestRapiDocs(unittest.TestCase):
     self.failIf(uri_dups,
                 msg=("URIs matched by more than one resource: %s" %
                      utils.CommaJoin(uri_dups)))
+
+    self._FindRapiMissing(resources.values())
+    self._CheckTagHandlers(resources.values())
+
+  def _FindRapiMissing(self, handlers):
+    used = frozenset(itertools.chain(*map(baserlib.GetResourceOpcodes,
+                                          handlers)))
+
+    unexpected = used & RAPI_OPCODE_EXCLUDE
+    self.assertFalse(unexpected,
+      msg=("Found RAPI resources for excluded opcodes: %s" %
+           utils.CommaJoin(_GetOpIds(unexpected))))
+
+    missing = (frozenset(opcodes.OP_MAPPING.values()) - used -
+               RAPI_OPCODE_EXCLUDE)
+    self.assertFalse(missing,
+      msg=("Missing RAPI resources for opcodes: %s" %
+           utils.CommaJoin(_GetOpIds(missing))))
+
+  def _CheckTagHandlers(self, handlers):
+    tag_handlers = filter(lambda x: issubclass(x, rlib2._R_Tags), handlers)
+    self.assertEqual(frozenset(map(operator.attrgetter("TAG_LEVEL"),
+                                   tag_handlers)),
+                     constants.VALID_TAG_TYPES)
+
+
+def _GetOpIds(ops):
+  """Returns C{OP_ID} for all opcodes in passed sequence.
+
+  """
+  return sorted(opcls.OP_ID for opcls in ops)
 
 
 class TestManpages(unittest.TestCase):
