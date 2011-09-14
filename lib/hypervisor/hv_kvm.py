@@ -36,6 +36,10 @@ import fcntl
 import shutil
 import socket
 import StringIO
+try:
+  import affinity
+except ImportError:
+  affinity = None
 
 from ganeti import utils
 from ganeti import constants
@@ -50,6 +54,7 @@ from ganeti.utils import wrapper as utils_wrapper
 
 
 _KVM_NETWORK_SCRIPT = constants.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
+_KVM_START_PAUSED_FLAG = "-S"
 
 # TUN/TAP driver constants, taken from <linux/if_tun.h>
 # They are architecture-independent and already hardcoded in qemu-kvm source,
@@ -473,6 +478,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _VERSION_RE = re.compile(r"\b(\d+)\.(\d+)\.(\d+)\b")
 
+  _CPU_INFO_RE = re.compile(r"cpu\s+\#(\d+).*thread_id\s*=\s*(\d+)", re.I)
+  _CPU_INFO_CMD = "info cpus"
+  _CONT_CMD = "cont"
+
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
     ]
@@ -742,6 +751,119 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    " Network configuration script output: %s" %
                                    (tap, result.fail_reason, result.output))
 
+  @staticmethod
+  def _VerifyAffinityPackage():
+    if affinity is None:
+      raise errors.HypervisorError("affinity Python package not"
+        " found; cannot use CPU pinning under KVM")
+
+  @staticmethod
+  def _BuildAffinityCpuMask(cpu_list):
+    """Create a CPU mask suitable for sched_setaffinity from a list of
+    CPUs.
+
+    See man taskset for more info on sched_setaffinity masks.
+    For example: [ 0, 2, 5, 6 ] will return 101 (0x65, 0..01100101).
+
+    @type cpu_list: list of int
+    @param cpu_list: list of physical CPU numbers to map to vCPUs in order
+    @rtype: int
+    @return: a bit mask of CPU affinities
+
+    """
+    if cpu_list == constants.CPU_PINNING_OFF:
+      return constants.CPU_PINNING_ALL_KVM
+    else:
+      return sum(2 ** cpu for cpu in cpu_list)
+
+  @classmethod
+  def _AssignCpuAffinity(cls, cpu_mask, process_id, thread_dict):
+    """Change CPU affinity for running VM according to given CPU mask.
+
+    @param cpu_mask: CPU mask as given by the user. e.g. "0-2,4:all:1,3"
+    @type cpu_mask: string
+    @param process_id: process ID of KVM process. Used to pin entire VM
+                       to physical CPUs.
+    @type process_id: int
+    @param thread_dict: map of virtual CPUs to KVM thread IDs
+    @type thread_dict: dict int:int
+
+    """
+
+    # Convert the string CPU mask to a list of list of int's
+    cpu_list = utils.ParseMultiCpuMask(cpu_mask)
+
+    if len(cpu_list) == 1:
+      all_cpu_mapping = cpu_list[0]
+      if all_cpu_mapping == constants.CPU_PINNING_OFF:
+        # If CPU pinning has 1 entry that's "all", then do nothing
+        pass
+      else:
+        # If CPU pinning has one non-all entry, map the entire VM to
+        # one set of physical CPUs
+        cls._VerifyAffinityPackage()
+        affinity.set_process_affinity_mask(process_id,
+          cls._BuildAffinityCpuMask(all_cpu_mapping))
+    else:
+      # The number of vCPUs mapped should match the number of vCPUs
+      # reported by KVM. This was already verified earlier, so
+      # here only as a sanity check.
+      assert len(thread_dict) == len(cpu_list)
+      cls._VerifyAffinityPackage()
+
+      # For each vCPU, map it to the proper list of physical CPUs
+      for vcpu, i in zip(cpu_list, range(len(cpu_list))):
+        affinity.set_process_affinity_mask(thread_dict[i],
+          cls._BuildAffinityCpuMask(vcpu))
+
+  def _GetVcpuThreadIds(self, instance_name):
+    """Get a mapping of vCPU no. to thread IDs for the instance
+
+    @type instance_name: string
+    @param instance_name: instance in question
+    @rtype: dictionary of int:int
+    @return: a dictionary mapping vCPU numbers to thread IDs
+
+    """
+    result = {}
+    output = self._CallMonitorCommand(instance_name, self._CPU_INFO_CMD)
+    for line in output.stdout.splitlines():
+      match = self._CPU_INFO_RE.search(line)
+      if not match:
+        continue
+      grp = map(int, match.groups())
+      result[grp[0]] = grp[1]
+
+    return result
+
+  def _ExecuteCpuAffinity(self, instance_name, cpu_mask, startup_paused):
+    """Complete CPU pinning and resume instance execution if needed.
+
+    @type instance_name: string
+    @param instance_name: name of instance
+    @type cpu_mask: string
+    @param cpu_mask: CPU pinning mask as entered by user
+    @type startup_paused: bool
+    @param startup_paused: was instance requested to pause before startup
+
+    """
+    try:
+      # Get KVM process ID, to be used if need to pin entire VM
+      _, pid, _ = self._InstancePidAlive(instance_name)
+      # Get vCPU thread IDs, to be used if need to pin vCPUs separately
+      thread_dict = self._GetVcpuThreadIds(instance_name)
+      # Run CPU pinning, based on configured mask
+      self._AssignCpuAffinity(cpu_mask, pid, thread_dict)
+
+    finally:
+      # To control CPU pinning, the VM was started frozen, so we need
+      # to resume its execution, but only if freezing was not
+      # explicitly requested.
+      # Note: this is done even when an exception occurred so the VM
+      # is not unintentionally frozen.
+      if not startup_paused:
+        self._CallMonitorCommand(instance_name, self._CONT_CMD)
+
   def ListInstances(self):
     """Get the list of running instances.
 
@@ -808,8 +930,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd.extend(["-daemonize"])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
-    if startup_paused:
-      kvm_cmd.extend(["-S"])
     if instance.hvparams[constants.HV_REBOOT_BEHAVIOR] == \
         constants.INSTANCE_REBOOT_EXIT:
       kvm_cmd.extend(["-no-reboot"])
@@ -821,6 +941,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     self.ValidateParameters(hvp)
+
+    if startup_paused:
+      kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
 
     if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
       kvm_cmd.extend(["-enable-kvm"])
@@ -1249,6 +1372,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         continue
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
+    # Before running the KVM command, capture wether the instance is
+    # supposed to start paused. This is used later when changing CPU
+    # affinity in order to know whether to resume instance execution.
+    startup_paused = _KVM_START_PAUSED_FLAG in kvm_cmd
+
+    # Note: CPU pinning is using up_hvp since changes take effect
+    # during instance startup anyway, and to avoid problems when soft
+    # rebooting the instance.
+    if up_hvp.get(constants.HV_CPU_MASK, None):
+      cpu_pinning = True
+      if not startup_paused:
+        kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
+
     if security_model == constants.HT_SM_POOL:
       ss = ssconf.SimpleStore()
       uid_pool = uidpool.ParseUidPool(ss.GetUidPool(), separator="\n")
@@ -1299,6 +1435,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     for filename in temp_files:
       utils.RemoveFile(filename)
+
+    # If requested, set CPU affinity and resume instance execution
+    if cpu_pinning:
+      self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK],
+                               startup_paused)
 
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
