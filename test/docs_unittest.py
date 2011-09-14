@@ -43,11 +43,8 @@ def _ReadDocFile(filename):
                         (testutils.GetSourceDir(), filename))
 
 
-class TestDocs(unittest.TestCase):
-  """Documentation tests.
-
-  """
-  def testHookDocs(self):
+class TestHooksDocs(unittest.TestCase):
+  def test(self):
     """Check whether all hooks are documented.
 
     """
@@ -88,6 +85,8 @@ class TestDocs(unittest.TestCase):
                  msg=("Missing documentation for hook %s/%s" %
                       (lucls.HTYPE, lucls.HPATH)))
 
+
+class TestRapiDocs(unittest.TestCase):
   def _CheckRapiResource(self, uri, fixup, handler):
     docline = "%s resource." % uri
     self.assertEqual(handler.__doc__.splitlines()[0].strip(), docline,
@@ -100,7 +99,7 @@ class TestDocs(unittest.TestCase):
 
     self.assertTrue(VALID_URI_RE.match(uri), msg="Invalid URI %r" % uri)
 
-  def testRapiDocs(self):
+  def test(self):
     """Check whether all RAPI resources are documented.
 
     """
