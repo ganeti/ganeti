@@ -48,6 +48,18 @@ _SUPPORTED_METHODS = frozenset([
   ])
 
 
+def _BuildOpcodeAttributes():
+  """Builds list of attributes used for per-handler opcodes.
+
+  """
+  return [(method, "%s_OPCODE" % method, "%s_RENAME" % method,
+           "Get%sOpInput" % method.capitalize())
+          for method in _SUPPORTED_METHODS]
+
+
+_OPCODE_ATTRS = _BuildOpcodeAttributes()
+
+
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   """Builds a URI list as used by index resources.
 
@@ -408,14 +420,18 @@ class ResourceBase(object):
                                     " daemon: %s" % err)
 
 
+def GetResourceOpcodes(cls):
+  """Returns all opcodes used by a resource.
+
+  """
+  return frozenset(filter(None, (getattr(cls, op_attr, None)
+                                 for (_, op_attr, _, _) in _OPCODE_ATTRS)))
+
+
 class _MetaOpcodeResource(type):
   """Meta class for RAPI resources.
 
   """
-  _ATTRS = [(method, "%s_OPCODE" % method, "%s_RENAME" % method,
-             "Get%sOpInput" % method.capitalize())
-            for method in _SUPPORTED_METHODS]
-
   def __call__(mcs, *args, **kwargs):
     """Instantiates class and patches it for use by the RAPI daemon.
 
@@ -423,7 +439,7 @@ class _MetaOpcodeResource(type):
     # Access to private attributes of a client class, pylint: disable=W0212
     obj = type.__call__(mcs, *args, **kwargs)
 
-    for (method, op_attr, rename_attr, fn_attr) in mcs._ATTRS:
+    for (method, op_attr, rename_attr, fn_attr) in _OPCODE_ATTRS:
       try:
         opcode = getattr(obj, op_attr)
       except AttributeError:
