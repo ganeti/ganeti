@@ -995,6 +995,21 @@ class R_2_instances_name_deactivate_disks(baserlib.OpcodeResource):
       })
 
 
+class R_2_instances_name_recreate_disks(baserlib.OpcodeResource):
+  """/2/instances/[instance_name]/recreate-disks resource.
+
+  """
+  POST_OPCODE = opcodes.OpInstanceRecreateDisks
+
+  def GetPostOpInput(self):
+    """Recreate disks for an instance.
+
+    """
+    return ({}, {
+      "instance_name": self.items[0],
+      })
+
+
 class R_2_instances_name_prepare_export(baserlib.OpcodeResource):
   """/2/instances/[instance_name]/prepare-export resource.
 

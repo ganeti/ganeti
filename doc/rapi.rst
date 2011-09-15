@@ -811,6 +811,23 @@ It supports the following commands: ``PUT``.
 Takes no parameters.
 
 
+``/2/instances/[instance_name]/recreate-disks``
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Recreate disks of an instance. Supports the following commands:
+``POST``.
+
+``POST``
+~~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+.. opcode_params:: OP_INSTANCE_RECREATE_DISKS
+   :exclude: instance_name
+
+
 ``/2/instances/[instance_name]/disk/[disk_index]/grow``
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

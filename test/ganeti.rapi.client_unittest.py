@@ -1166,6 +1166,14 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertHandler(rlib2.R_2_instances_name_deactivate_disks)
     self.assertFalse(self.rapi.GetLastHandler().queryargs)
 
+  def testRecreateInstanceDisks(self):
+    self.rapi.AddResponse("13553")
+    job_id = self.client.RecreateInstanceDisks("inst23153")
+    self.assertEqual(job_id, 13553)
+    self.assertItems(["inst23153"])
+    self.assertHandler(rlib2.R_2_instances_name_recreate_disks)
+    self.assertFalse(self.rapi.GetLastHandler().queryargs)
+
   def testGetInstanceConsole(self):
     self.rapi.AddResponse("26876")
     job_id = self.client.GetInstanceConsole("inst21491")

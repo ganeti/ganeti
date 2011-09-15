@@ -753,6 +753,31 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/instances/%s/deactivate-disks" %
                               (GANETI_RAPI_VERSION, instance)), None, None)
 
+  def RecreateInstanceDisks(self, instance, disks=None, nodes=None):
+    """Recreate an instance's disks.
+
+    @type instance: string
+    @param instance: Instance name
+    @type disks: list of int
+    @param disks: List of disk indexes
+    @type nodes: list of string
+    @param nodes: New instance nodes, if relocation is desired
+    @rtype: string
+    @return: job id
+
+    """
+    body = {}
+
+    if disks is not None:
+      body["disks"] = disks
+
+    if nodes is not None:
+      body["nodes"] = nodes
+
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/instances/%s/recreate-disks" %
+                              (GANETI_RAPI_VERSION, instance)), None, body)
+
   def GrowInstanceDisk(self, instance, disk, amount, wait_for_sync=None):
     """Grows a disk of an instance.
 
