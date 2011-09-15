@@ -908,8 +908,9 @@ prop_ClusterAllocEvac node inst =
                (xnl, xi, _, _):[] ->
                    let sdx = Instance.sNode xi
                        il' = Container.add (Instance.idx xi) xi il
-                   in case Cluster.tryEvac xnl il' [Instance.idx xi] [sdx] of
-                        Just _ -> True
+                   in case IAlloc.processRelocate defGroupList xnl il'
+                          (Instance.idx xi) 1 [sdx] of
+                        Types.Ok _ -> True
                         _ -> False
                _ -> False
 

@@ -50,7 +50,7 @@ def _SetupColours():
   """Initializes the colour constants.
 
   """
-  # pylint: disable-msg=W0603
+  # pylint: disable=W0603
   # due to global usage
   global _INFO_SEQ, _WARNING_SEQ, _ERROR_SEQ, _RESET_SEQ
 

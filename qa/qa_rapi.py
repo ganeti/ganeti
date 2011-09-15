@@ -35,7 +35,7 @@ from ganeti import query
 from ganeti import compat
 from ganeti import qlang
 
-import ganeti.rapi.client        # pylint: disable-msg=W0611
+import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
 
 import qa_config
@@ -55,7 +55,7 @@ def Setup(username, password):
   """Configures the RAPI client.
 
   """
-  # pylint: disable-msg=W0603
+  # pylint: disable=W0603
   # due to global usage
   global _rapi_ca
   global _rapi_client
@@ -122,7 +122,7 @@ def Enabled():
 
 
 def _DoTests(uris):
-  # pylint: disable-msg=W0212
+  # pylint: disable=W0212
   # due to _SendRequest usage
   results = []
 

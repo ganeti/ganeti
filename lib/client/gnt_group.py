@@ -20,7 +20,7 @@
 
 """Node group related commands"""
 
-# pylint: disable-msg=W0401,W0614
+# pylint: disable=W0401,W0614
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 

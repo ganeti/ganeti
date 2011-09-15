@@ -42,7 +42,7 @@ from ganeti import opcodes
 from ganeti import ht
 from ganeti import rapi
 
-import ganeti.rapi.rlib2 # pylint: disable-msg=W0611
+import ganeti.rapi.rlib2 # pylint: disable=W0611
 
 
 COMMON_PARAM_NAMES = map(compat.fst, opcodes.OpCode.OP_PARAMS)
@@ -213,7 +213,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
   The expression's result is included as a literal.
 
   """
-  # pylint: disable-msg=W0102,W0613,W0142
+  # pylint: disable=W0102,W0613,W0142
   # W0102: Dangerous default value as argument
   # W0142: Used * or ** magic
   # W0613: Unused argument
@@ -222,7 +222,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
 
   try:
     result = eval(code, EVAL_NS)
-  except Exception, err: # pylint: disable-msg=W0703
+  except Exception, err: # pylint: disable=W0703
     msg = inliner.reporter.error("Failed to evaluate %r: %s" % (code, err),
                                  line=lineno)
     return ([inliner.problematic(rawtext, rawtext, msg)], [msg])

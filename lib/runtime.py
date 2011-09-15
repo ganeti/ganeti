@@ -175,14 +175,14 @@ def GetEnts(resolver=GetentResolver):
 
   """
   # We need to use the global keyword here
-  global _priv # pylint: disable-msg=W0603
+  global _priv # pylint: disable=W0603
 
   if not _priv:
     _priv_lock.acquire()
     try:
       if not _priv:
         # W0621: Redefine '_priv' from outer scope (used for singleton)
-        _priv = resolver() # pylint: disable-msg=W0621
+        _priv = resolver() # pylint: disable=W0621
     finally:
       _priv_lock.release()
 

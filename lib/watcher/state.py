@@ -86,7 +86,7 @@ class WatcherState(object):
         self._data = {}
       else:
         self._data = serializer.Load(state_data)
-    except Exception, msg: # pylint: disable-msg=W0703
+    except Exception, msg: # pylint: disable=W0703
       # Ignore errors while loading the file and treat it as empty
       self._data = {}
       logging.warning(("Invalid state file. Using defaults."

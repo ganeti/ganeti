@@ -261,7 +261,7 @@ def GenericCurlConfig(verbose=False, use_signal=False,
   return _ConfigCurl
 
 
-class GanetiRapiClient(object): # pylint: disable-msg=R0904
+class GanetiRapiClient(object): # pylint: disable=R0904
   """Ganeti RAPI client.
 
   """

@@ -29,7 +29,7 @@ import time
 import logging
 
 from ganeti import constants
-from ganeti import errors # pylint: disable-msg=W0611
+from ganeti import errors # pylint: disable=W0611
 from ganeti import utils
 from ganeti import objects
 from ganeti.hypervisor import hv_base
@@ -247,7 +247,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     return self.GetLinuxNodeInfo()
 
   @classmethod
-  def GetInstanceConsole(cls, instance, # pylint: disable-msg=W0221
+  def GetInstanceConsole(cls, instance, # pylint: disable=W0221
                          hvparams, beparams, root_dir=None):
     """Return information for connecting to the console of an instance.
 

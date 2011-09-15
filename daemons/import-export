@@ -23,7 +23,7 @@
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # C0103: Invalid name import-export
 
 import errno
@@ -353,7 +353,7 @@ def ParseOptions():
   @return: Arguments to program
 
   """
-  global options # pylint: disable-msg=W0603
+  global options # pylint: disable=W0603
 
   parser = optparse.OptionParser(usage=("%%prog <status-file> {%s|%s}" %
                                         (constants.IEM_IMPORT,
@@ -587,7 +587,7 @@ def main():
         errmsg = "Exited with status %s" % (child.returncode, )
 
       status_file.SetExitStatus(child.returncode, errmsg)
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       logging.exception("Unhandled error occurred")
       status_file.SetExitStatus(constants.EXIT_FAILURE,
                                 "Unhandled error occurred: %s" % (err, ))

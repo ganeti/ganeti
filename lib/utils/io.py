@@ -465,6 +465,20 @@ def IsNormAbsPath(path):
   return os.path.normpath(path) == path and os.path.isabs(path)
 
 
+def IsBelowDir(root, other_path):
+  """Check whether a path is below a root dir.
+
+  This works around the nasty byte-byte comparisation of commonprefix.
+
+  """
+  if not (os.path.isabs(root) and os.path.isabs(other_path)):
+    raise ValueError("Provided paths '%s' and '%s' are not absolute" %
+                     (root, other_path))
+  prepared_root = "%s%s" % (os.path.normpath(root), os.sep)
+  return os.path.commonprefix([prepared_root,
+                               os.path.normpath(other_path)]) == prepared_root
+
+
 def PathJoin(*args):
   """Safe-join a list of path components.
 
@@ -488,10 +502,9 @@ def PathJoin(*args):
   if not IsNormAbsPath(result):
     raise ValueError("Invalid parameters to PathJoin: '%s'" % str(args))
   # check that we're still under the original prefix
-  prefix = os.path.commonprefix([root, result])
-  if prefix != root:
+  if not IsBelowDir(root, result):
     raise ValueError("Error: path joining resulted in different prefix"
-                     " (%s != %s)" % (prefix, root))
+                     " (%s != %s)" % (result, root))
   return result
 
 

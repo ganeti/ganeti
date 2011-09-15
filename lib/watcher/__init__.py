@@ -50,7 +50,7 @@ from ganeti import objects
 from ganeti import ssconf
 from ganeti import ht
 
-import ganeti.rapi.client # pylint: disable-msg=W0611
+import ganeti.rapi.client # pylint: disable=W0611
 
 from ganeti.watcher import nodemaint
 from ganeti.watcher import state
@@ -106,8 +106,8 @@ def RunWatcherHooks():
 
   try:
     results = utils.RunParts(hooks_dir)
-  except Exception: # pylint: disable-msg=W0703
-    logging.exception("RunParts %s failed: %s", hooks_dir)
+  except Exception, err: # pylint: disable=W0703
+    logging.exception("RunParts %s failed: %s", hooks_dir, err)
     return
 
   for (relname, status, runresult) in results:
@@ -193,7 +193,7 @@ def _CheckInstances(cl, notepad, instances):
         logging.info("Restarting instance '%s' (attempt #%s)",
                      inst.name, n + 1)
         inst.Restart(cl)
-      except Exception: # pylint: disable-msg=W0703
+      except Exception: # pylint: disable=W0703
         logging.exception("Error while restarting instance '%s'", inst.name)
       else:
         started.add(inst.name)
@@ -255,7 +255,7 @@ def _CheckDisks(cl, notepad, nodes, instances, started):
         try:
           logging.info("Activating disks for instance '%s'", inst.name)
           inst.ActivateDisks(cl)
-        except Exception: # pylint: disable-msg=W0703
+        except Exception: # pylint: disable=W0703
           logging.exception("Error while activating disks for instance '%s'",
                             inst.name)
 
@@ -313,7 +313,7 @@ def _VerifyDisks(cl, uuid, nodes, instances):
 
     try:
       cli.PollJob(job_id, cl=cl, feedback_fn=logging.debug)
-    except Exception: # pylint: disable-msg=W0703
+    except Exception: # pylint: disable=W0703
       logging.exception("Error while activating disks")
 
 
@@ -549,7 +549,7 @@ def _StartGroupChildren(cl, wait):
     try:
       # TODO: Should utils.StartDaemon be used instead?
       pid = os.spawnv(os.P_NOWAIT, args[0], args)
-    except Exception: # pylint: disable-msg=W0703
+    except Exception: # pylint: disable=W0703
       logging.exception("Failed to start child for group '%s' (%s)",
                         name, uuid)
     else:
@@ -596,8 +596,8 @@ def _GlobalWatcher(opts):
 
   # Run node maintenance in all cases, even if master, so that old masters can
   # be properly cleaned up
-  if nodemaint.NodeMaintenance.ShouldRun(): # pylint: disable-msg=E0602
-    nodemaint.NodeMaintenance().Exec() # pylint: disable-msg=E0602
+  if nodemaint.NodeMaintenance.ShouldRun(): # pylint: disable=E0602
+    nodemaint.NodeMaintenance().Exec() # pylint: disable=E0602
 
   try:
     client = GetLuxiClient(True)
@@ -729,11 +729,11 @@ def _GroupWatcher(opts):
   logging.debug("Using state file %s", state_path)
 
   # Global watcher
-  statefile = state.OpenStateFile(state_path) # pylint: disable-msg=E0602
+  statefile = state.OpenStateFile(state_path) # pylint: disable=E0602
   if not statefile:
     return constants.EXIT_FAILURE
 
-  notepad = state.WatcherState(statefile) # pylint: disable-msg=E0602
+  notepad = state.WatcherState(statefile) # pylint: disable=E0602
   try:
     # Connect to master daemon
     client = GetLuxiClient(False)

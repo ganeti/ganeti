@@ -539,12 +539,12 @@ def _BeautifyError(err):
                                             err.errno)
     else:
       return str(err)
-  except Exception: # pylint: disable-msg=W0703
+  except Exception: # pylint: disable=W0703
     logging.exception("Error while handling existing error %s", err)
     return "%s" % str(err)
 
 
-def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable-msg=W0613
+def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable=W0613
   """Handler for SIGHUP.
 
   @param reopen_fn: List of callback functions for reopening log files

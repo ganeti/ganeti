@@ -28,7 +28,7 @@ import logging
 from ganeti import errors
 
 try:
-  # pylint: disable-msg=F0401
+  # pylint: disable=F0401
   import ctypes
 except ImportError:
   ctypes = None
@@ -65,11 +65,11 @@ def Mlockall(_ctypes=ctypes):
   # By declaring this variable as a pointer to an integer we can then access
   # its value correctly, should the mlockall call fail, in order to see what
   # the actual error code was.
-  # pylint: disable-msg=W0212
+  # pylint: disable=W0212
   libc.__errno_location.restype = _ctypes.POINTER(_ctypes.c_int)
 
   if libc.mlockall(_MCL_CURRENT | _MCL_FUTURE):
-    # pylint: disable-msg=W0212
+    # pylint: disable=W0212
     logging.error("Cannot set memory lock: %s",
                   os.strerror(libc.__errno_location().contents.value))
     return

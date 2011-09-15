@@ -92,7 +92,7 @@ class HttpServerRequestAuthentication(object):
     """
     # today we don't have per-request filtering, but we might want to
     # add it in the future
-    # pylint: disable-msg=W0613
+    # pylint: disable=W0613
     return self.AUTH_REALM
 
   def AuthenticationRequired(self, req):
@@ -106,7 +106,7 @@ class HttpServerRequestAuthentication(object):
 
     """
     # Unused argument, method could be a function
-    # pylint: disable-msg=W0613,R0201
+    # pylint: disable=W0613,R0201
     return False
 
   def PreHandleRequest(self, req):

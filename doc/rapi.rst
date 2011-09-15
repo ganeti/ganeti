@@ -960,20 +960,23 @@ console. Contained keys:
      constants.CONS_MESSAGE,
      constants.CONS_SSH,
      constants.CONS_VNC,
+     constants.CONS_SPICE,
      ])
 
 ``instance``
   Instance name.
 ``kind``
   Console type, one of :pyeval:`constants.CONS_SSH`,
-  :pyeval:`constants.CONS_VNC` or :pyeval:`constants.CONS_MESSAGE`.
+  :pyeval:`constants.CONS_VNC`, :pyeval:`constants.CONS_SPICE`
+  or :pyeval:`constants.CONS_MESSAGE`.
 ``message``
   Message to display (:pyeval:`constants.CONS_MESSAGE` type only).
 ``host``
-  Host to connect to (:pyeval:`constants.CONS_SSH` and
-  :pyeval:`constants.CONS_VNC` only).
+  Host to connect to (:pyeval:`constants.CONS_SSH`,
+  :pyeval:`constants.CONS_VNC` or :pyeval:`constants.CONS_SPICE` only).
 ``port``
-  TCP port to connect to (:pyeval:`constants.CONS_VNC` only).
+  TCP port to connect to (:pyeval:`constants.CONS_VNC` or
+  :pyeval:`constants.CONS_SPICE` only).
 ``user``
   Username to use (:pyeval:`constants.CONS_SSH` only).
 ``command``

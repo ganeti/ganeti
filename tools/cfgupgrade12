@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-# pylint: disable-msg=C0103,E1103
+# pylint: disable=C0103,E1103
 
 # C0103: invalid name NoDefault
 # E1103: Instance of 'foor' has no 'bar' member (but some types could
@@ -281,7 +281,7 @@ def main():
   """Main program.
 
   """
-  # pylint: disable-msg=W0603
+  # pylint: disable=W0603
   global options, args
 
   program = os.path.basename(sys.argv[0])

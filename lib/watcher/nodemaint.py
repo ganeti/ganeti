@@ -34,7 +34,7 @@ from ganeti import ssconf
 from ganeti import utils
 from ganeti import confd
 
-import ganeti.confd.client # pylint: disable-msg=W0611
+import ganeti.confd.client # pylint: disable=W0611
 
 
 class NodeMaintenance(object):
@@ -70,7 +70,7 @@ class NodeMaintenance(object):
         hv = hypervisor.GetHypervisor(hv_name)
         ilist = hv.ListInstances()
         results.extend([(iname, hv_name) for iname in ilist])
-      except: # pylint: disable-msg=W0702
+      except: # pylint: disable=W0702
         logging.error("Error while listing instances for hypervisor %s",
                       hv_name, exc_info=True)
     return results
@@ -121,7 +121,7 @@ class NodeMaintenance(object):
       logging.info("Following DRBD minors should not be active,"
                    " shutting them down: %s", utils.CommaJoin(drbd_running))
       for minor in drbd_running:
-        # pylint: disable-msg=W0212
+        # pylint: disable=W0212
         # using the private method as is, pending enhancements to the DRBD
         # interface
         bdev.DRBD8._ShutdownAll(minor)

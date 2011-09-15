@@ -45,7 +45,7 @@ confirming what you already got.
 
 """
 
-# pylint: disable-msg=E0203
+# pylint: disable=E0203
 
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitely initialise its members
@@ -156,7 +156,7 @@ class ConfdClient:
 
     """
     # we are actually called from init, so:
-    # pylint: disable-msg=W0201
+    # pylint: disable=W0201
     if not isinstance(peers, list):
       raise errors.ProgrammerError("peers must be a list")
     # make a copy of peers, since we're going to shuffle the list, later

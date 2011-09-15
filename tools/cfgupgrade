@@ -93,7 +93,7 @@ def main():
   """Main program.
 
   """
-  global options, args # pylint: disable-msg=W0603
+  global options, args # pylint: disable=W0603
 
   # Option parsing
   parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")

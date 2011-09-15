@@ -278,9 +278,9 @@ def ParseRequest(msg):
     logging.error("LUXI request not a dict: %r", msg)
     raise ProtocolError("Invalid LUXI request (not a dict)")
 
-  method = request.get(KEY_METHOD, None) # pylint: disable-msg=E1103
-  args = request.get(KEY_ARGS, None) # pylint: disable-msg=E1103
-  version = request.get(KEY_VERSION, None) # pylint: disable-msg=E1103
+  method = request.get(KEY_METHOD, None) # pylint: disable=E1103
+  args = request.get(KEY_ARGS, None) # pylint: disable=E1103
+  version = request.get(KEY_VERSION, None) # pylint: disable=E1103
 
   if method is None or args is None:
     logging.error("LUXI request missing method or arguments: %r", msg)
@@ -309,7 +309,7 @@ def ParseResponse(msg):
     raise ProtocolError("Invalid response from server: %r" % data)
 
   return (data[KEY_SUCCESS], data[KEY_RESULT],
-          data.get(KEY_VERSION, None)) # pylint: disable-msg=E1103
+          data.get(KEY_VERSION, None)) # pylint: disable=E1103
 
 
 def FormatResponse(success, result, version=None):
@@ -417,7 +417,7 @@ class Client(object):
       old_transp = self.transport
       self.transport = None
       old_transp.Close()
-    except Exception: # pylint: disable-msg=W0703
+    except Exception: # pylint: disable=W0703
       pass
 
   def _SendMethodCall(self, data):

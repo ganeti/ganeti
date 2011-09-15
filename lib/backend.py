@@ -28,7 +28,7 @@
 
 """
 
-# pylint: disable-msg=E1103
+# pylint: disable=E1103
 
 # E1103: %s %r has no %r member (but some types could not be
 # inferred), because the _TryOSFromDisk returns either (True, os_obj)
@@ -412,7 +412,7 @@ def LeaveCluster(modify_ssh_setup):
     utils.RemoveFile(constants.CONFD_HMAC_KEY)
     utils.RemoveFile(constants.RAPI_CERT_FILE)
     utils.RemoveFile(constants.NODED_CERT_FILE)
-  except: # pylint: disable-msg=W0702
+  except: # pylint: disable=W0702
     logging.exception("Error while removing cluster secrets")
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "stop", constants.CONFD])
@@ -668,7 +668,7 @@ def GetBlockDevSizes(devices):
   blockdevs = {}
 
   for devpath in devices:
-    if os.path.commonprefix([DEV_PREFIX, devpath]) != DEV_PREFIX:
+    if not utils.IsBelowDir(DEV_PREFIX, devpath):
       continue
 
     try:
@@ -1340,7 +1340,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
 
   """
   # TODO: remove the obsolete "size" argument
-  # pylint: disable-msg=W0613
+  # pylint: disable=W0613
   clist = []
   if disk.children:
     for child in disk.children:
@@ -1352,7 +1352,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
         # we need the children open in case the device itself has to
         # be assembled
         try:
-          # pylint: disable-msg=E1103
+          # pylint: disable=E1103
           crdev.Open()
         except errors.BlockDeviceError, err:
           _Fail("Can't make child '%s' read-write: %s", child, err)
@@ -1568,7 +1568,7 @@ def BlockdevAssemble(disk, owner, as_primary, idx):
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, bdev.BlockDev):
-      # pylint: disable-msg=E1103
+      # pylint: disable=E1103
       result = result.dev_path
       if as_primary:
         _SymlinkBlockDev(owner, result, idx)
@@ -2507,8 +2507,8 @@ def _TransformFileStorageDir(fs_dir):
   fs_dir = os.path.normpath(fs_dir)
   base_fstore = cfg.GetFileStorageDir()
   base_shared = cfg.GetSharedFileStorageDir()
-  if ((os.path.commonprefix([fs_dir, base_fstore]) != base_fstore) and
-      (os.path.commonprefix([fs_dir, base_shared]) != base_shared)):
+  if not (utils.IsBelowDir(base_fstore, fs_dir) or
+          utils.IsBelowDir(base_shared, fs_dir)):
     _Fail("File storage directory '%s' is not under base file"
           " storage directory '%s' or shared storage directory '%s'",
           fs_dir, base_fstore, base_shared)
@@ -2875,12 +2875,12 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     if not utils.IsNormAbsPath(filename):
       _Fail("Path '%s' is not normalized or absolute", filename)
 
-    directory = os.path.normpath(os.path.dirname(filename))
+    real_filename = os.path.realpath(filename)
+    directory = os.path.dirname(real_filename)
 
-    if (os.path.commonprefix([constants.EXPORT_DIR, directory]) !=
-        constants.EXPORT_DIR):
-      _Fail("File '%s' is not under exports directory '%s'",
-            filename, constants.EXPORT_DIR)
+    if not utils.IsBelowDir(constants.EXPORT_DIR, real_filename):
+      _Fail("File '%s' is not under exports directory '%s': %s",
+            filename, constants.EXPORT_DIR, real_filename)
 
     # Create directory
     utils.Makedirs(directory, mode=0750)
@@ -3322,7 +3322,7 @@ def PowercycleNode(hypervisor_type):
   # ensure the child is running on ram
   try:
     utils.Mlockall()
-  except Exception: # pylint: disable-msg=W0703
+  except Exception: # pylint: disable=W0703
     pass
   time.sleep(5)
   hyper.PowercycleNode()
@@ -3347,7 +3347,7 @@ class HooksRunner(object):
       hooks_base_dir = constants.HOOKS_BASE_DIR
     # yeah, _BASE_DIR is not valid for attributes, we use it like a
     # constant
-    self._BASE_DIR = hooks_base_dir # pylint: disable-msg=C0103
+    self._BASE_DIR = hooks_base_dir # pylint: disable=C0103
 
   def RunHooks(self, hpath, phase, env):
     """Run the scripts in the hooks directory.

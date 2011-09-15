@@ -20,7 +20,7 @@
 
 """Cluster related commands"""
 
-# pylint: disable-msg=W0401,W0613,W0614,C0103
+# pylint: disable=W0401,W0613,W0614,C0103
 # W0401: Wildcard import ganeti.cli
 # W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)
@@ -622,7 +622,7 @@ def MasterPing(opts, args):
     cl = GetClient()
     cl.QueryClusterInfo()
     return 0
-  except Exception: # pylint: disable-msg=W0703
+  except Exception: # pylint: disable=W0703
     return 1
 
 
@@ -668,7 +668,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
 
   """
   if new_rapi_cert and rapi_cert_filename:
-    ToStderr("Only one of the --new-rapi-certficate and --rapi-certificate"
+    ToStderr("Only one of the --new-rapi-certificate and --rapi-certificate"
              " options can be specified at the same time.")
     return 1
 
@@ -685,14 +685,14 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
 
       OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                       rapi_cert_pem)
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       ToStderr("Can't load new RAPI certificate from %s: %s" %
                (rapi_cert_filename, str(err)))
       return 1
 
     try:
       OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, rapi_cert_pem)
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       ToStderr("Can't load new RAPI private key from %s: %s" %
                (rapi_cert_filename, str(err)))
       return 1
@@ -703,7 +703,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
   if cds_filename:
     try:
       cds = utils.ReadFile(cds_filename)
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       ToStderr("Can't load new cluster domain secret from %s: %s" %
                (cds_filename, str(err)))
       return 1

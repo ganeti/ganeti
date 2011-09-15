@@ -242,7 +242,7 @@ def _InitFileStorage(file_storage_dir):
   return file_storage_dir
 
 
-def InitCluster(cluster_name, mac_prefix, # pylint: disable-msg=R0913
+def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
                 master_netdev, file_storage_dir, shared_file_storage_dir,
                 candidate_pool_size, secondary_ip=None, vg_name=None,
                 beparams=None, nicparams=None, ndparams=None, hvparams=None,

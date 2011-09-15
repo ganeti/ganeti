@@ -381,7 +381,7 @@ def UnescapeAndSplit(text, sep=","):
     e1 = slist.pop(0)
     if e1.endswith("\\"):
       num_b = len(e1) - len(e1.rstrip("\\"))
-      if num_b % 2 == 1:
+      if num_b % 2 == 1 and slist:
         e2 = slist.pop(0)
         # here the backslashes remain (all), and will be reduced in
         # the next step
@@ -463,7 +463,7 @@ class LineSplitter:
     if args:
       # Python 2.4 doesn't have functools.partial yet
       self._line_fn = \
-        lambda line: line_fn(line, *args) # pylint: disable-msg=W0142
+        lambda line: line_fn(line, *args) # pylint: disable=W0142
     else:
       self._line_fn = line_fn
 

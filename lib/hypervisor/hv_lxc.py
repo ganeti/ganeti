@@ -29,7 +29,7 @@ import time
 import logging
 
 from ganeti import constants
-from ganeti import errors # pylint: disable-msg=W0611
+from ganeti import errors # pylint: disable=W0611
 from ganeti import utils
 from ganeti import objects
 from ganeti.hypervisor import hv_base

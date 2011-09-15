@@ -34,6 +34,8 @@ import pwd
 import struct
 import fcntl
 import shutil
+import socket
+import StringIO
 
 from ganeti import utils
 from ganeti import constants
@@ -127,6 +129,251 @@ def _OpenTap(vnet_hdr=True):
   return (ifname, tapfd)
 
 
+class QmpMessage:
+  """QEMU Messaging Protocol (QMP) message.
+
+  """
+
+  def __init__(self, data):
+    """Creates a new QMP message based on the passed data.
+
+    """
+    if not isinstance(data, dict):
+      raise TypeError("QmpMessage must be initialized with a dict")
+
+    self.data = data
+
+  def __getitem__(self, field_name):
+    """Get the value of the required field if present, or None.
+
+    Overrides the [] operator to provide access to the message data,
+    returning None if the required item is not in the message
+    @return: the value of the field_name field, or None if field_name
+             is not contained in the message
+
+    """
+
+    if field_name in self.data:
+      return self.data[field_name]
+
+    return None
+
+  def __setitem__(self, field_name, field_value):
+    """Set the value of the required field_name to field_value.
+
+    """
+    self.data[field_name] = field_value
+
+  @staticmethod
+  def BuildFromJsonString(json_string):
+    """Build a QmpMessage from a JSON encoded string.
+
+    @type json_string: str
+    @param json_string: JSON string representing the message
+    @rtype: L{QmpMessage}
+    @return: a L{QmpMessage} built from json_string
+
+    """
+    # Parse the string
+    data = serializer.LoadJson(json_string)
+    return QmpMessage(data)
+
+  def __str__(self):
+    # The protocol expects the JSON object to be sent as a single
+    # line, hence the need for indent=False.
+    return serializer.DumpJson(self.data, indent=False)
+
+  def __eq__(self, other):
+    # When comparing two QmpMessages, we are interested in comparing
+    # their internal representation of the message data
+    return self.data == other.data
+
+
+class QmpConnection:
+  """Connection to the QEMU Monitor using the QEMU Monitor Protocol (QMP).
+
+  """
+  _FIRST_MESSAGE_KEY = "QMP"
+  _EVENT_KEY = "event"
+  _ERROR_KEY = "error"
+  _ERROR_CLASS_KEY = "class"
+  _ERROR_DATA_KEY = "data"
+  _ERROR_DESC_KEY = "desc"
+  _EXECUTE_KEY = "execute"
+  _ARGUMENTS_KEY = "arguments"
+  _CAPABILITIES_COMMAND = "qmp_capabilities"
+  _MESSAGE_END_TOKEN = "\r\n"
+  _SOCKET_TIMEOUT = 5
+
+  def __init__(self, monitor_filename):
+    """Instantiates the QmpConnection object.
+
+    @type monitor_filename: string
+    @param monitor_filename: the filename of the UNIX raw socket on which the
+                             QMP monitor is listening
+
+    """
+    self.monitor_filename = monitor_filename
+    self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    # We want to fail if the server doesn't send a complete message
+    # in a reasonable amount of time
+    self.sock.settimeout(self._SOCKET_TIMEOUT)
+    self._connected = False
+    self._buf = ""
+
+  def _check_connection(self):
+    """Make sure that the connection is established.
+
+    """
+    if not self._connected:
+      raise errors.ProgrammerError("To use a QmpConnection you need to first"
+                                   " invoke connect() on it")
+
+  def connect(self):
+    """Connects to the QMP monitor.
+
+    Connects to the UNIX socket and makes sure that we can actually send and
+    receive data to the kvm instance via QMP.
+
+    @raise errors.HypervisorError: when there are communication errors
+    @raise errors.ProgrammerError: when there are data serialization errors
+
+    """
+    self.sock.connect(self.monitor_filename)
+    self._connected = True
+
+    # Check if we receive a correct greeting message from the server
+    # (As per the QEMU Protocol Specification 0.1 - section 2.2)
+    greeting = self._Recv()
+    if not greeting[self._FIRST_MESSAGE_KEY]:
+      self._connected = False
+      raise errors.HypervisorError("kvm: qmp communication error (wrong"
+                                   " server greeting")
+
+    # Let's put the monitor in command mode using the qmp_capabilities
+    # command, or else no command will be executable.
+    # (As per the QEMU Protocol Specification 0.1 - section 4)
+    self.Execute(self._CAPABILITIES_COMMAND)
+
+  def _ParseMessage(self, buf):
+    """Extract and parse a QMP message from the given buffer.
+
+    Seeks for a QMP message in the given buf. If found, it parses it and
+    returns it together with the rest of the characters in the buf.
+    If no message is found, returns None and the whole buffer.
+
+    @raise errors.ProgrammerError: when there are data serialization errors
+
+    """
+    message = None
+    # Check if we got the message end token (CRLF, as per the QEMU Protocol
+    # Specification 0.1 - Section 2.1.1)
+    pos = buf.find(self._MESSAGE_END_TOKEN)
+    if pos >= 0:
+      try:
+        message = QmpMessage.BuildFromJsonString(buf[:pos + 1])
+      except Exception, err:
+        raise errors.ProgrammerError("QMP data serialization error: %s" % err)
+      buf = buf[pos + 1:]
+
+    return (message, buf)
+
+  def _Recv(self):
+    """Receives a message from QMP and decodes the received JSON object.
+
+    @rtype: QmpMessage
+    @return: the received message
+    @raise errors.HypervisorError: when there are communication errors
+    @raise errors.ProgrammerError: when there are data serialization errors
+
+    """
+    self._check_connection()
+
+    # Check if there is already a message in the buffer
+    (message, self._buf) = self._ParseMessage(self._buf)
+    if message:
+      return message
+
+    recv_buffer = StringIO.StringIO(self._buf)
+    recv_buffer.seek(len(self._buf))
+    try:
+      while True:
+        data = self.sock.recv(4096)
+        if not data:
+          break
+        recv_buffer.write(data)
+
+        (message, self._buf) = self._ParseMessage(recv_buffer.getvalue())
+        if message:
+          return message
+
+    except socket.timeout, err:
+      raise errors.HypervisorError("Timeout while receiving a QMP message: "
+                                   "%s" % (err))
+    except socket.error, err:
+      raise errors.HypervisorError("Unable to receive data from KVM using the"
+                                   " QMP protocol: %s" % err)
+
+  def _Send(self, message):
+    """Encodes and sends a message to KVM using QMP.
+
+    @type message: QmpMessage
+    @param message: message to send to KVM
+    @raise errors.HypervisorError: when there are communication errors
+    @raise errors.ProgrammerError: when there are data serialization errors
+
+    """
+    self._check_connection()
+    try:
+      message_str = str(message)
+    except Exception, err:
+      raise errors.ProgrammerError("QMP data deserialization error: %s" % err)
+
+    try:
+      self.sock.sendall(message_str)
+    except socket.timeout, err:
+      raise errors.HypervisorError("Timeout while sending a QMP message: "
+                                   "%s (%s)" % (err.string, err.errno))
+    except socket.error, err:
+      raise errors.HypervisorError("Unable to send data from KVM using the"
+                                   " QMP protocol: %s" % err)
+
+  def Execute(self, command, arguments=None):
+    """Executes a QMP command and returns the response of the server.
+
+    @type command: str
+    @param command: the command to execute
+    @type arguments: dict
+    @param arguments: dictionary of arguments to be passed to the command
+    @rtype: dict
+    @return: dictionary representing the received JSON object
+    @raise errors.HypervisorError: when there are communication errors
+    @raise errors.ProgrammerError: when there are data serialization errors
+
+    """
+    self._check_connection()
+    message = QmpMessage({self._EXECUTE_KEY: command})
+    if arguments:
+      message[self._ARGUMENTS_KEY] = arguments
+    self._Send(message)
+
+    # Events can occur between the sending of the command and the reception
+    # of the response, so we need to filter out messages with the event key.
+    while True:
+      response = self._Recv()
+      err = response[self._ERROR_KEY]
+      if err:
+        raise errors.HypervisorError("kvm: error executing the %s"
+                                     " command: %s (%s, %s):" %
+                                     (command,
+                                      err[self._ERROR_DESC_KEY],
+                                      err[self._ERROR_CLASS_KEY],
+                                      err[self._ERROR_DATA_KEY]))
+
+      elif not response[self._EVENT_KEY]:
+        return response
+
+
 class KVMHypervisor(hv_base.BaseHypervisor):
   """KVM hypervisor interface"""
   CAN_MIGRATE = True
@@ -171,6 +418,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                          x in constants.VALID_IP_VERSIONS),
        "the SPICE IP version should be 4 or 6",
        None, None),
+    constants.HV_KVM_SPICE_PASSWORD_FILE: hv_base.OPT_FILE_CHECK,
+    constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_LOSSLESS_IMG_COMPR_OPTIONS),
+    constants.HV_KVM_SPICE_JPEG_IMG_COMPR:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
+    constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_LOSSY_IMG_COMPR_OPTIONS),
+    constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION:
+      hv_base.ParamInSet(False,
+        constants.HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS),
+    constants.HV_KVM_SPICE_AUDIO_COMPR: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
@@ -326,6 +587,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     return utils.PathJoin(cls._CTRL_DIR, "%s.serial" % instance_name)
 
+  @classmethod
+  def _InstanceQmpMonitor(cls, instance_name):
+    """Returns the instance serial QMP socket name
+
+    """
+    return utils.PathJoin(cls._CTRL_DIR, "%s.qmp" % instance_name)
+
   @staticmethod
   def _SocatUnixConsoleParams():
     """Returns the correct parameters for socat
@@ -397,6 +665,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile(pidfile)
     utils.RemoveFile(cls._InstanceMonitor(instance_name))
     utils.RemoveFile(cls._InstanceSerial(instance_name))
+    utils.RemoveFile(cls._InstanceQmpMonitor(instance_name))
     utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
     utils.RemoveFile(cls._InstanceKeymapFile(instance_name))
     uid_file = cls._InstanceUidFile(instance_name)
@@ -525,6 +794,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
+    # pylint: disable=R0914
     _, v_major, v_min, _ = self._GetKVMVersion()
 
     pidfile = self._InstancePidFile(instance.name)
@@ -761,13 +1031,38 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # ValidateParameters checked it.
         spice_address = spice_bind
 
-      spice_arg = "addr=%s,port=%s,disable-ticketing" % (spice_address,
-                                                         instance.network_port)
+      spice_arg = "addr=%s,port=%s" % (spice_address, instance.network_port)
+      if not hvp[constants.HV_KVM_SPICE_PASSWORD_FILE]:
+        spice_arg = "%s,disable-ticketing" % spice_arg
+
       if spice_ip_version:
         spice_arg = "%s,ipv%s" % (spice_arg, spice_ip_version)
 
+      # Image compression options
+      img_lossless = hvp[constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR]
+      img_jpeg = hvp[constants.HV_KVM_SPICE_JPEG_IMG_COMPR]
+      img_zlib_glz = hvp[constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR]
+      if img_lossless:
+        spice_arg = "%s,image-compression=%s" % (spice_arg, img_lossless)
+      if img_jpeg:
+        spice_arg = "%s,jpeg-wan-compression=%s" % (spice_arg, img_jpeg)
+      if img_zlib_glz:
+        spice_arg = "%s,zlib-glz-wan-compression=%s" % (spice_arg, img_zlib_glz)
+
+      # Video stream detection
+      video_streaming = hvp[constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION]
+      if video_streaming:
+        spice_arg = "%s,streaming-video=%s" % (spice_arg, video_streaming)
+
+      # Audio compression, by default in qemu-kvm it is on
+      if not hvp[constants.HV_KVM_SPICE_AUDIO_COMPR]:
+        spice_arg = "%s,playback-compression=off" % spice_arg
+
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])
+
+      # Tell kvm to use the paravirtualized graphic card, optimized for SPICE
+      kvm_cmd.extend(["-vga", "qxl"])
 
     if hvp[constants.HV_USE_LOCALTIME]:
       kvm_cmd.extend(["-localtime"])
@@ -940,6 +1235,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       utils.EnsureDirs([(self._InstanceChrootDir(name),
                          constants.SECURE_DIR_MODE)])
 
+    # Automatically enable QMP if version is >= 0.14
+    if (v_major, v_min) >= (0, 14):
+      logging.debug("Enabling QMP")
+      kvm_cmd.extend(["-qmp", "unix:%s,server,nowait" %
+                    self._InstanceQmpMonitor(instance.name)])
+
     # Configure the network now for starting instances and bridged interfaces,
     # during FinalizeMigration for incoming instances' routed interfaces
     for nic_seq, nic in enumerate(kvm_nics):
@@ -975,6 +1276,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if vnc_pwd:
       change_cmd = "change vnc password %s" % vnc_pwd
       self._CallMonitorCommand(instance.name, change_cmd)
+
+    # Setting SPICE password. We are not vulnerable to malicious passwordless
+    # connection attempts because SPICE by default does not allow connections
+    # if neither a password nor the "disable_ticketing" options are specified.
+    # As soon as we send the password via QMP, that password is a valid ticket
+    # for connection.
+    spice_password_file = conf_hvp[constants.HV_KVM_SPICE_PASSWORD_FILE]
+    if spice_password_file:
+      try:
+        spice_pwd = utils.ReadOneLineFile(spice_password_file, strict=True)
+        qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
+        qmp.connect()
+        arguments = {
+            "protocol": "spice",
+            "password": spice_pwd,
+        }
+        qmp.Execute("set_password", arguments)
+      except EnvironmentError, err:
+        raise errors.HypervisorError("Failed to open SPICE password file %s: %s"
+                                     % (spice_password_file, err))
 
     for filename in temp_files:
       utils.RemoveFile(filename)
@@ -1241,6 +1562,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      port=instance.network_port,
                                      display=display)
 
+    spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
+    if spice_bind:
+      return objects.InstanceConsole(instance=instance.name,
+                                     kind=constants.CONS_SPICE,
+                                     host=spice_bind,
+                                     port=instance.network_port)
+
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_MESSAGE,
                                    message=("No serial shell for instance %s" %
@@ -1298,8 +1626,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " security model is 'none' or 'pool'")
 
     spice_bind = hvparams[constants.HV_KVM_SPICE_BIND]
+    spice_ip_version = hvparams[constants.HV_KVM_SPICE_IP_VERSION]
     if spice_bind:
-      spice_ip_version = hvparams[constants.HV_KVM_SPICE_IP_VERSION]
       if spice_ip_version != constants.IFACE_NO_IP_VERSION_SPECIFIED:
         # if an IP version is specified, the spice_bind parameter must be an
         # IP of that family
@@ -1314,6 +1642,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           raise errors.HypervisorError("spice: got an IPv6 address (%s), but"
                                        " the specified IP version is %s" %
                                        (spice_bind, spice_ip_version))
+    else:
+      # All the other SPICE parameters depend on spice_bind being set. Raise an
+      # error if any of them is set without it.
+      spice_additional_params = frozenset([
+        constants.HV_KVM_SPICE_IP_VERSION,
+        constants.HV_KVM_SPICE_PASSWORD_FILE,
+        constants.HV_KVM_SPICE_LOSSLESS_IMG_COMPR,
+        constants.HV_KVM_SPICE_JPEG_IMG_COMPR,
+        constants.HV_KVM_SPICE_ZLIB_GLZ_IMG_COMPR,
+        constants.HV_KVM_SPICE_STREAMING_VIDEO_DETECTION,
+        ])
+      for param in spice_additional_params:
+        if hvparams[param]:
+          raise errors.HypervisorError("spice: %s requires %s to be set" %
+                                       (param, constants.HV_KVM_SPICE_BIND))
 
   @classmethod
   def ValidateParameters(cls, hvparams):

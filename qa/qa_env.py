@@ -42,7 +42,7 @@ def TestGanetiCommands():
   """Test availibility of Ganeti commands.
 
   """
-  cmds = ( ["gnt-backup", "--version"],
+  cmds = (["gnt-backup", "--version"],
            ["gnt-cluster", "--version"],
            ["gnt-debug", "--version"],
            ["gnt-instance", "--version"],
@@ -76,7 +76,7 @@ def TestIcmpPing():
   seccmd = [pingsecondary, "-e"]
   for i in nodes:
     pricmd.append(i["primary"])
-    if i.has_key("secondary"):
+    if "secondary" in i:
       seccmd.append(i["secondary"])
 
   pristr = utils.ShellQuoteArgs(pricmd)

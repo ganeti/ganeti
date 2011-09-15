@@ -300,6 +300,59 @@ spice\_ip\_version
     this case, if the ``spice_ip_version`` parameter is not used, the
     default IP version of the cluster will be used.
 
+spice\_password\_file
+    Valid for the KVM hypervisor.
+
+    Specifies a file containing the password that must be used when
+    connecting via the SPICE protocol. If the option is not specified,
+    passwordless connections are allowed.
+
+spice\_image\_compression
+    Valid for the KVM hypervisor.
+
+    Configures the SPICE lossless image compression. Valid values are:
+
+    - auto_glz
+    - auto_lz
+    - quic
+    - glz
+    - lz
+    - off
+
+spice\_jpeg\_wan\_compression
+    Valid for the KVM hypervisor.
+
+    Configures how SPICE should use the jpeg algorithm for lossy image
+    compression on slow links. Valid values are:
+
+    - auto
+    - never
+    - always
+
+spice\_zlib\_glz\_wan\_compression
+    Valid for the KVM hypervisor.
+
+    Configures how SPICE should use the zlib-glz algorithm for lossy image
+    compression on slow links. Valid values are:
+
+    - auto
+    - never
+    - always
+
+spice\_streaming\_video
+    Valid for the KVM hypervisor.
+
+    Configures how SPICE should detect video streams. Valid values are:
+
+    - off
+    - all
+    - filter
+
+spice\_playback\_compression
+    Valid for the KVM hypervisor.
+
+    Configures whether SPICE should compress audio streams or not.
+
 acpi
     Valid for the Xen HVM and KVM hypervisors.
 

@@ -26,7 +26,7 @@ import asyncore
 import logging
 
 try:
-  # pylint: disable-msg=E0611
+  # pylint: disable=E0611
   from pyinotify import pyinotify
 except ImportError:
   import pyinotify
@@ -42,7 +42,7 @@ class AsyncNotifier(asyncore.file_dispatcher):
   """An asyncore dispatcher for inotify events.
 
   """
-  # pylint: disable-msg=W0622,W0212
+  # pylint: disable=W0622,W0212
   def __init__(self, watch_manager, default_proc_fun=None, map=None):
     """Initializes this class.
 
@@ -90,7 +90,7 @@ class FileEventHandlerBase(pyinotify.ProcessEvent):
     @param watch_manager: inotify watch manager
 
     """
-    # pylint: disable-msg=W0231
+    # pylint: disable=W0231
     # no need to call the parent's constructor
     self.watch_manager = watch_manager
 
@@ -168,7 +168,7 @@ class SingleFileEventHandler(FileEventHandlerBase):
     if self._watch_handle is not None and self.RemoveWatch(self._watch_handle):
       self._watch_handle = None
 
-  # pylint: disable-msg=C0103
+  # pylint: disable=C0103
   # this overrides a method in pyinotify.ProcessEvent
   def process_IN_IGNORED(self, event):
     # Since we monitor a single file rather than the directory it resides in,
@@ -182,7 +182,7 @@ class SingleFileEventHandler(FileEventHandlerBase):
     self._watch_handle = None
     self._callback(False)
 
-  # pylint: disable-msg=C0103
+  # pylint: disable=C0103
   # this overrides a method in pyinotify.ProcessEvent
   def process_IN_MODIFY(self, event):
     # This gets called when the monitored file is modified. Note that this

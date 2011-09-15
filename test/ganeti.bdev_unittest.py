@@ -166,12 +166,21 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     proc_data = self._TestDataFilename("proc_drbd8.txt")
     proc80e_data = self._TestDataFilename("proc_drbd80-emptyline.txt")
     proc83_data = self._TestDataFilename("proc_drbd83.txt")
+    proc83_sync_data = self._TestDataFilename("proc_drbd83_sync.txt")
+    proc83_sync_krnl_data = \
+      self._TestDataFilename("proc_drbd83_sync_krnl2.6.39.txt")
     self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
     self.proc80e_data = bdev.DRBD8._GetProcData(filename=proc80e_data)
     self.proc83_data = bdev.DRBD8._GetProcData(filename=proc83_data)
+    self.proc83_sync_data = bdev.DRBD8._GetProcData(filename=proc83_sync_data)
+    self.proc83_sync_krnl_data = \
+      bdev.DRBD8._GetProcData(filename=proc83_sync_krnl_data)
     self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)
     self.mass80e_data = bdev.DRBD8._MassageProcData(self.proc80e_data)
     self.mass83_data = bdev.DRBD8._MassageProcData(self.proc83_data)
+    self.mass83_sync_data = bdev.DRBD8._MassageProcData(self.proc83_sync_data)
+    self.mass83_sync_krnl_data = \
+      bdev.DRBD8._MassageProcData(self.proc83_sync_krnl_data)
 
   def testIOErrors(self):
     """Test handling of errors while reading the proc file."""
@@ -250,6 +259,16 @@ class TestDRBD8Status(testutils.GanetiTestCase):
       self.failUnless(stats.is_standalone and
                       stats.rrole == 'Unknown' and
                       stats.is_disk_uptodate)
+
+  def testDRBD83SyncFine(self):
+    stats = bdev.DRBD8Status(self.mass83_sync_data[3])
+    self.failUnless(stats.is_in_resync)
+    self.failUnless(stats.sync_percent is not None)
+
+  def testDRBD83SyncBroken(self):
+    stats = bdev.DRBD8Status(self.mass83_sync_krnl_data[3])
+    self.failUnless(stats.is_in_resync)
+    self.failUnless(stats.sync_percent is not None)
 
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

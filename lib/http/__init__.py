@@ -624,7 +624,7 @@ class HttpBase(object):
 
     return OpenSSL.SSL.Connection(ctx, sock)
 
-  def GetSslCiphers(self): # pylint: disable-msg=R0201
+  def GetSslCiphers(self): # pylint: disable=R0201
     """Returns the ciphers string for SSL.
 
     """
@@ -638,7 +638,7 @@ class HttpBase(object):
 
     """
     # some parameters are unused, but this is the API
-    # pylint: disable-msg=W0613
+    # pylint: disable=W0613
     assert self._ssl_params, "SSL not initialized"
 
     return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and

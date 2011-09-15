@@ -23,6 +23,7 @@
 
 """
 
+
 class Error(Exception):
   """An error occurred during Q&A testing.
 

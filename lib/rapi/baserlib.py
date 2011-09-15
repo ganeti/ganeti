@@ -23,7 +23,7 @@
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 
 # C0103: Invalid name, since the R_* names are not conforming
 
@@ -198,7 +198,7 @@ def FillOpcode(opcls, body, static, rename=None):
   params = dict((str(key), value) for (key, value) in params.items())
 
   try:
-    op = opcls(**params) # pylint: disable-msg=W0142
+    op = opcls(**params) # pylint: disable=W0142
     op.Validate(False)
   except (errors.OpPrereqError, TypeError), err:
     raise http.HttpBadRequest("Invalid body parameters: %s" % err)

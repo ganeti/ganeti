@@ -20,7 +20,7 @@
 
 """Instance related commands"""
 
-# pylint: disable-msg=W0401,W0614,C0103
+# pylint: disable=W0401,W0614,C0103
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-instance
@@ -87,7 +87,7 @@ def _ExpandMultiNames(mode, names, client=None):
   @raise errors.OpPrereqError: for invalid input parameters
 
   """
-  # pylint: disable-msg=W0142
+  # pylint: disable=W0142
 
   if client is None:
     client = GetClient()
@@ -322,7 +322,7 @@ def BatchCreate(opts, args):
   json_filename = args[0]
   try:
     instance_data = simplejson.loads(utils.ReadFile(json_filename))
-  except Exception, err: # pylint: disable-msg=W0703
+  except Exception, err: # pylint: disable=W0703
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
@@ -335,7 +335,7 @@ def BatchCreate(opts, args):
   # Iterate over the instances and do:
   #  * Populate the specs with default value
   #  * Validate the instance specs
-  i_names = utils.NiceSort(instance_data.keys()) # pylint: disable-msg=E1103
+  i_names = utils.NiceSort(instance_data.keys()) # pylint: disable=E1103
   for name in i_names:
     specs = instance_data[name]
     specs = _PopulateWithDefaults(specs)
@@ -934,6 +934,9 @@ def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
                 " URL <vnc://%s:%s/>",
                 console.instance, console.host, console.port,
                 console.display, console.host, console.port)
+  elif console.kind == constants.CONS_SPICE:
+    feedback_fn("Instance %s has SPICE listening on %s:%s", console.instance,
+                console.host, console.port)
   elif console.kind == constants.CONS_SSH:
     # Convert to string if not already one
     if isinstance(console.command, basestring):

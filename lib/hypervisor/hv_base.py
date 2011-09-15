@@ -263,7 +263,7 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
-  def MigrationInfo(self, instance): # pylint: disable-msg=R0201,W0613
+  def MigrationInfo(self, instance): # pylint: disable=R0201,W0613
     """Get instance information to perform a migration.
 
     By default assume no information is needed.

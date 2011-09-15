@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 
 """Tool to sanitize/randomize the configuration file.
 
@@ -79,7 +79,7 @@ def GenerateNameMap(opts, names, base):
   return name_map
 
 
-def SanitizeSecrets(opts, cfg): # pylint: disable-msg=W0613
+def SanitizeSecrets(opts, cfg): # pylint: disable=W0613
   """Cleanup configuration secrets.
 
   """
@@ -126,7 +126,7 @@ def SanitizeInstances(opts, cfg):
   RenameDictKeys(cfg["instances"], old_map, True)
 
 
-def SanitizeIps(opts, cfg): # pylint: disable-msg=W0613
+def SanitizeIps(opts, cfg): # pylint: disable=W0613
   """Sanitize the IP names.
 
   @note: we're interested in obscuring the old IPs, not in generating
@@ -161,7 +161,7 @@ def SanitizeIps(opts, cfg): # pylint: disable-msg=W0613
         nic["ip"] = _Get(nic["ip"])
 
 
-def SanitizeOsNames(opts, cfg): # pylint: disable-msg=W0613
+def SanitizeOsNames(opts, cfg): # pylint: disable=W0613
   """Sanitize the OS names.
 
   """
@@ -182,7 +182,7 @@ def SanitizeOsNames(opts, cfg): # pylint: disable-msg=W0613
     RenameDictKeys(cfg["cluster"]["os_hvp"], os_map, False)
 
 
-def SanitizeDisks(opts, cfg): # pylint: disable-msg=W0613
+def SanitizeDisks(opts, cfg): # pylint: disable=W0613
   """Cleanup disks disks.
 
   """

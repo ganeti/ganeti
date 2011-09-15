@@ -51,7 +51,7 @@ PUT should be prefered over POST.
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 
 # C0103: Invalid name, since the R_* names are not conforming
 

@@ -586,6 +586,32 @@ class TestIsNormAbsPath(unittest.TestCase):
     self._pathTestHelper("/etc/", False)
 
 
+class TestIsBelowDir(unittest.TestCase):
+  """Testing case for IsBelowDir"""
+
+  def testSamePrefix(self):
+    self.assertTrue(utils.IsBelowDir("/a/b", "/a/b/c"))
+    self.assertTrue(utils.IsBelowDir("/a/b/", "/a/b/e"))
+
+  def testSamePrefixButDifferentDir(self):
+    self.assertFalse(utils.IsBelowDir("/a/b", "/a/bc/d"))
+    self.assertFalse(utils.IsBelowDir("/a/b/", "/a/bc/e"))
+
+  def testSamePrefixButDirTraversal(self):
+    self.assertFalse(utils.IsBelowDir("/a/b", "/a/b/../c"))
+    self.assertFalse(utils.IsBelowDir("/a/b/", "/a/b/../d"))
+
+  def testSamePrefixAndTraversal(self):
+    self.assertTrue(utils.IsBelowDir("/a/b", "/a/b/c/../d"))
+    self.assertTrue(utils.IsBelowDir("/a/b", "/a/b/c/./e"))
+    self.assertTrue(utils.IsBelowDir("/a/b", "/a/b/../b/./e"))
+
+  def testBothAbsPath(self):
+    self.assertRaises(ValueError, utils.IsBelowDir, "/a/b/c", "d")
+    self.assertRaises(ValueError, utils.IsBelowDir, "a/b/c", "/d")
+    self.assertRaises(ValueError, utils.IsBelowDir, "a/b/c", "d")
+
+
 class TestPathJoin(unittest.TestCase):
   """Testing case for PathJoin"""
 

@@ -48,7 +48,7 @@ Here are some usage examples::
 
   # Pin vCPU 0 to any CPU, vCPU 1 to CPUs 1, 3, 4 or 5, and CPU 2 to
   # CPU 0
-  gnt-instance modify -H cpu_mask=all:1\\,3-4:0 my-inst
+  gnt-instance modify -H cpu_mask=all:1\\,3-5:0 my-inst
 
   # Pin entire VM to CPU 0
   gnt-instance modify -H cpu_mask=0 my-inst
@@ -56,13 +56,13 @@ Here are some usage examples::
   # Turn off CPU pinning (default setting)
   gnt-instance modify -H cpu_mask=all my-inst
 
-Assuming an instance has 2 vCPUs, the following commands will fail::
+Assuming an instance has 3 vCPUs, the following commands will fail::
 
   # not enough mappings
-  gnt-instance modify -H cpu_mask=0 my-inst
+  gnt-instance modify -H cpu_mask=0:1 my-inst
 
   # too many
-  gnt-instance modify -H cpu_mask=2:1:1 my-inst
+  gnt-instance modify -H cpu_mask=2:1:1:all my-inst
 
 Validation
 ----------
@@ -102,8 +102,8 @@ indicated by CPU pinning information, instance failover will fail.
 
 In case of emergency, to force failover to ignore mismatching CPU
 information, the following switch can be used:
-``gnt-instance failover --ignore-cpu-mismatch my-inst``.
-This command will try to fail the instance with the current cpu mask,
+``gnt-instance failover --fix-cpu-mismatch my-inst``.
+This command will try to failover the instance with the current cpu mask,
 but if that fails, it will change the mask to be "all".
 
 Migration
@@ -127,8 +127,7 @@ Configuration file
 ------------------
 
 The pinning information is kept for each instance's hypervisor
-params section of the configuration file as
-``cpu_mask: [ [ a ], [ b, c ], [ d ] ]``
+params section of the configuration file as the original string.
 
 Xen
 ---

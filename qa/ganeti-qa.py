@@ -23,7 +23,7 @@
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # due to invalid name
 
 import sys
@@ -46,7 +46,7 @@ from ganeti import utils
 from ganeti import rapi
 from ganeti import constants
 
-import ganeti.rapi.client # pylint: disable-msg=W0611
+import ganeti.rapi.client # pylint: disable=W0611
 
 
 def _FormatHeader(line, end=72):
@@ -54,7 +54,7 @@ def _FormatHeader(line, end=72):
 
   """
   line = "---- " + line + " "
-  line += "-" * (end-len(line))
+  line += "-" * (end - len(line))
   line = line.rstrip()
   return line
 

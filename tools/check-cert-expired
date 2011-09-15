@@ -22,7 +22,7 @@
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 # C0103: Invalid name check-cert-expired
 
 import os.path
@@ -66,7 +66,7 @@ def main():
 
   except (KeyboardInterrupt, SystemExit):
     raise
-  except Exception, err: # pylint: disable-msg=W0703
+  except Exception, err: # pylint: disable=W0703
     cli.ToStderr("Unable to check %s: %s", filename, err)
 
   sys.exit(constants.EXIT_FAILURE)

@@ -37,7 +37,7 @@ import threading
 import itertools
 
 try:
-  # pylint: disable-msg=E0611
+  # pylint: disable=E0611
   from pyinotify import pyinotify
 except ImportError:
   import pyinotify
@@ -177,7 +177,7 @@ class _QueuedJob(object):
   @ivar writable: Whether the job is allowed to be modified
 
   """
-  # pylint: disable-msg=W0212
+  # pylint: disable=W0212
   __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter", "cur_opctx",
                "received_timestamp", "start_timestamp", "end_timestamp",
                "__weakref__", "processor_lock", "writable"]
@@ -1048,7 +1048,7 @@ class _JobProcessor(object):
       logging.exception("%s: Canceling job", opctx.log_prefix)
       assert op.status == constants.OP_STATUS_CANCELING
       return (constants.OP_STATUS_CANCELING, None)
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       logging.exception("%s: Caught exception in %s",
                         opctx.log_prefix, opctx.summary)
       return (constants.OP_STATUS_ERROR, _EncodeOpError(err))
@@ -1241,7 +1241,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
   """The actual job workers.
 
   """
-  def RunTask(self, job): # pylint: disable-msg=W0221
+  def RunTask(self, job): # pylint: disable=W0221
     """Job executor.
 
     @type job: L{_QueuedJob}
@@ -1358,7 +1358,7 @@ class _JobDependencyManager:
     self._lock = locking.SharedLock("JobDepMgr")
 
   @locking.ssynchronized(_LOCK, shared=1)
-  def GetLockInfo(self, requested): # pylint: disable-msg=W0613
+  def GetLockInfo(self, requested): # pylint: disable=W0613
     """Retrieves information about waiting jobs.
 
     @type requested: set
@@ -1481,7 +1481,7 @@ def _RequireOpenQueue(fn):
 
   """
   def wrapper(self, *args, **kwargs):
-    # pylint: disable-msg=W0212
+    # pylint: disable=W0212
     assert self._queue_filelock is not None, "Queue should be open"
     return fn(self, *args, **kwargs)
   return wrapper
@@ -1945,7 +1945,7 @@ class JobQueue(object):
     try:
       data = serializer.LoadJson(raw_data)
       job = _QueuedJob.Restore(self, data, writable)
-    except Exception, err: # pylint: disable-msg=W0703
+    except Exception, err: # pylint: disable=W0703
       raise errors.JobFileCorrupted(err)
 
     return job
@@ -2187,7 +2187,7 @@ class JobQueue(object):
     # Try to load from disk
     job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
 
-    assert not job.writable, "Got writable job"
+    assert not job.writable, "Got writable job" # pylint: disable=E1101
 
     if job:
       return job.CalcStatus()

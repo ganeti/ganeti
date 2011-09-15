@@ -181,7 +181,7 @@ def ResetTempfileModule():
   a temporary name.
 
   """
-  # pylint: disable-msg=W0212
+  # pylint: disable=W0212
   if hasattr(tempfile, "_once_lock") and hasattr(tempfile, "_name_sequence"):
     tempfile._once_lock.acquire()
     try:

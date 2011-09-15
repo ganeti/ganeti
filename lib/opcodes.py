@@ -31,7 +31,7 @@ opcodes.
 
 # this are practically structures, so disable the message about too
 # few public methods:
-# pylint: disable-msg=R0903
+# pylint: disable=R0903
 
 import logging
 import re
@@ -311,7 +311,7 @@ class BaseOpCode(object):
   field handling.
 
   """
-  # pylint: disable-msg=E1101
+  # pylint: disable=E1101
   # as OP_ID is dynamically defined
   __metaclass__ = _AutoOpParamSlots
 
@@ -485,7 +485,7 @@ class OpCode(BaseOpCode):
   @ivar priority: Opcode priority for queue
 
   """
-  # pylint: disable-msg=E1101
+  # pylint: disable=E1101
   # as OP_ID is dynamically defined
   WITH_LU = True
   OP_PARAMS = [

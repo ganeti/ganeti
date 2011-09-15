@@ -24,7 +24,7 @@ This module introduces a simple abstraction over the serialization
 backend (currently json).
 
 """
-# pylint: disable-msg=C0103
+# pylint: disable=C0103
 
 # C0103: Invalid name, since pylint doesn't see that Dump points to a
 # function and not a constant
@@ -147,7 +147,7 @@ def LoadSignedJson(txt, key):
     raise errors.SignatureError("Invalid external message")
 
   if callable(key):
-    # pylint: disable-msg=E1103
+    # pylint: disable=E1103
     key_selector = signed_dict.get("key_selector", None)
     hmac_key = key(key_selector)
     if not hmac_key:

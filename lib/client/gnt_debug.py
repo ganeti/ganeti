@@ -20,7 +20,7 @@
 
 """Debugging commands"""
 
-# pylint: disable-msg=W0401,W0614,C0103
+# pylint: disable=W0401,W0614,C0103
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-backup
@@ -90,7 +90,7 @@ def GenericOpCodes(opts, args):
     ToStdout("Loading...")
   for job_idx in range(opts.rep_job):
     for fname in args:
-      # pylint: disable-msg=W0142
+      # pylint: disable=W0142
       op_data = simplejson.loads(utils.ReadFile(fname))
       op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
       op_list = op_list * opts.rep_op
@@ -564,7 +564,7 @@ def TestJobqueue(opts, _):
   return 0
 
 
-def ListLocks(opts, args): # pylint: disable-msg=W0613
+def ListLocks(opts, args): # pylint: disable=W0613
   """List all locks.
 
   @param opts: the command line options selected by the user

@@ -251,7 +251,7 @@ def TestInstanceConsole(instance):
 
 def TestReplaceDisks(instance, pnode, snode, othernode):
   """gnt-instance replace-disks"""
-  # pylint: disable-msg=W0613
+  # pylint: disable=W0613
   # due to unused pnode arg
   # FIXME: should be removed from the function completely
   def buildcmd(args):
@@ -429,7 +429,7 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
 
 def TestInstanceMasterDiskFailure(instance, node, node2):
   """Testing disk failure on master node."""
-  # pylint: disable-msg=W0613
+  # pylint: disable=W0613
   # due to unused args
   print qa_utils.FormatError("Disk failure on primary node cannot be"
                              " tested due to potential crashes.")

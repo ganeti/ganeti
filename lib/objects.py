@@ -26,7 +26,7 @@ pass to and from external parties.
 
 """
 
-# pylint: disable-msg=E0203,W0201
+# pylint: disable=E0203,W0201
 
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitely initialise its members
@@ -170,7 +170,7 @@ class ConfigObject(object):
       raise errors.ConfigurationError("Invalid object passed to FromDict:"
                                       " expected dict, got %s" % type(val))
     val_str = dict([(str(k), v) for k, v in val.iteritems()])
-    obj = cls(**val_str) # pylint: disable-msg=W0142
+    obj = cls(**val_str) # pylint: disable=W0142
     return obj
 
   @staticmethod
@@ -966,7 +966,7 @@ class Node(TaggableObject):
     """Fill defaults for missing configuration values.
 
     """
-    # pylint: disable-msg=E0203
+    # pylint: disable=E0203
     # because these are "defined" via slots, not manually
     if self.master_capable is None:
       self.master_capable = True
@@ -1096,7 +1096,7 @@ class Cluster(TaggableObject):
     """Fill defaults for missing configuration values.
 
     """
-    # pylint: disable-msg=E0203
+    # pylint: disable=E0203
     # because these are "defined" via slots, not manually
     if self.hvparams is None:
       self.hvparams = constants.HVC_DEFAULTS
@@ -1524,15 +1524,20 @@ class InstanceConsole(ConfigObject):
     """
     assert self.kind in constants.CONS_ALL, "Unknown console type"
     assert self.instance, "Missing instance name"
-    assert self.message or self.kind in [constants.CONS_SSH, constants.CONS_VNC]
+    assert self.message or self.kind in [constants.CONS_SSH,
+                                         constants.CONS_SPICE,
+                                         constants.CONS_VNC]
     assert self.host or self.kind == constants.CONS_MESSAGE
     assert self.port or self.kind in [constants.CONS_MESSAGE,
                                       constants.CONS_SSH]
     assert self.user or self.kind in [constants.CONS_MESSAGE,
+                                      constants.CONS_SPICE,
                                       constants.CONS_VNC]
     assert self.command or self.kind in [constants.CONS_MESSAGE,
+                                         constants.CONS_SPICE,
                                          constants.CONS_VNC]
     assert self.display or self.kind in [constants.CONS_MESSAGE,
+                                         constants.CONS_SPICE,
                                          constants.CONS_SSH]
     return True
 
