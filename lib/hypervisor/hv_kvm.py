@@ -1651,7 +1651,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
         elif status == "failed" or status == "cancelled":
           if not live:
-            self._CallMonitorCommand(instance_name, 'cont')
+            self._CallMonitorCommand(instance_name, self._CONT_CMD)
           raise errors.HypervisorError("Migration %s at the kvm level" %
                                        status)
         else:
