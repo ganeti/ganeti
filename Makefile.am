@@ -305,6 +305,7 @@ docrst = \
 	doc/design-ovf-support.rst \
 	doc/cluster-merge.rst \
 	doc/design-shared-storage.rst \
+	doc/design-node-state-cache.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
