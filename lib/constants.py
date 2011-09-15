@@ -104,6 +104,8 @@ CPU_PINNING_SEP = ":"
 CPU_PINNING_ALL = "all"
 # internal representation of "all"
 CPU_PINNING_ALL_VAL = -1
+# one "all" entry in a CPU list means CPU pinning is off
+CPU_PINNING_OFF = [CPU_PINNING_ALL_VAL]
 
 # A Xen-specific implementation detail - there is no way to actually say
 # "use any cpu for pinning" in a Xen configuration file, as opposed to the
@@ -113,6 +115,11 @@ CPU_PINNING_ALL_VAL = -1
 # To support future changes, the following constant is treated as a
 # blackbox string that simply means use-any-cpu-for-pinning-under-xen.
 CPU_PINNING_ALL_XEN = "0-63"
+
+# A KVM-specific implementation detail - the following value is used
+# to set CPU affinity to all processors (#0 through #31), per taskset
+# man page.
+CPU_PINNING_ALL_KVM = 0xFFFFFFFF
 
 # Wipe
 DD_CMD = "dd"
