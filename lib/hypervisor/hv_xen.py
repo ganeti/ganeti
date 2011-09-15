@@ -95,8 +95,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     if len(cpu_list) == 1:
       all_cpu_mapping = cpu_list[0]
-      if (len(all_cpu_mapping) == 1 and
-          all_cpu_mapping[0] == constants.CPU_PINNING_ALL_VAL):
+      if all_cpu_mapping == constants.CPU_PINNING_OFF:
         # If CPU pinning has 1 entry that's "all", then remove the
         # parameter from the config file
         return None
