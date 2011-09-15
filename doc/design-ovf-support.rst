@@ -38,14 +38,14 @@ host- and virtualization platform-independent and optimized for
 distribution (e.g. by allowing usage of public key infrastructure and
 providing tools for management of basic software licensing).
 
-There are no limitations regarding hard drive images used, as long as
-the description is provided. Any hardware described in a proper
-i.e. CIM - Common Information Model) format is accepted, although
-there is no guarantee that every virtualization software will support
-all types of hardware.
+There are no limitations regarding disk images used, as long as the
+description is provided. Any hardware described in a proper format
+(i.e. CIM - Common Information Model) is accepted, although there is no
+guarantee that every virtualization software will support all types of
+hardware.
 
-OVF package should contain one file with ``.ovf`` extension, which is an
-XML file specifying the following (per virtual machine):
+OVF package should contain exactly one file with ``.ovf`` extension,
+which is an XML file specifying the following (per virtual machine):
 
 - virtual disks
 - network description
@@ -58,12 +58,19 @@ human-readable description to every piece of information given.
 Additionally, the package may have some disk image files and other
 additional resources (e.g. ISO images).
 
+In order to provide secure means of distribution for OVF packages, the
+manifest and certificate are provided. Manifest (``.mf`` file) contains
+checksums for all the files in OVF package, whereas certificate
+(``.cert`` file) contains X.509 certificate and a checksum of manifest
+file. Both files are not compulsory, but certificate requires manifest
+to be present.
+
 Supported disk formats
 ----------------------
 
 Although OVF is claimed to support 'any disk format', what we are
-interested in is which of the formats are supported by VM managers
-that currently use OVF.
+interested in is which formats are supported by VM managers that
+currently use OVF.
 
 - VMWare: ``.vmdk`` (which comes in at least 3 different flavours:
   ``sparse``, ``compressed`` and ``streamOptimized``)
@@ -74,11 +81,11 @@ that currently use OVF.
 - Red Hat Enterprise Virtualization: ``.raw`` (raw disk format),
   ``.cow`` (qemu's ``QCOW2``)
 - other: AbiCloud, OpenNode Cloud, SUSE Studio, Morfeo Claudia,
-  OpenStack
+  OpenStack: mostly ``.vmdk``
 
-In our implementation of the OVF we plan to allow a choice between
-raw, cow and vmdk disk formats for export. We will not limit the import
-formats in any way, but the used format has to be supported by qemu-img.
+In our implementation of the OVF we allow a choice between raw, cow and
+vmdk disk formats for both import and export. Other formats covertable
+using ``qemu-img`` are allowed, but not tested.
 The justification is the following:
 
 - Raw format is supported as it is the main format of disk images used
@@ -87,10 +94,6 @@ The justification is the following:
 - Vmdk is most commonly supported in virtualization software, it also
   has the advantage of producing relatively small disk images, which
   is extremely important advantage when moving instances.
-
-The conversion between RAW and the other formats will be done using
-qemu-img, which transforms, among other, raw disk images to monolithic
-sparse vmdk images.
 
 Import and export - the closer look
 ===================================
@@ -122,13 +125,11 @@ The basic structure of Ganeti ``.ovf`` file is the following::
             <gnt:DiskTemplate</gnt:DiskTemplate>
             <gnt:OperatingSystem>
                 <gnt:Name/>
-                <gnt:Parameters>
-                </gnt:Parameters>
+                <gnt:Parameters></gnt:Parameters>
             </gnt:OperatingSystem>
             <gnt:Hypervisor>
                 <gnt:Name/>
-                <gnt:Parameters>
-                </gnt:Parameters>
+                <gnt:Parameters></gnt:Parameters>
             </gnt:Hypervisor>
             <gnt:Network>
             <gnt:Mode/>
@@ -151,7 +152,7 @@ where will the data be in OVF format::
   [instance]
       disk0_dump = filename     => File in References
       disk0_ivname = name       => generated automatically
-      disk0_size = size_in_mb   => calculated after conversion to RAW
+      disk0_size = size_in_mb   => calculated after disk conversion
       disk_count = number       => generated automatically
       disk_template = disk_type => gnt:DiskTemplate
       hypervisor = hyp-name     => gnt:Name in gnt:Hypervisor
@@ -195,7 +196,7 @@ will lack the ``gnt:GanetiSection``.
 If this happens you can specify all the missing parameters in
 the command line. Please refer to `Command Line`_ section.
 
-In the `user's manual <TODO: link to manual>`_ we provide examples of
+In the :doc:`ovfconverter` we provide examples of
 options when converting from VirtualBox, VMWare and OpenSuseStudio.
 
 Export to other virtualization software
@@ -247,20 +248,24 @@ option.
 Disks
 -----
 
-As mentioned, Ganeti will allow exporting only ``raw``, ``cow`` and
-``vmdk`` formats.  As for import, we will support all that
-``qemu-img`` can convert to raw format. At this point this means
-``raw``, ``cow``, ``qcow``, ``qcow2``, ``vmdk`` and ``cloop``.  We do
-not plan for now to support ``vdi`` or ``vhd``.
+As mentioned, Ganeti will allow export in  ``raw``, ``cow`` and ``vmdk``
+formats.  This means i.e. that the appropriate ``ovf:format``
+will be provided. It does not mean that other formats cannot be used,
+rather that we did not test them.
+As for import, we will support all formats that ``qemu-img`` can convert
+to ``raw``. At this point this means ``raw``, ``cow``, ``qcow``,
+``qcow2``, ``vmdk`` and ``cloop``.  We do not plan for now to support
+``vdi`` or ``vhd`` unless they become part of qemu-img supported formats.
 
-We plan to support compression both for import and export - in tar.gz
+We plan to support compression both for import and export - in gzip
 format. There is also a possibility to provide virtual disk in chunks
 of equal size. The latter will not be implemented in the first version,
 but we do plan to support it eventually.
 
-The ``ovf:format`` tag is not used in our case. Instead we use
-``qemu-img info``, which provides enough information for our purposes
-and is better standardized.
+
+The ``ovf:format`` tag is not used in our case when importing. Instead
+we use ``qemu-img info``, which provides enough information for our
+purposes and is better standardized.
 
 Please note, that due to security reasons we require the disk image to
 be in the same directory as the ``.ovf`` description file.
@@ -278,9 +283,10 @@ used network type, we add our own source of such information in
 present, we perform a simple check - if network name specified in
 ``NetworkSection`` contains words ``bridged`` or ``routed``, we consider
 this to be the network type. Otherwise option ``auto`` is chosen, in
-which case the clusters' default value for that field will be used when
-importing. This provides a safe fallback in case of NAT networks usage,
-which are commonly used e.g. in VirtualBox.
+which case the cluster's default value for that field will be used when
+importing.
+This provides a safe fallback in case of NAT networks usage, which are
+commonly used e.g. in VirtualBox.
 
 Hardware
 --------
@@ -299,8 +305,10 @@ checked using ``gnt-os list`` command.
 Other
 -----
 
-The instance name (``gnt:VirtualSystem\gnt:Name``) has to be resolvable
-in order for successful import using ``gnt-backup import``.
+The instance name (``gnt:VirtualSystem\gnt:Name`` or command line's
+``--name`` option ) has to be resolvable in order for successful import
+using ``gnt-backup import``.
+
 
 _`Command Line`
 ===============
@@ -308,7 +316,7 @@ _`Command Line`
 The basic usage of the ovf tool is one of the following::
 
     ovfconverter import filename
-    ovfconverter export filename
+    ovfconverter export --format=<format> filename
 
 This will result in a conversion based solely on the content of provided
 file. In case some information required to make the conversion is
@@ -339,7 +347,9 @@ omitted ones will be set to cluster defaults (``auto``).
 Disks
 ^^^^^
 ``--disk-template=diskless`` causes the converter to ignore all other
-disk option - both from .ovf file and the command line.
+disk option - both from .ovf file and the command line. Other disk
+template options include ``plain``, ``drdb``, ``file``, ``sharedfile``
+and ``blockdev``.
 
 ``--disk=number:size=value`` causes to create disks instead of
 converting them from OVF package; numbers should start with ``0`` and be
@@ -370,40 +380,43 @@ Tags
 ``--tags=tag1,tag2,tag3`` is a means of providing tags specific for the
 instance.
 
+
 After the conversion is completed, you may use ``gnt-backup import`` to
 import the instance into Ganeti.
 
 Example::
 
-	ovfconverter file.ovf --disk-template=diskless \
-                        --os-type=lenny-image \
-                        --backend=vcpus=1,memory=512,auto_balance \
-                        -H:xen-pvm \
-                        --net=0:mode=bridged,link=xen-br0 \
-                        --name=xen.i1 \
-                        -v
-	[output]
+	ovfconverter import file.ovf --disk-template=diskless \
+          --os-type=lenny-image \
+          --backend=vcpus=1,memory=512,auto_balance \
+          -H:xen-pvm \
+          --net=0:mode=bridged,link=xen-br0 \
+          --name=xen.i1
+	[...]
 	gnt-backup import xen.i1
-	[output]
+	[...]
 	gnt-instance list
 
 Export options
 --------------
 Export options include choice of disk formats to convert the disk image
-(``--format``; default=``raw`` with no conversion) and compression of
-the disk into tar.gz format (``--compress``).
-User has also the choice of allowing to skip the Ganeti-specific part of
-the OVF document (``--external``).
+(``--format``) and compression of the disk into gzip format
+(``--compress``). User has also the choice of allowing to skip the
+Ganeti-specific part of the OVF document (``--external``).
 
 By default, exported OVF package will not be contained in the OVA
 package, but this may be changed by adding ``--ova`` option.
 
-[TODO: examples of usage]
-
 Please note that in order to create an OVF package, it is first
 required that you export your VM using ``gnt-backup export``.
 
-[TODO: complete example of export]
+Example::
+
+	gnt-backup export -n node1.xen xen.i1
+	[...]
+	ovfconverter export --format=vmdk --ova --external \
+	  --output-dir=~/xen.i1 \
+	  /srv/ganeti/export/xen.i1.node1.xen/config.ini
 
 Implementation details
 ======================
@@ -412,7 +425,8 @@ Disk conversion
 ---------------
 
 Disk conversion for both import and export is done using external tool
-called qemu-tools. The same tool is used to determine the type of disks.
+called qemu-tools. The same tool is used to determine the type of disk,
+as well as its virtual size.
 
 
 Import
@@ -453,14 +467,6 @@ Typical workflow for the import is very simple:
 		- otherwise: read the appropriate portion of ``.ovf`` file
 
 - save gathered information in ``config.ini`` file
-
-ToDo
-====
-
-This lists functionalities for import that are not yet implemented, but
-should be before the initial release:
-
-- Support for compressed disks
 
 
 .. vim: set textwidth=72 :

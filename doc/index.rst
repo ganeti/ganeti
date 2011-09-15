@@ -29,6 +29,7 @@ Contents:
    iallocator.rst
    rapi.rst
    move-instance.rst
+   ovfconverter.rst
    devnotes.rst
    news.rst
    glossary.rst
