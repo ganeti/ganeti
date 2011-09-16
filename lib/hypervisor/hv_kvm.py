@@ -1380,6 +1380,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Note: CPU pinning is using up_hvp since changes take effect
     # during instance startup anyway, and to avoid problems when soft
     # rebooting the instance.
+    cpu_pinning = False
     if up_hvp.get(constants.HV_CPU_MASK, None):
       cpu_pinning = True
       if not startup_paused:
