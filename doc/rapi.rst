@@ -1241,6 +1241,17 @@ It supports the following commands: ``GET``.
 
 Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.N_FIELDS))`
 
+``/2/nodes/[node_name]/powercycle``
++++++++++++++++++++++++++++++++++++
+
+Powercycles a node. Supports the following commands: ``POST``.
+
+``POST``
+~~~~~~~~
+
+Returns a job ID.
+
+
 ``/2/nodes/[node_name]/evacuate``
 +++++++++++++++++++++++++++++++++
 

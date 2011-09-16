@@ -973,6 +973,16 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertQuery("force", ["1"])
     self.assertEqual("\"master-candidate\"", self.rapi.GetLastRequestData())
 
+  def testPowercycleNode(self):
+    self.rapi.AddResponse("23051")
+    self.assertEqual(23051,
+        self.client.PowercycleNode("node5468", force=True))
+    self.assertHandler(rlib2.R_2_nodes_name_powercycle)
+    self.assertItems(["node5468"])
+    self.assertQuery("force", ["1"])
+    self.assertFalse(self.rapi.GetLastRequestData())
+    self.assertEqual(self.rapi.CountPending(), 0)
+
   def testGetNodeStorageUnits(self):
     self.rapi.AddResponse("42")
     self.assertEqual(42,

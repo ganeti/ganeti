@@ -272,6 +272,26 @@ class TestNodeEvacuate(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestNodePowercycle(unittest.TestCase):
+  def test(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+    handler = _CreateHandler(rlib2.R_2_nodes_name_powercycle, ["node20744"], {
+      "force": ["1"],
+      }, None, clfactory)
+    job_id = handler.POST()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+    self.assertTrue(isinstance(op, opcodes.OpNodePowercycle))
+    self.assertEqual(op.node_name, "node20744")
+    self.assertTrue(op.force)
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+
 class TestGroupAssignNodes(unittest.TestCase):
   def test(self):
     clfactory = _FakeClientFactory(_FakeClient)

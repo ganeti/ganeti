@@ -53,7 +53,6 @@ RAPI_OPCODE_EXCLUDE = frozenset([
   opcodes.OpClusterVerifyDisks,
   opcodes.OpInstanceChangeGroup,
   opcodes.OpInstanceMove,
-  opcodes.OpNodePowercycle,
   opcodes.OpNodeQueryvols,
   opcodes.OpOobCommand,
   opcodes.OpTagsSearch,

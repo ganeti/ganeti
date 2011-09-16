@@ -1474,6 +1474,26 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/nodes/%s/role" %
                               (GANETI_RAPI_VERSION, node)), query, role)
 
+  def PowercycleNode(self, node, force=False):
+    """Powercycles a node.
+
+    @type node: string
+    @param node: Node name
+    @type force: bool
+    @param force: Whether to force the operation
+
+    @rtype: string
+    @return: job id
+
+    """
+    query = [
+      ("force", force),
+      ]
+
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/nodes/%s/powercycle" %
+                              (GANETI_RAPI_VERSION, node)), query, None)
+
   def GetNodeStorageUnits(self, node, storage_type, output_fields):
     """Gets the storage units for a node.
 

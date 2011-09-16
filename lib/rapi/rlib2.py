@@ -397,6 +397,22 @@ class R_2_nodes_name(baserlib.OpcodeResource):
     return baserlib.MapFields(N_FIELDS, result[0])
 
 
+class R_2_nodes_name_powercycle(baserlib.OpcodeResource):
+  """/2/nodes/[node_name]/powercycle resource.
+
+  """
+  POST_OPCODE = opcodes.OpNodePowercycle
+
+  def GetPostOpInput(self):
+    """Tries to powercycle a node.
+
+    """
+    return (self.request_body, {
+      "node_name": self.items[0],
+      "force": self.useForce(),
+      })
+
+
 class R_2_nodes_name_role(baserlib.OpcodeResource):
   """/2/nodes/[node_name]/role resource.
 

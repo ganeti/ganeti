@@ -107,6 +107,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
     "/2/nodes": rlib2.R_2_nodes,
     re.compile(r"^/2/nodes/(%s)$" % node_name_pattern):
       rlib2.R_2_nodes_name,
+    re.compile(r"^/2/nodes/(%s)/powercycle$" % node_name_pattern):
+      rlib2.R_2_nodes_name_powercycle,
     re.compile(r"^/2/nodes/(%s)/tags$" % node_name_pattern):
       rlib2.R_2_nodes_name_tags,
     re.compile(r"^/2/nodes/(%s)/role$" % node_name_pattern):
