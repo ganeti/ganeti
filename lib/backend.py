@@ -1304,10 +1304,7 @@ def MigrateInstance(instance, target, live):
   @type live: boolean
   @param live: whether the migration should be done live or not (the
       interpretation of this parameter is left to the hypervisor)
-  @rtype: tuple
-  @return: a tuple of (success, msg) where:
-      - succes is a boolean denoting the success/failure of the operation
-      - msg is a string with details in case of failure
+  @raise RPCFail: if migration fails for some reason
 
   """
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
