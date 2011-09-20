@@ -277,6 +277,14 @@ class SshKeyError(GenericError):
   """
 
 
+class X509CertError(GenericError):
+  """Invalid X509 certificate.
+
+  This error has two arguments: the certificate filename and the error cause.
+
+  """
+
+
 class TagError(GenericError):
   """Generic tag error.
 

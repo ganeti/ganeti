@@ -259,6 +259,8 @@ def GenerateSelfSignedX509Cert(common_name, validity):
   @param common_name: commonName value
   @type validity: int
   @param validity: Validity for certificate in seconds
+  @return: a tuple of strings containing the PEM-encoded private key and
+           certificate
 
   """
   # Create private and public key
@@ -292,6 +294,8 @@ def GenerateSelfSignedSslCert(filename, common_name=constants.X509_CERT_CN,
   @param common_name: commonName value
   @type validity: int
   @param validity: validity of certificate in number of days
+  @return: a tuple of strings containing the PEM-encoded private key and
+           certificate
 
   """
   # TODO: Investigate using the cluster name instead of X505_CERT_CN for
@@ -301,3 +305,4 @@ def GenerateSelfSignedSslCert(filename, common_name=constants.X509_CERT_CN,
                                                    validity * 24 * 60 * 60)
 
   utils_io.WriteFile(filename, mode=0400, data=key_pem + cert_pem)
+  return (key_pem, cert_pem)
