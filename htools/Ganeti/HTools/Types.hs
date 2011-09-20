@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Some common types.
 
 -}
@@ -72,6 +74,7 @@ import qualified Data.Map as M
 import qualified Text.JSON as JSON
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.THH as THH
 
 -- | The instance index type.
 type Idx = Int
@@ -100,36 +103,12 @@ type GroupID = String
 -- Ord instance will order them in the order they are defined, so when
 -- changing this data type be careful about the interaction with the
 -- desired sorting order.
-data AllocPolicy
-    = AllocPreferred   -- ^ This is the normal status, the group
-                       -- should be used normally during allocations
-    | AllocLastResort  -- ^ This group should be used only as
-                       -- last-resort, after the preferred groups
-    | AllocUnallocable -- ^ This group must not be used for new
-                       -- allocations
-      deriving (Show, Read, Eq, Ord, Enum, Bounded)
-
--- | Convert a string to an alloc policy.
-allocPolicyFromString :: (Monad m) => String -> m AllocPolicy
-allocPolicyFromString s =
-    case () of
-      _ | s == C.allocPolicyPreferred -> return AllocPreferred
-        | s == C.allocPolicyLastResort -> return AllocLastResort
-        | s == C.allocPolicyUnallocable -> return AllocUnallocable
-        | otherwise -> fail $ "Invalid alloc policy mode: " ++ s
-
--- | Convert an alloc policy to the Ganeti string equivalent.
-allocPolicyToString :: AllocPolicy -> String
-allocPolicyToString AllocPreferred   = C.allocPolicyPreferred
-allocPolicyToString AllocLastResort  = C.allocPolicyLastResort
-allocPolicyToString AllocUnallocable = C.allocPolicyUnallocable
-
-instance JSON.JSON AllocPolicy where
-    showJSON = JSON.showJSON . allocPolicyToString
-    readJSON s = case JSON.readJSON s of
-                   JSON.Ok s' -> allocPolicyFromString s'
-                   JSON.Error e -> JSON.Error $
-                                   "Can't parse alloc_policy: " ++ e
+$(THH.declareSADT "AllocPolicy"
+         [ ("AllocPreferred",   'C.allocPolicyPreferred)
+         , ("AllocLastResort",  'C.allocPolicyLastResort)
+         , ("AllocUnallocable", 'C.allocPolicyUnallocable)
+         ])
+$(THH.makeJSONInstance ''AllocPolicy)
 
 -- | The resource spec type.
 data RSpec = RSpec
@@ -182,41 +161,15 @@ data IMove = Failover                -- ^ Failover the instance (f)
              deriving (Show, Read)
 
 -- | Instance disk template type.
-data DiskTemplate = DTDiskless
-                  | DTFile
-                  | DTSharedFile
-                  | DTPlain
-                  | DTBlock
-                  | DTDrbd8
-                    deriving (Show, Read, Eq, Enum, Bounded)
-
--- | Converts a DiskTemplate to String.
-diskTemplateToString :: DiskTemplate -> String
-diskTemplateToString DTDiskless   = C.dtDiskless
-diskTemplateToString DTFile       = C.dtFile
-diskTemplateToString DTSharedFile = C.dtSharedFile
-diskTemplateToString DTPlain      = C.dtPlain
-diskTemplateToString DTBlock      = C.dtBlock
-diskTemplateToString DTDrbd8      = C.dtDrbd8
-
--- | Converts a DiskTemplate from String.
-diskTemplateFromString :: (Monad m) => String -> m DiskTemplate
-diskTemplateFromString s =
-    case () of
-      _ | s == C.dtDiskless   -> return DTDiskless
-        | s == C.dtFile       -> return DTFile
-        | s == C.dtSharedFile -> return DTSharedFile
-        | s == C.dtPlain      -> return DTPlain
-        | s == C.dtBlock      -> return DTBlock
-        | s == C.dtDrbd8      -> return DTDrbd8
-        | otherwise           -> fail $ "Invalid disk template: " ++ s
-
-instance JSON.JSON DiskTemplate where
-    showJSON = JSON.showJSON . diskTemplateToString
-    readJSON s = case JSON.readJSON s of
-                   JSON.Ok s' -> diskTemplateFromString s'
-                   JSON.Error e -> JSON.Error $
-                                   "Can't parse disk_template as string: " ++ e
+$(THH.declareSADT "DiskTemplate"
+     [ ("DTDiskless",   'C.dtDiskless)
+     , ("DTFile",       'C.dtFile)
+     , ("DTSharedFile", 'C.dtSharedFile)
+     , ("DTPlain",      'C.dtPlain)
+     , ("DTBlock",      'C.dtBlock)
+     , ("DTDrbd8",      'C.dtDrbd8)
+     ])
+$(THH.makeJSONInstance ''DiskTemplate)
 
 -- | Formatted solution output for one move (involved nodes and
 -- commands.
@@ -347,21 +300,9 @@ class Element a where
     setIdx  :: a -> Int -> a
 
 -- | The iallocator node-evacuate evac_mode type.
-data EvacMode = ChangePrimary
-              | ChangeSecondary
-              | ChangeAll
-                deriving (Show, Read)
-
-instance JSON.JSON EvacMode where
-    showJSON mode = case mode of
-                      ChangeAll       -> JSON.showJSON C.iallocatorNevacAll
-                      ChangePrimary   -> JSON.showJSON C.iallocatorNevacPri
-                      ChangeSecondary -> JSON.showJSON C.iallocatorNevacSec
-    readJSON v =
-        case JSON.readJSON v of
-          JSON.Ok s | s == C.iallocatorNevacAll -> return ChangeAll
-                    | s == C.iallocatorNevacPri -> return ChangePrimary
-                    | s == C.iallocatorNevacSec -> return ChangeSecondary
-                    | otherwise -> fail $ "Invalid evacuate mode " ++ s
-          JSON.Error e -> JSON.Error $
-                          "Can't parse evacuate mode as string: " ++ e
+$(THH.declareSADT "EvacMode"
+     [ ("ChangePrimary",   'C.iallocatorNevacPri)
+     , ("ChangeSecondary", 'C.iallocatorNevacSec)
+     , ("ChangeAll",       'C.iallocatorNevacAll)
+     ])
+$(THH.makeJSONInstance ''EvacMode)

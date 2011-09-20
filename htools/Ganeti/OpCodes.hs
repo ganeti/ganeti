@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Implementation of the opcodes.
 
 -}
@@ -34,27 +36,19 @@ import Text.JSON (readJSON, showJSON, makeObj, JSON)
 import qualified Text.JSON as J
 import Text.JSON.Types
 
+import qualified Ganeti.Constants as C
+import qualified Ganeti.THH as THH
+
 import Ganeti.HTools.Utils
 
 -- | Replace disks type.
-data ReplaceDisksMode = ReplaceOnPrimary
-                  | ReplaceOnSecondary
-                  | ReplaceNewSecondary
-                  | ReplaceAuto
-                  deriving (Show, Read, Eq)
-
-instance JSON ReplaceDisksMode where
-    showJSON m = case m of
-                 ReplaceOnPrimary -> showJSON "replace_on_primary"
-                 ReplaceOnSecondary -> showJSON "replace_on_secondary"
-                 ReplaceNewSecondary -> showJSON "replace_new_secondary"
-                 ReplaceAuto -> showJSON "replace_auto"
-    readJSON s = case readJSON s of
-                   J.Ok "replace_on_primary" -> J.Ok ReplaceOnPrimary
-                   J.Ok "replace_on_secondary" -> J.Ok ReplaceOnSecondary
-                   J.Ok "replace_new_secondary" -> J.Ok ReplaceNewSecondary
-                   J.Ok "replace_auto" -> J.Ok ReplaceAuto
-                   _ -> J.Error "Can't parse a valid ReplaceDisksMode"
+$(THH.declareSADT "ReplaceDisksMode"
+     [ ("ReplaceOnPrimary",    'C.replaceDiskPri)
+     , ("ReplaceOnSecondary",  'C.replaceDiskSec)
+     , ("ReplaceNewSecondary", 'C.replaceDiskChg)
+     , ("ReplaceAuto",         'C.replaceDiskAuto)
+     ])
+$(THH.makeJSONInstance ''ReplaceDisksMode)
 
 -- | OpCode representation.
 --
