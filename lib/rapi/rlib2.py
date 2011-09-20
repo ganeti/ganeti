@@ -952,7 +952,7 @@ class R_2_instances_name_replace_disks(baserlib.OpcodeResource):
     except KeyError:
       pass
     else:
-      if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable-msg=E1102
+      if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable=E1102
         # Backwards compatibility for strings of the format "1, 2, 3"
         try:
           data["disks"] = [int(part) for part in raw_disks.split(",")]

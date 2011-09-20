@@ -37,7 +37,7 @@ import shutil
 import socket
 import StringIO
 try:
-  import affinity
+  import affinity   # pylint: disable=F0401
 except ImportError:
   affinity = None
 
