@@ -27,7 +27,7 @@ module Main(main) where
 
 import Data.IORef
 import Test.QuickCheck
-import System.Console.GetOpt
+import System.Console.GetOpt ()
 import System.IO
 import System.Exit
 import System (getArgs)
@@ -63,55 +63,61 @@ incIORef ir = atomicModifyIORef ir (\x -> (x + 1, ()))
 
 -- | Wrapper over a test runner with error counting.
 wrapTest :: IORef Int
-         -> (Args -> IO Result)
+         -> (Args -> IO Result, String)
          -> Args
-         -> IO (Result, Char)
-wrapTest ir test opts = do
+         -> IO (Result, Char, String)
+wrapTest ir (test, desc) opts = do
   r <- test opts
   c <- case r of
          Success {} -> return '.'
          GaveUp  {} -> return '?'
          Failure {} -> incIORef ir >> return '#'
          NoExpectedFailure {} -> incIORef ir >> return '*'
-  return (r, c)
+  return (r, c, desc)
+
+runTests :: String
+         -> Args
+         -> [Args -> IO (Result, Char, String)]
+         -> Int
+         -> IO [(Result, String)]
 
 runTests name opts tests max_count = do
   _ <- printf "%25s : " name
   hFlush stdout
   results <- mapM (\t -> do
-                     (r, c) <- t opts
+                     (r, c, desc) <- t opts
                      putChar c
                      hFlush stdout
-                     return r
+                     return (r, desc)
                   ) tests
-  let alldone = sum . map numTests $ results
+  let alldone = sum . map (numTests . fst) $ results
   _ <- printf "%*s(%d)\n" (max_count - length tests + 1) " " alldone
-  mapM_ (\(idx, r) ->
+  mapM_ (\(r, desc) ->
              case r of
                Failure { output = o, usedSeed = u, usedSize = size } ->
-                   printf "Test %d failed (seed was %s, test size %d): %s\n"
-                          idx (show u) size o
+                   printf "Test %s failed (seed was %s, test size %d): %s\n"
+                          desc (show u) size o
                GaveUp { numTests = passed } ->
-                   printf "Test %d incomplete: gave up with only %d\
+                   printf "Test %s incomplete: gave up with only %d\
                           \ passes after discarding %d tests\n"
-                          idx passed (maxDiscard opts)
+                          desc passed (maxDiscard opts)
                _ -> return ()
-        ) $ zip ([1..]::[Int]) results
+        ) results
   return results
 
-allTests :: [(String, Args, [Args -> IO Result])]
+allTests :: [(Args, (String, [(Args -> IO Result, String)]))]
 allTests =
-  [ ("Utils", fast, testUtils)
-  , ("PeerMap", fast, testPeerMap)
-  , ("Container", fast, testContainer)
-  , ("Instance", fast, testInstance)
-  , ("Node", fast, testNode)
-  , ("Text", fast, testText)
-  , ("OpCodes", fast, testOpCodes)
-  , ("Jobs", fast, testJobs)
-  , ("Loader", fast, testLoader)
-  , ("Types", fast, testTypes)
-  , ("Cluster", slow, testCluster)
+  [ (fast, testUtils)
+  , (fast, testPeerMap)
+  , (fast, testContainer)
+  , (fast, testInstance)
+  , (fast, testNode)
+  , (fast, testText)
+  , (fast, testOpCodes)
+  , (fast, testJobs)
+  , (fast, testLoader)
+  , (fast, testTypes)
+  , (slow, testCluster)
   ]
 
 transformTestOpts :: Args -> Options -> IO Args
@@ -135,9 +141,9 @@ main = do
   (opts, args) <- parseOpts cmd_args "test" options
   let tests = if null args
               then allTests
-              else filter (\(name, _, _) -> name `elem` args) allTests
-      max_count = maximum $ map (\(_, _, t) -> length t) tests
-  mapM_ (\(name, targs, tl) ->
+              else filter (\(_, (name, _)) -> name `elem` args) allTests
+      max_count = maximum $ map (\(_, (_, t)) -> length t) tests
+  mapM_ (\(targs, (name, tl)) ->
              transformTestOpts targs opts >>= \newargs ->
              runTests name newargs (wrap tl) max_count) tests
   terr <- readIORef errs

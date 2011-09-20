@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Unittests for ganeti-htools.
 
 -}
@@ -71,8 +73,7 @@ import qualified Ganeti.HTools.Program.Hbal
 import qualified Ganeti.HTools.Program.Hscan
 import qualified Ganeti.HTools.Program.Hspace
 
-run :: Testable prop => prop -> Args -> IO Result
-run = flip quickCheckWithResult
+import Ganeti.HTools.QCHelper (testSuite)
 
 -- * Constants
 
@@ -364,16 +365,16 @@ prop_Utils_parseUnit (NonNegative n) =
     where _types = n::Int
 
 -- | Test list for the Utils module.
-testUtils =
-  [ run prop_Utils_commaJoinSplit
-  , run prop_Utils_commaSplitJoin
-  , run prop_Utils_fromObjWithDefault
-  , run prop_Utils_if'if
-  , run prop_Utils_select
-  , run prop_Utils_select_undefd
-  , run prop_Utils_select_undefv
-  , run prop_Utils_parseUnit
-  ]
+testSuite "Utils"
+              [ 'prop_Utils_commaJoinSplit
+              , 'prop_Utils_commaSplitJoin
+              , 'prop_Utils_fromObjWithDefault
+              , 'prop_Utils_if'if
+              , 'prop_Utils_select
+              , 'prop_Utils_select_undefd
+              , 'prop_Utils_select_undefv
+              , 'prop_Utils_parseUnit
+              ]
 
 -- ** PeerMap tests
 
@@ -413,13 +414,13 @@ prop_PeerMap_maxElem pmap =
           puniq = PeerMap.accumArray const pmap
 
 -- | List of tests for the PeerMap module.
-testPeerMap =
-    [ run prop_PeerMap_addIdempotent
-    , run prop_PeerMap_removeIdempotent
-    , run prop_PeerMap_maxElem
-    , run prop_PeerMap_addFind
-    , run prop_PeerMap_findMissing
-    ]
+testSuite "PeerMap"
+              [ 'prop_PeerMap_addIdempotent
+              , 'prop_PeerMap_removeIdempotent
+              , 'prop_PeerMap_maxElem
+              , 'prop_PeerMap_addFind
+              , 'prop_PeerMap_findMissing
+              ]
 
 -- ** Container tests
 
@@ -458,11 +459,11 @@ prop_Container_findByName node othername =
      Container.findByName nl' (Node.alias target) == Just target &&
      Container.findByName nl' othername == Nothing
 
-testContainer =
-    [ run prop_Container_addTwo
-    , run prop_Container_nameOf
-    , run prop_Container_findByName
-    ]
+testSuite "Container"
+              [ 'prop_Container_addTwo
+              , 'prop_Container_nameOf
+              , 'prop_Container_findByName
+              ]
 
 -- ** Instance tests
 
@@ -551,24 +552,24 @@ prop_Instance_setMovable inst m =
     Instance.movable inst' == m
     where inst' = Instance.setMovable inst m
 
-testInstance =
-    [ run prop_Instance_creat
-    , run prop_Instance_setIdx
-    , run prop_Instance_setName
-    , run prop_Instance_setAlias
-    , run prop_Instance_setPri
-    , run prop_Instance_setSec
-    , run prop_Instance_setBoth
-    , run prop_Instance_runStatus_True
-    , run prop_Instance_runStatus_False
-    , run prop_Instance_shrinkMG
-    , run prop_Instance_shrinkMF
-    , run prop_Instance_shrinkCG
-    , run prop_Instance_shrinkCF
-    , run prop_Instance_shrinkDG
-    , run prop_Instance_shrinkDF
-    , run prop_Instance_setMovable
-    ]
+testSuite "Instance"
+              [ 'prop_Instance_creat
+              , 'prop_Instance_setIdx
+              , 'prop_Instance_setName
+              , 'prop_Instance_setAlias
+              , 'prop_Instance_setPri
+              , 'prop_Instance_setSec
+              , 'prop_Instance_setBoth
+              , 'prop_Instance_runStatus_True
+              , 'prop_Instance_runStatus_False
+              , 'prop_Instance_shrinkMG
+              , 'prop_Instance_shrinkMF
+              , 'prop_Instance_shrinkCG
+              , 'prop_Instance_shrinkCF
+              , 'prop_Instance_shrinkDG
+              , 'prop_Instance_shrinkDF
+              , 'prop_Instance_setMovable
+              ]
 
 -- ** Text backend tests
 
@@ -663,13 +664,13 @@ prop_Text_NodeLSIdempotent node =
     -- override failN1 to what loadNode returns by default
     where n = node { Node.failN1 = True, Node.offline = False }
 
-testText =
-    [ run prop_Text_Load_Instance
-    , run prop_Text_Load_InstanceFail
-    , run prop_Text_Load_Node
-    , run prop_Text_Load_NodeFail
-    , run prop_Text_NodeLSIdempotent
-    ]
+testSuite "Text"
+              [ 'prop_Text_Load_Instance
+              , 'prop_Text_Load_InstanceFail
+              , 'prop_Text_Load_Node
+              , 'prop_Text_Load_NodeFail
+              , 'prop_Text_NodeLSIdempotent
+              ]
 
 -- ** Node tests
 
@@ -790,7 +791,6 @@ prop_Node_showField node =
   fst (Node.showHeader field) /= Types.unknownField &&
   Node.showField node field /= Types.unknownField
 
-
 prop_Node_computeGroups nodes =
   let ng = Node.computeGroups nodes
       onlyuuid = map fst ng
@@ -799,23 +799,22 @@ prop_Node_computeGroups nodes =
      length (nub onlyuuid) == length onlyuuid &&
      (null nodes || not (null ng))
 
-testNode =
-    [ run prop_Node_setAlias
-    , run prop_Node_setOffline
-    , run prop_Node_setMcpu
-    , run prop_Node_setXmem
-    , run prop_Node_addPriFM
-    , run prop_Node_addPriFD
-    , run prop_Node_addPriFC
-    , run prop_Node_addSec
-    , run prop_Node_rMem
-    , run prop_Node_setMdsk
-    , run prop_Node_tagMaps_idempotent
-    , run prop_Node_tagMaps_reject
-    , run prop_Node_showField
-    , run prop_Node_computeGroups
-    ]
-
+testSuite "Node"
+              [ 'prop_Node_setAlias
+              , 'prop_Node_setOffline
+              , 'prop_Node_setMcpu
+              , 'prop_Node_setXmem
+              , 'prop_Node_addPriFM
+              , 'prop_Node_addPriFD
+              , 'prop_Node_addPriFC
+              , 'prop_Node_addSec
+              , 'prop_Node_rMem
+              , 'prop_Node_setMdsk
+              , 'prop_Node_tagMaps_idempotent
+              , 'prop_Node_tagMaps_reject
+              , 'prop_Node_showField
+              , 'prop_Node_computeGroups
+              ]
 
 -- ** Cluster tests
 
@@ -957,16 +956,16 @@ prop_ClusterSplitCluster node inst =
      all (\(guuid, (nl'', _)) -> all ((== guuid) . Node.group)
                                  (Container.elems nl'')) gni
 
-testCluster =
-    [ run prop_Score_Zero
-    , run prop_CStats_sane
-    , run prop_ClusterAlloc_sane
-    , run prop_ClusterCanTieredAlloc
-    , run prop_ClusterAllocEvac
-    , run prop_ClusterAllocBalance
-    , run prop_ClusterCheckConsistency
-    , run prop_ClusterSplitCluster
-    ]
+testSuite "Cluster"
+              [ 'prop_Score_Zero
+              , 'prop_CStats_sane
+              , 'prop_ClusterAlloc_sane
+              , 'prop_ClusterCanTieredAlloc
+              , 'prop_ClusterAllocEvac
+              , 'prop_ClusterAllocBalance
+              , 'prop_ClusterCheckConsistency
+              , 'prop_ClusterSplitCluster
+              ]
 
 -- ** OpCodes tests
 
@@ -977,9 +976,8 @@ prop_OpCodes_serialization op =
     J.Ok op' -> op == op'
   where _types = op::OpCodes.OpCode
 
-testOpCodes =
-  [ run prop_OpCodes_serialization
-  ]
+testSuite "OpCodes"
+              [ 'prop_OpCodes_serialization ]
 
 -- ** Jobs tests
 
@@ -996,10 +994,10 @@ prop_JobStatus_serialization js =
     J.Ok js' -> js == js'
   where _types = js::Jobs.JobStatus
 
-testJobs =
-  [ run prop_OpStatus_serialization
-  , run prop_JobStatus_serialization
-  ]
+testSuite "Jobs"
+              [ 'prop_OpStatus_serialization
+              , 'prop_JobStatus_serialization
+              ]
 
 -- ** Loader tests
 
@@ -1044,14 +1042,14 @@ prop_Loader_compareNameComponent_prefix (NonEmpty s1) s2 =
   Loader.compareNameComponent (s1 ++ "." ++ s2) s1 ==
     Loader.LookupResult Loader.PartialMatch s1
 
-testLoader =
-  [ run prop_Loader_lookupNode
-  , run prop_Loader_lookupInstance
-  , run prop_Loader_assignIndices
-  , run prop_Loader_mergeData
-  , run prop_Loader_compareNameComponent_equal
-  , run prop_Loader_compareNameComponent_prefix
-  ]
+testSuite "Loader"
+              [ 'prop_Loader_lookupNode
+              , 'prop_Loader_lookupInstance
+              , 'prop_Loader_assignIndices
+              , 'prop_Loader_mergeData
+              , 'prop_Loader_compareNameComponent_equal
+              , 'prop_Loader_compareNameComponent_prefix
+              ]
 
 -- ** Types tests
 
@@ -1088,9 +1086,9 @@ prop_Types_eitherToResult ei =
     where r = Types.eitherToResult ei
           _types = ei::Either String Int
 
-testTypes =
-    [ run prop_Types_AllocPolicy_serialisation
-    , run prop_Types_DiskTemplate_serialisation
-    , run prop_Types_opToResult
-    , run prop_Types_eitherToResult
-    ]
+testSuite "Types"
+              [ 'prop_Types_AllocPolicy_serialisation
+              , 'prop_Types_DiskTemplate_serialisation
+              , 'prop_Types_opToResult
+              , 'prop_Types_eitherToResult
+              ]
