@@ -62,12 +62,7 @@ data OpCode = OpTestDelay Double Bool [String]
             deriving (Show, Read, Eq)
 
 
--- | Computes the OP_ID for an OpCode.
-opID :: OpCode -> String
-opID (OpTestDelay _ _ _) = "OP_TEST_DELAY"
-opID (OpInstanceReplaceDisks _ _ _ _ _) = "OP_INSTANCE_REPLACE_DISKS"
-opID (OpInstanceFailover {}) = "OP_INSTANCE_FAILOVER"
-opID (OpInstanceMigrate  {}) = "OP_INSTANCE_MIGRATE"
+$(THH.genOpID ''OpCode "opID")
 
 -- | Loads an OpCode from the JSON serialised form.
 loadOpCode :: JSValue -> J.Result OpCode

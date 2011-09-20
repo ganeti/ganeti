@@ -31,9 +31,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.THH ( declareSADT
                   , makeJSONInstance
+                  , genOpID
                   ) where
 
+import Control.Monad (liftM)
 import Data.Char
+import Data.List
 import Language.Haskell.TH
 
 import qualified Text.JSON as JSON
@@ -54,6 +57,12 @@ toStrName = mkName . (++ "ToString") . ensureLower
 fromStrName :: String -> Name
 fromStrName = mkName . (++ "FromString") . ensureLower
 
+-- | Converts a name to it's varE/litE representations.
+--
+reprE :: Either String Name -> Q Exp
+reprE (Left name) = litE (StringL name)
+reprE (Right name) = varE name
+
 -- | Generates a data type declaration.
 --
 -- The type will have a fixed list of instances.
@@ -72,13 +81,13 @@ strADTDecl name constructors =
 -- nameToString Cons1 = var1
 -- nameToString Cons2 = \"value2\"
 -- @
-genToString :: Name -> Name -> [(String, Name)] -> Q [Dec]
+genToString :: Name -> Name -> [(String, Either String Name)] -> Q [Dec]
 genToString fname tname constructors = do
   sigt <- [t| $(conT tname) -> String |]
   -- the body clauses, matching on the constructor and returning the
   -- string value
   clauses <- mapM  (\(c, v) -> clause [recP (mkName c) []]
-                             (normalB (varE  v)) []) constructors
+                             (normalB (reprE v)) []) constructors
   return [SigD fname sigt, FunD fname clauses]
 
 -- | Generates a fromString function.
@@ -135,7 +144,9 @@ declareSADT :: String -> [(String, Name)] -> Q [Dec]
 declareSADT sname cons = do
   let name = mkName sname
       ddecl = strADTDecl name (map fst cons)
-  tostr <- genToString (toStrName sname) name cons
+      -- process cons in the format expected by genToString
+      cons' = map (\(a, b) -> (a, Right b)) cons
+  tostr <- genToString (toStrName sname) name cons'
   fromstr <- genFromString (fromStrName sname) name cons
   return $ ddecl:tostr ++ fromstr
 
@@ -184,3 +195,32 @@ makeJSONInstance name = do
   showJ <- genShowJSON base
   readJ <- genReadJSON base
   return [InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name)) (readJ:showJ)]
+
+-- | Transforms a CamelCase string into an_underscore_based_one.
+deCamelCase :: String -> String
+deCamelCase =
+    intercalate "_" . map (map toUpper) . groupBy (\_ b -> not $ isUpper b)
+
+-- | Computes the name of a given constructor
+constructorName :: Con -> Q Name
+constructorName (NormalC name _) = return name
+constructorName (RecC name _)    = return name
+constructorName x                = fail $ "Unhandled constructor " ++ show x
+
+-- | Builds the constructor-to-string function.
+--
+-- This generates a simple function of the following form:
+--
+-- @
+-- fname (ConStructorOne {}) = "CON_STRUCTOR_ONE"
+-- fname (ConStructorTwo {}) = "CON_STRUCTOR_TWO"
+-- @
+--
+-- This builds a custom list of name/string pairs and then uses
+-- 'genToString' to actually generate the function
+genOpID :: Name -> String -> Q [Dec]
+genOpID name fname = do
+  TyConI (DataD _ _ _ cons _) <- reify name
+  cnames <- mapM (liftM nameBase . constructorName) cons
+  let svalues = map (Left . deCamelCase) cnames
+  genToString (mkName fname) name $ zip cnames svalues
