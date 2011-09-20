@@ -67,6 +67,7 @@ module Ganeti.HTools.Types
     , EvacMode(..)
     ) where
 
+import Control.Monad
 import qualified Data.Map as M
 import qualified Text.JSON as JSON
 
@@ -271,6 +272,14 @@ instance Monad Result where
     (>>=) (Ok x) fn = fn x
     return = Ok
     fail = Bad
+
+instance MonadPlus Result where
+    mzero = Bad "zero Result when used as MonadPlus"
+    -- for mplus, when we 'add' two Bad values, we concatenate their
+    -- error descriptions
+    (Bad x) `mplus` (Bad y) = Bad (x ++ "; " ++ y)
+    (Bad _) `mplus` x = x
+    x@(Ok _) `mplus` _ = x
 
 -- | Simple checker for whether a 'Result' is OK.
 isOk :: Result a -> Bool
