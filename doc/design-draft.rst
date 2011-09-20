@@ -12,6 +12,7 @@ Design document drafts
    design-ovf-support.rst
    design-network.rst
    design-node-state-cache.rst
+   design-resource-model.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
