@@ -325,32 +325,29 @@ The options that can be passed to the program are as follows:
   metrics and thus the influence of the dynamic utilisation will be
   practically insignificant.
 
--t *datafile*, --text-data=*datafile*
-  The name of the file holding node and instance information (if not
-  collecting via RAPI or LUXI). This or one of the other backends must
-  be selected.
-
 -S *filename*, --save-cluster=*filename*
   If given, the state of the cluster before the balancing is saved to
   the given file plus the extension "original"
   (i.e. *filename*.original), and the state at the end of the
   balancing is saved to the given file plus the extension "balanced"
   (i.e. *filename*.balanced). This allows re-feeding the cluster state
-  to either hbal itself or for example hspace.
+  to either hbal itself or for example hspace via the ``-t`` option.
+
+-t *datafile*, --text-data=*datafile*
+  Backend specification: the name of the file holding node and instance
+  information (if not collecting via RAPI or LUXI). This or one of the
+  other backends must be selected. The option is described in the man
+  page **htools**(1).
 
 -m *cluster*
- Collect data directly from the *cluster* given as an argument via
- RAPI. If the argument doesn't contain a colon (:), then it is
- converted into a fully-built URL via prepending ``https://`` and
- appending the default RAPI port, otherwise it's considered a
- fully-specified URL and is used as-is.
+  Backend specification: collect data directly from the *cluster* given
+  as an argument via RAPI. The option is described in the man page
+  **htools**(1).
 
 -L [*path*]
-  Collect data directly from the master daemon, which is to be
-  contacted via the luxi (an internal Ganeti protocol). An optional
-  *path* argument is interpreted as the path to the unix socket on
-  which the master daemon listens; otherwise, the default path used by
-  ganeti when installed with *--localstatedir=/var* is used.
+  Backend specification: collect data directly from the master daemon,
+  which is to be contacted via LUXI (an internal Ganeti protocol). The
+  option is described in the man page **htools**(1).
 
 -X
   When using the Luxi backend, hbal can also execute the given

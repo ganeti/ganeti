@@ -250,53 +250,34 @@ The options that can be passed to the program are as follows:
   are reported by RAPI as such, or that have "?" in file-based input
   in any numeric fields.
 
--t *datafile*, --text-data=*datafile*
-  The name of the file holding node and instance information (if not
-  collecting via RAPI or LUXI). This or one of the other backends must
-  be selected.
-
 -S *filename*, --save-cluster=*filename*
   If given, the state of the cluster at the end of the allocation is
   saved to a file named *filename.alloc*, and if tiered allocation is
   enabled, the state after tiered allocation will be saved to
   *filename.tiered*. This allows re-feeding the cluster state to
   either hspace itself (with different parameters) or for example
-  hbal.
+  hbal, via the ``-t`` option.
+
+-t *datafile*, --text-data=*datafile*
+  Backend specification: the name of the file holding node and instance
+  information (if not collecting via RAPI or LUXI). This or one of the
+  other backends must be selected. The option is described in the man
+  page **htools**(1).
 
 -m *cluster*
- Collect data directly from the *cluster* given as an argument via
- RAPI. If the argument doesn't contain a colon (:), then it is
- converted into a fully-built URL via prepending ``https://`` and
- appending the default RAPI port, otherwise it's considered a
- fully-specified URL and is used as-is.
+  Backend specification: collect data directly from the *cluster* given
+  as an argument via RAPI. The option is described in the man page
+  **htools**(1).
 
 -L [*path*]
-  Collect data directly from the master daemon, which is to be
-  contacted via the luxi (an internal Ganeti protocol). An optional
-  *path* argument is interpreted as the path to the unix socket on
-  which the master daemon listens; otherwise, the default path used by
-  ganeti when installed with *--localstatedir=/var* is used.
+  Backend specification: collect data directly from the master daemon,
+  which is to be contacted via LUXI (an internal Ganeti protocol). The
+  option is described in the man page **htools**(1).
 
 --simulate *description*
-  Instead of using actual data, build an empty cluster given a node
-  description. The *description* parameter must be a comma-separated
-  list of five elements, describing in order:
-
-  - the allocation policy for this node group (*preferred*, *allocable*
-    or *unallocable*, or alternatively the short forms *p*, *a* or *u*)
-  - the number of nodes in the cluster
-  - the disk size of the nodes (default in mebibytes, units can be used)
-  - the memory size of the nodes (default in mebibytes, units can be used)
-  - the cpu core count for the nodes
-
-  An example description would be **preferred,B20,100G,16g,4**
-  describing a 20-node cluster where each node has 100GB of disk
-  space, 16GiB of memory and 4 CPU cores. Note that all nodes must
-  have the same specs currently.
-
-  This option can be given multiple times, and each new use defines a
-  new node group. Hence different node groups can have different
-  allocation policies and node count/specifications.
+  Backend specification: similar to the **-t** option, this allows
+  overriding the cluster data with a simulated cluster. For details
+  about the description, see the man page **htools**(1).
 
 --tiered-alloc *spec*
   Besides the standard, fixed-size allocation, also do a tiered

@@ -68,19 +68,20 @@ The options that can be passed to the program are as follows:
   man page **htools**(1) for more details about this option.
 
 -t *datafile*, --text-data=*datafile*
-  The name of the file holding cluster information, to override the
-  data in the JSON request itself. This is mostly used for debugging.
+  The name of the file holding cluster information, to override the data
+  in the JSON request itself. This is mostly used for debugging. The
+  format of the file is described in the man page **htools**(1).
 
 --simulate *description*
-  Similar to the **-t** option, this allows overriding the cluster
-  data with a simulated cluster. For details about the description,
-  see the man page **hspace**(1).
+  Backend specification: similar to the **-t** option, this allows
+  overriding the cluster data with a simulated cluster. For details
+  about the description, see the man page **htools**(1).
 
 -S *filename*, --save-cluster=*filename*
   If given, the state of the cluster before and the iallocator run is
   saved to a file named *filename.pre-ialloc*, respectively
   *filename.post-ialloc*. This allows re-feeding the cluster state to
-  any of the htools utilities.
+  any of the htools utilities via the ``-t`` option.
 
 -v
   This option increases verbosity and can be used for debugging in order

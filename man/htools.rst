@@ -131,6 +131,83 @@ support all options. Some common options are:
   lNet
     the dynamic net load (if the information is available)
 
+-t *datafile*, --text-data=*datafile*
+  Backend specification: the name of the file holding node and instance
+  information (if not collecting via RAPI or LUXI). This or one of the
+  other backends must be selected. The option is described in the man
+  page **htools**(1).
+
+  The file should contain text data, line-based, with two empty lines
+  separating sections. The lines themselves are column-based, with the
+  pipe symbol (``|``) acting as separator.
+
+  The first section contains group data, with two columns:
+
+  - group name
+  - group uuid
+
+  The second sections contains node data, with the following columns:
+
+  - node name
+  - node total memory
+  - node free memory
+  - node total disk
+  - node free disk
+  - node physical cores
+  - offline field (as ``Y`` or ``N``)
+  - group UUID
+
+  The third section contains instance data, with the fields:
+
+  - instance name
+  - instance memory
+  - instance disk size
+  - instance vcpus
+  - instance status (in Ganeti's format, e.g. ``running`` or ``ERROR_down``)
+  - instance ``auto_balance`` flag (see man page **gnt-instance** (7))
+  - instance primary node
+  - instance secondary node(s), if any
+  - instance disk type (e.g. ``plain`` or ``drbd``)
+  - instance tags
+
+  The fourth and last section contains the cluster tags, with one tag
+  per line (no columns/no column processing).
+
+-m *cluster*
+  Backend specification: collect data directly from the *cluster* given
+  as an argument via RAPI. If the argument doesn't contain a colon (:),
+  then it is converted into a fully-built URL via prepending
+  ``https://`` and appending the default RAPI port, otherwise it is
+  considered a fully-specified URL and used as-is.
+
+-L [*path*]
+  Backend specification: collect data directly from the master daemon,
+  which is to be contacted via LUXI (an internal Ganeti protocol). An
+  optional *path* argument is interpreted as the path to the unix socket
+  on which the master daemon listens; otherwise, the default path used
+  by Ganeti (configured at build time) is used.
+
+--simulate *description*
+  Backend specification: instead of using actual data, build an empty
+  cluster given a node description. The *description* parameter must be
+  a comma-separated list of five elements, describing in order:
+
+  - the allocation policy for this node group (*preferred*, *allocable*
+    or *unallocable*, or alternatively the short forms *p*, *a* or *u*)
+  - the number of nodes in the cluster
+  - the disk size of the nodes (default in mebibytes, units can be used)
+  - the memory size of the nodes (default in mebibytes, units can be used)
+  - the cpu core count for the nodes
+
+  An example description would be **preferred,B20,100G,16g,4**
+  describing a 20-node cluster where each node has 100GB of disk
+  space, 16GiB of memory and 4 CPU cores. Note that all nodes must
+  have the same specs currently.
+
+  This option can be given multiple times, and each new use defines a
+  new node group. Hence different node groups can have different
+  allocation policies and node count/specifications.
+
 -v, --verbose
   Increase the output verbosity. Each usage of this option will
   increase the verbosity (currently more than 2 doesn't make sense)
