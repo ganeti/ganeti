@@ -347,6 +347,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Group.hs \
 	htools/Ganeti/HTools/IAlloc.hs \
 	htools/Ganeti/HTools/Instance.hs \
+	htools/Ganeti/HTools/JSON.hs \
 	htools/Ganeti/HTools/Loader.hs \
 	htools/Ganeti/HTools/Luxi.hs \
 	htools/Ganeti/HTools/Node.hs \

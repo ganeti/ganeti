@@ -49,16 +49,15 @@ module Ganeti.HTools.Utils
     , parseUnit
     ) where
 
-import Control.Monad (liftM)
 import Data.Char (toUpper)
 import Data.List
-import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
-import Text.Printf (printf)
 
 import Debug.Trace
 
 import Ganeti.HTools.Types
+-- we will re-export these for our existing users
+import Ganeti.HTools.JSON
 
 -- * Debug functions
 
@@ -131,61 +130,6 @@ select :: a            -- ^ default result
        -> a            -- ^ first result which has a True condition, or default
 select def = maybe def snd . find fst
 
--- * JSON-related functions
-
--- | A type alias for the list-based representation of J.JSObject.
-type JSRecord = [(String, J.JSValue)]
-
--- | Converts a JSON Result into a monadic value.
-fromJResult :: Monad m => String -> J.Result a -> m a
-fromJResult s (J.Error x) = fail (s ++ ": " ++ x)
-fromJResult _ (J.Ok x) = return x
-
--- | Tries to read a string from a JSON value.
---
--- In case the value was not a string, we fail the read (in the
--- context of the current monad.
-readEitherString :: (Monad m) => J.JSValue -> m String
-readEitherString v =
-    case v of
-      J.JSString s -> return $ J.fromJSString s
-      _ -> fail "Wrong JSON type"
-
--- | Converts a JSON message into an array of JSON objects.
-loadJSArray :: (Monad m)
-               => String -- ^ Operation description (for error reporting)
-               -> String -- ^ Input message
-               -> m [J.JSObject J.JSValue]
-loadJSArray s = fromJResult s . J.decodeStrict
-
--- | Reads the value of a key in a JSON object.
-fromObj :: (J.JSON a, Monad m) => JSRecord -> String -> m a
-fromObj o k =
-    case lookup k o of
-      Nothing -> fail $ printf "key '%s' not found, object contains only %s"
-                 k (show (map fst o))
-      Just val -> fromKeyValue k val
-
--- | Reads the value of an optional key in a JSON object.
-maybeFromObj :: (J.JSON a, Monad m) =>
-                JSRecord -> String -> m (Maybe a)
-maybeFromObj o k =
-    case lookup k o of
-      Nothing -> return Nothing
-      Just val -> liftM Just (fromKeyValue k val)
-
--- | Reads the value of a key in a JSON object with a default if missing.
-fromObjWithDefault :: (J.JSON a, Monad m) =>
-                      JSRecord -> String -> a -> m a
-fromObjWithDefault o k d = liftM (fromMaybe d) $ maybeFromObj o k
-
--- | Reads a JValue, that originated from an object key.
-fromKeyValue :: (J.JSON a, Monad m)
-              => String     -- ^ The key name
-              -> J.JSValue  -- ^ The value to read
-              -> m a
-fromKeyValue k val =
-  fromJResult (printf "key '%s', value '%s'" k (show val)) (J.readJSON val)
 
 -- | Annotate a Result with an ownership information.
 annotateResult :: String -> Result a -> Result a
@@ -201,22 +145,6 @@ tryFromObj :: (J.JSON a) =>
            -> Result a
 tryFromObj t o = annotateResult t . fromObj o
 
--- | Small wrapper over readJSON.
-fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a
-fromJVal v =
-    case J.readJSON v of
-      J.Error s -> fail ("Cannot convert value '" ++ show v ++
-                         "', error: " ++ s)
-      J.Ok x -> return x
-
--- | Converts a JSON value into a JSON object.
-asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)
-asJSObject (J.JSObject a) = return a
-asJSObject _ = fail "not an object"
-
--- | Coneverts a list of JSON values into a list of JSON objects.
-asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
-asObjectList = mapM asJSObject
 
 -- * Parsing utility functions
 
