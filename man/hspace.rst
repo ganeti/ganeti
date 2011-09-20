@@ -282,7 +282,8 @@ The options that can be passed to the program are as follows:
   description. The *description* parameter must be a comma-separated
   list of five elements, describing in order:
 
-  - the allocation policy for this node group
+  - the allocation policy for this node group (*preferred*, *allocable*
+    or *unallocable*, or alternatively the short forms *p*, *a* or *u*)
   - the number of nodes in the cluster
   - the disk size of the nodes (default in mebibytes, units can be used)
   - the memory size of the nodes (default in mebibytes, units can be used)

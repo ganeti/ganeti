@@ -31,6 +31,7 @@ module Ganeti.HTools.Simu
     , parseData
     ) where
 
+import Control.Monad (mplus)
 import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
@@ -40,12 +41,20 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 
+-- | Parse a shortened policy string (for command line usage).
+apolAbbrev :: String -> Result AllocPolicy
+apolAbbrev c | c == "p"  = return AllocPreferred
+             | c == "a"  = return AllocLastResort
+             | c == "u"  = return AllocUnallocable
+             | otherwise = fail $ "Cannot parse AllocPolicy abbreviation '"
+                           ++ c ++ "'"
+
 -- | Parse the string description into nodes.
 parseDesc :: String -> Result (AllocPolicy, Int, Int, Int, Int)
 parseDesc desc =
     case sepSplit ',' desc of
       [a, n, d, m, c] -> do
-        apol <- apolFromString a
+        apol <- apolFromString a `mplus` apolAbbrev a
         ncount <- tryRead "node count" n
         disk <- annotateResult "disk size" (parseUnit d)
         mem <- annotateResult "memory size" (parseUnit m)
