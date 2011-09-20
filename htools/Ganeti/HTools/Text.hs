@@ -57,7 +57,7 @@ import qualified Ganeti.HTools.Instance as Instance
 serializeGroup :: Group.Group -> String
 serializeGroup grp =
     printf "%s|%s|%s" (Group.name grp) (Group.uuid grp)
-               (apolToString (Group.allocPolicy grp))
+               (allocPolicyToString (Group.allocPolicy grp))
 
 -- | Generate group file data from a group list.
 serializeGroups :: Group.List -> String
@@ -97,7 +97,7 @@ serializeInstance nl inst =
              iname (Instance.mem inst) (Instance.dsk inst)
              (Instance.vcpus inst) (Instance.runSt inst)
              (if Instance.autoBalance inst then "Y" else "N")
-             pnode snode (dtToString (Instance.diskTemplate inst))
+             pnode snode (diskTemplateToString (Instance.diskTemplate inst))
              (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects.
@@ -121,7 +121,7 @@ loadGroup :: (Monad m) => [String]
           -> m (String, Group.Group) -- ^ The result, a tuple of group
                                      -- UUID and group object
 loadGroup [name, gid, apol] = do
-  xapol <- apolFromString apol
+  xapol <- allocPolicyFromString apol
   return (gid, Group.create name gid xapol)
 
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
@@ -167,7 +167,8 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
                     "N" -> return False
                     _ -> fail $ "Invalid auto_balance value '" ++ auto_bal ++
                          "' for instance " ++ name
-  disk_template <- annotateResult ("Instance " ++ name) (dtFromString dt)
+  disk_template <- annotateResult ("Instance " ++ name)
+                   (diskTemplateFromString dt)
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = sepSplit ',' tags

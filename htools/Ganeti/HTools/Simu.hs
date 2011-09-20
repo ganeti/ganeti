@@ -54,7 +54,7 @@ parseDesc :: String -> Result (AllocPolicy, Int, Int, Int, Int)
 parseDesc desc =
     case sepSplit ',' desc of
       [a, n, d, m, c] -> do
-        apol <- apolFromString a `mplus` apolAbbrev a
+        apol <- allocPolicyFromString a `mplus` apolAbbrev a
         ncount <- tryRead "node count" n
         disk <- annotateResult "disk size" (parseUnit d)
         mem <- annotateResult "memory size" (parseUnit m)

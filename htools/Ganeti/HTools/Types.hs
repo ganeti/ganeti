@@ -32,8 +32,8 @@ module Ganeti.HTools.Types
     , Weight
     , GroupID
     , AllocPolicy(..)
-    , apolFromString
-    , apolToString
+    , allocPolicyFromString
+    , allocPolicyToString
     , RSpec(..)
     , DynUtil(..)
     , zeroUtil
@@ -49,8 +49,8 @@ module Ganeti.HTools.Types
     , Placement
     , IMove(..)
     , DiskTemplate(..)
-    , dtToString
-    , dtFromString
+    , diskTemplateToString
+    , diskTemplateFromString
     , MoveJob
     , JobSet
     , Result(..)
@@ -110,8 +110,8 @@ data AllocPolicy
       deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 -- | Convert a string to an alloc policy.
-apolFromString :: (Monad m) => String -> m AllocPolicy
-apolFromString s =
+allocPolicyFromString :: (Monad m) => String -> m AllocPolicy
+allocPolicyFromString s =
     case () of
       _ | s == C.allocPolicyPreferred -> return AllocPreferred
         | s == C.allocPolicyLastResort -> return AllocLastResort
@@ -119,15 +119,15 @@ apolFromString s =
         | otherwise -> fail $ "Invalid alloc policy mode: " ++ s
 
 -- | Convert an alloc policy to the Ganeti string equivalent.
-apolToString :: AllocPolicy -> String
-apolToString AllocPreferred   = C.allocPolicyPreferred
-apolToString AllocLastResort  = C.allocPolicyLastResort
-apolToString AllocUnallocable = C.allocPolicyUnallocable
+allocPolicyToString :: AllocPolicy -> String
+allocPolicyToString AllocPreferred   = C.allocPolicyPreferred
+allocPolicyToString AllocLastResort  = C.allocPolicyLastResort
+allocPolicyToString AllocUnallocable = C.allocPolicyUnallocable
 
 instance JSON.JSON AllocPolicy where
-    showJSON = JSON.showJSON . apolToString
+    showJSON = JSON.showJSON . allocPolicyToString
     readJSON s = case JSON.readJSON s of
-                   JSON.Ok s' -> apolFromString s'
+                   JSON.Ok s' -> allocPolicyFromString s'
                    JSON.Error e -> JSON.Error $
                                    "Can't parse alloc_policy: " ++ e
 
@@ -191,17 +191,17 @@ data DiskTemplate = DTDiskless
                     deriving (Show, Read, Eq, Enum, Bounded)
 
 -- | Converts a DiskTemplate to String.
-dtToString :: DiskTemplate -> String
-dtToString DTDiskless   = C.dtDiskless
-dtToString DTFile       = C.dtFile
-dtToString DTSharedFile = C.dtSharedFile
-dtToString DTPlain      = C.dtPlain
-dtToString DTBlock      = C.dtBlock
-dtToString DTDrbd8      = C.dtDrbd8
+diskTemplateToString :: DiskTemplate -> String
+diskTemplateToString DTDiskless   = C.dtDiskless
+diskTemplateToString DTFile       = C.dtFile
+diskTemplateToString DTSharedFile = C.dtSharedFile
+diskTemplateToString DTPlain      = C.dtPlain
+diskTemplateToString DTBlock      = C.dtBlock
+diskTemplateToString DTDrbd8      = C.dtDrbd8
 
 -- | Converts a DiskTemplate from String.
-dtFromString :: (Monad m) => String -> m DiskTemplate
-dtFromString s =
+diskTemplateFromString :: (Monad m) => String -> m DiskTemplate
+diskTemplateFromString s =
     case () of
       _ | s == C.dtDiskless   -> return DTDiskless
         | s == C.dtFile       -> return DTFile
@@ -212,9 +212,9 @@ dtFromString s =
         | otherwise           -> fail $ "Invalid disk template: " ++ s
 
 instance JSON.JSON DiskTemplate where
-    showJSON = JSON.showJSON . dtToString
+    showJSON = JSON.showJSON . diskTemplateToString
     readJSON s = case JSON.readJSON s of
-                   JSON.Ok s' -> dtFromString s'
+                   JSON.Ok s' -> diskTemplateFromString s'
                    JSON.Error e -> JSON.Error $
                                    "Can't parse disk_template as string: " ++ e
 
