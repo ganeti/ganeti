@@ -25,7 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main(main) where
 
+import Data.Char
 import Data.IORef
+import Data.List
 import Test.QuickCheck
 import System.Console.GetOpt ()
 import System.IO
@@ -120,6 +122,14 @@ allTests =
   , (slow, testCluster)
   ]
 
+-- | Extracts the name of a test group.
+extractName :: (Args, (String, [(Args -> IO Result, String)])) -> String
+extractName (_, (name, _)) = name
+
+-- | Lowercase a string.
+lower :: String -> String
+lower = map toLower
+
 transformTestOpts :: Args -> Options -> IO Args
 transformTestOpts args opts = do
   r <- case optReplay opts of
@@ -139,10 +149,20 @@ main = do
   let wrap = map (wrapTest errs)
   cmd_args <- System.getArgs
   (opts, args) <- parseOpts cmd_args "test" options
-  let tests = if null args
-              then allTests
-              else filter (\(_, (name, _)) -> name `elem` args) allTests
-      max_count = maximum $ map (\(_, (_, t)) -> length t) tests
+  tests <- (if null args
+           then return allTests
+           else (let args' = map lower args
+                     selected = filter ((`elem` args') . lower . extractName)
+                                allTests
+                 in if null selected
+                    then do
+                      hPutStrLn stderr $ "No tests matching '"
+                         ++ intercalate " " args ++ "', available tests: "
+                         ++ intercalate ", " (map extractName allTests)
+                      exitWith $ ExitFailure 1
+                    else return selected))
+
+  let max_count = maximum $ map (\(_, (_, t)) -> length t) tests
   mapM_ (\(targs, (name, tl)) ->
              transformTestOpts targs opts >>= \newargs ->
              runTests name newargs (wrap tl) max_count) tests

@@ -107,6 +107,13 @@ isFailure :: Types.OpResult a -> Bool
 isFailure (Types.OpFail _) = True
 isFailure _ = False
 
+-- | Checks for equality with proper annotation.
+(==?) :: (Show a, Eq a) => a -> a -> Property
+(==?) x y = printTestCase
+            ("Expected equality, but '" ++
+             show x ++ "' /= '" ++ show y ++ "'") (x == y)
+infix 3 ==?
+
 -- | Update an instance to be smaller than a node.
 setInstanceSmallerThanNode node inst =
     inst { Instance.mem = Node.availMem node `div` 2
@@ -300,10 +307,11 @@ instance Arbitrary a => Arbitrary (Types.OpResult a) where
 prop_Utils_commaJoinSplit =
     forAll (arbitrary `suchThat`
             (\l -> l /= [""] && all (not . elem ',') l )) $ \lst ->
-    Utils.sepSplit ',' (Utils.commaJoin lst) == lst
+    Utils.sepSplit ',' (Utils.commaJoin lst) ==? lst
 
 -- | Split and join should always be idempotent.
-prop_Utils_commaSplitJoin s = Utils.commaJoin (Utils.sepSplit ',' s) == s
+prop_Utils_commaSplitJoin s =
+    Utils.commaJoin (Utils.sepSplit ',' s) ==? s
 
 -- | fromObjWithDefault, we test using the Maybe monad and an integer
 -- value.
@@ -316,37 +324,38 @@ prop_Utils_fromObjWithDefault def_value random_key =
         where _types = def_value :: Integer
 
 -- | Test that functional if' behaves like the syntactic sugar if.
-prop_Utils_if'if :: Bool -> Int -> Int -> Bool
-prop_Utils_if'if cnd a b = Utils.if' cnd a b == if cnd then a else b
+prop_Utils_if'if :: Bool -> Int -> Int -> Gen Prop
+prop_Utils_if'if cnd a b =
+    Utils.if' cnd a b ==? if cnd then a else b
 
 -- | Test basic select functionality
-prop_Utils_select :: Int   -- ^ Default result
-                  -> [Int] -- ^ List of False values
-                  -> [Int] -- ^ List of True values
-                  -> Bool  -- ^ Test result
+prop_Utils_select :: Int      -- ^ Default result
+                  -> [Int]    -- ^ List of False values
+                  -> [Int]    -- ^ List of True values
+                  -> Gen Prop -- ^ Test result
 prop_Utils_select def lst1 lst2 =
-  Utils.select def cndlist == expectedresult
+  Utils.select def cndlist ==? expectedresult
   where expectedresult = Utils.if' (null lst2) def (head lst2)
         flist = map (\e -> (False, e)) lst1
         tlist = map (\e -> (True, e)) lst2
         cndlist = flist ++ tlist
 
 -- | Test basic select functionality with undefined default
-prop_Utils_select_undefd :: [Int] -- ^ List of False values
+prop_Utils_select_undefd :: [Int]            -- ^ List of False values
                          -> NonEmptyList Int -- ^ List of True values
-                         -> Bool  -- ^ Test result
+                         -> Gen Prop         -- ^ Test result
 prop_Utils_select_undefd lst1 (NonEmpty lst2) =
-  Utils.select undefined cndlist == head lst2
+  Utils.select undefined cndlist ==? head lst2
   where flist = map (\e -> (False, e)) lst1
         tlist = map (\e -> (True, e)) lst2
         cndlist = flist ++ tlist
 
 -- | Test basic select functionality with undefined list values
-prop_Utils_select_undefv :: [Int] -- ^ List of False values
+prop_Utils_select_undefv :: [Int]            -- ^ List of False values
                          -> NonEmptyList Int -- ^ List of True values
-                         -> Bool  -- ^ Test result
+                         -> Gen Prop         -- ^ Test result
 prop_Utils_select_undefv lst1 (NonEmpty lst2) =
-  Utils.select undefined cndlist == head lst2
+  Utils.select undefined cndlist ==? head lst2
   where flist = map (\e -> (False, e)) lst1
         tlist = map (\e -> (True, e)) lst2
         cndlist = flist ++ tlist ++ [undefined]
@@ -380,7 +389,7 @@ testSuite "Utils"
 
 -- | Make sure add is idempotent.
 prop_PeerMap_addIdempotent pmap key em =
-    fn puniq == fn (fn puniq)
+    fn puniq ==? fn (fn puniq)
     where _types = (pmap::PeerMap.PeerMap,
                     key::PeerMap.Key, em::PeerMap.Elem)
           fn = PeerMap.add key em
@@ -388,28 +397,28 @@ prop_PeerMap_addIdempotent pmap key em =
 
 -- | Make sure remove is idempotent.
 prop_PeerMap_removeIdempotent pmap key =
-    fn puniq == fn (fn puniq)
+    fn puniq ==? fn (fn puniq)
     where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
           fn = PeerMap.remove key
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure a missing item returns 0.
 prop_PeerMap_findMissing pmap key =
-    PeerMap.find key (PeerMap.remove key puniq) == 0
+    PeerMap.find key (PeerMap.remove key puniq) ==? 0
     where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure an added item is found.
 prop_PeerMap_addFind pmap key em =
-    PeerMap.find key (PeerMap.add key em puniq) == em
+    PeerMap.find key (PeerMap.add key em puniq) ==? em
     where _types = (pmap::PeerMap.PeerMap,
                     key::PeerMap.Key, em::PeerMap.Elem)
           puniq = PeerMap.accumArray const pmap
 
 -- | Manual check that maxElem returns the maximum indeed, or 0 for null.
 prop_PeerMap_maxElem pmap =
-    PeerMap.maxElem puniq == if null puniq then 0
-                             else (maximum . snd . unzip) puniq
+    PeerMap.maxElem puniq ==? if null puniq then 0
+                              else (maximum . snd . unzip) puniq
     where _types = pmap::PeerMap.PeerMap
           puniq = PeerMap.accumArray const pmap
 
@@ -435,7 +444,7 @@ prop_Container_addTwo cdata i1 i2 =
 prop_Container_nameOf node =
   let nl = makeSmallCluster node 1
       fnode = head (Container.elems nl)
-  in Container.nameOf nl (Node.idx fnode) == Node.name fnode
+  in Container.nameOf nl (Node.idx fnode) ==? Node.name fnode
 
 -- | We test that in a cluster, given a random node, we can find it by
 -- its name and alias, as long as all names and aliases are unique,
@@ -470,10 +479,10 @@ testSuite "Container"
 -- Simple instance tests, we only have setter/getters
 
 prop_Instance_creat inst =
-    Instance.name inst == Instance.alias inst
+    Instance.name inst ==? Instance.alias inst
 
 prop_Instance_setIdx inst idx =
-    Instance.idx (Instance.setIdx inst idx) == idx
+    Instance.idx (Instance.setIdx inst idx) ==? idx
     where _types = (inst::Instance.Instance, idx::Types.Idx)
 
 prop_Instance_setName inst name =
@@ -489,11 +498,11 @@ prop_Instance_setAlias inst name =
           newinst = Instance.setAlias inst name
 
 prop_Instance_setPri inst pdx =
-    Instance.pNode (Instance.setPri inst pdx) == pdx
+    Instance.pNode (Instance.setPri inst pdx) ==? pdx
     where _types = (inst::Instance.Instance, pdx::Types.Ndx)
 
 prop_Instance_setSec inst sdx =
-    Instance.sNode (Instance.setSec inst sdx) == sdx
+    Instance.sNode (Instance.setSec inst sdx) ==? sdx
     where _types = (inst::Instance.Instance, sdx::Types.Ndx)
 
 prop_Instance_setBoth inst pdx sdx =
@@ -549,7 +558,7 @@ prop_Instance_shrinkDF inst =
     in Types.isBad $ Instance.shrinkByType inst' Types.FailDisk
 
 prop_Instance_setMovable inst m =
-    Instance.movable inst' == m
+    Instance.movable inst' ==? m
     where inst' = Instance.setMovable inst m
 
 testSuite "Instance"
@@ -681,15 +690,15 @@ prop_Node_setAlias node name =
           newnode = Node.setAlias node name
 
 prop_Node_setOffline node status =
-    Node.offline newnode == status
+    Node.offline newnode ==? status
     where newnode = Node.setOffline node status
 
 prop_Node_setXmem node xm =
-    Node.xMem newnode == xm
+    Node.xMem newnode ==? xm
     where newnode = Node.setXmem node xm
 
 prop_Node_setMcpu node mc =
-    Node.mCpu newnode == mc
+    Node.mCpu newnode ==? mc
     where newnode = Node.setMcpu node mc
 
 -- | Check that an instance add with too high memory or disk will be
@@ -778,12 +787,12 @@ prop_Node_setMdsk node mx =
 
 -- Check tag maps
 prop_Node_tagMaps_idempotent tags =
-    Node.delTags (Node.addTags m tags) tags == m
+    Node.delTags (Node.addTags m tags) tags ==? m
     where m = Data.Map.empty
 
 prop_Node_tagMaps_reject tags =
     not (null tags) ==>
-    any (\t -> Node.rejectAddTags m [t]) tags
+    all (\t -> Node.rejectAddTags m [t]) tags
     where m = Node.addTags Data.Map.empty tags
 
 prop_Node_showField node =
@@ -972,8 +981,8 @@ testSuite "Cluster"
 -- | Check that opcode serialization is idempotent.
 prop_OpCodes_serialization op =
   case J.readJSON (J.showJSON op) of
-    J.Error _ -> False
-    J.Ok op' -> op == op'
+    J.Error e -> printTestCase ("Cannot deserialise: " ++ e) False
+    J.Ok op' -> op ==? op'
   where _types = op::OpCodes.OpCode
 
 testSuite "OpCodes"
@@ -984,14 +993,14 @@ testSuite "OpCodes"
 -- | Check that (queued) job\/opcode status serialization is idempotent.
 prop_OpStatus_serialization os =
   case J.readJSON (J.showJSON os) of
-    J.Error _ -> False
-    J.Ok os' -> os == os'
+    J.Error e -> printTestCase ("Cannot deserialise: " ++ e) False
+    J.Ok os' -> os ==? os'
   where _types = os::Jobs.OpStatus
 
 prop_JobStatus_serialization js =
   case J.readJSON (J.showJSON js) of
-    J.Error _ -> False
-    J.Ok js' -> js == js'
+    J.Error e -> printTestCase ("Cannot deserialise: " ++ e) False
+    J.Ok js' -> js ==? js'
   where _types = js::Jobs.JobStatus
 
 testSuite "Jobs"
@@ -1002,11 +1011,11 @@ testSuite "Jobs"
 -- ** Loader tests
 
 prop_Loader_lookupNode ktn inst node =
-  Loader.lookupNode nl inst node == Data.Map.lookup node nl
+  Loader.lookupNode nl inst node ==? Data.Map.lookup node nl
   where nl = Data.Map.fromList ktn
 
 prop_Loader_lookupInstance kti inst =
-  Loader.lookupInstance il inst == Data.Map.lookup inst il
+  Loader.lookupInstance il inst ==? Data.Map.lookup inst il
   where il = Data.Map.fromList kti
 
 prop_Loader_assignIndices nodes =
