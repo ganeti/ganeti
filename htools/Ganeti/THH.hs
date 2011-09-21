@@ -32,6 +32,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.THH ( declareSADT
                   , makeJSONInstance
                   , genOpID
+                  , genOpCode
+                  , noDefault
                   ) where
 
 import Control.Monad (liftM)
@@ -224,3 +226,166 @@ genOpID name fname = do
   cnames <- mapM (liftM nameBase . constructorName) cons
   let svalues = map (Left . deCamelCase) cnames
   genToString (mkName fname) name $ zip cnames svalues
+
+
+-- | OpCode parameter (field) type
+type OpParam = (String, Q Type, Q Exp)
+
+-- | Generates the OpCode data type.
+--
+-- This takes an opcode logical definition, and builds both the
+-- datatype and the JSON serialisation out of it. We can't use a
+-- generic serialisation since we need to be compatible with Ganeti's
+-- own, so we have a few quirks to work around.
+--
+-- There are three things to be defined for each parameter:
+--
+-- * name
+--
+-- * type; if this is 'Maybe', will only be serialised if it's a
+--   'Just' value
+--
+-- * default; if missing, won't raise an exception, but will instead
+--   use the default
+--
+genOpCode :: String                -- ^ Type name to use
+          -> [(String, [OpParam])] -- ^ Constructor name and parameters
+          -> Q [Dec]
+genOpCode name cons = do
+  decl_d <- mapM (\(cname, fields) -> do
+                    -- we only need the type of the field, without Q
+                    fields' <- mapM (\(_, qt, _) ->
+                                         qt >>= \t -> return (NotStrict, t))
+                               fields
+                    return $ NormalC (mkName cname) fields')
+            cons
+  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read, ''Eq]
+
+  (savesig, savefn) <- genSaveOpCode cons
+  (loadsig, loadfn) <- genLoadOpCode cons
+  return [declD, loadsig, loadfn, savesig, savefn]
+
+-- | Checks whether a given parameter is options
+--
+-- This requires that it's a 'Maybe'.
+isOptional :: Type -> Bool
+isOptional (AppT (ConT dt) _) | dt == ''Maybe = True
+isOptional _ = False
+
+-- | Generates the \"save\" expression for a single opcode parameter.
+--
+-- There is only one special handling mode: if the parameter is of
+-- 'Maybe' type, then we only save it if it's a 'Just' value,
+-- otherwise we skip it.
+saveField :: Name    -- ^ The name of variable that contains the value
+          -> OpParam -- ^ Parameter definition
+          -> Q Exp
+saveField fvar (fname, qt, _) = do
+  t <- qt
+  let showJ = varE (mkName "showJSON")
+      fnexp = litE (stringL fname)
+      fvare = varE fvar
+  (if isOptional t
+   then [| case $fvare of
+             Just v' -> [( $fnexp, $showJ v')]
+             Nothing -> []
+         |]
+   else [| [( $fnexp, $showJ $fvare )] |])
+
+-- | Generates the \"save\" clause for an entire opcode constructor.
+--
+-- This matches the opcode with variables named the same as the
+-- constructor fields (just so that the spliced in code looks nicer),
+-- and passes those name plus the parameter definition to 'saveField'.
+saveConstructor :: String    -- ^ The constructor name
+                -> [OpParam] -- ^ The parameter definitions for this
+                             -- constructor
+                -> Q Clause  -- ^ Resulting clause
+saveConstructor sname fields = do
+  let cname = mkName sname
+  let fnames = map (\(n, _, _) -> mkName n) fields
+  let pat = conP cname (map varP fnames)
+  let felems = map (uncurry saveField) (zip fnames fields)
+      -- now build the OP_ID serialisation
+      opid = [| [( $(litE (stringL "OP_ID")),
+                   $(varE (mkName "showJSON"))
+                        $(litE . stringL . deCamelCase $ sname) )] |]
+      flist = listE (opid:felems)
+      -- and finally convert all this to a json object
+      flist' = [| $(varE (mkName "makeObj")) (concat $flist) |]
+  clause [pat] (normalB flist') []
+
+-- | Generates the main save opcode function.
+--
+-- This builds a per-constructor match clause that contains the
+-- respective constructor-serialisation code.
+genSaveOpCode :: [(String, [OpParam])] -> Q (Dec, Dec)
+genSaveOpCode opdefs = do
+  cclauses <- mapM (uncurry saveConstructor) opdefs
+  let fname = mkName "saveOpCode"
+  sigt <- [t| $(conT (mkName "OpCode")) -> JSON.JSValue |]
+  return $ (SigD fname sigt, FunD fname cclauses)
+
+-- | Generates the \"load\" field for a single parameter.
+--
+-- There is custom handling, depending on how the parameter is
+-- specified. For a 'Maybe' type parameter, we allow that it is not
+-- present (via 'Utils.maybeFromObj'). Otherwise, if there is a
+-- default value, we allow the parameter to be abset, and finally if
+-- there is no default value, we require its presence.
+loadField :: OpParam -> Q (Name, Stmt)
+loadField (fname, qt, qdefa) = do
+  let fvar = mkName fname
+  t <- qt
+  defa <- qdefa
+  -- these are used in all patterns below
+  let objvar = varE (mkName "o")
+      objfield = litE (StringL fname)
+  bexp <- if isOptional t
+          then [| $((varE (mkName "maybeFromObj"))) $objvar $objfield |]
+          else case defa of
+                 AppE (ConE dt) defval | dt == 'Just ->
+                   -- but has a default value
+                   [| $(varE (mkName "fromObjWithDefault"))
+                      $objvar $objfield $(return defval) |]
+                 ConE dt | dt == 'Nothing ->
+                     [| $(varE (mkName "fromObj")) $objvar $objfield |]
+                 s -> fail $ "Invalid default value " ++ show s ++
+                      ", expecting either 'Nothing' or a 'Just defval'"
+  return (fvar, BindS (VarP fvar) bexp)
+
+loadConstructor :: String -> [OpParam] -> Q Exp
+loadConstructor sname fields = do
+  let name = mkName sname
+  fbinds <- mapM loadField fields
+  let (fnames, fstmts) = unzip fbinds
+  let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
+      fstmts' = fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
+  return $ DoE fstmts'
+
+genLoadOpCode :: [(String, [OpParam])] -> Q (Dec, Dec)
+genLoadOpCode opdefs = do
+  let fname = mkName "loadOpCode"
+      arg1 = mkName "v"
+      objname = mkName "o"
+      opid = mkName "op_id"
+  st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
+                                 (JSON.readJSON $(varE arg1)) |]
+  st2 <- bindS (varP opid) [| $(varE (mkName "fromObj"))
+                              $(varE objname) $(litE (stringL "OP_ID")) |]
+  -- the match results (per-constructor blocks)
+  mexps <- mapM (uncurry loadConstructor) opdefs
+  fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
+  let mpats = map (\(me, c) ->
+                       let mp = LitP . StringL . deCamelCase . fst $ c
+                       in Match mp (NormalB me) []
+                  ) $ zip mexps opdefs
+      defmatch = Match WildP (NormalB fails) []
+      cst = NoBindS $ CaseE (VarE opid) $ mpats++[defmatch]
+      body = DoE [st1, st2, cst]
+  sigt <- [t| JSON.JSValue -> JSON.Result $(conT (mkName "OpCode")) |]
+  return $ (SigD fname sigt, FunD fname [Clause [VarP arg1] (NormalB body) []])
+
+-- | No default type.
+noDefault :: Q Exp
+noDefault = conE 'Nothing
