@@ -291,8 +291,8 @@ class BaseHypervisor(object):
     """
     pass
 
-  def FinalizeMigration(self, instance, info, success):
-    """Finalized an instance migration.
+  def FinalizeMigrationDst(self, instance, info, success):
+    """Finalize the instance migration on the target node.
 
     Should finalize or revert any preparation done to accept the instance.
     Since by default we do no preparation, we also don't have anything to do
@@ -316,6 +316,32 @@ class BaseHypervisor(object):
     @param target: hostname (usually ip) of the target node
     @type live: boolean
     @param live: whether to do a live or non-live migration
+
+    """
+    raise NotImplementedError
+
+  def FinalizeMigrationSource(self, instance, success, live):
+    """Finalize the instance migration on the source node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that was migrated
+    @type success: bool
+    @param success: whether the migration succeeded or not
+    @type live: bool
+    @param live: whether the user requested a live migration or not
+
+    """
+    pass
+
+  def GetMigrationStatus(self, instance):
+    """Get the migration status
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being migrated
+    @rtype: L{objects.MigrationStatus}
+    @return: the status of the current migration (one of
+             L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+             progress info that can be retrieved from the hypervisor
 
     """
     raise NotImplementedError

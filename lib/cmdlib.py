@@ -7025,6 +7025,10 @@ class TLMigrateInstance(Tasklet):
   @ivar shutdown_timeout: In case of failover timeout of the shutdown
 
   """
+
+  # Constants
+  _MIGRATION_POLL_INTERVAL = 0.5
+
   def __init__(self, lu, instance_name, cleanup=False,
                failover=False, fallback=False,
                ignore_consistency=False,
@@ -7348,18 +7352,26 @@ class TLMigrateInstance(Tasklet):
     """
     instance = self.instance
     target_node = self.target_node
+    source_node = self.source_node
     migration_info = self.migration_info
 
-    abort_result = self.rpc.call_finalize_migration(target_node,
-                                                    instance,
-                                                    migration_info,
-                                                    False)
+    abort_result = self.rpc.call_instance_finalize_migration_dst(target_node,
+                                                                 instance,
+                                                                 migration_info,
+                                                                 False)
     abort_msg = abort_result.fail_msg
     if abort_msg:
       logging.error("Aborting migration failed on target node %s: %s",
                     target_node, abort_msg)
       # Don't raise an exception here, as we stil have to try to revert the
       # disk status, even if this step failed.
+
+    abort_result = self.rpc.call_instance_finalize_migration_src(source_node,
+        instance, False, self.live)
+    abort_msg = abort_result.fail_msg
+    if abort_msg:
+      logging.error("Aborting migration failed on source node %s: %s",
+                    source_node, abort_msg)
 
   def _ExecMigration(self):
     """Migrate an instance.
@@ -7432,18 +7444,51 @@ class TLMigrateInstance(Tasklet):
       raise errors.OpExecError("Could not migrate instance %s: %s" %
                                (instance.name, msg))
 
+    self.feedback_fn("* starting memory transfer")
+    while True:
+      result = self.rpc.call_instance_get_migration_status(source_node,
+                                                           instance)
+      msg = result.fail_msg
+      ms = result.payload   # MigrationStatus instance
+      if msg or (ms.status in constants.HV_MIGRATION_FAILED_STATUSES):
+        logging.error("Instance migration failed, trying to revert"
+                      " disk status: %s", msg)
+        self.feedback_fn("Migration failed, aborting")
+        self._AbortMigration()
+        self._RevertDiskStatus()
+        raise errors.OpExecError("Could not migrate instance %s: %s" %
+                                 (instance.name, msg))
+
+      if result.payload.status != constants.HV_MIGRATION_ACTIVE:
+        self.feedback_fn("* memory transfer complete")
+        break
+
+      time.sleep(self._MIGRATION_POLL_INTERVAL)
+
+    result = self.rpc.call_instance_finalize_migration_src(source_node,
+                                                           instance,
+                                                           True,
+                                                           self.live)
+    msg = result.fail_msg
+    if msg:
+      logging.error("Instance migration succeeded, but finalization failed"
+                    " on the source node: %s", msg)
+      raise errors.OpExecError("Could not finalize instance migration: %s" %
+                               msg)
+
     instance.primary_node = target_node
+
     # distribute new instance config to the other nodes
     self.cfg.Update(instance, self.feedback_fn)
 
-    result = self.rpc.call_finalize_migration(target_node,
-                                              instance,
-                                              migration_info,
-                                              True)
+    result = self.rpc.call_instance_finalize_migration_dst(target_node,
+                                                           instance,
+                                                           migration_info,
+                                                           True)
     msg = result.fail_msg
     if msg:
-      logging.error("Instance migration succeeded, but finalization failed:"
-                    " %s", msg)
+      logging.error("Instance migration succeeded, but finalization failed"
+                    " on the target node: %s", msg)
       raise errors.OpExecError("Could not finalize instance migration: %s" %
                                msg)
 

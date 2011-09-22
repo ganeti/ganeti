@@ -1280,7 +1280,7 @@ def AcceptInstance(instance, info, target):
     _Fail("Failed to accept instance: %s", err, exc=True)
 
 
-def FinalizeMigration(instance, info, success):
+def FinalizeMigrationDst(instance, info, success):
   """Finalize any preparation to accept an instance.
 
   @type instance: L{objects.Instance}
@@ -1293,9 +1293,9 @@ def FinalizeMigration(instance, info, success):
   """
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
   try:
-    hyper.FinalizeMigration(instance, info, success)
+    hyper.FinalizeMigrationDst(instance, info, success)
   except errors.HypervisorError, err:
-    _Fail("Failed to finalize migration: %s", err, exc=True)
+    _Fail("Failed to finalize migration on the target node: %s", err, exc=True)
 
 
 def MigrateInstance(instance, target, live):
@@ -1317,6 +1317,46 @@ def MigrateInstance(instance, target, live):
     hyper.MigrateInstance(instance, target, live)
   except errors.HypervisorError, err:
     _Fail("Failed to migrate instance: %s", err, exc=True)
+
+
+def FinalizeMigrationSource(instance, success, live):
+  """Finalize the instance migration on the source node.
+
+  @type instance: L{objects.Instance}
+  @param instance: the instance definition of the migrated instance
+  @type success: bool
+  @param success: whether the migration succeeded or not
+  @type live: bool
+  @param live: whether the user requested a live migration or not
+  @raise RPCFail: If the execution fails for some reason
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+
+  try:
+    hyper.FinalizeMigrationSource(instance, success, live)
+  except Exception, err:  # pylint: disable=W0703
+    _Fail("Failed to finalize the migration on the source node: %s", err,
+          exc=True)
+
+
+def GetMigrationStatus(instance):
+  """Get the migration status
+
+  @type instance: L{objects.Instance}
+  @param instance: the instance that is being migrated
+  @rtype: L{objects.MigrationStatus}
+  @return: the status of the current migration (one of
+           L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+           progress info that can be retrieved from the hypervisor
+  @raise RPCFail: If the migration status cannot be retrieved
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    return hyper.GetMigrationStatus(instance)
+  except Exception, err:  # pylint: disable=W0703
+    _Fail("Failed to get migration status: %s", err, exc=True)
 
 
 def BlockdevCreate(disk, size, owner, on_primary, info):

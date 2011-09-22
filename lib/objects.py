@@ -1503,6 +1503,17 @@ class QueryFieldsResponse(_QueryResponseBase):
     ]
 
 
+class MigrationStatus(ConfigObject):
+  """Object holding the status of a migration.
+
+  """
+  __slots__ = [
+    "status",
+    "transferred_ram",
+    "total_ram",
+    ]
+
+
 class InstanceConsole(ConfigObject):
   """Object describing how to access the console of an instance.
 

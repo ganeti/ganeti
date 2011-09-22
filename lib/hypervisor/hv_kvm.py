@@ -1574,8 +1574,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     incoming_address = (target, instance.hvparams[constants.HV_MIGRATION_PORT])
     self._ExecuteKVMRuntime(instance, kvm_runtime, incoming=incoming_address)
 
-  def FinalizeMigration(self, instance, info, success):
-    """Finalize an instance migration.
+  def FinalizeMigrationDst(self, instance, info, success):
+    """Finalize the instance migration on the target node.
 
     Stop the incoming mode KVM.
 
@@ -1622,7 +1622,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     instance_name = instance.name
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
-    pidfile, pid, alive = self._InstancePidAlive(instance_name)
+    _, _, alive = self._InstancePidAlive(instance_name)
     if not alive:
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
@@ -1640,42 +1640,57 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
+  def FinalizeMigrationSource(self, instance, success, live):
+    """Finalize the instance migration on the source node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that was migrated
+    @type success: bool
+    @param success: whether the migration succeeded or not
+    @type live: bool
+    @param live: whether the user requested a live migration or not
+
+    """
+    if success:
+      pidfile, pid, _ = self._InstancePidAlive(instance.name)
+      utils.KillProcess(pid)
+      self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
+    elif live:
+      self._CallMonitorCommand(instance.name, self._CONT_CMD)
+
+  def GetMigrationStatus(self, instance):
+    """Get the migration status
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being migrated
+    @rtype: L{objects.MigrationStatus}
+    @return: the status of the current migration (one of
+             L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+             progress info that can be retrieved from the hypervisor
+
+    """
     info_command = "info migrate"
-    done = False
-    broken_answers = 0
-    while not done:
-      result = self._CallMonitorCommand(instance_name, info_command)
+    for _ in range(self._MIGRATION_INFO_MAX_BAD_ANSWERS):
+      result = self._CallMonitorCommand(instance.name, info_command)
       match = self._MIGRATION_STATUS_RE.search(result.stdout)
       if not match:
-        broken_answers += 1
         if not result.stdout:
           logging.info("KVM: empty 'info migrate' result")
         else:
           logging.warning("KVM: unknown 'info migrate' result: %s",
                           result.stdout)
-        time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
       else:
         status = match.group(1)
-        if status == "completed":
-          done = True
-        elif status == "active":
-          # reset the broken answers count
-          broken_answers = 0
-          time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
-        elif status == "failed" or status == "cancelled":
-          if not live:
-            self._CallMonitorCommand(instance_name, self._CONT_CMD)
-          raise errors.HypervisorError("Migration %s at the kvm level" %
-                                       status)
-        else:
-          logging.warning("KVM: unknown migration status '%s'", status)
-          broken_answers += 1
-          time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
-      if broken_answers >= self._MIGRATION_INFO_MAX_BAD_ANSWERS:
-        raise errors.HypervisorError("Too many 'info migrate' broken answers")
+        if status in constants.HV_KVM_MIGRATION_VALID_STATUSES:
+          migration_status = objects.MigrationStatus(status=status)
+          return migration_status
 
-    utils.KillProcess(pid)
-    self._RemoveInstanceRuntimeFiles(pidfile, instance_name)
+        logging.warning("KVM: unknown migration status '%s'", status)
+
+      time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
+
+    return objects.MigrationStatus(status=constants.HV_MIGRATION_FAILED,
+                                  info="Too many 'info migrate' broken answers")
 
   def GetNodeInfo(self):
     """Return information about the node.

@@ -579,13 +579,13 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.AcceptInstance(instance, info, target)
 
   @staticmethod
-  def perspective_finalize_migration(params):
-    """Finalize the instance migration.
+  def perspective_instance_finalize_migration_dst(params):
+    """Finalize the instance migration on the destination node.
 
     """
     instance, info, success = params
     instance = objects.Instance.FromDict(instance)
-    return backend.FinalizeMigration(instance, info, success)
+    return backend.FinalizeMigrationDst(instance, info, success)
 
   @staticmethod
   def perspective_instance_migrate(params):
@@ -595,6 +595,23 @@ class NodeHttpServer(http.server.HttpServer):
     instance, target, live = params
     instance = objects.Instance.FromDict(instance)
     return backend.MigrateInstance(instance, target, live)
+
+  @staticmethod
+  def perspective_instance_finalize_migration_src(params):
+    """Finalize the instance migration on the source node.
+
+    """
+    instance, success, live = params
+    instance = objects.Instance.FromDict(instance)
+    return backend.FinalizeMigrationSource(instance, success, live)
+
+  @staticmethod
+  def perspective_instance_get_migration_status(params):
+    """Reports migration status.
+
+    """
+    instance = objects.Instance.FromDict(params[0])
+    return backend.GetMigrationStatus(instance).ToDict()
 
   @staticmethod
   def perspective_instance_reboot(params):

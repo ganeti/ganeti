@@ -703,7 +703,7 @@ class RpcRunner(object):
                                 [self._InstDict(instance), info, target])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_finalize_migration(self, node, instance, info, success):
+  def call_instance_finalize_migration_dst(self, node, instance, info, success):
     """Finalize any target-node migration specific operation.
 
     This is called both in case of a successful migration and in case of error
@@ -721,7 +721,7 @@ class RpcRunner(object):
     @param success: whether the migration was a success or a failure
 
     """
-    return self._SingleNodeCall(node, "finalize_migration",
+    return self._SingleNodeCall(node, "instance_finalize_migration_dst",
                                 [self._InstDict(instance), info, success])
 
   @_RpcTimeout(_TMO_SLOW)
@@ -743,6 +743,43 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "instance_migrate",
                                 [self._InstDict(instance), target, live])
+
+  @_RpcTimeout(_TMO_SLOW)
+  def call_instance_finalize_migration_src(self, node, instance, success, live):
+    """Finalize the instance migration on the source node.
+
+    This is a single-node call.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that was migrated
+    @type success: bool
+    @param success: whether the migration succeeded or not
+    @type live: bool
+    @param live: whether the user requested a live migration or not
+
+    """
+    return self._SingleNodeCall(node, "instance_finalize_migration_src",
+                                [self._InstDict(instance), success, live])
+
+  @_RpcTimeout(_TMO_SLOW)
+  def call_instance_get_migration_status(self, node, instance):
+    """Report migration status.
+
+    This is a single-node call that must be executed on the source node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being migrated
+    @rtype: L{objects.MigrationStatus}
+    @return: the status of the current migration (one of
+             L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+             progress info that can be retrieved from the hypervisor
+
+    """
+    result = self._SingleNodeCall(node, "instance_get_migration_status",
+                                  [self._InstDict(instance)])
+    if not result.fail_msg and result.payload is not None:
+      result.payload = objects.MigrationStatus.FromDict(result.payload)
+    return result
 
   @_RpcTimeout(_TMO_NORMAL)
   def call_instance_reboot(self, node, inst, reboot_type, shutdown_timeout):
