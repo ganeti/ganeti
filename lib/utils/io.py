@@ -796,3 +796,40 @@ def NewUUID():
 
   """
   return ReadFile(_RANDOM_UUID_FILE, size=128).rstrip("\n")
+
+
+class TemporaryFileManager(object):
+  """Stores the list of files to be deleted and removes them on demand.
+
+  """
+
+  def __init__(self):
+    self._files = []
+
+  def __del__(self):
+    self.Cleanup()
+
+  def Add(self, filename):
+    """Add file to list of files to be deleted.
+
+    @type filename: string
+    @param filename: path to filename to be added
+
+    """
+    self._files.append(filename)
+
+  def Remove(self, filename):
+    """Remove file from list of files to be deleted.
+
+    @type filename: string
+    @param filename: path to filename to be deleted
+
+    """
+    self._files.remove(filename)
+
+  def Cleanup(self):
+    """Delete all files marked for deletion
+
+    """
+    while self._files:
+      RemoveFile(self._files.pop())
