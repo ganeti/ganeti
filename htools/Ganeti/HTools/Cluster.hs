@@ -74,12 +74,10 @@ module Ganeti.HTools.Cluster
     ) where
 
 import qualified Data.IntSet as IntSet
-import Data.Function (on)
 import Data.List
 import Data.Maybe (fromJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)
-import Control.Monad
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -116,10 +114,12 @@ type AllocResult = (FailStats, Node.List, Instance.List,
 
 -- | A type denoting the valid allocation mode/pairs.
 --
--- For a one-node allocation, this will be a @Left ['Node.Node']@,
--- whereas for a two-node allocation, this will be a @Right
--- [('Node.Node', 'Node.Node')]@.
-type AllocNodes = Either [Ndx] [(Ndx, Ndx)]
+-- For a one-node allocation, this will be a @Left ['Ndx']@, whereas
+-- for a two-node allocation, this will be a @Right [('Ndx',
+-- ['Ndx'])]@. In the latter case, the list is basically an
+-- association list, grouped by primary node and holding the potential
+-- secondary nodes in the sub-list.
+type AllocNodes = Either [Ndx] [(Ndx, [Ndx])]
 
 -- | The empty solution we start with when computing allocations.
 emptyAllocSolution :: AllocSolution
@@ -682,12 +682,14 @@ genAllocNodes gl nl count drop_unalloc =
                                  flip Container.find gl . Node.group)
                     else id
         all_nodes = filter_fn $ getOnline nl
-        all_pairs = liftM2 (,) all_nodes all_nodes
-        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y &&
-                                      Node.group x == Node.group y) all_pairs
+        all_pairs = [(Node.idx p,
+                      [Node.idx s | s <- all_nodes,
+                                         Node.idx p /= Node.idx s,
+                                         Node.group p == Node.group s]) |
+                     p <- all_nodes]
     in case count of
          1 -> Ok (Left (map Node.idx all_nodes))
-         2 -> Ok (Right (map (\(p, s) -> (Node.idx p, Node.idx s)) ok_pairs))
+         2 -> Ok (Right (filter (not . null . snd) all_pairs))
          _ -> Bad "Unsupported number of nodes, only one or two  supported"
 
 -- | Try to allocate an instance on the cluster.
@@ -698,11 +700,11 @@ tryAlloc :: (Monad m) =>
          -> AllocNodes        -- ^ The allocation targets
          -> m AllocSolution   -- ^ Possible solution list
 tryAlloc nl _ inst (Right ok_pairs) =
-    let pgroups = groupBy ((==) `on` fst) ok_pairs
-        psols = parMap rwhnf (foldl' (\cstate (p, s) ->
-                                      concatAllocs cstate $
-                                      allocateOnPair nl inst p s)
-                              emptyAllocSolution) pgroups
+    let psols = parMap rwhnf (\(p, ss) ->
+                                  foldl' (\cstate ->
+                                          concatAllocs cstate .
+                                          allocateOnPair nl inst p)
+                                  emptyAllocSolution ss) ok_pairs
         sols = foldl' sumAllocs emptyAllocSolution psols
     in if null ok_pairs -- means we have just one node
        then fail "Not enough online nodes"
