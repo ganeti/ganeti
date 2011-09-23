@@ -29,7 +29,13 @@ backend (currently json).
 # C0103: Invalid name, since pylint doesn't see that Dump points to a
 # function and not a constant
 
-import simplejson
+try:
+  import json
+except ImportError:
+  # The "json" module was only added in Python 2.6. Earlier versions must use
+  # the separate "simplejson" module.
+  import simplejson as json
+
 import re
 
 from ganeti import errors
@@ -41,7 +47,7 @@ _JSON_INDENT = 2
 _RE_EOLSP = re.compile("[ \t]+$", re.MULTILINE)
 
 
-def _GetJsonDumpers(_encoder_class=simplejson.JSONEncoder):
+def _GetJsonDumpers(_encoder_class=json.JSONEncoder):
   """Returns two JSON functions to serialize data.
 
   @rtype: (callable, callable)
@@ -93,7 +99,7 @@ def LoadJson(txt):
   @return: the original data
 
   """
-  return simplejson.loads(txt)
+  return json.loads(txt)
 
 
 def DumpSignedJson(data, key, salt=None, key_selector=None):
