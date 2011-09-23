@@ -65,6 +65,7 @@ options =
     , oIVcpus
     , oMachineReadable
     , oMaxCpu
+    , oMaxSolLength
     , oMinDisk
     , oTieredSpec
     , oSaveCluster
@@ -427,6 +428,9 @@ main = do
 
 
   let reqinst = iofspec ispec
+      alloclimit = if optMaxLength opts == -1
+                   then Nothing
+                   else Just (optMaxLength opts)
 
   allocnodes <- exitifbad $ Cluster.genAllocNodes gl nl req_nodes True
 
@@ -438,7 +442,7 @@ main = do
        (treason, trl_nl, trl_il, trl_ixes, _) <-
            if stop_allocation
            then return result_noalloc
-           else exitifbad (Cluster.tieredAlloc nl il Nothing (iofspec tspec)
+           else exitifbad (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
                                   allocnodes [] [])
        let spec_map' = tieredSpecMap trl_ixes
            treason' = sortReasons treason
@@ -461,7 +465,7 @@ main = do
   (ereason, fin_nl, fin_il, ixes, _) <-
       if stop_allocation
       then return result_noalloc
-      else exitifbad (Cluster.iterateAlloc nl il Nothing
+      else exitifbad (Cluster.iterateAlloc nl il alloclimit
                       reqinst allocnodes [] [])
 
   let allocs = length ixes

@@ -231,6 +231,11 @@ The options that can be passed to the program are as follows:
   number. For example, specifying *disk-ratio* as **0.25** means that
   at least one quarter of disk space should be left free on nodes.
 
+-l *rounds*, --max-length=*rounds*
+  Restrict the number of instance allocations to this length. This is
+  not very useful in practice, but can be used for testing hspace
+  itself, or to limit the runtime for very big clusters.
+
 -p, --print-nodes
   Prints the before and after node status, in a format designed to allow
   the user to understand the node's most important parameters. See the

@@ -298,8 +298,9 @@ oMaxCpu = Option "" ["max-cpu"]
 oMaxSolLength :: OptType
 oMaxSolLength = Option "l" ["max-length"]
                 (ReqArg (\ i opts -> Ok opts { optMaxLength = read i }) "N")
-                "cap the solution at this many moves (useful for very\
-                \ unbalanced clusters)"
+                "cap the solution at this many balancing or allocation \
+                \ rounds (useful for very unbalanced clusters or empty \
+                \ clusters)"
 
 oMinDisk :: OptType
 oMinDisk = Option "" ["min-disk"]
