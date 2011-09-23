@@ -699,6 +699,7 @@ tryAlloc :: (Monad m) =>
          -> Instance.Instance -- ^ The instance to allocate
          -> AllocNodes        -- ^ The allocation targets
          -> m AllocSolution   -- ^ Possible solution list
+tryAlloc _  _ _    (Right []) = fail "Not enough online nodes"
 tryAlloc nl _ inst (Right ok_pairs) =
     let psols = parMap rwhnf (\(p, ss) ->
                                   foldl' (\cstate ->
@@ -706,17 +707,14 @@ tryAlloc nl _ inst (Right ok_pairs) =
                                           allocateOnPair nl inst p)
                                   emptyAllocSolution ss) ok_pairs
         sols = foldl' sumAllocs emptyAllocSolution psols
-    in if null ok_pairs -- means we have just one node
-       then fail "Not enough online nodes"
-       else return $ annotateSolution sols
+    in return $ annotateSolution sols
 
+tryAlloc _  _ _    (Left []) = fail "No online nodes"
 tryAlloc nl _ inst (Left all_nodes) =
     let sols = foldl' (\cstate ->
                            concatAllocs cstate . allocateOnSingle nl inst
                       ) emptyAllocSolution all_nodes
-    in if null all_nodes
-       then fail "No online nodes"
-       else return $ annotateSolution sols
+    in return $ annotateSolution sols
 
 -- | Given a group/result, describe it as a nice (list of) messages.
 solutionDescription :: Group.List -> (Gdx, Result AllocSolution) -> [String]
