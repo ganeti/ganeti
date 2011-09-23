@@ -413,3 +413,16 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     raise HypervisorError("Migration is not supported by the LXC hypervisor")
+
+  def GetMigrationStatus(self, instance):
+    """Get the migration status
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being migrated
+    @rtype: L{objects.MigrationStatus}
+    @return: the status of the current migration (one of
+             L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+             progress info that can be retrieved from the hypervisor
+
+    """
+    raise HypervisorError("Migration is not supported by the LXC hypervisor")

@@ -259,15 +259,17 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     logging.debug("Fake hypervisor migrating %s to %s (live=%s)",
                   instance, target, live)
 
-    self._MarkDown(instance.name)
-
-  def FinalizeMigration(self, instance, info, success):
-    """Finalize an instance migration.
+  def FinalizeMigrationDst(self, instance, info, success):
+    """Finalize the instance migration on the target node.
 
     For the fake hv, this just marks the instance up.
 
     @type instance: L{objects.Instance}
     @param instance: instance whose migration is being finalized
+    @type info: string/data (opaque)
+    @param info: migration information, from the source node
+    @type success: boolean
+    @param success: whether the migration was a success or a failure
 
     """
     if success:
@@ -275,3 +277,44 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     else:
       # ensure it's down
       self._MarkDown(instance.name)
+
+  def PostMigrationCleanup(self, instance):
+    """Clean-up after a migration.
+
+    To be executed on the source node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that was migrated
+
+    """
+    pass
+
+  def FinalizeMigrationSource(self, instance, success, live):
+    """Finalize the instance migration on the source node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that was migrated
+    @type success: bool
+    @param success: whether the migration succeeded or not
+    @type live: bool
+    @param live: whether the user requested a live migration or not
+
+    """
+    # pylint: disable=W0613
+    if success:
+      self._MarkDown(instance.name)
+
+  def GetMigrationStatus(self, instance):
+    """Get the migration status
+
+    The fake hypervisor migration always succeeds.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being migrated
+    @rtype: L{objects.MigrationStatus}
+    @return: the status of the current migration (one of
+             L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+             progress info that can be retrieved from the hypervisor
+
+    """
+    return objects.MigrationStatus(status=constants.HV_MIGRATION_COMPLETED)

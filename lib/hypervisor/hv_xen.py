@@ -415,7 +415,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     pass
 
-  def FinalizeMigration(self, instance, info, success):
+  def FinalizeMigrationDst(self, instance, info, success):
     """Finalize an instance migration.
 
     After a successful migration we write the xen config file.
@@ -463,11 +463,42 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if result.failed:
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
                                    (instance.name, result.output))
-    # remove old xen file after migration succeeded
-    try:
-      self._RemoveConfigFile(instance.name)
-    except EnvironmentError:
-      logging.exception("Failure while removing instance config file")
+
+  def FinalizeMigrationSource(self, instance, success, live):
+    """Finalize the instance migration on the source node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that was migrated
+    @type success: bool
+    @param success: whether the migration succeeded or not
+    @type live: bool
+    @param live: whether the user requested a live migration or not
+
+    """
+    # pylint: disable=W0613
+    if success:
+      # remove old xen file after migration succeeded
+      try:
+        self._RemoveConfigFile(instance.name)
+      except EnvironmentError:
+        logging.exception("Failure while removing instance config file")
+
+  def GetMigrationStatus(self, instance):
+    """Get the migration status
+
+    As MigrateInstance for Xen is still blocking, if this method is called it
+    means that MigrateInstance has completed successfully. So we can safely
+    assume that the migration was successful and notify this fact to the client.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being migrated
+    @rtype: L{objects.MigrationStatus}
+    @return: the status of the current migration (one of
+             L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+             progress info that can be retrieved from the hypervisor
+
+    """
+    return objects.MigrationStatus(status=constants.HV_MIGRATION_COMPLETED)
 
   @classmethod
   def PowercycleNode(cls):

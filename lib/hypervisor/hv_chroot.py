@@ -291,3 +291,16 @@ class ChrootManager(hv_base.BaseHypervisor):
 
     """
     raise HypervisorError("Migration not supported by the chroot hypervisor")
+
+  def GetMigrationStatus(self, instance):
+    """Get the migration status
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being migrated
+    @rtype: L{objects.MigrationStatus}
+    @return: the status of the current migration (one of
+             L{constants.HV_MIGRATION_VALID_STATUSES}), plus any additional
+             progress info that can be retrieved from the hypervisor
+
+    """
+    raise HypervisorError("Migration not supported by the chroot hypervisor")
