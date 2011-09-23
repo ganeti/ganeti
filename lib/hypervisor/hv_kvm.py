@@ -476,6 +476,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
+  _MIGRATION_PROGRESS_RE = re.compile(
+      "\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n"
+      "\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
+      "\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
+
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
 
@@ -1683,6 +1688,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         status = match.group(1)
         if status in constants.HV_KVM_MIGRATION_VALID_STATUSES:
           migration_status = objects.MigrationStatus(status=status)
+          match = self._MIGRATION_PROGRESS_RE.search(result.stdout)
+          if match:
+            migration_status.transferred_ram = match.group("transferred")
+            migration_status.total_ram = match.group("total")
+
           return migration_status
 
         logging.warning("KVM: unknown migration status '%s'", status)

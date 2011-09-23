@@ -7027,7 +7027,8 @@ class TLMigrateInstance(Tasklet):
   """
 
   # Constants
-  _MIGRATION_POLL_INTERVAL = 0.5
+  _MIGRATION_POLL_INTERVAL = 1      # seconds
+  _MIGRATION_FEEDBACK_INTERVAL = 10 # seconds
 
   def __init__(self, lu, instance_name, cleanup=False,
                failover=False, fallback=False,
@@ -7445,6 +7446,7 @@ class TLMigrateInstance(Tasklet):
                                (instance.name, msg))
 
     self.feedback_fn("* starting memory transfer")
+    last_feedback = time.time()
     while True:
       result = self.rpc.call_instance_get_migration_status(source_node,
                                                            instance)
@@ -7462,6 +7464,13 @@ class TLMigrateInstance(Tasklet):
       if result.payload.status != constants.HV_MIGRATION_ACTIVE:
         self.feedback_fn("* memory transfer complete")
         break
+
+      if (utils.TimeoutExpired(last_feedback,
+                               self._MIGRATION_FEEDBACK_INTERVAL) and
+          ms.transferred_ram is not None):
+        mem_progress = 100 * float(ms.transferred_ram) / float(ms.total_ram)
+        self.feedback_fn("* memory transfer progress: %.2f %%" % mem_progress)
+        last_feedback = time.time()
 
       time.sleep(self._MIGRATION_POLL_INTERVAL)
 
