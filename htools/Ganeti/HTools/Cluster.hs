@@ -600,21 +600,25 @@ collapseFailures flst =
     map (\k -> (k, foldl' (\a e -> if e == k then a + 1 else a) 0 flst))
             [minBound..maxBound]
 
+-- | Compares two Maybe AllocElement and chooses the besst score.
+bestAllocElement :: Maybe Node.AllocElement
+                 -> Maybe Node.AllocElement
+                 -> Maybe Node.AllocElement
+bestAllocElement a Nothing = a
+bestAllocElement Nothing b = b
+bestAllocElement a@(Just (_, _, _, ascore)) b@(Just (_, _, _, bscore)) =
+    if ascore < bscore then a else b
+
 -- | Update current Allocation solution and failure stats with new
 -- elements.
 concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
 concatAllocs as (OpFail reason) = as { asFailures = reason : asFailures as }
 
-concatAllocs as (OpGood ns@(_, _, _, nscore)) =
+concatAllocs as (OpGood ns) =
     let -- Choose the old or new solution, based on the cluster score
         cntok = asAllocs as
         osols = asSolution as
-        nsols = case osols of
-                  Nothing -> Just ns
-                  Just (_, _, _, oscore) ->
-                      if oscore < nscore
-                      then osols
-                      else Just ns
+        nsols = bestAllocElement osols (Just ns)
         nsuc = cntok + 1
     -- Note: we force evaluation of nsols here in order to keep the
     -- memory profile low - we know that we will need nsols for sure
