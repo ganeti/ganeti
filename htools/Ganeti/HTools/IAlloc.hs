@@ -220,13 +220,12 @@ describeSolution = intercalate ", " . Cluster.asLog
 formatAllocate :: Instance.List -> Cluster.AllocSolution -> Result IAllocResult
 formatAllocate il as = do
   let info = describeSolution as
-  case Cluster.asSolutions as of
-    [] -> fail info
-    (nl, inst, nodes, _):[] ->
+  case Cluster.asSolution as of
+    Nothing -> fail info
+    Just (nl, inst, nodes, _) ->
         do
           let il' = Container.add (Instance.idx inst) inst il
           return (info, showJSON $ map Node.name nodes, nl, il')
-    _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Convert a node-evacuation/change group result.
 formatNodeEvac :: Group.List

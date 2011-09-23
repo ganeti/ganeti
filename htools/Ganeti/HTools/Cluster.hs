@@ -75,7 +75,7 @@ module Ganeti.HTools.Cluster
 
 import qualified Data.IntSet as IntSet
 import Data.List
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)
 import Control.Monad
@@ -93,12 +93,10 @@ import qualified Ganeti.OpCodes as OpCodes
 
 -- | Allocation\/relocation solution.
 data AllocSolution = AllocSolution
-  { asFailures  :: [FailMode]          -- ^ Failure counts
-  , asAllocs    :: Int                 -- ^ Good allocation count
-  , asSolutions :: [Node.AllocElement] -- ^ The actual result, length
-                                       -- of the list depends on the
-                                       -- allocation/relocation mode
-  , asLog       :: [String]            -- ^ A list of informational messages
+  { asFailures :: [FailMode]              -- ^ Failure counts
+  , asAllocs   :: Int                     -- ^ Good allocation count
+  , asSolution :: Maybe Node.AllocElement -- ^ The actual allocation result
+  , asLog      :: [String]                -- ^ Informational messages
   }
 
 -- | Node evacuation/group change iallocator result type. This result
@@ -125,7 +123,7 @@ type AllocNodes = Either [Ndx] [(Ndx, Ndx)]
 -- | The empty solution we start with when computing allocations.
 emptyAllocSolution :: AllocSolution
 emptyAllocSolution = AllocSolution { asFailures = [], asAllocs = 0
-                                   , asSolutions = [], asLog = [] }
+                                   , asSolution = Nothing, asLog = [] }
 
 -- | The empty evac solution.
 emptyEvacSolution :: EvacSolution
@@ -610,42 +608,36 @@ concatAllocs as (OpFail reason) = as { asFailures = reason : asFailures as }
 concatAllocs as (OpGood ns@(_, _, _, nscore)) =
     let -- Choose the old or new solution, based on the cluster score
         cntok = asAllocs as
-        osols = asSolutions as
+        osols = asSolution as
         nsols = case osols of
-                  [] -> [ns]
-                  (_, _, _, oscore):[] ->
+                  Nothing -> Just ns
+                  Just (_, _, _, oscore) ->
                       if oscore < nscore
                       then osols
-                      else [ns]
-                  -- FIXME: here we simply concat to lists with more
-                  -- than one element; we should instead abort, since
-                  -- this is not a valid usage of this function
-                  xs -> ns:xs
+                      else Just ns
         nsuc = cntok + 1
     -- Note: we force evaluation of nsols here in order to keep the
     -- memory profile low - we know that we will need nsols for sure
     -- in the next cycle, so we force evaluation of nsols, since the
     -- foldl' in the caller will only evaluate the tuple, but not the
     -- elements of the tuple
-    in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolutions = nsols }
+    in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolution = nsols }
 
 -- | Given a solution, generates a reasonable description for it.
 describeSolution :: AllocSolution -> String
 describeSolution as =
   let fcnt = asFailures as
-      sols = asSolutions as
+      sols = asSolution as
       freasons =
         intercalate ", " . map (\(a, b) -> printf "%s: %d" (show a) b) .
         filter ((> 0) . snd) . collapseFailures $ fcnt
-  in if null sols
-     then "No valid allocation solutions, failure reasons: " ++
-          (if null fcnt
-           then "unknown reasons"
-           else freasons)
-     else let (_, _, nodes, cv) = head sols
-          in printf ("score: %.8f, successes %d, failures %d (%s)" ++
-                     " for node(s) %s") cv (asAllocs as) (length fcnt) freasons
-             (intercalate "/" . map Node.name $ nodes)
+  in case sols of
+     Nothing -> "No valid allocation solutions, failure reasons: " ++
+                (if null fcnt then "unknown reasons" else freasons)
+     Just (_, _, nodes, cv) ->
+         printf ("score: %.8f, successes %d, failures %d (%s)" ++
+                 " for node(s) %s") cv (asAllocs as) (length fcnt) freasons
+               (intercalate "/" . map Node.name $ nodes)
 
 -- | Annotates a solution with the appropriate string.
 annotateSolution :: AllocSolution -> AllocSolution
@@ -725,7 +717,7 @@ filterMGResults gl = foldl' fn []
           fn accu (gdx, rasol) =
               case rasol of
                 Bad _ -> accu
-                Ok sol | null (asSolutions sol) -> accu
+                Ok sol | isNothing (asSolution sol) -> accu
                        | unallocable gdx -> accu
                        | otherwise -> (gdx, sol):accu
 
@@ -736,7 +728,7 @@ sortMGResults :: Group.List
 sortMGResults gl sols =
     let extractScore (_, _, _, x) = x
         solScore (gdx, sol) = (Group.allocPolicy (Container.find gdx gl),
-                               (extractScore . head . asSolutions) sol)
+                               (extractScore . fromJust . asSolution) sol)
     in sortBy (comparing solScore) sols
 
 -- | Finds the best group for an instance on a multi-group cluster.
@@ -1150,18 +1142,16 @@ iterateAlloc nl il limit newinst allocnodes ixes cstats =
           newlimit = fmap (flip (-) 1) limit
       in case tryAlloc nl il newi2 allocnodes of
            Bad s -> Bad s
-           Ok (AllocSolution { asFailures = errs, asSolutions = sols3 }) ->
+           Ok (AllocSolution { asFailures = errs, asSolution = sols3 }) ->
                let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
                case sols3 of
-                 [] -> newsol
-                 (xnl, xi, _, _):[] ->
+                 Nothing -> newsol
+                 Just (xnl, xi, _, _) ->
                      if limit == Just 0
                      then newsol
                      else iterateAlloc xnl (Container.add newidx xi il)
                           newlimit newinst allocnodes (xi:ixes)
                           (totalResources xnl:cstats)
-                 _ -> Bad "Internal error: multiple solutions for single\
-                          \ allocation"
 
 -- | The core of the tiered allocation mode.
 tieredAlloc :: Node.List

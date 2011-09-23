@@ -860,13 +860,12 @@ prop_ClusterAlloc_sane node inst =
        Cluster.tryAlloc nl il inst' of
          Types.Bad _ -> False
          Types.Ok as ->
-             case Cluster.asSolutions as of
-               [] -> False
-               (xnl, xi, _, cv):[] ->
+             case Cluster.asSolution as of
+               Nothing -> False
+               Just (xnl, xi, _, cv) ->
                    let il' = Container.add (Instance.idx xi) xi il
                        tbl = Cluster.Table xnl il' cv []
                    in not (canBalance tbl True True False)
-               _ -> False
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
@@ -903,16 +902,15 @@ prop_ClusterAllocEvac node inst =
        Cluster.tryAlloc nl il inst' of
          Types.Bad _ -> False
          Types.Ok as ->
-             case Cluster.asSolutions as of
-               [] -> False
-               (xnl, xi, _, _):[] ->
+             case Cluster.asSolution as of
+               Nothing -> False
+               Just (xnl, xi, _, _) ->
                    let sdx = Instance.sNode xi
                        il' = Container.add (Instance.idx xi) xi il
                    in case IAlloc.processRelocate defGroupList xnl il'
                           (Instance.idx xi) 1 [sdx] of
                         Types.Ok _ -> True
                         _ -> False
-               _ -> False
 
 -- | Check that allocating multiple instances on a cluster, then
 -- adding an empty node, results in a valid rebalance.
