@@ -74,6 +74,7 @@ module Ganeti.HTools.Cluster
     ) where
 
 import qualified Data.IntSet as IntSet
+import Data.Function (on)
 import Data.List
 import Data.Maybe (fromJust, isNothing)
 import Data.Ord (comparing)
@@ -627,6 +628,19 @@ concatAllocs as (OpGood ns) =
     -- elements of the tuple
     in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolution = nsols }
 
+-- | Sums two 'AllocSolution' structures.
+sumAllocs :: AllocSolution -> AllocSolution -> AllocSolution
+sumAllocs (AllocSolution aFails aAllocs aSols aLog)
+          (AllocSolution bFails bAllocs bSols bLog) =
+    -- note: we add b first, since usually it will be smaller; when
+    -- fold'ing, a will grow and grow whereas b is the per-group
+    -- result, hence smaller
+    let nFails  = bFails ++ aFails
+        nAllocs = aAllocs + bAllocs
+        nSols   = bestAllocElement aSols bSols
+        nLog    = bLog ++ aLog
+    in AllocSolution nFails nAllocs nSols nLog
+
 -- | Given a solution, generates a reasonable description for it.
 describeSolution :: AllocSolution -> String
 describeSolution as =
@@ -684,10 +698,12 @@ tryAlloc :: (Monad m) =>
          -> AllocNodes        -- ^ The allocation targets
          -> m AllocSolution   -- ^ Possible solution list
 tryAlloc nl _ inst (Right ok_pairs) =
-    let sols = foldl' (\cstate (p, s) ->
-                           concatAllocs cstate $ allocateOnPair nl inst p s
-                      ) emptyAllocSolution ok_pairs
-
+    let pgroups = groupBy ((==) `on` fst) ok_pairs
+        psols = parMap rwhnf (foldl' (\cstate (p, s) ->
+                                      concatAllocs cstate $
+                                      allocateOnPair nl inst p s)
+                              emptyAllocSolution) pgroups
+        sols = foldl' sumAllocs emptyAllocSolution psols
     in if null ok_pairs -- means we have just one node
        then fail "Not enough online nodes"
        else return $ annotateSolution sols
