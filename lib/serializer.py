@@ -29,8 +29,14 @@ backend (currently json).
 # C0103: Invalid name, since pylint doesn't see that Dump points to a
 # function and not a constant
 
-import simplejson
 import re
+
+# Python 2.6 and above contain a JSON module based on simplejson. Unfortunately
+# the standard library version is significantly slower than the external
+# module. While it should be better from at least Python 3.2 on (see Python
+# issue 7451), for now Ganeti needs to work well with older Python versions
+# too.
+import simplejson
 
 from ganeti import errors
 from ganeti import utils
