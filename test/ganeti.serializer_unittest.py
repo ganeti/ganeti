@@ -23,11 +23,9 @@
 
 
 import unittest
-import warnings
 
 from ganeti import serializer
 from ganeti import errors
-from ganeti import compat
 
 import testutils
 
@@ -107,25 +105,6 @@ class TestSerializer(testutils.GanetiTestCase):
     tdata = { "msg": "Foo", }
     self.assertRaises(errors.SignatureError, load_fn,
                       serializer.DumpJson(tdata), "mykey")
-
-
-class TestInvalidDictionaryKey(unittest.TestCase):
-  def _Test(self, data):
-    if serializer._OLD_SIMPLEJSON:
-      # Using old "simplejson", can't really test
-      warnings.warn("This test requires Python 2.6 or above to function"
-                    " correctly")
-      self.assertTrue(serializer.DumpJson(data))
-    else:
-      self.assertRaises(ValueError, serializer.DumpJson, data)
-
-  def test(self):
-    for value in [123, 1.1, -1, -9492.1123, -3234e-4]:
-      self._Test({value: ""})
-
-  def testAllowed(self):
-    for value in ["", "Hello World", None, True, False]:
-      self.assertTrue(serializer.DumpJson({value: ""}))
 
 
 if __name__ == '__main__':

@@ -29,18 +29,8 @@ backend (currently json).
 # C0103: Invalid name, since pylint doesn't see that Dump points to a
 # function and not a constant
 
-_OLD_SIMPLEJSON = False
-
-try:
-  import json
-except ImportError:
-  # The "json" module was only added in Python 2.6. Earlier versions must use
-  # the separate "simplejson" module.
-  import simplejson as json
-  _OLD_SIMPLEJSON = True
-
+import simplejson
 import re
-import logging
 
 from ganeti import errors
 from ganeti import utils
@@ -51,23 +41,7 @@ _JSON_INDENT = 2
 _RE_EOLSP = re.compile("[ \t]+$", re.MULTILINE)
 
 
-class _CustomJsonEncoder(json.JSONEncoder):
-  if __debug__ and not _OLD_SIMPLEJSON:
-    try:
-      _orig_fn = json.JSONEncoder._iterencode_dict
-    except AttributeError:
-      raise Exception("Can't override JSONEncoder's '_iterencode_dict'")
-    else:
-      def _iterencode_dict(self, data, *args, **kwargs):
-        for key in data.keys():
-          if not (key is None or isinstance(key, (basestring, bool))):
-            raise ValueError("Key '%s' is of disallowed type '%s'" %
-                             (key, type(key)))
-
-        return self._orig_fn(data, *args, **kwargs)
-
-
-def _GetJsonDumpers(_encoder_class=_CustomJsonEncoder):
+def _GetJsonDumpers(_encoder_class=simplejson.JSONEncoder):
   """Returns two JSON functions to serialize data.
 
   @rtype: (callable, callable)
@@ -119,7 +93,7 @@ def LoadJson(txt):
   @return: the original data
 
   """
-  return json.loads(txt)
+  return simplejson.loads(txt)
 
 
 def DumpSignedJson(data, key, salt=None, key_selector=None):
