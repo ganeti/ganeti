@@ -41,6 +41,8 @@ Before installing, please verify that you have the following programs:
   setup; optional otherwise but manual setup of the nodes required
 - `affinity Python module <http://pypi.python.org/pypi/affinity/0.1.0>`_,
   optional python package for supporting CPU pinning under KVM
+- `ElementTree Python module <http://effbot.org/zone/element-index.htm>`_,
+  if running python 2.4 (optional, used by ovfconverter tool)
 
 These programs are supplied as part of most Linux distributions, so
 usually they can be installed via the standard package manager. Also
@@ -51,7 +53,8 @@ packages, except for DRBD and Xen::
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
                     ndisc6 python python-pyopenssl openssl \
                     python-pyparsing python-simplejson \
-                    python-pyinotify python-pycurl socat
+                    python-pyinotify python-pycurl socat \
+		    python-elementtree
 
 If you want to also enable the `htools` components, which is recommended
 on bigger deployments (they give you automatic instance placement,
