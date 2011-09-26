@@ -399,6 +399,9 @@ class GanetiContext(object):
     # Job queue
     self.jobqueue = jqueue.JobQueue(self)
 
+    # RPC runner
+    self.rpc = rpc.RpcRunner(self)
+
     # setting this also locks the class against attribute modifications
     self.__class__._instance = self
 

@@ -414,17 +414,17 @@ def _EncodeImportExportIO(ieio, ieioargs):
 
 
 class RpcRunner(object):
-  """RPC runner class"""
+  """RPC runner class.
 
-  def __init__(self, cfg):
-    """Initialized the rpc runner.
+  """
+  def __init__(self, context):
+    """Initialized the RPC runner.
 
-    @type cfg:  C{config.ConfigWriter}
-    @param cfg: the configuration object that will be used to get data
-                about the cluster
+    @type context: C{masterd.GanetiContext}
+    @param context: Ganeti context
 
     """
-    self._cfg = cfg
+    self._cfg = context.cfg
     self.port = netutils.GetDaemonPort(constants.NODED)
 
   def _InstDict(self, instance, hvp=None, bep=None, osp=None):

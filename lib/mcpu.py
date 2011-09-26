@@ -35,7 +35,6 @@ import time
 from ganeti import opcodes
 from ganeti import constants
 from ganeti import errors
-from ganeti import rpc
 from ganeti import cmdlib
 from ganeti import locking
 from ganeti import utils
@@ -188,7 +187,7 @@ class Processor(object):
     self.context = context
     self._ec_id = ec_id
     self._cbs = None
-    self.rpc = rpc.RpcRunner(context.cfg)
+    self.rpc = context.rpc
     self.hmclass = HooksMaster
 
   def _AcquireLocks(self, level, names, shared, timeout, priority):
