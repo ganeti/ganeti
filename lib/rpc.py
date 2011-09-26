@@ -180,6 +180,26 @@ def RunWithRPC(fn):
   return wrapper
 
 
+def _Compress(data):
+  """Compresses a string for transport over RPC.
+
+  Small amounts of data are not compressed.
+
+  @type data: str
+  @param data: Data
+  @rtype: tuple
+  @return: Encoded data to send
+
+  """
+  # Small amounts of data are not compressed
+  if len(data) < 512:
+    return (constants.RPC_ENCODING_NONE, data)
+
+  # Compress with zlib and encode in base64
+  return (constants.RPC_ENCODING_ZLIB_BASE64,
+          base64.b64encode(zlib.compress(data, 3)))
+
+
 class RpcResult(object):
   """RPC Result class.
 
@@ -565,26 +585,6 @@ class RpcRunner(object):
     c = Client(procedure, body, netutils.GetDaemonPort(constants.NODED))
     c.ConnectNode(node, read_timeout=read_timeout)
     return c.GetResults()[node]
-
-  @staticmethod
-  def _Compress(data):
-    """Compresses a string for transport over RPC.
-
-    Small amounts of data are not compressed.
-
-    @type data: str
-    @param data: Data
-    @rtype: tuple
-    @return: Encoded data to send
-
-    """
-    # Small amounts of data are not compressed
-    if len(data) < 512:
-      return (constants.RPC_ENCODING_NONE, data)
-
-    # Compress with zlib and encode in base64
-    return (constants.RPC_ENCODING_ZLIB_BASE64,
-            base64.b64encode(zlib.compress(data, 3)))
 
   #
   # Begin RPC calls
@@ -1176,7 +1176,7 @@ class RpcRunner(object):
 
     """
     file_contents = utils.ReadFile(file_name)
-    data = cls._Compress(file_contents)
+    data = _Compress(file_contents)
     st = os.stat(file_name)
     getents = runtime.GetEnts()
     params = [file_name, data, st.st_mode, getents.LookupUid(st.st_uid),
@@ -1430,7 +1430,7 @@ class RpcRunner(object):
 
     """
     return cls._StaticMultiNodeCall(node_list, "jobqueue_update",
-                                    [file_name, cls._Compress(content)],
+                                    [file_name, _Compress(content)],
                                     address_list=address_list)
 
   @classmethod
