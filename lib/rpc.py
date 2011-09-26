@@ -46,6 +46,7 @@ from ganeti import errors
 from ganeti import netutils
 from ganeti import ssconf
 from ganeti import runtime
+from ganeti import compat
 
 # pylint has a bug here, doesn't see this import
 import ganeti.http.client  # pylint: disable=W0611
@@ -76,6 +77,9 @@ _TMO_1DAY = 86400
 
 _TIMEOUTS = {
 }
+
+#: Special value to describe an offline host
+_OFFLINE = object()
 
 
 def Init():
@@ -285,9 +289,9 @@ class RpcResult(object):
     raise ec(*args) # pylint: disable=W0142
 
 
-def _AddressLookup(node_list,
-                   ssc=ssconf.SimpleStore,
-                   nslookup_fn=netutils.Hostname.GetIP):
+def _SsconfResolver(node_list,
+                    ssc=ssconf.SimpleStore,
+                    nslookup_fn=netutils.Hostname.GetIP):
   """Return addresses for given node names.
 
   @type node_list: list
@@ -296,126 +300,163 @@ def _AddressLookup(node_list,
   @param ssc: SimpleStore class that is used to obtain node->ip mappings
   @type nslookup_fn: callable
   @param nslookup_fn: function use to do NS lookup
-  @rtype: list of addresses and/or None's
-  @returns: List of corresponding addresses, if found
+  @rtype: list of tuple; (string, string)
+  @return: List of tuples containing node name and IP address
 
   """
   ss = ssc()
   iplist = ss.GetNodePrimaryIPList()
   family = ss.GetPrimaryIPFamily()
-  addresses = []
   ipmap = dict(entry.split() for entry in iplist)
+
+  result = []
   for node in node_list:
-    address = ipmap.get(node)
-    if address is None:
-      address = nslookup_fn(node, family=family)
-    addresses.append(address)
+    ip = ipmap.get(node)
+    if ip is None:
+      ip = nslookup_fn(node, family=family)
+    result.append((node, ip))
 
-  return addresses
+  return result
 
 
-class Client:
-  """RPC Client class.
+class _StaticResolver:
+  def __init__(self, addresses):
+    """Initializes this class.
 
-  This class, given a (remote) method name, a list of parameters and a
-  list of nodes, will contact (in parallel) all nodes, and return a
-  dict of results (key: node name, value: result).
+    """
+    self._addresses = addresses
 
-  One current bug is that generic failure is still signaled by
-  'False' result, which is not good. This overloading of values can
-  cause bugs.
+  def __call__(self, hosts):
+    """Returns static addresses for hosts.
+
+    """
+    assert len(hosts) == len(self._addresses)
+    return zip(hosts, self._addresses)
+
+
+def _CheckConfigNode(name, node):
+  """Checks if a node is online.
+
+  @type name: string
+  @param name: Node name
+  @type node: L{objects.Node} or None
+  @param node: Node object
 
   """
-  def __init__(self, procedure, body, port, address_lookup_fn=_AddressLookup):
-    assert procedure in _TIMEOUTS, ("New RPC call not declared in the"
-                                    " timeouts table")
-    self.procedure = procedure
-    self.body = body
-    self.port = port
-    self._request = {}
-    self._address_lookup_fn = address_lookup_fn
+  if node is None:
+    # Depend on DNS for name resolution
+    ip = name
+  elif node.offline:
+    ip = _OFFLINE
+  else:
+    ip = node.primary_ip
+  return (name, ip)
 
-  def ConnectList(self, node_list, address_list=None, read_timeout=None):
-    """Add a list of nodes to the target nodes.
 
-    @type node_list: list
-    @param node_list: the list of node names to connect
-    @type address_list: list or None
-    @keyword address_list: either None or a list with node addresses,
-        which must have the same length as the node list
-    @type read_timeout: int
-    @param read_timeout: overwrites default timeout for operation
+def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts):
+  """Calculate node addresses using configuration.
 
-    """
-    if address_list is None:
-      # Always use IP address instead of node name
-      address_list = self._address_lookup_fn(node_list)
+  """
+  # Special case for single-host lookups
+  if len(hosts) == 1:
+    (name, ) = hosts
+    return [_CheckConfigNode(name, single_node_fn(name))]
+  else:
+    all_nodes = all_nodes_fn()
+    return [_CheckConfigNode(name, all_nodes.get(name, None))
+            for name in hosts]
 
-    assert len(node_list) == len(address_list), \
-           "Name and address lists must have the same length"
 
-    for node, address in zip(node_list, address_list):
-      self.ConnectNode(node, address, read_timeout=read_timeout)
+class _RpcProcessor:
+  def __init__(self, resolver, port):
+    """Initializes this class.
 
-  def ConnectNode(self, name, address=None, read_timeout=None):
-    """Add a node to the target list.
-
-    @type name: str
-    @param name: the node name
-    @type address: str
-    @param address: the node address, if known
-    @type read_timeout: int
-    @param read_timeout: overwrites default timeout for operation
+    @param resolver: callable accepting a list of hostnames, returning a list
+      of tuples containing name and IP address (IP address can be the name or
+      the special value L{_OFFLINE} to mark offline machines)
+    @type port: int
+    @param port: TCP port
 
     """
-    if address is None:
-      # Always use IP address instead of node name
-      address = self._address_lookup_fn([name])[0]
+    self._resolver = resolver
+    self._port = port
 
-    assert(address is not None)
-
-    if read_timeout is None:
-      read_timeout = _TIMEOUTS[self.procedure]
-
-    self._request[name] = \
-      http.client.HttpClientRequest(str(address), self.port,
-                                    http.HTTP_PUT, str("/%s" % self.procedure),
-                                    headers=_RPC_CLIENT_HEADERS,
-                                    post_data=str(self.body),
-                                    read_timeout=read_timeout)
-
-  def GetResults(self, http_pool=None):
-    """Call nodes and return results.
-
-    @rtype: list
-    @return: List of RPC results
+  @staticmethod
+  def _PrepareRequests(hosts, port, procedure, body, read_timeout):
+    """Prepares requests by sorting offline hosts into separate list.
 
     """
+    results = {}
+    requests = {}
+
+    for (name, ip) in hosts:
+      if ip is _OFFLINE:
+        # Node is marked as offline
+        results[name] = RpcResult(node=name, offline=True, call=procedure)
+      else:
+        requests[name] = \
+          http.client.HttpClientRequest(str(ip), port,
+                                        http.HTTP_PUT, str("/%s" % procedure),
+                                        headers=_RPC_CLIENT_HEADERS,
+                                        post_data=body,
+                                        read_timeout=read_timeout)
+
+    return (results, requests)
+
+  @staticmethod
+  def _CombineResults(results, requests, procedure):
+    """Combines pre-computed results for offline hosts with actual call results.
+
+    """
+    for name, req in requests.items():
+      if req.success and req.resp_status_code == http.HTTP_OK:
+        host_result = RpcResult(data=serializer.LoadJson(req.resp_body),
+                                node=name, call=procedure)
+      else:
+        # TODO: Better error reporting
+        if req.error:
+          msg = req.error
+        else:
+          msg = req.resp_body
+
+        logging.error("RPC error in %s on node %s: %s", procedure, name, msg)
+        host_result = RpcResult(data=msg, failed=True, node=name,
+                                call=procedure)
+
+      results[name] = host_result
+
+    return results
+
+  def __call__(self, hosts, procedure, body, read_timeout=None, http_pool=None):
+    """Makes an RPC request to a number of nodes.
+
+    @type hosts: sequence
+    @param hosts: Hostnames
+    @type procedure: string
+    @param procedure: Request path
+    @type body: string
+    @param body: Request body
+    @type read_timeout: int or None
+    @param read_timeout: Read timeout for request
+
+    """
+    assert procedure in _TIMEOUTS, "RPC call not declared in the timeouts table"
+
     if not http_pool:
       http_pool = _thread_local.GetHttpClientPool()
 
-    http_pool.ProcessRequests(self._request.values())
+    if read_timeout is None:
+      read_timeout = _TIMEOUTS[procedure]
 
-    results = {}
+    (results, requests) = \
+      self._PrepareRequests(self._resolver(hosts), self._port, procedure,
+                            str(body), read_timeout)
 
-    for name, req in self._request.iteritems():
-      if req.success and req.resp_status_code == http.HTTP_OK:
-        results[name] = RpcResult(data=serializer.LoadJson(req.resp_body),
-                                  node=name, call=self.procedure)
-        continue
+    http_pool.ProcessRequests(requests.values())
 
-      # TODO: Better error reporting
-      if req.error:
-        msg = req.error
-      else:
-        msg = req.resp_body
+    assert not frozenset(results).intersection(requests)
 
-      logging.error("RPC error in %s from node %s: %s",
-                    self.procedure, name, msg)
-      results[name] = RpcResult(data=msg, failed=True, node=name,
-                                call=self.procedure)
-
-    return results
+    return self._CombineResults(results, requests, procedure)
 
 
 def _EncodeImportExportIO(ieio, ieioargs):
@@ -445,7 +486,10 @@ class RpcRunner(object):
 
     """
     self._cfg = context.cfg
-    self.port = netutils.GetDaemonPort(constants.NODED)
+    self._proc = _RpcProcessor(compat.partial(_NodeConfigResolver,
+                                              self._cfg.GetNodeInfo,
+                                              self._cfg.GetAllNodesInfo),
+                               netutils.GetDaemonPort(constants.NODED))
 
   def _InstDict(self, instance, hvp=None, bep=None, osp=None):
     """Convert the given instance to a dict.
@@ -483,98 +527,37 @@ class RpcRunner(object):
         nic['nicparams'])
     return idict
 
-  def _ConnectList(self, client, node_list, call, read_timeout=None):
-    """Helper for computing node addresses.
-
-    @type client: L{ganeti.rpc.Client}
-    @param client: a C{Client} instance
-    @type node_list: list
-    @param node_list: the node list we should connect
-    @type call: string
-    @param call: the name of the remote procedure call, for filling in
-        correctly any eventual offline nodes' results
-    @type read_timeout: int
-    @param read_timeout: overwrites the default read timeout for the
-        given operation
-
-    """
-    all_nodes = self._cfg.GetAllNodesInfo()
-    name_list = []
-    addr_list = []
-    skip_dict = {}
-    for node in node_list:
-      if node in all_nodes:
-        if all_nodes[node].offline:
-          skip_dict[node] = RpcResult(node=node, offline=True, call=call)
-          continue
-        val = all_nodes[node].primary_ip
-      else:
-        val = None
-      addr_list.append(val)
-      name_list.append(node)
-    if name_list:
-      client.ConnectList(name_list, address_list=addr_list,
-                         read_timeout=read_timeout)
-    return skip_dict
-
-  def _ConnectNode(self, client, node, call, read_timeout=None):
-    """Helper for computing one node's address.
-
-    @type client: L{ganeti.rpc.Client}
-    @param client: a C{Client} instance
-    @type node: str
-    @param node: the node we should connect
-    @type call: string
-    @param call: the name of the remote procedure call, for filling in
-        correctly any eventual offline nodes' results
-    @type read_timeout: int
-    @param read_timeout: overwrites the default read timeout for the
-        given operation
-
-    """
-    node_info = self._cfg.GetNodeInfo(node)
-    if node_info is not None:
-      if node_info.offline:
-        return RpcResult(node=node, offline=True, call=call)
-      addr = node_info.primary_ip
-    else:
-      addr = None
-    client.ConnectNode(node, address=addr, read_timeout=read_timeout)
-
   def _MultiNodeCall(self, node_list, procedure, args, read_timeout=None):
     """Helper for making a multi-node call
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, self.port)
-    skip_dict = self._ConnectList(c, node_list, procedure,
-                                  read_timeout=read_timeout)
-    skip_dict.update(c.GetResults())
-    return skip_dict
+    return self._proc(node_list, procedure, body, read_timeout=read_timeout)
 
-  @classmethod
-  def _StaticMultiNodeCall(cls, node_list, procedure, args,
+  @staticmethod
+  def _StaticMultiNodeCall(node_list, procedure, args,
                            address_list=None, read_timeout=None):
     """Helper for making a multi-node static call
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, netutils.GetDaemonPort(constants.NODED))
-    c.ConnectList(node_list, address_list=address_list,
-                  read_timeout=read_timeout)
-    return c.GetResults()
+
+    if address_list is None:
+      resolver = _SsconfResolver
+    else:
+      # Caller provided an address list
+      resolver = _StaticResolver(address_list)
+
+    proc = _RpcProcessor(resolver,
+                         netutils.GetDaemonPort(constants.NODED))
+    return proc(node_list, procedure, body, read_timeout=read_timeout)
 
   def _SingleNodeCall(self, node, procedure, args, read_timeout=None):
     """Helper for making a single-node call
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, self.port)
-    result = self._ConnectNode(c, node, procedure, read_timeout=read_timeout)
-    if result is None:
-      # we did connect, node is not offline
-      result = c.GetResults()[node]
-    return result
+    return self._proc([node], procedure, body, read_timeout=read_timeout)[node]
 
   @classmethod
   def _StaticSingleNodeCall(cls, node, procedure, args, read_timeout=None):
@@ -582,9 +565,9 @@ class RpcRunner(object):
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, netutils.GetDaemonPort(constants.NODED))
-    c.ConnectNode(node, read_timeout=read_timeout)
-    return c.GetResults()[node]
+    proc = _RpcProcessor(_SsconfResolver,
+                         netutils.GetDaemonPort(constants.NODED))
+    return proc([node], procedure, body, read_timeout=read_timeout)[node]
 
   #
   # Begin RPC calls
