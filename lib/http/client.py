@@ -35,7 +35,7 @@ from ganeti import locking
 
 class HttpClientRequest(object):
   def __init__(self, host, port, method, path, headers=None, post_data=None,
-               read_timeout=None, curl_config_fn=None):
+               read_timeout=None, curl_config_fn=None, nicename=None):
     """Describes an HTTP request.
 
     @type host: string
@@ -57,8 +57,11 @@ class HttpClientRequest(object):
     @param curl_config_fn: Function to configure cURL object before request
                            (Note: if the function configures the connection in
                            a way where it wouldn't be efficient to reuse them,
-                           a "identity" property should be defined, see
+                           an "identity" property should be defined, see
                            L{HttpClientRequest.identity})
+    @type nicename: string
+    @param nicename: Name, presentable to a user, to describe this request (no
+                     whitespace)
 
     """
     assert path.startswith("/"), "Path must start with slash (/)"
@@ -71,6 +74,7 @@ class HttpClientRequest(object):
     self.path = path
     self.read_timeout = read_timeout
     self.curl_config_fn = curl_config_fn
+    self.nicename = nicename
 
     if post_data is None:
       self.post_data = ""
@@ -500,7 +504,11 @@ class _PendingRequestMonitor:
       for pclient in self._pending_fn():
         req = pclient.client.GetCurrentRequest()
         if req:
-          result.append(("rpc/%s%s" % (req.host, req.path), None, None,
+          if req.nicename is None:
+            name = "%s%s" % (req.host, req.path)
+          else:
+            name = req.nicename
+          result.append(("rpc/%s" % name, None, None,
                          [("thread", [owner_name])]))
 
     return result

@@ -401,7 +401,8 @@ class _RpcProcessor:
                                         http.HTTP_PUT, str("/%s" % procedure),
                                         headers=_RPC_CLIENT_HEADERS,
                                         post_data=body,
-                                        read_timeout=read_timeout)
+                                        read_timeout=read_timeout,
+                                        nicename="%s/%s" % (name, procedure))
 
     return (results, requests)
 
