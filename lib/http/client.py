@@ -508,8 +508,7 @@ class _PendingRequestMonitor:
             name = "%s%s" % (req.host, req.path)
           else:
             name = req.nicename
-          result.append(("rpc/%s" % name, None, None,
-                         [("thread", [owner_name])]))
+          result.append(("rpc/%s" % name, None, [owner_name], None))
 
     return result
 
