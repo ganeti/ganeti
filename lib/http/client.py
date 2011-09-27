@@ -385,8 +385,6 @@ class HttpClientPool:
     @param requests: List of all requests
 
     """
-    multi = self._CreateCurlMultiHandle()
-
     # For client cleanup
     self._generation += 1
 
@@ -399,56 +397,21 @@ class HttpClientPool:
     curl_to_pclient = {}
     for req in requests:
       pclient = self._StartRequest(req)
-      curl = pclient.client.GetCurlHandle()
-      curl_to_pclient[curl] = pclient
-      multi.add_handle(curl)
+      curl_to_pclient[pclient.client.GetCurlHandle()] = pclient
       assert pclient.client.GetCurrentRequest() == req
       assert pclient.lastused >= 0
 
     assert len(curl_to_pclient) == len(requests)
 
-    done_count = 0
-    while True:
-      (ret, _) = multi.perform()
-      assert ret in (pycurl.E_MULTI_OK, pycurl.E_CALL_MULTI_PERFORM)
+    # Process all requests and act based on the returned values
+    for (curl, msg) in _ProcessCurlRequests(self._CreateCurlMultiHandle(),
+                                            curl_to_pclient.keys()):
+      pclient = curl_to_pclient[curl]
+      req = pclient.client.GetCurrentRequest()
+      pclient.client.Done(msg)
 
-      if ret == pycurl.E_CALL_MULTI_PERFORM:
-        # cURL wants to be called again
-        continue
-
-      while True:
-        (remaining_messages, successful, failed) = multi.info_read()
-
-        for curl in successful:
-          multi.remove_handle(curl)
-          done_count += 1
-          pclient = curl_to_pclient[curl]
-          req = pclient.client.GetCurrentRequest()
-          pclient.client.Done(None)
-          assert req.success
-          assert not pclient.client.GetCurrentRequest()
-
-        for curl, errnum, errmsg in failed:
-          multi.remove_handle(curl)
-          done_count += 1
-          pclient = curl_to_pclient[curl]
-          req = pclient.client.GetCurrentRequest()
-          pclient.client.Done("Error %s: %s" % (errnum, errmsg))
-          assert req.error
-          assert not pclient.client.GetCurrentRequest()
-
-        if remaining_messages == 0:
-          break
-
-      assert done_count <= len(requests)
-
-      if done_count == len(requests):
-        break
-
-      # Wait for I/O. The I/O timeout shouldn't be too long so that HTTP
-      # timeouts, which are only evaluated in multi.perform, aren't
-      # unnecessarily delayed.
-      multi.select(1.0)
+      assert ((msg is None and req.success and req.error is None) ^
+              (msg is not None and not req.success and req.error == msg))
 
     assert compat.all(pclient.client.GetCurrentRequest() is None
                       for pclient in curl_to_pclient.values())
@@ -456,9 +419,56 @@ class HttpClientPool:
     # Return clients to pool
     self._Return(curl_to_pclient.values())
 
-    assert done_count == len(requests)
     assert compat.all(req.error is not None or
                       (req.success and
                        req.resp_status_code is not None and
                        req.resp_body is not None)
                       for req in requests)
+
+
+def _ProcessCurlRequests(multi, requests):
+  """cURL request processor.
+
+  This generator yields a tuple once for every completed request, successful or
+  not. The first value in the tuple is the handle, the second an error message
+  or C{None} for successful requests.
+
+  @type multi: C{pycurl.CurlMulti}
+  @param multi: cURL multi object
+  @type requests: sequence
+  @param requests: cURL request handles
+
+  """
+  for curl in requests:
+    multi.add_handle(curl)
+
+  while True:
+    (ret, active) = multi.perform()
+    assert ret in (pycurl.E_MULTI_OK, pycurl.E_CALL_MULTI_PERFORM)
+
+    if ret == pycurl.E_CALL_MULTI_PERFORM:
+      # cURL wants to be called again
+      continue
+
+    while True:
+      (remaining_messages, successful, failed) = multi.info_read()
+
+      for curl in successful:
+        multi.remove_handle(curl)
+        yield (curl, None)
+
+      for curl, errnum, errmsg in failed:
+        multi.remove_handle(curl)
+        yield (curl, "Error %s: %s" % (errnum, errmsg))
+
+      if remaining_messages == 0:
+        break
+
+    if active == 0:
+      # No active handles anymore
+      break
+
+    # Wait for I/O. The I/O timeout shouldn't be too long so that HTTP
+    # timeouts, which are only evaluated in multi.perform, aren't
+    # unnecessarily delayed.
+    multi.select(1.0)
