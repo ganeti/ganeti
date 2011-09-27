@@ -51,7 +51,7 @@ class FakeHttpPool:
     self._response_fn = response_fn
     self.reqcount = 0
 
-  def ProcessRequests(self, reqs):
+  def ProcessRequests(self, reqs, lock_monitor_cb=None):
     for req in reqs:
       self.reqcount += 1
       self._response_fn(req)

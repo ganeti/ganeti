@@ -368,7 +368,7 @@ def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts):
 
 
 class _RpcProcessor:
-  def __init__(self, resolver, port):
+  def __init__(self, resolver, port, lock_monitor_cb=None):
     """Initializes this class.
 
     @param resolver: callable accepting a list of hostnames, returning a list
@@ -376,10 +376,12 @@ class _RpcProcessor:
       the special value L{_OFFLINE} to mark offline machines)
     @type port: int
     @param port: TCP port
+    @param lock_monitor_cb: Callable for registering with lock monitor
 
     """
     self._resolver = resolver
     self._port = port
+    self._lock_monitor_cb = lock_monitor_cb
 
   @staticmethod
   def _PrepareRequests(hosts, port, procedure, body, read_timeout):
@@ -452,7 +454,8 @@ class _RpcProcessor:
       self._PrepareRequests(self._resolver(hosts), self._port, procedure,
                             str(body), read_timeout)
 
-    http_pool.ProcessRequests(requests.values())
+    http_pool.ProcessRequests(requests.values(),
+                              lock_monitor_cb=self._lock_monitor_cb)
 
     assert not frozenset(results).intersection(requests)
 
@@ -489,7 +492,8 @@ class RpcRunner(object):
     self._proc = _RpcProcessor(compat.partial(_NodeConfigResolver,
                                               self._cfg.GetNodeInfo,
                                               self._cfg.GetAllNodesInfo),
-                               netutils.GetDaemonPort(constants.NODED))
+                               netutils.GetDaemonPort(constants.NODED),
+                               lock_monitor_cb=context.glm.AddToLockMonitor)
 
   def _InstDict(self, instance, hvp=None, bep=None, osp=None):
     """Convert the given instance to a dict.

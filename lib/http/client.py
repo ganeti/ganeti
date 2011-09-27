@@ -24,11 +24,13 @@
 
 import logging
 import pycurl
+import threading
 from cStringIO import StringIO
 
 from ganeti import http
 from ganeti import compat
 from ganeti import netutils
+from ganeti import locking
 
 
 class HttpClientRequest(object):
@@ -378,11 +380,12 @@ class HttpClientPool:
     """
     return pycurl.CurlMulti()
 
-  def ProcessRequests(self, requests):
+  def ProcessRequests(self, requests, lock_monitor_cb=None):
     """Processes any number of HTTP client requests using pooled objects.
 
     @type requests: list of L{HttpClientRequest}
     @param requests: List of all requests
+    @param lock_monitor_cb: Callable for registering with lock monitor
 
     """
     # For client cleanup
@@ -403,12 +406,24 @@ class HttpClientPool:
 
     assert len(curl_to_pclient) == len(requests)
 
+    if lock_monitor_cb:
+      monitor = _PendingRequestMonitor(threading.currentThread(),
+                                       curl_to_pclient.values)
+      lock_monitor_cb(monitor)
+    else:
+      monitor = _NoOpRequestMonitor
+
     # Process all requests and act based on the returned values
     for (curl, msg) in _ProcessCurlRequests(self._CreateCurlMultiHandle(),
                                             curl_to_pclient.keys()):
       pclient = curl_to_pclient[curl]
       req = pclient.client.GetCurrentRequest()
-      pclient.client.Done(msg)
+
+      monitor.acquire(shared=0)
+      try:
+        pclient.client.Done(msg)
+      finally:
+        monitor.release()
 
       assert ((msg is None and req.success and req.error is None) ^
               (msg is not None and not req.success and req.error == msg))
@@ -416,14 +431,79 @@ class HttpClientPool:
     assert compat.all(pclient.client.GetCurrentRequest() is None
                       for pclient in curl_to_pclient.values())
 
-    # Return clients to pool
-    self._Return(curl_to_pclient.values())
+    monitor.acquire(shared=0)
+    try:
+      # Don't try to read information from returned clients
+      monitor.Disable()
+
+      # Return clients to pool
+      self._Return(curl_to_pclient.values())
+    finally:
+      monitor.release()
 
     assert compat.all(req.error is not None or
                       (req.success and
                        req.resp_status_code is not None and
                        req.resp_body is not None)
                       for req in requests)
+
+
+class _NoOpRequestMonitor: # pylint: disable=W0232
+  """No-op request monitor.
+
+  """
+  @staticmethod
+  def acquire(*args, **kwargs):
+    pass
+
+  release = acquire
+  Disable = acquire
+
+
+class _PendingRequestMonitor:
+  _LOCK = "_lock"
+
+  def __init__(self, owner, pending_fn):
+    """Initializes this class.
+
+    """
+    self._owner = owner
+    self._pending_fn = pending_fn
+
+    # The lock monitor runs in another thread, hence locking is necessary
+    self._lock = locking.SharedLock("PendingHttpRequests")
+    self.acquire = self._lock.acquire
+    self.release = self._lock.release
+
+  def Disable(self):
+    """Disable monitor.
+
+    """
+    self._pending_fn = None
+
+  @locking.ssynchronized(_LOCK, shared=1)
+  def GetLockInfo(self, requested): # pylint: disable=W0613
+    """Retrieves information about pending requests.
+
+    @type requested: set
+    @param requested: Requested information, see C{query.LQ_*}
+
+    """
+    # No need to sort here, that's being done by the lock manager and query
+    # library. There are no priorities for requests, hence all show up as
+    # one item under "pending".
+    result = []
+
+    if self._pending_fn:
+      owner_name = self._owner.getName()
+
+      for pclient in self._pending_fn():
+        req = pclient.client.GetCurrentRequest()
+        if req:
+          result.append(("rpc/%s%s" % (req.host, req.path), None, None,
+                         [("thread", [owner_name])]))
+
+    return result
 
 
 def _ProcessCurlRequests(multi, requests):
