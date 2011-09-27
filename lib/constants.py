@@ -776,6 +776,9 @@ HVS_PARAMETER_TYPES = {
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
 
+# Node info keys
+HV_NODEINFO_KEY_VERSION = "hv_version"
+
 # Backend parameter names
 BE_MEMORY = "memory"
 BE_VCPUS = "vcpus"

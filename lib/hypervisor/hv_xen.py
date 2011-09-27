@@ -257,6 +257,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
           - nr_cpus: total number of CPUs
           - nr_nodes: in a NUMA system, the number of domains
           - nr_sockets: the number of physical CPU sockets in the node
+          - hv_version: the hypervisor version in the form (major, minor)
 
     """
     # note: in xen 3, memory has changed to total_memory
@@ -269,6 +270,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     xmoutput = result.stdout.splitlines()
     result = {}
     cores_per_socket = threads_per_core = nr_cpus = None
+    xen_major, xen_minor = None, None
     for line in xmoutput:
       splitfields = line.split(":", 1)
 
@@ -287,6 +289,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
           cores_per_socket = int(val)
         elif key == "threads_per_core":
           threads_per_core = int(val)
+        elif key == "xen_major":
+          xen_major = int(val)
+        elif key == "xen_minor":
+          xen_minor = int(val)
 
     if (cores_per_socket is not None and
         threads_per_core is not None and nr_cpus is not None):
@@ -295,6 +301,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     dom0_info = self.GetInstanceInfo("Domain-0")
     if dom0_info is not None:
       result["memory_dom0"] = dom0_info[2]
+
+    if not (xen_major is None or xen_minor is None):
+      result[constants.HV_NODEINFO_KEY_VERSION] = (xen_major, xen_minor)
 
     return result
 

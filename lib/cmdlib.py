@@ -7343,6 +7343,21 @@ class TLMigrateInstance(Tasklet):
     target_node = self.target_node
     source_node = self.source_node
 
+    # Check for hypervisor version mismatch and warn the user.
+    nodeinfo = self.rpc.call_node_info([source_node, target_node],
+                                       None, self.instance.hypervisor)
+    src_info = nodeinfo[source_node]
+    dst_info = nodeinfo[target_node]
+
+    if ((constants.HV_NODEINFO_KEY_VERSION in src_info.payload) and
+        (constants.HV_NODEINFO_KEY_VERSION in dst_info.payload)):
+      src_version = src_info.payload[constants.HV_NODEINFO_KEY_VERSION]
+      dst_version = dst_info.payload[constants.HV_NODEINFO_KEY_VERSION]
+      if src_version != dst_version:
+        self.feedback_fn("* warning: hypervisor version mismatch between"
+                         " source (%s) and target (%s) node" %
+                         (src_version, dst_version))
+
     self.feedback_fn("* checking disk consistency between source and target")
     for dev in instance.disks:
       if not _CheckDiskConsistency(self.lu, dev, target_node, False):
