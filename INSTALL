@@ -43,6 +43,7 @@ Before installing, please verify that you have the following programs:
   optional python package for supporting CPU pinning under KVM
 - `ElementTree Python module <http://effbot.org/zone/element-index.htm>`_,
   if running python 2.4 (optional, used by ovfconverter tool)
+- `qemu-img <http://qemu.org/>`_, if you want to use ovfconverter
 
 These programs are supplied as part of most Linux distributions, so
 usually they can be installed via the standard package manager. Also
@@ -54,7 +55,7 @@ packages, except for DRBD and Xen::
                     ndisc6 python python-pyopenssl openssl \
                     python-pyparsing python-simplejson \
                     python-pyinotify python-pycurl socat \
-		    python-elementtree
+                    python-elementtree qemu
 
 If you want to also enable the `htools` components, which is recommended
 on bigger deployments (they give you automatic instance placement,
