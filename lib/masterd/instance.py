@@ -130,13 +130,6 @@ class ImportExportCbBase(object):
     """
 
 
-def _TimeoutExpired(epoch, timeout, _time_fn=time.time):
-  """Checks whether a timeout has expired.
-
-  """
-  return _time_fn() > (epoch + timeout)
-
-
 class _DiskImportExportBase(object):
   MODE_TEXT = None
 
@@ -319,7 +312,7 @@ class _DiskImportExportBase(object):
     assert self._ts_begin is not None
 
     if not data:
-      if _TimeoutExpired(self._ts_begin, self._timeouts.ready):
+      if utils.TimeoutExpired(self._ts_begin, self._timeouts.ready):
         raise _ImportExportError("Didn't become ready after %s seconds" %
                                  self._timeouts.ready)
 
@@ -342,7 +335,7 @@ class _DiskImportExportBase(object):
       if self._ts_last_error is None:
         self._ts_last_error = time.time()
 
-      elif _TimeoutExpired(self._ts_last_error, self._timeouts.error):
+      elif utils.TimeoutExpired(self._ts_last_error, self._timeouts.error):
         raise _ImportExportError("Too many errors while updating data")
 
       return False
@@ -386,7 +379,8 @@ class _DiskImportExportBase(object):
 
       return True
 
-    if _TimeoutExpired(self._GetConnectedCheckEpoch(), self._timeouts.connect):
+    if utils.TimeoutExpired(self._GetConnectedCheckEpoch(),
+                            self._timeouts.connect):
       raise _ImportExportError("Not connected after %s seconds" %
                                self._timeouts.connect)
 
@@ -397,7 +391,8 @@ class _DiskImportExportBase(object):
 
     """
     if ((self._ts_last_progress is None or
-         _TimeoutExpired(self._ts_last_progress, self._timeouts.progress)) and
+        utils.TimeoutExpired(self._ts_last_progress,
+                             self._timeouts.progress)) and
         self._daemon and
         self._daemon.progress_mbytes is not None and
         self._daemon.progress_throughput is not None):
@@ -560,7 +555,7 @@ class DiskImport(_DiskImportExportBase):
 
       return True
 
-    if _TimeoutExpired(self._ts_begin, self._timeouts.listen):
+    if utils.TimeoutExpired(self._ts_begin, self._timeouts.listen):
       raise _ImportExportError("Not listening after %s seconds" %
                                self._timeouts.listen)
 

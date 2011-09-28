@@ -31,7 +31,7 @@ from ganeti import utils
 from ganeti import masterd
 
 from ganeti.masterd.instance import \
-  ImportExportTimeouts, _TimeoutExpired, _DiskImportExportBase, \
+  ImportExportTimeouts, _DiskImportExportBase, \
   ComputeRemoteExportHandshake, CheckRemoteExportHandshake, \
   ComputeRemoteImportDiskInfo, CheckRemoteExportDiskInfo, \
   FormatProgress
@@ -60,10 +60,10 @@ class TestMisc(unittest.TestCase):
     self.assertEqual(tmo.progress, 5)
 
   def testTimeoutExpired(self):
-    self.assert_(_TimeoutExpired(100, 300, _time_fn=lambda: 500))
-    self.assertFalse(_TimeoutExpired(100, 300, _time_fn=lambda: 0))
-    self.assertFalse(_TimeoutExpired(100, 300, _time_fn=lambda: 100))
-    self.assertFalse(_TimeoutExpired(100, 300, _time_fn=lambda: 400))
+    self.assert_(utils.TimeoutExpired(100, 300, _time_fn=lambda: 500))
+    self.assertFalse(utils.TimeoutExpired(100, 300, _time_fn=lambda: 0))
+    self.assertFalse(utils.TimeoutExpired(100, 300, _time_fn=lambda: 100))
+    self.assertFalse(utils.TimeoutExpired(100, 300, _time_fn=lambda: 400))
 
   def testDiskImportExportBaseDirect(self):
     self.assertRaises(AssertionError, _DiskImportExportBase,
