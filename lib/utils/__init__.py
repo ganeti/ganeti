@@ -32,6 +32,7 @@ import os
 import re
 import errno
 import pwd
+import time
 import itertools
 import select
 import logging
@@ -564,6 +565,13 @@ def SignalHandled(signums):
         sighandler.Reset()
     return sig_function
   return wrap
+
+
+def TimeoutExpired(epoch, timeout, _time_fn=time.time):
+  """Checks whether a timeout has expired.
+
+  """
+  return _time_fn() > (epoch + timeout)
 
 
 class SignalWakeupFd(object):
