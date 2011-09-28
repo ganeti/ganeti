@@ -3697,6 +3697,9 @@ def _ComputeAncillaryFiles(cluster, redist):
   if not redist:
     files_all.update(constants.ALL_CERT_FILES)
     files_all.update(ssconf.SimpleStore().GetFileList())
+  else:
+    # we need to ship at least the RAPI certificate
+    files_all.add(constants.RAPI_CERT_FILE)
 
   if cluster.modify_etc_hosts:
     files_all.add(constants.ETC_HOSTS)
