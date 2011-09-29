@@ -1355,7 +1355,7 @@ class LUClusterDestroy(LogicalUnit):
     # Run post hooks on master node before it's removed
     _RunPostHook(self, master)
 
-    result = self.rpc.call_node_stop_master(master, False)
+    result = self.rpc.call_node_deactivate_master_ip(master)
     result.Raise("Could not disable the master role")
 
     return master
@@ -3297,7 +3297,7 @@ class LUClusterRename(LogicalUnit):
 
     # shutdown the master IP
     master = self.cfg.GetMasterNode()
-    result = self.rpc.call_node_stop_master(master, False)
+    result = self.rpc.call_node_deactivate_master_ip(master)
     result.Raise("Could not disable the master role")
 
     try:
@@ -3315,7 +3315,7 @@ class LUClusterRename(LogicalUnit):
         pass
       _UploadHelper(self, node_list, constants.SSH_KNOWN_HOSTS_FILE)
     finally:
-      result = self.rpc.call_node_start_master(master, False, False)
+      result = self.rpc.call_node_activate_master_ip(master)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not re-enable the master role on"
@@ -3648,7 +3648,7 @@ class LUClusterSetParams(LogicalUnit):
       master = self.cfg.GetMasterNode()
       feedback_fn("Shutting down master ip on the current netdev (%s)" %
                   self.cluster.master_netdev)
-      result = self.rpc.call_node_stop_master(master, False)
+      result = self.rpc.call_node_deactivate_master_ip(master)
       result.Raise("Could not disable the master ip")
       feedback_fn("Changing master_netdev from %s to %s" %
                   (self.cluster.master_netdev, self.op.master_netdev))
@@ -3659,7 +3659,7 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.master_netdev:
       feedback_fn("Starting the master ip on the new master netdev (%s)" %
                   self.op.master_netdev)
-      result = self.rpc.call_node_start_master(master, False, False)
+      result = self.rpc.call_node_activate_master_ip(master)
       if result.fail_msg:
         self.LogWarning("Could not re-enable the master ip on"
                         " the master, please restart manually: %s",
