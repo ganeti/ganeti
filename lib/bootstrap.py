@@ -560,7 +560,7 @@ def FinalizeClusterDestroy(master):
   """
   cfg = config.ConfigWriter()
   modify_ssh_setup = cfg.GetClusterInfo().modify_ssh_setup
-  result = rpc.RpcRunner.call_node_stop_master(master, True)
+  result = rpc.RpcRunner.call_node_stop_master(master)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master role: %s", msg)
@@ -692,7 +692,7 @@ def MasterFailover(no_voting=False):
 
   logging.info("Stopping the master daemon on node %s", old_master)
 
-  result = rpc.RpcRunner.call_node_stop_master(old_master, True)
+  result = rpc.RpcRunner.call_node_stop_master(old_master)
   msg = result.fail_msg
   if msg:
     logging.error("Could not disable the master role on the old master"
@@ -721,7 +721,7 @@ def MasterFailover(no_voting=False):
 
   logging.info("Starting the master daemons on the new master")
 
-  result = rpc.RpcRunner.call_node_start_master(new_master, True, no_voting)
+  result = rpc.RpcRunner.call_node_start_master_daemons(new_master, no_voting)
   msg = result.fail_msg
   if msg:
     logging.error("Could not start the master role on the new master"

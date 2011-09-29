@@ -246,93 +246,79 @@ def GetMasterInfo():
   return (master_netdev, master_ip, master_node, primary_ip_family)
 
 
-def StartMaster(start_daemons, no_voting):
-  """Activate local node as master node.
-
-  The function will either try activate the IP address of the master
-  (unless someone else has it) or also start the master daemons, based
-  on the start_daemons parameter.
-
-  @type start_daemons: boolean
-  @param start_daemons: whether to start the master daemons
-      (ganeti-masterd and ganeti-rapi), or (if false) activate the
-      master ip
-  @type no_voting: boolean
-  @param no_voting: whether to start ganeti-masterd without a node vote
-      (if start_daemons is True), but still non-interactively
-  @rtype: None
+def ActivateMasterIp():
+  """Activate the IP address of the master daemon.
 
   """
   # GetMasterInfo will raise an exception if not able to return data
   master_netdev, master_ip, _, family = GetMasterInfo()
 
-  err_msgs = []
-  # either start the master and rapi daemons
-  if start_daemons:
-    if no_voting:
-      masterd_args = "--no-voting --yes-do-it"
+  err_msg = None
+  if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+    if netutils.IPAddress.Own(master_ip):
+      # we already have the ip:
+      logging.debug("Master IP already configured, doing nothing")
     else:
-      masterd_args = ""
-
-    env = {
-      "EXTRA_MASTERD_ARGS": masterd_args,
-      }
-
-    result = utils.RunCmd([constants.DAEMON_UTIL, "start-master"], env=env)
-    if result.failed:
-      msg = "Can't start Ganeti master: %s" % result.output
-      logging.error(msg)
-      err_msgs.append(msg)
-  # or activate the IP
+      err_msg = "Someone else has the master ip, not activating"
+      logging.error(err_msg)
   else:
-    if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
-      if netutils.IPAddress.Own(master_ip):
-        # we already have the ip:
-        logging.debug("Master IP already configured, doing nothing")
-      else:
-        msg = "Someone else has the master ip, not activating"
-        logging.error(msg)
-        err_msgs.append(msg)
-    else:
-      ipcls = netutils.IP4Address
-      if family == netutils.IP6Address.family:
-        ipcls = netutils.IP6Address
+    ipcls = netutils.IP4Address
+    if family == netutils.IP6Address.family:
+      ipcls = netutils.IP6Address
 
-      result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
-                             "%s/%d" % (master_ip, ipcls.iplen),
-                             "dev", master_netdev, "label",
-                             "%s:0" % master_netdev])
-      if result.failed:
-        msg = "Can't activate master IP: %s" % result.output
-        logging.error(msg)
-        err_msgs.append(msg)
+    result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
+                           "%s/%d" % (master_ip, ipcls.iplen),
+                           "dev", master_netdev, "label",
+                           "%s:0" % master_netdev])
+    if result.failed:
+      err_msg = "Can't activate master IP: %s" % result.output
+      logging.error(err_msg)
 
-      # we ignore the exit code of the following cmds
-      if ipcls == netutils.IP4Address:
-        utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
-                      master_ip, master_ip])
-      elif ipcls == netutils.IP6Address:
-        try:
-          utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
-        except errors.OpExecError:
-          # TODO: Better error reporting
-          logging.warning("Can't execute ndisc6, please install if missing")
+    # we ignore the exit code of the following cmds
+    if ipcls == netutils.IP4Address:
+      utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
+                    master_ip, master_ip])
+    elif ipcls == netutils.IP6Address:
+      try:
+        utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
+      except errors.OpExecError:
+        # TODO: Better error reporting
+        logging.warning("Can't execute ndisc6, please install if missing")
 
-  if err_msgs:
-    _Fail("; ".join(err_msgs))
+  if err_msg:
+    _Fail(err_msg)
 
 
-def StopMaster(stop_daemons):
-  """Deactivate this node as master.
+def StartMasterDaemons(no_voting):
+  """Activate local node as master node.
 
-  The function will always try to deactivate the IP address of the
-  master. It will also stop the master daemons depending on the
-  stop_daemons parameter.
+  The function will start the master daemons (ganeti-masterd and ganeti-rapi).
 
-  @type stop_daemons: boolean
-  @param stop_daemons: whether to also stop the master daemons
-      (ganeti-masterd and ganeti-rapi)
+  @type no_voting: boolean
+  @param no_voting: whether to start ganeti-masterd without a node vote
+      but still non-interactively
   @rtype: None
+
+  """
+
+  if no_voting:
+    masterd_args = "--no-voting --yes-do-it"
+  else:
+    masterd_args = ""
+
+  env = {
+    "EXTRA_MASTERD_ARGS": masterd_args,
+    }
+
+  result = utils.RunCmd([constants.DAEMON_UTIL, "start-master"], env=env)
+  if result.failed:
+    msg = "Can't start Ganeti master: %s" % result.output
+    logging.error(msg)
+    _Fail(msg)
+
+
+def DeactivateMasterIp():
+  """Deactivate the master IP on this node.
 
   """
   # TODO: log and report back to the caller the error failures; we
@@ -352,12 +338,23 @@ def StopMaster(stop_daemons):
     logging.error("Can't remove the master IP, error: %s", result.output)
     # but otherwise ignore the failure
 
-  if stop_daemons:
-    result = utils.RunCmd([constants.DAEMON_UTIL, "stop-master"])
-    if result.failed:
-      logging.error("Could not stop Ganeti master, command %s had exitcode %s"
-                    " and error %s",
-                    result.cmd, result.exit_code, result.output)
+
+def StopMasterDaemons():
+  """Stop the master daemons on this node.
+
+  Stop the master daemons (ganeti-masterd and ganeti-rapi) on this node.
+
+  @rtype: None
+
+  """
+  # TODO: log and report back to the caller the error failures; we
+  # need to decide in which case we fail the RPC for this
+
+  result = utils.RunCmd([constants.DAEMON_UTIL, "stop-master"])
+  if result.failed:
+    logging.error("Could not stop Ganeti master, command %s had exitcode %s"
+                  " and error %s",
+                  result.cmd, result.exit_code, result.output)
 
 
 def EtcHostsModify(mode, host, ip):

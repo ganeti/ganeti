@@ -677,18 +677,36 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.VerifyNode(params[0], params[1])
 
   @staticmethod
-  def perspective_node_start_master(params):
-    """Promote this node to master status.
+  def perspective_node_start_master_daemons(params):
+    """Start the master daemons on this node.
 
     """
-    return backend.StartMaster(params[0], params[1])
+    return backend.StartMasterDaemons(params[0])
+
+  @staticmethod
+  def perspective_node_activate_master_ip(params):
+    """Activate the master IP on this node.
+
+    """
+    return backend.ActivateMasterIp()
+
+  @staticmethod
+  def perspective_node_deactivate_master_ip(params):
+    """Deactivate the master IP on this node.
+
+    """
+    return backend.DeactivateMasterIp()
 
   @staticmethod
   def perspective_node_stop_master(params):
-    """Demote this node from master status.
+    """Deactivate the master IP and stops master daemons on this node.
+
+    Sometimes both operations need to be executed at the same time (doing one of
+    the two would make impossible to do the other one).
 
     """
-    return backend.StopMaster(params[0])
+    backend.DeactivateMasterIp()
+    return backend.StopMasterDaemons()
 
   @staticmethod
   def perspective_node_leave_cluster(params):

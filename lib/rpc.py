@@ -919,24 +919,44 @@ class RpcRunner(object):
 
   @classmethod
   @_RpcTimeout(_TMO_FAST)
-  def call_node_start_master(cls, node, start_daemons, no_voting):
-    """Tells a node to activate itself as a master.
+  def call_node_start_master_daemons(cls, node, no_voting):
+    """Starts master daemons on a node.
 
     This is a single-node call.
 
     """
-    return cls._StaticSingleNodeCall(node, "node_start_master",
-                                     [start_daemons, no_voting])
+    return cls._StaticSingleNodeCall(node, "node_start_master_daemons",
+                                     [no_voting])
 
   @classmethod
   @_RpcTimeout(_TMO_FAST)
-  def call_node_stop_master(cls, node, stop_daemons):
-    """Tells a node to demote itself from master status.
+  def call_node_activate_master_ip(cls, node):
+    """Activates master IP on a node.
 
     This is a single-node call.
 
     """
-    return cls._StaticSingleNodeCall(node, "node_stop_master", [stop_daemons])
+    return cls._StaticSingleNodeCall(node, "node_activate_master_ip", [])
+
+  @classmethod
+  @_RpcTimeout(_TMO_FAST)
+  def call_node_stop_master(cls, node):
+    """Deactivates master IP and stops master daemons on a node.
+
+    This is a single-node call.
+
+    """
+    return cls._StaticSingleNodeCall(node, "node_stop_master", [])
+
+  @classmethod
+  @_RpcTimeout(_TMO_FAST)
+  def call_node_deactivate_master_ip(cls, node):
+    """Deactivates master IP on a node.
+
+    This is a single-node call.
+
+    """
+    return cls._StaticSingleNodeCall(node, "node_deactivate_master_ip", [])
 
   @classmethod
   @_RpcTimeout(_TMO_URGENT)
