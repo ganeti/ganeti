@@ -3797,6 +3797,30 @@ class LUClusterRedistConf(NoHooksLU):
     _RedistributeAncillaryFiles(self)
 
 
+class LUClusterActivateMasterIp(NoHooksLU):
+  """Activate the master IP on the master node.
+
+  """
+  def Exec(self, feedback_fn):
+    """Activate the master IP.
+
+    """
+    master = self.cfg.GetMasterNode()
+    self.rpc.call_node_activate_master_ip(master)
+
+
+class LUClusterDeactivateMasterIp(NoHooksLU):
+  """Deactivate the master IP on the master node.
+
+  """
+  def Exec(self, feedback_fn):
+    """Deactivate the master IP.
+
+    """
+    master = self.cfg.GetMasterNode()
+    self.rpc.call_node_deactivate_master_ip(master)
+
+
 def _WaitForSync(lu, instance, disks=None, oneshot=False):
   """Sleep and poll for an instance's disk to sync.
 
