@@ -40,7 +40,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import ssh
 from ganeti import utils
-from ganeti import netutils
 
 
 _GROUPS_MERGE = "merge"
@@ -111,7 +110,7 @@ class MergerData(object):
 
   """
   def __init__(self, cluster, key_path, nodes, instances, master_node,
-               master_ip, config_path=None):
+               config_path=None):
     """Initialize the container.
 
     @param cluster: The name of the cluster
@@ -119,7 +118,6 @@ class MergerData(object):
     @param nodes: List of online nodes in the merging cluster
     @param instances: List of instances running on merging cluster
     @param master_node: Name of the master node
-    @param master_ip: Cluster IP
     @param config_path: Path to the merging cluster config
 
     """
@@ -128,7 +126,6 @@ class MergerData(object):
     self.nodes = nodes
     self.instances = instances
     self.master_node = master_node
-    self.master_ip = master_ip
     self.config_path = config_path
 
 
@@ -221,17 +218,8 @@ class Merger(object):
                                  (cluster, result.fail_reason, result.output))
       master_node = result.stdout.strip()
 
-      path = utils.PathJoin(constants.DATA_DIR, "ssconf_%s" %
-                            constants.SS_MASTER_IP)
-      result = self._RunCmd(cluster, "cat %s" % path, private_key=key_path)
-      if result.failed:
-        raise errors.RemoteError("Unable to retrieve the master IP from"
-                                 " %s. Fail reason: %s; output: %s" %
-                                 (cluster, result.fail_reason, result.output))
-      master_ip = result.stdout.strip()
-
       self.merger_data.append(MergerData(cluster, key_path, nodes, instances,
-                                         master_node, master_ip))
+                                         master_node))
 
   def _PrepareAuthorizedKeys(self):
     """Prepare the authorized_keys on every merging node.
@@ -319,19 +307,9 @@ class Merger(object):
 
     """
     for data in self.merger_data:
-      master_ip_family = netutils.IPAddress.GetAddressFamily(data.master_ip)
-      master_ip_len = netutils.IP4Address.iplen
-      if master_ip_family == netutils.IP6Address.family:
-        master_ip_len = netutils.IP6Address.iplen
-      # Not using constants.IP_COMMAND_PATH because the command might run on a
-      # machine in which the ip path is different, so it's better to rely on
-      # $PATH.
-      cmd = "ip address del %s/%s dev $(cat %s)" % (
-             data.master_ip,
-             master_ip_len,
-             utils.PathJoin(constants.DATA_DIR, "ssconf_%s" %
-                            constants.SS_MASTER_NETDEV))
-      result = self._RunCmd(data.master_node, cmd, max_attempts=3)
+      result = self._RunCmd(data.master_node,
+                            "gnt-cluster deactivate-master-ip")
+
       if result.failed:
         raise errors.RemoteError("Unable to remove master IP on %s."
                                  " Fail reason: %s; output: %s" %
@@ -739,12 +717,12 @@ class Merger(object):
                                   " mergees")
       logging.info("Disable watcher")
       self._DisableWatcher()
-      logging.info("Stop daemons on merging nodes")
-      self._StopDaemons()
       logging.info("Merging config")
       self._FetchRemoteConfig()
       logging.info("Removing master IPs on mergee master nodes")
       self._RemoveMasterIps()
+      logging.info("Stop daemons on merging nodes")
+      self._StopDaemons()
 
       logging.info("Stopping master daemon")
       self._KillMasterDaemon()
