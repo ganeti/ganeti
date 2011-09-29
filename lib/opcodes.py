@@ -796,6 +796,18 @@ class OpClusterRedistConf(OpCode):
   """
 
 
+class OpClusterActivateMasterIp(OpCode):
+  """Activate the master IP on the master node.
+
+  """
+
+
+class OpClusterDeactivateMasterIp(OpCode):
+  """Deactivate the master IP on the master node.
+
+  """
+
+
 class OpQuery(OpCode):
   """Query for resources/items.
 

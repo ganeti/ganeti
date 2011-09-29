@@ -223,6 +223,32 @@ def RenameCluster(opts, args):
   return 0
 
 
+def ActivateMasterIp(opts, args):
+  """Activates the master IP.
+
+  """
+  op = opcodes.OpClusterActivateMasterIp()
+  SubmitOpCode(op)
+  return 0
+
+
+def DeactivateMasterIp(opts, args):
+  """Deactivates the master IP.
+
+  """
+  if not opts.confirm:
+    usertext = ("This will disable the master IP. All the open connections to"
+                " the master IP will be closed. To reach the master you will"
+                " need to use its node IP."
+                " Continue?")
+    if not AskUser(usertext):
+      return 1
+
+  op = opcodes.OpClusterDeactivateMasterIp()
+  SubmitOpCode(op)
+  return 0
+
+
 def RedistributeConfig(opts, args):
   """Forces push of the cluster configuration.
 
@@ -1411,6 +1437,11 @@ commands = {
      SHUTDOWN_TIMEOUT_OPT, POWER_DELAY_OPT],
     "[opts...] [args]",
     "Performs an emergency power-off on given args"),
+  "activate-master-ip": (
+    ActivateMasterIp, ARGS_NONE, [], "", "Activates the master IP"),
+  "deactivate-master-ip": (
+    DeactivateMasterIp, ARGS_NONE, [CONFIRM_OPT], "",
+    "Deactivates the master IP"),
   }
 
 

@@ -56,6 +56,8 @@ RAPI_OPCODE_EXCLUDE = frozenset([
   opcodes.OpNodeQueryvols,
   opcodes.OpOobCommand,
   opcodes.OpTagsSearch,
+  opcodes.OpClusterActivateMasterIp,
+  opcodes.OpClusterDeactivateMasterIp,
 
   # Difficult if not impossible
   opcodes.OpClusterDestroy,

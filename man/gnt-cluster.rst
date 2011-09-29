@@ -20,6 +20,13 @@ Ganeti system.
 COMMANDS
 --------
 
+ACTIVATE-MASTER-IP
+~~~~~~~~~~~~~~~~~~
+
+**activate-master-ip**
+
+Activates the master IP on the master node.
+
 ADD-TAGS
 ~~~~~~~~
 
@@ -88,6 +95,18 @@ primary/secondary IPs are different). Example::
 
 This will copy the file /tmp/test from the current node to the two
 named nodes.
+
+DEACTIVATE-MASTER-IP
+~~~~~~~~~~~~~~~~~~~~
+
+**deactivate-master-ip** [--yes]
+
+Deactivates the master IP on the master node.
+
+This should be run only locally or on a connection to the node ip
+directly, as a connection to the master ip will be broken by this
+operation. Because of this risk it will require user confirmation
+unless the ``--yes`` option is passed.
 
 DESTROY
 ~~~~~~~
