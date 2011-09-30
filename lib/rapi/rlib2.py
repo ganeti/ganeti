@@ -922,8 +922,6 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
     @return: a job id
 
     """
-    baserlib.CheckType(self.request_body, dict, "Body contents")
-
     no_remember = bool(self._checkIntVariable("no_remember"))
     op = _ParseShutdownInstanceRequest(self.items[0], self.request_body,
                                        bool(self.dryRun()), no_remember)
