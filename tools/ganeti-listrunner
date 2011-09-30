@@ -376,8 +376,10 @@ def HostWorker(logdir, username, password, use_agent, hostname,
         print "  %s: uploading files" % hostname
         upload_dir = UploadFiles(connection, executable,
                                  filelist, logfile)
-        command = ("cd %s && ./%s %s" %
-                   (upload_dir, os.path.basename(executable), exec_args))
+        command = ("cd %s && ./%s" %
+                   (upload_dir, os.path.basename(executable)))
+        if exec_args:
+          command += " %s" % exec_args
       print "  %s: executing remote command" % hostname
       cmd_result = RunRemoteCommand(connection, command, logfile)
       if cmd_result is True:

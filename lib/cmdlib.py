@@ -2973,10 +2973,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         self._ErrorIf(test, self.ENODEHOOKS, node_name,
                       "Communication failure in hooks execution: %s", msg)
         if res.offline or msg:
-          # No need to investigate payload if node is offline or gave an error.
-          # override manually lu_result here as _ErrorIf only
-          # overrides self.bad
-          lu_result = 1
+          # No need to investigate payload if node is offline or gave
+          # an error.
           continue
         for script, hkr, output in res.payload:
           test = hkr == constants.HKR_FAIL
@@ -2985,7 +2983,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           if test:
             output = self._HOOKS_INDENT_RE.sub("      ", output)
             feedback_fn("%s" % output)
-            lu_result = 0
+            lu_result = False
 
     return lu_result
 
@@ -3697,6 +3695,9 @@ def _ComputeAncillaryFiles(cluster, redist):
   if not redist:
     files_all.update(constants.ALL_CERT_FILES)
     files_all.update(ssconf.SimpleStore().GetFileList())
+  else:
+    # we need to ship at least the RAPI certificate
+    files_all.add(constants.RAPI_CERT_FILE)
 
   if cluster.modify_etc_hosts:
     files_all.add(constants.ETC_HOSTS)
@@ -7413,6 +7414,21 @@ class TLMigrateInstance(Tasklet):
     instance = self.instance
     target_node = self.target_node
     source_node = self.source_node
+
+    # Check for hypervisor version mismatch and warn the user.
+    nodeinfo = self.rpc.call_node_info([source_node, target_node],
+                                       None, self.instance.hypervisor)
+    src_info = nodeinfo[source_node]
+    dst_info = nodeinfo[target_node]
+
+    if ((constants.HV_NODEINFO_KEY_VERSION in src_info.payload) and
+        (constants.HV_NODEINFO_KEY_VERSION in dst_info.payload)):
+      src_version = src_info.payload[constants.HV_NODEINFO_KEY_VERSION]
+      dst_version = dst_info.payload[constants.HV_NODEINFO_KEY_VERSION]
+      if src_version != dst_version:
+        self.feedback_fn("* warning: hypervisor version mismatch between"
+                         " source (%s) and target (%s) node" %
+                         (src_version, dst_version))
 
     self.feedback_fn("* checking disk consistency between source and target")
     for dev in instance.disks:

@@ -598,6 +598,16 @@ def TestRapiInstanceFailover(instance):
   _WaitForRapiJob(_rapi_client.FailoverInstance(instance["name"]))
 
 
+def TestRapiInstanceShutdown(instance):
+  """Test stopping an instance via RAPI"""
+  _WaitForRapiJob(_rapi_client.ShutdownInstance(instance["name"]))
+
+
+def TestRapiInstanceStartup(instance):
+  """Test starting an instance via RAPI"""
+  _WaitForRapiJob(_rapi_client.StartupInstance(instance["name"]))
+
+
 def TestRapiInstanceRename(rename_source, rename_target):
   """Test renaming instance via RAPI"""
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_source, rename_target))

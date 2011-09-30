@@ -440,6 +440,7 @@ def GetNodeInfo(vgname, hypervisor_type):
       - memory_dom0 is the memory allocated for domain0 in MiB
       - memory_free is the currently available (free) ram in MiB
       - memory_total is the total number of ram in MiB
+      - hv_version: the hypervisor version, if available
 
   """
   outputarray = {}

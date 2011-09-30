@@ -818,6 +818,9 @@ HV_MIGRATION_FAILED_STATUSES = frozenset([
 # KVM-specific statuses
 HV_KVM_MIGRATION_VALID_STATUSES = HV_MIGRATION_VALID_STATUSES
 
+# Node info keys
+HV_NODEINFO_KEY_VERSION = "hv_version"
+
 # Backend parameter names
 BE_MEMORY = "memory"
 BE_VCPUS = "vcpus"

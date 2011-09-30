@@ -359,6 +359,9 @@ The options that can be passed to the program are as follows:
   jobset will be executed in parallel. The jobsets themselves are
   executed serially.
 
+  The execution of the job series can be interrupted, see below for
+  signal handling.
+
 -l *N*, --max-length=*N*
   Restrict the solution to this length. This can be used for example
   to automate the execution of the balancing.
@@ -396,24 +399,44 @@ The options that can be passed to the program are as follows:
 -V, --version
   Just show the program version and exit.
 
+SIGNAL HANDLING
+---------------
+
+When executing jobs via LUXI (using the ``-X`` option), normally hbal
+will execute all jobs until either one errors out or all the jobs finish
+successfully.
+
+Since balancing can take a long time, it is possible to stop hbal early
+in two ways:
+
+- by sending a ``SIGINT`` (``^C``), hbal will register the termination
+  request, and will wait until the currently submitted jobs finish, at
+  which point it will exit (with exit code 1)
+- by sending a ``SIGTERM``, hbal will immediately exit (with exit code
+  2); it is the responsibility of the user to follow up with Ganeti the
+  result of the currently-executing jobs
+
+Note that in any situation, it's perfectly safe to kill hbal, either via
+the above signals or via any other signal (e.g. ``SIGQUIT``,
+``SIGKILL``), since the jobs themselves are processed by Ganeti whereas
+hbal (after submission) only watches their progression. In this case,
+the use will again have to query Ganeti for job results.
+
 EXIT STATUS
 -----------
 
-The exit status of the command will be zero, unless for some reason
-the algorithm fatally failed (e.g. wrong node or instance data), or
-(in case of job execution) any job has failed.
+The exit status of the command will be zero, unless for some reason the
+algorithm fatally failed (e.g. wrong node or instance data), or (in case
+of job execution) either one of the jobs has failed or the balancing was
+interrupted early.
 
 BUGS
 ----
 
-The program does not check its input data for consistency, and aborts
-with cryptic errors messages in this case.
+The program does not check all its input data for consistency, and
+sometime aborts with cryptic errors messages with invalid data.
 
 The algorithm is not perfect.
-
-The output format is not easily scriptable, and the program should
-feed moves directly into Ganeti (either via RAPI or via a gnt-debug
-input file).
 
 EXAMPLE
 -------

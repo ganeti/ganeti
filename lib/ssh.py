@@ -229,8 +229,8 @@ class SshRunner:
     result = utils.RunCmd(command)
 
     if result.failed:
-      logging.error("Copy to node %s failed (%s) error %s,"
-                    " command was %s",
+      logging.error("Copy to node %s failed (%s) error '%s',"
+                    " command was '%s'",
                     node, result.fail_reason, result.output, result.cmd)
 
     return not result.failed
