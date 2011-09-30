@@ -43,6 +43,8 @@ import Language.Haskell.TH
 
 import qualified Text.JSON as JSON
 
+-- * Helper functions
+
 -- | Ensure first letter is lowercase.
 --
 -- Used to convert type name to function prefix, e.g. in @data Aa ->
@@ -50,6 +52,14 @@ import qualified Text.JSON as JSON
 ensureLower :: String -> String
 ensureLower [] = []
 ensureLower (x:xs) = toLower x:xs
+
+-- | Helper for quoted expressions.
+varNameE :: String -> Q Exp
+varNameE = varE . mkName
+
+-- | showJSON as an expression, for reuse.
+showJSONE :: Q Exp
+showJSONE = varNameE "showJSON"
 
 -- | ToString function name.
 toStrName :: String -> Name
@@ -62,8 +72,9 @@ fromStrName = mkName . (++ "FromString") . ensureLower
 -- | Converts a name to it's varE/litE representations.
 --
 reprE :: Either String Name -> Q Exp
-reprE (Left name) = litE (StringL name)
-reprE (Right name) = varE name
+reprE = either stringE varE
+
+-- * Template code for simple string-equivalent ADTs
 
 -- | Generates a data type declaration.
 --
@@ -183,7 +194,7 @@ genReadJSON name = do
                JSON.Ok s' -> $(varE (fromStrName name)) s'
                JSON.Error e ->
                    JSON.Error $ "Can't parse string value for type " ++
-                           $(litE (StringL name)) ++ ": " ++ e
+                           $(stringE name) ++ ": " ++ e
            |]
   return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
 
@@ -197,6 +208,8 @@ makeJSONInstance name = do
   showJ <- genShowJSON base
   readJ <- genReadJSON base
   return [InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name)) (readJ:showJ)]
+
+-- * Template code for opcodes
 
 -- | Transforms a CamelCase string into an_underscore_based_one.
 deCamelCase :: String -> String
@@ -282,15 +295,14 @@ saveField :: Name    -- ^ The name of variable that contains the value
           -> Q Exp
 saveField fvar (fname, qt, _) = do
   t <- qt
-  let showJ = varE (mkName "showJSON")
-      fnexp = litE (stringL fname)
+  let fnexp = stringE fname
       fvare = varE fvar
   (if isOptional t
    then [| case $fvare of
-             Just v' -> [( $fnexp, $showJ v')]
+             Just v' -> [( $fnexp, $showJSONE v')]
              Nothing -> []
          |]
-   else [| [( $fnexp, $showJ $fvare )] |])
+   else [| [( $fnexp, $showJSONE $fvare )] |])
 
 -- | Generates the \"save\" clause for an entire opcode constructor.
 --
@@ -307,12 +319,11 @@ saveConstructor sname fields = do
   let pat = conP cname (map varP fnames)
   let felems = map (uncurry saveField) (zip fnames fields)
       -- now build the OP_ID serialisation
-      opid = [| [( $(litE (stringL "OP_ID")),
-                   $(varE (mkName "showJSON"))
-                        $(litE . stringL . deCamelCase $ sname) )] |]
+      opid = [| [( $(stringE "OP_ID"),
+                   $showJSONE $(stringE . deCamelCase $ sname) )] |]
       flist = listE (opid:felems)
       -- and finally convert all this to a json object
-      flist' = [| $(varE (mkName "makeObj")) (concat $flist) |]
+      flist' = [| $(varNameE "makeObj") (concat $flist) |]
   clause [pat] (normalB flist') []
 
 -- | Generates the main save opcode function.
@@ -339,17 +350,17 @@ loadField (fname, qt, qdefa) = do
   t <- qt
   defa <- qdefa
   -- these are used in all patterns below
-  let objvar = varE (mkName "o")
-      objfield = litE (StringL fname)
+  let objvar = varNameE "o"
+      objfield = stringE fname
   bexp <- if isOptional t
-          then [| $((varE (mkName "maybeFromObj"))) $objvar $objfield |]
+          then [| $((varNameE "maybeFromObj")) $objvar $objfield |]
           else case defa of
                  AppE (ConE dt) defval | dt == 'Just ->
                    -- but has a default value
-                   [| $(varE (mkName "fromObjWithDefault"))
+                   [| $(varNameE "fromObjWithDefault")
                       $objvar $objfield $(return defval) |]
                  ConE dt | dt == 'Nothing ->
-                     [| $(varE (mkName "fromObj")) $objvar $objfield |]
+                     [| $(varNameE "fromObj") $objvar $objfield |]
                  s -> fail $ "Invalid default value " ++ show s ++
                       ", expecting either 'Nothing' or a 'Just defval'"
   return (fvar, BindS (VarP fvar) bexp)
@@ -371,8 +382,8 @@ genLoadOpCode opdefs = do
       opid = mkName "op_id"
   st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
                                  (JSON.readJSON $(varE arg1)) |]
-  st2 <- bindS (varP opid) [| $(varE (mkName "fromObj"))
-                              $(varE objname) $(litE (stringL "OP_ID")) |]
+  st2 <- bindS (varP opid) [| $(varNameE "fromObj")
+                              $(varE objname) $(stringE "OP_ID") |]
   -- the match results (per-constructor blocks)
   mexps <- mapM (uncurry loadConstructor) opdefs
   fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
