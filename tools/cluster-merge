@@ -308,7 +308,7 @@ class Merger(object):
     """
     for data in self.merger_data:
       result = self._RunCmd(data.master_node,
-                            "gnt-cluster deactivate-master-ip")
+                            "gnt-cluster deactivate-master-ip --yes")
 
       if result.failed:
         raise errors.RemoteError("Unable to remove master IP on %s."
