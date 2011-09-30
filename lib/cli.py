@@ -257,6 +257,9 @@ _PRIONAME_TO_VALUE = dict(_PRIORITY_NAMES)
  QR_UNKNOWN,
  QR_INCOMPLETE) = range(3)
 
+#: Maximum batch size for ChooseJob
+_CHOOSE_BATCH = 25
+
 
 class _Argument:
   def __init__(self, min=0, max=None): # pylint: disable=W0622
@@ -3055,7 +3058,8 @@ class JobExecutor(object):
     """
     assert self.jobs, "_ChooseJob called with empty job list"
 
-    result = self.cl.QueryJobs([i[2] for i in self.jobs], ["status"])
+    result = self.cl.QueryJobs([i[2] for i in self.jobs[:_CHOOSE_BATCH]],
+                               ["status"])
     assert result
 
     for job_data, status in zip(self.jobs, result):
