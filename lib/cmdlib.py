@@ -2542,6 +2542,40 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     return instdisk
 
+  @staticmethod
+  def _SshNodeSelector(group_uuid, all_nodes):
+    """Create endless iterators for all potential SSH check hosts.
+
+    """
+    nodes = [node for node in all_nodes
+             if (node.group != group_uuid and
+                 not node.offline)]
+    keyfunc = operator.attrgetter("group")
+
+    return map(itertools.cycle,
+               [sorted(map(operator.attrgetter("name"), names))
+                for _, names in itertools.groupby(sorted(nodes, key=keyfunc),
+                                                  keyfunc)])
+
+  @classmethod
+  def _SelectSshCheckNodes(cls, group_nodes, group_uuid, all_nodes):
+    """Choose which nodes should talk to which other nodes.
+
+    We will make nodes contact all nodes in their group, and one node from
+    every other group.
+
+    @warning: This algorithm has a known issue if one node group is much
+      smaller than others (e.g. just one node). In such a case all other
+      nodes will talk to the single node.
+
+    """
+    online_nodes = sorted(node.name for node in group_nodes if not node.offline)
+    sel = cls._SshNodeSelector(group_uuid, all_nodes)
+
+    return (online_nodes,
+            dict((name, sorted([i.next() for i in sel]))
+                 for name in online_nodes))
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -2605,25 +2639,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_names))
 
-    # We will make nodes contact all nodes in their group, and one node from
-    # every other group.
-    # TODO: should it be a *random* node, different every time?
-    online_nodes = [node.name for node in node_data_list if not node.offline]
-    other_group_nodes = {}
-
-    for name in sorted(self.all_node_info):
-      node = self.all_node_info[name]
-      if (node.group not in other_group_nodes
-          and node.group != self.group_uuid
-          and not node.offline):
-        other_group_nodes[node.group] = node.name
-
     node_verify_param = {
       constants.NV_FILELIST:
         utils.UniqueSequence(filename
                              for files in filemap
                              for filename in files),
-      constants.NV_NODELIST: online_nodes + other_group_nodes.values(),
+      constants.NV_NODELIST:
+        self._SelectSshCheckNodes(node_data_list, self.group_uuid,
+                                  self.all_node_info.values()),
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_HVPARAMS:
         _GetAllHypervisorParameters(cluster, self.all_inst_info.values()),

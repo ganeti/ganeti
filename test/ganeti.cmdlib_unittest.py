@@ -27,6 +27,7 @@ import unittest
 import time
 import tempfile
 import shutil
+import operator
 
 from ganeti import constants
 from ganeti import mcpu
@@ -205,6 +206,65 @@ class TestLUGroupAssignNodes(unittest.TestCase):
 
     self.assertEqual(set(["inst1a", "inst1b"]), set(new))
     self.assertEqual(set(["inst3c"]), set(prev))
+
+
+class TestClusterVerifySsh(unittest.TestCase):
+  def testMultipleGroups(self):
+    fn = cmdlib.LUClusterVerifyGroup._SelectSshCheckNodes
+    mygroupnodes = [
+      objects.Node(name="node20", group="my", offline=False),
+      objects.Node(name="node21", group="my", offline=False),
+      objects.Node(name="node22", group="my", offline=False),
+      objects.Node(name="node23", group="my", offline=False),
+      objects.Node(name="node24", group="my", offline=False),
+      objects.Node(name="node25", group="my", offline=False),
+      objects.Node(name="node26", group="my", offline=True),
+      ]
+    nodes = [
+      objects.Node(name="node1", group="g1", offline=True),
+      objects.Node(name="node2", group="g1", offline=False),
+      objects.Node(name="node3", group="g1", offline=False),
+      objects.Node(name="node4", group="g1", offline=True),
+      objects.Node(name="node5", group="g1", offline=False),
+      objects.Node(name="node10", group="xyz", offline=False),
+      objects.Node(name="node11", group="xyz", offline=False),
+      objects.Node(name="node40", group="alloff", offline=True),
+      objects.Node(name="node41", group="alloff", offline=True),
+      objects.Node(name="node50", group="aaa", offline=False),
+      ] + mygroupnodes
+    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+
+    (online, perhost) = fn(mygroupnodes, "my", nodes)
+    self.assertEqual(online, ["node%s" % i for i in range(20, 26)])
+    self.assertEqual(set(perhost.keys()), set(online))
+
+    self.assertEqual(perhost, {
+      "node20": ["node10", "node2", "node50"],
+      "node21": ["node11", "node3", "node50"],
+      "node22": ["node10", "node5", "node50"],
+      "node23": ["node11", "node2", "node50"],
+      "node24": ["node10", "node3", "node50"],
+      "node25": ["node11", "node5", "node50"],
+      })
+
+  def testSingleGroup(self):
+    fn = cmdlib.LUClusterVerifyGroup._SelectSshCheckNodes
+    nodes = [
+      objects.Node(name="node1", group="default", offline=True),
+      objects.Node(name="node2", group="default", offline=False),
+      objects.Node(name="node3", group="default", offline=False),
+      objects.Node(name="node4", group="default", offline=True),
+      ]
+    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+
+    (online, perhost) = fn(nodes, "default", nodes)
+    self.assertEqual(online, ["node2", "node3"])
+    self.assertEqual(set(perhost.keys()), set(online))
+
+    self.assertEqual(perhost, {
+      "node2": [],
+      "node3": [],
+      })
 
 
 if __name__ == "__main__":

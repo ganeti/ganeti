@@ -520,12 +520,25 @@ def VerifyNode(what, cluster_name):
       what[constants.NV_FILELIST])
 
   if constants.NV_NODELIST in what:
-    result[constants.NV_NODELIST] = tmp = {}
-    random.shuffle(what[constants.NV_NODELIST])
-    for node in what[constants.NV_NODELIST]:
+    (nodes, bynode) = what[constants.NV_NODELIST]
+
+    # Add nodes from other groups (different for each node)
+    try:
+      nodes.extend(bynode[my_name])
+    except KeyError:
+      pass
+
+    # Use a random order
+    random.shuffle(nodes)
+
+    # Try to contact all nodes
+    val = {}
+    for node in nodes:
       success, message = _GetSshRunner(cluster_name).VerifyNodeHostname(node)
       if not success:
-        tmp[node] = message
+        val[node] = message
+
+    result[constants.NV_NODELIST] = val
 
   if constants.NV_NODENETTEST in what:
     result[constants.NV_NODENETTEST] = tmp = {}
