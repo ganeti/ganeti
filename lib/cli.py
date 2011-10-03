@@ -101,6 +101,7 @@ __all__ = [
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
+  "MASTER_NETMASK_OPT",
   "MC_OPT",
   "MIGRATION_MODE_OPT",
   "NET_OPT",
@@ -1007,6 +1008,11 @@ MASTER_NETDEV_OPT = cli_option("--master-netdev", dest="master_netdev",
                                constants.DEFAULT_BRIDGE,
                                metavar="NETDEV",
                                default=None)
+
+MASTER_NETMASK_OPT = cli_option("--master-netmask", dest="master_netmask",
+                                help="Specify the netmask of the master IP",
+                                metavar="NETMASK",
+                                default=None)
 
 GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 help="Specify the default directory (cluster-"

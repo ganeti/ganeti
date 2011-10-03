@@ -152,6 +152,9 @@ class SimpleConfigReader(object):
   def GetMasterNetdev(self):
     return self._config_data["cluster"]["master_netdev"]
 
+  def GetMasterNetmask(self):
+    return self._config_data["cluster"]["master_netmask"]
+
   def GetFileStorageDir(self):
     return self._config_data["cluster"]["file_storage_dir"]
 
@@ -280,6 +283,7 @@ class SimpleStore(object):
     constants.SS_MASTER_CANDIDATES_IPS,
     constants.SS_MASTER_IP,
     constants.SS_MASTER_NETDEV,
+    constants.SS_MASTER_NETMASK,
     constants.SS_MASTER_NODE,
     constants.SS_NODE_LIST,
     constants.SS_NODE_PRIMARY_IPS,
@@ -407,6 +411,12 @@ class SimpleStore(object):
 
     """
     return self._ReadFile(constants.SS_MASTER_NETDEV)
+
+  def GetMasterNetmask(self):
+    """Get the netdev to which we'll add the master ip.
+
+    """
+    return self._ReadFile(constants.SS_MASTER_NETMASK)
 
   def GetMasterNode(self):
     """Get the hostname of the master node for this cluster.

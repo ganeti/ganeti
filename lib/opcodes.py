@@ -777,6 +777,8 @@ class OpClusterSetParams(OpCode):
      "Default iallocator for cluster"),
     ("master_netdev", None, ht.TOr(ht.TString, ht.TNone),
      "Master network device"),
+    ("master_netmask", None, ht.TOr(ht.TInt, ht.TNone),
+     "Netmask of the master IP"),
     ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone),
      "List of reserved LVs"),
     ("hidden_os", None, _TestClusterOsList,

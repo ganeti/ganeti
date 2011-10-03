@@ -984,6 +984,17 @@ class RpcRunner(object):
     return cls._StaticSingleNodeCall(node, "node_deactivate_master_ip", [])
 
   @classmethod
+  @_RpcTimeout(_TMO_FAST)
+  def call_node_change_master_netmask(cls, node, netmask):
+    """Change master IP netmask.
+
+    This is a single-node call.
+
+    """
+    return cls._StaticSingleNodeCall(node, "node_change_master_netmask",
+                  [netmask])
+
+  @classmethod
   @_RpcTimeout(_TMO_URGENT)
   def call_master_info(cls, node_list):
     """Query master info.

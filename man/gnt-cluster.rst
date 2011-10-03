@@ -166,6 +166,7 @@ INIT
 | [{-s|--secondary-ip} *secondary\_ip*]
 | [--vg-name *vg-name*]
 | [--master-netdev *interface-name*]
+| [--master-netmask *netmask*]
 | [{-m|--mac-prefix} *mac-prefix*]
 | [--no-lvm-storage]
 | [--no-etc-hosts]
@@ -221,6 +222,11 @@ The ``--master-netdev`` option is useful for specifying a different
 interface on which the master will activate its IP address. It's
 important that all nodes have this interface because you'll need it
 for a master failover.
+
+The ``--master-netmask`` option allows to specify a netmask for the
+master IP. The netmask must be specified as an integer, and will be
+interpreted as a CIDR netmask. The default value is 32 for an IPv4
+address and 128 for an IPv6 address.
 
 The ``-m (--mac-prefix)`` option will let you specify a three byte
 prefix under which the virtual MAC addresses of your instances will be
@@ -431,6 +437,7 @@ MODIFY
 | [--reserved-lvs=*NAMES*]
 | [--node-parameters *ndparams*]
 | [--master-netdev *interface-name*]
+| [--master-netmask *netmask*]
 
 Modify the options for the cluster.
 
@@ -438,8 +445,8 @@ The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
 ``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``,
 ``--nic-parameters``, ``-C (--candidate-pool-size)``,
 ``--maintain-node-health``, ``--prealloc-wipe-disks``, ``--uid-pool``,
-``--node-parameters``, ``--master-netdev`` options are described in
-the **init** command.
+``--node-parameters``, ``--master-netdev`` and ``--master-netmask``
+options are described in the **init** command.
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or

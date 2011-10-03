@@ -877,6 +877,13 @@ class ConfigWriter:
     return self._config_data.cluster.master_netdev
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetMasterNetmask(self):
+    """Get the netmask of the master node for this cluster.
+
+    """
+    return self._config_data.cluster.master_netmask
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetFileStorageDir(self):
     """Get the file storage dir for this cluster.
 
@@ -1839,6 +1846,7 @@ class ConfigWriter:
       constants.SS_MASTER_CANDIDATES_IPS: mc_ips_data,
       constants.SS_MASTER_IP: cluster.master_ip,
       constants.SS_MASTER_NETDEV: cluster.master_netdev,
+      constants.SS_MASTER_NETMASK: str(cluster.master_netmask),
       constants.SS_MASTER_NODE: cluster.master_node,
       constants.SS_NODE_LIST: node_data,
       constants.SS_NODE_PRIMARY_IPS: node_pri_ips_data,

@@ -283,10 +283,10 @@ def _InitFileStorage(file_storage_dir):
 
 
 def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
-                master_netdev, file_storage_dir, shared_file_storage_dir,
-                candidate_pool_size, secondary_ip=None, vg_name=None,
-                beparams=None, nicparams=None, ndparams=None, hvparams=None,
-                enabled_hypervisors=None, modify_etc_hosts=True,
+                master_netmask, master_netdev, file_storage_dir,
+                shared_file_storage_dir, candidate_pool_size, secondary_ip=None,
+                vg_name=None, beparams=None, nicparams=None, ndparams=None,
+                hvparams=None, enabled_hypervisors=None, modify_etc_hosts=True,
                 modify_ssh_setup=True, maintain_node_health=False,
                 drbd_helper=None, uid_pool=None, default_iallocator=None,
                 primary_ip_version=None, prealloc_wipe_disks=False):
@@ -310,12 +310,9 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-  ipcls = None
-  if primary_ip_version == constants.IP4_VERSION:
-    ipcls = netutils.IP4Address
-  elif primary_ip_version == constants.IP6_VERSION:
-    ipcls = netutils.IP6Address
-  else:
+  try:
+    ipcls = netutils.IPAddress.GetClassFromIpVersion(primary_ip_version)
+  except errors.ProgrammerError:
     raise errors.OpPrereqError("Invalid primary ip version: %d." %
                                primary_ip_version)
 
@@ -358,6 +355,13 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
     raise errors.OpPrereqError("You gave %s as secondary IP,"
                                " but it does not belong to this host." %
                                secondary_ip, errors.ECODE_ENVIRON)
+
+  if master_netmask is not None:
+    if not ipcls.ValidateNetmask(master_netmask):
+      raise errors.OpPrereqError("CIDR netmask (%s) not valid for IPv%s " %
+                                  (master_netmask, primary_ip_version))
+  else:
+    master_netmask = ipcls.iplen
 
   if vg_name is not None:
     # Check if volume group is valid
@@ -457,6 +461,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
     tcpudp_port_pool=set(),
     master_node=hostname.name,
     master_ip=clustername.ip,
+    master_netmask=master_netmask,
     master_netdev=master_netdev,
     cluster_name=clustername.name,
     file_storage_dir=file_storage_dir,

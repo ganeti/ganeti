@@ -231,7 +231,8 @@ def GetMasterInfo():
   for consumption here or from the node daemon.
 
   @rtype: tuple
-  @return: master_netdev, master_ip, master_name, primary_ip_family
+  @return: master_netdev, master_ip, master_netmask, master_name,
+    primary_ip_family
   @raise RPCFail: in case of errors
 
   """
@@ -239,11 +240,13 @@ def GetMasterInfo():
     cfg = _GetConfig()
     master_netdev = cfg.GetMasterNetdev()
     master_ip = cfg.GetMasterIP()
+    master_netmask = cfg.GetMasterNetmask()
     master_node = cfg.GetMasterNode()
     primary_ip_family = cfg.GetPrimaryIPFamily()
   except errors.ConfigurationError, err:
     _Fail("Cluster configuration incomplete: %s", err, exc=True)
-  return (master_netdev, master_ip, master_node, primary_ip_family)
+  return (master_netdev, master_ip, master_netmask, master_node,
+          primary_ip_family)
 
 
 def ActivateMasterIp():
@@ -251,7 +254,7 @@ def ActivateMasterIp():
 
   """
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _, family = GetMasterInfo()
+  master_netdev, master_ip, master_netmask, _, family = GetMasterInfo()
 
   err_msg = None
   if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
@@ -267,7 +270,7 @@ def ActivateMasterIp():
       ipcls = netutils.IP6Address
 
     result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
-                           "%s/%d" % (master_ip, ipcls.iplen),
+                           "%s/%s" % (master_ip, master_netmask),
                            "dev", master_netdev, "label",
                            "%s:0" % master_netdev])
     if result.failed:
@@ -325,14 +328,10 @@ def DeactivateMasterIp():
   # need to decide in which case we fail the RPC for this
 
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _, family = GetMasterInfo()
-
-  ipcls = netutils.IP4Address
-  if family == netutils.IP6Address.family:
-    ipcls = netutils.IP6Address
+  master_netdev, master_ip, master_netmask, _, _ = GetMasterInfo()
 
   result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
-                         "%s/%d" % (master_ip, ipcls.iplen),
+                         "%s/%s" % (master_ip, master_netmask),
                          "dev", master_netdev])
   if result.failed:
     logging.error("Can't remove the master IP, error: %s", result.output)
@@ -355,6 +354,29 @@ def StopMasterDaemons():
     logging.error("Could not stop Ganeti master, command %s had exitcode %s"
                   " and error %s",
                   result.cmd, result.exit_code, result.output)
+
+
+def ChangeMasterNetmask(netmask):
+  """Change the netmask of the master IP.
+
+  """
+  master_netdev, master_ip, old_netmask, _, _ = GetMasterInfo()
+  if old_netmask == netmask:
+    return
+
+  result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
+                         "%s/%s" % (master_ip, netmask),
+                         "dev", master_netdev, "label",
+                         "%s:0" % master_netdev])
+  if result.failed:
+    _Fail("Could not change the master IP netmask")
+
+  result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
+                         "%s/%s" % (master_ip, old_netmask),
+                         "dev", master_netdev, "label",
+                         "%s:0" % master_netdev])
+  if result.failed:
+    _Fail("Could not change the master IP netmask")
 
 
 def EtcHostsModify(mode, host, ip):

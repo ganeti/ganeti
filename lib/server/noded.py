@@ -726,6 +726,13 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.StopMasterDaemons()
 
   @staticmethod
+  def perspective_node_change_master_netmask(params):
+    """Change the master IP netmask.
+
+    """
+    return backend.ChangeMasterNetmask(params[0])
+
+  @staticmethod
   def perspective_node_leave_cluster(params):
     """Cleanup after leaving a cluster.
 

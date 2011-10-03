@@ -3367,6 +3367,27 @@ class LUClusterRename(LogicalUnit):
     return clustername
 
 
+def _ValidateNetmask(cfg, netmask):
+  """Checks if a netmask is valid.
+
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
+  @type netmask: int
+  @param netmask: the netmask to be verified
+  @raise errors.OpPrereqError: if the validation fails
+
+  """
+  ip_family = cfg.GetPrimaryIPFamily()
+  try:
+    ipcls = netutils.IPAddress.GetClassFromIpFamily(ip_family)
+  except errors.ProgrammerError:
+    raise errors.OpPrereqError("Invalid primary ip family: %s." %
+                               ip_family)
+  if not ipcls.ValidateNetmask(netmask):
+    raise errors.OpPrereqError("CIDR netmask (%s) not valid" %
+                                (netmask))
+
+
 class LUClusterSetParams(LogicalUnit):
   """Change the parameters of the cluster.
 
@@ -3387,6 +3408,9 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.remove_uids:
       uidpool.CheckUidPool(self.op.remove_uids)
+
+    if self.op.master_netmask is not None:
+      _ValidateNetmask(self.cfg, self.op.master_netmask)
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -3696,6 +3720,18 @@ class LUClusterSetParams(LogicalUnit):
       feedback_fn("Changing master_netdev from %s to %s" %
                   (self.cluster.master_netdev, self.op.master_netdev))
       self.cluster.master_netdev = self.op.master_netdev
+
+    if self.op.master_netmask:
+      master = self.cfg.GetMasterNode()
+      feedback_fn("Changing master IP netmask to %s" % self.op.master_netmask)
+      result = self.rpc.call_node_change_master_netmask(master,
+                                                        self.op.master_netmask)
+      if result.fail_msg:
+        msg = "Could not change the master IP netmask: %s" % result.fail_msg
+        self.LogWarning(msg)
+        feedback_fn(msg)
+      else:
+        self.cluster.master_netmask = self.op.master_netmask
 
     self.cfg.Update(self.cluster, feedback_fn)
 
@@ -5518,6 +5554,7 @@ class LUClusterQuery(NoHooksLU):
       "ndparams": cluster.ndparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "master_netdev": cluster.master_netdev,
+      "master_netmask": cluster.master_netmask,
       "volume_group_name": cluster.volume_group_name,
       "drbd_usermode_helper": cluster.drbd_usermode_helper,
       "file_storage_dir": cluster.file_storage_dir,

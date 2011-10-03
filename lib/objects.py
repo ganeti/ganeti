@@ -1070,6 +1070,7 @@ class Cluster(TaggableObject):
     "master_node",
     "master_ip",
     "master_netdev",
+    "master_netmask",
     "cluster_name",
     "file_storage_dir",
     "shared_file_storage_dir",

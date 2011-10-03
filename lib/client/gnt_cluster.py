@@ -139,10 +139,19 @@ def InitCluster(opts, args):
     ToStderr("Invalid primary ip version value: %s" % str(err))
     return 1
 
+  master_netmask = opts.master_netmask
+  try:
+    if master_netmask is not None:
+      master_netmask = int(master_netmask)
+  except (ValueError, TypeError), err:
+    ToStderr("Invalid master netmask value: %s" % str(err))
+    return 1
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
                         mac_prefix=opts.mac_prefix,
+                        master_netmask=master_netmask,
                         master_netdev=master_netdev,
                         file_storage_dir=opts.file_storage_dir,
                         shared_file_storage_dir=opts.shared_file_storage_dir,
@@ -371,6 +380,7 @@ def ShowClusterConfig(opts, args):
             compat.TryToRoman(result["candidate_pool_size"],
                               convert=opts.roman_integers))
   ToStdout("  - master netdev: %s", result["master_netdev"])
+  ToStdout("  - master netmask: %s", result["master_netmask"])
   ToStdout("  - lvm volume group: %s", result["volume_group_name"])
   if result["reserved_lvs"]:
     reserved_lvs = utils.CommaJoin(result["reserved_lvs"])
@@ -867,6 +877,7 @@ def SetClusterParams(opts, args):
           opts.default_iallocator is not None or
           opts.reserved_lvs is not None or
           opts.master_netdev is not None or
+          opts.master_netmask is not None or
           opts.prealloc_wipe_disks is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -926,6 +937,13 @@ def SetClusterParams(opts, args):
     else:
       opts.reserved_lvs = utils.UnescapeAndSplit(opts.reserved_lvs, sep=",")
 
+  if opts.master_netmask is not None:
+    try:
+      opts.master_netmask = int(opts.master_netmask)
+    except ValueError:
+      ToStderr("The --master-netmask option expects an int parameter.")
+      return 1
+
   op = opcodes.OpClusterSetParams(vg_name=vg_name,
                                   drbd_helper=drbd_helper,
                                   enabled_hypervisors=hvlist,
@@ -942,6 +960,7 @@ def SetClusterParams(opts, args):
                                   default_iallocator=opts.default_iallocator,
                                   prealloc_wipe_disks=opts.prealloc_wipe_disks,
                                   master_netdev=opts.master_netdev,
+                                  master_netmask=opts.master_netmask,
                                   reserved_lvs=opts.reserved_lvs)
   SubmitOpCode(op, opts=opts)
   return 0
@@ -1339,10 +1358,10 @@ commands = {
   "init": (
     InitCluster, [ArgHost(min=1, max=1)],
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, GLOBAL_FILEDIR_OPT,
-     HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, NIC_PARAMS_OPT,
-     NOLVM_STORAGE_OPT, NOMODIFY_ETCHOSTS_OPT, NOMODIFY_SSH_SETUP_OPT,
-     SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
-     UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
+     HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, MASTER_NETMASK_OPT,
+     NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, NOMODIFY_ETCHOSTS_OPT,
+     NOMODIFY_SSH_SETUP_OPT, SECONDARY_IP_OPT, VG_NAME_OPT,
+     MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
@@ -1417,10 +1436,11 @@ commands = {
   "modify": (
     SetClusterParams, ARGS_NONE,
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
-     NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
-     UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
-     NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT],
+     MASTER_NETMASK_OPT, NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT,
+     MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT,
+     DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
+     RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
+     NODE_PARAMS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
