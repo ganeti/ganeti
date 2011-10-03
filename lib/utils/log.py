@@ -230,7 +230,7 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
     if debug:
       stderr_handler.setLevel(logging.NOTSET)
     else:
-      stderr_handler.setLevel(logging.ERROR)
+      stderr_handler.setLevel(logging.CRITICAL)
     root_logger.addHandler(stderr_handler)
 
   if syslog in (constants.SYSLOG_YES, constants.SYSLOG_ONLY):
