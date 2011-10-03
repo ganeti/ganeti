@@ -161,6 +161,33 @@ class TestIPAddress(unittest.TestCase):
     self.assertEqual(fn("2001:db8::1"), socket.AF_INET6)
     self.assertRaises(errors.IPAddressError, fn, "0")
 
+  def testValidateNetmask(self):
+    for netmask in [0, 33]:
+      self.assertFalse(netutils.IP4Address.ValidateNetmask(netmask))
+
+    for netmask in [1, 32]:
+      self.assertTrue(netutils.IP4Address.ValidateNetmask(netmask))
+
+    for netmask in [0, 129]:
+      self.assertFalse(netutils.IP6Address.ValidateNetmask(netmask))
+
+    for netmask in [1, 128]:
+      self.assertTrue(netutils.IP6Address.ValidateNetmask(netmask))
+
+  def testGetClassFromX(self):
+    self.assert_(
+        netutils.IPAddress.GetClassFromIpVersion(constants.IP4_VERSION) ==
+        netutils.IP4Address)
+    self.assert_(
+        netutils.IPAddress.GetClassFromIpVersion(constants.IP6_VERSION) ==
+        netutils.IP6Address)
+    self.assert_(
+        netutils.IPAddress.GetClassFromIpFamily(socket.AF_INET) ==
+        netutils.IP4Address)
+    self.assert_(
+        netutils.IPAddress.GetClassFromIpFamily(socket.AF_INET6) ==
+        netutils.IP6Address)
+
   def testOwnLoopback(self):
     # FIXME: In a pure IPv6 environment this is no longer true
     self.assert_(netutils.IPAddress.Own("127.0.0.1"),

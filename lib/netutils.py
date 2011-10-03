@@ -362,6 +362,20 @@ class IPAddress(object):
       return False
 
   @classmethod
+  def ValidateNetmask(cls, netmask):
+    """Validate a netmask suffix in CIDR notation.
+
+    @type netmask: int
+    @param netmask: netmask suffix to validate
+    @rtype: bool
+    @return: True if valid, False otherwise
+
+    """
+    assert (isinstance(netmask, (int, long)))
+
+    return 0 < netmask <= cls.iplen
+
+  @classmethod
   def Own(cls, address):
     """Check if the current host has the the given IP address.
 
@@ -486,6 +500,36 @@ class IPAddress(object):
       return socket.AF_INET6
 
     raise errors.ProgrammerError("%s is not a valid IP version" % version)
+
+  @staticmethod
+  def GetClassFromIpVersion(version):
+    """Return the IPAddress subclass for the given IP version.
+
+    @type version: int
+    @param version: IP version, one of L{constants.IP4_VERSION} or
+                    L{constants.IP6_VERSION}
+    @return: a subclass of L{netutils.IPAddress}
+    @raise errors.ProgrammerError: for unknowo IP versions
+
+    """
+    if version == constants.IP4_VERSION:
+      return IP4Address
+    elif version == constants.IP6_VERSION:
+      return IP6Address
+
+    raise errors.ProgrammerError("%s is not a valid IP version" % version)
+
+  @staticmethod
+  def GetClassFromIpFamily(family):
+    """Return the IPAddress subclass for the given IP family.
+
+    @param family: IP family (one of C{socket.AF_INET} or C{socket.AF_INET6}
+    @return: a subclass of L{netutils.IPAddress}
+    @raise errors.ProgrammerError: for unknowo IP versions
+
+    """
+    return IPAddress.GetClassFromIpVersion(
+              IPAddress.GetVersionFromAddressFamily(family))
 
   @classmethod
   def IsLoopback(cls, address):
