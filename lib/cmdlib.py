@@ -5060,7 +5060,7 @@ class LUNodeAdd(LogicalUnit):
 
     node_verify_list = [self.cfg.GetMasterNode()]
     node_verify_param = {
-      constants.NV_NODELIST: [node],
+      constants.NV_NODELIST: ([node], {}),
       # TODO: do a node-net-test as well?
     }
 
