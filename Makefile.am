@@ -334,8 +334,11 @@ HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 # extra flags that can be overriden on the command line
 HEXTRA =
 # exclude options for coverage reports
-HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC \
+HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
+	--exclude Ganeti.THH \
+	--exclude Ganeti.HTools.QC \
+	--exclude Ganeti.HTools.QCHelper \
 	--exclude Ganeti.HTools.Version
 
 HS_LIB_SRCS = \
@@ -353,6 +356,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Node.hs \
 	htools/Ganeti/HTools/PeerMap.hs \
 	htools/Ganeti/HTools/QC.hs \
+	htools/Ganeti/HTools/QCHelper.hs \
 	htools/Ganeti/HTools/Rapi.hs \
 	htools/Ganeti/HTools/Simu.hs \
 	htools/Ganeti/HTools/Text.hs \
@@ -1116,7 +1120,7 @@ check-local: check-dirs $(BUILT_SOURCES)
 	fi; \
 	for file in doc/iallocator.rst doc/hooks.rst; do \
 		if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
-		        "Documents Ganeti version $$expver"; then \
+			"Documents Ganeti version $$expver"; then \
 			echo "Incorrect version in $$file, expected $$expver"; \
 			exit 1; \
 		fi; \
