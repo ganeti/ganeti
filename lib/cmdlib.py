@@ -2108,26 +2108,38 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param all_nvinfo: RPC results
 
     """
-    node_names = frozenset(node.name for node in nodeinfo if not node.offline)
-
-    assert master_node in node_names
     assert (len(files_all | files_all_opt | files_mc | files_vm) ==
             sum(map(len, [files_all, files_all_opt, files_mc, files_vm]))), \
            "Found file listed in more than one file list"
 
     # Define functions determining which nodes to consider for a file
-    file2nodefn = dict([(filename, fn)
-      for (files, fn) in [(files_all, None),
-                          (files_all_opt, None),
-                          (files_mc, lambda node: (node.master_candidate or
-                                                   node.name == master_node)),
-                          (files_vm, lambda node: node.vm_capable)]
-      for filename in files])
+    files2nodefn = [
+      (files_all, None),
+      (files_all_opt, None),
+      (files_mc, lambda node: (node.master_candidate or
+                               node.name == master_node)),
+      (files_vm, lambda node: node.vm_capable),
+      ]
 
-    fileinfo = dict((filename, {}) for filename in file2nodefn.keys())
+    # Build mapping from filename to list of nodes which should have the file
+    nodefiles = {}
+    for (files, fn) in files2nodefn:
+      if fn is None:
+        filenodes = nodeinfo
+      else:
+        filenodes = filter(fn, nodeinfo)
+      nodefiles.update((filename,
+                        frozenset(map(operator.attrgetter("name"), filenodes)))
+                       for filename in files)
+
+    assert set(nodefiles) == (files_all | files_all_opt | files_mc | files_vm)
+
+    fileinfo = dict((filename, {}) for filename in nodefiles)
+    ignore_nodes = set()
 
     for node in nodeinfo:
       if node.offline:
+        ignore_nodes.add(node.name)
         continue
 
       nresult = all_nvinfo[node.name]
@@ -2141,13 +2153,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       errorif(test, cls.ENODEFILECHECK, node.name,
               "Node did not return file checksum data")
       if test:
+        ignore_nodes.add(node.name)
         continue
 
+      # Build per-checksum mapping from filename to nodes having it
       for (filename, checksum) in node_files.items():
-        # Check if the file should be considered for a node
-        fn = file2nodefn[filename]
-        if fn is None or fn(node):
-          fileinfo[filename].setdefault(checksum, set()).add(node.name)
+        assert filename in nodefiles
+        fileinfo[filename].setdefault(checksum, set()).add(node.name)
 
     for (filename, checksums) in fileinfo.items():
       assert compat.all(len(i) > 10 for i in checksums), "Invalid checksum"
@@ -2155,22 +2167,32 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # Nodes having the file
       with_file = frozenset(node_name
                             for nodes in fileinfo[filename].values()
-                            for node_name in nodes)
+                            for node_name in nodes) - ignore_nodes
+
+      expected_nodes = nodefiles[filename] - ignore_nodes
 
       # Nodes missing file
-      missing_file = node_names - with_file
+      missing_file = expected_nodes - with_file
 
       if filename in files_all_opt:
         # All or no nodes
-        errorif(missing_file and missing_file != node_names,
+        errorif(missing_file and missing_file != expected_nodes,
                 cls.ECLUSTERFILECHECK, None,
                 "File %s is optional, but it must exist on all or no"
                 " nodes (not found on %s)",
                 filename, utils.CommaJoin(utils.NiceSort(missing_file)))
       else:
+        # Non-optional files
         errorif(missing_file, cls.ECLUSTERFILECHECK, None,
                 "File %s is missing from node(s) %s", filename,
                 utils.CommaJoin(utils.NiceSort(missing_file)))
+
+        # Warn if a node has a file it shouldn't
+        unexpected = with_file - expected_nodes
+        errorif(unexpected,
+                cls.ECLUSTERFILECHECK, None,
+                "File %s should not exist on node(s) %s",
+                filename, utils.CommaJoin(utils.NiceSort(unexpected)))
 
       # See if there are multiple versions of the file
       test = len(checksums) > 1
