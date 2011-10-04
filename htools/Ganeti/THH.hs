@@ -34,6 +34,9 @@ module Ganeti.THH ( declareSADT
                   , genOpID
                   , genOpCode
                   , noDefault
+                  , genStrOfOp
+                  , genStrOfKey
+                  , genLuxiOp
                   ) where
 
 import Control.Monad (liftM)
@@ -222,24 +225,27 @@ constructorName (NormalC name _) = return name
 constructorName (RecC name _)    = return name
 constructorName x                = fail $ "Unhandled constructor " ++ show x
 
--- | Builds the constructor-to-string function.
+-- | Builds the generic constructor-to-string function.
 --
 -- This generates a simple function of the following form:
 --
 -- @
--- fname (ConStructorOne {}) = "CON_STRUCTOR_ONE"
--- fname (ConStructorTwo {}) = "CON_STRUCTOR_TWO"
+-- fname (ConStructorOne {}) = trans_fun("ConStructorOne")
+-- fname (ConStructorTwo {}) = trans_fun("ConStructorTwo")
 -- @
 --
 -- This builds a custom list of name/string pairs and then uses
 -- 'genToString' to actually generate the function
-genOpID :: Name -> String -> Q [Dec]
-genOpID name fname = do
+genConstrToStr :: (String -> String) -> Name -> String -> Q [Dec]
+genConstrToStr trans_fun name fname = do
   TyConI (DataD _ _ _ cons _) <- reify name
   cnames <- mapM (liftM nameBase . constructorName) cons
-  let svalues = map (Left . deCamelCase) cnames
+  let svalues = map (Left . trans_fun) cnames
   genToString (mkName fname) name $ zip cnames svalues
 
+-- | Constructor-to-string for OpCode.
+genOpID :: Name -> String -> Q [Dec]
+genOpID = genConstrToStr deCamelCase
 
 -- | OpCode parameter (field) type
 type OpParam = (String, Q Type, Q Exp)
@@ -400,3 +406,63 @@ genLoadOpCode opdefs = do
 -- | No default type.
 noDefault :: Q Exp
 noDefault = conE 'Nothing
+
+-- * Template code for luxi
+
+-- | Constructor-to-string for LuxiOp.
+genStrOfOp :: Name -> String -> Q [Dec]
+genStrOfOp = genConstrToStr id
+
+-- | Constructor-to-string for MsgKeys.
+genStrOfKey :: Name -> String -> Q [Dec]
+genStrOfKey = genConstrToStr ensureLower
+
+-- | LuxiOp parameter type.
+type LuxiParam = (String, Q Type, Q Exp)
+
+-- | Generates the LuxiOp data type.
+--
+-- This takes a Luxi operation definition and builds both the
+-- datatype and the function trnasforming the arguments to JSON.
+-- We can't use anything less generic, because the way different
+-- operations are serialized differs on both parameter- and top-level.
+--
+-- There are three things to be defined for each parameter:
+--
+-- * name
+--
+-- * type
+--
+-- * operation; this is the operation performed on the parameter before
+--   serialization
+--
+genLuxiOp :: String -> [(String, [LuxiParam], Q Exp)] -> Q [Dec]
+genLuxiOp name cons = do
+  decl_d <- mapM (\(cname, fields, _) -> do
+                    fields' <- mapM (\(_, qt, _) ->
+                                         qt >>= \t -> return (NotStrict, t))
+                               fields
+                    return $ NormalC (mkName cname) fields')
+            cons
+  let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read]
+  (savesig, savefn) <- genSaveLuxiOp cons
+  return [declD, savesig, savefn]
+
+-- | Generates the \"save\" clause for entire LuxiOp constructor.
+saveLuxiConstructor :: (String, [LuxiParam], Q Exp) -> Q Clause
+saveLuxiConstructor (sname, fields, finfn) =
+  let cname = mkName sname
+      fnames = map (\(nm, _, _) -> mkName nm) fields
+      pat = conP cname (map varP fnames)
+      flist = map (\(nm, _, fn) -> appE fn $ varNameE nm) fields
+      finval = appE finfn (tupE flist)
+  in
+    clause [pat] (normalB finval) []
+
+-- | Generates the main save LuxiOp function.
+genSaveLuxiOp :: [(String, [LuxiParam], Q Exp)] -> Q (Dec, Dec)
+genSaveLuxiOp opdefs = do
+  sigt <- [t| $(conT (mkName "LuxiOp")) -> JSON.JSValue |]
+  let fname = mkName "opToArgs"
+  cclauses <- mapM saveLuxiConstructor opdefs
+  return $ (SigD fname sigt, FunD fname cclauses)

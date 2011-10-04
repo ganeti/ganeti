@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Implementation of the Ganeti LUXI interface.
 
 -}
@@ -46,6 +48,7 @@ import Ganeti.HTools.Types
 
 import Ganeti.Jobs (JobStatus)
 import Ganeti.OpCodes (OpCode)
+import Ganeti.THH
 
 -- * Utility functions
 
@@ -59,43 +62,82 @@ withTimeout secs descr action = do
 
 -- * Generic protocol functionality
 
--- | Currently supported Luxi operations.
-data LuxiOp = QueryInstances [String] [String] Bool
-            | QueryNodes [String] [String] Bool
-            | QueryGroups [String] [String] Bool
-            | QueryJobs [Int] [String]
-            | QueryExports [String] Bool
-            | QueryConfigValues [String]
-            | QueryClusterInfo
-            | QueryTags String String
-            | SubmitJob [OpCode]
-            | SubmitManyJobs [[OpCode]]
-            | WaitForJobChange Int [String] JSValue JSValue Int
-            | ArchiveJob Int
-            | AutoArchiveJobs Int Int
-            | CancelJob Int
-            | SetDrainFlag Bool
-            | SetWatcherPause Double
-              deriving (Show, Read)
+-- | Currently supported Luxi operations and JSON serialization.
+$(genLuxiOp "LuxiOp"
+    [ ("QueryNodes",
+       [ ("names",  [t| [String] |], [| id |])
+       , ("fields", [t| [String] |], [| id |])
+       , ("lock",   [t| Bool     |], [| id |])
+       ],
+       [| J.showJSON |])
+    , ("QueryGroups",
+       [ ("names",  [t| [String] |], [| id |])
+       , ("fields", [t| [String] |], [| id |])
+       , ("lock",   [t| Bool     |], [| id |])
+       ],
+       [| J.showJSON |])
+    , ("QueryInstances",
+       [ ("names",  [t| [String] |], [| id |])
+       , ("fields", [t| [String] |], [| id |])
+       , ("lock",   [t| Bool     |], [| id |])
+       ],
+       [| J.showJSON |])
+    , ("QueryJobs",
+       [ ("ids",    [t| [Int]    |], [| map show |])
+       , ("fields", [t| [String] |], [| id |])
+       ],
+       [| J.showJSON |])
+    , ("QueryExports",
+       [ ("nodes", [t| [String] |], [| id |])
+       , ("lock",  [t| Bool     |], [| id |])
+       ],
+       [| J.showJSON |])
+    , ("QueryConfigValues",
+       [ ("fields", [t| [String] |], [| id |]) ],
+       [| J.showJSON |])
+    , ("QueryClusterInfo",
+       [],
+       [| J.showJSON |])
+    , ("QueryTags",
+       [ ("kind", [t| String |], [| id |])
+       , ("name", [t| String |], [| id |])
+       ],
+       [| J.showJSON |])
+    , ("SubmitJob",
+       [ ("job", [t| [OpCode] |], [| id |]) ],
+       [| J.showJSON |])
+    , ("SubmitManyJobs",
+       [ ("ops", [t| [[OpCode]] |], [| id |]) ],
+       [| J.showJSON |])
+    , ("WaitForJobChange",
+       [ ("job",      [t| Int     |], [| J.showJSON |])
+       , ("fields",   [t| [String]|], [| J.showJSON |])
+       , ("prev_job", [t| JSValue |], [| J.showJSON |])
+       , ("prev_log", [t| JSValue |], [| J.showJSON |])
+       , ("tmout",    [t| Int     |], [| J.showJSON |])
+       ],
+       [| \(j, f, pj, pl, t) -> JSArray [j, f, pj, pl, t] |])
+    , ("ArchiveJob",
+       [ ("job", [t| Int |], [| show |]) ],
+       [| J.showJSON |])
+    , ("AutoArchiveJobs",
+       [ ("age",   [t| Int |], [| id |])
+       , ("tmout", [t| Int |], [| id |])
+       ],
+       [| J.showJSON |])
+    , ("CancelJob",
+       [("job", [t| Int |], [| show |]) ],
+       [| J.showJSON |])
+    , ("SetDrainFlag",
+       [ ("flag", [t| Bool |], [| id |]) ],
+       [| J.showJSON |])
+    , ("SetWatcherPause",
+       [ ("duration", [t| Double |], [| \x -> [x] |]) ],
+       [| J.showJSON |])
+  ])
 
 -- | The serialisation of LuxiOps into strings in messages.
-strOfOp :: LuxiOp -> String
-strOfOp QueryNodes {}        = "QueryNodes"
-strOfOp QueryGroups {}       = "QueryGroups"
-strOfOp QueryInstances {}    = "QueryInstances"
-strOfOp QueryJobs {}         = "QueryJobs"
-strOfOp QueryExports {}      = "QueryExports"
-strOfOp QueryConfigValues {} = "QueryConfigValues"
-strOfOp QueryClusterInfo {}  = "QueryClusterInfo"
-strOfOp QueryTags {}         = "QueryTags"
-strOfOp SubmitManyJobs {}    = "SubmitManyJobs"
-strOfOp WaitForJobChange {}  = "WaitForJobChange"
-strOfOp SubmitJob {}         = "SubmitJob"
-strOfOp ArchiveJob {}        = "ArchiveJob"
-strOfOp AutoArchiveJobs {}   = "AutoArchiveJobs"
-strOfOp CancelJob {}         = "CancelJob"
-strOfOp SetDrainFlag {}      = "SetDrainFlag"
-strOfOp SetWatcherPause {}   = "SetWatcherPause"
+$(genStrOfOp ''LuxiOp "strOfOp")
 
 -- | The end-of-message separator.
 eOM :: Char
@@ -108,11 +150,7 @@ data MsgKeys = Method
              | Result
 
 -- | The serialisation of MsgKeys into strings in messages.
-strOfKey :: MsgKeys -> String
-strOfKey Method = "method"
-strOfKey Args = "args"
-strOfKey Success = "success"
-strOfKey Result = "result"
+$(genStrOfKey ''MsgKeys "strOfKey")
 
 -- | Luxi client encapsulation.
 data Client = Client { socket :: S.Socket   -- ^ The socket of the client
@@ -160,29 +198,6 @@ recvMsg s = do
        else return (imsg, tail ibuf)) -- else we return data from our buffer
   writeIORef (rbuf s) nbuf
   return msg
-
--- | Compute the serialized form of a Luxi operation.
-opToArgs :: LuxiOp -> JSValue
-opToArgs (QueryNodes names fields lock) = J.showJSON (names, fields, lock)
-opToArgs (QueryGroups names fields lock) = J.showJSON (names, fields, lock)
-opToArgs (QueryInstances names fields lock) = J.showJSON (names, fields, lock)
-opToArgs (QueryJobs ids fields) = J.showJSON (map show ids, fields)
-opToArgs (QueryExports nodes lock) = J.showJSON (nodes, lock)
-opToArgs (QueryConfigValues fields) = J.showJSON fields
-opToArgs (QueryClusterInfo) = J.showJSON ()
-opToArgs (QueryTags kind name) =  J.showJSON (kind, name)
-opToArgs (SubmitJob j) = J.showJSON j
-opToArgs (SubmitManyJobs ops) = J.showJSON ops
--- This is special, since the JSON library doesn't export an instance
--- of a 5-tuple
-opToArgs (WaitForJobChange a b c d e) =
-    JSArray [ J.showJSON a, J.showJSON b, J.showJSON c
-            , J.showJSON d, J.showJSON e]
-opToArgs (ArchiveJob a) = J.showJSON (show a)
-opToArgs (AutoArchiveJobs a b) = J.showJSON (a, b)
-opToArgs (CancelJob a) = J.showJSON (show a)
-opToArgs (SetDrainFlag flag) = J.showJSON flag
-opToArgs (SetWatcherPause duration) = J.showJSON [duration]
 
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method
