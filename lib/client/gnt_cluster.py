@@ -502,6 +502,7 @@ def VerifyCluster(opts, args):
                                error_codes=opts.error_codes,
                                debug_simulate_errors=opts.simulate_errors,
                                skip_checks=skip_checks,
+                               ignore_errors=opts.ignore_errors,
                                group_name=opts.nodegroup)
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -1380,7 +1381,7 @@ commands = {
   "verify": (
     VerifyCluster, ARGS_NONE,
     [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
     VerifyDisks, ARGS_NONE, [PRIORITY_OPT],

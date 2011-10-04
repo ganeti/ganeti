@@ -92,6 +92,7 @@ __all__ = [
   "DEFAULT_IALLOCATOR_OPT",
   "IDENTIFY_DEFAULTS_OPT",
   "IGNORE_CONSIST_OPT",
+  "IGNORE_ERRORS_OPT",
   "IGNORE_FAILURES_OPT",
   "IGNORE_OFFLINE_OPT",
   "IGNORE_REMOVE_FAILURES_OPT",
@@ -1261,6 +1262,11 @@ TO_GROUP_OPT = cli_option("--to", dest="to", metavar="<group>",
                           help="Destination node group (name or uuid)",
                           default=None, action="append",
                           completion_suggest=OPT_COMPL_ONE_NODEGROUP)
+
+IGNORE_ERRORS_OPT = cli_option("-I", "--ignore-errors", default=[],
+                               action="append", dest="ignore_errors",
+                               choices=list(constants.CV_ALL_ECODES_STRINGS),
+                               help="Error code to be ignored")
 
 
 #: Options provided by all commands

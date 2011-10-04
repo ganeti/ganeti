@@ -137,6 +137,9 @@ _PErrorCodes = ("error_codes", False, ht.TBool, "Error codes")
 _PSkipChecks = ("skip_checks", ht.EmptyList,
                 ht.TListOf(ht.TElemOf(constants.VERIFY_OPTIONAL_CHECKS)),
                 "Which checks to skip")
+_PIgnoreErrors = ("ignore_errors", ht.EmptyList,
+                  ht.TListOf(ht.TElemOf(constants.CV_ALL_ECODES_STRINGS)),
+                  "List of error codes that should be treated as warnings")
 
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
@@ -613,6 +616,7 @@ class OpClusterVerify(OpCode):
     _PDebugSimulateErrors,
     _PErrorCodes,
     _PSkipChecks,
+    _PIgnoreErrors,
     _PVerbose,
     ("group_name", None, ht.TMaybeString, "Group to verify")
     ]
@@ -626,6 +630,7 @@ class OpClusterVerifyConfig(OpCode):
   OP_PARAMS = [
     _PDebugSimulateErrors,
     _PErrorCodes,
+    _PIgnoreErrors,
     _PVerbose,
     ]
   OP_RESULT = ht.TBool
@@ -647,6 +652,7 @@ class OpClusterVerifyGroup(OpCode):
     _PDebugSimulateErrors,
     _PErrorCodes,
     _PSkipChecks,
+    _PIgnoreErrors,
     _PVerbose,
     ]
   OP_RESULT = ht.TBool

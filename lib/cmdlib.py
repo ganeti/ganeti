@@ -1496,13 +1496,16 @@ class LUClusterVerify(NoHooksLU):
       groups = self.cfg.GetNodeGroupList()
 
       # Verify global configuration
-      jobs.append([opcodes.OpClusterVerifyConfig()])
+      jobs.append([
+        opcodes.OpClusterVerifyConfig(ignore_errors=self.op.ignore_errors)
+        ])
 
       # Always depend on global verification
       depends_fn = lambda: [(-len(jobs), [])]
 
     jobs.extend([opcodes.OpClusterVerifyGroup(group_name=group,
-                                              depends=depends_fn())]
+                                            ignore_errors=self.op.ignore_errors,
+                                            depends=depends_fn())]
                 for group in groups)
 
     # Fix up all parameters
