@@ -2108,26 +2108,38 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param all_nvinfo: RPC results
 
     """
-    node_names = frozenset(node.name for node in nodeinfo if not node.offline)
-
-    assert master_node in node_names
     assert (len(files_all | files_all_opt | files_mc | files_vm) ==
             sum(map(len, [files_all, files_all_opt, files_mc, files_vm]))), \
            "Found file listed in more than one file list"
 
     # Define functions determining which nodes to consider for a file
-    file2nodefn = dict([(filename, fn)
-      for (files, fn) in [(files_all, None),
-                          (files_all_opt, None),
-                          (files_mc, lambda node: (node.master_candidate or
-                                                   node.name == master_node)),
-                          (files_vm, lambda node: node.vm_capable)]
-      for filename in files])
+    files2nodefn = [
+      (files_all, None),
+      (files_all_opt, None),
+      (files_mc, lambda node: (node.master_candidate or
+                               node.name == master_node)),
+      (files_vm, lambda node: node.vm_capable),
+      ]
 
-    fileinfo = dict((filename, {}) for filename in file2nodefn.keys())
+    # Build mapping from filename to list of nodes which should have the file
+    nodefiles = {}
+    for (files, fn) in files2nodefn:
+      if fn is None:
+        filenodes = nodeinfo
+      else:
+        filenodes = filter(fn, nodeinfo)
+      nodefiles.update((filename,
+                        frozenset(map(operator.attrgetter("name"), filenodes)))
+                       for filename in files)
+
+    assert set(nodefiles) == (files_all | files_all_opt | files_mc | files_vm)
+
+    fileinfo = dict((filename, {}) for filename in nodefiles)
+    ignore_nodes = set()
 
     for node in nodeinfo:
       if node.offline:
+        ignore_nodes.add(node.name)
         continue
 
       nresult = all_nvinfo[node.name]
@@ -2141,13 +2153,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       errorif(test, cls.ENODEFILECHECK, node.name,
               "Node did not return file checksum data")
       if test:
+        ignore_nodes.add(node.name)
         continue
 
+      # Build per-checksum mapping from filename to nodes having it
       for (filename, checksum) in node_files.items():
-        # Check if the file should be considered for a node
-        fn = file2nodefn[filename]
-        if fn is None or fn(node):
-          fileinfo[filename].setdefault(checksum, set()).add(node.name)
+        assert filename in nodefiles
+        fileinfo[filename].setdefault(checksum, set()).add(node.name)
 
     for (filename, checksums) in fileinfo.items():
       assert compat.all(len(i) > 10 for i in checksums), "Invalid checksum"
@@ -2155,22 +2167,32 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # Nodes having the file
       with_file = frozenset(node_name
                             for nodes in fileinfo[filename].values()
-                            for node_name in nodes)
+                            for node_name in nodes) - ignore_nodes
+
+      expected_nodes = nodefiles[filename] - ignore_nodes
 
       # Nodes missing file
-      missing_file = node_names - with_file
+      missing_file = expected_nodes - with_file
 
       if filename in files_all_opt:
         # All or no nodes
-        errorif(missing_file and missing_file != node_names,
+        errorif(missing_file and missing_file != expected_nodes,
                 cls.ECLUSTERFILECHECK, None,
                 "File %s is optional, but it must exist on all or no"
                 " nodes (not found on %s)",
                 filename, utils.CommaJoin(utils.NiceSort(missing_file)))
       else:
+        # Non-optional files
         errorif(missing_file, cls.ECLUSTERFILECHECK, None,
                 "File %s is missing from node(s) %s", filename,
                 utils.CommaJoin(utils.NiceSort(missing_file)))
+
+        # Warn if a node has a file it shouldn't
+        unexpected = with_file - expected_nodes
+        errorif(unexpected,
+                cls.ECLUSTERFILECHECK, None,
+                "File %s should not exist on node(s) %s",
+                filename, utils.CommaJoin(utils.NiceSort(unexpected)))
 
       # See if there are multiple versions of the file
       test = len(checksums) > 1
@@ -2542,6 +2564,40 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     return instdisk
 
+  @staticmethod
+  def _SshNodeSelector(group_uuid, all_nodes):
+    """Create endless iterators for all potential SSH check hosts.
+
+    """
+    nodes = [node for node in all_nodes
+             if (node.group != group_uuid and
+                 not node.offline)]
+    keyfunc = operator.attrgetter("group")
+
+    return map(itertools.cycle,
+               [sorted(map(operator.attrgetter("name"), names))
+                for _, names in itertools.groupby(sorted(nodes, key=keyfunc),
+                                                  keyfunc)])
+
+  @classmethod
+  def _SelectSshCheckNodes(cls, group_nodes, group_uuid, all_nodes):
+    """Choose which nodes should talk to which other nodes.
+
+    We will make nodes contact all nodes in their group, and one node from
+    every other group.
+
+    @warning: This algorithm has a known issue if one node group is much
+      smaller than others (e.g. just one node). In such a case all other
+      nodes will talk to the single node.
+
+    """
+    online_nodes = sorted(node.name for node in group_nodes if not node.offline)
+    sel = cls._SshNodeSelector(group_uuid, all_nodes)
+
+    return (online_nodes,
+            dict((name, sorted([i.next() for i in sel]))
+                 for name in online_nodes))
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -2605,25 +2661,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_names))
 
-    # We will make nodes contact all nodes in their group, and one node from
-    # every other group.
-    # TODO: should it be a *random* node, different every time?
-    online_nodes = [node.name for node in node_data_list if not node.offline]
-    other_group_nodes = {}
-
-    for name in sorted(self.all_node_info):
-      node = self.all_node_info[name]
-      if (node.group not in other_group_nodes
-          and node.group != self.group_uuid
-          and not node.offline):
-        other_group_nodes[node.group] = node.name
-
     node_verify_param = {
       constants.NV_FILELIST:
         utils.UniqueSequence(filename
                              for files in filemap
                              for filename in files),
-      constants.NV_NODELIST: online_nodes + other_group_nodes.values(),
+      constants.NV_NODELIST:
+        self._SelectSshCheckNodes(node_data_list, self.group_uuid,
+                                  self.all_node_info.values()),
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_HVPARAMS:
         _GetAllHypervisorParameters(cluster, self.all_inst_info.values()),
@@ -5061,7 +5106,7 @@ class LUNodeAdd(LogicalUnit):
 
     node_verify_list = [self.cfg.GetMasterNode()]
     node_verify_param = {
-      constants.NV_NODELIST: [node],
+      constants.NV_NODELIST: ([node], {}),
       # TODO: do a node-net-test as well?
     }
 
