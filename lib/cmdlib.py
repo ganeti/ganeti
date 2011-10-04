@@ -1433,39 +1433,6 @@ class _VerifyErrors(object):
   self.op and self._feedback_fn to be available.)
 
   """
-  TCLUSTER = "cluster"
-  TNODE = "node"
-  TINSTANCE = "instance"
-
-  ECLUSTERCFG = (TCLUSTER, "ECLUSTERCFG")
-  ECLUSTERCERT = (TCLUSTER, "ECLUSTERCERT")
-  ECLUSTERFILECHECK = (TCLUSTER, "ECLUSTERFILECHECK")
-  ECLUSTERDANGLINGNODES = (TNODE, "ECLUSTERDANGLINGNODES")
-  ECLUSTERDANGLINGINST = (TNODE, "ECLUSTERDANGLINGINST")
-  EINSTANCEBADNODE = (TINSTANCE, "EINSTANCEBADNODE")
-  EINSTANCEDOWN = (TINSTANCE, "EINSTANCEDOWN")
-  EINSTANCELAYOUT = (TINSTANCE, "EINSTANCELAYOUT")
-  EINSTANCEMISSINGDISK = (TINSTANCE, "EINSTANCEMISSINGDISK")
-  EINSTANCEFAULTYDISK = (TINSTANCE, "EINSTANCEFAULTYDISK")
-  EINSTANCEWRONGNODE = (TINSTANCE, "EINSTANCEWRONGNODE")
-  EINSTANCESPLITGROUPS = (TINSTANCE, "EINSTANCESPLITGROUPS")
-  ENODEDRBD = (TNODE, "ENODEDRBD")
-  ENODEDRBDHELPER = (TNODE, "ENODEDRBDHELPER")
-  ENODEFILECHECK = (TNODE, "ENODEFILECHECK")
-  ENODEHOOKS = (TNODE, "ENODEHOOKS")
-  ENODEHV = (TNODE, "ENODEHV")
-  ENODELVM = (TNODE, "ENODELVM")
-  ENODEN1 = (TNODE, "ENODEN1")
-  ENODENET = (TNODE, "ENODENET")
-  ENODEOS = (TNODE, "ENODEOS")
-  ENODEORPHANINSTANCE = (TNODE, "ENODEORPHANINSTANCE")
-  ENODEORPHANLV = (TNODE, "ENODEORPHANLV")
-  ENODERPC = (TNODE, "ENODERPC")
-  ENODESSH = (TNODE, "ENODESSH")
-  ENODEVERSION = (TNODE, "ENODEVERSION")
-  ENODESETUP = (TNODE, "ENODESETUP")
-  ENODETIME = (TNODE, "ENODETIME")
-  ENODEOOBPATH = (TNODE, "ENODEOOBPATH")
 
   ETYPE_FIELD = "code"
   ETYPE_ERROR = "ERROR"
@@ -1569,7 +1536,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
         utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
         hv_class.CheckParameterSyntax(hv_params)
       except errors.GenericError, err:
-        self._ErrorIf(True, self.ECLUSTERCFG, None, msg % str(err))
+        self._ErrorIf(True, constants.CV_ECLUSTERCFG, None, msg % str(err))
 
   def ExpandNames(self):
     # Information can be safely retrieved as the BGL is acquired in exclusive
@@ -1590,13 +1557,13 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     feedback_fn("* Verifying cluster config")
 
     for msg in self.cfg.VerifyConfig():
-      self._ErrorIf(True, self.ECLUSTERCFG, None, msg)
+      self._ErrorIf(True, constants.CV_ECLUSTERCFG, None, msg)
 
     feedback_fn("* Verifying cluster certificate files")
 
     for cert_filename in constants.ALL_CERT_FILES:
       (errcode, msg) = _VerifyCertificate(cert_filename)
-      self._ErrorIf(errcode, self.ECLUSTERCERT, None, msg, code=errcode)
+      self._ErrorIf(errcode, constants.CV_ECLUSTERCERT, None, msg, code=errcode)
 
     feedback_fn("* Verifying hypervisor parameters")
 
@@ -1628,11 +1595,13 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
                                                 ["no instances"])))
         for node in dangling_nodes]
 
-    self._ErrorIf(bool(dangling_nodes), self.ECLUSTERDANGLINGNODES, None,
+    self._ErrorIf(bool(dangling_nodes), constants.CV_ECLUSTERDANGLINGNODES,
+                  None,
                   "the following nodes (and their instances) belong to a non"
                   " existing group: %s", utils.CommaJoin(pretty_dangling))
 
-    self._ErrorIf(bool(no_node_instances), self.ECLUSTERDANGLINGINST, None,
+    self._ErrorIf(bool(no_node_instances), constants.CV_ECLUSTERDANGLINGINST,
+                  None,
                   "the following instances have a non-existing primary-node:"
                   " %s", utils.CommaJoin(no_node_instances))
 
@@ -1805,7 +1774,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # main result, nresult should be a non-empty dict
     test = not nresult or not isinstance(nresult, dict)
-    _ErrorIf(test, self.ENODERPC, node,
+    _ErrorIf(test, constants.CV_ENODERPC, node,
                   "unable to verify node: no data returned")
     if test:
       return False
@@ -1816,13 +1785,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     test = not (remote_version and
                 isinstance(remote_version, (list, tuple)) and
                 len(remote_version) == 2)
-    _ErrorIf(test, self.ENODERPC, node,
+    _ErrorIf(test, constants.CV_ENODERPC, node,
              "connection to node returned invalid data")
     if test:
       return False
 
     test = local_version != remote_version[0]
-    _ErrorIf(test, self.ENODEVERSION, node,
+    _ErrorIf(test, constants.CV_ENODEVERSION, node,
              "incompatible protocol versions: master %s,"
              " node %s", local_version, remote_version[0])
     if test:
@@ -1832,7 +1801,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # full package version
     self._ErrorIf(constants.RELEASE_VERSION != remote_version[1],
-                  self.ENODEVERSION, node,
+                  constants.CV_ENODEVERSION, node,
                   "software version mismatch: master %s, node %s",
                   constants.RELEASE_VERSION, remote_version[1],
                   code=self.ETYPE_WARNING)
@@ -1841,19 +1810,19 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if ninfo.vm_capable and isinstance(hyp_result, dict):
       for hv_name, hv_result in hyp_result.iteritems():
         test = hv_result is not None
-        _ErrorIf(test, self.ENODEHV, node,
+        _ErrorIf(test, constants.CV_ENODEHV, node,
                  "hypervisor %s verify failure: '%s'", hv_name, hv_result)
 
     hvp_result = nresult.get(constants.NV_HVPARAMS, None)
     if ninfo.vm_capable and isinstance(hvp_result, list):
       for item, hv_name, hv_result in hvp_result:
-        _ErrorIf(True, self.ENODEHV, node,
+        _ErrorIf(True, constants.CV_ENODEHV, node,
                  "hypervisor %s parameter verify failure (source %s): %s",
                  hv_name, item, hv_result)
 
     test = nresult.get(constants.NV_NODESETUP,
                        ["Missing NODESETUP results"])
-    _ErrorIf(test, self.ENODESETUP, node, "node setup error: %s",
+    _ErrorIf(test, constants.CV_ENODESETUP, node, "node setup error: %s",
              "; ".join(test))
 
     return True
@@ -1876,7 +1845,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     try:
       ntime_merged = utils.MergeTime(ntime)
     except (ValueError, TypeError):
-      _ErrorIf(True, self.ENODETIME, node, "Node returned invalid time")
+      _ErrorIf(True, constants.CV_ENODETIME, node, "Node returned invalid time")
       return
 
     if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
@@ -1886,7 +1855,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     else:
       ntime_diff = None
 
-    _ErrorIf(ntime_diff is not None, self.ENODETIME, node,
+    _ErrorIf(ntime_diff is not None, constants.CV_ENODETIME, node,
              "Node time diverges by at least %s from master node time",
              ntime_diff)
 
@@ -1908,24 +1877,25 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # checks vg existence and size > 20G
     vglist = nresult.get(constants.NV_VGLIST, None)
     test = not vglist
-    _ErrorIf(test, self.ENODELVM, node, "unable to check volume groups")
+    _ErrorIf(test, constants.CV_ENODELVM, node, "unable to check volume groups")
     if not test:
       vgstatus = utils.CheckVolumeGroupSize(vglist, vg_name,
                                             constants.MIN_VG_SIZE)
-      _ErrorIf(vgstatus, self.ENODELVM, node, vgstatus)
+      _ErrorIf(vgstatus, constants.CV_ENODELVM, node, vgstatus)
 
     # check pv names
     pvlist = nresult.get(constants.NV_PVLIST, None)
     test = pvlist is None
-    _ErrorIf(test, self.ENODELVM, node, "Can't get PV list from node")
+    _ErrorIf(test, constants.CV_ENODELVM, node, "Can't get PV list from node")
     if not test:
       # check that ':' is not present in PV names, since it's a
       # special character for lvcreate (denotes the range of PEs to
       # use on the PV)
       for _, pvname, owner_vg in pvlist:
         test = ":" in pvname
-        _ErrorIf(test, self.ENODELVM, node, "Invalid character ':' in PV"
-                 " '%s' of VG '%s'", pvname, owner_vg)
+        _ErrorIf(test, constants.CV_ENODELVM, node,
+                 "Invalid character ':' in PV '%s' of VG '%s'",
+                 pvname, owner_vg)
 
   def _VerifyNodeBridges(self, ninfo, nresult, bridges):
     """Check the node bridges.
@@ -1944,11 +1914,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     missing = nresult.get(constants.NV_BRIDGES, None)
     test = not isinstance(missing, list)
-    _ErrorIf(test, self.ENODENET, node,
+    _ErrorIf(test, constants.CV_ENODENET, node,
              "did not return valid bridge information")
     if not test:
-      _ErrorIf(bool(missing), self.ENODENET, node, "missing bridges: %s" %
-               utils.CommaJoin(sorted(missing)))
+      _ErrorIf(bool(missing), constants.CV_ENODENET, node,
+               "missing bridges: %s" % utils.CommaJoin(sorted(missing)))
 
   def _VerifyNodeNetwork(self, ninfo, nresult):
     """Check the node network connectivity results.
@@ -1962,27 +1932,27 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     _ErrorIf = self._ErrorIf # pylint: disable=C0103
 
     test = constants.NV_NODELIST not in nresult
-    _ErrorIf(test, self.ENODESSH, node,
+    _ErrorIf(test, constants.CV_ENODESSH, node,
              "node hasn't returned node ssh connectivity data")
     if not test:
       if nresult[constants.NV_NODELIST]:
         for a_node, a_msg in nresult[constants.NV_NODELIST].items():
-          _ErrorIf(True, self.ENODESSH, node,
+          _ErrorIf(True, constants.CV_ENODESSH, node,
                    "ssh communication with node '%s': %s", a_node, a_msg)
 
     test = constants.NV_NODENETTEST not in nresult
-    _ErrorIf(test, self.ENODENET, node,
+    _ErrorIf(test, constants.CV_ENODENET, node,
              "node hasn't returned node tcp connectivity data")
     if not test:
       if nresult[constants.NV_NODENETTEST]:
         nlist = utils.NiceSort(nresult[constants.NV_NODENETTEST].keys())
         for anode in nlist:
-          _ErrorIf(True, self.ENODENET, node,
+          _ErrorIf(True, constants.CV_ENODENET, node,
                    "tcp communication with node '%s': %s",
                    anode, nresult[constants.NV_NODENETTEST][anode])
 
     test = constants.NV_MASTERIP not in nresult
-    _ErrorIf(test, self.ENODENET, node,
+    _ErrorIf(test, constants.CV_ENODENET, node,
              "node hasn't returned node master IP reachability data")
     if not test:
       if not nresult[constants.NV_MASTERIP]:
@@ -1990,7 +1960,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           msg = "the master node cannot reach the master IP (not configured?)"
         else:
           msg = "cannot reach the master IP"
-        _ErrorIf(True, self.ENODENET, node, msg)
+        _ErrorIf(True, constants.CV_ENODENET, node, msg)
 
   def _VerifyInstance(self, instance, instanceconfig, node_image,
                       diskstatus):
@@ -2013,13 +1983,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         continue
       for volume in node_vol_should[node]:
         test = volume not in n_img.volumes
-        _ErrorIf(test, self.EINSTANCEMISSINGDISK, instance,
+        _ErrorIf(test, constants.CV_EINSTANCEMISSINGDISK, instance,
                  "volume %s missing on node %s", volume, node)
 
     if instanceconfig.admin_up:
       pri_img = node_image[node_current]
       test = instance not in pri_img.instances and not pri_img.offline
-      _ErrorIf(test, self.EINSTANCEDOWN, instance,
+      _ErrorIf(test, constants.CV_EINSTANCEDOWN, instance,
                "instance not running on its primary node %s",
                node_current)
 
@@ -2033,12 +2003,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       snode = node_image[nname]
       bad_snode = snode.ghost or snode.offline
       _ErrorIf(instanceconfig.admin_up and not success and not bad_snode,
-               self.EINSTANCEFAULTYDISK, instance,
+               constants.CV_EINSTANCEFAULTYDISK, instance,
                "couldn't retrieve status for disk/%s on %s: %s",
                idx, nname, bdev_status)
       _ErrorIf((instanceconfig.admin_up and success and
                 bdev_status.ldisk_status == constants.LDS_FAULTY),
-               self.EINSTANCEFAULTYDISK, instance,
+               constants.CV_EINSTANCEFAULTYDISK, instance,
                "disk/%s on %s is faulty", idx, nname)
 
   def _VerifyOrphanVolumes(self, node_vol_should, node_image, reserved):
@@ -2059,7 +2029,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         test = ((node not in node_vol_should or
                 volume not in node_vol_should[node]) and
                 not reserved.Matches(volume))
-        self._ErrorIf(test, self.ENODEORPHANLV, node,
+        self._ErrorIf(test, constants.CV_ENODEORPHANLV, node,
                       "volume %s is unknown", volume)
 
   def _VerifyNPlusOneMemory(self, node_image, instance_cfg):
@@ -2092,7 +2062,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
         test = n_img.mfree < needed_mem
-        self._ErrorIf(test, self.ENODEN1, node,
+        self._ErrorIf(test, constants.CV_ENODEN1, node,
                       "not enough memory to accomodate instance failovers"
                       " should node %s fail (%dMiB needed, %dMiB available)",
                       prinode, needed_mem, n_img.mfree)
@@ -2150,7 +2120,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         node_files = nresult.payload.get(constants.NV_FILELIST, None)
 
       test = not (node_files and isinstance(node_files, dict))
-      errorif(test, cls.ENODEFILECHECK, node.name,
+      errorif(test, constants.CV_ENODEFILECHECK, node.name,
               "Node did not return file checksum data")
       if test:
         ignore_nodes.add(node.name)
@@ -2177,20 +2147,19 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if filename in files_all_opt:
         # All or no nodes
         errorif(missing_file and missing_file != expected_nodes,
-                cls.ECLUSTERFILECHECK, None,
+                constants.CV_ECLUSTERFILECHECK, None,
                 "File %s is optional, but it must exist on all or no"
                 " nodes (not found on %s)",
                 filename, utils.CommaJoin(utils.NiceSort(missing_file)))
       else:
-        # Non-optional files
-        errorif(missing_file, cls.ECLUSTERFILECHECK, None,
+        errorif(missing_file, constants.CV_ECLUSTERFILECHECK, None,
                 "File %s is missing from node(s) %s", filename,
                 utils.CommaJoin(utils.NiceSort(missing_file)))
 
         # Warn if a node has a file it shouldn't
         unexpected = with_file - expected_nodes
         errorif(unexpected,
-                cls.ECLUSTERFILECHECK, None,
+                constants.CV_ECLUSTERFILECHECK, None,
                 "File %s should not exist on node(s) %s",
                 filename, utils.CommaJoin(utils.NiceSort(unexpected)))
 
@@ -2204,7 +2173,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       else:
         variants = []
 
-      errorif(test, cls.ECLUSTERFILECHECK, None,
+      errorif(test, constants.CV_ECLUSTERFILECHECK, None,
               "File %s found with %s different checksums (%s)",
               filename, len(checksums), "; ".join(variants))
 
@@ -2227,22 +2196,22 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if drbd_helper:
       helper_result = nresult.get(constants.NV_DRBDHELPER, None)
       test = (helper_result == None)
-      _ErrorIf(test, self.ENODEDRBDHELPER, node,
+      _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node,
                "no drbd usermode helper returned")
       if helper_result:
         status, payload = helper_result
         test = not status
-        _ErrorIf(test, self.ENODEDRBDHELPER, node,
+        _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node,
                  "drbd usermode helper check unsuccessful: %s", payload)
         test = status and (payload != drbd_helper)
-        _ErrorIf(test, self.ENODEDRBDHELPER, node,
+        _ErrorIf(test, constants.CV_ENODEDRBDHELPER, node,
                  "wrong drbd usermode helper: %s", payload)
 
     # compute the DRBD minors
     node_drbd = {}
     for minor, instance in drbd_map[node].items():
       test = instance not in instanceinfo
-      _ErrorIf(test, self.ECLUSTERCFG, None,
+      _ErrorIf(test, constants.CV_ECLUSTERCFG, None,
                "ghost instance '%s' in temporary DRBD map", instance)
         # ghost instance should not be running, but otherwise we
         # don't give double warnings (both ghost instance and
@@ -2256,7 +2225,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # and now check them
     used_minors = nresult.get(constants.NV_DRBDLIST, [])
     test = not isinstance(used_minors, (tuple, list))
-    _ErrorIf(test, self.ENODEDRBD, node,
+    _ErrorIf(test, constants.CV_ENODEDRBD, node,
              "cannot parse drbd status file: %s", str(used_minors))
     if test:
       # we cannot check drbd status
@@ -2264,11 +2233,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     for minor, (iname, must_exist) in node_drbd.items():
       test = minor not in used_minors and must_exist
-      _ErrorIf(test, self.ENODEDRBD, node,
+      _ErrorIf(test, constants.CV_ENODEDRBD, node,
                "drbd minor %d of instance %s is not active", minor, iname)
     for minor in used_minors:
       test = minor not in node_drbd
-      _ErrorIf(test, self.ENODEDRBD, node,
+      _ErrorIf(test, constants.CV_ENODEDRBD, node,
                "unallocated drbd minor %d is in use", minor)
 
   def _UpdateNodeOS(self, ninfo, nresult, nimg):
@@ -2288,7 +2257,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
             not compat.all(isinstance(v, list) and len(v) == 7
                            for v in remote_os))
 
-    _ErrorIf(test, self.ENODEOS, node,
+    _ErrorIf(test, constants.CV_ENODEOS, node,
              "node hasn't returned valid OS data")
 
     nimg.os_fail = test
@@ -2330,14 +2299,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     for os_name, os_data in nimg.oslist.items():
       assert os_data, "Empty OS status for OS %s?!" % os_name
       f_path, f_status, f_diag, f_var, f_param, f_api = os_data[0]
-      _ErrorIf(not f_status, self.ENODEOS, node,
+      _ErrorIf(not f_status, constants.CV_ENODEOS, node,
                "Invalid OS %s (located at %s): %s", os_name, f_path, f_diag)
-      _ErrorIf(len(os_data) > 1, self.ENODEOS, node,
+      _ErrorIf(len(os_data) > 1, constants.CV_ENODEOS, node,
                "OS '%s' has multiple entries (first one shadows the rest): %s",
                os_name, utils.CommaJoin([v[0] for v in os_data]))
       # comparisons with the 'base' image
       test = os_name not in base.oslist
-      _ErrorIf(test, self.ENODEOS, node,
+      _ErrorIf(test, constants.CV_ENODEOS, node,
                "Extra OS %s not present on reference node (%s)",
                os_name, base.name)
       if test:
@@ -2351,14 +2320,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                          ("variants list", f_var, b_var),
                          ("parameters", beautify_params(f_param),
                           beautify_params(b_param))]:
-        _ErrorIf(a != b, self.ENODEOS, node,
+        _ErrorIf(a != b, constants.CV_ENODEOS, node,
                  "OS %s for %s differs from reference node %s: [%s] vs. [%s]",
                  kind, os_name, base.name,
                  utils.CommaJoin(sorted(a)), utils.CommaJoin(sorted(b)))
 
     # check any missing OSes
     missing = set(base.oslist.keys()).difference(nimg.oslist.keys())
-    _ErrorIf(missing, self.ENODEOS, node,
+    _ErrorIf(missing, constants.CV_ENODEOS, node,
              "OSes present on reference node %s but missing on this node: %s",
              base.name, utils.CommaJoin(missing))
 
@@ -2376,7 +2345,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if ((ninfo.master_candidate or ninfo.master_capable) and
         constants.NV_OOB_PATHS in nresult):
       for path_result in nresult[constants.NV_OOB_PATHS]:
-        self._ErrorIf(path_result, self.ENODEOOBPATH, node, path_result)
+        self._ErrorIf(path_result, constants.CV_ENODEOOBPATH, node, path_result)
 
   def _UpdateNodeVolumes(self, ninfo, nresult, nimg, vg_name):
     """Verifies and updates the node volume data.
@@ -2399,10 +2368,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if vg_name is None:
       pass
     elif isinstance(lvdata, basestring):
-      _ErrorIf(True, self.ENODELVM, node, "LVM problem on node: %s",
+      _ErrorIf(True, constants.CV_ENODELVM, node, "LVM problem on node: %s",
                utils.SafeEncode(lvdata))
     elif not isinstance(lvdata, dict):
-      _ErrorIf(True, self.ENODELVM, node, "rpc call to node failed (lvlist)")
+      _ErrorIf(True, constants.CV_ENODELVM, node,
+               "rpc call to node failed (lvlist)")
     else:
       nimg.volumes = lvdata
       nimg.lvm_fail = False
@@ -2422,8 +2392,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     idata = nresult.get(constants.NV_INSTANCELIST, None)
     test = not isinstance(idata, list)
-    self._ErrorIf(test, self.ENODEHV, ninfo.name, "rpc call to node failed"
-                  " (instancelist): %s", utils.SafeEncode(str(idata)))
+    self._ErrorIf(test, constants.CV_ENODEHV, ninfo.name,
+                  "rpc call to node failed (instancelist): %s",
+                  utils.SafeEncode(str(idata)))
     if test:
       nimg.hyp_fail = True
     else:
@@ -2445,26 +2416,27 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # try to read free memory (from the hypervisor)
     hv_info = nresult.get(constants.NV_HVINFO, None)
     test = not isinstance(hv_info, dict) or "memory_free" not in hv_info
-    _ErrorIf(test, self.ENODEHV, node, "rpc call to node failed (hvinfo)")
+    _ErrorIf(test, constants.CV_ENODEHV, node,
+             "rpc call to node failed (hvinfo)")
     if not test:
       try:
         nimg.mfree = int(hv_info["memory_free"])
       except (ValueError, TypeError):
-        _ErrorIf(True, self.ENODERPC, node,
+        _ErrorIf(True, constants.CV_ENODERPC, node,
                  "node returned invalid nodeinfo, check hypervisor")
 
     # FIXME: devise a free space model for file based instances as well
     if vg_name is not None:
       test = (constants.NV_VGLIST not in nresult or
               vg_name not in nresult[constants.NV_VGLIST])
-      _ErrorIf(test, self.ENODELVM, node,
+      _ErrorIf(test, constants.CV_ENODELVM, node,
                "node didn't return data for the volume group '%s'"
                " - it is either missing or broken", vg_name)
       if not test:
         try:
           nimg.dfree = int(nresult[constants.NV_VGLIST][vg_name])
         except (ValueError, TypeError):
-          _ErrorIf(True, self.ENODERPC, node,
+          _ErrorIf(True, constants.CV_ENODERPC, node,
                    "node returned invalid LVM info, check LVM status")
 
   def _CollectDiskInfo(self, nodelist, node_image, instanceinfo):
@@ -2531,7 +2503,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         data = len(disks) * [(False, "node offline")]
       else:
         msg = nres.fail_msg
-        _ErrorIf(msg, self.ENODERPC, nname,
+        _ErrorIf(msg, constants.CV_ENODERPC, nname,
                  "while getting disk information: %s", msg)
         if msg:
           # No data from this node
@@ -2830,7 +2802,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         feedback_fn("* Verifying node %s (%s)" % (node, ntype))
 
       msg = all_nvinfo[node].fail_msg
-      _ErrorIf(msg, self.ENODERPC, node, "while contacting node: %s", msg)
+      _ErrorIf(msg, constants.CV_ENODERPC, node, "while contacting node: %s",
+               msg)
       if msg:
         nimg.rpc_fail = True
         continue
@@ -2865,9 +2838,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
         for inst in non_primary_inst:
           test = inst in self.all_inst_info
-          _ErrorIf(test, self.EINSTANCEWRONGNODE, inst,
+          _ErrorIf(test, constants.CV_EINSTANCEWRONGNODE, inst,
                    "instance should not run on node %s", node_i.name)
-          _ErrorIf(not test, self.ENODEORPHANINSTANCE, node_i.name,
+          _ErrorIf(not test, constants.CV_ENODEORPHANINSTANCE, node_i.name,
                    "node is running unknown instance %s", inst)
 
     for node, result in extra_lv_nvinfo.items():
@@ -2886,11 +2859,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       pnode = inst_config.primary_node
       pnode_img = node_image[pnode]
       _ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
-               self.ENODERPC, pnode, "instance %s, connection to"
+               constants.CV_ENODERPC, pnode, "instance %s, connection to"
                " primary node failed", instance)
 
       _ErrorIf(inst_config.admin_up and pnode_img.offline,
-               self.EINSTANCEBADNODE, instance,
+               constants.CV_EINSTANCEBADNODE, instance,
                "instance is marked as running and lives on offline node %s",
                inst_config.primary_node)
 
@@ -2902,7 +2875,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if not inst_config.secondary_nodes:
         i_non_redundant.append(instance)
 
-      _ErrorIf(len(inst_config.secondary_nodes) > 1, self.EINSTANCELAYOUT,
+      _ErrorIf(len(inst_config.secondary_nodes) > 1,
+               constants.CV_EINSTANCELAYOUT,
                instance, "instance has multiple secondary nodes: %s",
                utils.CommaJoin(inst_config.secondary_nodes),
                code=self.ETYPE_WARNING)
@@ -2923,7 +2897,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                      key=lambda (_, nodes): pnode in nodes,
                                      reverse=True)]
 
-        self._ErrorIf(len(instance_groups) > 1, self.EINSTANCESPLITGROUPS,
+        self._ErrorIf(len(instance_groups) > 1,
+                      constants.CV_EINSTANCESPLITGROUPS,
                       instance, "instance has primary and secondary nodes in"
                       " different groups: %s", utils.CommaJoin(pretty_list),
                       code=self.ETYPE_WARNING)
@@ -2933,21 +2908,22 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
       for snode in inst_config.secondary_nodes:
         s_img = node_image[snode]
-        _ErrorIf(s_img.rpc_fail and not s_img.offline, self.ENODERPC, snode,
-                 "instance %s, connection to secondary node failed", instance)
+        _ErrorIf(s_img.rpc_fail and not s_img.offline, constants.CV_ENODERPC,
+                 snode, "instance %s, connection to secondary node failed",
+                 instance)
 
         if s_img.offline:
           inst_nodes_offline.append(snode)
 
       # warn that the instance lives on offline nodes
-      _ErrorIf(inst_nodes_offline, self.EINSTANCEBADNODE, instance,
+      _ErrorIf(inst_nodes_offline, constants.CV_EINSTANCEBADNODE, instance,
                "instance has offline secondary node(s) %s",
                utils.CommaJoin(inst_nodes_offline))
       # ... or ghost/non-vm_capable nodes
       for node in inst_config.all_nodes:
-        _ErrorIf(node_image[node].ghost, self.EINSTANCEBADNODE, instance,
-                 "instance lives on ghost node %s", node)
-        _ErrorIf(not node_image[node].vm_capable, self.EINSTANCEBADNODE,
+        _ErrorIf(node_image[node].ghost, constants.CV_EINSTANCEBADNODE,
+                 instance, "instance lives on ghost node %s", node)
+        _ErrorIf(not node_image[node].vm_capable, constants.CV_EINSTANCEBADNODE,
                  instance, "instance lives on non-vm_capable node %s", node)
 
     feedback_fn("* Verifying orphan volumes")
@@ -3015,7 +2991,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         res = hooks_results[node_name]
         msg = res.fail_msg
         test = msg and not res.offline
-        self._ErrorIf(test, self.ENODEHOOKS, node_name,
+        self._ErrorIf(test, constants.CV_ENODEHOOKS, node_name,
                       "Communication failure in hooks execution: %s", msg)
         if res.offline or msg:
           # No need to investigate payload if node is offline or gave
@@ -3023,7 +2999,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           continue
         for script, hkr, output in res.payload:
           test = hkr == constants.HKR_FAIL
-          self._ErrorIf(test, self.ENODEHOOKS, node_name,
+          self._ErrorIf(test, constants.CV_ENODEHOOKS, node_name,
                         "Script %s failed, output:", script)
           if test:
             output = self._HOOKS_INDENT_RE.sub("      ", output)

@@ -272,9 +272,9 @@ class TestClusterVerifySsh(unittest.TestCase):
 class TestClusterVerifyFiles(unittest.TestCase):
   @staticmethod
   def _FakeErrorIf(errors, cond, ecode, item, msg, *args, **kwargs):
-    assert ((ecode == cmdlib.LUClusterVerifyGroup.ENODEFILECHECK and
+    assert ((ecode == constants.CV_ENODEFILECHECK and
              ht.TNonEmptyString(item)) or
-            (ecode == cmdlib.LUClusterVerifyGroup.ECLUSTERFILECHECK and
+            (ecode == constants.CV_ECLUSTERFILECHECK and
              item is None))
 
     if args:
