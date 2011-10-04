@@ -648,6 +648,7 @@ class Merger(object):
     """
     for data in self.merger_data:
       for node in data.nodes:
+        logging.info("Readding node %s", node)
         result = utils.RunCmd(["gnt-node", "add", "--readd",
                                "--no-ssh-key-check", "--force-join", node])
         if result.failed:

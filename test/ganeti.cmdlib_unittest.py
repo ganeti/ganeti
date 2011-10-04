@@ -27,6 +27,7 @@ import unittest
 import time
 import tempfile
 import shutil
+import operator
 
 from ganeti import constants
 from ganeti import mcpu
@@ -37,6 +38,8 @@ from ganeti import utils
 from ganeti import luxi
 from ganeti import ht
 from ganeti import objects
+from ganeti import compat
+from ganeti import rpc
 
 import testutils
 import mocks
@@ -205,6 +208,159 @@ class TestLUGroupAssignNodes(unittest.TestCase):
 
     self.assertEqual(set(["inst1a", "inst1b"]), set(new))
     self.assertEqual(set(["inst3c"]), set(prev))
+
+
+class TestClusterVerifySsh(unittest.TestCase):
+  def testMultipleGroups(self):
+    fn = cmdlib.LUClusterVerifyGroup._SelectSshCheckNodes
+    mygroupnodes = [
+      objects.Node(name="node20", group="my", offline=False),
+      objects.Node(name="node21", group="my", offline=False),
+      objects.Node(name="node22", group="my", offline=False),
+      objects.Node(name="node23", group="my", offline=False),
+      objects.Node(name="node24", group="my", offline=False),
+      objects.Node(name="node25", group="my", offline=False),
+      objects.Node(name="node26", group="my", offline=True),
+      ]
+    nodes = [
+      objects.Node(name="node1", group="g1", offline=True),
+      objects.Node(name="node2", group="g1", offline=False),
+      objects.Node(name="node3", group="g1", offline=False),
+      objects.Node(name="node4", group="g1", offline=True),
+      objects.Node(name="node5", group="g1", offline=False),
+      objects.Node(name="node10", group="xyz", offline=False),
+      objects.Node(name="node11", group="xyz", offline=False),
+      objects.Node(name="node40", group="alloff", offline=True),
+      objects.Node(name="node41", group="alloff", offline=True),
+      objects.Node(name="node50", group="aaa", offline=False),
+      ] + mygroupnodes
+    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+
+    (online, perhost) = fn(mygroupnodes, "my", nodes)
+    self.assertEqual(online, ["node%s" % i for i in range(20, 26)])
+    self.assertEqual(set(perhost.keys()), set(online))
+
+    self.assertEqual(perhost, {
+      "node20": ["node10", "node2", "node50"],
+      "node21": ["node11", "node3", "node50"],
+      "node22": ["node10", "node5", "node50"],
+      "node23": ["node11", "node2", "node50"],
+      "node24": ["node10", "node3", "node50"],
+      "node25": ["node11", "node5", "node50"],
+      })
+
+  def testSingleGroup(self):
+    fn = cmdlib.LUClusterVerifyGroup._SelectSshCheckNodes
+    nodes = [
+      objects.Node(name="node1", group="default", offline=True),
+      objects.Node(name="node2", group="default", offline=False),
+      objects.Node(name="node3", group="default", offline=False),
+      objects.Node(name="node4", group="default", offline=True),
+      ]
+    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+
+    (online, perhost) = fn(nodes, "default", nodes)
+    self.assertEqual(online, ["node2", "node3"])
+    self.assertEqual(set(perhost.keys()), set(online))
+
+    self.assertEqual(perhost, {
+      "node2": [],
+      "node3": [],
+      })
+
+
+class TestClusterVerifyFiles(unittest.TestCase):
+  @staticmethod
+  def _FakeErrorIf(errors, cond, ecode, item, msg, *args, **kwargs):
+    assert ((ecode == cmdlib.LUClusterVerifyGroup.ENODEFILECHECK and
+             ht.TNonEmptyString(item)) or
+            (ecode == cmdlib.LUClusterVerifyGroup.ECLUSTERFILECHECK and
+             item is None))
+
+    if args:
+      msg = msg % args
+
+    if cond:
+      errors.append((item, msg))
+
+  _VerifyFiles = cmdlib.LUClusterVerifyGroup._VerifyFiles
+
+  def test(self):
+    errors = []
+    master_name = "master.example.com"
+    nodeinfo = [
+      objects.Node(name=master_name, offline=False),
+      objects.Node(name="node2.example.com", offline=False),
+      objects.Node(name="node3.example.com", master_candidate=True),
+      objects.Node(name="node4.example.com", offline=False),
+      objects.Node(name="nodata.example.com"),
+      objects.Node(name="offline.example.com", offline=True),
+      ]
+    cluster = objects.Cluster(modify_etc_hosts=True,
+                              enabled_hypervisors=[constants.HT_XEN_HVM])
+    files_all = set([
+      constants.CLUSTER_DOMAIN_SECRET_FILE,
+      constants.RAPI_CERT_FILE,
+      ])
+    files_all_opt = set([
+      constants.RAPI_USERS_FILE,
+      ])
+    files_mc = set([
+      constants.CLUSTER_CONF_FILE,
+      ])
+    files_vm = set()
+    nvinfo = {
+      master_name: rpc.RpcResult(data=(True, {
+        constants.NV_FILELIST: {
+          constants.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
+          constants.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
+          constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+        }})),
+      "node2.example.com": rpc.RpcResult(data=(True, {
+        constants.NV_FILELIST: {
+          constants.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          }
+        })),
+      "node3.example.com": rpc.RpcResult(data=(True, {
+        constants.NV_FILELIST: {
+          constants.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          }
+        })),
+      "node4.example.com": rpc.RpcResult(data=(True, {
+        constants.NV_FILELIST: {
+          constants.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          constants.CLUSTER_CONF_FILE: "conf-a6d4b13e407867f7a7b4f0f232a8f527",
+          constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          constants.RAPI_USERS_FILE: "rapiusers-ea3271e8d810ef3",
+          }
+        })),
+      "nodata.example.com": rpc.RpcResult(data=(True, {})),
+      "offline.example.com": rpc.RpcResult(offline=True),
+      }
+    assert set(nvinfo.keys()) == set(map(operator.attrgetter("name"), nodeinfo))
+
+    self._VerifyFiles(compat.partial(self._FakeErrorIf, errors), nodeinfo,
+                      master_name, nvinfo,
+                      (files_all, files_all_opt, files_mc, files_vm))
+    self.assertEqual(sorted(errors), sorted([
+      (None, ("File %s found with 2 different checksums (variant 1 on"
+              " node2.example.com, node3.example.com, node4.example.com;"
+              " variant 2 on master.example.com)" % constants.RAPI_CERT_FILE)),
+      (None, ("File %s is missing from node(s) node2.example.com" %
+              constants.CLUSTER_DOMAIN_SECRET_FILE)),
+      (None, ("File %s should not exist on node(s) node4.example.com" %
+              constants.CLUSTER_CONF_FILE)),
+      (None, ("File %s is missing from node(s) node3.example.com" %
+              constants.CLUSTER_CONF_FILE)),
+      (None, ("File %s found with 2 different checksums (variant 1 on"
+              " master.example.com; variant 2 on node4.example.com)" %
+              constants.CLUSTER_CONF_FILE)),
+      (None, ("File %s is optional, but it must exist on all or no nodes (not"
+              " found on master.example.com, node2.example.com,"
+              " node3.example.com)" % constants.RAPI_USERS_FILE)),
+      ("nodata.example.com", "Node did not return file checksum data"),
+      ]))
 
 
 if __name__ == "__main__":
