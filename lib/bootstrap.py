@@ -796,7 +796,8 @@ def GatherMasterVotes(node_list):
     if msg:
       logging.warning("Error contacting node %s: %s", node, msg)
       fail = True
-    # for now we accept both length 3 and 4 (data[3] is primary ip version)
+    # for now we accept both length 3, 4 and 5 (data[3] is primary ip version
+    # and data[4] is the master netmask)
     elif not isinstance(data, (tuple, list)) or len(data) < 3:
       logging.warning("Invalid data received from node %s: %s", node, data)
       fail = True

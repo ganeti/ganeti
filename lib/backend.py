@@ -231,8 +231,8 @@ def GetMasterInfo():
   for consumption here or from the node daemon.
 
   @rtype: tuple
-  @return: master_netdev, master_ip, master_netmask, master_name,
-    primary_ip_family
+  @return: master_netdev, master_ip, master_name, primary_ip_family,
+    master_netmask
   @raise RPCFail: in case of errors
 
   """
@@ -245,8 +245,8 @@ def GetMasterInfo():
     primary_ip_family = cfg.GetPrimaryIPFamily()
   except errors.ConfigurationError, err:
     _Fail("Cluster configuration incomplete: %s", err, exc=True)
-  return (master_netdev, master_ip, master_netmask, master_node,
-          primary_ip_family)
+  return (master_netdev, master_ip, master_node, primary_ip_family,
+      master_netmask)
 
 
 def ActivateMasterIp():
@@ -254,7 +254,7 @@ def ActivateMasterIp():
 
   """
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, master_netmask, _, family = GetMasterInfo()
+  master_netdev, master_ip, _, family, master_netmask = GetMasterInfo()
 
   err_msg = None
   if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
@@ -328,7 +328,7 @@ def DeactivateMasterIp():
   # need to decide in which case we fail the RPC for this
 
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, master_netmask, _, _ = GetMasterInfo()
+  master_netdev, master_ip, _, _, master_netmask = GetMasterInfo()
 
   result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
                          "%s/%s" % (master_ip, master_netmask),
@@ -360,7 +360,7 @@ def ChangeMasterNetmask(netmask):
   """Change the netmask of the master IP.
 
   """
-  master_netdev, master_ip, old_netmask, _, _ = GetMasterInfo()
+  master_netdev, master_ip, _, _, old_netmask = GetMasterInfo()
   if old_netmask == netmask:
     return
 
