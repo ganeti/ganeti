@@ -72,9 +72,15 @@ FILE_EXTENSIONS = [
 ]
 
 COMPRESSION_TYPE = "gzip"
+NO_COMPRESSION = [None, "identity"]
 COMPRESS = "compression"
 DECOMPRESS = "decompression"
 ALLOWED_ACTIONS = [COMPRESS, DECOMPRESS]
+
+VMDK = "vmdk"
+RAW = "raw"
+COW = "cow"
+ALLOWED_FORMATS = [RAW, COW, VMDK]
 
 # ResourceType values
 RASD_TYPE = {
@@ -83,6 +89,12 @@ RASD_TYPE = {
   "scsi-controller": "6",
   "ethernet-adapter": "10",
   "disk": "17",
+}
+
+SCSI_SUBTYPE = "lsilogic"
+VS_TYPE = {
+  "ganeti": "ganeti-ovf",
+  "external": "vmx-04",
 }
 
 # AllocationUnits values and conversion
@@ -111,15 +123,19 @@ TAGS = "tags"
 VERSION = "version"
 
 # Instance IDs of System and SCSI controller
-SYSTEM_ID = 0
-SCSI_ID = 3
+INSTANCE_ID = {
+  "system": 0,
+  "vcpus": 1,
+  "memory": 2,
+  "scsi": 3,
+}
 
 # Disk format descriptions
 DISK_FORMAT = {
-  "raw": "http://en.wikipedia.org/wiki/Byte",
-  "vmdk": "http://www.vmware.com/interfaces/specifications/vmdk.html"
+  RAW: "http://en.wikipedia.org/wiki/Byte",
+  VMDK: "http://www.vmware.com/interfaces/specifications/vmdk.html"
           "#monolithicSparse",
-  "cow": "http://www.gnome.org/~markmc/qcow-image-format.html",
+  COW: "http://www.gnome.org/~markmc/qcow-image-format.html",
 }
 
 
@@ -571,8 +587,14 @@ class OVFWriter(object):
 
   @type tree: ET.ElementTree
   @ivar tree: XML tree that we are constructing
+  @type virtual_system_type: string
+  @ivar virtual_system_type: value of vssd:VirtualSystemType, for external usage
+    in VMWare this requires to be vmx
   @type hardware_list: list
   @ivar hardware_list: list of items prepared for VirtualHardwareSection
+  @type next_instance_id: int
+  @ivar next_instance_id: next instance id to be used when creating elements on
+    hardware_list
 
   """
   def __init__(self, has_gnt_section):
@@ -593,8 +615,13 @@ class OVFWriter(object):
     }
     if has_gnt_section:
       env_attribs["xmlns:gnt"] = GANETI_SCHEMA
+      self.virtual_system_type = VS_TYPE["ganeti"]
+    else:
+      self.virtual_system_type = VS_TYPE["external"]
     self.tree = ET.Element("Envelope", attrib=env_attribs)
     self.hardware_list = []
+    # INSTANCE_ID contains statically assigned IDs, starting from 0
+    self.next_instance_id = len(INSTANCE_ID) # FIXME: hackish
 
   def SaveDisksData(self, disks):
     """Convert disk information to certain OVF sections.
@@ -605,6 +632,7 @@ class OVFWriter(object):
     """
     references = ET.SubElement(self.tree, "References")
     disk_section = ET.SubElement(self.tree, "DiskSection")
+    SubElementText(disk_section, "Info", "Virtual disk information")
     for counter, disk in enumerate(disks):
       file_id = "file%s" % counter
       disk_id = "disk%s" % counter
@@ -627,10 +655,12 @@ class OVFWriter(object):
       # Item in VirtualHardwareSection creation
       disk_item = ET.Element("Item")
       SubElementText(disk_item, "rasd:ElementName", disk_id)
-      SubElementText(disk_item, "rasd:ResourceType", RASD_TYPE["disk"])
       SubElementText(disk_item, "rasd:HostResource", "ovf:/disk/%s" % disk_id)
-      SubElementText(disk_item, "rasd:Parent", SCSI_ID)
+      SubElementText(disk_item, "rasd:InstanceID", self.next_instance_id)
+      SubElementText(disk_item, "rasd:Parent", INSTANCE_ID["scsi"])
+      SubElementText(disk_item, "rasd:ResourceType", RASD_TYPE["disk"])
       self.hardware_list.append(disk_item)
+      self.next_instance_id += 1
 
   def SaveNetworksData(self, networks):
     """Convert network information to NetworkSection.
@@ -640,6 +670,7 @@ class OVFWriter(object):
 
     """
     network_section = ET.SubElement(self.tree, "NetworkSection")
+    SubElementText(network_section, "Info", "List of logical networks")
     for counter, network in enumerate(networks):
       network_name = "%s%s" % (network["mode"], counter)
       network_attrib = {"ovf:name": network_name}
@@ -647,12 +678,14 @@ class OVFWriter(object):
 
       # Item in VirtualHardwareSection creation
       network_item = ET.Element("Item")
+      SubElementText(network_item, "rasd:Address", network["mac"])
+      SubElementText(network_item, "rasd:Connection", network_name)
       SubElementText(network_item, "rasd:ElementName", network_name)
+      SubElementText(network_item, "rasd:InstanceID", self.next_instance_id)
       SubElementText(network_item, "rasd:ResourceType",
         RASD_TYPE["ethernet-adapter"])
-      SubElementText(network_item, "rasd:Connection", network_name)
-      SubElementText(network_item, "rasd:Address", network["mac"])
       self.hardware_list.append(network_item)
+      self.next_instance_id += 1
 
   @staticmethod
   def _SaveNameAndParams(root, data):
@@ -720,26 +753,29 @@ class OVFWriter(object):
     assert(memory > 0)
     vs_attrib = {"ovf:id": name}
     virtual_system = ET.SubElement(self.tree, "VirtualSystem", attrib=vs_attrib)
+    SubElementText(virtual_system, "Info", "A virtual machine")
 
     name_section = ET.SubElement(virtual_system, "Name")
     name_section.text = name
     os_attrib = {"ovf:id": "0"}
-    ET.SubElement(virtual_system, "OperatingSystemSection",
+    os_section = ET.SubElement(virtual_system, "OperatingSystemSection",
       attrib=os_attrib)
+    SubElementText(os_section, "Info", "Installed guest operating system")
     hardware_section = ET.SubElement(virtual_system, "VirtualHardwareSection")
+    SubElementText(hardware_section, "Info", "Virtual hardware requirements")
 
     # System description
     system = ET.SubElement(hardware_section, "System")
     SubElementText(system, "vssd:ElementName", "Virtual Hardware Family")
-    SubElementText(system, "vssd:InstanceId", SYSTEM_ID)
+    SubElementText(system, "vssd:InstanceID", INSTANCE_ID["system"])
     SubElementText(system, "vssd:VirtualSystemIdentifier", name)
-    SubElementText(system, "vssd:VirtualSystemType", "ganeti-ovf")
+    SubElementText(system, "vssd:VirtualSystemType", self.virtual_system_type)
 
     # Item for vcpus
     vcpus_item = ET.SubElement(hardware_section, "Item")
     SubElementText(vcpus_item, "rasd:ElementName",
       "%s virtual CPU(s)" % vcpus)
-    SubElementText(vcpus_item, "rasd:InstanceID", "1")
+    SubElementText(vcpus_item, "rasd:InstanceID", INSTANCE_ID["vcpus"])
     SubElementText(vcpus_item, "rasd:ResourceType", RASD_TYPE["vcpus"])
     SubElementText(vcpus_item, "rasd:VirtualQuantity", vcpus)
 
@@ -747,20 +783,20 @@ class OVFWriter(object):
     memory_item = ET.SubElement(hardware_section, "Item")
     SubElementText(memory_item, "rasd:AllocationUnits", "byte * 2^20")
     SubElementText(memory_item, "rasd:ElementName", "%sMB of memory" % memory)
-    SubElementText(memory_item, "rasd:InstanceID", "2")
+    SubElementText(memory_item, "rasd:InstanceID", INSTANCE_ID["memory"])
     SubElementText(memory_item, "rasd:ResourceType", RASD_TYPE["memory"])
     SubElementText(memory_item, "rasd:VirtualQuantity", memory)
 
     # Item for scsi controller
     scsi_item = ET.SubElement(hardware_section, "Item")
-    SubElementText(scsi_item, "rasd:Address", SYSTEM_ID)
+    SubElementText(scsi_item, "rasd:Address", INSTANCE_ID["system"])
     SubElementText(scsi_item, "rasd:ElementName", "scsi_controller0")
+    SubElementText(scsi_item, "rasd:InstanceID", INSTANCE_ID["scsi"])
+    SubElementText(scsi_item, "rasd:ResourceSubType", SCSI_SUBTYPE)
     SubElementText(scsi_item, "rasd:ResourceType", RASD_TYPE["scsi-controller"])
-    SubElementText(scsi_item, "rasd:InstanceId", "3")
 
     # Other items - from self.hardware_list
-    for counter, item in enumerate(self.hardware_list):
-      SubElementText(item, "rasd:InstanceID", counter + 4)
+    for item in self.hardware_list:
       hardware_section.append(item)
 
   def PrettyXmlDump(self):
@@ -1324,7 +1360,7 @@ class OVFImporter(Converter):
                                    " paths or paths outside main OVF directory")
       disk, _ = os.path.splitext(disk_name)
       disk_path = utils.PathJoin(self.input_dir, disk_name)
-      if disk_compression:
+      if disk_compression not in NO_COMPRESSION:
         _, disk_path = self._CompressDisk(disk_path, disk_compression,
           DECOMPRESS)
         disk, _ = os.path.splitext(disk)
@@ -1709,8 +1745,9 @@ class OVFExporter(Converter):
     logging.info("Preparing tarball for the OVF package")
     open(tar_path, mode="w").close()
     ova_package = tarfile.open(name=tar_path, mode="w")
-    for file_name in files_list:
-      ova_package.add(file_name)
+    for file_path in files_list:
+      file_name = os.path.basename(file_path)
+      ova_package.add(file_path, arcname=file_name)
     ova_package.close()
 
   def Save(self):
