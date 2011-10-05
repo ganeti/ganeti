@@ -85,7 +85,7 @@ currently use OVF.
 
 In our implementation of the OVF we allow a choice between raw, cow and
 vmdk disk formats for both import and export. Other formats covertable
-using ``qemu-img`` are allowed, but not tested.
+using ``qemu-img`` are allowed in import mode, but not tested.
 The justification is the following:
 
 - Raw format is supported as it is the main format of disk images used
@@ -250,8 +250,7 @@ Disks
 
 As mentioned, Ganeti will allow export in  ``raw``, ``cow`` and ``vmdk``
 formats.  This means i.e. that the appropriate ``ovf:format``
-will be provided. It does not mean that other formats cannot be used,
-rather that we did not test them.
+will be provided.
 As for import, we will support all formats that ``qemu-img`` can convert
 to ``raw``. At this point this means ``raw``, ``cow``, ``qcow``,
 ``qcow2``, ``vmdk`` and ``cloop``.  We do not plan for now to support
@@ -268,7 +267,8 @@ we use ``qemu-img info``, which provides enough information for our
 purposes and is better standardized.
 
 Please note, that due to security reasons we require the disk image to
-be in the same directory as the ``.ovf`` description file.
+be in the same directory as the ``.ovf`` description file for both
+import and export.
 
 In order to completely ignore disk-related information in resulting
 config file, please use ``--disk-template=diskless`` option.
@@ -301,6 +301,11 @@ Operating Systems
 Support for different operating systems depends solely on their
 accessibility for Ganeti instances. List of installed OSes can be
 checked using ``gnt-os list`` command.
+
+References
+----------
+
+Files listed in ``ovf:References`` section cannot be hyperlinks.
 
 Other
 -----
@@ -425,8 +430,8 @@ Disk conversion
 ---------------
 
 Disk conversion for both import and export is done using external tool
-called qemu-tools. The same tool is used to determine the type of disk,
-as well as its virtual size.
+called ``qemu-img``. The same tool is used to determine the type of
+disk, as well as its virtual size.
 
 
 Import
@@ -490,6 +495,24 @@ Typical workflow for the export is even simpler, than for the import:
 - save the XML tree as ``.ovf`` file
 - create manifest file and fill it with appropriate checksums
 - if ``--ova`` option was chosen, pack the results into ``.ova`` tarfile
+
+
+Work in progress
+----------------
+
+- conversion to/from raw disk should be quicker
+- add graphic card memory to export information (12 MB of memory)
+- space requirements for conversion + compression + ova are currently
+  enormous
+- add support for disks in chunks
+- add support for certificates
+- investigate why VMWare's ovftool does not work with ovfconverter's
+  compression and ova packaging -- maybe noteworty: if OVA archive does
+  not have a disk (i.e. in OVA package there is only .ovf ad .mf file),
+  then the ovftool works
+- investigate why new versions of VirtualBox have problems with OVF
+  created by ovfconverter (everything works fine with 3.16 version, but
+  not with 4.0)
 
 
 .. vim: set textwidth=72 :
