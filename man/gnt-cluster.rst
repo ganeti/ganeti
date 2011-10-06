@@ -619,7 +619,9 @@ node will be listed as /nodes/*name*, and an instance as
 VERIFY
 ~~~~~~
 
-**verify** [--no-nplus1-mem] [--node-group *nodegroup*]
+| **verify** [--no-nplus1-mem] [--node-group *nodegroup*]
+| [--error-codes] [{-I|--ignore-errors} *errorcode*]
+| [{-I|--ignore-errors} *errorcode*...]
 
 Verify correctness of cluster configuration. This is safe with
 respect to running instances, and incurs no downtime of the
@@ -633,6 +635,39 @@ With ``--node-group``, restrict the verification to those nodes and
 instances that live in the named group. This will not verify global
 settings, but will allow to perform verification of a group while other
 operations are ongoing in other groups.
+
+The ``--error-codes`` option outputs each error in the following
+parseable format: *ftype*:*ecode*:*edomain*:*name*:*msg*.
+These fields have the following meaning:
+
+ftype
+    Failure type. Can be *WARNING* or *ERROR*.
+
+ecode
+    Error code of the failure. See below for a list of error codes.
+
+edomain
+    Can be *cluster*, *node* or *instance*.
+
+name
+    Contains the name of the item that is affected from the failure.
+
+msg
+    Contains a descriptive error message about the error
+
+``gnt-cluster verify`` will have a non-zero exit code if at least one of
+the failures that are found are of type *ERROR*.
+
+The ``--ignore-errors`` option can be used to change this behaviour,
+because it demotes the error represented by the error code received as a
+parameter to a warning. The option must be repeated for each error that
+should be ignored (e.g.: ``-I ENODEVERSION -I ENODEORPHANLV``). The
+``--error-codes`` option can be used to determine the error code of a
+given error.
+
+List of error codes:
+
+@CONSTANTS_ECODES@
 
 VERIFY-DISKS
 ~~~~~~~~~~~~
