@@ -51,6 +51,15 @@ COMMON_PARAM_NAMES = map(compat.fst, opcodes.OpCode.OP_PARAMS)
 EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors,
                rlib2=rapi.rlib2)
 
+# Constants documentation for man pages
+CV_ECODES_DOC = "ecodes"
+# We don't care about the leak of variables _, name and doc here.
+# pylint: disable=W0621
+CV_ECODES_DOC_LIST = [(name, doc) for (_, name, doc) in constants.CV_ALL_ECODES]
+DOCUMENTED_CONSTANTS = {
+  CV_ECODES_DOC: CV_ECODES_DOC_LIST,
+  }
+
 
 class OpcodeError(sphinx.errors.SphinxError):
   category = "Opcode error"

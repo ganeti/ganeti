@@ -1448,7 +1448,7 @@ class _VerifyErrors(object):
 
     """
     ltype = kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR)
-    itype, etxt = ecode
+    itype, etxt, _ = ecode
     # first complete the msg
     if args:
       msg = msg % args
@@ -1473,7 +1473,7 @@ class _VerifyErrors(object):
 
     # If the error code is in the list of ignored errors, demote the error to a
     # warning
-    (_, etxt) = ecode
+    (_, etxt, _) = ecode
     if etxt in self.op.ignore_errors:     # pylint: disable=E1101
       kwargs[self.ETYPE_FIELD] = self.ETYPE_WARNING
 

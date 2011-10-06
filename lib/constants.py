@@ -1087,36 +1087,75 @@ CV_TCLUSTER = "cluster"
 CV_TNODE = "node"
 CV_TINSTANCE = "instance"
 
-# Cluster Verify error codes
-CV_ECLUSTERCFG = (CV_TCLUSTER, "ECLUSTERCFG")
-CV_ECLUSTERCERT = (CV_TCLUSTER, "ECLUSTERCERT")
-CV_ECLUSTERFILECHECK = (CV_TCLUSTER, "ECLUSTERFILECHECK")
-CV_ECLUSTERDANGLINGNODES = (CV_TNODE, "ECLUSTERDANGLINGNODES")
-CV_ECLUSTERDANGLINGINST = (CV_TNODE, "ECLUSTERDANGLINGINST")
-CV_EINSTANCEBADNODE = (CV_TINSTANCE, "EINSTANCEBADNODE")
-CV_EINSTANCEDOWN = (CV_TINSTANCE, "EINSTANCEDOWN")
-CV_EINSTANCELAYOUT = (CV_TINSTANCE, "EINSTANCELAYOUT")
-CV_EINSTANCEMISSINGDISK = (CV_TINSTANCE, "EINSTANCEMISSINGDISK")
-CV_EINSTANCEFAULTYDISK = (CV_TINSTANCE, "EINSTANCEFAULTYDISK")
-CV_EINSTANCEWRONGNODE = (CV_TINSTANCE, "EINSTANCEWRONGNODE")
-CV_EINSTANCESPLITGROUPS = (CV_TINSTANCE, "EINSTANCESPLITGROUPS")
-CV_ENODEDRBD = (CV_TNODE, "ENODEDRBD")
-CV_ENODEDRBDHELPER = (CV_TNODE, "ENODEDRBDHELPER")
-CV_ENODEFILECHECK = (CV_TNODE, "ENODEFILECHECK")
-CV_ENODEHOOKS = (CV_TNODE, "ENODEHOOKS")
-CV_ENODEHV = (CV_TNODE, "ENODEHV")
-CV_ENODELVM = (CV_TNODE, "ENODELVM")
-CV_ENODEN1 = (CV_TNODE, "ENODEN1")
-CV_ENODENET = (CV_TNODE, "ENODENET")
-CV_ENODEOS = (CV_TNODE, "ENODEOS")
-CV_ENODEORPHANINSTANCE = (CV_TNODE, "ENODEORPHANINSTANCE")
-CV_ENODEORPHANLV = (CV_TNODE, "ENODEORPHANLV")
-CV_ENODERPC = (CV_TNODE, "ENODERPC")
-CV_ENODESSH = (CV_TNODE, "ENODESSH")
-CV_ENODEVERSION = (CV_TNODE, "ENODEVERSION")
-CV_ENODESETUP = (CV_TNODE, "ENODESETUP")
-CV_ENODETIME = (CV_TNODE, "ENODETIME")
-CV_ENODEOOBPATH = (CV_TNODE, "ENODEOOBPATH")
+# Cluster Verify error codes and documentation
+CV_ECLUSTERCFG = \
+  (CV_TCLUSTER, "ECLUSTERCFG", "Cluster configuration verification failure")
+CV_ECLUSTERCERT = \
+  (CV_TCLUSTER, "ECLUSTERCERT",
+   "Cluster certificate files verification failure")
+CV_ECLUSTERFILECHECK = \
+  (CV_TCLUSTER, "ECLUSTERFILECHECK",
+   "Cluster configuration verification failure")
+CV_ECLUSTERDANGLINGNODES = \
+  (CV_TNODE, "ECLUSTERDANGLINGNODES",
+   "Some nodes belong to non-existing groups")
+CV_ECLUSTERDANGLINGINST = \
+  (CV_TNODE, "ECLUSTERDANGLINGINST",
+   "Some instances have a non-existing primary node")
+CV_EINSTANCEBADNODE = \
+  (CV_TINSTANCE, "EINSTANCEBADNODE",
+   "Instance marked as running lives on an offline node")
+CV_EINSTANCEDOWN = \
+  (CV_TINSTANCE, "EINSTANCEDOWN", "Instance not running on its primary node")
+CV_EINSTANCELAYOUT = \
+  (CV_TINSTANCE, "EINSTANCELAYOUT", "Instance has multiple secondary nodes")
+CV_EINSTANCEMISSINGDISK = \
+  (CV_TINSTANCE, "EINSTANCEMISSINGDISK", "Missing volume on an instance")
+CV_EINSTANCEFAULTYDISK = \
+  (CV_TINSTANCE, "EINSTANCEFAULTYDISK",
+   "Impossible to retrieve status for a disk")
+CV_EINSTANCEWRONGNODE = \
+  (CV_TINSTANCE, "EINSTANCEWRONGNODE", "Instance running on the wrong node")
+CV_EINSTANCESPLITGROUPS = \
+  (CV_TINSTANCE, "EINSTANCESPLITGROUPS",
+   "Instance with primary and secondary nodes in different groups")
+CV_ENODEDRBD = \
+  (CV_TNODE, "ENODEDRBD", "Error parsing the DRBD status file")
+CV_ENODEDRBDHELPER = \
+  (CV_TNODE, "ENODEDRBDHELPER", "Error caused by the DRBD helper")
+CV_ENODEFILECHECK = \
+  (CV_TNODE, "ENODEFILECHECK",
+   "Error retrieving the checksum of the node files")
+CV_ENODEHOOKS = \
+  (CV_TNODE, "ENODEHOOKS", "Communication failure in hooks execution")
+CV_ENODEHV = \
+  (CV_TNODE, "ENODEHV", "Hypervisor parameters verification failure")
+CV_ENODELVM = \
+  (CV_TNODE, "ENODELVM", "LVM-related node error")
+CV_ENODEN1 = \
+  (CV_TNODE, "ENODEN1", "Not enough memory to accommodate instance failovers")
+CV_ENODENET = \
+  (CV_TNODE, "ENODENET", "Network-related node error")
+CV_ENODEOS = \
+  (CV_TNODE, "ENODEOS", "OS-related node error")
+CV_ENODEORPHANINSTANCE = \
+  (CV_TNODE, "ENODEORPHANINSTANCE", "Unknown intance running on a node")
+CV_ENODEORPHANLV = \
+  (CV_TNODE, "ENODEORPHANLV", "Unknown LVM logical volume")
+CV_ENODERPC = \
+  (CV_TNODE, "ENODERPC",
+   "Error during connection to the primary node of an instance")
+CV_ENODESSH = \
+  (CV_TNODE, "ENODESSH", "SSH-related node error")
+CV_ENODEVERSION = \
+  (CV_TNODE, "ENODEVERSION",
+   "Protocol version mismatch or Ganeti version mismatch")
+CV_ENODESETUP = \
+  (CV_TNODE, "ENODESETUP", "Node setup error")
+CV_ENODETIME = \
+  (CV_TNODE, "ENODETIME", "Node returned invalid time")
+CV_ENODEOOBPATH = \
+  (CV_TNODE, "ENODEOOBPATH", "Invalid Out Of Band path")
 
 CV_ALL_ECODES = frozenset([
   CV_ECLUSTERCFG,
@@ -1150,7 +1189,7 @@ CV_ALL_ECODES = frozenset([
   CV_ENODEOOBPATH,
   ])
 
-CV_ALL_ECODES_STRINGS = frozenset([estr for (_, estr) in CV_ALL_ECODES])
+CV_ALL_ECODES_STRINGS = frozenset(estr for (_, estr, _) in CV_ALL_ECODES)
 
 # Node verify constants
 NV_DRBDHELPER = "drbd-helper"

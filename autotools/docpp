@@ -33,6 +33,7 @@ from ganeti.build import sphinx_ext
 _DOC_RE = re.compile(r"^@(?P<class>[A-Z_]+)_(?P<kind>[A-Z]+)@$")
 
 _DOC_CLASSES_DATA = {
+  "CONSTANTS": (sphinx_ext.DOCUMENTED_CONSTANTS, sphinx_ext.BuildValuesDoc),
   "QUERY_FIELDS": (query.ALL_FIELDS, sphinx_ext.BuildQueryFields),
   }
 
