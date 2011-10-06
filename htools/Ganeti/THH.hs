@@ -39,7 +39,7 @@ module Ganeti.THH ( declareSADT
                   , genLuxiOp
                   ) where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, liftM2)
 import Data.Char
 import Data.List
 import Language.Haskell.TH
@@ -76,6 +76,14 @@ fromStrName = mkName . (++ "FromString") . ensureLower
 --
 reprE :: Either String Name -> Q Exp
 reprE = either stringE varE
+
+-- | Smarter function application.
+--
+-- This does simply f x, except that if is 'id', it will skip it, in
+-- order to generate more readable code when using -ddump-splices.
+appFn :: Exp -> Exp -> Exp
+appFn f x | f == VarE 'id = x
+          | otherwise = AppE f x
 
 -- * Template code for simple string-equivalent ADTs
 
@@ -454,7 +462,7 @@ saveLuxiConstructor (sname, fields, finfn) =
   let cname = mkName sname
       fnames = map (\(nm, _, _) -> mkName nm) fields
       pat = conP cname (map varP fnames)
-      flist = map (\(nm, _, fn) -> appE fn $ varNameE nm) fields
+      flist = map (\(nm, _, fn) -> liftM2 appFn fn $ varNameE nm) fields
       finval = appE finfn (tupE flist)
   in
     clause [pat] (normalB finval) []
