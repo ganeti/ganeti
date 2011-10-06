@@ -270,11 +270,22 @@ def BuildQueryFields(fields):
   @type fields: dict (field name as key, field details as value)
 
   """
-  for (_, (fdef, _, _, _)) in utils.NiceSort(fields.items(),
-                                             key=compat.fst):
-    assert len(fdef.doc.splitlines()) == 1
-    yield "``%s``" % fdef.name
-    yield "  %s" % fdef.doc
+  defs = [(fdef.name, fdef.doc)
+           for (_, (fdef, _, _, _)) in utils.NiceSort(fields.items(),
+                                                      key=compat.fst)]
+  yield BuildValuesDoc(defs)
+
+
+def BuildValuesDoc(values):
+  """Builds documentation for a list of values
+
+  @type values: list of tuples in the form (value, documentation)
+
+  """
+  for name, doc in values:
+    assert len(doc.splitlines()) == 1
+    yield "``%s``" % name
+    yield "  %s" % doc
 
 
 # TODO: Implement Sphinx directive for query fields

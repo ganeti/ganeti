@@ -30,15 +30,20 @@ from ganeti import query
 from ganeti.build import sphinx_ext
 
 
-_QUERY_FIELDS_RE = re.compile(r"^@QUERY_FIELDS_(?P<kind>[A-Z]+)@$")
+_DOC_RE = re.compile(r"^@(?P<class>[A-Z_]+)_(?P<kind>[A-Z]+)@$")
+
+_DOC_CLASSES_DATA = {
+  "QUERY_FIELDS": (query.ALL_FIELDS, sphinx_ext.BuildQueryFields),
+  }
 
 
 def main():
   for line in fileinput.input():
-    m = _QUERY_FIELDS_RE.match(line)
+    m = _DOC_RE.match(line)
     if m:
-      fields = query.ALL_FIELDS[m.group("kind").lower()]
-      for i in sphinx_ext.BuildQueryFields(fields):
+      fields_dict, builder = _DOC_CLASSES_DATA[m.group("class")]
+      fields = fields_dict[m.group("kind").lower()]
+      for i in builder(fields):
         print i
     else:
       print line,
