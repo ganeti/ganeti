@@ -109,7 +109,7 @@ data EvacSolution = EvacSolution
     { esMoved   :: [(Idx, Gdx, [Ndx])]  -- ^ Instances moved successfully
     , esFailed  :: [(Idx, String)]      -- ^ Instances which were not
                                         -- relocated
-    , esOpCodes :: [[[OpCodes.OpCode]]] -- ^ List of lists of jobs
+    , esOpCodes :: [[OpCodes.OpCode]]   -- ^ List of jobs
     }
 
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
@@ -1085,7 +1085,7 @@ updateEvacSolution (nl, il, es) idx (Bad msg) =
     (nl, il, es { esFailed = (idx, msg):esFailed es})
 updateEvacSolution (_, _, es) idx (Ok (nl, il, opcodes)) =
     (nl, il, es { esMoved = new_elem:esMoved es
-                , esOpCodes = [opcodes]:esOpCodes es })
+                , esOpCodes = opcodes:esOpCodes es })
      where inst = Container.find idx il
            new_elem = (idx,
                        instancePriGroup nl inst,
