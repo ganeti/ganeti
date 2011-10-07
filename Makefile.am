@@ -310,6 +310,7 @@ docrst = \
 	doc/cluster-merge.rst \
 	doc/design-shared-storage.rst \
 	doc/design-node-state-cache.rst \
+	doc/design-virtual-clusters.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
