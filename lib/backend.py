@@ -277,16 +277,17 @@ def ActivateMasterIp():
       err_msg = "Can't activate master IP: %s" % result.output
       logging.error(err_msg)
 
-    # we ignore the exit code of the following cmds
-    if ipcls == netutils.IP4Address:
-      utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
-                    master_ip, master_ip])
-    elif ipcls == netutils.IP6Address:
-      try:
-        utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
-      except errors.OpExecError:
-        # TODO: Better error reporting
-        logging.warning("Can't execute ndisc6, please install if missing")
+    else:
+      # we ignore the exit code of the following cmds
+      if ipcls == netutils.IP4Address:
+        utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
+                      master_ip, master_ip])
+      elif ipcls == netutils.IP6Address:
+        try:
+          utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
+        except errors.OpExecError:
+          # TODO: Better error reporting
+          logging.warning("Can't execute ndisc6, please install if missing")
 
   if err_msg:
     _Fail(err_msg)
