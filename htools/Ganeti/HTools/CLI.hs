@@ -36,6 +36,7 @@ module Ganeti.HTools.CLI
     , maybePrintNodes
     , maybePrintInsts
     , maybeShowWarnings
+    , setNodeStatus
     -- * The options
     , oDataFile
     , oDiskMoves
@@ -83,12 +84,15 @@ import System.Console.GetOpt
 import System.IO
 import System.Info
 import System
-import Text.Printf (printf)
+import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Version as Version(version)
+import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
+import Ganeti.HTools.Loader
 
 -- * Constants
 
@@ -515,3 +519,29 @@ maybeShowWarnings fix_msgs =
   unless (null fix_msgs) $ do
     hPutStrLn stderr "Warning: cluster has inconsistent data:"
     hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
+
+-- | Set node properties based on command line options.
+setNodeStatus :: Options -> Node.List -> IO Node.List
+setNodeStatus opts fixed_nl = do
+  let offline_passed = optOffline opts
+      all_nodes = Container.elems fixed_nl
+      offline_lkp = map (lookupName (map Node.name all_nodes)) offline_passed
+      offline_wrong = filter (not . goodLookupResult) offline_lkp
+      offline_names = map lrContent offline_lkp
+      offline_indices = map Node.idx $
+                        filter (\n -> Node.name n `elem` offline_names)
+                               all_nodes
+      m_cpu = optMcpu opts
+      m_dsk = optMdsk opts
+
+  when (not (null offline_wrong)) $ do
+         hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
+                     (commaJoin (map lrContent offline_wrong)) :: IO ()
+         exitWith $ ExitFailure 1
+
+  let nm = Container.map (\n -> if Node.idx n `elem` offline_indices
+                                then Node.setOffline n True
+                                else n) fixed_nl
+      nlf = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
+            nm
+  return nlf

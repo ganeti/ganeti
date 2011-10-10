@@ -29,7 +29,6 @@ import Control.Monad
 import Data.Char (toUpper, isAlphaNum)
 import Data.Function (on)
 import Data.List
-import Data.Maybe (isJust, fromJust)
 import Data.Ord (comparing)
 import System (exitWith, ExitCode(..))
 import System.IO
@@ -346,6 +345,12 @@ failureReason = show . fst . head
 sortReasons :: [(FailMode, Int)] -> [(FailMode, Int)]
 sortReasons = reverse . sortBy (comparing snd)
 
+-- | Aborts the program if we get a bad value.
+exitIfBad :: Result a -> IO a
+exitIfBad (Bad s) =
+  hPrintf stderr "Failure: %s\n" s >> exitWith (ExitFailure 1)
+exitIfBad (Ok v) = return v
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -365,43 +370,17 @@ main = do
 
   (ClusterData gl fixed_nl il ctags) <- loadExternalData opts
 
-  let num_instances = length $ Container.elems il
-
-  let offline_passed = optOffline opts
+  let num_instances = Container.size il
       all_nodes = Container.elems fixed_nl
-      offline_lkp = map (lookupName (map Node.name all_nodes)) offline_passed
-      offline_wrong = filter (not . goodLookupResult) offline_lkp
-      offline_names = map lrContent offline_lkp
-      offline_indices = map Node.idx $
-                        filter (\n -> Node.name n `elem` offline_names)
-                               all_nodes
       m_cpu = optMcpu opts
-      m_dsk = optMdsk opts
-
-  when (not (null offline_wrong)) $ do
-         hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
-                     (commaJoin (map lrContent offline_wrong)) :: IO ()
-         exitWith $ ExitFailure 1
-
-  when (req_nodes /= 1 && req_nodes /= 2) $ do
-         hPrintf stderr "Error: Invalid required nodes (%d)\n"
-                                            req_nodes :: IO ()
-         exitWith $ ExitFailure 1
-
-  let nm = Container.map (\n -> if Node.idx n `elem` offline_indices
-                                then Node.setOffline n True
-                                else n) fixed_nl
-      nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
-           nm
       csf = commonSuffix fixed_nl il
 
-  when (length csf > 0 && verbose > 1) $
+  nl <- setNodeStatus opts fixed_nl
+
+  when (not (null csf) && verbose > 1) $
        hPrintf stderr "Note: Stripping common suffix of '%s' from names\n" csf
 
-  when (isJust shownodes) $
-       do
-         hPutStrLn stderr "Initial cluster status:"
-         hPutStrLn stderr $ Cluster.printNodes nl (fromJust shownodes)
+  maybePrintNodes shownodes "Initial cluster" (Cluster.printNodes nl)
 
   let ini_cv = Cluster.compCV nl
       ini_stats = Cluster.totalResources nl
@@ -415,25 +394,19 @@ main = do
   printISpec machine_r ispec SpecNormal disk_template
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
-      stop_allocation = length bad_nodes > 0
+      stop_allocation = not $ null bad_nodes
       result_noalloc = ([(FailN1, 1)]::FailStats, nl, il, [], [])
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
                     (rspecCpu spx) "running" [] True (-1) (-1) disk_template
-      exitifbad val = (case val of
-                         Bad s -> do
-                           hPrintf stderr "Failure: %s\n" s :: IO ()
-                           exitWith $ ExitFailure 1
-                         Ok x -> return x)
-
 
   let reqinst = iofspec ispec
       alloclimit = if optMaxLength opts == -1
                    then Nothing
                    else Just (optMaxLength opts)
 
-  allocnodes <- exitifbad $ Cluster.genAllocNodes gl nl req_nodes True
+  allocnodes <- exitIfBad $ Cluster.genAllocNodes gl nl req_nodes True
 
   -- Run the tiered allocation, if enabled
 
@@ -443,7 +416,7 @@ main = do
        (treason, trl_nl, trl_il, trl_ixes, _) <-
            if stop_allocation
            then return result_noalloc
-           else exitifbad (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
+           else exitIfBad (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
                                   allocnodes [] [])
        let spec_map' = tieredSpecMap trl_ixes
            treason' = sortReasons treason
@@ -466,7 +439,7 @@ main = do
   (ereason, fin_nl, fin_il, ixes, _) <-
       if stop_allocation
       then return result_noalloc
-      else exitifbad (Cluster.iterateAlloc nl il alloclimit
+      else exitIfBad (Cluster.iterateAlloc nl il alloclimit
                       reqinst allocnodes [] [])
 
   let allocs = length ixes

@@ -255,32 +255,6 @@ runJobSet master fin_nl il cmd_jobs = do
     [(hangleSigTerm, softwareTermination), (hangleSigInt, keyboardSignal)]
   execWrapper master fin_nl il cref cmd_jobs
 
--- | Set node properties based on command line options.
-setNodesStatus :: Options -> Node.List -> IO Node.List
-setNodesStatus opts fixed_nl = do
-  let offline_passed = optOffline opts
-      all_nodes = Container.elems fixed_nl
-      offline_lkp = map (lookupName (map Node.name all_nodes)) offline_passed
-      offline_wrong = filter (not . goodLookupResult) offline_lkp
-      offline_names = map lrContent offline_lkp
-      offline_indices = map Node.idx $
-                        filter (\n -> Node.name n `elem` offline_names)
-                               all_nodes
-      m_cpu = optMcpu opts
-      m_dsk = optMdsk opts
-
-  when (not (null offline_wrong)) $ do
-         hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
-                     (commaJoin (map lrContent offline_wrong)) :: IO ()
-         exitWith $ ExitFailure 1
-
-  let nm = Container.map (\n -> if Node.idx n `elem` offline_indices
-                                then Node.setOffline n True
-                                else n) fixed_nl
-      nlf = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
-            nm
-  return nlf
-
 -- | Select the target node group.
 selectGroup :: Options -> Group.List -> Node.List -> Instance.List
             -> IO (String, (Node.List, Instance.List))
@@ -385,7 +359,7 @@ main = do
   when (verbose > 1) $
        putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
 
-  nlf <- setNodesStatus opts fixed_nl
+  nlf <- setNodeStatus opts fixed_nl
   checkCluster verbose nlf ilf
 
   maybeSaveData (optSaveCluster opts) "original" "before balancing" ini_cdata
