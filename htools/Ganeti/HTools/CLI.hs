@@ -61,7 +61,6 @@ module Ganeti.HTools.CLI
     , oNoHeaders
     , oNodeSim
     , oOfflineNode
-    , oOneline
     , oOutputDir
     , oPrintCommands
     , oPrintInsts
@@ -127,7 +126,6 @@ data Options = Options
     , optNoHeaders   :: Bool           -- ^ Do not show a header line
     , optNodeSim     :: [String]       -- ^ Cluster simulation mode
     , optOffline     :: [String]       -- ^ Names of offline nodes
-    , optOneline     :: Bool           -- ^ Switch output to a single line
     , optOutPath     :: FilePath       -- ^ Path to the output directory
     , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
     , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
@@ -167,7 +165,6 @@ defaultOptions  = Options
  , optNoHeaders   = False
  , optNodeSim     = []
  , optOffline     = []
- , optOneline     = False
  , optOutPath     = "."
  , optSaveCluster = Nothing
  , optShowCmds    = Nothing
@@ -336,11 +333,6 @@ oOfflineNode :: OptType
 oOfflineNode = Option "O" ["offline"]
                (ReqArg (\ n o -> Ok o { optOffline = n:optOffline o }) "NODE")
                "set node as offline"
-
-oOneline :: OptType
-oOneline = Option "o" ["oneline"]
-           (NoArg (\ opts -> Ok opts { optOneline = True }))
-           "print the ganeti command list for reaching the solution"
 
 oOutputDir :: OptType
 oOutputDir = Option "d" ["output-dir"]

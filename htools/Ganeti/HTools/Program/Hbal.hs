@@ -60,7 +60,6 @@ options =
     [ oPrintNodes
     , oPrintInsts
     , oPrintCommands
-    , oOneline
     , oDataFile
     , oEvacMode
     , oRapiMaster
@@ -98,7 +97,6 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [MoveJob]        -- ^ Current command list
-             -> Bool             -- ^ Whether to be silent
              -> Score            -- ^ Score at which to stop
              -> Score            -- ^ Min gain limit
              -> Score            -- ^ Min score gain
@@ -106,7 +104,7 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
 iterateDepth ini_tbl max_rounds disk_moves inst_moves nmlen imlen
-             cmd_strs oneline min_score mg_limit min_gain evac_mode =
+             cmd_strs min_score mg_limit min_gain evac_mode =
     let Cluster.Table ini_nl ini_il _ _ = ini_tbl
         allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
         m_fin_tbl = if allowed_next
@@ -125,19 +123,12 @@ iterateDepth ini_tbl max_rounds disk_moves inst_moves nmlen imlen
                                      nmlen imlen cur_plc fin_plc_len
                   afn = Cluster.involvedNodes ini_il cur_plc
                   upd_cmd_strs = (afn, idx, move, cmds):cmd_strs
-              unless oneline $ do
-                       putStrLn sol_line
-                       hFlush stdout
+              putStrLn sol_line
+              hFlush stdout
               iterateDepth fin_tbl max_rounds disk_moves inst_moves
-                           nmlen imlen upd_cmd_strs oneline min_score
+                           nmlen imlen upd_cmd_strs min_score
                            mg_limit min_gain evac_mode
         Nothing -> return (ini_tbl, cmd_strs)
-
--- | Formats the solution for the oneline display.
-formatOneline :: Double -> Int -> Double -> String
-formatOneline ini_cv plc_len fin_cv =
-    printf "%.8f %d %.8f %8.3f" ini_cv plc_len fin_cv
-               (if fin_cv == 0 then 1 else ini_cv / fin_cv)
 
 -- | Displays the cluster stats.
 printStats :: Node.List -> Node.List -> IO ()
@@ -324,12 +315,11 @@ selectGroup opts gl nlf ilf = do
             Just cdata -> return (Group.name grp, cdata)
 
 -- | Do a few checks on the cluster data.
-checkCluster :: Bool -> Int -> Node.List -> Instance.List -> IO ()
-checkCluster oneline verbose nl il = do
+checkCluster :: Int -> Node.List -> Instance.List -> IO ()
+checkCluster verbose nl il = do
   -- nothing to do on an empty cluster
   when (Container.null il) $ do
-         (if oneline then putStrLn $ formatOneline 0 0 0
-          else printf "Cluster is empty, exiting.\n")
+         printf "Cluster is empty, exiting.\n"::IO ()
          exitWith ExitSuccess
 
   -- hbal doesn't currently handle split clusters
@@ -340,25 +330,25 @@ checkCluster oneline verbose nl il = do
     hPutStrLn stderr "Aborting."
     exitWith $ ExitFailure 1
 
-  unless oneline $ printf "Loaded %d nodes, %d instances\n"
+  printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
-             (Container.size il)
+             (Container.size il)::IO ()
 
   let csf = commonSuffix nl il
-  when (not (null csf) && not oneline && verbose > 1) $
+  when (not (null csf) && verbose > 1) $
        printf "Note: Stripping common suffix of '%s' from names\n" csf
 
 -- | Do a few checks on the selected group data.
-checkGroup :: Bool -> Int -> String -> Node.List -> Instance.List -> IO ()
-checkGroup oneline verbose gname nl il = do
-  unless oneline $ printf "Group size %d nodes, %d instances\n"
+checkGroup :: Int -> String -> Node.List -> Instance.List -> IO ()
+checkGroup verbose gname nl il = do
+  printf "Group size %d nodes, %d instances\n"
              (Container.size nl)
-             (Container.size il)
+             (Container.size il)::IO ()
 
   putStrLn $ "Selected node group: " ++ gname
 
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
-  unless (oneline || verbose == 0) $ printf
+  unless (verbose == 0) $ printf
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
@@ -370,13 +360,10 @@ checkGroup oneline verbose gname nl il = do
 checkNeedRebalance :: Options -> Score -> IO ()
 checkNeedRebalance opts ini_cv = do
   let min_cv = optMinScore opts
-      oneline = optOneline opts
   when (ini_cv < min_cv) $ do
-         (if oneline then
-              putStrLn $ formatOneline ini_cv 0 ini_cv
-          else printf "Cluster is already well balanced (initial score %.6g,\n\
-                      \minimum score %.6g).\nNothing to do, exiting\n"
-                      ini_cv min_cv)
+         printf "Cluster is already well balanced (initial score %.6g,\n\
+                \minimum score %.6g).\nNothing to do, exiting\n"
+                ini_cv min_cv:: IO ()
          exitWith ExitSuccess
 
 -- | Main function.
@@ -389,24 +376,23 @@ main = do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
 
-  let oneline = optOneline opts
-      verbose = optVerbose opts
+  let verbose = optVerbose opts
       shownodes = optShowNodes opts
       showinsts = optShowInsts opts
 
   ini_cdata@(ClusterData gl fixed_nl ilf ctags) <- loadExternalData opts
 
-  when (not oneline && verbose > 1) $
+  when (verbose > 1) $
        putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
 
   nlf <- setNodesStatus opts fixed_nl
-  checkCluster oneline verbose nlf ilf
+  checkCluster verbose nlf ilf
 
   maybeSaveData (optSaveCluster opts) "original" "before balancing" ini_cdata
 
   (gname, (nl, il)) <- selectGroup opts gl nlf ilf
 
-  checkGroup oneline verbose gname nl il
+  checkGroup verbose gname nl il
 
   maybePrintInsts showinsts "Initial" (Cluster.printInsts nl il)
 
@@ -418,20 +404,19 @@ main = do
 
   checkNeedRebalance opts ini_cv
 
-  unless oneline (if verbose > 2 then
-                      printf "Initial coefficients: overall %.8f, %s\n"
-                      ini_cv (Cluster.printStats nl)
-                  else
-                      printf "Initial score: %.8f\n" ini_cv)
+  (if verbose > 2
+   then printf "Initial coefficients: overall %.8f, %s\n"
+        ini_cv (Cluster.printStats nl)::IO ()
+   else printf "Initial score: %.8f\n" ini_cv)
 
-  unless oneline $ putStrLn "Trying to minimize the CV..."
+  putStrLn "Trying to minimize the CV..."
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
       nmlen = maximum . map (length . Node.alias) $ Container.elems nl
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
                          (optInstMoves opts)
-                         nmlen imlen [] oneline min_cv
+                         nmlen imlen [] min_cv
                          (optMinGainLim opts) (optMinGain opts)
                          (optEvacMode opts)
   let (Cluster.Table fin_nl fin_il fin_cv fin_plc) = fin_tbl
@@ -445,9 +430,9 @@ main = do
                         printf "Cluster score improved from %.8f to %.8f\n"
                         ini_cv fin_cv ::String
 
-  unless oneline $ putStr sol_msg
+  putStr sol_msg
 
-  unless (oneline || verbose == 0) $
+  unless (verbose == 0) $
          printf "Solution length=%d\n" (length ord_plc)
 
   let cmd_jobs = Cluster.splitJobs cmd_strs
@@ -463,8 +448,6 @@ main = do
   maybePrintNodes shownodes "Final cluster" (Cluster.printNodes fin_nl)
 
   when (verbose > 3) $ printStats nl fin_nl
-
-  when oneline $ putStrLn $ formatOneline ini_cv (length ord_plc) fin_cv
 
   eval <- maybeExecJobs opts ord_plc fin_nl il cmd_jobs
   unless eval (exitWith (ExitFailure 1))

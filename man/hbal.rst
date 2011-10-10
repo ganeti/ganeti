@@ -225,18 +225,6 @@ The options that can be passed to the program are as follows:
   Prints the before and after instance map. This is less useful as the
   node status, but it can help in understanding instance moves.
 
--o, --oneline
-  Only shows a one-line output from the program, designed for the case
-  when one wants to look at multiple clusters at once and check their
-  status.
-
-  The line will contain four fields:
-
-  - initial cluster score
-  - number of steps in the solution
-  - final cluster score
-  - improvement in the cluster score
-
 -O *name*
   This option (which can be given multiple times) will mark nodes as
   being *offline*. This means a couple of things:
