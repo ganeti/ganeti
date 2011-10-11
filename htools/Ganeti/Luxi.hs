@@ -68,72 +68,55 @@ $(genLuxiOp "LuxiOp"
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ],
-       [| J.showJSON |])
+       ])
     , ("QueryGroups",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ],
-       [| J.showJSON |])
+       ])
     , ("QueryInstances",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ],
-       [| J.showJSON |])
+       ])
     , ("QueryJobs",
        [ ("ids",    [t| [Int]    |], [| map show |])
        , ("fields", [t| [String] |], [| id |])
-       ],
-       [| J.showJSON |])
+       ])
     , ("QueryExports",
        [ ("nodes", [t| [String] |], [| id |])
        , ("lock",  [t| Bool     |], [| id |])
-       ],
-       [| J.showJSON |])
+       ])
     , ("QueryConfigValues",
-       [ ("fields", [t| [String] |], [| id |]) ],
-       [| J.showJSON |])
-    , ("QueryClusterInfo",
-       [],
-       [| J.showJSON |])
+       [ ("fields", [t| [String] |], [| id |]) ])
+    , ("QueryClusterInfo", [])
     , ("QueryTags",
        [ ("kind", [t| String |], [| id |])
        , ("name", [t| String |], [| id |])
-       ],
-       [| J.showJSON |])
+       ])
     , ("SubmitJob",
-       [ ("job", [t| [OpCode] |], [| id |]) ],
-       [| J.showJSON |])
+       [ ("job", [t| [OpCode] |], [| id |]) ])
     , ("SubmitManyJobs",
-       [ ("ops", [t| [[OpCode]] |], [| id |]) ],
-       [| J.showJSON |])
+       [ ("ops", [t| [[OpCode]] |], [| id |]) ])
     , ("WaitForJobChange",
-       [ ("job",      [t| Int     |], [| J.showJSON |])
-       , ("fields",   [t| [String]|], [| J.showJSON |])
-       , ("prev_job", [t| JSValue |], [| J.showJSON |])
-       , ("prev_log", [t| JSValue |], [| J.showJSON |])
-       , ("tmout",    [t| Int     |], [| J.showJSON |])
-       ],
-       [| \(j, f, pj, pl, t) -> JSArray [j, f, pj, pl, t] |])
+       [ ("job",      [t| Int     |], [| id |])
+       , ("fields",   [t| [String]|], [| id |])
+       , ("prev_job", [t| JSValue |], [| id |])
+       , ("prev_log", [t| JSValue |], [| id |])
+       , ("tmout",    [t| Int     |], [| id |])
+       ])
     , ("ArchiveJob",
-       [ ("job", [t| Int |], [| show |]) ],
-       [| J.showJSON |])
+       [ ("job", [t| Int |], [| show |]) ])
     , ("AutoArchiveJobs",
        [ ("age",   [t| Int |], [| id |])
        , ("tmout", [t| Int |], [| id |])
-       ],
-       [| J.showJSON |])
+       ])
     , ("CancelJob",
-       [("job", [t| Int |], [| show |]) ],
-       [| J.showJSON |])
+       [("job", [t| Int |], [| show |]) ])
     , ("SetDrainFlag",
-       [ ("flag", [t| Bool |], [| id |]) ],
-       [| J.showJSON |])
+       [ ("flag", [t| Bool |], [| id |]) ])
     , ("SetWatcherPause",
-       [ ("duration", [t| Double |], [| (: []) |]) ],
-       [| J.showJSON |])
+       [ ("duration", [t| Double |], [| (: []) |]) ])
   ])
 
 -- | The serialisation of LuxiOps into strings in messages.

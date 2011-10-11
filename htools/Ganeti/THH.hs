@@ -444,9 +444,9 @@ type LuxiParam = (String, Q Type, Q Exp)
 -- * operation; this is the operation performed on the parameter before
 --   serialization
 --
-genLuxiOp :: String -> [(String, [LuxiParam], Q Exp)] -> Q [Dec]
+genLuxiOp :: String -> [(String, [LuxiParam])] -> Q [Dec]
 genLuxiOp name cons = do
-  decl_d <- mapM (\(cname, fields, _) -> do
+  decl_d <- mapM (\(cname, fields) -> do
                     fields' <- mapM (\(_, qt, _) ->
                                          qt >>= \t -> return (NotStrict, t))
                                fields
@@ -457,18 +457,20 @@ genLuxiOp name cons = do
   return [declD, savesig, savefn]
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
-saveLuxiConstructor :: (String, [LuxiParam], Q Exp) -> Q Clause
-saveLuxiConstructor (sname, fields, finfn) =
+saveLuxiConstructor :: (String, [LuxiParam]) -> Q Clause
+saveLuxiConstructor (sname, fields) =
   let cname = mkName sname
       fnames = map (\(nm, _, _) -> mkName nm) fields
       pat = conP cname (map varP fnames)
-      flist = map (\(nm, _, fn) -> liftM2 appFn fn $ varNameE nm) fields
-      finval = appE finfn (tupE flist)
-  in
-    clause [pat] (normalB finval) []
+      flist = map (\(nm, _, fn) -> liftM2 appFn fn $ (varNameE nm)) fields
+      showlist = map (\x -> [| JSON.showJSON $x |]) flist
+      finval = case showlist of
+                 [] -> [| JSON.showJSON () |]
+                 _ -> [| JSON.showJSON $(listE showlist) |]
+  in clause [pat] (normalB finval) []
 
 -- | Generates the main save LuxiOp function.
-genSaveLuxiOp :: [(String, [LuxiParam], Q Exp)] -> Q (Dec, Dec)
+genSaveLuxiOp :: [(String, [LuxiParam])] -> Q (Dec, Dec)
 genSaveLuxiOp opdefs = do
   sigt <- [t| $(conT (mkName "LuxiOp")) -> JSON.JSValue |]
   let fname = mkName "opToArgs"
