@@ -472,6 +472,26 @@ Modifies the cluster parameters.
 :pre-execution: master node
 :post-execution: master node
 
+:pyeval:`constants.FAKE_OP_MASTER_TURNUP`
++++++++++++++++++++++++++++++++++++++++++
+
+Called when the master IP is activated.
+
+:directory: master-ip-turnup
+:env. vars: MASTER_NETDEV, MASTER_IP
+:pre-execution: master node
+:post-execution: master node
+
+:pyeval:`constants.FAKE_OP_MASTER_TURNDOWN`
++++++++++++++++++++++++++++++++++++++++++++
+
+Called when the master IP is deactivated.
+
+:directory: master-ip-turndown
+:env. vars: MASTER_NETDEV, MASTER_IP
+:pre-execution: master node
+:post-execution: master node
+
 
 Obsolete operations
 ~~~~~~~~~~~~~~~~~~~
@@ -600,6 +620,12 @@ MASTER_CAPABLE
 
 VM_CAPABLE
   Whether the node can host instances.
+
+MASTER_NETDEV
+  Network device of the master IP
+
+MASTER_IP
+  The master IP
 
 INSTANCE_TAGS
   A space-delimited list of the instance's tags.
