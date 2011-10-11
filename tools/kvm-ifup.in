@@ -36,6 +36,8 @@ fi
 ip link set $INTERFACE up
 
 if [ "$MODE" = "bridged" ]; then
+	ip link set $INTERFACE mtu $(</sys/class/net/${BRIDGE}/mtu)
+
 	# Connect the interface to the bridge
 	brctl addif $BRIDGE $INTERFACE
 else
