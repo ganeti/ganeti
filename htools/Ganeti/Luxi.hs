@@ -132,7 +132,7 @@ $(genLuxiOp "LuxiOp"
        [ ("flag", [t| Bool |], [| id |]) ],
        [| J.showJSON |])
     , ("SetWatcherPause",
-       [ ("duration", [t| Double |], [| \x -> [x] |]) ],
+       [ ("duration", [t| Double |], [| (: []) |]) ],
        [| J.showJSON |])
   ])
 

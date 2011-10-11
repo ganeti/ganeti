@@ -223,11 +223,11 @@ create name_init mem_t_init mem_n_init mem_f_init
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
 mDskToloDsk :: Double -> Double -> Int
-mDskToloDsk mval tdsk = floor (mval * tdsk)
+mDskToloDsk mval = floor . (mval *)
 
 -- | Conversion formula from mCpu\/tCpu to hiCpu.
 mCpuTohiCpu :: Double -> Double -> Int
-mCpuTohiCpu mval tcpu = floor (mval * tcpu)
+mCpuTohiCpu mval = floor . (mval *)
 
 -- | Changes the index.
 --

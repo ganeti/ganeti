@@ -72,7 +72,7 @@ debugFn fn x = debug (fn x) `seq` x
 
 -- | Show the first parameter before returning the second one.
 debugXy :: Show a => a -> b -> b
-debugXy a b = debug a `seq` b
+debugXy = seq . debug
 
 -- * Miscellaneous
 

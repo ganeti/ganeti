@@ -41,7 +41,7 @@ testSuite tsname tdef = do
   tests <- mapM (\n -> [| (run $(varE n), $(litE . StringL . nameBase $ n)) |])
            tdef
   sigtype <- [t| (String, [(Args -> IO Result, String)]) |]
-  return $ [ SigD fullname sigtype
-           , ValD (VarP fullname) (NormalB (TupE [LitE (StringL tsname),
-                                                  ListE tests])) []
-           ]
+  return [ SigD fullname sigtype
+         , ValD (VarP fullname) (NormalB (TupE [LitE (StringL tsname),
+                                                ListE tests])) []
+         ]

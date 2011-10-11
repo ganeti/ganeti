@@ -56,7 +56,7 @@ usage name = do
 
 main :: IO ()
 main = do
-  binary <- getEnv "HTOOLS" `catch` (\_ -> getProgName)
+  binary <- getEnv "HTOOLS" `catch` const getProgName
   let name = map toLower binary
       boolnames = map (\(x, y) -> (x == name, y)) personalities
   select (usage name) boolnames

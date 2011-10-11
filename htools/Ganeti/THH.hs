@@ -227,7 +227,7 @@ deCamelCase :: String -> String
 deCamelCase =
     intercalate "_" . map (map toUpper) . groupBy (\_ b -> not $ isUpper b)
 
--- | Computes the name of a given constructor
+-- | Computes the name of a given constructor.
 constructorName :: Con -> Q Name
 constructorName (NormalC name _) = return name
 constructorName (RecC name _)    = return name
@@ -255,7 +255,7 @@ genConstrToStr trans_fun name fname = do
 genOpID :: Name -> String -> Q [Dec]
 genOpID = genConstrToStr deCamelCase
 
--- | OpCode parameter (field) type
+-- | OpCode parameter (field) type.
 type OpParam = (String, Q Type, Q Exp)
 
 -- | Generates the OpCode data type.
@@ -292,7 +292,7 @@ genOpCode name cons = do
   (loadsig, loadfn) <- genLoadOpCode cons
   return [declD, loadsig, loadfn, savesig, savefn]
 
--- | Checks whether a given parameter is options
+-- | Checks whether a given parameter is options.
 --
 -- This requires that it's a 'Maybe'.
 isOptional :: Type -> Bool

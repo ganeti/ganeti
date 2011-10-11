@@ -146,7 +146,7 @@ lookupGroup ktg nname gname =
 prefixMatch :: String  -- ^ Lookup
             -> String  -- ^ Full name
             -> Bool    -- ^ Whether there is a prefix match
-prefixMatch lkp = isPrefixOf (lkp ++ ".")
+prefixMatch = isPrefixOf . (++ ".")
 
 -- | Is the lookup priority a "good" one?
 goodMatchPriority :: MatchPriority -> Bool
@@ -178,7 +178,7 @@ chooseLookupResult lkp cstr old =
   select (min new old)
   -- special cases:
   -- short circuit if the new result is an exact match
-  [ ((lrMatchPriority new) == ExactMatch, new)
+  [ (lrMatchPriority new == ExactMatch, new)
   -- if both are partial matches generate a multiple match
   , (partial2, LookupResult MultipleMatch lkp)
   ] where new = compareNameComponent cstr lkp

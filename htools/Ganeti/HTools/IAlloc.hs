@@ -286,7 +286,7 @@ processRelocate gl nl il idx 1 exndx = do
   when (snode == pnode) $
        fail "Internal error: selected primary as new secondary?!"
 
-  nodes' <- if (nodes == [pnode, snode])
+  nodes' <- if nodes == [pnode, snode]
             then return [snode] -- only the new secondary is needed
             else fail $ "Internal error: inconsistent node list (" ++
                  show nodes ++ ") versus instance nodes (" ++ show pnode ++
