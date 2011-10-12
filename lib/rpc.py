@@ -446,7 +446,7 @@ class _RpcProcessor:
     assert procedure in _TIMEOUTS, "RPC call not declared in the timeouts table"
 
     if not http_pool:
-      http_pool = _thread_local.GetHttpClientPool()
+      http_pool = http.client.HttpClientPool(_ConfigRpcCurl)
 
     if read_timeout is None:
       read_timeout = _TIMEOUTS[procedure]
