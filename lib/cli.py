@@ -2688,13 +2688,13 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   @param verbose: whether to use verbose field descriptions or not
 
   """
-  if cl is None:
-    cl = GetClient()
-
   if not names:
     names = None
 
   qfilter = qlang.MakeFilter(names, force_filter)
+
+  if cl is None:
+    cl = GetClient()
 
   response = cl.Query(resource, fields, qfilter)
 
