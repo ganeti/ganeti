@@ -1189,8 +1189,8 @@ class R_2_query(baserlib.ResourceBase):
   GET_OPCODE = opcodes.OpQuery
   PUT_OPCODE = opcodes.OpQuery
 
-  def _Query(self, fields, filter_):
-    return self.GetClient().Query(self.items[0], fields, filter_).ToDict()
+  def _Query(self, fields, qfilter):
+    return self.GetClient().Query(self.items[0], fields, qfilter).ToDict()
 
   def GET(self):
     """Returns resource information.
@@ -1215,7 +1215,12 @@ class R_2_query(baserlib.ResourceBase):
     except KeyError:
       fields = _GetQueryFields(self.queryargs)
 
-    return self._Query(fields, self.request_body.get("filter", None))
+    qfilter = body.get("qfilter", None)
+    # TODO: remove this after 2.7
+    if qfilter is None:
+      qfilter = body.get("filter", None)
+
+    return self._Query(fields, qfilter)
 
 
 class R_2_query_fields(baserlib.ResourceBase):

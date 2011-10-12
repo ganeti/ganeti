@@ -235,9 +235,9 @@ class ClientOps:
 
       if req.what in constants.QR_VIA_OP:
         result = self._Query(opcodes.OpQuery(what=req.what, fields=req.fields,
-                                             filter=req.filter))
+                                             qfilter=req.qfilter))
       elif req.what == constants.QR_LOCK:
-        if req.filter is not None:
+        if req.qfilter is not None:
           raise errors.OpPrereqError("Lock queries can't be filtered")
         return self.server.context.glm.QueryLocks(req.fields)
       elif req.what in constants.QR_VIA_LUXI:

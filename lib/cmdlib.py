@@ -468,13 +468,13 @@ class _QueryBase:
   #: Attribute holding field definitions
   FIELDS = None
 
-  def __init__(self, filter_, fields, use_locking):
+  def __init__(self, qfilter, fields, use_locking):
     """Initializes this class.
 
     """
     self.use_locking = use_locking
 
-    self.query = query.Query(self.FIELDS, fields, filter_=filter_,
+    self.query = query.Query(self.FIELDS, fields, qfilter=qfilter,
                              namefield="name")
     self.requested_data = self.query.RequestedData()
     self.names = self.query.RequestedNames()
@@ -4820,7 +4820,7 @@ class LUQuery(NoHooksLU):
   def CheckArguments(self):
     qcls = _GetQueryImplementation(self.op.what)
 
-    self.impl = qcls(self.op.filter, self.op.fields, self.op.use_locking)
+    self.impl = qcls(self.op.qfilter, self.op.fields, self.op.use_locking)
 
   def ExpandNames(self):
     self.impl.ExpandNames(self)

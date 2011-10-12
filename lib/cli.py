@@ -2694,9 +2694,9 @@ def GenericList(resource, fields, names, unit, separator, header, cl=None,
   if not names:
     names = None
 
-  filter_ = qlang.MakeFilter(names, force_filter)
+  qfilter = qlang.MakeFilter(names, force_filter)
 
-  response = cl.Query(resource, fields, filter_)
+  response = cl.Query(resource, fields, qfilter)
 
   found_unknown = _WarnUnknownFields(response.fields)
 
@@ -2925,24 +2925,24 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
   if cl is None:
     cl = GetClient()
 
-  filter_ = []
+  qfilter = []
 
   if nodes:
-    filter_.append(qlang.MakeSimpleFilter("name", nodes))
+    qfilter.append(qlang.MakeSimpleFilter("name", nodes))
 
   if nodegroup is not None:
-    filter_.append([qlang.OP_OR, [qlang.OP_EQUAL, "group", nodegroup],
+    qfilter.append([qlang.OP_OR, [qlang.OP_EQUAL, "group", nodegroup],
                                  [qlang.OP_EQUAL, "group.uuid", nodegroup]])
 
   if filter_master:
-    filter_.append([qlang.OP_NOT, [qlang.OP_TRUE, "master"]])
+    qfilter.append([qlang.OP_NOT, [qlang.OP_TRUE, "master"]])
 
-  if filter_:
-    if len(filter_) > 1:
-      final_filter = [qlang.OP_AND] + filter_
+  if qfilter:
+    if len(qfilter) > 1:
+      final_filter = [qlang.OP_AND] + qfilter
     else:
-      assert len(filter_) == 1
-      final_filter = filter_[0]
+      assert len(qfilter) == 1
+      final_filter = qfilter[0]
   else:
     final_filter = None
 

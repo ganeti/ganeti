@@ -821,7 +821,7 @@ class OpQuery(OpCode):
 
   @ivar what: Resources to query for, must be one of L{constants.QR_VIA_OP}
   @ivar fields: List of fields to retrieve
-  @ivar filter: Query filter
+  @ivar qfilter: Query filter
 
   """
   OP_DSC_FIELD = "what"
@@ -830,7 +830,7 @@ class OpQuery(OpCode):
     _PUseLocking,
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "Requested fields"),
-    ("filter", None, ht.TOr(ht.TNone, ht.TListOf),
+    ("qfilter", None, ht.TOr(ht.TNone, ht.TListOf),
      "Query filter"),
     ]
 

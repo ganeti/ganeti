@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,8 +37,8 @@ class TestMakeSimpleFilter(unittest.TestCase):
     if parse_exp is None:
       parse_exp = names
 
-    filter_ = qlang.MakeSimpleFilter(field, names)
-    self.assertEqual(filter_, expected)
+    qfilter = qlang.MakeSimpleFilter(field, names)
+    self.assertEqual(qfilter, expected)
 
   def test(self):
     self._Test("name", None, None, parse_exp=[])
@@ -53,9 +53,9 @@ class TestParseFilter(unittest.TestCase):
   def setUp(self):
     self.parser = qlang.BuildFilterParser()
 
-  def _Test(self, filter_, expected, expect_filter=True):
-    self.assertEqual(qlang.MakeFilter([filter_], not expect_filter), expected)
-    self.assertEqual(qlang.ParseFilter(filter_, parser=self.parser), expected)
+  def _Test(self, qfilter, expected, expect_filter=True):
+    self.assertEqual(qlang.MakeFilter([qfilter], not expect_filter), expected)
+    self.assertEqual(qlang.ParseFilter(qfilter, parser=self.parser), expected)
 
   def test(self):
     self._Test("name==\"foobar\"", [qlang.OP_EQUAL, "name", "foobar"])
@@ -167,13 +167,13 @@ class TestParseFilter(unittest.TestCase):
     # Non-matching regexp delimiters
     tests.append("name =~ /foobarbaz#")
 
-    for filter_ in tests:
+    for qfilter in tests:
       try:
-        qlang.ParseFilter(filter_, parser=self.parser)
+        qlang.ParseFilter(qfilter, parser=self.parser)
       except errors.QueryFilterParseError, err:
         self.assertEqual(len(err.GetDetails()), 3)
       else:
-        self.fail("Invalid filter '%s' did not raise exception" % filter_)
+        self.fail("Invalid filter '%s' did not raise exception" % qfilter)
 
 
 class TestMakeFilter(unittest.TestCase):

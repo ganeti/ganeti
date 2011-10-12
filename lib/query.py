@@ -409,13 +409,13 @@ class _FilterCompilerHelper:
     self._hints = None
     self._op_handler = None
 
-  def __call__(self, hints, filter_):
+  def __call__(self, hints, qfilter):
     """Converts a query filter into a callable function.
 
     @type hints: L{_FilterHints} or None
     @param hints: Callbacks doing analysis on filter
-    @type filter_: list
-    @param filter_: Filter structure
+    @type qfilter: list
+    @param qfilter: Filter structure
     @rtype: callable
     @return: Function receiving context and item as parameters, returning
              boolean as to whether item matches filter
@@ -431,20 +431,20 @@ class _FilterCompilerHelper:
       }
 
     try:
-      filter_fn = self._Compile(filter_, 0)
+      filter_fn = self._Compile(qfilter, 0)
     finally:
       self._op_handler = None
 
     return filter_fn
 
-  def _Compile(self, filter_, level):
+  def _Compile(self, qfilter, level):
     """Inner function for converting filters.
 
     Calls the correct handler functions for the top-level operator. This
     function is called recursively (e.g. for logic operators).
 
     """
-    if not (isinstance(filter_, (list, tuple)) and filter_):
+    if not (isinstance(qfilter, (list, tuple)) and qfilter):
       raise errors.ParameterError("Invalid filter on level %s" % level)
 
     # Limit recursion
@@ -453,7 +453,7 @@ class _FilterCompilerHelper:
                                   " nested too deep)" % self._LEVELS_MAX)
 
     # Create copy to be modified
-    operands = filter_[:]
+    operands = qfilter[:]
     op = operands.pop(0)
 
     try:
@@ -581,7 +581,7 @@ class _FilterCompilerHelper:
                                  " (op '%s', flags %s)" % (op, field_flags))
 
 
-def _CompileFilter(fields, hints, filter_):
+def _CompileFilter(fields, hints, qfilter):
   """Converts a query filter into a callable function.
 
   See L{_FilterCompilerHelper} for details.
@@ -589,11 +589,11 @@ def _CompileFilter(fields, hints, filter_):
   @rtype: callable
 
   """
-  return _FilterCompilerHelper(fields)(hints, filter_)
+  return _FilterCompilerHelper(fields)(hints, qfilter)
 
 
 class Query:
-  def __init__(self, fieldlist, selected, filter_=None, namefield=None):
+  def __init__(self, fieldlist, selected, qfilter=None, namefield=None):
     """Initializes this class.
 
     The field definition is a dictionary with the field's name as a key and a
@@ -620,7 +620,7 @@ class Query:
     self._requested_names = None
     self._filter_datakinds = frozenset()
 
-    if filter_ is not None:
+    if qfilter is not None:
       # Collect requested names if wanted
       if namefield:
         hints = _FilterHints(namefield)
@@ -628,7 +628,7 @@ class Query:
         hints = None
 
       # Build filter function
-      self._filter_fn = _CompileFilter(fieldlist, hints, filter_)
+      self._filter_fn = _CompileFilter(fieldlist, hints, qfilter)
       if hints:
         self._requested_names = hints.RequestedNames()
         self._filter_datakinds = hints.ReferencedData()

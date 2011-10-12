@@ -765,7 +765,7 @@ class TestGetOnlineNodes(unittest.TestCase):
     def CountPending(self):
       return len(self._query)
 
-    def Query(self, res, fields, filter_):
+    def Query(self, res, fields, qfilter):
       if res != constants.QR_NODE:
         raise Exception("Querying wrong resource")
 
@@ -774,7 +774,7 @@ class TestGetOnlineNodes(unittest.TestCase):
       if exp_fields != fields:
         raise Exception("Expected fields %s, got %s" % (exp_fields, fields))
 
-      if not (filter_ is None or check_filter(filter_)):
+      if not (qfilter is None or check_filter(qfilter)):
         raise Exception("Filter doesn't match expectations")
 
       return objects.QueryResponse(fields=None, data=result)
@@ -804,8 +804,8 @@ class TestGetOnlineNodes(unittest.TestCase):
   def testNoMaster(self):
     cl = self._FakeClient()
 
-    def _CheckFilter(filter_):
-      self.assertEqual(filter_, [qlang.OP_NOT, [qlang.OP_TRUE, "master"]])
+    def _CheckFilter(qfilter):
+      self.assertEqual(qfilter, [qlang.OP_NOT, [qlang.OP_TRUE, "master"]])
       return True
 
     cl.AddQueryResult(["name", "offline", "sip"], _CheckFilter, [
@@ -835,8 +835,8 @@ class TestGetOnlineNodes(unittest.TestCase):
   def testNoMasterFilterNodeName(self):
     cl = self._FakeClient()
 
-    def _CheckFilter(filter_):
-      self.assertEqual(filter_,
+    def _CheckFilter(qfilter):
+      self.assertEqual(qfilter,
         [qlang.OP_AND,
          [qlang.OP_OR] + [[qlang.OP_EQUAL, "name", name]
                           for name in ["node2", "node3"]],
@@ -877,8 +877,8 @@ class TestGetOnlineNodes(unittest.TestCase):
   def testNodeGroup(self):
     cl = self._FakeClient()
 
-    def _CheckFilter(filter_):
-      self.assertEqual(filter_,
+    def _CheckFilter(qfilter):
+      self.assertEqual(qfilter,
         [qlang.OP_OR, [qlang.OP_EQUAL, "group", "foobar"],
                       [qlang.OP_EQUAL, "group.uuid", "foobar"]])
       return True

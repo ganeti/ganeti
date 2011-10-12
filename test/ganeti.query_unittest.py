@@ -1060,32 +1060,32 @@ class TestQueryFilter(unittest.TestCase):
       assert "name" in fielddefs
 
       # No name field
-      q = query.Query(fielddefs, ["name"], filter_=["=", "name", "abc"],
+      q = query.Query(fielddefs, ["name"], qfilter=["=", "name", "abc"],
                       namefield=None)
       self.assertEqual(q.RequestedNames(), None)
 
       # No filter
-      q = query.Query(fielddefs, ["name"], filter_=None, namefield="name")
+      q = query.Query(fielddefs, ["name"], qfilter=None, namefield="name")
       self.assertEqual(q.RequestedNames(), None)
 
       # Check empty query
-      q = query.Query(fielddefs, ["name"], filter_=["|"], namefield="name")
+      q = query.Query(fielddefs, ["name"], qfilter=["|"], namefield="name")
       self.assertEqual(q.RequestedNames(), None)
 
       # Check order
-      q = query.Query(fielddefs, ["name"], filter_=["|"] + innerfilter,
+      q = query.Query(fielddefs, ["name"], qfilter=["|"] + innerfilter,
                       namefield="name")
       self.assertEqual(q.RequestedNames(), ["x0", "x1", "x2", "x3"])
 
       # Check reverse order
       q = query.Query(fielddefs, ["name"],
-                      filter_=["|"] + list(reversed(innerfilter)),
+                      qfilter=["|"] + list(reversed(innerfilter)),
                       namefield="name")
       self.assertEqual(q.RequestedNames(), ["x3", "x2", "x1", "x0"])
 
       # Duplicates
       q = query.Query(fielddefs, ["name"],
-                      filter_=["|"] + innerfilter + list(reversed(innerfilter)),
+                      qfilter=["|"] + innerfilter + list(reversed(innerfilter)),
                       namefield="name")
       self.assertEqual(q.RequestedNames(), ["x0", "x1", "x2", "x3"])
 
@@ -1095,21 +1095,21 @@ class TestQueryFilter(unittest.TestCase):
 
       # Filter with AND
       q = query.Query(fielddefs, ["name"],
-                      filter_=["|", ["=", "name", "foo"],
+                      qfilter=["|", ["=", "name", "foo"],
                                     ["&", ["=", "name", ""]]],
                       namefield="name")
       self.assertTrue(q.RequestedNames() is None)
 
       # Filter with NOT
       q = query.Query(fielddefs, ["name"],
-                      filter_=["|", ["=", "name", "foo"],
+                      qfilter=["|", ["=", "name", "foo"],
                                     ["!", ["=", "name", ""]]],
                       namefield="name")
       self.assertTrue(q.RequestedNames() is None)
 
       # Filter with only OR (names must be in correct order)
       q = query.Query(fielddefs, ["name"],
-                      filter_=["|", ["=", "name", "x17361"],
+                      qfilter=["|", ["=", "name", "x17361"],
                                     ["|", ["=", "name", "x22015"]],
                                     ["|", ["|", ["=", "name", "x13193"]]],
                                     ["=", "name", "x15215"]],
@@ -1136,14 +1136,14 @@ class TestQueryFilter(unittest.TestCase):
       ]
 
     for fielddefs in query.ALL_FIELD_LISTS:
-      for filter_ in checks:
+      for qfilter in checks:
         self.assertRaises(errors.ParameterError, query._CompileFilter,
-                          fielddefs, None, filter_)
+                          fielddefs, None, qfilter)
 
       for op in ["|", "!"]:
-        filter_ = self._GenNestedFilter(op, levels_max - 1)
+        qfilter = self._GenNestedFilter(op, levels_max - 1)
         self.assertTrue(callable(query._CompileFilter(fielddefs, None,
-                                                      filter_)))
+                                                      qfilter)))
 
   def testQueryInputOrder(self):
     fielddefs = query._PrepareFieldList([
@@ -1160,10 +1160,10 @@ class TestQueryFilter(unittest.TestCase):
       { "pnode": "node20", "snode": "node1", },
       ]
 
-    filter_ = ["|", ["=", "pnode", "node1"], ["=", "snode", "node1"]]
+    qfilter = ["|", ["=", "pnode", "node1"], ["=", "snode", "node1"]]
 
     q = query.Query(fielddefs, ["pnode", "snode"], namefield="pnode",
-                    filter_=filter_)
+                    qfilter=qfilter)
     self.assertTrue(q.RequestedNames() is None)
     self.assertFalse(q.RequestedData())
     self.assertEqual(q.Query(data),
@@ -1179,7 +1179,7 @@ class TestQueryFilter(unittest.TestCase):
 
     # No name field, result must be in incoming order
     q = query.Query(fielddefs, ["pnode", "snode"], namefield=None,
-                    filter_=filter_)
+                    qfilter=qfilter)
     self.assertFalse(q.RequestedData())
     self.assertEqual(q.Query(data),
       [[(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, "node44")],
@@ -1242,7 +1242,7 @@ class TestQueryFilter(unittest.TestCase):
       ]
 
     q = query.Query(fielddefs, ["pnode", "num"], namefield="pnode",
-                    filter_=["|", ["=", "pnode", "node1"],
+                    qfilter=["|", ["=", "pnode", "node1"],
                                   ["=", "pnode", "node2"],
                                   ["=", "pnode", "node1"]])
     self.assertEqual(q.RequestedNames(), ["node1", "node2"],
@@ -1268,7 +1268,7 @@ class TestQueryFilter(unittest.TestCase):
       ]
 
     q = query.Query(fielddefs, ["pnode", "num"], namefield="pnode",
-                    filter_=["|", ["=", "pnode", "nodeX"],
+                    qfilter=["|", ["=", "pnode", "nodeX"],
                                   ["=", "pnode", "nodeY"],
                                   ["=", "pnode", "nodeY"],
                                   ["=", "pnode", "nodeY"],
@@ -1311,20 +1311,20 @@ class TestQueryFilter(unittest.TestCase):
 
     # Empty filter
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["|"])
+                    qfilter=["|"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.RequestedData(), set([DK_A, DK_B]))
     self.assertEqual(q.Query(data), [])
 
     # Normal filter
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["=", "name", "node1"])
+                    qfilter=["=", "name", "node1"])
     self.assertEqual(q.RequestedNames(), ["node1"])
     self.assertEqual(q.Query(data),
       [[(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, "foo")]])
 
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=(["|", ["=", "name", "node1"],
+                    qfilter=(["|", ["=", "name", "node1"],
                                    ["=", "name", "node3"]]))
     self.assertEqual(q.RequestedNames(), ["node1", "node3"])
     self.assertEqual(q.Query(data),
@@ -1333,7 +1333,7 @@ class TestQueryFilter(unittest.TestCase):
 
     # Complex filter
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=(["|", ["=", "name", "node1"],
+                    qfilter=(["|", ["=", "name", "node1"],
                                    ["|", ["=", "name", "node3"],
                                          ["=", "name", "node2"]],
                                    ["=", "name", "node3"]]))
@@ -1348,11 +1348,11 @@ class TestQueryFilter(unittest.TestCase):
     for i in [-1, 0, 1, 123, [], None, True, False]:
       self.assertRaises(errors.ParameterError, query.Query,
                         fielddefs, ["name", "other"], namefield="name",
-                        filter_=["=", "name", i])
+                        qfilter=["=", "name", i])
 
     # Negative filter
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["!", ["|", ["=", "name", "node1"],
+                    qfilter=["!", ["|", ["=", "name", "node1"],
                                         ["=", "name", "node3"]]])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data),
@@ -1360,7 +1360,7 @@ class TestQueryFilter(unittest.TestCase):
 
     # Not equal
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["!=", "name", "node3"])
+                    qfilter=["!=", "name", "node3"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data),
       [[(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, "foo")],
@@ -1368,7 +1368,7 @@ class TestQueryFilter(unittest.TestCase):
 
     # Data type
     q = query.Query(fielddefs, [], namefield="name",
-                    filter_=["|", ["=", "other", "bar"],
+                    qfilter=["|", ["=", "other", "bar"],
                                   ["=", "name", "foo"]])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.RequestedData(), set([DK_A, DK_B]))
@@ -1376,13 +1376,13 @@ class TestQueryFilter(unittest.TestCase):
 
     # Only one data type
     q = query.Query(fielddefs, ["other"], namefield="name",
-                    filter_=["=", "other", "bar"])
+                    qfilter=["=", "other", "bar"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.RequestedData(), set([DK_B]))
     self.assertEqual(q.Query(data), [[(constants.RS_NORMAL, "bar")]])
 
     q = query.Query(fielddefs, [], namefield="name",
-                    filter_=["=", "other", "bar"])
+                    qfilter=["=", "other", "bar"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.RequestedData(), set([DK_B]))
     self.assertEqual(q.Query(data), [[]])
@@ -1403,7 +1403,7 @@ class TestQueryFilter(unittest.TestCase):
       ]
 
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["=[]", "other", "bar"])
+                    qfilter=["=[]", "other", "bar"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node2"),
@@ -1411,7 +1411,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["|", ["=[]", "other", "bar"],
+                    qfilter=["|", ["=[]", "other", "bar"],
                                   ["=[]", "other", "a"],
                                   ["=[]", "other", "b"]])
     self.assertTrue(q.RequestedNames() is None)
@@ -1428,7 +1428,7 @@ class TestQueryFilter(unittest.TestCase):
 
     # Boolean test
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["?", "other"])
+                    qfilter=["?", "other"])
     self.assertEqual(q.OldStyleQuery(data), [
       ["node1", ["a", "b", "foo"]],
       ["node2", ["x", "y", "bar"]],
@@ -1436,7 +1436,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name", "other"], namefield="name",
-                    filter_=["!", ["?", "other"]])
+                    qfilter=["!", ["?", "other"]])
     self.assertEqual(q.OldStyleQuery(data), [
       ["empty", []],
       ])
@@ -1454,7 +1454,7 @@ class TestQueryFilter(unittest.TestCase):
       ]
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=", "name", "node2"])
+                    qfilter=["=", "name", "node2"])
     self.assertEqual(q.RequestedNames(), ["node2"])
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node2.example.com")],
@@ -1462,19 +1462,19 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=", "name", "node1"])
+                    qfilter=["=", "name", "node1"])
     self.assertEqual(q.RequestedNames(), ["node1"])
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node1.example.com")],
       ])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=", "name", "othername"])
+                    qfilter=["=", "name", "othername"])
     self.assertEqual(q.RequestedNames(), ["othername"])
     self.assertEqual(q.Query(data), [])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["|", ["=", "name", "node1.example.com"],
+                    qfilter=["|", ["=", "name", "node1.example.com"],
                                   ["=", "name", "node2"]])
     self.assertEqual(q.RequestedNames(), ["node1.example.com", "node2"])
     self.assertEqual(q.Query(data), [
@@ -1489,7 +1489,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["!=", "name", "node1"])
+                    qfilter=["!=", "name", "node1"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node2.example.com")],
@@ -1515,7 +1515,7 @@ class TestQueryFilter(unittest.TestCase):
       ]
 
     q = query.Query(fielddefs, ["name", "value"],
-                    filter_=["|", ["=", "value", False],
+                    qfilter=["|", ["=", "value", False],
                                   ["=", "value", True]])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
@@ -1525,7 +1525,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name", "value"],
-                    filter_=["|", ["=", "value", False],
+                    qfilter=["|", ["=", "value", False],
                                   ["!", ["=", "value", False]]])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
@@ -1538,10 +1538,10 @@ class TestQueryFilter(unittest.TestCase):
     for i in ["False", "True", "0", "1", "no", "yes", "N", "Y"]:
       self.assertRaises(errors.ParameterError, query.Query,
                         fielddefs, ["name", "value"],
-                        filter_=["=", "value", i])
+                        qfilter=["=", "value", i])
 
     # Truth filter
-    q = query.Query(fielddefs, ["name", "value"], filter_=["?", "value"])
+    q = query.Query(fielddefs, ["name", "value"], qfilter=["?", "value"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node2"), (constants.RS_NORMAL, True)],
@@ -1549,7 +1549,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     # Negative bool filter
-    q = query.Query(fielddefs, ["name", "value"], filter_=["!", ["?", "value"]])
+    q = query.Query(fielddefs, ["name", "value"], qfilter=["!", ["?", "value"]])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node1"), (constants.RS_NORMAL, False)],
@@ -1557,7 +1557,7 @@ class TestQueryFilter(unittest.TestCase):
 
     # Complex truth filter
     q = query.Query(fielddefs, ["name", "value"],
-                    filter_=["|", ["&", ["=", "name", "node1"],
+                    qfilter=["|", ["&", ["=", "name", "node1"],
                                         ["!", ["?", "value"]]],
                                   ["?", "value"]])
     self.assertTrue(q.RequestedNames() is None)
@@ -1583,14 +1583,14 @@ class TestQueryFilter(unittest.TestCase):
       ]
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=~", "name", "site"])
+                    qfilter=["=~", "name", "site"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node2.site.example.com")],
       ])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=~", "name", "^node2"])
+                    qfilter=["=~", "name", "^node2"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node2.example.net")],
@@ -1598,7 +1598,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=~", "name", r"(?i)\.COM$"])
+                    qfilter=["=~", "name", r"(?i)\.COM$"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node1.example.com")],
@@ -1606,7 +1606,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=~", "name", r"."])
+                    qfilter=["=~", "name", r"."])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "node1.example.com")],
@@ -1615,7 +1615,7 @@ class TestQueryFilter(unittest.TestCase):
       ])
 
     q = query.Query(fielddefs, ["name"], namefield="name",
-                    filter_=["=~", "name", r"^$"])
+                    qfilter=["=~", "name", r"^$"])
     self.assertTrue(q.RequestedNames() is None)
     self.assertEqual(q.Query(data), [
       [(constants.RS_NORMAL, "")],
@@ -1623,7 +1623,7 @@ class TestQueryFilter(unittest.TestCase):
 
     # Invalid regular expression
     self.assertRaises(errors.ParameterError, query.Query, fielddefs, ["name"],
-                      filter_=["=~", "name", r"["])
+                      qfilter=["=~", "name", r"["])
 
 
 if __name__ == "__main__":

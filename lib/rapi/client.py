@@ -1829,15 +1829,15 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/groups/%s/tags" %
                               (GANETI_RAPI_VERSION, group)), query, None)
 
-  def Query(self, what, fields, filter_=None):
+  def Query(self, what, fields, qfilter=None):
     """Retrieves information about resources.
 
     @type what: string
     @param what: Resource name, one of L{constants.QR_VIA_RAPI}
     @type fields: list of string
     @param fields: Requested fields
-    @type filter_: None or list
-    @param filter_: Query filter
+    @type qfilter: None or list
+    @param qfilter: Query filter
 
     @rtype: string
     @return: job id
@@ -1847,8 +1847,10 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "fields": fields,
       }
 
-    if filter_ is not None:
-      body["filter"] = filter_
+    if qfilter is not None:
+      body["qfilter"] = qfilter
+      # TODO: remove this after 2.7
+      body["filter"] = qfilter
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/query/%s" %

@@ -499,18 +499,18 @@ class Client(object):
         break
     return result
 
-  def Query(self, what, fields, filter_):
+  def Query(self, what, fields, qfilter):
     """Query for resources/items.
 
     @param what: One of L{constants.QR_VIA_LUXI}
     @type fields: List of strings
     @param fields: List of requested fields
-    @type filter_: None or list
-    @param filter_: Query filter
+    @type qfilter: None or list
+    @param qfilter: Query filter
     @rtype: L{objects.QueryResponse}
 
     """
-    req = objects.QueryRequest(what=what, fields=fields, filter=filter_)
+    req = objects.QueryRequest(what=what, fields=fields, qfilter=qfilter)
     result = self.CallMethod(REQ_QUERY, req.ToDict())
     return objects.QueryResponse.FromDict(result)
 

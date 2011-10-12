@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1239,22 +1239,22 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
 
   def testQuery(self):
     for idx, what in enumerate(constants.QR_VIA_RAPI):
-      for idx2, filter_ in enumerate([None, ["?", "name"]]):
+      for idx2, qfilter in enumerate([None, ["?", "name"]]):
         job_id = 11010 + (idx << 4) + (idx2 << 16)
         fields = sorted(query.ALL_FIELDS[what].keys())[:10]
 
         self.rapi.AddResponse(str(job_id))
-        self.assertEqual(self.client.Query(what, fields, filter_=filter_),
+        self.assertEqual(self.client.Query(what, fields, qfilter=qfilter),
                          job_id)
         self.assertItems([what])
         self.assertHandler(rlib2.R_2_query)
         self.assertFalse(self.rapi.GetLastHandler().queryargs)
         data = serializer.LoadJson(self.rapi.GetLastRequestData())
         self.assertEqual(data["fields"], fields)
-        if filter_ is None:
-          self.assertTrue("filter" not in data)
+        if qfilter is None:
+          self.assertTrue("qfilter" not in data)
         else:
-          self.assertEqual(data["filter"], filter_)
+          self.assertEqual(data["qfilter"], qfilter)
         self.assertEqual(self.rapi.CountPending(), 0)
 
   def testQueryFields(self):

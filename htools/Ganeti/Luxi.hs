@@ -78,7 +78,7 @@ $(genLuxiOp "LuxiOp"
     [("Query" ,
        [ ("what",    [t| QrViaLuxi                  |], [| id |])
        , ("fields",  [t| [String]                   |], [| id |])
-       , ("filter",  [t| Maybe (String, [[String]]) |], [| id |])
+       , ("qfilter", [t| Maybe (String, [[String]]) |], [| id |])
        ], SDict)
      , ("QueryNodes",
        [ ("names",  [t| [String] |], [| id |])

@@ -1468,7 +1468,7 @@ class QueryRequest(ConfigObject):
   __slots__ = [
     "what",
     "fields",
-    "filter",
+    "qfilter",
     ]
 
 

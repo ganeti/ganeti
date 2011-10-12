@@ -638,13 +638,13 @@ def _GetGroupData(cl, uuid):
     opcodes.OpQuery(what=constants.QR_INSTANCE,
                     fields=["name", "status", "admin_state", "snodes",
                             "pnode.group.uuid", "snodes.group.uuid"],
-                    filter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid],
+                    qfilter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid],
                     use_locking=True),
 
     # Get all nodes in group
     opcodes.OpQuery(what=constants.QR_NODE,
                     fields=["name", "bootid", "offline"],
-                    filter=[qlang.OP_EQUAL, "group.uuid", uuid],
+                    qfilter=[qlang.OP_EQUAL, "group.uuid", uuid],
                     use_locking=True),
     ]
 
