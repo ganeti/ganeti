@@ -124,34 +124,6 @@ def _ConfigRpcCurl(curl):
   curl.setopt(pycurl.CONNECTTIMEOUT, _RPC_CONNECT_TIMEOUT)
 
 
-# Aliasing this module avoids the following warning by epydoc: "Warning: No
-# information available for ganeti.rpc._RpcThreadLocal's base threading.local"
-_threading = threading
-
-
-class _RpcThreadLocal(_threading.local):
-  def GetHttpClientPool(self):
-    """Returns a per-thread HTTP client pool.
-
-    @rtype: L{http.client.HttpClientPool}
-
-    """
-    try:
-      pool = self.hcp
-    except AttributeError:
-      pool = http.client.HttpClientPool(_ConfigRpcCurl)
-      self.hcp = pool
-
-    return pool
-
-
-# Remove module alias (see above)
-del _threading
-
-
-_thread_local = _RpcThreadLocal()
-
-
 def _RpcTimeout(secs):
   """Timeout decorator.
 
