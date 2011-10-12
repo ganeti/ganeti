@@ -39,41 +39,39 @@ import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject)
+import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject,
+                            fromObj)
 
 -- * Utility functions
 
--- | Ensure a given JSValue is actually a JSArray.
-toArray :: (Monad m) => JSValue -> m [JSValue]
-toArray v =
-    case v of
-      JSArray arr -> return arr
-      o -> fail ("Invalid input, expected array but got " ++ show o)
-
 -- | Get values behind \"data\" part of the result.
 getData :: (Monad m) => JSValue -> m JSValue
-getData v =
-    case v of
-      JSObject o ->
-          case fromJSObject o of
-            [("data", jsdata), ("fields", _)] -> return jsdata
-            x -> fail $ "Invalid input, expected two-element list but got "
-                              ++ show x
-      x -> fail ("Invalid input, expected dict entry but got " ++ show x)
+getData (JSObject o) = fromObj (fromJSObject o) "data"
+getData x = fail $ "Invalid input, expected dict entry but got " ++ show x
 
--- | Get [(status, value)] list for each element queried.
-toPairs :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
-toPairs (JSArray arr) = do
-  arr' <- mapM toArray arr -- list of resulting elements
-  arr'' <- mapM (mapM toArray) arr' -- list of list of [status, value]
-  return $ map (map (\a -> (a!!0, a!!1))) arr'' -- FIXME: hackish
-toPairs o = fail ("Invalid input, expected array but got " ++ show o)
+-- | Converts a (status, value) into m value, if possible.
+parseQueryField :: (Monad m) => JSValue -> m (JSValue, JSValue)
+parseQueryField (JSArray [status, result]) = return (status, result)
+parseQueryField o =
+    fail $ "Invalid query field, expected (status, value) but got " ++ show o
+
+-- | Parse a result row.
+parseQueryRow :: (Monad m) => JSValue -> m [(JSValue, JSValue)]
+parseQueryRow (JSArray arr) = mapM parseQueryField arr
+parseQueryRow o =
+    fail $ "Invalid query row result, expected array but got " ++ show o
+
+-- | Parse an overall query result and get the [(status, value)] list
+-- for each element queried.
+parseQueryResult :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
+parseQueryResult (JSArray arr) = mapM parseQueryRow arr
+parseQueryResult o =
+    fail $ "Invalid query result, expected array but got " ++ show o
 
 -- | Prepare resulting output as parsers expect it.
 extractArray :: (Monad m) => JSValue -> m [JSValue]
-extractArray v =  do
-  arr <- getData v >>= toPairs
-  return $ map (JSArray. map snd) arr
+extractArray v =
+  getData v >>= parseQueryResult >>= (return . map (JSArray . map snd))
 
 -- | Annotate errors when converting values with owner/attribute for
 -- better debugging.
