@@ -193,6 +193,9 @@ class ClientOps:
     queue = self.server.context.jobqueue
 
     # TODO: Parameter validation
+    if not isinstance(args, (tuple, list)):
+      logging.info("Received invalid arguments of type '%s'", type(args))
+      raise ValueError("Invalid arguments type '%s'" % type(args))
 
     # TODO: Rewrite to not exit in each 'if/elif' branch
 
@@ -209,12 +212,12 @@ class ClientOps:
       return queue.SubmitManyJobs(jobs)
 
     elif method == luxi.REQ_CANCEL_JOB:
-      job_id = args
+      (job_id, ) = args
       logging.info("Received job cancel request for %s", job_id)
       return queue.CancelJob(job_id)
 
     elif method == luxi.REQ_ARCHIVE_JOB:
-      job_id = args
+      (job_id, ) = args
       logging.info("Received job archive request for %s", job_id)
       return queue.ArchiveJob(job_id)
 
@@ -231,7 +234,8 @@ class ClientOps:
                                      prev_log_serial, timeout)
 
     elif method == luxi.REQ_QUERY:
-      req = objects.QueryRequest.FromDict(args)
+      (what, fields, qfilter) = args
+      req = objects.QueryRequest(what=what, fields=fields, qfilter=qfilter)
 
       if req.what in constants.QR_VIA_OP:
         result = self._Query(opcodes.OpQuery(what=req.what, fields=req.fields,
@@ -249,7 +253,8 @@ class ClientOps:
       return result
 
     elif method == luxi.REQ_QUERY_FIELDS:
-      req = objects.QueryFieldsRequest.FromDict(args)
+      (what, fields) = args
+      req = objects.QueryFieldsRequest(what=what, fields=fields)
 
       try:
         fielddefs = query.ALL_FIELDS[req.what]
@@ -298,7 +303,7 @@ class ClientOps:
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_EXPORTS:
-      nodes, use_locking = args
+      (nodes, use_locking) = args
       if use_locking:
         raise errors.OpPrereqError("Sync queries are not allowed",
                                    errors.ECODE_INVAL)
@@ -307,7 +312,7 @@ class ClientOps:
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_CONFIG_VALUES:
-      fields = args
+      (fields, ) = args
       logging.info("Received config values query request for %s", fields)
       op = opcodes.OpClusterConfigQuery(output_fields=fields)
       return self._Query(op)
@@ -318,7 +323,7 @@ class ClientOps:
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_TAGS:
-      kind, name = args
+      (kind, name) = args
       logging.info("Received tags query request")
       op = opcodes.OpTagsGet(kind=kind, name=name)
       return self._Query(op)
@@ -331,7 +336,7 @@ class ClientOps:
       return self.server.context.glm.OldStyleQueryLocks(fields)
 
     elif method == luxi.REQ_QUEUE_SET_DRAIN_FLAG:
-      drain_flag = args
+      (drain_flag, ) = args
       logging.info("Received queue drain flag change request to %s",
                    drain_flag)
       return queue.SetDrainFlag(drain_flag)

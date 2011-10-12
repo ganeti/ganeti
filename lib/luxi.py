@@ -439,14 +439,17 @@ class Client(object):
     """Send a generic request and return the response.
 
     """
+    if not isinstance(args, (list, tuple)):
+      raise errors.ProgrammerError("Invalid parameter passed to CallMethod:"
+                                   " expected list, got %s" % type(args))
     return CallLuxiMethod(self._SendMethodCall, method, args,
                           version=constants.LUXI_VERSION)
 
   def SetQueueDrainFlag(self, drain_flag):
-    return self.CallMethod(REQ_QUEUE_SET_DRAIN_FLAG, drain_flag)
+    return self.CallMethod(REQ_QUEUE_SET_DRAIN_FLAG, (drain_flag, ))
 
   def SetWatcherPause(self, until):
-    return self.CallMethod(REQ_SET_WATCHER_PAUSE, [until])
+    return self.CallMethod(REQ_SET_WATCHER_PAUSE, (until, ))
 
   def SubmitJob(self, ops):
     ops_state = map(lambda op: op.__getstate__(), ops)
@@ -459,10 +462,10 @@ class Client(object):
     return self.CallMethod(REQ_SUBMIT_MANY_JOBS, jobs_state)
 
   def CancelJob(self, job_id):
-    return self.CallMethod(REQ_CANCEL_JOB, job_id)
+    return self.CallMethod(REQ_CANCEL_JOB, (job_id, ))
 
   def ArchiveJob(self, job_id):
-    return self.CallMethod(REQ_ARCHIVE_JOB, job_id)
+    return self.CallMethod(REQ_ARCHIVE_JOB, (job_id, ))
 
   def AutoArchiveJobs(self, age):
     timeout = (DEF_RWTO - 1) / 2
@@ -510,8 +513,7 @@ class Client(object):
     @rtype: L{objects.QueryResponse}
 
     """
-    req = objects.QueryRequest(what=what, fields=fields, qfilter=qfilter)
-    result = self.CallMethod(REQ_QUERY, req.ToDict())
+    result = self.CallMethod(REQ_QUERY, (what, fields, qfilter))
     return objects.QueryResponse.FromDict(result)
 
   def QueryFields(self, what, fields):
@@ -523,8 +525,7 @@ class Client(object):
     @rtype: L{objects.QueryFieldsResponse}
 
     """
-    req = objects.QueryFieldsRequest(what=what, fields=fields)
-    result = self.CallMethod(REQ_QUERY_FIELDS, req.ToDict())
+    result = self.CallMethod(REQ_QUERY_FIELDS, (what, fields))
     return objects.QueryFieldsResponse.FromDict(result)
 
   def QueryJobs(self, job_ids, fields):
@@ -546,7 +547,7 @@ class Client(object):
     return self.CallMethod(REQ_QUERY_CLUSTER_INFO, ())
 
   def QueryConfigValues(self, fields):
-    return self.CallMethod(REQ_QUERY_CONFIG_VALUES, fields)
+    return self.CallMethod(REQ_QUERY_CONFIG_VALUES, (fields, ))
 
   def QueryTags(self, kind, name):
     return self.CallMethod(REQ_QUERY_TAGS, (kind, name))
