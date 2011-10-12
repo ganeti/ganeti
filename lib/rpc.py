@@ -372,7 +372,7 @@ class Client:
 
     """
     if not http_pool:
-      http_pool = _thread_local.GetHttpClientPool()
+      http_pool = http.client.HttpClientPool(_ConfigRpcCurl)
 
     http_pool.ProcessRequests(self._request.values())
 
