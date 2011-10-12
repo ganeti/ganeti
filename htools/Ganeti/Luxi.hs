@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Luxi
     ( LuxiOp(..)
+    , QrViaLuxi(..)
     , Client
     , getClient
     , closeClient
@@ -46,6 +47,7 @@ import qualified Network.Socket as S
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
+import Ganeti.Constants
 import Ganeti.Jobs (JobStatus)
 import Ganeti.OpCodes (OpCode)
 import Ganeti.THH
@@ -62,61 +64,82 @@ withTimeout secs descr action = do
 
 -- * Generic protocol functionality
 
+$(declareSADT "QrViaLuxi"
+     [ ("QRLock", 'qrLock)
+     , ("QRInstance", 'qrInstance)
+     , ("QRNode", 'qrNode)
+     , ("QRGroup", 'qrGroup)
+     , ("QROs", 'qrOs)
+     ])
+$(makeJSONInstance ''QrViaLuxi)
+
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
-    [ ("QueryNodes",
+    [("Query" ,
+       [ ("what",    [t| QrViaLuxi                  |], [| id |])
+       , ("fields",  [t| [String]                   |], [| id |])
+       , ("filter",  [t| Maybe (String, [[String]]) |], [| id |])
+       ], SDict)
+     , ("QueryNodes",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ])
+       ], SList)
     , ("QueryGroups",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ])
+       ], SList)
     , ("QueryInstances",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ])
+       ], SList)
     , ("QueryJobs",
        [ ("ids",    [t| [Int]    |], [| map show |])
        , ("fields", [t| [String] |], [| id |])
-       ])
+       ], SList)
     , ("QueryExports",
        [ ("nodes", [t| [String] |], [| id |])
        , ("lock",  [t| Bool     |], [| id |])
-       ])
+       ], SList)
     , ("QueryConfigValues",
-       [ ("fields", [t| [String] |], [| id |]) ])
-    , ("QueryClusterInfo", [])
+       [ ("fields", [t| [String] |], [| id |]) ],
+       SList)
+    , ("QueryClusterInfo", [], SList)
     , ("QueryTags",
        [ ("kind", [t| String |], [| id |])
        , ("name", [t| String |], [| id |])
-       ])
+       ], SList)
     , ("SubmitJob",
-       [ ("job", [t| [OpCode] |], [| id |]) ])
+       [ ("job", [t| [OpCode] |], [| id |]) ],
+       SList)
     , ("SubmitManyJobs",
-       [ ("ops", [t| [[OpCode]] |], [| id |]) ])
+       [ ("ops", [t| [[OpCode]] |], [| id |]) ],
+       SList)
     , ("WaitForJobChange",
        [ ("job",      [t| Int     |], [| id |])
        , ("fields",   [t| [String]|], [| id |])
        , ("prev_job", [t| JSValue |], [| id |])
        , ("prev_log", [t| JSValue |], [| id |])
        , ("tmout",    [t| Int     |], [| id |])
-       ])
+       ], SList)
     , ("ArchiveJob",
-       [ ("job", [t| Int |], [| show |]) ])
+       [ ("job", [t| Int |], [| show |]) ],
+       SList)
     , ("AutoArchiveJobs",
        [ ("age",   [t| Int |], [| id |])
        , ("tmout", [t| Int |], [| id |])
-       ])
+       ], SList)
     , ("CancelJob",
-       [("job", [t| Int |], [| show |]) ])
+       [("job", [t| Int |], [| show |]) ],
+       SList)
     , ("SetDrainFlag",
-       [ ("flag", [t| Bool |], [| id |]) ])
+       [ ("flag", [t| Bool |], [| id |]) ],
+       SList)
     , ("SetWatcherPause",
-       [ ("duration", [t| Double |], [| (: []) |]) ])
+       [ ("duration", [t| Double |], [| (: []) |]) ],
+       SList)
   ])
 
 -- | The serialisation of LuxiOps into strings in messages.

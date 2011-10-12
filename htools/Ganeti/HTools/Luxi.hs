@@ -50,6 +50,31 @@ toArray v =
       JSArray arr -> return arr
       o -> fail ("Invalid input, expected array but got " ++ show o)
 
+-- | Get values behind \"data\" part of the result.
+getData :: (Monad m) => JSValue -> m JSValue
+getData v =
+    case v of
+      JSObject o ->
+          case fromJSObject o of
+            [("data", jsdata), ("fields", _)] -> return jsdata
+            x -> fail $ "Invalid input, expected two-element list but got "
+                              ++ show x
+      x -> fail ("Invalid input, expected dict entry but got " ++ show x)
+
+-- | Get [(status, value)] list for each element queried.
+toPairs :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
+toPairs (JSArray arr) = do
+  arr' <- mapM toArray arr -- list of resulting elements
+  arr'' <- mapM (mapM toArray) arr' -- list of list of [status, value]
+  return $ map (map (\a -> (a!!0, a!!1))) arr'' -- FIXME: hackish
+toPairs o = fail ("Invalid input, expected array but got " ++ show o)
+
+-- | Prepare resulting output as parsers expect it.
+extractArray :: (Monad m) => JSValue -> m [JSValue]
+extractArray v =  do
+  arr <- getData v >>= toPairs
+  return $ map (JSArray. map snd) arr
+
 -- | Annotate errors when converting values with owner/attribute for
 -- better debugging.
 genericConvert :: (Text.JSON.JSON a) =>
@@ -68,16 +93,16 @@ genericConvert otype oname oattr =
 -- | The input data for node query.
 queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
-  L.QueryNodes [] ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
-                   "ctotal", "offline", "drained", "vm_capable",
-                   "group.uuid"] False
+  L.Query L.QRNode ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
+                    "ctotal", "offline", "drained", "vm_capable",
+                    "group.uuid"] Nothing
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
-  L.QueryInstances [] ["name", "disk_usage", "be/memory", "be/vcpus",
-                       "status", "pnode", "snodes", "tags", "oper_ram",
-                       "be/auto_balance", "disk_template"] False
+    L.Query L.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
+                          "status", "pnode", "snodes", "tags", "oper_ram",
+                          "be/auto_balance", "disk_template"] Nothing
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -86,7 +111,7 @@ queryClusterInfoMsg = L.QueryClusterInfo
 -- | The input data for node group query.
 queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
-  L.QueryGroups [] ["uuid", "name", "alloc_policy"] False
+  L.Query L.QRGroup ["uuid", "name", "alloc_policy"] Nothing
 
 -- | Wraper over 'callMethod' doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
@@ -108,7 +133,7 @@ queryGroups = L.callMethod queryGroupsMsg
 getInstances :: NameAssoc
              -> JSValue
              -> Result [(String, Instance.Instance)]
-getInstances ktn arr = toArray arr >>= mapM (parseInstance ktn)
+getInstances ktn arr = extractArray arr >>= mapM (parseInstance ktn)
 
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc
@@ -140,7 +165,7 @@ parseInstance _ v = fail ("Invalid instance query result: " ++ show v)
 
 -- | Parse a node list in JSON format.
 getNodes :: NameAssoc -> JSValue -> Result [(String, Node.Node)]
-getNodes ktg arr = toArray arr >>= mapM (parseNode ktg)
+getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 
 -- | Construct a node from a JSON object.
 parseNode :: NameAssoc -> JSValue -> Result (String, Node.Node)
@@ -177,11 +202,11 @@ getClusterTags v = do
 
 -- | Parses the cluster groups.
 getGroups :: JSValue -> Result [(String, Group.Group)]
-getGroups arr = toArray arr >>= mapM parseGroup
+getGroups jsv = extractArray jsv >>= mapM parseGroup
 
 -- | Parses a given group information.
 parseGroup :: JSValue -> Result (String, Group.Group)
-parseGroup (JSArray [ uuid, name, apol ]) = do
+parseGroup (JSArray [uuid, name, apol]) = do
   xname <- annotateResult "Parsing new group" (fromJVal name)
   let convert a = genericConvert "Group" xname a
   xuuid <- convert "uuid" uuid

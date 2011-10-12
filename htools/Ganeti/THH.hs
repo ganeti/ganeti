@@ -29,7 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.THH ( declareSADT
+module Ganeti.THH ( Store(..)
+                  , declareSADT
                   , makeJSONInstance
                   , genOpID
                   , genOpCode
@@ -428,6 +429,9 @@ genStrOfKey = genConstrToStr ensureLower
 -- | LuxiOp parameter type.
 type LuxiParam = (String, Q Type, Q Exp)
 
+-- | Storage options for JSON.
+data Store = SList | SDict
+
 -- | Generates the LuxiOp data type.
 --
 -- This takes a Luxi operation definition and builds both the
@@ -444,9 +448,9 @@ type LuxiParam = (String, Q Type, Q Exp)
 -- * operation; this is the operation performed on the parameter before
 --   serialization
 --
-genLuxiOp :: String -> [(String, [LuxiParam])] -> Q [Dec]
+genLuxiOp :: String -> [(String, [LuxiParam], Store)] -> Q [Dec]
 genLuxiOp name cons = do
-  decl_d <- mapM (\(cname, fields) -> do
+  decl_d <- mapM (\(cname, fields, _) -> do
                     fields' <- mapM (\(_, qt, _) ->
                                          qt >>= \t -> return (NotStrict, t))
                                fields
@@ -456,21 +460,42 @@ genLuxiOp name cons = do
   (savesig, savefn) <- genSaveLuxiOp cons
   return [declD, savesig, savefn]
 
+-- | Generates a Q Exp for an element, depending of the JSON return type.
+helperLuxiField :: Store -> String -> Q Exp -> Q Exp
+helperLuxiField SList name val = [| [ JSON.showJSON $val ] |]
+helperLuxiField SDict name val = [| [(name, JSON.showJSON $val)] |]
+
+-- | Generates the \"save\" expression for a single luxi parameter.
+saveLuxiField :: Store -> Name -> LuxiParam -> Q Exp
+saveLuxiField store fvar (fname, qt, fn) = do
+  t <- qt
+  let fvare = varE fvar
+  (if isOptional t
+   then [| case $fvare of
+             Just v' ->
+                 $(helperLuxiField store fname $ liftM2 appFn fn [| v' |])
+             Nothing -> []
+         |]
+   else helperLuxiField store fname $ liftM2 appFn fn fvare)
+
+-- | Generates final JSON Q Exp for constructor.
+helperLuxiConstructor :: Store -> Q Exp -> Q Exp
+helperLuxiConstructor SDict val = [| JSON.showJSON $ JSON.makeObj $val |]
+helperLuxiConstructor SList val = [| JSON.JSArray $val |]
+
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
-saveLuxiConstructor :: (String, [LuxiParam]) -> Q Clause
-saveLuxiConstructor (sname, fields) =
+saveLuxiConstructor :: (String, [LuxiParam], Store) -> Q Clause
+saveLuxiConstructor (sname, fields, store) = do
   let cname = mkName sname
       fnames = map (\(nm, _, _) -> mkName nm) fields
       pat = conP cname (map varP fnames)
-      flist = map (\(nm, _, fn) -> liftM2 appFn fn $ (varNameE nm)) fields
-      showlist = map (\x -> [| JSON.showJSON $x |]) flist
-      finval = case showlist of
-                 [] -> [| JSON.showJSON () |]
-                 _ -> [| JSON.showJSON $(listE showlist) |]
-  in clause [pat] (normalB finval) []
+      flist = map (uncurry $ saveLuxiField store) (zip fnames fields)
+      flist' = appE [| concat |] (listE flist)
+      finval = helperLuxiConstructor store flist'
+  clause [pat] (normalB finval) []
 
 -- | Generates the main save LuxiOp function.
-genSaveLuxiOp :: [(String, [LuxiParam])] -> Q (Dec, Dec)
+genSaveLuxiOp :: [(String, [LuxiParam], Store)]-> Q (Dec, Dec)
 genSaveLuxiOp opdefs = do
   sigt <- [t| $(conT (mkName "LuxiOp")) -> JSON.JSValue |]
   let fname = mkName "opToArgs"
