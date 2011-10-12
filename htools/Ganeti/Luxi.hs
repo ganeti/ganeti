@@ -76,70 +76,70 @@ $(makeJSONInstance ''QrViaLuxi)
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
     [("Query" ,
-       [ ("what",    [t| QrViaLuxi                  |], [| id |])
-       , ("fields",  [t| [String]                   |], [| id |])
-       , ("qfilter", [t| Maybe (String, [[String]]) |], [| id |])
-       ], SDict)
+       [ ("what",    [t| QrViaLuxi |], [| id |])
+       , ("fields",  [t| [String]  |], [| id |])
+       , ("qfilter", [t| ()        |], [| const JSNull |])
+       ])
      , ("QueryNodes",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ], SList)
+       ])
     , ("QueryGroups",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ], SList)
+       ])
     , ("QueryInstances",
        [ ("names",  [t| [String] |], [| id |])
        , ("fields", [t| [String] |], [| id |])
        , ("lock",   [t| Bool     |], [| id |])
-       ], SList)
+       ])
     , ("QueryJobs",
        [ ("ids",    [t| [Int]    |], [| map show |])
        , ("fields", [t| [String] |], [| id |])
-       ], SList)
+       ])
     , ("QueryExports",
        [ ("nodes", [t| [String] |], [| id |])
        , ("lock",  [t| Bool     |], [| id |])
-       ], SList)
+       ])
     , ("QueryConfigValues",
-       [ ("fields", [t| [String] |], [| id |]) ],
-       SList)
-    , ("QueryClusterInfo", [], SList)
+       [ ("fields", [t| [String] |], [| id |]) ]
+      )
+    , ("QueryClusterInfo", [])
     , ("QueryTags",
        [ ("kind", [t| String |], [| id |])
        , ("name", [t| String |], [| id |])
-       ], SList)
+       ])
     , ("SubmitJob",
-       [ ("job", [t| [OpCode] |], [| id |]) ],
-       SList)
+       [ ("job", [t| [OpCode] |], [| id |]) ]
+      )
     , ("SubmitManyJobs",
-       [ ("ops", [t| [[OpCode]] |], [| id |]) ],
-       SList)
+       [ ("ops", [t| [[OpCode]] |], [| id |]) ]
+      )
     , ("WaitForJobChange",
        [ ("job",      [t| Int     |], [| id |])
        , ("fields",   [t| [String]|], [| id |])
        , ("prev_job", [t| JSValue |], [| id |])
        , ("prev_log", [t| JSValue |], [| id |])
        , ("tmout",    [t| Int     |], [| id |])
-       ], SList)
+       ])
     , ("ArchiveJob",
-       [ ("job", [t| Int |], [| show |]) ],
-       SList)
+       [ ("job", [t| Int |], [| show |]) ]
+      )
     , ("AutoArchiveJobs",
        [ ("age",   [t| Int |], [| id |])
        , ("tmout", [t| Int |], [| id |])
-       ], SList)
+       ])
     , ("CancelJob",
-       [("job", [t| Int |], [| show |]) ],
-       SList)
+       [ ("job", [t| Int |], [| show |]) ]
+      )
     , ("SetDrainFlag",
-       [ ("flag", [t| Bool |], [| id |]) ],
-       SList)
+       [ ("flag", [t| Bool |], [| id |]) ]
+      )
     , ("SetWatcherPause",
-       [ ("duration", [t| Double |], [| (: []) |]) ],
-       SList)
+       [ ("duration", [t| Double |], [| id |]) ]
+      )
   ])
 
 -- | The serialisation of LuxiOps into strings in messages.

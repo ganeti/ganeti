@@ -95,14 +95,14 @@ queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
   L.Query L.QRNode ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
                     "ctotal", "offline", "drained", "vm_capable",
-                    "group.uuid"] Nothing
+                    "group.uuid"] ()
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
     L.Query L.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
                           "status", "pnode", "snodes", "tags", "oper_ram",
-                          "be/auto_balance", "disk_template"] Nothing
+                          "be/auto_balance", "disk_template"] ()
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp
@@ -111,7 +111,7 @@ queryClusterInfoMsg = L.QueryClusterInfo
 -- | The input data for node group query.
 queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
-  L.Query L.QRGroup ["uuid", "name", "alloc_policy"] Nothing
+  L.Query L.QRGroup ["uuid", "name", "alloc_policy"] ()
 
 -- | Wraper over 'callMethod' doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
