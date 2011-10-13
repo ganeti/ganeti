@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Program.Hspace (main) where
 
 import Control.Monad
-import Data.Char (toUpper, isAlphaNum)
+import Data.Char (toUpper, isAlphaNum, toLower)
 import Data.Function (on)
 import Data.List
 import Data.Ord (comparing)
@@ -89,7 +89,7 @@ specPrefix SpecTiered = "TSPEC_INI"
 
 -- | The description of a spec.
 specDescription :: SpecType -> String
-specDescription SpecNormal = "Normal (fixed-size)"
+specDescription SpecNormal = "Standard (fixed-size)"
 specDescription SpecTiered = "Tiered (initial size)"
 
 -- | Efficiency generic function.
@@ -262,7 +262,7 @@ printAllocationMap :: Int -> String
                    -> Node.List -> [Instance.Instance] -> IO ()
 printAllocationMap verbose msg nl ixes =
   when (verbose > 1) $ do
-    hPutStrLn stderr msg
+    hPutStrLn stderr (msg ++ " map")
     hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
             formatTable (map (printInstance nl) (reverse ixes))
                         -- This is the numberic-or-not field
@@ -351,6 +351,35 @@ exitIfBad (Bad s) =
   hPrintf stderr "Failure: %s\n" s >> exitWith (ExitFailure 1)
 exitIfBad (Ok v) = return v
 
+-- | Runs an allocation algorithm and saves cluster state.
+runAllocation :: ClusterData                -- ^ Cluster data
+              -> Maybe Cluster.AllocResult  -- ^ Optional stop-allocation
+              -> Result Cluster.AllocResult -- ^ Allocation result
+              -> RSpec                      -- ^ Requested instance spec
+              -> SpecType                   -- ^ Allocation type
+              -> Options                    -- ^ CLI options
+              -> IO (FailStats, Node.List, Int, [(RSpec, Int)])
+runAllocation cdata stop_allocation actual_result spec mode opts = do
+  (reasons, new_nl, new_il, new_ixes, _) <-
+      case stop_allocation of
+        Just result_noalloc -> return result_noalloc
+        Nothing -> exitIfBad actual_result
+
+  let name = head . words . specDescription $ mode
+      descr = name ++ " allocation"
+      ldescr = "after " ++ map toLower descr
+
+  printISpec (optMachineReadable opts) spec mode (optDiskTemplate opts)
+
+  printAllocationMap (optVerbose opts) descr new_nl new_ixes
+
+  maybePrintNodes (optShowNodes opts) descr (Cluster.printNodes new_nl)
+
+  maybeSaveData (optSaveCluster opts) (map toLower name) ldescr
+                    (cdata { cdNodes = new_nl, cdInstances = new_il})
+
+  return (sortReasons reasons, new_nl, length new_ixes, tieredSpecMap new_ixes)
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -363,48 +392,39 @@ main = do
 
   let verbose = optVerbose opts
       ispec = optISpec opts
-      shownodes = optShowNodes opts
       disk_template = optDiskTemplate opts
       req_nodes = Instance.requiredNodes disk_template
       machine_r = optMachineReadable opts
 
   (ClusterData gl fixed_nl il ctags) <- loadExternalData opts
+  nl <- setNodeStatus opts fixed_nl
 
   let num_instances = Container.size il
       all_nodes = Container.elems fixed_nl
-      m_cpu = optMcpu opts
+      cdata = ClusterData gl nl il ctags
       csf = commonSuffix fixed_nl il
-
-  nl <- setNodeStatus opts fixed_nl
 
   when (not (null csf) && verbose > 1) $
        hPrintf stderr "Note: Stripping common suffix of '%s' from names\n" csf
 
-  maybePrintNodes shownodes "Initial cluster" (Cluster.printNodes nl)
-
-  let ini_cv = Cluster.compCV nl
-      ini_stats = Cluster.totalResources nl
+  maybePrintNodes (optShowNodes opts) "Initial cluster" (Cluster.printNodes nl)
 
   when (verbose > 2) $
          hPrintf stderr "Initial coefficients: overall %.8f, %s\n"
-                 ini_cv (Cluster.printStats nl)
+                 (Cluster.compCV nl) (Cluster.printStats nl)
 
-  printCluster machine_r ini_stats (length all_nodes)
+  printCluster machine_r (Cluster.totalResources nl) (length all_nodes)
 
-  printISpec machine_r ispec SpecNormal disk_template
-
-  let bad_nodes = fst $ Cluster.computeBadItems nl il
-      stop_allocation = not $ null bad_nodes
-      result_noalloc = ([(FailN1, 1)]::FailStats, nl, il, [], [])
+  let stop_allocation = case Cluster.computeBadItems nl il of
+                          ([], _) -> Nothing
+                          _ -> Just ([(FailN1, 1)]::FailStats, nl, il, [], [])
+      alloclimit = if optMaxLength opts == -1
+                   then Nothing
+                   else Just (optMaxLength opts)
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
                     (rspecCpu spx) "running" [] True (-1) (-1) disk_template
-
-  let reqinst = iofspec ispec
-      alloclimit = if optMaxLength opts == -1
-                   then Nothing
-                   else Just (optMaxLength opts)
 
   allocnodes <- exitIfBad $ Cluster.genAllocNodes gl nl req_nodes True
 
@@ -413,44 +433,20 @@ main = do
   (case optTieredSpec opts of
      Nothing -> return ()
      Just tspec -> do
-       (treason, trl_nl, trl_il, trl_ixes, _) <-
-           if stop_allocation
-           then return result_noalloc
-           else exitIfBad (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
-                                  allocnodes [] [])
-       let spec_map' = tieredSpecMap trl_ixes
-           treason' = sortReasons treason
+       (treason, trl_nl, _, spec_map) <-
+           runAllocation cdata stop_allocation
+                   (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
+                           allocnodes [] []) tspec SpecTiered opts
 
-       printAllocationMap verbose "Tiered allocation map" trl_nl trl_ixes
-
-       maybePrintNodes shownodes "Tiered allocation"
-                           (Cluster.printNodes trl_nl)
-
-       maybeSaveData (optSaveCluster opts) "tiered" "after tiered allocation"
-                     (ClusterData gl trl_nl trl_il ctags)
-
-       printISpec machine_r tspec SpecTiered disk_template
-
-       printTiered machine_r spec_map' m_cpu nl trl_nl treason'
+       printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
        )
 
   -- Run the standard (avg-mode) allocation
 
-  (ereason, fin_nl, fin_il, ixes, _) <-
-      if stop_allocation
-      then return result_noalloc
-      else exitIfBad (Cluster.iterateAlloc nl il alloclimit
-                      reqinst allocnodes [] [])
-
-  let allocs = length ixes
-      sreason = sortReasons ereason
-
-  printAllocationMap verbose "Standard allocation map" fin_nl ixes
-
-  maybePrintNodes shownodes "Standard allocation" (Cluster.printNodes fin_nl)
-
-  maybeSaveData (optSaveCluster opts) "alloc" "after standard allocation"
-       (ClusterData gl fin_nl fin_il ctags)
+  (sreason, fin_nl, allocs, _) <-
+      runAllocation cdata stop_allocation
+            (Cluster.iterateAlloc nl il alloclimit (iofspec ispec)
+             allocnodes [] []) ispec SpecNormal opts
 
   printResults machine_r nl fin_nl num_instances allocs sreason
 

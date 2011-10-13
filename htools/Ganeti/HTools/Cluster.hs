@@ -34,6 +34,7 @@ module Ganeti.HTools.Cluster
     , Table(..)
     , CStats(..)
     , AllocStats
+    , AllocResult
     , AllocMethod
     -- * Generic functions
     , totalResources
