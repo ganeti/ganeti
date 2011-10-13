@@ -1427,7 +1427,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/nodes/%s/role" %
                               (GANETI_RAPI_VERSION, node)), None, None)
 
-  def SetNodeRole(self, node, role, force=False):
+  def SetNodeRole(self, node, role, force=False, auto_promote=None):
     """Sets the role for a node.
 
     @type node: str
@@ -1436,6 +1436,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @param role: the role to set for the node
     @type force: bool
     @param force: whether to force the role change
+    @type auto_promote: bool
+    @param auto_promote: Whether node(s) should be promoted to master candidate
+                         if necessary
 
     @rtype: string
     @return: job id
@@ -1444,6 +1447,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     query = [
       ("force", force),
       ]
+
+    if auto_promote is not None:
+      query.append(("auto-promote", auto_promote))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/nodes/%s/role" %

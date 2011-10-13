@@ -415,6 +415,8 @@ class R_2_nodes_name_role(baserlib.R_Generic):
     node_name = self.items[0]
     role = self.request_body
 
+    auto_promote = bool(self._checkIntVariable("auto-promote"))
+
     if role == _NR_REGULAR:
       candidate = False
       offline = False
@@ -439,6 +441,7 @@ class R_2_nodes_name_role(baserlib.R_Generic):
                                  master_candidate=candidate,
                                  offline=offline,
                                  drained=drained,
+                                 auto_promote=auto_promote,
                                  force=bool(self.useForce()))
 
     return baserlib.SubmitJob([op])
