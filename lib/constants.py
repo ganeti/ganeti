@@ -1703,3 +1703,6 @@ BLOCKDEV_DRIVER_MANUAL = "manual"
 HTOOLS = _autoconf.HTOOLS
 # The hail iallocator
 IALLOC_HAIL = "hail"
+
+# Do not re-export imported modules
+del re, _vcsversion, _autoconf
