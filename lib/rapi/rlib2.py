@@ -497,6 +497,25 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_nodes_name_modify(baserlib.R_Generic):
+  """/2/nodes/[node_name]/modify resource.
+
+  """
+  def POST(self):
+    """Changes parameters of a node.
+
+    @return: a job id
+
+    """
+    baserlib.CheckType(self.request_body, dict, "Body contents")
+
+    op = baserlib.FillOpcode(opcodes.OpNodeSetParams, self.request_body, {
+      "instance_name": self.items[0],
+      })
+
+    return baserlib.SubmitJob([op])
+
+
 class R_2_nodes_name_storage(baserlib.R_Generic):
   """/2/nodes/[node_name]/storage resource.
 

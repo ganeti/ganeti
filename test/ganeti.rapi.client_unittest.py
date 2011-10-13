@@ -973,6 +973,14 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.assertQuery("force", ["1"])
     self.assertEqual("\"master-candidate\"", self.rapi.GetLastRequestData())
 
+  def testModifyNode(self):
+    self.rapi.AddResponse("3783")
+    job_id = self.client.ModifyNode("node16979.example.com", drained=True)
+    self.assertEqual(job_id, 3783)
+    self.assertHandler(rlib2.R_2_nodes_name_modify)
+    self.assertItems(["node16979.example.com"])
+    self.assertEqual(self.rapi.CountPending(), 0)
+
   def testGetNodeStorageUnits(self):
     self.rapi.AddResponse("42")
     self.assertEqual(42,

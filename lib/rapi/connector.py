@@ -177,6 +177,8 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
       rlib2.R_2_nodes_name_evacuate,
     re.compile(r"^/2/nodes/(%s)/migrate$" % node_name_pattern):
       rlib2.R_2_nodes_name_migrate,
+    re.compile(r"^/2/nodes/(%s)/modify$" % node_name_pattern):
+      rlib2.R_2_nodes_name_modify,
     re.compile(r"^/2/nodes/(%s)/storage$" % node_name_pattern):
       rlib2.R_2_nodes_name_storage,
     re.compile(r"^/2/nodes/(%s)/storage/modify$" % node_name_pattern):
