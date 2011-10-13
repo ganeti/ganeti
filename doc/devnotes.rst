@@ -59,6 +59,37 @@ different python version)::
   ./autogen.sh && \
   ./configure --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
 
+Haskell development notes
+-------------------------
+
+There are a few things which can help writing or debugging the Haskell
+code.
+
+You can run the Haskell linter :command:`hlint` via::
+
+  make hlint
+
+This is not enabled by default as it gets many false positives, and
+thus the normal output is not “clean”. The above command will generate
+both output on the terminal and also a HTML report at
+``doc/hs-lint.html``.
+
+When writing or debugging TemplateHaskell code, it's useful to see
+what the splices are converted to. This can be done via::
+
+  make HEXTRA="-ddump-splices"
+
+Due to the way TemplateHaskell works, it's not straightforward to
+build profiling code. The recommended way is::
+
+  make clean
+  make htools/htools HEXTRA="-osuf .o"
+  rm htools/htools
+  make htools/htools HEXTRA="-osuf .prof_o -prof -auto-all"
+
+This will build the binary twice, per the TemplateHaskell
+documentation, the second one with profiling enabled.
+
 
 Packaging notes
 ===============

@@ -499,9 +499,10 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  exit 1; \
 	fi
 	BINARY=$(@:htools/%=%); $(GHC) --make \
-	  $(HFLAGS) $(HEXTRA) \
+	  $(HFLAGS) \
 	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
-	  -osuf $$BINARY.o -hisuf $$BINARY.hi $@
+	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
+	  $(HEXTRA) $@
 
 # for the htools/test binary, we need to enable profiling/coverage
 htools/test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
@@ -920,7 +921,8 @@ htools/Ganeti/HTools/Version.hs: htools/Ganeti/HTools/Version.hs.in vcs-version
 	sed -e "s/%ver%/$$VCSVER/" < $< > $@
 
 htools/Ganeti/Constants.hs: htools/Ganeti/Constants.hs.in \
-	lib/constants.py lib/_autoconf.py $(CONVERT_CONSTANTS)
+	lib/constants.py lib/_autoconf.py $(CONVERT_CONSTANTS) \
+	| lib/_vcsversion.py
 	set -e; \
 	{ cat $< ; PYTHONPATH=. $(CONVERT_CONSTANTS); } > $@
 
