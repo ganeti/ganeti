@@ -374,7 +374,8 @@ class _RpcProcessor:
                                         headers=_RPC_CLIENT_HEADERS,
                                         post_data=body,
                                         read_timeout=read_timeout,
-                                        nicename="%s/%s" % (name, procedure))
+                                        nicename="%s/%s" % (name, procedure),
+                                        curl_config_fn=_ConfigRpcCurl)
 
     return (results, requests)
 
@@ -402,7 +403,8 @@ class _RpcProcessor:
 
     return results
 
-  def __call__(self, hosts, procedure, body, read_timeout=None, http_pool=None):
+  def __call__(self, hosts, procedure, body, read_timeout=None,
+               _req_process_fn=http.client.ProcessRequests):
     """Makes an RPC request to a number of nodes.
 
     @type hosts: sequence
@@ -417,9 +419,6 @@ class _RpcProcessor:
     """
     assert procedure in _TIMEOUTS, "RPC call not declared in the timeouts table"
 
-    if not http_pool:
-      http_pool = http.client.HttpClientPool(_ConfigRpcCurl)
-
     if read_timeout is None:
       read_timeout = _TIMEOUTS[procedure]
 
@@ -427,8 +426,7 @@ class _RpcProcessor:
       self._PrepareRequests(self._resolver(hosts), self._port, procedure,
                             str(body), read_timeout)
 
-    http_pool.ProcessRequests(requests.values(),
-                              lock_monitor_cb=self._lock_monitor_cb)
+    _req_process_fn(requests.values(), lock_monitor_cb=self._lock_monitor_cb)
 
     assert not frozenset(results).intersection(requests)
 
