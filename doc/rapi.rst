@@ -1328,13 +1328,13 @@ It supports the bool ``force`` argument.
 
 
 ``/2/nodes/[node_name]/modify``
-+++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++
 
 Modifies the parameters of a node. Supports the following commands:
 ``POST``.
 
 ``POST``
-~~~~~~~
+~~~~~~~~
 
 Returns a job ID.
 
