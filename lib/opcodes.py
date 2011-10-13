@@ -155,7 +155,7 @@ _TestNicDef = ht.TDictOf(ht.TElemOf(constants.INIC_PARAMS),
 
 _TSetParamsResultItemItems = [
   ht.Comment("name of changed parameter")(ht.TNonEmptyString),
-  ht.TAny,
+  ht.Comment("new value")(ht.TAny),
   ]
 
 _TSetParamsResult = \
