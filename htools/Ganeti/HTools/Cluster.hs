@@ -34,6 +34,7 @@ module Ganeti.HTools.Cluster
     , Table(..)
     , CStats(..)
     , AllocStats
+    , AllocMethod
     -- * Generic functions
     , totalResources
     , computeAllocationDelta
@@ -164,6 +165,16 @@ data CStats = CStats { csFmem :: Integer -- ^ Cluster free mem
 
 -- | Currently used, possibly to allocate, unallocable.
 type AllocStats = (RSpec, RSpec, RSpec)
+
+-- | A simple type for allocation functions.
+type AllocMethod =  Node.List           -- ^ Node list
+                 -> Instance.List       -- ^ Instance list
+                 -> Maybe Int           -- ^ Optional allocation limit
+                 -> Instance.Instance   -- ^ Instance spec for allocation
+                 -> AllocNodes          -- ^ Which nodes we should allocate on
+                 -> [Instance.Instance] -- ^ Allocated instances
+                 -> [CStats]            -- ^ Running cluster stats
+                 -> Result AllocResult  -- ^ Allocation result
 
 -- * Utility functions
 
@@ -1145,15 +1156,12 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
             (map (`Container.find` ini_il) idxs)
     in return (fin_nl, fin_il, reverseEvacSolution esol)
 
--- | Recursively place instances on the cluster until we're out of space.
-iterateAlloc :: Node.List
-             -> Instance.List
-             -> Maybe Int
-             -> Instance.Instance
-             -> AllocNodes
-             -> [Instance.Instance]
-             -> [CStats]
-             -> Result AllocResult
+-- | Standard-sized allocation method.
+--
+-- This places instances of the same size on the cluster until we're
+-- out of space. The result will be a list of identically-sized
+-- instances.
+iterateAlloc :: AllocMethod
 iterateAlloc nl il limit newinst allocnodes ixes cstats =
       let depth = length ixes
           newname = printf "new-%d" depth::String
@@ -1173,15 +1181,12 @@ iterateAlloc nl il limit newinst allocnodes ixes cstats =
                           newlimit newinst allocnodes (xi:ixes)
                           (totalResources xnl:cstats)
 
--- | The core of the tiered allocation mode.
-tieredAlloc :: Node.List
-            -> Instance.List
-            -> Maybe Int
-            -> Instance.Instance
-            -> AllocNodes
-            -> [Instance.Instance]
-            -> [CStats]
-            -> Result AllocResult
+-- | Tiered allocation method.
+--
+-- This places instances on the cluster, and decreases the spec until
+-- we can allocate again. The result will be a list of decreasing
+-- instance specs.
+tieredAlloc :: AllocMethod
 tieredAlloc nl il limit newinst allocnodes ixes cstats =
     case iterateAlloc nl il limit newinst allocnodes ixes cstats of
       Bad s -> Bad s
