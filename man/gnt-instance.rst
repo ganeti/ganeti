@@ -359,17 +359,6 @@ spice\_use\_tls
     Specifies that the SPICE server must use TLS to encrypt all the
     traffic with the client.
 
-spice\_tls\_ciphers
-    Valid for the KVM hypervisor.
-
-    Specifies a list of comma-separated ciphers that SPICE should use
-    for TLS connections. For the format, see man cipher(1).
-
-spice\_use\_vdagent
-    Valid for the KVM hypervisor.
-
-    Enables or disables passing mouse events via SPICE vdagent.
-
 acpi
     Valid for the Xen HVM and KVM hypervisors.
 

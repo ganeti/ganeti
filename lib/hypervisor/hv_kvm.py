@@ -433,8 +433,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         constants.HT_KVM_SPICE_VALID_VIDEO_STREAM_DETECTION_OPTIONS),
     constants.HV_KVM_SPICE_AUDIO_COMPR: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_USE_TLS: hv_base.NO_CHECK,
-    constants.HV_KVM_SPICE_TLS_CIPHERS: hv_base.NO_CHECK,
-    constants.HV_KVM_SPICE_USE_VDAGENT: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
@@ -1039,9 +1037,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
             instance.network_port, constants.SPICE_CACERT_FILE)
         spice_arg = "%s,x509-key-file=%s,x509-cert-file=%s" % (spice_arg,
             constants.SPICE_CERT_FILE, constants.SPICE_CERT_FILE)
-        tls_ciphers = hvp[constants.HV_KVM_SPICE_TLS_CIPHERS]
-        if tls_ciphers:
-          spice_arg = "%s,tls-ciphers=%s" % (spice_arg, tls_ciphers)
       else:
         spice_arg = "%s,port=%s" % (spice_arg, instance.network_port)
 
@@ -1070,8 +1065,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # Audio compression, by default in qemu-kvm it is on
       if not hvp[constants.HV_KVM_SPICE_AUDIO_COMPR]:
         spice_arg = "%s,playback-compression=off" % spice_arg
-      if not hvp[constants.HV_KVM_SPICE_USE_VDAGENT]:
-        spice_arg = "%s,agent-mouse=off" % spice_arg
 
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])
