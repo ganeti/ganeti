@@ -88,14 +88,10 @@ def GenerateHmacKey(file_name):
                   backup=True)
 
 
-def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
-                          new_confd_hmac_key, new_cds,
-                          rapi_cert_pem=None, spice_cert_pem=None,
-                          spice_cacert_pem=None, cds=None,
+def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
+                          new_cds, rapi_cert_pem=None, cds=None,
                           nodecert_file=constants.NODED_CERT_FILE,
                           rapicert_file=constants.RAPI_CERT_FILE,
-                          spicecert_file=constants.SPICE_CERT_FILE,
-                          spicecacert_file=constants.SPICE_CACERT_FILE,
                           hmackey_file=constants.CONFD_HMAC_KEY,
                           cds_file=constants.CLUSTER_DOMAIN_SECRET_FILE):
   """Updates the cluster certificates, keys and secrets.
@@ -104,29 +100,18 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   @param new_cluster_cert: Whether to generate a new cluster certificate
   @type new_rapi_cert: bool
   @param new_rapi_cert: Whether to generate a new RAPI certificate
-  @type new_spice_cert: bool
-  @param new_spice_cert: Whether to generate a new SPICE certificate
   @type new_confd_hmac_key: bool
   @param new_confd_hmac_key: Whether to generate a new HMAC key
   @type new_cds: bool
   @param new_cds: Whether to generate a new cluster domain secret
   @type rapi_cert_pem: string
   @param rapi_cert_pem: New RAPI certificate in PEM format
-  @type spice_cert_pem: string
-  @param spice_cert_pem: New SPICE certificate in PEM format
-  @type spice_cacert_pem: string
-  @param spice_cacert_pem: Certificate of the CA that signed the SPICE
-                           certificate, in PEM format
   @type cds: string
   @param cds: New cluster domain secret
   @type nodecert_file: string
   @param nodecert_file: optional override of the node cert file path
   @type rapicert_file: string
   @param rapicert_file: optional override of the rapi cert file path
-  @type spicecert_file: string
-  @param spicecert_file: optional override of the spice cert file path
-  @type spicecacert_file: string
-  @param spicecacert_file: optional override of the spice CA cert file path
   @type hmackey_file: string
   @param hmackey_file: optional override of the hmac key file path
 
@@ -160,31 +145,6 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
     logging.debug("Generating new RAPI certificate at %s", rapicert_file)
     utils.GenerateSelfSignedSslCert(rapicert_file)
 
-  # SPICE
-  spice_cert_exists = os.path.exists(spicecert_file)
-  spice_cacert_exists = os.path.exists(spicecacert_file)
-  if spice_cert_pem:
-    # spice_cert_pem implies also spice_cacert_pem
-    logging.debug("Writing SPICE certificate at %s", spicecert_file)
-    utils.WriteFile(spicecert_file, data=spice_cert_pem, backup=True)
-    logging.debug("Writing SPICE CA certificate at %s", spicecacert_file)
-    utils.WriteFile(spicecacert_file, data=spice_cacert_pem, backup=True)
-  elif new_spice_cert or not spice_cert_exists:
-    if spice_cert_exists:
-      utils.CreateBackup(spicecert_file)
-    if spice_cacert_exists:
-      utils.CreateBackup(spicecacert_file)
-
-    logging.debug("Generating new self-signed SPICE certificate at %s",
-                  spicecert_file)
-    (_, cert_pem) = utils.GenerateSelfSignedSslCert(spicecert_file)
-
-    # Self-signed certificate -> the public certificate is also the CA public
-    # certificate
-    logging.debug("Writing the public certificate to %s",
-                  spicecert_file)
-    utils.io.WriteFile(spicecacert_file, mode=0400, data=cert_pem)
-
   # Cluster domain secret
   if cds:
     logging.debug("Writing cluster domain secret to %s", cds_file)
@@ -206,7 +166,7 @@ def _InitGanetiServerSetup(master_name):
 
   """
   # Generate cluster secrets
-  GenerateClusterCrypto(True, False, False, False, False)
+  GenerateClusterCrypto(True, False, False, False)
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:

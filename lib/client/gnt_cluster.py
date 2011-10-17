@@ -672,45 +672,9 @@ def SearchTags(opts, args):
     ToStdout("%s %s", path, tag)
 
 
-def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
-  """Reads and verifies an X509 certificate.
-
-  @type cert_filename: string
-  @param cert_filename: the path of the file containing the certificate to
-                        verify encoded in PEM format
-  @type verify_private_key: bool
-  @param verify_private_key: whether to verify the private key in addition to
-                             the public certificate
-  @rtype: string
-  @return: a string containing the PEM-encoded certificate.
-
-  """
-  try:
-    pem = utils.ReadFile(cert_filename)
-  except IOError, err:
-    raise errors.X509CertError(cert_filename,
-                               "Unable to read certificate: %s" % str(err))
-
-  try:
-    OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, pem)
-  except Exception, err:
-    raise errors.X509CertError(cert_filename,
-                               "Unable to load certificate: %s" % str(err))
-
-  if verify_private_key:
-    try:
-      OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, pem)
-    except Exception, err:
-      raise errors.X509CertError(cert_filename,
-                                 "Unable to load private key: %s" % str(err))
-
-  return pem
-
-
-def _RenewCrypto(new_cluster_cert, new_rapi_cert, #pylint: disable=R0911
-                 rapi_cert_filename, new_spice_cert, spice_cert_filename,
-                 spice_cacert_filename, new_confd_hmac_key, new_cds,
-                 cds_filename, force):
+def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
+                 new_confd_hmac_key, new_cds, cds_filename,
+                 force):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -719,13 +683,6 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, #pylint: disable=R0911
   @param new_rapi_cert: Whether to generate a new RAPI certificate
   @type rapi_cert_filename: string
   @param rapi_cert_filename: Path to file containing new RAPI certificate
-  @type new_spice_cert: bool
-  @param new_spice_cert: Whether to generate a new SPICE certificate
-  @type spice_cert_filename: string
-  @param spice_cert_filename: Path to file containing new SPICE certificate
-  @type spice_cacert_filename: string
-  @param spice_cacert_filename: Path to file containing the certificate of the
-                                CA that signed the SPICE certificate
   @type new_confd_hmac_key: bool
   @param new_confd_hmac_key: Whether to generate a new HMAC key
   @type new_cds: bool
@@ -747,26 +704,27 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, #pylint: disable=R0911
              " the same time.")
     return 1
 
-  if new_spice_cert and (spice_cert_filename or spice_cacert_filename):
-    ToStderr("When using --new-spice-certificate, the --spice-certificate"
-             " and --spice-ca-certificate must not be used.")
-    return 1
+  if rapi_cert_filename:
+    # Read and verify new certificate
+    try:
+      rapi_cert_pem = utils.ReadFile(rapi_cert_filename)
 
-  if bool(spice_cacert_filename) ^ bool(spice_cert_filename):
-    ToStderr("Both --spice-certificate and --spice-ca-certificate must be"
-             " specified.")
-    return 1
+      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                      rapi_cert_pem)
+    except Exception, err: # pylint: disable=W0703
+      ToStderr("Can't load new RAPI certificate from %s: %s" %
+               (rapi_cert_filename, str(err)))
+      return 1
 
-  rapi_cert_pem, spice_cert_pem, spice_cacert_pem = (None, None, None)
-  try:
-    if rapi_cert_filename:
-      rapi_cert_pem = _ReadAndVerifyCert(rapi_cert_filename, True)
-    if spice_cert_filename:
-      spice_cert_pem = _ReadAndVerifyCert(spice_cert_filename, True)
-      spice_cacert_pem = _ReadAndVerifyCert(spice_cacert_filename)
-  except errors.X509CertError, err:
-    ToStderr("Unable to load X509 certificate from %s: %s", err[0], err[1])
-    return 1
+    try:
+      OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, rapi_cert_pem)
+    except Exception, err: # pylint: disable=W0703
+      ToStderr("Can't load new RAPI private key from %s: %s" %
+               (rapi_cert_filename, str(err)))
+      return 1
+
+  else:
+    rapi_cert_pem = None
 
   if cds_filename:
     try:
@@ -786,14 +744,10 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, #pylint: disable=R0911
 
   def _RenewCryptoInner(ctx):
     ctx.feedback_fn("Updating certificates and keys")
-    bootstrap.GenerateClusterCrypto(new_cluster_cert,
-                                    new_rapi_cert,
-                                    new_spice_cert,
+    bootstrap.GenerateClusterCrypto(new_cluster_cert, new_rapi_cert,
                                     new_confd_hmac_key,
                                     new_cds,
                                     rapi_cert_pem=rapi_cert_pem,
-                                    spice_cert_pem=spice_cert_pem,
-                                    spice_cacert_pem=spice_cacert_pem,
                                     cds=cds)
 
     files_to_copy = []
@@ -803,10 +757,6 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, #pylint: disable=R0911
 
     if new_rapi_cert or rapi_cert_pem:
       files_to_copy.append(constants.RAPI_CERT_FILE)
-
-    if new_spice_cert or spice_cert_pem:
-      files_to_copy.append(constants.SPICE_CERT_FILE)
-      files_to_copy.append(constants.SPICE_CACERT_FILE)
 
     if new_confd_hmac_key:
       files_to_copy.append(constants.CONFD_HMAC_KEY)
@@ -836,9 +786,6 @@ def RenewCrypto(opts, args):
   return _RenewCrypto(opts.new_cluster_cert,
                       opts.new_rapi_cert,
                       opts.rapi_cert,
-                      opts.new_spice_cert,
-                      opts.spice_cert,
-                      opts.spice_cacert,
                       opts.new_confd_hmac_key,
                       opts.new_cluster_domain_secret,
                       opts.cluster_domain_secret,
@@ -1427,8 +1374,7 @@ commands = {
     RenewCrypto, ARGS_NONE,
     [NEW_CLUSTER_CERT_OPT, NEW_RAPI_CERT_OPT, RAPI_CERT_OPT,
      NEW_CONFD_HMAC_KEY_OPT, FORCE_OPT,
-     NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT,
-     NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT],
+     NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (

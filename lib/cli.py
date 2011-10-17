@@ -109,7 +109,6 @@ __all__ = [
   "NEW_CONFD_HMAC_KEY_OPT",
   "NEW_RAPI_CERT_OPT",
   "NEW_SECONDARY_OPT",
-  "NEW_SPICE_CERT_OPT",
   "NIC_PARAMS_OPT",
   "NODE_FORCE_JOIN_OPT",
   "NODE_LIST_OPT",
@@ -160,8 +159,6 @@ __all__ = [
   "SHOWCMD_OPT",
   "SHUTDOWN_TIMEOUT_OPT",
   "SINGLE_NODE_OPT",
-  "SPICE_CACERT_OPT",
-  "SPICE_CERT_OPT",
   "SRC_DIR_OPT",
   "SRC_NODE_OPT",
   "SUBMIT_OPT",
@@ -1087,21 +1084,6 @@ RAPI_CERT_OPT = cli_option("--rapi-certificate", dest="rapi_cert",
 NEW_RAPI_CERT_OPT = cli_option("--new-rapi-certificate", dest="new_rapi_cert",
                                default=None, action="store_true",
                                help=("Generate a new self-signed RAPI"
-                                     " certificate"))
-
-SPICE_CERT_OPT = cli_option("--spice-certificate", dest="spice_cert",
-                           default=None,
-                           help="File containing new SPICE certificate")
-
-SPICE_CACERT_OPT = cli_option("--spice-ca-certificate", dest="spice_cacert",
-                           default=None,
-                           help="File containing the certificate of the CA"
-                                " which signed the SPICE certificate")
-
-NEW_SPICE_CERT_OPT = cli_option("--new-spice-certificate",
-                               dest="new_spice_cert", default=None,
-                               action="store_true",
-                               help=("Generate a new self-signed SPICE"
                                      " certificate"))
 
 NEW_CONFD_HMAC_KEY_OPT = cli_option("--new-confd-hmac-key",

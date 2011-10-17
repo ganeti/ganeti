@@ -122,8 +122,6 @@ def main():
   options.SERVER_PEM_PATH = options.data_dir + "/server.pem"
   options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"
   options.RAPI_CERT_FILE = options.data_dir + "/rapi.pem"
-  options.SPICE_CERT_FILE = options.data_dir + "/spice.pem"
-  options.SPICE_CACERT_FILE = options.data_dir + "/spice-ca.pem"
   options.RAPI_USERS_FILE = options.data_dir + "/rapi/users"
   options.RAPI_USERS_FILE_PRE24 = options.data_dir + "/rapi_users"
   options.CONFD_HMAC_KEY = options.data_dir + "/hmac.key"
@@ -224,13 +222,11 @@ def main():
                     backup=True)
 
     if not options.dry_run:
-      bootstrap.GenerateClusterCrypto(False, False, False, False, False,
-                                     nodecert_file=options.SERVER_PEM_PATH,
-                                     rapicert_file=options.RAPI_CERT_FILE,
-                                     spicecert_file=options.SPICE_CERT_FILE,
-                                     spicecacert_file=options.SPICE_CACERT_FILE,
-                                     hmackey_file=options.CONFD_HMAC_KEY,
-                                     cds_file=options.CDS_FILE)
+      bootstrap.GenerateClusterCrypto(False, False, False, False,
+                                      nodecert_file=options.SERVER_PEM_PATH,
+                                      rapicert_file=options.RAPI_CERT_FILE,
+                                      hmackey_file=options.CONFD_HMAC_KEY,
+                                      cds_file=options.CDS_FILE)
 
   except Exception:
     logging.critical("Writing configuration failed. It is probably in an"

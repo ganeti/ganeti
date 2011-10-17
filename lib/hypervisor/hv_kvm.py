@@ -794,7 +794,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
-    # pylint: disable=R0914,R0915
+    # pylint: disable=R0914
     _, v_major, v_min, _ = self._GetKVMVersion()
 
     pidfile = self._InstancePidFile(instance.name)
