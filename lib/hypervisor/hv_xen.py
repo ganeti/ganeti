@@ -47,6 +47,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
   ANCILLARY_FILES = [
     "/etc/xen/xend-config.sxp",
+    "/etc/xen/xl.conf",
     "/etc/xen/scripts/vif-bridge",
     ]
 
@@ -200,8 +201,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     self._WriteConfigFile(instance, block_devices)
     cmd = [constants.XEN_CMD, "create"]
     if startup_paused:
-      cmd.extend(["--paused"])
-    cmd.extend([instance.name])
+      cmd.extend(["-p"])
+    cmd.extend([self._ConfigFileName(instance.name)])
     result = utils.RunCmd(cmd)
 
     if result.failed:
@@ -445,6 +446,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
+    # FIXME: migrate must be upgraded for transitioning to "xl" (xen 4.1).
+    #  -l doesn't exist anymore
+    #  -p doesn't exist anymore
+    #  -C config_file must be passed
+    #  ssh must recognize the key of the target host for the migration
     args = [constants.XEN_CMD, "migrate", "-p", "%d" % port]
     if live:
       args.append("-l")
