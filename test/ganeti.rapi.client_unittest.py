@@ -669,24 +669,21 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
   def testReplaceInstanceDisks(self):
     self.rapi.AddResponse("999")
     job_id = self.client.ReplaceInstanceDisks("instance-name",
-        disks=[0, 1], dry_run=True, iallocator="hail")
+        disks=[0, 1], iallocator="hail")
     self.assertEqual(999, job_id)
     self.assertHandler(rlib2.R_2_instances_name_replace_disks)
     self.assertItems(["instance-name"])
     self.assertQuery("disks", ["0,1"])
     self.assertQuery("mode", ["replace_auto"])
     self.assertQuery("iallocator", ["hail"])
-    self.assertDryRun()
 
     self.rapi.AddResponse("1000")
     job_id = self.client.ReplaceInstanceDisks("instance-bar",
-        disks=[1], mode="replace_on_secondary", remote_node="foo-node",
-        dry_run=True)
+        disks=[1], mode="replace_on_secondary", remote_node="foo-node")
     self.assertEqual(1000, job_id)
     self.assertItems(["instance-bar"])
     self.assertQuery("disks", ["1"])
     self.assertQuery("remote_node", ["foo-node"])
-    self.assertDryRun()
 
     self.rapi.AddResponse("5175")
     self.assertEqual(5175, self.client.ReplaceInstanceDisks("instance-moo"))

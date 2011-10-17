@@ -529,6 +529,14 @@ class TestParseInstanceReplaceDisksRequest(unittest.TestCase):
     self.assertFalse(hasattr(op, "iallocator"))
     self.assertFalse(hasattr(op, "disks"))
 
+  def testNoDisks(self):
+    self.assertRaises(http.HttpBadRequest, self.Parse, "inst20661", {})
+
+    for disks in [None, "", {}]:
+      self.assertRaises(http.HttpBadRequest, self.Parse, "inst20661", {
+        "disks": disks,
+        })
+
   def testWrong(self):
     self.assertRaises(http.HttpBadRequest, self.Parse, "inst",
                       { "mode": constants.REPLACE_DISK_AUTO,

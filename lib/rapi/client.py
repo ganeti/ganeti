@@ -956,7 +956,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
   def ReplaceInstanceDisks(self, instance, disks=None, mode=REPLACE_DISK_AUTO,
-                           remote_node=None, iallocator=None, dry_run=False):
+                           remote_node=None, iallocator=None):
     """Replaces disks on an instance.
 
     @type instance: str
@@ -971,8 +971,6 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @type iallocator: str or None
     @param iallocator: instance allocator plugin to use (for use with
                        replace_auto mode)
-    @type dry_run: bool
-    @param dry_run: whether to perform a dry run
 
     @rtype: string
     @return: job id
@@ -982,17 +980,16 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       ("mode", mode),
       ]
 
-    if disks:
+    # TODO: Convert to body parameters
+
+    if disks is not None:
       query.append(("disks", ",".join(str(idx) for idx in disks)))
 
-    if remote_node:
+    if remote_node is not None:
       query.append(("remote_node", remote_node))
 
-    if iallocator:
+    if iallocator is not None:
       query.append(("iallocator", iallocator))
-
-    if dry_run:
-      query.append(("dry-run", 1))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/replace-disks" %
