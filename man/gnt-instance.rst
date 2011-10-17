@@ -353,12 +353,6 @@ spice\_playback\_compression
 
     Configures whether SPICE should compress audio streams or not.
 
-spice\_use\_tls
-    Valid for the KVM hypervisor.
-
-    Specifies that the SPICE server must use TLS to encrypt all the
-    traffic with the client.
-
 acpi
     Valid for the Xen HVM and KVM hypervisors.
 
