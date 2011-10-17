@@ -3758,6 +3758,8 @@ def _ComputeAncillaryFiles(cluster, redist):
     constants.SSH_KNOWN_HOSTS_FILE,
     constants.CONFD_HMAC_KEY,
     constants.CLUSTER_DOMAIN_SECRET_FILE,
+    constants.SPICE_CERT_FILE,
+    constants.SPICE_CACERT_FILE,
     ])
 
   if not redist:
