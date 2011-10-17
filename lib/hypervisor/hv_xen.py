@@ -89,7 +89,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Helper function for L{_GetXMList} to run "xm list".
 
     """
-    result = utils.RunCmd(["xm", "list"])
+    result = utils.RunCmd([constants.XEN_CMD, "list"])
     if result.failed:
       logging.error("xm list failed (%s): %s", result.fail_reason,
                     result.output)
@@ -185,7 +185,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     self._WriteConfigFile(instance, block_devices)
-    cmd = ["xm", "create"]
+    cmd = [constants.XEN_CMD, "create"]
     if startup_paused:
       cmd.extend(["--paused"])
     cmd.extend([instance.name])
@@ -204,9 +204,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
       name = instance.name
     self._RemoveConfigFile(name)
     if force:
-      command = ["xm", "destroy", name]
+      command = [constants.XEN_CMD, "destroy", name]
     else:
-      command = ["xm", "shutdown", name]
+      command = [constants.XEN_CMD, "shutdown", name]
     result = utils.RunCmd(command)
 
     if result.failed:
@@ -223,7 +223,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to reboot instance %s,"
                                    " not running" % instance.name)
 
-    result = utils.RunCmd(["xm", "reboot", instance.name])
+    result = utils.RunCmd([constants.XEN_CMD, "reboot", instance.name])
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
                                    (instance.name, result.fail_reason,
@@ -261,7 +261,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     # note: in xen 3, memory has changed to total_memory
-    result = utils.RunCmd(["xm", "info"])
+    result = utils.RunCmd([constants.XEN_CMD, "info"])
     if result.failed:
       logging.error("Can't run 'xm info' (%s): %s", result.fail_reason,
                     result.output)
@@ -325,7 +325,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     For Xen, this verifies that the xend process is running.
 
     """
-    result = utils.RunCmd(["xm", "info"])
+    result = utils.RunCmd([constants.XEN_CMD, "info"])
     if result.failed:
       return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
 
@@ -432,7 +432,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
-    args = ["xm", "migrate", "-p", "%d" % port]
+    args = [constants.XEN_CMD, "migrate", "-p", "%d" % port]
     if live:
       args.append("-l")
     args.extend([instance.name, target])
@@ -461,7 +461,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     try:
       cls.LinuxPowercycle()
     finally:
-      utils.RunCmd(["xm", "debug", "R"])
+      utils.RunCmd([constants.XEN_CMD, "debug", "R"])
 
 
 class XenPvmHypervisor(XenHypervisor):
