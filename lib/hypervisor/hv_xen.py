@@ -50,6 +50,18 @@ class XenHypervisor(hv_base.BaseHypervisor):
     "/etc/xen/scripts/vif-bridge",
     ]
 
+  @staticmethod
+  def _ConfigFileName(instance_name):
+    """Get the config file name for an instance.
+
+    @param instance_name: instance name
+    @type instance_name: str
+    @return: fully qualified path to instance config file
+    @rtype: str
+
+    """
+    return "/etc/xen/%s" % instance_name
+
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices):
     """Write the Xen config file for the instance.
@@ -64,7 +76,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     This version of the function just writes the config file from static data.
 
     """
-    utils.WriteFile("/etc/xen/%s" % instance_name, data=data)
+    utils.WriteFile(XenHypervisor._ConfigFileName(instance_name), data=data)
 
   @staticmethod
   def _ReadConfigFile(instance_name):
@@ -72,7 +84,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     try:
-      file_content = utils.ReadFile("/etc/xen/%s" % instance_name)
+      file_content = utils.ReadFile(
+                       XenHypervisor._ConfigFileName(instance_name))
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to load Xen config file: %s" % err)
     return file_content
@@ -82,7 +95,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Remove the xen configuration file.
 
     """
-    utils.RemoveFile("/etc/xen/%s" % instance_name)
+    utils.RemoveFile(XenHypervisor._ConfigFileName(instance_name))
 
   @staticmethod
   def _RunXmList(xmlist_errors):
@@ -549,11 +562,12 @@ class XenPvmHypervisor(XenHypervisor):
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
-      utils.WriteFile("/etc/xen/%s" % instance.name, data=config.getvalue())
+      utils.WriteFile(cls._ConfigFileName(instance.name),
+                      data=config.getvalue())
     except EnvironmentError, err:
       raise errors.HypervisorError("Cannot write Xen instance confile"
-                                   " file /etc/xen/%s: %s" %
-                                   (instance.name, err))
+                                   " file %s: %s" %
+                                   (cls._ConfigFileName(instance.name), err))
 
     return True
 
@@ -690,11 +704,11 @@ class XenHvmHypervisor(XenHypervisor):
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
-      utils.WriteFile("/etc/xen/%s" % instance.name,
+      utils.WriteFile(cls._ConfigFileName(instance.name),
                       data=config.getvalue())
     except EnvironmentError, err:
       raise errors.HypervisorError("Cannot write Xen instance confile"
-                                   " file /etc/xen/%s: %s" %
-                                   (instance.name, err))
+                                   " file %s: %s" %
+                                   (cls._ConfigFileName(instance.name), err))
 
     return True
