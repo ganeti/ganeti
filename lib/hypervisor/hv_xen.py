@@ -55,6 +55,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     XL_CONFIG_FILE,
     VIF_BRIDGE_SCRIPT,
     ]
+  ANCILLARY_FILES_OPT = [
+    XL_CONFIG_FILE,
+    ]
 
   @staticmethod
   def _ConfigFileName(instance_name):
@@ -587,6 +590,9 @@ class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
 
   ANCILLARY_FILES = XenHypervisor.ANCILLARY_FILES + [
+    constants.VNC_PASSWORD_FILE,
+    ]
+  ANCILLARY_FILES_OPT = XenHypervisor.ANCILLARY_FILES_OPT + [
     constants.VNC_PASSWORD_FILE,
     ]
 

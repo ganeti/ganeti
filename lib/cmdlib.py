@@ -3760,7 +3760,7 @@ def _ComputeAncillaryFiles(cluster, redist):
   # Files which should only be on VM-capable nodes
   files_vm = set(filename
     for hv_name in cluster.enabled_hypervisors
-    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles())
+    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles()[0])
 
   # Filenames must be unique
   assert (len(files_all | files_all_opt | files_mc | files_vm) ==

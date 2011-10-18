@@ -203,7 +203,7 @@ def _BuildUploadFileList():
 
   for hv_name in constants.HYPER_TYPES:
     hv_class = hypervisor.GetHypervisorClass(hv_name)
-    allowed_files.update(hv_class.GetAncillaryFiles())
+    allowed_files.update(hv_class.GetAncillaryFiles()[0])
 
   return frozenset(allowed_files)
 

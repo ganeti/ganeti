@@ -133,6 +133,7 @@ class BaseHypervisor(object):
   """
   PARAMETERS = {}
   ANCILLARY_FILES = []
+  ANCILLARY_FILES_OPT = []
   CAN_MIGRATE = False
 
   def __init__(self):
@@ -221,13 +222,16 @@ class BaseHypervisor(object):
     """Return a list of ancillary files to be copied to all nodes as ancillary
     configuration files.
 
-    @rtype: list of strings
-    @return: list of absolute paths of files to ship cluster-wide
+    @rtype: (list of absolute paths, list of absolute paths)
+    @return: (all files, optional files)
 
     """
     # By default we return a member variable, so that if an hypervisor has just
     # a static list of files it doesn't have to override this function.
-    return cls.ANCILLARY_FILES
+    assert set(cls.ANCILLARY_FILES).issuperset(cls.ANCILLARY_FILES_OPT), \
+      "Optional ancillary files must be a subset of ancillary files"
+
+    return (cls.ANCILLARY_FILES, cls.ANCILLARY_FILES_OPT)
 
   def Verify(self):
     """Verify the hypervisor.
