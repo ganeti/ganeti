@@ -63,6 +63,10 @@ REPLACE_DISK_SECONDARY = "replace_on_secondary"
 REPLACE_DISK_CHG = "replace_new_secondary"
 REPLACE_DISK_AUTO = "replace_auto"
 
+NODE_EVAC_PRI = "primary-only"
+NODE_EVAC_SEC = "secondary-only"
+NODE_EVAC_ALL = "all"
+
 NODE_ROLE_DRAINED = "drained"
 NODE_ROLE_MASTER_CANDIATE = "master-candidate"
 NODE_ROLE_MASTER = "master"
@@ -1284,7 +1288,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
   def EvacuateNode(self, node, iallocator=None, remote_node=None,
                    dry_run=False, early_release=None,
-                   primary=None, secondary=None, accept_old=False):
+                   mode=None, accept_old=False):
     """Evacuates instances from a Ganeti node.
 
     @type node: str
@@ -1297,10 +1301,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @param dry_run: whether to perform a dry run
     @type early_release: bool
     @param early_release: whether to enable parallelization
-    @type primary: bool
-    @param primary: Whether to evacuate primary instances
-    @type secondary: bool
-    @param secondary: Whether to evacuate secondary instances
+    @type mode: string
+    @param mode: Node evacuation mode
     @type accept_old: bool
     @param accept_old: Whether caller is ready to accept old-style (pre-2.5)
         results
@@ -1323,6 +1325,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       query.append(("dry-run", 1))
 
     if _NODE_EVAC_RES1 in self.GetFeatures():
+      # Server supports body parameters
       body = {}
 
       if iallocator is not None:
@@ -1331,10 +1334,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
         body["remote_node"] = remote_node
       if early_release is not None:
         body["early_release"] = early_release
-      if primary is not None:
-        body["primary"] = primary
-      if secondary is not None:
-        body["secondary"] = secondary
+      if mode is not None:
+        body["mode"] = mode
     else:
       # Pre-2.5 request format
       body = None
@@ -1344,7 +1345,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              " not accept old-style results (parameter"
                              " accept_old)")
 
-      if primary or primary is None or not (secondary is None or secondary):
+      # Pre-2.5 servers can only evacuate secondaries
+      if mode is not None and mode != NODE_EVAC_SEC:
         raise GanetiApiError("Server can only evacuate secondary instances")
 
       if iallocator:
