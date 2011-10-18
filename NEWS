@@ -1,10 +1,10 @@
 News
 ====
 
-Version 2.5.0 rc1
+Version 2.5.0 rc2
 -----------------
 
-*(Released Tue, 4 Oct 2011)*
+*(Released Tue, 18 Oct 2011)*
 
 Incompatible/important changes and bugfixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,6 +127,14 @@ Misc
 - A short delay when waiting for job changes reduces the number of LUXI
   requests significantly.
 - DRBD metadata volumes are overwritten with zeros during disk creation.
+
+
+Version 2.5.0 rc1
+-----------------
+
+*(Released Tue, 4 Oct 2011)*
+
+This was the first release candidate of the 2.5 series.
 
 
 Version 2.5.0 beta3
