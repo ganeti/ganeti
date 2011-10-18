@@ -1510,7 +1510,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @return: job id
 
     """
-    return self._SendRequest(HTTP_PUT,
+    return self._SendRequest(HTTP_POST,
                              ("/%s/nodes/%s/modify" %
                               (GANETI_RAPI_VERSION, node)), None, kwargs)
 

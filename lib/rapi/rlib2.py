@@ -527,9 +527,9 @@ class R_2_nodes_name_modify(baserlib.OpcodeResource):
   """/2/nodes/[node_name]/modify resource.
 
   """
-  PUT_OPCODE = opcodes.OpNodeSetParams
+  POST_OPCODE = opcodes.OpNodeSetParams
 
-  def GetPutOpInput(self):
+  def GetPostOpInput(self):
     """Changes parameters of a node.
 
     """
