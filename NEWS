@@ -153,6 +153,18 @@ Version 2.5.0 beta1
 This was the first beta release of the 2.5 series.
 
 
+Version 2.4.5
+-------------
+
+*(unreleased)*
+
+- Fixed bug when parsing command line parameter values ending in
+  backslash
+- Fixed assertion error after unclean master shutdown
+- Disable HTTP client pool for RPC, significantly reducing memory usage
+  of master daemon
+
+
 Version 2.4.4
 -------------
 
