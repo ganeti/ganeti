@@ -47,8 +47,21 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
   ANCILLARY_FILES = [
     "/etc/xen/xend-config.sxp",
+    "/etc/xen/xl.conf",
     "/etc/xen/scripts/vif-bridge",
     ]
+
+  @staticmethod
+  def _ConfigFileName(instance_name):
+    """Get the config file name for an instance.
+
+    @param instance_name: instance name
+    @type instance_name: str
+    @return: fully qualified path to instance config file
+    @rtype: str
+
+    """
+    return "/etc/xen/%s" % instance_name
 
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices):
@@ -64,7 +77,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     This version of the function just writes the config file from static data.
 
     """
-    utils.WriteFile("/etc/xen/%s" % instance_name, data=data)
+    utils.WriteFile(XenHypervisor._ConfigFileName(instance_name), data=data)
 
   @staticmethod
   def _ReadConfigFile(instance_name):
@@ -72,7 +85,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     try:
-      file_content = utils.ReadFile("/etc/xen/%s" % instance_name)
+      file_content = utils.ReadFile(
+                       XenHypervisor._ConfigFileName(instance_name))
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to load Xen config file: %s" % err)
     return file_content
@@ -82,7 +96,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Remove the xen configuration file.
 
     """
-    utils.RemoveFile("/etc/xen/%s" % instance_name)
+    utils.RemoveFile(XenHypervisor._ConfigFileName(instance_name))
 
   @classmethod
   def _CreateConfigCpus(cls, cpu_mask):
@@ -121,7 +135,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Helper function for L{_GetXMList} to run "xm list".
 
     """
-    result = utils.RunCmd(["xm", "list"])
+    result = utils.RunCmd([constants.XEN_CMD, "list"])
     if result.failed:
       logging.error("xm list failed (%s): %s", result.fail_reason,
                     result.output)
@@ -217,10 +231,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     self._WriteConfigFile(instance, block_devices)
-    cmd = ["xm", "create"]
+    cmd = [constants.XEN_CMD, "create"]
     if startup_paused:
-      cmd.extend(["--paused"])
-    cmd.extend([instance.name])
+      cmd.extend(["-p"])
+    cmd.extend([self._ConfigFileName(instance.name)])
     result = utils.RunCmd(cmd)
 
     if result.failed:
@@ -236,9 +250,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
       name = instance.name
     self._RemoveConfigFile(name)
     if force:
-      command = ["xm", "destroy", name]
+      command = [constants.XEN_CMD, "destroy", name]
     else:
-      command = ["xm", "shutdown", name]
+      command = [constants.XEN_CMD, "shutdown", name]
     result = utils.RunCmd(command)
 
     if result.failed:
@@ -255,7 +269,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to reboot instance %s,"
                                    " not running" % instance.name)
 
-    result = utils.RunCmd(["xm", "reboot", instance.name])
+    result = utils.RunCmd([constants.XEN_CMD, "reboot", instance.name])
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
                                    (instance.name, result.fail_reason,
@@ -293,7 +307,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     # note: in xen 3, memory has changed to total_memory
-    result = utils.RunCmd(["xm", "info"])
+    result = utils.RunCmd([constants.XEN_CMD, "info"])
     if result.failed:
       logging.error("Can't run 'xm info' (%s): %s", result.fail_reason,
                     result.output)
@@ -357,7 +371,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     For Xen, this verifies that the xend process is running.
 
     """
-    result = utils.RunCmd(["xm", "info"])
+    result = utils.RunCmd([constants.XEN_CMD, "info"])
     if result.failed:
       return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
 
@@ -464,7 +478,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Remote host %s not listening on port"
                                    " %s, cannot migrate" % (target, port))
 
-    args = ["xm", "migrate", "-p", "%d" % port]
+    # FIXME: migrate must be upgraded for transitioning to "xl" (xen 4.1).
+    #  -l doesn't exist anymore
+    #  -p doesn't exist anymore
+    #  -C config_file must be passed
+    #  ssh must recognize the key of the target host for the migration
+    args = [constants.XEN_CMD, "migrate", "-p", "%d" % port]
     if live:
       args.append("-l")
     args.extend([instance.name, target])
@@ -524,7 +543,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     try:
       cls.LinuxPowercycle()
     finally:
-      utils.RunCmd(["xm", "debug", "R"])
+      utils.RunCmd([constants.XEN_CMD, "debug", "R"])
 
 
 class XenPvmHypervisor(XenHypervisor):
@@ -617,11 +636,12 @@ class XenPvmHypervisor(XenHypervisor):
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
-      utils.WriteFile("/etc/xen/%s" % instance.name, data=config.getvalue())
+      utils.WriteFile(cls._ConfigFileName(instance.name),
+                      data=config.getvalue())
     except EnvironmentError, err:
       raise errors.HypervisorError("Cannot write Xen instance confile"
-                                   " file /etc/xen/%s: %s" %
-                                   (instance.name, err))
+                                   " file %s: %s" %
+                                   (cls._ConfigFileName(instance.name), err))
 
     return True
 
@@ -763,11 +783,11 @@ class XenHvmHypervisor(XenHypervisor):
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
-      utils.WriteFile("/etc/xen/%s" % instance.name,
+      utils.WriteFile(cls._ConfigFileName(instance.name),
                       data=config.getvalue())
     except EnvironmentError, err:
       raise errors.HypervisorError("Cannot write Xen instance confile"
-                                   " file /etc/xen/%s: %s" %
-                                   (instance.name, err))
+                                   " file %s: %s" %
+                                   (cls._ConfigFileName(instance.name), err))
 
     return True

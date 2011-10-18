@@ -270,6 +270,7 @@ EXPORT_CONF_FILE = "config.ini"
 XEN_BOOTLOADER = _autoconf.XEN_BOOTLOADER
 XEN_KERNEL = _autoconf.XEN_KERNEL
 XEN_INITRD = _autoconf.XEN_INITRD
+XEN_CMD = "xm"
 
 KVM_PATH = _autoconf.KVM_PATH
 SOCAT_PATH = _autoconf.SOCAT_PATH

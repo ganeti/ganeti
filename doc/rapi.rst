@@ -1337,6 +1337,28 @@ be a job id.
 
 It supports the bool ``force`` argument.
 
+
+``/2/nodes/[node_name]/modify``
++++++++++++++++++++++++++++++++
+
+Modifies the parameters of a node. Supports the following commands:
+``POST``.
+
+``POST``
+~~~~~~~~
+
+Returns a job ID.
+
+Body parameters:
+
+.. opcode_params:: OP_NODE_SET_PARAMS
+   :exclude: node_name
+
+Job result:
+
+.. opcode_result:: OP_NODE_SET_PARAMS
+
+
 ``/2/nodes/[node_name]/storage``
 ++++++++++++++++++++++++++++++++
 

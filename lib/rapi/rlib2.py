@@ -468,6 +468,7 @@ class R_2_nodes_name_role(baserlib.OpcodeResource):
       "offline": offline,
       "drained": drained,
       "force": self.useForce(),
+      "auto_promote": bool(self._checkIntVariable("auto-promote", default=0)),
       })
 
 
@@ -518,6 +519,23 @@ class R_2_nodes_name_migrate(baserlib.OpcodeResource):
       data = self.request_body
 
     return (data, {
+      "node_name": self.items[0],
+      })
+
+
+class R_2_nodes_name_modify(baserlib.OpcodeResource):
+  """/2/nodes/[node_name]/modify resource.
+
+  """
+  PUT_OPCODE = opcodes.OpNodeSetParams
+
+  def GetPutOpInput(self):
+    """Changes parameters of a node.
+
+    """
+    assert len(self.items) == 1
+
+    return (self.request_body, {
       "node_name": self.items[0],
       })
 
