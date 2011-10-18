@@ -513,7 +513,7 @@ class R_2_nodes_name_modify(baserlib.R_Generic):
     baserlib.CheckType(self.request_body, dict, "Body contents")
 
     op = baserlib.FillOpcode(opcodes.OpNodeSetParams, self.request_body, {
-      "instance_name": self.items[0],
+      "node_name": self.items[0],
       })
 
     return baserlib.SubmitJob([op])

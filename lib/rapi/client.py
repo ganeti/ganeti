@@ -1455,20 +1455,20 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/nodes/%s/role" %
                               (GANETI_RAPI_VERSION, node)), query, role)
 
-  def ModifyNode(self, group, **kwargs):
+  def ModifyNode(self, node, **kwargs):
     """Modifies a node.
 
     More details for parameters can be found in the RAPI documentation.
 
-    @type group: string
-    @param group: Node name
+    @type node: string
+    @param node: Node name
     @rtype: string
     @return: job id
 
     """
     return self._SendRequest(HTTP_POST,
                              ("/%s/nodes/%s/modify" %
-                              (GANETI_RAPI_VERSION, group)), None, kwargs)
+                              (GANETI_RAPI_VERSION, node)), None, kwargs)
 
   def GetNodeStorageUnits(self, node, storage_type, output_fields):
     """Gets the storage units for a node.
