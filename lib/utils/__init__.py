@@ -43,11 +43,11 @@ from ganeti import constants
 from ganeti import compat
 
 from ganeti.utils.algo import *
-from ganeti.utils.cfunc import *
 from ganeti.utils.filelock import *
 from ganeti.utils.hash import *
 from ganeti.utils.io import *
 from ganeti.utils.log import *
+from ganeti.utils.mlock import *
 from ganeti.utils.nodesetup import *
 from ganeti.utils.process import *
 from ganeti.utils.retry import *

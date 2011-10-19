@@ -273,11 +273,11 @@ pytools_PYTHON = \
 utils_PYTHON = \
 	lib/utils/__init__.py \
 	lib/utils/algo.py \
-	lib/utils/cfunc.py \
 	lib/utils/filelock.py \
 	lib/utils/hash.py \
 	lib/utils/io.py \
 	lib/utils/log.py \
+	lib/utils/mlock.py \
 	lib/utils/nodesetup.py \
 	lib/utils/process.py \
 	lib/utils/retry.py \
@@ -724,11 +724,11 @@ python_tests = \
 	test/ganeti.tools.ensure_dirs_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
-	test/ganeti.utils.cfunc_unittest.py \
 	test/ganeti.utils.filelock_unittest.py \
 	test/ganeti.utils.hash_unittest.py \
 	test/ganeti.utils.io_unittest.py \
 	test/ganeti.utils.log_unittest.py \
+	test/ganeti.utils.mlock_unittest.py \
 	test/ganeti.utils.nodesetup_unittest.py \
 	test/ganeti.utils.process_unittest.py \
 	test/ganeti.utils.retry_unittest.py \
