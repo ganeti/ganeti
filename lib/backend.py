@@ -2576,7 +2576,10 @@ def JobQueueRename(old, new):
   _EnsureJobQueueFile(old)
   _EnsureJobQueueFile(new)
 
-  utils.RenameFile(old, new, mkdir=True)
+  getents = runtime.GetEnts()
+
+  utils.RenameFile(old, new, mkdir=True, mkdir_mode=0700,
+                   dir_uid=getents.masterd_uid, dir_gid=getents.masterd_gid)
 
 
 def BlockdevClose(instance_name, disks):
