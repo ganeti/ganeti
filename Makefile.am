@@ -724,7 +724,7 @@ python_tests = \
 	test/ganeti.tools.ensure_dirs_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
-	test/ganeti.utils.cfunc.mlockall_unittest.py \
+	test/ganeti.utils.cfunc_unittest.py \
 	test/ganeti.utils.filelock_unittest.py \
 	test/ganeti.utils.hash_unittest.py \
 	test/ganeti.utils.io_unittest.py \

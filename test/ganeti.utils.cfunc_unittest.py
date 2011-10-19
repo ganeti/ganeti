@@ -41,15 +41,17 @@ class TestMlockallWithCtypes(unittest.TestCase):
   """Whether Mlockall() works if ctypes is present.
 
   """
+
   def test(self):
     if utils.ctypes:
-      self.assertTrue(utils.Mlockall())
+      utils.Mlockall()
 
 
 class TestMlockallWithNoCtypes(unittest.TestCase):
   """Whether Mlockall() raises an error if ctypes is not present.
 
   """
+
   def test(self):
     self.assertRaises(errors.NoCtypesError, utils.Mlockall, _ctypes=None)
 
