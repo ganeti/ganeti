@@ -45,6 +45,11 @@ try:
 except ImportError:
   import elementtree.ElementTree as ET
 
+try:
+  ParseError = ET.ParseError # pylint: disable=E1103
+except AttributeError:
+  ParseError = None
+
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
@@ -210,7 +215,7 @@ class OVFReader(object):
     self.tree = ET.ElementTree()
     try:
       self.tree.parse(input_path)
-    except xml.parsers.expat.ExpatError, err:
+    except (ParseError, xml.parsers.expat.ExpatError), err:
       raise errors.OpPrereqError("Error while reading %s file: %s" %
                                  (OVF_EXT, err))
 
