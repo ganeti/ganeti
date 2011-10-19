@@ -227,6 +227,8 @@ def GetPaths():
      getent.masterd_uid, getent.masterd_gid, False),
     (constants.JOB_QUEUE_SERIAL_FILE, FILE, 0600,
      getent.masterd_uid, getent.masterd_gid, False),
+    (constants.JOB_QUEUE_VERSION_FILE, FILE, 0600,
+     getent.masterd_uid, getent.masterd_gid, False),
     (constants.JOB_QUEUE_ARCHIVE_DIR, DIR, 0700,
      getent.masterd_uid, getent.masterd_gid),
     (rapi_dir, DIR, 0750, getent.rapi_uid, getent.masterd_gid),
