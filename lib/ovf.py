@@ -938,7 +938,7 @@ class Converter(object):
       prefix=disk_name, dir=self.output_dir)
     self.temp_file_manager.Add(new_disk_path)
     args = [
-      "qemu-img",
+      constants.QEMUIMG_PATH,
       "convert",
       "-O",
       disk_format,
@@ -966,7 +966,7 @@ class Converter(object):
 
     """
     CheckQemuImg()
-    args = ["qemu-img", "info", disk_path]
+    args = [constants.QEMUIMG_PATH, "info", disk_path]
     run_result = utils.RunCmd(args, cwd=os.getcwd())
     if run_result.failed:
       raise errors.OpPrereqError("Gathering info about the disk using qemu-img"
@@ -1343,7 +1343,7 @@ class OVFImporter(Converter):
                                      (disk_id, disk_desc["size"]))
         new_path = utils.PathJoin(self.output_dir, str(disk_id))
         args = [
-          "qemu-img",
+          constants.QEMUIMG_PATH,
           "create",
           "-f",
           "raw",
