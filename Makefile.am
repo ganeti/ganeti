@@ -739,6 +739,7 @@ python_tests = \
 	test/ganeti.workerpool_unittest.py \
 	test/cfgupgrade_unittest.py \
 	test/docs_unittest.py \
+	test/pycurl_reset_unittest.py \
 	test/tempfile_fork_unittest.py
 
 haskell_tests = htools/test
