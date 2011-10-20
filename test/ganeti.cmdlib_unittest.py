@@ -40,6 +40,7 @@ from ganeti import ht
 from ganeti import objects
 from ganeti import compat
 from ganeti import rpc
+from ganeti.hypervisor import hv_xen
 
 import testutils
 import mocks
@@ -289,11 +290,12 @@ class TestClusterVerifyFiles(unittest.TestCase):
     errors = []
     master_name = "master.example.com"
     nodeinfo = [
-      objects.Node(name=master_name, offline=False),
-      objects.Node(name="node2.example.com", offline=False),
-      objects.Node(name="node3.example.com", master_candidate=True),
-      objects.Node(name="node4.example.com", offline=False),
-      objects.Node(name="nodata.example.com"),
+      objects.Node(name=master_name, offline=False, vm_capable=True),
+      objects.Node(name="node2.example.com", offline=False, vm_capable=True),
+      objects.Node(name="node3.example.com", master_candidate=True,
+                   vm_capable=False),
+      objects.Node(name="node4.example.com", offline=False, vm_capable=True),
+      objects.Node(name="nodata.example.com", offline=False, vm_capable=True),
       objects.Node(name="offline.example.com", offline=True),
       ]
     cluster = objects.Cluster(modify_etc_hosts=True,
@@ -301,24 +303,34 @@ class TestClusterVerifyFiles(unittest.TestCase):
     files_all = set([
       constants.CLUSTER_DOMAIN_SECRET_FILE,
       constants.RAPI_CERT_FILE,
-      ])
-    files_all_opt = set([
       constants.RAPI_USERS_FILE,
+      ])
+    files_opt = set([
+      constants.RAPI_USERS_FILE,
+      hv_xen.XL_CONFIG_FILE,
+      constants.VNC_PASSWORD_FILE,
       ])
     files_mc = set([
       constants.CLUSTER_CONF_FILE,
       ])
-    files_vm = set()
+    files_vm = set([
+      hv_xen.XEND_CONFIG_FILE,
+      hv_xen.XL_CONFIG_FILE,
+      constants.VNC_PASSWORD_FILE,
+      ])
     nvinfo = {
       master_name: rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
           constants.CLUSTER_CONF_FILE: "82314f897f38b35f9dab2f7c6b1593e0",
           constants.RAPI_CERT_FILE: "babbce8f387bc082228e544a2146fee4",
           constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
+          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
+          hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
         }})),
       "node2.example.com": rpc.RpcResult(data=(True, {
         constants.NV_FILELIST: {
           constants.RAPI_CERT_FILE: "97f0356500e866387f4b84233848cc4a",
+          hv_xen.XEND_CONFIG_FILE: "b4a8a824ab3cac3d88839a9adeadf310",
           }
         })),
       "node3.example.com": rpc.RpcResult(data=(True, {
@@ -333,6 +345,7 @@ class TestClusterVerifyFiles(unittest.TestCase):
           constants.CLUSTER_CONF_FILE: "conf-a6d4b13e407867f7a7b4f0f232a8f527",
           constants.CLUSTER_DOMAIN_SECRET_FILE: "cds-47b5b3f19202936bb4",
           constants.RAPI_USERS_FILE: "rapiusers-ea3271e8d810ef3",
+          hv_xen.XL_CONFIG_FILE: "77935cee92afd26d162f9e525e3d49b9"
           }
         })),
       "nodata.example.com": rpc.RpcResult(data=(True, {})),
@@ -342,7 +355,7 @@ class TestClusterVerifyFiles(unittest.TestCase):
 
     self._VerifyFiles(compat.partial(self._FakeErrorIf, errors), nodeinfo,
                       master_name, nvinfo,
-                      (files_all, files_all_opt, files_mc, files_vm))
+                      (files_all, files_opt, files_mc, files_vm))
     self.assertEqual(sorted(errors), sorted([
       (None, ("File %s found with 2 different checksums (variant 1 on"
               " node2.example.com, node3.example.com, node4.example.com;"
@@ -351,6 +364,8 @@ class TestClusterVerifyFiles(unittest.TestCase):
               constants.CLUSTER_DOMAIN_SECRET_FILE)),
       (None, ("File %s should not exist on node(s) node4.example.com" %
               constants.CLUSTER_CONF_FILE)),
+      (None, ("File %s is missing from node(s) node4.example.com" %
+              hv_xen.XEND_CONFIG_FILE)),
       (None, ("File %s is missing from node(s) node3.example.com" %
               constants.CLUSTER_CONF_FILE)),
       (None, ("File %s found with 2 different checksums (variant 1 on"
@@ -359,6 +374,8 @@ class TestClusterVerifyFiles(unittest.TestCase):
       (None, ("File %s is optional, but it must exist on all or no nodes (not"
               " found on master.example.com, node2.example.com,"
               " node3.example.com)" % constants.RAPI_USERS_FILE)),
+      (None, ("File %s is optional, but it must exist on all or no nodes (not"
+              " found on node2.example.com)" % hv_xen.XL_CONFIG_FILE)),
       ("nodata.example.com", "Node did not return file checksum data"),
       ]))
 

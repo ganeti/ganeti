@@ -493,6 +493,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
     ]
+  ANCILLARY_FILES_OPT = [
+    _KVM_NETWORK_SCRIPT,
+    ]
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)

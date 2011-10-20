@@ -34,6 +34,11 @@ from ganeti import netutils
 from ganeti import objects
 
 
+XEND_CONFIG_FILE = "/etc/xen/xend-config.sxp"
+XL_CONFIG_FILE = "/etc/xen/xl.conf"
+VIF_BRIDGE_SCRIPT = "/etc/xen/scripts/vif-bridge"
+
+
 class XenHypervisor(hv_base.BaseHypervisor):
   """Xen generic hypervisor interface
 
@@ -46,9 +51,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
   REBOOT_RETRY_INTERVAL = 10
 
   ANCILLARY_FILES = [
-    "/etc/xen/xend-config.sxp",
-    "/etc/xen/xl.conf",
-    "/etc/xen/scripts/vif-bridge",
+    XEND_CONFIG_FILE,
+    XL_CONFIG_FILE,
+    VIF_BRIDGE_SCRIPT,
+    ]
+  ANCILLARY_FILES_OPT = [
+    XL_CONFIG_FILE,
     ]
 
   @staticmethod
@@ -650,6 +658,9 @@ class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
 
   ANCILLARY_FILES = XenHypervisor.ANCILLARY_FILES + [
+    constants.VNC_PASSWORD_FILE,
+    ]
+  ANCILLARY_FILES_OPT = XenHypervisor.ANCILLARY_FILES_OPT + [
     constants.VNC_PASSWORD_FILE,
     ]
 

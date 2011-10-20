@@ -2080,7 +2080,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
   @classmethod
   def _VerifyFiles(cls, errorif, nodeinfo, master_node, all_nvinfo,
-                   (files_all, files_all_opt, files_mc, files_vm)):
+                   (files_all, files_opt, files_mc, files_vm)):
     """Verifies file checksums collected from all nodes.
 
     @param errorif: Callback for reporting errors
@@ -2089,14 +2089,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     @param all_nvinfo: RPC results
 
     """
-    assert (len(files_all | files_all_opt | files_mc | files_vm) ==
-            sum(map(len, [files_all, files_all_opt, files_mc, files_vm]))), \
-           "Found file listed in more than one file list"
-
     # Define functions determining which nodes to consider for a file
     files2nodefn = [
       (files_all, None),
-      (files_all_opt, None),
       (files_mc, lambda node: (node.master_candidate or
                                node.name == master_node)),
       (files_vm, lambda node: node.vm_capable),
@@ -2113,7 +2108,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                         frozenset(map(operator.attrgetter("name"), filenodes)))
                        for filename in files)
 
-    assert set(nodefiles) == (files_all | files_all_opt | files_mc | files_vm)
+    assert set(nodefiles) == (files_all | files_mc | files_vm)
 
     fileinfo = dict((filename, {}) for filename in nodefiles)
     ignore_nodes = set()
@@ -2155,7 +2150,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # Nodes missing file
       missing_file = expected_nodes - with_file
 
-      if filename in files_all_opt:
+      if filename in files_opt:
         # All or no nodes
         errorif(missing_file and missing_file != expected_nodes,
                 constants.CV_ECLUSTERFILECHECK, None,
@@ -3760,6 +3755,7 @@ def _ComputeAncillaryFiles(cluster, redist):
     constants.CLUSTER_DOMAIN_SECRET_FILE,
     constants.SPICE_CERT_FILE,
     constants.SPICE_CACERT_FILE,
+    constants.RAPI_USERS_FILE,
     ])
 
   if not redist:
@@ -3772,8 +3768,10 @@ def _ComputeAncillaryFiles(cluster, redist):
   if cluster.modify_etc_hosts:
     files_all.add(constants.ETC_HOSTS)
 
-  # Files which must either exist on all nodes or on none
-  files_all_opt = set([
+  # Files which are optional, these must:
+  # - be present in one other category as well
+  # - either exist or not exist on all nodes of that category (mc, vm all)
+  files_opt = set([
     constants.RAPI_USERS_FILE,
     ])
 
@@ -3785,14 +3783,23 @@ def _ComputeAncillaryFiles(cluster, redist):
   # Files which should only be on VM-capable nodes
   files_vm = set(filename
     for hv_name in cluster.enabled_hypervisors
-    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles())
+    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles()[0])
 
-  # Filenames must be unique
-  assert (len(files_all | files_all_opt | files_mc | files_vm) ==
-          sum(map(len, [files_all, files_all_opt, files_mc, files_vm]))), \
+  files_opt |= set(filename
+    for hv_name in cluster.enabled_hypervisors
+    for filename in hypervisor.GetHypervisor(hv_name).GetAncillaryFiles()[1])
+
+  # Filenames in each category must be unique
+  all_files_set = files_all | files_mc | files_vm
+  assert (len(all_files_set) ==
+          sum(map(len, [files_all, files_mc, files_vm]))), \
          "Found file listed in more than one file list"
 
-  return (files_all, files_all_opt, files_mc, files_vm)
+  # Optional files must be present in one other category
+  assert all_files_set.issuperset(files_opt), \
+         "Optional file not in a different required list"
+
+  return (files_all, files_opt, files_mc, files_vm)
 
 
 def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
@@ -3826,7 +3833,7 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
       nodelist.remove(master_info.name)
 
   # Gather file lists
-  (files_all, files_all_opt, files_mc, files_vm) = \
+  (files_all, _, files_mc, files_vm) = \
     _ComputeAncillaryFiles(cluster, True)
 
   # Never re-distribute configuration file from here
@@ -3836,7 +3843,6 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None, additional_vm=True):
 
   filemap = [
     (online_nodes, files_all),
-    (online_nodes, files_all_opt),
     (vm_nodes, files_vm),
     ]
 
