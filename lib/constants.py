@@ -1700,6 +1700,9 @@ VALID_ALLOC_POLICIES = [
 # Temporary external/shared storage parameters
 BLOCKDEV_DRIVER_MANUAL = "manual"
 
+# qemu-img path, required for ovfconverter
+QEMUIMG_PATH = _autoconf.QEMUIMG_PATH
+
 # Whether htools was enabled at compilation time
 HTOOLS = _autoconf.HTOOLS
 # The hail iallocator

@@ -143,6 +143,15 @@ DISK_FORMAT = {
   COW: "http://www.gnome.org/~markmc/qcow-image-format.html",
 }
 
+def CheckQemuImg():
+  """ Make sure that qemu-img is present before performing operations.
+
+  @raise errors.OpPrereqError: when qemu-img was not found in the system
+
+  """
+  if not constants.QEMUIMG_PATH:
+    raise errors.OpPrereqError("qemu-img not found at build time, unable"
+                               " to continue")
 
 def LinkFile(old_path, prefix=None, suffix=None, directory=None):
   """Create link with a given prefix and suffix.
@@ -916,6 +925,7 @@ class Converter(object):
     @raise errors.OpPrereqError: convertion of the disk failed
 
     """
+    CheckQemuImg()
     disk_file = os.path.basename(disk_path)
     (disk_name, disk_extension) = os.path.splitext(disk_file)
     if disk_extension != disk_format:
@@ -953,6 +963,7 @@ class Converter(object):
     @raise errors.OpPrereqError: format information cannot be retrieved
 
     """
+    CheckQemuImg()
     args = ["qemu-img", "info", disk_path]
     run_result = utils.RunCmd(args, cwd=os.getcwd())
     if run_result.failed:
@@ -1317,6 +1328,7 @@ class OVFImporter(Converter):
       information or size information is invalid or creation failed
 
     """
+    CheckQemuImg()
     assert self.options.disks
     results = {}
     for (disk_id, disk_desc) in self.options.disks:

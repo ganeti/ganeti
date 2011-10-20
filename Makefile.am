@@ -985,6 +985,7 @@ lib/_autoconf.py: Makefile | lib/.dir
 	  echo "NODED_USER = '$(NODED_USER)'"; \
 	  echo "NODED_GROUP = '$(NODED_GROUP)'"; \
 	  echo "DISK_SEPARATOR = '$(DISK_SEPARATOR)'"; \
+	  echo "QEMUIMG_PATH = '$(QEMUIMG_PATH)'"; \
 	  if [ "$(HTOOLS)" ]; then \
 	    echo "HTOOLS = True"; \
 	  else \
