@@ -143,6 +143,7 @@ DISK_FORMAT = {
   COW: "http://www.gnome.org/~markmc/qcow-image-format.html",
 }
 
+
 def CheckQemuImg():
   """ Make sure that qemu-img is present before performing operations.
 
@@ -152,6 +153,7 @@ def CheckQemuImg():
   if not constants.QEMUIMG_PATH:
     raise errors.OpPrereqError("qemu-img not found at build time, unable"
                                " to continue")
+
 
 def LinkFile(old_path, prefix=None, suffix=None, directory=None):
   """Create link with a given prefix and suffix.
