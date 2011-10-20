@@ -35,7 +35,8 @@ from ganeti import locking
 
 class HttpClientRequest(object):
   def __init__(self, host, port, method, path, headers=None, post_data=None,
-               read_timeout=None, curl_config_fn=None, nicename=None):
+               read_timeout=None, curl_config_fn=None, nicename=None,
+               completion_cb=None):
     """Describes an HTTP request.
 
     @type host: string
@@ -58,10 +59,14 @@ class HttpClientRequest(object):
     @type nicename: string
     @param nicename: Name, presentable to a user, to describe this request (no
                      whitespace)
+    @type completion_cb: callable accepting this request object as a single
+                         parameter
+    @param completion_cb: Callback for request completion
 
     """
     assert path.startswith("/"), "Path must start with slash (/)"
     assert curl_config_fn is None or callable(curl_config_fn)
+    assert completion_cb is None or callable(completion_cb)
 
     # Request attributes
     self.host = host
@@ -71,6 +76,7 @@ class HttpClientRequest(object):
     self.read_timeout = read_timeout
     self.curl_config_fn = curl_config_fn
     self.nicename = nicename
+    self.completion_cb = completion_cb
 
     if post_data is None:
       self.post_data = ""
@@ -220,14 +226,11 @@ class _PendingRequest:
     req.resp_body = self._resp_buffer_read()
 
     # Ensure no potentially large variables are referenced
-    try:
-      # Only available in PycURL 7.19.0 and above
-      reset_fn = curl.reset
-    except AttributeError:
-      curl.setopt(pycurl.POSTFIELDS, "")
-      curl.setopt(pycurl.WRITEFUNCTION, lambda _: None)
-    else:
-      reset_fn()
+    curl.setopt(pycurl.POSTFIELDS, "")
+    curl.setopt(pycurl.WRITEFUNCTION, lambda _: None)
+
+    if req.completion_cb:
+      req.completion_cb(req)
 
 
 class _NoOpRequestMonitor: # pylint: disable=W0232
