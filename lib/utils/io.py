@@ -300,6 +300,9 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750, dir_uid=None,
                dir_gid=None):
   """Renames a file.
 
+  This just creates the very least directory if it does not exist and C{mkdir}
+  is set to true.
+
   @type old: string
   @param old: Original path
   @type new: string
@@ -323,16 +326,14 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750, dir_uid=None,
     if mkdir and err.errno == errno.ENOENT:
       # Create directory and try again
       dir_path = os.path.dirname(new)
-      Makedirs(dir_path, mode=mkdir_mode)
-      if not (dir_uid is None or dir_gid is None):
-        os.chown(dir_path, dir_uid, dir_gid)
+      MakeDirWithPerm(dir_path, mkdir_mode, dir_uid, dir_gid)
 
       return os.rename(old, new)
 
     raise
 
 
-def EnforcePermission(path, mode, uid=-1, gid=-1, must_exist=True,
+def EnforcePermission(path, mode, uid=None, gid=None, must_exist=True,
                       _chmod_fn=os.chmod, _chown_fn=os.chown, _stat_fn=os.stat):
   """Enforces that given path has given permissions.
 
@@ -346,6 +347,14 @@ def EnforcePermission(path, mode, uid=-1, gid=-1, must_exist=True,
 
   """
   logging.debug("Checking %s", path)
+
+  # chown takes -1 if you want to keep one part of the ownership, however
+  # None is Python standard for that. So we remap them here.
+  if uid is None:
+    uid = -1
+  if gid is None:
+    gid = -1
+
   try:
     st = _stat_fn(path)
 

@@ -508,12 +508,14 @@ class TestRename(unittest.TestCase):
     self.assert_(os.path.isdir(os.path.join(self.tmpdir, "test")))
     self.assert_(os.path.isfile(os.path.join(self.tmpdir, "test/xyz")))
 
-    utils.RenameFile(os.path.join(self.tmpdir, "test/xyz"),
-                     os.path.join(self.tmpdir, "test/foo/bar/baz"),
-                     mkdir=True)
-    self.assert_(os.path.isdir(os.path.join(self.tmpdir, "test")))
-    self.assert_(os.path.isdir(os.path.join(self.tmpdir, "test/foo/bar")))
-    self.assert_(os.path.isfile(os.path.join(self.tmpdir, "test/foo/bar/baz")))
+    self.assertRaises(EnvironmentError, utils.RenameFile,
+                      os.path.join(self.tmpdir, "test/xyz"),
+                      os.path.join(self.tmpdir, "test/foo/bar/baz"),
+                      mkdir=True)
+
+    self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "test/xyz")))
+    self.assertFalse(os.path.exists(os.path.join(self.tmpdir, "test/foo/bar")))
+    self.assertFalse(os.path.exists(os.path.join(self.tmpdir, "test/foo/bar/baz")))
 
 
 class TestMakedirs(unittest.TestCase):
