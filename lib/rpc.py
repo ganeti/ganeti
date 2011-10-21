@@ -362,7 +362,7 @@ class _RpcProcessor:
       else:
         requests[name] = \
           http.client.HttpClientRequest(str(ip), port,
-                                        http.HTTP_PUT, str("/%s" % procedure),
+                                        http.HTTP_POST, str("/%s" % procedure),
                                         headers=_RPC_CLIENT_HEADERS,
                                         post_data=body[name],
                                         read_timeout=read_timeout,
