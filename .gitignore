@@ -72,6 +72,7 @@
 # lib
 /lib/_autoconf.py
 /lib/_vcsversion.py
+/lib/_generated_rpc.py
 
 # man
 /man/*.[0-9]

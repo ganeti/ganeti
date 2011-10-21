@@ -1,0 +1,204 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2011 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Script to generate RPC code.
+
+"""
+
+# pylint: disable=C0103
+# [C0103] Invalid name
+
+import sys
+import re
+import itertools
+import textwrap
+from cStringIO import StringIO
+
+from ganeti import utils
+from ganeti import compat
+from ganeti import build
+
+
+_SINGLE = "single-node"
+_MULTI = "multi-node"
+
+
+def _WritePreamble(sw):
+  """Writes a preamble for the RPC wrapper output.
+
+  """
+  sw.Write("# This code is automatically generated at build time.")
+  sw.Write("# Do not modify manually.")
+  sw.Write("")
+  sw.Write("\"\"\"Automatically generated RPC client wrappers.")
+  sw.Write("")
+  sw.Write("\"\"\"")
+  sw.Write("")
+
+
+def _WrapCode(line):
+  """Wraps Python code.
+
+  """
+  return textwrap.wrap(line, width=70, expand_tabs=False,
+                       fix_sentence_endings=False, break_long_words=False,
+                       replace_whitespace=True,
+                       subsequent_indent=utils.ShellWriter.INDENT_STR)
+
+
+def _WriteDocstring(sw, name, timeout, kind, args, desc):
+  """Writes a docstring for an RPC wrapper.
+
+  """
+  sw.Write("\"\"\"Wrapper for RPC call '%s'", name)
+  sw.Write("")
+  if desc:
+    sw.Write(desc)
+    sw.Write("")
+
+  note = ["This is a %s call" % kind]
+  if timeout:
+    note.append(" with a timeout of %s" % utils.FormatSeconds(timeout))
+  sw.Write("@note: %s", "".join(note))
+
+  if kind == _SINGLE:
+    sw.Write("@type node: string")
+    sw.Write("@param node: Node name")
+  else:
+    sw.Write("@type node_list: list of string")
+    sw.Write("@param node_list: List of node names")
+
+  if args:
+    for (argname, _, argtext) in args:
+      if argtext:
+        docline = "@param %s: %s" % (argname, argtext)
+        for line in _WrapCode(docline):
+          sw.Write(line)
+  sw.Write("")
+  sw.Write("\"\"\"")
+
+
+def _MakeArgument((argname, wrapper, _)):
+  """Format argument for function call.
+
+  """
+  if wrapper:
+    return wrapper % argname
+  else:
+    return argname
+
+
+def _WriteBaseClass(sw, clsname, calls):
+  """Write RPC wrapper class.
+
+  """
+  sw.Write("")
+  sw.Write("class %s(object):", clsname)
+  sw.IncIndent()
+  try:
+    sw.Write("# E1101: Non-existent members")
+    sw.Write("# R0904: Too many public methods")
+    sw.Write("# pylint: disable=E1101,R0904")
+
+    if not calls:
+      sw.Write("pass")
+      return
+
+    for (name, kind, timeout, args, postproc, desc) in calls:
+      funcargs = ["self"]
+
+      if kind == _SINGLE:
+        funcargs.append("node")
+      elif kind == _MULTI:
+        funcargs.append("node_list")
+      else:
+        raise Exception("Unknown kind '%s'" % kind)
+
+      funcargs.extend(map(compat.fst, args))
+
+      assert "read_timeout" not in funcargs
+      funcargs.append("read_timeout=%s" % timeout)
+
+      funcdef = "def call_%s(%s):" % (name, utils.CommaJoin(funcargs))
+      for line in _WrapCode(funcdef):
+        sw.Write(line)
+
+      sw.IncIndent()
+      try:
+        _WriteDocstring(sw, name, timeout, kind, args, desc)
+
+        buf = StringIO()
+        buf.write("return ")
+
+        # In case line gets too long and is wrapped in a bad spot
+        buf.write("( ")
+
+        if postproc:
+          buf.write("%s(" % postproc)
+        buf.write("self._Call(")
+        if kind == _SINGLE:
+          buf.write("[node]")
+        else:
+          buf.write("node_list")
+        buf.write(", \"%s\", read_timeout, [%s])" %
+                  (name, utils.CommaJoin(map(_MakeArgument, args))))
+        if kind == _SINGLE:
+          buf.write("[node]")
+        if postproc:
+          buf.write(")")
+        buf.write(")")
+
+        for line in _WrapCode(buf.getvalue()):
+          sw.Write(line)
+      finally:
+        sw.DecIndent()
+      sw.Write("")
+  finally:
+    sw.DecIndent()
+
+
+def main():
+  """Main function.
+
+  """
+  buf = StringIO()
+  sw = utils.ShellWriter(buf)
+
+  _WritePreamble(sw)
+
+  for filename in sys.argv[1:]:
+    sw.Write("# Definitions from '%s'", filename)
+
+    module = build.LoadModule(filename)
+
+    # Call types are re-defined in definitions file to avoid imports. Verify
+    # here to ensure they're equal to local constants.
+    assert module.SINGLE == _SINGLE
+    assert module.MULTI == _MULTI
+
+    for (clsname, calls) in module.CALLS.items():
+      _WriteBaseClass(sw, clsname, calls)
+
+  print buf.getvalue()
+
+
+if __name__ == "__main__":
+  main()

@@ -28,6 +28,7 @@ CHECK_IMPORTS = $(top_srcdir)/autotools/check-imports
 DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
 CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
+BUILD_RPC = $(top_srcdir)/autotools/build-rpc
 
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
@@ -144,6 +145,7 @@ CLEANFILES = \
 	doc/examples/ganeti.cron \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec \
+	lib/_generated_rpc.py \
 	$(man_MANS) \
 	$(manhtml) \
 	tools/kvm-ifup \
@@ -164,13 +166,15 @@ BUILT_SOURCES = \
 
 BUILT_PYTHON_SOURCES = \
 	lib/_autoconf.py \
-	lib/_vcsversion.py
+	lib/_vcsversion.py \
+	lib/_generated_rpc.py
 
 nodist_pkgpython_PYTHON = \
 	$(BUILT_PYTHON_SOURCES)
 
 noinst_PYTHON = \
 	lib/build/__init__.py \
+	lib/build/rpc_definitions.py \
 	lib/build/sphinx_ext.py
 
 pkgpython_PYTHON = \
@@ -555,6 +559,7 @@ EXTRA_DIST = \
 	epydoc.conf.in \
 	pylintrc \
 	autotools/build-bash-completion \
+	autotools/build-rpc \
 	autotools/check-python-code \
 	autotools/check-imports \
 	autotools/check-man \
@@ -1014,6 +1019,9 @@ lib/_vcsversion.py: Makefile vcs-version | lib/.dir
 	  echo ''; \
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
+
+lib/_generated_rpc.py: lib/build/rpc_definitions.py $(BUILD_RPC) | lib/.dir
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) $< > $@
 
 $(REPLACE_VARS_SED): Makefile
 	set -e; \
