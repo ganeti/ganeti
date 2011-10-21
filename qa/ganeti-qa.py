@@ -382,6 +382,7 @@ def RunHardwareFailureTests(instance, pnode, snode):
   if qa_config.TestEnabled("instance-replace-disks"):
     othernode = qa_config.AcquireNode(exclude=[pnode, snode])
     try:
+      RunTestIf("rapi", qa_rapi.TestRapiInstanceReplaceDisks, instance)
       RunTest(qa_instance.TestReplaceDisks,
               instance, pnode, snode, othernode)
     finally:

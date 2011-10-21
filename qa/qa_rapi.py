@@ -618,6 +618,14 @@ def TestRapiInstanceReinstall(instance):
   _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"]))
 
 
+def TestRapiInstanceReplaceDisks(instance):
+  """Test replacing instance disks via RAPI"""
+  _WaitForRapiJob(_rapi_client.ReplaceInstanceDisks(instance["name"],
+    mode=constants.REPLACE_DISK_AUTO, disks=[]))
+  _WaitForRapiJob(_rapi_client.ReplaceInstanceDisks(instance["name"],
+    mode=constants.REPLACE_DISK_SEC, disks="0"))
+
+
 def TestRapiInstanceModify(instance):
   """Test modifying instance via RAPI"""
   def _ModifyInstance(**kwargs):

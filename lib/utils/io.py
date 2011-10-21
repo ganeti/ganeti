@@ -295,7 +295,8 @@ def RemoveDir(dirname):
       raise
 
 
-def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
+def RenameFile(old, new, mkdir=False, mkdir_mode=0750, dir_uid=None,
+               dir_gid=None):
   """Renames a file.
 
   @type old: string
@@ -306,6 +307,10 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
   @param mkdir: Whether to create target directory if it doesn't exist
   @type mkdir_mode: int
   @param mkdir_mode: Mode for newly created directories
+  @type dir_uid: int
+  @param dir_uid: The uid for the (if fresh created) dir
+  @type dir_gid: int
+  @param dir_gid: The gid for the (if fresh created) dir
 
   """
   try:
@@ -316,7 +321,10 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
     # as efficient.
     if mkdir and err.errno == errno.ENOENT:
       # Create directory and try again
-      Makedirs(os.path.dirname(new), mode=mkdir_mode)
+      dir_path = os.path.dirname(new)
+      Makedirs(dir_path, mode=mkdir_mode)
+      if not (dir_uid is None or dir_gid is None):
+        os.chown(dir_path, dir_uid, dir_gid)
 
       return os.rename(old, new)
 

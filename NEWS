@@ -1,10 +1,10 @@
 News
 ====
 
-Version 2.5.0 rc1
+Version 2.5.0 rc2
 -----------------
 
-*(Released Tue, 4 Oct 2011)*
+*(Released Tue, 18 Oct 2011)*
 
 Incompatible/important changes and bugfixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -129,6 +129,14 @@ Misc
 - DRBD metadata volumes are overwritten with zeros during disk creation.
 
 
+Version 2.5.0 rc1
+-----------------
+
+*(Released Tue, 4 Oct 2011)*
+
+This was the first release candidate of the 2.5 series.
+
+
 Version 2.5.0 beta3
 -------------------
 
@@ -151,6 +159,18 @@ Version 2.5.0 beta1
 *(Released Fri, 12 Aug 2011)*
 
 This was the first beta release of the 2.5 series.
+
+
+Version 2.4.5
+-------------
+
+*(unreleased)*
+
+- Fixed bug when parsing command line parameter values ending in
+  backslash
+- Fixed assertion error after unclean master shutdown
+- Disable HTTP client pool for RPC, significantly reducing memory usage
+  of master daemon
 
 
 Version 2.4.4

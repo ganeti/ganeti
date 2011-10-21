@@ -1021,16 +1021,19 @@ def _ParseInstanceReplaceDisksRequest(name, data):
 
   # Parse disks
   try:
-    raw_disks = data["disks"]
+    raw_disks = data.pop("disks")
   except KeyError:
     pass
   else:
-    if not ht.TListOf(ht.TInt)(raw_disks): # pylint: disable=E1102
-      # Backwards compatibility for strings of the format "1, 2, 3"
-      try:
-        data["disks"] = [int(part) for part in raw_disks.split(",")]
-      except (TypeError, ValueError), err:
-        raise http.HttpBadRequest("Invalid disk index passed: %s" % str(err))
+    if raw_disks:
+      if ht.TListOf(ht.TInt)(raw_disks): # pylint: disable=E1102
+        data["disks"] = raw_disks
+      else:
+        # Backwards compatibility for strings of the format "1, 2, 3"
+        try:
+          data["disks"] = [int(part) for part in raw_disks.split(",")]
+        except (TypeError, ValueError), err:
+          raise http.HttpBadRequest("Invalid disk index passed: %s" % str(err))
 
   return baserlib.FillOpcode(opcodes.OpInstanceReplaceDisks, data, override)
 
@@ -1043,7 +1046,20 @@ class R_2_instances_name_replace_disks(baserlib.R_Generic):
     """Replaces disks on an instance.
 
     """
-    op = _ParseInstanceReplaceDisksRequest(self.items[0], self.request_body)
+    if self.request_body:
+      body = self.request_body
+    elif self.queryargs:
+      # Legacy interface, do not modify/extend
+      body = {
+        "remote_node": self._checkStringVariable("remote_node", default=None),
+        "mode": self._checkStringVariable("mode", default=None),
+        "disks": self._checkStringVariable("disks", default=None),
+        "iallocator": self._checkStringVariable("iallocator", default=None),
+        }
+    else:
+      body = {}
+
+    op = _ParseInstanceReplaceDisksRequest(self.items[0], body)
 
     return baserlib.SubmitJob([op])
 
