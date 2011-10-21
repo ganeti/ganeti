@@ -22,12 +22,10 @@
 
 """
 
-import errno
 import os
 import os.path
 import optparse
 import sys
-import stat
 import logging
 
 from ganeti import constants
@@ -49,79 +47,6 @@ ALL_TYPES = frozenset([
   ])
 
 
-class EnsureError(errors.GenericError):
-  """Top-level error class related to this script.
-
-  """
-
-
-def EnsurePermission(path, mode, uid=-1, gid=-1, must_exist=True,
-                     _chmod_fn=os.chmod, _chown_fn=os.chown, _stat_fn=os.stat):
-  """Ensures that given path has given mode.
-
-  @param path: The path to the file
-  @param mode: The mode of the file
-  @param uid: The uid of the owner of this file
-  @param gid: The gid of the owner of this file
-  @param must_exist: Specifies if non-existance of path will be an error
-  @param _chmod_fn: chmod function to use (unittest only)
-  @param _chown_fn: chown function to use (unittest only)
-
-  """
-  logging.debug("Checking %s", path)
-  try:
-    st = _stat_fn(path)
-
-    fmode = stat.S_IMODE(st[stat.ST_MODE])
-    if fmode != mode:
-      logging.debug("Changing mode of %s from %#o to %#o", path, fmode, mode)
-      _chmod_fn(path, mode)
-
-    if max(uid, gid) > -1:
-      fuid = st[stat.ST_UID]
-      fgid = st[stat.ST_GID]
-      if fuid != uid or fgid != gid:
-        logging.debug("Changing owner of %s from UID %s/GID %s to"
-                      " UID %s/GID %s", path, fuid, fgid, uid, gid)
-        _chown_fn(path, uid, gid)
-  except EnvironmentError, err:
-    if err.errno == errno.ENOENT:
-      if must_exist:
-        raise EnsureError("Path %s should exist, but does not" % path)
-    else:
-      raise EnsureError("Error while changing permissions on %s: %s" %
-                        (path, err))
-
-
-def EnsureDir(path, mode, uid, gid, _lstat_fn=os.lstat, _mkdir_fn=os.mkdir,
-              _ensure_fn=EnsurePermission):
-  """Ensures that given path is a dir and has given mode, uid and gid set.
-
-  @param path: The path to the file
-  @param mode: The mode of the file
-  @param uid: The uid of the owner of this file
-  @param gid: The gid of the owner of this file
-  @param _lstat_fn: Stat function to use (unittest only)
-  @param _mkdir_fn: mkdir function to use (unittest only)
-  @param _ensure_fn: ensure function to use (unittest only)
-
-  """
-  logging.debug("Checking directory %s", path)
-  try:
-    # We don't want to follow symlinks
-    st = _lstat_fn(path)
-  except EnvironmentError, err:
-    if err.errno != errno.ENOENT:
-      raise EnsureError("stat(2) on %s failed: %s" % (path, err))
-    _mkdir_fn(path)
-  else:
-    if not stat.S_ISDIR(st[stat.ST_MODE]):
-      raise EnsureError("Path %s is expected to be a directory, but isn't" %
-                        path)
-
-  _ensure_fn(path, mode, uid=uid, gid=gid)
-
-
 def RecursiveEnsure(path, uid, gid, dir_perm, file_perm):
   """Ensures permissions recursively down a directory.
 
@@ -141,11 +66,12 @@ def RecursiveEnsure(path, uid, gid, dir_perm, file_perm):
 
   for root, dirs, files in os.walk(path):
     for subdir in dirs:
-      EnsurePermission(os.path.join(root, subdir), dir_perm, uid=uid, gid=gid)
+      utils.EnforcePermission(os.path.join(root, subdir), dir_perm, uid=uid,
+                              gid=gid)
 
     for filename in files:
-      EnsurePermission(os.path.join(root, filename), file_perm, uid=uid,
-                       gid=gid)
+      utils.EnforcePermission(os.path.join(root, filename), file_perm, uid=uid,
+                              gid=gid)
 
 
 def EnsureQueueDir(path, mode, uid, gid):
@@ -159,7 +85,8 @@ def EnsureQueueDir(path, mode, uid, gid):
   """
   for filename in utils.ListVisibleFiles(path):
     if constants.JOB_FILE_RE.match(filename):
-      EnsurePermission(utils.PathJoin(path, filename), mode, uid=uid, gid=gid)
+      utils.EnforcePermission(utils.PathJoin(path, filename), mode, uid=uid,
+                              gid=gid)
 
 
 def ProcessPath(path):
@@ -176,12 +103,13 @@ def ProcessPath(path):
     # No additional parameters
     assert len(path[5:]) == 0
     if pathtype == DIR:
-      EnsureDir(pathname, mode, uid, gid)
+      utils.MakeDirWithPerm(pathname, mode, uid, gid)
     elif pathtype == QUEUE_DIR:
       EnsureQueueDir(pathname, mode, uid, gid)
   elif pathtype == FILE:
     (must_exist, ) = path[5:]
-    EnsurePermission(pathname, mode, uid=uid, gid=gid, must_exist=must_exist)
+    utils.EnforcePermission(pathname, mode, uid=uid, gid=gid,
+                            must_exist=must_exist)
 
 
 def GetPaths():
@@ -323,7 +251,7 @@ def Main():
     if opts.full_run:
       RecursiveEnsure(constants.JOB_QUEUE_ARCHIVE_DIR, getent.masterd_uid,
                       getent.masterd_gid, 0700, 0600)
-  except EnsureError, err:
+  except errors.GenericError, err:
     logging.error("An error occurred while setting permissions: %s", err)
     return constants.EXIT_FAILURE
 
