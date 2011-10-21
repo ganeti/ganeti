@@ -268,12 +268,16 @@ class ShellWriter:
     """
     assert self._indent >= 0
 
-    self._fh.write(self._indent * self.INDENT_STR)
-
     if args:
-      self._fh.write(txt % args)
+      line = txt % args
     else:
-      self._fh.write(txt)
+      line = txt
+
+    if line:
+      # Indent only if there's something on the line
+      self._fh.write(self._indent * self.INDENT_STR)
+
+    self._fh.write(line)
 
     self._fh.write("\n")
 
