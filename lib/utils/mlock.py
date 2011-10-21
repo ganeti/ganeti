@@ -34,7 +34,7 @@ except ImportError:
   ctypes = None
 
 
-# Flags for mlockall() (from bits/mman.h)
+# Flags for mlockall(2) (from bits/mman.h)
 _MCL_CURRENT = 1
 _MCL_FUTURE = 2
 
@@ -42,10 +42,10 @@ _MCL_FUTURE = 2
 def Mlockall(_ctypes=ctypes):
   """Lock current process' virtual address space into RAM.
 
-  This is equivalent to the C call mlockall(MCL_CURRENT|MCL_FUTURE),
-  see mlock(2) for more details. This function requires ctypes module.
+  This is equivalent to the C call C{mlockall(MCL_CURRENT | MCL_FUTURE)}. See
+  mlockall(2) for more details. This function requires the C{ctypes} module.
 
-  @raises errors.NoCtypesError: if ctypes module is not found
+  @raises errors.NoCtypesError: If the C{ctypes} module is not found
 
   """
   if _ctypes is None:
@@ -60,11 +60,11 @@ def Mlockall(_ctypes=ctypes):
     logging.error("Cannot set memory lock, ctypes cannot load libc")
     return
 
-  # Some older version of the ctypes module don't have built-in functionality
-  # to access the errno global variable, where function error codes are stored.
-  # By declaring this variable as a pointer to an integer we can then access
-  # its value correctly, should the mlockall call fail, in order to see what
-  # the actual error code was.
+  # The ctypes module before Python 2.6 does not have built-in functionality to
+  # access the global errno global (which, depending on the libc and build
+  # options, is per thread), where function error codes are stored. Use GNU
+  # libc's way to retrieve errno(3) instead, which is to use the pointer named
+  # "__errno_location" (see errno.h and bits/errno.h).
   # pylint: disable=W0212
   libc.__errno_location.restype = _ctypes.POINTER(_ctypes.c_int)
 
