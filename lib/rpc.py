@@ -844,18 +844,6 @@ class RpcRunner(object):
     return self._MultiNodeCall(node_list, "instance_list", [hypervisor_list])
 
   @_RpcTimeout(_TMO_FAST)
-  def call_node_tcp_ping(self, node, source, target, port, timeout,
-                         live_port_needed):
-    """Do a TcpPing on the remote node
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "node_tcp_ping",
-                                [source, target, port, timeout,
-                                 live_port_needed])
-
-  @_RpcTimeout(_TMO_FAST)
   def call_node_has_ip_address(self, node, address):
     """Checks if a node has the given IP address.
 

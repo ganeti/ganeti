@@ -655,14 +655,6 @@ class NodeHttpServer(http.server.HttpServer):
   # node --------------------------
 
   @staticmethod
-  def perspective_node_tcp_ping(params):
-    """Do a TcpPing on the remote node.
-
-    """
-    return netutils.TcpPing(params[1], params[2], timeout=params[3],
-                            live_port_needed=params[4], source=params[0])
-
-  @staticmethod
   def perspective_node_has_ip_address(params):
     """Checks if a node has the given ip address.
 
