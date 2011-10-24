@@ -1519,30 +1519,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
                                [hvname, hv_full])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_x509_cert_create(self, node, validity):
-    """Creates a new X509 certificate for SSL/TLS.
-
-    This is a single-node call.
-
-    @type validity: int
-    @param validity: Validity in seconds
-
-    """
-    return self._SingleNodeCall(node, "x509_cert_create", [validity])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_x509_cert_remove(self, node, name):
-    """Removes a X509 certificate.
-
-    This is a single-node call.
-
-    @type name: string
-    @param name: Certificate name
-
-    """
-    return self._SingleNodeCall(node, "x509_cert_remove", [name])
-
-  @_RpcTimeout(_TMO_NORMAL)
   def call_import_start(self, node, opts, instance, component,
                         dest, dest_args):
     """Starts a listener for an import.
