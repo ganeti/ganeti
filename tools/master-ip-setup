@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2011 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+set -e -u
+
+USAGE_MSG="Usage: $0 {start|stop}"
+PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin
+
+# Start the master IP
+start() {
+  case $CLUSTER_IP_VERSION in
+    4)
+      ARP_COMMAND="arping -q -U -c 3 -I $MASTER_NETDEV -s $MASTER_IP $MASTER_IP"
+      ;;
+    6)
+      ARP_COMMAND="ndisc6 -q r 3 $MASTER_IP $MASTER_NETDEV"
+      ;;
+    *)
+      echo "Invalid cluster IP version specified: $CLUSTER_IP_VERSION" >&2
+      exit 1
+      ;;
+  esac
+
+  # Check if the master IP address is already configured on this machine
+  if fping -S 127.0.0.1 $MASTER_IP >/dev/null 2>&1; then
+    echo "Master IP address already configured on this machine. Doing nothing."
+    exit 0
+  fi
+
+  # Check if the master IP address is already configured on another machine
+  if fping $MASTER_IP >/dev/null 2>&1; then
+    echo "Error: master IP address configured on another machine." >&2
+    exit 1
+  fi
+
+  if ! ip addr add $MASTER_IP/$MASTER_NETMASK \
+     dev $MASTER_NETDEV label $MASTER_NETDEV:0; then
+    echo "Error during the activation of the master IP address" >&2
+    exit 1
+  fi
+
+  # Send gratuituous ARP to update neighbours' ARP cache
+  $ARP_COMMAND || :
+}
+
+# Stop the master IP
+stop() {
+  if ! ip addr del $MASTER_IP/$MASTER_NETMASK dev $MASTER_NETDEV; then
+    echo "Error during the deactivation of the master IP address" >&2
+    exit 1
+  fi
+}
+
+if (( $# < 1 )); then
+  echo $USAGE_MSG >&2
+  exit 1
+fi
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  *)
+    echo $USAGE_MSG >&2
+    exit 1
+    ;;
+esac
+
+exit 0

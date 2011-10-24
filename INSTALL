@@ -44,6 +44,7 @@ Before installing, please verify that you have the following programs:
 - `ElementTree Python module <http://effbot.org/zone/element-index.htm>`_,
   if running python 2.4 (optional, used by ovfconverter tool)
 - `qemu-img <http://qemu.org/>`_, if you want to use ovfconverter
+- `fping <http://fping.sourceforge.net/>`_
 
 These programs are supplied as part of most Linux distributions, so
 usually they can be installed via the standard package manager. Also
