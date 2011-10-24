@@ -342,6 +342,5 @@ _MISC_CALLS = [
   ]
 
 CALLS = {
-  "RpcClientDefault": [
-    ],
+  "RpcClientDefault": _IMPEXP_CALLS,
   }
