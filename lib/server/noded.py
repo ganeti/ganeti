@@ -277,7 +277,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     disks = [objects.Disk.FromDict(dsk_s)
-             for dsk_s in params]
+             for dsk_s in params[0]]
     return [status.ToDict()
             for status in backend.BlockdevGetmirrorstatus(disks)]
 
