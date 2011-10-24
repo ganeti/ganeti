@@ -48,6 +48,9 @@ from ganeti import ssconf
 from ganeti import runtime
 from ganeti import compat
 
+# Special module generated at build time
+from ganeti import _generated_rpc
+
 # pylint has a bug here, doesn't see this import
 import ganeti.http.client  # pylint: disable=W0611
 
@@ -449,7 +452,7 @@ def _EncodeImportExportIO(ieio, ieioargs):
   return ieioargs
 
 
-class RpcRunner(object):
+class RpcRunner(_generated_rpc.RpcClientDefault):
   """RPC runner class.
 
   """
@@ -460,6 +463,8 @@ class RpcRunner(object):
     @param context: Ganeti context
 
     """
+    _generated_rpc.RpcClientDefault.__init__(self)
+
     self._cfg = context.cfg
     self._proc = _RpcProcessor(compat.partial(_NodeConfigResolver,
                                               self._cfg.GetNodeInfo,
@@ -509,6 +514,12 @@ class RpcRunner(object):
     """
     body = serializer.DumpJson(args, indent=False)
     return self._proc(node_list, procedure, body, read_timeout=read_timeout)
+
+  def _Call(self, node_list, procedure, timeout, args):
+    """Entry point for automatically generated RPC wrappers.
+
+    """
+    return self._MultiNodeCall(node_list, procedure, args, read_timeout=timeout)
 
   @staticmethod
   def _StaticMultiNodeCall(node_list, procedure, args,
