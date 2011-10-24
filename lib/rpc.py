@@ -626,36 +626,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
   #
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_storage_list(self, node_list, su_name, su_args, name, fields):
-    """Get list of storage units.
-
-    This is a multi-node call.
-
-    """
-    return self._MultiNodeCall(node_list, "storage_list",
-                               [su_name, su_args, name, fields])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_storage_modify(self, node, su_name, su_args, name, changes):
-    """Modify a storage unit.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "storage_modify",
-                                [su_name, su_args, name, changes])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_storage_execute(self, node, su_name, su_args, name, op):
-    """Executes an operation on a storage unit.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "storage_execute",
-                                [su_name, su_args, name, op])
-
-  @_RpcTimeout(_TMO_NORMAL)
   def call_instance_start(self, node, instance, hvp, bep, startup_paused):
     """Starts an instance.
 
