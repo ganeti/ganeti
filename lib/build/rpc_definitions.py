@@ -145,6 +145,22 @@ _INSTANCE_CALLS = [
   ]
 
 _IMPEXP_CALLS = [
+  ("import_start", SINGLE, TMO_NORMAL, [
+    ("opts", OBJECT_TO_DICT, None),
+    ("instance", INST_TO_DICT, None),
+    ("component", None, None),
+    ("dest", None, None),
+    ("dest_args", "self._EncodeImportExportIO(dest, %s)", None),
+    ], None, "Starts an import daemon"),
+  ("export_start", SINGLE, TMO_NORMAL, [
+    ("opts", OBJECT_TO_DICT, None),
+    ("host", None, None),
+    ("port", None, None),
+    ("instance", INST_TO_DICT, None),
+    ("component", None, None),
+    ("source", None, None),
+    ("source_args", "self._EncodeImportExportIO(source, %s)", None),
+    ], None, "Starts an export daemon"),
   ("impexp_status", SINGLE, TMO_FAST, [
     ("names", None, "Import/export names"),
     ], "self._ImpExpStatusPostProc", "Gets the status of an import or export"),

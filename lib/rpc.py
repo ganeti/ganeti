@@ -437,21 +437,6 @@ class _RpcProcessor:
     return self._CombineResults(results, requests, procedure)
 
 
-def _EncodeImportExportIO(ieio, ieioargs):
-  """Encodes import/export I/O information.
-
-  """
-  if ieio == constants.IEIO_RAW_DISK:
-    assert len(ieioargs) == 1
-    return (ieioargs[0].ToDict(), )
-
-  if ieio == constants.IEIO_SCRIPT:
-    assert len(ieioargs) == 2
-    return (ieioargs[0].ToDict(), ieioargs[1])
-
-  return ieioargs
-
-
 class RpcRunner(_generated_rpc.RpcClientDefault):
   """RPC runner class.
 
@@ -620,6 +605,21 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
       result.payload = decoded
 
     return result
+
+  @staticmethod
+  def _EncodeImportExportIO(ieio, ieioargs):
+    """Encodes import/export I/O information.
+
+    """
+    if ieio == constants.IEIO_RAW_DISK:
+      assert len(ieioargs) == 1
+      return (ieioargs[0].ToDict(), )
+
+    if ieio == constants.IEIO_SCRIPT:
+      assert len(ieioargs) == 2
+      return (ieioargs[0].ToDict(), ieioargs[1])
+
+    return ieioargs
 
   #
   # Begin RPC calls
@@ -832,44 +832,3 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     hv_full = objects.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
     return self._MultiNodeCall(node_list, "hypervisor_validate_params",
                                [hvname, hv_full])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_import_start(self, node, opts, instance, component,
-                        dest, dest_args):
-    """Starts a listener for an import.
-
-    This is a single-node call.
-
-    @type node: string
-    @param node: Node name
-    @type instance: C{objects.Instance}
-    @param instance: Instance object
-    @type component: string
-    @param component: which part of the instance is being imported
-
-    """
-    return self._SingleNodeCall(node, "import_start",
-                                [opts.ToDict(),
-                                 self._InstDict(instance), component, dest,
-                                 _EncodeImportExportIO(dest, dest_args)])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_export_start(self, node, opts, host, port,
-                        instance, component, source, source_args):
-    """Starts an export daemon.
-
-    This is a single-node call.
-
-    @type node: string
-    @param node: Node name
-    @type instance: C{objects.Instance}
-    @param instance: Instance object
-    @type component: string
-    @param component: which part of the instance is being imported
-
-    """
-    return self._SingleNodeCall(node, "export_start",
-                                [opts.ToDict(), host, port,
-                                 self._InstDict(instance),
-                                 component, source,
-                                 _EncodeImportExportIO(source, source_args)])
