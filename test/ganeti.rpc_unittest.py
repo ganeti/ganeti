@@ -36,16 +36,6 @@ from ganeti import objects
 import testutils
 
 
-class TestTimeouts(unittest.TestCase):
-  def test(self):
-    names = [name[len("call_"):] for name in dir(rpc.RpcRunner)
-             if name.startswith("call_")]
-    self.assertEqual(len(names), len(rpc._TIMEOUTS))
-    self.assertFalse([name for name in names
-                      if not (rpc._TIMEOUTS[name] is None or
-                              rpc._TIMEOUTS[name] > 0)])
-
-
 class _FakeRequestProcessor:
   def __init__(self, response_fn):
     self._response_fn = response_fn
@@ -229,7 +219,8 @@ class TestRpcProcessor(unittest.TestCase):
     http_proc = \
       _FakeRequestProcessor(compat.partial(self._GetHttpErrorResponse,
                                            httperrnodes, failnodes))
-    result = proc(nodes, "vg_list", None, _req_process_fn=http_proc)
+    result = proc(nodes, "vg_list", None, _req_process_fn=http_proc,
+                  read_timeout=rpc._TMO_URGENT)
     self.assertEqual(sorted(result.keys()), sorted(nodes))
 
     for name in nodes:

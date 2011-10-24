@@ -417,10 +417,11 @@ class _RpcProcessor:
     @param read_timeout: Read timeout for request
 
     """
-    assert procedure in _TIMEOUTS, "RPC call not declared in the timeouts table"
-
     if read_timeout is None:
-      read_timeout = _TIMEOUTS[procedure]
+      read_timeout = _TIMEOUTS.get(procedure, None)
+
+    assert read_timeout is not None, \
+      "Missing RPC read timeout for procedure '%s'" % procedure
 
     (results, requests) = \
       self._PrepareRequests(self._resolver(hosts), self._port, procedure,
