@@ -930,6 +930,22 @@ class ConfigWriter:
     """
     return self._config_data.cluster.primary_ip_family
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMasterNetworkParameters(self):
+    """Get network parameters of the master node.
+
+    @return: tuple consisting of (master_node, master_netdev, master_ip,
+      master_netmask, ip_family)
+
+    """
+    cluster = self._config_data.cluster
+
+    return (cluster.master_node,
+      cluster.master_ip,
+      cluster.master_netdev,
+      cluster.master_netmask,
+      cluster.primary_ip_family)
+
   @locking.ssynchronized(_config_lock)
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
     """Add a node group to the configuration.
