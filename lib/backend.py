@@ -265,9 +265,7 @@ def ActivateMasterIp():
       err_msg = "Someone else has the master ip, not activating"
       logging.error(err_msg)
   else:
-    ipcls = netutils.IP4Address
-    if family == netutils.IP6Address.family:
-      ipcls = netutils.IP6Address
+    ipcls = netutils.IPAddress.GetClassFromIpFamily(family)
 
     result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
                            "%s/%s" % (master_ip, master_netmask),
