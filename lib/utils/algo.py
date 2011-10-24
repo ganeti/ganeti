@@ -46,6 +46,29 @@ def UniqueSequence(seq):
   return [i for i in seq if i not in seen and not seen.add(i)]
 
 
+def JoinDisjointDicts(dict_a, dict_b):
+  """Joins dictionaries with no conflicting keys.
+
+  Enforces the constraint that the two key sets must be disjoint, and then
+  merges the two dictionaries in a new dictionary that is returned to the
+  caller.
+
+  @type dict_a: dict
+  @param dict_a: the first dictionary
+  @type dict_b: dict
+  @param dict_b: the second dictionary
+  @rtype: dict
+  @return: a new dictionary containing all the key/value pairs contained in the
+  two dictionaries.
+
+  """
+  assert not (set(dict_a) & set(dict_b)), ("Duplicate keys found while joining"
+                                           " %s and %s" % (dict_a, dict_b))
+  result = dict_a.copy()
+  result.update(dict_b)
+  return result
+
+
 def FindDuplicates(seq):
   """Identifies duplicates in a list.
 

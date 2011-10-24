@@ -272,5 +272,33 @@ class TestRunningTimeout(unittest.TestCase):
     self.assertRaises(ValueError, algo.RunningTimeout, -1.0, True)
 
 
+class TestJoinDisjointDicts(unittest.TestCase):
+  def setUp(self):
+    self.non_empty_dict = {"a": 1, "b": 2}
+    self.empty_dict = dict()
+
+  def testWithEmptyDicts(self):
+    self.assertEqual(self.empty_dict, algo.JoinDisjointDicts(self.empty_dict,
+      self.empty_dict))
+    self.assertEqual(self.non_empty_dict, algo.JoinDisjointDicts(
+      self.empty_dict, self.non_empty_dict))
+    self.assertEqual(self.non_empty_dict, algo.JoinDisjointDicts(
+      self.non_empty_dict, self.empty_dict))
+
+  def testNonDisjoint(self):
+    self.assertRaises(AssertionError, algo.JoinDisjointDicts,
+      self.non_empty_dict, self.non_empty_dict)
+
+  def testCommonCase(self):
+    dict_a = {"TEST1": 1, "TEST2": 2}
+    dict_b = {"TEST3": 3, "TEST4": 4}
+
+    result = dict_a.copy()
+    result.update(dict_b)
+
+    self.assertEqual(result, algo.JoinDisjointDicts(dict_a, dict_b))
+    self.assertEqual(result, algo.JoinDisjointDicts(dict_b, dict_a))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
