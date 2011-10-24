@@ -1010,7 +1010,7 @@ class RpcRunner(object):
 
     """
     return self._SingleNodeCall(node, "blockdev_rename",
-                                [(d.ToDict(), uid) for d, uid in devlist])
+                                [[(d.ToDict(), uid) for d, uid in devlist]])
 
   @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_pause_resume_sync(self, node, disks, pause):

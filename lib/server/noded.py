@@ -216,7 +216,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Remove a block device.
 
     """
-    devlist = [(objects.Disk.FromDict(ds), uid) for ds, uid in params]
+    devlist = [(objects.Disk.FromDict(ds), uid) for ds, uid in params[0]]
     return backend.BlockdevRename(devlist)
 
   @staticmethod
