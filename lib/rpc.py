@@ -634,24 +634,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     """
     return self._MultiNodeCall(node_list, "bdev_sizes", [devices])
 
-  @_RpcTimeout(_TMO_URGENT)
-  def call_lv_list(self, node_list, vg_name):
-    """Gets the logical volumes present in a given volume group.
-
-    This is a multi-node call.
-
-    """
-    return self._MultiNodeCall(node_list, "lv_list", [vg_name])
-
-  @_RpcTimeout(_TMO_URGENT)
-  def call_vg_list(self, node_list):
-    """Gets the volume group list.
-
-    This is a multi-node call.
-
-    """
-    return self._MultiNodeCall(node_list, "vg_list", [])
-
   @_RpcTimeout(_TMO_NORMAL)
   def call_storage_list(self, node_list, su_name, su_args, name, fields):
     """Get list of storage units.
@@ -681,19 +663,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     """
     return self._SingleNodeCall(node, "storage_execute",
                                 [su_name, su_args, name, op])
-
-  @_RpcTimeout(_TMO_URGENT)
-  def call_bridges_exist(self, node, bridges_list):
-    """Checks if a node has all the bridges given.
-
-    This method checks if all bridges given in the bridges_list are
-    present on the remote node, so that an instance that uses interfaces
-    on those bridges can be started.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "bridges_exist", [bridges_list])
 
   @_RpcTimeout(_TMO_NORMAL)
   def call_instance_start(self, node, instance, hvp, bep, startup_paused):
@@ -919,22 +888,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
 
     """
     return self._MultiNodeCall(node_list, "instance_list", [hypervisor_list])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_etc_hosts_modify(self, node, mode, name, ip):
-    """Modify hosts file with name
-
-    @type node: string
-    @param node: The node to call
-    @type mode: string
-    @param mode: The mode to operate. Currently "add" or "remove"
-    @type name: string
-    @param name: The host name to be modified
-    @type ip: string
-    @param ip: The ip of the entry (just valid if mode is "add")
-
-    """
-    return self._SingleNodeCall(node, "etc_hosts_modify", [mode, name, ip])
 
   @classmethod
   @_RpcTimeout(_TMO_FAST)
@@ -1245,43 +1198,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     return cls._StaticMultiNodeCall(node_list, "write_ssconf_files", [values])
 
   @_RpcTimeout(_TMO_NORMAL)
-  def call_run_oob(self, node, oob_program, command, remote_node, timeout):
-    """Runs OOB.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "run_oob", [oob_program, command,
-                                                  remote_node, timeout])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_hooks_runner(self, node_list, hpath, phase, env):
-    """Call the hooks runner.
-
-    Args:
-      - op: the OpCode instance
-      - env: a dictionary with the environment
-
-    This is a multi-node call.
-
-    """
-    params = [hpath, phase, env]
-    return self._MultiNodeCall(node_list, "hooks_runner", params)
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_iallocator_runner(self, node, name, idata):
-    """Call an iallocator on a remote node
-
-    Args:
-      - name: the iallocator name
-      - input: the json-encoded input string
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "iallocator_runner", [name, idata])
-
-  @_RpcTimeout(_TMO_NORMAL)
   def call_blockdev_grow(self, node, cf_bdev, amount, dryrun):
     """Request a snapshot of the given block device.
 
@@ -1326,15 +1242,15 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     return cls._StaticSingleNodeCall(node, "node_leave_cluster",
                                      [modify_ssh_setup])
 
-  @_RpcTimeout(None)
-  def call_test_delay(self, node_list, duration):
+  def call_test_delay(self, node_list, duration, read_timeout=None):
     """Sleep for a fixed time on given node(s).
 
     This is a multi-node call.
 
     """
-    return self._MultiNodeCall(node_list, "test_delay", [duration],
-                               read_timeout=int(duration + 5))
+    assert read_timeout is None
+    return self.call_test_delay(node_list, duration,
+                                read_timeout=int(duration + 5))
 
   @classmethod
   @_RpcTimeout(_TMO_URGENT)
