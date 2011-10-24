@@ -1240,7 +1240,7 @@ class RpcRunner(object):
     return result
 
   @_RpcTimeout(_TMO_FAST)
-  def call_os_validate(self, required, nodes, name, checks, params):
+  def call_os_validate(self, nodes, required, name, checks, params):
     """Run a validation routine for a given OS.
 
     This is a multi-node call.

@@ -8244,7 +8244,7 @@ def _CheckOSParams(lu, required, nodenames, osname, osparams):
 
   """
   nodenames = _FilterVmNodes(lu, nodenames)
-  result = lu.rpc.call_os_validate(required, nodenames, osname,
+  result = lu.rpc.call_os_validate(nodenames, required, osname,
                                    [constants.OS_VALIDATE_PARAMETERS],
                                    osparams)
   for node, nres in result.items():
