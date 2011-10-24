@@ -34,6 +34,14 @@ TMO_1DAY = 86400
 SINGLE = "single-node"
 MULTI = "multi-node"
 
+OBJECT_TO_DICT = "%s.ToDict()"
+OBJECT_LIST_TO_DICT = "map(lambda d: d.ToDict(), %s)"
+INST_TO_DICT = "self._InstDict(%s)"
+
+NODE_TO_DISK_DICT = \
+  ("dict((name, %s) for name, disks in %%s.items())" %
+   (OBJECT_LIST_TO_DICT % "disks"))
+
 CALLS = {
   "RpcClientDefault": [
     ],
