@@ -1295,37 +1295,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     return self._SingleNodeCall(node, "run_oob", [oob_program, command,
                                                   remote_node, timeout])
 
-  @_RpcTimeout(_TMO_FAST)
-  def call_os_diagnose(self, node_list):
-    """Request a diagnose of OS definitions.
-
-    This is a multi-node call.
-
-    """
-    return self._MultiNodeCall(node_list, "os_diagnose", [])
-
-  @_RpcTimeout(_TMO_FAST)
-  def call_os_get(self, node, name):
-    """Returns an OS definition.
-
-    This is a single-node call.
-
-    """
-    result = self._SingleNodeCall(node, "os_get", [name])
-    if not result.fail_msg and isinstance(result.payload, dict):
-      result.payload = objects.OS.FromDict(result.payload)
-    return result
-
-  @_RpcTimeout(_TMO_FAST)
-  def call_os_validate(self, nodes, required, name, checks, params):
-    """Run a validation routine for a given OS.
-
-    This is a multi-node call.
-
-    """
-    return self._MultiNodeCall(nodes, "os_validate",
-                               [required, name, checks, params])
-
   @_RpcTimeout(_TMO_NORMAL)
   def call_hooks_runner(self, node_list, hpath, phase, env):
     """Call the hooks runner.
