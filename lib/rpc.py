@@ -556,6 +556,71 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
                          netutils.GetDaemonPort(constants.NODED))
     return proc([node], procedure, body, read_timeout=read_timeout)[node]
 
+  @staticmethod
+  def _BlockdevFindPostProc(result):
+    if not result.fail_msg and result.payload is not None:
+      result.payload = objects.BlockDevStatus.FromDict(result.payload)
+    return result
+
+  @staticmethod
+  def _BlockdevGetMirrorStatusPostProc(result):
+    if not result.fail_msg:
+      result.payload = [objects.BlockDevStatus.FromDict(i)
+                        for i in result.payload]
+    return result
+
+  @staticmethod
+  def _BlockdevGetMirrorStatusMultiPostProc(result):
+    for nres in result.values():
+      if nres.fail_msg:
+        continue
+
+      for idx, (success, status) in enumerate(nres.payload):
+        if success:
+          nres.payload[idx] = (success, objects.BlockDevStatus.FromDict(status))
+
+    return result
+
+  @staticmethod
+  def _OsGetPostProc(result):
+    if not result.fail_msg and isinstance(result.payload, dict):
+      result.payload = objects.OS.FromDict(result.payload)
+    return result
+
+  @staticmethod
+  def _PrepareFinalizeExportDisks(snap_disks):
+    flat_disks = []
+
+    for disk in snap_disks:
+      if isinstance(disk, bool):
+        flat_disks.append(disk)
+      else:
+        flat_disks.append(disk.ToDict())
+
+    return flat_disks
+
+  @staticmethod
+  def _ImpExpStatusPostProc(result):
+    """Post-processor for import/export status.
+
+    @rtype: Payload containing list of L{objects.ImportExportStatus} instances
+    @return: Returns a list of the state of each named import/export or None if
+             a status couldn't be retrieved
+
+    """
+    if not result.fail_msg:
+      decoded = []
+
+      for i in result.payload:
+        if i is None:
+          decoded.append(None)
+          continue
+        decoded.append(objects.ImportExportStatus.FromDict(i))
+
+      result.payload = decoded
+
+    return result
+
   #
   # Begin RPC calls
   #
