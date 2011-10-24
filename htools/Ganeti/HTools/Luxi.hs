@@ -69,22 +69,28 @@ parseQueryResult o =
     fail $ "Invalid query result, expected array but got " ++ show o
 
 -- | Prepare resulting output as parsers expect it.
-extractArray :: (Monad m) => JSValue -> m [JSValue]
+extractArray :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
 extractArray v =
-  getData v >>= parseQueryResult >>= (return . map (JSArray . map snd))
+  getData v >>= parseQueryResult
+
+-- | Testing result status for more verbose error message.
+fromJValWithStatus :: (Text.JSON.JSON a, Monad m) => (JSValue, JSValue) -> m a
+fromJValWithStatus (st, v) = do
+    st' <- fromJVal st
+    L.checkRS st' v >>= fromJVal
 
 -- | Annotate errors when converting values with owner/attribute for
 -- better debugging.
 genericConvert :: (Text.JSON.JSON a) =>
-                  String     -- ^ The object type
-               -> String     -- ^ The object name
-               -> String     -- ^ The attribute we're trying to convert
-               -> JSValue    -- ^ The value we try to convert
-               -> Result a   -- ^ The annotated result
+                  String             -- ^ The object type
+               -> String             -- ^ The object name
+               -> String             -- ^ The attribute we're trying to convert
+               -> (JSValue, JSValue) -- ^ The value we're trying to convert
+               -> Result a           -- ^ The annotated result
 genericConvert otype oname oattr =
     annotateResult (otype ++ " '" ++ oname ++
                     "', error while reading attribute '" ++
-                    oattr ++ "'") . fromJVal
+                    oattr ++ "'") . fromJValWithStatus
 
 -- * Data querying functionality
 
@@ -135,16 +141,16 @@ getInstances ktn arr = extractArray arr >>= mapM (parseInstance ktn)
 
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc
-              -> JSValue
+              -> [(JSValue, JSValue)]
               -> Result (String, Instance.Instance)
-parseInstance ktn (JSArray [ name, disk, mem, vcpus
-                           , status, pnode, snodes, tags, oram
-                           , auto_balance, disk_template ]) = do
-  xname <- annotateResult "Parsing new instance" (fromJVal name)
+parseInstance ktn [ name, disk, mem, vcpus
+                  , status, pnode, snodes, tags, oram
+                  , auto_balance, disk_template ] = do
+  xname <- annotateResult "Parsing new instance" (fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
-  xmem <- (case oram of
-             JSRational _ _ -> convert "oper_ram" oram
+  xmem <- (case oram of -- FIXME: remove the "guessing"
+             (_, JSRational _ _) -> convert "oper_ram" oram
              _ -> convert "be/memory" mem)
   xvcpus <- convert "be/vcpus" vcpus
   xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
@@ -166,11 +172,11 @@ getNodes :: NameAssoc -> JSValue -> Result [(String, Node.Node)]
 getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 
 -- | Construct a node from a JSON object.
-parseNode :: NameAssoc -> JSValue -> Result (String, Node.Node)
-parseNode ktg (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
-                       , ctotal, offline, drained, vm_capable, g_uuid ])
+parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
+parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
+              , ctotal, offline, drained, vm_capable, g_uuid ]
     = do
-  xname <- annotateResult "Parsing new node" (fromJVal name)
+  xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
   xoffline <- convert "offline" offline
   xdrained <- convert "drained" drained
@@ -203,9 +209,9 @@ getGroups :: JSValue -> Result [(String, Group.Group)]
 getGroups jsv = extractArray jsv >>= mapM parseGroup
 
 -- | Parses a given group information.
-parseGroup :: JSValue -> Result (String, Group.Group)
-parseGroup (JSArray [uuid, name, apol]) = do
-  xname <- annotateResult "Parsing new group" (fromJVal name)
+parseGroup :: [(JSValue, JSValue)] -> Result (String, Group.Group)
+parseGroup [uuid, name, apol] = do
+  xname <- annotateResult "Parsing new group" (fromJValWithStatus name)
   let convert a = genericConvert "Group" xname a
   xuuid <- convert "uuid" uuid
   xapol <- convert "alloc_policy" apol

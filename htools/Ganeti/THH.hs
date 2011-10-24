@@ -30,7 +30,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.THH ( declareSADT
+                  , declareIADT
                   , makeJSONInstance
+                  , makeJSONInstanceInt
                   , genOpID
                   , genOpCode
                   , noDefault
@@ -68,9 +70,17 @@ showJSONE = varNameE "showJSON"
 toStrName :: String -> Name
 toStrName = mkName . (++ "ToString") . ensureLower
 
+-- | ToInt function name.
+toIntName :: String -> Name
+toIntName= mkName . (++ "ToInt") . ensureLower
+
 -- | FromString function name.
 fromStrName :: String -> Name
 fromStrName = mkName . (++ "FromString") . ensureLower
+
+-- | FromInt function name.
+fromIntName:: String -> Name
+fromIntName = mkName . (++ "FromInt") . ensureLower
 
 -- | Converts a name to it's varE/litE representations.
 --
@@ -84,6 +94,77 @@ reprE = either stringE varE
 appFn :: Exp -> Exp -> Exp
 appFn f x | f == VarE 'id = x
           | otherwise = AppE f x
+
+-- * Template code for simple integer-equivalent ADTs
+
+-- | Generates a data type declaration.
+--
+-- The type will have a fixed list of instances.
+intADTDecl :: Name -> [String] -> Dec
+intADTDecl name constructors =
+    DataD [] name []
+              (map (flip NormalC [] . mkName) constructors)
+              [''Show]
+
+-- | Generates a toInt function.
+genToInt :: Name -> Name -> [(String, Name)] -> Q [Dec]
+genToInt fname tname constructors = do
+  sigt <- [t| $(conT tname) -> Int |]
+  clauses <- mapM  (\(c, v) -> clause [recP (mkName c) []]
+                             (normalB (varE v)) []) constructors
+  return [SigD fname sigt, FunD fname clauses]
+
+-- | Generates a fromInt function.
+genFromInt :: Name -> Name -> [(String, Name)] -> Q [Dec]
+genFromInt fname tname constructors = do
+  sigt <- [t| (Monad m) => Int-> m $(conT tname) |]
+  let varp = mkName "s"
+      varpe = varE varp
+  clauses <- mapM (\(c, v) -> do
+                     g <- normalG [| $varpe == $(varE v) |]
+                     r <- [| return $(conE (mkName c)) |]
+                     return (g, r)) constructors
+  oth_clause <- do
+    g <- normalG [| otherwise |]
+    r <- [|fail ("Invalid int value for type " ++
+                 $(litE (stringL (nameBase tname))) ++ ": " ++ show $varpe) |]
+    return (g, r)
+  let fun = FunD fname [Clause [VarP varp]
+                        (GuardedB (clauses++[oth_clause])) []]
+  return [SigD fname sigt, fun]
+
+-- | Generates a data type from a given string format.
+declareIADT:: String -> [(String, Name)] -> Q [Dec]
+declareIADT sname cons = do
+  let name = mkName sname
+      ddecl = intADTDecl name (map fst cons)
+  tostr <- genToInt (toIntName sname) name cons
+  fromstr <- genFromInt (fromIntName sname) name cons
+  return $ ddecl:tostr ++ fromstr
+
+-- | Creates the showJSON member of a JSON instance declaration.
+genShowJSONInt :: String -> Q [Dec]
+genShowJSONInt name = [d| showJSON = JSON.showJSON . $(varE (toIntName name)) |]
+
+-- | Creates the readJSON member of a JSON instance declaration.
+genReadJSONInt :: String -> Q Dec
+genReadJSONInt name = do
+  let s = mkName "s"
+  body <- [| case JSON.readJSON $(varE s) of
+               JSON.Ok s' -> $(varE (fromIntName name)) s'
+               JSON.Error e ->
+                   JSON.Error $ "Can't parse int value for type " ++
+                           $(stringE name) ++ ": " ++ e
+           |]
+  return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
+
+-- | Generates a JSON instance for a given type.
+makeJSONInstanceInt :: Name -> Q [Dec]
+makeJSONInstanceInt name = do
+  let base = nameBase name
+  showJ <- genShowJSONInt base
+  readJ <- genReadJSONInt base
+  return [InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name)) (readJ:showJ)]
 
 -- * Template code for simple string-equivalent ADTs
 

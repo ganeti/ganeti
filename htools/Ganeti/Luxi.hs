@@ -28,7 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Luxi
     ( LuxiOp(..)
     , QrViaLuxi(..)
+    , ResultStatus(..)
     , Client
+    , checkRS
     , getClient
     , closeClient
     , callMethod
@@ -144,6 +146,23 @@ $(genLuxiOp "LuxiOp"
 
 -- | The serialisation of LuxiOps into strings in messages.
 $(genStrOfOp ''LuxiOp "strOfOp")
+
+$(declareIADT "ResultStatus"
+     [ ("RSNormal", 'rsNormal)
+     , ("RSUnknown", 'rsUnknown)
+     , ("RSNoData", 'rsNodata)
+     , ("RSUnavailable", 'rsUnavail)
+     , ("RSOffline", 'rsOffline)
+     ])
+$(makeJSONInstanceInt ''ResultStatus)
+
+-- | Check that ResultStatus is success or fail with descriptive message.
+checkRS :: (Monad m) => ResultStatus -> a -> m a
+checkRS RSNormal val    = return val
+checkRS RSUnknown _     = fail "Unknown field"
+checkRS RSNoData _      = fail "No data for a field"
+checkRS RSUnavailable _ = fail "Ganeti reports unavailable data"
+checkRS RSOffline _     = fail "Ganeti reports resource as offline"
 
 -- | The end-of-message separator.
 eOM :: Char
