@@ -920,37 +920,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     """
     return self._MultiNodeCall(node_list, "instance_list", [hypervisor_list])
 
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_has_ip_address(self, node, address):
-    """Checks if a node has the given IP address.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "node_has_ip_address", [address])
-
-  @_RpcTimeout(_TMO_URGENT)
-  def call_node_info(self, node_list, vg_name, hypervisor_type):
-    """Return node information.
-
-    This will return memory information and volume group size and free
-    space.
-
-    This is a multi-node call.
-
-    @type node_list: list
-    @param node_list: the list of nodes to query
-    @type vg_name: C{string}
-    @param vg_name: the name of the volume group to ask for disk space
-        information
-    @type hypervisor_type: C{str}
-    @param hypervisor_type: the name of the hypervisor to ask for
-        memory information
-
-    """
-    return self._MultiNodeCall(node_list, "node_info",
-                               [vg_name, hypervisor_type])
-
   @_RpcTimeout(_TMO_NORMAL)
   def call_etc_hosts_modify(self, node, mode, name, ip):
     """Modify hosts file with name
@@ -966,16 +935,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
 
     """
     return self._SingleNodeCall(node, "etc_hosts_modify", [mode, name, ip])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_node_verify(self, node_list, checkdict, cluster_name):
-    """Request verification of given parameters.
-
-    This is a multi-node call.
-
-    """
-    return self._MultiNodeCall(node_list, "node_verify",
-                               [checkdict, cluster_name])
 
   @classmethod
   @_RpcTimeout(_TMO_FAST)
@@ -1366,33 +1325,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     """
     return cls._StaticSingleNodeCall(node, "node_leave_cluster",
                                      [modify_ssh_setup])
-
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_volumes(self, node_list):
-    """Gets all volumes on node(s).
-
-    This is a multi-node call.
-
-    """
-    return self._MultiNodeCall(node_list, "node_volumes", [])
-
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_demote_from_mc(self, node):
-    """Demote a node from the master candidate role.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "node_demote_from_mc", [])
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_node_powercycle(self, node, hypervisor):
-    """Tries to powercycle a node.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "node_powercycle", [hypervisor])
 
   @_RpcTimeout(None)
   def call_test_delay(self, node_list, duration):
