@@ -342,5 +342,6 @@ _MISC_CALLS = [
   ]
 
 CALLS = {
-  "RpcClientDefault": (_IMPEXP_CALLS + _X509_CALLS + _OS_CALLS + _NODE_CALLS),
+  "RpcClientDefault": (_IMPEXP_CALLS + _X509_CALLS + _OS_CALLS + _NODE_CALLS +
+    _FILE_STORAGE_CALLS),
   }

@@ -1336,37 +1336,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     return self._MultiNodeCall(node_list, "test_delay", [duration],
                                read_timeout=int(duration + 5))
 
-  @_RpcTimeout(_TMO_FAST)
-  def call_file_storage_dir_create(self, node, file_storage_dir):
-    """Create the given file storage directory.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "file_storage_dir_create",
-                                [file_storage_dir])
-
-  @_RpcTimeout(_TMO_FAST)
-  def call_file_storage_dir_remove(self, node, file_storage_dir):
-    """Remove the given file storage directory.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "file_storage_dir_remove",
-                                [file_storage_dir])
-
-  @_RpcTimeout(_TMO_FAST)
-  def call_file_storage_dir_rename(self, node, old_file_storage_dir,
-                                   new_file_storage_dir):
-    """Rename file storage directory.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "file_storage_dir_rename",
-                                [old_file_storage_dir, new_file_storage_dir])
-
   @classmethod
   @_RpcTimeout(_TMO_URGENT)
   def call_jobqueue_update(cls, node_list, address_list, file_name, content):
