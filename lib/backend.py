@@ -81,6 +81,10 @@ _IES_CA_FILE = "ca"
 #: Valid LVS output line regex
 _LVSLINE_REGEX = re.compile("^ *([^|]+)\|([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
 
+# Actions for the master setup script
+_MASTER_START = "start"
+_MASTER_STOP = "stop"
+
 
 class RPCFail(Exception):
   """Class denoting RPC failure.
@@ -303,11 +307,40 @@ def _BuildMasterIpEnv(master_params, use_external_mip_script=None):
   env = {
     "MASTER_NETDEV": master_params.netdev,
     "MASTER_IP": master_params.ip,
-    "MASTER_NETMASK": master_params.netmask,
+    "MASTER_NETMASK": str(master_params.netmask),
     "CLUSTER_IP_VERSION": str(ver),
   }
 
   return env
+
+
+def _RunMasterSetupScript(master_params, action, use_external_mip_script):
+  """Execute the master IP address setup script.
+
+  @type master_params: L{objects.MasterNetworkParameters}
+  @param master_params: network parameters of the master
+  @type action: string
+  @param action: action to pass to the script. Must be one of
+    L{backend._MASTER_START} or L{backend._MASTER_STOP}
+  @type use_external_mip_script: boolean
+  @param use_external_mip_script: whether to use an external master IP
+    address setup script
+  @raise backend.RPCFail: if there are errors during the execution of the
+    script
+
+  """
+  env = _BuildMasterIpEnv(master_params)
+
+  if use_external_mip_script:
+    setup_script = constants.EXTERNAL_MASTER_SETUP_SCRIPT
+  else:
+    setup_script = constants.DEFAULT_MASTER_SETUP_SCRIPT
+
+  result = utils.RunCmd([setup_script, action], env=env, reset_env=True)
+
+  if result.failed:
+    _Fail("Failed to %s the master IP. Script return value: %s" %
+          (action, result.exit_code), log=True)
 
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNUP, "master-ip-turnup",
@@ -320,43 +353,11 @@ def ActivateMasterIp(master_params, use_external_mip_script):
   @type use_external_mip_script: boolean
   @param use_external_mip_script: whether to use an external master IP
     address setup script
+  @raise RPCFail: in case of errors during the IP startup
 
   """
-  # pylint: disable=W0613
-  err_msg = None
-  if netutils.TcpPing(master_params.ip, constants.DEFAULT_NODED_PORT):
-    if netutils.IPAddress.Own(master_params.ip):
-      # we already have the ip:
-      logging.debug("Master IP already configured, doing nothing")
-    else:
-      err_msg = "Someone else has the master ip, not activating"
-      logging.error(err_msg)
-  else:
-    ipcls = netutils.IPAddress.GetClassFromIpFamily(master_params.ip_family)
-
-    result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
-                           "%s/%s" % (master_params.ip, master_params.netmask),
-                           "dev", master_params.netdev, "label",
-                           "%s:0" % master_params.netdev])
-    if result.failed:
-      err_msg = "Can't activate master IP: %s" % result.output
-      logging.error(err_msg)
-
-    else:
-      # we ignore the exit code of the following cmds
-      if ipcls == netutils.IP4Address:
-        utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_params.netdev,
-                      "-s", master_params.ip, master_params.ip])
-      elif ipcls == netutils.IP6Address:
-        try:
-          utils.RunCmd(["ndisc6", "-q", "-r 3", master_params.ip,
-                        master_params.netdev])
-        except errors.OpExecError:
-          # TODO: Better error reporting
-          logging.warning("Can't execute ndisc6, please install if missing")
-
-  if err_msg:
-    _Fail(err_msg)
+  _RunMasterSetupScript(master_params, _MASTER_START,
+                        use_external_mip_script)
 
 
 def StartMasterDaemons(no_voting):
@@ -397,18 +398,11 @@ def DeactivateMasterIp(master_params, use_external_mip_script):
   @type use_external_mip_script: boolean
   @param use_external_mip_script: whether to use an external master IP
     address setup script
+  @raise RPCFail: in case of errors during the IP turndown
 
   """
-  # pylint: disable=W0613
-  # TODO: log and report back to the caller the error failures; we
-  # need to decide in which case we fail the RPC for this
-
-  result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
-                         "%s/%s" % (master_params.ip, master_params.netmask),
-                         "dev", master_params.netdev])
-  if result.failed:
-    logging.error("Can't remove the master IP, error: %s", result.output)
-    # but otherwise ignore the failure
+  _RunMasterSetupScript(master_params, _MASTER_STOP,
+                        use_external_mip_script)
 
 
 def StopMasterDaemons():
