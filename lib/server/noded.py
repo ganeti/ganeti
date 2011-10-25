@@ -914,7 +914,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     # TODO: What if a file fails to rename?
-    return [backend.JobQueueRename(old, new) for old, new in params]
+    return [backend.JobQueueRename(old, new) for old, new in params[0]]
 
   # hypervisor ---------------
 

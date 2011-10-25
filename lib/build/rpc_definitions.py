@@ -361,4 +361,14 @@ CALLS = {
   "RpcClientDefault": (_IMPEXP_CALLS + _X509_CALLS + _OS_CALLS + _NODE_CALLS +
     _FILE_STORAGE_CALLS + _MISC_CALLS + _INSTANCE_CALLS + _BLOCKDEV_CALLS +
     _STORAGE_CALLS),
+  "RpcClientJobQueue": [
+    ("jobqueue_update", MULTI, TMO_URGENT, [
+      ("file_name", None, None),
+      ("content", "self._Compress(%s)", None),
+      ], None, "Update job queue file"),
+    ("jobqueue_purge", SINGLE, TMO_NORMAL, [], None, "Purge job queue"),
+    ("jobqueue_rename", MULTI, TMO_URGENT, [
+      ("rename", None, None),
+      ], None, "Rename job queue file"),
+    ],
   }

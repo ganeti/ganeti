@@ -781,39 +781,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     return self.call_test_delay(node_list, duration,
                                 read_timeout=int(duration + 5))
 
-  @classmethod
-  @_RpcTimeout(_TMO_URGENT)
-  def call_jobqueue_update(cls, node_list, address_list, file_name, content):
-    """Update job queue.
-
-    This is a multi-node call.
-
-    """
-    return cls._StaticMultiNodeCall(node_list, "jobqueue_update",
-                                    [file_name, _Compress(content)],
-                                    address_list=address_list)
-
-  @classmethod
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_jobqueue_purge(cls, node):
-    """Purge job queue.
-
-    This is a single-node call.
-
-    """
-    return cls._StaticSingleNodeCall(node, "jobqueue_purge", [])
-
-  @classmethod
-  @_RpcTimeout(_TMO_URGENT)
-  def call_jobqueue_rename(cls, node_list, address_list, rename):
-    """Rename a job queue file.
-
-    This is a multi-node call.
-
-    """
-    return cls._StaticMultiNodeCall(node_list, "jobqueue_rename", rename,
-                                    address_list=address_list)
-
   @_RpcTimeout(_TMO_NORMAL)
   def call_hypervisor_validate_params(self, node_list, hvname, hvparams):
     """Validate the hypervisor params.
@@ -832,3 +799,34 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     hv_full = objects.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
     return self._MultiNodeCall(node_list, "hypervisor_validate_params",
                                [hvname, hv_full])
+
+
+class JobQueueRunner(_generated_rpc.RpcClientJobQueue):
+  """RPC wrappers for job queue.
+
+  """
+  _Compress = staticmethod(_Compress)
+
+  def __init__(self, context, address_list):
+    """Initializes this class.
+
+    """
+    _generated_rpc.RpcClientJobQueue.__init__(self)
+
+    if address_list is None:
+      resolver = _SsconfResolver
+    else:
+      # Caller provided an address list
+      resolver = _StaticResolver(address_list)
+
+    self._proc = _RpcProcessor(resolver,
+                               netutils.GetDaemonPort(constants.NODED),
+                               lock_monitor_cb=context.glm.AddToLockMonitor)
+
+  def _Call(self, node_list, procedure, timeout, args):
+    """Entry point for automatically generated RPC wrappers.
+
+    """
+    body = serializer.DumpJson(args, indent=False)
+
+    return self._proc(node_list, procedure, body, read_timeout=timeout)

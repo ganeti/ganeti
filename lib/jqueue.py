@@ -1611,6 +1611,12 @@ class JobQueue(object):
 
     logging.info("Job queue inspection finished")
 
+  def _GetRpc(self, address_list):
+    """Gets RPC runner with context.
+
+    """
+    return rpc.JobQueueRunner(self.context, address_list)
+
   @locking.ssynchronized(_LOCK)
   @_RequireOpenQueue
   def AddNode(self, node):
@@ -1624,7 +1630,7 @@ class JobQueue(object):
     assert node_name != self._my_hostname
 
     # Clean queue directory on added node
-    result = rpc.RpcRunner.call_jobqueue_purge(node_name)
+    result = self._GetRpc(None).call_jobqueue_purge(node_name)
     msg = result.fail_msg
     if msg:
       logging.warning("Cannot cleanup queue directory on node %s: %s",
@@ -1642,13 +1648,15 @@ class JobQueue(object):
     # Upload current serial file
     files.append(constants.JOB_QUEUE_SERIAL_FILE)
 
+    # Static address list
+    addrs = [node.primary_ip]
+
     for file_name in files:
       # Read file content
       content = utils.ReadFile(file_name)
 
-      result = rpc.RpcRunner.call_jobqueue_update([node_name],
-                                                  [node.primary_ip],
-                                                  file_name, content)
+      result = self._GetRpc(addrs).call_jobqueue_update([node_name], file_name,
+                                                        content)
       msg = result[node_name].fail_msg
       if msg:
         logging.error("Failed to upload file %s to node %s: %s",
@@ -1732,7 +1740,7 @@ class JobQueue(object):
 
     if replicate:
       names, addrs = self._GetNodeIp()
-      result = rpc.RpcRunner.call_jobqueue_update(names, addrs, file_name, data)
+      result = self._GetRpc(addrs).call_jobqueue_update(names, file_name, data)
       self._CheckRpcResult(result, self._nodes, "Updating %s" % file_name)
 
   def _RenameFilesUnlocked(self, rename):
@@ -1751,7 +1759,7 @@ class JobQueue(object):
 
     # ... and on all nodes
     names, addrs = self._GetNodeIp()
-    result = rpc.RpcRunner.call_jobqueue_rename(names, addrs, rename)
+    result = self._GetRpc(addrs).call_jobqueue_rename(names, rename)
     self._CheckRpcResult(result, self._nodes, "Renaming files (%r)" % rename)
 
   @staticmethod
