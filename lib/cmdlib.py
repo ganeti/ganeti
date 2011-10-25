@@ -753,7 +753,7 @@ def _RunPostHook(lu, node_name):
   """Runs the post-hook for an opcode on a single node.
 
   """
-  hm = lu.proc.hmclass(lu.rpc.call_hooks_runner, lu)
+  hm = lu.proc.BuildHooksManager(lu)
   try:
     hm.RunPhase(constants.HOOKS_PHASE_POST, nodes=[node_name])
   except:
