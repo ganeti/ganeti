@@ -513,53 +513,13 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
     """
     return self._InstDict(instance, osp=osparams)
 
-  def _MultiNodeCall(self, node_list, procedure, args, read_timeout=None):
-    """Helper for making a multi-node call
-
-    """
-    body = serializer.DumpJson(args, indent=False)
-    return self._proc(node_list, procedure, body, read_timeout=read_timeout)
-
   def _Call(self, node_list, procedure, timeout, args):
     """Entry point for automatically generated RPC wrappers.
 
     """
-    return self._MultiNodeCall(node_list, procedure, args, read_timeout=timeout)
-
-  @staticmethod
-  def _StaticMultiNodeCall(node_list, procedure, args,
-                           address_list=None, read_timeout=None):
-    """Helper for making a multi-node static call
-
-    """
     body = serializer.DumpJson(args, indent=False)
 
-    if address_list is None:
-      resolver = _SsconfResolver
-    else:
-      # Caller provided an address list
-      resolver = _StaticResolver(address_list)
-
-    proc = _RpcProcessor(resolver,
-                         netutils.GetDaemonPort(constants.NODED))
-    return proc(node_list, procedure, body, read_timeout=read_timeout)
-
-  def _SingleNodeCall(self, node, procedure, args, read_timeout=None):
-    """Helper for making a single-node call
-
-    """
-    body = serializer.DumpJson(args, indent=False)
-    return self._proc([node], procedure, body, read_timeout=read_timeout)[node]
-
-  @classmethod
-  def _StaticSingleNodeCall(cls, node, procedure, args, read_timeout=None):
-    """Helper for making a single-node static call
-
-    """
-    body = serializer.DumpJson(args, indent=False)
-    proc = _RpcProcessor(_SsconfResolver,
-                         netutils.GetDaemonPort(constants.NODED))
-    return proc([node], procedure, body, read_timeout=read_timeout)[node]
+    return self._proc(node_list, procedure, body, read_timeout=timeout)
 
   @staticmethod
   def _BlockdevFindPostProc(result):
