@@ -60,6 +60,7 @@ from ganeti import ssconf
 from ganeti import serializer
 from ganeti import netutils
 from ganeti import runtime
+from ganeti import mcpu
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -242,6 +243,39 @@ def GetMasterInfo():
   except errors.ConfigurationError, err:
     _Fail("Cluster configuration incomplete: %s", err, exc=True)
   return (master_netdev, master_ip, master_node, primary_ip_family)
+
+
+def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
+  """Decorator that runs hooks before and after the decorated function.
+
+  @type hook_opcode: string
+  @param hook_opcode: opcode of the hook
+  @type hooks_path: string
+  @param hooks_path: path of the hooks
+  @type env_builder_fn: function
+  @param env_builder_fn: function that returns a dictionary containing the
+    environment variables for the hooks.
+  @raise RPCFail: in case of pre-hook failure
+
+  """
+  def decorator(fn):
+    def wrapper(*args, **kwargs):
+      _, myself = ssconf.GetMasterAndMyself()
+      nodes = ([myself], [myself])  # these hooks run locally
+
+      cfg = _GetConfig()
+      hr = HooksRunner()
+      hm = mcpu.HooksMaster(hook_opcode, hooks_path, nodes, hr.RunLocalHooks,
+                            None, env_builder_fn, logging.warning,
+                            cfg.GetClusterName(), cfg.GetMasterNode())
+
+      hm.RunPhase(constants.HOOKS_PHASE_PRE)
+      result = fn(*args, **kwargs)
+      hm.RunPhase(constants.HOOKS_PHASE_POST)
+
+      return result
+    return wrapper
+  return decorator
 
 
 def ActivateMasterIp():
@@ -3362,6 +3396,20 @@ class HooksRunner(object):
     # yeah, _BASE_DIR is not valid for attributes, we use it like a
     # constant
     self._BASE_DIR = hooks_base_dir # pylint: disable=C0103
+
+  def RunLocalHooks(self, node_list, hpath, phase, env):
+    """Check that the hooks will be run only locally and then run them.
+
+    """
+    assert len(node_list) == 1
+    node = node_list[0]
+    _, myself = ssconf.GetMasterAndMyself()
+    assert node == myself
+
+    results = self.RunHooks(hpath, phase, env)
+
+    # Return values in the form expected by HooksMaster
+    return {node: (None, False, results)}
 
   def RunHooks(self, hpath, phase, env):
     """Run the scripts in the hooks directory.
