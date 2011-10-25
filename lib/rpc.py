@@ -499,6 +499,18 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
         nic['nicparams'])
     return idict
 
+  def _InstDictHvpBep(self, (instance, hvp, bep)):
+    """Wrapper for L{_InstDict}.
+
+    """
+    return self._InstDict(instance, hvp=hvp, bep=bep)
+
+  def _InstDictOsp(self, (instance, osparams)):
+    """Wrapper for L{_InstDict}.
+
+    """
+    return self._InstDict(instance, osp=osparams)
+
   def _MultiNodeCall(self, node_list, procedure, args, read_timeout=None):
     """Helper for making a multi-node call
 
@@ -630,27 +642,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
   #
   # Begin RPC calls
   #
-
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_instance_start(self, node, instance, hvp, bep, startup_paused):
-    """Starts an instance.
-
-    This is a single-node call.
-
-    """
-    idict = self._InstDict(instance, hvp=hvp, bep=bep)
-    return self._SingleNodeCall(node, "instance_start", [idict, startup_paused])
-
-  @_RpcTimeout(_TMO_1DAY)
-  def call_instance_os_add(self, node, inst, reinstall, debug, osparams=None):
-    """Installs an OS on the given instance.
-
-    This is a single-node call.
-
-    """
-    return self._SingleNodeCall(node, "instance_os_add",
-                                [self._InstDict(inst, osp=osparams),
-                                 reinstall, debug])
 
   @classmethod
   @_RpcTimeout(_TMO_NORMAL)

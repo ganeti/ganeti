@@ -6080,9 +6080,11 @@ class LUInstanceStartup(LogicalUnit):
 
       _StartInstanceDisks(self, instance, force)
 
-      result = self.rpc.call_instance_start(node_current, instance,
-                                            self.op.hvparams, self.op.beparams,
-                                            self.op.startup_paused)
+      result = \
+        self.rpc.call_instance_start(node_current,
+                                     (instance, self.op.hvparams,
+                                      self.op.beparams),
+                                     self.op.startup_paused)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -6172,8 +6174,8 @@ class LUInstanceReboot(LogicalUnit):
         self.LogInfo("Instance %s was already stopped, starting now",
                      instance.name)
       _StartInstanceDisks(self, instance, ignore_secondaries)
-      result = self.rpc.call_instance_start(node_current, instance,
-                                            None, None, False)
+      result = self.rpc.call_instance_start(node_current,
+                                            (instance, None, None), False)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -6334,9 +6336,9 @@ class LUInstanceReinstall(LogicalUnit):
     try:
       feedback_fn("Running the instance OS create scripts...")
       # FIXME: pass debug option from opcode to backend
-      result = self.rpc.call_instance_os_add(inst.primary_node, inst, True,
-                                             self.op.debug_level,
-                                             osparams=self.os_inst)
+      result = self.rpc.call_instance_os_add(inst.primary_node,
+                                             (inst, self.os_inst), True,
+                                             self.op.debug_level)
       result.Raise("Could not install OS for instance %s on node %s" %
                    (inst.name, inst.primary_node))
     finally:
@@ -7037,8 +7039,8 @@ class LUInstanceMove(LogicalUnit):
         _ShutdownInstanceDisks(self, instance)
         raise errors.OpExecError("Can't activate the instance's disks")
 
-      result = self.rpc.call_instance_start(target_node, instance,
-                                            None, None, False)
+      result = self.rpc.call_instance_start(target_node,
+                                            (instance, None, None), False)
       msg = result.fail_msg
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -7701,7 +7703,7 @@ class TLMigrateInstance(Tasklet):
 
       self.feedback_fn("* starting the instance on the target node %s" %
                        target_node)
-      result = self.rpc.call_instance_start(target_node, instance, None, None,
+      result = self.rpc.call_instance_start(target_node, (instance, None, None),
                                             False)
       msg = result.fail_msg
       if msg:
@@ -9175,7 +9177,7 @@ class LUInstanceCreate(LogicalUnit):
           feedback_fn("* running the instance OS create scripts...")
           # FIXME: pass debug option from opcode to backend
           os_add_result = \
-            self.rpc.call_instance_os_add(pnode_name, iobj, False,
+            self.rpc.call_instance_os_add(pnode_name, (iobj, None), False,
                                           self.op.debug_level)
           if pause_sync:
             feedback_fn("* resuming disk sync")
@@ -9255,8 +9257,8 @@ class LUInstanceCreate(LogicalUnit):
       self.cfg.Update(iobj, feedback_fn)
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
-      result = self.rpc.call_instance_start(pnode_name, iobj,
-                                            None, None, False)
+      result = self.rpc.call_instance_start(pnode_name, (iobj, None, None),
+                                            False)
       result.Raise("Could not start instance")
 
     return list(iobj.all_nodes)
@@ -11901,8 +11903,8 @@ class LUBackupExport(LogicalUnit):
             not self.op.remove_instance):
           assert not activate_disks
           feedback_fn("Starting instance %s" % instance.name)
-          result = self.rpc.call_instance_start(src_node, instance,
-                                                None, None, False)
+          result = self.rpc.call_instance_start(src_node,
+                                                (instance, None, None), False)
           msg = result.fail_msg
           if msg:
             feedback_fn("Failed to start instance: %s" % msg)

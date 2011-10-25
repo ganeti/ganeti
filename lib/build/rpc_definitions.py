@@ -142,6 +142,15 @@ _INSTANCE_CALLS = [
     ("success", None, "Whether the migration succeeded or not"),
     ("live", None, "Whether the user requested a live migration or not"),
     ], None, "Finalize the instance migration on the source node"),
+  ("instance_start", SINGLE, TMO_NORMAL, [
+    ("instance_hvp_bep", "self._InstDictHvpBep(%s)", None),
+    ("startup_paused", None, None),
+    ], None, "Starts an instance"),
+  ("instance_os_add", SINGLE, TMO_1DAY, [
+    ("instance_osp", "self._InstDictOsp(%s)", None),
+    ("reinstall", None, None),
+    ("debug", None, None),
+    ], None, "Starts an instance"),
   ]
 
 _IMPEXP_CALLS = [
