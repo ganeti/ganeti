@@ -1533,3 +1533,8 @@ BLOCKDEV_DRIVER_MANUAL = "manual"
 HTOOLS = _autoconf.HTOOLS
 # The hail iallocator
 IALLOC_HAIL = "hail"
+
+# Fake opcodes for functions that have hooks attached to them via
+# backend.RunLocalHooks
+FAKE_OP_MASTER_TURNUP = "OP_CLUSTER_IP_TURNUP"
+FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
