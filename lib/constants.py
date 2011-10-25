@@ -1708,5 +1708,10 @@ HTOOLS = _autoconf.HTOOLS
 # The hail iallocator
 IALLOC_HAIL = "hail"
 
+# Fake opcodes for functions that have hooks attached to them via
+# backend.RunLocalHooks
+FAKE_OP_MASTER_TURNUP = "OP_CLUSTER_IP_TURNUP"
+FAKE_OP_MASTER_TURNDOWN = "OP_CLUSTER_IP_TURNDOWN"
+
 # Do not re-export imported modules
 del re, _vcsversion, _autoconf
