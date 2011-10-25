@@ -691,25 +691,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
     return self.call_test_delay(node_list, duration,
                                 read_timeout=int(duration + 5))
 
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_hypervisor_validate_params(self, node_list, hvname, hvparams):
-    """Validate the hypervisor params.
-
-    This is a multi-node call.
-
-    @type node_list: list
-    @param node_list: the list of nodes to query
-    @type hvname: string
-    @param hvname: the hypervisor name
-    @type hvparams: dict
-    @param hvparams: the hypervisor parameters to be validated
-
-    """
-    cluster = self._cfg.GetClusterInfo()
-    hv_full = objects.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
-    return self._MultiNodeCall(node_list, "hypervisor_validate_params",
-                               [hvname, hv_full])
-
 
 class JobQueueRunner(_generated_rpc.RpcClientJobQueue):
   """RPC wrappers for job queue.

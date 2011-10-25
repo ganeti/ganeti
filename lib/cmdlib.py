@@ -8223,9 +8223,11 @@ def _CheckHVParams(lu, nodenames, hvname, hvparams):
 
   """
   nodenames = _FilterVmNodes(lu, nodenames)
-  hvinfo = lu.rpc.call_hypervisor_validate_params(nodenames,
-                                                  hvname,
-                                                  hvparams)
+
+  cluster = lu.cfg.GetClusterInfo()
+  hvfull = objects.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
+
+  hvinfo = lu.rpc.call_hypervisor_validate_params(nodenames, hvname, hvfull)
   for node in nodenames:
     info = hvinfo[node]
     if info.offline:

@@ -364,6 +364,10 @@ _MISC_CALLS = [
   ("test_delay", MULTI, None, [
     ("duration", None, None),
     ], None, "Sleep for a fixed time on given node(s)"),
+  ("hypervisor_validate_params", MULTI, TMO_NORMAL, [
+    ("hvname", None, "Hypervisor name"),
+    ("hvfull", None, "Parameters to be validated"),
+    ], None, "Validate hypervisor params"),
   ]
 
 CALLS = {
