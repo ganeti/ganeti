@@ -532,7 +532,7 @@ def CheckAgreement():
 def ActivateMasterIP():
   # activate ip
   master_node = ssconf.SimpleStore().GetMasterNode()
-  result = rpc.RpcRunner.call_node_activate_master_ip(master_node)
+  result = rpc.BootstrapRunner().call_node_activate_master_ip(master_node)
   msg = result.fail_msg
   if msg:
     logging.error("Can't activate master IP address: %s", msg)

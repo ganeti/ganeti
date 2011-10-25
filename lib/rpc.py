@@ -437,7 +437,8 @@ class _RpcProcessor:
     return self._CombineResults(results, requests, procedure)
 
 
-class RpcRunner(_generated_rpc.RpcClientDefault):
+class RpcRunner(_generated_rpc.RpcClientDefault,
+                _generated_rpc.RpcClientBootstrap):
   """RPC runner class.
 
   """
@@ -448,6 +449,11 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
     @param context: Ganeti context
 
     """
+    # Pylint doesn't recognize multiple inheritance properly, see
+    # <http://www.logilab.org/ticket/36586> and
+    # <http://www.logilab.org/ticket/35642>
+    # pylint: disable=W0233
+    _generated_rpc.RpcClientBootstrap.__init__(self)
     _generated_rpc.RpcClientDefault.__init__(self)
 
     self._cfg = context.cfg
@@ -647,79 +653,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
                                  reinstall, debug])
 
   @classmethod
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_start_master_daemons(cls, node, no_voting):
-    """Starts master daemons on a node.
-
-    This is a single-node call.
-
-    """
-    return cls._StaticSingleNodeCall(node, "node_start_master_daemons",
-                                     [no_voting])
-
-  @classmethod
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_activate_master_ip(cls, node):
-    """Activates master IP on a node.
-
-    This is a single-node call.
-
-    """
-    return cls._StaticSingleNodeCall(node, "node_activate_master_ip", [])
-
-  @classmethod
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_stop_master(cls, node):
-    """Deactivates master IP and stops master daemons on a node.
-
-    This is a single-node call.
-
-    """
-    return cls._StaticSingleNodeCall(node, "node_stop_master", [])
-
-  @classmethod
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_deactivate_master_ip(cls, node):
-    """Deactivates master IP on a node.
-
-    This is a single-node call.
-
-    """
-    return cls._StaticSingleNodeCall(node, "node_deactivate_master_ip", [])
-
-  @classmethod
-  @_RpcTimeout(_TMO_FAST)
-  def call_node_change_master_netmask(cls, node, netmask):
-    """Change master IP netmask.
-
-    This is a single-node call.
-
-    """
-    return cls._StaticSingleNodeCall(node, "node_change_master_netmask",
-                  [netmask])
-
-  @classmethod
-  @_RpcTimeout(_TMO_URGENT)
-  def call_master_info(cls, node_list):
-    """Query master info.
-
-    This is a multi-node call.
-
-    """
-    # TODO: should this method query down nodes?
-    return cls._StaticMultiNodeCall(node_list, "master_info", [])
-
-  @classmethod
-  @_RpcTimeout(_TMO_URGENT)
-  def call_version(cls, node_list):
-    """Query node version.
-
-    This is a multi-node call.
-
-    """
-    return cls._StaticMultiNodeCall(node_list, "version", [])
-
-  @classmethod
   @_RpcTimeout(_TMO_NORMAL)
   def call_upload_file(cls, node_list, file_name, address_list=None):
     """Upload a file.
@@ -756,20 +689,6 @@ class RpcRunner(_generated_rpc.RpcClientDefault):
 
     """
     return cls._StaticMultiNodeCall(node_list, "write_ssconf_files", [values])
-
-  @classmethod
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_node_leave_cluster(cls, node, modify_ssh_setup):
-    """Requests a node to clean the cluster information it has.
-
-    This will remove the configuration information from the ganeti data
-    dir.
-
-    This is a single-node call.
-
-    """
-    return cls._StaticSingleNodeCall(node, "node_leave_cluster",
-                                     [modify_ssh_setup])
 
   def call_test_delay(self, node_list, duration, read_timeout=None):
     """Sleep for a fixed time on given node(s).
@@ -822,6 +741,28 @@ class JobQueueRunner(_generated_rpc.RpcClientJobQueue):
     self._proc = _RpcProcessor(resolver,
                                netutils.GetDaemonPort(constants.NODED),
                                lock_monitor_cb=context.glm.AddToLockMonitor)
+
+  def _Call(self, node_list, procedure, timeout, args):
+    """Entry point for automatically generated RPC wrappers.
+
+    """
+    body = serializer.DumpJson(args, indent=False)
+
+    return self._proc(node_list, procedure, body, read_timeout=timeout)
+
+
+class BootstrapRunner(_generated_rpc.RpcClientBootstrap):
+  """RPC wrappers for bootstrapping.
+
+  """
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    _generated_rpc.RpcClientBootstrap.__init__(self)
+
+    self._proc = _RpcProcessor(_SsconfResolver,
+                               netutils.GetDaemonPort(constants.NODED))
 
   def _Call(self, node_list, procedure, timeout, args):
     """Entry point for automatically generated RPC wrappers.

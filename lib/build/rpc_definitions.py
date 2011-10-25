@@ -371,4 +371,23 @@ CALLS = {
       ("rename", None, None),
       ], None, "Rename job queue file"),
     ],
+  "RpcClientBootstrap": [
+    ("node_start_master_daemons", SINGLE, TMO_FAST, [
+      ("no_voting", None, None),
+      ], None, "Starts master daemons on a node"),
+    ("node_activate_master_ip", SINGLE, TMO_FAST, [], None,
+     "Activates master IP on a node"),
+    ("node_stop_master", SINGLE, TMO_FAST, [], None,
+     "Deactivates master IP and stops master daemons on a node"),
+    ("node_deactivate_master_ip", SINGLE, TMO_FAST, [], None,
+     "Deactivates master IP on a node"),
+    ("node_change_master_netmask", SINGLE, TMO_FAST, [
+      ("netmask", None, None),
+      ], None, "Change master IP netmask"),
+    ("node_leave_cluster", SINGLE, TMO_NORMAL, [
+      ("modify_ssh_setup", None, None),
+      ], None, "Requests a node to clean the cluster information it has"),
+    ("master_info", MULTI, TMO_URGENT, [], None, "Query master info"),
+    ("version", MULTI, TMO_URGENT, [], None, "Query node version"),
+    ],
   }

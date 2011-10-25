@@ -73,7 +73,8 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver(["127.0.0.1"])
     http_proc = _FakeRequestProcessor(self._GetVersionResponse)
     proc = rpc._RpcProcessor(resolver, 24094)
-    result = proc(["localhost"], "version", None, _req_process_fn=http_proc)
+    result = proc(["localhost"], "version", None, _req_process_fn=http_proc,
+                  read_timeout=60)
     self.assertEqual(result.keys(), ["localhost"])
     lhresp = result["localhost"]
     self.assertFalse(lhresp.offline)
@@ -113,7 +114,8 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver([rpc._OFFLINE])
     http_proc = _FakeRequestProcessor(NotImplemented)
     proc = rpc._RpcProcessor(resolver, 30668)
-    result = proc(["n17296"], "version", None, _req_process_fn=http_proc)
+    result = proc(["n17296"], "version", None, _req_process_fn=http_proc,
+                  read_timeout=60)
     self.assertEqual(result.keys(), ["n17296"])
     lhresp = result["n17296"]
     self.assertTrue(lhresp.offline)
@@ -143,7 +145,8 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver(nodes)
     http_proc = _FakeRequestProcessor(self._GetMultiVersionResponse)
     proc = rpc._RpcProcessor(resolver, 23245)
-    result = proc(nodes, "version", None, _req_process_fn=http_proc)
+    result = proc(nodes, "version", None, _req_process_fn=http_proc,
+                  read_timeout=60)
     self.assertEqual(sorted(result.keys()), sorted(nodes))
 
     for name in nodes:
@@ -171,7 +174,7 @@ class TestRpcProcessor(unittest.TestCase):
         _FakeRequestProcessor(compat.partial(self._GetVersionResponseFail,
                                              errinfo))
       result = proc(["aef9ur4i.example.com"], "version", None,
-                    _req_process_fn=http_proc)
+                    _req_process_fn=http_proc, read_timeout=60)
       self.assertEqual(result.keys(), ["aef9ur4i.example.com"])
       lhresp = result["aef9ur4i.example.com"]
       self.assertFalse(lhresp.offline)
@@ -263,7 +266,7 @@ class TestRpcProcessor(unittest.TestCase):
     for fn in [self._GetInvalidResponseA, self._GetInvalidResponseB]:
       http_proc = _FakeRequestProcessor(fn)
       result = proc(["oqo7lanhly.example.com"], "version", None,
-                    _req_process_fn=http_proc)
+                    _req_process_fn=http_proc, read_timeout=60)
       self.assertEqual(result.keys(), ["oqo7lanhly.example.com"])
       lhresp = result["oqo7lanhly.example.com"]
       self.assertFalse(lhresp.offline)
