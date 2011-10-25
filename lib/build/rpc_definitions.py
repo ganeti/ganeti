@@ -403,4 +403,12 @@ CALLS = {
     ("master_info", MULTI, TMO_URGENT, [], None, "Query master info"),
     ("version", MULTI, TMO_URGENT, [], None, "Query node version"),
     ],
+  "RpcClientConfig": [
+    ("upload_file", MULTI, TMO_NORMAL, [
+      ("file_name", "self._PrepareFileUpload(%s)", None),
+      ], None, "Upload a file"),
+    ("write_ssconf_files", MULTI, TMO_NORMAL, [
+      ("values", None, None),
+      ], None, "Write ssconf files"),
+    ],
   }

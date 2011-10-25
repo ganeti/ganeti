@@ -770,7 +770,7 @@ class NodeHttpServer(http.server.HttpServer):
     files are accepted.
 
     """
-    return backend.UploadFile(*params)
+    return backend.UploadFile(*(params[0]))
 
   @staticmethod
   def perspective_master_info(params):

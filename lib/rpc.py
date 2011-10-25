@@ -438,7 +438,8 @@ class _RpcProcessor:
 
 
 class RpcRunner(_generated_rpc.RpcClientDefault,
-                _generated_rpc.RpcClientBootstrap):
+                _generated_rpc.RpcClientBootstrap,
+                _generated_rpc.RpcClientConfig):
   """RPC runner class.
 
   """
@@ -453,6 +454,7 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
     # <http://www.logilab.org/ticket/36586> and
     # <http://www.logilab.org/ticket/35642>
     # pylint: disable=W0233
+    _generated_rpc.RpcClientConfig.__init__(self)
     _generated_rpc.RpcClientBootstrap.__init__(self)
     _generated_rpc.RpcClientDefault.__init__(self)
 
@@ -639,47 +641,20 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
 
     return ieioargs
 
+  @staticmethod
+  def _PrepareFileUpload(filename):
+    """Loads a file and prepares it for an upload to nodes.
+
+    """
+    data = _Compress(utils.ReadFile(filename))
+    st = os.stat(filename)
+    getents = runtime.GetEnts()
+    return [filename, data, st.st_mode, getents.LookupUid(st.st_uid),
+            getents.LookupGid(st.st_gid), st.st_atime, st.st_mtime]
+
   #
   # Begin RPC calls
   #
-
-  @classmethod
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_upload_file(cls, node_list, file_name, address_list=None):
-    """Upload a file.
-
-    The node will refuse the operation in case the file is not on the
-    approved file list.
-
-    This is a multi-node call.
-
-    @type node_list: list
-    @param node_list: the list of node names to upload to
-    @type file_name: str
-    @param file_name: the filename to upload
-    @type address_list: list or None
-    @keyword address_list: an optional list of node addresses, in order
-        to optimize the RPC speed
-
-    """
-    file_contents = utils.ReadFile(file_name)
-    data = _Compress(file_contents)
-    st = os.stat(file_name)
-    getents = runtime.GetEnts()
-    params = [file_name, data, st.st_mode, getents.LookupUid(st.st_uid),
-              getents.LookupGid(st.st_gid), st.st_atime, st.st_mtime]
-    return cls._StaticMultiNodeCall(node_list, "upload_file", params,
-                                    address_list=address_list)
-
-  @classmethod
-  @_RpcTimeout(_TMO_NORMAL)
-  def call_write_ssconf_files(cls, node_list, values):
-    """Write ssconf files.
-
-    This is a multi-node call.
-
-    """
-    return cls._StaticMultiNodeCall(node_list, "write_ssconf_files", [values])
 
   def call_test_delay(self, node_list, duration, read_timeout=None):
     """Sleep for a fixed time on given node(s).
@@ -734,6 +709,37 @@ class BootstrapRunner(_generated_rpc.RpcClientBootstrap):
     _generated_rpc.RpcClientBootstrap.__init__(self)
 
     self._proc = _RpcProcessor(_SsconfResolver,
+                               netutils.GetDaemonPort(constants.NODED))
+
+  def _Call(self, node_list, procedure, timeout, args):
+    """Entry point for automatically generated RPC wrappers.
+
+    """
+    body = serializer.DumpJson(args, indent=False)
+
+    return self._proc(node_list, procedure, body, read_timeout=timeout)
+
+
+class ConfigRunner(_generated_rpc.RpcClientConfig):
+  """RPC wrappers for L{config}.
+
+  """
+  _PrepareFileUpload = \
+    staticmethod(RpcRunner._PrepareFileUpload) # pylint: disable=W0212
+
+  def __init__(self, address_list):
+    """Initializes this class.
+
+    """
+    _generated_rpc.RpcClientConfig.__init__(self)
+
+    if address_list is None:
+      resolver = _SsconfResolver
+    else:
+      # Caller provided an address list
+      resolver = _StaticResolver(address_list)
+
+    self._proc = _RpcProcessor(resolver,
                                netutils.GetDaemonPort(constants.NODED))
 
   def _Call(self, node_list, procedure, timeout, args):

@@ -1723,8 +1723,9 @@ class ConfigWriter:
       node_list.append(node_info.name)
       addr_list.append(node_info.primary_ip)
 
-    result = rpc.RpcRunner.call_upload_file(node_list, self._cfg_file,
-                                            address_list=addr_list)
+    # TODO: Use dedicated resolver talking to config writer for name resolution
+    result = \
+      rpc.ConfigRunner(addr_list).call_upload_file(node_list, self._cfg_file)
     for to_node, to_result in result.items():
       msg = to_result.fail_msg
       if msg:
@@ -1783,7 +1784,7 @@ class ConfigWriter:
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
-        result = rpc.RpcRunner.call_write_ssconf_files(
+        result = rpc.ConfigRunner(None).call_write_ssconf_files(
           self._UnlockedGetOnlineNodeList(),
           self._UnlockedGetSsconfValues())
 
