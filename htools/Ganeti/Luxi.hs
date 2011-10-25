@@ -154,7 +154,8 @@ $(declareIADT "ResultStatus"
      , ("RSUnavailable", 'rsUnavail)
      , ("RSOffline", 'rsOffline)
      ])
-$(makeJSONInstanceInt ''ResultStatus)
+
+$(makeJSONInstance ''ResultStatus)
 
 -- | Check that ResultStatus is success or fail with descriptive message.
 checkRS :: (Monad m) => ResultStatus -> a -> m a

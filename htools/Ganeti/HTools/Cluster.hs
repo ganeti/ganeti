@@ -736,7 +736,7 @@ solutionDescription gl (groupId, result) =
     Bad message -> [printf "Group %s: error %s" gname message]
   where grp = Container.find groupId gl
         gname = Group.name grp
-        pol = allocPolicyToString (Group.allocPolicy grp)
+        pol = allocPolicyToRaw (Group.allocPolicy grp)
 
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result. Note that the result will be
@@ -842,7 +842,7 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
 -- this function, whatever mode we have is just a primary change.
 failOnSecondaryChange :: (Monad m) => EvacMode -> DiskTemplate -> m ()
 failOnSecondaryChange ChangeSecondary dt =
-    fail $ "Instances with disk template '" ++ diskTemplateToString dt ++
+    fail $ "Instances with disk template '" ++ diskTemplateToRaw dt ++
          "' can't execute change secondary"
 failOnSecondaryChange _ _ = return ()
 

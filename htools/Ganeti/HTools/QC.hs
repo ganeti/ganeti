@@ -597,7 +597,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
         nl = Data.Map.fromList ndx
         tags = ""
         sbal = if autobal then "Y" else "N"
-        sdt = Types.diskTemplateToString dt
+        sdt = Types.diskTemplateToRaw dt
         inst = Text.loadInst nl
                [name, mem_s, dsk_s, vcpus_s, status,
                 sbal, pnode, snode, sdt, tags]

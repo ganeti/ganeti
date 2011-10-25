@@ -200,7 +200,7 @@ oDiskMoves = Option "" ["no-disk-moves"]
 oDiskTemplate :: OptType
 oDiskTemplate = Option "" ["disk-template"]
                 (ReqArg (\ t opts -> do
-                           dt <- diskTemplateFromString t
+                           dt <- diskTemplateFromRaw t
                            return $ opts { optDiskTemplate = dt }) "TEMPLATE")
                 "select the desired disk template"
 

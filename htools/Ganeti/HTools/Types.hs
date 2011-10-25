@@ -34,8 +34,8 @@ module Ganeti.HTools.Types
     , Weight
     , GroupID
     , AllocPolicy(..)
-    , allocPolicyFromString
-    , allocPolicyToString
+    , allocPolicyFromRaw
+    , allocPolicyToRaw
     , RSpec(..)
     , DynUtil(..)
     , zeroUtil
@@ -51,8 +51,8 @@ module Ganeti.HTools.Types
     , Placement
     , IMove(..)
     , DiskTemplate(..)
-    , diskTemplateToString
-    , diskTemplateFromString
+    , diskTemplateToRaw
+    , diskTemplateFromRaw
     , MoveJob
     , JobSet
     , Result(..)

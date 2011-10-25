@@ -32,7 +32,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.THH ( declareSADT
                   , declareIADT
                   , makeJSONInstance
-                  , makeJSONInstanceInt
                   , genOpID
                   , genOpCode
                   , noDefault
@@ -53,7 +52,7 @@ import qualified Text.JSON as JSON
 -- | Ensure first letter is lowercase.
 --
 -- Used to convert type name to function prefix, e.g. in @data Aa ->
--- aaToString@.
+-- aaToRaw@.
 ensureLower :: String -> String
 ensureLower [] = []
 ensureLower (x:xs) = toLower x:xs
@@ -66,21 +65,13 @@ varNameE = varE . mkName
 showJSONE :: Q Exp
 showJSONE = varNameE "showJSON"
 
--- | ToString function name.
-toStrName :: String -> Name
-toStrName = mkName . (++ "ToString") . ensureLower
+-- | ToRaw function name.
+toRawName :: String -> Name
+toRawName = mkName . (++ "ToRaw") . ensureLower
 
--- | ToInt function name.
-toIntName :: String -> Name
-toIntName= mkName . (++ "ToInt") . ensureLower
-
--- | FromString function name.
-fromStrName :: String -> Name
-fromStrName = mkName . (++ "FromString") . ensureLower
-
--- | FromInt function name.
-fromIntName:: String -> Name
-fromIntName = mkName . (++ "FromInt") . ensureLower
+-- | FromRaw function name.
+fromRawName :: String -> Name
+fromRawName = mkName . (++ "FromRaw") . ensureLower
 
 -- | Converts a name to it's varE/litE representations.
 --
@@ -95,78 +86,7 @@ appFn :: Exp -> Exp -> Exp
 appFn f x | f == VarE 'id = x
           | otherwise = AppE f x
 
--- * Template code for simple integer-equivalent ADTs
-
--- | Generates a data type declaration.
---
--- The type will have a fixed list of instances.
-intADTDecl :: Name -> [String] -> Dec
-intADTDecl name constructors =
-    DataD [] name []
-              (map (flip NormalC [] . mkName) constructors)
-              [''Show]
-
--- | Generates a toInt function.
-genToInt :: Name -> Name -> [(String, Name)] -> Q [Dec]
-genToInt fname tname constructors = do
-  sigt <- [t| $(conT tname) -> Int |]
-  clauses <- mapM  (\(c, v) -> clause [recP (mkName c) []]
-                             (normalB (varE v)) []) constructors
-  return [SigD fname sigt, FunD fname clauses]
-
--- | Generates a fromInt function.
-genFromInt :: Name -> Name -> [(String, Name)] -> Q [Dec]
-genFromInt fname tname constructors = do
-  sigt <- [t| (Monad m) => Int-> m $(conT tname) |]
-  let varp = mkName "s"
-      varpe = varE varp
-  clauses <- mapM (\(c, v) -> do
-                     g <- normalG [| $varpe == $(varE v) |]
-                     r <- [| return $(conE (mkName c)) |]
-                     return (g, r)) constructors
-  oth_clause <- do
-    g <- normalG [| otherwise |]
-    r <- [|fail ("Invalid int value for type " ++
-                 $(litE (stringL (nameBase tname))) ++ ": " ++ show $varpe) |]
-    return (g, r)
-  let fun = FunD fname [Clause [VarP varp]
-                        (GuardedB (clauses++[oth_clause])) []]
-  return [SigD fname sigt, fun]
-
--- | Generates a data type from a given string format.
-declareIADT:: String -> [(String, Name)] -> Q [Dec]
-declareIADT sname cons = do
-  let name = mkName sname
-      ddecl = intADTDecl name (map fst cons)
-  tostr <- genToInt (toIntName sname) name cons
-  fromstr <- genFromInt (fromIntName sname) name cons
-  return $ ddecl:tostr ++ fromstr
-
--- | Creates the showJSON member of a JSON instance declaration.
-genShowJSONInt :: String -> Q [Dec]
-genShowJSONInt name = [d| showJSON = JSON.showJSON . $(varE (toIntName name)) |]
-
--- | Creates the readJSON member of a JSON instance declaration.
-genReadJSONInt :: String -> Q Dec
-genReadJSONInt name = do
-  let s = mkName "s"
-  body <- [| case JSON.readJSON $(varE s) of
-               JSON.Ok s' -> $(varE (fromIntName name)) s'
-               JSON.Error e ->
-                   JSON.Error $ "Can't parse int value for type " ++
-                           $(stringE name) ++ ": " ++ e
-           |]
-  return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
-
--- | Generates a JSON instance for a given type.
-makeJSONInstanceInt :: Name -> Q [Dec]
-makeJSONInstanceInt name = do
-  let base = nameBase name
-  showJ <- genShowJSONInt base
-  readJ <- genReadJSONInt base
-  return [InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name)) (readJ:showJ)]
-
--- * Template code for simple string-equivalent ADTs
+-- * Template code for simple raw type-equivalent ADTs
 
 -- | Generates a data type declaration.
 --
@@ -177,39 +97,39 @@ strADTDecl name constructors =
               (map (flip NormalC [] . mkName) constructors)
               [''Show, ''Read, ''Eq, ''Enum, ''Bounded, ''Ord]
 
--- | Generates a toString function.
+-- | Generates a toRaw function.
 --
 -- This generates a simple function of the form:
 --
 -- @
--- nameToString :: Name -> String
--- nameToString Cons1 = var1
--- nameToString Cons2 = \"value2\"
+-- nameToRaw :: Name -> /traw/
+-- nameToRaw Cons1 = var1
+-- nameToRaw Cons2 = \"value2\"
 -- @
-genToString :: Name -> Name -> [(String, Either String Name)] -> Q [Dec]
-genToString fname tname constructors = do
-  sigt <- [t| $(conT tname) -> String |]
+genToRaw :: Name -> Name -> Name -> [(String, Either String Name)] -> Q [Dec]
+genToRaw traw fname tname constructors = do
+  sigt <- [t| $(conT tname) -> $(conT traw) |]
   -- the body clauses, matching on the constructor and returning the
-  -- string value
+  -- raw value
   clauses <- mapM  (\(c, v) -> clause [recP (mkName c) []]
                              (normalB (reprE v)) []) constructors
   return [SigD fname sigt, FunD fname clauses]
 
--- | Generates a fromString function.
+-- | Generates a fromRaw function.
 --
 -- The function generated is monadic and can fail parsing the
--- string. It is of the form:
+-- raw value. It is of the form:
 --
 -- @
--- nameFromString :: (Monad m) => String -> m Name
--- nameFromString s | s == var1       = Cons1
---                  | s == \"value2\" = Cons2
---                  | otherwise = fail /.../
+-- nameFromRaw :: (Monad m) => /traw/ -> m Name
+-- nameFromRaw s | s == var1       = Cons1
+--               | s == \"value2\" = Cons2
+--               | otherwise = fail /.../
 -- @
-genFromString :: Name -> Name -> [(String, Name)] -> Q [Dec]
-genFromString fname tname constructors = do
+genFromRaw :: Name -> Name -> Name -> [(String, Name)] -> Q [Dec]
+genFromRaw traw fname tname constructors = do
   -- signature of form (Monad m) => String -> m $name
-  sigt <- [t| (Monad m) => String -> m $(conT tname) |]
+  sigt <- [t| (Monad m) => $(conT traw) -> m $(conT tname) |]
   -- clauses for a guarded pattern
   let varp = mkName "s"
       varpe = varE varp
@@ -223,13 +143,13 @@ genFromString fname tname constructors = do
   oth_clause <- do
     g <- normalG [| otherwise |]
     r <- [|fail ("Invalid string value for type " ++
-                 $(litE (stringL (nameBase tname))) ++ ": " ++ $varpe) |]
+                 $(litE (stringL (nameBase tname))) ++ ": " ++ show $varpe) |]
     return (g, r)
   let fun = FunD fname [Clause [VarP varp]
                         (GuardedB (clauses++[oth_clause])) []]
   return [SigD fname sigt, fun]
 
--- | Generates a data type from a given string format.
+-- | Generates a data type from a given raw format.
 --
 -- The format is expected to multiline. The first line contains the
 -- type name, and the rest of the lines must contain two words: the
@@ -239,34 +159,39 @@ genFromString fname tname constructors = do
 -- The function will generate the data type declaration, and then two
 -- functions:
 --
--- * /name/ToString, which converts the type to a string
+-- * /name/ToRaw, which converts the type to a raw type
 --
--- * /name/FromString, which (monadically) converts from a string to the type
+-- * /name/FromRaw, which (monadically) converts from a raw type to the type
 --
 -- Note that this is basically just a custom show/read instance,
 -- nothing else.
-declareSADT :: String -> [(String, Name)] -> Q [Dec]
-declareSADT sname cons = do
+declareADT :: Name -> String -> [(String, Name)] -> Q [Dec]
+declareADT traw sname cons = do
   let name = mkName sname
       ddecl = strADTDecl name (map fst cons)
-      -- process cons in the format expected by genToString
+      -- process cons in the format expected by genToRaw
       cons' = map (\(a, b) -> (a, Right b)) cons
-  tostr <- genToString (toStrName sname) name cons'
-  fromstr <- genFromString (fromStrName sname) name cons
-  return $ ddecl:tostr ++ fromstr
+  toraw <- genToRaw traw (toRawName sname) name cons'
+  fromraw <- genFromRaw traw (fromRawName sname) name cons
+  return $ ddecl:toraw ++ fromraw
 
+declareIADT :: String -> [(String, Name)] -> Q [Dec]
+declareIADT = declareADT ''Int
+
+declareSADT :: String -> [(String, Name)] -> Q [Dec]
+declareSADT = declareADT ''String
 
 -- | Creates the showJSON member of a JSON instance declaration.
 --
 -- This will create what is the equivalent of:
 --
 -- @
--- showJSON = showJSON . /name/ToString
+-- showJSON = showJSON . /name/ToRaw
 -- @
 --
 -- in an instance JSON /name/ declaration
 genShowJSON :: String -> Q [Dec]
-genShowJSON name = [d| showJSON = JSON.showJSON . $(varE (toStrName name)) |]
+genShowJSON name = [d| showJSON = JSON.showJSON . $(varE (toRawName name)) |]
 
 -- | Creates the readJSON member of a JSON instance declaration.
 --
@@ -274,7 +199,7 @@ genShowJSON name = [d| showJSON = JSON.showJSON . $(varE (toStrName name)) |]
 --
 -- @
 -- readJSON s = case readJSON s of
---                Ok s' -> /name/FromString s'
+--                Ok s' -> /name/FromRaw s'
 --                Error e -> Error /description/
 -- @
 --
@@ -283,16 +208,16 @@ genReadJSON :: String -> Q Dec
 genReadJSON name = do
   let s = mkName "s"
   body <- [| case JSON.readJSON $(varE s) of
-               JSON.Ok s' -> $(varE (fromStrName name)) s'
+               JSON.Ok s' -> $(varE (fromRawName name)) s'
                JSON.Error e ->
-                   JSON.Error $ "Can't parse string value for type " ++
+                   JSON.Error $ "Can't parse raw value for type " ++
                            $(stringE name) ++ ": " ++ e
            |]
   return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
 
 -- | Generates a JSON instance for a given type.
 --
--- This assumes that the /name/ToString and /name/FromString functions
+-- This assumes that the /name/ToRaw and /name/FromRaw functions
 -- have been defined as by the 'declareSADT' function.
 makeJSONInstance :: Name -> Q [Dec]
 makeJSONInstance name = do
@@ -324,13 +249,13 @@ constructorName x                = fail $ "Unhandled constructor " ++ show x
 -- @
 --
 -- This builds a custom list of name/string pairs and then uses
--- 'genToString' to actually generate the function
+-- 'genToRaw' to actually generate the function
 genConstrToStr :: (String -> String) -> Name -> String -> Q [Dec]
 genConstrToStr trans_fun name fname = do
   TyConI (DataD _ _ _ cons _) <- reify name
   cnames <- mapM (liftM nameBase . constructorName) cons
   let svalues = map (Left . trans_fun) cnames
-  genToString (mkName fname) name $ zip cnames svalues
+  genToRaw ''String (mkName fname) name $ zip cnames svalues
 
 -- | Constructor-to-string for OpCode.
 genOpID :: Name -> String -> Q [Dec]

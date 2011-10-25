@@ -295,7 +295,7 @@ printISpec True ispec spec disk_template = do
   printKeys $ map (\(a, fn) -> (prefix ++ "_" ++ a, fn ispec)) specData
   printKeys [ (prefix ++ "_RQN", printf "%d" req_nodes) ]
   printKeys [ (prefix ++ "_DISK_TEMPLATE",
-               diskTemplateToString disk_template) ]
+               diskTemplateToRaw disk_template) ]
       where req_nodes = Instance.requiredNodes disk_template
             prefix = specPrefix spec
 
@@ -303,7 +303,7 @@ printISpec False ispec spec disk_template =
   printf "%s instance spec is:\n  %s, using disk\
          \ template '%s'.\n"
          (specDescription spec)
-         (formatResources ispec specData) (diskTemplateToString disk_template)
+         (formatResources ispec specData) (diskTemplateToRaw disk_template)
 
 -- | Prints the tiered results.
 printTiered :: Bool -> [(RSpec, Int)] -> Double
