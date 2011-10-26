@@ -515,7 +515,8 @@ class TestRename(unittest.TestCase):
 
     self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "test/xyz")))
     self.assertFalse(os.path.exists(os.path.join(self.tmpdir, "test/foo/bar")))
-    self.assertFalse(os.path.exists(os.path.join(self.tmpdir, "test/foo/bar/baz")))
+    self.assertFalse(os.path.exists(os.path.join(self.tmpdir,
+                                                 "test/foo/bar/baz")))
 
 
 class TestMakedirs(unittest.TestCase):
