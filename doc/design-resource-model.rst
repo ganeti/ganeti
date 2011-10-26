@@ -550,11 +550,10 @@ locks, but that is a separate design change.
 
 .. admonition:: FIXME
 
-  Need to rework instance console vs. instance replace disks. I don't
-  think we need exclusive locks for console and neither for replace
-  disk: it is safe to stop/start the instance while it's doing a replace
-  disks. Only modify would need exclusive, and only for transitioning
-  into/out of offline state.
+  Need to rework instance replace disks. I don't think we need exclusive
+  locks for replacing disks: it is safe to stop/start the instance while
+  it's doing a replace disks. Only modify would need exclusive, and only
+  for transitioning into/out of offline state.
 
 Instance memory model
 ---------------------
