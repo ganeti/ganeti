@@ -164,7 +164,20 @@ class ConfigWriter:
     self._my_hostname = netutils.Hostname.GetSysName()
     self._last_cluster_serial = -1
     self._cfg_id = None
+    self._context = None
     self._OpenConfig(accept_foreign)
+
+  def _GetRpc(self, address_list):
+    """Returns RPC runner for configuration.
+
+    """
+    return rpc.ConfigRunner(self._context, address_list)
+
+  def SetContext(self, context):
+    """Sets Ganeti context.
+
+    """
+    self._context = context
 
   # this method needs to be static, so that we can call it on the class
   @staticmethod
@@ -1749,7 +1762,7 @@ class ConfigWriter:
 
     # TODO: Use dedicated resolver talking to config writer for name resolution
     result = \
-      rpc.ConfigRunner(addr_list).call_upload_file(node_list, self._cfg_file)
+      self._GetRpc(addr_list).call_upload_file(node_list, self._cfg_file)
     for to_node, to_result in result.items():
       msg = to_result.fail_msg
       if msg:
@@ -1808,7 +1821,7 @@ class ConfigWriter:
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
-        result = rpc.ConfigRunner(None).call_write_ssconf_files(
+        result = self._GetRpc(None).call_write_ssconf_files(
           self._UnlockedGetOnlineNodeList(),
           self._UnlockedGetSsconfValues())
 

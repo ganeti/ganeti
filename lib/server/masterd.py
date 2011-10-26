@@ -401,6 +401,8 @@ class GanetiContext(object):
                 self.cfg.GetNodeGroupList(),
                 self.cfg.GetInstanceList())
 
+    self.cfg.SetContext(self)
+
     # Job queue
     self.jobqueue = jqueue.JobQueue(self)
 

@@ -723,15 +723,21 @@ class ConfigRunner(_RpcClientBase, _generated_rpc.RpcClientConfig):
   """RPC wrappers for L{config}.
 
   """
-  def __init__(self, address_list):
+  def __init__(self, context, address_list):
     """Initializes this class.
 
     """
+    if context:
+      lock_monitor_cb = context.glm.AddToLockMonitor
+    else:
+      lock_monitor_cb = None
+
     if address_list is None:
       resolver = _SsconfResolver
     else:
       # Caller provided an address list
       resolver = _StaticResolver(address_list)
 
-    _RpcClientBase.__init__(self, resolver, _ENCODERS.get)
+    _RpcClientBase.__init__(self, resolver, _ENCODERS.get,
+                            lock_monitor_cb=lock_monitor_cb)
     _generated_rpc.RpcClientConfig.__init__(self)
