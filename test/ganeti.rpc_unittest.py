@@ -296,7 +296,8 @@ class TestRpcProcessor(unittest.TestCase):
                                                      test_data))
     proc = rpc._RpcProcessor(resolver, 18700)
     body = serializer.DumpJson(test_data)
-    result = proc(["node19759"], "upload_file", body, _req_process_fn=http_proc)
+    result = proc(["node19759"], "upload_file", body, _req_process_fn=http_proc,
+                  read_timeout=30)
     self.assertEqual(result.keys(), ["node19759"])
     lhresp = result["node19759"]
     self.assertFalse(lhresp.offline)
