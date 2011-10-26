@@ -1488,9 +1488,16 @@ class ConfigWriter:
               would GetNodeInfo return for the node
 
     """
-    my_dict = dict([(node, self._UnlockedGetNodeInfo(node))
-                    for node in self._UnlockedGetNodeList()])
-    return my_dict
+    return self._UnlockedGetAllNodesInfo()
+
+  def _UnlockedGetAllNodesInfo(self):
+    """Gets configuration of all nodes.
+
+    @note: See L{GetAllNodesInfo}
+
+    """
+    return dict([(node, self._UnlockedGetNodeInfo(node))
+                 for node in self._UnlockedGetNodeList()])
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeGroupsFromNodes(self, nodes):
