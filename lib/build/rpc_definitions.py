@@ -37,7 +37,11 @@ RPC definition fields:
 """
 
 
-# Various time constants for the timeout table
+# Guidelines for choosing timeouts:
+# - call used during watcher: timeout of 1min, _TMO_URGENT
+# - trivial (but be sure it is trivial) (e.g. reading a file): 5min, _TMO_FAST
+# - other calls: 15 min, _TMO_NORMAL
+# - special calls (instance add, etc.): either _TMO_SLOW (1h) or huge timeouts
 TMO_URGENT = 60 # one minute
 TMO_FAST = 5 * 60 # five minutes
 TMO_NORMAL = 15 * 60 # 15 minutes

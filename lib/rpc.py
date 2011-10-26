@@ -71,16 +71,6 @@ _TMO_SLOW = 3600 # one hour
 _TMO_4HRS = 4 * 3600
 _TMO_1DAY = 86400
 
-# Timeout table that will be built later by decorators
-# Guidelines for choosing timeouts:
-# - call used during watcher: timeout -> 1min, _TMO_URGENT
-# - trivial (but be sure it is trivial) (e.g. reading a file): 5min, _TMO_FAST
-# - other calls: 15 min, _TMO_NORMAL
-# - special calls (instance add, etc.): either _TMO_SLOW (1h) or huge timeouts
-
-_TIMEOUTS = {
-}
-
 #: Special value to describe an offline host
 _OFFLINE = object()
 
@@ -125,21 +115,6 @@ def _ConfigRpcCurl(curl):
   curl.setopt(pycurl.SSLKEYTYPE, "PEM")
   curl.setopt(pycurl.SSLKEY, noded_cert)
   curl.setopt(pycurl.CONNECTTIMEOUT, _RPC_CONNECT_TIMEOUT)
-
-
-def _RpcTimeout(secs):
-  """Timeout decorator.
-
-  When applied to a rpc call_* function, it updates the global timeout
-  table with the given function/timeout.
-
-  """
-  def decorator(f):
-    name = f.__name__
-    assert name.startswith("call_")
-    _TIMEOUTS[name[len("call_"):]] = secs
-    return f
-  return decorator
 
 
 def RunWithRPC(fn):
@@ -420,9 +395,6 @@ class _RpcProcessor:
     @param read_timeout: Read timeout for request
 
     """
-    if read_timeout is None:
-      read_timeout = _TIMEOUTS.get(procedure, None)
-
     assert read_timeout is not None, \
       "Missing RPC read timeout for procedure '%s'" % procedure
 
