@@ -63,6 +63,10 @@ from ganeti import ht
 import ganeti.masterd.instance # pylint: disable=W0611
 
 
+#: Size of DRBD meta block device
+DRBD_META_SIZE = 128
+
+
 class ResultWithJobs:
   """Data container for LU results with jobs.
 
@@ -7829,7 +7833,7 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
   shared_secret = lu.cfg.GenerateDRBDSecret(lu.proc.GetECId())
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                           logical_id=(vgnames[0], names[0]))
-  dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
+  dev_meta = objects.Disk(dev_type=constants.LD_LV, size=DRBD_META_SIZE,
                           logical_id=(vgnames[1], names[1]))
   drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
                           logical_id=(primary, secondary, port,
@@ -8149,7 +8153,7 @@ def _ComputeDiskSizePerVG(disk_template, disks):
     constants.DT_DISKLESS: {},
     constants.DT_PLAIN: _compute(disks, 0),
     # 128 MB are added for drbd metadata for each disk
-    constants.DT_DRBD8: _compute(disks, 128),
+    constants.DT_DRBD8: _compute(disks, DRBD_META_SIZE),
     constants.DT_FILE: {},
     constants.DT_SHARED_FILE: {},
   }
@@ -8170,7 +8174,8 @@ def _ComputeDiskSize(disk_template, disks):
     constants.DT_DISKLESS: None,
     constants.DT_PLAIN: sum(d[constants.IDISK_SIZE] for d in disks),
     # 128 MB are added for drbd metadata for each disk
-    constants.DT_DRBD8: sum(d[constants.IDISK_SIZE] + 128 for d in disks),
+    constants.DT_DRBD8:
+      sum(d[constants.IDISK_SIZE] + DRBD_META_SIZE for d in disks),
     constants.DT_FILE: None,
     constants.DT_SHARED_FILE: 0,
     constants.DT_BLOCK: 0,
@@ -9835,7 +9840,7 @@ class TLReplaceDisks(Tasklet):
       lv_data = objects.Disk(dev_type=constants.LD_LV, size=dev.size,
                              logical_id=(vg_data, names[0]))
       vg_meta = dev.children[1].logical_id[0]
-      lv_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
+      lv_meta = objects.Disk(dev_type=constants.LD_LV, size=DRBD_META_SIZE,
                              logical_id=(vg_meta, names[1]))
 
       new_lvs = [lv_data, lv_meta]
