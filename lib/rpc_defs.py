@@ -398,8 +398,13 @@ CALLS = {
     ("node_start_master_daemons", SINGLE, TMO_FAST, [
       ("no_voting", None, None),
       ], None, "Starts master daemons on a node"),
-    ("node_activate_master_ip", SINGLE, TMO_FAST, [], None,
-     "Activates master IP on a node"),
+    ("node_activate_master_ip", SINGLE, TMO_FAST, [
+      ("master_ip", None, "The master IP"),
+      ("master_netmask", None, "The master IP netmask"),
+      ("master_netdev", None, "The master network device"),
+      ("ip_family", None, "The cluster IP family"),
+      ], None,
+      "Activates master IP on a node"),
     ("node_stop_master", SINGLE, TMO_FAST, [], None,
      "Deactivates master IP and stops master daemons on a node"),
     ("node_deactivate_master_ip", SINGLE, TMO_FAST, [], None,

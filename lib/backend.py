@@ -298,8 +298,13 @@ def _BuildMasterIpHookEnv():
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNUP, "master-ip-turnup",
                _BuildMasterIpHookEnv)
-def ActivateMasterIp():
+def ActivateMasterIp(master_ip, master_netmask, master_netdev, family):
   """Activate the IP address of the master daemon.
+
+  @param master_ip: the master IP
+  @param master_netmask: the master IP netmask
+  @param master_netdev: the master network device
+  @param family: the IP family
 
   """
   # GetMasterInfo will raise an exception if not able to return data

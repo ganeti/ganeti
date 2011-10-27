@@ -3323,17 +3323,17 @@ class LUClusterRename(LogicalUnit):
 
     """
     clustername = self.op.name
-    ip = self.ip
+    new_ip = self.ip
 
     # shutdown the master IP
-    master = self.cfg.GetMasterNode()
+    (master, _, dev, netmask, family) = self.cfg.GetMasterNetworkParameters()
     result = self.rpc.call_node_deactivate_master_ip(master)
     result.Raise("Could not disable the master role")
 
     try:
       cluster = self.cfg.GetClusterInfo()
       cluster.cluster_name = clustername
-      cluster.master_ip = ip
+      cluster.master_ip = new_ip
       self.cfg.Update(cluster, feedback_fn)
 
       # update the known hosts file
@@ -3345,7 +3345,8 @@ class LUClusterRename(LogicalUnit):
         pass
       _UploadHelper(self, node_list, constants.SSH_KNOWN_HOSTS_FILE)
     finally:
-      result = self.rpc.call_node_activate_master_ip(master)
+      result = self.rpc.call_node_activate_master_ip(master, new_ip, netmask,
+                                                     dev, family)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not re-enable the master role on"
@@ -3723,9 +3724,11 @@ class LUClusterSetParams(LogicalUnit):
     self.cfg.Update(self.cluster, feedback_fn)
 
     if self.op.master_netdev:
+      (master, ip, dev, netmask, family) = self.cfg.GetMasterNetworkParameters()
       feedback_fn("Starting the master ip on the new master netdev (%s)" %
                   self.op.master_netdev)
-      result = self.rpc.call_node_activate_master_ip(master)
+      result = self.rpc.call_node_activate_master_ip(master, ip, netmask, dev,
+                                                     family)
       if result.fail_msg:
         self.LogWarning("Could not re-enable the master ip on"
                         " the master, please restart manually: %s",
@@ -3887,8 +3890,8 @@ class LUClusterActivateMasterIp(NoHooksLU):
     """Activate the master IP.
 
     """
-    master = self.cfg.GetMasterNode()
-    self.rpc.call_node_activate_master_ip(master)
+    (master, ip, dev, netmask, family) = self.cfg.GetMasterNetworkParameters()
+    self.rpc.call_node_activate_master_ip(master, ip, netmask, dev, family)
 
 
 class LUClusterDeactivateMasterIp(NoHooksLU):

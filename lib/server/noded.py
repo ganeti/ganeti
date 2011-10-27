@@ -697,7 +697,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Activate the master IP on this node.
 
     """
-    return backend.ActivateMasterIp()
+    return backend.ActivateMasterIp(params[0], params[1], params[2], params[3])
 
   @staticmethod
   def perspective_node_deactivate_master_ip(params):
