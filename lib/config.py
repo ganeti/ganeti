@@ -1134,6 +1134,14 @@ class ConfigWriter:
     """
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
+
+    # If a network port has been allocated to the instance,
+    # return it to the pool of free ports.
+    inst = self._config_data.instances[instance_name]
+    network_port = getattr(inst, "network_port", None)
+    if network_port is not None:
+      self._config_data.cluster.tcpudp_port_pool.add(network_port)
+
     del self._config_data.instances[instance_name]
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()

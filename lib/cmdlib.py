@@ -6896,6 +6896,11 @@ def _RemoveDisks(lu, instance, target_node=None):
                       " continuing anyway: %s", device.iv_name, node, msg)
         all_result = False
 
+    # if this is a DRBD disk, return its port to the pool
+    if device.dev_type in constants.LDS_DRBD:
+      tcp_port = device.logical_id[2]
+      lu.cfg.AddTcpUdpPort(tcp_port)
+
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     if target_node:
@@ -9682,6 +9687,11 @@ class LUInstanceSetParams(LogicalUnit):
         self.LogWarning("Could not remove metadata for disk %d on node %s,"
                         " continuing anyway: %s", idx, pnode, msg)
 
+    # this is a DRBD disk, return its port to the pool
+    for disk in old_disks:
+      tcp_port = disk.logical_id[2]
+      self.cfg.AddTcpUdpPort(tcp_port)
+
   def Exec(self, feedback_fn):
     """Modifies an instance.
 
@@ -9708,6 +9718,11 @@ class LUInstanceSetParams(LogicalUnit):
             self.LogWarning("Could not remove disk/%d on node %s: %s,"
                             " continuing anyway", device_idx, node, msg)
         result.append(("disk/%d" % device_idx, "remove"))
+
+        # if this is a DRBD disk, return its port to the pool
+        if device.dev_type in constants.LDS_DRBD:
+          tcp_port = device.logical_id[2]
+          self.cfg.AddTcpUdpPort(tcp_port)
       elif disk_op == constants.DDM_ADD:
         # add a new disk
         if instance.disk_template == constants.DT_FILE:
