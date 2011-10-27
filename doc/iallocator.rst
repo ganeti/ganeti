@@ -111,7 +111,7 @@ instances
   cluster, indexed by instance name; the contents are similar to the
   instance definitions for the allocate mode, with the addition of:
 
-  admin_up
+  admin_state
     if this instance is set to run (but not the actual status of the
     instance)
 

@@ -1182,8 +1182,8 @@ class ConfigWriter:
       raise errors.ConfigurationError("Unknown instance '%s'" %
                                       instance_name)
     instance = self._config_data.instances[instance_name]
-    if instance.admin_up != status:
-      instance.admin_up = status
+    if instance.admin_state != status:
+      instance.admin_state = status
       instance.serial_no += 1
       instance.mtime = time.time()
       self._WriteConfig()

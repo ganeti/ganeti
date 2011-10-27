@@ -1271,6 +1271,16 @@ INSTST_ALL = frozenset([
   INSTST_ERRORDOWN,
   ])
 
+# Admin states
+ADMINST_UP = "up"
+ADMINST_DOWN = "down"
+ADMINST_OFFLINE = "offline"
+ADMINST_ALL = frozenset([
+  ADMINST_UP,
+  ADMINST_DOWN,
+  ADMINST_OFFLINE,
+  ])
+
 # Node roles
 NR_REGULAR = "R"
 NR_MASTER = "M"

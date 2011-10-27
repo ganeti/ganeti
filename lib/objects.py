@@ -744,7 +744,7 @@ class Instance(TaggableObject):
     "hvparams",
     "beparams",
     "osparams",
-    "admin_up",
+    "admin_state",
     "nics",
     "disks",
     "disk_template",
@@ -884,6 +884,13 @@ class Instance(TaggableObject):
     """Custom function for instances.
 
     """
+    if "admin_state" not in val:
+      if val.get("admin_up", False):
+        val["admin_state"] = constants.ADMINST_UP
+      else:
+        val["admin_state"] = constants.ADMINST_DOWN
+    if "admin_up" in val:
+      del val["admin_up"]
     obj = super(Instance, cls).FromDict(val)
     obj.nics = cls._ContainerFromDicts(obj.nics, list, NIC)
     obj.disks = cls._ContainerFromDicts(obj.disks, list, Disk)

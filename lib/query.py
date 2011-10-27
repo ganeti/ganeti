@@ -1348,12 +1348,12 @@ def _GetInstStatus(ctx, inst):
   if bool(ctx.live_data.get(inst.name)):
     if inst.name in ctx.wrongnode_inst:
       return constants.INSTST_WRONGNODE
-    elif inst.admin_up:
+    elif inst.admin_state:
       return constants.INSTST_RUNNING
     else:
       return constants.INSTST_ERRORUP
 
-  if inst.admin_up:
+  if inst.admin_state:
     return constants.INSTST_ERRORDOWN
 
   return constants.INSTST_ADMINDOWN
@@ -1778,7 +1778,7 @@ def _BuildInstanceFields():
     (_MakeField("admin_state", "Autostart", QFT_BOOL,
                 "Desired state of instance (if set, the instance should be"
                 " up)"),
-     IQ_CONFIG, 0, _GetItemAttr("admin_up")),
+     IQ_CONFIG, 0, _GetItemAttr("admin_state")),
     (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), IQ_CONFIG, 0,
      lambda ctx, inst: list(inst.GetTags())),
     (_MakeField("console", "Console", QFT_OTHER,
