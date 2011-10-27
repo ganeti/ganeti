@@ -4,13 +4,14 @@ News
 Version 2.4.5
 -------------
 
-*(unreleased)*
+*(Released Thu, 27 Oct 2011)*
 
 - Fixed bug when parsing command line parameter values ending in
   backslash
 - Fixed assertion error after unclean master shutdown
 - Disable HTTP client pool for RPC, significantly reducing memory usage
   of master daemon
+- Fixed queue archive creation with wrong permissions
 
 
 Version 2.4.4
