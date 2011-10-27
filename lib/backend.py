@@ -375,15 +375,16 @@ def StartMasterDaemons(no_voting):
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNDOWN, "master-ip-turndown",
                _BuildMasterIpHookEnv)
-def DeactivateMasterIp():
+def DeactivateMasterIp(master_ip, master_netmask, master_netdev):
   """Deactivate the master IP on this node.
+
+  @param master_ip: the master IP
+  @param master_netmask: the master IP netmask
+  @param master_netdev: the master network device
 
   """
   # TODO: log and report back to the caller the error failures; we
   # need to decide in which case we fail the RPC for this
-
-  # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _, _, master_netmask = GetMasterInfo()
 
   result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
                          "%s/%s" % (master_ip, master_netmask),

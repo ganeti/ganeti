@@ -1355,12 +1355,12 @@ class LUClusterDestroy(LogicalUnit):
     """Destroys the cluster.
 
     """
-    master = self.cfg.GetMasterNode()
+    (master, ip, dev, netmask, _) = self.cfg.GetMasterNetworkParameters()
 
     # Run post hooks on master node before it's removed
     _RunPostHook(self, master)
 
-    result = self.rpc.call_node_deactivate_master_ip(master)
+    result = self.rpc.call_node_deactivate_master_ip(master, ip, netmask, dev)
     result.Raise("Could not disable the master role")
 
     return master
@@ -3326,8 +3326,8 @@ class LUClusterRename(LogicalUnit):
     new_ip = self.ip
 
     # shutdown the master IP
-    (master, _, dev, netmask, family) = self.cfg.GetMasterNetworkParameters()
-    result = self.rpc.call_node_deactivate_master_ip(master)
+    (master, ip, dev, netmask, family) = self.cfg.GetMasterNetworkParameters()
+    result = self.rpc.call_node_deactivate_master_ip(master, ip, netmask, dev)
     result.Raise("Could not disable the master role")
 
     try:
@@ -3700,13 +3700,13 @@ class LUClusterSetParams(LogicalUnit):
       helper_os("blacklisted_os", self.op.blacklisted_os, "blacklisted")
 
     if self.op.master_netdev:
-      master = self.cfg.GetMasterNode()
+      (master, ip, dev, netmask, _) = self.cfg.GetMasterNetworkParameters()
       feedback_fn("Shutting down master ip on the current netdev (%s)" %
                   self.cluster.master_netdev)
-      result = self.rpc.call_node_deactivate_master_ip(master)
+      result = self.rpc.call_node_deactivate_master_ip(master, ip, netmask, dev)
       result.Raise("Could not disable the master ip")
       feedback_fn("Changing master_netdev from %s to %s" %
-                  (self.cluster.master_netdev, self.op.master_netdev))
+                  (dev, self.op.master_netdev))
       self.cluster.master_netdev = self.op.master_netdev
 
     if self.op.master_netmask:
@@ -3902,8 +3902,8 @@ class LUClusterDeactivateMasterIp(NoHooksLU):
     """Deactivate the master IP.
 
     """
-    master = self.cfg.GetMasterNode()
-    self.rpc.call_node_deactivate_master_ip(master)
+    (master, ip, dev, netmask, _) = self.cfg.GetMasterNetworkParameters()
+    self.rpc.call_node_deactivate_master_ip(master, ip, netmask, dev)
 
 
 def _WaitForSync(lu, instance, disks=None, oneshot=False):

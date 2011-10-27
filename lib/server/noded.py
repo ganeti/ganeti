@@ -704,7 +704,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Deactivate the master IP on this node.
 
     """
-    return backend.DeactivateMasterIp()
+    return backend.DeactivateMasterIp(params[0], params[1], params[2])
 
   @staticmethod
   def perspective_node_stop_master(params):

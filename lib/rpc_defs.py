@@ -407,7 +407,11 @@ CALLS = {
       "Activates master IP on a node"),
     ("node_stop_master", SINGLE, TMO_FAST, [], None,
      "Deactivates master IP and stops master daemons on a node"),
-    ("node_deactivate_master_ip", SINGLE, TMO_FAST, [], None,
+    ("node_deactivate_master_ip", SINGLE, TMO_FAST, [
+      ("master_ip", None, "The master IP"),
+      ("master_netmask", None, "The master IP netmask"),
+      ("master_netdev", None, "The master network device"),
+      ], None,
      "Deactivates master IP on a node"),
     ("node_change_master_netmask", SINGLE, TMO_FAST, [
       ("netmask", None, None),
