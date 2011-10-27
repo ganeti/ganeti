@@ -59,6 +59,7 @@ from ganeti import query
 from ganeti import qlang
 from ganeti import opcodes
 from ganeti import ht
+from ganeti import rpc
 
 import ganeti.masterd.instance # pylint: disable=W0611
 
@@ -112,7 +113,7 @@ class LogicalUnit(object):
   HTYPE = None
   REQ_BGL = True
 
-  def __init__(self, processor, op, context, rpc):
+  def __init__(self, processor, op, context, rpc_runner):
     """Constructor for LogicalUnit.
 
     This needs to be overridden in derived classes in order to check op
@@ -126,7 +127,7 @@ class LogicalUnit(object):
     # readability alias
     self.owned_locks = context.glm.list_owned
     self.context = context
-    self.rpc = rpc
+    self.rpc = rpc_runner
     # Dicts used to declare locking needs to mcpu
     self.needed_locks = None
     self.share_locks = dict.fromkeys(locking.LEVELS, 0)
@@ -1208,13 +1209,13 @@ def _GetStorageTypeArgs(cfg, storage_type):
   return []
 
 
-def _FindFaultyInstanceDisks(cfg, rpc, instance, node_name, prereq):
+def _FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_name, prereq):
   faulty = []
 
   for dev in instance.disks:
     cfg.SetDiskID(dev, node_name)
 
-  result = rpc.call_blockdev_getmirrorstatus(node_name, instance.disks)
+  result = rpc_runner.call_blockdev_getmirrorstatus(node_name, instance.disks)
   result.Raise("Failed to get disk status from node %s" % node_name,
                prereq=prereq, ecode=errors.ECODE_ENVIRON)
 
@@ -5374,7 +5375,9 @@ class LUNodeSetParams(LogicalUnit):
 
     if old_role == self._ROLE_OFFLINE and new_role != old_role:
       # Trying to transition out of offline status
-      result = self.rpc.call_version([node.name])[node.name]
+      # TODO: Use standard RPC runner, but make sure it works when the node is
+      # still marked offline
+      result = rpc.BootstrapRunner().call_version([node.name])[node.name]
       if result.fail_msg:
         raise errors.OpPrereqError("Node %s is being de-offlined but fails"
                                    " to report its version: %s" %
@@ -13038,9 +13041,9 @@ class IAllocator(object):
   # pylint: disable=R0902
   # lots of instance attributes
 
-  def __init__(self, cfg, rpc, mode, **kwargs):
+  def __init__(self, cfg, rpc_runner, mode, **kwargs):
     self.cfg = cfg
-    self.rpc = rpc
+    self.rpc = rpc_runner
     # init buffer variables
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
