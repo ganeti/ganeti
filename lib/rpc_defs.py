@@ -414,7 +414,10 @@ CALLS = {
       ], None,
      "Deactivates master IP on a node"),
     ("node_change_master_netmask", SINGLE, TMO_FAST, [
-      ("netmask", None, None),
+      ("old_netmask", None, "The old value of the netmask"),
+      ("netmask", None, "The new value of the netmask"),
+      ("master_ip", None, "The master IP"),
+      ("master_netdev", None, "The master network device"),
       ], None, "Change master IP netmask"),
     ("node_leave_cluster", SINGLE, TMO_NORMAL, [
       ("modify_ssh_setup", None, None),

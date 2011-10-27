@@ -3710,10 +3710,11 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.master_netdev = self.op.master_netdev
 
     if self.op.master_netmask:
-      master = self.cfg.GetMasterNode()
+      (master, ip, dev, old_netmask, _) = self.cfg.GetMasterNetworkParameters()
       feedback_fn("Changing master IP netmask to %s" % self.op.master_netmask)
-      result = self.rpc.call_node_change_master_netmask(master,
-                                                        self.op.master_netmask)
+      result = self.rpc.call_node_change_master_netmask(master, old_netmask,
+                                                        self.op.master_netmask,
+                                                        ip, dev)
       if result.fail_msg:
         msg = "Could not change the master IP netmask: %s" % result.fail_msg
         self.LogWarning(msg)

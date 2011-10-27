@@ -412,11 +412,15 @@ def StopMasterDaemons():
                   result.cmd, result.exit_code, result.output)
 
 
-def ChangeMasterNetmask(netmask):
+def ChangeMasterNetmask(old_netmask, netmask, master_ip, master_netdev):
   """Change the netmask of the master IP.
 
+  @param old_netmask: the old value of the netmask
+  @param netmask: the new value of the netmask
+  @param master_ip: the master IP
+  @param master_netdev: the master network device
+
   """
-  master_netdev, master_ip, _, _, old_netmask = GetMasterInfo()
   if old_netmask == netmask:
     return
 

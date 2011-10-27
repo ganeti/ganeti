@@ -718,7 +718,8 @@ class NodeHttpServer(http.server.HttpServer):
     """Change the master IP netmask.
 
     """
-    return backend.ChangeMasterNetmask(params[0])
+    return backend.ChangeMasterNetmask(params[0], params[1], params[2],
+                                       params[3])
 
   @staticmethod
   def perspective_node_leave_cluster(params):
