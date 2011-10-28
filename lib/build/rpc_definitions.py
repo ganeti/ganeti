@@ -146,6 +146,9 @@ _INSTANCE_CALLS = [
     ("success", None, "Whether the migration succeeded or not"),
     ("live", None, "Whether the user requested a live migration or not"),
     ], None, "Finalize the instance migration on the source node"),
+  ("instance_get_migration_status", SINGLE, TMO_SLOW, [
+    ("instance", INST_TO_DICT, "Instance object"),
+    ], "self._MigrationStatusPostProc", "Report migration status"),
   ("instance_start", SINGLE, TMO_NORMAL, [
     ("instance_hvp_bep", "self._InstDictHvpBep(%s)", None),
     ("startup_paused", None, None),

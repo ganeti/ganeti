@@ -494,6 +494,12 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
     return self._proc(node_list, procedure, body, read_timeout=timeout)
 
   @staticmethod
+  def _MigrationStatusPostProc(result):
+    if not result.fail_msg and result.payload is not None:
+      result.payload = objects.MigrationStatus.FromDict(result.payload)
+    return result
+
+  @staticmethod
   def _BlockdevFindPostProc(result):
     if not result.fail_msg and result.payload is not None:
       result.payload = objects.BlockDevStatus.FromDict(result.payload)
