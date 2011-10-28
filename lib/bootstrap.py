@@ -565,12 +565,19 @@ def FinalizeClusterDestroy(master):
   """
   cfg = config.ConfigWriter()
   modify_ssh_setup = cfg.GetClusterInfo().modify_ssh_setup
-  result = rpc.BootstrapRunner().call_node_stop_master(master)
+  runner = rpc.BootstrapRunner()
+
+  result = runner.call_node_deactivate_master_ip(master)
+  msg = result.fail_msg
+  if msg:
+    logging.warning("Could not disable the master IP: %s", msg)
+
+  result = runner.call_node_stop_master(master)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master role: %s", msg)
-  result = rpc.BootstrapRunner().call_node_leave_cluster(master,
-                                                         modify_ssh_setup)
+
+  result = runner.call_node_leave_cluster(master, modify_ssh_setup)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not shutdown the node daemon and cleanup"
@@ -698,7 +705,13 @@ def MasterFailover(no_voting=False):
 
   logging.info("Stopping the master daemon on node %s", old_master)
 
-  result = rpc.BootstrapRunner().call_node_stop_master(old_master)
+  runner = rpc.BootstrapRunner()
+  result = runner.call_node_deactivate_master_ip(old_master)
+  msg = result.fail_msg
+  if msg:
+    logging.warning("Could not disable the master IP: %s", msg)
+
+  result = runner.call_node_stop_master(old_master)
   msg = result.fail_msg
   if msg:
     logging.error("Could not disable the master role on the old master"

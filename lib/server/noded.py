@@ -708,13 +708,9 @@ class NodeHttpServer(http.server.HttpServer):
 
   @staticmethod
   def perspective_node_stop_master(params):
-    """Deactivate the master IP and stops master daemons on this node.
-
-    Sometimes both operations need to be executed at the same time (doing one of
-    the two would make impossible to do the other one).
+    """Stops master daemons on this node.
 
     """
-    backend.DeactivateMasterIp()
     return backend.StopMasterDaemons()
 
   @staticmethod
