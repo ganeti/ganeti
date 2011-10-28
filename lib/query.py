@@ -763,7 +763,7 @@ def _VerifyResultRow(fields, row):
     elif value is not None:
       errs.append("abnormal field %s has a non-None value" % fdef.name)
   assert not errs, ("Failed validation: %s in row %s" %
-                    (utils.CommaJoin(errors), row))
+                    (utils.CommaJoin(errs), row))
 
 
 def _FieldDictKey((fdef, _, flags, fn)):
