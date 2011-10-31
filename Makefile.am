@@ -174,7 +174,6 @@ nodist_pkgpython_PYTHON = \
 
 noinst_PYTHON = \
 	lib/build/__init__.py \
-	lib/build/rpc_definitions.py \
 	lib/build/sphinx_ext.py
 
 pkgpython_PYTHON = \
@@ -203,6 +202,7 @@ pkgpython_PYTHON = \
 	lib/qlang.py \
 	lib/query.py \
 	lib/rpc.py \
+	lib/rpc_defs.py \
 	lib/runtime.py \
 	lib/serializer.py \
 	lib/ssconf.py \
@@ -1020,7 +1020,7 @@ lib/_vcsversion.py: Makefile vcs-version | lib/.dir
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
 
-lib/_generated_rpc.py: lib/build/rpc_definitions.py $(BUILD_RPC) | lib/.dir
+lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC) | lib/.dir
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) $< > $@
 
 $(REPLACE_VARS_SED): Makefile
