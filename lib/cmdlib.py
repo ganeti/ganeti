@@ -3154,7 +3154,7 @@ class LUGroupVerifyDisks(NoHooksLU):
       # any leftover items in nv_dict are missing LVs, let's arrange the data
       # better
       for key, inst in nv_dict.iteritems():
-        res_missing.setdefault(inst, []).append(key)
+        res_missing.setdefault(inst, []).append(list(key))
 
     return (res_nodes, list(res_instances), res_missing)
 

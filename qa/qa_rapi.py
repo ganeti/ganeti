@@ -1,4 +1,5 @@
 #
+#
 
 # Copyright (C) 2007, 2008, 2009, 2010, 2011 Google Inc.
 #
@@ -616,6 +617,14 @@ def TestRapiInstanceRename(rename_source, rename_target):
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
   _WaitForRapiJob(_rapi_client.ReinstallInstance(instance["name"]))
+
+
+def TestRapiInstanceReplaceDisks(instance):
+  """Test replacing instance disks via RAPI"""
+  _WaitForRapiJob(_rapi_client.ReplaceInstanceDisks(instance["name"],
+    mode=constants.REPLACE_DISK_AUTO, disks=[]))
+  _WaitForRapiJob(_rapi_client.ReplaceInstanceDisks(instance["name"],
+    mode=constants.REPLACE_DISK_SEC, disks="0"))
 
 
 def TestRapiInstanceModify(instance):

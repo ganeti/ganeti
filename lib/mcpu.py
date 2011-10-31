@@ -534,8 +534,7 @@ class HooksMaster(object):
       env["GANETI_MASTER"] = cfg.GetMasterNode()
 
     if phase_env:
-      assert not (set(env) & set(phase_env)), "Environment variables conflict"
-      env.update(phase_env)
+      env = utils.algo.JoinDisjointDicts(env, phase_env)
 
     # Convert everything to strings
     env = dict([(str(key), str(val)) for key, val in env.iteritems()])

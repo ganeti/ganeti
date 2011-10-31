@@ -772,16 +772,15 @@ It supports the following commands: ``POST``.
 ``POST``
 ~~~~~~~~
 
-Takes the parameters ``mode`` (one of ``replace_on_primary``,
-``replace_on_secondary``, ``replace_new_secondary`` or
-``replace_auto``), ``disks`` (comma separated list of disk indexes),
-``remote_node`` and ``iallocator``.
+Returns a job ID.
 
-Either ``remote_node`` or ``iallocator`` needs to be defined when using
-``mode=replace_new_secondary``.
+Body parameters:
 
-``mode`` is a mandatory parameter. ``replace_auto`` tries to determine
-the broken disk(s) on its own and replacing it.
+.. opcode_params:: OP_INSTANCE_REPLACE_DISKS
+   :exclude: instance_name
+
+Ganeti 2.4 and below used query parameters. Those are deprecated and
+should no longer be used.
 
 
 ``/2/instances/[instance_name]/activate-disks``

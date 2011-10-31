@@ -691,7 +691,8 @@ class OpGroupVerifyDisks(OpCode):
     ht.TAnd(ht.TIsLength(3),
             ht.TItems([ht.TDictOf(ht.TString, ht.TString),
                        ht.TListOf(ht.TString),
-                       ht.TDictOf(ht.TString, ht.TListOf(ht.TString))]))
+                       ht.TDictOf(ht.TString,
+                                  ht.TListOf(ht.TListOf(ht.TString)))]))
 
 
 class OpClusterRepairDiskSizes(OpCode):

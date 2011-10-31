@@ -204,7 +204,7 @@ def FakeHooksRpcSuccess(node_list, hpath, phase, env):
 
   """
   rr = rpc.RpcResult
-  return dict([(node, rr(True, [("utest", constants.HKR_SUCCESS, "ok")],
+  return dict([(node, rr((True, [("utest", constants.HKR_SUCCESS, "ok")]),
                          node=node, call='FakeScriptOk'))
                for node in node_list])
 

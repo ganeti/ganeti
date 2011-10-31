@@ -28,6 +28,7 @@ import shutil
 import tempfile
 import errno
 import time
+import stat
 
 from ganeti import errors
 from ganeti import constants
@@ -295,8 +296,12 @@ def RemoveDir(dirname):
       raise
 
 
-def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
+def RenameFile(old, new, mkdir=False, mkdir_mode=0750, dir_uid=None,
+               dir_gid=None):
   """Renames a file.
+
+  This just creates the very least directory if it does not exist and C{mkdir}
+  is set to true.
 
   @type old: string
   @param old: Original path
@@ -306,6 +311,10 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
   @param mkdir: Whether to create target directory if it doesn't exist
   @type mkdir_mode: int
   @param mkdir_mode: Mode for newly created directories
+  @type dir_uid: int
+  @param dir_uid: The uid for the (if fresh created) dir
+  @type dir_gid: int
+  @param dir_gid: The gid for the (if fresh created) dir
 
   """
   try:
@@ -316,11 +325,87 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
     # as efficient.
     if mkdir and err.errno == errno.ENOENT:
       # Create directory and try again
-      Makedirs(os.path.dirname(new), mode=mkdir_mode)
+      dir_path = os.path.dirname(new)
+      MakeDirWithPerm(dir_path, mkdir_mode, dir_uid, dir_gid)
 
       return os.rename(old, new)
 
     raise
+
+
+def EnforcePermission(path, mode, uid=None, gid=None, must_exist=True,
+                      _chmod_fn=os.chmod, _chown_fn=os.chown, _stat_fn=os.stat):
+  """Enforces that given path has given permissions.
+
+  @param path: The path to the file
+  @param mode: The mode of the file
+  @param uid: The uid of the owner of this file
+  @param gid: The gid of the owner of this file
+  @param must_exist: Specifies if non-existance of path will be an error
+  @param _chmod_fn: chmod function to use (unittest only)
+  @param _chown_fn: chown function to use (unittest only)
+
+  """
+  logging.debug("Checking %s", path)
+
+  # chown takes -1 if you want to keep one part of the ownership, however
+  # None is Python standard for that. So we remap them here.
+  if uid is None:
+    uid = -1
+  if gid is None:
+    gid = -1
+
+  try:
+    st = _stat_fn(path)
+
+    fmode = stat.S_IMODE(st[stat.ST_MODE])
+    if fmode != mode:
+      logging.debug("Changing mode of %s from %#o to %#o", path, fmode, mode)
+      _chmod_fn(path, mode)
+
+    if max(uid, gid) > -1:
+      fuid = st[stat.ST_UID]
+      fgid = st[stat.ST_GID]
+      if fuid != uid or fgid != gid:
+        logging.debug("Changing owner of %s from UID %s/GID %s to"
+                      " UID %s/GID %s", path, fuid, fgid, uid, gid)
+        _chown_fn(path, uid, gid)
+  except EnvironmentError, err:
+    if err.errno == errno.ENOENT:
+      if must_exist:
+        raise errors.GenericError("Path %s should exist, but does not" % path)
+    else:
+      raise errors.GenericError("Error while changing permissions on %s: %s" %
+                                (path, err))
+
+
+def MakeDirWithPerm(path, mode, uid, gid, _lstat_fn=os.lstat,
+                    _mkdir_fn=os.mkdir, _perm_fn=EnforcePermission):
+  """Enforces that given path is a dir and has given mode, uid and gid set.
+
+  @param path: The path to the file
+  @param mode: The mode of the file
+  @param uid: The uid of the owner of this file
+  @param gid: The gid of the owner of this file
+  @param _lstat_fn: Stat function to use (unittest only)
+  @param _mkdir_fn: mkdir function to use (unittest only)
+  @param _perm_fn: permission setter function to use (unittest only)
+
+  """
+  logging.debug("Checking directory %s", path)
+  try:
+    # We don't want to follow symlinks
+    st = _lstat_fn(path)
+  except EnvironmentError, err:
+    if err.errno != errno.ENOENT:
+      raise errors.GenericError("stat(2) on %s failed: %s" % (path, err))
+    _mkdir_fn(path)
+  else:
+    if not stat.S_ISDIR(st[stat.ST_MODE]):
+      raise errors.GenericError(("Path %s is expected to be a directory, but "
+                                 "isn't") % path)
+
+  _perm_fn(path, mode, uid=uid, gid=gid)
 
 
 def Makedirs(path, mode=0750):
