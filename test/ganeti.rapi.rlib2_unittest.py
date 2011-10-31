@@ -1472,12 +1472,18 @@ class TestInstanceReplaceDisks(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testNoDisks(self):
-    self.assertRaises(http.HttpBadRequest, self.Parse, "inst20661", {})
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
+                             ["inst20661"], {}, {}, clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.POST)
 
     for disks in [None, "", {}]:
-      self.assertRaises(http.HttpBadRequest, self.Parse, "inst20661", {
+      handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
+                               ["inst20661"], {}, {
         "disks": disks,
-        })
+        }, clfactory)
+      self.assertRaises(http.HttpBadRequest, handler.POST)
 
   def testWrong(self):
     clfactory = _FakeClientFactory(_FakeClient)
