@@ -96,16 +96,6 @@ def _WriteDocstring(sw, name, timeout, kind, args, desc):
   sw.Write("\"\"\"")
 
 
-def _MakeArgument((argname, wrapper, _)):
-  """Format argument for function call.
-
-  """
-  if wrapper:
-    return wrapper % argname
-  else:
-    return argname
-
-
 def _WriteBaseClass(sw, clsname, calls):
   """Write RPC wrapper class.
 
@@ -158,8 +148,14 @@ def _WriteBaseClass(sw, clsname, calls):
           buf.write("[node]")
         else:
           buf.write("node_list")
-        buf.write(", \"%s\", read_timeout, [%s])" %
-                  (name, utils.CommaJoin(map(_MakeArgument, args))))
+
+        buf.write(", \"%s\", read_timeout, [%s], [%s])" %
+                  (name,
+                   # Argument definitions
+                   utils.CommaJoin(map(compat.snd, args)),
+                   # Function arguments
+                   utils.CommaJoin(map(compat.fst, args))))
+
         if kind == _SINGLE:
           buf.write("[node]")
         if postproc:
