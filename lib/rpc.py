@@ -565,19 +565,19 @@ class RpcRunner(_generated_rpc.RpcClientDefault,
     return result
 
   @staticmethod
-  def _EncodeImportExportIO(ieio, ieioargs):
+  def _EncodeImportExportIO((ieio, ieioargs)):
     """Encodes import/export I/O information.
 
     """
     if ieio == constants.IEIO_RAW_DISK:
       assert len(ieioargs) == 1
-      return (ieioargs[0].ToDict(), )
+      return (ieio, (ieioargs[0].ToDict(), ))
 
     if ieio == constants.IEIO_SCRIPT:
       assert len(ieioargs) == 2
-      return (ieioargs[0].ToDict(), ieioargs[1])
+      return (ieio, (ieioargs[0].ToDict(), ieioargs[1]))
 
-    return ieioargs
+    return (ieio, ieioargs)
 
   @staticmethod
   def _PrepareFileUpload(filename):

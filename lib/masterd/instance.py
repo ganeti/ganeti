@@ -530,7 +530,7 @@ class DiskImport(_DiskImportExportBase):
     """
     return self._lu.rpc.call_import_start(self.node_name, self._opts,
                                           self._instance, self._component,
-                                          self._dest, self._dest_args)
+                                          (self._dest, self._dest_args))
 
   def CheckListening(self):
     """Checks whether the daemon is listening.
@@ -616,7 +616,7 @@ class DiskExport(_DiskImportExportBase):
     return self._lu.rpc.call_export_start(self.node_name, self._opts,
                                           self._dest_host, self._dest_port,
                                           self._instance, self._component,
-                                          self._source, self._source_args)
+                                          (self._source, self._source_args))
 
   def CheckListening(self):
     """Checks whether the daemon is listening.

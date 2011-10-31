@@ -951,7 +951,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Starts an import daemon.
 
     """
-    (opts_s, instance, component, dest, dest_args) = params
+    (opts_s, instance, component, (dest, dest_args)) = params
 
     opts = objects.ImportExportOptions.FromDict(opts_s)
 
@@ -967,7 +967,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Starts an export daemon.
 
     """
-    (opts_s, host, port, instance, component, source, source_args) = params
+    (opts_s, host, port, instance, component, (source, source_args)) = params
 
     opts = objects.ImportExportOptions.FromDict(opts_s)
 
