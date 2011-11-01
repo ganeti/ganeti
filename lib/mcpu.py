@@ -519,7 +519,7 @@ class HooksMaster(object):
     cfg = self.lu.cfg
 
     env = {
-      "PATH": "/sbin:/bin:/usr/sbin:/usr/bin",
+      "PATH": constants.HOOKS_PATH,
       "GANETI_HOOKS_VERSION": constants.HOOKS_VERSION,
       "GANETI_OP_CODE": self.op.OP_ID,
       "GANETI_DATA_DIR": constants.DATA_DIR,
