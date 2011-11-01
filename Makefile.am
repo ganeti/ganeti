@@ -21,6 +21,7 @@ ACLOCAL_AMFLAGS = -I autotools
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
+CHECK_HEADER = $(top_srcdir)/autotools/check-header
 CHECK_MAN = $(top_srcdir)/autotools/check-man
 CHECK_VERSION = $(top_srcdir)/autotools/check-version
 CHECK_NEWS = $(top_srcdir)/autotools/check-news
@@ -560,6 +561,7 @@ EXTRA_DIST = \
 	pylintrc \
 	autotools/build-bash-completion \
 	autotools/build-rpc \
+	autotools/check-header \
 	autotools/check-python-code \
 	autotools/check-imports \
 	autotools/check-man \
@@ -804,6 +806,7 @@ srclink_files = \
 check_python_code = \
 	$(BUILD_BASH_COMPLETION) \
 	$(CHECK_IMPORTS) \
+	$(CHECK_HEADER) \
 	$(DOCPP) \
 	$(all_python_code)
 
@@ -815,6 +818,7 @@ lint_python_code = \
 	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION) \
 	$(CHECK_IMPORTS) \
+	$(CHECK_HEADER) \
 	$(DOCPP) \
 	$(PYTHON_BOOTSTRAP)
 
@@ -829,6 +833,7 @@ pep8_python_code = \
 	$(dist_tools_PYTHON) \
 	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION) \
+	$(CHECK_HEADER) \
 	$(DOCPP) \
 	$(PYTHON_BOOTSTRAP) \
 	qa
@@ -1124,6 +1129,7 @@ check-dirs: $(BUILT_SOURCES)
 .PHONY: check-local
 check-local: check-dirs $(BUILT_SOURCES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
+	PYTHONPATH=. $(CHECK_HEADER) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	$(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
