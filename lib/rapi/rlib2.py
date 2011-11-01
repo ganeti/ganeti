@@ -975,7 +975,6 @@ class R_2_instances_name_replace_disks(baserlib.OpcodeResource):
     """Replaces disks on an instance.
 
     """
-    data = self.request_body.copy()
     static = {
       "instance_name": self.items[0],
       }
