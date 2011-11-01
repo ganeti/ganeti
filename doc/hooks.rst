@@ -98,7 +98,7 @@ The scripts will be run as follows:
 
 - stdout and stderr are directed to files
 
-- PATH is reset to ``/sbin:/bin:/usr/sbin:/usr/bin``
+- PATH is reset to :pyeval:`constants.HOOKS_PATH`
 
 - the environment is cleared, and only ganeti-specific variables will
   be left
