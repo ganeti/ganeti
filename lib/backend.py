@@ -301,30 +301,28 @@ def _BuildMasterIpEnv():
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNUP, "master-ip-turnup",
                _BuildMasterIpEnv)
-def ActivateMasterIp(master_ip, master_netmask, master_netdev, family):
+def ActivateMasterIp(master_params):
   """Activate the IP address of the master daemon.
 
-  @param master_ip: the master IP
-  @param master_netmask: the master IP netmask
-  @param master_netdev: the master network device
-  @param family: the IP family
+  @type master_params: L{objects.MasterNetworkParameters}
+  @param master_params: network parameters of the master
 
   """
   err_msg = None
-  if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
-    if netutils.IPAddress.Own(master_ip):
+  if netutils.TcpPing(master_params.ip, constants.DEFAULT_NODED_PORT):
+    if netutils.IPAddress.Own(master_params.ip):
       # we already have the ip:
       logging.debug("Master IP already configured, doing nothing")
     else:
       err_msg = "Someone else has the master ip, not activating"
       logging.error(err_msg)
   else:
-    ipcls = netutils.IPAddress.GetClassFromIpFamily(family)
+    ipcls = netutils.IPAddress.GetClassFromIpFamily(master_params.ip_family)
 
     result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
-                           "%s/%s" % (master_ip, master_netmask),
-                           "dev", master_netdev, "label",
-                           "%s:0" % master_netdev])
+                           "%s/%s" % (master_params.ip, master_params.netmask),
+                           "dev", master_params.netdev, "label",
+                           "%s:0" % master_params.netdev])
     if result.failed:
       err_msg = "Can't activate master IP: %s" % result.output
       logging.error(err_msg)
@@ -332,11 +330,12 @@ def ActivateMasterIp(master_ip, master_netmask, master_netdev, family):
     else:
       # we ignore the exit code of the following cmds
       if ipcls == netutils.IP4Address:
-        utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev, "-s",
-                      master_ip, master_ip])
+        utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_params.netdev,
+                      "-s", master_params.ip, master_params.ip])
       elif ipcls == netutils.IP6Address:
         try:
-          utils.RunCmd(["ndisc6", "-q", "-r 3", master_ip, master_netdev])
+          utils.RunCmd(["ndisc6", "-q", "-r 3", master_params.ip,
+                        master_params.netdev])
         except errors.OpExecError:
           # TODO: Better error reporting
           logging.warning("Can't execute ndisc6, please install if missing")
@@ -375,22 +374,19 @@ def StartMasterDaemons(no_voting):
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNDOWN, "master-ip-turndown",
                _BuildMasterIpEnv)
-def DeactivateMasterIp(master_ip, master_netmask, master_netdev, family):
+def DeactivateMasterIp(master_params):
   """Deactivate the master IP on this node.
 
-  @param master_ip: the master IP
-  @param master_netmask: the master IP netmask
-  @param master_netdev: the master network device
-  @param family: the IP family
+  @type master_params: L{objects.MasterNetworkParameters}
+  @param master_params: network parameters of the master
 
   """
-  # pylint: disable=W0613
   # TODO: log and report back to the caller the error failures; we
   # need to decide in which case we fail the RPC for this
 
   result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
-                         "%s/%s" % (master_ip, master_netmask),
-                         "dev", master_netdev])
+                         "%s/%s" % (master_params.ip, master_params.netmask),
+                         "dev", master_params.netdev])
   if result.failed:
     logging.error("Can't remove the master IP, error: %s", result.output)
     # but otherwise ignore the failure

@@ -568,11 +568,10 @@ def FinalizeClusterDestroy(master):
   runner = rpc.BootstrapRunner()
 
   master_params = cfg.GetMasterNetworkParameters()
-  result = runner.call_node_deactivate_master_ip(master,
-                                                 master_params.ip,
-                                                 master_params.netmask,
-                                                 master_params.netdev,
-                                                 master_params.ip_family)
+  master_params.name = master
+  result = runner.call_node_deactivate_master_ip(master_params.name,
+                                                 master_params)
+
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master IP: %s", msg)
@@ -712,11 +711,10 @@ def MasterFailover(no_voting=False):
 
   runner = rpc.BootstrapRunner()
   master_params = cfg.GetMasterNetworkParameters()
-  result = runner.call_node_deactivate_master_ip(old_master,
-                                                 master_params.ip,
-                                                 master_params.netmask,
-                                                 master_params.netdev,
-                                                 master_params.ip_family)
+  master_params.name = old_master
+  result = runner.call_node_deactivate_master_ip(master_params.name,
+                                                 master_params)
+
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master IP: %s", msg)

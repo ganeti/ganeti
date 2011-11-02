@@ -1361,10 +1361,7 @@ class LUClusterDestroy(LogicalUnit):
     _RunPostHook(self, master_params.name)
 
     result = self.rpc.call_node_deactivate_master_ip(master_params.name,
-                                                     master_params.ip,
-                                                     master_params.netmask,
-                                                     master_params.netdev,
-                                                     master_params.ip_family)
+                                                     master_params)
     result.Raise("Could not disable the master role")
 
     return master_params.name
@@ -3332,10 +3329,7 @@ class LUClusterRename(LogicalUnit):
     # shutdown the master IP
     master_params = self.cfg.GetMasterNetworkParameters()
     result = self.rpc.call_node_deactivate_master_ip(master_params.name,
-                                                     master_params.ip,
-                                                     master_params.netmask,
-                                                     master_params.netdev,
-                                                     master_params.ip_family)
+                                                     master_params)
     result.Raise("Could not disable the master role")
 
     try:
@@ -3353,11 +3347,9 @@ class LUClusterRename(LogicalUnit):
         pass
       _UploadHelper(self, node_list, constants.SSH_KNOWN_HOSTS_FILE)
     finally:
+      master_params.ip = new_ip
       result = self.rpc.call_node_activate_master_ip(master_params.name,
-                                                     new_ip,
-                                                     master_params.netmask,
-                                                     master_params.netdev,
-                                                     master_params.ip_family)
+                                                     master_params)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not re-enable the master role on"
@@ -3715,10 +3707,7 @@ class LUClusterSetParams(LogicalUnit):
       feedback_fn("Shutting down master ip on the current netdev (%s)" %
                   self.cluster.master_netdev)
       result = self.rpc.call_node_deactivate_master_ip(master_params.name,
-                                                       master_params.ip,
-                                                       master_params.netmask,
-                                                       master_params.netdev,
-                                                       master_params.ip_family)
+                                                       master_params)
       result.Raise("Could not disable the master ip")
       feedback_fn("Changing master_netdev from %s to %s" %
                   (master_params.netdev, self.op.master_netdev))
@@ -3746,10 +3735,7 @@ class LUClusterSetParams(LogicalUnit):
       feedback_fn("Starting the master ip on the new master netdev (%s)" %
                   self.op.master_netdev)
       result = self.rpc.call_node_activate_master_ip(master_params.name,
-                                                     master_params.ip,
-                                                     master_params.netmask,
-                                                     master_params.netdev,
-                                                     master_params.ip_family)
+                                                     master_params)
       if result.fail_msg:
         self.LogWarning("Could not re-enable the master ip on"
                         " the master, please restart manually: %s",
@@ -3913,10 +3899,7 @@ class LUClusterActivateMasterIp(NoHooksLU):
     """
     master_params = self.cfg.GetMasterNetworkParameters()
     self.rpc.call_node_activate_master_ip(master_params.name,
-                                          master_params.ip,
-                                          master_params.netmask,
-                                          master_params.netdev,
-                                          master_params.ip_family)
+                                          master_params)
 
 
 class LUClusterDeactivateMasterIp(NoHooksLU):
@@ -3928,11 +3911,7 @@ class LUClusterDeactivateMasterIp(NoHooksLU):
 
     """
     master_params = self.cfg.GetMasterNetworkParameters()
-    self.rpc.call_node_deactivate_master_ip(master_params.name,
-                                            master_params.ip,
-                                            master_params.netmask,
-                                            master_params.netdev,
-                                            master_params.ip_family)
+    self.rpc.call_node_deactivate_master_ip(master_params.name, master_params)
 
 
 def _WaitForSync(lu, instance, disks=None, oneshot=False):

@@ -939,11 +939,11 @@ class ConfigWriter:
 
     """
     cluster = self._config_data.cluster
-    result = objects.MasterNetworkParameters(cluster.master_node,
-      cluster.master_ip,
-      cluster.master_netdev,
-      cluster.master_netmask,
-      cluster.primary_ip_family)
+    result = objects.MasterNetworkParameters(name=cluster.master_node,
+      ip=cluster.master_ip,
+      netmask=cluster.master_netmask,
+      netdev=cluster.master_netdev,
+      ip_family=cluster.primary_ip_family)
 
     return result
 
