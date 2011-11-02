@@ -8525,7 +8525,11 @@ class LUInstanceCreate(LogicalUnit):
     self.add_locks[locking.LEVEL_INSTANCE] = instance_name
 
     if self.op.iallocator:
+      # TODO: Find a solution to not lock all nodes in the cluster, e.g. by
+      # specifying a group on instance creation and then selecting nodes from
+      # that group
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+      self.needed_locks[locking.LEVEL_NODE_RES] = locking.ALL_SET
     else:
       self.op.pnode = _ExpandNodeName(self.cfg, self.op.pnode)
       nodelist = [self.op.pnode]
@@ -8533,6 +8537,9 @@ class LUInstanceCreate(LogicalUnit):
         self.op.snode = _ExpandNodeName(self.cfg, self.op.snode)
         nodelist.append(self.op.snode)
       self.needed_locks[locking.LEVEL_NODE] = nodelist
+      # Lock resources of instance's primary and secondary nodes (copy to
+      # prevent accidential modification)
+      self.needed_locks[locking.LEVEL_NODE_RES] = list(nodelist)
 
     # in case of import lock the source node too
     if self.op.mode == constants.INSTANCE_IMPORT:
@@ -9139,6 +9146,10 @@ class LUInstanceCreate(LogicalUnit):
     instance = self.op.instance_name
     pnode_name = self.pnode.name
 
+    assert not (self.owned_locks(locking.LEVEL_NODE_RES) -
+                self.owned_locks(locking.LEVEL_NODE)), \
+      "Node locks differ from node resource locks"
+
     ht_kind = self.op.hypervisor
     if ht_kind in constants.HTS_REQ_PORT:
       network_port = self.cfg.AllocatePort()
@@ -9241,6 +9252,9 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
 
+    # Release all node resource locks
+    _ReleaseLocks(self, locking.LEVEL_NODE_RES)
+
     if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
       if self.op.mode == constants.INSTANCE_CREATE:
         if not self.op.no_install:
@@ -9332,6 +9346,8 @@ class LUInstanceCreate(LogicalUnit):
         # also checked in the prereq part
         raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
                                      % self.op.mode)
+
+    assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
     if self.op.start:
       iobj.admin_up = True
