@@ -209,6 +209,10 @@ def TestNodeModify(node):
   AssertCommand(["gnt-node", "modify", "--master-candidate=yes",
                  "--auto-promote", node["primary"]])
 
+  # Test setting secondary IP address
+  AssertCommand(["gnt-node", "modify", "--secondary-ip=%s" % node["secondary"],
+                 node["primary"]])
+
 
 def _CreateOobScriptStructure():
   """Create a simple OOB handling script and its structure."""
