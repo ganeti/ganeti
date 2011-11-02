@@ -5246,6 +5246,13 @@ class LUNodeSetParams(LogicalUnit):
     self.lock_all = self.op.auto_promote and self.might_demote
     self.lock_instances = self.op.secondary_ip is not None
 
+  def _InstanceFilter(self, instance):
+    """Filter for getting affected instances.
+
+    """
+    return (instance.disk_template in constants.DTS_INT_MIRROR and
+            self.op.node_name in instance.all_nodes)
+
   def ExpandNames(self):
     if self.lock_all:
       self.needed_locks = {locking.LEVEL_NODE: locking.ALL_SET}
@@ -5253,28 +5260,8 @@ class LUNodeSetParams(LogicalUnit):
       self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
 
     if self.lock_instances:
-      self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
-
-  def DeclareLocks(self, level):
-    # If we have locked all instances, before waiting to lock nodes, release
-    # all the ones living on nodes unrelated to the current operation.
-    if level == locking.LEVEL_NODE and self.lock_instances:
-      self.affected_instances = []
-      if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
-        instances_keep = []
-
-        # Build list of instances to release
-        locked_i = self.owned_locks(locking.LEVEL_INSTANCE)
-        for instance_name, instance in self.cfg.GetMultiInstanceInfo(locked_i):
-          if (instance.disk_template in constants.DTS_INT_MIRROR and
-              self.op.node_name in instance.all_nodes):
-            instances_keep.append(instance_name)
-            self.affected_instances.append(instance)
-
-        _ReleaseLocks(self, locking.LEVEL_INSTANCE, keep=instances_keep)
-
-        assert (set(self.owned_locks(locking.LEVEL_INSTANCE)) ==
-                set(instances_keep))
+      self.needed_locks[locking.LEVEL_INSTANCE] = \
+        frozenset(self.cfg.GetInstancesInfoByFilter(self._InstanceFilter))
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -5305,6 +5292,25 @@ class LUNodeSetParams(LogicalUnit):
 
     """
     node = self.node = self.cfg.GetNodeInfo(self.op.node_name)
+
+    if self.lock_instances:
+      affected_instances = \
+        self.cfg.GetInstancesInfoByFilter(self._InstanceFilter)
+
+      # Verify instance locks
+      owned_instances = self.owned_locks(locking.LEVEL_INSTANCE)
+      wanted_instances = frozenset(affected_instances.keys())
+      if wanted_instances - owned_instances:
+        raise errors.OpPrereqError("Instances affected by changing node %s's"
+                                   " secondary IP address have changed since"
+                                   " locks were acquired, wanted '%s', have"
+                                   " '%s'; retry the operation" %
+                                   (self.op.node_name,
+                                    utils.CommaJoin(wanted_instances),
+                                    utils.CommaJoin(owned_instances)),
+                                   errors.ECODE_STATE)
+    else:
+      affected_instances = None
 
     if (self.op.master_candidate is not None or
         self.op.drained is not None or
@@ -5416,15 +5422,19 @@ class LUNodeSetParams(LogicalUnit):
         raise errors.OpPrereqError("Cannot change the secondary ip on a single"
                                    " homed cluster", errors.ECODE_INVAL)
 
+      assert not (frozenset(affected_instances) -
+                  self.owned_locks(locking.LEVEL_INSTANCE))
+
       if node.offline:
-        if self.affected_instances:
-          raise errors.OpPrereqError("Cannot change secondary ip: offline"
-                                     " node has instances (%s) configured"
-                                     " to use it" % self.affected_instances)
+        if affected_instances:
+          raise errors.OpPrereqError("Cannot change secondary IP address:"
+                                     " offline node has instances (%s)"
+                                     " configured to use it" %
+                                     utils.CommaJoin(affected_instances.keys()))
       else:
         # On online nodes, check that no instances are running, and that
         # the node has the new ip and we can reach it.
-        for instance in self.affected_instances:
+        for instance in affected_instances.values():
           _CheckInstanceDown(self, instance, "cannot change secondary ip")
 
         _CheckNodeHasSecondaryIP(self, node.name, self.op.secondary_ip, True)

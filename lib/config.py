@@ -1334,6 +1334,22 @@ class ConfigWriter:
                     for instance in self._UnlockedGetInstanceList()])
     return my_dict
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstancesInfoByFilter(self, filter_fn):
+    """Get instance configuration with a filter.
+
+    @type filter_fn: callable
+    @param filter_fn: Filter function receiving instance object as parameter,
+      returning boolean. Important: this function is called while the
+      configuration locks is held. It must not do any complex work or call
+      functions potentially leading to a deadlock. Ideally it doesn't call any
+      other functions and just compares instance attributes.
+
+    """
+    return dict((name, inst)
+                for (name, inst) in self._config_data.instances.items()
+                if filter_fn(inst))
+
   @locking.ssynchronized(_config_lock)
   def AddNode(self, node, ec_id):
     """Add a node to the configuration.
