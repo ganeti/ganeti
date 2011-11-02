@@ -478,7 +478,7 @@ Modifies the cluster parameters.
 Called when the master IP is activated.
 
 :directory: master-ip-turnup
-:env. vars: MASTER_NETDEV, MASTER_IP
+:env. vars: MASTER_NETDEV, MASTER_IP, MASTER_NETMASK, CLUSTER_IP_VERSION
 :pre-execution: master node
 :post-execution: master node
 
@@ -488,7 +488,7 @@ Called when the master IP is activated.
 Called when the master IP is deactivated.
 
 :directory: master-ip-turndown
-:env. vars: MASTER_NETDEV, MASTER_IP
+:env. vars: MASTER_NETDEV, MASTER_IP, MASTER_NETMASK, CLUSTER_IP_VERSION
 :pre-execution: master node
 :post-execution: master node
 
@@ -548,6 +548,9 @@ Specialised variables
 
 This is the list of variables which are specific to one or more
 operations.
+
+CLUSTER_IP_VERSION
+  IP version of the master IP (4 or 6)
 
 INSTANCE_NAME
   The name of the instance which is the target of the operation.
@@ -626,6 +629,9 @@ MASTER_NETDEV
 
 MASTER_IP
   The master IP
+
+MASTER_NETMASK
+  Netmask of the master IP
 
 INSTANCE_TAGS
   A space-delimited list of the instance's tags.

@@ -283,21 +283,24 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
   return decorator
 
 
-def _BuildMasterIpHookEnv():
+def _BuildMasterIpEnv():
   """Builds environment variables for master IP hooks.
 
   """
-  cfg = _GetConfig()
+  master_netdev, master_ip, _, family, master_netmask = GetMasterInfo()
+  version = str(netutils.IPAddress.GetVersionFromAddressFamily(family))
   env = {
-    "MASTER_NETDEV": cfg.GetMasterNetdev(),
-    "MASTER_IP": cfg.GetMasterIP(),
+    "MASTER_NETDEV": master_netdev,
+    "MASTER_IP": master_ip,
+    "MASTER_NETMASK": master_netmask,
+    "CLUSTER_IP_VERSION": version,
   }
 
   return env
 
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNUP, "master-ip-turnup",
-               _BuildMasterIpHookEnv)
+               _BuildMasterIpEnv)
 def ActivateMasterIp(master_ip, master_netmask, master_netdev, family):
   """Activate the IP address of the master daemon.
 
@@ -374,7 +377,7 @@ def StartMasterDaemons(no_voting):
 
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNDOWN, "master-ip-turndown",
-               _BuildMasterIpHookEnv)
+               _BuildMasterIpEnv)
 def DeactivateMasterIp(master_ip, master_netmask, master_netdev):
   """Deactivate the master IP on this node.
 
