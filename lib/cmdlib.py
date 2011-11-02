@@ -349,7 +349,8 @@ class LogicalUnit(object):
                                                 self.op.instance_name)
     self.needed_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
 
-  def _LockInstancesNodes(self, primary_only=False):
+  def _LockInstancesNodes(self, primary_only=False,
+                          level=locking.LEVEL_NODE):
     """Helper function to declare instances' nodes for locking.
 
     This function should be called after locking one or more instances to lock
@@ -370,9 +371,10 @@ class LogicalUnit(object):
 
     @type primary_only: boolean
     @param primary_only: only lock primary nodes of locked instances
+    @param level: Which lock level to use for locking nodes
 
     """
-    assert locking.LEVEL_NODE in self.recalculate_locks, \
+    assert level in self.recalculate_locks, \
       "_LockInstancesNodes helper function called with no nodes to recalculate"
 
     # TODO: check if we're really been called with the instance locks held
@@ -387,12 +389,14 @@ class LogicalUnit(object):
       if not primary_only:
         wanted_nodes.extend(instance.secondary_nodes)
 
-    if self.recalculate_locks[locking.LEVEL_NODE] == constants.LOCKS_REPLACE:
-      self.needed_locks[locking.LEVEL_NODE] = wanted_nodes
-    elif self.recalculate_locks[locking.LEVEL_NODE] == constants.LOCKS_APPEND:
-      self.needed_locks[locking.LEVEL_NODE].extend(wanted_nodes)
+    if self.recalculate_locks[level] == constants.LOCKS_REPLACE:
+      self.needed_locks[level] = wanted_nodes
+    elif self.recalculate_locks[level] == constants.LOCKS_APPEND:
+      self.needed_locks[level].extend(wanted_nodes)
+    else:
+      raise errors.ProgrammerError("Unknown recalculation mode")
 
-    del self.recalculate_locks[locking.LEVEL_NODE]
+    del self.recalculate_locks[level]
 
 
 class NoHooksLU(LogicalUnit): # pylint: disable=W0223
