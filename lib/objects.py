@@ -315,6 +315,25 @@ class TaggableObject(ConfigObject):
     return obj
 
 
+class MasterNetworkParameters(ConfigObject):
+  """Network configuration parameters for the master
+
+  @ivar name: master name
+  @ivar ip: master IP
+  @ivar netmask: master netmask
+  @ivar netdev: master network device
+  @ivar ip_family: master IP family
+
+  """
+  __slots__ = [
+    "name",
+    "ip",
+    "netmask",
+    "netdev",
+    "ip_family"
+    ]
+
+
 class ConfigData(ConfigObject):
   """Top-level config object."""
   __slots__ = [
