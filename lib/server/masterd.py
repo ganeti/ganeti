@@ -429,6 +429,7 @@ class GanetiContext(object):
 
     # Add the new node to the Ganeti Lock Manager
     self.glm.add(locking.LEVEL_NODE, node.name)
+    self.glm.add(locking.LEVEL_NODE_RES, node.name)
 
   def ReaddNode(self, node):
     """Updates a node that's already in the configuration
@@ -449,6 +450,7 @@ class GanetiContext(object):
 
     # Remove the node from the Ganeti Lock Manager
     self.glm.remove(locking.LEVEL_NODE, name)
+    self.glm.remove(locking.LEVEL_NODE_RES, name)
 
 
 def _SetWatcherPause(until):

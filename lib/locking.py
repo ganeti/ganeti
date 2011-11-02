@@ -1389,20 +1389,30 @@ LEVEL_CLUSTER = 0
 LEVEL_INSTANCE = 1
 LEVEL_NODEGROUP = 2
 LEVEL_NODE = 3
+LEVEL_NODE_RES = 4
 
-LEVELS = [LEVEL_CLUSTER,
-          LEVEL_INSTANCE,
-          LEVEL_NODEGROUP,
-          LEVEL_NODE]
+LEVELS = [
+  LEVEL_CLUSTER,
+  LEVEL_INSTANCE,
+  LEVEL_NODEGROUP,
+  LEVEL_NODE,
+  LEVEL_NODE_RES,
+  ]
 
 # Lock levels which are modifiable
-LEVELS_MOD = [LEVEL_NODE, LEVEL_NODEGROUP, LEVEL_INSTANCE]
+LEVELS_MOD = frozenset([
+  LEVEL_NODE_RES,
+  LEVEL_NODE,
+  LEVEL_NODEGROUP,
+  LEVEL_INSTANCE,
+  ])
 
 LEVEL_NAMES = {
   LEVEL_CLUSTER: "cluster",
   LEVEL_INSTANCE: "instance",
   LEVEL_NODEGROUP: "nodegroup",
   LEVEL_NODE: "node",
+  LEVEL_NODE_RES: "nodes-res",
   }
 
 # Constant for the big ganeti lock
@@ -1443,6 +1453,7 @@ class GanetiLockManager:
     self.__keyring = {
       LEVEL_CLUSTER: LockSet([BGL], "BGL", monitor=self._monitor),
       LEVEL_NODE: LockSet(nodes, "nodes", monitor=self._monitor),
+      LEVEL_NODE_RES: LockSet(nodes, "nodes-res", monitor=self._monitor),
       LEVEL_NODEGROUP: LockSet(nodegroups, "nodegroups", monitor=self._monitor),
       LEVEL_INSTANCE: LockSet(instances, "instances",
                               monitor=self._monitor),
