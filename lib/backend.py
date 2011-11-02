@@ -310,9 +310,6 @@ def ActivateMasterIp(master_ip, master_netmask, master_netdev, family):
   @param family: the IP family
 
   """
-  # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _, family, master_netmask = GetMasterInfo()
-
   err_msg = None
   if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
     if netutils.IPAddress.Own(master_ip):
