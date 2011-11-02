@@ -10570,11 +10570,16 @@ class LUInstanceGrowDisk(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    self.needed_locks[locking.LEVEL_NODE_RES] = []
+    self.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
+    elif level == locking.LEVEL_NODE_RES:
+      # Copy node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE][:]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -10631,9 +10636,17 @@ class LUInstanceGrowDisk(LogicalUnit):
     instance = self.instance
     disk = self.disk
 
+    assert set([instance.name]) == self.owned_locks(locking.LEVEL_INSTANCE)
+    assert (self.owned_locks(locking.LEVEL_NODE) ==
+            self.owned_locks(locking.LEVEL_NODE_RES))
+
     disks_ok, _ = _AssembleInstanceDisks(self, self.instance, disks=[disk])
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block device to grow")
+
+    feedback_fn("Growing disk %s of instance '%s' by %s" %
+                (self.op.disk, instance.name,
+                 utils.FormatUnit(self.op.amount, "h")))
 
     # First run all grow ops in dry-run mode
     for node in instance.all_nodes:
@@ -10657,6 +10670,13 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance, feedback_fn)
+
+    # Changes have been recorded, release node lock
+    _ReleaseLocks(self, locking.LEVEL_NODE)
+
+    # Downgrade lock while waiting for sync
+    self.glm.downgrade(locking.LEVEL_INSTANCE)
+
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, instance, disks=[disk])
       if disk_abort:
@@ -10668,6 +10688,9 @@ class LUInstanceGrowDisk(LogicalUnit):
       self.proc.LogWarning("Not shutting down the disk even if the instance is"
                            " not supposed to be running because no wait for"
                            " sync mode was requested")
+
+    assert self.owned_locks(locking.LEVEL_NODE_RES)
+    assert set([instance.name]) == self.owned_locks(locking.LEVEL_INSTANCE)
 
 
 class LUInstanceQueryData(NoHooksLU):
