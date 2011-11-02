@@ -567,8 +567,9 @@ def FinalizeClusterDestroy(master):
   modify_ssh_setup = cfg.GetClusterInfo().modify_ssh_setup
   runner = rpc.BootstrapRunner()
 
-  (_, ip, netdev, netmask, _) = cfg.GetMasterNetworkParameters()
-  result = runner.call_node_deactivate_master_ip(master, ip, netmask, netdev)
+  (_, ip, netdev, netmask, family) = cfg.GetMasterNetworkParameters()
+  result = runner.call_node_deactivate_master_ip(master, ip, netmask, netdev,
+                                                 family)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master IP: %s", msg)
@@ -707,9 +708,9 @@ def MasterFailover(no_voting=False):
   logging.info("Stopping the master daemon on node %s", old_master)
 
   runner = rpc.BootstrapRunner()
-  (_, ip, netdev, netmask, _) = cfg.GetMasterNetworkParameters()
+  (_, ip, netdev, netmask, family) = cfg.GetMasterNetworkParameters()
   result = runner.call_node_deactivate_master_ip(old_master, ip, netmask,
-                                                 netdev)
+                                                 netdev, family)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master IP: %s", msg)

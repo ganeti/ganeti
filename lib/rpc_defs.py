@@ -411,6 +411,7 @@ CALLS = {
       ("master_ip", None, "The master IP"),
       ("master_netmask", None, "The master IP netmask"),
       ("master_netdev", None, "The master network device"),
+      ("ip_family", None, "The cluster IP family"),
       ], None,
      "Deactivates master IP on a node"),
     ("node_change_master_netmask", SINGLE, TMO_FAST, [
