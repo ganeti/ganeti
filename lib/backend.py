@@ -61,6 +61,7 @@ from ganeti import serializer
 from ganeti import netutils
 from ganeti import runtime
 from ganeti import mcpu
+from ganeti import compat
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -259,7 +260,8 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
   @param hooks_path: path of the hooks
   @type env_builder_fn: function
   @param env_builder_fn: function that returns a dictionary containing the
-    environment variables for the hooks.
+    environment variables for the hooks. Will get all the parameters of the
+    decorated function.
   @raise RPCFail: in case of pre-hook failure
 
   """
@@ -268,11 +270,13 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
       _, myself = ssconf.GetMasterAndMyself()
       nodes = ([myself], [myself])  # these hooks run locally
 
+      env_fn = compat.partial(env_builder_fn, *args, **kwargs)
+
       cfg = _GetConfig()
       hr = HooksRunner()
       hm = mcpu.HooksMaster(hook_opcode, hooks_path, nodes, hr.RunLocalHooks,
-                            None, env_builder_fn, logging.warning,
-                            cfg.GetClusterName(), cfg.GetMasterNode())
+                            None, env_fn, logging.warning, cfg.GetClusterName(),
+                            cfg.GetMasterNode())
 
       hm.RunPhase(constants.HOOKS_PHASE_PRE)
       result = fn(*args, **kwargs)
@@ -283,17 +287,19 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
   return decorator
 
 
-def _BuildMasterIpEnv():
+def _BuildMasterIpEnv(master_params):
   """Builds environment variables for master IP hooks.
 
+  @type master_params: L{objects.MasterNetworkParameters}
+  @param master_params: network parameters of the master
+
   """
-  master_netdev, master_ip, _, family, master_netmask = GetMasterInfo()
-  version = str(netutils.IPAddress.GetVersionFromAddressFamily(family))
+  ver = netutils.IPAddress.GetVersionFromAddressFamily(master_params.ip_family)
   env = {
-    "MASTER_NETDEV": master_netdev,
-    "MASTER_IP": master_ip,
-    "MASTER_NETMASK": master_netmask,
-    "CLUSTER_IP_VERSION": version,
+    "MASTER_NETDEV": master_params.netdev,
+    "MASTER_IP": master_params.ip,
+    "MASTER_NETMASK": master_params.netmask,
+    "CLUSTER_IP_VERSION": str(ver),
   }
 
   return env
