@@ -29,6 +29,7 @@ import time
 import logging
 import errno
 import itertools
+import shlex
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -1297,7 +1298,7 @@ COMMON_CREATE_OPTS = [
   ]
 
 
-def _ParseArgs(argv, commands, aliases):
+def _ParseArgs(argv, commands, aliases, env_override):
   """Parser for the command line arguments.
 
   This function parses the arguments and returns the function which
@@ -1307,8 +1308,11 @@ def _ParseArgs(argv, commands, aliases):
   @param commands: dictionary with special contents, see the design
       doc for cmdline handling
   @param aliases: dictionary with command aliases {'alias': 'target, ...}
+  @param env_override: list of env variables allowed for default args
 
   """
+  assert not (env_override - set(commands))
+
   if len(argv) == 0:
     binary = "<command>"
   else:
@@ -1362,13 +1366,19 @@ def _ParseArgs(argv, commands, aliases):
 
     cmd = aliases[cmd]
 
+  if cmd in env_override:
+    args_env_name = ("%s_%s" % (binary.replace("-", "_"), cmd)).upper()
+    env_args = os.environ.get(args_env_name)
+    if env_args:
+      argv = utils.InsertAtPos(argv, 1, shlex.split(env_args))
+
   func, args_def, parser_opts, usage, description = commands[cmd]
   parser = OptionParser(option_list=parser_opts + COMMON_OPTS,
                         description=description,
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))
   parser.disable_interspersed_args()
-  options, args = parser.parse_args()
+  options, args = parser.parse_args(args=argv[1:])
 
   if not _CheckArguments(cmd, args_def, args):
     return None, None, None
@@ -2002,16 +2012,18 @@ def FormatError(err):
   return retcode, obuf.getvalue().rstrip("\n")
 
 
-def GenericMain(commands, override=None, aliases=None):
+def GenericMain(commands, override=None, aliases=None,
+                env_override=frozenset()):
   """Generic main function for all the gnt-* commands.
 
-  Arguments:
-    - commands: a dictionary with a special structure, see the design doc
-                for command line handling.
-    - override: if not None, we expect a dictionary with keys that will
-                override command line options; this can be used to pass
-                options from the scripts to generic functions
-    - aliases: dictionary with command aliases {'alias': 'target, ...}
+  @param commands: a dictionary with a special structure, see the design doc
+                   for command line handling.
+  @param override: if not None, we expect a dictionary with keys that will
+                   override command line options; this can be used to pass
+                   options from the scripts to generic functions
+  @param aliases: dictionary with command aliases {'alias': 'target, ...}
+  @param env_override: list of environment names which are allowed to submit
+                       default args for commands
 
   """
   # save the program name and the entire command line for later logging
@@ -2030,7 +2042,7 @@ def GenericMain(commands, override=None, aliases=None):
     aliases = {}
 
   try:
-    func, options, args = _ParseArgs(sys.argv, commands, aliases)
+    func, options, args = _ParseArgs(sys.argv, commands, aliases, env_override)
   except errors.ParameterError, err:
     result, err_msg = FormatError(err)
     ToStderr(err_msg)

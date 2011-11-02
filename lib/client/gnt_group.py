@@ -34,6 +34,9 @@ from ganeti import utils
 _LIST_DEF_FIELDS = ["name", "node_cnt", "pinst_cnt", "alloc_policy", "ndparams"]
 
 
+_ENV_OVERRIDE = frozenset(["list"])
+
+
 def AddGroup(opts, args):
   """Add a node group to the cluster.
 
@@ -258,4 +261,5 @@ commands = {
 
 def Main():
   return GenericMain(commands,
-                     override={"tag_type": constants.TAG_NODEGROUP})
+                     override={"tag_type": constants.TAG_NODEGROUP},
+                     env_override=_ENV_OVERRIDE)

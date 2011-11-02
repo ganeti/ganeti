@@ -64,6 +64,9 @@ _LIST_DEF_FIELDS = [
   ]
 
 
+_ENV_OVERRIDE = frozenset(["list"])
+
+
 def _ExpandMultiNames(mode, names, client=None):
   """Expand the given names using the passed mode.
 
@@ -1552,4 +1555,5 @@ aliases = {
 
 def Main():
   return GenericMain(commands, aliases=aliases,
-                     override={"tag_type": constants.TAG_INSTANCE})
+                     override={"tag_type": constants.TAG_INSTANCE},
+                     env_override=_ENV_OVERRIDE)

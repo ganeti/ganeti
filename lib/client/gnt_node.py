@@ -106,6 +106,9 @@ _OOB_COMMAND_ASK = frozenset([constants.OOB_POWER_OFF,
                               constants.OOB_POWER_CYCLE])
 
 
+_ENV_OVERRIDE = frozenset(["list"])
+
+
 NONODE_SETUP_OPT = cli_option("--no-node-setup", default=True,
                               action="store_false", dest="node_setup",
                               help=("Do not make initial SSH setup on remote"
@@ -963,4 +966,5 @@ commands = {
 
 
 def Main():
-  return GenericMain(commands, override={"tag_type": constants.TAG_NODE})
+  return GenericMain(commands, override={"tag_type": constants.TAG_NODE},
+                     env_override=_ENV_OVERRIDE)
