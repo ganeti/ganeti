@@ -148,6 +148,27 @@ def InvertDict(dict_in):
   return dict(zip(dict_in.values(), dict_in.keys()))
 
 
+def InsertAtPos(src, pos, other):
+  """Inserts C{other} at given C{pos} into C{src}.
+
+  @note: This function does not modify C{src} in place but returns a new copy
+
+  @type src: list
+  @param src: The source list in which we want insert elements
+  @type pos: int
+  @param pos: The position where we want to start insert C{other}
+  @type other: list
+  @param other: The other list to insert into C{src}
+  @return: A copy of C{src} with C{other} inserted at C{pos}
+
+  """
+  new = src[:pos]
+  new.extend(other)
+  new.extend(src[pos:])
+
+  return new
+
+
 class RunningTimeout(object):
   """Class to calculate remaining timeout when doing several operations.
 

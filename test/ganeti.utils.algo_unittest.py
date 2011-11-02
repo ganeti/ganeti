@@ -236,6 +236,16 @@ class TestInvertDict(unittest.TestCase):
                      { 1: "foo", 2: "bar", 5: "baz"})
 
 
+class TestInsertAtPos(unittest.TestCase):
+  def test(self):
+    a = [1, 5, 6]
+    b = [2, 3, 4]
+    self.assertEqual(algo.InsertAtPos(a, 1, b), [1, 2, 3, 4, 5, 6])
+    self.assertEqual(algo.InsertAtPos(a, 0, b), b + a)
+    self.assertEqual(algo.InsertAtPos(a, len(a), b), a + b)
+    self.assertEqual(algo.InsertAtPos(a, 2, b), [1, 5, 2, 3, 4, 6])
+
+
 class TimeMock:
   def __init__(self, values):
     self.values = values
