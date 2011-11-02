@@ -1407,12 +1407,13 @@ LEVELS_MOD = frozenset([
   LEVEL_INSTANCE,
   ])
 
+#: Lock level names (make sure to use singular form)
 LEVEL_NAMES = {
   LEVEL_CLUSTER: "cluster",
   LEVEL_INSTANCE: "instance",
   LEVEL_NODEGROUP: "nodegroup",
   LEVEL_NODE: "node",
-  LEVEL_NODE_RES: "nodes-res",
+  LEVEL_NODE_RES: "node-res",
   }
 
 # Constant for the big ganeti lock
@@ -1451,13 +1452,16 @@ class GanetiLockManager:
     # The keyring contains all the locks, at their level and in the correct
     # locking order.
     self.__keyring = {
-      LEVEL_CLUSTER: LockSet([BGL], "BGL", monitor=self._monitor),
-      LEVEL_NODE: LockSet(nodes, "nodes", monitor=self._monitor),
-      LEVEL_NODE_RES: LockSet(nodes, "nodes-res", monitor=self._monitor),
-      LEVEL_NODEGROUP: LockSet(nodegroups, "nodegroups", monitor=self._monitor),
-      LEVEL_INSTANCE: LockSet(instances, "instances",
+      LEVEL_CLUSTER: LockSet([BGL], "cluster", monitor=self._monitor),
+      LEVEL_NODE: LockSet(nodes, "node", monitor=self._monitor),
+      LEVEL_NODE_RES: LockSet(nodes, "node-res", monitor=self._monitor),
+      LEVEL_NODEGROUP: LockSet(nodegroups, "nodegroup", monitor=self._monitor),
+      LEVEL_INSTANCE: LockSet(instances, "instance",
                               monitor=self._monitor),
       }
+
+    assert compat.all(ls.name == LEVEL_NAMES[level]
+                      for (level, ls) in self.__keyring.items())
 
   def AddToLockMonitor(self, provider):
     """Registers a new lock with the monitor.
