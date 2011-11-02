@@ -534,9 +534,13 @@ def CheckAgreement():
 def ActivateMasterIP():
   # activate ip
   cfg = config.ConfigWriter()
-  (master, ip, dev, netmask, family) = cfg.GetMasterNetworkParameters()
+  master_params = cfg.GetMasterNetworkParameters()
   runner = rpc.BootstrapRunner()
-  result = runner.call_node_activate_master_ip(master, ip, netmask, dev, family)
+  result = runner.call_node_activate_master_ip(master_params.name,
+                                               master_params.ip,
+                                               master_params.netmask,
+                                               master_params.netdev,
+                                               master_params.ip_family)
 
   msg = result.fail_msg
   if msg:

@@ -934,17 +934,18 @@ class ConfigWriter:
   def GetMasterNetworkParameters(self):
     """Get network parameters of the master node.
 
-    @return: tuple consisting of (master_node, master_netdev, master_ip,
-      master_netmask, ip_family)
+    @rtype: L{object.MasterNetworkParameters}
+    @return: network parameters of the master node
 
     """
     cluster = self._config_data.cluster
-
-    return (cluster.master_node,
+    result = objects.MasterNetworkParameters(cluster.master_node,
       cluster.master_ip,
       cluster.master_netdev,
       cluster.master_netmask,
       cluster.primary_ip_family)
+
+    return result
 
   @locking.ssynchronized(_config_lock)
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
