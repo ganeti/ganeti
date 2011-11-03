@@ -430,13 +430,14 @@ class _RpcClientBase:
     else:
       return encoder_fn(argkind)(value)
 
-  def _Call(self, node_list, procedure, timeout, argdefs, args):
+  def _Call(self, cdef, node_list, timeout, args):
     """Entry point for automatically generated RPC wrappers.
 
     """
-    assert len(args) == len(argdefs), "Wrong number of arguments"
+    (procedure, _, _, argdefs, _, _) = cdef
 
-    body = serializer.DumpJson(map(self._encoder, zip(argdefs, args)),
+    body = serializer.DumpJson(map(self._encoder,
+                                   zip(map(compat.snd, argdefs), args)),
                                indent=False)
 
     return self._proc(node_list, procedure, body, read_timeout=timeout)

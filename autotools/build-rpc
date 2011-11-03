@@ -52,6 +52,8 @@ def _WritePreamble(sw):
   sw.Write("")
   sw.Write("\"\"\"")
   sw.Write("")
+  sw.Write("from ganeti import rpc_defs")
+  sw.Write("")
 
 
 def _WrapCode(line):
@@ -112,6 +114,9 @@ def _WriteBaseClass(sw, clsname, calls):
       sw.Write("pass")
       return
 
+    sw.Write("_CALLS = rpc_defs.CALLS[%r]", clsname)
+    sw.Write("")
+
     for (name, kind, timeout, args, postproc, desc) in calls:
       funcargs = ["self"]
 
@@ -126,6 +131,8 @@ def _WriteBaseClass(sw, clsname, calls):
 
       assert "read_timeout" not in funcargs
       funcargs.append("read_timeout=%s" % timeout)
+
+      funcargs.append("_def=_CALLS[%r]" % name)
 
       funcdef = "def call_%s(%s):" % (name, utils.CommaJoin(funcargs))
       for line in _WrapCode(funcdef):
@@ -143,18 +150,15 @@ def _WriteBaseClass(sw, clsname, calls):
 
         if postproc:
           buf.write("%s(" % postproc)
-        buf.write("self._Call(")
+        buf.write("self._Call(_def, ")
         if kind == _SINGLE:
           buf.write("[node]")
         else:
           buf.write("node_list")
 
-        buf.write(", \"%s\", read_timeout, [%s], [%s])" %
-                  (name,
-                   # Argument definitions
-                   utils.CommaJoin(map(compat.snd, args)),
-                   # Function arguments
-                   utils.CommaJoin(map(compat.fst, args))))
+        buf.write(", read_timeout, [%s])" %
+                  # Function arguments
+                  utils.CommaJoin(map(compat.fst, args)))
 
         if kind == _SINGLE:
           buf.write("[node]")
