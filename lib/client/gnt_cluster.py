@@ -1315,7 +1315,7 @@ commands = {
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
-    "", "Updates mismatches in recorded disk sizes"),
+    "[instance...]", "Updates mismatches in recorded disk sizes"),
   "master-failover": (
     MasterFailover, ARGS_NONE, [NOVOTING_OPT],
     "", "Makes the current node the master"),
