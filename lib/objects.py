@@ -982,6 +982,8 @@ class Node(TaggableObject):
     "vm_capable",
     "ndparams",
     "powered",
+    "hv_state",
+    "disk_state",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
