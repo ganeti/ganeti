@@ -677,15 +677,15 @@ class RpcRunner(_RpcClientBase,
   # Begin RPC calls
   #
 
-  def call_test_delay(self, node_list, duration, read_timeout=None):
+  def call_test_delay(self, node_list, duration): # pylint: disable=W0221
     """Sleep for a fixed time on given node(s).
 
     This is a multi-node call.
 
     """
-    assert read_timeout is None
-    return self.call_test_delay(node_list, duration,
-                                read_timeout=int(duration + 5))
+    # TODO: Use callable timeout calculation
+    return _generated_rpc.RpcClientDefault.call_test_delay(self,
+      node_list, duration, read_timeout=int(duration + 5))
 
 
 class JobQueueRunner(_RpcClientBase, _generated_rpc.RpcClientJobQueue):
