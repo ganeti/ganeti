@@ -4436,6 +4436,9 @@ class LUNodeRemove(LogicalUnit):
 
     modify_ssh_setup = self.cfg.GetClusterInfo().modify_ssh_setup
 
+    assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER), \
+      "Not owning BGL"
+
     # Promote nodes to master candidate as needed
     _AdjustCandidatePool(self, exceptions=[node.name])
     self.context.RemoveNode(node.name)
@@ -5101,6 +5104,9 @@ class LUNodeAdd(LogicalUnit):
     """
     new_node = self.new_node
     node = new_node.name
+
+    assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER), \
+      "Not owning BGL"
 
     # We adding a new node so we assume it's powered
     new_node.powered = True
