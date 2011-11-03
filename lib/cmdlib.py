@@ -6979,11 +6979,16 @@ class LUInstanceMove(LogicalUnit):
     target_node = _ExpandNodeName(self.cfg, self.op.target_node)
     self.op.target_node = target_node
     self.needed_locks[locking.LEVEL_NODE] = [target_node]
+    self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
       self._LockInstancesNodes(primary_only=True)
+    elif level == locking.LEVEL_NODE_RES:
+      # Copy node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE][:]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7067,6 +7072,9 @@ class LUInstanceMove(LogicalUnit):
 
     self.LogInfo("Shutting down instance %s on source node %s",
                  instance.name, source_node)
+
+    assert (self.owned_locks(locking.LEVEL_NODE) ==
+            self.owned_locks(locking.LEVEL_NODE_RES))
 
     result = self.rpc.call_instance_shutdown(source_node, instance,
                                              self.op.shutdown_timeout)
