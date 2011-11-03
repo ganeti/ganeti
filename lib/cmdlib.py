@@ -6456,6 +6456,10 @@ class LUInstanceRecreateDisks(LogicalUnit):
       # otherwise we need to lock all nodes for disk re-creation
       primary_only = bool(self.op.nodes)
       self._LockInstancesNodes(primary_only=primary_only)
+    elif level == locking.LEVEL_NODE_RES:
+      # Copy node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE][:]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -6502,7 +6506,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                  self.op.instance_name, errors.ECODE_INVAL)
     # if we replace nodes *and* the old primary is offline, we don't
     # check
-    assert instance.primary_node in self.needed_locks[locking.LEVEL_NODE]
+    assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE)
+    assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE_RES)
     old_pnode = self.cfg.GetNodeInfo(instance.primary_node)
     if not (self.op.nodes and old_pnode.offline):
       _CheckInstanceDown(self, instance, "cannot recreate disks")
@@ -6525,6 +6530,9 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     """
     instance = self.instance
+
+    assert (self.owned_locks(locking.LEVEL_NODE) ==
+            self.owned_locks(locking.LEVEL_NODE_RES))
 
     to_skip = []
     mods = [] # keeps track of needed logical_id changes
