@@ -425,6 +425,7 @@ def RunQa():
   try:
     RunTestIf("node-readd", qa_node.TestNodeReadd, pnode)
     RunTestIf("node-modify", qa_node.TestNodeModify, pnode)
+    RunTestIf("delay", qa_cluster.TestDelay, pnode)
   finally:
     qa_config.ReleaseNode(pnode)
 

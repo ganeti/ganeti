@@ -226,6 +226,14 @@ def TestJobqueue():
   AssertCommand(["gnt-debug", "test-jobqueue"])
 
 
+def TestDelay(node):
+  """gnt-debug delay"""
+  AssertCommand(["gnt-debug", "delay", "1"])
+  AssertCommand(["gnt-debug", "delay", "--no-master", "1"])
+  AssertCommand(["gnt-debug", "delay", "--no-master",
+                 "-n", node["primary"], "1"])
+
+
 def TestClusterReservedLvs():
   """gnt-cluster reserved lvs"""
   for fail, cmd in [
