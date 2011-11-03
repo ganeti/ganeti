@@ -6702,11 +6702,16 @@ class LUInstanceRemove(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
+    self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
+    elif level == locking.LEVEL_NODE_RES:
+      # Copy node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE][:]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -6754,6 +6759,12 @@ class LUInstanceRemove(LogicalUnit):
         raise errors.OpExecError("Could not shutdown instance %s on"
                                  " node %s: %s" %
                                  (instance.name, instance.primary_node, msg))
+
+    assert (self.owned_locks(locking.LEVEL_NODE) ==
+            self.owned_locks(locking.LEVEL_NODE_RES))
+    assert not (set(instance.all_nodes) -
+                self.owned_locks(locking.LEVEL_NODE)), \
+      "Not owning correct locks"
 
     _RemoveInstance(self, feedback_fn, instance, self.op.ignore_failures)
 
