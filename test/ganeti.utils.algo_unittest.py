@@ -26,6 +26,7 @@ import random
 import operator
 
 from ganeti import constants
+from ganeti import compat
 from ganeti.utils import algo
 
 import testutils
@@ -308,6 +309,34 @@ class TestJoinDisjointDicts(unittest.TestCase):
 
     self.assertEqual(result, algo.JoinDisjointDicts(dict_a, dict_b))
     self.assertEqual(result, algo.JoinDisjointDicts(dict_b, dict_a))
+
+
+class TestSequenceToDict(unittest.TestCase):
+  def testEmpty(self):
+    self.assertEqual(algo.SequenceToDict([]), {})
+    self.assertEqual(algo.SequenceToDict({}), {})
+
+  def testSimple(self):
+    data = [(i, str(i), "test%s" % i) for i in range(391)]
+    self.assertEqual(algo.SequenceToDict(data),
+      dict((i, (i, str(i), "test%s" % i))
+           for i in range(391)))
+
+  def testCustomKey(self):
+    data = [(i, hex(i), "test%s" % i) for i in range(100)]
+    self.assertEqual(algo.SequenceToDict(data, key=compat.snd),
+      dict((hex(i), (i, hex(i), "test%s" % i))
+           for i in range(100)))
+    self.assertEqual(algo.SequenceToDict(data,
+                                         key=lambda (a, b, val): hash(val)),
+      dict((hash("test%s" % i), (i, hex(i), "test%s" % i))
+           for i in range(100)))
+
+  def testDuplicate(self):
+    self.assertRaises(ValueError, algo.SequenceToDict,
+                      [(0, 0), (0, 0)])
+    self.assertRaises(ValueError, algo.SequenceToDict,
+                      [(i, ) for i in range(200)] + [(10, )])
 
 
 if __name__ == "__main__":

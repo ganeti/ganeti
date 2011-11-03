@@ -25,6 +25,9 @@
 import re
 import time
 
+from ganeti import compat
+from ganeti.utils import text
+
 
 _SORTER_GROUPS = 8
 _SORTER_RE = re.compile("^%s(.*)$" % (_SORTER_GROUPS * "(\D+|\d+)?"))
@@ -167,6 +170,27 @@ def InsertAtPos(src, pos, other):
   new.extend(src[pos:])
 
   return new
+
+
+def SequenceToDict(seq, key=compat.fst):
+  """Converts a sequence to a dictionary with duplicate detection.
+
+  @type seq: sequen
+  @param seq: Input sequence
+  @type key: callable
+  @param key: Function for retrieving dictionary key from sequence element
+  @rtype: dict
+
+  """
+  keys = map(key, seq)
+
+  duplicates = FindDuplicates(keys)
+  if duplicates:
+    raise ValueError("Duplicate keys found: %s" % text.CommaJoin(duplicates))
+
+  assert len(keys) == len(seq)
+
+  return dict(zip(keys, seq))
 
 
 class RunningTimeout(object):
