@@ -3201,21 +3201,21 @@ class LUClusterRepairDiskSizes(NoHooksLU):
     if self.op.instances:
       self.wanted_names = _GetWantedInstances(self, self.op.instances)
       self.needed_locks = {
-        locking.LEVEL_NODE: [],
+        locking.LEVEL_NODE_RES: [],
         locking.LEVEL_INSTANCE: self.wanted_names,
         }
-      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+      self.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
     else:
       self.wanted_names = None
       self.needed_locks = {
-        locking.LEVEL_NODE: locking.ALL_SET,
+        locking.LEVEL_NODE_RES: locking.ALL_SET,
         locking.LEVEL_INSTANCE: locking.ALL_SET,
         }
     self.share_locks = _ShareAll()
 
   def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE and self.wanted_names is not None:
-      self._LockInstancesNodes(primary_only=True)
+    if level == locking.LEVEL_NODE_RES and self.wanted_names is not None:
+      self._LockInstancesNodes(primary_only=True, level=level)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -3265,6 +3265,11 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         per_node_disks[pnode] = []
       for idx, disk in enumerate(instance.disks):
         per_node_disks[pnode].append((instance, idx, disk))
+
+    assert not (frozenset(per_node_disks.keys()) -
+                self.owned_locks(locking.LEVEL_NODE_RES)), \
+      "Not owning correct locks"
+    assert not self.owned_locks(locking.LEVEL_NODE)
 
     changed = []
     for node, dskl in per_node_disks.items():
