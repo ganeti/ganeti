@@ -37,6 +37,7 @@ RPC definition fields:
 """
 
 from ganeti import utils
+from ganeti import objects
 
 
 # Guidelines for choosing timeouts:
@@ -73,6 +74,79 @@ def _Prepare(calls):
 
   """
   return utils.SequenceToDict(calls)
+
+
+def _MigrationStatusPostProc(result):
+  """Post-processor for L{rpc.RpcRunner.call_instance_get_migration_status}.
+
+  """
+  if not result.fail_msg and result.payload is not None:
+    result.payload = objects.MigrationStatus.FromDict(result.payload)
+  return result
+
+
+def _BlockdevFindPostProc(result):
+  """Post-processor for L{rpc.RpcRunner.call_blockdev_find}.
+
+  """
+  if not result.fail_msg and result.payload is not None:
+    result.payload = objects.BlockDevStatus.FromDict(result.payload)
+  return result
+
+
+def _BlockdevGetMirrorStatusPostProc(result):
+  """Post-processor for L{rpc.RpcRunner.call_blockdev_getmirrorstatus}.
+
+  """
+  if not result.fail_msg:
+    result.payload = map(objects.BlockDevStatus.FromDict, result.payload)
+  return result
+
+
+def _BlockdevGetMirrorStatusMultiPostProc(result):
+  """Post-processor for L{rpc.RpcRunner.call_blockdev_getmirrorstatus_multi}.
+
+  """
+  for nres in result.values():
+    if nres.fail_msg:
+      continue
+
+    for idx, (success, status) in enumerate(nres.payload):
+      if success:
+        nres.payload[idx] = (success, objects.BlockDevStatus.FromDict(status))
+
+  return result
+
+
+def _OsGetPostProc(result):
+  """Post-processor for L{rpc.RpcRunner.call_os_get}.
+
+  """
+  if not result.fail_msg and isinstance(result.payload, dict):
+    result.payload = objects.OS.FromDict(result.payload)
+  return result
+
+
+def _ImpExpStatusPostProc(result):
+  """Post-processor for import/export status.
+
+  @rtype: Payload containing list of L{objects.ImportExportStatus} instances
+  @return: Returns a list of the state of each named import/export or None if
+           a status couldn't be retrieved
+
+  """
+  if not result.fail_msg:
+    decoded = []
+
+    for i in result.payload:
+      if i is None:
+        decoded.append(None)
+        continue
+      decoded.append(objects.ImportExportStatus.FromDict(i))
+
+    result.payload = decoded
+
+  return result
 
 
 _FILE_STORAGE_CALLS = [
@@ -163,7 +237,7 @@ _INSTANCE_CALLS = [
     ], None, "Finalize the instance migration on the source node"),
   ("instance_get_migration_status", SINGLE, TMO_SLOW, [
     ("instance", ED_INST_DICT, "Instance object"),
-    ], "self._MigrationStatusPostProc", "Report migration status"),
+    ], _MigrationStatusPostProc, "Report migration status"),
   ("instance_start", SINGLE, TMO_NORMAL, [
     ("instance_hvp_bep", ED_INST_DICT_HVP_BEP, None),
     ("startup_paused", None, None),
@@ -192,7 +266,7 @@ _IMPEXP_CALLS = [
     ], None, "Starts an export daemon"),
   ("impexp_status", SINGLE, TMO_FAST, [
     ("names", None, "Import/export names"),
-    ], "self._ImpExpStatusPostProc", "Gets the status of an import or export"),
+    ], _ImpExpStatusPostProc, "Gets the status of an import or export"),
   ("impexp_abort", SINGLE, TMO_NORMAL, [
     ("name", None, "Import/export name"),
     ], None, "Aborts an import or export"),
@@ -302,15 +376,15 @@ _BLOCKDEV_CALLS = [
     ], None, "Request rename of the given block devices"),
   ("blockdev_find", SINGLE, TMO_NORMAL, [
     ("disk", ED_OBJECT_DICT, None),
-    ], "self._BlockdevFindPostProc",
+    ], _BlockdevFindPostProc,
     "Request identification of a given block device"),
   ("blockdev_getmirrorstatus", SINGLE, TMO_NORMAL, [
     ("disks", ED_OBJECT_DICT_LIST, None),
-    ], "self._BlockdevGetMirrorStatusPostProc",
+    ], _BlockdevGetMirrorStatusPostProc,
     "Request status of a (mirroring) device"),
   ("blockdev_getmirrorstatus_multi", MULTI, TMO_NORMAL, [
     ("node_disks", ED_NODE_TO_DISK_DICT, None),
-    ], "self._BlockdevGetMirrorStatusMultiPostProc",
+    ], _BlockdevGetMirrorStatusMultiPostProc,
     "Request status of (mirroring) devices from multiple nodes"),
   ]
 
@@ -325,7 +399,7 @@ _OS_CALLS = [
     ], None, "Run a validation routine for a given OS"),
   ("os_get", SINGLE, TMO_FAST, [
     ("name", None, None),
-    ], "self._OsGetPostProc", "Returns an OS definition"),
+    ], _OsGetPostProc, "Returns an OS definition"),
   ]
 
 _NODE_CALLS = [

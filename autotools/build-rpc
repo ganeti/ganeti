@@ -117,7 +117,7 @@ def _WriteBaseClass(sw, clsname, calls):
     sw.Write("_CALLS = rpc_defs.CALLS[%r]", clsname)
     sw.Write("")
 
-    for (name, kind, timeout, args, postproc, desc) in calls:
+    for (name, kind, timeout, args, _, desc) in calls:
       funcargs = ["self"]
 
       if kind == _SINGLE:
@@ -148,8 +148,6 @@ def _WriteBaseClass(sw, clsname, calls):
         # In case line gets too long and is wrapped in a bad spot
         buf.write("( ")
 
-        if postproc:
-          buf.write("%s(" % postproc)
         buf.write("self._Call(_def, ")
         if kind == _SINGLE:
           buf.write("[node]")
@@ -162,8 +160,6 @@ def _WriteBaseClass(sw, clsname, calls):
 
         if kind == _SINGLE:
           buf.write("[node]")
-        if postproc:
-          buf.write(")")
         buf.write(")")
 
         for line in _WrapCode(buf.getvalue()):
