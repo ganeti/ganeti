@@ -9479,6 +9479,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
     self._ExpandAndLockInstance()
 
     assert locking.LEVEL_NODE not in self.needed_locks
+    assert locking.LEVEL_NODE_RES not in self.needed_locks
     assert locking.LEVEL_NODEGROUP not in self.needed_locks
 
     assert self.op.iallocator is None or self.op.remote_node is None, \
@@ -9501,6 +9502,8 @@ class LUInstanceReplaceDisks(LogicalUnit):
         # iallocator will select a new node in the same group
         self.needed_locks[locking.LEVEL_NODEGROUP] = []
 
+    self.needed_locks[locking.LEVEL_NODE_RES] = []
+
     self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node,
                                    self.op.disks, False, self.op.early_release)
@@ -9514,6 +9517,8 @@ class LUInstanceReplaceDisks(LogicalUnit):
       assert not self.needed_locks[locking.LEVEL_NODEGROUP]
 
       self.share_locks[locking.LEVEL_NODEGROUP] = 1
+      # Lock all groups used by instance optimistically; this requires going
+      # via the node before it's locked, requiring verification later on
       self.needed_locks[locking.LEVEL_NODEGROUP] = \
         self.cfg.GetInstanceNodeGroups(self.op.instance_name)
 
@@ -9528,6 +9533,10 @@ class LUInstanceReplaceDisks(LogicalUnit):
           for node_name in self.cfg.GetNodeGroup(group_uuid).members]
       else:
         self._LockInstancesNodes()
+    elif level == locking.LEVEL_NODE_RES:
+      # Reuse node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -9564,6 +9573,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
     assert (self.glm.is_owned(locking.LEVEL_NODEGROUP) or
             self.op.iallocator is None)
 
+    # Verify if node group locks are still correct
     owned_groups = self.owned_locks(locking.LEVEL_NODEGROUP)
     if owned_groups:
       _CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
@@ -9822,8 +9832,9 @@ class TLReplaceDisks(Tasklet):
                                                           self.target_node]
                               if node_name is not None)
 
-    # Release unneeded node locks
+    # Release unneeded node and node resource locks
     _ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
+    _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES, keep=touched_nodes)
 
     # Release any owned node group
     if self.lu.glm.is_owned(locking.LEVEL_NODEGROUP):
@@ -9852,6 +9863,8 @@ class TLReplaceDisks(Tasklet):
       assert set(owned_nodes) == set(self.node_secondary_ip), \
           ("Incorrect node locks, owning %s, expected %s" %
            (owned_nodes, self.node_secondary_ip.keys()))
+      assert (self.lu.owned_locks(locking.LEVEL_NODE) ==
+              self.lu.owned_locks(locking.LEVEL_NODE_RES))
 
       owned_instances = self.lu.owned_locks(locking.LEVEL_INSTANCE)
       assert list(owned_instances) == [self.instance_name], \
@@ -9887,9 +9900,11 @@ class TLReplaceDisks(Tasklet):
       if activate_disks:
         _SafeShutdownInstanceDisks(self.lu, self.instance)
 
+    assert not self.lu.owned_locks(locking.LEVEL_NODE)
+
     if __debug__:
       # Verify owned locks
-      owned_nodes = self.lu.owned_locks(locking.LEVEL_NODE)
+      owned_nodes = self.lu.owned_locks(locking.LEVEL_NODE_RES)
       nodes = frozenset(self.node_secondary_ip)
       assert ((self.early_release and not owned_nodes) or
               (not self.early_release and not (set(owned_nodes) - nodes))), \
@@ -10129,10 +10144,18 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogStep(cstep, steps_total, "Removing old storage")
       cstep += 1
       self._RemoveOldStorage(self.target_node, iv_names)
-      # WARNING: we release both node locks here, do not do other RPCs
-      # than WaitForSync to the primary node
-      _ReleaseLocks(self.lu, locking.LEVEL_NODE,
-                    names=[self.target_node, self.other_node])
+      # TODO: Check if releasing locks early still makes sense
+      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
+    else:
+      # Release all resource locks except those used by the instance
+      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
+                    keep=self.node_secondary_ip.keys())
+
+    # Release all node locks while waiting for sync
+    _ReleaseLocks(self.lu, locking.LEVEL_NODE)
+
+    # TODO: Can the instance lock be downgraded here? Take the optional disk
+    # shutdown in the caller into consideration.
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
@@ -10266,6 +10289,9 @@ class TLReplaceDisks(Tasklet):
 
     self.cfg.Update(self.instance, feedback_fn)
 
+    # Release all node locks (the configuration has been updated)
+    _ReleaseLocks(self.lu, locking.LEVEL_NODE)
+
     # and now perform the drbd attach
     self.lu.LogInfo("Attaching primary drbds to new secondary"
                     " (standalone => connected)")
@@ -10287,12 +10313,15 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogStep(cstep, steps_total, "Removing old storage")
       cstep += 1
       self._RemoveOldStorage(self.target_node, iv_names)
-      # WARNING: we release all node locks here, do not do other RPCs
-      # than WaitForSync to the primary node
-      _ReleaseLocks(self.lu, locking.LEVEL_NODE,
-                    names=[self.instance.primary_node,
-                           self.target_node,
-                           self.new_node])
+      # TODO: Check if releasing locks early still makes sense
+      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES)
+    else:
+      # Release all resource locks except those used by the instance
+      _ReleaseLocks(self.lu, locking.LEVEL_NODE_RES,
+                    keep=self.node_secondary_ip.keys())
+
+    # TODO: Can the instance lock be downgraded here? Take the optional disk
+    # shutdown in the caller into consideration.
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
