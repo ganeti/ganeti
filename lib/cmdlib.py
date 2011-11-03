@@ -3192,7 +3192,10 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         locking.LEVEL_NODE: locking.ALL_SET,
         locking.LEVEL_INSTANCE: locking.ALL_SET,
         }
-    self.share_locks = _ShareAll()
+    self.share_locks = {
+      locking.LEVEL_NODE: 1,
+      locking.LEVEL_INSTANCE: 0,
+      }
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE and self.wanted_names is not None:
