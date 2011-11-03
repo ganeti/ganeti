@@ -222,6 +222,14 @@ class TestQuery(unittest.TestCase):
         None, 0, lambda *args: None),
         ], [])
 
+    # Duplicate field name
+    self.assertRaises(ValueError, query._PrepareFieldList, [
+      (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),
+       None, 0, lambda *args: None),
+      (query._MakeField("name", "Other", constants.QFT_OTHER, "Other"),
+       None, 0, lambda *args: None),
+      ], [])
+
   def testUnknown(self):
     fielddef = query._PrepareFieldList([
       (query._MakeField("name", "Name", constants.QFT_TEXT, "Name"),

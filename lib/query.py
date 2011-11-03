@@ -766,6 +766,22 @@ def _VerifyResultRow(fields, row):
                     (utils.CommaJoin(errors), row))
 
 
+def _FieldDictKey((fdef, _, flags, fn)):
+  """Generates key for field dictionary.
+
+  """
+  assert fdef.name and fdef.title, "Name and title are required"
+  assert FIELD_NAME_RE.match(fdef.name)
+  assert TITLE_RE.match(fdef.title)
+  assert (DOC_RE.match(fdef.doc) and len(fdef.doc.splitlines()) == 1 and
+          fdef.doc.strip() == fdef.doc), \
+         "Invalid description for field '%s'" % fdef.name
+  assert callable(fn)
+  assert (flags & ~QFF_ALL) == 0, "Unknown flags for field '%s'" % fdef.name
+
+  return fdef.name
+
+
 def _PrepareFieldList(fields, aliases):
   """Prepares field list for use by L{Query}.
 
@@ -787,23 +803,7 @@ def _PrepareFieldList(fields, aliases):
                                       for (fdef, _, _, _) in fields)
     assert not duplicates, "Duplicate title(s) found: %r" % duplicates
 
-  result = {}
-
-  for field in fields:
-    (fdef, _, flags, fn) = field
-
-    assert fdef.name and fdef.title, "Name and title are required"
-    assert FIELD_NAME_RE.match(fdef.name)
-    assert TITLE_RE.match(fdef.title)
-    assert (DOC_RE.match(fdef.doc) and len(fdef.doc.splitlines()) == 1 and
-            fdef.doc.strip() == fdef.doc), \
-           "Invalid description for field '%s'" % fdef.name
-    assert callable(fn)
-    assert fdef.name not in result, \
-           "Duplicate field name '%s' found" % fdef.name
-    assert (flags & ~QFF_ALL) == 0, "Unknown flags for field '%s'" % fdef.name
-
-    result[fdef.name] = field
+  result = utils.SequenceToDict(fields, key=_FieldDictKey)
 
   for alias, target in aliases:
     assert alias not in result, "Alias %s overrides an existing field" % alias
