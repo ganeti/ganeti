@@ -11019,7 +11019,10 @@ class LUInstanceSetParams(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+    # Can't even acquire node locks in shared mode as upcoming changes in
+    # Ganeti 2.6 will start to modify the node object on disk conversion
     self.needed_locks[locking.LEVEL_NODE] = []
+    self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
@@ -11028,6 +11031,10 @@ class LUInstanceSetParams(LogicalUnit):
       if self.op.disk_template and self.op.remote_node:
         self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
         self.needed_locks[locking.LEVEL_NODE].append(self.op.remote_node)
+    elif level == locking.LEVEL_NODE_RES and self.op.disk_template:
+      # Copy node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE][:]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -11361,8 +11368,6 @@ class LUInstanceSetParams(LogicalUnit):
                                      (disk_op, len(instance.disks)),
                                      errors.ECODE_INVAL)
 
-    return
-
   def _ConvertPlainToDrbd(self, feedback_fn):
     """Converts an instance from plain to drbd.
 
@@ -11371,6 +11376,8 @@ class LUInstanceSetParams(LogicalUnit):
     instance = self.instance
     pnode = instance.primary_node
     snode = self.op.remote_node
+
+    assert instance.disk_template == constants.DT_PLAIN
 
     # create a fake disk info for _GenerateDiskTemplate
     disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode,
@@ -11408,6 +11415,9 @@ class LUInstanceSetParams(LogicalUnit):
     instance.disks = new_disks
     self.cfg.Update(instance, feedback_fn)
 
+    # Release node locks while waiting for sync
+    _ReleaseLocks(self, locking.LEVEL_NODE)
+
     # disks are created, waiting for sync
     disk_abort = not _WaitForSync(self, instance,
                                   oneshot=not self.op.wait_for_sync)
@@ -11415,12 +11425,17 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance, please cleanup manually")
 
+    # Node resource locks will be released by caller
+
   def _ConvertDrbdToPlain(self, feedback_fn):
     """Converts an instance from drbd to plain.
 
     """
     instance = self.instance
+
     assert len(instance.secondary_nodes) == 1
+    assert instance.disk_template == constants.DT_DRBD8
+
     pnode = instance.primary_node
     snode = instance.secondary_nodes[0]
     feedback_fn("Converting template to plain")
@@ -11437,6 +11452,9 @@ class LUInstanceSetParams(LogicalUnit):
     instance.disks = new_disks
     instance.disk_template = constants.DT_PLAIN
     self.cfg.Update(instance, feedback_fn)
+
+    # Release locks in case removing disks takes a while
+    _ReleaseLocks(self, locking.LEVEL_NODE)
 
     feedback_fn("Removing volumes on the secondary node...")
     for disk in old_disks:
@@ -11455,6 +11473,8 @@ class LUInstanceSetParams(LogicalUnit):
         self.LogWarning("Could not remove metadata for disk %d on node %s,"
                         " continuing anyway: %s", idx, pnode, msg)
 
+    # Node resource locks will be released by caller
+
   def Exec(self, feedback_fn):
     """Modifies an instance.
 
@@ -11465,6 +11485,10 @@ class LUInstanceSetParams(LogicalUnit):
     # feedback_fn there.
     for warn in self.warn:
       feedback_fn("WARNING: %s" % warn)
+
+    assert ((self.op.disk_template is None) ^
+            bool(self.owned_locks(locking.LEVEL_NODE_RES))), \
+      "Not owning any node resource locks"
 
     result = []
     instance = self.instance
@@ -11523,6 +11547,16 @@ class LUInstanceSetParams(LogicalUnit):
                        disk_dict[constants.IDISK_MODE]))
 
     if self.op.disk_template:
+      if __debug__:
+        check_nodes = set(instance.all_nodes)
+        if self.op.remote_node:
+          check_nodes.add(self.op.remote_node)
+        for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
+          owned = self.owned_locks(level)
+          assert not (check_nodes - owned), \
+            ("Not owning the correct locks, owning %r, expected at least %r" %
+             (owned, check_nodes))
+
       r_shut = _ShutdownInstanceDisks(self, instance)
       if not r_shut:
         raise errors.OpExecError("Cannot shutdown instance disks, unable to"
@@ -11534,6 +11568,15 @@ class LUInstanceSetParams(LogicalUnit):
         self.cfg.ReleaseDRBDMinors(instance.name)
         raise
       result.append(("disk_template", self.op.disk_template))
+
+      assert instance.disk_template == self.op.disk_template, \
+        ("Expected disk template '%s', found '%s'" %
+         (self.op.disk_template, instance.disk_template))
+
+    # Release node and resource locks if there are any (they might already have
+    # been released during disk conversion)
+    _ReleaseLocks(self, locking.LEVEL_NODE)
+    _ReleaseLocks(self, locking.LEVEL_NODE_RES)
 
     # NIC changes
     for nic_op, nic_dict in self.op.nics:
@@ -11586,6 +11629,10 @@ class LUInstanceSetParams(LogicalUnit):
         result.append(("os/%s" % key, val))
 
     self.cfg.Update(instance, feedback_fn)
+
+    assert not (self.owned_locks(locking.LEVEL_NODE_RES) or
+                self.owned_locks(locking.LEVEL_NODE)), \
+      "All node locks should have been released by now"
 
     return result
 
