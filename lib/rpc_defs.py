@@ -36,6 +36,8 @@ RPC definition fields:
 
 """
 
+from ganeti import utils
+
 
 # Guidelines for choosing timeouts:
 # - call used during watcher: timeout of 1min, _TMO_URGENT
@@ -64,6 +66,14 @@ MULTI = "multi-node"
  ED_FINALIZE_EXPORT_DISKS,
  ED_COMPRESS,
  ED_BLOCKDEV_RENAME) = range(1, 12)
+
+
+def _Prepare(calls):
+  """Converts list of calls to dictionary.
+
+  """
+  return utils.SequenceToDict(calls)
+
 
 _FILE_STORAGE_CALLS = [
   ("file_storage_dir_create", SINGLE, TMO_FAST, [
@@ -381,10 +391,11 @@ _MISC_CALLS = [
   ]
 
 CALLS = {
-  "RpcClientDefault": (_IMPEXP_CALLS + _X509_CALLS + _OS_CALLS + _NODE_CALLS +
-    _FILE_STORAGE_CALLS + _MISC_CALLS + _INSTANCE_CALLS + _BLOCKDEV_CALLS +
-    _STORAGE_CALLS),
-  "RpcClientJobQueue": [
+  "RpcClientDefault": \
+    _Prepare(_IMPEXP_CALLS + _X509_CALLS + _OS_CALLS + _NODE_CALLS +
+             _FILE_STORAGE_CALLS + _MISC_CALLS + _INSTANCE_CALLS +
+             _BLOCKDEV_CALLS + _STORAGE_CALLS),
+  "RpcClientJobQueue": _Prepare([
     ("jobqueue_update", MULTI, TMO_URGENT, [
       ("file_name", None, None),
       ("content", ED_COMPRESS, None),
@@ -393,8 +404,8 @@ CALLS = {
     ("jobqueue_rename", MULTI, TMO_URGENT, [
       ("rename", None, None),
       ], None, "Rename job queue file"),
-    ],
-  "RpcClientBootstrap": [
+    ]),
+  "RpcClientBootstrap": _Prepare([
     ("node_start_master_daemons", SINGLE, TMO_FAST, [
       ("no_voting", None, None),
       ], None, "Starts master daemons on a node"),
@@ -419,13 +430,13 @@ CALLS = {
       ], None, "Requests a node to clean the cluster information it has"),
     ("master_info", MULTI, TMO_URGENT, [], None, "Query master info"),
     ("version", MULTI, TMO_URGENT, [], None, "Query node version"),
-    ],
-  "RpcClientConfig": [
+    ]),
+  "RpcClientConfig": _Prepare([
     ("upload_file", MULTI, TMO_NORMAL, [
       ("file_name", ED_FILE_DETAILS, None),
       ], None, "Upload a file"),
     ("write_ssconf_files", MULTI, TMO_NORMAL, [
       ("values", None, None),
       ], None, "Write ssconf files"),
-    ],
+    ]),
   }

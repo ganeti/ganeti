@@ -191,7 +191,7 @@ def main():
     assert module.MULTI == _MULTI
 
     for (clsname, calls) in module.CALLS.items():
-      _WriteBaseClass(sw, clsname, calls)
+      _WriteBaseClass(sw, clsname, calls.values())
 
   print buf.getvalue()
 
