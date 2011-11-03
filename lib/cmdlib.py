@@ -4593,6 +4593,9 @@ class LUNodeQuery(NoHooksLU):
   def ExpandNames(self):
     self.nq.ExpandNames(self)
 
+  def DeclareLocks(self, level):
+    self.nq.DeclareLocks(self, level)
+
   def Exec(self, feedback_fn):
     return self.nq.OldStyleQuery(self)
 
