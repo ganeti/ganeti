@@ -24,7 +24,8 @@ RPC definition fields:
 
   - Name as string
   - L{SINGLE} for single-node calls, L{MULTI} for multi-node
-  - Timeout (e.g. L{TMO_NORMAL})
+  - Timeout (e.g. L{TMO_NORMAL}), or callback receiving all arguments in a
+    tuple to calculate timeout
   - List of arguments as tuples
 
     - Name as string
@@ -147,6 +148,13 @@ def _ImpExpStatusPostProc(result):
     result.payload = decoded
 
   return result
+
+
+def _TestDelayTimeout((duration, )):
+  """Calculate timeout for "test_delay" RPC.
+
+  """
+  return int(duration + 5)
 
 
 _FILE_STORAGE_CALLS = [
@@ -457,7 +465,7 @@ _MISC_CALLS = [
     ], None, "Call an iallocator on a remote node"),
   ("test_delay", MULTI, None, [
     ("duration", None, None),
-    ], None, "Sleep for a fixed time on given node(s)"),
+    ], _TestDelayTimeout, "Sleep for a fixed time on given node(s)"),
   ("hypervisor_validate_params", MULTI, TMO_NORMAL, [
     ("hvname", None, "Hypervisor name"),
     ("hvfull", None, "Parameters to be validated"),

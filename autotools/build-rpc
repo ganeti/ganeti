@@ -129,9 +129,6 @@ def _WriteBaseClass(sw, clsname, calls):
 
       funcargs.extend(map(compat.fst, args))
 
-      assert "read_timeout" not in funcargs
-      funcargs.append("read_timeout=%s" % timeout)
-
       funcargs.append("_def=_CALLS[%r]" % name)
 
       funcdef = "def call_%s(%s):" % (name, utils.CommaJoin(funcargs))
@@ -154,7 +151,7 @@ def _WriteBaseClass(sw, clsname, calls):
         else:
           buf.write("node_list")
 
-        buf.write(", read_timeout, [%s])" %
+        buf.write(", [%s])" %
                   # Function arguments
                   utils.CommaJoin(map(compat.fst, args)))
 

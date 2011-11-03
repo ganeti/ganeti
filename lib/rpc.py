@@ -430,17 +430,22 @@ class _RpcClientBase:
     else:
       return encoder_fn(argkind)(value)
 
-  def _Call(self, cdef, node_list, timeout, args):
+  def _Call(self, cdef, node_list, args):
     """Entry point for automatically generated RPC wrappers.
 
     """
-    (procedure, _, _, argdefs, postproc_fn, _) = cdef
+    (procedure, _, timeout, argdefs, postproc_fn, _) = cdef
+
+    if callable(timeout):
+      read_timeout = timeout(args)
+    else:
+      read_timeout = timeout
 
     body = serializer.DumpJson(map(self._encoder,
                                    zip(map(compat.snd, argdefs), args)),
                                indent=False)
 
-    result = self._proc(node_list, procedure, body, read_timeout=timeout)
+    result = self._proc(node_list, procedure, body, read_timeout=read_timeout)
 
     if postproc_fn:
       return postproc_fn(result)
@@ -619,20 +624,6 @@ class RpcRunner(_RpcClientBase,
 
     """
     return self._InstDict(instance, osp=osparams)
-
-  #
-  # Begin RPC calls
-  #
-
-  def call_test_delay(self, node_list, duration): # pylint: disable=W0221
-    """Sleep for a fixed time on given node(s).
-
-    This is a multi-node call.
-
-    """
-    # TODO: Use callable timeout calculation
-    return _generated_rpc.RpcClientDefault.call_test_delay(self,
-      node_list, duration, read_timeout=int(duration + 5))
 
 
 class JobQueueRunner(_RpcClientBase, _generated_rpc.RpcClientJobQueue):
