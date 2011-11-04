@@ -1299,6 +1299,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@LOCALSTATEDIR@#$(localstatedir)#g'; \
 	  echo 's#@BINDIR@#$(bindir)#g'; \
 	  echo 's#@SBINDIR@#$(sbindir)#g'; \
+	  echo 's#@LIBDIR@#$(libdir)#g'; \
 	  echo 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
 	  echo 's#@CUSTOM_XEN_BOOTLOADER@#$(XEN_BOOTLOADER)#g'; \
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
