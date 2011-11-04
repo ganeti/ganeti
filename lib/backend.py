@@ -428,19 +428,23 @@ def ChangeMasterNetmask(old_netmask, netmask, master_ip, master_netdev):
   if old_netmask == netmask:
     return
 
+  if not netutils.IPAddress.Own(master_ip):
+    _Fail("The master IP address is not up, not attempting to change its"
+          " netmask")
+
   result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "add",
                          "%s/%s" % (master_ip, netmask),
                          "dev", master_netdev, "label",
                          "%s:0" % master_netdev])
   if result.failed:
-    _Fail("Could not change the master IP netmask")
+    _Fail("Could not set the new netmask on the master IP address")
 
   result = utils.RunCmd([constants.IP_COMMAND_PATH, "address", "del",
                          "%s/%s" % (master_ip, old_netmask),
                          "dev", master_netdev, "label",
                          "%s:0" % master_netdev])
   if result.failed:
-    _Fail("Could not change the master IP netmask")
+    _Fail("Could not bring down the master IP address with the old netmask")
 
 
 def EtcHostsModify(mode, host, ip):

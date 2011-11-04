@@ -3727,10 +3727,9 @@ class LUClusterSetParams(LogicalUnit):
                                                         master_params.netdev)
       if result.fail_msg:
         msg = "Could not change the master IP netmask: %s" % result.fail_msg
-        self.LogWarning(msg)
         feedback_fn(msg)
-      else:
-        self.cluster.master_netmask = self.op.master_netmask
+
+      self.cluster.master_netmask = self.op.master_netmask
 
     self.cfg.Update(self.cluster, feedback_fn)
 
