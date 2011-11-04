@@ -413,10 +413,15 @@ class SimpleStore(object):
     return self._ReadFile(constants.SS_MASTER_NETDEV)
 
   def GetMasterNetmask(self):
-    """Get the netdev to which we'll add the master ip.
+    """Get the master netmask.
 
     """
-    return self._ReadFile(constants.SS_MASTER_NETMASK)
+    try:
+      return self._ReadFile(constants.SS_MASTER_NETMASK)
+    except errors.ConfigurationError:
+      family = self.GetPrimaryIPFamily()
+      ipcls = netutils.IPAddress.GetClassFromIpFamily(family)
+      return ipcls.iplen
 
   def GetMasterNode(self):
     """Get the hostname of the master node for this cluster.
