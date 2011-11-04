@@ -176,6 +176,21 @@ would succeed.
 The option ``--priority`` sets the priority for opcodes submitted
 by the command.
 
+Defaults
+~~~~~~~~
+
+For certain commands you can use environment variables to provide
+default command line arguments. Just assign the arguments as a string to
+the corresponding environment variable. The format of that variable
+name is **binary**_*command*. **binary** is the name of the ``gnt-*``
+script all upper case and dashes replaced by underscores, and *command*
+is the command invoked on that script.
+
+Currently supported commands are ``gnt-node list``, ``gnt-group list``
+and ``gnt-instance list``. So you can configure default command line
+flags by setting ``GNT_NODE_LIST``, ``GNT_GROUP_LIST`` and
+``GNT_INSTANCE_LIST``.
+
 Field formatting
 ----------------
 
