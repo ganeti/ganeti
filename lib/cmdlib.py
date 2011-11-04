@@ -6437,7 +6437,7 @@ class LUInstanceRename(LogicalUnit):
     new_name = self.op.new_name
     if self.op.name_check:
       hostname = netutils.GetHostname(name=new_name)
-      if hostname != new_name:
+      if hostname.name != new_name:
         self.LogInfo("Resolved given name '%s' to '%s'", new_name,
                      hostname.name)
       if not utils.MatchNameComponent(self.op.new_name, [hostname.name]):
