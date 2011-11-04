@@ -26,12 +26,14 @@ pass to and from external parties.
 
 """
 
-# pylint: disable=E0203,W0201
+# pylint: disable=E0203,W0201,R0902
 
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitely initialise its members
 
 # W0201: Attribute '%s' defined outside __init__
+
+# R0902: Allow instances of these objects to have more than 20 attributes
 
 import ConfigParser
 import re
@@ -41,6 +43,7 @@ from cStringIO import StringIO
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import netutils
 
 from socket import AF_INET
 
@@ -1188,6 +1191,10 @@ class Cluster(TaggableObject):
     # primary_ip_family added before 2.3
     if self.primary_ip_family is None:
       self.primary_ip_family = AF_INET
+
+    if self.master_netmask is None:
+      ipcls = netutils.IPAddress.GetClassFromIpFamily(self.primary_ip_family)
+      self.master_netmask = ipcls.iplen
 
     if self.prealloc_wipe_disks is None:
       self.prealloc_wipe_disks = False
