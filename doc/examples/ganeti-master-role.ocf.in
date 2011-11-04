@@ -1,0 +1,129 @@
+#!/bin/bash
+# ganeti master role OCF resource
+# See http://linux-ha.org/wiki/OCF_Resource_Agents
+
+set -e -u
+
+@SHELL_ENV_INIT@
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+
+SCRIPTNAME="@LIBDIR@/ocf/resource.d/ganeti/ganeti-master-role"
+
+# Master candidates list file
+MCFILE="$DATA_DIR/ssconf_master_candidates"
+
+# We'll need the hostname in a few places, so we'll get it once, now.
+MYHOSTNAME=$(hostname --fqdn)
+
+is_master() {
+  local -r master=$(gnt-cluster getmaster)
+  [[ "$MYHOSTNAME" == "$master" ]]
+}
+
+is_candidate() {
+  grep -Fx $MYHOSTNAME $MCFILE
+}
+
+start_action() {
+  if is_master; then
+    exit 0
+  elif is_candidate; then
+    gnt-cluster master-failover || exit 1 # OCF_ERR_GENERIC
+  else
+    exit 5 # OCF_ERR_INSTALLED (vital component missing)
+  fi
+}
+
+stop_action() {
+  # We can't really "stop" being a master.
+  # TODO: investigate whether a fake approach will do.
+  exit 1 # OCF_ERR_GENERIC
+}
+
+recover_action() {
+  if is_master; then
+    gnt-cluster redist-conf || exit 1 # OCF_ERR_GENERIC
+  elif is_candidate; then
+    gnt-cluster master-failover || exit 1 # OCF_ERR_GENERIC
+  else
+    exit 5 # OCF_ERR_INSTALLED (vital component missing)
+  fi
+}
+
+monitor_action() {
+  # monitor should exit:
+  #    7 if the resource is not running
+  #    1 if it failed
+  #    0 if it's running
+  if is_master; then
+    exit 0
+  elif is_candidate; then
+    exit 7 # OCF_NOT_RUNNING
+  else
+    exit 5 # OCF_ERR_INSTALLED (vital component missing)
+  fi
+}
+
+return_meta() {
+cat <<END
+<?xml version="1.0"?>
+<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
+<resource-agent name="ganeti-master-role" version="0.1">
+<version>0.1</version>
+<longdesc lang="en">
+OCF script to manage the ganeti master role in a cluster.
+
+Can be used to failover the ganeti master between master candidate nodes.
+</longdesc>
+<shortdesc lang="en">Manages the ganeti cluster master</shortdesc>
+
+<parameters/>
+<actions>
+<action name="start" timeout="300s" />
+<action name="stop" timeout="50s" />
+<action name="monitor" depth="0" timeout="10s" interval="30s" />
+<action name="meta-data" timeout="5s" />
+<action name="recover" timeout="20s" />
+<action name="reload" timeout="5s" />
+</actions>
+</resource-agent>
+END
+exit 0
+}
+
+case "$1" in
+  # Mandatory OCF commands
+  start)
+    start_action
+    ;;
+  stop)
+    stop_action
+    ;;
+  monitor)
+    monitor_action
+    ;;
+  meta-data)
+    return_meta
+    ;;
+  # Optional OCF commands
+  recover)
+    recover_action
+    ;;
+  reload)
+    # The ganeti master role has no "configuration" that is reloadable on
+    # the pacemaker side. We declare the operation anyway to make sure
+    # pacemaker doesn't decide to stop and start the service needlessly.
+    exit 0
+    ;;
+  promote|demote|migrate_to|migrate_from|validate-all)
+    # Not implemented (nor declared by meta-data)
+    exit 3 # OCF_ERR_UNIMPLEMENTED
+    ;;
+  *)
+    log_success_msg "Usage: $SCRIPTNAME {start|stop|monitor|meta-data|recover|reload}"
+    exit 1
+    ;;
+esac
+
+exit 0

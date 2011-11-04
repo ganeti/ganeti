@@ -208,6 +208,7 @@ BUILT_EXAMPLES = \
 	doc/examples/ganeti-kvm-poweroff.initd \
 	doc/examples/ganeti.cron \
 	doc/examples/ganeti.initd \
+	doc/examples/ganeti-master-role.ocf \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec
 
