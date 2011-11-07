@@ -28,6 +28,7 @@ import time
 import tempfile
 import shutil
 import operator
+import itertools
 
 from ganeti import constants
 from ganeti import mcpu
@@ -361,6 +362,72 @@ class TestClusterVerifyFiles(unittest.TestCase):
               " node3.example.com)" % constants.RAPI_USERS_FILE)),
       ("nodata.example.com", "Node did not return file checksum data"),
       ]))
+
+
+class _FakeLU:
+  def __init__(self):
+    self.warning_log = []
+    self.info_log = []
+
+  def LogWarning(self, text, *args):
+    self.warning_log.append((text, args))
+
+  def LogInfo(self, text, *args):
+    self.info_log.append((text, args))
+
+
+class TestLoadNodeEvacResult(unittest.TestCase):
+  def testSuccess(self):
+    for moved in [[], [
+      ("inst20153.example.com", "grp2", ["nodeA4509", "nodeB2912"]),
+      ]]:
+      for early_release in [False, True]:
+        for use_nodes in [False, True]:
+          jobs = [
+            [opcodes.OpInstanceReplaceDisks().__getstate__()],
+            [opcodes.OpInstanceMigrate().__getstate__()],
+            ]
+
+          alloc_result = (moved, [], jobs)
+          assert cmdlib.IAllocator._NEVAC_RESULT(alloc_result)
+
+          lu = _FakeLU()
+          result = cmdlib._LoadNodeEvacResult(lu, alloc_result,
+                                              early_release, use_nodes)
+
+          if moved:
+            (_, (info_args, )) = lu.info_log.pop(0)
+            for (instname, instgroup, instnodes) in moved:
+              self.assertTrue(instname in info_args)
+              if use_nodes:
+                for i in instnodes:
+                  self.assertTrue(i in info_args)
+              else:
+                self.assertTrue(instgroup in info_args)
+
+          self.assertFalse(lu.info_log)
+          self.assertFalse(lu.warning_log)
+
+          for op in itertools.chain(*result):
+            if hasattr(op.__class__, "early_release"):
+              self.assertEqual(op.early_release, early_release)
+            else:
+              self.assertFalse(hasattr(op, "early_release"))
+
+  def testFailed(self):
+    alloc_result = ([], [
+      ("inst5191.example.com", "errormsg21178"),
+      ], [])
+    assert cmdlib.IAllocator._NEVAC_RESULT(alloc_result)
+
+    lu = _FakeLU()
+    self.assertRaises(errors.OpExecError, cmdlib._LoadNodeEvacResult,
+                      lu, alloc_result, False, False)
+    self.assertFalse(lu.info_log)
+    (_, (args, )) = lu.warning_log.pop(0)
+    self.assertTrue("inst5191.example.com" in args)
+    self.assertTrue("errormsg21178" in args)
+    self.assertFalse(lu.warning_log)
 
 
 if __name__ == "__main__":

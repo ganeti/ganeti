@@ -10285,9 +10285,10 @@ def _LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
   (moved, failed, jobs) = alloc_result
 
   if failed:
-    lu.LogWarning("Unable to evacuate instances %s",
-                  utils.CommaJoin("%s (%s)" % (name, reason)
-                                  for (name, reason) in failed))
+    failreason = utils.CommaJoin("%s (%s)" % (name, reason)
+                                 for (name, reason) in failed)
+    lu.LogWarning("Unable to evacuate instances %s", failreason)
+    raise errors.OpExecError("Unable to evacuate instances %s" % failreason)
 
   if moved:
     lu.LogInfo("Instances to be moved: %s",
