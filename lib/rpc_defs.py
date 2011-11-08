@@ -463,9 +463,9 @@ _MISC_CALLS = [
     ("name", None, "Iallocator name"),
     ("idata", None, "JSON-encoded input string"),
     ], None, "Call an iallocator on a remote node"),
-  ("test_delay", MULTI, None, [
+  ("test_delay", MULTI, _TestDelayTimeout, [
     ("duration", None, None),
-    ], _TestDelayTimeout, "Sleep for a fixed time on given node(s)"),
+    ], None, "Sleep for a fixed time on given node(s)"),
   ("hypervisor_validate_params", MULTI, TMO_NORMAL, [
     ("hvname", None, "Hypervisor name"),
     ("hvfull", None, "Parameters to be validated"),

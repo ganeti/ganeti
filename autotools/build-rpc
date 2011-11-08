@@ -77,7 +77,7 @@ def _WriteDocstring(sw, name, timeout, kind, args, desc):
     sw.Write("")
 
   note = ["This is a %s call" % kind]
-  if timeout:
+  if timeout and not callable(timeout):
     note.append(" with a timeout of %s" % utils.FormatSeconds(timeout))
   sw.Write("@note: %s", "".join(note))
 
