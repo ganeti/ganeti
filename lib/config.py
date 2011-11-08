@@ -897,6 +897,13 @@ class ConfigWriter:
     return self._config_data.cluster.master_netmask
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetUseExternalMipScript(self):
+    """Get flag representing whether to use the external master IP setup script.
+
+    """
+    return self._config_data.cluster.use_external_mip_script
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetFileStorageDir(self):
     """Get the file storage dir for this cluster.
 

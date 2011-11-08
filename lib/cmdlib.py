@@ -5587,6 +5587,7 @@ class LUClusterQuery(NoHooksLU):
       "candidate_pool_size": cluster.candidate_pool_size,
       "master_netdev": cluster.master_netdev,
       "master_netmask": cluster.master_netmask,
+      "use_external_mip_script": cluster.use_external_mip_script,
       "volume_group_name": cluster.volume_group_name,
       "drbd_usermode_helper": cluster.drbd_usermode_helper,
       "file_storage_dir": cluster.file_storage_dir,

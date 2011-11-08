@@ -1095,6 +1095,7 @@ class Cluster(TaggableObject):
     "master_ip",
     "master_netdev",
     "master_netmask",
+    "use_external_mip_script",
     "cluster_name",
     "file_storage_dir",
     "shared_file_storage_dir",
@@ -1204,6 +1205,9 @@ class Cluster(TaggableObject):
     # shared_file_storage_dir added before 2.5
     if self.shared_file_storage_dir is None:
       self.shared_file_storage_dir = ""
+
+    if self.use_external_mip_script is None:
+      self.use_external_mip_script = False
 
   def ToDict(self):
     """Custom function for cluster.
