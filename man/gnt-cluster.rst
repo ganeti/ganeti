@@ -167,6 +167,7 @@ INIT
 | [--vg-name *vg-name*]
 | [--master-netdev *interface-name*]
 | [--master-netmask *netmask*]
+| [--use-external-mip-script {yes \| no}]
 | [{-m|--mac-prefix} *mac-prefix*]
 | [--no-lvm-storage]
 | [--no-etc-hosts]
@@ -227,6 +228,12 @@ The ``--master-netmask`` option allows to specify a netmask for the
 master IP. The netmask must be specified as an integer, and will be
 interpreted as a CIDR netmask. The default value is 32 for an IPv4
 address and 128 for an IPv6 address.
+
+The ``--use-external-mip-script`` options allows to specify
+whether to use an user-supplied master IP address setup script, whose
+location is ``/etc/ganeti/scripts/master-ip-setup``. If the option value
+is set to False, the default script, whose location is
+``/usr/local/lib/ganeti/tools/master-ip-setup``, will be executed.
 
 The ``-m (--mac-prefix)`` option will let you specify a three byte
 prefix under which the virtual MAC addresses of your instances will be
@@ -438,6 +445,7 @@ MODIFY
 | [--node-parameters *ndparams*]
 | [--master-netdev *interface-name*]
 | [--master-netmask *netmask*]
+| [--use-external-mip-script {yes \| no}]
 
 Modify the options for the cluster.
 
@@ -445,8 +453,9 @@ The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
 ``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``,
 ``--nic-parameters``, ``-C (--candidate-pool-size)``,
 ``--maintain-node-health``, ``--prealloc-wipe-disks``, ``--uid-pool``,
-``--node-parameters``, ``--master-netdev`` and ``--master-netmask``
-options are described in the **init** command.
+``--node-parameters``, ``--master-netdev``, ``--master-netmask`` and
+``--use-external-mip-script`` options are described in the
+**init** command.
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or

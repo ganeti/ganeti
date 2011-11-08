@@ -796,6 +796,8 @@ class OpClusterSetParams(OpCode):
      "Modify list of blacklisted operating systems. Each modification must have"
      " two items, the operation and the OS name. The operation can be"
      " ``%s`` or ``%s``." % (constants.DDM_ADD, constants.DDM_REMOVE)),
+    ("use_external_mip_script", None, ht.TMaybeBool,
+     "Whether to use an external master IP address setup script"),
     ]
 
 

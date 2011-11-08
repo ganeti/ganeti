@@ -180,6 +180,7 @@ ENABLE_SHARED_FILE_STORAGE = _autoconf.ENABLE_SHARED_FILE_STORAGE
 SYSCONFDIR = _autoconf.SYSCONFDIR
 TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
+USER_SCRIPTS_DIR = CONF_DIR + "/scripts"
 
 #: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
 # mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}
@@ -194,6 +195,10 @@ WATCHER_GROUP_INSTANCE_STATUS_FILE = DATA_DIR + "/watcher.%s.instance-status"
 
 #: File containing Unix timestamp until which watcher should be paused
 WATCHER_PAUSEFILE = DATA_DIR + "/watcher.pause"
+
+# Master IP address setup scripts paths (default and user-provided)
+DEFAULT_MASTER_SETUP_SCRIPT = TOOLSDIR + "/master-ip-setup"
+EXTERNAL_MASTER_SETUP_SCRIPT = USER_SCRIPTS_DIR + "/master-ip-setup"
 
 ALL_CERT_FILES = frozenset([
   NODED_CERT_FILE,

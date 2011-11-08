@@ -133,6 +133,10 @@ def InitCluster(opts, args):
   if opts.prealloc_wipe_disks is None:
     opts.prealloc_wipe_disks = False
 
+  external_ip_setup_script = opts.use_external_mip_script
+  if external_ip_setup_script is None:
+    external_ip_setup_script = False
+
   try:
     primary_ip_version = int(opts.primary_ip_version)
   except (ValueError, TypeError), err:
@@ -169,6 +173,7 @@ def InitCluster(opts, args):
                         default_iallocator=opts.default_iallocator,
                         primary_ip_version=primary_ip_version,
                         prealloc_wipe_disks=opts.prealloc_wipe_disks,
+                        use_external_mip_script=external_ip_setup_script,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -381,6 +386,8 @@ def ShowClusterConfig(opts, args):
                               convert=opts.roman_integers))
   ToStdout("  - master netdev: %s", result["master_netdev"])
   ToStdout("  - master netmask: %s", result["master_netmask"])
+  ToStdout("  - use external master IP address setup script: %s",
+           result["use_external_mip_script"])
   ToStdout("  - lvm volume group: %s", result["volume_group_name"])
   if result["reserved_lvs"]:
     reserved_lvs = utils.CommaJoin(result["reserved_lvs"])
@@ -879,6 +886,7 @@ def SetClusterParams(opts, args):
           opts.reserved_lvs is not None or
           opts.master_netdev is not None or
           opts.master_netmask is not None or
+          opts.use_external_mip_script is not None or
           opts.prealloc_wipe_disks is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -945,6 +953,8 @@ def SetClusterParams(opts, args):
       ToStderr("The --master-netmask option expects an int parameter.")
       return 1
 
+  ext_ip_script = opts.use_external_mip_script
+
   op = opcodes.OpClusterSetParams(vg_name=vg_name,
                                   drbd_helper=drbd_helper,
                                   enabled_hypervisors=hvlist,
@@ -962,7 +972,9 @@ def SetClusterParams(opts, args):
                                   prealloc_wipe_disks=opts.prealloc_wipe_disks,
                                   master_netdev=opts.master_netdev,
                                   master_netmask=opts.master_netmask,
-                                  reserved_lvs=opts.reserved_lvs)
+                                  reserved_lvs=opts.reserved_lvs,
+                                  use_external_mip_script=ext_ip_script,
+                                  )
   SubmitOpCode(op, opts=opts)
   return 0
 
@@ -1364,7 +1376,7 @@ commands = {
      NOMODIFY_SSH_SETUP_OPT, SECONDARY_IP_OPT, VG_NAME_OPT,
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT],
+     NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -1441,7 +1453,7 @@ commands = {
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT,
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT],
+     NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

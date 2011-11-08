@@ -289,7 +289,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
                 hvparams=None, enabled_hypervisors=None, modify_etc_hosts=True,
                 modify_ssh_setup=True, maintain_node_health=False,
                 drbd_helper=None, uid_pool=None, default_iallocator=None,
-                primary_ip_version=None, prealloc_wipe_disks=False):
+                primary_ip_version=None, prealloc_wipe_disks=False,
+                use_external_mip_script=False):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -482,6 +483,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
     default_iallocator=default_iallocator,
     primary_ip_family=ipcls.family,
     prealloc_wipe_disks=prealloc_wipe_disks,
+    use_external_mip_script=use_external_mip_script,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

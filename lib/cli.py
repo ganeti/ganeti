@@ -177,6 +177,7 @@ __all__ = [
   "TO_GROUP_OPT",
   "UIDPOOL_OPT",
   "USEUNITS_OPT",
+  "USE_EXTERNAL_MIP_SCRIPT",
   "USE_REPL_NET_OPT",
   "VERBOSE_OPT",
   "VG_NAME_OPT",
@@ -1015,6 +1016,13 @@ MASTER_NETMASK_OPT = cli_option("--master-netmask", dest="master_netmask",
                                 help="Specify the netmask of the master IP",
                                 metavar="NETMASK",
                                 default=None)
+
+USE_EXTERNAL_MIP_SCRIPT = cli_option("--use-external-mip-script",
+                                dest="use_external_mip_script",
+                                help="Specify whether to run a user-provided"
+                                " script for the master IP address turnup and"
+                                " turndown operations",
+                                type="bool", metavar=_YORNO, default=None)
 
 GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 help="Specify the default directory (cluster-"

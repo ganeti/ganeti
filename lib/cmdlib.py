@@ -3683,6 +3683,9 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.reserved_lvs is not None:
       self.cluster.reserved_lvs = self.op.reserved_lvs
 
+    if self.op.use_external_mip_script is not None:
+      self.cluster.use_external_mip_script = self.op.use_external_mip_script
+
     def helper_os(aname, mods, desc):
       desc += " OS list"
       lst = getattr(self.cluster, aname)
