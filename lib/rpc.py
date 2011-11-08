@@ -448,7 +448,8 @@ class _RpcClientBase:
     result = self._proc(node_list, procedure, body, read_timeout=read_timeout)
 
     if postproc_fn:
-      return postproc_fn(result)
+      return dict(map(lambda (key, value): (key, postproc_fn(value)),
+                      result.items()))
     else:
       return result
 
