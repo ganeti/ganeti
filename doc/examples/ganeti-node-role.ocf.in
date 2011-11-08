@@ -1,0 +1,155 @@
+#!/bin/bash
+# ganeti node role OCF resource
+# See http://linux-ha.org/wiki/OCF_Resource_Agents
+
+set -e -u
+
+@SHELL_ENV_INIT@
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+
+SCRIPTNAME="@LIBDIR@/ocf/resource.d/ganeti/ganeti-node-role"
+
+# If this file exists don't act on notifications, thus allowing them to happen
+# during the service configuration.
+NORUNFILE="$DATA_DIR/ha_node_role_config"
+
+# Where to grep for tags
+TAGSFILE="$DATA_DIR/ssconf_cluster_tags"
+
+# If this tag is set we won't try to powercycle nodes
+POWERCYCLETAG="ocf:node-offline:use-powercycle"
+
+# If this tag is set will use IPMI to power off an offline node
+POWEROFFTAG="ocf:node-offline:use-poweroff"
+
+# We'll need the hostname in a few places, so we'll get it once, now.
+MYHOSTNAME=$(hostname --fqdn)
+
+is_master() {
+    local -r master=$(gnt-cluster getmaster)
+    [[ "$MYHOSTNAME" == "$master" ]]
+}
+
+start_action() {
+  # If we're alive we consider ourselves a node, without starting anything.
+  # TODO: improve on this
+  exit 0
+}
+
+stop_action() {
+  # We can't "really" stop the service locally.
+  # TODO: investigate whether a "fake" stop will work.
+  exit 1
+}
+
+recover_action() {
+  # Nothing to recover, as long as we're alive.
+  exit 0
+}
+
+monitor_action() {
+  # If we're alive we consider ourselves a working node.
+  # TODO: improve on this
+  exit 0
+}
+
+offline_node() {
+  local -r node=$1
+  grep -Fx $POWERCYCLETAG $TAGSFILE && gnt-node powercycle $node
+  grep -Fx $POWEROFFTAG $TAGSFILE && gnt-node power off $node
+  # TODO: do better than just --auto-promote
+  # (or make sure auto-promote gets better in Ganeti)
+  gnt-node modify -O yes --auto-promote $node
+}
+
+drain_node() {
+  node=$1
+  # TODO: do better than just --auto-promote
+  # (or make sure auto-promote gets better in Ganeti)
+  gnt-node modify -D yes --auto-promote $node || return 1
+}
+
+notify_action() {
+  is_master || exit 0
+  [[ -f $NORUNFILE ]] && exit 0
+  # TODO: also implement the "start" operation for readding a node
+  [[ $OCF_RESKEY_CRM_meta_notify_operation == "stop" ]] || exit 0
+  [[ $OCF_RESKEY_CRM_meta_notify_type == "post" ]] || exit 0
+  local -r target=$OCF_RESKEY_CRM_meta_notify_stop_uname
+  local -r node=$(gnt-node list --no-headers -o name $target)
+  # TODO: use drain_node when we can
+  offline_node $node
+  exit 0
+}
+
+return_meta() {
+cat <<END
+<?xml version="1.0"?>
+<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
+<resource-agent name="ganeti-node-role" version="0.1">
+<version>0.1</version>
+<longdesc lang="en">
+OCF script to manage the ganeti node role in a cluster.
+
+Can be used to online and offline nodes. Should be cloned on all nodes of the
+cluster, with notification enabled.
+
+</longdesc>
+<shortdesc lang="en">Manages the ganeti cluster nodes</shortdesc>
+
+<parameters/>
+<actions>
+<action name="start" timeout="10s" />
+<action name="stop" timeout="10s" />
+<action name="monitor" depth="0" timeout="10s" interval="30s" />
+<action name="meta-data" timeout="5s" />
+<action name="recover" timeout="20s" />
+<action name="reload" timeout="5s" />
+<action name="notify" timeout="1000s" />
+</actions>
+</resource-agent>
+END
+exit 0
+}
+
+case "$1" in
+  # Mandatory OCF commands
+  start)
+    start_action
+    ;;
+  stop)
+    stop_action
+    ;;
+  monitor)
+    monitor_action
+    ;;
+  meta-data)
+    return_meta
+    ;;
+  # Optional OCF commands
+  recover)
+    recover_action
+    ;;
+  reload)
+    # The ganeti node role has no "configuration" that is reloadable on
+    # the pacemaker side. We declare the operation anyway to make sure
+    # pacemaker doesn't decide to stop and start the service needlessly.
+    exit 0
+    ;;
+  notify)
+    # Notification of a change to the ganeti node role
+    notify_action
+    exit 0
+    ;;
+  promote|demote|migrate_to|migrate_from|validate-all)
+    # Not implemented (nor declared by meta-data)
+    exit 3 # OCF_ERR_UNIMPLEMENTED
+    ;;
+  *)
+    log_success_msg "Usage: $SCRIPTNAME {start|stop|monitor|meta-data|recover|reload}"
+    exit 1
+    ;;
+esac
+
+exit 0

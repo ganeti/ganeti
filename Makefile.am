@@ -209,6 +209,7 @@ BUILT_EXAMPLES = \
 	doc/examples/ganeti.cron \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti-master-role.ocf \
+	doc/examples/ganeti-node-role.ocf \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec
 

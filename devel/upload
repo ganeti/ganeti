@@ -103,6 +103,10 @@ install -D --mode=0755 doc/examples/ganeti.initd \
 install -D --mode=0755 doc/examples/ganeti-master-role.ocf \
   "$TXD/$LIBDIR/ocf/resource.d/ganeti/ganeti-master-role"
 
+[ -f doc/examples/ganeti-node-role.ocf ] && \
+install -D --mode=0755 doc/examples/ganeti-node-role.ocf \
+  "$TXD/$LIBDIR/ocf/resource.d/ganeti/ganeti-node-role"
+
 [ -f doc/examples/ganeti.default-debug -a -z "$NO_DEBUG" ] && \
 install -D --mode=0644 doc/examples/ganeti.default-debug \
   "$TXD/$SYSCONFDIR/default/ganeti"
