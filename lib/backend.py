@@ -666,6 +666,11 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_MASTERIP] = netutils.TcpPing(master_ip, port,
                                                   source=source)
 
+  if constants.NV_USERSCRIPTS in what:
+    result[constants.NV_USERSCRIPTS] = \
+      [script for script in what[constants.NV_USERSCRIPTS]
+       if not (os.path.exists(script) and os.access(script, os.X_OK))]
+
   if constants.NV_OOB_PATHS in what:
     result[constants.NV_OOB_PATHS] = tmp = []
     for path in what[constants.NV_OOB_PATHS]:

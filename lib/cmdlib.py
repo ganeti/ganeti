@@ -1941,6 +1941,26 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       _ErrorIf(bool(missing), constants.CV_ENODENET, node,
                "missing bridges: %s" % utils.CommaJoin(sorted(missing)))
 
+  def _VerifyNodeUserScripts(self, ninfo, nresult):
+    """Check the results of user scripts presence and executability on the node
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param nresult: the remote results for the node
+
+    """
+    node = ninfo.name
+
+    test = not constants.NV_USERSCRIPTS in nresult
+    self._ErrorIf(test, constants.CV_ENODEUSERSCRIPTS, node,
+                  "did not return user scripts information")
+
+    broken_scripts = nresult.get(constants.NV_USERSCRIPTS, None)
+    if not test:
+      self._ErrorIf(broken_scripts, constants.CV_ENODEUSERSCRIPTS, node,
+                    "user scripts not present or not executable: %s" %
+                    utils.CommaJoin(sorted(broken_scripts)))
+
   def _VerifyNodeNetwork(self, ninfo, nresult):
     """Check the node network connectivity results.
 
@@ -2649,6 +2669,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_names))
 
+    user_scripts = []
+    if self.cfg.GetUseExternalMipScript():
+      user_scripts.append(constants.EXTERNAL_MASTER_SETUP_SCRIPT)
+
     node_verify_param = {
       constants.NV_FILELIST:
         utils.UniqueSequence(filename
@@ -2671,6 +2695,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_MASTERIP: (master_node, master_ip),
       constants.NV_OSLIST: None,
       constants.NV_VMNODES: self.cfg.GetNonVmCapableNodeList(),
+      constants.NV_USERSCRIPTS: user_scripts,
       }
 
     if vg_name is not None:
@@ -2829,6 +2854,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       nimg.call_ok = self._VerifyNode(node_i, nresult)
       self._VerifyNodeTime(node_i, nresult, nvinfo_starttime, nvinfo_endtime)
       self._VerifyNodeNetwork(node_i, nresult)
+      self._VerifyNodeUserScripts(node_i, nresult)
       self._VerifyOob(node_i, nresult)
 
       if nimg.vm_capable:
@@ -3798,8 +3824,13 @@ def _ComputeAncillaryFiles(cluster, redist):
 
   # Files which should only be on master candidates
   files_mc = set()
+
   if not redist:
     files_mc.add(constants.CLUSTER_CONF_FILE)
+
+    # FIXME: this should also be replicated but Ganeti doesn't support files_mc
+    # replication
+    files_mc.add(constants.DEFAULT_MASTER_SETUP_SCRIPT)
 
   # Files which should only be on VM-capable nodes
   files_vm = set(filename

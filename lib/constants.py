@@ -1192,6 +1192,8 @@ CV_ENODETIME = \
   (CV_TNODE, "ENODETIME", "Node returned invalid time")
 CV_ENODEOOBPATH = \
   (CV_TNODE, "ENODEOOBPATH", "Invalid Out Of Band path")
+CV_ENODEUSERSCRIPTS = \
+  (CV_TNODE, "ENODEUSERSCRIPTS", "User scripts not present or not executable")
 
 CV_ALL_ECODES = frozenset([
   CV_ECLUSTERCFG,
@@ -1223,6 +1225,7 @@ CV_ALL_ECODES = frozenset([
   CV_ENODESETUP,
   CV_ENODETIME,
   CV_ENODEOOBPATH,
+  CV_ENODEUSERSCRIPTS,
   ])
 
 CV_ALL_ECODES_STRINGS = frozenset(estr for (_, estr, _) in CV_ALL_ECODES)
@@ -1248,6 +1251,7 @@ NV_VGLIST = "vglist"
 NV_VMNODES = "vmnodes"
 NV_OOB_PATHS = "oob-paths"
 NV_BRIDGES = "bridges"
+NV_USERSCRIPTS = "user-scripts"
 
 # Instance status
 INSTST_RUNNING = "running"
