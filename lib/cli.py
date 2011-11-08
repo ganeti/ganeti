@@ -137,6 +137,8 @@ __all__ = [
   "NOVOTING_OPT",
   "NO_REMEMBER_OPT",
   "NWSYNC_OPT",
+  "OFFLINE_INST_OPT",
+  "ONLINE_INST_OPT",
   "ON_PRIMARY_OPT",
   "ON_SECONDARY_OPT",
   "OFFLINE_OPT",
@@ -684,6 +686,14 @@ DEBUG_SIMERR_OPT = cli_option("--debug-simulate-errors", default=False,
 NWSYNC_OPT = cli_option("--no-wait-for-sync", dest="wait_for_sync",
                         default=True, action="store_false",
                         help="Don't wait for sync (DANGEROUS!)")
+
+ONLINE_INST_OPT = cli_option("--online", dest="online_inst",
+                             action="store_true", default=False,
+                             help="Enable offline instance")
+
+OFFLINE_INST_OPT = cli_option("--offline", dest="offline_inst",
+                              action="store_true", default=False,
+                              help="Disable down instance")
 
 DISK_TEMPLATE_OPT = cli_option("-t", "--disk-template", dest="disk_template",
                                help=("Custom disk setup (%s)" %

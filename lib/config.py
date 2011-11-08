@@ -1193,7 +1193,14 @@ class ConfigWriter:
     """Mark the instance status to up in the config.
 
     """
-    self._SetInstanceStatus(instance_name, True)
+    self._SetInstanceStatus(instance_name, constants.ADMINST_UP)
+
+  @locking.ssynchronized(_config_lock)
+  def MarkInstanceOffline(self, instance_name):
+    """Mark the instance status to down in the config.
+
+    """
+    self._SetInstanceStatus(instance_name, constants.ADMINST_OFFLINE)
 
   @locking.ssynchronized(_config_lock)
   def RemoveInstance(self, instance_name):

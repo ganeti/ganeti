@@ -1248,7 +1248,8 @@ def SetInstanceParams(opts, args):
 
   """
   if not (opts.nics or opts.disks or opts.disk_template or
-          opts.hvparams or opts.beparams or opts.os or opts.osparams):
+          opts.hvparams or opts.beparams or opts.os or opts.osparams or
+          opts.offline_inst or opts.online_inst):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1305,7 +1306,9 @@ def SetInstanceParams(opts, args):
                                    osparams=opts.osparams,
                                    force_variant=opts.force_variant,
                                    force=opts.force,
-                                   wait_for_sync=opts.wait_for_sync)
+                                   wait_for_sync=opts.wait_for_sync,
+                                   offline_inst=opts.offline_inst,
+                                   online_inst=opts.online_inst)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1487,7 +1490,8 @@ commands = {
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,
      DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
-     OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT],
+     OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT, OFFLINE_INST_OPT,
+     ONLINE_INST_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
