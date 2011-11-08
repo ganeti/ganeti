@@ -108,13 +108,10 @@ def _BlockdevGetMirrorStatusMultiPostProc(result):
   """Post-processor for L{rpc.RpcRunner.call_blockdev_getmirrorstatus_multi}.
 
   """
-  for nres in result.values():
-    if nres.fail_msg:
-      continue
-
-    for idx, (success, status) in enumerate(nres.payload):
+  if not result.fail_msg:
+    for idx, (success, status) in enumerate(result.payload):
       if success:
-        nres.payload[idx] = (success, objects.BlockDevStatus.FromDict(status))
+        result.payload[idx] = (success, objects.BlockDevStatus.FromDict(status))
 
   return result
 
