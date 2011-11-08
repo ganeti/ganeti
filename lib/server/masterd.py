@@ -537,9 +537,10 @@ def ActivateMasterIP():
   # activate ip
   cfg = config.ConfigWriter()
   master_params = cfg.GetMasterNetworkParameters()
+  ems = cfg.GetUseExternalMipScript()
   runner = rpc.BootstrapRunner()
   result = runner.call_node_activate_master_ip(master_params.name,
-                                               master_params)
+                                               master_params, ems)
 
   msg = result.fail_msg
   if msg:

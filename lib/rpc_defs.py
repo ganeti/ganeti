@@ -490,12 +490,16 @@ CALLS = {
       ], None, "Starts master daemons on a node"),
     ("node_activate_master_ip", SINGLE, TMO_FAST, [
       ("master_params", ED_OBJECT_DICT, "Network parameters of the master"),
+      ("use_external_mip_script", None,
+       "Whether to use the user-provided master IP address setup script"),
       ], None,
       "Activates master IP on a node"),
     ("node_stop_master", SINGLE, TMO_FAST, [], None,
      "Deactivates master IP and stops master daemons on a node"),
     ("node_deactivate_master_ip", SINGLE, TMO_FAST, [
       ("master_params", ED_OBJECT_DICT, "Network parameters of the master"),
+      ("use_external_mip_script", None,
+       "Whether to use the user-provided master IP address setup script"),
       ], None,
      "Deactivates master IP on a node"),
     ("node_change_master_netmask", SINGLE, TMO_FAST, [

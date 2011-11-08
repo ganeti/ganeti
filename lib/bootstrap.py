@@ -571,8 +571,9 @@ def FinalizeClusterDestroy(master):
 
   master_params = cfg.GetMasterNetworkParameters()
   master_params.name = master
+  ems = cfg.GetUseExternalMipScript()
   result = runner.call_node_deactivate_master_ip(master_params.name,
-                                                 master_params)
+                                                 master_params, ems)
 
   msg = result.fail_msg
   if msg:
@@ -714,8 +715,9 @@ def MasterFailover(no_voting=False):
   runner = rpc.BootstrapRunner()
   master_params = cfg.GetMasterNetworkParameters()
   master_params.name = old_master
+  ems = cfg.GetUseExternalMipScript()
   result = runner.call_node_deactivate_master_ip(master_params.name,
-                                                 master_params)
+                                                 master_params, ems)
 
   msg = result.fail_msg
   if msg:

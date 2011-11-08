@@ -698,7 +698,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     master_params = objects.MasterNetworkParameters.FromDict(params[0])
-    return backend.ActivateMasterIp(master_params)
+    return backend.ActivateMasterIp(master_params, params[1])
 
   @staticmethod
   def perspective_node_deactivate_master_ip(params):
@@ -706,7 +706,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     master_params = objects.MasterNetworkParameters.FromDict(params[0])
-    return backend.DeactivateMasterIp(master_params)
+    return backend.DeactivateMasterIp(master_params, params[1])
 
   @staticmethod
   def perspective_node_stop_master(params):

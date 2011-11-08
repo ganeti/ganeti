@@ -287,13 +287,18 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
   return decorator
 
 
-def _BuildMasterIpEnv(master_params):
+def _BuildMasterIpEnv(master_params, use_external_mip_script=None):
   """Builds environment variables for master IP hooks.
 
   @type master_params: L{objects.MasterNetworkParameters}
   @param master_params: network parameters of the master
+  @type use_external_mip_script: boolean
+  @param use_external_mip_script: whether to use an external master IP
+    address setup script (unused, but necessary per the implementation of the
+    _RunLocalHooks decorator)
 
   """
+  # pylint: disable=W0613
   ver = netutils.IPAddress.GetVersionFromAddressFamily(master_params.ip_family)
   env = {
     "MASTER_NETDEV": master_params.netdev,
@@ -307,13 +312,17 @@ def _BuildMasterIpEnv(master_params):
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNUP, "master-ip-turnup",
                _BuildMasterIpEnv)
-def ActivateMasterIp(master_params):
+def ActivateMasterIp(master_params, use_external_mip_script):
   """Activate the IP address of the master daemon.
 
   @type master_params: L{objects.MasterNetworkParameters}
   @param master_params: network parameters of the master
+  @type use_external_mip_script: boolean
+  @param use_external_mip_script: whether to use an external master IP
+    address setup script
 
   """
+  # pylint: disable=W0613
   err_msg = None
   if netutils.TcpPing(master_params.ip, constants.DEFAULT_NODED_PORT):
     if netutils.IPAddress.Own(master_params.ip):
@@ -380,13 +389,17 @@ def StartMasterDaemons(no_voting):
 
 @RunLocalHooks(constants.FAKE_OP_MASTER_TURNDOWN, "master-ip-turndown",
                _BuildMasterIpEnv)
-def DeactivateMasterIp(master_params):
+def DeactivateMasterIp(master_params, use_external_mip_script):
   """Deactivate the master IP on this node.
 
   @type master_params: L{objects.MasterNetworkParameters}
   @param master_params: network parameters of the master
+  @type use_external_mip_script: boolean
+  @param use_external_mip_script: whether to use an external master IP
+    address setup script
 
   """
+  # pylint: disable=W0613
   # TODO: log and report back to the caller the error failures; we
   # need to decide in which case we fail the RPC for this
 

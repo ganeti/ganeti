@@ -1364,8 +1364,9 @@ class LUClusterDestroy(LogicalUnit):
     # Run post hooks on master node before it's removed
     _RunPostHook(self, master_params.name)
 
+    ems = self.cfg.GetUseExternalMipScript()
     result = self.rpc.call_node_deactivate_master_ip(master_params.name,
-                                                     master_params)
+                                                     master_params, ems)
     result.Raise("Could not disable the master role")
 
     return master_params.name
@@ -3358,8 +3359,9 @@ class LUClusterRename(LogicalUnit):
 
     # shutdown the master IP
     master_params = self.cfg.GetMasterNetworkParameters()
+    ems = self.cfg.GetUseExternalMipScript()
     result = self.rpc.call_node_deactivate_master_ip(master_params.name,
-                                                     master_params)
+                                                     master_params, ems)
     result.Raise("Could not disable the master role")
 
     try:
@@ -3379,7 +3381,7 @@ class LUClusterRename(LogicalUnit):
     finally:
       master_params.ip = new_ip
       result = self.rpc.call_node_activate_master_ip(master_params.name,
-                                                     master_params)
+                                                     master_params, ems)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not re-enable the master role on"
@@ -3737,10 +3739,11 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.master_netdev:
       master_params = self.cfg.GetMasterNetworkParameters()
+      ems = self.cfg.GetUseExternalMipScript()
       feedback_fn("Shutting down master ip on the current netdev (%s)" %
                   self.cluster.master_netdev)
       result = self.rpc.call_node_deactivate_master_ip(master_params.name,
-                                                       master_params)
+                                                       master_params, ems)
       result.Raise("Could not disable the master ip")
       feedback_fn("Changing master_netdev from %s to %s" %
                   (master_params.netdev, self.op.master_netdev))
@@ -3766,8 +3769,9 @@ class LUClusterSetParams(LogicalUnit):
       master_params = self.cfg.GetMasterNetworkParameters()
       feedback_fn("Starting the master ip on the new master netdev (%s)" %
                   self.op.master_netdev)
+      ems = self.cfg.GetUseExternalMipScript()
       result = self.rpc.call_node_activate_master_ip(master_params.name,
-                                                     master_params)
+                                                     master_params, ems)
       if result.fail_msg:
         self.LogWarning("Could not re-enable the master ip on"
                         " the master, please restart manually: %s",
@@ -3935,8 +3939,9 @@ class LUClusterActivateMasterIp(NoHooksLU):
 
     """
     master_params = self.cfg.GetMasterNetworkParameters()
+    ems = self.cfg.GetUseExternalMipScript()
     self.rpc.call_node_activate_master_ip(master_params.name,
-                                          master_params)
+                                          master_params, ems)
 
 
 class LUClusterDeactivateMasterIp(NoHooksLU):
@@ -3948,7 +3953,9 @@ class LUClusterDeactivateMasterIp(NoHooksLU):
 
     """
     master_params = self.cfg.GetMasterNetworkParameters()
-    self.rpc.call_node_deactivate_master_ip(master_params.name, master_params)
+    ems = self.cfg.GetUseExternalMipScript()
+    self.rpc.call_node_deactivate_master_ip(master_params.name, master_params,
+                                            ems)
 
 
 def _WaitForSync(lu, instance, disks=None, oneshot=False):
