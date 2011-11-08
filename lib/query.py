@@ -1348,15 +1348,17 @@ def _GetInstStatus(ctx, inst):
   if bool(ctx.live_data.get(inst.name)):
     if inst.name in ctx.wrongnode_inst:
       return constants.INSTST_WRONGNODE
-    elif inst.admin_state:
+    elif inst.admin_state == constants.ADMINST_UP:
       return constants.INSTST_RUNNING
     else:
       return constants.INSTST_ERRORUP
 
-  if inst.admin_state:
+  if inst.admin_state == constants.ADMINST_UP:
     return constants.INSTST_ERRORDOWN
+  elif inst.admin_state == constants.ADMINST_DOWN:
+    return constants.INSTST_ADMINDOWN
 
-  return constants.INSTST_ADMINDOWN
+  return constants.INSTST_ADMINOFFLINE
 
 
 def _GetInstDiskSize(index):
@@ -1775,9 +1777,8 @@ def _BuildInstanceFields():
      IQ_NODES, 0,
      lambda ctx, inst: map(compat.partial(_GetInstNodeGroup, ctx, None),
                            inst.secondary_nodes)),
-    (_MakeField("admin_state", "Autostart", QFT_BOOL,
-                "Desired state of instance (if set, the instance should be"
-                " up)"),
+    (_MakeField("admin_state", "InstanceState", QFT_TEXT,
+                "Desired state of instance"),
      IQ_CONFIG, 0, _GetItemAttr("admin_state")),
     (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), IQ_CONFIG, 0,
      lambda ctx, inst: list(inst.GetTags())),
@@ -1808,15 +1809,16 @@ def _BuildInstanceFields():
   status_values = (constants.INSTST_RUNNING, constants.INSTST_ADMINDOWN,
                    constants.INSTST_WRONGNODE, constants.INSTST_ERRORUP,
                    constants.INSTST_ERRORDOWN, constants.INSTST_NODEDOWN,
-                   constants.INSTST_NODEOFFLINE)
+                   constants.INSTST_NODEOFFLINE, constants.INSTST_ADMINOFFLINE)
   status_doc = ("Instance status; \"%s\" if instance is set to be running"
                 " and actually is, \"%s\" if instance is stopped and"
                 " is not running, \"%s\" if instance running, but not on its"
                 " designated primary node, \"%s\" if instance should be"
                 " stopped, but is actually running, \"%s\" if instance should"
                 " run, but doesn't, \"%s\" if instance's primary node is down,"
-                " \"%s\" if instance's primary node is marked offline" %
-                status_values)
+                " \"%s\" if instance's primary node is marked offline,"
+                " \"%s\" if instance is offline and does not use dynamic"
+                " resources" % status_values)
   fields.append((_MakeField("status", "Status", QFT_TEXT, status_doc),
                  IQ_LIVE, 0, _GetInstStatus))
   assert set(status_values) == constants.INSTST_ALL, \

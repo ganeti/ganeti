@@ -1175,7 +1175,7 @@ class ConfigWriter:
     """Set the instance's status to a given value.
 
     """
-    assert isinstance(status, bool), \
+    assert status in constants.ADMINST_ALL, \
            "Invalid status '%s' passed to SetInstanceStatus" % (status,)
 
     if instance_name not in self._config_data.instances:
@@ -1242,7 +1242,7 @@ class ConfigWriter:
     """Mark the status of an instance to down in the configuration.
 
     """
-    self._SetInstanceStatus(instance_name, False)
+    self._SetInstanceStatus(instance_name, constants.ADMINST_DOWN)
 
   def _UnlockedGetInstanceList(self):
     """Get the list of instances.

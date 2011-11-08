@@ -644,7 +644,8 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst1", hvparams={}, beparams={}, nics=[],
         uuid="f90eccb3-e227-4e3c-bf2a-94a21ca8f9cd",
         ctime=1291244000, mtime=1291244400, serial_no=30,
-        admin_state=True, hypervisor=constants.HT_XEN_PVM, os="linux1",
+        admin_state=constants.ADMINST_UP, hypervisor=constants.HT_XEN_PVM,
+        os="linux1",
         primary_node="node1",
         disk_template=constants.DT_PLAIN,
         disks=[],
@@ -652,7 +653,8 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst2", hvparams={}, nics=[],
         uuid="73a0f8a7-068c-4630-ada2-c3440015ab1a",
         ctime=1291211000, mtime=1291211077, serial_no=1,
-        admin_state=True, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        admin_state=constants.ADMINST_UP, hypervisor=constants.HT_XEN_HVM,
+        os="deb99",
         primary_node="node5",
         disk_template=constants.DT_DISKLESS,
         disks=[],
@@ -663,7 +665,8 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst3", hvparams={}, beparams={},
         uuid="11ec8dff-fb61-4850-bfe0-baa1803ff280",
         ctime=1291011000, mtime=1291013000, serial_no=1923,
-        admin_state=False, hypervisor=constants.HT_KVM, os="busybox",
+        admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_KVM,
+        os="busybox",
         primary_node="node6",
         disk_template=constants.DT_DRBD8,
         disks=[],
@@ -678,7 +681,8 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst4", hvparams={}, beparams={},
         uuid="68dab168-3ef5-4c9d-b4d3-801e0672068c",
         ctime=1291244390, mtime=1291244395, serial_no=25,
-        admin_state=False, hypervisor=constants.HT_XEN_PVM, os="linux1",
+        admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_XEN_PVM,
+        os="linux1",
         primary_node="nodeoff2",
         disk_template=constants.DT_DRBD8,
         disks=[],
@@ -702,7 +706,8 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst5", hvparams={}, nics=[],
         uuid="0e3dca12-5b42-4e24-98a2-415267545bd0",
         ctime=1231211000, mtime=1261200000, serial_no=3,
-        admin_state=True, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        admin_state=constants.ADMINST_UP, hypervisor=constants.HT_XEN_HVM,
+        os="deb99",
         primary_node="nodebad2",
         disk_template=constants.DT_DISKLESS,
         disks=[],
@@ -713,7 +718,8 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst6", hvparams={}, nics=[],
         uuid="72de6580-c8d5-4661-b902-38b5785bb8b3",
         ctime=7513, mtime=11501, serial_no=13390,
-        admin_state=False, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_XEN_HVM,
+        os="deb99",
         primary_node="node7",
         disk_template=constants.DT_DISKLESS,
         disks=[],
@@ -726,7 +732,18 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst7", hvparams={}, nics=[],
         uuid="ceec5dc4-b729-4f42-ae28-69b3cd24920e",
         ctime=None, mtime=None, serial_no=1947,
-        admin_state=False, hypervisor=constants.HT_XEN_HVM, os="deb99",
+        admin_state=constants.ADMINST_DOWN, hypervisor=constants.HT_XEN_HVM,
+        os="deb99",
+        primary_node="node6",
+        disk_template=constants.DT_DISKLESS,
+        disks=[],
+        beparams={},
+        osparams={}),
+      objects.Instance(name="inst8", hvparams={}, nics=[],
+        uuid="ceec5dc4-b729-4f42-ae28-69b3cd24920f",
+        ctime=None, mtime=None, serial_no=19478,
+        admin_state=constants.ADMINST_OFFLINE, hypervisor=constants.HT_XEN_HVM,
+        os="deb99",
         primary_node="node6",
         disk_template=constants.DT_DISKLESS,
         disks=[],
@@ -799,14 +816,16 @@ class TestInstanceQuery(unittest.TestCase):
       elif inst.name in live_data:
         if inst.name in wrongnode_inst:
           exp_status = constants.INSTST_WRONGNODE
-        elif inst.admin_state:
+        elif inst.admin_state == constants.ADMINST_UP:
           exp_status = constants.INSTST_RUNNING
         else:
           exp_status = constants.INSTST_ERRORUP
-      elif inst.admin_state:
+      elif inst.admin_state == constants.ADMINST_UP:
         exp_status = constants.INSTST_ERRORDOWN
-      else:
+      elif inst.admin_state == constants.ADMINST_DOWN:
         exp_status = constants.INSTST_ADMINDOWN
+      else:
+        exp_status = constants.INSTST_ADMINOFFLINE
 
       self.assertEqual(row[fieldidx["status"]],
                        (constants.RS_NORMAL, exp_status))

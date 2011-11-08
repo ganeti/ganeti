@@ -67,6 +67,13 @@ import ganeti.masterd.instance # pylint: disable=W0611
 #: Size of DRBD meta block device
 DRBD_META_SIZE = 128
 
+# States of instance
+INSTANCE_UP = [constants.ADMINST_UP]
+INSTANCE_DOWN = [constants.ADMINST_DOWN]
+INSTANCE_OFFLINE = [constants.ADMINST_OFFLINE]
+INSTANCE_ONLINE = [constants.ADMINST_DOWN, constants.ADMINST_UP]
+INSTANCE_NOT_RUNNING = [constants.ADMINST_DOWN, constants.ADMINST_OFFLINE]
+
 
 class ResultWithJobs:
   """Data container for LU results with jobs.
@@ -903,20 +910,31 @@ def _GetClusterDomainSecret():
                                strict=True)
 
 
-def _CheckInstanceDown(lu, instance, reason):
-  """Ensure that an instance is not running."""
-  if instance.admin_state:
-    raise errors.OpPrereqError("Instance %s is marked to be up, %s" %
-                               (instance.name, reason), errors.ECODE_STATE)
+def _CheckInstanceState(lu, instance, req_states, msg=None):
+  """Ensure that an instance is in one of the required states.
 
-  pnode = instance.primary_node
-  ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
-  ins_l.Raise("Can't contact node %s for instance information" % pnode,
-              prereq=True, ecode=errors.ECODE_ENVIRON)
+  @param lu: the LU on behalf of which we make the check
+  @param instance: the instance to check
+  @param msg: if passed, should be a message to replace the default one
+  @raise errors.OpPrereqError: if the instance is not in the required state
 
-  if instance.name in ins_l.payload:
-    raise errors.OpPrereqError("Instance %s is running, %s" %
-                               (instance.name, reason), errors.ECODE_STATE)
+  """
+  if msg is None:
+    msg = "can't use instance from outside %s states" % ", ".join(req_states)
+  if instance.admin_state not in req_states:
+    raise errors.OpPrereqError("Instance %s is marked to be %s, %s" %
+                               (instance, instance.admin_state, msg),
+                               errors.ECODE_STATE)
+
+  if constants.ADMINST_UP not in req_states:
+    pnode = instance.primary_node
+    ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
+    ins_l.Raise("Can't contact node %s for instance information" % pnode,
+                prereq=True, ecode=errors.ECODE_ENVIRON)
+
+    if instance.name in ins_l.payload:
+      raise errors.OpPrereqError("Instance %s is running, %s" %
+                                 (instance.name, msg), errors.ECODE_STATE)
 
 
 def _ExpandItemName(fn, name, kind):
@@ -961,8 +979,8 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param secondary_nodes: list of secondary nodes as strings
   @type os_type: string
   @param os_type: the name of the instance's OS
-  @type status: boolean
-  @param status: the should_run status of the instance
+  @type status: string
+  @param status: the desired status of the instance
   @type memory: string
   @param memory: the memory size of the instance
   @type vcpus: string
@@ -986,17 +1004,13 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @return: the hook environment for this instance
 
   """
-  if status:
-    str_status = "up"
-  else:
-    str_status = "down"
   env = {
     "OP_TARGET": name,
     "INSTANCE_NAME": name,
     "INSTANCE_PRIMARY": primary_node,
     "INSTANCE_SECONDARIES": " ".join(secondary_nodes),
     "INSTANCE_OS_TYPE": os_type,
-    "INSTANCE_STATUS": str_status,
+    "INSTANCE_STATUS": status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
@@ -2033,7 +2047,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         _ErrorIf(test, constants.CV_EINSTANCEMISSINGDISK, instance,
                  "volume %s missing on node %s", volume, node)
 
-    if instanceconfig.admin_state:
+    if instanceconfig.admin_state == constants.ADMINST_UP:
       pri_img = node_image[node_current]
       test = instance not in pri_img.instances and not pri_img.offline
       _ErrorIf(test, constants.CV_EINSTANCEDOWN, instance,
@@ -2049,12 +2063,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # node here
       snode = node_image[nname]
       bad_snode = snode.ghost or snode.offline
-      _ErrorIf(instanceconfig.admin_state and not success and not bad_snode,
+      _ErrorIf(instanceconfig.admin_state == constants.ADMINST_UP and
+               not success and not bad_snode,
                constants.CV_EINSTANCEFAULTYDISK, instance,
                "couldn't retrieve status for disk/%s on %s: %s",
                idx, nname, bdev_status)
-      _ErrorIf((instanceconfig.admin_state and success and
-                bdev_status.ldisk_status == constants.LDS_FAULTY),
+      _ErrorIf((instanceconfig.admin_state == constants.ADMINST_UP and
+                success and bdev_status.ldisk_status == constants.LDS_FAULTY),
                constants.CV_EINSTANCEFAULTYDISK, instance,
                "disk/%s on %s is faulty", idx, nname)
 
@@ -2262,7 +2277,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         node_drbd[minor] = (instance, False)
       else:
         instance = instanceinfo[instance]
-        node_drbd[minor] = (instance.name, instance.admin_state)
+        node_drbd[minor] = (instance.name,
+                            instance.admin_state == constants.ADMINST_UP)
 
     # and now check them
     used_minors = nresult.get(constants.NV_DRBDLIST, [])
@@ -2660,6 +2676,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
+    i_offline = 0 # Count of offline instances
     n_offline = 0 # Count of offline nodes
     n_drained = 0 # Count of nodes being drained
     node_vol_should = {}
@@ -2885,6 +2902,12 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         non_primary_inst = set(nimg.instances).difference(nimg.pinst)
 
         for inst in non_primary_inst:
+          # FIXME: investigate best way to handle offline insts
+          if inst.admin_state == constants.ADMINST_OFFLINE:
+            if verbose:
+              feedback_fn("* Skipping offline instance %s" % inst.name)
+            i_offline += 1
+            continue
           test = inst in self.all_inst_info
           _ErrorIf(test, constants.CV_EINSTANCEWRONGNODE, inst,
                    "instance should not run on node %s", node_i.name)
@@ -2910,7 +2933,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                constants.CV_ENODERPC, pnode, "instance %s, connection to"
                " primary node failed", instance)
 
-      _ErrorIf(inst_config.admin_state and pnode_img.offline,
+      _ErrorIf(inst_config.admin_state == constants.ADMINST_UP and
+               pnode_img.offline,
                constants.CV_EINSTANCEBADNODE, instance,
                "instance is marked as running and lives on offline node %s",
                inst_config.primary_node)
@@ -3001,6 +3025,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if i_non_a_balanced:
       feedback_fn("  - NOTICE: %d non-auto-balanced instance(s) found."
                   % len(i_non_a_balanced))
+
+    if i_offline:
+      feedback_fn("  - NOTICE: %d offline instance(s) found." % i_offline)
 
     if n_offline:
       feedback_fn("  - NOTICE: %d offline node(s) found." % n_offline)
@@ -3164,8 +3191,8 @@ class LUGroupVerifyDisks(NoHooksLU):
     res_missing = {}
 
     nv_dict = _MapInstanceDisksToNodes([inst
-                                        for inst in self.instances.values()
-                                        if inst.admin_state])
+            for inst in self.instances.values()
+            if inst.admin_state == constants.ADMINST_UP])
 
     if nv_dict:
       nodes = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &
@@ -5500,7 +5527,8 @@ class LUNodeSetParams(LogicalUnit):
         # On online nodes, check that no instances are running, and that
         # the node has the new ip and we can reach it.
         for instance in affected_instances.values():
-          _CheckInstanceDown(self, instance, "cannot change secondary ip")
+          _CheckInstanceState(self, instance, INSTANCE_DOWN,
+                              msg="cannot change secondary ip")
 
         _CheckNodeHasSecondaryIP(self, node.name, self.op.secondary_ip, True)
         if master.name != node.name:
@@ -5898,7 +5926,7 @@ def _SafeShutdownInstanceDisks(lu, instance, disks=None):
   _ShutdownInstanceDisks.
 
   """
-  _CheckInstanceDown(lu, instance, "cannot shutdown disks")
+  _CheckInstanceState(lu, instance, INSTANCE_DOWN, msg="cannot shutdown disks")
   _ShutdownInstanceDisks(lu, instance, disks=disks)
 
 
@@ -6136,6 +6164,8 @@ class LUInstanceStartup(LogicalUnit):
       hv_type.CheckParameterSyntax(filled_hvp)
       _CheckHVParams(self, instance.all_nodes, instance.hypervisor, filled_hvp)
 
+    _CheckInstanceState(self, instance, INSTANCE_ONLINE)
+
     self.primary_offline = self.cfg.GetNodeInfo(instance.primary_node).offline
 
     if self.primary_offline and self.op.ignore_offline_nodes:
@@ -6233,7 +6263,7 @@ class LUInstanceReboot(LogicalUnit):
     self.instance = instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-
+    _CheckInstanceState(self, instance, INSTANCE_ONLINE)
     _CheckNodeOnline(self, instance.primary_node)
 
     # check bridges existence
@@ -6322,6 +6352,8 @@ class LUInstanceShutdown(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    _CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
+
     self.primary_offline = \
       self.cfg.GetNodeInfo(self.instance.primary_node).offline
 
@@ -6398,7 +6430,7 @@ class LUInstanceReinstall(LogicalUnit):
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name,
                                  errors.ECODE_INVAL)
-    _CheckInstanceDown(self, instance, "cannot reinstall")
+    _CheckInstanceState(self, instance, INSTANCE_DOWN, msg="cannot reinstall")
 
     if self.op.os_type is not None:
       # OS verification
@@ -6525,7 +6557,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
     assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE_RES)
     old_pnode = self.cfg.GetNodeInfo(instance.primary_node)
     if not (self.op.nodes and old_pnode.offline):
-      _CheckInstanceDown(self, instance, "cannot recreate disks")
+      _CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
+                          msg="cannot recreate disks")
 
     if not self.op.disks:
       self.op.disks = range(len(instance.disks))
@@ -6631,7 +6664,8 @@ class LUInstanceRename(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None
     _CheckNodeOnline(self, instance.primary_node)
-    _CheckInstanceDown(self, instance, "cannot rename")
+    _CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
+                        msg="cannot rename")
     self.instance = instance
 
     new_name = self.op.new_name
@@ -7061,7 +7095,7 @@ class LUInstanceMove(LogicalUnit):
     _CheckNodeNotDrained(self, target_node)
     _CheckNodeVmCapable(self, target_node)
 
-    if instance.admin_state:
+    if instance.admin_state == constants.ADMINST_UP:
       # check memory requirements on the secondary node
       _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
                            instance.name, bep[constants.BE_MEMORY],
@@ -7155,7 +7189,7 @@ class LUInstanceMove(LogicalUnit):
     _RemoveDisks(self, instance, target_node=source_node)
 
     # Only start the instance if it's marked as up
-    if instance.admin_state:
+    if instance.admin_state == constants.ADMINST_UP:
       self.LogInfo("Starting instance %s on node %s",
                    instance.name, target_node)
 
@@ -7293,10 +7327,11 @@ class TLMigrateInstance(Tasklet):
     assert instance is not None
     self.instance = instance
 
-    if (not self.cleanup and not instance.admin_state and not self.failover and
-        self.fallback):
-      self.lu.LogInfo("Instance is marked down, fallback allowed, switching"
-                      " to failover")
+    if (not self.cleanup and
+        not instance.admin_state == constants.ADMINST_UP and
+        not self.failover and self.fallback):
+      self.lu.LogInfo("Instance is marked down or offline, fallback allowed,"
+                      " switching to failover")
       self.failover = True
 
     if instance.disk_template not in constants.DTS_MIRRORED:
@@ -7355,7 +7390,7 @@ class TLMigrateInstance(Tasklet):
     i_be = self.cfg.GetClusterInfo().FillBE(instance)
 
     # check memory requirements on the secondary node
-    if not self.failover or instance.admin_state:
+    if not self.failover or instance.admin_state == constants.ADMINST_UP:
       _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
                            instance.name, i_be[constants.BE_MEMORY],
                            instance.hypervisor)
@@ -7772,7 +7807,7 @@ class TLMigrateInstance(Tasklet):
     source_node = instance.primary_node
     target_node = self.target_node
 
-    if instance.admin_state:
+    if instance.admin_state == constants.ADMINST_UP:
       self.feedback_fn("* checking disk consistency between source and target")
       for dev in instance.disks:
         # for drbd, these are drbd over lvm
@@ -7815,7 +7850,7 @@ class TLMigrateInstance(Tasklet):
     self.cfg.Update(instance, self.feedback_fn)
 
     # Only start the instance if it's marked as up
-    if instance.admin_state:
+    if instance.admin_state == constants.ADMINST_UP:
       self.feedback_fn("* activating the instance's disks on target node %s" %
                        target_node)
       logging.info("Starting instance %s on node %s",
@@ -9217,7 +9252,7 @@ class LUInstanceCreate(LogicalUnit):
                             primary_node=pnode_name,
                             nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
-                            admin_state=False,
+                            admin_state=constants.ADMINST_DOWN,
                             network_port=network_port,
                             beparams=self.op.beparams,
                             hvparams=self.op.hvparams,
@@ -9397,7 +9432,7 @@ class LUInstanceCreate(LogicalUnit):
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
     if self.op.start:
-      iobj.admin_state = True
+      iobj.admin_state = constants.ADMINST_UP
       self.cfg.Update(iobj, feedback_fn)
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
@@ -9445,10 +9480,12 @@ class LUInstanceConsole(NoHooksLU):
     node_insts.Raise("Can't get node information from %s" % node)
 
     if instance.name not in node_insts.payload:
-      if instance.admin_state:
+      if instance.admin_state == constants.ADMINST_UP:
         state = constants.INSTST_ERRORDOWN
-      else:
+      elif instance.admin_state == constants.ADMINST_DOWN:
         state = constants.INSTST_ADMINDOWN
+      else:
+        state = constants.INSTST_ADMINOFFLINE
       raise errors.OpExecError("Instance %s is not running (state %s)" %
                                (instance.name, state))
 
@@ -9895,7 +9932,7 @@ class TLReplaceDisks(Tasklet):
     feedback_fn("Replacing disk(s) %s for %s" %
                 (utils.CommaJoin(self.disks), self.instance.name))
 
-    activate_disks = (not self.instance.admin_state)
+    activate_disks = (self.instance.admin_state != constants.ADMINST_UP)
 
     # Activate the instance disks if we're replacing them on a down instance
     if activate_disks:
@@ -10396,7 +10433,7 @@ class LURepairNodeStorage(NoHooksLU):
     """
     # Check whether any instance on this node has faulty disks
     for inst in _GetNodeInstances(self.cfg, self.op.node_name):
-      if not inst.admin_state:
+      if inst.admin_state != constants.ADMINST_UP:
         continue
       check_nodes = set(inst.all_nodes)
       check_nodes.discard(self.op.node_name)
@@ -10758,9 +10795,9 @@ class LUInstanceGrowDisk(LogicalUnit):
       if disk_abort:
         self.proc.LogWarning("Disk sync-ing has not returned a good"
                              " status; please check the instance")
-      if not instance.admin_state:
+      if instance.admin_state != constants.ADMINST_UP:
         _SafeShutdownInstanceDisks(self, instance, disks=[disk])
-    elif not instance.admin_state:
+    elif instance.admin_state != constants.ADMINST_UP:
       self.proc.LogWarning("Not shutting down the disk even if the instance is"
                            " not supposed to be running because no wait for"
                            " sync mode was requested")
@@ -10899,19 +10936,17 @@ class LUInstanceQueryData(NoHooksLU):
         if remote_info and "state" in remote_info:
           remote_state = "up"
         else:
-          remote_state = "down"
-
-      if instance.admin_state:
-        config_state = "up"
-      else:
-        config_state = "down"
+          if instance.admin_state == constants.ADMINST_UP:
+            remote_state = "down"
+          else:
+            remote_state = instance.admin_state
 
       disks = map(compat.partial(self._ComputeDiskStatus, instance, None),
                   instance.disks)
 
       result[instance.name] = {
         "name": instance.name,
-        "config_state": config_state,
+        "config_state": instance.admin_state,
         "run_state": remote_state,
         "pnode": instance.primary_node,
         "snodes": instance.secondary_nodes,
@@ -11173,7 +11208,8 @@ class LUInstanceSetParams(LogicalUnit):
                                    " %s to %s" % (instance.disk_template,
                                                   self.op.disk_template),
                                    errors.ECODE_INVAL)
-      _CheckInstanceDown(self, instance, "cannot change disk template")
+      _CheckInstanceState(self, instance, INSTANCE_DOWN,
+                          msg="cannot change disk template")
       if self.op.disk_template in constants.DTS_INT_MIRROR:
         if self.op.remote_node == pnode:
           raise errors.OpPrereqError("Given new secondary node %s is the same"
@@ -11397,7 +11433,8 @@ class LUInstanceSetParams(LogicalUnit):
         if len(instance.disks) == 1:
           raise errors.OpPrereqError("Cannot remove the last disk of"
                                      " an instance", errors.ECODE_INVAL)
-        _CheckInstanceDown(self, instance, "cannot remove disks")
+        _CheckInstanceState(self, instance, INSTANCE_DOWN,
+                            msg="cannot remove disks")
 
       if (disk_op == constants.DDM_ADD and
           len(instance.disks) >= constants.MAX_DISKS):
@@ -12000,7 +12037,8 @@ class LUBackupExport(LogicalUnit):
           "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
 
-    if (self.op.remove_instance and self.instance.admin_state and
+    if (self.op.remove_instance and
+        self.instance.admin_state == constants.ADMINST_UP and
         not self.op.shutdown):
       raise errors.OpPrereqError("Can not remove instance without shutting it"
                                  " down before")
@@ -12130,7 +12168,7 @@ class LUBackupExport(LogicalUnit):
     for disk in instance.disks:
       self.cfg.SetDiskID(disk, src_node)
 
-    activate_disks = (not instance.admin_state)
+    activate_disks = (instance.admin_state != constants.ADMINST_UP)
 
     if activate_disks:
       # Activate the instance disks if we'exporting a stopped instance
@@ -12143,7 +12181,8 @@ class LUBackupExport(LogicalUnit):
 
       helper.CreateSnapshots()
       try:
-        if (self.op.shutdown and instance.admin_state and
+        if (self.op.shutdown and
+            instance.admin_state == constants.ADMINST_UP and
             not self.op.remove_instance):
           assert not activate_disks
           feedback_fn("Starting instance %s" % instance.name)
@@ -13446,7 +13485,7 @@ class IAllocator(object):
             i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
             remote_info["memory_free"] -= max(0, i_mem_diff)
 
-            if iinfo.admin_state:
+            if iinfo.admin_state == constants.ADMINST_UP:
               i_p_up_mem += beinfo[constants.BE_MEMORY]
 
         # compute memory used by instances
