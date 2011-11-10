@@ -36,6 +36,9 @@ module Ganeti.HTools.Types
     , AllocPolicy(..)
     , allocPolicyFromRaw
     , allocPolicyToRaw
+    , InstanceStatus(..)
+    , instanceStatusFromRaw
+    , instanceStatusToRaw
     , RSpec(..)
     , DynUtil(..)
     , zeroUtil
@@ -109,6 +112,19 @@ $(THH.declareSADT "AllocPolicy"
          , ("AllocUnallocable", 'C.allocPolicyUnallocable)
          ])
 $(THH.makeJSONInstance ''AllocPolicy)
+
+-- | The Instance real state type.
+$(THH.declareSADT "InstanceStatus"
+         [ ("AdminDown", 'C.inststAdmindown)
+         , ("AdminOffline", 'C.inststAdminoffline)
+         , ("ErrorDown", 'C.inststErrordown)
+         , ("ErrorUp", 'C.inststErrorup)
+         , ("NodeDown", 'C.inststNodedown)
+         , ("NodeOffline", 'C.inststNodeoffline)
+         , ("Running", 'C.inststRunning)
+         , ("WrongNode", 'C.inststWrongnode)
+         ])
+$(THH.makeJSONInstance ''InstanceStatus)
 
 -- | The resource spec type.
 data RSpec = RSpec
