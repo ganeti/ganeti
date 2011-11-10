@@ -123,7 +123,7 @@ setInstanceSmallerThanNode node inst =
 
 -- | Create an instance given its spec.
 createInstance mem dsk vcpus =
-    Instance.create "inst-unnamed" mem dsk vcpus "running" [] True (-1) (-1)
+    Instance.create "inst-unnamed" mem dsk vcpus Types.Running [] True (-1) (-1)
                     Types.DTDrbd8
 
 -- | Create a small cluster by repeating a node spec.
@@ -187,20 +187,23 @@ getFQDN = do
   let frest' = map (map dnsGetChar) frest
   return (felem ++ "." ++ intercalate "." frest')
 
+instance Arbitrary Types.InstanceStatus where
+    arbitrary = elements [ Types.AdminDown
+                         , Types.AdminOffline
+                         , Types.ErrorDown
+                         , Types.ErrorUp
+                         , Types.NodeDown
+                         , Types.NodeOffline
+                         , Types.Running
+                         , Types.WrongNode]
+
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
     arbitrary = do
       name <- getFQDN
       mem <- choose (0, maxMem)
       dsk <- choose (0, maxDsk)
-      run_st <- elements [ C.inststErrorup
-                         , C.inststErrordown
-                         , C.inststAdmindown
-                         , C.inststNodedown
-                         , C.inststNodeoffline
-                         , C.inststRunning
-                         , "no_such_status1"
-                         , "no_such_status2"]
+      run_st <- arbitrary
       pn <- arbitrary
       sn <- arbitrary
       vcpus <- choose (0, maxCpu)
@@ -591,6 +594,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
     let vcpus_s = show vcpus
         dsk_s = show dsk
         mem_s = show mem
+        status_s = Types.instanceStatusToRaw status
         ndx = if null snode
               then [(pnode, pdx)]
               else [(pnode, pdx), (snode, sdx)]
@@ -599,13 +603,13 @@ prop_Text_Load_Instance name mem dsk vcpus status
         sbal = if autobal then "Y" else "N"
         sdt = Types.diskTemplateToRaw dt
         inst = Text.loadInst nl
-               [name, mem_s, dsk_s, vcpus_s, status,
+               [name, mem_s, dsk_s, vcpus_s, status_s,
                 sbal, pnode, snode, sdt, tags]
         fail1 = Text.loadInst nl
-               [name, mem_s, dsk_s, vcpus_s, status,
+               [name, mem_s, dsk_s, vcpus_s, status_s,
                 sbal, pnode, pnode, tags]
         _types = ( name::String, mem::Int, dsk::Int
-                 , vcpus::Int, status::String
+                 , vcpus::Int, status::Types.InstanceStatus
                  , snode::String
                  , autobal::Bool)
     in

@@ -424,7 +424,7 @@ main = do
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
-                    (rspecCpu spx) "running" [] True (-1) (-1) disk_template
+                    (rspecCpu spx) Running [] True (-1) (-1) disk_template
 
   allocnodes <- exitIfBad $ Cluster.genAllocNodes gl nl req_nodes True
 

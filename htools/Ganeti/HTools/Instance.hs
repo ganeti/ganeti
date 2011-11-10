@@ -62,7 +62,7 @@ data Instance = Instance
     , dsk          :: Int       -- ^ Disk size of instance
     , vcpus        :: Int       -- ^ Number of VCPUs
     , running      :: Bool      -- ^ Is the instance running?
-    , runSt        :: String    -- ^ Original (text) run status
+    , runSt        :: T.InstanceStatus -- ^ Original run status
     , pNode        :: T.Ndx     -- ^ Original primary node
     , sNode        :: T.Ndx     -- ^ Original secondary node
     , idx          :: T.Idx     -- ^ Internal index
@@ -81,8 +81,8 @@ instance T.Element Instance where
     allNames n = [name n, alias n]
 
 -- | Constant holding the running instance states.
-runningStates :: [String]
-runningStates = [C.inststRunning, C.inststErrorup]
+runningStates :: [T.InstanceStatus]
+runningStates = [T.Running, T.ErrorUp]
 
 -- | Constant holding the local storage templates.
 --
@@ -115,7 +115,7 @@ type List = Container.Container Instance
 --
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
-create :: String -> Int -> Int -> Int -> String
+create :: String -> Int -> Int -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Instance
 create name_init mem_init dsk_init vcpus_init run_init tags_init
        auto_balance_init pn sn dt =

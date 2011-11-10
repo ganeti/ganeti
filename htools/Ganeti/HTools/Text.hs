@@ -95,7 +95,7 @@ serializeInstance nl inst =
     in
       printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
-             (Instance.vcpus inst) (Instance.runSt inst)
+             (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
              (if Instance.autoBalance inst then "Y" else "N")
              pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
              (intercalate "," (Instance.tags inst))
@@ -162,6 +162,7 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
   vmem <- tryRead name mem
   vdsk <- tryRead name dsk
   vvcpus <- tryRead name vcpus
+  vstatus <- instanceStatusFromRaw status
   auto_balance <- case auto_bal of
                     "Y" -> return True
                     "N" -> return False
@@ -172,7 +173,7 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = sepSplit ',' tags
-      newinst = Instance.create name vmem vdsk vvcpus status vtags
+      newinst = Instance.create name vmem vdsk vvcpus vstatus vtags
                 auto_balance pidx sidx disk_template
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
