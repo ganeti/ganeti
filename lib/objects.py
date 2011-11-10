@@ -96,6 +96,21 @@ def UpgradeGroupedParams(target, defaults):
   return target
 
 
+def UpgradeBeParams(target):
+  """Update the be parameters dict to the new format.
+
+  @type target: dict
+  @param target: "be" parameters dict
+
+  """
+  if constants.BE_MEMORY in target:
+    memory = target[constants.BE_MEMORY]
+    target[constants.BE_MAXMEM] = memory
+    target[constants.BE_MINMEM] = memory
+    #FIXME(dynmem): delete old value
+    #del target[constants.BE_MEMORY]
+
+
 class ConfigObject(object):
   """A generic config object.
 
@@ -912,6 +927,7 @@ class Instance(TaggableObject):
           pass
     if self.osparams is None:
       self.osparams = {}
+    UpgradeBeParams(self.beparams)
 
 
 class OS(ConfigObject):
@@ -1150,6 +1166,9 @@ class Cluster(TaggableObject):
 
     self.beparams = UpgradeGroupedParams(self.beparams,
                                          constants.BEC_DEFAULTS)
+    for beparams_group in self.beparams:
+      UpgradeBeParams(self.beparams[beparams_group])
+
     migrate_default_bridge = not self.nicparams
     self.nicparams = UpgradeGroupedParams(self.nicparams,
                                           constants.NICC_DEFAULTS)

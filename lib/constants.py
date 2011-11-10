@@ -860,12 +860,16 @@ DSS_PARAMETER_TYPES = {
 DSS_PARAMETERS = frozenset(DSS_PARAMETER_TYPES.keys())
 
 # Backend parameter names
-BE_MEMORY = "memory"
+BE_MEMORY = "memory" # deprecated and replaced by max and min mem
+BE_MAXMEM = "maxmem"
+BE_MINMEM = "minmem"
 BE_VCPUS = "vcpus"
 BE_AUTO_BALANCE = "auto_balance"
 
 BES_PARAMETER_TYPES = {
     BE_MEMORY: VTYPE_SIZE,
+    BE_MAXMEM: VTYPE_SIZE,
+    BE_MINMEM: VTYPE_SIZE,
     BE_VCPUS: VTYPE_INT,
     BE_AUTO_BALANCE: VTYPE_BOOL,
     }
@@ -1624,6 +1628,8 @@ HVC_GLOBALS = frozenset([
 
 BEC_DEFAULTS = {
   BE_MEMORY: 128,
+  BE_MINMEM: 128,
+  BE_MAXMEM: 128,
   BE_VCPUS: 1,
   BE_AUTO_BALANCE: True,
   }
