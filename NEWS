@@ -119,6 +119,8 @@ Misc
 
   - :doc:`RAPI <rapi>` documentation now has detailed parameter
     descriptions.
+  - Some opcode/job results are now also documented, see :doc:`RAPI
+    <rapi>`.
 
 - A lockset's internal lock is now also visible in lock monitor.
 - Log messages from job queue workers now contain information about the
