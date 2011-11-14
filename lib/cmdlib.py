@@ -9355,6 +9355,7 @@ class LUInstanceConsole(NoHooksLU):
   REQ_BGL = False
 
   def ExpandNames(self):
+    self.share_locks = _ShareAll()
     self._ExpandAndLockInstance()
 
   def CheckPrereq(self):
