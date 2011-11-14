@@ -31,6 +31,7 @@ module Ganeti.HTools.Instance
     , AssocList
     , List
     , create
+    , instanceRunning
     , setIdx
     , setName
     , setAlias
@@ -40,7 +41,6 @@ module Ganeti.HTools.Instance
     , setMovable
     , specOf
     , shrinkByType
-    , runningStates
     , localStorageTemplates
     , hasSecondary
     , requiredNodes
@@ -61,7 +61,6 @@ data Instance = Instance
     , mem          :: Int       -- ^ Memory of the instance
     , dsk          :: Int       -- ^ Disk size of instance
     , vcpus        :: Int       -- ^ Number of VCPUs
-    , running      :: Bool      -- ^ Is the instance running?
     , runSt        :: T.InstanceStatus -- ^ Original run status
     , pNode        :: T.Ndx     -- ^ Original primary node
     , sNode        :: T.Ndx     -- ^ Original secondary node
@@ -80,9 +79,11 @@ instance T.Element Instance where
     setIdx   = setIdx
     allNames n = [name n, alias n]
 
--- | Constant holding the running instance states.
-runningStates :: [T.InstanceStatus]
-runningStates = [T.Running, T.ErrorUp]
+-- | Check if instance is running.
+instanceRunning :: Instance -> Bool
+instanceRunning (Instance {runSt = T.Running}) = True
+instanceRunning (Instance {runSt = T.ErrorUp}) = True
+instanceRunning _                               = False
 
 -- | Constant holding the local storage templates.
 --
@@ -124,7 +125,6 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init
              , mem = mem_init
              , dsk = dsk_init
              , vcpus = vcpus_init
-             , running = run_init `elem` runningStates
              , runSt = run_init
              , pNode = pn
              , sNode = sn

@@ -306,7 +306,7 @@ checkData nl il =
         (\ msgs node ->
              let nname = Node.name node
                  nilst = map (`Container.find` il) (Node.pList node)
-                 dilst = filter (not . Instance.running) nilst
+                 dilst = filter (not . Instance.instanceRunning) nilst
                  adj_mem = sum . map Instance.mem $ dilst
                  delta_mem = truncate (Node.tMem node)
                              - Node.nMem node

@@ -513,17 +513,6 @@ prop_Instance_setBoth inst pdx sdx =
     where _types = (inst::Instance.Instance, pdx::Types.Ndx, sdx::Types.Ndx)
           si = Instance.setBoth inst pdx sdx
 
-prop_Instance_runStatus_True =
-    forAll (arbitrary `suchThat`
-            ((`elem` Instance.runningStates) . Instance.runSt))
-    Instance.running
-
-prop_Instance_runStatus_False inst =
-    let run_st = Instance.running inst
-        run_tx = Instance.runSt inst
-    in
-      run_tx `notElem` Instance.runningStates ==> not run_st
-
 prop_Instance_shrinkMG inst =
     Instance.mem inst >= 2 * Types.unitMem ==>
         case Instance.shrinkByType inst Types.FailMem of
@@ -572,8 +561,6 @@ testSuite "Instance"
               , 'prop_Instance_setPri
               , 'prop_Instance_setSec
               , 'prop_Instance_setBoth
-              , 'prop_Instance_runStatus_True
-              , 'prop_Instance_runStatus_False
               , 'prop_Instance_shrinkMG
               , 'prop_Instance_shrinkMF
               , 'prop_Instance_shrinkCG

@@ -1225,7 +1225,7 @@ computeMoves i inam mv c d =
       ReplaceSecondary _ -> (printf "r:%s" d, [rep d])
       ReplaceAndFailover _ -> (printf "r:%s f" c, [rep c, mig])
       ReplacePrimary _ -> (printf "f r:%s f" c, [mig, rep c, mig])
-    where morf = if Instance.running i then "migrate" else "failover"
+    where morf = if Instance.instanceRunning i then "migrate" else "failover"
           mig = printf "%s -f %s" morf inam::String
           rep n = printf "replace-disks -n %s %s" n inam
 
@@ -1325,7 +1325,7 @@ printNodes nl fs =
 printInsts :: Node.List -> Instance.List -> String
 printInsts nl il =
     let sil = sortBy (comparing Instance.idx) (Container.elems il)
-        helper inst = [ if Instance.running inst then "R" else " "
+        helper inst = [ if Instance.instanceRunning inst then "R" else " "
                       , Instance.name inst
                       , Container.nameOf nl (Instance.pNode inst)
                       , let sdx = Instance.sNode inst
