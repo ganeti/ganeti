@@ -291,8 +291,8 @@ While the command to stop one is::
 
 .. warning:: Do not use the Xen or KVM commands directly to stop
    instances. If you run for example ``xm shutdown`` or ``xm destroy``
-   on an instance Ganeti will automatically restart it (via the
-   :command:`ganeti-watcher` command which is launched via cron).
+   on an instance Ganeti will automatically restart it (via
+   the :command:`ganeti-watcher` command which is launched via cron).
 
 Querying instances
 ~~~~~~~~~~~~~~~~~~
