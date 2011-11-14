@@ -4682,8 +4682,8 @@ class LUNodeQueryStorage(NoHooksLU):
                        selected=self.op.output_fields)
 
   def ExpandNames(self):
+    self.share_locks = _ShareAll()
     self.needed_locks = {}
-    self.share_locks[locking.LEVEL_NODE] = 1
 
     if self.op.nodes:
       self.needed_locks[locking.LEVEL_NODE] = \
