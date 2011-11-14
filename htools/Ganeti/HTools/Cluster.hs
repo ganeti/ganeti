@@ -27,53 +27,53 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Cluster
-    (
-     -- * Types
-      AllocSolution(..)
-    , EvacSolution(..)
-    , Table(..)
-    , CStats(..)
-    , AllocStats
-    , AllocResult
-    , AllocMethod
-    -- * Generic functions
-    , totalResources
-    , computeAllocationDelta
-    -- * First phase functions
-    , computeBadItems
-    -- * Second phase functions
-    , printSolutionLine
-    , formatCmds
-    , involvedNodes
-    , splitJobs
-    -- * Display functions
-    , printNodes
-    , printInsts
-    -- * Balacing functions
-    , checkMove
-    , doNextBalance
-    , tryBalance
-    , compCV
-    , compCVNodes
-    , compDetailedCV
-    , printStats
-    , iMoveToJob
-    -- * IAllocator functions
-    , genAllocNodes
-    , tryAlloc
-    , tryMGAlloc
-    , tryReloc
-    , tryNodeEvac
-    , tryChangeGroup
-    , collapseFailures
-    -- * Allocation functions
-    , iterateAlloc
-    , tieredAlloc
-     -- * Node group functions
-    , instanceGroup
-    , findSplitInstances
-    , splitCluster
-    ) where
+  (
+    -- * Types
+    AllocSolution(..)
+  , EvacSolution(..)
+  , Table(..)
+  , CStats(..)
+  , AllocStats
+  , AllocResult
+  , AllocMethod
+  -- * Generic functions
+  , totalResources
+  , computeAllocationDelta
+  -- * First phase functions
+  , computeBadItems
+  -- * Second phase functions
+  , printSolutionLine
+  , formatCmds
+  , involvedNodes
+  , splitJobs
+  -- * Display functions
+  , printNodes
+  , printInsts
+  -- * Balacing functions
+  , checkMove
+  , doNextBalance
+  , tryBalance
+  , compCV
+  , compCVNodes
+  , compDetailedCV
+  , printStats
+  , iMoveToJob
+  -- * IAllocator functions
+  , genAllocNodes
+  , tryAlloc
+  , tryMGAlloc
+  , tryReloc
+  , tryNodeEvac
+  , tryChangeGroup
+  , collapseFailures
+  -- * Allocation functions
+  , iterateAlloc
+  , tieredAlloc
+  -- * Node group functions
+  , instanceGroup
+  , findSplitInstances
+  , splitCluster
+  ) where
 
 import qualified Data.IntSet as IntSet
 import Data.List
@@ -104,11 +104,11 @@ data AllocSolution = AllocSolution
 -- type consists of actual opcodes (a restricted subset) that are
 -- transmitted back to Ganeti.
 data EvacSolution = EvacSolution
-    { esMoved   :: [(Idx, Gdx, [Ndx])]  -- ^ Instances moved successfully
-    , esFailed  :: [(Idx, String)]      -- ^ Instances which were not
-                                        -- relocated
-    , esOpCodes :: [[OpCodes.OpCode]]   -- ^ List of jobs
-    }
+  { esMoved   :: [(Idx, Gdx, [Ndx])]  -- ^ Instances moved successfully
+  , esFailed  :: [(Idx, String)]      -- ^ Instances which were not
+                                      -- relocated
+  , esOpCodes :: [[OpCodes.OpCode]]   -- ^ List of jobs
+  }
 
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
 type AllocResult = (FailStats, Node.List, Instance.List,
@@ -207,50 +207,49 @@ emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 -- | Update stats with data from a new node.
 updateCStats :: CStats -> Node.Node -> CStats
 updateCStats cs node =
-    let CStats { csFmem = x_fmem, csFdsk = x_fdsk,
-                 csAmem = x_amem, csAcpu = x_acpu, csAdsk = x_adsk,
-                 csMmem = x_mmem, csMdsk = x_mdsk, csMcpu = x_mcpu,
-                 csImem = x_imem, csIdsk = x_idsk, csIcpu = x_icpu,
-                 csTmem = x_tmem, csTdsk = x_tdsk, csTcpu = x_tcpu,
-                 csVcpu = x_vcpu,
-                 csXmem = x_xmem, csNmem = x_nmem, csNinst = x_ninst
-               }
-            = cs
-        inc_amem = Node.fMem node - Node.rMem node
-        inc_amem' = if inc_amem > 0 then inc_amem else 0
-        inc_adsk = Node.availDisk node
-        inc_imem = truncate (Node.tMem node) - Node.nMem node
-                   - Node.xMem node - Node.fMem node
-        inc_icpu = Node.uCpu node
-        inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
-        inc_vcpu = Node.hiCpu node
-        inc_acpu = Node.availCpu node
-
-    in cs { csFmem = x_fmem + fromIntegral (Node.fMem node)
-          , csFdsk = x_fdsk + fromIntegral (Node.fDsk node)
-          , csAmem = x_amem + fromIntegral inc_amem'
-          , csAdsk = x_adsk + fromIntegral inc_adsk
-          , csAcpu = x_acpu + fromIntegral inc_acpu
-          , csMmem = max x_mmem (fromIntegral inc_amem')
-          , csMdsk = max x_mdsk (fromIntegral inc_adsk)
-          , csMcpu = max x_mcpu (fromIntegral inc_acpu)
-          , csImem = x_imem + fromIntegral inc_imem
-          , csIdsk = x_idsk + fromIntegral inc_idsk
-          , csIcpu = x_icpu + fromIntegral inc_icpu
-          , csTmem = x_tmem + Node.tMem node
-          , csTdsk = x_tdsk + Node.tDsk node
-          , csTcpu = x_tcpu + Node.tCpu node
-          , csVcpu = x_vcpu + fromIntegral inc_vcpu
-          , csXmem = x_xmem + fromIntegral (Node.xMem node)
-          , csNmem = x_nmem + fromIntegral (Node.nMem node)
-          , csNinst = x_ninst + length (Node.pList node)
-          }
+  let CStats { csFmem = x_fmem, csFdsk = x_fdsk,
+               csAmem = x_amem, csAcpu = x_acpu, csAdsk = x_adsk,
+               csMmem = x_mmem, csMdsk = x_mdsk, csMcpu = x_mcpu,
+               csImem = x_imem, csIdsk = x_idsk, csIcpu = x_icpu,
+               csTmem = x_tmem, csTdsk = x_tdsk, csTcpu = x_tcpu,
+               csVcpu = x_vcpu,
+               csXmem = x_xmem, csNmem = x_nmem, csNinst = x_ninst
+             }
+        = cs
+      inc_amem = Node.fMem node - Node.rMem node
+      inc_amem' = if inc_amem > 0 then inc_amem else 0
+      inc_adsk = Node.availDisk node
+      inc_imem = truncate (Node.tMem node) - Node.nMem node
+                 - Node.xMem node - Node.fMem node
+      inc_icpu = Node.uCpu node
+      inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
+      inc_vcpu = Node.hiCpu node
+      inc_acpu = Node.availCpu node
+  in cs { csFmem = x_fmem + fromIntegral (Node.fMem node)
+        , csFdsk = x_fdsk + fromIntegral (Node.fDsk node)
+        , csAmem = x_amem + fromIntegral inc_amem'
+        , csAdsk = x_adsk + fromIntegral inc_adsk
+        , csAcpu = x_acpu + fromIntegral inc_acpu
+        , csMmem = max x_mmem (fromIntegral inc_amem')
+        , csMdsk = max x_mdsk (fromIntegral inc_adsk)
+        , csMcpu = max x_mcpu (fromIntegral inc_acpu)
+        , csImem = x_imem + fromIntegral inc_imem
+        , csIdsk = x_idsk + fromIntegral inc_idsk
+        , csIcpu = x_icpu + fromIntegral inc_icpu
+        , csTmem = x_tmem + Node.tMem node
+        , csTdsk = x_tdsk + Node.tDsk node
+        , csTcpu = x_tcpu + Node.tCpu node
+        , csVcpu = x_vcpu + fromIntegral inc_vcpu
+        , csXmem = x_xmem + fromIntegral (Node.xMem node)
+        , csNmem = x_nmem + fromIntegral (Node.nMem node)
+        , csNinst = x_ninst + length (Node.pList node)
+        }
 
 -- | Compute the total free disk and memory in the cluster.
 totalResources :: Node.List -> CStats
 totalResources nl =
-    let cs = foldl' updateCStats emptyCStats . Container.elems $ nl
-    in cs { csScore = compCV nl }
+  let cs = foldl' updateCStats emptyCStats . Container.elems $ nl
+  in cs { csScore = compCV nl }
 
 -- | Compute the delta between two cluster state.
 --
@@ -260,18 +259,18 @@ totalResources nl =
 -- was left unallocated.
 computeAllocationDelta :: CStats -> CStats -> AllocStats
 computeAllocationDelta cini cfin =
-    let CStats {csImem = i_imem, csIdsk = i_idsk, csIcpu = i_icpu} = cini
-        CStats {csImem = f_imem, csIdsk = f_idsk, csIcpu = f_icpu,
-                csTmem = t_mem, csTdsk = t_dsk, csVcpu = v_cpu } = cfin
-        rini = RSpec (fromIntegral i_icpu) (fromIntegral i_imem)
-               (fromIntegral i_idsk)
-        rfin = RSpec (fromIntegral (f_icpu - i_icpu))
-               (fromIntegral (f_imem - i_imem))
-               (fromIntegral (f_idsk - i_idsk))
-        un_cpu = fromIntegral (v_cpu - f_icpu)::Int
-        runa = RSpec un_cpu (truncate t_mem - fromIntegral f_imem)
-               (truncate t_dsk - fromIntegral f_idsk)
-    in (rini, rfin, runa)
+  let CStats {csImem = i_imem, csIdsk = i_idsk, csIcpu = i_icpu} = cini
+      CStats {csImem = f_imem, csIdsk = f_idsk, csIcpu = f_icpu,
+              csTmem = t_mem, csTdsk = t_dsk, csVcpu = v_cpu } = cfin
+      rini = RSpec (fromIntegral i_icpu) (fromIntegral i_imem)
+             (fromIntegral i_idsk)
+      rfin = RSpec (fromIntegral (f_icpu - i_icpu))
+             (fromIntegral (f_imem - i_imem))
+             (fromIntegral (f_idsk - i_idsk))
+      un_cpu = fromIntegral (v_cpu - f_icpu)::Int
+      runa = RSpec un_cpu (truncate t_mem - fromIntegral f_imem)
+             (truncate t_dsk - fromIntegral f_idsk)
+  in (rini, rfin, runa)
 
 -- | The names and weights of the individual elements in the CV list.
 detailedCVInfo :: [(Double, String)]
@@ -296,46 +295,44 @@ detailedCVWeights = map fst detailedCVInfo
 -- | Compute the mem and disk covariance.
 compDetailedCV :: [Node.Node] -> [Double]
 compDetailedCV all_nodes =
-    let
-        (offline, nodes) = partition Node.offline all_nodes
-        mem_l = map Node.pMem nodes
-        dsk_l = map Node.pDsk nodes
-        -- metric: memory covariance
-        mem_cv = stdDev mem_l
-        -- metric: disk covariance
-        dsk_cv = stdDev dsk_l
-        -- metric: count of instances living on N1 failing nodes
-        n1_score = fromIntegral . sum . map (\n -> length (Node.sList n) +
-                                                   length (Node.pList n)) .
-                   filter Node.failN1 $ nodes :: Double
-        res_l = map Node.pRem nodes
-        -- metric: reserved memory covariance
-        res_cv = stdDev res_l
-        -- offline instances metrics
-        offline_ipri = sum . map (length . Node.pList) $ offline
-        offline_isec = sum . map (length . Node.sList) $ offline
-        -- metric: count of instances on offline nodes
-        off_score = fromIntegral (offline_ipri + offline_isec)::Double
-        -- metric: count of primary instances on offline nodes (this
-        -- helps with evacuation/failover of primary instances on
-        -- 2-node clusters with one node offline)
-        off_pri_score = fromIntegral offline_ipri::Double
-        cpu_l = map Node.pCpu nodes
-        -- metric: covariance of vcpu/pcpu ratio
-        cpu_cv = stdDev cpu_l
-        -- metrics: covariance of cpu, memory, disk and network load
-        (c_load, m_load, d_load, n_load) = unzip4 $
-            map (\n ->
-                     let DynUtil c1 m1 d1 n1 = Node.utilLoad n
-                         DynUtil c2 m2 d2 n2 = Node.utilPool n
-                     in (c1/c2, m1/m2, d1/d2, n1/n2)
-                ) nodes
-        -- metric: conflicting instance count
-        pri_tags_inst = sum $ map Node.conflictingPrimaries nodes
-        pri_tags_score = fromIntegral pri_tags_inst::Double
-    in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, off_pri_score, cpu_cv
-       , stdDev c_load, stdDev m_load , stdDev d_load, stdDev n_load
-       , pri_tags_score ]
+  let (offline, nodes) = partition Node.offline all_nodes
+      mem_l = map Node.pMem nodes
+      dsk_l = map Node.pDsk nodes
+      -- metric: memory covariance
+      mem_cv = stdDev mem_l
+      -- metric: disk covariance
+      dsk_cv = stdDev dsk_l
+      -- metric: count of instances living on N1 failing nodes
+      n1_score = fromIntegral . sum . map (\n -> length (Node.sList n) +
+                                                 length (Node.pList n)) .
+                 filter Node.failN1 $ nodes :: Double
+      res_l = map Node.pRem nodes
+      -- metric: reserved memory covariance
+      res_cv = stdDev res_l
+      -- offline instances metrics
+      offline_ipri = sum . map (length . Node.pList) $ offline
+      offline_isec = sum . map (length . Node.sList) $ offline
+      -- metric: count of instances on offline nodes
+      off_score = fromIntegral (offline_ipri + offline_isec)::Double
+      -- metric: count of primary instances on offline nodes (this
+      -- helps with evacuation/failover of primary instances on
+      -- 2-node clusters with one node offline)
+      off_pri_score = fromIntegral offline_ipri::Double
+      cpu_l = map Node.pCpu nodes
+      -- metric: covariance of vcpu/pcpu ratio
+      cpu_cv = stdDev cpu_l
+      -- metrics: covariance of cpu, memory, disk and network load
+      (c_load, m_load, d_load, n_load) =
+        unzip4 $ map (\n ->
+                      let DynUtil c1 m1 d1 n1 = Node.utilLoad n
+                          DynUtil c2 m2 d2 n2 = Node.utilPool n
+                      in (c1/c2, m1/m2, d1/d2, n1/n2)) nodes
+      -- metric: conflicting instance count
+      pri_tags_inst = sum $ map Node.conflictingPrimaries nodes
+      pri_tags_score = fromIntegral pri_tags_inst::Double
+  in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, off_pri_score, cpu_cv
+     , stdDev c_load, stdDev m_load , stdDev d_load, stdDev n_load
+     , pri_tags_score ]
 
 -- | Compute the /total/ variance.
 compCVNodes :: [Node.Node] -> Double
@@ -354,127 +351,127 @@ getOnline = filter (not . Node.offline) . Container.elems
 -- | Compute best table. Note that the ordering of the arguments is important.
 compareTables :: Table -> Table -> Table
 compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
-    if a_cv > b_cv then b else a
+  if a_cv > b_cv then b else a
 
 -- | Applies an instance move to a given node list and instance.
 applyMove :: Node.List -> Instance.Instance
           -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
 applyMove nl inst Failover =
-    let old_pdx = Instance.pNode inst
-        old_sdx = Instance.sNode inst
-        old_p = Container.find old_pdx nl
-        old_s = Container.find old_sdx nl
-        int_p = Node.removePri old_p inst
-        int_s = Node.removeSec old_s inst
-        force_p = Node.offline old_p
-        new_nl = do -- Maybe monad
-          new_p <- Node.addPriEx force_p int_s inst
-          new_s <- Node.addSec int_p inst old_sdx
-          let new_inst = Instance.setBoth inst old_sdx old_pdx
-          return (Container.addTwo old_pdx new_s old_sdx new_p nl,
-                  new_inst, old_sdx, old_pdx)
-    in new_nl
+  let old_pdx = Instance.pNode inst
+      old_sdx = Instance.sNode inst
+      old_p = Container.find old_pdx nl
+      old_s = Container.find old_sdx nl
+      int_p = Node.removePri old_p inst
+      int_s = Node.removeSec old_s inst
+      force_p = Node.offline old_p
+      new_nl = do -- Maybe monad
+        new_p <- Node.addPriEx force_p int_s inst
+        new_s <- Node.addSec int_p inst old_sdx
+        let new_inst = Instance.setBoth inst old_sdx old_pdx
+        return (Container.addTwo old_pdx new_s old_sdx new_p nl,
+                new_inst, old_sdx, old_pdx)
+  in new_nl
 
 -- Replace the primary (f:, r:np, f)
 applyMove nl inst (ReplacePrimary new_pdx) =
-    let old_pdx = Instance.pNode inst
-        old_sdx = Instance.sNode inst
-        old_p = Container.find old_pdx nl
-        old_s = Container.find old_sdx nl
-        tgt_n = Container.find new_pdx nl
-        int_p = Node.removePri old_p inst
-        int_s = Node.removeSec old_s inst
-        force_p = Node.offline old_p
-        new_nl = do -- Maybe monad
-          -- check that the current secondary can host the instance
-          -- during the migration
-          tmp_s <- Node.addPriEx force_p int_s inst
-          let tmp_s' = Node.removePri tmp_s inst
-          new_p <- Node.addPriEx force_p tgt_n inst
-          new_s <- Node.addSecEx force_p tmp_s' inst new_pdx
-          let new_inst = Instance.setPri inst new_pdx
-          return (Container.add new_pdx new_p $
-                  Container.addTwo old_pdx int_p old_sdx new_s nl,
-                  new_inst, new_pdx, old_sdx)
-    in new_nl
+  let old_pdx = Instance.pNode inst
+      old_sdx = Instance.sNode inst
+      old_p = Container.find old_pdx nl
+      old_s = Container.find old_sdx nl
+      tgt_n = Container.find new_pdx nl
+      int_p = Node.removePri old_p inst
+      int_s = Node.removeSec old_s inst
+      force_p = Node.offline old_p
+      new_nl = do -- Maybe monad
+                  -- check that the current secondary can host the instance
+                  -- during the migration
+        tmp_s <- Node.addPriEx force_p int_s inst
+        let tmp_s' = Node.removePri tmp_s inst
+        new_p <- Node.addPriEx force_p tgt_n inst
+        new_s <- Node.addSecEx force_p tmp_s' inst new_pdx
+        let new_inst = Instance.setPri inst new_pdx
+        return (Container.add new_pdx new_p $
+                Container.addTwo old_pdx int_p old_sdx new_s nl,
+                new_inst, new_pdx, old_sdx)
+  in new_nl
 
 -- Replace the secondary (r:ns)
 applyMove nl inst (ReplaceSecondary new_sdx) =
-    let old_pdx = Instance.pNode inst
-        old_sdx = Instance.sNode inst
-        old_s = Container.find old_sdx nl
-        tgt_n = Container.find new_sdx nl
-        int_s = Node.removeSec old_s inst
-        force_s = Node.offline old_s
-        new_inst = Instance.setSec inst new_sdx
-        new_nl = Node.addSecEx force_s tgt_n inst old_pdx >>=
-                 \new_s -> return (Container.addTwo new_sdx
-                                   new_s old_sdx int_s nl,
-                                   new_inst, old_pdx, new_sdx)
-    in new_nl
+  let old_pdx = Instance.pNode inst
+      old_sdx = Instance.sNode inst
+      old_s = Container.find old_sdx nl
+      tgt_n = Container.find new_sdx nl
+      int_s = Node.removeSec old_s inst
+      force_s = Node.offline old_s
+      new_inst = Instance.setSec inst new_sdx
+      new_nl = Node.addSecEx force_s tgt_n inst old_pdx >>=
+               \new_s -> return (Container.addTwo new_sdx
+                                 new_s old_sdx int_s nl,
+                                 new_inst, old_pdx, new_sdx)
+  in new_nl
 
 -- Replace the secondary and failover (r:np, f)
 applyMove nl inst (ReplaceAndFailover new_pdx) =
-    let old_pdx = Instance.pNode inst
-        old_sdx = Instance.sNode inst
-        old_p = Container.find old_pdx nl
-        old_s = Container.find old_sdx nl
-        tgt_n = Container.find new_pdx nl
-        int_p = Node.removePri old_p inst
-        int_s = Node.removeSec old_s inst
-        force_s = Node.offline old_s
-        new_nl = do -- Maybe monad
-          new_p <- Node.addPri tgt_n inst
-          new_s <- Node.addSecEx force_s int_p inst new_pdx
-          let new_inst = Instance.setBoth inst new_pdx old_pdx
-          return (Container.add new_pdx new_p $
-                  Container.addTwo old_pdx new_s old_sdx int_s nl,
-                  new_inst, new_pdx, old_pdx)
-    in new_nl
+  let old_pdx = Instance.pNode inst
+      old_sdx = Instance.sNode inst
+      old_p = Container.find old_pdx nl
+      old_s = Container.find old_sdx nl
+      tgt_n = Container.find new_pdx nl
+      int_p = Node.removePri old_p inst
+      int_s = Node.removeSec old_s inst
+      force_s = Node.offline old_s
+      new_nl = do -- Maybe monad
+        new_p <- Node.addPri tgt_n inst
+        new_s <- Node.addSecEx force_s int_p inst new_pdx
+        let new_inst = Instance.setBoth inst new_pdx old_pdx
+        return (Container.add new_pdx new_p $
+                Container.addTwo old_pdx new_s old_sdx int_s nl,
+                new_inst, new_pdx, old_pdx)
+  in new_nl
 
 -- Failver and replace the secondary (f, r:ns)
 applyMove nl inst (FailoverAndReplace new_sdx) =
-    let old_pdx = Instance.pNode inst
-        old_sdx = Instance.sNode inst
-        old_p = Container.find old_pdx nl
-        old_s = Container.find old_sdx nl
-        tgt_n = Container.find new_sdx nl
-        int_p = Node.removePri old_p inst
-        int_s = Node.removeSec old_s inst
-        force_p = Node.offline old_p
-        new_nl = do -- Maybe monad
-          new_p <- Node.addPriEx force_p int_s inst
-          new_s <- Node.addSecEx force_p tgt_n inst old_sdx
-          let new_inst = Instance.setBoth inst old_sdx new_sdx
-          return (Container.add new_sdx new_s $
-                  Container.addTwo old_sdx new_p old_pdx int_p nl,
-                  new_inst, old_sdx, new_sdx)
-    in new_nl
+  let old_pdx = Instance.pNode inst
+      old_sdx = Instance.sNode inst
+      old_p = Container.find old_pdx nl
+      old_s = Container.find old_sdx nl
+      tgt_n = Container.find new_sdx nl
+      int_p = Node.removePri old_p inst
+      int_s = Node.removeSec old_s inst
+      force_p = Node.offline old_p
+      new_nl = do -- Maybe monad
+        new_p <- Node.addPriEx force_p int_s inst
+        new_s <- Node.addSecEx force_p tgt_n inst old_sdx
+        let new_inst = Instance.setBoth inst old_sdx new_sdx
+        return (Container.add new_sdx new_s $
+                Container.addTwo old_sdx new_p old_pdx int_p nl,
+                new_inst, old_sdx, new_sdx)
+  in new_nl
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Ndx
                  -> OpResult Node.AllocElement
 allocateOnSingle nl inst new_pdx =
-    let p = Container.find new_pdx nl
-        new_inst = Instance.setBoth inst new_pdx Node.noSecondary
-    in  Node.addPri p inst >>= \new_p -> do
-      let new_nl = Container.add new_pdx new_p nl
-          new_score = compCV nl
-      return (new_nl, new_inst, [new_p], new_score)
+  let p = Container.find new_pdx nl
+      new_inst = Instance.setBoth inst new_pdx Node.noSecondary
+  in  Node.addPri p inst >>= \new_p -> do
+    let new_nl = Container.add new_pdx new_p nl
+        new_score = compCV nl
+    return (new_nl, new_inst, [new_p], new_score)
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Ndx -> Ndx
                -> OpResult Node.AllocElement
 allocateOnPair nl inst new_pdx new_sdx =
-    let tgt_p = Container.find new_pdx nl
-        tgt_s = Container.find new_sdx nl
-    in do
-      new_p <- Node.addPri tgt_p inst
-      new_s <- Node.addSec tgt_s inst new_pdx
-      let new_inst = Instance.setBoth inst new_pdx new_sdx
-          new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
-      return (new_nl, new_inst, [new_p, new_s], compCV new_nl)
+  let tgt_p = Container.find new_pdx nl
+      tgt_s = Container.find new_sdx nl
+  in do
+    new_p <- Node.addPri tgt_p inst
+    new_s <- Node.addSec tgt_s inst new_pdx
+    let new_inst = Instance.setBoth inst new_pdx new_sdx
+        new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
+    return (new_nl, new_inst, [new_p, new_s], compCV new_nl)
 
 -- | Tries to perform an instance move and returns the best table
 -- between the original one and the new one.
@@ -484,20 +481,17 @@ checkSingleStep :: Table -- ^ The original table
                 -> IMove -- ^ The move to apply
                 -> Table -- ^ The final best table
 checkSingleStep ini_tbl target cur_tbl move =
-    let
-        Table ini_nl ini_il _ ini_plc = ini_tbl
-        tmp_resu = applyMove ini_nl target move
-    in
-      case tmp_resu of
-        OpFail _ -> cur_tbl
-        OpGood (upd_nl, new_inst, pri_idx, sec_idx) ->
-            let tgt_idx = Instance.idx target
-                upd_cvar = compCV upd_nl
-                upd_il = Container.add tgt_idx new_inst ini_il
-                upd_plc = (tgt_idx, pri_idx, sec_idx, move, upd_cvar):ini_plc
-                upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
-            in
-              compareTables cur_tbl upd_tbl
+  let Table ini_nl ini_il _ ini_plc = ini_tbl
+      tmp_resu = applyMove ini_nl target move
+  in case tmp_resu of
+       OpFail _ -> cur_tbl
+       OpGood (upd_nl, new_inst, pri_idx, sec_idx) ->
+         let tgt_idx = Instance.idx target
+             upd_cvar = compCV upd_nl
+             upd_il = Container.add tgt_idx new_inst ini_il
+             upd_plc = (tgt_idx, pri_idx, sec_idx, move, upd_cvar):ini_plc
+             upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
+         in compareTables cur_tbl upd_tbl
 
 -- | Given the status of the current secondary as a valid new node and
 -- the current candidate target node, generate the possible moves for
@@ -508,17 +502,19 @@ possibleMoves :: Bool      -- ^ Whether the secondary node is a valid new node
               -> [IMove]   -- ^ List of valid result moves
 
 possibleMoves _ False tdx =
-    [ReplaceSecondary tdx]
+  [ReplaceSecondary tdx]
 
 possibleMoves True True tdx =
-    [ReplaceSecondary tdx,
-     ReplaceAndFailover tdx,
-     ReplacePrimary tdx,
-     FailoverAndReplace tdx]
+  [ ReplaceSecondary tdx
+  , ReplaceAndFailover tdx
+  , ReplacePrimary tdx
+  , FailoverAndReplace tdx
+  ]
 
 possibleMoves False True tdx =
-    [ReplaceSecondary tdx,
-     ReplaceAndFailover tdx]
+  [ ReplaceSecondary tdx
+  , ReplaceAndFailover tdx
+  ]
 
 -- | Compute the best move for a given instance.
 checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
@@ -528,17 +524,16 @@ checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
                   -> Instance.Instance -- ^ Instance to move
                   -> Table             -- ^ Best new table for this instance
 checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
-    let
-        opdx = Instance.pNode target
-        osdx = Instance.sNode target
-        nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
-        use_secondary = elem osdx nodes_idx && inst_moves
-        aft_failover = if use_secondary -- if allowed to failover
+  let opdx = Instance.pNode target
+      osdx = Instance.sNode target
+      nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
+      use_secondary = elem osdx nodes_idx && inst_moves
+      aft_failover = if use_secondary -- if allowed to failover
                        then checkSingleStep ini_tbl target ini_tbl Failover
                        else ini_tbl
-        all_moves = if disk_moves
+      all_moves = if disk_moves
                     then concatMap
-                         (possibleMoves use_secondary inst_moves) nodes
+                           (possibleMoves use_secondary inst_moves) nodes
                     else []
     in
       -- iterate over the possible nodes for this instance
@@ -552,19 +547,19 @@ checkMove :: [Ndx]               -- ^ Allowed target node indices
           -> [Instance.Instance] -- ^ List of instances still to move
           -> Table               -- ^ The new solution
 checkMove nodes_idx disk_moves inst_moves ini_tbl victims =
-    let Table _ _ _ ini_plc = ini_tbl
-        -- we're using rwhnf from the Control.Parallel.Strategies
-        -- package; we don't need to use rnf as that would force too
-        -- much evaluation in single-threaded cases, and in
-        -- multi-threaded case the weak head normal form is enough to
-        -- spark the evaluation
-        tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves
-                               inst_moves ini_tbl)
-                 victims
-        -- iterate over all instances, computing the best move
-        best_tbl = foldl' compareTables ini_tbl tables
-        Table _ _ _ best_plc = best_tbl
-    in if length best_plc == length ini_plc
+  let Table _ _ _ ini_plc = ini_tbl
+      -- we're using rwhnf from the Control.Parallel.Strategies
+      -- package; we don't need to use rnf as that would force too
+      -- much evaluation in single-threaded cases, and in
+      -- multi-threaded case the weak head normal form is enough to
+      -- spark the evaluation
+      tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves
+                             inst_moves ini_tbl)
+               victims
+      -- iterate over all instances, computing the best move
+      best_tbl = foldl' compareTables ini_tbl tables
+      Table _ _ _ best_plc = best_tbl
+  in if length best_plc == length ini_plc
        then ini_tbl -- no advancement
        else best_tbl
 
@@ -574,9 +569,9 @@ doNextBalance :: Table     -- ^ The starting table
               -> Score     -- ^ Score at which to stop
               -> Bool      -- ^ The resulting table and commands
 doNextBalance ini_tbl max_rounds min_score =
-    let Table _ _ ini_cv ini_plc = ini_tbl
-        ini_plc_len = length ini_plc
-    in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
+  let Table _ _ ini_cv ini_plc = ini_tbl
+      ini_plc_len = length ini_plc
+  in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
 
 -- | Run a balance move.
 tryBalance :: Table       -- ^ The starting table
