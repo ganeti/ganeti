@@ -188,14 +188,7 @@ getFQDN = do
   return (felem ++ "." ++ intercalate "." frest')
 
 instance Arbitrary Types.InstanceStatus where
-    arbitrary = elements [ Types.AdminDown
-                         , Types.AdminOffline
-                         , Types.ErrorDown
-                         , Types.ErrorUp
-                         , Types.NodeDown
-                         , Types.NodeOffline
-                         , Types.Running
-                         , Types.WrongNode]
+    arbitrary = elements [minBound..maxBound]
 
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
@@ -246,11 +239,7 @@ instance Arbitrary Node.Node where
 
 -- replace disks
 instance Arbitrary OpCodes.ReplaceDisksMode where
-  arbitrary = elements [ OpCodes.ReplaceOnPrimary
-                       , OpCodes.ReplaceOnSecondary
-                       , OpCodes.ReplaceNewSecondary
-                       , OpCodes.ReplaceAuto
-                       ]
+  arbitrary = elements [minBound..maxBound]
 
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
