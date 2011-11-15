@@ -310,12 +310,13 @@ removePri :: Node -> Instance.Instance -> Node
 removePri t inst =
     let iname = Instance.idx inst
         new_plist = delete iname (pList t)
-        new_mem = fMem t + Instance.mem inst
+        new_mem = Instance.applyIfOnline inst (+ Instance.mem inst) (fMem t)
         new_dsk = fDsk t + Instance.dsk inst
         new_mp = fromIntegral new_mem / tMem t
         new_dp = fromIntegral new_dsk / tDsk t
         new_failn1 = new_mem <= rMem t
-        new_ucpu = uCpu t - Instance.vcpus inst
+        new_ucpu = Instance.applyIfOnline inst
+                   (\x -> x - Instance.vcpus inst) (uCpu t)
         new_rcpu = fromIntegral new_ucpu / tCpu t
         new_load = utilLoad t `T.subUtil` Instance.util inst
     in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
@@ -374,12 +375,13 @@ addPriEx force t inst =
     let iname = Instance.idx inst
         uses_disk = Instance.usesLocalStorage inst
         cur_dsk = fDsk t
-        new_mem = fMem t - Instance.mem inst
+        new_mem = Instance.applyIfOnline inst
+                  (\x -> x - Instance.mem inst) (fMem t)
         new_dsk = if uses_disk
                   then cur_dsk - Instance.dsk inst
                   else cur_dsk
         new_failn1 = new_mem <= rMem t
-        new_ucpu = uCpu t + Instance.vcpus inst
+        new_ucpu = Instance.applyIfOnline inst (+ Instance.vcpus inst) (uCpu t)
         new_pcpu = fromIntegral new_ucpu / tCpu t
         new_dp = fromIntegral new_dsk / tDsk t
         l_cpu = mCpu t
@@ -415,7 +417,8 @@ addSecEx force t inst pdx =
         old_peers = peers t
         old_mem = fMem t
         new_dsk = fDsk t - Instance.dsk inst
-        secondary_needed_mem = if Instance.autoBalance inst
+        secondary_needed_mem = if Instance.autoBalance inst &&
+                                  not (Instance.instanceOffline inst)
                                then Instance.mem inst
                                else 0
         new_peem = P.find pdx old_peers + secondary_needed_mem

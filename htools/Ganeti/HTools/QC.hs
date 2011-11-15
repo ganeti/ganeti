@@ -695,7 +695,8 @@ prop_Node_setMcpu node mc =
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
 prop_Node_addPriFM node inst = Instance.mem inst >= Node.fMem node &&
-                               not (Node.failN1 node)
+                               not (Node.failN1 node) &&
+                               not (Instance.instanceOffline inst)
                                ==>
                                case Node.addPri node inst'' of
                                  Types.OpFail Types.FailMem -> True
@@ -715,7 +716,8 @@ prop_Node_addPriFD node inst = Instance.dsk inst >= Node.fDsk node &&
           inst'' = inst' { Instance.dsk = Instance.dsk inst }
 
 prop_Node_addPriFC node inst (Positive extra) =
-    not (Node.failN1 node) ==>
+    not (Node.failN1 node) &&
+    not (Instance.instanceOffline inst) ==>
         case Node.addPri node inst'' of
           Types.OpFail Types.FailCPU -> True
           _ -> False
@@ -726,14 +728,34 @@ prop_Node_addPriFC node inst (Positive extra) =
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
 prop_Node_addSec node inst pdx =
-    (Instance.mem inst >= (Node.fMem node - Node.rMem node) ||
+    ((Instance.mem inst >= (Node.fMem node - Node.rMem node) &&
+      not (Instance.instanceOffline inst)) ||
      Instance.dsk inst >= Node.fDsk node) &&
     not (Node.failN1 node)
     ==> isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
+-- | Check that an offline instance with reasonable disk size can always
+-- be added.
+prop_Node_addPriOffline node =
+    forAll (arbitrary `suchThat`
+            (\ x ->  (Instance.dsk x  < Node.fDsk node) &&
+                      Instance.instanceOffline x)) $ \inst ->
+    case Node.addPri node inst of
+      Types.OpGood _ -> True
+      _ -> False
+
+prop_Node_addSecOffline node pdx =
+    forAll (arbitrary `suchThat`
+            (\ x ->  (Instance.dsk x  < Node.fDsk node) &&
+                      Instance.instanceOffline x)) $ \inst ->
+    case Node.addSec node inst pdx of
+      Types.OpGood _ -> True
+      _ -> False
+
 -- | Checks for memory reservation changes.
 prop_Node_rMem inst =
+    not (Instance.instanceOffline inst) ==>
     forAll (arbitrary `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
     -- ab = auto_balance, nb = non-auto_balance
     -- we use -1 as the primary node of the instance
@@ -808,6 +830,8 @@ testSuite "Node"
               , 'prop_Node_addPriFD
               , 'prop_Node_addPriFC
               , 'prop_Node_addSec
+              , 'prop_Node_addPriOffline
+              , 'prop_Node_addSecOffline
               , 'prop_Node_rMem
               , 'prop_Node_setMdsk
               , 'prop_Node_tagMaps_idempotent

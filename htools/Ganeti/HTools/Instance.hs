@@ -32,6 +32,9 @@ module Ganeti.HTools.Instance
     , List
     , create
     , instanceRunning
+    , instanceOffline
+    , instanceDown
+    , applyIfOnline
     , setIdx
     , setName
     , setAlias
@@ -51,6 +54,8 @@ module Ganeti.HTools.Instance
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.Constants as C
+
+import Ganeti.HTools.Utils
 
 -- * Type declarations
 
@@ -84,6 +89,22 @@ instanceRunning :: Instance -> Bool
 instanceRunning (Instance {runSt = T.Running}) = True
 instanceRunning (Instance {runSt = T.ErrorUp}) = True
 instanceRunning _                               = False
+
+-- | Check if instance is offline.
+instanceOffline :: Instance -> Bool
+instanceOffline (Instance {runSt = T.AdminOffline}) = True
+instanceOffline _                                    = False
+
+-- | Check if instance is down.
+instanceDown :: Instance -> Bool
+instanceDown inst | instanceRunning inst = False
+instanceDown inst | instanceOffline inst = False
+instanceDown _                           = True
+
+-- | Apply the function if the instance is online. Otherwise use
+-- the initial value
+applyIfOnline :: Instance -> (a -> a) -> a -> a
+applyIfOnline = applyIf . not . instanceOffline
 
 -- | Constant holding the local storage templates.
 --

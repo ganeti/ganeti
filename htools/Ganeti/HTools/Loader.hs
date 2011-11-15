@@ -306,7 +306,7 @@ checkData nl il =
         (\ msgs node ->
              let nname = Node.name node
                  nilst = map (`Container.find` il) (Node.pList node)
-                 dilst = filter (not . Instance.instanceRunning) nilst
+                 dilst = filter Instance.instanceDown nilst
                  adj_mem = sum . map Instance.mem $ dilst
                  delta_mem = truncate (Node.tMem node)
                              - Node.nMem node
@@ -329,8 +329,10 @@ checkData nl il =
 nodeImem :: Node.Node -> Instance.List -> Int
 nodeImem node il =
     let rfind = flip Container.find il
-    in sum . map (Instance.mem . rfind)
-           $ Node.pList node
+        il' = map rfind $ Node.pList node
+        oil' = filter (not . Instance.instanceOffline) il'
+    in sum . map Instance.mem $ oil'
+
 
 -- | Compute the amount of disk used by instances on a node (either primary
 -- or secondary).

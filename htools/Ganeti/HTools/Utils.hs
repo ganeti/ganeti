@@ -30,6 +30,7 @@ module Ganeti.HTools.Utils
     , stdDev
     , if'
     , select
+    , applyIf
     , commaJoin
     , readEitherString
     , JSRecord
@@ -75,6 +76,10 @@ debugXy :: Show a => a -> b -> b
 debugXy = seq . debug
 
 -- * Miscellaneous
+
+-- | Apply the function if condition holds, otherwise use default value.
+applyIf :: Bool -> (a -> a) -> a -> a
+applyIf b f x = if b then f x else x
 
 -- | Comma-join a string list.
 commaJoin :: [String] -> String
