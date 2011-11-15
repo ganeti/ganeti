@@ -5309,6 +5309,16 @@ class LUNodeSetParams(LogicalUnit):
     else:
       self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
 
+    # Since modifying a node can have severe effects on currently running
+    # operations the resource lock is at least acquired in shared mode
+    self.needed_locks[locking.LEVEL_NODE_RES] = \
+      self.needed_locks[locking.LEVEL_NODE]
+
+    # Get node resource and instance locks in shared mode; they are not used
+    # for anything but read-only access
+    self.share_locks[locking.LEVEL_NODE_RES] = 1
+    self.share_locks[locking.LEVEL_INSTANCE] = 1
+
     if self.lock_instances:
       self.needed_locks[locking.LEVEL_INSTANCE] = \
         frozenset(self.cfg.GetInstancesInfoByFilter(self._InstanceFilter))
