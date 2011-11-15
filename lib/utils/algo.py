@@ -24,6 +24,7 @@
 
 import re
 import time
+import itertools
 
 from ganeti import compat
 from ganeti.utils import text
@@ -191,6 +192,57 @@ def SequenceToDict(seq, key=compat.fst):
   assert len(keys) == len(seq)
 
   return dict(zip(keys, seq))
+
+
+def _MakeFlatToDict(data):
+  """Helper function for C{FlatToDict}.
+
+  This function is recursively called
+
+  @param data: The input data as described in C{FlatToDict}, already splitted
+  @returns: The so far converted dict
+
+  """
+  if not compat.fst(compat.fst(data)):
+    assert len(data) == 1, \
+      "not bottom most element, found %d elements, expected 1" % len(data)
+    return compat.snd(compat.fst(data))
+
+  keyfn = lambda e: compat.fst(e).pop(0)
+  return dict([(k, _MakeFlatToDict(list(g)))
+               for (k, g) in itertools.groupby(sorted(data), keyfn)])
+
+
+def FlatToDict(data, field_sep="/"):
+  """Converts a flat structure to a fully fledged dict.
+
+  It accept a list of tuples in the form::
+
+    [
+      ("foo/bar", {"key1": "data1", "key2": "data2"}),
+      ("foo/baz", {"key3" :"data3" }),
+    ]
+
+  where the first element is the key separated by C{field_sep}.
+
+  This would then return::
+
+    {
+      "foo": {
+        "bar": {"key1": "data1", "key2": "data2"},
+        "baz": {"key3" :"data3" },
+        },
+    }
+
+  @type data: list of tuple
+  @param data: Input list to convert
+  @type field_sep: str
+  @param field_sep: The separator for the first field of the tuple
+  @returns: A dict based on the input list
+
+  """
+  return _MakeFlatToDict([(keys.split(field_sep), value)
+                          for (keys, value) in data])
 
 
 class RunningTimeout(object):

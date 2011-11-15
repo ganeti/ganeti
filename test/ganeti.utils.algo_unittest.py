@@ -339,5 +339,34 @@ class TestSequenceToDict(unittest.TestCase):
                       [(i, ) for i in range(200)] + [(10, )])
 
 
+class TestFlatToDict(unittest.TestCase):
+  def testNormal(self):
+    data = [
+      ("lv/xenvg", {"foo": "bar", "bar": "baz"}),
+      ("lv/xenfoo", {"foo": "bar", "baz": "blubb"}),
+      ("san/foo", {"ip": "127.0.0.1", "port": 1337}),
+      ("san/blubb/blibb", 54),
+      ]
+    reference = {
+      "lv": {
+        "xenvg": {"foo": "bar", "bar": "baz"},
+        "xenfoo": {"foo": "bar", "baz": "blubb"},
+        },
+      "san": {
+        "foo": {"ip": "127.0.0.1", "port": 1337},
+        "blubb": {"blibb": 54},
+        },
+      }
+    self.assertEqual(algo.FlatToDict(data), reference)
+
+  def testUnlikeDepth(self):
+    data = [
+      ("san/foo", {"ip": "127.0.0.1", "port": 1337}),
+      ("san/foo/blubb", 23), # Another foo entry under san
+      ("san/blubb/blibb", 54),
+      ]
+    self.assertRaises(AssertionError, algo.FlatToDict, data)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
