@@ -721,12 +721,17 @@ def _ReleaseLocks(lu, level, names=None, keep=None):
   else:
     should_release = None
 
-  if should_release:
+  owned = lu.owned_locks(level)
+  if not owned:
+    # Not owning any lock at this level, do nothing
+    pass
+
+  elif should_release:
     retain = []
     release = []
 
     # Determine which locks to release
-    for name in lu.owned_locks(level):
+    for name in owned:
       if should_release(name):
         release.append(name)
       else:
