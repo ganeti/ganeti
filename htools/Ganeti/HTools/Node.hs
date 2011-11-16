@@ -26,50 +26,50 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Node
-    ( Node(..)
-    , List
-    -- * Constructor
-    , create
-    -- ** Finalization after data loading
-    , buildPeers
-    , setIdx
-    , setAlias
-    , setOffline
-    , setXmem
-    , setFmem
-    , setPri
-    , setSec
-    , setMdsk
-    , setMcpu
-    -- * Tag maps
-    , addTags
-    , delTags
-    , rejectAddTags
-    -- * Instance (re)location
-    , removePri
-    , removeSec
-    , addPri
-    , addPriEx
-    , addSec
-    , addSecEx
-    -- * Stats
-    , availDisk
-    , availMem
-    , availCpu
-    , iMem
-    , iDsk
-    , conflictingPrimaries
-    -- * Formatting
-    , defaultFields
-    , showHeader
-    , showField
-    , list
-    -- * Misc stuff
-    , AssocList
-    , AllocElement
-    , noSecondary
-    , computeGroups
-    ) where
+  ( Node(..)
+  , List
+  -- * Constructor
+  , create
+  -- ** Finalization after data loading
+  , buildPeers
+  , setIdx
+  , setAlias
+  , setOffline
+  , setXmem
+  , setFmem
+  , setPri
+  , setSec
+  , setMdsk
+  , setMcpu
+  -- * Tag maps
+  , addTags
+  , delTags
+  , rejectAddTags
+  -- * Instance (re)location
+  , removePri
+  , removeSec
+  , addPri
+  , addPriEx
+  , addSec
+  , addSecEx
+  -- * Stats
+  , availDisk
+  , availMem
+  , availCpu
+  , iMem
+  , iDsk
+  , conflictingPrimaries
+  -- * Formatting
+  , defaultFields
+  , showHeader
+  , showField
+  , list
+  -- * Misc stuff
+  , AssocList
+  , AllocElement
+  , noSecondary
+  , computeGroups
+  ) where
 
 import Data.List hiding (group)
 import qualified Data.Map as Map
@@ -90,48 +90,48 @@ type TagMap = Map.Map String Int
 
 -- | The node type.
 data Node = Node
-    { name     :: String    -- ^ The node name
-    , alias    :: String    -- ^ The shortened name (for display purposes)
-    , tMem     :: Double    -- ^ Total memory (MiB)
-    , nMem     :: Int       -- ^ Node memory (MiB)
-    , fMem     :: Int       -- ^ Free memory (MiB)
-    , xMem     :: Int       -- ^ Unaccounted memory (MiB)
-    , tDsk     :: Double    -- ^ Total disk space (MiB)
-    , fDsk     :: Int       -- ^ Free disk space (MiB)
-    , tCpu     :: Double    -- ^ Total CPU count
-    , uCpu     :: Int       -- ^ Used VCPU count
-    , pList    :: [T.Idx]   -- ^ List of primary instance indices
-    , sList    :: [T.Idx]   -- ^ List of secondary instance indices
-    , idx      :: T.Ndx     -- ^ Internal index for book-keeping
-    , peers    :: P.PeerMap -- ^ Pnode to instance mapping
-    , failN1   :: Bool      -- ^ Whether the node has failed n1
-    , rMem     :: Int       -- ^ Maximum memory needed for failover by
-                            -- primaries of this node
-    , pMem     :: Double    -- ^ Percent of free memory
-    , pDsk     :: Double    -- ^ Percent of free disk
-    , pRem     :: Double    -- ^ Percent of reserved memory
-    , pCpu     :: Double    -- ^ Ratio of virtual to physical CPUs
-    , mDsk     :: Double    -- ^ Minimum free disk ratio
-    , mCpu     :: Double    -- ^ Max ratio of virt-to-phys CPUs
-    , loDsk    :: Int       -- ^ Autocomputed from mDsk low disk
-                            -- threshold
-    , hiCpu    :: Int       -- ^ Autocomputed from mCpu high cpu
-                            -- threshold
-    , offline  :: Bool      -- ^ Whether the node should not be used
-                            -- for allocations and skipped from score
-                            -- computations
-    , utilPool :: T.DynUtil -- ^ Total utilisation capacity
-    , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
-    , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
-    , group    :: T.Gdx     -- ^ The node's group (index)
-    } deriving (Show, Read, Eq)
+  { name     :: String    -- ^ The node name
+  , alias    :: String    -- ^ The shortened name (for display purposes)
+  , tMem     :: Double    -- ^ Total memory (MiB)
+  , nMem     :: Int       -- ^ Node memory (MiB)
+  , fMem     :: Int       -- ^ Free memory (MiB)
+  , xMem     :: Int       -- ^ Unaccounted memory (MiB)
+  , tDsk     :: Double    -- ^ Total disk space (MiB)
+  , fDsk     :: Int       -- ^ Free disk space (MiB)
+  , tCpu     :: Double    -- ^ Total CPU count
+  , uCpu     :: Int       -- ^ Used VCPU count
+  , pList    :: [T.Idx]   -- ^ List of primary instance indices
+  , sList    :: [T.Idx]   -- ^ List of secondary instance indices
+  , idx      :: T.Ndx     -- ^ Internal index for book-keeping
+  , peers    :: P.PeerMap -- ^ Pnode to instance mapping
+  , failN1   :: Bool      -- ^ Whether the node has failed n1
+  , rMem     :: Int       -- ^ Maximum memory needed for failover by
+                          -- primaries of this node
+  , pMem     :: Double    -- ^ Percent of free memory
+  , pDsk     :: Double    -- ^ Percent of free disk
+  , pRem     :: Double    -- ^ Percent of reserved memory
+  , pCpu     :: Double    -- ^ Ratio of virtual to physical CPUs
+  , mDsk     :: Double    -- ^ Minimum free disk ratio
+  , mCpu     :: Double    -- ^ Max ratio of virt-to-phys CPUs
+  , loDsk    :: Int       -- ^ Autocomputed from mDsk low disk
+                          -- threshold
+  , hiCpu    :: Int       -- ^ Autocomputed from mCpu high cpu
+                          -- threshold
+  , offline  :: Bool      -- ^ Whether the node should not be used for
+                          -- allocations and skipped from score
+                          -- computations
+  , utilPool :: T.DynUtil -- ^ Total utilisation capacity
+  , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
+  , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
+  , group    :: T.Gdx     -- ^ The node's group (index)
+  } deriving (Show, Read, Eq)
 
 instance T.Element Node where
-    nameOf = name
-    idxOf = idx
-    setAlias = setAlias
-    setIdx = setIdx
-    allNames n = [name n, alias n]
+  nameOf = name
+  idxOf = idx
+  setAlias = setAlias
+  setIdx = setIdx
+  allNames n = [name n, alias n]
 
 -- | A simple name for the int, node association list.
 type AssocList = [(T.Ndx, Node)]
@@ -160,8 +160,8 @@ addTags = foldl' addTag
 -- | Adjust or delete a tag from a tagmap.
 delTag :: TagMap -> String -> TagMap
 delTag t s = Map.update (\v -> if v > 1
-                               then Just (v-1)
-                               else Nothing)
+                                 then Just (v-1)
+                                 else Nothing)
              s t
 
 -- | Remove multiple tags.
@@ -190,36 +190,36 @@ create :: String -> Double -> Int -> Int -> Double
        -> Int -> Double -> Bool -> T.Gdx -> Node
 create name_init mem_t_init mem_n_init mem_f_init
        dsk_t_init dsk_f_init cpu_t_init offline_init group_init =
-    Node { name = name_init
-         , alias = name_init
-         , tMem = mem_t_init
-         , nMem = mem_n_init
-         , fMem = mem_f_init
-         , tDsk = dsk_t_init
-         , fDsk = dsk_f_init
-         , tCpu = cpu_t_init
-         , uCpu = 0
-         , pList = []
-         , sList = []
-         , failN1 = True
-         , idx = -1
-         , peers = P.empty
-         , rMem = 0
-         , pMem = fromIntegral mem_f_init / mem_t_init
-         , pDsk = fromIntegral dsk_f_init / dsk_t_init
-         , pRem = 0
-         , pCpu = 0
-         , offline = offline_init
-         , xMem = 0
-         , mDsk = T.defReservedDiskRatio
-         , mCpu = T.defVcpuRatio
-         , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
-         , hiCpu = mCpuTohiCpu T.defVcpuRatio cpu_t_init
-         , utilPool = T.baseUtil
-         , utilLoad = T.zeroUtil
-         , pTags = Map.empty
-         , group = group_init
-         }
+  Node { name = name_init
+       , alias = name_init
+       , tMem = mem_t_init
+       , nMem = mem_n_init
+       , fMem = mem_f_init
+       , tDsk = dsk_t_init
+       , fDsk = dsk_f_init
+       , tCpu = cpu_t_init
+       , uCpu = 0
+       , pList = []
+       , sList = []
+       , failN1 = True
+       , idx = -1
+       , peers = P.empty
+       , rMem = 0
+       , pMem = fromIntegral mem_f_init / mem_t_init
+       , pDsk = fromIntegral dsk_f_init / dsk_t_init
+       , pRem = 0
+       , pCpu = 0
+       , offline = offline_init
+       , xMem = 0
+       , mDsk = T.defReservedDiskRatio
+       , mCpu = T.defVcpuRatio
+       , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
+       , hiCpu = mCpuTohiCpu T.defVcpuRatio cpu_t_init
+       , utilPool = T.baseUtil
+       , utilLoad = T.zeroUtil
+       , pTags = Map.empty
+       , group = group_init
+       }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
 mDskToloDsk :: Double -> Double -> Int
@@ -264,18 +264,18 @@ computeMaxRes = P.maxElem
 -- | Builds the peer map for a given node.
 buildPeers :: Node -> Instance.List -> Node
 buildPeers t il =
-    let mdata = map
-                (\i_idx -> let inst = Container.find i_idx il
-                               mem = if Instance.autoBalance inst
+  let mdata = map
+              (\i_idx -> let inst = Container.find i_idx il
+                             mem = if Instance.autoBalance inst
                                      then Instance.mem inst
                                      else 0
-                           in (Instance.pNode inst, mem))
-                (sList t)
-        pmap = P.accumArray (+) mdata
-        new_rmem = computeMaxRes pmap
-        new_failN1 = fMem t <= new_rmem
-        new_prem = fromIntegral new_rmem / tMem t
-    in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
+                         in (Instance.pNode inst, mem))
+              (sList t)
+      pmap = P.accumArray (+) mdata
+      new_rmem = computeMaxRes pmap
+      new_failN1 = fMem t <= new_rmem
+      new_prem = fromIntegral new_rmem / tMem t
+  in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
 -- | Assigns an instance to a node as primary and update the used VCPU
 -- count, utilisation data and tags map.
@@ -286,7 +286,7 @@ setPri t inst = t { pList = Instance.idx inst:pList t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
                   , pTags = addTags (pTags t) (Instance.tags inst)
                   }
-    where new_count = uCpu t + Instance.vcpus inst
+  where new_count = uCpu t + Instance.vcpus inst
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> Instance.Instance -> Node
@@ -294,68 +294,68 @@ setSec t inst = t { sList = Instance.idx inst:sList t
                   , utilLoad = old_load { T.dskWeight = T.dskWeight old_load +
                                           T.dskWeight (Instance.util inst) }
                   }
-    where old_load = utilLoad t
+  where old_load = utilLoad t
 
 -- * Update functions
 
 -- | Sets the free memory.
 setFmem :: Node -> Int -> Node
 setFmem t new_mem =
-    let new_n1 = new_mem <= rMem t
-        new_mp = fromIntegral new_mem / tMem t
-    in t { fMem = new_mem, failN1 = new_n1, pMem = new_mp }
+  let new_n1 = new_mem <= rMem t
+      new_mp = fromIntegral new_mem / tMem t
+  in t { fMem = new_mem, failN1 = new_n1, pMem = new_mp }
 
 -- | Removes a primary instance.
 removePri :: Node -> Instance.Instance -> Node
 removePri t inst =
-    let iname = Instance.idx inst
-        new_plist = delete iname (pList t)
-        new_mem = Instance.applyIfOnline inst (+ Instance.mem inst) (fMem t)
-        new_dsk = fDsk t + Instance.dsk inst
-        new_mp = fromIntegral new_mem / tMem t
-        new_dp = fromIntegral new_dsk / tDsk t
-        new_failn1 = new_mem <= rMem t
-        new_ucpu = Instance.applyIfOnline inst
-                   (\x -> x - Instance.vcpus inst) (uCpu t)
-        new_rcpu = fromIntegral new_ucpu / tCpu t
-        new_load = utilLoad t `T.subUtil` Instance.util inst
-    in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
-         , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
-         , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
-         , pTags = delTags (pTags t) (Instance.tags inst) }
+  let iname = Instance.idx inst
+      new_plist = delete iname (pList t)
+      new_mem = Instance.applyIfOnline inst (+ Instance.mem inst) (fMem t)
+      new_dsk = fDsk t + Instance.dsk inst
+      new_mp = fromIntegral new_mem / tMem t
+      new_dp = fromIntegral new_dsk / tDsk t
+      new_failn1 = new_mem <= rMem t
+      new_ucpu = Instance.applyIfOnline inst
+                 (\x -> x - Instance.vcpus inst) (uCpu t)
+      new_rcpu = fromIntegral new_ucpu / tCpu t
+      new_load = utilLoad t `T.subUtil` Instance.util inst
+  in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
+       , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
+       , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
+       , pTags = delTags (pTags t) (Instance.tags inst) }
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
 removeSec t inst =
-    let iname = Instance.idx inst
-        uses_disk = Instance.usesLocalStorage inst
-        cur_dsk = fDsk t
-        pnode = Instance.pNode inst
-        new_slist = delete iname (sList t)
-        new_dsk = if uses_disk
+  let iname = Instance.idx inst
+      uses_disk = Instance.usesLocalStorage inst
+      cur_dsk = fDsk t
+      pnode = Instance.pNode inst
+      new_slist = delete iname (sList t)
+      new_dsk = if uses_disk
                   then cur_dsk + Instance.dsk inst
                   else cur_dsk
-        old_peers = peers t
-        old_peem = P.find pnode old_peers
-        new_peem =  if Instance.autoBalance inst
+      old_peers = peers t
+      old_peem = P.find pnode old_peers
+      new_peem =  if Instance.autoBalance inst
                     then old_peem - Instance.mem inst
                     else old_peem
-        new_peers = if new_peem > 0
+      new_peers = if new_peem > 0
                     then P.add pnode new_peem old_peers
                     else P.remove pnode old_peers
-        old_rmem = rMem t
-        new_rmem = if old_peem < old_rmem
+      old_rmem = rMem t
+      new_rmem = if old_peem < old_rmem
                    then old_rmem
                    else computeMaxRes new_peers
-        new_prem = fromIntegral new_rmem / tMem t
-        new_failn1 = fMem t <= new_rmem
-        new_dp = fromIntegral new_dsk / tDsk t
-        old_load = utilLoad t
-        new_load = old_load { T.dskWeight = T.dskWeight old_load -
-                                            T.dskWeight (Instance.util inst) }
-    in t { sList = new_slist, fDsk = new_dsk, peers = new_peers
-         , failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp
-         , pRem = new_prem, utilLoad = new_load }
+      new_prem = fromIntegral new_rmem / tMem t
+      new_failn1 = fMem t <= new_rmem
+      new_dp = fromIntegral new_dsk / tDsk t
+      old_load = utilLoad t
+      new_load = old_load { T.dskWeight = T.dskWeight old_load -
+                                          T.dskWeight (Instance.util inst) }
+  in t { sList = new_slist, fDsk = new_dsk, peers = new_peers
+       , failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp
+       , pRem = new_prem, utilLoad = new_load }
 
 -- | Adds a primary instance (basic version).
 addPri :: Node -> Instance.Instance -> T.OpResult Node
@@ -372,39 +372,39 @@ addPriEx :: Bool               -- ^ Whether to override the N+1 and
                                -- either the new version of the node
                                -- or a failure mode
 addPriEx force t inst =
-    let iname = Instance.idx inst
-        uses_disk = Instance.usesLocalStorage inst
-        cur_dsk = fDsk t
-        new_mem = Instance.applyIfOnline inst
-                  (\x -> x - Instance.mem inst) (fMem t)
-        new_dsk = if uses_disk
+  let iname = Instance.idx inst
+      uses_disk = Instance.usesLocalStorage inst
+      cur_dsk = fDsk t
+      new_mem = Instance.applyIfOnline inst
+                (\x -> x - Instance.mem inst) (fMem t)
+      new_dsk = if uses_disk
                   then cur_dsk - Instance.dsk inst
                   else cur_dsk
-        new_failn1 = new_mem <= rMem t
-        new_ucpu = Instance.applyIfOnline inst (+ Instance.vcpus inst) (uCpu t)
-        new_pcpu = fromIntegral new_ucpu / tCpu t
-        new_dp = fromIntegral new_dsk / tDsk t
-        l_cpu = mCpu t
-        new_load = utilLoad t `T.addUtil` Instance.util inst
-        inst_tags = Instance.tags inst
-        old_tags = pTags t
-        strict = not force
-    in case () of
-         _ | new_mem <= 0 -> T.OpFail T.FailMem
-           | uses_disk && new_dsk <= 0 -> T.OpFail T.FailDisk
-           | uses_disk && mDsk t > new_dp && strict -> T.OpFail T.FailDisk
-           | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
-           | l_cpu >= 0 && l_cpu < new_pcpu && strict -> T.OpFail T.FailCPU
-           | rejectAddTags old_tags inst_tags -> T.OpFail T.FailTags
-           | otherwise ->
-               let new_plist = iname:pList t
-                   new_mp = fromIntegral new_mem / tMem t
-                   r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
-                         , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
-                         , uCpu = new_ucpu, pCpu = new_pcpu
-                         , utilLoad = new_load
-                         , pTags = addTags old_tags inst_tags }
-               in T.OpGood r
+      new_failn1 = new_mem <= rMem t
+      new_ucpu = Instance.applyIfOnline inst (+ Instance.vcpus inst) (uCpu t)
+      new_pcpu = fromIntegral new_ucpu / tCpu t
+      new_dp = fromIntegral new_dsk / tDsk t
+      l_cpu = mCpu t
+      new_load = utilLoad t `T.addUtil` Instance.util inst
+      inst_tags = Instance.tags inst
+      old_tags = pTags t
+      strict = not force
+  in case () of
+       _ | new_mem <= 0 -> T.OpFail T.FailMem
+         | uses_disk && new_dsk <= 0 -> T.OpFail T.FailDisk
+         | uses_disk && mDsk t > new_dp && strict -> T.OpFail T.FailDisk
+         | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
+         | l_cpu >= 0 && l_cpu < new_pcpu && strict -> T.OpFail T.FailCPU
+         | rejectAddTags old_tags inst_tags -> T.OpFail T.FailTags
+         | otherwise ->
+           let new_plist = iname:pList t
+               new_mp = fromIntegral new_mem / tMem t
+               r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
+                     , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
+                     , uCpu = new_ucpu, pCpu = new_pcpu
+                     , utilLoad = new_load
+                     , pTags = addTags old_tags inst_tags }
+           in T.OpGood r
 
 -- | Adds a secondary instance (basic version).
 addSec :: Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
@@ -413,46 +413,46 @@ addSec = addSecEx False
 -- | Adds a secondary instance (extended version).
 addSecEx :: Bool -> Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
 addSecEx force t inst pdx =
-    let iname = Instance.idx inst
-        old_peers = peers t
-        old_mem = fMem t
-        new_dsk = fDsk t - Instance.dsk inst
-        secondary_needed_mem = if Instance.autoBalance inst &&
-                                  not (Instance.instanceOffline inst)
+  let iname = Instance.idx inst
+      old_peers = peers t
+      old_mem = fMem t
+      new_dsk = fDsk t - Instance.dsk inst
+      secondary_needed_mem = if Instance.autoBalance inst &&
+                             not (Instance.instanceOffline inst)
                                then Instance.mem inst
                                else 0
-        new_peem = P.find pdx old_peers + secondary_needed_mem
-        new_peers = P.add pdx new_peem old_peers
-        new_rmem = max (rMem t) new_peem
-        new_prem = fromIntegral new_rmem / tMem t
-        new_failn1 = old_mem <= new_rmem
-        new_dp = fromIntegral new_dsk / tDsk t
-        old_load = utilLoad t
-        new_load = old_load { T.dskWeight = T.dskWeight old_load +
-                                            T.dskWeight (Instance.util inst) }
-        strict = not force
-    in case () of
-         _ | not (Instance.hasSecondary inst) -> T.OpFail T.FailDisk
-           | new_dsk <= 0 -> T.OpFail T.FailDisk
-           | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
-           | secondary_needed_mem >= old_mem && strict -> T.OpFail T.FailMem
-           | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
-           | otherwise ->
-               let new_slist = iname:sList t
-                   r = t { sList = new_slist, fDsk = new_dsk
-                         , peers = new_peers, failN1 = new_failn1
-                         , rMem = new_rmem, pDsk = new_dp
-                         , pRem = new_prem, utilLoad = new_load }
-               in T.OpGood r
+      new_peem = P.find pdx old_peers + secondary_needed_mem
+      new_peers = P.add pdx new_peem old_peers
+      new_rmem = max (rMem t) new_peem
+      new_prem = fromIntegral new_rmem / tMem t
+      new_failn1 = old_mem <= new_rmem
+      new_dp = fromIntegral new_dsk / tDsk t
+      old_load = utilLoad t
+      new_load = old_load { T.dskWeight = T.dskWeight old_load +
+                                          T.dskWeight (Instance.util inst) }
+      strict = not force
+  in case () of
+       _ | not (Instance.hasSecondary inst) -> T.OpFail T.FailDisk
+         | new_dsk <= 0 -> T.OpFail T.FailDisk
+         | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
+         | secondary_needed_mem >= old_mem && strict -> T.OpFail T.FailMem
+         | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
+         | otherwise ->
+           let new_slist = iname:sList t
+               r = t { sList = new_slist, fDsk = new_dsk
+                     , peers = new_peers, failN1 = new_failn1
+                     , rMem = new_rmem, pDsk = new_dp
+                     , pRem = new_prem, utilLoad = new_load }
+           in T.OpGood r
 
 -- * Stats functions
 
 -- | Computes the amount of available disk on a given node.
 availDisk :: Node -> Int
 availDisk t =
-    let _f = fDsk t
-        _l = loDsk t
-    in if _f < _l
+  let _f = fDsk t
+      _l = loDsk t
+  in if _f < _l
        then 0
        else _f - _l
 
@@ -463,18 +463,18 @@ iDsk t = truncate (tDsk t) - fDsk t
 -- | Computes the amount of available memory on a given node.
 availMem :: Node -> Int
 availMem t =
-    let _f = fMem t
-        _l = rMem t
-    in if _f < _l
+  let _f = fMem t
+      _l = rMem t
+  in if _f < _l
        then 0
        else _f - _l
 
 -- | Computes the amount of available memory on a given node.
 availCpu :: Node -> Int
 availCpu t =
-    let _u = uCpu t
-        _l = hiCpu t
-    in if _l >= _u
+  let _u = uCpu t
+      _l = hiCpu t
+  in if _l >= _u
        then _l - _u
        else 0
 
@@ -489,91 +489,90 @@ showField :: Node   -- ^ Node which we're querying
           -> String -- ^ Field name
           -> String -- ^ Field value as string
 showField t field =
-    case field of
-      "idx"  -> printf "%4d" $ idx t
-      "name" -> alias t
-      "fqdn" -> name t
-      "status" -> case () of
-                    _ | offline t -> "-"
-                      | failN1 t -> "*"
-                      | otherwise -> " "
-      "tmem" -> printf "%5.0f" $ tMem t
-      "nmem" -> printf "%5d" $ nMem t
-      "xmem" -> printf "%5d" $ xMem t
-      "fmem" -> printf "%5d" $ fMem t
-      "imem" -> printf "%5d" $ iMem t
-      "rmem" -> printf "%5d" $ rMem t
-      "amem" -> printf "%5d" $ fMem t - rMem t
-      "tdsk" -> printf "%5.0f" $ tDsk t / 1024
-      "fdsk" -> printf "%5d" $ fDsk t `div` 1024
-      "tcpu" -> printf "%4.0f" $ tCpu t
-      "ucpu" -> printf "%4d" $ uCpu t
-      "pcnt" -> printf "%3d" $ length (pList t)
-      "scnt" -> printf "%3d" $ length (sList t)
-      "plist" -> show $ pList t
-      "slist" -> show $ sList t
-      "pfmem" -> printf "%6.4f" $ pMem t
-      "pfdsk" -> printf "%6.4f" $ pDsk t
-      "rcpu"  -> printf "%5.2f" $ pCpu t
-      "cload" -> printf "%5.3f" uC
-      "mload" -> printf "%5.3f" uM
-      "dload" -> printf "%5.3f" uD
-      "nload" -> printf "%5.3f" uN
-      "ptags" -> intercalate "," . map (uncurry (printf "%s=%d")) .
-                 Map.toList $ pTags t
-      "peermap" -> show $ peers t
-      _ -> T.unknownField
-    where
-      T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
-                  T.dskWeight = uD, T.netWeight = uN } = utilLoad t
+  case field of
+    "idx"  -> printf "%4d" $ idx t
+    "name" -> alias t
+    "fqdn" -> name t
+    "status" -> case () of
+                  _ | offline t -> "-"
+                    | failN1 t -> "*"
+                    | otherwise -> " "
+    "tmem" -> printf "%5.0f" $ tMem t
+    "nmem" -> printf "%5d" $ nMem t
+    "xmem" -> printf "%5d" $ xMem t
+    "fmem" -> printf "%5d" $ fMem t
+    "imem" -> printf "%5d" $ iMem t
+    "rmem" -> printf "%5d" $ rMem t
+    "amem" -> printf "%5d" $ fMem t - rMem t
+    "tdsk" -> printf "%5.0f" $ tDsk t / 1024
+    "fdsk" -> printf "%5d" $ fDsk t `div` 1024
+    "tcpu" -> printf "%4.0f" $ tCpu t
+    "ucpu" -> printf "%4d" $ uCpu t
+    "pcnt" -> printf "%3d" $ length (pList t)
+    "scnt" -> printf "%3d" $ length (sList t)
+    "plist" -> show $ pList t
+    "slist" -> show $ sList t
+    "pfmem" -> printf "%6.4f" $ pMem t
+    "pfdsk" -> printf "%6.4f" $ pDsk t
+    "rcpu"  -> printf "%5.2f" $ pCpu t
+    "cload" -> printf "%5.3f" uC
+    "mload" -> printf "%5.3f" uM
+    "dload" -> printf "%5.3f" uD
+    "nload" -> printf "%5.3f" uN
+    "ptags" -> intercalate "," . map (uncurry (printf "%s=%d")) .
+               Map.toList $ pTags t
+    "peermap" -> show $ peers t
+    _ -> T.unknownField
+  where
+    T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
+                T.dskWeight = uD, T.netWeight = uN } = utilLoad t
 
 -- | Returns the header and numeric propery of a field.
 showHeader :: String -> (String, Bool)
 showHeader field =
-    case field of
-      "idx" -> ("Index", True)
-      "name" -> ("Name", False)
-      "fqdn" -> ("Name", False)
-      "status" -> ("F", False)
-      "tmem" -> ("t_mem", True)
-      "nmem" -> ("n_mem", True)
-      "xmem" -> ("x_mem", True)
-      "fmem" -> ("f_mem", True)
-      "imem" -> ("i_mem", True)
-      "rmem" -> ("r_mem", True)
-      "amem" -> ("a_mem", True)
-      "tdsk" -> ("t_dsk", True)
-      "fdsk" -> ("f_dsk", True)
-      "tcpu" -> ("pcpu", True)
-      "ucpu" -> ("vcpu", True)
-      "pcnt" -> ("pcnt", True)
-      "scnt" -> ("scnt", True)
-      "plist" -> ("primaries", True)
-      "slist" -> ("secondaries", True)
-      "pfmem" -> ("p_fmem", True)
-      "pfdsk" -> ("p_fdsk", True)
-      "rcpu"  -> ("r_cpu", True)
-      "cload" -> ("lCpu", True)
-      "mload" -> ("lMem", True)
-      "dload" -> ("lDsk", True)
-      "nload" -> ("lNet", True)
-      "ptags" -> ("PrimaryTags", False)
-      "peermap" -> ("PeerMap", False)
-      -- TODO: add node fields (group.uuid, group)
-      _ -> (T.unknownField, False)
+  case field of
+    "idx" -> ("Index", True)
+    "name" -> ("Name", False)
+    "fqdn" -> ("Name", False)
+    "status" -> ("F", False)
+    "tmem" -> ("t_mem", True)
+    "nmem" -> ("n_mem", True)
+    "xmem" -> ("x_mem", True)
+    "fmem" -> ("f_mem", True)
+    "imem" -> ("i_mem", True)
+    "rmem" -> ("r_mem", True)
+    "amem" -> ("a_mem", True)
+    "tdsk" -> ("t_dsk", True)
+    "fdsk" -> ("f_dsk", True)
+    "tcpu" -> ("pcpu", True)
+    "ucpu" -> ("vcpu", True)
+    "pcnt" -> ("pcnt", True)
+    "scnt" -> ("scnt", True)
+    "plist" -> ("primaries", True)
+    "slist" -> ("secondaries", True)
+    "pfmem" -> ("p_fmem", True)
+    "pfdsk" -> ("p_fdsk", True)
+    "rcpu"  -> ("r_cpu", True)
+    "cload" -> ("lCpu", True)
+    "mload" -> ("lMem", True)
+    "dload" -> ("lDsk", True)
+    "nload" -> ("lNet", True)
+    "ptags" -> ("PrimaryTags", False)
+    "peermap" -> ("PeerMap", False)
+    -- TODO: add node fields (group.uuid, group)
+    _ -> (T.unknownField, False)
 
 -- | String converter for the node list functionality.
 list :: [String] -> Node -> [String]
 list fields t = map (showField t) fields
 
-
 -- | Constant holding the fields we're displaying by default.
 defaultFields :: [String]
 defaultFields =
-    [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
-    , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "pcnt", "scnt"
-    , "pfmem", "pfdsk", "rcpu"
-    , "cload", "mload", "dload", "nload" ]
+  [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
+  , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "pcnt", "scnt"
+  , "pfmem", "pfdsk", "rcpu"
+  , "cload", "mload", "dload", "nload" ]
 
 -- | Split a list of nodes into a list of (node group UUID, list of
 -- associated nodes).
