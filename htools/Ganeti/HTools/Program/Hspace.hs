@@ -50,27 +50,27 @@ import Ganeti.HTools.Loader
 -- | Options list and functions.
 options :: [OptType]
 options =
-    [ oPrintNodes
-    , oDataFile
-    , oDiskTemplate
-    , oNodeSim
-    , oRapiMaster
-    , oLuxiSocket
-    , oVerbose
-    , oQuiet
-    , oOfflineNode
-    , oIMem
-    , oIDisk
-    , oIVcpus
-    , oMachineReadable
-    , oMaxCpu
-    , oMaxSolLength
-    , oMinDisk
-    , oTieredSpec
-    , oSaveCluster
-    , oShowVer
-    , oShowHelp
-    ]
+  [ oPrintNodes
+  , oDataFile
+  , oDiskTemplate
+  , oNodeSim
+  , oRapiMaster
+  , oLuxiSocket
+  , oVerbose
+  , oQuiet
+  , oOfflineNode
+  , oIMem
+  , oIDisk
+  , oIVcpus
+  , oMachineReadable
+  , oMaxCpu
+  , oMaxSolLength
+  , oMinDisk
+  , oTieredSpec
+  , oSaveCluster
+  , oShowVer
+  , oShowHelp
+  ]
 
 -- | The allocation phase we're in (initial, after tiered allocs, or
 -- after regular allocation).
@@ -203,26 +203,26 @@ printFinal False = return ()
 tieredSpecMap :: [Instance.Instance]
               -> [(RSpec, Int)]
 tieredSpecMap trl_ixes =
-    let fin_trl_ixes = reverse trl_ixes
-        ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
-        spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
-                   ix_byspec
-    in spec_map
+  let fin_trl_ixes = reverse trl_ixes
+      ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
+      spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
+                 ix_byspec
+  in spec_map
 
 -- | Formats a spec map to strings.
 formatSpecMap :: [(RSpec, Int)] -> [String]
 formatSpecMap =
-    map (\(spec, cnt) -> printf "%d,%d,%d=%d" (rspecMem spec)
-                         (rspecDsk spec) (rspecCpu spec) cnt)
+  map (\(spec, cnt) -> printf "%d,%d,%d=%d" (rspecMem spec)
+                       (rspecDsk spec) (rspecCpu spec) cnt)
 
 -- | Formats \"key-metrics\" values.
 formatRSpec :: Double -> String -> RSpec -> [(String, String)]
 formatRSpec m_cpu s r =
-    [ ("KM_" ++ s ++ "_CPU", show $ rspecCpu r)
-    , ("KM_" ++ s ++ "_NPU", show $ fromIntegral (rspecCpu r) / m_cpu)
-    , ("KM_" ++ s ++ "_MEM", show $ rspecMem r)
-    , ("KM_" ++ s ++ "_DSK", show $ rspecDsk r)
-    ]
+  [ ("KM_" ++ s ++ "_CPU", show $ rspecCpu r)
+  , ("KM_" ++ s ++ "_NPU", show $ fromIntegral (rspecCpu r) / m_cpu)
+  , ("KM_" ++ s ++ "_MEM", show $ rspecMem r)
+  , ("KM_" ++ s ++ "_DSK", show $ rspecDsk r)
+  ]
 
 -- | Shows allocations stats.
 printAllocationStats :: Double -> Node.List -> Node.List -> IO ()
@@ -331,8 +331,8 @@ printClusterScores ini_nl fin_nl = do
 -- | Displays the cluster efficiency.
 printClusterEff :: Cluster.CStats -> IO ()
 printClusterEff cs =
-    mapM_ (\(s, fn) ->
-               printf "  - %s usage efficiency: %5.2f%%\n" s (fn cs * 100))
+  mapM_ (\(s, fn) ->
+           printf "  - %s usage efficiency: %5.2f%%\n" s (fn cs * 100))
           [("memory", memEff),
            ("  disk", dskEff),
            ("  vcpu", cpuEff)]
