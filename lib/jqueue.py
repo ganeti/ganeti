@@ -1487,6 +1487,27 @@ def _RequireOpenQueue(fn):
   return wrapper
 
 
+def _RequireNonDrainedQueue(fn):
+  """Decorator checking for a non-drained queue.
+
+  To be used with functions submitting new jobs.
+
+  """
+  def wrapper(self, *args, **kwargs):
+    """Wrapper function.
+
+    @raise errors.JobQueueDrainError: if the job queue is marked for draining
+
+    """
+    # Ok when sharing the big job queue lock, as the drain file is created when
+    # the lock is exclusive.
+    # Needs access to protected member, pylint: disable=W0212
+    if self._drained:
+      raise errors.JobQueueDrainError("Job queue is drained, refusing job")
+    return fn(self, *args, **kwargs)
+  return wrapper
+
+
 class JobQueue(object):
   """Queue used to manage the jobs.
 
@@ -2013,16 +2034,10 @@ class JobQueue(object):
     @param ops: The list of OpCodes that will become the new job.
     @rtype: L{_QueuedJob}
     @return: the job object to be queued
-    @raise errors.JobQueueDrainError: if the job queue is marked for draining
     @raise errors.JobQueueFull: if the job queue has too many jobs in it
     @raise errors.GenericError: If an opcode is not valid
 
     """
-    # Ok when sharing the big job queue lock, as the drain file is created when
-    # the lock is exclusive.
-    if self._drained:
-      raise errors.JobQueueDrainError("Job queue is drained, refusing job")
-
     if self._queue_size >= constants.JOB_QUEUE_SIZE_HARD_LIMIT:
       raise errors.JobQueueFull()
 
@@ -2054,6 +2069,7 @@ class JobQueue(object):
 
   @locking.ssynchronized(_LOCK)
   @_RequireOpenQueue
+  @_RequireNonDrainedQueue
   def SubmitJob(self, ops):
     """Create and store a new job.
 
@@ -2066,6 +2082,7 @@ class JobQueue(object):
 
   @locking.ssynchronized(_LOCK)
   @_RequireOpenQueue
+  @_RequireNonDrainedQueue
   def SubmitManyJobs(self, jobs):
     """Create and store multiple jobs.
 
