@@ -57,34 +57,34 @@ import Ganeti.Jobs
 -- | Options list and functions.
 options :: [OptType]
 options =
-    [ oPrintNodes
-    , oPrintInsts
-    , oPrintCommands
-    , oDataFile
-    , oEvacMode
-    , oRapiMaster
-    , oLuxiSocket
-    , oExecJobs
-    , oGroup
-    , oMaxSolLength
-    , oVerbose
-    , oQuiet
-    , oOfflineNode
-    , oMinScore
-    , oMaxCpu
-    , oMinDisk
-    , oMinGain
-    , oMinGainLim
-    , oDiskMoves
-    , oSelInst
-    , oInstMoves
-    , oDynuFile
-    , oExTags
-    , oExInst
-    , oSaveCluster
-    , oShowVer
-    , oShowHelp
-    ]
+  [ oPrintNodes
+  , oPrintInsts
+  , oPrintCommands
+  , oDataFile
+  , oEvacMode
+  , oRapiMaster
+  , oLuxiSocket
+  , oExecJobs
+  , oGroup
+  , oMaxSolLength
+  , oVerbose
+  , oQuiet
+  , oOfflineNode
+  , oMinScore
+  , oMaxCpu
+  , oMinDisk
+  , oMinGain
+  , oMinGainLim
+  , oDiskMoves
+  , oSelInst
+  , oInstMoves
+  , oDynuFile
+  , oExTags
+  , oExInst
+  , oSaveCluster
+  , oShowVer
+  , oShowHelp
+  ]
 
 {- | Start computing the solution at the given depth and recurse until
 we find a valid solution or we exceed the maximum depth.
@@ -105,30 +105,28 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
                                               -- and commands
 iterateDepth ini_tbl max_rounds disk_moves inst_moves nmlen imlen
              cmd_strs min_score mg_limit min_gain evac_mode =
-    let Cluster.Table ini_nl ini_il _ _ = ini_tbl
-        allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
-        m_fin_tbl = if allowed_next
+  let Cluster.Table ini_nl ini_il _ _ = ini_tbl
+      allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
+      m_fin_tbl = if allowed_next
                     then Cluster.tryBalance ini_tbl disk_moves inst_moves
                          evac_mode mg_limit min_gain
                     else Nothing
-    in
-      case m_fin_tbl of
-        Just fin_tbl ->
-            do
-              let
-                  (Cluster.Table _ _ _ fin_plc) = fin_tbl
-                  fin_plc_len = length fin_plc
-                  cur_plc@(idx, _, _, move, _) = head fin_plc
-                  (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
-                                     nmlen imlen cur_plc fin_plc_len
-                  afn = Cluster.involvedNodes ini_il cur_plc
-                  upd_cmd_strs = (afn, idx, move, cmds):cmd_strs
-              putStrLn sol_line
-              hFlush stdout
-              iterateDepth fin_tbl max_rounds disk_moves inst_moves
-                           nmlen imlen upd_cmd_strs min_score
-                           mg_limit min_gain evac_mode
-        Nothing -> return (ini_tbl, cmd_strs)
+  in case m_fin_tbl of
+       Just fin_tbl ->
+         do
+           let (Cluster.Table _ _ _ fin_plc) = fin_tbl
+               fin_plc_len = length fin_plc
+               cur_plc@(idx, _, _, move, _) = head fin_plc
+               (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
+                                  nmlen imlen cur_plc fin_plc_len
+               afn = Cluster.involvedNodes ini_il cur_plc
+               upd_cmd_strs = (afn, idx, move, cmds):cmd_strs
+           putStrLn sol_line
+           hFlush stdout
+           iterateDepth fin_tbl max_rounds disk_moves inst_moves
+                        nmlen imlen upd_cmd_strs min_score
+                        mg_limit min_gain evac_mode
+       Nothing -> return (ini_tbl, cmd_strs)
 
 -- | Displays the cluster stats.
 printStats :: Node.List -> Node.List -> IO ()
@@ -224,7 +222,7 @@ maybeExecJobs :: Options
               -> [JobSet]
               -> IO Bool
 maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
-    if optExecJobs opts && not (null ord_plc)
+  if optExecJobs opts && not (null ord_plc)
     then (case optLuxi opts of
             Nothing -> do
               hPutStrLn stderr "Execution of commands possible only on LUXI"
@@ -269,9 +267,9 @@ selectGroup opts gl nlf ilf = do
 
   case optGroup opts of
     Nothing -> do
-         let (gidx, cdata) = head ngroups
-             grp = Container.find gidx gl
-         return (Group.name grp, cdata)
+      let (gidx, cdata) = head ngroups
+          grp = Container.find gidx gl
+      return (Group.name grp, cdata)
     Just g -> case Container.findByName gl g of
       Nothing -> do
         hPutStrLn stderr $ "Node group " ++ g ++
