@@ -1522,7 +1522,6 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       device.Assemble()
     except errors.BlockDeviceError, err:
       _Fail("Can't assemble device after creation, unusual event: %s", err)
-    device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       try:
         device.Open(force=True)
@@ -1697,7 +1696,6 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
 
   if as_primary or disk.AssembleOnSecondary():
     r_dev = bdev.Assemble(disk.dev_type, disk.physical_id, children, disk.size)
-    r_dev.SetSyncSpeed(constants.SYNC_SPEED)
     result = r_dev
     if as_primary or disk.OpenOnSecondary():
       r_dev.Open()

@@ -1743,6 +1743,7 @@ class DRBD8(BaseDRBD):
       - if we have a configured device, we try to ensure that it matches
         our config
       - if not, we create it from zero
+      - anyway, set the device parameters
 
     """
     super(DRBD8, self).Assemble()
@@ -1755,6 +1756,8 @@ class DRBD8(BaseDRBD):
       # we have to recheck the local and network status and try to fix
       # the device
       self._SlowAssemble()
+
+    self.SetSyncSpeed(constants.SYNC_SPEED)
 
   def _SlowAssemble(self):
     """Assembles the DRBD device from a (partially) configured device.
