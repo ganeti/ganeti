@@ -28,54 +28,54 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.CLI
-    ( Options(..)
-    , OptType
-    , parseOpts
-    , shTemplate
-    , defaultLuxiSocket
-    , maybePrintNodes
-    , maybePrintInsts
-    , maybeShowWarnings
-    , setNodeStatus
-    -- * The options
-    , oDataFile
-    , oDiskMoves
-    , oDiskTemplate
-    , oDynuFile
-    , oEvacMode
-    , oExInst
-    , oExTags
-    , oExecJobs
-    , oGroup
-    , oIDisk
-    , oIMem
-    , oIVcpus
-    , oInstMoves
-    , oLuxiSocket
-    , oMachineReadable
-    , oMaxCpu
-    , oMaxSolLength
-    , oMinDisk
-    , oMinGain
-    , oMinGainLim
-    , oMinScore
-    , oNoHeaders
-    , oNodeSim
-    , oOfflineNode
-    , oOutputDir
-    , oPrintCommands
-    , oPrintInsts
-    , oPrintNodes
-    , oQuiet
-    , oRapiMaster
-    , oReplay
-    , oSaveCluster
-    , oSelInst
-    , oShowHelp
-    , oShowVer
-    , oTieredSpec
-    , oVerbose
-    ) where
+  ( Options(..)
+  , OptType
+  , parseOpts
+  , shTemplate
+  , defaultLuxiSocket
+  , maybePrintNodes
+  , maybePrintInsts
+  , maybeShowWarnings
+  , setNodeStatus
+  -- * The options
+  , oDataFile
+  , oDiskMoves
+  , oDiskTemplate
+  , oDynuFile
+  , oEvacMode
+  , oExInst
+  , oExTags
+  , oExecJobs
+  , oGroup
+  , oIDisk
+  , oIMem
+  , oIVcpus
+  , oInstMoves
+  , oLuxiSocket
+  , oMachineReadable
+  , oMaxCpu
+  , oMaxSolLength
+  , oMinDisk
+  , oMinGain
+  , oMinGainLim
+  , oMinScore
+  , oNoHeaders
+  , oNodeSim
+  , oOfflineNode
+  , oOutputDir
+  , oPrintCommands
+  , oPrintInsts
+  , oPrintNodes
+  , oQuiet
+  , oRapiMaster
+  , oReplay
+  , oSaveCluster
+  , oSelInst
+  , oShowHelp
+  , oShowVer
+  , oTieredSpec
+  , oVerbose
+  ) where
 
 import Control.Monad
 import Data.Maybe (fromMaybe)
@@ -106,80 +106,80 @@ defaultLuxiSocket = C.masterSocket
 
 -- | Command line options structure.
 data Options = Options
-    { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
-    , optDiskMoves   :: Bool           -- ^ Allow disk moves
-    , optInstMoves   :: Bool           -- ^ Allow instance moves
-    , optDiskTemplate :: DiskTemplate  -- ^ The requested disk template
-    , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
-    , optEvacMode    :: Bool           -- ^ Enable evacuation mode
-    , optExInst      :: [String]       -- ^ Instances to be excluded
-    , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
-    , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
-    , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
-    , optSelInst     :: [String]       -- ^ Instances to be excluded
-    , optISpec       :: RSpec          -- ^ Requested instance specs
-    , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
-    , optMachineReadable :: Bool       -- ^ Output machine-readable format
-    , optMaster      :: String         -- ^ Collect data from RAPI
-    , optMaxLength   :: Int            -- ^ Stop after this many steps
-    , optMcpu        :: Double         -- ^ Max cpu ratio for nodes
-    , optMdsk        :: Double         -- ^ Max disk usage ratio for nodes
-    , optMinGain     :: Score          -- ^ Min gain we aim for in a step
-    , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
-    , optMinScore    :: Score          -- ^ The minimum score we aim for
-    , optNoHeaders   :: Bool           -- ^ Do not show a header line
-    , optNodeSim     :: [String]       -- ^ Cluster simulation mode
-    , optOffline     :: [String]       -- ^ Names of offline nodes
-    , optOutPath     :: FilePath       -- ^ Path to the output directory
-    , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
-    , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
-    , optShowHelp    :: Bool           -- ^ Just show the help
-    , optShowInsts   :: Bool           -- ^ Whether to show the instance map
-    , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
-    , optShowVer     :: Bool           -- ^ Just show the program version
-    , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
-    , optReplay      :: Maybe String   -- ^ Unittests: RNG state
-    , optVerbose     :: Int            -- ^ Verbosity level
-    } deriving Show
+  { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
+  , optDiskMoves   :: Bool           -- ^ Allow disk moves
+  , optInstMoves   :: Bool           -- ^ Allow instance moves
+  , optDiskTemplate :: DiskTemplate  -- ^ The requested disk template
+  , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
+  , optEvacMode    :: Bool           -- ^ Enable evacuation mode
+  , optExInst      :: [String]       -- ^ Instances to be excluded
+  , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
+  , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
+  , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
+  , optSelInst     :: [String]       -- ^ Instances to be excluded
+  , optISpec       :: RSpec          -- ^ Requested instance specs
+  , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
+  , optMachineReadable :: Bool       -- ^ Output machine-readable format
+  , optMaster      :: String         -- ^ Collect data from RAPI
+  , optMaxLength   :: Int            -- ^ Stop after this many steps
+  , optMcpu        :: Double         -- ^ Max cpu ratio for nodes
+  , optMdsk        :: Double         -- ^ Max disk usage ratio for nodes
+  , optMinGain     :: Score          -- ^ Min gain we aim for in a step
+  , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
+  , optMinScore    :: Score          -- ^ The minimum score we aim for
+  , optNoHeaders   :: Bool           -- ^ Do not show a header line
+  , optNodeSim     :: [String]       -- ^ Cluster simulation mode
+  , optOffline     :: [String]       -- ^ Names of offline nodes
+  , optOutPath     :: FilePath       -- ^ Path to the output directory
+  , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
+  , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
+  , optShowHelp    :: Bool           -- ^ Just show the help
+  , optShowInsts   :: Bool           -- ^ Whether to show the instance map
+  , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
+  , optShowVer     :: Bool           -- ^ Just show the program version
+  , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
+  , optReplay      :: Maybe String   -- ^ Unittests: RNG state
+  , optVerbose     :: Int            -- ^ Verbosity level
+  } deriving Show
 
 -- | Default values for the command line options.
 defaultOptions :: Options
 defaultOptions  = Options
- { optDataFile    = Nothing
- , optDiskMoves   = True
- , optInstMoves   = True
- , optDiskTemplate = DTDrbd8
- , optDynuFile    = Nothing
- , optEvacMode    = False
- , optExInst      = []
- , optExTags      = Nothing
- , optExecJobs    = False
- , optGroup       = Nothing
- , optSelInst     = []
- , optISpec       = RSpec 1 4096 102400
- , optLuxi        = Nothing
- , optMachineReadable = False
- , optMaster      = ""
- , optMaxLength   = -1
- , optMcpu        = defVcpuRatio
- , optMdsk        = defReservedDiskRatio
- , optMinGain     = 1e-2
- , optMinGainLim  = 1e-1
- , optMinScore    = 1e-9
- , optNoHeaders   = False
- , optNodeSim     = []
- , optOffline     = []
- , optOutPath     = "."
- , optSaveCluster = Nothing
- , optShowCmds    = Nothing
- , optShowHelp    = False
- , optShowInsts   = False
- , optShowNodes   = Nothing
- , optShowVer     = False
- , optTieredSpec  = Nothing
- , optReplay      = Nothing
- , optVerbose     = 1
- }
+  { optDataFile    = Nothing
+  , optDiskMoves   = True
+  , optInstMoves   = True
+  , optDiskTemplate = DTDrbd8
+  , optDynuFile    = Nothing
+  , optEvacMode    = False
+  , optExInst      = []
+  , optExTags      = Nothing
+  , optExecJobs    = False
+  , optGroup       = Nothing
+  , optSelInst     = []
+  , optISpec       = RSpec 1 4096 102400
+  , optLuxi        = Nothing
+  , optMachineReadable = False
+  , optMaster      = ""
+  , optMaxLength   = -1
+  , optMcpu        = defVcpuRatio
+  , optMdsk        = defReservedDiskRatio
+  , optMinGain     = 1e-2
+  , optMinGainLim  = 1e-1
+  , optMinScore    = 1e-9
+  , optNoHeaders   = False
+  , optNodeSim     = []
+  , optOffline     = []
+  , optOutPath     = "."
+  , optSaveCluster = Nothing
+  , optShowCmds    = Nothing
+  , optShowHelp    = False
+  , optShowInsts   = False
+  , optShowNodes   = Nothing
+  , optShowVer     = False
+  , optTieredSpec  = Nothing
+  , optReplay      = Nothing
+  , optVerbose     = 1
+  }
 
 -- | Abrreviation for the option type.
 type OptType = OptDescr (Options -> Result Options)
@@ -283,7 +283,7 @@ oLuxiSocket = Option "L" ["luxi"]
 
 oMachineReadable :: OptType
 oMachineReadable = Option "" ["machine-readable"]
-          (OptArg (\ f opts -> do
+                   (OptArg (\ f opts -> do
                      flag <- parseYesNo True f
                      return $ opts { optMachineReadable = flag }) "CHOICE")
           "enable machine readable output (pass either 'yes' or 'no' to\
@@ -360,11 +360,11 @@ oPrintInsts = Option "" ["print-instances"]
 oPrintNodes :: OptType
 oPrintNodes = Option "p" ["print-nodes"]
               (OptArg ((\ f opts ->
-                            let (prefix, realf) = case f of
-                                  '+':rest -> (["+"], rest)
-                                  _ -> ([], f)
-                                splitted = prefix ++ sepSplit ',' realf
-                            in Ok opts { optShowNodes = Just splitted }) .
+                          let (prefix, realf) = case f of
+                                                  '+':rest -> (["+"], rest)
+                                                  _ -> ([], f)
+                              splitted = prefix ++ sepSplit ',' realf
+                          in Ok opts { optShowNodes = Just splitted }) .
                        fromMaybe []) "FIELDS")
               "print the final node list"
 
@@ -396,20 +396,20 @@ oShowVer = Option "V" ["version"]
 oTieredSpec :: OptType
 oTieredSpec = Option "" ["tiered-alloc"]
              (ReqArg (\ inp opts -> do
-                          let sp = sepSplit ',' inp
-                          prs <- mapM (\(fn, val) -> fn val) $
-                                 zip [ annotateResult "tiered specs memory" .
-                                       parseUnit
-                                     , annotateResult "tiered specs disk" .
-                                       parseUnit
-                                     , tryRead "tiered specs cpus"
-                                     ] sp
-                          tspec <-
-                              case prs of
-                                [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
-                                _ -> Bad $ "Invalid specification: " ++ inp ++
-                                     ", expected disk,ram,cpu"
-                          return $ opts { optTieredSpec = Just tspec } )
+                        let sp = sepSplit ',' inp
+                        prs <- mapM (\(fn, val) -> fn val) $
+                               zip [ annotateResult "tiered specs memory" .
+                                     parseUnit
+                                   , annotateResult "tiered specs disk" .
+                                     parseUnit
+                                   , tryRead "tiered specs cpus"
+                                   ] sp
+                        tspec <-
+                          case prs of
+                            [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
+                            _ -> Bad $ "Invalid specification: " ++ inp ++
+                                 ", expected disk,ram,cpu"
+                        return $ opts { optTieredSpec = Just tspec } )
               "TSPEC")
              "enable tiered specs allocation, given as 'disk,ram,cpu'"
 
@@ -438,8 +438,8 @@ parseYesNo _ (Just s)     = fail $ "Invalid choice '" ++ s ++
 -- | Usage info.
 usageHelp :: String -> [OptType] -> String
 usageHelp progname =
-    usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
-               progname Version.version progname)
+  usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
+             progname Version.version progname)
 
 -- | Command line parser, using the 'Options' structure.
 parseOpts :: [String]               -- ^ The command line arguments
@@ -448,45 +448,45 @@ parseOpts :: [String]               -- ^ The command line arguments
           -> IO (Options, [String]) -- ^ The resulting options and leftover
                                     -- arguments
 parseOpts argv progname options =
-    case getOpt Permute options argv of
-      (o, n, []) ->
-          do
-            let (pr, args) = (foldM (flip id) defaultOptions o, n)
-            po <- (case pr of
-                     Bad msg -> do
-                       hPutStrLn stderr "Error while parsing command\
-                                        \line arguments:"
-                       hPutStrLn stderr msg
-                       exitWith $ ExitFailure 1
-                     Ok val -> return val)
-            when (optShowHelp po) $ do
-              putStr $ usageHelp progname options
-              exitWith ExitSuccess
-            when (optShowVer po) $ do
-              printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
-                     progname Version.version
-                     compilerName (Data.Version.showVersion compilerVersion)
-                     os arch :: IO ()
-              exitWith ExitSuccess
-            return (po, args)
-      (_, _, errs) -> do
-        hPutStrLn stderr $ "Command line error: "  ++ concat errs
-        hPutStrLn stderr $ usageHelp progname options
-        exitWith $ ExitFailure 2
+  case getOpt Permute options argv of
+    (o, n, []) ->
+      do
+        let (pr, args) = (foldM (flip id) defaultOptions o, n)
+        po <- (case pr of
+                 Bad msg -> do
+                   hPutStrLn stderr "Error while parsing command\
+                                    \line arguments:"
+                   hPutStrLn stderr msg
+                   exitWith $ ExitFailure 1
+                 Ok val -> return val)
+        when (optShowHelp po) $ do
+          putStr $ usageHelp progname options
+          exitWith ExitSuccess
+        when (optShowVer po) $ do
+          printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
+                 progname Version.version
+                 compilerName (Data.Version.showVersion compilerVersion)
+                 os arch :: IO ()
+          exitWith ExitSuccess
+        return (po, args)
+    (_, _, errs) -> do
+      hPutStrLn stderr $ "Command line error: "  ++ concat errs
+      hPutStrLn stderr $ usageHelp progname options
+      exitWith $ ExitFailure 2
 
 -- | A shell script template for autogenerated scripts.
 shTemplate :: String
 shTemplate =
-    printf "#!/bin/sh\n\n\
-           \# Auto-generated script for executing cluster rebalancing\n\n\
-           \# To stop, touch the file /tmp/stop-htools\n\n\
-           \set -e\n\n\
-           \check() {\n\
-           \  if [ -f /tmp/stop-htools ]; then\n\
-           \    echo 'Stop requested, exiting'\n\
-           \    exit 0\n\
-           \  fi\n\
-           \}\n\n"
+  printf "#!/bin/sh\n\n\
+         \# Auto-generated script for executing cluster rebalancing\n\n\
+         \# To stop, touch the file /tmp/stop-htools\n\n\
+         \set -e\n\n\
+         \check() {\n\
+         \  if [ -f /tmp/stop-htools ]; then\n\
+         \    echo 'Stop requested, exiting'\n\
+         \    exit 0\n\
+         \  fi\n\
+         \}\n\n"
 
 -- | Optionally print the node list.
 maybePrintNodes :: Maybe [String]       -- ^ The field list
