@@ -451,10 +451,12 @@ class Mainloop(object):
     assert isinstance(signal_handlers, dict) and \
            len(signal_handlers) > 0, \
            "Broken SignalHandled decorator"
-    running = True
+
+    # Counter for received signals
+    shutdown_signals = 0
 
     # Start actual main loop
-    while running:
+    while shutdown_signals < 1:
       if not self.scheduler.empty():
         try:
           self.scheduler.run()
@@ -464,11 +466,12 @@ class Mainloop(object):
         asyncore.loop(count=1, use_poll=True)
 
       # Check whether a signal was raised
-      for sig in signal_handlers:
-        handler = signal_handlers[sig]
+      for (sig, handler) in signal_handlers.items():
         if handler.called:
           self._CallSignalWaiters(sig)
-          running = sig not in (signal.SIGTERM, signal.SIGINT)
+          if sig in (signal.SIGTERM, signal.SIGINT):
+            logging.info("Received signal %s asking for shutdown", sig)
+            shutdown_signals += 1
           handler.Clear()
 
   def _CallSignalWaiters(self, signum):
