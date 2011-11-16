@@ -22,33 +22,32 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Utils
-    (
-      debug
-    , debugFn
-    , debugXy
-    , sepSplit
-    , stdDev
-    , if'
-    , select
-    , applyIf
-    , commaJoin
-    , readEitherString
-    , JSRecord
-    , loadJSArray
-    , fromObj
-    , fromObjWithDefault
-    , maybeFromObj
-    , tryFromObj
-    , fromJVal
-    , asJSObject
-    , asObjectList
-    , fromJResult
-    , tryRead
-    , formatTable
-    , annotateResult
-    , defaultGroupID
-    , parseUnit
-    ) where
+  ( debug
+  , debugFn
+  , debugXy
+  , sepSplit
+  , stdDev
+  , if'
+  , select
+  , applyIf
+  , commaJoin
+  , readEitherString
+  , JSRecord
+  , loadJSArray
+  , fromObj
+  , fromObjWithDefault
+  , maybeFromObj
+  , tryFromObj
+  , fromJVal
+  , asJSObject
+  , asObjectList
+  , fromJResult
+  , tryRead
+  , formatTable
+  , annotateResult
+  , defaultGroupID
+  , parseUnit
+  ) where
 
 import Data.Char (toUpper)
 import Data.List
@@ -88,12 +87,12 @@ commaJoin = intercalate ","
 -- | Split a list on a separator and return an array.
 sepSplit :: Eq a => a -> [a] -> [[a]]
 sepSplit sep s
-    | null s    = []
-    | null xs   = [x]
-    | null ys   = [x,[]]
-    | otherwise = x:sepSplit sep ys
-    where (x, xs) = break (== sep) s
-          ys = drop 1 xs
+  | null s    = []
+  | null xs   = [x]
+  | null ys   = [x,[]]
+  | otherwise = x:sepSplit sep ys
+  where (x, xs) = break (== sep) s
+        ys = drop 1 xs
 
 -- * Mathematical functions
 
@@ -134,7 +133,6 @@ select :: a            -- ^ default result
        -> [(Bool, a)]  -- ^ list of \"condition, result\"
        -> a            -- ^ first result which has a True condition, or default
 select def = maybe def snd . find fst
-
 
 -- | Annotate a Result with an ownership information.
 annotateResult :: String -> Result a -> Result a
@@ -195,22 +193,22 @@ defaultGroupID = "00000000-0000-0000-0000-000000000000"
 -- value in MiB.
 parseUnit :: (Monad m, Integral a, Read a) => String -> m a
 parseUnit str =
-    -- TODO: enhance this by splitting the unit parsing code out and
-    -- accepting floating-point numbers
-    case reads str of
-      [(v, suffix)] ->
-          let unit = dropWhile (== ' ') suffix
-              upper = map toUpper unit
-              siConvert x = x * 1000000 `div` 1048576
-          in case () of
-               _ | null unit -> return v
-                 | unit == "m" || upper == "MIB" -> return v
-                 | unit == "M" || upper == "MB"  -> return $ siConvert v
-                 | unit == "g" || upper == "GIB" -> return $ v * 1024
-                 | unit == "G" || upper == "GB"  -> return $ siConvert
-                                                    (v * 1000)
-                 | unit == "t" || upper == "TIB" -> return $ v * 1048576
-                 | unit == "T" || upper == "TB"  -> return $
-                                                    siConvert (v * 1000000)
-                 | otherwise -> fail $ "Unknown unit '" ++ unit ++ "'"
-      _ -> fail $ "Can't parse string '" ++ str ++ "'"
+  -- TODO: enhance this by splitting the unit parsing code out and
+  -- accepting floating-point numbers
+  case reads str of
+    [(v, suffix)] ->
+      let unit = dropWhile (== ' ') suffix
+          upper = map toUpper unit
+          siConvert x = x * 1000000 `div` 1048576
+      in case () of
+           _ | null unit -> return v
+             | unit == "m" || upper == "MIB" -> return v
+             | unit == "M" || upper == "MB"  -> return $ siConvert v
+             | unit == "g" || upper == "GIB" -> return $ v * 1024
+             | unit == "G" || upper == "GB"  -> return $ siConvert
+                                                (v * 1000)
+             | unit == "t" || upper == "TIB" -> return $ v * 1048576
+             | unit == "T" || upper == "TB"  -> return $
+                                                siConvert (v * 1000000)
+             | otherwise -> fail $ "Unknown unit '" ++ unit ++ "'"
+    _ -> fail $ "Can't parse string '" ++ str ++ "'"

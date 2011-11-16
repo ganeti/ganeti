@@ -26,9 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Jobs
-    ( OpStatus(..)
-    , JobStatus(..)
-    ) where
+  ( OpStatus(..)
+  , JobStatus(..)
+  ) where
 
 import Text.JSON (readJSON, showJSON, JSON)
 import qualified Text.JSON as J
@@ -38,26 +38,26 @@ import qualified Ganeti.THH as THH
 
 -- | Our ADT for the OpCode status at runtime (while in a job).
 $(THH.declareSADT "OpStatus"
-         [ ("OP_STATUS_QUEUED",    'C.opStatusQueued)
-         , ("OP_STATUS_WAITING",   'C.opStatusWaiting)
-         , ("OP_STATUS_CANCELING", 'C.opStatusCanceling)
-         , ("OP_STATUS_RUNNING",   'C.opStatusRunning)
-         , ("OP_STATUS_CANCELED",  'C.opStatusCanceled)
-         , ("OP_STATUS_SUCCESS",   'C.opStatusSuccess)
-         , ("OP_STATUS_ERROR",     'C.opStatusError)
-         ])
+       [ ("OP_STATUS_QUEUED",    'C.opStatusQueued)
+       , ("OP_STATUS_WAITING",   'C.opStatusWaiting)
+       , ("OP_STATUS_CANCELING", 'C.opStatusCanceling)
+       , ("OP_STATUS_RUNNING",   'C.opStatusRunning)
+       , ("OP_STATUS_CANCELED",  'C.opStatusCanceled)
+       , ("OP_STATUS_SUCCESS",   'C.opStatusSuccess)
+       , ("OP_STATUS_ERROR",     'C.opStatusError)
+       ])
 $(THH.makeJSONInstance ''OpStatus)
 
 -- | The JobStatus data type. Note that this is ordered especially
 -- such that greater\/lesser comparison on values of this type makes
 -- sense.
 $(THH.declareSADT "JobStatus"
-         [ ("JOB_STATUS_QUEUED",    'C.jobStatusQueued)
-         , ("JOB_STATUS_WAITING",   'C.jobStatusWaiting)
-         , ("JOB_STATUS_CANCELING", 'C.jobStatusCanceling)
-         , ("JOB_STATUS_RUNNING",   'C.jobStatusRunning)
-         , ("JOB_STATUS_CANCELED",  'C.jobStatusCanceled)
-         , ("JOB_STATUS_SUCCESS",   'C.jobStatusSuccess)
-         , ("JOB_STATUS_ERROR",     'C.jobStatusError)
-         ])
+       [ ("JOB_STATUS_QUEUED",    'C.jobStatusQueued)
+       , ("JOB_STATUS_WAITING",   'C.jobStatusWaiting)
+       , ("JOB_STATUS_CANCELING", 'C.jobStatusCanceling)
+       , ("JOB_STATUS_RUNNING",   'C.jobStatusRunning)
+       , ("JOB_STATUS_CANCELED",  'C.jobStatusCanceled)
+       , ("JOB_STATUS_SUCCESS",   'C.jobStatusSuccess)
+       , ("JOB_STATUS_ERROR",     'C.jobStatusError)
+       ])
 $(THH.makeJSONInstance ''JobStatus)

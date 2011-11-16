@@ -27,33 +27,32 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Container
-    (
-     -- * Types
-     Container
-    , Key
-     -- * Creation
-    , IntMap.empty
-    , IntMap.singleton
-    , IntMap.fromList
-     -- * Query
-    , IntMap.size
-    , IntMap.null
-    , find
-    , IntMap.findMax
-    , IntMap.member
-     -- * Update
-    , add
-    , addTwo
-    , IntMap.map
-    , IntMap.mapAccum
-    , IntMap.filter
-    -- * Conversion
-    , IntMap.elems
-    , IntMap.keys
-    -- * Element functions
-    , nameOf
-    , findByName
-    ) where
+  ( -- * Types
+    Container
+  , Key
+  -- * Creation
+  , IntMap.empty
+  , IntMap.singleton
+  , IntMap.fromList
+  -- * Query
+  , IntMap.size
+  , IntMap.null
+  , find
+  , IntMap.findMax
+  , IntMap.member
+  -- * Update
+  , add
+  , addTwo
+  , IntMap.map
+  , IntMap.mapAccum
+  , IntMap.filter
+  -- * Conversion
+  , IntMap.elems
+  , IntMap.keys
+  -- * Element functions
+  , nameOf
+  , findByName
+  ) where
 
 import qualified Data.IntMap as IntMap
 
@@ -86,8 +85,8 @@ nameOf c k = T.nameOf $ find k c
 findByName :: (T.Element a, Monad m) =>
               Container a -> String -> m a
 findByName c n =
-    let all_elems = IntMap.elems c
-        result = filter ((n `elem`) . T.allNames) all_elems
-    in case result of
-         [item] -> return item
-         _ -> fail $ "Wrong number of elems found with name " ++ n
+  let all_elems = IntMap.elems c
+      result = filter ((n `elem`) . T.allNames) all_elems
+  in case result of
+       [item] -> return item
+       _ -> fail $ "Wrong number of elems found with name " ++ n

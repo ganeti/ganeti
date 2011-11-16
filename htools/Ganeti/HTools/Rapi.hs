@@ -26,10 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 {-# LANGUAGE BangPatterns, CPP #-}
 
 module Ganeti.HTools.Rapi
-    (
-      loadData
-    , parseData
-    ) where
+  ( loadData
+  , parseData
+  ) where
 
 import Data.Maybe (fromMaybe)
 #ifndef NO_CURL
@@ -76,7 +75,8 @@ getUrl url = do
 -- | Append the default port if not passed in.
 formatHost :: String -> String
 formatHost master =
-    if ':' `elem` master then  master
+  if ':' `elem` master
+    then  master
     else "https://" ++ master ++ ":" ++ show C.defaultRapiPort
 
 -- | Parse a instance list in JSON format.
@@ -84,18 +84,18 @@ getInstances :: NameAssoc
              -> String
              -> Result [(String, Instance.Instance)]
 getInstances ktn body =
-    loadJSArray "Parsing instance data" body >>=
-    mapM (parseInstance ktn . fromJSObject)
+  loadJSArray "Parsing instance data" body >>=
+  mapM (parseInstance ktn . fromJSObject)
 
 -- | Parse a node list in JSON format.
 getNodes :: NameAssoc -> String -> Result [(String, Node.Node)]
 getNodes ktg body = loadJSArray "Parsing node data" body >>=
-                mapM (parseNode ktg . fromJSObject)
+                    mapM (parseNode ktg . fromJSObject)
 
 -- | Parse a group list in JSON format.
 getGroups :: String -> Result [(String, Group.Group)]
 getGroups body = loadJSArray "Parsing group data" body >>=
-                mapM (parseGroup . fromJSObject)
+                 mapM (parseGroup . fromJSObject)
 
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc

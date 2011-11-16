@@ -28,10 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.ExtLoader
-    ( loadExternalData
-    , commonSuffix
-    , maybeSaveData
-    ) where
+  ( loadExternalData
+  , commonSuffix
+  , maybeSaveData
+  ) where
 
 import Control.Monad
 import Data.Maybe (isJust, fromJust)
@@ -58,17 +58,17 @@ wrapIO = flip catch (return . Bad . show)
 -- | Parses a user-supplied utilisation string.
 parseUtilisation :: String -> Result (String, DynUtil)
 parseUtilisation line =
-    case sepSplit ' ' line of
-      [name, cpu, mem, dsk, net] ->
-          do
-            rcpu <- tryRead name cpu
-            rmem <- tryRead name mem
-            rdsk <- tryRead name dsk
-            rnet <- tryRead name net
-            let du = DynUtil { cpuWeight = rcpu, memWeight = rmem
-                             , dskWeight = rdsk, netWeight = rnet }
-            return (name, du)
-      _ -> Bad $ "Cannot parse line " ++ line
+  case sepSplit ' ' line of
+    [name, cpu, mem, dsk, net] ->
+      do
+        rcpu <- tryRead name cpu
+        rmem <- tryRead name mem
+        rdsk <- tryRead name dsk
+        rnet <- tryRead name net
+        let du = DynUtil { cpuWeight = rcpu, memWeight = rmem
+                         , dskWeight = rdsk, netWeight = rnet }
+        return (name, du)
+    _ -> Bad $ "Cannot parse line " ++ line
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
@@ -100,28 +100,28 @@ loadExternalData opts = do
                       Nothing -> return "")
   let util_data = mapM parseUtilisation $ lines util_contents
   util_data' <- (case util_data of
-                   Ok x -> return x
+                   Ok x  -> return x
                    Bad y -> do
                      hPutStrLn stderr ("Error: can't parse utilisation" ++
                                        " data: " ++ show y)
                      exitWith $ ExitFailure 1)
   input_data <-
-      case () of
-        _ | setRapi -> wrapIO $ Rapi.loadData mhost
-          | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
-          | setSim -> Simu.loadData simdata
-          | setFile -> wrapIO $ Text.loadData $ fromJust tfile
-          | otherwise -> return $ Bad "No backend selected! Exiting."
+    case () of
+      _ | setRapi -> wrapIO $ Rapi.loadData mhost
+        | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
+        | setSim -> Simu.loadData simdata
+        | setFile -> wrapIO $ Text.loadData $ fromJust tfile
+        | otherwise -> return $ Bad "No backend selected! Exiting."
 
   let ldresult = input_data >>= mergeData util_data' exTags selInsts exInsts
   cdata <-
-      (case ldresult of
-         Ok x -> return x
-         Bad s -> do
-           hPrintf stderr
-             "Error: failed to load data, aborting. Details:\n%s\n" s:: IO ()
-           exitWith $ ExitFailure 1
-      )
+    (case ldresult of
+       Ok x -> return x
+       Bad s -> do
+         hPrintf stderr
+           "Error: failed to load data, aborting. Details:\n%s\n" s:: IO ()
+         exitWith $ ExitFailure 1
+    )
   let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs

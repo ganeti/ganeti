@@ -27,29 +27,29 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Instance
-    ( Instance(..)
-    , AssocList
-    , List
-    , create
-    , instanceRunning
-    , instanceOffline
-    , instanceDown
-    , applyIfOnline
-    , setIdx
-    , setName
-    , setAlias
-    , setPri
-    , setSec
-    , setBoth
-    , setMovable
-    , specOf
-    , shrinkByType
-    , localStorageTemplates
-    , hasSecondary
-    , requiredNodes
-    , allNodes
-    , usesLocalStorage
-    ) where
+  ( Instance(..)
+  , AssocList
+  , List
+  , create
+  , instanceRunning
+  , instanceOffline
+  , instanceDown
+  , applyIfOnline
+  , setIdx
+  , setName
+  , setAlias
+  , setPri
+  , setSec
+  , setBoth
+  , setMovable
+  , specOf
+  , shrinkByType
+  , localStorageTemplates
+  , hasSecondary
+  , requiredNodes
+  , allNodes
+  , usesLocalStorage
+  ) where
 
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
@@ -61,39 +61,39 @@ import Ganeti.HTools.Utils
 
 -- | The instance type.
 data Instance = Instance
-    { name         :: String    -- ^ The instance name
-    , alias        :: String    -- ^ The shortened name
-    , mem          :: Int       -- ^ Memory of the instance
-    , dsk          :: Int       -- ^ Disk size of instance
-    , vcpus        :: Int       -- ^ Number of VCPUs
-    , runSt        :: T.InstanceStatus -- ^ Original run status
-    , pNode        :: T.Ndx     -- ^ Original primary node
-    , sNode        :: T.Ndx     -- ^ Original secondary node
-    , idx          :: T.Idx     -- ^ Internal index
-    , util         :: T.DynUtil -- ^ Dynamic resource usage
-    , movable      :: Bool      -- ^ Can and should the instance be moved?
-    , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
-    , tags         :: [String]  -- ^ List of instance tags
-    , diskTemplate :: T.DiskTemplate -- ^ The disk template of the instance
-    } deriving (Show, Read)
+  { name         :: String    -- ^ The instance name
+  , alias        :: String    -- ^ The shortened name
+  , mem          :: Int       -- ^ Memory of the instance
+  , dsk          :: Int       -- ^ Disk size of instance
+  , vcpus        :: Int       -- ^ Number of VCPUs
+  , runSt        :: T.InstanceStatus -- ^ Original run status
+  , pNode        :: T.Ndx     -- ^ Original primary node
+  , sNode        :: T.Ndx     -- ^ Original secondary node
+  , idx          :: T.Idx     -- ^ Internal index
+  , util         :: T.DynUtil -- ^ Dynamic resource usage
+  , movable      :: Bool      -- ^ Can and should the instance be moved?
+  , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
+  , tags         :: [String]  -- ^ List of instance tags
+  , diskTemplate :: T.DiskTemplate -- ^ The disk template of the instance
+  } deriving (Show, Read)
 
 instance T.Element Instance where
-    nameOf   = name
-    idxOf    = idx
-    setAlias = setAlias
-    setIdx   = setIdx
-    allNames n = [name n, alias n]
+  nameOf   = name
+  idxOf    = idx
+  setAlias = setAlias
+  setIdx   = setIdx
+  allNames n = [name n, alias n]
 
 -- | Check if instance is running.
 instanceRunning :: Instance -> Bool
 instanceRunning (Instance {runSt = T.Running}) = True
 instanceRunning (Instance {runSt = T.ErrorUp}) = True
-instanceRunning _                               = False
+instanceRunning _                              = False
 
 -- | Check if instance is offline.
 instanceOffline :: Instance -> Bool
 instanceOffline (Instance {runSt = T.AdminOffline}) = True
-instanceOffline _                                    = False
+instanceOffline _                                   = False
 
 -- | Check if instance is down.
 instanceDown :: Instance -> Bool
@@ -141,21 +141,21 @@ create :: String -> Int -> Int -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Instance
 create name_init mem_init dsk_init vcpus_init run_init tags_init
        auto_balance_init pn sn dt =
-    Instance { name = name_init
-             , alias = name_init
-             , mem = mem_init
-             , dsk = dsk_init
-             , vcpus = vcpus_init
-             , runSt = run_init
-             , pNode = pn
-             , sNode = sn
-             , idx = -1
-             , util = T.baseUtil
-             , tags = tags_init
-             , movable = supportsMoves dt
-             , autoBalance = auto_balance_init
-             , diskTemplate = dt
-             }
+  Instance { name = name_init
+           , alias = name_init
+           , mem = mem_init
+           , dsk = dsk_init
+           , vcpus = vcpus_init
+           , runSt = run_init
+           , pNode = pn
+           , sNode = sn
+           , idx = -1
+           , util = T.baseUtil
+           , tags = tags_init
+           , movable = supportsMoves dt
+           , autoBalance = auto_balance_init
+           , diskTemplate = dt
+           }
 
 -- | Changes the index.
 --
@@ -228,7 +228,7 @@ shrinkByType _ f = T.Bad $ "Unhandled failure mode " ++ show f
 -- | Return the spec of an instance.
 specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c } =
-    T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
+  T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
 
 -- | Checks whether the instance uses a secondary node.
 --

@@ -39,14 +39,14 @@ import Ganeti.HTools.ExtLoader (maybeSaveData)
 -- | Options list and functions.
 options :: [OptType]
 options =
-    [ oPrintNodes
-    , oSaveCluster
-    , oDataFile
-    , oNodeSim
-    , oVerbose
-    , oShowVer
-    , oShowHelp
-    ]
+  [ oPrintNodes
+  , oSaveCluster
+  , oDataFile
+  , oNodeSim
+  , oVerbose
+  , oShowVer
+  , oShowHelp
+  ]
 
 -- | Main function.
 main :: IO ()

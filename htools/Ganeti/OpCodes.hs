@@ -26,10 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.OpCodes
-    ( OpCode(..)
-    , ReplaceDisksMode(..)
-    , opID
-    ) where
+  ( OpCode(..)
+  , ReplaceDisksMode(..)
+  , opID
+  ) where
 
 import Text.JSON (readJSON, showJSON, makeObj, JSON)
 import qualified Text.JSON as J
@@ -41,11 +41,11 @@ import Ganeti.HTools.Utils
 
 -- | Replace disks type.
 $(declareSADT "ReplaceDisksMode"
-     [ ("ReplaceOnPrimary",    'C.replaceDiskPri)
-     , ("ReplaceOnSecondary",  'C.replaceDiskSec)
-     , ("ReplaceNewSecondary", 'C.replaceDiskChg)
-     , ("ReplaceAuto",         'C.replaceDiskAuto)
-     ])
+  [ ("ReplaceOnPrimary",    'C.replaceDiskPri)
+  , ("ReplaceOnSecondary",  'C.replaceDiskSec)
+  , ("ReplaceNewSecondary", 'C.replaceDiskChg)
+  , ("ReplaceAuto",         'C.replaceDiskAuto)
+  ])
 $(makeJSONInstance ''ReplaceDisksMode)
 
 -- | OpCode representation.
@@ -53,34 +53,34 @@ $(makeJSONInstance ''ReplaceDisksMode)
 -- We only implement a subset of Ganeti opcodes, but only what we
 -- actually use in the htools codebase.
 $(genOpCode "OpCode"
-         [ ("OpTestDelay",
-            [ ("duration",  [t| Double   |], noDefault)
-            , ("on_master", [t| Bool     |], noDefault)
-            , ("on_nodes",  [t| [String] |], noDefault)
-            ])
-         , ("OpInstanceReplaceDisks",
-            [ ("instance_name", [t| String           |], noDefault)
-            , ("remote_node",   [t| Maybe String     |], noDefault)
-            , ("mode",          [t| ReplaceDisksMode |], noDefault)
-            , ("disks",         [t| [Int]            |], noDefault)
-            , ("iallocator",    [t| Maybe String     |], noDefault)
-            ])
-         , ("OpInstanceFailover",
-            [ ("instance_name",      [t| String       |], noDefault)
-            , ("ignore_consistency", [t| Bool         |], noDefault)
-            , ("target_node",        [t| Maybe String |], noDefault)
-            ])
-         , ("OpInstanceMigrate",
-            [ ("instance_name",  [t| String       |], noDefault)
-            , ("live",           [t| Bool         |], noDefault)
-            , ("cleanup",        [t| Bool         |], noDefault)
-            , ("allow_failover", [t| Bool         |], [| Just False |])
-            , ("target_node",    [t| Maybe String |], noDefault)
-            ])
-         ])
+  [ ("OpTestDelay",
+     [ ("duration",  [t| Double   |], noDefault)
+     , ("on_master", [t| Bool     |], noDefault)
+     , ("on_nodes",  [t| [String] |], noDefault)
+     ])
+  , ("OpInstanceReplaceDisks",
+     [ ("instance_name", [t| String           |], noDefault)
+     , ("remote_node",   [t| Maybe String     |], noDefault)
+     , ("mode",          [t| ReplaceDisksMode |], noDefault)
+     , ("disks",         [t| [Int]            |], noDefault)
+     , ("iallocator",    [t| Maybe String     |], noDefault)
+     ])
+  , ("OpInstanceFailover",
+     [ ("instance_name",      [t| String       |], noDefault)
+     , ("ignore_consistency", [t| Bool         |], noDefault)
+     , ("target_node",        [t| Maybe String |], noDefault)
+     ])
+  , ("OpInstanceMigrate",
+     [ ("instance_name",  [t| String       |], noDefault)
+     , ("live",           [t| Bool         |], noDefault)
+     , ("cleanup",        [t| Bool         |], noDefault)
+     , ("allow_failover", [t| Bool         |], [| Just False |])
+     , ("target_node",    [t| Maybe String |], noDefault)
+     ])
+  ])
 
 $(genOpID ''OpCode "opID")
 
 instance JSON OpCode where
-    readJSON = loadOpCode
-    showJSON = saveOpCode
+  readJSON = loadOpCode
+  showJSON = saveOpCode

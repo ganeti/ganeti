@@ -8,7 +8,7 @@ implementation should be easy in case it's needed.
 
 {-
 
-Copyright (C) 2009 Google Inc.
+Copyright (C) 2009, 2011 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,16 +28,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.PeerMap
-    ( PeerMap
-    , Key
-    , Elem
-    , empty
-    , accumArray
-    , Ganeti.HTools.PeerMap.find
-    , add
-    , remove
-    , maxElem
-    ) where
+  ( PeerMap
+  , Key
+  , Elem
+  , empty
+  , accumArray
+  , Ganeti.HTools.PeerMap.find
+  , add
+  , remove
+  , maxElem
+  ) where
 
 import Data.Maybe (fromMaybe)
 import Data.List
@@ -70,9 +70,9 @@ pmCompare a b = comparing snd b a
 -- | Add or update (via a custom function) an element.
 addWith :: (Elem -> Elem -> Elem) -> Key -> Elem -> PeerMap -> PeerMap
 addWith fn k v lst =
-    case lookup k lst of
-      Nothing -> insertBy pmCompare (k, v) lst
-      Just o -> insertBy pmCompare (k, fn o v) (remove k lst)
+  case lookup k lst of
+    Nothing -> insertBy pmCompare (k, v) lst
+    Just o -> insertBy pmCompare (k, fn o v) (remove k lst)
 
 -- | Create a PeerMap from an association list, with possible duplicates.
 accumArray :: (Elem -> Elem -> Elem) -- ^ function used to merge the elements

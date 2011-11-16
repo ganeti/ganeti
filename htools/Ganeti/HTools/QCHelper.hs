@@ -26,8 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.QCHelper
-    ( testSuite
-    ) where
+  ( testSuite
+  ) where
 
 import Test.QuickCheck
 import Language.Haskell.TH

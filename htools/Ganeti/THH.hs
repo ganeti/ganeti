@@ -93,9 +93,9 @@ appFn f x | f == VarE 'id = x
 -- The type will have a fixed list of instances.
 strADTDecl :: Name -> [String] -> Dec
 strADTDecl name constructors =
-    DataD [] name []
-              (map (flip NormalC [] . mkName) constructors)
-              [''Show, ''Read, ''Eq, ''Enum, ''Bounded, ''Ord]
+  DataD [] name []
+          (map (flip NormalC [] . mkName) constructors)
+          [''Show, ''Read, ''Eq, ''Enum, ''Bounded, ''Ord]
 
 -- | Generates a toRaw function.
 --

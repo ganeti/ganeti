@@ -22,18 +22,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.JSON
-    ( fromJResult
-    , readEitherString
-    , JSRecord
-    , loadJSArray
-    , fromObj
-    , maybeFromObj
-    , fromObjWithDefault
-    , fromJVal
-    , asJSObject
-    , asObjectList
-    )
-    where
+  ( fromJResult
+  , readEitherString
+  , JSRecord
+  , loadJSArray
+  , fromObj
+  , maybeFromObj
+  , fromObjWithDefault
+  , fromJVal
+  , asJSObject
+  , asObjectList
+  )
+  where
 
 import Control.Monad (liftM)
 import Data.Maybe (fromMaybe)
@@ -57,9 +57,9 @@ fromJResult _ (J.Ok x) = return x
 -- context of the current monad.
 readEitherString :: (Monad m) => J.JSValue -> m String
 readEitherString v =
-    case v of
-      J.JSString s -> return $ J.fromJSString s
-      _ -> fail "Wrong JSON type"
+  case v of
+    J.JSString s -> return $ J.fromJSString s
+    _ -> fail "Wrong JSON type"
 
 -- | Converts a JSON message into an array of JSON objects.
 loadJSArray :: (Monad m)
@@ -71,18 +71,18 @@ loadJSArray s = fromJResult s . J.decodeStrict
 -- | Reads the value of a key in a JSON object.
 fromObj :: (J.JSON a, Monad m) => JSRecord -> String -> m a
 fromObj o k =
-    case lookup k o of
-      Nothing -> fail $ printf "key '%s' not found, object contains only %s"
-                 k (show (map fst o))
-      Just val -> fromKeyValue k val
+  case lookup k o of
+    Nothing -> fail $ printf "key '%s' not found, object contains only %s"
+               k (show (map fst o))
+    Just val -> fromKeyValue k val
 
 -- | Reads the value of an optional key in a JSON object.
 maybeFromObj :: (J.JSON a, Monad m) =>
                 JSRecord -> String -> m (Maybe a)
 maybeFromObj o k =
-    case lookup k o of
-      Nothing -> return Nothing
-      Just val -> liftM Just (fromKeyValue k val)
+  case lookup k o of
+    Nothing -> return Nothing
+    Just val -> liftM Just (fromKeyValue k val)
 
 -- | Reads the value of a key in a JSON object with a default if missing.
 fromObjWithDefault :: (J.JSON a, Monad m) =>
@@ -100,10 +100,10 @@ fromKeyValue k val =
 -- | Small wrapper over readJSON.
 fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a
 fromJVal v =
-    case J.readJSON v of
-      J.Error s -> fail ("Cannot convert value '" ++ show v ++
-                         "', error: " ++ s)
-      J.Ok x -> return x
+  case J.readJSON v of
+    J.Error s -> fail ("Cannot convert value '" ++ show v ++
+                       "', error: " ++ s)
+    J.Ok x -> return x
 
 -- | Converts a JSON value into a JSON object.
 asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)

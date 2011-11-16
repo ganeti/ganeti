@@ -2,7 +2,8 @@
 
 {- | Compatibility helper module.
 
-This module holds definitions that help with supporting multiple library versions or transitions between versions.
+This module holds definitions that help with supporting multiple
+library versions or transitions between versions.
 
 -}
 
@@ -28,9 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Compat
-    ( rwhnf
-    , Control.Parallel.Strategies.parMap
-    ) where
+  ( rwhnf
+  , Control.Parallel.Strategies.parMap
+  ) where
 
 import qualified Control.Parallel.Strategies
 

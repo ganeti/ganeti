@@ -26,10 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Simu
-    (
-      loadData
-    , parseData
-    ) where
+  ( loadData
+  , parseData
+  ) where
 
 import Control.Monad (mplus)
 import Text.Printf (printf)
@@ -52,18 +51,18 @@ apolAbbrev c | c == "p"  = return AllocPreferred
 -- | Parse the string description into nodes.
 parseDesc :: String -> Result (AllocPolicy, Int, Int, Int, Int)
 parseDesc desc =
-    case sepSplit ',' desc of
-      [a, n, d, m, c] -> do
-        apol <- allocPolicyFromRaw a `mplus` apolAbbrev a
-        ncount <- tryRead "node count" n
-        disk <- annotateResult "disk size" (parseUnit d)
-        mem <- annotateResult "memory size" (parseUnit m)
-        cpu <- tryRead "cpu count" c
-        return (apol, ncount, disk, mem, cpu)
-      es -> fail $ printf
-            "Invalid cluster specification, expected 5 comma-separated\
-            \ sections (allocation policy, node count, disk size,\
-            \ memory size, number of CPUs) but got %d: '%s'" (length es) desc
+  case sepSplit ',' desc of
+    [a, n, d, m, c] -> do
+      apol <- allocPolicyFromRaw a `mplus` apolAbbrev a
+      ncount <- tryRead "node count" n
+      disk <- annotateResult "disk size" (parseUnit d)
+      mem <- annotateResult "memory size" (parseUnit m)
+      cpu <- tryRead "cpu count" c
+      return (apol, ncount, disk, mem, cpu)
+    es -> fail $ printf
+          "Invalid cluster specification, expected 5 comma-separated\
+          \ sections (allocation policy, node count, disk size,\
+          \ memory size, number of CPUs) but got %d: '%s'" (length es) desc
 
 -- | Creates a node group with the given specifications.
 createGroup :: Int    -- ^ The group index
@@ -72,10 +71,10 @@ createGroup :: Int    -- ^ The group index
 createGroup grpIndex spec = do
   (apol, ncount, disk, mem, cpu) <- parseDesc spec
   let nodes = map (\idx ->
-                       Node.create (printf "node-%02d-%03d" grpIndex idx)
-                               (fromIntegral mem) 0 mem
-                               (fromIntegral disk) disk
-                               (fromIntegral cpu) False grpIndex
+                     Node.create (printf "node-%02d-%03d" grpIndex idx)
+                           (fromIntegral mem) 0 mem
+                           (fromIntegral disk) disk
+                           (fromIntegral cpu) False grpIndex
                   ) [1..ncount]
       grp = Group.create (printf "group-%02d" grpIndex)
             (printf "fake-uuid-%02d" grpIndex) apol

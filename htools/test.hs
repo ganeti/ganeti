@@ -42,11 +42,11 @@ import Ganeti.HTools.Utils (sepSplit)
 -- | Options list and functions.
 options :: [OptType]
 options =
-    [ oReplay
-    , oVerbose
-    , oShowVer
-    , oShowHelp
-    ]
+  [ oReplay
+  , oVerbose
+  , oShowVer
+  , oShowHelp
+  ]
 
 fast :: Args
 fast = stdArgs
@@ -150,22 +150,22 @@ main = do
   cmd_args <- System.getArgs
   (opts, args) <- parseOpts cmd_args "test" options
   tests <- (if null args
-           then return allTests
-           else (let args' = map lower args
-                     selected = filter ((`elem` args') . lower . extractName)
-                                allTests
-                 in if null selected
-                    then do
-                      hPutStrLn stderr $ "No tests matching '"
-                         ++ intercalate " " args ++ "', available tests: "
-                         ++ intercalate ", " (map extractName allTests)
-                      exitWith $ ExitFailure 1
-                    else return selected))
+              then return allTests
+              else (let args' = map lower args
+                        selected = filter ((`elem` args') . lower .
+                                           extractName) allTests
+                    in if null selected
+                         then do
+                           hPutStrLn stderr $ "No tests matching '"
+                              ++ intercalate " " args ++ "', available tests: "
+                              ++ intercalate ", " (map extractName allTests)
+                           exitWith $ ExitFailure 1
+                         else return selected))
 
   let max_count = maximum $ map (\(_, (_, t)) -> length t) tests
   mapM_ (\(targs, (name, tl)) ->
-             transformTestOpts targs opts >>= \newargs ->
-             runTests name newargs (wrap tl) max_count) tests
+           transformTestOpts targs opts >>= \newargs ->
+           runTests name newargs (wrap tl) max_count) tests
   terr <- readIORef errs
   (if terr > 0
    then do

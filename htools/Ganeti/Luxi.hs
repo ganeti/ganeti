@@ -26,17 +26,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Luxi
-    ( LuxiOp(..)
-    , QrViaLuxi(..)
-    , ResultStatus(..)
-    , Client
-    , checkRS
-    , getClient
-    , closeClient
-    , callMethod
-    , submitManyJobs
-    , queryJobsStatus
-    ) where
+  ( LuxiOp(..)
+  , QrViaLuxi(..)
+  , ResultStatus(..)
+  , Client
+  , checkRS
+  , getClient
+  , closeClient
+  , callMethod
+  , submitManyJobs
+  , queryJobsStatus
+  ) where
 
 import Data.IORef
 import Control.Monad
@@ -59,101 +59,101 @@ import Ganeti.THH
 -- | Wrapper over System.Timeout.timeout that fails in the IO monad.
 withTimeout :: Int -> String -> IO a -> IO a
 withTimeout secs descr action = do
-    result <- timeout (secs * 1000000) action
-    (case result of
-       Nothing -> fail $ "Timeout in " ++ descr
-       Just v -> return v)
+  result <- timeout (secs * 1000000) action
+  (case result of
+     Nothing -> fail $ "Timeout in " ++ descr
+     Just v -> return v)
 
 -- * Generic protocol functionality
 
 $(declareSADT "QrViaLuxi"
-     [ ("QRLock", 'qrLock)
-     , ("QRInstance", 'qrInstance)
-     , ("QRNode", 'qrNode)
-     , ("QRGroup", 'qrGroup)
-     , ("QROs", 'qrOs)
-     ])
+  [ ("QRLock", 'qrLock)
+  , ("QRInstance", 'qrInstance)
+  , ("QRNode", 'qrNode)
+  , ("QRGroup", 'qrGroup)
+  , ("QROs", 'qrOs)
+  ])
 $(makeJSONInstance ''QrViaLuxi)
 
 -- | Currently supported Luxi operations and JSON serialization.
 $(genLuxiOp "LuxiOp"
-    [("Query" ,
-       [ ("what",    [t| QrViaLuxi |], [| id |])
-       , ("fields",  [t| [String]  |], [| id |])
-       , ("qfilter", [t| ()        |], [| const JSNull |])
-       ])
-     , ("QueryNodes",
-       [ ("names",  [t| [String] |], [| id |])
-       , ("fields", [t| [String] |], [| id |])
-       , ("lock",   [t| Bool     |], [| id |])
-       ])
-    , ("QueryGroups",
-       [ ("names",  [t| [String] |], [| id |])
-       , ("fields", [t| [String] |], [| id |])
-       , ("lock",   [t| Bool     |], [| id |])
-       ])
-    , ("QueryInstances",
-       [ ("names",  [t| [String] |], [| id |])
-       , ("fields", [t| [String] |], [| id |])
-       , ("lock",   [t| Bool     |], [| id |])
-       ])
-    , ("QueryJobs",
-       [ ("ids",    [t| [Int]    |], [| map show |])
-       , ("fields", [t| [String] |], [| id |])
-       ])
-    , ("QueryExports",
-       [ ("nodes", [t| [String] |], [| id |])
-       , ("lock",  [t| Bool     |], [| id |])
-       ])
-    , ("QueryConfigValues",
-       [ ("fields", [t| [String] |], [| id |]) ]
-      )
-    , ("QueryClusterInfo", [])
-    , ("QueryTags",
-       [ ("kind", [t| String |], [| id |])
-       , ("name", [t| String |], [| id |])
-       ])
-    , ("SubmitJob",
-       [ ("job", [t| [OpCode] |], [| id |]) ]
-      )
-    , ("SubmitManyJobs",
-       [ ("ops", [t| [[OpCode]] |], [| id |]) ]
-      )
-    , ("WaitForJobChange",
-       [ ("job",      [t| Int     |], [| id |])
-       , ("fields",   [t| [String]|], [| id |])
-       , ("prev_job", [t| JSValue |], [| id |])
-       , ("prev_log", [t| JSValue |], [| id |])
-       , ("tmout",    [t| Int     |], [| id |])
-       ])
-    , ("ArchiveJob",
-       [ ("job", [t| Int |], [| show |]) ]
-      )
-    , ("AutoArchiveJobs",
-       [ ("age",   [t| Int |], [| id |])
-       , ("tmout", [t| Int |], [| id |])
-       ])
-    , ("CancelJob",
-       [ ("job", [t| Int |], [| show |]) ]
-      )
-    , ("SetDrainFlag",
-       [ ("flag", [t| Bool |], [| id |]) ]
-      )
-    , ("SetWatcherPause",
-       [ ("duration", [t| Double |], [| id |]) ]
-      )
+  [("Query" ,
+    [ ("what",    [t| QrViaLuxi |], [| id |])
+    , ("fields",  [t| [String]  |], [| id |])
+    , ("qfilter", [t| ()        |], [| const JSNull |])
+    ])
+  , ("QueryNodes",
+     [ ("names",  [t| [String] |], [| id |])
+     , ("fields", [t| [String] |], [| id |])
+     , ("lock",   [t| Bool     |], [| id |])
+     ])
+  , ("QueryGroups",
+     [ ("names",  [t| [String] |], [| id |])
+     , ("fields", [t| [String] |], [| id |])
+     , ("lock",   [t| Bool     |], [| id |])
+     ])
+  , ("QueryInstances",
+     [ ("names",  [t| [String] |], [| id |])
+     , ("fields", [t| [String] |], [| id |])
+     , ("lock",   [t| Bool     |], [| id |])
+     ])
+  , ("QueryJobs",
+     [ ("ids",    [t| [Int]    |], [| map show |])
+     , ("fields", [t| [String] |], [| id |])
+     ])
+  , ("QueryExports",
+     [ ("nodes", [t| [String] |], [| id |])
+     , ("lock",  [t| Bool     |], [| id |])
+     ])
+  , ("QueryConfigValues",
+     [ ("fields", [t| [String] |], [| id |]) ]
+    )
+  , ("QueryClusterInfo", [])
+  , ("QueryTags",
+     [ ("kind", [t| String |], [| id |])
+     , ("name", [t| String |], [| id |])
+     ])
+  , ("SubmitJob",
+     [ ("job", [t| [OpCode] |], [| id |]) ]
+    )
+  , ("SubmitManyJobs",
+     [ ("ops", [t| [[OpCode]] |], [| id |]) ]
+    )
+  , ("WaitForJobChange",
+     [ ("job",      [t| Int     |], [| id |])
+     , ("fields",   [t| [String]|], [| id |])
+     , ("prev_job", [t| JSValue |], [| id |])
+     , ("prev_log", [t| JSValue |], [| id |])
+     , ("tmout",    [t| Int     |], [| id |])
+     ])
+  , ("ArchiveJob",
+     [ ("job", [t| Int |], [| show |]) ]
+    )
+  , ("AutoArchiveJobs",
+     [ ("age",   [t| Int |], [| id |])
+     , ("tmout", [t| Int |], [| id |])
+     ])
+  , ("CancelJob",
+     [ ("job", [t| Int |], [| show |]) ]
+    )
+  , ("SetDrainFlag",
+     [ ("flag", [t| Bool |], [| id |]) ]
+    )
+  , ("SetWatcherPause",
+     [ ("duration", [t| Double |], [| id |]) ]
+    )
   ])
 
 -- | The serialisation of LuxiOps into strings in messages.
 $(genStrOfOp ''LuxiOp "strOfOp")
 
 $(declareIADT "ResultStatus"
-     [ ("RSNormal", 'rsNormal)
-     , ("RSUnknown", 'rsUnknown)
-     , ("RSNoData", 'rsNodata)
-     , ("RSUnavailable", 'rsUnavail)
-     , ("RSOffline", 'rsOffline)
-     ])
+  [ ("RSNormal", 'rsNormal)
+  , ("RSUnknown", 'rsUnknown)
+  , ("RSNoData", 'rsNodata)
+  , ("RSUnavailable", 'rsUnavail)
+  , ("RSOffline", 'rsOffline)
+  ])
 
 $(makeJSONInstance ''ResultStatus)
 
@@ -186,11 +186,11 @@ data Client = Client { socket :: S.Socket   -- ^ The socket of the client
 -- | Connects to the master daemon and returns a luxi Client.
 getClient :: String -> IO Client
 getClient path = do
-    s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
-    withTimeout connTimeout "creating luxi connection" $
-                S.connect s (S.SockAddrUnix path)
-    rf <- newIORef ""
-    return Client { socket=s, rbuf=rf}
+  s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
+  withTimeout connTimeout "creating luxi connection" $
+              S.connect s (S.SockAddrUnix path)
+  rf <- newIORef ""
+  return Client { socket=s, rbuf=rf}
 
 -- | Closes the client socket.
 closeClient :: Client -> IO ()
@@ -199,12 +199,12 @@ closeClient = S.sClose . socket
 -- | Sends a message over a luxi transport.
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf =
-    let _send obuf = do
-          sbytes <- withTimeout queryTimeout
-                    "sending luxi message" $
-                    S.send (socket s) obuf
-          unless (sbytes == length obuf) $ _send (drop sbytes obuf)
-    in _send (buf ++ [eOM])
+  let _send obuf = do
+        sbytes <- withTimeout queryTimeout
+                  "sending luxi message" $
+                  S.send (socket s) obuf
+        unless (sbytes == length obuf) $ _send (drop sbytes obuf)
+  in _send (buf ++ [eOM])
 
 -- | Waits for a message over a luxi transport.
 recvMsg :: Client -> IO String
@@ -229,11 +229,11 @@ recvMsg s = do
 buildCall :: LuxiOp  -- ^ The method
           -> String  -- ^ The serialized form
 buildCall lo =
-    let ja = [ (strOfKey Method, JSString $ toJSString $ strOfOp lo::JSValue)
-             , (strOfKey Args, opToArgs lo::JSValue)
-             ]
-        jo = toJSObject ja
-    in encodeStrict jo
+  let ja = [ (strOfKey Method, JSString $ toJSString $ strOfOp lo::JSValue)
+           , (strOfKey Args, opToArgs lo::JSValue)
+           ]
+      jo = toJSObject ja
+  in encodeStrict jo
 
 -- | Check that luxi responses contain the required keys and that the
 -- call was successful.

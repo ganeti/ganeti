@@ -27,16 +27,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Text
-    (
-      loadData
-    , parseData
-    , loadInst
-    , loadNode
-    , serializeInstances
-    , serializeNode
-    , serializeNodes
-    , serializeCluster
-    ) where
+  ( loadData
+  , parseData
+  , loadInst
+  , loadNode
+  , serializeInstances
+  , serializeNode
+  , serializeNodes
+  , serializeCluster
+  ) where
 
 import Control.Monad
 import Data.List
@@ -56,8 +55,8 @@ import qualified Ganeti.HTools.Instance as Instance
 -- | Serialize a single group.
 serializeGroup :: Group.Group -> String
 serializeGroup grp =
-    printf "%s|%s|%s" (Group.name grp) (Group.uuid grp)
-               (allocPolicyToRaw (Group.allocPolicy grp))
+  printf "%s|%s|%s" (Group.name grp) (Group.uuid grp)
+           (allocPolicyToRaw (Group.allocPolicy grp))
 
 -- | Generate group file data from a group list.
 serializeGroups :: Group.List -> String
@@ -68,11 +67,11 @@ serializeNode :: Group.List -- ^ The list of groups (needed for group uuid)
               -> Node.Node  -- ^ The node to be serialised
               -> String
 serializeNode gl node =
-    printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s" (Node.name node)
-               (Node.tMem node) (Node.nMem node) (Node.fMem node)
-               (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
-               (if Node.offline node then 'Y' else 'N')
-               (Group.uuid grp)
+  printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s" (Node.name node)
+           (Node.tMem node) (Node.nMem node) (Node.fMem node)
+           (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
+           (if Node.offline node then 'Y' else 'N')
+           (Group.uuid grp)
     where grp = Container.find (Node.group node) gl
 
 -- | Generate node file data from node objects.
@@ -85,25 +84,23 @@ serializeInstance :: Node.List         -- ^ The node list (needed for
                   -> Instance.Instance -- ^ The instance to be serialised
                   -> String
 serializeInstance nl inst =
-    let
-        iname = Instance.name inst
-        pnode = Container.nameOf nl (Instance.pNode inst)
-        sidx = Instance.sNode inst
-        snode = (if sidx == Node.noSecondary
-                    then ""
-                    else Container.nameOf nl sidx)
-    in
-      printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s"
-             iname (Instance.mem inst) (Instance.dsk inst)
-             (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
-             (if Instance.autoBalance inst then "Y" else "N")
-             pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
-             (intercalate "," (Instance.tags inst))
+  let iname = Instance.name inst
+      pnode = Container.nameOf nl (Instance.pNode inst)
+      sidx = Instance.sNode inst
+      snode = (if sidx == Node.noSecondary
+                 then ""
+                 else Container.nameOf nl sidx)
+  in printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s"
+       iname (Instance.mem inst) (Instance.dsk inst)
+       (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
+       (if Instance.autoBalance inst then "Y" else "N")
+       pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
+       (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
 serializeInstances nl =
-    unlines . map (serializeInstance nl) . Container.elems
+  unlines . map (serializeInstance nl) . Container.elems
 
 -- | Generate complete cluster data from node and instance lists.
 serializeCluster :: ClusterData -> String

@@ -24,10 +24,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Luxi
-    (
-      loadData
-    , parseData
-    ) where
+  ( loadData
+  , parseData
+  ) where
 
 import qualified Control.Exception as E
 import Text.JSON.Types
@@ -53,20 +52,20 @@ getData x = fail $ "Invalid input, expected dict entry but got " ++ show x
 parseQueryField :: (Monad m) => JSValue -> m (JSValue, JSValue)
 parseQueryField (JSArray [status, result]) = return (status, result)
 parseQueryField o =
-    fail $ "Invalid query field, expected (status, value) but got " ++ show o
+  fail $ "Invalid query field, expected (status, value) but got " ++ show o
 
 -- | Parse a result row.
 parseQueryRow :: (Monad m) => JSValue -> m [(JSValue, JSValue)]
 parseQueryRow (JSArray arr) = mapM parseQueryField arr
 parseQueryRow o =
-    fail $ "Invalid query row result, expected array but got " ++ show o
+  fail $ "Invalid query row result, expected array but got " ++ show o
 
 -- | Parse an overall query result and get the [(status, value)] list
 -- for each element queried.
 parseQueryResult :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
 parseQueryResult (JSArray arr) = mapM parseQueryRow arr
 parseQueryResult o =
-    fail $ "Invalid query result, expected array but got " ++ show o
+  fail $ "Invalid query result, expected array but got " ++ show o
 
 -- | Prepare resulting output as parsers expect it.
 extractArray :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
@@ -76,8 +75,8 @@ extractArray v =
 -- | Testing result status for more verbose error message.
 fromJValWithStatus :: (Text.JSON.JSON a, Monad m) => (JSValue, JSValue) -> m a
 fromJValWithStatus (st, v) = do
-    st' <- fromJVal st
-    L.checkRS st' v >>= fromJVal
+  st' <- fromJVal st
+  L.checkRS st' v >>= fromJVal
 
 -- | Annotate errors when converting values with owner/attribute for
 -- better debugging.
@@ -88,9 +87,9 @@ genericConvert :: (Text.JSON.JSON a) =>
                -> (JSValue, JSValue) -- ^ The value we're trying to convert
                -> Result a           -- ^ The annotated result
 genericConvert otype oname oattr =
-    annotateResult (otype ++ " '" ++ oname ++
-                    "', error while reading attribute '" ++
-                    oattr ++ "'") . fromJValWithStatus
+  annotateResult (otype ++ " '" ++ oname ++
+                  "', error while reading attribute '" ++
+                  oattr ++ "'") . fromJValWithStatus
 
 -- * Data querying functionality
 
@@ -104,9 +103,9 @@ queryNodesMsg =
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
 queryInstancesMsg =
-    L.Query L.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
-                          "status", "pnode", "snodes", "tags", "oper_ram",
-                          "be/auto_balance", "disk_template"] ()
+  L.Query L.QRInstance ["name", "disk_usage", "be/memory", "be/vcpus",
+                        "status", "pnode", "snodes", "tags", "oper_ram",
+                        "be/auto_balance", "disk_template"] ()
 
 -- | The input data for cluster query.
 queryClusterInfoMsg :: L.LuxiOp

@@ -26,51 +26,51 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Types
-    ( Idx
-    , Ndx
-    , Gdx
-    , NameAssoc
-    , Score
-    , Weight
-    , GroupID
-    , AllocPolicy(..)
-    , allocPolicyFromRaw
-    , allocPolicyToRaw
-    , InstanceStatus(..)
-    , instanceStatusFromRaw
-    , instanceStatusToRaw
-    , RSpec(..)
-    , DynUtil(..)
-    , zeroUtil
-    , baseUtil
-    , addUtil
-    , subUtil
-    , defVcpuRatio
-    , defReservedDiskRatio
-    , unitMem
-    , unitCpu
-    , unitDsk
-    , unknownField
-    , Placement
-    , IMove(..)
-    , DiskTemplate(..)
-    , diskTemplateToRaw
-    , diskTemplateFromRaw
-    , MoveJob
-    , JobSet
-    , Result(..)
-    , isOk
-    , isBad
-    , eitherToResult
-    , Element(..)
-    , FailMode(..)
-    , FailStats
-    , OpResult(..)
-    , opToResult
-    , connTimeout
-    , queryTimeout
-    , EvacMode(..)
-    ) where
+  ( Idx
+  , Ndx
+  , Gdx
+  , NameAssoc
+  , Score
+  , Weight
+  , GroupID
+  , AllocPolicy(..)
+  , allocPolicyFromRaw
+  , allocPolicyToRaw
+  , InstanceStatus(..)
+  , instanceStatusFromRaw
+  , instanceStatusToRaw
+  , RSpec(..)
+  , DynUtil(..)
+  , zeroUtil
+  , baseUtil
+  , addUtil
+  , subUtil
+  , defVcpuRatio
+  , defReservedDiskRatio
+  , unitMem
+  , unitCpu
+  , unitDsk
+  , unknownField
+  , Placement
+  , IMove(..)
+  , DiskTemplate(..)
+  , diskTemplateToRaw
+  , diskTemplateFromRaw
+  , MoveJob
+  , JobSet
+  , Result(..)
+  , isOk
+  , isBad
+  , eitherToResult
+  , Element(..)
+  , FailMode(..)
+  , FailStats
+  , OpResult(..)
+  , opToResult
+  , connTimeout
+  , queryTimeout
+  , EvacMode(..)
+  ) where
 
 import Control.Monad
 import qualified Data.Map as M
@@ -107,40 +107,40 @@ type GroupID = String
 -- changing this data type be careful about the interaction with the
 -- desired sorting order.
 $(THH.declareSADT "AllocPolicy"
-         [ ("AllocPreferred",   'C.allocPolicyPreferred)
-         , ("AllocLastResort",  'C.allocPolicyLastResort)
-         , ("AllocUnallocable", 'C.allocPolicyUnallocable)
-         ])
+       [ ("AllocPreferred",   'C.allocPolicyPreferred)
+       , ("AllocLastResort",  'C.allocPolicyLastResort)
+       , ("AllocUnallocable", 'C.allocPolicyUnallocable)
+       ])
 $(THH.makeJSONInstance ''AllocPolicy)
 
 -- | The Instance real state type.
 $(THH.declareSADT "InstanceStatus"
-         [ ("AdminDown", 'C.inststAdmindown)
-         , ("AdminOffline", 'C.inststAdminoffline)
-         , ("ErrorDown", 'C.inststErrordown)
-         , ("ErrorUp", 'C.inststErrorup)
-         , ("NodeDown", 'C.inststNodedown)
-         , ("NodeOffline", 'C.inststNodeoffline)
-         , ("Running", 'C.inststRunning)
-         , ("WrongNode", 'C.inststWrongnode)
-         ])
+       [ ("AdminDown", 'C.inststAdmindown)
+       , ("AdminOffline", 'C.inststAdminoffline)
+       , ("ErrorDown", 'C.inststErrordown)
+       , ("ErrorUp", 'C.inststErrorup)
+       , ("NodeDown", 'C.inststNodedown)
+       , ("NodeOffline", 'C.inststNodeoffline)
+       , ("Running", 'C.inststRunning)
+       , ("WrongNode", 'C.inststWrongnode)
+       ])
 $(THH.makeJSONInstance ''InstanceStatus)
 
 -- | The resource spec type.
 data RSpec = RSpec
-    { rspecCpu  :: Int  -- ^ Requested VCPUs
-    , rspecMem  :: Int  -- ^ Requested memory
-    , rspecDsk  :: Int  -- ^ Requested disk
-    } deriving (Show, Read, Eq)
+  { rspecCpu  :: Int  -- ^ Requested VCPUs
+  , rspecMem  :: Int  -- ^ Requested memory
+  , rspecDsk  :: Int  -- ^ Requested disk
+  } deriving (Show, Read, Eq)
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).
 data DynUtil = DynUtil
-    { cpuWeight :: Weight -- ^ Standardised CPU usage
-    , memWeight :: Weight -- ^ Standardised memory load
-    , dskWeight :: Weight -- ^ Standardised disk I\/O usage
-    , netWeight :: Weight -- ^ Standardised network usage
-    } deriving (Show, Read, Eq)
+  { cpuWeight :: Weight -- ^ Standardised CPU usage
+  , memWeight :: Weight -- ^ Standardised memory load
+  , dskWeight :: Weight -- ^ Standardised disk I\/O usage
+  , netWeight :: Weight -- ^ Standardised network usage
+  } deriving (Show, Read, Eq)
 
 -- | Initial empty utilisation.
 zeroUtil :: DynUtil
@@ -156,12 +156,12 @@ baseUtil = DynUtil { cpuWeight = 1, memWeight = 1
 -- | Sum two utilisation records.
 addUtil :: DynUtil -> DynUtil -> DynUtil
 addUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
-    DynUtil (a1+b1) (a2+b2) (a3+b3) (a4+b4)
+  DynUtil (a1+b1) (a2+b2) (a3+b3) (a4+b4)
 
 -- | Substracts one utilisation record from another.
 subUtil :: DynUtil -> DynUtil -> DynUtil
 subUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
-    DynUtil (a1-b1) (a2-b2) (a3-b3) (a4-b4)
+  DynUtil (a1-b1) (a2-b2) (a3-b3) (a4-b4)
 
 -- | The description of an instance placement. It contains the
 -- instance index, the new primary and secondary node, the move being
@@ -178,13 +178,13 @@ data IMove = Failover                -- ^ Failover the instance (f)
 
 -- | Instance disk template type.
 $(THH.declareSADT "DiskTemplate"
-     [ ("DTDiskless",   'C.dtDiskless)
-     , ("DTFile",       'C.dtFile)
-     , ("DTSharedFile", 'C.dtSharedFile)
-     , ("DTPlain",      'C.dtPlain)
-     , ("DTBlock",      'C.dtBlock)
-     , ("DTDrbd8",      'C.dtDrbd8)
-     ])
+       [ ("DTDiskless",   'C.dtDiskless)
+       , ("DTFile",       'C.dtFile)
+       , ("DTSharedFile", 'C.dtSharedFile)
+       , ("DTPlain",      'C.dtPlain)
+       , ("DTBlock",      'C.dtBlock)
+       , ("DTDrbd8",      'C.dtDrbd8)
+       ])
 $(THH.makeJSONInstance ''DiskTemplate)
 
 -- | Formatted solution output for one move (involved nodes and
@@ -237,18 +237,18 @@ data Result a
     deriving (Show, Read, Eq)
 
 instance Monad Result where
-    (>>=) (Bad x) _ = Bad x
-    (>>=) (Ok x) fn = fn x
-    return = Ok
-    fail = Bad
+  (>>=) (Bad x) _ = Bad x
+  (>>=) (Ok x) fn = fn x
+  return = Ok
+  fail = Bad
 
 instance MonadPlus Result where
-    mzero = Bad "zero Result when used as MonadPlus"
-    -- for mplus, when we 'add' two Bad values, we concatenate their
-    -- error descriptions
-    (Bad x) `mplus` (Bad y) = Bad (x ++ "; " ++ y)
-    (Bad _) `mplus` x = x
-    x@(Ok _) `mplus` _ = x
+  mzero = Bad "zero Result when used as MonadPlus"
+  -- for mplus, when we 'add' two Bad values, we concatenate their
+  -- error descriptions
+  (Bad x) `mplus` (Bad y) = Bad (x ++ "; " ++ y)
+  (Bad _) `mplus` x = x
+  x@(Ok _) `mplus` _ = x
 
 -- | Simple checker for whether a 'Result' is OK.
 isOk :: Result a -> Bool
@@ -287,9 +287,9 @@ data OpResult a = OpFail FailMode -- ^ Failed operation
                   deriving (Show, Read)
 
 instance Monad OpResult where
-    (OpGood x) >>= fn = fn x
-    (OpFail y) >>= _ = OpFail y
-    return = OpGood
+  (OpGood x) >>= fn = fn x
+  (OpFail y) >>= _ = OpFail y
+  return = OpGood
 
 -- | Conversion from 'OpResult' to 'Result'.
 opToResult :: OpResult a -> Result a
@@ -298,27 +298,27 @@ opToResult (OpGood v) = Ok v
 
 -- | A generic class for items that have updateable names and indices.
 class Element a where
-    -- | Returns the name of the element
-    nameOf  :: a -> String
-    -- | Returns all the known names of the element
-    allNames :: a -> [String]
-    -- | Returns the index of the element
-    idxOf   :: a -> Int
-    -- | Updates the alias of the element
-    setAlias :: a -> String -> a
-    -- | Compute the alias by stripping a given suffix (domain) from
-    -- the name
-    computeAlias :: String -> a -> a
-    computeAlias dom e = setAlias e alias
-        where alias = take (length name - length dom) name
-              name = nameOf e
-    -- | Updates the index of the element
-    setIdx  :: a -> Int -> a
+  -- | Returns the name of the element
+  nameOf  :: a -> String
+  -- | Returns all the known names of the element
+  allNames :: a -> [String]
+  -- | Returns the index of the element
+  idxOf   :: a -> Int
+  -- | Updates the alias of the element
+  setAlias :: a -> String -> a
+  -- | Compute the alias by stripping a given suffix (domain) from
+  -- the name
+  computeAlias :: String -> a -> a
+  computeAlias dom e = setAlias e alias
+    where alias = take (length name - length dom) name
+          name = nameOf e
+  -- | Updates the index of the element
+  setIdx  :: a -> Int -> a
 
 -- | The iallocator node-evacuate evac_mode type.
 $(THH.declareSADT "EvacMode"
-     [ ("ChangePrimary",   'C.iallocatorNevacPri)
-     , ("ChangeSecondary", 'C.iallocatorNevacSec)
-     , ("ChangeAll",       'C.iallocatorNevacAll)
-     ])
+       [ ("ChangePrimary",   'C.iallocatorNevacPri)
+       , ("ChangeSecondary", 'C.iallocatorNevacSec)
+       , ("ChangeAll",       'C.iallocatorNevacAll)
+       ])
 $(THH.makeJSONInstance ''EvacMode)
