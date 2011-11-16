@@ -845,6 +845,7 @@ MODIFY
 | [{-t|--disk-template} plain | {-t|--disk-template} drbd -n *new_secondary*] [--no-wait-for-sync]
 | [--os-type=*OS* [--force-variant]]
 | [{-O|--os-parameters} *param*=*value*... ]
+| [--offline \| --online]
 | [--submit]
 | {*instance*}
 
@@ -888,11 +889,18 @@ not found, then by default the modification is refused, unless
 ``--force-variant`` is passed. An invalid OS will also be refused,
 unless the ``--force`` option is given.
 
+The ``--online`` and ``--offline`` options are used to transition an
+instance into and out of the ``offline`` state. An instance can be
+turned offline only if it was previously down. The ``--online`` option
+fails if the instance was not in the ``offline`` state, otherwise it
+changes instance's state to ``down``. These modifications take effect
+immediately.
+
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it
 can be examined via **gnt-job info**.
 
-All the changes take effect at the next restart. If the instance is
+Most of the changes take effect at the next restart. If the instance is
 running, there is no effect on the instance.
 
 REINSTALL
