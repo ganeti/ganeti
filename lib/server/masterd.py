@@ -134,11 +134,9 @@ class MasterServer(daemon.AsyncStreamServer):
   """
   family = socket.AF_UNIX
 
-  def __init__(self, mainloop, address, uid, gid):
+  def __init__(self, address, uid, gid):
     """MasterServer constructor
 
-    @type mainloop: ganeti.daemon.Mainloop
-    @param mainloop: Mainloop used to poll for I/O events
     @param address: the unix socket address to bind the MasterServer to
     @param uid: The uid of the owner of the socket
     @param gid: The gid of the owner of the socket
@@ -150,7 +148,6 @@ class MasterServer(daemon.AsyncStreamServer):
     os.chown(temp_name, uid, gid)
     os.rename(temp_name, address)
 
-    self.mainloop = mainloop
     self.awaker = daemon.AsyncAwaker()
 
     # We'll only start threads once we've forked.
@@ -625,8 +622,7 @@ def PrepMasterd(options, _):
   utils.RemoveFile(constants.MASTER_SOCKET)
 
   mainloop = daemon.Mainloop()
-  master = MasterServer(mainloop, constants.MASTER_SOCKET,
-                        options.uid, options.gid)
+  master = MasterServer(constants.MASTER_SOCKET, options.uid, options.gid)
   return (mainloop, master)
 
 
