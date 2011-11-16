@@ -354,18 +354,18 @@ class WorkerPool(object):
     if not self._tasks:
       logging.debug("Waiting for tasks")
 
-      # wait() releases the lock and sleeps until notified
-      self._pool_to_worker.wait()
+      while True:
+        # wait() releases the lock and sleeps until notified
+        self._pool_to_worker.wait()
 
-      logging.debug("Notified while waiting")
+        logging.debug("Notified while waiting")
 
-      # Were we woken up in order to terminate?
-      if self._ShouldWorkerTerminateUnlocked(worker):
-        return _TERMINATE
+        # Were we woken up in order to terminate?
+        if self._ShouldWorkerTerminateUnlocked(worker):
+          return _TERMINATE
 
-      if not self._tasks:
-        # Spurious notification, ignore
-        return None
+        if self._tasks:
+          break
 
     # Get task from queue and tell pool about it
     try:
