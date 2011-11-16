@@ -615,7 +615,7 @@ bestAllocElement :: Maybe Node.AllocElement
 bestAllocElement a Nothing = a
 bestAllocElement Nothing b = b
 bestAllocElement a@(Just (_, _, _, ascore)) b@(Just (_, _, _, bscore)) =
-    if ascore < bscore then a else b
+  if ascore < bscore then a else b
 
 -- | Update current Allocation solution and failure stats with new
 -- elements.
@@ -623,30 +623,30 @@ concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
 concatAllocs as (OpFail reason) = as { asFailures = reason : asFailures as }
 
 concatAllocs as (OpGood ns) =
-    let -- Choose the old or new solution, based on the cluster score
-        cntok = asAllocs as
-        osols = asSolution as
-        nsols = bestAllocElement osols (Just ns)
-        nsuc = cntok + 1
+  let -- Choose the old or new solution, based on the cluster score
+    cntok = asAllocs as
+    osols = asSolution as
+    nsols = bestAllocElement osols (Just ns)
+    nsuc = cntok + 1
     -- Note: we force evaluation of nsols here in order to keep the
     -- memory profile low - we know that we will need nsols for sure
     -- in the next cycle, so we force evaluation of nsols, since the
     -- foldl' in the caller will only evaluate the tuple, but not the
     -- elements of the tuple
-    in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolution = nsols }
+  in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolution = nsols }
 
 -- | Sums two 'AllocSolution' structures.
 sumAllocs :: AllocSolution -> AllocSolution -> AllocSolution
 sumAllocs (AllocSolution aFails aAllocs aSols aLog)
           (AllocSolution bFails bAllocs bSols bLog) =
-    -- note: we add b first, since usually it will be smaller; when
-    -- fold'ing, a will grow and grow whereas b is the per-group
-    -- result, hence smaller
-    let nFails  = bFails ++ aFails
-        nAllocs = aAllocs + bAllocs
-        nSols   = bestAllocElement aSols bSols
-        nLog    = bLog ++ aLog
-    in AllocSolution nFails nAllocs nSols nLog
+  -- note: we add b first, since usually it will be smaller; when
+  -- fold'ing, a will grow and grow whereas b is the per-group
+  -- result, hence smaller
+  let nFails  = bFails ++ aFails
+      nAllocs = aAllocs + bAllocs
+      nSols   = bestAllocElement aSols bSols
+      nLog    = bLog ++ aLog
+  in AllocSolution nFails nAllocs nSols nLog
 
 -- | Given a solution, generates a reasonable description for it.
 describeSolution :: AllocSolution -> String
@@ -674,7 +674,7 @@ annotateSolution as = as { asLog = describeSolution as : asLog as }
 -- for proper jobset execution, we should reverse all lists.
 reverseEvacSolution :: EvacSolution -> EvacSolution
 reverseEvacSolution (EvacSolution f m o) =
-    EvacSolution (reverse f) (reverse m) (reverse o)
+  EvacSolution (reverse f) (reverse m) (reverse o)
 
 -- | Generate the valid node allocation singles or pairs for a new instance.
 genAllocNodes :: Group.List        -- ^ Group list
@@ -684,20 +684,20 @@ genAllocNodes :: Group.List        -- ^ Group list
                                    -- unallocable nodes
               -> Result AllocNodes -- ^ The (monadic) result
 genAllocNodes gl nl count drop_unalloc =
-    let filter_fn = if drop_unalloc
+  let filter_fn = if drop_unalloc
                     then filter (Group.isAllocable .
                                  flip Container.find gl . Node.group)
                     else id
-        all_nodes = filter_fn $ getOnline nl
-        all_pairs = [(Node.idx p,
-                      [Node.idx s | s <- all_nodes,
-                                         Node.idx p /= Node.idx s,
-                                         Node.group p == Node.group s]) |
-                     p <- all_nodes]
-    in case count of
-         1 -> Ok (Left (map Node.idx all_nodes))
-         2 -> Ok (Right (filter (not . null . snd) all_pairs))
-         _ -> Bad "Unsupported number of nodes, only one or two  supported"
+      all_nodes = filter_fn $ getOnline nl
+      all_pairs = [(Node.idx p,
+                    [Node.idx s | s <- all_nodes,
+                                       Node.idx p /= Node.idx s,
+                                       Node.group p == Node.group s]) |
+                   p <- all_nodes]
+  in case count of
+       1 -> Ok (Left (map Node.idx all_nodes))
+       2 -> Ok (Right (filter (not . null . snd) all_pairs))
+       _ -> Bad "Unsupported number of nodes, only one or two  supported"
 
 -- | Try to allocate an instance on the cluster.
 tryAlloc :: (Monad m) =>
@@ -708,20 +708,20 @@ tryAlloc :: (Monad m) =>
          -> m AllocSolution   -- ^ Possible solution list
 tryAlloc _  _ _    (Right []) = fail "Not enough online nodes"
 tryAlloc nl _ inst (Right ok_pairs) =
-    let psols = parMap rwhnf (\(p, ss) ->
-                                  foldl' (\cstate ->
-                                          concatAllocs cstate .
-                                          allocateOnPair nl inst p)
-                                  emptyAllocSolution ss) ok_pairs
-        sols = foldl' sumAllocs emptyAllocSolution psols
-    in return $ annotateSolution sols
+  let psols = parMap rwhnf (\(p, ss) ->
+                              foldl' (\cstate ->
+                                        concatAllocs cstate .
+                                        allocateOnPair nl inst p)
+                              emptyAllocSolution ss) ok_pairs
+      sols = foldl' sumAllocs emptyAllocSolution psols
+  in return $ annotateSolution sols
 
 tryAlloc _  _ _    (Left []) = fail "No online nodes"
 tryAlloc nl _ inst (Left all_nodes) =
-    let sols = foldl' (\cstate ->
-                           concatAllocs cstate . allocateOnSingle nl inst
-                      ) emptyAllocSolution all_nodes
-    in return $ annotateSolution sols
+  let sols = foldl' (\cstate ->
+                       concatAllocs cstate . allocateOnSingle nl inst
+                    ) emptyAllocSolution all_nodes
+  in return $ annotateSolution sols
 
 -- | Given a group/result, describe it as a nice (list of) messages.
 solutionDescription :: Group.List -> (Gdx, Result AllocSolution) -> [String]
@@ -740,23 +740,23 @@ filterMGResults :: Group.List
                 -> [(Gdx, Result AllocSolution)]
                 -> [(Gdx, AllocSolution)]
 filterMGResults gl = foldl' fn []
-    where unallocable = not . Group.isAllocable . flip Container.find gl
-          fn accu (gdx, rasol) =
-              case rasol of
-                Bad _ -> accu
-                Ok sol | isNothing (asSolution sol) -> accu
-                       | unallocable gdx -> accu
-                       | otherwise -> (gdx, sol):accu
+  where unallocable = not . Group.isAllocable . flip Container.find gl
+        fn accu (gdx, rasol) =
+          case rasol of
+            Bad _ -> accu
+            Ok sol | isNothing (asSolution sol) -> accu
+                   | unallocable gdx -> accu
+                   | otherwise -> (gdx, sol):accu
 
 -- | Sort multigroup results based on policy and score.
 sortMGResults :: Group.List
              -> [(Gdx, AllocSolution)]
              -> [(Gdx, AllocSolution)]
 sortMGResults gl sols =
-    let extractScore (_, _, _, x) = x
-        solScore (gdx, sol) = (Group.allocPolicy (Container.find gdx gl),
-                               (extractScore . fromJust . asSolution) sol)
-    in sortBy (comparing solScore) sols
+  let extractScore (_, _, _, x) = x
+      solScore (gdx, sol) = (Group.allocPolicy (Container.find gdx gl),
+                             (extractScore . fromJust . asSolution) sol)
+  in sortBy (comparing solScore) sols
 
 -- | Finds the best group for an instance on a multi-group cluster.
 --
@@ -783,9 +783,9 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
       goodSols = filterMGResults mggl sols
       sortedSols = sortMGResults mggl goodSols
   in if null sortedSols
-     then Bad $ intercalate ", " all_msgs
-     else let (final_group, final_sol) = head sortedSols
-          in return (final_group, final_sol, all_msgs)
+       then Bad $ intercalate ", " all_msgs
+       else let (final_group, final_sol) = head sortedSols
+            in return (final_group, final_sol, all_msgs)
 
 -- | Try to allocate an instance on a multi-group cluster.
 tryMGAlloc :: Group.List           -- ^ The group list
@@ -810,20 +810,20 @@ tryReloc :: (Monad m) =>
          -> [Ndx]           -- ^ Nodes which should not be used
          -> m AllocSolution -- ^ Solution list
 tryReloc nl il xid 1 ex_idx =
-    let all_nodes = getOnline nl
-        inst = Container.find xid il
-        ex_idx' = Instance.pNode inst:ex_idx
-        valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
-        valid_idxes = map Node.idx valid_nodes
-        sols1 = foldl' (\cstate x ->
-                            let em = do
-                                  (mnl, i, _, _) <-
-                                      applyMove nl inst (ReplaceSecondary x)
-                                  return (mnl, i, [Container.find x mnl],
-                                          compCV mnl)
-                            in concatAllocs cstate em
-                       ) emptyAllocSolution valid_idxes
-    in return sols1
+  let all_nodes = getOnline nl
+      inst = Container.find xid il
+      ex_idx' = Instance.pNode inst:ex_idx
+      valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
+      valid_idxes = map Node.idx valid_nodes
+      sols1 = foldl' (\cstate x ->
+                        let em = do
+                              (mnl, i, _, _) <-
+                                applyMove nl inst (ReplaceSecondary x)
+                              return (mnl, i, [Container.find x mnl],
+                                         compCV mnl)
+                        in concatAllocs cstate em
+                     ) emptyAllocSolution valid_idxes
+  in return sols1
 
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
                                 \destinations required (" ++ show reqn ++
@@ -837,7 +837,7 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
 -- this function, whatever mode we have is just a primary change.
 failOnSecondaryChange :: (Monad m) => EvacMode -> DiskTemplate -> m ()
 failOnSecondaryChange ChangeSecondary dt =
-    fail $ "Instances with disk template '" ++ diskTemplateToRaw dt ++
+  fail $ "Instances with disk template '" ++ diskTemplateToRaw dt ++
          "' can't execute change secondary"
 failOnSecondaryChange _ _ = return ()
 
@@ -960,26 +960,26 @@ evacDrbdSecondaryInner :: Node.List -- ^ Cluster node list
                                         , Score
                                         , Ndx) -- ^ New best solution
 evacDrbdSecondaryInner nl inst gdx accu ndx =
-    case applyMove nl inst (ReplaceSecondary ndx) of
-      OpFail fm ->
-          case accu of
-            Right _ -> accu
-            Left _ -> Left $ "Node " ++ Container.nameOf nl ndx ++
-                      " failed: " ++ show fm
-      OpGood (nl', inst', _, _) ->
-          let nodes = Container.elems nl'
-              -- The fromJust below is ugly (it can fail nastily), but
-              -- at this point we should have any internal mismatches,
-              -- and adding a monad here would be quite involved
-              grpnodes = fromJust (gdx `lookup` Node.computeGroups nodes)
-              new_cv = compCVNodes grpnodes
-              new_accu = Right (nl', inst', new_cv, ndx)
-          in case accu of
-               Left _ -> new_accu
-               Right (_, _, old_cv, _) ->
-                   if old_cv < new_cv
-                   then accu
-                   else new_accu
+  case applyMove nl inst (ReplaceSecondary ndx) of
+    OpFail fm ->
+      case accu of
+        Right _ -> accu
+        Left _ -> Left $ "Node " ++ Container.nameOf nl ndx ++
+                  " failed: " ++ show fm
+    OpGood (nl', inst', _, _) ->
+      let nodes = Container.elems nl'
+          -- The fromJust below is ugly (it can fail nastily), but
+          -- at this point we should have any internal mismatches,
+          -- and adding a monad here would be quite involved
+          grpnodes = fromJust (gdx `lookup` Node.computeGroups nodes)
+          new_cv = compCVNodes grpnodes
+          new_accu = Right (nl', inst', new_cv, ndx)
+      in case accu of
+           Left _ -> new_accu
+           Right (_, _, old_cv, _) ->
+             if old_cv < new_cv
+               then accu
+               else new_accu
 
 -- | Compute result of changing all nodes of a DRBD instance.
 --
@@ -998,48 +998,47 @@ evacDrbdAllInner :: Node.List         -- ^ Cluster node list
                  -> (Ndx, Ndx)        -- ^ Tuple of new
                                       -- primary\/secondary nodes
                  -> Result (Node.List, Instance.List, [OpCodes.OpCode], Score)
-evacDrbdAllInner nl il inst gdx (t_pdx, t_sdx) =
-  do
-    let primary = Container.find (Instance.pNode inst) nl
-        idx = Instance.idx inst
-    -- if the primary is offline, then we first failover
-    (nl1, inst1, ops1) <-
-        if Node.offline primary
-        then do
-          (nl', inst', _, _) <-
-              annotateResult "Failing over to the secondary" $
-              opToResult $ applyMove nl inst Failover
-          return (nl', inst', [Failover])
-        else return (nl, inst, [])
-    let (o1, o2, o3) = (ReplaceSecondary t_pdx,
-                        Failover,
-                        ReplaceSecondary t_sdx)
-    -- we now need to execute a replace secondary to the future
-    -- primary node
-    (nl2, inst2, _, _) <-
-        annotateResult "Changing secondary to new primary" $
-        opToResult $
-        applyMove nl1 inst1 o1
-    let ops2 = o1:ops1
-    -- we now execute another failover, the primary stays fixed now
-    (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" $
-                          opToResult $ applyMove nl2 inst2 o2
-    let ops3 = o2:ops2
-    -- and finally another replace secondary, to the final secondary
-    (nl4, inst4, _, _) <-
-        annotateResult "Changing secondary to final secondary" $
-        opToResult $
-        applyMove nl3 inst3 o3
-    let ops4 = o3:ops3
-        il' = Container.add idx inst4 il
-        ops = concatMap (iMoveToJob nl4 il' idx) $ reverse ops4
-    let nodes = Container.elems nl4
-        -- The fromJust below is ugly (it can fail nastily), but
-        -- at this point we should have any internal mismatches,
-        -- and adding a monad here would be quite involved
-        grpnodes = fromJust (gdx `lookup` Node.computeGroups nodes)
-        new_cv = compCVNodes grpnodes
-    return (nl4, il', ops, new_cv)
+evacDrbdAllInner nl il inst gdx (t_pdx, t_sdx) = do
+  let primary = Container.find (Instance.pNode inst) nl
+      idx = Instance.idx inst
+  -- if the primary is offline, then we first failover
+  (nl1, inst1, ops1) <-
+    if Node.offline primary
+      then do
+        (nl', inst', _, _) <-
+          annotateResult "Failing over to the secondary" $
+          opToResult $ applyMove nl inst Failover
+        return (nl', inst', [Failover])
+      else return (nl, inst, [])
+  let (o1, o2, o3) = (ReplaceSecondary t_pdx,
+                      Failover,
+                      ReplaceSecondary t_sdx)
+  -- we now need to execute a replace secondary to the future
+  -- primary node
+  (nl2, inst2, _, _) <-
+    annotateResult "Changing secondary to new primary" $
+    opToResult $
+    applyMove nl1 inst1 o1
+  let ops2 = o1:ops1
+  -- we now execute another failover, the primary stays fixed now
+  (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" $
+                        opToResult $ applyMove nl2 inst2 o2
+  let ops3 = o2:ops2
+  -- and finally another replace secondary, to the final secondary
+  (nl4, inst4, _, _) <-
+    annotateResult "Changing secondary to final secondary" $
+    opToResult $
+    applyMove nl3 inst3 o3
+  let ops4 = o3:ops3
+      il' = Container.add idx inst4 il
+      ops = concatMap (iMoveToJob nl4 il' idx) $ reverse ops4
+  let nodes = Container.elems nl4
+      -- The fromJust below is ugly (it can fail nastily), but
+      -- at this point we should have any internal mismatches,
+      -- and adding a monad here would be quite involved
+      grpnodes = fromJust (gdx `lookup` Node.computeGroups nodes)
+      new_cv = compCVNodes grpnodes
+  return (nl4, il', ops, new_cv)
 
 -- | Computes the nodes in a given group which are available for
 -- allocation.
@@ -1061,14 +1060,14 @@ updateEvacSolution :: (Node.List, Instance.List, EvacSolution)
                    -> Result (Node.List, Instance.List, [OpCodes.OpCode])
                    -> (Node.List, Instance.List, EvacSolution)
 updateEvacSolution (nl, il, es) idx (Bad msg) =
-    (nl, il, es { esFailed = (idx, msg):esFailed es})
+  (nl, il, es { esFailed = (idx, msg):esFailed es})
 updateEvacSolution (_, _, es) idx (Ok (nl, il, opcodes)) =
-    (nl, il, es { esMoved = new_elem:esMoved es
-                , esOpCodes = opcodes:esOpCodes es })
-     where inst = Container.find idx il
-           new_elem = (idx,
-                       instancePriGroup nl inst,
-                       Instance.allNodes inst)
+  (nl, il, es { esMoved = new_elem:esMoved es
+              , esOpCodes = opcodes:esOpCodes es })
+    where inst = Container.find idx il
+          new_elem = (idx,
+                      instancePriGroup nl inst,
+                      Instance.allNodes inst)
 
 -- | Node-evacuation IAllocator mode main function.
 tryNodeEvac :: Group.List    -- ^ The cluster groups
@@ -1078,24 +1077,24 @@ tryNodeEvac :: Group.List    -- ^ The cluster groups
             -> [Idx]         -- ^ List of instance (indices) to be evacuated
             -> Result (Node.List, Instance.List, EvacSolution)
 tryNodeEvac _ ini_nl ini_il mode idxs =
-    let evac_ndx = nodesToEvacuate ini_il mode idxs
-        offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
-        excl_ndx = foldl' (flip IntSet.insert) evac_ndx offline
-        group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
-                                             (Container.elems nl))) $
-                      splitCluster ini_nl ini_il
-        (fin_nl, fin_il, esol) =
-            foldl' (\state@(nl, il, _) inst ->
-                        let gdx = instancePriGroup nl inst
-                            pdx = Instance.pNode inst in
-                        updateEvacSolution state (Instance.idx inst) $
-                        availableGroupNodes group_ndx
-                          (IntSet.insert pdx excl_ndx) gdx >>=
-                        nodeEvacInstance nl il mode inst gdx
-                   )
-            (ini_nl, ini_il, emptyEvacSolution)
-            (map (`Container.find` ini_il) idxs)
-    in return (fin_nl, fin_il, reverseEvacSolution esol)
+  let evac_ndx = nodesToEvacuate ini_il mode idxs
+      offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
+      excl_ndx = foldl' (flip IntSet.insert) evac_ndx offline
+      group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
+                                           (Container.elems nl))) $
+                  splitCluster ini_nl ini_il
+      (fin_nl, fin_il, esol) =
+        foldl' (\state@(nl, il, _) inst ->
+                  let gdx = instancePriGroup nl inst
+                      pdx = Instance.pNode inst in
+                  updateEvacSolution state (Instance.idx inst) $
+                  availableGroupNodes group_ndx
+                    (IntSet.insert pdx excl_ndx) gdx >>=
+                      nodeEvacInstance nl il mode inst gdx
+               )
+        (ini_nl, ini_il, emptyEvacSolution)
+        (map (`Container.find` ini_il) idxs)
+  in return (fin_nl, fin_il, reverseEvacSolution esol)
 
 -- | Change-group IAllocator mode main function.
 --
@@ -1124,33 +1123,31 @@ tryChangeGroup :: Group.List    -- ^ The cluster groups
                -> [Idx]         -- ^ List of instance (indices) to be evacuated
                -> Result (Node.List, Instance.List, EvacSolution)
 tryChangeGroup gl ini_nl ini_il gdxs idxs =
-    let evac_gdxs = nub $ map (instancePriGroup ini_nl .
-                               flip Container.find ini_il) idxs
-        target_gdxs = (if null gdxs
+  let evac_gdxs = nub $ map (instancePriGroup ini_nl .
+                             flip Container.find ini_il) idxs
+      target_gdxs = (if null gdxs
                        then Container.keys gl
                        else gdxs) \\ evac_gdxs
-        offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
-        excl_ndx = foldl' (flip IntSet.insert) IntSet.empty offline
-        group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
-                                             (Container.elems nl))) $
-                      splitCluster ini_nl ini_il
-        (fin_nl, fin_il, esol) =
-            foldl' (\state@(nl, il, _) inst ->
-                        let solution = do
-                              let ncnt = Instance.requiredNodes $
-                                         Instance.diskTemplate inst
-                              (gdx, _, _) <- findBestAllocGroup gl nl il
-                                             (Just target_gdxs) inst ncnt
-                              av_nodes <- availableGroupNodes group_ndx
-                                          excl_ndx gdx
-                              nodeEvacInstance nl il ChangeAll inst
-                                       gdx av_nodes
-                        in updateEvacSolution state
-                               (Instance.idx inst) solution
-                   )
-            (ini_nl, ini_il, emptyEvacSolution)
-            (map (`Container.find` ini_il) idxs)
-    in return (fin_nl, fin_il, reverseEvacSolution esol)
+      offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
+      excl_ndx = foldl' (flip IntSet.insert) IntSet.empty offline
+      group_ndx = map (\(gdx, (nl, _)) -> (gdx, map Node.idx
+                                           (Container.elems nl))) $
+                  splitCluster ini_nl ini_il
+      (fin_nl, fin_il, esol) =
+        foldl' (\state@(nl, il, _) inst ->
+                  let solution = do
+                        let ncnt = Instance.requiredNodes $
+                                   Instance.diskTemplate inst
+                        (gdx, _, _) <- findBestAllocGroup gl nl il
+                                       (Just target_gdxs) inst ncnt
+                        av_nodes <- availableGroupNodes group_ndx
+                                    excl_ndx gdx
+                        nodeEvacInstance nl il ChangeAll inst gdx av_nodes
+                  in updateEvacSolution state (Instance.idx inst) solution
+               )
+        (ini_nl, ini_il, emptyEvacSolution)
+        (map (`Container.find` ini_il) idxs)
+  in return (fin_nl, fin_il, reverseEvacSolution esol)
 
 -- | Standard-sized allocation method.
 --
@@ -1159,23 +1156,23 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
 -- instances.
 iterateAlloc :: AllocMethod
 iterateAlloc nl il limit newinst allocnodes ixes cstats =
-      let depth = length ixes
-          newname = printf "new-%d" depth::String
-          newidx = length (Container.elems il) + depth
-          newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
-          newlimit = fmap (flip (-) 1) limit
-      in case tryAlloc nl il newi2 allocnodes of
-           Bad s -> Bad s
-           Ok (AllocSolution { asFailures = errs, asSolution = sols3 }) ->
-               let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
-               case sols3 of
-                 Nothing -> newsol
-                 Just (xnl, xi, _, _) ->
-                     if limit == Just 0
-                     then newsol
-                     else iterateAlloc xnl (Container.add newidx xi il)
-                          newlimit newinst allocnodes (xi:ixes)
-                          (totalResources xnl:cstats)
+  let depth = length ixes
+      newname = printf "new-%d" depth::String
+      newidx = length (Container.elems il) + depth
+      newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
+      newlimit = fmap (flip (-) 1) limit
+  in case tryAlloc nl il newi2 allocnodes of
+       Bad s -> Bad s
+       Ok (AllocSolution { asFailures = errs, asSolution = sols3 }) ->
+         let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
+         case sols3 of
+           Nothing -> newsol
+           Just (xnl, xi, _, _) ->
+             if limit == Just 0
+               then newsol
+               else iterateAlloc xnl (Container.add newidx xi il)
+                      newlimit newinst allocnodes (xi:ixes)
+                      (totalResources xnl:cstats)
 
 -- | Tiered allocation method.
 --
@@ -1184,16 +1181,16 @@ iterateAlloc nl il limit newinst allocnodes ixes cstats =
 -- instance specs.
 tieredAlloc :: AllocMethod
 tieredAlloc nl il limit newinst allocnodes ixes cstats =
-    case iterateAlloc nl il limit newinst allocnodes ixes cstats of
-      Bad s -> Bad s
-      Ok (errs, nl', il', ixes', cstats') ->
-          let newsol = Ok (errs, nl', il', ixes', cstats')
-              ixes_cnt = length ixes'
-              (stop, newlimit) = case limit of
-                                   Nothing -> (False, Nothing)
-                                   Just n -> (n <= ixes_cnt,
-                                              Just (n - ixes_cnt)) in
-          if stop then newsol else
+  case iterateAlloc nl il limit newinst allocnodes ixes cstats of
+    Bad s -> Bad s
+    Ok (errs, nl', il', ixes', cstats') ->
+      let newsol = Ok (errs, nl', il', ixes', cstats')
+          ixes_cnt = length ixes'
+          (stop, newlimit) = case limit of
+                               Nothing -> (False, Nothing)
+                               Just n -> (n <= ixes_cnt,
+                                            Just (n - ixes_cnt)) in
+      if stop then newsol else
           case Instance.shrinkByType newinst . fst . last $
                sortBy (comparing snd) errs of
             Bad _ -> newsol
@@ -1214,15 +1211,15 @@ computeMoves :: Instance.Instance -- ^ The instance to be moved
                 -- secondary, while the command list holds gnt-instance
                 -- commands (without that prefix), e.g \"@failover instance1@\"
 computeMoves i inam mv c d =
-    case mv of
-      Failover -> ("f", [mig])
-      FailoverAndReplace _ -> (printf "f r:%s" d, [mig, rep d])
-      ReplaceSecondary _ -> (printf "r:%s" d, [rep d])
-      ReplaceAndFailover _ -> (printf "r:%s f" c, [rep c, mig])
-      ReplacePrimary _ -> (printf "f r:%s f" c, [mig, rep c, mig])
-    where morf = if Instance.instanceRunning i then "migrate" else "failover"
-          mig = printf "%s -f %s" morf inam::String
-          rep n = printf "replace-disks -n %s %s" n inam
+  case mv of
+    Failover -> ("f", [mig])
+    FailoverAndReplace _ -> (printf "f r:%s" d, [mig, rep d])
+    ReplaceSecondary _ -> (printf "r:%s" d, [rep d])
+    ReplaceAndFailover _ -> (printf "r:%s f" c, [rep c, mig])
+    ReplacePrimary _ -> (printf "f r:%s f" c, [mig, rep c, mig])
+  where morf = if Instance.instanceRunning i then "migrate" else "failover"
+        mig = printf "%s -f %s" morf inam::String
+        rep n = printf "replace-disks -n %s %s" n inam
 
 -- | Converts a placement to string format.
 printSolutionLine :: Node.List     -- ^ The node list
@@ -1234,23 +1231,21 @@ printSolutionLine :: Node.List     -- ^ The node list
                                    -- the solution
                   -> (String, [String])
 printSolutionLine nl il nmlen imlen plc pos =
-    let
-        pmlen = (2*nmlen + 1)
-        (i, p, s, mv, c) = plc
-        inst = Container.find i il
-        inam = Instance.alias inst
-        npri = Node.alias $ Container.find p nl
-        nsec = Node.alias $ Container.find s nl
-        opri = Node.alias $ Container.find (Instance.pNode inst) nl
-        osec = Node.alias $ Container.find (Instance.sNode inst) nl
-        (moves, cmds) =  computeMoves inst inam mv npri nsec
-        ostr = printf "%s:%s" opri osec::String
-        nstr = printf "%s:%s" npri nsec::String
-    in
-      (printf "  %3d. %-*s %-*s => %-*s %.8f a=%s"
-       pos imlen inam pmlen ostr
-       pmlen nstr c moves,
-       cmds)
+  let pmlen = (2*nmlen + 1)
+      (i, p, s, mv, c) = plc
+      inst = Container.find i il
+      inam = Instance.alias inst
+      npri = Node.alias $ Container.find p nl
+      nsec = Node.alias $ Container.find s nl
+      opri = Node.alias $ Container.find (Instance.pNode inst) nl
+      osec = Node.alias $ Container.find (Instance.sNode inst) nl
+      (moves, cmds) =  computeMoves inst inam mv npri nsec
+      ostr = printf "%s:%s" opri osec::String
+      nstr = printf "%s:%s" npri nsec::String
+  in (printf "  %3d. %-*s %-*s => %-*s %.8f a=%s"
+      pos imlen inam pmlen ostr
+      pmlen nstr c moves,
+      cmds)
 
 -- | Return the instance and involved nodes in an instance move.
 --
@@ -1266,17 +1261,17 @@ involvedNodes :: Instance.List -- ^ Instance list, used for retrieving
                                -- instance index
               -> [Ndx]         -- ^ Resulting list of node indices
 involvedNodes il plc =
-    let (i, np, ns, _, _) = plc
-        inst = Container.find i il
-    in nub $ [np, ns] ++ Instance.allNodes inst
+  let (i, np, ns, _, _) = plc
+      inst = Container.find i il
+  in nub $ [np, ns] ++ Instance.allNodes inst
 
 -- | Inner function for splitJobs, that either appends the next job to
 -- the current jobset, or starts a new jobset.
 mergeJobs :: ([JobSet], [Ndx]) -> MoveJob -> ([JobSet], [Ndx])
 mergeJobs ([], _) n@(ndx, _, _, _) = ([[n]], ndx)
 mergeJobs (cjs@(j:js), nbuf) n@(ndx, _, _, _)
-    | null (ndx `intersect` nbuf) = ((n:j):js, ndx ++ nbuf)
-    | otherwise = ([n]:cjs, ndx)
+  | null (ndx `intersect` nbuf) = ((n:j):js, ndx ++ nbuf)
+  | otherwise = ([n]:cjs, ndx)
 
 -- | Break a list of moves into independent groups. Note that this
 -- will reverse the order of jobs.
@@ -1287,11 +1282,11 @@ splitJobs = fst . foldl mergeJobs ([], [])
 -- also beautify the display a little.
 formatJob :: Int -> Int -> (Int, MoveJob) -> [String]
 formatJob jsn jsl (sn, (_, _, _, cmds)) =
-    let out =
-            printf "  echo job %d/%d" jsn sn:
-            printf "  check":
-            map ("  gnt-instance " ++) cmds
-    in if sn == 1
+  let out =
+        printf "  echo job %d/%d" jsn sn:
+        printf "  check":
+        map ("  gnt-instance " ++) cmds
+  in if sn == 1
        then ["", printf "echo jobset %d, %d jobs" jsn jsl] ++ out
        else out
 
@@ -1299,59 +1294,59 @@ formatJob jsn jsl (sn, (_, _, _, cmds)) =
 -- also beautify the display a little.
 formatCmds :: [JobSet] -> String
 formatCmds =
-    unlines .
-    concatMap (\(jsn, js) -> concatMap (formatJob jsn (length js))
-                             (zip [1..] js)) .
-    zip [1..]
+  unlines .
+  concatMap (\(jsn, js) -> concatMap (formatJob jsn (length js))
+                           (zip [1..] js)) .
+  zip [1..]
 
 -- | Print the node list.
 printNodes :: Node.List -> [String] -> String
 printNodes nl fs =
-    let fields = case fs of
-          [] -> Node.defaultFields
-          "+":rest -> Node.defaultFields ++ rest
-          _ -> fs
-        snl = sortBy (comparing Node.idx) (Container.elems nl)
-        (header, isnum) = unzip $ map Node.showHeader fields
-    in unlines . map ((:) ' ' .  intercalate " ") $
-       formatTable (header:map (Node.list fields) snl) isnum
+  let fields = case fs of
+                 [] -> Node.defaultFields
+                 "+":rest -> Node.defaultFields ++ rest
+                 _ -> fs
+      snl = sortBy (comparing Node.idx) (Container.elems nl)
+      (header, isnum) = unzip $ map Node.showHeader fields
+  in unlines . map ((:) ' ' .  intercalate " ") $
+     formatTable (header:map (Node.list fields) snl) isnum
 
 -- | Print the instance list.
 printInsts :: Node.List -> Instance.List -> String
 printInsts nl il =
-    let sil = sortBy (comparing Instance.idx) (Container.elems il)
-        helper inst = [ if Instance.instanceRunning inst then "R" else " "
-                      , Instance.name inst
-                      , Container.nameOf nl (Instance.pNode inst)
-                      , let sdx = Instance.sNode inst
-                        in if sdx == Node.noSecondary
+  let sil = sortBy (comparing Instance.idx) (Container.elems il)
+      helper inst = [ if Instance.instanceRunning inst then "R" else " "
+                    , Instance.name inst
+                    , Container.nameOf nl (Instance.pNode inst)
+                    , let sdx = Instance.sNode inst
+                      in if sdx == Node.noSecondary
                            then  ""
                            else Container.nameOf nl sdx
-                      , if Instance.autoBalance inst then "Y" else "N"
-                      , printf "%3d" $ Instance.vcpus inst
-                      , printf "%5d" $ Instance.mem inst
-                      , printf "%5d" $ Instance.dsk inst `div` 1024
-                      , printf "%5.3f" lC
-                      , printf "%5.3f" lM
-                      , printf "%5.3f" lD
-                      , printf "%5.3f" lN
-                      ]
-            where DynUtil lC lM lD lN = Instance.util inst
-        header = [ "F", "Name", "Pri_node", "Sec_node", "Auto_bal"
-                 , "vcpu", "mem" , "dsk", "lCpu", "lMem", "lDsk", "lNet" ]
-        isnum = False:False:False:False:False:repeat True
-    in unlines . map ((:) ' ' . intercalate " ") $
-       formatTable (header:map helper sil) isnum
+                    , if Instance.autoBalance inst then "Y" else "N"
+                    , printf "%3d" $ Instance.vcpus inst
+                    , printf "%5d" $ Instance.mem inst
+                    , printf "%5d" $ Instance.dsk inst `div` 1024
+                    , printf "%5.3f" lC
+                    , printf "%5.3f" lM
+                    , printf "%5.3f" lD
+                    , printf "%5.3f" lN
+                    ]
+          where DynUtil lC lM lD lN = Instance.util inst
+      header = [ "F", "Name", "Pri_node", "Sec_node", "Auto_bal"
+               , "vcpu", "mem" , "dsk", "lCpu", "lMem", "lDsk", "lNet" ]
+      isnum = False:False:False:False:False:repeat True
+  in unlines . map ((:) ' ' . intercalate " ") $
+     formatTable (header:map helper sil) isnum
 
 -- | Shows statistics for a given node list.
 printStats :: Node.List -> String
 printStats nl =
-    let dcvs = compDetailedCV $ Container.elems nl
-        (weights, names) = unzip detailedCVInfo
-        hd = zip3 (weights ++ repeat 1) (names ++ repeat "unknown") dcvs
-        formatted = map (\(w, header, val) ->
-                             printf "%s=%.8f(x%.2f)" header val w::String) hd
-    in intercalate ", " formatted
+  let dcvs = compDetailedCV $ Container.elems nl
+      (weights, names) = unzip detailedCVInfo
+      hd = zip3 (weights ++ repeat 1) (names ++ repeat "unknown") dcvs
+      formatted = map (\(w, header, val) ->
+                         printf "%s=%.8f(x%.2f)" header val w::String) hd
+  in intercalate ", " formatted
 
 -- | Convert a placement into a list of OpCodes (basically a job).
 iMoveToJob :: Node.List        -- ^ The node list; only used for node
@@ -1365,18 +1360,18 @@ iMoveToJob :: Node.List        -- ^ The node list; only used for node
            -> [OpCodes.OpCode] -- ^ The list of opcodes equivalent to
                                -- the given move
 iMoveToJob nl il idx move =
-    let inst = Container.find idx il
-        iname = Instance.name inst
-        lookNode  = Just . Container.nameOf nl
-        opF = OpCodes.OpInstanceMigrate iname True False True Nothing
-        opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
-                OpCodes.ReplaceNewSecondary [] Nothing
-    in case move of
-         Failover -> [ opF ]
-         ReplacePrimary np -> [ opF, opR np, opF ]
-         ReplaceSecondary ns -> [ opR ns ]
-         ReplaceAndFailover np -> [ opR np, opF ]
-         FailoverAndReplace ns -> [ opF, opR ns ]
+  let inst = Container.find idx il
+      iname = Instance.name inst
+      lookNode  = Just . Container.nameOf nl
+      opF = OpCodes.OpInstanceMigrate iname True False True Nothing
+      opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
+              OpCodes.ReplaceNewSecondary [] Nothing
+  in case move of
+       Failover -> [ opF ]
+       ReplacePrimary np -> [ opF, opR np, opF ]
+       ReplaceSecondary ns -> [ opR ns ]
+       ReplaceAndFailover np -> [ opR np, opF ]
+       FailoverAndReplace ns -> [ opF, opR ns ]
 
 -- * Node group functions
 
@@ -1391,9 +1386,9 @@ instanceGroup nl i =
       pgroup = Node.group pnode
       sgroup = Node.group snode
   in if pgroup /= sgroup
-     then fail ("Instance placed accross two node groups, primary " ++
-                show pgroup ++ ", secondary " ++ show sgroup)
-     else return pgroup
+       then fail ("Instance placed accross two node groups, primary " ++
+                  show pgroup ++ ", secondary " ++ show sgroup)
+       else return pgroup
 
 -- | Computes the group of an instance per the primary node.
 instancePriGroup :: Node.List -> Instance.Instance -> Gdx
@@ -1425,17 +1420,17 @@ nodesToEvacuate :: Instance.List -- ^ The cluster-wide instance list
                 -> [Idx]         -- ^ List of instance indices being evacuated
                 -> IntSet.IntSet -- ^ Set of node indices
 nodesToEvacuate il mode =
-    IntSet.delete Node.noSecondary .
-    foldl' (\ns idx ->
-                let i = Container.find idx il
-                    pdx = Instance.pNode i
-                    sdx = Instance.sNode i
-                    dt = Instance.diskTemplate i
-                    withSecondary = case dt of
-                                      DTDrbd8 -> IntSet.insert sdx ns
-                                      _ -> ns
-                in case mode of
-                     ChangePrimary   -> IntSet.insert pdx ns
-                     ChangeSecondary -> withSecondary
-                     ChangeAll       -> IntSet.insert pdx withSecondary
-           ) IntSet.empty
+  IntSet.delete Node.noSecondary .
+  foldl' (\ns idx ->
+            let i = Container.find idx il
+                pdx = Instance.pNode i
+                sdx = Instance.sNode i
+                dt = Instance.diskTemplate i
+                withSecondary = case dt of
+                                  DTDrbd8 -> IntSet.insert sdx ns
+                                  _ -> ns
+            in case mode of
+                 ChangePrimary   -> IntSet.insert pdx ns
+                 ChangeSecondary -> withSecondary
+                 ChangeAll       -> IntSet.insert pdx withSecondary
+         ) IntSet.empty
