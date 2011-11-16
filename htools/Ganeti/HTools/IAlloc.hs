@@ -24,10 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.IAlloc
-    ( readRequest
-    , runIAllocator
-    , processRelocate
-    ) where
+  ( readRequest
+  , runIAllocator
+  , processRelocate
+  ) where
 
 import Data.Either ()
 import Data.Maybe (fromMaybe, isJust)
@@ -163,40 +163,40 @@ parseData body = do
       map_g = cdGroups cdata
   optype <- extrReq "type"
   rqtype <-
-      case () of
-        _ | optype == C.iallocatorModeAlloc ->
-              do
-                rname     <- extrReq "name"
-                req_nodes <- extrReq "required_nodes"
-                inew      <- parseBaseInstance rname request
-                let io = snd inew
-                return $ Allocate io req_nodes
-          | optype == C.iallocatorModeReloc ->
-              do
-                rname     <- extrReq "name"
-                ridx      <- lookupInstance kti rname
-                req_nodes <- extrReq "required_nodes"
-                ex_nodes  <- extrReq "relocate_from"
-                ex_idex   <- mapM (Container.findByName map_n) ex_nodes
-                return $ Relocate ridx req_nodes (map Node.idx ex_idex)
-          | optype == C.iallocatorModeChgGroup ->
-              do
-                rl_names <- extrReq "instances"
-                rl_insts <- mapM (liftM Instance.idx .
-                                  Container.findByName map_i) rl_names
-                gr_uuids <- extrReq "target_groups"
-                gr_idxes <- mapM (liftM Group.idx .
-                                  Container.findByName map_g) gr_uuids
-                return $ ChangeGroup rl_insts gr_idxes
-          | optype == C.iallocatorModeNodeEvac ->
-              do
-                rl_names <- extrReq "instances"
-                rl_insts <- mapM (Container.findByName map_i) rl_names
-                let rl_idx = map Instance.idx rl_insts
-                rl_mode <- extrReq "evac_mode"
-                return $ NodeEvacuate rl_idx rl_mode
+    case () of
+      _ | optype == C.iallocatorModeAlloc ->
+            do
+              rname     <- extrReq "name"
+              req_nodes <- extrReq "required_nodes"
+              inew      <- parseBaseInstance rname request
+              let io = snd inew
+              return $ Allocate io req_nodes
+        | optype == C.iallocatorModeReloc ->
+            do
+              rname     <- extrReq "name"
+              ridx      <- lookupInstance kti rname
+              req_nodes <- extrReq "required_nodes"
+              ex_nodes  <- extrReq "relocate_from"
+              ex_idex   <- mapM (Container.findByName map_n) ex_nodes
+              return $ Relocate ridx req_nodes (map Node.idx ex_idex)
+        | optype == C.iallocatorModeChgGroup ->
+            do
+              rl_names <- extrReq "instances"
+              rl_insts <- mapM (liftM Instance.idx .
+                                Container.findByName map_i) rl_names
+              gr_uuids <- extrReq "target_groups"
+              gr_idxes <- mapM (liftM Group.idx .
+                                Container.findByName map_g) gr_uuids
+              return $ ChangeGroup rl_insts gr_idxes
+        | optype == C.iallocatorModeNodeEvac ->
+            do
+              rl_names <- extrReq "instances"
+              rl_insts <- mapM (Container.findByName map_i) rl_names
+              let rl_idx = map Instance.idx rl_insts
+              rl_mode <- extrReq "evac_mode"
+              return $ NodeEvacuate rl_idx rl_mode
 
-          | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
+        | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return (msgs, Request rqtype cdata)
 
 -- | Formats the result into a valid IAllocator response message.
@@ -205,11 +205,10 @@ formatResponse :: Bool     -- ^ Whether the request was successful
                -> JSValue  -- ^ The JSON encoded result
                -> String   -- ^ The full JSON-formatted message
 formatResponse success info result =
-    let
-        e_success = ("success", showJSON success)
-        e_info = ("info", showJSON info)
-        e_result = ("result", result)
-    in encodeStrict $ makeObj [e_success, e_info, e_result]
+  let e_success = ("success", showJSON success)
+      e_info = ("info", showJSON info)
+      e_result = ("result", result)
+  in encodeStrict $ makeObj [e_success, e_info, e_result]
 
 -- | Flatten the log of a solution into a string.
 describeSolution :: Cluster.AllocSolution -> String
@@ -222,9 +221,9 @@ formatAllocate il as = do
   case Cluster.asSolution as of
     Nothing -> fail info
     Just (nl, inst, nodes, _) ->
-        do
-          let il' = Container.add (Instance.idx inst) inst il
-          return (info, showJSON $ map Node.name nodes, nl, il')
+      do
+        let il' = Container.add (Instance.idx inst) inst il
+        return (info, showJSON $ map Node.name nodes, nl, il')
 
 -- | Convert a node-evacuation/change group result.
 formatNodeEvac :: Group.List
@@ -233,17 +232,17 @@ formatNodeEvac :: Group.List
                -> (Node.List, Instance.List, Cluster.EvacSolution)
                -> Result IAllocResult
 formatNodeEvac gl nl il (fin_nl, fin_il, es) =
-    let iname = Instance.name . flip Container.find il
-        nname = Node.name . flip Container.find nl
-        gname = Group.name . flip Container.find gl
-        fes = map (\(idx, msg) -> (iname idx, msg)) $ Cluster.esFailed es
-        mes = map (\(idx, gdx, ndxs) -> (iname idx, gname gdx, map nname ndxs))
-              $ Cluster.esMoved es
-        failed = length fes
-        moved  = length mes
-        info = show failed ++ " instances failed to move and " ++ show moved ++
-               " were moved successfully"
-    in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl, fin_il)
+  let iname = Instance.name . flip Container.find il
+      nname = Node.name . flip Container.find nl
+      gname = Group.name . flip Container.find gl
+      fes = map (\(idx, msg) -> (iname idx, msg)) $ Cluster.esFailed es
+      mes = map (\(idx, gdx, ndxs) -> (iname idx, gname gdx, map nname ndxs))
+            $ Cluster.esMoved es
+      failed = length fes
+      moved  = length mes
+      info = show failed ++ " instances failed to move and " ++ show moved ++
+             " were moved successfully"
+  in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl, fin_il)
 
 -- | Runs relocate for a single instance.
 --
@@ -298,9 +297,9 @@ processRelocate _ _ _ _ reqn _ =
 formatRelocate :: (Node.List, Instance.List, [Ndx])
                -> Result IAllocResult
 formatRelocate (nl, il, ndxs) =
-    let nodes = map (`Container.find` nl) ndxs
-        names = map Node.name nodes
-    in Ok ("success", showJSON names, nl, il)
+  let nodes = map (`Container.find` nl) ndxs
+      names = map Node.name nodes
+  in Ok ("success", showJSON names, nl, il)
 
 -- | Process a request and return new node lists.
 processRequest :: Request -> Result IAllocResult
@@ -308,22 +307,22 @@ processRequest request =
   let Request rqtype (ClusterData gl nl il _) = request
   in case rqtype of
        Allocate xi reqn ->
-           Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
+         Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
        Relocate idx reqn exnodes ->
-           processRelocate gl nl il idx reqn exnodes >>= formatRelocate
+         processRelocate gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->
-           Cluster.tryChangeGroup gl nl il idxs gdxs >>=
-                  formatNodeEvac gl nl il
+         Cluster.tryChangeGroup gl nl il idxs gdxs >>=
+                formatNodeEvac gl nl il
        NodeEvacuate xi mode ->
-           Cluster.tryNodeEvac gl nl il mode xi >>=
-                  formatNodeEvac gl nl il
+         Cluster.tryNodeEvac gl nl il mode xi >>=
+                formatNodeEvac gl nl il
 
 -- | Reads the request from the data file(s).
 readRequest :: Options -> [String] -> IO Request
 readRequest opts args = do
   when (null args) $ do
-         hPutStrLn stderr "Error: this program needs an input file."
-         exitWith $ ExitFailure 1
+    hPutStrLn stderr "Error: this program needs an input file."
+    exitWith $ ExitFailure 1
 
   input_data <- readFile (head args)
   r1 <- case parseData input_data of
@@ -342,9 +341,9 @@ readRequest opts args = do
 runIAllocator :: Request -> (Maybe (Node.List, Instance.List), String)
 runIAllocator request =
   let (ok, info, result, cdata) =
-          case processRequest request of
-            Ok (msg, r, nl, il) -> (True, "Request successful: " ++ msg, r,
-                                    Just (nl, il))
-            Bad msg -> (False, "Request failed: " ++ msg, JSArray [], Nothing)
+        case processRequest request of
+          Ok (msg, r, nl, il) -> (True, "Request successful: " ++ msg, r,
+                                  Just (nl, il))
+          Bad msg -> (False, "Request failed: " ++ msg, JSArray [], Nothing)
       rstring = formatResponse ok info result
   in (cdata, rstring)
