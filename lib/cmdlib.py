@@ -965,7 +965,7 @@ def _ExpandInstanceName(cfg, name):
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
-                          memory, vcpus, nics, disk_template, disks,
+                          minmem, maxmem, vcpus, nics, disk_template, disks,
                           bep, hvp, hypervisor_name, tags):
   """Builds instance related env variables for hooks
 
@@ -981,8 +981,10 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param os_type: the name of the instance's OS
   @type status: string
   @param status: the desired status of the instance
-  @type memory: string
-  @param memory: the memory size of the instance
+  @type minmem: string
+  @param minmem: the minimum memory size of the instance
+  @type maxmem: string
+  @param maxmem: the maximum memory size of the instance
   @type vcpus: string
   @param vcpus: the count of VCPUs the instance has
   @type nics: list
@@ -1011,12 +1013,14 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_SECONDARIES": " ".join(secondary_nodes),
     "INSTANCE_OS_TYPE": os_type,
     "INSTANCE_STATUS": status,
-    "INSTANCE_MEMORY": memory,
+    "INSTANCE_MINMEM": minmem,
+    "INSTANCE_MAXMEM": maxmem,
+    # TODO(2.7) remove deprecated "memory" value
+    "INSTANCE_MEMORY": maxmem,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
     "INSTANCE_HYPERVISOR": hypervisor_name,
   }
-
   if nics:
     nic_count = len(nics)
     for idx, (ip, mac, mode, link) in enumerate(nics):
@@ -1103,7 +1107,8 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     "secondary_nodes": instance.secondary_nodes,
     "os_type": instance.os,
     "status": instance.admin_state,
-    "memory": bep[constants.BE_MEMORY],
+    "maxmem": bep[constants.BE_MAXMEM],
+    "minmem": bep[constants.BE_MINMEM],
     "vcpus": bep[constants.BE_VCPUS],
     "nics": _NICListToTuple(lu, instance.nics),
     "disk_template": instance.disk_template,
@@ -8716,7 +8721,8 @@ class LUInstanceCreate(LogicalUnit):
       secondary_nodes=self.secondaries,
       status=self.op.start,
       os_type=self.op.os_type,
-      memory=self.be_full[constants.BE_MEMORY],
+      minmem=self.be_full[constants.BE_MINMEM],
+      maxmem=self.be_full[constants.BE_MAXMEM],
       vcpus=self.be_full[constants.BE_VCPUS],
       nics=_NICListToTuple(self, self.nics),
       disk_template=self.op.disk_template,
@@ -11140,8 +11146,10 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     args = dict()
-    if constants.BE_MEMORY in self.be_new:
-      args["memory"] = self.be_new[constants.BE_MEMORY]
+    if constants.BE_MINMEM in self.be_new:
+      args["minmem"] = self.be_new[constants.BE_MINMEM]
+    if constants.BE_MAXMEM in self.be_new:
+      args["maxmem"] = self.be_new[constants.BE_MAXMEM]
     if constants.BE_VCPUS in self.be_new:
       args["vcpus"] = self.be_new[constants.BE_VCPUS]
     # TODO: export disk changes. Note: _BuildInstanceHookEnv* don't export disk
