@@ -3728,6 +3728,9 @@ class LUClusterSetParams(LogicalUnit):
       _AdjustCandidatePool(self, [])
 
     if self.op.maintain_node_health is not None:
+      if self.op.maintain_node_health and not constants.ENABLE_CONFD:
+        feedback_fn("Note: CONFD was disabled at build time, node health"
+                    " maintenance is not useful (still enabling it)")
       self.cluster.maintain_node_health = self.op.maintain_node_health
 
     if self.op.prealloc_wipe_disks is not None:

@@ -350,7 +350,8 @@ The option ``--maintain-node-health`` allows one to enable/disable
 automatic maintenance actions on nodes. Currently these include
 automatic shutdown of instances and deactivation of DRBD devices on
 offline nodes; in the future it might be extended to automatic
-removal of unknown LVM volumes, etc.
+removal of unknown LVM volumes, etc. Note that this option is only
+useful if the use of ``ganeti-confd`` was enabled at compilation.
 
 The ``--uid-pool`` option initializes the user-id pool. The
 *user-id pool definition* can contain a list of user-ids and/or a
