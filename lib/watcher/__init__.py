@@ -92,7 +92,8 @@ def StartNodeDaemons():
   # on master or not, try to start the node daemon
   utils.EnsureDaemon(constants.NODED)
   # start confd as well. On non candidates it will be in disabled mode.
-  utils.EnsureDaemon(constants.CONFD)
+  if constants.ENABLE_CONFD:
+    utils.EnsureDaemon(constants.CONFD)
 
 
 def RunWatcherHooks():

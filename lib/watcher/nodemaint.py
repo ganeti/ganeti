@@ -130,6 +130,10 @@ class NodeMaintenance(object):
     """Check node status versus cluster desired state.
 
     """
+    if not constants.ENABLE_CONFD:
+      logging.warning("Confd use not enabled, cannot do maintenance")
+      return
+
     my_name = netutils.Hostname.GetSysName()
     req = \
       confd.client.ConfdClientRequest(type=constants.CONFD_REQ_NODE_ROLE_BYNAME,
