@@ -1217,8 +1217,16 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - VCPUs: %s\n" %
               compat.TryToRoman(instance["be_actual"][constants.BE_VCPUS],
                                 convert=opts.roman_integers))
+    buf.write("    - maxmem: %sMiB\n" %
+              compat.TryToRoman(instance["be_actual"][constants.BE_MAXMEM],
+                                convert=opts.roman_integers))
+    buf.write("    - minmem: %sMiB\n" %
+              compat.TryToRoman(instance["be_actual"][constants.BE_MINMEM],
+                                convert=opts.roman_integers))
+    # deprecated "memory" value, kept for one version for compatibility
+    # TODO(ganeti 2.7) remove.
     buf.write("    - memory: %sMiB\n" %
-              compat.TryToRoman(instance["be_actual"][constants.BE_MEMORY],
+              compat.TryToRoman(instance["be_actual"][constants.BE_MAXMEM],
                                 convert=opts.roman_integers))
     buf.write("    - NICs:\n")
     for idx, (ip, mac, mode, link) in enumerate(instance["nics"]):
