@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2009, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,8 +29,11 @@ DAEMONS=(
   ganeti-noded
   ganeti-masterd
   ganeti-rapi
-  ganeti-confd
   )
+
+if [[ "@CUSTOM_ENABLE_CONFD@" == True ]]; then
+  DAEMONS+=( ganeti-confd )
+fi
 
 NODED_ARGS=
 MASTERD_ARGS=
@@ -162,6 +165,12 @@ start() {
   fi
 
   local name="$1"; shift
+
+  if [[ "$name" == ganeti-confd &&
+        "@CUSTOM_ENABLE_CONFD@" == False ]]; then
+    echo 'ganeti-confd disabled at build time' >&2
+    return 1
+  fi
 
   # Convert daemon name to uppercase after removing "ganeti-" prefix
   local plain_name=${name#ganeti-}
