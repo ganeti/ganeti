@@ -287,9 +287,21 @@ manually start one which is currently stopped you can run::
 
   gnt-instance startup INSTANCE_NAME
 
-While the command to stop one is::
+Note, that this will not work when an instance is in a permanently
+stopped state ``offline``. In this case, you will first have to
+put it back to online mode by running::
+
+  gnt-instance modify --online INSTANCE_NAME
+
+The command to stop the running instance is::
 
   gnt-instance shutdown INSTANCE_NAME
+
+If you want to shut the instance down more permanently, so that it
+does not require dynamically allocated resources (memory and vcpus),
+after shutting down an instance, execute the following::
+
+  gnt-instance modify --ofline INSTANCE_NAME
 
 .. warning:: Do not use the Xen or KVM commands directly to stop
    instances. If you run for example ``xm shutdown`` or ``xm destroy``
