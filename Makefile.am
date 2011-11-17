@@ -1003,6 +1003,7 @@ lib/_autoconf.py: Makefile | lib/.dir
 	  else \
 	    echo "HTOOLS = False"; \
 	  fi; \
+	  echo "ENABLE_CONFD = $(ENABLE_CONFD)"; \
 	} > $@
 
 lib/_vcsversion.py: Makefile vcs-version | lib/.dir
@@ -1054,6 +1055,7 @@ $(REPLACE_VARS_SED): Makefile
 	  echo 's#@GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
 	  echo 's#@GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
+	  echo 's#@CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
 	} > $@
 
 # Using deferred evaluation

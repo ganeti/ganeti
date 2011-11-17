@@ -261,6 +261,27 @@ AC_ARG_ENABLE([htools-rapi],
         [],
         [enable_htools_rapi=no])
 
+# --enable-htools
+ENABLE_CONFD=
+AC_ARG_ENABLE([confd],
+  [AS_HELP_STRING([--enable-confd],
+  [enable the ganeti-confd daemon (default: yes)])],
+  [[case "$enableval" in
+      no)
+        enable_confd=False
+        ;;
+      yes)
+        enable_confd=True
+        ;;
+      *)
+        echo "Invalid value for enable-confd '$enableval'"
+        exit 1
+        ;;
+    esac
+  ]],
+  [enable_confd=True])
+AC_SUBST(ENABLE_CONFD, $enable_confd)
+
 # --with-disk-separator=...
 AC_ARG_WITH([disk-separator],
   [AS_HELP_STRING([--with-disk-separator=STRING],
