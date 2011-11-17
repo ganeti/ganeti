@@ -72,7 +72,9 @@ Depending on the role, each node will run a set of daemons:
   this node's hardware resources; it runs on all nodes which are in a
   cluster
 - the :command:`ganeti-confd` daemon (Ganeti 2.1+) which runs on all
-  nodes, but is only functional on master candidate nodes
+  nodes, but is only functional on master candidate nodes; this daemon
+  can be disabled at configuration time if you don't need its
+  functionality
 - the :command:`ganeti-rapi` daemon which runs on the master node and
   offers an HTTP-based API for the cluster
 - the :command:`ganeti-masterd` daemon which runs on the master node and
