@@ -1626,7 +1626,8 @@ def _GetInstanceParameterFields():
   # TODO: Consider moving titles closer to constants
   be_title = {
     constants.BE_AUTO_BALANCE: "Auto_balance",
-    constants.BE_MEMORY: "ConfigMemory",
+    constants.BE_MAXMEM: "ConfigMaxMem",
+    constants.BE_MINMEM: "ConfigMinMem",
     constants.BE_VCPUS: "ConfigVCPUs",
     }
 
@@ -1836,6 +1837,7 @@ def _BuildInstanceFields():
 
   aliases = [
     ("vcpus", "be/vcpus"),
+    ("be/memory", "be/maxmem"),
     ("sda_size", "disk.size/0"),
     ("sdb_size", "disk.size/1"),
     ] + network_aliases
