@@ -26,8 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Program.Hail (main) where
 
 import Control.Monad
+import System.Environment (getArgs)
 import System.IO
-import qualified System
 
 import qualified Ganeti.HTools.Cluster as Cluster
 
@@ -51,7 +51,7 @@ options =
 -- | Main function.
 main :: IO ()
 main = do
-  cmd_args <- System.getArgs
+  cmd_args <- getArgs
   (opts, args) <- parseOpts cmd_args "hail" options
 
   let shownodes = optShowNodes opts

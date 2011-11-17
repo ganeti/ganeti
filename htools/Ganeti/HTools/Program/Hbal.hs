@@ -31,11 +31,11 @@ import Control.Monad
 import Data.List
 import Data.Maybe (isJust, isNothing, fromJust)
 import Data.IORef
-import System (exitWith, ExitCode(..))
+import System.Environment (getArgs)
+import System.Exit
 import System.IO
 import System.Posix.Process
 import System.Posix.Signals
-import qualified System
 
 import Text.Printf (printf, hPrintf)
 
@@ -340,7 +340,7 @@ checkNeedRebalance opts ini_cv = do
 -- | Main function.
 main :: IO ()
 main = do
-  cmd_args <- System.getArgs
+  cmd_args <- getArgs
   (opts, args) <- parseOpts cmd_args "hbal" options
 
   unless (null args) $ do

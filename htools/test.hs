@@ -28,11 +28,11 @@ module Main(main) where
 import Data.Char
 import Data.IORef
 import Data.List
-import Test.QuickCheck
 import System.Console.GetOpt ()
-import System.IO
+import System.Environment (getArgs)
 import System.Exit
-import System (getArgs)
+import System.IO
+import Test.QuickCheck
 import Text.Printf
 
 import Ganeti.HTools.QC
@@ -147,7 +147,7 @@ main :: IO ()
 main = do
   errs <- newIORef 0
   let wrap = map (wrapTest errs)
-  cmd_args <- System.getArgs
+  cmd_args <- getArgs
   (opts, args) <- parseOpts cmd_args "test" options
   tests <- (if null args
               then return allTests

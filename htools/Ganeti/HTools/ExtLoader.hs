@@ -37,7 +37,7 @@ import Control.Monad
 import Data.Maybe (isJust, fromJust)
 import System.FilePath
 import System.IO
-import System
+import System.Exit
 import Text.Printf (hPrintf)
 
 import qualified Ganeti.HTools.Luxi as Luxi

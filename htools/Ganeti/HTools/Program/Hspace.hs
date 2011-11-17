@@ -30,9 +30,9 @@ import Data.Char (toUpper, isAlphaNum, toLower)
 import Data.Function (on)
 import Data.List
 import Data.Ord (comparing)
-import System (exitWith, ExitCode(..))
+import System.Exit
 import System.IO
-import qualified System
+import System.Environment (getArgs)
 
 import Text.Printf (printf, hPrintf)
 
@@ -383,7 +383,7 @@ runAllocation cdata stop_allocation actual_result spec mode opts = do
 -- | Main function.
 main :: IO ()
 main = do
-  cmd_args <- System.getArgs
+  cmd_args <- getArgs
   (opts, args) <- parseOpts cmd_args "hspace" options
 
   unless (null args) $ do

@@ -26,7 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Main (main) where
 
 import Data.Char (toLower)
-import System
+import System.Environment
+import System.Exit
 import System.IO
 
 import Ganeti.HTools.Utils

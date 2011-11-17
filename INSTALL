@@ -63,7 +63,7 @@ on bigger deployments (they give you automatic instance placement,
 cluster balancing, etc.), then you need to have a Haskell compiler
 installed. More specifically:
 
-- `GHC <http://www.haskell.org/ghc/>`_ version 6.10 or higher
+- `GHC <http://www.haskell.org/ghc/>`_ version 6.12 or higher
 - or even better, `The Haskell Platform
   <http://hackage.haskell.org/platform/>`_ which gives you a simple way
   to bootstrap Haskell

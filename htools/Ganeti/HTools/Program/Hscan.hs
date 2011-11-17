@@ -27,10 +27,10 @@ module Ganeti.HTools.Program.Hscan (main) where
 
 import Control.Monad
 import Data.Maybe (isJust, fromJust, fromMaybe)
-import System (exitWith, ExitCode(..))
+import System.Environment (getArgs)
+import System.Exit
 import System.IO
 import System.FilePath
-import qualified System
 
 import Text.Printf (printf)
 
@@ -127,7 +127,7 @@ writeDataInner nlen name opts cdata fixdata = do
 -- | Main function.
 main :: IO ()
 main = do
-  cmd_args <- System.getArgs
+  cmd_args <- getArgs
   (opts, clusters) <- parseOpts cmd_args "hscan" options
   let local = "LOCAL"
 

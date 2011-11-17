@@ -35,7 +35,7 @@ import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSArray),
                   makeObj, encodeStrict, decodeStrict, fromJSObject, showJSON)
-import System (exitWith, ExitCode(..))
+import System.Exit
 import System.IO
 
 import qualified Ganeti.HTools.Cluster as Cluster

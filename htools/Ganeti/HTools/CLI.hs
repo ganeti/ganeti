@@ -83,7 +83,7 @@ import qualified Data.Version
 import System.Console.GetOpt
 import System.IO
 import System.Info
-import System
+import System.Exit
 import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Version as Version(version)
