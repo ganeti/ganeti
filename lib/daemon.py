@@ -457,6 +457,47 @@ class AsyncAwaker(GanetiBaseAsyncoreDispatcher):
       self.out_socket.send("\0")
 
 
+class _ShutdownCheck:
+  """Logic for L{Mainloop} shutdown.
+
+  """
+  def __init__(self, fn):
+    """Initializes this class.
+
+    @type fn: callable
+    @param fn: Function returning C{None} if mainloop can be stopped or a
+      duration in seconds after which the function should be called again
+    @see: L{Mainloop.Run}
+
+    """
+    assert callable(fn)
+
+    self._fn = fn
+    self._defer = None
+
+  def CanShutdown(self):
+    """Checks whether mainloop can be stopped.
+
+    @rtype: bool
+
+    """
+    if self._defer and self._defer.Remaining() > 0:
+      # A deferred check has already been scheduled
+      return False
+
+    # Ask mainloop driver whether we can stop or should check again
+    timeout = self._fn()
+
+    if timeout is None:
+      # Yes, can stop mainloop
+      return True
+
+    # Schedule another check in the future
+    self._defer = utils.RunningTimeout(timeout, True)
+
+    return False
+
+
 class Mainloop(object):
   """Generic mainloop for daemons
 
@@ -464,6 +505,8 @@ class Mainloop(object):
     timed events
 
   """
+  _SHUTDOWN_TIMEOUT_PRIORITY = -(sys.maxint - 1)
+
   def __init__(self):
     """Constructs a new Mainloop instance.
 
@@ -477,9 +520,13 @@ class Mainloop(object):
   @utils.SignalHandled([signal.SIGCHLD])
   @utils.SignalHandled([signal.SIGTERM])
   @utils.SignalHandled([signal.SIGINT])
-  def Run(self, signal_handlers=None):
+  def Run(self, shutdown_wait_fn=None, signal_handlers=None):
     """Runs the mainloop.
 
+    @type shutdown_wait_fn: callable
+    @param shutdown_wait_fn: Function to check whether loop can be terminated;
+      B{important}: function must be idempotent and must return either None
+      for shutting down or a timeout for another call
     @type signal_handlers: dict
     @param signal_handlers: signal->L{utils.SignalHandler} passed by decorator
 
@@ -491,15 +538,38 @@ class Mainloop(object):
     # Counter for received signals
     shutdown_signals = 0
 
+    # Logic to wait for shutdown
+    shutdown_waiter = None
+
     # Start actual main loop
-    while shutdown_signals < 1:
-      if not self.scheduler.empty():
+    while True:
+      if shutdown_signals == 1 and shutdown_wait_fn is not None:
+        if shutdown_waiter is None:
+          shutdown_waiter = _ShutdownCheck(shutdown_wait_fn)
+
+        # Let mainloop driver decide if we can already abort
+        if shutdown_waiter.CanShutdown():
+          break
+
+        # Re-evaluate in a second
+        timeout = 1.0
+
+      elif shutdown_signals >= 1:
+        # Abort loop if more than one signal has been sent or no callback has
+        # been given
+        break
+
+      else:
+        # Wait forever on I/O events
+        timeout = None
+
+      if self.scheduler.empty():
+        asyncore.loop(count=1, timeout=timeout, use_poll=True)
+      else:
         try:
-          self.scheduler.run()
+          self.scheduler.run(max_delay=timeout)
         except SchedulerBreakout:
           pass
-      else:
-        asyncore.loop(count=1, use_poll=True)
 
       # Check whether a signal was raised
       for (sig, handler) in signal_handlers.items():
