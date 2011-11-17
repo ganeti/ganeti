@@ -650,7 +650,9 @@ class XenPvmHypervisor(XenHypervisor):
         config.write("ramdisk = '%s'\n" % initrd_path)
 
     # rest of the settings
+    # TODO(dynmem): use actual chosen memory for instance startup
     config.write("memory = %d\n" % instance.beparams[constants.BE_MAXMEM])
+    config.write("maxmem = %d\n" % instance.beparams[constants.BE_MAXMEM])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
     cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])
     if cpu_pinning:
@@ -749,7 +751,9 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("kernel = '%s'\n" % kpath)
 
     config.write("builder = 'hvm'\n")
+    # TODO(dynmem): use actual chosen memory for instance startup
     config.write("memory = %d\n" % instance.beparams[constants.BE_MAXMEM])
+    config.write("maxmem = %d\n" % instance.beparams[constants.BE_MAXMEM])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
     cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])
     if cpu_pinning:
