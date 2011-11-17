@@ -8858,6 +8858,12 @@ class LUInstanceCreate(LogicalUnit):
       for name, value in einfo.items(constants.INISECT_BEP):
         if name not in self.op.beparams:
           self.op.beparams[name] = value
+        # Compatibility for the old "memory" be param
+        if name == constants.BE_MEMORY:
+          if constants.BE_MAXMEM not in self.op.beparams:
+            self.op.beparams[constants.BE_MAXMEM] = value
+          if constants.BE_MINMEM not in self.op.beparams:
+            self.op.beparams[constants.BE_MINMEM] = value
     else:
       # try to read the parameters old style, from the main section
       for name in constants.BES_PARAMETERS:

@@ -2493,8 +2493,13 @@ def FinalizeExport(instance, snap_disks):
 
   config.add_section(constants.INISECT_INS)
   config.set(constants.INISECT_INS, "name", instance.name)
+  config.set(constants.INISECT_INS, "maxmem", "%d" %
+             instance.beparams[constants.BE_MAXMEM])
+  config.set(constants.INISECT_INS, "minmem", "%d" %
+             instance.beparams[constants.BE_MINMEM])
+  # "memory" is deprecated, but useful for exporting to old ganeti versions
   config.set(constants.INISECT_INS, "memory", "%d" %
-             instance.beparams[constants.BE_MEMORY])
+             instance.beparams[constants.BE_MAXMEM])
   config.set(constants.INISECT_INS, "vcpus", "%d" %
              instance.beparams[constants.BE_VCPUS])
   config.set(constants.INISECT_INS, "disk_template", instance.disk_template)
