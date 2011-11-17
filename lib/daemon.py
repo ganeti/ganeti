@@ -75,7 +75,43 @@ class AsyncoreScheduler(sched.scheduler):
 
   """
   def __init__(self, timefunc):
-    sched.scheduler.__init__(self, timefunc, AsyncoreDelayFunction)
+    """Initializes this class.
+
+    """
+    sched.scheduler.__init__(self, timefunc, self._LimitedDelay)
+    self._max_delay = None
+
+  def run(self, max_delay=None): # pylint: disable=W0221
+    """Run any pending events.
+
+    @type max_delay: None or number
+    @param max_delay: Maximum delay (useful if caller has timeouts running)
+
+    """
+    assert self._max_delay is None
+
+    # The delay function used by the scheduler can't be different on each run,
+    # hence an instance variable must be used.
+    if max_delay is None:
+      self._max_delay = None
+    else:
+      self._max_delay = utils.RunningTimeout(max_delay, False)
+
+    try:
+      return sched.scheduler.run(self)
+    finally:
+      self._max_delay = None
+
+  def _LimitedDelay(self, duration):
+    """Custom delay function for C{sched.scheduler}.
+
+    """
+    if self._max_delay is None:
+      timeout = duration
+    else:
+      timeout = min(duration, self._max_delay.Remaining())
+
+    return AsyncoreDelayFunction(timeout)
 
 
 class GanetiBaseAsyncoreDispatcher(asyncore.dispatcher):
