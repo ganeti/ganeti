@@ -8813,6 +8813,11 @@ class LUInstanceCreate(LogicalUnit):
     if self.op.iallocator is not None:
       self._RunAllocator()
 
+    # Release all unneeded node locks
+    _ReleaseLocks(self, locking.LEVEL_NODE,
+                  keep=filter(None, [self.op.pnode, self.op.snode,
+                                     self.op.src_node]))
+
     #### node related checks
 
     # check primary node
