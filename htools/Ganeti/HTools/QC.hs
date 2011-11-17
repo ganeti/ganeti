@@ -718,7 +718,8 @@ prop_Node_addSec node inst pdx =
 
 -- | Check that an offline instance with reasonable disk size can always
 -- be added.
-prop_Node_addPriOffline node =
+prop_Node_addPriOffline =
+  forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
   forAll (arbitrary `suchThat`
           (\ x ->  (Instance.dsk x  < Node.fDsk node) &&
                    Instance.instanceOffline x)) $ \inst ->
@@ -726,7 +727,8 @@ prop_Node_addPriOffline node =
     Types.OpGood _ -> True
     _ -> False
 
-prop_Node_addSecOffline node pdx =
+prop_Node_addSecOffline pdx =
+  forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
   forAll (arbitrary `suchThat`
           (\ x ->  (Instance.dsk x  < Node.fDsk node) &&
                    Instance.instanceOffline x)) $ \inst ->
