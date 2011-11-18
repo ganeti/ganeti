@@ -395,6 +395,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program/Hscan.hs \
 	htools/Ganeti/HTools/Program/Hspace.hs \
 	htools/Ganeti/BasicTypes.hs \
+	htools/Ganeti/Confd.hs \
 	htools/Ganeti/Config.hs \
 	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Luxi.hs \
