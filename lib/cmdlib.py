@@ -3983,8 +3983,9 @@ class LUClusterActivateMasterIp(NoHooksLU):
     """
     master_params = self.cfg.GetMasterNetworkParameters()
     ems = self.cfg.GetUseExternalMipScript()
-    self.rpc.call_node_activate_master_ip(master_params.name,
-                                          master_params, ems)
+    result = self.rpc.call_node_activate_master_ip(master_params.name,
+                                                   master_params, ems)
+    result.Raise("Could not activate the master IP")
 
 
 class LUClusterDeactivateMasterIp(NoHooksLU):
@@ -3997,8 +3998,9 @@ class LUClusterDeactivateMasterIp(NoHooksLU):
     """
     master_params = self.cfg.GetMasterNetworkParameters()
     ems = self.cfg.GetUseExternalMipScript()
-    self.rpc.call_node_deactivate_master_ip(master_params.name, master_params,
-                                            ems)
+    result = self.rpc.call_node_deactivate_master_ip(master_params.name,
+                                                     master_params, ems)
+    result.Raise("Could not deactivate the master IP")
 
 
 def _WaitForSync(lu, instance, disks=None, oneshot=False):
