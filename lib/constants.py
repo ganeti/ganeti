@@ -366,6 +366,7 @@ HOOKS_PHASE_POST = "post"
 HOOKS_NAME_CFGUPDATE = "config-update"
 HOOKS_NAME_WATCHER = "watcher"
 HOOKS_VERSION = 2
+HOOKS_PATH = "/sbin:/bin:/usr/sbin:/usr/bin"
 
 # hooks subject type (what object type does the LU deal with)
 HTYPE_CLUSTER = "CLUSTER"

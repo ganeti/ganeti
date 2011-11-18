@@ -1,5 +1,5 @@
 #!/bin/sh
-# ganeti node daemon starter script
+# ganeti daemons init script
 # based on skeleton from Debian GNU/Linux
 ### BEGIN INIT INFO
 # Provides:          ganeti

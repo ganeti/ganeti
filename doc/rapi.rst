@@ -1298,6 +1298,10 @@ The query arguments used up to and including Ganeti 2.4 are deprecated
 and should no longer be used. The new request format can be detected by
 the presence of the :pyeval:`rlib2._NODE_MIGRATE_REQV1` feature string.
 
+Job result:
+
+.. opcode_result:: OP_NODE_MIGRATE
+
 
 ``/2/nodes/[node_name]/role``
 +++++++++++++++++++++++++++++

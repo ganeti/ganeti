@@ -1827,7 +1827,8 @@ class JobQueue(object):
     @return: a string representing the job identifier.
 
     """
-    assert count > 0
+    assert ht.TPositiveInt(count)
+
     # New number
     serial = self._last_serial + count
 

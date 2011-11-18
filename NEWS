@@ -9,10 +9,10 @@ Version 2.6.0 beta 1
 - Deprecated ``admin_up`` field. Instead, ``admin_state`` is introduced,
   with 3 possible values -- ``up``,``down`` and ``offline``.
 
-Version 2.5.0 rc2
+Version 2.5.0 rc4
 -----------------
 
-*(Released Tue, 18 Oct 2011)*
+*(Released Thu, 27 Oct 2011)*
 
 Incompatible/important changes and bugfixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,6 +127,8 @@ Misc
 
   - :doc:`RAPI <rapi>` documentation now has detailed parameter
     descriptions.
+  - Some opcode/job results are now also documented, see :doc:`RAPI
+    <rapi>`.
 
 - A lockset's internal lock is now also visible in lock monitor.
 - Log messages from job queue workers now contain information about the
@@ -135,6 +137,22 @@ Misc
 - A short delay when waiting for job changes reduces the number of LUXI
   requests significantly.
 - DRBD metadata volumes are overwritten with zeros during disk creation.
+
+
+Version 2.5.0 rc3
+-----------------
+
+*(Released Wed, 26 Oct 2011)*
+
+This was the third release candidate of the 2.5 series.
+
+
+Version 2.5.0 rc2
+-----------------
+
+*(Released Tue, 18 Oct 2011)*
+
+This was the second release candidate of the 2.5 series.
 
 
 Version 2.5.0 rc1

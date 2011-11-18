@@ -1025,6 +1025,7 @@ class OpNodeMigrate(OpCode):
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding the target node for shared-storage instances"),
     ]
+  OP_RESULT = TJobIdListOnly
 
 
 class OpNodeEvacuate(OpCode):

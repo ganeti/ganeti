@@ -315,11 +315,14 @@ checkData nl il =
                              - nodeIdsk node il
                  newn = Node.setFmem (Node.setXmem node delta_mem)
                         (Node.fMem node - adj_mem)
-                 umsg1 = [printf "node %s is missing %d MB ram \
-                                 \and %d GB disk"
-                                 nname delta_mem (delta_dsk `div` 1024) |
-                                 delta_mem > 512 || delta_dsk > 1024]::[String]
-             in (msgs ++ umsg1, newn)
+                 umsg1 =
+                   if delta_mem > 512 || delta_dsk > 1024
+                      then (printf "node %s is missing %d MB ram \
+                                   \and %d GB disk"
+                                   nname delta_mem (delta_dsk `div` 1024)):
+                           msgs
+                      else msgs
+             in (umsg1, newn)
         ) [] nl
 
 -- | Compute the amount of memory used by primary instances on a node.

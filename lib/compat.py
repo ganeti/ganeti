@@ -45,11 +45,10 @@ except ImportError:
 # modules (hmac, for example) which have changed their behavior as well from
 # one version to the other.
 try:
-  # pylint: disable=F0401
+  # Yes, these don't always exist, that's why we're testing
   # Yes, we're not using the imports in this module.
-  # pylint: disable=W0611
-  from hashlib import md5 as md5_hash
-  from hashlib import sha1 as sha1_hash
+  from hashlib import md5 as md5_hash # pylint: disable=W0611,E0611,F0401
+  from hashlib import sha1 as sha1_hash # pylint: disable=W0611,E0611,F0401
   # this additional version is needed for compatibility with the hmac module
   sha1 = sha1_hash
 except ImportError:

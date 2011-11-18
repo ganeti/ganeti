@@ -280,10 +280,9 @@ selectGroup opts gl nlf ilf = do
       Just grp ->
           case lookup (Group.idx grp) ngroups of
             Nothing -> do
-              -- TODO: while this is unlikely to happen, log here the
-              -- actual group data to help debugging
-              hPutStrLn stderr "Internal failure, missing group idx"
-              exitWith $ ExitFailure 1
+              -- This will only happen if there are no nodes assigned
+              -- to this group
+              return (Group.name grp, (Container.empty, Container.empty))
             Just cdata -> return (Group.name grp, cdata)
 
 -- | Do a few checks on the cluster data.

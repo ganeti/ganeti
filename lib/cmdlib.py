@@ -3243,7 +3243,10 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         locking.LEVEL_NODE_RES: locking.ALL_SET,
         locking.LEVEL_INSTANCE: locking.ALL_SET,
         }
-    self.share_locks = _ShareAll()
+    self.share_locks = {
+      locking.LEVEL_NODE: 1,
+      locking.LEVEL_INSTANCE: 0,
+      }
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE_RES and self.wanted_names is not None:
@@ -6674,7 +6677,7 @@ class LUInstanceRename(LogicalUnit):
     new_name = self.op.new_name
     if self.op.name_check:
       hostname = netutils.GetHostname(name=new_name)
-      if hostname != new_name:
+      if hostname.name != new_name:
         self.LogInfo("Resolved given name '%s' to '%s'", new_name,
                      hostname.name)
       if not utils.MatchNameComponent(self.op.new_name, [hostname.name]):
@@ -8284,6 +8287,11 @@ def _RemoveDisks(lu, instance, target_node=None):
                       " continuing anyway: %s", device.iv_name, node, msg)
         all_result = False
 
+    # if this is a DRBD disk, return its port to the pool
+    if device.dev_type in constants.LDS_DRBD:
+      tcp_port = device.logical_id[2]
+      lu.cfg.AddTcpUdpPort(tcp_port)
+
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     if target_node:
@@ -9101,6 +9109,11 @@ class LUInstanceCreate(LogicalUnit):
 
     if self.op.iallocator is not None:
       self._RunAllocator()
+
+    # Release all unneeded node locks
+    _ReleaseLocks(self, locking.LEVEL_NODE,
+                  keep=filter(None, [self.op.pnode, self.op.snode,
+                                     self.op.src_node]))
 
     #### node related checks
 
@@ -10658,9 +10671,10 @@ def _LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
   (moved, failed, jobs) = alloc_result
 
   if failed:
-    lu.LogWarning("Unable to evacuate instances %s",
-                  utils.CommaJoin("%s (%s)" % (name, reason)
-                                  for (name, reason) in failed))
+    failreason = utils.CommaJoin("%s (%s)" % (name, reason)
+                                 for (name, reason) in failed)
+    lu.LogWarning("Unable to evacuate instances %s", failreason)
+    raise errors.OpExecError("Unable to evacuate instances %s" % failreason)
 
   if moved:
     lu.LogInfo("Instances to be moved: %s",
@@ -11566,6 +11580,11 @@ class LUInstanceSetParams(LogicalUnit):
         self.LogWarning("Could not remove metadata for disk %d on node %s,"
                         " continuing anyway: %s", idx, pnode, msg)
 
+    # this is a DRBD disk, return its port to the pool
+    for disk in old_disks:
+      tcp_port = disk.logical_id[2]
+      self.cfg.AddTcpUdpPort(tcp_port)
+
     # Node resource locks will be released by caller
 
   def Exec(self, feedback_fn):
@@ -11598,6 +11617,11 @@ class LUInstanceSetParams(LogicalUnit):
             self.LogWarning("Could not remove disk/%d on node %s: %s,"
                             " continuing anyway", device_idx, node, msg)
         result.append(("disk/%d" % device_idx, "remove"))
+
+        # if this is a DRBD disk, return its port to the pool
+        if device.dev_type in constants.LDS_DRBD:
+          tcp_port = device.logical_id[2]
+          self.cfg.AddTcpUdpPort(tcp_port)
       elif disk_op == constants.DDM_ADD:
         # add a new disk
         if instance.disk_template in (constants.DT_FILE,
