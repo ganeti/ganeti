@@ -38,14 +38,125 @@ module Ganeti.THH ( declareSADT
                   , genStrOfOp
                   , genStrOfKey
                   , genLuxiOp
+                  , Field
+                  , simpleField
+                  , defaultField
+                  , optionalField
+                  , renameField
+                  , containerField
+                  , customField
+                  , timeStampFields
+                  , uuidFields
+                  , serialFields
+                  , buildObject
+                  , buildObjectSerialisation
+                  , buildParam
+                  , Container
                   ) where
 
+import Control.Arrow
 import Control.Monad (liftM, liftM2)
 import Data.Char
 import Data.List
+import qualified Data.Map as M
 import Language.Haskell.TH
 
 import qualified Text.JSON as JSON
+
+-- * Exported types
+
+type Container = M.Map String
+
+-- | Serialised field data type.
+data Field = Field { fieldName        :: String
+                   , fieldType        :: Q Type
+                   , fieldRead        :: Maybe (Q Exp)
+                   , fieldShow        :: Maybe (Q Exp)
+                   , fieldDefault     :: Maybe (Q Exp)
+                   , fieldConstr      :: Maybe String
+                   , fieldIsContainer :: Bool
+                   , fieldIsOptional  :: Bool
+                   }
+
+-- | Generates a simple field.
+simpleField :: String -> Q Type -> Field
+simpleField fname ftype =
+  Field { fieldName        = fname
+        , fieldType        = ftype
+        , fieldRead        = Nothing
+        , fieldShow        = Nothing
+        , fieldDefault     = Nothing
+        , fieldConstr      = Nothing
+        , fieldIsContainer = False
+        , fieldIsOptional  = False
+        }
+
+-- | Sets the renamed constructor field.
+renameField :: String -> Field -> Field
+renameField constrName field = field { fieldConstr = Just constrName }
+
+-- | Sets the default value on a field (makes it optional with a
+-- default value).
+defaultField :: Q Exp -> Field -> Field
+defaultField defval field = field { fieldDefault = Just defval }
+
+-- | Marks a field optional (turning its base type into a Maybe).
+optionalField :: Field -> Field
+optionalField field = field { fieldIsOptional = True }
+
+-- | Marks a field as a container.
+containerField :: Field -> Field
+containerField field = field { fieldIsContainer = True }
+
+-- | Sets custom functions on a field.
+customField :: Q Exp -> Q Exp -> Field -> Field
+customField readfn showfn field =
+  field { fieldRead = Just readfn, fieldShow = Just showfn }
+
+fieldRecordName :: Field -> String
+fieldRecordName (Field { fieldName = name, fieldConstr = alias }) =
+  maybe (camelCase name) id alias
+
+fieldVariable :: Field -> String
+fieldVariable = map toLower . fieldRecordName
+
+actualFieldType :: Field -> Q Type
+actualFieldType f | fieldIsContainer f = [t| Container $t |]
+                  | fieldIsOptional f  = [t| Maybe $t     |]
+                  | otherwise = t
+                  where t = fieldType f
+
+checkNonOptDef :: (Monad m) => Field -> m ()
+checkNonOptDef (Field { fieldIsOptional = True, fieldName = name }) =
+  fail $ "Optional field " ++ name ++ " used in parameter declaration"
+checkNonOptDef (Field { fieldDefault = (Just _), fieldName = name }) =
+  fail $ "Default field " ++ name ++ " used in parameter declaration"
+checkNonOptDef _ = return ()
+
+loadFn :: Field -> Q Exp -> Q Exp
+loadFn (Field { fieldIsContainer = True }) expr = [| $expr >>= readContainer |]
+loadFn (Field { fieldRead = Just readfn }) expr = [| $expr >>= $readfn |]
+loadFn _ expr = expr
+
+saveFn :: Field -> Q Exp -> Q Exp
+saveFn (Field { fieldIsContainer = True }) expr = [| showContainer $expr |]
+saveFn (Field { fieldRead = Just readfn }) expr = [| $readfn $expr |]
+saveFn _ expr = expr
+
+-- * Common field declarations
+
+timeStampFields :: [Field]
+timeStampFields =
+    [ defaultField [| 0::Double |] $ simpleField "ctime" [t| Double |]
+    , defaultField [| 0::Double |] $ simpleField "mtime" [t| Double |]
+    ]
+
+serialFields :: [Field]
+serialFields =
+    [ renameField  "Serial" $ simpleField "serial_no" [t| Int |] ]
+
+uuidFields :: [Field]
+uuidFields = [ simpleField "uuid" [t| String |] ]
 
 -- * Helper functions
 
@@ -56,6 +167,13 @@ import qualified Text.JSON as JSON
 ensureLower :: String -> String
 ensureLower [] = []
 ensureLower (x:xs) = toLower x:xs
+
+-- | Ensure first letter is uppercase.
+--
+-- Used to convert constructor name to component
+ensureUpper :: String -> String
+ensureUpper [] = []
+ensureUpper (x:xs) = toUpper x:xs
 
 -- | Helper for quoted expressions.
 varNameE :: String -> Q Exp
@@ -85,6 +203,14 @@ reprE = either stringE varE
 appFn :: Exp -> Exp -> Exp
 appFn f x | f == VarE 'id = x
           | otherwise = AppE f x
+
+-- | Container loader
+readContainer :: (Monad m) => JSON.JSObject a -> m (Container a)
+readContainer = return . M.fromList . JSON.fromJSObject
+
+-- | Container dumper
+showContainer :: (JSON.JSON a) => Container a -> JSON.JSValue
+showContainer = JSON.makeObj . map (second JSON.showJSON) . M.toList
 
 -- * Template code for simple raw type-equivalent ADTs
 
@@ -232,6 +358,11 @@ makeJSONInstance name = do
 deCamelCase :: String -> String
 deCamelCase =
     intercalate "_" . map (map toUpper) . groupBy (\_ b -> not $ isUpper b)
+
+-- | Transform an underscore_name into a CamelCase one.
+camelCase :: String -> String
+camelCase = concatMap (ensureUpper . drop 1) .
+            groupBy (\_ b -> b /= '_') . ('_':)
 
 -- | Computes the name of a given constructor.
 constructorName :: Con -> Q Name
@@ -486,3 +617,225 @@ genSaveLuxiOp opdefs = do
   let fname = mkName "opToArgs"
   cclauses <- mapM saveLuxiConstructor opdefs
   return $ (SigD fname sigt, FunD fname cclauses)
+
+-- * "Objects" functionality
+
+-- | Extract the field's declaration from a Field structure.
+fieldTypeInfo :: String -> Field -> Q (Name, Strict, Type)
+fieldTypeInfo field_pfx fd = do
+  t <- actualFieldType fd
+  let n = mkName . (field_pfx ++) . fieldRecordName $ fd
+  return (n, NotStrict, t)
+
+-- | Build an object declaration.
+buildObject :: String -> String -> [Field] -> Q [Dec]
+buildObject sname field_pfx fields = do
+  let name = mkName sname
+  fields_d <- mapM (fieldTypeInfo field_pfx) fields
+  let decl_d = RecC name fields_d
+  let declD = DataD [] name [] [decl_d] [''Show, ''Read]
+  ser_decls <- buildObjectSerialisation sname fields
+  return $ declD:ser_decls
+
+buildObjectSerialisation :: String -> [Field] -> Q [Dec]
+buildObjectSerialisation sname fields = do
+  let name = mkName sname
+  savedecls <- genSaveObject saveObjectField sname fields
+  (loadsig, loadfn) <- genLoadObject loadObjectField sname fields
+  shjson <- objectShowJSON sname
+  rdjson <- objectReadJSON sname
+  let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
+                 (rdjson:shjson)
+  return $ savedecls ++ [loadsig, loadfn, instdecl]
+
+genSaveObject :: (Name -> Field -> Q Exp)
+              -> String -> [Field] -> Q [Dec]
+genSaveObject save_fn sname fields = do
+  let name = mkName sname
+  let fnames = map (mkName . fieldVariable) fields
+  let pat = conP name (map varP fnames)
+  let tdname = mkName ("toDict" ++ sname)
+  tdsigt <- [t| $(conT name) -> [(String, JSON.JSValue)] |]
+
+  let felems = map (uncurry save_fn) (zip fnames fields)
+      flist = listE felems
+      -- and finally convert all this to a json object
+      tdlist = [| concat $flist |]
+      iname = mkName "i"
+  tclause <- clause [pat] (normalB tdlist) []
+  cclause <- [| $(varNameE "makeObj") . $(varE tdname) |]
+  let fname = mkName ("save" ++ sname)
+  sigt <- [t| $(conT name) -> JSON.JSValue |]
+  return [SigD tdname tdsigt, FunD tdname [tclause],
+          SigD fname sigt, ValD (VarP fname) (NormalB cclause) []]
+
+saveObjectField :: Name -> Field -> Q Exp
+saveObjectField fvar field
+  | isContainer = [| [( $nameE , $showJSONE . showContainer $ $fvarE)] |]
+  | fisOptional = [| case $(varE fvar) of
+                      Nothing -> []
+                      Just v -> [( $nameE, $showJSONE v)]
+                  |]
+  | otherwise = case fieldShow field of
+      Nothing -> [| [( $nameE, $showJSONE $fvarE)] |]
+      Just fn -> [| [( $nameE, $showJSONE . $fn $ $fvarE)] |]
+  where isContainer = fieldIsContainer field
+        fisOptional  = fieldIsOptional field
+        nameE = stringE (fieldName field)
+        fvarE = varE fvar
+
+objectShowJSON :: String -> Q [Dec]
+objectShowJSON name =
+  [d| showJSON = JSON.showJSON . $(varE . mkName $ "save" ++ name) |]
+
+genLoadObject :: (Field -> Q (Name, Stmt))
+              -> String -> [Field] -> Q (Dec, Dec)
+genLoadObject load_fn sname fields = do
+  let name = mkName sname
+      funname = mkName $ "load" ++ sname
+      arg1 = mkName "v"
+      objname = mkName "o"
+      opid = mkName "op_id"
+  st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
+                                 (JSON.readJSON $(varE arg1)) |]
+  fbinds <- mapM load_fn fields
+  let (fnames, fstmts) = unzip fbinds
+  let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
+      fstmts' = st1:fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
+  sigt <- [t| JSON.JSValue -> JSON.Result $(conT name) |]
+  return $ (SigD funname sigt,
+            FunD funname [Clause [VarP arg1] (NormalB (DoE fstmts')) []])
+
+loadObjectField :: Field -> Q (Name, Stmt)
+loadObjectField field = do
+  let name = fieldVariable field
+      fvar = mkName name
+  -- these are used in all patterns below
+  let objvar = varNameE "o"
+      objfield = stringE (fieldName field)
+      loadexp =
+        if fieldIsOptional field
+          then [| $(varNameE "maybeFromObj") $objvar $objfield |]
+          else case fieldDefault field of
+                 Just defv ->
+                   [| $(varNameE "fromObjWithDefault") $objvar
+                      $objfield $defv |]
+                 Nothing -> [| $(varNameE "fromObj") $objvar $objfield |]
+  bexp <- loadFn field loadexp
+
+  return (fvar, BindS (VarP fvar) bexp)
+
+objectReadJSON :: String -> Q Dec
+objectReadJSON name = do
+  let s = mkName "s"
+  body <- [| case JSON.readJSON $(varE s) of
+               JSON.Ok s' -> $(varE .mkName $ "load" ++ name) s'
+               JSON.Error e ->
+                 JSON.Error $ "Can't parse value for type " ++
+                       $(stringE name) ++ ": " ++ e
+           |]
+  return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
+
+-- * Inheritable parameter tables implementation
+
+-- | Compute parameter type names.
+paramTypeNames :: String -> (String, String)
+paramTypeNames root = ("Filled"  ++ root ++ "Params",
+                       "Partial" ++ root ++ "Params")
+
+-- | Compute information about the type of a parameter field.
+paramFieldTypeInfo :: String -> Field -> Q (Name, Strict, Type)
+paramFieldTypeInfo field_pfx fd = do
+  t <- actualFieldType fd
+  let n = mkName . (++ "P") . (field_pfx ++) .
+          fieldRecordName $ fd
+  return (n, NotStrict, AppT (ConT ''Maybe) t)
+
+-- | Build a parameter declaration.
+--
+-- This function builds two different data structures: a /filled/ one,
+-- in which all fields are required, and a /partial/ one, in which all
+-- fields are optional. Due to the current record syntax issues, the
+-- fields need to be named differrently for the two structures, so the
+-- partial ones get a /P/ suffix.
+buildParam :: String -> String -> [Field] -> Q [Dec]
+buildParam sname field_pfx fields = do
+  let (sname_f, sname_p) = paramTypeNames sname
+      name_f = mkName sname_f
+      name_p = mkName sname_p
+  fields_f <- mapM (fieldTypeInfo field_pfx) fields
+  fields_p <- mapM (paramFieldTypeInfo field_pfx) fields
+  let decl_f = RecC name_f fields_f
+      decl_p = RecC name_p fields_p
+  let declF = DataD [] name_f [] [decl_f] [''Show, ''Read]
+      declP = DataD [] name_p [] [decl_p] [''Show, ''Read]
+  ser_decls_f <- buildObjectSerialisation sname_f fields
+  ser_decls_p <- buildPParamSerialisation sname_p fields
+  fill_decls <- fillParam sname field_pfx fields
+  return $ [declF, declP] ++ ser_decls_f ++ ser_decls_p ++ fill_decls
+
+buildPParamSerialisation :: String -> [Field] -> Q [Dec]
+buildPParamSerialisation sname fields = do
+  let name = mkName sname
+  savedecls <- genSaveObject savePParamField sname fields
+  (loadsig, loadfn) <- genLoadObject loadPParamField sname fields
+  shjson <- objectShowJSON sname
+  rdjson <- objectReadJSON sname
+  let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
+                 (rdjson:shjson)
+  return $ savedecls ++ [loadsig, loadfn, instdecl]
+
+savePParamField :: Name -> Field -> Q Exp
+savePParamField fvar field = do
+  checkNonOptDef field
+  let actualVal = mkName "v"
+  normalexpr <- saveObjectField actualVal field
+  -- we have to construct the block here manually, because we can't
+  -- splice-in-splice
+  return $ CaseE (VarE fvar) [ Match (ConP 'Nothing [])
+                                       (NormalB (ConE '[])) []
+                             , Match (ConP 'Just [VarP actualVal])
+                                       (NormalB normalexpr) []
+                             ]
+loadPParamField :: Field -> Q (Name, Stmt)
+loadPParamField field = do
+  checkNonOptDef field
+  let name = fieldName field
+      fvar = mkName name
+  -- these are used in all patterns below
+  let objvar = varNameE "o"
+      objfield = stringE name
+      loadexp = [| $(varNameE "maybeFromObj") $objvar $objfield |]
+  bexp <- loadFn field loadexp
+  return (fvar, BindS (VarP fvar) bexp)
+
+-- | Builds a simple declaration of type @n_x = fromMaybe f_x p_x@.
+buildFromMaybe :: String -> Q Dec
+buildFromMaybe fname =
+  valD (varP (mkName $ "n_" ++ fname))
+         (normalB [| $(varNameE "fromMaybe")
+                        $(varNameE $ "f_" ++ fname)
+                        $(varNameE $ "p_" ++ fname) |]) []
+
+fillParam :: String -> String -> [Field] -> Q [Dec]
+fillParam sname field_pfx fields = do
+  let fnames = map (\fd -> field_pfx ++ fieldRecordName fd) fields
+      (sname_f, sname_p) = paramTypeNames sname
+      oname_f = "fobj"
+      oname_p = "pobj"
+      name_f = mkName sname_f
+      name_p = mkName sname_p
+      fun_name = mkName $ "fill" ++ sname ++ "Params"
+      le_full = ValD (ConP name_f (map (VarP . mkName . ("f_" ++)) fnames))
+                (NormalB . VarE . mkName $ oname_f) []
+      le_part = ValD (ConP name_p (map (VarP . mkName . ("p_" ++)) fnames))
+                (NormalB . VarE . mkName $ oname_p) []
+      obj_new = foldl (\accu vname -> AppE accu (VarE vname)) (ConE name_f)
+                $ map (mkName . ("n_" ++)) fnames
+  le_new <- mapM buildFromMaybe fnames
+  funt <- [t| $(conT name_f) -> $(conT name_p) -> $(conT name_f) |]
+  let sig = SigD fun_name funt
+      fclause = Clause [VarP (mkName oname_f), VarP (mkName oname_p)]
+                (NormalB $ LetE (le_full:le_part:le_new) obj_new) []
+      fun = FunD fun_name [fclause]
+  return [sig, fun]
