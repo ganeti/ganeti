@@ -3187,7 +3187,10 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         locking.LEVEL_NODE: locking.ALL_SET,
         locking.LEVEL_INSTANCE: locking.ALL_SET,
         }
-    self.share_locks = _ShareAll()
+    self.share_locks = {
+      locking.LEVEL_NODE: 1,
+      locking.LEVEL_INSTANCE: 0,
+      }
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE and self.wanted_names is not None:
@@ -6466,7 +6469,7 @@ class LUInstanceRename(LogicalUnit):
     new_name = self.op.new_name
     if self.op.name_check:
       hostname = netutils.GetHostname(name=new_name)
-      if hostname != new_name:
+      if hostname.name != new_name:
         self.LogInfo("Resolved given name '%s' to '%s'", new_name,
                      hostname.name)
       if not utils.MatchNameComponent(self.op.new_name, [hostname.name]):
@@ -10340,9 +10343,10 @@ def _LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
   (moved, failed, jobs) = alloc_result
 
   if failed:
-    lu.LogWarning("Unable to evacuate instances %s",
-                  utils.CommaJoin("%s (%s)" % (name, reason)
-                                  for (name, reason) in failed))
+    failreason = utils.CommaJoin("%s (%s)" % (name, reason)
+                                 for (name, reason) in failed)
+    lu.LogWarning("Unable to evacuate instances %s", failreason)
+    raise errors.OpExecError("Unable to evacuate instances %s" % failreason)
 
   if moved:
     lu.LogInfo("Instances to be moved: %s",
