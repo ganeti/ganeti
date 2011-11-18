@@ -10,7 +10,7 @@ needs in this module (except the one for unittests).
 
 {-
 
-Copyright (C) 2011 Google Inc.
+Copyright (C) 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -717,8 +717,8 @@ buildParam sname field_pfx fields = do
   fields_p <- mapM (paramFieldTypeInfo field_pfx) fields
   let decl_f = RecC name_f fields_f
       decl_p = RecC name_p fields_p
-  let declF = DataD [] name_f [] [decl_f] [''Show, ''Read]
-      declP = DataD [] name_p [] [decl_p] [''Show, ''Read]
+  let declF = DataD [] name_f [] [decl_f] [''Show, ''Read, ''Eq]
+      declP = DataD [] name_p [] [decl_p] [''Show, ''Read, ''Eq]
   ser_decls_f <- buildObjectSerialisation sname_f fields
   ser_decls_p <- buildPParamSerialisation sname_p fields
   fill_decls <- fillParam sname field_pfx fields
