@@ -397,6 +397,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/BasicTypes.hs \
 	htools/Ganeti/Confd.hs \
 	htools/Ganeti/Config.hs \
+	htools/Ganeti/Hash.hs \
 	htools/Ganeti/Jobs.hs \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/Objects.hs \
