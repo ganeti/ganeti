@@ -518,27 +518,34 @@ A confd query will look like this, on the wire::
     "hmac": "4a4139b2c3c5921f7e439469a0a45ad200aead0f"
   }
 
-"plj0" is a fourcc that details the message content. It stands for plain
+``plj0`` is a fourcc that details the message content. It stands for plain
 json 0, and can be changed as we move on to different type of protocols
 (for example protocol buffers, or encrypted json). What follows is a
 json encoded string, with the following fields:
 
-- 'msg' contains a JSON-encoded query, its fields are:
+- ``msg`` contains a JSON-encoded query, its fields are:
 
-  - 'protocol', integer, is the confd protocol version (initially just
-    constants.CONFD_PROTOCOL_VERSION, with a value of 1)
-  - 'type', integer, is the query type. For example "node role by name"
-    or "node primary ip by instance ip". Constants will be provided for
-    the actual available query types.
-  - 'query', string, is the search key. For example an ip, or a node
-    name.
-  - 'rsalt', string, is the required response salt. The client must use
-    it to recognize which answer it's getting.
+  - ``protocol``, integer, is the confd protocol version (initially
+    just ``constants.CONFD_PROTOCOL_VERSION``, with a value of 1)
+  - ``type``, integer, is the query type. For example "node role by
+    name" or "node primary ip by instance ip". Constants will be
+    provided for the actual available query types
+  - ``query`` is a multi-type field (depending on the ``type`` field):
 
-- 'salt' must be the current unix timestamp, according to the client.
-  Servers can refuse messages which have a wrong timing, according to
-  their configuration and clock.
-- 'hmac' is an hmac signature of salt+msg, with the cluster hmac key
+    - it can be missing, when the request is fully determined by the
+      ``type`` field
+    - it can contain a string which denotes the search key: for
+      example an IP, or a node name
+    - it can contain a dictionary, in which case the actual details
+      vary further per request type
+
+  - ``rsalt``, string, is the required response salt; the client must
+    use it to recognize which answer it's getting.
+
+- ``salt`` must be the current unix timestamp, according to the
+  client; servers should refuse messages which have a wrong timing,
+  according to their configuration and clock
+- ``hmac`` is an hmac signature of salt+msg, with the cluster hmac key
 
 If an answer comes back (which is optional, since confd works over UDP)
 it will be in this format::
@@ -554,24 +561,25 @@ it will be in this format::
 
 Where:
 
-- 'plj0' the message type magic fourcc, as discussed above
-- 'msg' contains a JSON-encoded answer, its fields are:
+- ``plj0`` the message type magic fourcc, as discussed above
+- ``msg`` contains a JSON-encoded answer, its fields are:
 
-  - 'protocol', integer, is the confd protocol version (initially just
-    constants.CONFD_PROTOCOL_VERSION, with a value of 1)
-  - 'status', integer, is the error code. Initially just 0 for 'ok' or
-    '1' for 'error' (in which case answer contains an error detail,
-    rather than an answer), but in the future it may be expanded to have
-    more meanings (eg: 2, the answer is compressed)
-  - 'answer', is the actual answer. Its type and meaning is query
-    specific. For example for "node primary ip by instance ip" queries
+  - ``protocol``, integer, is the confd protocol version (initially
+    just constants.CONFD_PROTOCOL_VERSION, with a value of 1)
+  - ``status``, integer, is the error code; initially just ``0`` for
+    'ok' or ``1`` for 'error' (in which case answer contains an error
+    detail, rather than an answer), but in the future it may be
+    expanded to have more meanings (e.g. ``2`` if the answer is
+    compressed)
+  - ``answer``, is the actual answer; its type and meaning is query
+    specific: for example for "node primary ip by instance ip" queries
     it will be a string containing an IP address, for "node role by
-    name" queries it will be an integer which encodes the role (master,
-    candidate, drained, offline) according to constants.
+    name" queries it will be an integer which encodes the role
+    (master, candidate, drained, offline) according to constants
 
-- 'salt' is the requested salt from the query. A client can use it to
-  recognize what query the answer is answering.
-- 'hmac' is an hmac signature of salt+msg, with the cluster hmac key
+- ``salt`` is the requested salt from the query; a client can use it
+  to recognize what query the answer is answering.
+- ``hmac`` is an hmac signature of salt+msg, with the cluster hmac key
 
 
 Redistribute Config
