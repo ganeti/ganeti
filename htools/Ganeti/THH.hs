@@ -343,7 +343,8 @@ genReadJSON name = do
                JSON.Ok s' -> $(varE (fromRawName name)) s'
                JSON.Error e ->
                    JSON.Error $ "Can't parse raw value for type " ++
-                           $(stringE name) ++ ": " ++ e
+                           $(stringE name) ++ ": " ++ e ++ " from " ++
+                           show $(varE s)
            |]
   return $ FunD (mkName "readJSON") [Clause [VarP s] (NormalB body) []]
 
