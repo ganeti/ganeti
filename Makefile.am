@@ -402,6 +402,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/Luxi.hs \
 	htools/Ganeti/Objects.hs \
 	htools/Ganeti/OpCodes.hs \
+	htools/Ganeti/Runtime.hs \
 	htools/Ganeti/THH.hs
 
 HS_BUILT_SRCS = htools/Ganeti/HTools/Version.hs htools/Ganeti/Constants.hs
