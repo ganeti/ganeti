@@ -321,11 +321,17 @@ vcpus
     Number of VCPUs to set for an instance by default, must be an
     integer, will be set to 1 if no specified.
 
-memory
-    Amount of memory to allocate for an instance by default, can be
-    either an integer or an integer followed by a unit (M for mebibytes
-    and G for gibibytes are supported), will be set to 128M if not
-    specified.
+maxmem
+    Maximum amount of memory to allocate for an instance by default, can
+    be either an integer or an integer followed by a unit (M for
+    mebibytes and G for gibibytes are supported), will be set to 128M if
+    not specified.
+
+minmem
+    Minimum amount of memory to allocate for an instance by default, can
+    be either an integer or an integer followed by a unit (M for
+    mebibytes and G for gibibytes are supported), will be set to 128M if
+    not specified.
 
 auto\_balance
     Value of the auto\_balance flag for instances to use by default,

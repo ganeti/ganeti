@@ -136,9 +136,13 @@ The ``-B`` option specifies the backend parameters for the
 instance. If no such parameters are specified, the values are
 inherited from the export. Possible parameters are:
 
-memory
-    the memory size of the instance; as usual, suffixes can be used to
-    denote the unit, otherwise the value is taken in mebibites
+maxmem
+    the maximum memory size of the instance; as usual, suffixes can be
+    used to denote the unit, otherwise the value is taken in mebibites
+
+minmem
+    the minimum memory size of the instance; as usual, suffixes can be
+    used to denote the unit, otherwise the value is taken in mebibites
 
 vcpus
     the number of VCPUs to assign to the instance (if this value makes

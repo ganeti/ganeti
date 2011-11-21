@@ -128,9 +128,13 @@ The ``-B (--backend-parameters)`` option specifies the backend
 parameters for the instance. If no such parameters are specified, the
 values are inherited from the cluster. Possible parameters are:
 
-memory
-    the memory size of the instance; as usual, suffixes can be used to
-    denote the unit, otherwise the value is taken in mebibites
+maxmem
+    the maximum memory size of the instance; as usual, suffixes can be
+    used to denote the unit, otherwise the value is taken in mebibites
+
+minmem
+    the minimum memory size of the instance; as usual, suffixes can be
+    used to denote the unit, otherwise the value is taken in mebibites
 
 vcpus
     the number of VCPUs to assign to the instance (if this value makes
@@ -140,6 +144,11 @@ auto\_balance
     whether the instance is considered in the N+1 cluster checks
     (enough redundancy in the cluster to survive a node failure)
 
+Note that before 2.6 Ganeti had a ``memory`` parameter, which was the
+only value of memory an instance could have. With the
+``maxmem``/``minmem`` change Ganeti guarantees that at least the minimum
+memory is always available for an instance, but allows more memory to be
+used (up to the maximum memory) should it be free.
 
 The ``-H (--hypervisor-parameters)`` option specified the hypervisor
 to use for the instance (must be one of the enabled hypervisors on the
@@ -617,13 +626,13 @@ can be examined via **gnt-job info**.
 
 Example::
 
-    # gnt-instance add -t file --disk 0:size=30g -B memory=512 -o debian-etch \
+    # gnt-instance add -t file --disk 0:size=30g -B maxmem=512 -o debian-etch \
       -n node1.example.com --file-storage-dir=mysubdir instance1.example.com
-    # gnt-instance add -t plain --disk 0:size=30g -B memory=512 -o debian-etch \
-      -n node1.example.com instance1.example.com
+    # gnt-instance add -t plain --disk 0:size=30g -B maxmem=1024,minmem=512 \
+      -o debian-etch -n node1.example.com instance1.example.com
     # gnt-instance add -t plain --disk 0:size=30g --disk 1:size=100g,vg=san \
-      -B memory=512 -o debian-etch -n node1.example.com instance1.example.com
-    # gnt-instance add -t drbd --disk 0:size=30g -B memory=512 -o debian-etch \
+      -B maxmem=512 -o debian-etch -n node1.example.com instance1.example.com
+    # gnt-instance add -t drbd --disk 0:size=30g -B maxmem=512 -o debian-etch \
       -n node1.example.com:node2.example.com instance2.example.com
 
 
@@ -708,7 +717,7 @@ parameters taken from the cluster defaults)::
         "iallocator": "dumb",
         "hypervisor": "xen-hvm",
         "hvparams": {"acpi": true},
-        "backend": {"memory": 512}
+        "backend": {"maxmem": 512, "minmem": 256}
       }
     }
 
@@ -1033,7 +1042,7 @@ useful for quick testing without having to modify an instance back and
 forth, e.g.::
 
     # gnt-instance start -H kernel_args="single" instance1
-    # gnt-instance start -B memory=2048 instance2
+    # gnt-instance start -B maxmem=2048 instance2
 
 
 The first form will start the instance instance1 in single-user mode,
