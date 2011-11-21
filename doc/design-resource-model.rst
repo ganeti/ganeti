@@ -688,75 +688,81 @@ I/O performance for internal storage.
 Disk parameters
 ~~~~~~~~~~~~~~~
 
-The propose model for new disk parameters is a simple free-form one
-based on dictionaries, indexed per disk level (template or logical disk)
-and type (which depends on the level). At JSON level, since the object
-key has to be a string, we can encode the keys via a separator
-(e.g. slash), or by having two dict levels.
+The proposed model for the new disk parameters is a simple free-form one
+based on dictionaries, indexed per disk template and parameter name.
+Only the disk template parameters are visible to the user, and those are
+internally translated to logical disk level parameters.
+
+This is a simplification, because each parameter is applied to a whole
+nested structure and there is no way of fine-tuning each level's
+parameters, but it is good enough for the current parameter set. This
+model could need to be expanded, e.g., if support for three-nodes stacked
+DRBD setups is added to Ganeti.
+
+At JSON level, since the object key has to be a string, the keys can be
+encoded via a separator (e.g. slash), or by having two dict levels.
 
 +--------+-------------+-------------------------+---------------------+------+
 |Disk    |Name         |Description              |Current status       |Type  |
 |template|             |                         |                     |      |
 +========+=============+=========================+=====================+======+
-|dt/plain|stripes      |How many stripes to use  |Configured at        |int   |
+|plain   |stripes      |How many stripes to use  |Configured at        |int   |
 |        |             |for newly created (plain)|./configure time, not|      |
 |        |             |logical voumes           |overridable at       |      |
 |        |             |                         |runtime              |      |
 +--------+-------------+-------------------------+---------------------+------+
-|dt/drdb |stripes      |How many stripes to use  |Same as for lvm      |int   |
+|drbd    |stripes      |How many stripes to use  |Same as for plain    |int   |
 |        |             |for data volumes         |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|dt/drbd |metavg       |Default volume group for |Same as the main     |string|
+|drbd    |metavg       |Default volume group for |Same as the main     |string|
 |        |             |the metadata LVs         |volume group,        |      |
 |        |             |                         |overridable via      |      |
 |        |             |                         |'metavg' key         |      |
-|        |             |                         |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|dt/drbd |metastripes  |How many stripes to use  |Same as for lvm      |int   |
+|drbd    |metastripes  |How many stripes to use  |Same as for lvm      |int   |
 |        |             |for meta volumes         |'stripes', suboptimal|      |
 |        |             |                         |as the meta LVs are  |      |
 |        |             |                         |small                |      |
 +--------+-------------+-------------------------+---------------------+------+
-|ld/drbd8|disk_barriers|What kind of barriers to |Either all enabled or|string|
+|drbd    |disk_barriers|What kind of barriers to |Either all enabled or|string|
 |        |             |*disable* for disks;     |all disabled, per    |      |
 |        |             |either "n" or a string   |./configure time     |      |
 |        |             |containing a subset of   |option               |      |
 |        |             |"bfd"                    |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|ld/drbd8|meta_barriers|Whether barriers are     |Handled together with|bool  |
+|drbd    |meta_barriers|Whether barriers are     |Handled together with|bool  |
 |        |             |enabled or not for the   |disk_barriers        |      |
 |        |             |meta volume              |                     |      |
-|        |             |                         |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|ld/drbd8|resync_rate  |The (static) resync rate |Hardcoded in         |int   |
+|drbd    |resync_rate  |The (static) resync rate |Hardcoded in         |int   |
 |        |             |for drbd, when using the |constants.py, not    |      |
 |        |             |static syncer, in MiB/s  |changeable via Ganeti|      |
-|        |             |                         |                     |      |
-|        |             |                         |                     |      |
-|        |             |                         |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|ld/drbd8|disk_custom  |Free-form string that    |Not supported        |string|
+|drbd    |disk_custom  |Free-form string that    |Not supported        |string|
 |        |             |will be appended to the  |                     |      |
 |        |             |drbdsetup disk command   |                     |      |
 |        |             |line, for custom options |                     |      |
 |        |             |not supported by Ganeti  |                     |      |
 |        |             |itself                   |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|ld/drbd8|net_custom   |Free-form string for     |                     |      |
+|drbd    |net_custom   |Free-form string for     |Not supported        |string|
 |        |             |custom net setup options |                     |      |
-|        |             |                         |                     |      |
-|        |             |                         |                     |      |
-|        |             |                         |                     |      |
-|        |             |                         |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
 
-Note that the DRBD8 parameters will change once we support DRBD 8.4,
-which has changed syntax significantly; new syncer modes will be added
-for that release.
+Note that the DRBD parameters might change once Ganeti supports DRBD 8.4, in
+which the :command:`drbdsetup` syntax has changed significantly.
+Moreover, new parameters for the dynamic synchronization algorithm will
+be added for DRBD versions >= 8.3.9.
 
 All the above parameters are at cluster and node group level; as in
 other parts of the code, the intention is that all nodes in a node group
-should be equal.
+should be equal. It will later be decided to which node group give
+precedence in case of instances split over node groups.
+
+.. admonition:: FIXME
+
+   Add details about when each parameter change takes effect (device
+   creation vs. activation)
 
 Node parameters
 ~~~~~~~~~~~~~~~
