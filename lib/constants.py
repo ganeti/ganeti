@@ -597,7 +597,7 @@ MAX_TAGS_PER_OBJ = 4096
 
 # others
 DEFAULT_BRIDGE = "xen-br0"
-SYNC_SPEED = 60 * 1024
+CLASSIC_DRBD_SYNC_SPEED = 60 * 1024  # 60 MiB, expressed in KiB
 IP4_ADDRESS_LOCALHOST = "127.0.0.1"
 IP4_ADDRESS_ANY = "0.0.0.0"
 IP6_ADDRESS_LOCALHOST = "::1"
@@ -897,12 +897,16 @@ NDS_PARAMETER_TYPES = {
 NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
 
 # Logical Disks parameters
+RESYNC_RATE = "resync-rate"
 DISK_LD_TYPES = {
+  RESYNC_RATE: VTYPE_INT,
   }
 DISK_LD_PARAMETERS = frozenset(DISK_LD_TYPES.keys())
 
 # Disk template parameters
+DRBD_RESYNC_RATE = "resync-rate"
 DISK_DT_TYPES = {
+  DRBD_RESYNC_RATE: VTYPE_INT,
   }
 
 DISK_DT_PARAMETERS = frozenset(DISK_DT_TYPES.keys())
@@ -1671,6 +1675,7 @@ NDC_DEFAULTS = {
 
 DISK_LD_DEFAULTS = {
   LD_DRBD8: {
+    RESYNC_RATE: CLASSIC_DRBD_SYNC_SPEED,
     },
   LD_LV: {
     },
@@ -1684,6 +1689,7 @@ DISK_DT_DEFAULTS = {
   DT_PLAIN: {
     },
   DT_DRBD8: {
+    DRBD_RESYNC_RATE: DISK_LD_DEFAULTS[LD_DRBD8][RESYNC_RATE]
     },
   DT_DISKLESS: {
     },

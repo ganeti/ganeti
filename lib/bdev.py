@@ -1373,8 +1373,7 @@ class DRBD8(BaseDRBD):
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
 
-  @classmethod
-  def _AssembleNet(cls, minor, net_info, protocol,
+  def _AssembleNet(self, minor, net_info, protocol,
                    dual_pri=False, hmac=None, secret=None):
     """Configure the network part of the device.
 
@@ -1383,7 +1382,7 @@ class DRBD8(BaseDRBD):
     if None in net_info:
       # we don't want network connection and actually want to make
       # sure its shutdown
-      cls._ShutdownNet(minor)
+      self._ShutdownNet(minor)
       return
 
     # Workaround for a race condition. When DRBD is doing its dance to
@@ -1392,7 +1391,8 @@ class DRBD8(BaseDRBD):
     # sync speed only after setting up both sides can race with DRBD
     # connecting, hence we set it here before telling DRBD anything
     # about its peer.
-    cls._SetMinorSyncSpeed(minor, constants.SYNC_SPEED)
+    sync_speed = self.params.get(constants.RESYNC_RATE)
+    self._SetMinorSyncSpeed(minor, sync_speed)
 
     if netutils.IP6Address.IsValid(lhost):
       if not netutils.IP6Address.IsValid(rhost):
@@ -1407,7 +1407,7 @@ class DRBD8(BaseDRBD):
     else:
       _ThrowError("drbd%d: Invalid ip %s" % (minor, lhost))
 
-    args = ["drbdsetup", cls._DevPath(minor), "net",
+    args = ["drbdsetup", self._DevPath(minor), "net",
             "%s:%s:%s" % (family, lhost, lport),
             "%s:%s:%s" % (family, rhost, rport), protocol,
             "-A", "discard-zero-changes",
@@ -1424,7 +1424,7 @@ class DRBD8(BaseDRBD):
                   minor, result.fail_reason, result.output)
 
     def _CheckNetworkConfig():
-      info = cls._GetDevInfo(cls._GetShowData(minor))
+      info = self._GetDevInfo(self._GetShowData(minor))
       if not "local_addr" in info or not "remote_addr" in info:
         raise utils.RetryAgain()
 
@@ -1758,7 +1758,8 @@ class DRBD8(BaseDRBD):
       # the device
       self._SlowAssemble()
 
-    self.SetSyncSpeed(constants.SYNC_SPEED)
+    sync_speed = self.params.get(constants.RESYNC_RATE)
+    self.SetSyncSpeed(sync_speed)
 
   def _SlowAssemble(self):
     """Assembles the DRBD device from a (partially) configured device.

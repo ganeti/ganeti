@@ -8055,10 +8055,19 @@ def _ComputeLDParams(disk_template, disk_params):
     raise errors.ProgrammerError("Unknown disk template %s" % disk_template)
 
   result = list()
+  dt_params = disk_params[disk_template]
   if disk_template == constants.DT_DRBD8:
-    result.append(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8])
+    params = {
+      constants.RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE]
+      }
+
+    drbd_params = \
+      objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8], params)
+
+    result.append(drbd_params)
     result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
     result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
+
   elif (disk_template == constants.DT_FILE or
         disk_template == constants.DT_SHARED_FILE):
     result.append(constants.DISK_LD_DEFAULTS[constants.LD_FILE])
