@@ -476,7 +476,8 @@ class Burner(object):
     self.opts = options
     self.instances = args
     self.bep = {
-      constants.BE_MEMORY: options.mem_size,
+      constants.BE_MINMEM: options.mem_size,
+      constants.BE_MAXMEM: options.mem_size,
       constants.BE_VCPUS: options.vcpu_count,
       }
 
