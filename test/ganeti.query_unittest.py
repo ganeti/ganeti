@@ -562,7 +562,7 @@ class TestInstanceQuery(unittest.TestCase):
     return query.Query(query.INSTANCE_FIELDS, selected)
 
   def testSimple(self):
-    q = self._Create(["name", "be/memory", "ip"])
+    q = self._Create(["name", "be/maxmem", "ip"])
     self.assertEqual(q.RequestedData(), set([query.IQ_CONFIG]))
 
     cluster = objects.Cluster(cluster_name="testcluster",
@@ -582,7 +582,7 @@ class TestInstanceQuery(unittest.TestCase):
       objects.Instance(name="inst2", hvparams={}, nics=[], osparams={},
         os="foomoo",
         beparams={
-          constants.BE_MEMORY: 512,
+          constants.BE_MAXMEM: 512,
         }),
       objects.Instance(name="inst3", hvparams={}, beparams={}, osparams={},
         os="dos", nics=[objects.NIC(ip="192.0.2.99", nicparams={})]),
@@ -659,7 +659,8 @@ class TestInstanceQuery(unittest.TestCase):
         disk_template=constants.DT_DISKLESS,
         disks=[],
         beparams={
-          constants.BE_MEMORY: 512,
+          constants.BE_MAXMEM: 512,
+          constants.BE_MINMEM: 256,
         },
         osparams={}),
       objects.Instance(name="inst3", hvparams={}, beparams={},
@@ -712,7 +713,8 @@ class TestInstanceQuery(unittest.TestCase):
         disk_template=constants.DT_DISKLESS,
         disks=[],
         beparams={
-          constants.BE_MEMORY: 512,
+          constants.BE_MAXMEM: 512,
+          constants.BE_MINMEM: 512,
         },
         osparams={}),
       objects.Instance(name="inst6", hvparams={}, nics=[],
@@ -724,7 +726,8 @@ class TestInstanceQuery(unittest.TestCase):
         disk_template=constants.DT_DISKLESS,
         disks=[],
         beparams={
-          constants.BE_MEMORY: 768,
+          constants.BE_MAXMEM: 768,
+          constants.BE_MINMEM: 256,
         },
         osparams={
           "clean_install": "no",
@@ -833,8 +836,8 @@ class TestInstanceQuery(unittest.TestCase):
       (_, status) = row[fieldidx["status"]]
       tested_status.add(status)
 
-      for (field, livefield) in [("oper_ram", "memory"),
-                                 ("oper_vcpus", "vcpus")]:
+      #FIXME(dynmem): check oper_ram vs min/max mem
+      for (field, livefield) in [("oper_vcpus", "vcpus")]:
         if inst.primary_node in bad_nodes:
           exp = (constants.RS_NODATA, None)
         elif inst.name in live_data:

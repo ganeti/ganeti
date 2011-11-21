@@ -818,9 +818,11 @@ class TestInstanceCreation(testutils.GanetiTestCase):
       None,
       {},
       { constants.BE_VCPUS: 2, },
-      { constants.BE_MEMORY: 123, },
+      { constants.BE_MAXMEM: 200, },
+      { constants.BE_MEMORY: 256, },
       { constants.BE_VCPUS: 2,
-        constants.BE_MEMORY: 1024,
+        constants.BE_MAXMEM: 1024,
+        constants.BE_MINMEM: 1024,
         constants.BE_AUTO_BALANCE: True, }
       ]
 
@@ -1248,7 +1250,7 @@ class TestParseModifyInstanceRequest(unittest.TestCase):
 
     for osparams in [{}, { "some": "value", "other": "Hello World", }]:
       for hvparams in [{}, { constants.HV_KERNEL_PATH: "/some/kernel", }]:
-        for beparams in [{}, { constants.BE_MEMORY: 128, }]:
+        for beparams in [{}, { constants.BE_MAXMEM: 128, }]:
           for force in [False, True]:
             for nics in [[], [(0, { constants.INIC_IP: "192.0.2.1", })]]:
               for disks in test_disks:
