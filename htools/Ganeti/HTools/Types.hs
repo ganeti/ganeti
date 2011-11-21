@@ -72,12 +72,12 @@ module Ganeti.HTools.Types
   , EvacMode(..)
   ) where
 
-import Control.Monad
 import qualified Data.Map as M
 import qualified Text.JSON as JSON
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
+import Ganeti.BasicTypes
 
 -- | The instance index type.
 type Idx = Int
@@ -225,44 +225,6 @@ unitDsk = 256
 -- | Base vcpus unit.
 unitCpu :: Int
 unitCpu = 1
-
--- | This is similar to the JSON library Result type - /very/ similar,
--- but we want to use it in multiple places, so we abstract it into a
--- mini-library here.
---
--- The failure value for this monad is simply a string.
-data Result a
-    = Bad String
-    | Ok a
-    deriving (Show, Read, Eq)
-
-instance Monad Result where
-  (>>=) (Bad x) _ = Bad x
-  (>>=) (Ok x) fn = fn x
-  return = Ok
-  fail = Bad
-
-instance MonadPlus Result where
-  mzero = Bad "zero Result when used as MonadPlus"
-  -- for mplus, when we 'add' two Bad values, we concatenate their
-  -- error descriptions
-  (Bad x) `mplus` (Bad y) = Bad (x ++ "; " ++ y)
-  (Bad _) `mplus` x = x
-  x@(Ok _) `mplus` _ = x
-
--- | Simple checker for whether a 'Result' is OK.
-isOk :: Result a -> Bool
-isOk (Ok _) = True
-isOk _ = False
-
--- | Simple checker for whether a 'Result' is a failure.
-isBad :: Result a  -> Bool
-isBad = not . isOk
-
--- | Converter from Either String to 'Result'.
-eitherToResult :: Either String a -> Result a
-eitherToResult (Left s) = Bad s
-eitherToResult (Right v) = Ok v
 
 -- | Reason for an operation's falure.
 data FailMode = FailMem  -- ^ Failed due to not enough RAM
