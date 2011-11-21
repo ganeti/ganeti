@@ -1540,7 +1540,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       clist.append(crdev)
 
   try:
-    device = bdev.Create(disk.dev_type, disk.physical_id, clist, disk.size)
+    device = bdev.Create(disk, clist)
   except errors.BlockDeviceError, err:
     _Fail("Can't create block device: %s", err)
 
@@ -1722,7 +1722,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
       children.append(cdev)
 
   if as_primary or disk.AssembleOnSecondary():
-    r_dev = bdev.Assemble(disk.dev_type, disk.physical_id, children, disk.size)
+    r_dev = bdev.Assemble(disk, children)
     result = r_dev
     if as_primary or disk.OpenOnSecondary():
       r_dev.Open()
@@ -1915,7 +1915,7 @@ def _RecursiveFindBD(disk):
     for chdisk in disk.children:
       children.append(_RecursiveFindBD(chdisk))
 
-  return bdev.FindDevice(disk.dev_type, disk.physical_id, children, disk.size)
+  return bdev.FindDevice(disk, children)
 
 
 def _OpenRealBD(disk):

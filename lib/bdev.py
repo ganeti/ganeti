@@ -130,7 +130,7 @@ class BlockDev(object):
   after assembly we'll have our correct major/minor.
 
   """
-  def __init__(self, unique_id, children, size):
+  def __init__(self, unique_id, children, size, params):
     self._children = children
     self.dev_path = None
     self.unique_id = unique_id
@@ -138,6 +138,7 @@ class BlockDev(object):
     self.minor = None
     self.attached = False
     self.size = size
+    self.params = params
 
   def Assemble(self):
     """Assemble the device from its components.
@@ -166,7 +167,7 @@ class BlockDev(object):
     raise NotImplementedError
 
   @classmethod
-  def Create(cls, unique_id, children, size):
+  def Create(cls, unique_id, children, size, params):
     """Create the device.
 
     If the device cannot be created, it will return None
@@ -373,13 +374,13 @@ class LogicalVolume(BlockDev):
   _INVALID_NAMES = frozenset([".", "..", "snapshot", "pvmove"])
   _INVALID_SUBSTRINGS = frozenset(["_mlog", "_mimage"])
 
-  def __init__(self, unique_id, children, size):
+  def __init__(self, unique_id, children, size, params):
     """Attaches to a LV device.
 
     The unique_id is a tuple (vg_name, lv_name)
 
     """
-    super(LogicalVolume, self).__init__(unique_id, children, size)
+    super(LogicalVolume, self).__init__(unique_id, children, size, params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
@@ -391,7 +392,7 @@ class LogicalVolume(BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size):
+  def Create(cls, unique_id, children, size, params):
     """Create a new logical volume.
 
     """
@@ -433,7 +434,7 @@ class LogicalVolume(BlockDev):
     if result.failed:
       _ThrowError("LV create failed (%s): %s",
                   result.fail_reason, result.output)
-    return LogicalVolume(unique_id, children, size)
+    return LogicalVolume(unique_id, children, size, params)
 
   @staticmethod
   def _GetVolumeInfo(lvm_cmd, fields):
@@ -718,7 +719,7 @@ class LogicalVolume(BlockDev):
     snap_name = self._lv_name + ".snap"
 
     # remove existing snapshot if found
-    snap = LogicalVolume((self._vg_name, snap_name), None, size)
+    snap = LogicalVolume((self._vg_name, snap_name), None, size, self.params)
     _IgnoreError(snap.Remove)
 
     vg_info = self.GetVGInfo([self._vg_name])
@@ -1098,7 +1099,7 @@ class DRBD8(BaseDRBD):
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
 
-  def __init__(self, unique_id, children, size):
+  def __init__(self, unique_id, children, size, params):
     if children and children.count(None) > 0:
       children = []
     if len(children) not in (0, 2):
@@ -1112,7 +1113,7 @@ class DRBD8(BaseDRBD):
       if not _CanReadDevice(children[1].dev_path):
         logging.info("drbd%s: Ignoring unreadable meta device", self._aminor)
         children = []
-    super(DRBD8, self).__init__(unique_id, children, size)
+    super(DRBD8, self).__init__(unique_id, children, size, params)
     self.major = self._DRBD_MAJOR
     version = self._GetVersion(self._GetProcData())
     if version["k_major"] != 8:
@@ -1905,7 +1906,7 @@ class DRBD8(BaseDRBD):
     self.Shutdown()
 
   @classmethod
-  def Create(cls, unique_id, children, size):
+  def Create(cls, unique_id, children, size, params):
     """Create a new DRBD8 device.
 
     Since DRBD devices are not created per se, just assembled, this
@@ -1931,7 +1932,7 @@ class DRBD8(BaseDRBD):
                   aminor, meta)
     cls._CheckMetaSize(meta.dev_path)
     cls._InitMeta(aminor, meta.dev_path)
-    return cls(unique_id, children, size)
+    return cls(unique_id, children, size, params)
 
   def Grow(self, amount, dryrun):
     """Resize the DRBD device and its backing storage.
@@ -1959,13 +1960,13 @@ class FileStorage(BlockDev):
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
   """
-  def __init__(self, unique_id, children, size):
+  def __init__(self, unique_id, children, size, params):
     """Initalizes a file device backend.
 
     """
     if children:
       raise errors.BlockDeviceError("Invalid setup for file device")
-    super(FileStorage, self).__init__(unique_id, children, size)
+    super(FileStorage, self).__init__(unique_id, children, size, params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.driver = unique_id[0]
@@ -2073,7 +2074,7 @@ class FileStorage(BlockDev):
       _ThrowError("Can't stat %s: %s", self.dev_path, err)
 
   @classmethod
-  def Create(cls, unique_id, children, size):
+  def Create(cls, unique_id, children, size, params):
     """Create a new file.
 
     @param size: the size of file in MiB
@@ -2095,7 +2096,7 @@ class FileStorage(BlockDev):
         _ThrowError("File already existing: %s", dev_path)
       _ThrowError("Error in file creation: %", str(err))
 
-    return FileStorage(unique_id, children, size)
+    return FileStorage(unique_id, children, size, params)
 
 
 class PersistentBlockDevice(BlockDev):
@@ -2108,13 +2109,14 @@ class PersistentBlockDevice(BlockDev):
   For the time being, pathnames are required to lie under /dev.
 
   """
-  def __init__(self, unique_id, children, size):
+  def __init__(self, unique_id, children, size, params):
     """Attaches to a static block device.
 
     The unique_id is a path under /dev.
 
     """
-    super(PersistentBlockDevice, self).__init__(unique_id, children, size)
+    super(PersistentBlockDevice, self).__init__(unique_id, children, size,
+                                                params)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.dev_path = unique_id[1]
@@ -2133,13 +2135,13 @@ class PersistentBlockDevice(BlockDev):
     self.Attach()
 
   @classmethod
-  def Create(cls, unique_id, children, size):
+  def Create(cls, unique_id, children, size, params):
     """Create a new device
 
     This is a noop, we only return a PersistentBlockDevice instance
 
     """
-    return PersistentBlockDevice(unique_id, children, 0)
+    return PersistentBlockDevice(unique_id, children, 0, params)
 
   def Remove(self):
     """Remove a device
@@ -2218,40 +2220,69 @@ if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:
   DEV_MAP[constants.LD_FILE] = FileStorage
 
 
-def FindDevice(dev_type, unique_id, children, size):
+def _VerifyDiskType(dev_type):
+  if dev_type not in DEV_MAP:
+    raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
+
+
+def FindDevice(disk, children):
   """Search for an existing, assembled device.
 
   This will succeed only if the device exists and is assembled, but it
   does not do any actions in order to activate the device.
 
+  @type disk: L{objects.Disk}
+  @param disk: the disk object to find
+  @type children: list of L{bdev.BlockDev}
+  @param children: the list of block devices that are children of the device
+                  represented by the disk parameter
+
   """
-  if dev_type not in DEV_MAP:
-    raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
-  device = DEV_MAP[dev_type](unique_id, children, size)
+  _VerifyDiskType(disk.dev_type)
+  dev_params = objects.FillDict(constants.DISK_LD_DEFAULTS[disk.dev_type],
+                                disk.params)
+  device = DEV_MAP[disk.dev_type](disk.physical_id, children, disk.size,
+                                  dev_params)
   if not device.attached:
     return None
   return device
 
 
-def Assemble(dev_type, unique_id, children, size):
+def Assemble(disk, children):
   """Try to attach or assemble an existing device.
 
   This will attach to assemble the device, as needed, to bring it
   fully up. It must be safe to run on already-assembled devices.
 
+  @type disk: L{objects.Disk}
+  @param disk: the disk object to assemble
+  @type children: list of L{bdev.BlockDev}
+  @param children: the list of block devices that are children of the device
+                  represented by the disk parameter
+
   """
-  if dev_type not in DEV_MAP:
-    raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
-  device = DEV_MAP[dev_type](unique_id, children, size)
+  _VerifyDiskType(disk.dev_type)
+  dev_params = objects.FillDict(constants.DISK_LD_DEFAULTS[disk.dev_type],
+                                disk.params)
+  device = DEV_MAP[disk.dev_type](disk.physical_id, children, disk.size,
+                                  dev_params)
   device.Assemble()
   return device
 
 
-def Create(dev_type, unique_id, children, size):
+def Create(disk, children):
   """Create a device.
 
+  @type disk: L{objects.Disk}
+  @param disk: the disk object to create
+  @type children: list of L{bdev.BlockDev}
+  @param children: the list of block devices that are children of the device
+                  represented by the disk parameter
+
   """
-  if dev_type not in DEV_MAP:
-    raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
-  device = DEV_MAP[dev_type].Create(unique_id, children, size)
+  _VerifyDiskType(disk.dev_type)
+  dev_params = objects.FillDict(constants.DISK_LD_DEFAULTS[disk.dev_type],
+                                disk.params)
+  device = DEV_MAP[disk.dev_type].Create(disk.physical_id, children, disk.size,
+                                         dev_params)
   return device
