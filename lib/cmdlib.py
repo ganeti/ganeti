@@ -3244,7 +3244,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         locking.LEVEL_INSTANCE: locking.ALL_SET,
         }
     self.share_locks = {
-      locking.LEVEL_NODE: 1,
+      locking.LEVEL_NODE_RES: 1,
       locking.LEVEL_INSTANCE: 0,
       }
 
