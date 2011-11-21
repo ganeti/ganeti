@@ -3563,6 +3563,7 @@ class LUClusterSetParams(LogicalUnit):
     self.cluster = cluster = self.cfg.GetClusterInfo()
     # validate params changes
     if self.op.beparams:
+      objects.UpgradeBeParams(self.op.beparams)
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
       self.new_beparams = cluster.SimpleFillBE(self.op.beparams)
 
@@ -6132,6 +6133,7 @@ class LUInstanceStartup(LogicalUnit):
     # extra beparams
     if self.op.beparams:
       # fill the beparams dict
+      objects.UpgradeBeParams(self.op.beparams)
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
 
   def ExpandNames(self):
@@ -8979,6 +8981,7 @@ class LUInstanceCreate(LogicalUnit):
     for param, value in self.op.beparams.iteritems():
       if value == constants.VALUE_AUTO:
         self.op.beparams[param] = default_beparams[param]
+    objects.UpgradeBeParams(self.op.beparams)
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
     self.be_full = cluster.SimpleFillBE(self.op.beparams)
 
@@ -11281,6 +11284,7 @@ class LUInstanceSetParams(LogicalUnit):
     if self.op.beparams:
       i_bedict = _GetUpdatedParams(instance.beparams, self.op.beparams,
                                    use_none=True)
+      objects.UpgradeBeParams(i_bedict)
       utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
       be_new = cluster.SimpleFillBE(i_bedict)
       self.be_proposed = self.be_new = be_new # the new actual values

@@ -410,6 +410,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
   dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE)]
   utils.EnsureDirs(dirs)
 
+  objects.UpgradeBeParams(beparams)
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
   objects.NIC.CheckParameterSyntax(nicparams)

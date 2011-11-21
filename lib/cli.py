@@ -2212,7 +2212,7 @@ def GenericInstanceCreate(mode, opts, args):
   else:
     tags = []
 
-  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_COMPAT)
   utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
 
   if mode == constants.INSTANCE_CREATE:

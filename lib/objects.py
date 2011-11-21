@@ -107,8 +107,7 @@ def UpgradeBeParams(target):
     memory = target[constants.BE_MEMORY]
     target[constants.BE_MAXMEM] = memory
     target[constants.BE_MINMEM] = memory
-    #FIXME(dynmem): delete old value
-    #del target[constants.BE_MEMORY]
+    del target[constants.BE_MEMORY]
 
 
 class ConfigObject(object):

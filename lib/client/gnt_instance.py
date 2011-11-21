@@ -357,7 +357,7 @@ def BatchCreate(opts, args):
                                    (elem, name, err), errors.ECODE_INVAL)
       disks.append({"size": size})
 
-    utils.ForceDictType(specs["backend"], constants.BES_PARAMETER_TYPES)
+    utils.ForceDictType(specs["backend"], constants.BES_PARAMETER_COMPAT)
     utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
 
     tmp_nics = []
@@ -1266,7 +1266,7 @@ def SetInstanceParams(opts, args):
       if opts.beparams[param].lower() == "default":
         opts.beparams[param] = constants.VALUE_DEFAULT
 
-  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES,
+  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_COMPAT,
                       allowed_values=[constants.VALUE_DEFAULT])
 
   for param in opts.hvparams:

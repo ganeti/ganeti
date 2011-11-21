@@ -100,7 +100,7 @@ def InitCluster(opts, args):
 
   # prepare beparams dict
   beparams = objects.FillDict(constants.BEC_DEFAULTS, beparams)
-  utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(beparams, constants.BES_PARAMETER_COMPAT)
 
   # prepare nicparams dict
   nicparams = objects.FillDict(constants.NICC_DEFAULTS, nicparams)
@@ -917,7 +917,7 @@ def SetClusterParams(opts, args):
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
 
   beparams = opts.beparams
-  utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(beparams, constants.BES_PARAMETER_COMPAT)
 
   nicparams = opts.nicparams
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
