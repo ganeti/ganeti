@@ -990,7 +990,14 @@ class OS(ConfigObject):
 
 
 class Node(TaggableObject):
-  """Config object representing a node."""
+  """Config object representing a node.
+
+  @ivar hv_state: Hypervisor state (e.g. number of CPUs)
+  @ivar hv_state_static: Hypervisor state overriden by user
+  @ivar disk_state: Disk state (e.g. free space)
+  @ivar disk_state_static: Disk state overriden by user
+
+  """
   __slots__ = [
     "name",
     "primary_ip",
@@ -1005,7 +1012,9 @@ class Node(TaggableObject):
     "ndparams",
     "powered",
     "hv_state",
+    "hv_state_static",
     "disk_state",
+    "disk_state_static",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
