@@ -133,7 +133,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     fh = file(file_name, "w")
     try:
       fh.write("0\n%d\n%d\n" %
-               (instance.beparams[constants.BE_MEMORY],
+               (instance.beparams[constants.BE_MAXMEM],
                 instance.beparams[constants.BE_VCPUS]))
     finally:
       fh.close()

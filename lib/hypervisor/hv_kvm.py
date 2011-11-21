@@ -923,7 +923,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd = [kvm]
     # used just by the vnc server, if enabled
     kvm_cmd.extend(["-name", instance.name])
-    kvm_cmd.extend(["-m", instance.beparams[constants.BE_MEMORY]])
+    kvm_cmd.extend(["-m", instance.beparams[constants.BE_MAXMEM]])
     kvm_cmd.extend(["-smp", instance.beparams[constants.BE_VCPUS]])
     kvm_cmd.extend(["-pidfile", pidfile])
     kvm_cmd.extend(["-daemonize"])
