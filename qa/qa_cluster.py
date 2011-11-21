@@ -257,12 +257,18 @@ def TestClusterReservedLvs():
 def TestClusterModifyBe():
   """gnt-cluster modify -B"""
   for fail, cmd in [
-    # mem
-    (False, ["gnt-cluster", "modify", "-B", "memory=256"]),
-    (False, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 256$'"]),
-    (True, ["gnt-cluster", "modify", "-B", "memory=a"]),
-    (False, ["gnt-cluster", "modify", "-B", "memory=128"]),
-    (False, ["sh", "-c", "gnt-cluster info|grep '^ *memory: 128$'"]),
+    # max/min mem
+    (False, ["gnt-cluster", "modify", "-B", "maxmem=256"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *maxmem: 256$'"]),
+    (False, ["gnt-cluster", "modify", "-B", "minmem=256"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *minmem: 256$'"]),
+    (True, ["gnt-cluster", "modify", "-B", "maxmem=a"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *maxmem: 256$'"]),
+    (True, ["gnt-cluster", "modify", "-B", "minmem=a"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *minmem: 256$'"]),
+    (False, ["gnt-cluster", "modify", "-B", "maxmem=128,minmem=128"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *maxmem: 128$'"]),
+    (False, ["sh", "-c", "gnt-cluster info|grep '^ *minmem: 128$'"]),
     # vcpus
     (False, ["gnt-cluster", "modify", "-B", "vcpus=4"]),
     (False, ["sh", "-c", "gnt-cluster info|grep '^ *vcpus: 4$'"]),

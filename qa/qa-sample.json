@@ -13,7 +13,8 @@
   "primary_ip_version": 4,
 
   "os": "debian-etch",
-  "mem": "512M",
+  "maxmem": "1024M",
+  "minmem": "512M",
 
   "# Lists of disk sizes": null,
   "disk": ["1G", "512M"],

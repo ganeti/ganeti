@@ -527,13 +527,13 @@ def TestRapiInstanceAdd(node, use_client):
   """Test adding a new instance via RAPI"""
   instance = qa_config.AcquireInstance()
   try:
-    memory = utils.ParseUnit(qa_config.get("mem"))
     disk_sizes = [utils.ParseUnit(size) for size in qa_config.get("disk")]
     disks = [{"size": size} for size in disk_sizes]
     nics = [{}]
 
     beparams = {
-      constants.BE_MEMORY: memory,
+      constants.BE_MAXMEM: utils.ParseUnit(qa_config.get(constants.BE_MAXMEM)),
+      constants.BE_MINMEM: utils.ParseUnit(qa_config.get(constants.BE_MINMEM)),
       }
 
     if use_client:

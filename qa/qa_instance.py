@@ -42,7 +42,11 @@ def _GetDiskStatePath(disk):
 
 
 def _GetGenericAddParameters():
-  params = ["-B", "%s=%s" % (constants.BE_MEMORY, qa_config.get("mem"))]
+  params = ["-B"]
+  params.append("%s=%s,%s=%s" % (constants.BE_MINMEM,
+                                 qa_config.get(constants.BE_MINMEM),
+                                 constants.BE_MAXMEM,
+                                 qa_config.get(constants.BE_MAXMEM)))
   for idx, size in enumerate(qa_config.get("disk")):
     params.extend(["--disk", "%s:size=%s" % (idx, size)])
   return params
@@ -196,11 +200,14 @@ def TestInstanceModify(instance):
   test_kernel = "/sbin/init"
   test_initrd = test_kernel
 
-  orig_memory = qa_config.get("mem")
+  orig_maxmem = qa_config.get(constants.BE_MAXMEM)
+  orig_minmem = qa_config.get(constants.BE_MINMEM)
   #orig_bridge = qa_config.get("bridge", "xen-br0")
   args = [
-    ["-B", "%s=128" % constants.BE_MEMORY],
-    ["-B", "%s=%s" % (constants.BE_MEMORY, orig_memory)],
+    ["-B", "%s=128" % constants.BE_MINMEM],
+    ["-B", "%s=128" % constants.BE_MAXMEM],
+    ["-B", "%s=%s,%s=%s" % (constants.BE_MINMEM, orig_minmem,
+                            constants.BE_MAXMEM, orig_maxmem)],
     ["-B", "%s=2" % constants.BE_VCPUS],
     ["-B", "%s=1" % constants.BE_VCPUS],
     ["-B", "%s=%s" % (constants.BE_VCPUS, constants.VALUE_DEFAULT)],
