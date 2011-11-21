@@ -2122,12 +2122,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # we already list instances living on such nodes, and that's
         # enough warning
         continue
+      #TODO(dynmem): use MINMEM for checking
+      #TODO(dynmem): also consider ballooning out other instances
       for prinode, instances in n_img.sbp.items():
         needed_mem = 0
         for instance in instances:
           bep = cluster_info.FillBE(instance_cfg[instance])
           if bep[constants.BE_AUTO_BALANCE]:
-            needed_mem += bep[constants.BE_MEMORY]
+            needed_mem += bep[constants.BE_MAXMEM]
         test = n_img.mfree < needed_mem
         self._ErrorIf(test, constants.CV_ENODEN1, node,
                       "not enough memory to accomodate instance failovers"
@@ -6202,7 +6204,7 @@ class LUInstanceStartup(LogicalUnit):
       if not remote_info.payload: # not running already
         _CheckNodeFreeMemory(self, instance.primary_node,
                              "starting instance %s" % instance.name,
-                             bep[constants.BE_MEMORY], instance.hypervisor)
+                             bep[constants.BE_MAXMEM], instance.hypervisor)
 
   def Exec(self, feedback_fn):
     """Start the instance.
@@ -7111,7 +7113,7 @@ class LUInstanceMove(LogicalUnit):
     if instance.admin_state == constants.ADMINST_UP:
       # check memory requirements on the secondary node
       _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
-                           instance.name, bep[constants.BE_MEMORY],
+                           instance.name, bep[constants.BE_MAXMEM],
                            instance.hypervisor)
     else:
       self.LogInfo("Not checking memory on the secondary node as"
@@ -7405,7 +7407,7 @@ class TLMigrateInstance(Tasklet):
     # check memory requirements on the secondary node
     if not self.failover or instance.admin_state == constants.ADMINST_UP:
       _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
-                           instance.name, i_be[constants.BE_MEMORY],
+                           instance.name, i_be[constants.BE_MAXMEM],
                            instance.hypervisor)
     else:
       self.lu.LogInfo("Not checking memory on the secondary node as"
@@ -8676,7 +8678,7 @@ class LUInstanceCreate(LogicalUnit):
                      tags=self.op.tags,
                      os=self.op.os_type,
                      vcpus=self.be_full[constants.BE_VCPUS],
-                     memory=self.be_full[constants.BE_MEMORY],
+                     memory=self.be_full[constants.BE_MAXMEM],
                      disks=self.disks,
                      nics=nics,
                      hypervisor=self.op.hypervisor,
@@ -9243,10 +9245,11 @@ class LUInstanceCreate(LogicalUnit):
     _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
 
     # memory check on primary node
+    #TODO(dynmem): use MINMEM for checking
     if self.op.start:
       _CheckNodeFreeMemory(self, self.pnode.name,
                            "creating instance %s" % self.op.instance_name,
-                           self.be_full[constants.BE_MEMORY],
+                           self.be_full[constants.BE_MAXMEM],
                            self.op.hypervisor)
 
     self.dry_run_result = list(nodenames)
@@ -11324,8 +11327,9 @@ class LUInstanceSetParams(LogicalUnit):
 
     self.warn = []
 
-    if (constants.BE_MEMORY in self.op.beparams and not self.op.force and
-        be_new[constants.BE_MEMORY] > be_old[constants.BE_MEMORY]):
+    #TODO(dynmem): do the appropriate check involving MINMEM
+    if (constants.BE_MAXMEM in self.op.beparams and not self.op.force and
+        be_new[constants.BE_MAXMEM] > be_old[constants.BE_MAXMEM]):
       mem_check_list = [pnode]
       if be_new[constants.BE_AUTO_BALANCE]:
         # either we changed auto_balance to yes or it was from before
@@ -11354,7 +11358,8 @@ class LUInstanceSetParams(LogicalUnit):
           # (there is a slight race condition here, but it's not very probable,
           # and we have no other way to check)
           current_mem = 0
-        miss_mem = (be_new[constants.BE_MEMORY] - current_mem -
+        #TODO(dynmem): do the appropriate check involving MINMEM
+        miss_mem = (be_new[constants.BE_MAXMEM] - current_mem -
                     pninfo.payload["memory_free"])
         if miss_mem > 0:
           raise errors.OpPrereqError("This change will prevent the instance"
@@ -11372,7 +11377,8 @@ class LUInstanceSetParams(LogicalUnit):
             raise errors.OpPrereqError("Secondary node %s didn't return free"
                                        " memory information" % node,
                                        errors.ECODE_STATE)
-          elif be_new[constants.BE_MEMORY] > nres.payload["memory_free"]:
+          #TODO(dynmem): do the appropriate check involving MINMEM
+          elif be_new[constants.BE_MAXMEM] > nres.payload["memory_free"]:
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from failover to its secondary node"
                                        " %s, due to not enough memory" % node,
@@ -13512,6 +13518,7 @@ class IAllocator(object):
     @param node_results: the basic node structures as filled from the config
 
     """
+    #TODO(dynmem): compute the right data on MAX and MIN memory
     # make a copy of the current dict
     node_results = dict(node_results)
     for nname, nresult in node_data.items():
@@ -13537,16 +13544,16 @@ class IAllocator(object):
         i_p_mem = i_p_up_mem = 0
         for iinfo, beinfo in i_list:
           if iinfo.primary_node == nname:
-            i_p_mem += beinfo[constants.BE_MEMORY]
+            i_p_mem += beinfo[constants.BE_MAXMEM]
             if iinfo.name not in node_iinfo[nname].payload:
               i_used_mem = 0
             else:
               i_used_mem = int(node_iinfo[nname].payload[iinfo.name]["memory"])
-            i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
+            i_mem_diff = beinfo[constants.BE_MAXMEM] - i_used_mem
             remote_info["memory_free"] -= max(0, i_mem_diff)
 
             if iinfo.admin_state == constants.ADMINST_UP:
-              i_p_up_mem += beinfo[constants.BE_MEMORY]
+              i_p_up_mem += beinfo[constants.BE_MAXMEM]
 
         # compute memory used by instances
         pnr_dyn = {
@@ -13587,7 +13594,7 @@ class IAllocator(object):
         "tags": list(iinfo.GetTags()),
         "admin_state": iinfo.admin_state,
         "vcpus": beinfo[constants.BE_VCPUS],
-        "memory": beinfo[constants.BE_MEMORY],
+        "memory": beinfo[constants.BE_MAXMEM],
         "os": iinfo.os,
         "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
         "nics": nic_data,
