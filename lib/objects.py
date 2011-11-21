@@ -110,6 +110,32 @@ def UpgradeBeParams(target):
     del target[constants.BE_MEMORY]
 
 
+def UpgradeDiskParams(diskparams):
+  """Upgrade the disk parameters.
+
+  @type diskparams: dict
+  @param diskparams: disk parameters to upgrade
+  @rtype: dict
+  @return: the upgraded disk parameters dit
+
+  """
+  result = dict()
+  if diskparams is None:
+    result = constants.DISK_DT_DEFAULTS.copy()
+  else:
+    # Update the disk parameter values for each disk template.
+    # The code iterates over constants.DISK_TEMPLATES because new templates
+    # might have been added.
+    for template in constants.DISK_TEMPLATES:
+      if template not in diskparams:
+        result[template] = constants.DISK_DT_DEFAULTS[template].copy()
+      else:
+        result[template] = FillDict(constants.DISK_DT_DEFAULTS[template],
+                                    diskparams[template])
+
+  return result
+
+
 class ConfigObject(object):
   """A generic config object.
 
@@ -451,7 +477,7 @@ class NIC(ConfigObject):
 class Disk(ConfigObject):
   """Config object representing a block device."""
   __slots__ = ["dev_type", "logical_id", "physical_id",
-               "children", "iv_name", "size", "mode"]
+               "children", "iv_name", "size", "mode", "params"]
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
@@ -745,6 +771,12 @@ class Disk(ConfigObject):
     if self.children:
       for child in self.children:
         child.UpgradeConfig()
+
+    if not self.params:
+      self.params = constants.DISK_LD_DEFAULTS[self.dev_type].copy()
+    else:
+      self.params = FillDict(constants.DISK_LD_DEFAULTS[self.dev_type],
+                             self.params)
     # add here config upgrade for this disk
 
 
@@ -1111,6 +1143,7 @@ class NodeGroup(TaggableObject):
     "name",
     "members",
     "ndparams",
+    "diskparams",
     "serial_no",
     "alloc_policy",
     ] + _TIMESTAMPS + _UUID
@@ -1154,6 +1187,8 @@ class NodeGroup(TaggableObject):
     # a correct value for creation time.
     if self.mtime is None:
       self.mtime = time.time()
+
+    self.diskparams = UpgradeDiskParams(self.diskparams)
 
   def FillND(self, node):
     """Return filled out ndparams for L{objects.Node}
@@ -1206,6 +1241,7 @@ class Cluster(TaggableObject):
     "osparams",
     "nicparams",
     "ndparams",
+    "diskparams",
     "candidate_pool_size",
     "modify_etc_hosts",
     "modify_ssh_setup",
@@ -1311,6 +1347,8 @@ class Cluster(TaggableObject):
 
     if self.use_external_mip_script is None:
       self.use_external_mip_script = False
+
+    self.diskparams = UpgradeDiskParams(self.diskparams)
 
   def ToDict(self):
     """Custom function for cluster.

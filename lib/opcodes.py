@@ -141,6 +141,13 @@ _PIgnoreErrors = ("ignore_errors", ht.EmptyList,
                   ht.TListOf(ht.TElemOf(constants.CV_ALL_ECODES_STRINGS)),
                   "List of error codes that should be treated as warnings")
 
+# Disk parameters
+_PDiskParams = ("diskparams", None,
+                ht.TOr(
+                  ht.TDictOf(ht.TElemOf(constants.DISK_TEMPLATES), ht.TDict),
+                  ht.TNone),
+                "Disk templates' parameter defaults")
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -762,6 +769,7 @@ class OpClusterSetParams(OpCode):
     ("osparams", None, ht.TOr(ht.TDictOf(ht.TNonEmptyString, ht.TDict),
                               ht.TNone),
      "Cluster-wide OS parameter defaults"),
+    _PDiskParams,
     ("candidate_pool_size", None, ht.TOr(ht.TStrictPositiveInt, ht.TNone),
      "Master candidate pool size"),
     ("uid_pool", None, ht.NoType,
@@ -1394,6 +1402,7 @@ class OpGroupAdd(OpCode):
     _PGroupName,
     _PNodeGroupAllocPolicy,
     _PGroupNodeParams,
+    _PDiskParams,
     ]
 
 
@@ -1424,6 +1433,7 @@ class OpGroupSetParams(OpCode):
     _PGroupName,
     _PNodeGroupAllocPolicy,
     _PGroupNodeParams,
+    _PDiskParams,
     ]
   OP_RESULT = _TSetParamsResult
 

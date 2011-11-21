@@ -286,11 +286,11 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
                 master_netmask, master_netdev, file_storage_dir,
                 shared_file_storage_dir, candidate_pool_size, secondary_ip=None,
                 vg_name=None, beparams=None, nicparams=None, ndparams=None,
-                hvparams=None, enabled_hypervisors=None, modify_etc_hosts=True,
-                modify_ssh_setup=True, maintain_node_health=False,
-                drbd_helper=None, uid_pool=None, default_iallocator=None,
-                primary_ip_version=None, prealloc_wipe_disks=False,
-                use_external_mip_script=False):
+                hvparams=None, diskparams=None, enabled_hypervisors=None,
+                modify_etc_hosts=True, modify_ssh_setup=True,
+                maintain_node_health=False, drbd_helper=None, uid_pool=None,
+                default_iallocator=None, primary_ip_version=None,
+                prealloc_wipe_disks=False, use_external_mip_script=False):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -426,6 +426,17 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
     hv_class = hypervisor.GetHypervisor(hv_name)
     hv_class.CheckParameterSyntax(hv_params)
 
+  # diskparams is a mapping of disk-template->diskparams dict
+  for template, dt_params in diskparams.items():
+    param_keys = set(dt_params.keys())
+    default_param_keys = set(constants.DISK_DT_DEFAULTS[template].keys())
+    if not (param_keys <= default_param_keys):
+      unknown_params = param_keys - default_param_keys
+      raise errors.OpPrereqError("Invalid parameters for disk template %s:"
+                                 " %s" % (template,
+                                          utils.CommaJoin(unknown_params)))
+    utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
+
   # set up ssh config and /etc/hosts
   sshline = utils.ReadFile(constants.SSH_HOST_RSA_PUB)
   sshkey = sshline.split(" ")[1]
@@ -473,6 +484,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913
     nicparams={constants.PP_DEFAULT: nicparams},
     ndparams=ndparams,
     hvparams=hvparams,
+    diskparams=diskparams,
     candidate_pool_size=candidate_pool_size,
     modify_etc_hosts=modify_etc_hosts,
     modify_ssh_setup=modify_ssh_setup,
@@ -542,6 +554,7 @@ def InitConfig(version, cluster_config, master_node_config,
     uuid=uuid_generator.Generate([], utils.NewUUID, _INITCONF_ECID),
     name=constants.INITIAL_NODE_GROUP_NAME,
     members=[master_node_config.name],
+    diskparams=cluster_config.diskparams,
     )
   nodegroups = {
     default_nodegroup.uuid: default_nodegroup,

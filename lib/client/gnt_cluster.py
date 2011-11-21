@@ -98,6 +98,16 @@ def InitCluster(opts, args):
   beparams = opts.beparams
   nicparams = opts.nicparams
 
+  diskparams = dict(opts.diskparams)
+
+  # check the disk template types here, as we cannot rely on the type check done
+  # by the opcode parameter types
+  diskparams_keys = set(diskparams.keys())
+  if not (diskparams_keys <= constants.DISK_TEMPLATES):
+    unknown = utils.NiceSort(diskparams_keys - constants.DISK_TEMPLATES)
+    ToStderr("Disk templates unknown: %s" % utils.CommaJoin(unknown))
+    return 1
+
   # prepare beparams dict
   beparams = objects.FillDict(constants.BEC_DEFAULTS, beparams)
   utils.ForceDictType(beparams, constants.BES_PARAMETER_COMPAT)
@@ -119,6 +129,14 @@ def InitCluster(opts, args):
       hvparams[hv] = {}
     hvparams[hv] = objects.FillDict(constants.HVC_DEFAULTS[hv], hvparams[hv])
     utils.ForceDictType(hvparams[hv], constants.HVS_PARAMETER_TYPES)
+
+  # prepare diskparams dict
+  for templ in constants.DISK_TEMPLATES:
+    if templ not in diskparams:
+      diskparams[templ] = {}
+    diskparams[templ] = objects.FillDict(constants.DISK_DT_DEFAULTS[templ],
+                                         diskparams[templ])
+    utils.ForceDictType(diskparams[templ], constants.DISK_DT_TYPES)
 
   if opts.candidate_pool_size is None:
     opts.candidate_pool_size = constants.MASTER_POOL_SIZE_DEFAULT
@@ -164,6 +182,7 @@ def InitCluster(opts, args):
                         beparams=beparams,
                         nicparams=nicparams,
                         ndparams=ndparams,
+                        diskparams=diskparams,
                         candidate_pool_size=opts.candidate_pool_size,
                         modify_etc_hosts=opts.modify_etc_hosts,
                         modify_ssh_setup=opts.modify_ssh_setup,
@@ -876,7 +895,8 @@ def SetClusterParams(opts, args):
   if not (not opts.lvm_storage or opts.vg_name or
           not opts.drbd_storage or opts.drbd_helper or
           opts.enabled_hypervisors or opts.hvparams or
-          opts.beparams or opts.nicparams or opts.ndparams or
+          opts.beparams or opts.nicparams or
+          opts.ndparams or opts.diskparams or
           opts.candidate_pool_size is not None or
           opts.uid_pool is not None or
           opts.maintain_node_health is not None or
@@ -915,6 +935,11 @@ def SetClusterParams(opts, args):
   hvparams = dict(opts.hvparams)
   for hv_params in hvparams.values():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
+
+  diskparams = dict(opts.diskparams)
+
+  for dt_params in hvparams.values():
+    utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
 
   beparams = opts.beparams
   utils.ForceDictType(beparams, constants.BES_PARAMETER_COMPAT)
@@ -963,6 +988,7 @@ def SetClusterParams(opts, args):
                                   beparams=beparams,
                                   nicparams=nicparams,
                                   ndparams=ndparams,
+                                  diskparams=diskparams,
                                   candidate_pool_size=opts.candidate_pool_size,
                                   maintain_node_health=mnh,
                                   uid_pool=uid_pool,
@@ -1376,7 +1402,8 @@ commands = {
      NOMODIFY_SSH_SETUP_OPT, SECONDARY_IP_OPT, VG_NAME_OPT,
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT],
+     NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT,
+     DISK_PARAMS_OPT],
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -1453,7 +1480,7 @@ commands = {
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT,
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT],
+     NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

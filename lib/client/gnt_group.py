@@ -48,8 +48,10 @@ def AddGroup(opts, args):
 
   """
   (group_name,) = args
+  diskparams = dict(opts.diskparams)
   op = opcodes.OpGroupAdd(group_name=group_name, ndparams=opts.ndparams,
-                          alloc_policy=opts.alloc_policy)
+                          alloc_policy=opts.alloc_policy,
+                          diskparams=diskparams)
   SubmitOpCode(op, opts=opts)
 
 
@@ -133,13 +135,16 @@ def SetGroupParams(opts, args):
   @return: the desired exit code
 
   """
-  if opts.ndparams is None and opts.alloc_policy is None:
+  if (opts.ndparams is None and opts.alloc_policy is None
+      and not opts.diskparams):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
+  diskparams = dict(opts.diskparams)
   op = opcodes.OpGroupSetParams(group_name=args[0],
                                 ndparams=opts.ndparams,
-                                alloc_policy=opts.alloc_policy)
+                                alloc_policy=opts.alloc_policy,
+                                diskparams=diskparams)
   result = SubmitOrSend(op, opts)
 
   if result:
@@ -214,7 +219,8 @@ def EvacuateGroup(opts, args):
 
 commands = {
   "add": (
-    AddGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT],
+    AddGroup, ARGS_ONE_GROUP,
+    [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, DISK_PARAMS_OPT],
     "<group_name>", "Add a new node group to the cluster"),
   "assign-nodes": (
     AssignNodes, ARGS_ONE_GROUP + ARGS_MANY_NODES, [DRY_RUN_OPT, FORCE_OPT],
@@ -231,7 +237,8 @@ commands = {
     "Lists all available fields for node groups"),
   "modify": (
     SetGroupParams, ARGS_ONE_GROUP,
-    [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT],
+    [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT,
+     DISK_PARAMS_OPT],
     "<group_name>", "Alters the parameters of a node group"),
   "remove": (
     RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],

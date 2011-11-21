@@ -460,6 +460,13 @@ LD_LV = "lvm"
 LD_DRBD8 = "drbd8"
 LD_FILE = "file"
 LD_BLOCKDEV = "blockdev"
+LOGICAL_DISK_TYPES = frozenset([
+  LD_LV,
+  LD_DRBD8,
+  LD_FILE,
+  LD_BLOCKDEV,
+  ])
+
 LDS_BLOCK = frozenset([LD_LV, LD_DRBD8, LD_BLOCKDEV])
 
 # drbd constants
@@ -888,6 +895,17 @@ NDS_PARAMETER_TYPES = {
   }
 
 NDS_PARAMETERS = frozenset(NDS_PARAMETER_TYPES.keys())
+
+# Logical Disks parameters
+DISK_LD_TYPES = {
+  }
+DISK_LD_PARAMETERS = frozenset(DISK_LD_TYPES.keys())
+
+# Disk template parameters
+DISK_DT_TYPES = {
+  }
+
+DISK_DT_PARAMETERS = frozenset(DISK_DT_TYPES.keys())
 
 # OOB supported commands
 OOB_POWER_ON = "power-on"
@@ -1649,6 +1667,32 @@ BEC_DEFAULTS = {
 
 NDC_DEFAULTS = {
   ND_OOB_PROGRAM: None,
+  }
+
+DISK_LD_DEFAULTS = {
+  LD_DRBD8: {
+    },
+  LD_LV: {
+    },
+  LD_FILE: {
+    },
+  LD_BLOCKDEV: {
+    },
+  }
+
+DISK_DT_DEFAULTS = {
+  DT_PLAIN: {
+    },
+  DT_DRBD8: {
+    },
+  DT_DISKLESS: {
+    },
+  DT_FILE: {
+    },
+  DT_SHARED_FILE: {
+    },
+  DT_BLOCK: {
+    },
   }
 
 NICC_DEFAULTS = {

@@ -69,6 +69,7 @@ __all__ = [
   "DEBUG_SIMERR_OPT",
   "DISKIDX_OPT",
   "DISK_OPT",
+  "DISK_PARAMS_OPT",
   "DISK_TEMPLATE_OPT",
   "DRAINED_OPT",
   "DRY_RUN_OPT",
@@ -751,6 +752,11 @@ BACKEND_OPT = cli_option("-B", "--backend-parameters", dest="beparams",
 HVOPTS_OPT = cli_option("-H", "--hypervisor-parameters", type="keyval",
                         default={}, dest="hvparams",
                         help="Hypervisor parameters")
+
+DISK_PARAMS_OPT = cli_option("-D", "--disk-parameters", dest="diskparams",
+                             help="Disk template parameters, in the format"
+                             " template:option=value,option=value,...",
+                             type="identkeyval", action="append", default=[])
 
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"

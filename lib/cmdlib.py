@@ -3496,6 +3496,10 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.master_netmask is not None:
       _ValidateNetmask(self.cfg, self.op.master_netmask)
 
+    if self.op.diskparams:
+      for dt_params in self.op.diskparams.values():
+        utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
+
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
     # all nodes to be modified.
@@ -3628,6 +3632,15 @@ class LUClusterSetParams(LogicalUnit):
         else:
           self.new_hvparams[hv_name].update(hv_dict)
 
+    # disk template parameters
+    self.new_diskparams = objects.FillDict(cluster.diskparams, {})
+    if self.op.diskparams:
+      for dt_name, dt_params in self.op.diskparams.items():
+        if dt_name not in self.op.diskparams:
+          self.new_diskparams[dt_name] = dt_params
+        else:
+          self.new_diskparams[dt_name].update(dt_params)
+
     # os hypervisor parameters
     self.new_os_hvp = objects.FillDict(cluster.os_hvp, {})
     if self.op.os_hvp:
@@ -3746,6 +3759,8 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.osparams = self.new_osp
     if self.op.ndparams:
       self.cluster.ndparams = self.new_ndparams
+    if self.op.diskparams:
+      self.cluster.diskparams = self.new_diskparams
 
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
@@ -12463,6 +12478,14 @@ class LUGroupAdd(LogicalUnit):
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
 
+    if self.op.diskparams:
+      for templ in constants.DISK_TEMPLATES:
+        if templ not in self.op.diskparams:
+          self.op.diskparams[templ] = {}
+        utils.ForceDictType(self.op.diskparams[templ], constants.DISK_DT_TYPES)
+    else:
+      self.op.diskparams = self.cfg.GetClusterInfo().diskparams
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -12485,7 +12508,8 @@ class LUGroupAdd(LogicalUnit):
     group_obj = objects.NodeGroup(name=self.op.group_name, members=[],
                                   uuid=self.group_uuid,
                                   alloc_policy=self.op.alloc_policy,
-                                  ndparams=self.op.ndparams)
+                                  ndparams=self.op.ndparams,
+                                  diskparams=self.op.diskparams)
 
     self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
     del self.remove_locks[locking.LEVEL_NODEGROUP]
@@ -12732,6 +12756,7 @@ class LUGroupSetParams(LogicalUnit):
   def CheckArguments(self):
     all_changes = [
       self.op.ndparams,
+      self.op.diskparams,
       self.op.alloc_policy,
       ]
 
@@ -12762,6 +12787,16 @@ class LUGroupSetParams(LogicalUnit):
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
       self.new_ndparams = new_ndparams
 
+    if self.op.diskparams:
+      self.new_diskparams = dict()
+      for templ in constants.DISK_TEMPLATES:
+        if templ not in self.op.diskparams:
+          self.op.diskparams[templ] = {}
+        new_templ_params = _GetUpdatedParams(self.group.diskparams[templ],
+                                             self.op.diskparams[templ])
+        utils.ForceDictType(new_templ_params, constants.DISK_DT_TYPES)
+        self.new_diskparams[templ] = new_templ_params
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -12787,6 +12822,10 @@ class LUGroupSetParams(LogicalUnit):
     if self.op.ndparams:
       self.group.ndparams = self.new_ndparams
       result.append(("ndparams", str(self.group.ndparams)))
+
+    if self.op.diskparams:
+      self.group.diskparams = self.new_diskparams
+      result.append(("diskparams", str(self.group.diskparams)))
 
     if self.op.alloc_policy:
       self.group.alloc_policy = self.op.alloc_policy

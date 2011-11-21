@@ -79,6 +79,12 @@ class TestConstants(unittest.TestCase):
     self.failUnless(constants.OP_PRIO_NORMAL > constants.OP_PRIO_HIGH)
     self.failUnless(constants.OP_PRIO_HIGH > constants.OP_PRIO_HIGHEST)
 
+  def testDiskDefaults(self):
+    self.failUnless(set(constants.DISK_LD_DEFAULTS.keys()) ==
+                    constants.LOGICAL_DISK_TYPES)
+    self.failUnless(set(constants.DISK_DT_DEFAULTS.keys()) ==
+                    constants.DISK_TEMPLATES)
+
 
 class TestExportedNames(unittest.TestCase):
   _VALID_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]+$")
