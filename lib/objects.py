@@ -989,6 +989,40 @@ class OS(ConfigObject):
     return cls.SplitNameVariant(name)[1]
 
 
+class NodeHvState(ConfigObject):
+  """Hypvervisor state on a node.
+
+  @ivar mem_total: Total amount of memory
+  @ivar mem_node: Memory used by, or reserved for, the node itself (not always
+    available)
+  @ivar mem_hv: Memory used by hypervisor or lost due to instance allocation
+    rounding
+  @ivar mem_inst: Memory used by instances living on node
+  @ivar cpu_total: Total node CPU core count
+  @ivar cpu_node: Number of CPU cores reserved for the node itself
+
+  """
+  __slots__ = [
+    "mem_total",
+    "mem_node",
+    "mem_hv",
+    "mem_inst",
+    "cpu_total",
+    "cpu_node",
+    ] + _TIMESTAMPS
+
+
+class NodeDiskState(ConfigObject):
+  """Disk state on a node.
+
+  """
+  __slots__ = [
+    "total",
+    "reserved",
+    "overhead",
+    ] + _TIMESTAMPS
+
+
 class Node(TaggableObject):
   """Config object representing a node.
 
@@ -1034,6 +1068,41 @@ class Node(TaggableObject):
 
     if self.powered is None:
       self.powered = True
+
+  def ToDict(self):
+    """Custom function for serializing.
+
+    """
+    data = super(Node, self).ToDict()
+
+    hv_state = data.get("hv_state", None)
+    if hv_state is not None:
+      data["hv_state"] = self._ContainerToDicts(hv_state)
+
+    disk_state = data.get("disk_state", None)
+    if disk_state is not None:
+      data["disk_state"] = \
+        dict((key, self._ContainerToDicts(value))
+             for (key, value) in disk_state.items())
+
+    return data
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for deserializing.
+
+    """
+    obj = super(Node, cls).FromDict(val)
+
+    if obj.hv_state is not None:
+      obj.hv_state = cls._ContainerFromDicts(obj.hv_state, dict, NodeHvState)
+
+    if obj.disk_state is not None:
+      obj.disk_state = \
+        dict((key, cls._ContainerFromDicts(value, dict, NodeDiskState))
+             for (key, value) in obj.disk_state.items())
+
+    return obj
 
 
 class NodeGroup(TaggableObject):

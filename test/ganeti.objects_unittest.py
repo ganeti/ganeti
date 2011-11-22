@@ -283,5 +283,54 @@ class TestInstance(unittest.TestCase):
     self.assertRaises(errors.OpPrereqError, inst.FindDisk, 1)
 
 
+class TestNode(unittest.TestCase):
+  def testEmpty(self):
+    self.assertEqual(objects.Node().ToDict(), {})
+    self.assertTrue(isinstance(objects.Node.FromDict({}), objects.Node))
+
+  def testHvState(self):
+    node = objects.Node(name="node18157.example.com", hv_state={
+      constants.HT_XEN_HVM: objects.NodeHvState(cpu_total=64),
+      constants.HT_KVM: objects.NodeHvState(cpu_node=1),
+      })
+
+    node2 = objects.Node.FromDict(node.ToDict())
+
+    # Make sure nothing can reference it anymore
+    del node
+
+    self.assertEqual(node2.name, "node18157.example.com")
+    self.assertEqual(frozenset(node2.hv_state), frozenset([
+      constants.HT_XEN_HVM,
+      constants.HT_KVM,
+      ]))
+    self.assertEqual(node2.hv_state[constants.HT_KVM].cpu_node, 1)
+    self.assertEqual(node2.hv_state[constants.HT_XEN_HVM].cpu_total, 64)
+
+  def testDiskState(self):
+    node = objects.Node(name="node32087.example.com", disk_state={
+      constants.LD_LV: {
+        "lv32352": objects.NodeDiskState(total=128),
+        "lv2082": objects.NodeDiskState(total=512),
+        },
+      })
+
+    node2 = objects.Node.FromDict(node.ToDict())
+
+    # Make sure nothing can reference it anymore
+    del node
+
+    self.assertEqual(node2.name, "node32087.example.com")
+    self.assertEqual(frozenset(node2.disk_state), frozenset([
+      constants.LD_LV,
+      ]))
+    self.assertEqual(frozenset(node2.disk_state[constants.LD_LV]), frozenset([
+      "lv32352",
+      "lv2082",
+      ]))
+    self.assertEqual(node2.disk_state[constants.LD_LV]["lv2082"].total, 512)
+    self.assertEqual(node2.disk_state[constants.LD_LV]["lv32352"].total, 128)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
