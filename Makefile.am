@@ -528,6 +528,7 @@ dist_tools_PYTHON = \
 	tools/cfgupgrade \
 	tools/cfgupgrade12 \
 	tools/cluster-merge \
+	tools/confd-client \
 	tools/lvmstrap \
 	tools/move-instance \
 	tools/ovfconverter \
