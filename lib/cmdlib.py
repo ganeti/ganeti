@@ -10145,6 +10145,15 @@ class LUNodeEvacuate(NoHooksLU):
   """
   REQ_BGL = False
 
+  _MODE2IALLOCATOR = {
+    constants.NODE_EVAC_PRI: constants.IALLOCATOR_NEVAC_PRI,
+    constants.NODE_EVAC_SEC: constants.IALLOCATOR_NEVAC_SEC,
+    constants.NODE_EVAC_ALL: constants.IALLOCATOR_NEVAC_ALL,
+    }
+  assert frozenset(_MODE2IALLOCATOR.keys()) == constants.NODE_EVAC_MODES
+  assert (frozenset(_MODE2IALLOCATOR.values()) ==
+          constants.IALLOCATOR_NEVAC_MODES)
+
   def CheckArguments(self):
     _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
 
@@ -10159,7 +10168,7 @@ class LUNodeEvacuate(NoHooksLU):
         raise errors.OpPrereqError("Can not use evacuated node as a new"
                                    " secondary node", errors.ECODE_INVAL)
 
-      if self.op.mode != constants.IALLOCATOR_NEVAC_SEC:
+      if self.op.mode != constants.NODE_EVAC_SEC:
         raise errors.OpPrereqError("Without the use of an iallocator only"
                                    " secondary instances can be evacuated",
                                    errors.ECODE_INVAL)
@@ -10185,19 +10194,19 @@ class LUNodeEvacuate(NoHooksLU):
     """Builds list of instances to operate on.
 
     """
-    assert self.op.mode in constants.IALLOCATOR_NEVAC_MODES
+    assert self.op.mode in constants.NODE_EVAC_MODES
 
-    if self.op.mode == constants.IALLOCATOR_NEVAC_PRI:
+    if self.op.mode == constants.NODE_EVAC_PRI:
       # Primary instances only
       inst_fn = _GetNodePrimaryInstances
       assert self.op.remote_node is None, \
         "Evacuating primary instances requires iallocator"
-    elif self.op.mode == constants.IALLOCATOR_NEVAC_SEC:
+    elif self.op.mode == constants.NODE_EVAC_SEC:
       # Secondary instances only
       inst_fn = _GetNodeSecondaryInstances
     else:
       # All instances
-      assert self.op.mode == constants.IALLOCATOR_NEVAC_ALL
+      assert self.op.mode == constants.NODE_EVAC_ALL
       inst_fn = _GetNodeInstances
 
     return inst_fn(self.cfg, self.op.node_name)
@@ -10272,7 +10281,7 @@ class LUNodeEvacuate(NoHooksLU):
     elif self.op.iallocator is not None:
       # TODO: Implement relocation to other group
       ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_NODE_EVAC,
-                       evac_mode=self.op.mode,
+                       evac_mode=self._MODE2IALLOCATOR[self.op.mode],
                        instances=list(self.instance_names))
 
       ial.Run(self.op.iallocator)
@@ -10286,7 +10295,7 @@ class LUNodeEvacuate(NoHooksLU):
       jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, True)
 
     elif self.op.remote_node is not None:
-      assert self.op.mode == constants.IALLOCATOR_NEVAC_SEC
+      assert self.op.mode == constants.NODE_EVAC_SEC
       jobs = [
         [opcodes.OpInstanceReplaceDisks(instance_name=instance_name,
                                         remote_node=self.op.remote_node,

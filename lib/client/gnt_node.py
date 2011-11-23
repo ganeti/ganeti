@@ -276,11 +276,11 @@ def EvacuateNode(opts, args):
                                " --secondary-only options can be passed",
                                errors.ECODE_INVAL)
   elif opts.primary_only:
-    mode = constants.IALLOCATOR_NEVAC_PRI
+    mode = constants.NODE_EVAC_PRI
   elif opts.secondary_only:
-    mode = constants.IALLOCATOR_NEVAC_SEC
+    mode = constants.NODE_EVAC_SEC
   else:
-    mode = constants.IALLOCATOR_NEVAC_ALL
+    mode = constants.NODE_EVAC_ALL
 
   # Determine affected instances
   fields = []

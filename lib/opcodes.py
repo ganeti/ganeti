@@ -1014,7 +1014,7 @@ class OpNodeEvacuate(OpCode):
     _PNodeName,
     ("remote_node", None, ht.TMaybeString, "New secondary node"),
     ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
-    ("mode", ht.NoDefault, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES),
+    ("mode", ht.NoDefault, ht.TElemOf(constants.NODE_EVAC_MODES),
      "Node evacuation mode"),
     ]
   OP_RESULT = TJobIdListOnly
