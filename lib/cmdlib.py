@@ -8039,24 +8039,59 @@ def _GenerateUniqueNames(lu, exts):
   return results
 
 
+def _ComputeLDParams(disk_template, disk_params):
+  """Computes Logical Disk parameters from Disk Template parameters.
+
+  @type disk_template: string
+  @param disk_template: disk template, one of L{constants.DISK_TEMPLATES}
+  @type disk_params: dict
+  @param disk_params: disk template parameters; dict(template_name -> parameters
+  @rtype: list(dict)
+  @return: a list of dicts, one for each node of the disk hierarchy. Each dict
+    contains the LD parameters of the node. The tree is flattened in-order.
+
+  """
+  if disk_template not in constants.DISK_TEMPLATES:
+    raise errors.ProgrammerError("Unknown disk template %s" % disk_template)
+
+  result = list()
+  if disk_template == constants.DT_DRBD8:
+    result.append(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8])
+    result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
+    result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
+  elif (disk_template == constants.DT_FILE or
+        disk_template == constants.DT_SHARED_FILE):
+    result.append(constants.DISK_LD_DEFAULTS[constants.LD_FILE])
+  elif disk_template == constants.DT_PLAIN:
+    result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
+  elif disk_template == constants.DT_BLOCK:
+    result.append(constants.DISK_LD_DEFAULTS[constants.LD_BLOCKDEV])
+
+  return result
+
+
 def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
-                         iv_name, p_minor, s_minor):
+                         iv_name, p_minor, s_minor, drbd_params, data_params,
+                         meta_params):
   """Generate a drbd8 device complete with its children.
 
   """
   assert len(vgnames) == len(names) == 2
   port = lu.cfg.AllocatePort()
   shared_secret = lu.cfg.GenerateDRBDSecret(lu.proc.GetECId())
+
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
-                          logical_id=(vgnames[0], names[0]))
+                          logical_id=(vgnames[0], names[0]),
+                          params=data_params)
   dev_meta = objects.Disk(dev_type=constants.LD_LV, size=DRBD_META_SIZE,
-                          logical_id=(vgnames[1], names[1]))
+                          logical_id=(vgnames[1], names[1]),
+                          params=meta_params)
   drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
                           logical_id=(primary, secondary, port,
                                       p_minor, s_minor,
                                       shared_secret),
                           children=[dev_data, dev_meta],
-                          iv_name=iv_name)
+                          iv_name=iv_name, params=drbd_params)
   return drbd_dev
 
 
@@ -8064,7 +8099,7 @@ def _GenerateDiskTemplate(lu, template_name,
                           instance_name, primary_node,
                           secondary_nodes, disk_info,
                           file_storage_dir, file_driver,
-                          base_index, feedback_fn):
+                          base_index, feedback_fn, disk_params):
   """Generate the entire disk layout for a given template type.
 
   """
@@ -8073,6 +8108,7 @@ def _GenerateDiskTemplate(lu, template_name,
   vgname = lu.cfg.GetVGName()
   disk_count = len(disk_info)
   disks = []
+  ld_params = _ComputeLDParams(template_name, disk_params)
   if template_name == constants.DT_DISKLESS:
     pass
   elif template_name == constants.DT_PLAIN:
@@ -8089,9 +8125,11 @@ def _GenerateDiskTemplate(lu, template_name,
                               size=disk[constants.IDISK_SIZE],
                               logical_id=(vg, names[idx]),
                               iv_name="disk/%d" % disk_index,
-                              mode=disk[constants.IDISK_MODE])
+                              mode=disk[constants.IDISK_MODE],
+                              params=ld_params[0])
       disks.append(disk_dev)
   elif template_name == constants.DT_DRBD8:
+    drbd_params, data_params, meta_params = ld_params
     if len(secondary_nodes) != 1:
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node = secondary_nodes[0]
@@ -8112,7 +8150,8 @@ def _GenerateDiskTemplate(lu, template_name,
                                       [data_vg, meta_vg],
                                       names[idx * 2:idx * 2 + 2],
                                       "disk/%d" % disk_index,
-                                      minors[idx * 2], minors[idx * 2 + 1])
+                                      minors[idx * 2], minors[idx * 2 + 1],
+                                      drbd_params, data_params, meta_params)
       disk_dev.mode = disk[constants.IDISK_MODE]
       disks.append(disk_dev)
   elif template_name == constants.DT_FILE:
@@ -8129,7 +8168,8 @@ def _GenerateDiskTemplate(lu, template_name,
                               logical_id=(file_driver,
                                           "%s/disk%d" % (file_storage_dir,
                                                          disk_index)),
-                              mode=disk[constants.IDISK_MODE])
+                              mode=disk[constants.IDISK_MODE],
+                              params=ld_params[0])
       disks.append(disk_dev)
   elif template_name == constants.DT_SHARED_FILE:
     if len(secondary_nodes) != 0:
@@ -8145,7 +8185,8 @@ def _GenerateDiskTemplate(lu, template_name,
                               logical_id=(file_driver,
                                           "%s/disk%d" % (file_storage_dir,
                                                          disk_index)),
-                              mode=disk[constants.IDISK_MODE])
+                              mode=disk[constants.IDISK_MODE],
+                              params=ld_params[0])
       disks.append(disk_dev)
   elif template_name == constants.DT_BLOCK:
     if len(secondary_nodes) != 0:
@@ -8158,7 +8199,8 @@ def _GenerateDiskTemplate(lu, template_name,
                               logical_id=(constants.BLOCKDEV_DRIVER_MANUAL,
                                           disk[constants.IDISK_ADOPT]),
                               iv_name="disk/%d" % disk_index,
-                              mode=disk[constants.IDISK_MODE])
+                              mode=disk[constants.IDISK_MODE],
+                              params=ld_params[0])
       disks.append(disk_dev)
 
   else:
@@ -9198,7 +9240,18 @@ class LUInstanceCreate(LogicalUnit):
       _CheckNodeVmCapable(self, self.op.snode)
       self.secondaries.append(self.op.snode)
 
+      snode = self.cfg.GetNodeInfo(self.op.snode)
+      if pnode.group != snode.group:
+        self.LogWarning("The primary and secondary nodes are in two"
+                        " different node groups; the disk parameters"
+                        " from the first disk's node group will be"
+                        " used")
+
     nodenames = [pnode.name] + self.secondaries
+
+    # disk parameters (not customizable at instance or node level)
+    # just use the primary node parameters, ignoring the secondary.
+    self.diskparams = self.cfg.GetNodeGroup(pnode.group).diskparams
 
     if not self.adopt_disks:
       # Check lv size requirements, if not adopting
@@ -9318,7 +9371,8 @@ class LUInstanceCreate(LogicalUnit):
                                   self.instance_file_storage_dir,
                                   self.op.file_driver,
                                   0,
-                                  feedback_fn)
+                                  feedback_fn,
+                                  self.diskparams)
 
     iobj = objects.Instance(name=instance, os=self.op.os_type,
                             primary_node=pnode_name,
@@ -9948,6 +10002,16 @@ class TLReplaceDisks(Tasklet):
       if not self.disks:
         self.disks = range(len(self.instance.disks))
 
+    # TODO: compute disk parameters
+    primary_node_info = self.cfg.GetNodeInfo(instance.primary_node)
+    secondary_node_info = self.cfg.GetNodeInfo(secondary_node)
+    if primary_node_info.group != secondary_node_info.group:
+      self.lu.LogInfo("The instance primary and secondary nodes are in two"
+                      " different node groups; the disk parameters of the"
+                      " primary node's group will be applied.")
+
+    self.diskparams = self.cfg.GetNodeGroup(primary_node_info.group).diskparams
+
     for node in check_nodes:
       _CheckNodeOnline(self.lu, node)
 
@@ -10107,12 +10171,14 @@ class TLReplaceDisks(Tasklet):
       lv_names = [".disk%d_%s" % (idx, suffix) for suffix in ["data", "meta"]]
       names = _GenerateUniqueNames(self.lu, lv_names)
 
+      _, data_p, meta_p = _ComputeLDParams(constants.DT_DRBD8, self.diskparams)
+
       vg_data = dev.children[0].logical_id[0]
       lv_data = objects.Disk(dev_type=constants.LD_LV, size=dev.size,
-                             logical_id=(vg_data, names[0]))
+                             logical_id=(vg_data, names[0]), params=data_p)
       vg_meta = dev.children[1].logical_id[0]
       lv_meta = objects.Disk(dev_type=constants.LD_LV, size=DRBD_META_SIZE,
-                             logical_id=(vg_meta, names[1]))
+                             logical_id=(vg_meta, names[1]), params=meta_p)
 
       new_lvs = [lv_data, lv_meta]
       old_lvs = [child.Copy() for child in dev.children]
@@ -10369,10 +10435,12 @@ class TLReplaceDisks(Tasklet):
       iv_names[idx] = (dev, dev.children, new_net_id)
       logging.debug("Allocated new_minor: %s, new_logical_id: %s", new_minor,
                     new_net_id)
+      drbd_params, _, _ = _ComputeLDParams(constants.DT_DRBD8, self.diskparams)
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
                               logical_id=new_alone_id,
                               children=dev.children,
-                              size=dev.size)
+                              size=dev.size,
+                              params=drbd_params)
       try:
         _CreateSingleBlockDev(self.lu, self.new_node, self.instance, new_drbd,
                               _GetInstanceInfoText(self.instance), False)
@@ -11298,6 +11366,8 @@ class LUInstanceSetParams(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     pnode = instance.primary_node
     nodelist = list(instance.all_nodes)
+    pnode_info = self.cfg.GetNodeInfo(pnode)
+    self.diskparams = self.cfg.GetNodeGroup(pnode_info.group).diskparams
 
     # OS change
     if self.op.os_name and not self.op.force:
@@ -11334,6 +11404,13 @@ class LUInstanceSetParams(LogicalUnit):
                  for d in instance.disks]
         required = _ComputeDiskSizePerVG(self.op.disk_template, disks)
         _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
+
+        snode_info = self.cfg.GetNodeInfo(self.op.remote_node)
+        if pnode_info.group != snode_info.group:
+          self.LogWarning("The primary and secondary nodes are in two"
+                          " different node groups; the disk parameters"
+                          " from the first disk's node group will be"
+                          " used")
 
     # hvparams processing
     if self.op.hvparams:
@@ -11595,7 +11672,8 @@ class LUInstanceSetParams(LogicalUnit):
                  for d in instance.disks]
     new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
                                       instance.name, pnode, [snode],
-                                      disk_info, None, None, 0, feedback_fn)
+                                      disk_info, None, None, 0, feedback_fn,
+                                      self.diskparams)
     info = _GetInstanceInfoText(instance)
     feedback_fn("Creating aditional volumes...")
     # first, create the missing data and meta devices
@@ -11741,7 +11819,9 @@ class LUInstanceSetParams(LogicalUnit):
                                          [disk_dict],
                                          file_path,
                                          file_driver,
-                                         disk_idx_base, feedback_fn)[0]
+                                         disk_idx_base,
+                                         feedback_fn,
+                                         self.diskparams)[0]
         instance.disks.append(new_disk)
         info = _GetInstanceInfoText(instance)
 
