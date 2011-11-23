@@ -4347,7 +4347,7 @@ class LUNodeRemove(LogicalUnit):
       raise errors.OpPrereqError("Node is the master node, failover to another"
                                  " node is required", errors.ECODE_INVAL)
 
-    for instance_name, instance in self.cfg.GetAllInstancesInfo():
+    for instance_name, instance in self.cfg.GetAllInstancesInfo().items():
       if node.name in instance.all_nodes:
         raise errors.OpPrereqError("Instance %s is still running on the node,"
                                    " please remove first" % instance_name,
