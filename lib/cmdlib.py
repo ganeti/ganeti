@@ -10148,6 +10148,7 @@ class LUNodeEvacuate(NoHooksLU):
     else:
       # All instances
       assert self.op.mode == constants.IALLOCATOR_NEVAC_ALL
+      inst_fn = _GetNodeInstances
       # TODO: In 2.6, change the iallocator interface to take an evacuation mode
       # per instance
       raise errors.OpPrereqError("Due to an issue with the iallocator"
@@ -10156,7 +10157,6 @@ class LUNodeEvacuate(NoHooksLU):
                                  " whether to evacuate primary or secondary"
                                  " instances",
                                  errors.ECODE_INVAL)
-      inst_fn = _GetNodeInstances
 
     return inst_fn(self.cfg, self.op.node_name)
 
