@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,8 @@ import time
 import tempfile
 import os.path
 import socket
+import operator
+import itertools
 
 from ganeti import bootstrap
 from ganeti import config
@@ -36,6 +38,7 @@ from ganeti import errors
 from ganeti import objects
 from ganeti import utils
 from ganeti import netutils
+from ganeti import compat
 
 from ganeti.config import TemporaryReservationManager
 
@@ -238,6 +241,127 @@ class TestConfigRunner(unittest.TestCase):
 
     cfg.AddNodeGroup(group, "my-job", check_uuid=False) # Does not raise.
     self.assertEqual(uuid, group.uuid)
+
+  def testAssignGroupNodes(self):
+    me = netutils.Hostname()
+    cfg = self._get_object()
+
+    # Create two groups
+    grp1 = objects.NodeGroup(name="grp1", members=[],
+                             uuid="2f2fadf7-2a70-4a23-9ab5-2568c252032c")
+    grp1_serial = 1
+    cfg.AddNodeGroup(grp1, "job")
+
+    grp2 = objects.NodeGroup(name="grp2", members=[],
+                             uuid="798d0de3-680f-4a0e-b29a-0f54f693b3f1")
+    grp2_serial = 1
+    cfg.AddNodeGroup(grp2, "job")
+    self.assertEqual(set(map(operator.attrgetter("name"),
+                             cfg.GetAllNodeGroupsInfo().values())),
+                     set(["grp1", "grp2", constants.INITIAL_NODE_GROUP_NAME]))
+
+    # No-op
+    cluster_serial = cfg.GetClusterInfo().serial_no
+    cfg.AssignGroupNodes([])
+    cluster_serial += 1
+
+    # Create two nodes
+    node1 = objects.Node(name="node1", group=grp1.uuid, ndparams={})
+    node1_serial = 1
+    node2 = objects.Node(name="node2", group=grp2.uuid, ndparams={})
+    node2_serial = 1
+    cfg.AddNode(node1, "job")
+    cfg.AddNode(node2, "job")
+    cluster_serial += 2
+    self.assertEqual(set(cfg.GetNodeList()), set(["node1", "node2", me.name]))
+
+    def _VerifySerials():
+      self.assertEqual(cfg.GetClusterInfo().serial_no, cluster_serial)
+      self.assertEqual(node1.serial_no, node1_serial)
+      self.assertEqual(node2.serial_no, node2_serial)
+      self.assertEqual(grp1.serial_no, grp1_serial)
+      self.assertEqual(grp2.serial_no, grp2_serial)
+
+    _VerifySerials()
+
+    self.assertEqual(set(grp1.members), set(["node1"]))
+    self.assertEqual(set(grp2.members), set(["node2"]))
+
+    # Check invalid nodes and groups
+    self.assertRaises(errors.ConfigurationError, cfg.AssignGroupNodes, [
+      ("unknown.node.example.com", grp2.uuid),
+      ])
+    self.assertRaises(errors.ConfigurationError, cfg.AssignGroupNodes, [
+      (node1.name, "unknown-uuid"),
+      ])
+
+    self.assertEqual(node1.group, grp1.uuid)
+    self.assertEqual(node2.group, grp2.uuid)
+    self.assertEqual(set(grp1.members), set(["node1"]))
+    self.assertEqual(set(grp2.members), set(["node2"]))
+
+    # Another no-op
+    cfg.AssignGroupNodes([])
+    cluster_serial += 1
+    _VerifySerials()
+
+    # Assign to the same group (should be a no-op)
+    self.assertEqual(node2.group, grp2.uuid)
+    cfg.AssignGroupNodes([
+      (node2.name, grp2.uuid),
+      ])
+    cluster_serial += 1
+    self.assertEqual(node2.group, grp2.uuid)
+    _VerifySerials()
+    self.assertEqual(set(grp1.members), set(["node1"]))
+    self.assertEqual(set(grp2.members), set(["node2"]))
+
+    # Assign node 2 to group 1
+    self.assertEqual(node2.group, grp2.uuid)
+    cfg.AssignGroupNodes([
+      (node2.name, grp1.uuid),
+      ])
+    cluster_serial += 1
+    node2_serial += 1
+    grp1_serial += 1
+    grp2_serial += 1
+    self.assertEqual(node2.group, grp1.uuid)
+    _VerifySerials()
+    self.assertEqual(set(grp1.members), set(["node1", "node2"]))
+    self.assertFalse(grp2.members)
+
+    # And assign both nodes to group 2
+    self.assertEqual(node1.group, grp1.uuid)
+    self.assertEqual(node2.group, grp1.uuid)
+    self.assertNotEqual(grp1.uuid, grp2.uuid)
+    cfg.AssignGroupNodes([
+      (node1.name, grp2.uuid),
+      (node2.name, grp2.uuid),
+      ])
+    cluster_serial += 1
+    node1_serial += 1
+    node2_serial += 1
+    grp1_serial += 1
+    grp2_serial += 1
+    self.assertEqual(node1.group, grp2.uuid)
+    self.assertEqual(node2.group, grp2.uuid)
+    _VerifySerials()
+    self.assertFalse(grp1.members)
+    self.assertEqual(set(grp2.members), set(["node1", "node2"]))
+
+    # Destructive tests
+    orig_group = node2.group
+    try:
+      other_uuid = "68b3d087-6ea5-491c-b81f-0a47d90228c5"
+      assert compat.all(node.group != other_uuid
+                        for node in cfg.GetAllNodesInfo().values())
+      node2.group = "68b3d087-6ea5-491c-b81f-0a47d90228c5"
+      self.assertRaises(errors.ConfigurationError, cfg.AssignGroupNodes, [
+        ("node2", grp2.uuid),
+        ])
+      _VerifySerials()
+    finally:
+      node2.group = orig_group
 
 
 class TestTRM(unittest.TestCase):
