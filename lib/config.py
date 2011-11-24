@@ -1608,7 +1608,7 @@ class ConfigWriter:
     """Changes the group of a number of nodes.
 
     @type mods: list of tuples; (node name, new group UUID)
-    @param modes: Node membership modifications
+    @param mods: Node membership modifications
 
     """
     groups = self._config_data.nodegroups
