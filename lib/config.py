@@ -38,6 +38,7 @@ import os
 import random
 import logging
 import time
+import itertools
 
 from ganeti import errors
 from ganeti import locking
@@ -1601,6 +1602,79 @@ class ConfigWriter:
                       " (while being removed from it)", node.name, nodegroup)
     else:
       nodegroup_obj.members.remove(node.name)
+
+  @locking.ssynchronized(_config_lock)
+  def AssignGroupNodes(self, mods):
+    """Changes the group of a number of nodes.
+
+    @type mods: list of tuples; (node name, new group UUID)
+    @param modes: Node membership modifications
+
+    """
+    groups = self._config_data.nodegroups
+    nodes = self._config_data.nodes
+
+    resmod = []
+
+    # Try to resolve names/UUIDs first
+    for (node_name, new_group_uuid) in mods:
+      try:
+        node = nodes[node_name]
+      except KeyError:
+        raise errors.ConfigurationError("Unable to find node '%s'" % node_name)
+
+      if node.group == new_group_uuid:
+        # Node is being assigned to its current group
+        logging.debug("Node '%s' was assigned to its current group (%s)",
+                      node_name, node.group)
+        continue
+
+      # Try to find current group of node
+      try:
+        old_group = groups[node.group]
+      except KeyError:
+        raise errors.ConfigurationError("Unable to find old group '%s'" %
+                                        node.group)
+
+      # Try to find new group for node
+      try:
+        new_group = groups[new_group_uuid]
+      except KeyError:
+        raise errors.ConfigurationError("Unable to find new group '%s'" %
+                                        new_group_uuid)
+
+      assert node.name in old_group.members, \
+        ("Inconsistent configuration: node '%s' not listed in members for its"
+         " old group '%s'" % (node.name, old_group.uuid))
+      assert node.name not in new_group.members, \
+        ("Inconsistent configuration: node '%s' already listed in members for"
+         " its new group '%s'" % (node.name, new_group.uuid))
+
+      resmod.append((node, old_group, new_group))
+
+    # Apply changes
+    for (node, old_group, new_group) in resmod:
+      assert node.uuid != new_group.uuid and old_group.uuid != new_group.uuid, \
+        "Assigning to current group is not possible"
+
+      node.group = new_group.uuid
+
+      # Update members of involved groups
+      if node.name in old_group.members:
+        old_group.members.remove(node.name)
+      if node.name not in new_group.members:
+        new_group.members.append(node.name)
+
+    # Update timestamps and serials (only once per node/group object)
+    now = time.time()
+    for obj in frozenset(itertools.chain(*resmod)): # pylint: disable-msg=W0142
+      obj.serial_no += 1
+      obj.mtime = now
+
+    # Force ssconf update
+    self._config_data.cluster.serial_no += 1
+
+    self._WriteConfig()
 
   def _BumpSerialNo(self):
     """Bump up the serial number of the config.
