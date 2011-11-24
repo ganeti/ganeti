@@ -351,7 +351,7 @@ docrst = \
 	doc/upgrade.rst \
 	doc/walkthrough.rst
 
-HS_PROGS = htools/htools
+HS_PROGS = htools/htools htools/hconfd
 HS_BIN_ROLES = hbal hscan hspace hinfo
 
 HS_ALL_PROGS = $(HS_PROGS) htools/test

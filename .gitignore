@@ -101,6 +101,7 @@
 /htools/coverage
 
 /htools/htools
+/htools/hconfd
 /htools/test
 /htools/*.prof*
 /htools/*.stat
