@@ -166,9 +166,9 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.JOB_STATUS_ALL, constants.JOB_STATUS_ALL)
 
     # Node evacuation
-    self.assertEqual(client.NODE_EVAC_PRI, constants.IALLOCATOR_NEVAC_PRI)
-    self.assertEqual(client.NODE_EVAC_SEC, constants.IALLOCATOR_NEVAC_SEC)
-    self.assertEqual(client.NODE_EVAC_ALL, constants.IALLOCATOR_NEVAC_ALL)
+    self.assertEqual(client.NODE_EVAC_PRI, constants.NODE_EVAC_PRI)
+    self.assertEqual(client.NODE_EVAC_SEC, constants.NODE_EVAC_SEC)
+    self.assertEqual(client.NODE_EVAC_ALL, constants.NODE_EVAC_ALL)
 
     # Legacy name
     self.assertEqual(client.JOB_STATUS_WAITLOCK, constants.JOB_STATUS_WAITING)
@@ -866,7 +866,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     self.rapi.AddResponse(serializer.DumpJson([rlib2._NODE_EVAC_RES1]))
     self.rapi.AddResponse("8888")
     job_id = self.client.EvacuateNode("node-3", iallocator="hail", dry_run=True,
-                                      mode=constants.IALLOCATOR_NEVAC_ALL,
+                                      mode=constants.NODE_EVAC_ALL,
                                       early_release=True)
     self.assertEqual(8888, job_id)
     self.assertItems(["node-3"])

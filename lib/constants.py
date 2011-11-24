@@ -1340,6 +1340,16 @@ IALLOCATOR_NEVAC_MODES = frozenset([
   IALLOCATOR_NEVAC_ALL,
   ])
 
+# Node evacuation
+NODE_EVAC_PRI = "primary-only"
+NODE_EVAC_SEC = "secondary-only"
+NODE_EVAC_ALL = "all"
+NODE_EVAC_MODES = frozenset([
+  NODE_EVAC_PRI,
+  NODE_EVAC_SEC,
+  NODE_EVAC_ALL,
+  ])
+
 # Job queue
 JOB_QUEUE_VERSION = 1
 JOB_QUEUE_LOCK_FILE = QUEUE_DIR + "/lock"

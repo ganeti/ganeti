@@ -4512,7 +4512,7 @@ class LUNodeRemove(LogicalUnit):
       raise errors.OpPrereqError("Node is the master node, failover to another"
                                  " node is required", errors.ECODE_INVAL)
 
-    for instance_name, instance in self.cfg.GetAllInstancesInfo():
+    for instance_name, instance in self.cfg.GetAllInstancesInfo().items():
       if node.name in instance.all_nodes:
         raise errors.OpPrereqError("Instance %s is still running on the node,"
                                    " please remove first" % instance_name,
@@ -10493,6 +10493,15 @@ class LUNodeEvacuate(NoHooksLU):
   """
   REQ_BGL = False
 
+  _MODE2IALLOCATOR = {
+    constants.NODE_EVAC_PRI: constants.IALLOCATOR_NEVAC_PRI,
+    constants.NODE_EVAC_SEC: constants.IALLOCATOR_NEVAC_SEC,
+    constants.NODE_EVAC_ALL: constants.IALLOCATOR_NEVAC_ALL,
+    }
+  assert frozenset(_MODE2IALLOCATOR.keys()) == constants.NODE_EVAC_MODES
+  assert (frozenset(_MODE2IALLOCATOR.values()) ==
+          constants.IALLOCATOR_NEVAC_MODES)
+
   def CheckArguments(self):
     _CheckIAllocatorOrNode(self, "iallocator", "remote_node")
 
@@ -10507,7 +10516,7 @@ class LUNodeEvacuate(NoHooksLU):
         raise errors.OpPrereqError("Can not use evacuated node as a new"
                                    " secondary node", errors.ECODE_INVAL)
 
-      if self.op.mode != constants.IALLOCATOR_NEVAC_SEC:
+      if self.op.mode != constants.NODE_EVAC_SEC:
         raise errors.OpPrereqError("Without the use of an iallocator only"
                                    " secondary instances can be evacuated",
                                    errors.ECODE_INVAL)
@@ -10520,6 +10529,14 @@ class LUNodeEvacuate(NoHooksLU):
       locking.LEVEL_NODE: [],
       }
 
+    # Determine nodes (via group) optimistically, needs verification once locks
+    # have been acquired
+    self.lock_nodes = self._DetermineNodes()
+
+  def _DetermineNodes(self):
+    """Gets the list of nodes to operate on.
+
+    """
     if self.op.remote_node is None:
       # Iallocator will choose any node(s) in the same group
       group_nodes = self.cfg.GetNodeGroupMembersByNodes([self.op.node_name])
@@ -10527,26 +10544,34 @@ class LUNodeEvacuate(NoHooksLU):
       group_nodes = frozenset([self.op.remote_node])
 
     # Determine nodes to be locked
-    self.lock_nodes = set([self.op.node_name]) | group_nodes
+    return set([self.op.node_name]) | group_nodes
 
   def _DetermineInstances(self):
     """Builds list of instances to operate on.
 
     """
-    assert self.op.mode in constants.IALLOCATOR_NEVAC_MODES
+    assert self.op.mode in constants.NODE_EVAC_MODES
 
-    if self.op.mode == constants.IALLOCATOR_NEVAC_PRI:
+    if self.op.mode == constants.NODE_EVAC_PRI:
       # Primary instances only
       inst_fn = _GetNodePrimaryInstances
       assert self.op.remote_node is None, \
         "Evacuating primary instances requires iallocator"
-    elif self.op.mode == constants.IALLOCATOR_NEVAC_SEC:
+    elif self.op.mode == constants.NODE_EVAC_SEC:
       # Secondary instances only
       inst_fn = _GetNodeSecondaryInstances
     else:
       # All instances
-      assert self.op.mode == constants.IALLOCATOR_NEVAC_ALL
+      assert self.op.mode == constants.NODE_EVAC_ALL
       inst_fn = _GetNodeInstances
+      # TODO: In 2.6, change the iallocator interface to take an evacuation mode
+      # per instance
+      raise errors.OpPrereqError("Due to an issue with the iallocator"
+                                 " interface it is not possible to evacuate"
+                                 " all instances at once; specify explicitly"
+                                 " whether to evacuate primary or secondary"
+                                 " instances",
+                                 errors.ECODE_INVAL)
 
     return inst_fn(self.cfg, self.op.node_name)
 
@@ -10558,8 +10583,8 @@ class LUNodeEvacuate(NoHooksLU):
         set(i.name for i in self._DetermineInstances())
 
     elif level == locking.LEVEL_NODEGROUP:
-      # Lock node groups optimistically, needs verification once nodes have
-      # been acquired
+      # Lock node groups for all potential target nodes optimistically, needs
+      # verification once nodes have been acquired
       self.needed_locks[locking.LEVEL_NODEGROUP] = \
         self.cfg.GetNodeGroupsFromNodes(self.lock_nodes)
 
@@ -10572,12 +10597,23 @@ class LUNodeEvacuate(NoHooksLU):
     owned_nodes = self.owned_locks(locking.LEVEL_NODE)
     owned_groups = self.owned_locks(locking.LEVEL_NODEGROUP)
 
-    assert owned_nodes == self.lock_nodes
+    need_nodes = self._DetermineNodes()
+
+    if not owned_nodes.issuperset(need_nodes):
+      raise errors.OpPrereqError("Nodes in same group as '%s' changed since"
+                                 " locks were acquired, current nodes are"
+                                 " are '%s', used to be '%s'; retry the"
+                                 " operation" %
+                                 (self.op.node_name,
+                                  utils.CommaJoin(need_nodes),
+                                  utils.CommaJoin(owned_nodes)),
+                                 errors.ECODE_STATE)
 
     wanted_groups = self.cfg.GetNodeGroupsFromNodes(owned_nodes)
     if owned_groups != wanted_groups:
       raise errors.OpExecError("Node groups changed since locks were acquired,"
-                               " current groups are '%s', used to be '%s'" %
+                               " current groups are '%s', used to be '%s';"
+                               " retry the operation" %
                                (utils.CommaJoin(wanted_groups),
                                 utils.CommaJoin(owned_groups)))
 
@@ -10588,7 +10624,7 @@ class LUNodeEvacuate(NoHooksLU):
     if set(self.instance_names) != owned_instances:
       raise errors.OpExecError("Instances on node '%s' changed since locks"
                                " were acquired, current instances are '%s',"
-                               " used to be '%s'" %
+                               " used to be '%s'; retry the operation" %
                                (self.op.node_name,
                                 utils.CommaJoin(self.instance_names),
                                 utils.CommaJoin(owned_instances)))
@@ -10620,7 +10656,7 @@ class LUNodeEvacuate(NoHooksLU):
     elif self.op.iallocator is not None:
       # TODO: Implement relocation to other group
       ial = IAllocator(self.cfg, self.rpc, constants.IALLOCATOR_MODE_NODE_EVAC,
-                       evac_mode=self.op.mode,
+                       evac_mode=self._MODE2IALLOCATOR[self.op.mode],
                        instances=list(self.instance_names))
 
       ial.Run(self.op.iallocator)
@@ -10634,7 +10670,7 @@ class LUNodeEvacuate(NoHooksLU):
       jobs = _LoadNodeEvacResult(self, ial.result, self.op.early_release, True)
 
     elif self.op.remote_node is not None:
-      assert self.op.mode == constants.IALLOCATOR_NEVAC_SEC
+      assert self.op.mode == constants.NODE_EVAC_SEC
       jobs = [
         [opcodes.OpInstanceReplaceDisks(instance_name=instance_name,
                                         remote_node=self.op.remote_node,
@@ -12508,13 +12544,9 @@ class LUGroupAssignNodes(NoHooksLU):
     """Assign nodes to a new group.
 
     """
-    for node in self.op.nodes:
-      self.node_data[node].group = self.group_uuid
+    mods = [(node_name, self.group_uuid) for node_name in self.op.nodes]
 
-    # FIXME: Depends on side-effects of modifying the result of
-    # C{cfg.GetAllNodesInfo}
-
-    self.cfg.Update(self.group, feedback_fn) # Saves all modified nodes.
+    self.cfg.AssignGroupNodes(mods)
 
   @staticmethod
   def CheckAssignmentForSplitInstances(changes, node_data, instance_data):
