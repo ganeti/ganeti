@@ -56,6 +56,7 @@ myexeclibdir = $(pkglibdir)
 HTOOLS_DIRS = \
 	htools \
 	htools/Ganeti \
+	htools/Ganeti/Confd \
 	htools/Ganeti/HTools \
 	htools/Ganeti/HTools/Program
 
@@ -94,7 +95,9 @@ BUILDTIME_DIR_AUTOCREATE = \
 	$(APIDOC_DIR) \
 	$(APIDOC_PY_DIR) \
 	$(APIDOC_HS_DIR) \
-	$(APIDOC_HS_DIR)/Ganeti $(APIDOC_HS_DIR)/Ganeti/HTools \
+	$(APIDOC_HS_DIR)/Ganeti \
+	$(APIDOC_HS_DIR)/Ganeti/Confd \
+	$(APIDOC_HS_DIR)/Ganeti/HTools \
 	$(APIDOC_HS_DIR)/Ganeti/HTools/Program \
 	$(COVERAGE_DIR) \
 	$(COVERAGE_PY_DIR) \
@@ -396,6 +399,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Program/Hspace.hs \
 	htools/Ganeti/BasicTypes.hs \
 	htools/Ganeti/Confd.hs \
+	htools/Ganeti/Confd/Server.hs \
 	htools/Ganeti/Config.hs \
 	htools/Ganeti/Daemon.hs \
 	htools/Ganeti/Hash.hs \
@@ -1322,8 +1326,10 @@ hs-apidoc: $(HS_BUILT_SRCS)
 	    { echo 'haddock' not found during configure; exit 1; }
 	rm -rf $(APIDOC_HS_DIR)/*
 	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/HTools/Program
+	@mkdir_p@ $(APIDOC_HS_DIR)/Ganeti/Confd
 	$(HSCOLOUR) -print-css > $(APIDOC_HS_DIR)/Ganeti/hscolour.css
 	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/HTools/hscolour.css
+	$(LN_S) ../hscolour.css $(APIDOC_HS_DIR)/Ganeti/Confd/hscolour.css
 	set -e ; \
 	cd htools; \
 	if [ "$(HTOOLS_NOCURL)" ]; \
