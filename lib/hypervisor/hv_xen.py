@@ -356,6 +356,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     dom0_info = self.GetInstanceInfo(_DOM0_NAME)
     if dom0_info is not None:
       result["memory_dom0"] = dom0_info[2]
+      result["dom0_cpus"] = dom0_info[3]
 
     if not (xen_major is None or xen_minor is None):
       result[constants.HV_NODEINFO_KEY_VERSION] = (xen_major, xen_minor)
