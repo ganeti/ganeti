@@ -37,6 +37,7 @@ from ganeti import objects
 XEND_CONFIG_FILE = "/etc/xen/xend-config.sxp"
 XL_CONFIG_FILE = "/etc/xen/xl.conf"
 VIF_BRIDGE_SCRIPT = "/etc/xen/scripts/vif-bridge"
+_DOM0_NAME = "Domain-0"
 
 
 class XenHypervisor(hv_base.BaseHypervisor):
@@ -196,7 +197,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                      " line: %s, error: %s" % (line, err))
 
       # skip the Domain-0 (optional)
-      if include_node or data[0] != "Domain-0":
+      if include_node or data[0] != _DOM0_NAME:
         result.append(data)
 
     return result
@@ -217,7 +218,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    xm_list = self._GetXMList(instance_name == "Domain-0")
+    xm_list = self._GetXMList(instance_name == _DOM0_NAME)
     result = None
     for data in xm_list:
       if data[0] == instance_name:
@@ -352,7 +353,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
         threads_per_core is not None and nr_cpus is not None):
       result["cpu_sockets"] = nr_cpus / (cores_per_socket * threads_per_core)
 
-    dom0_info = self.GetInstanceInfo("Domain-0")
+    dom0_info = self.GetInstanceInfo(_DOM0_NAME)
     if dom0_info is not None:
       result["memory_dom0"] = dom0_info[2]
 
