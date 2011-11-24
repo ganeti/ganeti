@@ -10395,13 +10395,9 @@ class LUGroupAssignNodes(NoHooksLU):
     """Assign nodes to a new group.
 
     """
-    for node in self.op.nodes:
-      self.node_data[node].group = self.group_uuid
+    mods = [(node_name, self.group_uuid) for node_name in self.op.nodes]
 
-    # FIXME: Depends on side-effects of modifying the result of
-    # C{cfg.GetAllNodesInfo}
-
-    self.cfg.Update(self.group, feedback_fn) # Saves all modified nodes.
+    self.cfg.AssignGroupNodes(mods)
 
   @staticmethod
   def CheckAssignmentForSplitInstances(changes, node_data, instance_data):
