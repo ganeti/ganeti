@@ -721,6 +721,26 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
+def _UpdateAndVerifySubDict(base, updates, type_check):
+  """Updates and verifies a dict with sub dicts of the same type.
+
+  @param base: The dict with the old data
+  @param updates: The dict with the new data
+  @param type_check: Dict suitable to ForceDictType to verify correct types
+  @returns: A new dict with updated and verified values
+
+  """
+  def fn(old, value):
+    new = _GetUpdatedParams(old, value)
+    utils.ForceDictType(new, type_check)
+    return new
+
+  ret = copy.deepcopy(base)
+  ret.update(dict((key, fn(base.get(key, {}), value))
+                  for key, value in updates.items()))
+  return ret
+
+
 def _ReleaseLocks(lu, level, names=None, keep=None):
   """Releases locks owned by an LU.
 

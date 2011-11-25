@@ -447,5 +447,79 @@ class TestLoadNodeEvacResult(unittest.TestCase):
     self.assertFalse(lu.warning_log)
 
 
+class TestUpdateAndVerifySubDict(unittest.TestCase):
+  def setUp(self):
+    self.type_check = {
+        "a": constants.VTYPE_INT,
+        "b": constants.VTYPE_STRING,
+        "c": constants.VTYPE_BOOL,
+        "d": constants.VTYPE_STRING,
+        }
+
+  def test(self):
+    old_test = {
+      "foo": {
+        "d": "blubb",
+        "a": 321,
+        },
+      "baz": {
+        "a": 678,
+        "b": "678",
+        "c": True,
+        },
+      }
+    test = {
+      "foo": {
+        "a": 123,
+        "b": "123",
+        "c": True,
+        },
+      "bar": {
+        "a": 321,
+        "b": "321",
+        "c": False,
+        },
+      }
+
+    mv = {
+      "foo": {
+        "a": 123,
+        "b": "123",
+        "c": True,
+        "d": "blubb"
+        },
+      "bar": {
+        "a": 321,
+        "b": "321",
+        "c": False,
+        },
+      "baz": {
+        "a": 678,
+        "b": "678",
+        "c": True,
+        },
+      }
+
+    verified = cmdlib._UpdateAndVerifySubDict(old_test, test, self.type_check)
+    self.assertEqual(verified, mv)
+
+  def testWrong(self):
+    test = {
+      "foo": {
+        "a": "blubb",
+        "b": "123",
+        "c": True,
+        },
+      "bar": {
+        "a": 321,
+        "b": "321",
+        "c": False,
+        },
+      }
+
+    self.assertRaises(errors.TypeEnforcementError,
+                      cmdlib._UpdateAndVerifySubDict, {}, test, self.type_check)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
