@@ -315,7 +315,6 @@ class XenHypervisor(hv_base.BaseHypervisor):
           - hv_version: the hypervisor version in the form (major, minor)
 
     """
-    # note: in xen 3, memory has changed to total_memory
     result = utils.RunCmd([constants.XEN_CMD, "info"])
     if result.failed:
       logging.error("Can't run 'xm info' (%s): %s", result.fail_reason,
@@ -326,16 +325,21 @@ class XenHypervisor(hv_base.BaseHypervisor):
     result = {}
     cores_per_socket = threads_per_core = nr_cpus = None
     xen_major, xen_minor = None, None
+    memory_total = None
+    memory_free = None
+
     for line in xmoutput:
       splitfields = line.split(":", 1)
 
       if len(splitfields) > 1:
         key = splitfields[0].strip()
         val = splitfields[1].strip()
+
+        # note: in xen 3, memory has changed to total_memory
         if key == "memory" or key == "total_memory":
-          result["memory_total"] = int(val)
+          memory_total = int(val)
         elif key == "free_memory":
-          result["memory_free"] = int(val)
+          memory_free = int(val)
         elif key == "nr_cpus":
           nr_cpus = result["cpu_total"] = int(val)
         elif key == "nr_nodes":
@@ -349,14 +353,27 @@ class XenHypervisor(hv_base.BaseHypervisor):
         elif key == "xen_minor":
           xen_minor = int(val)
 
-    if (cores_per_socket is not None and
-        threads_per_core is not None and nr_cpus is not None):
+    if None not in [cores_per_socket, threads_per_core, nr_cpus]:
       result["cpu_sockets"] = nr_cpus / (cores_per_socket * threads_per_core)
 
-    dom0_info = self.GetInstanceInfo(_DOM0_NAME)
-    if dom0_info is not None:
-      result["memory_dom0"] = dom0_info[2]
-      result["dom0_cpus"] = dom0_info[3]
+    total_instmem = 0
+    for (name, _, mem, vcpus, _, _) in self._GetXMList(True):
+      if name == _DOM0_NAME:
+        result["memory_dom0"] = mem
+        result["dom0_cpus"] = vcpus
+
+      # Include Dom0 in total memory usage
+      total_instmem += mem
+
+    if memory_free is not None:
+      result["memory_free"] = memory_free
+
+    if memory_total is not None:
+      result["memory_total"] = memory_total
+
+    # Calculate memory used by hypervisor
+    if None not in [memory_total, memory_free, total_instmem]:
+      result["memory_hv"] = memory_total - memory_free - total_instmem
 
     if not (xen_major is None or xen_minor is None):
       result[constants.HV_NODEINFO_KEY_VERSION] = (xen_major, xen_minor)
