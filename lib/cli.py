@@ -185,6 +185,8 @@ __all__ = [
   "VERBOSE_OPT",
   "VG_NAME_OPT",
   "YES_DOIT_OPT",
+  "DISK_STATE_OPT",
+  "HV_STATE_OPT",
   # Generic functions for CLI programs
   "ConfirmOperation",
   "GenericMain",
@@ -1292,6 +1294,18 @@ IGNORE_ERRORS_OPT = cli_option("-I", "--ignore-errors", default=[],
                                action="append", dest="ignore_errors",
                                choices=list(constants.CV_ALL_ECODES_STRINGS),
                                help="Error code to be ignored")
+
+DISK_STATE_OPT = cli_option("--disk-state", default=[], dest="disk_state",
+                            action="append",
+                            help=("Specify disk state information in the format"
+                                  " storage_type/identifier:option=value,..."),
+                            type="identkeyval")
+
+HV_STATE_OPT = cli_option("--hypervisor-state", default=[], dest="hv_state",
+                          action="append",
+                          help=("Specify hypervisor state information in the"
+                                " format hypervisor:option=value,..."),
+                          type="identkeyval")
 
 
 #: Options provided by all commands
