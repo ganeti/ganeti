@@ -882,6 +882,7 @@ DSS_PARAMETER_TYPES = {
   }
 
 DSS_PARAMETERS = frozenset(DSS_PARAMETER_TYPES.keys())
+DS_VALID_TYPES = frozenset([LD_LV])
 
 # Backend parameter names
 BE_MEMORY = "memory" # deprecated and replaced by max and min mem

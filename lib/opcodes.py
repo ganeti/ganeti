@@ -148,6 +148,10 @@ _PDiskParams = ("diskparams", None,
                   ht.TNone),
                 "Disk templates' parameter defaults")
 
+# Parameters for node resource model
+_PHvState = ("hv_state", None, ht.TMaybeDict, "Set hypervisor states")
+_PDiskState = ("disk_state", None, ht.TMaybeDict, "Set disk states")
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -992,6 +996,8 @@ class OpNodeSetParams(OpCode):
   OP_PARAMS = [
     _PNodeName,
     _PForce,
+    _PHvState,
+    _PDiskState,
     ("master_candidate", None, ht.TMaybeBool,
      "Whether the node should become a master candidate"),
     ("offline", None, ht.TMaybeBool,

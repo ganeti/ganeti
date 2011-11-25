@@ -261,6 +261,8 @@ MODIFY
 | [{-s|--secondary-ip} *secondary_ip*]
 | [--node-parameters *ndparams*]
 | [--node-powered=``yes|no``]
+| [--hypervisor-state *hvstate*]
+| [--disk-state *diskstate*]
 | {*node*}
 
 This command changes the role of the node. Each options takes

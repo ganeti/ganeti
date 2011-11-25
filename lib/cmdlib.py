@@ -5414,7 +5414,8 @@ class LUNodeSetParams(LogicalUnit):
     self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained,
                 self.op.master_capable, self.op.vm_capable,
-                self.op.secondary_ip, self.op.ndparams]
+                self.op.secondary_ip, self.op.ndparams, self.op.hv_state,
+                self.op.disk_state]
     if all_mods.count(None) == len(all_mods):
       raise errors.OpPrereqError("Please pass at least one modification",
                                  errors.ECODE_INVAL)
@@ -5655,6 +5656,15 @@ class LUNodeSetParams(LogicalUnit):
       utils.ForceDictType(new_ndparams, constants.NDS_PARAMETER_TYPES)
       self.new_ndparams = new_ndparams
 
+    if self.op.hv_state:
+      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
+                                                 self.node.hv_state_static)
+
+    if self.op.disk_state:
+      self.new_disk_state = \
+        _MergeAndVerifyDiskState(self.op.disk_state,
+                                 self.node.disk_state_static)
+
   def Exec(self, feedback_fn):
     """Modifies a node.
 
@@ -5670,6 +5680,12 @@ class LUNodeSetParams(LogicalUnit):
 
     if self.op.powered is not None:
       node.powered = self.op.powered
+
+    if self.op.hv_state:
+      node.hv_state_static = self.new_hv_state
+
+    if self.op.disk_state:
+      node.disk_state_static = self.new_disk_state
 
     for attr in ["master_capable", "vm_capable"]:
       val = getattr(self.op, attr)

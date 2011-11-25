@@ -827,9 +827,17 @@ def SetNodeParams(opts, args):
   all_changes = [opts.master_candidate, opts.drained, opts.offline,
                  opts.master_capable, opts.vm_capable, opts.secondary_ip,
                  opts.ndparams]
-  if all_changes.count(None) == len(all_changes):
+  if (all_changes.count(None) == len(all_changes) and
+      not (opts.hv_state or opts.disk_state)):
     ToStderr("Please give at least one of the parameters.")
     return 1
+
+  if opts.disk_state:
+    disk_state = utils.FlatToDict(opts.disk_state)
+  else:
+    disk_state = {}
+
+  hv_state = dict(opts.hv_state)
 
   op = opcodes.OpNodeSetParams(node_name=args[0],
                                master_candidate=opts.master_candidate,
@@ -841,7 +849,9 @@ def SetNodeParams(opts, args):
                                force=opts.force,
                                ndparams=opts.ndparams,
                                auto_promote=opts.auto_promote,
-                               powered=opts.node_powered)
+                               powered=opts.node_powered,
+                               hv_state=hv_state,
+                               disk_state=disk_state)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -905,7 +915,7 @@ commands = {
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT,
-     NODE_POWERED_OPT],
+     NODE_POWERED_OPT, HV_STATE_OPT, DISK_STATE_OPT],
     "<node_name>", "Alters the parameters of a node"),
   "powercycle": (
     PowercycleNode, ARGS_ONE_NODE,

@@ -110,6 +110,56 @@ oob_program
     document.
 
 
+Hypervisor State Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using ``--hypervisor-state`` you can set hypervisor specific states as
+pointed out in ``Ganeti Resource Model <design-resource-model.rst>``.
+
+The format is: ``hypervisor:option=value``.
+
+Currently we support the following hypervisor state values:
+
+mem_total
+  Total node memory, as discovered by this hypervisor
+mem_node
+  Memory used by, or reserved for, the node itself; note that some
+  hypervisors can report this in an authoritative way, other not
+mem_hv
+  Memory used either by the hypervisor itself or lost due to instance
+  allocation rounding; usually this cannot be precisely computed, but
+  only roughly estimated
+cpu_total
+  Total node cpu (core) count; usually this can be discovered
+  automatically
+cpu_node
+  Number of cores reserved for the node itself; this can either be
+  discovered or set manually. Only used for estimating how many VCPUs
+  are left for instances
+
+
+Disk State Parameters
+~~~~~~~~~~~~~~~~~~~~~
+
+Using ``--disk-state`` you can set disk specific states as pointed out
+in ``Ganeti Resource Model <design-resource-model.rst>``.
+
+The format is: ``storage_type/identifier:option=value``. Where we
+currently just support ``lvm`` as storage type. The identifier in this
+case is the LVM volume group. By default this is ``xenvg``.
+
+Currently we support the following hypervisor state values:
+
+disk_total
+  Total disk size (usually discovered automatically)
+disk_reserved
+  Reserved disk size; this is a lower limit on the free space, if such a
+  limit is desired
+disk_overhead
+  Disk that is expected to be used by other volumes (set via
+  ``reserved_lvs``); usually should be zero
+
+
 Cluster configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
