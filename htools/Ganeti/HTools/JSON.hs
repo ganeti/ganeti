@@ -29,6 +29,7 @@ module Ganeti.HTools.JSON
   , fromObj
   , maybeFromObj
   , fromObjWithDefault
+  , fromKeyValue
   , fromJVal
   , asJSObject
   , asObjectList
@@ -95,7 +96,7 @@ fromKeyValue :: (J.JSON a, Monad m)
               -> J.JSValue  -- ^ The value to read
               -> m a
 fromKeyValue k val =
-  fromJResult (printf "key '%s', value '%s'" k (show val)) (J.readJSON val)
+  fromJResult (printf "key '%s'" k) (J.readJSON val)
 
 -- | Small wrapper over readJSON.
 fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a

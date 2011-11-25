@@ -63,6 +63,8 @@ import Language.Haskell.TH
 
 import qualified Text.JSON as JSON
 
+import Ganeti.HTools.JSON
+
 -- * Exported types
 
 type Container = M.Map String
@@ -205,8 +207,12 @@ appFn f x | f == VarE 'id = x
           | otherwise = AppE f x
 
 -- | Container loader
-readContainer :: (Monad m) => JSON.JSObject a -> m (Container a)
-readContainer = return . M.fromList . JSON.fromJSObject
+readContainer :: (Monad m, JSON.JSON a) =>
+                 JSON.JSObject JSON.JSValue -> m (Container a)
+readContainer obj = do
+  let kjvlist = JSON.fromJSObject obj
+  kalist <- mapM (\(k, v) -> fromKeyValue k v >>= \a -> return (k, a)) kjvlist
+  return $ M.fromList kalist
 
 -- | Container dumper
 showContainer :: (JSON.JSON a) => Container a -> JSON.JSValue
