@@ -74,12 +74,15 @@ MODIFY
 | **modify**
 | [--node-parameters=*NDPARAMS*]
 | [--alloc-policy=*POLICY*]
+| [--hypervisor-state *hvstate*]
+| [--disk-state *diskstate*]
 | {*group*}
 
 Modifies some parameters from the node group.
 
-The ``--node-parameters`` and ``--alloc-policy`` optiosn are documented
-in the **add** command above.
+The ``--node-parameters`` and ``--alloc-policy`` options are documented
+in the **add** command above. ``--hypervisor-state`` as well as
+``--disk-state`` are documented in detail in **ganeti**(7).
 
 REMOVE
 ~~~~~~

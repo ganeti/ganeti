@@ -12955,6 +12955,8 @@ class LUGroupSetParams(LogicalUnit):
       self.op.ndparams,
       self.op.diskparams,
       self.op.alloc_policy,
+      self.op.hv_state,
+      self.op.disk_state
       ]
 
     if all_changes.count(None) == len(all_changes):
@@ -12994,6 +12996,15 @@ class LUGroupSetParams(LogicalUnit):
         utils.ForceDictType(new_templ_params, constants.DISK_DT_TYPES)
         self.new_diskparams[templ] = new_templ_params
 
+    if self.op.hv_state:
+      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
+                                                 self.group.hv_state_static)
+
+    if self.op.disk_state:
+      self.new_disk_state = \
+        _MergeAndVerifyDiskState(self.op.disk_state,
+                                 self.group.disk_state_static)
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -13026,6 +13037,12 @@ class LUGroupSetParams(LogicalUnit):
 
     if self.op.alloc_policy:
       self.group.alloc_policy = self.op.alloc_policy
+
+    if self.op.hv_state:
+      self.group.hv_state_static = self.new_hv_state
+
+    if self.op.disk_state:
+      self.group.disk_state_static = self.new_disk_state
 
     self.cfg.Update(self.group, feedback_fn)
     return result

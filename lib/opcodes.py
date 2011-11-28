@@ -1440,6 +1440,8 @@ class OpGroupSetParams(OpCode):
     _PNodeGroupAllocPolicy,
     _PGroupNodeParams,
     _PDiskParams,
+    _PHvState,
+    _PDiskState,
     ]
   OP_RESULT = _TSetParamsResult
 

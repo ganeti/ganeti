@@ -1145,6 +1145,8 @@ class NodeGroup(TaggableObject):
     "ndparams",
     "diskparams",
     "serial_no",
+    "hv_state_static",
+    "disk_state_static",
     "alloc_policy",
     ] + _TIMESTAMPS + _UUID
 

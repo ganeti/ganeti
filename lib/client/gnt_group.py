@@ -135,15 +135,24 @@ def SetGroupParams(opts, args):
   @return: the desired exit code
 
   """
-  if (opts.ndparams is None and opts.alloc_policy is None
-      and not opts.diskparams):
+  if (opts.ndparams is None and opts.alloc_policy is None and
+      not (opts.hv_state or opts.disk_state)):
     ToStderr("Please give at least one of the parameters.")
     return 1
+
+  if opts.disk_state:
+    disk_state = utils.FlatToDict(opts.disk_state)
+  else:
+    disk_state = {}
+
+  hv_state = dict(opts.hv_state)
 
   diskparams = dict(opts.diskparams)
   op = opcodes.OpGroupSetParams(group_name=args[0],
                                 ndparams=opts.ndparams,
                                 alloc_policy=opts.alloc_policy,
+                                hv_state=hv_state,
+                                disk_state=disk_state,
                                 diskparams=diskparams)
   result = SubmitOrSend(op, opts)
 
@@ -237,8 +246,8 @@ commands = {
     "Lists all available fields for node groups"),
   "modify": (
     SetGroupParams, ARGS_ONE_GROUP,
-    [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT,
-     DISK_PARAMS_OPT],
+    [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, HV_STATE_OPT,
+     DISK_STATE_OPT, DISK_PARAMS_OPT],
     "<group_name>", "Alters the parameters of a node group"),
   "remove": (
     RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],
