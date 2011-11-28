@@ -295,6 +295,17 @@ class BaseHypervisor(object):
     """
     pass
 
+  def BalloonInstanceMemory(self, instance, mem):
+    """Balloon an instance memory to a certain value.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type mem: int
+    @param mem: actual memory size to use for instance runtime
+
+    """
+    raise NotImplementedError
+
   def FinalizeMigrationDst(self, instance, info, success):
     """Finalize the instance migration on the target node.
 
