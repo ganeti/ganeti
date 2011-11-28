@@ -8057,22 +8057,47 @@ def _ComputeLDParams(disk_template, disk_params):
   result = list()
   dt_params = disk_params[disk_template]
   if disk_template == constants.DT_DRBD8:
-    params = {
+    drbd_params = {
       constants.RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE]
       }
 
     drbd_params = \
-      objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8], params)
+      objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_DRBD8],
+                       drbd_params)
 
     result.append(drbd_params)
-    result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
-    result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
+
+    # data LV
+    data_params = {
+      constants.STRIPES: dt_params[constants.DRBD_DATA_STRIPES],
+      }
+    data_params = \
+      objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
+                       data_params)
+    result.append(data_params)
+
+    # metadata LV
+    meta_params = {
+      constants.STRIPES: dt_params[constants.DRBD_META_STRIPES],
+      }
+    meta_params = \
+      objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
+                       meta_params)
+    result.append(meta_params)
 
   elif (disk_template == constants.DT_FILE or
         disk_template == constants.DT_SHARED_FILE):
     result.append(constants.DISK_LD_DEFAULTS[constants.LD_FILE])
+
   elif disk_template == constants.DT_PLAIN:
-    result.append(constants.DISK_LD_DEFAULTS[constants.LD_LV])
+    params = {
+      constants.STRIPES: dt_params[constants.LV_STRIPES],
+      }
+    params = \
+      objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
+                       params)
+    result.append(params)
+
   elif disk_template == constants.DT_BLOCK:
     result.append(constants.DISK_LD_DEFAULTS[constants.LD_BLOCKDEV])
 

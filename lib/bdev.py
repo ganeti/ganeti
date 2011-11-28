@@ -415,7 +415,11 @@ class LogicalVolume(BlockDev):
                   " in lvm.conf using either 'filter' or 'preferred_names'")
     free_size = sum([pv[0] for pv in pvs_info])
     current_pvs = len(pvlist)
-    stripes = min(current_pvs, constants.LVM_STRIPECOUNT)
+    desired_stripes = params[constants.STRIPES]
+    stripes = min(current_pvs, desired_stripes)
+    if stripes < desired_stripes:
+      logging.warning("Could not use %d stripes for VG %s, as only %d PVs are"
+                      " available.", desired_stripes, vg_name, current_pvs)
 
     # The size constraint should have been checked from the master before
     # calling the create function.

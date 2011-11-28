@@ -147,7 +147,7 @@ AC_SUBST(KVM_PATH, $kvm_path)
 # --with-lvm-stripecount=...
 AC_ARG_WITH([lvm-stripecount],
   [AS_HELP_STRING([--with-lvm-stripecount=NUM],
-    [the number of stripes to use for LVM volumes]
+    [the default number of stripes to use for LVM volumes]
     [ (default is 1)]
   )],
   [lvm_stripecount="$withval"],

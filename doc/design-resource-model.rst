@@ -711,15 +711,15 @@ encoded via a separator (e.g. slash), or by having two dict levels.
 |        |             |logical voumes           |overridable at       |      |
 |        |             |                         |runtime              |      |
 +--------+-------------+-------------------------+---------------------+------+
-|drbd    |stripes      |How many stripes to use  |Same as for plain    |int   |
-|        |             |for data volumes         |                     |      |
+|drbd    |data-stripes |How many stripes to use  |Same as for          |int   |
+|        |             |for data volumes         |plain/stripes        |      |
 +--------+-------------+-------------------------+---------------------+------+
 |drbd    |metavg       |Default volume group for |Same as the main     |string|
 |        |             |the metadata LVs         |volume group,        |      |
 |        |             |                         |overridable via      |      |
 |        |             |                         |'metavg' key         |      |
 +--------+-------------+-------------------------+---------------------+------+
-|drbd    |metastripes  |How many stripes to use  |Same as for lvm      |int   |
+|drbd    |meta-stripes |How many stripes to use  |Same as for lvm      |int   |
 |        |             |for meta volumes         |'stripes', suboptimal|      |
 |        |             |                         |as the meta LVs are  |      |
 |        |             |                         |small                |      |
