@@ -453,6 +453,8 @@ MODIFY
 | [--master-netdev *interface-name*]
 | [--master-netmask *netmask*]
 | [--use-external-mip-script {yes \| no}]
+| [--hypervisor-state *hvstate*]
+| [--disk-state *diskstate*]
 
 Modify the options for the cluster.
 
@@ -463,6 +465,9 @@ The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
 ``--node-parameters``, ``--master-netdev``, ``--master-netmask`` and
 ``--use-external-mip-script`` options are described in the
 **init** command.
+
+The ``--hypervisor-state`` and ``--disk-state`` options are described in
+detail in **ganeti**(7).
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or

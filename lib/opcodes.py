@@ -757,6 +757,8 @@ class OpClusterSetParams(OpCode):
 
   """
   OP_PARAMS = [
+    _PHvState,
+    _PDiskState,
     ("vg_name", None, ht.TMaybeString, "Volume group name"),
     ("enabled_hypervisors", None,
      ht.TOr(ht.TAnd(ht.TListOf(ht.TElemOf(constants.HYPER_TYPES)), ht.TTrue),

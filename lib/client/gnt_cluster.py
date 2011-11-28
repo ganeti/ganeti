@@ -907,7 +907,9 @@ def SetClusterParams(opts, args):
           opts.master_netdev is not None or
           opts.master_netmask is not None or
           opts.use_external_mip_script is not None or
-          opts.prealloc_wipe_disks is not None):
+          opts.prealloc_wipe_disks is not None or
+          opts.hv_state or
+          opts.disk_state):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -980,6 +982,13 @@ def SetClusterParams(opts, args):
 
   ext_ip_script = opts.use_external_mip_script
 
+  if opts.disk_state:
+    disk_state = utils.FlatToDict(opts.disk_state)
+  else:
+    disk_state = {}
+
+  hv_state = dict(opts.hv_state)
+
   op = opcodes.OpClusterSetParams(vg_name=vg_name,
                                   drbd_helper=drbd_helper,
                                   enabled_hypervisors=hvlist,
@@ -1000,6 +1009,8 @@ def SetClusterParams(opts, args):
                                   master_netmask=opts.master_netmask,
                                   reserved_lvs=opts.reserved_lvs,
                                   use_external_mip_script=ext_ip_script,
+                                  hv_state=hv_state,
+                                  disk_state=disk_state,
                                   )
   SubmitOpCode(op, opts=opts)
   return 0
@@ -1480,7 +1491,8 @@ commands = {
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT,
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT],
+     NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
+     DISK_STATE_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

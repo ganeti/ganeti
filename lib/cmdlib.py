@@ -3660,6 +3660,20 @@ class LUClusterSetParams(LogicalUnit):
         self.new_ndparams["oob_program"] = \
             constants.NDC_DEFAULTS[constants.ND_OOB_PROGRAM]
 
+    if self.op.hv_state:
+      new_hv_state = _MergeAndVerifyHvState(self.op.hv_state,
+                                            self.cluster.hv_state_static)
+      self.new_hv_state = dict((hv, cluster.SimpleFillHvState(values))
+                               for hv, values in new_hv_state.items())
+
+    if self.op.disk_state:
+      new_disk_state = _MergeAndVerifyDiskState(self.op.disk_state,
+                                                self.cluster.disk_state_static)
+      self.new_disk_state = \
+        dict((storage, dict((name, cluster.SimpleFillDiskState(values))
+                            for name, values in svalues.items()))
+             for storage, svalues in new_disk_state.items())
+
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
       self.new_nicparams = cluster.SimpleFillNIC(self.op.nicparams)
@@ -3826,6 +3840,10 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.ndparams = self.new_ndparams
     if self.op.diskparams:
       self.cluster.diskparams = self.new_diskparams
+    if self.op.hv_state:
+      self.cluster.hv_state_static = self.new_hv_state
+    if self.op.disk_state:
+      self.cluster.disk_state_static = self.new_disk_state
 
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size

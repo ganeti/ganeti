@@ -1254,6 +1254,8 @@ class Cluster(TaggableObject):
     "blacklisted_os",
     "primary_ip_family",
     "prealloc_wipe_disks",
+    "hv_state_static",
+    "disk_state_static",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1496,6 +1498,20 @@ class Cluster(TaggableObject):
     result = FillDict(result, self.osparams.get(os_name, {}))
     # specified params
     return FillDict(result, os_params)
+
+  @staticmethod
+  def SimpleFillHvState(hv_state):
+    """Fill an hv_state sub dict with cluster defaults.
+
+    """
+    return FillDict(constants.HVST_DEFAULTS, hv_state)
+
+  @staticmethod
+  def SimpleFillDiskState(disk_state):
+    """Fill an disk_state sub dict with cluster defaults.
+
+    """
+    return FillDict(constants.DS_DEFAULTS, disk_state)
 
   def FillND(self, node, nodegroup):
     """Return filled out ndparams for L{objects.NodeGroup} and L{objects.Node}
