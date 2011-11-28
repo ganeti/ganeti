@@ -26,6 +26,7 @@ ADD
 | **add**
 | [--node-parameters=*NDPARAMS*]
 | [--alloc-policy=*POLICY*]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
 | {*group*}
 
 Creates a new group with the given name. The node group will be
@@ -52,6 +53,11 @@ preferred
     (this is the default). Note that prioritization among groups in this
     state will be deferred to the iallocator plugin that's being used.
 
+The ``-D (--disk-parameters)`` option allows you to set the disk
+parameters for the node group; please see the section about
+**gnt-cluster add** in **gnt-cluster**(8) for more information about
+disk parameters
+
 ASSIGN-NODES
 ~~~~~~~~~~~~
 
@@ -75,6 +81,7 @@ MODIFY
 | [--node-parameters=*NDPARAMS*]
 | [--alloc-policy=*POLICY*]
 | [--hypervisor-state *hvstate*]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
 | [--disk-state *diskstate*]
 | {*group*}
 
@@ -83,6 +90,10 @@ Modifies some parameters from the node group.
 The ``--node-parameters`` and ``--alloc-policy`` options are documented
 in the **add** command above. ``--hypervisor-state`` as well as
 ``--disk-state`` are documented in detail in **ganeti**(7).
+
+The ``--node-parameters``, ``--alloc-policy`` and ``-D
+(--disk-parameters)`` options are documented in the **add** command
+above.
 
 REMOVE
 ~~~~~~

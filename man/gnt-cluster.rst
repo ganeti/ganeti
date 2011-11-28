@@ -177,6 +177,7 @@ INIT
 | [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
 | [{-B|--backend-parameters} *be-param*=*value* [,*be-param*=*value*...]]
 | [{-N|--nic-parameters} *nic-param*=*value* [,*nic-param*=*value*...]]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
 | [--maintain-node-health {yes \| no}]
 | [--uid-pool *user-id pool definition*]
 | [{-I|--default-iallocator} *default instance allocator*]
@@ -356,6 +357,55 @@ link
     network script it is interpreted as a routing table number or
     name.
 
+The ``-D (--disk-parameters)`` option allows you to set the default disk
+template parameters at cluster level. The format used for this option is
+similar to the one use by the  ``-H`` option: the disk template name
+must be specified first, followed by a colon and by a comma-separated
+list of key-value pairs. These parameters can only be specified at
+cluster and node group level; the cluster-level parameter are inherited
+by the node group at the moment of its creation, and can be further
+modified at node group level using the **gnt-group**(8) command. 
+
+List of disk parameters available for the **drbd** template:
+
+resync-rate
+    Re-synchronization rate, expressed in KiB/s
+
+data-stripes
+    Number of stripes to use for data LVs
+
+meta-stripes
+    Number of stripes to use for meta LVs
+
+disk-barriers
+    What kind of barriers to **disable** for disks. It can either assume
+    the value "n", meaning no barrier disabled, or a non-empty string
+    containing a subset of the characters "bfd". "b" means disable disk
+    barriers, "f" means disable disk flushes, "d" disables disk drains
+
+meta-barriers
+    Boolean value indicating whether the meta barriers should be
+    disabled (True) or not (False).
+
+metavg
+    String containing the name of the default LVM volume group for DRBD
+    metadata. By default, it is set to ``xenvg``. It can be overridden
+    during the instance creation process by using the ``metavg`` key of
+    the ``--disk`` parameter.
+
+disk-custom
+    String containing additional parameters to be appended to the
+    arguments list of ``drbdsetup disk``.
+
+net-custom
+    String containing additional parameters to be appended to the
+    arguments list of ``drbdsetup net``.
+
+List of parameters available for the **plain** template:
+
+stripes
+    Number of stripes to use for new LVs
+
 The option ``--maintain-node-health`` allows one to enable/disable
 automatic maintenance actions on nodes. Currently these include
 automatic shutdown of instances and deactivation of DRBD devices on
@@ -445,6 +495,7 @@ MODIFY
 | [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
 | [{-B|--backend-parameters} *be-param*=*value* [,*be-param*=*value*...]]
 | [{-N|--nic-parameters} *nic-param*=*value* [,*nic-param*=*value*...]]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
 | [--uid-pool *user-id pool definition*]
 | [--add-uids *user-id pool definition*]
 | [--remove-uids *user-id pool definition*]
@@ -464,11 +515,12 @@ Modify the options for the cluster.
 
 The ``--vg-name``, ``--no-lvm-storarge``, ``--enabled-hypervisors``,
 ``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``,
-``--nic-parameters``, ``-C (--candidate-pool-size)``,
-``--maintain-node-health``, ``--prealloc-wipe-disks``, ``--uid-pool``,
-``--node-parameters``, ``--master-netdev``, ``--master-netmask`` and
-``--use-external-mip-script`` options are described in the
-**init** command.
+``-D (--disk-parameters)``, ``--nic-parameters``, ``-C
+(--candidate-pool-size)``, ``--maintain-node-health``,
+``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
+``--master-netdev``, ``--master-netmask`` and
+``--use-external-mip-script`` options are described in the **init**
+command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**(7).
