@@ -8058,7 +8058,9 @@ def _ComputeLDParams(disk_template, disk_params):
   dt_params = disk_params[disk_template]
   if disk_template == constants.DT_DRBD8:
     drbd_params = {
-      constants.RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE]
+      constants.RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
+      constants.BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
+      constants.NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
       }
 
     drbd_params = \

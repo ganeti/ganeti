@@ -208,15 +208,20 @@ AC_MSG_NOTICE([Group for clients is $group_admin])
 # --enable-drbd-barriers
 AC_ARG_ENABLE([drbd-barriers],
   [AS_HELP_STRING([--enable-drbd-barriers],
-    [enable the DRBD barrier functionality (>= 8.0.12) (default: enabled)])],
+    [enable by default the DRBD barriers functionality (>= 8.0.12) (default: enabled)])],
   [[if test "$enableval" != no; then
-      DRBD_BARRIERS=True
+      DRBD_BARRIERS=n
+      DRBD_NO_META_FLUSH=False
     else
-      DRBD_BARRIERS=False
+      DRBD_BARRIERS=bfd
+      DRBD_NO_META_FLUSH=True
     fi
   ]],
-  [DRBD_BARRIERS=True])
+  [DRBD_BARRIERS=n
+   DRBD_NO_META_FLUSH=False
+  ])
 AC_SUBST(DRBD_BARRIERS, $DRBD_BARRIERS)
+AC_SUBST(DRBD_NO_META_FLUSH, $DRBD_NO_META_FLUSH)
 
 # --enable-syslog[=no/yes/only]
 AC_ARG_ENABLE([syslog],

@@ -985,7 +985,8 @@ lib/_autoconf.py: Makefile | lib/.dir
 	  echo "TOOLSDIR = '$(toolsdir)'"; \
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
 	  echo "PKGLIBDIR = '$(pkglibdir)'"; \
-	  echo "DRBD_BARRIERS = $(DRBD_BARRIERS)"; \
+	  echo "DRBD_BARRIERS = '$(DRBD_BARRIERS)'"; \
+	  echo "DRBD_NO_META_FLUSH = $(DRBD_NO_META_FLUSH)"; \
 	  echo "SYSLOG_USAGE = '$(SYSLOG_USAGE)'"; \
 	  echo "DAEMONS_GROUP = '$(DAEMONS_GROUP)'"; \
 	  echo "ADMIN_GROUP = '$(ADMIN_GROUP)'"; \

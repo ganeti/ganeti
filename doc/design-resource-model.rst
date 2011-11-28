@@ -724,28 +724,28 @@ encoded via a separator (e.g. slash), or by having two dict levels.
 |        |             |                         |as the meta LVs are  |      |
 |        |             |                         |small                |      |
 +--------+-------------+-------------------------+---------------------+------+
-|drbd    |disk_barriers|What kind of barriers to |Either all enabled or|string|
+|drbd    |disk-barriers|What kind of barriers to |Either all enabled or|string|
 |        |             |*disable* for disks;     |all disabled, per    |      |
 |        |             |either "n" or a string   |./configure time     |      |
 |        |             |containing a subset of   |option               |      |
 |        |             |"bfd"                    |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|drbd    |meta_barriers|Whether barriers are     |Handled together with|bool  |
-|        |             |enabled or not for the   |disk_barriers        |      |
-|        |             |meta volume              |                     |      |
+|drbd    |meta-barriers|Whether to disable or not|Handled together with|bool  |
+|        |             |the barriers for the meta|disk-barriers        |      |
+|        |             |volume                   |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|drbd    |resync_rate  |The (static) resync rate |Hardcoded in         |int   |
+|drbd    |resync-rate  |The (static) resync rate |Hardcoded in         |int   |
 |        |             |for drbd, when using the |constants.py, not    |      |
 |        |             |static syncer, in MiB/s  |changeable via Ganeti|      |
 +--------+-------------+-------------------------+---------------------+------+
-|drbd    |disk_custom  |Free-form string that    |Not supported        |string|
+|drbd    |disk-custom  |Free-form string that    |Not supported        |string|
 |        |             |will be appended to the  |                     |      |
 |        |             |drbdsetup disk command   |                     |      |
 |        |             |line, for custom options |                     |      |
 |        |             |not supported by Ganeti  |                     |      |
 |        |             |itself                   |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
-|drbd    |net_custom   |Free-form string for     |Not supported        |string|
+|drbd    |net-custom   |Free-form string for     |Not supported        |string|
 |        |             |custom net setup options |                     |      |
 +--------+-------------+-------------------------+---------------------+------+
 

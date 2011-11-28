@@ -1103,6 +1103,12 @@ class DRBD8(BaseDRBD):
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
 
+  # command line options for barriers
+  _DISABLE_DISK_OPTION = "--no-disk-barrier"  # -a
+  _DISABLE_DRAIN_OPTION = "--no-disk-drain"   # -D
+  _DISABLE_FLUSH_OPTION = "--no-disk-flushes" # -i
+  _DISABLE_META_FLUSH_OPTION = "--no-md-flushes"  # -m
+
   def __init__(self, unique_id, children, size, params):
     if children and children.count(None) > 0:
       children = []
@@ -1344,38 +1350,105 @@ class DRBD8(BaseDRBD):
               info["remote_addr"] == (self._rhost, self._rport))
     return retval
 
-  @classmethod
-  def _AssembleLocal(cls, minor, backend, meta, size):
+  def _AssembleLocal(self, minor, backend, meta, size):
     """Configure the local part of a DRBD device.
 
     """
-    args = ["drbdsetup", cls._DevPath(minor), "disk",
+    args = ["drbdsetup", self._DevPath(minor), "disk",
             backend, meta, "0",
             "-e", "detach",
             "--create-device"]
     if size:
       args.extend(["-d", "%sm" % size])
-    if not constants.DRBD_BARRIERS: # disable barriers, if configured so
-      version = cls._GetVersion(cls._GetProcData())
-      # various DRBD versions support different disk barrier options;
-      # what we aim here is to revert back to the 'drain' method of
-      # disk flushes and to disable metadata barriers, in effect going
-      # back to pre-8.0.7 behaviour
-      vmaj = version["k_major"]
-      vmin = version["k_minor"]
-      vrel = version["k_point"]
-      assert vmaj == 8
-      if vmin == 0: # 8.0.x
-        if vrel >= 12:
-          args.extend(["-i", "-m"])
-      elif vmin == 2: # 8.2.x
-        if vrel >= 7:
-          args.extend(["-i", "-m"])
-      elif vmaj >= 3: # 8.3.x or newer
-        args.extend(["-i", "-a", "m"])
+
+    version = self._GetVersion(self._GetProcData())
+    vmaj = version["k_major"]
+    vmin = version["k_minor"]
+    vrel = version["k_point"]
+
+    barrier_args = \
+      self._ComputeDiskBarrierArgs(vmaj, vmin, vrel,
+                                   self.params[constants.BARRIERS],
+                                   self.params[constants.NO_META_FLUSH])
+    args.extend(barrier_args)
+
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
+
+  @classmethod
+  def _ComputeDiskBarrierArgs(cls, vmaj, vmin, vrel, disabled_barriers,
+      disable_meta_flush):
+    """Compute the DRBD command line parameters for disk barriers
+
+    Returns a list of the disk barrier parameters as requested via the
+    disabled_barriers and disable_meta_flush arguments, and according to the
+    supported ones in the DRBD version vmaj.vmin.vrel
+
+    If the desired option is unsupported, raises errors.BlockDeviceError.
+
+    """
+    disabled_barriers_set = frozenset(disabled_barriers)
+    if not disabled_barriers_set in constants.DRBD_VALID_BARRIER_OPT:
+      raise errors.BlockDeviceError("%s is not a valid option set for DRBD"
+                                    " barriers" % disabled_barriers)
+
+    args = []
+
+    # The following code assumes DRBD 8.x, with x < 4 and x != 1 (DRBD 8.1.x
+    # does not exist)
+    if not vmaj == 8 and vmin in (0, 2, 3):
+      raise errors.BlockDeviceError("Unsupported DRBD version: %d.%d.%d" %
+                                    (vmaj, vmin, vrel))
+
+    def _AppendOrRaise(option, min_version):
+      """Helper for DRBD options"""
+      if min_version is not None and vrel >= min_version:
+        args.append(option)
+      else:
+        raise errors.BlockDeviceError("Could not use the option %s as the"
+                                      " DRBD version %d.%d.%d does not support"
+                                      " it." % (option, vmaj, vmin, vrel))
+
+    # the minimum version for each feature is encoded via pairs of (minor
+    # version -> x) where x is version in which support for the option was
+    # introduced.
+    meta_flush_supported = disk_flush_supported = {
+      0: 12,
+      2: 7,
+      3: 0,
+      }
+
+    disk_drain_supported = {
+      2: 7,
+      3: 0,
+      }
+
+    disk_barriers_supported = {
+      3: 0,
+      }
+
+    # meta flushes
+    if disable_meta_flush:
+      _AppendOrRaise(cls._DISABLE_META_FLUSH_OPTION,
+                     meta_flush_supported.get(vmin, None))
+
+    # disk flushes
+    if constants.DRBD_B_DISK_FLUSH in disabled_barriers_set:
+      _AppendOrRaise(cls._DISABLE_FLUSH_OPTION,
+                     disk_flush_supported.get(vmin, None))
+
+    # disk drain
+    if constants.DRBD_B_DISK_DRAIN in disabled_barriers_set:
+      _AppendOrRaise(cls._DISABLE_DRAIN_OPTION,
+                     disk_drain_supported.get(vmin, None))
+
+    # disk barriers
+    if constants.DRBD_B_DISK_BARRIERS in disabled_barriers_set:
+      _AppendOrRaise(cls._DISABLE_DISK_OPTION,
+                     disk_barriers_supported.get(vmin, None))
+
+    return args
 
   def _AssembleNet(self, minor, net_info, protocol,
                    dual_pri=False, hmac=None, secret=None):

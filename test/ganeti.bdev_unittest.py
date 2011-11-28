@@ -27,6 +27,7 @@ import unittest
 
 from ganeti import bdev
 from ganeti import errors
+from ganeti import constants
 
 import testutils
 
@@ -155,6 +156,75 @@ class TestDRBD8Runner(testutils.GanetiTestCase):
     self.failUnless(("local_addr" not in result and
                      "remote_addr" not in result),
                     "Should not find network info")
+
+  def testBarriersOptions(self):
+    """Test class method that generates drbdsetup options for disk barriers"""
+    # Tests that should fail because of wrong version/options combinations
+    should_fail = [
+      (8, 0, 12, "bfd", True),
+      (8, 0, 12, "fd", False),
+      (8, 0, 12, "b", True),
+      (8, 2, 7, "bfd", True),
+      (8, 2, 7, "b", True)
+    ]
+
+    for vmaj, vmin, vrel, opts, meta in should_fail:
+      self.assertRaises(errors.BlockDeviceError,
+                        bdev.DRBD8._ComputeDiskBarrierArgs,
+                        vmaj, vmin, vrel, opts, meta)
+
+    # get the valid options from the frozenset(frozenset()) in constants.
+    valid_options = [list(x)[0] for x in constants.DRBD_VALID_BARRIER_OPT]
+
+    # Versions that do not support anything
+    for vmaj, vmin, vrel in ((8, 0, 0), (8, 0, 11), (8, 2, 6)):
+      for opts in valid_options:
+        self.assertRaises(errors.BlockDeviceError,
+                          bdev.DRBD8._ComputeDiskBarrierArgs,
+                          vmaj, vmin, vrel, opts, True)
+
+    # Versions with partial support (testing only options that are supported)
+    tests = [
+      (8, 0, 12, "n", False, []),
+      (8, 0, 12, "n", True, ["--no-md-flushes"]),
+      (8, 2, 7, "n", False, []),
+      (8, 2, 7, "fd", False, ["--no-disk-flushes", "--no-disk-drain"]),
+      (8, 0, 12, "n", True, ["--no-md-flushes"]),
+      ]
+
+    # Versions that support everything
+    for vmaj, vmin, vrel in ((8, 3, 0), (8, 3, 12)):
+      tests.append((vmaj, vmin, vrel, "bfd", True,
+                    ["--no-disk-barrier", "--no-disk-drain",
+                     "--no-disk-flushes", "--no-md-flushes"]))
+      tests.append((vmaj, vmin, vrel, "n", False, []))
+      tests.append((vmaj, vmin, vrel, "b", True,
+                    ["--no-disk-barrier", "--no-md-flushes"]))
+      tests.append((vmaj, vmin, vrel, "fd", False,
+                    ["--no-disk-flushes", "--no-disk-drain"]))
+      tests.append((vmaj, vmin, vrel, "n", True, ["--no-md-flushes"]))
+
+    # Test execution
+    for test in tests:
+      vmaj, vmin, vrel, disabled_barriers, disable_meta_flush, expected = test
+      args = \
+        bdev.DRBD8._ComputeDiskBarrierArgs(vmaj, vmin, vrel,
+                                           disabled_barriers,
+                                           disable_meta_flush)
+      self.failUnless(set(args) == set(expected),
+                      "For test %s, got wrong results %s" % (test, args))
+
+    # Unsupported or invalid versions
+    for vmaj, vmin, vrel in ((0, 7, 25), (9, 0, 0), (7, 0, 0), (8, 4, 0)):
+      self.assertRaises(errors.BlockDeviceError,
+                        bdev.DRBD8._ComputeDiskBarrierArgs,
+                        vmaj, vmin, vrel, "n", True)
+
+    # Invalid options
+    for option in ("", "c", "whatever", "nbdfc", "nf"):
+      self.assertRaises(errors.BlockDeviceError,
+                        bdev.DRBD8._ComputeDiskBarrierArgs,
+                        8, 3, 11, option, True)
 
 
 class TestDRBD8Status(testutils.GanetiTestCase):
