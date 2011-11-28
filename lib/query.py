@@ -1140,6 +1140,32 @@ def _GetLiveNodeField(field, kind, ctx, node):
     return _FS_UNAVAIL
 
 
+def _GetNodeHvState(_, node):
+  """Converts node's hypervisor state for query result.
+
+  """
+  hv_state = node.hv_state
+
+  if hv_state is None:
+    return _FS_UNAVAIL
+
+  return dict((name, value.ToDict()) for (name, value) in hv_state.items())
+
+
+def _GetNodeDiskState(_, node):
+  """Converts node's disk state for query result.
+
+  """
+  disk_state = node.disk_state
+
+  if disk_state is None:
+    return _FS_UNAVAIL
+
+  return dict((disk_kind, dict((name, value.ToDict())
+                               for (name, value) in kind_state.items()))
+              for (disk_kind, kind_state) in disk_state.items())
+
+
 def _BuildNodeFields():
   """Builds list of fields for node queries.
 
@@ -1166,6 +1192,10 @@ def _BuildNodeFields():
     (_MakeField("custom_ndparams", "CustomNodeParameters", QFT_OTHER,
                 "Custom node parameters"),
       NQ_GROUP, 0, _GetItemAttr("ndparams")),
+    (_MakeField("hv_state", "HypervisorState", QFT_OTHER, "Hypervisor state"),
+     NQ_CONFIG, 0, _GetNodeHvState),
+    (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
+     NQ_CONFIG, 0, _GetNodeDiskState),
     ]
 
   # Node role
