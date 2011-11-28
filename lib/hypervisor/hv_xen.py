@@ -302,6 +302,29 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    " did not reboot in the expected interval" %
                                    (instance.name, ))
 
+  def BalloonInstanceMemory(self, instance, mem):
+    """Balloon an instance memory to a certain value.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type mem: int
+    @param mem: actual memory size to use for instance runtime
+
+    """
+    cmd = [constants.XEN_CMD, "mem-set", instance.name, mem]
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      raise errors.HypervisorError("Failed to balloon instance %s: %s (%s)" %
+                                   (instance.name, result.fail_reason,
+                                    result.output))
+    cmd = ["sed", "-ie", "s/^memory.*$/memory = %s/" % mem]
+    cmd.append(XenHypervisor._ConfigFileName(instance.name))
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      raise errors.HypervisorError("Failed to update memory for %s: %s (%s)" %
+                                   (instance.name, result.fail_reason,
+                                    result.output))
+
   def GetNodeInfo(self):
     """Return information about the node.
 
