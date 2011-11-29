@@ -943,8 +943,44 @@ class LockSet:
     return self.__lockdict
 
   def is_owned(self):
-    """Is the current thread a current level owner?"""
+    """Is the current thread a current level owner?
+
+    @note: Use L{check_owned} to check if a specific lock is held
+
+    """
     return threading.currentThread() in self.__owners
+
+  def check_owned(self, names, shared=-1):
+    """Check if locks are owned in a specific mode.
+
+    @type names: sequence or string
+    @param names: Lock names (or a single lock name)
+    @param shared: See L{SharedLock.is_owned}
+    @rtype: bool
+    @note: Use L{is_owned} to check if the current thread holds I{any} lock and
+      L{list_owned} to get the names of all owned locks
+
+    """
+    if isinstance(names, basestring):
+      names = [names]
+
+    # Avoid check if no locks are owned anyway
+    if names and self.is_owned():
+      candidates = []
+
+      # Gather references to all locks (in case they're deleted in the meantime)
+      for lname in names:
+        try:
+          lock = self.__lockdict[lname]
+        except KeyError:
+          raise errors.LockError("Non-existing lock '%s' in set '%s' (it may"
+                                 " have been removed)" % (lname, self.name))
+        else:
+          candidates.append(lock)
+
+      return compat.all(lock.is_owned(shared=shared) for lock in candidates)
+    else:
+      return False
 
   def _add_owned(self, name=None):
     """Note the current thread owns the given lock"""
@@ -1511,6 +1547,14 @@ class GanetiLockManager:
 
     """
     return self.__keyring[level].list_owned()
+
+  def check_owned(self, level, names, shared=-1):
+    """Check if locks at a certain level are owned in a specific mode.
+
+    @see: L{LockSet.check_owned}
+
+    """
+    return self.__keyring[level].check_owned(names, shared=shared)
 
   def _upper_owned(self, level):
     """Check that we don't own any lock at a level greater than the given one.
