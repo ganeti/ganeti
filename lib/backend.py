@@ -522,44 +522,71 @@ def LeaveCluster(modify_ssh_setup):
   raise errors.QuitGanetiException(True, "Shutdown scheduled")
 
 
-def GetNodeInfo(vgname, hypervisor_type):
-  """Gives back a hash with different information about the node.
-
-  @type vgname: C{string}
-  @param vgname: the name of the volume group to ask for disk space information
-  @type hypervisor_type: C{str}
-  @param hypervisor_type: the name of the hypervisor to ask for
-      memory information
-  @rtype: C{dict}
-  @return: dictionary with the following keys:
-      - vg_size is the size of the configured volume group in MiB
-      - vg_free is the free size of the volume group in MiB
-      - memory_dom0 is the memory allocated for domain0 in MiB
-      - memory_free is the currently available (free) ram in MiB
-      - memory_total is the total number of ram in MiB
-      - hv_version: the hypervisor version, if available
+def _GetVgInfo(name):
+  """Retrieves information about a LVM volume group.
 
   """
-  outputarray = {}
+  # TODO: GetVGInfo supports returning information for multiple VGs at once
+  vginfo = bdev.LogicalVolume.GetVGInfo([name])
+  if vginfo:
+    vg_free = int(round(vginfo[0][0], 0))
+    vg_size = int(round(vginfo[0][1], 0))
+  else:
+    vg_free = None
+    vg_size = None
 
-  if vgname is not None:
-    vginfo = bdev.LogicalVolume.GetVGInfo([vgname])
-    vg_free = vg_size = None
-    if vginfo:
-      vg_free = int(round(vginfo[0][0], 0))
-      vg_size = int(round(vginfo[0][1], 0))
-    outputarray["vg_size"] = vg_size
-    outputarray["vg_free"] = vg_free
+  return {
+    "name": name,
+    "free": vg_free,
+    "size": vg_size,
+    }
 
-  if hypervisor_type is not None:
-    hyper = hypervisor.GetHypervisor(hypervisor_type)
-    hyp_info = hyper.GetNodeInfo()
-    if hyp_info is not None:
-      outputarray.update(hyp_info)
 
-  outputarray["bootid"] = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
+def _GetHvInfo(name):
+  """Retrieves node information from a hypervisor.
 
-  return outputarray
+  The information returned depends on the hypervisor. Common items:
+
+    - vg_size is the size of the configured volume group in MiB
+    - vg_free is the free size of the volume group in MiB
+    - memory_dom0 is the memory allocated for domain0 in MiB
+    - memory_free is the currently available (free) ram in MiB
+    - memory_total is the total number of ram in MiB
+    - hv_version: the hypervisor version, if available
+
+  """
+  return hypervisor.GetHypervisor(name).GetNodeInfo()
+
+
+def _GetNamedNodeInfo(names, fn):
+  """Calls C{fn} for all names in C{names} and returns a dictionary.
+
+  @rtype: None or dict
+
+  """
+  if names is None:
+    return None
+  else:
+    return dict((name, fn(name)) for name in names)
+
+
+def GetNodeInfo(vg_names, hv_names):
+  """Gives back a hash with different information about the node.
+
+  @type vg_names: list of string
+  @param vg_names: Names of the volume groups to ask for disk space information
+  @type hv_names: list of string
+  @param hv_names: Names of the hypervisors to ask for node information
+  @rtype: tuple; (string, None/dict, None/dict)
+  @return: Tuple containing boot ID, volume group information and hypervisor
+    information
+
+  """
+  bootid = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
+  vg_info = _GetNamedNodeInfo(vg_names, _GetVgInfo)
+  hv_info = _GetNamedNodeInfo(hv_names, _GetHvInfo)
+
+  return (bootid, vg_info, hv_info)
 
 
 def VerifyNode(what, cluster_name):

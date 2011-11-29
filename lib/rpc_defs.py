@@ -412,10 +412,10 @@ _NODE_CALLS = [
     ("address", None, "IP address"),
     ], None, "Checks if a node has the given IP address"),
   ("node_info", MULTI, TMO_URGENT, [
-    ("vg_name", None,
-     "Name of the volume group to ask for disk space information"),
-    ("hypervisor_type", None,
-     "Name of the hypervisor to ask for memory information"),
+    ("vg_names", None,
+     "Names of the volume groups to ask for disk space information"),
+    ("hv_names", None,
+     "Names of the hypervisors to ask for node information"),
     ], None, "Return node information"),
   ("node_verify", MULTI, TMO_NORMAL, [
     ("checkdict", None, None),

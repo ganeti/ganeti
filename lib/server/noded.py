@@ -666,8 +666,8 @@ class NodeHttpServer(http.server.HttpServer):
     """Query node information.
 
     """
-    vgname, hypervisor_type = params
-    return backend.GetNodeInfo(vgname, hypervisor_type)
+    (vg_names, hv_names) = params
+    return backend.GetNodeInfo(vg_names, hv_names)
 
   @staticmethod
   def perspective_etc_hosts_modify(params):

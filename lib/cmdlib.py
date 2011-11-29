@@ -573,6 +573,20 @@ def _ShareAll():
   return dict.fromkeys(locking.LEVELS, 1)
 
 
+def _MakeLegacyNodeInfo(data):
+  """Formats the data returned by L{rpc.RpcRunner.call_node_info}.
+
+  Converts the data into a single dictionary. This is fine for most use cases,
+  but some require information from more than one volume group or hypervisor.
+
+  """
+  (bootid, (vg_info, ), (hv_info, )) = data
+
+  return utils.JoinDisjointDicts(utils.JoinDisjointDicts(vg_info, hv_info), {
+    "bootid": bootid,
+    })
+
+
 def _CheckInstanceNodeGroups(cfg, instance_name, owned_groups):
   """Checks if the owned node groups are still correct for an instance.
 
@@ -4591,9 +4605,9 @@ class _NodeQuery(_QueryBase):
       # filter out non-vm_capable nodes
       toquery_nodes = [name for name in nodenames if all_info[name].vm_capable]
 
-      node_data = lu.rpc.call_node_info(toquery_nodes, lu.cfg.GetVGName(),
-                                        lu.cfg.GetHypervisorType())
-      live_data = dict((name, nresult.payload)
+      node_data = lu.rpc.call_node_info(toquery_nodes, [lu.cfg.GetVGName()],
+                                        [lu.cfg.GetHypervisorType()])
+      live_data = dict((name, _MakeLegacyNodeInfo(nresult.payload))
                        for (name, nresult) in node_data.items()
                        if not nresult.fail_msg and nresult.payload)
     else:
@@ -6012,10 +6026,12 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
       we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info([node], None, hypervisor_name)
+  nodeinfo = lu.rpc.call_node_info([node], None, [hypervisor_name])
   nodeinfo[node].Raise("Can't get data from node %s" % node,
                        prereq=True, ecode=errors.ECODE_ENVIRON)
-  free_mem = nodeinfo[node].payload.get("memory_free", None)
+  (_, _, (hv_info, )) = nodeinfo[node].payload
+
+  free_mem = hv_info.get("memory_free", None)
   if not isinstance(free_mem, int):
     raise errors.OpPrereqError("Can't compute free memory on node %s, result"
                                " was '%s'" % (node, free_mem),
@@ -6070,12 +6086,13 @@ def _CheckNodesFreeDiskOnVG(lu, nodenames, vg, requested):
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(nodenames, vg, None)
+  nodeinfo = lu.rpc.call_node_info(nodenames, [vg], None)
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
                prereq=True, ecode=errors.ECODE_ENVIRON)
-    vg_free = info.payload.get("vg_free", None)
+    (_, (vg_info, ), _) = info.payload
+    vg_free = vg_info.get("vg_free", None)
     if not isinstance(vg_free, int):
       raise errors.OpPrereqError("Can't compute free disk space on node"
                                  " %s for vg %s, result was '%s'" %
@@ -6105,12 +6122,13 @@ def _CheckNodesPhysicalCPUs(lu, nodenames, requested, hypervisor_name):
       or we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info(nodenames, None, hypervisor_name)
+  nodeinfo = lu.rpc.call_node_info(nodenames, None, [hypervisor_name])
   for node in nodenames:
     info = nodeinfo[node]
     info.Raise("Cannot get current information from node %s" % node,
                prereq=True, ecode=errors.ECODE_ENVIRON)
-    num_cpus = info.payload.get("cpu_total", None)
+    (_, _, (hv_info, )) = info.payload
+    num_cpus = hv_info.get("cpu_total", None)
     if not isinstance(num_cpus, int):
       raise errors.OpPrereqError("Can't compute the number of physical CPUs"
                                  " on node %s, result was '%s'" %
@@ -7678,14 +7696,17 @@ class TLMigrateInstance(Tasklet):
 
     # Check for hypervisor version mismatch and warn the user.
     nodeinfo = self.rpc.call_node_info([source_node, target_node],
-                                       None, self.instance.hypervisor)
-    src_info = nodeinfo[source_node]
-    dst_info = nodeinfo[target_node]
+                                       None, [self.instance.hypervisor])
+    for ninfo in nodeinfo.items():
+      ninfo.Raise("Unable to retrieve node information from node '%s'" %
+                  ninfo.node)
+    (_, _, (src_info, )) = nodeinfo[source_node].payload
+    (_, _, (dst_info, )) = nodeinfo[target_node].payload
 
-    if ((constants.HV_NODEINFO_KEY_VERSION in src_info.payload) and
-        (constants.HV_NODEINFO_KEY_VERSION in dst_info.payload)):
-      src_version = src_info.payload[constants.HV_NODEINFO_KEY_VERSION]
-      dst_version = dst_info.payload[constants.HV_NODEINFO_KEY_VERSION]
+    if ((constants.HV_NODEINFO_KEY_VERSION in src_info) and
+        (constants.HV_NODEINFO_KEY_VERSION in dst_info)):
+      src_version = src_info[constants.HV_NODEINFO_KEY_VERSION]
+      dst_version = dst_info[constants.HV_NODEINFO_KEY_VERSION]
       if src_version != dst_version:
         self.feedback_fn("* warning: hypervisor version mismatch between"
                          " source (%s) and target (%s) node" %
@@ -11377,35 +11398,39 @@ class LUInstanceSetParams(LogicalUnit):
       instance_info = self.rpc.call_instance_info(pnode, instance.name,
                                                   instance.hypervisor)
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
-                                         instance.hypervisor)
+                                         [instance.hypervisor])
       pninfo = nodeinfo[pnode]
       msg = pninfo.fail_msg
       if msg:
         # Assume the primary node is unreachable and go ahead
         self.warn.append("Can't get info from primary node %s: %s" %
                          (pnode, msg))
-      elif not isinstance(pninfo.payload.get("memory_free", None), int):
-        self.warn.append("Node data from primary node %s doesn't contain"
-                         " free memory information" % pnode)
-      elif instance_info.fail_msg:
-        self.warn.append("Can't get instance runtime information: %s" %
-                        instance_info.fail_msg)
       else:
-        if instance_info.payload:
-          current_mem = int(instance_info.payload["memory"])
+        (_, _, (pnhvinfo, )) = pninfo.payload
+        if not isinstance(pnhvinfo.get("memory_free", None), int):
+          self.warn.append("Node data from primary node %s doesn't contain"
+                           " free memory information" % pnode)
+        elif instance_info.fail_msg:
+          self.warn.append("Can't get instance runtime information: %s" %
+                          instance_info.fail_msg)
         else:
-          # Assume instance not running
-          # (there is a slight race condition here, but it's not very probable,
-          # and we have no other way to check)
-          current_mem = 0
-        #TODO(dynmem): do the appropriate check involving MINMEM
-        miss_mem = (be_new[constants.BE_MAXMEM] - current_mem -
-                    pninfo.payload["memory_free"])
-        if miss_mem > 0:
-          raise errors.OpPrereqError("This change will prevent the instance"
-                                     " from starting, due to %d MB of memory"
-                                     " missing on its primary node" % miss_mem,
-                                     errors.ECODE_NORES)
+          if instance_info.payload:
+            current_mem = int(instance_info.payload["memory"])
+          else:
+            # Assume instance not running
+            # (there is a slight race condition here, but it's not very
+            # probable, and we have no other way to check)
+            # TODO: Describe race condition
+            current_mem = 0
+          #TODO(dynmem): do the appropriate check involving MINMEM
+          miss_mem = (be_new[constants.BE_MAXMEM] - current_mem -
+                      pninfo.payload["memory_free"])
+          if miss_mem > 0:
+            raise errors.OpPrereqError("This change will prevent the instance"
+                                       " from starting, due to %d MB of memory"
+                                       " missing on its primary node" %
+                                       miss_mem,
+                                       errors.ECODE_NORES)
 
       if be_new[constants.BE_AUTO_BALANCE]:
         for node, nres in nodeinfo.items():
@@ -11413,12 +11438,13 @@ class LUInstanceSetParams(LogicalUnit):
             continue
           nres.Raise("Can't get info from secondary node %s" % node,
                      prereq=True, ecode=errors.ECODE_STATE)
-          if not isinstance(nres.payload.get("memory_free", None), int):
+          (_, _, (nhvinfo, )) = nres.payload
+          if not isinstance(nhvinfo.get("memory_free", None), int):
             raise errors.OpPrereqError("Secondary node %s didn't return free"
                                        " memory information" % node,
                                        errors.ECODE_STATE)
           #TODO(dynmem): do the appropriate check involving MINMEM
-          elif be_new[constants.BE_MAXMEM] > nres.payload["memory_free"]:
+          elif be_new[constants.BE_MAXMEM] > nhvinfo["memory_free"]:
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from failover to its secondary node"
                                        " %s, due to not enough memory" % node,
@@ -13491,8 +13517,8 @@ class IAllocator(object):
     else:
       hypervisor_name = cluster_info.enabled_hypervisors[0]
 
-    node_data = self.rpc.call_node_info(node_list, cfg.GetVGName(),
-                                        hypervisor_name)
+    node_data = self.rpc.call_node_info(node_list, [cfg.GetVGName()],
+                                        [hypervisor_name])
     node_iinfo = \
       self.rpc.call_all_instances_info(node_list,
                                        cluster_info.enabled_hypervisors)
@@ -13565,7 +13591,7 @@ class IAllocator(object):
         nresult.Raise("Can't get data for node %s" % nname)
         node_iinfo[nname].Raise("Can't get node instance info from node %s" %
                                 nname)
-        remote_info = nresult.payload
+        remote_info = _MakeLegacyNodeInfo(nresult.payload)
 
         for attr in ["memory_total", "memory_free", "memory_dom0",
                      "vg_size", "vg_free", "cpu_total"]:
