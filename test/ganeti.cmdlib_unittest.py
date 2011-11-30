@@ -521,5 +521,53 @@ class TestUpdateAndVerifySubDict(unittest.TestCase):
                       cmdlib._UpdateAndVerifySubDict, {}, test, self.type_check)
 
 
+class TestHvStateHelper(unittest.TestCase):
+  def testWithoutOpData(self):
+    self.assertEqual(cmdlib._MergeAndVerifyHvState(None, NotImplemented), None)
+
+  def testWithoutOldData(self):
+    new = {
+      constants.HT_XEN_PVM: {
+        constants.HVST_MEMORY_TOTAL: 4096,
+        },
+      }
+    self.assertEqual(cmdlib._MergeAndVerifyHvState(new, None), new)
+
+  def testWithWrongHv(self):
+    new = {
+      "i-dont-exist": {
+        constants.HVST_MEMORY_TOTAL: 4096,
+        },
+      }
+    self.assertRaises(errors.OpPrereqError, cmdlib._MergeAndVerifyHvState, new,
+                      None)
+
+class TestDiskStateHelper(unittest.TestCase):
+  def testWithoutOpData(self):
+    self.assertEqual(cmdlib._MergeAndVerifyDiskState(None, NotImplemented),
+                     None)
+
+  def testWithoutOldData(self):
+    new = {
+      constants.LD_LV: {
+        "xenvg": {
+          constants.DS_DISK_RESERVED: 1024,
+          },
+        },
+      }
+    self.assertEqual(cmdlib._MergeAndVerifyDiskState(new, None), new)
+
+  def testWithWrongStorageType(self):
+    new = {
+      "i-dont-exist": {
+        "xenvg": {
+          constants.DS_DISK_RESERVED: 1024,
+          },
+        },
+      }
+    self.assertRaises(errors.OpPrereqError, cmdlib._MergeAndVerifyDiskState,
+                      new, None)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

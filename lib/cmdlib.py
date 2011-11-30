@@ -741,6 +741,51 @@ def _UpdateAndVerifySubDict(base, updates, type_check):
   return ret
 
 
+def _MergeAndVerifyHvState(op_input, obj_input):
+  """Combines the hv state from an opcode with the one of the object
+
+  @param op_input: The input dict from the opcode
+  @param obj_input: The input dict from the objects
+  @return: The verified and updated dict
+
+  """
+  if op_input:
+    invalid_hvs = set(op_input) - constants.HYPER_TYPES
+    if invalid_hvs:
+      raise errors.OpPrereqError("Invalid hypervisor(s) in hypervisor state:"
+                                 " %s" % utils.CommaJoin(invalid_hvs),
+                                 errors.ECODE_INVAL)
+    if obj_input is None:
+      obj_input = {}
+    type_check = constants.HVSTS_PARAMETER_TYPES
+    return _UpdateAndVerifySubDict(obj_input, op_input, type_check)
+
+  return None
+
+
+def _MergeAndVerifyDiskState(op_input, obj_input):
+  """Combines the disk state from an opcode with the one of the object
+
+  @param op_input: The input dict from the opcode
+  @param obj_input: The input dict from the objects
+  @return: The verified and updated dict
+  """
+  if op_input:
+    invalid_dst = set(op_input) - constants.DS_VALID_TYPES
+    if invalid_dst:
+      raise errors.OpPrereqError("Invalid storage type(s) in disk state: %s" %
+                                 utils.CommaJoin(invalid_dst),
+                                 errors.ECODE_INVAL)
+    type_check = constants.DSS_PARAMETER_TYPES
+    if obj_input is None:
+      obj_input = {}
+    return dict((key, _UpdateAndVerifySubDict(obj_input.get(key, {}), value,
+                                              type_check))
+                for key, value in op_input.items())
+
+  return None
+
+
 def _ReleaseLocks(lu, level, names=None, keep=None):
   """Releases locks owned by an LU.
 
