@@ -383,7 +383,6 @@ class TestFileID(testutils.GanetiTestCase):
   def testUpdate(self):
     name = self._CreateTempFile()
     oldi = utils.GetFileID(path=name)
-    os.utime(name, None)
     fd = os.open(name, os.O_RDWR)
     try:
       newi = utils.GetFileID(fd=fd)
