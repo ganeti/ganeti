@@ -7697,7 +7697,7 @@ class TLMigrateInstance(Tasklet):
     # Check for hypervisor version mismatch and warn the user.
     nodeinfo = self.rpc.call_node_info([source_node, target_node],
                                        None, [self.instance.hypervisor])
-    for ninfo in nodeinfo.items():
+    for ninfo in nodeinfo.values():
       ninfo.Raise("Unable to retrieve node information from node '%s'" %
                   ninfo.node)
     (_, _, (src_info, )) = nodeinfo[source_node].payload
@@ -11424,7 +11424,7 @@ class LUInstanceSetParams(LogicalUnit):
             current_mem = 0
           #TODO(dynmem): do the appropriate check involving MINMEM
           miss_mem = (be_new[constants.BE_MAXMEM] - current_mem -
-                      pninfo.payload["memory_free"])
+                      pnhvinfo["memory_free"])
           if miss_mem > 0:
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from starting, due to %d MB of memory"

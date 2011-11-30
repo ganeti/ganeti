@@ -537,8 +537,8 @@ def _GetVgInfo(name):
 
   return {
     "name": name,
-    "free": vg_free,
-    "size": vg_size,
+    "vg_free": vg_free,
+    "vg_size": vg_size,
     }
 
 
