@@ -138,11 +138,11 @@ inherited from the export. Possible parameters are:
 
 maxmem
     the maximum memory size of the instance; as usual, suffixes can be
-    used to denote the unit, otherwise the value is taken in mebibites
+    used to denote the unit, otherwise the value is taken in mebibytes
 
 minmem
     the minimum memory size of the instance; as usual, suffixes can be
-    used to denote the unit, otherwise the value is taken in mebibites
+    used to denote the unit, otherwise the value is taken in mebibytes
 
 vcpus
     the number of VCPUs to assign to the instance (if this value makes

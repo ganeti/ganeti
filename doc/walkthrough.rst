@@ -104,8 +104,8 @@ And let's check that we have a valid OS::
   debootstrap
   node1#
 
-Running a burnin
-----------------
+Running a burn-in
+-----------------
 
 Now that the cluster is created, it is time to check that the hardware
 works correctly, that the hypervisor can actually create instances,
@@ -263,8 +263,8 @@ guide. Similar output lines are replaced with ``…`` in the below log::
       …
   node1#
 
-You can see in the above what operations the burnin does. Ideally, the
-burnin log would proceed successfully through all the steps and end
+You can see in the above what operations the burn-in does. Ideally, the
+burn-in log would proceed successfully through all the steps and end
 cleanly, without throwing errors.
 
 Instance operations
@@ -584,7 +584,7 @@ reused. Re-adding it is simple::
   Mon Oct 26 05:27:39 2009  - INFO: Readding a node, the offline/drained flags were reset
   Mon Oct 26 05:27:39 2009  - INFO: Node will be a master candidate
 
-And is now working again::
+And it is now working again::
 
   node1# gnt-node list
   Node  DTotal DFree MTotal MNode MFree Pinst Sinst
@@ -592,7 +592,7 @@ And is now working again::
   node2   1.3T  1.3T  32.0G  1.0G 30.4G     1     3
   node3   1.3T  1.3T  32.0G  1.0G 30.4G     0     0
 
-.. note:: If you have the Ganeti has been built with the htools
+.. note:: If Ganeti has been built with the htools
    component enabled, you can shuffle the instances around to have a
    better use of the nodes.
 

@@ -591,7 +591,7 @@ For all three cases, the ``replace-disks`` operation can be used::
 
 Since the process involves copying all data from the working node to the
 target node, it will take a while, depending on the instance's disk
-size, node I/O system and network speed. But it is (baring any network
+size, node I/O system and network speed. But it is (barring any network
 interruption) completely transparent for the instance.
 
 Re-creating disks for non-redundant instances

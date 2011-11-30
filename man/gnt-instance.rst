@@ -61,7 +61,7 @@ reuse those volumes (instead of creating new ones) as the
 instance's disks. Ganeti will rename these volumes to the standard
 format, and (without installing the OS) will use them as-is for the
 instance. This allows migrating instances from non-managed mode
-(e.q. plain KVM with LVM) to being managed via Ganeti. Note that
+(e.g. plain KVM with LVM) to being managed via Ganeti. Please note that
 this works only for the \`plain' disk template (see below for
 template details).
 
@@ -130,11 +130,11 @@ values are inherited from the cluster. Possible parameters are:
 
 maxmem
     the maximum memory size of the instance; as usual, suffixes can be
-    used to denote the unit, otherwise the value is taken in mebibites
+    used to denote the unit, otherwise the value is taken in mebibytes
 
 minmem
     the minimum memory size of the instance; as usual, suffixes can be
-    used to denote the unit, otherwise the value is taken in mebibites
+    used to denote the unit, otherwise the value is taken in mebibytes
 
 vcpus
     the number of VCPUs to assign to the instance (if this value makes
@@ -180,7 +180,7 @@ boot\_order
     n
         network boot (PXE)
 
-    The default is not to set an HVM boot order which is interpreted
+    The default is not to set an HVM boot order, which is interpreted
     as 'dc'.
 
     For KVM the boot order is either "floppy", "cdrom", "disk" or
@@ -1444,27 +1444,31 @@ ignored.
 The option ``-f`` will skip the prompting for confirmation.
 
 If ``--allow-failover`` is specified it tries to fallback to failover if
-it already can determine that a migration wont work (i.e. if the
-instance is shutdown). Please note that the fallback will not happen
+it already can determine that a migration won't work (i.e. if the
+instance is shut down). Please note that the fallback will not happen
 during execution. If a migration fails during execution it still fails.
 
 Example (and expected output)::
 
     # gnt-instance migrate instance1
-    Migrate will happen to the instance instance1. Note that migration is
-    **experimental** in this version. This might impact the instance if
-    anything goes wrong. Continue?
+    Instance instance1 will be migrated. Note that migration
+    might impact the instance if anything goes wrong (e.g. due to bugs in
+    the hypervisor). Continue?
     y/[n]/?: y
+    Migrating instance instance1.example.com
     * checking disk consistency between source and target
-    * ensuring the target is in secondary mode
+    * switching node node2.example.com to secondary mode
+    * changing into standalone mode
     * changing disks into dual-master mode
-     - INFO: Waiting for instance instance1 to sync disks.
-     - INFO: Instance instance1's disks are in sync.
+    * wait until resync is done
+    * preparing node2.example.com to accept the instance
     * migrating instance to node2.example.com
-    * changing the instance's disks on source node to secondary
-     - INFO: Waiting for instance instance1 to sync disks.
-     - INFO: Instance instance1's disks are in sync.
-    * changing the instance's disks to single-master
+    * switching node node1.example.com to secondary mode
+    * wait until resync is done
+    * changing into standalone mode
+    * changing disks into single-master mode
+    * wait until resync is done
+    * done
     #
 
 
