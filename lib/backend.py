@@ -567,7 +567,7 @@ def _GetNamedNodeInfo(names, fn):
   if names is None:
     return None
   else:
-    return dict((name, fn(name)) for name in names)
+    return map(fn, names)
 
 
 def GetNodeInfo(vg_names, hv_names):
