@@ -5713,7 +5713,7 @@ class LUClusterQuery(NoHooksLU):
       "architecture": (platform.architecture()[0], platform.machine()),
       "name": cluster.cluster_name,
       "master": cluster.master_node,
-      "default_hypervisor": cluster.enabled_hypervisors[0],
+      "default_hypervisor": cluster.primary_hypervisor,
       "enabled_hypervisors": cluster.enabled_hypervisors,
       "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor_name])
                         for hypervisor_name in cluster.enabled_hypervisors]),
@@ -13668,7 +13668,7 @@ class IAllocator(object):
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       hypervisor_name = cfg.GetInstanceInfo(self.name).hypervisor
     else:
-      hypervisor_name = cluster_info.enabled_hypervisors[0]
+      hypervisor_name = cluster_info.primary_hypervisor
 
     node_data = self.rpc.call_node_info(node_list, [cfg.GetVGName()],
                                         [hypervisor_name])
