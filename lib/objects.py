@@ -1350,6 +1350,15 @@ class Cluster(TaggableObject):
 
     self.diskparams = UpgradeDiskParams(self.diskparams)
 
+  @property
+  def primary_hypervisor(self):
+    """The first hypervisor is the primary.
+
+    Useful, for example, for L{Node}'s hv/disk state.
+
+    """
+    return self.enabled_hypervisors[0]
+
   def ToDict(self):
     """Custom function for cluster.
 

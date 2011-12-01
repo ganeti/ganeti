@@ -195,6 +195,17 @@ class TestClusterObject(unittest.TestCase):
     self.assertEqual(node_ndparams,
                      self.fake_cl.FillND(fake_node, fake_group))
 
+  def testPrimaryHypervisor(self):
+    assert self.fake_cl.enabled_hypervisors is None
+    self.fake_cl.enabled_hypervisors = [constants.HT_XEN_HVM]
+    self.assertEqual(self.fake_cl.primary_hypervisor, constants.HT_XEN_HVM)
+
+    self.fake_cl.enabled_hypervisors = [constants.HT_XEN_PVM, constants.HT_KVM]
+    self.assertEqual(self.fake_cl.primary_hypervisor, constants.HT_XEN_PVM)
+
+    self.fake_cl.enabled_hypervisors = sorted(constants.HYPER_TYPES)
+    self.assertEqual(self.fake_cl.primary_hypervisor, constants.HT_CHROOT)
+
 
 class TestOS(unittest.TestCase):
   ALL_DATA = [
