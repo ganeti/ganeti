@@ -337,6 +337,10 @@ auto\_balance
     Value of the auto\_balance flag for instances to use by default,
     will be set to true if not specified.
 
+always\_failover
+    Default value for the ``always\_failover`` flag for instances; if
+    not set, ``False`` is used.
+
 
 The ``-N (--nic-parameters)`` option allows you to set the default nic
 parameters for the cluster. The parameter format is a comma-separated

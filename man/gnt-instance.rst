@@ -144,6 +144,11 @@ auto\_balance
     whether the instance is considered in the N+1 cluster checks
     (enough redundancy in the cluster to survive a node failure)
 
+always\_failover
+    ``True`` or ``False``, whether the instance must be failed over
+    (shut down and rebooted) always or it may be migrated (briefly
+    suspended)
+
 Note that before 2.6 Ganeti had a ``memory`` parameter, which was the
 only value of memory an instance could have. With the
 ``maxmem``/``minmem`` change Ganeti guarantees that at least the minimum
@@ -1444,7 +1449,7 @@ ignored.
 The option ``-f`` will skip the prompting for confirmation.
 
 If ``--allow-failover`` is specified it tries to fallback to failover if
-it already can determine that a migration won't work (i.e. if the
+it already can determine that a migration won't work (e.g. if the
 instance is shut down). Please note that the fallback will not happen
 during execution. If a migration fails during execution it still fails.
 

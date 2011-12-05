@@ -1228,6 +1228,9 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - memory: %sMiB\n" %
               compat.TryToRoman(instance["be_actual"][constants.BE_MAXMEM],
                                 convert=opts.roman_integers))
+    buf.write("    - %s: %s\n" %
+              (constants.BE_ALWAYS_FAILOVER,
+               instance["be_actual"][constants.BE_ALWAYS_FAILOVER]))
     buf.write("    - NICs:\n")
     for idx, (ip, mac, mode, link) in enumerate(instance["nics"]):
       buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %

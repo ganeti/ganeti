@@ -152,6 +152,11 @@ auto_balance
     whether the instance is considered in the N+1 cluster checks
     (enough redundancy in the cluster to survive a node failure)
 
+always\_failover
+    ``True`` or ``False``, whether the instance must be failed over
+    (shut down and rebooted) always or it may be migrated (briefly
+    suspended)
+
 
 The ``-t`` options specifies the disk layout type for the instance.
 If not passed, the configuration of the original instance is used.
