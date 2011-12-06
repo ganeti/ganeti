@@ -415,7 +415,7 @@ class LogicalVolume(BlockDev):
                   " in lvm.conf using either 'filter' or 'preferred_names'")
     free_size = sum([pv[0] for pv in pvs_info])
     current_pvs = len(pvlist)
-    desired_stripes = params[constants.STRIPES]
+    desired_stripes = params[constants.LDP_STRIPES]
     stripes = min(current_pvs, desired_stripes)
     if stripes < desired_stripes:
       logging.warning("Could not use %d stripes for VG %s, as only %d PVs are"
@@ -1368,8 +1368,8 @@ class DRBD8(BaseDRBD):
 
     barrier_args = \
       self._ComputeDiskBarrierArgs(vmaj, vmin, vrel,
-                                   self.params[constants.BARRIERS],
-                                   self.params[constants.NO_META_FLUSH])
+                                   self.params[constants.LDP_BARRIERS],
+                                   self.params[constants.LDP_NO_META_FLUSH])
     args.extend(barrier_args)
 
     result = utils.RunCmd(args)
@@ -1468,7 +1468,7 @@ class DRBD8(BaseDRBD):
     # sync speed only after setting up both sides can race with DRBD
     # connecting, hence we set it here before telling DRBD anything
     # about its peer.
-    sync_speed = self.params.get(constants.RESYNC_RATE)
+    sync_speed = self.params.get(constants.LDP_RESYNC_RATE)
     self._SetMinorSyncSpeed(minor, sync_speed)
 
     if netutils.IP6Address.IsValid(lhost):
@@ -1835,7 +1835,7 @@ class DRBD8(BaseDRBD):
       # the device
       self._SlowAssemble()
 
-    sync_speed = self.params.get(constants.RESYNC_RATE)
+    sync_speed = self.params.get(constants.LDP_RESYNC_RATE)
     self.SetSyncSpeed(sync_speed)
 
   def _SlowAssemble(self):

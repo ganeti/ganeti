@@ -8169,9 +8169,9 @@ def _ComputeLDParams(disk_template, disk_params):
   dt_params = disk_params[disk_template]
   if disk_template == constants.DT_DRBD8:
     drbd_params = {
-      constants.RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
-      constants.BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
-      constants.NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
+      constants.LDP_RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
+      constants.LDP_BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
+      constants.LDP_NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
       }
 
     drbd_params = \
@@ -8182,7 +8182,7 @@ def _ComputeLDParams(disk_template, disk_params):
 
     # data LV
     data_params = {
-      constants.STRIPES: dt_params[constants.DRBD_DATA_STRIPES],
+      constants.LDP_STRIPES: dt_params[constants.DRBD_DATA_STRIPES],
       }
     data_params = \
       objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
@@ -8191,7 +8191,7 @@ def _ComputeLDParams(disk_template, disk_params):
 
     # metadata LV
     meta_params = {
-      constants.STRIPES: dt_params[constants.DRBD_META_STRIPES],
+      constants.LDP_STRIPES: dt_params[constants.DRBD_META_STRIPES],
       }
     meta_params = \
       objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
@@ -8204,7 +8204,7 @@ def _ComputeLDParams(disk_template, disk_params):
 
   elif disk_template == constants.DT_PLAIN:
     params = {
-      constants.STRIPES: dt_params[constants.LV_STRIPES],
+      constants.LDP_STRIPES: dt_params[constants.LV_STRIPES],
       }
     params = \
       objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_LV],
