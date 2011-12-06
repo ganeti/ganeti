@@ -26,6 +26,7 @@
 
 from ganeti.cli import *
 from ganeti import constants
+from ganeti import objects
 from ganeti import opcodes
 from ganeti import utils
 
@@ -47,11 +48,21 @@ def AddGroup(opts, args):
   @return: the desired exit code
 
   """
+  ipolicy = \
+    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_size,
+                                  ispecs_cpu_count=opts.ispecs_cpu_count,
+                                  ispecs_disk_count=opts.ispecs_disk_count,
+                                  ispecs_disk_size=opts.ispecs_disk_size,
+                                  ispecs_nic_count=opts.ispecs_nic_count,
+                                  group_ipolicy=True)
+  for key in ipolicy.keys():
+    utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
+
   (group_name,) = args
   diskparams = dict(opts.diskparams)
   op = opcodes.OpGroupAdd(group_name=group_name, ndparams=opts.ndparams,
                           alloc_policy=opts.alloc_policy,
-                          diskparams=diskparams)
+                          diskparams=diskparams, ipolicy=ipolicy)
   SubmitOpCode(op, opts=opts)
 
 
@@ -225,11 +236,19 @@ def EvacuateGroup(opts, args):
 
   return rcode
 
+INSTANCE_POLICY_OPTS = [
+  SPECS_CPU_COUNT_OPT,
+  SPECS_DISK_COUNT_OPT,
+  SPECS_DISK_SIZE_OPT,
+  SPECS_MEM_SIZE_OPT,
+  SPECS_NIC_COUNT_OPT,
+  ]
 
 commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP,
-    [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, DISK_PARAMS_OPT],
+    [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, DISK_PARAMS_OPT] +
+    INSTANCE_POLICY_OPTS,
     "<group_name>", "Add a new node group to the cluster"),
   "assign-nodes": (
     AssignNodes, ARGS_ONE_GROUP + ARGS_MANY_NODES, [DRY_RUN_OPT, FORCE_OPT],

@@ -12788,6 +12788,10 @@ class LUGroupAdd(LogicalUnit):
     else:
       self.op.diskparams = self.cfg.GetClusterInfo().diskparams
 
+    cluster = self.cfg.GetClusterInfo()
+    full_ipolicy = cluster.SimpleFillIpolicy(self.op.ipolicy)
+    objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -12811,7 +12815,8 @@ class LUGroupAdd(LogicalUnit):
                                   uuid=self.group_uuid,
                                   alloc_policy=self.op.alloc_policy,
                                   ndparams=self.op.ndparams,
-                                  diskparams=self.op.diskparams)
+                                  diskparams=self.op.diskparams,
+                                  ipolicy=self.op.ipolicy)
 
     self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
     del self.remove_locks[locking.LEVEL_NODEGROUP]
