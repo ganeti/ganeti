@@ -932,18 +932,31 @@ class TestGroupQuery(unittest.TestCase):
     self.groups = [
       objects.NodeGroup(name="default",
                         uuid="c0e89160-18e7-11e0-a46e-001d0904baeb",
-                        alloc_policy=constants.ALLOC_POLICY_PREFERRED),
+                        alloc_policy=constants.ALLOC_POLICY_PREFERRED,
+                        ipolicy=objects.MakeEmptyIPolicy()),
       objects.NodeGroup(name="restricted",
                         uuid="d2a40a74-18e7-11e0-9143-001d0904baeb",
-                        alloc_policy=constants.ALLOC_POLICY_LAST_RESORT),
+                        alloc_policy=constants.ALLOC_POLICY_LAST_RESORT,
+                        ipolicy=objects.MakeEmptyIPolicy()),
       ]
+    self.cluster = objects.Cluster(cluster_name="testcluster",
+      hvparams=constants.HVC_DEFAULTS,
+      beparams={
+        constants.PP_DEFAULT: constants.BEC_DEFAULTS,
+        },
+      nicparams={
+        constants.PP_DEFAULT: constants.NICC_DEFAULTS,
+        },
+      ndparams=constants.NDC_DEFAULTS,
+      ipolicy=constants.IPOLICY_DEFAULTS,
+      )
 
   def _Create(self, selected):
     return query.Query(query.GROUP_FIELDS, selected)
 
   def testSimple(self):
     q = self._Create(["name", "uuid", "alloc_policy"])
-    gqd = query.GroupQueryData(self.groups, None, None)
+    gqd = query.GroupQueryData(self.cluster, self.groups, None, None)
 
     self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG]))
 
@@ -965,7 +978,7 @@ class TestGroupQuery(unittest.TestCase):
       }
 
     q = self._Create(["name", "node_cnt", "node_list"])
-    gqd = query.GroupQueryData(self.groups, groups_to_nodes, None)
+    gqd = query.GroupQueryData(self.cluster, self.groups, groups_to_nodes, None)
 
     self.assertEqual(q.RequestedData(), set([query.GQ_CONFIG, query.GQ_NODE]))
 
@@ -987,7 +1000,8 @@ class TestGroupQuery(unittest.TestCase):
       }
 
     q = self._Create(["pinst_cnt", "pinst_list"])
-    gqd = query.GroupQueryData(self.groups, None, groups_to_instances)
+    gqd = query.GroupQueryData(self.cluster, self.groups, None,
+      groups_to_instances)
 
     self.assertEqual(q.RequestedData(), set([query.GQ_INST]))
 

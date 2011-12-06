@@ -1941,9 +1941,10 @@ class GroupQueryData:
   """Data container for node group data queries.
 
   """
-  def __init__(self, groups, group_to_nodes, group_to_instances):
+  def __init__(self, cluster, groups, group_to_nodes, group_to_instances):
     """Initializes this class.
 
+    @param cluster: Cluster object
     @param groups: List of node group objects
     @type group_to_nodes: dict; group UUID as key
     @param group_to_nodes: Per-group list of nodes
@@ -1954,12 +1955,21 @@ class GroupQueryData:
     self.groups = groups
     self.group_to_nodes = group_to_nodes
     self.group_to_instances = group_to_instances
+    self.cluster = cluster
+
+    # Used for individual rows
+    self.group_ipolicy = None
 
   def __iter__(self):
     """Iterate over all node groups.
 
+    This function has side-effects and only one instance of the resulting
+    generator should be used at a time.
+
     """
-    return iter(self.groups)
+    for group in self.groups:
+      self.group_ipolicy = self.cluster.SimpleFillIPolicy(group.ipolicy)
+      yield group
 
 
 _GROUP_SIMPLE_FIELDS = {
@@ -2011,6 +2021,12 @@ def _BuildGroupFields():
   fields.extend([
     (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), GQ_CONFIG, 0,
      lambda ctx, group: list(group.GetTags())),
+    (_MakeField("ipolicy", "InstancePolicy", QFT_OTHER,
+                "Instance policy limitations (merged)"),
+     GQ_CONFIG, 0, lambda ctx, _: ctx.group_ipolicy),
+    (_MakeField("custom_ipolicy", "CustomInstancePolicy", QFT_OTHER,
+                "Custom instance policy limitations"),
+     GQ_CONFIG, 0, _GetItemAttr("ipolicy")),
     ])
 
   fields.extend(_GetItemTimestampFields(GQ_CONFIG))

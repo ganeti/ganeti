@@ -94,6 +94,7 @@ G_FIELDS = [
   "name",
   "node_cnt",
   "node_list",
+  "ipolicy",
   ] + _COMMON_FIELDS
 
 J_FIELDS_BULK = [

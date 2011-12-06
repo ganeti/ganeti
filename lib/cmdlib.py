@@ -12957,6 +12957,7 @@ class _GroupQuery(_QueryBase):
     lu.needed_locks = {}
 
     self._all_groups = lu.cfg.GetAllNodeGroupsInfo()
+    self._cluster = lu.cfg.GetClusterInfo()
     name_to_uuid = dict((g.name, g.uuid) for g in self._all_groups.values())
 
     if not self.names:
@@ -13022,7 +13023,8 @@ class _GroupQuery(_QueryBase):
           # Do not pass on node information if it was not requested.
           group_to_nodes = None
 
-    return query.GroupQueryData([self._all_groups[uuid]
+    return query.GroupQueryData(self._cluster,
+                                [self._all_groups[uuid]
                                  for uuid in self.wanted],
                                 group_to_nodes, group_to_instances)
 
