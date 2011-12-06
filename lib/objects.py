@@ -44,6 +44,7 @@ from cStringIO import StringIO
 from ganeti import errors
 from ganeti import constants
 from ganeti import netutils
+from ganeti import utils
 
 from socket import AF_INET
 
@@ -53,6 +54,18 @@ __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
 
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
+
+# constants used to create InstancePolicy dictionary
+TISPECS_GROUP_TYPES = {
+  constants.MIN_ISPECS: constants.VTYPE_INT,
+  constants.MAX_ISPECS: constants.VTYPE_INT,
+}
+
+TISPECS_CLUSTER_TYPES = {
+  constants.MIN_ISPECS: constants.VTYPE_INT,
+  constants.MAX_ISPECS: constants.VTYPE_INT,
+  constants.STD_ISPECS: constants.VTYPE_INT,
+  }
 
 
 def FillDict(defaults_dict, custom_dict, skip_keys=None):
@@ -157,6 +170,45 @@ def MakeEmptyIPolicy():
     (constants.MAX_ISPECS, dict()),
     (constants.STD_ISPECS, dict()),
     ])
+
+
+def CreateIPolicyFromOpts(ispecs_mem_size=None,
+                          ispecs_cpu_count=None,
+                          ispecs_disk_count=None,
+                          ispecs_disk_size=None,
+                          ispecs_nic_count=None,
+                          group_ipolicy=False,
+                          allowed_values=None):
+  """Creation of instane policy based on command line options.
+
+
+  """
+  # prepare ipolicy dict
+  ipolicy_transposed = {
+    constants.MEM_SIZE_SPEC: ispecs_mem_size,
+    constants.CPU_COUNT_SPEC: ispecs_cpu_count,
+    constants.DISK_COUNT_SPEC: ispecs_disk_count,
+    constants.DISK_SIZE_SPEC: ispecs_disk_size,
+    constants.NIC_COUNT_SPEC: ispecs_nic_count,
+    }
+
+  # first, check that the values given are correct
+  if group_ipolicy:
+    forced_type = TISPECS_GROUP_TYPES
+  else:
+    forced_type = TISPECS_CLUSTER_TYPES
+
+  for specs in ipolicy_transposed.values():
+    utils.ForceDictType(specs, forced_type, allowed_values=allowed_values)
+
+  # then transpose
+  ipolicy_out = MakeEmptyIPolicy()
+  for name, specs in ipolicy_transposed.iteritems():
+    assert name in constants.ISPECS_PARAMETERS
+    for key, val in specs.items(): # {min: .. ,max: .., std: ..}
+      ipolicy_out[key][name] = val
+
+  return ipolicy_out
 
 
 class ConfigObject(object):

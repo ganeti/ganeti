@@ -1403,6 +1403,13 @@ def Epo(opts, args):
   else:
     return _EpoOff(opts, node_list, inst_map)
 
+INSTANCE_POLICY_OPTS = [
+  SPECS_CPU_COUNT_OPT,
+  SPECS_DISK_COUNT_OPT,
+  SPECS_DISK_SIZE_OPT,
+  SPECS_MEM_SIZE_OPT,
+  SPECS_NIC_COUNT_OPT,
+  ]
 
 commands = {
   "init": (
@@ -1414,7 +1421,7 @@ commands = {
      MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, DRBD_HELPER_OPT, NODRBD_STORAGE_OPT,
      DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT,
-     DISK_PARAMS_OPT],
+     DISK_PARAMS_OPT] + INSTANCE_POLICY_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -1492,7 +1499,8 @@ commands = {
      DRBD_HELPER_OPT, NODRBD_STORAGE_OPT, DEFAULT_IALLOCATOR_OPT,
      RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
      NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT],
+     DISK_STATE_OPT] +
+    INSTANCE_POLICY_OPTS,
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

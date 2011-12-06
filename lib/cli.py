@@ -166,6 +166,11 @@ __all__ = [
   "SHOWCMD_OPT",
   "SHUTDOWN_TIMEOUT_OPT",
   "SINGLE_NODE_OPT",
+  "SPECS_CPU_COUNT_OPT",
+  "SPECS_DISK_COUNT_OPT",
+  "SPECS_DISK_SIZE_OPT",
+  "SPECS_MEM_SIZE_OPT",
+  "SPECS_NIC_COUNT_OPT",
   "SPICE_CACERT_OPT",
   "SPICE_CERT_OPT",
   "SRC_DIR_OPT",
@@ -759,6 +764,28 @@ DISK_PARAMS_OPT = cli_option("-D", "--disk-parameters", dest="diskparams",
                              help="Disk template parameters, in the format"
                              " template:option=value,option=value,...",
                              type="identkeyval", action="append", default=[])
+
+SPECS_MEM_SIZE_OPT = cli_option("--specs-mem-size", dest="ispecs_mem_size",
+                                 type="keyval", default={},
+                                 help="Memory count specs: min, max, std"
+                                 " (in MB)")
+
+SPECS_CPU_COUNT_OPT = cli_option("--specs-cpu-count", dest="ispecs_cpu_count",
+                                 type="keyval", default={},
+                                 help="CPU count specs: min, max, std")
+
+SPECS_DISK_COUNT_OPT = cli_option("--specs-disk-count",
+                                  dest="ispecs_disk_count",
+                                  type="keyval", default={},
+                                  help="Disk count specs: min, max, std")
+
+SPECS_DISK_SIZE_OPT = cli_option("--specs-disk-size", dest="ispecs_disk_size",
+                                 type="keyval", default={},
+                                 help="Disk size specs: min, max, std (in MB)")
+
+SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
+                                 type="keyval", default={},
+                                 help="NIC count specs: min, max, std")
 
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
