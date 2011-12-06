@@ -921,7 +921,12 @@ def SetClusterParams(opts, args):
           opts.use_external_mip_script is not None or
           opts.prealloc_wipe_disks is not None or
           opts.hv_state or
-          opts.disk_state):
+          opts.disk_state or
+          opts.ispecs_mem_size is not None or
+          opts.ispecs_cpu_count is not None or
+          opts.ispecs_disk_count is not None or
+          opts.ispecs_disk_size is not None or
+          opts.ispecs_nic_count is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -964,6 +969,15 @@ def SetClusterParams(opts, args):
   ndparams = opts.ndparams
   if ndparams is not None:
     utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
+
+  ipolicy = \
+    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_size,
+                                  ispecs_cpu_count=opts.ispecs_cpu_count,
+                                  ispecs_disk_count=opts.ispecs_disk_count,
+                                  ispecs_disk_size=opts.ispecs_disk_size,
+                                  ispecs_nic_count=opts.ispecs_nic_count)
+  for value in ipolicy.values():
+    utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
 
   mnh = opts.maintain_node_health
 
@@ -1010,6 +1024,7 @@ def SetClusterParams(opts, args):
                                   nicparams=nicparams,
                                   ndparams=ndparams,
                                   diskparams=diskparams,
+                                  ipolicy=ipolicy,
                                   candidate_pool_size=opts.candidate_pool_size,
                                   maintain_node_health=mnh,
                                   uid_pool=uid_pool,

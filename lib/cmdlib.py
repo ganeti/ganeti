@@ -3674,6 +3674,15 @@ class LUClusterSetParams(LogicalUnit):
                             for name, values in svalues.items()))
              for storage, svalues in new_disk_state.items())
 
+    if self.op.ipolicy:
+      ipolicy = {}
+      for key, value in self.op.ipolicy.items():
+        utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
+        ipolicy[key] = _GetUpdatedParams(cluster.ipolicy.get(key, {}),
+                                          value)
+      objects.InstancePolicy.CheckParameterSyntax(ipolicy)
+      self.new_ipolicy = ipolicy
+
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
       self.new_nicparams = cluster.SimpleFillNIC(self.op.nicparams)
@@ -3834,6 +3843,8 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
     if self.op.nicparams:
       self.cluster.nicparams[constants.PP_DEFAULT] = self.new_nicparams
+    if self.op.ipolicy:
+      self.cluster.ipolicy = self.new_ipolicy
     if self.op.osparams:
       self.cluster.osparams = self.new_osp
     if self.op.ndparams:
