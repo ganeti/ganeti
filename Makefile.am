@@ -140,12 +140,8 @@ CLEANFILES = \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
 	devel/upload \
+	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
-	doc/examples/ganeti.initd \
-	doc/examples/ganeti-kvm-poweroff.initd \
-	doc/examples/ganeti.cron \
-	doc/examples/gnt-config-backup \
-	doc/examples/hooks/ipsec \
 	lib/_generated_rpc.py \
 	$(man_MANS) \
 	$(manhtml) \
@@ -169,6 +165,14 @@ BUILT_PYTHON_SOURCES = \
 	lib/_autoconf.py \
 	lib/_vcsversion.py \
 	lib/_generated_rpc.py
+
+# these are all built from the underlying %.in sources
+BUILT_EXAMPLES = \
+	doc/examples/ganeti-kvm-poweroff.initd \
+	doc/examples/ganeti.cron \
+	doc/examples/ganeti.initd \
+	doc/examples/gnt-config-backup \
+	doc/examples/hooks/ipsec
 
 nodist_pkgpython_PYTHON = \
 	$(BUILT_PYTHON_SOURCES)
@@ -428,12 +432,8 @@ docpng = $(patsubst %.dot,%.png,$(docdot))
 noinst_DATA = \
 	devel/upload \
 	doc/html \
+	$(BUILT_EXAMPLES) \
 	doc/examples/bash_completion \
-	doc/examples/ganeti.cron \
-	doc/examples/ganeti.initd \
-	doc/examples/ganeti-kvm-poweroff.initd \
-	doc/examples/gnt-config-backup \
-	doc/examples/hooks/ipsec \
 	$(manhtml)
 
 gnt_scripts = \
@@ -452,14 +452,7 @@ PYTHON_BOOTSTRAP_SBIN = \
 	daemons/ganeti-noded \
 	daemons/ganeti-watcher \
 	daemons/ganeti-rapi \
-	scripts/gnt-backup \
-	scripts/gnt-cluster \
-	scripts/gnt-debug \
-	scripts/gnt-group \
-	scripts/gnt-instance \
-	scripts/gnt-job \
-	scripts/gnt-node \
-	scripts/gnt-os
+	$(gnt_scripts)
 
 PYTHON_BOOTSTRAP = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
@@ -585,14 +578,10 @@ EXTRA_DIST = \
 	$(docrst) \
 	doc/conf.py \
 	doc/html \
-	doc/examples/ganeti.initd.in \
-	doc/examples/ganeti-kvm-poweroff.initd.in \
-	doc/examples/ganeti.cron.in \
-	doc/examples/gnt-config-backup.in \
+	$(BUILT_EXAMPLES:%=%.in) \
 	doc/examples/ganeti.default \
 	doc/examples/ganeti.default-debug \
 	doc/examples/hooks/ethers \
-	doc/examples/hooks/ipsec.in \
 	doc/examples/gnt-debug/README \
 	doc/examples/gnt-debug/delay0.json \
 	doc/examples/gnt-debug/delay50.json \
