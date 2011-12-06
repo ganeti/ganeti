@@ -1016,6 +1016,26 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
                                  (instance.name, msg), errors.ECODE_STATE)
 
 
+def _CheckMinMaxSpecs(name, ipolicy, value):
+  """Checks if value is in the desired range.
+
+  @param name: name of the parameter for which we perform the check
+  @param ipolicy: dictionary containing min, max and std values
+  @param value: actual value that we want to use
+  @return: None or element not meeting the criteria
+
+
+  """
+  if value in [None, constants.VALUE_AUTO]:
+    return None
+  max_v = ipolicy[constants.MAX_ISPECS].get(name, value)
+  min_v = ipolicy[constants.MIN_ISPECS].get(name, value)
+  if value > max_v or min_v > value:
+    return ("%s value %s is not in range [%s, %s]" %
+            (name, value, min_v, max_v))
+  return None
+
+
 def _ExpandItemName(fn, name, kind):
   """Expand an item name.
 
@@ -2115,6 +2135,34 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           msg = "cannot reach the master IP"
         _ErrorIf(True, constants.CV_ENODENET, node, msg)
 
+  def _VerifyInstancePolicy(self, instance):
+    """Verify instance specs against instance policy set on node group level.
+
+
+    """
+    cluster = self.cfg.GetClusterInfo()
+    full_beparams = cluster.FillBE(instance)
+    ipolicy = cluster.SimpleFillIPolicy(self.group_info.ipolicy)
+
+    mem_size = full_beparams.get(constants.BE_MAXMEM, None)
+    cpu_count = full_beparams.get(constants.BE_VCPUS, None)
+    disk_count = len(instance.disks)
+    disk_sizes = [disk.size for disk in instance.disks]
+    nic_count = len(instance.nics)
+
+    test_settings = [
+      (constants.MEM_SIZE_SPEC, mem_size),
+      (constants.CPU_COUNT_SPEC, cpu_count),
+      (constants.DISK_COUNT_SPEC, disk_count),
+      (constants.NIC_COUNT_SPEC, nic_count),
+      ] + map((lambda d: (constants.DISK_SIZE_SPEC, d)), disk_sizes)
+
+    for (name, value) in test_settings:
+      test_result = _CheckMinMaxSpecs(name, ipolicy, value)
+      self._ErrorIf(test_result is not None,
+                    constants.CV_EINSTANCEPOLICY, instance.name,
+                    test_result)
+
   def _VerifyInstance(self, instance, instanceconfig, node_image,
                       diskstatus):
     """Verify an instance.
@@ -2128,6 +2176,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     node_vol_should = {}
     instanceconfig.MapLVsByNode(node_vol_should)
+
+    self._VerifyInstancePolicy(instanceconfig)
 
     for node in node_vol_should:
       n_img = node_image[node]
