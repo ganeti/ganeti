@@ -1229,6 +1229,14 @@ def _DecideSelfPromotion(lu, exceptions=None):
   return mc_now < mc_should
 
 
+def _CalculateGroupIPolicy(cfg, group):
+  """Calculate instance policy for group.
+
+  """
+  cluster = cfg.GetClusterInfo()
+  return cluster.SimpleFillIPolicy(group.ipolicy)
+
+
 def _CheckNicsBridgesExist(lu, target_nics, target_node):
   """Check that the brigdes needed by a list of nics exist.
 

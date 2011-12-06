@@ -1257,6 +1257,7 @@ class NodeGroup(TaggableObject):
     "members",
     "ndparams",
     "diskparams",
+    "ipolicy",
     "serial_no",
     "hv_state_static",
     "disk_state_static",
@@ -1304,6 +1305,8 @@ class NodeGroup(TaggableObject):
       self.mtime = time.time()
 
     self.diskparams = UpgradeDiskParams(self.diskparams)
+    if self.ipolicy is None:
+      self.ipolicy = MakeEmptyIPolicy()
 
   def FillND(self, node):
     """Return filled out ndparams for L{objects.Node}

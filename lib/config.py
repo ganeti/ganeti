@@ -561,8 +561,11 @@ class ConfigWriter:
         result.append("duplicate node group name '%s'" % nodegroup.name)
       else:
         nodegroups_names.add(nodegroup.name)
+      group_name = "group %s" % nodegroup.name
+      _helper_ipolicy(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy))
+      _helper_ispecs(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy))
       if nodegroup.ndparams:
-        _helper("group %s" % nodegroup.name, "ndparams",
+        _helper(group_name, "ndparams",
                 cluster.SimpleFillND(nodegroup.ndparams),
                 constants.NDS_PARAMETER_TYPES)
 
