@@ -7,7 +7,7 @@ Version 2.6.0 beta 1
 *(unreleased)*
 
 - Deprecated ``admin_up`` field. Instead, ``admin_state`` is introduced,
-  with 3 possible values -- ``up``,``down`` and ``offline``.
+  with 3 possible values -- ``up``, ``down`` and ``offline``.
 
 Version 2.5.0 rc4
 -----------------
