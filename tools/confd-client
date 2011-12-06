@@ -57,6 +57,7 @@ OPTIONS = [
                  type="int", metavar="<REQUESTS>"),
   ]
 
+
 def Log(msg, *args, **kwargs):
   """Simple function that prints out its argument.
 
@@ -207,20 +208,20 @@ class TestClient(object):
                                                  counting_callback)
 
     tests = [
-      {"type": constants.CONFD_REQ_PING },
-      {"type": constants.CONFD_REQ_CLUSTER_MASTER },
+      {"type": constants.CONFD_REQ_PING},
+      {"type": constants.CONFD_REQ_CLUSTER_MASTER},
       {"type": constants.CONFD_REQ_CLUSTER_MASTER,
-       "query": {constants.CONFD_REQQ_FIELDS : [
-            constants.CONFD_REQFIELD_NAME,
-            constants.CONFD_REQFIELD_IP,
-            constants.CONFD_REQFIELD_MNODE_PIP,
-            ]}},
-      {"type": constants.CONFD_REQ_NODE_ROLE_BYNAME },
-      {"type": constants.CONFD_REQ_NODE_PIP_LIST },
-      {"type": constants.CONFD_REQ_MC_PIP_LIST },
+       "query": {constants.CONFD_REQQ_FIELDS:
+                 [constants.CONFD_REQFIELD_NAME,
+                  constants.CONFD_REQFIELD_IP,
+                  constants.CONFD_REQFIELD_MNODE_PIP,
+                  ]}},
+      {"type": constants.CONFD_REQ_NODE_ROLE_BYNAME},
+      {"type": constants.CONFD_REQ_NODE_PIP_LIST},
+      {"type": constants.CONFD_REQ_MC_PIP_LIST},
       {"type": constants.CONFD_REQ_INSTANCES_IPS_LIST,
        "query": None},
-      {"type": constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP },
+      {"type": constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP},
       ]
 
     for kwargs in tests:
@@ -228,7 +229,7 @@ class TestClient(object):
         assert self.cluster_master is not None
         kwargs["query"] = self.cluster_master
       elif kwargs["type"] == constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP:
-        kwargs["query"] = { constants.CONFD_REQQ_IPLIST : self.instance_ips }
+        kwargs["query"] = {constants.CONFD_REQQ_IPLIST: self.instance_ips}
 
       # pylint: disable=W0142
       # used ** magic
@@ -253,11 +254,12 @@ class TestClient(object):
 
     """
     start = time.time()
-    for i in range(self.opts.requests):
+    for _ in range(self.opts.requests):
+      # pylint: disable=W0142
       req = confd_client.ConfdClientRequest(**kwargs)
       self.DoConfdRequestReply(req)
     stop = time.time()
-    per_req = 1000 * (stop-start) / self.opts.requests
+    per_req = 1000 * (stop - start) / self.opts.requests
     Log("%.3fms per %s request", per_req, name, indent=1)
 
   def Run(self):
@@ -266,6 +268,7 @@ class TestClient(object):
     """
     self.TestConfd()
     self.TestTiming()
+
 
 def main():
   """Main function.
