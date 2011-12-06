@@ -79,6 +79,18 @@ def FillDict(defaults_dict, custom_dict, skip_keys=None):
   return ret_dict
 
 
+def FillDictOfDicts(defaults_dict, custom_dict, skip_keys=None):
+  """Run FillDict for each key in dictionary.
+
+  """
+  ret_dict = {}
+  for key in defaults_dict.keys():
+    ret_dict[key] = FillDict(defaults_dict[key],
+                             custom_dict.get(key, {}),
+                             skip_keys=skip_keys)
+  return ret_dict
+
+
 def UpgradeGroupedParams(target, defaults):
   """Update all groups for the target parameter.
 
@@ -134,6 +146,17 @@ def UpgradeDiskParams(diskparams):
                                     diskparams[template])
 
   return result
+
+
+def MakeEmptyIPolicy():
+  """Create empty IPolicy dictionary.
+
+  """
+  return dict([
+    (constants.MIN_ISPECS, dict()),
+    (constants.MAX_ISPECS, dict()),
+    (constants.STD_ISPECS, dict()),
+    ])
 
 
 class ConfigObject(object):
@@ -780,6 +803,44 @@ class Disk(ConfigObject):
     # add here config upgrade for this disk
 
 
+class InstancePolicy(ConfigObject):
+  """Config object representing instance policy limits dictionary."""
+  __slots__ = ["min", "max", "std"]
+
+  @classmethod
+  def CheckParameterSyntax(cls, ipolicy):
+    """ Check the instance policy for validity.
+
+    """
+    for param in constants.ISPECS_PARAMETERS:
+      InstancePolicy.CheckISpecSyntax(ipolicy, param)
+
+  @classmethod
+  def CheckISpecSyntax(cls, ipolicy, name):
+    """Check the instance policy for validity on a given key.
+
+    We check if the instance policy makes sense for a given key, that is
+    if ipolicy[min][name] <= ipolicy[std][name] <= ipolicy[max][name].
+
+    @type ipolicy: dict
+    @param ipolicy: dictionary with min, max, std specs
+    @type name: string
+    @param name: what are the limits for
+    @raise errors.ConfigureError: when specs for given name are not valid
+
+    """
+    min_v = ipolicy[constants.MIN_ISPECS].get(name, 0)
+    std_v = ipolicy[constants.STD_ISPECS].get(name, min_v)
+    max_v = ipolicy[constants.MAX_ISPECS].get(name, std_v)
+    err = ("Invalid specification of min/max/std values for %s: %s/%s/%s" %
+           (name,
+            ipolicy[constants.MIN_ISPECS].get(name, "-"),
+            ipolicy[constants.MAX_ISPECS].get(name, "-"),
+            ipolicy[constants.STD_ISPECS].get(name, "-")))
+    if min_v > std_v or std_v > max_v:
+      raise errors.ConfigurationError(err)
+
+
 class Instance(TaggableObject):
   """Config object representing an instance."""
   __slots__ = [
@@ -1238,6 +1299,7 @@ class Cluster(TaggableObject):
     "shared_file_storage_dir",
     "enabled_hypervisors",
     "hvparams",
+    "ipolicy",
     "os_hvp",
     "beparams",
     "osparams",
@@ -1353,6 +1415,10 @@ class Cluster(TaggableObject):
       self.use_external_mip_script = False
 
     self.diskparams = UpgradeDiskParams(self.diskparams)
+
+    # instance policy added before 2.6
+    if self.ipolicy is None:
+      self.ipolicy = MakeEmptyIPolicy()
 
   @property
   def primary_hypervisor(self):
@@ -1536,6 +1602,18 @@ class Cluster(TaggableObject):
 
     """
     return FillDict(self.ndparams, ndparams)
+
+  def SimpleFillIPolicy(self, ipolicy):
+    """ Fill instance policy dict with defaults.
+
+    @type ipolicy: dict
+    @param ipolicy: the dict to fill
+    @rtype: dict
+    @return: a copy of passed ipolicy with missing keys filled from
+      the cluster defaults
+
+    """
+    return FillDictOfDicts(self.ipolicy, ipolicy)
 
 
 class BlockDevStatus(ConfigObject):

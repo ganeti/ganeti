@@ -426,6 +426,17 @@ class ConfigWriter:
       except errors.ConfigurationError, err:
         result.append("%s has invalid nicparams: %s" % (owner, err))
 
+    def _helper_ipolicy(owner, params):
+      try:
+        objects.InstancePolicy.CheckParameterSyntax(params)
+      except errors.ConfigurationError, err:
+        result.append("%s has invalid instance policy: %s" % (owner, err))
+
+    def _helper_ispecs(owner, params):
+      for key, value in params.iteritems():
+        fullkey = "ipolicy/" + key
+        _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
+
     # check cluster parameters
     _helper("cluster", "beparams", cluster.SimpleFillBE({}),
             constants.BES_PARAMETER_TYPES)
@@ -434,6 +445,8 @@ class ConfigWriter:
     _helper_nic("cluster", cluster.SimpleFillNIC({}))
     _helper("cluster", "ndparams", cluster.SimpleFillND({}),
             constants.NDS_PARAMETER_TYPES)
+    _helper_ipolicy("cluster", cluster.SimpleFillIPolicy({}))
+    _helper_ispecs("cluster", cluster.SimpleFillIPolicy({}))
 
     # per-instance checks
     for instance_name in data.instances:
