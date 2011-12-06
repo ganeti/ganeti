@@ -702,57 +702,106 @@ DRBD setups is added to Ganeti.
 At JSON level, since the object key has to be a string, the keys can be
 encoded via a separator (e.g. slash), or by having two dict levels.
 
-+--------+-------------+-------------------------+---------------------+------+
-|Disk    |Name         |Description              |Current status       |Type  |
-|template|             |                         |                     |      |
-+========+=============+=========================+=====================+======+
-|plain   |stripes      |How many stripes to use  |Configured at        |int   |
-|        |             |for newly created (plain)|./configure time, not|      |
-|        |             |logical voumes           |overridable at       |      |
-|        |             |                         |runtime              |      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |data-stripes |How many stripes to use  |Same as for          |int   |
-|        |             |for data volumes         |plain/stripes        |      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |metavg       |Default volume group for |Same as the main     |string|
-|        |             |the metadata LVs         |volume group,        |      |
-|        |             |                         |overridable via      |      |
-|        |             |                         |'metavg' key         |      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |meta-stripes |How many stripes to use  |Same as for lvm      |int   |
-|        |             |for meta volumes         |'stripes', suboptimal|      |
-|        |             |                         |as the meta LVs are  |      |
-|        |             |                         |small                |      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |disk-barriers|What kind of barriers to |Either all enabled or|string|
-|        |             |*disable* for disks;     |all disabled, per    |      |
-|        |             |either "n" or a string   |./configure time     |      |
-|        |             |containing a subset of   |option               |      |
-|        |             |"bfd"                    |                     |      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |meta-barriers|Whether to disable or not|Handled together with|bool  |
-|        |             |the barriers for the meta|disk-barriers        |      |
-|        |             |volume                   |                     |      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |resync-rate  |The (static) resync rate |Hardcoded in         |int   |
-|        |             |for drbd, when using the |constants.py, not    |      |
-|        |             |static syncer, in MiB/s  |changeable via Ganeti|      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |disk-custom  |Free-form string that    |Not supported        |string|
-|        |             |will be appended to the  |                     |      |
-|        |             |drbdsetup disk command   |                     |      |
-|        |             |line, for custom options |                     |      |
-|        |             |not supported by Ganeti  |                     |      |
-|        |             |itself                   |                     |      |
-+--------+-------------+-------------------------+---------------------+------+
-|drbd    |net-custom   |Free-form string for     |Not supported        |string|
-|        |             |custom net setup options |                     |      |
-+--------+-------------+-------------------------+---------------------+------+
+When needed, the unit of measurement is expressed inside square
+brackets.
 
-Note that the DRBD parameters might change once Ganeti supports DRBD 8.4, in
-which the :command:`drbdsetup` syntax has changed significantly.
-Moreover, new parameters for the dynamic synchronization algorithm will
-be added for DRBD versions >= 8.3.9.
++--------+--------------+-------------------------+---------------------+------+
+|Disk    |Name          |Description              |Current status       |Type  |
+|template|              |                         |                     |      |
++========+==============+=========================+=====================+======+
+|plain   |stripes       |How many stripes to use  |Configured at        |int   |
+|        |              |for newly created (plain)|./configure time, not|      |
+|        |              |logical voumes           |overridable at       |      |
+|        |              |                         |runtime              |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |data-stripes  |How many stripes to use  |Same as for          |int   |
+|        |              |for data volumes         |plain/stripes        |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |metavg        |Default volume group for |Same as the main     |string|
+|        |              |the metadata LVs         |volume group,        |      |
+|        |              |                         |overridable via      |      |
+|        |              |                         |'metavg' key         |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |meta-stripes  |How many stripes to use  |Same as for lvm      |int   |
+|        |              |for meta volumes         |'stripes', suboptimal|      |
+|        |              |                         |as the meta LVs are  |      |
+|        |              |                         |small                |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |disk-barriers |What kind of barriers to |Either all enabled or|string|
+|        |              |*disable* for disks;     |all disabled, per    |      |
+|        |              |either "n" or a string   |./configure time     |      |
+|        |              |containing a subset of   |option               |      |
+|        |              |"bfd"                    |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |meta-barriers |Whether to disable or not|Handled together with|bool  |
+|        |              |the barriers for the meta|disk-barriers        |      |
+|        |              |volume                   |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |resync-rate   |The (static) resync rate |Hardcoded in         |int   |
+|        |              |for drbd, when using the |constants.py, not    |      |
+|        |              |static syncer, in KiB/s  |changeable via Ganeti|      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |c-plan-ahead  |Agility factor of the    |Not supported.       |int   |
+|        |              |dynamic resync speed     |                     |      |
+|        |              |controller. (the higher, |                     |      |
+|        |              |the slower the algorithm |                     |      |
+|        |              |will adapt the resync    |                     |      |
+|        |              |speed). A value of 0     |                     |      |
+|        |              |(that is the default)    |                     |      |
+|        |              |disables the controller  |                     |      |
+|        |              |[ds]                     |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |c-fill-target |Maximum amount of        |Not supported.       |int   |
+|        |              |in-flight resync data    |                     |      |
+|        |              |for the dynamic resync   |                     |      |
+|        |              |speed controller         |                     |      |
+|        |              |[sectors]                |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |c-delay-target|Maximum estimated peer   |Not supported.       |int   |
+|        |              |response latency for the |                     |      |
+|        |              |dynamic resync speed     |                     |      |
+|        |              |controller [ds]          |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |c-max-rate    |Upper bound on resync    |Not supported.       |int   |
+|        |              |speed for the dynamic    |                     |      |
+|        |              |resync speed controller  |                     |      |
+|        |              |[KiB/s]                  |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |c-min-rate    |Minimum resync speed for |Not supported.       |int   |
+|        |              |the dynamic resync speed |                     |      |
+|        |              |controller [KiB/s]       |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |disk-custom   |Free-form string that    |Not supported        |string|
+|        |              |will be appended to the  |                     |      |
+|        |              |drbdsetup disk command   |                     |      |
+|        |              |line, for custom options |                     |      |
+|        |              |not supported by Ganeti  |                     |      |
+|        |              |itself                   |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+|drbd    |net-custom    |Free-form string for     |Not supported        |string|
+|        |              |custom net setup options |                     |      |
++--------+--------------+-------------------------+---------------------+------+
+
+Currently Ganeti supports only DRBD 8.0.x, 8.2.x, 8.3.x.  It will refuse
+to work with DRBD 8.4 since the :command:`drbdsetup` syntax has changed
+significantly.
+
+The barriers-related parameters have been introduced in different DRBD
+versions; please make sure that your version supports all the barrier
+parameters that you pass to Ganeti. Any version later than 8.3.0
+implements all of them.
+
+The minimum DRBD version for using the dynamic resync speed controller
+is 8.3.9, since previous versions implement different parameters.
+
+A more detailed discussion of the dynamic resync speed controller
+parameters is outside the scope of the present document. Please refer to
+the ``drbdsetup`` man page
+(`8.3 <http://www.drbd.org/users-guide-8.3/re-drbdsetup.html>`_ and 
+`8.4 <http://www.drbd.org/users-guide/re-drbdsetup.html>`_). An
+interesting discussion about them can also be found in a
+`drbd-user mailing list post
+<http://lists.linbit.com/pipermail/drbd-user/2011-August/016739.html>`_.
 
 All the above parameters are at cluster and node group level; as in
 other parts of the code, the intention is that all nodes in a node group
