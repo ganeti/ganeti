@@ -5830,6 +5830,7 @@ class LUClusterQuery(NoHooksLU):
       "os_hvp": os_hvp,
       "beparams": cluster.beparams,
       "osparams": cluster.osparams,
+      "ipolicy": cluster.ipolicy,
       "nicparams": cluster.nicparams,
       "ndparams": cluster.ndparams,
       "candidate_pool_size": cluster.candidate_pool_size,

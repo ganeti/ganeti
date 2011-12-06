@@ -448,6 +448,11 @@ def ShowClusterConfig(opts, args):
   ToStdout("Default nic parameters:")
   _PrintGroupedParams(result["nicparams"], roman=opts.roman_integers)
 
+  ToStdout("Instance policy - limits for instances:")
+  for key in constants.IPOLICY_PARAMETERS:
+    ToStdout("  - %s", key)
+    _PrintGroupedParams(result["ipolicy"][key], roman=opts.roman_integers)
+
   return 0
 
 
