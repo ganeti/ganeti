@@ -138,6 +138,17 @@ def InitCluster(opts, args):
                                          diskparams[templ])
     utils.ForceDictType(diskparams[templ], constants.DISK_DT_TYPES)
 
+  # prepare ipolicy dict
+  ipolicy_raw = \
+    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_count,
+                                  ispecs_cpu_count=opts.ispecs_cpu_count,
+                                  ispecs_disk_count=opts.ispecs_disk_count,
+                                  ispecs_disk_size=opts.ispecs_disk_size,
+                                  ispecs_nic_count=opts.ispecs_nic_count)
+  ipolicy = objects.FillDictOfDicts(constants.IPOLICY_DEFAULTS, ipolicy_raw)
+  for value in ipolicy.values():
+    utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
+
   if opts.candidate_pool_size is None:
     opts.candidate_pool_size = constants.MASTER_POOL_SIZE_DEFAULT
 
@@ -183,6 +194,7 @@ def InitCluster(opts, args):
                         nicparams=nicparams,
                         ndparams=ndparams,
                         diskparams=diskparams,
+                        ipolicy=ipolicy,
                         candidate_pool_size=opts.candidate_pool_size,
                         modify_etc_hosts=opts.modify_etc_hosts,
                         modify_ssh_setup=opts.modify_ssh_setup,
