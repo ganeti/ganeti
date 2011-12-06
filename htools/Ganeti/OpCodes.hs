@@ -54,28 +54,28 @@ $(makeJSONInstance ''ReplaceDisksMode)
 -- actually use in the htools codebase.
 $(genOpCode "OpCode"
   [ ("OpTestDelay",
-     [ ("duration",  [t| Double   |], noDefault)
-     , ("on_master", [t| Bool     |], noDefault)
-     , ("on_nodes",  [t| [String] |], noDefault)
+     [ simpleField "duration"  [t| Double   |]
+     , simpleField "on_master" [t| Bool     |]
+     , simpleField "on_nodes"  [t| [String] |]
      ])
   , ("OpInstanceReplaceDisks",
-     [ ("instance_name", [t| String           |], noDefault)
-     , ("remote_node",   [t| Maybe String     |], noDefault)
-     , ("mode",          [t| ReplaceDisksMode |], noDefault)
-     , ("disks",         [t| [Int]            |], noDefault)
-     , ("iallocator",    [t| Maybe String     |], noDefault)
+     [ simpleField "instance_name" [t| String |]
+     , optionalField $ simpleField "remote_node" [t| String |]
+     , simpleField "mode"  [t| ReplaceDisksMode |]
+     , simpleField "disks" [t| [Int] |]
+     , optionalField $ simpleField "iallocator" [t| String |]
      ])
   , ("OpInstanceFailover",
-     [ ("instance_name",      [t| String       |], noDefault)
-     , ("ignore_consistency", [t| Bool         |], noDefault)
-     , ("target_node",        [t| Maybe String |], noDefault)
+     [ simpleField "instance_name"      [t| String |]
+     , simpleField "ignore_consistency" [t| Bool   |]
+     , optionalField $ simpleField "target_node" [t| String |]
      ])
   , ("OpInstanceMigrate",
-     [ ("instance_name",  [t| String       |], noDefault)
-     , ("live",           [t| Bool         |], noDefault)
-     , ("cleanup",        [t| Bool         |], noDefault)
-     , ("allow_failover", [t| Bool         |], [| Just False |])
-     , ("target_node",    [t| Maybe String |], noDefault)
+     [ simpleField "instance_name"  [t| String |]
+     , simpleField "live"           [t| Bool   |]
+     , simpleField "cleanup"        [t| Bool   |]
+     , defaultField [| False |] $ simpleField "allow_failover" [t| Bool |]
+     , optionalField $ simpleField "target_node" [t| String |]
      ])
   ])
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 {-| TemplateHaskell helper for HTools.
 
@@ -34,7 +34,6 @@ module Ganeti.THH ( declareSADT
                   , makeJSONInstance
                   , genOpID
                   , genOpCode
-                  , noDefault
                   , genStrOfOp
                   , genStrOfKey
                   , genLuxiOp
@@ -119,8 +118,15 @@ fieldRecordName :: Field -> String
 fieldRecordName (Field { fieldName = name, fieldConstr = alias }) =
   maybe (camelCase name) id alias
 
+-- | Computes the preferred variable name to use for the value of this
+-- field. If the field has a specific constructor name, then we use a
+-- first-letter-lowercased version of that; otherwise, we simply use
+-- the field name. See also 'fieldRecordName'.
 fieldVariable :: Field -> String
-fieldVariable = map toLower . fieldRecordName
+fieldVariable f =
+  case (fieldConstr f) of
+    Just name -> ensureLower name
+    _ -> fieldName f
 
 actualFieldType :: Field -> Q Type
 actualFieldType f | fieldIsContainer f = [t| Container $t |]
@@ -408,27 +414,15 @@ type OpParam = (String, Q Type, Q Exp)
 -- datatype and the JSON serialisation out of it. We can't use a
 -- generic serialisation since we need to be compatible with Ganeti's
 -- own, so we have a few quirks to work around.
---
--- There are three things to be defined for each parameter:
---
--- * name
---
--- * type; if this is 'Maybe', will only be serialised if it's a
---   'Just' value
---
--- * default; if missing, won't raise an exception, but will instead
---   use the default
---
 genOpCode :: String                -- ^ Type name to use
-          -> [(String, [OpParam])] -- ^ Constructor name and parameters
+          -> [(String, [Field])]   -- ^ Constructor name and parameters
           -> Q [Dec]
 genOpCode name cons = do
   decl_d <- mapM (\(cname, fields) -> do
                     -- we only need the type of the field, without Q
-                    fields' <- mapM (\(_, qt, _) ->
-                                         qt >>= \t -> return (NotStrict, t))
-                               fields
-                    return $ NormalC (mkName cname) fields')
+                    fields' <- mapM actualFieldType fields
+                    let fields'' = zip (repeat NotStrict) fields'
+                    return $ NormalC (mkName cname) fields'')
             cons
   let declD = DataD [] (mkName name) [] decl_d [''Show, ''Read, ''Eq]
 
@@ -443,39 +437,20 @@ isOptional :: Type -> Bool
 isOptional (AppT (ConT dt) _) | dt == ''Maybe = True
 isOptional _ = False
 
--- | Generates the \"save\" expression for a single opcode parameter.
---
--- There is only one special handling mode: if the parameter is of
--- 'Maybe' type, then we only save it if it's a 'Just' value,
--- otherwise we skip it.
-saveField :: Name    -- ^ The name of variable that contains the value
-          -> OpParam -- ^ Parameter definition
-          -> Q Exp
-saveField fvar (fname, qt, _) = do
-  t <- qt
-  let fnexp = stringE fname
-      fvare = varE fvar
-  (if isOptional t
-   then [| case $fvare of
-             Just v' -> [( $fnexp, $showJSONE v')]
-             Nothing -> []
-         |]
-   else [| [( $fnexp, $showJSONE $fvare )] |])
-
 -- | Generates the \"save\" clause for an entire opcode constructor.
 --
 -- This matches the opcode with variables named the same as the
 -- constructor fields (just so that the spliced in code looks nicer),
--- and passes those name plus the parameter definition to 'saveField'.
+-- and passes those name plus the parameter definition to 'saveObjectField'.
 saveConstructor :: String    -- ^ The constructor name
-                -> [OpParam] -- ^ The parameter definitions for this
+                -> [Field]   -- ^ The parameter definitions for this
                              -- constructor
                 -> Q Clause  -- ^ Resulting clause
 saveConstructor sname fields = do
   let cname = mkName sname
-  let fnames = map (\(n, _, _) -> mkName n) fields
+  let fnames = map (mkName . fieldVariable) fields
   let pat = conP cname (map varP fnames)
-  let felems = map (uncurry saveField) (zip fnames fields)
+  let felems = map (uncurry saveObjectField) (zip fnames fields)
       -- now build the OP_ID serialisation
       opid = [| [( $(stringE "OP_ID"),
                    $showJSONE $(stringE . deCamelCase $ sname) )] |]
@@ -488,51 +463,23 @@ saveConstructor sname fields = do
 --
 -- This builds a per-constructor match clause that contains the
 -- respective constructor-serialisation code.
-genSaveOpCode :: [(String, [OpParam])] -> Q (Dec, Dec)
+genSaveOpCode :: [(String, [Field])] -> Q (Dec, Dec)
 genSaveOpCode opdefs = do
   cclauses <- mapM (uncurry saveConstructor) opdefs
   let fname = mkName "saveOpCode"
   sigt <- [t| $(conT (mkName "OpCode")) -> JSON.JSValue |]
   return $ (SigD fname sigt, FunD fname cclauses)
 
--- | Generates the \"load\" field for a single parameter.
---
--- There is custom handling, depending on how the parameter is
--- specified. For a 'Maybe' type parameter, we allow that it is not
--- present (via 'Utils.maybeFromObj'). Otherwise, if there is a
--- default value, we allow the parameter to be abset, and finally if
--- there is no default value, we require its presence.
-loadField :: OpParam -> Q (Name, Stmt)
-loadField (fname, qt, qdefa) = do
-  let fvar = mkName fname
-  t <- qt
-  defa <- qdefa
-  -- these are used in all patterns below
-  let objvar = varNameE "o"
-      objfield = stringE fname
-  bexp <- if isOptional t
-          then [| $((varNameE "maybeFromObj")) $objvar $objfield |]
-          else case defa of
-                 AppE (ConE dt) defval | dt == 'Just ->
-                   -- but has a default value
-                   [| $(varNameE "fromObjWithDefault")
-                      $objvar $objfield $(return defval) |]
-                 ConE dt | dt == 'Nothing ->
-                     [| $(varNameE "fromObj") $objvar $objfield |]
-                 s -> fail $ "Invalid default value " ++ show s ++
-                      ", expecting either 'Nothing' or a 'Just defval'"
-  return (fvar, BindS (VarP fvar) bexp)
-
-loadConstructor :: String -> [OpParam] -> Q Exp
+loadConstructor :: String -> [Field] -> Q Exp
 loadConstructor sname fields = do
   let name = mkName sname
-  fbinds <- mapM loadField fields
+  fbinds <- mapM loadObjectField fields
   let (fnames, fstmts) = unzip fbinds
   let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
       fstmts' = fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
   return $ DoE fstmts'
 
-genLoadOpCode :: [(String, [OpParam])] -> Q (Dec, Dec)
+genLoadOpCode :: [(String, [Field])] -> Q (Dec, Dec)
 genLoadOpCode opdefs = do
   let fname = mkName "loadOpCode"
       arg1 = mkName "v"
@@ -554,10 +501,6 @@ genLoadOpCode opdefs = do
       body = DoE [st1, st2, cst]
   sigt <- [t| JSON.JSValue -> JSON.Result $(conT (mkName "OpCode")) |]
   return $ (SigD fname sigt, FunD fname [Clause [VarP arg1] (NormalB body) []])
-
--- | No default type.
-noDefault :: Q Exp
-noDefault = conE 'Nothing
 
 -- * Template code for luxi
 
