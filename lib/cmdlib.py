@@ -8173,6 +8173,8 @@ def _ComputeLDParams(disk_template, disk_params):
       constants.LDP_BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
       constants.LDP_NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
       constants.LDP_DEFAULT_METAVG: dt_params[constants.DRBD_DEFAULT_METAVG],
+      constants.LDP_DISK_CUSTOM: dt_params[constants.DRBD_DISK_CUSTOM],
+      constants.LDP_NET_CUSTOM: dt_params[constants.DRBD_NET_CUSTOM],
       }
 
     drbd_params = \

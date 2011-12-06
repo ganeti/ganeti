@@ -24,6 +24,7 @@
 import re
 import time
 import errno
+import shlex
 import stat
 import pyparsing as pyp
 import os
@@ -1372,6 +1373,9 @@ class DRBD8(BaseDRBD):
                                    self.params[constants.LDP_NO_META_FLUSH])
     args.extend(barrier_args)
 
+    if self.params[constants.LDP_DISK_CUSTOM]:
+      args.extend(shlex.split(self.params[constants.LDP_DISK_CUSTOM]))
+
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
@@ -1495,6 +1499,10 @@ class DRBD8(BaseDRBD):
       args.append("-m")
     if hmac and secret:
       args.extend(["-a", hmac, "-x", secret])
+
+    if self.params[constants.LDP_NET_CUSTOM]:
+      args.extend(shlex.split(self.params[constants.LDP_NET_CUSTOM]))
+
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't setup network: %s - %s",
