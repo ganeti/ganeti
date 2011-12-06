@@ -8172,6 +8172,7 @@ def _ComputeLDParams(disk_template, disk_params):
       constants.LDP_RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
       constants.LDP_BARRIERS: dt_params[constants.DRBD_DISK_BARRIERS],
       constants.LDP_NO_META_FLUSH: dt_params[constants.DRBD_META_BARRIERS],
+      constants.LDP_DEFAULT_METAVG: dt_params[constants.DRBD_DEFAULT_METAVG],
       }
 
     drbd_params = \
@@ -8290,8 +8291,9 @@ def _GenerateDiskTemplate(lu, template_name,
       names.append(lv_prefix + "_meta")
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
+      drbd_default_metavg = drbd_params[constants.LDP_DEFAULT_METAVG]
       data_vg = disk.get(constants.IDISK_VG, vgname)
-      meta_vg = disk.get(constants.IDISK_METAVG, data_vg)
+      meta_vg = disk.get(constants.IDISK_METAVG, drbd_default_metavg)
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
                                       disk[constants.IDISK_SIZE],
                                       [data_vg, meta_vg],
@@ -9301,8 +9303,9 @@ class LUInstanceCreate(LogicalUnit):
         constants.IDISK_SIZE: size,
         constants.IDISK_MODE: mode,
         constants.IDISK_VG: data_vg,
-        constants.IDISK_METAVG: disk.get(constants.IDISK_METAVG, data_vg),
         }
+      if constants.IDISK_METAVG in disk:
+        new_disk[constants.IDISK_METAVG] = disk[constants.IDISK_METAVG]
       if constants.IDISK_ADOPT in disk:
         new_disk[constants.IDISK_ADOPT] = disk[constants.IDISK_ADOPT]
       self.disks.append(new_disk)
