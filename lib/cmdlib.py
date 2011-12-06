@@ -13068,7 +13068,8 @@ class LUGroupSetParams(LogicalUnit):
       self.op.diskparams,
       self.op.alloc_policy,
       self.op.hv_state,
-      self.op.disk_state
+      self.op.disk_state,
+      self.op.ipolicy,
       ]
 
     if all_changes.count(None) == len(all_changes):
@@ -13117,6 +13118,16 @@ class LUGroupSetParams(LogicalUnit):
         _MergeAndVerifyDiskState(self.op.disk_state,
                                  self.group.disk_state_static)
 
+    if self.op.ipolicy:
+      g_ipolicy = {}
+      for key, value in self.op.ipolicy.iteritems():
+        g_ipolicy[key] = _GetUpdatedParams(self.group.ipolicy.get(key, {}),
+                                           value,
+                                           use_none=True)
+        utils.ForceDictType(g_ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
+      self.new_ipolicy = g_ipolicy
+      objects.InstancePolicy.CheckParameterSyntax(self.new_ipolicy)
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -13155,6 +13166,9 @@ class LUGroupSetParams(LogicalUnit):
 
     if self.op.disk_state:
       self.group.disk_state_static = self.new_disk_state
+
+    if self.op.ipolicy:
+      self.group.ipolicy = self.new_ipolicy
 
     self.cfg.Update(self.group, feedback_fn)
     return result

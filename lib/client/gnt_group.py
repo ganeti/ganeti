@@ -146,8 +146,11 @@ def SetGroupParams(opts, args):
   @return: the desired exit code
 
   """
-  if (opts.ndparams is None and opts.alloc_policy is None
-      and not opts.diskparams and not opts.hv_state and not opts.disk_state):
+  allmods = [opts.ndparams, opts.alloc_policy, opts.diskparams, opts.hv_state,
+             opts.disk_state, opts.ispecs_mem_size, opts.ispecs_cpu_count,
+             opts.ispecs_disk_count, opts.ispecs_disk_size,
+             opts.ispecs_nic_count, opts.diskparams]
+  if allmods.count(None) == len(allmods):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -159,12 +162,41 @@ def SetGroupParams(opts, args):
   hv_state = dict(opts.hv_state)
 
   diskparams = dict(opts.diskparams)
+
+  # set the default values
+  to_ipolicy = [
+    opts.ispecs_mem_size,
+    opts.ispecs_cpu_count,
+    opts.ispecs_disk_count,
+    opts.ispecs_disk_size,
+    opts.ispecs_nic_count,
+    ]
+  for ispec in to_ipolicy:
+    for param in ispec:
+      if isinstance(ispec[param], basestring):
+        if ispec[param].lower() == "default":
+          ispec[param] = constants.VALUE_DEFAULT
+  # create ipolicy object
+  ipolicy = objects.CreateIPolicyFromOpts(\
+    ispecs_mem_size=opts.ispecs_mem_size,
+    ispecs_cpu_count=opts.ispecs_cpu_count,
+    ispecs_disk_count=opts.ispecs_disk_count,
+    ispecs_disk_size=opts.ispecs_disk_size,
+    ispecs_nic_count=opts.ispecs_nic_count,
+    group_ipolicy=True,
+    allowed_values=[constants.VALUE_DEFAULT])
+  for key in ipolicy.keys():
+    utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES,
+                        allowed_values=[constants.VALUE_DEFAULT])
+
   op = opcodes.OpGroupSetParams(group_name=args[0],
                                 ndparams=opts.ndparams,
                                 alloc_policy=opts.alloc_policy,
                                 hv_state=hv_state,
                                 disk_state=disk_state,
-                                diskparams=diskparams)
+                                diskparams=diskparams,
+                                ipolicy=ipolicy)
+
   result = SubmitOrSend(op, opts)
 
   if result:
@@ -266,7 +298,7 @@ commands = {
   "modify": (
     SetGroupParams, ARGS_ONE_GROUP,
     [DRY_RUN_OPT, SUBMIT_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT, DISK_PARAMS_OPT],
+     DISK_STATE_OPT, DISK_PARAMS_OPT] + INSTANCE_POLICY_OPTS,
     "<group_name>", "Alters the parameters of a node group"),
   "remove": (
     RemoveGroup, ARGS_ONE_GROUP, [DRY_RUN_OPT],

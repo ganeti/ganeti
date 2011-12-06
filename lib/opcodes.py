@@ -1446,6 +1446,7 @@ class OpGroupSetParams(OpCode):
     _PDiskParams,
     _PHvState,
     _PDiskState,
+    ("ipolicy", None, ht.TMaybeDict, "Group-wide instance policy specs"),
     ]
   OP_RESULT = _TSetParamsResult
 
