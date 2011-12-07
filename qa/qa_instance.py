@@ -187,6 +187,18 @@ def TestInstanceMigrate(instance):
                  instance["name"]])
   AssertCommand(["gnt-instance", "start", instance["name"]])
   AssertCommand(cmd)
+  AssertCommand(["gnt-instance", "modify", "-B",
+                 ("%s=%s" %
+                  (constants.BE_ALWAYS_FAILOVER, constants.VALUE_TRUE)),
+                 instance["name"]])
+  AssertCommand(cmd, fail=True)
+  AssertCommand(["gnt-instance", "migrate", "--force", "--allow-failover",
+                 instance["name"]])
+  AssertCommand(["gnt-instance", "modify", "-B",
+                 ("%s=%s" %
+                  (constants.BE_ALWAYS_FAILOVER, constants.VALUE_FALSE)),
+                 instance["name"]])
+  AssertCommand(cmd)
 
 
 def TestInstanceInfo(instance):
@@ -211,6 +223,8 @@ def TestInstanceModify(instance):
     ["-B", "%s=2" % constants.BE_VCPUS],
     ["-B", "%s=1" % constants.BE_VCPUS],
     ["-B", "%s=%s" % (constants.BE_VCPUS, constants.VALUE_DEFAULT)],
+    ["-B", "%s=%s" % (constants.BE_ALWAYS_FAILOVER, constants.VALUE_TRUE)],
+    ["-B", "%s=%s" % (constants.BE_ALWAYS_FAILOVER, constants.VALUE_DEFAULT)],
 
     ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, test_kernel)],
     ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, constants.VALUE_DEFAULT)],

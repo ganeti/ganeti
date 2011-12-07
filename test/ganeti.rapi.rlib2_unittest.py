@@ -823,7 +823,8 @@ class TestInstanceCreation(testutils.GanetiTestCase):
       { constants.BE_VCPUS: 2,
         constants.BE_MAXMEM: 1024,
         constants.BE_MINMEM: 1024,
-        constants.BE_AUTO_BALANCE: True, }
+        constants.BE_AUTO_BALANCE: True,
+        constants.BE_ALWAYS_FAILOVER: True, }
       ]
 
     hvparam_variants = [
