@@ -200,6 +200,18 @@ computeBadItems nl il =
   in
     (bad_nodes, bad_instances)
 
+-- | Extracts the node pairs for an instance. This can fail if the
+-- instance is single-homed. FIXME: this needs to be improved,
+-- together with the general enhancement for handling non-DRBD moves.
+instanceNodes :: Node.List -> Instance.Instance ->
+                 (Ndx, Ndx, Node.Node, Node.Node)
+instanceNodes nl inst =
+  let old_pdx = Instance.pNode inst
+      old_sdx = Instance.sNode inst
+      old_p = Container.find old_pdx nl
+      old_s = Container.find old_sdx nl
+  in (old_pdx, old_sdx, old_p, old_s)
+
 -- | Zero-initializer for the CStats type.
 emptyCStats :: CStats
 emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -358,10 +370,7 @@ applyMove :: Node.List -> Instance.Instance
           -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
 applyMove nl inst Failover =
-  let old_pdx = Instance.pNode inst
-      old_sdx = Instance.sNode inst
-      old_p = Container.find old_pdx nl
-      old_s = Container.find old_sdx nl
+  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
       force_p = Node.offline old_p
@@ -375,10 +384,7 @@ applyMove nl inst Failover =
 
 -- Replace the primary (f:, r:np, f)
 applyMove nl inst (ReplacePrimary new_pdx) =
-  let old_pdx = Instance.pNode inst
-      old_sdx = Instance.sNode inst
-      old_p = Container.find old_pdx nl
-      old_s = Container.find old_sdx nl
+  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
@@ -413,10 +419,7 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
 
 -- Replace the secondary and failover (r:np, f)
 applyMove nl inst (ReplaceAndFailover new_pdx) =
-  let old_pdx = Instance.pNode inst
-      old_sdx = Instance.sNode inst
-      old_p = Container.find old_pdx nl
-      old_s = Container.find old_sdx nl
+  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
@@ -432,10 +435,7 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
 
 -- Failver and replace the secondary (f, r:ns)
 applyMove nl inst (FailoverAndReplace new_sdx) =
-  let old_pdx = Instance.pNode inst
-      old_sdx = Instance.sNode inst
-      old_p = Container.find old_pdx nl
-      old_s = Container.find old_sdx nl
+  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       tgt_n = Container.find new_sdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
