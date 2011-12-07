@@ -739,6 +739,17 @@ brackets.
 |        |              |for drbd, when using the |constants.py, not    |      |
 |        |              |static syncer, in KiB/s  |changeable via Ganeti|      |
 +--------+--------------+-------------------------+---------------------+------+
+|drbd    |dynamic-resync|Whether to use the       |Not supported.       |bool  |
+|        |              |dynamic resync speed     |                     |      |
+|        |              |controller or not. If    |                     |      |
+|        |              |enabled, c-plan-ahead    |                     |      |
+|        |              |must be non-zero and all |                     |      |
+|        |              |the c-* parameters will  |                     |      |
+|        |              |be used by DRBD.         |                     |      |
+|        |              |Otherwise, the value of  |                     |      |
+|        |              |resync-rate will be used |                     |      |
+|        |              |as a static resync speed.|                     |      |
++--------+--------------+-------------------------+---------------------+------+
 |drbd    |c-plan-ahead  |Agility factor of the    |Not supported.       |int   |
 |        |              |dynamic resync speed     |                     |      |
 |        |              |controller. (the higher, |                     |      |
