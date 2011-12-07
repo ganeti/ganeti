@@ -159,6 +159,13 @@ printStats ph cs =
                  PFinal -> "FIN"
                  PTiered -> "TRL"
 
+-- | Print failure reason and scores
+printFRScores :: Node.List -> Node.List -> [(FailMode, Int)] -> IO ()
+printFRScores ini_nl fin_nl sreason = do
+  printf "  - most likely failure reason: %s\n" $ failureReason sreason::IO ()
+  printClusterScores ini_nl fin_nl
+  printClusterEff (Cluster.totalResources fin_nl)
+
 -- | Print final stats and related metrics.
 printResults :: Bool -> Node.List -> Node.List -> Int -> Int
              -> [(FailMode, Int)] -> IO ()
@@ -186,9 +193,7 @@ printResults True _ fin_nl num_instances allocs sreason = do
 printResults False ini_nl fin_nl _ allocs sreason = do
   putStrLn "Normal (fixed-size) allocation results:"
   printf "  - %3d instances allocated\n" allocs :: IO ()
-  printf "  - most likely failure reason: %s\n" $ failureReason sreason::IO ()
-  printClusterScores ini_nl fin_nl
-  printClusterEff (Cluster.totalResources fin_nl)
+  printFRScores ini_nl fin_nl sreason
 
 -- | Prints the final @OK@ marker in machine readable output.
 printFinal :: Bool -> IO ()
@@ -318,9 +323,7 @@ printTiered False spec_map _ ini_nl fin_nl sreason = do
   mapM_ (\(ispec, cnt) ->
              printf "  - %3d instances of spec %s\n" cnt
                         (formatResources ispec specData)) spec_map
-  printf "  - most likely failure reason: %s\n" $ failureReason sreason::IO ()
-  printClusterScores ini_nl fin_nl
-  printClusterEff (Cluster.totalResources fin_nl)
+  printFRScores ini_nl fin_nl sreason
 
 -- | Displays the initial/final cluster scores.
 printClusterScores :: Node.List -> Node.List -> IO ()
