@@ -95,16 +95,14 @@ loadExternalData opts = do
                            " files options should be given.")
          exitWith $ ExitFailure 1
 
-  util_contents <- (case optDynuFile opts of
-                      Just path -> readFile path
-                      Nothing -> return "")
+  util_contents <- maybe (return "") readFile (optDynuFile opts)
   let util_data = mapM parseUtilisation $ lines util_contents
-  util_data' <- (case util_data of
-                   Ok x  -> return x
-                   Bad y -> do
-                     hPutStrLn stderr ("Error: can't parse utilisation" ++
-                                       " data: " ++ show y)
-                     exitWith $ ExitFailure 1)
+  util_data' <- case util_data of
+                  Ok x  -> return x
+                  Bad y -> do
+                    hPutStrLn stderr ("Error: can't parse utilisation" ++
+                                      " data: " ++ show y)
+                    exitWith $ ExitFailure 1
   input_data <-
     case () of
       _ | setRapi -> wrapIO $ Rapi.loadData mhost
@@ -115,13 +113,12 @@ loadExternalData opts = do
 
   let ldresult = input_data >>= mergeData util_data' exTags selInsts exInsts
   cdata <-
-    (case ldresult of
-       Ok x -> return x
-       Bad s -> do
-         hPrintf stderr
-           "Error: failed to load data, aborting. Details:\n%s\n" s:: IO ()
-         exitWith $ ExitFailure 1
-    )
+    case ldresult of
+      Ok x -> return x
+      Bad s -> do
+        hPrintf stderr
+          "Error: failed to load data, aborting. Details:\n%s\n" s:: IO ()
+        exitWith $ ExitFailure 1
   let (fix_msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs

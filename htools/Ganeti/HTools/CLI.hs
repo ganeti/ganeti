@@ -452,13 +452,13 @@ parseOpts argv progname options =
     (o, n, []) ->
       do
         let (pr, args) = (foldM (flip id) defaultOptions o, n)
-        po <- (case pr of
-                 Bad msg -> do
-                   hPutStrLn stderr "Error while parsing command\
-                                    \line arguments:"
-                   hPutStrLn stderr msg
-                   exitWith $ ExitFailure 1
-                 Ok val -> return val)
+        po <- case pr of
+                Bad msg -> do
+                  hPutStrLn stderr "Error while parsing command\
+                                   \line arguments:"
+                  hPutStrLn stderr msg
+                  exitWith $ ExitFailure 1
+                Ok val -> return val
         when (optShowHelp po) $ do
           putStr $ usageHelp progname options
           exitWith ExitSuccess
@@ -534,7 +534,7 @@ setNodeStatus opts fixed_nl = do
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
 
-  when (not (null offline_wrong)) $ do
+  unless (null offline_wrong) $ do
          hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
                      (commaJoin (map lrContent offline_wrong)) :: IO ()
          exitWith $ ExitFailure 1

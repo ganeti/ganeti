@@ -1170,7 +1170,13 @@ lint: $(BUILT_SOURCES)
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS)
 	if tty -s; then C="-c"; else C=""; fi; \
-	hlint --report=doc/hs-lint.html $$C htools
+	hlint --report=doc/hs-lint.html --cross $$C \
+	  --ignore "Use first" \
+	  --ignore "Use comparing" \
+	  --ignore "Use on" \
+	  --ignore "Use Control.Exception.catch" \
+	  --ignore "Reduce duplication" \
+	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIB_SRCS))
 
 # a dist hook rule for updating the vcs-version file; this is
 # hardcoded due to where it needs to build the file...

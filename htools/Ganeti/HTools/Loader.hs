@@ -317,10 +317,9 @@ checkData nl il =
                         (Node.fMem node - adj_mem)
                  umsg1 =
                    if delta_mem > 512 || delta_dsk > 1024
-                      then (printf "node %s is missing %d MB ram \
-                                   \and %d GB disk"
-                                   nname delta_mem (delta_dsk `div` 1024)):
-                           msgs
+                      then printf "node %s is missing %d MB ram \
+                                  \and %d GB disk"
+                                  nname delta_mem (delta_dsk `div` 1024):msgs
                       else msgs
              in (umsg1, newn)
         ) [] nl

@@ -328,11 +328,10 @@ removePri t inst =
 removeSec :: Node -> Instance.Instance -> Node
 removeSec t inst =
   let iname = Instance.idx inst
-      uses_disk = Instance.usesLocalStorage inst
       cur_dsk = fDsk t
       pnode = Instance.pNode inst
       new_slist = delete iname (sList t)
-      new_dsk = if uses_disk
+      new_dsk = if Instance.usesLocalStorage inst
                   then cur_dsk + Instance.dsk inst
                   else cur_dsk
       old_peers = peers t

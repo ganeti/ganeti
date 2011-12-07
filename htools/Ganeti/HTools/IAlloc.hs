@@ -50,6 +50,8 @@ import Ganeti.HTools.ExtLoader (loadExternalData)
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
+{-# ANN module "HLint: ignore Eta reduce" #-}
+
 -- | Type alias for the result of an IAllocator call.
 type IAllocResult = (String, JSValue, Node.List, Instance.List)
 
@@ -83,8 +85,9 @@ parseInstance ktn n a = do
            else readEitherString $ head nodes
   pidx <- lookupNode ktn n pnode
   let snodes = tail nodes
-  sidx <- (if null snodes then return Node.noSecondary
-           else readEitherString (head snodes) >>= lookupNode ktn n)
+  sidx <- if null snodes
+            then return Node.noSecondary
+            else readEitherString (head snodes) >>= lookupNode ktn n
   return (n, Instance.setBoth (snd base) pidx sidx)
 
 -- | Parses a node as found in the cluster node list.
@@ -101,17 +104,17 @@ parseNode ktg n a = do
   vm_capable  <- annotateResult desc $ maybeFromObj a "vm_capable"
   let vm_capable' = fromMaybe True vm_capable
   gidx <- lookupGroup ktg n guuid
-  node <- (if offline || drained || not vm_capable'
-           then return $ Node.create n 0 0 0 0 0 0 True gidx
-           else do
-             mtotal <- extract "total_memory"
-             mnode  <- extract "reserved_memory"
-             mfree  <- extract "free_memory"
-             dtotal <- extract "total_disk"
-             dfree  <- extract "free_disk"
-             ctotal <- extract "total_cpus"
-             return $ Node.create n mtotal mnode mfree
-                    dtotal dfree ctotal False gidx)
+  node <- if offline || drained || not vm_capable'
+            then return $ Node.create n 0 0 0 0 0 0 True gidx
+            else do
+              mtotal <- extract "total_memory"
+              mnode  <- extract "reserved_memory"
+              mfree  <- extract "free_memory"
+              dtotal <- extract "total_disk"
+              dfree  <- extract "free_disk"
+              ctotal <- extract "total_cpus"
+              return $ Node.create n mtotal mnode mfree
+                     dtotal dfree ctotal False gidx
   return (n, node)
 
 -- | Parses a group as found in the cluster group list.
@@ -330,12 +333,12 @@ readRequest opts args = do
             hPutStrLn stderr $ "Error: " ++ err
             exitWith $ ExitFailure 1
           Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
-  (if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
-   then do
-     cdata <- loadExternalData opts
-     let Request rqt _ = r1
-     return $ Request rqt cdata
-   else return r1)
+  if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
+    then do
+      cdata <- loadExternalData opts
+      let Request rqt _ = r1
+      return $ Request rqt cdata
+    else return r1
 
 -- | Main iallocator pipeline.
 runIAllocator :: Request -> (Maybe (Node.List, Instance.List), String)

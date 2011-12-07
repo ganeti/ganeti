@@ -60,9 +60,9 @@ import Ganeti.THH
 withTimeout :: Int -> String -> IO a -> IO a
 withTimeout secs descr action = do
   result <- timeout (secs * 1000000) action
-  (case result of
-     Nothing -> fail $ "Timeout in " ++ descr
-     Just v -> return v)
+  case result of
+    Nothing -> fail $ "Timeout in " ++ descr
+    Just v -> return v
 
 -- * Generic protocol functionality
 
@@ -213,15 +213,15 @@ recvMsg s = do
               nbuf <- withTimeout queryTimeout "reading luxi response" $
                       S.recv (socket s) 4096
               let (msg, remaining) = break (eOM ==) nbuf
-              (if null remaining
-               then _recv (obuf ++ msg)
-               else return (obuf ++ msg, tail remaining))
+              if null remaining
+                then _recv (obuf ++ msg)
+                else return (obuf ++ msg, tail remaining)
   cbuf <- readIORef $ rbuf s
   let (imsg, ibuf) = break (eOM ==) cbuf
   (msg, nbuf) <-
-      (if null ibuf      -- if old buffer didn't contain a full message
-       then _recv cbuf   -- then we read from network
-       else return (imsg, tail ibuf)) -- else we return data from our buffer
+    if null ibuf      -- if old buffer didn't contain a full message
+      then _recv cbuf   -- then we read from network
+      else return (imsg, tail ibuf) -- else we return data from our buffer
   writeIORef (rbuf s) nbuf
   return msg
 
@@ -244,9 +244,9 @@ validateResult s = do
   let arr = J.fromJSObject oarr
   status <- fromObj arr (strOfKey Success)::Result Bool
   let rkey = strOfKey Result
-  (if status
-   then fromObj arr rkey
-   else fromObj arr rkey >>= fail)
+  if status
+    then fromObj arr rkey
+    else fromObj arr rkey >>= fail
 
 -- | Generic luxi method call.
 callMethod :: LuxiOp -> Client -> IO (Result JSValue)

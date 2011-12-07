@@ -41,6 +41,8 @@ import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject,
                             fromObj)
 
+{-# ANN module "HLint: ignore Eta reduce" #-}
+
 -- * Utility functions
 
 -- | Get values behind \"data\" part of the result.
@@ -148,14 +150,15 @@ parseInstance ktn [ name, disk, mem, vcpus
   xname <- annotateResult "Parsing new instance" (fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
-  xmem <- (case oram of -- FIXME: remove the "guessing"
-             (_, JSRational _ _) -> convert "oper_ram" oram
-             _ -> convert "be/memory" mem)
+  xmem <- case oram of -- FIXME: remove the "guessing"
+            (_, JSRational _ _) -> convert "oper_ram" oram
+            _ -> convert "be/memory" mem
   xvcpus <- convert "be/vcpus" vcpus
   xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
   xsnodes <- convert "snodes" snodes::Result [JSString]
-  snode <- (if null xsnodes then return Node.noSecondary
-            else lookupNode ktn xname (fromJSString $ head xsnodes))
+  snode <- if null xsnodes
+             then return Node.noSecondary
+             else lookupNode ktn xname (fromJSString $ head xsnodes)
   xrunning <- convert "status" status
   xtags <- convert "tags" tags
   xauto_balance <- convert "auto_balance" auto_balance
@@ -181,17 +184,17 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xdrained <- convert "drained" drained
   xvm_capable <- convert "vm_capable" vm_capable
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
-  node <- (if xoffline || xdrained || not xvm_capable
-           then return $ Node.create xname 0 0 0 0 0 0 True xgdx
-           else do
-             xmtotal  <- convert "mtotal" mtotal
-             xmnode   <- convert "mnode" mnode
-             xmfree   <- convert "mfree" mfree
-             xdtotal  <- convert "dtotal" dtotal
-             xdfree   <- convert "dfree" dfree
-             xctotal  <- convert "ctotal" ctotal
-             return $ Node.create xname xmtotal xmnode xmfree
-                    xdtotal xdfree xctotal False xgdx)
+  node <- if xoffline || xdrained || not xvm_capable
+            then return $ Node.create xname 0 0 0 0 0 0 True xgdx
+            else do
+              xmtotal  <- convert "mtotal" mtotal
+              xmnode   <- convert "mnode" mnode
+              xmfree   <- convert "mfree" mfree
+              xdtotal  <- convert "dtotal" dtotal
+              xdfree   <- convert "dfree" dfree
+              xctotal  <- convert "ctotal" ctotal
+              return $ Node.create xname xmtotal xmnode xmfree
+                     xdtotal xdfree xctotal False xgdx
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)

@@ -133,6 +133,13 @@ makeSmallCluster node count =
       (_, nlst) = Loader.assignIndices namelst
   in nlst
 
+-- | Make a small cluster, both nodes and instances.
+makeSmallEmptyCluster :: Node.Node -> Int -> Instance.Instance
+                      -> (Node.List, Instance.List, Instance.Instance)
+makeSmallEmptyCluster node count inst =
+  (makeSmallCluster node count, Container.empty,
+   setInstanceSmallerThanNode node inst)
+
 -- | Checks if a node is "big" enough.
 isNodeBig :: Node.Node -> Int -> Bool
 isNodeBig node size = Node.availDisk node > size * Types.unitDsk
@@ -246,19 +253,19 @@ instance Arbitrary OpCodes.OpCode where
                       , "OP_INSTANCE_FAILOVER"
                       , "OP_INSTANCE_MIGRATE"
                       ]
-    (case op_id of
-       "OP_TEST_DELAY" ->
-         liftM3 OpCodes.OpTestDelay arbitrary arbitrary arbitrary
-       "OP_INSTANCE_REPLACE_DISKS" ->
-         liftM5 OpCodes.OpInstanceReplaceDisks arbitrary arbitrary
-         arbitrary arbitrary arbitrary
-       "OP_INSTANCE_FAILOVER" ->
-         liftM3 OpCodes.OpInstanceFailover arbitrary arbitrary
-                arbitrary
-       "OP_INSTANCE_MIGRATE" ->
-         liftM5 OpCodes.OpInstanceMigrate arbitrary arbitrary
-                arbitrary arbitrary arbitrary
-       _ -> fail "Wrong opcode")
+    case op_id of
+      "OP_TEST_DELAY" ->
+        liftM3 OpCodes.OpTestDelay arbitrary arbitrary arbitrary
+      "OP_INSTANCE_REPLACE_DISKS" ->
+        liftM5 OpCodes.OpInstanceReplaceDisks arbitrary arbitrary
+          arbitrary arbitrary arbitrary
+      "OP_INSTANCE_FAILOVER" ->
+        liftM3 OpCodes.OpInstanceFailover arbitrary arbitrary
+          arbitrary
+      "OP_INSTANCE_MIGRATE" ->
+        liftM5 OpCodes.OpInstanceMigrate arbitrary arbitrary
+          arbitrary arbitrary arbitrary
+      _ -> fail "Wrong opcode"
 
 instance Arbitrary Jobs.OpStatus where
   arbitrary = elements [minBound..maxBound]
@@ -283,9 +290,9 @@ instance Arbitrary Types.FailMode where
 
 instance Arbitrary a => Arbitrary (Types.OpResult a) where
   arbitrary = arbitrary >>= \c ->
-              case c of
-                False -> liftM Types.OpFail arbitrary
-                True -> liftM Types.OpGood arbitrary
+              if c
+                then liftM Types.OpGood arbitrary
+                else liftM Types.OpFail arbitrary
 
 -- * Actual tests
 
@@ -295,7 +302,7 @@ instance Arbitrary a => Arbitrary (Types.OpResult a) where
 -- not contain commas, then join+split should be idempotent.
 prop_Utils_commaJoinSplit =
   forAll (arbitrary `suchThat`
-          (\l -> l /= [""] && all (not . elem ',') l )) $ \lst ->
+          (\l -> l /= [""] && all (notElem ',') l )) $ \lst ->
   Utils.sepSplit ',' (Utils.commaJoin lst) ==? lst
 
 -- | Split and join should always be idempotent.
@@ -323,21 +330,19 @@ prop_Utils_select :: Int      -- ^ Default result
                   -> [Int]    -- ^ List of True values
                   -> Gen Prop -- ^ Test result
 prop_Utils_select def lst1 lst2 =
-  Utils.select def cndlist ==? expectedresult
+  Utils.select def (flist ++ tlist) ==? expectedresult
   where expectedresult = Utils.if' (null lst2) def (head lst2)
         flist = map (\e -> (False, e)) lst1
         tlist = map (\e -> (True, e)) lst2
-        cndlist = flist ++ tlist
 
 -- | Test basic select functionality with undefined default
 prop_Utils_select_undefd :: [Int]            -- ^ List of False values
                          -> NonEmptyList Int -- ^ List of True values
                          -> Gen Prop         -- ^ Test result
 prop_Utils_select_undefd lst1 (NonEmpty lst2) =
-  Utils.select undefined cndlist ==? head lst2
+  Utils.select undefined (flist ++ tlist) ==? head lst2
   where flist = map (\e -> (False, e)) lst1
         tlist = map (\e -> (True, e)) lst2
-        cndlist = flist ++ tlist
 
 -- | Test basic select functionality with undefined list values
 prop_Utils_select_undefv :: [Int]            -- ^ List of False values
@@ -422,6 +427,8 @@ testSuite "PeerMap"
 
 -- ** Container tests
 
+-- we silence the following due to hlint bug fixed in later versions
+{-# ANN prop_Container_addTwo "HLint: ignore Avoid lambda" #-}
 prop_Container_addTwo cdata i1 i2 =
   fn i1 i2 cont == fn i2 i1 cont &&
   fn i1 i2 cont == fn i1 i2 (fn i1 i2 cont)
@@ -444,7 +451,7 @@ prop_Container_findByName node othername =
   forAll (vector cnt) $ \ names ->
   (length . nub) (map fst names ++ map snd names) ==
   length names * 2 &&
-  not (othername `elem` (map fst names ++ map snd names)) ==>
+  othername `notElem` (map fst names ++ map snd names) ==>
   let nl = makeSmallCluster node cnt
       nodes = Container.elems nl
       nodes' = map (\((name, alias), nn) -> (Node.idx nn,
@@ -455,7 +462,7 @@ prop_Container_findByName node othername =
       target = snd (nodes' !! fidx)
   in Container.findByName nl' (Node.name target) == Just target &&
      Container.findByName nl' (Node.alias target) == Just target &&
-     Container.findByName nl' othername == Nothing
+     isNothing (Container.findByName nl' othername)
 
 testSuite "Container"
             [ 'prop_Container_addTwo
@@ -765,7 +772,7 @@ prop_Node_rMem inst =
            -- this is not related to rMem, but as good a place to
            -- test as any
            inst_idx `elem` Node.sList a_ab &&
-           not (inst_idx `elem` Node.sList d_ab)
+           inst_idx `notElem` Node.sList d_ab
        x -> printTestCase ("Failed to add/remove instances: " ++ show x) False
 
 -- | Check mdsk setting.
@@ -858,9 +865,7 @@ prop_ClusterAlloc_sane node inst =
         && Node.availDisk node > 0
         && Node.availMem node > 0
         ==>
-  let nl = makeSmallCluster node count
-      il = Container.empty
-      inst' = setInstanceSmallerThanNode node inst
+  let (nl, il, inst') = makeSmallEmptyCluster node count inst
   in case Cluster.genAllocNodes defGroupList nl 2 True >>=
      Cluster.tryAlloc nl il inst' of
        Types.Bad _ -> False
@@ -900,9 +905,7 @@ prop_ClusterAllocEvac node inst =
         && not (Node.failN1 node)
         && isNodeBig node 4
         ==>
-  let nl = makeSmallCluster node count
-      il = Container.empty
-      inst' = setInstanceSmallerThanNode node inst
+  let (nl, il, inst') = makeSmallEmptyCluster node count inst
   in case Cluster.genAllocNodes defGroupList nl 2 True >>=
      Cluster.tryAlloc nl il inst' of
        Types.Bad _ -> False

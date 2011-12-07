@@ -373,9 +373,8 @@ applyMove nl inst Failover =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      force_p = Node.offline old_p
       new_nl = do -- Maybe monad
-        new_p <- Node.addPriEx force_p int_s inst
+        new_p <- Node.addPriEx (Node.offline old_p) int_s inst
         new_s <- Node.addSec int_p inst old_sdx
         let new_inst = Instance.setBoth inst old_sdx old_pdx
         return (Container.addTwo old_pdx new_s old_sdx new_p nl,
@@ -526,7 +525,8 @@ checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
 checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
   let opdx = Instance.pNode target
       osdx = Instance.sNode target
-      nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
+      bad_nodes = [opdx, osdx]
+      nodes = filter (`notElem` bad_nodes) nodes_idx
       use_secondary = elem osdx nodes_idx && inst_moves
       aft_failover = if use_secondary -- if allowed to failover
                        then checkSingleStep ini_tbl target ini_tbl Failover
@@ -1308,7 +1308,7 @@ printNodes nl fs =
                  _ -> fs
       snl = sortBy (comparing Node.idx) (Container.elems nl)
       (header, isnum) = unzip $ map Node.showHeader fields
-  in unlines . map ((:) ' ' .  intercalate " ") $
+  in unlines . map ((:) ' ' .  unwords) $
      formatTable (header:map (Node.list fields) snl) isnum
 
 -- | Print the instance list.
@@ -1335,7 +1335,7 @@ printInsts nl il =
       header = [ "F", "Name", "Pri_node", "Sec_node", "Auto_bal"
                , "vcpu", "mem" , "dsk", "lCpu", "lMem", "lDsk", "lNet" ]
       isnum = False:False:False:False:False:repeat True
-  in unlines . map ((:) ' ' . intercalate " ") $
+  in unlines . map ((:) ' ' . unwords) $
      formatTable (header:map helper sil) isnum
 
 -- | Shows statistics for a given node list.

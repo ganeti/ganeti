@@ -48,6 +48,8 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.Constants as C
 
+{-# ANN module "HLint: ignore Eta reduce" #-}
+
 -- | Read an URL via curl and return the body if successful.
 getUrl :: (Monad m) => String -> IO (m String)
 
@@ -108,14 +110,15 @@ parseInstance ktn a = do
   disk <- extract "disk_usage" a
   beparams <- liftM fromJSObject (extract "beparams" a)
   omem <- extract "oper_ram" a
-  mem <- (case omem of
-            JSRational _ _ -> annotateResult owner_name (fromJVal omem)
-            _ -> extract "memory" beparams)
+  mem <- case omem of
+           JSRational _ _ -> annotateResult owner_name (fromJVal omem)
+           _ -> extract "memory" beparams
   vcpus <- extract "vcpus" beparams
   pnode <- extract "pnode" a >>= lookupNode ktn name
   snodes <- extract "snodes" a
-  snode <- (if null snodes then return Node.noSecondary
-            else readEitherString (head snodes) >>= lookupNode ktn name)
+  snode <- if null snodes
+             then return Node.noSecondary
+             else readEitherString (head snodes) >>= lookupNode ktn name
   running <- extract "status" a
   tags <- extract "tags" a
   auto_balance <- extract "auto_balance" beparams
@@ -136,17 +139,17 @@ parseNode ktg a = do
   let vm_cap' = fromMaybe True vm_cap
   guuid   <- annotateResult desc $ maybeFromObj a "group.uuid"
   guuid' <-  lookupGroup ktg name (fromMaybe defaultGroupID guuid)
-  node <- (if offline || drained || not vm_cap'
-           then return $ Node.create name 0 0 0 0 0 0 True guuid'
-           else do
-             mtotal  <- extract "mtotal"
-             mnode   <- extract "mnode"
-             mfree   <- extract "mfree"
-             dtotal  <- extract "dtotal"
-             dfree   <- extract "dfree"
-             ctotal  <- extract "ctotal"
-             return $ Node.create name mtotal mnode mfree
-                    dtotal dfree ctotal False guuid')
+  node <- if offline || drained || not vm_cap'
+            then return $ Node.create name 0 0 0 0 0 0 True guuid'
+            else do
+              mtotal  <- extract "mtotal"
+              mnode   <- extract "mnode"
+              mfree   <- extract "mfree"
+              dtotal  <- extract "dtotal"
+              dfree   <- extract "dfree"
+              ctotal  <- extract "ctotal"
+              return $ Node.create name mtotal mnode mfree
+                     dtotal dfree ctotal False guuid'
   return (name, node)
 
 -- | Construct a group from a JSON object.

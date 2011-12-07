@@ -36,7 +36,8 @@ document, plus:
 - `HsColour <http://hackage.haskell.org/package/hscolour>`_, again
   used for documentation (it's source-code pretty-printing)
 - `hlint <http://community.haskell.org/~ndm/hlint/>`_, a source code
-  linter (equivalent to pylint for Python)
+  linter (equivalent to pylint for Python), recommended version 1.8 or
+  above (tested with 1.8.15)
 - the `QuickCheck <http://hackage.haskell.org/package/QuickCheck>`_
   library, version 2.x
 - ``hpc``, which comes with the compiler, so you should already have
@@ -69,9 +70,9 @@ You can run the Haskell linter :command:`hlint` via::
 
   make hlint
 
-This is not enabled by default as it gets many false positives, and
-thus the normal output is not “clean”. The above command will generate
-both output on the terminal and also a HTML report at
+This is not enabled by default (as the htools component is
+optional). The above command will generate both output on the terminal
+and, if any warnings are found, also an HTML report at
 ``doc/hs-lint.html``.
 
 When writing or debugging TemplateHaskell code, it's useful to see

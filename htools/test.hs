@@ -136,9 +136,9 @@ transformTestOpts args opts = do
          Nothing -> return Nothing
          Just str -> do
            let vs = sepSplit ',' str
-           (case vs of
-              [rng, size] -> return $ Just (read rng, read size)
-              _ -> fail "Invalid state given")
+           case vs of
+             [rng, size] -> return $ Just (read rng, read size)
+             _ -> fail "Invalid state given"
   return args { chatty = optVerbose opts > 1,
                 replay = r
               }
@@ -149,26 +149,26 @@ main = do
   let wrap = map (wrapTest errs)
   cmd_args <- getArgs
   (opts, args) <- parseOpts cmd_args "test" options
-  tests <- (if null args
-              then return allTests
-              else (let args' = map lower args
-                        selected = filter ((`elem` args') . lower .
-                                           extractName) allTests
-                    in if null selected
-                         then do
-                           hPutStrLn stderr $ "No tests matching '"
-                              ++ intercalate " " args ++ "', available tests: "
-                              ++ intercalate ", " (map extractName allTests)
-                           exitWith $ ExitFailure 1
-                         else return selected))
+  tests <- if null args
+             then return allTests
+             else let args' = map lower args
+                      selected = filter ((`elem` args') . lower .
+                                         extractName) allTests
+                  in if null selected
+                       then do
+                         hPutStrLn stderr $ "No tests matching '"
+                            ++ unwords args ++ "', available tests: "
+                            ++ intercalate ", " (map extractName allTests)
+                         exitWith $ ExitFailure 1
+                       else return selected
 
   let max_count = maximum $ map (\(_, (_, t)) -> length t) tests
   mapM_ (\(targs, (name, tl)) ->
            transformTestOpts targs opts >>= \newargs ->
            runTests name newargs (wrap tl) max_count) tests
   terr <- readIORef errs
-  (if terr > 0
-   then do
-     hPutStrLn stderr $ "A total of " ++ show terr ++ " tests failed."
-     exitWith $ ExitFailure 1
-   else putStrLn "All tests succeeded.")
+  if terr > 0
+    then do
+      hPutStrLn stderr $ "A total of " ++ show terr ++ " tests failed."
+      exitWith $ ExitFailure 1
+    else putStrLn "All tests succeeded."

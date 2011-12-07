@@ -154,8 +154,9 @@ loadInst :: NameAssoc -- ^ Association list with the current nodes
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
              , dt, tags ] = do
   pidx <- lookupNode ktn name pnode
-  sidx <- (if null snode then return Node.noSecondary
-           else lookupNode ktn name snode)
+  sidx <- if null snode
+            then return Node.noSecondary
+            else lookupNode ktn name snode
   vmem <- tryRead name mem
   vdsk <- tryRead name dsk
   vvcpus <- tryRead name vcpus

@@ -268,7 +268,7 @@ printAllocationMap :: Int -> String
 printAllocationMap verbose msg nl ixes =
   when (verbose > 1) $ do
     hPutStrLn stderr (msg ++ " map")
-    hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
+    hPutStr stderr . unlines . map ((:) ' ' .  unwords) $
             formatTable (map (printInstance nl) (reverse ixes))
                         -- This is the numberic-or-not field
                         -- specification; the first three fields are
@@ -315,7 +315,7 @@ printTiered :: Bool -> [(RSpec, Int)] -> Double
             -> Node.List -> Node.List -> [(FailMode, Int)] -> IO ()
 printTiered True spec_map m_cpu nl trl_nl _ = do
   printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
-  printKeys [("TSPEC", intercalate " " (formatSpecMap spec_map))]
+  printKeys [("TSPEC", unwords (formatSpecMap spec_map))]
   printAllocationStats m_cpu nl trl_nl
 
 printTiered False spec_map _ ini_nl fin_nl sreason = do
@@ -433,16 +433,15 @@ main = do
 
   -- Run the tiered allocation, if enabled
 
-  (case optTieredSpec opts of
-     Nothing -> return ()
-     Just tspec -> do
-       (treason, trl_nl, _, spec_map) <-
+  case optTieredSpec opts of
+    Nothing -> return ()
+    Just tspec -> do
+         (treason, trl_nl, _, spec_map) <-
            runAllocation cdata stop_allocation
-                   (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
-                           allocnodes [] []) tspec SpecTiered opts
+             (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
+                     allocnodes [] []) tspec SpecTiered opts
 
-       printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
-       )
+         printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
 
   -- Run the standard (avg-mode) allocation
 

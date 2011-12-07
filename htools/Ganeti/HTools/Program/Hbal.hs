@@ -143,14 +143,14 @@ saveBalanceCommands :: Options -> String -> IO ()
 saveBalanceCommands opts cmd_data = do
   let out_path = fromJust $ optShowCmds opts
   putStrLn ""
-  (if out_path == "-" then
-       printf "Commands to run to reach the above solution:\n%s"
-                  (unlines . map ("  " ++) .
-                   filter (/= "  check") .
-                   lines $ cmd_data)
-   else do
-     writeFile out_path (shTemplate ++ cmd_data)
-     printf "The commands have been written to file '%s'\n" out_path)
+  if out_path == "-"
+    then printf "Commands to run to reach the above solution:\n%s"
+           (unlines . map ("  " ++) .
+            filter (/= "  check") .
+            lines $ cmd_data)
+    else do
+      writeFile out_path (shTemplate ++ cmd_data)
+      printf "The commands have been written to file '%s'\n" out_path
 
 -- | Polls a set of jobs at a fixed interval until all are finished
 -- one way or another.
@@ -176,12 +176,12 @@ execWrapper :: String -> Node.List
 execWrapper _      _  _  _    [] = return True
 execWrapper master nl il cref alljss = do
   cancel <- readIORef cref
-  (if cancel > 0
-   then do
-     hPrintf stderr "Exiting early due to user request, %d\
-                    \ jobset(s) remaining." (length alljss)::IO ()
-     return False
-   else execJobSet master nl il cref alljss)
+  if cancel > 0
+    then do
+      hPrintf stderr "Exiting early due to user request, %d\
+                     \ jobset(s) remaining." (length alljss)::IO ()
+      return False
+    else execJobSet master nl il cref alljss
 
 -- | Execute an entire jobset.
 execJobSet :: String -> Node.List
@@ -202,17 +202,17 @@ execJobSet master nl il cref (js:jss) = do
                 putStrLn $ "Got job IDs " ++ commaJoin x
                 waitForJobs client x
          )
-  (case jrs of
-     Bad x -> do
-       hPutStrLn stderr $ "Cannot compute job status, aborting: " ++ show x
-       return False
-     Ok x -> if checkJobsStatus x
-             then execWrapper master nl il cref jss
-             else do
-               hPutStrLn stderr $ "Not all jobs completed successfully: " ++
-                         show x
-               hPutStrLn stderr "Aborting."
-               return False)
+  case jrs of
+    Bad x -> do
+      hPutStrLn stderr $ "Cannot compute job status, aborting: " ++ show x
+      return False
+    Ok x -> if checkJobsStatus x
+              then execWrapper master nl il cref jss
+              else do
+                hPutStrLn stderr $ "Not all jobs completed successfully: " ++
+                          show x
+                hPutStrLn stderr "Aborting."
+                return False
 
 -- | Executes the jobs, if possible and desired.
 maybeExecJobs :: Options
@@ -279,7 +279,7 @@ selectGroup opts gl nlf ilf = do
         exitWith $ ExitFailure 1
       Just grp ->
           case lookup (Group.idx grp) ngroups of
-            Nothing -> do
+            Nothing ->
               -- This will only happen if there are no nodes assigned
               -- to this group
               return (Group.name grp, (Container.empty, Container.empty))
@@ -375,10 +375,10 @@ main = do
 
   checkNeedRebalance opts ini_cv
 
-  (if verbose > 2
-   then printf "Initial coefficients: overall %.8f, %s\n"
-        ini_cv (Cluster.printStats nl)::IO ()
-   else printf "Initial score: %.8f\n" ini_cv)
+  if verbose > 2
+    then printf "Initial coefficients: overall %.8f, %s\n"
+           ini_cv (Cluster.printStats nl)::IO ()
+    else printf "Initial score: %.8f\n" ini_cv
 
   putStrLn "Trying to minimize the CV..."
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il

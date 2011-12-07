@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Program.Hail (main) where
 
 import Control.Monad
+import Data.Maybe (fromMaybe)
 import System.Environment (getArgs)
 import System.IO
 
@@ -74,7 +75,7 @@ main = do
   maybeSaveData savecluster "pre-ialloc" "before iallocator run" cdata
 
   let (maybe_ni, resp) = runIAllocator request
-      (fin_nl, fin_il) = maybe (cdNodes cdata, cdInstances cdata) id maybe_ni
+      (fin_nl, fin_il) = fromMaybe (cdNodes cdata, cdInstances cdata) maybe_ni
   putStrLn resp
 
   maybePrintNodes shownodes "Final cluster" (Cluster.printNodes fin_nl)
