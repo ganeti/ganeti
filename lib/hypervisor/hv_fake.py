@@ -123,7 +123,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     file_name = self._InstanceFile(instance_name)
     return os.path.exists(file_name)
 
-  def _MarkUp(self, instance):
+  def _MarkUp(self, instance, memory):
     """Mark the instance as running.
 
     This does no checks, which should be done by its callers.
@@ -133,7 +133,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     fh = file(file_name, "w")
     try:
       fh.write("0\n%d\n%d\n" %
-               (instance.beparams[constants.BE_MAXMEM],
+               (memory,
                 instance.beparams[constants.BE_VCPUS]))
     finally:
       fh.close()
@@ -159,7 +159,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, "already running"))
     try:
-      self._MarkUp(instance)
+      self._MarkUp(instance, instance.beparams[constants.BE_MAXMEM])
     except IOError, err:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, err))
@@ -185,6 +185,24 @@ class FakeHypervisor(hv_base.BaseHypervisor):
 
     """
     return
+
+  def BalloonInstanceMemory(self, instance, mem):
+    """Balloon an instance memory to a certain value.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type mem: int
+    @param mem: actual memory size to use for instance runtime
+
+    """
+    if not self._IsAlive(instance.name):
+      raise errors.HypervisorError("Failed to balloon memory for %s: %s" %
+                                   (instance.name, "not running"))
+    try:
+      self._MarkUp(instance, mem)
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to balloon memory for %s: %s" %
+                                   (instance.name, utils.ErrnoOrStr(err)))
 
   def GetNodeInfo(self):
     """Return information about the node.
@@ -273,7 +291,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
-      self._MarkUp(instance)
+      self._MarkUp(instance, instance.beparams[constants.BE_MAXMEM])
     else:
       # ensure it's down
       self._MarkDown(instance.name)
