@@ -35,6 +35,7 @@ import struct
 import fcntl
 import shutil
 import socket
+import stat
 import StringIO
 try:
   import affinity   # pylint: disable=F0401
@@ -226,6 +227,19 @@ class QmpConnection:
     self._connected = False
     self._buf = ""
 
+  def _check_socket(self):
+    sock_stat = None
+    try:
+      sock_stat = os.stat(self.monitor_filename)
+    except EnvironmentError, err:
+      if err.errno == errno.ENOENT:
+        raise errors.HypervisorError("No qmp socket found")
+      else:
+        raise errors.HypervisorError("Error checking qmp socket: %s",
+                                     utils.ErrnoOrStr(err))
+    if not stat.S_ISSOCK(sock_stat.st_mode):
+      raise errors.HypervisorError("Qmp socket is not a socket")
+
   def _check_connection(self):
     """Make sure that the connection is established.
 
@@ -244,7 +258,16 @@ class QmpConnection:
     @raise errors.ProgrammerError: when there are data serialization errors
 
     """
-    self.sock.connect(self.monitor_filename)
+    if self._connected:
+      raise errors.ProgrammerError("Cannot connect twice")
+
+    self._check_socket()
+
+    # Check file existance/stuff
+    try:
+      self.sock.connect(self.monitor_filename)
+    except EnvironmentError:
+      raise errors.HypervisorError("Can't connect to qmp socket")
     self._connected = True
 
     # Check if we receive a correct greeting message from the server
@@ -890,10 +913,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       return None
 
     _, memory, vcpus = self._InstancePidInfo(pid)
-    stat = "---b-"
+    istat = "---b-"
     times = "0"
 
-    return (instance_name, pid, memory, vcpus, stat, times)
+    return (instance_name, pid, memory, vcpus, istat, times)
 
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
@@ -1433,18 +1456,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # for connection.
     spice_password_file = conf_hvp[constants.HV_KVM_SPICE_PASSWORD_FILE]
     if spice_password_file:
+      spice_pwd = ""
       try:
         spice_pwd = utils.ReadOneLineFile(spice_password_file, strict=True)
-        qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
-        qmp.connect()
-        arguments = {
-            "protocol": "spice",
-            "password": spice_pwd,
-        }
-        qmp.Execute("set_password", arguments)
       except EnvironmentError, err:
         raise errors.HypervisorError("Failed to open SPICE password file %s: %s"
                                      % (spice_password_file, err))
+
+      qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
+      qmp.connect()
+      arguments = {
+          "protocol": "spice",
+          "password": spice_pwd,
+      }
+      qmp.Execute("set_password", arguments)
 
     for filename in temp_files:
       utils.RemoveFile(filename)
