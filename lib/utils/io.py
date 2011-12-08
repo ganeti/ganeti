@@ -38,6 +38,10 @@ from ganeti.utils import filelock
 #: Path generating random UUID
 _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 
+#: Directory used by fsck(8) to store recovered data, usually at a file
+#: system's root directory
+_LOST_AND_FOUND = "lost+found"
+
 
 def ReadFile(file_name, size=-1, preread=None):
   """Reads a file.
@@ -467,7 +471,7 @@ def CreateBackup(file_name):
   return backup_name
 
 
-def ListVisibleFiles(path):
+def ListVisibleFiles(path, _is_mountpoint=os.path.ismount):
   """Returns a list of visible files in a directory.
 
   @type path: str
@@ -480,8 +484,22 @@ def ListVisibleFiles(path):
   if not IsNormAbsPath(path):
     raise errors.ProgrammerError("Path passed to ListVisibleFiles is not"
                                  " absolute/normalized: '%s'" % path)
-  files = [i for i in os.listdir(path) if not i.startswith(".")]
-  return files
+
+  mountpoint = _is_mountpoint(path)
+
+  def fn(name):
+    """File name filter.
+
+    Ignores files starting with a dot (".") as by Unix convention they're
+    considered hidden. The "lost+found" directory found at the root of some
+    filesystems is also hidden.
+
+    """
+    return not (name.startswith(".") or
+                (mountpoint and name == _LOST_AND_FOUND and
+                 os.path.isdir(os.path.join(path, name))))
+
+  return filter(fn, os.listdir(path))
 
 
 def EnsureDirs(dirs):

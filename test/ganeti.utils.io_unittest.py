@@ -239,6 +239,27 @@ class TestListVisibleFiles(unittest.TestCase):
     self.failUnlessRaises(errors.ProgrammerError, utils.ListVisibleFiles,
                           "/bin/../tmp")
 
+  def testMountpoint(self):
+    lvfmp_fn = compat.partial(utils.ListVisibleFiles,
+                              _is_mountpoint=lambda _: True)
+    self.assertEqual(lvfmp_fn(self.path), [])
+
+    # Create "lost+found" as a regular file
+    self._CreateFiles(["foo", "bar", ".baz", "lost+found"])
+    self.assertEqual(set(lvfmp_fn(self.path)),
+                     set(["foo", "bar", "lost+found"]))
+
+    # Replace "lost+found" with a directory
+    laf_path = utils.PathJoin(self.path, "lost+found")
+    utils.RemoveFile(laf_path)
+    os.mkdir(laf_path)
+    self.assertEqual(set(lvfmp_fn(self.path)), set(["foo", "bar"]))
+
+  def testLostAndFoundNoMountpoint(self):
+    files = ["foo", "bar", ".Hello World", "lost+found"]
+    expected = ["foo", "bar", "lost+found"]
+    self._test(files, expected)
+
 
 class TestWriteFile(unittest.TestCase):
   def setUp(self):
