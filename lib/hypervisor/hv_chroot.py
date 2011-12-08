@@ -233,6 +233,18 @@ class ChrootManager(hv_base.BaseHypervisor):
     raise HypervisorError("The chroot manager doesn't implement the"
                           " reboot functionality")
 
+  def BalloonInstanceMemory(self, instance, mem):
+    """Balloon an instance memory to a certain value.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type mem: int
+    @param mem: actual memory size to use for instance runtime
+
+    """
+    # Currently chroots don't have memory limits
+    pass
+
   def GetNodeInfo(self):
     """Return information about the node.
 
