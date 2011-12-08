@@ -701,13 +701,24 @@ def ReadPidFile(pidfile):
       logging.exception("Can't read pid file")
     return 0
 
+  return _ParsePidFileContents(raw_data)
+
+
+def _ParsePidFileContents(data):
+  """Tries to extract a process ID from a PID file's content.
+
+  @type data: string
+  @rtype: int
+  @return: Zero if nothing could be read, PID otherwise
+
+  """
   try:
-    pid = int(raw_data)
-  except (TypeError, ValueError), err:
+    pid = int(data)
+  except (TypeError, ValueError):
     logging.info("Can't parse pid file contents", exc_info=True)
     return 0
-
-  return pid
+  else:
+    return pid
 
 
 def ReadLockedPidFile(path):
@@ -834,13 +845,21 @@ def WritePidFile(pidfile):
   """
   # We don't rename nor truncate the file to not drop locks under
   # existing processes
-  fd_pidfile = os.open(pidfile, os.O_WRONLY | os.O_CREAT, 0600)
+  fd_pidfile = os.open(pidfile, os.O_RDWR | os.O_CREAT, 0600)
 
   # Lock the PID file (and fail if not possible to do so). Any code
   # wanting to send a signal to the daemon should try to lock the PID
   # file before reading it. If acquiring the lock succeeds, the daemon is
   # no longer running and the signal should not be sent.
-  filelock.LockFile(fd_pidfile)
+  try:
+    filelock.LockFile(fd_pidfile)
+  except errors.LockError:
+    msg = ["PID file '%s' is already locked by another process" % pidfile]
+    # Try to read PID file
+    pid = _ParsePidFileContents(os.read(fd_pidfile, 100))
+    if pid > 0:
+      msg.append(", PID read from file is %s" % pid)
+    raise errors.PidFileLockError("".join(msg))
 
   os.write(fd_pidfile, "%d\n" % os.getpid())
 

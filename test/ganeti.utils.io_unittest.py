@@ -711,7 +711,7 @@ class TestPidFileFunctions(unittest.TestCase):
     read_pid = utils.ReadPidFile(pid_file)
     self.failUnlessEqual(read_pid, os.getpid())
     self.failUnless(utils.IsProcessAlive(read_pid))
-    self.failUnlessRaises(errors.LockError, utils.WritePidFile,
+    self.failUnlessRaises(errors.PidFileLockError, utils.WritePidFile,
                           self.f_dpn('test'))
     os.close(fd)
     utils.RemoveFile(self.f_dpn("test"))
@@ -747,10 +747,27 @@ class TestPidFileFunctions(unittest.TestCase):
     read_pid = utils.ReadPidFile(pid_file)
     self.failUnlessEqual(read_pid, new_pid)
     self.failUnless(utils.IsProcessAlive(new_pid))
+
+    # Try writing to locked file
+    try:
+      utils.WritePidFile(pid_file)
+    except errors.PidFileLockError, err:
+      errmsg = str(err)
+      self.assertTrue(errmsg.endswith(" %s" % new_pid),
+                      msg=("Error message ('%s') didn't contain correct"
+                           " PID (%s)" % (errmsg, new_pid)))
+    else:
+      self.fail("Writing to locked file didn't fail")
+
     utils.KillProcess(new_pid, waitpid=True)
     self.failIf(utils.IsProcessAlive(new_pid))
     utils.RemoveFile(self.f_dpn('child'))
     self.failUnlessRaises(errors.ProgrammerError, utils.KillProcess, 0)
+
+  def testExceptionType(self):
+    # Make sure the PID lock error is a subclass of LockError in case some code
+    # depends on it
+    self.assertTrue(issubclass(errors.PidFileLockError, errors.LockError))
 
   def tearDown(self):
     shutil.rmtree(self.dir)
