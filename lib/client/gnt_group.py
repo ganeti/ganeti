@@ -135,8 +135,8 @@ def SetGroupParams(opts, args):
   @return: the desired exit code
 
   """
-  if (opts.ndparams is None and opts.alloc_policy is None and
-      not (opts.hv_state or opts.disk_state)):
+  if (opts.ndparams is None and opts.alloc_policy is None
+      and not opts.diskparams and not opts.hv_state and not opts.disk_state):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
