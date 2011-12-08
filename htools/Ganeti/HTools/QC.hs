@@ -331,9 +331,9 @@ prop_Utils_select :: Int      -- ^ Default result
                   -> Gen Prop -- ^ Test result
 prop_Utils_select def lst1 lst2 =
   Utils.select def (flist ++ tlist) ==? expectedresult
-  where expectedresult = Utils.if' (null lst2) def (head lst2)
-        flist = map (\e -> (False, e)) lst1
-        tlist = map (\e -> (True, e)) lst2
+    where expectedresult = Utils.if' (null lst2) def (head lst2)
+          flist = zip (repeat False) lst1
+          tlist = zip (repeat True)  lst2
 
 -- | Test basic select functionality with undefined default
 prop_Utils_select_undefd :: [Int]            -- ^ List of False values
@@ -341,8 +341,8 @@ prop_Utils_select_undefd :: [Int]            -- ^ List of False values
                          -> Gen Prop         -- ^ Test result
 prop_Utils_select_undefd lst1 (NonEmpty lst2) =
   Utils.select undefined (flist ++ tlist) ==? head lst2
-  where flist = map (\e -> (False, e)) lst1
-        tlist = map (\e -> (True, e)) lst2
+    where flist = zip (repeat False) lst1
+          tlist = zip (repeat True)  lst2
 
 -- | Test basic select functionality with undefined list values
 prop_Utils_select_undefv :: [Int]            -- ^ List of False values
@@ -350,9 +350,9 @@ prop_Utils_select_undefv :: [Int]            -- ^ List of False values
                          -> Gen Prop         -- ^ Test result
 prop_Utils_select_undefv lst1 (NonEmpty lst2) =
   Utils.select undefined cndlist ==? head lst2
-  where flist = map (\e -> (False, e)) lst1
-        tlist = map (\e -> (True, e)) lst2
-        cndlist = flist ++ tlist ++ [undefined]
+    where flist = zip (repeat False) lst1
+          tlist = zip (repeat True)  lst2
+          cndlist = flist ++ tlist ++ [undefined]
 
 prop_Utils_parseUnit (NonNegative n) =
   Utils.parseUnit (show n) == Types.Ok n &&
