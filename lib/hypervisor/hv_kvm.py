@@ -962,6 +962,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd.extend(["-m", instance.beparams[constants.BE_MAXMEM]])
     kvm_cmd.extend(["-smp", instance.beparams[constants.BE_VCPUS]])
     kvm_cmd.extend(["-pidfile", pidfile])
+    kvm_cmd.extend(["-balloon", "virtio"])
     kvm_cmd.extend(["-daemonize"])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
