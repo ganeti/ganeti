@@ -39,6 +39,24 @@ from ganeti.utils import filelock
 _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 
 
+def ErrnoOrStr(err):
+  """Format an EnvironmentError exception.
+
+  If the L{err} argument has an errno attribute, it will be looked up
+  and converted into a textual C{E...} description. Otherwise the
+  string representation of the error will be returned.
+
+  @type err: L{EnvironmentError}
+  @param err: the exception to format
+
+  """
+  if hasattr(err, "errno"):
+    detail = errno.errorcode[err.errno]
+  else:
+    detail = str(err)
+  return detail
+
+
 def ReadFile(file_name, size=-1, preread=None):
   """Reads a file.
 

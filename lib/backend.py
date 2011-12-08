@@ -2101,24 +2101,6 @@ def WriteSsconfFiles(values):
   ssconf.SimpleStore().WriteFiles(values)
 
 
-def _ErrnoOrStr(err):
-  """Format an EnvironmentError exception.
-
-  If the L{err} argument has an errno attribute, it will be looked up
-  and converted into a textual C{E...} description. Otherwise the
-  string representation of the error will be returned.
-
-  @type err: L{EnvironmentError}
-  @param err: the exception to format
-
-  """
-  if hasattr(err, "errno"):
-    detail = errno.errorcode[err.errno]
-  else:
-    detail = str(err)
-  return detail
-
-
 def _OSOndiskAPIVersion(os_dir):
   """Compute and return the API version of a given OS.
 
@@ -2138,7 +2120,7 @@ def _OSOndiskAPIVersion(os_dir):
     st = os.stat(api_file)
   except EnvironmentError, err:
     return False, ("Required file '%s' not found under path %s: %s" %
-                   (constants.OS_API_FILE, os_dir, _ErrnoOrStr(err)))
+                   (constants.OS_API_FILE, os_dir, utils.ErrnoOrStr(err)))
 
   if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
     return False, ("File '%s' in %s is not a regular file" %
@@ -2148,7 +2130,7 @@ def _OSOndiskAPIVersion(os_dir):
     api_versions = utils.ReadFile(api_file).splitlines()
   except EnvironmentError, err:
     return False, ("Error while reading the API version file at %s: %s" %
-                   (api_file, _ErrnoOrStr(err)))
+                   (api_file, utils.ErrnoOrStr(err)))
 
   try:
     api_versions = [int(version.strip()) for version in api_versions]
@@ -2261,7 +2243,7 @@ def _TryOSFromDisk(name, base_dir=None):
         del os_files[filename]
         continue
       return False, ("File '%s' under path '%s' is missing (%s)" %
-                     (filename, os_dir, _ErrnoOrStr(err)))
+                     (filename, os_dir, utils.ErrnoOrStr(err)))
 
     if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
       return False, ("File '%s' under path '%s' is not a regular file" %
@@ -2281,7 +2263,7 @@ def _TryOSFromDisk(name, base_dir=None):
       # we accept missing files, but not other errors
       if err.errno != errno.ENOENT:
         return False, ("Error while reading the OS variants file at %s: %s" %
-                       (variants_file, _ErrnoOrStr(err)))
+                       (variants_file, utils.ErrnoOrStr(err)))
 
   parameters = []
   if constants.OS_PARAMETERS_FILE in os_files:
@@ -2290,7 +2272,7 @@ def _TryOSFromDisk(name, base_dir=None):
       parameters = utils.ReadFile(parameters_file).splitlines()
     except EnvironmentError, err:
       return False, ("Error while reading the OS parameters file at %s: %s" %
-                     (parameters_file, _ErrnoOrStr(err)))
+                     (parameters_file, utils.ErrnoOrStr(err)))
     parameters = [v.split(None, 1) for v in parameters]
 
   os_obj = objects.OS(name=name, path=os_dir,
