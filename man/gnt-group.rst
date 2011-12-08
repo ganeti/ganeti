@@ -32,6 +32,8 @@ ADD
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--disk-state *diskstate*]
+| [--hypervisor-state *hvstate*]
 | {*group*}
 
 Creates a new group with the given name. The node group will be
@@ -39,7 +41,8 @@ initially empty; to add nodes to it, use ``gnt-group assign-nodes``.
 
 The ``--node-parameters`` option allows you to set default node
 parameters for nodes in the group. Please see **ganeti**(7) for more
-information about supported key=value pairs.
+information about supported key=value pairs and their corresponding
+options.
 
 The ``--alloc-policy`` option allows you to set an allocation policy for
 the group at creation time. Possible values are:

@@ -1413,6 +1413,8 @@ class OpGroupAdd(OpCode):
     _PNodeGroupAllocPolicy,
     _PGroupNodeParams,
     _PDiskParams,
+    _PHvState,
+    _PDiskState,
     ("ipolicy", None, ht.TMaybeDict, "Group-wide instance policy specs"),
     ]
 

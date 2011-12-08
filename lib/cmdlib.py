@@ -12786,6 +12786,16 @@ class LUGroupAdd(LogicalUnit):
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
 
+    if self.op.hv_state:
+      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state, None)
+    else:
+      self.new_hv_state = None
+
+    if self.op.disk_state:
+      self.new_disk_state = _MergeAndVerifyDiskState(self.op.disk_state, None)
+    else:
+      self.new_disk_state = None
+
     if self.op.diskparams:
       for templ in constants.DISK_TEMPLATES:
         if templ not in self.op.diskparams:
@@ -12823,7 +12833,9 @@ class LUGroupAdd(LogicalUnit):
                                   alloc_policy=self.op.alloc_policy,
                                   ndparams=self.op.ndparams,
                                   diskparams=self.op.diskparams,
-                                  ipolicy=self.op.ipolicy)
+                                  ipolicy=self.op.ipolicy,
+                                  hv_state_static=self.new_hv_state,
+                                  disk_state_static=self.new_disk_state)
 
     self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
     del self.remove_locks[locking.LEVEL_NODEGROUP]

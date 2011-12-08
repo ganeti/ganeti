@@ -60,9 +60,18 @@ def AddGroup(opts, args):
 
   (group_name,) = args
   diskparams = dict(opts.diskparams)
+
+  if opts.disk_state:
+    disk_state = utils.FlatToDict(opts.disk_state)
+  else:
+    disk_state = {}
+  hv_state = dict(opts.hv_state)
+
   op = opcodes.OpGroupAdd(group_name=group_name, ndparams=opts.ndparams,
                           alloc_policy=opts.alloc_policy,
-                          diskparams=diskparams, ipolicy=ipolicy)
+                          diskparams=diskparams, ipolicy=ipolicy,
+                          hv_state=hv_state,
+                          disk_state=disk_state)
   SubmitOpCode(op, opts=opts)
 
 
@@ -279,8 +288,8 @@ INSTANCE_POLICY_OPTS = [
 commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP,
-    [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, DISK_PARAMS_OPT] +
-    INSTANCE_POLICY_OPTS,
+    [DRY_RUN_OPT, ALLOC_POLICY_OPT, NODE_PARAMS_OPT, DISK_PARAMS_OPT,
+     HV_STATE_OPT, DISK_STATE_OPT] + INSTANCE_POLICY_OPTS,
     "<group_name>", "Add a new node group to the cluster"),
   "assign-nodes": (
     AssignNodes, ARGS_ONE_GROUP + ARGS_MANY_NODES, [DRY_RUN_OPT, FORCE_OPT],
