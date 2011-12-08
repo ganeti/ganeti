@@ -687,7 +687,12 @@ def GenericMain(daemon_name, optionparser,
   signal.signal(signal.SIGHUP,
                 compat.partial(_HandleSigHup, [log_reopen_fn, stdio_reopen_fn]))
 
-  utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
+  try:
+    utils.WritePidFile(utils.DaemonPidFileName(daemon_name))
+  except errors.PidFileLockError, err:
+    print >> sys.stderr, "Error while locking PID file:\n%s" % err
+    sys.exit(constants.EXIT_FAILURE)
+
   try:
     try:
       logging.info("%s daemon startup", daemon_name)
