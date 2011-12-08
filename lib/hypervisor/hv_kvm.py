@@ -1756,6 +1756,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return objects.MigrationStatus(status=constants.HV_MIGRATION_FAILED,
                                   info="Too many 'info migrate' broken answers")
 
+  def BalloonInstanceMemory(self, instance, mem):
+    """Balloon an instance memory to a certain value.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type mem: int
+    @param mem: actual memory size to use for instance runtime
+
+    """
+    self._CallMonitorCommand(instance.name, "balloon %d" % mem)
+
   def GetNodeInfo(self):
     """Return information about the node.
 
