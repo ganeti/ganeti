@@ -190,6 +190,8 @@ INIT
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--disk-state *diskstate*]
+| [--hypervisor-state *hvstate*]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -492,6 +494,9 @@ instance.
 ``--specs-disk-size`` limits the disk size for every disk used
 ``--specs-mem-size`` limits the amount of memory available
 ``--specs-nic-count`` sets limits on the amount of nics used
+
+For details about how to use ``--hypervisor-state`` and ``--disk-state``
+have a look at **ganeti**(7).
 
 LIST-TAGS
 ~~~~~~~~~

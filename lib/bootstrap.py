@@ -290,7 +290,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 modify_etc_hosts=True, modify_ssh_setup=True,
                 maintain_node_health=False, drbd_helper=None, uid_pool=None,
                 default_iallocator=None, primary_ip_version=None, ipolicy=None,
-                prealloc_wipe_disks=False, use_external_mip_script=False):
+                prealloc_wipe_disks=False, use_external_mip_script=False,
+                hv_state=None, disk_state=None):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -429,6 +430,26 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   else:
     ndparams = dict(constants.NDC_DEFAULTS)
 
+  # This is ugly, as we modify the dict itself
+  # FIXME: Make utils.ForceDictType pure functional or write a wrapper around it
+  if hv_state:
+    for hvname, hvs_data in hv_state.items():
+      utils.ForceDictType(hvs_data, constants.HVSTS_PARAMETER_TYPES)
+      hv_state[hvname] = objects.Cluster.SimpleFillHvState(hvs_data)
+  else:
+    hv_state = dict((hvname, constants.HVST_DEFAULTS)
+                    for hvname in enabled_hypervisors)
+
+  # FIXME: disk_state has no default values yet
+  if disk_state:
+    for storage, ds_data in disk_state.items():
+      if storage not in constants.DS_VALID_TYPES:
+        raise errors.OpPrereqError("Invalid storage type in disk state: %s" %
+                                   storage, errors.ECODE_INVAL)
+      for ds_name, state in ds_data.items():
+        utils.ForceDictType(state, constants.DSS_PARAMETER_TYPES)
+        ds_data[ds_name] = objects.Cluster.SimpleFillDiskState(state)
+
   # hvparams is a mapping of hypervisor->hvparams dict
   for hv_name, hv_params in hvparams.iteritems():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
@@ -506,7 +527,9 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     primary_ip_family=ipcls.family,
     prealloc_wipe_disks=prealloc_wipe_disks,
     use_external_mip_script=use_external_mip_script,
-    ipolicy=ipolicy
+    ipolicy=ipolicy,
+    hv_state_static=hv_state,
+    disk_state_static=disk_state,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
