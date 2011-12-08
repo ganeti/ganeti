@@ -202,6 +202,8 @@ class QmpConnection:
   _FIRST_MESSAGE_KEY = "QMP"
   _EVENT_KEY = "event"
   _ERROR_KEY = "error"
+  _RETURN_KEY = RETURN_KEY = "return"
+  _ACTUAL_KEY = ACTUAL_KEY = "actual"
   _ERROR_CLASS_KEY = "class"
   _ERROR_DATA_KEY = "data"
   _ERROR_DESC_KEY = "desc"
@@ -915,6 +917,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     _, memory, vcpus = self._InstancePidInfo(pid)
     istat = "---b-"
     times = "0"
+
+    try:
+      qmp = QmpConnection(self._InstanceQmpMonitor(instance_name))
+      qmp.connect()
+      vcpus = len(qmp.Execute("query-cpus")[qmp.RETURN_KEY])
+      # Will fail if ballooning is not enabled, but we can then just resort to
+      # the value above.
+      mem_bytes = qmp.Execute("query-balloon")[qmp.RETURN_KEY][qmp.ACTUAL_KEY]
+      memory = mem_bytes / 1048576
+    except errors.HypervisorError:
+      pass
 
     return (instance_name, pid, memory, vcpus, istat, times)
 
