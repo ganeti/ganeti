@@ -216,10 +216,19 @@ def AddNode(opts, args):
 
   bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
 
+  if opts.disk_state:
+    disk_state = utils.FlatToDict(opts.disk_state)
+  else:
+    disk_state = {}
+
+  hv_state = dict(opts.hv_state)
+
   op = opcodes.OpNodeAdd(node_name=args[0], secondary_ip=sip,
                          readd=opts.readd, group=opts.nodegroup,
                          vm_capable=opts.vm_capable, ndparams=opts.ndparams,
-                         master_capable=opts.master_capable)
+                         master_capable=opts.master_capable,
+                         disk_state=disk_state,
+                         hv_state=hv_state)
   SubmitOpCode(op, opts=opts)
 
 
@@ -868,7 +877,8 @@ commands = {
     AddNode, [ArgHost(min=1, max=1)],
     [SECONDARY_IP_OPT, READD_OPT, NOSSH_KEYCHECK_OPT, NODE_FORCE_JOIN_OPT,
      NONODE_SETUP_OPT, VERBOSE_OPT, NODEGROUP_OPT, PRIORITY_OPT,
-     CAPAB_MASTER_OPT, CAPAB_VM_OPT, NODE_PARAMS_OPT],
+     CAPAB_MASTER_OPT, CAPAB_VM_OPT, NODE_PARAMS_OPT, HV_STATE_OPT,
+     DISK_STATE_OPT],
     "[-s ip] [--readd] [--no-ssh-key-check] [--force-join]"
     " [--no-node-setup] [--verbose]"
     " <node_name>",

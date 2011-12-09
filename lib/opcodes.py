@@ -932,6 +932,8 @@ class OpNodeAdd(OpCode):
   OP_DSC_FIELD = "node_name"
   OP_PARAMS = [
     _PNodeName,
+    _PHvState,
+    _PDiskState,
     ("primary_ip", None, ht.NoType, "Primary IP address"),
     ("secondary_ip", None, ht.TMaybeString, "Secondary IP address"),
     ("readd", False, ht.TBool, "Whether node is re-added to cluster"),

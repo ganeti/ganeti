@@ -5377,6 +5377,12 @@ class LUNodeAdd(LogicalUnit):
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
 
+    if self.op.hv_state:
+      self.new_hv_state = _MergeAndVerifyHvState(self.op.hv_state, None)
+
+    if self.op.disk_state:
+      self.new_disk_state = _MergeAndVerifyDiskState(self.op.disk_state, None)
+
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
@@ -5414,6 +5420,12 @@ class LUNodeAdd(LogicalUnit):
       new_node.ndparams = self.op.ndparams
     else:
       new_node.ndparams = {}
+
+    if self.op.hv_state:
+      new_node.hv_state_static = self.new_hv_state
+
+    if self.op.disk_state:
+      new_node.disk_state_static = self.new_disk_state
 
     # check connectivity
     result = self.rpc.call_version([node])[node]

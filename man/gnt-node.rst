@@ -27,6 +27,8 @@ ADD
 | [{-g|--node-group} *nodegroup*]
 | [--master-capable=``yes|no``] [--vm-capable=``yes|no``]
 | [--node-parameters *ndparams*]
+| [--disk-state *diskstate*]
+| [--hypervisor-state *hvstate*]
 | {*nodename*}
 
 Adds the given node to the cluster.
@@ -58,9 +60,9 @@ The ``-g (--node-group)`` option is used to add the new node into a
 specific node group, specified by UUID or name. If only one node group
 exists you can skip this option, otherwise it's mandatory.
 
-The ``vm_capable``, ``master_capable`` and ``ndparams`` options are
-described in **ganeti**(7), and are used to set the properties of the
-new node.
+The ``vm_capable``, ``master_capable``, ``ndparams``, ``diskstate`` and
+``hvstate`` options are described in **ganeti**(7), and are used to set
+the properties of the new node.
 
 Example::
 
