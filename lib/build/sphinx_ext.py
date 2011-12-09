@@ -45,7 +45,19 @@ from ganeti import rapi
 import ganeti.rapi.rlib2 # pylint: disable=W0611
 
 
-COMMON_PARAM_NAMES = map(compat.fst, opcodes.OpCode.OP_PARAMS)
+def _GetCommonParamNames():
+  """Builds a list of parameters common to all opcodes.
+
+  """
+  names = set(map(compat.fst, opcodes.OpCode.OP_PARAMS))
+
+  # The "depends" attribute should be listed
+  names.remove(opcodes.DEPEND_ATTR)
+
+  return names
+
+
+COMMON_PARAM_NAMES = _GetCommonParamNames()
 
 #: Namespace for evaluating expressions
 EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors,
