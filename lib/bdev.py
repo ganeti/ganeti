@@ -221,16 +221,19 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
-  def SetSyncSpeed(self, speed):
-    """Adjust the sync speed of the mirror.
+  def SetSyncParams(self, params):
+    """Adjust the synchronization parameters of the mirror.
 
     In case this is not a mirroring device, this is no-op.
+
+    @param params: dictionary of LD level disk parameters related to the
+    synchronization.
 
     """
     result = True
     if self._children:
       for child in self._children:
-        result = result and child.SetSyncSpeed(speed)
+        result = result and child.SetSyncParams(params)
     return result
 
   def PauseResumeSync(self, pause):
@@ -238,7 +241,7 @@ class BlockDev(object):
 
     In case this is not a mirroring device, this is no-op.
 
-    @param pause: Wheater to pause or resume
+    @param pause: Whether to pause or resume
 
     """
     result = True
@@ -1472,8 +1475,7 @@ class DRBD8(BaseDRBD):
     # sync speed only after setting up both sides can race with DRBD
     # connecting, hence we set it here before telling DRBD anything
     # about its peer.
-    sync_speed = self.params.get(constants.LDP_RESYNC_RATE)
-    self._SetMinorSyncSpeed(minor, sync_speed)
+    self._SetMinorSyncParams(minor, self.params)
 
     if netutils.IP6Address.IsValid(lhost):
       if not netutils.IP6Address.IsValid(rhost):
@@ -1573,40 +1575,61 @@ class DRBD8(BaseDRBD):
     self._children = []
 
   @classmethod
-  def _SetMinorSyncSpeed(cls, minor, kbytes):
-    """Set the speed of the DRBD syncer.
+  def _SetMinorSyncParams(cls, minor, params):
+    """Set the parameters of the DRBD syncer.
 
     This is the low-level implementation.
 
     @type minor: int
     @param minor: the drbd minor whose settings we change
-    @type kbytes: int
-    @param kbytes: the speed in kbytes/second
+    @type params: dict
+    @param params: LD level disk parameters related to the synchronization
     @rtype: boolean
     @return: the success of the operation
 
     """
-    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "syncer",
-                           "-r", "%d" % kbytes, "--create-device"])
+
+    args = ["drbdsetup", cls._DevPath(minor), "syncer"]
+    if params[constants.LDP_DYNAMIC_RESYNC]:
+      version = cls._GetVersion(cls._GetProcData())
+      vmin = version["k_minor"]
+      vrel = version["k_point"]
+
+      # By definition we are using 8.x, so just check the rest of the version
+      # number
+      if vmin != 3 or vrel < 9:
+        logging.error("The current DRBD version (8.%d.%d) does not support the"
+                      " dynamic resync speed controller", vmin, vrel)
+        return False
+
+      # add the c-* parameters to args
+      # TODO(spadaccio) use the actual parameters
+      args.extend(["--c-plan-ahead", "20"])
+
+    else:
+      args.extend(["-r", "%d" % params[constants.LDP_RESYNC_RATE]])
+
+    args.append("--create-device")
+    result = utils.RunCmd(args)
     if result.failed:
       logging.error("Can't change syncer rate: %s - %s",
                     result.fail_reason, result.output)
     return not result.failed
 
-  def SetSyncSpeed(self, kbytes):
-    """Set the speed of the DRBD syncer.
+  def SetSyncParams(self, params):
+    """Set the synchronization parameters of the DRBD syncer.
 
-    @type kbytes: int
-    @param kbytes: the speed in kbytes/second
+    @type params: dict
+    @param params: LD level disk parameters related to the synchronization
     @rtype: boolean
     @return: the success of the operation
 
     """
     if self.minor is None:
-      logging.info("Not attached during SetSyncSpeed")
+      logging.info("Not attached during SetSyncParams")
       return False
-    children_result = super(DRBD8, self).SetSyncSpeed(kbytes)
-    return self._SetMinorSyncSpeed(self.minor, kbytes) and children_result
+    children_result = super(DRBD8, self).SetSyncParams(params)
+    return self._SetMinorSyncParams(self.minor, params) and children_result
 
   def PauseResumeSync(self, pause):
     """Pauses or resumes the sync of a DRBD device.
@@ -1843,8 +1866,7 @@ class DRBD8(BaseDRBD):
       # the device
       self._SlowAssemble()
 
-    sync_speed = self.params.get(constants.LDP_RESYNC_RATE)
-    self.SetSyncSpeed(sync_speed)
+    self.SetSyncParams(self.params)
 
   def _SlowAssemble(self):
     """Assembles the DRBD device from a (partially) configured device.

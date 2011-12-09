@@ -8245,6 +8245,7 @@ def _ComputeLDParams(disk_template, disk_params):
       constants.LDP_DEFAULT_METAVG: dt_params[constants.DRBD_DEFAULT_METAVG],
       constants.LDP_DISK_CUSTOM: dt_params[constants.DRBD_DISK_CUSTOM],
       constants.LDP_NET_CUSTOM: dt_params[constants.DRBD_NET_CUSTOM],
+      constants.LDP_DYNAMIC_RESYNC: dt_params[constants.DRBD_DYNAMIC_RESYNC],
       }
 
     drbd_params = \
