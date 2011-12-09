@@ -172,6 +172,16 @@ def _AppendForceIf(container, condition):
   return _AppendIf(container, condition, (_QPARAM_FORCE, 1))
 
 
+def _SetItemIf(container, condition, item, value):
+  """Sets an item if a condition evaluates to truth.
+
+  """
+  if condition:
+    container[item] = value
+
+  return condition
+
+
 def UsesRapiClient(fn):
   """Decorator for code using RAPI client to initialize pycURL.
 
@@ -791,12 +801,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     body = {}
-
-    if disks is not None:
-      body["disks"] = disks
-
-    if nodes is not None:
-      body["nodes"] = nodes
+    _SetItemIf(body, disks is not None, "disks", disks)
+    _SetItemIf(body, nodes is not None, "nodes", nodes)
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/recreate-disks" %
@@ -823,8 +829,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "amount": amount,
       }
 
-    if wait_for_sync is not None:
-      body["wait_for_sync"] = wait_for_sync
+    _SetItemIf(body, wait_for_sync is not None, "wait_for_sync", wait_for_sync)
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/disk/%s/grow" %
@@ -974,10 +979,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       body = {
         "start": not no_startup,
         }
-      if os is not None:
-        body["os"] = os
-      if osparams is not None:
-        body["osparams"] = osparams
+      _SetItemIf(body, os is not None, "os", os)
+      _SetItemIf(body, osparams is not None, "osparams", osparams)
       return self._SendRequest(HTTP_POST,
                                ("/%s/instances/%s/reinstall" %
                                 (GANETI_RAPI_VERSION, instance)), None, body)
@@ -1067,17 +1070,12 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "mode": mode,
       }
 
-    if shutdown is not None:
-      body["shutdown"] = shutdown
-
-    if remove_instance is not None:
-      body["remove_instance"] = remove_instance
-
-    if x509_key_name is not None:
-      body["x509_key_name"] = x509_key_name
-
-    if destination_x509_ca is not None:
-      body["destination_x509_ca"] = destination_x509_ca
+    _SetItemIf(body, shutdown is not None, "shutdown", shutdown)
+    _SetItemIf(body, remove_instance is not None,
+               "remove_instance", remove_instance)
+    _SetItemIf(body, x509_key_name is not None, "x509_key_name", x509_key_name)
+    _SetItemIf(body, destination_x509_ca is not None,
+               "destination_x509_ca", destination_x509_ca)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/export" %
@@ -1097,12 +1095,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     body = {}
-
-    if mode is not None:
-      body["mode"] = mode
-
-    if cleanup is not None:
-      body["cleanup"] = cleanup
+    _SetItemIf(body, mode is not None, "mode", mode)
+    _SetItemIf(body, cleanup is not None, "cleanup", cleanup)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/migrate" %
@@ -1126,15 +1120,10 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     body = {}
-
-    if iallocator is not None:
-      body["iallocator"] = iallocator
-
-    if ignore_consistency is not None:
-      body["ignore_consistency"] = ignore_consistency
-
-    if target_node is not None:
-      body["target_node"] = target_node
+    _SetItemIf(body, iallocator is not None, "iallocator", iallocator)
+    _SetItemIf(body, ignore_consistency is not None,
+               "ignore_consistency", ignore_consistency)
+    _SetItemIf(body, target_node is not None, "target_node", target_node)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/failover" %
@@ -1159,11 +1148,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "new_name": new_name,
       }
 
-    if ip_check is not None:
-      body["ip_check"] = ip_check
-
-    if name_check is not None:
-      body["name_check"] = name_check
+    _SetItemIf(body, ip_check is not None, "ip_check", ip_check)
+    _SetItemIf(body, name_check is not None, "name_check", name_check)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/rename" %
@@ -1359,14 +1345,11 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       # Server supports body parameters
       body = {}
 
-      if iallocator is not None:
-        body["iallocator"] = iallocator
-      if remote_node is not None:
-        body["remote_node"] = remote_node
-      if early_release is not None:
-        body["early_release"] = early_release
-      if mode is not None:
-        body["mode"] = mode
+      _SetItemIf(body, iallocator is not None, "iallocator", iallocator)
+      _SetItemIf(body, remote_node is not None, "remote_node", remote_node)
+      _SetItemIf(body, early_release is not None,
+                 "early_release", early_release)
+      _SetItemIf(body, mode is not None, "mode", mode)
     else:
       # Pre-2.5 request format
       body = None
@@ -1414,12 +1397,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     if _NODE_MIGRATE_REQV1 in self.GetFeatures():
       body = {}
 
-      if mode is not None:
-        body["mode"] = mode
-      if iallocator is not None:
-        body["iallocator"] = iallocator
-      if target_node is not None:
-        body["target_node"] = target_node
+      _SetItemIf(body, mode is not None, "mode", mode)
+      _SetItemIf(body, iallocator is not None, "iallocator", iallocator)
+      _SetItemIf(body, target_node is not None, "target_node", target_node)
 
       assert len(query) <= 1
 
@@ -1851,10 +1831,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "fields": fields,
       }
 
-    if qfilter is not None:
-      body["qfilter"] = qfilter
-      # TODO: remove this after 2.7
-      body["filter"] = qfilter
+    _SetItemIf(body, qfilter is not None, "qfilter", qfilter)
+    # TODO: remove "filter" after 2.7
+    _SetItemIf(body, qfilter is not None, "filter", qfilter)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/query/%s" %
