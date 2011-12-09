@@ -97,10 +97,6 @@ JOB_STATUS_WAITLOCK = JOB_STATUS_WAITING
 
 # Internal constants
 _REQ_DATA_VERSION_FIELD = "__version__"
-_INST_CREATE_REQV1 = "instance-create-reqv1"
-_INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
-_NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
-_NODE_EVAC_RES1 = "node-evac-res1"
 _INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link"])
 _INST_CREATE_V0_DISK_PARAMS = frozenset(["size"])
 _INST_CREATE_V0_PARAMS = frozenset([
@@ -110,6 +106,18 @@ _INST_CREATE_V0_PARAMS = frozenset([
 _INST_CREATE_V0_DPARAMS = frozenset(["beparams", "hvparams"])
 _QPARAM_DRY_RUN = "dry-run"
 _QPARAM_FORCE = "force"
+
+# Feature strings
+INST_CREATE_REQV1 = "instance-create-reqv1"
+INST_REINSTALL_REQV1 = "instance-reinstall-reqv1"
+NODE_MIGRATE_REQV1 = "node-migrate-reqv1"
+NODE_EVAC_RES1 = "node-evac-res1"
+
+# Old feature constant names in case they're references by users of this module
+_INST_CREATE_REQV1 = INST_CREATE_REQV1
+_INST_REINSTALL_REQV1 = INST_REINSTALL_REQV1
+_NODE_MIGRATE_REQV1 = NODE_MIGRATE_REQV1
+_NODE_EVAC_RES1 = NODE_EVAC_RES1
 
 # Older pycURL versions don't have all error constants
 try:
