@@ -26,7 +26,7 @@ ADD
 | **add**
 | [--node-parameters=*NDPARAMS*]
 | [--alloc-policy=*POLICY*]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
 | [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
@@ -95,7 +95,7 @@ MODIFY
 | [--node-parameters=*NDPARAMS*]
 | [--alloc-policy=*POLICY*]
 | [--hypervisor-state *hvstate*]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
 | [--disk-state *diskstate*]
 | [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]

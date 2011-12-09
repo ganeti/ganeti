@@ -175,9 +175,9 @@ INIT
 | [--file-storage-dir *dir*]
 | [--enabled-hypervisors *hypervisors*]
 | [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
-| [{-B|--backend-parameters} *be-param*=*value* [,*be-param*=*value*...]]
-| [{-N|--nic-parameters} *nic-param*=*value* [,*nic-param*=*value*...]]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
+| [{-B|--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
+| [{-N|--nic-parameters} *nic-param*=*value*[,*nic-param*=*value*...]]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
 | [--maintain-node-health {yes \| no}]
 | [--uid-pool *user-id pool definition*]
 | [{-I|--default-iallocator} *default instance allocator*]
@@ -371,22 +371,24 @@ cluster and node group level; the cluster-level parameter are inherited
 by the node group at the moment of its creation, and can be further
 modified at node group level using the **gnt-group**(8) command. 
 
-List of disk parameters available for the **drbd** template:
+The following is the list of disk parameters available for the **drbd**
+template, with measurement units specified in square brackets at the end
+of the description (when applicable):
 
 resync-rate
-    Re-synchronization rate, expressed in KiB/s
+    Static re-synchronization rate. [KiB/s]
 
 data-stripes
-    Number of stripes to use for data LVs
+    Number of stripes to use for data LVs.
 
 meta-stripes
-    Number of stripes to use for meta LVs
+    Number of stripes to use for meta LVs.
 
 disk-barriers
     What kind of barriers to **disable** for disks. It can either assume
     the value "n", meaning no barrier disabled, or a non-empty string
     containing a subset of the characters "bfd". "b" means disable disk
-    barriers, "f" means disable disk flushes, "d" disables disk drains
+    barriers, "f" means disable disk flushes, "d" disables disk drains.
 
 meta-barriers
     Boolean value indicating whether the meta barriers should be
@@ -406,10 +408,36 @@ net-custom
     String containing additional parameters to be appended to the
     arguments list of ``drbdsetup net``.
 
+dynamic-resync
+    Boolean indicating whether to use the dynamic resync speed
+    controller or not. If enabled, c-plan-ahead must be non-zero and all
+    the c-* parameters will be used by DRBD. Otherwise, the value of
+    resync-rate will be used as a static resync speed.
+
+c-plan-ahead
+    Agility factor of the dynamic resync speed controller. (the higher,
+    the slower the algorithm will adapt the resync speed). A value of 0
+    (that is the default) disables the controller. [ds]
+
+c-fill-target
+    Maximum amount of in-flight resync data for the dynamic resync speed
+    controller. [sectors]
+
+c-delay-target
+    Maximum estimated peer response latency for the dynamic resync speed
+    controller. [ds]
+
+c-min-rate
+    Minimum resync speed for the dynamic resync speed controller. [KiB/s]
+
+c-max-rate
+    Upper bound on resync speed for the dynamic resync speed controller.
+    [KiB/s]
+
 List of parameters available for the **plain** template:
 
 stripes
-    Number of stripes to use for new LVs
+    Number of stripes to use for new LVs.
 
 The option ``--maintain-node-health`` allows one to enable/disable
 automatic maintenance actions on nodes. Currently these include
@@ -510,9 +538,9 @@ MODIFY
 | [--no-lvm-storage]
 | [--enabled-hypervisors *hypervisors*]
 | [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
-| [{-B|--backend-parameters} *be-param*=*value* [,*be-param*=*value*...]]
-| [{-N|--nic-parameters} *nic-param*=*value* [,*nic-param*=*value*...]]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
+| [{-B|--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
+| [{-N|--nic-parameters} *nic-param*=*value*[,*nic-param*=*value*...]]
+| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
 | [--uid-pool *user-id pool definition*]
 | [--add-uids *user-id pool definition*]
 | [--remove-uids *user-id pool definition*]
