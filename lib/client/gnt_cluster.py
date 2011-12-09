@@ -140,7 +140,7 @@ def InitCluster(opts, args):
 
   # prepare ipolicy dict
   ipolicy_raw = \
-    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_count,
+    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_size,
                                   ispecs_cpu_count=opts.ispecs_cpu_count,
                                   ispecs_disk_count=opts.ispecs_disk_count,
                                   ispecs_disk_size=opts.ispecs_disk_size,
