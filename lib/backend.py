@@ -1376,6 +1376,27 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout):
     _Fail("Invalid reboot_type received: %s", reboot_type)
 
 
+def InstanceBalloonMemory(instance, memory):
+  """Resize an instance's memory.
+
+  @type instance: L{objects.Instance}
+  @param instance: the instance object
+  @type memory: int
+  @param memory: new memory amount in MB
+  @rtype: None
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  running = hyper.ListInstances()
+  if instance.name not in running:
+    logging.info("Instance %s is not running, cannot balloon", instance.name)
+    return
+  try:
+    hyper.BalloonInstanceMemory(instance, memory)
+  except errors.HypervisorError, err:
+    _Fail("Failed to balloon instance memory: %s", err, exc=True)
+
+
 def MigrationInfo(instance):
   """Gather information about an instance to be migrated.
 

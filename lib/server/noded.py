@@ -622,6 +622,15 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.InstanceReboot(instance, reboot_type, shutdown_timeout)
 
   @staticmethod
+  def perspective_instance_balloon_memory(params):
+    """Modify instance runtime memory.
+
+    """
+    instance_dict, memory = params
+    instance = objects.Instance.FromDict(instance_dict)
+    return backend.InstanceBalloonMemory(instance, memory)
+
+  @staticmethod
   def perspective_instance_info(params):
     """Query instance information.
 

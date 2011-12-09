@@ -224,6 +224,10 @@ _INSTANCE_CALLS = [
     ("instance", ED_INST_DICT, "Instance object"),
     ("timeout", None, None),
     ], None, None, "Stops an instance"),
+  ("instance_balloon_memory", SINGLE, None, TMO_NORMAL, [
+    ("instance", ED_INST_DICT, "Instance object"),
+    ("memory", None, None),
+    ], None, None, "Modify the amount of an instance's runtime memory"),
   ("instance_run_rename", SINGLE, None, TMO_SLOW, [
     ("instance", ED_INST_DICT, "Instance object"),
     ("old_name", None, None),
