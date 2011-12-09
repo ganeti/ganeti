@@ -12788,9 +12788,10 @@ class LUGroupAdd(LogicalUnit):
     else:
       self.op.diskparams = self.cfg.GetClusterInfo().diskparams
 
-    cluster = self.cfg.GetClusterInfo()
-    full_ipolicy = cluster.SimpleFillIPolicy(self.op.ipolicy)
-    objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
+    if self.op.ipolicy:
+      cluster = self.cfg.GetClusterInfo()
+      full_ipolicy = cluster.SimpleFillIPolicy(self.op.ipolicy)
+      objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
 
   def BuildHooksEnv(self):
     """Build hooks env.
