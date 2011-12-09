@@ -27,6 +27,11 @@ ADD
 | [--node-parameters=*NDPARAMS*]
 | [--alloc-policy=*POLICY*]
 | [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
+| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | {*group*}
 
 Creates a new group with the given name. The node group will be
@@ -58,6 +63,15 @@ parameters for the node group; please see the section about
 **gnt-cluster add** in **gnt-cluster**(8) for more information about
 disk parameters
 
+The ``--specs-..`` options specify instance policy on the cluster. Each
+option can have two values: ``min`` and ``max``.
+``--specs-cpu-count`` sets the number of VCPUs that can be used by an
+instance.
+``--specs-disk-count`` sets the number of disks
+``--specs-disk-size`` limits the disk size for every disk used
+``--specs-mem-size`` limits the amount of memory available
+``--specs-nic-count`` sets limits on the amount of nics used
+
 ASSIGN-NODES
 ~~~~~~~~~~~~
 
@@ -83,6 +97,11 @@ MODIFY
 | [--hypervisor-state *hvstate*]
 | [{-D|--disk-parameters} *disk-template*:*disk-param*=*value* [,*disk-param*=*value*...]]
 | [--disk-state *diskstate*]
+| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | {*group*}
 
 Modifies some parameters from the node group.
@@ -91,9 +110,9 @@ The ``--node-parameters`` and ``--alloc-policy`` options are documented
 in the **add** command above. ``--hypervisor-state`` as well as
 ``--disk-state`` are documented in detail in **ganeti**(7).
 
-The ``--node-parameters``, ``--alloc-policy`` and ``-D
-(--disk-parameters)`` options are documented in the **add** command
-above.
+The ``--node-parameters``, ``--alloc-policy``, ``-D
+(--disk-parameters)`` and ``--specs-..`` options are documented in the
+**add** command above.
 
 REMOVE
 ~~~~~~
