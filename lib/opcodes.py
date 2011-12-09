@@ -509,7 +509,8 @@ class OpCode(BaseOpCode):
      ht.TElemOf(constants.OP_PRIO_SUBMIT_VALID), "Opcode priority"),
     (DEPEND_ATTR, None, _BuildJobDepCheck(True),
      "Job dependencies; if used through ``SubmitManyJobs`` relative (negative)"
-     " job IDs can be used"),
+     " job IDs can be used; see :doc:`design document <design-chained-jobs>`"
+     " for details"),
     (COMMENT_ATTR, None, ht.TMaybeString,
      "Comment describing the purpose of the opcode"),
     ]
