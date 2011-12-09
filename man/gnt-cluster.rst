@@ -185,6 +185,11 @@ INIT
 | [--prealloc-wipe-disks {yes \| no}]
 | [--node-parameters *ndparams*]
 | [{-C|--candidate-pool-size} *candidate\_pool\_size*]
+| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -448,6 +453,18 @@ The ``-C (--candidate-pool-size)`` option specifies the
 that the master will try to keep as master\_candidates. For more
 details about this role and other node roles, see the ganeti(7).
 
+The ``--specs-..`` options specify instance policy on the cluster. Each
+option can have three values: ``min``, ``max`` and ``std``, which can
+also be modified on group level (except for ``std``, which is defined
+once for the entire cluster). Please note, that ``std`` values are not
+the same as defaults set by ``--beparams``.
+``--specs-cpu-count`` sets the number of VCPUs that can be used by an
+instance.
+``--specs-disk-count`` sets the number of disks
+``--specs-disk-size`` limits the disk size for every disk used
+``--specs-mem-size`` limits the amount of memory available
+``--specs-nic-count`` sets limits on the amount of nics used
+
 LIST-TAGS
 ~~~~~~~~~
 
@@ -510,6 +527,12 @@ MODIFY
 | [--use-external-mip-script {yes \| no}]
 | [--hypervisor-state *hvstate*]
 | [--disk-state *diskstate*]
+| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+
 
 Modify the options for the cluster.
 
@@ -544,6 +567,8 @@ to the option, as in ``--reserved-lvs=`` or ``--reserved-lvs ''``.
 The ``-I (--default-iallocator)`` is described in the **init**
 command. To clear the default iallocator, just pass an empty string
 ('').
+
+The ``--specs-..`` options are described in the **init** command.
 
 QUEUE
 ~~~~~
