@@ -8246,6 +8246,11 @@ def _ComputeLDParams(disk_template, disk_params):
       constants.LDP_DISK_CUSTOM: dt_params[constants.DRBD_DISK_CUSTOM],
       constants.LDP_NET_CUSTOM: dt_params[constants.DRBD_NET_CUSTOM],
       constants.LDP_DYNAMIC_RESYNC: dt_params[constants.DRBD_DYNAMIC_RESYNC],
+      constants.LDP_PLAN_AHEAD: dt_params[constants.DRBD_PLAN_AHEAD],
+      constants.LDP_FILL_TARGET: dt_params[constants.DRBD_FILL_TARGET],
+      constants.LDP_DELAY_TARGET: dt_params[constants.DRBD_DELAY_TARGET],
+      constants.LDP_MAX_RATE: dt_params[constants.DRBD_MAX_RATE],
+      constants.LDP_MIN_RATE: dt_params[constants.DRBD_MIN_RATE],
       }
 
     drbd_params = \

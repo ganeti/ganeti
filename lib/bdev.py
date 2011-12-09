@@ -228,12 +228,15 @@ class BlockDev(object):
 
     @param params: dictionary of LD level disk parameters related to the
     synchronization.
+    @rtype: list
+    @return: a list of error messages, emitted both by the current node and by
+    children. An empty list means no errors.
 
     """
-    result = True
+    result = []
     if self._children:
       for child in self._children:
-        result = result and child.SetSyncParams(params)
+        result.extend(child.SetSyncParams(params))
     return result
 
   def PauseResumeSync(self, pause):
@@ -1475,7 +1478,10 @@ class DRBD8(BaseDRBD):
     # sync speed only after setting up both sides can race with DRBD
     # connecting, hence we set it here before telling DRBD anything
     # about its peer.
-    self._SetMinorSyncParams(minor, self.params)
+    sync_errors = self._SetMinorSyncParams(minor, self.params)
+    if sync_errors:
+      _ThrowError("drbd%d: can't set the synchronization parameters: %s" %
+                  (minor, utils.CommaJoin(sync_errors)))
 
     if netutils.IP6Address.IsValid(lhost):
       if not netutils.IP6Address.IsValid(rhost):
@@ -1584,8 +1590,8 @@ class DRBD8(BaseDRBD):
     @param minor: the drbd minor whose settings we change
     @type params: dict
     @param params: LD level disk parameters related to the synchronization
-    @rtype: boolean
-    @return: the success of the operation
+    @rtype: list
+    @return: a list of error messages
 
     """
 
@@ -1598,13 +1604,25 @@ class DRBD8(BaseDRBD):
       # By definition we are using 8.x, so just check the rest of the version
       # number
       if vmin != 3 or vrel < 9:
-        logging.error("The current DRBD version (8.%d.%d) does not support the"
-                      " dynamic resync speed controller", vmin, vrel)
-        return False
+        msg = ("The current DRBD version (8.%d.%d) does not support the "
+               "dynamic resync speed controller" % (vmin, vrel))
+        logging.error(msg)
+        return [msg]
+
+      if params[constants.LDP_PLAN_AHEAD] == 0:
+        msg = ("A value of 0 for c-plan-ahead disables the dynamic sync speed"
+               " controller at DRBD level. If you want to disable it, please"
+               " set the dynamic-resync disk parameter to False.")
+        logging.error(msg)
+        return [msg]
 
       # add the c-* parameters to args
-      # TODO(spadaccio) use the actual parameters
-      args.extend(["--c-plan-ahead", "20"])
+      args.extend(["--c-plan-ahead", params[constants.LDP_PLAN_AHEAD],
+                   "--c-fill-target", params[constants.LDP_FILL_TARGET],
+                   "--c-delay-target", params[constants.LDP_DELAY_TARGET],
+                   "--c-max-rate", params[constants.LDP_MAX_RATE],
+                   "--c-min-rate", params[constants.LDP_MIN_RATE],
+                  ])
 
     else:
       args.extend(["-r", "%d" % params[constants.LDP_RESYNC_RATE]])
@@ -1612,24 +1630,31 @@ class DRBD8(BaseDRBD):
     args.append("--create-device")
     result = utils.RunCmd(args)
     if result.failed:
-      logging.error("Can't change syncer rate: %s - %s",
-                    result.fail_reason, result.output)
-    return not result.failed
+      msg = ("Can't change syncer rate: %s - %s" %
+             (result.fail_reason, result.output))
+      logging.error(msg)
+      return msg
+
+    return []
 
   def SetSyncParams(self, params):
     """Set the synchronization parameters of the DRBD syncer.
 
     @type params: dict
     @param params: LD level disk parameters related to the synchronization
-    @rtype: boolean
-    @return: the success of the operation
+    @rtype: list
+    @return: a list of error messages, emitted both by the current node and by
+    children. An empty list means no errors
 
     """
     if self.minor is None:
-      logging.info("Not attached during SetSyncParams")
-      return False
+      err = "Not attached during SetSyncParams"
+      logging.info(err)
+      return [err]
+
     children_result = super(DRBD8, self).SetSyncParams(params)
-    return self._SetMinorSyncParams(self.minor, params) and children_result
+    children_result.extend(self._SetMinorSyncParams(self.minor, params))
+    return children_result
 
   def PauseResumeSync(self, pause):
     """Pauses or resumes the sync of a DRBD device.
@@ -1866,7 +1891,10 @@ class DRBD8(BaseDRBD):
       # the device
       self._SlowAssemble()
 
-    self.SetSyncParams(self.params)
+    sync_errors = self.SetSyncParams(self.params)
+    if sync_errors:
+      _ThrowError("drbd%d: can't set the synchronization parameters: %s" %
+                  (self.minor, utils.CommaJoin(sync_errors)))
 
   def _SlowAssemble(self):
     """Assembles the DRBD device from a (partially) configured device.
