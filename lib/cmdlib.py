@@ -1028,8 +1028,8 @@ def _CheckMinMaxSpecs(name, ipolicy, value):
   """
   if value in [None, constants.VALUE_AUTO]:
     return None
-  max_v = ipolicy[constants.MAX_ISPECS].get(name, value)
-  min_v = ipolicy[constants.MIN_ISPECS].get(name, value)
+  max_v = ipolicy[constants.ISPECS_MAX].get(name, value)
+  min_v = ipolicy[constants.ISPECS_MIN].get(name, value)
   if value > max_v or min_v > value:
     return ("%s value %s is not in range [%s, %s]" %
             (name, value, min_v, max_v))
@@ -2151,11 +2151,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     nic_count = len(instance.nics)
 
     test_settings = [
-      (constants.MEM_SIZE_SPEC, mem_size),
-      (constants.CPU_COUNT_SPEC, cpu_count),
-      (constants.DISK_COUNT_SPEC, disk_count),
-      (constants.NIC_COUNT_SPEC, nic_count),
-      ] + map((lambda d: (constants.DISK_SIZE_SPEC, d)), disk_sizes)
+      (constants.ISPEC_MEM_SIZE, mem_size),
+      (constants.ISPEC_CPU_COUNT, cpu_count),
+      (constants.ISPEC_DISK_COUNT, disk_count),
+      (constants.ISPEC_NIC_COUNT, nic_count),
+      ] + map((lambda d: (constants.ISPEC_DISK_SIZE, d)), disk_sizes)
 
     for (name, value) in test_settings:
       test_result = _CheckMinMaxSpecs(name, ipolicy, value)

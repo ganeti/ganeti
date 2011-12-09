@@ -57,14 +57,14 @@ _UUID = ["uuid"]
 
 # constants used to create InstancePolicy dictionary
 TISPECS_GROUP_TYPES = {
-  constants.MIN_ISPECS: constants.VTYPE_INT,
-  constants.MAX_ISPECS: constants.VTYPE_INT,
+  constants.ISPECS_MIN: constants.VTYPE_INT,
+  constants.ISPECS_MAX: constants.VTYPE_INT,
 }
 
 TISPECS_CLUSTER_TYPES = {
-  constants.MIN_ISPECS: constants.VTYPE_INT,
-  constants.MAX_ISPECS: constants.VTYPE_INT,
-  constants.STD_ISPECS: constants.VTYPE_INT,
+  constants.ISPECS_MIN: constants.VTYPE_INT,
+  constants.ISPECS_MAX: constants.VTYPE_INT,
+  constants.ISPECS_STD: constants.VTYPE_INT,
   }
 
 
@@ -166,9 +166,9 @@ def MakeEmptyIPolicy():
 
   """
   return dict([
-    (constants.MIN_ISPECS, dict()),
-    (constants.MAX_ISPECS, dict()),
-    (constants.STD_ISPECS, dict()),
+    (constants.ISPECS_MIN, dict()),
+    (constants.ISPECS_MAX, dict()),
+    (constants.ISPECS_STD, dict()),
     ])
 
 
@@ -185,11 +185,11 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   """
   # prepare ipolicy dict
   ipolicy_transposed = {
-    constants.MEM_SIZE_SPEC: ispecs_mem_size,
-    constants.CPU_COUNT_SPEC: ispecs_cpu_count,
-    constants.DISK_COUNT_SPEC: ispecs_disk_count,
-    constants.DISK_SIZE_SPEC: ispecs_disk_size,
-    constants.NIC_COUNT_SPEC: ispecs_nic_count,
+    constants.ISPEC_MEM_SIZE: ispecs_mem_size,
+    constants.ISPEC_CPU_COUNT: ispecs_cpu_count,
+    constants.ISPEC_DISK_COUNT: ispecs_disk_count,
+    constants.ISPEC_DISK_SIZE: ispecs_disk_size,
+    constants.ISPEC_NIC_COUNT: ispecs_nic_count,
     }
 
   # first, check that the values given are correct
@@ -881,14 +881,14 @@ class InstancePolicy(ConfigObject):
     @raise errors.ConfigureError: when specs for given name are not valid
 
     """
-    min_v = ipolicy[constants.MIN_ISPECS].get(name, 0)
-    std_v = ipolicy[constants.STD_ISPECS].get(name, min_v)
-    max_v = ipolicy[constants.MAX_ISPECS].get(name, std_v)
+    min_v = ipolicy[constants.ISPECS_MIN].get(name, 0)
+    std_v = ipolicy[constants.ISPECS_STD].get(name, min_v)
+    max_v = ipolicy[constants.ISPECS_MAX].get(name, std_v)
     err = ("Invalid specification of min/max/std values for %s: %s/%s/%s" %
            (name,
-            ipolicy[constants.MIN_ISPECS].get(name, "-"),
-            ipolicy[constants.MAX_ISPECS].get(name, "-"),
-            ipolicy[constants.STD_ISPECS].get(name, "-")))
+            ipolicy[constants.ISPECS_MIN].get(name, "-"),
+            ipolicy[constants.ISPECS_MAX].get(name, "-"),
+            ipolicy[constants.ISPECS_STD].get(name, "-")))
     if min_v > std_v or std_v > max_v:
       raise errors.ConfigurationError(err)
 
