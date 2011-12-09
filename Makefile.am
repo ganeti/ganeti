@@ -515,7 +515,7 @@ nodist_sbin_SCRIPTS = \
 	$(PYTHON_BOOTSTRAP_SBIN) \
 	daemons/ganeti-cleaner
 
-dist_tools_PYTHON = \
+python_scripts = \
 	tools/burnin \
 	tools/cfgshell \
 	tools/cfgupgrade \
@@ -529,7 +529,7 @@ dist_tools_PYTHON = \
 	tools/sanitize-config
 
 dist_tools_SCRIPTS = \
-	$(dist_tools_PYTHON) \
+	$(python_scripts) \
 	tools/kvm-console-wrapper \
 	tools/xm-console-wrapper \
 	tools/master-ip-setup
@@ -766,7 +766,7 @@ TESTS_ENVIRONMENT = \
 
 all_python_code = \
 	$(dist_sbin_SCRIPTS) \
-	$(dist_tools_PYTHON) \
+	$(python_scripts) \
 	$(pkglib_python_scripts) \
 	$(nodist_pkglib_python_scripts) \
 	$(python_tests) \
@@ -805,7 +805,7 @@ lint_python_code = \
 	ganeti \
 	ganeti/http/server.py \
 	$(dist_sbin_SCRIPTS) \
-	$(dist_tools_PYTHON) \
+	$(python_scripts) \
 	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION) \
 	$(CHECK_IMPORTS) \
@@ -821,7 +821,7 @@ pep8_python_code = \
 	ganeti \
 	ganeti/http/server.py \
 	$(dist_sbin_SCRIPTS) \
-	$(dist_tools_PYTHON) \
+	$(python_scripts) \
 	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION) \
 	$(CHECK_HEADER) \
