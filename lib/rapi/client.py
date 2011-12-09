@@ -108,6 +108,8 @@ _INST_CREATE_V0_PARAMS = frozenset([
   "hypervisor", "file_storage_dir", "file_driver", "dry_run",
   ])
 _INST_CREATE_V0_DPARAMS = frozenset(["beparams", "hvparams"])
+_QPARAM_DRY_RUN = "dry-run"
+_QPARAM_FORCE = "force"
 
 # Older pycURL versions don't have all error constants
 try:
@@ -144,6 +146,30 @@ class GanetiApiError(Error):
   def __init__(self, msg, code=None):
     Error.__init__(self, msg)
     self.code = code
+
+
+def _AppendIf(container, condition, value):
+  """Appends to a list if a condition evaluates to truth.
+
+  """
+  if condition:
+    container.append(value)
+
+  return condition
+
+
+def _AppendDryRunIf(container, condition):
+  """Appends a "dry-run" parameter if a condition evaluates to truth.
+
+  """
+  return _AppendIf(container, condition, (_QPARAM_DRY_RUN, 1))
+
+
+def _AppendForceIf(container, condition):
+  """Appends a "force" parameter if a condition evaluates to truth.
+
+  """
+  return _AppendIf(container, condition, (_QPARAM_FORCE, 1))
 
 
 def UsesRapiClient(fn):
@@ -558,8 +584,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_PUT, "/%s/tags" % GANETI_RAPI_VERSION,
                              query, None)
@@ -576,8 +601,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_DELETE, "/%s/tags" % GANETI_RAPI_VERSION,
                              query, None)
@@ -593,8 +617,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if bulk:
-      query.append(("bulk", 1))
+    _AppendIf(query, bulk, ("bulk", 1))
 
     instances = self._SendRequest(HTTP_GET,
                                   "/%s/instances" % GANETI_RAPI_VERSION,
@@ -662,8 +685,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     """
     query = []
 
-    if kwargs.get("dry_run"):
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, kwargs.get("dry_run"))
 
     if _INST_CREATE_REQV1 in self.GetFeatures():
       # All required fields for request data version 1
@@ -701,8 +723,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_DELETE,
                              ("/%s/instances/%s" %
@@ -737,8 +758,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if ignore_size:
-      query.append(("ignore_size", 1))
+    _AppendIf(query, ignore_size, ("ignore_size", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/activate-disks" %
@@ -840,8 +860,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/tags" %
@@ -861,8 +880,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_DELETE,
                              ("/%s/instances/%s/tags" %
@@ -886,12 +904,10 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if reboot_type:
-      query.append(("type", reboot_type))
-    if ignore_secondaries is not None:
-      query.append(("ignore_secondaries", ignore_secondaries))
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
+    _AppendIf(query, reboot_type, ("type", reboot_type))
+    _AppendIf(query, ignore_secondaries is not None,
+              ("ignore_secondaries", ignore_secondaries))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/reboot" %
@@ -911,10 +927,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
-    if no_remember:
-      query.append(("no-remember", 1))
+    _AppendDryRunIf(query, dry_run)
+    _AppendIf(query, no_remember, ("no-remember", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/shutdown" %
@@ -934,10 +948,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
-    if no_remember:
-      query.append(("no-remember", 1))
+    _AppendDryRunIf(query, dry_run)
+    _AppendIf(query, no_remember, ("no-remember", 1))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/startup" %
@@ -976,10 +988,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                            " for instance reinstallation")
 
     query = []
-    if os:
-      query.append(("os", os))
-    if no_startup:
-      query.append(("nostartup", 1))
+    _AppendIf(query, os, ("os", os))
+    _AppendIf(query, no_startup, ("nostartup", 1))
+
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/reinstall" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
@@ -1012,13 +1023,11 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     # TODO: Convert to body parameters
 
     if disks is not None:
-      query.append(("disks", ",".join(str(idx) for idx in disks)))
+      _AppendIf(query, True,
+                ("disks", ",".join(str(idx) for idx in disks)))
 
-    if remote_node is not None:
-      query.append(("remote_node", remote_node))
-
-    if iallocator is not None:
-      query.append(("iallocator", iallocator))
+    _AppendIf(query, remote_node is not None, ("remote_node", remote_node))
+    _AppendIf(query, iallocator is not None, ("iallocator", iallocator))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/replace-disks" %
@@ -1268,8 +1277,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_DELETE,
                              "/%s/jobs/%s" % (GANETI_RAPI_VERSION, job_id),
@@ -1287,8 +1295,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if bulk:
-      query.append(("bulk", 1))
+    _AppendIf(query, bulk, ("bulk", 1))
 
     nodes = self._SendRequest(HTTP_GET, "/%s/nodes" % GANETI_RAPI_VERSION,
                               query, None)
@@ -1346,8 +1353,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       raise GanetiApiError("Only one of iallocator or remote_node can be used")
 
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     if _NODE_EVAC_RES1 in self.GetFeatures():
       # Server supports body parameters
@@ -1374,12 +1380,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       if mode is not None and mode != NODE_EVAC_SEC:
         raise GanetiApiError("Server can only evacuate secondary instances")
 
-      if iallocator:
-        query.append(("iallocator", iallocator))
-      if remote_node:
-        query.append(("remote_node", remote_node))
-      if early_release:
-        query.append(("early_release", 1))
+      _AppendIf(query, iallocator, ("iallocator", iallocator))
+      _AppendIf(query, remote_node, ("remote_node", remote_node))
+      _AppendIf(query, early_release, ("early_release", 1))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/nodes/%s/evacuate" %
@@ -1406,8 +1409,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     if _NODE_MIGRATE_REQV1 in self.GetFeatures():
       body = {}
@@ -1430,8 +1432,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
         raise GanetiApiError("Server does not support specifying target node"
                              " for node migration")
 
-      if mode is not None:
-        query.append(("mode", mode))
+      _AppendIf(query, mode is not None, ("mode", mode))
 
       return self._SendRequest(HTTP_POST,
                                ("/%s/nodes/%s/migrate" %
@@ -1468,12 +1469,9 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @return: job id
 
     """
-    query = [
-      ("force", force),
-      ]
-
-    if auto_promote is not None:
-      query.append(("auto-promote", auto_promote))
+    query = []
+    _AppendForceIf(query, force)
+    _AppendIf(query, auto_promote is not None, ("auto-promote", auto_promote))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/nodes/%s/role" %
@@ -1490,9 +1488,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @return: job id
 
     """
-    query = [
-      ("force", force),
-      ]
+    query = []
+    _AppendForceIf(query, force)
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/nodes/%s/powercycle" %
@@ -1558,8 +1555,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       ("name", name),
       ]
 
-    if allocatable is not None:
-      query.append(("allocatable", allocatable))
+    _AppendIf(query, allocatable is not None, ("allocatable", allocatable))
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/nodes/%s/storage/modify" %
@@ -1617,8 +1613,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/nodes/%s/tags" %
@@ -1639,8 +1634,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_DELETE,
                              ("/%s/nodes/%s/tags" %
@@ -1658,8 +1652,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if bulk:
-      query.append(("bulk", 1))
+    _AppendIf(query, bulk, ("bulk", 1))
 
     groups = self._SendRequest(HTTP_GET, "/%s/groups" % GANETI_RAPI_VERSION,
                                query, None)
@@ -1697,8 +1690,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     body = {
       "name": name,
@@ -1736,8 +1728,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_DELETE,
                              ("/%s/groups/%s" %
@@ -1776,12 +1767,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
-
-    if force:
-      query.append(("force", 1))
-
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendForceIf(query, force)
+    _AppendDryRunIf(query, dry_run)
 
     body = {
       "nodes": nodes,
@@ -1820,8 +1807,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/groups/%s/tags" %
@@ -1841,8 +1827,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = [("tag", t) for t in tags]
-    if dry_run:
-      query.append(("dry-run", 1))
+    _AppendDryRunIf(query, dry_run)
 
     return self._SendRequest(HTTP_DELETE,
                              ("/%s/groups/%s/tags" %
@@ -1890,7 +1875,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     query = []
 
     if fields is not None:
-      query.append(("fields", ",".join(fields)))
+      _AppendIf(query, True, ("fields", ",".join(fields)))
 
     return self._SendRequest(HTTP_GET,
                              ("/%s/query/%s/fields" %
