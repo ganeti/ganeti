@@ -6532,6 +6532,7 @@ class LUInstanceStartup(LogicalUnit):
       _CheckNodeOnline(self, instance.primary_node)
 
       bep = self.cfg.GetClusterInfo().FillBE(instance)
+      bep.update(self.op.beparams)
 
       # check bridges existence
       _CheckInstanceBridgesExist(self, instance)
