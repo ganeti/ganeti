@@ -595,7 +595,8 @@ EXTRA_DIST = \
 	qa/qa-sample.json \
 	$(qa_scripts) \
 	$(HS_LIB_SRCS) $(HS_BUILT_SRCS_IN) \
-	$(HS_PROG_SRCS)
+	$(HS_PROG_SRCS) \
+	htools/lint-hints.hs
 
 man_MANS = \
 	man/ganeti.7 \
@@ -1168,7 +1169,7 @@ lint: $(BUILT_SOURCES)
 	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
 
 .PHONY: hlint
-hlint: $(HS_BUILT_SRCS)
+hlint: $(HS_BUILT_SRCS) htools/lint-hints.hs
 	if tty -s; then C="-c"; else C=""; fi; \
 	hlint --report=doc/hs-lint.html --cross $$C \
 	  --ignore "Use first" \
@@ -1176,6 +1177,7 @@ hlint: $(HS_BUILT_SRCS)
 	  --ignore "Use on" \
 	  --ignore "Use Control.Exception.catch" \
 	  --ignore "Reduce duplication" \
+	  --hint htools/lint-hints \
 	  $(filter-out htools/Ganeti/THH.hs,$(HS_LIB_SRCS))
 
 # a dist hook rule for updating the vcs-version file; this is
