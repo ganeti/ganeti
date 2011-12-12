@@ -6482,6 +6482,11 @@ class LUInstanceStartup(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+    self.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE_RES:
+      self._LockInstancesNodes(primary_only=True, level=locking.LEVEL_NODE_RES)
 
   def BuildHooksEnv(self):
     """Build hooks env.
