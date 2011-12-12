@@ -6407,6 +6407,8 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   @param requested: the amount of memory in MiB to check for
   @type hypervisor_name: C{str}
   @param hypervisor_name: the hypervisor to ask for memory stats
+  @rtype: integer
+  @return: node current free memory
   @raise errors.OpPrereqError: if the node doesn't have enough memory, or
       we cannot check the node
 
@@ -6426,6 +6428,7 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
                                " needed %s MiB, available %s MiB" %
                                (node, reason, requested, free_mem),
                                errors.ECODE_NORES)
+  return free_mem
 
 
 def _CheckNodesFreeDiskPerVG(lu, nodenames, req_sizes):
