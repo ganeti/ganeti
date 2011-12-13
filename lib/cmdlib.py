@@ -7612,7 +7612,8 @@ class LUNodeMigrate(LogicalUnit):
                                  mode=self.op.mode,
                                  live=self.op.live,
                                  iallocator=self.op.iallocator,
-                                 target_node=self.op.target_node)]
+                                 target_node=self.op.target_node,
+                                 ignore_ipolicy=self.op.ignore_ipolicy)]
       for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name)
       ]
 

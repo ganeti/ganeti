@@ -238,7 +238,7 @@ MIGRATE
 ~~~~~~~
 
 **migrate** [-f] [--non-live] [--migration-mode=live\|non-live]
-{*node*}
+[--ignore-ipolicy] {*node*}
 
 This command will migrate all instances having the given node as
 primary to their secondary nodes. This works only for instances
@@ -247,6 +247,9 @@ having a drbd disk template.
 As for the **gnt-instance migrate** command, the options
 ``--no-live`` and ``--migration-mode`` can be given to influence
 the migration type.
+
+If ``--ignore-ipolicy`` is given any instance policy violations occuring
+during this operation are ignored.
 
 Example::
 
