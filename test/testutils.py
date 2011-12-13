@@ -136,6 +136,32 @@ class GanetiTestCase(unittest.TestCase):
     actual_mode = stat.S_IMODE(st.st_mode)
     self.assertEqual(actual_mode, expected_mode)
 
+  def assertFileUid(self, file_name, expected_uid):
+    """Checks that the user id of a file is what we expect.
+
+    @type file_name: str
+    @param file_name: the file whose contents we should check
+    @type expected_uid: int
+    @param expected_uid: the user id we expect
+
+    """
+    st = os.stat(file_name)
+    actual_uid = st.st_uid
+    self.assertEqual(actual_uid, expected_uid)
+
+  def assertFileGid(self, file_name, expected_gid):
+    """Checks that the group id of a file is what we expect.
+
+    @type file_name: str
+    @param file_name: the file whose contents we should check
+    @type expected_gid: int
+    @param expected_gid: the group id we expect
+
+    """
+    st = os.stat(file_name)
+    actual_gid = st.st_gid
+    self.assertEqual(actual_gid, expected_gid)
+
   def assertEqualValues(self, first, second, msg=None):
     """Compares two values whether they're equal.
 

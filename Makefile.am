@@ -742,6 +742,9 @@ python_tests = \
 	test/docs_unittest.py \
 	test/pycurl_reset_unittest.py \
 	test/tempfile_fork_unittest.py
+if HAS_FAKEROOT
+python_tests += test/ganeti.utils.io_unittest-runasroot.py
+endif
 
 haskell_tests = htools/test
 
