@@ -44,6 +44,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       handle.write("192.0.2.1 router gw\n")
     finally:
       handle.close()
+    os.chmod(self.tmpname, 0644)
 
   def testSettingNewIp(self):
     utils.SetEtcHostsEntry(self.tmpname, "198.51.100.4", "myhost.example.com",
