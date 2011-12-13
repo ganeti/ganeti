@@ -569,5 +569,147 @@ class TestDiskStateHelper(unittest.TestCase):
                       new, None)
 
 
+def _ValidateCheckMinMaxSpec(name, *_):
+  assert name in constants.ISPECS_PARAMETERS
+  return None
+
+
+class _SpecWrapper:
+  def __init__(self, spec):
+    self.spec = spec
+
+  def CheckMinMaxSpec(self, *args):
+    return self.spec.pop(0)
+
+
+class TestComputeIPolicySpecViolation(unittest.TestCase):
+  def test(self):
+    check_fn = _ValidateCheckMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
+                                              [1024], _check_spec_fn=check_fn)
+    self.assertEqual(ret, [])
+
+  def testInvalidArguments(self):
+    self.assertRaises(AssertionError, cmdlib._ComputeIPolicySpecViolation,
+                      NotImplemented, 1024, 1, 1, 1, [])
+
+  def testInvalidSpec(self):
+    spec = _SpecWrapper([None, False, "foo", None, "bar"])
+    check_fn = spec.CheckMinMaxSpec
+    ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
+                                              [1024], _check_spec_fn=check_fn)
+    self.assertEqual(ret, ["foo", "bar"])
+    self.assertFalse(spec.spec)
+
+
+class _StubComputeIPolicySpecViolation:
+  def __init__(self, mem_size, cpu_count, disk_count, nic_count, disk_sizes):
+    self.mem_size = mem_size
+    self.cpu_count = cpu_count
+    self.disk_count = disk_count
+    self.nic_count = nic_count
+    self.disk_sizes = disk_sizes
+
+  def __call__(self, _, mem_size, cpu_count, disk_count, nic_count, disk_sizes):
+    assert self.mem_size == mem_size
+    assert self.cpu_count == cpu_count
+    assert self.disk_count == disk_count
+    assert self.nic_count == nic_count
+    assert self.disk_sizes == disk_sizes
+
+    return []
+
+
+class TestComputeIPolicyInstanceViolation(unittest.TestCase):
+  def test(self):
+    beparams = {
+      constants.BE_MAXMEM: 2048,
+      constants.BE_VCPUS: 2,
+      }
+    disks = [objects.Disk(size=512)]
+    instance = objects.Instance(beparams=beparams, disks=disks, nics=[])
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512])
+    ret = cmdlib._ComputeIPolicyInstanceViolation(NotImplemented, instance,
+                                                  _compute_fn=stub)
+    self.assertEqual(ret, [])
+
+
+class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
+  def test(self):
+    ispec = {
+      constants.ISPEC_MEM_SIZE: 2048,
+      constants.ISPEC_CPU_COUNT: 2,
+      constants.ISPEC_DISK_COUNT: 1,
+      constants.ISPEC_DISK_SIZE: [512],
+      constants.ISPEC_NIC_COUNT: 0,
+      }
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512])
+    ret = cmdlib._ComputeIPolicyInstanceSpecViolation(NotImplemented, ispec,
+                                                      _compute_fn=stub)
+    self.assertEqual(ret, [])
+
+
+class _CallRecorder:
+  def __init__(self, return_value=None):
+    self.called = False
+    self.return_value = return_value
+
+  def __call__(self, *args):
+    self.called = True
+    return self.return_value
+
+
+class TestComputeIPolicyNodeViolation(unittest.TestCase):
+  def setUp(self):
+    self.recorder = _CallRecorder(return_value=[])
+
+  def testSameGroup(self):
+    ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
+                                              "foo", "foo",
+                                              _compute_fn=self.recorder)
+    self.assertFalse(self.recorder.called)
+    self.assertEqual(ret, [])
+
+  def testDifferentGroup(self):
+    ret = cmdlib._ComputeIPolicyNodeViolation(NotImplemented, NotImplemented,
+                                              "foo", "bar",
+                                              _compute_fn=self.recorder)
+    self.assertTrue(self.recorder.called)
+    self.assertEqual(ret, [])
+
+
+class TestCheckTargetNodeIPolicy(unittest.TestCase):
+  def setUp(self):
+    self.instance = objects.Instance(primary_node=objects.Node(group="foo"))
+    self.target_node = objects.Node(group="bar")
+    self.lu = _FakeLU()
+
+  def testNoViolation(self):
+    compute_recoder = _CallRecorder(return_value=[])
+    cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
+                                   self.target_node,
+                                   _compute_fn=compute_recoder)
+    self.assertTrue(compute_recoder.called)
+    self.assertEqual(self.lu.warning_log, [])
+
+  def testNoIgnore(self):
+    compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
+    self.assertRaises(errors.OpPrereqError, cmdlib._CheckTargetNodeIPolicy,
+                      self.lu, NotImplemented, self.instance, self.target_node,
+                      _compute_fn=compute_recoder)
+    self.assertTrue(compute_recoder.called)
+    self.assertEqual(self.lu.warning_log, [])
+
+  def testIgnoreViolation(self):
+    compute_recoder = _CallRecorder(return_value=["mem_size not in range"])
+    cmdlib._CheckTargetNodeIPolicy(self.lu, NotImplemented, self.instance,
+                                   self.target_node, ignore=True,
+                                   _compute_fn=compute_recoder)
+    self.assertTrue(compute_recoder.called)
+    msg = ("Instance does not meet target node group's (bar) instance policy:"
+           " mem_size not in range")
+    self.assertEqual(self.lu.warning_log, [(msg, ())])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

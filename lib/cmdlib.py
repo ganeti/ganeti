@@ -1036,6 +1036,127 @@ def _CheckMinMaxSpecs(name, ipolicy, value):
   return None
 
 
+def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
+                                 nic_count, disk_sizes,
+                                 _check_spec_fn=_CheckMinMaxSpecs):
+  """Verifies ipolicy against provided specs.
+
+  @type ipolicy: dict
+  @param ipolicy: The ipolicy
+  @type mem_size: int
+  @param mem_size: The memory size
+  @type cpu_count: int
+  @param cpu_count: Used cpu cores
+  @type disk_count: int
+  @param disk_count: Number of disks used
+  @type nic_count: int
+  @param nic_count: Number of nics used
+  @type disk_sizes: list of ints
+  @param disk_sizes: Disk sizes of used disk (len must match C{disk_count})
+  @param _check_spec_fn: The checking function (unittest only)
+  @return: A list of violations, or an empty list of no violations are found
+
+  """
+  assert disk_count == len(disk_sizes)
+
+  test_settings = [
+    (constants.ISPEC_MEM_SIZE, mem_size),
+    (constants.ISPEC_CPU_COUNT, cpu_count),
+    (constants.ISPEC_DISK_COUNT, disk_count),
+    (constants.ISPEC_NIC_COUNT, nic_count),
+    ] + map((lambda d: (constants.ISPEC_DISK_SIZE, d)), disk_sizes)
+
+  return filter(None,
+                (_check_spec_fn(name, ipolicy, value)
+                 for (name, value) in test_settings))
+
+
+def _ComputeIPolicyInstanceViolation(ipolicy, instance,
+                                     _compute_fn=_ComputeIPolicySpecViolation):
+  """Compute if instance meets the specs of ipolicy.
+
+  @type ipolicy: dict
+  @param ipolicy: The ipolicy to verify against
+  @type instance: L{objects.Instance}
+  @param instance: The instance to verify
+  @param _compute_fn: The function to verify ipolicy (unittest only)
+  @see: L{_ComputeIPolicySpecViolation}
+
+  """
+  mem_size = instance.beparams.get(constants.BE_MAXMEM, None)
+  cpu_count = instance.beparams.get(constants.BE_VCPUS, None)
+  disk_count = len(instance.disks)
+  disk_sizes = [disk.size for disk in instance.disks]
+  nic_count = len(instance.nics)
+
+  return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
+                     disk_sizes)
+
+
+def _ComputeIPolicyInstanceSpecViolation(ipolicy, instance_spec,
+    _compute_fn=_ComputeIPolicySpecViolation):
+  """Compute if instance specs meets the specs of ipolicy.
+
+  @type ipolicy: dict
+  @param ipolicy: The ipolicy to verify against
+  @param instance_spec: dict
+  @param instance_spec: The instance spec to verify
+  @param _compute_fn: The function to verify ipolicy (unittest only)
+  @see: L{_ComputeIPolicySpecViolation}
+
+  """
+  mem_size = instance_spec.get(constants.ISPEC_MEM_SIZE, None)
+  cpu_count = instance_spec.get(constants.ISPEC_CPU_COUNT, None)
+  disk_count = instance_spec.get(constants.ISPEC_DISK_COUNT, 0)
+  disk_sizes = instance_spec.get(constants.ISPEC_DISK_SIZE, [])
+  nic_count = instance_spec.get(constants.ISPEC_NIC_COUNT, 0)
+
+  return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
+                     disk_sizes)
+
+
+def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
+                                 target_group,
+                                 _compute_fn=_ComputeIPolicyInstanceViolation):
+  """Compute if instance meets the specs of the new target group.
+
+  @param ipolicy: The ipolicy to verify
+  @param instance: The instance object to verify
+  @param current_group: The current group of the instance
+  @param target_group: The new group of the instance
+  @param _compute_fn: The function to verify ipolicy (unittest only)
+  @see: L{_ComputeIPolicySpecViolation}
+
+  """
+  if current_group == target_group:
+    return []
+  else:
+    return _compute_fn(ipolicy, instance)
+
+
+def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, ignore=False,
+                            _compute_fn=_ComputeIPolicyNodeViolation):
+  """Checks that the target node is correct in terms of instance policy.
+
+  @param ipolicy: The ipolicy to verify
+  @param instance: The instance object to verify
+  @param node: The new node to relocate
+  @param ignore: Ignore violations of the ipolicy
+  @param _compute_fn: The function to verify ipolicy (unittest only)
+  @see: L{_ComputeIPolicySpecViolation}
+
+  """
+  res = _compute_fn(ipolicy, instance, instance.primary_node.group, node.group)
+
+  if res:
+    msg = ("Instance does not meet target node group's (%s) instance"
+           " policy: %s") % (node.group, utils.CommaJoin(res))
+    if ignore:
+      lu.LogWarning(msg)
+    else:
+      raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+
+
 def _ExpandItemName(fn, name, kind):
   """Expand an item name.
 
@@ -1249,11 +1370,10 @@ def _DecideSelfPromotion(lu, exceptions=None):
   return mc_now < mc_should
 
 
-def _CalculateGroupIPolicy(cfg, group):
+def _CalculateGroupIPolicy(cluster, group):
   """Calculate instance policy for group.
 
   """
-  cluster = cfg.GetClusterInfo()
   return cluster.SimpleFillIPolicy(group.ipolicy)
 
 
