@@ -38,6 +38,17 @@ from ganeti.utils import filelock
 #: Path generating random UUID
 _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 
+# Possible values for keep_perms in WriteFile()
+KP_NEVER = 0
+KP_ALWAYS = 1
+KP_IF_EXISTS = 2
+
+KEEP_PERMS_VALUES = [
+  KP_NEVER,
+  KP_ALWAYS,
+  KP_IF_EXISTS,
+  ]
+
 
 def ErrnoOrStr(err):
   """Format an EnvironmentError exception.
@@ -82,7 +93,7 @@ def WriteFile(file_name, fn=None, data=None,
               mode=None, uid=-1, gid=-1,
               atime=None, mtime=None, close=True,
               dry_run=False, backup=False,
-              prewrite=None, postwrite=None):
+              prewrite=None, postwrite=None, keep_perms=KP_NEVER):
   """(Over)write a file atomically.
 
   The file_name and either fn (a function taking one argument, the
@@ -119,6 +130,14 @@ def WriteFile(file_name, fn=None, data=None,
   @param prewrite: function to be called before writing content
   @type postwrite: callable
   @param postwrite: function to be called after writing content
+  @type keep_perms: members of L{KEEP_PERMS_VALUES}
+  @param keep_perms: if L{KP_NEVER} (default), owner, group, and mode are
+      taken from the other parameters; if L{KP_ALWAYS}, owner, group, and
+      mode are copied from the existing file; if L{KP_IF_EXISTS}, owner,
+      group, and mode are taken from the file, and if the file doesn't
+      exist, they are taken from the other parameters. It is an error to
+      pass L{KP_ALWAYS} when the file doesn't exist or when C{uid}, C{gid},
+      or C{mode} are set to non-default values.
 
   @rtype: None or int
   @return: None if the 'close' parameter evaluates to True,
@@ -138,8 +157,27 @@ def WriteFile(file_name, fn=None, data=None,
     raise errors.ProgrammerError("Both atime and mtime must be either"
                                  " set or None")
 
+  if not keep_perms in KEEP_PERMS_VALUES:
+    raise errors.ProgrammerError("Invalid value for keep_perms: %s" %
+                                 keep_perms)
+  if keep_perms == KP_ALWAYS and (uid != -1 or gid != -1 or mode is not None):
+    raise errors.ProgrammerError("When keep_perms==KP_ALWAYS, 'uid', 'gid',"
+                                 " and 'mode' cannot be set")
+
   if backup and not dry_run and os.path.isfile(file_name):
     CreateBackup(file_name)
+
+  if keep_perms == KP_ALWAYS or keep_perms == KP_IF_EXISTS:
+    # os.stat() raises an exception if the file doesn't exist
+    try:
+      file_stat = os.stat(file_name)
+      mode = stat.S_IMODE(file_stat.st_mode)
+      uid = file_stat.st_uid
+      gid = file_stat.st_gid
+    except OSError:
+      if keep_perms == KP_ALWAYS:
+        raise
+      # else: if keeep_perms == KP_IF_EXISTS it's ok if the file doesn't exist
 
   # Whether temporary file needs to be removed (e.g. if any error occurs)
   do_remove = True
