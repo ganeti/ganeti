@@ -1380,7 +1380,7 @@ FAILOVER
 ^^^^^^^^
 
 **failover** [-f] [--ignore-consistency] [--shutdown-timeout=*N*]
-[--submit] {*instance*}
+[--submit] [--ignore-ipolicy] {*instance*}
 
 Failover will stop the instance (if running), change its primary node,
 and if it was originally running it will start it again (on the new
@@ -1405,6 +1405,9 @@ to stop.
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it
 can be examined via **gnt-job info**.
+
+If ``--ignore-ipolicy`` is given any instance policy violations occuring
+during this operation are ignored.
 
 Example::
 

@@ -791,7 +791,8 @@ def FailoverInstance(opts, args):
                                   ignore_consistency=opts.ignore_consistency,
                                   shutdown_timeout=opts.shutdown_timeout,
                                   iallocator=iallocator,
-                                  target_node=target_node)
+                                  target_node=target_node,
+                                  ignore_ipolicy=opts.ignore_ipolicy)
   SubmitOrSend(op, opts, cl=cl)
   return 0
 
@@ -1436,7 +1437,8 @@ commands = {
   "failover": (
     FailoverInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, IGNORE_CONSIST_OPT, SUBMIT_OPT, SHUTDOWN_TIMEOUT_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT,
+     IGNORE_IPOLICY_OPT],
     "[-f] <instance>", "Stops the instance, changes its primary node and"
     " (if it was originally running) starts it on the new node"
     " (the secondary for mirrored instances or any node"

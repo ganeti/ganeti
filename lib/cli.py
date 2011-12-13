@@ -192,6 +192,7 @@ __all__ = [
   "YES_DOIT_OPT",
   "DISK_STATE_OPT",
   "HV_STATE_OPT",
+  "IGNORE_IPOLICY_OPT",
   # Generic functions for CLI programs
   "ConfirmOperation",
   "GenericMain",
@@ -1333,6 +1334,10 @@ HV_STATE_OPT = cli_option("--hypervisor-state", default=[], dest="hv_state",
                           help=("Specify hypervisor state information in the"
                                 " format hypervisor:option=value,..."),
                           type="identkeyval")
+
+IGNORE_IPOLICY_OPT = cli_option("--ignore-ipolicy", dest="ignore_ipolicy",
+                                action="store_true", default=False,
+                                help="Ignore instance policy violations")
 
 
 #: Options provided by all commands

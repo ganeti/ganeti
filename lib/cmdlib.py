@@ -7244,7 +7244,8 @@ class LUInstanceFailover(LogicalUnit):
                                        cleanup=False,
                                        failover=True,
                                        ignore_consistency=ignore_consistency,
-                                       shutdown_timeout=shutdown_timeout)
+                                       shutdown_timeout=shutdown_timeout,
+                                       ignore_ipolicy=self.op.ignore_ipolicy)
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
@@ -7644,6 +7645,8 @@ class TLMigrateInstance(Tasklet):
                             and target node
   @type shutdown_timeout: int
   @ivar shutdown_timeout: In case of failover timeout of the shutdown
+  @type ignore_ipolicy: bool
+  @ivar ignore_ipolicy: If true, we can ignore instance policy when migrating
 
   """
 
@@ -7654,7 +7657,8 @@ class TLMigrateInstance(Tasklet):
   def __init__(self, lu, instance_name, cleanup=False,
                failover=False, fallback=False,
                ignore_consistency=False,
-               shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT):
+               shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT,
+               ignore_ipolicy=False):
     """Initializes this class.
 
     """
@@ -7668,6 +7672,7 @@ class TLMigrateInstance(Tasklet):
     self.fallback = fallback
     self.ignore_consistency = ignore_consistency
     self.shutdown_timeout = shutdown_timeout
+    self.ignore_ipolicy = ignore_ipolicy
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -7679,6 +7684,7 @@ class TLMigrateInstance(Tasklet):
     instance = self.cfg.GetInstanceInfo(instance_name)
     assert instance is not None
     self.instance = instance
+    cluster = self.cfg.GetClusterInfo()
 
     if (not self.cleanup and
         not instance.admin_state == constants.ADMINST_UP and
@@ -7705,6 +7711,12 @@ class TLMigrateInstance(Tasklet):
         # We set set self.target_node as it is required by
         # BuildHooksEnv
         self.target_node = self.lu.op.target_node
+
+      # Check that the target node is correct in terms of instance policy
+      nodeinfo = self.cfg.GetNodeInfo(self.target_node)
+      ipolicy = _CalculateGroupIPolicy(cluster, nodeinfo.group)
+      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
+                              ignore=self.ignore_ipolicy)
 
       # self.target_node is already populated, either directly or by the
       # iallocator run
@@ -7739,8 +7751,12 @@ class TLMigrateInstance(Tasklet):
                                    " node can be passed)" %
                                    (instance.disk_template, text),
                                    errors.ECODE_INVAL)
+      nodeinfo = self.cfg.GetNodeInfo(target_node)
+      ipolicy = _CalculateGroupIPolicy(cluster, nodeinfo.group)
+      _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
+                              ignore=self.ignore_ipolicy)
 
-    i_be = self.cfg.GetClusterInfo().FillBE(instance)
+    i_be = cluster.FillBE(instance)
 
     # check memory requirements on the secondary node
     if not self.failover or instance.admin_state == constants.ADMINST_UP:
@@ -7796,8 +7812,7 @@ class TLMigrateInstance(Tasklet):
         self.lu.op.live = None
       elif self.lu.op.mode is None:
         # read the default value from the hypervisor
-        i_hv = self.cfg.GetClusterInfo().FillHV(self.instance,
-                                                skip_globals=False)
+        i_hv = cluster.FillHV(self.instance, skip_globals=False)
         self.lu.op.mode = i_hv[constants.HV_MIGRATION_MODE]
 
       self.live = self.lu.op.mode == constants.HT_MIGRATION_LIVE
@@ -7809,6 +7824,7 @@ class TLMigrateInstance(Tasklet):
     """Run the allocator based on input opcode.
 
     """
+    # FIXME: add a self.ignore_ipolicy option
     ial = IAllocator(self.cfg, self.rpc,
                      mode=constants.IALLOCATOR_MODE_RELOC,
                      name=self.instance_name,

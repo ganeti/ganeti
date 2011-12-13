@@ -152,6 +152,10 @@ _PDiskParams = ("diskparams", None,
 _PHvState = ("hv_state", None, ht.TMaybeDict, "Set hypervisor states")
 _PDiskState = ("disk_state", None, ht.TMaybeDict, "Set disk states")
 
+
+_PIgnoreIpolicy = ("ignore_ipolicy", False, ht.TBool,
+                   "Whether to ignore ipolicy violations")
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -1236,6 +1240,7 @@ class OpInstanceFailover(OpCode):
     _PShutdownTimeout,
     _PIgnoreConsistency,
     _PMigrationTargetNode,
+    _PIgnoreIpolicy,
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding the target node for shared-storage instances"),
     ]
