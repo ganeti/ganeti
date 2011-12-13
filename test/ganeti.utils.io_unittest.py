@@ -240,8 +240,9 @@ class TestListVisibleFiles(unittest.TestCase):
                           "/bin/../tmp")
 
 
-class TestWriteFile(unittest.TestCase):
+class TestWriteFile(testutils.GanetiTestCase):
   def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
     self.tmpdir = None
     self.tfile = tempfile.NamedTemporaryFile()
     self.did_pre = False
@@ -249,6 +250,7 @@ class TestWriteFile(unittest.TestCase):
     self.did_write = False
 
   def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
     if self.tmpdir:
       shutil.rmtree(self.tmpdir)
 
@@ -277,6 +279,14 @@ class TestWriteFile(unittest.TestCase):
     self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name)
     self.assertRaises(errors.ProgrammerError, utils.WriteFile,
                       self.tfile.name, data="test", atime=0)
+    self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
+                      mode=0400, keep_perms=utils.KP_ALWAYS)
+    self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
+                      uid=0, keep_perms=utils.KP_ALWAYS)
+    self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
+                      gid=0, keep_perms=utils.KP_ALWAYS)
+    self.assertRaises(errors.ProgrammerError, utils.WriteFile, self.tfile.name,
+                      mode=0400, uid=0, keep_perms=utils.KP_ALWAYS)
 
   def testPreWrite(self):
     utils.WriteFile(self.tfile.name, data="", prewrite=self.markPre)
@@ -373,6 +383,28 @@ class TestWriteFile(unittest.TestCase):
     self.assertTrue("test" in os.listdir(self.tmpdir))
     self.assertEqual(len(os.listdir(self.tmpdir)), 2)
 
+  def testFileMode(self):
+    self.tmpdir = tempfile.mkdtemp()
+    target = utils.PathJoin(self.tmpdir, "target")
+    self.assertRaises(OSError, utils.WriteFile, target, data="data",
+                      keep_perms=utils.KP_ALWAYS)
+    # All masks have only user bits set, to avoid interactions with umask
+    utils.WriteFile(target, data="data", mode=0200)
+    self.assertFileMode(target, 0200)
+    utils.WriteFile(target, data="data", mode=0400,
+                    keep_perms=utils.KP_IF_EXISTS)
+    self.assertFileMode(target, 0200)
+    utils.WriteFile(target, data="data", keep_perms=utils.KP_ALWAYS)
+    self.assertFileMode(target, 0200)
+    utils.WriteFile(target, data="data", mode=0700)
+    self.assertFileMode(target, 0700)
+
+  def testNewFileMode(self):
+    self.tmpdir = tempfile.mkdtemp()
+    target = utils.PathJoin(self.tmpdir, "target")
+    utils.WriteFile(target, data="data", mode=0400,
+                    keep_perms=utils.KP_IF_EXISTS)
+    self.assertFileMode(target, 0400)
 
 class TestFileID(testutils.GanetiTestCase):
   def testEquality(self):
