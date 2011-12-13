@@ -487,6 +487,15 @@ AM_CONDITIONAL([WANT_HTOOLS], [test x$HTOOLS = xyes])
 AM_CONDITIONAL([WANT_HTOOLSTESTS], [test "x$GHC_PKG_QUICKCHECK" != x])
 AM_CONDITIONAL([WANT_HTOOLSAPIDOC], [test x$HTOOLS_APIDOC = xyes])
 
+# Check for fakeroot
+AC_ARG_VAR(FAKEROOT_PATH, [fakeroot path])
+AC_PATH_PROG(FAKEROOT_PATH, [fakeroot], [])
+if test -z "$FAKEROOT_PATH"; then
+  AC_MSG_WARN(m4_normalize([fakeroot not found, tests that must run as root
+                            will not be executed]))
+fi
+AM_CONDITIONAL([HAS_FAKEROOT], [test "x$FAKEROOT_PATH" != x])
+
 SOCAT_USE_ESCAPE=
 AC_ARG_ENABLE([socat-escape],
   [AS_HELP_STRING([--enable-socat-escape],

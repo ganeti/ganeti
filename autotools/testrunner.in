@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,9 +20,21 @@
 
 set -e
 
+FAKEROOT='@FAKEROOT@'
+
 filename=$1
 
+execasroot() {
+  if [[ -z "$FAKEROOT" ]]; then
+    echo "'fakeroot' not found at configure time" >&2
+    exit 1
+  fi
+  exec "$FAKEROOT" "$@"
+}
+
 case "$filename" in
+  *-runasroot.py) execasroot $PYTHON "$@" ;;
   *.py) exec $PYTHON "$@" ;;
+  *-runasroot) execasroot "$@" ;;
   *) exec "$@" ;;
 esac
