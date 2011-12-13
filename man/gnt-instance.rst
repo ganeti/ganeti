@@ -1487,7 +1487,7 @@ MOVE
 ^^^^
 
 **move** [-f] [--ignore-consistency]
-[-n *node*] [--shutdown-timeout=*N*] [--submit]
+[-n *node*] [--shutdown-timeout=*N*] [--submit] [--ignore-ipolicy]
 {*instance*}
 
 Move will move the instance to an arbitrary node in the cluster.  This
@@ -1509,6 +1509,9 @@ hypervisor is broken and you want to recuperate the data.
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it
 can be examined via **gnt-job info**.
+
+If ``--ignore-ipolicy`` is given any instance policy violations occuring
+during this operation are ignored.
 
 Example::
 

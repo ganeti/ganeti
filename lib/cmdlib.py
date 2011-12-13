@@ -7449,6 +7449,9 @@ class LUInstanceMove(LogicalUnit):
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
     _CheckNodeVmCapable(self, target_node)
+    ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(), node.group)
+    _CheckTargetNodeIPolicy(self, ipolicy, instance, node,
+                            ignore=self.op.ignore_ipolicy)
 
     if instance.admin_state == constants.ADMINST_UP:
       # check memory requirements on the secondary node
