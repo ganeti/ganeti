@@ -1262,6 +1262,7 @@ class OpInstanceMigrate(OpCode):
     _PMigrationMode,
     _PMigrationLive,
     _PMigrationTargetNode,
+    _PIgnoreIpolicy,
     ("cleanup", False, ht.TBool,
      "Whether a previously failed migration should be cleaned up"),
     ("iallocator", None, ht.TMaybeString,

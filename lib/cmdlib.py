@@ -7319,7 +7319,8 @@ class LUInstanceMigrate(LogicalUnit):
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
                                        cleanup=self.op.cleanup,
                                        failover=False,
-                                       fallback=self.op.allow_failover)
+                                       fallback=self.op.allow_failover,
+                                       ignore_ipolicy=self.op.ignore_ipolicy)
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
