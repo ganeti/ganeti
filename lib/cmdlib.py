@@ -2299,7 +2299,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     node_vol_should = {}
     instanceconfig.MapLVsByNode(node_vol_should)
 
-    self._VerifyInstancePolicy(instanceconfig)
+    ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(), self.group_info)
+    err = _ComputeIPolicyInstanceViolation(ipolicy, instanceconfig)
+    _ErrorIf(err, constants.CV_EINSTANCEPOLICY, instance, err)
 
     for node in node_vol_should:
       n_img = node_image[node]
