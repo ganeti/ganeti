@@ -2309,7 +2309,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 src_path=src_path,
                                 tags=tags,
                                 no_install=no_install,
-                                identify_defaults=identify_defaults)
+                                identify_defaults=identify_defaults,
+                                ignore_ipolicy=opts.ignore_ipolicy)
 
   SubmitOrSend(op, opts)
   return 0

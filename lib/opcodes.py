@@ -1086,6 +1086,7 @@ class OpInstanceCreate(OpCode):
     _PForceVariant,
     _PWaitForSync,
     _PNameCheck,
+    _PIgnoreIpolicy,
     ("beparams", ht.EmptyDict, ht.TDict, "Backend parameters for instance"),
     ("disks", ht.NoDefault,
      # TODO: Generate check from constants.IDISK_PARAMS_TYPES

@@ -9394,7 +9394,7 @@ class LUInstanceCreate(LogicalUnit):
       # pylint: disable=W0142
       self.instance_file_storage_dir = utils.PathJoin(*joinargs)
 
-  def CheckPrereq(self):
+  def CheckPrereq(self): # pylint: disable=R0914
     """Check prerequisites.
 
     """
@@ -9630,6 +9630,23 @@ class LUInstanceCreate(LogicalUnit):
                         " used")
 
     nodenames = [pnode.name] + self.secondaries
+
+    # Verify instance specs
+    ispec = {
+      constants.ISPEC_MEM_SIZE: self.be_full.get(constants.BE_MAXMEM, None),
+      constants.ISPEC_CPU_COUNT: self.be_full.get(constants.BE_VCPUS, None),
+      constants.ISPEC_DISK_COUNT: len(self.disks),
+      constants.ISPEC_DISK_SIZE: [disk.size for disk in self.disks],
+      constants.ISPEC_NIC_COUNT: len(self.nics),
+      }
+
+    ipolicy = _CalculateGroupIPolicy(cluster, pnode.group)
+    res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
+    if not self.op.ignore_ipolicy and res:
+      raise errors.OpPrereqError(("Instance allocation to group %s violates"
+                                  " policy: %s") % (pnode.group,
+                                                    utils.CommaJoin(res)),
+                                  errors.ECODE_INVAL)
 
     # disk parameters (not customizable at instance or node level)
     # just use the primary node parameters, ignoring the secondary.

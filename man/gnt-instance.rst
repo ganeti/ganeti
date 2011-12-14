@@ -39,6 +39,7 @@ ADD
 | {{-n|--node} *node[:secondary-node]* \| {-I|--iallocator} *name*}
 | {{-o|--os-type} *os-type*}
 | [--submit]
+| [--ignore-ipolicy]
 | {*instance*}
 
 Creates a new instance on the specified host. The *instance* argument
@@ -628,6 +629,9 @@ blktap
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it
 can be examined via **gnt-job info**.
+
+If ``--ignore-ipolicy`` is given any instance policy violations occuring
+during this operation are ignored.
 
 Example::
 
