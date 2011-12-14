@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,18 @@ err() {
   exit 1
 }
 
+if ! grep -q '^ENABLE_CONFD = ' lib/_autoconf.py; then
+  err "Please update $0, confd enable feature is missing"
+fi
+
+if grep -q '^ENABLE_CONFD = True' lib/_autoconf.py; then
+  DAEMONS="$(echo ganeti-{noded,masterd,rapi,confd})"
+  STOPDAEMONS="$(echo ganeti-{confd,rapi,masterd,noded})"
+else
+  DAEMONS="$(echo ganeti-{noded,masterd,rapi})"
+  STOPDAEMONS="$(echo ganeti-{rapi,masterd,noded})"
+fi
+
 $daemon_util >/dev/null 2>&1 &&
   err "daemon-util succeeded without command"
 
@@ -49,11 +61,11 @@ $daemon_util check-exitcode 11 >/dev/null 2>&1 ||
   err "check-exitcode 11 (not master) didn't return 0"
 
 tmp=$(echo $($daemon_util list-start-daemons))
-test "$tmp" == "$(echo ganeti-{noded,masterd,rapi,confd})" ||
+test "$tmp" == "$DAEMONS" ||
   err "list-start-daemons didn't return correct list of daemons"
 
 tmp=$(echo $($daemon_util list-stop-daemons))
-test "$tmp" == "$(echo ganeti-{confd,rapi,masterd,noded})" ||
+test "$tmp" == "$STOPDAEMONS" ||
   err "list-stop-daemons didn't return correct list of daemons"
 
 $daemon_util is-daemon-name >/dev/null 2>&1 &&
@@ -64,7 +76,7 @@ for i in '' '.' '..' '-' 'not-a-daemon'; do
     err "is-daemon-name thinks '$i' is a daemon name"
 done
 
-for i in ganeti-{confd,rapi,masterd,noded}; do
+for i in $DAEMONS; do
   $daemon_util is-daemon-name $i >/dev/null 2>&1 ||
     err "is-daemon-name doesn't think '$i' is a daemon name"
 done
