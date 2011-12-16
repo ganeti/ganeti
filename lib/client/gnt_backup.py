@@ -115,6 +115,7 @@ import_opts = [
   IDENTIFY_DEFAULTS_OPT,
   SRC_DIR_OPT,
   SRC_NODE_OPT,
+  IGNORE_IPOLICY_OPT,
   ]
 
 

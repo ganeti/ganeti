@@ -70,6 +70,7 @@ IMPORT
 | [--src-node=*source-node*] [--src-dir=*source-dir*]
 | [-t [diskless | plain | drbd | file]]
 | [--identify-defaults]
+| [--ignore-ipolicy]
 | {*instance*}
 
 Imports a new instance from an export residing on *source-node* in
@@ -190,6 +191,9 @@ template and specifies the remote node.
 
 The ``--src-dir`` option allows importing instances from a directory
 below ``@CUSTOM_EXPORT_DIR@``.
+
+If ``--ignore-ipolicy`` is given any instance policy violations occuring
+during this operation are ignored.
 
 Since many of the parameters are by default read from the exported
 instance information and used as such, the new instance will have
