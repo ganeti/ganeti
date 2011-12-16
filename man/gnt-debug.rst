@@ -63,7 +63,7 @@ SUBMIT-JOB
 ~~~~~~~~~~
 
 **submit-job** [--verbose] [--timing-stats] [--job-repeat ``N``]
-[--op-repeat ``N``] {opcodes_file...}
+[--op-repeat ``N``] [--each] {opcodes_file...}
 
 This command builds a list of opcodes from files in JSON format and
 submits a job per file to the master daemon. It can be used to test
@@ -81,6 +81,9 @@ copies of each job (input file) to be submitted (equivalent to
 passing the arguments N times) while op-repeat will cause N copies
 of each of the opcodes in the file to be executed (equivalent to
 each file containing N copies of the opcodes).
+
+The ``each`` option allow to submit each job separately (using ``N``
+SubmitJob LUXI requests instead of one SubmitManyJobs request).
 
 TEST-JOBQUEUE
 ~~~~~~~~~~~~~
