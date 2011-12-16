@@ -1322,7 +1322,8 @@ def SetInstanceParams(opts, args):
                                    force=opts.force,
                                    wait_for_sync=opts.wait_for_sync,
                                    offline_inst=opts.offline_inst,
-                                   online_inst=opts.online_inst)
+                                   online_inst=opts.online_inst,
+                                   ignore_ipolicy=opts.ignore_ipolicy)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1507,7 +1508,7 @@ commands = {
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,
      DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT, OFFLINE_INST_OPT,
-     ONLINE_INST_OPT],
+     ONLINE_INST_OPT, IGNORE_IPOLICY_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

@@ -861,6 +861,7 @@ MODIFY
 | [{-O|--os-parameters} *param*=*value*... ]
 | [--offline \| --online]
 | [--submit]
+| [--ignore-ipolicy]
 | {*instance*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
@@ -913,6 +914,9 @@ immediately.
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it
 can be examined via **gnt-job info**.
+
+If ``--ignore-ipolicy`` is given any instance policy violations occuring
+during this operation are ignored.
 
 Most of the changes take effect at the next restart. If the instance is
 running, there is no effect on the instance.

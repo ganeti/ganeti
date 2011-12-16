@@ -11788,6 +11788,9 @@ class LUInstanceSetParams(LogicalUnit):
         _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
 
         snode_info = self.cfg.GetNodeInfo(self.op.remote_node)
+        ipolicy = _CalculateGroupIPolicy(cluster, snode_info.group)
+        _CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info,
+                                ignore=self.op.ignore_ipolicy)
         if pnode_info.group != snode_info.group:
           self.LogWarning("The primary and secondary nodes are in two"
                           " different node groups; the disk parameters"

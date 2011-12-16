@@ -1359,6 +1359,7 @@ class OpInstanceSetParams(OpCode):
     _PInstanceName,
     _PForce,
     _PForceVariant,
+    _PIgnoreIpolicy,
     # TODO: Use _TestNicDef
     ("nics", ht.EmptyList, ht.TList,
      "List of NIC changes. Each item is of the form ``(op, settings)``."
