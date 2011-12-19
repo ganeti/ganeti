@@ -1874,6 +1874,9 @@ class TestJobDependencyManager(unittest.TestCase):
     return result
 
   def _Enqueue(self, jobs):
+    self.assertFalse(self.jdm._lock.is_owned(),
+                     msg=("Must not own manager lock while re-adding jobs"
+                          " (potential deadlock)"))
     self._queue.append(jobs)
 
   def testNotFinalizedThenCancel(self):
