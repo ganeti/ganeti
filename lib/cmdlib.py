@@ -1498,7 +1498,9 @@ class LUClusterDestroy(LogicalUnit):
     ems = self.cfg.GetUseExternalMipScript()
     result = self.rpc.call_node_deactivate_master_ip(master_params.name,
                                                      master_params, ems)
-    result.Raise("Could not disable the master role")
+    if result.fail_msg:
+      self.LogWarning("Error disabling the master IP address: %s",
+                      result.fail_msg)
 
     return master_params.name
 
