@@ -1237,6 +1237,29 @@ class _JobProcessor(object):
       queue.release()
 
 
+def _EvaluateJobProcessorResult(depmgr, job, result):
+  """Looks at a result from L{_JobProcessor} for a job.
+
+  To be used in a L{_JobQueueWorker}.
+
+  """
+  if result == _JobProcessor.FINISHED:
+    # Notify waiting jobs
+    depmgr.NotifyWaiters(job.id)
+
+  elif result == _JobProcessor.DEFER:
+    # Schedule again
+    raise workerpool.DeferTask(priority=job.CalcPriority())
+
+  elif result == _JobProcessor.WAITDEP:
+    # No-op, dependency manager will re-schedule
+    pass
+
+  else:
+    raise errors.ProgrammerError("Job processor returned unknown status %s" %
+                                 (result, ))
+
+
 class _JobQueueWorker(workerpool.BaseWorker):
   """The actual job workers.
 
@@ -1277,23 +1300,8 @@ class _JobQueueWorker(workerpool.BaseWorker):
     wrap_execop_fn = compat.partial(self._WrapExecOpCode, setname_fn,
                                     proc.ExecOpCode)
 
-    result = _JobProcessor(queue, wrap_execop_fn, job)()
-
-    if result == _JobProcessor.FINISHED:
-      # Notify waiting jobs
-      queue.depmgr.NotifyWaiters(job.id)
-
-    elif result == _JobProcessor.DEFER:
-      # Schedule again
-      raise workerpool.DeferTask(priority=job.CalcPriority())
-
-    elif result == _JobProcessor.WAITDEP:
-      # No-op, dependency manager will re-schedule
-      pass
-
-    else:
-      raise errors.ProgrammerError("Job processor returned unknown status %s" %
-                                   (result, ))
+    _EvaluateJobProcessorResult(queue.depmgr, job,
+                                _JobProcessor(queue, wrap_execop_fn, job)())
 
   @staticmethod
   def _WrapExecOpCode(setname_fn, execop_fn, op, *args, **kwargs):

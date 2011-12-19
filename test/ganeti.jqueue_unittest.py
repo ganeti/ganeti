@@ -38,6 +38,7 @@ from ganeti import opcodes
 from ganeti import compat
 from ganeti import mcpu
 from ganeti import query
+from ganeti import workerpool
 
 import testutils
 
@@ -1623,6 +1624,43 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self.assertEqual(jqueue._JobProcessor(queue, opexec, job)(),
                      jqueue._JobProcessor.FINISHED)
     self.assertRaises(IndexError, queue.GetNextUpdate)
+
+
+class TestEvaluateJobProcessorResult(unittest.TestCase):
+  def testFinished(self):
+    depmgr = _FakeDependencyManager()
+    job = _IdOnlyFakeJob(30953)
+    jqueue._EvaluateJobProcessorResult(depmgr, job,
+                                       jqueue._JobProcessor.FINISHED)
+    self.assertEqual(depmgr.GetNextNotification(), job.id)
+    self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+  def testDefer(self):
+    depmgr = _FakeDependencyManager()
+    job = _IdOnlyFakeJob(11326, priority=5463)
+    try:
+      jqueue._EvaluateJobProcessorResult(depmgr, job,
+                                         jqueue._JobProcessor.DEFER)
+    except workerpool.DeferTask, err:
+      self.assertEqual(err.priority, 5463)
+    else:
+      self.fail("Didn't raise exception")
+    self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+  def testWaitdep(self):
+    depmgr = _FakeDependencyManager()
+    job = _IdOnlyFakeJob(21317)
+    jqueue._EvaluateJobProcessorResult(depmgr, job,
+                                       jqueue._JobProcessor.WAITDEP)
+    self.assertRaises(IndexError, depmgr.GetNextNotification)
+
+  def testOther(self):
+    depmgr = _FakeDependencyManager()
+    job = _IdOnlyFakeJob(5813)
+    self.assertRaises(errors.ProgrammerError,
+                      jqueue._EvaluateJobProcessorResult,
+                      depmgr, job, "Other result")
+    self.assertRaises(IndexError, depmgr.GetNextNotification)
 
 
 class _FakeTimeoutStrategy:
