@@ -3153,7 +3153,7 @@ class JobExecutor(object):
       for (_, _, ops) in self.queue:
         # SubmitJob will remove the success status, but raise an exception if
         # the submission fails, so we'll notice that anyway.
-        results.append([True, self.cl.SubmitJob(ops)])
+        results.append([True, self.cl.SubmitJob(ops)[0]])
     else:
       results = self.cl.SubmitManyJobs([ops for (_, _, ops) in self.queue])
     for ((status, data), (idx, name, _)) in zip(results, self.queue):
