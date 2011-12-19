@@ -1858,11 +1858,16 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     self.assertRaises(IndexError, self.queue.GetNextUpdate)
 
 
-class TestJobDependencyManager(unittest.TestCase):
-  class _FakeJob:
-    def __init__(self, job_id):
-      self.id = str(job_id)
+class _IdOnlyFakeJob:
+  def __init__(self, job_id, priority=NotImplemented):
+    self.id = str(job_id)
+    self._priority = priority
 
+  def CalcPriority(self):
+    return self._priority
+
+
+class TestJobDependencyManager(unittest.TestCase):
   def setUp(self):
     self._status = []
     self._queue = []
@@ -1877,7 +1882,7 @@ class TestJobDependencyManager(unittest.TestCase):
     self._queue.append(jobs)
 
   def testNotFinalizedThenCancel(self):
-    job = self._FakeJob(17697)
+    job = _IdOnlyFakeJob(17697)
     job_id = str(28625)
 
     self._status.append((job_id, constants.JOB_STATUS_RUNNING))
@@ -1902,7 +1907,7 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
   def testRequireCancel(self):
-    job = self._FakeJob(5278)
+    job = _IdOnlyFakeJob(5278)
     job_id = str(9610)
     dep_status = [constants.JOB_STATUS_CANCELED]
 
@@ -1928,7 +1933,7 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
   def testRequireError(self):
-    job = self._FakeJob(21459)
+    job = _IdOnlyFakeJob(21459)
     job_id = str(25519)
     dep_status = [constants.JOB_STATUS_ERROR]
 
@@ -1954,7 +1959,7 @@ class TestJobDependencyManager(unittest.TestCase):
     dep_status = list(constants.JOBS_FINALIZED)
 
     for end_status in dep_status:
-      job = self._FakeJob(21343)
+      job = _IdOnlyFakeJob(21343)
       job_id = str(14609)
 
       self._status.append((job_id, constants.JOB_STATUS_WAITING))
@@ -1979,7 +1984,7 @@ class TestJobDependencyManager(unittest.TestCase):
       self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
   def testNotify(self):
-    job = self._FakeJob(8227)
+    job = _IdOnlyFakeJob(8227)
     job_id = str(4113)
 
     self._status.append((job_id, constants.JOB_STATUS_RUNNING))
@@ -1999,7 +2004,7 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertEqual(self._queue, [set([job])])
 
   def testWrongStatus(self):
-    job = self._FakeJob(10102)
+    job = _IdOnlyFakeJob(10102)
     job_id = str(1271)
 
     self._status.append((job_id, constants.JOB_STATUS_QUEUED))
@@ -2022,7 +2027,7 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self.jdm.JobWaiting(job))
 
   def testCorrectStatus(self):
-    job = self._FakeJob(24273)
+    job = _IdOnlyFakeJob(24273)
     job_id = str(23885)
 
     self._status.append((job_id, constants.JOB_STATUS_QUEUED))
@@ -2045,7 +2050,7 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self.jdm.JobWaiting(job))
 
   def testFinalizedRightAway(self):
-    job = self._FakeJob(224)
+    job = _IdOnlyFakeJob(224)
     job_id = str(3081)
 
     self._status.append((job_id, constants.JOB_STATUS_SUCCESS))
@@ -2072,7 +2077,7 @@ class TestJobDependencyManager(unittest.TestCase):
     job_ids = map(str, rnd.sample(range(1, 10000), 150))
 
     waiters = dict((job_ids.pop(),
-                    set(map(self._FakeJob,
+                    set(map(_IdOnlyFakeJob,
                             [job_ids.pop()
                              for _ in range(rnd.randint(1, 20))])))
                    for _ in range(10))
@@ -2132,14 +2137,14 @@ class TestJobDependencyManager(unittest.TestCase):
     assert not waiters
 
   def testSelfDependency(self):
-    job = self._FakeJob(18937)
+    job = _IdOnlyFakeJob(18937)
 
     self._status.append((job.id, constants.JOB_STATUS_SUCCESS))
     (result, _) = self.jdm.CheckAndRegister(job, job.id, [])
     self.assertEqual(result, self.jdm.ERROR)
 
   def testJobDisappears(self):
-    job = self._FakeJob(30540)
+    job = _IdOnlyFakeJob(30540)
     job_id = str(23769)
 
     def _FakeStatus(_):
