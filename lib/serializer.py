@@ -42,49 +42,19 @@ from ganeti import errors
 from ganeti import utils
 
 
-_JSON_INDENT = 2
-
 _RE_EOLSP = re.compile("[ \t]+$", re.MULTILINE)
 
 
-def _GetJsonDumpers(_encoder_class=simplejson.JSONEncoder):
-  """Returns two JSON functions to serialize data.
-
-  @rtype: (callable, callable)
-  @return: The function to generate a compact form of JSON and another one to
-           generate a more readable, indented form of JSON (if supported)
-
-  """
-  plain_encoder = _encoder_class(sort_keys=True)
-
-  # Check whether the simplejson module supports indentation
-  try:
-    indent_encoder = _encoder_class(indent=_JSON_INDENT, sort_keys=True)
-  except TypeError:
-    # Indentation not supported
-    indent_encoder = plain_encoder
-
-  return (plain_encoder.encode, indent_encoder.encode)
-
-
-(_DumpJson, _DumpJsonIndent) = _GetJsonDumpers()
-
-
-def DumpJson(data, indent=True):
+def DumpJson(data):
   """Serialize a given object.
 
   @param data: the data to serialize
-  @param indent: whether to indent output (depends on simplejson version)
-
   @return: the string representation of data
 
   """
-  if indent:
-    fn = _DumpJsonIndent
-  else:
-    fn = _DumpJson
+  encoded = simplejson.dumps(data)
 
-  txt = _RE_EOLSP.sub("", fn(data))
+  txt = _RE_EOLSP.sub("", encoded)
   if not txt.endswith("\n"):
     txt += "\n"
 
@@ -112,7 +82,7 @@ def DumpSignedJson(data, key, salt=None, key_selector=None):
   @return: the string representation of data signed by the hmac key
 
   """
-  txt = DumpJson(data, indent=False)
+  txt = DumpJson(data)
   if salt is None:
     salt = ""
   signed_dict = {
@@ -127,7 +97,7 @@ def DumpSignedJson(data, key, salt=None, key_selector=None):
 
   signed_dict["hmac"] = utils.Sha1Hmac(key, txt, salt=salt + key_selector)
 
-  return DumpJson(signed_dict, indent=False)
+  return DumpJson(signed_dict)
 
 
 def LoadSignedJson(txt, key):

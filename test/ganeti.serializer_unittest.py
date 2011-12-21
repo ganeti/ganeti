@@ -52,10 +52,9 @@ class TestSerializer(testutils.GanetiTestCase):
     ]
 
   def _TestSerializer(self, dump_fn, load_fn):
-    for indent in [True, False]:
-      for data in self._TESTDATA:
-        self.failUnless(dump_fn(data, indent=indent).endswith("\n"))
-        self.assertEqualValues(load_fn(dump_fn(data, indent=indent)), data)
+    for data in self._TESTDATA:
+      self.failUnless(dump_fn(data).endswith("\n"))
+      self.assertEqualValues(load_fn(dump_fn(data)), data)
 
   def testGeneric(self):
     self._TestSerializer(serializer.Dump, serializer.Load)

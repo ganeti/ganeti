@@ -79,7 +79,7 @@ class JsonErrorRequestExecutor(http.server.HttpServerRequestExecutor):
     @return: the body of the message
 
     """
-    return serializer.DumpJson(values, indent=True)
+    return serializer.DumpJson(values)
 
 
 class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,

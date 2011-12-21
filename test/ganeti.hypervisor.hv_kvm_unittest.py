@@ -101,7 +101,7 @@ class QmpStub(threading.Thread):
     conn.close()
 
   def encode_string(self, message):
-    return (serializer.DumpJson(message, indent=False) +
+    return (serializer.DumpJson(message) +
             hv_kvm.QmpConnection._MESSAGE_END_TOKEN)
 
 

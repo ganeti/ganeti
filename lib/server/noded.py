@@ -169,7 +169,7 @@ class NodeHttpServer(http.server.HttpServer):
       logging.exception("Error in RPC call")
       result = (False, "Error while executing backend function: %s" % str(err))
 
-    return serializer.DumpJson(result, indent=False)
+    return serializer.DumpJson(result)
 
   # the new block devices  --------------------------
 

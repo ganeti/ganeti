@@ -343,7 +343,7 @@ def FormatRequest(method, args, version=None):
     request[KEY_VERSION] = version
 
   # Serialize the request
-  return serializer.DumpJson(request, indent=False)
+  return serializer.DumpJson(request)
 
 
 def CallLuxiMethod(transport_cb, method, args, version=None):

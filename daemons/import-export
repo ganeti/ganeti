@@ -200,7 +200,7 @@ class StatusFile:
 
     self._data.mtime = time.time()
     utils.WriteFile(self._path,
-                    data=serializer.DumpJson(self._data.ToDict(), indent=True),
+                    data=serializer.DumpJson(self._data.ToDict()),
                     mode=0400)
 
 

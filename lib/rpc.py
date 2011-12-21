@@ -442,8 +442,7 @@ class _RpcClientBase:
       read_timeout = timeout
 
     body = serializer.DumpJson(map(self._encoder,
-                                   zip(map(compat.snd, argdefs), args)),
-                               indent=False)
+                                   zip(map(compat.snd, argdefs), args)))
 
     result = self._proc(node_list, procedure, body, read_timeout=read_timeout)
 

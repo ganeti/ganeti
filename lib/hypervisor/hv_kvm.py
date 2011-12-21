@@ -185,9 +185,8 @@ class QmpMessage:
     return QmpMessage(data)
 
   def __str__(self):
-    # The protocol expects the JSON object to be sent as a single
-    # line, hence the need for indent=False.
-    return serializer.DumpJson(self.data, indent=False)
+    # The protocol expects the JSON object to be sent as a single line.
+    return serializer.DumpJson(self.data)
 
   def __eq__(self, other):
     # When comparing two QmpMessages, we are interested in comparing
