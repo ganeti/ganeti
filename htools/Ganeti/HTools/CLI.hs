@@ -184,6 +184,21 @@ defaultOptions  = Options
 -- | Abrreviation for the option type.
 type OptType = OptDescr (Options -> Result Options)
 
+-- * Helper functions
+
+parseISpecString :: String -> String -> Result RSpec
+parseISpecString descr inp = do
+  let sp = sepSplit ',' inp
+  prs <- mapM (\(fn, val) -> fn val) $
+         zip [ annotateResult (descr ++ " specs memory") . parseUnit
+             , annotateResult (descr ++ " specs disk") . parseUnit
+             , tryRead (descr ++ " specs cpus")
+             ] sp
+  case prs of
+    [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
+    _ -> Bad $ "Invalid " ++ descr ++ " specification: '" ++ inp ++
+         "', expected disk,ram,cpu"
+
 -- * Command line options
 
 oDataFile :: OptType
@@ -396,19 +411,7 @@ oShowVer = Option "V" ["version"]
 oTieredSpec :: OptType
 oTieredSpec = Option "" ["tiered-alloc"]
              (ReqArg (\ inp opts -> do
-                        let sp = sepSplit ',' inp
-                        prs <- mapM (\(fn, val) -> fn val) $
-                               zip [ annotateResult "tiered specs memory" .
-                                     parseUnit
-                                   , annotateResult "tiered specs disk" .
-                                     parseUnit
-                                   , tryRead "tiered specs cpus"
-                                   ] sp
-                        tspec <-
-                          case prs of
-                            [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
-                            _ -> Bad $ "Invalid specification: " ++ inp ++
-                                 ", expected disk,ram,cpu"
+                        tspec <- parseISpecString "tiered" inp
                         return $ opts { optTieredSpec = Just tspec } )
               "TSPEC")
              "enable tiered specs allocation, given as 'disk,ram,cpu'"
