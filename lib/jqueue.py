@@ -1450,8 +1450,8 @@ class _JobDependencyManager:
   def NotifyWaiters(self, job_id):
     """Notifies all jobs waiting for a certain job ID.
 
-    @important: Do not call until L{CheckAndRegister} returned a status other
-      than L{self.WAIT} for C{job_id}, or behaviour is undefined
+    @attention: Do not call until L{CheckAndRegister} returned a status other
+      than C{WAITDEP} for C{job_id}, or behaviour is undefined
     @type job_id: string
     @param job_id: Job ID
 
