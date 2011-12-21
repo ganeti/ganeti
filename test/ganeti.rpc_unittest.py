@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -73,8 +73,8 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver(["127.0.0.1"])
     http_proc = _FakeRequestProcessor(self._GetVersionResponse)
     proc = rpc._RpcProcessor(resolver, 24094)
-    result = proc(["localhost"], "version", None, _req_process_fn=http_proc,
-                  read_timeout=60)
+    result = proc(["localhost"], "version", {"localhost": ""},
+                  _req_process_fn=http_proc, read_timeout=60)
     self.assertEqual(result.keys(), ["localhost"])
     lhresp = result["localhost"]
     self.assertFalse(lhresp.offline)
@@ -98,12 +98,14 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver(["192.0.2.13"])
     http_proc = _FakeRequestProcessor(self._ReadTimeoutResponse)
     proc = rpc._RpcProcessor(resolver, 19176)
-    result = proc(["node31856"], "version", None, _req_process_fn=http_proc,
+    host = "node31856"
+    body = {host: ""}
+    result = proc([host], "version", body, _req_process_fn=http_proc,
                   read_timeout=12356)
-    self.assertEqual(result.keys(), ["node31856"])
-    lhresp = result["node31856"]
+    self.assertEqual(result.keys(), [host])
+    lhresp = result[host]
     self.assertFalse(lhresp.offline)
-    self.assertEqual(lhresp.node, "node31856")
+    self.assertEqual(lhresp.node, host)
     self.assertFalse(lhresp.fail_msg)
     self.assertEqual(lhresp.payload, -1)
     self.assertEqual(lhresp.call, "version")
@@ -114,12 +116,14 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver([rpc._OFFLINE])
     http_proc = _FakeRequestProcessor(NotImplemented)
     proc = rpc._RpcProcessor(resolver, 30668)
-    result = proc(["n17296"], "version", None, _req_process_fn=http_proc,
+    host = "n17296"
+    body = {host: ""}
+    result = proc([host], "version", body, _req_process_fn=http_proc,
                   read_timeout=60)
-    self.assertEqual(result.keys(), ["n17296"])
-    lhresp = result["n17296"]
+    self.assertEqual(result.keys(), [host])
+    lhresp = result[host]
     self.assertTrue(lhresp.offline)
-    self.assertEqual(lhresp.node, "n17296")
+    self.assertEqual(lhresp.node, host)
     self.assertTrue(lhresp.fail_msg)
     self.assertFalse(lhresp.payload)
     self.assertEqual(lhresp.call, "version")
@@ -142,10 +146,11 @@ class TestRpcProcessor(unittest.TestCase):
 
   def testMultiVersionSuccess(self):
     nodes = ["node%s" % i for i in range(50)]
+    body = dict((n, "") for n in nodes)
     resolver = rpc._StaticResolver(nodes)
     http_proc = _FakeRequestProcessor(self._GetMultiVersionResponse)
     proc = rpc._RpcProcessor(resolver, 23245)
-    result = proc(nodes, "version", None, _req_process_fn=http_proc,
+    result = proc(nodes, "version", body, _req_process_fn=http_proc,
                   read_timeout=60)
     self.assertEqual(sorted(result.keys()), sorted(nodes))
 
@@ -173,12 +178,14 @@ class TestRpcProcessor(unittest.TestCase):
       http_proc = \
         _FakeRequestProcessor(compat.partial(self._GetVersionResponseFail,
                                              errinfo))
-      result = proc(["aef9ur4i.example.com"], "version", None,
+      host = "aef9ur4i.example.com"
+      body = {host: ""}
+      result = proc(body.keys(), "version", body,
                     _req_process_fn=http_proc, read_timeout=60)
-      self.assertEqual(result.keys(), ["aef9ur4i.example.com"])
-      lhresp = result["aef9ur4i.example.com"]
+      self.assertEqual(result.keys(), [host])
+      lhresp = result[host]
       self.assertFalse(lhresp.offline)
-      self.assertEqual(lhresp.node, "aef9ur4i.example.com")
+      self.assertEqual(lhresp.node, host)
       self.assert_(lhresp.fail_msg)
       self.assertFalse(lhresp.payload)
       self.assertEqual(lhresp.call, "version")
@@ -208,6 +215,7 @@ class TestRpcProcessor(unittest.TestCase):
 
   def testHttpError(self):
     nodes = ["uaf6pbbv%s" % i for i in range(50)]
+    body = dict((n, "") for n in nodes)
     resolver = rpc._StaticResolver(nodes)
 
     httperrnodes = set(nodes[1::7])
@@ -222,7 +230,7 @@ class TestRpcProcessor(unittest.TestCase):
     http_proc = \
       _FakeRequestProcessor(compat.partial(self._GetHttpErrorResponse,
                                            httperrnodes, failnodes))
-    result = proc(nodes, "vg_list", None, _req_process_fn=http_proc,
+    result = proc(nodes, "vg_list", body, _req_process_fn=http_proc,
                   read_timeout=rpc._TMO_URGENT)
     self.assertEqual(sorted(result.keys()), sorted(nodes))
 
@@ -265,12 +273,14 @@ class TestRpcProcessor(unittest.TestCase):
 
     for fn in [self._GetInvalidResponseA, self._GetInvalidResponseB]:
       http_proc = _FakeRequestProcessor(fn)
-      result = proc(["oqo7lanhly.example.com"], "version", None,
+      host = "oqo7lanhly.example.com"
+      body = {host: ""}
+      result = proc([host], "version", body,
                     _req_process_fn=http_proc, read_timeout=60)
-      self.assertEqual(result.keys(), ["oqo7lanhly.example.com"])
-      lhresp = result["oqo7lanhly.example.com"]
+      self.assertEqual(result.keys(), [host])
+      lhresp = result[host]
       self.assertFalse(lhresp.offline)
-      self.assertEqual(lhresp.node, "oqo7lanhly.example.com")
+      self.assertEqual(lhresp.node, host)
       self.assert_(lhresp.fail_msg)
       self.assertFalse(lhresp.payload)
       self.assertEqual(lhresp.call, "version")
@@ -295,13 +305,14 @@ class TestRpcProcessor(unittest.TestCase):
     http_proc = _FakeRequestProcessor(compat.partial(self._GetBodyTestResponse,
                                                      test_data))
     proc = rpc._RpcProcessor(resolver, 18700)
-    body = serializer.DumpJson(test_data)
-    result = proc(["node19759"], "upload_file", body, _req_process_fn=http_proc,
+    host = "node19759"
+    body = {host: serializer.DumpJson(test_data)}
+    result = proc([host], "upload_file", body, _req_process_fn=http_proc,
                   read_timeout=30)
-    self.assertEqual(result.keys(), ["node19759"])
-    lhresp = result["node19759"]
+    self.assertEqual(result.keys(), [host])
+    lhresp = result[host]
     self.assertFalse(lhresp.offline)
-    self.assertEqual(lhresp.node, "node19759")
+    self.assertEqual(lhresp.node, host)
     self.assertFalse(lhresp.fail_msg)
     self.assertEqual(lhresp.payload, None)
     self.assertEqual(lhresp.call, "upload_file")
