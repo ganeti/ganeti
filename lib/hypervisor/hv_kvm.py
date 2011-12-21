@@ -158,11 +158,7 @@ class QmpMessage:
              is not contained in the message
 
     """
-
-    if field_name in self.data:
-      return self.data[field_name]
-
-    return None
+    return self.data.get(field_name, None)
 
   def __setitem__(self, field_name, field_value):
     """Set the value of the required field_name to field_value.
