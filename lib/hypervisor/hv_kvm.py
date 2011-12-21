@@ -139,7 +139,6 @@ class QmpMessage:
   """QEMU Messaging Protocol (QMP) message.
 
   """
-
   def __init__(self, data):
     """Creates a new QMP message based on the passed data.
 
@@ -400,7 +399,9 @@ class QmpConnection:
 
 
 class KVMHypervisor(hv_base.BaseHypervisor):
-  """KVM hypervisor interface"""
+  """KVM hypervisor interface
+
+  """
   CAN_MIGRATE = True
 
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/kvm-hypervisor"
@@ -496,10 +497,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _MIGRATION_STATUS_RE = re.compile("Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
-  _MIGRATION_PROGRESS_RE = re.compile(
-      "\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n"
-      "\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
-      "\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
+  _MIGRATION_PROGRESS_RE = \
+    re.compile("\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n"
+               "\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
+               "\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
 
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
@@ -751,7 +752,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type tap: str
 
     """
-
     if instance.tags:
       tags = " ".join(instance.tags)
     else:
@@ -820,7 +820,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type thread_dict: dict int:int
 
     """
-
     # Convert the string CPU mask to a list of list of int's
     cpu_list = utils.ParseMultiCpuMask(cpu_mask)
 
@@ -1168,8 +1167,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           # we have both ipv4 and ipv6, let's use the cluster default IP
           # version
           cluster_family = ssconf.SimpleStore().GetPrimaryIPFamily()
-          spice_ip_version = netutils.IPAddress.GetVersionFromAddressFamily(
-              cluster_family)
+          spice_ip_version = \
+            netutils.IPAddress.GetVersionFromAddressFamily(cluster_family)
         elif addresses[constants.IP4_VERSION]:
           spice_ip_version = constants.IP4_VERSION
         elif addresses[constants.IP6_VERSION]:
