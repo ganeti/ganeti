@@ -42,12 +42,22 @@ class QmpStub(threading.Thread):
   """Stub for a QMP endpoint for a KVM instance
 
   """
-  _QMP_BANNER_DATA = {"QMP": {"version": {
-                      "package": "",
-                      "qemu": {"micro": 50, "minor": 13, "major": 0},
-                      "capabilities": [],
-                      }}}
-  _EMPTY_RESPONSE = {"return": []}
+  _QMP_BANNER_DATA = {
+    "QMP": {
+      "version": {
+        "package": "",
+        "qemu": {
+          "micro": 50,
+          "minor": 13,
+          "major": 0,
+          },
+        "capabilities": [],
+        },
+      }
+    }
+  _EMPTY_RESPONSE = {
+    "return": [],
+    }
 
   def __init__(self, socket_filename, server_responses):
     """Creates a QMP stub
@@ -107,14 +117,21 @@ class QmpStub(threading.Thread):
 
 class TestQmpMessage(testutils.GanetiTestCase):
   def testSerialization(self):
-    test_data = {"execute": "command", "arguments": ["a", "b", "c"]}
+    test_data = {
+      "execute": "command",
+      "arguments": ["a", "b", "c"],
+      }
     message = hv_kvm.QmpMessage(test_data)
 
     for k, v in test_data.items():
-      self.failUnless(message[k] == v)
+      self.assertEqual(message[k], v)
 
-    rebuilt_message = hv_kvm.QmpMessage.BuildFromJsonString(str(message))
-    self.failUnless(rebuilt_message == message)
+    serialized = str(message)
+    self.assertEqual(len(serialized.splitlines()), 1,
+                     msg="Got multi-line message")
+
+    rebuilt_message = hv_kvm.QmpMessage.BuildFromJsonString(serialized)
+    self.assertEqual(rebuilt_message, message)
 
 
 class TestQmp(testutils.GanetiTestCase):
@@ -158,7 +175,10 @@ class TestQmp(testutils.GanetiTestCase):
     # Format the script
     for request, expected_response in zip(requests, expected_responses):
       response = qmp_connection.Execute(request)
-      self.failUnless(response == hv_kvm.QmpMessage(expected_response))
+      msg = hv_kvm.QmpMessage(expected_response)
+      self.assertEqual(len(str(msg).splitlines()), 1,
+                       msg="Got multi-line message")
+      self.assertEqual(response, msg)
 
 
 class TestConsole(unittest.TestCase):
