@@ -105,6 +105,17 @@ def _BlockdevGetMirrorStatusPostProc(result):
   return result
 
 
+def _BlockdevGetMirrorStatusMultiPreProc(node, args):
+  """Prepares the appropriate node values for blockdev_getmirrorstatus_multi.
+
+  """
+  # there should be only one argument to this RPC, already holding a
+  # node->disks dictionary, we just need to extract the value for the
+  # current node
+  assert len(args) == 1
+  return [args[0][node]]
+
+
 def _BlockdevGetMirrorStatusMultiPostProc(result):
   """Post-processor for L{rpc.RpcRunner.call_blockdev_getmirrorstatus_multi}.
 
@@ -396,7 +407,8 @@ _BLOCKDEV_CALLS = [
     "Request status of a (mirroring) device"),
   ("blockdev_getmirrorstatus_multi", MULTI, TMO_NORMAL, [
     ("node_disks", ED_NODE_TO_DISK_DICT, None),
-    ], None, _BlockdevGetMirrorStatusMultiPostProc,
+    ], _BlockdevGetMirrorStatusMultiPreProc,
+   _BlockdevGetMirrorStatusMultiPostProc,
     "Request status of (mirroring) devices from multiple nodes"),
   ]
 

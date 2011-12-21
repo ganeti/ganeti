@@ -288,10 +288,7 @@ class NodeHttpServer(http.server.HttpServer):
     """
     (node_disks, ) = params
 
-    node_name = netutils.Hostname.GetSysName()
-
-    disks = [objects.Disk.FromDict(dsk_s)
-             for dsk_s in node_disks.get(node_name, [])]
+    disks = [objects.Disk.FromDict(dsk_s) for dsk_s in node_disks]
 
     result = []
 
