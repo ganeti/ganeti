@@ -40,6 +40,9 @@ from ganeti import build
 _SINGLE = "single-node"
 _MULTI = "multi-node"
 
+#: Expected length of a rpc definition
+_RPC_DEF_LEN = 7
+
 
 def _WritePreamble(sw):
   """Writes a preamble for the RPC wrapper output.
@@ -117,7 +120,12 @@ def _WriteBaseClass(sw, clsname, calls):
     sw.Write("_CALLS = rpc_defs.CALLS[%r]", clsname)
     sw.Write("")
 
-    for (name, kind, timeout, args, _, desc) in calls:
+    for v in calls:
+      if len(v) != _RPC_DEF_LEN:
+        raise ValueError("Procedure %s has only %d elements, expected %d" %
+                         (v[0], len(v), _RPC_DEF_LEN))
+
+    for (name, kind, timeout, args, _, _, desc) in calls:
       funcargs = ["self"]
 
       if kind == _SINGLE:

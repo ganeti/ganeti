@@ -434,7 +434,7 @@ class _RpcClientBase:
     """Entry point for automatically generated RPC wrappers.
 
     """
-    (procedure, _, timeout, argdefs, postproc_fn, _) = cdef
+    (procedure, _, timeout, argdefs, _, postproc_fn, _) = cdef
 
     if callable(timeout):
       read_timeout = timeout(args)
