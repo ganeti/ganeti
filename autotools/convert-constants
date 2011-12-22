@@ -54,6 +54,26 @@ def DictKeyName(dict_name, key_name):
   return"%s_%s" % (dict_name, str(key_name).upper())
 
 
+def HaskellTypeVal(value):
+  """Returns the Haskell type and value for a Python value.
+
+  Note that this only work for 'plain' Python types.
+
+  @returns: (string, string) or None, if we can't determine the type.
+
+  """
+  if isinstance(value, basestring):
+    return ("String", "\"%s\"" % StringValueRules(value))
+  elif isinstance(value, int):
+    return ("Int", "%d" % value)
+  elif isinstance(value, long):
+    return ("Integer", "%d" % value)
+  elif isinstance(value, float):
+    return ("Double", "%f" % value)
+  else:
+    return None
+
+
 def ConvertVariable(name, value):
   """Converts a given variable to Haskell code.
 
@@ -64,24 +84,15 @@ def ConvertVariable(name, value):
   """
   lines = []
   hs_name = NameRules(name)
+  hs_typeval = HaskellTypeVal(value)
   if not CONSTANT_RE.match(name):
     lines.append("-- Skipped %s, not constant" % name)
-  elif isinstance(value, basestring):
+  elif hs_typeval is not None:
+    # this is a simple value
+    (hs_type, hs_val) = hs_typeval
     lines.append("-- | Converted from Python constant %s" % name)
-    lines.append("%s :: String" % hs_name)
-    lines.append("%s = \"%s\"" % (hs_name, StringValueRules(value)))
-  elif isinstance(value, int):
-    lines.append("-- | Converted from Python constant %s" % name)
-    lines.append("%s :: Int" % hs_name)
-    lines.append("%s = %d" % (hs_name, value))
-  elif isinstance(value, long):
-    lines.append("-- | Converted from Python constant %s" % name)
-    lines.append("%s :: Integer" % hs_name)
-    lines.append("%s = %d" % (hs_name, value))
-  elif isinstance(value, float):
-    lines.append("-- | Converted from Python constant %s" % name)
-    lines.append("%s :: Double" % hs_name)
-    lines.append("%s = %f" % (hs_name, value))
+    lines.append("%s :: %s" % (hs_name, hs_type))
+    lines.append("%s = %s" % (hs_name, hs_val))
   elif isinstance(value, dict):
     if value:
       lines.append("-- Following lines come from dictionary %s" % name)
