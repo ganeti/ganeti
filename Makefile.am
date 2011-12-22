@@ -156,16 +156,26 @@ CLEANFILES = \
 # BUILT_SOURCES should only be used as a dependency on phony targets. Otherwise
 # it'll cause the target to rebuild every time.
 BUILT_SOURCES = \
+  $(built_base_sources) \
+	$(BUILT_PYTHON_SOURCES) \
+	$(PYTHON_BOOTSTRAP)
+
+built_base_sources = \
 	ganeti \
 	stamp-srclinks \
-	$(all_dirfiles) \
-	$(PYTHON_BOOTSTRAP) \
-	$(BUILT_PYTHON_SOURCES)
+	$(all_dirfiles)
+
+built_python_base_sources = \
+	lib/_autoconf.py \
+	lib/_vcsversion.py
 
 BUILT_PYTHON_SOURCES = \
-	lib/_autoconf.py \
-	lib/_vcsversion.py \
+	$(built_python_base_sources) \
 	lib/_generated_rpc.py
+
+# Generating the RPC wrappers depends on many things, so make sure it's built at
+# the end of the built sources
+lib/_generated_rpc.py: | $(built_base_sources) $(built_python_base_sources)
 
 # these are all built from the underlying %.in sources
 BUILT_EXAMPLES = \
@@ -1029,8 +1039,8 @@ lib/_vcsversion.py: Makefile vcs-version | lib/.dir
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
 
-lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC) | lib/.dir
-	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) $< > $@
+lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC)
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
 
 $(REPLACE_VARS_SED): Makefile
 	set -e; \
