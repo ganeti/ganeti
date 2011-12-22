@@ -82,6 +82,12 @@ class LockError(GenericError):
   pass
 
 
+class PidFileLockError(LockError):
+  """PID file is already locked by another process.
+
+  """
+
+
 class HypervisorError(GenericError):
   """Hypervisor-related exception.
 

@@ -239,6 +239,27 @@ class TestListVisibleFiles(unittest.TestCase):
     self.failUnlessRaises(errors.ProgrammerError, utils.ListVisibleFiles,
                           "/bin/../tmp")
 
+  def testMountpoint(self):
+    lvfmp_fn = compat.partial(utils.ListVisibleFiles,
+                              _is_mountpoint=lambda _: True)
+    self.assertEqual(lvfmp_fn(self.path), [])
+
+    # Create "lost+found" as a regular file
+    self._CreateFiles(["foo", "bar", ".baz", "lost+found"])
+    self.assertEqual(set(lvfmp_fn(self.path)),
+                     set(["foo", "bar", "lost+found"]))
+
+    # Replace "lost+found" with a directory
+    laf_path = utils.PathJoin(self.path, "lost+found")
+    utils.RemoveFile(laf_path)
+    os.mkdir(laf_path)
+    self.assertEqual(set(lvfmp_fn(self.path)), set(["foo", "bar"]))
+
+  def testLostAndFoundNoMountpoint(self):
+    files = ["foo", "bar", ".Hello World", "lost+found"]
+    expected = ["foo", "bar", "lost+found"]
+    self._test(files, expected)
+
 
 class TestWriteFile(testutils.GanetiTestCase):
   def setUp(self):
@@ -415,7 +436,6 @@ class TestFileID(testutils.GanetiTestCase):
   def testUpdate(self):
     name = self._CreateTempFile()
     oldi = utils.GetFileID(path=name)
-    os.utime(name, None)
     fd = os.open(name, os.O_RDWR)
     try:
       newi = utils.GetFileID(fd=fd)
@@ -723,7 +743,7 @@ class TestPidFileFunctions(unittest.TestCase):
     read_pid = utils.ReadPidFile(pid_file)
     self.failUnlessEqual(read_pid, os.getpid())
     self.failUnless(utils.IsProcessAlive(read_pid))
-    self.failUnlessRaises(errors.LockError, utils.WritePidFile,
+    self.failUnlessRaises(errors.PidFileLockError, utils.WritePidFile,
                           self.f_dpn('test'))
     os.close(fd)
     utils.RemoveFile(self.f_dpn("test"))
@@ -759,10 +779,27 @@ class TestPidFileFunctions(unittest.TestCase):
     read_pid = utils.ReadPidFile(pid_file)
     self.failUnlessEqual(read_pid, new_pid)
     self.failUnless(utils.IsProcessAlive(new_pid))
+
+    # Try writing to locked file
+    try:
+      utils.WritePidFile(pid_file)
+    except errors.PidFileLockError, err:
+      errmsg = str(err)
+      self.assertTrue(errmsg.endswith(" %s" % new_pid),
+                      msg=("Error message ('%s') didn't contain correct"
+                           " PID (%s)" % (errmsg, new_pid)))
+    else:
+      self.fail("Writing to locked file didn't fail")
+
     utils.KillProcess(new_pid, waitpid=True)
     self.failIf(utils.IsProcessAlive(new_pid))
     utils.RemoveFile(self.f_dpn('child'))
     self.failUnlessRaises(errors.ProgrammerError, utils.KillProcess, 0)
+
+  def testExceptionType(self):
+    # Make sure the PID lock error is a subclass of LockError in case some code
+    # depends on it
+    self.assertTrue(issubclass(errors.PidFileLockError, errors.LockError))
 
   def tearDown(self):
     shutil.rmtree(self.dir)

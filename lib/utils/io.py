@@ -38,6 +38,10 @@ from ganeti.utils import filelock
 #: Path generating random UUID
 _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
 
+#: Directory used by fsck(8) to store recovered data, usually at a file
+#: system's root directory
+_LOST_AND_FOUND = "lost+found"
+
 # Possible values for keep_perms in WriteFile()
 KP_NEVER = 0
 KP_ALWAYS = 1
@@ -523,7 +527,7 @@ def CreateBackup(file_name):
   return backup_name
 
 
-def ListVisibleFiles(path):
+def ListVisibleFiles(path, _is_mountpoint=os.path.ismount):
   """Returns a list of visible files in a directory.
 
   @type path: str
@@ -536,8 +540,22 @@ def ListVisibleFiles(path):
   if not IsNormAbsPath(path):
     raise errors.ProgrammerError("Path passed to ListVisibleFiles is not"
                                  " absolute/normalized: '%s'" % path)
-  files = [i for i in os.listdir(path) if not i.startswith(".")]
-  return files
+
+  mountpoint = _is_mountpoint(path)
+
+  def fn(name):
+    """File name filter.
+
+    Ignores files starting with a dot (".") as by Unix convention they're
+    considered hidden. The "lost+found" directory found at the root of some
+    filesystems is also hidden.
+
+    """
+    return not (name.startswith(".") or
+                (mountpoint and name == _LOST_AND_FOUND and
+                 os.path.isdir(os.path.join(path, name))))
+
+  return filter(fn, os.listdir(path))
 
 
 def EnsureDirs(dirs):
@@ -739,13 +757,24 @@ def ReadPidFile(pidfile):
       logging.exception("Can't read pid file")
     return 0
 
+  return _ParsePidFileContents(raw_data)
+
+
+def _ParsePidFileContents(data):
+  """Tries to extract a process ID from a PID file's content.
+
+  @type data: string
+  @rtype: int
+  @return: Zero if nothing could be read, PID otherwise
+
+  """
   try:
-    pid = int(raw_data)
-  except (TypeError, ValueError), err:
+    pid = int(data)
+  except (TypeError, ValueError):
     logging.info("Can't parse pid file contents", exc_info=True)
     return 0
-
-  return pid
+  else:
+    return pid
 
 
 def ReadLockedPidFile(path):
@@ -872,13 +901,21 @@ def WritePidFile(pidfile):
   """
   # We don't rename nor truncate the file to not drop locks under
   # existing processes
-  fd_pidfile = os.open(pidfile, os.O_WRONLY | os.O_CREAT, 0600)
+  fd_pidfile = os.open(pidfile, os.O_RDWR | os.O_CREAT, 0600)
 
   # Lock the PID file (and fail if not possible to do so). Any code
   # wanting to send a signal to the daemon should try to lock the PID
   # file before reading it. If acquiring the lock succeeds, the daemon is
   # no longer running and the signal should not be sent.
-  filelock.LockFile(fd_pidfile)
+  try:
+    filelock.LockFile(fd_pidfile)
+  except errors.LockError:
+    msg = ["PID file '%s' is already locked by another process" % pidfile]
+    # Try to read PID file
+    pid = _ParsePidFileContents(os.read(fd_pidfile, 100))
+    if pid > 0:
+      msg.append(", PID read from file is %s" % pid)
+    raise errors.PidFileLockError("".join(msg))
 
   os.write(fd_pidfile, "%d\n" % os.getpid())
 

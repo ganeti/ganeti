@@ -357,6 +357,11 @@ class PipeCondition(_BaseCondition):
 
     return bool(self._waiters)
 
+  def __repr__(self):
+    return ("<%s.%s waiters=%s at %#x>" %
+            (self.__class__.__module__, self.__class__.__name__,
+             self._waiters, id(self)))
+
 
 class _PipeConditionWithMode(PipeCondition):
   __slots__ = [
@@ -435,6 +440,11 @@ class SharedLock(object):
     if monitor:
       logging.debug("Adding lock %s to monitor", name)
       monitor.RegisterLock(self)
+
+  def __repr__(self):
+    return ("<%s.%s name=%s at %#x>" %
+            (self.__class__.__module__, self.__class__.__name__,
+             self.name, id(self)))
 
   def GetLockInfo(self, requested):
     """Retrieves information for querying locks.
