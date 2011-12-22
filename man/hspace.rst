@@ -29,11 +29,11 @@ Algorithm options:
 
 Request options:
 
-**[--memory** *mem* **]**
-**[--disk** *disk* **]**
 **[--disk-template** *template* **]**
-**[--vcpus** *vcpus* **]**
-**[--tiered-alloc** *spec* **]**
+
+**[--standard-alloc** *disk,ram,cpu*  **]**
+
+**[--tiered-alloc** *disk,ram,cpu* **]**
 
 Output options:
 
@@ -201,20 +201,9 @@ OPTIONS
 
 The options that can be passed to the program are as follows:
 
---memory *mem*
-  The memory size of the instances to be placed (defaults to
-  4GiB). Units can be used (see below for more details).
-
---disk *disk*
-  The disk size of the instances to be placed (defaults to
-  100GiB). Units can be used.
-
 --disk-template *template*
   The disk template for the instance; one of the Ganeti disk templates
   (e.g. plain, drbd, so on) should be passed in.
-
---vcpus *vcpus*
-  The number of VCPUs of the instances to be placed (defaults to 1).
 
 --max-cpu=*cpu-ratio*
   The maximum virtual to physical cpu ratio, as a floating point number
@@ -284,22 +273,28 @@ The options that can be passed to the program are as follows:
   overriding the cluster data with a simulated cluster. For details
   about the description, see the man page **htools**(1).
 
---tiered-alloc *spec*
-  Besides the standard, fixed-size allocation, also do a tiered
-  allocation scheme where the algorithm starts from the given
-  specification and allocates until there is no more space; then it
-  decreases the specification and tries the allocation again. The
-  decrease is done on the matric that last failed during
-  allocation. The specification given is similar to the *--simulate*
-  option and it holds:
+--standard-alloc *disk,ram,cpu*
+  This option specifies the instance size for the *standard* allocation
+  mode, where we simply allocate instances of the same, fixed size until
+  the cluster runs out of space.
+
+  The specification given is similar to the *--simulate* option and it
+  holds:
 
   - the disk size of the instance (units can be used)
   - the memory size of the instance (units can be used)
   - the vcpu count for the insance
 
-  An example description would be *100G,4g,2* describing an initial
-  starting specification of 100GB of disk space, 4GiB of memory and 2
-  VCPUs.
+  An example description would be *100G,4g,2* describing an instance
+  specification of 100GB of disk space, 4GiB of memory and 2 VCPUs.
+
+--tiered-alloc *disk,ram,cpu*
+  Besides the standard, fixed-size allocation, also do a tiered
+  allocation scheme where the algorithm starts from the given
+  specification and allocates until there is no more space; then it
+  decreases the specification and tries the allocation again. The
+  decrease is done on the metric that last failed during allocation. The
+  argument should have the same format as for ``-standard-alloc``.
 
   Also note that the normal allocation and the tiered allocation are
   independent, and both start from the initial cluster state; as such,

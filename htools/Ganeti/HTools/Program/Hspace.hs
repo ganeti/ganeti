@@ -59,13 +59,11 @@ options =
   , oVerbose
   , oQuiet
   , oOfflineNode
-  , oIMem
-  , oIDisk
-  , oIVcpus
   , oMachineReadable
   , oMaxCpu
   , oMaxSolLength
   , oMinDisk
+  , oStdSpec
   , oTieredSpec
   , oSaveCluster
   , oShowVer

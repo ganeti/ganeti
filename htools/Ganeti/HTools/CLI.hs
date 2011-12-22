@@ -47,9 +47,6 @@ module Ganeti.HTools.CLI
   , oExTags
   , oExecJobs
   , oGroup
-  , oIDisk
-  , oIMem
-  , oIVcpus
   , oInstMoves
   , oLuxiSocket
   , oMachineReadable
@@ -73,6 +70,7 @@ module Ganeti.HTools.CLI
   , oSelInst
   , oShowHelp
   , oShowVer
+  , oStdSpec
   , oTieredSpec
   , oVerbose
   ) where
@@ -263,33 +261,6 @@ oGroup = Option "G" ["group"]
             (ReqArg (\ f o -> Ok o { optGroup = Just f }) "ID")
             "the ID of the group to balance"
 
-oIDisk :: OptType
-oIDisk = Option "" ["disk"]
-         (ReqArg (\ d opts -> do
-                    dsk <- annotateResult "--disk option" (parseUnit d)
-                    let ospec = optISpec opts
-                        nspec = ospec { rspecDsk = dsk }
-                    return $ opts { optISpec = nspec }) "DISK")
-         "disk size for instances"
-
-oIMem :: OptType
-oIMem = Option "" ["memory"]
-        (ReqArg (\ m opts -> do
-                   mem <- annotateResult "--memory option" (parseUnit m)
-                   let ospec = optISpec opts
-                       nspec = ospec { rspecMem = mem }
-                   return $ opts { optISpec = nspec }) "MEMORY")
-        "memory size for instances"
-
-oIVcpus :: OptType
-oIVcpus = Option "" ["vcpus"]
-          (ReqArg (\ p opts -> do
-                     vcpus <- tryRead "--vcpus option" p
-                     let ospec = optISpec opts
-                         nspec = ospec { rspecCpu = vcpus }
-                     return $ opts { optISpec = nspec }) "NUM")
-          "number of virtual cpus for instances"
-
 oLuxiSocket :: OptType
 oLuxiSocket = Option "L" ["luxi"]
               (OptArg ((\ f opts -> Ok opts { optLuxi = Just f }) .
@@ -407,6 +378,14 @@ oShowVer :: OptType
 oShowVer = Option "V" ["version"]
            (NoArg (\ opts -> Ok opts { optShowVer = True}))
            "show the version of the program"
+
+oStdSpec :: OptType
+oStdSpec = Option "" ["standard-alloc"]
+             (ReqArg (\ inp opts -> do
+                        tspec <- parseISpecString "standard" inp
+                        return $ opts { optISpec = tspec } )
+              "STDSPEC")
+             "enable standard specs allocation, given as 'disk,ram,cpu'"
 
 oTieredSpec :: OptType
 oTieredSpec = Option "" ["tiered-alloc"]
