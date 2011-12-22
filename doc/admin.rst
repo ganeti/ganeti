@@ -1344,16 +1344,14 @@ But not one that has already started execution::
 There are two queues for jobs: the *current* and the *archive*
 queue. Jobs are initially submitted to the current queue, and they stay
 in that queue until they have finished execution (either successfully or
-not). At that point, they can be moved into the archive queue, and the
-ganeti-watcher script will do this automatically after 6 hours. The
-ganeti-cleaner script will remove the jobs from the archive directory
+not). At that point, they can be moved into the archive queue using e.g.
+``gnt-job autoarchive all``. The ``ganeti-watcher`` script will do this
+automatically 6 hours after a job is finished. The ``ganeti-cleaner``
+script will then remove archived the jobs from the archive directory
 after three weeks.
 
-Note that only jobs in the current queue can be viewed via the list and
-info commands; Ganeti itself doesn't examine the archive directory. If
-you need to see an older job, either move the file manually in the
-top-level queue directory, or look at its contents (it's a
-JSON-formatted file).
+Note that ``gnt-job list`` only shows jobs in the current queue.
+Archived jobs can be viewed using ``gnt-job info <id>``.
 
 Special Ganeti deployments
 --------------------------
