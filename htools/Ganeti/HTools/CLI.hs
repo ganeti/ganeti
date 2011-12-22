@@ -115,7 +115,6 @@ data Options = Options
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
   , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
   , optSelInst     :: [String]       -- ^ Instances to be excluded
-  , optISpec       :: RSpec          -- ^ Requested instance specs
   , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
   , optMachineReadable :: Bool       -- ^ Output machine-readable format
   , optMaster      :: String         -- ^ Collect data from RAPI
@@ -135,6 +134,7 @@ data Options = Options
   , optShowInsts   :: Bool           -- ^ Whether to show the instance map
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
+  , optStdSpec     :: RSpec          -- ^ Requested standard specs
   , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
   , optReplay      :: Maybe String   -- ^ Unittests: RNG state
   , optVerbose     :: Int            -- ^ Verbosity level
@@ -154,7 +154,6 @@ defaultOptions  = Options
   , optExecJobs    = False
   , optGroup       = Nothing
   , optSelInst     = []
-  , optISpec       = RSpec 1 4096 102400
   , optLuxi        = Nothing
   , optMachineReadable = False
   , optMaster      = ""
@@ -174,6 +173,7 @@ defaultOptions  = Options
   , optShowInsts   = False
   , optShowNodes   = Nothing
   , optShowVer     = False
+  , optStdSpec     = RSpec 1 4096 102400
   , optTieredSpec  = Nothing
   , optReplay      = Nothing
   , optVerbose     = 1
@@ -383,7 +383,7 @@ oStdSpec :: OptType
 oStdSpec = Option "" ["standard-alloc"]
              (ReqArg (\ inp opts -> do
                         tspec <- parseISpecString "standard" inp
-                        return $ opts { optISpec = tspec } )
+                        return $ opts { optStdSpec = tspec } )
               "STDSPEC")
              "enable standard specs allocation, given as 'disk,ram,cpu'"
 

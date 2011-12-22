@@ -392,7 +392,7 @@ main = do
          exitWith $ ExitFailure 1
 
   let verbose = optVerbose opts
-      ispec = optISpec opts
+      ispec = optStdSpec opts
       disk_template = optDiskTemplate opts
       req_nodes = Instance.requiredNodes disk_template
       machine_r = optMachineReadable opts
