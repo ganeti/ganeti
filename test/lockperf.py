@@ -59,7 +59,7 @@ class State:
     """Initializes this class.
 
     """
-    self.verify = [False for _ in range(thread_count)]
+    self.verify = [0 for _ in range(thread_count)]
     self.counts = [0 for _ in range(thread_count)]
     self.total_count = 0
 
