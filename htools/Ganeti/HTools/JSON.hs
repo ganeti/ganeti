@@ -33,6 +33,7 @@ module Ganeti.HTools.JSON
   , fromJVal
   , asJSObject
   , asObjectList
+  , tryFromObj
   )
   where
 
@@ -41,6 +42,8 @@ import Data.Maybe (fromMaybe)
 import Text.Printf (printf)
 
 import qualified Text.JSON as J
+
+import Ganeti.BasicTypes
 
 -- * JSON-related functions
 
@@ -114,3 +117,12 @@ asJSObject _ = fail "not an object"
 -- | Coneverts a list of JSON values into a list of JSON objects.
 asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
 asObjectList = mapM asJSObject
+
+-- | Try to extract a key from a object with better error reporting
+-- than fromObj.
+tryFromObj :: (J.JSON a) =>
+              String     -- ^ Textual "owner" in error messages
+           -> JSRecord   -- ^ The object array
+           -> String     -- ^ The desired key from the object
+           -> Result a
+tryFromObj t o = annotateResult t . fromObj o

@@ -24,6 +24,7 @@ module Ganeti.BasicTypes
   , isOk
   , isBad
   , eitherToResult
+  , annotateResult
   ) where
 
 import Control.Monad
@@ -65,3 +66,8 @@ isBad = not . isOk
 eitherToResult :: Either String a -> Result a
 eitherToResult (Left s) = Bad s
 eitherToResult (Right v) = Ok v
+
+-- | Annotate a Result with an ownership information.
+annotateResult :: String -> Result a -> Result a
+annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
+annotateResult _ v = v

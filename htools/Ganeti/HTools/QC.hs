@@ -91,7 +91,7 @@ maxCpu = 1024
 
 defGroup :: Group.Group
 defGroup = flip Group.setIdx 0 $
-             Group.create "default" Utils.defaultGroupID Types.AllocPreferred
+             Group.create "default" Types.defaultGroupID Types.AllocPreferred
 
 defGroupList :: Group.List
 defGroupList = Container.fromList [(Group.idx defGroup, defGroup)]

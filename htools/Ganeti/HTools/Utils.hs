@@ -44,18 +44,14 @@ module Ganeti.HTools.Utils
   , fromJResult
   , tryRead
   , formatTable
-  , annotateResult
-  , defaultGroupID
   , parseUnit
   ) where
 
 import Data.Char (toUpper)
 import Data.List
-import qualified Text.JSON as J
 
 import Debug.Trace
 
-import Ganeti.HTools.Types
 -- we will re-export these for our existing users
 import Ganeti.HTools.JSON
 
@@ -134,20 +130,6 @@ select :: a            -- ^ default result
        -> a            -- ^ first result which has a True condition, or default
 select def = maybe def snd . find fst
 
--- | Annotate a Result with an ownership information.
-annotateResult :: String -> Result a -> Result a
-annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
-annotateResult _ v = v
-
--- | Try to extract a key from a object with better error reporting
--- than fromObj.
-tryFromObj :: (J.JSON a) =>
-              String     -- ^ Textual "owner" in error messages
-           -> JSRecord   -- ^ The object array
-           -> String     -- ^ The desired key from the object
-           -> Result a
-tryFromObj t o = annotateResult t . fromObj o
-
 
 -- * Parsing utility functions
 
@@ -181,10 +163,6 @@ formatTable vals numpos =
                              ) flds
                     ) (zip3 vtrans numpos mlens)
    in transpose expnd
-
--- | Default group UUID (just a string, not a real UUID).
-defaultGroupID :: GroupID
-defaultGroupID = "00000000-0000-0000-0000-000000000000"
 
 -- | Tries to extract number and scale from the given string.
 --

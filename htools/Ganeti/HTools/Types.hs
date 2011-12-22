@@ -33,6 +33,7 @@ module Ganeti.HTools.Types
   , Score
   , Weight
   , GroupID
+  , defaultGroupID
   , AllocPolicy(..)
   , allocPolicyFromRaw
   , allocPolicyToRaw
@@ -62,6 +63,7 @@ module Ganeti.HTools.Types
   , isOk
   , isBad
   , eitherToResult
+  , annotateResult
   , Element(..)
   , FailMode(..)
   , FailStats
@@ -99,6 +101,10 @@ type Weight = Double
 
 -- | The Group UUID type.
 type GroupID = String
+
+-- | Default group UUID (just a string, not a real UUID).
+defaultGroupID :: GroupID
+defaultGroupID = "00000000-0000-0000-0000-000000000000"
 
 -- | The Group allocation policy type.
 --
