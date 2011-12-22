@@ -25,6 +25,7 @@
 import re
 
 from ganeti import constants
+from ganeti import compat
 
 CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_-]+$")
 
@@ -98,6 +99,16 @@ def ConvertVariable(name, value):
       lines.append("-- Following lines come from dictionary %s" % name)
       for k in sorted(value.keys()):
         lines.extend(ConvertVariable(DictKeyName(name, k), value[k]))
+  elif isinstance(value, tuple):
+    tvs = [HaskellTypeVal(elem) for elem in value]
+    if compat.all(e is not None for e in tvs):
+      ttypes = ", ".join(e[0] for e in tvs)
+      tvals = ", ".join(e[1] for e in tvs)
+      lines.append("-- | Converted from Python tuple %s" % name)
+      lines.append("%s :: (%s)" % (hs_name, ttypes))
+      lines.append("%s = (%s)" % (hs_name, tvals))
+    else:
+      lines.append("-- Skipped tuple %s, cannot convert all elements" % name)
   else:
     lines.append("-- Skipped %s, %s not handled" % (name, type(value)))
   return lines
