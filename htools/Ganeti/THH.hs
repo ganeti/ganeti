@@ -453,7 +453,7 @@ saveConstructor sname fields = do
   let felems = map (uncurry saveObjectField) (zip fnames fields)
       -- now build the OP_ID serialisation
       opid = [| [( $(stringE "OP_ID"),
-                   $showJSONE $(stringE . deCamelCase $ sname) )] |]
+                   JSON.showJSON $(stringE . deCamelCase $ sname) )] |]
       flist = listE (opid:felems)
       -- and finally convert all this to a json object
       flist' = [| $(varNameE "makeObj") (concat $flist) |]
@@ -621,14 +621,14 @@ genSaveObject save_fn sname fields = do
 
 saveObjectField :: Name -> Field -> Q Exp
 saveObjectField fvar field
-  | isContainer = [| [( $nameE , $showJSONE . showContainer $ $fvarE)] |]
+  | isContainer = [| [( $nameE , JSON.showJSON . showContainer $ $fvarE)] |]
   | fisOptional = [| case $(varE fvar) of
                       Nothing -> []
-                      Just v -> [( $nameE, $showJSONE v)]
+                      Just v -> [( $nameE, JSON.showJSON v)]
                   |]
   | otherwise = case fieldShow field of
-      Nothing -> [| [( $nameE, $showJSONE $fvarE)] |]
-      Just fn -> [| [( $nameE, $showJSONE . $fn $ $fvarE)] |]
+      Nothing -> [| [( $nameE, JSON.showJSON $fvarE)] |]
+      Just fn -> [| [( $nameE, JSON.showJSON . $fn $ $fvarE)] |]
   where isContainer = fieldIsContainer field
         fisOptional  = fieldIsOptional field
         nameE = stringE (fieldName field)

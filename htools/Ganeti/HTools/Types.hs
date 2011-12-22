@@ -72,14 +72,17 @@ module Ganeti.HTools.Types
   , connTimeout
   , queryTimeout
   , EvacMode(..)
+  , ISpec(..)
+  , IPolicy(..)
   ) where
 
 import qualified Data.Map as M
-import qualified Text.JSON as JSON
+import Text.JSON (makeObj, readJSON, showJSON)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
 import Ganeti.BasicTypes
+import Ganeti.HTools.JSON
 
 -- | The instance index type.
 type Idx = Int
@@ -138,6 +141,23 @@ data RSpec = RSpec
   , rspecMem  :: Int  -- ^ Requested memory
   , rspecDsk  :: Int  -- ^ Requested disk
   } deriving (Show, Read, Eq)
+
+
+-- | Instance specification type.
+$(THH.buildObject "ISpec" "iSpec"
+  [ THH.renameField "MemorySize" $ THH.simpleField "memory-size" [t| Int |]
+  , THH.renameField "CpuCount"   $ THH.simpleField "cpu-count"   [t| Int |]
+  , THH.renameField "DiskSize"   $ THH.simpleField "disk-size"   [t| Int |]
+  , THH.renameField "DiskCount"  $ THH.simpleField "disk-count"  [t| Int |]
+  , THH.renameField "NicCount"   $ THH.simpleField "nic-count"   [t| Int |]
+  ])
+
+-- | Instance policy type.
+$(THH.buildObject "IPolicy" "iPolicy"
+  [ THH.renameField "StdSpec" $ THH.simpleField "std" [t| ISpec |]
+  , THH.renameField "MinSpec" $ THH.simpleField "min" [t| ISpec |]
+  , THH.renameField "MaxSpec" $ THH.simpleField "max" [t| ISpec |]
+  ])
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).
