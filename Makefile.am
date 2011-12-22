@@ -587,6 +587,7 @@ EXTRA_DIST = \
 	doc/examples/gnt-debug/README \
 	doc/examples/gnt-debug/delay0.json \
 	doc/examples/gnt-debug/delay50.json \
+	test/lockperf.py \
 	test/testutils.py \
 	test/mocks.py \
 	$(dist_TESTS) \
