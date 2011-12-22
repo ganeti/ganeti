@@ -20,13 +20,11 @@
 
 set -e
 
-FAKEROOT='@FAKEROOT@'
-
 filename=$1
 
 execasroot() {
   if [[ -z "$FAKEROOT" ]]; then
-    echo "'fakeroot' not found at configure time" >&2
+    echo "FAKEROOT variable not set" >&2
     exit 1
   fi
   exec "$FAKEROOT" "$@"

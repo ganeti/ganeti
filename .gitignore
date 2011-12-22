@@ -24,7 +24,6 @@
 /autotools/missing
 /autotools/py-compile
 /autotools/replace_vars.sed
-/autotools/testrunner
 /config.log
 /config.status
 /configure

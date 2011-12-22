@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2011 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,7 +34,16 @@ omit="--omit=$omit"
 $COVERAGE erase
 
 for script; do
-  $COVERAGE run --branch --append $script
+  if [[ "$script" == *-runasroot.py ]]; then
+    if [[ -z "$FAKEROOT" ]]; then
+      echo "FAKEROOT variable not set and needed for $script" >&2
+      exit 1
+    fi
+    cmdprefix="$FAKEROOT"
+  else
+    cmdprefix=
+  fi
+  $cmdprefix $COVERAGE run --branch --append $script
 done
 
 echo "Writing text report to $TEXT_COVERAGE ..." >&2

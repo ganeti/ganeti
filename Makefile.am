@@ -137,7 +137,6 @@ CLEANFILES = \
 	$(PYTHON_BOOTSTRAP) \
 	epydoc.conf \
 	autotools/replace_vars.sed \
-	autotools/testrunner \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
 	devel/upload \
@@ -441,7 +440,6 @@ docpng = $(patsubst %.dot,%.png,$(docdot))
 # Things to build but not to install (add it to EXTRA_DIST if it should be
 # distributed)
 noinst_DATA = \
-	autotools/testrunner \
 	devel/upload \
 	doc/html \
 	$(BUILT_EXAMPLES) \
@@ -578,7 +576,7 @@ EXTRA_DIST = \
 	autotools/convert-constants \
 	autotools/docpp \
 	autotools/gen-coverage \
-	autotools/testrunner.in \
+	autotools/testrunner \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -775,7 +773,8 @@ TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 # Environment for all tests
 PLAIN_TESTS_ENVIRONMENT = \
-	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) PYTHON=$(PYTHON) $(RUN_IN_TEMPDIR)
+	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) PYTHON=$(PYTHON) \
+	FAKEROOT=$(FAKEROOT_PATH) $(RUN_IN_TEMPDIR)
 
 # Environment for tests run by automake
 TESTS_ENVIRONMENT = \
@@ -853,10 +852,6 @@ test/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
-
-autotools/testrunner: autotools/testrunner.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-	chmod u+x $@
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
@@ -1068,7 +1063,6 @@ $(REPLACE_VARS_SED): Makefile
 	  echo 's#@GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
-	  echo 's#@FAKEROOT@#$(FAKEROOT_PATH)#g'; \
 	} > $@
 
 # Using deferred evaluation
