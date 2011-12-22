@@ -26,13 +26,14 @@ import re
 
 from ganeti import constants
 
-CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_]+$")
+CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_-]+$")
 
 
 def NameRules(name):
   """Converts the upper-cased Python name to Haskell camelCase.
 
   """
+  name = name.replace("-", "_")
   elems = name.split("_")
   return elems[0].lower() + "".join(e.capitalize() for e in elems[1:])
 
@@ -46,6 +47,51 @@ def StringValueRules(value):
   return value
 
 
+def DictKeyName(dict_name, key_name):
+  """Converts a dict plus key name to a full name.
+
+  """
+  return"%s_%s" % (dict_name, str(key_name).upper())
+
+
+def ConvertVariable(name, value):
+  """Converts a given variable to Haskell code.
+
+  @param name: the Python name
+  @param value: the value
+  @return: a list of Haskell code lines
+
+  """
+  lines = []
+  hs_name = NameRules(name)
+  if not CONSTANT_RE.match(name):
+    lines.append("-- Skipped %s, not constant" % name)
+  elif isinstance(value, basestring):
+    lines.append("-- | Converted from Python constant %s" % name)
+    lines.append("%s :: String" % hs_name)
+    lines.append("%s = \"%s\"" % (hs_name, StringValueRules(value)))
+  elif isinstance(value, int):
+    lines.append("-- | Converted from Python constant %s" % name)
+    lines.append("%s :: Int" % hs_name)
+    lines.append("%s = %d" % (hs_name, value))
+  elif isinstance(value, long):
+    lines.append("-- | Converted from Python constant %s" % name)
+    lines.append("%s :: Integer" % hs_name)
+    lines.append("%s = %d" % (hs_name, value))
+  elif isinstance(value, float):
+    lines.append("-- | Converted from Python constant %s" % name)
+    lines.append("%s :: Double" % hs_name)
+    lines.append("%s = %f" % (hs_name, value))
+  elif isinstance(value, dict):
+    if value:
+      lines.append("-- Following lines come from dictionary %s" % name)
+      for k in sorted(value.keys()):
+        lines.extend(ConvertVariable(DictKeyName(name, k), value[k]))
+  else:
+    lines.append("-- Skipped %s, %s not handled" % (name, type(value)))
+  return lines
+
+
 def Convert():
   """Converts the constants to Haskell.
 
@@ -56,27 +102,7 @@ def Convert():
 
   for name in all_names:
     value = getattr(constants, name)
-    hs_name = NameRules(name)
-    if not CONSTANT_RE.match(name):
-      lines.append("-- Skipped %s, not constant" % name)
-    elif isinstance(value, basestring):
-      lines.append("-- | Converted from Python constant %s" % name)
-      lines.append("%s :: String" % hs_name)
-      lines.append("%s = \"%s\"" % (hs_name, StringValueRules(value)))
-    elif isinstance(value, int):
-      lines.append("-- | Converted from Python constant %s" % name)
-      lines.append("%s :: Int" % hs_name)
-      lines.append("%s = %d" % (hs_name, value))
-    elif isinstance(value, long):
-      lines.append("-- | Converted from Python constant %s" % name)
-      lines.append("%s :: Integer" % hs_name)
-      lines.append("%s = %d" % (hs_name, value))
-    elif isinstance(value, float):
-      lines.append("-- | Converted from Python constant %s" % name)
-      lines.append("%s :: Double" % hs_name)
-      lines.append("%s = %f" % (hs_name, value))
-    else:
-      lines.append("-- Skipped %s, %s not handled" % (name, type(value)))
+    lines.extend(ConvertVariable(name, value))
     lines.append("")
 
   return "\n".join(lines)
