@@ -31,17 +31,6 @@ module Ganeti.HTools.Utils
   , select
   , applyIf
   , commaJoin
-  , readEitherString
-  , JSRecord
-  , loadJSArray
-  , fromObj
-  , fromObjWithDefault
-  , maybeFromObj
-  , tryFromObj
-  , fromJVal
-  , asJSObject
-  , asObjectList
-  , fromJResult
   , tryRead
   , formatTable
   , parseUnit
@@ -51,9 +40,6 @@ import Data.Char (toUpper)
 import Data.List
 
 import Debug.Trace
-
--- we will re-export these for our existing users
-import Ganeti.HTools.JSON
 
 -- * Debug functions
 

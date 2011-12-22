@@ -47,7 +47,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.ExtLoader (loadExternalData)
-import Ganeti.HTools.Utils
+import Ganeti.HTools.JSON
 import Ganeti.HTools.Types
 
 {-# ANN module "HLint: ignore Eta reduce" #-}

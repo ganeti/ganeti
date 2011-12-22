@@ -55,6 +55,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.ExtLoader
 import qualified Ganeti.HTools.IAlloc as IAlloc
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.JSON as JSON
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Luxi
 import qualified Ganeti.HTools.Node as Node
@@ -313,9 +314,9 @@ prop_Utils_commaSplitJoin s =
 -- value.
 prop_Utils_fromObjWithDefault def_value random_key =
   -- a missing key will be returned with the default
-  Utils.fromObjWithDefault [] random_key def_value == Just def_value &&
+  JSON.fromObjWithDefault [] random_key def_value == Just def_value &&
   -- a found key will be returned as is, not with default
-  Utils.fromObjWithDefault [(random_key, J.showJSON def_value)]
+  JSON.fromObjWithDefault [(random_key, J.showJSON def_value)]
        random_key (def_value+1) == Just def_value
     where _types = def_value :: Integer
 

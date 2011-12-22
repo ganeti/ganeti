@@ -46,7 +46,7 @@ import Text.JSON.Types
 import System.Timeout
 import qualified Network.Socket as S
 
-import Ganeti.HTools.Utils
+import Ganeti.HTools.JSON
 import Ganeti.HTools.Types
 
 import Ganeti.Constants

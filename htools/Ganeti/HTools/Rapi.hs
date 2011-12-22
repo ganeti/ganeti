@@ -40,9 +40,9 @@ import Text.JSON (JSObject, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))
 import Text.Printf (printf)
 
-import Ganeti.HTools.Utils
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
+import Ganeti.HTools.JSON
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance

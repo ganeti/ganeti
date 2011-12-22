@@ -32,12 +32,11 @@ module Ganeti.OpCodes
   ) where
 
 import Text.JSON (readJSON, showJSON, makeObj, JSON)
-import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
 
-import Ganeti.HTools.Utils
+import Ganeti.HTools.JSON
 
 -- | Replace disks type.
 $(declareSADT "ReplaceDisksMode"
