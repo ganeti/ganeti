@@ -97,7 +97,7 @@ def FillDictOfDicts(defaults_dict, custom_dict, skip_keys=None):
 
   """
   ret_dict = {}
-  for key in defaults_dict.keys():
+  for key in defaults_dict:
     ret_dict[key] = FillDict(defaults_dict[key],
                              custom_dict.get(key, {}),
                              skip_keys=skip_keys)
@@ -1299,8 +1299,8 @@ class NodeGroup(TaggableObject):
     if self.alloc_policy is None:
       self.alloc_policy = constants.ALLOC_POLICY_PREFERRED
 
-    # We only update mtime, and not ctime, since we would not be able to provide
-    # a correct value for creation time.
+    # We only update mtime, and not ctime, since we would not be able
+    # to provide a correct value for creation time.
     if self.mtime is None:
       self.mtime = time.time()
 
@@ -1473,7 +1473,7 @@ class Cluster(TaggableObject):
 
     # instance policy added before 2.6
     if self.ipolicy is None:
-      self.ipolicy = MakeEmptyIPolicy()
+      self.ipolicy = FillDictOfDicts(constants.IPOLICY_DEFAULTS, {})
 
   @property
   def primary_hypervisor(self):
