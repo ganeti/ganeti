@@ -27,7 +27,11 @@ import re
 from ganeti import constants
 from ganeti import compat
 
+#: Constant name regex
 CONSTANT_RE = re.compile("^[A-Z][A-Z0-9_-]+$")
+
+#: The type of regex objects
+RE_TYPE = type(CONSTANT_RE)
 
 
 def NameRules(name):
@@ -129,6 +133,12 @@ def ConvertVariable(name, value):
         lines.append("-- | Skipped list/set %s, is not homogeneous" % name)
     else:
       lines.append("-- | Skipped list/set %s, cannot convert all elems" % name)
+  elif isinstance(value, RE_TYPE):
+    tvs = HaskellTypeVal(value.pattern)
+    assert tvs is not None
+    lines.append("-- | Converted from Python RE object %s" % name)
+    lines.append("%s :: %s" % (hs_name, tvs[0]))
+    lines.append("%s = %s" % (hs_name, tvs[1]))
   else:
     lines.append("-- Skipped %s, %s not handled" % (name, type(value)))
   return lines
