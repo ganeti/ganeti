@@ -74,6 +74,7 @@ module Ganeti.HTools.Types
   , EvacMode(..)
   , ISpec(..)
   , IPolicy(..)
+  , defIPolicy
   ) where
 
 import qualified Data.Map as M
@@ -152,12 +153,46 @@ $(THH.buildObject "ISpec" "iSpec"
   , THH.renameField "NicCount"   $ THH.simpleField "nic-count"   [t| Int |]
   ])
 
+-- | The default minimum ispec.
+defMinISpec :: ISpec
+defMinISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMinMemorySize
+                    , iSpecCpuCount   = C.ipolicyDefaultsMinCpuCount
+                    , iSpecDiskSize   = C.ipolicyDefaultsMinDiskSize
+                    , iSpecDiskCount  = C.ipolicyDefaultsMinDiskCount
+                    , iSpecNicCount   = C.ipolicyDefaultsMinNicCount
+                    }
+
+-- | The default standard ispec.
+defStdISpec :: ISpec
+defStdISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsStdMemorySize
+                    , iSpecCpuCount   = C.ipolicyDefaultsStdCpuCount
+                    , iSpecDiskSize   = C.ipolicyDefaultsStdDiskSize
+                    , iSpecDiskCount  = C.ipolicyDefaultsStdDiskCount
+                    , iSpecNicCount   = C.ipolicyDefaultsStdNicCount
+                    }
+
+-- | The default max ispec.
+defMaxISpec :: ISpec
+defMaxISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMaxMemorySize
+                    , iSpecCpuCount   = C.ipolicyDefaultsMaxCpuCount
+                    , iSpecDiskSize   = C.ipolicyDefaultsMaxDiskSize
+                    , iSpecDiskCount  = C.ipolicyDefaultsMaxDiskCount
+                    , iSpecNicCount   = C.ipolicyDefaultsMaxNicCount
+                    }
+
 -- | Instance policy type.
 $(THH.buildObject "IPolicy" "iPolicy"
   [ THH.renameField "StdSpec" $ THH.simpleField "std" [t| ISpec |]
   , THH.renameField "MinSpec" $ THH.simpleField "min" [t| ISpec |]
   , THH.renameField "MaxSpec" $ THH.simpleField "max" [t| ISpec |]
   ])
+
+-- | The default instance policy.
+defIPolicy :: IPolicy
+defIPolicy = IPolicy { iPolicyStdSpec = defStdISpec
+                     , iPolicyMinSpec = defMinISpec
+                     , iPolicyMaxSpec = defMaxISpec
+                     }
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).
