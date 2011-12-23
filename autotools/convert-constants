@@ -109,6 +109,26 @@ def ConvertVariable(name, value):
       lines.append("%s = (%s)" % (hs_name, tvals))
     else:
       lines.append("-- Skipped tuple %s, cannot convert all elements" % name)
+  elif isinstance(value, (list, set, frozenset)):
+    # Lists and frozensets are handled the same in Haskell: as lists,
+    # since lists are immutable and we don't need for constants the
+    # high-speed of an actual Set type. However, we can only convert
+    # them if they have the same type for all elements (which is a
+    # normal expectation for constants, our code should be well
+    # behaved); note that this is different from the tuples case,
+    # where we always (for some values of always) can convert
+    tvs = [HaskellTypeVal(elem) for elem in value]
+    if compat.all(e is not None for e in tvs):
+      ttypes, tvals = zip(*tvs)
+      uniq_types = set(ttypes)
+      if len(uniq_types) == 1:
+        lines.append("-- | Converted from Python list or set %s" % name)
+        lines.append("%s :: [%s]" % (hs_name, uniq_types.pop()))
+        lines.append("%s = [%s]" % (hs_name, ", ".join(tvals)))
+      else:
+        lines.append("-- | Skipped list/set %s, is not homogeneous" % name)
+    else:
+      lines.append("-- | Skipped list/set %s, cannot convert all elems" % name)
   else:
     lines.append("-- Skipped %s, %s not handled" % (name, type(value)))
   return lines
