@@ -351,10 +351,11 @@ main = do
       shownodes = optShowNodes opts
       showinsts = optShowInsts opts
 
-  ini_cdata@(ClusterData gl fixed_nl ilf ctags _) <- loadExternalData opts
+  ini_cdata@(ClusterData gl fixed_nl ilf ctags ipol) <- loadExternalData opts
 
-  when (verbose > 1) $
+  when (verbose > 1) $ do
        putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
+       putStrLn $ "Loaded cluster ipolicy: " ++ show ipol
 
   nlf <- setNodeStatus opts fixed_nl
   checkCluster verbose nlf ilf

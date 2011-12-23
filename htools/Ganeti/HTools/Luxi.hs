@@ -199,11 +199,15 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
 
 -- | Parses the cluster tags.
-getClusterTags :: JSValue -> Result [String]
-getClusterTags v = do
+getClusterData :: JSValue -> Result ([String], IPolicy)
+getClusterData (JSObject obj) = do
   let errmsg = "Parsing cluster info"
-  obj <- annotateResult errmsg $ asJSObject v
-  tryFromObj errmsg (fromJSObject obj) "tags"
+      obj' = fromJSObject obj
+  ctags <- tryFromObj errmsg obj' "tags"
+  cpol <- tryFromObj errmsg obj' "ipolicy"
+  return (ctags, cpol)
+
+getClusterData _ = Bad $ "Cannot parse cluster info, not a JSON record"
 
 -- | Parses the cluster groups.
 getGroups :: JSValue -> Result [(String, Group.Group)]
@@ -248,8 +252,8 @@ parseData (groups, nodes, instances, cinfo) = do
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- instances >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  ctags <- cinfo >>= getClusterTags
-  return (ClusterData group_idx node_idx inst_idx ctags defIPolicy)
+  (ctags, cpol) <- cinfo >>= getClusterData
+  return (ClusterData group_idx node_idx inst_idx ctags cpol)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Unix socket to use as source
