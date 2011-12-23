@@ -91,7 +91,7 @@ parseData ndata = do
             $ zip [1..] nodes'
       ktg = map (\g -> (Group.idx g, g)) groups
   return (ClusterData (Container.fromList ktg)
-                      (Container.fromList ktn) Container.empty [])
+                      (Container.fromList ktn) Container.empty [] defIPolicy)
 
 -- | Builds the cluster data from node\/instance files.
 loadData :: [String] -- ^ Cluster description in text format

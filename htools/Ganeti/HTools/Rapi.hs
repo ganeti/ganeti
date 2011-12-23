@@ -183,7 +183,7 @@ parseData (group_body, node_body, inst_body, tags_body) = do
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
   tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
-  return (ClusterData group_idx node_idx inst_idx tags_data)
+  return (ClusterData group_idx node_idx inst_idx tags_data defIPolicy)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Cluster or URL to use as source

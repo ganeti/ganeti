@@ -90,6 +90,7 @@ data ClusterData = ClusterData
   , cdNodes     :: Node.List     -- ^ The node list
   , cdInstances :: Instance.List -- ^ The instance list
   , cdTags      :: [String]      -- ^ The cluster tags
+  , cdIPolicy   :: IPolicy       -- ^ The cluster instance policy
   } deriving (Show, Read)
 
 -- | The priority of a match in a lookup result.
@@ -116,6 +117,7 @@ instance Ord LookupResult where
 -- | An empty cluster.
 emptyCluster :: ClusterData
 emptyCluster = ClusterData Container.empty Container.empty Container.empty []
+                 defIPolicy
 
 -- * Functions
 
@@ -267,7 +269,7 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Excluded instances
           -> ClusterData          -- ^ Data from backends
           -> Result ClusterData   -- ^ Fixed cluster data
-mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags) =
+mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags _) =
   let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of

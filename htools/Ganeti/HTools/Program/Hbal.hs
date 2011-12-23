@@ -351,7 +351,7 @@ main = do
       shownodes = optShowNodes opts
       showinsts = optShowInsts opts
 
-  ini_cdata@(ClusterData gl fixed_nl ilf ctags) <- loadExternalData opts
+  ini_cdata@(ClusterData gl fixed_nl ilf ctags _) <- loadExternalData opts
 
   when (verbose > 1) $
        putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
@@ -412,7 +412,7 @@ main = do
        saveBalanceCommands opts $ Cluster.formatCmds cmd_jobs
 
   maybeSaveData (optSaveCluster opts) "balanced" "after balancing"
-                (ClusterData gl fin_nl fin_il ctags)
+                ini_cdata { cdNodes = fin_nl, cdInstances = fin_il }
 
   maybePrintInsts showinsts "Final" (Cluster.printInsts fin_nl fin_il)
 

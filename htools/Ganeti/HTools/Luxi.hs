@@ -249,7 +249,7 @@ parseData (groups, nodes, instances, cinfo) = do
   inst_data <- instances >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
   ctags <- cinfo >>= getClusterTags
-  return (ClusterData group_idx node_idx inst_idx ctags)
+  return (ClusterData group_idx node_idx inst_idx ctags defIPolicy)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Unix socket to use as source

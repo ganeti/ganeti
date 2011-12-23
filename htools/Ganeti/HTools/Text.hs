@@ -104,7 +104,7 @@ serializeInstances nl =
 
 -- | Generate complete cluster data from node and instance lists.
 serializeCluster :: ClusterData -> String
-serializeCluster (ClusterData gl nl il ctags) =
+serializeCluster (ClusterData gl nl il ctags _) =
   let gdata = serializeGroups gl
       ndata = serializeNodes gl nl
       idata = serializeInstances nl il
@@ -221,7 +221,7 @@ parseData fdata = do
   {- instance file: name mem disk status pnode snode -}
   (_, il) <- loadTabular ilines (loadInst ktn)
   {- the tags are simply line-based, no processing needed -}
-  return (ClusterData gl nl il ctags)
+  return (ClusterData gl nl il ctags defIPolicy)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Path to the text file

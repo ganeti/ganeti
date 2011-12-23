@@ -397,12 +397,12 @@ main = do
       req_nodes = Instance.requiredNodes disk_template
       machine_r = optMachineReadable opts
 
-  (ClusterData gl fixed_nl il ctags) <- loadExternalData opts
+  orig_cdata@(ClusterData gl fixed_nl il _ _) <- loadExternalData opts
   nl <- setNodeStatus opts fixed_nl
 
   let num_instances = Container.size il
       all_nodes = Container.elems fixed_nl
-      cdata = ClusterData gl nl il ctags
+      cdata = orig_cdata { cdNodes = fixed_nl }
       csf = commonSuffix fixed_nl il
 
   when (not (null csf) && verbose > 1) $

@@ -158,7 +158,7 @@ parseData body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
-  cdata1 <- mergeData [] [] [] [] (ClusterData gl nl il ctags)
+  cdata1 <- mergeData [] [] [] [] (ClusterData gl nl il ctags defIPolicy)
   let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
       cdata = cdata1 { cdNodes = fix_nl }
       map_n = cdNodes cdata
@@ -307,7 +307,7 @@ formatRelocate (nl, il, ndxs) =
 -- | Process a request and return new node lists.
 processRequest :: Request -> Result IAllocResult
 processRequest request =
-  let Request rqtype (ClusterData gl nl il _) = request
+  let Request rqtype (ClusterData gl nl il _ _) = request
   in case rqtype of
        Allocate xi reqn ->
          Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il

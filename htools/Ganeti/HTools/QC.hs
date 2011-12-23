@@ -1035,7 +1035,7 @@ prop_Loader_mergeData ns =
   in case Loader.mergeData [] [] [] []
          (Loader.emptyCluster {Loader.cdNodes = na}) of
     Types.Bad _ -> False
-    Types.Ok (Loader.ClusterData _ nl il _) ->
+    Types.Ok (Loader.ClusterData _ nl il _ _) ->
       let nodes = Container.elems nl
           instances = Container.elems il
       in (sum . map (length . Node.pList)) nodes == 0 &&
