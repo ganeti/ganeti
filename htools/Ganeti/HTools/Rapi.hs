@@ -112,7 +112,7 @@ parseInstance ktn a = do
   omem <- extract "oper_ram" a
   mem <- case omem of
            JSRational _ _ -> annotateResult owner_name (fromJVal omem)
-           _ -> extract "memory" beparams
+           _ -> extract "memory" beparams `mplus` extract "maxmem" beparams
   vcpus <- extract "vcpus" beparams
   pnode <- extract "pnode" a >>= lookupNode ktn name
   snodes <- extract "snodes" a
