@@ -582,6 +582,18 @@ def check_bool(option, opt, value): # pylint: disable=W0613
     raise errors.ParameterError("Invalid boolean value '%s'" % value)
 
 
+def check_list(option, opt, value): # pylint: disable=W0613
+  """Custom parser for comma-separated lists.
+
+  """
+  # we have to make this explicit check since "".split(",") is [""],
+  # not an empty list :(
+  if not value:
+    return []
+  else:
+    return utils.UnescapeAndSplit(value)
+
+
 # completion_suggestion is normally a list. Using numeric values not evaluating
 # to False for dynamic completion.
 (OPT_COMPL_MANY_NODES,
@@ -615,12 +627,14 @@ class CliOption(Option):
     "keyval",
     "unit",
     "bool",
+    "list",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
   TYPE_CHECKER["keyval"] = check_key_val
   TYPE_CHECKER["unit"] = check_unit
   TYPE_CHECKER["bool"] = check_bool
+  TYPE_CHECKER["list"] = check_list
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
