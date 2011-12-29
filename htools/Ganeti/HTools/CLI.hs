@@ -134,7 +134,7 @@ data Options = Options
   , optShowInsts   :: Bool           -- ^ Whether to show the instance map
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
-  , optStdSpec     :: RSpec          -- ^ Requested standard specs
+  , optStdSpec     :: Maybe RSpec    -- ^ Requested standard specs
   , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
   , optReplay      :: Maybe String   -- ^ Unittests: RNG state
   , optVerbose     :: Int            -- ^ Verbosity level
@@ -173,7 +173,7 @@ defaultOptions  = Options
   , optShowInsts   = False
   , optShowNodes   = Nothing
   , optShowVer     = False
-  , optStdSpec     = RSpec 1 4096 102400
+  , optStdSpec     = Nothing
   , optTieredSpec  = Nothing
   , optReplay      = Nothing
   , optVerbose     = 1
@@ -383,7 +383,7 @@ oStdSpec :: OptType
 oStdSpec = Option "" ["standard-alloc"]
              (ReqArg (\ inp opts -> do
                         tspec <- parseISpecString "standard" inp
-                        return $ opts { optStdSpec = tspec } )
+                        return $ opts { optStdSpec = Just tspec } )
               "STDSPEC")
              "enable standard specs allocation, given as 'disk,ram,cpu'"
 

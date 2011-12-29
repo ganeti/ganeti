@@ -44,7 +44,6 @@ Output options:
 DESCRIPTION
 -----------
 
-
 hspace computes how many additional instances can be fit on a cluster,
 while maintaining N+1 status.
 
@@ -60,6 +59,10 @@ it is intended to interpreted as a shell fragment (or parsed as a
 *key=value* file). Options which extend the output (e.g. -p, -v) will
 output the additional information on stderr (such that the stdout is
 still parseable).
+
+By default, the instance specifications will be read from the cluster;
+the options ``--standard-alloc`` and ``--tiered-alloc`` can be used to
+override them.
 
 The following keys are available in the machine-readable output of the
 script (all prefixed with *HTS_*):
@@ -132,14 +135,13 @@ INI_MNODE_DSK_AVAIL, FIN_MNODE_DSK_AVAIL
   Like the above but for disk.
 
 TSPEC
-  If the tiered allocation mode has been enabled, this parameter holds
-  the pairs of specifications and counts of instances that can be
-  created in this mode. The value of the key is a space-separated list
-  of values; each value is of the form *memory,disk,vcpu=count* where
-  the memory, disk and vcpu are the values for the current spec, and
-  count is how many instances of this spec can be created. A complete
-  value for this variable could be: **4096,102400,2=225
-  2560,102400,2=20 512,102400,2=21**.
+  This parameter holds the pairs of specifications and counts of
+  instances that can be created in the *tiered allocation* mode. The
+  value of the key is a space-separated list of values; each value is of
+  the form *memory,disk,vcpu=count* where the memory, disk and vcpu are
+  the values for the current spec, and count is how many instances of
+  this spec can be created. A complete value for this variable could be:
+  **4096,102400,2=225 2560,102400,2=20 512,102400,2=21**.
 
 KM_USED_CPU, KM_USED_NPU, KM_USED_MEM, KM_USED_DSK
   These represents the metrics of used resources at the start of the
@@ -189,9 +191,8 @@ OK
   that the computation failed and any values present should not be
   relied upon.
 
-If the tiered allocation mode is enabled, then many of the INI_/FIN_
-metrics will be also displayed with a TRL_ prefix, and denote the
-cluster status at the end of the tiered allocation run.
+Many of the INI_/FIN_ metrics will be also displayed with a TRL_ prefix,
+and denote the cluster status at the end of the tiered allocation run.
 
 The human output format should be self-explanatory, so it is not
 described further.
@@ -274,9 +275,9 @@ The options that can be passed to the program are as follows:
   about the description, see the man page **htools**(1).
 
 --standard-alloc *disk,ram,cpu*
-  This option specifies the instance size for the *standard* allocation
-  mode, where we simply allocate instances of the same, fixed size until
-  the cluster runs out of space.
+  This option overrides the instance size read from the cluster for the
+  *standard* allocation mode, where we simply allocate instances of the
+  same, fixed size until the cluster runs out of space.
 
   The specification given is similar to the *--simulate* option and it
   holds:
@@ -289,19 +290,19 @@ The options that can be passed to the program are as follows:
   specification of 100GB of disk space, 4GiB of memory and 2 VCPUs.
 
 --tiered-alloc *disk,ram,cpu*
-  Besides the standard, fixed-size allocation, also do a tiered
-  allocation scheme where the algorithm starts from the given
-  specification and allocates until there is no more space; then it
-  decreases the specification and tries the allocation again. The
-  decrease is done on the metric that last failed during allocation. The
-  argument should have the same format as for ``-standard-alloc``.
+  This option overrides the instance size for the *tiered* allocation
+  mode. In this mode, the algorithm starts from the given specification
+  and allocates until there is no more space; then it decreases the
+  specification and tries the allocation again. The decrease is done on
+  the metric that last failed during allocation. The argument should
+  have the same format as for ``--standard-alloc``.
 
   Also note that the normal allocation and the tiered allocation are
   independent, and both start from the initial cluster state; as such,
   the instance count for these two modes are not related one to
   another.
 
---machines-readable[=*choice*]
+--machine-readable[=*choice*]
   By default, the output of the program is in "human-readable" format,
   i.e. text descriptions. By passing this flag you can either enable
   (``--machine-readable`` or ``--machine-readable=yes``) or explicitly

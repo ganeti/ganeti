@@ -29,6 +29,7 @@ import Control.Monad
 import Data.Char (toUpper, isAlphaNum, toLower)
 import Data.Function (on)
 import Data.List
+import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
 import System.Exit
 import System.IO
@@ -398,12 +399,11 @@ main = do
          exitWith $ ExitFailure 1
 
   let verbose = optVerbose opts
-      ispec = optStdSpec opts
       disk_template = optDiskTemplate opts
       req_nodes = Instance.requiredNodes disk_template
       machine_r = optMachineReadable opts
 
-  orig_cdata@(ClusterData gl fixed_nl il _ _) <- loadExternalData opts
+  orig_cdata@(ClusterData gl fixed_nl il _ ipol) <- loadExternalData opts
   nl <- setNodeStatus opts fixed_nl
 
   let num_instances = Container.size il
@@ -431,20 +431,23 @@ main = do
 
   allocnodes <- exitIfBad $ Cluster.genAllocNodes gl nl req_nodes True
 
-  -- Run the tiered allocation, if enabled
+  -- Run the tiered allocation
 
-  case optTieredSpec opts of
-    Nothing -> return ()
-    Just tspec -> do
-         (treason, trl_nl, _, spec_map) <-
-           runAllocation cdata stop_allocation
-             (Cluster.tieredAlloc nl il alloclimit
-              (instFromSpec tspec disk_template) allocnodes [] [])
-             tspec SpecTiered opts
+  let tspec = fromMaybe (rspecFromISpec (iPolicyMaxSpec ipol))
+              (optTieredSpec opts)
 
-         printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
+  (treason, trl_nl, _, spec_map) <-
+    runAllocation cdata stop_allocation
+       (Cluster.tieredAlloc nl il alloclimit
+        (instFromSpec tspec disk_template) allocnodes [] [])
+       tspec SpecTiered opts
+
+  printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
 
   -- Run the standard (avg-mode) allocation
+
+  let ispec = fromMaybe (rspecFromISpec (iPolicyStdSpec ipol))
+              (optStdSpec opts)
 
   (sreason, fin_nl, allocs, _) <-
       runAllocation cdata stop_allocation
@@ -453,5 +456,7 @@ main = do
             ispec SpecNormal opts
 
   printResults machine_r nl fin_nl num_instances allocs sreason
+
+  -- Print final result
 
   printFinal machine_r
