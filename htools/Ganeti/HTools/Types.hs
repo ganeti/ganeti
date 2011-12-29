@@ -75,6 +75,7 @@ module Ganeti.HTools.Types
   , ISpec(..)
   , IPolicy(..)
   , defIPolicy
+  , rspecFromISpec
   ) where
 
 import qualified Data.Map as M
@@ -186,6 +187,13 @@ $(THH.buildObject "IPolicy" "iPolicy"
   , THH.renameField "MinSpec" $ THH.simpleField "min" [t| ISpec |]
   , THH.renameField "MaxSpec" $ THH.simpleField "max" [t| ISpec |]
   ])
+
+-- | Converts an ISpec type to a RSpec one.
+rspecFromISpec :: ISpec -> RSpec
+rspecFromISpec ispec = RSpec { rspecCpu = iSpecCpuCount ispec
+                             , rspecMem = iSpecMemorySize ispec
+                             , rspecDsk = iSpecDiskSize ispec
+                             }
 
 -- | The default instance policy.
 defIPolicy :: IPolicy
