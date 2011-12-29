@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ _UUID = ["uuid"]
 TISPECS_GROUP_TYPES = {
   constants.ISPECS_MIN: constants.VTYPE_INT,
   constants.ISPECS_MAX: constants.VTYPE_INT,
-}
+  }
 
 TISPECS_CLUSTER_TYPES = {
   constants.ISPECS_MIN: constants.VTYPE_INT,
@@ -92,15 +92,20 @@ def FillDict(defaults_dict, custom_dict, skip_keys=None):
   return ret_dict
 
 
-def FillDictOfDicts(defaults_dict, custom_dict, skip_keys=None):
-  """Run FillDict for each key in dictionary.
+def FillIPolicy(default_ipolicy, custom_ipolicy, skip_keys=None):
+  """Fills an instance policy with defaults.
 
   """
+  assert frozenset(default_ipolicy.keys()) == constants.IPOLICY_ALL_KEYS
   ret_dict = {}
-  for key in defaults_dict:
-    ret_dict[key] = FillDict(defaults_dict[key],
-                             custom_dict.get(key, {}),
+  for key in constants.IPOLICY_PARAMETERS:
+    ret_dict[key] = FillDict(default_ipolicy[key],
+                             custom_ipolicy.get(key, {}),
                              skip_keys=skip_keys)
+  # list items
+  for key in [constants.ISPECS_DTS]:
+    ret_dict[key] = list(custom_ipolicy.get(key, default_ipolicy[key]))
+
   return ret_dict
 
 
@@ -166,9 +171,9 @@ def MakeEmptyIPolicy():
 
   """
   return dict([
-    (constants.ISPECS_MIN, dict()),
-    (constants.ISPECS_MAX, dict()),
-    (constants.ISPECS_STD, dict()),
+    (constants.ISPECS_MIN, {}),
+    (constants.ISPECS_MAX, {}),
+    (constants.ISPECS_STD, {}),
     ])
 
 
@@ -177,9 +182,14 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_disk_count=None,
                           ispecs_disk_size=None,
                           ispecs_nic_count=None,
+                          ispecs_disk_templates=None,
                           group_ipolicy=False,
-                          allowed_values=None):
-  """Creation of instane policy based on command line options.
+                          allowed_values=None,
+                          fill_all=False):
+  """Creation of instance policy based on command line options.
+
+  @param fill_all: whether for cluster policies we should ensure that
+    all values are filled
 
 
   """
@@ -207,6 +217,12 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     assert name in constants.ISPECS_PARAMETERS
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
       ipolicy_out[key][name] = val
+
+  # no filldict for lists
+  if not group_ipolicy and fill_all and ispecs_disk_templates is None:
+    ispecs_disk_templates = constants.DISK_TEMPLATES
+  if ispecs_disk_templates is not None:
+    ipolicy_out[constants.ISPECS_DTS] = list(ispecs_disk_templates)
 
   return ipolicy_out
 
@@ -857,7 +873,7 @@ class Disk(ConfigObject):
 
 class InstancePolicy(ConfigObject):
   """Config object representing instance policy limits dictionary."""
-  __slots__ = ["min", "max", "std"]
+  __slots__ = ["min", "max", "std", "disk_templates"]
 
   @classmethod
   def CheckParameterSyntax(cls, ipolicy):
@@ -866,6 +882,8 @@ class InstancePolicy(ConfigObject):
     """
     for param in constants.ISPECS_PARAMETERS:
       InstancePolicy.CheckISpecSyntax(ipolicy, param)
+    if constants.ISPECS_DTS in ipolicy:
+      InstancePolicy.CheckDiskTemplates(ipolicy[constants.ISPECS_DTS])
 
   @classmethod
   def CheckISpecSyntax(cls, ipolicy, name):
@@ -891,6 +909,16 @@ class InstancePolicy(ConfigObject):
             ipolicy[constants.ISPECS_STD].get(name, "-")))
     if min_v > std_v or std_v > max_v:
       raise errors.ConfigurationError(err)
+
+  @classmethod
+  def CheckDiskTemplates(cls, disk_templates):
+    """Checks the disk templates for validity.
+
+    """
+    wrong = frozenset(disk_templates).difference(constants.DISK_TEMPLATES)
+    if wrong:
+      raise errors.ConfigurationError("Invalid disk template(s) %s" %
+                                      utils.CommaJoin(wrong))
 
 
 class Instance(TaggableObject):
@@ -1473,7 +1501,7 @@ class Cluster(TaggableObject):
 
     # instance policy added before 2.6
     if self.ipolicy is None:
-      self.ipolicy = FillDictOfDicts(constants.IPOLICY_DEFAULTS, {})
+      self.ipolicy = FillIPolicy(constants.IPOLICY_DEFAULTS, {})
 
   @property
   def primary_hypervisor(self):
@@ -1668,7 +1696,7 @@ class Cluster(TaggableObject):
       the cluster defaults
 
     """
-    return FillDictOfDicts(self.ipolicy, ipolicy)
+    return FillIPolicy(self.ipolicy, ipolicy)
 
 
 class BlockDevStatus(ConfigObject):

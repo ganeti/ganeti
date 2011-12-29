@@ -192,6 +192,7 @@ def SetGroupParams(opts, args):
     ispecs_disk_count=opts.ispecs_disk_count,
     ispecs_disk_size=opts.ispecs_disk_size,
     ispecs_nic_count=opts.ispecs_nic_count,
+    ispecs_disk_templates=opts.ispecs_disk_templates,
     group_ipolicy=True,
     allowed_values=[constants.VALUE_DEFAULT])
 

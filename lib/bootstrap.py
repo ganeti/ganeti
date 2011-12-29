@@ -421,8 +421,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     utils.ForceDictType(val, constants.ISPECS_PARAMETER_TYPES)
 
   objects.NIC.CheckParameterSyntax(nicparams)
-  full_ipolicy = objects.FillDictOfDicts(constants.IPOLICY_DEFAULTS,
-                                         ipolicy)
+  full_ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy)
   objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
 
   if ndparams is not None:

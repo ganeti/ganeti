@@ -433,9 +433,16 @@ class ConfigWriter:
         result.append("%s has invalid instance policy: %s" % (owner, err))
 
     def _helper_ispecs(owner, params):
-      for key, value in params.iteritems():
-        fullkey = "ipolicy/" + key
-        _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
+      for key, value in params.items():
+        if key in constants.IPOLICY_PARAMETERS:
+          fullkey = "ipolicy/" + key
+          _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
+        else:
+          # FIXME: assuming list type
+          if not isinstance(value, list):
+            result.append("%s has invalid instance policy: for %s,"
+                          " expecting list, got %s" %
+                          (owner, key, type(value)))
 
     # check cluster parameters
     _helper("cluster", "beparams", cluster.SimpleFillBE({}),

@@ -721,6 +721,42 @@ def _GetUpdatedParams(old_params, update_dict,
   return params_copy
 
 
+def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
+  """Return the new version of a instance policy.
+
+  @param group_policy: whether this policy applies to a group and thus
+    we should support removal of policy entries
+
+  """
+  use_none = use_default = group_policy
+  ipolicy = copy.deepcopy(old_ipolicy)
+  for key, value in new_ipolicy.items():
+    if key in constants.IPOLICY_PARAMETERS:
+      utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
+      ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
+                                       use_none=use_none,
+                                       use_default=use_default)
+    else:
+      # FIXME: we assume all others are lists; this should be redone
+      # in a nicer way
+      if not value or value == [constants.VALUE_DEFAULT]:
+        if group_policy:
+          del ipolicy[key]
+        else:
+          raise errors.OpPrereqError("Can't unset ipolicy attribute '%s'"
+                                     " on the cluster'" % key,
+                                     errors.ECODE_INVAL)
+      else:
+        logging.info("Setting %s to %s", key, value)
+        ipolicy[key] = list(value)
+  try:
+    objects.InstancePolicy.CheckParameterSyntax(ipolicy)
+  except errors.ConfigurationError, err:
+    raise errors.OpPrereqError("Invalid instance policy: %s" % err,
+                               errors.ECODE_INVAL)
+  return ipolicy
+
+
 def _UpdateAndVerifySubDict(base, updates, type_check):
   """Updates and verifies a dict with sub dicts of the same type.
 
@@ -3830,17 +3866,8 @@ class LUClusterSetParams(LogicalUnit):
              for storage, svalues in new_disk_state.items())
 
     if self.op.ipolicy:
-      ipolicy = {}
-      for key, value in self.op.ipolicy.items():
-        utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
-        ipolicy[key] = _GetUpdatedParams(cluster.ipolicy.get(key, {}),
-                                          value)
-      try:
-        objects.InstancePolicy.CheckParameterSyntax(ipolicy)
-      except errors.ConfigurationError, err:
-        raise errors.OpPrereqError("Invalid instance policy: %s" % err,
-                                   errors.ECODE_INVAL)
-      self.new_ipolicy = ipolicy
+      self.new_ipolicy = _GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
+                                            group_policy=False)
 
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
@@ -13306,18 +13333,9 @@ class LUGroupSetParams(LogicalUnit):
                                  self.group.disk_state_static)
 
     if self.op.ipolicy:
-      g_ipolicy = {}
-      for key, value in self.op.ipolicy.iteritems():
-        g_ipolicy[key] = _GetUpdatedParams(self.group.ipolicy.get(key, {}),
-                                           value,
-                                           use_none=True)
-        utils.ForceDictType(g_ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
-      self.new_ipolicy = g_ipolicy
-      try:
-        objects.InstancePolicy.CheckParameterSyntax(self.new_ipolicy)
-      except errors.ConfigurationError, err:
-        raise errors.OpPrereqError("Invalid instance policy: %s" % err,
-                                   errors.ECODE_INVAL)
+      self.new_ipolicy = _GetUpdatedIPolicy(self.group.ipolicy,
+                                            self.op.ipolicy,
+                                            group_policy=True)
 
   def BuildHooksEnv(self):
     """Build hooks env.
