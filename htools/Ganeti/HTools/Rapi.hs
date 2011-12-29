@@ -161,6 +161,15 @@ parseGroup a = do
   apol <- extract "alloc_policy"
   return (uuid, Group.create name uuid apol)
 
+-- | Parse cluster data from the info resource.
+parseCluster :: JSObject JSValue -> Result ([String], IPolicy)
+parseCluster obj = do
+  let obj' = fromJSObject obj
+      extract s = tryFromObj "Parsing cluster data" obj' s
+  tags <- extract "tags"
+  ipolicy <- extract "ipolicy"
+  return (tags, ipolicy)
+
 -- | Loads the raw cluster data from an URL.
 readData :: String -- ^ Cluster or URL to use as source
          -> IO (Result String, Result String, Result String, Result String)
@@ -169,21 +178,23 @@ readData master = do
   group_body <- getUrl $ printf "%s/2/groups?bulk=1" url
   node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
   inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
-  tags_body <- getUrl $ printf "%s/2/tags" url
-  return (group_body, node_body, inst_body, tags_body)
+  info_body <- getUrl $ printf "%s/2/info" url
+  return (group_body, node_body, inst_body, info_body)
 
 -- | Builds the cluster data from the raw Rapi content.
 parseData :: (Result String, Result String, Result String, Result String)
           -> Result ClusterData
-parseData (group_body, node_body, inst_body, tags_body) = do
+parseData (group_body, node_body, inst_body, info_body) = do
   group_data <- group_body >>= getGroups
   let (group_names, group_idx) = assignIndices group_data
   node_data <- node_body >>= getNodes group_names
   let (node_names, node_idx) = assignIndices node_data
   inst_data <- inst_body >>= getInstances node_names
   let (_, inst_idx) = assignIndices inst_data
-  tags_data <- tags_body >>= (fromJResult "Parsing tags data" . decodeStrict)
-  return (ClusterData group_idx node_idx inst_idx tags_data defIPolicy)
+  (tags, ipolicy) <- info_body >>=
+                     (fromJResult "Parsing cluster info" . decodeStrict) >>=
+                     parseCluster
+  return (ClusterData group_idx node_idx inst_idx tags ipolicy)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Cluster or URL to use as source
