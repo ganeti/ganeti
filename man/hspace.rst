@@ -203,8 +203,9 @@ OPTIONS
 The options that can be passed to the program are as follows:
 
 --disk-template *template*
-  The disk template for the instance; one of the Ganeti disk templates
-  (e.g. plain, drbd, so on) should be passed in.
+  Overrides the disk template for the instance read from the cluster;
+  one of the Ganeti disk templates (e.g. plain, drbd, so on) should be
+  passed in.
 
 --max-cpu=*cpu-ratio*
   The maximum virtual to physical cpu ratio, as a floating point number

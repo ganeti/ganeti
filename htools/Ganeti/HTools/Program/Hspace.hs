@@ -358,10 +358,11 @@ runAllocation :: ClusterData                -- ^ Cluster data
               -> Maybe Cluster.AllocResult  -- ^ Optional stop-allocation
               -> Result Cluster.AllocResult -- ^ Allocation result
               -> RSpec                      -- ^ Requested instance spec
+              -> DiskTemplate               -- ^ Requested disk template
               -> SpecType                   -- ^ Allocation type
               -> Options                    -- ^ CLI options
               -> IO (FailStats, Node.List, Int, [(RSpec, Int)])
-runAllocation cdata stop_allocation actual_result spec mode opts = do
+runAllocation cdata stop_allocation actual_result spec dt mode opts = do
   (reasons, new_nl, new_il, new_ixes, _) <-
       case stop_allocation of
         Just result_noalloc -> return result_noalloc
@@ -371,7 +372,7 @@ runAllocation cdata stop_allocation actual_result spec mode opts = do
       descr = name ++ " allocation"
       ldescr = "after " ++ map toLower descr
 
-  printISpec (optMachineReadable opts) spec mode (optDiskTemplate opts)
+  printISpec (optMachineReadable opts) spec mode dt
 
   printAllocationMap (optVerbose opts) descr new_nl new_ixes
 
@@ -399,16 +400,24 @@ main = do
          exitWith $ ExitFailure 1
 
   let verbose = optVerbose opts
-      disk_template = optDiskTemplate opts
-      req_nodes = Instance.requiredNodes disk_template
       machine_r = optMachineReadable opts
 
   orig_cdata@(ClusterData gl fixed_nl il _ ipol) <- loadExternalData opts
   nl <- setNodeStatus opts fixed_nl
 
+  cluster_disk_template <-
+    case iPolicyDiskTemplates ipol of
+      first_templ:_ -> return first_templ
+      _ -> do
+         _ <- hPutStrLn stderr $ "Error: null list of disk templates\
+                               \ received from cluster!"
+         exitWith $ ExitFailure 1
+
   let num_instances = Container.size il
       all_nodes = Container.elems fixed_nl
       cdata = orig_cdata { cdNodes = fixed_nl }
+      disk_template = fromMaybe cluster_disk_template (optDiskTemplate opts)
+      req_nodes = Instance.requiredNodes disk_template
       csf = commonSuffix fixed_nl il
 
   when (not (null csf) && verbose > 1) $
@@ -440,7 +449,7 @@ main = do
     runAllocation cdata stop_allocation
        (Cluster.tieredAlloc nl il alloclimit
         (instFromSpec tspec disk_template) allocnodes [] [])
-       tspec SpecTiered opts
+       tspec disk_template SpecTiered opts
 
   printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
 
@@ -453,7 +462,7 @@ main = do
       runAllocation cdata stop_allocation
             (Cluster.iterateAlloc nl il alloclimit
              (instFromSpec ispec disk_template) allocnodes [] [])
-            ispec SpecNormal opts
+            ispec disk_template SpecNormal opts
 
   printResults machine_r nl fin_nl num_instances allocs sreason
 

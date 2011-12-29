@@ -107,7 +107,7 @@ data Options = Options
   { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
   , optDiskMoves   :: Bool           -- ^ Allow disk moves
   , optInstMoves   :: Bool           -- ^ Allow instance moves
-  , optDiskTemplate :: DiskTemplate  -- ^ The requested disk template
+  , optDiskTemplate :: Maybe DiskTemplate  -- ^ Override for the disk template
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -146,7 +146,7 @@ defaultOptions  = Options
   { optDataFile    = Nothing
   , optDiskMoves   = True
   , optInstMoves   = True
-  , optDiskTemplate = DTDrbd8
+  , optDiskTemplate = Nothing
   , optDynuFile    = Nothing
   , optEvacMode    = False
   , optExInst      = []
@@ -214,8 +214,8 @@ oDiskTemplate :: OptType
 oDiskTemplate = Option "" ["disk-template"]
                 (ReqArg (\ t opts -> do
                            dt <- diskTemplateFromRaw t
-                           return $ opts { optDiskTemplate = dt }) "TEMPLATE")
-                "select the desired disk template"
+                           return $ opts { optDiskTemplate = Just dt })
+                 "TEMPLATE") "select the desired disk template"
 
 oSelInst :: OptType
 oSelInst = Option "" ["select-instances"]
