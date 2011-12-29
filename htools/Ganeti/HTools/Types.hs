@@ -111,6 +111,17 @@ type GroupID = String
 defaultGroupID :: GroupID
 defaultGroupID = "00000000-0000-0000-0000-000000000000"
 
+-- | Instance disk template type.
+$(THH.declareSADT "DiskTemplate"
+       [ ("DTDiskless",   'C.dtDiskless)
+       , ("DTFile",       'C.dtFile)
+       , ("DTSharedFile", 'C.dtSharedFile)
+       , ("DTPlain",      'C.dtPlain)
+       , ("DTBlock",      'C.dtBlock)
+       , ("DTDrbd8",      'C.dtDrbd8)
+       ])
+$(THH.makeJSONInstance ''DiskTemplate)
+
 -- | The Group allocation policy type.
 --
 -- Note that the order of constructors is important as the automatic
@@ -244,17 +255,6 @@ data IMove = Failover                -- ^ Failover the instance (f)
            | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)
            | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
              deriving (Show, Read)
-
--- | Instance disk template type.
-$(THH.declareSADT "DiskTemplate"
-       [ ("DTDiskless",   'C.dtDiskless)
-       , ("DTFile",       'C.dtFile)
-       , ("DTSharedFile", 'C.dtSharedFile)
-       , ("DTPlain",      'C.dtPlain)
-       , ("DTBlock",      'C.dtBlock)
-       , ("DTDrbd8",      'C.dtDrbd8)
-       ])
-$(THH.makeJSONInstance ''DiskTemplate)
 
 -- | Formatted solution output for one move (involved nodes and
 -- commands.
