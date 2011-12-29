@@ -990,8 +990,6 @@ def SetClusterParams(opts, args):
                                   ispecs_disk_count=opts.ispecs_disk_count,
                                   ispecs_disk_size=opts.ispecs_disk_size,
                                   ispecs_nic_count=opts.ispecs_nic_count)
-  for value in ipolicy.values():
-    utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
 
   mnh = opts.maintain_node_health
 

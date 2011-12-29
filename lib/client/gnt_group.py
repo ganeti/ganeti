@@ -194,9 +194,6 @@ def SetGroupParams(opts, args):
     ispecs_nic_count=opts.ispecs_nic_count,
     group_ipolicy=True,
     allowed_values=[constants.VALUE_DEFAULT])
-  for key in ipolicy.keys():
-    utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES,
-                        allowed_values=[constants.VALUE_DEFAULT])
 
   op = opcodes.OpGroupSetParams(group_name=args[0],
                                 ndparams=opts.ndparams,
