@@ -3835,7 +3835,11 @@ class LUClusterSetParams(LogicalUnit):
         utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
         ipolicy[key] = _GetUpdatedParams(cluster.ipolicy.get(key, {}),
                                           value)
-      objects.InstancePolicy.CheckParameterSyntax(ipolicy)
+      try:
+        objects.InstancePolicy.CheckParameterSyntax(ipolicy)
+      except errors.ConfigurationError, err:
+        raise errors.OpPrereqError("Invalid instance policy: %s" % err,
+                                   errors.ECODE_INVAL)
       self.new_ipolicy = ipolicy
 
     if self.op.nicparams:
@@ -12967,7 +12971,11 @@ class LUGroupAdd(LogicalUnit):
     if self.op.ipolicy:
       cluster = self.cfg.GetClusterInfo()
       full_ipolicy = cluster.SimpleFillIPolicy(self.op.ipolicy)
-      objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
+      try:
+        objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
+      except errors.ConfigurationError, err:
+        raise errors.OpPrereqError("Invalid instance policy: %s" % err,
+                                   errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -13305,7 +13313,11 @@ class LUGroupSetParams(LogicalUnit):
                                            use_none=True)
         utils.ForceDictType(g_ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
       self.new_ipolicy = g_ipolicy
-      objects.InstancePolicy.CheckParameterSyntax(self.new_ipolicy)
+      try:
+        objects.InstancePolicy.CheckParameterSyntax(self.new_ipolicy)
+      except errors.ConfigurationError, err:
+        raise errors.OpPrereqError("Invalid instance policy: %s" % err,
+                                   errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
