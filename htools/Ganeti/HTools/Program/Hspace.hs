@@ -381,6 +381,12 @@ runAllocation cdata stop_allocation actual_result spec mode opts = do
 
   return (sortReasons reasons, new_nl, length new_ixes, tieredSpecMap new_ixes)
 
+-- | Create an instance from a given spec.
+instFromSpec :: RSpec -> DiskTemplate -> Instance.Instance
+instFromSpec spx disk_template =
+  Instance.create "new" (rspecMem spx) (rspecDsk spx)
+    (rspecCpu spx) Running [] True (-1) (-1) disk_template
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -423,10 +429,6 @@ main = do
                    then Nothing
                    else Just (optMaxLength opts)
 
-  -- utility functions
-  let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
-                    (rspecCpu spx) Running [] True (-1) (-1) disk_template
-
   allocnodes <- exitIfBad $ Cluster.genAllocNodes gl nl req_nodes True
 
   -- Run the tiered allocation, if enabled
@@ -436,8 +438,9 @@ main = do
     Just tspec -> do
          (treason, trl_nl, _, spec_map) <-
            runAllocation cdata stop_allocation
-             (Cluster.tieredAlloc nl il alloclimit (iofspec tspec)
-                     allocnodes [] []) tspec SpecTiered opts
+             (Cluster.tieredAlloc nl il alloclimit
+              (instFromSpec tspec disk_template) allocnodes [] [])
+             tspec SpecTiered opts
 
          printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
 
@@ -445,8 +448,9 @@ main = do
 
   (sreason, fin_nl, allocs, _) <-
       runAllocation cdata stop_allocation
-            (Cluster.iterateAlloc nl il alloclimit (iofspec ispec)
-             allocnodes [] []) ispec SpecNormal opts
+            (Cluster.iterateAlloc nl il alloclimit
+             (instFromSpec ispec disk_template) allocnodes [] [])
+            ispec SpecNormal opts
 
   printResults machine_r nl fin_nl num_instances allocs sreason
 
