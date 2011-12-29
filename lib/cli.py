@@ -194,6 +194,7 @@ __all__ = [
   "DISK_STATE_OPT",
   "HV_STATE_OPT",
   "IGNORE_IPOLICY_OPT",
+  "INSTANCE_POLICY_OPTS",
   # Generic functions for CLI programs
   "ConfirmOperation",
   "GenericMain",
@@ -1386,6 +1387,16 @@ COMMON_CREATE_OPTS = [
   TAG_ADD_OPT,
   DRY_RUN_OPT,
   PRIORITY_OPT,
+  ]
+
+# common instance policy options
+INSTANCE_POLICY_OPTS = [
+  SPECS_CPU_COUNT_OPT,
+  SPECS_DISK_COUNT_OPT,
+  SPECS_DISK_SIZE_OPT,
+  SPECS_MEM_SIZE_OPT,
+  SPECS_NIC_COUNT_OPT,
+  SPECS_DISK_TEMPLATES,
   ]
 
 

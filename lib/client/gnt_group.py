@@ -277,14 +277,6 @@ def EvacuateGroup(opts, args):
 
   return rcode
 
-INSTANCE_POLICY_OPTS = [
-  SPECS_CPU_COUNT_OPT,
-  SPECS_DISK_COUNT_OPT,
-  SPECS_DISK_SIZE_OPT,
-  SPECS_MEM_SIZE_OPT,
-  SPECS_NIC_COUNT_OPT,
-  ]
-
 commands = {
   "add": (
     AddGroup, ARGS_ONE_GROUP,

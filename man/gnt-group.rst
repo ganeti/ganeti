@@ -32,6 +32,7 @@ ADD
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-templates *template* [,*template*...]]
 | [--disk-state *diskstate*]
 | [--hypervisor-state *hvstate*]
 | {*group*}
@@ -66,14 +67,8 @@ parameters for the node group; please see the section about
 **gnt-cluster add** in **gnt-cluster**(8) for more information about
 disk parameters
 
-The ``--specs-..`` options specify instance policy on the cluster. Each
-option can have two values: ``min`` and ``max``.
-``--specs-cpu-count`` sets the number of VCPUs that can be used by an
-instance.
-``--specs-disk-count`` sets the number of disks
-``--specs-disk-size`` limits the disk size for every disk used
-``--specs-mem-size`` limits the amount of memory available
-``--specs-nic-count`` sets limits on the amount of nics used
+The ``--specs-...`` options specify instance policies on the node group,
+and are documented in the **gnt-cluster**(8) man page.
 
 ASSIGN-NODES
 ~~~~~~~~~~~~
@@ -105,6 +100,7 @@ MODIFY
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-templates *template* [,*template*...]]
 | {*group*}
 
 Modifies some parameters from the node group.
@@ -114,8 +110,11 @@ in the **add** command above. ``--hypervisor-state`` as well as
 ``--disk-state`` are documented in detail in **ganeti**(7).
 
 The ``--node-parameters``, ``--alloc-policy``, ``-D
-(--disk-parameters)`` and ``--specs-..`` options are documented in the
-**add** command above.
+(--disk-parameters)`` options are documented in the **add** command
+above.
+
+The ``--specs-...`` options specify instance policies on the node group,
+and are documented in the **gnt-cluster**(8) man page.
 
 REMOVE
 ~~~~~~

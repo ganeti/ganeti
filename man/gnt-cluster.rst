@@ -190,6 +190,7 @@ INIT
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-templates *template* [,*template*...]]
 | [--disk-state *diskstate*]
 | [--hypervisor-state *hvstate*]
 | {*clustername*}
@@ -371,7 +372,7 @@ must be specified first, followed by a colon and by a comma-separated
 list of key-value pairs. These parameters can only be specified at
 cluster and node group level; the cluster-level parameter are inherited
 by the node group at the moment of its creation, and can be further
-modified at node group level using the **gnt-group**(8) command. 
+modified at node group level using the **gnt-group**(8) command.
 
 The following is the list of disk parameters available for the **drbd**
 template, with measurement units specified in square brackets at the end
@@ -483,17 +484,21 @@ The ``-C (--candidate-pool-size)`` option specifies the
 that the master will try to keep as master\_candidates. For more
 details about this role and other node roles, see the ganeti(7).
 
-The ``--specs-..`` options specify instance policy on the cluster. Each
-option can have three values: ``min``, ``max`` and ``std``, which can
-also be modified on group level (except for ``std``, which is defined
-once for the entire cluster). Please note, that ``std`` values are not
-the same as defaults set by ``--beparams``.
-``--specs-cpu-count`` sets the number of VCPUs that can be used by an
-instance.
-``--specs-disk-count`` sets the number of disks
-``--specs-disk-size`` limits the disk size for every disk used
-``--specs-mem-size`` limits the amount of memory available
-``--specs-nic-count`` sets limits on the amount of nics used
+The ``--specs-...`` options specify instance policy on the
+cluster. Except for the ``disk-templates`` option, each option can have
+three values: ``min``, ``max`` and ``std``, which can also be modified
+on group level (except for ``std``, which is defined once for the entire
+cluster). Please note, that ``std`` values are not the same as defaults
+set by ``--beparams``, but they are used for the capacity calculations.
+
+- ``--specs-cpu-count`` limits the number of VCPUs that can be used by an
+  instance.
+- ``--specs-disk-count`` limits the number of disks
+- ``--specs-disk-size`` limits the disk size for every disk used
+- ``--specs-mem-size`` limits the amount of memory available
+- ``--specs-nic-count`` sets limits on the number of NICs used
+- ``--specs-disk-templates`` limits the allowed disk templates (no
+  mix/std/max for this option)
 
 For details about how to use ``--hypervisor-state`` and ``--disk-state``
 have a look at **ganeti**(7).
@@ -565,6 +570,7 @@ MODIFY
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [--specs-disk-templates *template* [,*template*...]]
 
 
 Modify the options for the cluster.
@@ -601,7 +607,7 @@ The ``-I (--default-iallocator)`` is described in the **init**
 command. To clear the default iallocator, just pass an empty string
 ('').
 
-The ``--specs-..`` options are described in the **init** command.
+The ``--specs-...`` options are described in the **init** command.
 
 QUEUE
 ~~~~~

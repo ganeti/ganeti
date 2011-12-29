@@ -1444,14 +1444,6 @@ def Epo(opts, args):
   else:
     return _EpoOff(opts, node_list, inst_map)
 
-INSTANCE_POLICY_OPTS = [
-  SPECS_CPU_COUNT_OPT,
-  SPECS_DISK_COUNT_OPT,
-  SPECS_DISK_SIZE_OPT,
-  SPECS_MEM_SIZE_OPT,
-  SPECS_NIC_COUNT_OPT,
-  ]
-
 commands = {
   "init": (
     InitCluster, [ArgHost(min=1, max=1)],
