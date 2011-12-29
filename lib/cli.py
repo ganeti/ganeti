@@ -171,6 +171,7 @@ __all__ = [
   "SPECS_DISK_SIZE_OPT",
   "SPECS_MEM_SIZE_OPT",
   "SPECS_NIC_COUNT_OPT",
+  "SPECS_DISK_TEMPLATES",
   "SPICE_CACERT_OPT",
   "SPICE_CERT_OPT",
   "SRC_DIR_OPT",
@@ -801,6 +802,12 @@ SPECS_DISK_SIZE_OPT = cli_option("--specs-disk-size", dest="ispecs_disk_size",
 SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
                                  type="keyval", default={},
                                  help="NIC count specs: min, max, std")
+
+SPECS_DISK_TEMPLATES = cli_option("--specs-disk-templates",
+                                  dest="ispecs_disk_templates",
+                                  type="list", default=None,
+                                  help="Comma-separated list of"
+                                  " enabled disk templates")
 
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
