@@ -197,6 +197,8 @@ $(THH.buildObject "IPolicy" "iPolicy"
   [ THH.renameField "StdSpec" $ THH.simpleField "std" [t| ISpec |]
   , THH.renameField "MinSpec" $ THH.simpleField "min" [t| ISpec |]
   , THH.renameField "MaxSpec" $ THH.simpleField "max" [t| ISpec |]
+  , THH.renameField "DiskTemplates" $
+      THH.simpleField "disk_templates" [t| [DiskTemplate] |]
   ])
 
 -- | Converts an ISpec type to a RSpec one.
@@ -211,6 +213,10 @@ defIPolicy :: IPolicy
 defIPolicy = IPolicy { iPolicyStdSpec = defStdISpec
                      , iPolicyMinSpec = defMinISpec
                      , iPolicyMaxSpec = defMaxISpec
+                     -- hardcoding here since Constants.hs exports the
+                     -- string values, not the actual type; and in
+                     -- htools, we are mostly looking at DRBD
+                     , iPolicyDiskTemplates = [DTDrbd8, DTPlain]
                      }
 
 -- | The dynamic resource specs of a machine (i.e. load or load
