@@ -125,7 +125,8 @@ parseGroup u a = do
   let extract x = tryFromObj ("invalid data for group '" ++ u ++ "'") a x
   name <- extract "name"
   apol <- extract "alloc_policy"
-  return (u, Group.create name u apol)
+  ipol <- extract "ipolicy"
+  return (u, Group.create name u apol ipol)
 
 -- | Top-level parser.
 --

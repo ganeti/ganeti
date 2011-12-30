@@ -90,9 +90,34 @@ maxDsk = 1024 * 1024 * 8
 maxCpu :: Int
 maxCpu = 1024
 
+-- | Null iPolicy, and by null we mean very liberal.
+nullIPolicy = Types.IPolicy
+  { Types.iPolicyMinSpec = Types.ISpec { Types.iSpecMemorySize = 0
+                                       , Types.iSpecCpuCount   = 0
+                                       , Types.iSpecDiskSize   = 0
+                                       , Types.iSpecDiskCount  = 0
+                                       , Types.iSpecNicCount   = 0
+                                       }
+  , Types.iPolicyMaxSpec = Types.ISpec { Types.iSpecMemorySize = maxBound
+                                       , Types.iSpecCpuCount   = maxBound
+                                       , Types.iSpecDiskSize   = maxBound
+                                       , Types.iSpecDiskCount  = C.maxDisks
+                                       , Types.iSpecNicCount   = C.maxNics
+                                       }
+  , Types.iPolicyStdSpec = Types.ISpec { Types.iSpecMemorySize = Types.unitMem
+                                       , Types.iSpecCpuCount   = Types.unitCpu
+                                       , Types.iSpecDiskSize   = Types.unitDsk
+                                       , Types.iSpecDiskCount  = 1
+                                       , Types.iSpecNicCount   = 1
+                                       }
+  , Types.iPolicyDiskTemplates = [Types.DTDrbd8, Types.DTPlain]
+  }
+
+
 defGroup :: Group.Group
 defGroup = flip Group.setIdx 0 $
              Group.create "default" Types.defaultGroupID Types.AllocPreferred
+                  nullIPolicy
 
 defGroupList :: Group.List
 defGroupList = Container.fromList [(Group.idx defGroup, defGroup)]
@@ -934,12 +959,14 @@ prop_ClusterAllocBalance =
       i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
   in case allocnodes >>= \allocnodes' ->
     Cluster.iterateAlloc nl' il (Just 5) i_templ allocnodes' [] [] of
-       Types.Bad _ -> False
+       Types.Bad _ -> printTestCase "Failed to allocate" False
+       Types.Ok (_, _, _, [], _) -> printTestCase "Failed to allocate" False
        Types.Ok (_, xnl, il', _, _) ->
          let ynl = Container.add (Node.idx hnode) hnode xnl
              cv = Cluster.compCV ynl
              tbl = Cluster.Table ynl il' cv []
-         in canBalance tbl True True False
+         in printTestCase "Failed to rebalance" $
+            canBalance tbl True True False
 
 -- | Checks consistency.
 prop_ClusterCheckConsistency node inst =

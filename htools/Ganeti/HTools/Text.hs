@@ -119,7 +119,7 @@ loadGroup :: (Monad m) => [String]
                                      -- UUID and group object
 loadGroup [name, gid, apol] = do
   xapol <- allocPolicyFromRaw apol
-  return (gid, Group.create name gid xapol)
+  return (gid, Group.create name gid xapol defIPolicy)
 
 loadGroup s = fail $ "Invalid/incomplete group data: '" ++ show s ++ "'"
 

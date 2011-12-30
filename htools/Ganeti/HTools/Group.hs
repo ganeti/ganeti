@@ -45,6 +45,7 @@ data Group = Group
   , uuid        :: T.GroupID     -- ^ The UUID of the group
   , idx         :: T.Gdx         -- ^ Internal index for book-keeping
   , allocPolicy :: T.AllocPolicy -- ^ The allocation policy for this group
+  , iPolicy     :: T.IPolicy     -- ^ The instance policy for this group
   } deriving (Show, Read, Eq)
 
 -- Note: we use the name as the alias, and the UUID as the official
@@ -65,11 +66,12 @@ type List = Container.Container Group
 -- * Initialization functions
 
 -- | Create a new group.
-create :: String -> T.GroupID -> T.AllocPolicy -> Group
-create name_init id_init apol_init =
+create :: String -> T.GroupID -> T.AllocPolicy -> T.IPolicy -> Group
+create name_init id_init apol_init ipol_init =
   Group { name        = name_init
         , uuid        = id_init
         , allocPolicy = apol_init
+        , iPolicy     = ipol_init
         , idx         = -1
         }
 

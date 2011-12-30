@@ -115,7 +115,7 @@ queryClusterInfoMsg = L.QueryClusterInfo
 -- | The input data for node group query.
 queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
-  L.Query L.QRGroup ["uuid", "name", "alloc_policy"] ()
+  L.Query L.QRGroup ["uuid", "name", "alloc_policy", "ipolicy"] ()
 
 -- | Wraper over 'callMethod' doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
@@ -215,12 +215,13 @@ getGroups jsv = extractArray jsv >>= mapM parseGroup
 
 -- | Parses a given group information.
 parseGroup :: [(JSValue, JSValue)] -> Result (String, Group.Group)
-parseGroup [uuid, name, apol] = do
+parseGroup [uuid, name, apol, ipol] = do
   xname <- annotateResult "Parsing new group" (fromJValWithStatus name)
   let convert a = genericConvert "Group" xname a
   xuuid <- convert "uuid" uuid
   xapol <- convert "alloc_policy" apol
-  return (xuuid, Group.create xname xuuid xapol)
+  xipol <- convert "ipolicy" ipol
+  return (xuuid, Group.create xname xuuid xapol xipol)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
 

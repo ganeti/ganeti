@@ -159,7 +159,8 @@ parseGroup a = do
   let extract s = tryFromObj ("Group '" ++ name ++ "'") a s
   uuid <- extract "uuid"
   apol <- extract "alloc_policy"
-  return (uuid, Group.create name uuid apol)
+  ipol <- extract "ipolicy"
+  return (uuid, Group.create name uuid apol ipol)
 
 -- | Parse cluster data from the info resource.
 parseCluster :: JSObject JSValue -> Result ([String], IPolicy)
