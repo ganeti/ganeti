@@ -285,16 +285,16 @@ mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags _) =
       lkp_unknown = filter (not . goodLookupResult) (selinst_lkp ++ exinst_lkp)
       selinst_names = map lrContent selinst_lkp
       exinst_names = map lrContent exinst_lkp
-      il4 = Container.map (filterExTags allextags .
-                           updateMovable selinst_names exinst_names) il3
-      nl2 = foldl' fixNodes nl (Container.elems il4)
-      nl3 = Container.map (`Node.buildPeers` il4) nl2
       node_names = map Node.name (Container.elems nl)
       common_suffix = longestDomain (node_names ++ inst_names)
-      snl = Container.map (computeAlias common_suffix) nl3
-      sil = Container.map (computeAlias common_suffix) il4
+      il4 = Container.map (computeAlias common_suffix .
+                           filterExTags allextags .
+                           updateMovable selinst_names exinst_names) il3
+      nl2 = foldl' fixNodes nl (Container.elems il4)
+      nl3 = Container.map (computeAlias common_suffix .
+                           (`Node.buildPeers` il4)) nl2
   in if' (null lkp_unknown)
-         (Ok cdata { cdNodes = snl, cdInstances = sil })
+         (Ok cdata { cdNodes = nl3, cdInstances = il4 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | Checks the cluster data for consistency.
