@@ -583,7 +583,7 @@ buildObject sname field_pfx fields = do
   let name = mkName sname
   fields_d <- mapM (fieldTypeInfo field_pfx) fields
   let decl_d = RecC name fields_d
-  let declD = DataD [] name [] [decl_d] [''Show, ''Read]
+  let declD = DataD [] name [] [decl_d] [''Show, ''Read, ''Eq]
   ser_decls <- buildObjectSerialisation sname fields
   return $ declD:ser_decls
 
