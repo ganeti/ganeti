@@ -1158,7 +1158,7 @@ iterateAlloc :: AllocMethod
 iterateAlloc nl il limit newinst allocnodes ixes cstats =
   let depth = length ixes
       newname = printf "new-%d" depth::String
-      newidx = length (Container.elems il) + depth
+      newidx = Container.size il + depth
       newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
       newlimit = fmap (flip (-) 1) limit
   in case tryAlloc nl il newi2 allocnodes of
