@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ module Ganeti.HTools.Node
   , setSec
   , setMdsk
   , setMcpu
+  , setPolicy
   -- * Tag maps
   , addTags
   , delTags
@@ -124,6 +125,7 @@ data Node = Node
   , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
   , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
   , group    :: T.Gdx     -- ^ The node's group (index)
+  , iPolicy  :: T.IPolicy -- ^ The instance policy (of the node's group)
   } deriving (Show, Read, Eq)
 
 instance T.Element Node where
@@ -219,6 +221,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , utilLoad = T.zeroUtil
        , pTags = Map.empty
        , group = group_init
+       , iPolicy = T.defIPolicy
        }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
@@ -256,6 +259,10 @@ setMdsk t val = t { mDsk = val, loDsk = mDskToloDsk val (tDsk t) }
 -- | Sets the max cpu usage ratio.
 setMcpu :: Node -> Double -> Node
 setMcpu t val = t { mCpu = val, hiCpu = mCpuTohiCpu val (tCpu t) }
+
+-- | Sets the policy.
+setPolicy :: T.IPolicy -> Node -> Node
+setPolicy pol node = node { iPolicy = pol }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: P.PeerMap -> P.Elem

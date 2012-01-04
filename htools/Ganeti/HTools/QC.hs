@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -262,7 +262,8 @@ genNode min_multiplier max_multiplier = do
   offl  <- arbitrary
   let n = Node.create name (fromIntegral mem_t) mem_n mem_f
           (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 0
-  return $ Node.buildPeers n Container.empty
+      n' = Node.setPolicy nullIPolicy n
+  return $ Node.buildPeers n' Container.empty
 
 -- and a random node
 instance Arbitrary Node.Node where
@@ -679,7 +680,8 @@ prop_Text_NodeLSIdempotent node =
        Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==
   Just (Node.name n, n)
     -- override failN1 to what loadNode returns by default
-    where n = node { Node.failN1 = True, Node.offline = False }
+    where n = node { Node.failN1 = True, Node.offline = False
+                   , Node.iPolicy = Types.defIPolicy }
 
 testSuite "Text"
             [ 'prop_Text_Load_Instance

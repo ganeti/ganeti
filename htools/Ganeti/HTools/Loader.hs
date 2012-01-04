@@ -7,7 +7,7 @@ has been loaded from external sources.
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -219,6 +219,15 @@ fixNodes accu inst =
             in Container.add sdx snew ac2
        else ac2
 
+-- | Set the node's policy to its group one. Note that this requires
+-- the group to exist (should have been checked before), otherwise it
+-- will abort with a runtime error.
+setNodePolicy :: Group.List -> Node.Node -> Node.Node
+setNodePolicy gl node =
+  let grp = Container.find (Node.group node) gl
+      gpol = Group.iPolicy grp
+  in Node.setPolicy gpol node
+
 -- | Remove non-selected tags from the exclusion list.
 filterExTags :: [String] -> Instance.Instance -> Instance.Instance
 filterExTags tl inst =
@@ -269,7 +278,7 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Excluded instances
           -> ClusterData          -- ^ Data from backends
           -> Result ClusterData   -- ^ Fixed cluster data
-mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags _) =
+mergeData um extags selinsts exinsts cdata@(ClusterData gl nl il2 tags _) =
   let il = Container.elems il2
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
@@ -291,7 +300,8 @@ mergeData um extags selinsts exinsts cdata@(ClusterData _ nl il2 tags _) =
                            filterExTags allextags .
                            updateMovable selinst_names exinst_names) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
-      nl3 = Container.map (computeAlias common_suffix .
+      nl3 = Container.map (setNodePolicy gl .
+                           computeAlias common_suffix .
                            (`Node.buildPeers` il4)) nl2
   in if' (null lkp_unknown)
          (Ok cdata { cdNodes = nl3, cdInstances = il4 })
