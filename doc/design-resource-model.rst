@@ -609,10 +609,10 @@ parameters:
   request
 
 Ganeti will by default reject non-standard instance sizes (lower than
-``min_ispec`` or greater than ``max_ispec``), but as usual a ``--force``
-option on the command line or in the RAPI request will override these
-constraints. The ``std_spec`` structure will be used to fill in missing
-instance specifications on create.
+``min_ispec`` or greater than ``max_ispec``), but as usual a
+``--ignore-ipolicy`` option on the command line or in the RAPI request
+will override these constraints. The ``std_spec`` structure will be used
+to fill in missing instance specifications on create.
 
 Each of the ispec structures will be a dictionary, since the contents
 can change over time. Initially, we will define the following variables
