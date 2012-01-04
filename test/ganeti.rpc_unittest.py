@@ -73,8 +73,8 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver(["127.0.0.1"])
     http_proc = _FakeRequestProcessor(self._GetVersionResponse)
     proc = rpc._RpcProcessor(resolver, 24094)
-    result = proc(["localhost"], "version", {"localhost": ""},
-                  _req_process_fn=http_proc, read_timeout=60)
+    result = proc(["localhost"], "version", {"localhost": ""}, 60,
+                  _req_process_fn=http_proc)
     self.assertEqual(result.keys(), ["localhost"])
     lhresp = result["localhost"]
     self.assertFalse(lhresp.offline)
@@ -100,8 +100,7 @@ class TestRpcProcessor(unittest.TestCase):
     proc = rpc._RpcProcessor(resolver, 19176)
     host = "node31856"
     body = {host: ""}
-    result = proc([host], "version", body, _req_process_fn=http_proc,
-                  read_timeout=12356)
+    result = proc([host], "version", body, 12356, _req_process_fn=http_proc)
     self.assertEqual(result.keys(), [host])
     lhresp = result[host]
     self.assertFalse(lhresp.offline)
@@ -118,8 +117,7 @@ class TestRpcProcessor(unittest.TestCase):
     proc = rpc._RpcProcessor(resolver, 30668)
     host = "n17296"
     body = {host: ""}
-    result = proc([host], "version", body, _req_process_fn=http_proc,
-                  read_timeout=60)
+    result = proc([host], "version", body, 60, _req_process_fn=http_proc)
     self.assertEqual(result.keys(), [host])
     lhresp = result[host]
     self.assertTrue(lhresp.offline)
@@ -150,8 +148,7 @@ class TestRpcProcessor(unittest.TestCase):
     resolver = rpc._StaticResolver(nodes)
     http_proc = _FakeRequestProcessor(self._GetMultiVersionResponse)
     proc = rpc._RpcProcessor(resolver, 23245)
-    result = proc(nodes, "version", body, _req_process_fn=http_proc,
-                  read_timeout=60)
+    result = proc(nodes, "version", body, 60, _req_process_fn=http_proc,)
     self.assertEqual(sorted(result.keys()), sorted(nodes))
 
     for name in nodes:
@@ -180,8 +177,8 @@ class TestRpcProcessor(unittest.TestCase):
                                              errinfo))
       host = "aef9ur4i.example.com"
       body = {host: ""}
-      result = proc(body.keys(), "version", body,
-                    _req_process_fn=http_proc, read_timeout=60)
+      result = proc(body.keys(), "version", body, 60,
+                    _req_process_fn=http_proc)
       self.assertEqual(result.keys(), [host])
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
@@ -230,8 +227,8 @@ class TestRpcProcessor(unittest.TestCase):
     http_proc = \
       _FakeRequestProcessor(compat.partial(self._GetHttpErrorResponse,
                                            httperrnodes, failnodes))
-    result = proc(nodes, "vg_list", body, _req_process_fn=http_proc,
-                  read_timeout=rpc._TMO_URGENT)
+    result = proc(nodes, "vg_list", body, rpc._TMO_URGENT,
+                  _req_process_fn=http_proc)
     self.assertEqual(sorted(result.keys()), sorted(nodes))
 
     for name in nodes:
@@ -275,8 +272,8 @@ class TestRpcProcessor(unittest.TestCase):
       http_proc = _FakeRequestProcessor(fn)
       host = "oqo7lanhly.example.com"
       body = {host: ""}
-      result = proc([host], "version", body,
-                    _req_process_fn=http_proc, read_timeout=60)
+      result = proc([host], "version", body, 60,
+                    _req_process_fn=http_proc)
       self.assertEqual(result.keys(), [host])
       lhresp = result[host]
       self.assertFalse(lhresp.offline)
@@ -307,8 +304,7 @@ class TestRpcProcessor(unittest.TestCase):
     proc = rpc._RpcProcessor(resolver, 18700)
     host = "node19759"
     body = {host: serializer.DumpJson(test_data)}
-    result = proc([host], "upload_file", body, _req_process_fn=http_proc,
-                  read_timeout=30)
+    result = proc([host], "upload_file", body, 30, _req_process_fn=http_proc)
     self.assertEqual(result.keys(), [host])
     lhresp = result[host]
     self.assertFalse(lhresp.offline)

@@ -391,7 +391,7 @@ class _RpcProcessor:
 
     return results
 
-  def __call__(self, hosts, procedure, body, read_timeout=None,
+  def __call__(self, hosts, procedure, body, read_timeout,
                _req_process_fn=http.client.ProcessRequests):
     """Makes an RPC request to a number of nodes.
 
@@ -463,8 +463,7 @@ class _RpcClientBase:
       pnbody = dict((n, serializer.DumpJson(prep_fn(n, enc_args)))
                     for n in node_list)
 
-    result = self._proc(node_list, procedure, pnbody,
-                        read_timeout=read_timeout)
+    result = self._proc(node_list, procedure, pnbody, read_timeout)
 
     if postproc_fn:
       return dict(map(lambda (key, value): (key, postproc_fn(value)),
