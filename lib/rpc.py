@@ -240,7 +240,7 @@ class RpcResult(object):
     raise ec(*args) # pylint: disable=W0142
 
 
-def _SsconfResolver(node_list,
+def _SsconfResolver(node_list, _,
                     ssc=ssconf.SimpleStore,
                     nslookup_fn=netutils.Hostname.GetIP):
   """Return addresses for given node names.
@@ -277,7 +277,7 @@ class _StaticResolver:
     """
     self._addresses = addresses
 
-  def __call__(self, hosts):
+  def __call__(self, hosts, _):
     """Returns static addresses for hosts.
 
     """
@@ -304,7 +304,7 @@ def _CheckConfigNode(name, node):
   return (name, ip)
 
 
-def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts):
+def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts, _):
   """Calculate node addresses using configuration.
 
   """
@@ -391,7 +391,7 @@ class _RpcProcessor:
 
     return results
 
-  def __call__(self, hosts, procedure, body, read_timeout,
+  def __call__(self, hosts, procedure, body, read_timeout, resolver_opts,
                _req_process_fn=http.client.ProcessRequests):
     """Makes an RPC request to a number of nodes.
 
@@ -409,8 +409,8 @@ class _RpcProcessor:
       "Missing RPC read timeout for procedure '%s'" % procedure
 
     (results, requests) = \
-      self._PrepareRequests(self._resolver(hosts), self._port, procedure,
-                            body, read_timeout)
+      self._PrepareRequests(self._resolver(hosts, resolver_opts), self._port,
+                            procedure, body, read_timeout)
 
     _req_process_fn(requests.values(), lock_monitor_cb=self._lock_monitor_cb)
 
@@ -469,7 +469,8 @@ class _RpcClientBase:
       pnbody = dict((n, serializer.DumpJson(prep_fn(n, enc_args)))
                     for n in node_list)
 
-    result = self._proc(node_list, procedure, pnbody, read_timeout)
+    result = self._proc(node_list, procedure, pnbody, read_timeout,
+                        req_resolver_opts)
 
     if postproc_fn:
       return dict(map(lambda (key, value): (key, postproc_fn(value)),
