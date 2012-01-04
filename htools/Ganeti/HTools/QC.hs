@@ -321,6 +321,41 @@ instance Arbitrary a => Arbitrary (Types.OpResult a) where
                 then liftM Types.OpGood arbitrary
                 else liftM Types.OpFail arbitrary
 
+instance Arbitrary Types.ISpec where
+  arbitrary = do
+    mem <- arbitrary::Gen (NonNegative Int)
+    dsk_c <- arbitrary::Gen (NonNegative Int)
+    dsk_s <- arbitrary::Gen (NonNegative Int)
+    cpu <- arbitrary::Gen (NonNegative Int)
+    nic <- arbitrary::Gen (NonNegative Int)
+    return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem
+                       , Types.iSpecCpuCount   = fromIntegral cpu
+                       , Types.iSpecDiskSize   = fromIntegral dsk_s
+                       , Types.iSpecDiskCount  = fromIntegral dsk_c
+                       , Types.iSpecNicCount   = fromIntegral nic
+                       }
+
+-- | Helper function to check whether a spec is LTE than another
+iSpecSmaller :: Types.ISpec -> Types.ISpec -> Bool
+iSpecSmaller imin imax =
+  Types.iSpecMemorySize imin <= Types.iSpecMemorySize imax &&
+  Types.iSpecCpuCount imin   <= Types.iSpecCpuCount imax &&
+  Types.iSpecDiskSize imin   <= Types.iSpecDiskSize imax &&
+  Types.iSpecDiskCount imin  <= Types.iSpecDiskCount imax &&
+  Types.iSpecNicCount imin   <= Types.iSpecNicCount imax
+
+instance Arbitrary Types.IPolicy where
+  arbitrary = do
+    imin <- arbitrary
+    istd <- arbitrary `suchThat` (iSpecSmaller imin)
+    imax <- arbitrary `suchThat` (iSpecSmaller istd)
+    dts  <- arbitrary
+    return Types.IPolicy { Types.iPolicyMinSpec = imin
+                         , Types.iPolicyStdSpec = istd
+                         , Types.iPolicyMaxSpec = imax
+                         , Types.iPolicyDiskTemplates = dts
+                         }
+
 -- * Actual tests
 
 -- ** Utils tests
@@ -995,6 +1030,35 @@ prop_ClusterSplitCluster node inst =
      all (\(guuid, (nl'', _)) -> all ((== guuid) . Node.group)
                                  (Container.elems nl'')) gni
 
+-- | Helper function to check if we can allocate an instance on a
+-- given node list.
+canAllocOn :: Node.List -> Int -> Instance.Instance -> Bool
+canAllocOn nl reqnodes inst =
+  case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
+       Cluster.tryAlloc nl (Container.empty) inst of
+       Types.Bad _ -> False
+       Types.Ok as ->
+         case Cluster.asSolution as of
+           Nothing -> False
+           Just _ -> True
+
+-- | Checks that allocation obeys minimum and maximum instance
+-- policies. The unittest generates a random node, duplicates it count
+-- times, and generates a random instance that can be allocated on
+-- this mini-cluster; it then checks that after applying a policy that
+-- the instance doesn't fits, the allocation fails.
+prop_ClusterAllocPolicy node =
+  -- rqn is the required nodes (1 or 2)
+  forAll (choose (1, 2)) $ \rqn ->
+  forAll (choose (5, 20)) $ \count ->
+  forAll (arbitrary `suchThat` (canAllocOn (makeSmallCluster node count) rqn))
+         $ \inst ->
+  forAll (arbitrary `suchThat` (isFailure .
+                                Instance.instMatchesPolicy inst)) $ \ipol ->
+  let node' = Node.setPolicy ipol node
+      nl = makeSmallCluster node' count
+  in not $ canAllocOn nl rqn inst
+
 testSuite "Cluster"
             [ 'prop_Score_Zero
             , 'prop_CStats_sane
@@ -1004,6 +1068,7 @@ testSuite "Cluster"
             , 'prop_ClusterAllocBalance
             , 'prop_ClusterCheckConsistency
             , 'prop_ClusterSplitCluster
+            , 'prop_ClusterAllocPolicy
             ]
 
 -- ** OpCodes tests
