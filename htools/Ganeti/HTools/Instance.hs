@@ -7,7 +7,7 @@ intelligence is in the "Node" and "Cluster" modules.
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -43,6 +43,9 @@ module Ganeti.HTools.Instance
   , setBoth
   , setMovable
   , specOf
+  , instBelowISpec
+  , instAboveISpec
+  , instMatchesPolicy
   , shrinkByType
   , localStorageTemplates
   , hasSecondary
@@ -53,7 +56,6 @@ module Ganeti.HTools.Instance
 
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
-import qualified Ganeti.Constants as C
 
 import Ganeti.HTools.Utils
 
@@ -229,6 +231,33 @@ shrinkByType _ f = T.Bad $ "Unhandled failure mode " ++ show f
 specOf :: Instance -> T.RSpec
 specOf Instance { mem = m, dsk = d, vcpus = c } =
   T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }
+
+-- | Checks if an instance is smaller than a given spec. Returns
+-- OpGood for a correct spec, otherwise OpFail one of the possible
+-- failure modes.
+instBelowISpec :: Instance -> T.ISpec -> T.OpResult ()
+instBelowISpec inst ispec
+  | mem inst > T.iSpecMemorySize ispec = T.OpFail T.FailMem
+  | dsk inst > T.iSpecDiskSize ispec   = T.OpFail T.FailDisk
+  | vcpus inst > T.iSpecCpuCount ispec = T.OpFail T.FailCPU
+  | otherwise = T.OpGood ()
+
+-- | Checks if an instance is bigger than a given spec.
+instAboveISpec :: Instance -> T.ISpec -> T.OpResult ()
+instAboveISpec inst ispec
+  | mem inst < T.iSpecMemorySize ispec = T.OpFail T.FailMem
+  | dsk inst < T.iSpecDiskSize ispec   = T.OpFail T.FailDisk
+  | vcpus inst < T.iSpecCpuCount ispec = T.OpFail T.FailCPU
+  | otherwise = T.OpGood ()
+
+-- | Checks if an instance matches a policy.
+instMatchesPolicy :: Instance -> T.IPolicy -> T.OpResult ()
+instMatchesPolicy inst ipol = do
+  instAboveISpec inst (T.iPolicyMinSpec ipol)
+  instBelowISpec inst (T.iPolicyMaxSpec ipol)
+  if (diskTemplate inst `elem` T.iPolicyDiskTemplates ipol)
+    then T.OpGood ()
+    else T.OpFail T.FailDisk
 
 -- | Checks whether the instance uses a secondary node.
 --

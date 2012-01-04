@@ -7,7 +7,7 @@ goes into the /Main/ module for the individual binaries.
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -454,7 +454,9 @@ allocateOnSingle :: Node.List -> Instance.Instance -> Ndx
 allocateOnSingle nl inst new_pdx =
   let p = Container.find new_pdx nl
       new_inst = Instance.setBoth inst new_pdx Node.noSecondary
-  in  Node.addPri p inst >>= \new_p -> do
+  in do
+    Instance.instMatchesPolicy inst (Node.iPolicy p)
+    new_p <- Node.addPri p inst
     let new_nl = Container.add new_pdx new_p nl
         new_score = compCV nl
     return (new_nl, new_inst, [new_p], new_score)
@@ -466,6 +468,7 @@ allocateOnPair nl inst new_pdx new_sdx =
   let tgt_p = Container.find new_pdx nl
       tgt_s = Container.find new_sdx nl
   in do
+    Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
     new_p <- Node.addPri tgt_p inst
     new_s <- Node.addSec tgt_s inst new_pdx
     let new_inst = Instance.setBoth inst new_pdx new_sdx
