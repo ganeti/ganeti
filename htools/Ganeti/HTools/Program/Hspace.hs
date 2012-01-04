@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -319,9 +319,11 @@ printTiered True spec_map m_cpu nl trl_nl _ = do
 
 printTiered False spec_map _ ini_nl fin_nl sreason = do
   _ <- printf "Tiered allocation results:\n"
-  mapM_ (\(ispec, cnt) ->
-             printf "  - %3d instances of spec %s\n" cnt
-                        (formatResources ispec specData)) spec_map
+  if null spec_map
+    then putStrLn "  - no instances allocated"
+    else mapM_ (\(ispec, cnt) ->
+                  printf "  - %3d instances of spec %s\n" cnt
+                           (formatResources ispec specData)) spec_map
   printFRScores ini_nl fin_nl sreason
 
 -- | Displays the initial/final cluster scores.
