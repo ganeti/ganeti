@@ -584,14 +584,16 @@ class RpcRunner(_RpcClientBase,
   """RPC runner class.
 
   """
-  def __init__(self, context):
+  def __init__(self, cfg, lock_monitor_cb, _req_process_fn=None, _getents=None):
     """Initialized the RPC runner.
 
-    @type context: C{masterd.GanetiContext}
-    @param context: Ganeti context
+    @type cfg: L{config.ConfigWriter}
+    @param cfg: Configuration
+    @type lock_monitor_cb: callable
+    @param lock_monitor_cb: Lock monitor callback
 
     """
-    self._cfg = context.cfg
+    self._cfg = cfg
 
     encoders = _ENCODERS.copy()
 
@@ -603,15 +605,16 @@ class RpcRunner(_RpcClientBase,
       })
 
     # Resolver using configuration
-    resolver = compat.partial(_NodeConfigResolver, self._cfg.GetNodeInfo,
-                              self._cfg.GetAllNodesInfo)
+    resolver = compat.partial(_NodeConfigResolver, cfg.GetNodeInfo,
+                              cfg.GetAllNodesInfo)
 
     # Pylint doesn't recognize multiple inheritance properly, see
     # <http://www.logilab.org/ticket/36586> and
     # <http://www.logilab.org/ticket/35642>
     # pylint: disable=W0233
     _RpcClientBase.__init__(self, resolver, encoders.get,
-                            lock_monitor_cb=context.glm.AddToLockMonitor)
+                            lock_monitor_cb=lock_monitor_cb,
+                            _req_process_fn=_req_process_fn)
     _generated_rpc.RpcClientConfig.__init__(self)
     _generated_rpc.RpcClientBootstrap.__init__(self)
     _generated_rpc.RpcClientDefault.__init__(self)

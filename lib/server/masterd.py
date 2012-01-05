@@ -469,7 +469,7 @@ class GanetiContext(object):
     self.cfg.SetContext(self)
 
     # RPC runner
-    self.rpc = rpc.RpcRunner(self)
+    self.rpc = rpc.RpcRunner(self.cfg, self.glm.AddToLockMonitor)
 
     # Job queue
     self.jobqueue = jqueue.JobQueue(self)
