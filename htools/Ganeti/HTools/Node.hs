@@ -273,7 +273,7 @@ buildPeers :: Node -> Instance.List -> Node
 buildPeers t il =
   let mdata = map
               (\i_idx -> let inst = Container.find i_idx il
-                             mem = if Instance.autoBalance inst
+                             mem = if Instance.usesSecMem inst
                                      then Instance.mem inst
                                      else 0
                          in (Instance.pNode inst, mem))
@@ -293,7 +293,8 @@ setPri t inst = t { pList = Instance.idx inst:pList t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
                   , pTags = addTags (pTags t) (Instance.tags inst)
                   }
-  where new_count = uCpu t + Instance.vcpus inst
+  where new_count = Instance.applyIfOnline inst (+ Instance.vcpus inst)
+                    (uCpu t )
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> Instance.Instance -> Node
@@ -343,7 +344,7 @@ removeSec t inst =
                   else cur_dsk
       old_peers = peers t
       old_peem = P.find pnode old_peers
-      new_peem =  if Instance.autoBalance inst
+      new_peem =  if Instance.usesSecMem inst
                     then old_peem - Instance.mem inst
                     else old_peem
       new_peers = if new_peem > 0
@@ -423,8 +424,7 @@ addSecEx force t inst pdx =
       old_peers = peers t
       old_mem = fMem t
       new_dsk = fDsk t - Instance.dsk inst
-      secondary_needed_mem = if Instance.autoBalance inst &&
-                             not (Instance.instanceOffline inst)
+      secondary_needed_mem = if Instance.usesSecMem inst
                                then Instance.mem inst
                                else 0
       new_peem = P.find pdx old_peers + secondary_needed_mem

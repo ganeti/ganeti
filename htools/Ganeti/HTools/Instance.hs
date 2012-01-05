@@ -35,6 +35,7 @@ module Ganeti.HTools.Instance
   , instanceOffline
   , instanceNotOffline
   , instanceDown
+  , usesSecMem
   , applyIfOnline
   , setIdx
   , setName
@@ -113,6 +114,11 @@ instanceDown _                           = True
 -- the initial value
 applyIfOnline :: Instance -> (a -> a) -> a -> a
 applyIfOnline = applyIf . instanceNotOffline
+
+-- | Helper for determining whether an instance's memory needs to be
+-- taken into account for secondary memory reservation.
+usesSecMem :: Instance -> Bool
+usesSecMem inst = instanceNotOffline inst && autoBalance inst
 
 -- | Constant holding the local storage templates.
 --
