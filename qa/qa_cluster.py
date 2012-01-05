@@ -89,8 +89,14 @@ def TestClusterInit(rapi_user, rapi_secret):
 
   cmd.append("--primary-ip-version=%d" %
              qa_config.get("primary_ip_version", 4))
-  cmd.append("--specs-mem-size=max=1024")
-  cmd.append("--specs-disk-size=min=512")
+
+  for spec_type in ("mem-size", "disk-size", "disk-count", "cpu-count",
+                    "nic-count"):
+    for spec_val in ("min", "max", "std"):
+      spec = qa_config.get("ispec_%s_%s" %
+                           (spec_type.replace('-', '_'), spec_val), None)
+      if spec:
+        cmd.append("--specs-%s=%s=%d" % (spec_type, spec_val, spec))
 
   if master.get("secondary", None):
     cmd.append("--secondary-ip=%s" % master["secondary"])
