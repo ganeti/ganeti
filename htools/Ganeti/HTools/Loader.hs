@@ -341,7 +341,7 @@ nodeImem :: Node.Node -> Instance.List -> Int
 nodeImem node il =
   let rfind = flip Container.find il
       il' = map rfind $ Node.pList node
-      oil' = filter (not . Instance.instanceOffline) il'
+      oil' = filter Instance.instanceNotOffline il'
   in sum . map Instance.mem $ oil'
 
 

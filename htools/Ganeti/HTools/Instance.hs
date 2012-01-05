@@ -33,6 +33,7 @@ module Ganeti.HTools.Instance
   , create
   , instanceRunning
   , instanceOffline
+  , instanceNotOffline
   , instanceDown
   , applyIfOnline
   , setIdx
@@ -97,6 +98,11 @@ instanceOffline :: Instance -> Bool
 instanceOffline (Instance {runSt = T.AdminOffline}) = True
 instanceOffline _                                   = False
 
+
+-- | Helper to check if the instance is not offline.
+instanceNotOffline :: Instance -> Bool
+instanceNotOffline = not . instanceOffline
+
 -- | Check if instance is down.
 instanceDown :: Instance -> Bool
 instanceDown inst | instanceRunning inst = False
@@ -106,7 +112,7 @@ instanceDown _                           = True
 -- | Apply the function if the instance is online. Otherwise use
 -- the initial value
 applyIfOnline :: Instance -> (a -> a) -> a -> a
-applyIfOnline = applyIf . not . instanceOffline
+applyIfOnline = applyIf . instanceNotOffline
 
 -- | Constant holding the local storage templates.
 --
