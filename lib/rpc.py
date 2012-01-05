@@ -443,12 +443,18 @@ class _RpcClientBase:
     """Entry point for automatically generated RPC wrappers.
 
     """
-    (procedure, _, timeout, argdefs, prep_fn, postproc_fn, _) = cdef
+    (procedure, _, resolver_opts, timeout, argdefs,
+     prep_fn, postproc_fn, _) = cdef
 
     if callable(timeout):
       read_timeout = timeout(args)
     else:
       read_timeout = timeout
+
+    if callable(resolver_opts):
+      req_resolver_opts = resolver_opts(args)
+    else:
+      req_resolver_opts = resolver_opts
 
     enc_args = map(self._encoder, zip(map(compat.snd, argdefs), args))
     if prep_fn is None:

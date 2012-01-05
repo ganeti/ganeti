@@ -41,7 +41,7 @@ _SINGLE = "single-node"
 _MULTI = "multi-node"
 
 #: Expected length of a rpc definition
-_RPC_DEF_LEN = 7
+_RPC_DEF_LEN = 8
 
 
 def _WritePreamble(sw):
@@ -125,7 +125,7 @@ def _WriteBaseClass(sw, clsname, calls):
         raise ValueError("Procedure %s has only %d elements, expected %d" %
                          (v[0], len(v), _RPC_DEF_LEN))
 
-    for (name, kind, timeout, args, _, _, desc) in calls:
+    for (name, kind, _, timeout, args, _, _, desc) in calls:
       funcargs = ["self"]
 
       if kind == _SINGLE:
