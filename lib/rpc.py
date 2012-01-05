@@ -30,7 +30,6 @@
 # if they need to start using instance attributes
 # R0904: Too many public methods
 
-import os
 import logging
 import zlib
 import base64
@@ -520,9 +519,9 @@ def _PrepareFileUpload(getents_fn, filename):
   """Loads a file and prepares it for an upload to nodes.
 
   """
-  # TODO: Use ReadFile(preread=...) and os.fstat
-  data = _Compress(utils.ReadFile(filename))
-  st = os.stat(filename)
+  statcb = utils.FileStatHelper()
+  data = _Compress(utils.ReadFile(filename, preread=statcb))
+  st = statcb.st
 
   if getents_fn is None:
     getents_fn = runtime.GetEnts
