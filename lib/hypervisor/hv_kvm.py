@@ -209,7 +209,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
   _MIGRATION_INFO_RETRY_DELAY = 2
 
-  _VERSION_RE = re.compile(r"\b(\d+)\.(\d+)\.(\d+)\b")
+  _VERSION_RE = re.compile(r"\b(\d+)\.(\d+)(\.(\d+))?\b")
 
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
@@ -1007,6 +1007,29 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return result
 
   @classmethod
+  def _ParseKVMVersion(cls, text):
+    """Parse the KVM version from the --help output.
+
+    @type text: string
+    @param text: output of kvm --help
+    @return: (version, v_maj, v_min, v_rev)
+    @raise L{errors.HypervisorError}: when the KVM version cannot be retrieved
+
+    """
+    match = cls._VERSION_RE.search(text.splitlines()[0])
+    if not match:
+      raise errors.HypervisorError("Unable to get KVM version")
+
+    v_all = match.group(0)
+    v_maj = int(match.group(1))
+    v_min = int(match.group(2))
+    if match.group(4):
+      v_rev = int(match.group(4))
+    else:
+      v_rev = 0
+    return (v_all, v_maj, v_min, v_rev)
+
+  @classmethod
   def _GetKVMVersion(cls):
     """Return the installed KVM version.
 
@@ -1017,12 +1040,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd([constants.KVM_PATH, "--help"])
     if result.failed:
       raise errors.HypervisorError("Unable to get KVM version")
-    match = cls._VERSION_RE.search(result.output.splitlines()[0])
-    if not match:
-      raise errors.HypervisorError("Unable to get KVM version")
-
-    return (match.group(0), int(match.group(1)), int(match.group(2)),
-            int(match.group(3)))
+    return cls._ParseKVMVersion(result.output)
 
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
