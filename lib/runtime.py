@@ -74,9 +74,9 @@ class GetentResolver:
   @ivar rapi_uid: The resolved uid of the rapi user
   @ivar rapi_gid: The resolved gid of the rapi group
   @ivar noded_uid: The resolved uid of the noded user
-
   @ivar daemons_gid: The resolved gid of the daemons group
   @ivar admin_gid: The resolved gid of the admin group
+
   """
   def __init__(self, _getpwnam=pwd.getpwnam, _getgrnam=grp.getgrnam):
     """Initialize the resolver.
