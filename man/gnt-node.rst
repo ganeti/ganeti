@@ -495,13 +495,13 @@ POWERCYCLE
 **powercycle** [``--yes``] [``--force``] {*node*}
 
 This command (tries to) forcefully reboot a node. It is a command
-that can be used if the node environemnt is broken, such that the
-admin can no longer login over ssh, but the Ganeti node daemon is
+that can be used if the node environment is broken, such that the
+admin can no longer login over SSH, but the Ganeti node daemon is
 still working.
 
 Note that this command is not guaranteed to work; it depends on the
 hypervisor how effective is the reboot attempt. For Linux, this
-command require that the kernel option CONFIG\_MAGIC\_SYSRQ is
+command requires the kernel option ``CONFIG_MAGIC_SYSRQ`` to be
 enabled.
 
 The ``--yes`` option can be used to skip confirmation, while the
