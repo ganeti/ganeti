@@ -35,6 +35,7 @@ DASHES_RE = re.compile(r"^\s*-+\s*$")
 RELEASED_RE = re.compile(r"^\*\(Released (?P<day>[A-Z][a-z]{2}),"
                          r" (?P<date>.+)\)\*$")
 UNRELEASED_RE = re.compile(r"^\*\(unreleased\)\*$")
+VERSION_RE = re.compile(r"^Version \d+(\.\d+)+( (beta|rc)\d+)?$")
 
 
 def main():
@@ -45,13 +46,33 @@ def main():
 
   prevline = None
   expect_date = False
+  count_empty = 0
 
   for line in fileinput.input():
     line = line.rstrip("\n")
 
+    if VERSION_RE.match(line):
+      if count_empty != 2:
+        raise Exception("Line %s: Missing 2 empty lines before %s" %
+                        (fileinput.filelineno(), line))
+
+    if UNRELEASED_RE.match(line) or RELEASED_RE.match(line):
+      if count_empty != 1:
+        raise Exception("Line %s: Missing 1 empty line before %s" %
+                        (fileinput.filelineno(), line))
+
+    if line:
+      count_empty = 0
+    else:
+      count_empty += 1
+
     if DASHES_RE.match(line):
-      if not prevline.startswith("Version "):
-        raise Exception("Line %s: Invalid title" % (fileinput.filelineno() - 1))
+      if not VERSION_RE.match(prevline):
+        raise Exception("Line %s: Invalid title" %
+                        (fileinput.filelineno() - 1))
+      if len(line) != len(prevline):
+        raise Exception("Line %s: Invalid dashes length" %
+                        (fileinput.filelineno()))
       expect_date = True
 
     elif expect_date:

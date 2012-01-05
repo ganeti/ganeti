@@ -1,13 +1,15 @@
 News
 ====
 
-Version 2.6.0 beta 1
---------------------
+
+Version 2.6.0 beta1
+-------------------
 
 *(unreleased)*
 
 - Deprecated ``admin_up`` field. Instead, ``admin_state`` is introduced,
   with 3 possible values -- ``up``, ``down`` and ``offline``.
+
 
 Version 2.5.0 rc4
 -----------------
@@ -325,6 +327,7 @@ Many bug-fixes and a few new small features:
 
 And as usual, various improvements to the error messages, documentation
 and man pages.
+
 
 Version 2.4.1
 -------------
@@ -836,8 +839,8 @@ Internal changes:
   server endpoint
 
 
-Version 2.2.0 beta 0
---------------------
+Version 2.2.0 beta0
+-------------------
 
 *(Released Thu, 17 Jun 2010)*
 
@@ -1493,16 +1496,16 @@ Version 2.0.1
   error handling path called a wrong function name)
 
 
-Version 2.0.0 final
--------------------
+Version 2.0.0
+-------------
 
 *(Released Wed, 27 May 2009)*
 
 - no changes from rc5
 
 
-Version 2.0 release candidate 5
--------------------------------
+Version 2.0 rc5
+---------------
 
 *(Released Wed, 20 May 2009)*
 
@@ -1512,8 +1515,8 @@ Version 2.0 release candidate 5
 - make watcher automatically start the master daemon if down
 
 
-Version 2.0 release candidate 4
--------------------------------
+Version 2.0 rc4
+---------------
 
 *(Released Mon, 27 Apr 2009)*
 
@@ -1527,8 +1530,8 @@ Version 2.0 release candidate 4
 - miscellaneous doc and man pages fixes
 
 
-Version 2.0 release candidate 3
--------------------------------
+Version 2.0 rc3
+---------------
 
 *(Released Wed, 8 Apr 2009)*
 
@@ -1541,8 +1544,8 @@ Version 2.0 release candidate 3
   toolchains
 
 
-Version 2.0 release candidate 2
--------------------------------
+Version 2.0 rc2
+---------------
 
 *(Released Fri, 27 Mar 2009)*
 
@@ -1554,8 +1557,8 @@ Version 2.0 release candidate 2
 - Some documentation fixes and updates
 
 
-Version 2.0 release candidate 1
--------------------------------
+Version 2.0 rc1
+---------------
 
 *(Released Mon, 2 Mar 2009)*
 
@@ -1568,8 +1571,8 @@ Version 2.0 release candidate 1
 - Fix an issue related to $libdir/run/ganeti and cluster creation
 
 
-Version 2.0 beta 2
-------------------
+Version 2.0 beta2
+-----------------
 
 *(Released Thu, 19 Feb 2009)*
 
@@ -1586,8 +1589,8 @@ Version 2.0 beta 2
 - Many other bugfixes and small improvements
 
 
-Version 2.0 beta 1
-------------------
+Version 2.0 beta1
+-----------------
 
 *(Released Mon, 26 Jan 2009)*
 
@@ -1800,8 +1803,8 @@ Version 1.2.0
 - Change parsing of lvm commands to ignore stderr
 
 
-Version 1.2b3
--------------
+Version 1.2 beta3
+-----------------
 
 *(Released Wed, 28 Nov 2007)*
 
@@ -1812,8 +1815,8 @@ Version 1.2b3
 - QA updates
 
 
-Version 1.2b2
--------------
+Version 1.2 beta2
+-----------------
 
 *(Released Tue, 13 Nov 2007)*
 
