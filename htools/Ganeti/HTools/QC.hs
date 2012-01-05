@@ -167,8 +167,8 @@ makeSmallEmptyCluster node count inst =
    setInstanceSmallerThanNode node inst)
 
 -- | Checks if a node is "big" enough.
-isNodeBig :: Node.Node -> Int -> Bool
-isNodeBig node size = Node.availDisk node > size * Types.unitDsk
+isNodeBig :: Int -> Node.Node -> Bool
+isNodeBig size node = Node.availDisk node > size * Types.unitDsk
                       && Node.availMem node > size * Types.unitMem
                       && Node.availCpu node > size * Types.unitCpu
 
@@ -264,6 +264,15 @@ genNode min_multiplier max_multiplier = do
           (fromIntegral dsk_t) dsk_f (fromIntegral cpu_t) offl 0
       n' = Node.setPolicy nullIPolicy n
   return $ Node.buildPeers n' Container.empty
+
+-- | Helper function to generate a sane node.
+genOnlineNode :: Gen Node.Node
+genOnlineNode = do
+  arbitrary `suchThat` (\n -> not (Node.offline n) &&
+                              not (Node.failN1 n) &&
+                              Node.availDisk n > 0 &&
+                              Node.availMem n > 0 &&
+                              Node.availCpu n > 0)
 
 -- and a random node
 instance Arbitrary Node.Node where
@@ -908,10 +917,9 @@ prop_Score_Zero node =
   in score <= 1e-12
 
 -- | Check that cluster stats are sane.
-prop_CStats_sane node =
+prop_CStats_sane =
   forAll (choose (1, 1024)) $ \count ->
-    (not (Node.offline node) && not (Node.failN1 node) &&
-     (Node.availDisk node > 0) && (Node.availMem node > 0)) ==>
+  forAll genOnlineNode $ \node ->
   let fn = Node.buildPeers node Container.empty
       nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]
       nl = Container.fromList nlst
@@ -921,13 +929,9 @@ prop_CStats_sane node =
 
 -- | Check that one instance is allocated correctly, without
 -- rebalances needed.
-prop_ClusterAlloc_sane node inst =
+prop_ClusterAlloc_sane inst =
   forAll (choose (5, 20)) $ \count ->
-  not (Node.offline node)
-        && not (Node.failN1 node)
-        && Node.availDisk node > 0
-        && Node.availMem node > 0
-        ==>
+  forAll genOnlineNode $ \node ->
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
   in case Cluster.genAllocNodes defGroupList nl 2 True >>=
      Cluster.tryAlloc nl il inst' of
@@ -943,13 +947,10 @@ prop_ClusterAlloc_sane node inst =
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
 -- spec), on either one or two nodes.
-prop_ClusterCanTieredAlloc node inst =
+prop_ClusterCanTieredAlloc inst =
   forAll (choose (2, 5)) $ \count ->
   forAll (choose (1, 2)) $ \rqnodes ->
-  not (Node.offline node)
-        && not (Node.failN1 node)
-        && isNodeBig node 4
-        ==>
+  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   let nl = makeSmallCluster node count
       il = Container.empty
       allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
@@ -962,12 +963,9 @@ prop_ClusterCanTieredAlloc node inst =
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
 -- we can also evacuate it.
-prop_ClusterAllocEvac node inst =
+prop_ClusterAllocEvac inst =
   forAll (choose (4, 8)) $ \count ->
-  not (Node.offline node)
-        && not (Node.failN1 node)
-        && isNodeBig node 4
-        ==>
+  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
   in case Cluster.genAllocNodes defGroupList nl 2 True >>=
      Cluster.tryAlloc nl il inst' of
