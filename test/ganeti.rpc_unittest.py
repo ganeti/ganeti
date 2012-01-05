@@ -28,6 +28,7 @@ import unittest
 from ganeti import constants
 from ganeti import compat
 from ganeti import rpc
+from ganeti import rpc_defs
 from ganeti import http
 from ganeti import errors
 from ganeti import serializer
@@ -396,6 +397,17 @@ class TestNodeConfigResolver(unittest.TestCase):
                                              NotImplemented,
                                              ["node100.example.com"], None),
                      [("node100.example.com", rpc._OFFLINE)])
+
+  def testSingleOfflineWithAcceptOffline(self):
+    fn = self._GetSingleOfflineNode
+    assert fn("node100.example.com").offline
+    self.assertEqual(rpc._NodeConfigResolver(fn, NotImplemented,
+                                             ["node100.example.com"],
+                                             rpc_defs.ACCEPT_OFFLINE_NODE),
+                     [("node100.example.com", "192.0.2.100")])
+    for i in [False, True, "", "Hello", 0, 1]:
+      self.assertRaises(AssertionError, rpc._NodeConfigResolver,
+                        fn, NotImplemented, ["node100.example.com"], i)
 
   def testUnknownSingleNode(self):
     self.assertEqual(rpc._NodeConfigResolver(lambda _: None, NotImplemented,

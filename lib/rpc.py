@@ -285,7 +285,7 @@ class _StaticResolver:
     return zip(hosts, self._addresses)
 
 
-def _CheckConfigNode(name, node):
+def _CheckConfigNode(name, node, accept_offline_node):
   """Checks if a node is online.
 
   @type name: string
@@ -297,24 +297,29 @@ def _CheckConfigNode(name, node):
   if node is None:
     # Depend on DNS for name resolution
     ip = name
-  elif node.offline:
+  elif node.offline and not accept_offline_node:
     ip = _OFFLINE
   else:
     ip = node.primary_ip
   return (name, ip)
 
 
-def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts, _):
+def _NodeConfigResolver(single_node_fn, all_nodes_fn, hosts, opts):
   """Calculate node addresses using configuration.
 
   """
+  accept_offline_node = (opts is rpc_defs.ACCEPT_OFFLINE_NODE)
+
+  assert accept_offline_node or opts is None, "Unknown option"
+
   # Special case for single-host lookups
   if len(hosts) == 1:
     (name, ) = hosts
-    return [_CheckConfigNode(name, single_node_fn(name))]
+    return [_CheckConfigNode(name, single_node_fn(name), accept_offline_node)]
   else:
     all_nodes = all_nodes_fn()
-    return [_CheckConfigNode(name, all_nodes.get(name, None))
+    return [_CheckConfigNode(name, all_nodes.get(name, None),
+                             accept_offline_node)
             for name in hosts]
 
 

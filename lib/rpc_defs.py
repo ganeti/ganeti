@@ -58,6 +58,8 @@ TMO_1DAY = 86400
 SINGLE = "single-node"
 MULTI = "multi-node"
 
+ACCEPT_OFFLINE_NODE = object()
+
 # Constants for encoding/decoding
 (ED_OBJECT_DICT,
  ED_OBJECT_DICT_LIST,
