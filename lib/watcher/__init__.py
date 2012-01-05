@@ -410,23 +410,6 @@ def _UpdateInstanceStatus(filename, instances):
                                   for inst in instances])
 
 
-class _StatCb:
-  """Helper to store file handle's C{fstat}.
-
-  """
-  def __init__(self):
-    """Initializes this class.
-
-    """
-    self.st = None
-
-  def __call__(self, fh):
-    """Calls C{fstat} on file handle.
-
-    """
-    self.st = os.fstat(fh.fileno())
-
-
 def _ReadInstanceStatus(filename):
   """Reads an instance status file.
 
@@ -440,7 +423,7 @@ def _ReadInstanceStatus(filename):
   """
   logging.debug("Reading per-group instance status from '%s'", filename)
 
-  statcb = _StatCb()
+  statcb = utils.FileStatHelper()
   try:
     content = utils.ReadFile(filename, preread=statcb)
   except EnvironmentError, err:

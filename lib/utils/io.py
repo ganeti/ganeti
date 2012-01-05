@@ -72,6 +72,25 @@ def ErrnoOrStr(err):
   return detail
 
 
+class FileStatHelper:
+  """Helper to store file handle's C{fstat}.
+
+  Useful in combination with L{ReadFile}'s C{preread} parameter.
+
+  """
+  def __init__(self):
+    """Initializes this class.
+
+    """
+    self.st = None
+
+  def __call__(self, fh):
+    """Calls C{fstat} on file handle.
+
+    """
+    self.st = os.fstat(fh.fileno())
+
+
 def ReadFile(file_name, size=-1, preread=None):
   """Reads a file.
 
