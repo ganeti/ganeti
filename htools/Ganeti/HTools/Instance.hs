@@ -79,7 +79,7 @@ data Instance = Instance
   , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
   , tags         :: [String]  -- ^ List of instance tags
   , diskTemplate :: T.DiskTemplate -- ^ The disk template of the instance
-  } deriving (Show, Read)
+  } deriving (Show, Read, Eq)
 
 instance T.Element Instance where
   nameOf   = name

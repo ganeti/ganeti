@@ -146,6 +146,12 @@ setInstanceSmallerThanNode node inst =
        , Instance.vcpus = Node.availCpu node `div` 2
        }
 
+-- | Check if an instance is smaller than a node.
+isInstanceSmallerThanNode node inst =
+  Instance.mem inst   <= Node.availMem node `div` 2 &&
+  Instance.dsk inst   <= Node.availDisk node `div` 2 &&
+  Instance.vcpus inst <= Node.availCpu node `div` 2
+
 -- | Create an instance given its spec.
 createInstance mem dsk vcpus =
   Instance.create "inst-unnamed" mem dsk vcpus Types.Running [] True (-1) (-1)
@@ -222,6 +228,38 @@ getFQDN = do
   frest <- vector ncomps::Gen [[DNSChar]]
   let frest' = map (map dnsGetChar) frest
   return (felem ++ "." ++ intercalate "." frest')
+
+-- | Defines a tag type.
+newtype TagChar = TagChar { tagGetChar :: Char }
+
+-- | All valid tag chars. This doesn't need to match _exactly_
+-- Ganeti's own tag regex, just enough for it to be close.
+tagChar :: [Char]
+tagChar = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ".+*/:@-"
+
+instance Arbitrary TagChar where
+  arbitrary = do
+    c <- elements tagChar
+    return (TagChar c)
+
+-- | Generates a tag
+genTag :: Gen [TagChar]
+genTag = do
+  -- the correct value would be C.maxTagLen, but that's way too
+  -- verbose in unittests, and at the moment I don't see any possible
+  -- bugs with longer tags and the way we use tags in htools
+  n <- choose (1, 10)
+  vector n
+
+-- | Generates a list of tags (correctly upper bounded).
+genTags :: Gen [String]
+genTags = do
+  -- the correct value would be C.maxTagsPerObj, but per the comment
+  -- in genTag, we don't use tags enough in htools to warrant testing
+  -- such big values
+  n <- choose (0, 10::Int)
+  tags <- mapM (const genTag) [1..n]
+  return $ map (map tagGetChar) tags
 
 instance Arbitrary Types.InstanceStatus where
     arbitrary = elements [minBound..maxBound]
@@ -732,12 +770,53 @@ prop_Text_NodeLSIdempotent node =
     where n = node { Node.failN1 = True, Node.offline = False
                    , Node.iPolicy = Types.defIPolicy }
 
+-- | This property, while being in the text tests, does more than just
+-- test end-to-end the serialisation and loading back workflow; it
+-- also tests the Loader.mergeData and the actuall
+-- Cluster.iterateAlloc (for well-behaving w.r.t. instance
+-- allocations, not for the business logic). As such, it's a quite
+-- complex and slow test, and that's the reason we restrict it to
+-- small cluster sizes.
+prop_Text_CreateSerialise =
+  forAll genTags $ \ctags ->
+  forAll (choose (1, 2)) $ \reqnodes ->
+  forAll (choose (1, 20)) $ \maxiter ->
+  forAll (choose (2, 10)) $ \count ->
+  forAll genOnlineNode $ \node ->
+  forAll (arbitrary `suchThat` isInstanceSmallerThanNode node) $ \inst ->
+  let inst' = Instance.setMovable inst $ Utils.if' (reqnodes == 2) True False
+      nl = makeSmallCluster node count
+  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
+     Cluster.iterateAlloc nl Container.empty (Just maxiter) inst' allocn [] []
+     of
+       Types.Bad msg -> printTestCase ("Failed to allocate: " ++ msg) False
+       Types.Ok (_, _, _, [], _) -> printTestCase
+                                    "Failed to allocate: no allocations" False
+       Types.Ok (_, nl', il', _, _) ->
+         let cdata = Loader.ClusterData defGroupList nl' il' ctags
+                     Types.defIPolicy
+             saved = Text.serializeCluster cdata
+         in case Text.parseData saved >>= Loader.mergeData [] [] [] [] of
+              Types.Bad msg -> printTestCase ("Failed to load/merge: " ++
+                                              msg) False
+              Types.Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
+                ctags ==? ctags2 .&&.
+                Types.defIPolicy ==? cpol2 .&&.
+                il' ==? il2 .&&.
+                -- we need to override the policy manually for now for
+                -- nodes and groups
+                defGroupList ==? (Container.map (\g -> g { Group.iPolicy =
+                                                             nullIPolicy } )
+                                  gl2) .&&.
+                nl' ==? Container.map (Node.setPolicy nullIPolicy) nl2
+
 testSuite "Text"
             [ 'prop_Text_Load_Instance
             , 'prop_Text_Load_InstanceFail
             , 'prop_Text_Load_Node
             , 'prop_Text_Load_NodeFail
             , 'prop_Text_NodeLSIdempotent
+            , 'prop_Text_CreateSerialise
             ]
 
 -- ** Node tests

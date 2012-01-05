@@ -91,7 +91,7 @@ data ClusterData = ClusterData
   , cdInstances :: Instance.List -- ^ The instance list
   , cdTags      :: [String]      -- ^ The cluster tags
   , cdIPolicy   :: IPolicy       -- ^ The cluster instance policy
-  } deriving (Show, Read)
+  } deriving (Show, Read, Eq)
 
 -- | The priority of a match in a lookup result.
 data MatchPriority = ExactMatch
