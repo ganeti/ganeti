@@ -155,11 +155,13 @@ def RunClusterTests():
 
   """
   for test, fn in [
+    ("create-cluster", qa_cluster.TestClusterInitDisk),
     ("cluster-renew-crypto", qa_cluster.TestClusterRenewCrypto),
     ("cluster-verify", qa_cluster.TestClusterVerify),
     ("cluster-reserved-lvs", qa_cluster.TestClusterReservedLvs),
     # TODO: add more cluster modify tests
     ("cluster-modify", qa_cluster.TestClusterModifyBe),
+    ("cluster-modify", qa_cluster.TestClusterModifyDisk),
     ("cluster-rename", qa_cluster.TestClusterRename),
     ("cluster-info", qa_cluster.TestClusterVersion),
     ("cluster-info", qa_cluster.TestClusterInfo),

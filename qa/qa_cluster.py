@@ -58,13 +58,22 @@ def _CheckFileOnAllNodes(filename, content):
     AssertEqual(qa_utils.GetCommandOutput(node["primary"], cmd), content)
 
 
+# data for testing failures due to bad keys/values for disk parameters
+_FAIL_PARAMS = ["nonexistent:resync-rate=1",
+                "drbd:nonexistent=1",
+                "drbd:resync-rate=invalid",
+                ]
+
+
+def TestClusterInitDisk():
+  """gnt-cluster init -D"""
+  name = qa_config.get("name")
+  for param in _FAIL_PARAMS:
+    AssertCommand(["gnt-cluster", "init", "-D", param, name], fail=True)
+
+
 def TestClusterInit(rapi_user, rapi_secret):
   """gnt-cluster init"""
-  # data for testing failures due to bad keys/values for disk parameters
-  fail_params = ("-D nonexistent:resync-rate=1",
-                 "-D drbd:nonexistent=1",
-                 "-D drbd:resync-rate=invalid")
-
   master = qa_config.GetMasterNode()
 
   rapi_dir = os.path.dirname(constants.RAPI_USERS_FILE)
@@ -110,22 +119,10 @@ def TestClusterInit(rapi_user, rapi_secret):
   if htype:
     cmd.append("--enabled-hypervisors=%s" % htype)
 
-  # test gnt-cluster init failures due to bad keys/values in disk parameters
-  for param in fail_params:
-    cmd.extend([param, qa_config.get("name")])
-    AssertCommand(cmd, fail=True)
-    cmd.pop()
-    cmd.pop()
-
   cmd.append(qa_config.get("name"))
   AssertCommand(cmd)
 
   cmd = ["gnt-cluster", "modify"]
-  # test gnt-cluster modify failures due to bad keys/values in disk parameters
-  for param in fail_params:
-    cmd.append(param)
-    AssertCommand(cmd, fail=True)
-    cmd.pop()
 
   # hypervisor parameter modifications
   hvp = qa_config.get("hypervisor-parameters", {})
@@ -277,6 +274,12 @@ def TestClusterReservedLvs():
     (False, _CLUSTER_VERIFY),
     ]:
     AssertCommand(cmd, fail=fail)
+
+
+def TestClusterModifyDisk():
+  """gnt-cluster modify -D"""
+  for param in _FAIL_PARAMS:
+    AssertCommand(["gnt-cluster", "modify", "-D", param], fail=True)
 
 
 def TestClusterModifyBe():
