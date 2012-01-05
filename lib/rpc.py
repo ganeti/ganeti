@@ -470,7 +470,7 @@ class _RpcClientBase:
     else:
       # for a custom prep_fn, we pass the encoded arguments and the
       # node name to the prep_fn, and we serialise its return value
-      assert(callable(prep_fn))
+      assert callable(prep_fn)
       pnbody = dict((n, serializer.DumpJson(prep_fn(n, enc_args)))
                     for n in node_list)
 
