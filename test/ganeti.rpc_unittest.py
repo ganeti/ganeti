@@ -33,6 +33,7 @@ from ganeti import http
 from ganeti import errors
 from ganeti import serializer
 from ganeti import objects
+from ganeti import backend
 
 import testutils
 
@@ -446,6 +447,26 @@ class TestNodeConfigResolver(unittest.TestCase):
       ("node54.example.com", rpc._OFFLINE),
       ("unknown.example.com", "unknown.example.com"),
       ])
+
+
+class TestCompress(unittest.TestCase):
+  def test(self):
+    for data in ["", "Hello", "Hello World!\nnew\nlines"]:
+      self.assertEqual(rpc._Compress(data),
+                       (constants.RPC_ENCODING_NONE, data))
+
+    for data in [512 * " ", 5242 * "Hello World!\n"]:
+      compressed = rpc._Compress(data)
+      self.assertEqual(len(compressed), 2)
+      self.assertEqual(backend._Decompress(compressed), data)
+
+  def testDecompression(self):
+    self.assertRaises(AssertionError, backend._Decompress, "")
+    self.assertRaises(AssertionError, backend._Decompress, [""])
+    self.assertRaises(AssertionError, backend._Decompress,
+                      ("unknown compression", "data"))
+    self.assertRaises(Exception, backend._Decompress,
+                      (constants.RPC_ENCODING_ZLIB_BASE64, "invalid zlib data"))
 
 
 if __name__ == "__main__":
