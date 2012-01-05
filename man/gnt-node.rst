@@ -64,6 +64,13 @@ The ``vm_capable``, ``master_capable``, ``ndparams``, ``diskstate`` and
 ``hvstate`` options are described in **ganeti**(7), and are used to set
 the properties of the new node.
 
+The command performs some operations that change the state of the master
+and the new node, like copying certificates and starting the node daemon
+on the new node, or updating ``/etc/hosts`` on the master node.  If the
+command fails at a later stage, it doesn't undo such changes.  This
+should not be a problem, as a successful run of ``gnt-node add`` will
+bring everything back in sync.
+
 Example::
 
     # gnt-node add node5.example.com
