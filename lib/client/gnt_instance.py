@@ -630,8 +630,8 @@ def GrowDisk(opts, args):
 
   @param opts: the command line options selected by the user
   @type args: list
-  @param args: should contain two elements, the instance name
-      whose disks we grow and the disk name, e.g. I{sda}
+  @param args: should contain three elements, the target instance name,
+      the target disk id, and the target growth
   @rtype: int
   @return: the desired exit code
 
