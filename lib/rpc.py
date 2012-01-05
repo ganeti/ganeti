@@ -461,6 +461,9 @@ class _RpcClientBase:
     else:
       req_resolver_opts = resolver_opts
 
+    if len(args) != len(argdefs):
+      raise errors.ProgrammerError("Number of passed arguments doesn't match")
+
     enc_args = map(self._encoder, zip(map(compat.snd, argdefs), args))
     if prep_fn is None:
       # for a no-op prep_fn, we serialise the body once, and then we
