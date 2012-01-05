@@ -154,8 +154,13 @@ createInstance mem dsk vcpus =
 -- | Create a small cluster by repeating a node spec.
 makeSmallCluster :: Node.Node -> Int -> Node.List
 makeSmallCluster node count =
-  let fn = Node.buildPeers node Container.empty
-      namelst = map (\n -> (Node.name n, n)) (replicate count fn)
+  let origname = Node.name node
+      origalias = Node.alias node
+      nodes = map (\idx -> node { Node.name = origname ++ "-" ++ show idx
+                                , Node.alias = origalias ++ "-" ++ show idx })
+              [1..count]
+      fn = flip Node.buildPeers Container.empty
+      namelst = map (\n -> (Node.name n, fn n)) nodes
       (_, nlst) = Loader.assignIndices namelst
   in nlst
 
