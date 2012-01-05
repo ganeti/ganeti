@@ -447,7 +447,7 @@ _NODE_CALLS = [
    "Gets all volumes on node(s)"),
   ("node_demote_from_mc", SINGLE, None, TMO_FAST, [], None, None,
    "Demote a node from the master candidate role"),
-  ("node_powercycle", SINGLE, None, TMO_NORMAL, [
+  ("node_powercycle", SINGLE, ACCEPT_OFFLINE_NODE, TMO_NORMAL, [
     ("hypervisor", None, "Hypervisor type"),
     ], None, None, "Tries to powercycle a node"),
   ]
