@@ -397,7 +397,7 @@ class _RpcProcessor:
     return results
 
   def __call__(self, hosts, procedure, body, read_timeout, resolver_opts,
-               _req_process_fn=http.client.ProcessRequests):
+               _req_process_fn=None):
     """Makes an RPC request to a number of nodes.
 
     @type hosts: sequence
@@ -413,6 +413,9 @@ class _RpcProcessor:
     assert read_timeout is not None, \
       "Missing RPC read timeout for procedure '%s'" % procedure
 
+    if _req_process_fn is None:
+      _req_process_fn = http.client.ProcessRequests
+
     (results, requests) = \
       self._PrepareRequests(self._resolver(hosts, resolver_opts), self._port,
                             procedure, body, read_timeout)
@@ -425,13 +428,15 @@ class _RpcProcessor:
 
 
 class _RpcClientBase:
-  def __init__(self, resolver, encoder_fn, lock_monitor_cb=None):
+  def __init__(self, resolver, encoder_fn, lock_monitor_cb=None,
+               _req_process_fn=None):
     """Initializes this class.
 
     """
-    self._proc = _RpcProcessor(resolver,
-                               netutils.GetDaemonPort(constants.NODED),
-                               lock_monitor_cb=lock_monitor_cb)
+    proc = _RpcProcessor(resolver,
+                         netutils.GetDaemonPort(constants.NODED),
+                         lock_monitor_cb=lock_monitor_cb)
+    self._proc = compat.partial(proc, _req_process_fn=_req_process_fn)
     self._encoder = compat.partial(self._EncodeArg, encoder_fn)
 
   @staticmethod
