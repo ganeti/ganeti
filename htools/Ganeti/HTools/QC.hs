@@ -367,6 +367,9 @@ instance Arbitrary Types.DiskTemplate where
 instance Arbitrary Types.FailMode where
   arbitrary = elements [minBound..maxBound]
 
+instance Arbitrary Types.EvacMode where
+  arbitrary = elements [minBound..maxBound]
+
 instance Arbitrary a => Arbitrary (Types.OpResult a) where
   arbitrary = arbitrary >>= \c ->
               if c
@@ -1253,18 +1256,37 @@ testSuite "Loader"
 
 prop_Types_AllocPolicy_serialisation apol =
   case J.readJSON (J.showJSON apol) of
-    J.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
-              p == apol
+    J.Ok p -> p ==? apol
     J.Error s -> printTestCase ("failed to deserialise: " ++ s) False
       where _types = apol::Types.AllocPolicy
 
 prop_Types_DiskTemplate_serialisation dt =
   case J.readJSON (J.showJSON dt) of
-    J.Ok p -> printTestCase ("invalid deserialisation " ++ show p) $
-              p == dt
+    J.Ok p -> p ==? dt
     J.Error s -> printTestCase ("failed to deserialise: " ++ s)
                  False
       where _types = dt::Types.DiskTemplate
+
+prop_Types_ISpec_serialisation ispec =
+  case J.readJSON (J.showJSON ispec) of
+    J.Ok p -> p ==? ispec
+    J.Error s -> printTestCase ("failed to deserialise: " ++ s)
+                 False
+      where _types = ispec::Types.ISpec
+
+prop_Types_IPolicy_serialisation ipol =
+  case J.readJSON (J.showJSON ipol) of
+    J.Ok p -> p ==? ipol
+    J.Error s -> printTestCase ("failed to deserialise: " ++ s)
+                 False
+      where _types = ipol::Types.IPolicy
+
+prop_Types_EvacMode_serialisation em =
+  case J.readJSON (J.showJSON em) of
+    J.Ok p -> p ==? em
+    J.Error s -> printTestCase ("failed to deserialise: " ++ s)
+                 False
+      where _types = em::Types.EvacMode
 
 prop_Types_opToResult op =
   case op of
@@ -1287,6 +1309,9 @@ prop_Types_eitherToResult ei =
 testSuite "Types"
             [ 'prop_Types_AllocPolicy_serialisation
             , 'prop_Types_DiskTemplate_serialisation
+            , 'prop_Types_ISpec_serialisation
+            , 'prop_Types_IPolicy_serialisation
+            , 'prop_Types_EvacMode_serialisation
             , 'prop_Types_opToResult
             , 'prop_Types_eitherToResult
             ]
