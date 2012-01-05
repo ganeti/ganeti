@@ -7,7 +7,7 @@ files, as produced by @gnt-node@ and @gnt-instance@ @list@ command.
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,6 +49,12 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+
+-- * Helper functions
+
+-- | Simple wrapper over sepSplit
+commaSplit :: String -> [String]
+commaSplit = sepSplit ','
 
 -- * Serialisation functions
 
@@ -102,14 +108,49 @@ serializeInstances :: Node.List -> Instance.List -> String
 serializeInstances nl =
   unlines . map (serializeInstance nl) . Container.elems
 
+-- | Generate a spec data from a given ISpec object.
+serializeISpec :: ISpec -> String
+serializeISpec ispec =
+  -- this needs to be kept in sync with the object definition
+  let ISpec mem_s cpu_c disk_s disk_c nic_c = ispec
+      strings = [show mem_s, show cpu_c, show disk_s, show disk_c, show nic_c]
+  in intercalate "," strings
+
+-- | Generate disk template data.
+serializeDiskTemplates :: [DiskTemplate] -> String
+serializeDiskTemplates = intercalate "," . map diskTemplateToRaw
+
+-- | Generate policy data from a given policy object.
+serializeIPolicy :: String -> IPolicy -> String
+serializeIPolicy owner ipol =
+  let IPolicy stdspec minspec maxspec dts = ipol
+      strings = [ owner
+                , serializeISpec stdspec
+                , serializeISpec minspec
+                , serializeISpec maxspec
+                , serializeDiskTemplates dts
+                ]
+  in intercalate "|" strings
+
+-- | Generates the entire ipolicy section from the cluster and group
+-- objects.
+serializeAllIPolicies :: IPolicy -> Group.List -> String
+serializeAllIPolicies cpol gl =
+  let groups = Container.elems gl
+      allpolicies = [("", cpol)] ++
+                    map (\g -> (Group.name g, Group.iPolicy g)) groups
+      strings = map (uncurry serializeIPolicy) allpolicies
+  in unlines strings
+
 -- | Generate complete cluster data from node and instance lists.
 serializeCluster :: ClusterData -> String
-serializeCluster (ClusterData gl nl il ctags _) =
+serializeCluster (ClusterData gl nl il ctags cpol) =
   let gdata = serializeGroups gl
       ndata = serializeNodes gl nl
       idata = serializeInstances nl il
+      pdata = serializeAllIPolicies cpol gl
   -- note: not using 'unlines' as that adds too many newlines
-  in intercalate "\n" [gdata, ndata, idata, unlines ctags]
+  in intercalate "\n" [gdata, ndata, idata, unlines ctags, pdata]
 
 -- * Parsing functions
 
@@ -170,11 +211,49 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
                    (diskTemplateFromRaw dt)
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
-  let vtags = sepSplit ',' tags
+  let vtags = commaSplit tags
       newinst = Instance.create name vmem vdsk vvcpus vstatus vtags
                 auto_balance pidx sidx disk_template
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
+
+-- | Loads a spec from a field list.
+loadISpec :: String -> [String] -> Result ISpec
+loadISpec owner [mem_s, cpu_c, dsk_s, dsk_c, nic_c] = do
+  xmem_s <- tryRead (owner ++ "/memsize") mem_s
+  xcpu_c <- tryRead (owner ++ "/cpucount") cpu_c
+  xdsk_s <- tryRead (owner ++ "/disksize") dsk_s
+  xdsk_c <- tryRead (owner ++ "/diskcount") dsk_c
+  xnic_c <- tryRead (owner ++ "/niccount") nic_c
+  return $ ISpec xmem_s xcpu_c xdsk_s xdsk_c xnic_c
+loadISpec owner s = fail $ "Invalid ispec data for " ++ owner ++ ": " ++ show s
+
+-- | Loads an ipolicy from a field list.
+loadIPolicy :: [String] -> Result (String, IPolicy)
+loadIPolicy [owner, stdspec, minspec, maxspec, dtemplates] = do
+  xstdspec <- loadISpec (owner ++ "/stdspec") (commaSplit stdspec)
+  xminspec <- loadISpec (owner ++ "/minspec") (commaSplit minspec)
+  xmaxspec <- loadISpec (owner ++ "/maxspec") (commaSplit maxspec)
+  xdts <- mapM diskTemplateFromRaw $ commaSplit dtemplates
+  return $ (owner, IPolicy xstdspec xminspec xmaxspec xdts)
+loadIPolicy s = fail $ "Invalid ipolicy data: '" ++ show s ++ "'"
+
+loadOnePolicy :: (IPolicy, Group.List) -> String
+              -> Result (IPolicy, Group.List)
+loadOnePolicy (cpol, gl) line = do
+  (owner, ipol) <- loadIPolicy (sepSplit '|' line)
+  case owner of
+    "" -> return (ipol, gl) -- this is a cluster policy (no owner)
+    _ -> do
+      grp <- Container.findByName gl owner
+      let grp' = grp { Group.iPolicy = ipol }
+          gl' = Container.add (Group.idx grp') grp' gl
+      return (cpol, gl')
+
+-- | Loads all policies from the policy section
+loadAllIPolicies :: Group.List -> [String] -> Result (IPolicy, Group.List)
+loadAllIPolicies gl =
+  foldM loadOnePolicy (defIPolicy, gl)
 
 -- | Convert newline and delimiter-separated text.
 --
@@ -209,11 +288,12 @@ parseData :: String -- ^ Text data
           -> Result ClusterData
 parseData fdata = do
   let flines = lines fdata
-  (glines, nlines, ilines, ctags) <-
+  (glines, nlines, ilines, ctags, pollines) <-
       case sepSplit "" flines of
-        [a, b, c, d] -> Ok (a, b, c, d)
+        [a, b, c, d, e] -> Ok (a, b, c, d, e)
+        [a, b, c, d] -> Ok (a, b, c, d, [])
         xs -> Bad $ printf "Invalid format of the input file: %d sections\
-                           \ instead of 4" (length xs)
+                           \ instead of 4 or 5" (length xs)
   {- group file: name uuid -}
   (ktg, gl) <- loadTabular glines loadGroup
   {- node file: name t_mem n_mem f_mem t_disk f_disk -}
@@ -221,7 +301,9 @@ parseData fdata = do
   {- instance file: name mem disk status pnode snode -}
   (_, il) <- loadTabular ilines (loadInst ktn)
   {- the tags are simply line-based, no processing needed -}
-  return (ClusterData gl nl il ctags defIPolicy)
+  {- process policies -}
+  (cpol, gl') <- loadAllIPolicies gl pollines
+  return (ClusterData gl' nl il ctags cpol)
 
 -- | Top level function for data loading.
 loadData :: String -- ^ Path to the text file

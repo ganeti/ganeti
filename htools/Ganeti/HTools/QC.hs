@@ -803,12 +803,8 @@ prop_Text_CreateSerialise =
                 ctags ==? ctags2 .&&.
                 Types.defIPolicy ==? cpol2 .&&.
                 il' ==? il2 .&&.
-                -- we need to override the policy manually for now for
-                -- nodes and groups
-                defGroupList ==? (Container.map (\g -> g { Group.iPolicy =
-                                                             nullIPolicy } )
-                                  gl2) .&&.
-                nl' ==? Container.map (Node.setPolicy nullIPolicy) nl2
+                defGroupList ==? gl2 .&&.
+                nl' ==? nl2
 
 testSuite "Text"
             [ 'prop_Text_Load_Instance
