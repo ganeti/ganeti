@@ -770,6 +770,19 @@ prop_Text_NodeLSIdempotent node =
     where n = node { Node.failN1 = True, Node.offline = False
                    , Node.iPolicy = Types.defIPolicy }
 
+prop_Text_ISpecIdempotent ispec =
+  case Text.loadISpec "dummy" . Utils.sepSplit ',' .
+       Text.serializeISpec $ ispec of
+    Types.Bad msg -> printTestCase ("Failed to load ispec: " ++ msg) False
+    Types.Ok ispec' -> ispec ==? ispec'
+
+prop_Text_IPolicyIdempotent ipol =
+  case Text.loadIPolicy . Utils.sepSplit '|' $
+       Text.serializeIPolicy owner ipol of
+    Types.Bad msg -> printTestCase ("Failed to load ispec: " ++ msg) False
+    Types.Ok res -> (owner, ipol) ==? res
+  where owner = "dummy"
+
 -- | This property, while being in the text tests, does more than just
 -- test end-to-end the serialisation and loading back workflow; it
 -- also tests the Loader.mergeData and the actuall
@@ -812,6 +825,8 @@ testSuite "Text"
             , 'prop_Text_Load_Node
             , 'prop_Text_Load_NodeFail
             , 'prop_Text_NodeLSIdempotent
+            , 'prop_Text_ISpecIdempotent
+            , 'prop_Text_IPolicyIdempotent
             , 'prop_Text_CreateSerialise
             ]
 

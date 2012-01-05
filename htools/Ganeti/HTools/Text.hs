@@ -31,9 +31,14 @@ module Ganeti.HTools.Text
   , parseData
   , loadInst
   , loadNode
+  , loadISpec
+  , loadIPolicy
   , serializeInstances
   , serializeNode
   , serializeNodes
+  , serializeGroup
+  , serializeISpec
+  , serializeIPolicy
   , serializeCluster
   ) where
 
