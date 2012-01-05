@@ -109,3 +109,9 @@ class FakeGetentResolver:
 
     self.daemons_gid = gid
     self.admin_gid = gid
+
+  def LookupUid(self, uid):
+    return "user%s" % uid
+
+  def LookupGid(self, gid):
+    return "group%s" % gid

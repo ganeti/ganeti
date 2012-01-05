@@ -25,6 +25,7 @@ import os
 import sys
 import unittest
 import random
+import tempfile
 
 from ganeti import constants
 from ganeti import compat
@@ -37,6 +38,7 @@ from ganeti import objects
 from ganeti import backend
 
 import testutils
+import mocks
 
 
 class _FakeRequestProcessor:
@@ -682,9 +684,50 @@ class TestRpcClientBase(unittest.TestCase):
         self.assertFalse(res.fail_msg)
 
 
+class _FakeConfigForRpcRunner:
+  GetAllNodesInfo = NotImplemented
+
+  def GetNodeInfo(self, name):
+    return objects.Node(name=name)
+
+
 class TestRpcRunner(unittest.TestCase):
   def testUploadFile(self):
-    runner = rpc.RpcRunner(_req_process_fn=http_proc)
+    data = 1779 * "Hello World\n"
+
+    tmpfile = tempfile.NamedTemporaryFile()
+    tmpfile.write(data)
+    tmpfile.flush()
+    st = os.stat(tmpfile.name)
+
+    def _VerifyRequest(req):
+      (uldata, ) = serializer.LoadJson(req.post_data)
+      self.assertEqual(len(uldata), 7)
+      self.assertEqual(uldata[0], tmpfile.name)
+      self.assertEqual(list(uldata[1]), list(rpc._Compress(data)))
+      self.assertEqual(uldata[2], st.st_mode)
+      self.assertEqual(uldata[3], "user%s" % os.getuid())
+      self.assertEqual(uldata[4], "group%s" % os.getgid())
+      self.assertEqual(uldata[5], st.st_atime)
+      self.assertEqual(uldata[6], st.st_mtime)
+
+      req.success = True
+      req.resp_status_code = http.HTTP_OK
+      req.resp_body = serializer.DumpJson((True, None))
+
+    http_proc = _FakeRequestProcessor(_VerifyRequest)
+    cfg = _FakeConfigForRpcRunner()
+    runner = rpc.RpcRunner(cfg, None, _req_process_fn=http_proc,
+                           _getents=mocks.FakeGetentResolver)
+
+    nodes = [
+      "node1.example.com",
+      ]
+
+    result = runner.call_upload_file(nodes, tmpfile.name)
+    self.assertEqual(len(result), len(nodes))
+    for (idx, (node, res)) in enumerate(result.items()):
+      self.assertFalse(res.fail_msg)
 
 
 if __name__ == "__main__":

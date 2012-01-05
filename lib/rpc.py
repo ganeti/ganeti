@@ -516,13 +516,19 @@ def _EncodeNodeToDiskDict(value):
               for name, disks in value.items())
 
 
-def _PrepareFileUpload(filename):
+def _PrepareFileUpload(getents_fn, filename):
   """Loads a file and prepares it for an upload to nodes.
 
   """
+  # TODO: Use ReadFile(preread=...) and os.fstat
   data = _Compress(utils.ReadFile(filename))
   st = os.stat(filename)
-  getents = runtime.GetEnts()
+
+  if getents_fn is None:
+    getents_fn = runtime.GetEnts
+
+  getents = getents_fn()
+
   return [filename, data, st.st_mode, getents.LookupUid(st.st_uid),
           getents.LookupGid(st.st_gid), st.st_atime, st.st_mtime]
 
@@ -569,7 +575,6 @@ _ENCODERS = {
   rpc_defs.ED_OBJECT_DICT: _ObjectToDict,
   rpc_defs.ED_OBJECT_DICT_LIST: _ObjectListToDict,
   rpc_defs.ED_NODE_TO_DISK_DICT: _EncodeNodeToDiskDict,
-  rpc_defs.ED_FILE_DETAILS: _PrepareFileUpload,
   rpc_defs.ED_COMPRESS: _Compress,
   rpc_defs.ED_FINALIZE_EXPORT_DISKS: _PrepareFinalizeExportDisks,
   rpc_defs.ED_IMPEXP_IO: _EncodeImportExportIO,
@@ -597,11 +602,14 @@ class RpcRunner(_RpcClientBase,
 
     encoders = _ENCODERS.copy()
 
-    # Add encoders requiring configuration object
     encoders.update({
+      # Encoders requiring configuration object
       rpc_defs.ED_INST_DICT: self._InstDict,
       rpc_defs.ED_INST_DICT_HVP_BEP: self._InstDictHvpBep,
       rpc_defs.ED_INST_DICT_OSP: self._InstDictOsp,
+
+      # Encoders with special requirements
+      rpc_defs.ED_FILE_DETAILS: compat.partial(_PrepareFileUpload, _getents),
       })
 
     # Resolver using configuration
