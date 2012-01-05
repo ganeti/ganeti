@@ -139,6 +139,10 @@ isFailure _ = False
              show x ++ "' /= '" ++ show y ++ "'") (x == y)
 infix 3 ==?
 
+-- | Show a message and fail the test.
+failTest :: String -> Property
+failTest msg = printTestCase msg False
+
 -- | Update an instance to be smaller than a node.
 setInstanceSmallerThanNode node inst =
   inst { Instance.mem = Node.availMem node `div` 2
@@ -709,8 +713,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
                , snode::String
                , autobal::Bool)
   in case inst of
-       Types.Bad msg -> printTestCase ("Failed to load instance: " ++ msg)
-                        False
+       Types.Bad msg -> failTest $ "Failed to load instance: " ++ msg
        Types.Ok (_, i) -> printTestCase "Mismatch in some field while\
                                         \ loading the instance" $
                Instance.name i == name &&
@@ -726,8 +729,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
 prop_Text_Load_InstanceFail ktn fields =
   length fields /= 10 ==>
     case Text.loadInst nl fields of
-      Types.Ok _ -> printTestCase "Managed to load instance from invalid\
-                                  \ data" False
+      Types.Ok _ -> failTest "Managed to load instance from invalid data"
       Types.Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
                        "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Data.Map.fromList ktn
@@ -776,13 +778,13 @@ prop_Text_NodeLSIdempotent node =
 prop_Text_ISpecIdempotent ispec =
   case Text.loadISpec "dummy" . Utils.sepSplit ',' .
        Text.serializeISpec $ ispec of
-    Types.Bad msg -> printTestCase ("Failed to load ispec: " ++ msg) False
+    Types.Bad msg -> failTest $ "Failed to load ispec: " ++ msg
     Types.Ok ispec' -> ispec ==? ispec'
 
 prop_Text_IPolicyIdempotent ipol =
   case Text.loadIPolicy . Utils.sepSplit '|' $
        Text.serializeIPolicy owner ipol of
-    Types.Bad msg -> printTestCase ("Failed to load ispec: " ++ msg) False
+    Types.Bad msg -> failTest $ "Failed to load ispec: " ++ msg
     Types.Ok res -> (owner, ipol) ==? res
   where owner = "dummy"
 
@@ -805,7 +807,7 @@ prop_Text_CreateSerialise =
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
      Cluster.iterateAlloc nl Container.empty (Just maxiter) inst' allocn [] []
      of
-       Types.Bad msg -> printTestCase ("Failed to allocate: " ++ msg) False
+       Types.Bad msg -> failTest $ "Failed to allocate: " ++ msg
        Types.Ok (_, _, _, [], _) -> printTestCase
                                     "Failed to allocate: no allocations" False
        Types.Ok (_, nl', il', _, _) ->
@@ -813,8 +815,7 @@ prop_Text_CreateSerialise =
                      Types.defIPolicy
              saved = Text.serializeCluster cdata
          in case Text.parseData saved >>= Loader.mergeData [] [] [] [] of
-              Types.Bad msg -> printTestCase ("Failed to load/merge: " ++
-                                              msg) False
+              Types.Bad msg -> failTest $ "Failed to load/merge: " ++ msg
               Types.Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
                 ctags ==? ctags2 .&&.
                 Types.defIPolicy ==? cpol2 .&&.
@@ -943,7 +944,7 @@ prop_Node_rMem inst =
            -- test as any
            inst_idx `elem` Node.sList a_ab &&
            inst_idx `notElem` Node.sList d_ab
-       x -> printTestCase ("Failed to add/remove instances: " ++ show x) False
+       x -> failTest $ "Failed to add/remove instances: " ++ show x
 
 -- | Check mdsk setting.
 prop_Node_setMdsk node mx =
@@ -1092,8 +1093,8 @@ prop_ClusterAllocBalance =
       i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
   in case allocnodes >>= \allocnodes' ->
     Cluster.iterateAlloc nl' il (Just 5) i_templ allocnodes' [] [] of
-       Types.Bad _ -> printTestCase "Failed to allocate" False
-       Types.Ok (_, _, _, [], _) -> printTestCase "Failed to allocate" False
+       Types.Bad msg -> failTest $ "Failed to allocate: " ++ msg
+       Types.Ok (_, _, _, [], _) -> failTest "Failed to allocate: no instances"
        Types.Ok (_, xnl, il', _, _) ->
          let ynl = Container.add (Node.idx hnode) hnode xnl
              cv = Cluster.compCV ynl
@@ -1172,7 +1173,7 @@ testSuite "Cluster"
 -- | Check that opcode serialization is idempotent.
 prop_OpCodes_serialization op =
   case J.readJSON (J.showJSON op) of
-    J.Error e -> printTestCase ("Cannot deserialise: " ++ e) False
+    J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok op' -> op ==? op'
   where _types = op::OpCodes.OpCode
 
@@ -1184,13 +1185,13 @@ testSuite "OpCodes"
 -- | Check that (queued) job\/opcode status serialization is idempotent.
 prop_OpStatus_serialization os =
   case J.readJSON (J.showJSON os) of
-    J.Error e -> printTestCase ("Cannot deserialise: " ++ e) False
+    J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok os' -> os ==? os'
   where _types = os::Jobs.OpStatus
 
 prop_JobStatus_serialization js =
   case J.readJSON (J.showJSON js) of
-    J.Error e -> printTestCase ("Cannot deserialise: " ++ e) False
+    J.Error e -> failTest $ "Cannot deserialise: " ++ e
     J.Ok js' -> js ==? js'
   where _types = js::Jobs.JobStatus
 
@@ -1257,35 +1258,31 @@ testSuite "Loader"
 prop_Types_AllocPolicy_serialisation apol =
   case J.readJSON (J.showJSON apol) of
     J.Ok p -> p ==? apol
-    J.Error s -> printTestCase ("failed to deserialise: " ++ s) False
+    J.Error s -> failTest $ "Failed to deserialise: " ++ s
       where _types = apol::Types.AllocPolicy
 
 prop_Types_DiskTemplate_serialisation dt =
   case J.readJSON (J.showJSON dt) of
     J.Ok p -> p ==? dt
-    J.Error s -> printTestCase ("failed to deserialise: " ++ s)
-                 False
+    J.Error s -> failTest $ "Failed to deserialise: " ++ s
       where _types = dt::Types.DiskTemplate
 
 prop_Types_ISpec_serialisation ispec =
   case J.readJSON (J.showJSON ispec) of
     J.Ok p -> p ==? ispec
-    J.Error s -> printTestCase ("failed to deserialise: " ++ s)
-                 False
+    J.Error s -> failTest $ "Failed to deserialise: " ++ s
       where _types = ispec::Types.ISpec
 
 prop_Types_IPolicy_serialisation ipol =
   case J.readJSON (J.showJSON ipol) of
     J.Ok p -> p ==? ipol
-    J.Error s -> printTestCase ("failed to deserialise: " ++ s)
-                 False
+    J.Error s -> failTest $ "Failed to deserialise: " ++ s
       where _types = ipol::Types.IPolicy
 
 prop_Types_EvacMode_serialisation em =
   case J.readJSON (J.showJSON em) of
     J.Ok p -> p ==? em
-    J.Error s -> printTestCase ("failed to deserialise: " ++ s)
-                 False
+    J.Error s -> failTest $ "Failed to deserialise: " ++ s
       where _types = em::Types.EvacMode
 
 prop_Types_opToResult op =
