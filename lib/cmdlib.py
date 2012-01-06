@@ -9640,7 +9640,7 @@ class LUInstanceCreate(LogicalUnit):
       constants.ISPEC_MEM_SIZE: self.be_full.get(constants.BE_MAXMEM, None),
       constants.ISPEC_CPU_COUNT: self.be_full.get(constants.BE_VCPUS, None),
       constants.ISPEC_DISK_COUNT: len(self.disks),
-      constants.ISPEC_DISK_SIZE: [disk.size for disk in self.disks],
+      constants.ISPEC_DISK_SIZE: [disk["size"] for disk in self.disks],
       constants.ISPEC_NIC_COUNT: len(self.nics),
       }
 
