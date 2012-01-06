@@ -18,7 +18,7 @@
 
   "# Instance policy specs": null,
   "ispec_mem_size_max": 1024,
-  "ispec_disk_size_min": 512.
+  "ispec_disk_size_min": 512,
 
   "# Lists of disk sizes": null,
   "disk": ["1G", "512M"],
