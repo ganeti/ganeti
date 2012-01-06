@@ -660,6 +660,10 @@ TEST_FILES = \
 	test/data/proc_drbd83.txt \
 	test/data/proc_drbd83_sync.txt \
 	test/data/proc_drbd83_sync_krnl2.6.39.txt \
+	test/data/kvm_1.0_help.txt \
+	test/data/kvm_0.15.90_help.txt \
+	test/data/kvm_0.12.5_help.txt \
+	test/data/kvm_0.9.1_help.txt \
 	test/data/sys_drbd_usermode_helper.txt \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
