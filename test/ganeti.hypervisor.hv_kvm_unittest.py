@@ -32,6 +32,7 @@ from ganeti import constants
 from ganeti import compat
 from ganeti import objects
 from ganeti import errors
+from ganeti import utils
 
 from ganeti.hypervisor import hv_kvm
 
@@ -221,6 +222,19 @@ class TestConsole(unittest.TestCase):
       }
     cons = self._Test(instance, hvparams)
     self.assertEqual(cons.kind, constants.CONS_MESSAGE)
+
+
+class TestVersionChecking(testutils.GanetiTestCase):
+  def testParseVersion(self):
+    parse = hv_kvm.KVMHypervisor._ParseKVMVersion
+    help_10 = utils.ReadFile(self._TestDataFilename("kvm_1.0_help.txt"))
+    help_01590 = utils.ReadFile(self._TestDataFilename("kvm_0.15.90_help.txt"))
+    help_0125 = utils.ReadFile(self._TestDataFilename("kvm_0.12.5_help.txt"))
+    help_091 = utils.ReadFile(self._TestDataFilename("kvm_0.9.1_help.txt"))
+    self.assertEqual(parse(help_10), ("1.0", 1, 0, 0))
+    self.assertEqual(parse(help_01590), ("0.15.90", 0, 15, 90))
+    self.assertEqual(parse(help_0125), ("0.12.5", 0, 12, 5))
+    self.assertEqual(parse(help_091), ("0.9.1", 0, 9, 1))
 
 
 if __name__ == "__main__":
