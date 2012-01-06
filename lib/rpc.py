@@ -710,7 +710,8 @@ class ConfigRunner(_RpcClientBase, _generated_rpc.RpcClientConfig):
   """RPC wrappers for L{config}.
 
   """
-  def __init__(self, context, address_list):
+  def __init__(self, context, address_list, _req_process_fn=None,
+               _getents=None):
     """Initializes this class.
 
     """
@@ -725,6 +726,13 @@ class ConfigRunner(_RpcClientBase, _generated_rpc.RpcClientConfig):
       # Caller provided an address list
       resolver = _StaticResolver(address_list)
 
-    _RpcClientBase.__init__(self, resolver, _ENCODERS.get,
-                            lock_monitor_cb=lock_monitor_cb)
+    encoders = _ENCODERS.copy()
+
+    encoders.update({
+      rpc_defs.ED_FILE_DETAILS: compat.partial(_PrepareFileUpload, _getents),
+      })
+
+    _RpcClientBase.__init__(self, resolver, encoders.get,
+                            lock_monitor_cb=lock_monitor_cb,
+                            _req_process_fn=_req_process_fn)
     _generated_rpc.RpcClientConfig.__init__(self)

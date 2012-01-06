@@ -716,18 +716,24 @@ class TestRpcRunner(unittest.TestCase):
       req.resp_body = serializer.DumpJson((True, None))
 
     http_proc = _FakeRequestProcessor(_VerifyRequest)
-    cfg = _FakeConfigForRpcRunner()
-    runner = rpc.RpcRunner(cfg, None, _req_process_fn=http_proc,
-                           _getents=mocks.FakeGetentResolver)
+
+    std_runner = rpc.RpcRunner(_FakeConfigForRpcRunner(), None,
+                               _req_process_fn=http_proc,
+                               _getents=mocks.FakeGetentResolver)
+
+    cfg_runner = rpc.ConfigRunner(None, ["192.0.2.13"],
+                                  _req_process_fn=http_proc,
+                                  _getents=mocks.FakeGetentResolver)
 
     nodes = [
       "node1.example.com",
       ]
 
-    result = runner.call_upload_file(nodes, tmpfile.name)
-    self.assertEqual(len(result), len(nodes))
-    for (idx, (node, res)) in enumerate(result.items()):
-      self.assertFalse(res.fail_msg)
+    for runner in [std_runner, cfg_runner]:
+      result = runner.call_upload_file(nodes, tmpfile.name)
+      self.assertEqual(len(result), len(nodes))
+      for (idx, (node, res)) in enumerate(result.items()):
+        self.assertFalse(res.fail_msg)
 
 
 if __name__ == "__main__":
