@@ -687,8 +687,14 @@ class TestRpcClientBase(unittest.TestCase):
 class _FakeConfigForRpcRunner:
   GetAllNodesInfo = NotImplemented
 
+  def __init__(self, cluster=NotImplemented):
+    self._cluster = cluster
+
   def GetNodeInfo(self, name):
     return objects.Node(name=name)
+
+  def GetClusterInfo(self):
+    return self._cluster
 
 
 class TestRpcRunner(unittest.TestCase):
@@ -708,7 +714,7 @@ class TestRpcRunner(unittest.TestCase):
       self.assertEqual(uldata[2], st.st_mode)
       self.assertEqual(uldata[3], "user%s" % os.getuid())
       self.assertEqual(uldata[4], "group%s" % os.getgid())
-      self.assertEqual(uldata[5], st.st_atime)
+      self.assertTrue(uldata[5] is not None)
       self.assertEqual(uldata[6], st.st_mtime)
 
       req.success = True
@@ -734,6 +740,111 @@ class TestRpcRunner(unittest.TestCase):
       self.assertEqual(len(result), len(nodes))
       for (idx, (node, res)) in enumerate(result.items()):
         self.assertFalse(res.fail_msg)
+
+  def testEncodeInstance(self):
+    cluster = objects.Cluster(hvparams={
+      constants.HT_KVM: {
+        constants.HV_BLOCKDEV_PREFIX: "foo",
+        },
+      },
+      beparams={
+        constants.PP_DEFAULT: {
+          constants.BE_MAXMEM: 8192,
+          },
+        },
+      os_hvp={},
+      osparams={
+        "linux": {
+          "role": "unknown",
+          },
+        })
+    cluster.UpgradeConfig()
+
+    inst = objects.Instance(name="inst1.example.com",
+      hypervisor=constants.HT_FAKE,
+      os="linux",
+      hvparams={
+        constants.HT_KVM: {
+          constants.HV_BLOCKDEV_PREFIX: "bar",
+          constants.HV_ROOT_PATH: "/tmp",
+          },
+        },
+      beparams={
+        constants.BE_MINMEM: 128,
+        constants.BE_MAXMEM: 256,
+        },
+      nics=[
+        objects.NIC(nicparams={
+          constants.NIC_MODE: "mymode",
+          }),
+        ],
+      disks=[])
+    inst.UpgradeConfig()
+
+    cfg = _FakeConfigForRpcRunner(cluster=cluster)
+    runner = rpc.RpcRunner(cfg, None,
+                           _req_process_fn=NotImplemented,
+                           _getents=mocks.FakeGetentResolver)
+
+    def _CheckBasics(result):
+      self.assertEqual(result["name"], "inst1.example.com")
+      self.assertEqual(result["os"], "linux")
+      self.assertEqual(result["beparams"][constants.BE_MINMEM], 128)
+      self.assertEqual(len(result["hvparams"]), 1)
+      self.assertEqual(len(result["nics"]), 1)
+      self.assertEqual(result["nics"][0]["nicparams"][constants.NIC_MODE],
+                       "mymode")
+
+    # Generic object serialization
+    result = runner._encoder((rpc_defs.ED_OBJECT_DICT, inst))
+    _CheckBasics(result)
+
+    result = runner._encoder((rpc_defs.ED_OBJECT_DICT_LIST, 5 * [inst]))
+    map(_CheckBasics, result)
+
+    # Just an instance
+    result = runner._encoder((rpc_defs.ED_INST_DICT, inst))
+    _CheckBasics(result)
+    self.assertEqual(result["beparams"][constants.BE_MAXMEM], 256)
+    self.assertEqual(result["hvparams"][constants.HT_KVM], {
+      constants.HV_BLOCKDEV_PREFIX: "bar",
+      constants.HV_ROOT_PATH: "/tmp",
+      })
+    self.assertEqual(result["osparams"], {
+      "role": "unknown",
+      })
+
+    # Instance with OS parameters
+    result = runner._encoder((rpc_defs.ED_INST_DICT_OSP, (inst, {
+      "role": "webserver",
+      "other": "field",
+      })))
+    _CheckBasics(result)
+    self.assertEqual(result["beparams"][constants.BE_MAXMEM], 256)
+    self.assertEqual(result["hvparams"][constants.HT_KVM], {
+      constants.HV_BLOCKDEV_PREFIX: "bar",
+      constants.HV_ROOT_PATH: "/tmp",
+      })
+    self.assertEqual(result["osparams"], {
+      "role": "webserver",
+      "other": "field",
+      })
+
+    # Instance with hypervisor and backend parameters
+    result = runner._encoder((rpc_defs.ED_INST_DICT_HVP_BEP, (inst, {
+      constants.HT_KVM: {
+        constants.HV_BOOT_ORDER: "xyz",
+        },
+      }, {
+      constants.BE_VCPUS: 100,
+      constants.BE_MAXMEM: 4096,
+      })))
+    _CheckBasics(result)
+    self.assertEqual(result["beparams"][constants.BE_MAXMEM], 4096)
+    self.assertEqual(result["beparams"][constants.BE_VCPUS], 100)
+    self.assertEqual(result["hvparams"][constants.HT_KVM], {
+      constants.HV_BOOT_ORDER: "xyz",
+      })
 
 
 if __name__ == "__main__":
