@@ -108,7 +108,7 @@ data EvacSolution = EvacSolution
   , esFailed  :: [(Idx, String)]      -- ^ Instances which were not
                                       -- relocated
   , esOpCodes :: [[OpCodes.OpCode]]   -- ^ List of jobs
-  }
+  } deriving (Show)
 
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
 type AllocResult = (FailStats, Node.List, Instance.List,
@@ -786,7 +786,11 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
       goodSols = filterMGResults mggl sols
       sortedSols = sortMGResults mggl goodSols
   in if null sortedSols
-       then Bad $ intercalate ", " all_msgs
+       then if null groups'
+              then Bad $ "no groups for evacuation: allowed groups was" ++
+                     show allowed_gdxs ++ ", all groups: " ++
+                     show (map fst groups)
+              else Bad $ intercalate ", " all_msgs
        else let (final_group, final_sol) = head sortedSols
             in return (final_group, final_sol, all_msgs)
 

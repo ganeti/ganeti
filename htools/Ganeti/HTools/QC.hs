@@ -1060,25 +1060,89 @@ prop_ClusterCanTieredAlloc inst =
                                              IntMap.size il' == length ixes &&
                                              length ixes == length cstats
 
--- | Checks that on a 4-8 node cluster, once we allocate an instance,
--- we can also evacuate it.
-prop_ClusterAllocEvac inst =
-  forAll (choose (4, 8)) $ \count ->
-  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
-  let (nl, il, inst') = makeSmallEmptyCluster node count inst
+-- | Helper function to create a cluster with the given range of nodes
+-- and allocate an instance on it.
+genClusterAlloc count node inst =
+  let nl = makeSmallCluster node count
   in case Cluster.genAllocNodes defGroupList nl 2 True >>=
-     Cluster.tryAlloc nl il inst' of
-       Types.Bad _ -> False
+     Cluster.tryAlloc nl Container.empty inst of
+       Types.Bad _ -> Types.Bad "Can't allocate"
        Types.Ok as ->
          case Cluster.asSolution as of
-           Nothing -> False
+           Nothing -> Types.Bad "Empty solution?"
            Just (xnl, xi, _, _) ->
-             let sdx = Instance.sNode xi
-                 il' = Container.add (Instance.idx xi) xi il
-             in case IAlloc.processRelocate defGroupList xnl il'
-                  (Instance.idx xi) 1 [sdx] of
-                  Types.Ok _ -> True
-                  _ -> False
+             let xil = Container.add (Instance.idx xi) xi Container.empty
+             in Types.Ok (xnl, xil, xi)
+
+-- | Checks that on a 4-8 node cluster, once we allocate an instance,
+-- we can also relocate it.
+prop_ClusterAllocRelocate =
+  forAll (choose (4, 8)) $ \count ->
+  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
+  forAll (arbitrary `suchThat` (isInstanceSmallerThanNode node)) $ \inst ->
+  case genClusterAlloc count node inst of
+    Types.Bad msg -> failTest msg
+    Types.Ok (nl, il, inst') ->
+      case IAlloc.processRelocate defGroupList nl il
+             (Instance.idx inst) 1 [Instance.sNode inst'] of
+        Types.Ok _ -> printTestCase "??" True  -- huh, how to make
+                                               -- this nicer...
+        Types.Bad msg -> failTest $ "Failed to relocate: " ++ msg
+
+-- | Helper property checker for the result of a nodeEvac or
+-- changeGroup operation.
+check_EvacMode grp inst result =
+  case result of
+    Types.Bad msg -> failTest $ "Couldn't evacuate/change group:" ++ msg
+    Types.Ok (_, _, es) ->
+      let moved = Cluster.esMoved es
+          failed = Cluster.esFailed es
+          opcodes = not . null $ Cluster.esOpCodes es
+      in failmsg ("'failed' not empty: " ++ show failed) (null failed) .&&.
+         failmsg "'opcodes' is null" opcodes .&&.
+         case moved of
+           [(idx', gdx, _)] -> failmsg "invalid instance moved" (idx == idx')
+                               .&&.
+                               failmsg "wrong target group"
+                                         (gdx == Group.idx grp)
+           v -> failmsg  ("invalid solution: " ++ show v) False
+  where failmsg = \msg -> printTestCase ("Failed to evacuate: " ++ msg)
+        idx = Instance.idx inst
+
+-- | Checks that on a 4-8 node cluster, once we allocate an instance,
+-- we can also node-evacuate it.
+prop_ClusterAllocEvacuate =
+  forAll (choose (4, 8)) $ \count ->
+  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
+  forAll (arbitrary `suchThat` (isInstanceSmallerThanNode node)) $ \inst ->
+  case genClusterAlloc count node inst of
+    Types.Bad msg -> failTest msg
+    Types.Ok (nl, il, inst') ->
+      conjoin $ map (\mode -> check_EvacMode defGroup inst' $
+                              Cluster.tryNodeEvac defGroupList nl il mode
+                                [Instance.idx inst']) [minBound..maxBound]
+
+-- | Checks that on a 4-8 node cluster with two node groups, once we
+-- allocate an instance on the first node group, we can also change
+-- its group.
+prop_ClusterAllocChangeGroup =
+  forAll (choose (4, 8)) $ \count ->
+  forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
+  forAll (arbitrary `suchThat` (isInstanceSmallerThanNode node)) $ \inst ->
+  case genClusterAlloc count node inst of
+    Types.Bad msg -> failTest msg
+    Types.Ok (nl, il, inst') ->
+      -- we need to add a second node group and nodes to the cluster
+      let nl2 = Container.elems $ makeSmallCluster node count
+          grp2 = Group.setIdx defGroup (Group.idx defGroup + 1)
+          maxndx = maximum . map Node.idx $ nl2
+          nl3 = map (\n -> n { Node.group = Group.idx grp2
+                             , Node.idx = Node.idx n + maxndx }) nl2
+          nl4 = Container.fromList . map (\n -> (Node.idx n, n)) $ nl3
+          gl' = Container.add (Group.idx grp2) grp2 defGroupList
+          nl' = IntMap.union nl nl4
+      in check_EvacMode grp2 inst' $
+         Cluster.tryChangeGroup gl' nl' il [] [Instance.idx inst']
 
 -- | Check that allocating multiple instances on a cluster, then
 -- adding an empty node, results in a valid rebalance.
@@ -1161,7 +1225,9 @@ testSuite "Cluster"
             , 'prop_CStats_sane
             , 'prop_ClusterAlloc_sane
             , 'prop_ClusterCanTieredAlloc
-            , 'prop_ClusterAllocEvac
+            , 'prop_ClusterAllocRelocate
+            , 'prop_ClusterAllocEvacuate
+            , 'prop_ClusterAllocChangeGroup
             , 'prop_ClusterAllocBalance
             , 'prop_ClusterCheckConsistency
             , 'prop_ClusterSplitCluster
