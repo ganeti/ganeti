@@ -7452,7 +7452,8 @@ class LUInstanceMove(LogicalUnit):
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
     _CheckNodeVmCapable(self, target_node)
-    ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(), node.group)
+    ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(),
+                                     self.cfg.GetNodeGroup(node.group))
     _CheckTargetNodeIPolicy(self, ipolicy, instance, node,
                             ignore=self.op.ignore_ipolicy)
 
@@ -7722,7 +7723,8 @@ class TLMigrateInstance(Tasklet):
 
       # Check that the target node is correct in terms of instance policy
       nodeinfo = self.cfg.GetNodeInfo(self.target_node)
-      ipolicy = _CalculateGroupIPolicy(cluster, nodeinfo.group)
+      group_info = self.cfg.GetNodeGroup(nodeinfo.group)
+      ipolicy = _CalculateGroupIPolicy(cluster, group_info)
       _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
                               ignore=self.ignore_ipolicy)
 
@@ -7760,7 +7762,8 @@ class TLMigrateInstance(Tasklet):
                                    (instance.disk_template, text),
                                    errors.ECODE_INVAL)
       nodeinfo = self.cfg.GetNodeInfo(target_node)
-      ipolicy = _CalculateGroupIPolicy(cluster, nodeinfo.group)
+      group_info = self.cfg.GetNodeGroup(nodeinfo.group)
+      ipolicy = _CalculateGroupIPolicy(cluster, group_info)
       _CheckTargetNodeIPolicy(self.lu, ipolicy, instance, nodeinfo,
                               ignore=self.ignore_ipolicy)
 
@@ -9644,7 +9647,8 @@ class LUInstanceCreate(LogicalUnit):
       constants.ISPEC_NIC_COUNT: len(self.nics),
       }
 
-    ipolicy = _CalculateGroupIPolicy(cluster, pnode.group)
+    group_info = self.cfg.GetNodeGroup(pnode.group)
+    ipolicy = _CalculateGroupIPolicy(cluster, group_info)
     res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec)
     if not self.op.ignore_ipolicy and res:
       raise errors.OpPrereqError(("Instance allocation to group %s violates"
@@ -9654,7 +9658,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # disk parameters (not customizable at instance or node level)
     # just use the primary node parameters, ignoring the secondary.
-    self.diskparams = self.cfg.GetNodeGroup(pnode.group).diskparams
+    self.diskparams = group_info.diskparams
 
     if not self.adopt_disks:
       # Check lv size requirements, if not adopting
@@ -11809,7 +11813,8 @@ class LUInstanceSetParams(LogicalUnit):
         _CheckNodesFreeDiskPerVG(self, [self.op.remote_node], required)
 
         snode_info = self.cfg.GetNodeInfo(self.op.remote_node)
-        ipolicy = _CalculateGroupIPolicy(cluster, snode_info.group)
+        snode_group = self.cfg.GetNodeGroup(snode_info.group)
+        ipolicy = _CalculateGroupIPolicy(cluster, snode_group)
         _CheckTargetNodeIPolicy(self, ipolicy, instance, snode_info,
                                 ignore=self.op.ignore_ipolicy)
         if pnode_info.group != snode_info.group:
