@@ -1419,6 +1419,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # instance is not already paused and if we are not going to accept a
     # migrating instance. In the latter case, pausing is not needed.
     start_kvm_paused = not (_KVM_START_PAUSED_FLAG in kvm_cmd) and not incoming
+    if start_kvm_paused:
+      kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
 
     # Note: CPU pinning is using up_hvp since changes take effect
     # during instance startup anyway, and to avoid problems when soft
@@ -1426,8 +1428,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     cpu_pinning = False
     if up_hvp.get(constants.HV_CPU_MASK, None):
       cpu_pinning = True
-      if start_kvm_paused:
-        kvm_cmd.extend([_KVM_START_PAUSED_FLAG])
 
     if security_model == constants.HT_SM_POOL:
       ss = ssconf.SimpleStore()
@@ -1484,16 +1484,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # If requested, set CPU affinity and resume instance execution
     if cpu_pinning:
-      try:
-        self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK])
-      finally:
-        if start_kvm_paused:
-          # To control CPU pinning, the VM was started frozen, so we need
-          # to resume its execution, but only if freezing was not
-          # explicitly requested.
-          # Note: this is done even when an exception occurred so the VM
-          # is not unintentionally frozen.
-          self._CallMonitorCommand(instance.name, self._CONT_CMD)
+      self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK])
+
+    if start_kvm_paused:
+      # To control CPU pinning, ballooning, and vnc/spice passwords the VM was
+      # started in a frozen state. If freezing was not explicitely requested
+      # resume the vm status.
+      self._CallMonitorCommand(instance.name, self._CONT_CMD)
 
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
