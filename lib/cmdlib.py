@@ -6556,7 +6556,7 @@ class LUInstanceStartup(LogicalUnit):
       if not remote_info.payload: # not running already
         _CheckNodeFreeMemory(self, instance.primary_node,
                              "starting instance %s" % instance.name,
-                             bep[constants.BE_MAXMEM], instance.hypervisor)
+                             bep[constants.BE_MINMEM], instance.hypervisor)
 
   def Exec(self, feedback_fn):
     """Start the instance.
