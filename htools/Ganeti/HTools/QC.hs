@@ -209,6 +209,13 @@ assignInstance nl il inst pdx sdx =
       il' = Container.add maxiidx inst' il
   in (nl', il')
 
+-- | Generates a list of a given size with non-duplicate elements.
+genUniquesList :: (Eq a, Arbitrary a) => Int -> Gen [a]
+genUniquesList cnt =
+  foldM (\lst _ -> do
+           newelem <- arbitrary `suchThat` (`notElem` lst)
+           return (newelem:lst)) [] [1..cnt]
+
 -- * Arbitrary instances
 
 -- | Defines a DNS name.
@@ -219,19 +226,19 @@ instance Arbitrary DNSChar where
     x <- elements (['a'..'z'] ++ ['0'..'9'] ++ "_-")
     return (DNSChar x)
 
+-- | Generates a single name component.
 getName :: Gen String
 getName = do
   n <- choose (1, 64)
   dn <- vector n::Gen [DNSChar]
   return (map dnsGetChar dn)
 
+-- | Generates an entire FQDN.
 getFQDN :: Gen String
 getFQDN = do
-  felem <- getName
   ncomps <- choose (1, 4)
-  frest <- vector ncomps::Gen [[DNSChar]]
-  let frest' = map (map dnsGetChar) frest
-  return (felem ++ "." ++ intercalate "." frest')
+  names <- mapM (const getName) [1..ncomps::Int]
+  return $ intercalate "." names
 
 -- | Defines a tag type.
 newtype TagChar = TagChar { tagGetChar :: Char }
@@ -566,14 +573,13 @@ prop_Container_nameOf node =
 -- | We test that in a cluster, given a random node, we can find it by
 -- its name and alias, as long as all names and aliases are unique,
 -- and that we fail to find a non-existing name.
-prop_Container_findByName node othername =
+prop_Container_findByName node =
   forAll (choose (1, 20)) $ \ cnt ->
   forAll (choose (0, cnt - 1)) $ \ fidx ->
-  forAll (vector cnt) $ \ names ->
-  (length . nub) (map fst names ++ map snd names) ==
-  length names * 2 &&
-  othername `notElem` (map fst names ++ map snd names) ==>
-  let nl = makeSmallCluster node cnt
+  forAll (genUniquesList (cnt * 2)) $ \ allnames ->
+  forAll (arbitrary `suchThat` (`notElem` allnames)) $ \ othername ->
+  let names = zip (take cnt allnames) (drop cnt allnames)
+      nl = makeSmallCluster node cnt
       nodes = Container.elems nl
       nodes' = map (\((name, alias), nn) -> (Node.idx nn,
                                              nn { Node.name = name,
@@ -906,11 +912,10 @@ prop_Node_addPriOffline =
     _ -> False
 
 prop_Node_addSecOffline pdx =
-  forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
+  forAll genOnlineNode $ \node ->
   forAll (arbitrary `suchThat`
-          (\ x ->  (Instance.dsk x  < Node.fDsk node) &&
-                   Instance.instanceOffline x)) $ \inst ->
-  case Node.addSec node inst pdx of
+          (\ inst -> Instance.dsk inst  < Node.availDisk node)) $ \inst ->
+  case Node.addSec node (inst { Instance.runSt = Types.AdminOffline }) pdx of
     Types.OpGood _ -> True
     _ -> False
 
