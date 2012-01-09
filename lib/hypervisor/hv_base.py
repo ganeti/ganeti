@@ -361,6 +361,24 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
+  def _InstanceStartupMemory(self, instance):
+    """Get the correct startup memory for an instance
+
+    This function calculates how much memory an instance should be started
+    with, making sure it's a value between the minimum and the maximum memory,
+    but also trying to use no more than the current free memory on the node.
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance that is being started
+    @rtype: integer
+    @return: memory the instance should be started with
+
+    """
+    free_memory = self.GetNodeInfo()["memory_free"]
+    max_start_mem = min(instance.beparams[constants.BE_MAXMEM], free_memory)
+    start_mem = max(instance.beparams[constants.BE_MINMEM], max_start_mem)
+    return start_mem
+
   @classmethod
   def CheckParameterSyntax(cls, hvparams):
     """Check the given parameters for validity.

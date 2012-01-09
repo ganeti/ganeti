@@ -73,7 +73,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return "/etc/xen/%s" % instance_name
 
   @classmethod
-  def _WriteConfigFile(cls, instance, block_devices):
+  def _WriteConfigFile(cls, instance, startup_memory, block_devices):
     """Write the Xen config file for the instance.
 
     """
@@ -239,7 +239,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Start an instance.
 
     """
-    self._WriteConfigFile(instance, block_devices)
+    startup_memory = self._InstanceStartupMemory(instance)
+    self._WriteConfigFile(instance, startup_memory, block_devices)
     cmd = [constants.XEN_CMD, "create"]
     if startup_paused:
       cmd.extend(["-p"])
@@ -617,7 +618,7 @@ class XenPvmHypervisor(XenHypervisor):
     }
 
   @classmethod
-  def _WriteConfigFile(cls, instance, block_devices):
+  def _WriteConfigFile(cls, instance, startup_memory, block_devices):
     """Write the Xen config file for the instance.
 
     """
@@ -650,8 +651,7 @@ class XenPvmHypervisor(XenHypervisor):
         config.write("ramdisk = '%s'\n" % initrd_path)
 
     # rest of the settings
-    # TODO(dynmem): use actual chosen memory for instance startup
-    config.write("memory = %d\n" % instance.beparams[constants.BE_MAXMEM])
+    config.write("memory = %d\n" % startup_memory)
     config.write("maxmem = %d\n" % instance.beparams[constants.BE_MAXMEM])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
     cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])
@@ -737,7 +737,7 @@ class XenHvmHypervisor(XenHypervisor):
     }
 
   @classmethod
-  def _WriteConfigFile(cls, instance, block_devices):
+  def _WriteConfigFile(cls, instance, startup_memory, block_devices):
     """Create a Xen 3.1 HVM config file.
 
     """
@@ -751,8 +751,7 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("kernel = '%s'\n" % kpath)
 
     config.write("builder = 'hvm'\n")
-    # TODO(dynmem): use actual chosen memory for instance startup
-    config.write("memory = %d\n" % instance.beparams[constants.BE_MAXMEM])
+    config.write("memory = %d\n" % startup_memory)
     config.write("maxmem = %d\n" % instance.beparams[constants.BE_MAXMEM])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
     cpu_pinning = cls._CreateConfigCpus(hvp[constants.HV_CPU_MASK])

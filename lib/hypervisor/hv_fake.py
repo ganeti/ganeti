@@ -159,7 +159,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, "already running"))
     try:
-      self._MarkUp(instance, instance.beparams[constants.BE_MAXMEM])
+      self._MarkUp(instance, self._InstanceStartupMemory(instance))
     except IOError, err:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, err))
@@ -291,7 +291,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
-      self._MarkUp(instance, instance.beparams[constants.BE_MAXMEM])
+      self._MarkUp(instance, self._InstanceStartupMemory(instance))
     else:
       # ensure it's down
       self._MarkDown(instance.name)

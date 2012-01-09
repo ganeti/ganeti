@@ -1486,6 +1486,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if cpu_pinning:
       self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK])
 
+    start_memory = self._InstanceStartupMemory(instance)
+    if start_memory < instance.beparams[constants.BE_MAXMEM]:
+      self.BalloonInstanceMemory(instance, start_memory)
+
     if start_kvm_paused:
       # To control CPU pinning, ballooning, and vnc/spice passwords the VM was
       # started in a frozen state. If freezing was not explicitely requested
