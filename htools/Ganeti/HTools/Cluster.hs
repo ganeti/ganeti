@@ -62,7 +62,6 @@ module Ganeti.HTools.Cluster
   , genAllocNodes
   , tryAlloc
   , tryMGAlloc
-  , tryReloc
   , tryNodeEvac
   , tryChangeGroup
   , collapseFailures
@@ -807,34 +806,6 @@ tryMGAlloc mggl mgnl mgil inst cnt = do
   let group_name = Group.name $ Container.find best_group mggl
       selmsg = "Selected group: " ++ group_name
   return $ solution { asLog = selmsg:all_msgs }
-
--- | Try to relocate an instance on the cluster.
-tryReloc :: (Monad m) =>
-            Node.List       -- ^ The node list
-         -> Instance.List   -- ^ The instance list
-         -> Idx             -- ^ The index of the instance to move
-         -> Int             -- ^ The number of nodes required
-         -> [Ndx]           -- ^ Nodes which should not be used
-         -> m AllocSolution -- ^ Solution list
-tryReloc nl il xid 1 ex_idx =
-  let all_nodes = getOnline nl
-      inst = Container.find xid il
-      ex_idx' = Instance.pNode inst:ex_idx
-      valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
-      valid_idxes = map Node.idx valid_nodes
-      sols1 = foldl' (\cstate x ->
-                        let em = do
-                              (mnl, i, _, _) <-
-                                applyMove nl inst (ReplaceSecondary x)
-                              return (mnl, i, [Container.find x mnl],
-                                         compCV mnl)
-                        in concatAllocs cstate em
-                     ) emptyAllocSolution valid_idxes
-  in return sols1
-
-tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
-                                \destinations required (" ++ show reqn ++
-                                                  "), only one supported"
 
 -- | Function which fails if the requested mode is change secondary.
 --
