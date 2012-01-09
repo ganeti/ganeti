@@ -1281,14 +1281,19 @@ prop_Loader_lookupInstance kti inst =
   Loader.lookupInstance il inst ==? Data.Map.lookup inst il
     where il = Data.Map.fromList kti
 
-prop_Loader_assignIndices nodes =
-  Data.Map.size nassoc == length nodes &&
-  Container.size kt == length nodes &&
-  (if not (null nodes)
-   then maximum (IntMap.keys kt) == length nodes - 1
-   else True)
-    where (nassoc, kt) =
-            Loader.assignIndices (map (\n -> (Node.name n, n)) nodes)
+prop_Loader_assignIndices =
+  -- generate nodes with unique names
+  forAll (arbitrary `suchThat`
+          (\nodes ->
+             let names = map Node.name nodes
+             in length names == length (nub names))) $ \nodes ->
+  let (nassoc, kt) =
+        Loader.assignIndices (map (\n -> (Node.name n, n)) nodes)
+  in Data.Map.size nassoc == length nodes &&
+     Container.size kt == length nodes &&
+     if not (null nodes)
+       then maximum (IntMap.keys kt) == length nodes - 1
+       else True
 
 -- | Checks that the number of primary instances recorded on the nodes
 -- is zero.
