@@ -5,19 +5,7 @@ News
 Version 2.5.0 rc5
 -----------------
 
-*(unreleased)*
-
-Improvements and bugfixes
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- Support for kvm version 1.0, that changed the version reporting format
-  (from 3 to 2 digits).
-
-
-Version 2.5.0 rc4
------------------
-
-*(Released Thu, 27 Oct 2011)*
+*(Released Mon, 9 Jan 2012)*
 
 Incompatible/important changes and bugfixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,6 +39,9 @@ Incompatible/important changes and bugfixes
 - :doc:`New iallocator modes <design-multi-reloc>` have been added to
   support operations involving multiple node groups.
 - Offline nodes are ignored when failing over an instance.
+- Support for KVM version 1.0, which changed the version reporting format
+  from 3 to 2 digits.
+- Includes all bugfixes made in the 2.4 series
 
 New features
 ~~~~~~~~~~~~
@@ -142,6 +133,14 @@ Misc
 - A short delay when waiting for job changes reduces the number of LUXI
   requests significantly.
 - DRBD metadata volumes are overwritten with zeros during disk creation.
+
+
+Version 2.5.0 rc4
+-----------------
+
+*(Released Thu, 27 Oct 2011)*
+
+This was the fourth release candidate of the 2.5 series.
 
 
 Version 2.5.0 rc3
