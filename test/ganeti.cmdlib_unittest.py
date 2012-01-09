@@ -382,9 +382,10 @@ class TestClusterVerifyFiles(unittest.TestCase):
 
 
 class _FakeLU:
-  def __init__(self):
+  def __init__(self, cfg=NotImplemented):
     self.warning_log = []
     self.info_log = []
+    self.cfg = cfg
 
   def LogWarning(self, text, *args):
     self.warning_log.append((text, args))
@@ -678,11 +679,21 @@ class TestComputeIPolicyNodeViolation(unittest.TestCase):
     self.assertEqual(ret, [])
 
 
+class _FakeConfigForTargetNodeIPolicy:
+  def __init__(self, node_info=NotImplemented):
+    self._node_info = node_info
+
+  def GetNodeInfo(self, _):
+    return self._node_info
+
+
 class TestCheckTargetNodeIPolicy(unittest.TestCase):
   def setUp(self):
-    self.instance = objects.Instance(primary_node=objects.Node(group="foo"))
+    self.instance = objects.Instance(primary_node="blubb")
     self.target_node = objects.Node(group="bar")
-    self.lu = _FakeLU()
+    node_info = objects.Node(group="foo")
+    fake_cfg = _FakeConfigForTargetNodeIPolicy(node_info=node_info)
+    self.lu = _FakeLU(cfg=fake_cfg)
 
   def testNoViolation(self):
     compute_recoder = _CallRecorder(return_value=[])

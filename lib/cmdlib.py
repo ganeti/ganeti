@@ -1146,7 +1146,8 @@ def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, ignore=False,
   @see: L{_ComputeIPolicySpecViolation}
 
   """
-  res = _compute_fn(ipolicy, instance, instance.primary_node.group, node.group)
+  primary_node = lu.cfg.GetNodeInfo(instance.primary_node)
+  res = _compute_fn(ipolicy, instance, primary_node.group, node.group)
 
   if res:
     msg = ("Instance does not meet target node group's (%s) instance"
