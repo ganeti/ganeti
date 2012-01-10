@@ -2258,34 +2258,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           msg = "cannot reach the master IP"
         _ErrorIf(True, constants.CV_ENODENET, node, msg)
 
-  def _VerifyInstancePolicy(self, instance):
-    """Verify instance specs against instance policy set on node group level.
-
-
-    """
-    cluster = self.cfg.GetClusterInfo()
-    full_beparams = cluster.FillBE(instance)
-    ipolicy = cluster.SimpleFillIPolicy(self.group_info.ipolicy)
-
-    mem_size = full_beparams.get(constants.BE_MAXMEM, None)
-    cpu_count = full_beparams.get(constants.BE_VCPUS, None)
-    disk_count = len(instance.disks)
-    disk_sizes = [disk.size for disk in instance.disks]
-    nic_count = len(instance.nics)
-
-    test_settings = [
-      (constants.ISPEC_MEM_SIZE, mem_size),
-      (constants.ISPEC_CPU_COUNT, cpu_count),
-      (constants.ISPEC_DISK_COUNT, disk_count),
-      (constants.ISPEC_NIC_COUNT, nic_count),
-      ] + map((lambda d: (constants.ISPEC_DISK_SIZE, d)), disk_sizes)
-
-    for (name, value) in test_settings:
-      test_result = _CheckMinMaxSpecs(name, ipolicy, value)
-      self._ErrorIf(test_result is not None,
-                    constants.CV_EINSTANCEPOLICY, instance.name,
-                    test_result)
-
   def _VerifyInstance(self, instance, instanceconfig, node_image,
                       diskstatus):
     """Verify an instance.
