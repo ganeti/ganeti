@@ -570,7 +570,7 @@ class TestDiskStateHelper(unittest.TestCase):
                       new, None)
 
 
-def _ValidateCheckMinMaxSpec(name, *_):
+def _ValidateComputeMinMaxSpec(name, *_):
   assert name in constants.ISPECS_PARAMETERS
   return None
 
@@ -579,15 +579,15 @@ class _SpecWrapper:
   def __init__(self, spec):
     self.spec = spec
 
-  def CheckMinMaxSpec(self, *args):
+  def ComputeMinMaxSpec(self, *args):
     return self.spec.pop(0)
 
 
 class TestComputeIPolicySpecViolation(unittest.TestCase):
   def test(self):
-    check_fn = _ValidateCheckMinMaxSpec
+    compute_fn = _ValidateComputeMinMaxSpec
     ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], _check_spec_fn=check_fn)
+                                              [1024], _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testInvalidArguments(self):
@@ -596,9 +596,9 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
 
   def testInvalidSpec(self):
     spec = _SpecWrapper([None, False, "foo", None, "bar"])
-    check_fn = spec.CheckMinMaxSpec
+    compute_fn = spec.ComputeMinMaxSpec
     ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], _check_spec_fn=check_fn)
+                                              [1024], _compute_fn=compute_fn)
     self.assertEqual(ret, ["foo", "bar"])
     self.assertFalse(spec.spec)
 

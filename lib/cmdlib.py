@@ -1016,8 +1016,8 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
                                  (instance.name, msg), errors.ECODE_STATE)
 
 
-def _CheckMinMaxSpecs(name, ipolicy, value):
-  """Checks if value is in the desired range.
+def _ComputeMinMaxSpec(name, ipolicy, value):
+  """Computes if value is in the desired range.
 
   @param name: name of the parameter for which we perform the check
   @param ipolicy: dictionary containing min, max and std values
@@ -1038,7 +1038,7 @@ def _CheckMinMaxSpecs(name, ipolicy, value):
 
 def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
                                  nic_count, disk_sizes,
-                                 _check_spec_fn=_CheckMinMaxSpecs):
+                                 _compute_fn=_ComputeMinMaxSpec):
   """Verifies ipolicy against provided specs.
 
   @type ipolicy: dict
@@ -1053,7 +1053,7 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   @param nic_count: Number of nics used
   @type disk_sizes: list of ints
   @param disk_sizes: Disk sizes of used disk (len must match C{disk_count})
-  @param _check_spec_fn: The checking function (unittest only)
+  @param _compute_fn: The compute function (unittest only)
   @return: A list of violations, or an empty list of no violations are found
 
   """
@@ -1067,7 +1067,7 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     ] + map((lambda d: (constants.ISPEC_DISK_SIZE, d)), disk_sizes)
 
   return filter(None,
-                (_check_spec_fn(name, ipolicy, value)
+                (_compute_fn(name, ipolicy, value)
                  for (name, value) in test_settings))
 
 
