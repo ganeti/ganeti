@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -971,7 +971,7 @@ def SetClusterParams(opts, args):
 
   diskparams = dict(opts.diskparams)
 
-  for dt_params in hvparams.values():
+  for dt_params in diskparams.values():
     utils.ForceDictType(dt_params, constants.DISK_DT_TYPES)
 
   beparams = opts.beparams
