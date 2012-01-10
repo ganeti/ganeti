@@ -9601,6 +9601,9 @@ class LUInstanceCreate(LogicalUnit):
     _ReleaseLocks(self, locking.LEVEL_NODE,
                   keep=filter(None, [self.op.pnode, self.op.snode,
                                      self.op.src_node]))
+    _ReleaseLocks(self, locking.LEVEL_NODE_RES,
+                  keep=filter(None, [self.op.pnode, self.op.snode,
+                                     self.op.src_node]))
 
     #### node related checks
 
