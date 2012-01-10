@@ -171,7 +171,7 @@ def GetClosedTempfile(*args, **kwargs):
   return path
 
 
-def ResetTempfileModule():
+def ResetTempfileModule(_time=time.time):
   """Resets the random name generator of the tempfile module.
 
   This function should be called after C{os.fork} in the child process to
@@ -182,13 +182,15 @@ def ResetTempfileModule():
 
   """
   # pylint: disable=W0212
-  if hasattr(tempfile, "_once_lock") and hasattr(tempfile, "_name_sequence"):
-    tempfile._once_lock.acquire()
+  try:
+    lock = tempfile._once_lock
+    lock.acquire()
     try:
-      # Reset random name generator
-      tempfile._name_sequence = None
+      # Re-seed random name generator
+      if tempfile._name_sequence:
+        tempfile._name_sequence.rng.seed(hash(_time()) ^ os.getpid())
     finally:
-      tempfile._once_lock.release()
-  else:
+      lock.release()
+  except AttributeError:
     logging.critical("The tempfile module misses at least one of the"
                      " '_once_lock' and '_name_sequence' attributes")
