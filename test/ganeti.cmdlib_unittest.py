@@ -570,6 +570,63 @@ class TestDiskStateHelper(unittest.TestCase):
                       new, None)
 
 
+class TestComputeMinMaxSpec(unittest.TestCase):
+  def setUp(self):
+    self.ipolicy = {
+      constants.ISPECS_MAX: {
+        constants.ISPEC_MEM_SIZE: 512,
+        constants.ISPEC_DISK_SIZE: 1024,
+        },
+      constants.ISPECS_MIN: {
+        constants.ISPEC_MEM_SIZE: 128,
+        constants.ISPEC_DISK_COUNT: 1,
+        },
+      }
+
+  def testNoneValue(self):
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE,
+                                              self.ipolicy, None) is None)
+
+  def testAutoValue(self):
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_MEM_SIZE,
+                                              self.ipolicy,
+                                              constants.VALUE_AUTO) is None)
+
+  def testNotDefined(self):
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_NIC_COUNT,
+                                              self.ipolicy, 3) is None)
+
+  def testNoMinDefined(self):
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_SIZE,
+                                              self.ipolicy, 128) is None)
+
+  def testNoMaxDefined(self):
+    self.assertTrue(cmdlib._ComputeMinMaxSpec(constants.ISPEC_DISK_COUNT,
+                                                self.ipolicy, 16) is None)
+
+  def testOutOfRange(self):
+    for (name, val) in ((constants.ISPEC_MEM_SIZE, 64),
+                        (constants.ISPEC_MEM_SIZE, 768),
+                        (constants.ISPEC_DISK_SIZE, 4096),
+                        (constants.ISPEC_DISK_COUNT, 0)):
+      min_v = self.ipolicy[constants.ISPECS_MIN].get(name, val)
+      max_v = self.ipolicy[constants.ISPECS_MAX].get(name, val)
+      self.assertEqual(cmdlib._ComputeMinMaxSpec(name, self.ipolicy, val),
+                       "%s value %s is not in range [%s, %s]" %
+                       (name, val,min_v, max_v))
+
+  def test(self):
+    for (name, val) in ((constants.ISPEC_MEM_SIZE, 256),
+                        (constants.ISPEC_MEM_SIZE, 128),
+                        (constants.ISPEC_MEM_SIZE, 512),
+                        (constants.ISPEC_DISK_SIZE, 1024),
+                        (constants.ISPEC_DISK_SIZE, 0),
+                        (constants.ISPEC_DISK_COUNT, 1),
+                        (constants.ISPEC_DISK_COUNT, 5)):
+      self.assertTrue(cmdlib._ComputeMinMaxSpec(name, self.ipolicy, val)
+                      is None)
+
+
 def _ValidateComputeMinMaxSpec(name, *_):
   assert name in constants.ISPECS_PARAMETERS
   return None
