@@ -90,6 +90,10 @@ maxDsk = 1024 * 1024 * 8
 maxCpu :: Int
 maxCpu = 1024
 
+-- | All disk templates (used later)
+allDiskTemplates :: [Types.DiskTemplate]
+allDiskTemplates = [minBound..maxBound]
+
 -- | Null iPolicy, and by null we mean very liberal.
 nullIPolicy = Types.IPolicy
   { Types.iPolicyMinSpec = Types.ISpec { Types.iSpecMemorySize = 0
@@ -389,33 +393,40 @@ instance Arbitrary a => Arbitrary (Types.OpResult a) where
 
 instance Arbitrary Types.ISpec where
   arbitrary = do
-    mem <- arbitrary::Gen (NonNegative Int)
+    mem_s <- arbitrary::Gen (NonNegative Int)
     dsk_c <- arbitrary::Gen (NonNegative Int)
     dsk_s <- arbitrary::Gen (NonNegative Int)
-    cpu <- arbitrary::Gen (NonNegative Int)
-    nic <- arbitrary::Gen (NonNegative Int)
-    return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem
-                       , Types.iSpecCpuCount   = fromIntegral cpu
+    cpu_c <- arbitrary::Gen (NonNegative Int)
+    nic_c <- arbitrary::Gen (NonNegative Int)
+    return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem_s
+                       , Types.iSpecCpuCount   = fromIntegral cpu_c
                        , Types.iSpecDiskSize   = fromIntegral dsk_s
                        , Types.iSpecDiskCount  = fromIntegral dsk_c
-                       , Types.iSpecNicCount   = fromIntegral nic
+                       , Types.iSpecNicCount   = fromIntegral nic_c
                        }
 
--- | Helper function to check whether a spec is LTE than another
-iSpecSmaller :: Types.ISpec -> Types.ISpec -> Bool
-iSpecSmaller imin imax =
-  Types.iSpecMemorySize imin <= Types.iSpecMemorySize imax &&
-  Types.iSpecCpuCount imin   <= Types.iSpecCpuCount imax &&
-  Types.iSpecDiskSize imin   <= Types.iSpecDiskSize imax &&
-  Types.iSpecDiskCount imin  <= Types.iSpecDiskCount imax &&
-  Types.iSpecNicCount imin   <= Types.iSpecNicCount imax
+-- | Generates an ispec bigger than the given one.
+genBiggerISpec :: Types.ISpec -> Gen Types.ISpec
+genBiggerISpec imin = do
+  mem_s <- choose (Types.iSpecMemorySize imin, maxBound)
+  dsk_c <- choose (Types.iSpecDiskCount imin, maxBound)
+  dsk_s <- choose (Types.iSpecDiskSize imin, maxBound)
+  cpu_c <- choose (Types.iSpecCpuCount imin, maxBound)
+  nic_c <- choose (Types.iSpecNicCount imin, maxBound)
+  return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem_s
+                     , Types.iSpecCpuCount   = fromIntegral cpu_c
+                     , Types.iSpecDiskSize   = fromIntegral dsk_s
+                     , Types.iSpecDiskCount  = fromIntegral dsk_c
+                     , Types.iSpecNicCount   = fromIntegral nic_c
+                     }
 
 instance Arbitrary Types.IPolicy where
   arbitrary = do
     imin <- arbitrary
-    istd <- arbitrary `suchThat` (iSpecSmaller imin)
-    imax <- arbitrary `suchThat` (iSpecSmaller istd)
-    dts  <- arbitrary
+    istd <- genBiggerISpec imin
+    imax <- genBiggerISpec istd
+    num_tmpl <- choose (0, length allDiskTemplates)
+    dts  <- genUniquesList num_tmpl
     return Types.IPolicy { Types.iPolicyMinSpec = imin
                          , Types.iPolicyStdSpec = istd
                          , Types.iPolicyMaxSpec = imax
