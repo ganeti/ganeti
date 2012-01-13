@@ -1200,17 +1200,17 @@ Disk management
 REPLACE-DISKS
 ^^^^^^^^^^^^^
 
-**replace-disks** [--submit] [--early-release] {-p} [--disks *idx*]
-{*instance*}
+**replace-disks** [--submit] [--early-release] [--ignore-ipolicy] {-p}
+[--disks *idx*] {*instance*}
 
-**replace-disks** [--submit] [--early-release] {-s} [--disks *idx*]
-{*instance*}
+**replace-disks** [--submit] [--early-release] [--ignore-ipolicy] {-s}
+[--disks *idx*] {*instance*}
 
-**replace-disks** [--submit] [--early-release] {--iallocator *name*
-\| --new-secondary *NODE*} {*instance*}
+**replace-disks** [--submit] [--early-release] [--ignore-ipolicy]
+{--iallocator *name* \| -- {*instance*}
 
-**replace-disks** [--submit] [--early-release] {--auto}
-{*instance*}
+**replace-disks** [--submit] [--early-release] [--ignore-ipolicy]
+{--auto} {*instance*}
 
 This command is a generalized form for replacing disks. It is
 currently only valid for the mirrored (DRBD) disk template.
@@ -1248,6 +1248,10 @@ the cluster operation. This should be used only when recovering from a
 disk failure on the current secondary (thus the old storage is already
 broken) or when the storage on the primary node is known to be fine
 (thus we won't need the old storage for potential recovery).
+
+The ``--ignore-ipolicy`` let the command ignore instance policy
+violations if replace-disks changes groups and the instance would
+violate the new groups instance policy.
 
 Note that it is not possible to select an offline or drained node as a
 new secondary.

@@ -750,7 +750,8 @@ def ReplaceDisks(opts, args):
   op = opcodes.OpInstanceReplaceDisks(instance_name=args[0], disks=disks,
                                       remote_node=new_2ndary, mode=mode,
                                       iallocator=iallocator,
-                                      early_release=opts.early_release)
+                                      early_release=opts.early_release,
+                                      ignore_ipolicy=opts.ignore_ipolicy)
   SubmitOrSend(op, opts)
   return 0
 
@@ -1501,7 +1502,7 @@ commands = {
     ReplaceDisks, ARGS_ONE_INSTANCE,
     [AUTO_REPLACE_OPT, DISKIDX_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT,
      NEW_SECONDARY_OPT, ON_PRIMARY_OPT, ON_SECONDARY_OPT, SUBMIT_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT],
     "[-s|-p|-n NODE|-I NAME] <instance>",
     "Replaces all disks for the instance"),
   "modify": (
