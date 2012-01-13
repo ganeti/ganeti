@@ -881,14 +881,14 @@ prop_Node_addPriFD node inst =
           inst' = setInstanceSmallerThanNode node inst
           inst'' = inst' { Instance.dsk = Instance.dsk inst }
 
-prop_Node_addPriFC node inst (Positive extra) =
-  not (Node.failN1 node) && not (Instance.instanceOffline inst) ==>
-      case Node.addPri node inst'' of
-        Types.OpFail Types.FailCPU -> True
-        _ -> False
-    where _types = (node::Node.Node, inst::Instance.Instance)
-          inst' = setInstanceSmallerThanNode node inst
-          inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
+prop_Node_addPriFC (Positive extra) =
+  forAll genOnlineNode $ \node ->
+  forAll (arbitrary `suchThat` Instance.instanceNotOffline) $ \inst ->
+  let inst' = setInstanceSmallerThanNode node inst
+      inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
+  in case Node.addPri node inst'' of
+       Types.OpFail Types.FailCPU -> property True
+       v -> failTest $ "Expected OpFail FailCPU, but got " ++ show v
 
 -- | Check that an instance add with too high memory or disk will be
 -- rejected.
