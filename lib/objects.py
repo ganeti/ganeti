@@ -224,6 +224,8 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   if ispecs_disk_templates is not None:
     ipolicy_out[constants.ISPECS_DTS] = list(ispecs_disk_templates)
 
+  assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
+
   return ipolicy_out
 
 
@@ -884,6 +886,10 @@ class InstancePolicy(ConfigObject):
       InstancePolicy.CheckISpecSyntax(ipolicy, param)
     if constants.ISPECS_DTS in ipolicy:
       InstancePolicy.CheckDiskTemplates(ipolicy[constants.ISPECS_DTS])
+    wrong_keys = frozenset(ipolicy.keys()) - constants.IPOLICY_ALL_KEYS
+    if wrong_keys:
+      raise errors.ConfigurationError("Invalid keys in ipolicy: %s" %
+                                      utils.CommaJoin(wrong_keys))
 
   @classmethod
   def CheckISpecSyntax(cls, ipolicy, name):

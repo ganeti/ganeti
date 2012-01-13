@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -414,15 +414,10 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   objects.UpgradeBeParams(beparams)
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
   utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
-  for key, val in ipolicy.items():
-    if key not in constants.IPOLICY_PARAMETERS:
-      raise errors.OpPrereqError("'%s' is not a valid key for instance policy"
-                                 " description", key)
-    utils.ForceDictType(val, constants.ISPECS_PARAMETER_TYPES)
 
   objects.NIC.CheckParameterSyntax(nicparams)
+
   full_ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy)
-  objects.InstancePolicy.CheckParameterSyntax(full_ipolicy)
 
   if ndparams is not None:
     utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
@@ -430,7 +425,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     ndparams = dict(constants.NDC_DEFAULTS)
 
   # This is ugly, as we modify the dict itself
-  # FIXME: Make utils.ForceDictType pure functional or write a wrapper around it
+  # FIXME: Make utils.ForceDictType pure functional or write a wrapper
+  # around it
   if hv_state:
     for hvname, hvs_data in hv_state.items():
       utils.ForceDictType(hvs_data, constants.HVSTS_PARAMETER_TYPES)
@@ -526,7 +522,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     primary_ip_family=ipcls.family,
     prealloc_wipe_disks=prealloc_wipe_disks,
     use_external_mip_script=use_external_mip_script,
-    ipolicy=ipolicy,
+    ipolicy=full_ipolicy,
     hv_state_static=hv_state,
     disk_state_static=disk_state,
     )

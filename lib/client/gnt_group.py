@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,8 +55,6 @@ def AddGroup(opts, args):
                                   ispecs_disk_size=opts.ispecs_disk_size,
                                   ispecs_nic_count=opts.ispecs_nic_count,
                                   group_ipolicy=True)
-  for key in ipolicy.keys():
-    utils.ForceDictType(ipolicy[key], constants.ISPECS_PARAMETER_TYPES)
 
   (group_name,) = args
   diskparams = dict(opts.diskparams)

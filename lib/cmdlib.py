@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -731,6 +731,9 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
   use_none = use_default = group_policy
   ipolicy = copy.deepcopy(old_ipolicy)
   for key, value in new_ipolicy.items():
+    if key not in constants.IPOLICY_ALL_KEYS:
+      raise errors.OpPrereqError("Invalid key in new ipolicy: %s" % key,
+                                 errors.ECODE_INVAL)
     if key in constants.IPOLICY_PARAMETERS:
       utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
       ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
@@ -747,7 +750,6 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                      " on the cluster'" % key,
                                      errors.ECODE_INVAL)
       else:
-        logging.info("Setting %s to %s", key, value)
         ipolicy[key] = list(value)
   try:
     objects.InstancePolicy.CheckParameterSyntax(ipolicy)

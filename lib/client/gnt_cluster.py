@@ -149,8 +149,6 @@ def InitCluster(opts, args):
                                   ispecs_disk_templates=ispecs_dts,
                                   fill_all=True)
   ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy_raw)
-  for value in ipolicy.values():
-    utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
 
   if opts.candidate_pool_size is None:
     opts.candidate_pool_size = constants.MASTER_POOL_SIZE_DEFAULT
