@@ -10100,7 +10100,8 @@ class LUInstanceReplaceDisks(LogicalUnit):
 
     self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node,
-                                   self.op.disks, False, self.op.early_release)
+                                   self.op.disks, False, self.op.early_release,
+                                   self.op.ignore_ipolicy)
 
     self.tasklets = [self.replacer]
 
@@ -10182,7 +10183,7 @@ class TLReplaceDisks(Tasklet):
 
   """
   def __init__(self, lu, instance_name, mode, iallocator_name, remote_node,
-               disks, delay_iallocator, early_release):
+               disks, delay_iallocator, early_release, ignore_ipolicy):
     """Initializes this class.
 
     """
@@ -10196,6 +10197,7 @@ class TLReplaceDisks(Tasklet):
     self.disks = disks
     self.delay_iallocator = delay_iallocator
     self.early_release = early_release
+    self.ignore_ipolicy = ignore_ipolicy
 
     # Runtime data
     self.instance = None
@@ -10417,6 +10419,16 @@ class TLReplaceDisks(Tasklet):
       # If not specified all disks should be replaced
       if not self.disks:
         self.disks = range(len(self.instance.disks))
+
+    # TODO: This is ugly, but right now we can't distinguish between internal
+    # submitted opcode and external one. We should fix that.
+    if self.remote_node_info:
+      # We change the node, lets verify it still meets instance policy
+      new_group_info = self.cfg.GetNodeGroup(self.remote_node_info.group)
+      ipolicy = _CalculateGroupIPolicy(self.cfg.GetClusterInfo(),
+                                       new_group_info)
+      _CheckTargetNodeIPolicy(self, ipolicy, instance, self.remote_node_info,
+                              ignore=self.ignore_ipolicy)
 
     # TODO: compute disk parameters
     primary_node_info = self.cfg.GetNodeInfo(instance.primary_node)

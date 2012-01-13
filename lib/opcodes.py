@@ -1224,6 +1224,7 @@ class OpInstanceReplaceDisks(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     _PEarlyRelease,
+    _PIgnoreIpolicy,
     ("mode", ht.NoDefault, ht.TElemOf(constants.REPLACE_MODES),
      "Replacement mode"),
     ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt),
