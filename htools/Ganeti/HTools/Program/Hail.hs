@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,11 +23,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hail (main) where
+module Ganeti.HTools.Program.Hail (main, options) where
 
 import Control.Monad
 import Data.Maybe (fromMaybe)
-import System.Environment (getArgs)
 import System.IO
 
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -50,11 +49,8 @@ options =
   ]
 
 -- | Main function.
-main :: IO ()
-main = do
-  cmd_args <- getArgs
-  (opts, args) <- parseOpts cmd_args "hail" options
-
+main :: Options -> [String] -> IO ()
+main opts args = do
   let shownodes = optShowNodes opts
       verbose = optVerbose opts
       savecluster = optSaveCluster opts

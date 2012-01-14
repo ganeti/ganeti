@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2011 Google Inc.
+Copyright (C) 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,17 +31,18 @@ import System.Exit
 import System.IO
 
 import Ganeti.HTools.Utils
+import Ganeti.HTools.CLI (OptType, Options, parseOpts)
 import qualified Ganeti.HTools.Program.Hail as Hail
 import qualified Ganeti.HTools.Program.Hbal as Hbal
 import qualified Ganeti.HTools.Program.Hscan as Hscan
 import qualified Ganeti.HTools.Program.Hspace as Hspace
 
 -- | Supported binaries.
-personalities :: [(String, IO ())]
-personalities = [ ("hail", Hail.main)
-                , ("hbal", Hbal.main)
-                , ("hscan", Hscan.main)
-                , ("hspace", Hspace.main)
+personalities :: [(String, (Options -> [String] -> IO (), [OptType]))]
+personalities = [ ("hail",   (Hail.main,   Hail.options))
+                , ("hbal",   (Hbal.main,   Hbal.options))
+                , ("hscan",  (Hscan.main,  Hscan.options))
+                , ("hspace", (Hspace.main, Hspace.options))
                 ]
 
 -- | Display usage and exit.
@@ -59,5 +60,10 @@ main :: IO ()
 main = do
   binary <- getEnv "HTOOLS" `catch` const getProgName
   let name = map toLower binary
-      boolnames = map (\(x, y) -> (x == name, y)) personalities
-  select (usage name) boolnames
+      boolnames = map (\(x, y) -> (x == name, Just y)) personalities
+  case select Nothing boolnames of
+    Nothing -> usage name
+    Just (fn, options) -> do
+         cmd_args <- getArgs
+         (opts, args) <- parseOpts cmd_args name options
+         fn opts args

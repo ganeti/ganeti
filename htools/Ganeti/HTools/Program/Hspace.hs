@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hspace (main) where
+module Ganeti.HTools.Program.Hspace (main, options) where
 
 import Control.Monad
 import Data.Char (toUpper, isAlphaNum, toLower)
@@ -33,7 +33,6 @@ import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
 import System.Exit
 import System.IO
-import System.Environment (getArgs)
 
 import Text.Printf (printf, hPrintf)
 
@@ -392,11 +391,8 @@ instFromSpec spx disk_template =
     (rspecCpu spx) Running [] True (-1) (-1) disk_template
 
 -- | Main function.
-main :: IO ()
-main = do
-  cmd_args <- getArgs
-  (opts, args) <- parseOpts cmd_args "hspace" options
-
+main :: Options -> [String] -> IO ()
+main opts args = do
   unless (null args) $ do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1

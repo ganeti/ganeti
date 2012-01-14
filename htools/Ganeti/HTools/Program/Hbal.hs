@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hbal (main) where
+module Ganeti.HTools.Program.Hbal (main, options) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
@@ -31,7 +31,6 @@ import Control.Monad
 import Data.List
 import Data.Maybe (isJust, isNothing, fromJust)
 import Data.IORef
-import System.Environment (getArgs)
 import System.Exit
 import System.IO
 import System.Posix.Process
@@ -338,11 +337,8 @@ checkNeedRebalance opts ini_cv = do
          exitWith ExitSuccess
 
 -- | Main function.
-main :: IO ()
-main = do
-  cmd_args <- getArgs
-  (opts, args) <- parseOpts cmd_args "hbal" options
-
+main :: Options -> [String] -> IO ()
+main opts args = do
   unless (null args) $ do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1

@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Program.Hscan (main) where
+module Ganeti.HTools.Program.Hscan (main, options) where
 
 import Control.Monad
 import Data.Maybe (isJust, fromJust, fromMaybe)
@@ -125,10 +125,8 @@ writeDataInner nlen name opts cdata fixdata = do
   return True
 
 -- | Main function.
-main :: IO ()
-main = do
-  cmd_args <- getArgs
-  (opts, clusters) <- parseOpts cmd_args "hscan" options
+main :: Options -> [String] -> IO ()
+main opts clusters = do
   let local = "LOCAL"
 
   let nlen = if null clusters
