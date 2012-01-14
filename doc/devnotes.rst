@@ -81,7 +81,8 @@ what the splices are converted to. This can be done via::
   make HEXTRA="-ddump-splices"
 
 Due to the way TemplateHaskell works, it's not straightforward to
-build profiling code. The recommended way is::
+build profiling code. The recommended way is to run ``make hs-prof``,
+or alternatively the manual sequence is::
 
   make clean
   make htools/htools HEXTRA="-osuf .o"

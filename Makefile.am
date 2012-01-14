@@ -354,6 +354,8 @@ HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
 # extra flags that can be overriden on the command line
 HEXTRA =
+# internal extra flags (used for htools/test mainly)
+HEXTRA_INT =
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
@@ -512,12 +514,26 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  $(HFLAGS) \
 	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
 	  -osuf $$BINARY.o -hisuf $$BINARY.hi \
-	  $(HEXTRA) $@
+	  $(HEXTRA) $(HEXTRA_INT) $@
 
 # for the htools/test binary, we need to enable profiling/coverage
-htools/test: HEXTRA=-fhpc -Wwarn -fno-warn-missing-signatures \
+htools/test: HEXTRA_INT=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-monomorphism-restriction -fno-warn-orphans \
 	-fno-warn-missing-methods -fno-warn-unused-imports
+
+# rules for building profiling-enabled versions of the haskell
+# programs: hs-prof does the full two-step build, whereas
+# hs-prof-quick does only the final rebuild (hs-prof must have been
+# run before)
+.PHONY: hs-prof hs-prof-quick
+hs-prof:
+	$(MAKE) clean
+	$(MAKE) $(HS_ALL_PROGS) HEXTRA="-osuf .o"
+	rm -f $(HS_ALL_PROGS)
+	$(MAKE) hs-prof-quick
+
+hs-prof-quick:
+	$(MAKE) $(HS_ALL_PROGS) HEXTRA="-osuf .prof_o -prof -auto-all"
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
