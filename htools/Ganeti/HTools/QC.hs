@@ -38,6 +38,7 @@ module Ganeti.HTools.QC
   , testCluster
   , testLoader
   , testTypes
+  , testCLI
   ) where
 
 import Test.QuickCheck
@@ -1460,3 +1461,24 @@ testSuite "Types"
             , 'prop_Types_opToResult
             , 'prop_Types_eitherToResult
             ]
+
+-- ** CLI tests
+
+-- | Test correct parsing.
+prop_CLI_parseISpec descr dsk mem cpu =
+  let str = printf "%d,%d,%d" dsk mem cpu
+  in CLI.parseISpecString descr str ==? Types.Ok (Types.RSpec cpu mem dsk)
+
+-- | Test parsing failure due to wrong section count.
+prop_CLI_parseISpecFail descr =
+  forAll (choose (0,100) `suchThat` ((/=) 3)) $ \nelems ->
+  forAll (replicateM nelems arbitrary) $ \values ->
+  let str = intercalate "," $ map show (values::[Int])
+  in case CLI.parseISpecString descr str of
+       Types.Ok v -> failTest $ "Expected failure, got " ++ show v
+       _ -> property True
+
+testSuite "CLI"
+          [ 'prop_CLI_parseISpec
+          , 'prop_CLI_parseISpecFail
+          ]

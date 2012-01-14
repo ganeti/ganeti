@@ -8,7 +8,7 @@ used in many other places and this is more IO oriented.
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ module Ganeti.HTools.CLI
   ( Options(..)
   , OptType
   , parseOpts
+  , parseISpecString
   , shTemplate
   , defaultLuxiSocket
   , maybePrintNodes
@@ -187,15 +188,17 @@ type OptType = OptDescr (Options -> Result Options)
 parseISpecString :: String -> String -> Result RSpec
 parseISpecString descr inp = do
   let sp = sepSplit ',' inp
+      err = Bad ("Invalid " ++ descr ++ " specification: '" ++ inp ++
+                 "', expected disk,ram,cpu")
+  when (length sp /= 3) err
   prs <- mapM (\(fn, val) -> fn val) $
-         zip [ annotateResult (descr ++ " specs memory") . parseUnit
-             , annotateResult (descr ++ " specs disk") . parseUnit
+         zip [ annotateResult (descr ++ " specs disk") . parseUnit
+             , annotateResult (descr ++ " specs memory") . parseUnit
              , tryRead (descr ++ " specs cpus")
              ] sp
   case prs of
     [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
-    _ -> Bad $ "Invalid " ++ descr ++ " specification: '" ++ inp ++
-         "', expected disk,ram,cpu"
+    _ -> err
 
 -- * Command line options
 

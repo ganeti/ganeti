@@ -120,6 +120,7 @@ allTests =
   , (fast, testJobs)
   , (fast, testLoader)
   , (fast, testTypes)
+  , (fast, testCLI)
   , (slow, testCluster)
   ]
 
