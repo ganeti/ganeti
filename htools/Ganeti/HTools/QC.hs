@@ -47,9 +47,11 @@ import Data.List (findIndex, intercalate, nub, isPrefixOf)
 import qualified Data.Set as Set
 import Data.Maybe
 import Control.Monad
+import qualified System.Console.GetOpt as GetOpt
 import qualified Text.JSON as J
 import qualified Data.Map
 import qualified Data.IntMap as IntMap
+
 import qualified Ganeti.OpCodes as OpCodes
 import qualified Ganeti.Jobs as Jobs
 import qualified Ganeti.Luxi
@@ -1488,8 +1490,30 @@ prop_CLI_parseYesNo def testval val =
               then result ==? Types.Ok (actual_val == "yes")
               else property $ Types.isBad result
 
+-- | Helper to check for correct parsing of string arg.
+checkStringArg val (opt, fn) =
+  let GetOpt.Option _ longs _ _ = opt
+  in case longs of
+       [] -> failTest "no long options?"
+       cmdarg:_ ->
+         case CLI.parseOptsInner ["--" ++ cmdarg ++ "=" ++ val] "prog" [opt] of
+           Left e -> failTest $ "Failed to parse option: " ++ show e
+           Right (options, _) -> fn options ==? Just val
+
+-- | Test a few string arguments.
+prop_CLI_StringArg argument =
+  let args = [ (CLI.oDataFile,      CLI.optDataFile)
+             , (CLI.oDynuFile,      CLI.optDynuFile)
+             , (CLI.oSaveCluster,   CLI.optSaveCluster)
+             , (CLI.oReplay,        CLI.optReplay)
+             , (CLI.oPrintCommands, CLI.optShowCmds)
+             , (CLI.oLuxiSocket,    CLI.optLuxi)
+             ]
+  in conjoin $ map (checkStringArg argument) args
+
 testSuite "CLI"
           [ 'prop_CLI_parseISpec
           , 'prop_CLI_parseISpecFail
           , 'prop_CLI_parseYesNo
+          , 'prop_CLI_StringArg
           ]
