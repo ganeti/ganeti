@@ -31,19 +31,8 @@ import System.Exit
 import System.IO
 
 import Ganeti.HTools.Utils
-import Ganeti.HTools.CLI (OptType, Options, parseOpts)
-import qualified Ganeti.HTools.Program.Hail as Hail
-import qualified Ganeti.HTools.Program.Hbal as Hbal
-import qualified Ganeti.HTools.Program.Hscan as Hscan
-import qualified Ganeti.HTools.Program.Hspace as Hspace
-
--- | Supported binaries.
-personalities :: [(String, (Options -> [String] -> IO (), [OptType]))]
-personalities = [ ("hail",   (Hail.main,   Hail.options))
-                , ("hbal",   (Hbal.main,   Hbal.options))
-                , ("hscan",  (Hscan.main,  Hscan.options))
-                , ("hspace", (Hspace.main, Hspace.options))
-                ]
+import Ganeti.HTools.CLI (parseOpts)
+import Ganeti.HTools.Program (personalities)
 
 -- | Display usage and exit.
 usage :: String -> IO ()

@@ -385,6 +385,7 @@ HS_LIB_SRCS = \
 	htools/Ganeti/HTools/Text.hs \
 	htools/Ganeti/HTools/Types.hs \
 	htools/Ganeti/HTools/Utils.hs \
+	htools/Ganeti/HTools/Program.hs \
 	htools/Ganeti/HTools/Program/Hail.hs \
 	htools/Ganeti/HTools/Program/Hbal.hs \
 	htools/Ganeti/HTools/Program/Hscan.hs \
