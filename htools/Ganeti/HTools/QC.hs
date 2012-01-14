@@ -1478,7 +1478,18 @@ prop_CLI_parseISpecFail descr =
        Types.Ok v -> failTest $ "Expected failure, got " ++ show v
        _ -> property True
 
+-- | Test parseYesNo.
+prop_CLI_parseYesNo def testval val =
+  forAll (elements [val, "yes", "no"]) $ \actual_val ->
+  if testval
+    then CLI.parseYesNo def Nothing ==? Types.Ok def
+    else let result = CLI.parseYesNo def (Just actual_val)
+         in if actual_val `elem` ["yes", "no"]
+              then result ==? Types.Ok (actual_val == "yes")
+              else property $ Types.isBad result
+
 testSuite "CLI"
           [ 'prop_CLI_parseISpec
           , 'prop_CLI_parseISpecFail
+          , 'prop_CLI_parseYesNo
           ]

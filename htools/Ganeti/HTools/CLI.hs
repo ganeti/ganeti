@@ -31,6 +31,7 @@ module Ganeti.HTools.CLI
   ( Options(..)
   , OptType
   , parseOpts
+  , parseYesNo
   , parseISpecString
   , shTemplate
   , defaultLuxiSocket
@@ -411,14 +412,14 @@ oVerbose = Option "v" ["verbose"]
 -- * Functions
 
 -- | Helper for parsing a yes\/no command line flag.
-parseYesNo :: Bool         -- ^ Default whalue (when we get a @Nothing@)
+parseYesNo :: Bool         -- ^ Default value (when we get a @Nothing@)
            -> Maybe String -- ^ Parameter value
            -> Result Bool  -- ^ Resulting boolean value
 parseYesNo v Nothing      = return v
 parseYesNo _ (Just "yes") = return True
 parseYesNo _ (Just "no")  = return False
-parseYesNo _ (Just s)     = fail $ "Invalid choice '" ++ s ++
-                            "', pass one of 'yes' or 'no'"
+parseYesNo _ (Just s)     = fail ("Invalid choice '" ++ s ++
+                                  "', pass one of 'yes' or 'no'")
 
 -- | Usage info.
 usageHelp :: String -> [OptType] -> String
