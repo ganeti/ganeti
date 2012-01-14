@@ -154,12 +154,6 @@ setInstanceSmallerThanNode node inst =
        , Instance.vcpus = Node.availCpu node `div` 2
        }
 
--- | Check if an instance is smaller than a node.
-isInstanceSmallerThanNode node inst =
-  Instance.mem inst   <= Node.availMem node `div` 2 &&
-  Instance.dsk inst   <= Node.availDisk node `div` 2 &&
-  Instance.vcpus inst <= Node.availCpu node `div` 2
-
 -- | Create an instance given its spec.
 createInstance mem dsk vcpus =
   Instance.create "inst-unnamed" mem dsk vcpus Types.Running [] True (-1) (-1)
@@ -279,18 +273,29 @@ genTags = do
 instance Arbitrary Types.InstanceStatus where
     arbitrary = elements [minBound..maxBound]
 
+-- | Generates a random instance with maximum disk/mem/cpu values.
+genInstanceSmallerThan :: Int -> Int -> Int -> Gen Instance.Instance
+genInstanceSmallerThan lim_mem lim_dsk lim_cpu = do
+  name <- getFQDN
+  mem <- choose (0, lim_mem)
+  dsk <- choose (0, lim_dsk)
+  run_st <- arbitrary
+  pn <- arbitrary
+  sn <- arbitrary
+  vcpus <- choose (0, lim_cpu)
+  return $ Instance.create name mem dsk vcpus run_st [] True pn sn
+         Types.DTDrbd8
+
+-- | Generates an instance smaller than a node.
+genInstanceSmallerThanNode :: Node.Node -> Gen Instance.Instance
+genInstanceSmallerThanNode node =
+  genInstanceSmallerThan (Node.availMem node `div` 2)
+                         (Node.availDisk node `div` 2)
+                         (Node.availCpu node `div` 2)
+
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
-  arbitrary = do
-    name <- getFQDN
-    mem <- choose (0, maxMem)
-    dsk <- choose (0, maxDsk)
-    run_st <- arbitrary
-    pn <- arbitrary
-    sn <- arbitrary
-    vcpus <- choose (0, maxCpu)
-    return $ Instance.create name mem dsk vcpus run_st [] True pn sn
-              Types.DTDrbd8
+  arbitrary = genInstanceSmallerThan maxMem maxDsk maxCpu
 
 -- | Generas an arbitrary node based on sizing information.
 genNode :: Maybe Int -- ^ Minimum node size in terms of units
@@ -818,8 +823,8 @@ prop_Text_CreateSerialise =
   forAll (choose (1, 20)) $ \maxiter ->
   forAll (choose (2, 10)) $ \count ->
   forAll genOnlineNode $ \node ->
-  forAll (arbitrary `suchThat` isInstanceSmallerThanNode node) $ \inst ->
-  let inst' = Instance.setMovable inst $ Utils.if' (reqnodes == 2) True False
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  let inst' = Instance.setMovable inst (reqnodes == 2)
       nl = makeSmallCluster node count
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
      Cluster.iterateAlloc nl Container.empty (Just maxiter) inst' allocn [] []
@@ -1095,7 +1100,7 @@ genClusterAlloc count node inst =
 prop_ClusterAllocRelocate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
-  forAll (arbitrary `suchThat` (isInstanceSmallerThanNode node)) $ \inst ->
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
     Types.Ok (nl, il, inst') ->
@@ -1130,7 +1135,7 @@ check_EvacMode grp inst result =
 prop_ClusterAllocEvacuate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
-  forAll (arbitrary `suchThat` (isInstanceSmallerThanNode node)) $ \inst ->
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
     Types.Ok (nl, il, inst') ->
@@ -1144,7 +1149,7 @@ prop_ClusterAllocEvacuate =
 prop_ClusterAllocChangeGroup =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
-  forAll (arbitrary `suchThat` (isInstanceSmallerThanNode node)) $ \inst ->
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
     Types.Ok (nl, il, inst') ->
