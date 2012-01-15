@@ -976,24 +976,17 @@ prop_Node_addSec node inst pdx =
       isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
--- | Check that an offline instance with reasonable disk size can always
--- be added.
-prop_Node_addPriOffline =
-  forAll (arbitrary `suchThat` ((> 0) . Node.fMem)) $ \node ->
-  forAll (arbitrary `suchThat`
-          (\ x ->  (Instance.dsk x  < Node.fDsk node) &&
-                   Instance.instanceOffline x)) $ \inst ->
-  case Node.addPri node inst of
-    Types.OpGood _ -> True
-    _ -> False
-
-prop_Node_addSecOffline pdx =
+-- | Check that an offline instance with reasonable disk size but
+-- extra mem/cpu can always be added.
+prop_Node_addOffline (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
   forAll genOnlineNode $ \node ->
-  forAll (arbitrary `suchThat`
-          (\ inst -> Instance.dsk inst  < Node.availDisk node)) $ \inst ->
-  case Node.addSec node (inst { Instance.runSt = Types.AdminOffline }) pdx of
-    Types.OpGood _ -> True
-    _ -> False
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  let inst' = inst { Instance.runSt = Types.AdminOffline
+                   , Instance.mem = Node.availMem node + extra_mem
+                   , Instance.vcpus = Node.availCpu node + extra_cpu }
+  in case (Node.addPri node inst', Node.addSec node inst' pdx) of
+       (Types.OpGood _, Types.OpGood _) -> property True
+       v -> failTest $ "Expected OpGood/OpGood, but got: " ++ show v
 
 -- | Checks for memory reservation changes.
 prop_Node_rMem inst =
@@ -1071,8 +1064,7 @@ testSuite "Node"
             , 'prop_Node_addPriFD
             , 'prop_Node_addPriFC
             , 'prop_Node_addSec
-            , 'prop_Node_addPriOffline
-            , 'prop_Node_addSecOffline
+            , 'prop_Node_addOffline
             , 'prop_Node_rMem
             , 'prop_Node_setMdsk
             , 'prop_Node_tagMaps_idempotent
