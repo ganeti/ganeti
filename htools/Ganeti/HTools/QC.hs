@@ -449,11 +449,16 @@ instance Arbitrary Types.IPolicy where
 
 -- ** Utils tests
 
+-- | Helper to generate a small string that doesn't contain commas.
+genNonCommaString = do
+  size <- choose (0, 20) -- arbitrary max size
+  vectorOf size (arbitrary `suchThat` ((/=) ','))
+
 -- | If the list is not just an empty element, and if the elements do
 -- not contain commas, then join+split should be idempotent.
 prop_Utils_commaJoinSplit =
-  forAll (arbitrary `suchThat`
-          (\l -> l /= [""] && all (notElem ',') l )) $ \lst ->
+  forAll (choose (0, 20)) $ \llen ->
+  forAll (vectorOf llen genNonCommaString `suchThat` ((/=) [""])) $ \lst ->
   Utils.sepSplit ',' (Utils.commaJoin lst) ==? lst
 
 -- | Split and join should always be idempotent.
