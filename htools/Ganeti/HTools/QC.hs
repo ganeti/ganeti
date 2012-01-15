@@ -1033,14 +1033,15 @@ prop_Node_setMdsk node mx =
           SmallRatio mx' = mx
 
 -- Check tag maps
-prop_Node_tagMaps_idempotent tags =
+prop_Node_tagMaps_idempotent =
+  forAll genTags $ \tags ->
   Node.delTags (Node.addTags m tags) tags ==? m
     where m = Data.Map.empty
 
-prop_Node_tagMaps_reject tags =
-  not (null tags) ==>
-  all (\t -> Node.rejectAddTags m [t]) tags
-    where m = Node.addTags Data.Map.empty tags
+prop_Node_tagMaps_reject =
+  forAll (genTags `suchThat` (not . null)) $ \tags ->
+  let m = Node.addTags Data.Map.empty tags
+  in all (\t -> Node.rejectAddTags m [t]) tags
 
 prop_Node_showField node =
   forAll (elements Node.defaultFields) $ \ field ->
