@@ -75,6 +75,7 @@ import qualified Ganeti.HTools.Utils as Utils
 import qualified Ganeti.HTools.Version
 import qualified Ganeti.Constants as C
 
+import qualified Ganeti.HTools.Program as Program
 import qualified Ganeti.HTools.Program.Hail
 import qualified Ganeti.HTools.Program.Hbal
 import qualified Ganeti.HTools.Program.Hscan
@@ -1511,9 +1512,29 @@ prop_CLI_StringArg argument =
              ]
   in conjoin $ map (checkStringArg argument) args
 
+-- | Helper to test that a given option is accepted OK with quick exit.
+checkEarlyExit name options param =
+  case CLI.parseOptsInner [param] name options of
+    Left (code, _) -> if code == 0
+                          then property True
+                          else failTest $ "Program " ++ name ++
+                                 " returns invalid code " ++ show code ++
+                                 " for option " ++ param
+    _ -> failTest $ "Program " ++ name ++ " doesn't consider option " ++
+         param ++ " as early exit one"
+
+-- | Test that all binaries support some common options. There is
+-- nothing actually random about this test...
+prop_CLI_stdopts =
+  let params = ["-h", "--help", "-V", "--version"]
+      opts = map (\(name, (_, o)) -> (name, o)) Program.personalities
+      -- apply checkEarlyExit across the cartesian product of params and opts
+  in conjoin [checkEarlyExit n o p | p <- params, (n, o) <- opts]
+
 testSuite "CLI"
           [ 'prop_CLI_parseISpec
           , 'prop_CLI_parseISpecFail
           , 'prop_CLI_parseYesNo
           , 'prop_CLI_StringArg
+          , 'prop_CLI_stdopts
           ]
