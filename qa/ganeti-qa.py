@@ -245,31 +245,38 @@ def RunCommonInstanceTests(instance):
   RunTestIf(["instance-console", "rapi"],
             qa_rapi.TestRapiInstanceConsole, instance)
 
-  RunTestIf("instance-reinstall", qa_instance.TestInstanceShutdown, instance)
+  DOWN_TESTS = ["instance-reinstall", "instance-rename"]
+  # shutdown instance for any 'down' tests
+  RunTestIf(DOWN_TESTS, qa_instance.TestInstanceShutdown, instance)
+
+  # now run the 'down' state tests
   RunTestIf("instance-reinstall", qa_instance.TestInstanceReinstall, instance)
   RunTestIf(["instance-reinstall", "rapi"],
             qa_rapi.TestRapiInstanceReinstall, instance)
-  RunTestIf("instance-reinstall", qa_instance.TestInstanceStartup, instance)
-
-  RunTestIf("instance-reboot", qa_instance.TestInstanceReboot, instance)
+  # RAPI reinstall will leave the instance up by default, so we have
+  # to stop it again
+  RunTestIf(["instance-reinstall", "rapi"],
+            qa_rapi.TestRapiInstanceShutdown, instance)
 
   if qa_config.TestEnabled("instance-rename"):
     rename_source = instance["name"]
     rename_target = qa_config.get("rename", None)
-    RunTest(qa_instance.TestInstanceShutdown, instance)
     # perform instance rename to the same name
-    RunTest(qa_instance.TestInstanceRename, rename_source, rename_source)
-    RunTestIf("rapi", qa_rapi.TestRapiInstanceRename,
+    RunTest(qa_instance.TestInstanceRenameAndBack,
+            rename_source, rename_source)
+    RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
               rename_source, rename_source)
     if rename_target is not None:
       # perform instance rename to a different name, if we have one configured
-      RunTest(qa_instance.TestInstanceRename, rename_source, rename_target)
-      RunTest(qa_instance.TestInstanceRename, rename_target, rename_source)
-      RunTestIf("rapi", qa_rapi.TestRapiInstanceRename,
+      RunTest(qa_instance.TestInstanceRenameAndBack,
+              rename_source, rename_target)
+      RunTestIf("rapi", qa_rapi.TestRapiInstanceRenameAndBack,
                 rename_source, rename_target)
-      RunTestIf("rapi", qa_rapi.TestRapiInstanceRename,
-                rename_target, rename_source)
-    RunTest(qa_instance.TestInstanceStartup, instance)
+
+  # and now start the instance again
+  RunTestIf(DOWN_TESTS, qa_instance.TestInstanceStartup, instance)
+
+  RunTestIf("instance-reboot", qa_instance.TestInstanceReboot, instance)
 
   RunTestIf("tags", qa_tags.TestInstanceTags, instance)
 

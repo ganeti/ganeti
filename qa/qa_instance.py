@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011 Google Inc.
+# Copyright (C) 2007, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -147,13 +147,15 @@ def _CheckSsconfInstanceList(instance):
            _ReadSsconfInstanceList())
 
 
-def TestInstanceRename(rename_source, rename_target):
-  """gnt-instance rename"""
+def TestInstanceRenameAndBack(rename_source, rename_target):
+  """gnt-instance rename
+
+  This must leave the instance with the original name, not the target
+  name.
+
+  """
   _CheckSsconfInstanceList(rename_source)
-  AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
-  _CheckSsconfInstanceList(rename_target)
-  AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
-  _CheckSsconfInstanceList(rename_source)
+  # first do a rename to a different actual name, expecting it to fail
   qa_utils.AddToEtcHosts(["meeeeh-not-exists", rename_target])
   try:
     AssertCommand(["gnt-instance", "rename", rename_source, rename_target],
@@ -161,8 +163,12 @@ def TestInstanceRename(rename_source, rename_target):
     _CheckSsconfInstanceList(rename_source)
   finally:
     qa_utils.RemoveFromEtcHosts(["meeeeh-not-exists", rename_target])
+  # and now rename instance to rename_target...
   AssertCommand(["gnt-instance", "rename", rename_source, rename_target])
   _CheckSsconfInstanceList(rename_target)
+  # and back
+  AssertCommand(["gnt-instance", "rename", rename_target, rename_source])
+  _CheckSsconfInstanceList(rename_source)
 
 
 def TestInstanceFailover(instance):

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -609,9 +609,15 @@ def TestRapiInstanceStartup(instance):
   _WaitForRapiJob(_rapi_client.StartupInstance(instance["name"]))
 
 
-def TestRapiInstanceRename(rename_source, rename_target):
-  """Test renaming instance via RAPI"""
+def TestRapiInstanceRenameAndBack(rename_source, rename_target):
+  """Test renaming instance via RAPI
+
+  This must leave the instance with the original name (in the
+  non-failure case).
+
+  """
   _WaitForRapiJob(_rapi_client.RenameInstance(rename_source, rename_target))
+  _WaitForRapiJob(_rapi_client.RenameInstance(rename_target, rename_source))
 
 
 def TestRapiInstanceReinstall(instance):
