@@ -1223,6 +1223,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         spice_arg = "%s,playback-compression=off" % spice_arg
       if not hvp[constants.HV_KVM_SPICE_USE_VDAGENT]:
         spice_arg = "%s,agent-mouse=off" % spice_arg
+      else:
+        # Enable the spice agent communication channel between the host and the
+        # agent.
+        kvm_cmd.extend(["-device", "virtio-serial-pci"])
+        kvm_cmd.extend(["-device", "virtserialport,chardev=spicechannel0,"
+                                                   "name=com.redhat.spice.0"])
+        kvm_cmd.extend(["-chardev", "spicevmc,id=spicechannel0,name=vdagent"])
 
       logging.info("KVM: SPICE will listen on port %s", instance.network_port)
       kvm_cmd.extend(["-spice", spice_arg])
