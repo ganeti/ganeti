@@ -1372,6 +1372,7 @@ class OpInstanceSetParams(OpCode):
      (constants.DDM_ADD, constants.DDM_REMOVE)),
     ("disks", ht.EmptyList, ht.TList, "List of disk changes. See ``nics``."),
     ("beparams", ht.EmptyDict, ht.TDict, "Per-instance backend parameters"),
+    ("runtime_mem", None, ht.TMaybeStrictPositiveInt, "New runtime memory"),
     ("hvparams", ht.EmptyDict, ht.TDict,
      "Per-instance hypervisor parameters, hypervisor-dependent"),
     ("disk_template", None, ht.TOr(ht.TNone, _BuildDiskTemplateCheck(False)),

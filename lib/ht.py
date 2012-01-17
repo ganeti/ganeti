@@ -322,9 +322,15 @@ TMaybeDict = TOr(TDict, TNone)
 TPositiveInt = \
   TAnd(TInt, WithDesc("EqualGreaterZero")(lambda v: v >= 0))
 
+#: a maybe positive integer (positive integer or None)
+TMaybePositiveInt = TOr(TPositiveInt, TNone)
+
 #: a strictly positive integer
 TStrictPositiveInt = \
   TAnd(TInt, WithDesc("GreaterThanZero")(lambda v: v > 0))
+
+#: a maybe strictly positive integer (strictly positive integer or None)
+TMaybeStrictPositiveInt = TOr(TStrictPositiveInt, TNone)
 
 #: a strictly negative integer (0 > value)
 TStrictNegativeInt = \

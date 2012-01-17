@@ -11587,7 +11587,8 @@ class LUInstanceSetParams(LogicalUnit):
   def CheckArguments(self):
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name or
-            self.op.online_inst or self.op.offline_inst):
+            self.op.online_inst or self.op.offline_inst or
+            self.op.runtime_mem):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
@@ -11771,6 +11772,8 @@ class LUInstanceSetParams(LogicalUnit):
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
     if self.op.disk_template:
       env["NEW_DISK_TEMPLATE"] = self.op.disk_template
+    if self.op.runtime_mem:
+      env["RUNTIME_MEMORY"] = self.op.runtime_mem
 
     return env
 
@@ -11974,6 +11977,33 @@ class LUInstanceSetParams(LogicalUnit):
                                        " from failover to its secondary node"
                                        " %s, due to not enough memory" % node,
                                        errors.ECODE_STATE)
+
+    if self.op.runtime_mem:
+      remote_info = self.rpc.call_instance_info(instance.primary_node,
+                                                instance.name,
+                                                instance.hypervisor)
+      remote_info.Raise("Error checking node %s" % instance.primary_node)
+      if not remote_info.payload: # not running already
+        raise errors.OpPrereqError("Instance %s is not running" % instance.name,
+                                   errors.ECODE_STATE)
+
+      current_memory = remote_info.payload["memory"]
+      if (not self.op.force and
+           (self.op.runtime_mem > self.be_proposed[constants.BE_MAXMEM] or
+            self.op.runtime_mem < self.be_proposed[constants.BE_MINMEM])):
+        raise errors.OpPrereqError("Instance %s must have memory between %d"
+                                   " and %d MB of memory unless --force is"
+                                   " given" % (instance.name,
+                                    self.be_proposed[constants.BE_MINMEM],
+                                    self.be_proposed[constants.BE_MAXMEM]),
+                                   errors.ECODE_INVAL)
+
+      if self.op.runtime_mem > current_memory:
+        _CheckNodeFreeMemory(self, instance.primary_node,
+                             "ballooning memory for instance %s" %
+                             instance.name,
+                             self.op.memory - current_memory,
+                             instance.hypervisor)
 
     # NIC processing
     self.nic_pnew = {}
@@ -12218,6 +12248,15 @@ class LUInstanceSetParams(LogicalUnit):
 
     result = []
     instance = self.instance
+
+    # runtime memory
+    if self.op.runtime_mem:
+      rpcres = self.rpc.call_instance_balloon_memory(instance.primary_node,
+                                                     instance,
+                                                     self.op.runtime_mem)
+      rpcres.Raise("Cannot modify instance runtime memory")
+      result.append(("runtime_memory", self.op.runtime_mem))
+
     # disk changes
     for disk_op, disk_dict in self.op.disks:
       if disk_op == constants.DDM_REMOVE:

@@ -158,6 +158,7 @@ __all__ = [
   "REMOVE_INSTANCE_OPT",
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
+  "RUNTIME_MEM_OPT",
   "ROMAN_OPT",
   "SECONDARY_IP_OPT",
   "SECONDARY_ONLY_OPT",
@@ -1361,6 +1362,10 @@ IGNORE_IPOLICY_OPT = cli_option("--ignore-ipolicy", dest="ignore_ipolicy",
                                 action="store_true", default=False,
                                 help="Ignore instance policy violations")
 
+RUNTIME_MEM_OPT = cli_option("-m", "--runtime-memory", dest="runtime_mem",
+                             help="Sets the instance's runtime memory,"
+                             " ballooning it up or down to the new value",
+                             default=None, type="unit", metavar="<size>")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT]

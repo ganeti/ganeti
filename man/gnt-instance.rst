@@ -857,6 +857,7 @@ MODIFY
 | **modify**
 | [{-H|--hypervisor-parameters} *HYPERVISOR\_PARAMETERS*]
 | [{-B|--backend-parameters} *BACKEND\_PARAMETERS*]
+| [{-m|--runtime-memory} *SIZE*]
 | [--net add*[:options]* \| --net remove \| --net *N:options*]
 | [--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| --disk remove \|
 |  --disk *N*:mode=*MODE*]
@@ -886,6 +887,10 @@ disk template, a new secondary node must be specified via the ``-n``
 option. The option ``--no-wait-for-sync`` can be used when converting
 to the ``drbd`` template in order to make the instance available for
 startup before DRBD has finished resyncing.
+
+The ``-m (--runtime-memory)`` option will change an instance's runtime
+memory to the given size (in MB if a different suffix is not specified),
+by ballooning it up or down to the new value.
 
 The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
 optional ``vg=``*VG* option specifies LVM volume group other than

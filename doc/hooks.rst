@@ -304,7 +304,7 @@ OP_INSTANCE_SET_PARAMS
 Modifies the instance parameters.
 
 :directory: instance-modify
-:env. vars: NEW_DISK_TEMPLATE
+:env. vars: NEW_DISK_TEMPLATE, RUNTIME_MEMORY
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
