@@ -108,7 +108,7 @@ def TestInstanceReboot(instance):
   AssertCommand(["gnt-instance", "reboot", name])
 
   master = qa_config.GetMasterNode()
-  cmd = ["gnt-instance", "list", "--no-header", "-o", "status", name]
+  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", name]
   result_output = qa_utils.GetCommandOutput(master["primary"],
                                             utils.ShellQuoteArgs(cmd))
   AssertEqual(result_output.strip(), constants.INSTST_RUNNING)

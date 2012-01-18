@@ -400,7 +400,7 @@ def _List(listcmd, fields, names):
   """
   master = qa_config.GetMasterNode()
 
-  cmd = [listcmd, "list", "--separator=|", "--no-header",
+  cmd = [listcmd, "list", "--separator=|", "--no-headers",
          "--output", ",".join(fields)]
 
   if names:
