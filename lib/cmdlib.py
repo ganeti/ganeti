@@ -13437,14 +13437,32 @@ class LUGroupSetParams(LogicalUnit):
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
     self.needed_locks = {
+      locking.LEVEL_INSTANCE: [],
       locking.LEVEL_NODEGROUP: [self.group_uuid],
       }
+
+    self.share_locks[locking.LEVEL_INSTANCE] = 1
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_INSTANCE:
+      assert not self.needed_locks[locking.LEVEL_INSTANCE]
+
+      # Lock instances optimistically, needs verification once group lock has
+      # been acquired
+      self.needed_locks[locking.LEVEL_INSTANCE] = \
+          self.cfg.GetNodeGroupInstances(self.group_uuid)
 
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
+    owned_instances = frozenset(self.owned_locks(locking.LEVEL_INSTANCE))
+
+    # Check if locked instances are still correct
+    _CheckNodeGroupInstances(self.cfg, self.group_uuid, owned_instances)
+
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
+    cluster = self.cfg.GetClusterInfo()
 
     if self.group is None:
       raise errors.OpExecError("Could not retrieve group '%s' (UUID: %s)" %
@@ -13478,6 +13496,19 @@ class LUGroupSetParams(LogicalUnit):
       self.new_ipolicy = _GetUpdatedIPolicy(self.group.ipolicy,
                                             self.op.ipolicy,
                                             group_policy=True)
+
+      new_ipolicy = cluster.SimpleFillIPolicy(self.new_ipolicy)
+      inst_filter = lambda inst: inst.name in owned_instances
+      instances = self.cfg.GetInstancesInfoByFilter(inst_filter).values()
+      violations = \
+          _ComputeNewInstanceViolations(_CalculateGroupIPolicy(cluster,
+                                                               self.group),
+                                        new_ipolicy, instances)
+
+      if violations:
+        self.LogWarning("After the ipolicy change the following instances"
+                        " violate them: %s",
+                        utils.CommaJoin(violations))
 
   def BuildHooksEnv(self):
     """Build hooks env.
