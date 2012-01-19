@@ -192,7 +192,7 @@ class Merger(object):
       utils.WriteFile(key_path, mode=0600, data=result.stdout)
 
       result = self._RunCmd(cluster, "gnt-node list -o name,offline"
-                            " --no-header --separator=,", private_key=key_path)
+                            " --no-headers --separator=,", private_key=key_path)
       if result.failed:
         raise errors.RemoteError("Unable to retrieve list of nodes from %s."
                                  " Fail reason: %s; output: %s" %
@@ -201,7 +201,7 @@ class Merger(object):
       nodes = [node_status[0] for node_status in nodes_statuses
                if node_status[1] == "N"]
 
-      result = self._RunCmd(cluster, "gnt-instance list -o name --no-header",
+      result = self._RunCmd(cluster, "gnt-instance list -o name --no-headers",
                             private_key=key_path)
       if result.failed:
         raise errors.RemoteError("Unable to retrieve list of instances from"

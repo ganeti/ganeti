@@ -408,6 +408,12 @@ class TestUnescapeAndSplit(unittest.TestCase):
       b = [sep, sep, "c", "d.moo\\"]
       self.assertEqual(utils.UnescapeAndSplit("%s\\" % sep.join(a), sep=sep), b)
 
+  def testMultipleEscapes(self):
+    for sep in self._seps:
+      a = ["a", "b\\" + sep + "c", "d\\" + sep + "e\\" + sep + "f", "g"]
+      b = ["a", "b" + sep + "c", "d" + sep + "e" + sep + "f", "g"]
+      self.failUnlessEqual(utils.UnescapeAndSplit(sep.join(a), sep=sep), b)
+
 
 class TestCommaJoin(unittest.TestCase):
   def test(self):

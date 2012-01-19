@@ -387,10 +387,12 @@ def UnescapeAndSplit(text, sep=","):
       num_b = len(e1) - len(e1.rstrip("\\"))
       if num_b % 2 == 1 and slist:
         e2 = slist.pop(0)
-        # here the backslashes remain (all), and will be reduced in
-        # the next step
-        rlist.append(e1 + sep + e2)
+        # Merge the two elements and push the result back to the source list for
+        # revisiting. If e2 ended with backslashes, further merging may need to
+        # be done.
+        slist.insert(0, e1 + sep + e2)
         continue
+    # here the backslashes remain (all), and will be reduced in the next step
     rlist.append(e1)
   # finally, replace backslash-something with something
   rlist = [re.sub(r"\\(.)", r"\1", v) for v in rlist]

@@ -205,7 +205,7 @@ def TestClusterEpo():
 
   # Assert that OOB is unavailable for all nodes
   result_output = GetCommandOutput(master["primary"],
-                                   "gnt-node list --verbose --no-header -o"
+                                   "gnt-node list --verbose --no-headers -o"
                                    " powered")
   AssertEqual(compat.all(powered == "(unavail)"
                          for powered in result_output.splitlines()), True)
@@ -223,7 +223,7 @@ def TestClusterEpo():
 
   # All instances should have been stopped now
   result_output = GetCommandOutput(master["primary"],
-                                   "gnt-instance list --no-header -o status")
+                                   "gnt-instance list --no-headers -o status")
   AssertEqual(compat.all(status == "ADMIN_down"
                          for status in result_output.splitlines()), True)
 
@@ -232,7 +232,7 @@ def TestClusterEpo():
 
   # All instances should have been started now
   result_output = GetCommandOutput(master["primary"],
-                                   "gnt-instance list --no-header -o status")
+                                   "gnt-instance list --no-headers -o status")
   AssertEqual(compat.all(status == "running"
                          for status in result_output.splitlines()), True)
 
