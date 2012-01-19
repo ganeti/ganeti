@@ -1196,6 +1196,19 @@ def _CheckTargetNodeIPolicy(lu, ipolicy, instance, node, ignore=False,
       raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
 
+def _ComputeNewInstanceViolations(old_ipolicy, new_ipolicy, instances):
+  """Computes a set of any instances that would violate the new ipolicy.
+
+  @param old_ipolicy: The current (still in-place) ipolicy
+  @param new_ipolicy: The new (to become) ipolicy
+  @param instances: List of instances to verify
+  @return: A list of instances which violates the new ipolicy but did not before
+
+  """
+  return (_ComputeViolatingInstances(old_ipolicy, instances) -
+          _ComputeViolatingInstances(new_ipolicy, instances))
+
+
 def _ExpandItemName(fn, name, kind):
   """Expand an item name.
 
@@ -1414,6 +1427,19 @@ def _CalculateGroupIPolicy(cluster, group):
 
   """
   return cluster.SimpleFillIPolicy(group.ipolicy)
+
+
+def _ComputeViolatingInstances(ipolicy, instances):
+  """Computes a set of instances who violates given ipolicy.
+
+  @param ipolicy: The ipolicy to verify
+  @type instances: object.Instance
+  @param instances: List of instances to verify
+  @return: A frozenset of instance names violating the ipolicy
+
+  """
+  return frozenset([inst.name for inst in instances
+                    if _ComputeIPolicyInstanceViolation(ipolicy, inst)])
 
 
 def _CheckNicsBridgesExist(lu, target_nics, target_node):
