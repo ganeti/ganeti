@@ -3789,8 +3789,14 @@ class LUClusterSetParams(LogicalUnit):
     # all nodes to be modified.
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
+      locking.LEVEL_INSTANCE: locking.ALL_SET,
+      locking.LEVEL_NODEGROUP: locking.ALL_SET,
     }
-    self.share_locks[locking.LEVEL_NODE] = 1
+    self.share_locks = {
+        locking.LEVEL_NODE: 1,
+        locking.LEVEL_INSTANCE: 1,
+        locking.LEVEL_NODEGROUP: 1,
+    }
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3896,6 +3902,24 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.ipolicy:
       self.new_ipolicy = _GetUpdatedIPolicy(cluster.ipolicy, self.op.ipolicy,
                                             group_policy=False)
+
+      all_instances = self.cfg.GetAllInstancesInfo().values()
+      violations = set()
+      for group in self.cfg.GetAllNodeGroupsInfo().values():
+        instances = frozenset([inst for inst in all_instances
+                               if compat.any(node in group.members
+                                             for node in inst.all_nodes)])
+        new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
+        new = _ComputeNewInstanceViolations(_CalculateGroupIPolicy(cluster,
+                                                                   group),
+                                            new_ipolicy, instances)
+        if new:
+          violations.update(new)
+
+      if violations:
+        self.LogWarning("After the ipolicy change the following instances"
+                        " violate them: %s",
+                        utils.CommaJoin(violations))
 
     if self.op.nicparams:
       utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
