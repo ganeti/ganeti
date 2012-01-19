@@ -29,7 +29,6 @@ import time
 import logging
 import errno
 import itertools
-import optparse
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -44,7 +43,7 @@ from ganeti import compat
 from ganeti import netutils
 from ganeti import qlang
 
-from optparse import (TitledHelpFormatter,
+from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
 
 
@@ -1334,10 +1333,10 @@ def _ParseArgs(argv, commands, aliases):
     cmd = aliases[cmd]
 
   func, args_def, parser_opts, usage, description = commands[cmd]
-  parser = CustomOptionParser(option_list=parser_opts + COMMON_OPTS,
-                              description=description,
-                              formatter=TitledHelpFormatter(),
-                              usage="%%prog %s %s" % (cmd, usage))
+  parser = OptionParser(option_list=parser_opts + COMMON_OPTS,
+                        description=description,
+                        formatter=TitledHelpFormatter(),
+                        usage="%%prog %s %s" % (cmd, usage))
   parser.disable_interspersed_args()
   options, args = parser.parse_args()
 
@@ -1345,21 +1344,6 @@ def _ParseArgs(argv, commands, aliases):
     return None, None, None
 
   return func, options, args
-
-
-class CustomOptionParser(optparse.OptionParser):
-  def _match_long_opt(self, opt):
-    """Override C{OptionParser}'s function for matching long options.
-
-    The default implementation does prefix-based abbreviation matching. We
-    disable such behaviour as it can can lead to confusing conflicts (e.g.
-    C{--force} and C{--force-multi}).
-
-    """
-    if opt in self._long_opt:
-      return opt
-    else:
-      raise optparse.BadOptionError(opt)
 
 
 def _CheckArguments(cmd, args_def, args):
