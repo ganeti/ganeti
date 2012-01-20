@@ -2151,15 +2151,19 @@ def GenericMain(commands, override=None, aliases=None,
   """
   # save the program name and the entire command line for later logging
   if sys.argv:
-    binary = os.path.basename(sys.argv[0]) or sys.argv[0]
+    binary = os.path.basename(sys.argv[0])
+    if not binary:
+      binary = sys.argv[0]
+
     if len(sys.argv) >= 2:
-      binary += " " + sys.argv[1]
-      old_cmdline = " ".join(sys.argv[2:])
+      logname = utils.ShellQuoteArgs([binary, sys.argv[1]])
     else:
-      old_cmdline = ""
+      logname = binary
+
+    cmdline = utils.ShellQuoteArgs([binary] + sys.argv[1:])
   else:
     binary = "<unknown program>"
-    old_cmdline = ""
+    cmdline = "<unknown>"
 
   if aliases is None:
     aliases = {}
@@ -2178,13 +2182,10 @@ def GenericMain(commands, override=None, aliases=None,
     for key, val in override.iteritems():
       setattr(options, key, val)
 
-  utils.SetupLogging(constants.LOG_COMMANDS, binary, debug=options.debug,
+  utils.SetupLogging(constants.LOG_COMMANDS, logname, debug=options.debug,
                      stderr_logging=True)
 
-  if old_cmdline:
-    logging.info("run with arguments '%s'", old_cmdline)
-  else:
-    logging.info("run with no arguments")
+  logging.info("Command line: %s", cmdline)
 
   try:
     result = func(options, args)
