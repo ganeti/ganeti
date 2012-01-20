@@ -7781,7 +7781,8 @@ class TLMigrateInstance(Tasklet):
     i_be = cluster.FillBE(instance)
 
     # check memory requirements on the secondary node
-    if not self.failover or instance.admin_state == constants.ADMINST_UP:
+    if (not self.cleanup and
+         (not self.failover or instance.admin_state == constants.ADMINST_UP)):
       _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
                            instance.name, i_be[constants.BE_MAXMEM],
                            instance.hypervisor)

@@ -45,7 +45,7 @@ from ganeti import compat
 from ganeti import netutils
 from ganeti import qlang
 
-from optparse import (TitledHelpFormatter,
+from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
 
 
@@ -1481,10 +1481,10 @@ def _ParseArgs(argv, commands, aliases, env_override):
       argv = utils.InsertAtPos(argv, 1, shlex.split(env_args))
 
   func, args_def, parser_opts, usage, description = commands[cmd]
-  parser = CustomOptionParser(option_list=parser_opts + COMMON_OPTS,
-                              description=description,
-                              formatter=TitledHelpFormatter(),
-                              usage="%%prog %s %s" % (cmd, usage))
+  parser = OptionParser(option_list=parser_opts + COMMON_OPTS,
+                        description=description,
+                        formatter=TitledHelpFormatter(),
+                        usage="%%prog %s %s" % (cmd, usage))
   parser.disable_interspersed_args()
   options, args = parser.parse_args(args=argv[1:])
 
@@ -1492,21 +1492,6 @@ def _ParseArgs(argv, commands, aliases, env_override):
     return None, None, None
 
   return func, options, args
-
-
-class CustomOptionParser(optparse.OptionParser):
-  def _match_long_opt(self, opt):
-    """Override C{OptionParser}'s function for matching long options.
-
-    The default implementation does prefix-based abbreviation matching. We
-    disable such behaviour as it can can lead to confusing conflicts (e.g.
-    C{--force} and C{--force-multi}).
-
-    """
-    if opt in self._long_opt:
-      return opt
-    else:
-      raise optparse.BadOptionError(opt)
 
 
 def _CheckArguments(cmd, args_def, args):
