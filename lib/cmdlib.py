@@ -6863,6 +6863,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
       self.needed_locks[locking.LEVEL_NODE] = list(self.op.nodes)
     else:
       self.needed_locks[locking.LEVEL_NODE] = []
+    self.needed_locks[locking.LEVEL_NODE_RES] = []
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
