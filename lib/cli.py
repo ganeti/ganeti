@@ -30,7 +30,6 @@ import logging
 import errno
 import itertools
 import shlex
-import optparse
 from cStringIO import StringIO
 
 from ganeti import utils
