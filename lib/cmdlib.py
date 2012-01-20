@@ -7908,9 +7908,11 @@ class TLMigrateInstance(Tasklet):
     # check memory requirements on the secondary node
     if (not self.cleanup and
          (not self.failover or instance.admin_state == constants.ADMINST_UP)):
-      _CheckNodeFreeMemory(self.lu, target_node, "migrating instance %s" %
-                           instance.name, i_be[constants.BE_MAXMEM],
-                           instance.hypervisor)
+      self.tgt_free_mem = _CheckNodeFreeMemory(self.lu, target_node,
+                                               "migrating instance %s" %
+                                               instance.name,
+                                               i_be[constants.BE_MINMEM],
+                                               instance.hypervisor)
     else:
       self.lu.LogInfo("Not checking memory on the secondary node as"
                       " instance will not be started")
@@ -7967,6 +7969,16 @@ class TLMigrateInstance(Tasklet):
     else:
       # Failover is never live
       self.live = False
+
+    if not (self.failover or self.cleanup):
+      remote_info = self.rpc.call_instance_info(instance.primary_node,
+                                                instance.name,
+                                                instance.hypervisor)
+      remote_info.Raise("Error checking instance on node %s" %
+                        instance.primary_node)
+      instance_running = bool(remote_info.payload)
+      if instance_running:
+        self.current_mem = int(remote_info.payload["memory"])
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -8212,6 +8224,13 @@ class TLMigrateInstance(Tasklet):
         raise errors.OpExecError("Disk %s is degraded or not fully"
                                  " synchronized on target node,"
                                  " aborting migration" % dev.iv_name)
+
+    if self.current_mem > self.tgt_free_mem:
+      self.feedback_fn("* setting instance memory to %s" % self.tgt_free_mem)
+      rpcres = self.rpc.call_instance_balloon_memory(instance.primary_node,
+                                                     instance,
+                                                     self.tgt_free_mem)
+      rpcres.Raise("Cannot modify instance runtime memory")
 
     # First get the migration information from the remote node
     result = self.rpc.call_migration_info(source_node, instance)
