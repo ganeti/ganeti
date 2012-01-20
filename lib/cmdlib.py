@@ -7363,6 +7363,9 @@ class LUInstanceFailover(LogicalUnit):
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
+    self.needed_locks[locking.LEVEL_NODE_RES] = []
+    self.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
+
     ignore_consistency = self.op.ignore_consistency
     shutdown_timeout = self.op.shutdown_timeout
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
@@ -7385,6 +7388,10 @@ class LUInstanceFailover(LogicalUnit):
         del self.recalculate_locks[locking.LEVEL_NODE]
       else:
         self._LockInstancesNodes()
+    elif level == locking.LEVEL_NODE_RES:
+      # Copy node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE][:]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7441,6 +7448,9 @@ class LUInstanceMigrate(LogicalUnit):
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
                                        cleanup=self.op.cleanup,
                                        failover=False,
@@ -7460,6 +7470,10 @@ class LUInstanceMigrate(LogicalUnit):
         del self.recalculate_locks[locking.LEVEL_NODE]
       else:
         self._LockInstancesNodes()
+    elif level == locking.LEVEL_NODE_RES:
+      # Copy node locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.needed_locks[locking.LEVEL_NODE][:]
 
   def BuildHooksEnv(self):
     """Build hooks env.
