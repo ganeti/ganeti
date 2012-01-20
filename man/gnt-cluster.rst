@@ -44,7 +44,7 @@ interpreted as stdin.
 COMMAND
 ~~~~~~~
 
-**command** [-n *node*] [-g *group*] {*command*}
+**command** [-n *node*] [-g *group*] [-M] {*command*}
 
 Executes a command on all nodes. If the option ``-n`` is not given,
 the command will be executed on all nodes, otherwise it will be
@@ -57,6 +57,9 @@ The ``-g`` option can be used to run a command only on a specific node
 group, e.g.::
 
     # gnt-cluster command -g default date
+
+The ``-M`` option can be used to prepend the node name to all output
+lines.
 
 The command is executed serially on the selected nodes. If the
 master node is present in the list, the command will be executed

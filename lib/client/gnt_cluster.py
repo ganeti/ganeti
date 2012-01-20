@@ -52,6 +52,10 @@ GROUPS_OPT = cli_option("--groups", default=False,
                     action="store_true", dest="groups",
                     help="Arguments are node groups instead of nodes")
 
+SHOW_MACHINE_OPT = cli_option("-M", "--show-machine-names", default=False,
+                              action="store_true",
+                              help="Show machine name for every line in output")
+
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
@@ -529,8 +533,12 @@ def RunClusterCommand(opts, args):
   for name in nodes:
     result = srun.Run(name, "root", command)
     ToStdout("------------------------------------------------")
-    ToStdout("node: %s", name)
-    ToStdout("%s", result.output)
+    if opts.show_machine_names:
+      for line in result.output.splitlines():
+        ToStdout("%s: %s", name, line)
+    else:
+      ToStdout("node: %s", name)
+      ToStdout("%s", result.output)
     ToStdout("return code = %s", result.exit_code)
 
   return 0
@@ -1500,7 +1508,7 @@ commands = {
     "[-n node...] <filename>", "Copies a file to all (or only some) nodes"),
   "command": (
     RunClusterCommand, [ArgCommand(min=1)],
-    [NODE_LIST_OPT, NODEGROUP_OPT],
+    [NODE_LIST_OPT, NODEGROUP_OPT, SHOW_MACHINE_OPT],
     "[-n node...] <command>", "Runs a command on all (or only some) nodes"),
   "info": (
     ShowClusterConfig, ARGS_NONE, [ROMAN_OPT],
