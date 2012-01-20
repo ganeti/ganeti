@@ -39,6 +39,7 @@ from ganeti import errors
 from ganeti import netutils
 from ganeti import ssh
 from ganeti import objects
+from ganeti import ht
 
 
 _EXPAND_CLUSTER = "cluster"
@@ -601,14 +602,29 @@ def RecreateDisks(opts, args):
 
   """
   instance_name = args[0]
+
+  disks = []
+
   if opts.disks:
-    try:
-      opts.disks = [int(v) for v in opts.disks.split(",")]
-    except (ValueError, TypeError), err:
-      ToStderr("Invalid disks value: %s" % str(err))
-      return 1
-  else:
-    opts.disks = []
+    for didx, ddict in opts.disks:
+      didx = int(didx)
+
+      if not ht.TDict(ddict):
+        msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
+        raise errors.OpPrereqError(msg)
+
+      if constants.IDISK_SIZE in ddict:
+        try:
+          ddict[constants.IDISK_SIZE] = \
+            utils.ParseUnit(ddict[constants.IDISK_SIZE])
+        except ValueError, err:
+          raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
+                                     (didx, err))
+
+      disks.append((didx, ddict))
+
+    # TODO: Verify modifyable parameters (already done in
+    # LUInstanceRecreateDisks, but it'd be nice to have in the client)
 
   if opts.node:
     pnode, snode = SplitNodeOption(opts.node)
@@ -619,9 +635,9 @@ def RecreateDisks(opts, args):
     nodes = []
 
   op = opcodes.OpInstanceRecreateDisks(instance_name=instance_name,
-                                       disks=opts.disks,
-                                       nodes=nodes)
+                                       disks=disks, nodes=nodes)
   SubmitOrSend(op, opts)
+
   return 0
 
 
@@ -1545,7 +1561,7 @@ commands = {
     "[-f] <instance>", "Deactivate an instance's disks"),
   "recreate-disks": (
     RecreateDisks, ARGS_ONE_INSTANCE,
-    [SUBMIT_OPT, DISKIDX_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [SUBMIT_OPT, DISK_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
     "<instance>", "Recreate an instance's disks"),
   "grow-disk": (
     GrowDisk,

@@ -180,6 +180,11 @@ _TSetParamsResult = \
   ht.TListOf(ht.TAnd(ht.TIsLength(len(_TSetParamsResultItemItems)),
                      ht.TItems(_TSetParamsResultItemItems)))
 
+# TODO: Generate check from constants.IDISK_PARAMS_TYPES (however, not all users
+# of this check support all parameters)
+_TDiskParams = ht.TDictOf(ht.TElemOf(constants.IDISK_PARAMS),
+                          ht.TOr(ht.TNonEmptyString, ht.TInt))
+
 _SUMMARY_PREFIX = {
   "CLUSTER_": "C_",
   "GROUP_": "G_",
@@ -1089,10 +1094,7 @@ class OpInstanceCreate(OpCode):
     _PNameCheck,
     _PIgnoreIpolicy,
     ("beparams", ht.EmptyDict, ht.TDict, "Backend parameters for instance"),
-    ("disks", ht.NoDefault,
-     # TODO: Generate check from constants.IDISK_PARAMS_TYPES
-     ht.TListOf(ht.TDictOf(ht.TElemOf(constants.IDISK_PARAMS),
-                           ht.TOr(ht.TNonEmptyString, ht.TInt))),
+    ("disks", ht.NoDefault, ht.TListOf(_TDiskParams),
      "Disk descriptions, for example ``[{\"%s\": 100}, {\"%s\": 5}]``;"
      " each disk definition must contain a ``%s`` value and"
      " can contain an optional ``%s`` value denoting the disk access mode"
@@ -1323,11 +1325,18 @@ class OpInstanceDeactivateDisks(OpCode):
 
 class OpInstanceRecreateDisks(OpCode):
   """Recreate an instance's disks."""
+  _TDiskChanges = \
+    ht.TAnd(ht.TIsLength(2),
+            ht.TItems([ht.Comment("Disk index")(ht.TPositiveInt),
+                       ht.Comment("Parameters")(_TDiskParams)]))
+
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
-    ("disks", ht.EmptyList, ht.TListOf(ht.TPositiveInt),
-     "List of disk indexes"),
+    ("disks", ht.EmptyList,
+     ht.TOr(ht.TListOf(ht.TPositiveInt), ht.TListOf(_TDiskChanges)),
+     "List of disk indexes (deprecated) or a list of tuples containing a disk"
+     " index and a possibly empty dictionary with disk parameter changes"),
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "New instance nodes, if relocation is desired"),
     ]

@@ -730,6 +730,21 @@ class Disk(ConfigObject):
       raise errors.ProgrammerError("Disk.RecordGrow called for unsupported"
                                    " disk type %s" % self.dev_type)
 
+  def Update(self, size=None, mode=None):
+    """Apply changes to size and mode.
+
+    """
+    if self.dev_type == constants.LD_DRBD8:
+      if self.children:
+        self.children[0].Update(size=size, mode=mode)
+    else:
+      assert not self.children
+
+    if size is not None:
+      self.size = size
+    if mode is not None:
+      self.mode = mode
+
   def UnsetSize(self):
     """Sets recursively the size to zero for the disk and its children.
 

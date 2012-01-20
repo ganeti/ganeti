@@ -1365,17 +1365,22 @@ instance.
 RECREATE-DISKS
 ^^^^^^^^^^^^^^
 
-**recreate-disks** [--submit] [--disks=``indices``] [-n node1:[node2]]
-  {*instance*}
+| **recreate-disks** [--submit] [-n node1:[node2]]
+| [--disk=*N*[:[size=*VAL*][,mode=*ro\|rw*]]] {*instance*}
 
-Recreates the disks of the given instance, or only a subset of the
-disks (if the option ``disks`` is passed, which must be a
-comma-separated list of disk indices, starting from zero).
+Recreates all or a subset of disks of the given instance.
 
 Note that this functionality should only be used for missing disks; if
 any of the given disks already exists, the operation will fail.  While
 this is suboptimal, recreate-disks should hopefully not be needed in
 normal operation and as such the impact of this is low.
+
+If only a subset should be recreated, any number of ``disk`` options can
+be specified. It expects a disk index and an optional list of disk
+parameters to change. Only ``size`` and ``mode`` can be changed while
+recreating disks. To recreate all disks while changing parameters on
+a subset only, a ``--disk`` option must be given for every disk of the
+instance.
 
 Optionally the instance's disks can be recreated on different
 nodes. This can be useful if, for example, the original nodes of the
@@ -1383,8 +1388,8 @@ instance have gone down (and are marked offline), so we can't recreate
 on the same nodes. To do this, pass the new node(s) via ``-n`` option,
 with a syntax similar to the **add** command. The number of nodes
 passed must equal the number of nodes that the instance currently
-has. Note that changing nodes is only allowed for 'all disk'
-replacement (when ``--disks`` is not passed).
+has. Note that changing nodes is only allowed when all disks are
+replaced, e.g. when no ``--disk`` option is passed.
 
 The ``--submit`` option is used to send the job to the master daemon
 but not wait for its completion. The job ID will be shown so that it

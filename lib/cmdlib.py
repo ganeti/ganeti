@@ -6901,9 +6901,39 @@ class LUInstanceRecreateDisks(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
+  _MODIFYABLE = frozenset([
+    constants.IDISK_SIZE,
+    constants.IDISK_MODE,
+    ])
+
+  # New or changed disk parameters may have different semantics
+  assert constants.IDISK_PARAMS == (_MODIFYABLE | frozenset([
+    constants.IDISK_ADOPT,
+
+    # TODO: Implement support changing VG while recreating
+    constants.IDISK_VG,
+    constants.IDISK_METAVG,
+    ]))
+
   def CheckArguments(self):
-    # normalise the disk list
-    self.op.disks = sorted(frozenset(self.op.disks))
+    if self.op.disks and ht.TPositiveInt(self.op.disks[0]):
+      # Normalize and convert deprecated list of disk indices
+      self.op.disks = [(idx, {}) for idx in sorted(frozenset(self.op.disks))]
+
+    duplicates = utils.FindDuplicates(map(compat.fst, self.op.disks))
+    if duplicates:
+      raise errors.OpPrereqError("Some disks have been specified more than"
+                                 " once: %s" % utils.CommaJoin(duplicates),
+                                 errors.ECODE_INVAL)
+
+    for (idx, params) in self.op.disks:
+      utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
+      unsupported = frozenset(params.keys()) - self._MODIFYABLE
+      if unsupported:
+        raise errors.OpPrereqError("Parameters for disk %s try to change"
+                                   " unmodifyable parameter(s): %s" %
+                                   (idx, utils.CommaJoin(unsupported)),
+                                   errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -6969,6 +6999,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name, errors.ECODE_INVAL)
+
     # if we replace nodes *and* the old primary is offline, we don't
     # check
     assert instance.primary_node in self.owned_locks(locking.LEVEL_NODE)
@@ -6978,17 +7009,22 @@ class LUInstanceRecreateDisks(LogicalUnit):
       _CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
                           msg="cannot recreate disks")
 
-    if not self.op.disks:
-      self.op.disks = range(len(instance.disks))
+    if self.op.disks:
+      self.disks = dict(self.op.disks)
     else:
-      for idx in self.op.disks:
-        if idx >= len(instance.disks):
-          raise errors.OpPrereqError("Invalid disk index '%s'" % idx,
-                                     errors.ECODE_INVAL)
-    if self.op.disks != range(len(instance.disks)) and self.op.nodes:
+      self.disks = dict((idx, {}) for idx in range(len(instance.disks)))
+
+    maxidx = max(self.disks.keys())
+    if maxidx >= len(instance.disks):
+      raise errors.OpPrereqError("Invalid disk index '%s'" % maxidx,
+                                 errors.ECODE_INVAL)
+
+    if (self.op.nodes and
+        sorted(self.disks.keys()) != range(len(instance.disks))):
       raise errors.OpPrereqError("Can't recreate disks partially and"
                                  " change the nodes at the same time",
                                  errors.ECODE_INVAL)
+
     self.instance = instance
 
   def Exec(self, feedback_fn):
@@ -7001,30 +7037,42 @@ class LUInstanceRecreateDisks(LogicalUnit):
             self.owned_locks(locking.LEVEL_NODE_RES))
 
     to_skip = []
-    mods = [] # keeps track of needed logical_id changes
+    mods = [] # keeps track of needed changes
 
     for idx, disk in enumerate(instance.disks):
-      if idx not in self.op.disks: # disk idx has not been passed in
+      try:
+        changes = self.disks[idx]
+      except KeyError:
+        # Disk should not be recreated
         to_skip.append(idx)
         continue
+
       # update secondaries for disks, if needed
-      if self.op.nodes:
-        if disk.dev_type == constants.LD_DRBD8:
-          # need to update the nodes and minors
-          assert len(self.op.nodes) == 2
-          assert len(disk.logical_id) == 6 # otherwise disk internals
-                                           # have changed
-          (_, _, old_port, _, _, old_secret) = disk.logical_id
-          new_minors = self.cfg.AllocateDRBDMinor(self.op.nodes, instance.name)
-          new_id = (self.op.nodes[0], self.op.nodes[1], old_port,
-                    new_minors[0], new_minors[1], old_secret)
-          assert len(disk.logical_id) == len(new_id)
-          mods.append((idx, new_id))
+      if self.op.nodes and disk.dev_type == constants.LD_DRBD8:
+        # need to update the nodes and minors
+        assert len(self.op.nodes) == 2
+        assert len(disk.logical_id) == 6 # otherwise disk internals
+                                         # have changed
+        (_, _, old_port, _, _, old_secret) = disk.logical_id
+        new_minors = self.cfg.AllocateDRBDMinor(self.op.nodes, instance.name)
+        new_id = (self.op.nodes[0], self.op.nodes[1], old_port,
+                  new_minors[0], new_minors[1], old_secret)
+        assert len(disk.logical_id) == len(new_id)
+      else:
+        new_id = None
+
+      mods.append((idx, new_id, changes))
 
     # now that we have passed all asserts above, we can apply the mods
     # in a single run (to avoid partial changes)
-    for idx, new_id in mods:
-      instance.disks[idx].logical_id = new_id
+    for idx, new_id, changes in mods:
+      disk = instance.disks[idx]
+      if new_id is not None:
+        assert disk.dev_type == constants.LD_DRBD8
+        disk.logical_id = new_id
+      if changes:
+        disk.Update(size=changes.get(constants.IDISK_SIZE, None),
+                    mode=changes.get(constants.IDISK_MODE, None))
 
     # change primary node, if needed
     if self.op.nodes:

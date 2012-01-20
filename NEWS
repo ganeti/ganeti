@@ -9,6 +9,9 @@ Version 2.6.0 beta1
 
 - Deprecated ``admin_up`` field. Instead, ``admin_state`` is introduced,
   with 3 possible values -- ``up``, ``down`` and ``offline``.
+- Replaced ``--disks`` option of ``gnt-instance replace-disks`` with a
+  more flexible ``--disk`` option. Now disk size and mode can be changed
+  upon recreation.
 
 
 Version 2.5.0 rc5
