@@ -1039,8 +1039,8 @@ def _CheckInstanceState(lu, instance, req_states, msg=None):
   if msg is None:
     msg = "can't use instance from outside %s states" % ", ".join(req_states)
   if instance.admin_state not in req_states:
-    raise errors.OpPrereqError("Instance %s is marked to be %s, %s" %
-                               (instance, instance.admin_state, msg),
+    raise errors.OpPrereqError("Instance '%s' is marked to be %s, %s" %
+                               (instance.name, instance.admin_state, msg),
                                errors.ECODE_STATE)
 
   if constants.ADMINST_UP not in req_states:
