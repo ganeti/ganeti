@@ -8511,7 +8511,7 @@ def _GenerateDiskTemplate(lu, template_name,
   if template_name == constants.DT_DISKLESS:
     pass
   elif template_name == constants.DT_PLAIN:
-    if len(secondary_nodes) != 0:
+    if secondary_nodes:
       raise errors.ProgrammerError("Wrong template configuration")
 
     names = _GenerateUniqueNames(lu, [".disk%d" % (base_index + i)
@@ -8555,7 +8555,7 @@ def _GenerateDiskTemplate(lu, template_name,
       disk_dev.mode = disk[constants.IDISK_MODE]
       disks.append(disk_dev)
   elif template_name == constants.DT_FILE:
-    if len(secondary_nodes) != 0:
+    if secondary_nodes:
       raise errors.ProgrammerError("Wrong template configuration")
 
     opcodes.RequireFileStorage()
@@ -8572,7 +8572,7 @@ def _GenerateDiskTemplate(lu, template_name,
                               params=ld_params[0])
       disks.append(disk_dev)
   elif template_name == constants.DT_SHARED_FILE:
-    if len(secondary_nodes) != 0:
+    if secondary_nodes:
       raise errors.ProgrammerError("Wrong template configuration")
 
     opcodes.RequireSharedFileStorage()
@@ -8589,7 +8589,7 @@ def _GenerateDiskTemplate(lu, template_name,
                               params=ld_params[0])
       disks.append(disk_dev)
   elif template_name == constants.DT_BLOCK:
-    if len(secondary_nodes) != 0:
+    if secondary_nodes:
       raise errors.ProgrammerError("Wrong template configuration")
 
     for idx, disk in enumerate(disk_info):
