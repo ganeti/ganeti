@@ -468,6 +468,8 @@ def ShowClusterConfig(opts, args):
     _PrintGroupedParams(result["ipolicy"][key], roman=opts.roman_integers)
   ToStdout("  - enabled disk templates: %s",
            utils.CommaJoin(result["ipolicy"][constants.IPOLICY_DTS]))
+  for key in constants.IPOLICY_PARAMETERS:
+    ToStdout("  - %s: %s", key, result["ipolicy"][key])
 
   return 0
 

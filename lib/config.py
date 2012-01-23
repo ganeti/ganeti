@@ -439,10 +439,14 @@ class ConfigWriter:
           _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
         else:
           # FIXME: assuming list type
-          if not isinstance(value, list):
+          if key in constants.IPOLICY_PARAMETERS:
+            exp_type = float
+          else:
+            exp_type = list
+          if not isinstance(value, exp_type):
             result.append("%s has invalid instance policy: for %s,"
-                          " expecting list, got %s" %
-                          (owner, key, type(value)))
+                          " expecting %s, got %s" %
+                          (owner, key, exp_type.__name__, type(value)))
 
     # check cluster parameters
     _helper("cluster", "beparams", cluster.SimpleFillBE({}),

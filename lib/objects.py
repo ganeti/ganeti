@@ -105,6 +105,9 @@ def FillIPolicy(default_ipolicy, custom_ipolicy, skip_keys=None):
   # list items
   for key in [constants.IPOLICY_DTS]:
     ret_dict[key] = list(custom_ipolicy.get(key, default_ipolicy[key]))
+  # other items which we know we can directly copy (immutables)
+  for key in constants.IPOLICY_PARAMETERS:
+    ret_dict[key] = custom_ipolicy.get(key, default_ipolicy[key])
 
   return ret_dict
 
@@ -908,6 +911,9 @@ class InstancePolicy(ConfigObject):
       InstancePolicy.CheckISpecSyntax(ipolicy, param)
     if constants.IPOLICY_DTS in ipolicy:
       InstancePolicy.CheckDiskTemplates(ipolicy[constants.IPOLICY_DTS])
+    for key in constants.IPOLICY_PARAMETERS:
+      if key in ipolicy:
+        InstancePolicy.CheckParameter(key, ipolicy[key])
     wrong_keys = frozenset(ipolicy.keys()) - constants.IPOLICY_ALL_KEYS
     if wrong_keys:
       raise errors.ConfigurationError("Invalid keys in ipolicy: %s" %
@@ -947,6 +953,19 @@ class InstancePolicy(ConfigObject):
     if wrong:
       raise errors.ConfigurationError("Invalid disk template(s) %s" %
                                       utils.CommaJoin(wrong))
+
+  @classmethod
+  def CheckParameter(cls, key, value):
+    """Checks a parameter.
+
+    Currently we expect all parameters to be float values.
+
+    """
+    try:
+      float(value)
+    except (TypeError, ValueError), err:
+      raise errors.ConfigurationError("Invalid value for key" " '%s':"
+                                      " '%s', error: %s" % (key, value, err))
 
 
 class Instance(TaggableObject):

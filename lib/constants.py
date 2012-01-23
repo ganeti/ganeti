@@ -950,13 +950,21 @@ ISPECS_MIN = "min"
 ISPECS_MAX = "max"
 ISPECS_STD = "std"
 IPOLICY_DTS = "disk_templates"
+IPOLICY_VCPU_RATIO = "vcpu_ratio"
 
 IPOLICY_ISPECS = frozenset([
   ISPECS_MIN,
   ISPECS_MAX,
   ISPECS_STD,
   ])
-IPOLICY_ALL_KEYS = IPOLICY_ISPECS.union([IPOLICY_DTS])
+
+IPOLICY_PARAMETERS = frozenset([
+  IPOLICY_VCPU_RATIO,
+  ])
+
+IPOLICY_ALL_KEYS = (IPOLICY_ISPECS |
+                    IPOLICY_PARAMETERS |
+                    frozenset([IPOLICY_DTS]))
 
 # Node parameter names
 ND_OOB_PROGRAM = "oob_program"
@@ -1907,6 +1915,7 @@ IPOLICY_DEFAULTS = {
     ISPEC_NIC_COUNT: 1,
     },
   IPOLICY_DTS: DISK_TEMPLATES,
+  IPOLICY_VCPU_RATIO: 4.0,
   }
 
 MASTER_POOL_SIZE_DEFAULT = 10

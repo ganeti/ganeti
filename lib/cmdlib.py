@@ -740,8 +740,6 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                        use_none=use_none,
                                        use_default=use_default)
     else:
-      # FIXME: we assume all others are lists; this should be redone
-      # in a nicer way
       if not value or value == [constants.VALUE_DEFAULT]:
         if group_policy:
           del ipolicy[key]
@@ -750,7 +748,18 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
                                      " on the cluster'" % key,
                                      errors.ECODE_INVAL)
       else:
-        ipolicy[key] = list(value)
+        if key in constants.IPOLICY_PARAMETERS:
+          # FIXME: we assume all such values are float
+          try:
+            ipolicy[key] = float(value)
+          except (TypeError, ValueError), err:
+            raise errors.OpPrereqError("Invalid value for attribute"
+                                       " '%s': '%s', error: %s" %
+                                       (key, value, err), errors.ECODE_INVAL)
+        else:
+          # FIXME: we assume all others are lists; this should be redone
+          # in a nicer way
+          ipolicy[key] = list(value)
   try:
     objects.InstancePolicy.CheckParameterSyntax(ipolicy)
   except errors.ConfigurationError, err:
