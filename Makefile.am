@@ -550,6 +550,7 @@ python_scripts = \
 	tools/cfgupgrade12 \
 	tools/cluster-merge \
 	tools/confd-client \
+	tools/fmtjson \
 	tools/lvmstrap \
 	tools/move-instance \
 	tools/ovfconverter \
