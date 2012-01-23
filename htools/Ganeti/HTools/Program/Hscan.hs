@@ -27,7 +27,6 @@ module Ganeti.HTools.Program.Hscan (main, options) where
 
 import Control.Monad
 import Data.Maybe (isJust, fromJust, fromMaybe)
-import System.Environment (getArgs)
 import System.Exit
 import System.IO
 import System.FilePath

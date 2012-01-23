@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ module Ganeti.Jobs
   ) where
 
 import Text.JSON (readJSON, showJSON, JSON)
-import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.THH as THH
