@@ -892,9 +892,13 @@ class Disk(ConfigObject):
 
 
 class InstancePolicy(ConfigObject):
-  """Config object representing instance policy limits dictionary."""
-  __slots__ = ["min", "max", "std", "disk_templates"]
+  """Config object representing instance policy limits dictionary.
 
+
+  Note that this object is not actually used in the config, it's just
+  used as a placeholder for a few functions.
+
+  """
   @classmethod
   def CheckParameterSyntax(cls, ipolicy):
     """ Check the instance policy for validity.
