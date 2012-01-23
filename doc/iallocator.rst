@@ -90,6 +90,10 @@ cluster_tags
 enabled_hypervisors
   the list of enabled hypervisors
 
+ipolicy
+  the cluster-wide instance policy (for information; the per-node group
+  values take precedence and should be used instead)
+
 request
   a dictionary containing the details of the request; the keys vary
   depending on the type of operation that's being requested, as
@@ -105,6 +109,8 @@ nodegroups
   alloc_policy
     the allocation policy of the node group (consult the semantics of
     this attribute in the :manpage:`gnt-group(8)` manpage)
+  ipolicy
+    the instance policy of the node group
 
 instances
   a dictionary with the data for the current existing instance on the

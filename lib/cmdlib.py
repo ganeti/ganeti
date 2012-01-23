@@ -14343,7 +14343,7 @@ class IAllocator(object):
       "cluster_name": cfg.GetClusterName(),
       "cluster_tags": list(cluster_info.GetTags()),
       "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
-      # we don't have job IDs
+      "ipolicy": cluster_info.ipolicy,
       }
     ninfo = cfg.GetAllNodesInfo()
     iinfo = cfg.GetAllInstancesInfo().values()
