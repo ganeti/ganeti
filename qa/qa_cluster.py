@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -274,6 +274,11 @@ def TestClusterReservedLvs():
     (False, _CLUSTER_VERIFY),
     ]:
     AssertCommand(cmd, fail=fail)
+
+
+def TestClusterModifyEmpty():
+  """gnt-cluster modify"""
+  AssertCommand(["gnt-cluster", "modify"], fail=True)
 
 
 def TestClusterModifyDisk():

@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -160,6 +160,7 @@ def RunClusterTests():
     ("cluster-verify", qa_cluster.TestClusterVerify),
     ("cluster-reserved-lvs", qa_cluster.TestClusterReservedLvs),
     # TODO: add more cluster modify tests
+    ("cluster-modify", qa_cluster.TestClusterModifyEmpty),
     ("cluster-modify", qa_cluster.TestClusterModifyBe),
     ("cluster-modify", qa_cluster.TestClusterModifyDisk),
     ("cluster-rename", qa_cluster.TestClusterRename),

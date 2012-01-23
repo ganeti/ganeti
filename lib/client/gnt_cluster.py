@@ -949,11 +949,13 @@ def SetClusterParams(opts, args):
           opts.prealloc_wipe_disks is not None or
           opts.hv_state or
           opts.disk_state or
-          opts.ispecs_mem_size is not None or
-          opts.ispecs_cpu_count is not None or
-          opts.ispecs_disk_count is not None or
-          opts.ispecs_disk_size is not None or
-          opts.ispecs_nic_count is not None):
+          opts.ispecs_mem_size or
+          opts.ispecs_cpu_count or
+          opts.ispecs_disk_count or
+          opts.ispecs_disk_size or
+          opts.ispecs_nic_count or
+          opts.ipolicy_disk_templates is not None or
+          opts.ipolicy_vcpu_ratio is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
