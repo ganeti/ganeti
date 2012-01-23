@@ -32,7 +32,7 @@ ADD
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-templates *template* [,*template*...]]
+| [--ipol-disk-templates *template* [,*template*...]]
 | [--disk-state *diskstate*]
 | [--hypervisor-state *hvstate*]
 | {*group*}
@@ -67,8 +67,9 @@ parameters for the node group; please see the section about
 **gnt-cluster add** in **gnt-cluster**(8) for more information about
 disk parameters
 
-The ``--specs-...`` options specify instance policies on the node group,
-and are documented in the **gnt-cluster**(8) man page.
+The ``--specs-...`` and ``--ipol-disk-templates`` options specify
+instance policies on the node group, and are documented in the
+**gnt-cluster**(8) man page.
 
 ASSIGN-NODES
 ~~~~~~~~~~~~
@@ -100,7 +101,7 @@ MODIFY
 | [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
 | [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-templates *template* [,*template*...]]
+| [--ipol-disk-templates *template* [,*template*...]]
 | {*group*}
 
 Modifies some parameters from the node group.
@@ -113,8 +114,9 @@ The ``--node-parameters``, ``--alloc-policy``, ``-D
 (--disk-parameters)`` options are documented in the **add** command
 above.
 
-The ``--specs-...`` options specify instance policies on the node group,
-and are documented in the **gnt-cluster**(8) man page.
+The ``--specs-...`` and ``--ipol-disk-templates`` options specify
+instance policies on the node group, and are documented in the
+**gnt-cluster**(8) man page.
 
 REMOVE
 ~~~~~~

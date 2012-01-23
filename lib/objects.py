@@ -103,7 +103,7 @@ def FillIPolicy(default_ipolicy, custom_ipolicy, skip_keys=None):
                              custom_ipolicy.get(key, {}),
                              skip_keys=skip_keys)
   # list items
-  for key in [constants.ISPECS_DTS]:
+  for key in [constants.IPOLICY_DTS]:
     ret_dict[key] = list(custom_ipolicy.get(key, default_ipolicy[key]))
 
   return ret_dict
@@ -182,7 +182,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_disk_count=None,
                           ispecs_disk_size=None,
                           ispecs_nic_count=None,
-                          ispecs_disk_templates=None,
+                          ipolicy_disk_templates=None,
                           group_ipolicy=False,
                           allowed_values=None,
                           fill_all=False):
@@ -219,10 +219,10 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
       ipolicy_out[key][name] = val
 
   # no filldict for lists
-  if not group_ipolicy and fill_all and ispecs_disk_templates is None:
-    ispecs_disk_templates = constants.DISK_TEMPLATES
-  if ispecs_disk_templates is not None:
-    ipolicy_out[constants.ISPECS_DTS] = list(ispecs_disk_templates)
+  if not group_ipolicy and fill_all and ipolicy_disk_templates is None:
+    ipolicy_disk_templates = constants.DISK_TEMPLATES
+  if ipolicy_disk_templates is not None:
+    ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
 
   assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
 
@@ -887,8 +887,8 @@ class InstancePolicy(ConfigObject):
     """
     for param in constants.ISPECS_PARAMETERS:
       InstancePolicy.CheckISpecSyntax(ipolicy, param)
-    if constants.ISPECS_DTS in ipolicy:
-      InstancePolicy.CheckDiskTemplates(ipolicy[constants.ISPECS_DTS])
+    if constants.IPOLICY_DTS in ipolicy:
+      InstancePolicy.CheckDiskTemplates(ipolicy[constants.IPOLICY_DTS])
     wrong_keys = frozenset(ipolicy.keys()) - constants.IPOLICY_ALL_KEYS
     if wrong_keys:
       raise errors.ConfigurationError("Invalid keys in ipolicy: %s" %

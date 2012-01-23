@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -172,7 +172,7 @@ __all__ = [
   "SPECS_DISK_SIZE_OPT",
   "SPECS_MEM_SIZE_OPT",
   "SPECS_NIC_COUNT_OPT",
-  "SPECS_DISK_TEMPLATES",
+  "IPOLICY_DISK_TEMPLATES",
   "SPICE_CACERT_OPT",
   "SPICE_CERT_OPT",
   "SRC_DIR_OPT",
@@ -805,11 +805,11 @@ SPECS_NIC_COUNT_OPT = cli_option("--specs-nic-count", dest="ispecs_nic_count",
                                  type="keyval", default={},
                                  help="NIC count specs: min, max, std")
 
-SPECS_DISK_TEMPLATES = cli_option("--specs-disk-templates",
-                                  dest="ispecs_disk_templates",
-                                  type="list", default=None,
-                                  help="Comma-separated list of"
-                                  " enabled disk templates")
+IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
+                                 dest="ipolicy_disk_templates",
+                                 type="list", default=None,
+                                 help="Comma-separated list of"
+                                 " enabled disk templates")
 
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
@@ -1401,7 +1401,7 @@ INSTANCE_POLICY_OPTS = [
   SPECS_DISK_SIZE_OPT,
   SPECS_MEM_SIZE_OPT,
   SPECS_NIC_COUNT_OPT,
-  SPECS_DISK_TEMPLATES,
+  IPOLICY_DISK_TEMPLATES,
   ]
 
 

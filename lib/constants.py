@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -949,14 +949,14 @@ ISPECS_PARAMETERS = frozenset(ISPECS_PARAMETER_TYPES.keys())
 ISPECS_MIN = "min"
 ISPECS_MAX = "max"
 ISPECS_STD = "std"
-ISPECS_DTS = "disk_templates"
+IPOLICY_DTS = "disk_templates"
 
 IPOLICY_PARAMETERS = frozenset([
   ISPECS_MIN,
   ISPECS_MAX,
   ISPECS_STD,
   ])
-IPOLICY_ALL_KEYS = IPOLICY_PARAMETERS.union([ISPECS_DTS])
+IPOLICY_ALL_KEYS = IPOLICY_PARAMETERS.union([IPOLICY_DTS])
 
 # Node parameter names
 ND_OOB_PROGRAM = "oob_program"
@@ -1906,7 +1906,7 @@ IPOLICY_DEFAULTS = {
     ISPEC_DISK_SIZE: 1024,
     ISPEC_NIC_COUNT: 1,
     },
-  ISPECS_DTS: DISK_TEMPLATES,
+  IPOLICY_DTS: DISK_TEMPLATES,
   }
 
 MASTER_POOL_SIZE_DEFAULT = 10
