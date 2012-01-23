@@ -173,6 +173,7 @@ __all__ = [
   "SPECS_MEM_SIZE_OPT",
   "SPECS_NIC_COUNT_OPT",
   "IPOLICY_DISK_TEMPLATES",
+  "IPOLICY_VCPU_RATIO",
   "SPICE_CACERT_OPT",
   "SPICE_CERT_OPT",
   "SRC_DIR_OPT",
@@ -811,6 +812,11 @@ IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
                                  help="Comma-separated list of"
                                  " enabled disk templates")
 
+IPOLICY_VCPU_RATIO = cli_option("--ipolicy-vcpu-ratio",
+                                 dest="ipolicy_vcpu_ratio",
+                                 type="float", default=None,
+                                 help="The maximum allowed vcpu-to-cpu ratio")
+
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
                             " format hypervisor:option=value,option=value,...",
@@ -1402,6 +1408,7 @@ INSTANCE_POLICY_OPTS = [
   SPECS_MEM_SIZE_OPT,
   SPECS_NIC_COUNT_OPT,
   IPOLICY_DISK_TEMPLATES,
+  IPOLICY_VCPU_RATIO,
   ]
 
 

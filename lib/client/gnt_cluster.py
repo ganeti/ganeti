@@ -143,15 +143,15 @@ def InitCluster(opts, args):
     utils.ForceDictType(diskparams[templ], constants.DISK_DT_TYPES)
 
   # prepare ipolicy dict
-  ispecs_dts = opts.ipolicy_disk_templates # hate long var names
-  ipolicy_raw = \
-    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_size,
-                                  ispecs_cpu_count=opts.ispecs_cpu_count,
-                                  ispecs_disk_count=opts.ispecs_disk_count,
-                                  ispecs_disk_size=opts.ispecs_disk_size,
-                                  ispecs_nic_count=opts.ispecs_nic_count,
-                                  ipolicy_disk_templates=ispecs_dts,
-                                  fill_all=True)
+  ipolicy_raw = objects.CreateIPolicyFromOpts(
+    ispecs_mem_size=opts.ispecs_mem_size,
+    ispecs_cpu_count=opts.ispecs_cpu_count,
+    ispecs_disk_count=opts.ispecs_disk_count,
+    ispecs_disk_size=opts.ispecs_disk_size,
+    ispecs_nic_count=opts.ispecs_nic_count,
+    ipolicy_disk_templates=opts.ipolicy_disk_templates,
+    ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
+    fill_all=True)
   ipolicy = objects.FillIPolicy(constants.IPOLICY_DEFAULTS, ipolicy_raw)
 
   if opts.candidate_pool_size is None:
@@ -997,14 +997,15 @@ def SetClusterParams(opts, args):
   if ndparams is not None:
     utils.ForceDictType(ndparams, constants.NDS_PARAMETER_TYPES)
 
-  ispecs_dts = opts.ipolicy_disk_templates
-  ipolicy = \
-    objects.CreateIPolicyFromOpts(ispecs_mem_size=opts.ispecs_mem_size,
-                                  ispecs_cpu_count=opts.ispecs_cpu_count,
-                                  ispecs_disk_count=opts.ispecs_disk_count,
-                                  ispecs_disk_size=opts.ispecs_disk_size,
-                                  ispecs_nic_count=opts.ispecs_nic_count,
-                                  ipolicy_disk_templates=ispecs_dts)
+  ipolicy = objects.CreateIPolicyFromOpts(
+    ispecs_mem_size=opts.ispecs_mem_size,
+    ispecs_cpu_count=opts.ispecs_cpu_count,
+    ispecs_disk_count=opts.ispecs_disk_count,
+    ispecs_disk_size=opts.ispecs_disk_size,
+    ispecs_nic_count=opts.ispecs_nic_count,
+    ipolicy_disk_templates=opts.ipolicy_disk_templates,
+    ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
+    )
 
   mnh = opts.maintain_node_health
 

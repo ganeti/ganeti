@@ -186,6 +186,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
                           ispecs_disk_size=None,
                           ispecs_nic_count=None,
                           ipolicy_disk_templates=None,
+                          ipolicy_vcpu_ratio=None,
                           group_ipolicy=False,
                           allowed_values=None,
                           fill_all=False):
@@ -221,11 +222,17 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     for key, val in specs.items(): # {min: .. ,max: .., std: ..}
       ipolicy_out[key][name] = val
 
-  # no filldict for lists
-  if not group_ipolicy and fill_all and ipolicy_disk_templates is None:
-    ipolicy_disk_templates = constants.DISK_TEMPLATES
+  # no filldict for non-dicts
+  if not group_ipolicy and fill_all:
+    if ipolicy_disk_templates is None:
+      ipolicy_disk_templates = constants.DISK_TEMPLATES
+    if ipolicy_vcpu_ratio is None:
+      ipolicy_vcpu_ratio = \
+        constants.IPOLICY_DEFAULTS[constants.IPOLICY_VCPU_RATIO]
   if ipolicy_disk_templates is not None:
     ipolicy_out[constants.IPOLICY_DTS] = list(ipolicy_disk_templates)
+  if ipolicy_vcpu_ratio is not None:
+    ipolicy_out[constants.IPOLICY_VCPU_RATIO] = ipolicy_vcpu_ratio
 
   assert not (frozenset(ipolicy_out.keys()) - constants.IPOLICY_ALL_KEYS)
 
