@@ -14188,9 +14188,11 @@ class IAllocator(object):
     """Compute node groups data.
 
     """
+    cluster = cfg.GetClusterInfo()
     ng = dict((guuid, {
       "name": gdata.name,
       "alloc_policy": gdata.alloc_policy,
+      "ipolicy": _CalculateGroupIPolicy(cluster, gdata),
       })
       for guuid, gdata in cfg.GetAllNodeGroupsInfo().items())
 
