@@ -98,7 +98,7 @@ def FillIPolicy(default_ipolicy, custom_ipolicy, skip_keys=None):
   """
   assert frozenset(default_ipolicy.keys()) == constants.IPOLICY_ALL_KEYS
   ret_dict = {}
-  for key in constants.IPOLICY_PARAMETERS:
+  for key in constants.IPOLICY_ISPECS:
     ret_dict[key] = FillDict(default_ipolicy[key],
                              custom_ipolicy.get(key, {}),
                              skip_keys=skip_keys)

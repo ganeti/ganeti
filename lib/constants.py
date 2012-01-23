@@ -951,12 +951,12 @@ ISPECS_MAX = "max"
 ISPECS_STD = "std"
 IPOLICY_DTS = "disk_templates"
 
-IPOLICY_PARAMETERS = frozenset([
+IPOLICY_ISPECS = frozenset([
   ISPECS_MIN,
   ISPECS_MAX,
   ISPECS_STD,
   ])
-IPOLICY_ALL_KEYS = IPOLICY_PARAMETERS.union([IPOLICY_DTS])
+IPOLICY_ALL_KEYS = IPOLICY_ISPECS.union([IPOLICY_DTS])
 
 # Node parameter names
 ND_OOB_PROGRAM = "oob_program"

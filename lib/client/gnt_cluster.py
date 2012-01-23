@@ -463,7 +463,7 @@ def ShowClusterConfig(opts, args):
   _PrintGroupedParams(result["nicparams"], roman=opts.roman_integers)
 
   ToStdout("Instance policy - limits for instances:")
-  for key in constants.IPOLICY_PARAMETERS:
+  for key in constants.IPOLICY_ISPECS:
     ToStdout("  - %s", key)
     _PrintGroupedParams(result["ipolicy"][key], roman=opts.roman_integers)
   ToStdout("  - enabled disk templates: %s",

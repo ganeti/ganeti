@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -434,7 +434,7 @@ class ConfigWriter:
 
     def _helper_ispecs(owner, params):
       for key, value in params.items():
-        if key in constants.IPOLICY_PARAMETERS:
+        if key in constants.IPOLICY_ISPECS:
           fullkey = "ipolicy/" + key
           _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
         else:

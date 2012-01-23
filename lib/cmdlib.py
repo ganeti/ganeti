@@ -734,7 +734,7 @@ def _GetUpdatedIPolicy(old_ipolicy, new_ipolicy, group_policy=False):
     if key not in constants.IPOLICY_ALL_KEYS:
       raise errors.OpPrereqError("Invalid key in new ipolicy: %s" % key,
                                  errors.ECODE_INVAL)
-    if key in constants.IPOLICY_PARAMETERS:
+    if key in constants.IPOLICY_ISPECS:
       utils.ForceDictType(value, constants.ISPECS_PARAMETER_TYPES)
       ipolicy[key] = _GetUpdatedParams(old_ipolicy.get(key, {}), value,
                                        use_none=use_none,
