@@ -1508,6 +1508,11 @@ class Cluster(TaggableObject):
     # instance policy added before 2.6
     if self.ipolicy is None:
       self.ipolicy = FillIPolicy(constants.IPOLICY_DEFAULTS, {})
+    else:
+      # we can either make sure to upgrade the ipolicy always, or only
+      # do it in some corner cases (e.g. missing keys); note that this
+      # will break any removal of keys from the ipolicy dict
+      self.ipolicy = FillIPolicy(constants.IPOLICY_DEFAULTS, self.ipolicy)
 
   @property
   def primary_hypervisor(self):
