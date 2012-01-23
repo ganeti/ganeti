@@ -430,18 +430,20 @@ DT_DRBD8 = "drbd"
 DT_FILE = "file"
 DT_SHARED_FILE = "sharedfile"
 DT_BLOCK = "blockdev"
+DT_RBD = "rbd"
 
 # the set of network-mirrored disk templates
 DTS_INT_MIRROR = frozenset([DT_DRBD8])
 
 # the set of externally-mirrored disk templates (e.g. SAN, NAS)
-DTS_EXT_MIRROR = frozenset([DT_SHARED_FILE, DT_BLOCK])
+DTS_EXT_MIRROR = frozenset([DT_SHARED_FILE, DT_BLOCK, DT_RBD])
 
 # the set of non-lvm-based disk templates
-DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE, DT_SHARED_FILE, DT_BLOCK])
+DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE, DT_SHARED_FILE,
+                         DT_BLOCK, DT_RBD])
 
 # the set of disk templates which can be grown
-DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE, DT_SHARED_FILE])
+DTS_GROWABLE = frozenset([DT_PLAIN, DT_DRBD8, DT_FILE, DT_SHARED_FILE, DT_RBD])
 
 # the set of disk templates that allow adoption
 DTS_MAY_ADOPT = frozenset([DT_PLAIN, DT_BLOCK])
@@ -460,14 +462,16 @@ LD_LV = "lvm"
 LD_DRBD8 = "drbd8"
 LD_FILE = "file"
 LD_BLOCKDEV = "blockdev"
+LD_RBD = "rbd"
 LOGICAL_DISK_TYPES = frozenset([
   LD_LV,
   LD_DRBD8,
   LD_FILE,
   LD_BLOCKDEV,
+  LD_RBD,
   ])
 
-LDS_BLOCK = frozenset([LD_LV, LD_DRBD8, LD_BLOCKDEV])
+LDS_BLOCK = frozenset([LD_LV, LD_DRBD8, LD_BLOCKDEV, LD_RBD])
 
 # drbd constants
 DRBD_HMAC_ALG = "md5"
@@ -491,6 +495,9 @@ DRBD_VALID_BARRIER_OPT = frozenset([
   frozenset([DRBD_B_DISK_BARRIERS, DRBD_B_DISK_FLUSH]),
   frozenset([DRBD_B_DISK_BARRIERS, DRBD_B_DISK_FLUSH, DRBD_B_DISK_DRAIN]),
   ])
+
+# rbd tool command
+RBD_CMD = "rbd"
 
 # file backend driver
 FD_LOOP = "loop"
@@ -571,7 +578,8 @@ DISK_TEMPLATES = frozenset([
   DT_DRBD8,
   DT_FILE,
   DT_SHARED_FILE,
-  DT_BLOCK
+  DT_BLOCK,
+  DT_RBD
   ])
 
 FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])
@@ -973,6 +981,7 @@ LDP_FILL_TARGET = "c-fill-target"
 LDP_DELAY_TARGET = "c-delay-target"
 LDP_MAX_RATE = "c-max-rate"
 LDP_MIN_RATE = "c-min-rate"
+LDP_POOL = "pool"
 DISK_LD_TYPES = {
   LDP_RESYNC_RATE: VTYPE_INT,
   LDP_STRIPES: VTYPE_INT,
@@ -987,6 +996,7 @@ DISK_LD_TYPES = {
   LDP_DELAY_TARGET: VTYPE_INT,
   LDP_MAX_RATE: VTYPE_INT,
   LDP_MIN_RATE: VTYPE_INT,
+  LDP_POOL: VTYPE_STRING,
   }
 DISK_LD_PARAMETERS = frozenset(DISK_LD_TYPES.keys())
 
@@ -1007,6 +1017,7 @@ DRBD_DELAY_TARGET = "c-delay-target"
 DRBD_MAX_RATE = "c-max-rate"
 DRBD_MIN_RATE = "c-min-rate"
 LV_STRIPES = "stripes"
+RBD_POOL = "pool"
 DISK_DT_TYPES = {
   DRBD_RESYNC_RATE: VTYPE_INT,
   DRBD_DATA_STRIPES: VTYPE_INT,
@@ -1023,6 +1034,7 @@ DISK_DT_TYPES = {
   DRBD_MAX_RATE: VTYPE_INT,
   DRBD_MIN_RATE: VTYPE_INT,
   LV_STRIPES: VTYPE_INT,
+  RBD_POOL: VTYPE_STRING,
   }
 
 DISK_DT_PARAMETERS = frozenset(DISK_DT_TYPES.keys())
@@ -1822,6 +1834,9 @@ DISK_LD_DEFAULTS = {
     },
   LD_BLOCKDEV: {
     },
+  LD_RBD: {
+    LDP_POOL: "rbd"
+    },
   }
 
 # readability shortcuts
@@ -1855,6 +1870,9 @@ DISK_DT_DEFAULTS = {
   DT_SHARED_FILE: {
     },
   DT_BLOCK: {
+    },
+  DT_RBD: {
+    RBD_POOL: DISK_LD_DEFAULTS[LD_RBD][LDP_POOL]
     },
   }
 

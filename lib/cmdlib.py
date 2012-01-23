@@ -8200,6 +8200,21 @@ class TLMigrateInstance(Tasklet):
       self._GoReconnect(False)
       self._WaitUntilSync()
 
+    # If the instance's disk template is `rbd' and there was a successful
+    # migration, unmap the device from the source node.
+    if self.instance.disk_template == constants.DT_RBD:
+      disks = _ExpandCheckDisks(instance, instance.disks)
+      self.feedback_fn("* unmapping instance's disks from %s" % source_node)
+      for disk in disks:
+        result = self.rpc.call_blockdev_shutdown(source_node, disk)
+        msg = result.fail_msg
+        if msg:
+          logging.error("Migration was successful, but couldn't unmap the"
+                        " block device %s on source node %s: %s",
+                        disk.iv_name, source_node, msg)
+          logging.error("You need to unmap the device %s manually on %s",
+                        disk.iv_name, source_node)
+
     self.feedback_fn("* done")
 
   def _ExecFailover(self):
@@ -8467,6 +8482,15 @@ def _ComputeLDParams(disk_template, disk_params):
   elif disk_template == constants.DT_BLOCK:
     result.append(constants.DISK_LD_DEFAULTS[constants.LD_BLOCKDEV])
 
+  elif disk_template == constants.DT_RBD:
+    params = {
+      constants.LDP_POOL: dt_params[constants.RBD_POOL]
+      }
+    params = \
+      objects.FillDict(constants.DISK_LD_DEFAULTS[constants.LD_RBD],
+                       params)
+    result.append(params)
+
   return result
 
 
@@ -8599,6 +8623,22 @@ def _GenerateDiskTemplate(lu, template_name,
                               size=disk[constants.IDISK_SIZE],
                               logical_id=(constants.BLOCKDEV_DRIVER_MANUAL,
                                           disk[constants.IDISK_ADOPT]),
+                              iv_name="disk/%d" % disk_index,
+                              mode=disk[constants.IDISK_MODE],
+                              params=ld_params[0])
+      disks.append(disk_dev)
+  elif template_name == constants.DT_RBD:
+    if secondary_nodes:
+      raise errors.ProgrammerError("Wrong template configuration")
+
+    names = _GenerateUniqueNames(lu, [".rbd.disk%d" % (base_index + i)
+                                      for i in range(disk_count)])
+
+    for idx, disk in enumerate(disk_info):
+      disk_index = idx + base_index
+      disk_dev = objects.Disk(dev_type=constants.LD_RBD,
+                              size=disk[constants.IDISK_SIZE],
+                              logical_id=("rbd", names[idx]),
                               iv_name="disk/%d" % disk_index,
                               mode=disk[constants.IDISK_MODE],
                               params=ld_params[0])
@@ -8843,6 +8883,7 @@ def _ComputeDiskSize(disk_template, disks):
     constants.DT_FILE: None,
     constants.DT_SHARED_FILE: 0,
     constants.DT_BLOCK: 0,
+    constants.DT_RBD: 0,
   }
 
   if disk_template not in req_size_dict:
@@ -9677,9 +9718,15 @@ class LUInstanceCreate(LogicalUnit):
     self.diskparams = group_info.diskparams
 
     if not self.adopt_disks:
-      # Check lv size requirements, if not adopting
-      req_sizes = _ComputeDiskSizePerVG(self.op.disk_template, self.disks)
-      _CheckNodesFreeDiskPerVG(self, nodenames, req_sizes)
+      if self.op.disk_template == constants.DT_RBD:
+        # _CheckRADOSFreeSpace() is just a placeholder.
+        # Any function that checks prerequisites can be placed here.
+        # Check if there is enough space on the RADOS cluster.
+        _CheckRADOSFreeSpace()
+      else:
+        # Check lv size requirements, if not adopting
+        req_sizes = _ComputeDiskSizePerVG(self.op.disk_template, self.disks)
+        _CheckNodesFreeDiskPerVG(self, nodenames, req_sizes)
 
     elif self.op.disk_template == constants.DT_PLAIN: # Check the adoption data
       all_lvs = set(["%s/%s" % (disk[constants.IDISK_VG],
@@ -9990,6 +10037,14 @@ class LUInstanceCreate(LogicalUnit):
       result.Raise("Could not start instance")
 
     return list(iobj.all_nodes)
+
+
+def _CheckRADOSFreeSpace():
+  """Compute disk size requirements inside the RADOS cluster.
+
+  """
+  # For the RADOS cluster we assume there is always enough space.
+  pass
 
 
 class LUInstanceConsole(NoHooksLU):
@@ -11347,7 +11402,8 @@ class LUInstanceGrowDisk(LogicalUnit):
     self.disk = instance.FindDisk(self.op.disk)
 
     if instance.disk_template not in (constants.DT_FILE,
-                                      constants.DT_SHARED_FILE):
+                                      constants.DT_SHARED_FILE,
+                                      constants.DT_RBD):
       # TODO: check the free disk space for file, when that feature will be
       # supported
       _CheckNodesFreeDiskPerVG(self, nodenames,

@@ -340,5 +340,37 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.failUnless(stats.is_in_resync)
     self.failUnless(stats.sync_percent is not None)
 
+
+class TestRADOSBlockDevice(testutils.GanetiTestCase):
+  def test_ParseRbdShowmappedOutput(self):
+    volume_name = "abc9778-8e8ace5b.rbd.disk0"
+    output_ok = \
+      ("0\trbd\te69f28e5-9817.rbd.disk0\t-\t/dev/rbd0\n"
+       "1\t/dev/rbd0\tabc9778-8e8ace5b.rbd.disk0\t-\t/dev/rbd16\n"
+       "line\twith\tfewer\tfields\n"
+       "")
+    output_empty = ""
+    output_no_matches = \
+      ("0\trbd\te69f28e5-9817.rbd.disk0\t-\t/dev/rbd0\n"
+       "1\trbd\tabcdef01-9817.rbd.disk0\t-\t/dev/rbd10\n"
+       "2\trbd\tcdef0123-9817.rbd.disk0\t-\t/dev/rbd12\n"
+       "something\twith\tfewer\tfields"
+       "")
+    output_extra_matches = \
+      ("0\t/dev/rbd0\tabc9778-8e8ace5b.rbd.disk0\t-\t/dev/rbd11\n"
+       "1\trbd\te69f28e5-9817.rbd.disk0\t-\t/dev/rbd0\n"
+       "2\t/dev/rbd0\tabc9778-8e8ace5b.rbd.disk0\t-\t/dev/rbd16\n"
+       "something\twith\tfewer\tfields"
+       "")
+
+    parse_function = bdev.RADOSBlockDevice._ParseRbdShowmappedOutput
+    self.assertEqual(parse_function(output_ok, volume_name), "/dev/rbd16")
+    self.assertRaises(errors.BlockDeviceError, parse_function,
+                      output_empty, volume_name)
+    self.assertEqual(parse_function(output_no_matches, volume_name), None)
+    self.assertRaises(errors.BlockDeviceError, parse_function,
+                      output_extra_matches, volume_name)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

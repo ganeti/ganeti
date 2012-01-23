@@ -2346,10 +2346,302 @@ class PersistentBlockDevice(BlockDev):
     _ThrowError("Grow is not supported for PersistentBlockDev storage")
 
 
+class RADOSBlockDevice(BlockDev):
+  """A RADOS Block Device (rbd).
+
+  This class implements the RADOS Block Device for the backend. You need
+  the rbd kernel driver, the RADOS Tools and a working RADOS cluster for
+  this to be functional.
+
+  """
+  def __init__(self, unique_id, children, size, params):
+    """Attaches to an rbd device.
+
+    """
+    super(RADOSBlockDevice, self).__init__(unique_id, children, size, params)
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+
+    self.driver, self.rbd_name = unique_id
+
+    self.major = self.minor = None
+    self.Attach()
+
+  @classmethod
+  def Create(cls, unique_id, children, size, params):
+    """Create a new rbd device.
+
+    Provision a new rbd volume inside a RADOS pool.
+
+    """
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
+      raise errors.ProgrammerError("Invalid configuration data %s" %
+                                   str(unique_id))
+    rbd_pool = params[constants.LDP_POOL]
+    rbd_name = unique_id[1]
+
+    # Provision a new rbd volume (Image) inside the RADOS cluster.
+    cmd = [constants.RBD_CMD, "create", "-p", rbd_pool,
+           rbd_name, "--size", "%s" % size]
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      _ThrowError("rbd creation failed (%s): %s",
+                  result.fail_reason, result.output)
+
+    return RADOSBlockDevice(unique_id, children, size, params)
+
+  def Remove(self):
+    """Remove the rbd device.
+
+    """
+    rbd_pool = self.params[constants.LDP_POOL]
+    rbd_name = self.unique_id[1]
+
+    if not self.minor and not self.Attach():
+      # The rbd device doesn't exist.
+      return
+
+    # First shutdown the device (remove mappings).
+    self.Shutdown()
+
+    # Remove the actual Volume (Image) from the RADOS cluster.
+    cmd = [constants.RBD_CMD, "rm", "-p", rbd_pool, rbd_name]
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      _ThrowError("Can't remove Volume from cluster with rbd rm: %s - %s",
+                  result.fail_reason, result.output)
+
+  def Rename(self, new_id):
+    """Rename this device.
+
+    """
+    pass
+
+  def Attach(self):
+    """Attach to an existing rbd device.
+
+    This method maps the rbd volume that matches our name with
+    an rbd device and then attaches to this device.
+
+    """
+    self.attached = False
+
+    # Map the rbd volume to a block device under /dev
+    self.dev_path = self._MapVolumeToBlockdev(self.unique_id)
+
+    try:
+      st = os.stat(self.dev_path)
+    except OSError, err:
+      logging.error("Error stat()'ing %s: %s", self.dev_path, str(err))
+      return False
+
+    if not stat.S_ISBLK(st.st_mode):
+      logging.error("%s is not a block device", self.dev_path)
+      return False
+
+    self.major = os.major(st.st_rdev)
+    self.minor = os.minor(st.st_rdev)
+    self.attached = True
+
+    return True
+
+  def _MapVolumeToBlockdev(self, unique_id):
+    """Maps existing rbd volumes to block devices.
+
+    This method should be idempotent if the mapping already exists.
+
+    @rtype: string
+    @return: the block device path that corresponds to the volume
+
+    """
+    pool = self.params[constants.LDP_POOL]
+    name = unique_id[1]
+
+    # Check if the mapping already exists.
+    showmap_cmd = [constants.RBD_CMD, "showmapped", "-p", pool]
+    result = utils.RunCmd(showmap_cmd)
+    if result.failed:
+      _ThrowError("rbd showmapped failed (%s): %s",
+                  result.fail_reason, result.output)
+
+    rbd_dev = self._ParseRbdShowmappedOutput(result.output, name)
+
+    if rbd_dev:
+      # The mapping exists. Return it.
+      return rbd_dev
+
+    # The mapping doesn't exist. Create it.
+    map_cmd = [constants.RBD_CMD, "map", "-p", pool, name]
+    result = utils.RunCmd(map_cmd)
+    if result.failed:
+      _ThrowError("rbd map failed (%s): %s",
+                  result.fail_reason, result.output)
+
+    # Find the corresponding rbd device.
+    showmap_cmd = [constants.RBD_CMD, "showmapped", "-p", pool]
+    result = utils.RunCmd(showmap_cmd)
+    if result.failed:
+      _ThrowError("rbd map succeeded, but showmapped failed (%s): %s",
+                  result.fail_reason, result.output)
+
+    rbd_dev = self._ParseRbdShowmappedOutput(result.output, name)
+
+    if not rbd_dev:
+      _ThrowError("rbd map succeeded, but could not find the rbd block"
+                  " device in output of showmapped, for volume: %s", name)
+
+    # The device was successfully mapped. Return it.
+    return rbd_dev
+
+  @staticmethod
+  def _ParseRbdShowmappedOutput(output, volume_name):
+    """Parse the output of `rbd showmapped'.
+
+    This method parses the output of `rbd showmapped' and returns
+    the rbd block device path (e.g. /dev/rbd0) that matches the
+    given rbd volume.
+
+    @type output: string
+    @param output: the whole output of `rbd showmapped'
+    @type volume_name: string
+    @param volume_name: the name of the volume whose device we search for
+    @rtype: string or None
+    @return: block device path if the volume is mapped, else None
+
+    """
+    allfields = 5
+    volumefield = 2
+    devicefield = 4
+
+    field_sep = "\t"
+
+    lines = output.splitlines()
+    splitted_lines = map(lambda l: l.split(field_sep), lines)
+
+    # Check empty output.
+    if not splitted_lines:
+      _ThrowError("rbd showmapped returned empty output")
+
+    # Check showmapped header line, to determine number of fields.
+    field_cnt = len(splitted_lines[0])
+    if field_cnt != allfields:
+      _ThrowError("Cannot parse rbd showmapped output because its format"
+                  " seems to have changed; expected %s fields, found %s",
+                  allfields, field_cnt)
+
+    matched_lines = \
+      filter(lambda l: len(l) == allfields and l[volumefield] == volume_name,
+             splitted_lines)
+
+    if len(matched_lines) > 1:
+      _ThrowError("The rbd volume %s is mapped more than once."
+                  " This shouldn't happen, try to unmap the extra"
+                  " devices manually.", volume_name)
+
+    if matched_lines:
+      # rbd block device found. Return it.
+      rbd_dev = matched_lines[0][devicefield]
+      return rbd_dev
+
+    # The given volume is not mapped.
+    return None
+
+  def Assemble(self):
+    """Assemble the device.
+
+    """
+    pass
+
+  def Shutdown(self):
+    """Shutdown the device.
+
+    """
+    if not self.minor and not self.Attach():
+      # The rbd device doesn't exist.
+      return
+
+    # Unmap the block device from the Volume.
+    self._UnmapVolumeFromBlockdev(self.unique_id)
+
+    self.minor = None
+    self.dev_path = None
+
+  def _UnmapVolumeFromBlockdev(self, unique_id):
+    """Unmaps the rbd device from the Volume it is mapped.
+
+    Unmaps the rbd device from the Volume it was previously mapped to.
+    This method should be idempotent if the Volume isn't mapped.
+
+    """
+    pool = self.params[constants.LDP_POOL]
+    name = unique_id[1]
+
+    # Check if the mapping already exists.
+    showmap_cmd = [constants.RBD_CMD, "showmapped", "-p", pool]
+    result = utils.RunCmd(showmap_cmd)
+    if result.failed:
+      _ThrowError("rbd showmapped failed [during unmap](%s): %s",
+                  result.fail_reason, result.output)
+
+    rbd_dev = self._ParseRbdShowmappedOutput(result.output, name)
+
+    if rbd_dev:
+      # The mapping exists. Unmap the rbd device.
+      unmap_cmd = [constants.RBD_CMD, "unmap", "%s" % rbd_dev]
+      result = utils.RunCmd(unmap_cmd)
+      if result.failed:
+        _ThrowError("rbd unmap failed (%s): %s",
+                    result.fail_reason, result.output)
+
+  def Open(self, force=False):
+    """Make the device ready for I/O.
+
+    """
+    pass
+
+  def Close(self):
+    """Notifies that the device will no longer be used for I/O.
+
+    """
+    pass
+
+  def Grow(self, amount, dryrun):
+    """Grow the Volume.
+
+    @type amount: integer
+    @param amount: the amount (in mebibytes) to grow with
+    @type dryrun: boolean
+    @param dryrun: whether to execute the operation in simulation mode
+        only, without actually increasing the size
+
+    """
+    if not self.Attach():
+      _ThrowError("Can't attach to rbd device during Grow()")
+
+    if dryrun:
+      # the rbd tool does not support dry runs of resize operations.
+      # Since rbd volumes are thinly provisioned, we assume
+      # there is always enough free space for the operation.
+      return
+
+    rbd_pool = self.params[constants.LDP_POOL]
+    rbd_name = self.unique_id[1]
+    new_size = self.size + amount
+
+    # Resize the rbd volume (Image) inside the RADOS cluster.
+    cmd = [constants.RBD_CMD, "resize", "-p", rbd_pool,
+           rbd_name, "--size", "%s" % new_size]
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      _ThrowError("rbd resize failed (%s): %s",
+                  result.fail_reason, result.output)
+
+
 DEV_MAP = {
   constants.LD_LV: LogicalVolume,
   constants.LD_DRBD8: DRBD8,
   constants.LD_BLOCKDEV: PersistentBlockDevice,
+  constants.LD_RBD: RADOSBlockDevice,
   }
 
 if constants.ENABLE_FILE_STORAGE or constants.ENABLE_SHARED_FILE_STORAGE:

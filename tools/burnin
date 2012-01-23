@@ -460,7 +460,9 @@ class Burner(object):
                                 constants.DT_FILE,
                                 constants.DT_SHARED_FILE,
                                 constants.DT_PLAIN,
-                                constants.DT_DRBD8)
+                                constants.DT_DRBD8,
+                                constants.DT_RBD,
+                                )
     if options.disk_template not in supported_disk_templates:
       Err("Unknown disk template '%s'" % options.disk_template)
 
