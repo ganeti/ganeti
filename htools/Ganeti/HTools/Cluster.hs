@@ -139,29 +139,29 @@ data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show, Read)
 
 -- | Cluster statistics data type.
-data CStats = CStats { csFmem :: Integer -- ^ Cluster free mem
-                     , csFdsk :: Integer -- ^ Cluster free disk
-                     , csAmem :: Integer -- ^ Cluster allocatable mem
-                     , csAdsk :: Integer -- ^ Cluster allocatable disk
-                     , csAcpu :: Integer -- ^ Cluster allocatable cpus
-                     , csMmem :: Integer -- ^ Max node allocatable mem
-                     , csMdsk :: Integer -- ^ Max node allocatable disk
-                     , csMcpu :: Integer -- ^ Max node allocatable cpu
-                     , csImem :: Integer -- ^ Instance used mem
-                     , csIdsk :: Integer -- ^ Instance used disk
-                     , csIcpu :: Integer -- ^ Instance used cpu
-                     , csTmem :: Double  -- ^ Cluster total mem
-                     , csTdsk :: Double  -- ^ Cluster total disk
-                     , csTcpu :: Double  -- ^ Cluster total cpus
-                     , csVcpu :: Integer -- ^ Cluster virtual cpus (if
-                                         -- node pCpu has been set,
-                                         -- otherwise -1)
-                     , csXmem :: Integer -- ^ Unnacounted for mem
-                     , csNmem :: Integer -- ^ Node own memory
-                     , csScore :: Score  -- ^ The cluster score
-                     , csNinst :: Int    -- ^ The total number of instances
-                     }
-            deriving (Show, Read)
+data CStats = CStats
+  { csFmem :: Integer -- ^ Cluster free mem
+  , csFdsk :: Integer -- ^ Cluster free disk
+  , csAmem :: Integer -- ^ Cluster allocatable mem
+  , csAdsk :: Integer -- ^ Cluster allocatable disk
+  , csAcpu :: Integer -- ^ Cluster allocatable cpus
+  , csMmem :: Integer -- ^ Max node allocatable mem
+  , csMdsk :: Integer -- ^ Max node allocatable disk
+  , csMcpu :: Integer -- ^ Max node allocatable cpu
+  , csImem :: Integer -- ^ Instance used mem
+  , csIdsk :: Integer -- ^ Instance used disk
+  , csIcpu :: Integer -- ^ Instance used cpu
+  , csTmem :: Double  -- ^ Cluster total mem
+  , csTdsk :: Double  -- ^ Cluster total disk
+  , csTcpu :: Double  -- ^ Cluster total cpus
+  , csVcpu :: Integer -- ^ Cluster virtual cpus (if
+                      -- node pCpu has been set,
+                      -- otherwise -1)
+  , csXmem :: Integer -- ^ Unnacounted for mem
+  , csNmem :: Integer -- ^ Node own memory
+  , csScore :: Score  -- ^ The cluster score
+  , csNinst :: Int    -- ^ The total number of instances
+  } deriving (Show, Read)
 
 -- | Currently used, possibly to allocate, unallocable.
 type AllocStats = (RSpec, RSpec, RSpec)
