@@ -122,6 +122,8 @@ nullIPolicy = Types.IPolicy
                                        , Types.iSpecNicCount   = 1
                                        }
   , Types.iPolicyDiskTemplates = [Types.DTDrbd8, Types.DTPlain]
+  , Types.iPolicyVcpuRatio = 1024 -- somewhat random value, high
+                                  -- enough to not impact us
   }
 
 
@@ -439,10 +441,12 @@ instance Arbitrary Types.IPolicy where
     imax <- genBiggerISpec istd
     num_tmpl <- choose (0, length allDiskTemplates)
     dts  <- genUniquesList num_tmpl
+    vcpu_ratio <- arbitrary
     return Types.IPolicy { Types.iPolicyMinSpec = imin
                          , Types.iPolicyStdSpec = istd
                          , Types.iPolicyMaxSpec = imax
                          , Types.iPolicyDiskTemplates = dts
+                         , Types.iPolicyVcpuRatio = vcpu_ratio
                          }
 
 -- * Actual tests

@@ -6,7 +6,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -199,6 +199,8 @@ $(THH.buildObject "IPolicy" "iPolicy"
   , THH.renameField "MaxSpec" $ THH.simpleField "max" [t| ISpec |]
   , THH.renameField "DiskTemplates" $
       THH.simpleField "disk_templates" [t| [DiskTemplate] |]
+  , THH.renameField "VcpuRatio" $
+      THH.simpleField "vcpu_ratio" [t| Double |]
   ])
 
 -- | Converts an ISpec type to a RSpec one.
@@ -217,6 +219,7 @@ defIPolicy = IPolicy { iPolicyStdSpec = defStdISpec
                      -- string values, not the actual type; and in
                      -- htools, we are mostly looking at DRBD
                      , iPolicyDiskTemplates = [DTDrbd8, DTPlain]
+                     , iPolicyVcpuRatio = C.ipolicyDefaultsVcpuRatio
                      }
 
 -- | The dynamic resource specs of a machine (i.e. load or load

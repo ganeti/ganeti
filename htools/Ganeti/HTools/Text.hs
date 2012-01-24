@@ -128,12 +128,13 @@ serializeDiskTemplates = intercalate "," . map diskTemplateToRaw
 -- | Generate policy data from a given policy object.
 serializeIPolicy :: String -> IPolicy -> String
 serializeIPolicy owner ipol =
-  let IPolicy stdspec minspec maxspec dts = ipol
+  let IPolicy stdspec minspec maxspec dts vcpu_ratio = ipol
       strings = [ owner
                 , serializeISpec stdspec
                 , serializeISpec minspec
                 , serializeISpec maxspec
                 , serializeDiskTemplates dts
+                , show vcpu_ratio
                 ]
   in intercalate "|" strings
 
@@ -235,12 +236,13 @@ loadISpec owner s = fail $ "Invalid ispec data for " ++ owner ++ ": " ++ show s
 
 -- | Loads an ipolicy from a field list.
 loadIPolicy :: [String] -> Result (String, IPolicy)
-loadIPolicy [owner, stdspec, minspec, maxspec, dtemplates] = do
+loadIPolicy [owner, stdspec, minspec, maxspec, dtemplates, vcpu_ratio] = do
   xstdspec <- loadISpec (owner ++ "/stdspec") (commaSplit stdspec)
   xminspec <- loadISpec (owner ++ "/minspec") (commaSplit minspec)
   xmaxspec <- loadISpec (owner ++ "/maxspec") (commaSplit maxspec)
   xdts <- mapM diskTemplateFromRaw $ commaSplit dtemplates
-  return $ (owner, IPolicy xstdspec xminspec xmaxspec xdts)
+  xvcpu_ratio <- tryRead (owner ++ "/vcpu_ratio") vcpu_ratio
+  return $ (owner, IPolicy xstdspec xminspec xmaxspec xdts xvcpu_ratio)
 loadIPolicy s = fail $ "Invalid ipolicy data: '" ++ show s ++ "'"
 
 loadOnePolicy :: (IPolicy, Group.List) -> String
