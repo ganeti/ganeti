@@ -122,7 +122,7 @@ data Options = Options
   , optMachineReadable :: Bool       -- ^ Output machine-readable format
   , optMaster      :: String         -- ^ Collect data from RAPI
   , optMaxLength   :: Int            -- ^ Stop after this many steps
-  , optMcpu        :: Double         -- ^ Max cpu ratio for nodes
+  , optMcpu        :: Maybe Double   -- ^ Override max cpu ratio for nodes
   , optMdsk        :: Double         -- ^ Max disk usage ratio for nodes
   , optMinGain     :: Score          -- ^ Min gain we aim for in a step
   , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
@@ -161,7 +161,7 @@ defaultOptions  = Options
   , optMachineReadable = False
   , optMaster      = ""
   , optMaxLength   = -1
-  , optMcpu        = defVcpuRatio
+  , optMcpu        = Nothing
   , optMdsk        = defReservedDiskRatio
   , optMinGain     = 1e-2
   , optMinGainLim  = 1e-1
@@ -283,9 +283,14 @@ oMachineReadable = Option "" ["machine-readable"]
 
 oMaxCpu :: OptType
 oMaxCpu = Option "" ["max-cpu"]
-          (ReqArg (\ n opts -> Ok opts { optMcpu = read n }) "RATIO")
-          "maximum virtual-to-physical cpu ratio for nodes (from 1\
-          \ upwards) [64]"
+          (ReqArg (\ n opts -> do
+                     mcpu <- tryRead "parsing max-cpu" n
+                     when (mcpu <= 0) $
+                          fail "Invalid value of the max-cpu ratio,\
+                               \ expected >0"
+                     return $ opts { optMcpu = Just mcpu }) "RATIO")
+          "maximum virtual-to-physical cpu ratio for nodes (from 0\
+          \ upwards) [default read from cluster]"
 
 oMaxSolLength :: OptType
 oMaxSolLength = Option "l" ["max-length"]
@@ -517,6 +522,13 @@ maybeShowWarnings fix_msgs =
     hPutStrLn stderr "Warning: cluster has inconsistent data:"
     hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
+-- | Potentially set the node as offline based on passed offline list.
+setNodeOffline :: [Ndx] -> Node.Node -> Node.Node
+setNodeOffline offline_indices n =
+  if Node.idx n `elem` offline_indices
+    then Node.setOffline n True
+    else n
+
 -- | Set node properties based on command line options.
 setNodeStatus :: Options -> Node.List -> IO Node.List
 setNodeStatus opts fixed_nl = do
@@ -535,10 +547,10 @@ setNodeStatus opts fixed_nl = do
          hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
                      (commaJoin (map lrContent offline_wrong)) :: IO ()
          exitWith $ ExitFailure 1
-
-  let nm = Container.map (\n -> if Node.idx n `elem` offline_indices
-                                then Node.setOffline n True
-                                else n) fixed_nl
-      nlf = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
-            nm
-  return nlf
+  let setMCpuFn = case m_cpu of
+                    Nothing -> id
+                    Just new_mcpu -> flip Node.setMcpu new_mcpu
+  let nm = Container.map (setNodeOffline offline_indices .
+                          flip Node.setMdsk m_dsk .
+                          setMCpuFn) fixed_nl
+  return nm
