@@ -154,9 +154,9 @@ data CStats = CStats
   , csTmem :: Double  -- ^ Cluster total mem
   , csTdsk :: Double  -- ^ Cluster total disk
   , csTcpu :: Double  -- ^ Cluster total cpus
-  , csVcpu :: Integer -- ^ Cluster virtual cpus (if
-                      -- node pCpu has been set,
-                      -- otherwise -1)
+  , csVcpu :: Integer -- ^ Cluster total virtual cpus
+  , csNcpu :: Double  -- ^ Equivalent to 'csIcpu' but in terms of
+                      -- physical CPUs, i.e. normalised used phys CPUs
   , csXmem :: Integer -- ^ Unnacounted for mem
   , csNmem :: Integer -- ^ Node own memory
   , csScore :: Score  -- ^ The cluster score
@@ -213,7 +213,7 @@ instanceNodes nl inst =
 
 -- | Zero-initializer for the CStats type.
 emptyCStats :: CStats
-emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 -- | Update stats with data from a new node.
 updateCStats :: CStats -> Node.Node -> CStats
@@ -223,7 +223,7 @@ updateCStats cs node =
                csMmem = x_mmem, csMdsk = x_mdsk, csMcpu = x_mcpu,
                csImem = x_imem, csIdsk = x_idsk, csIcpu = x_icpu,
                csTmem = x_tmem, csTdsk = x_tdsk, csTcpu = x_tcpu,
-               csVcpu = x_vcpu,
+               csVcpu = x_vcpu, csNcpu = x_ncpu,
                csXmem = x_xmem, csNmem = x_nmem, csNinst = x_ninst
              }
         = cs
@@ -236,6 +236,8 @@ updateCStats cs node =
       inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
       inc_vcpu = Node.hiCpu node
       inc_acpu = Node.availCpu node
+      inc_ncpu = fromIntegral (Node.uCpu node) /
+                 iPolicyVcpuRatio (Node.iPolicy node)
   in cs { csFmem = x_fmem + fromIntegral (Node.fMem node)
         , csFdsk = x_fdsk + fromIntegral (Node.fDsk node)
         , csAmem = x_amem + fromIntegral inc_amem'
@@ -251,6 +253,7 @@ updateCStats cs node =
         , csTdsk = x_tdsk + Node.tDsk node
         , csTcpu = x_tcpu + Node.tCpu node
         , csVcpu = x_vcpu + fromIntegral inc_vcpu
+        , csNcpu = x_ncpu + inc_ncpu
         , csXmem = x_xmem + fromIntegral (Node.xMem node)
         , csNmem = x_nmem + fromIntegral (Node.nMem node)
         , csNinst = x_ninst + length (Node.pList node)
