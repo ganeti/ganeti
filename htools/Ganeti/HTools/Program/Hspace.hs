@@ -228,14 +228,16 @@ formatRSpec m_cpu s r =
   ]
 
 -- | Shows allocations stats.
-printAllocationStats :: Double -> Node.List -> Node.List -> IO ()
-printAllocationStats m_cpu ini_nl fin_nl = do
+printAllocationStats :: Node.List -> Node.List -> IO ()
+printAllocationStats ini_nl fin_nl = do
   let ini_stats = Cluster.totalResources ini_nl
       fin_stats = Cluster.totalResources fin_nl
+      avg_vcpu_ratio = fromIntegral (Cluster.csVcpu fin_stats) /
+                       Cluster.csTcpu fin_stats
       (rini, ralo, runa) = Cluster.computeAllocationDelta ini_stats fin_stats
-  printKeys $ formatRSpec m_cpu  "USED" rini
-  printKeys $ formatRSpec m_cpu "POOL"ralo
-  printKeys $ formatRSpec m_cpu "UNAV" runa
+  printKeys $ formatRSpec avg_vcpu_ratio "USED" rini
+  printKeys $ formatRSpec avg_vcpu_ratio "POOL"ralo
+  printKeys $ formatRSpec avg_vcpu_ratio "UNAV" runa
 
 -- | Ensure a value is quoted if needed.
 ensureQuoted :: String -> String
@@ -309,14 +311,14 @@ printISpec False ispec spec disk_template =
          (formatResources ispec specData) (diskTemplateToRaw disk_template)
 
 -- | Prints the tiered results.
-printTiered :: Bool -> [(RSpec, Int)] -> Double
+printTiered :: Bool -> [(RSpec, Int)]
             -> Node.List -> Node.List -> [(FailMode, Int)] -> IO ()
-printTiered True spec_map m_cpu nl trl_nl _ = do
+printTiered True spec_map nl trl_nl _ = do
   printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
   printKeys [("TSPEC", unwords (formatSpecMap spec_map))]
-  printAllocationStats m_cpu nl trl_nl
+  printAllocationStats nl trl_nl
 
-printTiered False spec_map _ ini_nl fin_nl sreason = do
+printTiered False spec_map ini_nl fin_nl sreason = do
   _ <- printf "Tiered allocation results:\n"
   if null spec_map
     then putStrLn "  - no instances allocated"
@@ -449,7 +451,7 @@ main opts args = do
         (instFromSpec tspec disk_template) allocnodes [] [])
        tspec disk_template SpecTiered opts
 
-  printTiered machine_r spec_map (optMcpu opts) nl trl_nl treason
+  printTiered machine_r spec_map nl trl_nl treason
 
   -- Run the standard (avg-mode) allocation
 
