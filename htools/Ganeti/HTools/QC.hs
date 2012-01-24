@@ -809,11 +809,11 @@ prop_Text_Load_NodeFail fields =
 
 prop_Text_NodeLSIdempotent node =
   (Text.loadNode defGroupAssoc.
-       Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==
+       Utils.sepSplit '|' . Text.serializeNode defGroupList) n ==?
   Just (Node.name n, n)
     -- override failN1 to what loadNode returns by default
-    where n = node { Node.failN1 = True, Node.offline = False
-                   , Node.iPolicy = Types.defIPolicy }
+    where n = Node.setPolicy Types.defIPolicy $
+              node { Node.failN1 = True, Node.offline = False }
 
 prop_Text_ISpecIdempotent ispec =
   case Text.loadISpec "dummy" . Utils.sepSplit ',' .
@@ -942,7 +942,7 @@ prop_Node_setXmem node xm =
     where newnode = Node.setXmem node xm
 
 prop_Node_setMcpu node mc =
-  Node.mCpu newnode ==? mc
+  Types.iPolicyVcpuRatio (Node.iPolicy newnode) ==? mc
     where newnode = Node.setMcpu node mc
 
 -- | Check that an instance add with too high memory or disk will be

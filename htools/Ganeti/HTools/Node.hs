@@ -113,7 +113,6 @@ data Node = Node
   , pRem     :: Double    -- ^ Percent of reserved memory
   , pCpu     :: Double    -- ^ Ratio of virtual to physical CPUs
   , mDsk     :: Double    -- ^ Minimum free disk ratio
-  , mCpu     :: Double    -- ^ Max ratio of virt-to-phys CPUs
   , loDsk    :: Int       -- ^ Autocomputed from mDsk low disk
                           -- threshold
   , hiCpu    :: Int       -- ^ Autocomputed from mCpu high cpu
@@ -214,9 +213,8 @@ create name_init mem_t_init mem_n_init mem_f_init
        , offline = offline_init
        , xMem = 0
        , mDsk = T.defReservedDiskRatio
-       , mCpu = T.defVcpuRatio
        , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
-       , hiCpu = mCpuTohiCpu T.defVcpuRatio cpu_t_init
+       , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio T.defIPolicy) cpu_t_init
        , utilPool = T.baseUtil
        , utilLoad = T.zeroUtil
        , pTags = Map.empty
@@ -256,13 +254,18 @@ setXmem t val = t { xMem = val }
 setMdsk :: Node -> Double -> Node
 setMdsk t val = t { mDsk = val, loDsk = mDskToloDsk val (tDsk t) }
 
--- | Sets the max cpu usage ratio.
+-- | Sets the max cpu usage ratio. This will update the node's
+-- ipolicy, losing sharing (but it should be a seldomly done operation).
 setMcpu :: Node -> Double -> Node
-setMcpu t val = t { mCpu = val, hiCpu = mCpuTohiCpu val (tCpu t) }
+setMcpu t val =
+  let new_ipol = (iPolicy t) { T.iPolicyVcpuRatio = val }
+  in t { hiCpu = mCpuTohiCpu val (tCpu t), iPolicy = new_ipol }
 
 -- | Sets the policy.
 setPolicy :: T.IPolicy -> Node -> Node
-setPolicy pol node = node { iPolicy = pol }
+setPolicy pol node =
+  node { iPolicy = pol
+       , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio pol) (tCpu node) }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: P.PeerMap -> P.Elem
@@ -391,7 +394,7 @@ addPriEx force t inst =
       new_ucpu = Instance.applyIfOnline inst (+ Instance.vcpus inst) (uCpu t)
       new_pcpu = fromIntegral new_ucpu / tCpu t
       new_dp = fromIntegral new_dsk / tDsk t
-      l_cpu = mCpu t
+      l_cpu = T.iPolicyVcpuRatio $ iPolicy t
       new_load = utilLoad t `T.addUtil` Instance.util inst
       inst_tags = Instance.tags inst
       old_tags = pTags t
