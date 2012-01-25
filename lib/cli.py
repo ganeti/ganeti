@@ -132,6 +132,7 @@ __all__ = [
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NONPLUS1_OPT",
+  "NORUNTIME_CHGS_OPT",
   "NOSHUTDOWN_OPT",
   "NOSTART_OPT",
   "NOSSH_KEYCHECK_OPT",
@@ -770,6 +771,11 @@ NO_INSTALL_OPT = cli_option("--no-install", dest="no_install",
                             action="store_true", default=False,
                             help="Do not install the OS (will"
                             " enable no-start)")
+
+NORUNTIME_CHGS_OPT = cli_option("--no-runtime-changes",
+                                dest="allow_runtime_chgs",
+                                default=True, action="store_false",
+                                help="Don't allow runtime changes")
 
 BACKEND_OPT = cli_option("-B", "--backend-parameters", dest="beparams",
                          type="keyval", default={},

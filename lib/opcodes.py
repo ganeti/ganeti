@@ -156,6 +156,11 @@ _PDiskState = ("disk_state", None, ht.TMaybeDict, "Set disk states")
 _PIgnoreIpolicy = ("ignore_ipolicy", False, ht.TBool,
                    "Whether to ignore ipolicy violations")
 
+# Allow runtime changes while migrating
+_PAllowRuntimeChgs = ("allow_runtime_changes", True, ht.TBool,
+                      "Allow runtime changes (eg. memory ballooning)")
+
+
 #: OP_ID conversion regular expression
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
@@ -1052,6 +1057,7 @@ class OpNodeMigrate(OpCode):
     _PMigrationMode,
     _PMigrationLive,
     _PMigrationTargetNode,
+    _PAllowRuntimeChgs,
     _PIgnoreIpolicy,
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding the target node for shared-storage instances"),
@@ -1268,6 +1274,7 @@ class OpInstanceMigrate(OpCode):
     _PMigrationMode,
     _PMigrationLive,
     _PMigrationTargetNode,
+    _PAllowRuntimeChgs,
     _PIgnoreIpolicy,
     ("cleanup", False, ht.TBool,
      "Whether a previously failed migration should be cleaned up"),

@@ -1442,7 +1442,8 @@ MIGRATE
 **migrate** [-f] {--cleanup} {*instance*}
 
 **migrate** [-f] [--allow-failover] [--non-live]
-[--migration-mode=live\|non-live] [--ignore-ipolicy] {*instance*}
+[--migration-mode=live\|non-live] [--ignore-ipolicy]
+[--no-runtime-changes] {*instance*}
 
 Migrate will move the instance to its secondary node without
 shutdown. It only works for instances having the drbd8 disk template
@@ -1480,6 +1481,10 @@ during execution. If a migration fails during execution it still fails.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+The ``--no-runtime-changes`` option forbids migrate to alter an
+instance's runtime before migrating it (eg. ballooning an instance
+down because the target node doesn't have enough available memory).
 
 Example (and expected output)::
 

@@ -427,6 +427,7 @@ def MigrateNode(opts, args):
   op = opcodes.OpNodeMigrate(node_name=args[0], mode=mode,
                              iallocator=opts.iallocator,
                              target_node=opts.dst_node,
+                             allow_runtime_changes=opts.allow_runtime_chgs,
                              ignore_ipolicy=opts.ignore_ipolicy)
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
@@ -900,7 +901,8 @@ commands = {
   "migrate": (
     MigrateNode, ARGS_ONE_NODE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, DST_NODE_OPT,
-     IALLOCATOR_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT],
+     IALLOCATOR_OPT, PRIORITY_OPT, IGNORE_IPOLICY_OPT,
+     NORUNTIME_CHGS_OPT],
     "[-f] <node>",
     "Migrate all the primary instance on a node away from it"
     " (only for instances of type drbd)"),
