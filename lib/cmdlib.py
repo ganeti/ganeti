@@ -7451,11 +7451,13 @@ class LUInstanceMigrate(LogicalUnit):
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
-    self._migrater = TLMigrateInstance(self, self.op.instance_name,
-                                       cleanup=self.op.cleanup,
-                                       failover=False,
-                                       fallback=self.op.allow_failover,
-                                       ignore_ipolicy=self.op.ignore_ipolicy)
+    self._migrater = \
+      TLMigrateInstance(self, self.op.instance_name,
+                        cleanup=self.op.cleanup,
+                        failover=False,
+                        fallback=self.op.allow_failover,
+                        allow_runtime_changes=self.op.allow_runtime_changes,
+                        ignore_ipolicy=self.op.ignore_ipolicy)
     self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
@@ -7490,6 +7492,7 @@ class LUInstanceMigrate(LogicalUnit):
       "MIGRATE_CLEANUP": self.op.cleanup,
       "OLD_PRIMARY": source_node,
       "NEW_PRIMARY": target_node,
+      "ALLOW_RUNTIME_CHANGES": self.op.allow_runtime_changes,
       })
 
     if instance.disk_template in constants.DTS_INT_MIRROR:
@@ -7733,6 +7736,7 @@ class LUNodeMigrate(LogicalUnit):
     """
     return {
       "NODE_NAME": self.op.node_name,
+      "ALLOW_RUNTIME_CHANGES": self.op.allow_runtime_changes,
       }
 
   def BuildHooksNodes(self):
@@ -7747,12 +7751,14 @@ class LUNodeMigrate(LogicalUnit):
 
   def Exec(self, feedback_fn):
     # Prepare jobs for migration instances
+    allow_runtime_changes = self.op.allow_runtime_changes
     jobs = [
       [opcodes.OpInstanceMigrate(instance_name=inst.name,
                                  mode=self.op.mode,
                                  live=self.op.live,
                                  iallocator=self.op.iallocator,
                                  target_node=self.op.target_node,
+                                 allow_runtime_changes=allow_runtime_changes,
                                  ignore_ipolicy=self.op.ignore_ipolicy)]
       for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name)
       ]
@@ -7802,6 +7808,7 @@ class TLMigrateInstance(Tasklet):
   def __init__(self, lu, instance_name, cleanup=False,
                failover=False, fallback=False,
                ignore_consistency=False,
+               allow_runtime_changes=True,
                shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                ignore_ipolicy=False):
     """Initializes this class.
@@ -7818,6 +7825,7 @@ class TLMigrateInstance(Tasklet):
     self.ignore_consistency = ignore_consistency
     self.shutdown_timeout = shutdown_timeout
     self.ignore_ipolicy = ignore_ipolicy
+    self.allow_runtime_changes = allow_runtime_changes
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -8226,6 +8234,12 @@ class TLMigrateInstance(Tasklet):
                                  " aborting migration" % dev.iv_name)
 
     if self.current_mem > self.tgt_free_mem:
+      if not self.allow_runtime_changes:
+        raise errors.OpExecError("Memory ballooning not allowed and not enough"
+                                 " free memory to fit instance %s on target"
+                                 " node %s (have %dMB, need %dMB)" %
+                                 (instance.name, target_node,
+                                  self.tgt_free_mem, self.current_mem))
       self.feedback_fn("* setting instance memory to %s" % self.tgt_free_mem)
       rpcres = self.rpc.call_instance_balloon_memory(instance.primary_node,
                                                      instance,
