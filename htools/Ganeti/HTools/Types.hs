@@ -41,6 +41,7 @@ module Ganeti.HTools.Types
   , instanceStatusFromRaw
   , instanceStatusToRaw
   , RSpec(..)
+  , AllocInfo(..)
   , DynUtil(..)
   , zeroUtil
   , baseUtil
@@ -154,6 +155,17 @@ data RSpec = RSpec
   , rspecDsk  :: Int  -- ^ Requested disk
   } deriving (Show, Read, Eq)
 
+-- | Allocation stats type. This is used instead of 'RSpec' (which was
+-- used at first), because we need to track more stats. The actual
+-- data can refer either to allocated, or available, etc. values
+-- depending on the context. See also
+-- 'Cluster.computeAllocationDelta'.
+data AllocInfo = AllocInfo
+  { allocInfoVCpus :: Int    -- ^ VCPUs
+  , allocInfoNCpus :: Double -- ^ Normalised CPUs
+  , allocInfoMem   :: Int    -- ^ Memory
+  , allocInfoDisk  :: Int    -- ^ Disk
+  } deriving (Show, Read, Eq)
 
 -- | Instance specification type.
 $(THH.buildObject "ISpec" "iSpec"
