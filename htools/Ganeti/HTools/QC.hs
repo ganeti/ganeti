@@ -1128,7 +1128,8 @@ prop_ClusterAlloc_sane inst =
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
--- spec), on either one or two nodes.
+-- spec), on either one or two nodes. Furthermore, we test that
+-- computed allocation statistics are correct.
 prop_ClusterCanTieredAlloc inst =
   forAll (choose (2, 5)) $ \count ->
   forAll (choose (1, 2)) $ \rqnodes ->
@@ -1138,10 +1139,24 @@ prop_ClusterCanTieredAlloc inst =
       allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
   in case allocnodes >>= \allocnodes' ->
     Cluster.tieredAlloc nl il (Just 1) inst allocnodes' [] [] of
-       Types.Bad _ -> False
-       Types.Ok (_, _, il', ixes, cstats) -> not (null ixes) &&
-                                             IntMap.size il' == length ixes &&
-                                             length ixes == length cstats
+       Types.Bad msg -> failTest $ "Failed to tiered alloc: " ++ msg
+       Types.Ok (_, nl', il', ixes, cstats) ->
+         let (ai_alloc, ai_pool, ai_unav) =
+               Cluster.computeAllocationDelta
+                (Cluster.totalResources nl)
+                (Cluster.totalResources nl')
+             all_nodes = Container.elems nl
+         in property (not (null ixes)) .&&.
+            IntMap.size il' ==? length ixes .&&.
+            length ixes ==? length cstats .&&.
+            sum (map Types.allocInfoVCpus [ai_alloc, ai_pool, ai_unav]) ==?
+              sum (map Node.hiCpu all_nodes) .&&.
+            sum (map Types.allocInfoNCpus [ai_alloc, ai_pool, ai_unav]) ==?
+              sum (map Node.tCpu all_nodes) .&&.
+            sum (map Types.allocInfoMem [ai_alloc, ai_pool, ai_unav]) ==?
+              truncate (sum (map Node.tMem all_nodes)) .&&.
+            sum (map Types.allocInfoDisk [ai_alloc, ai_pool, ai_unav]) ==?
+              truncate (sum (map Node.tDsk all_nodes))
 
 -- | Helper function to create a cluster with the given range of nodes
 -- and allocate an instance on it.
