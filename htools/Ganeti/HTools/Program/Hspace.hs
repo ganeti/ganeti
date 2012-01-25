@@ -219,12 +219,12 @@ formatSpecMap =
                        (rspecDsk spec) (rspecCpu spec) cnt)
 
 -- | Formats \"key-metrics\" values.
-formatRSpec :: Double -> String -> RSpec -> [(String, String)]
-formatRSpec m_cpu s r =
-  [ ("KM_" ++ s ++ "_CPU", show $ rspecCpu r)
-  , ("KM_" ++ s ++ "_NPU", show $ fromIntegral (rspecCpu r) / m_cpu)
-  , ("KM_" ++ s ++ "_MEM", show $ rspecMem r)
-  , ("KM_" ++ s ++ "_DSK", show $ rspecDsk r)
+formatRSpec :: String -> AllocInfo -> [(String, String)]
+formatRSpec s r =
+  [ ("KM_" ++ s ++ "_CPU", show $ allocInfoVCpus r)
+  , ("KM_" ++ s ++ "_NPU", show $ allocInfoNCpus r)
+  , ("KM_" ++ s ++ "_MEM", show $ allocInfoMem r)
+  , ("KM_" ++ s ++ "_DSK", show $ allocInfoDisk r)
   ]
 
 -- | Shows allocations stats.
@@ -232,12 +232,10 @@ printAllocationStats :: Node.List -> Node.List -> IO ()
 printAllocationStats ini_nl fin_nl = do
   let ini_stats = Cluster.totalResources ini_nl
       fin_stats = Cluster.totalResources fin_nl
-      avg_vcpu_ratio = fromIntegral (Cluster.csVcpu fin_stats) /
-                       Cluster.csTcpu fin_stats
       (rini, ralo, runa) = Cluster.computeAllocationDelta ini_stats fin_stats
-  printKeys $ formatRSpec avg_vcpu_ratio "USED" rini
-  printKeys $ formatRSpec avg_vcpu_ratio "POOL"ralo
-  printKeys $ formatRSpec avg_vcpu_ratio "UNAV" runa
+  printKeys $ formatRSpec "USED" rini
+  printKeys $ formatRSpec "POOL" ralo
+  printKeys $ formatRSpec "UNAV" runa
 
 -- | Ensure a value is quoted if needed.
 ensureQuoted :: String -> String

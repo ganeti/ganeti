@@ -42,6 +42,7 @@ module Ganeti.HTools.Types
   , instanceStatusToRaw
   , RSpec(..)
   , AllocInfo(..)
+  , AllocStats
   , DynUtil(..)
   , zeroUtil
   , baseUtil
@@ -166,6 +167,9 @@ data AllocInfo = AllocInfo
   , allocInfoMem   :: Int    -- ^ Memory
   , allocInfoDisk  :: Int    -- ^ Disk
   } deriving (Show, Read, Eq)
+
+-- | Currently used, possibly to allocate, unallocable.
+type AllocStats = (AllocInfo, AllocInfo, AllocInfo)
 
 -- | Instance specification type.
 $(THH.buildObject "ISpec" "iSpec"

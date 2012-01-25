@@ -33,7 +33,6 @@ module Ganeti.HTools.Cluster
   , EvacSolution(..)
   , Table(..)
   , CStats(..)
-  , AllocStats
   , AllocResult
   , AllocMethod
   -- * Generic functions
@@ -163,9 +162,6 @@ data CStats = CStats
   , csNinst :: Int    -- ^ The total number of instances
   } deriving (Show, Read)
 
--- | Currently used, possibly to allocate, unallocable.
-type AllocStats = (RSpec, RSpec, RSpec)
-
 -- | A simple type for allocation functions.
 type AllocMethod =  Node.List           -- ^ Node list
                  -> Instance.List       -- ^ Instance list
@@ -273,17 +269,26 @@ totalResources nl =
 -- was left unallocated.
 computeAllocationDelta :: CStats -> CStats -> AllocStats
 computeAllocationDelta cini cfin =
-  let CStats {csImem = i_imem, csIdsk = i_idsk, csIcpu = i_icpu} = cini
+  let CStats {csImem = i_imem, csIdsk = i_idsk, csIcpu = i_icpu,
+              csNcpu = i_ncpu } = cini
       CStats {csImem = f_imem, csIdsk = f_idsk, csIcpu = f_icpu,
-              csTmem = t_mem, csTdsk = t_dsk, csVcpu = v_cpu } = cfin
-      rini = RSpec (fromIntegral i_icpu) (fromIntegral i_imem)
-             (fromIntegral i_idsk)
-      rfin = RSpec (fromIntegral (f_icpu - i_icpu))
-             (fromIntegral (f_imem - i_imem))
-             (fromIntegral (f_idsk - i_idsk))
-      un_cpu = fromIntegral (v_cpu - f_icpu)::Int
-      runa = RSpec un_cpu (truncate t_mem - fromIntegral f_imem)
-             (truncate t_dsk - fromIntegral f_idsk)
+              csTmem = t_mem, csTdsk = t_dsk, csVcpu = f_vcpu,
+              csNcpu = f_ncpu, csTcpu = f_tcpu } = cfin
+      rini = AllocInfo { allocInfoVCpus = fromIntegral i_icpu
+                       , allocInfoNCpus = i_ncpu
+                       , allocInfoMem   = fromIntegral i_imem
+                       , allocInfoDisk  = fromIntegral i_idsk
+                       }
+      rfin = AllocInfo { allocInfoVCpus = fromIntegral (f_icpu - i_icpu)
+                       , allocInfoNCpus = f_ncpu - i_ncpu
+                       , allocInfoMem   = fromIntegral (f_imem - i_imem)
+                       , allocInfoDisk  = fromIntegral (f_idsk - i_idsk)
+                       }
+      runa = AllocInfo { allocInfoVCpus = fromIntegral (f_vcpu - f_icpu)
+                       , allocInfoNCpus = f_tcpu - f_ncpu
+                       , allocInfoMem   = truncate t_mem - fromIntegral f_imem
+                       , allocInfoDisk  = truncate t_dsk - fromIntegral f_idsk
+                       }
   in (rini, rfin, runa)
 
 -- | The names and weights of the individual elements in the CV list.
