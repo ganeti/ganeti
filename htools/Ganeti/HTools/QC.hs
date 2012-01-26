@@ -966,7 +966,8 @@ prop_Node_addPriFD node inst =
           inst' = setInstanceSmallerThanNode node inst
           inst'' = inst' { Instance.dsk = Instance.dsk inst }
 
-prop_Node_addPriFC (Positive extra) =
+prop_Node_addPriFC =
+  forAll (choose (1, maxCpu)) $ \extra ->
   forAll genOnlineNode $ \node ->
   forAll (arbitrary `suchThat` Instance.instanceNotOffline) $ \inst ->
   let inst' = setInstanceSmallerThanNode node inst
