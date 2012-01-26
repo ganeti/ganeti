@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -865,8 +865,7 @@ commands = {
     [FORCE_OPT, IALLOCATOR_OPT, NEW_SECONDARY_OPT, EARLY_RELEASE_OPT,
      PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT],
     "[-f] {-I <iallocator> | -n <dst>} <node>",
-    "Relocate the secondary instances from a node"
-    " to other nodes"),
+    "Relocate the primary and/or secondary instances from a node"),
   "failover": (
     FailoverNode, ARGS_ONE_NODE, [FORCE_OPT, IGNORE_CONSIST_OPT,
                                   IALLOCATOR_OPT, PRIORITY_OPT],
