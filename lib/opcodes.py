@@ -803,7 +803,8 @@ class OpClusterSetParams(OpCode):
      "Whether to wipe disks before allocating them to instances"),
     ("nicparams", None, ht.TMaybeDict, "Cluster-wide NIC parameter defaults"),
     ("ndparams", None, ht.TMaybeDict, "Cluster-wide node parameter defaults"),
-    ("ipolicy", None, ht.TMaybeDict, "Cluster-wide instance policy specs"),
+    ("ipolicy", None, ht.TMaybeDict,
+     "Cluster-wide :ref:`instance policy <rapi-ipolicy>` specs"),
     ("drbd_helper", None, ht.TOr(ht.TString, ht.TNone), "DRBD helper program"),
     ("default_iallocator", None, ht.TOr(ht.TString, ht.TNone),
      "Default iallocator for cluster"),
@@ -1438,7 +1439,8 @@ class OpGroupAdd(OpCode):
     _PDiskParams,
     _PHvState,
     _PDiskState,
-    ("ipolicy", None, ht.TMaybeDict, "Group-wide instance policy specs"),
+    ("ipolicy", None, ht.TMaybeDict,
+     "Group-wide :ref:`instance policy <rapi-ipolicy>` specs"),
     ]
 
 

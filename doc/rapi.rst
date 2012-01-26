@@ -166,6 +166,61 @@ likely to succeed or at least start executing.
 Force operation to continue even if it will cause the cluster to become
 inconsistent (e.g. because there are not enough master candidates).
 
+Parameter details
+-----------------
+
+Some parameters are not straight forward, so we describe them in details
+here.
+
+.. _rapi-ipolicy:
+
+``ipolicy``
++++++++++++
+
+The instance policy specification is a dict with the following fields:
+
+.. pyassert::
+
+  constants.IPOLICY_ALL_KEYS == set([constants.ISPECS_MIN,
+                                     constants.ISPECS_MAX,
+                                     constants.ISPECS_STD,
+                                     constants.IPOLICY_DTS,
+                                     constants.IPOLICY_VCPU_RATIO])
+
+
+.. pyassert::
+
+  (set(constants.ISPECS_PARAMETER_TYPES.keys()) ==
+   set([constants.ISPEC_MEM_SIZE,
+        constants.ISPEC_DISK_SIZE,
+        constants.ISPEC_DISK_COUNT,
+        constants.ISPEC_CPU_COUNT,
+        constants.ISPEC_NIC_COUNT]))
+
+.. |ispec-min| replace:: :pyeval:`constants.ISPECS_MIN`
+.. |ispec-max| replace:: :pyeval:`constants.ISPECS_MAX`
+.. |ispec-std| replace:: :pyeval:`constants.ISPECS_STD`
+
+
+|ispec-min|, |ispec-max|, |ispec-std|
+  A sub- `dict` with the following fields, which sets the limit and standard
+  values of the instances:
+
+  :pyeval:`constants.ISPEC_MEM_SIZE`
+    The size in MiB of the memory used
+  :pyeval:`constants.ISPEC_DISK_SIZE`
+    The size in MiB of the disk used
+  :pyeval:`constants.ISPEC_DISK_COUNT`
+    The numbers of disks used
+  :pyeval:`constants.ISPEC_CPU_COUNT`
+    The numbers of cpus used
+  :pyeval:`constants.ISPEC_NIC_COUNT`
+    The numbers of nics used
+:pyeval:`constants.IPOLICY_DTS`
+  A `list` of disk templates allowed for instances using this policy
+:pyeval:`constants.IPOLICY_VCPU_RATIO`
+  Maximum ratio of virtual to physical CPUs (`float`)
+
 Usage examples
 --------------
 
