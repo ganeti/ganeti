@@ -173,11 +173,11 @@ type AllocStats = (AllocInfo, AllocInfo, AllocInfo)
 
 -- | Instance specification type.
 $(THH.buildObject "ISpec" "iSpec"
-  [ THH.renameField "MemorySize" $ THH.simpleField "memory-size" [t| Int |]
-  , THH.renameField "CpuCount"   $ THH.simpleField "cpu-count"   [t| Int |]
-  , THH.renameField "DiskSize"   $ THH.simpleField "disk-size"   [t| Int |]
-  , THH.renameField "DiskCount"  $ THH.simpleField "disk-count"  [t| Int |]
-  , THH.renameField "NicCount"   $ THH.simpleField "nic-count"   [t| Int |]
+  [ THH.renameField "MemorySize" $ THH.simpleField C.ispecMemSize   [t| Int |]
+  , THH.renameField "CpuCount"   $ THH.simpleField C.ispecCpuCount  [t| Int |]
+  , THH.renameField "DiskSize"   $ THH.simpleField C.ispecDiskSize  [t| Int |]
+  , THH.renameField "DiskCount"  $ THH.simpleField C.ispecDiskCount [t| Int |]
+  , THH.renameField "NicCount"   $ THH.simpleField C.ispecNicCount  [t| Int |]
   ])
 
 -- | The default minimum ispec.
@@ -209,13 +209,13 @@ defMaxISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMaxMemorySize
 
 -- | Instance policy type.
 $(THH.buildObject "IPolicy" "iPolicy"
-  [ THH.renameField "StdSpec" $ THH.simpleField "std" [t| ISpec |]
-  , THH.renameField "MinSpec" $ THH.simpleField "min" [t| ISpec |]
-  , THH.renameField "MaxSpec" $ THH.simpleField "max" [t| ISpec |]
+  [ THH.renameField "StdSpec" $ THH.simpleField C.ispecsStd [t| ISpec |]
+  , THH.renameField "MinSpec" $ THH.simpleField C.ispecsMin [t| ISpec |]
+  , THH.renameField "MaxSpec" $ THH.simpleField C.ispecsMax [t| ISpec |]
   , THH.renameField "DiskTemplates" $
-      THH.simpleField "disk_templates" [t| [DiskTemplate] |]
+      THH.simpleField C.ipolicyDts [t| [DiskTemplate] |]
   , THH.renameField "VcpuRatio" $
-      THH.simpleField "vcpu_ratio" [t| Double |]
+      THH.simpleField C.ipolicyVcpuRatio [t| Double |]
   ])
 
 -- | Converts an ISpec type to a RSpec one.
