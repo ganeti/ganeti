@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2008, 2010 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -78,7 +78,8 @@ class TestClusterObject(unittest.TestCase):
         },
       }
     ndparams = {
-        constants.ND_OOB_PROGRAM: "/bin/cluster-oob"
+        constants.ND_OOB_PROGRAM: "/bin/cluster-oob",
+        constants.ND_SPINDLE_COUNT: 1
         }
 
     self.fake_cl = objects.Cluster(hvparams=hvparams, os_hvp=os_hvp,
@@ -161,7 +162,8 @@ class TestClusterObject(unittest.TestCase):
                              ndparams={},
                              group="testgroup")
     group_ndparams = {
-        constants.ND_OOB_PROGRAM: "/bin/group-oob"
+        constants.ND_OOB_PROGRAM: "/bin/group-oob",
+        constants.ND_SPINDLE_COUNT: 10,
         }
     fake_group = objects.NodeGroup(name="testgroup",
                                    ndparams=group_ndparams)
@@ -170,7 +172,8 @@ class TestClusterObject(unittest.TestCase):
 
   def testFillNdParamsNode(self):
     node_ndparams = {
-        constants.ND_OOB_PROGRAM: "/bin/node-oob"
+        constants.ND_OOB_PROGRAM: "/bin/node-oob",
+        constants.ND_SPINDLE_COUNT: 2,
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,
@@ -182,13 +185,15 @@ class TestClusterObject(unittest.TestCase):
 
   def testFillNdParamsAll(self):
     node_ndparams = {
-        constants.ND_OOB_PROGRAM: "/bin/node-oob"
+        constants.ND_OOB_PROGRAM: "/bin/node-oob",
+        constants.ND_SPINDLE_COUNT: 5,
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,
                              group="testgroup")
     group_ndparams = {
-        constants.ND_OOB_PROGRAM: "/bin/group-oob"
+        constants.ND_OOB_PROGRAM: "/bin/group-oob",
+        constants.ND_SPINDLE_COUNT: 4,
         }
     fake_group = objects.NodeGroup(name="testgroup",
                                    ndparams=group_ndparams)

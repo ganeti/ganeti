@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -200,6 +200,7 @@ class TestConfigRunner(unittest.TestCase):
   def testGetNdParamsModifiedNode(self):
     my_ndparams = {
         constants.ND_OOB_PROGRAM: "/bin/node-oob",
+        constants.ND_SPINDLE_COUNT: 1,
         }
 
     cfg = self._get_object()

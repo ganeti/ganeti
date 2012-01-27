@@ -99,8 +99,8 @@ vm_capable
 Node Parameters
 ~~~~~~~~~~~~~~~
 
-These parameters are node specific and can be preseeded on node-group
-and cluster level.
+The ``ndparams`` refer to node parameters. These can be set as defaults
+on cluster and node group levels, but they take effect for nodes only.
 
 Currently we support the following node parameters:
 
@@ -108,6 +108,13 @@ oob_program
     Path to an executable used as the out-of-band helper as described in
     the `Ganeti Node OOB Management Framework <design-oob.rst>`_ design
     document.
+
+spindle_count
+    This should reflect the I/O performance of local attached storage
+    (e.g. for "file", "plain" and "drbd" disk templates). It doesn't
+    have to match the actual spindle count of (any eventual) mechanical
+    hard-drives, its meaning is site-local and just the relative values
+    matter.
 
 
 Hypervisor State Parameters
