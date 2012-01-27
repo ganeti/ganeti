@@ -217,6 +217,8 @@ $(THH.buildObject "IPolicy" "iPolicy"
       THH.simpleField C.ipolicyDts [t| [DiskTemplate] |]
   , THH.renameField "VcpuRatio" $
       THH.simpleField C.ipolicyVcpuRatio [t| Double |]
+  , THH.renameField "SpindleRatio" $
+      THH.simpleField C.ipolicySpindleRatio [t| Double |]
   ])
 
 -- | Converts an ISpec type to a RSpec one.
@@ -236,6 +238,7 @@ defIPolicy = IPolicy { iPolicyStdSpec = defStdISpec
                      -- htools, we are mostly looking at DRBD
                      , iPolicyDiskTemplates = [DTDrbd8, DTPlain]
                      , iPolicyVcpuRatio = C.ipolicyDefaultsVcpuRatio
+                     , iPolicySpindleRatio = C.ipolicyDefaultsSpindleRatio
                      }
 
 -- | The dynamic resource specs of a machine (i.e. load or load

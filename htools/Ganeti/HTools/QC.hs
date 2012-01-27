@@ -97,6 +97,14 @@ maxDsk = 1024 * 1024 * 8
 maxCpu :: Int
 maxCpu = 1024
 
+-- | Max vcpu ratio (random value).
+maxVcpuRatio :: Double
+maxVcpuRatio = 1024.0
+
+-- | Max spindle ratio (random value).
+maxSpindleRatio :: Double
+maxSpindleRatio = 1024.0
+
 -- | All disk templates (used later)
 allDiskTemplates :: [Types.DiskTemplate]
 allDiskTemplates = [minBound..maxBound]
@@ -122,8 +130,9 @@ nullIPolicy = Types.IPolicy
                                        , Types.iSpecNicCount   = 1
                                        }
   , Types.iPolicyDiskTemplates = [Types.DTDrbd8, Types.DTPlain]
-  , Types.iPolicyVcpuRatio = 1024 -- somewhat random value, high
-                                  -- enough to not impact us
+  , Types.iPolicyVcpuRatio = maxVcpuRatio -- somewhat random value, high
+                                          -- enough to not impact us
+  , Types.iPolicySpindleRatio = maxSpindleRatio
   }
 
 
@@ -441,12 +450,14 @@ instance Arbitrary Types.IPolicy where
     imax <- genBiggerISpec istd
     num_tmpl <- choose (0, length allDiskTemplates)
     dts  <- genUniquesList num_tmpl
-    vcpu_ratio <- arbitrary
+    vcpu_ratio <- choose (1.0, maxVcpuRatio)
+    spindle_ratio <- choose (1.0, maxSpindleRatio)
     return Types.IPolicy { Types.iPolicyMinSpec = imin
                          , Types.iPolicyStdSpec = istd
                          , Types.iPolicyMaxSpec = imax
                          , Types.iPolicyDiskTemplates = dts
                          , Types.iPolicyVcpuRatio = vcpu_ratio
+                         , Types.iPolicySpindleRatio = spindle_ratio
                          }
 
 -- * Actual tests
