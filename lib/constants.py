@@ -949,8 +949,8 @@ ISPECS_PARAMETERS = frozenset(ISPECS_PARAMETER_TYPES.keys())
 ISPECS_MIN = "min"
 ISPECS_MAX = "max"
 ISPECS_STD = "std"
-IPOLICY_DTS = "disk_templates"
-IPOLICY_VCPU_RATIO = "vcpu_ratio"
+IPOLICY_DTS = "disk-templates"
+IPOLICY_VCPU_RATIO = "vcpu-ratio"
 
 IPOLICY_ISPECS = frozenset([
   ISPECS_MIN,
