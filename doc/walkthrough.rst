@@ -478,7 +478,8 @@ redundancy::
       - initrd_path: default ()
     Hardware:
       - VCPUs: 1
-      - memory: 128MiB
+      - maxmem: 256MiB
+      - minmem: 512MiB
       - NICs:
         - nic/0: MAC: aa:00:00:78:da:63, IP: None, mode: bridged, link: xen-br0
     Disks:
@@ -857,7 +858,8 @@ with 12GB of RAM (numbers chosen so that we run out of memory)::
 
   node1# gnt-instance modify -B memory=4G instance1
   Modified instance instance1
-   - be/memory -> 4096
+   - be/maxmem -> 4096
+   - be/minmem -> 4096
   Please don't forget that these parameters take effect only at the next start of the instance.
   node1# gnt-instance modify …
 
@@ -915,8 +917,15 @@ solve this, you have a number of options:
 
 - try to manually move instances around (but this can become complicated
   for any non-trivial cluster)
-- try to reduce memory of some instances to accommodate the available
-  node memory
+- try to reduce the minimum memory of some instances on the source node
+  of the N+1 failure (in the example above ``node1``): this will allow
+  it to start and be failed over/migrated with less than its maximum
+  memory
+- try to reduce the runtime/maximum memory of some instances on the
+  destination node of the N+1 failure (in the example above ``node2``)
+  to create additional available node memory (check the :doc:`admin`
+  guide for what Ganeti will and won't automatically do in regards to
+  instance runtime memory modification)
 - if Ganeti has been built with the htools package enabled, you can run
   the ``hbal`` tool which will try to compute an automated cluster
   solution that complies with the N+1 rule
