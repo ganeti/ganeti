@@ -956,6 +956,7 @@ ISPECS_MAX = "max"
 ISPECS_STD = "std"
 IPOLICY_DTS = "disk-templates"
 IPOLICY_VCPU_RATIO = "vcpu-ratio"
+IPOLICY_SPINDLE_RATIO = "spindle-ratio"
 
 IPOLICY_ISPECS = frozenset([
   ISPECS_MIN,
@@ -965,6 +966,7 @@ IPOLICY_ISPECS = frozenset([
 
 IPOLICY_PARAMETERS = frozenset([
   IPOLICY_VCPU_RATIO,
+  IPOLICY_SPINDLE_RATIO,
   ])
 
 IPOLICY_ALL_KEYS = (IPOLICY_ISPECS |
@@ -1900,6 +1902,8 @@ NICC_DEFAULTS = {
   NIC_LINK: DEFAULT_BRIDGE,
   }
 
+# All of the following values are quite arbitrarily - there are no
+# "good" defaults, these must be customised per-site
 IPOLICY_DEFAULTS = {
   ISPECS_MIN: {
     ISPEC_MEM_SIZE: 128,
@@ -1924,6 +1928,7 @@ IPOLICY_DEFAULTS = {
     },
   IPOLICY_DTS: DISK_TEMPLATES,
   IPOLICY_VCPU_RATIO: 4.0,
+  IPOLICY_SPINDLE_RATIO: 32.0,
   }
 
 MASTER_POOL_SIZE_DEFAULT = 10
