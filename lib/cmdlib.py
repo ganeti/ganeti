@@ -14571,7 +14571,7 @@ class IAllocator(object):
 
     data["nodegroups"] = self._ComputeNodeGroupData(cfg)
 
-    config_ndata = self._ComputeBasicNodeData(ninfo)
+    config_ndata = self._ComputeBasicNodeData(cfg, ninfo)
     data["nodes"] = self._ComputeDynamicNodeData(ninfo, node_data, node_iinfo,
                                                  i_list, config_ndata)
     assert len(data["nodes"]) == len(ninfo), \
@@ -14597,7 +14597,7 @@ class IAllocator(object):
     return ng
 
   @staticmethod
-  def _ComputeBasicNodeData(node_cfg):
+  def _ComputeBasicNodeData(cfg, node_cfg):
     """Compute global node data.
 
     @rtype: dict
@@ -14615,6 +14615,7 @@ class IAllocator(object):
       "group": ninfo.group,
       "master_capable": ninfo.master_capable,
       "vm_capable": ninfo.vm_capable,
+      "ndparams": cfg.GetNdParams(ninfo),
       })
       for ninfo in node_cfg.values())
 
