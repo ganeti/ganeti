@@ -246,7 +246,8 @@ points to an address in the same subnet as the cluster itself.
 The above command has the minimum required options; other options you
 can give include, among others:
 
-- The memory size (``-B memory``)
+- The maximum/minimum memory size (``-B maxmem``, ``-B minmem``)
+  (``-B memory`` can be used to specify only one size)
 
 - The number of virtual CPUs (``-B vcpus``)
 
@@ -279,6 +280,8 @@ care::
 
   gnt-instance remove INSTANCE_NAME
 
+.. _instance-startup-label:
+
 Startup/shutdown
 ~~~~~~~~~~~~~~~~
 
@@ -286,6 +289,11 @@ Instances are automatically started at instance creation time. To
 manually start one which is currently stopped you can run::
 
   gnt-instance startup INSTANCE_NAME
+
+Ganeti will start an instance with up to its maximum instance memory. If
+not enough memory is available Ganeti will use all the available memory
+down to the instance minumum memory. If not even that amount of memory
+is free Ganeti will refuse to start the instance.
 
 Note, that this will not work when an instance is in a permanently
 stopped state ``offline``. In this case, you will first have to
@@ -301,7 +309,7 @@ If you want to shut the instance down more permanently, so that it
 does not require dynamically allocated resources (memory and vcpus),
 after shutting down an instance, execute the following::
 
-  gnt-instance modify --ofline INSTANCE_NAME
+  gnt-instance modify --offline INSTANCE_NAME
 
 .. warning:: Do not use the Xen or KVM commands directly to stop
    instances. If you run for example ``xm shutdown`` or ``xm destroy``
@@ -334,6 +342,27 @@ it's hardware resources (especially its disks and their redundancy
 status), etc. This is harder to parse and is more expensive than the
 list operation, but returns much more detailed information.
 
+Changing an instance's runtime memory
++++++++++++++++++++++++++++++++++++++
+
+Ganeti will always make sure an instance has a value between its maximum
+and its minimum memory available as runtime memory. As of version 2.6
+Ganeti will only choose a size different than the maximum size when
+starting up, failing over, or migrating an instance on a node with less
+than the maximum memory available. It won't resize other instances in
+order to free up space for an instance.
+
+If you find that you need more memory on a node any instance can be
+manually resized without downtime, with the command::
+
+  gnt-instance modify -m SIZE INSTANCE_NAME
+
+The same command can also be used to increase the memory available on an
+instance, provided that enough free memory is available on its node, and
+the specified size is not larger than the maximum memory size the
+instance had when it was first booted (an instance will be unable to see
+new memory above the maximum that was specified to the hypervisor at its
+boot time, if it needs to grow further a reboot becomes necessary).
 
 Export/Import
 +++++++++++++
@@ -476,6 +505,11 @@ node you can just run::
 That's it. After the command completes the secondary node is now the
 primary, and vice-versa.
 
+The instance will be started with an amount of memory between its
+``maxmem`` and its ``minmem`` value, depending on the free memory on its
+target node, or the operation will fail if that's not possible. See
+:ref:`instance-startup-label` for details.
+
 Live migrating an instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -488,6 +522,13 @@ secondary node, without downtime. On the master node you need to run::
 The current load on the instance and its memory size will influence how
 long the migration will take. In any case, for both KVM and Xen
 hypervisors, the migration will be transparent to the instance.
+
+If the destination node has less memory than the instance's current
+runtime memory, but at least the instance's minimum memory available
+Ganeti will automatically reduce the instance runtime memory before
+migrating it, unless the ``--no-runtime-changes`` option is passed, in
+which case the target node should have at least the instance's current
+runtime memory free.
 
 Moving an instance (offline)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
