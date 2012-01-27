@@ -2429,14 +2429,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # we already list instances living on such nodes, and that's
         # enough warning
         continue
-      #TODO(dynmem): use MINMEM for checking
       #TODO(dynmem): also consider ballooning out other instances
       for prinode, instances in n_img.sbp.items():
         needed_mem = 0
         for instance in instances:
           bep = cluster_info.FillBE(instance_cfg[instance])
           if bep[constants.BE_AUTO_BALANCE]:
-            needed_mem += bep[constants.BE_MAXMEM]
+            needed_mem += bep[constants.BE_MINMEM]
         test = n_img.mfree < needed_mem
         self._ErrorIf(test, constants.CV_ENODEN1, node,
                       "not enough memory to accomodate instance failovers"
