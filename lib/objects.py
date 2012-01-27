@@ -149,22 +149,18 @@ def UpgradeDiskParams(diskparams):
   @type diskparams: dict
   @param diskparams: disk parameters to upgrade
   @rtype: dict
-  @return: the upgraded disk parameters dit
+  @return: the upgraded disk parameters dict
 
   """
-  result = dict()
   if diskparams is None:
     result = constants.DISK_DT_DEFAULTS.copy()
   else:
     # Update the disk parameter values for each disk template.
     # The code iterates over constants.DISK_TEMPLATES because new templates
     # might have been added.
-    for template in constants.DISK_TEMPLATES:
-      if template not in diskparams:
-        result[template] = constants.DISK_DT_DEFAULTS[template].copy()
-      else:
-        result[template] = FillDict(constants.DISK_DT_DEFAULTS[template],
-                                    diskparams[template])
+    result = dict((dt, FillDict(constants.DISK_DT_DEFAULTS[dt],
+                                diskparams.get(dt, {})))
+                  for dt in constants.DISK_TEMPLATES)
 
   return result
 
