@@ -165,6 +165,21 @@ def UpgradeDiskParams(diskparams):
   return result
 
 
+def UpgradeNDParams(ndparams):
+  """Upgrade ndparams structure.
+
+  @type ndparams: dict
+  @param ndparams: disk parameters to upgrade
+  @rtype: dict
+  @return: the upgraded node parameters dict
+
+  """
+  if ndparams is None:
+    ndparams = {}
+
+  return FillDict(constants.NDC_DEFAULTS, ndparams)
+
+
 def MakeEmptyIPolicy():
   """Create empty IPolicy dictionary.
 
@@ -1473,8 +1488,7 @@ class Cluster(TaggableObject):
     if self.osparams is None:
       self.osparams = {}
 
-    if self.ndparams is None:
-      self.ndparams = constants.NDC_DEFAULTS
+    self.ndparams = UpgradeNDParams(self.ndparams)
 
     self.beparams = UpgradeGroupedParams(self.beparams,
                                          constants.BEC_DEFAULTS)
