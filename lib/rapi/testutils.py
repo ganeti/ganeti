@@ -24,9 +24,14 @@
 """
 
 import logging
+import re
+import pycurl
 
 from ganeti import errors
 from ganeti import opcodes
+
+
+_URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
 
 
 class VerificationError(Exception):
@@ -104,3 +109,54 @@ def VerifyOpResult(op_id, result):
   elif not resultcheck_fn(result):
     raise VerificationError("Given result does not match result description"
                             " for opcode '%s': %s" % (op_id, resultcheck_fn))
+
+
+def _GetPathFromUri(uri):
+  """Gets the path and query from a URI.
+
+  """
+  match = _URI_RE.match(uri)
+  if match:
+    return match.groupdict()["path"]
+  else:
+    return None
+
+
+class FakeCurl:
+  """Fake cURL object.
+
+  """
+  def __init__(self, handler):
+    """Initialize this class
+
+    @param handler: Request handler instance
+
+    """
+    self._handler = handler
+    self._opts = {}
+    self._info = {}
+
+  def setopt(self, opt, value):
+    self._opts[opt] = value
+
+  def getopt(self, opt):
+    return self._opts.get(opt)
+
+  def unsetopt(self, opt):
+    self._opts.pop(opt, None)
+
+  def getinfo(self, info):
+    return self._info[info]
+
+  def perform(self):
+    method = self._opts[pycurl.CUSTOMREQUEST]
+    url = self._opts[pycurl.URL]
+    request_body = self._opts[pycurl.POSTFIELDS]
+    writefn = self._opts[pycurl.WRITEFUNCTION]
+
+    path = _GetPathFromUri(url)
+    (code, resp_body) = self._handler.FetchResponse(path, method, request_body)
+
+    self._info[pycurl.RESPONSE_CODE] = code
+    if resp_body is not None:
+      writefn(resp_body)

@@ -22,7 +22,6 @@
 """Script for unittesting the RAPI client module"""
 
 
-import re
 import unittest
 import warnings
 import pycurl
@@ -33,15 +32,15 @@ from ganeti import serializer
 from ganeti import utils
 from ganeti import query
 from ganeti import objects
+from ganeti import rapi
 
+import ganeti.rapi.testutils
 from ganeti.rapi import connector
 from ganeti.rapi import rlib2
 from ganeti.rapi import client
 
 import testutils
 
-
-_URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
 
 # List of resource handlers which aren't used by the RAPI client
 _KNOWN_UNUSED = set([
@@ -51,49 +50,6 @@ _KNOWN_UNUSED = set([
 
 # Global variable for collecting used handlers
 _used_handlers = None
-
-
-def _GetPathFromUri(uri):
-  """Gets the path and query from a URI.
-
-  """
-  match = _URI_RE.match(uri)
-  if match:
-    return match.groupdict()["path"]
-  else:
-    return None
-
-
-class FakeCurl:
-  def __init__(self, rapi):
-    self._rapi = rapi
-    self._opts = {}
-    self._info = {}
-
-  def setopt(self, opt, value):
-    self._opts[opt] = value
-
-  def getopt(self, opt):
-    return self._opts.get(opt)
-
-  def unsetopt(self, opt):
-    self._opts.pop(opt, None)
-
-  def getinfo(self, info):
-    return self._info[info]
-
-  def perform(self):
-    method = self._opts[pycurl.CUSTOMREQUEST]
-    url = self._opts[pycurl.URL]
-    request_body = self._opts[pycurl.POSTFIELDS]
-    writefn = self._opts[pycurl.WRITEFUNCTION]
-
-    path = _GetPathFromUri(url)
-    (code, resp_body) = self._rapi.FetchResponse(path, method, request_body)
-
-    self._info[pycurl.RESPONSE_CODE] = code
-    if resp_body is not None:
-      writefn(resp_body)
 
 
 class RapiMock(object):
@@ -216,8 +172,8 @@ def _FakeGnuTlsPycurlVersion():
 class TestExtendedConfig(unittest.TestCase):
   def testAuth(self):
     cl = client.GanetiRapiClient("master.example.com",
-                                 username="user", password="pw",
-                                 curl_factory=lambda: FakeCurl(RapiMock()))
+      username="user", password="pw",
+      curl_factory=lambda: rapi.testutils.FakeCurl(RapiMock()))
 
     curl = cl._CreateCurl()
     self.assertEqual(curl.getopt(pycurl.HTTPAUTH), pycurl.HTTPAUTH_BASIC)
@@ -254,7 +210,7 @@ class TestExtendedConfig(unittest.TestCase):
                                              verify_hostname=verify_hostname,
                                              _pycurl_version_fn=pcverfn)
 
-            curl_factory = lambda: FakeCurl(RapiMock())
+            curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
             cl = client.GanetiRapiClient("master.example.com",
                                          curl_config_fn=cfgfn,
                                          curl_factory=curl_factory)
@@ -271,7 +227,7 @@ class TestExtendedConfig(unittest.TestCase):
   def testNoCertVerify(self):
     cfgfn = client.GenericCurlConfig()
 
-    curl_factory = lambda: FakeCurl(RapiMock())
+    curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
     cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                  curl_factory=curl_factory)
 
@@ -283,7 +239,7 @@ class TestExtendedConfig(unittest.TestCase):
   def testCertVerifyCurlBundle(self):
     cfgfn = client.GenericCurlConfig(use_curl_cabundle=True)
 
-    curl_factory = lambda: FakeCurl(RapiMock())
+    curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
     cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                  curl_factory=curl_factory)
 
@@ -296,7 +252,7 @@ class TestExtendedConfig(unittest.TestCase):
     mycert = "/tmp/some/UNUSED/cert/file.pem"
     cfgfn = client.GenericCurlConfig(cafile=mycert)
 
-    curl_factory = lambda: FakeCurl(RapiMock())
+    curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
     cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                  curl_factory=curl_factory)
 
@@ -311,7 +267,7 @@ class TestExtendedConfig(unittest.TestCase):
     cfgfn = client.GenericCurlConfig(capath=certdir,
                                      _pycurl_version_fn=pcverfn)
 
-    curl_factory = lambda: FakeCurl(RapiMock())
+    curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
     cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                  curl_factory=curl_factory)
 
@@ -326,7 +282,7 @@ class TestExtendedConfig(unittest.TestCase):
     cfgfn = client.GenericCurlConfig(capath=certdir,
                                      _pycurl_version_fn=pcverfn)
 
-    curl_factory = lambda: FakeCurl(RapiMock())
+    curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
     cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                  curl_factory=curl_factory)
 
@@ -338,7 +294,7 @@ class TestExtendedConfig(unittest.TestCase):
     cfgfn = client.GenericCurlConfig(capath=certdir,
                                      _pycurl_version_fn=pcverfn)
 
-    curl_factory = lambda: FakeCurl(RapiMock())
+    curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
     cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                  curl_factory=curl_factory)
 
@@ -350,7 +306,7 @@ class TestExtendedConfig(unittest.TestCase):
     cfgfn = client.GenericCurlConfig(capath=certdir,
                                      _pycurl_version_fn=pcverfn)
 
-    curl_factory = lambda: FakeCurl(RapiMock())
+    curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
     cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                  curl_factory=curl_factory)
 
@@ -362,7 +318,7 @@ class TestExtendedConfig(unittest.TestCase):
         cfgfn = client.GenericCurlConfig(connect_timeout=connect_timeout,
                                          timeout=timeout)
 
-        curl_factory = lambda: FakeCurl(RapiMock())
+        curl_factory = lambda: rapi.testutils.FakeCurl(RapiMock())
         cl = client.GanetiRapiClient("master.example.com", curl_config_fn=cfgfn,
                                      curl_factory=curl_factory)
 
@@ -376,7 +332,7 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     testutils.GanetiTestCase.setUp(self)
 
     self.rapi = RapiMock()
-    self.curl = FakeCurl(self.rapi)
+    self.curl = rapi.testutils.FakeCurl(self.rapi)
     self.client = client.GanetiRapiClient("master.example.com",
                                           curl_factory=lambda: self.curl)
 
