@@ -226,6 +226,8 @@ def RunCommonInstanceTests(instance):
   RunTestIf("instance-shutdown", qa_instance.TestInstanceShutdown, instance)
   RunTestIf(["instance-shutdown", "instance-console", "rapi"],
             qa_rapi.TestRapiStoppedInstanceConsole, instance)
+  RunTestIf(["instance-shutdown", "instance-modify"],
+            qa_instance.TestInstanceStoppedModify, instance)
   RunTestIf("instance-shutdown", qa_instance.TestInstanceStartup, instance)
 
   # Test shutdown/start via RAPI

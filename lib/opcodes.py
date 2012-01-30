@@ -1401,10 +1401,7 @@ class OpInstanceSetParams(OpCode):
     ("osparams", None, ht.TMaybeDict, "Per-instance OS parameters"),
     ("wait_for_sync", True, ht.TBool,
      "Whether to wait for the disk to synchronize, when changing template"),
-    ("offline_inst", False, ht.TBool,
-     "Whether to turn off the down instance completely"),
-    ("online_inst", False, ht.TBool,
-     "Whether to enable the offline instance"),
+    ("offline", None, ht.TMaybeBool, "Whether to mark instance as offline"),
     ]
   OP_RESULT = _TSetParamsResult
 

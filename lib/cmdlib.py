@@ -11806,8 +11806,7 @@ class LUInstanceSetParams(LogicalUnit):
   def CheckArguments(self):
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name or
-            self.op.online_inst or self.op.offline_inst or
-            self.op.runtime_mem):
+            self.op.offline is not None or self.op.runtime_mem):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
@@ -12327,13 +12326,15 @@ class LUInstanceSetParams(LogicalUnit):
                                      (disk_op, len(instance.disks)),
                                      errors.ECODE_INVAL)
 
-    # disabling the instance
-    if self.op.offline_inst:
+    if self.op.offline is None:
+      # Ignore
+      pass
+    elif self.op.offline:
+      # Mark instance as offline
       _CheckInstanceState(self, instance, INSTANCE_DOWN,
                           msg="cannot change instance state to offline")
-
-    # enabling the instance
-    if self.op.online_inst:
+    else:
+      # Mark instance as online, but stopped
       _CheckInstanceState(self, instance, INSTANCE_OFFLINE,
                           msg="cannot make instance go online")
 
@@ -12619,13 +12620,17 @@ class LUInstanceSetParams(LogicalUnit):
       for key, val in self.op.osparams.iteritems():
         result.append(("os/%s" % key, val))
 
-    # online/offline instance
-    if self.op.online_inst:
-      self.cfg.MarkInstanceDown(instance.name)
-      result.append(("admin_state", constants.ADMINST_DOWN))
-    if self.op.offline_inst:
+    if self.op.offline is None:
+      # Ignore
+      pass
+    elif self.op.offline:
+      # Mark instance as offline
       self.cfg.MarkInstanceOffline(instance.name)
       result.append(("admin_state", constants.ADMINST_OFFLINE))
+    else:
+      # Mark instance as online, but stopped
+      self.cfg.MarkInstanceDown(instance.name)
+      result.append(("admin_state", constants.ADMINST_DOWN))
 
     self.cfg.Update(instance, feedback_fn)
 

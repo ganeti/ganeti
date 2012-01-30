@@ -252,6 +252,24 @@ def TestInstanceModify(instance):
   # check no-modify
   AssertCommand(["gnt-instance", "modify", instance["name"]], fail=True)
 
+  # Marking offline/online while instance is running must fail
+  for arg in ["--online", "--offline"]:
+    AssertCommand(["gnt-instance", "modify", arg, instance["name"]], fail=True)
+
+
+def TestInstanceStoppedModify(instance):
+  """gnt-instance modify (stopped instance)"""
+  name = instance["name"]
+
+  # Assume instance was not marked offline, so marking it online must fail
+  AssertCommand(["gnt-instance", "modify", "--online", name], fail=True)
+
+  # Mark instance as offline
+  AssertCommand(["gnt-instance", "modify", "--offline", name])
+
+  # And online again
+  AssertCommand(["gnt-instance", "modify", "--online", name])
+
 
 def TestInstanceConvertDisk(instance, snode):
   """gnt-instance modify -t"""

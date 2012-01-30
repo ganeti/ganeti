@@ -1327,6 +1327,13 @@ def SetInstanceParams(opts, args):
              " specifying a secondary node")
     return 1
 
+  if opts.offline_inst:
+    offline = True
+  elif opts.online_inst:
+    offline = False
+  else:
+    offline = None
+
   op = opcodes.OpInstanceSetParams(instance_name=args[0],
                                    nics=opts.nics,
                                    disks=opts.disks,
@@ -1340,8 +1347,7 @@ def SetInstanceParams(opts, args):
                                    force_variant=opts.force_variant,
                                    force=opts.force,
                                    wait_for_sync=opts.wait_for_sync,
-                                   offline_inst=opts.offline_inst,
-                                   online_inst=opts.online_inst,
+                                   offline=offline,
                                    ignore_ipolicy=opts.ignore_ipolicy)
 
   # even if here we process the result, we allow submit only
