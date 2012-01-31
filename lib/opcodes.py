@@ -799,7 +799,7 @@ class OpQuery(OpCode):
     _PUseLocking,
     ("fields", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "Requested fields"),
-    ("filter", None, ht.TOr(ht.TNone, ht.TListOf),
+    ("filter", None, ht.TOr(ht.TNone, ht.TList),
      "Query filter"),
     ]
 
