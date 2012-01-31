@@ -360,6 +360,9 @@ def TListOf(my_type):
   return desc(TAnd(TList, lambda lst: compat.all(my_type(v) for v in lst)))
 
 
+TMaybeListOf = lambda item_type: TOr(TNone, TListOf(item_type))
+
+
 def TDictOf(key_type, val_type):
   """Checks a dict type for the type of its key/values.
 

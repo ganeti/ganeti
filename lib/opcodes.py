@@ -170,7 +170,7 @@ _TestClusterOsListItem = \
     ht.TNonEmptyString,
     ]))
 
-_TestClusterOsList = ht.TOr(ht.TNone, ht.TListOf(_TestClusterOsListItem))
+_TestClusterOsList = ht.TMaybeListOf(_TestClusterOsListItem)
 
 # TODO: Generate check from constants.INIC_PARAMS_TYPES
 #: Utility function for testing NIC definitions
@@ -473,7 +473,7 @@ def _BuildJobDepCheck(relative):
             ht.TItems([job_id,
                        ht.TListOf(ht.TElemOf(constants.JOBS_FINALIZED))]))
 
-  return ht.TOr(ht.TNone, ht.TListOf(job_dep))
+  return ht.TMaybeListOf(job_dep)
 
 
 TNoRelativeJobDependencies = _BuildJobDepCheck(False)
@@ -818,7 +818,7 @@ class OpClusterSetParams(OpCode):
      "Master network device"),
     ("master_netmask", None, ht.TOr(ht.TInt, ht.TNone),
      "Netmask of the master IP"),
-    ("reserved_lvs", None, ht.TOr(ht.TListOf(ht.TNonEmptyString), ht.TNone),
+    ("reserved_lvs", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "List of reserved LVs"),
     ("hidden_os", None, _TestClusterOsList,
      "Modify list of hidden operating systems. Each modification must have"
@@ -880,7 +880,7 @@ class OpQueryFields(OpCode):
   OP_DSC_FIELD = "what"
   OP_PARAMS = [
     _PQueryWhat,
-    ("fields", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+    ("fields", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "Requested fields; if not given, all are returned"),
     ]
 
@@ -1426,7 +1426,7 @@ class OpInstanceChangeGroup(OpCode):
     _PInstanceName,
     _PEarlyRelease,
     ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
-    ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+    ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "Destination group names or UUIDs (defaults to \"all but current group\""),
     ]
   OP_RESULT = TJobIdListOnly
@@ -1508,7 +1508,7 @@ class OpGroupEvacuate(OpCode):
     _PGroupName,
     _PEarlyRelease,
     ("iallocator", None, ht.TMaybeString, "Iallocator for computing solution"),
-    ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
+    ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "Destination group names or UUIDs"),
     ]
   OP_RESULT = TJobIdListOnly
@@ -1682,9 +1682,12 @@ class OpTestAllocator(OpCode):
      ht.TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS), None),
     ("mode", ht.NoDefault, ht.TElemOf(constants.VALID_IALLOCATOR_MODES), None),
     ("name", ht.NoDefault, ht.TNonEmptyString, None),
-    ("nics", ht.NoDefault, ht.TOr(ht.TNone, ht.TListOf(
-     ht.TDictOf(ht.TElemOf([constants.INIC_MAC, constants.INIC_IP, "bridge"]),
-                ht.TOr(ht.TNone, ht.TNonEmptyString)))), None),
+    ("nics", ht.NoDefault,
+     ht.TMaybeListOf(ht.TDictOf(ht.TElemOf([constants.INIC_MAC,
+                                            constants.INIC_IP,
+                                            "bridge"]),
+                                ht.TOr(ht.TNone, ht.TNonEmptyString))),
+     None),
     ("disks", ht.NoDefault, ht.TOr(ht.TNone, ht.TList), None),
     ("hypervisor", None, ht.TMaybeString, None),
     ("allocator", None, ht.TMaybeString, None),
@@ -1693,12 +1696,10 @@ class OpTestAllocator(OpCode):
     ("vcpus", None, ht.TOr(ht.TNone, ht.TPositiveInt), None),
     ("os", None, ht.TMaybeString, None),
     ("disk_template", None, ht.TMaybeString, None),
-    ("instances", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
-     None),
+    ("instances", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
     ("evac_mode", None,
      ht.TOr(ht.TNone, ht.TElemOf(constants.IALLOCATOR_NEVAC_MODES)), None),
-    ("target_groups", None, ht.TOr(ht.TNone, ht.TListOf(ht.TNonEmptyString)),
-     None),
+    ("target_groups", None, ht.TMaybeListOf(ht.TNonEmptyString), None),
     ]
 
 
