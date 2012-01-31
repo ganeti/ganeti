@@ -261,8 +261,8 @@ def TestInstanceStoppedModify(instance):
   """gnt-instance modify (stopped instance)"""
   name = instance["name"]
 
-  # Assume instance was not marked offline, so marking it online must fail
-  AssertCommand(["gnt-instance", "modify", "--online", name], fail=True)
+  # Instance was not marked offline; try marking it online once more
+  AssertCommand(["gnt-instance", "modify", "--online", name])
 
   # Mark instance as offline
   AssertCommand(["gnt-instance", "modify", "--offline", name])

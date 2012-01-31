@@ -68,11 +68,14 @@ import ganeti.masterd.instance # pylint: disable=W0611
 DRBD_META_SIZE = 128
 
 # States of instance
-INSTANCE_UP = [constants.ADMINST_UP]
-INSTANCE_DOWN = [constants.ADMINST_DOWN]
-INSTANCE_OFFLINE = [constants.ADMINST_OFFLINE]
 INSTANCE_ONLINE = [constants.ADMINST_DOWN, constants.ADMINST_UP]
 INSTANCE_NOT_RUNNING = [constants.ADMINST_DOWN, constants.ADMINST_OFFLINE]
+
+#: Instance status in which an instance can be marked as offline/online
+CAN_CHANGE_INSTANCE_OFFLINE = [
+  constants.ADMINST_DOWN,
+  constants.ADMINST_OFFLINE,
+  ]
 
 
 class ResultWithJobs:
@@ -12326,17 +12329,12 @@ class LUInstanceSetParams(LogicalUnit):
                                      (disk_op, len(instance.disks)),
                                      errors.ECODE_INVAL)
 
-    if self.op.offline is None:
-      # Ignore
-      pass
-    elif self.op.offline:
-      # Mark instance as offline
-      _CheckInstanceState(self, instance, INSTANCE_DOWN,
-                          msg="cannot change instance state to offline")
-    else:
-      # Mark instance as online, but stopped
-      _CheckInstanceState(self, instance, INSTANCE_OFFLINE,
-                          msg="cannot make instance go online")
+    if self.op.offline is not None:
+      if self.op.offline:
+        msg = "can't change to offline"
+      else:
+        msg = "can't change to online"
+      _CheckInstanceState(self, instance, CAN_CHANGE_INSTANCE_OFFLINE, msg=msg)
 
   def _ConvertPlainToDrbd(self, feedback_fn):
     """Converts an instance from plain to drbd.
