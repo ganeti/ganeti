@@ -36,7 +36,6 @@ opcodes.
 import logging
 import re
 
-from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import ht
@@ -165,11 +164,13 @@ _PAllowRuntimeChgs = ("allow_runtime_changes", True, ht.TBool,
 _OPID_RE = re.compile("([a-z])([A-Z])")
 
 #: Utility function for L{OpClusterSetParams}
-_TestClusterOsList = ht.TOr(ht.TNone,
-  ht.TListOf(ht.TAnd(ht.TList, ht.TIsLength(2),
-    ht.TMap(ht.WithDesc("GetFirstItem")(compat.fst),
-            ht.TElemOf(constants.DDMS_VALUES)))))
+_TestClusterOsListItem = \
+  ht.TAnd(ht.TIsLength(2), ht.TItems([
+    ht.TElemOf(constants.DDMS_VALUES),
+    ht.TNonEmptyString,
+    ]))
 
+_TestClusterOsList = ht.TOr(ht.TNone, ht.TListOf(_TestClusterOsListItem))
 
 # TODO: Generate check from constants.INIC_PARAMS_TYPES
 #: Utility function for testing NIC definitions

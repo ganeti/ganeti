@@ -338,5 +338,31 @@ class TestResultChecks(unittest.TestCase):
       }))
 
 
+class TestClusterOsList(unittest.TestCase):
+  def test(self):
+    good = [
+      None,
+      [],
+      [(constants.DDM_ADD, "dos"),
+       (constants.DDM_REMOVE, "linux")],
+      ]
+
+    for i in good:
+      self.assertTrue(opcodes._TestClusterOsList(i))
+
+    wrong = ["", 0, "xy", ["Hello World"], object(),
+      [("foo", "bar")],
+      [("", "")],
+      [[constants.DDM_ADD]],
+      [(constants.DDM_ADD, "")],
+      [(constants.DDM_REMOVE, "")],
+      [(constants.DDM_ADD, None)],
+      [(constants.DDM_REMOVE, None)],
+      ]
+
+    for i in wrong:
+      self.assertFalse(opcodes._TestClusterOsList(i))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
