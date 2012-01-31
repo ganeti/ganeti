@@ -97,13 +97,6 @@ JOB_STATUS_WAITLOCK = JOB_STATUS_WAITING
 
 # Internal constants
 _REQ_DATA_VERSION_FIELD = "__version__"
-_INST_NIC_PARAMS = frozenset(["mac", "ip", "mode", "link"])
-_INST_CREATE_V0_DISK_PARAMS = frozenset(["size"])
-_INST_CREATE_V0_PARAMS = frozenset([
-  "os", "pnode", "snode", "iallocator", "start", "ip_check", "name_check",
-  "hypervisor", "file_storage_dir", "file_driver", "dry_run",
-  ])
-_INST_CREATE_V0_DPARAMS = frozenset(["beparams", "hvparams"])
 _QPARAM_DRY_RUN = "dry-run"
 _QPARAM_FORCE = "force"
 

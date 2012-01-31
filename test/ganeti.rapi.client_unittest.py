@@ -149,7 +149,6 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client.GANETI_RAPI_VERSION, constants.RAPI_VERSION)
     self.assertEqual(client.HTTP_APP_JSON, http.HTTP_APP_JSON)
     self.assertEqual(client._REQ_DATA_VERSION_FIELD, rlib2._REQ_DATA_VERSION)
-    self.assertEqual(client._INST_NIC_PARAMS, constants.INIC_PARAMS)
     self.assertEqual(client.JOB_STATUS_QUEUED, constants.JOB_STATUS_QUEUED)
     self.assertEqual(client.JOB_STATUS_WAITING, constants.JOB_STATUS_WAITING)
     self.assertEqual(client.JOB_STATUS_CANCELING,
