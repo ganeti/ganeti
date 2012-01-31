@@ -1373,22 +1373,40 @@ class OpInstanceQueryData(OpCode):
     ]
 
 
+def _TestInstSetParamsModList(fn):
+  """Generates a check for modification lists.
+
+  """
+  mod_item_fn = \
+    ht.TAnd(ht.TIsLength(2), ht.TItems([
+      ht.TOr(ht.TElemOf(constants.DDMS_VALUES), ht.TPositiveInt),
+      fn,
+      ]))
+
+  return ht.TListOf(mod_item_fn)
+
+
 class OpInstanceSetParams(OpCode):
-  """Change the parameters of an instance."""
+  """Change the parameters of an instance.
+
+  """
+  _TestNicModifications = _TestInstSetParamsModList(_TestNicDef)
+  _TestDiskModifications = _TestInstSetParamsModList(_TDiskParams)
+
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
     _PInstanceName,
     _PForce,
     _PForceVariant,
     _PIgnoreIpolicy,
-    # TODO: Use _TestNicDef
-    ("nics", ht.EmptyList, ht.TList,
+    ("nics", ht.EmptyList, _TestNicModifications,
      "List of NIC changes. Each item is of the form ``(op, settings)``."
      " ``op`` can be ``%s`` to add a new NIC with the specified settings,"
      " ``%s`` to remove the last NIC or a number to modify the settings"
      " of the NIC with that index." %
      (constants.DDM_ADD, constants.DDM_REMOVE)),
-    ("disks", ht.EmptyList, ht.TList, "List of disk changes. See ``nics``."),
+    ("disks", ht.EmptyList, _TestDiskModifications,
+     "List of disk changes. See ``nics``."),
     ("beparams", ht.EmptyDict, ht.TDict, "Per-instance backend parameters"),
     ("runtime_mem", None, ht.TMaybeStrictPositiveInt, "New runtime memory"),
     ("hvparams", ht.EmptyDict, ht.TDict,

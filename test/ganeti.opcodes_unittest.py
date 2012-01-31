@@ -364,5 +364,38 @@ class TestClusterOsList(unittest.TestCase):
       self.assertFalse(opcodes._TestClusterOsList(i))
 
 
+class TestOpInstanceSetParams(unittest.TestCase):
+  def _GenericTests(self, fn):
+    self.assertTrue(fn([]))
+    self.assertTrue(fn([(constants.DDM_ADD, {})]))
+    self.assertTrue(fn([(constants.DDM_REMOVE, {})]))
+    for i in [0, 1, 2, 3, 9, 10, 1024]:
+      self.assertTrue(fn([(i, {})]))
+
+    self.assertFalse(fn(None))
+    self.assertFalse(fn({}))
+    self.assertFalse(fn(""))
+    self.assertFalse(fn(0))
+    self.assertFalse(fn([(-100, {})]))
+    self.assertFalse(fn([(constants.DDM_ADD, 2, 3)]))
+    self.assertFalse(fn([[constants.DDM_ADD]]))
+
+  def testNicModifications(self):
+    fn = opcodes.OpInstanceSetParams._TestNicModifications
+    self._GenericTests(fn)
+
+    for param in constants.INIC_PARAMS:
+      self.assertTrue(fn([[constants.DDM_ADD, {param: None}]]))
+      self.assertTrue(fn([[constants.DDM_ADD, {param: param}]]))
+
+  def testDiskModifications(self):
+    fn = opcodes.OpInstanceSetParams._TestDiskModifications
+    self._GenericTests(fn)
+
+    for param in constants.IDISK_PARAMS:
+      self.assertTrue(fn([[constants.DDM_ADD, {param: 0}]]))
+      self.assertTrue(fn([[constants.DDM_ADD, {param: param}]]))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
