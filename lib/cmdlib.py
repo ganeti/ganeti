@@ -68,14 +68,14 @@ import ganeti.masterd.instance # pylint: disable=W0611
 DRBD_META_SIZE = 128
 
 # States of instance
+INSTANCE_DOWN = [constants.ADMINST_DOWN]
 INSTANCE_ONLINE = [constants.ADMINST_DOWN, constants.ADMINST_UP]
 INSTANCE_NOT_RUNNING = [constants.ADMINST_DOWN, constants.ADMINST_OFFLINE]
 
 #: Instance status in which an instance can be marked as offline/online
-CAN_CHANGE_INSTANCE_OFFLINE = [
-  constants.ADMINST_DOWN,
+CAN_CHANGE_INSTANCE_OFFLINE = (frozenset(INSTANCE_DOWN) | frozenset([
   constants.ADMINST_OFFLINE,
-  ]
+  ]))
 
 
 class ResultWithJobs:
