@@ -76,6 +76,9 @@ else
   make_args=
 fi
 
+# Make sure that directories will get correct permissions
+umask 0022
+
 # install ganeti as a real tree
 make $make_args install DESTDIR="$TXD"
 
