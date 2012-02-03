@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -322,14 +322,30 @@ class TestNodeQuery(unittest.TestCase):
     return query.Query(query.NODE_FIELDS, selected)
 
   def testSimple(self):
+    cluster = objects.Cluster(cluster_name="testcluster",
+                              ndparams=constants.NDC_DEFAULTS.copy())
+    grp1 = objects.NodeGroup(name="default",
+                             uuid="c0e89160-18e7-11e0-a46e-001d0904baeb",
+                             alloc_policy=constants.ALLOC_POLICY_PREFERRED,
+                             ipolicy=objects.MakeEmptyIPolicy(),
+                             ndparams={},
+                             )
+    grp2 = objects.NodeGroup(name="group2",
+                             uuid="c0e89160-18e7-11e0-a46e-001d0904babe",
+                             alloc_policy=constants.ALLOC_POLICY_PREFERRED,
+                             ipolicy=objects.MakeEmptyIPolicy(),
+                             ndparams={constants.ND_SPINDLE_COUNT: 2},
+                             )
+    groups = {grp1.uuid: grp1, grp2.uuid: grp2}
     nodes = [
-      objects.Node(name="node1", drained=False),
-      objects.Node(name="node2", drained=True),
-      objects.Node(name="node3", drained=False),
+      objects.Node(name="node1", drained=False, group=grp1.uuid, ndparams={}),
+      objects.Node(name="node2", drained=True, group=grp2.uuid, ndparams={}),
+      objects.Node(name="node3", drained=False, group=grp1.uuid,
+                   ndparams={constants.ND_SPINDLE_COUNT: 4}),
       ]
     for live_data in [None, dict.fromkeys([node.name for node in nodes], {})]:
-      nqd = query.NodeQueryData(nodes, live_data, None, None, None, None, None,
-                                None)
+      nqd = query.NodeQueryData(nodes, live_data, None, None, None,
+                                groups, None, cluster)
 
       q = self._Create(["name", "drained"])
       self.assertEqual(q.RequestedData(), set([query.NQ_CONFIG]))
@@ -345,6 +361,16 @@ class TestNodeQuery(unittest.TestCase):
                        [["node1", False],
                         ["node2", True],
                         ["node3", False]])
+      q = self._Create(["ndp/spindle_count"])
+      self.assertEqual(q.RequestedData(), set([query.NQ_GROUP]))
+      self.assertEqual(q.Query(nqd),
+                       [[(constants.RS_NORMAL,
+                          constants.NDC_DEFAULTS[constants.ND_SPINDLE_COUNT])],
+                        [(constants.RS_NORMAL,
+                          grp2.ndparams[constants.ND_SPINDLE_COUNT])],
+                        [(constants.RS_NORMAL,
+                          nodes[2].ndparams[constants.ND_SPINDLE_COUNT])],
+                       ])
 
   def test(self):
     selected = query.NODE_FIELDS.keys()
@@ -933,11 +959,15 @@ class TestGroupQuery(unittest.TestCase):
       objects.NodeGroup(name="default",
                         uuid="c0e89160-18e7-11e0-a46e-001d0904baeb",
                         alloc_policy=constants.ALLOC_POLICY_PREFERRED,
-                        ipolicy=objects.MakeEmptyIPolicy()),
+                        ipolicy=objects.MakeEmptyIPolicy(),
+                        ndparams={},
+                        ),
       objects.NodeGroup(name="restricted",
                         uuid="d2a40a74-18e7-11e0-9143-001d0904baeb",
                         alloc_policy=constants.ALLOC_POLICY_LAST_RESORT,
-                        ipolicy=objects.MakeEmptyIPolicy()),
+                        ipolicy=objects.MakeEmptyIPolicy(),
+                        ndparams={}
+                        ),
       ]
     self.cluster = objects.Cluster(cluster_name="testcluster",
       hvparams=constants.HVC_DEFAULTS,

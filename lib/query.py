@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011 Google Inc.
+# Copyright (C) 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -135,6 +135,12 @@ _VTToQFT = {
   }
 
 _SERIAL_NO_DOC = "%s object serial number, incremented on each modification"
+
+# TODO: Consider moving titles closer to constants
+NDP_TITLE = {
+  constants.ND_OOB_PROGRAM: "OutOfBandProgram",
+  constants.ND_SPINDLE_COUNT: "SpindleCount",
+  }
 
 
 def _GetUnknownField(ctx, item): # pylint: disable=W0613
@@ -899,6 +905,34 @@ def _GetItemAttr(attr):
   return lambda _, item: getter(item)
 
 
+def _GetNDParam(name):
+  """Return a field function to return an ND parameter out of the context.
+
+  """
+  def _helper(ctx, _):
+    if ctx.ndparams is None:
+      return _FS_UNAVAIL
+    else:
+      return ctx.ndparams.get(name, None)
+  return _helper
+
+
+def _BuildNDFields(is_group):
+  """Builds all the ndparam fields.
+
+  @param is_group: whether this is called at group or node level
+
+  """
+  if is_group:
+    field_kind = GQ_CONFIG
+  else:
+    field_kind = NQ_GROUP
+  return [(_MakeField("ndp/%s" % name, NDP_TITLE.get(name, "ndp/%s" % name),
+                      _VTToQFT[kind], "The \"%s\" node parameter" % name),
+           field_kind, 0, _GetNDParam(name))
+          for name, kind in constants.NDS_PARAMETER_TYPES.items()]
+
+
 def _ConvWrapInner(convert, fn, ctx, item):
   """Wrapper for converting values.
 
@@ -982,6 +1016,7 @@ class NodeQueryData:
 
     # Used for individual rows
     self.curlive_data = None
+    self.ndparams = None
 
   def __iter__(self):
     """Iterate over all nodes.
@@ -991,6 +1026,11 @@ class NodeQueryData:
 
     """
     for node in self.nodes:
+      group = self.groups.get(node.group, None)
+      if group is None:
+        self.ndparams = None
+      else:
+        self.ndparams = self.cluster.FillND(node, group)
       if self.live_data:
         self.curlive_data = self.live_data.get(node.name, None)
       else:
@@ -1197,6 +1237,8 @@ def _BuildNodeFields():
     (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
      NQ_CONFIG, 0, _GetNodeDiskState),
     ]
+
+  fields.extend(_BuildNDFields(False))
 
   # Node role
   role_values = (constants.NR_MASTER, constants.NR_MCANDIDATE,
@@ -1959,6 +2001,7 @@ class GroupQueryData:
 
     # Used for individual rows
     self.group_ipolicy = None
+    self.ndparams = None
 
   def __iter__(self):
     """Iterate over all node groups.
@@ -1969,6 +2012,7 @@ class GroupQueryData:
     """
     for group in self.groups:
       self.group_ipolicy = self.cluster.SimpleFillIPolicy(group.ipolicy)
+      self.ndparams = self.cluster.SimpleFillND(group.ndparams)
       yield group
 
 
@@ -1977,7 +2021,6 @@ _GROUP_SIMPLE_FIELDS = {
   "name": ("Group", QFT_TEXT, "Group name"),
   "serial_no": ("SerialNo", QFT_NUMBER, _SERIAL_NO_DOC % "Group"),
   "uuid": ("UUID", QFT_TEXT, "Group UUID"),
-  "ndparams": ("NDParams", QFT_OTHER, "Node parameters"),
   }
 
 
@@ -2027,7 +2070,16 @@ def _BuildGroupFields():
     (_MakeField("custom_ipolicy", "CustomInstancePolicy", QFT_OTHER,
                 "Custom instance policy limitations"),
      GQ_CONFIG, 0, _GetItemAttr("ipolicy")),
+    (_MakeField("custom_ndparams", "CustomNDParams", QFT_OTHER,
+                "Custom node parameters"),
+     GQ_CONFIG, 0, _GetItemAttr("ndparams")),
+    (_MakeField("ndparams", "NDParams", QFT_OTHER,
+                "Node parameters"),
+     GQ_CONFIG, 0, lambda ctx, _: ctx.ndparams),
     ])
+
+  # ND parameters
+  fields.extend(_BuildNDFields(True))
 
   fields.extend(_GetItemTimestampFields(GQ_CONFIG))
 
