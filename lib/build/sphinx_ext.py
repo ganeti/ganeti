@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2011 Google Inc.
+# Copyright (C) 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -294,7 +294,7 @@ def BuildQueryFields(fields):
   defs = [(fdef.name, fdef.doc)
            for (_, (fdef, _, _, _)) in utils.NiceSort(fields.items(),
                                                       key=compat.fst)]
-  yield BuildValuesDoc(defs)
+  return BuildValuesDoc(defs)
 
 
 def BuildValuesDoc(values):
