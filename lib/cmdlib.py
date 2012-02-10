@@ -11932,6 +11932,7 @@ class LUInstanceSetParams(LogicalUnit):
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
+    # TODO: Acquire group lock in shared mode (disk parameters)
     if level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
       if self.op.disk_template and self.op.remote_node:
@@ -12029,6 +12030,9 @@ class LUInstanceSetParams(LogicalUnit):
       instance_os = self.op.os_name
     else:
       instance_os = instance.os
+
+    assert not (self.op.disk_template and self.op.disks), \
+      "Can't modify disk template and apply disk changes at the same time"
 
     if self.op.disk_template:
       if instance.disk_template == self.op.disk_template:
