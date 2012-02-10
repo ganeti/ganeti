@@ -11798,6 +11798,98 @@ class LUInstanceQueryData(NoHooksLU):
     return result
 
 
+def PrepareContainerMods(mods, private_fn):
+  """Prepares a list of container modifications by adding a private data field.
+
+  @type mods: list of tuples; (operation, index, parameters)
+  @param mods: List of modifications
+  @type private_fn: callable or None
+  @param private_fn: Callable for constructing a private data field for a
+    modification
+  @rtype: list
+
+  """
+  if private_fn is None:
+    fn = lambda: None
+  else:
+    fn = private_fn
+
+  return [(op, idx, params, fn()) for (op, idx, params) in mods]
+
+
+def ApplyContainerMods(kind, container, chgdesc, mods,
+                       create_fn, modify_fn, remove_fn):
+  """Applies descriptions in C{mods} to C{container}.
+
+  @type kind: string
+  @param kind: One-word item description
+  @type container: list
+  @param container: Container to modify
+  @type chgdesc: None or list
+  @param chgdesc: List of applied changes
+  @type mods: list
+  @param mods: Modifications as returned by L{PrepareContainerMods}
+  @type create_fn: callable
+  @param create_fn: Callback for creating a new item (L{constants.DDM_ADD});
+    receives absolute item index, parameters, list of applied changes and
+    private data object as added by L{PrepareContainerMods}, returns new item
+  @type modify_fn: callable
+  @param modify_fn: Callback for modifying an existing item
+    (L{constants.DDM_MODIFY}); receives absolute item index, item, parameters,
+    list of applied changes and private data object as added by
+    L{PrepareContainerMods}
+  @type remove_fn: callable
+  @param remove_fn: Callback on removing item; receives absolute item index,
+    item, list of applied changes and private data object as added by
+    L{PrepareContainerMods}
+
+  """
+  for (op, idx, params, private) in mods:
+    if idx == -1:
+      # Append
+      absidx = len(container) - 1
+    elif idx < 0:
+      raise IndexError("Not accepting negative indices")
+    else:
+      absidx = idx
+
+    if op == constants.DDM_ADD:
+      if create_fn is None:
+        item = params
+      else:
+        item = create_fn(absidx + 1, params, chgdesc, private)
+
+      if idx == -1:
+        container.append(item)
+      else:
+        assert idx >= 0
+        # list.insert does so before the specified index
+        container.insert(idx, item)
+    else:
+      # Retrieve existing item
+      try:
+        item = container[absidx]
+      except IndexError:
+        raise IndexError("Invalid %s index %s" % (kind, idx))
+
+      if op == constants.DDM_REMOVE:
+        assert not params
+
+        if remove_fn is not None:
+          remove_fn(absidx, item, chgdesc, private)
+
+        if chgdesc is not None:
+          chgdesc.append(("%s/%s" % (kind, absidx), "remove"))
+
+        assert container[absidx] == item
+        del container[absidx]
+      elif op == constants.DDM_MODIFY:
+        if modify_fn is not None:
+          modify_fn(absidx, item, params, chgdesc, private)
+      else:
+        raise errors.ProgrammerError("Unhandled operation '%s'" % op)
+
+
 class LUInstanceSetParams(LogicalUnit):
   """Modifies an instances's parameters.
 

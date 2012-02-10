@@ -779,5 +779,127 @@ class TestCheckTargetNodeIPolicy(unittest.TestCase):
     self.assertEqual(self.lu.warning_log, [(msg, ())])
 
 
+class TestApplyContainerMods(unittest.TestCase):
+  def testEmptyContainer(self):
+    container = []
+    chgdesc = []
+    cmdlib.ApplyContainerMods("test", container, chgdesc, [], None, None, None)
+    self.assertEqual(container, [])
+    self.assertEqual(chgdesc, [])
+
+  def testAdd(self):
+    container = []
+    chgdesc = []
+    mods = cmdlib.PrepareContainerMods([
+      (constants.DDM_ADD, -1, "Hello"),
+      (constants.DDM_ADD, -1, "World"),
+      (constants.DDM_ADD, 0, "Start"),
+      (constants.DDM_ADD, -1, "End"),
+      ], None)
+    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
+                              None, None, None)
+    self.assertEqual(container, ["Start", "Hello", "World", "End"])
+    self.assertEqual(chgdesc, [])
+
+  def testRemoveError(self):
+    for idx in [0, 1, 2, 100, -1, -4]:
+      mods = cmdlib.PrepareContainerMods([
+        (constants.DDM_REMOVE, idx, None),
+        ], None)
+      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+                        "test", [], None, mods, None, None, None)
+
+    mods = cmdlib.PrepareContainerMods([
+      (constants.DDM_REMOVE, 0, object()),
+      ], None)
+    self.assertRaises(AssertionError, cmdlib.ApplyContainerMods,
+                      "test", [""], None, mods, None, None, None)
+
+  def testAddError(self):
+    for idx in range(-100, -1):
+      mods = cmdlib.PrepareContainerMods([
+        (constants.DDM_ADD, idx, None),
+        ], None)
+      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+                        "test", [], None, mods, None, None, None)
+
+  def testRemove(self):
+    container = ["item 1", "item 2"]
+    mods = cmdlib.PrepareContainerMods([
+      (constants.DDM_ADD, -1, "aaa"),
+      (constants.DDM_REMOVE, -1, None),
+      (constants.DDM_ADD, -1, "bbb"),
+      ], None)
+    chgdesc = []
+    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
+                              None, None, None)
+    self.assertEqual(container, ["item 1", "item 2", "bbb"])
+    self.assertEqual(chgdesc, [
+      ("test/2", "remove"),
+      ])
+
+  class _PrivateData:
+    def __init__(self):
+      self.data = None
+
+  @staticmethod
+  def _CreateTestFn(idx, params, chgdesc, private):
+    chgdesc.append(("test/%s" % idx, hex(idx)))
+    private.data = ("add", idx, params)
+    return (100 * idx, params)
+
+  @staticmethod
+  def _ModifyTestFn(idx, item, params, chgdesc, private):
+    chgdesc.append(("test/%s" % idx, "modify %s" % params))
+    private.data = ("modify", idx, params)
+
+  @staticmethod
+  def _RemoveTestFn(idx, item, chgdesc, private):
+    private.data = ("remove", idx, item)
+
+  def testAddWithCreateFunction(self):
+    container = []
+    chgdesc = []
+    mods = cmdlib.PrepareContainerMods([
+      (constants.DDM_ADD, -1, "Hello"),
+      (constants.DDM_ADD, -1, "World"),
+      (constants.DDM_ADD, 0, "Start"),
+      (constants.DDM_ADD, -1, "End"),
+      (constants.DDM_REMOVE, 2, None),
+      (constants.DDM_MODIFY, -1, "foobar"),
+      (constants.DDM_REMOVE, 2, None),
+      (constants.DDM_ADD, 1, "More"),
+      ], self._PrivateData)
+    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
+      self._CreateTestFn, self._ModifyTestFn, self._RemoveTestFn)
+    self.assertEqual(container, [
+      (100, "Start"),
+      (200, "More"),
+      (0, "Hello"),
+      ])
+    self.assertEqual(chgdesc, [
+      ("test/0", "0x0"),
+      ("test/1", "0x1"),
+      ("test/1", "0x1"),
+      ("test/3", "0x3"),
+      ("test/2", "remove"),
+      ("test/2", "modify foobar"),
+      ("test/2", "remove"),
+      ("test/2", "0x2")
+      ])
+    self.assertTrue(compat.all(op == private.data[0]
+                               for (op, _, _, private) in mods))
+    self.assertEqual([private.data for (op, _, _, private) in mods], [
+      ("add", 0, "Hello"),
+      ("add", 1, "World"),
+      ("add", 1, "Start"),
+      ("add", 3, "End"),
+      ("remove", 2, (100, "World")),
+      ("modify", 2, "foobar"),
+      ("remove", 2, (300, "End")),
+      ("add", 2, "More"),
+      ])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
