@@ -174,8 +174,9 @@ _TestClusterOsList = ht.TMaybeListOf(_TestClusterOsListItem)
 
 # TODO: Generate check from constants.INIC_PARAMS_TYPES
 #: Utility function for testing NIC definitions
-_TestNicDef = ht.TDictOf(ht.TElemOf(constants.INIC_PARAMS),
-                         ht.TOr(ht.TNone, ht.TNonEmptyString))
+_TestNicDef = \
+  ht.Comment("NIC parameters")(ht.TDictOf(ht.TElemOf(constants.INIC_PARAMS),
+                                          ht.TOr(ht.TNone, ht.TNonEmptyString)))
 
 _TSetParamsResultItemItems = [
   ht.Comment("name of changed parameter")(ht.TNonEmptyString),
@@ -188,8 +189,9 @@ _TSetParamsResult = \
 
 # TODO: Generate check from constants.IDISK_PARAMS_TYPES (however, not all users
 # of this check support all parameters)
-_TDiskParams = ht.TDictOf(ht.TElemOf(constants.IDISK_PARAMS),
-                          ht.TOr(ht.TNonEmptyString, ht.TInt))
+_TDiskParams = \
+  ht.Comment("Disk parameters")(ht.TDictOf(ht.TElemOf(constants.IDISK_PARAMS),
+                                           ht.TOr(ht.TNonEmptyString, ht.TInt)))
 
 _SUMMARY_PREFIX = {
   "CLUSTER_": "C_",
