@@ -115,7 +115,7 @@ The are multiple options for the storage provided to an instance; while
 the instance sees the same virtual drive in all cases, the node-level
 configuration varies between them.
 
-There are four disk templates you can choose from:
+There are five disk templates you can choose from:
 
 diskless
   The instance has no disks. Only used for special purpose operating
@@ -137,6 +137,10 @@ drbd
   specified with the second value of the --node option. Use this option
   to obtain a highly available instance that can be failed over to a
   remote node should the primary one fail.
+
+rbd
+  The instance will use Volumes inside a RADOS cluster as backend for its
+  disks. It will access them using the RADOS block device (RBD).
 
 IAllocator
 ~~~~~~~~~~
@@ -510,6 +514,13 @@ The instance will be started with an amount of memory between its
 target node, or the operation will fail if that's not possible. See
 :ref:`instance-startup-label` for details.
 
+If the instance's disk template is of type rbd, then you can specify
+the target node (which can be any node) explicitly, or specify an
+iallocator plugin. If you omit both, the default iallocator will be
+used to determine the target node::
+
+  gnt-instance failover -n TARGET_NODE INSTANCE_NAME
+
 Live migrating an instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -529,6 +540,13 @@ Ganeti will automatically reduce the instance runtime memory before
 migrating it, unless the ``--no-runtime-changes`` option is passed, in
 which case the target node should have at least the instance's current
 runtime memory free.
+
+If the instance's disk template is of type rbd, then you can specify
+the target node (which can be any node) explicitly, or specify an
+iallocator plugin. If you omit both, the default iallocator will be
+used to determine the target node::
+
+   gnt-instance migrate -n TARGET_NODE INSTANCE_NAME
 
 Moving an instance (offline)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1246,6 +1264,10 @@ of a cluster installation by following these steps on all of the nodes:
 
 6. Remove the ganeti state directory (``rm -rf /var/lib/ganeti/*``),
    replacing the path with the correct path for your installation.
+
+7. If using RBD, run ``rbd unmap /dev/rbdN`` to unmap the RBD disks.
+   Then remove the RBD disk images used by Ganeti, identified by their
+   UUIDs (``rbd rm uuid.rbd.diskN``).
 
 On the master node, remove the cluster from the master-netdev (usually
 ``xen-br0`` for bridged mode, otherwise ``eth0`` or similar), by running

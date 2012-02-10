@@ -19,6 +19,8 @@ Before installing, please verify that you have the following programs:
   versions 0.11.X or above have shown good behavior).
 - `DRBD <http://www.drbd.org/>`_, kernel module and userspace utils,
   version 8.0.7 or above
+- `RBD <http://ceph.newdream.net/>`_, kernel modules (rbd.ko/libceph.ko)
+  and userspace utils (ceph-common)
 - `LVM2 <http://sourceware.org/lvm2/>`_
 - `OpenSSH <http://www.openssh.com/portable.html>`_
 - `bridge utilities <http://www.linuxfoundation.org/en/Net:Bridge>`_
@@ -50,7 +52,7 @@ These programs are supplied as part of most Linux distributions, so
 usually they can be installed via the standard package manager. Also
 many of them will already be installed on a standard machine. On
 Debian/Ubuntu, you can use this command line to install all required
-packages, except for DRBD and Xen::
+packages, except for RBD, DRBD and Xen::
 
   $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
                     ndisc6 python python-pyopenssl openssl \

@@ -445,6 +445,13 @@ List of parameters available for the **plain** template:
 stripes
     Number of stripes to use for new LVs.
 
+List of parameters available for the **rbd** template:
+
+pool
+    The RADOS cluster pool, inside which all rbd volumes will reside.
+    When a new RADOS cluster is deployed, the default pool to put rbd
+    volumes (Images in RADOS terminology) is 'rbd'.
+
 The option ``--maintain-node-health`` allows one to enable/disable
 automatic maintenance actions on nodes. Currently these include
 automatic shutdown of instances and deactivation of DRBD devices on

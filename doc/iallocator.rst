@@ -41,7 +41,7 @@ using the first one whose filename matches the one given by the user.
 Command line interface changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The node selection options in instanece add and instance replace disks
+The node selection options in instance add and instance replace disks
 can be replace by the new ``--iallocator=NAME`` option (shortened to
 ``-I``), which will cause the auto-assignement of nodes with the
 passed iallocator. The selected node(s) will be show as part of the

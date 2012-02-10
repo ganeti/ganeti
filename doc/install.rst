@@ -69,6 +69,10 @@ all Ganeti features. The volume group name Ganeti uses (by default) is
 You can also use file-based storage only, without LVM, but this setup is
 not detailed in this document.
 
+If you choose to use RBD-based instances, there's no need for LVM
+provisioning. However, this feature is experimental, and is not
+recommended for production clusters.
+
 While you can use an existing system, please note that the Ganeti
 installation is intrusive in terms of changes to the system
 configuration, and it's best to use a newly-installed system without
@@ -299,6 +303,88 @@ instances on a node.
          ...
        }
      }
+
+Installing RBD
++++++++++++++++
+
+Recommended on all nodes: RBD_ is required if you want to create
+instances with RBD disks residing inside a RADOS cluster (make use of
+the rbd disk template). RBD-based instances can failover or migrate to
+any other node in the ganeti cluster, enabling you to exploit of all
+Ganeti's high availabilily (HA) features.
+
+.. attention::
+   Be careful though: rbd is still experimental! For now it is
+   recommended only for testing purposes.  No sensitive data should be
+   stored there.
+
+.. _RBD: http://ceph.newdream.net/
+
+You will need the ``rbd`` and ``libceph`` kernel modules, the RBD/Ceph
+userspace utils (ceph-common Debian package) and an appropriate
+Ceph/RADOS configuration file on every VM-capable node.
+
+You will also need a working RADOS Cluster accessible by the above
+nodes.
+
+RADOS Cluster
+~~~~~~~~~~~~~
+
+You will need a working RADOS Cluster accesible by all VM-capable nodes
+to use the RBD template. For more information on setting up a RADOS
+Cluster, refer to the `official docs <http://ceph.newdream.net/>`_.
+
+If you want to use a pool for storing RBD disk images other than the
+default (``rbd``), you should first create the pool in the RADOS
+Cluster, and then set the corresponding rbd disk parameter named
+``pool``.
+
+Kernel Modules
+~~~~~~~~~~~~~~
+
+Unless your distribution already provides it, you might need to compile
+the ``rbd`` and ``libceph`` modules from source. You will need Linux
+Kernel 3.2 or above for the kernel modules. Alternatively you will have
+to build them as external modules (from Linux Kernel source 3.2 or
+above), if you want to run a less recent kernel, or your kernel doesn't
+include them.
+
+Userspace Utils
+~~~~~~~~~~~~~~~
+
+The RBD template has been tested with ``ceph-common`` v0.38 and
+above. We recommend using the latest version of ``ceph-common``.
+
+.. admonition:: Debian
+
+   On Debian, you can just install the RBD/Ceph userspace utils with
+   the following command::
+
+      apt-get install ceph-common
+
+Configuration file
+~~~~~~~~~~~~~~~~~~
+
+You should also provide an appropriate configuration file
+(``ceph.conf``) in ``/etc/ceph``. For the rbd userspace utils, you'll
+only need to specify the IP addresses of the RADOS Cluster monitors.
+
+.. admonition:: ceph.conf
+
+   Sample configuration file::
+
+    [mon.a]
+           host = example_monitor_host1
+           mon addr = 1.2.3.4:6789
+    [mon.b]
+           host = example_monitor_host2
+           mon addr = 1.2.3.5:6789
+    [mon.c]
+           host = example_monitor_host3
+           mon addr = 1.2.3.6:6789
+
+For more information, please see the `Ceph Docs
+<http://ceph.newdream.net/docs/latest/>`_
 
 Other required software
 +++++++++++++++++++++++

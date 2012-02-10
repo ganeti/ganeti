@@ -27,7 +27,7 @@ ADD
 ^^^
 
 | **add**
-| {-t|--disk-template {diskless | file \| plain \| drbd}}
+| {-t|--disk-template {diskless | file \| plain \| drbd \| rbd}}
 | {--disk=*N*: {size=*VAL* \| adopt=*LV*}[,vg=*VG*][,metavg=*VG*][,mode=*ro\|rw*]
 |  \| {-s|--os-size} *SIZE*}
 | [--no-ip-check] [--no-name-check] [--no-start] [--no-install]
@@ -587,6 +587,9 @@ plain
 
 drbd
     Disk devices will be drbd (version 8.x) on top of lvm volumes.
+
+rbd
+    Disk devices will be rbd volumes residing inside a RADOS cluster.
 
 
 The optional second value of the ``-n (--node)`` is used for the drbd
@@ -1321,7 +1324,7 @@ GROW-DISK
 {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
-plain or drbd disk template.
+plain, drbd or rbd disk template.
 
 Note that this command only change the block device size; it will not
 grow the actual filesystems, partitions, etc. that live on that
@@ -1341,10 +1344,10 @@ amount to increase the disk with in mebibytes) or can be given similar
 to the arguments in the create instance operation, with a suffix
 denoting the unit.
 
-Note that the disk grow operation might complete on one node but fail
-on the other; this will leave the instance with different-sized LVs on
-the two nodes, but this will not create problems (except for unused
-space).
+For instances with a drbd template, note that the disk grow operation
+might complete on one node but fail on the other; this will leave the
+instance with different-sized LVs on the two nodes, but this will not
+create problems (except for unused space).
 
 If you do not want gnt-instance to wait for the new disk region to be
 synced, use the ``--no-wait-for-sync`` option.
@@ -1401,15 +1404,24 @@ Recovery
 FAILOVER
 ^^^^^^^^
 
-**failover** [-f] [--ignore-consistency] [--shutdown-timeout=*N*]
-[--submit] [--ignore-ipolicy] {*instance*}
+| **failover** [-f] [--ignore-consistency] [--ignore-ipolicy]
+| [--shutdown-timeout=*N*]
+| [{-n|--target-node} *node* \| {-I|--iallocator} *name*]
+| [--submit]
+| {*instance*}
 
 Failover will stop the instance (if running), change its primary node,
 and if it was originally running it will start it again (on the new
 primary). This only works for instances with drbd template (in which
 case you can only fail to the secondary node) and for externally
-mirrored templates (shared storage) (which can change to any other
+mirrored templates (blockdev and rbd) (which can change to any other
 node).
+
+If the instance's disk template is of type blockdev or rbd, then you
+can explicitly specify the target node (which can be any node) using
+the ``-n`` or ``--target-node`` option, or specify an iallocator plugin
+using the ``-I`` or ``--iallocator`` option. If you omit both, the default
+iallocator will be used to specify the target node.
 
 Normally the failover will check the consistency of the disks before
 failing over the instance. If you are trying to migrate instances off
@@ -1443,11 +1455,19 @@ MIGRATE
 
 **migrate** [-f] [--allow-failover] [--non-live]
 [--migration-mode=live\|non-live] [--ignore-ipolicy]
-[--no-runtime-changes] {*instance*}
+[--no-runtime-changes]
+[{-n|--target-node} *node* \| {-I|--iallocator} *name*] {*instance*}
 
-Migrate will move the instance to its secondary node without
-shutdown. It only works for instances having the drbd8 disk template
-type.
+Migrate will move the instance to its secondary node without shutdown.
+As with failover, it only works for instances having the drbd disk
+template or an externally mirrored disk template type such as blockdev
+or rbd.
+
+If the instance's disk template is of type blockdev or rbd, then you can
+explicitly specify the target node (which can be any node) using the
+``-n`` or ``--target-node`` option, or specify an iallocator plugin
+using the ``-I`` or ``--iallocator`` option. If you omit both, the
+default iallocator will be used to specify the target node.
 
 The migration command needs a perfectly healthy instance, as we rely
 on the dual-master capability of drbd8 and the disks of the instance
