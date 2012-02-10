@@ -593,8 +593,13 @@ INISECT_OSP = "os"
 
 # dynamic device modification
 DDM_ADD = "add"
+DDM_MODIFY = "modify"
 DDM_REMOVE = "remove"
 DDMS_VALUES = frozenset([DDM_ADD, DDM_REMOVE])
+DDMS_VALUES_WITH_MODIFY = (DDMS_VALUES | frozenset([
+  DDM_MODIFY,
+  ]))
+# TODO: DDM_SWAP, DDM_MOVE?
 
 # common exit codes
 EXIT_SUCCESS = 0
