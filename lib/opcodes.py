@@ -622,6 +622,7 @@ class OpClusterPostInit(OpCode):
   after the cluster has been initialized.
 
   """
+  OP_RESULT = ht.TBool
 
 
 class OpClusterDestroy(OpCode):
@@ -631,6 +632,7 @@ class OpClusterDestroy(OpCode):
   lost after the execution of this opcode.
 
   """
+  OP_RESULT = ht.TNonEmptyString
 
 
 class OpClusterQuery(OpCode):
@@ -743,6 +745,10 @@ class OpClusterRepairDiskSizes(OpCode):
   OP_PARAMS = [
     ("instances", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), None),
     ]
+  OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(3),
+                                 ht.TItems([ht.TNonEmptyString,
+                                            ht.TPositiveInt,
+                                            ht.TPositiveInt])))
 
 
 class OpClusterConfigQuery(OpCode):
@@ -750,6 +756,7 @@ class OpClusterConfigQuery(OpCode):
   OP_PARAMS = [
     _POutputFields
     ]
+  OP_RESULT = ht.TListOf(ht.TAny)
 
 
 class OpClusterRename(OpCode):
@@ -765,6 +772,7 @@ class OpClusterRename(OpCode):
   OP_PARAMS = [
     ("name", ht.NoDefault, ht.TNonEmptyString, None),
     ]
+  OP_RESULT = ht.TNonEmptyString
 
 
 class OpClusterSetParams(OpCode):
@@ -833,24 +841,28 @@ class OpClusterSetParams(OpCode):
     ("use_external_mip_script", None, ht.TMaybeBool,
      "Whether to use an external master IP address setup script"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpClusterRedistConf(OpCode):
   """Force a full push of the cluster configuration.
 
   """
+  OP_RESULT = ht.TNone
 
 
 class OpClusterActivateMasterIp(OpCode):
   """Activate the master IP on the master node.
 
   """
+  OP_RESULT = ht.TNone
 
 
 class OpClusterDeactivateMasterIp(OpCode):
   """Deactivate the master IP on the master node.
 
   """
+  OP_RESULT = ht.TNone
 
 
 class OpQuery(OpCode):
@@ -901,6 +913,10 @@ class OpOobCommand(OpCode):
     ("power_delay", constants.OOB_POWER_DELAY, ht.TPositiveFloat,
      "Time in seconds to wait between powering on nodes"),
     ]
+  # Fixme: Make it more specific with all the special cases in LUOobCommand
+  OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                                 ht.TItems([ht.TElemOf(constants.RS_ALL),
+                                            ht.TAny])))
 
 
 # node opcodes
@@ -917,6 +933,7 @@ class OpNodeRemove(OpCode):
   OP_PARAMS = [
     _PNodeName,
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpNodeAdd(OpCode):
@@ -962,6 +979,7 @@ class OpNodeAdd(OpCode):
      "Whether node can host instances"),
     ("ndparams", None, ht.TMaybeDict, "Node parameters"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpNodeQuery(OpCode):
@@ -981,6 +999,7 @@ class OpNodeQueryvols(OpCode):
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all nodes, node names otherwise"),
     ]
+  OP_RESULT = ht.TListOf(ht.TAny)
 
 
 class OpNodeQueryStorage(OpCode):
@@ -1001,6 +1020,7 @@ class OpNodeModifyStorage(OpCode):
     _PStorageName,
     ("changes", ht.NoDefault, ht.TDict, "Requested changes"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpRepairNodeStorage(OpCode):
@@ -1012,6 +1032,7 @@ class OpRepairNodeStorage(OpCode):
     _PStorageName,
     _PIgnoreConsistency,
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpNodeSetParams(OpCode):
@@ -1050,6 +1071,7 @@ class OpNodePowercycle(OpCode):
     _PNodeName,
     _PForce,
     ]
+  OP_RESULT = ht.TMaybeString
 
 
 class OpNodeMigrate(OpCode):
@@ -1166,6 +1188,7 @@ class OpInstanceReinstall(OpCode):
     ("os_type", None, ht.TMaybeString, "Instance operating system"),
     ("osparams", None, ht.TMaybeDict, "Temporary OS parameters"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceRemove(OpCode):
@@ -1177,6 +1200,7 @@ class OpInstanceRemove(OpCode):
     ("ignore_failures", False, ht.TBool,
      "Whether to ignore failures during removal"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceRename(OpCode):
@@ -1203,6 +1227,7 @@ class OpInstanceStartup(OpCode):
     _PNoRemember,
     _PStartupPaused,
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceShutdown(OpCode):
@@ -1215,6 +1240,7 @@ class OpInstanceShutdown(OpCode):
      "How long to wait for instance to shut down"),
     _PNoRemember,
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceReboot(OpCode):
@@ -1228,6 +1254,7 @@ class OpInstanceReboot(OpCode):
     ("reboot_type", ht.NoDefault, ht.TElemOf(constants.REBOOT_TYPES),
      "How to reboot instance"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceReplaceDisks(OpCode):
@@ -1245,6 +1272,7 @@ class OpInstanceReplaceDisks(OpCode):
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding new secondary node"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceFailover(OpCode):
@@ -1259,6 +1287,7 @@ class OpInstanceFailover(OpCode):
     ("iallocator", None, ht.TMaybeString,
      "Iallocator for deciding the target node for shared-storage instances"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceMigrate(OpCode):
@@ -1286,6 +1315,7 @@ class OpInstanceMigrate(OpCode):
     ("allow_failover", False, ht.TBool,
      "Whether we can fallback to failover if migration is not possible"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceMove(OpCode):
@@ -1306,6 +1336,7 @@ class OpInstanceMove(OpCode):
     ("target_node", ht.NoDefault, ht.TNonEmptyString, "Target node"),
     _PIgnoreConsistency,
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceConsole(OpCode):
@@ -1314,6 +1345,7 @@ class OpInstanceConsole(OpCode):
   OP_PARAMS = [
     _PInstanceName
     ]
+  OP_RESULT = ht.TDict
 
 
 class OpInstanceActivateDisks(OpCode):
@@ -1323,6 +1355,10 @@ class OpInstanceActivateDisks(OpCode):
     _PInstanceName,
     ("ignore_size", False, ht.TBool, "Whether to ignore recorded size"),
     ]
+  OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(3),
+                                 ht.TItems([ht.TNonEmptyString,
+                                            ht.TNonEmptyString,
+                                            ht.TNonEmptyString])))
 
 
 class OpInstanceDeactivateDisks(OpCode):
@@ -1332,6 +1368,7 @@ class OpInstanceDeactivateDisks(OpCode):
     _PInstanceName,
     _PForce,
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceRecreateDisks(OpCode):
@@ -1351,6 +1388,7 @@ class OpInstanceRecreateDisks(OpCode):
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "New instance nodes, if relocation is desired"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceQuery(OpCode):
@@ -1452,6 +1490,7 @@ class OpInstanceGrowDisk(OpCode):
     ("amount", ht.NoDefault, ht.TInt,
      "Amount of disk space to add (megabytes)"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpInstanceChangeGroup(OpCode):
@@ -1482,6 +1521,7 @@ class OpGroupAdd(OpCode):
     ("ipolicy", None, ht.TMaybeDict,
      "Group-wide :ref:`instance policy <rapi-ipolicy>` specs"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpGroupAssignNodes(OpCode):
@@ -1493,6 +1533,7 @@ class OpGroupAssignNodes(OpCode):
     ("nodes", ht.NoDefault, ht.TListOf(ht.TNonEmptyString),
      "List of nodes to assign"),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpGroupQuery(OpCode):
@@ -1525,6 +1566,7 @@ class OpGroupRemove(OpCode):
   OP_PARAMS = [
     _PGroupName,
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpGroupRename(OpCode):
@@ -1582,6 +1624,7 @@ class OpBackupPrepare(OpCode):
     ("mode", ht.NoDefault, ht.TElemOf(constants.EXPORT_MODES),
      "Export mode"),
     ]
+  OP_RESULT = ht.TOr(ht.TNone, ht.TDict)
 
 
 class OpBackupExport(OpCode):
