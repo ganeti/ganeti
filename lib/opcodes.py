@@ -1379,13 +1379,24 @@ def _TestInstSetParamsModList(fn):
   """Generates a check for modification lists.
 
   """
-  mod_item_fn = \
+  # Old format
+  # TODO: Remove in version 2.8 including support in LUInstanceSetParams
+  old_mod_item_fn = \
     ht.TAnd(ht.TIsLength(2), ht.TItems([
       ht.TOr(ht.TElemOf(constants.DDMS_VALUES), ht.TPositiveInt),
       fn,
       ]))
 
-  return ht.TListOf(mod_item_fn)
+  # New format, supporting adding/removing disks/NICs at arbitrary indices
+  mod_item_fn = \
+    ht.TAnd(ht.TIsLength(3), ht.TItems([
+      ht.TElemOf(constants.DDMS_VALUES_WITH_MODIFY),
+      ht.Comment("Disk index, can be negative, e.g. -1 for last disk")(ht.TInt),
+      fn,
+      ]))
+
+  return ht.TOr(ht.Comment("Recommended")(ht.TListOf(mod_item_fn)),
+                ht.Comment("Deprecated")(ht.TListOf(old_mod_item_fn)))
 
 
 class OpInstanceSetParams(OpCode):
@@ -1402,11 +1413,15 @@ class OpInstanceSetParams(OpCode):
     _PForceVariant,
     _PIgnoreIpolicy,
     ("nics", ht.EmptyList, _TestNicModifications,
-     "List of NIC changes. Each item is of the form ``(op, settings)``."
+     "List of NIC changes. Each item is of the form ``(op, index, settings)``."
+     " ``op`` is one of ``%s``, ``%s`` or ``%s``. ``index`` can be either -1 to"
+     " refer to the last position, or a zero-based index number. A deprecated"
+     " version of this parameter used the form ``(op, settings)``, where "
      " ``op`` can be ``%s`` to add a new NIC with the specified settings,"
      " ``%s`` to remove the last NIC or a number to modify the settings"
      " of the NIC with that index." %
-     (constants.DDM_ADD, constants.DDM_REMOVE)),
+     (constants.DDM_ADD, constants.DDM_MODIFY, constants.DDM_REMOVE,
+      constants.DDM_ADD, constants.DDM_REMOVE)),
     ("disks", ht.EmptyList, _TestDiskModifications,
      "List of disk changes. See ``nics``."),
     ("beparams", ht.EmptyDict, ht.TDict, "Per-instance backend parameters"),
