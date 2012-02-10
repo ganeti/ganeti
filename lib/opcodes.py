@@ -1403,8 +1403,8 @@ class OpInstanceSetParams(OpCode):
   """Change the parameters of an instance.
 
   """
-  _TestNicModifications = _TestInstSetParamsModList(_TestNicDef)
-  _TestDiskModifications = _TestInstSetParamsModList(_TDiskParams)
+  TestNicModifications = _TestInstSetParamsModList(_TestNicDef)
+  TestDiskModifications = _TestInstSetParamsModList(_TDiskParams)
 
   OP_DSC_FIELD = "instance_name"
   OP_PARAMS = [
@@ -1412,7 +1412,7 @@ class OpInstanceSetParams(OpCode):
     _PForce,
     _PForceVariant,
     _PIgnoreIpolicy,
-    ("nics", ht.EmptyList, _TestNicModifications,
+    ("nics", ht.EmptyList, TestNicModifications,
      "List of NIC changes. Each item is of the form ``(op, index, settings)``."
      " ``op`` is one of ``%s``, ``%s`` or ``%s``. ``index`` can be either -1 to"
      " refer to the last position, or a zero-based index number. A deprecated"
@@ -1422,7 +1422,7 @@ class OpInstanceSetParams(OpCode):
      " of the NIC with that index." %
      (constants.DDM_ADD, constants.DDM_MODIFY, constants.DDM_REMOVE,
       constants.DDM_ADD, constants.DDM_REMOVE)),
-    ("disks", ht.EmptyList, _TestDiskModifications,
+    ("disks", ht.EmptyList, TestDiskModifications,
      "List of disk changes. See ``nics``."),
     ("beparams", ht.EmptyDict, ht.TDict, "Per-instance backend parameters"),
     ("runtime_mem", None, ht.TMaybeStrictPositiveInt, "New runtime memory"),
