@@ -843,18 +843,21 @@ class TestApplyContainerMods(unittest.TestCase):
       self.data = None
 
   @staticmethod
-  def _CreateTestFn(idx, params, chgdesc, private):
-    chgdesc.append(("test/%s" % idx, hex(idx)))
+  def _CreateTestFn(idx, params, private):
     private.data = ("add", idx, params)
-    return (100 * idx, params)
+    return ((100 * idx, params), [
+      ("test/%s" % idx, hex(idx)),
+      ])
 
   @staticmethod
-  def _ModifyTestFn(idx, item, params, chgdesc, private):
-    chgdesc.append(("test/%s" % idx, "modify %s" % params))
+  def _ModifyTestFn(idx, item, params, private):
     private.data = ("modify", idx, params)
+    return [
+      ("test/%s" % idx, "modify %s" % params),
+      ]
 
   @staticmethod
-  def _RemoveTestFn(idx, item, chgdesc, private):
+  def _RemoveTestFn(idx, item, private):
     private.data = ("remove", idx, item)
 
   def testAddWithCreateFunction(self):

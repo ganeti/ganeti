@@ -11817,6 +11817,15 @@ def PrepareContainerMods(mods, private_fn):
   return [(op, idx, params, fn()) for (op, idx, params) in mods]
 
 
+#: Type description for changes as returned by L{ApplyContainerMods}'s
+#: callbacks
+_TApplyContModsCbChanges = \
+  ht.TMaybeListOf(ht.TAnd(ht.TIsLength(2), ht.TItems([
+    ht.TNonEmptyString,
+    ht.TAny,
+    ])))
+
+
 def ApplyContainerMods(kind, container, chgdesc, mods,
                        create_fn, modify_fn, remove_fn):
   """Applies descriptions in C{mods} to C{container}.
@@ -11831,17 +11840,17 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
   @param mods: Modifications as returned by L{PrepareContainerMods}
   @type create_fn: callable
   @param create_fn: Callback for creating a new item (L{constants.DDM_ADD});
-    receives absolute item index, parameters, list of applied changes and
-    private data object as added by L{PrepareContainerMods}, returns new item
+    receives absolute item index, parameters and private data object as added
+    by L{PrepareContainerMods}, returns tuple containing new item and changes
+    as list
   @type modify_fn: callable
   @param modify_fn: Callback for modifying an existing item
-    (L{constants.DDM_MODIFY}); receives absolute item index, item, parameters,
-    list of applied changes and private data object as added by
-    L{PrepareContainerMods}
+    (L{constants.DDM_MODIFY}); receives absolute item index, item, parameters
+    and private data object as added by L{PrepareContainerMods}, returns
+    changes as list
   @type remove_fn: callable
   @param remove_fn: Callback on removing item; receives absolute item index,
-    item, list of applied changes and private data object as added by
-    L{PrepareContainerMods}
+    item and private data object as added by L{PrepareContainerMods}
 
   """
   for (op, idx, params, private) in mods:
@@ -11853,11 +11862,13 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
     else:
       absidx = idx
 
+    changes = None
+
     if op == constants.DDM_ADD:
       if create_fn is None:
         item = params
       else:
-        item = create_fn(absidx + 1, params, chgdesc, private)
+        (item, changes) = create_fn(absidx + 1, params, private)
 
       if idx == -1:
         container.append(item)
@@ -11876,18 +11887,22 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
         assert not params
 
         if remove_fn is not None:
-          remove_fn(absidx, item, chgdesc, private)
+          remove_fn(absidx, item, private)
 
-        if chgdesc is not None:
-          chgdesc.append(("%s/%s" % (kind, absidx), "remove"))
+        changes = [("%s/%s" % (kind, absidx), "remove")]
 
         assert container[absidx] == item
         del container[absidx]
       elif op == constants.DDM_MODIFY:
         if modify_fn is not None:
-          modify_fn(absidx, item, params, chgdesc, private)
+          changes = modify_fn(absidx, item, params, private)
       else:
         raise errors.ProgrammerError("Unhandled operation '%s'" % op)
+
+    assert _TApplyContModsCbChanges(changes)
+
+    if not (chgdesc is None or changes is None):
+      chgdesc.extend(changes)
 
 
 class _InstNicModPrivate:
@@ -12408,13 +12423,11 @@ class LUInstanceSetParams(LogicalUnit):
                                  " diskless instances",
                                  errors.ECODE_INVAL)
 
-    def _PrepareNicCreate(absidx, params, chgdesc, private):
-      # pylint: disable=W0613
+    def _PrepareNicCreate(_, params, private):
       return self._PrepareNicModification(params, private, None, {},
                                           cluster, pnode)
 
-    def _PrepareNicMod(absidx, nic, params, chgdesc, private):
-      # pylint: disable=W0613
+    def _PrepareNicMod(_, nic, params, private):
       return self._PrepareNicModification(params, private, nic.ip,
                                           nic.nicparams, cluster, pnode)
 
@@ -12566,7 +12579,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     # Node resource locks will be released by caller
 
-  def _CreateNewDisk(self, idx, params, chgdesc, _):
+  def _CreateNewDisk(self, idx, params, _):
     """Creates a new disk.
 
     """
@@ -12599,25 +12612,25 @@ class LUInstanceSetParams(LogicalUnit):
         self.LogWarning("Failed to create volume %s (%s) on node '%s': %s",
                         disk.iv_name, disk, node, err)
 
-    chgdesc.append(("disk/%d" % idx,
-                    "add:size=%s,mode=%s" %
-                    (disk.size, disk.mode)))
-
-    return disk
+    return (disk, [
+      ("disk/%d" % idx, "add:size=%s,mode=%s" % (disk.size, disk.mode)),
+      ])
 
   @staticmethod
-  def _ModifyDisk(idx, disk, params, chgdesc, _):
+  def _ModifyDisk(idx, disk, params, _):
     """Modifies a disk.
 
     """
     disk.mode = params[constants.IDISK_MODE]
-    chgdesc.append(("disk.mode/%d" % idx, disk.mode))
 
-  def _RemoveDisk(self, idx, root, chgdesc, private):
+    return [
+      ("disk.mode/%d" % idx, disk.mode),
+      ]
+
+  def _RemoveDisk(self, idx, root, _):
     """Removes a disk.
 
     """
-    # pylint: disable=W0613
     for node, disk in root.ComputeNodeTree(self.instance.primary_node):
       self.cfg.SetDiskID(disk, node)
       msg = self.rpc.call_blockdev_remove(node, disk).fail_msg
@@ -12630,7 +12643,7 @@ class LUInstanceSetParams(LogicalUnit):
       self.cfg.AddTcpUdpPort(root.logical_id[2])
 
   @staticmethod
-  def _CreateNewNic(idx, params, chgdesc, private):
+  def _CreateNewNic(idx, params, private):
     """Creates data structure for a new network interface.
 
     """
@@ -12638,28 +12651,32 @@ class LUInstanceSetParams(LogicalUnit):
     ip = params.get(constants.INIC_IP, None)
     nicparams = private.params
 
-    chgdesc.append(("nic.%d" % idx,
-                    "add:mac=%s,ip=%s,mode=%s,link=%s" %
-                    (mac, ip, private.filled[constants.NIC_MODE],
-                     private.filled[constants.NIC_LINK])))
-
-    return objects.NIC(mac=mac, ip=ip, nicparams=nicparams)
+    return (objects.NIC(mac=mac, ip=ip, nicparams=nicparams), [
+      ("nic.%d" % idx,
+       "add:mac=%s,ip=%s,mode=%s,link=%s" %
+       (mac, ip, private.filled[constants.NIC_MODE],
+       private.filled[constants.NIC_LINK])),
+      ])
 
   @staticmethod
-  def _ApplyNicMods(idx, nic, params, chgdesc, private):
+  def _ApplyNicMods(idx, nic, params, private):
     """Modifies a network interface.
 
     """
+    changes = []
+
     for key in [constants.INIC_MAC, constants.INIC_IP]:
       if key in params:
-        chgdesc.append(("nic.%s/%d" % (key, idx), params[key]))
+        changes.append(("nic.%s/%d" % (key, idx), params[key]))
         setattr(nic, key, params[key])
 
     if private.params:
       nic.nicparams = private.params
 
       for (key, val) in params.items():
-        chgdesc.append(("nic.%s/%d" % (key, idx), val))
+        changes.append(("nic.%s/%d" % (key, idx), val))
+
+    return changes
 
   def Exec(self, feedback_fn):
     """Modifies an instance.
