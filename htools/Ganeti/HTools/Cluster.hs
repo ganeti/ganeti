@@ -864,6 +864,11 @@ nodeEvacInstance _ _ mode (Instance.Instance
                   failOnSecondaryChange mode dt >>
                   fail "Block device relocations not implemented yet"
 
+nodeEvacInstance _ _ mode  (Instance.Instance
+                            {Instance.diskTemplate = dt@DTRbd}) _ _ =
+                  failOnSecondaryChange mode dt >>
+                  fail "Rbd relocations not implemented yet"
+
 nodeEvacInstance nl il ChangePrimary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  _ _ =
