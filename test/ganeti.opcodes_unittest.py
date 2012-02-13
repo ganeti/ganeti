@@ -381,7 +381,7 @@ class TestOpInstanceSetParams(unittest.TestCase):
     self.assertFalse(fn([[constants.DDM_ADD]]))
 
   def testNicModifications(self):
-    fn = opcodes.OpInstanceSetParams._TestNicModifications
+    fn = opcodes.OpInstanceSetParams.TestNicModifications
     self._GenericTests(fn)
 
     for param in constants.INIC_PARAMS:
@@ -389,7 +389,7 @@ class TestOpInstanceSetParams(unittest.TestCase):
       self.assertTrue(fn([[constants.DDM_ADD, {param: param}]]))
 
   def testDiskModifications(self):
-    fn = opcodes.OpInstanceSetParams._TestDiskModifications
+    fn = opcodes.OpInstanceSetParams.TestDiskModifications
     self._GenericTests(fn)
 
     for param in constants.IDISK_PARAMS:
