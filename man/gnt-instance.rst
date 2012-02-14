@@ -896,19 +896,23 @@ memory to the given size (in MB if a different suffix is not specified),
 by ballooning it up or down to the new value.
 
 The ``--disk add:size=``*SIZE* option adds a disk to the instance. The
-optional ``vg=``*VG* option specifies LVM volume group other than
-default vg to create the disk on. For DRBD disks, the ``metavg=``*VG*
-option specifies the volume group for the metadata device. The
-``--disk remove`` option will remove the last disk of the
-instance. The ``--disk`` *N*``:mode=``*MODE* option will change the
-mode of the Nth disk of the instance between read-only (``ro``) and
+optional ``vg=``*VG* option specifies an LVM volume group other than
+the default volume group to create the disk on. For DRBD disks, the
+``metavg=``*VG* option specifies the volume group for the metadata
+device. ``--disk`` *N*``:add,size=``**SIZE** can be used to add a
+disk at a specific index. The ``--disk remove`` option will remove the
+last disk of the instance. Use ``--disk ``*N*``:remove`` to remove a
+disk by its index. The ``--disk`` *N*``:mode=``*MODE* option will change
+the mode of the Nth disk of the instance between read-only (``ro``) and
 read-write (``rw``).
 
-The ``--net add:``*options* option will add a new NIC to the
-instance. The available options are the same as in the **add** command
-(mac, ip, link, mode). The ``--net remove`` will remove the last NIC
-of the instance, while the ``--net`` *N*:*options* option will change
-the parameters of the Nth instance NIC.
+The ``--net add:``*options* and ``--net`` *N*``:add,``*options* option
+will add a new network interface to the instance. The available options
+are the same as in the **add** command (``mac``, ``ip``, ``link``,
+``mode``). The ``--net remove`` will remove the last network interface
+of the instance (``--net`` *N*``:remove`` for a specific index), while
+the ``--net`` *N*``:``*options* option will change the parameters of the Nth
+instance network interface.
 
 The option ``-o (--os-type)`` will change the OS name for the instance
 (without reinstallation). In case an OS variant is specified that is

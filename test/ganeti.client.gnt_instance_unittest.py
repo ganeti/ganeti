@@ -119,5 +119,111 @@ class TestConsole(unittest.TestCase):
     self.assertEqual(len(self._output), 0)
 
 
+class TestConvertNicDiskModifications(unittest.TestCase):
+  def test(self):
+    fn = gnt_instance._ConvertNicDiskModifications
+
+    self.assertEqual(fn([]), [])
+
+    # Error cases
+    self.assertRaises(errors.OpPrereqError, fn, [
+      (constants.DDM_REMOVE, { "param": "value", }),
+      ])
+    self.assertRaises(errors.OpPrereqError, fn, [
+      (0, { constants.DDM_REMOVE: True, "param": "value", }),
+      ])
+    self.assertRaises(errors.OpPrereqError, fn, [
+      ("Hello", {}),
+      ])
+    self.assertRaises(errors.OpPrereqError, fn, [
+      (0, {
+        constants.DDM_REMOVE: True,
+        constants.DDM_ADD: True,
+        }),
+      ])
+
+    # Legacy calls
+    for action in constants.DDMS_VALUES:
+      self.assertEqual(fn([
+        (action, {}),
+        ]), [
+        (action, -1, {}),
+        ])
+
+    self.assertEqual(fn([
+      (constants.DDM_ADD, {
+        constants.IDISK_SIZE: 1024,
+        }),
+      ]), [
+      (constants.DDM_ADD, -1, {
+        constants.IDISK_SIZE: 1024,
+        }),
+      ])
+
+    # New-style calls
+    self.assertEqual(fn([
+      (2, {
+        constants.IDISK_MODE: constants.DISK_RDWR,
+        }),
+      ]), [
+      (constants.DDM_MODIFY, 2, {
+        constants.IDISK_MODE: constants.DISK_RDWR,
+        }),
+      ])
+
+    self.assertEqual(fn([
+      (0, {
+        constants.DDM_ADD: True,
+        constants.IDISK_SIZE: 4096,
+        }),
+      ]), [
+      (constants.DDM_ADD, 0, {
+        constants.IDISK_SIZE: 4096,
+        }),
+      ])
+
+    self.assertEqual(fn([
+      (-1, {
+        constants.DDM_REMOVE: True,
+        }),
+      ]), [
+      (constants.DDM_REMOVE, -1, {}),
+      ])
+
+
+class TestParseDiskSizes(unittest.TestCase):
+  def test(self):
+    fn = gnt_instance._ParseDiskSizes
+
+    self.assertEqual(fn([]), [])
+
+    # Missing size parameter
+    self.assertRaises(errors.OpPrereqError, fn, [
+      (constants.DDM_ADD, 0, {}),
+      ])
+
+    # Converting disk size
+    self.assertEqual(fn([
+      (constants.DDM_ADD, 11, {
+        constants.IDISK_SIZE: "9G",
+        }),
+      ]), [
+        (constants.DDM_ADD, 11, {
+          constants.IDISK_SIZE: 9216,
+          }),
+        ])
+
+    # No size parameter
+    self.assertEqual(fn([
+      (constants.DDM_REMOVE, 11, {
+        "other": "24M",
+        }),
+      ]), [
+        (constants.DDM_REMOVE, 11, {
+          "other": "24M",
+          }),
+        ])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

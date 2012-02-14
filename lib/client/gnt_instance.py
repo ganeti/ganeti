@@ -65,6 +65,7 @@ _LIST_DEF_FIELDS = [
   ]
 
 
+_MISSING = object()
 _ENV_OVERRIDE = frozenset(["list"])
 
 
@@ -1267,6 +1268,78 @@ def ShowInstanceConfig(opts, args):
   return retcode
 
 
+def _ConvertNicDiskModifications(mods):
+  """Converts NIC/disk modifications from CLI to opcode.
+
+  When L{opcodes.OpInstanceSetParams} was changed to support adding/removing
+  disks at arbitrary indices, its parameter format changed. This function
+  converts legacy requests (e.g. "--net add" or "--disk add:size=4G") to the
+  newer format and adds support for new-style requests (e.g. "--new 4:add").
+
+  @type mods: list of tuples
+  @param mods: Modifications as given by command line parser
+  @rtype: list of tuples
+  @return: Modifications as understood by L{opcodes.OpInstanceSetParams}
+
+  """
+  result = []
+
+  for (idx, params) in mods:
+    if idx == constants.DDM_ADD:
+      # Add item as last item (legacy interface)
+      action = constants.DDM_ADD
+      idxno = -1
+    elif idx == constants.DDM_REMOVE:
+      # Remove last item (legacy interface)
+      action = constants.DDM_REMOVE
+      idxno = -1
+    else:
+      # Modifications and adding/removing at arbitrary indices
+      try:
+        idxno = int(idx)
+      except (TypeError, ValueError):
+        raise errors.OpPrereqError("Non-numeric index '%s'" % idx,
+                                   errors.ECODE_INVAL)
+
+      add = params.pop(constants.DDM_ADD, _MISSING)
+      remove = params.pop(constants.DDM_REMOVE, _MISSING)
+
+      if not (add is _MISSING or remove is _MISSING):
+        raise errors.OpPrereqError("Cannot add and remove at the same time",
+                                   errors.ECODE_INVAL)
+      elif add is not _MISSING:
+        action = constants.DDM_ADD
+      elif remove is not _MISSING:
+        action = constants.DDM_REMOVE
+      else:
+        action = constants.DDM_MODIFY
+
+      assert not (constants.DDMS_VALUES_WITH_MODIFY & set(params.keys()))
+
+    if action == constants.DDM_REMOVE and params:
+      raise errors.OpPrereqError("Not accepting parameters on removal",
+                                 errors.ECODE_INVAL)
+
+    result.append((action, idxno, params))
+
+  return result
+
+
+def _ParseDiskSizes(mods):
+  """Parses disk sizes in parameters.
+
+  """
+  for (action, _, params) in mods:
+    if params and constants.IDISK_SIZE in params:
+      params[constants.IDISK_SIZE] = \
+        utils.ParseUnit(params[constants.IDISK_SIZE])
+    elif action == constants.DDM_ADD:
+      raise errors.OpPrereqError("Missing required parameter 'size'",
+                                 errors.ECODE_INVAL)
+
+  return mods
+
+
 def SetInstanceParams(opts, args):
   """Modifies an instance.
 
@@ -1301,24 +1374,8 @@ def SetInstanceParams(opts, args):
   utils.ForceDictType(opts.hvparams, constants.HVS_PARAMETER_TYPES,
                       allowed_values=[constants.VALUE_DEFAULT])
 
-  for idx, (nic_op, nic_dict) in enumerate(opts.nics):
-    try:
-      nic_op = int(nic_op)
-      opts.nics[idx] = (nic_op, nic_dict)
-    except (TypeError, ValueError):
-      pass
-
-  for idx, (disk_op, disk_dict) in enumerate(opts.disks):
-    try:
-      disk_op = int(disk_op)
-      opts.disks[idx] = (disk_op, disk_dict)
-    except (TypeError, ValueError):
-      pass
-    if disk_op == constants.DDM_ADD:
-      if "size" not in disk_dict:
-        raise errors.OpPrereqError("Missing required parameter 'size'",
-                                   errors.ECODE_INVAL)
-      disk_dict["size"] = utils.ParseUnit(disk_dict["size"])
+  nics = _ConvertNicDiskModifications(opts.nics)
+  disks = _ParseDiskSizes(_ConvertNicDiskModifications(opts.disks))
 
   if (opts.disk_template and
       opts.disk_template in constants.DTS_INT_MIRROR and
@@ -1335,8 +1392,8 @@ def SetInstanceParams(opts, args):
     offline = None
 
   op = opcodes.OpInstanceSetParams(instance_name=args[0],
-                                   nics=opts.nics,
-                                   disks=opts.disks,
+                                   nics=nics,
+                                   disks=disks,
                                    disk_template=opts.disk_template,
                                    remote_node=opts.node,
                                    hvparams=opts.hvparams,
