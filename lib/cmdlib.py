@@ -12190,6 +12190,8 @@ class LUInstanceSetParams(LogicalUnit):
     private.params = new_params
     private.filled = new_filled_params
 
+    return (None, None)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
