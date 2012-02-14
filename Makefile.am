@@ -252,7 +252,8 @@ rapi_PYTHON = \
 	lib/rapi/client.py \
 	lib/rapi/client_utils.py \
 	lib/rapi/connector.py \
-	lib/rapi/rlib2.py
+	lib/rapi/rlib2.py \
+	lib/rapi/testutils.py
 
 http_PYTHON = \
 	lib/http/__init__.py \
@@ -750,6 +751,7 @@ python_tests = \
 	test/ganeti.rapi.client_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.rapi.rlib2_unittest.py \
+	test/ganeti.rapi.testutils_unittest.py \
 	test/ganeti.rpc_unittest.py \
 	test/ganeti.runtime_unittest.py \
 	test/ganeti.serializer_unittest.py \
