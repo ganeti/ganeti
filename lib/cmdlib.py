@@ -8678,11 +8678,11 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
   return drbd_dev
 
 
-def _GenerateDiskTemplate(lu, template_name,
-                          instance_name, primary_node,
-                          secondary_nodes, disk_info,
-                          file_storage_dir, file_driver,
-                          base_index, feedback_fn, disk_params):
+def _GenerateDiskTemplate(lu, template_name, instance_name, primary_node,
+    secondary_nodes, disk_info, file_storage_dir, file_driver, base_index,
+    feedback_fn, disk_params,
+    _req_file_storage=opcodes.RequireFileStorage,
+    _req_shr_file_storage=opcodes.RequireSharedFileStorage):
   """Generate the entire disk layout for a given template type.
 
   """
@@ -8742,7 +8742,7 @@ def _GenerateDiskTemplate(lu, template_name,
     if secondary_nodes:
       raise errors.ProgrammerError("Wrong template configuration")
 
-    opcodes.RequireFileStorage()
+    _req_file_storage()
 
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
@@ -8759,7 +8759,7 @@ def _GenerateDiskTemplate(lu, template_name,
     if secondary_nodes:
       raise errors.ProgrammerError("Wrong template configuration")
 
-    opcodes.RequireSharedFileStorage()
+    _req_shr_file_storage()
 
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index

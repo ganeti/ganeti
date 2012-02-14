@@ -382,10 +382,11 @@ class TestClusterVerifyFiles(unittest.TestCase):
 
 
 class _FakeLU:
-  def __init__(self, cfg=NotImplemented):
+  def __init__(self, cfg=NotImplemented, proc=NotImplemented):
     self.warning_log = []
     self.info_log = []
     self.cfg = cfg
+    self.proc = proc
 
   def LogWarning(self, text, *args):
     self.warning_log.append((text, args))
@@ -901,6 +902,272 @@ class TestApplyContainerMods(unittest.TestCase):
       ("modify", 2, "foobar"),
       ("remove", 2, (300, "End")),
       ("add", 2, "More"),
+      ])
+
+
+class _FakeConfigForGenDiskTemplate:
+  def __init__(self):
+    self._unique_id = itertools.count()
+    self._drbd_minor = itertools.count(20)
+    self._port = itertools.count(constants.FIRST_DRBD_PORT)
+    self._secret = itertools.count()
+
+  def GetVGName(self):
+    return "testvg"
+
+  def GenerateUniqueID(self, ec_id):
+    return "ec%s-uq%s" % (ec_id, self._unique_id.next())
+
+  def AllocateDRBDMinor(self, nodes, instance):
+    return [self._drbd_minor.next()
+            for _ in nodes]
+
+  def AllocatePort(self):
+    return self._port.next()
+
+  def GenerateDRBDSecret(self, ec_id):
+    return "ec%s-secret%s" % (ec_id, self._secret.next())
+
+
+class _FakeProcForGenDiskTemplate:
+  def GetECId(self):
+    return 0
+
+
+class TestGenerateDiskTemplate(unittest.TestCase):
+  def setUp(self):
+    nodegroup = objects.NodeGroup(name="ng")
+    nodegroup.UpgradeConfig()
+
+    cfg = _FakeConfigForGenDiskTemplate()
+    proc = _FakeProcForGenDiskTemplate()
+
+    self.lu = _FakeLU(cfg=cfg, proc=proc)
+    self.nodegroup = nodegroup
+
+  def testWrongDiskTemplate(self):
+    gdt = cmdlib._GenerateDiskTemplate
+    disk_template = "##unknown##"
+
+    assert disk_template not in constants.DISK_TEMPLATES
+
+    self.assertRaises(errors.ProgrammerError, gdt, self.lu, disk_template,
+                      "inst26831.example.com", "node30113.example.com", [], [],
+                      NotImplemented, NotImplemented, 0, self.lu.LogInfo,
+                      self.nodegroup.diskparams)
+
+  def testDiskless(self):
+    gdt = cmdlib._GenerateDiskTemplate
+
+    result = gdt(self.lu, constants.DT_DISKLESS, "inst27734.example.com",
+                 "node30113.example.com", [], [],
+                 NotImplemented, NotImplemented, 0, self.lu.LogInfo,
+                 self.nodegroup.diskparams)
+    self.assertEqual(result, [])
+
+  def _TestTrivialDisk(self, template, disk_info, base_index, exp_dev_type,
+                       file_storage_dir=NotImplemented,
+                       file_driver=NotImplemented,
+                       req_file_storage=NotImplemented,
+                       req_shr_file_storage=NotImplemented):
+    gdt = cmdlib._GenerateDiskTemplate
+
+    map(lambda params: utils.ForceDictType(params,
+                                           constants.IDISK_PARAMS_TYPES),
+        disk_info)
+
+    # Check if non-empty list of secondaries is rejected
+    self.assertRaises(errors.ProgrammerError, gdt, self.lu,
+                      template, "inst25088.example.com",
+                      "node185.example.com", ["node323.example.com"], [],
+                      NotImplemented, NotImplemented, base_index,
+                      self.lu.LogInfo, self.nodegroup.diskparams,
+                      _req_file_storage=req_file_storage,
+                      _req_shr_file_storage=req_shr_file_storage)
+
+    result = gdt(self.lu, template, "inst21662.example.com",
+                 "node21741.example.com", [],
+                 disk_info, file_storage_dir, file_driver, base_index,
+                 self.lu.LogInfo, self.nodegroup.diskparams,
+                 _req_file_storage=req_file_storage,
+                 _req_shr_file_storage=req_shr_file_storage)
+
+    for (idx, disk) in enumerate(result):
+      self.assertTrue(isinstance(disk, objects.Disk))
+      self.assertEqual(disk.dev_type, exp_dev_type)
+      self.assertEqual(disk.size, disk_info[idx][constants.IDISK_SIZE])
+      self.assertEqual(disk.mode, disk_info[idx][constants.IDISK_MODE])
+      self.assertTrue(disk.children is None)
+
+    self.assertEqual(map(operator.attrgetter("iv_name"), result),
+      ["disk/%s" % i for i in range(base_index, base_index + len(disk_info))])
+
+    return result
+
+  def testPlain(self):
+    disk_info = [{
+      constants.IDISK_SIZE: 1024,
+      constants.IDISK_MODE: constants.DISK_RDWR,
+      }, {
+      constants.IDISK_SIZE: 4096,
+      constants.IDISK_VG: "othervg",
+      constants.IDISK_MODE: constants.DISK_RDWR,
+      }]
+
+    result = self._TestTrivialDisk(constants.DT_PLAIN, disk_info, 3,
+                                   constants.LD_LV)
+
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+      ("testvg", "ec0-uq0.disk3"),
+      ("othervg", "ec0-uq1.disk4"),
+      ])
+
+  @staticmethod
+  def _AllowFileStorage():
+    pass
+
+  @staticmethod
+  def _ForbidFileStorage():
+    raise errors.OpPrereqError("Disallowed in test")
+
+  def testFile(self):
+    self.assertRaises(errors.OpPrereqError, self._TestTrivialDisk,
+                      constants.DT_FILE, [], 0, NotImplemented,
+                      req_file_storage=self._ForbidFileStorage)
+    self.assertRaises(errors.OpPrereqError, self._TestTrivialDisk,
+                      constants.DT_SHARED_FILE, [], 0, NotImplemented,
+                      req_shr_file_storage=self._ForbidFileStorage)
+
+    for disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]:
+      disk_info = [{
+        constants.IDISK_SIZE: 80 * 1024,
+        constants.IDISK_MODE: constants.DISK_RDONLY,
+        }, {
+        constants.IDISK_SIZE: 4096,
+        constants.IDISK_MODE: constants.DISK_RDWR,
+        }, {
+        constants.IDISK_SIZE: 6 * 1024,
+        constants.IDISK_MODE: constants.DISK_RDWR,
+        }]
+
+      result = self._TestTrivialDisk(disk_template, disk_info, 2,
+        constants.LD_FILE, file_storage_dir="/tmp",
+        file_driver=constants.FD_BLKTAP,
+        req_file_storage=self._AllowFileStorage,
+        req_shr_file_storage=self._AllowFileStorage)
+
+      self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+        (constants.FD_BLKTAP, "/tmp/disk2"),
+        (constants.FD_BLKTAP, "/tmp/disk3"),
+        (constants.FD_BLKTAP, "/tmp/disk4"),
+        ])
+
+  def testBlock(self):
+    disk_info = [{
+      constants.IDISK_SIZE: 8 * 1024,
+      constants.IDISK_MODE: constants.DISK_RDWR,
+      constants.IDISK_ADOPT: "/tmp/some/block/dev",
+      }]
+
+    result = self._TestTrivialDisk(constants.DT_BLOCK, disk_info, 10,
+                                   constants.LD_BLOCKDEV)
+
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+      (constants.BLOCKDEV_DRIVER_MANUAL, "/tmp/some/block/dev"),
+      ])
+
+  def testRbd(self):
+    disk_info = [{
+      constants.IDISK_SIZE: 8 * 1024,
+      constants.IDISK_MODE: constants.DISK_RDONLY,
+      }, {
+      constants.IDISK_SIZE: 100 * 1024,
+      constants.IDISK_MODE: constants.DISK_RDWR,
+      }]
+
+    result = self._TestTrivialDisk(constants.DT_RBD, disk_info, 0,
+                                   constants.LD_RBD)
+
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+      ("rbd", "ec0-uq0.rbd.disk0"),
+      ("rbd", "ec0-uq1.rbd.disk1"),
+      ])
+
+  def testDrbd8(self):
+    gdt = cmdlib._GenerateDiskTemplate
+    drbd8_defaults = constants.DISK_LD_DEFAULTS[constants.LD_DRBD8]
+    drbd8_default_metavg = drbd8_defaults[constants.LDP_DEFAULT_METAVG]
+
+    disk_info = [{
+      constants.IDISK_SIZE: 1024,
+      constants.IDISK_MODE: constants.DISK_RDWR,
+      }, {
+      constants.IDISK_SIZE: 100 * 1024,
+      constants.IDISK_MODE: constants.DISK_RDONLY,
+      constants.IDISK_METAVG: "metavg",
+      }, {
+      constants.IDISK_SIZE: 4096,
+      constants.IDISK_MODE: constants.DISK_RDWR,
+      constants.IDISK_VG: "vgxyz",
+      },
+      ]
+
+    exp_logical_ids = [[
+      (self.lu.cfg.GetVGName(), "ec0-uq0.disk0_data"),
+      (drbd8_default_metavg, "ec0-uq0.disk0_meta"),
+      ], [
+      (self.lu.cfg.GetVGName(), "ec0-uq1.disk1_data"),
+      ("metavg", "ec0-uq1.disk1_meta"),
+      ], [
+      ("vgxyz", "ec0-uq2.disk2_data"),
+      (drbd8_default_metavg, "ec0-uq2.disk2_meta"),
+      ]]
+
+    assert len(exp_logical_ids) == len(disk_info)
+
+    map(lambda params: utils.ForceDictType(params,
+                                           constants.IDISK_PARAMS_TYPES),
+        disk_info)
+
+    # Check if empty list of secondaries is rejected
+    self.assertRaises(errors.ProgrammerError, gdt, self.lu, constants.DT_DRBD8,
+                      "inst827.example.com", "node1334.example.com", [],
+                      disk_info, NotImplemented, NotImplemented, 0,
+                      self.lu.LogInfo, self.nodegroup.diskparams)
+
+    result = gdt(self.lu, constants.DT_DRBD8, "inst827.example.com",
+                 "node1334.example.com", ["node12272.example.com"],
+                 disk_info, NotImplemented, NotImplemented, 0, self.lu.LogInfo,
+                 self.nodegroup.diskparams)
+
+    for (idx, disk) in enumerate(result):
+      self.assertTrue(isinstance(disk, objects.Disk))
+      self.assertEqual(disk.dev_type, constants.LD_DRBD8)
+      self.assertEqual(disk.size, disk_info[idx][constants.IDISK_SIZE])
+      self.assertEqual(disk.mode, disk_info[idx][constants.IDISK_MODE])
+
+      for child in disk.children:
+        self.assertTrue(isinstance(disk, objects.Disk))
+        self.assertEqual(child.dev_type, constants.LD_LV)
+        self.assertTrue(child.children is None)
+
+      self.assertEqual(map(operator.attrgetter("logical_id"), disk.children),
+                       exp_logical_ids[idx])
+
+      self.assertEqual(len(disk.children), 2)
+      self.assertEqual(disk.children[0].size, disk.size)
+      self.assertEqual(disk.children[1].size, cmdlib.DRBD_META_SIZE)
+
+    self.assertEqual(map(operator.attrgetter("iv_name"), result),
+                     ["disk/0", "disk/1", "disk/2"])
+
+    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+      ("node1334.example.com", "node12272.example.com",
+       constants.FIRST_DRBD_PORT, 20, 21, "ec0-secret0"),
+      ("node1334.example.com", "node12272.example.com",
+       constants.FIRST_DRBD_PORT + 1, 22, 23, "ec0-secret1"),
+      ("node1334.example.com", "node12272.example.com",
+       constants.FIRST_DRBD_PORT + 2, 24, 25, "ec0-secret2"),
       ])
 
 
