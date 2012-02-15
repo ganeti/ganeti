@@ -8678,6 +8678,21 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
   return drbd_dev
 
 
+_DISK_TEMPLATE_NAME_PREFIX = {
+  constants.DT_PLAIN: "",
+  constants.DT_RBD: ".rbd",
+  }
+
+
+_DISK_TEMPLATE_DEVICE_TYPE = {
+  constants.DT_PLAIN: constants.LD_LV,
+  constants.DT_FILE: constants.LD_FILE,
+  constants.DT_SHARED_FILE: constants.LD_FILE,
+  constants.DT_BLOCK: constants.LD_BLOCKDEV,
+  constants.DT_RBD: constants.LD_RBD,
+  }
+
+
 def _GenerateDiskTemplate(lu, template_name, instance_name, primary_node,
     secondary_nodes, disk_info, file_storage_dir, file_driver, base_index,
     feedback_fn, disk_params,
@@ -8692,25 +8707,9 @@ def _GenerateDiskTemplate(lu, template_name, instance_name, primary_node,
   disk_count = len(disk_info)
   disks = []
   ld_params = _ComputeLDParams(template_name, disk_params)
+
   if template_name == constants.DT_DISKLESS:
     pass
-  elif template_name == constants.DT_PLAIN:
-    if secondary_nodes:
-      raise errors.ProgrammerError("Wrong template configuration")
-
-    names = _GenerateUniqueNames(lu, [".disk%d" % (base_index + i)
-                                      for i in range(disk_count)])
-    for idx, disk in enumerate(disk_info):
-      disk_index = idx + base_index
-      vg = disk.get(constants.IDISK_VG, vgname)
-      feedback_fn("* disk %i, vg %s, name %s" % (idx, vg, names[idx]))
-      disk_dev = objects.Disk(dev_type=constants.LD_LV,
-                              size=disk[constants.IDISK_SIZE],
-                              logical_id=(vg, names[idx]),
-                              iv_name="disk/%d" % disk_index,
-                              mode=disk[constants.IDISK_MODE],
-                              params=ld_params[0])
-      disks.append(disk_dev)
   elif template_name == constants.DT_DRBD8:
     drbd_params, data_params, meta_params = ld_params
     if len(secondary_nodes) != 1:
@@ -8738,73 +8737,54 @@ def _GenerateDiskTemplate(lu, template_name, instance_name, primary_node,
                                       drbd_params, data_params, meta_params)
       disk_dev.mode = disk[constants.IDISK_MODE]
       disks.append(disk_dev)
-  elif template_name == constants.DT_FILE:
-    if secondary_nodes:
-      raise errors.ProgrammerError("Wrong template configuration")
-
-    _req_file_storage()
-
-    for idx, disk in enumerate(disk_info):
-      disk_index = idx + base_index
-      disk_dev = objects.Disk(dev_type=constants.LD_FILE,
-                              size=disk[constants.IDISK_SIZE],
-                              iv_name="disk/%d" % disk_index,
-                              logical_id=(file_driver,
-                                          "%s/disk%d" % (file_storage_dir,
-                                                         disk_index)),
-                              mode=disk[constants.IDISK_MODE],
-                              params=ld_params[0])
-      disks.append(disk_dev)
-  elif template_name == constants.DT_SHARED_FILE:
-    if secondary_nodes:
-      raise errors.ProgrammerError("Wrong template configuration")
-
-    _req_shr_file_storage()
-
-    for idx, disk in enumerate(disk_info):
-      disk_index = idx + base_index
-      disk_dev = objects.Disk(dev_type=constants.LD_FILE,
-                              size=disk[constants.IDISK_SIZE],
-                              iv_name="disk/%d" % disk_index,
-                              logical_id=(file_driver,
-                                          "%s/disk%d" % (file_storage_dir,
-                                                         disk_index)),
-                              mode=disk[constants.IDISK_MODE],
-                              params=ld_params[0])
-      disks.append(disk_dev)
-  elif template_name == constants.DT_BLOCK:
-    if secondary_nodes:
-      raise errors.ProgrammerError("Wrong template configuration")
-
-    for idx, disk in enumerate(disk_info):
-      disk_index = idx + base_index
-      disk_dev = objects.Disk(dev_type=constants.LD_BLOCKDEV,
-                              size=disk[constants.IDISK_SIZE],
-                              logical_id=(constants.BLOCKDEV_DRIVER_MANUAL,
-                                          disk[constants.IDISK_ADOPT]),
-                              iv_name="disk/%d" % disk_index,
-                              mode=disk[constants.IDISK_MODE],
-                              params=ld_params[0])
-      disks.append(disk_dev)
-  elif template_name == constants.DT_RBD:
-    if secondary_nodes:
-      raise errors.ProgrammerError("Wrong template configuration")
-
-    names = _GenerateUniqueNames(lu, [".rbd.disk%d" % (base_index + i)
-                                      for i in range(disk_count)])
-
-    for idx, disk in enumerate(disk_info):
-      disk_index = idx + base_index
-      disk_dev = objects.Disk(dev_type=constants.LD_RBD,
-                              size=disk[constants.IDISK_SIZE],
-                              logical_id=("rbd", names[idx]),
-                              iv_name="disk/%d" % disk_index,
-                              mode=disk[constants.IDISK_MODE],
-                              params=ld_params[0])
-      disks.append(disk_dev)
-
   else:
-    raise errors.ProgrammerError("Invalid disk template '%s'" % template_name)
+    if secondary_nodes:
+      raise errors.ProgrammerError("Wrong template configuration")
+
+    if template_name == constants.DT_FILE:
+      _req_file_storage()
+    elif template_name == constants.DT_SHARED_FILE:
+      _req_shr_file_storage()
+
+    name_prefix = _DISK_TEMPLATE_NAME_PREFIX.get(template_name, None)
+    if name_prefix is None:
+      names = None
+    else:
+      names = _GenerateUniqueNames(lu, ["%s.disk%s" %
+                                        (name_prefix, base_index + i)
+                                        for i in range(disk_count)])
+
+    dev_type = _DISK_TEMPLATE_DEVICE_TYPE[template_name]
+
+    if template_name == constants.DT_PLAIN:
+      def logical_id_fn(idx, _, disk):
+        vg = disk.get(constants.IDISK_VG, vgname)
+        return (vg, names[idx])
+    elif template_name in (constants.DT_FILE, constants.DT_SHARED_FILE):
+      logical_id_fn = \
+        lambda _, disk_index, disk: (file_driver,
+                                     "%s/disk%d" % (file_storage_dir,
+                                                    disk_index))
+    elif template_name == constants.DT_BLOCK:
+      logical_id_fn = \
+        lambda idx, disk_index, disk: (constants.BLOCKDEV_DRIVER_MANUAL,
+                                       disk[constants.IDISK_ADOPT])
+    elif template_name == constants.DT_RBD:
+      logical_id_fn = lambda idx, _, disk: ("rbd", names[idx])
+    else:
+      raise errors.ProgrammerError("Unknown disk template '%s'" % template_name)
+
+    for idx, disk in enumerate(disk_info):
+      disk_index = idx + base_index
+      size = disk[constants.IDISK_SIZE]
+      feedback_fn("* disk %s, size %s" %
+                  (disk_index, utils.FormatUnit(size, "h")))
+      disks.append(objects.Disk(dev_type=dev_type, size=size,
+                                logical_id=logical_id_fn(idx, disk_index, disk),
+                                iv_name="disk/%d" % disk_index,
+                                mode=disk[constants.IDISK_MODE],
+                                params=ld_params[0]))
+
   return disks
 
 
