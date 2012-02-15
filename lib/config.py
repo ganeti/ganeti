@@ -491,12 +491,12 @@ class ConfigWriter:
                 cluster.FillBE(instance), constants.BES_PARAMETER_TYPES)
 
       # gather the drbd ports for duplicate checks
-      for dsk in instance.disks:
+      for (idx, dsk) in enumerate(instance.disks):
         if dsk.dev_type in constants.LDS_DRBD:
           tcp_port = dsk.logical_id[2]
           if tcp_port not in ports:
             ports[tcp_port] = []
-          ports[tcp_port].append((instance.name, "drbd disk %s" % dsk.iv_name))
+          ports[tcp_port].append((instance.name, "drbd disk %s" % idx))
       # gather network port reservation
       net_port = getattr(instance, "network_port", None)
       if net_port is not None:
