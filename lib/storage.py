@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2009, 2011 Google Inc.
+# Copyright (C) 2009, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -406,6 +406,7 @@ class LvmVgStorage(_LvmBase):
 
   """
   LIST_COMMAND = "vgs"
+  VGREDUCE_COMMAND = "vgreduce"
 
   # Make sure to update constants.VALID_STORAGE_FIELDS when changing field
   # definitions.
@@ -418,7 +419,7 @@ class LvmVgStorage(_LvmBase):
     (constants.SF_ALLOCATABLE, [], True),
     ]
 
-  def _RemoveMissing(self, name):
+  def _RemoveMissing(self, name, _runcmd_fn=utils.RunCmd):
     """Runs "vgreduce --removemissing" on a volume group.
 
     @type name: string
@@ -428,13 +429,23 @@ class LvmVgStorage(_LvmBase):
     # Ignoring vgreduce exit code. Older versions exit with an error even tough
     # the VG is already consistent. This was fixed in later versions, but we
     # cannot depend on it.
-    result = utils.RunCmd(["vgreduce", "--removemissing", name])
+    result = _runcmd_fn([self.VGREDUCE_COMMAND, "--removemissing", name])
 
     # Keep output in case something went wrong
     vgreduce_output = result.output
 
-    result = utils.RunCmd(["vgs", "--noheadings", "--nosuffix", name])
-    if result.failed:
+    # work around newer LVM version
+    if ("Wrote out consistent volume group" not in vgreduce_output or
+        "vgreduce --removemissing --force" in vgreduce_output):
+      # we need to re-run with --force
+      result = _runcmd_fn([self.VGREDUCE_COMMAND, "--removemissing",
+                           "--force", name])
+      vgreduce_output += "\n" + result.output
+
+    result = _runcmd_fn([self.LIST_COMMAND, "--noheadings",
+                         "--nosuffix", name])
+    # we also need to check the output
+    if result.failed or "Couldn't find device with uuid" in result.output:
       raise errors.StorageError(("Volume group '%s' still not consistent,"
                                  " 'vgreduce' output: %r,"
                                  " 'vgs' output: %r") %
