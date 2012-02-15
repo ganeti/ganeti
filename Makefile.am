@@ -639,6 +639,11 @@ TEST_FILES = \
 	test/data/kvm_0.12.5_help.txt \
 	test/data/kvm_0.9.1_help.txt \
 	test/data/sys_drbd_usermode_helper.txt \
+	test/data/vgreduce-removemissing-2.02.02.txt \
+	test/data/vgreduce-removemissing-2.02.66-fail.txt \
+	test/data/vgreduce-removemissing-2.02.66-ok.txt \
+	test/data/vgs-missing-pvs-2.02.02.txt \
+	test/data/vgs-missing-pvs-2.02.66.txt \
 	test/import-export_unittest-helper
 
 python_tests = \
