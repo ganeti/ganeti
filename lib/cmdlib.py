@@ -8229,11 +8229,11 @@ class TLMigrateInstance(Tasklet):
                          (src_version, dst_version))
 
     self.feedback_fn("* checking disk consistency between source and target")
-    for dev in instance.disks:
+    for (idx, dev) in enumerate(instance.disks):
       if not _CheckDiskConsistency(self.lu, dev, target_node, False):
         raise errors.OpExecError("Disk %s is degraded or not fully"
                                  " synchronized on target node,"
-                                 " aborting migration" % dev.iv_name)
+                                 " aborting migration" % idx)
 
     if self.current_mem > self.tgt_free_mem:
       if not self.allow_runtime_changes:
@@ -8391,16 +8391,16 @@ class TLMigrateInstance(Tasklet):
 
     if instance.admin_state == constants.ADMINST_UP:
       self.feedback_fn("* checking disk consistency between source and target")
-      for dev in instance.disks:
+      for (idx, dev) in enumerate(instance.disks):
         # for drbd, these are drbd over lvm
         if not _CheckDiskConsistency(self.lu, dev, target_node, False):
           if primary_node.offline:
             self.feedback_fn("Node %s is offline, ignoring degraded disk %s on"
                              " target node %s" %
-                             (primary_node.name, dev.iv_name, target_node))
+                             (primary_node.name, idx, target_node))
           elif not self.ignore_consistency:
             raise errors.OpExecError("Disk %s is degraded on target node,"
-                                     " aborting failover" % dev.iv_name)
+                                     " aborting failover" % idx)
     else:
       self.feedback_fn("* not checking disk consistency as instance is not"
                        " running")
@@ -8914,8 +8914,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
   for idx, device in enumerate(instance.disks):
     if to_skip and idx in to_skip:
       continue
-    logging.info("Creating volume %s for instance %s",
-                 device.iv_name, instance.name)
+    logging.info("Creating disk %s for instance '%s'", idx, instance.name)
     #HARDCODE
     for node in all_nodes:
       f_create = node == pnode
@@ -8943,7 +8942,7 @@ def _RemoveDisks(lu, instance, target_node=None):
   logging.info("Removing block devices for instance %s", instance.name)
 
   all_result = True
-  for device in instance.disks:
+  for (idx, device) in instance.disks:
     if target_node:
       edata = [(target_node, device)]
     else:
@@ -8952,8 +8951,8 @@ def _RemoveDisks(lu, instance, target_node=None):
       lu.cfg.SetDiskID(disk, node)
       msg = lu.rpc.call_blockdev_remove(node, disk).fail_msg
       if msg:
-        lu.LogWarning("Could not remove block device %s on node %s,"
-                      " continuing anyway: %s", device.iv_name, node, msg)
+        lu.LogWarning("Could not remove disk %s on node %s,"
+                      " continuing anyway: %s", idx, node, msg)
         all_result = False
 
     # if this is a DRBD disk, return its port to the pool
