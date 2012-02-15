@@ -1260,24 +1260,27 @@ class ConfigWriter:
     """
     if old_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % old_name)
-    inst = self._config_data.instances[old_name]
-    del self._config_data.instances[old_name]
+
+    # Operate on a copy to not loose instance object in case of a failure
+    inst = self._config_data.instances[old_name].Copy()
     inst.name = new_name
 
-    for disk in inst.disks:
+    for (idx, disk) in enumerate(inst.disks):
       if disk.dev_type == constants.LD_FILE:
         # rename the file paths in logical and physical id
         file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
-        disk_fname = "disk%s" % disk.iv_name.split("/")[1]
-        disk.physical_id = disk.logical_id = (disk.logical_id[0],
-                                              utils.PathJoin(file_storage_dir,
-                                                             inst.name,
-                                                             disk_fname))
+        disk.logical_id = (disk.logical_id[0],
+                           utils.PathJoin(file_storage_dir, inst.name,
+                                          "disk%s" % idx))
+        disk.physical_id = disk.logical_id
+
+    # Actually replace instance object
+    del self._config_data.instances[old_name]
+    self._config_data.instances[inst.name] = inst
 
     # Force update of ssconf files
     self._config_data.cluster.serial_no += 1
 
-    self._config_data.instances[inst.name] = inst
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
