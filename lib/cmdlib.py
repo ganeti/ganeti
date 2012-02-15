@@ -11837,22 +11837,32 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
       # Append
       absidx = len(container) - 1
     elif idx < 0:
-      raise IndexError("Not accepting negative indices")
+      raise IndexError("Not accepting negative indices other than -1")
+    elif idx > len(container):
+      raise IndexError("Got %s index %s, but there are only %s" %
+                       (kind, idx, len(container)))
     else:
       absidx = idx
 
     changes = None
 
     if op == constants.DDM_ADD:
+      # Calculate where item will be added
+      if idx == -1:
+        addidx = len(container)
+      else:
+        addidx = idx
+
       if create_fn is None:
         item = params
       else:
-        (item, changes) = create_fn(absidx + 1, params, private)
+        (item, changes) = create_fn(addidx, params, private)
 
       if idx == -1:
         container.append(item)
       else:
         assert idx >= 0
+        assert idx <= len(container)
         # list.insert does so before the specified index
         container.insert(idx, item)
     else:

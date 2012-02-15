@@ -802,6 +802,26 @@ class TestApplyContainerMods(unittest.TestCase):
     self.assertEqual(container, ["Start", "Hello", "World", "End"])
     self.assertEqual(chgdesc, [])
 
+    mods = cmdlib.PrepareContainerMods([
+      (constants.DDM_ADD, 0, "zero"),
+      (constants.DDM_ADD, 3, "Added"),
+      (constants.DDM_ADD, 5, "four"),
+      (constants.DDM_ADD, 7, "xyz"),
+      ], None)
+    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
+                              None, None, None)
+    self.assertEqual(container,
+                     ["zero", "Start", "Hello", "Added", "World", "four",
+                      "End", "xyz"])
+    self.assertEqual(chgdesc, [])
+
+    for idx in [-2, len(container) + 1]:
+      mods = cmdlib.PrepareContainerMods([
+        (constants.DDM_ADD, idx, "error"),
+        ], None)
+      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+                        "test", container, None, mods, None, None, None)
+
   def testRemoveError(self):
     for idx in [0, 1, 2, 100, -1, -4]:
       mods = cmdlib.PrepareContainerMods([
@@ -817,7 +837,7 @@ class TestApplyContainerMods(unittest.TestCase):
                       "test", [""], None, mods, None, None, None)
 
   def testAddError(self):
-    for idx in range(-100, -1):
+    for idx in range(-100, -1) + [100]:
       mods = cmdlib.PrepareContainerMods([
         (constants.DDM_ADD, idx, None),
         ], None)
@@ -838,6 +858,26 @@ class TestApplyContainerMods(unittest.TestCase):
     self.assertEqual(chgdesc, [
       ("test/2", "remove"),
       ])
+
+  def testModify(self):
+    container = ["item 1", "item 2"]
+    mods = cmdlib.PrepareContainerMods([
+      (constants.DDM_MODIFY, -1, "a"),
+      (constants.DDM_MODIFY, 0, "b"),
+      (constants.DDM_MODIFY, 1, "c"),
+      ], None)
+    chgdesc = []
+    cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
+                              None, None, None)
+    self.assertEqual(container, ["item 1", "item 2"])
+    self.assertEqual(chgdesc, [])
+
+    for idx in [-2, len(container) + 1]:
+      mods = cmdlib.PrepareContainerMods([
+        (constants.DDM_MODIFY, idx, "error"),
+        ], None)
+      self.assertRaises(IndexError, cmdlib.ApplyContainerMods,
+                        "test", container, None, mods, None, None, None)
 
   class _PrivateData:
     def __init__(self):
@@ -877,31 +917,31 @@ class TestApplyContainerMods(unittest.TestCase):
     cmdlib.ApplyContainerMods("test", container, chgdesc, mods,
       self._CreateTestFn, self._ModifyTestFn, self._RemoveTestFn)
     self.assertEqual(container, [
-      (100, "Start"),
-      (200, "More"),
-      (0, "Hello"),
+      (000, "Start"),
+      (100, "More"),
+      (000, "Hello"),
       ])
     self.assertEqual(chgdesc, [
       ("test/0", "0x0"),
       ("test/1", "0x1"),
-      ("test/1", "0x1"),
+      ("test/0", "0x0"),
       ("test/3", "0x3"),
       ("test/2", "remove"),
       ("test/2", "modify foobar"),
       ("test/2", "remove"),
-      ("test/2", "0x2")
+      ("test/1", "0x1")
       ])
     self.assertTrue(compat.all(op == private.data[0]
                                for (op, _, _, private) in mods))
     self.assertEqual([private.data for (op, _, _, private) in mods], [
       ("add", 0, "Hello"),
       ("add", 1, "World"),
-      ("add", 1, "Start"),
+      ("add", 0, "Start"),
       ("add", 3, "End"),
       ("remove", 2, (100, "World")),
       ("modify", 2, "foobar"),
       ("remove", 2, (300, "End")),
-      ("add", 2, "More"),
+      ("add", 1, "More"),
       ])
 
 
