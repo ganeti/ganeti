@@ -684,6 +684,7 @@ python_tests = \
 	test/ganeti.runtime_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
+	test/ganeti.storage_unittest.py \
 	test/ganeti.tools.ensure_dirs_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \
@@ -1078,7 +1079,7 @@ check-local: check-dirs
 	fi; \
 	for file in doc/iallocator.rst doc/hooks.rst; do \
 		if test "`sed -ne '4 p' $(top_srcdir)/$$file`" != \
-		        "Documents Ganeti version $$expver"; then \
+			"Documents Ganeti version $$expver"; then \
 			echo "Incorrect version in $$file, expected $$expver"; \
 			exit 1; \
 		fi; \
