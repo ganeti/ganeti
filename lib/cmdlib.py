@@ -11894,6 +11894,16 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
       chgdesc.extend(changes)
 
 
+def _UpdateIvNames(base_index, disks):
+  """Updates the C{iv_name} attribute of disks.
+
+  @type disks: list of L{objects.Disk}
+
+  """
+  for (idx, disk) in enumerate(disks):
+    disk.iv_name = "disk/%s" % (base_index + idx, )
+
+
 class _InstNicModPrivate:
   """Data structure for network interface modifications.
 
@@ -12699,6 +12709,7 @@ class LUInstanceSetParams(LogicalUnit):
     # Apply disk changes
     ApplyContainerMods("disk", instance.disks, result, self.diskmod,
                        self._CreateNewDisk, self._ModifyDisk, self._RemoveDisk)
+    _UpdateIvNames(0, instance.disks)
 
     if self.op.disk_template:
       if __debug__:

@@ -1039,10 +1039,15 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       self.assertEqual(disk.mode, disk_info[idx][constants.IDISK_MODE])
       self.assertTrue(disk.children is None)
 
-    self.assertEqual(map(operator.attrgetter("iv_name"), result),
-      ["disk/%s" % i for i in range(base_index, base_index + len(disk_info))])
+    self._CheckIvNames(result, base_index, base_index + len(disk_info))
+    cmdlib._UpdateIvNames(base_index, result)
+    self._CheckIvNames(result, base_index, base_index + len(disk_info))
 
     return result
+
+  def _CheckIvNames(self, disks, base_index, end_index):
+    self.assertEqual(map(operator.attrgetter("iv_name"), disks),
+                     ["disk/%s" % i for i in range(base_index, end_index)])
 
   def testPlain(self):
     disk_info = [{
@@ -1198,8 +1203,9 @@ class TestGenerateDiskTemplate(unittest.TestCase):
       self.assertEqual(disk.children[0].size, disk.size)
       self.assertEqual(disk.children[1].size, cmdlib.DRBD_META_SIZE)
 
-    self.assertEqual(map(operator.attrgetter("iv_name"), result),
-                     ["disk/0", "disk/1", "disk/2"])
+    self._CheckIvNames(result, 0, len(disk_info))
+    cmdlib._UpdateIvNames(0, result)
+    self._CheckIvNames(result, 0, len(disk_info))
 
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       ("node1334.example.com", "node12272.example.com",
