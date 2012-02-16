@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ parseNode ktg n a = do
   let vm_capable' = fromMaybe True vm_capable
   gidx <- lookupGroup ktg n guuid
   node <- if offline || drained || not vm_capable'
-            then return $ Node.create n 0 0 0 0 0 0 True gidx
+            then return $ Node.create n 0 0 0 0 0 0 True 0 gidx
             else do
               mtotal <- extract "total_memory"
               mnode  <- extract "reserved_memory"
@@ -113,8 +113,11 @@ parseNode ktg n a = do
               dtotal <- extract "total_disk"
               dfree  <- extract "free_disk"
               ctotal <- extract "total_cpus"
+              ndparams <- extract "ndparams" >>= asJSObject
+              spindles <- tryFromObj desc (fromJSObject ndparams)
+                          "spindle_count"
               return $ Node.create n mtotal mnode mfree
-                     dtotal dfree ctotal False gidx
+                     dtotal dfree ctotal False spindles gidx
   return (n, node)
 
 -- | Parses a group as found in the cluster group list.

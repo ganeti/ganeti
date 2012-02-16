@@ -101,6 +101,7 @@ data Node = Node
   , fDsk     :: Int       -- ^ Free disk space (MiB)
   , tCpu     :: Double    -- ^ Total CPU count
   , uCpu     :: Int       -- ^ Used VCPU count
+  , spindleCount :: Int   -- ^ Node spindles (spindle_count node parameter)
   , pList    :: [T.Idx]   -- ^ List of primary instance indices
   , sList    :: [T.Idx]   -- ^ List of secondary instance indices
   , idx      :: T.Ndx     -- ^ Internal index for book-keeping
@@ -117,6 +118,9 @@ data Node = Node
                           -- threshold
   , hiCpu    :: Int       -- ^ Autocomputed from mCpu high cpu
                           -- threshold
+  , hiSpindles :: Double  -- ^ Auto-computed from policy spindle_ratio
+                          -- and the node spindle count
+  , instSpindles :: Double -- ^ Spindles used by instances
   , offline  :: Bool      -- ^ Whether the node should not be used for
                           -- allocations and skipped from score
                           -- computations
@@ -188,9 +192,10 @@ conflictingPrimaries (Node { pTags = t }) = Foldable.sum t - Map.size t
 -- The index and the peers maps are empty, and will be need to be
 -- update later via the 'setIdx' and 'buildPeers' functions.
 create :: String -> Double -> Int -> Int -> Double
-       -> Int -> Double -> Bool -> T.Gdx -> Node
+       -> Int -> Double -> Bool -> Int -> T.Gdx -> Node
 create name_init mem_t_init mem_n_init mem_f_init
-       dsk_t_init dsk_f_init cpu_t_init offline_init group_init =
+       dsk_t_init dsk_f_init cpu_t_init offline_init spindles_init
+       group_init =
   Node { name = name_init
        , alias = name_init
        , tMem = mem_t_init
@@ -199,6 +204,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , tDsk = dsk_t_init
        , fDsk = dsk_f_init
        , tCpu = cpu_t_init
+       , spindleCount = spindles_init
        , uCpu = 0
        , pList = []
        , sList = []
@@ -215,6 +221,9 @@ create name_init mem_t_init mem_n_init mem_f_init
        , mDsk = T.defReservedDiskRatio
        , loDsk = mDskToloDsk T.defReservedDiskRatio dsk_t_init
        , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio T.defIPolicy) cpu_t_init
+       , hiSpindles = computeHiSpindles (T.iPolicySpindleRatio T.defIPolicy)
+                      spindles_init
+       , instSpindles = 0
        , utilPool = T.baseUtil
        , utilLoad = T.zeroUtil
        , pTags = Map.empty
@@ -229,6 +238,10 @@ mDskToloDsk mval = floor . (mval *)
 -- | Conversion formula from mCpu\/tCpu to hiCpu.
 mCpuTohiCpu :: Double -> Double -> Int
 mCpuTohiCpu mval = floor . (mval *)
+
+-- | Conversiojn formula from spindles and spindle ratio to hiSpindles.
+computeHiSpindles :: Double -> Int -> Double
+computeHiSpindles spindle_ratio = (spindle_ratio *) . fromIntegral
 
 -- | Changes the index.
 --
@@ -265,7 +278,10 @@ setMcpu t val =
 setPolicy :: T.IPolicy -> Node -> Node
 setPolicy pol node =
   node { iPolicy = pol
-       , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio pol) (tCpu node) }
+       , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio pol) (tCpu node)
+       , hiSpindles = computeHiSpindles (T.iPolicySpindleRatio pol)
+                      (spindleCount node)
+       }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: P.PeerMap -> P.Elem

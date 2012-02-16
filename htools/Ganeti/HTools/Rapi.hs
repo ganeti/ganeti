@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -137,10 +137,12 @@ parseNode ktg a = do
   drained <- extract "drained"
   vm_cap  <- annotateResult desc $ maybeFromObj a "vm_capable"
   let vm_cap' = fromMaybe True vm_cap
+  ndparams <- extract "ndparams" >>= asJSObject
+  spindles <- tryFromObj desc (fromJSObject ndparams) "spindle_count"
   guuid   <- annotateResult desc $ maybeFromObj a "group.uuid"
   guuid' <-  lookupGroup ktg name (fromMaybe defaultGroupID guuid)
   node <- if offline || drained || not vm_cap'
-            then return $ Node.create name 0 0 0 0 0 0 True guuid'
+            then return $ Node.create name 0 0 0 0 0 0 True 0 guuid'
             else do
               mtotal  <- extract "mtotal"
               mnode   <- extract "mnode"
@@ -149,7 +151,7 @@ parseNode ktg a = do
               dfree   <- extract "dfree"
               ctotal  <- extract "ctotal"
               return $ Node.create name mtotal mnode mfree
-                     dtotal dfree ctotal False guuid'
+                     dtotal dfree ctotal False spindles guuid'
   return (name, node)
 
 -- | Construct a group from a JSON object.

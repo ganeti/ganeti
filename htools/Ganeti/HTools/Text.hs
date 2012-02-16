@@ -181,7 +181,7 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] = do
   gdx <- lookupGroup ktg name gu
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
-          return $ Node.create name 0 0 0 0 0 0 True gdx
+          return $ Node.create name 0 0 0 0 0 0 True 0 gdx
       else do
         vtm <- tryRead name tm
         vnm <- tryRead name nm
@@ -189,7 +189,7 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] = do
         vtd <- tryRead name td
         vfd <- tryRead name fd
         vtc <- tryRead name tc
-        return $ Node.create name vtm vnm vfm vtd vfd vtc False gdx
+        return $ Node.create name vtm vnm vfm vtd vfd vtc False 1 gdx
   return (name, new_node)
 loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 

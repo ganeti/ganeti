@@ -6,7 +6,7 @@ This module holds the code for parsing a cluster description.
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ createGroup grpIndex spec = do
                      Node.create (printf "node-%02d-%03d" grpIndex idx)
                            (fromIntegral mem) 0 mem
                            (fromIntegral disk) disk
-                           (fromIntegral cpu) False grpIndex
+                           (fromIntegral cpu) False 1 grpIndex
                   ) [1..ncount]
       grp = Group.create (printf "group-%02d" grpIndex)
             (printf "fake-uuid-%02d" grpIndex) apol defIPolicy

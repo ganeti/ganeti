@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@ queryNodesMsg :: L.LuxiOp
 queryNodesMsg =
   L.Query L.QRNode ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
                     "ctotal", "offline", "drained", "vm_capable",
-                    "group.uuid"] ()
+                    "ndp/spindle_count", "group.uuid"] ()
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -175,16 +175,17 @@ getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 -- | Construct a node from a JSON object.
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
-              , ctotal, offline, drained, vm_capable, g_uuid ]
+              , ctotal, offline, drained, vm_capable, spindles, g_uuid ]
     = do
   xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
   xoffline <- convert "offline" offline
   xdrained <- convert "drained" drained
   xvm_capable <- convert "vm_capable" vm_capable
+  xspindles <- convert "spindles" spindles
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
   node <- if xoffline || xdrained || not xvm_capable
-            then return $ Node.create xname 0 0 0 0 0 0 True xgdx
+            then return $ Node.create xname 0 0 0 0 0 0 True xspindles xgdx
             else do
               xmtotal  <- convert "mtotal" mtotal
               xmnode   <- convert "mnode" mnode
@@ -193,7 +194,7 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               xdfree   <- convert "dfree" dfree
               xctotal  <- convert "ctotal" ctotal
               return $ Node.create xname xmtotal xmnode xmfree
-                     xdtotal xdfree xctotal False xgdx
+                     xdtotal xdfree xctotal False xspindles xgdx
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
