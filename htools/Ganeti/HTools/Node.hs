@@ -547,6 +547,9 @@ showField t field =
     "ptags" -> intercalate "," . map (uncurry (printf "%s=%d")) .
                Map.toList $ pTags t
     "peermap" -> show $ peers t
+    "spindle_count" -> show $ spindleCount t
+    "hi_spindles" -> show $ hiSpindles t
+    "inst_spindles" -> show $ instSpindles t
     _ -> T.unknownField
   where
     T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
@@ -584,6 +587,9 @@ showHeader field =
     "nload" -> ("lNet", True)
     "ptags" -> ("PrimaryTags", False)
     "peermap" -> ("PeerMap", False)
+    "spindle_count" -> ("NodeSpindles", True)
+    "hi_spindles" -> ("MaxSpindles", True)
+    "inst_spindles" -> ("InstSpindles", True)
     -- TODO: add node fields (group.uuid, group)
     _ -> (T.unknownField, False)
 
