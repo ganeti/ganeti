@@ -49,32 +49,38 @@ apolAbbrev c | c == "p"  = return AllocPreferred
                            ++ c ++ "'"
 
 -- | Parse the string description into nodes.
-parseDesc :: String -> Result (AllocPolicy, Int, Int, Int, Int)
-parseDesc desc =
-  case sepSplit ',' desc of
-    [a, n, d, m, c] -> do
-      apol <- allocPolicyFromRaw a `mplus` apolAbbrev a
-      ncount <- tryRead "node count" n
-      disk <- annotateResult "disk size" (parseUnit d)
-      mem <- annotateResult "memory size" (parseUnit m)
-      cpu <- tryRead "cpu count" c
-      return (apol, ncount, disk, mem, cpu)
-    es -> fail $ printf
-          "Invalid cluster specification, expected 5 comma-separated\
-          \ sections (allocation policy, node count, disk size,\
-          \ memory size, number of CPUs) but got %d: '%s'" (length es) desc
+parseDesc :: String -> [String]
+          -> Result (AllocPolicy, Int, Int, Int, Int, Int)
+parseDesc _ [a, n, d, m, c, s] = do
+  apol <- allocPolicyFromRaw a `mplus` apolAbbrev a
+  ncount <- tryRead "node count" n
+  disk <- annotateResult "disk size" (parseUnit d)
+  mem <- annotateResult "memory size" (parseUnit m)
+  cpu <- tryRead "cpu count" c
+  spindles <- tryRead "spindles" s
+  return (apol, ncount, disk, mem, cpu, spindles)
+
+parseDesc desc [a, n, d, m, c] = parseDesc desc [a, n, d, m, c, "1"]
+
+parseDesc desc es =
+  fail $ printf
+         "Invalid cluster specification, expected 6 comma-separated\
+         \ sections (allocation policy, node count, disk size,\
+         \ memory size, number of CPUs, spindles) but got %d: '%s'"
+         (length es) desc
 
 -- | Creates a node group with the given specifications.
 createGroup :: Int    -- ^ The group index
             -> String -- ^ The group specification
             -> Result (Group.Group, [Node.Node])
 createGroup grpIndex spec = do
-  (apol, ncount, disk, mem, cpu) <- parseDesc spec
+  (apol, ncount, disk, mem, cpu, spindles) <- parseDesc spec $
+                                              sepSplit ',' spec
   let nodes = map (\idx ->
                      Node.create (printf "node-%02d-%03d" grpIndex idx)
                            (fromIntegral mem) 0 mem
                            (fromIntegral disk) disk
-                           (fromIntegral cpu) False 1 grpIndex
+                           (fromIntegral cpu) False spindles grpIndex
                   ) [1..ncount]
       grp = Group.create (printf "group-%02d" grpIndex)
             (printf "fake-uuid-%02d" grpIndex) apol defIPolicy

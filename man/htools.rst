@@ -214,11 +214,12 @@ support all options. Some common options are:
   - the disk size of the nodes (default in mebibytes, units can be used)
   - the memory size of the nodes (default in mebibytes, units can be used)
   - the cpu core count for the nodes
+  - the spindle count for the nodes
 
-  An example description would be **preferred,B20,100G,16g,4**
-  describing a 20-node cluster where each node has 100GB of disk
-  space, 16GiB of memory and 4 CPU cores. Note that all nodes must
-  have the same specs currently.
+  An example description would be **preferred,B20,100G,16g,4,2**
+  describing a 20-node cluster where each node has 100GB of disk space,
+  16GiB of memory, 4 CPU cores and 2 disk spindles. Note that all nodes
+  must have the same specs currently.
 
   This option can be given multiple times, and each new use defines a
   new node group. Hence different node groups can have different
