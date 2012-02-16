@@ -78,11 +78,12 @@ serializeNode :: Group.List -- ^ The list of groups (needed for group uuid)
               -> Node.Node  -- ^ The node to be serialised
               -> String
 serializeNode gl node =
-  printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s" (Node.name node)
+  printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c|%s|%d" (Node.name node)
            (Node.tMem node) (Node.nMem node) (Node.fMem node)
            (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
            (if Node.offline node then 'Y' else 'N')
            (Group.uuid grp)
+           (Node.spindleCount node)
     where grp = Container.find (Node.group node) gl
 
 -- | Generate node file data from node objects.
@@ -177,7 +178,7 @@ loadNode :: (Monad m) =>
          -> [String]              -- ^ Input data as a list of fields
          -> m (String, Node.Node) -- ^ The result, a tuple o node name
                                   -- and node object
-loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] = do
+loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles] = do
   gdx <- lookupGroup ktg name gu
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
@@ -189,8 +190,13 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] = do
         vtd <- tryRead name td
         vfd <- tryRead name fd
         vtc <- tryRead name tc
-        return $ Node.create name vtm vnm vfm vtd vfd vtc False 1 gdx
+        vspindles <- tryRead name spindles
+        return $ Node.create name vtm vnm vfm vtd vfd vtc False vspindles gdx
   return (name, new_node)
+
+loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu] =
+  loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, "1"]
+
 loadNode _ s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
 -- | Load an instance from a field list.

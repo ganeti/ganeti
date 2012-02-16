@@ -156,6 +156,7 @@ support all options. Some common options are:
   - node physical cores
   - offline field (as ``Y`` or ``N``)
   - group UUID
+  - node spindle count
 
   The third section contains instance data, with the fields:
 
@@ -170,8 +171,23 @@ support all options. Some common options are:
   - instance disk type (e.g. ``plain`` or ``drbd``)
   - instance tags
 
-  The fourth and last section contains the cluster tags, with one tag
-  per line (no columns/no column processing).
+  The fourth section contains the cluster tags, with one tag per line
+  (no columns/no column processing).
+
+  The fifth section contains the ipolicies of the cluster and the node
+  groups, in the following format (separated by ``|``):
+
+  - owner (empty if cluster, group name otherwise)
+  - standard, min, max instance specs, containing the following values
+    separated by commas:
+    - memory size
+    - cpu count
+    - disk size
+    - disk count
+    - nic count
+  - disk templates
+  - vcpu ratio
+  - spindle ratio
 
 -m *cluster*
   Backend specification: collect data directly from the *cluster* given
