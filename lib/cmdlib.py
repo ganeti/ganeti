@@ -8942,7 +8942,7 @@ def _RemoveDisks(lu, instance, target_node=None):
   logging.info("Removing block devices for instance %s", instance.name)
 
   all_result = True
-  for (idx, device) in instance.disks:
+  for (idx, device) in enumerate(instance.disks):
     if target_node:
       edata = [(target_node, device)]
     else:
