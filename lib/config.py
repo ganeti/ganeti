@@ -133,6 +133,26 @@ def _MatchNameComponentIgnoreCase(short_name, names):
   return utils.MatchNameComponent(short_name, names, case_sensitive=False)
 
 
+def _CheckInstanceDiskIvNames(disks):
+  """Checks if instance's disks' C{iv_name} attributes are in order.
+
+  @type disks: list of L{objects.Disk}
+  @param disks: List of disks
+  @rtype: list of tuples; (int, string, string)
+  @return: List of wrongly named disks, each tuple contains disk index,
+    expected and actual name
+
+  """
+  result = []
+
+  for (idx, disk) in enumerate(disks):
+    exp_iv_name = "disk/%s" % idx
+    if disk.iv_name != exp_iv_name:
+      result.append((idx, exp_iv_name, disk.iv_name))
+
+  return result
+
+
 class ConfigWriter:
   """The interface to the cluster configuration.
 
@@ -509,6 +529,15 @@ class ConfigWriter:
         result.extend(["instance '%s' disk %d error: %s" %
                        (instance.name, idx, msg) for msg in disk.Verify()])
         result.extend(self._CheckDiskIDs(disk, seen_lids, seen_pids))
+
+      wrong_names = _CheckInstanceDiskIvNames(instance.disks)
+      if wrong_names:
+        tmp = "; ".join(("name of disk %s should be '%s', but is '%s'" %
+                         (idx, exp_name, actual_name))
+                        for (idx, exp_name, actual_name) in wrong_names)
+
+        result.append("Instance '%s' has wrongly named disks: %s" %
+                      (instance.name, tmp))
 
     # cluster-wide pool of free ports
     for free_port in cluster.tcpudp_port_pool:

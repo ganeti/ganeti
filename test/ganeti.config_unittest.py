@@ -39,6 +39,7 @@ from ganeti import objects
 from ganeti import utils
 from ganeti import netutils
 from ganeti import compat
+from ganeti import cmdlib
 
 from ganeti.config import TemporaryReservationManager
 
@@ -380,6 +381,29 @@ class TestTRM(unittest.TestCase):
     self.assertRaises(errors.ReservationError, t.Reserve, 2, "a")
     t.DropECReservations(self.EC_ID)
     self.assertFalse(t.Reserved("a"))
+
+
+class TestCheckInstanceDiskIvNames(unittest.TestCase):
+  @staticmethod
+  def _MakeDisks(names):
+    return [objects.Disk(iv_name=name) for name in names]
+
+  def testNoError(self):
+    disks = self._MakeDisks(["disk/0", "disk/1"])
+    self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
+    cmdlib._UpdateIvNames(0, disks)
+    self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
+
+  def testWrongNames(self):
+    disks = self._MakeDisks(["disk/1", "disk/3", "disk/2"])
+    self.assertEqual(config._CheckInstanceDiskIvNames(disks), [
+      (0, "disk/0", "disk/1"),
+      (1, "disk/1", "disk/3"),
+      ])
+
+    # Fix names
+    cmdlib._UpdateIvNames(0, disks)
+    self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
 
 if __name__ == '__main__':
