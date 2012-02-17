@@ -552,7 +552,9 @@ def check_ident_key_val(option, opt, value):  # pylint: disable=W0613
       msg = "Cannot pass options when removing parameter groups: %s" % value
       raise errors.ParameterError(msg)
     retval = (ident[len(NO_PREFIX):], False)
-  elif ident.startswith(UN_PREFIX):
+  elif (ident.startswith(UN_PREFIX) and
+        (len(ident) <= len(UN_PREFIX) or
+         not ident[len(UN_PREFIX)][0].isdigit())):
     if rest:
       msg = "Cannot pass options when removing parameter groups: %s" % value
       raise errors.ParameterError(msg)

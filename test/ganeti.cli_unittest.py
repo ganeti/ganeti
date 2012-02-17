@@ -85,6 +85,7 @@ class TestSplitKeyVal(unittest.TestCase):
     """Test how we handle splitting an empty string"""
     self.failUnlessEqual(cli._SplitKeyVal("option", ""), {})
 
+
 class TestIdentKeyVal(unittest.TestCase):
   """Testing case for cli.check_ident_key_val"""
 
@@ -101,6 +102,17 @@ class TestIdentKeyVal(unittest.TestCase):
     self.assertRaises(ParameterError, cikv, "no_bar:foo=baz")
     self.assertEqual(cikv("-foo"), ("foo", None))
     self.assertRaises(ParameterError, cikv, "-foo:a=c")
+
+    # Check negative numbers
+    self.assertEqual(cikv("-1:remove"), ("-1", {
+      "remove": True,
+      }))
+    self.assertEqual(cikv("-29447:add,size=4G"), ("-29447", {
+      "add": True,
+      "size": "4G",
+      }))
+    for i in ["-:", "-"]:
+      self.assertEqual(cikv(i), ("", None))
 
 
 class TestToStream(unittest.TestCase):
