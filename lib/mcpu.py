@@ -404,8 +404,8 @@ class Processor(object):
     if not (resultcheck_fn is None or resultcheck_fn(result)):
       logging.error("Expected opcode result matching %s, got %s",
                     resultcheck_fn, result)
-      raise errors.OpResultError("Opcode result does not match %s, got %s" %
-                                 (resultcheck_fn, result[:80]))
+      raise errors.OpResultError("Opcode result does not match %s: %s" %
+                                 (resultcheck_fn, utils.Truncate(result, 80)))
 
     return result
 

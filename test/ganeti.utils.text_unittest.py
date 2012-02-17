@@ -545,5 +545,32 @@ class TestOrdinal(unittest.TestCase):
       self.assertEqual(utils.FormatOrdinal(value), ordinal)
 
 
+class TestTruncate(unittest.TestCase):
+  def _Test(self, text, length):
+    result = utils.Truncate(text, length)
+    self.assertTrue(len(result) <= length)
+    return result
+
+  def test(self):
+    self.assertEqual(self._Test("", 80), "")
+    self.assertEqual(self._Test("abc", 4), "abc")
+    self.assertEqual(self._Test("Hello World", 80), "Hello World")
+    self.assertEqual(self._Test("Hello World", 4), "H...")
+    self.assertEqual(self._Test("Hello World", 5), "He...")
+
+    for i in [4, 10, 100]:
+      data = i * "FooBarBaz"
+      self.assertEqual(self._Test(data, len(data)), data)
+
+    for (length, exp) in [(8, u"T\u00e4st\u2026xyz"), (7, u"T\u00e4st...")]:
+      self.assertEqual(self._Test(u"T\u00e4st\u2026xyz", length), exp)
+
+    self.assertEqual(self._Test(range(100), 20), "[0, 1, 2, 3, 4, 5...")
+
+  def testError(self):
+    for i in range(4):
+      self.assertRaises(AssertionError, utils.Truncate, "", i)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
