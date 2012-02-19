@@ -185,6 +185,18 @@ rejectAddTags t = any (`Map.member` t)
 conflictingPrimaries :: Node -> Int
 conflictingPrimaries (Node { pTags = t }) = Foldable.sum t - Map.size t
 
+-- | Helper function to increment a base value depending on the passed
+-- boolean argument.
+incIf :: (Num a) => Bool -> a -> a -> a
+incIf True  base delta = base + delta
+incIf False base _     = base
+
+-- | Helper function to decrement a base value depending on the passed
+-- boolean argument.
+decIf :: (Num a) => Bool -> a -> a -> a
+decIf True  base delta = base - delta
+decIf False base _     = base
+
 -- * Initialization functions
 
 -- | Create a new node.
@@ -336,14 +348,15 @@ setFmem t new_mem =
 removePri :: Node -> Instance.Instance -> Node
 removePri t inst =
   let iname = Instance.idx inst
+      i_online = Instance.instanceNotOffline inst
+      uses_disk = Instance.usesLocalStorage inst
       new_plist = delete iname (pList t)
-      new_mem = Instance.applyIfOnline inst (+ Instance.mem inst) (fMem t)
-      new_dsk = fDsk t + Instance.dsk inst
+      new_mem = incIf i_online (fMem t) (Instance.mem inst)
+      new_dsk = incIf uses_disk (fDsk t) (Instance.dsk inst)
       new_mp = fromIntegral new_mem / tMem t
       new_dp = fromIntegral new_dsk / tDsk t
       new_failn1 = new_mem <= rMem t
-      new_ucpu = Instance.applyIfOnline inst
-                 (\x -> x - Instance.vcpus inst) (uCpu t)
+      new_ucpu = decIf i_online (uCpu t) (Instance.vcpus inst)
       new_rcpu = fromIntegral new_ucpu / tCpu t
       new_load = utilLoad t `T.subUtil` Instance.util inst
   in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
@@ -355,17 +368,14 @@ removePri t inst =
 removeSec :: Node -> Instance.Instance -> Node
 removeSec t inst =
   let iname = Instance.idx inst
+      uses_disk = Instance.usesLocalStorage inst
       cur_dsk = fDsk t
       pnode = Instance.pNode inst
       new_slist = delete iname (sList t)
-      new_dsk = if Instance.usesLocalStorage inst
-                  then cur_dsk + Instance.dsk inst
-                  else cur_dsk
+      new_dsk = incIf uses_disk cur_dsk (Instance.dsk inst)
       old_peers = peers t
       old_peem = P.find pnode old_peers
-      new_peem =  if Instance.usesSecMem inst
-                    then old_peem - Instance.mem inst
-                    else old_peem
+      new_peem = decIf (Instance.usesSecMem inst) old_peem (Instance.mem inst)
       new_peers = if new_peem > 0
                     then P.add pnode new_peem old_peers
                     else P.remove pnode old_peers
@@ -399,15 +409,13 @@ addPriEx :: Bool               -- ^ Whether to override the N+1 and
                                -- or a failure mode
 addPriEx force t inst =
   let iname = Instance.idx inst
+      i_online = Instance.instanceNotOffline inst
       uses_disk = Instance.usesLocalStorage inst
       cur_dsk = fDsk t
-      new_mem = Instance.applyIfOnline inst
-                (\x -> x - Instance.mem inst) (fMem t)
-      new_dsk = if uses_disk
-                  then cur_dsk - Instance.dsk inst
-                  else cur_dsk
+      new_mem = decIf i_online (fMem t) (Instance.mem inst)
+      new_dsk = decIf uses_disk cur_dsk (Instance.dsk inst)
       new_failn1 = new_mem <= rMem t
-      new_ucpu = Instance.applyIfOnline inst (+ Instance.vcpus inst) (uCpu t)
+      new_ucpu = incIf i_online (uCpu t) (Instance.vcpus inst)
       new_pcpu = fromIntegral new_ucpu / tCpu t
       new_dp = fromIntegral new_dsk / tDsk t
       l_cpu = T.iPolicyVcpuRatio $ iPolicy t
