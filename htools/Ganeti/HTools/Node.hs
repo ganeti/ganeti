@@ -225,7 +225,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , peers = P.empty
        , rMem = 0
        , pMem = fromIntegral mem_f_init / mem_t_init
-       , pDsk = fromIntegral dsk_f_init / dsk_t_init
+       , pDsk = computePDsk dsk_f_init dsk_t_init
        , pRem = 0
        , pCpu = 0
        , offline = offline_init
@@ -341,6 +341,12 @@ setSec t inst = t { sList = Instance.idx inst:sList t
         new_spindles = instSpindles t + if Instance.usesLocalStorage inst
                                           then 1 else 0
 
+-- | Computes the new 'pDsk' value, handling nodes without local disk
+-- storage (we consider all their disk used).
+computePDsk :: Int -> Double -> Double
+computePDsk _    0     = 1
+computePDsk used total = fromIntegral used / total
+
 -- * Update functions
 
 -- | Sets the free memory.
@@ -361,7 +367,7 @@ removePri t inst =
       new_dsk = incIf uses_disk (fDsk t) (Instance.dsk inst)
       new_spindles = decIf uses_disk (instSpindles t) 1
       new_mp = fromIntegral new_mem / tMem t
-      new_dp = fromIntegral new_dsk / tDsk t
+      new_dp = computePDsk new_dsk (tDsk t)
       new_failn1 = new_mem <= rMem t
       new_ucpu = decIf i_online (uCpu t) (Instance.vcpus inst)
       new_rcpu = fromIntegral new_ucpu / tCpu t
@@ -395,7 +401,7 @@ removeSec t inst =
                    else computeMaxRes new_peers
       new_prem = fromIntegral new_rmem / tMem t
       new_failn1 = fMem t <= new_rmem
-      new_dp = fromIntegral new_dsk / tDsk t
+      new_dp = computePDsk new_dsk (tDsk t)
       old_load = utilLoad t
       new_load = old_load { T.dskWeight = T.dskWeight old_load -
                                           T.dskWeight (Instance.util inst) }
@@ -430,7 +436,7 @@ addPriEx force t inst =
       new_failn1 = new_mem <= rMem t
       new_ucpu = incIf i_online (uCpu t) (Instance.vcpus inst)
       new_pcpu = fromIntegral new_ucpu / tCpu t
-      new_dp = fromIntegral new_dsk / tDsk t
+      new_dp = computePDsk new_dsk (tDsk t)
       l_cpu = T.iPolicyVcpuRatio $ iPolicy t
       new_load = utilLoad t `T.addUtil` Instance.util inst
       inst_tags = Instance.tags inst
@@ -477,7 +483,7 @@ addSecEx force t inst pdx =
       new_rmem = max (rMem t) new_peem
       new_prem = fromIntegral new_rmem / tMem t
       new_failn1 = old_mem <= new_rmem
-      new_dp = fromIntegral new_dsk / tDsk t
+      new_dp = computePDsk new_dsk (tDsk t)
       old_load = utilLoad t
       new_load = old_load { T.dskWeight = T.dskWeight old_load +
                                           T.dskWeight (Instance.util inst) }
