@@ -853,10 +853,9 @@ prop_Text_CreateSerialise =
   forAll (choose (2, 10)) $ \count ->
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
-  let inst' = Instance.setMovable inst (reqnodes == 2)
-      nl = makeSmallCluster node count
+  let nl = makeSmallCluster node count
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
-     Cluster.iterateAlloc nl Container.empty (Just maxiter) inst' allocn [] []
+     Cluster.iterateAlloc nl Container.empty (Just maxiter) inst allocn [] []
      of
        Types.Bad msg -> failTest $ "Failed to allocate: " ++ msg
        Types.Ok (_, _, _, [], _) -> printTestCase

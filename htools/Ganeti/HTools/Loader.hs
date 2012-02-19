@@ -241,8 +241,7 @@ updateMovable :: [String]           -- ^ Selected instances (if not empty)
               -> Instance.Instance  -- ^ Target Instance
               -> Instance.Instance  -- ^ Target Instance with updated attribute
 updateMovable selinsts exinsts inst =
-  if Instance.sNode inst == Node.noSecondary ||
-     Instance.name inst `elem` exinsts ||
+  if Instance.name inst `elem` exinsts ||
      not (null selinsts || Instance.name inst `elem` selinsts)
     then Instance.setMovable inst False
     else inst
