@@ -28,6 +28,7 @@ module Main(main) where
 import Data.Char
 import Data.IORef
 import Data.List
+import Data.Maybe (fromMaybe)
 import System.Console.GetOpt ()
 import System.Environment (getArgs)
 import System.Exit
@@ -46,6 +47,7 @@ options =
   , oVerbose
   , oShowVer
   , oShowHelp
+  , oTestCount
   ]
 
 fast :: Args
@@ -141,8 +143,10 @@ transformTestOpts args opts = do
            case vs of
              [rng, size] -> return $ Just (read rng, read size)
              _ -> fail "Invalid state given"
-  return args { chatty = optVerbose opts > 1,
-                replay = r
+  return args { chatty = optVerbose opts > 1
+              , replay = r
+              , maxSuccess = fromMaybe (maxSuccess args) (optTestCount opts)
+              , maxDiscard = fromMaybe (maxDiscard args) (optTestCount opts)
               }
 
 main :: IO ()

@@ -74,6 +74,7 @@ module Ganeti.HTools.CLI
   , oShowHelp
   , oShowVer
   , oStdSpec
+  , oTestCount
   , oTieredSpec
   , oVerbose
   ) where
@@ -138,6 +139,7 @@ data Options = Options
   , optShowNodes   :: Maybe [String] -- ^ Whether to show node status
   , optShowVer     :: Bool           -- ^ Just show the program version
   , optStdSpec     :: Maybe RSpec    -- ^ Requested standard specs
+  , optTestCount   :: Maybe Int      -- ^ Optional test count override
   , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
   , optReplay      :: Maybe String   -- ^ Unittests: RNG state
   , optVerbose     :: Int            -- ^ Verbosity level
@@ -177,6 +179,7 @@ defaultOptions  = Options
   , optShowNodes   = Nothing
   , optShowVer     = False
   , optStdSpec     = Nothing
+  , optTestCount   = Nothing
   , optTieredSpec  = Nothing
   , optReplay      = Nothing
   , optVerbose     = 1
@@ -396,6 +399,14 @@ oStdSpec = Option "" ["standard-alloc"]
                         return $ opts { optStdSpec = Just tspec } )
               "STDSPEC")
              "enable standard specs allocation, given as 'disk,ram,cpu'"
+
+oTestCount :: OptType
+oTestCount = Option "" ["test-count"]
+             (ReqArg (\ inp opts -> do
+                        tcount <- tryRead "parsing test count" inp
+                        return $ opts { optTestCount = Just tcount } )
+              "COUNT")
+             "override the target test count"
 
 oTieredSpec :: OptType
 oTieredSpec = Option "" ["tiered-alloc"]
