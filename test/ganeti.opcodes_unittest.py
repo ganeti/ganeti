@@ -38,9 +38,6 @@ import testutils
 #: Unless an opcode is included in the following list it must have a result
 #: check of some sort
 MISSING_RESULT_CHECK = frozenset([
-  opcodes.OpBackupExport,
-  opcodes.OpBackupQuery,
-  opcodes.OpBackupRemove,
   opcodes.OpClusterQuery,
   opcodes.OpGroupQuery,
   opcodes.OpInstanceQuery,

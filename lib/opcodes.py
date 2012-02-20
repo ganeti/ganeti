@@ -1612,6 +1612,9 @@ class OpBackupQuery(OpCode):
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all nodes, node names otherwise"),
     ]
+  OP_RESULT = ht.TDictOf(ht.TNonEmptyString,
+                         ht.TOr(ht.Comment("False on error")(ht.TBool),
+                                ht.TListOf(ht.TNonEmptyString)))
 
 
 class OpBackupPrepare(OpCode):
@@ -1666,6 +1669,11 @@ class OpBackupExport(OpCode):
     ("destination_x509_ca", None, ht.TMaybeString,
      "Destination X509 CA (remote export only)"),
     ]
+  OP_RESULT = \
+    ht.TAnd(ht.TIsLength(2), ht.TItems([
+      ht.Comment("Finalizing status")(ht.TBool),
+      ht.Comment("Status for every exported disk")(ht.TListOf(ht.TBool)),
+      ]))
 
 
 class OpBackupRemove(OpCode):
@@ -1674,6 +1682,7 @@ class OpBackupRemove(OpCode):
   OP_PARAMS = [
     _PInstanceName,
     ]
+  OP_RESULT = ht.TNone
 
 
 # Tags opcodes
