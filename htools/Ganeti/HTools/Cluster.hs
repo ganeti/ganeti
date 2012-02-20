@@ -305,6 +305,7 @@ detailedCVInfo = [ (1,  "free_mem_cv")
                  , (1,  "disk_load_cv")
                  , (1,  "net_load_cv")
                  , (2,  "pri_tags_score")
+                 , (1,  "spindles_cv")
                  ]
 
 -- | Holds the weights used by 'compCVNodes' for each metric.
@@ -349,9 +350,11 @@ compDetailedCV all_nodes =
       -- metric: conflicting instance count
       pri_tags_inst = sum $ map Node.conflictingPrimaries nodes
       pri_tags_score = fromIntegral pri_tags_inst::Double
+      -- metric: spindles %
+      spindles_cv = map (\n -> Node.instSpindles n / Node.hiSpindles n) nodes
   in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, off_pri_score, cpu_cv
      , stdDev c_load, stdDev m_load , stdDev d_load, stdDev n_load
-     , pri_tags_score ]
+     , pri_tags_score, stdDev spindles_cv ]
 
 -- | Compute the /total/ variance.
 compCVNodes :: [Node.Node] -> Double
