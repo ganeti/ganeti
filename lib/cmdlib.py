@@ -196,9 +196,15 @@ class LogicalUnit(object):
     as values. Rules:
 
       - use an empty dict if you don't need any lock
-      - if you don't need any lock at a particular level omit that level
+      - if you don't need any lock at a particular level omit that
+        level (note that in this case C{DeclareLocks} won't be called
+        at all for that level)
+      - if you need locks at a level, but you can't calculate it in
+        this function, initialise that level with an empty list and do
+        further processing in L{LogicalUnit.DeclareLocks} (see that
+        function's docstring)
       - don't put anything for the BGL level
-      - if you want all locks at a level use locking.ALL_SET as a value
+      - if you want all locks at a level use L{locking.ALL_SET} as a value
 
     If you need to share locks (rather than acquire them exclusively) at one
     level you can modify self.share_locks, setting a true value (usually 1) for
@@ -245,7 +251,7 @@ class LogicalUnit(object):
     self.needed_locks for the level.
 
     @param level: Locking level which is going to be locked
-    @type level: member of ganeti.locking.LEVELS
+    @type level: member of L{ganeti.locking.LEVELS}
 
     """
 
