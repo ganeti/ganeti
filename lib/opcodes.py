@@ -193,6 +193,11 @@ _TDiskParams = \
   ht.Comment("Disk parameters")(ht.TDictOf(ht.TElemOf(constants.IDISK_PARAMS),
                                            ht.TOr(ht.TNonEmptyString, ht.TInt)))
 
+_TQueryRow = \
+  ht.TListOf(ht.TAnd(ht.TIsLength(2),
+                     ht.TItems([ht.TElemOf(constants.RS_ALL),
+                                ht.TAny])))
+
 _SUMMARY_PREFIX = {
   "CLUSTER_": "C_",
   "GROUP_": "G_",
@@ -914,9 +919,7 @@ class OpOobCommand(OpCode):
      "Time in seconds to wait between powering on nodes"),
     ]
   # Fixme: Make it more specific with all the special cases in LUOobCommand
-  OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(2),
-                                 ht.TItems([ht.TElemOf(constants.RS_ALL),
-                                            ht.TAny])))
+  OP_RESULT = ht.TListOf(_TQueryRow)
 
 
 # node opcodes
