@@ -323,17 +323,23 @@ setPri t inst = t { pList = Instance.idx inst:pList t
                   , pCpu = fromIntegral new_count / tCpu t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
                   , pTags = addTags (pTags t) (Instance.tags inst)
+                  , instSpindles = new_spindles
                   }
   where new_count = Instance.applyIfOnline inst (+ Instance.vcpus inst)
                     (uCpu t )
+        new_spindles = instSpindles t + if Instance.usesLocalStorage inst
+                                          then 1 else 0
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> Instance.Instance -> Node
 setSec t inst = t { sList = Instance.idx inst:sList t
                   , utilLoad = old_load { T.dskWeight = T.dskWeight old_load +
                                           T.dskWeight (Instance.util inst) }
+                  , instSpindles = new_spindles
                   }
   where old_load = utilLoad t
+        new_spindles = instSpindles t + if Instance.usesLocalStorage inst
+                                          then 1 else 0
 
 -- * Update functions
 
@@ -353,6 +359,7 @@ removePri t inst =
       new_plist = delete iname (pList t)
       new_mem = incIf i_online (fMem t) (Instance.mem inst)
       new_dsk = incIf uses_disk (fDsk t) (Instance.dsk inst)
+      new_spindles = decIf uses_disk (instSpindles t) 1
       new_mp = fromIntegral new_mem / tMem t
       new_dp = fromIntegral new_dsk / tDsk t
       new_failn1 = new_mem <= rMem t
@@ -362,7 +369,9 @@ removePri t inst =
   in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
        , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
        , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
-       , pTags = delTags (pTags t) (Instance.tags inst) }
+       , pTags = delTags (pTags t) (Instance.tags inst)
+       , instSpindles = new_spindles
+       }
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
@@ -373,6 +382,7 @@ removeSec t inst =
       pnode = Instance.pNode inst
       new_slist = delete iname (sList t)
       new_dsk = incIf uses_disk cur_dsk (Instance.dsk inst)
+      new_spindles = decIf uses_disk (instSpindles t) 1
       old_peers = peers t
       old_peem = P.find pnode old_peers
       new_peem = decIf (Instance.usesSecMem inst) old_peem (Instance.mem inst)
@@ -391,7 +401,9 @@ removeSec t inst =
                                           T.dskWeight (Instance.util inst) }
   in t { sList = new_slist, fDsk = new_dsk, peers = new_peers
        , failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp
-       , pRem = new_prem, utilLoad = new_load }
+       , pRem = new_prem, utilLoad = new_load
+       , instSpindles = new_spindles
+       }
 
 -- | Adds a primary instance (basic version).
 addPri :: Node -> Instance.Instance -> T.OpResult Node
@@ -414,6 +426,7 @@ addPriEx force t inst =
       cur_dsk = fDsk t
       new_mem = decIf i_online (fMem t) (Instance.mem inst)
       new_dsk = decIf uses_disk cur_dsk (Instance.dsk inst)
+      new_spindles = incIf uses_disk (instSpindles t) 1
       new_failn1 = new_mem <= rMem t
       new_ucpu = incIf i_online (uCpu t) (Instance.vcpus inst)
       new_pcpu = fromIntegral new_ucpu / tCpu t
@@ -427,6 +440,8 @@ addPriEx force t inst =
        _ | new_mem <= 0 -> T.OpFail T.FailMem
          | uses_disk && new_dsk <= 0 -> T.OpFail T.FailDisk
          | uses_disk && mDsk t > new_dp && strict -> T.OpFail T.FailDisk
+         | uses_disk && new_spindles > hiSpindles t
+             && strict -> T.OpFail T.FailDisk
          | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
          | l_cpu >= 0 && l_cpu < new_pcpu && strict -> T.OpFail T.FailCPU
          | rejectAddTags old_tags inst_tags -> T.OpFail T.FailTags
@@ -437,7 +452,9 @@ addPriEx force t inst =
                      , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
                      , uCpu = new_ucpu, pCpu = new_pcpu
                      , utilLoad = new_load
-                     , pTags = addTags old_tags inst_tags }
+                     , pTags = addTags old_tags inst_tags
+                     , instSpindles = new_spindles
+                     }
            in T.OpGood r
 
 -- | Adds a secondary instance (basic version).
@@ -451,6 +468,7 @@ addSecEx force t inst pdx =
       old_peers = peers t
       old_mem = fMem t
       new_dsk = fDsk t - Instance.dsk inst
+      new_spindles = instSpindles t + 1
       secondary_needed_mem = if Instance.usesSecMem inst
                                then Instance.mem inst
                                else 0
@@ -468,6 +486,7 @@ addSecEx force t inst pdx =
        _ | not (Instance.hasSecondary inst) -> T.OpFail T.FailDisk
          | new_dsk <= 0 -> T.OpFail T.FailDisk
          | mDsk t > new_dp && strict -> T.OpFail T.FailDisk
+         | new_spindles > hiSpindles t && strict -> T.OpFail T.FailDisk
          | secondary_needed_mem >= old_mem && strict -> T.OpFail T.FailMem
          | new_failn1 && not (failN1 t) && strict -> T.OpFail T.FailMem
          | otherwise ->
@@ -475,7 +494,9 @@ addSecEx force t inst pdx =
                r = t { sList = new_slist, fDsk = new_dsk
                      , peers = new_peers, failN1 = new_failn1
                      , rMem = new_rmem, pDsk = new_dp
-                     , pRem = new_prem, utilLoad = new_load }
+                     , pRem = new_prem, utilLoad = new_load
+                     , instSpindles = new_spindles
+                     }
            in T.OpGood r
 
 -- * Stats functions
