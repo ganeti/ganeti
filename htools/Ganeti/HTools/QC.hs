@@ -1077,6 +1077,23 @@ prop_Node_computeGroups nodes =
      length (nub onlyuuid) == length onlyuuid &&
      (null nodes || not (null ng))
 
+-- Check idempotence of add/remove operations
+prop_Node_addPri_idempotent =
+  forAll genOnlineNode $ \node ->
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  case Node.addPri node inst of
+    Types.OpGood node' -> Node.removePri node' inst ==? node
+    _ -> failTest "Can't add instance"
+
+prop_Node_addSec_idempotent =
+  forAll genOnlineNode $ \node ->
+  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  let pdx = Node.idx node + 1
+      inst' = Instance.setPri inst pdx
+  in case Node.addSec node inst' pdx of
+       Types.OpGood node' -> Node.removeSec node' inst' ==? node
+       _ -> failTest "Can't add instance"
+
 testSuite "Node"
             [ 'prop_Node_setAlias
             , 'prop_Node_setOffline
@@ -1093,6 +1110,8 @@ testSuite "Node"
             , 'prop_Node_tagMaps_reject
             , 'prop_Node_showField
             , 'prop_Node_computeGroups
+            , 'prop_Node_addPri_idempotent
+            , 'prop_Node_addSec_idempotent
             ]
 
 -- ** Cluster tests
