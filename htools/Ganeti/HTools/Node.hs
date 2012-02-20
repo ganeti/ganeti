@@ -348,7 +348,7 @@ setFmem t new_mem =
 removePri :: Node -> Instance.Instance -> Node
 removePri t inst =
   let iname = Instance.idx inst
-      i_online = Instance.instanceNotOffline inst
+      i_online = Instance.notOffline inst
       uses_disk = Instance.usesLocalStorage inst
       new_plist = delete iname (pList t)
       new_mem = incIf i_online (fMem t) (Instance.mem inst)
@@ -409,7 +409,7 @@ addPriEx :: Bool               -- ^ Whether to override the N+1 and
                                -- or a failure mode
 addPriEx force t inst =
   let iname = Instance.idx inst
-      i_online = Instance.instanceNotOffline inst
+      i_online = Instance.notOffline inst
       uses_disk = Instance.usesLocalStorage inst
       cur_dsk = fDsk t
       new_mem = decIf i_online (fMem t) (Instance.mem inst)

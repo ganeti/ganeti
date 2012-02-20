@@ -31,9 +31,9 @@ module Ganeti.HTools.Instance
   , AssocList
   , List
   , create
-  , instanceRunning
-  , instanceOffline
-  , instanceNotOffline
+  , isRunning
+  , isOffline
+  , notOffline
   , instanceDown
   , usesSecMem
   , applyIfOnline
@@ -89,36 +89,36 @@ instance T.Element Instance where
   allNames n = [name n, alias n]
 
 -- | Check if instance is running.
-instanceRunning :: Instance -> Bool
-instanceRunning (Instance {runSt = T.Running}) = True
-instanceRunning (Instance {runSt = T.ErrorUp}) = True
-instanceRunning _                              = False
+isRunning :: Instance -> Bool
+isRunning (Instance {runSt = T.Running}) = True
+isRunning (Instance {runSt = T.ErrorUp}) = True
+isRunning _                              = False
 
 -- | Check if instance is offline.
-instanceOffline :: Instance -> Bool
-instanceOffline (Instance {runSt = T.AdminOffline}) = True
-instanceOffline _                                   = False
+isOffline :: Instance -> Bool
+isOffline (Instance {runSt = T.AdminOffline}) = True
+isOffline _                                   = False
 
 
 -- | Helper to check if the instance is not offline.
-instanceNotOffline :: Instance -> Bool
-instanceNotOffline = not . instanceOffline
+notOffline :: Instance -> Bool
+notOffline = not . isOffline
 
 -- | Check if instance is down.
 instanceDown :: Instance -> Bool
-instanceDown inst | instanceRunning inst = False
-instanceDown inst | instanceOffline inst = False
-instanceDown _                           = True
+instanceDown inst | isRunning inst = False
+instanceDown inst | isOffline inst = False
+instanceDown _                     = True
 
 -- | Apply the function if the instance is online. Otherwise use
 -- the initial value
 applyIfOnline :: Instance -> (a -> a) -> a -> a
-applyIfOnline = applyIf . instanceNotOffline
+applyIfOnline = applyIf . notOffline
 
 -- | Helper for determining whether an instance's memory needs to be
 -- taken into account for secondary memory reservation.
 usesSecMem :: Instance -> Bool
-usesSecMem inst = instanceNotOffline inst && autoBalance inst
+usesSecMem inst = notOffline inst && autoBalance inst
 
 -- | Constant holding the local storage templates.
 --

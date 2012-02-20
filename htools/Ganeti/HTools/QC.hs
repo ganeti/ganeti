@@ -960,7 +960,7 @@ prop_Node_setMcpu node mc =
 -- rejected.
 prop_Node_addPriFM node inst =
   Instance.mem inst >= Node.fMem node && not (Node.failN1 node) &&
-  not (Instance.instanceOffline inst) ==>
+  not (Instance.isOffline inst) ==>
   case Node.addPri node inst'' of
     Types.OpFail Types.FailMem -> True
     _ -> False
@@ -980,7 +980,7 @@ prop_Node_addPriFD node inst =
 prop_Node_addPriFC =
   forAll (choose (1, maxCpu)) $ \extra ->
   forAll genOnlineNode $ \node ->
-  forAll (arbitrary `suchThat` Instance.instanceNotOffline) $ \inst ->
+  forAll (arbitrary `suchThat` Instance.notOffline) $ \inst ->
   let inst' = setInstanceSmallerThanNode node inst
       inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
   in case Node.addPri node inst'' of
@@ -991,7 +991,7 @@ prop_Node_addPriFC =
 -- rejected.
 prop_Node_addSec node inst pdx =
   ((Instance.mem inst >= (Node.fMem node - Node.rMem node) &&
-    not (Instance.instanceOffline inst)) ||
+    not (Instance.isOffline inst)) ||
    Instance.dsk inst >= Node.fDsk node) &&
   not (Node.failN1 node) ==>
       isFailure (Node.addSec node inst pdx)
@@ -1011,7 +1011,7 @@ prop_Node_addOffline (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
 
 -- | Checks for memory reservation changes.
 prop_Node_rMem inst =
-  not (Instance.instanceOffline inst) ==>
+  not (Instance.isOffline inst) ==>
   forAll (arbitrary `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
   -- ab = auto_balance, nb = non-auto_balance
   -- we use -1 as the primary node of the instance
