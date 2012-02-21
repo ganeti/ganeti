@@ -291,6 +291,9 @@ class ConfigObject(object):
       slots.extend(getattr(parent, "__slots__", []))
     return slots
 
+  #: Public getter for the defined slots
+  GetAllSlots = _all_slots
+
   def ToDict(self):
     """Convert to a dict holding only standard python types.
 

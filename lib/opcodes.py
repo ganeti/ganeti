@@ -39,6 +39,8 @@ import re
 from ganeti import constants
 from ganeti import errors
 from ganeti import ht
+from ganeti import objects
+from ganeti import query
 
 
 # Common opcode attributes
@@ -198,6 +200,13 @@ _TQueryRow = \
                      ht.TItems([ht.TElemOf(constants.RS_ALL),
                                 ht.TAny])))
 
+_TQueryResult = ht.TListOf(_TQueryRow)
+
+_TOldQueryRow = ht.TListOf(ht.TAny)
+
+_TOldQueryResult = ht.TListOf(_TOldQueryRow)
+
+
 _SUMMARY_PREFIX = {
   "CLUSTER_": "C_",
   "GROUP_": "G_",
@@ -231,6 +240,28 @@ def _NameToId(name):
   name = _OPID_RE.sub(r"\1,\2", name)
   elems = name.split(",")
   return "_".join(n.upper() for n in elems)
+
+
+def _GenerateObjectTypeCheck(obj, fields_types):
+  """Helper to generate type checks for objects.
+
+  @param obj: The object to generate type checks
+  @param fields_types: The fields and their types as a dict
+  @return: A ht type check function
+
+  """
+  assert set(obj.GetAllSlots()) == set(fields_types.keys()), \
+    "%s != %s" % (set(obj.GetAllSlots()), set(fields_types.keys()))
+  return ht.TStrictDict(True, True, fields_types)
+
+
+_TObjFdefs = \
+    _GenerateObjectTypeCheck(objects.QueryFieldDefinition, {
+      "name": ht.TRegex(query.FIELD_NAME_RE),
+      "title": ht.TRegex(query.TITLE_RE),
+      "kind": ht.TElemOf(constants.QFT_ALL),
+      "doc": ht.TRegex(query.DOC_RE),
+      })
 
 
 def RequireFileStorage():
@@ -642,6 +673,7 @@ class OpClusterDestroy(OpCode):
 
 class OpClusterQuery(OpCode):
   """Query cluster information."""
+  OP_RESULT = ht.TDictOf(ht.TNonEmptyString, ht.TAny)
 
 
 class OpClusterVerify(OpCode):
@@ -887,6 +919,11 @@ class OpQuery(OpCode):
     ("qfilter", None, ht.TOr(ht.TNone, ht.TListOf),
      "Query filter"),
     ]
+  OP_RESULT = \
+      _GenerateObjectTypeCheck(objects.QueryResponse, {
+        "fields": ht.TListOf(_TObjFdefs),
+        "data": _TQueryResult,
+        })
 
 
 class OpQueryFields(OpCode):
@@ -902,6 +939,10 @@ class OpQueryFields(OpCode):
     ("fields", None, ht.TMaybeListOf(ht.TNonEmptyString),
      "Requested fields; if not given, all are returned"),
     ]
+  OP_RESULT = \
+      _GenerateObjectTypeCheck(objects.QueryFieldsResponse, {
+        "fields": ht.TListOf(_TObjFdefs),
+        })
 
 
 class OpOobCommand(OpCode):
@@ -919,7 +960,7 @@ class OpOobCommand(OpCode):
      "Time in seconds to wait between powering on nodes"),
     ]
   # Fixme: Make it more specific with all the special cases in LUOobCommand
-  OP_RESULT = ht.TListOf(_TQueryRow)
+  OP_RESULT = _TQueryResult
 
 
 # node opcodes
@@ -993,6 +1034,7 @@ class OpNodeQuery(OpCode):
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all nodes, node names otherwise"),
     ]
+  OP_RESULT = _TOldQueryResult
 
 
 class OpNodeQueryvols(OpCode):
@@ -1013,6 +1055,7 @@ class OpNodeQueryStorage(OpCode):
     ("nodes", ht.EmptyList, ht.TListOf(ht.TNonEmptyString), "List of nodes"),
     ("name", None, ht.TMaybeString, "Storage name"),
     ]
+  OP_RESULT = _TOldQueryResult
 
 
 class OpNodeModifyStorage(OpCode):
@@ -1402,6 +1445,7 @@ class OpInstanceQuery(OpCode):
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all instances, instance names otherwise"),
     ]
+  OP_RESULT = _TOldQueryResult
 
 
 class OpInstanceQueryData(OpCode):
@@ -1414,6 +1458,7 @@ class OpInstanceQueryData(OpCode):
      "Whether to only return configuration data without querying"
      " nodes"),
     ]
+  OP_RESULT = ht.TDictOf(ht.TNonEmptyString, ht.TDict)
 
 
 def _TestInstSetParamsModList(fn):
@@ -1546,6 +1591,7 @@ class OpGroupQuery(OpCode):
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Empty list to query all groups, group names otherwise"),
     ]
+  OP_RESULT = _TOldQueryResult
 
 
 class OpGroupSetParams(OpCode):
@@ -1602,6 +1648,7 @@ class OpOsDiagnose(OpCode):
     ("names", ht.EmptyList, ht.TListOf(ht.TNonEmptyString),
      "Which operating systems to diagnose"),
     ]
+  OP_RESULT = _TOldQueryResult
 
 
 # Exports opcodes
