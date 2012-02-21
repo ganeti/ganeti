@@ -214,6 +214,42 @@ class _HttpClientToServerMessageReader(http.HttpMessageReader):
     return http.HttpClientToServerStartLine(method, path, version)
 
 
+def HandleServerRequest(handler, req_msg):
+  """Calls the handler function for the current request.
+
+  """
+  handler_context = _HttpServerRequest(req_msg.start_line.method,
+                                       req_msg.start_line.path,
+                                       req_msg.headers,
+                                       req_msg.body)
+
+  logging.debug("Handling request %r", handler_context)
+
+  try:
+    try:
+      # Authentication, etc.
+      handler.PreHandleRequest(handler_context)
+
+      # Call actual request handler
+      result = handler.HandleRequest(handler_context)
+    except (http.HttpException, KeyboardInterrupt, SystemExit):
+      raise
+    except Exception, err:
+      logging.exception("Caught exception")
+      raise http.HttpInternalServerError(message=str(err))
+    except:
+      logging.exception("Unknown exception")
+      raise http.HttpInternalServerError(message="Unknown error")
+
+    if not isinstance(result, basestring):
+      raise http.HttpError("Handler function didn't return string type")
+
+    return (http.HTTP_OK, handler_context.resp_headers, result)
+  finally:
+    # No reason to keep this any longer, even for exceptions
+    handler_context.private = None
+
+
 class HttpServerRequestExecutor(object):
   """Implements server side of HTTP.
 
@@ -286,7 +322,9 @@ class HttpServerRequestExecutor(object):
                 http.HTTP_HOST not in self.request_msg.headers):
               raise http.HttpBadRequest(message="Missing Host header")
 
-            self._HandleRequest()
+            (self.response_msg.start_line.code, self.response_msg.headers,
+             self.response_msg.body) = \
+              HandleServerRequest(self.server, self.request_msg)
 
             # Only wait for client to close if we didn't have any exception.
             force_close = False
@@ -320,43 +358,6 @@ class HttpServerRequestExecutor(object):
     self.response_msg.start_line.version = self.request_msg.start_line.version
 
     return request_msg_reader
-
-  def _HandleRequest(self):
-    """Calls the handler function for the current request.
-
-    """
-    handler_context = _HttpServerRequest(self.request_msg.start_line.method,
-                                         self.request_msg.start_line.path,
-                                         self.request_msg.headers,
-                                         self.request_msg.body)
-
-    logging.debug("Handling request %r", handler_context)
-
-    try:
-      try:
-        # Authentication, etc.
-        self.server.PreHandleRequest(handler_context)
-
-        # Call actual request handler
-        result = self.server.HandleRequest(handler_context)
-      except (http.HttpException, KeyboardInterrupt, SystemExit):
-        raise
-      except Exception, err:
-        logging.exception("Caught exception")
-        raise http.HttpInternalServerError(message=str(err))
-      except:
-        logging.exception("Unknown exception")
-        raise http.HttpInternalServerError(message="Unknown error")
-
-      if not isinstance(result, basestring):
-        raise http.HttpError("Handler function didn't return string type")
-
-      self.response_msg.start_line.code = http.HTTP_OK
-      self.response_msg.headers = handler_context.resp_headers
-      self.response_msg.body = result
-    finally:
-      # No reason to keep this any longer, even for exceptions
-      handler_context.private = None
 
   def _SendResponse(self):
     """Sends the response to the client.
