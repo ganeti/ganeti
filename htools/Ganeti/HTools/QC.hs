@@ -1012,7 +1012,7 @@ prop_Node_addOffline (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
 -- | Checks for memory reservation changes.
 prop_Node_rMem inst =
   not (Instance.isOffline inst) ==>
-  forAll (arbitrary `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
+  forAll (genOnlineNode `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
   -- ab = auto_balance, nb = non-auto_balance
   -- we use -1 as the primary node of the instance
   let inst' = inst { Instance.pNode = -1, Instance.autoBalance = True }
