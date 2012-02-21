@@ -38,10 +38,6 @@ import testutils
 #: Unless an opcode is included in the following list it must have a result
 #: check of some sort
 MISSING_RESULT_CHECK = frozenset([
-  opcodes.OpTagsDel,
-  opcodes.OpTagsGet,
-  opcodes.OpTagsSearch,
-  opcodes.OpTagsSet,
   opcodes.OpTestAllocator,
   opcodes.OpTestDelay,
   opcodes.OpTestDummy,

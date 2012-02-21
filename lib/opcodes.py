@@ -1741,6 +1741,7 @@ class OpTagsGet(OpCode):
     # Name is only meaningful for nodes and instances
     ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
+  OP_RESULT = ht.TListOf(ht.TNonEmptyString)
 
 
 class OpTagsSearch(OpCode):
@@ -1749,6 +1750,10 @@ class OpTagsSearch(OpCode):
   OP_PARAMS = [
     ("pattern", ht.NoDefault, ht.TNonEmptyString, None),
     ]
+  OP_RESULT = ht.TListOf(ht.TAnd(ht.TIsLength(2), ht.TItems([
+    ht.TNonEmptyString,
+    ht.TNonEmptyString,
+    ])))
 
 
 class OpTagsSet(OpCode):
@@ -1759,6 +1764,7 @@ class OpTagsSet(OpCode):
     # Name is only meaningful for nodes and instances
     ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
+  OP_RESULT = ht.TNone
 
 
 class OpTagsDel(OpCode):
@@ -1769,6 +1775,7 @@ class OpTagsDel(OpCode):
     # Name is only meaningful for nodes and instances
     ("name", ht.NoDefault, ht.TMaybeString, None),
     ]
+  OP_RESULT = ht.TNone
 
 
 # Test opcodes
