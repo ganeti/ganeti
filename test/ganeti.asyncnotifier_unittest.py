@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -72,6 +72,15 @@ class TestSingleFileEventHandler(testutils.GanetiTestCase):
                       for (wm, ih) in zip(self.wms, self.ihandler)]
     # TERM notifier is enabled by default, as we use it to get out of the loop
     self.ihandler[self.NOTIFIER_TERM].enable()
+
+  def tearDown(self):
+    # disable the inotifiers, before removing the files
+    for i in self.ihandler:
+      i.disable()
+    testutils.GanetiTestCase.tearDown(self)
+    # and unregister the fd's being polled
+    for n in self.notifiers:
+      n.del_channel()
 
   class OnInotifyCallback:
     def __init__(self, testobj, i):
