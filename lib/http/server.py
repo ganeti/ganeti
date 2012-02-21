@@ -276,11 +276,12 @@ class HttpServerRequestExecutor(object):
   READ_TIMEOUT = 10
   CLOSE_TIMEOUT = 1
 
-  def __init__(self, server, sock, client_addr):
+  def __init__(self, server, handler, sock, client_addr):
     """Initializes this class.
 
     """
     self.server = server
+    self.handler = handler
     self.sock = sock
     self.client_addr = client_addr
 
@@ -324,7 +325,7 @@ class HttpServerRequestExecutor(object):
 
             (self.response_msg.start_line.code, self.response_msg.headers,
              self.response_msg.body) = \
-              HandleServerRequest(self.server, self.request_msg)
+              HandleServerRequest(self.handler, self.request_msg)
 
             # Only wait for client to close if we didn't have any exception.
             force_close = False
@@ -363,6 +364,7 @@ class HttpServerRequestExecutor(object):
     """Sends the response to the client.
 
     """
+    # HttpMessage.start_line can be of different types, pylint: disable=E1103
     if self.response_msg.start_line.code is None:
       return
 
@@ -443,12 +445,10 @@ class HttpServerRequestExecutor(object):
 class HttpServer(http.HttpBase, asyncore.dispatcher):
   """Generic HTTP server class
 
-  Users of this class must subclass it and override the HandleRequest function.
-
   """
   MAX_CHILDREN = 20
 
-  def __init__(self, mainloop, local_address, port,
+  def __init__(self, mainloop, local_address, port, handler,
                ssl_params=None, ssl_verify_peer=False,
                request_executor_class=None):
     """Initializes the HTTP server
@@ -480,6 +480,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     self.mainloop = mainloop
     self.local_address = local_address
     self.port = port
+    self.handler = handler
     family = netutils.IPAddress.GetAddressFamily(local_address)
     self.socket = self._CreateSocket(ssl_params, ssl_verify_peer, family)
 
@@ -560,7 +561,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
         # In case the handler code uses temporary files
         utils.ResetTempfileModule()
 
-        self.request_executor(self, connection, client_addr)
+        self.request_executor(self, self.handler, connection, client_addr)
       except Exception: # pylint: disable=W0703
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])
@@ -569,6 +570,14 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     else:
       self._children.append(pid)
 
+
+class HttpServerHandler(object):
+  """Base class for handling HTTP server requests.
+
+  Users of this class must subclass it and override the L{HandleRequest}
+  function.
+
+  """
   def PreHandleRequest(self, req):
     """Called before handling a request.
 

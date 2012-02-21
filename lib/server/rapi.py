@@ -82,17 +82,17 @@ class JsonErrorRequestExecutor(http.server.HttpServerRequestExecutor):
     return serializer.DumpJson(values)
 
 
-class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
-                          http.server.HttpServer):
+class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
+                       http.server.HttpServerHandler):
   """REST Request Handler Class.
 
   """
   AUTH_REALM = "Ganeti Remote API"
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self):
     # pylint: disable=W0233
     # it seems pylint doesn't see the second parent class there
-    http.server.HttpServer.__init__(self, *args, **kwargs)
+    http.server.HttpServerHandler.__init__(self)
     http.auth.HttpServerRequestAuthentication.__init__(self)
     self._resmap = connector.Mapper()
     self._users = None
@@ -308,21 +308,19 @@ def PrepRapi(options, _):
   """Prep remote API function, executed with the PID file held.
 
   """
-
   mainloop = daemon.Mainloop()
-  server = RemoteApiHttpServer(mainloop, options.bind_address, options.port,
-                               ssl_params=options.ssl_params,
-                               ssl_verify_peer=False,
-                               request_executor_class=JsonErrorRequestExecutor)
+  handler = RemoteApiHandler()
 
   # Setup file watcher (it'll be driven by asyncore)
   SetupFileWatcher(constants.RAPI_USERS_FILE,
-                   compat.partial(server.LoadUsers, constants.RAPI_USERS_FILE))
+                   compat.partial(handler.LoadUsers, constants.RAPI_USERS_FILE))
 
-  server.LoadUsers(constants.RAPI_USERS_FILE)
+  handler.LoadUsers(constants.RAPI_USERS_FILE)
 
-  # pylint: disable=E1101
-  # it seems pylint doesn't see the second parent class there
+  server = \
+    http.server.HttpServer(mainloop, options.bind_address, options.port,
+      handler, ssl_params=options.ssl_params, ssl_verify_peer=False,
+      request_executor_class=JsonErrorRequestExecutor)
   server.Start()
 
   return (mainloop, server)

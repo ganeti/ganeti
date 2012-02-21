@@ -121,7 +121,7 @@ class MlockallRequestExecutor(http.server.HttpServerRequestExecutor):
     http.server.HttpServerRequestExecutor.__init__(self, *args, **kwargs)
 
 
-class NodeHttpServer(http.server.HttpServer):
+class NodeRequestHandler(http.server.HttpServerHandler):
   """The server implementation.
 
   This class holds all methods exposed over the RPC interface.
@@ -130,8 +130,8 @@ class NodeHttpServer(http.server.HttpServer):
   # too many public methods, and unused args - all methods get params
   # due to the API
   # pylint: disable=R0904,W0613
-  def __init__(self, *args, **kwargs):
-    http.server.HttpServer.__init__(self, *args, **kwargs)
+  def __init__(self):
+    http.server.HttpServerHandler.__init__(self)
     self.noded_pid = os.getpid()
 
   def HandleRequest(self, req):
@@ -1051,11 +1051,15 @@ def PrepNoded(options, _):
     # startup of the whole node daemon because of this
     logging.critical("Can't init/verify the queue, proceeding anyway: %s", err)
 
+  handler = NodeRequestHandler()
+
   mainloop = daemon.Mainloop()
-  server = NodeHttpServer(mainloop, options.bind_address, options.port,
-                          ssl_params=ssl_params, ssl_verify_peer=True,
-                          request_executor_class=request_executor_class)
+  server = \
+    http.server.HttpServer(mainloop, options.bind_address, options.port,
+      handler, ssl_params=ssl_params, ssl_verify_peer=True,
+      request_executor_class=request_executor_class)
   server.Start()
+
   return (mainloop, server)
 
 
