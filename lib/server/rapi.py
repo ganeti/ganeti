@@ -64,24 +64,6 @@ class RemoteApiRequestContext(object):
     self.body_data = None
 
 
-class JsonErrorRequestExecutor(http.server.HttpServerRequestExecutor):
-  """Custom Request Executor class that formats HTTP errors in JSON.
-
-  """
-  error_content_type = http.HTTP_APP_JSON
-
-  def _FormatErrorMessage(self, values):
-    """Formats the body of an error message.
-
-    @type values: dict
-    @param values: dictionary with keys code, message and explain.
-    @rtype: string
-    @return: the body of the message
-
-    """
-    return serializer.DumpJson(values)
-
-
 class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
                        http.server.HttpServerHandler):
   """REST Request Handler Class.
@@ -126,6 +108,18 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     self._users = users
 
     return True
+
+  @staticmethod
+  def FormatErrorMessage(values):
+    """Formats the body of an error message.
+
+    @type values: dict
+    @param values: dictionary with keys C{code}, C{message} and C{explain}.
+    @rtype: tuple; (string, string)
+    @return: Content-type and response body
+
+    """
+    return (http.HTTP_APP_JSON, serializer.DumpJson(values))
 
   def _GetRequestContext(self, req):
     """Returns the context for a request.
@@ -319,8 +313,7 @@ def PrepRapi(options, _):
 
   server = \
     http.server.HttpServer(mainloop, options.bind_address, options.port,
-      handler, ssl_params=options.ssl_params, ssl_verify_peer=False,
-      request_executor_class=JsonErrorRequestExecutor)
+      handler, ssl_params=options.ssl_params, ssl_verify_peer=False)
   server.Start()
 
   return (mainloop, server)

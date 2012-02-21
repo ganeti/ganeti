@@ -265,10 +265,6 @@ class HttpServerRequestExecutor(object):
   # Most web servers default to HTTP 0.9, i.e. don't send a status line.
   default_request_version = http.HTTP_0_9
 
-  # Error message settings
-  error_message_format = DEFAULT_ERROR_MESSAGE
-  error_content_type = DEFAULT_ERROR_CONTENT_TYPE
-
   responses = BaseHTTPServer.BaseHTTPRequestHandler.responses
 
   # Timeouts in seconds for socket layer
@@ -420,26 +416,18 @@ class HttpServerRequestExecutor(object):
       "explain": longmsg,
       }
 
-    self.response_msg.start_line.code = err.code
+    (content_type, body) = self.handler.FormatErrorMessage(values)
 
-    headers = {}
+    headers = {
+      http.HTTP_CONTENT_TYPE: content_type,
+      }
+
     if err.headers:
       headers.update(err.headers)
-    headers[http.HTTP_CONTENT_TYPE] = self.error_content_type
+
+    self.response_msg.start_line.code = err.code
     self.response_msg.headers = headers
-
-    self.response_msg.body = self._FormatErrorMessage(values)
-
-  def _FormatErrorMessage(self, values):
-    """Formats the body of an error message.
-
-    @type values: dict
-    @param values: dictionary with keys code, message and explain.
-    @rtype: string
-    @return: the body of the message
-
-    """
-    return self.error_message_format % values
+    self.response_msg.body = body
 
 
 class HttpServer(http.HttpBase, asyncore.dispatcher):
@@ -592,3 +580,15 @@ class HttpServerHandler(object):
 
     """
     raise NotImplementedError()
+
+  @staticmethod
+  def FormatErrorMessage(values):
+    """Formats the body of an error message.
+
+    @type values: dict
+    @param values: dictionary with keys C{code}, C{message} and C{explain}.
+    @rtype: tuple; (string, string)
+    @return: Content-type and response body
+
+    """
+    return (DEFAULT_ERROR_CONTENT_TYPE, DEFAULT_ERROR_MESSAGE % values)
