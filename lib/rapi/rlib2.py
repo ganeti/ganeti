@@ -1281,7 +1281,7 @@ class R_2_query_fields(baserlib.ResourceBase):
 
 
 class _R_Tags(baserlib.OpcodeResource):
-  """ Quasiclass for tagging resources
+  """Quasiclass for tagging resources.
 
   Manages tags. When inheriting this class you must define the
   TAG_LEVEL for it.

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -469,33 +469,33 @@ class OpcodeResource(ResourceBase):
   is defined at class level. Subclasses can define a C{Get$Method$OpInput}
   method to do their own opcode input processing (e.g. for static values). The
   C{$METHOD$_RENAME} variable defines which values are renamed (see
-  L{FillOpcode}).
+  L{baserlib.FillOpcode}).
 
   @cvar GET_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
     automatically generate a GET handler submitting the opcode
   @cvar GET_RENAME: Set this to rename parameters in the GET handler (see
-    L{FillOpcode})
+    L{baserlib.FillOpcode})
   @ivar GetGetOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
   @cvar PUT_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
     automatically generate a PUT handler submitting the opcode
   @cvar PUT_RENAME: Set this to rename parameters in the PUT handler (see
-    L{FillOpcode})
+    L{baserlib.FillOpcode})
   @ivar GetPutOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
   @cvar POST_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
     automatically generate a POST handler submitting the opcode
   @cvar POST_RENAME: Set this to rename parameters in the DELETE handler (see
-    L{FillOpcode})
+    L{baserlib.FillOpcode})
   @ivar GetPostOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
   @cvar DELETE_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
     automatically generate a GET handler submitting the opcode
   @cvar DELETE_RENAME: Set this to rename parameters in the DELETE handler (see
-    L{FillOpcode})
+    L{baserlib.FillOpcode})
   @ivar GetDeleteOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
