@@ -171,7 +171,7 @@ class ConfdClient:
     """
     if now is None:
       now = time.time()
-    tstamp = '%d' % now
+    tstamp = "%d" % now
     req = serializer.DumpSignedJson(request.ToDict(), self._hmac_key, tstamp)
     return confd.PackMagic(req)
 

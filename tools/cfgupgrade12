@@ -57,26 +57,26 @@ NoDefault = object()
 
 # Dictionary with instance old keys, and new hypervisor keys
 INST_HV_CHG = {
-  'hvm_pae': constants.HV_PAE,
-  'vnc_bind_address': constants.HV_VNC_BIND_ADDRESS,
-  'initrd_path': constants.HV_INITRD_PATH,
-  'hvm_nic_type': constants.HV_NIC_TYPE,
-  'kernel_path': constants.HV_KERNEL_PATH,
-  'hvm_acpi': constants.HV_ACPI,
-  'hvm_cdrom_image_path': constants.HV_CDROM_IMAGE_PATH,
-  'hvm_boot_order': constants.HV_BOOT_ORDER,
-  'hvm_disk_type': constants.HV_DISK_TYPE,
+  "hvm_pae": constants.HV_PAE,
+  "vnc_bind_address": constants.HV_VNC_BIND_ADDRESS,
+  "initrd_path": constants.HV_INITRD_PATH,
+  "hvm_nic_type": constants.HV_NIC_TYPE,
+  "kernel_path": constants.HV_KERNEL_PATH,
+  "hvm_acpi": constants.HV_ACPI,
+  "hvm_cdrom_image_path": constants.HV_CDROM_IMAGE_PATH,
+  "hvm_boot_order": constants.HV_BOOT_ORDER,
+  "hvm_disk_type": constants.HV_DISK_TYPE,
   }
 
 # Instance beparams changes
 INST_BE_CHG = {
-  'vcpus': constants.BE_VCPUS,
-  'memory': constants.BE_MEMORY,
-  'auto_balance': constants.BE_AUTO_BALANCE,
+  "vcpus": constants.BE_VCPUS,
+  "memory": constants.BE_MEMORY,
+  "auto_balance": constants.BE_AUTO_BALANCE,
   }
 
 # Field names
-F_SERIAL = 'serial_no'
+F_SERIAL = "serial_no"
 
 
 class Error(Exception):
@@ -97,7 +97,7 @@ def ReadFile(file_name, default=NoDefault):
   """
   logging.debug("Reading %s", file_name)
   try:
-    fh = open(file_name, 'r')
+    fh = open(file_name, "r")
   except IOError, err:
     if default is not NoDefault and err.errno == errno.ENOENT:
       return default
@@ -161,17 +161,17 @@ def Cluster12To20(cluster):
   """
   logging.info("Upgrading the cluster object")
   # Upgrade the configuration version
-  if 'config_version' in cluster:
-    del cluster['config_version']
+  if "config_version" in cluster:
+    del cluster["config_version"]
 
   # Add old ssconf keys back to config
   logging.info(" - importing ssconf keys")
-  for key in ('master_node', 'master_ip', 'master_netdev', 'cluster_name'):
+  for key in ("master_node", "master_ip", "master_netdev", "cluster_name"):
     if key not in cluster:
       cluster[key] = ReadFile(SsconfName(key)).strip()
 
-  if 'default_hypervisor' not in cluster:
-    old_hyp = ReadFile(SsconfName('hypervisor')).strip()
+  if "default_hypervisor" not in cluster:
+    old_hyp = ReadFile(SsconfName("hypervisor")).strip()
     if old_hyp == "xen-3.0":
       hyp = "xen-pvm"
     elif old_hyp == "xen-hvm-3.1":
@@ -182,24 +182,24 @@ def Cluster12To20(cluster):
       raise Error("Unknown old hypervisor name '%s'" % old_hyp)
 
     logging.info("Setting the default and enabled hypervisor")
-    cluster['default_hypervisor'] = hyp
-    cluster['enabled_hypervisors'] = [hyp]
+    cluster["default_hypervisor"] = hyp
+    cluster["enabled_hypervisors"] = [hyp]
 
   # hv/be params
-  if 'hvparams' not in cluster:
+  if "hvparams" not in cluster:
     logging.info(" - adding hvparams")
-    cluster['hvparams'] = constants.HVC_DEFAULTS
-  if 'beparams' not in cluster:
+    cluster["hvparams"] = constants.HVC_DEFAULTS
+  if "beparams" not in cluster:
     logging.info(" - adding beparams")
-    cluster['beparams'] = {constants.PP_DEFAULT: constants.BEC_DEFAULTS}
+    cluster["beparams"] = {constants.PP_DEFAULT: constants.BEC_DEFAULTS}
 
   # file storage
-  if 'file_storage_dir' not in cluster:
-    cluster['file_storage_dir'] = constants.DEFAULT_FILE_STORAGE_DIR
+  if "file_storage_dir" not in cluster:
+    cluster["file_storage_dir"] = constants.DEFAULT_FILE_STORAGE_DIR
 
   # candidate pool size
-  if 'candidate_pool_size' not in cluster:
-    cluster['candidate_pool_size'] = constants.MASTER_POOL_SIZE_DEFAULT
+  if "candidate_pool_size" not in cluster:
+    cluster["candidate_pool_size"] = constants.MASTER_POOL_SIZE_DEFAULT
 
 
 def Node12To20(node):
@@ -209,9 +209,9 @@ def Node12To20(node):
   logging.info("Upgrading node %s", node['name'])
   if F_SERIAL not in node:
     node[F_SERIAL] = 1
-  if 'master_candidate' not in node:
-    node['master_candidate'] = True
-  for key in 'offline', 'drained':
+  if "master_candidate" not in node:
+    node["master_candidate"] = True
+  for key in "offline", "drained":
     if key not in node:
       node[key] = False
 
@@ -223,12 +223,12 @@ def Instance12To20(drbd_minors, secrets, hypervisor, instance):
   if F_SERIAL not in instance:
     instance[F_SERIAL] = 1
 
-  if 'hypervisor' not in instance:
-    instance['hypervisor'] = hypervisor
+  if "hypervisor" not in instance:
+    instance["hypervisor"] = hypervisor
 
   # hvparams changes
-  if 'hvparams' not in instance:
-    instance['hvparams'] = hvp = {}
+  if "hvparams" not in instance:
+    instance["hvparams"] = hvp = {}
   for old, new in INST_HV_CHG.items():
     if old in instance:
       if (instance[old] is not None and
@@ -238,8 +238,8 @@ def Instance12To20(drbd_minors, secrets, hypervisor, instance):
       del instance[old]
 
   # beparams changes
-  if 'beparams' not in instance:
-    instance['beparams'] = bep = {}
+  if "beparams" not in instance:
+    instance["beparams"] = bep = {}
   for old, new in INST_BE_CHG.items():
     if old in instance:
       if instance[old] is not None:
@@ -247,23 +247,23 @@ def Instance12To20(drbd_minors, secrets, hypervisor, instance):
       del instance[old]
 
   # disk changes
-  for disk in instance['disks']:
+  for disk in instance["disks"]:
     Disk12To20(drbd_minors, secrets, disk)
 
   # other instance changes
-  if 'status' in instance:
-    instance['admin_up'] = instance['status'] == 'up'
-    del instance['status']
+  if "status" in instance:
+    instance["admin_up"] = instance["status"] == "up"
+    del instance["status"]
 
 
 def Disk12To20(drbd_minors, secrets, disk):
   """Upgrades a disk from 1.2 to 2.0.
 
   """
-  if 'mode' not in disk:
-    disk['mode'] = constants.DISK_RDWR
-  if disk['dev_type'] == constants.LD_DRBD8:
-    old_lid = disk['logical_id']
+  if "mode" not in disk:
+    disk["mode"] = constants.DISK_RDWR
+  if disk["dev_type"] == constants.LD_DRBD8:
+    old_lid = disk["logical_id"]
     for node in old_lid[:2]:
       if node not in drbd_minors:
         raise Error("Can't find node '%s' while upgrading disk" % node)
@@ -271,9 +271,9 @@ def Disk12To20(drbd_minors, secrets, disk):
       minor = drbd_minors[node]
       old_lid.append(minor)
     old_lid.append(GenerateSecret(secrets))
-    del disk['physical_id']
-  if disk['children']:
-    for child in disk['children']:
+    del disk["physical_id"]
+  if disk["children"]:
+    for child in disk["children"]:
       Disk12To20(drbd_minors, secrets, child)
 
 
@@ -288,14 +288,14 @@ def main():
 
   # Option parsing
   parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")
-  parser.add_option('--dry-run', dest='dry_run',
+  parser.add_option("--dry-run", dest="dry_run",
                     action="store_true",
                     help="Try to do the conversion, but don't write"
                          " output file")
   parser.add_option(cli.FORCE_OPT)
   parser.add_option(cli.DEBUG_OPT)
   parser.add_option(cli.VERBOSE_OPT)
-  parser.add_option('--path', help="Convert configuration in this"
+  parser.add_option("--path", help="Convert configuration in this"
                     " directory instead of '%s'" % constants.DATA_DIR,
                     default=constants.DATA_DIR, dest="data_dir")
   (options, args) = parser.parse_args()
@@ -327,7 +327,7 @@ def main():
     raise Error(("%s does not seem to be a known Ganeti configuration"
                  " directory") % options.data_dir)
 
-  config_version = ReadFile(SsconfName('config_version'), "1.2").strip()
+  config_version = ReadFile(SsconfName("config_version"), "1.2").strip()
   logging.info("Found configuration version %s", config_version)
 
   config_data = serializer.LoadJson(ReadFile(options.CONFIG_DATA_PATH))
@@ -343,8 +343,8 @@ def main():
     if old_config_version not in (3, ):
       raise Error("Unsupported configuration version: %s" %
                   old_config_version)
-    if 'version' not in config_data:
-      config_data['version'] = constants.BuildVersion(2, 0, 0)
+    if "version" not in config_data:
+      config_data["version"] = constants.BuildVersion(2, 0, 0)
     if F_SERIAL not in config_data:
       config_data[F_SERIAL] = 1
 
@@ -361,8 +361,8 @@ def main():
                   " instances using remote_raid1 disk template")
 
     # Build content of new known_hosts file
-    cluster_name = ReadFile(SsconfName('cluster_name')).rstrip()
-    cluster_key = cluster['rsahostkeypub']
+    cluster_name = ReadFile(SsconfName("cluster_name")).rstrip()
+    cluster_key = cluster["rsahostkeypub"]
     known_hosts = "%s ssh-rsa %s\n" % (cluster_name, cluster_key)
 
     Cluster12To20(cluster)
@@ -370,17 +370,17 @@ def main():
     # Add node attributes
     logging.info("Upgrading nodes")
     # stable-sort the names to have repeatable runs
-    for node_name in utils.NiceSort(config_data['nodes'].keys()):
-      Node12To20(config_data['nodes'][node_name])
+    for node_name in utils.NiceSort(config_data["nodes"].keys()):
+      Node12To20(config_data["nodes"][node_name])
 
     # Instance changes
     logging.info("Upgrading instances")
-    drbd_minors = dict.fromkeys(config_data['nodes'], 0)
+    drbd_minors = dict.fromkeys(config_data["nodes"], 0)
     secrets = set()
     # stable-sort the names to have repeatable runs
-    for instance_name in utils.NiceSort(config_data['instances'].keys()):
-      Instance12To20(drbd_minors, secrets, cluster['default_hypervisor'],
-                     config_data['instances'][instance_name])
+    for instance_name in utils.NiceSort(config_data["instances"].keys()):
+      Instance12To20(drbd_minors, secrets, cluster["default_hypervisor"],
+                     config_data["instances"][instance_name])
 
   else:
     logging.info("Found a Ganeti 2.0 configuration")

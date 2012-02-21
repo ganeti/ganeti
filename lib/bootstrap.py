@@ -666,7 +666,7 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                (constants.DAEMON_UTIL, constants.DAEMON_UTIL, constants.NODED,
                 utils.ShellQuote(bind_address)))
 
-  result = sshrunner.Run(node, 'root', mycommand, batch=False,
+  result = sshrunner.Run(node, "root", mycommand, batch=False,
                          ask_key=ssh_key_check,
                          use_cluster_key=True,
                          strict_host_check=ssh_key_check)
@@ -708,7 +708,7 @@ def MasterFailover(no_voting=False):
                                " as master candidates. Only these nodes"
                                " can become masters. Current list of"
                                " master candidates is:\n"
-                               "%s" % ('\n'.join(mc_no_master)),
+                               "%s" % ("\n".join(mc_no_master)),
                                errors.ECODE_STATE)
 
   if not no_voting:

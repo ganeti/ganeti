@@ -208,7 +208,7 @@ def IsPartitioned(disk):
   Currently only md devices are used as is.
 
   """
-  return not (disk.startswith('md') or PART_RE.match(disk))
+  return not (disk.startswith("md") or PART_RE.match(disk))
 
 
 def DeviceName(disk):
@@ -219,9 +219,9 @@ def DeviceName(disk):
 
   """
   if IsPartitioned(disk):
-    device = '/dev/%s1' % disk
+    device = "/dev/%s1" % disk
   else:
-    device = '/dev/%s' % disk
+    device = "/dev/%s" % disk
   return device
 
 
@@ -268,7 +268,7 @@ def CheckPrereq():
     raise PrereqError("This tool runs as root only. Really.")
 
   osname, _, release, _, _ = os.uname()
-  if osname != 'Linux':
+  if osname != "Linux":
     raise PrereqError("This tool only runs on Linux"
                       " (detected OS: %s)." % osname)
 

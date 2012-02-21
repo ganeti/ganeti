@@ -116,7 +116,7 @@ class WatcherState(object):
     fd = utils.WriteFile(filename,
                          data=serialized_form,
                          prewrite=utils.LockFile, close=False)
-    self.statefile = os.fdopen(fd, 'w+')
+    self.statefile = os.fdopen(fd, "w+")
 
   def Close(self):
     """Unlock configuration file and close it.

@@ -34,7 +34,7 @@ def PackMagic(payload):
   """Prepend the confd magic fourcc to a payload.
 
   """
-  return ''.join([constants.CONFD_MAGIC_FOURCC, payload])
+  return "".join([constants.CONFD_MAGIC_FOURCC, payload])
 
 
 def UnpackMagic(payload):

@@ -197,7 +197,7 @@ class Merger(object):
         raise errors.RemoteError("Unable to retrieve list of nodes from %s."
                                  " Fail reason: %s; output: %s" %
                                  (cluster, result.fail_reason, result.output))
-      nodes_statuses = [line.split(',') for line in result.stdout.splitlines()]
+      nodes_statuses = [line.split(",") for line in result.stdout.splitlines()]
       nodes = [node_status[0] for node_status in nodes_statuses
                if node_status[1] == "N"]
 

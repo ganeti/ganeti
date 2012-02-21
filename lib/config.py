@@ -1839,8 +1839,8 @@ class ConfigWriter:
     # Make sure the configuration has the right version
     _ValidateConfig(data)
 
-    if (not hasattr(data, 'cluster') or
-        not hasattr(data.cluster, 'rsahostkeypub')):
+    if (not hasattr(data, "cluster") or
+        not hasattr(data.cluster, "rsahostkeypub")):
       raise errors.ConfigurationError("Incomplete configuration"
                                       " (missing cluster.rsahostkeypub)")
 

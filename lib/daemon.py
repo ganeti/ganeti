@@ -382,7 +382,7 @@ class AsyncUDPSocket(GanetiBaseAsyncoreDispatcher):
 
     """
     if len(payload) > constants.MAX_UDP_DATA_SIZE:
-      raise errors.UdpDataSizeError('Packet too big: %s > %s' % (len(payload),
+      raise errors.UdpDataSizeError("Packet too big: %s > %s" % (len(payload),
                                     constants.MAX_UDP_DATA_SIZE))
     self._out_queue.append((ip, port, payload))
 

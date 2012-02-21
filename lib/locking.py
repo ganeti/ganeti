@@ -1465,7 +1465,7 @@ LEVEL_NAMES = {
   }
 
 # Constant for the big ganeti lock
-BGL = 'BGL'
+BGL = "BGL"
 
 
 class GanetiLockManager:

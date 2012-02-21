@@ -104,16 +104,16 @@ VS_TYPE = {
 
 # AllocationUnits values and conversion
 ALLOCATION_UNITS = {
-  'b': ["bytes", "b"],
-  'kb': ["kilobytes", "kb", "byte * 2^10", "kibibytes", "kib"],
-  'mb': ["megabytes", "mb", "byte * 2^20", "mebibytes", "mib"],
-  'gb': ["gigabytes", "gb", "byte * 2^30", "gibibytes", "gib"],
+  "b": ["bytes", "b"],
+  "kb": ["kilobytes", "kb", "byte * 2^10", "kibibytes", "kib"],
+  "mb": ["megabytes", "mb", "byte * 2^20", "mebibytes", "mib"],
+  "gb": ["gigabytes", "gb", "byte * 2^30", "gibibytes", "gib"],
 }
 CONVERT_UNITS_TO_MB = {
-  'b': lambda x: x / (1024 * 1024),
-  'kb': lambda x: x / 1024,
-  'mb': lambda x: x,
-  'gb': lambda x: x * 1024,
+  "b": lambda x: x / (1024 * 1024),
+  "kb": lambda x: x / 1024,
+  "mb": lambda x: x,
+  "gb": lambda x: x * 1024,
 }
 
 # Names of the config fields

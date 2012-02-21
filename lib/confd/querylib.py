@@ -63,7 +63,7 @@ class ConfdQuery(object):
 
     """
     status = constants.CONFD_REPL_STATUS_NOTIMPLEMENTED
-    answer = 'not implemented'
+    answer = "not implemented"
     return status, answer
 
 
@@ -80,10 +80,10 @@ class PingQuery(ConfdQuery):
     """
     if query is None:
       status = constants.CONFD_REPL_STATUS_OK
-      answer = 'ok'
+      answer = "ok"
     else:
       status = constants.CONFD_REPL_STATUS_ERROR
-      answer = 'non-empty ping query'
+      answer = "non-empty ping query"
 
     return status, answer
 

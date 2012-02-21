@@ -657,9 +657,9 @@ class RpcRunner(_RpcClientBase,
     if osp is not None:
       idict["osparams"].update(osp)
     for nic in idict["nics"]:
-      nic['nicparams'] = objects.FillDict(
+      nic["nicparams"] = objects.FillDict(
         cluster.nicparams[constants.PP_DEFAULT],
-        nic['nicparams'])
+        nic["nicparams"])
     return idict
 
   def _InstDictHvpBep(self, (instance, hvp, bep)):

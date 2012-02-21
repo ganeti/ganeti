@@ -92,7 +92,7 @@ class ConfdProcessor(object):
 
     """
     if self.disabled:
-      logging.debug('Confd is disabled. Ignoring query.')
+      logging.debug("Confd is disabled. Ignoring query.")
       return
     try:
       request = self.ExtractRequest(payload_in)
@@ -100,7 +100,7 @@ class ConfdProcessor(object):
       payload_out = self.PackReply(reply, rsalt)
       return payload_out
     except errors.ConfdRequestError, err:
-      logging.info('Ignoring broken query from %s:%d: %s', ip, port, err)
+      logging.info("Ignoring broken query from %s:%d: %s", ip, port, err)
       return None
 
   def ExtractRequest(self, payload):
@@ -130,7 +130,7 @@ class ConfdProcessor(object):
     try:
       request = objects.ConfdRequest.FromDict(message)
     except AttributeError, err:
-      raise errors.ConfdRequestError('%s' % err)
+      raise errors.ConfdRequestError(str(err))
 
     return request
 

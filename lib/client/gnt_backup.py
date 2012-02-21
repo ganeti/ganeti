@@ -120,22 +120,22 @@ import_opts = [
 
 
 commands = {
-  'list': (
+  "list": (
     PrintExportList, ARGS_NONE,
     [NODE_LIST_OPT],
     "", "Lists instance exports available in the ganeti cluster"),
-  'export': (
+  "export": (
     ExportInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT, SHUTDOWN_TIMEOUT_OPT,
      REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT, DRY_RUN_OPT,
      PRIORITY_OPT],
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
-  'import': (
+  "import": (
     ImportInstance, ARGS_ONE_INSTANCE, COMMON_CREATE_OPTS + import_opts,
     "[...] -t disk-type -n node[:secondary-node] <name>",
     "Imports an instance from an exported image"),
-  'remove': (
+  "remove": (
     RemoveExport, [ArgUnknown(min=1, max=1)], [DRY_RUN_OPT, PRIORITY_OPT],
     "<name>", "Remove exports of named instance from the filesystem."),
   }

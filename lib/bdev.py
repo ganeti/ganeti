@@ -1218,10 +1218,10 @@ class DRBD8(BaseDRBD):
     defa = pyp.Literal("_is_default").suppress()
     dbl_quote = pyp.Literal('"').suppress()
 
-    keyword = pyp.Word(pyp.alphanums + '-')
+    keyword = pyp.Word(pyp.alphanums + "-")
 
     # value types
-    value = pyp.Word(pyp.alphanums + '_-/.:')
+    value = pyp.Word(pyp.alphanums + "_-/.:")
     quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
     ipv4_addr = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
                  pyp.Word(pyp.nums + ".") + colon + number)

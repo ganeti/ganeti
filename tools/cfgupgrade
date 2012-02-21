@@ -97,7 +97,7 @@ def main():
 
   # Option parsing
   parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")
-  parser.add_option('--dry-run', dest='dry_run',
+  parser.add_option("--dry-run", dest="dry_run",
                     action="store_true",
                     help="Try to do the conversion, but don't write"
                          " output file")
@@ -107,7 +107,7 @@ def main():
   parser.add_option("--ignore-hostname", dest="ignore_hostname",
                     action="store_true", default=False,
                     help="Don't abort if hostname doesn't match")
-  parser.add_option('--path', help="Convert configuration in this"
+  parser.add_option("--path", help="Convert configuration in this"
                     " directory instead of '%s'" % constants.DATA_DIR,
                     default=constants.DATA_DIR, dest="data_dir")
   parser.add_option("--no-verify",

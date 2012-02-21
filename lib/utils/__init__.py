@@ -287,7 +287,7 @@ def GetHomeDir(user, default=None):
 
   The user can be passed either as a string (denoting the name) or as
   an integer (denoting the user id). If the user is not found, the
-  'default' argument is returned, which defaults to None.
+  C{default} argument is returned, which defaults to C{None}.
 
   """
   try:
