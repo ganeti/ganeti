@@ -111,8 +111,7 @@ def _DecodeImportExportIO(ieio, ieioargs):
 
 
 class MlockallRequestExecutor(http.server.HttpServerRequestExecutor):
-  """Custom Request Executor class that ensures NodeHttpServer children are
-  locked in ram.
+  """Subclass ensuring request handlers are locked in RAM.
 
   """
   def __init__(self, *args, **kwargs):
