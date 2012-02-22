@@ -667,7 +667,9 @@ command::
 
   $ gnt-instance recreate-disks %INSTANCE%
 
-Note that this will fail if the disks already exists.
+Note that this will fail if the disks already exists. The instance can
+be assigned to new nodes automatically by specifying an iallocator
+through the ``--iallocator`` option.
 
 Conversion of an instance's disk type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

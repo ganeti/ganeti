@@ -630,6 +630,9 @@ def RecreateDisks(opts, args):
     # LUInstanceRecreateDisks, but it'd be nice to have in the client)
 
   if opts.node:
+    if opts.iallocator:
+      msg = "At most one of either --nodes or --iallocator can be passed"
+      raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
     pnode, snode = SplitNodeOption(opts.node)
     nodes = [pnode]
     if snode is not None:
@@ -638,7 +641,8 @@ def RecreateDisks(opts, args):
     nodes = []
 
   op = opcodes.OpInstanceRecreateDisks(instance_name=instance_name,
-                                       disks=disks, nodes=nodes)
+                                       disks=disks, nodes=nodes,
+                                       iallocator=opts.iallocator)
   SubmitOrSend(op, opts)
 
   return 0
@@ -1638,7 +1642,8 @@ commands = {
     "[-f] <instance>", "Deactivate an instance's disks"),
   "recreate-disks": (
     RecreateDisks, ARGS_ONE_INSTANCE,
-    [SUBMIT_OPT, DISK_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT],
+    [SUBMIT_OPT, DISK_OPT, NODE_PLACEMENT_OPT, DRY_RUN_OPT, PRIORITY_OPT,
+     IALLOCATOR_OPT],
     "<instance>", "Recreate an instance's disks"),
   "grow-disk": (
     GrowDisk,

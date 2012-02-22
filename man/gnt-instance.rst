@@ -1428,7 +1428,8 @@ instance.
 RECREATE-DISKS
 ^^^^^^^^^^^^^^
 
-| **recreate-disks** [\--submit] [-n node1:[node2]]
+| **recreate-disks** [\--submit]
+| [{-n node1:[node2] \| {-I\|\--iallocator *name*}}]
 | [\--disk=*N*[:[size=*VAL*][,mode=*ro\|rw*]]] {*instance*}
 
 Recreates all or a subset of disks of the given instance.
@@ -1453,6 +1454,11 @@ with a syntax similar to the **add** command. The number of nodes
 passed must equal the number of nodes that the instance currently
 has. Note that changing nodes is only allowed when all disks are
 replaced, e.g. when no ``--disk`` option is passed.
+
+Another method of chosing which nodes to place the instance on is by
+using the specified iallocator, passing the ``--iallocator`` option.
+The primary and secondary nodes will be chosen by the specified
+iallocator plugin.
 
 See **ganeti(7)** for a description of ``--submit`` and other common
 options.
