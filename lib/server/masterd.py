@@ -393,13 +393,6 @@ class ClientOps:
       op = opcodes.OpTagsGet(kind=kind, name=name)
       return self._Query(op)
 
-    elif method == luxi.REQ_QUERY_LOCKS:
-      (fields, sync) = args
-      logging.info("Received locks query request")
-      if sync:
-        raise NotImplementedError("Synchronous queries are not implemented")
-      return self.server.context.glm.OldStyleQueryLocks(fields)
-
     elif method == luxi.REQ_QUEUE_SET_DRAIN_FLAG:
       (drain_flag, ) = args
       logging.info("Received queue drain flag change request to %s",

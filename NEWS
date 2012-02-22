@@ -12,6 +12,8 @@ Version 2.6.0 beta1
 - Replaced ``--disks`` option of ``gnt-instance replace-disks`` with a
   more flexible ``--disk`` option. Now disk size and mode can be changed
   upon recreation.
+- Removed deprecated ``QueryLocks`` LUXI request. Use
+  ``Query(what=QR_LOCK, ...)`` instead.
 
 
 Version 2.5.0 rc5
