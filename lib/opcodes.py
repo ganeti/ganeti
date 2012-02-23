@@ -40,7 +40,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import ht
 from ganeti import objects
-from ganeti import query
 
 
 # Common opcode attributes
@@ -255,13 +254,13 @@ def _GenerateObjectTypeCheck(obj, fields_types):
   return ht.TStrictDict(True, True, fields_types)
 
 
-_TObjFdefs = \
-    _GenerateObjectTypeCheck(objects.QueryFieldDefinition, {
-      "name": ht.TRegex(query.FIELD_NAME_RE),
-      "title": ht.TRegex(query.TITLE_RE),
-      "kind": ht.TElemOf(constants.QFT_ALL),
-      "doc": ht.TRegex(query.DOC_RE),
-      })
+_TQueryFieldDef = \
+  _GenerateObjectTypeCheck(objects.QueryFieldDefinition, {
+    "name": ht.TNonEmptyString,
+    "title": ht.TNonEmptyString,
+    "kind": ht.TElemOf(constants.QFT_ALL),
+    "doc": ht.TNonEmptyString,
+    })
 
 
 def RequireFileStorage():
@@ -920,10 +919,10 @@ class OpQuery(OpCode):
      "Query filter"),
     ]
   OP_RESULT = \
-      _GenerateObjectTypeCheck(objects.QueryResponse, {
-        "fields": ht.TListOf(_TObjFdefs),
-        "data": _TQueryResult,
-        })
+    _GenerateObjectTypeCheck(objects.QueryResponse, {
+      "fields": ht.TListOf(_TQueryFieldDef),
+      "data": _TQueryResult,
+      })
 
 
 class OpQueryFields(OpCode):
@@ -940,9 +939,9 @@ class OpQueryFields(OpCode):
      "Requested fields; if not given, all are returned"),
     ]
   OP_RESULT = \
-      _GenerateObjectTypeCheck(objects.QueryFieldsResponse, {
-        "fields": ht.TListOf(_TObjFdefs),
-        })
+    _GenerateObjectTypeCheck(objects.QueryFieldsResponse, {
+      "fields": ht.TListOf(_TQueryFieldDef),
+      })
 
 
 class OpOobCommand(OpCode):
