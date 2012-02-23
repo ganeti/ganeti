@@ -44,6 +44,7 @@ toolsdir = $(pkglibdir)/tools
 iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
+myexeclibdir = $(pkglibdir)
 
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
@@ -526,12 +527,12 @@ pkglib_python_scripts = \
 nodist_pkglib_python_scripts = \
 	tools/ensure-dirs
 
-pkglib_SCRIPTS = \
+myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
 	$(pkglib_python_scripts)
 
-nodist_pkglib_SCRIPTS = \
+nodist_myexeclib_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
 
 EXTRA_DIST = \
