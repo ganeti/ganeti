@@ -361,6 +361,10 @@ It supports the following commands: ``PUT``.
 
 Redistribute configuration to all nodes. The result will be a job id.
 
+Job result:
+
+.. opcode_result:: OP_CLUSTER_REDIST_CONF
+
 
 ``/2/features``
 +++++++++++++++
@@ -405,6 +409,10 @@ Returns a job ID.
 Body parameters:
 
 .. opcode_params:: OP_CLUSTER_SET_PARAMS
+
+Job result:
+
+.. opcode_result:: OP_CLUSTER_SET_PARAMS
 
 
 ``/2/groups``
@@ -477,6 +485,10 @@ Body parameters:
 Earlier versions used a parameter named ``name`` which, while still
 supported, has been renamed to ``group_name``.
 
+Job result:
+
+.. opcode_result:: OP_GROUP_ADD
+
 
 ``/2/groups/[group_name]``
 ++++++++++++++++++++++++++
@@ -499,6 +511,10 @@ Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.G_FIELDS))`
 Deletes a node group.
 
 It supports the ``dry-run`` argument.
+
+Job result:
+
+.. opcode_result:: OP_GROUP_REMOVE
 
 
 ``/2/groups/[group_name]/modify``
@@ -561,6 +577,10 @@ Body parameters:
 
 .. opcode_params:: OP_GROUP_ASSIGN_NODES
    :exclude: group_name, force, dry_run
+
+Job result:
+
+.. opcode_result:: OP_GROUP_ASSIGN_NODES
 
 
 ``/2/groups/[group_name]/tags``
@@ -716,6 +736,10 @@ Deletes an instance.
 
 It supports the ``dry-run`` argument.
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_REMOVE
+
 
 ``/2/instances/[instance_name]/info``
 +++++++++++++++++++++++++++++++++++++++
@@ -729,6 +753,10 @@ Requests detailed information about the instance. An optional parameter,
 ``static`` (bool), can be set to return only static information from the
 configuration without querying the instance's nodes. The result will be
 a job id.
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_QUERY_DATA
 
 
 ``/2/instances/[instance_name]/reboot``
@@ -758,6 +786,10 @@ instance even if secondary disks are failing.
 
 It supports the ``dry-run`` argument.
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_REBOOT
+
 
 ``/2/instances/[instance_name]/shutdown``
 +++++++++++++++++++++++++++++++++++++++++
@@ -776,6 +808,10 @@ It supports the ``dry-run`` argument.
 .. opcode_params:: OP_INSTANCE_SHUTDOWN
    :exclude: instance_name, dry_run
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_SHUTDOWN
+
 
 ``/2/instances/[instance_name]/startup``
 ++++++++++++++++++++++++++++++++++++++++
@@ -793,6 +829,11 @@ The URI takes an optional ``force=1|0`` parameter to start the
 instance even if secondary disks are failing.
 
 It supports the ``dry-run`` argument.
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_STARTUP
+
 
 ``/2/instances/[instance_name]/reinstall``
 ++++++++++++++++++++++++++++++++++++++++++++++
@@ -840,6 +881,10 @@ Body parameters:
 Ganeti 2.4 and below used query parameters. Those are deprecated and
 should no longer be used.
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_REPLACE_DISKS
+
 
 ``/2/instances/[instance_name]/activate-disks``
 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -854,6 +899,10 @@ It supports the following commands: ``PUT``.
 Takes the bool parameter ``ignore_size``. When set ignore the recorded
 size (useful for forcing activation when recorded size is wrong).
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_ACTIVATE_DISKS
+
 
 ``/2/instances/[instance_name]/deactivate-disks``
 +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -866,6 +915,10 @@ It supports the following commands: ``PUT``.
 ~~~~~~~
 
 Takes no parameters.
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_DEACTIVATE_DISKS
 
 
 ``/2/instances/[instance_name]/recreate-disks``
@@ -883,6 +936,10 @@ Body parameters:
 
 .. opcode_params:: OP_INSTANCE_RECREATE_DISKS
    :exclude: instance_name
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_RECREATE_DISKS
 
 
 ``/2/instances/[instance_name]/disk/[disk_index]/grow``
@@ -902,6 +959,10 @@ Body parameters:
 .. opcode_params:: OP_INSTANCE_GROW_DISK
    :exclude: instance_name, disk
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_GROW_DISK
+
 
 ``/2/instances/[instance_name]/prepare-export``
 +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -914,6 +975,10 @@ It supports the following commands: ``PUT``.
 ~~~~~~~
 
 Takes one parameter, ``mode``, for the export mode. Returns a job ID.
+
+Job result:
+
+.. opcode_result:: OP_BACKUP_PREPARE
 
 
 ``/2/instances/[instance_name]/export``
@@ -934,6 +999,10 @@ Body parameters:
    :exclude: instance_name
    :alias: target_node=destination
 
+Job result:
+
+.. opcode_result:: OP_BACKUP_EXPORT
+
 
 ``/2/instances/[instance_name]/migrate``
 ++++++++++++++++++++++++++++++++++++++++
@@ -952,6 +1021,10 @@ Body parameters:
 .. opcode_params:: OP_INSTANCE_MIGRATE
    :exclude: instance_name, live
 
+Job result:
+
+.. opcode_result:: OP_INSTANCE_MIGRATE
+
 
 ``/2/instances/[instance_name]/failover``
 +++++++++++++++++++++++++++++++++++++++++
@@ -969,6 +1042,10 @@ Body parameters:
 
 .. opcode_params:: OP_INSTANCE_FAILOVER
    :exclude: instance_name
+
+Job result:
+
+.. opcode_result:: OP_INSTANCE_FAILOVER
 
 
 ``/2/instances/[instance_name]/rename``
@@ -1308,6 +1385,10 @@ Powercycles a node. Supports the following commands: ``POST``.
 
 Returns a job ID.
 
+Job result:
+
+.. opcode_result:: OP_NODE_POWERCYCLE
+
 
 ``/2/nodes/[node_name]/evacuate``
 +++++++++++++++++++++++++++++++++
@@ -1398,6 +1479,10 @@ be a job id.
 
 It supports the bool ``force`` argument.
 
+Job result:
+
+.. opcode_result:: OP_NODE_SET_PARAMS
+
 
 ``/2/nodes/[node_name]/modify``
 +++++++++++++++++++++++++++++++
@@ -1455,6 +1540,11 @@ and ``name`` (name of the storage unit).  Parameters can be passed
 additionally. Currently only :pyeval:`constants.SF_ALLOCATABLE` (bool)
 is supported. The result will be a job id.
 
+Job result:
+
+.. opcode_result:: OP_NODE_MODIFY_STORAGE
+
+
 ``/2/nodes/[node_name]/storage/repair``
 +++++++++++++++++++++++++++++++++++++++
 
@@ -1473,6 +1563,11 @@ Repairs a storage unit on the node. Requires the parameters
 ``storage_type`` (currently only :pyeval:`constants.ST_LVM_VG` can be
 repaired) and ``name`` (name of the storage unit). The result will be a
 job id.
+
+Job result:
+
+.. opcode_result:: OP_REPAIR_NODE_STORAGE
+
 
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++
