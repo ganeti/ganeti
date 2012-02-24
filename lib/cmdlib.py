@@ -7085,6 +7085,64 @@ class LUInstanceRecreateDisks(LogicalUnit):
     constants.IDISK_METAVG,
     ]))
 
+  def _RunAllocator(self):
+    """Run the allocator based on input opcode.
+
+    """
+    be_full = self.cfg.GetClusterInfo().FillBE(self.instance)
+
+    # FIXME
+    # The allocator should actually run in "relocate" mode, but current
+    # allocators don't support relocating all the nodes of an instance at
+    # the same time. As a workaround we use "allocate" mode, but this is
+    # suboptimal for two reasons:
+    # - The instance name passed to the allocator is present in the list of
+    #   existing instances, so there could be a conflict within the
+    #   internal structures of the allocator. This doesn't happen with the
+    #   current allocators, but it's a liability.
+    # - The allocator counts the resources used by the instance twice: once
+    #   because the instance exists already, and once because it tries to
+    #   allocate a new instance.
+    # The allocator could choose some of the nodes on which the instance is
+    # running, but that's not a problem. If the instance nodes are broken,
+    # they should be already be marked as drained or offline, and hence
+    # skipped by the allocator. If instance disks have been lost for other
+    # reasons, then recreating the disks on the same nodes should be fine.
+    ial = IAllocator(self.cfg, self.rpc,
+                     mode=constants.IALLOCATOR_MODE_ALLOC,
+                     name=self.op.instance_name,
+                     disk_template=self.instance.disk_template,
+                     tags=list(self.instance.GetTags()),
+                     os=self.instance.os,
+                     nics=[{}],
+                     vcpus=be_full[constants.BE_VCPUS],
+                     memory=be_full[constants.BE_MAXMEM],
+                     spindle_use=be_full[constants.BE_SPINDLE_USE],
+                     disks=[{constants.IDISK_SIZE: d.size,
+                             constants.IDISK_MODE: d.mode}
+                            for d in self.instance.disks],
+                     hypervisor=self.instance.hypervisor)
+
+    assert ial.required_nodes == len(self.instance.all_nodes)
+
+    ial.Run(self.op.iallocator)
+
+    if not ial.success:
+      raise errors.OpPrereqError("Can't compute nodes using iallocator '%s':"
+                                 " %s" % (self.op.iallocator, ial.info),
+                                 errors.ECODE_NORES)
+
+    if len(ial.result) != ial.required_nodes:
+      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
+                                 " of nodes (%s), required %s" %
+                                 (self.op.iallocator, len(ial.result),
+                                  ial.required_nodes), errors.ECODE_FAULT)
+
+    self.op.nodes = ial.result
+    self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
+                 self.op.instance_name, self.op.iallocator,
+                 utils.CommaJoin(ial.result))
+
   def CheckArguments(self):
     if self.op.disks and ht.TPositiveInt(self.op.disks[0]):
       # Normalize and convert deprecated list of disk indices
