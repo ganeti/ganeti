@@ -4849,9 +4849,6 @@ class LUNodeRemove(LogicalUnit):
   def BuildHooksEnv(self):
     """Build hooks env.
 
-    This doesn't run on the target node in the pre phase as a failed
-    node would then be impossible to remove.
-
     """
     return {
       "OP_TARGET": self.op.node_name,
@@ -4861,13 +4858,15 @@ class LUNodeRemove(LogicalUnit):
   def BuildHooksNodes(self):
     """Build hooks nodes.
 
+    This doesn't run on the target node in the pre phase as a failed
+    node would then be impossible to remove.
+
     """
     all_nodes = self.cfg.GetNodeList()
     try:
       all_nodes.remove(self.op.node_name)
     except ValueError:
-      logging.warning("Node '%s', which is about to be removed, was not found"
-                      " in the list of all nodes", self.op.node_name)
+      pass
     return (all_nodes, all_nodes)
 
   def CheckPrereq(self):
