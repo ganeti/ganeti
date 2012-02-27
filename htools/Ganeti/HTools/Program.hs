@@ -33,6 +33,7 @@ import qualified Ganeti.HTools.Program.Hail as Hail
 import qualified Ganeti.HTools.Program.Hbal as Hbal
 import qualified Ganeti.HTools.Program.Hscan as Hscan
 import qualified Ganeti.HTools.Program.Hspace as Hspace
+import qualified Ganeti.HTools.Program.Hinfo as Hinfo
 
 -- | Supported binaries.
 personalities :: [(String, (Options -> [String] -> IO (), [OptType]))]
@@ -40,4 +41,5 @@ personalities = [ ("hail",   (Hail.main,   Hail.options))
                 , ("hbal",   (Hbal.main,   Hbal.options))
                 , ("hscan",  (Hscan.main,  Hscan.options))
                 , ("hspace", (Hspace.main, Hspace.options))
+                , ("hinfo",  (Hinfo.main,  Hinfo.options))
                 ]

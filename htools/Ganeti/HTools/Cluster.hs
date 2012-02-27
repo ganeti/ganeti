@@ -1330,14 +1330,19 @@ printInsts nl il =
      formatTable (header:map helper sil) isnum
 
 -- | Shows statistics for a given node list.
-printStats :: Node.List -> String
-printStats nl =
+printStats :: String -> Node.List -> String
+printStats lp nl =
   let dcvs = compDetailedCV $ Container.elems nl
       (weights, names) = unzip detailedCVInfo
       hd = zip3 (weights ++ repeat 1) (names ++ repeat "unknown") dcvs
-      formatted = map (\(w, header, val) ->
-                         printf "%s=%.8f(x%.2f)" header val w::String) hd
-  in intercalate ", " formatted
+      header = [ "Field", "Value", "Weight" ]
+      formatted = map (\(w, h, val) ->
+                         [ h
+                         , printf "%.8f" val
+                         , printf "x%.2f" w
+                         ]) hd
+  in unlines . map ((++) lp) . map ((:) ' ' . unwords) $
+     formatTable (header:formatted) $ False:repeat True
 
 -- | Convert a placement into a list of OpCodes (basically a job).
 iMoveToJob :: Node.List        -- ^ The node list; only used for node

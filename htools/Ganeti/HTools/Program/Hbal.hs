@@ -373,8 +373,8 @@ main opts args = do
   checkNeedRebalance opts ini_cv
 
   if verbose > 2
-    then printf "Initial coefficients: overall %.8f, %s\n"
-           ini_cv (Cluster.printStats nl)::IO ()
+    then printf "Initial coefficients: overall %.8f\n%s"
+           ini_cv (Cluster.printStats "  " nl)::IO ()
     else printf "Initial score: %.8f\n" ini_cv
 
   putStrLn "Trying to minimize the CV..."
@@ -392,8 +392,8 @@ main opts args = do
       sol_msg = case () of
                   _ | null fin_plc -> printf "No solution found\n"
                     | verbose > 2 ->
-                        printf "Final coefficients:   overall %.8f, %s\n"
-                        fin_cv (Cluster.printStats fin_nl)
+                        printf "Final coefficients:   overall %.8f\n%s"
+                        fin_cv (Cluster.printStats "  " fin_nl)
                     | otherwise ->
                         printf "Cluster score improved from %.8f to %.8f\n"
                         ini_cv fin_cv ::String

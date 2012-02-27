@@ -424,8 +424,8 @@ main opts args = do
   maybePrintNodes (optShowNodes opts) "Initial cluster" (Cluster.printNodes nl)
 
   when (verbose > 2) $
-         hPrintf stderr "Initial coefficients: overall %.8f, %s\n"
-                 (Cluster.compCV nl) (Cluster.printStats nl)
+         hPrintf stderr "Initial coefficients: overall %.8f\n%s"
+                 (Cluster.compCV nl) (Cluster.printStats "  " nl)
 
   printCluster machine_r (Cluster.totalResources nl) (length all_nodes)
 
