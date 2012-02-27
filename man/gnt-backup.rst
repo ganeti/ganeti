@@ -24,8 +24,8 @@ COMMANDS
 EXPORT
 ~~~~~~
 
-**export** {-n *node*} [--shutdown-timeout=*N*] [--noshutdown]
-[--remove-instance] [--ignore-remove-failures] {*instance*}
+**export** {-n *node*} [\--shutdown-timeout=*N*] [\--noshutdown]
+[\--remove-instance] [\--ignore-remove-failures] {*instance*}
 
 Exports an instance to the target node. All the instance data and
 its configuration will be exported under the
@@ -62,15 +62,15 @@ IMPORT
 ~~~~~~
 
 | **import**
-| {-n *node[:secondary-node]* | --iallocator *name*}
-| [--disk *N*:size=*VAL* [,vg=*VG*], [,mode=*ro|rw*]...]
-| [--net *N* [:options...] | --no-nics]
+| {-n *node[:secondary-node]* | \--iallocator *name*}
+| [\--disk *N*:size=*VAL* [,vg=*VG*], [,mode=*ro|rw*]...]
+| [\--net *N* [:options...] | \--no-nics]
 | [-B *BEPARAMS*]
 | [-H *HYPERVISOR* [: option=*value*... ]]
-| [--src-node=*source-node*] [--src-dir=*source-dir*]
+| [\--src-node=*source-node*] [\--src-dir=*source-dir*]
 | [-t [diskless | plain | drbd | file]]
-| [--identify-defaults]
-| [--ignore-ipolicy]
+| [\--identify-defaults]
+| [\--ignore-ipolicy]
 | {*instance*}
 
 Imports a new instance from an export residing on *source-node* in
@@ -130,7 +130,7 @@ Of these ``mode`` and ``link`` are nic parameters, and inherit their
 default at cluster level.
 
 If no network is desired for the instance, you should create a single
-empty NIC and delete it afterwards via **gnt-instance modify --net
+empty NIC and delete it afterwards via **gnt-instance modify \--net
 delete**.
 
 The ``-B`` option specifies the backend parameters for the
@@ -220,7 +220,7 @@ Explicit configuration example::
 LIST
 ~~~~
 
-**list** [--node=*NODE*]
+**list** [\--node=*NODE*]
 
 Lists the exports currently available in the default directory in
 all the nodes of the current cluster, or optionally only a subset

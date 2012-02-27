@@ -11,7 +11,7 @@ SYNOPSIS
 
 **hbal** {backend options...} [algorithm options...] [reporting options...]
 
-**hbal** --version
+**hbal** \--version
 
 
 Backend options:
@@ -20,24 +20,24 @@ Backend options:
 
 Algorithm options:
 
-**[ --max-cpu *cpu-ratio* ]**
-**[ --min-disk *disk-ratio* ]**
+**[ \--max-cpu *cpu-ratio* ]**
+**[ \--min-disk *disk-ratio* ]**
 **[ -l *limit* ]**
 **[ -e *score* ]**
-**[ -g *delta* ]** **[ --min-gain-limit *threshold* ]**
+**[ -g *delta* ]** **[ \--min-gain-limit *threshold* ]**
 **[ -O *name...* ]**
-**[ --no-disk-moves ]**
-**[ --no-instance-moves ]**
+**[ \--no-disk-moves ]**
+**[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
-**[ --evac-mode ]**
-**[ --select-instances *inst...* ]**
-**[ --exclude-instances *inst...* ]**
+**[ \--evac-mode ]**
+**[ \--select-instances *inst...* ]**
+**[ \--exclude-instances *inst...* ]**
 
 Reporting options:
 
 **[ -C[ *file* ] ]**
 **[ -p[ *fields* ] ]**
-**[ --print-instances ]**
+**[ \--print-instances ]**
 **[ -o ]**
 **[ -v... | -q ]**
 
@@ -52,9 +52,9 @@ the cluster into a better state.
 
 The algorithm used is designed to be stable (i.e. it will give you the
 same results when restarting it from the middle of the solution) and
-reasonably fast. It is not, however, designed to be a perfect
-algorithm--it is possible to make it go into a corner from which
-it can find no improvement, because it looks only one "step" ahead.
+reasonably fast. It is not, however, designed to be a perfect algorithm:
+it is possible to make it go into a corner from which it can find no
+improvement, because it looks only one "step" ahead.
 
 By default, the program will show the solution incrementally as it is
 computed, in a somewhat cryptic format; for getting the actual Ganeti
@@ -92,10 +92,10 @@ At each step, we prevent an instance move if it would cause:
 - an instance to move onto an offline node (offline nodes are either
   read from the cluster or declared with *-O*)
 - an exclusion-tag based conflict (exclusion tags are read from the
-  cluster and/or defined via the *--exclusion-tags* option)
-- a max vcpu/pcpu ratio to be exceeded (configured via *--max-cpu*)
+  cluster and/or defined via the *\--exclusion-tags* option)
+- a max vcpu/pcpu ratio to be exceeded (configured via *\--max-cpu*)
 - min disk free percentage to go below the configured limit
-  (configured via *--min-disk*)
+  (configured via *\--min-disk*)
 
 CLUSTER SCORING
 ~~~~~~~~~~~~~~~
@@ -178,10 +178,10 @@ which would make the respective node a SPOF for the given service.
 
 It works by tagging instances with certain tags and then building
 exclusion maps based on these. Which tags are actually used is
-configured either via the command line (option *--exclusion-tags*)
+configured either via the command line (option *\--exclusion-tags*)
 or via adding them to the cluster tags:
 
---exclusion-tags=a,b
+\--exclusion-tags=a,b
   This will make all instance tags of the form *a:\**, *b:\** be
   considered for the exclusion map
 
@@ -198,7 +198,7 @@ OPTIONS
 
 The options that can be passed to the program are as follows:
 
--C, --print-commands
+-C, \--print-commands
   Print the command list at the end of the run. Without this, the
   program will only show a shorter, but cryptic output.
 
@@ -216,12 +216,12 @@ The options that can be passed to the program are as follows:
   parallel (due to resource allocation in Ganeti) and thus we start a
   new jobset.
 
--p, --print-nodes
+-p, \--print-nodes
   Prints the before and after node status, in a format designed to allow
   the user to understand the node's most important parameters. See the
   man page **htools**(1) for more details about this option.
 
---print-instances
+\--print-instances
   Prints the before and after instance map. This is less useful as the
   node status, but it can help in understanding instance moves.
 
@@ -239,7 +239,7 @@ The options that can be passed to the program are as follows:
   reported by RAPI as such, or that have "?" in file-based input in
   any numeric fields.
 
--e *score*, --min-score=*score*
+-e *score*, \--min-score=*score*
   This parameter denotes the minimum score we are happy with and alters
   the computation in two ways:
 
@@ -251,13 +251,13 @@ The options that can be passed to the program are as follows:
   The default value of the parameter is currently ``1e-9`` (chosen
   empirically).
 
--g *delta*, --min-gain=*delta*
+-g *delta*, \--min-gain=*delta*
   Since the balancing algorithm can sometimes result in just very tiny
   improvements, that bring less gain that they cost in relocation
   time, this parameter (defaulting to 0.01) represents the minimum
   gain we require during a step, to continue balancing.
 
---min-gain-limit=*threshold*
+\--min-gain-limit=*threshold*
   The above min-gain option will only take effect if the cluster score
   is already below *threshold* (defaults to 0.1). The rationale behind
   this setting is that at high cluster scores (badly balanced
@@ -266,30 +266,30 @@ The options that can be passed to the program are as follows:
   threshold, the total gain is only the threshold value, so we can
   exit early.
 
---no-disk-moves
+\--no-disk-moves
   This parameter prevents hbal from using disk move
   (i.e. "gnt-instance replace-disks") operations. This will result in
   a much quicker balancing, but of course the improvements are
   limited. It is up to the user to decide when to use one or another.
 
---no-instance-moves
+\--no-instance-moves
   This parameter prevents hbal from using instance moves
   (i.e. "gnt-instance migrate/failover") operations. This will only use
   the slow disk-replacement operations, and will also provide a worse
   balance, but can be useful if moving instances around is deemed unsafe
   or not preferred.
 
---evac-mode
+\--evac-mode
   This parameter restricts the list of instances considered for moving
   to the ones living on offline/drained nodes. It can be used as a
   (bulk) replacement for Ganeti's own *gnt-node evacuate*, with the
   note that it doesn't guarantee full evacuation.
 
---select-instances=*instances*
+\--select-instances=*instances*
   This parameter marks the given instances (as a comma-separated list)
   as the only ones being moved during the rebalance.
 
---exclude-instances=*instances*
+\--exclude-instances=*instances*
   This parameter marks the given instances (as a comma-separated list)
   from being moved during the rebalance.
 
@@ -313,7 +313,7 @@ The options that can be passed to the program are as follows:
   metrics and thus the influence of the dynamic utilisation will be
   practically insignificant.
 
--S *filename*, --save-cluster=*filename*
+-S *filename*, \--save-cluster=*filename*
   If given, the state of the cluster before the balancing is saved to
   the given file plus the extension "original"
   (i.e. *filename*.original), and the state at the end of the
@@ -321,7 +321,7 @@ The options that can be passed to the program are as follows:
   (i.e. *filename*.balanced). This allows re-feeding the cluster state
   to either hbal itself or for example hspace via the ``-t`` option.
 
--t *datafile*, --text-data=*datafile*
+-t *datafile*, \--text-data=*datafile*
   Backend specification: the name of the file holding node and instance
   information (if not collecting via RAPI or LUXI). This or one of the
   other backends must be selected. The option is described in the man
@@ -350,11 +350,11 @@ The options that can be passed to the program are as follows:
   The execution of the job series can be interrupted, see below for
   signal handling.
 
--l *N*, --max-length=*N*
+-l *N*, \--max-length=*N*
   Restrict the solution to this length. This can be used for example
   to automate the execution of the balancing.
 
---max-cpu=*cpu-ratio*
+\--max-cpu=*cpu-ratio*
   The maximum virtual to physical cpu ratio, as a floating point number
   greater than or equal to one. For example, specifying *cpu-ratio* as
   **2.5** means that, for a 4-cpu machine, a maximum of 10 virtual cpus
@@ -364,27 +364,27 @@ The options that can be passed to the program are as follows:
   make sense, as that means other resources (e.g. disk) won't be fully
   utilised due to CPU restrictions.
 
---min-disk=*disk-ratio*
+\--min-disk=*disk-ratio*
   The minimum amount of free disk space remaining, as a floating point
   number. For example, specifying *disk-ratio* as **0.25** means that
   at least one quarter of disk space should be left free on nodes.
 
--G *uuid*, --group=*uuid*
+-G *uuid*, \--group=*uuid*
   On an multi-group cluster, select this group for
   processing. Otherwise hbal will abort, since it cannot balance
   multiple groups at the same time.
 
--v, --verbose
+-v, \--verbose
   Increase the output verbosity. Each usage of this option will
   increase the verbosity (currently more than 2 doesn't make sense)
   from the default of one.
 
--q, --quiet
+-q, \--quiet
   Decrease the output verbosity. Each usage of this option will
   decrease the verbosity (less than zero doesn't make sense) from the
   default of one.
 
--V, --version
+-V, \--version
   Just show the program version and exit.
 
 SIGNAL HANDLING

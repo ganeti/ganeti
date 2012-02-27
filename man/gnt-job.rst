@@ -59,7 +59,7 @@ information).
 LIST
 ~~~~
 
-**list** [--no-headers] [--separator=*SEPARATOR*]
+**list** [\--no-headers] [\--separator=*SEPARATOR*]
 [-o *[+]FIELD,...*]
 
 Lists the jobs and their status. By default, the job id, job

@@ -23,12 +23,12 @@ COMMANDS
 ADD
 ~~~
 
-| **add** [--readd] [{-s|--secondary-ip} *secondary\_ip*]
-| [{-g|--node-group} *nodegroup*]
-| [--master-capable=``yes|no``] [--vm-capable=``yes|no``]
-| [--node-parameters *ndparams*]
-| [--disk-state *diskstate*]
-| [--hypervisor-state *hvstate*]
+| **add** [\--readd] [{-s|\--secondary-ip} *secondary\_ip*]
+| [{-g|\--node-group} *nodegroup*]
+| [\--master-capable=``yes|no``] [\--vm-capable=``yes|no``]
+| [\--node-parameters *ndparams*]
+| [\--disk-state *diskstate*]
+| [\--hypervisor-state *hvstate*]
 | {*nodename*}
 
 Adds the given node to the cluster.
@@ -81,7 +81,7 @@ Example::
 ADD-TAGS
 ~~~~~~~~
 
-**add-tags** [--from *file*] {*nodename*} {*tag*...}
+**add-tags** [\--from *file*] {*nodename*} {*tag*...}
 
 Add tags to the given node. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -95,9 +95,9 @@ interpreted as stdin.
 EVACUATE
 ~~~~~~~~
 
-**evacuate** [-f] [--early-release] [--iallocator *NAME* \|
---new-secondary *destination\_node*]
-[--primary-only \| --secondary-only] [--early-release] {*node*}
+**evacuate** [-f] [\--early-release] [\--iallocator *NAME* \|
+\--new-secondary *destination\_node*]
+[\--primary-only \| \--secondary-only] [\--early-release] {*node*}
 
 This command will move instances away from the given node. If
 ``--primary-only`` is given, only primary instances are evacuated, with
@@ -140,7 +140,7 @@ Example::
 FAILOVER
 ~~~~~~~~
 
-**failover** [-f] [--ignore-consistency] {*node*}
+**failover** [-f] [\--ignore-consistency] {*node*}
 
 This command will fail over all instances having the given node as
 primary to their secondary nodes. This works only for instances having
@@ -169,9 +169,9 @@ LIST
 ~~~~
 
 | **list**
-| [--no-headers] [--separator=*SEPARATOR*]
-| [--units=*UNITS*] [-v] [{-o|--output} *[+]FIELD,...*]
-| [--filter]
+| [\--no-headers] [\--separator=*SEPARATOR*]
+| [\--units=*UNITS*] [-v] [{-o|\--output} *[+]FIELD,...*]
+| [\--filter]
 | [node...]
 
 Lists the nodes in the cluster.
@@ -244,8 +244,8 @@ List the tags of the given node.
 MIGRATE
 ~~~~~~~
 
-**migrate** [-f] [--non-live] [--migration-mode=live\|non-live]
-[--ignore-ipolicy] {*node*}
+**migrate** [-f] [\--non-live] [\--migration-mode=live\|non-live]
+[\--ignore-ipolicy] {*node*}
 
 This command will migrate all instances having the given node as
 primary to their secondary nodes. This works only for instances
@@ -266,15 +266,15 @@ Example::
 MODIFY
 ~~~~~~
 
-| **modify** [-f] [--submit]
-| [{-C|--master-candidate} ``yes|no``]
-| [{-D|--drained} ``yes|no``] [{-O|--offline} ``yes|no``]
-| [--master-capable=``yes|no``] [--vm-capable=``yes|no``] [--auto-promote]
-| [{-s|--secondary-ip} *secondary_ip*]
-| [--node-parameters *ndparams*]
-| [--node-powered=``yes|no``]
-| [--hypervisor-state *hvstate*]
-| [--disk-state *diskstate*]
+| **modify** [-f] [\--submit]
+| [{-C|\--master-candidate} ``yes|no``]
+| [{-D|\--drained} ``yes|no``] [{-O|\--offline} ``yes|no``]
+| [\--master-capable=``yes|no``] [\--vm-capable=``yes|no``] [\--auto-promote]
+| [{-s|\--secondary-ip} *secondary_ip*]
+| [\--node-parameters *ndparams*]
+| [\--node-powered=``yes|no``]
+| [\--hypervisor-state *hvstate*]
+| [\--disk-state *diskstate*]
 | {*node*}
 
 This command changes the role of the node. Each options takes
@@ -324,7 +324,7 @@ Example::
 REMOVE-TAGS
 ~~~~~~~~~~~
 
-**remove-tags** [--from *file*] {*nodename*} {*tag*...}
+**remove-tags** [\--from *file*] {*nodename*} {*tag*...}
 
 Remove tags from the given node. If any of the tags are not
 existing on the node, the entire operation will abort.
@@ -338,8 +338,8 @@ be interpreted as stdin.
 VOLUMES
 ~~~~~~~
 
-| **volumes** [--no-headers] [--human-readable]
-| [--separator=*SEPARATOR*] [{-o|--output} *FIELDS*]
+| **volumes** [\--no-headers] [\--human-readable]
+| [\--separator=*SEPARATOR*] [{-o|\--output} *FIELDS*]
 | [*node*...]
 
 Lists all logical volumes and their physical disks from the node(s)
@@ -391,9 +391,9 @@ Example::
 LIST-STORAGE
 ~~~~~~~~~~~~
 
-| **list-storage** [--no-headers] [--human-readable]
-| [--separator=*SEPARATOR*] [--storage-type=*STORAGE\_TYPE*]
-| [{-o|--output} *FIELDS*]
+| **list-storage** [\--no-headers] [\--human-readable]
+| [\--separator=*SEPARATOR*] [\--storage-type=*STORAGE\_TYPE*]
+| [{-o|\--output} *FIELDS*]
 | [*node*...]
 
 Lists the available storage units and their details for the given
@@ -476,14 +476,14 @@ Example::
 REPAIR-STORAGE
 ~~~~~~~~~~~~~~
 
-**repair-storage** [--ignore-consistency] {*node*} {*storage-type*}
+**repair-storage** [\--ignore-consistency] {*node*} {*storage-type*}
 {*volume-name*}
 
 Repairs a storage volume on a node. Only LVM volume groups can be
 repaired at this time. They have the storage type "lvm-vg".
 
-On LVM volume groups, **repair-storage** runs "vgreduce
---removemissing".
+On LVM volume groups, **repair-storage** runs ``vgreduce
+--removemissing``.
 
 
 

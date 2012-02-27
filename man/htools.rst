@@ -51,7 +51,7 @@ COMMON OPTIONS
 Options behave the same in all program modes, but not all program modes
 support all options. Some common options are:
 
--p, --print-nodes
+-p, \--print-nodes
   Prints the node status, in a format designed to allow the user to
   understand the node's most important parameters. If the command in
   question makes a cluster transition (e.g. balancing or allocation),
@@ -131,7 +131,7 @@ support all options. Some common options are:
   lNet
     the dynamic net load (if the information is available)
 
--t *datafile*, --text-data=*datafile*
+-t *datafile*, \--text-data=*datafile*
   Backend specification: the name of the file holding node and instance
   information (if not collecting via RAPI or LUXI). This or one of the
   other backends must be selected. The option is described in the man
@@ -187,7 +187,7 @@ support all options. Some common options are:
   on which the master daemon listens; otherwise, the default path used
   by Ganeti (configured at build time) is used.
 
---simulate *description*
+\--simulate *description*
   Backend specification: instead of using actual data, build an empty
   cluster given a node description. The *description* parameter must be
   a comma-separated list of five elements, describing in order:
@@ -208,17 +208,17 @@ support all options. Some common options are:
   new node group. Hence different node groups can have different
   allocation policies and node count/specifications.
 
--v, --verbose
+-v, \--verbose
   Increase the output verbosity. Each usage of this option will
   increase the verbosity (currently more than 2 doesn't make sense)
   from the default of one.
 
--q, --quiet
+-q, \--quiet
   Decrease the output verbosity. Each usage of this option will
   decrease the verbosity (less than zero doesn't make sense) from the
   default of one.
 
--V, --version
+-V, \--version
   Just show the program version and exit.
 
 UNITS

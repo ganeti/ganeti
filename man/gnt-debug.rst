@@ -22,10 +22,10 @@ COMMANDS
 IALLOCATOR
 ~~~~~~~~~~
 
-**iallocator** [--debug] [--dir *DIRECTION*] {--algorithm
-*ALLOCATOR* } [--mode *MODE*] [--mem *MEMORY*] [--disks *DISKS*]
-[--disk-template *TEMPLATE*] [--nics *NICS*] [--os-type *OS*]
-[--vcpus *VCPUS*] [--tags *TAGS*] {*instance*}
+**iallocator** [\--debug] [\--dir *DIRECTION*] {\--algorithm
+*ALLOCATOR* } [\--mode *MODE*] [\--mem *MEMORY*] [\--disks *DISKS*]
+[\--disk-template *TEMPLATE*] [\--nics *NICS*] [\--os-type *OS*]
+[\--vcpus *VCPUS*] [\--tags *TAGS*] {*instance*}
 
 Executes a test run of the *iallocator* framework.
 
@@ -46,7 +46,7 @@ this framework, see the HTML or PDF documentation.
 DELAY
 ~~~~~
 
-**delay** [--debug] [--no-master] [-n *NODE*...] {*duration*}
+**delay** [\--debug] [\--no-master] [-n *NODE*...] {*duration*}
 
 Run a test opcode (a sleep) on the master and on selected nodes
 (via an RPC call). This serves no other purpose but to execute a
@@ -62,8 +62,8 @@ number.
 SUBMIT-JOB
 ~~~~~~~~~~
 
-**submit-job** [--verbose] [--timing-stats] [--job-repeat ``N``]
-[--op-repeat ``N``] [--each] {opcodes_file...}
+**submit-job** [\--verbose] [\--timing-stats] [\--job-repeat *N*]
+[\--op-repeat *N*] [\--each] {opcodes_file...}
 
 This command builds a list of opcodes from files in JSON format and
 submits a job per file to the master daemon. It can be used to test
@@ -96,8 +96,8 @@ failed jobs deliberately.
 LOCKS
 ~~~~~
 
-| **locks** [--no-headers] [--separator=*SEPARATOR*] [-v]
-| [-o *[+]FIELD,...*] [--interval=*SECONDS*]
+| **locks** [\--no-headers] [\--separator=*SEPARATOR*] [-v]
+| [-o *[+]FIELD,...*] [\--interval=*SECONDS*]
 
 Shows a list of locks in the master daemon.
 

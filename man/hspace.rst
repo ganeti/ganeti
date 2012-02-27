@@ -12,32 +12,32 @@ SYNOPSIS
 **hspace** {backend options...} [algorithm options...] [request options...]
 [output options...] [-v... | -q]
 
-**hspace** --version
+**hspace** \--version
 
 Backend options:
 
 { **-m** *cluster* | **-L[** *path* **] [-X]** | **-t** *data-file* |
-**--simulate** *spec* }
+**\--simulate** *spec* }
 
 
 Algorithm options:
 
-**[ --max-cpu *cpu-ratio* ]**
-**[ --min-disk *disk-ratio* ]**
+**[ \--max-cpu *cpu-ratio* ]**
+**[ \--min-disk *disk-ratio* ]**
 **[ -O *name...* ]**
 
 
 Request options:
 
-**[--disk-template** *template* **]**
+**[\--disk-template** *template* **]**
 
-**[--standard-alloc** *disk,ram,cpu*  **]**
+**[\--standard-alloc** *disk,ram,cpu*  **]**
 
-**[--tiered-alloc** *disk,ram,cpu* **]**
+**[\--tiered-alloc** *disk,ram,cpu* **]**
 
 Output options:
 
-**[--machine-readable**[=*CHOICE*] **]**
+**[\--machine-readable**[=*CHOICE*] **]**
 **[-p**[*fields*]**]**
 
 
@@ -105,7 +105,7 @@ INI_MEM_INST, FIN_MEM_INST
   RAM).
 
 INI_MEM_OVERHEAD, FIN_MEM_OVERHEAD
-  The initial and final memory overhead--memory used for the node
+  The initial and final memory overhead, i.e. memory used for the node
   itself and unacounted memory (e.g. due to hypervisor overhead).
 
 INI_MEM_EFF, HTS_INI_MEM_EFF
@@ -162,7 +162,7 @@ KM_UNAV_CPU, KM_POOL_NPU, KM_UNAV_MEM, KM_UNAV_DSK
   example, the cluster might still have 100GiB disk free, but with no
   memory left for instances, we cannot allocate another instance, so
   in effect the disk space is unallocable. Note that the CPUs here
-  represent instance virtual CPUs, and in case the *--max-cpu* option
+  represent instance virtual CPUs, and in case the *\--max-cpu* option
   hasn't been specified this will be -1.
 
 ALLOC_USAGE
@@ -202,12 +202,12 @@ OPTIONS
 
 The options that can be passed to the program are as follows:
 
---disk-template *template*
+\--disk-template *template*
   Overrides the disk template for the instance read from the cluster;
   one of the Ganeti disk templates (e.g. plain, drbd, so on) should be
   passed in.
 
---max-cpu=*cpu-ratio*
+\--max-cpu=*cpu-ratio*
   The maximum virtual to physical cpu ratio, as a floating point number
   greater than or equal to one. For example, specifying *cpu-ratio* as
   **2.5** means that, for a 4-cpu machine, a maximum of 10 virtual cpus
@@ -217,17 +217,17 @@ The options that can be passed to the program are as follows:
   make sense, as that means other resources (e.g. disk) won't be fully
   utilised due to CPU restrictions.
 
---min-disk=*disk-ratio*
+\--min-disk=*disk-ratio*
   The minimum amount of free disk space remaining, as a floating point
   number. For example, specifying *disk-ratio* as **0.25** means that
   at least one quarter of disk space should be left free on nodes.
 
--l *rounds*, --max-length=*rounds*
+-l *rounds*, \--max-length=*rounds*
   Restrict the number of instance allocations to this length. This is
   not very useful in practice, but can be used for testing hspace
   itself, or to limit the runtime for very big clusters.
 
--p, --print-nodes
+-p, \--print-nodes
   Prints the before and after node status, in a format designed to allow
   the user to understand the node's most important parameters. See the
   man page **htools**(1) for more details about this option.
@@ -246,7 +246,7 @@ The options that can be passed to the program are as follows:
   are reported by RAPI as such, or that have "?" in file-based input
   in any numeric fields.
 
--S *filename*, --save-cluster=*filename*
+-S *filename*, \--save-cluster=*filename*
   If given, the state of the cluster at the end of the allocation is
   saved to a file named *filename.alloc*, and if tiered allocation is
   enabled, the state after tiered allocation will be saved to
@@ -254,7 +254,7 @@ The options that can be passed to the program are as follows:
   either hspace itself (with different parameters) or for example
   hbal, via the ``-t`` option.
 
--t *datafile*, --text-data=*datafile*
+-t *datafile*, \--text-data=*datafile*
   Backend specification: the name of the file holding node and instance
   information (if not collecting via RAPI or LUXI). This or one of the
   other backends must be selected. The option is described in the man
@@ -270,17 +270,17 @@ The options that can be passed to the program are as follows:
   which is to be contacted via LUXI (an internal Ganeti protocol). The
   option is described in the man page **htools**(1).
 
---simulate *description*
+\--simulate *description*
   Backend specification: similar to the **-t** option, this allows
   overriding the cluster data with a simulated cluster. For details
   about the description, see the man page **htools**(1).
 
---standard-alloc *disk,ram,cpu*
+\--standard-alloc *disk,ram,cpu*
   This option overrides the instance size read from the cluster for the
   *standard* allocation mode, where we simply allocate instances of the
   same, fixed size until the cluster runs out of space.
 
-  The specification given is similar to the *--simulate* option and it
+  The specification given is similar to the *\--simulate* option and it
   holds:
 
   - the disk size of the instance (units can be used)
@@ -290,7 +290,7 @@ The options that can be passed to the program are as follows:
   An example description would be *100G,4g,2* describing an instance
   specification of 100GB of disk space, 4GiB of memory and 2 VCPUs.
 
---tiered-alloc *disk,ram,cpu*
+\--tiered-alloc *disk,ram,cpu*
   This option overrides the instance size for the *tiered* allocation
   mode. In this mode, the algorithm starts from the given specification
   and allocates until there is no more space; then it decreases the
@@ -303,24 +303,24 @@ The options that can be passed to the program are as follows:
   the instance count for these two modes are not related one to
   another.
 
---machine-readable[=*choice*]
+\--machine-readable[=*choice*]
   By default, the output of the program is in "human-readable" format,
   i.e. text descriptions. By passing this flag you can either enable
   (``--machine-readable`` or ``--machine-readable=yes``) or explicitly
   disable (``--machine-readable=no``) the machine readable format
   described above.
 
--v, --verbose
+-v, \--verbose
   Increase the output verbosity. Each usage of this option will
   increase the verbosity (currently more than 2 doesn't make sense)
   from the default of one.
 
--q, --quiet
+-q, \--quiet
   Decrease the output verbosity. Each usage of this option will
   decrease the verbosity (less than zero doesn't make sense) from the
   default of one.
 
--V, --version
+-V, \--version
   Just show the program version and exit.
 
 UNITS

@@ -45,7 +45,7 @@ versions, the supported parameters (if any) and their
 documentations, etc.
 
 | **modify** [-H *HYPERVISOR*:option=*value*[,...]]
-| [--hidden=*yes|no*] [--blacklisted=*yes|no*]
+| [\--hidden=*yes|no*] [\--blacklisted=*yes|no*]
 | {*OS*}
 
 This command will allow you to modify OS parameters.

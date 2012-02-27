@@ -9,7 +9,7 @@ ganeti-masterd - Ganeti master daemon
 Synopsis
 --------
 
-**ganeti-masterd** [-f] [-d] [--no-voting]
+**ganeti-masterd** [-f] [-d] [\--no-voting]
 
 DESCRIPTION
 -----------

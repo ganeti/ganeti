@@ -225,7 +225,7 @@ Many Ganeti commands provide the following options. The
 availability for a certain command can be checked by calling the
 command using the ``--help`` option.
 
-**gnt-...** *command* [--dry-run] [--priority {low | normal | high}]
+**gnt-...** *command* [\--dry-run] [\--priority {low | normal | high}]
 
 The ``--dry-run`` option can be used to check whether an operation
 would succeed.
