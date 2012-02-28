@@ -171,7 +171,7 @@ def GetEnts(resolver=GetentResolver):
   """Singleton wrapper around resolver instance.
 
   As this method is accessed by multiple threads at the same time
-  we need to take thread-safty carefully
+  we need to take thread-safety carefully.
 
   """
   # We need to use the global keyword here

@@ -621,6 +621,7 @@ def _VerifyDaemonUser(daemon_name):
     constants.NODED: getents.noded_uid,
     constants.CONFD: getents.confd_uid,
     }
+  assert daemon_name in daemon_uids, "Invalid daemon %s" % daemon_name
 
   return (daemon_uids[daemon_name] == running_uid, running_uid,
           daemon_uids[daemon_name])
