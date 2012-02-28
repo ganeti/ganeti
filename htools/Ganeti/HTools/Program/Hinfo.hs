@@ -35,8 +35,10 @@ import Text.Printf (printf)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
 
+import Ganeti.HTools.Utils
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Loader
@@ -56,25 +58,31 @@ options =
   , oShowHelp
   ]
 
--- | Do a few checks on the cluster data.
-checkCluster :: Int -> Node.List -> Instance.List -> IO ()
-checkCluster verbose nl il = do
-  -- nothing to do on an empty cluster
-  when (Container.null il) $ do
-         printf "Cluster is empty, exiting.\n"::IO ()
-         exitWith ExitSuccess
-
-  -- hbal doesn't currently handle split clusters
+-- | Gather and print split instances
+splitInstancesInfo :: Int -> Node.List -> Instance.List -> IO ()
+splitInstancesInfo verbose nl il = do
   let split_insts = Cluster.findSplitInstances nl il
-  unless (null split_insts) $ do
-    hPutStrLn stderr "Found instances belonging to multiple node groups:"
-    mapM_ (\i -> hPutStrLn stderr $ "  " ++ Instance.name i) split_insts
-    hPutStrLn stderr "Aborting."
-    exitWith $ ExitFailure 1
+  if (null split_insts)
+    then
+      when (verbose > 1) $ do
+        putStrLn "No split instances found"::IO ()
+    else do
+      putStrLn "Found instances belonging to multiple node groups:"
+      mapM_ (\i -> hPutStrLn stderr $ "  " ++ Instance.name i) split_insts
 
-  printf "Loaded %d nodes, %d instances\n"
-             (Container.size nl)
-             (Container.size il)::IO ()
+-- | Print common (interesting) information
+commonInfo :: Int -> Group.List -> Node.List -> Instance.List -> IO ()
+commonInfo verbose gl nl il = do
+  when (Container.null il && verbose > 1) $ do
+         printf "Cluster is empty.\n"::IO ()
+
+  let nl_size = (Container.size nl)
+      il_size = (Container.size il)
+      gl_size = (Container.size gl)
+  printf "Loaded %d %s, %d %s, %d %s\n"
+             nl_size (plural nl_size "node" "nodes")
+             il_size (plural il_size "instance" "instances")
+             gl_size (plural gl_size "node group" "node groups")::IO ()
 
   let csf = commonSuffix nl il
   when (not (null csf) && verbose > 1) $
@@ -99,9 +107,10 @@ main opts args = do
        putStrLn $ "Loaded node groups: " ++ show gl
 
   nlf <- setNodeStatus opts fixed_nl
-  checkCluster verbose nlf ilf
 
-  printf "Cluster has %d node group(s)\n" (Container.size gl)::IO ()
+  commonInfo verbose gl nlf ilf
+
+  splitInstancesInfo verbose nlf ilf
 
   maybePrintInsts showinsts "Instances" (Cluster.printInsts nlf ilf)
 

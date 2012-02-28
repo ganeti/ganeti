@@ -34,6 +34,7 @@ module Ganeti.HTools.Utils
   , tryRead
   , formatTable
   , parseUnit
+  , plural
   ) where
 
 import Data.Char (toUpper)
@@ -75,6 +76,11 @@ sepSplit sep s
   | otherwise = x:sepSplit sep ys
   where (x, xs) = break (== sep) s
         ys = drop 1 xs
+
+-- | Simple pluralize helper
+plural :: Int -> String -> String -> String
+plural 1 s _ = s
+plural _ _ p = p
 
 -- * Mathematical functions
 
