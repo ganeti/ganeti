@@ -1302,8 +1302,7 @@ printNodes nl fs =
                  _ -> fs
       snl = sortBy (comparing Node.idx) (Container.elems nl)
       (header, isnum) = unzip $ map Node.showHeader fields
-  in unlines . map ((:) ' ' .  unwords) $
-     formatTable (header:map (Node.list fields) snl) isnum
+  in printTable "" header (map (Node.list fields) snl) isnum
 
 -- | Print the instance list.
 printInsts :: Node.List -> Instance.List -> String
@@ -1329,8 +1328,7 @@ printInsts nl il =
       header = [ "F", "Name", "Pri_node", "Sec_node", "Auto_bal"
                , "vcpu", "mem" , "dsk", "lCpu", "lMem", "lDsk", "lNet" ]
       isnum = False:False:False:False:False:repeat True
-  in unlines . map ((:) ' ' . unwords) $
-     formatTable (header:map helper sil) isnum
+  in printTable "" header (map helper sil) isnum
 
 -- | Shows statistics for a given node list.
 printStats :: String -> Node.List -> String
@@ -1344,8 +1342,7 @@ printStats lp nl =
                          , printf "%.8f" val
                          , printf "x%.2f" w
                          ]) hd
-  in unlines . map ((++) lp) . map ((:) ' ' . unwords) $
-     formatTable (header:formatted) $ False:repeat True
+  in printTable lp header formatted $ False:repeat True
 
 -- | Convert a placement into a list of OpCodes (basically a job).
 iMoveToJob :: Node.List        -- ^ The node list; only used for node

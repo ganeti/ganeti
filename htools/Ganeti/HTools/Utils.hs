@@ -33,6 +33,7 @@ module Ganeti.HTools.Utils
   , commaJoin
   , tryRead
   , formatTable
+  , printTable
   , parseUnit
   , plural
   ) where
@@ -155,6 +156,12 @@ formatTable vals numpos =
                              ) flds
                     ) (zip3 vtrans numpos mlens)
    in transpose expnd
+
+-- | Constructs a printable table from given header and rows
+printTable :: String -> [String] -> [[String]] -> [Bool] -> String
+printTable lp header rows isnum =
+  unlines . map ((++) lp) . map ((:) ' ' . unwords) $
+  formatTable (header:rows) isnum
 
 -- | Tries to extract number and scale from the given string.
 --
