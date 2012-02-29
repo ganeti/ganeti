@@ -27,19 +27,19 @@ ADD
 ^^^
 
 | **add**
-| {-t|--disk-template {diskless | file \| plain \| drbd \| rbd}}
-| {--disk=*N*: {size=*VAL* \| adopt=*LV*}[,vg=*VG*][,metavg=*VG*][,mode=*ro\|rw*]
-|  \| {-s|--os-size} *SIZE*}
-| [--no-ip-check] [--no-name-check] [--no-start] [--no-install]
-| [--net=*N* [:options...] \| --no-nics]
-| [{-B|--backend-parameters} *BEPARAMS*]
-| [{-H|--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
-| [{-O|--os-parameters} *param*=*value*... ]
-| [--file-storage-dir *dir\_path*] [--file-driver {loop \| blktap}]
-| {{-n|--node} *node[:secondary-node]* \| {-I|--iallocator} *name*}
-| {{-o|--os-type} *os-type*}
-| [--submit]
-| [--ignore-ipolicy]
+| {-t|\--disk-template {diskless | file \| plain \| drbd \| rbd}}
+| {\--disk=*N*: {size=*VAL* \| adopt=*LV*}[,vg=*VG*][,metavg=*VG*][,mode=*ro\|rw*]
+|  \| {-s|\--os-size} *SIZE*}
+| [\--no-ip-check] [\--no-name-check] [\--no-start] [\--no-install]
+| [\--net=*N* [:options...] \| \--no-nics]
+| [{-B|\--backend-parameters} *BEPARAMS*]
+| [{-H|\--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
+| [{-O|\--os-parameters} *param*=*value*... ]
+| [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap}]
+| {{-n|\--node} *node[:secondary-node]* \| {-I|\--iallocator} *name*}
+| {{-o|\--os-type} *os-type*}
+| [\--submit]
+| [\--ignore-ipolicy]
 | {*instance*}
 
 Creates a new instance on the specified host. The *instance* argument
@@ -743,8 +743,8 @@ follows::
 REMOVE
 ^^^^^^
 
-**remove** [--ignore-failures] [--shutdown-timeout=*N*] [--submit]
-[--force] {*instance*}
+**remove** [\--ignore-failures] [\--shutdown-timeout=*N*] [\--submit]
+[\--force] {*instance*}
 
 Remove an instance. This will remove all data from the instance and
 there is *no way back*. If you are not sure if you use an instance
@@ -776,8 +776,8 @@ LIST
 ^^^^
 
 | **list**
-| [--no-headers] [--separator=*SEPARATOR*] [--units=*UNITS*] [-v]
-| [{-o|--output} *[+]FIELD,...*] [--filter] [instance...]
+| [\--no-headers] [\--separator=*SEPARATOR*] [\--units=*UNITS*] [-v]
+| [{-o|\--output} *[+]FIELD,...*] [\--filter] [instance...]
 
 Shows the currently configured instances with memory usage, disk
 usage, the node they are running on, and their run status.
@@ -837,7 +837,7 @@ Lists available fields for instances.
 INFO
 ^^^^
 
-**info** [-s \| --static] [--roman] {--all \| *instance*}
+**info** [-s \| \--static] [\--roman] {\--all \| *instance*}
 
 Show detailed information about the given instance(s). This is
 different from **list** as it shows detailed data about the instance's
@@ -858,18 +858,18 @@ MODIFY
 ^^^^^^
 
 | **modify**
-| [{-H|--hypervisor-parameters} *HYPERVISOR\_PARAMETERS*]
-| [{-B|--backend-parameters} *BACKEND\_PARAMETERS*]
-| [{-m|--runtime-memory} *SIZE*]
-| [--net add*[:options]* \| --net remove \| --net *N:options*]
-| [--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| --disk remove \|
-|  --disk *N*:mode=*MODE*]
-| [{-t|--disk-template} plain | {-t|--disk-template} drbd -n *new_secondary*] [--no-wait-for-sync]
-| [--os-type=*OS* [--force-variant]]
-| [{-O|--os-parameters} *param*=*value*... ]
-| [--offline \| --online]
-| [--submit]
-| [--ignore-ipolicy]
+| [{-H|\--hypervisor-parameters} *HYPERVISOR\_PARAMETERS*]
+| [{-B|\--backend-parameters} *BACKEND\_PARAMETERS*]
+| [{-m|\--runtime-memory} *SIZE*]
+| [\--net add*[:options]* \| \--net remove \| \--net *N:options*]
+| [\--disk add:size=*SIZE*[,vg=*VG*][,metavg=*VG*] \| \--disk remove \|
+|  \--disk *N*:mode=*MODE*]
+| [{-t|\--disk-template} plain | {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
+| [\--os-type=*OS* [\--force-variant]]
+| [{-O|\--os-parameters} *param*=*value*... ]
+| [\--offline \| \--online]
+| [\--submit]
+| [\--ignore-ipolicy]
 | {*instance*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
@@ -940,10 +940,10 @@ running, there is no effect on the instance.
 REINSTALL
 ^^^^^^^^^
 
-| **reinstall** [{-o|--os-type} *os-type*] [--select-os] [-f *force*]
-| [--force-multiple]
-| [--instance \| --node \| --primary \| --secondary \| --all]
-| [{-O|--os-parameters} *OS\_PARAMETERS*] [--submit] {*instance*...}
+| **reinstall** [{-o|\--os-type} *os-type*] [\--select-os] [-f *force*]
+| [\--force-multiple]
+| [\--instance \| \--node \| \--primary \| \--secondary \| \--all]
+| [{-O|\--os-parameters} *OS\_PARAMETERS*] [\--submit] {*instance*...}
 
 Reinstalls the operating system on the given instance(s). The
 instance(s) must be stopped when running this command. If the ``-o
@@ -969,7 +969,7 @@ can be examined via **gnt-job info**.
 RENAME
 ^^^^^^
 
-| **rename** [--no-ip-check] [--no-name-check] [--submit]
+| **rename** [\--no-ip-check] [\--no-name-check] [\--submit]
 | {*instance*} {*new\_name*}
 
 Renames the given instance. The instance must be stopped when running
@@ -996,50 +996,50 @@ STARTUP
 ^^^^^^^
 
 | **startup**
-| [--force] [--ignore-offline]
-| [--force-multiple] [--no-remember]
-| [--instance \| --node \| --primary \| --secondary \| --all \|
-| --tags \| --node-tags \| --pri-node-tags \| --sec-node-tags]
-| [{-H|--hypervisor-parameters} ``key=value...``]
-| [{-B|--backend-parameters} ``key=value...``]
-| [--submit] [--paused]
+| [\--force] [\--ignore-offline]
+| [\--force-multiple] [\--no-remember]
+| [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
+| \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
+| [{-H|\--hypervisor-parameters} ``key=value...``]
+| [{-B|\--backend-parameters} ``key=value...``]
+| [\--submit] [\--paused]
 | {*name*...}
 
 Starts one or more instances, depending on the following options.  The
 four available modes are:
 
---instance
+\--instance
     will start the instances given as arguments (at least one argument
     required); this is the default selection
 
---node
+\--node
     will start the instances who have the given node as either primary
     or secondary
 
---primary
+\--primary
     will start all instances whose primary node is in the list of nodes
     passed as arguments (at least one node required)
 
---secondary
+\--secondary
     will start all instances whose secondary node is in the list of
     nodes passed as arguments (at least one node required)
 
---all
+\--all
     will start all instances in the cluster (no arguments accepted)
 
---tags
+\--tags
     will start all instances in the cluster with the tags given as
     arguments
 
---node-tags
+\--node-tags
     will start all instances in the cluster on nodes with the tags
     given as arguments
 
---pri-node-tags
+\--pri-node-tags
     will start all instances in the cluster on primary nodes with the
     tags given as arguments
 
---sec-node-tags
+\--sec-node-tags
     will start all instances in the cluster on secondary nodes with the
     tags given as arguments
 
@@ -1096,11 +1096,11 @@ SHUTDOWN
 ^^^^^^^^
 
 | **shutdown**
-| [--timeout=*N*]
-| [--force-multiple] [--ignore-offline] [--no-remember]
-| [--instance \| --node \| --primary \| --secondary \| --all \|
-| --tags \| --node-tags \| --pri-node-tags \| --sec-node-tags]
-| [--submit]
+| [\--timeout=*N*]
+| [\--force-multiple] [\--ignore-offline] [\--no-remember]
+| [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
+| \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
+| [\--submit]
 | {*name*...}
 
 Stops one or more instances. If the instance cannot be cleanly stopped
@@ -1145,13 +1145,13 @@ REBOOT
 ^^^^^^
 
 | **reboot**
-| [{-t|--type} *REBOOT-TYPE*]
-| [--ignore-secondaries]
-| [--shutdown-timeout=*N*]
-| [--force-multiple]
-| [--instance \| --node \| --primary \| --secondary \| --all \|
-| --tags \| --node-tags \| --pri-node-tags \| --sec-node-tags]
-| [--submit]
+| [{-t|\--type} *REBOOT-TYPE*]
+| [\--ignore-secondaries]
+| [\--shutdown-timeout=*N*]
+| [\--force-multiple]
+| [\--instance \| \--node \| \--primary \| \--secondary \| \--all \|
+| \--tags \| \--node-tags \| \--pri-node-tags \| \--sec-node-tags]
+| [\--submit]
 | [*name*...]
 
 Reboots one or more instances. The type of reboot depends on the value
@@ -1186,7 +1186,7 @@ Example::
 CONSOLE
 ^^^^^^^
 
-**console** [--show-cmd] {*instance*}
+**console** [\--show-cmd] {*instance*}
 
 Connects to the console of the given instance. If the instance is not
 up, an error is returned. Use the ``--show-cmd`` option to display the
@@ -1212,17 +1212,17 @@ Disk management
 REPLACE-DISKS
 ^^^^^^^^^^^^^
 
-**replace-disks** [--submit] [--early-release] [--ignore-ipolicy] {-p}
-[--disks *idx*] {*instance*}
+**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy] {-p}
+[\--disks *idx*] {*instance*}
 
-**replace-disks** [--submit] [--early-release] [--ignore-ipolicy] {-s}
-[--disks *idx*] {*instance*}
+**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy] {-s}
+[\--disks *idx*] {*instance*}
 
-**replace-disks** [--submit] [--early-release] [--ignore-ipolicy]
-{--iallocator *name* \| -- {*instance*}
+**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
+{\--iallocator *name* \| \--node *node* } {*instance*}
 
-**replace-disks** [--submit] [--early-release] [--ignore-ipolicy]
-{--auto} {*instance*}
+**replace-disks** [\--submit] [\--early-release] [\--ignore-ipolicy]
+{\--auto} {*instance*}
 
 This command is a generalized form for replacing disks. It is
 currently only valid for the mirrored (DRBD) disk template.
@@ -1271,7 +1271,7 @@ new secondary.
 ACTIVATE-DISKS
 ^^^^^^^^^^^^^^
 
-**activate-disks** [--submit] [--ignore-size] {*instance*}
+**activate-disks** [\--submit] [\--ignore-size] {*instance*}
 
 Activates the block devices of the given instance. If successful, the
 command will show the location and name of the block devices::
@@ -1302,7 +1302,7 @@ running.
 DEACTIVATE-DISKS
 ^^^^^^^^^^^^^^^^
 
-**deactivate-disks** [-f] [--submit] {*instance*}
+**deactivate-disks** [-f] [\--submit] {*instance*}
 
 De-activates the block devices of the given instance. Note that if you
 run this command for an instance with a drbd disk template, while it
@@ -1324,7 +1324,7 @@ can be examined via **gnt-job info**.
 GROW-DISK
 ^^^^^^^^^
 
-**grow-disk** [--no-wait-for-sync] [--submit] {*instance*} {*disk*}
+**grow-disk** [\--no-wait-for-sync] [\--submit] {*instance*} {*disk*}
 {*amount*}
 
 Grows an instance's disk. This is only possible for instances having a
@@ -1372,8 +1372,8 @@ instance.
 RECREATE-DISKS
 ^^^^^^^^^^^^^^
 
-| **recreate-disks** [--submit] [-n node1:[node2]]
-| [--disk=*N*[:[size=*VAL*][,mode=*ro\|rw*]]] {*instance*}
+| **recreate-disks** [\--submit] [-n node1:[node2]]
+| [\--disk=*N*[:[size=*VAL*][,mode=*ro\|rw*]]] {*instance*}
 
 Recreates all or a subset of disks of the given instance.
 
@@ -1408,10 +1408,10 @@ Recovery
 FAILOVER
 ^^^^^^^^
 
-| **failover** [-f] [--ignore-consistency] [--ignore-ipolicy]
-| [--shutdown-timeout=*N*]
-| [{-n|--target-node} *node* \| {-I|--iallocator} *name*]
-| [--submit]
+| **failover** [-f] [\--ignore-consistency] [\--ignore-ipolicy]
+| [\--shutdown-timeout=*N*]
+| [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*]
+| [\--submit]
 | {*instance*}
 
 Failover will stop the instance (if running), change its primary node,
@@ -1455,12 +1455,12 @@ Example::
 MIGRATE
 ^^^^^^^
 
-**migrate** [-f] {--cleanup} {*instance*}
+**migrate** [-f] {\--cleanup} {*instance*}
 
-**migrate** [-f] [--allow-failover] [--non-live]
-[--migration-mode=live\|non-live] [--ignore-ipolicy]
-[--no-runtime-changes]
-[{-n|--target-node} *node* \| {-I|--iallocator} *name*] {*instance*}
+**migrate** [-f] [\--allow-failover] [\--non-live]
+[\--migration-mode=live\|non-live] [\--ignore-ipolicy]
+[\--no-runtime-changes]
+[{-n|\--target-node} *node* \| {-I|\--iallocator} *name*] {*instance*}
 
 Migrate will move the instance to its secondary node without shutdown.
 As with failover, it only works for instances having the drbd disk
@@ -1537,8 +1537,8 @@ Example (and expected output)::
 MOVE
 ^^^^
 
-**move** [-f] [--ignore-consistency]
-[-n *node*] [--shutdown-timeout=*N*] [--submit] [--ignore-ipolicy]
+**move** [-f] [\--ignore-consistency]
+[-n *node*] [\--shutdown-timeout=*N*] [\--submit] [\--ignore-ipolicy]
 {*instance*}
 
 Move will move the instance to an arbitrary node in the cluster.  This
@@ -1572,7 +1572,7 @@ Example::
 CHANGE-GROUP
 ~~~~~~~~~~~~
 
-**change-group** [--iallocator *NAME*] [--to *GROUP*...] {*instance*}
+**change-group** [\--iallocator *NAME*] [\--to *GROUP*...] {*instance*}
 
 This command moves an instance to another node group. The move is
 calculated by an iallocator, either given on the command line or as a
@@ -1592,7 +1592,7 @@ TAGS
 ADD-TAGS
 ^^^^^^^^
 
-**add-tags** [--from *file*] {*instancename*} {*tag*...}
+**add-tags** [\--from *file*] {*instancename*} {*tag*...}
 
 Add tags to the given instance. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -1613,7 +1613,7 @@ List the tags of the given instance.
 REMOVE-TAGS
 ^^^^^^^^^^^
 
-**remove-tags** [--from *file*] {*instancename*} {*tag*...}
+**remove-tags** [\--from *file*] {*instancename*} {*tag*...}
 
 Remove tags from the given instance. If any of the tags are not
 existing on the node, the entire operation will abort.

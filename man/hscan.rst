@@ -9,9 +9,9 @@ hscan - Scan clusters via RAPI and save node/instance data
 SYNOPSIS
 --------
 
-**hscan** [-p] [--no-headers] [-d *path* ] *cluster...*
+**hscan** [-p] [\--no-headers] [-d *path* ] *cluster...*
 
-**hscan** --version
+**hscan** \--version
 
 DESCRIPTION
 -----------
@@ -71,7 +71,7 @@ OPTIONS
 
 The options that can be passed to the program are as follows:
 
--p, --print-nodes
+-p, \--print-nodes
   Prints the node status for each cluster after the cluster's one-line
   status display, in a format designed to allow the user to understand
   the node's most important parameters. For details, see the man page
@@ -81,7 +81,7 @@ The options that can be passed to the program are as follows:
   Save the node and instance data for each cluster under *path*,
   instead of the current directory.
 
--V, --version
+-V, \--version
   Just show the program version and exit.
 
 EXIT STATUS

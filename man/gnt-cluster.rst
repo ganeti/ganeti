@@ -30,7 +30,7 @@ Activates the master IP on the master node.
 ADD-TAGS
 ~~~~~~~~
 
-**add-tags** [--from *file*] {*tag*...}
+**add-tags** [\--from *file*] {*tag*...}
 
 Add tags to the cluster. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -82,7 +82,7 @@ and the command which will be executed will be ``ls -l /etc``.
 COPYFILE
 ~~~~~~~~
 
-| **copyfile** [--use-replication-network] [-n *node*] [-g *group*]
+| **copyfile** [\--use-replication-network] [-n *node*] [-g *group*]
 | {*file*}
 
 Copies a file to all or to some nodes. The argument specifies the
@@ -102,7 +102,7 @@ named nodes.
 DEACTIVATE-MASTER-IP
 ~~~~~~~~~~~~~~~~~~~~
 
-**deactivate-master-ip** [--yes]
+**deactivate-master-ip** [\--yes]
 
 Deactivates the master IP on the master node.
 
@@ -114,18 +114,18 @@ unless the ``--yes`` option is passed.
 DESTROY
 ~~~~~~~
 
-**destroy** {--yes-do-it}
+**destroy** {\--yes-do-it}
 
 Remove all configuration files related to the cluster, so that a
 **gnt-cluster init** can be done again afterwards.
 
 Since this is a dangerous command, you are required to pass the
-argument *--yes-do-it.*
+argument *\--yes-do-it.*
 
 EPO
 ~~~
 
-**epo** [--on] [--groups|--all] [--power-delay] *arguments*
+**epo** [\--on] [\--groups|\--all] [\--power-delay] *arguments*
 
 Performs an emergency power-off on nodes given as arguments. If
 ``--groups`` is given, arguments are node groups. If ``--all`` is
@@ -153,7 +153,7 @@ Displays the current master node.
 INFO
 ~~~~
 
-**info** [--roman]
+**info** [\--roman]
 
 Shows runtime cluster information: cluster name, architecture (32
 or 64 bit), master node, node list and instance list.
@@ -166,36 +166,36 @@ INIT
 ~~~~
 
 | **init**
-| [{-s|--secondary-ip} *secondary\_ip*]
-| [--vg-name *vg-name*]
-| [--master-netdev *interface-name*]
-| [--master-netmask *netmask*]
-| [--use-external-mip-script {yes \| no}]
-| [{-m|--mac-prefix} *mac-prefix*]
-| [--no-lvm-storage]
-| [--no-etc-hosts]
-| [--no-ssh-init]
-| [--file-storage-dir *dir*]
-| [--enabled-hypervisors *hypervisors*]
-| [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
-| [{-B|--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
-| [{-N|--nic-parameters} *nic-param*=*value*[,*nic-param*=*value*...]]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
-| [--maintain-node-health {yes \| no}]
-| [--uid-pool *user-id pool definition*]
-| [{-I|--default-iallocator} *default instance allocator*]
-| [--primary-ip-version *version*]
-| [--prealloc-wipe-disks {yes \| no}]
-| [--node-parameters *ndparams*]
-| [{-C|--candidate-pool-size} *candidate\_pool\_size*]
-| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--ipol-disk-templates *template* [,*template*...]]
-| [--disk-state *diskstate*]
-| [--hypervisor-state *hvstate*]
+| [{-s|\--secondary-ip} *secondary\_ip*]
+| [\--vg-name *vg-name*]
+| [\--master-netdev *interface-name*]
+| [\--master-netmask *netmask*]
+| [\--use-external-mip-script {yes \| no}]
+| [{-m|\--mac-prefix} *mac-prefix*]
+| [\--no-lvm-storage]
+| [\--no-etc-hosts]
+| [\--no-ssh-init]
+| [\--file-storage-dir *dir*]
+| [\--enabled-hypervisors *hypervisors*]
+| [{-H|\--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
+| [{-B|\--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
+| [{-N|\--nic-parameters} *nic-param*=*value*[,*nic-param*=*value*...]]
+| [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
+| [\--maintain-node-health {yes \| no}]
+| [\--uid-pool *user-id pool definition*]
+| [{-I|\--default-iallocator} *default instance allocator*]
+| [\--primary-ip-version *version*]
+| [\--prealloc-wipe-disks {yes \| no}]
+| [\--node-parameters *ndparams*]
+| [{-C|\--candidate-pool-size} *candidate\_pool\_size*]
+| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--ipol-disk-templates *template* [,*template*...]]
+| [\--disk-state *diskstate*]
+| [\--hypervisor-state *hvstate*]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -524,7 +524,7 @@ List the tags of the cluster.
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
-**master-failover** [--no-voting]
+**master-failover** [\--no-voting]
 
 Failover the master role to the current node.
 
@@ -555,33 +555,33 @@ MODIFY
 ~~~~~~
 
 | **modify**
-| [--vg-name *vg-name*]
-| [--no-lvm-storage]
-| [--enabled-hypervisors *hypervisors*]
-| [{-H|--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
-| [{-B|--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
-| [{-N|--nic-parameters} *nic-param*=*value*[,*nic-param*=*value*...]]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
-| [--uid-pool *user-id pool definition*]
-| [--add-uids *user-id pool definition*]
-| [--remove-uids *user-id pool definition*]
-| [{-C|--candidate-pool-size} *candidate\_pool\_size*]
-| [--maintain-node-health {yes \| no}]
-| [--prealloc-wipe-disks {yes \| no}]
-| [{-I|--default-iallocator} *default instance allocator*]
-| [--reserved-lvs=*NAMES*]
-| [--node-parameters *ndparams*]
-| [--master-netdev *interface-name*]
-| [--master-netmask *netmask*]
-| [--use-external-mip-script {yes \| no}]
-| [--hypervisor-state *hvstate*]
-| [--disk-state *diskstate*]
-| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--ipol-disk-templates *template* [,*template*...]]
+| [\--vg-name *vg-name*]
+| [\--no-lvm-storage]
+| [\--enabled-hypervisors *hypervisors*]
+| [{-H|\--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
+| [{-B|\--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
+| [{-N|\--nic-parameters} *nic-param*=*value*[,*nic-param*=*value*...]]
+| [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
+| [\--uid-pool *user-id pool definition*]
+| [\--add-uids *user-id pool definition*]
+| [\--remove-uids *user-id pool definition*]
+| [{-C|\--candidate-pool-size} *candidate\_pool\_size*]
+| [\--maintain-node-health {yes \| no}]
+| [\--prealloc-wipe-disks {yes \| no}]
+| [{-I|\--default-iallocator} *default instance allocator*]
+| [\--reserved-lvs=*NAMES*]
+| [\--node-parameters *ndparams*]
+| [\--master-netdev *interface-name*]
+| [\--master-netmask *netmask*]
+| [\--use-external-mip-script {yes \| no}]
+| [\--hypervisor-state *hvstate*]
+| [\--disk-state *diskstate*]
+| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--ipol-disk-templates *template* [,*template*...]]
 
 
 Modify the options for the cluster.
@@ -654,7 +654,7 @@ The ``info`` option shows whether the watcher is currently paused.
 redist-conf
 ~~~~~~~~~~~
 
-**redist-conf** [--submit]
+**redist-conf** [\--submit]
 
 This command forces a full push of configuration files from the
 master node to the other nodes in the cluster. This is normally not
@@ -668,7 +668,7 @@ that it can be examined via **gnt-job info**.
 REMOVE-TAGS
 ~~~~~~~~~~~
 
-**remove-tags** [--from *file*] {*tag*...}
+**remove-tags** [\--from *file*] {*tag*...}
 
 Remove tags from the cluster. If any of the tags are not existing
 on the cluster, the entire operation will abort.
@@ -697,11 +697,11 @@ RENEW-CRYPTO
 ~~~~~~~~~~~~
 
 | **renew-crypto** [-f]
-| [--new-cluster-certificate] [--new-confd-hmac-key]
-| [--new-rapi-certificate] [--rapi-certificate *rapi-cert*]
-| [--new-spice-certificate | --spice-certificate *spice-cert*
-| -- spice-ca-certificate *spice-ca-cert*]
-| [--new-cluster-domain-secret] [--cluster-domain-secret *filename*]
+| [\--new-cluster-certificate] [\--new-confd-hmac-key]
+| [\--new-rapi-certificate] [\--rapi-certificate *rapi-cert*]
+| [\--new-spice-certificate | \--spice-certificate *spice-cert*
+| \--spice-ca-certificate *spice-ca-cert*]
+| [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
 
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
@@ -738,7 +738,7 @@ arguments are given, all instances will be checked.
 
 Note that only active disks can be checked by this command; in case
 a disk cannot be activated it's advised to use
-**gnt-instance activate-disks --ignore-size ...** to force
+**gnt-instance activate-disks \--ignore-size ...** to force
 activation without regard to the current size.
 
 When the all disk sizes are consistent, the command will return no
@@ -772,9 +772,9 @@ node will be listed as /nodes/*name*, and an instance as
 VERIFY
 ~~~~~~
 
-| **verify** [--no-nplus1-mem] [--node-group *nodegroup*]
-| [--error-codes] [{-I|--ignore-errors} *errorcode*]
-| [{-I|--ignore-errors} *errorcode*...]
+| **verify** [\--no-nplus1-mem] [\--node-group *nodegroup*]
+| [\--error-codes] [{-I|\--ignore-errors} *errorcode*]
+| [{-I|\--ignore-errors} *errorcode*...]
 
 Verify correctness of cluster configuration. This is safe with
 respect to running instances, and incurs no downtime of the

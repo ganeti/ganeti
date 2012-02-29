@@ -24,17 +24,17 @@ ADD
 ~~~
 
 | **add**
-| [--node-parameters=*NDPARAMS*]
-| [--alloc-policy=*POLICY*]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
-| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--ipol-disk-templates *template* [,*template*...]]
-| [--disk-state *diskstate*]
-| [--hypervisor-state *hvstate*]
+| [\--node-parameters=*NDPARAMS*]
+| [\--alloc-policy=*POLICY*]
+| [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
+| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--ipol-disk-templates *template* [,*template*...]]
+| [\--disk-state *diskstate*]
+| [\--hypervisor-state *hvstate*]
 | {*group*}
 
 Creates a new group with the given name. The node group will be
@@ -75,7 +75,7 @@ ASSIGN-NODES
 ~~~~~~~~~~~~
 
 | **assign-nodes**
-| [--force]
+| [\--force]
 | {*group*} {*node*...}
 
 Assigns one or more nodes to the specified group, moving them from their
@@ -91,17 +91,17 @@ MODIFY
 ~~~~~~
 
 | **modify**
-| [--node-parameters=*NDPARAMS*]
-| [--alloc-policy=*POLICY*]
-| [--hypervisor-state *hvstate*]
-| [{-D|--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
-| [--disk-state *diskstate*]
-| [--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
-| [--ipol-disk-templates *template* [,*template*...]]
+| [\--node-parameters=*NDPARAMS*]
+| [\--alloc-policy=*POLICY*]
+| [\--hypervisor-state *hvstate*]
+| [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
+| [\--disk-state *diskstate*]
+| [\--specs-cpu-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-disk-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-mem-size *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--specs-nic-count *spec-param*=*value* [,*spec-param*=*value*...]]
+| [\--ipol-disk-templates *template* [,*template*...]]
 | {*group*}
 
 Modifies some parameters from the node group.
@@ -129,8 +129,8 @@ least one group, so the last group cannot be removed.
 LIST
 ~~~~
 
-| **list** [--no-headers] [--separator=*SEPARATOR*] [-v]
-| [-o *[+]FIELD,...*] [--filter] [group...]
+| **list** [\--no-headers] [\--separator=*SEPARATOR*] [-v]
+| [-o *[+]FIELD,...*] [\--filter] [group...]
 
 Lists all existing node groups in the cluster.
 
@@ -178,7 +178,7 @@ Renames a given group from *oldname* to *newname*.
 EVACUATE
 ~~~~~~~~
 
-**evacuate** [--iallocator *NAME*] [--to *GROUP*...] {*group*}
+**evacuate** [\--iallocator *NAME*] [\--to *GROUP*...] {*group*}
 
 This command will move all instances out of the given node group.
 Instances are placed in a new group by an iallocator, either given on
@@ -198,7 +198,7 @@ TAGS
 ADD-TAGS
 ^^^^^^^^
 
-**add-tags** [--from *file*] {*groupname*} {*tag*...}
+**add-tags** [\--from *file*] {*groupname*} {*tag*...}
 
 Add tags to the given node group. If any of the tags contains invalid
 characters, the entire operation will abort.
@@ -219,7 +219,7 @@ List the tags of the given node group.
 REMOVE-TAGS
 ^^^^^^^^^^^
 
-**remove-tags** [--from *file*] {*groupname*} {*tag*...}
+**remove-tags** [\--from *file*] {*groupname*} {*tag*...}
 
 Remove tags from the given node group. If any of the tags are not
 existing on the node, the entire operation will abort.

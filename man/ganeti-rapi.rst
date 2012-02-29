@@ -9,7 +9,7 @@ ganeti-rapi - Ganeti remote API daemon
 Synopsis
 --------
 
-**ganeti-rapi** [-d] [-f] [--no-ssl] [-K *SSL_KEY_FILE*] [-C
+**ganeti-rapi** [-d] [-f] [\--no-ssl] [-K *SSL_KEY_FILE*] [-C
 *SSL_CERT_FILE*]
 
 DESCRIPTION
