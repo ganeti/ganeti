@@ -650,6 +650,7 @@ man_MANS = \
 	man/gnt-os.8 \
 	man/hail.1 \
 	man/hbal.1 \
+	man/hinfo.1 \
 	man/hscan.1 \
 	man/hspace.1 \
 	man/htools.1
