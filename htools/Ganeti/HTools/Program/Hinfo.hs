@@ -126,7 +126,7 @@ commonInfo verbose gl nl il = do
              gl_size (plural gl_size "node group" "node groups")::IO ()
 
   let csf = commonSuffix nl il
-  when (not (null csf) && verbose > 1) $
+  when (not (null csf) && verbose > 2) $
        printf "Note: Stripping common suffix of '%s' from names\n" csf
 
 -- | Main function.
@@ -142,10 +142,10 @@ main opts args = do
 
   (ClusterData gl fixed_nl ilf ctags ipol) <- loadExternalData opts
 
-  when (verbose > 1) $ do
-       putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
+  putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
+
+  when (verbose > 2) $ do
        putStrLn $ "Loaded cluster ipolicy: " ++ show ipol
-       putStrLn $ "Loaded node groups: " ++ show gl
 
   nlf <- setNodeStatus opts fixed_nl
 
