@@ -26,15 +26,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Program.Hail (main, options) where
 
 import Control.Monad
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import System.IO
+import System.Exit
 
 import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Loader (Request(..), ClusterData(..))
-import Ganeti.HTools.ExtLoader (maybeSaveData)
+import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData)
 
 -- | Options list and functions.
 options :: [OptType]
@@ -48,6 +49,21 @@ options =
   , oShowHelp
   ]
 
+wrapReadRequest :: Options -> [String] -> IO Request
+wrapReadRequest opts args = do
+  when (null args) $ do
+    hPutStrLn stderr "Error: this program needs an input file."
+    exitWith $ ExitFailure 1
+
+  r1 <- readRequest (head args)
+  if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
+    then do
+      cdata <- loadExternalData opts
+      let Request rqt _ = r1
+      return $ Request rqt cdata
+    else return r1
+
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -55,7 +71,7 @@ main opts args = do
       verbose = optVerbose opts
       savecluster = optSaveCluster opts
 
-  request <- readRequest opts args
+  request <- wrapReadRequest opts args
 
   let Request rq cdata = request
 

@@ -30,7 +30,7 @@ module Ganeti.HTools.IAlloc
   ) where
 
 import Data.Either ()
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSArray),
@@ -46,7 +46,6 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
-import Ganeti.HTools.ExtLoader (loadExternalData)
 import Ganeti.HTools.JSON
 import Ganeti.HTools.Types
 
@@ -325,24 +324,14 @@ processRequest request =
                 formatNodeEvac gl nl il
 
 -- | Reads the request from the data file(s).
-readRequest :: Options -> [String] -> IO Request
-readRequest opts args = do
-  when (null args) $ do
-    hPutStrLn stderr "Error: this program needs an input file."
-    exitWith $ ExitFailure 1
-
-  input_data <- readFile (head args)
-  r1 <- case parseData input_data of
-          Bad err -> do
-            hPutStrLn stderr $ "Error: " ++ err
-            exitWith $ ExitFailure 1
-          Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
-  if isJust (optDataFile opts) ||  (not . null . optNodeSim) opts
-    then do
-      cdata <- loadExternalData opts
-      let Request rqt _ = r1
-      return $ Request rqt cdata
-    else return r1
+readRequest :: FilePath -> IO Request
+readRequest fp = do
+  input_data <- readFile fp
+  case parseData input_data of
+    Bad err -> do
+      hPutStrLn stderr $ "Error: " ++ err
+      exitWith $ ExitFailure 1
+    Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
 
 -- | Main iallocator pipeline.
 runIAllocator :: Request -> (Maybe (Node.List, Instance.List), String)
