@@ -50,6 +50,7 @@ module Ganeti.HTools.CLI
   , oExTags
   , oExecJobs
   , oGroup
+  , oIAllocSrc
   , oInstMoves
   , oLuxiSocket
   , oMachineReadable
@@ -118,6 +119,7 @@ data Options = Options
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
   , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
+  , optIAllocSrc   :: Maybe FilePath -- ^ The iallocation spec
   , optSelInst     :: [String]       -- ^ Instances to be excluded
   , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
   , optMachineReadable :: Bool       -- ^ Output machine-readable format
@@ -158,6 +160,7 @@ defaultOptions  = Options
   , optExTags      = Nothing
   , optExecJobs    = False
   , optGroup       = Nothing
+  , optIAllocSrc   = Nothing
   , optSelInst     = []
   , optLuxi        = Nothing
   , optMachineReadable = False
@@ -268,6 +271,11 @@ oGroup :: OptType
 oGroup = Option "G" ["group"]
             (ReqArg (\ f o -> Ok o { optGroup = Just f }) "ID")
             "the ID of the group to balance"
+
+oIAllocSrc :: OptType
+oIAllocSrc = Option "I" ["ialloc-src"]
+             (ReqArg (\ f opts -> Ok opts { optIAllocSrc = Just f }) "FILE")
+             "Specify an iallocator spec as the cluster data source"
 
 oLuxiSocket :: OptType
 oLuxiSocket = Option "L" ["luxi"]
