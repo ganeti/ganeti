@@ -44,6 +44,7 @@ import qualified Ganeti.HTools.Luxi as Luxi
 import qualified Ganeti.HTools.Rapi as Rapi
 import qualified Ganeti.HTools.Simu as Simu
 import qualified Ganeti.HTools.Text as Text
+import qualified Ganeti.HTools.IAlloc as IAlloc
 import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
                             , commonSuffix)
 
@@ -78,10 +79,12 @@ loadExternalData opts = do
       lsock = optLuxi opts
       tfile = optDataFile opts
       simdata = optNodeSim opts
+      iallocsrc = optIAllocSrc opts
       setRapi = mhost /= ""
       setLuxi = isJust lsock
       setSim = (not . null) simdata
       setFile = isJust tfile
+      setIAllocSrc = isJust iallocsrc
       allSet = filter id [setRapi, setLuxi, setFile]
       exTags = case optExTags opts of
                  Nothing -> []
@@ -109,6 +112,7 @@ loadExternalData opts = do
         | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
         | setSim -> Simu.loadData simdata
         | setFile -> wrapIO $ Text.loadData $ fromJust tfile
+        | setIAllocSrc -> wrapIO $ IAlloc.loadData $ fromJust iallocsrc
         | otherwise -> return $ Bad "No backend selected! Exiting."
 
   let ldresult = input_data >>= mergeData util_data' exTags selInsts exInsts
