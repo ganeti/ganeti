@@ -27,6 +27,7 @@ module Ganeti.HTools.IAlloc
   ( readRequest
   , runIAllocator
   , processRelocate
+  , loadData
   ) where
 
 import Data.Either ()
@@ -343,3 +344,10 @@ runIAllocator request =
           Bad msg -> (False, "Request failed: " ++ msg, JSArray [], Nothing)
       rstring = formatResponse ok info result
   in (cdata, rstring)
+
+-- | Load the data from an iallocation request file
+loadData :: FilePath -- ^ The path to the file
+         -> IO (Result ClusterData)
+loadData fp = do
+  Request _ cdata <- readRequest fp
+  return $ Ok cdata
