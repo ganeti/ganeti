@@ -16,7 +16,8 @@ SYNOPSIS
 
 Backend options:
 
-{ **-m** *cluster* | **-L[** *path* **] [-X]** | **-t** *data-file* }
+{ **-m** *cluster* | **-L[** *path* **] [-X]** | **-t** *data-file* |
+**-I** *path* }
 
 Algorithm options:
 

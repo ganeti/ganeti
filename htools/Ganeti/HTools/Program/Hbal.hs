@@ -63,6 +63,7 @@ options =
   , oEvacMode
   , oRapiMaster
   , oLuxiSocket
+  , oIAllocSrc
   , oExecJobs
   , oGroup
   , oMaxSolLength

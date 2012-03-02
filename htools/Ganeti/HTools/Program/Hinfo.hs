@@ -51,6 +51,7 @@ options =
   , oDataFile
   , oRapiMaster
   , oLuxiSocket
+  , oIAllocSrc
   , oVerbose
   , oQuiet
   , oOfflineNode

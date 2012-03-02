@@ -17,7 +17,7 @@ SYNOPSIS
 Backend options:
 
 { **-m** *cluster* | **-L[** *path* **] [-X]** | **-t** *data-file* |
-**\--simulate** *spec* }
+**\--simulate** *spec* | **-I** *path* }
 
 
 Algorithm options:

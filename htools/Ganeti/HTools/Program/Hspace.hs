@@ -56,6 +56,7 @@ options =
   , oNodeSim
   , oRapiMaster
   , oLuxiSocket
+  , oIAllocSrc
   , oVerbose
   , oQuiet
   , oOfflineNode

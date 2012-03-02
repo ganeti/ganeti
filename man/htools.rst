@@ -203,6 +203,11 @@ support all options. Some common options are:
   on which the master daemon listens; otherwise, the default path used
   by Ganeti (configured at build time) is used.
 
+-I|\--ialloc-src *path*
+  Backend specification: load data directly from an iallocator request
+  (as produced by Ganeti when doing an iallocator call).  The iallocator
+  request is read from specified path.
+
 \--simulate *description*
   Backend specification: instead of using actual data, build an empty
   cluster given a node description. The *description* parameter must be
