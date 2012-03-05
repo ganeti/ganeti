@@ -848,12 +848,12 @@ prop_Text_IPolicyIdempotent ipol =
 -- small cluster sizes.
 prop_Text_CreateSerialise =
   forAll genTags $ \ctags ->
-  forAll (choose (1, 2)) $ \reqnodes ->
   forAll (choose (1, 20)) $ \maxiter ->
   forAll (choose (2, 10)) $ \count ->
   forAll genOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let nl = makeSmallCluster node count
+      reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
      Cluster.iterateAlloc nl Container.empty (Just maxiter) inst allocn [] []
      of
@@ -1161,7 +1161,8 @@ prop_ClusterAlloc_sane inst =
   forAll (choose (5, 20)) $ \count ->
   forAll genOnlineNode $ \node ->
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
-  in case Cluster.genAllocNodes defGroupList nl 2 True >>=
+      reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
+  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
      Cluster.tryAlloc nl il inst' of
        Types.Bad _ -> False
        Types.Ok as ->
@@ -1178,10 +1179,10 @@ prop_ClusterAlloc_sane inst =
 -- computed allocation statistics are correct.
 prop_ClusterCanTieredAlloc inst =
   forAll (choose (2, 5)) $ \count ->
-  forAll (choose (1, 2)) $ \rqnodes ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
   let nl = makeSmallCluster node count
       il = Container.empty
+      rqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
   in case allocnodes >>= \allocnodes' ->
     Cluster.tieredAlloc nl il (Just 1) inst allocnodes' [] [] of
@@ -1208,7 +1209,8 @@ prop_ClusterCanTieredAlloc inst =
 -- and allocate an instance on it.
 genClusterAlloc count node inst =
   let nl = makeSmallCluster node count
-  in case Cluster.genAllocNodes defGroupList nl 2 True >>=
+      reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
+  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
      Cluster.tryAlloc nl Container.empty inst of
        Types.Bad _ -> Types.Bad "Can't allocate"
        Types.Ok as ->
