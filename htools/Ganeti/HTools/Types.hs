@@ -254,7 +254,7 @@ defIPolicy = IPolicy { iPolicyStdSpec = defStdISpec
                      -- hardcoding here since Constants.hs exports the
                      -- string values, not the actual type; and in
                      -- htools, we are mostly looking at DRBD
-                     , iPolicyDiskTemplates = [DTDrbd8, DTPlain]
+                     , iPolicyDiskTemplates = [minBound..maxBound]
                      , iPolicyVcpuRatio = C.ipolicyDefaultsVcpuRatio
                      , iPolicySpindleRatio = C.ipolicyDefaultsSpindleRatio
                      }
