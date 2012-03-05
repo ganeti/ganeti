@@ -1236,14 +1236,16 @@ genClusterAlloc count node inst =
 prop_ClusterAllocRelocate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
-  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
     Types.Ok (nl, il, inst') ->
       case IAlloc.processRelocate defGroupList nl il
-             (Instance.idx inst) 1 [Instance.sNode inst'] of
-        Types.Ok _ -> printTestCase "??" True  -- huh, how to make
-                                               -- this nicer...
+             (Instance.idx inst) 1
+             [(if Instance.diskTemplate inst' == Types.DTDrbd8
+                 then Instance.sNode
+                 else Instance.pNode) inst'] of
+        Types.Ok _ -> property True
         Types.Bad msg -> failTest $ "Failed to relocate: " ++ msg
 
 -- | Helper property checker for the result of a nodeEvac or
