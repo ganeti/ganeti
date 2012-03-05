@@ -1227,18 +1227,24 @@ printSolutionLine :: Node.List     -- ^ The node list
 printSolutionLine nl il nmlen imlen plc pos =
   let pmlen = (2*nmlen + 1)
       (i, p, s, mv, c) = plc
+      old_sec = Instance.sNode inst
       inst = Container.find i il
       inam = Instance.alias inst
       npri = Node.alias $ Container.find p nl
       nsec = Node.alias $ Container.find s nl
       opri = Node.alias $ Container.find (Instance.pNode inst) nl
-      osec = Node.alias $ Container.find (Instance.sNode inst) nl
+      osec = Node.alias $ Container.find old_sec nl
       (moves, cmds) =  computeMoves inst inam mv npri nsec
-      ostr = printf "%s:%s" opri osec::String
-      nstr = printf "%s:%s" npri nsec::String
+      -- FIXME: this should check instead/also the disk template
+      ostr = if old_sec == Node.noSecondary
+               then printf "%s" opri
+               else printf "%s:%s" opri osec
+      nstr = if s == Node.noSecondary
+               then printf "%s" npri
+               else printf "%s:%s" npri nsec
   in (printf "  %3d. %-*s %-*s => %-*s %.8f a=%s"
-      pos imlen inam pmlen ostr
-      pmlen nstr c moves,
+      pos imlen inam pmlen (ostr::String)
+      pmlen (nstr::String) c moves,
       cmds)
 
 -- | Return the instance and involved nodes in an instance move.
