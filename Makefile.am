@@ -919,10 +919,12 @@ man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
 	@test -n "$(PANDOC)" || \
 	  { echo 'pandoc' not found during configure; exit 1; }
 	set -o pipefail ; \
+	trap 'echo auto-removing $@; rm $@' EXIT; \
 	$(PANDOC) -s -f rst -t man -A man/footer.man $< | \
-	  sed -e 's/\\@/@/g' > $@
-	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN) $@ || \
-	  { rm -f "$@"; exit 1; } ; fi
+	  sed -e 's/\\@/@/g' > $@; \
+	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN) $@; fi; \
+	trap - EXIT
+
 
 man/%.html.in: man/%.gen man/footer.html
 	@test -n "$(PANDOC)" || \
