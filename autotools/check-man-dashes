@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2010, 2012 Google Inc.
+# Copyright (C) 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,5 @@
 
 set -e
 
-! LANG=en_US.UTF-8 MANWIDTH=80 \
-  man --warnings --encoding=utf8 --local-file "$1" 2>&1 >/dev/null | \
-  grep -v -e "cannot adjust line" -e "can't break line" | \
-  grep .
+! grep -F -q '\[em]' "$1" || \
+  { echo "Unescaped dashes found in $1, use \\-- instead of --" 1>&2; exit 1; }

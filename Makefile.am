@@ -22,6 +22,7 @@ BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
 CHECK_HEADER = $(top_srcdir)/autotools/check-header
+CHECK_MAN_DASHES = $(top_srcdir)/autotools/check-man-dashes
 CHECK_MAN_WARNINGS = $(top_srcdir)/autotools/check-man-warnings
 CHECK_VERSION = $(top_srcdir)/autotools/check-version
 CHECK_NEWS = $(top_srcdir)/autotools/check-news
@@ -590,6 +591,7 @@ EXTRA_DIST = \
 	autotools/check-header \
 	autotools/check-python-code \
 	autotools/check-imports \
+	autotools/check-man-dashes \
 	autotools/check-man-warnings \
 	autotools/check-news \
 	autotools/check-tar \
@@ -923,6 +925,7 @@ man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.man
 	$(PANDOC) -s -f rst -t man -A man/footer.man $< | \
 	  sed -e 's/\\@/@/g' > $@; \
 	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN_WARNINGS) $@; fi; \
+	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 
 
