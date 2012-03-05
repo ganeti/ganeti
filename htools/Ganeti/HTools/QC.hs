@@ -990,15 +990,20 @@ prop_Node_addPriFM node inst =
         inst' = setInstanceSmallerThanNode node inst
         inst'' = inst' { Instance.mem = Instance.mem inst }
 
+-- | Check that adding a primary instance with too much disk fails
+-- with type FailDisk.
 prop_Node_addPriFD node inst =
+  forAll (elements Instance.localStorageTemplates) $ \dt ->
   Instance.dsk inst >= Node.fDsk node && not (Node.failN1 node) ==>
-    case Node.addPri node inst'' of
-      Types.OpFail Types.FailDisk -> True
-      _ -> False
-    where _types = (node::Node.Node, inst::Instance.Instance)
-          inst' = setInstanceSmallerThanNode node inst
-          inst'' = inst' { Instance.dsk = Instance.dsk inst }
+  let inst' = setInstanceSmallerThanNode node inst
+      inst'' = inst' { Instance.dsk = Instance.dsk inst
+                     , Instance.diskTemplate = dt }
+  in case Node.addPri node inst'' of
+       Types.OpFail Types.FailDisk -> True
+       _ -> False
 
+-- | Check that adding a primary instance with too many VCPUs fails
+-- with type FailCPU.
 prop_Node_addPriFC =
   forAll (choose (1, maxCpu)) $ \extra ->
   forAll genOnlineNode $ \node ->
