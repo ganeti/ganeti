@@ -597,15 +597,15 @@ tryBalance :: Table       -- ^ The starting table
 tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
+        all_nodes = Container.elems ini_nl
+        (offline_nodes, online_nodes) = partition Node.offline all_nodes
         all_inst' = if evac_mode
-                    then let bad_nodes = map Node.idx . filter Node.offline $
-                                         Container.elems ini_nl
-                         in filter (any (`elem` bad_nodes) . Instance.allNodes)
-                            all_inst
-                    else all_inst
+                      then let bad_nodes = map Node.idx offline_nodes
+                           in filter (any (`elem` bad_nodes) .
+                                          Instance.allNodes) all_inst
+                      else all_inst
         reloc_inst = filter Instance.movable all_inst'
-        node_idx = map Node.idx . filter (not . Node.offline) $
-                   Container.elems ini_nl
+        node_idx = map Node.idx online_nodes
         fin_tbl = checkMove node_idx disk_moves inst_moves ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
