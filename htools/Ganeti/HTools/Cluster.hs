@@ -508,22 +508,27 @@ checkSingleStep ini_tbl target cur_tbl move =
 -- | Given the status of the current secondary as a valid new node and
 -- the current candidate target node, generate the possible moves for
 -- a instance.
-possibleMoves :: Bool      -- ^ Whether the secondary node is a valid new node
-              -> Bool      -- ^ Whether we can change the primary node
-              -> Ndx       -- ^ Target node candidate
-              -> [IMove]   -- ^ List of valid result moves
+possibleMoves :: MirrorType -- ^ The mirroring type of the instance
+              -> Bool       -- ^ Whether the secondary node is a valid new node
+              -> Bool       -- ^ Whether we can change the primary node
+              -> Ndx        -- ^ Target node candidate
+              -> [IMove]    -- ^ List of valid result moves
 
-possibleMoves _ False tdx =
-  [ReplaceSecondary tdx]
+possibleMoves MirrorNone _ _ _ = []
 
-possibleMoves True True tdx =
+possibleMoves MirrorExternal _ _ _ = []
+
+possibleMoves MirrorInternal _ False tdx =
+  [ ReplaceSecondary tdx ]
+
+possibleMoves MirrorInternal True True tdx =
   [ ReplaceSecondary tdx
   , ReplaceAndFailover tdx
   , ReplacePrimary tdx
   , FailoverAndReplace tdx
   ]
 
-possibleMoves False True tdx =
+possibleMoves MirrorInternal False True tdx =
   [ ReplaceSecondary tdx
   , ReplaceAndFailover tdx
   ]
@@ -540,14 +545,17 @@ checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
       osdx = Instance.sNode target
       bad_nodes = [opdx, osdx]
       nodes = filter (`notElem` bad_nodes) nodes_idx
+      mir_type = templateMirrorType $ Instance.diskTemplate target
       use_secondary = elem osdx nodes_idx && inst_moves
-      aft_failover = if use_secondary -- if allowed to failover
+      aft_failover = if mir_type == MirrorInternal && use_secondary
+                       -- if drbd and allowed to failover
                        then checkSingleStep ini_tbl target ini_tbl Failover
                        else ini_tbl
-      all_moves = if disk_moves
-                    then concatMap
-                           (possibleMoves use_secondary inst_moves) nodes
-                    else []
+      all_moves =
+        if disk_moves
+          then concatMap (possibleMoves mir_type use_secondary inst_moves)
+               nodes
+          else []
     in
       -- iterate over the possible nodes for this instance
       foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
