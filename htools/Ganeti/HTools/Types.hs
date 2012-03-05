@@ -300,6 +300,8 @@ type Placement = (Idx, Ndx, Ndx, IMove, Score)
 
 -- | An instance move definition.
 data IMove = Failover                -- ^ Failover the instance (f)
+           | FailoverToAny Ndx       -- ^ Failover to a random node
+                                     -- (fa:np), for shared storage
            | ReplacePrimary Ndx      -- ^ Replace primary (f, r:np, f)
            | ReplaceSecondary Ndx    -- ^ Replace secondary (r:ns)
            | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)

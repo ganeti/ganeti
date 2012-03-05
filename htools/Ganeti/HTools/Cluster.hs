@@ -395,6 +395,17 @@ applyMove nl inst Failover =
                 new_inst, old_sdx, old_pdx)
   in new_nl
 
+-- Failover to any (fa)
+applyMove nl inst (FailoverToAny new_pdx) = do
+  let (old_pdx, old_sdx, old_pnode, _) = instanceNodes nl inst
+      new_pnode = Container.find new_pdx nl
+      force_failover = Node.offline old_pnode
+  new_pnode' <- Node.addPriEx force_failover new_pnode inst
+  let old_pnode' = Node.removePri old_pnode inst
+      inst' = Instance.setPri inst new_pdx
+      nl' = Container.addTwo old_pdx old_pnode' new_pdx new_pnode' nl
+  return (nl', inst', new_pdx, old_sdx)
+
 -- Replace the primary (f:, r:np, f)
 applyMove nl inst (ReplacePrimary new_pdx) =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
@@ -520,7 +531,10 @@ possibleMoves :: MirrorType -- ^ The mirroring type of the instance
 
 possibleMoves MirrorNone _ _ _ = []
 
-possibleMoves MirrorExternal _ _ _ = []
+possibleMoves MirrorExternal _ False _ = []
+
+possibleMoves MirrorExternal _ True tdx =
+  [ FailoverToAny tdx ]
 
 possibleMoves MirrorInternal _ False tdx =
   [ ReplaceSecondary tdx ]
@@ -1215,12 +1229,14 @@ computeMoves :: Instance.Instance -- ^ The instance to be moved
 computeMoves i inam mv c d =
   case mv of
     Failover -> ("f", [mig])
+    FailoverToAny _ -> (printf "fa:%s" c, [mig_any])
     FailoverAndReplace _ -> (printf "f r:%s" d, [mig, rep d])
     ReplaceSecondary _ -> (printf "r:%s" d, [rep d])
     ReplaceAndFailover _ -> (printf "r:%s f" c, [rep c, mig])
     ReplacePrimary _ -> (printf "f r:%s f" c, [mig, rep c, mig])
   where morf = if Instance.isRunning i then "migrate" else "failover"
         mig = printf "%s -f %s" morf inam::String
+        mig_any = printf "%s -f -n %s %s" morf c inam
         rep n = printf "replace-disks -n %s %s" n inam
 
 -- | Converts a placement to string format.
@@ -1374,10 +1390,12 @@ iMoveToJob nl il idx move =
       iname = Instance.name inst
       lookNode  = Just . Container.nameOf nl
       opF = OpCodes.OpInstanceMigrate iname True False True Nothing
+      opFA n = OpCodes.OpInstanceMigrate iname True False True (lookNode n)
       opR n = OpCodes.OpInstanceReplaceDisks iname (lookNode n)
               OpCodes.ReplaceNewSecondary [] Nothing
   in case move of
        Failover -> [ opF ]
+       FailoverToAny np -> [ opFA np ]
        ReplacePrimary np -> [ opF, opR np, opF ]
        ReplaceSecondary ns -> [ opR ns ]
        ReplaceAndFailover np -> [ opR np, opF ]
