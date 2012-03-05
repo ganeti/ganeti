@@ -58,6 +58,8 @@ module Ganeti.HTools.Types
   , DiskTemplate(..)
   , diskTemplateToRaw
   , diskTemplateFromRaw
+  , MirrorType(..)
+  , templateMirrorType
   , MoveJob
   , JobSet
   , Result(..)
@@ -123,6 +125,22 @@ $(THH.declareSADT "DiskTemplate"
        , ("DTRbd",        'C.dtRbd)
        ])
 $(THH.makeJSONInstance ''DiskTemplate)
+
+-- | Mirroring type.
+data MirrorType = MirrorNone     -- ^ No mirroring/movability
+                | MirrorInternal -- ^ DRBD-type mirroring
+                | MirrorExternal -- ^ Shared-storage type mirroring
+                  deriving (Eq, Show, Read)
+
+-- | Correspondence between disk template and mirror type.
+templateMirrorType :: DiskTemplate -> MirrorType
+templateMirrorType DTDiskless   = MirrorExternal
+templateMirrorType DTFile       = MirrorNone
+templateMirrorType DTSharedFile = MirrorExternal
+templateMirrorType DTPlain      = MirrorNone
+templateMirrorType DTBlock      = MirrorExternal
+templateMirrorType DTDrbd8      = MirrorInternal
+templateMirrorType DTRbd        = MirrorExternal
 
 -- | The Group allocation policy type.
 --
