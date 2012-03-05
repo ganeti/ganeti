@@ -137,7 +137,12 @@ localStorageTemplates = [ T.DTDrbd8, T.DTPlain ]
 -- instance. Further the movable state can be restricted more due to
 -- user choices, etc.
 movableDiskTemplates :: [T.DiskTemplate]
-movableDiskTemplates = [ T.DTDrbd8, T.DTBlock, T.DTSharedFile ]
+movableDiskTemplates =
+  [ T.DTDrbd8
+  , T.DTBlock
+  , T.DTSharedFile
+  , T.DTRbd
+  ]
 
 -- | A simple name for the int, instance association list.
 type AssocList = [(T.Idx, Instance)]
