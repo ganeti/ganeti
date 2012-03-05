@@ -1242,7 +1242,7 @@ printSolutionLine nl il nmlen imlen plc pos =
       nstr = if s == Node.noSecondary
                then printf "%s" npri
                else printf "%s:%s" npri nsec
-  in (printf "  %3d. %-*s %-*s => %-*s %.8f a=%s"
+  in (printf "  %3d. %-*s %-*s => %-*s %12.8f a=%s"
       pos imlen inam pmlen (ostr::String)
       pmlen (nstr::String) c moves,
       cmds)
