@@ -1103,8 +1103,9 @@ prop_Node_addSec_idempotent =
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let pdx = Node.idx node + 1
       inst' = Instance.setPri inst pdx
-  in case Node.addSec node inst' pdx of
-       Types.OpGood node' -> Node.removeSec node' inst' ==? node
+      inst'' = inst' { Instance.diskTemplate = Types.DTDrbd8 }
+  in case Node.addSec node inst'' pdx of
+       Types.OpGood node' -> Node.removeSec node' inst'' ==? node
        _ -> failTest "Can't add instance"
 
 testSuite "Node"
