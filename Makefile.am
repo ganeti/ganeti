@@ -48,6 +48,7 @@ toolsdir = $(pkglibdir)/tools
 iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
+myexeclibdir = $(pkglibdir)
 
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
@@ -573,12 +574,12 @@ pkglib_python_scripts = \
 nodist_pkglib_python_scripts = \
 	tools/ensure-dirs
 
-pkglib_SCRIPTS = \
+myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
 	$(pkglib_python_scripts)
 
-nodist_pkglib_SCRIPTS = \
+nodist_myexeclib_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
 
 EXTRA_DIST = \
@@ -714,6 +715,11 @@ TEST_FILES = \
 	test/data/ovfdata/wrong_ova.ova \
 	test/data/ovfdata/wrong_xml.ovf \
 	test/data/ovfdata/other/rawdisk.raw \
+	test/data/vgreduce-removemissing-2.02.02.txt \
+	test/data/vgreduce-removemissing-2.02.66-fail.txt \
+	test/data/vgreduce-removemissing-2.02.66-ok.txt \
+	test/data/vgs-missing-pvs-2.02.02.txt \
+	test/data/vgs-missing-pvs-2.02.66.txt \
 	test/import-export_unittest-helper
 
 python_tests = \
@@ -760,6 +766,7 @@ python_tests = \
 	test/ganeti.runtime_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
+	test/ganeti.storage_unittest.py \
 	test/ganeti.tools.ensure_dirs_unittest.py \
 	test/ganeti.uidpool_unittest.py \
 	test/ganeti.utils.algo_unittest.py \

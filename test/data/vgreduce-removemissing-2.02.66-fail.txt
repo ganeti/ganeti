@@ -1,0 +1,34 @@
+  Couldn't find device with uuid bHRa26-svpL-ihJX-e0S4-2HNz-wAAi-AlBFtl.
+  WARNING: Partial LV 4ba7abfa-8459-43b6-b00f-c016244980f0.disk0 needs to be repaired or removed. 
+  WARNING: Partial LV e972960d-4e35-46b2-9cda-7029916b28c1.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV e972960d-4e35-46b2-9cda-7029916b28c1.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 4fa40b51-dd4d-4fd9-aef1-35cc3a0f1f11.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV 4fa40b51-dd4d-4fd9-aef1-35cc3a0f1f11.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 0a184b34-1270-4f1a-94df-86da2167cfee.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV 0a184b34-1270-4f1a-94df-86da2167cfee.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 7e49c8a9-9c65-4e76-810e-bd3d7a1d97a9.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV 7e49c8a9-9c65-4e76-810e-bd3d7a1d97a9.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 290a3fd4-c035-4fbe-9a18-f5a0889bd45d.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV 290a3fd4-c035-4fbe-9a18-f5a0889bd45d.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV c579be32-c041-4f1b-ae3e-c58aac9c2593.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV c579be32-c041-4f1b-ae3e-c58aac9c2593.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 47524563-3788-4a89-a61f-4274134dea73.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV 47524563-3788-4a89-a61f-4274134dea73.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV ede9f706-a0dc-4202-96f2-1728240bbf05.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV ede9f706-a0dc-4202-96f2-1728240bbf05.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 731d9f1b-3f2f-4860-85b3-217a36b9c48e.disk1_data needs to be repaired or removed. 
+  WARNING: Partial LV 731d9f1b-3f2f-4860-85b3-217a36b9c48e.disk1_meta needs to be repaired or removed. 
+  WARNING: Partial LV f449ccfd-4e6b-42d6-9a52-838371988ab5.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV f449ccfd-4e6b-42d6-9a52-838371988ab5.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 69bb4f61-fd0c-4c89-a57f-5285ae99b3bd.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV 9c29c24a-97ed-4fc7-b479-7a3385365a71.disk0 needs to be repaired or removed. 
+  WARNING: Partial LV a919d93e-0f51-4e4d-9018-e25ee7d5b36b.disk0 needs to be repaired or removed. 
+  WARNING: Partial LV d2501e6b-56a4-43b6-8856-471e5d49e892.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV d2501e6b-56a4-43b6-8856-471e5d49e892.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV 31a1f85a-ecc8-40c0-88aa-e694626906a3.disk0 needs to be repaired or removed. 
+  WARNING: Partial LV d124d70a-4776-4e00-bf0d-43511c29c534.disk0_data needs to be repaired or removed. 
+  WARNING: Partial LV d124d70a-4776-4e00-bf0d-43511c29c534.disk0_meta needs to be repaired or removed. 
+  WARNING: Partial LV f73b4499-34ec-4f70-a543-e43152a8644a.disk0 needs to be repaired or removed. 
+  WARNING: There are still partial LVs in VG xenvg.
+  To remove them unconditionally use: vgreduce --removemissing --force.
+  Proceeding to remove empty missing PVs.

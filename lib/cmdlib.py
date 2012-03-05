@@ -2031,7 +2031,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self.group_uuid = self.cfg.LookupNodeGroup(self.op.group_name)
 
     # Get instances in node group; this is unsafe and needs verification later
-    inst_names = self.cfg.GetNodeGroupInstances(self.group_uuid)
+    inst_names = \
+      self.cfg.GetNodeGroupInstances(self.group_uuid, primary_only=True)
 
     self.needed_locks = {
       locking.LEVEL_INSTANCE: inst_names,
@@ -2065,7 +2066,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self.group_info = self.cfg.GetNodeGroup(self.group_uuid)
 
     group_nodes = set(self.group_info.members)
-    group_instances = self.cfg.GetNodeGroupInstances(self.group_uuid)
+    group_instances = \
+      self.cfg.GetNodeGroupInstances(self.group_uuid, primary_only=True)
 
     unlocked_nodes = \
         group_nodes.difference(self.owned_locks(locking.LEVEL_NODE))
@@ -2075,11 +2077,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     if unlocked_nodes:
       raise errors.OpPrereqError("Missing lock for nodes: %s" %
-                                 utils.CommaJoin(unlocked_nodes))
+                                 utils.CommaJoin(unlocked_nodes),
+                                 errors.ECODE_STATE)
 
     if unlocked_instances:
       raise errors.OpPrereqError("Missing lock for instances: %s" %
-                                 utils.CommaJoin(unlocked_instances))
+                                 utils.CommaJoin(unlocked_instances),
+                                 errors.ECODE_STATE)
 
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
@@ -2099,17 +2103,17 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     for inst in self.my_inst_info.values():
       if inst.disk_template in constants.DTS_INT_MIRROR:
-        group = self.my_node_info[inst.primary_node].group
-        for nname in inst.secondary_nodes:
-          if self.all_node_info[nname].group != group:
+        for nname in inst.all_nodes:
+          if self.all_node_info[nname].group != self.group_uuid:
             extra_lv_nodes.add(nname)
 
     unlocked_lv_nodes = \
         extra_lv_nodes.difference(self.owned_locks(locking.LEVEL_NODE))
 
     if unlocked_lv_nodes:
-      raise errors.OpPrereqError("these nodes could be locked: %s" %
-                                 utils.CommaJoin(unlocked_lv_nodes))
+      raise errors.OpPrereqError("Missing node locks for LV check: %s" %
+                                 utils.CommaJoin(unlocked_lv_nodes),
+                                 errors.ECODE_STATE)
     self.extra_lv_nodes = list(extra_lv_nodes)
 
   def _VerifyNode(self, ninfo, nresult):
@@ -2405,7 +2409,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     for node, n_img in node_image.items():
-      if n_img.offline or n_img.rpc_fail or n_img.lvm_fail:
+      if (n_img.offline or n_img.rpc_fail or n_img.lvm_fail or
+          self.all_node_info[node].group != self.group_uuid):
         # skip non-healthy nodes
         continue
       for volume in n_img.volumes:
@@ -2432,11 +2437,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # WARNING: we currently take into account down instances as well
       # as up ones, considering that even if they're down someone
       # might want to start them even in the event of a node failure.
-      if n_img.offline:
-        # we're skipping offline nodes from the N+1 warning, since
-        # most likely we don't have good memory infromation from them;
-        # we already list instances living on such nodes, and that's
-        # enough warning
+      if n_img.offline or self.all_node_info[node].group != self.group_uuid:
+        # we're skipping nodes marked offline and nodes in other groups from
+        # the N+1 warning, since most likely we don't have good memory
+        # infromation from them; we already list instances living on such
+        # nodes, and that's enough warning
         continue
       #TODO(dynmem): also consider ballooning out other instances
       for prinode, instances in n_img.sbp.items():
