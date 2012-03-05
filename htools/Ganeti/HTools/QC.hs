@@ -1027,7 +1027,8 @@ prop_Node_rMem inst =
   forAll (genOnlineNode `suchThat` ((> Types.unitMem) . Node.fMem)) $ \node ->
   -- ab = auto_balance, nb = non-auto_balance
   -- we use -1 as the primary node of the instance
-  let inst' = inst { Instance.pNode = -1, Instance.autoBalance = True }
+  let inst' = inst { Instance.pNode = -1, Instance.autoBalance = True
+                   , Instance.diskTemplate = Types.DTDrbd8 }
       inst_ab = setInstanceSmallerThanNode node inst'
       inst_nb = inst_ab { Instance.autoBalance = False }
       -- now we have the two instances, identical except the
