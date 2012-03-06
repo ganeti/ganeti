@@ -515,6 +515,7 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIB_SRCS) $(HS_BUILT_SRCS) Makefile
 	  echo "Error: cannot run unittests without the QuickCheck library (see devnotes.rst)" 1>&2; \
 	  exit 1; \
 	fi
+	rm -f $(@:htools/%=%).tix
 	BINARY=$(@:htools/%=%); $(GHC) --make \
 	  $(HFLAGS) \
 	  $(HTOOLS_NOCURL) $(HTOOLS_PARALLEL3) \
