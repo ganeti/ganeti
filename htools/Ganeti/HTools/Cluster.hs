@@ -563,7 +563,7 @@ checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
       osdx = Instance.sNode target
       bad_nodes = [opdx, osdx]
       nodes = filter (`notElem` bad_nodes) nodes_idx
-      mir_type = templateMirrorType $ Instance.diskTemplate target
+      mir_type = Instance.mirrorType target
       use_secondary = elem osdx nodes_idx && inst_moves
       aft_failover = if mir_type == MirrorInternal && use_secondary
                        -- if drbd and allowed to failover
@@ -970,7 +970,7 @@ evacOneNodeOnly :: Node.List         -- ^ The node list (cluster-wide)
                                       -- for allocation
                 -> Result (Node.List, Instance.List, [OpCodes.OpCode])
 evacOneNodeOnly nl il inst gdx avail_nodes = do
-  op_fn <- case templateMirrorType (Instance.diskTemplate inst) of
+  op_fn <- case Instance.mirrorType inst of
              MirrorNone -> Bad "Can't relocate/evacuate non-mirrored instances"
              MirrorInternal -> Ok ReplaceSecondary
              MirrorExternal -> Ok FailoverToAny

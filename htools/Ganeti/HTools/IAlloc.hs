@@ -270,7 +270,7 @@ processRelocate gl nl il idx 1 exndx = do
   let orig = Container.find idx il
       sorig = Instance.sNode orig
       porig = Instance.pNode orig
-      mir_type = templateMirrorType $ Instance.diskTemplate orig
+      mir_type = Instance.mirrorType orig
   (exp_node, node_type, reloc_type) <-
     case mir_type of
       MirrorNone -> fail "Can't relocate non-mirrored instances"

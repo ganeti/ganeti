@@ -237,8 +237,7 @@ genUniquesList cnt =
 
 -- | Checks if an instance is mirrored.
 isMirrored :: Instance.Instance -> Bool
-isMirrored =
-  (/= Types.MirrorNone) . Types.templateMirrorType . Instance.diskTemplate
+isMirrored = (/= Types.MirrorNone) . Instance.mirrorType
 
 -- | Returns the possible change node types for a disk template.
 evacModeOptions :: Types.MirrorType -> [Types.EvacMode]
@@ -1297,8 +1296,8 @@ prop_ClusterAllocEvacuate =
       conjoin $ map (\mode -> check_EvacMode defGroup inst' $
                               Cluster.tryNodeEvac defGroupList nl il mode
                                 [Instance.idx inst']) .
-                              evacModeOptions . Types.templateMirrorType .
-                              Instance.diskTemplate $ inst'
+                              evacModeOptions .
+                              Instance.mirrorType $ inst'
 
 -- | Checks that on a 4-8 node cluster with two node groups, once we
 -- allocate an instance on the first node group, we can also change

@@ -54,6 +54,7 @@ module Ganeti.HTools.Instance
   , requiredNodes
   , allNodes
   , usesLocalStorage
+  , mirrorType
   ) where
 
 import qualified Ganeti.HTools.Types as T
@@ -304,3 +305,7 @@ usesLocalStorage = (`elem` localStorageTemplates) . diskTemplate
 -- | Checks whether a given disk template supported moves.
 supportsMoves :: T.DiskTemplate -> Bool
 supportsMoves = (`elem` movableDiskTemplates)
+
+-- | A simple wrapper over 'T.templateMirrorType'.
+mirrorType :: Instance -> T.MirrorType
+mirrorType = T.templateMirrorType . diskTemplate
