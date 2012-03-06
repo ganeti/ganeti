@@ -870,10 +870,11 @@ nodeEvacInstance :: Node.List         -- ^ The node list (cluster-wide)
                  -> [Ndx]             -- ^ The list of available nodes
                                       -- for allocation
                  -> Result (Node.List, Instance.List, [OpCodes.OpCode])
-nodeEvacInstance _ _ mode (Instance.Instance
-                           {Instance.diskTemplate = dt@DTDiskless}) _ _ =
-                  failOnSecondaryChange mode dt >>
-                  fail "Diskless relocations not implemented yet"
+nodeEvacInstance nl il mode inst@(Instance.Instance
+                                  {Instance.diskTemplate = dt@DTDiskless})
+                 gdx avail_nodes =
+                   failOnSecondaryChange mode dt >>
+                   evacOneNodeOnly nl il inst gdx avail_nodes
 
 nodeEvacInstance _ _ _ (Instance.Instance
                         {Instance.diskTemplate = DTPlain}) _ _ =
@@ -883,20 +884,23 @@ nodeEvacInstance _ _ _ (Instance.Instance
                         {Instance.diskTemplate = DTFile}) _ _ =
                   fail "Instances of type file cannot be relocated"
 
-nodeEvacInstance _ _ mode  (Instance.Instance
-                            {Instance.diskTemplate = dt@DTSharedFile}) _ _ =
-                  failOnSecondaryChange mode dt >>
-                  fail "Shared file relocations not implemented yet"
+nodeEvacInstance nl il mode inst@(Instance.Instance
+                                  {Instance.diskTemplate = dt@DTSharedFile})
+                 gdx avail_nodes =
+                   failOnSecondaryChange mode dt >>
+                   evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance _ _ mode (Instance.Instance
-                           {Instance.diskTemplate = dt@DTBlock}) _ _ =
-                  failOnSecondaryChange mode dt >>
-                  fail "Block device relocations not implemented yet"
+nodeEvacInstance nl il mode inst@(Instance.Instance
+                                  {Instance.diskTemplate = dt@DTBlock})
+                 gdx avail_nodes =
+                   failOnSecondaryChange mode dt >>
+                   evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance _ _ mode  (Instance.Instance
-                            {Instance.diskTemplate = dt@DTRbd}) _ _ =
-                  failOnSecondaryChange mode dt >>
-                  fail "Rbd relocations not implemented yet"
+nodeEvacInstance nl il mode inst@(Instance.Instance
+                                  {Instance.diskTemplate = dt@DTRbd})
+                 gdx avail_nodes =
+                   failOnSecondaryChange mode dt >>
+                   evacOneNodeOnly nl il inst gdx avail_nodes
 
 nodeEvacInstance nl il ChangePrimary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
