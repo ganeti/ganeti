@@ -268,13 +268,20 @@ processRelocate :: Group.List      -- ^ The group list
 processRelocate gl nl il idx 1 exndx = do
   let orig = Container.find idx il
       sorig = Instance.sNode orig
-  when (exndx /= [sorig]) $
+      porig = Instance.pNode orig
+      mir_type = templateMirrorType $ Instance.diskTemplate orig
+  (exp_node, node_type, reloc_type) <-
+    case mir_type of
+      MirrorNone -> fail "Can't relocate non-mirrored instances"
+      MirrorInternal -> return (sorig, "secondary", ChangeSecondary)
+      MirrorExternal -> return (porig, "primary", ChangePrimary)
+  when (exndx /= [exp_node]) $
        -- FIXME: we can't use the excluded nodes here; the logic is
        -- already _but only partially_ implemented in tryNodeEvac...
        fail $ "Unsupported request: excluded nodes not equal to\
-              \ instance's secondary node (" ++ show sorig ++ " versus " ++
-              show exndx ++ ")"
-  (nl', il', esol) <- Cluster.tryNodeEvac gl nl il ChangeSecondary [idx]
+              \ instance's " ++  node_type ++ "(" ++ show exp_node
+              ++ " versus " ++ show exndx ++ ")"
+  (nl', il', esol) <- Cluster.tryNodeEvac gl nl il reloc_type [idx]
   nodes <- case lookup idx (Cluster.esFailed esol) of
              Just msg -> fail msg
              Nothing ->
@@ -286,16 +293,28 @@ processRelocate gl nl il idx 1 exndx = do
   let inst = Container.find idx il'
       pnode = Instance.pNode inst
       snode = Instance.sNode inst
-  when (snode == sorig) $
-       fail "Internal error: instance didn't change secondary node?!"
-  when (snode == pnode) $
-       fail "Internal error: selected primary as new secondary?!"
-
-  nodes' <- if nodes == [pnode, snode]
+  nodes' <-
+    case mir_type of
+      MirrorNone -> fail "Internal error: mirror type none after relocation?!"
+      MirrorInternal ->
+        do
+          when (snode == sorig) $
+               fail "Internal error: instance didn't change secondary node?!"
+          when (snode == pnode) $
+               fail "Internal error: selected primary as new secondary?!"
+          if nodes == [pnode, snode]
             then return [snode] -- only the new secondary is needed
             else fail $ "Internal error: inconsistent node list (" ++
                  show nodes ++ ") versus instance nodes (" ++ show pnode ++
                  "," ++ show snode ++ ")"
+      MirrorExternal ->
+        do
+          when (pnode == porig) $
+               fail "Internal error: instance didn't change primary node?!"
+          if nodes == [pnode]
+            then return nodes
+            else fail $ "Internal error: inconsistent node list (" ++
+                 show nodes ++ ") versus instance node (" ++ show pnode ++ ")"
   return (nl', il', nodes')
 
 processRelocate _ _ _ _ reqn _ =
