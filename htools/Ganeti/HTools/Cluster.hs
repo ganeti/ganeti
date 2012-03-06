@@ -911,16 +911,7 @@ nodeEvacInstance nl il ChangePrimary
 nodeEvacInstance nl il ChangeSecondary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  gdx avail_nodes =
-  do
-    let op_fn = ReplaceSecondary
-    (nl', inst', _, ndx) <- annotateResult "Can't find any good node" $
-                            eitherToResult $
-                            foldl' (evacDrbdSecondaryInner nl inst gdx op_fn)
-                            (Left "no nodes available") avail_nodes
-    let idx = Instance.idx inst
-        il' = Container.add idx inst' il
-        ops = iMoveToJob nl' il' idx (op_fn ndx)
-    return (nl', il', ops)
+  evacOneNodeOnly nl il inst gdx avail_nodes
 
 -- The algorithm for ChangeAll is as follows:
 --
@@ -960,6 +951,31 @@ nodeEvacInstance nl il ChangeAll
         ) no_nodes node_pairs
 
     return (nl', il', ops)
+
+-- | Generic function for changing one node of an instance.
+--
+-- This is similar to 'nodeEvacInstance' but will be used in a few of
+-- its sub-patterns.
+evacOneNodeOnly :: Node.List         -- ^ The node list (cluster-wide)
+                -> Instance.List     -- ^ Instance list (cluster-wide)
+                -> Instance.Instance -- ^ The instance to be evacuated
+                -> Gdx               -- ^ The group we're targetting
+                -> [Ndx]             -- ^ The list of available nodes
+                                      -- for allocation
+                -> Result (Node.List, Instance.List, [OpCodes.OpCode])
+evacOneNodeOnly nl il inst gdx avail_nodes = do
+  op_fn <- case templateMirrorType (Instance.diskTemplate inst) of
+             MirrorNone -> Bad "Can't relocate/evacuate non-mirrored instances"
+             MirrorInternal -> Ok ReplaceSecondary
+             MirrorExternal -> Ok FailoverToAny
+  (nl', inst', _, ndx) <- annotateResult "Can't find any good node" $
+                          eitherToResult $
+                          foldl' (evacDrbdSecondaryInner nl inst gdx op_fn)
+                          (Left "no nodes available") avail_nodes
+  let idx = Instance.idx inst
+      il' = Container.add idx inst' il
+      ops = iMoveToJob nl' il' idx (op_fn ndx)
+  return (nl', il', ops)
 
 -- | Inner fold function for changing secondary of a DRBD instance.
 --
