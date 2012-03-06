@@ -8013,9 +8013,7 @@ class TLMigrateInstance(Tasklet):
     ial = IAllocator(self.cfg, self.rpc,
                      mode=constants.IALLOCATOR_MODE_RELOC,
                      name=self.instance_name,
-                     # TODO See why hail breaks with a single node below
-                     relocate_from=[self.instance.primary_node,
-                                    self.instance.primary_node],
+                     relocate_from=[self.instance.primary_node],
                      )
 
     ial.Run(self.lu.op.iallocator)

@@ -285,9 +285,11 @@ Allocation needs, in addition:
 Relocation:
 
   relocate_from
-     a list of nodes to move the instance away from (note that with
-     Ganeti 2.0, this list will always contain a single node, the
-     current secondary of the instance); type *list of strings*
+     a list of nodes to move the instance away from; for DRBD-based
+     instances, this will contain a single node, the current secondary
+     of the instance, whereas for shared-storage instance, this will
+     contain also a single node, the current primary of the instance;
+     type *list of strings*
 
 As for ``node-evacuate``, it needs the following request arguments:
 
