@@ -232,6 +232,17 @@ genUniquesList cnt =
            newelem <- arbitrary `suchThat` (`notElem` lst)
            return (newelem:lst)) [] [1..cnt]
 
+-- | Checks if an instance is mirrored.
+isMirrored :: Instance.Instance -> Bool
+isMirrored =
+  (/= Types.MirrorNone) . Types.templateMirrorType . Instance.diskTemplate
+
+-- | Returns the possible change node types for a disk template.
+evacModeOptions :: Types.MirrorType -> [Types.EvacMode]
+evacModeOptions Types.MirrorNone     = []
+evacModeOptions Types.MirrorInternal = [minBound..maxBound] -- DRBD can do all
+evacModeOptions Types.MirrorExternal = [Types.ChangePrimary, Types.ChangeAll]
+
 -- * Arbitrary instances
 
 -- | Defines a DNS name.
@@ -1260,13 +1271,15 @@ check_EvacMode grp inst result =
 prop_ClusterAllocEvacuate =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
-  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
     Types.Ok (nl, il, inst') ->
       conjoin $ map (\mode -> check_EvacMode defGroup inst' $
                               Cluster.tryNodeEvac defGroupList nl il mode
-                                [Instance.idx inst']) [minBound..maxBound]
+                                [Instance.idx inst']) .
+                              evacModeOptions . Types.templateMirrorType .
+                              Instance.diskTemplate $ inst'
 
 -- | Checks that on a 4-8 node cluster with two node groups, once we
 -- allocate an instance on the first node group, we can also change
@@ -1274,7 +1287,7 @@ prop_ClusterAllocEvacuate =
 prop_ClusterAllocChangeGroup =
   forAll (choose (4, 8)) $ \count ->
   forAll (genOnlineNode `suchThat` (isNodeBig 4)) $ \node ->
-  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  forAll (genInstanceSmallerThanNode node `suchThat` isMirrored) $ \inst ->
   case genClusterAlloc count node inst of
     Types.Bad msg -> failTest msg
     Types.Ok (nl, il, inst') ->
