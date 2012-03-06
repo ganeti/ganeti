@@ -132,7 +132,7 @@ nullIPolicy = Types.IPolicy
                                        , Types.iSpecNicCount   = 1
                                        , Types.iSpecSpindleUse = 1
                                        }
-  , Types.iPolicyDiskTemplates = [Types.DTDrbd8, Types.DTPlain]
+  , Types.iPolicyDiskTemplates = [minBound..maxBound]
   , Types.iPolicyVcpuRatio = maxVcpuRatio -- somewhat random value, high
                                           -- enough to not impact us
   , Types.iPolicySpindleRatio = maxSpindleRatio
@@ -315,8 +315,8 @@ genInstanceSmallerThan lim_mem lim_dsk lim_cpu = do
   pn <- arbitrary
   sn <- arbitrary
   vcpus <- choose (0, lim_cpu)
-  return $ Instance.create name mem dsk vcpus run_st [] True pn sn
-         Types.DTDrbd8 1
+  dt <- arbitrary
+  return $ Instance.create name mem dsk vcpus run_st [] True pn sn dt 1
 
 -- | Generates an instance smaller than a node.
 genInstanceSmallerThanNode :: Node.Node -> Gen Instance.Instance
