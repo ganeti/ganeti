@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010 Google Inc.
+# Copyright (C) 2010, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,6 +47,14 @@ class TestResetTempfileModule(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def testNoReset(self):
+    if ((sys.hexversion >= 0x020703F0 and sys.hexversion < 0x03000000) or
+        sys.hexversion >=0x030203F0):
+      # We can't test the no_reset case on Python 2.7+
+      return
+    # evil Debian sid...
+    if (hasattr(tempfile._RandomNameSequence, "rng") and
+        type(tempfile._RandomNameSequence.rng) == property):
+      return
     self._Test(False)
 
   def testReset(self):

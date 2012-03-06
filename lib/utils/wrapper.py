@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 
 """
 
+import sys
 import time
 import socket
 import errno
@@ -182,6 +183,11 @@ def ResetTempfileModule(_time=time.time):
 
   """
   # pylint: disable=W0212
+  if ((sys.hexversion >= 0x020703F0 and sys.hexversion < 0x03000000) or
+      sys.hexversion >=0x030203F0):
+    # Python 2.7 automatically resets the RNG on pid changes (i.e. forking)
+    return
+
   try:
     lock = tempfile._once_lock
     lock.acquire()
