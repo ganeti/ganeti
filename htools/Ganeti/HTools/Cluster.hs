@@ -999,11 +999,9 @@ evacOneNodeInner :: Node.List         -- ^ Cluster node list
                  -> EvacInnerState    -- ^ New best solution
 evacOneNodeInner nl inst gdx op_fn accu ndx =
   case applyMove nl inst (op_fn ndx) of
-    OpFail fm ->
-      case accu of
-        Right _ -> accu
-        Left _ -> Left $ "Node " ++ Container.nameOf nl ndx ++
-                  " failed: " ++ show fm
+    OpFail fm -> let fail_msg = "Node " ++ Container.nameOf nl ndx ++
+                                " failed: " ++ show fm
+                 in either (const $ Left fail_msg) (const accu) accu
     OpGood (nl', inst', _, _) ->
       let nodes = Container.elems nl'
           -- The fromJust below is ugly (it can fail nastily), but
