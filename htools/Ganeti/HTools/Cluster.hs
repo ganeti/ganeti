@@ -955,7 +955,9 @@ nodeEvacInstance nl il ChangeAll
 -- | Generic function for changing one node of an instance.
 --
 -- This is similar to 'nodeEvacInstance' but will be used in a few of
--- its sub-patterns.
+-- its sub-patterns. It folds the inner function 'evacOneNodeInner'
+-- over the list of available nodes, which results in the best choice
+-- for relocation.
 evacOneNodeOnly :: Node.List         -- ^ The node list (cluster-wide)
                 -> Instance.List     -- ^ Instance list (cluster-wide)
                 -> Instance.Instance -- ^ The instance to be evacuated
@@ -970,28 +972,32 @@ evacOneNodeOnly nl il inst gdx avail_nodes = do
              MirrorExternal -> Ok FailoverToAny
   (nl', inst', _, ndx) <- annotateResult "Can't find any good node" $
                           eitherToResult $
-                          foldl' (evacDrbdSecondaryInner nl inst gdx op_fn)
+                          foldl' (evacOneNodeInner nl inst gdx op_fn)
                           (Left "no nodes available") avail_nodes
   let idx = Instance.idx inst
       il' = Container.add idx inst' il
       ops = iMoveToJob nl' il' idx (op_fn ndx)
   return (nl', il', ops)
 
--- | Inner fold function for changing secondary of a DRBD instance.
+-- | Inner fold function for changing one node of an instance.
+--
+-- Depending on the instance disk template, this will either change
+-- the secondary (for DRBD) or the primary node (for shared
+-- storage). However, the operation is generic otherwise.
 --
 -- The running solution is either a @Left String@, which means we
 -- don't have yet a working solution, or a @Right (...)@, which
 -- represents a valid solution; it holds the modified node list, the
 -- modified instance (after evacuation), the score of that solution,
 -- and the new secondary node index.
-evacDrbdSecondaryInner :: Node.List -- ^ Cluster node list
-                       -> Instance.Instance -- ^ Instance being evacuated
-                       -> Gdx -- ^ The group index of the instance
-                       -> (Ndx -> IMove) -- ^ Operation constructor
-                       -> EvacInnerState  -- ^ Current best solution
-                       -> Ndx  -- ^ Node we're evaluating as new secondary
-                       -> EvacInnerState -- ^ New best solution
-evacDrbdSecondaryInner nl inst gdx op_fn accu ndx =
+evacOneNodeInner :: Node.List         -- ^ Cluster node list
+                 -> Instance.Instance -- ^ Instance being evacuated
+                 -> Gdx               -- ^ The group index of the instance
+                 -> (Ndx -> IMove)    -- ^ Operation constructor
+                 -> EvacInnerState    -- ^ Current best solution
+                 -> Ndx               -- ^ Node we're evaluating as target
+                 -> EvacInnerState    -- ^ New best solution
+evacOneNodeInner nl inst gdx op_fn accu ndx =
   case applyMove nl inst (op_fn ndx) of
     OpFail fm ->
       case accu of
