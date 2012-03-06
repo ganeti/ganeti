@@ -172,6 +172,10 @@ type AllocMethod =  Node.List           -- ^ Node list
                  -> [CStats]            -- ^ Running cluster stats
                  -> Result AllocResult  -- ^ Allocation result
 
+-- | A simple type for the running solution of evacuations.
+type EvacInnerState =
+  Either String (Node.List, Instance.Instance, Score, Ndx)
+
 -- * Utility functions
 
 -- | Verifies the N+1 status and return the affected nodes.
@@ -952,15 +956,9 @@ nodeEvacInstance nl il ChangeAll
 evacDrbdSecondaryInner :: Node.List -- ^ Cluster node list
                        -> Instance.Instance -- ^ Instance being evacuated
                        -> Gdx -- ^ The group index of the instance
-                       -> Either String ( Node.List
-                                        , Instance.Instance
-                                        , Score
-                                        , Ndx)  -- ^ Current best solution
+                       -> EvacInnerState  -- ^ Current best solution
                        -> Ndx  -- ^ Node we're evaluating as new secondary
-                       -> Either String ( Node.List
-                                        , Instance.Instance
-                                        , Score
-                                        , Ndx) -- ^ New best solution
+                       -> EvacInnerState -- ^ New best solution
 evacDrbdSecondaryInner nl inst gdx accu ndx =
   case applyMove nl inst (ReplaceSecondary ndx) of
     OpFail fm ->
