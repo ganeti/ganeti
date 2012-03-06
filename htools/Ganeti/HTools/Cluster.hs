@@ -898,13 +898,14 @@ nodeEvacInstance nl il ChangeSecondary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  gdx avail_nodes =
   do
+    let op_fn = ReplaceSecondary
     (nl', inst', _, ndx) <- annotateResult "Can't find any good node" $
                             eitherToResult $
-                            foldl' (evacDrbdSecondaryInner nl inst gdx)
+                            foldl' (evacDrbdSecondaryInner nl inst gdx op_fn)
                             (Left "no nodes available") avail_nodes
     let idx = Instance.idx inst
         il' = Container.add idx inst' il
-        ops = iMoveToJob nl' il' idx (ReplaceSecondary ndx)
+        ops = iMoveToJob nl' il' idx (op_fn ndx)
     return (nl', il', ops)
 
 -- The algorithm for ChangeAll is as follows:
@@ -956,11 +957,12 @@ nodeEvacInstance nl il ChangeAll
 evacDrbdSecondaryInner :: Node.List -- ^ Cluster node list
                        -> Instance.Instance -- ^ Instance being evacuated
                        -> Gdx -- ^ The group index of the instance
+                       -> (Ndx -> IMove) -- ^ Operation constructor
                        -> EvacInnerState  -- ^ Current best solution
                        -> Ndx  -- ^ Node we're evaluating as new secondary
                        -> EvacInnerState -- ^ New best solution
-evacDrbdSecondaryInner nl inst gdx accu ndx =
-  case applyMove nl inst (ReplaceSecondary ndx) of
+evacDrbdSecondaryInner nl inst gdx op_fn accu ndx =
+  case applyMove nl inst (op_fn ndx) of
     OpFail fm ->
       case accu of
         Right _ -> accu
