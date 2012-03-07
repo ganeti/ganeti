@@ -538,6 +538,9 @@ htools/test: HEXTRA_INT=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-monomorphism-restriction -fno-warn-orphans \
 	-fno-warn-missing-methods -fno-warn-unused-imports
 
+# test dependency
+htools/offline-tests.sh: htools/htools
+
 # rules for building profiling-enabled versions of the haskell
 # programs: hs-prof does the full two-step build, whereas
 # hs-prof-quick does only the final rebuild (hs-prof must have been
@@ -643,7 +646,9 @@ EXTRA_DIST = \
 	$(qa_scripts) \
 	$(HS_LIB_SRCS) $(HS_BUILT_SRCS_IN) \
 	$(HS_PROG_SRCS) \
-	htools/lint-hints.hs
+	htools/lint-hints.hs \
+	htools/cli-tests-defs.sh \
+	htools/offline-test.sh
 
 man_MANS = \
 	man/ganeti.7 \
@@ -815,6 +820,7 @@ dist_TESTS = \
 nodist_TESTS =
 if WANT_HTOOLSTESTS
 nodist_TESTS += $(haskell_tests)
+dist_TESTS += htools/offline-test.sh
 endif
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
@@ -855,6 +861,8 @@ srclink_files = \
 	test/daemon-util_unittest.bash \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
+	htools/offline-test.sh \
+	htools/cli-tests.sh \
 	$(all_python_code) \
 	$(HS_LIB_SRCS) $(HS_PROG_SRCS)
 
@@ -1209,9 +1217,10 @@ check-local: check-dirs $(BUILT_SOURCES)
 	done
 
 .PHONY: hs-check
-hs-check: htools/test
+hs-check: htools/test htools/htools
 	@rm -f test.tix
 	./htools/test
+	HBINARY="./htools/htools" ./htools/offline-test.sh
 
 # E111: indentation is not a multiple of four
 # E261: at least two spaces before inline comment
