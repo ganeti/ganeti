@@ -184,7 +184,7 @@ def ResetTempfileModule(_time=time.time):
   """
   # pylint: disable=W0212
   if ((sys.hexversion >= 0x020703F0 and sys.hexversion < 0x03000000) or
-      sys.hexversion >=0x030203F0):
+      sys.hexversion >= 0x030203F0):
     # Python 2.7 automatically resets the RNG on pid changes (i.e. forking)
     return
 

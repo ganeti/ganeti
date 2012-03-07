@@ -48,7 +48,7 @@ class TestResetTempfileModule(unittest.TestCase):
 
   def testNoReset(self):
     if ((sys.hexversion >= 0x020703F0 and sys.hexversion < 0x03000000) or
-        sys.hexversion >=0x030203F0):
+        sys.hexversion >= 0x030203F0):
       # We can't test the no_reset case on Python 2.7+
       return
     # evil Debian sid...
