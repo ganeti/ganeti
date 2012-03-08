@@ -96,4 +96,37 @@ for suffix in standard tiered; do
 done
 echo OK
 
+echo Checking rebalancing
+# we generate a cluster with two node groups, one with unallocable
+# policy, then we change all nodes from this group to the allocable
+# one, and we check for rebalancing
+FROOT="$T/simu-rebal-orig"
+hspace --simu p,4,8T,64g,16 --simu u,4,8T,64g,16 \
+  -S $FROOT --disk-template drbd -l 8 >/dev/null 2>&1
+for suffix in standard tiered; do
+  RELOC="$T/simu-rebal-merged.$suffix"
+  # this relocates the nodes
+  sed -re 's/^(node-.*|fake-uuid-)-02(|.*)/\1-01\2/' \
+    < $FROOT.$suffix > $RELOC
+  BACKEND="-t$RELOC"
+  hinfo -v -v -p --print-instances $BACKEND >/dev/null 2>&1
+  hbal -v -v -v -p --print-instances $BACKEND -G group-01 2>/dev/null | \
+    grep -qE -v "(Nothing to do, exiting|No solution found)"
+  hbal $BACKEND -G group-01 -C$T/rebal-cmds.$suffix \
+    -S $T/simu-rebal.$suffix >/dev/null 2>&1
+  grep -qE "gnt-instance (failover|migrate|replace-disks)" \
+    $T/rebal-cmds.$suffix
+  hbal $BACKEND -G group-01 -C \
+    -S $T/simu-rebal.$suffix 2>/dev/null | \
+    grep -qE "gnt-instance (failover|migrate|replace-disks)"
+  # state saved by hbal should be original
+  cmp $RELOC $T/simu-rebal.$suffix.original
+  # and we can't double rebalance
+  hbal -t $T/simu-rebal.$suffix.balanced \
+    -G group-01 | \
+    grep -qE "(Nothing to do, exiting|No solution found)"
+
+done
+echo OK
+
 echo All OK
