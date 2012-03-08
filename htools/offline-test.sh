@@ -101,7 +101,7 @@ echo Checking rebalancing
 # policy, then we change all nodes from this group to the allocable
 # one, and we check for rebalancing
 FROOT="$T/simu-rebal-orig"
-hspace --simu p,4,8T,64g,16 --simu u,4,8T,64g,16 \
+hspace --simu u,4,8T,64g,16 --simu p,4,8T,64g,16 \
   -S $FROOT --disk-template drbd -l 8 >/dev/null 2>&1
 for suffix in standard tiered; do
   RELOC="$T/simu-rebal-merged.$suffix"
@@ -127,6 +127,50 @@ for suffix in standard tiered; do
     grep -qE "(Nothing to do, exiting|No solution found)"
 
 done
+echo OK
+
+echo IAllocator checks
+# test that on invalid files it can't parse the request
+! hail /dev/null 2>&1 | grep -q "Invalid JSON"
+! hail <(echo '[]') >/dev/null 2>&1
+! hail <(echo '{}') 2>&1 | grep -q "key 'request' not found"
+! hail <(echo '{"request": 0}') 2>&1 | grep -q "key 'request'"
+! hail $TESTDATA_DIR/hail-invalid-reloc.json >/dev/null 2>&1
+
+# just test that it can read the file, print the cluster and generate
+# pre and post allocation files
+hail -v -v -v -p $TESTDATA_DIR/hail-alloc-drbd.json \
+  -S $T/hail-alloc >/dev/null 2>&1
+! cmp -s $T/hail-alloc.pre-ialloc $T/hail-alloc.post-ialloc
+hail -v -v -v -p $TESTDATA_DIR/hail-reloc-drbd.json \
+  -S $T/hail-reloc >/dev/null 2>&1
+! cmp -s $T/hail-reloc.pre-ialloc $T/hail-reloc.post-ialloc
+
+# and now start the real tests
+hail $TESTDATA_DIR/hail-alloc-drbd.json | \
+  grep -q '"success":true,.*,"result":\["node2","node1"\]'
+hail $TESTDATA_DIR/hail-reloc-drbd.json | \
+  grep -q '"success":true,.*,"result":\["node1"\]'
+
+hail $TESTDATA_DIR/hail-node-evac.json | \
+  grep -Fq '"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"'
+
+hail $TESTDATA_DIR/hail-change-group.json | \
+  grep -Fq '"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"'
+
+for evac_mode in primary-only secondary-only all; do
+  sed -e 's/"evac_mode": "all"/"evac_mode": "'${evac_mode}'"/' \
+    < $TESTDATA_DIR/hail-node-evac.json \
+    > $T/hail-node-evac.json.$evac_mode
+  hail $T/hail-node-evac.json.$evac_mode | \
+    grep -q '"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"'
+done
+
+# check that hail can use the simu and text backends
+hail --simu p,8,8T,16g,16 $TESTDATA_DIR/hail-alloc-drbd.json | \
+  grep -q '"success":true,'
+hail -t $T/simu-rebal-merged.standard $TESTDATA_DIR/hail-alloc-drbd.json | \
+  grep -q '"success":true,'
 echo OK
 
 echo All OK

@@ -21,6 +21,8 @@
 
 HBINARY=${HBINARY:-./htools/htools-hpc}
 
+TESTDATA_DIR=${TOP_SRCDIR:-.}/test/data/htools
+
 hbal() {
   HTOOLS=hbal $HBINARY "$@"
 }

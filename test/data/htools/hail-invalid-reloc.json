@@ -1,0 +1,15 @@
+{
+  "cluster_tags": [],
+  "nodegroups": {},
+  "nodes": {},
+  "instances": {},
+  "request": {
+    "relocate_from": [
+      "node4"
+    ],
+    "required_nodes": "aaa",
+    "type": "relocate",
+    "name": 0,
+    "disk_space_total": "aaa"
+  }
+}

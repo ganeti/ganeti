@@ -86,6 +86,7 @@ DIRS = \
 	qa \
 	test \
 	test/data \
+	test/data/htools \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
 	tools
@@ -710,6 +711,10 @@ TEST_FILES = \
 	test/data/kvm_0.12.5_help.txt \
 	test/data/kvm_0.9.1_help.txt \
 	test/data/sys_drbd_usermode_helper.txt \
+	test/data/htools/hail-alloc-drbd.json \
+	test/data/htools/hail-change-group.json \
+	test/data/htools/hail-node-evac.json \
+	test/data/htools/hail-reloc-drbd.json \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
 	test/data/ovfdata/corrupted_resources.ovf \
