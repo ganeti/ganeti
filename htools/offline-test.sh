@@ -24,13 +24,76 @@ set -e
 
 . $(dirname $0)/cli-tests-defs.sh
 
-echo -n "Checking command line basic options "
+T=`mktemp -d`
+trap 'rm -rf $T' EXIT
+trap 'echo FAIL' ERR
+echo Using $T as temporary dir
+
+echo Checking command line basic options
 for prog in $ALL_ROLES; do
-  echo -n "."
   $prog --version >/dev/null
   $prog --help >/dev/null
   ! $prog --no-such-option 2>/dev/null
 done
-echo
+echo OK
+
+echo Checking missing backend failure
+for prog in hspace hinfo hbal; do
+  ! $prog 2>/dev/null
+done
+echo OK
+
+echo Checking hail missing input file
+! hail 2>/dev/null
+echo OK
+
+echo Checking extra arguments
+for prog in hspace hbal hinfo; do
+  ! $prog unexpected-argument 2>&1 | \
+    grep -q "Error: this program doesn't take any arguments"
+done
+echo OK
+
+echo Checking failure on multiple backends
+(! hbal -t /dev/null -m localhost 2>&1 ) | \
+  grep -q "Error: Only one of the rapi, luxi, and data files options should be given."
+echo OK
+
+echo Checking hspace machine-readable mode
+hspace --simu p,4,8T,64g,16 --machine-readable \
+  --disk-template drbd -l 8 >$T/capacity
+( . $T/capacity && test "$HTS_OK" = "1" )
+echo OK
+
+echo Checking hspace simulation to hinfo to hbal
+# this cluster spec should be fine
+hspace --simu p,4,8T,64g,16 -S $T/simu-onegroup \
+  --disk-template drbd -l 8 -v -v -v >/dev/null 2>&1
+# results in .tiered and .standard
+for suffix in standard tiered; do
+  BACKEND="-t$T/simu-onegroup.$suffix"
+  hinfo -v -v -p --print-instances $BACKEND >/dev/null 2>&1
+  hbal  -v -v -p --print-instances $BACKEND >/dev/null 2>&1
+  # hbal should not be able to balance
+  hbal $BACKEND | grep -qE "(Nothing to do, exiting|No solution found)"
+done
+echo OK
+
+echo Checking hinfo and hbal on multi-nodegroup
+hspace --simu p,4,8T,64g,16 --simu p,4,8T,64g,16 \
+  -S $T/simu-twogroups --disk-template drbd -l 8 >/dev/null 2>&1
+# results in .tiered and .standard
+for suffix in standard tiered; do
+  BACKEND="-t$T/simu-twogroups.$suffix"
+  hinfo -v -v -p --print-instances $BACKEND >/dev/null 2>&1
+  ! hbal $BACKEND >/dev/null 2>&1
+  # hbal should not be able to balance
+  ! hbal $BACKEND 2>&1 | grep -q "Found multiple node groups"
+  # but hbal should be able to balance one node group
+  hbal $BACKEND -G group-01 >/dev/null
+  # and it should not find an invalid group
+  ! hbal $BACKEND -G no-such-group >/dev/null 2>&1
+done
+echo OK
 
 echo All OK
