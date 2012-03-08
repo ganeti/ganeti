@@ -12,7 +12,7 @@ cp -r autotools daemons scripts lib tools test $tmpdir
 mv $tmpdir/lib $tmpdir/ganeti
 ln -T -s $tmpdir/ganeti $tmpdir/lib
 mkdir -p $tmpdir/htools
-for htest in htools test offline-test.sh cli-tests-defs.sh; do
+for htest in htools htools-hpc test offline-test.sh cli-tests-defs.sh; do
   if [ -e htools/$htest ]; then
     cp -p htools/$htest $tmpdir/htools/
   fi

@@ -19,7 +19,7 @@
 
 # This is an shell testing configuration fragment.
 
-HBINARY=${HBINARY:-./htools/htools}
+HBINARY=${HBINARY:-./htools/htools-hpc}
 
 hbal() {
   HTOOLS=hbal $HBINARY "$@"

@@ -102,11 +102,13 @@
 
 /htools/htools
 /htools/hconfd
+/htools/htools-hpc
 /htools/test
 /htools/*.prof*
 /htools/*.stat
 /htools/*.tix
 /.hpc/
+/*.tix
 
 /htools/Ganeti/HTools/Version.hs
 /htools/Ganeti/Constants.hs

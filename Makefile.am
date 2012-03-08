@@ -354,7 +354,7 @@ docrst = \
 HS_PROGS = htools/htools htools/hconfd
 HS_BIN_ROLES = hbal hscan hspace hinfo
 
-HS_ALL_PROGS = $(HS_PROGS) htools/test
+HS_ALL_PROGS = $(HS_PROGS) htools/test htools/htools-hpc
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_ALL_PROGS))
 # we don't add -Werror by default
 HFLAGS = -O -Wall -fwarn-monomorphism-restriction -fwarn-tabs -ihtools
@@ -538,8 +538,11 @@ htools/test: HEXTRA_INT=-fhpc -Wwarn -fno-warn-missing-signatures \
 	-fno-warn-monomorphism-restriction -fno-warn-orphans \
 	-fno-warn-missing-methods -fno-warn-unused-imports
 
+# we compile the htools-hpc binary with the program coverage
+htools/htools-hpc: HEXTRA_INT=-fhpc
+
 # test dependency
-htools/offline-tests.sh: htools/htools
+htools/offline-tests.sh: htools/htools-hpc
 
 # rules for building profiling-enabled versions of the haskell
 # programs: hs-prof does the full two-step build, whereas
@@ -1217,10 +1220,10 @@ check-local: check-dirs $(BUILT_SOURCES)
 	done
 
 .PHONY: hs-check
-hs-check: htools/test htools/htools
+hs-check: htools/test htools/htools-hpc
 	@rm -f test.tix
 	./htools/test
-	HBINARY="./htools/htools" ./htools/offline-test.sh
+	HBINARY="./htools/htools-hpc" ./htools/offline-test.sh
 
 # E111: indentation is not a multiple of four
 # E261: at least two spaces before inline comment
@@ -1385,11 +1388,12 @@ py-coverage: $(BUILT_SOURCES) $(python_tests)
 	$(python_tests)
 
 .PHONY: hs-coverage
-hs-coverage: $(haskell_tests)
-	cd htools && rm -f *.tix *.mix && ./test
+hs-coverage: $(haskell_tests) htools/htools-hpc
+	rm -f *.tix && $(MAKE) hs-check
 	@mkdir_p@ $(COVERAGE_HS_DIR)
-	hpc markup --destdir=$(COVERAGE_HS_DIR) htools/test $(HPCEXCL)
-	hpc report htools/test $(HPCEXCL)
+	hpc combine $(HPCEXCL) test.tix htools-hpc.tix > htools-coverage.tix
+	hpc markup --destdir=$(COVERAGE_HS_DIR) htools-coverage.tix
+	hpc report htools-coverage.tix
 	$(LN_S) -f hpc_index.html $(COVERAGE_HS_DIR)/index.html
 
 # Special "kind-of-QA" target for htools, needs special setup (all
