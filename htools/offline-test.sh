@@ -173,4 +173,18 @@ hail -t $T/simu-rebal-merged.standard $TESTDATA_DIR/hail-alloc-drbd.json | \
   grep -q '"success":true,'
 echo OK
 
+echo Checking file-based RAPI
+mkdir -p $T/hscan
+URL="file://$TESTDATA_DIR/rapi"
+hinfo -v -v -p --print-instances -m $URL >/dev/null 2>&1
+hbal -v -v -p --print-instances -m $URL >/dev/null 2>&1
+hscan -d $T/hscan/ -p -v -v $URL >/dev/null 2>&1
+# check that we file parsing is correct, i.e. hscan saves correct text
+# files, and is idempotent (rapi+text == rapi)
+HS="$(ls $T/hscan/*.data|head -n1)"
+hinfo -p --print-instances -m $URL > $T/hscan/direct.hinfo 2>&1
+hinfo -p --print-instances -t $HS  > $T/hscan/fromtext.hinfo 2>&1
+cmp -s $T/hscan/direct.hinfo $T/hscan/fromtext.hinfo
+echo OK
+
 echo All OK

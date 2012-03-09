@@ -1,0 +1,55 @@
+[
+  {
+    "uuid": "uuid-group-1",
+    "tags": [],
+    "ipolicy": {
+      "std": {
+        "cpu-count": 1,
+        "nic-count": 1,
+        "disk-size": 1024,
+        "memory-size": 128,
+        "disk-count": 1,
+        "spindle-use": 1
+      },
+      "min": {
+        "cpu-count": 1,
+        "nic-count": 1,
+        "disk-size": 1024,
+        "memory-size": 128,
+        "disk-count": 1,
+        "spindle-use": 1
+      },
+      "max": {
+        "cpu-count": 8,
+        "nic-count": 8,
+        "disk-size": 1048576,
+        "memory-size": 32768,
+        "disk-count": 16,
+        "spindle-use": 8
+      },
+      "vcpu-ratio": 4.0,
+      "disk-templates": [
+        "sharedfile",
+        "diskless",
+        "plain",
+        "blockdev",
+        "drbd",
+        "file",
+        "rbd"
+      ],
+      "spindle-ratio": 32.0
+    },
+    "node_cnt": 4,
+    "serial_no": 15,
+    "node_list": [
+      "node1",
+      "node2",
+      "node3",
+      "node4"
+    ],
+    "ctime": null,
+    "mtime": 1325251614.671967,
+    "alloc_policy": "preferred",
+    "name": "default"
+  }
+]

@@ -1,0 +1,150 @@
+{
+  "maintain_node_health": true,
+  "hvparams": {
+    "xen-pvm": {
+      "use_bootloader": false,
+      "migration_mode": "live",
+      "kernel_args": "ro",
+      "migration_port": 8002,
+      "bootloader_args": "",
+      "root_path": "/dev/sda1",
+      "blockdev_prefix": "sd",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-2.6-xenU",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "xen-hvm": {
+      "nic_type": "rtl8139",
+      "use_localtime": false,
+      "migration_mode": "non-live",
+      "boot_order": "cd",
+      "migration_port": 8002,
+      "cpu_mask": "all",
+      "vnc_bind_address": "0.0.0.0",
+      "reboot_behavior": "reboot",
+      "blockdev_prefix": "hd",
+      "cdrom_image_path": "",
+      "device_model": "/usr/lib/xen/bin/qemu-dm",
+      "pae": true,
+      "vnc_password_file": "/etc/ganeti/vnc-cluster-password",
+      "disk_type": "paravirtual",
+      "kernel_path": "/usr/lib/xen/boot/hvmloader",
+      "acpi": true
+    }
+  },
+  "default_hypervisor": "xen-pvm",
+  "uid_pool": [],
+  "prealloc_wipe_disks": false,
+  "primary_ip_version": 4,
+  "mtime": 1331075221.432734,
+  "os_hvp": {
+    "instance-debootstrap": {
+      "xen-pvm": {
+        "root_path": "/dev/xvda1",
+        "kernel_path": "/boot/vmlinuz-2.6.38"
+      }
+    }
+  },
+  "osparams": {
+    "debootstrap": {
+      "dhcp": "no",
+      "partition_style": "none",
+      "packages": "ssh"
+    }
+  },
+  "shared_file_storage_dir": "",
+  "master_netmask": 32,
+  "uuid": "1616c1cc-f793-499c-b1c5-48264c2d2976",
+  "use_external_mip_script": false,
+  "export_version": 0,
+  "hidden_os": [
+    "lenny"
+  ],
+  "os_api_version": 20,
+  "master": "node4",
+  "nicparams": {
+    "default": {
+      "link": "xen-br0",
+      "mode": "bridged"
+    }
+  },
+  "protocol_version": 2050000,
+  "config_version": 2050000,
+  "software_version": "2.5.0~rc5",
+  "tags": [
+    "htools:iextags:test",
+    "htools:iextags:service-group"
+  ],
+  "ipolicy": {
+    "std": {
+      "nic-count": 1,
+      "disk-size": 1024,
+      "disk-count": 1,
+      "memory-size": 128,
+      "cpu-count": 1,
+      "spindle-use": 1
+    },
+    "min": {
+      "nic-count": 1,
+      "disk-size": 128,
+      "disk-count": 1,
+      "memory-size": 128,
+      "cpu-count": 1,
+      "spindle-use": 1
+    },
+    "max": {
+      "nic-count": 8,
+      "disk-size": 1048576,
+      "disk-count": 16,
+      "memory-size": 32768,
+      "cpu-count": 8,
+      "spindle-use": 8
+    },
+    "vcpu-ratio": 4.0,
+    "disk-templates": [
+      "sharedfile",
+      "diskless",
+      "plain",
+      "blockdev",
+      "drbd",
+      "file",
+      "rbd"
+    ],
+    "spindle-ratio": 32.0
+  },
+  "candidate_pool_size": 3,
+  "file_storage_dir": "/srv/ganeti/file-storage",
+  "blacklisted_os": [],
+  "enabled_hypervisors": [
+    "xen-pvm",
+    "xen-hvm"
+  ],
+  "reserved_lvs": [
+    "xenvg/test"
+  ],
+  "drbd_usermode_helper": "/bin/true",
+  "default_iallocator": "hail",
+  "ctime": 1271079848.3199999,
+  "name": "cluster",
+  "master_netdev": "xen-br0",
+  "ndparams": {
+    "spindle_count": 1,
+    "oob_program": null
+  },
+  "architecture": [
+    "64bit",
+    "x86_64"
+  ],
+  "volume_group_name": "xenvg",
+  "beparams": {
+    "default": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128
+    }
+  }
+}

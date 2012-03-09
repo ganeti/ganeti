@@ -1,0 +1,804 @@
+[
+  {
+    "disk_usage": 256,
+    "oper_vcpus": 1,
+    "serial_no": 7,
+    "hvparams": {
+      "root_path": "/dev/xvda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-ganetixenu-2.6.38",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": true,
+    "disk_template": "drbd",
+    "mtime": 1330349951.511833,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": 128,
+    "pnode": "node3",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "running",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [
+      "node4"
+    ],
+    "nic.macs": [
+      "aa:00:00:73:20:3e"
+    ],
+    "name": "instance2",
+    "network_port": null,
+    "ctime": 1327334413.084552,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "4b9ff2a2-3399-4141-b4e1-cde418b1dfec",
+    "disk.sizes": [
+      128
+    ],
+    "admin_state": "up",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "debian-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 384,
+    "oper_vcpus": null,
+    "serial_no": 6,
+    "hvparams": {
+      "root_path": "/dev/xvda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-ganetixenu-2.6.38",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "plain",
+    "mtime": 1325681489.4059889,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node4",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {
+      "root_path": "/dev/xvda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "kernel_path": "/boot/vmlinuz-ganetixenu-2.6.38",
+      "initrd_path": ""
+    },
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [],
+    "nic.macs": [
+      "aa:00:00:ec:e8:a2"
+    ],
+    "name": "instance3",
+    "network_port": null,
+    "ctime": 1312272250.96,
+    "custom_beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "maxmem": 128,
+      "spindle_use": 1
+    },
+    "custom_nicparams": [
+      {
+        "link": "xen-br0",
+        "mode": "bridged"
+      }
+    ],
+    "uuid": "3cecca87-eae7-476c-847c-818a28764989",
+    "disk.sizes": [
+      256,
+      128
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "debian-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 2176,
+    "oper_vcpus": null,
+    "serial_no": 23,
+    "hvparams": {
+      "root_path": "/dev/xvda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-ganetixenu-2.6.38",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "drbd",
+    "mtime": 1325681487.384176,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node4",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [
+      "service-group:dns"
+    ],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [
+      "node3"
+    ],
+    "nic.macs": [
+      "aa:00:00:62:b0:76"
+    ],
+    "name": "instance4",
+    "network_port": null,
+    "ctime": 1274885795.4000001,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "33f4c063-bb65-41b2-af29-d8a631201bd7",
+    "disk.sizes": [
+      2048
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "lenny-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 256,
+    "oper_vcpus": null,
+    "serial_no": 9,
+    "hvparams": {
+      "spice_password_file": "",
+      "spice_use_tls": false,
+      "spice_use_vdagent": true,
+      "nic_type": "paravirtual",
+      "vnc_bind_address": "0.0.0.0",
+      "cdrom2_image_path": "",
+      "usb_mouse": "",
+      "spice_streaming_video": "",
+      "use_chroot": false,
+      "spice_tls_ciphers": "HIGH:-DES:-3DES:-EXPORT:-ADH",
+      "migration_downtime": 30,
+      "floppy_image_path": "",
+      "security_model": "none",
+      "cdrom_image_path": "",
+      "spice_ip_version": 0,
+      "vhost_net": false,
+      "cpu_mask": "all",
+      "disk_cache": "default",
+      "kernel_path": "/boot/vmlinuz-2.6.38-gg426-generic",
+      "initrd_path": "/boot/initrd.img-2.6.38-gg426-generic",
+      "spice_jpeg_wan_compression": "",
+      "vnc_tls": false,
+      "cdrom_disk_type": "",
+      "use_localtime": false,
+      "security_domain": "",
+      "serial_console": false,
+      "spice_bind": "",
+      "spice_zlib_glz_wan_compression": "",
+      "kvm_flag": "",
+      "vnc_password_file": "",
+      "disk_type": "paravirtual",
+      "vnc_x509_verify": false,
+      "spice_image_compression": "",
+      "spice_playback_compression": true,
+      "kernel_args": "ro",
+      "root_path": "/dev/vda1",
+      "vnc_x509_path": "",
+      "acpi": true,
+      "keymap": "",
+      "boot_order": "disk",
+      "mem_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "plain",
+    "mtime": 1325681492.191576,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node4",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [],
+    "nic.macs": [
+      "aa:00:00:3f:6d:e3"
+    ],
+    "name": "instance8",
+    "network_port": 12111,
+    "ctime": 1311771325.6600001,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "1ea53cc3-cc69-43da-b261-f22ac47896ea",
+    "disk.sizes": [
+      256
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "debian-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 256,
+    "oper_vcpus": null,
+    "serial_no": 31,
+    "hvparams": {
+      "root_path": "/dev/sda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-2.6-xenU",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "drbd",
+    "mtime": 1325681490.685926,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node3",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {
+      "root_path": "/dev/sda1",
+      "kernel_args": "ro",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "kernel_path": "/boot/vmlinuz-2.6-xenU",
+      "initrd_path": ""
+    },
+    "tags": [
+      "gogu:test"
+    ],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [
+      "node4"
+    ],
+    "nic.macs": [
+      "aa:00:00:10:d2:01"
+    ],
+    "name": "instance9",
+    "network_port": null,
+    "ctime": 1271937489.76,
+    "custom_beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "maxmem": 128,
+      "spindle_use": 1
+    },
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "4927ac66-a3c5-45c6-be39-97e2b119557e",
+    "disk.sizes": [
+      128
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "lenny-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 512,
+    "oper_vcpus": null,
+    "serial_no": 11,
+    "hvparams": {
+      "root_path": "/dev/sda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-2.6-xenU",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "plain",
+    "mtime": 1325681493.0002201,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node4",
+    "nic.bridges": [
+      "xen-br1"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [],
+    "nic.macs": [
+      "aa:00:00:7f:8c:9c"
+    ],
+    "name": "instance13",
+    "network_port": null,
+    "ctime": 1305129727.7,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {
+        "link": "xen-br1"
+      }
+    ],
+    "uuid": "b864e453-f072-41fe-9973-7673c2161e34",
+    "disk.sizes": [
+      512
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br1"
+    ],
+    "os": "busybox",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 256,
+    "oper_vcpus": null,
+    "serial_no": 11,
+    "hvparams": {
+      "root_path": "/dev/xvda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-ganetixenu-2.6.38",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "drbd",
+    "mtime": 1325681493.8268771,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node3",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [
+      "node4"
+    ],
+    "nic.macs": [
+      "aa:00:00:eb:0b:a5"
+    ],
+    "name": "instance14",
+    "network_port": null,
+    "ctime": 1312285580.27,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "e9dae1c9-b4cb-4f11-b0e9-65931a6b3524",
+    "disk.sizes": [
+      128
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "debian-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 128,
+    "oper_vcpus": null,
+    "serial_no": 9,
+    "hvparams": {
+      "root_path": "/dev/sda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-2.6-xenU",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "plain",
+    "mtime": 1325681491.0986331,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node4",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [],
+    "nic.macs": [
+      "aa:00:00:55:94:93"
+    ],
+    "name": "instance18",
+    "network_port": null,
+    "ctime": 1297176343.1700001,
+    "custom_beparams": {
+      "minmem": 8192,
+      "maxmem": 8192
+    },
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "2f14bc3b-8448-4b2f-a592-d7a216244b22",
+    "disk.sizes": [
+      128
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "busybox",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 8192,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 8192,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 256,
+    "oper_vcpus": null,
+    "serial_no": 10,
+    "hvparams": {
+      "root_path": "/dev/xvda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-ganetixenu-2.6.38",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "drbd",
+    "mtime": 1325681491.5785329,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node3",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [
+      "node4"
+    ],
+    "nic.macs": [
+      "aa:00:00:15:92:6f"
+    ],
+    "name": "instance19",
+    "network_port": null,
+    "ctime": 1312464490.7,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "624c1844-82a2-474e-bdaf-1bafa820fdcf",
+    "disk.sizes": [
+      128
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "debian-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 512,
+    "oper_vcpus": null,
+    "serial_no": 14,
+    "hvparams": {
+      "spice_password_file": "",
+      "spice_use_tls": false,
+      "spice_use_vdagent": true,
+      "nic_type": "paravirtual",
+      "vnc_bind_address": "0.0.0.0",
+      "cdrom2_image_path": "",
+      "usb_mouse": "",
+      "spice_streaming_video": "",
+      "use_chroot": false,
+      "spice_tls_ciphers": "HIGH:-DES:-3DES:-EXPORT:-ADH",
+      "migration_downtime": 30,
+      "floppy_image_path": "",
+      "security_model": "none",
+      "cdrom_image_path": "",
+      "spice_ip_version": 0,
+      "vhost_net": false,
+      "cpu_mask": "all",
+      "disk_cache": "default",
+      "kernel_path": "/boot/vmlinuz-2.6.38-gg426-generic",
+      "initrd_path": "/boot/initrd.img-2.6.38-gg426-generic",
+      "spice_jpeg_wan_compression": "",
+      "vnc_tls": false,
+      "cdrom_disk_type": "",
+      "use_localtime": false,
+      "security_domain": "",
+      "serial_console": false,
+      "spice_bind": "",
+      "spice_zlib_glz_wan_compression": "",
+      "kvm_flag": "",
+      "vnc_password_file": "",
+      "disk_type": "paravirtual",
+      "vnc_x509_verify": false,
+      "spice_image_compression": "",
+      "spice_playback_compression": true,
+      "kernel_args": "ro",
+      "root_path": "/dev/vda1",
+      "vnc_x509_path": "",
+      "acpi": true,
+      "keymap": "",
+      "boot_order": "disk",
+      "mem_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "plain",
+    "mtime": 1325681494.699162,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node4",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [],
+    "nic.macs": [
+      "aa:00:00:db:2a:6d"
+    ],
+    "name": "instance20",
+    "network_port": 12107,
+    "ctime": 1305208955.75,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {
+        "link": "xen-br0"
+      }
+    ],
+    "uuid": "4f65c14d-be87-4303-a8dc-ba1b86e2a3b3",
+    "disk.sizes": [
+      512
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "lenny-image+default",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  },
+  {
+    "disk_usage": 256,
+    "oper_vcpus": null,
+    "serial_no": 10,
+    "hvparams": {
+      "root_path": "/dev/xvda1",
+      "kernel_args": "ro",
+      "blockdev_prefix": "sd",
+      "use_bootloader": false,
+      "bootloader_args": "",
+      "bootloader_path": "",
+      "cpu_mask": "all",
+      "kernel_path": "/boot/vmlinuz-ganetixenu-2.6.38",
+      "initrd_path": "",
+      "reboot_behavior": "reboot"
+    },
+    "oper_state": false,
+    "disk_template": "drbd",
+    "mtime": 1325681489.0591741,
+    "nic.modes": [
+      "bridged"
+    ],
+    "oper_ram": null,
+    "pnode": "node3",
+    "nic.bridges": [
+      "xen-br0"
+    ],
+    "status": "ADMIN_down",
+    "custom_hvparams": {},
+    "tags": [],
+    "nic.ips": [
+      null
+    ],
+    "snodes": [
+      "node4"
+    ],
+    "nic.macs": [
+      "aa:00:00:cb:96:c1"
+    ],
+    "name": "instance21",
+    "network_port": null,
+    "ctime": 1312552008.1199999,
+    "custom_beparams": {},
+    "custom_nicparams": [
+      {}
+    ],
+    "uuid": "6f2f7824-8392-408e-ac54-c938f4fb0638",
+    "disk.sizes": [
+      128
+    ],
+    "admin_state": "down",
+    "nic.links": [
+      "xen-br0"
+    ],
+    "os": "debian-image",
+    "beparams": {
+      "auto_balance": true,
+      "minmem": 128,
+      "vcpus": 1,
+      "always_failover": false,
+      "maxmem": 128,
+      "spindle_use": 1
+    }
+  }
+]

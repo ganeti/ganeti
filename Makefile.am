@@ -715,6 +715,10 @@ TEST_FILES = \
 	test/data/htools/hail-change-group.json \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
+	test/data/htools/rapi/groups.json \
+	test/data/htools/rapi/info.json \
+	test/data/htools/rapi/instances.json \
+	test/data/htools/rapi/nodes.json \
 	test/data/ovfdata/compr_disk.vmdk.gz \
 	test/data/ovfdata/config.ini \
 	test/data/ovfdata/corrupted_resources.ovf \
