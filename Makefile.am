@@ -715,6 +715,9 @@ TEST_FILES = \
 	test/data/htools/hail-change-group.json \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
+	test/data/htools/common-suffix.data \
+	test/data/htools/invalid-node.data \
+	test/data/htools/missing-resources.data \
 	test/data/htools/rapi/groups.json \
 	test/data/htools/rapi/info.json \
 	test/data/htools/rapi/instances.json \

@@ -60,6 +60,15 @@ echo Checking failure on multiple backends
   grep -q "Error: Only one of the rapi, luxi, and data files options should be given."
 echo OK
 
+echo Checking text file loading
+hbal -t $TESTDATA_DIR/missing-resources.data 2>&1 | \
+  grep "node node2 is missing .* ram and .* disk" >/dev/null
+hbal -t $TESTDATA_DIR/common-suffix.data -v 2>&1 | \
+  grep "Stripping common suffix of '.example.com' from names" >/dev/null
+(! hbal -t $TESTDATA_DIR/invalid-node.data 2>&1 ) | \
+  grep "Unknown node '.*' for instance new-0" >/dev/null
+echo OK
+
 echo Checking hspace machine-readable mode
 hspace --simu p,4,8T,64g,16 --machine-readable \
   --disk-template drbd -l 8 >$T/capacity
