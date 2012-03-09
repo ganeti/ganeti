@@ -130,6 +130,28 @@ for suffix in standard tiered; do
 done
 echo OK
 
+echo Checking utilisation-based code
+BACKEND="-t $T/simu-onegroup.standard"
+echo a > $T/dynu
+(! hbal -U <(echo a) $BACKEND  2>&1 ) | grep -q "Cannot parse line"
+(! hbal -U <(echo a b c d e f g h) $BACKEND 2>&1 ) | \
+  grep -q "Cannot parse line"
+(! hbal -U <(echo inst cpu mem dsk net) $BACKEND 2>&1 ) | \
+  grep -Eq "cannot parse string '(cpu|mem|dsk|net)'"
+# unknown instances are currently just ignored
+hbal -U <(echo no-such-inst 2 2 2 2) $BACKEND >/dev/null 2>&1
+# new-0 is the name of the first instance allocated by hspace
+hbal -U <(echo new-0 2 2 2 2) $BACKEND >/dev/null 2>&1
+echo OK
+
+echo Checking selected/excluded instances
+(! hbal $BACKEND --exclude-instances no-such-instance 2>&1 ) | \
+  grep -q "Unknown instance"
+(! hbal $BACKEND --select-instances no-such-instances 2>&1 ) | \
+  grep -q "Unknown instance"
+hbal $BACKEND --exclude-instances new-0 --select-instances new-1 >/dev/null
+echo OK
+
 echo IAllocator checks
 # test that on invalid files it can't parse the request
 (! hail /dev/null 2>&1 ) | grep -q "Invalid JSON"
