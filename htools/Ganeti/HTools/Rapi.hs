@@ -30,6 +30,7 @@ module Ganeti.HTools.Rapi
   , parseData
   ) where
 
+import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
 #ifndef NO_CURL
 import Network.Curl
@@ -39,6 +40,7 @@ import Control.Monad
 import Text.JSON (JSObject, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))
 import Text.Printf (printf)
+import System.FilePath
 
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
@@ -49,6 +51,10 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.Constants as C
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
+
+-- | File method prefix.
+filePrefix :: String
+filePrefix = "file://"
 
 -- | Read an URL via curl and return the body if successful.
 getUrl :: (Monad m) => String -> IO (m String)
@@ -73,6 +79,11 @@ getUrl url = do
             _ -> fail $ printf "Curl error for '%s', error %s"
                  url (show code))
 #endif
+
+-- | Helper to convert I/O errors in 'Bad' values.
+ioErrToResult :: IO a -> IO (Result a)
+ioErrToResult ioaction =
+  catch (ioaction >>= return . Ok) (return . Bad . show)
 
 -- | Append the default port if not passed in.
 formatHost :: String -> String
@@ -175,15 +186,33 @@ parseCluster obj = do
   return (tags, ipolicy)
 
 -- | Loads the raw cluster data from an URL.
-readData :: String -- ^ Cluster or URL to use as source
-         -> IO (Result String, Result String, Result String, Result String)
-readData master = do
+readDataHttp :: String -- ^ Cluster or URL to use as source
+             -> IO (Result String, Result String, Result String, Result String)
+readDataHttp master = do
   let url = formatHost master
   group_body <- getUrl $ printf "%s/2/groups?bulk=1" url
   node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
   inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
   info_body <- getUrl $ printf "%s/2/info" url
   return (group_body, node_body, inst_body, info_body)
+
+-- | Loads the raw cluster data from the filesystem.
+readDataFile:: String -- ^ Path to the directory containing the files
+             -> IO (Result String, Result String, Result String, Result String)
+readDataFile path = do
+  group_body <- ioErrToResult $ readFile $ path </> "groups.json"
+  node_body <- ioErrToResult $ readFile $ path </> "nodes.json"
+  inst_body <- ioErrToResult $ readFile $ path </> "instances.json"
+  info_body <- ioErrToResult $ readFile $ path </> "info.json"
+  return (group_body, node_body, inst_body, info_body)
+
+-- | Loads data via either 'readDataFile' or 'readDataHttp'.
+readData :: String -- ^ URL to use as source
+         -> IO (Result String, Result String, Result String, Result String)
+readData url = do
+  if filePrefix `isPrefixOf` url
+    then readDataFile (drop (length filePrefix) url)
+    else readDataHttp url
 
 -- | Builds the cluster data from the raw Rapi content.
 parseData :: (Result String, Result String, Result String, Result String)
