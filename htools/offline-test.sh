@@ -21,6 +21,7 @@
 # programs, checking basic command line functionality.
 
 set -e
+set -o pipefail
 
 . $(dirname $0)/cli-tests-defs.sh
 
@@ -49,7 +50,7 @@ echo OK
 
 echo Checking extra arguments
 for prog in hspace hbal hinfo; do
-  ! $prog unexpected-argument 2>&1 | \
+  (! $prog unexpected-argument 2>&1 ) | \
     grep -q "Error: this program doesn't take any arguments"
 done
 echo OK
@@ -131,10 +132,10 @@ echo OK
 
 echo IAllocator checks
 # test that on invalid files it can't parse the request
-! hail /dev/null 2>&1 | grep -q "Invalid JSON"
+(! hail /dev/null 2>&1 ) | grep -q "Invalid JSON"
 ! hail <(echo '[]') >/dev/null 2>&1
-! hail <(echo '{}') 2>&1 | grep -q "key 'request' not found"
-! hail <(echo '{"request": 0}') 2>&1 | grep -q "key 'request'"
+(! hail <(echo '{}') 2>&1 ) | grep -q "key 'request' not found"
+(! hail <(echo '{"request": 0}') 2>&1 ) | grep -q "key 'request'"
 ! hail $TESTDATA_DIR/hail-invalid-reloc.json >/dev/null 2>&1
 
 # just test that it can read the file, print the cluster and generate
