@@ -8849,9 +8849,9 @@ class TLMigrateInstance(Tasklet):
       self._GoReconnect(False)
       self._WaitUntilSync()
 
-    # If the instance's disk template is `rbd' and there was a successful
-    # migration, unmap the device from the source node.
-    if self.instance.disk_template == constants.DT_RBD:
+    # If the instance's disk template is `rbd' or `ext' and there was a
+    # successful migration, unmap the device from the source node.
+    if self.instance.disk_template in (constants.DT_RBD, constants.DT_EXT):
       disks = _ExpandCheckDisks(instance, instance.disks)
       self.feedback_fn("* unmapping instance's disks from %s" % source_node)
       for disk in disks:
@@ -9101,6 +9101,7 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, vgnames, names,
 _DISK_TEMPLATE_NAME_PREFIX = {
   constants.DT_PLAIN: "",
   constants.DT_RBD: ".rbd",
+  constants.DT_EXT: ".ext",
   }
 
 
@@ -9110,6 +9111,7 @@ _DISK_TEMPLATE_DEVICE_TYPE = {
   constants.DT_SHARED_FILE: constants.LD_FILE,
   constants.DT_BLOCK: constants.LD_BLOCKDEV,
   constants.DT_RBD: constants.LD_RBD,
+  constants.DT_EXT: constants.LD_EXT,
   }
 
 
@@ -9189,6 +9191,8 @@ def _GenerateDiskTemplate(
                                        disk[constants.IDISK_ADOPT])
     elif template_name == constants.DT_RBD:
       logical_id_fn = lambda idx, _, disk: ("rbd", names[idx])
+    elif template_name == constants.DT_EXT:
+      logical_id_fn = lambda idx, _, disk: ("ext", names[idx])
     else:
       raise errors.ProgrammerError("Unknown disk template '%s'" % template_name)
 
@@ -10433,6 +10437,9 @@ class LUInstanceCreate(LogicalUnit):
         # Any function that checks prerequisites can be placed here.
         # Check if there is enough space on the RADOS cluster.
         _CheckRADOSFreeSpace()
+      elif self.op.disk_template == constants.DT_EXT:
+        # FIXME: Function that checks prereqs if needed
+        pass
       else:
         # Check lv size requirements, if not adopting
         req_sizes = _ComputeDiskSizePerVG(self.op.disk_template, self.disks)
@@ -12318,7 +12325,8 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     if instance.disk_template not in (constants.DT_FILE,
                                       constants.DT_SHARED_FILE,
-                                      constants.DT_RBD):
+                                      constants.DT_RBD,
+                                      constants.DT_EXT):
       # TODO: check the free disk space for file, when that feature will be
       # supported
       _CheckNodesFreeDiskPerVG(self, nodenames,

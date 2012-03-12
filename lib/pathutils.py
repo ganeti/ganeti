@@ -34,6 +34,7 @@ DEFAULT_SHARED_FILE_STORAGE_DIR = \
   vcluster.AddNodePrefix(_autoconf.SHARED_FILE_STORAGE_DIR)
 EXPORT_DIR = vcluster.AddNodePrefix(_autoconf.EXPORT_DIR)
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
+ES_SEARCH_PATH = _autoconf.ES_SEARCH_PATH
 SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR
 SYSCONFDIR = vcluster.AddNodePrefix(_autoconf.SYSCONFDIR)
 TOOLSDIR = _autoconf.TOOLSDIR
@@ -123,6 +124,7 @@ MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 QUERY_SOCKET = SOCKET_DIR + "/ganeti-query"
 
 LOG_OS_DIR = LOG_DIR + "/os"
+LOG_ES_DIR = LOG_DIR + "/extstorage"
 
 # Job queue paths
 JOB_QUEUE_LOCK_FILE = QUEUE_DIR + "/lock"

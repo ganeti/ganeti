@@ -60,6 +60,18 @@ AC_ARG_WITH([os-search-path],
   [os_search_path="'/srv/ganeti/os'"])
 AC_SUBST(OS_SEARCH_PATH, $os_search_path)
 
+# --with-extstorage-search-path=...
+# same black sed magic for quoting of the strings in the list
+AC_ARG_WITH([extstorage-search-path],
+  [AS_HELP_STRING([--with-extstorage-search-path=LIST],
+    [comma separated list of directories to]
+    [ search for External Storage Providers]
+    [ (default is /srv/ganeti/extstorage)]
+  )],
+  [es_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/'\1'/g"`],
+  [es_search_path="'/srv/ganeti/extstorage'"])
+AC_SUBST(ES_SEARCH_PATH, $es_search_path)
+
 # --with-iallocator-search-path=...
 # do a bit of black sed magic to for quoting of the strings in the list
 AC_ARG_WITH([iallocator-search-path],

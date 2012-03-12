@@ -369,6 +369,7 @@ DT_FILE = "file"
 DT_SHARED_FILE = "sharedfile"
 DT_BLOCK = "blockdev"
 DT_RBD = "rbd"
+DT_EXT = "ext"
 
 # the set of network-mirrored disk templates
 DTS_INT_MIRROR = compat.UniqueFrozenset([DT_DRBD8])
@@ -378,6 +379,7 @@ DTS_EXT_MIRROR = compat.UniqueFrozenset([
   DT_SHARED_FILE,
   DT_BLOCK,
   DT_RBD,
+  DT_EXT,
   ])
 
 # the set of non-lvm-based disk templates
@@ -387,6 +389,7 @@ DTS_NOT_LVM = compat.UniqueFrozenset([
   DT_SHARED_FILE,
   DT_BLOCK,
   DT_RBD,
+  DT_EXT,
   ])
 
 # the set of disk templates which can be grown
@@ -396,6 +399,7 @@ DTS_GROWABLE = compat.UniqueFrozenset([
   DT_FILE,
   DT_SHARED_FILE,
   DT_RBD,
+  DT_EXT,
   ])
 
 # the set of disk templates that allow adoption
@@ -422,12 +426,14 @@ LD_DRBD8 = "drbd8"
 LD_FILE = "file"
 LD_BLOCKDEV = "blockdev"
 LD_RBD = "rbd"
+LD_EXT = "ext"
 LOGICAL_DISK_TYPES = compat.UniqueFrozenset([
   LD_LV,
   LD_DRBD8,
   LD_FILE,
   LD_BLOCKDEV,
   LD_RBD,
+  LD_EXT,
   ])
 
 LDS_BLOCK = compat.UniqueFrozenset([
@@ -435,6 +441,7 @@ LDS_BLOCK = compat.UniqueFrozenset([
   LD_DRBD8,
   LD_BLOCKDEV,
   LD_RBD,
+  LD_EXT,
   ])
 
 # drbd constants
@@ -535,6 +542,7 @@ DISK_TEMPLATES = compat.UniqueFrozenset([
   DT_SHARED_FILE,
   DT_BLOCK,
   DT_RBD,
+  DT_EXT
   ])
 
 FILE_DRIVER = compat.UniqueFrozenset([FD_LOOP, FD_BLKTAP])
@@ -660,6 +668,29 @@ OS_PARAMETERS_FILE = "parameters.list"
 
 OS_VALIDATE_PARAMETERS = "parameters"
 OS_VALIDATE_CALLS = compat.UniqueFrozenset([OS_VALIDATE_PARAMETERS])
+
+# External Storage (ES) related constants
+ES_ACTION_CREATE = "create"
+ES_ACTION_REMOVE = "remove"
+ES_ACTION_GROW = "grow"
+ES_ACTION_ATTACH = "attach"
+ES_ACTION_DETACH = "detach"
+ES_ACTION_SETINFO = "setinfo"
+
+ES_SCRIPT_CREATE = ES_ACTION_CREATE
+ES_SCRIPT_REMOVE = ES_ACTION_REMOVE
+ES_SCRIPT_GROW = ES_ACTION_GROW
+ES_SCRIPT_ATTACH = ES_ACTION_ATTACH
+ES_SCRIPT_DETACH = ES_ACTION_DETACH
+ES_SCRIPT_SETINFO = ES_ACTION_SETINFO
+ES_SCRIPTS = frozenset([
+  ES_SCRIPT_CREATE,
+  ES_SCRIPT_REMOVE,
+  ES_SCRIPT_GROW,
+  ES_SCRIPT_ATTACH,
+  ES_SCRIPT_DETACH,
+  ES_SCRIPT_SETINFO
+  ])
 
 # ssh constants
 SSH = "ssh"
@@ -1936,6 +1967,7 @@ DISK_LD_DEFAULTS = {
   LD_RBD: {
     LDP_POOL: "rbd"
     },
+  LD_EXT: {},
   }
 
 # readability shortcuts
@@ -1969,6 +2001,7 @@ DISK_DT_DEFAULTS = {
   DT_RBD: {
     RBD_POOL: DISK_LD_DEFAULTS[LD_RBD][LDP_POOL]
     },
+  DT_EXT: {},
   }
 
 # we don't want to export the shortcuts

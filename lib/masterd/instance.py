@@ -1630,6 +1630,7 @@ def ComputeDiskSize(disk_template, disks):
     constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
     constants.DT_BLOCK: 0,
     constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
+    constants.DT_EXT: sum(d[constants.IDISK_SIZE] for d in disks),
   }
 
   if disk_template not in req_size_dict:
