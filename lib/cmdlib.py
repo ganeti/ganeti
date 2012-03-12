@@ -9349,6 +9349,7 @@ class LUInstanceCreate(LogicalUnit):
                      os=self.op.os_type,
                      vcpus=self.be_full[constants.BE_VCPUS],
                      memory=self.be_full[constants.BE_MAXMEM],
+                     spindle_usage=self.be_full[constants.BE_SPINDLE_USAGE],
                      disks=self.disks,
                      nics=nics,
                      hypervisor=self.op.hypervisor,
@@ -14510,7 +14511,7 @@ class IAllocator(object):
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
     self.mode = mode
-    self.memory = self.disks = self.disk_template = None
+    self.memory = self.disks = self.disk_template = self.spindle_usage = None
     self.os = self.tags = self.nics = self.vcpus = None
     self.hypervisor = None
     self.relocate_from = None
@@ -14716,6 +14717,7 @@ class IAllocator(object):
         "admin_state": iinfo.admin_state,
         "vcpus": beinfo[constants.BE_VCPUS],
         "memory": beinfo[constants.BE_MAXMEM],
+        "spindle_usage": beinfo[constants.BE_SPINDLE_USAGE],
         "os": iinfo.os,
         "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
         "nics": nic_data,
@@ -14755,6 +14757,7 @@ class IAllocator(object):
       "os": self.os,
       "vcpus": self.vcpus,
       "memory": self.memory,
+      "spindle_usage": self.spindle_usage,
       "disks": self.disks,
       "disk_space_total": disk_space,
       "nics": self.nics,
@@ -14868,6 +14871,7 @@ class IAllocator(object):
        [
         ("name", ht.TString),
         ("memory", ht.TInt),
+        ("spindle_usage", ht.TInt),
         ("disks", ht.TListOf(ht.TDict)),
         ("disk_template", ht.TString),
         ("os", ht.TString),
