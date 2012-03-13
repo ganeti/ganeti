@@ -645,36 +645,40 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
   def test(self):
     compute_fn = _ValidateComputeMinMaxSpec
     ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], _compute_fn=compute_fn)
+                                              [1024], 1, _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testInvalidArguments(self):
     self.assertRaises(AssertionError, cmdlib._ComputeIPolicySpecViolation,
-                      NotImplemented, 1024, 1, 1, 1, [])
+                      NotImplemented, 1024, 1, 1, 1, [], 1)
 
   def testInvalidSpec(self):
-    spec = _SpecWrapper([None, False, "foo", None, "bar"])
+    spec = _SpecWrapper([None, False, "foo", None, "bar", None])
     compute_fn = spec.ComputeMinMaxSpec
     ret = cmdlib._ComputeIPolicySpecViolation(NotImplemented, 1024, 1, 1, 1,
-                                              [1024], _compute_fn=compute_fn)
+                                              [1024], 1, _compute_fn=compute_fn)
     self.assertEqual(ret, ["foo", "bar"])
     self.assertFalse(spec.spec)
 
 
 class _StubComputeIPolicySpecViolation:
-  def __init__(self, mem_size, cpu_count, disk_count, nic_count, disk_sizes):
+  def __init__(self, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
+               spindle_use):
     self.mem_size = mem_size
     self.cpu_count = cpu_count
     self.disk_count = disk_count
     self.nic_count = nic_count
     self.disk_sizes = disk_sizes
+    self.spindle_use = spindle_use
 
-  def __call__(self, _, mem_size, cpu_count, disk_count, nic_count, disk_sizes):
+  def __call__(self, _, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
+               spindle_use):
     assert self.mem_size == mem_size
     assert self.cpu_count == cpu_count
     assert self.disk_count == disk_count
     assert self.nic_count == nic_count
     assert self.disk_sizes == disk_sizes
+    assert self.spindle_use == spindle_use
 
     return []
 
@@ -684,10 +688,11 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
     beparams = {
       constants.BE_MAXMEM: 2048,
       constants.BE_VCPUS: 2,
+      constants.BE_SPINDLE_USAGE: 4,
       }
     disks = [objects.Disk(size=512)]
     instance = objects.Instance(beparams=beparams, disks=disks, nics=[])
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512])
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4)
     ret = cmdlib._ComputeIPolicyInstanceViolation(NotImplemented, instance,
                                                   _compute_fn=stub)
     self.assertEqual(ret, [])
@@ -701,8 +706,9 @@ class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
       constants.ISPEC_DISK_COUNT: 1,
       constants.ISPEC_DISK_SIZE: [512],
       constants.ISPEC_NIC_COUNT: 0,
+      constants.ISPEC_SPINDLE_USE: 1,
       }
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512])
+    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 1)
     ret = cmdlib._ComputeIPolicyInstanceSpecViolation(NotImplemented, ispec,
                                                       _compute_fn=stub)
     self.assertEqual(ret, [])

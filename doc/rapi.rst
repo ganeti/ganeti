@@ -196,7 +196,8 @@ The instance policy specification is a dict with the following fields:
         constants.ISPEC_DISK_SIZE,
         constants.ISPEC_DISK_COUNT,
         constants.ISPEC_CPU_COUNT,
-        constants.ISPEC_NIC_COUNT]))
+        constants.ISPEC_NIC_COUNT,
+        constants.ISPEC_SPINDLE_USE]))
 
 .. |ispec-min| replace:: :pyeval:`constants.ISPECS_MIN`
 .. |ispec-max| replace:: :pyeval:`constants.ISPECS_MAX`
@@ -217,6 +218,10 @@ The instance policy specification is a dict with the following fields:
     The numbers of cpus used
   :pyeval:`constants.ISPEC_NIC_COUNT`
     The numbers of nics used
+  :pyeval:`constants.ISPEC_SPINDLE_USE`
+    The numbers of virtual disk spindles used by this instance. They are
+    not real, but useful for account the spindle usage on the residing
+    node.
 :pyeval:`constants.IPOLICY_DTS`
   A `list` of disk templates allowed for instances using this policy
 :pyeval:`constants.IPOLICY_VCPU_RATIO`

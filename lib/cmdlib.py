@@ -1093,7 +1093,7 @@ def _ComputeMinMaxSpec(name, ipolicy, value):
 
 
 def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
-                                 nic_count, disk_sizes,
+                                 nic_count, disk_sizes, spindle_use,
                                  _compute_fn=_ComputeMinMaxSpec):
   """Verifies ipolicy against provided specs.
 
@@ -1109,6 +1109,8 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   @param nic_count: Number of nics used
   @type disk_sizes: list of ints
   @param disk_sizes: Disk sizes of used disk (len must match C{disk_count})
+  @type spindle_use: int
+  @param spindle_use: The number of spindles this instance uses
   @param _compute_fn: The compute function (unittest only)
   @return: A list of violations, or an empty list of no violations are found
 
@@ -1120,6 +1122,7 @@ def _ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     (constants.ISPEC_CPU_COUNT, cpu_count),
     (constants.ISPEC_DISK_COUNT, disk_count),
     (constants.ISPEC_NIC_COUNT, nic_count),
+    (constants.ISPEC_SPINDLE_USE, spindle_use),
     ] + map((lambda d: (constants.ISPEC_DISK_SIZE, d)), disk_sizes)
 
   return filter(None,
@@ -1141,12 +1144,13 @@ def _ComputeIPolicyInstanceViolation(ipolicy, instance,
   """
   mem_size = instance.beparams.get(constants.BE_MAXMEM, None)
   cpu_count = instance.beparams.get(constants.BE_VCPUS, None)
+  spindle_use = instance.beparams.get(constants.BE_SPINDLE_USAGE, None)
   disk_count = len(instance.disks)
   disk_sizes = [disk.size for disk in instance.disks]
   nic_count = len(instance.nics)
 
   return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                     disk_sizes)
+                     disk_sizes, spindle_use)
 
 
 def _ComputeIPolicyInstanceSpecViolation(ipolicy, instance_spec,
@@ -1166,9 +1170,10 @@ def _ComputeIPolicyInstanceSpecViolation(ipolicy, instance_spec,
   disk_count = instance_spec.get(constants.ISPEC_DISK_COUNT, 0)
   disk_sizes = instance_spec.get(constants.ISPEC_DISK_SIZE, [])
   nic_count = instance_spec.get(constants.ISPEC_NIC_COUNT, 0)
+  spindle_use = instance_spec.get(constants.ISPEC_SPINDLE_USE, None)
 
   return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                     disk_sizes)
+                     disk_sizes, spindle_use)
 
 
 def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,
@@ -9845,12 +9850,14 @@ class LUInstanceCreate(LogicalUnit):
     nodenames = [pnode.name] + self.secondaries
 
     # Verify instance specs
+    spindle_use = self.be_full.get(constants.BE_SPINDLE_USAGE, None)
     ispec = {
       constants.ISPEC_MEM_SIZE: self.be_full.get(constants.BE_MAXMEM, None),
       constants.ISPEC_CPU_COUNT: self.be_full.get(constants.BE_VCPUS, None),
       constants.ISPEC_DISK_COUNT: len(self.disks),
       constants.ISPEC_DISK_SIZE: [disk["size"] for disk in self.disks],
       constants.ISPEC_NIC_COUNT: len(self.nics),
+      constants.ISPEC_SPINDLE_USE: spindle_use,
       }
 
     group_info = self.cfg.GetNodeGroup(pnode.group)
