@@ -70,7 +70,8 @@ parseBaseInstance n a = do
   vcpus <- extract "vcpus"
   tags  <- extract "tags"
   dt    <- extract "disk_template"
-  return (n, Instance.create n mem disk vcpus Running tags True 0 0 dt 1)
+  su    <- extract "spindle_usage"
+  return (n, Instance.create n mem disk vcpus Running tags True 0 0 dt su)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list
