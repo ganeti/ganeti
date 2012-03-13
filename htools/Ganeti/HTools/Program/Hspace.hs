@@ -389,7 +389,7 @@ runAllocation cdata stop_allocation actual_result spec dt mode opts = do
 instFromSpec :: RSpec -> DiskTemplate -> Instance.Instance
 instFromSpec spx disk_template =
   Instance.create "new" (rspecMem spx) (rspecDsk spx)
-    (rspecCpu spx) Running [] True (-1) (-1) disk_template
+    (rspecCpu spx) Running [] True (-1) (-1) disk_template 1
 
 -- | Main function.
 main :: Options -> [String] -> IO ()

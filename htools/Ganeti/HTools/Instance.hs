@@ -79,6 +79,7 @@ data Instance = Instance
   , autoBalance  :: Bool      -- ^ Is the instance auto-balanced?
   , tags         :: [String]  -- ^ List of instance tags
   , diskTemplate :: T.DiskTemplate -- ^ The disk template of the instance
+  , spindleUsage :: Int       -- ^ The numbers of used spindles
   } deriving (Show, Read, Eq)
 
 instance T.Element Instance where
@@ -157,9 +158,10 @@ type List = Container.Container Instance
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
 create :: String -> Int -> Int -> Int -> T.InstanceStatus
-       -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Instance
+       -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Int
+       -> Instance
 create name_init mem_init dsk_init vcpus_init run_init tags_init
-       auto_balance_init pn sn dt =
+       auto_balance_init pn sn dt su =
   Instance { name = name_init
            , alias = name_init
            , mem = mem_init
@@ -174,6 +176,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init
            , movable = supportsMoves dt
            , autoBalance = auto_balance_init
            , diskTemplate = dt
+           , spindleUsage = su
            }
 
 -- | Changes the index.
