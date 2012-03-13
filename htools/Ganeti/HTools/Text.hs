@@ -102,12 +102,12 @@ serializeInstance nl inst =
       snode = (if sidx == Node.noSecondary
                  then ""
                  else Container.nameOf nl sidx)
-  in printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s"
+  in printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s|%d"
        iname (Instance.mem inst) (Instance.dsk inst)
        (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
        (if Instance.autoBalance inst then "Y" else "N")
        pnode snode (diskTemplateToRaw (Instance.diskTemplate inst))
-       (intercalate "," (Instance.tags inst))
+       (intercalate "," (Instance.tags inst)) (Instance.spindleUsage inst)
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
@@ -206,7 +206,7 @@ loadInst :: NameAssoc -- ^ Association list with the current nodes
                                                -- instance name and
                                                -- the instance object
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
-             , dt, tags ] = do
+             , dt, tags, su ] = do
   pidx <- lookupNode ktn name pnode
   sidx <- if null snode
             then return Node.noSecondary
@@ -222,12 +222,18 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
                          "' for instance " ++ name
   disk_template <- annotateResult ("Instance " ++ name)
                    (diskTemplateFromRaw dt)
+  spindle_usage <- tryRead name su
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
   let vtags = commaSplit tags
       newinst = Instance.create name vmem vdsk vvcpus vstatus vtags
-                auto_balance pidx sidx disk_template 1
+                auto_balance pidx sidx disk_template spindle_usage
   return (name, newinst)
+
+loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
+             , dt, tags ] = loadInst ktn [ name, mem, dsk, vcpus, status,
+                                           auto_bal, pnode, snode, dt, tags,
+                                           "1" ]
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
 -- | Loads a spec from a field list.

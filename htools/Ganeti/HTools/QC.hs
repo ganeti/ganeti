@@ -754,11 +754,12 @@ testSuite "Instance"
 
 prop_Text_Load_Instance name mem dsk vcpus status
                         (NonEmpty pnode) snode
-                        (NonNegative pdx) (NonNegative sdx) autobal dt =
+                        (NonNegative pdx) (NonNegative sdx) autobal dt su =
   pnode /= snode && pdx /= sdx ==>
   let vcpus_s = show vcpus
       dsk_s = show dsk
       mem_s = show mem
+      su_s = show su
       status_s = Types.instanceStatusToRaw status
       ndx = if null snode
               then [(pnode, pdx)]
@@ -769,7 +770,7 @@ prop_Text_Load_Instance name mem dsk vcpus status
       sdt = Types.diskTemplateToRaw dt
       inst = Text.loadInst nl
              [name, mem_s, dsk_s, vcpus_s, status_s,
-              sbal, pnode, snode, sdt, tags]
+              sbal, pnode, snode, sdt, tags, su_s]
       fail1 = Text.loadInst nl
               [name, mem_s, dsk_s, vcpus_s, status_s,
                sbal, pnode, pnode, tags]
@@ -789,10 +790,11 @@ prop_Text_Load_Instance name mem dsk vcpus status
                                       then Node.noSecondary
                                       else sdx) &&
                Instance.autoBalance i == autobal &&
+               Instance.spindleUsage i == su &&
                Types.isBad fail1
 
 prop_Text_Load_InstanceFail ktn fields =
-  length fields /= 10 ==>
+  length fields /= 10 && length fields /= 11 ==>
     case Text.loadInst nl fields of
       Types.Ok _ -> failTest "Managed to load instance from invalid data"
       Types.Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
