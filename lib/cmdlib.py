@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -11132,6 +11132,12 @@ class LUInstanceSetParams(LogicalUnit):
       child.size = parent.size
       child.mode = parent.mode
 
+    # this is a DRBD disk, return its port to the pool
+    # NOTE: this must be done right before the call to cfg.Update!
+    for disk in old_disks:
+      tcp_port = disk.logical_id[2]
+      self.cfg.AddTcpUdpPort(tcp_port)
+
     # update instance structure
     instance.disks = new_disks
     instance.disk_template = constants.DT_PLAIN
@@ -11154,10 +11160,6 @@ class LUInstanceSetParams(LogicalUnit):
         self.LogWarning("Could not remove metadata for disk %d on node %s,"
                         " continuing anyway: %s", idx, pnode, msg)
 
-    # this is a DRBD disk, return its port to the pool
-    for disk in old_disks:
-      tcp_port = disk.logical_id[2]
-      self.cfg.AddTcpUdpPort(tcp_port)
 
   def Exec(self, feedback_fn):
     """Modifies an instance.
