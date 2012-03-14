@@ -315,6 +315,11 @@ buildPeers t il =
       new_prem = fromIntegral new_rmem / tMem t
   in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
+-- | Calculate the new spindle usage
+calcSpindleUsage :: Node -> Instance.Instance -> Double
+calcSpindleUsage n i = incIf (Instance.usesLocalStorage i) (instSpindles n)
+                         (fromIntegral $ Instance.spindleUsage i)
+
 -- | Assigns an instance to a node as primary and update the used VCPU
 -- count, utilisation data and tags map.
 setPri :: Node -> Instance.Instance -> Node
@@ -323,23 +328,19 @@ setPri t inst = t { pList = Instance.idx inst:pList t
                   , pCpu = fromIntegral new_count / tCpu t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
                   , pTags = addTags (pTags t) (Instance.tags inst)
-                  , instSpindles = new_spindles
+                  , instSpindles = calcSpindleUsage t inst
                   }
   where new_count = Instance.applyIfOnline inst (+ Instance.vcpus inst)
                     (uCpu t )
-        new_spindles = instSpindles t + if Instance.usesLocalStorage inst
-                                          then 1 else 0
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> Instance.Instance -> Node
 setSec t inst = t { sList = Instance.idx inst:sList t
                   , utilLoad = old_load { T.dskWeight = T.dskWeight old_load +
                                           T.dskWeight (Instance.util inst) }
-                  , instSpindles = new_spindles
+                  , instSpindles = calcSpindleUsage t inst
                   }
   where old_load = utilLoad t
-        new_spindles = instSpindles t + if Instance.usesLocalStorage inst
-                                          then 1 else 0
 
 -- | Computes the new 'pDsk' value, handling nodes without local disk
 -- storage (we consider all their disk used).
