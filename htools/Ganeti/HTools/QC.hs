@@ -537,17 +537,20 @@ prop_Utils_select_undefv lst1 (NonEmpty lst2) =
           cndlist = flist ++ tlist ++ [undefined]
 
 prop_Utils_parseUnit (NonNegative n) =
-  Utils.parseUnit (show n) == Types.Ok n &&
-  Utils.parseUnit (show n ++ "m") == Types.Ok n &&
-  (case Utils.parseUnit (show n ++ "M") of
-     Types.Ok m -> if n > 0
-                     then m < n  -- for positive values, X MB is < than X MiB
-                     else m == 0 -- but for 0, 0 MB == 0 MiB
-     Types.Bad _ -> False) &&
-  Utils.parseUnit (show n ++ "g") == Types.Ok (n*1024) &&
-  Utils.parseUnit (show n ++ "t") == Types.Ok (n*1048576) &&
-  Types.isBad (Utils.parseUnit (show n ++ "x")::Types.Result Int)
-    where _types = n::Int
+  Utils.parseUnit (show n) ==? Types.Ok n .&&.
+  Utils.parseUnit (show n ++ "m") ==? Types.Ok n .&&.
+  Utils.parseUnit (show n ++ "M") ==? Types.Ok (truncate n_mb::Int) .&&.
+  Utils.parseUnit (show n ++ "g") ==? Types.Ok (n*1024) .&&.
+  Utils.parseUnit (show n ++ "G") ==? Types.Ok (truncate n_gb::Int) .&&.
+  Utils.parseUnit (show n ++ "t") ==? Types.Ok (n*1048576) .&&.
+  Utils.parseUnit (show n ++ "T") ==? Types.Ok (truncate n_tb::Int) .&&.
+  printTestCase "Internal error/overflow?"
+    (n_mb >=0 && n_gb >= 0 && n_tb >= 0) .&&.
+  property (Types.isBad (Utils.parseUnit (show n ++ "x")::Types.Result Int))
+  where _types = (n::Int)
+        n_mb = (fromIntegral n::Rational) * 1000 * 1000 / 1024 / 1024
+        n_gb = n_mb * 1000
+        n_tb = n_gb * 1000
 
 -- | Test list for the Utils module.
 testSuite "Utils"

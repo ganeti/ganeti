@@ -40,6 +40,7 @@ module Ganeti.HTools.Utils
 
 import Data.Char (toUpper)
 import Data.List
+import Data.Ratio ((%))
 
 import Debug.Trace
 
@@ -163,6 +164,25 @@ printTable lp header rows isnum =
   unlines . map ((++) lp) . map ((:) ' ' . unwords) $
   formatTable (header:rows) isnum
 
+-- | Converts a unit (e.g. m or GB) into a scaling factor.
+parseUnitValue :: (Monad m) => String -> m Rational
+parseUnitValue unit
+  -- binary conversions first
+  | null unit                     = return 1
+  | unit == "m" || upper == "MIB" = return 1
+  | unit == "g" || upper == "GIB" = return kbBinary
+  | unit == "t" || upper == "TIB" = return $ kbBinary * kbBinary
+  -- SI conversions
+  | unit == "M" || upper == "MB"  = return mbFactor
+  | unit == "G" || upper == "GB"  = return $ mbFactor * kbDecimal
+  | unit == "T" || upper == "TB"  = return $ mbFactor * kbDecimal * kbDecimal
+  | otherwise = fail $ "Unknown unit '" ++ unit ++ "'"
+  where upper = map toUpper unit
+        kbBinary = 1024
+        kbDecimal = 1000
+        decToBin = kbDecimal / kbBinary -- factor for 1K conversion
+        mbFactor = decToBin * decToBin -- twice the factor for just 1K
+
 -- | Tries to extract number and scale from the given string.
 --
 -- Input must be in the format NUMBER+ SPACE* [UNIT]. If no unit is
@@ -172,20 +192,10 @@ parseUnit :: (Monad m, Integral a, Read a) => String -> m a
 parseUnit str =
   -- TODO: enhance this by splitting the unit parsing code out and
   -- accepting floating-point numbers
-  case reads str of
+  case (reads str::[(Int, String)]) of
     [(v, suffix)] ->
       let unit = dropWhile (== ' ') suffix
-          upper = map toUpper unit
-          siConvert x = x * 1000000 `div` 1048576
-      in case () of
-           _ | null unit -> return v
-             | unit == "m" || upper == "MIB" -> return v
-             | unit == "M" || upper == "MB"  -> return $ siConvert v
-             | unit == "g" || upper == "GIB" -> return $ v * 1024
-             | unit == "G" || upper == "GB"  -> return $ siConvert
-                                                (v * 1000)
-             | unit == "t" || upper == "TIB" -> return $ v * 1048576
-             | unit == "T" || upper == "TB"  -> return $
-                                                siConvert (v * 1000000)
-             | otherwise -> fail $ "Unknown unit '" ++ unit ++ "'"
+      in do
+        scaling <- parseUnitValue unit
+        return $ truncate (fromIntegral v * scaling)
     _ -> fail $ "Can't parse string '" ++ str ++ "'"
