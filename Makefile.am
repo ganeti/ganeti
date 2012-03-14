@@ -821,9 +821,12 @@ dist_TESTS = \
 	$(python_tests)
 
 nodist_TESTS =
+check_SCRIPTS =
+
 if WANT_HTOOLSTESTS
 nodist_TESTS += $(haskell_tests)
 dist_TESTS += htools/offline-test.sh
+check_SCRIPTS += htools/htools-hpc
 endif
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
@@ -865,7 +868,7 @@ srclink_files = \
 	test/ganeti-cleaner_unittest.bash \
 	test/import-export_unittest.bash \
 	htools/offline-test.sh \
-	htools/cli-tests.sh \
+	htools/cli-tests-defs.sh \
 	$(all_python_code) \
 	$(HS_LIB_SRCS) $(HS_PROG_SRCS)
 
