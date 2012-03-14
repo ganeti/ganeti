@@ -118,8 +118,9 @@ serializeInstances nl =
 serializeISpec :: ISpec -> String
 serializeISpec ispec =
   -- this needs to be kept in sync with the object definition
-  let ISpec mem_s cpu_c disk_s disk_c nic_c = ispec
-      strings = [show mem_s, show cpu_c, show disk_s, show disk_c, show nic_c]
+  let ISpec mem_s cpu_c disk_s disk_c nic_c su = ispec
+      strings = [show mem_s, show cpu_c, show disk_s, show disk_c, show nic_c,
+                 show su]
   in intercalate "," strings
 
 -- | Generate disk template data.
@@ -238,13 +239,14 @@ loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
 -- | Loads a spec from a field list.
 loadISpec :: String -> [String] -> Result ISpec
-loadISpec owner [mem_s, cpu_c, dsk_s, dsk_c, nic_c] = do
+loadISpec owner [mem_s, cpu_c, dsk_s, dsk_c, nic_c, su] = do
   xmem_s <- tryRead (owner ++ "/memsize") mem_s
   xcpu_c <- tryRead (owner ++ "/cpucount") cpu_c
   xdsk_s <- tryRead (owner ++ "/disksize") dsk_s
   xdsk_c <- tryRead (owner ++ "/diskcount") dsk_c
   xnic_c <- tryRead (owner ++ "/niccount") nic_c
-  return $ ISpec xmem_s xcpu_c xdsk_s xdsk_c xnic_c
+  xsu    <- tryRead (owner ++ "/spindleuse") su
+  return $ ISpec xmem_s xcpu_c xdsk_s xdsk_c xnic_c xsu
 loadISpec owner s = fail $ "Invalid ispec data for " ++ owner ++ ": " ++ show s
 
 -- | Loads an ipolicy from a field list.

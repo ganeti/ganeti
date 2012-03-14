@@ -116,18 +116,21 @@ nullIPolicy = Types.IPolicy
                                        , Types.iSpecDiskSize   = 0
                                        , Types.iSpecDiskCount  = 0
                                        , Types.iSpecNicCount   = 0
+                                       , Types.iSpecSpindleUse = 0
                                        }
   , Types.iPolicyMaxSpec = Types.ISpec { Types.iSpecMemorySize = maxBound
                                        , Types.iSpecCpuCount   = maxBound
                                        , Types.iSpecDiskSize   = maxBound
                                        , Types.iSpecDiskCount  = C.maxDisks
                                        , Types.iSpecNicCount   = C.maxNics
+                                       , Types.iSpecSpindleUse = maxBound
                                        }
   , Types.iPolicyStdSpec = Types.ISpec { Types.iSpecMemorySize = Types.unitMem
                                        , Types.iSpecCpuCount   = Types.unitCpu
                                        , Types.iSpecDiskSize   = Types.unitDsk
                                        , Types.iSpecDiskCount  = 1
                                        , Types.iSpecNicCount   = 1
+                                       , Types.iSpecSpindleUse = 1
                                        }
   , Types.iPolicyDiskTemplates = [Types.DTDrbd8, Types.DTPlain]
   , Types.iPolicyVcpuRatio = maxVcpuRatio -- somewhat random value, high
@@ -432,11 +435,13 @@ instance Arbitrary Types.ISpec where
     dsk_s <- arbitrary::Gen (NonNegative Int)
     cpu_c <- arbitrary::Gen (NonNegative Int)
     nic_c <- arbitrary::Gen (NonNegative Int)
+    su    <- arbitrary::Gen (NonNegative Int)
     return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem_s
                        , Types.iSpecCpuCount   = fromIntegral cpu_c
                        , Types.iSpecDiskSize   = fromIntegral dsk_s
                        , Types.iSpecDiskCount  = fromIntegral dsk_c
                        , Types.iSpecNicCount   = fromIntegral nic_c
+                       , Types.iSpecSpindleUse = fromIntegral su
                        }
 
 -- | Generates an ispec bigger than the given one.
@@ -447,11 +452,13 @@ genBiggerISpec imin = do
   dsk_s <- choose (Types.iSpecDiskSize imin, maxBound)
   cpu_c <- choose (Types.iSpecCpuCount imin, maxBound)
   nic_c <- choose (Types.iSpecNicCount imin, maxBound)
+  su    <- choose (Types.iSpecSpindleUse imin, maxBound)
   return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem_s
                      , Types.iSpecCpuCount   = fromIntegral cpu_c
                      , Types.iSpecDiskSize   = fromIntegral dsk_s
                      , Types.iSpecDiskCount  = fromIntegral dsk_c
                      , Types.iSpecNicCount   = fromIntegral nic_c
+                     , Types.iSpecSpindleUse = fromIntegral su
                      }
 
 instance Arbitrary Types.IPolicy where

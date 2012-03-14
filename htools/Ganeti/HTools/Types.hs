@@ -192,11 +192,12 @@ type AllocStats = (AllocInfo, AllocInfo, AllocInfo)
 
 -- | Instance specification type.
 $(THH.buildObject "ISpec" "iSpec"
-  [ THH.renameField "MemorySize" $ THH.simpleField C.ispecMemSize   [t| Int |]
-  , THH.renameField "CpuCount"   $ THH.simpleField C.ispecCpuCount  [t| Int |]
-  , THH.renameField "DiskSize"   $ THH.simpleField C.ispecDiskSize  [t| Int |]
-  , THH.renameField "DiskCount"  $ THH.simpleField C.ispecDiskCount [t| Int |]
-  , THH.renameField "NicCount"   $ THH.simpleField C.ispecNicCount  [t| Int |]
+  [ THH.renameField "MemorySize"   $ THH.simpleField C.ispecMemSize      [t| Int |]
+  , THH.renameField "CpuCount"     $ THH.simpleField C.ispecCpuCount     [t| Int |]
+  , THH.renameField "DiskSize"     $ THH.simpleField C.ispecDiskSize     [t| Int |]
+  , THH.renameField "DiskCount"    $ THH.simpleField C.ispecDiskCount    [t| Int |]
+  , THH.renameField "NicCount"     $ THH.simpleField C.ispecNicCount     [t| Int |]
+  , THH.renameField "SpindleUse"   $ THH.simpleField C.ispecSpindleUse   [t| Int |]
   ])
 
 -- | The default minimum ispec.
@@ -206,6 +207,7 @@ defMinISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMinMemorySize
                     , iSpecDiskSize   = C.ipolicyDefaultsMinDiskSize
                     , iSpecDiskCount  = C.ipolicyDefaultsMinDiskCount
                     , iSpecNicCount   = C.ipolicyDefaultsMinNicCount
+                    , iSpecSpindleUse = C.ipolicyDefaultsMinSpindleUse
                     }
 
 -- | The default standard ispec.
@@ -215,6 +217,7 @@ defStdISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsStdMemorySize
                     , iSpecDiskSize   = C.ipolicyDefaultsStdDiskSize
                     , iSpecDiskCount  = C.ipolicyDefaultsStdDiskCount
                     , iSpecNicCount   = C.ipolicyDefaultsStdNicCount
+                    , iSpecSpindleUse = C.ipolicyDefaultsStdSpindleUse
                     }
 
 -- | The default max ispec.
@@ -224,6 +227,7 @@ defMaxISpec = ISpec { iSpecMemorySize = C.ipolicyDefaultsMaxMemorySize
                     , iSpecDiskSize   = C.ipolicyDefaultsMaxDiskSize
                     , iSpecDiskCount  = C.ipolicyDefaultsMaxDiskCount
                     , iSpecNicCount   = C.ipolicyDefaultsMaxNicCount
+                    , iSpecSpindleUse = C.ipolicyDefaultsMaxSpindleUse
                     }
 
 -- | Instance policy type.
